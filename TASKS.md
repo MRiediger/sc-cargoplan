@@ -34,7 +34,7 @@ Session-Start-Prompt für Claude Code:
 
 ## Phase 1 – Datenmodell (Core)
 
-### [ ] T1.1 Core-Modelle
+### [x] T1.1 Core-Modelle
 **Warum:** Der Planer braucht feste Typen, sonst diskutieren wir später über Dictionary-Keys.
 Immutable `record`s in `CargoPlan.Core/Models/`:
 - `enum CrateSize { One = 1, Two = 2, Four = 4, Eight = 8 }`
