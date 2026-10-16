@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "id": "duplicate_rack_id",
+  "name": "Two racks named rack-0",
+  "totalScu": 32,
+  "racks": [
+    { "id": "rack-0", "capacityScu": 16, "slots": [] },
+    { "id": "rack-0", "capacityScu": 16, "slots": [] }
+  ]
+}

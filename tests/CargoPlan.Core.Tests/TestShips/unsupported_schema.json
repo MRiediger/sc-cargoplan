@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 2,
+  "id": "unsupported_schema",
+  "name": "Future format",
+  "totalScu": 16,
+  "racks": [
+    { "id": "rack-0", "capacityScu": 16, "slots": [] }
+  ]
+}

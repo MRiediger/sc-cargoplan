@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "invalid_crate_size",
+  "name": "Crate size 3 does not exist",
+  "totalScu": 16,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 16,
+      "slots": [ { "id": "a1", "allowedSizes": [2, 3] } ]
+    }
+  ]
+}

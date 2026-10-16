@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "empty_allowed_sizes",
+  "name": "Slot without crate sizes",
+  "totalScu": 16,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 16,
+      "slots": [ { "id": "a1", "allowedSizes": [] } ]
+    }
+  ]
+}

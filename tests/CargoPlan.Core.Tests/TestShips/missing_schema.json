@@ -1,0 +1,8 @@
+{
+  "id": "missing_schema",
+  "name": "No schemaVersion",
+  "totalScu": 16,
+  "racks": [
+    { "id": "rack-0", "capacityScu": 16, "slots": [] }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "id": "no_racks",
+  "name": "Ship without racks",
+  "totalScu": 0,
+  "racks": []
+}

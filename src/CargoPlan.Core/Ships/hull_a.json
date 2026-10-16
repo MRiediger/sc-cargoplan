@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "hull_a",
+  "name": "MISC Hull A",
+  "totalScu": 64,
+  "racks": [
+    { "id": "rack-0", "capacityScu": 16, "slots": [] },
+    { "id": "rack-1", "capacityScu": 16, "slots": [] },
+    { "id": "rack-2", "capacityScu": 16, "slots": [] },
+    { "id": "rack-3", "capacityScu": 16, "slots": [] }
+  ]
+}
