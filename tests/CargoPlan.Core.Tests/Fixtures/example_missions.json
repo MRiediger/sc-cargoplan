@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "stops": [
+    {
+      "destination": "Riker",
+      "items": [
+        { "commodity": "Titanium", "scu": 12, "crateSize": 4 }
+      ]
+    },
+    {
+      "destination": "Shubin",
+      "items": [
+        { "commodity": "Quartz", "scu": 10, "crateSize": 2 }
+      ]
+    },
+    {
+      "destination": "Orison",
+      "items": [
+        { "commodity": "Agricium", "scu": 8, "crateSize": 8 }
+      ]
+    }
+  ]
+}

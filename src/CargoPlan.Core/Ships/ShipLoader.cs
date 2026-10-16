@@ -1,7 +1,7 @@
 using System.Reflection;
 using System.Text.Json;
+using CargoPlan.Core.Json;
 using CargoPlan.Core.Models;
-using static System.FormattableString;
 
 namespace CargoPlan.Core.Ships;
 
@@ -43,7 +43,7 @@ public static class ShipLoader
         try
         {
             using var document = JsonDocument.Parse(stream);
-            CheckSchemaVersion(document.RootElement);
+            SchemaVersion.Check(document.RootElement, SupportedSchemaVersion);
 
             var dto = document.RootElement.Deserialize(ShipJsonContext.Default.ShipDto)
                 ?? throw new JsonException("The file contains null.");
@@ -58,24 +58,6 @@ public static class ShipLoader
         catch (Exception ex) when (ex is JsonException or ArgumentException)
         {
             throw new ShipFormatException(resourceName, ex.Message, ex);
-        }
-    }
-
-    // Checked before deserializing, so a newer file fails with a clear message
-    // instead of "unknown property" errors for fields added in later versions.
-    private static void CheckSchemaVersion(JsonElement root)
-    {
-        if (root.ValueKind != JsonValueKind.Object
-            || !root.TryGetProperty("schemaVersion", out var version)
-            || version.ValueKind != JsonValueKind.Number)
-        {
-            throw new JsonException("Missing numeric \"schemaVersion\".");
-        }
-
-        if (!version.TryGetInt32(out var value) || value != SupportedSchemaVersion)
-        {
-            throw new JsonException(Invariant(
-                $"schemaVersion {version.GetRawText()} is not supported (expected {SupportedSchemaVersion})."));
         }
     }
 }

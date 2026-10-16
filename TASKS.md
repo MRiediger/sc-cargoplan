@@ -57,7 +57,7 @@ Immutable `record`s in `CargoPlan.Core/Models/`:
 
 **Akzeptanz:** `ShipLoader.Load("hull_a")` liefert validiertes `Ship`, defekte JSON (Summe 60) wirft, Test vorhanden. Martin kann erklären, was eine `EmbeddedResource` ist und warum nicht „Datei neben der EXE“.
 
-### [ ] T1.3 Mission-Fixtures
+### [x] T1.3 Mission-Fixtures
 **Warum:** Realistische Testdaten, nicht „2 SCU Sand“.
 - `Core.Tests/Fixtures/example_missions.json`: 3 Stops, Covalex-typisch (Riker 12 SCU Titanium 4er, Shubin 10 SCU Quartz 2er, Orison 8 SCU Agricium 8er), gesamt < 64
 - `overflow_missions.json`: gesamt > 64

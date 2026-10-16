@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "stops": [
+    {
+      "destination": "  ",
+      "items": [
+        { "commodity": "Titanium", "scu": 12, "crateSize": 4 }
+      ]
+    }
+  ]
+}

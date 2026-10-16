@@ -29,4 +29,12 @@
     <EmbeddedResource Include="TestShips/*.json" LogicalName="ships/%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!-- Mission files for tests, read via MissionFixtures. The files stay on disk as well,
+       so the CLI can use them as examples. -->
+  <ItemGroup>
+    <None Remove="Fixtures/**/*.json" />
+    <EmbeddedResource Include="Fixtures/*.json" LogicalName="missions/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Fixtures/Invalid/*.json" LogicalName="missions/invalid/%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>
