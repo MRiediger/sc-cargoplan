@@ -1,0 +1,12 @@
+<Project>
+
+  <!-- Imported automatically by every project below this folder. Project-specific
+       settings (TargetFramework, OutputType, UseWPF) stay in the .csproj files. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>
