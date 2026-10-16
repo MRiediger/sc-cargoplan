@@ -3,6 +3,10 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+# AI
+CLAUDE.md
+TASKS.md
+
 # dotenv files
 .env
 

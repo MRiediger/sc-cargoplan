@@ -1,5 +1,7 @@
 # SC-CargoPlan
 
+[![CI](https://github.com/MRiediger/sc-cargoplan/actions/workflows/ci.yml/badge.svg)](https://github.com/MRiediger/sc-cargoplan/actions/workflows/ci.yml)
+
 A cargo load-plan overlay for Star Citizen hauling (Alpha 4.10.x).
 
 ## What

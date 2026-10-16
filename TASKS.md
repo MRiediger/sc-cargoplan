@@ -21,10 +21,14 @@ Session-Start-Prompt für Claude Code:
 
 ### [ ] T0.2 CI-Workflow
 **Warum:** Ab dem ersten PR von außen muss klar sein, ob er baut. Das kann nicht Martins Job sein.
-- `.github/workflows/ci.yml`: Trigger `push` + `pull_request`, Runner `windows-latest`, Schritte `setup-dotnet` (10.x) → `dotnet build -c Release` → `dotnet test -c Release --no-build`
+**Warum Matrix:** Ursprünglich nur `windows-latest` geplant, ergänzt um `ubuntu-latest`. Der Linux-Lauf fängt Windows-Annahmen in Core/Import und den Tests früh ab (Pfadtrenner, Zeilenenden, Culture) und hält Core plattformneutral. Alternative „Ubuntu ohne App per Solution-Filter“ verworfen: zweiter Befehlspfad und eine Datei mehr für wenig Zusatznutzen.
+- `.github/workflows/ci.yml`: Trigger `push` auf `main` + `pull_request`, Matrix `ubuntu-latest` + `windows-latest`, Schritte `setup-dotnet` (10.0.x) → `dotnet restore` → `dotnet build -c Release --no-restore` → `dotnet test -c Release --no-build`
+- Concurrency-Gruppe pro Ref, laufender Lauf wird bei neuem Push abgebrochen
+- Ubuntu baut die WPF-App über `EnableWindowsTargeting=true` (nur kompilieren, nicht ausführen)
+- `.github/dependabot.yml`: `nuget` + `github-actions`, wöchentlich
 - Badge in README
 
-**Akzeptanz:** Workflow läuft grün auf GitHub. Martin kann erklären, warum `windows-latest` zwingend ist (WPF).
+**Akzeptanz:** Workflow läuft auf beiden Runnern grün auf GitHub. Martin kann erklären, warum `windows-latest` zwingend ist (WPF läuft nur dort, Linux kompiliert nur gegen Reference Packs) und was der Ubuntu-Lauf zusätzlich absichert.
 
 ---
 
