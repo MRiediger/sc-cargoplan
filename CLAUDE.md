@@ -48,7 +48,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 | MVVM | **CommunityToolkit.Mvvm** | Source-Generatoren sparen Boilerplate (`[ObservableProperty]`, `[RelayCommand]`). Einziges UI-Paket. |
 | JSON | `System.Text.Json` | Stdlib, kein Newtonsoft. |
 | SQLite | `Microsoft.Data.Sqlite` | Offizielles, schlankes Paket für den ContractTracker-Import. |
-| Tests | **xUnit** + `AwesomeAssertions` | Standard im .NET-Ökosystem. |
+| Tests | **xUnit** + `FluentAssertions` | Standard im .NET-Ökosystem. |
 | Click-through | Win32 `SetWindowLongPtr` mit `WS_EX_LAYERED \| WS_EX_TRANSPARENT` via P/Invoke, HWND aus `WindowInteropHelper` | Keine Lib nötig. |
 | Hotkeys | Win32 `RegisterHotKey` + `HwndSource.AddHook` für `WM_HOTKEY` | Global, auch wenn das Spiel den Fokus hat, keine Lib. |
 | Distribution | `dotnet publish -r win-x64 --self-contained -p:PublishSingleFile=true` → **eine EXE (~70 MB)**, zusätzlich framework-dependent (~3 MB) | Nutzer sollen nichts installieren müssen. Kleine Variante für die, die .NET haben. WPF kann nicht getrimmt werden. |
@@ -88,6 +88,43 @@ dotnet run --project src/CargoPlan.App         # Overlay starten
 dotnet run --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/example_missions.json
 dotnet publish src/CargoPlan.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
 ```
+
+## Anti-Patterns – wovor Claude Code sich schützen soll
+
+| # | Stichwort | Regel |
+|---|---|---|
+| A1 | **Grep-first** | Vor jedem neuen Typ, jeder Methode, jeder Datei: `Grep` nach dem Namen **und nach Synonymen des Zwecks** (`Render`, `Format`, `Print`…). Treffer ⇒ Ist-Zustand melden und stoppen, nicht daneben neu bauen. Der Compiler fängt nur exakte Doppelnamen im selben Namespace. |
+| A2 | Rück-Sweep | Neue Hausregel gelernt ⇒ Grep über den Bestand als eigener Mini-Task, nicht nur in künftigen Code anwenden. |
+| A3 | Confident Hallucination | P/Invoke-Signaturen, NuGet-APIs, Attribute (`[LibraryImport]`, `[ObservableProperty]`, STJ-Generatoren) **gegen aktuelle Doku prüfen**, Quelle als Kommentar an die Stelle. Gedächtnis reicht nicht. |
+| A4 | YAGNI / Minimal zuerst | Kein Interface ohne zweite Implementierung, kein DI-Container ohne Bedarf, keine Abstraktion „für später“. Erst die kleinste lauffähige Version, dann erweitern. |
+| A5 | Sycophancy | Jede Architekturentscheidung mit mindestens einem Gegenargument. Martin ist C#-Einsteiger und kann nur abwägen, was er sieht. |
+| A6 | Defensiv nur an Grenzen | Grenzen: JSON-Laden, SQLite-Reader, Win32-Calls, Nutzereingaben. Innen (Core) sind Records validiert – kein Null-Check-Teppich. |
+| A7 | Plan-Mode-Stopp | Task berührt ≥ 3 Dateien ⇒ erst Plan vorlegen, dann auf wörtliche **„Freigabe“** warten. Ein Neustart des Plan Mode hebt eine ausstehende Freigabe nicht auf. |
+| A8 | Stille Annahmen | Fragen statt raten. |
+
+## NIEMALS
+
+- `catch { }` oder `catch (Exception) { }` ohne Logging/Rethrow (stille Fehler)
+- `.Result` / `.Wait()` / `GetAwaiter().GetResult()` im UI-Thread (Deadlock in WPF)
+- `async void` außer bei Event-Handlern
+- Magic Numbers für Win32 – jede Konstante benannt (`WS_EX_TRANSPARENT = 0x20`)
+- `Console.WriteLine` in Core/App (nur in `CargoPlan.Cli`)
+- Hardcoded Pfade, Hotkeys, Farben – gehört in `settings.json` oder eine zentrale Konstanten-Datei
+- `TODO` ohne Issue-Nummer
+- Planungslogik in Views oder ViewModels
+
+## IMMER
+
+- `Nullable` enabled, Warnungen sind Fehler (steht in `Directory.Build.props`)
+- Records immutable, Änderung via `with`
+- Externe Library-Aufrufe gegen aktuelle Doku verifiziert (A3)
+- Entscheidungen mit Alternativen in `docs/decisions.md` festhalten – nummeriert, je 5–10 Zeilen: Kontext, Entscheidung, Gegenargument, Konsequenz
+
+## Kommunikation mit Martin
+
+- Deutsch, prägnant, Markdown mit fetten Schlüsselbegriffen, Trade-offs statt nur Lösungen
+- **Abweichungen vom Task-Text in der Planphase nie als „Martins Entscheidung“ etikettieren.** Korrektes Label: „Abweichung in der Planphase, ratifiziert durch Freigabe“. Martins Entscheidungen sind nur die, die er nachweislich im Chat getroffen hat.
+- Niemals ungefragt Framework-Wechsel, „neuere Library“ oder Cross-Platform vorschlagen – Stack ist gesetzt, Änderung nur per Eintrag in `docs/decisions.md` nach Diskussion.
 
 ## Definition of Done (jeder Task)
 
