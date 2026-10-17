@@ -33,7 +33,7 @@ public static class LoadPlanner
         var segments = Partition(racks, line);
 
         List<Placement> placements = [];
-        List<string> warnings = [];
+        List<PlanWarning> warnings = [];
         foreach (var segment in segments)
         {
             // Crates of one item lie next to each other, so each item becomes one placement per rack.
@@ -44,26 +44,24 @@ public static class LoadPlanner
             var inRack = line.Stops[segment.FirstStop..(segment.LastStop + 1)];
             if (inRack.Length > 1)
             {
-                warnings.Add(Invariant(
-                    $"Rack {RackNumber(segment.Rack)} shared by {string.Join(", ", inRack.Select(s => s.Destination))} – identify crates by count"));
+                warnings.Add(new PlanWarning(segment.Rack.Id, Invariant(
+                    $"Rack {segment.Rack.Number} shared by {string.Join(", ", inRack.Select(s => s.Destination))} – identify crates by count")));
             }
 
+            // Same message in every spanned rack, so the overview can show it once.
             for (var stop = segment.FirstStop; stop <= segment.LastStop; stop++)
             {
                 Rack[] spanned = [.. segments.Where(s => s.FirstStop <= stop && stop <= s.LastStop).Select(s => s.Rack)];
                 if (spanned.Length > 1)
                 {
-                    warnings.Add(Invariant(
-                        $"Rack {RackNumber(segment.Rack)}: {line.Stops[stop].Destination} spans racks {string.Join("+", spanned.Select(RackNumber))}"));
+                    warnings.Add(new PlanWarning(segment.Rack.Id, Invariant(
+                        $"{line.Stops[stop].Destination} spans racks {string.Join("+", spanned.Select(r => r.Number))}")));
                 }
             }
         }
 
         return new LoadPlan(ship.Id, placements, warnings);
     }
-
-    /// <summary>Player-facing rack number: racks count from 1, <see cref="Rack.Index"/> stays 0-based.</summary>
-    private static int RackNumber(Rack rack) => rack.Index + 1;
 
     private static void EnsureUnique(IReadOnlyList<Stop> stops)
     {

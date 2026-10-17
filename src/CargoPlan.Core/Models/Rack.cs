@@ -10,6 +10,9 @@ public sealed record Rack(string Id, int Index, int CapacityScu, IReadOnlyList<S
     public int Index { get; } = NonNegative(Index);
     public int CapacityScu { get; } = Positive(CapacityScu);
 
+    /// <summary>Player-facing rack number: racks count from 1, <see cref="Index"/> stays 0-based (D6).</summary>
+    public int Number => Index + 1;
+
     private static int NonNegative(int value)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(value);

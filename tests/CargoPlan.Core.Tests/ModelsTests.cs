@@ -192,4 +192,15 @@ public class ModelsTests
         plan.PlacementsForRack("rack-9").Should().BeEmpty();
         plan.PlacementsForStop("Orison").Should().BeEmpty();
     }
+
+    [Fact]
+    public void LoadPlan_filters_warnings_by_rack()
+    {
+        var first = new PlanWarning("rack-0", "Riker spans racks 1+2");
+        var second = new PlanWarning("rack-1", "Riker spans racks 1+2");
+        var plan = new LoadPlan("hull_a", [], [first, second]);
+
+        plan.WarningsForRack("rack-1").Should().Equal(second);
+        plan.WarningsForRack("rack-9").Should().BeEmpty();
+    }
 }

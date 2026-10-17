@@ -44,3 +44,17 @@ A decision changes only through a new entry that supersedes the old one.
 - **Decision:** Split only if no plan without a split exists. Ranking: fewest split stops, then fewest split items, then the D5 criteria. The planner cuts the route as one row of crates (stops in route order, items in input order), so racks hold whole crates and a split stop fills neighbouring racks. Every rack holding part of a split stop gets a warning. `PlanException` only when the stops exceed the ship (naming the missing SCU and the first stop that doesn't fit) or whole crates don't fit behind the previous stops. Player-facing text numbers racks from 1; `Rack.Index` stays 0-based.
 - **Counter-argument:** Items keep their input order; sorting crates large-first would fit some tight routes that now fail with "Crates don't fit". Splitting instead of failing hides an awkward route; the player only sees it in the warnings.
 - **Consequence:** "Fewest stops in the fullest rack" isn't additive, so the planner runs its DP once per cap on stops per rack and takes the smallest cap that reaches the fewest splits. That makes the D5 criteria exact; the single pass from T2.1 wasn't guaranteed optimal for ships with many racks. Item reordering can become a task if tight routes fail in practice.
+
+## D7 – Structured planner warnings
+
+- **Context:** The text renderer shows warnings per rack and once in a summary; the overlay will show them on the rack. As plain strings, the rack was only part of the text ("Rack 1: Riker spans racks 1+2").
+- **Decision:** `LoadPlan.Warnings` is a list of `PlanWarning(RackId, Message)`. The message reads on its own without the rack; a split stop gets the same message in every rack it spans, so the summary is a `Distinct()` over messages.
+- **Counter-argument:** Plain strings were simpler and enough for a log; the renderer could parse the "Rack N" prefix instead of changing the model and the T2.2 tests.
+- **Consequence:** No hidden coupling between the planner's wording and the renderer. `Validate` (T2.3) returns `PlanWarning`s too, so an overloaded rack can be highlighted. The player-facing rack number moved to `Rack.Number`, shared by planner and renderer.
+
+## D8 – Hand-written CLI argument parsing
+
+- **Context:** The CLI exists to try the planner on mission files: one command (`plan`), one option (`--ship`).
+- **Decision:** Parse `args` with a C# list pattern in `Options.Parse`; anything else prints the usage and exits with 2. No `System.CommandLine`.
+- **Counter-argument:** `System.CommandLine` brings `--help`, validation, error messages and tab completion, and scales to more commands without hand-written parsing.
+- **Consequence:** No extra package for a debugging tool. If the CLI grows beyond a few commands or options, switching to `System.CommandLine` becomes a task of its own.

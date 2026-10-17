@@ -45,7 +45,7 @@ Immutable `record`s in `CargoPlan.Core/Models/`:
 - `record CargoItem(string Commodity, int Scu, CrateSize CrateSize)` – Validierung: `Scu % (int)CrateSize == 0`
 - `record Stop(string Destination, int Order, IReadOnlyList<CargoItem> Items)` + `int TotalScu`
 - `record Placement(string Destination, string RackId, CargoItem Item, bool Delivered = false)`
-- `record LoadPlan(string ShipId, IReadOnlyList<Placement> Placements, IReadOnlyList<string> Warnings)` + `PlacementsForRack(id)`, `PlacementsForStop(destination)`
+- `record LoadPlan(string ShipId, IReadOnlyList<Placement> Placements, IReadOnlyList<PlanWarning> Warnings)` + `PlacementsForRack(id)`, `PlacementsForStop(destination)` (Warnings seit T2.4 strukturiert, D7)
 
 **Akzeptanz:** `ModelsTests.cs` deckt jede Validierung positiv und negativ ab, ≥ 8 Tests. Martin kann erklären, warum `record` statt `class` (Value-Equality, `with`-Ausdrücke) und warum `IReadOnlyList` statt `List` in der öffentlichen API.
 
@@ -108,19 +108,20 @@ Tests zuerst (`LoadPlannerTests.cs`):
 ### [ ] T2.3 Manuelles Override
 **Warum:** Der Planer irrt, der Spieler weiß es besser.
 - `LoadPlan MovePlacement(LoadPlan plan, Placement p, string targetRackId)` – neuer Plan via `with`, Original unverändert
-- `IReadOnlyList<string> Validate(LoadPlan plan, Ship ship)` – Kapazitätsverstöße als Warnungen
+- `IReadOnlyList<PlanWarning> Validate(LoadPlan plan, Ship ship)` – Kapazitätsverstöße als Warnungen mit Rack (Abweichung in der Planphase von T2.4, ratifiziert durch Freigabe; D7)
 
 **Akzeptanz:** Tests: Original unverändert, Überladung erzeugt Warnung.
 
-### [ ] T2.4 CLI
+### [x] T2.4 CLI
 **Warum:** Planer im Terminal prüfen, bevor eine Zeile XAML existiert.
+**Präzisiert in der Planung:** vor T2.3 gezogen. Warnungen strukturiert als `PlanWarning(RackId, Message)` (D7), Racks im Text ab 1, Kistenangabe als Anzahl×Größe, Warnungen pro Rack und unten dedupliziert. Manuelles Parsing (D8).
 - `CargoPlan.Cli`: `plan <missions.json> [--ship hull_a]`, `System.CommandLine` oder manuelles Parsing (Begründung wählen)
 - `PlanTextRenderer` in **Core** (wird später auch für „Copy as text“ im Overlay genutzt):
 
 ```
-[Rack 0 · 16/16]  Riker      12 SCU Titanium (4)
-                  Riker       4 SCU Titanium (4)
-[Rack 1 ·  0/16]  -
+[Rack 1 · 16/16]  Riker  12 SCU Titanium (3×4)
+                  Riker   4 SCU Titanium (1×4)
+[Rack 2 ·  0/16]  -
 ```
 
 **Akzeptanz:** CLI gibt Plan aus, Exit-Code ≠ 0 bei `PlanException`. Renderer hat Unit-Test.

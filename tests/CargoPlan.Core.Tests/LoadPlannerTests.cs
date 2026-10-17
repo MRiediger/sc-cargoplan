@@ -112,7 +112,7 @@ public class LoadPlannerTests
 
         StopsPerRack(plan).Should().BeEquivalentTo<string[]>(
             [["Riker", "Shubin"], ["Orison"], ["Lorville"], ["Area18"]], o => o.WithStrictOrdering());
-        plan.Warnings.Should().Equal("Rack 1 shared by Riker, Shubin – identify crates by count");
+        plan.Warnings.Should().Equal(new PlanWarning("rack-0", "Rack 1 shared by Riker, Shubin – identify crates by count"));
     }
 
     [Fact]
@@ -124,10 +124,10 @@ public class LoadPlannerTests
             [["Riker", "Shubin"], ["Orison", "Lorville"], ["Area18", "Everus"], ["Baijini", "Tressler"]],
             o => o.WithStrictOrdering());
         plan.Warnings.Should().Equal(
-            "Rack 1 shared by Riker, Shubin – identify crates by count",
-            "Rack 2 shared by Orison, Lorville – identify crates by count",
-            "Rack 3 shared by Area18, Everus – identify crates by count",
-            "Rack 4 shared by Baijini, Tressler – identify crates by count");
+            new PlanWarning("rack-0", "Rack 1 shared by Riker, Shubin – identify crates by count"),
+            new PlanWarning("rack-1", "Rack 2 shared by Orison, Lorville – identify crates by count"),
+            new PlanWarning("rack-2", "Rack 3 shared by Area18, Everus – identify crates by count"),
+            new PlanWarning("rack-3", "Rack 4 shared by Baijini, Tressler – identify crates by count"));
     }
 
     [Fact]
@@ -167,7 +167,9 @@ public class LoadPlannerTests
         plan.Placements.Should().Equal(
             new Placement("Riker", "rack-0", new CargoItem("Titanium", 16, CrateSize.Four)),
             new Placement("Riker", "rack-1", new CargoItem("Titanium", 4, CrateSize.Four)));
-        plan.Warnings.Should().Equal("Rack 1: Riker spans racks 1+2", "Rack 2: Riker spans racks 1+2");
+        plan.Warnings.Should().Equal(
+            new PlanWarning("rack-0", "Riker spans racks 1+2"),
+            new PlanWarning("rack-1", "Riker spans racks 1+2"));
     }
 
     [Fact]
@@ -202,9 +204,9 @@ public class LoadPlannerTests
         StopsPerRack(plan).Should().BeEquivalentTo<string[]>(
             [["Riker"], ["Riker", "Shubin"], ["Orison"], ["Lorville"]], o => o.WithStrictOrdering());
         plan.Warnings.Should().Equal(
-            "Rack 1: Riker spans racks 1+2",
-            "Rack 2 shared by Riker, Shubin – identify crates by count",
-            "Rack 2: Riker spans racks 1+2");
+            new PlanWarning("rack-0", "Riker spans racks 1+2"),
+            new PlanWarning("rack-1", "Rack 2 shared by Riker, Shubin – identify crates by count"),
+            new PlanWarning("rack-1", "Riker spans racks 1+2"));
     }
 
     [Fact]
@@ -226,9 +228,9 @@ public class LoadPlannerTests
         StopsPerRack(plan).Should().BeEquivalentTo<string[]>(
             [["Riker"], ["Riker"], ["Riker"], ["Shubin"]], o => o.WithStrictOrdering());
         plan.Warnings.Should().Equal(
-            "Rack 1: Riker spans racks 1+2+3",
-            "Rack 2: Riker spans racks 1+2+3",
-            "Rack 3: Riker spans racks 1+2+3");
+            new PlanWarning("rack-0", "Riker spans racks 1+2+3"),
+            new PlanWarning("rack-1", "Riker spans racks 1+2+3"),
+            new PlanWarning("rack-2", "Riker spans racks 1+2+3"));
     }
 
     // --- No valid plan ---
