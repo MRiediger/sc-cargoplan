@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "stops": [
+    {
+      "destination": "Riker",
+      "items": [
+        { "commodity": "Titanium", "scu": 16, "crateSize": 4 },
+        { "commodity": "Quartz", "scu": 4, "crateSize": 2 }
+      ]
+    },
+    {
+      "destination": "Shubin",
+      "items": [
+        { "commodity": "Agricium", "scu": 8, "crateSize": 8 }
+      ]
+    },
+    {
+      "destination": "Orison",
+      "items": [
+        { "commodity": "Laranite", "scu": 12, "crateSize": 4 },
+        { "commodity": "Gold", "scu": 2, "crateSize": 1 }
+      ]
+    },
+    {
+      "destination": "Lorville",
+      "items": [
+        { "commodity": "Tungsten", "scu": 12, "crateSize": 2 }
+      ]
+    }
+  ]
+}
