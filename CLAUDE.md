@@ -48,7 +48,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 | MVVM | **CommunityToolkit.Mvvm** | Source-Generatoren sparen Boilerplate (`[ObservableProperty]`, `[RelayCommand]`). Einziges UI-Paket. |
 | JSON | `System.Text.Json` | Stdlib, kein Newtonsoft. |
 | SQLite | `Microsoft.Data.Sqlite` | Offizielles, schlankes Paket für den ContractTracker-Import. |
-| Tests | **xUnit** + `FluentAssertions` | Standard im .NET-Ökosystem. |
+| Tests | **xUnit** + `AwesomeAssertions` | Standard im .NET-Ökosystem. AwesomeAssertions ist der Apache-2.0-Fork von FluentAssertions (ab v8 kommerziell lizenziert). |
 | Click-through | Win32 `SetWindowLongPtr` mit `WS_EX_LAYERED \| WS_EX_TRANSPARENT` via P/Invoke, HWND aus `WindowInteropHelper` | Keine Lib nötig. |
 | Hotkeys | Win32 `RegisterHotKey` + `HwndSource.AddHook` für `WM_HOTKEY` | Global, auch wenn das Spiel den Fokus hat, keine Lib. |
 | Distribution | `dotnet publish -r win-x64 --self-contained -p:PublishSingleFile=true` → **eine EXE (~70 MB)**, zusätzlich framework-dependent (~3 MB) | Nutzer sollen nichts installieren müssen. Kleine Variante für die, die .NET haben. WPF kann nicht getrimmt werden. |

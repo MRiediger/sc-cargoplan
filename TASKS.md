@@ -9,7 +9,7 @@ Session-Start-Prompt für Claude Code:
 
 ## Phase 0 – Fundament
 
-### [ ] T0.1 Solution-Scaffold
+### [x] T0.1 Solution-Scaffold
 **Warum:** Projektgrenzen (Core ohne UI) müssen am Tag 1 stehen, später ist das nicht mehr zu trennen.
 - `dotnet new sln`, Projekte wie in CLAUDE.md anlegen (`classlib`, `console`, `wpf`, `xunit`), Referenzen setzen: App → Core + Import, Import → Core, Cli → Core, Tests → jeweiliges Projekt
 - `Directory.Build.props`: `<LangVersion>latest</LangVersion>`, `<Nullable>enable</Nullable>`, `<ImplicitUsings>enable</ImplicitUsings>`, `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>`
@@ -20,18 +20,22 @@ Session-Start-Prompt für Claude Code:
 
 **Akzeptanz:** `dotnet build` ohne Warnung, `dotnet test` grün (1 Test), `git log` zeigt Initial-Commit. Martin kann erklären, was `Directory.Build.props` gegenüber Einstellungen pro `.csproj` bringt und warum Core kein `net10.0-windows` ist.
 
-### [ ] T0.2 CI-Workflow
+### [x] T0.2 CI-Workflow
 **Warum:** Ab dem ersten PR von außen muss klar sein, ob er baut. Das kann nicht Martins Job sein.
-- `.github/workflows/ci.yml`: Trigger `push` + `pull_request`, Runner `windows-latest`, Schritte `setup-dotnet` (10.x) → `dotnet build -c Release` → `dotnet test -c Release --no-build`
+**Warum Matrix:** Ursprünglich nur `windows-latest` geplant, ergänzt um `ubuntu-latest`. Der Linux-Lauf fängt Windows-Annahmen in Core/Import und den Tests früh ab (Pfadtrenner, Zeilenenden, Culture) und hält Core plattformneutral. Alternative „Ubuntu ohne App per Solution-Filter“ verworfen: zweiter Befehlspfad und eine Datei mehr für wenig Zusatznutzen.
+- `.github/workflows/ci.yml`: Trigger `push` auf `main` + `pull_request`, Matrix `ubuntu-latest` + `windows-latest`, Schritte `setup-dotnet` (10.0.x) → `dotnet restore` → `dotnet build -c Release --no-restore` → `dotnet test -c Release --no-build`
+- Concurrency-Gruppe pro Ref, laufender Lauf wird bei neuem Push abgebrochen
+- Ubuntu baut die WPF-App über `EnableWindowsTargeting=true` (nur kompilieren, nicht ausführen)
+- `.github/dependabot.yml`: `nuget` + `github-actions`, wöchentlich
 - Badge in README
 
-**Akzeptanz:** Workflow läuft grün auf GitHub. Martin kann erklären, warum `windows-latest` zwingend ist (WPF).
+**Akzeptanz:** Workflow läuft auf beiden Runnern grün auf GitHub. Martin kann erklären, warum `windows-latest` zwingend ist (WPF läuft nur dort, Linux kompiliert nur gegen Reference Packs) und was der Ubuntu-Lauf zusätzlich absichert.
 
 ---
 
 ## Phase 1 – Datenmodell (Core)
 
-### [ ] T1.1 Core-Modelle
+### [x] T1.1 Core-Modelle
 **Warum:** Der Planer braucht feste Typen, sonst diskutieren wir später über Dictionary-Keys.
 Immutable `record`s in `CargoPlan.Core/Models/`:
 - `enum CrateSize { One = 1, Two = 2, Four = 4, Eight = 8 }`
@@ -45,7 +49,7 @@ Immutable `record`s in `CargoPlan.Core/Models/`:
 
 **Akzeptanz:** `ModelsTests.cs` deckt jede Validierung positiv und negativ ab, ≥ 8 Tests. Martin kann erklären, warum `record` statt `class` (Value-Equality, `with`-Ausdrücke) und warum `IReadOnlyList` statt `List` in der öffentlichen API.
 
-### [ ] T1.2 Hull-A-Layout als JSON + Loader
+### [x] T1.2 Hull-A-Layout als JSON + Loader
 **Warum:** Schiffe sind Daten. Community-PRs für neue Schiffe sollen eine JSON-Datei sein, kein C#.
 - `Core/Ships/hull_a.json`: 4 Racks à 16 SCU, Slots leer; als `EmbeddedResource` im `.csproj`
 - `ShipLoader.Load(string shipId)`, `ShipLoader.ListShips()` – lesen aus `Assembly.GetManifestResourceStream`
@@ -54,7 +58,7 @@ Immutable `record`s in `CargoPlan.Core/Models/`:
 
 **Akzeptanz:** `ShipLoader.Load("hull_a")` liefert validiertes `Ship`, defekte JSON (Summe 60) wirft, Test vorhanden. Martin kann erklären, was eine `EmbeddedResource` ist und warum nicht „Datei neben der EXE“.
 
-### [ ] T1.3 Mission-Fixtures
+### [x] T1.3 Mission-Fixtures
 **Warum:** Realistische Testdaten, nicht „2 SCU Sand“.
 - `Core.Tests/Fixtures/example_missions.json`: 3 Stops, Covalex-typisch (Riker 12 SCU Titanium 4er, Shubin 10 SCU Quartz 2er, Orison 8 SCU Agricium 8er), gesamt < 64
 - `overflow_missions.json`: gesamt > 64
