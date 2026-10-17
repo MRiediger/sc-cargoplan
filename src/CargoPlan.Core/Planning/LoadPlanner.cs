@@ -9,19 +9,22 @@ namespace CargoPlan.Core.Planning;
 public static class LoadPlanner
 {
     /// <summary>
-    /// Plans the stops into the ship's racks. Racks fill from the front in route order, one rack per stop
-    /// while racks last. With more stops than racks, only route-neighbours share a rack, spread evenly.
+    /// Plans the stops into the ship's racks. Racks fill in rack order (Rack 1 first) in route order, one rack
+    /// per stop while racks last. With more stops than racks, only route-neighbours share a rack, spread evenly.
     /// A stop is split over neighbouring racks only if no plan without a split exists, preferably between
     /// its items. Every shared rack and every rack holding part of a split stop gets a warning.
     /// </summary>
     /// <exception cref="ArgumentException">Two stops share an order or a destination.</exception>
-    /// <exception cref="PlanException">The stops exceed the ship, or their crates don't fit in route order.</exception>
+    /// <exception cref="PlanException">
+    /// A crate's shape fits no rack, the stops exceed the ship, or their crates don't fit in route order.
+    /// </exception>
     public static LoadPlan Plan(Ship ship, IReadOnlyList<Stop> stops)
     {
         EnsureUnique(stops);
 
         Stop[] route = [.. stops.OrderBy(s => s.Order)];
         Rack[] racks = [.. ship.Racks.OrderBy(r => r.Index)];
+        EnsureCratesFitShip(ship, route);
         EnsureFitsShip(ship, route);
 
         var line = CrateLine.Of(route);
@@ -77,6 +80,24 @@ public static class LoadPlanner
         }
     }
 
+    /// <summary>
+    /// Names the first crate in route order whose shape fits no rack. Checked per crate, not per mix:
+    /// for Hull A every mix up to the rack capacity fits (D9).
+    /// </summary>
+    private static void EnsureCratesFitShip(Ship ship, Stop[] route)
+    {
+        foreach (var stop in route)
+        {
+            if (stop.Items.FirstOrDefault(i => !ship.Racks.Any(r => r.CanHold(i.CrateSize))) is { } item)
+            {
+                // MaxBy keeps the first rack on a tie.
+                var largest = ship.Racks.MaxBy(r => r.Grid.Volume);
+                throw new PlanException(Invariant(
+                    $"{(int)item.CrateSize} SCU crate of {item.Commodity} for {stop.Destination} doesn't fit any rack of {ship.Id} (largest rack {largest?.Grid})."));
+            }
+        }
+    }
+
     /// <summary>Names the first stop in route order that no longer fits into the ship.</summary>
     private static void EnsureFitsShip(Ship ship, Stop[] route)
     {
@@ -101,9 +122,9 @@ public static class LoadPlanner
     }
 
     /// <summary>
-    /// Cuts the crate line into one contiguous segment per rack, front to back. Best cut: fewest split stops,
+    /// Cuts the crate line into one contiguous segment per rack, in rack order. Best cut: fewest split stops,
     /// then fewest split items, then fewest stops in the fullest rack, then the smallest sum of squared stop
-    /// counts (spreads sharing evenly), then fewest racks. Ties share near the front.
+    /// counts (spreads sharing evenly), then fewest racks. Ties share in the lowest-numbered racks.
     /// </summary>
     private static Segment[] Partition(Rack[] racks, CrateLine line)
     {
@@ -156,7 +177,7 @@ public static class LoadPlanner
                 var cutsStop = line.CutsStop(end);
                 var cutsItem = line.CutsItem(end);
 
-                // Smallest last segment first; ties keep it, so sharing ends up near the front.
+                // Smallest last segment first; ties keep it, so sharing ends up in the lowest-numbered racks.
                 for (var start = end - 1; start >= r - 1; start--)
                 {
                     var stopsInRack = line.StopsIn(start, end);

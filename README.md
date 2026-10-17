@@ -12,7 +12,7 @@ You enter your hauling missions (destination, commodity, SCU, crate size). SC-Ca
 
 Covalex contracts often go from one pickup to several destinations. Each crate is bound to a mission and a destination, but the game doesn't show which crate goes where. The freight elevator rejects the whole delivery as soon as one foreign crate is on the platform.
 
-SC-CargoPlan doesn't try to recognize crates. It **plans the loading up front**: first stop in front, last stop at the back, one destination per rack. Load by the plan, unload by the plan.
+SC-CargoPlan doesn't try to recognize crates. It **plans the loading in advance**: the first stop goes into Rack 1, the next stops into the following racks, one destination per rack. Load by the plan, unload by the plan.
 
 The overlay is a separate window. It does not touch the game process, so it's safe with Easy Anti-Cheat.
 

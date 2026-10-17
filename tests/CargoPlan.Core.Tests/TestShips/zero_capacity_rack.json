@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "zero_capacity_rack",
   "name": "Rack with 0 SCU",
   "totalScu": 16,
   "racks": [
-    { "id": "rack-0", "capacityScu": 16, "slots": [] },
-    { "id": "rack-1", "capacityScu": 0, "slots": [] }
+    { "id": "rack-0", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "upper" } },
+    { "id": "rack-1", "capacityScu": 0, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "upper" } }
   ]
 }

@@ -17,7 +17,7 @@ internal sealed record ShipDto(int SchemaVersion, string Id, string Name, int To
 
         RackDto.ThrowOnDuplicateIds(Racks.Select(r => r.Id), $"ship '{Id}'");
 
-        // Array order defines the index: first rack = front.
+        // Array order defines the index and the rack order: first rack = Rack 1.
         return new Ship(Id, Name, TotalScu, [.. Racks.Select((r, index) => r.ToRack(index))]);
     }
 }

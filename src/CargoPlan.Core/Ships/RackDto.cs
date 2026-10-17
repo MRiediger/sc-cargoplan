@@ -3,7 +3,7 @@ using CargoPlan.Core.Models;
 namespace CargoPlan.Core.Ships;
 
 /// <summary>File format of a rack. The index is not stored; it comes from the position in the array.</summary>
-internal sealed record RackDto(string Id, int CapacityScu, IReadOnlyList<SlotDto> Slots)
+internal sealed record RackDto(string Id, int CapacityScu, GridDto Grid, PositionDto Position)
 {
     public Rack ToRack(int index)
     {
@@ -16,9 +16,7 @@ internal sealed record RackDto(string Id, int CapacityScu, IReadOnlyList<SlotDto
                 nameof(CapacityScu), CapacityScu, $"Rack '{Id}' needs a positive capacityScu.");
         }
 
-        ThrowOnDuplicateIds(Slots.Select(s => s.Id), $"rack '{Id}'");
-
-        return new Rack(Id, index, CapacityScu, [.. Slots.Select(s => s.ToSlot())]);
+        return new Rack(Id, index, CapacityScu, Grid.ToDimensions(Id), Position.ToPosition(Id));
     }
 
     internal static void ThrowOnDuplicateIds(IEnumerable<string> ids, string owner)

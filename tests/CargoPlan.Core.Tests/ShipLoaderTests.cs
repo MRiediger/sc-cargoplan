@@ -22,7 +22,7 @@ public class ShipLoaderTests
         ship.Racks.Should().AllSatisfy(r =>
         {
             r.CapacityScu.Should().Be(16);
-            r.Slots.Should().BeEmpty();
+            r.Grid.Should().Be(new Dimensions(4, 2, 2));
         });
     }
 
@@ -32,6 +32,18 @@ public class ShipLoaderTests
         var ship = ShipLoader.Load("hull_a");
 
         ship.Racks.Select(r => r.Index).Should().Equal(0, 1, 2, 3);
+    }
+
+    [Fact]
+    public void Load_hull_a_assigns_positions_in_rack_order()
+    {
+        var ship = ShipLoader.Load("hull_a");
+
+        ship.Racks.Select(r => r.Position).Should().Equal(
+            new RackPosition(RackSide.Port, RackLevel.Upper),
+            new RackPosition(RackSide.Port, RackLevel.Lower),
+            new RackPosition(RackSide.Starboard, RackLevel.Upper),
+            new RackPosition(RackSide.Starboard, RackLevel.Lower));
     }
 
     [Fact]
@@ -76,18 +88,6 @@ public class ShipLoaderTests
 
     // --- Test ships (this assembly) ---
 
-    [Fact]
-    public void Load_maps_slots_and_crate_sizes()
-    {
-        var ship = ShipLoader.Load(TestShips, "valid_with_slots");
-
-        var slots = ship.Racks[0].Slots;
-        slots.Should().HaveCount(2);
-        slots[0].Id.Should().Be("a1");
-        slots[0].AllowedSizes.Should().BeEquivalentTo([CrateSize.One, CrateSize.Two, CrateSize.Four]);
-        slots[1].AllowedSizes.Should().BeEquivalentTo([CrateSize.Eight]);
-    }
-
     [Theory]
     [InlineData("malformed")]               // not valid JSON
     [InlineData("sum_mismatch")]            // racks sum to 60, totalScu is 64
@@ -96,12 +96,14 @@ public class ShipLoaderTests
     [InlineData("missing_property")]        // no "name"
     [InlineData("null_name")]               // "name": null
     [InlineData("id_mismatch")]             // "id" differs from file name
-    [InlineData("unsupported_schema")]      // "schemaVersion": 2
+    [InlineData("unsupported_schema")]      // "schemaVersion": 3
     [InlineData("missing_schema")]          // no "schemaVersion"
-    [InlineData("invalid_crate_size")]      // allowed size 3
-    [InlineData("empty_allowed_sizes")]     // slot without sizes
     [InlineData("duplicate_rack_id")]       // two racks with the same id
     [InlineData("no_racks")]                // empty rack list
+    [InlineData("grid_capacity_mismatch")]  // grid holds 16 cells, capacityScu is 12
+    [InlineData("zero_grid_axis")]          // grid width 0
+    [InlineData("unknown_side")]            // "side": "left"
+    [InlineData("unknown_level")]           // "level": "middle"
     public void Load_invalid_ship_throws_ShipFormatException_naming_the_resource(string shipId)
     {
         var act = () => ShipLoader.Load(TestShips, shipId);
@@ -126,7 +128,31 @@ public class ShipLoaderTests
     {
         var act = () => ShipLoader.Load(TestShips, "unsupported_schema");
 
-        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 2*");
+        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 3*");
+    }
+
+    [Fact]
+    public void Load_grid_capacity_mismatch_names_rack_and_numbers()
+    {
+        var act = () => ShipLoader.Load(TestShips, "grid_capacity_mismatch");
+
+        act.Should().Throw<ShipFormatException>().WithMessage("*rack-0*4×2×2*16*12*");
+    }
+
+    [Fact]
+    public void Load_zero_grid_axis_names_rack_and_axis()
+    {
+        var act = () => ShipLoader.Load(TestShips, "zero_grid_axis");
+
+        act.Should().Throw<ShipFormatException>().WithMessage("*rack-0*width*");
+    }
+
+    [Fact]
+    public void Load_unknown_side_names_rack_and_value()
+    {
+        var act = () => ShipLoader.Load(TestShips, "unknown_side");
+
+        act.Should().Throw<ShipFormatException>().WithMessage("*rack-0*left*");
     }
 
     [Fact]
@@ -142,20 +168,20 @@ public class ShipLoaderTests
     [Fact]
     public void RackDto_with_zero_capacity_throws_on_mapping()
     {
-        var dto = new RackDto("rack-0", 0, []);
+        var dto = new RackDto("rack-0", 0, new GridDto(4, 2, 2), new PositionDto("port", "upper"));
 
         var act = () => dto.ToRack(0);
 
         act.Should().Throw<ArgumentOutOfRangeException>().WithMessage("*rack-0*");
     }
 
-    [Fact]
-    public void SlotDto_with_undefined_crate_size_throws_on_mapping()
+    [Theory]
+    [InlineData("Port", "upper")]   // case-sensitive like every other field
+    [InlineData("port", "1")]       // no numbers for enums
+    public void PositionDto_rejects_unknown_values(string side, string level)
     {
-        var dto = new SlotDto("a1", [2, 3]);
+        var act = () => new PositionDto(side, level).ToPosition("rack-0");
 
-        var act = () => dto.ToSlot();
-
-        act.Should().Throw<ArgumentOutOfRangeException>().WithMessage("*3*");
+        act.Should().Throw<ArgumentException>().WithMessage("*rack-0*");
     }
 }

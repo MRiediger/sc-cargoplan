@@ -38,9 +38,9 @@ Session-Start-Prompt für Claude Code:
 ### [x] T1.1 Core-Modelle
 **Warum:** Der Planer braucht feste Typen, sonst diskutieren wir später über Dictionary-Keys.
 Immutable `record`s in `CargoPlan.Core/Models/`:
-- `enum CrateSize { One = 1, Two = 2, Four = 4, Eight = 8 }`
-- `record Slot(string Id, IReadOnlySet<CrateSize> AllowedSizes)`
-- `record Rack(string Id, int Index, int CapacityScu, IReadOnlyList<Slot> Slots)` – `Index` 0 = vorne. Leere Slots = kapazitätsbasiert.
+- `enum CrateSize { One = 1, Two = 2, Four = 4, Eight = 8 }` (in T1.4 um 16/24/32 erweitert)
+- `record Slot(string Id, IReadOnlySet<CrateSize> AllowedSizes)` (in T1.4 durch Grid + Position ersetzt)
+- `record Rack(string Id, int Index, int CapacityScu, IReadOnlyList<Slot> Slots)` – `Index` 0 = Rack 1. Leere Slots = kapazitätsbasiert.
 - `record Ship(string Id, string Name, int TotalScu, IReadOnlyList<Rack> Racks)` – Konstruktor-Validierung: Rack-Summe == `TotalScu`, sonst `ArgumentException`
 - `record CargoItem(string Commodity, int Scu, CrateSize CrateSize)` – Validierung: `Scu % (int)CrateSize == 0`
 - `record Stop(string Destination, int Order, IReadOnlyList<CargoItem> Items)` + `int TotalScu`
@@ -68,12 +68,17 @@ Immutable `record`s in `CargoPlan.Core/Models/`:
 
 **Akzeptanz:** Alle drei Dateien parsen fehlerfrei.
 
-### [ ] T1.4 Slot-Raster (blockiert – wartet auf Spieldaten)
-**Warum:** Ohne echtes Raster kann der Planer nicht prüfen, ob eine 8er-Kiste physisch passt.
-- Martin liefert Slots pro Hull-A-Abschnitt + erlaubte Größen
-- `hull_a.json` ergänzen, Loader unverändert, Rack-Validierung erweitern
+### [x] T1.4 Rack-Raster, Position, Kistengrößen
+**Warum:** Ohne echtes Raster kann der Planer nicht prüfen, ob eine Kiste physisch passt.
+**Präzisiert in der Planung:** Umfang erweitert (Slot-Konzept ersetzt statt ergänzt, Position, Kistengrößen 16/24/32, Form-Vorcheck im Planer, Rück-Sweep „vorne/hinten“), Abweichung in der Planphase, ratifiziert durch Freigabe. Grid ist Pflicht, `schemaVersion` 2. Kein 3D-Packer (D9).
+- Spieldaten Hull A: 4 Platten, 2 Seiten × 2 Ebenen, je 4 × 2 × 2 Zellen (Length × Width × Stack, 1 Zelle = 1 SCU)
+- `Rack` bekommt `Grid` (`Dimensions`) und `Position` (`RackSide`, `RackLevel`); Validierung `Grid.Volume == CapacityScu`. `Slot` entfällt.
+- Kistenmaße als Tabelle in Core (`CrateSize.Dimensions`), neue Größen 16/24/32; `Rack.CanHold(size)` mit fester Orientierung
+- `LoadPlanner`: einziger Zusatz ist der Vorcheck „jede Kiste passt in mindestens ein Rack“, sonst `PlanException`
+- `hull_a.json`, `docs/ship-format.md` (inkl. „Measuring a ship“, „Adding a crate size“), D9
+- Sprache: „vorne/hinten“ → Rack-Reihenfolge bzw. Rack 1 … 4
 
-**Akzeptanz:** Layout lädt, Validierungstest. **Überspringen, bis Daten da sind.**
+**Akzeptanz:** Layout lädt mit Grid und Position, Validierungstest (Grid ≠ Kapazität wirft), Kistenmaße-Test pro Größe, 24er auf der Hull A wirft `PlanException`, CLI-Ausgabe der Fixtures unverändert.
 
 ---
 
@@ -83,7 +88,7 @@ Immutable `record`s in `CargoPlan.Core/Models/`:
 **Warum:** Der Kern. Alles andere ist Anzeige.
 `static LoadPlan Plan(Ship ship, IReadOnlyList<Stop> stops)` – reine Funktion.
 Regeln in Priorität:
-1. Stops nach `Order`. Letzter Stop → höchster Rack-Index (hinten), erster → vorne.
+1. Stops nach `Order`. Erster Stop → Rack 1, letzter → höchster Rack-Index (Rack-Reihenfolge).
 2. Ein Stop belegt möglichst **genau ein Rack**.
 3. Teilen sich Stops ein Rack, dann nur **in der Route benachbarte** (1+2, nie 1+3).
 4. Freie Racks bleiben leer.
@@ -149,7 +154,7 @@ Tests zuerst (`LoadPlannerTests.cs`):
 
 ### [ ] T3.3 Schiffsansicht
 **Warum:** Die eigentliche Information.
-- `ShipView` als `UserControl` mit `ItemsControl` über Racks, Racks als Rechtecke vorne→hinten, Füllgrad proportional
+- `ShipView` als `UserControl`, Schiffsansicht zeichnet 2 Seiten × 2 Ebenen nach `Rack.Position`, nicht eine Reihe; Rack-Nummer sichtbar (D9), Füllgrad proportional
 - Eine Farbe pro Stop, Palette ≥ 8 kontraststarke Farben, über `IValueConverter`
 - Label pro Placement: „Riker · 12 SCU Titanium“
 - Kein Planungscode im View oder ViewModel – nur Aufruf von Core

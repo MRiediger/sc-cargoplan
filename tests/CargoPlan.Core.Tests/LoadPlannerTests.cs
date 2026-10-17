@@ -18,7 +18,7 @@ public class LoadPlannerTests
     private static IReadOnlyList<Stop> Route(params int[] scus) =>
         [.. scus.Select((scu, i) => StopOf(Destinations[i], i + 1, scu))];
 
-    /// <summary>Destinations per Hull A rack, front to back.</summary>
+    /// <summary>Destinations per Hull A rack, in rack order.</summary>
     private static string[][] StopsPerRack(LoadPlan plan) =>
         [.. HullA.Racks.Select(r => plan.PlacementsForRack(r.Id).Select(p => p.Destination).Distinct().ToArray())];
 
@@ -40,7 +40,7 @@ public class LoadPlannerTests
     // --- Cases from TASKS.md ---
 
     [Fact]
-    public void Plan_example_missions_puts_each_stop_in_its_own_rack_from_the_front()
+    public void Plan_example_missions_puts_each_stop_in_its_own_rack_from_rack_1()
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
@@ -106,7 +106,7 @@ public class LoadPlannerTests
     // --- Sharing when there are more stops than racks ---
 
     [Fact]
-    public void Plan_five_stops_share_the_front_rack_and_warn()
+    public void Plan_five_stops_share_rack_1_and_warn()
     {
         var plan = LoadPlanner.Plan(HullA, Route(4, 4, 4, 4, 4));
 
@@ -146,13 +146,13 @@ public class LoadPlannerTests
     [InlineData(new[] { 12, 10, 8 })]
     [InlineData(new[] { 20, 12, 16, 16 })]
     [InlineData(new[] { 10, 10, 10, 10, 10, 4 })]
-    public void Plan_racks_front_to_back_hold_the_route_in_order(int[] scus)
+    public void Plan_racks_in_rack_order_hold_the_route_in_order(int[] scus)
     {
         var route = Route(scus);
 
         var plan = LoadPlanner.Plan(HullA, route);
 
-        // Reading the racks front to back must give the route: shared racks hold only neighbours,
+        // Reading the racks in rack order must give the route: shared racks hold only neighbours,
         // a split stop fills neighbouring racks.
         WithoutRepeats(StopsPerRack(plan).SelectMany(r => r)).Should().Equal(route.Select(s => s.Destination));
     }
@@ -265,6 +265,35 @@ public class LoadPlannerTests
         var act = () => LoadPlanner.Plan(HullA, route);
 
         act.Should().Throw<PlanException>().WithMessage("Crates don't fit*Orison*");
+    }
+
+    // --- Crate shape ---
+
+    [Fact]
+    public void Plan_16_scu_crate_fills_one_rack()
+    {
+        CargoItem titanium = new("Titanium", 16, CrateSize.Sixteen);
+
+        var plan = LoadPlanner.Plan(HullA, [new Stop("Riker", 1, [titanium])]);
+
+        plan.Placements.Should().Equal(new Placement("Riker", "rack-0", titanium));
+        plan.Warnings.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Plan_throws_when_a_crate_fits_no_rack()
+    {
+        // 24 SCU crates are 6 cells long, Hull A plates only 4: the SCU sum alone would fit.
+        Stop[] route =
+        [
+            new("Riker", 1, [new CargoItem("Titanium", 4, CrateSize.Four)]),
+            new("Shubin", 2, [new CargoItem("Agricium", 24, CrateSize.TwentyFour)]),
+        ];
+
+        var act = () => LoadPlanner.Plan(HullA, route);
+
+        act.Should().Throw<PlanException>()
+            .WithMessage("24 SCU crate of Agricium for Shubin doesn't fit any rack of hull_a (largest rack 4×2×2).");
     }
 
     // --- Guards ---

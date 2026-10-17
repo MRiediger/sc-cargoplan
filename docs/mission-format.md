@@ -44,7 +44,7 @@ so a typo like `"SCU"` is reported instead of being ignored silently.
 | Field | Type | Rules |
 |---|---|---|
 | `schemaVersion` | number | Must be `1`. |
-| `stops` | array | At least one stop. **Order matters:** list the stops in the order you fly to them. The planner puts the first stop at the front of the ship. |
+| `stops` | array | At least one stop. **Order matters:** list the stops in the order you fly to them. The planner puts the first stop into Rack 1. |
 
 ### Stop
 
@@ -59,7 +59,7 @@ so a typo like `"SCU"` is reported instead of being ignored silently.
 |---|---|---|
 | `commodity` | string | E.g. `"Titanium"`. Not empty. |
 | `scu` | number | Total amount in SCU, greater than 0. Must be a multiple of `crateSize`. |
-| `crateSize` | number | Crate size in SCU as shown in the contract: `1`, `2`, `4` or `8`. |
+| `crateSize` | number | Crate size in SCU as shown in the contract: `1`, `2`, `4`, `8`, `16`, `24` or `32`. A crate that fits no rack of the ship is rejected by the planner. |
 
 A stop with two crate sizes of the same commodity uses two items:
 

@@ -27,16 +27,17 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 
 **Nicht erkennen, sondern festlegen.** Vor dem Beladen wird bestimmt, welches Ziel in welchen Schiffsabschnitt kommt. Der Spieler lädt nach Plan, das Overlay hält die Zuordnung fest, am Ziel wird der Block abgehakt.
 
-- **Input:** pro Mission: Ziel → Ware → SCU → Kistengröße (1/2/4/8 SCU)
-- **Verarbeitung:** Bin-Packing mit Reihenfolge-Constraint. Erster Stopp vorne, letzter hinten, kein Ziel über eine Abschnittsgrenze, wenn vermeidbar.
+- **Input:** pro Mission: Ziel → Ware → SCU → Kistengröße (1/2/4/8/16/24/32 SCU)
+- **Verarbeitung:** Bin-Packing mit Reihenfolge-Constraint. Erster Stopp in Rack 1, die folgenden in Rack-Reihenfolge, kein Ziel über eine Abschnittsgrenze, wenn vermeidbar.
 - **Output:** halbtransparentes Always-on-top-Overlay mit **Click-through**, Schiff schematisch, farbige Blöcke pro Ziel mit Label („Riker · 12 SCU Titanium“), abhakbar.
 
 ## Domänenfakten
 
-- **MISC Hull A:** 64 SCU, Spindel mit **4 Abschnitten à 16 SCU**, getrennt beladbar (bestätigt). Rack = Ziel ist umsetzbar.
-- **Offen:** exaktes Slot-Raster pro Abschnitt, welche Kistengrößen wo passen. Martin liefert das aus dem Spiel. Bis dahin **kapazitätsbasiert** (SCU-Summe pro Rack).
+- **MISC Hull A:** 64 SCU, Spindel mit **4 Platten à 16 SCU**, getrennt beladbar (bestätigt). Rack = Ziel ist umsetzbar.
+- **Lage:** 2 Seiten × 2 Ebenen, **nicht vorne→hinten**. Rack 1 = Backbord oben, Rack 2 = Backbord unten, Rack 3 = Steuerbord oben, Rack 4 = Steuerbord unten. Rack-Reihenfolge = Planungsreihenfolge, unabhängig von der Lage.
+- **Raster:** jede Platte 4 × 2 × 2 Zellen (Length entlang der Spindel × Width quer × Stack weg von der Platte), 1 Zelle = 1 SCU = 1,25 m. Kisten in fester Orientierung: 1 = 1×1×1, 2 = 2×1×1, 4 = 2×2×1, 8 = 2×2×2, 16 = 4×2×2, 24 = 6×2×2, 32 = 4×4×2. Jede Mischung ≤ 16 passt in eine Platte, deshalb **kein 3D-Packer** (D9).
 - Später: Cutlass Black, RAFT, Community-Beiträge für weitere Schiffe.
-- Begriffe: **Rack** = Schiffsabschnitt, **Slot** = Stellplatz, **Stop** = Zielhafen in Reihenfolge, **Placement** = Fracht → Rack.
+- Begriffe: **Rack** = Schiffsabschnitt (Platte), **Grid** = Zellraster eines Racks, **Cell** = 1 SCU, **Position** = Seite + Ebene, **Stop** = Zielhafen in Reihenfolge, **Placement** = Fracht → Rack.
 - Star Citizen nutzt Easy Anti-Cheat. **Externes Fenster = unkritisch. Nichts in den Spielprozess injizieren, keine Hooks.**
 
 ## Technische Entscheidungen

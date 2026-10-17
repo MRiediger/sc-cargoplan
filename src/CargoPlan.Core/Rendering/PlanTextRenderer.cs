@@ -12,7 +12,7 @@ public static class PlanTextRenderer
     private const string WarningMarker = "! ";
 
     /// <summary>
-    /// One block per rack, front to back, with its placements and warnings; below, every distinct warning once.
+    /// One block per rack, in rack order, with its placements and warnings; below, every distinct warning once.
     /// Lines are separated by "\n" on every OS, without a trailing newline.
     /// </summary>
     /// <exception cref="ArgumentException">The plan belongs to another ship.</exception>

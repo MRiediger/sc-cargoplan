@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 2,
+  "id": "grid_capacity_mismatch",
+  "name": "Grid holds 16 cells, capacity is 12",
+  "totalScu": 12,
+  "racks": [
+    { "id": "rack-0", "capacityScu": 12, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "upper" } }
+  ]
+}

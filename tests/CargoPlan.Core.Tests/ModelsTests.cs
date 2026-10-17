@@ -4,11 +4,14 @@ namespace CargoPlan.Core.Tests;
 
 public class ModelsTests
 {
-    private static Rack EmptyRack(int index, int capacityScu = 16) =>
-        new($"rack-{index}", index, capacityScu, []);
+    private static readonly Dimensions HullAGrid = new(4, 2, 2);
+    private static readonly RackPosition PortUpper = new(RackSide.Port, RackLevel.Upper);
+
+    private static Rack RackOf(int index, int capacityScu = 16, Dimensions? grid = null) =>
+        new($"rack-{index}", index, capacityScu, grid ?? HullAGrid, PortUpper);
 
     private static IReadOnlyList<Rack> HullARacks() =>
-        [EmptyRack(0), EmptyRack(1), EmptyRack(2), EmptyRack(3)];
+        [RackOf(0), RackOf(1), RackOf(2), RackOf(3)];
 
     // --- CrateSize ---
 
@@ -17,9 +20,61 @@ public class ModelsTests
     [InlineData(CrateSize.Two, 2)]
     [InlineData(CrateSize.Four, 4)]
     [InlineData(CrateSize.Eight, 8)]
+    [InlineData(CrateSize.Sixteen, 16)]
+    [InlineData(CrateSize.TwentyFour, 24)]
+    [InlineData(CrateSize.ThirtyTwo, 32)]
     public void CrateSize_value_equals_its_scu(CrateSize size, int expectedScu)
     {
         ((int)size).Should().Be(expectedScu);
+    }
+
+    // Measured in the hangar (Alpha 4.10): length x width x stack in cells, fixed orientation.
+    [Theory]
+    [InlineData(CrateSize.One, 1, 1, 1)]
+    [InlineData(CrateSize.Two, 2, 1, 1)]
+    [InlineData(CrateSize.Four, 2, 2, 1)]
+    [InlineData(CrateSize.Eight, 2, 2, 2)]
+    [InlineData(CrateSize.Sixteen, 4, 2, 2)]
+    [InlineData(CrateSize.TwentyFour, 6, 2, 2)]
+    [InlineData(CrateSize.ThirtyTwo, 4, 4, 2)]
+    public void CrateSize_dimensions_match_the_game(CrateSize size, int length, int width, int stack)
+    {
+        size.Dimensions.Should().Be(new Dimensions(length, width, stack));
+    }
+
+    [Theory]
+    [InlineData(CrateSize.One)]
+    [InlineData(CrateSize.Two)]
+    [InlineData(CrateSize.Four)]
+    [InlineData(CrateSize.Eight)]
+    [InlineData(CrateSize.Sixteen)]
+    [InlineData(CrateSize.TwentyFour)]
+    [InlineData(CrateSize.ThirtyTwo)]
+    public void CrateSize_volume_equals_scu(CrateSize size)
+    {
+        size.Dimensions.Volume.Should().Be((int)size);
+    }
+
+    // --- Dimensions ---
+
+    [Fact]
+    public void Dimensions_volume_is_product_of_axes()
+    {
+        var grid = new Dimensions(4, 2, 2);
+
+        grid.Volume.Should().Be(16);
+        grid.ToString().Should().Be("4×2×2");
+    }
+
+    [Theory]
+    [InlineData(0, 2, 2, "Length")]
+    [InlineData(4, 0, 2, "Width")]
+    [InlineData(4, 2, -1, "Stack")]
+    public void Dimensions_rejects_non_positive_axis(int length, int width, int stack, string axis)
+    {
+        var act = () => new Dimensions(length, width, stack);
+
+        act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName(axis);
     }
 
     // --- CargoItem ---
@@ -82,10 +137,11 @@ public class ModelsTests
     [Fact]
     public void Rack_with_positive_capacity_and_index_is_valid()
     {
-        var rack = EmptyRack(index: 0, capacityScu: 16);
+        var rack = RackOf(index: 0, capacityScu: 16);
 
         rack.CapacityScu.Should().Be(16);
-        rack.Slots.Should().BeEmpty();
+        rack.Grid.Should().Be(HullAGrid);
+        rack.Position.Should().Be(PortUpper);
     }
 
     [Theory]
@@ -93,7 +149,7 @@ public class ModelsTests
     [InlineData(-16)]
     public void Rack_rejects_non_positive_capacity(int capacityScu)
     {
-        var act = () => EmptyRack(index: 0, capacityScu);
+        var act = () => RackOf(index: 0, capacityScu);
 
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
@@ -101,9 +157,30 @@ public class ModelsTests
     [Fact]
     public void Rack_rejects_negative_index()
     {
-        var act = () => EmptyRack(index: -1);
+        var act = () => RackOf(index: -1);
 
         act.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public void Rack_rejects_grid_that_does_not_match_capacity()
+    {
+        var act = () => RackOf(index: 0, capacityScu: 12, grid: HullAGrid);
+
+        act.Should().Throw<ArgumentException>().WithMessage("*rack-0*16*12*");
+    }
+
+    [Theory]
+    [InlineData(CrateSize.One, true)]
+    [InlineData(CrateSize.Two, true)]
+    [InlineData(CrateSize.Four, true)]
+    [InlineData(CrateSize.Eight, true)]
+    [InlineData(CrateSize.Sixteen, true)]
+    [InlineData(CrateSize.TwentyFour, false)]  // 6 cells long, the plate has 4
+    [InlineData(CrateSize.ThirtyTwo, false)]   // 4 cells wide, the plate has 2
+    public void Rack_CanHold_checks_crate_shape_against_hull_a_grid(CrateSize size, bool expected)
+    {
+        RackOf(index: 0).CanHold(size).Should().Be(expected);
     }
 
     // --- Ship ---
@@ -120,7 +197,7 @@ public class ModelsTests
     [Fact]
     public void Ship_rejects_racks_that_do_not_sum_to_total_scu()
     {
-        IReadOnlyList<Rack> racks = [EmptyRack(0), EmptyRack(1), EmptyRack(2), EmptyRack(3, capacityScu: 12)];
+        IReadOnlyList<Rack> racks = [RackOf(0), RackOf(1), RackOf(2), RackOf(3, capacityScu: 12, grid: new(3, 2, 2))];
 
         var act = () => new Ship("hull_a", "MISC Hull A", 64, racks);
 
@@ -133,7 +210,7 @@ public class ModelsTests
         List<Rack> racks = [.. HullARacks()];
         var ship = new Ship("hull_a", "MISC Hull A", 64, racks);
 
-        racks.Add(EmptyRack(4));
+        racks.Add(RackOf(4));
 
         ship.Racks.Should().HaveCount(4);
     }

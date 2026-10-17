@@ -34,9 +34,9 @@ A decision changes only through a new entry that supersedes the old one.
 ## D5 – Planner rack sharing
 
 - **Context:** A cargo lift refuses the whole hand-over if a foreign crate is on the platform, so mixing destinations in one rack costs the player time. With more stops than racks, mixing can't be avoided.
-- **Decision:** Racks fill from the front in route order, one rack per stop while racks last. Only route-neighbours share a rack (1+2, never 1+3), and sharing is spread evenly: the planner minimises the stop count of the fullest rack, then the sum of squared stop counts per rack. On a tie, sharing goes to the front racks. Every shared rack produces a warning.
-- **Counter-argument:** Packing neighbours whenever they fit would leave more racks free for later pickups. A tie-break by crate count in the shared rack (fewer crates are easier to tell apart) would help the player more than "share at the front".
-- **Consequence:** Free racks stay together at the back. The crate-count tie-break is deliberately left out (YAGNI) and can become a task if the front rule hurts in practice.
+- **Decision:** Racks fill in rack order (Rack 1 first) in route order, one rack per stop while racks last. Only route-neighbours share a rack (1+2, never 1+3), and sharing is spread evenly: the planner minimises the stop count of the fullest rack, then the sum of squared stop counts per rack. On a tie, sharing goes to the lowest-numbered racks. Every shared rack produces a warning.
+- **Counter-argument:** Packing neighbours whenever they fit would leave more racks free for later pickups. A tie-break by crate count in the shared rack (fewer crates are easier to tell apart) would help the player more than "share in the first racks".
+- **Consequence:** Free racks stay together at the end of the rack order. The crate-count tie-break is deliberately left out (YAGNI) and can become a task if the first-racks rule hurts in practice.
 
 ## D6 – Splitting stops across racks
 
@@ -58,3 +58,10 @@ A decision changes only through a new entry that supersedes the old one.
 - **Decision:** Parse `args` with a C# list pattern in `Options.Parse`; anything else prints the usage and exits with 2. No `System.CommandLine`.
 - **Counter-argument:** `System.CommandLine` brings `--help`, validation, error messages and tab completion, and scales to more commands without hand-written parsing.
 - **Consequence:** No extra package for a debugging tool. If the CLI grows beyond a few commands or options, switching to `System.CommandLine` becomes a task of its own.
+
+## D9 – Rack grid and physical position
+
+- **Context:** Hangar data for the Hull A (Alpha 4.10): four plates on the spindle, 2 sides × 2 levels, each a cell grid of 4 × 2 × 2 (length × width × stack, 1 cell = 1 SCU). The racks don't run front to back, so the old wording was wrong, and the speculative slot model from T1.1 never matched the game.
+- **Decision:** A rack has a `Grid` (`Dimensions` in cells) and a `Position` (side, level); the grid volume must equal `capacityScu`. Crate shapes are a fixed table in Core (1 = 1×1×1, 2 = 2×1×1, 4 = 2×2×1, 8 = 2×2×2, 16 = 4×2×2, 24 = 6×2×2, 32 = 4×4×2), never turned. No 3D packer: on a Hull A plate every mix up to 16 SCU fits. An 8 fills two length cells completely; flat 4s have 2 areas × 2 levels = 4 places, each 8 takes 2; 2s and 1s fill any rest; a 16 fills the plate alone. So the SCU sum check from D6 is exact for the Hull A. Shape check (`CanHold`) is per crate, not per mix – the sum argument covers the mix for Hull A; a packer stays out until a ship breaks that argument. The planner rejects a crate that fits no rack before planning.
+- **Counter-argument:** Ships with irregular plates may need a real packer, and the sum argument has to be redone for every new grid. `capacityScu` is redundant to the grid. On a ship with racks of different grids, the pre-check only asks "fits any rack"; the planner could still put the crate into a rack that is too small.
+- **Consequence:** Rack order stays the planning order, separate from the physical place: "neighbouring racks" in D5/D6 means neighbours in rack order, and on the Hull A Racks 2 and 3 sit on different sides. The overlay has to show rack numbers and draw racks by `Position` (T3.3). A per-rack shape check inside the planner, or a packer, becomes a task once a ship breaks the sum argument.
