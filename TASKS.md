@@ -79,7 +79,7 @@ Immutable `record`s in `CargoPlan.Core/Models/`:
 
 ## Phase 2 – Verteilalgorithmus (Core, kein UI)
 
-### [ ] T2.1 `LoadPlanner.Plan()` – Grundfall
+### [x] T2.1 `LoadPlanner.Plan()` – Grundfall
 **Warum:** Der Kern. Alles andere ist Anzeige.
 `static LoadPlan Plan(Ship ship, IReadOnlyList<Stop> stops)` – reine Funktion.
 Regeln in Priorität:
@@ -90,7 +90,7 @@ Regeln in Priorität:
 
 Tests zuerst (`LoadPlannerTests.cs`):
 - 3 Stops ≤ 16 → 3 Racks, Reihenfolge korrekt
-- 2 × 8 SCU + 1 × 16 SCU → 2 Racks belegt
+- 2 × 8 SCU + 1 × 16 SCU → 3 racks used
 - 4 × 16 SCU → alle Racks
 - leere Liste → leerer Plan
 

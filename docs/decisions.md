@@ -30,3 +30,10 @@ A decision changes only through a new entry that supersedes the old one.
 - **Decision:** Publish a self-contained single-file EXE (~70 MB), plus a small framework-dependent EXE (~3 MB) for users who have the .NET Desktop Runtime.
 - **Counter-argument:** An installer (e.g. MSIX, Velopack) would add auto-update and a Start menu entry; one framework-dependent build would be much smaller.
 - **Consequence:** Downloads are large because WPF can't be trimmed. Unsigned EXEs trigger SmartScreen warnings, which the README has to explain. Auto-update is a later evaluation (T6.2).
+
+## D5 – Planner rack sharing
+
+- **Context:** A cargo lift refuses the whole hand-over if a foreign crate is on the platform, so mixing destinations in one rack costs the player time. With more stops than racks, mixing can't be avoided.
+- **Decision:** Racks fill from the front in route order, one rack per stop while racks last. Only route-neighbours share a rack (1+2, never 1+3), and sharing is spread evenly: the planner minimises the stop count of the fullest rack, then the sum of squared stop counts per rack. On a tie, sharing goes to the front racks. Every shared rack produces a warning.
+- **Counter-argument:** Packing neighbours whenever they fit would leave more racks free for later pickups. A tie-break by crate count in the shared rack (fewer crates are easier to tell apart) would help the player more than "share at the front".
+- **Consequence:** Free racks stay together at the back. The crate-count tie-break is deliberately left out (YAGNI) and can become a task if the front rule hurts in practice.
