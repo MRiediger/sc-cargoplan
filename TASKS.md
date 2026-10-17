@@ -96,8 +96,9 @@ Tests zuerst (`LoadPlannerTests.cs`):
 
 **Akzeptanz:** Tests grün. Martin kann den Algorithmus in 5 Sätzen ohne Code erklären. Core hat **keine** Referenz auf App/Import.
 
-### [ ] T2.2 Grenzfälle
+### [x] T2.2 Grenzfälle
 **Warum:** Im Spiel passiert genau das.
+**Präzisiert in der Planung:** Split nur, wenn kein Plan ohne Split existiert; Rangfolge in `docs/decisions.md` D6. Racks im Spieler-Text ab 1 gezählt.
 - Stop > Rack-Kapazität: auf **benachbarte** Racks splitten, Warnung („Riker spans racks 2+3“)
 - Gesamt > Schiff: `PlanException` mit fehlenden SCU und betroffenem Stop. Kein stiller Teilplan.
 - Items eines Stops nie trennen, wenn vermeidbar
