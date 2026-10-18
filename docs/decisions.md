@@ -80,6 +80,19 @@ A decision changes only through a new entry that supersedes the old one.
 - **Counter-argument:** Permanent click-through with a hotkey to unlock would be simpler and never in the game's way; detecting the cursor state polls Win32 and can guess wrong after a game patch.
 - **Consequence:** A locked overlay can't be clicked, so unlocking needs a window of its own (T3.2) or a hotkey; until then the `--locked` start switch tests the mode and unlocking means a restart. Clicks on fully transparent pixels pass through WPF windows anyway, so only a click on the dark background proves the mode. Only read-only Win32 queries on other windows, nothing in the game process (EAC).
 - **Addendum (T3.2):** The lock window is a second, owned window that never gets `WS_EX_TRANSPARENT`, so it stays clickable while the overlay is locked; a restart is no longer needed. It gets `WS_EX_NOACTIVATE` and an unfocusable button: at the freight elevator terminal the cursor is free, and a click that took the foreground would make Star Citizen lose the mouse. The overlay itself stays as in T3.1 (`DragMove` activates it); changing that is not needed yet. The lock sits inside the overlay's top-right corner but stays a window of its own: `WS_EX_TRANSPARENT` covers the whole overlay window and can't spare a button, and `HTTRANSPARENT` only forwards to windows of the same thread. Rejected: a button in the overlay that only locks, with unlocking by hotkey (needs the keyboard, pulls T3.7 forward); polling the cursor over the button (brings back the hidden-cursor problem above).
+- **Addendum (T3.3):** Auto-lock reads the cursor state instead of guessing the game's menus: key heuristics (mobiGlas/Esc) can drift out of sync, as seen in-game with a third-party overlay; the cursor is the actual state. `IsLocked = IsManuallyLocked || IsAutoLocked`; the lock window and `--locked` switch only the manual lock. A `DispatcherTimer` polls every 150 ms on the UI thread: `GetForegroundWindow` (process name resolved only on a window change) and `GetCursorInfo`. Rejected: `SetWinEventHook` for foreground changes – Windows has no event for the cursor state, so polling stays anyway. While auto-locked the lock window is click-through as well (amends T3.2's "never"): the hidden cursor could sit over it too, and nobody can aim at it then. `GetCursorInfo` failing throws, except `ERROR_ACCESS_DENIED` on the secure desktop (Win+L, UAC; from experience reports, not documented), which counts as "cursor showing". Spike before the code (Star Citizen hides the cursor with `ShowCursor`; a state with `flags = 1, hCursor = 0` did not occur, so `CURSOR_SHOWING` alone decides). Precision in the planning phase, ratified by approval.
+
+  | Phase | Foreground process | flags | hCursor |
+  |---|---|---|---|
+  | Main menu | StarCitizen | 1 | game's own |
+  | Loading screen | StarCitizen | 0 | 0 |
+  | First person / flight | StarCitizen | 0 | 0 |
+  | mobiGlas | StarCitizen | 1 | game's own (changes on hover) |
+  | Esc menu | StarCitizen | 1 | game's own |
+  | Freight elevator terminal | StarCitizen | not logged; overlay unlocks in-game, so `CURSOR_SHOWING` is set | |
+  | Typing in Windows Terminal | WindowsTerminal | 0 | 0 |
+
+  The last row is why the foreground process is needed: other programs hide the cursor too. Counter-argument: a game patch can change how the cursor is hidden; the spike table is the reference to check against.
 
 ## D12 – App tests run on Windows only
 

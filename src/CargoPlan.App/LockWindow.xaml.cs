@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Interop;
 using CargoPlan.App.ViewModels;
@@ -11,17 +12,20 @@ namespace CargoPlan.App;
 /// </summary>
 public partial class LockWindow : Window
 {
+    private readonly OverlayViewModel _viewModel;
     private readonly Window _overlay;
 
     /// <param name="overlay">Must already be shown: Owner rejects a window that was never shown.</param>
     public LockWindow(OverlayViewModel viewModel, Window overlay)
     {
         InitializeComponent();
+        _viewModel = viewModel;
         DataContext = viewModel;
         _overlay = overlay;
         Owner = overlay;
         overlay.LocationChanged += OnOverlayMoved;
         overlay.SizeChanged += OnOverlayMoved;
+        viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
 
     // The HWND exists from SourceInitialized on.
@@ -29,6 +33,7 @@ public partial class LockWindow : Window
     {
         base.OnSourceInitialized(e);
         PreventActivation();
+        ApplyAutoLock();
         FollowOverlay();
     }
 
@@ -36,7 +41,33 @@ public partial class LockWindow : Window
     {
         _overlay.LocationChanged -= OnOverlayMoved;
         _overlay.SizeChanged -= OnOverlayMoved;
+        _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         base.OnClosed(e);
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(OverlayViewModel.IsAutoLocked))
+        {
+            ApplyAutoLock();
+        }
+    }
+
+    /// <summary>
+    /// Click-through only while auto-locked: the hidden cursor follows the view and could sit over this
+    /// window too, catching the tractor-beam click (D11). Nobody can aim at the button with a hidden cursor,
+    /// and once the cursor shows, the button is clickable again, so the way back stays open.
+    /// The manual lock never makes it click-through.
+    /// </summary>
+    private void ApplyAutoLock()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == 0)
+        {
+            return; // Not shown yet; OnSourceInitialized applies the current state.
+        }
+
+        NativeMethods.SetClickThrough(hwnd, _viewModel.IsAutoLocked);
     }
 
     /// <summary>

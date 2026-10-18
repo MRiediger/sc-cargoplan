@@ -15,7 +15,8 @@
         ShowActivated="False"
         ShowInTaskbar="False"
         ResizeMode="NoResize">
-    <!-- Never click-through: this is the way back from a locked overlay. WS_EX_NOACTIVATE is set in code-behind. -->
+    <!-- The way back from a locked overlay: click-through only while auto-locked (cursor hidden), never by the
+         manual lock. WS_EX_NOACTIVATE and the click-through switch are set in code-behind. -->
     <Window.Resources>
         <Style x:Key="LockButtonStyle" TargetType="Button">
             <!-- Not focusable: focusing would activate the window and take the foreground from the game. -->

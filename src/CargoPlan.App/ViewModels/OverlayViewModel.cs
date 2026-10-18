@@ -20,16 +20,29 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     public partial LoadPlan? Plan { get; set; }
 
     /// <summary>
-    /// true = click-through: mouse input goes to the window below. Default false, see D11.
-    /// --locked sets the start value, the lock window switches it via <see cref="ToggleLockCommand"/>.
+    /// The player's lock: --locked sets the start value, the lock window switches it via <see cref="ToggleLockCommand"/>.
     /// </summary>
+    // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/observableproperty#notifying-dependent-properties
     [ObservableProperty]
-    public partial bool IsLocked { get; set; }
+    [NotifyPropertyChangedFor(nameof(IsLocked))]
+    public partial bool IsManuallyLocked { get; set; }
+
+    /// <summary>Set by the cursor state monitor while Star Citizen has the mouse (T3.3).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsLocked))]
+    public partial bool IsAutoLocked { get; set; }
+
+    /// <summary>
+    /// true = click-through: mouse input goes to the window below. Default false, see D11.
+    /// The manual lock forces locked but doesn't lift the auto-lock: unlocked by hand still locks
+    /// while flying, or the next tractor-beam click would be lost.
+    /// </summary>
+    public bool IsLocked => IsManuallyLocked || IsAutoLocked;
 
     // Generates ToggleLockCommand (IRelayCommand), bound by the lock window's button.
     // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand
     [RelayCommand]
-    private void ToggleLock() => IsLocked = !IsLocked;
+    private void ToggleLock() => IsManuallyLocked = !IsManuallyLocked;
 
     public string PlanText => Plan is null ? NoPlanText : PlanTextRenderer.Render(Plan, Ship);
 }

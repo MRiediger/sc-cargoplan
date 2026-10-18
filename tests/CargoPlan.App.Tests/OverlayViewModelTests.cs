@@ -31,24 +31,74 @@ public class OverlayViewModelTests
         WithSamplePlan().IsLocked.Should().BeFalse();
     }
 
-    [Fact]
-    public void IsLocked_raises_PropertyChanged_so_the_window_can_switch_click_through()
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(true, true, true)]
+    public void IsLocked_is_manual_or_auto(bool manual, bool auto, bool expected)
     {
         var viewModel = WithSamplePlan();
 
-        Changes(viewModel, () => viewModel.IsLocked = true).Should().Contain(nameof(OverlayViewModel.IsLocked));
+        viewModel.IsManuallyLocked = manual;
+        viewModel.IsAutoLocked = auto;
+
+        viewModel.IsLocked.Should().Be(expected);
     }
 
     [Fact]
-    public void ToggleLockCommand_flips_IsLocked_and_back()
+    public void IsManuallyLocked_raises_PropertyChanged_for_IsLocked_so_the_window_can_switch_click_through()
+    {
+        var viewModel = WithSamplePlan();
+
+        Changes(viewModel, () => viewModel.IsManuallyLocked = true).Should().Contain(nameof(OverlayViewModel.IsLocked));
+    }
+
+    [Fact]
+    public void IsAutoLocked_raises_PropertyChanged_for_IsLocked_so_the_window_can_switch_click_through()
+    {
+        var viewModel = WithSamplePlan();
+
+        Changes(viewModel, () => viewModel.IsAutoLocked = true).Should().Contain(nameof(OverlayViewModel.IsLocked));
+    }
+
+    [Fact]
+    public void ToggleLockCommand_flips_the_manual_lock_and_back()
     {
         var viewModel = WithSamplePlan();
 
         viewModel.ToggleLockCommand.Execute(null);
+        viewModel.IsManuallyLocked.Should().BeTrue();
         viewModel.IsLocked.Should().BeTrue();
 
         viewModel.ToggleLockCommand.Execute(null);
+        viewModel.IsManuallyLocked.Should().BeFalse();
         viewModel.IsLocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ToggleLockCommand_while_auto_locked_sets_the_manual_lock_and_stays_locked()
+    {
+        var viewModel = WithSamplePlan();
+        viewModel.IsAutoLocked = true;
+
+        viewModel.ToggleLockCommand.Execute(null);
+
+        viewModel.IsManuallyLocked.Should().BeTrue();
+        viewModel.IsLocked.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Manual_lock_survives_the_auto_lock_ending()
+    {
+        // Locked at the terminal, then flying (auto) and back at the terminal (auto ends): still locked.
+        var viewModel = WithSamplePlan();
+        viewModel.IsManuallyLocked = true;
+        viewModel.IsAutoLocked = true;
+
+        viewModel.IsAutoLocked = false;
+
+        viewModel.IsLocked.Should().BeTrue();
     }
 
     [Fact]

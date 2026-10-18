@@ -41,10 +41,7 @@ public partial class OverlayWindow : Window
         }
     }
 
-    /// <summary>
-    /// Locked: WS_EX_TRANSPARENT sends hit-tests to the window below. Unlocked: only that bit goes;
-    /// WS_EX_LAYERED stays, WPF owns it for AllowsTransparency and removing it breaks rendering (D11).
-    /// </summary>
+    /// <summary>Locked = click-through, see <see cref="NativeMethods.SetClickThrough"/>.</summary>
     private void ApplyLock(bool locked)
     {
         var hwnd = new WindowInteropHelper(this).Handle;
@@ -53,15 +50,7 @@ public partial class OverlayWindow : Window
             return; // Not shown yet; OnSourceInitialized applies the current state.
         }
 
-        var style = NativeMethods.GetExStyle(hwnd);
-        var newStyle = locked
-            ? style | NativeMethods.WS_EX_TRANSPARENT | NativeMethods.WS_EX_LAYERED
-            : style & ~NativeMethods.WS_EX_TRANSPARENT;
-
-        if (newStyle != style)
-        {
-            NativeMethods.SetExStyle(hwnd, newStyle);
-        }
+        NativeMethods.SetClickThrough(hwnd, locked);
     }
 
     // Borderless window: drag anywhere on the background.

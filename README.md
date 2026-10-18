@@ -24,9 +24,11 @@ _Coming soon: a single Windows EXE on the [Releases](../../releases) page._
 
 Run Star Citizen in **Borderless** window mode. In exclusive fullscreen the game covers every other window, the overlay included.
 
-The overlay starts interactive: you can click and drag it. The small padlock in its top-right corner locks it: the overlay turns click-through, so every click goes to the game. Click the padlock again to unlock. A closed amber padlock means locked, an open white one unlocked. Clicking the padlock doesn't take the focus from the game.
+**Never eats your tractor-beam click:** the overlay becomes click-through automatically while Star Citizen has the mouse. In flight and first person the game hides the cursor and it follows your view, so a click over a normal window would be lost. As soon as the cursor shows (mobiGlas, Esc menu, terminals) or another program is in front, the overlay is interactive again: you can click and drag it.
 
-Start with `--locked` to begin in the locked state.
+The small padlock in the overlay's top-right corner locks it by hand: the overlay stays click-through even with the cursor showing, so every click goes to the game. Click the padlock again to unlock. A closed amber padlock means locked, an open white one unlocked. Clicking the padlock doesn't take the focus from the game.
+
+Start with `--locked` to begin with the padlock locked.
 
 ## Build
 
