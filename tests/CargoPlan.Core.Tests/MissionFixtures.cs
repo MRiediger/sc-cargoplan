@@ -18,6 +18,9 @@ internal static class MissionFixtures
     /// <summary>1 stop, 20 SCU Titanium in 4 SCU crates: more than one 16 SCU rack.</summary>
     public static IReadOnlyList<Stop> SplitRequired => Load("split_required");
 
+    /// <summary>4 stops, 54 SCU: Riker (20) splits over racks 1+2 and shares rack 2 with Shubin.</summary>
+    public static IReadOnlyList<Stop> SplitAndShared => Load("split_and_shared");
+
     public static IReadOnlyList<Stop> Load(string name)
     {
         var resourceName = ResourceName(name);

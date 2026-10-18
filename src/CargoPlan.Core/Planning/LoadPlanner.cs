@@ -35,35 +35,122 @@ public static class LoadPlanner
 
         var segments = Partition(racks, line);
 
-        List<Placement> placements = [];
-        List<PlanWarning> warnings = [];
-        foreach (var segment in segments)
-        {
-            // Crates of one item lie next to each other, so each item becomes one placement per rack.
-            placements.AddRange(line.Crates[segment.Start..segment.End]
-                .GroupBy(c => (c.Stop, c.Item))
-                .Select(g => Place(line.Stops[g.Key.Stop], g.Key.Item, segment.Rack, g.Sum(c => c.Scu))));
+        // Crates of one item lie next to each other, so each item becomes one placement per rack.
+        List<Placement> placements = [.. segments.SelectMany(segment => line.Crates[segment.Start..segment.End]
+            .GroupBy(c => (c.Stop, c.Item))
+            .Select(g => Place(line.Stops[g.Key.Stop], g.Key.Item, segment.Rack, g.Sum(c => c.Scu))))];
 
-            var inRack = line.Stops[segment.FirstStop..(segment.LastStop + 1)];
+        return new LoadPlan(ship.Id, placements, Hints(racks, placements));
+    }
+
+    /// <summary>
+    /// Moves one placement to another rack, as the player decides. Never refuses an overloaded rack or a crate
+    /// that doesn't fit; <see cref="Validate"/> reports those. The hints (shared racks, split stops) are derived
+    /// anew, so the plan never shows stale ones. The original plan stays unchanged.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// The plan belongs to another ship, the ship has no such rack, or the placement isn't part of the plan.
+    /// </exception>
+    public static LoadPlan MovePlacement(LoadPlan plan, Ship ship, Placement placement, string targetRackId)
+    {
+        EnsureSameShip(plan, ship);
+        if (!ship.Racks.Any(r => r.Id == targetRackId))
+        {
+            throw new ArgumentException($"Ship '{ship.Id}' has no rack '{targetRackId}'.", nameof(targetRackId));
+        }
+
+        // Copy first, then change the copy: the original plan keeps its list.
+        List<Placement> placements = [.. plan.Placements];
+
+        // Value equality: equal placements are interchangeable, so the first one moves. Same index keeps route order.
+        var index = placements.IndexOf(placement);
+        if (index < 0)
+        {
+            throw new ArgumentException(Invariant(
+                $"Placement of {placement.Item.Scu} SCU {placement.Item.Commodity} for {placement.Destination} in '{placement.RackId}' is not part of the plan."),
+                nameof(placement));
+        }
+
+        placements[index] = placement with { RackId = targetRackId };
+        return plan with { Placements = placements, Warnings = Hints([.. ship.Racks.OrderBy(r => r.Index)], placements) };
+    }
+
+    /// <summary>
+    /// Violations that keep the plan from being loaded, per rack in rack order: more SCU than the rack holds,
+    /// and crates whose shape doesn't fit the rack (per crate, not per mix, D9). Empty for every plan from
+    /// <see cref="Plan"/>; hints for the player (shared racks, split stops) are in <see cref="LoadPlan.Warnings"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">The plan belongs to another ship or uses a rack the ship doesn't have.</exception>
+    public static IReadOnlyList<PlanWarning> Validate(LoadPlan plan, Ship ship)
+    {
+        EnsureSameShip(plan, ship);
+        if (plan.Placements.FirstOrDefault(p => !ship.Racks.Any(r => r.Id == p.RackId)) is { } stray)
+        {
+            throw new ArgumentException(
+                $"Placement for {stray.Destination} is in rack '{stray.RackId}', which ship '{ship.Id}' doesn't have.", nameof(plan));
+        }
+
+        List<PlanWarning> violations = [];
+        foreach (var rack in ship.Racks.OrderBy(r => r.Index))
+        {
+            var placements = plan.PlacementsForRack(rack.Id);
+            var used = placements.Sum(p => p.Item.Scu);
+            if (used > rack.CapacityScu)
+            {
+                violations.Add(new PlanWarning(rack.Id, Invariant($"Rack {rack.Number} overloaded: {used}/{rack.CapacityScu} SCU")));
+            }
+
+            violations.AddRange(placements
+                .Where(p => !rack.CanHold(p.Item.CrateSize))
+                .Select(p => new PlanWarning(rack.Id, Invariant(
+                    $"{(int)p.Item.CrateSize} SCU crate of {p.Item.Commodity} for {p.Destination} doesn't fit rack {rack.Number} ({rack.Grid})"))));
+        }
+
+        return violations;
+    }
+
+    /// <summary>
+    /// What the player has to watch at the cargo lift, derived from the placements alone: every rack holding more
+    /// than one destination, and every rack holding part of a destination that spans racks. Destinations keep
+    /// placement order, which is route order for a planned stop. <paramref name="racks"/> must be in rack order.
+    /// </summary>
+    private static List<PlanWarning> Hints(Rack[] racks, IReadOnlyList<Placement> placements)
+    {
+        var racksOfDestination = placements
+            .GroupBy(p => p.Destination)
+            .ToDictionary(g => g.Key, g => racks.Where(r => g.Any(p => p.RackId == r.Id)).ToArray());
+
+        List<PlanWarning> warnings = [];
+        foreach (var rack in racks)
+        {
+            string[] inRack = [.. placements.Where(p => p.RackId == rack.Id).Select(p => p.Destination).Distinct()];
             if (inRack.Length > 1)
             {
-                warnings.Add(new PlanWarning(segment.Rack.Id, Invariant(
-                    $"Rack {segment.Rack.Number} shared by {string.Join(", ", inRack.Select(s => s.Destination))} – identify crates by count")));
+                warnings.Add(new PlanWarning(rack.Id, Invariant(
+                    $"Rack {rack.Number} shared by {string.Join(", ", inRack)} – identify crates by count")));
             }
 
             // Same message in every spanned rack, so the overview can show it once.
-            for (var stop = segment.FirstStop; stop <= segment.LastStop; stop++)
+            foreach (var destination in inRack)
             {
-                Rack[] spanned = [.. segments.Where(s => s.FirstStop <= stop && stop <= s.LastStop).Select(s => s.Rack)];
+                var spanned = racksOfDestination[destination];
                 if (spanned.Length > 1)
                 {
-                    warnings.Add(new PlanWarning(segment.Rack.Id, Invariant(
-                        $"{line.Stops[stop].Destination} spans racks {string.Join("+", spanned.Select(r => r.Number))}")));
+                    warnings.Add(new PlanWarning(rack.Id, Invariant(
+                        $"{destination} spans racks {string.Join("+", spanned.Select(r => r.Number))}")));
                 }
             }
         }
 
-        return new LoadPlan(ship.Id, placements, warnings);
+        return warnings;
+    }
+
+    private static void EnsureSameShip(LoadPlan plan, Ship ship)
+    {
+        if (plan.ShipId != ship.Id)
+        {
+            throw new ArgumentException($"The plan is for ship '{plan.ShipId}', not '{ship.Id}'.", nameof(ship));
+        }
     }
 
     private static void EnsureUnique(IReadOnlyList<Stop> stops)
@@ -152,7 +239,7 @@ public static class LoadPlanner
             for (int r = rackCount, end = line.Length; r > 0; r--)
             {
                 var start = segmentStart[end, r];
-                segments[r - 1] = new Segment(racks[r - 1], start, end, line.Crates[start].Stop, line.Crates[end - 1].Stop);
+                segments[r - 1] = new Segment(racks[r - 1], start, end);
                 end = start;
             }
 
@@ -231,8 +318,8 @@ public static class LoadPlanner
     /// <summary>One crate of item <see cref="Item"/> of stop <see cref="Stop"/> (indices into <see cref="CrateLine.Stops"/>).</summary>
     private readonly record struct Crate(int Stop, int Item, int Scu);
 
-    /// <summary>Crates [Start, End) of the line go into <see cref="Rack"/>; they belong to stops FirstStop..LastStop.</summary>
-    private readonly record struct Segment(Rack Rack, int Start, int End, int FirstStop, int LastStop);
+    /// <summary>Crates [Start, End) of the line go into <see cref="Rack"/>.</summary>
+    private readonly record struct Segment(Rack Rack, int Start, int End);
 
     /// <summary>
     /// The route as one row of crates: stops in route order, items in input order. Rack boundaries fall

@@ -110,10 +110,11 @@ Tests zuerst (`LoadPlannerTests.cs`):
 
 **Akzeptanz:** Tests mit `split_required.json` und `overflow_missions.json`, `Assert.Throws<PlanException>`.
 
-### [ ] T2.3 Manuelles Override
+### [x] T2.3 Manuelles Override
 **Warum:** Der Planer irrt, der Spieler weiß es besser.
-- `LoadPlan MovePlacement(LoadPlan plan, Placement p, string targetRackId)` – neuer Plan via `with`, Original unverändert
-- `IReadOnlyList<PlanWarning> Validate(LoadPlan plan, Ship ship)` – Kapazitätsverstöße als Warnungen mit Rack (Abweichung in der Planphase von T2.4, ratifiziert durch Freigabe; D7)
+**Präzisiert in der Planung:** `Validate` prüft auch die Kistenform (`Rack.CanHold`), `MovePlacement` bekommt das `Ship` und berechnet die Hinweise (Shared/Split) neu, `Validate` liefert nur Verstöße (Kapazität, Form). Präzisierung in der Planphase, ratifiziert durch Freigabe (D10).
+- `LoadPlan MovePlacement(LoadPlan plan, Ship ship, Placement p, string targetRackId)` – neuer Plan via `with`, Original unverändert, Hinweise neu abgeleitet, Überladung nie verboten
+- `IReadOnlyList<PlanWarning> Validate(LoadPlan plan, Ship ship)` – Kapazitäts- und Formverstöße als Warnungen mit Rack (Abweichung in der Planphase von T2.4, ratifiziert durch Freigabe; D7)
 
 **Akzeptanz:** Tests: Original unverändert, Überladung erzeugt Warnung.
 
