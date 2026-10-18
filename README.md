@@ -61,7 +61,7 @@ Two global hotkeys work while Star Citizen has the focus and the cursor is hidde
 
 Keep the `overlay` part if your file has one. Either hotkey can be left out.
 
-- Format: modifiers and one key joined by `+`, in any order and case. Modifiers are `Ctrl`, `Alt`, `Shift`, `Win`; at least one of `Ctrl`, `Alt` or `Win` is required. Keys are `A`–`Z`, `0`–`9`, `F1`–`F24` (not `F12`, Windows reserves it), `Space`, `Pause`, `ScrollLock`, `Insert`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`.
+- Format: modifiers and one key joined by `+`, in any order and case. Modifiers are `Ctrl`, `Alt`, `Shift`, `Win`; **at least one of `Ctrl`, `Alt` or `Win` is required**. Keys are `A`–`Z`, `0`–`9`, `F1`–`F24` (not `F12`, Windows reserves it), `Space`, `Pause`, `ScrollLock`, `Insert`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`.
 - Pick a combination that **none of your Star Citizen bindings use**, and check it in the game's keybinding settings. If the game still reacts to it, choose another one.
 - A hotkey that is taken by another program, or a typo, shows as an amber line at the bottom of the overlay; the other hotkey still works.
 - If a hotkey shows no error but does nothing, another program swallows the keys before Windows hands them out (some tools do that for their own shortcuts). Choose a different combination.
