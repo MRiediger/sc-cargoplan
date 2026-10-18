@@ -196,6 +196,9 @@ Tests zuerst (`LoadPlannerTests.cs`):
 - Hotkey 2 (Default `Ctrl+Alt+I`): manueller Lock an/aus (wie T3.2), Indikator (Rahmenfarbe)
 - Beide in `settings.json` konfigurierbar
 
+**Notizen:**
+Kopfzeile (entschieden nach T3.2): Reiter links, Zahnrad + Schloss rechts; das Lock-Fenster überlappt die obere rechte Overlay-Ecke, die Kopfzeile reserviert diese Breite. Gesperrt blendet Reiter und Zahnrad aus, behält aber die Zeilenhöhe. Die Reiterleiste kommt mit dem ersten zweiten Reiter (Schiffsauswahl, noch nicht nummeriert), das Zahnrad mit T3.4.
+
 **Akzeptanz:** Spiel im Vordergrund, Hotkey schaltet um, gesperrt gehen Klicks ans Spiel. Martin kann erklären, was `WS_EX_TRANSPARENT` wirklich tut (Hit-Test-Weiterleitung, nicht Optik) und warum Hotkeys erst nach `SourceInitialized` registriert werden können.
 
 ### [ ] T3.8 Eingabe-Dialog
