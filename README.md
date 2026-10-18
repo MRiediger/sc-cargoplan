@@ -24,7 +24,9 @@ _Coming soon: a single Windows EXE on the [Releases](../../releases) page._
 
 Run Star Citizen in **Borderless** window mode. In exclusive fullscreen the game covers every other window, the overlay included.
 
-The overlay starts interactive: you can click and drag it. Start it with `--locked` to make it click-through, so every click goes to the game.
+The overlay starts interactive: you can click and drag it. The small padlock button at its top-right corner locks it: the overlay turns click-through, so every click goes to the game. Click the padlock again to unlock. A closed amber padlock means locked, an open white one unlocked. Clicking the padlock doesn't take the focus from the game.
+
+Start with `--locked` to begin in the locked state.
 
 ## Build
 

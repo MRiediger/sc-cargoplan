@@ -1,6 +1,7 @@
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Rendering;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace CargoPlan.App.ViewModels;
 
@@ -20,10 +21,15 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 
     /// <summary>
     /// true = click-through: mouse input goes to the window below. Default false, see D11.
-    /// Set by the --locked start switch for now; the lock window (T3.2) and auto-lock (T3.3) will set it.
+    /// --locked sets the start value, the lock window switches it via <see cref="ToggleLockCommand"/>.
     /// </summary>
     [ObservableProperty]
     public partial bool IsLocked { get; set; }
+
+    // Generates ToggleLockCommand (IRelayCommand), bound by the lock window's button.
+    // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand
+    [RelayCommand]
+    private void ToggleLock() => IsLocked = !IsLocked;
 
     public string PlanText => Plan is null ? NoPlanText : PlanTextRenderer.Render(Plan, Ship);
 }

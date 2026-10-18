@@ -14,6 +14,7 @@ internal static partial class NativeMethods
     public const int GWL_EXSTYLE = -20;
     public const nint WS_EX_TRANSPARENT = 0x00000020;
     public const nint WS_EX_LAYERED = 0x00080000;
+    public const nint WS_EX_NOACTIVATE = 0x08000000;
 
     /// <exception cref="Win32Exception">The call failed.</exception>
     public static nint GetExStyle(nint hwnd) => Checked(() => GetWindowLongPtrW(hwnd, GWL_EXSTYLE));

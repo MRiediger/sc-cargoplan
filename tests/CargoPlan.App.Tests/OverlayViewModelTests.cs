@@ -40,6 +40,27 @@ public class OverlayViewModelTests
     }
 
     [Fact]
+    public void ToggleLockCommand_flips_IsLocked_and_back()
+    {
+        var viewModel = WithSamplePlan();
+
+        viewModel.ToggleLockCommand.Execute(null);
+        viewModel.IsLocked.Should().BeTrue();
+
+        viewModel.ToggleLockCommand.Execute(null);
+        viewModel.IsLocked.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ToggleLockCommand_raises_PropertyChanged_for_IsLocked()
+    {
+        var viewModel = WithSamplePlan();
+
+        Changes(viewModel, () => viewModel.ToggleLockCommand.Execute(null))
+            .Should().Contain(nameof(OverlayViewModel.IsLocked));
+    }
+
+    [Fact]
     public void PlanText_is_the_core_text_rendering_of_the_plan()
     {
         var viewModel = WithSamplePlan();

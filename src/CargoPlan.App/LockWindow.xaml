@@ -1,0 +1,59 @@
+<Window x:Class="CargoPlan.App.LockWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:CargoPlan.App.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance vm:OverlayViewModel}"
+        Title="SC-CargoPlan Lock"
+        Width="36" Height="36"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowActivated="False"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize">
+    <!-- Never click-through: this is the way back from a locked overlay. WS_EX_NOACTIVATE is set in code-behind. -->
+    <Window.Resources>
+        <Style x:Key="LockButtonStyle" TargetType="Button">
+            <!-- Not focusable: focusing would activate the window and take the foreground from the game. -->
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="ToolTip" Value="Unlocked" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{StaticResource OverlayBackgroundBrush}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                    <Setter Property="ToolTip" Value="Locked – clicks pass through" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Glyphs: E785 Unlock, E72E Lock.
+             Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+        <Style x:Key="LockGlyphStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource IconFontFamily}" />
+            <Setter Property="FontSize" Value="20" />
+            <Setter Property="Text" Value="&#xE785;" />
+            <Setter Property="Foreground" Value="{StaticResource OverlayForegroundBrush}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                    <Setter Property="Text" Value="&#xE72E;" />
+                    <Setter Property="Foreground" Value="{StaticResource LockedForegroundBrush}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Button Style="{StaticResource LockButtonStyle}" Command="{Binding ToggleLockCommand}">
+        <TextBlock Style="{StaticResource LockGlyphStyle}" />
+    </Button>
+</Window>
