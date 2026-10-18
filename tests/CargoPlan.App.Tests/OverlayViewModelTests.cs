@@ -111,6 +111,21 @@ public class OverlayViewModelTests
     }
 
     [Fact]
+    public void Notice_defaults_to_null_so_the_notice_line_is_hidden()
+    {
+        WithSamplePlan().Notice.Should().BeNull();
+    }
+
+    [Fact]
+    public void Setting_Notice_raises_PropertyChanged()
+    {
+        var viewModel = WithSamplePlan();
+
+        Changes(viewModel, () => viewModel.Notice = "Settings not saved.")
+            .Should().Contain(nameof(OverlayViewModel.Notice));
+    }
+
+    [Fact]
     public void PlanText_is_the_core_text_rendering_of_the_plan()
     {
         var viewModel = WithSamplePlan();

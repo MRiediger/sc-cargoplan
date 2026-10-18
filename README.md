@@ -30,6 +30,8 @@ The small padlock in the overlay's top-right corner locks it by hand: the overla
 
 Start with `--locked` to begin with the padlock locked.
 
+**Remembers where you put it:** drag the overlay next to your cargo grid and resize it once; position and size are saved right away, so they survive a restart and even a crash. They live in `%LocalAppData%\SC-CargoPlan\settings.json`. To reset the overlay to its default size and position, close it and delete that file. If you unplug a monitor, the overlay moves back onto the screens you have.
+
 ## Build
 
 Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download) on Windows.

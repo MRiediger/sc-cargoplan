@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using CargoPlan.App.Settings;
 using CargoPlan.App.ViewModels;
 
 namespace CargoPlan.App;
@@ -14,19 +15,33 @@ public partial class App : Application
 
     private CursorStateMonitor? _cursorMonitor;
 
+    // Kept so the composition root visibly owns it; the window's events would keep it alive anyway.
+    private OverlayBoundsSaver? _boundsSaver;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        var (settings, settingsProblem) = SettingsStore.Load(SettingsStore.DefaultPath);
 
         var (ship, plan) = SamplePlan.Load();
         var viewModel = new OverlayViewModel(ship)
         {
             Plan = plan,
             IsManuallyLocked = e.Args.Contains(LockedSwitch, StringComparer.OrdinalIgnoreCase),
+            Notice = settingsProblem,
         };
 
-        // Overlay first: the lock window's Owner must be a window that has been shown.
+        // Bounds before Show(), so the window appears in place instead of jumping there.
         var overlay = new OverlayWindow(viewModel);
+        if (settings.Overlay is { } saved)
+        {
+            RestoreBounds(overlay, saved);
+        }
+
+        _boundsSaver = new OverlayBoundsSaver(overlay, viewModel, SettingsStore.DefaultPath, settings);
+
+        // Overlay first: the lock window's Owner must be a window that has been shown.
         overlay.Show();
         new LockWindow(viewModel, overlay).Show();
 
@@ -38,5 +53,21 @@ public partial class App : Application
     {
         _cursorMonitor?.Stop();
         base.OnExit(e);
+    }
+
+    /// <summary>Saved bounds may lie on an unplugged monitor: clamped into today's virtual desktop.</summary>
+    private static void RestoreBounds(Window window, WindowBounds saved)
+    {
+        Rect screen = new(
+            SystemParameters.VirtualScreenLeft,
+            SystemParameters.VirtualScreenTop,
+            SystemParameters.VirtualScreenWidth,
+            SystemParameters.VirtualScreenHeight);
+
+        var bounds = WindowBoundsRestore.Clamp(saved.ToRect(), screen, new Size(window.MinWidth, window.MinHeight));
+        window.Left = bounds.Left;
+        window.Top = bounds.Top;
+        window.Width = bounds.Width;
+        window.Height = bounds.Height;
     }
 }

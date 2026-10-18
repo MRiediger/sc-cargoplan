@@ -165,12 +165,13 @@ Tests zuerst (`LoadPlannerTests.cs`):
 
 **Akzeptanz:** Im Spiel: Cursor versteckt → Overlay gesperrt; Cursor sichtbar (z. B. mobiGlas) → entsperrt; anderes Programm im Vordergrund → entsperrt; manueller Lock bleibt in allen Fällen gesperrt.
 
-### [ ] T3.4 Fenster-Settings
+### [x] T3.4 Fenster-Settings
 **Warum:** Position und Größe sollen einen Neustart überleben; `Topmost` verliert gegen Borderless-Spiele gelegentlich.
+**Präzisiert in der Planung:** `%LocalAppData%` statt `%APPDATA%` (Program Files nicht beschreibbar, Fensterposition gehört zum Monitor-Layout dieses Rechners); Modell im App-Projekt, Core unverändert; Speichern bei Änderung, 500 ms entprellt, `Closed` schreibt nur Ausstehendes, nur bei `WindowState.Normal`, Zuhören erst ab `ContentRendered`; atomar über `.tmp` + `File.Move`; Wiederherstellung per reiner Funktion `WindowBoundsRestore.Clamp` gegen den virtuellen Desktop mit `MinWidth=200`/`MinHeight=100` aus dem XAML; kaputte Datei oder unbekannte `schemaVersion` → Defaults, Datei bleibt bis zur nächsten Bewegung unangetastet; Hinweise (Laden/Schreiben fehlgeschlagen) als Zeile im Overlay (`OverlayViewModel.Notice`); kein Zahnrad; Topmost-Fallback gestrichen (T3.1-Test im Spiel: Overlay bleibt über Borderless), Backlog-Zeile unten (D13). Präzisierung in der Planphase, ratifiziert durch Freigabe.
 - Position/Größe in `%APPDATA%\SC-CargoPlan\settings.json` (STJ), beim Start laden
 - **Bekanntes Problem:** `Topmost` verliert gegen Borderless-Spiele gelegentlich. Fallback: `SetWindowPos(HWND_TOPMOST)` per Timer alle 2 s neu setzen, als Setting abschaltbar.
 
-**Akzeptanz:** Position überlebt Neustart, Fallback per Setting abschaltbar.
+**Akzeptanz:** Position überlebt Neustart (auch nach Absturz/Kill), gespeicherte Position außerhalb des Bildschirms landet sichtbar am Rand, kaputte Datei → Defaults ohne Überschreiben. ~~Fallback per Setting abschaltbar~~ (gestrichen, siehe oben).
 
 ### [ ] T3.5 Schiffsansicht
 **Warum:** Die eigentliche Information.
@@ -198,7 +199,7 @@ Tests zuerst (`LoadPlannerTests.cs`):
 - Beide in `settings.json` konfigurierbar
 
 **Notizen:**
-Kopfzeile (entschieden nach T3.2): Reiter links, Zahnrad + Schloss rechts; das Lock-Fenster überlappt die obere rechte Overlay-Ecke, die Kopfzeile reserviert diese Breite. Gesperrt blendet Reiter und Zahnrad aus, behält aber die Zeilenhöhe. Die Reiterleiste kommt mit dem ersten zweiten Reiter (Schiffsauswahl, noch nicht nummeriert), das Zahnrad mit T3.4.
+Kopfzeile (entschieden nach T3.2): Reiter links, Zahnrad + Schloss rechts; das Lock-Fenster überlappt die obere rechte Overlay-Ecke, die Kopfzeile reserviert diese Breite. Gesperrt blendet Reiter und Zahnrad aus, behält aber die Zeilenhöhe. Die Reiterleiste kommt mit dem ersten zweiten Reiter (Schiffsauswahl, noch nicht nummeriert), das Zahnrad mit der ersten Einstellung, die ein Nutzer von Hand setzt (nicht T3.4: Position/Größe speichern sich selbst, D13).
 
 **Akzeptanz:** Spiel im Vordergrund, Hotkey schaltet um, gesperrt gehen Klicks ans Spiel. Martin kann erklären, was `WS_EX_TRANSPARENT` wirklich tut (Hit-Test-Weiterleitung, nicht Optik) und warum Hotkeys erst nach `SourceInitialized` registriert werden können.
 
@@ -283,3 +284,11 @@ Kopfzeile (entschieden nach T3.2): Reiter links, Zahnrad + Schloss rechts; das L
 ### [ ] T6.3 winget-Manifest – `winget install SC-CargoPlan`
 ### [ ] T6.4 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
 ### [ ] T6.5 Lokalisierung – `.resx`, Deutsch als zweite Sprache
+
+---
+
+## Backlog (nur bei Bedarf)
+
+Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).

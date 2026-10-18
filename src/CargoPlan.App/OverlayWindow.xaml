@@ -8,6 +8,7 @@
         d:DataContext="{d:DesignInstance vm:OverlayViewModel}"
         Title="SC-CargoPlan"
         Width="520" Height="200"
+        MinWidth="200" MinHeight="100"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -17,9 +18,27 @@
         ResizeMode="CanResizeWithGrip"
         MouseLeftButtonDown="OnMouseLeftButtonDown">
     <!-- Click-through is not set here: it is a mode (IsLocked), switched in code-behind, see D11. -->
+    <!-- MinWidth/MinHeight: the lock window and a few lines stay visible; restoring saved bounds uses them too. -->
     <Border Background="{StaticResource OverlayBackgroundBrush}" CornerRadius="4" Padding="10">
-        <TextBlock Text="{Binding PlanText, Mode=OneWay}"
-                   FontFamily="{StaticResource PlanFontFamily}"
-                   Foreground="{StaticResource OverlayForegroundBrush}" />
+        <DockPanel>
+            <!-- Settings problems (D13); collapsed while Notice is null. -->
+            <TextBlock DockPanel.Dock="Bottom"
+                       Text="{Binding Notice, Mode=OneWay}"
+                       TextWrapping="Wrap"
+                       Foreground="{StaticResource NoticeForegroundBrush}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Notice}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock Text="{Binding PlanText, Mode=OneWay}"
+                       FontFamily="{StaticResource PlanFontFamily}"
+                       Foreground="{StaticResource OverlayForegroundBrush}" />
+        </DockPanel>
     </Border>
 </Window>

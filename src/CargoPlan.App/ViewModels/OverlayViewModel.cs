@@ -39,6 +39,10 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     /// </summary>
     public bool IsLocked => IsManuallyLocked || IsAutoLocked;
 
+    /// <summary>A problem the player should know about (settings not loaded or not saved); null hides the line.</summary>
+    [ObservableProperty]
+    public partial string? Notice { get; set; }
+
     // Generates ToggleLockCommand (IRelayCommand), bound by the lock window's button.
     // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand
     [RelayCommand]
