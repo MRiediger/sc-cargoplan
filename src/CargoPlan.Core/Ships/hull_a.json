@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "hull_a",
   "name": "MISC Hull A",
   "totalScu": 64,
@@ -8,25 +8,29 @@
       "id": "rack-0",
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
-      "position": { "side": "port", "level": "upper" }
+      "position": { "side": "port", "level": "upper" },
+      "origin": [0, 1, 3]
     },
     {
       "id": "rack-1",
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
-      "position": { "side": "port", "level": "lower" }
+      "position": { "side": "port", "level": "lower" },
+      "origin": [0, 1, 0]
     },
     {
       "id": "rack-2",
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
-      "position": { "side": "starboard", "level": "upper" }
+      "position": { "side": "starboard", "level": "upper" },
+      "origin": [0, -2, 3]
     },
     {
       "id": "rack-3",
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
-      "position": { "side": "starboard", "level": "lower" }
+      "position": { "side": "starboard", "level": "lower" },
+      "origin": [0, -2, 0]
     }
   ]
 }

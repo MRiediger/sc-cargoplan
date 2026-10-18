@@ -173,9 +173,22 @@ Tests zuerst (`LoadPlannerTests.cs`):
 
 **Akzeptanz:** Position überlebt Neustart (auch nach Absturz/Kill), gespeicherte Position außerhalb des Bildschirms landet sichtbar am Rand, kaputte Datei → Defaults ohne Überschreiben. ~~Fallback per Setting abschaltbar~~ (gestrichen, siehe oben).
 
-### [ ] T3.5 Schiffsansicht
+### [x] T3.5a Rack-Geometrie im Schiffs-JSON (Core)
+**Warum:** Die Schiffsansicht soll Racks als Quader im Raum zeichnen, für jedes Schiff mit JSON, ohne Sonderfall. Seite/Ebene beschreibt Cutlass-Bay oder RAFT-Pods nicht.
+**Präzisiert in der Planung:** neue Typen `ShipPoint`/`ShipBox` (`Dimensions` erlaubt keine Null/Negativwerte); `Rack.Origin` Pflicht im Konstruktor, `Rack.Bounds` öffentlich (Overlap-Test, Ansicht); Überlappungsprüfung in `ShipDto.ToShip` neben der Doppel-ID-Prüfung; `origin` mit ≠ 3 Werten → Meldung mit Rack-ID; leeres `racks` war schon abgelehnt (`no_racks`), daher wirft `Ship.Bounds` nie nach dem Laden; Test-Schiffe mit mehreren Racks überlappungsfrei; `stack` als Zeichenkonvention (Length/Width/Stack → x/y/z), physische Stapelrichtung nicht modelliert; Verweis auf Community-Katalog mit Lizenzhinweis in ship-format.md. Präzisierung in der Planphase, ratifiziert durch Freigabe (D14).
+- Koordinatensystem rechtshändig, x = Bug, y = Backbord, z = oben, 1 = 1 Zelle; Grid-Achsen fest auf x/y/z, keine Rotation
+- `origin: [x, y, z]` = Min-Ecke, Pflicht ab `schemaVersion: 3`; v2 wird mit Version und Erwartung abgelehnt
+- Loader lehnt überlappende Racks ab, Meldung nennt beide Rack-Nummern (1-basiert)
+- `Rack.Position` bleibt (Spieler-Sprache), Konsistenztest Position ↔ `origin` für Hull A
+- `Ship.Bounds` (Min/Max über alle Racks)
+- Hull A schematisch: Rack 1 `[0, 1, 3]`, Rack 2 `[0, 1, 0]`, Rack 3 `[0, -2, 3]`, Rack 4 `[0, -2, 0]`
+- Keine Änderung an `LoadPlanner`, `PlanTextRenderer`, CLI, Import
+
+**Akzeptanz:** `dotnet test` grün (Overlap-Meldung mit Rack-Nummern, v2 abgelehnt, `Bounds` Hull A = x 0..4, y -2..3, z 0..5, Konsistenztest); CLI-Ausgabe der Fixtures byte-gleich zu vorher; Hull A mit zwei Racks auf `[0, 1, 0]` → Meldung „Rack 2 … Rack 4 … overlap“, kein Stacktrace.
+
+### [ ] T3.5b Schiffsansicht (2.5D)
 **Warum:** Die eigentliche Information.
-- `ShipView` als `UserControl`, Schiffsansicht zeichnet 2 Seiten × 2 Ebenen nach `Rack.Position`, nicht eine Reihe; Rack-Nummer sichtbar (D9), Füllgrad proportional
+- `ShipView` als `UserControl`, zeichnet Racks als isometrische Quader aus `Rack.Bounds` im Rahmen `Ship.Bounds` (D14), nicht eine Reihe; Rack-Nummer sichtbar (D9), `Position` als Text, Füllgrad proportional
 - Eine Farbe pro Stop, Palette ≥ 8 kontraststarke Farben, über `IValueConverter`
 - Label pro Placement: „Riker · 12 SCU Titanium“
 - Kein Planungscode im View oder ViewModel – nur Aufruf von Core
@@ -292,3 +305,6 @@ Kopfzeile (entschieden nach T3.2): Reiter links, Zahnrad + Schloss rechts; das L
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
+- Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).
+- Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).
+- Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).

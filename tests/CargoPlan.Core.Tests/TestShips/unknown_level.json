@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "id": "unknown_level",
   "name": "Level is not upper or lower",
   "totalScu": 16,
   "racks": [
-    { "id": "rack-0", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "middle" } }
+    { "id": "rack-0", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "middle" }, "origin": [0, 0, 0] }
   ]
 }

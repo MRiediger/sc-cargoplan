@@ -7,8 +7,11 @@ public class ModelsTests
     private static readonly Dimensions HullAGrid = new(4, 2, 2);
     private static readonly RackPosition PortUpper = new(RackSide.Port, RackLevel.Upper);
 
-    private static Rack RackOf(int index, int capacityScu = 16, Dimensions? grid = null) =>
-        new($"rack-{index}", index, capacityScu, grid ?? HullAGrid, PortUpper);
+    private static readonly ShipPoint Zero = new(0, 0, 0);
+
+    // Ship doesn't check overlap (the loader does), so test racks may share one origin.
+    private static Rack RackOf(int index, int capacityScu = 16, Dimensions? grid = null, ShipPoint? origin = null) =>
+        new($"rack-{index}", index, capacityScu, grid ?? HullAGrid, PortUpper, origin ?? Zero);
 
     private static IReadOnlyList<Rack> HullARacks() =>
         [RackOf(0), RackOf(1), RackOf(2), RackOf(3)];
@@ -75,6 +78,45 @@ public class ModelsTests
         var act = () => new Dimensions(length, width, stack);
 
         act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName(axis);
+    }
+
+    // --- ShipPoint / ShipBox ---
+
+    [Fact]
+    public void ShipPoint_prints_like_the_json_array()
+    {
+        new ShipPoint(0, -2, 3).ToString().Should().Be("[0, -2, 3]");
+    }
+
+    [Fact]
+    public void ShipBox_rejects_max_below_min()
+    {
+        var act = () => new ShipBox(new ShipPoint(0, 0, 0), new ShipPoint(4, -1, 2));
+
+        act.Should().Throw<ArgumentException>();
+    }
+
+    private static ShipBox Box(int x, int y, int z, int length = 2, int width = 2, int stack = 2) =>
+        new(new ShipPoint(x, y, z), new ShipPoint(x + length, y + width, z + stack));
+
+    [Theory]
+    [InlineData(1, 1, 1, true)]    // shares a 1×1×1 corner
+    [InlineData(0, 0, 0, true)]    // same place
+    [InlineData(2, 0, 0, false)]   // touches along x
+    [InlineData(0, -2, 0, false)]  // touches along y
+    [InlineData(0, 0, 5, false)]   // apart along z
+    public void ShipBox_Overlaps_needs_shared_volume(int x, int y, int z, bool expected)
+    {
+        Box(0, 0, 0).Overlaps(Box(x, y, z)).Should().Be(expected);
+        Box(x, y, z).Overlaps(Box(0, 0, 0)).Should().Be(expected);
+    }
+
+    [Fact]
+    public void ShipBox_Union_encloses_both_boxes()
+    {
+        var union = Box(0, 1, 3).Union(Box(-1, -2, 0));
+
+        union.Should().Be(new ShipBox(new ShipPoint(-1, -2, 0), new ShipPoint(2, 3, 5)));
     }
 
     // --- CargoItem ---
@@ -183,6 +225,14 @@ public class ModelsTests
         RackOf(index: 0).CanHold(size).Should().Be(expected);
     }
 
+    [Fact]
+    public void Rack_Bounds_span_the_grid_from_the_origin()
+    {
+        var rack = RackOf(index: 0, origin: new ShipPoint(0, -2, 3));
+
+        rack.Bounds.Should().Be(new ShipBox(new ShipPoint(0, -2, 3), new ShipPoint(4, 0, 5)));
+    }
+
     // --- Ship ---
 
     [Fact]
@@ -213,6 +263,20 @@ public class ModelsTests
         racks.Add(RackOf(4));
 
         ship.Racks.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public void Ship_Bounds_enclose_all_racks()
+    {
+        IReadOnlyList<Rack> racks =
+        [
+            RackOf(0, origin: new ShipPoint(0, 1, 3)),
+            RackOf(1, origin: new ShipPoint(0, -2, 0)),
+        ];
+
+        var ship = new Ship("two_racks", "Two racks", 32, racks);
+
+        ship.Bounds.Should().Be(new ShipBox(new ShipPoint(0, -2, 0), new ShipPoint(4, 3, 5)));
     }
 
     // --- Stop ---

@@ -47,6 +47,45 @@ public class ShipLoaderTests
     }
 
     [Fact]
+    public void Load_hull_a_assigns_origins_in_rack_order()
+    {
+        var ship = ShipLoader.Load("hull_a");
+
+        ship.Racks.Select(r => r.Origin).Should().Equal(
+            new ShipPoint(0, 1, 3),
+            new ShipPoint(0, 1, 0),
+            new ShipPoint(0, -2, 3),
+            new ShipPoint(0, -2, 0));
+    }
+
+    [Fact]
+    public void Load_hull_a_bounds_span_all_racks()
+    {
+        var ship = ShipLoader.Load("hull_a");
+
+        ship.Bounds.Should().Be(new ShipBox(new ShipPoint(0, -2, 0), new ShipPoint(4, 3, 5)));
+    }
+
+    // Position and origin are kept separately (D14); for the Hull A they must tell the same story.
+    [Fact]
+    public void Load_hull_a_origins_agree_with_positions()
+    {
+        var racks = ShipLoader.Load("hull_a").Racks;
+
+        racks.Where(r => r.Position.Side == RackSide.Port)
+            .Should().AllSatisfy(r => r.Bounds.Min.Y.Should().BePositive());
+        racks.Where(r => r.Position.Side == RackSide.Starboard)
+            .Should().AllSatisfy(r => r.Bounds.Max.Y.Should().BeLessThanOrEqualTo(0));
+
+        foreach (var side in racks.GroupBy(r => r.Position.Side))
+        {
+            var upper = side.Single(r => r.Position.Level == RackLevel.Upper);
+            var lower = side.Single(r => r.Position.Level == RackLevel.Lower);
+            upper.Bounds.Min.Z.Should().BeGreaterThanOrEqualTo(lower.Bounds.Max.Z);
+        }
+    }
+
+    [Fact]
     public void ListShips_contains_hull_a()
     {
         ShipLoader.ListShips().Should().Contain("hull_a");
@@ -96,8 +135,12 @@ public class ShipLoaderTests
     [InlineData("missing_property")]        // no "name"
     [InlineData("null_name")]               // "name": null
     [InlineData("id_mismatch")]             // "id" differs from file name
-    [InlineData("unsupported_schema")]      // "schemaVersion": 3
+    [InlineData("unsupported_schema")]      // "schemaVersion": 4
+    [InlineData("old_schema")]              // "schemaVersion": 2, no "origin"
     [InlineData("missing_schema")]          // no "schemaVersion"
+    [InlineData("missing_origin")]          // v3 rack without "origin"
+    [InlineData("origin_wrong_length")]     // "origin": [0, 0]
+    [InlineData("overlapping_racks")]       // Hull A with Rack 4 on Rack 2's origin
     [InlineData("duplicate_rack_id")]       // two racks with the same id
     [InlineData("no_racks")]                // empty rack list
     [InlineData("grid_capacity_mismatch")]  // grid holds 16 cells, capacityScu is 12
@@ -128,7 +171,35 @@ public class ShipLoaderTests
     {
         var act = () => ShipLoader.Load(TestShips, "unsupported_schema");
 
-        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 3*");
+        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 4*");
+    }
+
+    [Fact]
+    public void Load_old_schema_names_version_and_expected_version()
+    {
+        var act = () => ShipLoader.Load(TestShips, "old_schema");
+
+        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 2*expected 3*");
+    }
+
+    [Fact]
+    public void Load_overlapping_racks_names_both_rack_numbers()
+    {
+        var act = () => ShipLoader.Load(TestShips, "overlapping_racks");
+
+        act.Should().Throw<ShipFormatException>()
+            .WithMessage("*Rack 2 ('rack-1')*[0, 1, 0]*Rack 4 ('rack-3')*[0, 1, 0]*overlap*")
+            .WithInnerException<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData("missing_origin", "*origin*")]              // required since schemaVersion 3
+    [InlineData("origin_wrong_length", "*rack-0*origin*got 2*")]
+    public void Load_bad_origin_names_the_field(string shipId, string expectedMessage)
+    {
+        var act = () => ShipLoader.Load(TestShips, shipId);
+
+        act.Should().Throw<ShipFormatException>().WithMessage(expectedMessage);
     }
 
     [Fact]
@@ -168,7 +239,7 @@ public class ShipLoaderTests
     [Fact]
     public void RackDto_with_zero_capacity_throws_on_mapping()
     {
-        var dto = new RackDto("rack-0", 0, new GridDto(4, 2, 2), new PositionDto("port", "upper"));
+        var dto = new RackDto("rack-0", 0, new GridDto(4, 2, 2), new PositionDto("port", "upper"), [0, 0, 0]);
 
         var act = () => dto.ToRack(0);
 

@@ -10,6 +10,9 @@ public sealed record Ship(string Id, string Name, int TotalScu, IReadOnlyList<Ra
     // Copied so a caller can't change the racks after validation.
     public IReadOnlyList<Rack> Racks { get; } = Validated(Id, TotalScu, [.. Racks]);
 
+    /// <summary>The box around all racks, the frame for drawing the ship. Needs at least one rack (the loader ensures that).</summary>
+    public ShipBox Bounds => Racks.Select(r => r.Bounds).Aggregate((a, b) => a.Union(b));
+
     private static IReadOnlyList<Rack> Validated(string id, int totalScu, IReadOnlyList<Rack> racks)
     {
         var sum = racks.Sum(r => r.CapacityScu);
