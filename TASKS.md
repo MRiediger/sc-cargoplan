@@ -229,16 +229,28 @@ Kopfzeile (entschieden nach T3.2): Reiter links, Zahnrad + Schloss rechts; das L
 
 **Akzeptanz:** Spiel im Vordergrund, Hotkey schaltet um, gesperrt gehen Klicks ans Spiel. Martin kann erklären, was `WS_EX_TRANSPARENT` wirklich tut (Hit-Test-Weiterleitung, nicht Optik) und warum Hotkeys erst nach `SourceInitialized` registriert werden können.
 
-### [ ] T3.8 Eingabe-Dialog
+T3.8 ist geteilt: a = Persistenz und leerer Zustand, b = Editor.
+
+### [x] T3.8a Plan-Persistenz und leerer Zustand
+**Warum:** Ein SC-Absturz zwischen zwei Stops darf Plan und Haken nicht löschen, sonst steht der Spieler am zweiten Terminal ohne Plan.
+**Präzisiert in der Planung:** eigene Datei `%LocalAppData%\SC-CargoPlan\plan.json` statt settings.json (Arbeitszustand ≠ Einstellung, getrennt löschbar); gespeichert werden Eingabe und Ergebnis: Missionen als vollständige Missionsdatei (verschachtelt, `MissionFileDto` wiederverwendet), Placements mit `item` (über `CargoItemDto`) und Pflichtfeld `delivered`, Hinweise mitgespeichert statt neu abgeleitet (Planer unverändert), `shipId`, `schemaVersion` 1; Serialisierung in Core (`Plans/PlanFile`, `SavedPlan`, eigener STJ-Kontext, `PlanFormatException`); `SavedPlan` prüft im Konstruktor, dass die Placements die Missionen exakt abdecken, get-only gegen `with`; `PlanFile.Read` prüft zuerst das Schiff, dann die Racks, Überladung bleibt erlaubt (D10); unbekanntes und fremdes Schiff sind derselbe Fall (die App kennt nur `hull_a`); `EnsureBelongsTo` als Instanzmethode auf `LoadPlan` statt Extension, drei Aufrufer (`LoadPlanner`, `PlanTextRenderer`, `ShipViewBuilder`), die Backlog-Zeile dazu existierte nicht, nichts gestrichen; `PlanSaver` hört auf `PropertyChanged(Plan)`, 500 ms entprellt, `Closed` schreibt Ausstehendes, `Plan = null` schreibt nichts; atomares Schreiben als `AtomicFile`, gemeinsam mit settings.json; Saver hängt vor dem Start-Plan (jeder Start mit Plan schreibt einmal unverändert); kaputte Datei → leer + Notice, Datei bleibt bis zum nächsten Plan; leerer Zustand: Schiff mit leeren Racks, „No plan. Open the editor to enter missions.“; `SamplePlan` und Fixture-Link raus aus der App, als Test-Helfer `TestPlans` ins Testprojekt; `--plan <datei>` als Startschalter (gewinnt über plan.json, wird beim nächsten Speichern zu plan.json, ohne Pfad → Notice), Parsing als reine Funktion `StartOptions`; Notices als Liste mit Absender (`NoticeSource`), ersetzt `Notice` + `HotkeyNotice`; Gegenargument zur Entprellung in D18. Präzisierung in der Planphase, ratifiziert durch Freigabe (D18).
+- plan.json mit Missionen, Placements inkl. `Delivered`, Hinweisen; gespeichert bei jeder Plan-Änderung
+- Laden beim Start, kaputte Datei → leerer Zustand + Notice, Datei bleibt stehen
+- Leerer Zustand statt Fixture
+- `SamplePlan` und Fixture-Link in `CargoPlan.App.csproj` entfernt, `--plan` als Debug-Hilfe
+- Notice-Liste pro Absender
+
+**Akzeptanz:** `dotnet test` grün; ohne plan.json leerer Zustand; `--plan` mit Fixture → Plan, Riker abhaken, per Kill beenden, Neustart ohne Schalter → Riker abgehakt; Müll in plan.json → leer + Notice, Datei unverändert; CLI-Ausgaben unverändert.
+
+### [ ] T3.8b Eingabe-Dialog
 **Warum:** Dateneingabe ohne ContractTracker.
 - `MissionEditorWindow`: `DataGrid` Destination / Commodity / SCU / Crate size, Zeilen hinzufügen/löschen, Reihenfolge per Pfeil
 - „Plan“ ruft `LoadPlanner.Plan()`, Warnungen anzeigen, `PlanException` als MessageBox
 - Import/Export als Missions-JSON (nutzt `MissionFileReader` aus T1.3)
 - „Copy as text“ (nutzt `PlanTextRenderer`) – für Discord/Org-Chat
-- Platzhalter-Plan aus T3.1 (`SamplePlan`, Fixture-Link in `CargoPlan.App.csproj`) entfernen
-- **Pflicht (aus T3.6):** aktuellen Plan inkl. `Delivered` persistieren, bei jeder Änderung gespeichert – ein SC-Absturz zwischen zwei Stops darf die Haken nicht löschen
+- Button „Open editor“ im leeren Zustand (Satz steht seit T3.8a)
 
-**Akzeptanz:** Durchlauf Eingabe → Plan → Overlay → Abhaken ohne Terminal; Haken überleben Neustart (auch nach Absturz/Kill). **MVP fertig.**
+**Akzeptanz:** Durchlauf Eingabe → Plan → Overlay → Abhaken ohne Terminal; Haken überleben Neustart (auch nach Absturz/Kill, seit T3.8a). **MVP fertig.**
 
 ### [ ] T3.9 Drag-and-drop-Override
 **Warum:** T2.3 im UI nutzbar.

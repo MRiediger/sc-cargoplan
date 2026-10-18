@@ -6,7 +6,7 @@ namespace CargoPlan.App.Tests;
 
 public class ShipViewBuilderTests
 {
-    private static readonly (Ship Ship, LoadPlan Plan) Sample = SamplePlan.Load();
+    private static readonly (Ship Ship, LoadPlan Plan) Sample = TestPlans.Load();
 
     private static ShipScene Build(LoadPlan plan) => ShipViewBuilder.Build(plan, Sample.Ship, LoadPlanner.Validate(plan, Sample.Ship));
 

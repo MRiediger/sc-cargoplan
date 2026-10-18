@@ -27,18 +27,10 @@
             <Setter Property="Foreground" Value="{StaticResource OverlayForegroundBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
-        <!-- Notice lines: amber, collapsed while their text is null. Binds Text itself, so the trigger can watch it. -->
+        <!-- Notice lines: amber. Only lines with text exist, so nothing needs hiding. -->
         <Style x:Key="NoticeTextStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource NoticeForegroundBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
-            <Style.Triggers>
-                <Trigger Property="Text" Value="{x:Null}">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                </Trigger>
-                <Trigger Property="Text" Value="">
-                    <Setter Property="Visibility" Value="Collapsed" />
-                </Trigger>
-            </Style.Triggers>
         </Style>
     </Window.Resources>
     <Border Background="{StaticResource OverlayBackgroundBrush}" CornerRadius="4" Padding="10">
@@ -60,9 +52,14 @@
                            Style="{StaticResource LegendTextStyle}" />
             </DockPanel>
 
-            <!-- Hotkeys not registered (D17), then settings problems (D13). Two lines: a save clears Notice, not this one. -->
-            <TextBlock DockPanel.Dock="Bottom" Text="{Binding HotkeyNotice, Mode=OneWay}" Style="{StaticResource NoticeTextStyle}" />
-            <TextBlock DockPanel.Dock="Bottom" Text="{Binding Notice, Mode=OneWay}" Style="{StaticResource NoticeTextStyle}" />
+            <!-- Problems with settings (D13), hotkeys (D17) and the plan file, one line per source (D18). -->
+            <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding Notices, Mode=OneWay}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource NoticeTextStyle}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
             <!-- Legend: one line per stop, then violations (red racks) and planner hints, word for word (D7).
                  Each stop line is a check box: ticked = delivered (D16). Check boxes handle their left clicks,

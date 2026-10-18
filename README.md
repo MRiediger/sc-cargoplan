@@ -35,7 +35,9 @@ _Screenshot: coming soon._
 
 Hover over a colored area to see what goes there, e.g. `Rack 1 · port upper · 16 SCU Titanium (4×4)` (4 crates of 4 SCU). Inside the view: **left drag** turns and tilts the ship, **right drag** moves it, the **mouse wheel** zooms, a **double-click** next to the cargo resets the view. To move the overlay window, drag it by its header (the ship name), the hint lines below the legend or the border.
 
-**Unloading:** when a destination has taken its cargo, tick it in the legend or click any of its cargo in the view. Its racks turn gray, the legend line is struck through, and the hints about that destination disappear, so the next cargo lift only shows what is still on board. The ship stays where it is. A destination split over two racks is ticked once, both racks turn gray. Clicked the wrong one? Click again. When every destination is ticked, the header says "All stops delivered." Ticking doesn't take the focus from the game, so the terminal keeps working. The ticks don't survive a restart yet.
+**Unloading:** when a destination has taken its cargo, tick it in the legend or click any of its cargo in the view. Its racks turn gray, the legend line is struck through, and the hints about that destination disappear, so the next cargo lift only shows what is still on board. The ship stays where it is. A destination split over two racks is ticked once, both racks turn gray. Clicked the wrong one? Click again. When every destination is ticked, the header says "All stops delivered." Ticking doesn't take the focus from the game, so the terminal keeps working. Every tick is saved right away, so a game crash or a restart between two stops keeps your plan and your ticks.
+
+Without a plan, the overlay shows your ship with empty racks and "No plan. Open the editor to enter missions." The mission editor is not there yet; until then a plan comes from a plan file (see Build).
 
 **Never eats your tractor-beam click:** the overlay becomes click-through automatically while Star Citizen has the mouse. In flight and first person the game hides the cursor and it follows your view, so a click over a normal window would be lost. As soon as the cursor shows (mobiGlas, Esc menu, terminals) or another program is in front, the overlay is interactive again: you can zoom, hover and move it.
 
@@ -70,6 +72,17 @@ Keep the `overlay` part if your file has one. Either hotkey can be left out.
 
 No hooks: the hotkeys use the normal Windows hotkey service, nothing touches the game process.
 
+### Where your data lives
+
+Both files are in `%LocalAppData%\SC-CargoPlan\` and are saved as soon as something changes.
+
+| File | What | Deleting it (overlay closed) |
+|---|---|---|
+| `settings.json` | Overlay position and size, hotkeys | Default size and position, no hotkeys. Your plan stays. |
+| `plan.json` | Your current plan: missions, which cargo goes into which rack, ticks ([format](docs/plan-format.md)) | The overlay starts without a plan. Your settings stay. |
+
+If a file can't be read, the overlay starts without it and says so in an amber line. It doesn't overwrite the file: `settings.json` stays until you move the overlay, `plan.json` until you make a new plan.
+
 ## Build
 
 Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download) on Windows.
@@ -78,6 +91,12 @@ Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download) on Windows.
 dotnet build
 dotnet test
 dotnet run --project src/CargoPlan.App
+```
+
+To try the overlay with a plan, start it with a plan file; it becomes your saved plan:
+
+```powershell
+dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json
 ```
 
 ## License

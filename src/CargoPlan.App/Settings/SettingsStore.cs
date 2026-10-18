@@ -47,25 +47,11 @@ public static class SettingsStore
         }
     }
 
-    /// <summary>
-    /// Writes to a temp file first, then replaces the real one: a crash while writing leaves the old file,
-    /// never half a file.
-    /// Source: https://learn.microsoft.com/dotnet/api/system.io.file.move (overwrite overload, .NET Core 3.0+)
-    /// </summary>
+    /// <summary>Replaces the file in one step (<see cref="AtomicFile"/>).</summary>
     /// <exception cref="IOException">The file can't be written.</exception>
     /// <exception cref="UnauthorizedAccessException">No permission for the folder or the file.</exception>
-    public static void Save(string path, AppSettings settings)
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-
-        var tempPath = path + ".tmp";
-        using (var stream = File.Create(tempPath))
-        {
-            JsonSerializer.Serialize(stream, settings, WriteTypeInfo);
-        }
-
-        File.Move(tempPath, path, overwrite: true);
-    }
+    public static void Save(string path, AppSettings settings) =>
+        AtomicFile.Write(path, stream => JsonSerializer.Serialize(stream, settings, WriteTypeInfo));
 
     /// <summary>
     /// The default encoder writes '+' as + (HTML-sensitive), so a hand-written "Ctrl+Alt+L" would come back as

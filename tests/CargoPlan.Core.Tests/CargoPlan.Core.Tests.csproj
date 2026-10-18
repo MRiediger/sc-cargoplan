@@ -37,4 +37,9 @@
     <EmbeddedResource Include="Fixtures/Invalid/*.json" LogicalName="missions/invalid/%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!-- Plan files for PlanFileTests. They stay on disk as well, for the overlay's plan start switch. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures/Plans/*.json" LogicalName="plans/%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>

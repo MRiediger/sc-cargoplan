@@ -19,10 +19,7 @@ public static class PlanTextRenderer
     /// <exception cref="ArgumentException">The plan belongs to another ship.</exception>
     public static string Render(LoadPlan plan, Ship ship)
     {
-        if (plan.ShipId != ship.Id)
-        {
-            throw new ArgumentException($"The plan is for ship '{plan.ShipId}', not '{ship.Id}'.", nameof(ship));
-        }
+        plan.EnsureBelongsTo(ship);
 
         Rack[] racks = [.. ship.Racks.OrderBy(r => r.Index)];
         var numberWidth = Width(racks.Max(r => r.Number));

@@ -93,12 +93,12 @@ public sealed class OverlayBoundsSaver
             SettingsStore.Save(_path, settings);
             _settings = settings;
             _lastSaved = bounds;
-            _viewModel.Notice = null; // A load or save problem is solved once the file is written.
+            _viewModel.SetNotice(NoticeSource.Settings, null); // A load or save problem is solved once the file is written.
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Saves only happen on changes, and an unchanged text raises no PropertyChanged: no spam.
-            _viewModel.Notice = $"Overlay position not saved ({ex.Message}).";
+            _viewModel.SetNotice(NoticeSource.Settings, $"Overlay position not saved ({ex.Message}).");
         }
     }
 

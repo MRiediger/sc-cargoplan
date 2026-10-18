@@ -12,7 +12,7 @@ public class SceneHitTestTests
 
     private static ShipScene BuildSample()
     {
-        var (ship, plan) = SamplePlan.Load();
+        var (ship, plan) = TestPlans.Load();
         return ShipViewBuilder.Build(plan, ship, LoadPlanner.Validate(plan, ship));
     }
 
@@ -62,7 +62,7 @@ public class SceneHitTestTests
     [Fact]
     public void Delivered_cargo_says_so()
     {
-        var (ship, plan) = SamplePlan.Load();
+        var (ship, plan) = TestPlans.Load();
         var delivered = plan with { Placements = [.. plan.Placements.Select(p => p with { Delivered = true })] };
         var projected = SceneProjector.Project(ShipViewBuilder.Build(delivered, ship, []), Default);
 
@@ -79,7 +79,7 @@ public class SceneHitTestTests
     [Fact]
     public void Delivered_cargo_still_names_its_destination_so_a_click_can_undo()
     {
-        var (ship, plan) = SamplePlan.Load();
+        var (ship, plan) = TestPlans.Load();
         var projected = SceneProjector.Project(ShipViewBuilder.Build(LoadPlanner.SetDelivered(plan, ship, "Riker", true), ship, []), Default);
 
         SceneHitTest.DestinationAt(projected, Default.Project(2, 2, 5)).Should().Be("Riker");

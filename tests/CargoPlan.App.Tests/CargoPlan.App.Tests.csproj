@@ -29,4 +29,10 @@
     <ProjectReference Include="..\..\src\CargoPlan.App\CargoPlan.App.csproj" />
   </ItemGroup>
 
+  <!-- The Core fixture with a split and a shared rack, linked instead of copied: the ship view tests draw it (TestPlans). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\CargoPlan.Core.Tests\Fixtures\split_and_shared.json"
+                      LogicalName="missions/split_and_shared.json" Link="Fixtures\split_and_shared.json" />
+  </ItemGroup>
+
 </Project>

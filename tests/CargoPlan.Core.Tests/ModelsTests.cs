@@ -344,4 +344,24 @@ public class ModelsTests
         plan.WarningsForRack("rack-1").Should().Equal(second);
         plan.WarningsForRack("rack-9").Should().BeEmpty();
     }
+
+    [Fact]
+    public void LoadPlan_EnsureBelongsTo_accepts_its_own_ship()
+    {
+        var ship = new Ship("hull_a", "MISC Hull A", 64, HullARacks());
+
+        var act = () => new LoadPlan("hull_a", [], []).EnsureBelongsTo(ship);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void LoadPlan_EnsureBelongsTo_rejects_another_ship_naming_both()
+    {
+        var ship = new Ship("hull_a", "MISC Hull A", 64, HullARacks());
+
+        var act = () => new LoadPlan("cutlass_black", [], []).EnsureBelongsTo(ship);
+
+        act.Should().Throw<ArgumentException>().WithParameterName("ship").WithMessage("*'cutlass_black'*'hull_a'*");
+    }
 }

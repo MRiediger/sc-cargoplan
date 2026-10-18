@@ -71,7 +71,7 @@ public sealed class HotkeyService
             }
         }
 
-        _viewModel.HotkeyNotice = problems.Count == 0 ? null : string.Join(Environment.NewLine, problems);
+        _viewModel.SetNotice(NoticeSource.Hotkeys, problems.Count == 0 ? null : string.Join(Environment.NewLine, problems));
 
         if (_registered.Count > 0)
         {

@@ -11,10 +11,7 @@ public static class ShipViewBuilder
     /// <exception cref="ArgumentException">The plan belongs to another ship.</exception>
     public static ShipScene Build(LoadPlan plan, Ship ship, IReadOnlyList<PlanWarning> violations)
     {
-        if (plan.ShipId != ship.Id)
-        {
-            throw new ArgumentException($"The plan is for ship '{plan.ShipId}', not '{ship.Id}'.", nameof(ship));
-        }
+        plan.EnsureBelongsTo(ship);
 
         var palette = MissionPalette.Assign(plan);
         var violated = violations.Select(v => v.RackId).ToHashSet();

@@ -9,7 +9,7 @@
         <FontFamily x:Key="PlanFontFamily">Consolas</FontFamily>
         <!-- Lock window: accent marks "locked" next to the glyph, readable from the pilot seat. -->
         <SolidColorBrush x:Key="LockedForegroundBrush" Color="#FFFFB000" />
-        <!-- Notice line (settings not loaded/saved): same amber, it asks for attention the same way. -->
+        <!-- Notice lines (settings, hotkeys, plan file): same amber, they ask for attention the same way. -->
         <SolidColorBrush x:Key="NoticeForegroundBrush" Color="#FFFFB000" />
         <!-- Legend line of a delivered stop: dimmed, but lighter than the delivered segment grey, which is unreadable as text. -->
         <SolidColorBrush x:Key="DeliveredForegroundBrush" Color="#FF8C8C8C" />

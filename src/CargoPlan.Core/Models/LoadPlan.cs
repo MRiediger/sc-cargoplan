@@ -11,4 +11,14 @@ public sealed record LoadPlan(string ShipId, IReadOnlyList<Placement> Placements
 
     public IReadOnlyList<PlanWarning> WarningsForRack(string rackId) =>
         [.. Warnings.Where(w => w.RackId == rackId)];
+
+    /// <summary>Planner, text renderer, ship view and plan file all need the plan's own ship; one check for all.</summary>
+    /// <exception cref="ArgumentException">The plan belongs to another ship.</exception>
+    public void EnsureBelongsTo(Ship ship)
+    {
+        if (ShipId != ship.Id)
+        {
+            throw new ArgumentException($"The plan is for ship '{ShipId}', not '{ship.Id}'.", nameof(ship));
+        }
+    }
 }

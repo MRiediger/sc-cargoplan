@@ -1,6 +1,7 @@
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
+using CargoPlan.Core.Plans;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -9,7 +10,7 @@ namespace CargoPlan.App.ViewModels;
 /// <summary>State of the overlay window. Shows what Core computes; no planning here.</summary>
 public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 {
-    public const string NoPlanText = "No plan loaded.";
+    public const string NoPlanText = "No plan. Open the editor to enter missions.";
 
     public const string AllDeliveredText = "All stops delivered.";
 
@@ -43,16 +44,44 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     /// </summary>
     public bool IsLocked => IsManuallyLocked || IsAutoLocked;
 
-    /// <summary>A problem the player should know about (settings not loaded or not saved); null hides the line.</summary>
-    [ObservableProperty]
-    public partial string? Notice { get; set; }
+    private readonly Dictionary<NoticeSource, string> _notices = [];
+
+    /// <summary>Problems the player should know about, one line per source in <see cref="NoticeSource"/> order; empty hides them.</summary>
+    public IReadOnlyList<string> Notices { get; private set; } = [];
 
     /// <summary>
-    /// Hotkeys that could not be registered, one line each; null hides the line. Separate from <see cref="Notice"/>,
-    /// which a successful save clears: this one must stay until the next start (D17).
+    /// Sets or clears (null) the line of one source and leaves the others alone: a successful settings save must not
+    /// clear a hotkey problem, which stays until the next start (D18).
     /// </summary>
-    [ObservableProperty]
-    public partial string? HotkeyNotice { get; set; }
+    public void SetNotice(NoticeSource source, string? text)
+    {
+        if (_notices.GetValueOrDefault(source) == text)
+        {
+            return;
+        }
+
+        if (text is null)
+        {
+            _notices.Remove(source);
+        }
+        else
+        {
+            _notices[source] = text;
+        }
+
+        Notices = [.. Enum.GetValues<NoticeSource>().Where(_notices.ContainsKey).Select(s => _notices[s])];
+        OnPropertyChanged(nameof(Notices));
+    }
+
+    /// <summary>The missions <see cref="Plan"/> was made from, saved with it (D18). Set together with it by <see cref="ShowPlan"/>.</summary>
+    public IReadOnlyList<Stop> Missions { get; private set; } = [];
+
+    /// <summary>Shows a plan with its missions. Missions first: the plan's PropertyChanged starts the save, which reads both.</summary>
+    public void ShowPlan(SavedPlan saved)
+    {
+        Missions = saved.Missions;
+        Plan = saved.Plan;
+    }
 
     /// <summary>Both windows hide while true. Hiding resets nothing: position, zoom, orbit and lock stay as they are.</summary>
     [ObservableProperty]

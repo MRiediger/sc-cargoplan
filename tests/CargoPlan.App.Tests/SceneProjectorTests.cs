@@ -14,7 +14,7 @@ public class SceneProjectorTests
 
     private static ShipScene BuildSample()
     {
-        var (ship, plan) = SamplePlan.Load();
+        var (ship, plan) = TestPlans.Load();
         return ShipViewBuilder.Build(plan, ship, LoadPlanner.Validate(plan, ship));
     }
 

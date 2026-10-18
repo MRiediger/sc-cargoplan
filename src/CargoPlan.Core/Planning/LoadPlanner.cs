@@ -53,7 +53,7 @@ public static class LoadPlanner
     /// </exception>
     public static LoadPlan MovePlacement(LoadPlan plan, Ship ship, Placement placement, string targetRackId)
     {
-        EnsureSameShip(plan, ship);
+        plan.EnsureBelongsTo(ship);
         if (!ship.Racks.Any(r => r.Id == targetRackId))
         {
             throw new ArgumentException($"Ship '{ship.Id}' has no rack '{targetRackId}'.", nameof(targetRackId));
@@ -83,7 +83,7 @@ public static class LoadPlanner
     /// <exception cref="ArgumentException">The plan belongs to another ship or has no stop <paramref name="destination"/>.</exception>
     public static LoadPlan SetDelivered(LoadPlan plan, Ship ship, string destination, bool delivered)
     {
-        EnsureSameShip(plan, ship);
+        plan.EnsureBelongsTo(ship);
         if (!plan.Placements.Any(p => p.Destination == destination))
         {
             throw new ArgumentException($"The plan has no stop '{destination}'.", nameof(destination));
@@ -102,7 +102,7 @@ public static class LoadPlanner
     /// <exception cref="ArgumentException">The plan belongs to another ship or uses a rack the ship doesn't have.</exception>
     public static IReadOnlyList<PlanWarning> Validate(LoadPlan plan, Ship ship)
     {
-        EnsureSameShip(plan, ship);
+        plan.EnsureBelongsTo(ship);
         if (plan.Placements.FirstOrDefault(p => !ship.Racks.Any(r => r.Id == p.RackId)) is { } stray)
         {
             throw new ArgumentException(
@@ -164,14 +164,6 @@ public static class LoadPlanner
         }
 
         return warnings;
-    }
-
-    private static void EnsureSameShip(LoadPlan plan, Ship ship)
-    {
-        if (plan.ShipId != ship.Id)
-        {
-            throw new ArgumentException($"The plan is for ship '{plan.ShipId}', not '{ship.Id}'.", nameof(ship));
-        }
     }
 
     private static void EnsureUnique(IReadOnlyList<Stop> stops)
