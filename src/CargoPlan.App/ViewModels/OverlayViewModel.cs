@@ -47,10 +47,25 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     [ObservableProperty]
     public partial string? Notice { get; set; }
 
-    // Generates ToggleLockCommand (IRelayCommand), bound by the lock window's button.
+    /// <summary>
+    /// Hotkeys that could not be registered, one line each; null hides the line. Separate from <see cref="Notice"/>,
+    /// which a successful save clears: this one must stay until the next start (D17).
+    /// </summary>
+    [ObservableProperty]
+    public partial string? HotkeyNotice { get; set; }
+
+    /// <summary>Both windows hide while true. Hiding resets nothing: position, zoom, orbit and lock stay as they are.</summary>
+    [ObservableProperty]
+    public partial bool IsOverlayHidden { get; set; }
+
+    // Generates ToggleLockCommand (IRelayCommand), bound by the lock window's button and run by the toggleLock hotkey.
     // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand
     [RelayCommand]
     private void ToggleLock() => IsManuallyLocked = !IsManuallyLocked;
+
+    /// <summary>Run by the toggleOverlay hotkey: with a hidden cursor nobody can click the overlay away (D17).</summary>
+    [RelayCommand]
+    private void ToggleOverlay() => IsOverlayHidden = !IsOverlayHidden;
 
     /// <summary>
     /// Ticks a stop off in the legend, or back after a misclick: the whole stop, split parts included (D16).

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using CargoPlan.App.Hotkeys;
 
 namespace CargoPlan.App.Win32;
 
@@ -21,8 +22,14 @@ internal static partial class NativeMethods
     // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-cursorinfo
     public const uint CURSOR_SHOWING = 0x00000001;
 
+    // Source: https://learn.microsoft.com/en-us/windows/win32/inputdev/wm-hotkey
+    public const int WM_HOTKEY = 0x0312;
+
     // Source: https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
     private const int ERROR_ACCESS_DENIED = 5;
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--1300-1699-
+    private const int ERROR_HOTKEY_ALREADY_REGISTERED = 1409;
 
     /// <exception cref="Win32Exception">The call failed.</exception>
     public static nint GetExStyle(nint hwnd) => Checked(() => GetWindowLongPtrW(hwnd, GWL_EXSTYLE));
@@ -101,6 +108,37 @@ internal static partial class NativeMethods
         return true;
     }
 
+    /// <summary>
+    /// Registers a system-wide hotkey for our own window: Windows posts WM_HOTKEY with <paramref name="id"/> as wParam,
+    /// whichever program has the focus. No hook, nothing in another process (EAC, D17).
+    /// false = another program (or our other hotkey) already has the combination; the player picks another one.
+    /// </summary>
+    /// <exception cref="Win32Exception">The call failed for another reason (a bug, e.g. a window of another thread).</exception>
+    public static bool TryRegisterHotKey(nint hwnd, int id, Hotkey hotkey)
+    {
+        if (RegisterHotKey(hwnd, id, (uint)hotkey.Modifiers, hotkey.VirtualKey))
+        {
+            return true;
+        }
+
+        var error = Marshal.GetLastPInvokeError();
+        if (error != ERROR_HOTKEY_ALREADY_REGISTERED)
+        {
+            throw new Win32Exception(error);
+        }
+
+        return false;
+    }
+
+    /// <exception cref="Win32Exception">The hotkey was not registered by this thread for this window.</exception>
+    public static void UnregisterHotKey(nint hwnd, int id)
+    {
+        if (!UnregisterHotKeyNative(hwnd, id))
+        {
+            throw new Win32Exception(Marshal.GetLastPInvokeError());
+        }
+    }
+
     // 0 is both "failed" and a valid previous value; only a non-zero last error after clearing it means failure.
     private static nint Checked(Func<nint> call)
     {
@@ -128,6 +166,16 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool GetCursorInfo(ref CURSORINFO pci);
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool RegisterHotKey(nint hWnd, int id, uint fsModifiers, uint vk);
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-unregisterhotkey
+    [LibraryImport("user32.dll", EntryPoint = "UnregisterHotKey", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool UnregisterHotKeyNative(nint hWnd, int id);
 
     // Blittable layouts, field order as in winuser.h / windef.h.
     // Sources: https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-cursorinfo

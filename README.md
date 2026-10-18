@@ -43,7 +43,32 @@ The small padlock in the overlay's top-right corner locks it by hand: the overla
 
 Start with `--locked` to begin with the padlock locked.
 
-**Remembers where you put it:** drag the overlay next to your cargo grid and resize it once; position and size are saved right away, so they survive a restart and even a crash. They live in `%LocalAppData%\SC-CargoPlan\settings.json`. To reset the overlay to its default size and position, close it and delete that file. If you unplug a monitor, the overlay moves back onto the screens you have.
+**Remembers where you put it:** drag the overlay next to your cargo grid and resize it once; position and size are saved right away, so they survive a restart and even a crash. They live in `%LocalAppData%\SC-CargoPlan\settings.json`. To reset the overlay to its default size and position, close it and delete that file (your hotkeys go with it). If you unplug a monitor, the overlay moves back onto the screens you have.
+
+### Hotkeys
+
+Two global hotkeys work while Star Citizen has the focus and the cursor is hidden: one switches the padlock, one hides the overlay and brings it back (dogfight, landing). There are **no default hotkeys**: a hotkey takes its keys away from every other program, the game included, and any default could clash with one of your Star Citizen bindings. Set them yourself in `%LocalAppData%\SC-CargoPlan\settings.json` (close the overlay first, start it again afterwards):
+
+```json
+{
+  "schemaVersion": 1,
+  "hotkeys": {
+    "toggleLock": "Ctrl+Alt+K",
+    "toggleOverlay": "Ctrl+Alt+H"
+  }
+}
+```
+
+Keep the `overlay` part if your file has one. Either hotkey can be left out.
+
+- Format: modifiers and one key joined by `+`, in any order and case. Modifiers are `Ctrl`, `Alt`, `Shift`, `Win`; at least one of `Ctrl`, `Alt` or `Win` is required. Keys are `A`–`Z`, `0`–`9`, `F1`–`F24` (not `F12`, Windows reserves it), `Space`, `Pause`, `ScrollLock`, `Insert`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`.
+- Pick a combination that **none of your Star Citizen bindings use**, and check it in the game's keybinding settings. If the game still reacts to it, choose another one.
+- A hotkey that is taken by another program, or a typo, shows as an amber line at the bottom of the overlay; the other hotkey still works.
+- If a hotkey shows no error but does nothing, another program swallows the keys before Windows hands them out (some tools do that for their own shortcuts). Choose a different combination.
+- Hidden, the overlay also leaves the taskbar; press the hotkey again to bring it back where it was.
+- A typo in a name (e.g. `toggleLok`) makes the whole file unreadable: the overlay starts with defaults and says so.
+
+No hooks: the hotkeys use the normal Windows hotkey service, nothing touches the game process.
 
 ## Build
 

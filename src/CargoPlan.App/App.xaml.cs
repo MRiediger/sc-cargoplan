@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ViewModels;
 
@@ -17,6 +18,9 @@ public partial class App : Application
 
     // Kept so the composition root visibly owns it; the window's events would keep it alive anyway.
     private OverlayBoundsSaver? _boundsSaver;
+
+    // Same here: the overlay's events keep it alive, the field shows who owns it.
+    private HotkeyService? _hotkeys;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -40,6 +44,9 @@ public partial class App : Application
         }
 
         _boundsSaver = new OverlayBoundsSaver(overlay, viewModel, SettingsStore.DefaultPath, settings);
+
+        // Before Show(): SourceInitialized, where the hotkeys get registered, is raised inside Show().
+        _hotkeys = new HotkeyService(overlay, settings.Hotkeys, viewModel);
 
         // Overlay first: the lock window's Owner must be a window that has been shown.
         overlay.Show();

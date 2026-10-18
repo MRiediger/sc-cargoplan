@@ -215,16 +215,17 @@ Tests zuerst (`LoadPlannerTests.cs`):
 
 **Akzeptanz:** Toggle funktioniert, ~~Zustand überlebt Neustart~~ (nach T3.8 verschoben, siehe oben).
 
-### [ ] T3.7 Globale Hotkeys
+### [x] T3.7 Globale Hotkeys
 **Warum:** Im Flug muss das Spiel die Maus bekommen, beim Beladen das Overlay – per Taste, ohne zum Lock-Fenster zu greifen. **Das ist der Grund für .NET.**
+**Präzisiert in der Planung:** keine Default-Hotkeys (ein registrierter Hotkey verschluckt die Kombination fürs Spiel, kein Default ist gegen SC-Bindings sicher), Konfiguration nur über `settings.json` (`hotkeys.toggleLock`/`toggleOverlay`, optional, kein `schemaVersion`-Sprung nach D13), keine Aufnahme-UI, kein Zahnrad; Indikator bleibt das Schloss-Glyph aus T3.2, keine Rahmenfarbe; reiner `HotkeyParser` (Modifier beliebig in Reihenfolge und Schreibweise, Pflicht Ctrl/Alt/Win – Shift allein reicht nicht, F12 abgelehnt weil von Windows für Debugger reserviert, immer `MOD_NOREPEAT`); `HotkeyService` hängt sich wie `OverlayBoundsSaver` an `SourceInitialized`/`Closed` des Overlays; Fehlschlag (`ERROR_HOTKEY_ALREADY_REGISTERED`) oder ungültiger Text → eigene Zeile `HotkeyNotice` (ein Speichern löscht `Notice`, die Hotkey-Meldung soll bleiben), der andere Hotkey bleibt aktiv; Ausblenden als `IsOverlayHidden` + `ToggleOverlayCommand`, beide Fenster rufen selbst `Hide()`/`Show()` (Win32 blendet owned windows nur beim Minimieren mit aus, nicht beim Verstecken), nichts wird zurückgesetzt; settings.json mit dem Relaxed-Encoder geschrieben, damit `+` nicht als `+` erscheint; Core unverändert (D17). Präzisierung in der Planphase, ratifiziert durch Freigabe.
 - `Win32/NativeMethods.cs` um `RegisterHotKey`, `UnregisterHotKey`, `WM_HOTKEY` erweitern (Click-through-Aufrufe stehen dort seit T3.1), `[LibraryImport]`
 - `HotkeyService`: registriert nach `SourceInitialized`, `HwndSource.AddHook` fängt `WM_HOTKEY`, gibt am Fensterende frei
-- Hotkey 1 (Default `Ctrl+Alt+O`): Overlay sichtbar/unsichtbar
-- Hotkey 2 (Default `Ctrl+Alt+I`): manueller Lock an/aus (wie T3.2), Indikator (Rahmenfarbe)
+- Hotkey 1 (~~Default `Ctrl+Alt+O`~~ kein Default, siehe oben): Overlay sichtbar/unsichtbar
+- Hotkey 2 (~~Default `Ctrl+Alt+I`~~ kein Default): manueller Lock an/aus (wie T3.2), Indikator ~~(Rahmenfarbe)~~ (Schloss-Glyph)
 - Beide in `settings.json` konfigurierbar
 
 **Notizen:**
-Kopfzeile (entschieden nach T3.2): Reiter links, Zahnrad + Schloss rechts; das Lock-Fenster überlappt die obere rechte Overlay-Ecke, die Kopfzeile reserviert diese Breite. Gesperrt blendet Reiter und Zahnrad aus, behält aber die Zeilenhöhe. Seit T3.5b gibt es die Kopfzeile mit dem Schiffsnamen (Greiffläche fürs Verschieben); die Schiffsansicht ist der erste Reiter („Ship“). Die Reiterleiste kommt mit dem zweiten Reiter (Schiffsauswahl, noch nicht nummeriert), das Zahnrad mit der ersten Einstellung, die ein Nutzer von Hand setzt (nicht T3.4: Position/Größe speichern sich selbst, D13).
+Kopfzeile (entschieden nach T3.2): Reiter links, Zahnrad + Schloss rechts; das Lock-Fenster überlappt die obere rechte Overlay-Ecke, die Kopfzeile reserviert diese Breite. Gesperrt blendet Reiter und Zahnrad aus, behält aber die Zeilenhöhe. Seit T3.5b gibt es die Kopfzeile mit dem Schiffsnamen (Greiffläche fürs Verschieben); die Schiffsansicht ist der erste Reiter („Ship“). Die Reiterleiste kommt mit dem zweiten Reiter (Schiffsauswahl, noch nicht nummeriert). Das Zahnrad kommt mit der Hotkey-Aufnahme-UI (Backlog, D17): die Hotkeys sind seit T3.7 die erste Einstellung, die ein Nutzer von Hand setzt, aber vorerst direkt in `settings.json`.
 
 **Akzeptanz:** Spiel im Vordergrund, Hotkey schaltet um, gesperrt gehen Klicks ans Spiel. Martin kann erklären, was `WS_EX_TRANSPARENT` wirklich tut (Hit-Test-Weiterleitung, nicht Optik) und warum Hotkeys erst nach `SourceInitialized` registriert werden können.
 
@@ -324,3 +325,4 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Painter per Trennachse + topologische Sortierung, sobald ein Schiff mit ungleich großen Racks falsch gezeichnet wird (D15).
 - Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).
 - Orbit-Snap auf feste Winkel (z. B. 45°-Raster per Taste), falls freies Drehen schwer wiederholbar ist (D15).
+- Hotkey-Aufnahme-UI (Tasten drücken statt tippen) und damit das Zahnrad in der Kopfzeile, sobald settings.json-Editieren Nutzer abschreckt (D17).

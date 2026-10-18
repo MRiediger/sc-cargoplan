@@ -126,6 +126,56 @@ public class OverlayViewModelTests
     }
 
     [Fact]
+    public void HotkeyNotice_defaults_to_null_and_raises_PropertyChanged()
+    {
+        var viewModel = WithSamplePlan();
+        viewModel.HotkeyNotice.Should().BeNull();
+
+        Changes(viewModel, () => viewModel.HotkeyNotice = "Hotkey Ctrl+Alt+L (toggleLock) is already in use.")
+            .Should().Contain(nameof(OverlayViewModel.HotkeyNotice));
+    }
+
+    [Fact]
+    public void IsOverlayHidden_defaults_to_false_so_the_overlay_starts_visible()
+    {
+        WithSamplePlan().IsOverlayHidden.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ToggleOverlayCommand_hides_the_overlay_and_shows_it_again()
+    {
+        var viewModel = WithSamplePlan();
+
+        viewModel.ToggleOverlayCommand.Execute(null);
+        viewModel.IsOverlayHidden.Should().BeTrue();
+
+        viewModel.ToggleOverlayCommand.Execute(null);
+        viewModel.IsOverlayHidden.Should().BeFalse();
+    }
+
+    [Fact]
+    public void ToggleOverlayCommand_raises_PropertyChanged_for_IsOverlayHidden()
+    {
+        var viewModel = WithSamplePlan();
+
+        Changes(viewModel, () => viewModel.ToggleOverlayCommand.Execute(null))
+            .Should().Contain(nameof(OverlayViewModel.IsOverlayHidden));
+    }
+
+    [Fact]
+    public void ToggleOverlayCommand_leaves_the_lock_alone()
+    {
+        // Hidden while flying: the auto-lock keeps running, so the state is right the moment the overlay shows again.
+        var viewModel = WithSamplePlan();
+        viewModel.IsAutoLocked = true;
+
+        viewModel.ToggleOverlayCommand.Execute(null);
+
+        viewModel.IsManuallyLocked.Should().BeFalse();
+        viewModel.IsLocked.Should().BeTrue();
+    }
+
+    [Fact]
     public void Scene_shows_the_plan_with_its_validation()
     {
         var viewModel = WithSamplePlan();

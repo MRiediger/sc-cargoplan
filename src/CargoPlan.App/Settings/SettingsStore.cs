@@ -1,6 +1,8 @@
 // WPF projects leave System.IO out of the implicit usings (Path clashes with System.Windows.Shapes.Path).
 using System.IO;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace CargoPlan.App.Settings;
 
@@ -59,11 +61,21 @@ public static class SettingsStore
         var tempPath = path + ".tmp";
         using (var stream = File.Create(tempPath))
         {
-            JsonSerializer.Serialize(stream, settings, SettingsJsonContext.Default.AppSettings);
+            JsonSerializer.Serialize(stream, settings, WriteTypeInfo);
         }
 
         File.Move(tempPath, path, overwrite: true);
     }
+
+    /// <summary>
+    /// The default encoder writes '+' as + (HTML-sensitive), so a hand-written "Ctrl+Alt+L" would come back as
+    /// "Ctrl+Alt+L" after the next save. The relaxed encoder leaves it alone; "unsafe" only matters for JSON
+    /// embedded in HTML, and this file never is. The source-generation attribute has no Encoder, hence the copy.
+    /// Source: https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/character-encoding
+    /// </summary>
+    private static readonly JsonTypeInfo<AppSettings> WriteTypeInfo = (JsonTypeInfo<AppSettings>)
+        new JsonSerializerOptions(SettingsJsonContext.Default.Options) { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping }
+            .GetTypeInfo(typeof(AppSettings));
 
     private static string Problem(string path, string reason) =>
         $"Settings not loaded, using defaults ({reason}). Moving the overlay overwrites {path}.";

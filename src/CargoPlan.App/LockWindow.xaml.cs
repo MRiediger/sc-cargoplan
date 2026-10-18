@@ -51,6 +51,12 @@ public partial class LockWindow : Window
         {
             ApplyAutoLock();
         }
+        else if (e.PropertyName == nameof(OverlayViewModel.IsOverlayHidden))
+        {
+            // Hiding an owner leaves its owned windows visible (only minimizing hides them), so the lock hides itself.
+            // Source: https://learn.microsoft.com/en-us/windows/win32/winmsg/window-features#owned-windows
+            OverlayWindow.ApplyHidden(this, _viewModel.IsOverlayHidden);
+        }
     }
 
     /// <summary>
