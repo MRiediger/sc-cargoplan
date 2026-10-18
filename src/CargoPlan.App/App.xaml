@@ -11,6 +11,8 @@
         <SolidColorBrush x:Key="LockedForegroundBrush" Color="#FFFFB000" />
         <!-- Notice line (settings not loaded/saved): same amber, it asks for attention the same way. -->
         <SolidColorBrush x:Key="NoticeForegroundBrush" Color="#FFFFB000" />
+        <!-- Legend line of a delivered stop: dimmed, but lighter than the delivered segment grey, which is unreadable as text. -->
+        <SolidColorBrush x:Key="DeliveredForegroundBrush" Color="#FF8C8C8C" />
         <!-- Lock window sits on the overlay's background and adds none of its own. Alpha 1, not 0:
              a layered window passes clicks on fully transparent pixels to the window below. -->
         <SolidColorBrush x:Key="HitTestBackgroundBrush" Color="#01000000" />

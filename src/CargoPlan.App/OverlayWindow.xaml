@@ -32,12 +32,20 @@
         <DockPanel>
             <!-- Header: grip for moving the window (DragMove), later the tab bar (T3.7 notes).
                  Height and right margin keep clear of the lock window (36 px at 4 px inset, LockWindowPlacement). -->
-            <TextBlock DockPanel.Dock="Top"
-                       Height="30" Margin="0,0,30,0"
-                       Text="{Binding Ship.Name, Mode=OneTime}"
-                       FontWeight="Bold"
-                       VerticalAlignment="Top"
-                       Style="{StaticResource LegendTextStyle}" />
+            <!-- "All stops delivered." sits here, not in the legend: the header's fixed height keeps the ship view still (D16). -->
+            <DockPanel DockPanel.Dock="Top" Height="30" Margin="0,0,30,0">
+                <TextBlock DockPanel.Dock="Right"
+                           Text="{x:Static vm:OverlayViewModel.AllDeliveredText}"
+                           VerticalAlignment="Top"
+                           Margin="6,0,0,0"
+                           Foreground="{StaticResource DeliveredForegroundBrush}"
+                           Visibility="{Binding Scene.AllDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock Text="{Binding Ship.Name, Mode=OneTime}"
+                           FontWeight="Bold"
+                           VerticalAlignment="Top"
+                           TextTrimming="CharacterEllipsis"
+                           Style="{StaticResource LegendTextStyle}" />
+            </DockPanel>
 
             <!-- Settings problems (D13); collapsed while Notice is null. -->
             <TextBlock DockPanel.Dock="Bottom"
@@ -55,7 +63,9 @@
                 </TextBlock.Style>
             </TextBlock>
 
-            <!-- Legend: one line per stop, then violations (red racks) and planner hints, word for word (D7). -->
+            <!-- Legend: one line per stop, then violations (red racks) and planner hints, word for word (D7).
+                 Each stop line is a check box: ticked = delivered (D16). Check boxes handle their left clicks,
+                 so DragMove works on the header, the hint lines and the border, not on the stop lines. -->
             <StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
                 <TextBlock Text="{x:Static vm:OverlayViewModel.NoPlanText}">
                     <TextBlock.Style>
@@ -70,12 +80,28 @@
                 </TextBlock>
                 <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}">
                     <ItemsControl.ItemTemplate>
+                        <!-- The command replaces the plan, so the legend is rebuilt and IsChecked comes from the new entry. -->
                         <DataTemplate DataType="{x:Type sv:LegendEntry}">
-                            <StackPanel Orientation="Horizontal">
-                                <Rectangle Width="12" Height="12" Margin="0,0,6,0"
-                                           Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
-                                <TextBlock Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
-                            </StackPanel>
+                            <CheckBox IsChecked="{Binding Delivered, Mode=OneWay}"
+                                      Command="{Binding DataContext.ToggleDeliveredCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                      CommandParameter="{Binding Destination, Mode=OneTime}"
+                                      Focusable="False"
+                                      VerticalContentAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0"
+                                               Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
+                                    <TextBlock x:Name="LabelText" Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                                </StackPanel>
+                            </CheckBox>
+                            <!-- Template triggers outrank values set in the template, so the grey wins over the bound colour.
+                                 Source: https://learn.microsoft.com/dotnet/desktop/wpf/properties/dependency-property-value-precedence -->
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Delivered}" Value="True">
+                                    <Setter TargetName="Swatch" Property="Fill" Value="{x:Static sv:MissionPalette.DeliveredBrush}" />
+                                    <Setter TargetName="LabelText" Property="Foreground" Value="{StaticResource DeliveredForegroundBrush}" />
+                                    <Setter TargetName="LabelText" Property="TextDecorations" Value="Strikethrough" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -87,20 +113,34 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <ItemsControl ItemsSource="{Binding Scene.Hints, Mode=OneWay}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <!-- Both lists share one cell: the hidden reserve (hints with nothing delivered) keeps the height, so
+                     ticking a stop off never resizes the ship view (D16). Hidden takes space, Collapsed wouldn't. -->
+                <Grid>
+                    <ItemsControl ItemsSource="{Binding Scene.ReservedHints, Mode=OneWay}" Visibility="Hidden">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding Scene.Hints, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
                 <TextBlock Text="{x:Static sv:MissionPalette.RepeatNotice}"
                            Style="{StaticResource LegendTextStyle}"
                            Visibility="{Binding Scene.PaletteRepeats, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </StackPanel>
 
-            <!-- Last child fills the rest. Left drag here orbits, right drag pans; DragMove works on header, legend and border. -->
-            <sv:ShipViewControl x:Name="ShipView" Scene="{Binding Scene, Mode=OneWay}" />
+            <!-- Last child fills the rest. Left drag here orbits, a click on cargo ticks its stop, right drag pans;
+                 DragMove works on header, hint lines and border. -->
+            <sv:ShipViewControl x:Name="ShipView"
+                                Scene="{Binding Scene, Mode=OneWay}"
+                                ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}" />
         </DockPanel>
     </Border>
 </Window>

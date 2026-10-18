@@ -74,6 +74,19 @@ public class PlanTextRendererTests
     }
 
     [Fact]
+    public void Render_marks_delivered_placements_and_drops_their_warnings()
+    {
+        var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, MissionFixtures.SplitRequired), HullA, "Riker", true);
+
+        PlanTextRenderer.Render(plan, HullA).Should().Be(Lines("""
+            [Rack 1 · 16/16]  Riker  16 SCU Titanium (4×4) (delivered)
+            [Rack 2 ·  4/16]  Riker   4 SCU Titanium (1×4) (delivered)
+            [Rack 3 ·  0/16]  -
+            [Rack 4 ·  0/16]  -
+            """));
+    }
+
+    [Fact]
     public void Render_empty_plan_shows_every_rack_empty()
     {
         var plan = LoadPlanner.Plan(HullA, []);

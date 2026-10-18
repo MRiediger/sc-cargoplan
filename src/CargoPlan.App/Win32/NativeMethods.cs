@@ -16,6 +16,7 @@ internal static partial class NativeMethods
     public const nint WS_EX_TRANSPARENT = 0x00000020;
     public const nint WS_EX_LAYERED = 0x00080000;
     public const nint WS_EX_NOACTIVATE = 0x08000000;
+    public const nint WS_EX_APPWINDOW = 0x00040000;
 
     // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-cursorinfo
     public const uint CURSOR_SHOWING = 0x00000001;
@@ -45,6 +46,18 @@ internal static partial class NativeMethods
         {
             SetExStyle(hwnd, newStyle);
         }
+    }
+
+    /// <summary>
+    /// WS_EX_NOACTIVATE: a click reaches the window but doesn't make it the foreground window, so Star Citizen keeps
+    /// the foreground and the free cursor at the terminal (D11, addenda T3.2 and T3.6). Such a window leaves the
+    /// taskbar unless WS_EX_APPWINDOW is set too, hence <paramref name="showInTaskbar"/>.
+    /// </summary>
+    /// <exception cref="Win32Exception">The call failed.</exception>
+    public static void PreventActivation(nint hwnd, bool showInTaskbar)
+    {
+        var style = GetExStyle(hwnd) | WS_EX_NOACTIVATE;
+        SetExStyle(hwnd, showInTaskbar ? style | WS_EX_APPWINDOW : style);
     }
 
     /// <summary>The window the user works with; 0 while activation switches.</summary>

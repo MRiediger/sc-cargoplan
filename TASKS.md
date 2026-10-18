@@ -206,13 +206,14 @@ Tests zuerst (`LoadPlannerTests.cs`):
 
 **Akzeptanz:** `dotnet test` grün (Regression Default = T3.5b, Flächenwahl inkl. Boden, Painter in drei Lagen, Nummernfläche an mehreren Winkeln, Hit-Test von unten, Projektionszeit); `dotnet run`: einmal um die Hochachse, von oben bis unten neigen, keine Fläche springt, von unten liegen Rack 2 und 4 vorn; `--locked`: Ziehen ohne Wirkung; im Spiel stimmt die Nummer im Bild mit der Platte vor dir überein, auch unten.
 
-### [ ] T3.6 Abhaken
+### [x] T3.6 Abhaken
 **Warum:** Am Ziel muss sichtbar sein, was schon weg ist.
+**Präzisiert in der Planung:** Einheit = Stop, nicht Placement (eine Mission wird am Ziel komplett entladen, auch ein Split in einem Besuch), Toggle für Fehlklicks; `LoadPlanner.SetDelivered(plan, ship, destination, delivered)` neben `MovePlacement` statt `plan.WithDelivered` (Hinweise brauchen die Racks des Schiffs), unbekannte Destination → `ArgumentException` mit Namen; Hinweise ohne abgelieferte Placements, Kapazität in `Validate` zählt sie weiter (D10 unverändert, D16); Bedienung in der Legende (ganze Stop-Zeile ist eine Checkbox) und per Klick auf ein Segment in der Ansicht, beides `ToggleDeliveredCommand`; Klick = Loslassen im System-Drag-Rechteck, Orbit startet erst außerhalb (Schiff dreht beim Klick nicht), Doppelklick-Reset nur auf freier/leerer Fläche; erledigt = Farbfeld im Segmentgrau, Text grau und durchgestrichen, Reihenfolge bleibt, alle erledigt → „All stops delivered.“ in der Kopfzeile; Ansicht springt beim Abhaken nicht: Legende reserviert den Platz der Hinweise des Plans ohne Delivered (`ShipScene.ReservedHints`, reine Funktion des Plans); gesperrt nicht bedienbar durch Click-through, kein Code; Overlay bekommt `WS_EX_NOACTIVATE` + `WS_EX_APPWINDOW` (`NativeMethods.PreventActivation`, gemeinsam mit dem Lock-Fenster), damit der Haken am Terminal SC nicht den Vordergrund nimmt (D11-Addendum T3.6); `PlanTextRenderer` hängt „(delivered)“ an wie der Tooltip; Persistenz nach T3.8 verschoben (der Plan selbst wird erst dort gespeichert). Präzisierung in der Planphase, ratifiziert durch Freigabe.
 - Klick auf Placement → `[RelayCommand] ToggleDelivered`, Darstellung ausgegraut/durchgestrichen
 - „Stop done“-Button pro Ziel
 - Plan-Zustand in `settings.json` persistieren (Absturz, Spielneustart)
 
-**Akzeptanz:** Toggle funktioniert, Zustand überlebt Neustart.
+**Akzeptanz:** Toggle funktioniert, ~~Zustand überlebt Neustart~~ (nach T3.8 verschoben, siehe oben).
 
 ### [ ] T3.7 Globale Hotkeys
 **Warum:** Im Flug muss das Spiel die Maus bekommen, beim Beladen das Overlay – per Taste, ohne zum Lock-Fenster zu greifen. **Das ist der Grund für .NET.**
@@ -234,8 +235,9 @@ Kopfzeile (entschieden nach T3.2): Reiter links, Zahnrad + Schloss rechts; das L
 - Import/Export als Missions-JSON (nutzt `MissionFileReader` aus T1.3)
 - „Copy as text“ (nutzt `PlanTextRenderer`) – für Discord/Org-Chat
 - Platzhalter-Plan aus T3.1 (`SamplePlan`, Fixture-Link in `CargoPlan.App.csproj`) entfernen
+- **Pflicht (aus T3.6):** aktuellen Plan inkl. `Delivered` persistieren, bei jeder Änderung gespeichert – ein SC-Absturz zwischen zwei Stops darf die Haken nicht löschen
 
-**Akzeptanz:** Durchlauf Eingabe → Plan → Overlay → Abhaken ohne Terminal. **MVP fertig.**
+**Akzeptanz:** Durchlauf Eingabe → Plan → Overlay → Abhaken ohne Terminal; Haken überleben Neustart (auch nach Absturz/Kill). **MVP fertig.**
 
 ### [ ] T3.9 Drag-and-drop-Override
 **Warum:** T2.3 im UI nutzbar.

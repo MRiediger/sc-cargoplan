@@ -76,6 +76,25 @@ public static class LoadPlanner
     }
 
     /// <summary>
+    /// Marks every placement of a stop as delivered, or back. A stop is unloaded in one visit, split parts included,
+    /// so the unit is the stop, not the placement. The hints are derived anew without delivered cargo; capacity in
+    /// <see cref="Validate"/> still counts it (D16). The original plan stays unchanged, placement order too.
+    /// </summary>
+    /// <exception cref="ArgumentException">The plan belongs to another ship or has no stop <paramref name="destination"/>.</exception>
+    public static LoadPlan SetDelivered(LoadPlan plan, Ship ship, string destination, bool delivered)
+    {
+        EnsureSameShip(plan, ship);
+        if (!plan.Placements.Any(p => p.Destination == destination))
+        {
+            throw new ArgumentException($"The plan has no stop '{destination}'.", nameof(destination));
+        }
+
+        List<Placement> placements = [.. plan.Placements
+            .Select(p => p.Destination == destination ? p with { Delivered = delivered } : p)];
+        return plan with { Placements = placements, Warnings = Hints([.. ship.Racks.OrderBy(r => r.Index)], placements) };
+    }
+
+    /// <summary>
     /// Violations that keep the plan from being loaded, per rack in rack order: more SCU than the rack holds,
     /// and crates whose shape doesn't fit the rack (per crate, not per mix, D9). Empty for every plan from
     /// <see cref="Plan"/>; hints for the player (shared racks, split stops) are in <see cref="LoadPlan.Warnings"/>.
@@ -111,11 +130,13 @@ public static class LoadPlanner
 
     /// <summary>
     /// What the player has to watch at the cargo lift, derived from the placements alone: every rack holding more
-    /// than one destination, and every rack holding part of a destination that spans racks. Destinations keep
-    /// placement order, which is route order for a planned stop. <paramref name="racks"/> must be in rack order.
+    /// than one destination, and every rack holding part of a destination that spans racks. Delivered cargo is off
+    /// the ship and doesn't count (D16). Destinations keep placement order, which is route order for a planned stop.
+    /// <paramref name="racks"/> must be in rack order.
     /// </summary>
-    private static List<PlanWarning> Hints(Rack[] racks, IReadOnlyList<Placement> placements)
+    private static List<PlanWarning> Hints(Rack[] racks, IReadOnlyList<Placement> allPlacements)
     {
+        Placement[] placements = [.. allPlacements.Where(p => !p.Delivered)];
         var racksOfDestination = placements
             .GroupBy(p => p.Destination)
             .ToDictionary(g => g.Key, g => racks.Where(r => g.Any(p => p.RackId == r.Id)).ToArray());

@@ -11,6 +11,8 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 {
     public const string NoPlanText = "No plan loaded.";
 
+    public const string AllDeliveredText = "All stops delivered.";
+
     public Ship Ship { get; } = ship;
 
     // [ObservableProperty] on partial properties (Toolkit 8.4+, C# 14 here): the generator writes the
@@ -49,6 +51,20 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand
     [RelayCommand]
     private void ToggleLock() => IsManuallyLocked = !IsManuallyLocked;
+
+    /// <summary>
+    /// Ticks a stop off in the legend, or back after a misclick: the whole stop, split parts included (D16).
+    /// A method parameter makes the generator write an <c>IRelayCommand&lt;string&gt;</c>; the legend passes the destination.
+    /// </summary>
+    // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand#command-parameters
+    [RelayCommand]
+    private void ToggleDelivered(string destination)
+    {
+        // Unreachable without a plan: the legend has no lines then.
+        var plan = Plan ?? throw new InvalidOperationException(NoPlanText);
+        var delivered = plan.PlacementsForStop(destination).All(p => p.Delivered);
+        Plan = LoadPlanner.SetDelivered(plan, Ship, destination, !delivered);
+    }
 
     public bool HasPlan => Plan is not null;
 

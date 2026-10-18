@@ -156,4 +156,30 @@ public class OverlayViewModelTests
             .Should().Contain([nameof(OverlayViewModel.Scene), nameof(OverlayViewModel.HasPlan)]);
         viewModel.Scene.Legend.Should().Equal(new LegendEntry(0, "Riker", 4));
     }
+
+    [Fact]
+    public void ToggleDeliveredCommand_marks_the_stop_delivered_and_back()
+    {
+        var viewModel = WithSamplePlan();
+        var original = viewModel.Plan!;
+
+        viewModel.ToggleDeliveredCommand.Execute("Riker");
+
+        viewModel.Plan!.PlacementsForStop("Riker").Should().OnlyContain(p => p.Delivered);
+        viewModel.Scene.Legend.Single(e => e.Destination == "Riker").Delivered.Should().BeTrue();
+
+        viewModel.ToggleDeliveredCommand.Execute("Riker");
+
+        viewModel.Plan!.Placements.Should().Equal(original.Placements);
+        viewModel.Scene.Legend.Should().OnlyContain(e => !e.Delivered);
+    }
+
+    [Fact]
+    public void ToggleDeliveredCommand_raises_PropertyChanged_for_Plan_and_Scene()
+    {
+        var viewModel = WithSamplePlan();
+
+        Changes(viewModel, () => viewModel.ToggleDeliveredCommand.Execute("Shubin"))
+            .Should().Contain([nameof(OverlayViewModel.Plan), nameof(OverlayViewModel.Scene)]);
+    }
 }

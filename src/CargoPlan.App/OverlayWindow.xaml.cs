@@ -24,6 +24,8 @@ public partial class OverlayWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
+        // Ticking a stop off at the terminal must not take the foreground from Star Citizen (D11, addendum T3.6).
+        NativeMethods.PreventActivation(new WindowInteropHelper(this).Handle, ShowInTaskbar);
         ApplyLock(_viewModel.IsLocked);
     }
 
@@ -56,7 +58,7 @@ public partial class OverlayWindow : Window
         NativeMethods.SetClickThrough(hwnd, locked);
     }
 
-    // Borderless window: drag on header, legend and border. The ship view handles its own left clicks (pan),
-    // so this never runs there (D15).
+    // Borderless window: drag on header, hint lines and border. The ship view (orbit) and the legend's check boxes
+    // handle their own left clicks, so this never runs there (D15, D16).
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragMove();
 }

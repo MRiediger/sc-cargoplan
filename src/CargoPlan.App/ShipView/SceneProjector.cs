@@ -43,7 +43,7 @@ public static class SceneProjector
                 BoxFace.Aft => [segments[^1]],
                 _ => segments,
             };
-            strips.AddRange(shown.Select(s => new SceneStrip(face, Polygon(face, box, s.Aft, s.Bow, camera), s.Fill, s.PaletteIndex, s.ToolTip)));
+            strips.AddRange(shown.Select(s => new SceneStrip(face, Polygon(face, box, s.Aft, s.Bow, camera), s.Fill, s.PaletteIndex, s.ToolTip, s.Destination)));
         }
 
         ProjectedFace[] faces = [.. visible.Select(f => new ProjectedFace(f, Polygon(f, box, box.Min.X, box.Max.X, camera)))];

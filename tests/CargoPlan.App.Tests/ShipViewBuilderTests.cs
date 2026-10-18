@@ -131,6 +131,73 @@ public class ShipViewBuilderTests
     }
 
     [Fact]
+    public void A_delivered_split_stop_is_grey_in_both_racks_and_its_hints_are_gone()
+    {
+        var scene = Build(LoadPlanner.SetDelivered(Sample.Plan, Sample.Ship, "Riker", true));
+        var riker = scene.Legend.Single(e => e.Destination == "Riker");
+
+        // Rack 1 holds only Riker; Rack 2 keeps Shubin's colour next to Riker's grey.
+        RackNumber(scene, 1).Segments.Should().NotContain(s => s.Fill == SegmentFill.Mission);
+        RackNumber(scene, 2).Segments.Should().Contain(s => s.Fill == SegmentFill.Delivered);
+        MissionColours(RackNumber(scene, 2)).Should().Equal(scene.Legend.Single(e => e.Destination == "Shubin").PaletteIndex);
+        riker.Delivered.Should().BeTrue();
+        scene.Legend.Where(e => e.Destination != "Riker").Should().OnlyContain(e => !e.Delivered);
+        scene.Hints.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Reserved_hints_are_those_of_the_plan_without_deliveries()
+    {
+        // The legend reserves their space, so ticking a stop off doesn't resize the view (no zoom jump).
+        var expected = Build(Sample.Plan).Hints;
+
+        var scene = Build(LoadPlanner.SetDelivered(Sample.Plan, Sample.Ship, "Riker", true));
+
+        expected.Should().NotBeEmpty();
+        scene.ReservedHints.Should().Equal(expected);
+        Build(Sample.Plan).ReservedHints.Should().Equal(expected);
+    }
+
+    [Fact]
+    public void Segments_carry_their_destination_and_free_space_none()
+    {
+        var scene = Build(LoadPlanner.SetDelivered(Sample.Plan, Sample.Ship, "Riker", true));
+        var rack2 = RackNumber(scene, 2);
+
+        rack2.Segments.Select(s => s.Destination).Should().Equal("Riker", "Shubin", null);
+    }
+
+    [Fact]
+    public void Legend_keeps_route_order_and_colours_when_stops_are_delivered()
+    {
+        var scene = Build(LoadPlanner.SetDelivered(Sample.Plan, Sample.Ship, "Shubin", true));
+
+        scene.Legend.Select(e => (e.Destination, e.PaletteIndex)).Should().Equal(
+            Build(Sample.Plan).Legend.Select(e => (e.Destination, e.PaletteIndex)));
+    }
+
+    [Fact]
+    public void AllDelivered_only_when_every_stop_is_delivered()
+    {
+        var plan = Sample.Plan;
+        Build(plan).AllDelivered.Should().BeFalse();
+
+        foreach (var destination in new[] { "Riker", "Shubin", "Orison" })
+        {
+            plan = LoadPlanner.SetDelivered(plan, Sample.Ship, destination, true);
+        }
+
+        Build(plan).AllDelivered.Should().BeFalse();
+        Build(LoadPlanner.SetDelivered(plan, Sample.Ship, "Lorville", true)).AllDelivered.Should().BeTrue();
+    }
+
+    [Fact]
+    public void AllDelivered_is_false_without_stops()
+    {
+        Build(new LoadPlan(Sample.Ship.Id, [], [])).AllDelivered.Should().BeFalse();
+    }
+
+    [Fact]
     public void A_plan_for_another_ship_is_rejected()
     {
         var act = () => ShipViewBuilder.Build(Sample.Plan with { ShipId = "cutlass_black" }, Sample.Ship, []);

@@ -1,4 +1,5 @@
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Planning;
 using static System.FormattableString;
 
 namespace CargoPlan.App.ShipView;
@@ -24,16 +25,26 @@ public static class ShipViewBuilder
         // GroupBy keeps the order of first appearance, the same order as the palette.
         LegendEntry[] legend = [.. plan.Placements
             .GroupBy(p => p.Destination)
-            .Select(g => new LegendEntry(palette[g.Key], g.Key, g.Sum(p => p.Item.Scu)))];
+            .Select(g => new LegendEntry(palette[g.Key], g.Key, g.Sum(p => p.Item.Scu), g.All(p => p.Delivered)))];
 
         return new ShipScene(
             racks,
             ship.Bounds,
             legend,
-            [.. plan.Warnings.Select(w => w.Message).Distinct()],
+            Messages(plan),
+            Messages(Undelivered(plan, ship)),
             [.. violations.Select(v => v.Message)],
             MissionPalette.Repeats(plan));
     }
+
+    private static string[] Messages(LoadPlan plan) => [.. plan.Warnings.Select(w => w.Message).Distinct()];
+
+    /// <summary>The plan with every stop back on board; Core derives its hints (D16).</summary>
+    private static LoadPlan Undelivered(LoadPlan plan, Ship ship) => plan.Placements
+        .Where(p => p.Delivered)
+        .Select(p => p.Destination)
+        .Distinct()
+        .Aggregate(plan, (current, destination) => LoadPlanner.SetDelivered(current, ship, destination, false));
 
     private static SceneRack BuildRack(Rack rack, IReadOnlyList<Placement> placements, IReadOnlyDictionary<string, int> palette, bool isViolated)
     {
@@ -48,7 +59,8 @@ public static class ShipViewBuilder
                 null => (SegmentFill.Free, (int?)null, (string?)null),
                 var p => (p.Delivered ? SegmentFill.Delivered : SegmentFill.Mission, palette[p.Destination], ToolTip(rack, p)),
             };
-            return new SceneSegment(max - (segment.Start + segment.Length) * length, max - segment.Start * length, fill, index, toolTip);
+            return new SceneSegment(
+                max - (segment.Start + segment.Length) * length, max - segment.Start * length, fill, index, toolTip, segment.Placement?.Destination);
         })];
 
         return new SceneRack(rack.Number, isViolated, rack.Bounds, segments);

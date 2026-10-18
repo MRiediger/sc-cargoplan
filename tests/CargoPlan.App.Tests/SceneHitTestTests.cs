@@ -71,6 +71,35 @@ public class SceneHitTestTests
     }
 
     [Fact]
+    public void Destination_of_cargo_under_the_point()
+    {
+        SceneHitTest.DestinationAt(Projected, Default.Project(2, 2, 5)).Should().Be("Riker");
+    }
+
+    [Fact]
+    public void Delivered_cargo_still_names_its_destination_so_a_click_can_undo()
+    {
+        var (ship, plan) = SamplePlan.Load();
+        var projected = SceneProjector.Project(ShipViewBuilder.Build(LoadPlanner.SetDelivered(plan, ship, "Riker", true), ship, []), Default);
+
+        SceneHitTest.DestinationAt(projected, Default.Project(2, 2, 5)).Should().Be("Riker");
+    }
+
+    [Fact]
+    public void Free_and_empty_space_have_no_destination()
+    {
+        SceneHitTest.DestinationAt(Projected, Default.Project(0.25, -1, 5)).Should().BeNull();
+        SceneHitTest.DestinationAt(Projected, new Point(100, 100)).Should().BeNull();
+    }
+
+    [Fact]
+    public void Destination_follows_the_rack_in_front()
+    {
+        // Rack 3 (Orison) lies behind Rack 1 (Riker) at this screen point.
+        SceneHitTest.DestinationAt(Projected, Default.Project(2, 0, 3.5)).Should().Be("Riker");
+    }
+
+    [Fact]
     public void From_below_the_bottom_face_answers()
     {
         // Rack 2's bottom face, middle: Riker x 4..3, Shubin x 3..1, free x 1..0.

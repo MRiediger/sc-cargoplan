@@ -115,6 +115,88 @@ public class LoadPlannerOverrideTests
         act.Should().Throw<ArgumentException>().WithParameterName("ship");
     }
 
+    // --- SetDelivered ---
+
+    [Fact]
+    public void SetDelivered_marks_every_placement_of_the_stop_and_keeps_order()
+    {
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
+
+        var delivered = LoadPlanner.SetDelivered(plan, HullA, "Riker", true);
+
+        // Riker is split over Rack 1 and 2: both parts are unloaded in one visit.
+        delivered.Placements.Should().Equal(plan.Placements.Select(p => p.Destination == "Riker" ? p with { Delivered = true } : p));
+        delivered.PlacementsForStop("Riker").Select(p => p.RackId).Should().Equal("rack-0", "rack-1");
+    }
+
+    [Fact]
+    public void SetDelivered_leaves_original_plan_unchanged()
+    {
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
+        Placement[] placementsBefore = [.. plan.Placements];
+        PlanWarning[] warningsBefore = [.. plan.Warnings];
+
+        LoadPlanner.SetDelivered(plan, HullA, "Riker", true);
+
+        plan.Placements.Should().Equal(placementsBefore);
+        plan.Warnings.Should().Equal(warningsBefore);
+    }
+
+    [Fact]
+    public void SetDelivered_back_to_false_restores_the_plan()
+    {
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
+
+        var undone = LoadPlanner.SetDelivered(LoadPlanner.SetDelivered(plan, HullA, "Riker", true), HullA, "Riker", false);
+
+        undone.Placements.Should().Equal(plan.Placements);
+        undone.Warnings.Should().Equal(plan.Warnings);
+    }
+
+    [Fact]
+    public void SetDelivered_drops_the_hints_of_the_delivered_stop()
+    {
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
+
+        var delivered = LoadPlanner.SetDelivered(plan, HullA, "Riker", true);
+
+        // Rack 2 now holds only Shubin, and Riker's crates are gone: both hints would confuse the next unload.
+        plan.Warnings.Should().NotBeEmpty();
+        delivered.Warnings.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetDelivered_keeps_the_hints_of_stops_still_on_board()
+    {
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
+
+        var delivered = LoadPlanner.SetDelivered(plan, HullA, "Shubin", true);
+
+        delivered.Warnings.Should().Equal(
+            new PlanWarning("rack-0", "Riker spans racks 1+2"),
+            new PlanWarning("rack-1", "Riker spans racks 1+2"));
+    }
+
+    [Fact]
+    public void SetDelivered_rejects_unknown_destination()
+    {
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
+
+        var act = () => LoadPlanner.SetDelivered(plan, HullA, "Lorvile", true);
+
+        act.Should().Throw<ArgumentException>().WithParameterName("destination").WithMessage("*'Lorvile'*");
+    }
+
+    [Fact]
+    public void SetDelivered_rejects_plan_for_other_ship()
+    {
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
+
+        var act = () => LoadPlanner.SetDelivered(plan, SmallRackShip, "Riker", true);
+
+        act.Should().Throw<ArgumentException>().WithParameterName("ship");
+    }
+
     // --- Validate ---
 
     [Theory]
@@ -132,6 +214,17 @@ public class LoadPlannerOverrideTests
     public void Validate_overloaded_rack_warns_with_rack()
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
+        var moved = LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Shubin", "Quartz"), "rack-0");
+
+        LoadPlanner.Validate(moved, HullA).Should().Equal(
+            new PlanWarning("rack-0", "Rack 1 overloaded: 22/16 SCU"));
+    }
+
+    [Fact]
+    public void Validate_counts_delivered_cargo_towards_capacity()
+    {
+        // Until the lift takes the crates, they still take the room (D10, D16).
+        var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions), HullA, "Riker", true);
         var moved = LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Shubin", "Quartz"), "rack-0");
 
         LoadPlanner.Validate(moved, HullA).Should().Equal(

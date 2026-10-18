@@ -12,8 +12,8 @@ namespace CargoPlan.App.ShipView;
 /// Paints a <see cref="ShipScene"/> as <see cref="SceneProjector"/> projects it for the current camera: frame, racks
 /// back to front, rack numbers on top. Only redraws when the scene, the size, the camera, zoom or pan change; no
 /// timer, no animation (D14). Mouse: left drag turns and tilts the camera, right drag pans, wheel zooms around the
-/// cursor, double-click resets, hover shows the placement. Left clicks are handled here, so the window's DragMove
-/// only works outside the view (D15).
+/// cursor, a click on cargo ticks its stop off or back (D16), double-click on free or empty space resets, hover shows
+/// the placement. Left clicks are handled here, so the window's DragMove only works outside the view (D15).
 /// </summary>
 public sealed class ShipViewControl : FrameworkElement
 {
@@ -38,6 +38,12 @@ public sealed class ShipViewControl : FrameworkElement
         typeof(ShipViewControl),
         new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, (d, _) => ((ShipViewControl)d).OnSceneChanged()));
 
+    /// <summary>Runs with the clicked cargo's destination as parameter.</summary>
+    public static readonly DependencyProperty ToggleStopCommandProperty = DependencyProperty.Register(
+        nameof(ToggleStopCommand),
+        typeof(ICommand),
+        typeof(ShipViewControl));
+
     // Opened by hand instead of ToolTipService: the text changes with the segment under the cursor.
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/controls/how-to-position-a-tooltip
     private readonly ToolTip _toolTip;
@@ -60,6 +66,12 @@ public sealed class ShipViewControl : FrameworkElement
     {
         get => (ShipScene?)GetValue(SceneProperty);
         set => SetValue(SceneProperty, value);
+    }
+
+    public ICommand? ToggleStopCommand
+    {
+        get => (ICommand?)GetValue(ToggleStopCommandProperty);
+        set => SetValue(ToggleStopCommandProperty, value);
     }
 
     /// <summary>
@@ -144,7 +156,8 @@ public sealed class ShipViewControl : FrameworkElement
             return;
         }
 
-        if (e.ClickCount == 2)
+        // Reset only off the cargo: there the second click of a double-click is a click of its own and ticks back.
+        if (e.ClickCount == 2 && DestinationAt(e.GetPosition(this)) is null)
         {
             Navigate(ViewNavigation.Default);
             return;
@@ -163,7 +176,18 @@ public sealed class ShipViewControl : FrameworkElement
         }
     }
 
-    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e) => EndDrag(e, DragMode.Orbit);
+    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+    {
+        // Before EndDrag: releasing the capture clears the drag.
+        var position = e.GetPosition(this);
+        if (_drag is { Mode: DragMode.Orbit, IsMoving: false }
+            && DestinationAt(position) is { } destination && ToggleStopCommand is { } command && command.CanExecute(destination))
+        {
+            command.Execute(destination);
+        }
+
+        EndDrag(e, DragMode.Orbit);
+    }
 
     protected override void OnMouseRightButtonUp(MouseButtonEventArgs e) => EndDrag(e, DragMode.Pan);
 
@@ -183,8 +207,14 @@ public sealed class ShipViewControl : FrameworkElement
         var position = e.GetPosition(this);
         if (_drag is { } drag)
         {
+            // Inside the drag rectangle it may still be a click: the ship stands still until the drag leaves it.
+            if (!drag.IsMoving && IsWithinDragRectangle(drag.From, position))
+            {
+                return;
+            }
+
             var delta = position - drag.From;
-            _drag = drag with { From = position };
+            _drag = drag with { From = position, IsMoving = true };
 
             // Like grabbing the ship: dragging right turns its near side right, dragging down tilts its top towards you.
             Navigate(drag.Mode == DragMode.Orbit
@@ -212,6 +242,17 @@ public sealed class ShipViewControl : FrameworkElement
         ShowToolTip(null);
         Navigate(_navigation.ZoomAt(e.GetPosition(this), factor));
     }
+
+    /// <summary>
+    /// Still within the system's drag rectangle around the press (SM_CXDRAG/SM_CYDRAG): a click so far, not a drag.
+    /// Source: https://learn.microsoft.com/dotnet/api/system.windows.systemparameters.minimumhorizontaldragdistance
+    /// </summary>
+    private static bool IsWithinDragRectangle(Point start, Point end) =>
+        Math.Abs(end.X - start.X) <= SystemParameters.MinimumHorizontalDragDistance
+        && Math.Abs(end.Y - start.Y) <= SystemParameters.MinimumVerticalDragDistance;
+
+    private string? DestinationAt(Point position) =>
+        Projected() is { } scene ? SceneHitTest.DestinationAt(scene, CurrentTransform(scene).Invert(position)) : null;
 
     private ProjectedScene? Projected() => Scene is { } scene ? _projected ??= SceneProjector.Project(scene, _navigation.Camera) : null;
 
@@ -244,7 +285,7 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         ShowToolTip(null);
-        _drag = new Drag(e.GetPosition(this), mode);
+        _drag = new Drag(e.GetPosition(this), mode, IsMoving: false);
         CaptureMouse();
     }
 
@@ -304,5 +345,7 @@ public sealed class ShipViewControl : FrameworkElement
         Pan,
     }
 
-    private readonly record struct Drag(Point From, DragMode Mode);
+    /// <param name="From">Where the button went down until the drag moves, then the last position.</param>
+    /// <param name="IsMoving">Left the drag rectangle; until then, releasing the button is a click.</param>
+    private readonly record struct Drag(Point From, DragMode Mode, bool IsMoving);
 }

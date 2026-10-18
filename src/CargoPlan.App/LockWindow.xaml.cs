@@ -32,7 +32,7 @@ public partial class LockWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        PreventActivation();
+        NativeMethods.PreventActivation(new WindowInteropHelper(this).Handle, showInTaskbar: false);
         ApplyAutoLock();
         FollowOverlay();
     }
@@ -68,17 +68,6 @@ public partial class LockWindow : Window
         }
 
         NativeMethods.SetClickThrough(hwnd, _viewModel.IsAutoLocked);
-    }
-
-    /// <summary>
-    /// WS_EX_NOACTIVATE: a click reaches the button but doesn't make this window the foreground window,
-    /// so Star Citizen keeps the foreground and the free cursor (D11, addendum T3.2).
-    /// </summary>
-    private void PreventActivation()
-    {
-        var hwnd = new WindowInteropHelper(this).Handle;
-        var style = NativeMethods.GetExStyle(hwnd);
-        NativeMethods.SetExStyle(hwnd, style | NativeMethods.WS_EX_NOACTIVATE);
     }
 
     private void OnOverlayMoved(object? sender, EventArgs e) => FollowOverlay();

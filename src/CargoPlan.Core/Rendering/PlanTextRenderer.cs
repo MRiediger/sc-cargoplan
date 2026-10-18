@@ -10,6 +10,7 @@ public static class PlanTextRenderer
     private const string ColumnGap = "  ";
     private const string EmptyRack = "-";
     private const string WarningMarker = "! ";
+    private const string DeliveredSuffix = " (delivered)";
 
     /// <summary>
     /// One block per rack, in rack order, with its placements and warnings; below, every distinct warning once.
@@ -58,13 +59,14 @@ public static class PlanTextRenderer
         return string.Join('\n', lines);
     }
 
-    /// <summary>"Riker  12 SCU Titanium (3×4)": crate count × crate size.</summary>
+    /// <summary>"Riker  12 SCU Titanium (3×4)": crate count × crate size; "(delivered)" behind, as in the ship view's tool tip.</summary>
     private static string PlacementLine(Placement placement, int destinationWidth, int scuWidth)
     {
         var item = placement.Item;
         var crateScu = (int)item.CrateSize;
-        return Invariant(
+        var line = Invariant(
             $"{placement.Destination.PadRight(destinationWidth)}{ColumnGap}{Pad(item.Scu, scuWidth)} SCU {item.Commodity} ({item.Scu / crateScu}×{crateScu})");
+        return placement.Delivered ? line + DeliveredSuffix : line;
     }
 
     // PadLeft instead of interpolation alignment: {x,5} only takes a constant width.

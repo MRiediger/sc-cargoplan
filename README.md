@@ -33,11 +33,13 @@ _Screenshot: coming soon._
 - **Outline only** = free space.
 - **Red edges** = this rack can't be loaded as planned (too much cargo, or a crate that doesn't fit).
 
-Hover over a colored area to see what goes there, e.g. `Rack 1 · port upper · 16 SCU Titanium (4×4)` (4 crates of 4 SCU). Inside the view: **left drag** turns and tilts the ship, **right drag** moves it, the **mouse wheel** zooms, a **double-click** resets the view. To move the overlay window, drag it by its header (the ship name), the legend or the border.
+Hover over a colored area to see what goes there, e.g. `Rack 1 · port upper · 16 SCU Titanium (4×4)` (4 crates of 4 SCU). Inside the view: **left drag** turns and tilts the ship, **right drag** moves it, the **mouse wheel** zooms, a **double-click** next to the cargo resets the view. To move the overlay window, drag it by its header (the ship name), the hint lines below the legend or the border.
+
+**Unloading:** when a destination has taken its cargo, tick it in the legend or click any of its cargo in the view. Its racks turn gray, the legend line is struck through, and the hints about that destination disappear, so the next cargo lift only shows what is still on board. The ship stays where it is. A destination split over two racks is ticked once, both racks turn gray. Clicked the wrong one? Click again. When every destination is ticked, the header says "All stops delivered." Ticking doesn't take the focus from the game, so the terminal keeps working. The ticks don't survive a restart yet.
 
 **Never eats your tractor-beam click:** the overlay becomes click-through automatically while Star Citizen has the mouse. In flight and first person the game hides the cursor and it follows your view, so a click over a normal window would be lost. As soon as the cursor shows (mobiGlas, Esc menu, terminals) or another program is in front, the overlay is interactive again: you can zoom, hover and move it.
 
-The small padlock in the overlay's top-right corner locks it by hand: the overlay stays click-through even with the cursor showing, so every click goes to the game. Click the padlock again to unlock. A closed amber padlock means locked, an open white one unlocked. Clicking the padlock doesn't take the focus from the game.
+The small padlock in the overlay's top-right corner locks it by hand: the overlay stays click-through even with the cursor showing, so every click goes to the game. Click the padlock again to unlock. A closed amber padlock means locked, an open white one unlocked. Clicking the padlock or the overlay doesn't take the focus from the game.
 
 Start with `--locked` to begin with the padlock locked.
 
