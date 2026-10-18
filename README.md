@@ -24,7 +24,18 @@ _Coming soon: a single Windows EXE on the [Releases](../../releases) page._
 
 Run Star Citizen in **Borderless** window mode. In exclusive fullscreen the game covers every other window, the overlay included.
 
-**Never eats your tractor-beam click:** the overlay becomes click-through automatically while Star Citizen has the mouse. In flight and first person the game hides the cursor and it follows your view, so a click over a normal window would be lost. As soon as the cursor shows (mobiGlas, Esc menu, terminals) or another program is in front, the overlay is interactive again: you can click and drag it.
+_Screenshot: coming soon._
+
+**Reading the ship view:** the overlay draws your ship's cargo racks as boxes, seen from the front, from the port side and from above: the bow points to the lower left, the port side faces you. Each rack shows its number on the front face. Each destination has its own color, and the legend below lists it with its SCU. A destination split over two racks has the same color in both. A rack shared by two destinations shows both colors side by side; the planner's hints below the legend tell you which racks need care.
+
+- **Color** = destination. Up to eight colors, from the ninth destination on they repeat (the legend says so).
+- **Gray** = delivered.
+- **Outline only** = free space.
+- **Red edges** = this rack can't be loaded as planned (too much cargo, or a crate that doesn't fit).
+
+Hover over a colored area to see what goes there, e.g. `Rack 1 · port upper · 16 SCU Titanium (4×4)` (4 crates of 4 SCU). Scroll the mouse wheel to zoom, drag inside the view to move it, double-click to fit the whole ship again. To move the overlay window, drag it by its header (the ship name), the legend or the border.
+
+**Never eats your tractor-beam click:** the overlay becomes click-through automatically while Star Citizen has the mouse. In flight and first person the game hides the cursor and it follows your view, so a click over a normal window would be lost. As soon as the cursor shows (mobiGlas, Esc menu, terminals) or another program is in front, the overlay is interactive again: you can zoom, hover and move it.
 
 The small padlock in the overlay's top-right corner locks it by hand: the overlay stays click-through even with the cursor showing, so every click goes to the game. Click the padlock again to unlock. A closed amber padlock means locked, an open white one unlocked. Clicking the padlock doesn't take the focus from the game.
 

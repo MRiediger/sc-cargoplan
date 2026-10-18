@@ -6,14 +6,14 @@ using CargoPlan.Core.Ships;
 namespace CargoPlan.App;
 
 /// <summary>
-/// Placeholder content until the mission editor (T3.8): the example missions embedded in this assembly,
+/// Placeholder content until the mission editor (T3.8): the split-and-shared missions embedded in this assembly,
 /// planned for the Hull A.
 /// </summary>
 public static class SamplePlan
 {
     public const string ShipId = "hull_a";
 
-    private const string ResourceName = "missions/example_missions.json";
+    private const string ResourceName = "missions/split_and_shared.json";
 
     public static (Ship Ship, LoadPlan Plan) Load()
     {

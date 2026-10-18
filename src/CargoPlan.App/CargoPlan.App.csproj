@@ -18,11 +18,11 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <!-- Placeholder plan until the mission editor (T3.8): the test fixture, linked instead of copied,
+  <!-- Placeholder plan until the mission editor (T3.8): the test fixture with a split and a shared rack, linked instead of copied,
        embedded so it also works inside the single-file EXE. -->
   <ItemGroup>
-    <EmbeddedResource Include="..\..\tests\CargoPlan.Core.Tests\Fixtures\example_missions.json"
-                      LogicalName="missions/example_missions.json" Link="Samples\example_missions.json" />
+    <EmbeddedResource Include="..\..\tests\CargoPlan.Core.Tests\Fixtures\split_and_shared.json"
+                      LogicalName="missions/split_and_shared.json" Link="Samples\split_and_shared.json" />
   </ItemGroup>
 
 </Project>

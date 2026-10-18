@@ -4,11 +4,12 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:CargoPlan.App.ViewModels"
+        xmlns:sv="clr-namespace:CargoPlan.App.ShipView"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:OverlayViewModel}"
         Title="SC-CargoPlan"
-        Width="520" Height="200"
-        MinWidth="200" MinHeight="100"
+        Width="420" Height="460"
+        MinWidth="240" MinHeight="260"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -18,9 +19,26 @@
         ResizeMode="CanResizeWithGrip"
         MouseLeftButtonDown="OnMouseLeftButtonDown">
     <!-- Click-through is not set here: it is a mode (IsLocked), switched in code-behind, see D11. -->
-    <!-- MinWidth/MinHeight: the lock window and a few lines stay visible; restoring saved bounds uses them too. -->
+    <!-- MinWidth/MinHeight: header, a small ship view and the legend stay visible; restoring saved bounds uses them too. -->
+    <Window.Resources>
+        <sv:PaletteBrushConverter x:Key="PaletteBrushConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="LegendTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource OverlayForegroundBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </Window.Resources>
     <Border Background="{StaticResource OverlayBackgroundBrush}" CornerRadius="4" Padding="10">
         <DockPanel>
+            <!-- Header: grip for moving the window (DragMove), later the tab bar (T3.7 notes).
+                 Height and right margin keep clear of the lock window (36 px at 4 px inset, LockWindowPlacement). -->
+            <TextBlock DockPanel.Dock="Top"
+                       Height="30" Margin="0,0,30,0"
+                       Text="{Binding Ship.Name, Mode=OneTime}"
+                       FontWeight="Bold"
+                       VerticalAlignment="Top"
+                       Style="{StaticResource LegendTextStyle}" />
+
             <!-- Settings problems (D13); collapsed while Notice is null. -->
             <TextBlock DockPanel.Dock="Bottom"
                        Text="{Binding Notice, Mode=OneWay}"
@@ -36,9 +54,53 @@
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
-            <TextBlock Text="{Binding PlanText, Mode=OneWay}"
-                       FontFamily="{StaticResource PlanFontFamily}"
-                       Foreground="{StaticResource OverlayForegroundBrush}" />
+
+            <!-- Legend: one line per stop, then violations (red racks) and planner hints, word for word (D7). -->
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                <TextBlock Text="{x:Static vm:OverlayViewModel.NoPlanText}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource LegendTextStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasPlan}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type sv:LegendEntry}">
+                            <StackPanel Orientation="Horizontal">
+                                <Rectangle Width="12" Height="12" Margin="0,0,6,0"
+                                           Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
+                                <TextBlock Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <ItemsControl ItemsSource="{Binding Scene.Violations, Mode=OneWay}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Mode=OneTime}" TextWrapping="Wrap"
+                                       Foreground="{x:Static sv:MissionPalette.ViolationBrush}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <ItemsControl ItemsSource="{Binding Scene.Hints, Mode=OneWay}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="{x:Static sv:MissionPalette.RepeatNotice}"
+                           Style="{StaticResource LegendTextStyle}"
+                           Visibility="{Binding Scene.PaletteRepeats, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+
+            <!-- Last child fills the rest. Left drag here pans the view; DragMove works on header, legend and border. -->
+            <sv:ShipViewControl x:Name="ShipView" Scene="{Binding Scene, Mode=OneWay}" />
         </DockPanel>
     </Border>
 </Window>

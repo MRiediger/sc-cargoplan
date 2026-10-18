@@ -7,7 +7,7 @@ using CargoPlan.App.Win32;
 
 namespace CargoPlan.App;
 
-/// <summary>The overlay: shows the plan text, applies the lock mode (click-through) to the native window.</summary>
+/// <summary>The overlay: shows the ship view and legend, applies the lock mode (click-through) to the native window.</summary>
 public partial class OverlayWindow : Window
 {
     private readonly OverlayViewModel _viewModel;
@@ -44,6 +44,9 @@ public partial class OverlayWindow : Window
     /// <summary>Locked = click-through, see <see cref="NativeMethods.SetClickThrough"/>.</summary>
     private void ApplyLock(bool locked)
     {
+        // Before the HWND check: the view must ignore wheel and drag even before the window shows.
+        ShipView.IsNavigationEnabled = !locked;
+
         var hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == 0)
         {
@@ -53,6 +56,7 @@ public partial class OverlayWindow : Window
         NativeMethods.SetClickThrough(hwnd, locked);
     }
 
-    // Borderless window: drag anywhere on the background.
+    // Borderless window: drag on header, legend and border. The ship view handles its own left clicks (pan),
+    // so this never runs there (D15).
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragMove();
 }

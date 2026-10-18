@@ -1,5 +1,6 @@
+using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
-using CargoPlan.Core.Rendering;
+using CargoPlan.Core.Planning;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -16,7 +17,8 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     // body with SetProperty and PropertyChanged.
     // Source: https://github.com/CommunityToolkit/dotnet/releases/tag/v8.4.0
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(PlanText))]
+    [NotifyPropertyChangedFor(nameof(Scene))]
+    [NotifyPropertyChangedFor(nameof(HasPlan))]
     public partial LoadPlan? Plan { get; set; }
 
     /// <summary>
@@ -48,5 +50,19 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     [RelayCommand]
     private void ToggleLock() => IsManuallyLocked = !IsManuallyLocked;
 
-    public string PlanText => Plan is null ? NoPlanText : PlanTextRenderer.Render(Plan, Ship);
+    public bool HasPlan => Plan is not null;
+
+    /// <summary>
+    /// What the ship view and the legend draw: the plan with Core's validation (D10), or the empty ship without a plan.
+    /// Built once per change of <see cref="Plan"/>, not per binding.
+    /// </summary>
+    public ShipScene Scene { get; private set; } = EmptyScene(ship);
+
+    // Runs before PropertyChanged for Plan and Scene, so bindings read the new scene.
+    // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/observableproperty#running-code-upon-changes
+    partial void OnPlanChanged(LoadPlan? value) => Scene = value is null
+        ? EmptyScene(Ship)
+        : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value, Ship));
+
+    private static ShipScene EmptyScene(Ship ship) => ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
 }

@@ -1,0 +1,61 @@
+using System.Windows;
+
+namespace CargoPlan.App.ShipView;
+
+/// <summary>From projected ship units to screen pixels: scale, then offset.</summary>
+public sealed record ViewTransform(double Scale, Vector Offset)
+{
+    // Keeps Invert defined for a viewport that has no size yet.
+    private const double MinScale = 1e-6;
+
+    public Point Apply(Point point) => new(point.X * Scale + Offset.X, point.Y * Scale + Offset.Y);
+
+    public Point Invert(Point screen) => new((screen.X - Offset.X) / Scale, (screen.Y - Offset.Y) / Scale);
+
+    /// <summary>
+    /// The largest scale that shows all of <paramref name="extent"/> with <paramref name="margin"/> on every side,
+    /// centred. A viewport smaller than four margins shrinks the margin instead of losing the picture.
+    /// </summary>
+    public static ViewTransform Fit(Rect extent, Size viewport, double margin)
+    {
+        var edge = Math.Min(margin, Math.Min(viewport.Width, viewport.Height) / 4);
+        var scale = Math.Max(
+            Math.Min((viewport.Width - 2 * edge) / extent.Width, (viewport.Height - 2 * edge) / extent.Height),
+            MinScale);
+
+        Vector centre = new(viewport.Width / 2, viewport.Height / 2);
+        Vector extentCentre = new(extent.X + extent.Width / 2, extent.Y + extent.Height / 2);
+        return new ViewTransform(scale, centre - extentCentre * scale);
+    }
+}
+
+/// <summary>
+/// The player's zoom and pan on top of the fit. Kept apart from the fit so resizing the window refits and the
+/// default (zoom 1, no pan) always shows the whole ship. Not persisted (A4).
+/// </summary>
+public sealed record ViewNavigation(double Zoom, Vector Pan)
+{
+    public const double MinZoom = 0.5;
+    public const double MaxZoom = 4;
+
+    public static ViewNavigation Default { get; } = new(1, new Vector(0, 0));
+
+    /// <summary>Screen = fit, then zoom around the screen origin, then pan.</summary>
+    public ViewTransform On(ViewTransform fit) => new(fit.Scale * Zoom, fit.Offset * Zoom + Pan);
+
+    /// <summary>Zooms by <paramref name="factor"/>, clamped, so the point under <paramref name="cursor"/> stays put.</summary>
+    public ViewNavigation ZoomAt(Point cursor, double factor)
+    {
+        var zoom = Math.Clamp(Zoom * factor, MinZoom, MaxZoom);
+        if (zoom == Zoom)
+        {
+            return this;
+        }
+
+        var ratio = zoom / Zoom;
+        Vector at = (Vector)cursor;
+        return new ViewNavigation(zoom, at - (at - Pan) * ratio);
+    }
+
+    public ViewNavigation PanBy(Vector delta) => this with { Pan = Pan + delta };
+}

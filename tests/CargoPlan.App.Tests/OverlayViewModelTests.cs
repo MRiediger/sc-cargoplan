@@ -1,8 +1,8 @@
 using System.ComponentModel;
+using CargoPlan.App.ShipView;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
-using CargoPlan.Core.Rendering;
 
 namespace CargoPlan.App.Tests;
 
@@ -126,29 +126,34 @@ public class OverlayViewModelTests
     }
 
     [Fact]
-    public void PlanText_is_the_core_text_rendering_of_the_plan()
+    public void Scene_shows_the_plan_with_its_validation()
     {
         var viewModel = WithSamplePlan();
 
-        viewModel.PlanText.Should().Be(PlanTextRenderer.Render(viewModel.Plan!, viewModel.Ship));
+        viewModel.Scene.Legend.Select(e => e.Destination).Should().Equal("Riker", "Shubin", "Orison", "Lorville");
+        viewModel.Scene.Violations.Should().BeEmpty();
     }
 
     [Fact]
-    public void PlanText_without_a_plan_says_so()
+    public void Scene_without_a_plan_shows_the_empty_ship()
     {
         var (ship, _) = SamplePlan.Load();
+        var viewModel = new OverlayViewModel(ship);
 
-        new OverlayViewModel(ship).PlanText.Should().Be(OverlayViewModel.NoPlanText);
+        viewModel.HasPlan.Should().BeFalse();
+        viewModel.Scene.Racks.Should().HaveCount(ship.Racks.Count);
+        viewModel.Scene.Legend.Should().BeEmpty();
     }
 
     [Fact]
-    public void Setting_Plan_raises_PropertyChanged_for_PlanText()
+    public void Setting_Plan_raises_PropertyChanged_for_Scene_and_HasPlan()
     {
         var viewModel = WithSamplePlan();
         Stop riker = new("Riker", 1, [new CargoItem("Titanium", 4, CrateSize.Four)]);
         var newPlan = LoadPlanner.Plan(viewModel.Ship, [riker]);
 
-        Changes(viewModel, () => viewModel.Plan = newPlan).Should().Contain(nameof(OverlayViewModel.PlanText));
-        viewModel.PlanText.Should().Be(PlanTextRenderer.Render(newPlan, viewModel.Ship));
+        Changes(viewModel, () => viewModel.Plan = newPlan)
+            .Should().Contain([nameof(OverlayViewModel.Scene), nameof(OverlayViewModel.HasPlan)]);
+        viewModel.Scene.Legend.Should().Equal(new LegendEntry(0, "Riker", 4));
     }
 }

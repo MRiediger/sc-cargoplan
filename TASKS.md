@@ -186,8 +186,9 @@ Tests zuerst (`LoadPlannerTests.cs`):
 
 **Akzeptanz:** `dotnet test` grün (Overlap-Meldung mit Rack-Nummern, v2 abgelehnt, `Bounds` Hull A = x 0..4, y -2..3, z 0..5, Konsistenztest); CLI-Ausgabe der Fixtures byte-gleich zu vorher; Hull A mit zwei Racks auf `[0, 1, 0]` → Meldung „Rack 2 … Rack 4 … overlap“, kein Stacktrace.
 
-### [ ] T3.5b Schiffsansicht (2.5D)
+### [x] T3.5b Schiffsansicht (2.5D)
 **Warum:** Die eigentliche Information.
+**Präzisiert in der Planung:** Blick von vorne-backbord-oben (Bug links-unten, Backbord zum Betrachter, Projektion als reine Funktion `IsoProjection`); Painter nach Mittelpunkt-Tiefe, Gleichstand nach Rack-Index (Hull A: 4, 2, 3, 1); `FrameworkElement` mit `DrawingContext` (`ShipViewControl`) statt `UserControl`, Neuzeichnen nur bei Szene/Größe/Zoom/Pan; Segmente pro Placement entlang x ab Bug-Ende, proportional zu SCU, freier Rest als Umriss, überladen auf die Last normiert (`RackSegments`); Okabe-Ito ohne Schwarz + Weiß = 8 Farben, Zyklus ab Stop 9 mit Legendenzeile, Delivered dunkelgrau (`MissionPalette`); `IValueConverter` nur für das Legenden-Farbfeld; rote Rack-Kanten nur nach `Validate`, Hinweise und Verstöße als Text in der Legende; Rack-Nummer auf der Bugfläche im letzten Zeichendurchgang; Label pro Placement und Position als Tooltip beim Hover (`Rack 1 · port upper · 16 SCU Titanium (4×4)`, Hit-Test als reine Funktion); Legende nur `Stop · SCU`; Kopfzeile mit Schiffsname als Greiffläche, linkes Ziehen in der Ansicht = Pan, `DragMove` nur außerhalb; Rad-Zoom um den Cursor 0,5×–4×, Doppelklick = Fit, kein Persistieren; gesperrt ignoriert die Ansicht Rad/Ziehen/Hover; Szene als Record `ShipScene` aus `ShipViewBuilder` (kein `ShipViewModel`); `OverlayViewModel.PlanText` entfällt; Platzhalter-Plan jetzt `split_and_shared` (Riker liegt auf beiden Ebenen der Backbordseite); Fenster 420 × 460, Minimum 240 × 260; Core unverändert (D15). Präzisierung in der Planphase, ratifiziert durch Freigabe.
 - `ShipView` als `UserControl`, zeichnet Racks als isometrische Quader aus `Rack.Bounds` im Rahmen `Ship.Bounds` (D14), nicht eine Reihe; Rack-Nummer sichtbar (D9), `Position` als Text, Füllgrad proportional
 - Eine Farbe pro Stop, Palette ≥ 8 kontraststarke Farben, über `IValueConverter`
 - Label pro Placement: „Riker · 12 SCU Titanium“
@@ -212,7 +213,7 @@ Tests zuerst (`LoadPlannerTests.cs`):
 - Beide in `settings.json` konfigurierbar
 
 **Notizen:**
-Kopfzeile (entschieden nach T3.2): Reiter links, Zahnrad + Schloss rechts; das Lock-Fenster überlappt die obere rechte Overlay-Ecke, die Kopfzeile reserviert diese Breite. Gesperrt blendet Reiter und Zahnrad aus, behält aber die Zeilenhöhe. Die Reiterleiste kommt mit dem ersten zweiten Reiter (Schiffsauswahl, noch nicht nummeriert), das Zahnrad mit der ersten Einstellung, die ein Nutzer von Hand setzt (nicht T3.4: Position/Größe speichern sich selbst, D13).
+Kopfzeile (entschieden nach T3.2): Reiter links, Zahnrad + Schloss rechts; das Lock-Fenster überlappt die obere rechte Overlay-Ecke, die Kopfzeile reserviert diese Breite. Gesperrt blendet Reiter und Zahnrad aus, behält aber die Zeilenhöhe. Seit T3.5b gibt es die Kopfzeile mit dem Schiffsnamen (Greiffläche fürs Verschieben); die Schiffsansicht ist der erste Reiter („Ship“). Die Reiterleiste kommt mit dem zweiten Reiter (Schiffsauswahl, noch nicht nummeriert), das Zahnrad mit der ersten Einstellung, die ein Nutzer von Hand setzt (nicht T3.4: Position/Größe speichern sich selbst, D13).
 
 **Akzeptanz:** Spiel im Vordergrund, Hotkey schaltet um, gesperrt gehen Klicks ans Spiel. Martin kann erklären, was `WS_EX_TRANSPARENT` wirklich tut (Hit-Test-Weiterleitung, nicht Optik) und warum Hotkeys erst nach `SourceInitialized` registriert werden können.
 
@@ -308,3 +309,5 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).
 - Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).
 - Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).
+- Painter per Trennachse + topologische Sortierung, sobald ein Schiff mit ungleich großen Racks falsch gezeichnet wird (D15).
+- Zoom/Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).
