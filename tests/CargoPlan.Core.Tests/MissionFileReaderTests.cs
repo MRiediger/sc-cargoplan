@@ -156,7 +156,7 @@ public class MissionFileReaderTests
         act.Should().Throw<FileNotFoundException>();
     }
 
-    // --- Serialization (export in T3.6 writes the same format) ---
+    // --- Serialization (export in T3.8 writes the same format) ---
 
     [Fact]
     public void Serialized_stops_read_back_unchanged()

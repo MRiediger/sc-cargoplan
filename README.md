@@ -6,7 +6,7 @@ A cargo load-plan overlay for Star Citizen hauling (Alpha 4.10.x).
 
 ## What
 
-You enter your hauling missions (destination, commodity, SCU, crate size). SC-CargoPlan decides which destination goes into which section of your ship and shows the plan as a translucent, click-through, always-on-top overlay. At each stop you tick off what you delivered.
+You enter your hauling missions (destination, commodity, SCU, crate size). SC-CargoPlan decides which destination goes into which section of your ship and shows the plan as a translucent, always-on-top overlay that turns click-through while you fly. At each stop you tick off what you delivered.
 
 ## Why
 
@@ -19,6 +19,12 @@ The overlay is a separate window. It does not touch the game process, so it's sa
 ## Download
 
 _Coming soon: a single Windows EXE on the [Releases](../../releases) page._
+
+## Usage
+
+Run Star Citizen in **Borderless** window mode. In exclusive fullscreen the game covers every other window, the overlay included.
+
+The overlay starts interactive: you can click and drag it. Start it with `--locked` to make it click-through, so every click goes to the game.
 
 ## Build
 

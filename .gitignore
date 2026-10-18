@@ -27,6 +27,8 @@ mono_crash.*
 x64/
 x86/
 [Ww][Ii][Nn]32/
+# Source folder for P/Invoke code, not the Win32 build output above.
+!src/CargoPlan.App/Win32/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/

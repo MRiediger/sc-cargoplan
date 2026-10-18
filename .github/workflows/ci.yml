@@ -26,8 +26,9 @@ jobs:
     env:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
-      # Lets the Linux runner compile the WPF project (net10.0-windows) against
-      # reference packs. It can't run WPF, but every test project is net10.0.
+      # Lets the Linux runner compile the WPF projects (net10.0-windows) against
+      # reference packs. It can't run WPF, so CargoPlan.App.Tests turns itself
+      # off as a test project outside Windows (D12).
       EnableWindowsTargeting: true
 
     steps:

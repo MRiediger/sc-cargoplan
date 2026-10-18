@@ -70,7 +70,7 @@ Immutable `record`s in `CargoPlan.Core/Models/`:
 
 ### [x] T1.4 Rack-Raster, Position, Kistengrößen
 **Warum:** Ohne echtes Raster kann der Planer nicht prüfen, ob eine Kiste physisch passt.
-**Präzisiert in der Planung:** Umfang erweitert (Slot-Konzept ersetzt statt ergänzt, Position, Kistengrößen 16/24/32, Form-Vorcheck im Planer, Rück-Sweep „vorne/hinten“), Abweichung in der Planphase, ratifiziert durch Freigabe. Grid ist Pflicht, `schemaVersion` 2. Kein 3D-Packer (D9).
+**Präzisiert in der Planung:** Umfang erweitert (Slot-Konzept ersetzt statt ergänzt, Position, Kistengrößen 16/24/32, Form-Vorcheck im Planer, Rück-Sweep „vorne/hinten“), Präzisierung in der Planphase, ratifiziert durch Freigabe. Grid ist Pflicht, `schemaVersion` 2. Kein 3D-Packer (D9).
 - Spieldaten Hull A: 4 Platten, 2 Seiten × 2 Ebenen, je 4 × 2 × 2 Zellen (Length × Width × Stack, 1 Zelle = 1 SCU)
 - `Rack` bekommt `Grid` (`Dimensions`) und `Position` (`RackSide`, `RackLevel`); Validierung `Grid.Volume == CapacityScu`. `Slot` entfällt.
 - Kistenmaße als Tabelle in Core (`CrateSize.Dimensions`), neue Größen 16/24/32; `Rack.CanHold(size)` mit fester Orientierung
@@ -114,7 +114,7 @@ Tests zuerst (`LoadPlannerTests.cs`):
 **Warum:** Der Planer irrt, der Spieler weiß es besser.
 **Präzisiert in der Planung:** `Validate` prüft auch die Kistenform (`Rack.CanHold`), `MovePlacement` bekommt das `Ship` und berechnet die Hinweise (Shared/Split) neu, `Validate` liefert nur Verstöße (Kapazität, Form). Präzisierung in der Planphase, ratifiziert durch Freigabe (D10).
 - `LoadPlan MovePlacement(LoadPlan plan, Ship ship, Placement p, string targetRackId)` – neuer Plan via `with`, Original unverändert, Hinweise neu abgeleitet, Überladung nie verboten
-- `IReadOnlyList<PlanWarning> Validate(LoadPlan plan, Ship ship)` – Kapazitäts- und Formverstöße als Warnungen mit Rack (Abweichung in der Planphase von T2.4, ratifiziert durch Freigabe; D7)
+- `IReadOnlyList<PlanWarning> Validate(LoadPlan plan, Ship ship)` – Kapazitäts- und Formverstöße als Warnungen mit Rack (Präzisierung in der Planphase von T2.4, ratifiziert durch Freigabe; D7)
 
 **Akzeptanz:** Tests: Original unverändert, Überladung erzeugt Warnung.
 
@@ -136,24 +136,41 @@ Tests zuerst (`LoadPlannerTests.cs`):
 
 ## Phase 3 – Overlay (WPF)
 
-### [ ] T3.1 Fenster-Grundgerüst
-**Warum:** Erst beweisen, dass ein transparentes Fenster über dem Spiel sichtbar bleibt.
-- `OverlayWindow.xaml`: `WindowStyle=None`, `AllowsTransparency=True`, `Background=Transparent`, `Topmost=True`, `ShowInTaskbar=False`, `ResizeMode=CanResizeWithGrip`
-- Halbtransparenter Hintergrund-Border (`#A0141414`), Fenster per `DragMove()` verschiebbar
+### [ ] T3.1 Fenster-Grundgerüst + MVVM
+**Warum:** Erst beweisen, dass ein transparentes Fenster über dem Spiel sichtbar bleibt. WPF ohne MVVM wird nach drei Dialogen unwartbar; Contributor erwarten es.
+**Präzisiert in der Planung:** alte T3.2 (MVVM) eingegliedert, Win32-Basis für Click-through aus der Hotkey-Task (jetzt T3.7) vorgezogen, Click-through als Modus `IsLocked` mit Default „interaktiv“ (D11), `ShowActivated=False`, `ShowInTaskbar=True`, Startschalter `--locked`, Platzhalter-Plan aus der Fixture, App-Tests nur unter Windows (D12). Positions-Persistenz und Topmost-Fallback nach T3.4. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- `OverlayWindow.xaml`: `WindowStyle=None`, `AllowsTransparency=True`, `Background=Transparent`, `Topmost=True`, `ShowActivated=False`, `ShowInTaskbar=True`, `ResizeMode=CanResizeWithGrip`
+- Halbtransparenter Hintergrund-Border (`#A0141414`, Ressource in `App.xaml`), Fenster per `DragMove()` verschiebbar
+- `CommunityToolkit.Mvvm`; `OverlayViewModel` mit `[ObservableProperty] LoadPlan? Plan`, `[ObservableProperty] bool IsLocked`, `Ship Ship`, `PlanText` über `PlanTextRenderer`
+- `App.xaml.cs` baut ViewModel und Fenster zusammen (kein DI-Container, Begründung im Kommentar); `--locked` startet gesperrt
+- `Win32/NativeMethods.cs`: `GetWindowLongPtrW`/`SetWindowLongPtrW` per `[LibraryImport]`, `GWL_EXSTYLE`, `WS_EX_LAYERED`, `WS_EX_TRANSPARENT`. Gesperrt setzt `WS_EX_TRANSPARENT`, entsperrt entfernt nur dieses Bit (`WS_EX_LAYERED` gehört WPF). Angewendet ab `SourceInitialized` und bei jeder Änderung von `IsLocked`
+- `CargoPlan.App.Tests` (`net10.0-windows`): ViewModel und Platzhalter-Plan, ohne Dispatcher
+
+**Akzeptanz:** `dotnet run --project src/CargoPlan.App` zeigt ein verschiebbares, transparentes Fenster mit dem Plan-Text über Star Citizen (Borderless) und nimmt beim Start keinen Fokus. Klick auf den dunklen Border-Bereich: mit `-- --locked` geht er ans Spiel; ohne `--locked` bleibt derselbe Klick im Overlay (Fenster wird aktiv). Erst das Paar beweist den Schalter, weil WPF Klicks auf voll transparenten Pixeln ohnehin durchlässt. App-Tests grün unter Windows, Ubuntu-CI grün (App-Tests übersprungen), Core unverändert. Martin kann erklären, warum `AllowsTransparency` Software-Rendering erzwingt und warum das hier egal ist, was der Source-Generator aus `[ObservableProperty]` erzeugt und warum der Lock erst ab `SourceInitialized` gesetzt werden kann.
+
+### [ ] T3.2 Lock-Fenster (manuell)
+**Warum:** Ein gesperrtes Overlay ist nicht mehr klickbar. Der Spieler braucht einen Schalter, der selbst nie click-through ist.
+- Kleines separates Fenster (rahmenlos, Topmost, nie `WS_EX_TRANSPARENT`) mit Lock-Button, schaltet den manuellen Lock und damit `OverlayViewModel.IsLocked`; Zustand sichtbar
+- `--locked` bleibt als Startzustand
+
+**Akzeptanz:** Im Spiel: Lock an → Klicks auf das Overlay gehen ans Spiel, der Lock-Button bleibt klickbar; Lock aus → Overlay wieder bedienbar, ohne Neustart.
+
+### [ ] T3.3 Auto-Lock über Cursor-Zustand
+**Warum:** Im Flug ist der Cursor versteckt und folgt dem Blick; ein offenes Overlay fängt dann Klicks ab, die dem Spiel gehören (Tractor Beam, D11).
+- Polling: `StarCitizen.exe` im Vordergrund UND `GetCursorInfo` ohne `CURSOR_SHOWING` → Auto-Lock
+- `IsLocked = Manual || Auto`: der manuelle Lock erzwingt „gesperrt“, hebt den Auto-Lock aber nicht auf. Manuell entsperrt heißt nicht „nie sperren“, sonst fängt das Overlay beim nächsten Tractor Beam wieder die Kiste ab
+- Nur lesende Win32-Abfragen, nichts im Spielprozess (EAC)
+
+**Akzeptanz:** Im Spiel: Cursor versteckt → Overlay gesperrt; Cursor sichtbar (z. B. mobiGlas) → entsperrt; anderes Programm im Vordergrund → entsperrt; manueller Lock bleibt in allen Fällen gesperrt.
+
+### [ ] T3.4 Fenster-Settings
+**Warum:** Position und Größe sollen einen Neustart überleben; `Topmost` verliert gegen Borderless-Spiele gelegentlich.
 - Position/Größe in `%APPDATA%\SC-CargoPlan\settings.json` (STJ), beim Start laden
-- **Bekanntes Problem:** `Topmost` verliert gegen Borderless-Spiele gelegentlich. Fallback vorbereiten: `SetWindowPos(HWND_TOPMOST)` per Timer alle 2 s neu setzen, als Setting abschaltbar.
+- **Bekanntes Problem:** `Topmost` verliert gegen Borderless-Spiele gelegentlich. Fallback: `SetWindowPos(HWND_TOPMOST)` per Timer alle 2 s neu setzen, als Setting abschaltbar.
 
-**Akzeptanz:** `dotnet run` zeigt ein verschiebbares, transparentes Fenster über Star Citizen (Borderless). Position überlebt Neustart. Martin kann erklären, warum `AllowsTransparency` Software-Rendering erzwingt und warum das hier egal ist.
+**Akzeptanz:** Position überlebt Neustart, Fallback per Setting abschaltbar.
 
-### [ ] T3.2 MVVM-Grundgerüst
-**Warum:** WPF ohne MVVM wird nach drei Dialogen unwartbar; Contributor erwarten es.
-- `CommunityToolkit.Mvvm` referenzieren
-- `OverlayViewModel` mit `[ObservableProperty] LoadPlan? Plan`, `Ship Ship`
-- `App.xaml.cs` baut ViewModel und Fenster zusammen (kein DI-Container nötig, Begründung in Kommentar)
-
-**Akzeptanz:** Fenster bindet an ViewModel, Dummy-Plan aus Fixture wird als Text angezeigt. Martin kann erklären, was der Source-Generator aus `[ObservableProperty]` erzeugt.
-
-### [ ] T3.3 Schiffsansicht
+### [ ] T3.5 Schiffsansicht
 **Warum:** Die eigentliche Information.
 - `ShipView` als `UserControl`, Schiffsansicht zeichnet 2 Seiten × 2 Ebenen nach `Rack.Position`, nicht eine Reihe; Rack-Nummer sichtbar (D9), Füllgrad proportional
 - Eine Farbe pro Stop, Palette ≥ 8 kontraststarke Farben, über `IValueConverter`
@@ -162,7 +179,7 @@ Tests zuerst (`LoadPlannerTests.cs`):
 
 **Akzeptanz:** Fixture-Plan korrekt gezeichnet, Fenstergröße ändern skaliert sauber.
 
-### [ ] T3.4 Abhaken
+### [ ] T3.6 Abhaken
 **Warum:** Am Ziel muss sichtbar sein, was schon weg ist.
 - Klick auf Placement → `[RelayCommand] ToggleDelivered`, Darstellung ausgegraut/durchgestrichen
 - „Stop done“-Button pro Ziel
@@ -170,27 +187,27 @@ Tests zuerst (`LoadPlannerTests.cs`):
 
 **Akzeptanz:** Toggle funktioniert, Zustand überlebt Neustart.
 
-### [ ] T3.5 Click-through + globale Hotkeys
-**Warum:** Im Flug muss das Spiel die Maus bekommen, beim Beladen das Overlay. **Das ist der Grund für .NET.**
-- `Win32/NativeMethods.cs`: `GetWindowLongPtr`, `SetWindowLongPtr`, `RegisterHotKey`, `UnregisterHotKey`, Konstanten `GWL_EXSTYLE`, `WS_EX_LAYERED`, `WS_EX_TRANSPARENT`, `WM_HOTKEY`. `[LibraryImport]` (Source-Generator) statt `[DllImport]`.
-- `ClickThroughService.Set(Window w, bool enabled)` – HWND via `new WindowInteropHelper(w).Handle`
+### [ ] T3.7 Globale Hotkeys
+**Warum:** Im Flug muss das Spiel die Maus bekommen, beim Beladen das Overlay – per Taste, ohne zum Lock-Fenster zu greifen. **Das ist der Grund für .NET.**
+- `Win32/NativeMethods.cs` um `RegisterHotKey`, `UnregisterHotKey`, `WM_HOTKEY` erweitern (Click-through-Aufrufe stehen dort seit T3.1), `[LibraryImport]`
 - `HotkeyService`: registriert nach `SourceInitialized`, `HwndSource.AddHook` fängt `WM_HOTKEY`, gibt am Fensterende frei
 - Hotkey 1 (Default `Ctrl+Alt+O`): Overlay sichtbar/unsichtbar
-- Hotkey 2 (Default `Ctrl+Alt+I`): Click-through an/aus, Indikator (Rahmenfarbe)
+- Hotkey 2 (Default `Ctrl+Alt+I`): manueller Lock an/aus (wie T3.2), Indikator (Rahmenfarbe)
 - Beide in `settings.json` konfigurierbar
 
-**Akzeptanz:** Spiel im Vordergrund, Hotkey schaltet um, im Click-through-Modus gehen Klicks ans Spiel. Martin kann erklären, was `WS_EX_TRANSPARENT` wirklich tut (Hit-Test-Weiterleitung, nicht Optik) und warum Hotkeys erst nach `SourceInitialized` registriert werden können.
+**Akzeptanz:** Spiel im Vordergrund, Hotkey schaltet um, gesperrt gehen Klicks ans Spiel. Martin kann erklären, was `WS_EX_TRANSPARENT` wirklich tut (Hit-Test-Weiterleitung, nicht Optik) und warum Hotkeys erst nach `SourceInitialized` registriert werden können.
 
-### [ ] T3.6 Eingabe-Dialog
+### [ ] T3.8 Eingabe-Dialog
 **Warum:** Dateneingabe ohne ContractTracker.
 - `MissionEditorWindow`: `DataGrid` Destination / Commodity / SCU / Crate size, Zeilen hinzufügen/löschen, Reihenfolge per Pfeil
 - „Plan“ ruft `LoadPlanner.Plan()`, Warnungen anzeigen, `PlanException` als MessageBox
 - Import/Export als Missions-JSON (nutzt `MissionFileReader` aus T1.3)
 - „Copy as text“ (nutzt `PlanTextRenderer`) – für Discord/Org-Chat
+- Platzhalter-Plan aus T3.1 (`SamplePlan`, Fixture-Link in `CargoPlan.App.csproj`) entfernen
 
 **Akzeptanz:** Durchlauf Eingabe → Plan → Overlay → Abhaken ohne Terminal. **MVP fertig.**
 
-### [ ] T3.7 Drag-and-drop-Override
+### [ ] T3.9 Drag-and-drop-Override
 **Warum:** T2.3 im UI nutzbar.
 - Placement auf anderes Rack ziehen → `MovePlacement()`, `Validate()`-Warnungen, überladenes Rack rot
 

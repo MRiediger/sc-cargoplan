@@ -29,7 +29,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 
 - **Input:** pro Mission: Ziel → Ware → SCU → Kistengröße (1/2/4/8/16/24/32 SCU)
 - **Verarbeitung:** Bin-Packing mit Reihenfolge-Constraint. Erster Stopp in Rack 1, die folgenden in Rack-Reihenfolge, kein Ziel über eine Abschnittsgrenze, wenn vermeidbar.
-- **Output:** halbtransparentes Always-on-top-Overlay mit **Click-through**, Schiff schematisch, farbige Blöcke pro Ziel mit Label („Riker · 12 SCU Titanium“), abhakbar.
+- **Output:** halbtransparentes Always-on-top-Overlay mit **Click-through als Modus** (Lock, D11), Schiff schematisch, farbige Blöcke pro Ziel mit Label („Riker · 12 SCU Titanium“), abhakbar.
 
 ## Domänenfakten
 
@@ -50,7 +50,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 | JSON | `System.Text.Json` | Stdlib, kein Newtonsoft. |
 | SQLite | `Microsoft.Data.Sqlite` | Offizielles, schlankes Paket für den ContractTracker-Import. |
 | Tests | **xUnit** + `AwesomeAssertions` | Standard im .NET-Ökosystem. AwesomeAssertions ist der Apache-2.0-Fork von FluentAssertions (ab v8 kommerziell lizenziert). |
-| Click-through | Win32 `SetWindowLongPtr` mit `WS_EX_LAYERED \| WS_EX_TRANSPARENT` via P/Invoke, HWND aus `WindowInteropHelper` | Keine Lib nötig. |
+| Click-through | Win32 `SetWindowLongPtrW` schaltet `WS_EX_TRANSPARENT` via `[LibraryImport]`, HWND aus `WindowInteropHelper`; `WS_EX_LAYERED` setzt WPF selbst (D11) | Keine Lib nötig. |
 | Hotkeys | Win32 `RegisterHotKey` + `HwndSource.AddHook` für `WM_HOTKEY` | Global, auch wenn das Spiel den Fokus hat, keine Lib. |
 | Distribution | `dotnet publish -r win-x64 --self-contained -p:PublishSingleFile=true` → **eine EXE (~70 MB)**, zusätzlich framework-dependent (~3 MB) | Nutzer sollen nichts installieren müssen. Kleine Variante für die, die .NET haben. WPF kann nicht getrimmt werden. |
 | CI/CD | GitHub Actions, `windows-latest`, Release bei Git-Tag | Niemand baut von Hand. |
@@ -124,7 +124,7 @@ dotnet publish src/CargoPlan.App -c Release -r win-x64 --self-contained -p:Publi
 ## Kommunikation mit Martin
 
 - Deutsch, prägnant, Markdown mit fetten Schlüsselbegriffen, Trade-offs statt nur Lösungen
-- **Abweichungen vom Task-Text in der Planphase nie als „Martins Entscheidung“ etikettieren.** Korrektes Label: „Abweichung in der Planphase, ratifiziert durch Freigabe“. Martins Entscheidungen sind nur die, die er nachweislich im Chat getroffen hat.
+- **Abweichungen vom Task-Text in der Planphase nie als „Martins Entscheidung“ etikettieren.** Korrektes Label: „Präzisierung in der Planphase, ratifiziert durch Freigabe“ (nie „Abweichung“), auch im Commit. Martins Entscheidungen sind nur die, die er nachweislich im Chat getroffen hat.
 - Niemals ungefragt Framework-Wechsel, „neuere Library“ oder Cross-Platform vorschlagen – Stack ist gesetzt, Änderung nur per Eintrag in `docs/decisions.md` nach Diskussion.
 
 ## Definition of Done (jeder Task)

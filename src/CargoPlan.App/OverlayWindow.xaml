@@ -1,0 +1,25 @@
+<Window x:Class="CargoPlan.App.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:CargoPlan.App.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance vm:OverlayViewModel}"
+        Title="SC-CargoPlan"
+        Width="520" Height="200"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowActivated="False"
+        ShowInTaskbar="True"
+        ResizeMode="CanResizeWithGrip"
+        MouseLeftButtonDown="OnMouseLeftButtonDown">
+    <!-- Click-through is not set here: it is a mode (IsLocked), switched in code-behind, see D11. -->
+    <Border Background="{StaticResource OverlayBackgroundBrush}" CornerRadius="4" Padding="10">
+        <TextBlock Text="{Binding PlanText, Mode=OneWay}"
+                   FontFamily="{StaticResource PlanFontFamily}"
+                   Foreground="{StaticResource OverlayForegroundBrush}" />
+    </Border>
+</Window>
