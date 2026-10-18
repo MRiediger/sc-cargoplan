@@ -7,7 +7,7 @@ namespace CargoPlan.App;
 
 /// <summary>
 /// Small always-clickable switch for the overlay's lock. Same view model as the overlay, owned by it:
-/// closes with it and always stays above it. Follows the overlay's top-right corner.
+/// closes with it and always stays above it. Sits inside the overlay's top-right corner and follows it.
 /// </summary>
 public partial class LockWindow : Window
 {

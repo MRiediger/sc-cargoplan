@@ -9,6 +9,9 @@
         <FontFamily x:Key="PlanFontFamily">Consolas</FontFamily>
         <!-- Lock window: accent marks "locked" next to the glyph, readable from the pilot seat. -->
         <SolidColorBrush x:Key="LockedForegroundBrush" Color="#FFFFB000" />
+        <!-- Lock window sits on the overlay's background and adds none of its own. Alpha 1, not 0:
+             a layered window passes clicks on fully transparent pixels to the window below. -->
+        <SolidColorBrush x:Key="HitTestBackgroundBrush" Color="#01000000" />
         <!-- Icon font that ships with Windows 10/11; a glyph instead of an emoji, whose font fallback is unreliable. -->
         <FontFamily x:Key="IconFontFamily">Segoe MDL2 Assets</FontFamily>
     </Application.Resources>

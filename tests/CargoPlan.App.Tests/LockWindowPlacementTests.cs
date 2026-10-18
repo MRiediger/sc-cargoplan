@@ -8,24 +8,25 @@ public class LockWindowPlacementTests
     private static readonly Size LockSize = new(36, 36);
 
     [Fact]
-    public void Sits_above_the_overlay_right_aligned()
+    public void Sits_inside_the_overlay_top_right_corner()
     {
         Rect overlay = new(100, 200, 520, 200);
 
         var position = LockWindowPlacement.Compute(overlay, LockSize, Screen);
 
-        position.Should().Be(new Point(overlay.Right - LockSize.Width, overlay.Top - LockWindowPlacement.Gap - LockSize.Height));
+        position.Should().Be(new Point(
+            overlay.Right - LockWindowPlacement.Inset - LockSize.Width,
+            overlay.Top + LockWindowPlacement.Inset));
     }
 
     [Fact]
-    public void Stays_above_the_overlay_when_it_touches_the_right_edge()
+    public void Stays_in_the_corner_when_the_overlay_touches_the_right_edge()
     {
         Rect overlay = new(Screen.Right - 520, 200, 520, 200);
 
         var position = LockWindowPlacement.Compute(overlay, LockSize, Screen);
 
-        position.X.Should().Be(Screen.Right - LockSize.Width);
-        (position.Y + LockSize.Height).Should().BeLessThanOrEqualTo(overlay.Top);
+        position.X.Should().Be(overlay.Right - LockWindowPlacement.Inset - LockSize.Width);
     }
 
     [Fact]
@@ -39,10 +40,9 @@ public class LockWindowPlacementTests
     }
 
     [Fact]
-    public void Stays_on_screen_when_the_overlay_touches_the_top_edge()
+    public void Stays_on_screen_when_the_overlay_is_dragged_above_the_top_edge()
     {
-        // No room above: the lock moves down onto the overlay's corner.
-        Rect overlay = new(100, 0, 520, 200);
+        Rect overlay = new(100, -50, 520, 200);
 
         var position = LockWindowPlacement.Compute(overlay, LockSize, Screen);
 
