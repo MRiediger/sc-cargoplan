@@ -124,7 +124,7 @@ dotnet publish src/CargoPlan.App -c Release -r win-x64 --self-contained -p:Publi
 ## Kommunikation mit Martin
 
 - Deutsch, prägnant, Markdown mit fetten Schlüsselbegriffen, Trade-offs statt nur Lösungen
-- **Abweichungen vom Task-Text in der Planphase nie als „Martins Entscheidung“ etikettieren.** Korrektes Label: „Präzisierung in der Planphase, ratifiziert durch Freigabe“ (nie „Abweichung“), auch im Commit. Martins Entscheidungen sind nur die, die er nachweislich im Chat getroffen hat.
+- **Abweichungen vom Task-Text in der Planphase nie als „Martins Entscheidung“ etikettieren.** Korrektes Label: „Präzisierung in der Planphase, ratifiziert durch Freigabe“ (nie „Abweichung“), auch im Commit – **auch für Präzisierungen, die Martin selbst gewählt hat** (Startprompt, Antwort auf eine Rückfrage): in Plan, TASKS.md und Commit-Body ein Label für alle Punkte.
 - Niemals ungefragt Framework-Wechsel, „neuere Library“ oder Cross-Platform vorschlagen – Stack ist gesetzt, Änderung nur per Eintrag in `docs/decisions.md` nach Diskussion.
 
 ## Definition of Done (jeder Task)
