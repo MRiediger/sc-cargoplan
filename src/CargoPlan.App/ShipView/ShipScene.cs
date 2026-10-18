@@ -1,40 +1,35 @@
 using System.Windows;
+using CargoPlan.Core.Models;
 using static System.FormattableString;
 
 namespace CargoPlan.App.ShipView;
 
 /// <summary>
-/// Everything the ship view draws, already projected (<see cref="IsoProjection"/> units, not pixels). Built once per
-/// plan by <see cref="ShipViewBuilder"/>; the control only transforms and paints it. A record, not a view model:
-/// nothing in it changes.
+/// Everything the ship view shows, in ship coordinates, independent of the camera. Built once per plan by
+/// <see cref="ShipViewBuilder"/>; <see cref="SceneProjector"/> turns it into a <see cref="ProjectedScene"/> per camera.
+/// A record, not a view model: nothing in it changes.
 /// </summary>
-/// <param name="Racks">Back to front (<see cref="DrawOrder"/>).</param>
-/// <param name="Frame">The 12 edges of <c>Ship.Bounds</c>.</param>
-/// <param name="Extent">Encloses the frame, for fit-to-view.</param>
+/// <param name="Racks">In rack order; the draw order depends on the camera (<see cref="DrawOrder"/>).</param>
+/// <param name="Bounds"><c>Ship.Bounds</c>, drawn as the frame.</param>
 /// <param name="Hints">Planner hints (<c>LoadPlan.Warnings</c>), once each, word for word (D7).</param>
 /// <param name="Violations">From <c>LoadPlanner.Validate</c>; these racks are red (D10).</param>
 /// <param name="PaletteRepeats">More stops than colours.</param>
 public sealed record ShipScene(
     IReadOnlyList<SceneRack> Racks,
-    IReadOnlyList<SceneLine> Frame,
-    Rect Extent,
+    ShipBox Bounds,
     IReadOnlyList<LegendEntry> Legend,
     IReadOnlyList<string> Hints,
     IReadOnlyList<string> Violations,
     bool PaletteRepeats);
 
-/// <param name="Faces">The three visible faces: top, port, bow.</param>
-/// <param name="Strips">The segments on those faces; together they cover the faces.</param>
-/// <param name="LabelCentre">Centre of the bow face, where the rack number goes.</param>
-public sealed record SceneRack(
-    int Number,
-    bool IsViolated,
-    IReadOnlyList<IReadOnlyList<Point>> Faces,
-    IReadOnlyList<SceneStrip> Strips,
-    Point LabelCentre);
+/// <param name="Segments">Along x from the bow end; together they cover the rack's length.</param>
+public sealed record SceneRack(int Number, bool IsViolated, ShipBox Bounds, IReadOnlyList<SceneSegment> Segments);
 
-/// <summary>One segment on one face. <paramref name="PaletteIndex"/> and <paramref name="ToolTip"/> are null for free space.</summary>
-public sealed record SceneStrip(IReadOnlyList<Point> Polygon, SegmentFill Fill, int? PaletteIndex, string? ToolTip);
+/// <summary>
+/// One placement's share of a rack, from x = <paramref name="Aft"/> to x = <paramref name="Bow"/> in cells.
+/// <paramref name="PaletteIndex"/> and <paramref name="ToolTip"/> are null for free space.
+/// </summary>
+public sealed record SceneSegment(double Aft, double Bow, SegmentFill Fill, int? PaletteIndex, string? ToolTip);
 
 public enum SegmentFill
 {
@@ -42,6 +37,41 @@ public enum SegmentFill
     Delivered,
     Free,
 }
+
+/// <summary>The six faces of an axis-aligned box, named in ship words.</summary>
+public enum BoxFace
+{
+    Top,
+    Bottom,
+    Port,
+    Starboard,
+    Bow,
+    Aft,
+}
+
+/// <summary>
+/// A <see cref="ShipScene"/> seen from one camera, in projected units (not pixels); the control only transforms and
+/// paints it.
+/// </summary>
+/// <param name="Racks">Back to front (<see cref="DrawOrder"/>).</param>
+/// <param name="Frame">The 12 edges of <c>Ship.Bounds</c>.</param>
+/// <param name="Extent">Encloses the frame, for fit-to-view.</param>
+public sealed record ProjectedScene(IReadOnlyList<ProjectedRack> Racks, IReadOnlyList<SceneLine> Frame, Rect Extent);
+
+/// <param name="Faces">The faces the camera sees.</param>
+/// <param name="Strips">The segments on those faces; together they cover the faces.</param>
+/// <param name="LabelCentre">Centre of the largest visible face, where the rack number goes.</param>
+public sealed record ProjectedRack(
+    int Number,
+    bool IsViolated,
+    IReadOnlyList<ProjectedFace> Faces,
+    IReadOnlyList<SceneStrip> Strips,
+    Point LabelCentre);
+
+public sealed record ProjectedFace(BoxFace Face, IReadOnlyList<Point> Polygon);
+
+/// <summary>One segment on one face. <paramref name="PaletteIndex"/> and <paramref name="ToolTip"/> are null for free space.</summary>
+public sealed record SceneStrip(BoxFace Face, IReadOnlyList<Point> Polygon, SegmentFill Fill, int? PaletteIndex, string? ToolTip);
 
 public sealed record SceneLine(Point From, Point To);
 

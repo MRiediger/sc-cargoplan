@@ -6,7 +6,9 @@ namespace CargoPlan.App.Tests;
 
 public class SceneHitTestTests
 {
+    private static readonly IsoProjection Default = IsoProjection.Default;
     private static readonly ShipScene Scene = BuildSample();
+    private static readonly ProjectedScene Projected = SceneProjector.Project(Scene, Default);
 
     private static ShipScene BuildSample()
     {
@@ -28,33 +30,33 @@ public class SceneHitTestTests
     public void Tool_tip_names_rack_position_and_cargo()
     {
         // Rack 1's top face, middle of the plate.
-        var point = IsoProjection.Project(2, 2, 5);
+        var point = Default.Project(2, 2, 5);
 
-        SceneHitTest.ToolTipAt(Scene, point).Should().Be("Rack 1 · port upper · 16 SCU Titanium (4×4)");
+        SceneHitTest.ToolTipAt(Projected, point).Should().Be("Rack 1 · port upper · 16 SCU Titanium (4×4)");
     }
 
     [Fact]
     public void The_rack_in_front_wins_over_the_rack_behind()
     {
         // (2, 0, 3.5) lies on Rack 3's port face, hidden behind Rack 1: same screen point as (3.5, 1.5, 5) on Rack 1's top.
-        var point = IsoProjection.Project(2, 0, 3.5);
+        var point = Default.Project(2, 0, 3.5);
 
-        SceneHitTest.ToolTipAt(Scene, point).Should().StartWith("Rack 1 ·");
+        SceneHitTest.ToolTipAt(Projected, point).Should().StartWith("Rack 1 ·");
     }
 
     [Fact]
     public void Free_space_has_no_tool_tip()
     {
         // Rack 3 holds 14/16 SCU; the free rest sits at the aft end (x 0..0.5).
-        var point = IsoProjection.Project(0.25, -1, 5);
+        var point = Default.Project(0.25, -1, 5);
 
-        SceneHitTest.ToolTipAt(Scene, point).Should().BeNull();
+        SceneHitTest.ToolTipAt(Projected, point).Should().BeNull();
     }
 
     [Fact]
     public void Empty_space_has_no_tool_tip()
     {
-        SceneHitTest.ToolTipAt(Scene, new Point(100, 100)).Should().BeNull();
+        SceneHitTest.ToolTipAt(Projected, new Point(100, 100)).Should().BeNull();
     }
 
     [Fact]
@@ -62,9 +64,19 @@ public class SceneHitTestTests
     {
         var (ship, plan) = SamplePlan.Load();
         var delivered = plan with { Placements = [.. plan.Placements.Select(p => p with { Delivered = true })] };
-        var scene = ShipViewBuilder.Build(delivered, ship, []);
+        var projected = SceneProjector.Project(ShipViewBuilder.Build(delivered, ship, []), Default);
 
-        SceneHitTest.ToolTipAt(scene, IsoProjection.Project(2, 2, 5))
+        SceneHitTest.ToolTipAt(projected, Default.Project(2, 2, 5))
             .Should().Be("Rack 1 · port upper · 16 SCU Titanium (4×4) (delivered)");
+    }
+
+    [Fact]
+    public void From_below_the_bottom_face_answers()
+    {
+        // Rack 2's bottom face, middle: Riker x 4..3, Shubin x 3..1, free x 1..0.
+        var below = new IsoProjection(IsoProjection.DefaultYaw, -IsoProjection.DefaultPitch);
+        var projected = SceneProjector.Project(Scene, below);
+
+        SceneHitTest.ToolTipAt(projected, below.Project(2, 2, 0)).Should().Be("Rack 2 · port lower · 8 SCU Agricium (1×8)");
     }
 }

@@ -9,9 +9,10 @@ using System.Windows.Media;
 namespace CargoPlan.App.ShipView;
 
 /// <summary>
-/// Paints a <see cref="ShipScene"/>: frame, racks back to front, rack numbers on top. Only redraws when the scene,
-/// the size, zoom or pan change; no timer, no animation (D14). Mouse: wheel zooms around the cursor, left drag
-/// pans, double-click fits, hover shows the placement. Left clicks are handled here, so the window's DragMove
+/// Paints a <see cref="ShipScene"/> as <see cref="SceneProjector"/> projects it for the current camera: frame, racks
+/// back to front, rack numbers on top. Only redraws when the scene, the size, the camera, zoom or pan change; no
+/// timer, no animation (D14). Mouse: left drag turns and tilts the camera, right drag pans, wheel zooms around the
+/// cursor, double-click resets, hover shows the placement. Left clicks are handled here, so the window's DragMove
 /// only works outside the view (D15).
 /// </summary>
 public sealed class ShipViewControl : FrameworkElement
@@ -20,6 +21,7 @@ public sealed class ShipViewControl : FrameworkElement
     private const double MinLabelSize = 12;
     private const double LabelSizePerCell = 0.9;
     private const double WheelZoomStep = 1.2;
+    private const double OrbitDegreesPerPixel = 0.5;
 
     private static readonly Pen FramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Frame), 1) { DashStyle = DashStyles.Dash });
     private static readonly Pen SegmentPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 0.5));
@@ -34,14 +36,17 @@ public sealed class ShipViewControl : FrameworkElement
         nameof(Scene),
         typeof(ShipScene),
         typeof(ShipViewControl),
-        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, (d, _) => ((ShipViewControl)d).ShowToolTip(null)));
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, (d, _) => ((ShipViewControl)d).OnSceneChanged()));
 
     // Opened by hand instead of ToolTipService: the text changes with the segment under the cursor.
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/controls/how-to-position-a-tooltip
     private readonly ToolTip _toolTip;
 
     private ViewNavigation _navigation = ViewNavigation.Default;
-    private Point? _dragFrom;
+    private Drag? _drag;
+
+    // The scene as the current camera sees it; null after a new scene or camera until the next use.
+    private ProjectedScene? _projected;
 
     public ShipViewControl()
     {
@@ -58,7 +63,7 @@ public sealed class ShipViewControl : FrameworkElement
     }
 
     /// <summary>
-    /// False while the overlay is locked: wheel, drag and hover do nothing. Click-through alone isn't enough, the
+    /// False while the overlay is locked: wheel, both drags and hover do nothing. Click-through alone isn't enough, the
     /// wheel can go to the focused window instead of the one under the cursor (D15).
     /// </summary>
     public bool IsNavigationEnabled
@@ -79,7 +84,7 @@ public sealed class ShipViewControl : FrameworkElement
     {
         // An almost transparent background: a layered window passes clicks on fully transparent pixels through.
         dc.DrawRectangle((Brush)FindResource("HitTestBackgroundBrush"), null, new Rect(RenderSize));
-        if (Scene is not { } scene)
+        if (Projected() is not { } scene)
         {
             return;
         }
@@ -102,11 +107,11 @@ public sealed class ShipViewControl : FrameworkElement
             var edge = rack.IsViolated ? ViolationPen : RackPen;
             foreach (var face in rack.Faces)
             {
-                dc.DrawGeometry(null, edge, Polygon(face, transform));
+                dc.DrawGeometry(null, edge, Polygon(face.Polygon, transform));
             }
         }
 
-        // Numbers last: always visible, even where a rack in front covers a bow face.
+        // Numbers last: always visible, even where a rack in front covers the labelled face.
         var size = Math.Max(MinLabelSize, LabelSizePerCell * transform.Scale);
         var typeface = new Typeface(TextElement.GetFontFamily(this), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
         var pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
@@ -141,44 +146,50 @@ public sealed class ShipViewControl : FrameworkElement
 
         if (e.ClickCount == 2)
         {
-            _navigation = ViewNavigation.Default;
-            InvalidateVisual();
+            Navigate(ViewNavigation.Default);
             return;
         }
 
-        ShowToolTip(null);
-        _dragFrom = e.GetPosition(this);
-        CaptureMouse();
+        StartDrag(e, DragMode.Orbit);
     }
 
-    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+    // Source: https://learn.microsoft.com/dotnet/api/system.windows.uielement.onmouserightbuttondown
+    protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
     {
-        if (_dragFrom is not null)
+        e.Handled = true;
+        if (IsNavigationEnabled)
         {
-            e.Handled = true;
-            ReleaseMouseCapture();
+            StartDrag(e, DragMode.Pan);
         }
     }
 
+    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e) => EndDrag(e, DragMode.Orbit);
+
+    protected override void OnMouseRightButtonUp(MouseButtonEventArgs e) => EndDrag(e, DragMode.Pan);
+
     protected override void OnLostMouseCapture(MouseEventArgs e)
     {
-        _dragFrom = null;
+        _drag = null;
         base.OnLostMouseCapture(e);
     }
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
-        if (!IsNavigationEnabled || Scene is not { } scene)
+        if (!IsNavigationEnabled || Projected() is not { } scene)
         {
             return;
         }
 
         var position = e.GetPosition(this);
-        if (_dragFrom is { } from)
+        if (_drag is { } drag)
         {
-            _navigation = _navigation.PanBy(position - from);
-            _dragFrom = position;
-            InvalidateVisual();
+            var delta = position - drag.From;
+            _drag = drag with { From = position };
+
+            // Like grabbing the ship: dragging right turns its near side right, dragging down tilts its top towards you.
+            Navigate(drag.Mode == DragMode.Orbit
+                ? _navigation.OrbitBy(-delta.X * OrbitDegreesPerPixel, delta.Y * OrbitDegreesPerPixel)
+                : _navigation.PanBy(delta));
             return;
         }
 
@@ -198,12 +209,53 @@ public sealed class ShipViewControl : FrameworkElement
         // One notch (120) = one step; finer wheels send smaller deltas.
         // Source: https://learn.microsoft.com/dotnet/api/system.windows.input.mouse.mousewheeldeltaforoneline
         var factor = Math.Pow(WheelZoomStep, (double)e.Delta / Mouse.MouseWheelDeltaForOneLine);
-        _navigation = _navigation.ZoomAt(e.GetPosition(this), factor);
         ShowToolTip(null);
+        Navigate(_navigation.ZoomAt(e.GetPosition(this), factor));
+    }
+
+    private ProjectedScene? Projected() => Scene is { } scene ? _projected ??= SceneProjector.Project(scene, _navigation.Camera) : null;
+
+    // The fit follows the projected extent, so the ship stays in view while the camera turns.
+    private ViewTransform CurrentTransform(ProjectedScene scene) => _navigation.On(ViewTransform.Fit(scene.Extent, RenderSize, FitMargin));
+
+    private void OnSceneChanged()
+    {
+        _projected = null;
+        ShowToolTip(null);
+    }
+
+    private void Navigate(ViewNavigation navigation)
+    {
+        if (navigation.Camera != _navigation.Camera)
+        {
+            _projected = null;
+        }
+
+        _navigation = navigation;
         InvalidateVisual();
     }
 
-    private ViewTransform CurrentTransform(ShipScene scene) => _navigation.On(ViewTransform.Fit(scene.Extent, RenderSize, FitMargin));
+    private void StartDrag(MouseButtonEventArgs e, DragMode mode)
+    {
+        // One drag at a time: the other button doesn't take over a running drag.
+        if (_drag is not null)
+        {
+            return;
+        }
+
+        ShowToolTip(null);
+        _drag = new Drag(e.GetPosition(this), mode);
+        CaptureMouse();
+    }
+
+    private void EndDrag(MouseButtonEventArgs e, DragMode mode)
+    {
+        if (_drag?.Mode == mode)
+        {
+            e.Handled = true;
+            ReleaseMouseCapture();
+        }
+    }
 
     private void ShowToolTip(string? text)
     {
@@ -245,4 +297,12 @@ public sealed class ShipViewControl : FrameworkElement
         freezable.Freeze();
         return freezable;
     }
+
+    private enum DragMode
+    {
+        Orbit,
+        Pan,
+    }
+
+    private readonly record struct Drag(Point From, DragMode Mode);
 }

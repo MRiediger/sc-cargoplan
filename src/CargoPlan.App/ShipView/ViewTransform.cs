@@ -30,15 +30,15 @@ public sealed record ViewTransform(double Scale, Vector Offset)
 }
 
 /// <summary>
-/// The player's zoom and pan on top of the fit. Kept apart from the fit so resizing the window refits and the
-/// default (zoom 1, no pan) always shows the whole ship. Not persisted (A4).
+/// The player's camera, and zoom and pan on top of the fit. Kept apart from the fit so resizing the window or turning
+/// the camera refits, and the default (default camera, zoom 1, no pan) always shows the whole ship. Not persisted (A4).
 /// </summary>
-public sealed record ViewNavigation(double Zoom, Vector Pan)
+public sealed record ViewNavigation(double Zoom, Vector Pan, IsoProjection Camera)
 {
     public const double MinZoom = 0.5;
     public const double MaxZoom = 4;
 
-    public static ViewNavigation Default { get; } = new(1, new Vector(0, 0));
+    public static ViewNavigation Default { get; } = new(1, new Vector(0, 0), IsoProjection.Default);
 
     /// <summary>Screen = fit, then zoom around the screen origin, then pan.</summary>
     public ViewTransform On(ViewTransform fit) => new(fit.Scale * Zoom, fit.Offset * Zoom + Pan);
@@ -54,8 +54,11 @@ public sealed record ViewNavigation(double Zoom, Vector Pan)
 
         var ratio = zoom / Zoom;
         Vector at = (Vector)cursor;
-        return new ViewNavigation(zoom, at - (at - Pan) * ratio);
+        return this with { Zoom = zoom, Pan = at - (at - Pan) * ratio };
     }
 
     public ViewNavigation PanBy(Vector delta) => this with { Pan = Pan + delta };
+
+    /// <summary>Turns the camera by <paramref name="yaw"/> and tilts it by <paramref name="pitch"/>, in degrees.</summary>
+    public ViewNavigation OrbitBy(double yaw, double pitch) => this with { Camera = Camera.OrbitBy(yaw, pitch) };
 }

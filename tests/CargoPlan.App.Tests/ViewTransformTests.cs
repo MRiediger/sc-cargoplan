@@ -108,4 +108,30 @@ public class ViewTransformTests
     {
         ViewNavigation.Default.PanBy(new Vector(10, 5)).PanBy(new Vector(-3, 2)).Pan.Should().Be(new Vector(7, 7));
     }
+
+    [Fact]
+    public void Default_navigation_looks_from_the_default_camera()
+    {
+        ViewNavigation.Default.Camera.Should().Be(IsoProjection.Default);
+    }
+
+    [Fact]
+    public void Orbiting_turns_the_camera_and_keeps_zoom_and_pan()
+    {
+        var navigation = ViewNavigation.Default.ZoomAt(new Point(50, 50), 2).PanBy(new Vector(10, 5));
+
+        var orbited = navigation.OrbitBy(30, -10);
+
+        orbited.Camera.Should().Be(navigation.Camera.OrbitBy(30, -10));
+        orbited.Zoom.Should().Be(navigation.Zoom);
+        orbited.Pan.Should().Be(navigation.Pan);
+    }
+
+    [Fact]
+    public void Zooming_and_panning_keep_the_camera()
+    {
+        var orbited = ViewNavigation.Default.OrbitBy(30, -10);
+
+        orbited.ZoomAt(new Point(50, 50), 2).PanBy(new Vector(10, 5)).Camera.Should().Be(orbited.Camera);
+    }
 }

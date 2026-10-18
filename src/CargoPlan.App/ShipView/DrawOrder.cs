@@ -1,20 +1,22 @@
-using CargoPlan.Core.Models;
-
 namespace CargoPlan.App.ShipView;
 
 /// <summary>Painter's algorithm: racks further back are drawn first, so the ones in front cover them.</summary>
 public static class DrawOrder
 {
-    /// <summary>
-    /// Sorted by the depth of each rack's centre, ties in rack order. Exact for racks of equal size like the Hull A's;
-    /// racks of very different sizes can need a sort by separating axis (backlog, D15).
-    /// </summary>
-    public static IReadOnlyList<Rack> BackToFront(IEnumerable<Rack> racks) =>
-        [.. racks.OrderByDescending(CentreDepth).ThenBy(r => r.Index)];
+    // Sines and cosines leave noise around 1e-16; rounding keeps equal depths equal, so ties fall to the rack order.
+    private const int DepthDecimals = 9;
 
-    private static double CentreDepth(Rack rack)
+    /// <summary>
+    /// Sorted by the depth of each rack's centre along the view direction, ties in rack order. Exact for racks of
+    /// equal size like the Hull A's; racks of very different sizes can need a sort by separating axis (backlog, D15).
+    /// </summary>
+    public static IReadOnlyList<SceneRack> BackToFront(IEnumerable<SceneRack> racks, IsoProjection camera) =>
+        [.. racks.OrderByDescending(r => CentreDepth(r, camera)).ThenBy(r => r.Number)];
+
+    private static double CentreDepth(SceneRack rack, IsoProjection camera)
     {
         var (min, max) = (rack.Bounds.Min, rack.Bounds.Max);
-        return IsoProjection.Depth((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0);
+        var depth = camera.Depth((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0);
+        return Math.Round(depth, DepthDecimals);
     }
 }

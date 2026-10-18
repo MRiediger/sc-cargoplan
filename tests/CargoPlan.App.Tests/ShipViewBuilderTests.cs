@@ -14,12 +14,13 @@ public class ShipViewBuilderTests
 
     /// <summary>Distinct mission colours in a rack, in strip order.</summary>
     private static IEnumerable<int?> MissionColours(SceneRack rack) =>
-        rack.Strips.Where(s => s.Fill == SegmentFill.Mission).Select(s => s.PaletteIndex).Distinct();
+        rack.Segments.Where(s => s.Fill == SegmentFill.Mission).Select(s => s.PaletteIndex).Distinct();
 
     [Fact]
-    public void Racks_come_in_draw_order()
+    public void Racks_come_in_rack_order()
     {
-        Build(Sample.Plan).Racks.Select(r => r.Number).Should().Equal(4, 2, 3, 1);
+        // The draw order depends on the camera; the projector sorts (DrawOrder).
+        Build(Sample.Plan).Racks.Select(r => r.Number).Should().Equal(1, 2, 3, 4);
     }
 
     [Fact]
@@ -41,7 +42,7 @@ public class ShipViewBuilderTests
         var rack2 = RackNumber(scene, 2);
 
         MissionColours(rack2).Should().Equal(legend["Riker"], legend["Shubin"]);
-        rack2.Strips.Should().Contain(s => s.Fill == SegmentFill.Free);
+        rack2.Segments.Should().Contain(s => s.Fill == SegmentFill.Free);
     }
 
     [Fact]
@@ -87,14 +88,24 @@ public class ShipViewBuilderTests
     }
 
     [Fact]
-    public void Every_rack_has_three_visible_faces_and_its_strips_cover_them()
+    public void Segments_run_from_the_bow_end_and_cover_the_rack()
     {
         foreach (var rack in Build(Sample.Plan).Racks)
         {
-            rack.Faces.Should().HaveCount(3);
-            rack.Faces.Should().AllSatisfy(f => f.Should().HaveCount(4));
-            rack.Strips.Should().NotBeEmpty();
+            rack.Segments[0].Bow.Should().Be(rack.Bounds.Max.X);
+            rack.Segments[^1].Aft.Should().BeApproximately(rack.Bounds.Min.X, 1e-9);
+            rack.Segments.Zip(rack.Segments.Skip(1)).Should().AllSatisfy(pair =>
+                pair.Second.Bow.Should().BeApproximately(pair.First.Aft, 1e-9));
         }
+    }
+
+    [Fact]
+    public void Racks_and_ship_keep_their_boxes()
+    {
+        var scene = Build(Sample.Plan);
+
+        scene.Bounds.Should().Be(Sample.Ship.Bounds);
+        scene.Racks.Select(r => r.Bounds).Should().Equal(Sample.Ship.Racks.Select(r => r.Bounds));
     }
 
     [Fact]
@@ -102,7 +113,7 @@ public class ShipViewBuilderTests
     {
         var scene = Build(new LoadPlan(Sample.Ship.Id, [], []));
 
-        scene.Racks.SelectMany(r => r.Strips).Should().OnlyContain(s => s.Fill == SegmentFill.Free);
+        scene.Racks.SelectMany(r => r.Segments).Should().OnlyContain(s => s.Fill == SegmentFill.Free);
         scene.Legend.Should().BeEmpty();
     }
 
@@ -116,18 +127,7 @@ public class ShipViewBuilderTests
 
         var rack4 = RackNumber(Build(delivered), 4);
 
-        rack4.Strips.Should().Contain(s => s.Fill == SegmentFill.Delivered).And.NotContain(s => s.Fill == SegmentFill.Mission);
-    }
-
-    [Fact]
-    public void Extent_encloses_the_frame()
-    {
-        var scene = Build(Sample.Plan);
-
-        scene.Frame.Should().HaveCount(12);
-        scene.Frame.SelectMany(l => new[] { l.From, l.To }).Should().OnlyContain(p =>
-            p.X >= scene.Extent.Left - 1e-9 && p.X <= scene.Extent.Right + 1e-9
-            && p.Y >= scene.Extent.Top - 1e-9 && p.Y <= scene.Extent.Bottom + 1e-9);
+        rack4.Segments.Should().Contain(s => s.Fill == SegmentFill.Delivered).And.NotContain(s => s.Fill == SegmentFill.Mission);
     }
 
     [Fact]

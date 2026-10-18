@@ -196,6 +196,16 @@ Tests zuerst (`LoadPlannerTests.cs`):
 
 **Akzeptanz:** Fixture-Plan korrekt gezeichnet, Fenstergröße ändern skaliert sauber.
 
+### [x] T3.5c Orbit der Schiffsansicht (Yaw + Pitch)
+**Warum:** Schiffe tragen Container auch an der Unterseite (Spindeln rundum, Pods unter dem Rumpf); eine Kamera, die nur von oben schaut, zeigt diese Racks nie richtig. Der Spieler dreht das Schiff so, wie er gerade auf die Platte schaut, bis hin zum Blick von unten.
+**Präzisiert in der Planung:** Kamera als Record `IsoProjection(yaw, pitch)`, orthografisch, Yaw = Azimut ab Bug Richtung Backbord, auf [0, 360) normiert, Pitch positiv = von oben, auf ±85° geklemmt (im Konstruktor, kein `with`); Default Yaw 45°, Pitch arctan(1/√2) ≈ 35,26° (nicht 30°) mit Streckung √(3/2), damit exakt die T3.5b-Projektion; sichtbare Flächen aus Normale · Blickrichtung < 0, Kantenflächen ausgeblendet; Bug-/Heckfläche nur mit dem End-Segment, Bodenfläche wie Deckfläche; Painter-Tiefe = Mittelpunkt · Blickrichtung, auf 9 Stellen gerundet, Gleichstand nach Rack-Nummer; Rack-Nummer auf der sichtbaren Fläche mit der größten projizierten Fläche (Gleichstand: oben/unten, Seiten, Enden); Szene und Projektion getrennt: `ShipScene` kamera-unabhängig aus `ShipViewBuilder` (VM, pro Plan), neuer reiner `SceneProjector` → `ProjectedScene` im Control, gecacht, neu nur bei Szenen- oder Kamerawechsel; Orbit in `ViewNavigation` neben Zoom/Pan (nicht `ViewTransform`), neuer Plan setzt nichts zurück; links ziehen = Orbit (0,5°/px, Greif-Metapher), rechts ziehen = Pan, Rad = Zoom, Doppelklick = Kamera + Zoom + Pan zurück; gesperrt wirkt nichts davon; Fit auf den projizierten Extent der aktuellen Kamera; Hit-Test unverändert auf den projizierten Polygonen; Backlog-Zeile „Camera side setting for ramp-loaded ships“ existierte nicht, nichts gestrichen; Core unverändert (D15). Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- Orbit um Hochachse und Neigung bis zum Blick von unten, orthografisch, kein Viewport3D
+- Sichtbare Flächen, Zeichenreihenfolge und Nummernfläche hängen von der Kamera ab
+- Maus: links drehen/neigen, rechts verschieben, Rad zoomen, Doppelklick zurücksetzen
+- Kein Snap, keine Persistenz, keine Trägheit (Backlog)
+
+**Akzeptanz:** `dotnet test` grün (Regression Default = T3.5b, Flächenwahl inkl. Boden, Painter in drei Lagen, Nummernfläche an mehreren Winkeln, Hit-Test von unten, Projektionszeit); `dotnet run`: einmal um die Hochachse, von oben bis unten neigen, keine Fläche springt, von unten liegen Rack 2 und 4 vorn; `--locked`: Ziehen ohne Wirkung; im Spiel stimmt die Nummer im Bild mit der Platte vor dir überein, auch unten.
+
 ### [ ] T3.6 Abhaken
 **Warum:** Am Ziel muss sichtbar sein, was schon weg ist.
 - Klick auf Placement → `[RelayCommand] ToggleDelivered`, Darstellung ausgegraut/durchgestrichen
@@ -310,4 +320,5 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).
 - Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).
 - Painter per Trennachse + topologische Sortierung, sobald ein Schiff mit ungleich großen Racks falsch gezeichnet wird (D15).
-- Zoom/Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).
+- Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).
+- Orbit-Snap auf feste Winkel (z. B. 45°-Raster per Taste), falls freies Drehen schwer wiederholbar ist (D15).

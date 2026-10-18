@@ -99,7 +99,7 @@
                            Visibility="{Binding Scene.PaletteRepeats, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </StackPanel>
 
-            <!-- Last child fills the rest. Left drag here pans the view; DragMove works on header, legend and border. -->
+            <!-- Last child fills the rest. Left drag here orbits, right drag pans; DragMove works on header, legend and border. -->
             <sv:ShipViewControl x:Name="ShipView" Scene="{Binding Scene, Mode=OneWay}" />
         </DockPanel>
     </Border>

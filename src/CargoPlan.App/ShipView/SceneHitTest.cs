@@ -9,13 +9,13 @@ public static class SceneHitTest
     /// The tool tip of the topmost segment at <paramref name="point"/> (projected units). The first rack hit
     /// decides, even on its free space: it covers whatever lies behind it.
     /// </summary>
-    public static string? ToolTipAt(ShipScene scene, Point point)
+    public static string? ToolTipAt(ProjectedScene scene, Point point)
     {
         // Racks are back to front, so walk them backwards.
         for (var i = scene.Racks.Count - 1; i >= 0; i--)
         {
             var rack = scene.Racks[i];
-            if (rack.Faces.Any(face => Contains(face, point)))
+            if (rack.Faces.Any(face => Contains(face.Polygon, point)))
             {
                 return rack.Strips.FirstOrDefault(s => Contains(s.Polygon, point))?.ToolTip;
             }
