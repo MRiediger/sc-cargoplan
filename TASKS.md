@@ -372,9 +372,72 @@ Phase 3 ist mit T3.15 abgeschlossen; offen bleiben nur Backlog-Punkte.
 
 ---
 
-## Phase 4 – Release (vor dem Import, weil Reichweite vorne steht)
+## Phase 4 – Settings & Konfiguration
 
-### [ ] T4.1 Publish-Profil
+Regel für alle Tasks dieser Phase: **Core bleibt unverändert**, alles in `CargoPlan.App`. Grundlage: D28 (Halo statt Backdrop-Blur), D29 (Stop-Farben fest), D30 (Apply-on-change). Reihenfolge der Umsetzung = Reihenfolge hier, nicht die Nummer.
+
+Einstellbare Werte:
+- **Fenster:** Transparenz, Hintergrund, Rahmen
+- **Legende:** Schriftgröße, Schriftfarbe, Halo
+- **Kisten:** Rack-Nummern-Schriftgröße und -farbe, Hintergrund-Transparenz, Rahmen-Transparenz, Halo
+- **Kopfzeile/Reiter:** Schriftfarbe, Halo
+- **Buttons:** Hintergrund, Rahmen, Halo, Eckenradius
+
+### [ ] T4.1 Settings-Modell Schema 2 + Theme-Ressourcen
+**Warum:** Jede Einstellung braucht erst einen Platz in settings.json und einen Weg in die Oberfläche; das Settings-Fenster (T4.2) baut darauf auf.
+- settings.json `schemaVersion` 2 mit `appearance`, `legend`, `hotkeys`; Fensterposition und -größe bleiben wie in T3.4
+- Theme-Werte als Ressourcen in `App.xaml`, Views binden per `DynamicResource` (Grundlage für die Live-Vorschau in T4.2)
+- Noch ohne UI: alle Werte wirken bereits aus settings.json
+- Schema 1 bleibt lesbar, Defaults für Neues; kaputte Datei → Defaults + Notice (D13)
+
+**Akzeptanz:** `dotnet test` grün (Schema 1 → Defaults für Neues, Schema-2-Rundlauf, kaputte Datei → Defaults + Notice, Datei unverändert); Wert in settings.json ändern → nach Neustart sichtbar; Core unverändert.
+
+### [ ] T4.6 Rack-Nummern und Linienstärken beim Zoom konstant
+**Warum:** Rack-Nummern und Linien wachsen heute mit dem Zoom mit (Backlog aus D21). Eine Schriftgröße als Einstellung wäre damit bei jedem Zoom eine andere. Voraussetzung für die Rack-Nummern-Schriftgröße als Einstellung.
+- Rack-Nummern in fester Bildschirmgröße, Linienstärken (Kanten, rote Kanten, Drop-Ziel, Auswahl) fest; Kisten und Zellen skalieren weiter
+- Backlog-Zeile entfällt
+
+**Akzeptanz:** `dotnet test` grün; Zoom 0,5× bis 4×: Nummern und Linien bleiben gleich groß, Kisten skalieren; Hit-Test und Drop-Ziel unverändert.
+
+### [ ] T4.3 Legende an/aus + Position
+**Warum:** Je nach Fensterform und Platz neben dem Kiosk steht die Legende besser oben oder unten, links, mittig oder rechts. Wer die Farben kennt, blendet sie aus.
+- Legende an/aus und Position (top/bottom × left/center/right) in settings.json
+- Layout-Umbau des Overlays; der reservierte Hinweisplatz (D16) bleibt, die Ansicht springt beim Abhaken nicht
+- „aus“ blendet nur die Stop-Zeilen aus; Hinweise und Notices bleiben sichtbar (an der Legendenposition), sonst sähe niemand die D13-Notice „kaputte settings.json → Defaults“
+- Abhaken (D16) und Legenden-Drag (D25) in jeder Position; ausgeblendet bleibt Abhaken per Klick in der Ansicht
+
+**Akzeptanz:** alle sechs Positionen und „aus“ per settings.json; Abhaken und Legenden-Drag in jeder Position; Ansicht springt beim Abhaken nicht; Legende aus + kaputte settings.json → Notice sichtbar; Core unverändert.
+
+### [ ] T4.2 Zahnrad + Settings-Fenster
+**Warum:** settings.json von Hand zu bearbeiten schreckt Hauler ab (D17). Die Lesbarkeit über hellem und dunklem Hintergrund stellt man im Spiel ein, nicht im Texteditor.
+- Zahnrad in der Kopfzeile (Platz seit der T3.7-Notiz vorgesehen), verhält sich beim Lock wie der Stift: eine Regel für alle Kopfzeilen-Buttons
+- Settings-Fenster: aktivierbar, Topmost, bei Auto-Lock ausgeblendet wie der Editor (D19), eins gleichzeitig
+- Abschnitte Fenster / Legende / Kisten / Kopfzeile / Buttons mit den Werten oben
+- Live-Vorschau: jede Änderung wirkt sofort und wird gespeichert, kein OK/Cancel (D30); „Reset to defaults“ pro Abschnitt
+
+**Akzeptanz:** jeden Wert im Fenster ändern → Overlay ändert sich sofort, Neustart behält ihn; Reset pro Abschnitt; Auto-Lock blendet das Fenster aus und wieder ein; Core unverändert.
+
+### [ ] T4.4 Hotkey-Aufnahme
+**Warum:** Hotkeys sind seit T3.7 nur über settings.json setzbar (D17). Tasten drücken ist schneller als tippen, und ein Tippfehler macht die ganze Datei ungültig.
+- Abschnitt Hotkeys im Settings-Fenster: je Aktion (Lock, Overlay) Aufnahme per Tastendruck, Löschen möglich
+- Regeln wie `HotkeyParser` (Ctrl/Alt/Win Pflicht, F12 abgelehnt), weiterhin keine Defaults (D17)
+- Belegte Kombination → Konfliktmeldung aus T3.7
+
+**Akzeptanz:** Hotkey im Fenster setzen → wirkt sofort ohne Neustart, steht in settings.json; belegte Kombination → Meldung, der andere Hotkey bleibt aktiv; Shift+L und F12 werden abgelehnt.
+
+### [ ] T4.5 Füllrichtung im Editor
+**Warum:** Ein Koordinator soll allen dieselbe Füllrichtung zeigen (T3.10). Seit D24 steht sie im Plan (`fillOrder`), wählbar ist sie aber noch nicht.
+- Auswahl Bug zuerst / Heck zuerst im Editor, wirkt beim nächsten „Plan“
+- Gespeichert im Plan (D24), nicht in settings.json
+- Core unverändert: `LoadPlanner.Plan` nimmt `fillOrder` schon
+
+**Akzeptanz:** „Heck zuerst“ → Plan → Kisten beginnen am Heck; Neustart behält die Richtung (plan.json); der Editor startet mit der Richtung des aktuellen Plans.
+
+---
+
+## Phase 5 – Release (vor dem Import, weil Reichweite vorne steht)
+
+### [ ] T5.1 Publish-Profil
 **Warum:** Eine EXE, Doppelklick, läuft. Sonst nutzt es niemand.
 - `src/CargoPlan.App/Properties/PublishProfiles/win-x64-selfcontained.pubxml`: `SelfContained=true`, `PublishSingleFile=true`, `IncludeNativeLibrariesForSelfExtract=true`, `RuntimeIdentifier=win-x64`
 - Zweites Profil framework-dependent (klein, braucht .NET Desktop Runtime)
@@ -382,7 +445,7 @@ Phase 3 ist mit T3.15 abgeschlossen; offen bleiben nur Backlog-Punkte.
 
 **Akzeptanz:** Beide Publish-Läufe liefern eine startfähige EXE. Self-contained < 80 MB. Martin kann erklären, warum WPF nicht getrimmt werden kann.
 
-### [ ] T4.2 Release-Workflow
+### [ ] T5.2 Release-Workflow
 **Warum:** Tag setzen → Download steht. Kein manuelles Hochladen.
 - `.github/workflows/release.yml`: Trigger `push` auf `tags: v*`, publish beider Profile, `softprops/action-gh-release` hängt beide EXEs + SHA256 an
 - `MinVer` oder `GitVersion` für Versionsnummer aus Tag (eines wählen, begründen)
@@ -390,7 +453,7 @@ Phase 3 ist mit T3.15 abgeschlossen; offen bleiben nur Backlog-Punkte.
 
 **Akzeptanz:** `git tag v0.1.0 && git push --tags` erzeugt Release mit beiden Dateien. Martin kann erklären, was SmartScreen prüft und warum Code-Signing-Zertifikate das Problem lösen würden.
 
-### [ ] T4.3 Repo-Hygiene für Contributor
+### [ ] T5.3 Repo-Hygiene für Contributor
 **Warum:** Erster externer PR soll nicht an Unklarheit scheitern.
 - `CONTRIBUTING.md` (englisch): build, test, Schiff beisteuern, PR-Regeln
 - Issue-Templates: Bug, Ship request, Feature
@@ -400,9 +463,9 @@ Phase 3 ist mit T3.15 abgeschlossen; offen bleiben nur Backlog-Punkte.
 
 ---
 
-## Phase 5 – Import aus ContractTracker V2
+## Phase 6 – Import aus ContractTracker V2
 
-### [ ] T5.1 Schema erkunden
+### [ ] T6.1 Schema erkunden
 **Warum:** Erst schauen, dann Code.
 - DB-Pfad finden (`%APPDATA%`/`%LOCALAPPDATA%`), in `docs/contracttracker-schema.md` notieren
 - Kopie anlegen, `sqlite3 copy.db .schema`, Tabellen/Spalten dokumentieren
@@ -411,7 +474,7 @@ Phase 3 ist mit T3.15 abgeschlossen; offen bleiben nur Backlog-Punkte.
 
 **Akzeptanz:** Doku vorhanden, offene Fragen gelistet. Kein Code.
 
-### [ ] T5.2 Read-only-Reader
+### [ ] T6.2 Read-only-Reader
 **Warum:** Ziele, Waren, SCU automatisch.
 - `CargoPlan.Import/ContractTrackerReader.cs`: `IReadOnlyList<Stop> ReadActiveMissions(string dbPath)`
 - Connection-String `Mode=ReadOnly`, Tracker schreibt parallel
@@ -419,7 +482,7 @@ Phase 3 ist mit T3.15 abgeschlossen; offen bleiben nur Backlog-Punkte.
 
 **Akzeptanz:** Tests grün, echter Lauf gegen Martins DB liefert plausible Stops. Martin kann erklären, was `Mode=ReadOnly` verhindert.
 
-### [ ] T5.3 Integration
+### [ ] T6.3 Integration
 **Warum:** Knopf statt Tipparbeit.
 - Button „Load from ContractTracker“ im Editor, Pfad-Autodetektion mit manuellem Fallback
 - Optional Auto-Refresh, nur bei offenem Editor
@@ -428,13 +491,13 @@ Phase 3 ist mit T3.15 abgeschlossen; offen bleiben nur Backlog-Punkte.
 
 ---
 
-## Phase 6 – Ausbau (optional, Reihenfolge frei)
+## Phase 7 – Ausbau (optional, Reihenfolge frei)
 
-### [ ] T6.1 Weitere Schiffe – `cutlass_black.json`, `raft.json`, Schiffsauswahl im Editor
-### [ ] T6.2 Auto-Update – **Velopack** evaluieren (ersetzt T4.1-Publish durch Installer mit Delta-Updates)
-### [ ] T6.3 winget-Manifest – `winget install SC-CargoPlan`
-### [ ] T6.4 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
-### [ ] T6.5 Lokalisierung – `.resx`, Deutsch als zweite Sprache
+### [ ] T7.1 Weitere Schiffe – `cutlass_black.json`, `raft.json`, Schiffsauswahl im Editor
+### [ ] T7.2 Auto-Update – **Velopack** evaluieren (ersetzt T5.1-Publish durch Installer mit Delta-Updates)
+### [ ] T7.3 winget-Manifest – `winget install SC-CargoPlan`
+### [ ] T7.4 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
+### [ ] T7.5 Lokalisierung – `.resx`, Deutsch als zweite Sprache
 
 ---
 
@@ -448,10 +511,10 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).
 - Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).
 - Orbit-Snap auf feste Winkel (z. B. 45°-Raster per Taste), falls freies Drehen schwer wiederholbar ist (D15).
-- Hotkey-Aufnahme-UI (Tasten drücken statt tippen) und damit das Zahnrad in der Kopfzeile, sobald settings.json-Editieren Nutzer abschreckt (D17).
 - Plan verwerfen ohne neuen Plan („Discard plan“), falls ein leeres Overlay nach der Route gewünscht wird; heute ersetzt nur „Plan“ den alten Plan (D19).
 - Editor-Position in `settings.json`, Entwurfs-Autosave, Undo im Editor, falls der Zwei-Minuten-Durchlauf daran scheitert (D19).
-- Füllrichtung im Editor wählbar; gespeichert wird sie seit D24 im Plan (`fillOrder`).
 - Rückfall auf Segmente ab einer Zellenzahl, sobald ein großes Schiff (Hull C, ~4.600 Zellen) beim Orbit ruckelt (D21).
-- Rack-Nummern und Linien beim Zoom konstant klein halten statt mitzuskalieren (D21).
 - Kistengrößen als Blöcke und Zellbeschriftung in der Schiffsansicht (D21).
+- Backdrop-Blur hinter dem Fenster (Spike: DWM vs. AllowsTransparency) (D28).
+- Alternative Stop-Paletten, nur geprüft farbfehlsicht-tauglich (D29).
+- Theme-Presets/Export (A4).

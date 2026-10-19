@@ -15,7 +15,7 @@ namespace CargoPlan.App;
 /// </summary>
 public partial class App : Application
 {
-    /// <summary>The only ship until there is a ship selection (T6.1).</summary>
+    /// <summary>The only ship until there is a ship selection (T7.1).</summary>
     public const string ShipId = "hull_a";
 
     private CursorStateMonitor? _cursorMonitor;
