@@ -4,8 +4,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace CargoPlan.App.ViewModels;
 
 /// <summary>
-/// One colour in the settings window: a hex field for the hue and a slider for the alpha, so transparency is a slider,
-/// not two hex digits (D34). WPF-free like <see cref="Argb"/>; the window draws the swatch from <see cref="Value"/>.
+/// One colour in the settings window: a hex field and a picker for the hue, a slider for the alpha, so transparency is
+/// a slider, not two hex digits (D34). WPF-free like <see cref="Argb"/>; the window draws the swatch from
+/// <see cref="Value"/>. The picker writes <see cref="Hex"/>, so typing and picking take one way to the overlay.
 /// </summary>
 public sealed partial class ColourField : ObservableObject
 {
@@ -15,6 +16,10 @@ public sealed partial class ColourField : ObservableObject
     public const double MaxAlpha = byte.MaxValue;
 
     private readonly Action _changed;
+
+    // The picker writes the hex, the hex moves the picker: each guard stops the way back, so neither undoes the other.
+    private bool _picking;
+    private bool _syncing;
 
     /// <param name="colour">"#AARRGGBB", checked by <see cref="AppearanceRules"/>.</param>
     /// <param name="minAlpha">The slider's minimum: <see cref="AppearanceRules.MinClickableAlpha"/> for a background that takes clicks.</param>
@@ -60,6 +65,22 @@ public sealed partial class ColourField : ObservableObject
         private set => SetProperty(ref field, value);
     } = "";
 
+    /// <summary>The picker's hue in degrees, 0–360 (T4.2c). Kept on grey, where the colour itself has none.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HueColour))]
+    public partial double Hue { get; set; }
+
+    /// <summary>The picker's saturation, 0–1. Kept on black, where the colour itself has none.</summary>
+    [ObservableProperty]
+    public partial double Saturation { get; set; }
+
+    /// <summary>The picker's value (HSV), 0–1.</summary>
+    [ObservableProperty]
+    public partial double Brightness { get; set; }
+
+    /// <summary>The hue at full saturation and brightness: the colour behind the picker's saturation/brightness pad.</summary>
+    public string HueColour => new Hsv(Hue, 1, 1).ToArgb(byte.MaxValue).ToString();
+
     /// <summary>Shows <paramref name="colour"/>; the caller decides whether that is a change worth applying.</summary>
     public void Load(string colour)
     {
@@ -70,12 +91,56 @@ public sealed partial class ColourField : ObservableObject
 
     partial void OnAlphaChanged(int value) => Update();
 
+    partial void OnHueChanged(double value) => Pick();
+
+    partial void OnSaturationChanged(double value) => Pick();
+
+    partial void OnBrightnessChanged(double value) => Pick();
+
+    /// <summary>A picker change: written as hex, which heals an invalid field and applies like typing.</summary>
+    private void Pick()
+    {
+        if (_syncing)
+        {
+            return;
+        }
+
+        var rgb = new Hsv(Hue, Saturation, Brightness).ToArgb(byte.MaxValue);
+        _picking = true;
+        Hex = $"#{rgb.R:X2}{rgb.G:X2}{rgb.B:X2}";
+        _picking = false;
+    }
+
+    /// <summary>A typed or loaded colour moves the picker; a hue or saturation the colour doesn't have stays (grey, black).</summary>
+    private void SyncPicker(Argb rgb)
+    {
+        var hsv = Hsv.FromRgb(rgb);
+        _syncing = true;
+        if (hsv.Saturation > 0)
+        {
+            Hue = hsv.Hue;
+        }
+
+        if (hsv.Value > 0)
+        {
+            Saturation = hsv.Saturation;
+        }
+
+        Brightness = hsv.Value;
+        _syncing = false;
+    }
+
     private void Update()
     {
         IsValid = TryParseHex(Hex, out var rgb);
         if (!IsValid)
         {
             return;
+        }
+
+        if (!_picking)
+        {
+            SyncPicker(rgb);
         }
 
         Value = (rgb with { A = (byte)Alpha }).ToString();

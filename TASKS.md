@@ -422,6 +422,14 @@ Einstellbare Werte:
 
 **Akzeptanz:** jeden Wert der drei Abschnitte im Fenster ändern → Overlay ändert sich sofort, Neustart behält ihn; Reset pro Abschnitt; Auto-Lock blendet das Fenster aus und wieder ein; Core unverändert.
 
+### [x] T4.2c Color-Picker im Settings-Fenster
+**Warum:** Hex-Codes kennt kaum ein Hauler; eine Farbe sucht man mit der Maus, während man das Overlay über der Szene sieht.
+**Präzisiert in der Planung:** eigenes Popup statt Paket oder Windows-Farbdialog (der wäre modal, ohne Live-Vorschau); Swatch als Toggle, Popup mit Sättigung/Helligkeit-Fläche (`SaturationValuePad`) und Farbton-Leiste, Alpha bleibt eigener Regler; `Hsv` WPF-frei; der Picker schreibt `Hex`, also ein Weg zum Overlay; Grau behält den Farbton, Schwarz die Sättigung; Esc schließt bei offenem Picker nur den Picker, sonst das Fenster (Gegenprobe ComboBox); der Picker schließt immer, wenn das Fenster unsichtbar wird (Auto-Lock = Tractor-Beam-Griff). Präzisierung in der Planphase, ratifiziert durch Freigabe (D34-Addendum).
+- Klick auf den Swatch öffnet den Picker, Ziehen ändert das Overlay live
+- Gilt für jede Farbe im Fenster, auch die aus T4.2b
+
+**Akzeptanz:** Farbe per Picker wählen → Overlay ändert sich beim Ziehen, Hex-Feld folgt, Neustart behält sie; Esc mit offenem Picker schließt nur den Picker; Auto-Lock schließt den Picker; Core unverändert.
+
 ### [ ] T4.2b Settings-Fenster: Header, Crates, Buttons
 **Warum:** Der Rest der Werte aus T4.1 gehört ins selbe Fenster, sonst bleibt für Kopfzeile, Kisten und Buttons der Texteditor.
 - Abschnitte Header (Text colour, Halo), Crates (Fill/Edge alpha 0–255, Rack number colour, Rack number size 8–48, Halo/Umriss), Buttons (Background Alpha ≥ 1, Border colour/width, Corner radius, Halo) mit `ColourField`/`HaloEditor` aus T4.2a

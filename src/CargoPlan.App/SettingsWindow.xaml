@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:CargoPlan.App.ViewModels"
         xmlns:st="clr-namespace:CargoPlan.App.Settings"
+        xmlns:app="clr-namespace:CargoPlan.App"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:SettingsViewModel}"
         Title="SC-CargoPlan settings"
@@ -52,13 +53,40 @@
              template paints the border blue while the field has the focus). -->
         <DataTemplate DataType="{x:Type vm:ColourField}">
             <DockPanel>
-                <Border DockPanel.Dock="Right" Width="28" Height="20" Margin="6,0,0,0"
-                        Background="{StaticResource SwatchCheckerBrush}"
-                        BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" BorderThickness="1">
-                    <!-- A string binds to Brush through BrushConverter, the target type's converter.
-                         Source: dotnet/wpf, PresentationFramework/MS/Internal/Data/DefaultValueConverter.cs -->
-                    <Rectangle Fill="{Binding Value}" />
-                </Border>
+                <!-- The swatch opens the picker (T4.2c). Popup and button are bound both ways, so closing the popup by a click
+                     outside also unticks the button. While open, the button takes no clicks: otherwise the click that
+                     closes the popup (StaysOpen=False) would open it again at once. -->
+                <Grid DockPanel.Dock="Right" Margin="6,0,0,0">
+                    <ToggleButton x:Name="SwatchButton" Width="32" Height="22" Padding="1" ToolTip="Pick a colour">
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsOpen, ElementName=Picker}" Value="True">
+                                        <Setter Property="IsHitTestVisible" Value="False" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ToggleButton.Style>
+                        <Border Background="{StaticResource SwatchCheckerBrush}">
+                            <!-- A string binds to Brush through BrushConverter, the target type's converter.
+                                 Source: dotnet/wpf, PresentationFramework/MS/Internal/Data/DefaultValueConverter.cs -->
+                            <Rectangle Fill="{Binding Value}" />
+                        </Border>
+                    </ToggleButton>
+                    <Popup x:Name="Picker" PlacementTarget="{Binding ElementName=SwatchButton}" Placement="Bottom"
+                           StaysOpen="False" IsOpen="{Binding IsChecked, ElementName=SwatchButton, Mode=TwoWay}"
+                           Opened="OnPickerOpened" Closed="OnPickerClosed">
+                        <Border Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                                BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" BorderThickness="1" Padding="8">
+                            <StackPanel>
+                                <app:SaturationValuePad Width="200" Height="140" Cursor="Cross"
+                                                        Hue="{Binding Hue}" Saturation="{Binding Saturation}" Brightness="{Binding Brightness}" />
+                                <Slider Margin="0,8,0,0" Minimum="0" Maximum="360" Value="{Binding Hue}"
+                                        Background="{x:Static app:SaturationValuePad.HueSpectrum}" ToolTip="Hue" />
+                            </StackPanel>
+                        </Border>
+                    </Popup>
+                </Grid>
                 <TextBlock DockPanel.Dock="Right" Text="{Binding AlphaPercent}" Style="{StaticResource ValueTextStyle}" />
                 <TextBox DockPanel.Dock="Left" Width="72" VerticalContentAlignment="Center"
                          Text="{Binding Hex, UpdateSourceTrigger=PropertyChanged}"
