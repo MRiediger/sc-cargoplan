@@ -44,8 +44,9 @@ public partial class App : Application
         // changes the look through the same session (D34).
         var session = new SettingsSession(Resources, viewModel, SettingsStore.DefaultPath, settings);
 
-        // Bounds before Show(), so the window appears in place instead of jumping there.
-        var overlay = new OverlayWindow(viewModel, session);
+        // Bounds before Show(), so the window appears in place instead of jumping there. The hotkeys' view model is made
+        // when the settings window opens; by then _hotkeys exists (it needs the overlay, so it comes after it).
+        var overlay = new OverlayWindow(viewModel, session, () => CreateHotkeysViewModel(session));
         if (settings.Overlay is { } saved)
         {
             RestoreBounds(overlay, saved);
@@ -80,6 +81,29 @@ public partial class App : Application
     {
         _cursorMonitor?.Stop();
         base.OnExit(e);
+    }
+
+    /// <summary>
+    /// The settings window's hotkeys (D35): registered first, saved only if Windows took them, so settings.json never holds
+    /// a combination that doesn't work.
+    /// </summary>
+    private HotkeysViewModel CreateHotkeysViewModel(SettingsSession session)
+    {
+        var hotkeys = _hotkeys ?? throw new InvalidOperationException("The settings window opened before the hotkeys existed.");
+        return new HotkeysViewModel(
+            session.Current.Hotkeys,
+            (action, hotkey) =>
+            {
+                var problem = hotkeys.TrySet(action, hotkey);
+                if (problem is null)
+                {
+                    session.ChangeHotkey(action, hotkey);
+                }
+
+                return problem;
+            },
+            hotkeys.Suspend,
+            hotkeys.Resume);
     }
 
     /// <summary>--plan wins over plan.json; a missing --plan file is a problem, a missing plan.json is the empty start.</summary>

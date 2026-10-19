@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Media;
+using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Ships;
@@ -184,6 +185,62 @@ public sealed class SettingsSessionTests : IDisposable
 
         _viewModel.LegendPosition.Should().Be(LegendPosition.Default);
         _viewModel.Notices.Should().ContainSingle().Which.Should().Contain("legend.position \"up\"");
+    }
+
+    // Hotkeys (T4.4)
+
+    private static Hotkey Key(string text)
+    {
+        HotkeyParser.TryParse(text, out var hotkey, out _).Should().BeTrue();
+        return hotkey!;
+    }
+
+    [Fact]
+    public void ChangeHotkey_writes_the_canonical_text_on_flush_and_keeps_the_rest()
+    {
+        var session = Create(AppSettings.Default with { Overlay = Bounds, Appearance = Thick });
+
+        session.ChangeHotkey(HotkeyAction.ToggleLock, Key("alt+ctrl+l"));
+        File.Exists(SettingsPath).Should().BeFalse();
+        session.Flush();
+
+        Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", null));
+        Saved().Overlay.Should().Be(Bounds);
+        Saved().Appearance.Should().Be(Thick);
+    }
+
+    [Fact]
+    public void ChangeHotkey_keeps_the_other_action()
+    {
+        var session = Create(AppSettings.Default with { Hotkeys = new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H") });
+
+        session.ChangeHotkey(HotkeyAction.ToggleOverlay, Key("Ctrl+Alt+O"));
+
+        session.Current.Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+O"));
+    }
+
+    /// <summary>A cleared hotkey is written as null, so the player sees the key exists; missing and null read the same.</summary>
+    [Fact]
+    public void Clearing_writes_null_for_the_action()
+    {
+        var session = Create(AppSettings.Default with { Hotkeys = new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H") });
+
+        session.ChangeHotkey(HotkeyAction.ToggleLock, null);
+        session.Flush();
+
+        File.ReadAllText(SettingsPath).Should().Contain("\"toggleLock\": null").And.Contain("\"toggleOverlay\": \"Ctrl+Alt+H\"");
+        Saved().Hotkeys.Should().Be(new HotkeySettings(null, "Ctrl+Alt+H"));
+    }
+
+    [Fact]
+    public void Clearing_without_hotkeys_still_writes_both_keys()
+    {
+        var session = Create();
+
+        session.ChangeHotkey(HotkeyAction.ToggleLock, null);
+        session.Flush();
+
+        File.ReadAllText(SettingsPath).Should().Contain("\"toggleLock\": null").And.Contain("\"toggleOverlay\": null");
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Theme;
 using CargoPlan.App.ViewModels;
 
@@ -54,6 +55,27 @@ public sealed class SettingsSession
 
         Current = Current with { Appearance = checkedAppearance, Legend = checkedLegend };
         ApplyLook();
+        _timer.Stop();
+        _timer.Start();
+    }
+
+    /// <summary>
+    /// From the settings window, after the hotkey was registered (D35): saved after <see cref="Debounce"/> as canonical
+    /// text. null clears the action and is written as null, so the key stays visible in the file; missing reads the same.
+    /// </summary>
+    public void ChangeHotkey(HotkeyAction action, Hotkey? hotkey)
+    {
+        var hotkeys = Current.Hotkeys ?? new HotkeySettings();
+        var text = hotkey?.ToString();
+        Current = Current with
+        {
+            Hotkeys = action switch
+            {
+                HotkeyAction.ToggleLock => hotkeys with { ToggleLock = text },
+                HotkeyAction.ToggleOverlay => hotkeys with { ToggleOverlay = text },
+                _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
+            },
+        };
         _timer.Stop();
         _timer.Start();
     }

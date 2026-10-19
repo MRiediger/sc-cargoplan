@@ -85,28 +85,21 @@ When Star Citizen takes the mouse (flight), the overlay turns click-through and 
 
 ### Hotkeys
 
-Two global hotkeys work while Star Citizen has the focus and the cursor is hidden: one switches the padlock, one hides the overlay and brings it back (dogfight, landing). There are **no default hotkeys**: a hotkey takes its keys away from every other program, the game included, and any default could clash with one of your Star Citizen bindings. Set them yourself in `%LocalAppData%\SC-CargoPlan\settings.json` (close the overlay first, start it again afterwards):
+Two global hotkeys work while Star Citizen has the focus and the cursor is hidden: one switches the padlock, one hides the overlay and brings it back (dogfight, landing). There are **no default hotkeys**: a hotkey takes its keys away from every other program, the game included, and any default could clash with one of your Star Citizen bindings.
 
-```json
-{
-  "schemaVersion": 2,
-  "hotkeys": {
-    "toggleLock": "Ctrl+Alt+K",
-    "toggleOverlay": "Ctrl+Alt+H"
-  }
-}
-```
+**Set them in the settings window** (the gear), section **Hotkeys**: click the button next to *Lock / unlock* or *Hide / show overlay*, then press the keys. The hotkey works at once and is saved. **Esc** cancels, **Clear** removes it.
 
-Keep the `overlay`, `legend` and `appearance` parts if your file has them. Either hotkey can be left out. A file with `"schemaVersion": 1` works too.
-
-- Format: modifiers and one key joined by `+`, in any order and case. Modifiers are `Ctrl`, `Alt`, `Shift`, `Win`; **at least one of `Ctrl`, `Alt` or `Win` is required**. Keys are `A`–`Z`, `0`–`9`, `F1`–`F24` (not `F12`, Windows reserves it), `Space`, `Pause`, `ScrollLock`, `Insert`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`.
+- **At least one of `Ctrl`, `Alt` or `Win` is required**, plus one key: `A`–`Z`, `0`–`9`, `F1`–`F24` (not `F12`, Windows reserves it), `Space`, `Pause`, `ScrollLock`, `Insert`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`. Anything else is refused right at the button, with the reason.
 - Pick a combination that **none of your Star Citizen bindings use**, and check it in the game's keybinding settings. If the game still reacts to it, choose another one.
-- A hotkey that is taken by another program, or a typo, shows as an amber line next to the legend; the other hotkey still works.
-- If a hotkey shows no error but does nothing, another program swallows the keys before Windows hands them out (some tools do that for their own shortcuts). Choose a different combination.
+- **Win combinations** may be taken by Windows itself (`Win+L` locks the PC): pressing them while recording does nothing.
+- A combination another program already uses is refused, and your old hotkey stays. Often you won't even get that far: Windows hands such a combination to the other program, so pressing it while recording does nothing. Choose a different one.
+- The two hotkeys can't share a combination; the window says which one has it.
+- If a hotkey works in the window but does nothing later, another program swallows the keys before Windows hands them out (some tools do that for their own shortcuts). Choose a different combination.
 - Hidden, the overlay also leaves the taskbar; press the hotkey again to bring it back where it was.
-- A typo in a name (e.g. `toggleLok`) makes the whole file unreadable: the overlay starts with defaults and says so.
 
-No hooks: the hotkeys use the normal Windows hotkey service, nothing touches the game process.
+You can still write them into `%LocalAppData%\SC-CargoPlan\settings.json` by hand (overlay closed), e.g. `"hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H" }`, modifiers and key joined by `+` in any order and case; `null` or a missing entry means no hotkey. A hotkey that is invalid or taken shows as an amber line next to the legend and next to its button in the settings window; the other hotkey still works. A typo in a name (e.g. `toggleLok`) makes the whole file unreadable: the overlay starts with defaults and says so.
+
+No hooks: recording reads the keys you press in the settings window itself, and the hotkeys use the normal Windows hotkey service; nothing touches the game process.
 
 ### Where your data lives
 

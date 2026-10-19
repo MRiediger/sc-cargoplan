@@ -14,14 +14,17 @@ public partial class OverlayWindow : Window
 {
     private readonly OverlayViewModel _viewModel;
     private readonly SettingsSession _settings;
+    private readonly Func<HotkeysViewModel> _createHotkeys;
     private MissionEditorWindow? _editor;
     private SettingsWindow? _settingsWindow;
 
-    public OverlayWindow(OverlayViewModel viewModel, SettingsSession settings)
+    /// <param name="createHotkeys">Made per settings window, from the hotkeys as they are then.</param>
+    public OverlayWindow(OverlayViewModel viewModel, SettingsSession settings, Func<HotkeysViewModel> createHotkeys)
     {
         InitializeComponent();
         _viewModel = viewModel;
         _settings = settings;
+        _createHotkeys = createHotkeys;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
@@ -132,7 +135,10 @@ public partial class OverlayWindow : Window
             // SystemFonts lives in WPF, so the window reads it and the view model stays WPF-free (D31).
             var current = _settings.Current;
             _settingsWindow = new SettingsWindow(
-                new SettingsViewModel(current.Appearance, current.Legend, SystemFonts.MessageFontSize, _settings.ChangeLook), _viewModel, this);
+                new SettingsViewModel(current.Appearance, current.Legend, SystemFonts.MessageFontSize, _settings.ChangeLook),
+                _createHotkeys(),
+                _viewModel,
+                this);
 
             Rect screen = new(
                 SystemParameters.VirtualScreenLeft,

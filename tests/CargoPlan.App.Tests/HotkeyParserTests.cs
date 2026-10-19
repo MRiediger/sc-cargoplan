@@ -101,4 +101,52 @@ public class HotkeyParserTests
         hotkey.Should().BeNull();
         error.Should().Contain(reasonPart);
     }
+
+    // Recorded keys (T4.4): the same rules as typed text.
+
+    private const uint VK_L = 0x4C;
+    private const uint VK_F5 = 0x74;
+    private const uint VK_F12 = 0x7B;
+    private const uint VK_OEM_COMMA = 0xBC;
+    private const uint VK_CONTROL = 0x11;
+
+    [Fact]
+    public void Creates_a_recorded_hotkey_with_NoRepeat()
+    {
+        HotkeyParser.TryCreate(HotkeyModifiers.Control | HotkeyModifiers.Alt, VK_L, out var hotkey, out var error).Should().BeTrue(error);
+
+        hotkey.Should().Be(Parse("Ctrl+Alt+L"));
+        hotkey!.ToString().Should().Be("Ctrl+Alt+L");
+    }
+
+    [Theory]
+    [InlineData(HotkeyModifiers.Shift, VK_L, "needs Ctrl, Alt or Win")]
+    [InlineData(HotkeyModifiers.None, VK_F5, "needs Ctrl, Alt or Win")]
+    [InlineData(HotkeyModifiers.Control, VK_F12, "reserved")]
+    [InlineData(HotkeyModifiers.Control, VK_OEM_COMMA, "unknown key")]
+    [InlineData(HotkeyModifiers.Control, VK_CONTROL, "unknown key")]
+    public void Rejects_recorded_keys_with_the_reasons_of_typed_text(HotkeyModifiers modifiers, uint virtualKey, string reasonPart)
+    {
+        HotkeyParser.TryCreate(modifiers, virtualKey, out var hotkey, out var error).Should().BeFalse();
+
+        hotkey.Should().BeNull();
+        error.Should().Contain(reasonPart);
+    }
+
+    [Fact]
+    public void Shift_L_is_rejected_with_the_same_reason_typed_and_recorded()
+    {
+        HotkeyParser.TryParse("Shift+L", out _, out var typed);
+        HotkeyParser.TryCreate(HotkeyModifiers.Shift, VK_L, out _, out var recorded);
+
+        recorded.Should().Be(typed);
+    }
+
+    [Fact]
+    public void NoRepeat_in_the_recorded_modifiers_changes_nothing()
+    {
+        HotkeyParser.TryCreate(HotkeyModifiers.Alt | HotkeyModifiers.NoRepeat, VK_L, out var hotkey, out _).Should().BeTrue();
+
+        hotkey.Should().Be(Parse("Alt+L"));
+    }
 }

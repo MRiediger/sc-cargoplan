@@ -3,7 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 namespace CargoPlan.App.Hotkeys;
 
 /// <summary>
-/// Reads a hotkey from settings.json ("Ctrl+Alt+L"). Pure function; registering is <see cref="HotkeyService"/>'s job.
+/// Reads a hotkey from settings.json ("Ctrl+Alt+L") or from keys pressed in the settings window (T4.4), with the same
+/// rules and reasons either way. Pure functions; registering is <see cref="HotkeyService"/>'s job.
 /// Own small key table instead of WPF's KeyGestureConverter: our own error reasons for the notice line, and
 /// only keys that make sense next to a game (D17).
 /// </summary>
@@ -34,12 +35,15 @@ public static class HotkeyParser
     private const uint VK_0 = 0x30;     // '0'..'9' are 0x30..0x39
     private const uint VK_A = 0x41;     // 'A'..'Z' are 0x41..0x5A
     private const uint VK_F1 = 0x70;    // F1..F24 are 0x70..0x87
+    private const uint VK_F12 = 0x7B;
     private const uint VK_SCROLL = 0x91;
     private const int FunctionKeyCount = 24;
 
     // "The F12 key is reserved for use by the debugger at all times, so it should not be registered as a hot key."
     // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey (Remarks)
     private const string ReservedKey = "F12";
+
+    private const string ReservedReason = $"{ReservedKey} is reserved for debuggers by Windows";
 
     /// <summary>Canonical key name → virtual-key code; lookup ignores case.</summary>
     private static readonly Dictionary<string, uint> Keys = BuildKeys();
@@ -60,6 +64,26 @@ public static class HotkeyParser
         }
 
         (hotkey, error) = (null, reason!); // Parse returns exactly one of the two.
+        return false;
+    }
+
+    /// <summary>
+    /// Keys pressed in the settings window (T4.4): the same checks as <see cref="TryParse"/>, in the same order, with the
+    /// same reasons, so Shift+L and F12 are refused alike whether typed or pressed.
+    /// </summary>
+    /// <param name="modifiers">NoRepeat is ignored; every hotkey gets it.</param>
+    public static bool TryCreate(HotkeyModifiers modifiers, uint virtualKey, [NotNullWhen(true)] out Hotkey? hotkey, [NotNullWhen(false)] out string? error)
+    {
+        var (reason, created) = virtualKey == VK_F12 ? (ReservedReason, null)
+            : !KeyNames.ContainsKey(virtualKey) ? (UnknownKeyReason(null), null)
+            : Check(modifiers & ~HotkeyModifiers.NoRepeat, virtualKey);
+        if (created is not null)
+        {
+            (hotkey, error) = (created, null);
+            return true;
+        }
+
+        (hotkey, error) = (null, reason!); // Each branch gives exactly one of the two.
         return false;
     }
 
@@ -105,21 +129,26 @@ public static class HotkeyParser
 
         if (key.Equals(ReservedKey, StringComparison.OrdinalIgnoreCase))
         {
-            return ($"{ReservedKey} is reserved for debuggers by Windows", null);
+            return (ReservedReason, null);
         }
 
         if (!Keys.TryGetValue(key, out var virtualKey))
         {
-            return ($"unknown key \"{key}\" (use A-Z, 0-9, F1-F24, Space, Pause, ScrollLock, Insert, Delete, Home, End, PageUp, PageDown)", null);
+            return (UnknownKeyReason(key), null);
         }
 
-        if ((modifiers & RequiredModifiers) == HotkeyModifiers.None)
-        {
-            return ("it needs Ctrl, Alt or Win, or it would take the key from every program", null);
-        }
-
-        return (null, new Hotkey(modifiers | HotkeyModifiers.NoRepeat, virtualKey));
+        return Check(modifiers, virtualKey);
     }
+
+    /// <param name="key">As typed; null for a pressed key, which has no name of ours.</param>
+    private static string UnknownKeyReason(string? key) =>
+        $"unknown key{(key is null ? "" : $" \"{key}\"")} (use A-Z, 0-9, F1-F24, Space, Pause, ScrollLock, Insert, Delete, Home, End, PageUp, PageDown)";
+
+    /// <summary>The rule both ways share once the key is known: Ctrl, Alt or Win must be part of it.</summary>
+    private static (string? Error, Hotkey? Hotkey) Check(HotkeyModifiers modifiers, uint virtualKey) =>
+        (modifiers & RequiredModifiers) == HotkeyModifiers.None
+            ? ("it needs Ctrl, Alt or Win, or it would take the key from every program", null)
+            : (null, new Hotkey(modifiers | HotkeyModifiers.NoRepeat, virtualKey));
 
     private static HotkeyModifiers? FindModifier(string name)
     {

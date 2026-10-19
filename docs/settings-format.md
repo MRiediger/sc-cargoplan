@@ -2,8 +2,8 @@
 
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
 the legend stands and the overlay's look. Position and size are saved whenever you move the overlay; the
-settings window (the gear in the header) sets and saves the look and the legend layout. Only the hotkeys
-are still set by hand: close the overlay, edit the file, start the overlay again.
+settings window (the gear in the header) sets and saves the look, the legend layout and the hotkeys. You
+can still edit the file by hand: close the overlay, edit the file, start the overlay again.
 
 ## Example with every default
 
@@ -48,7 +48,9 @@ Without a file, or without `legend` and `appearance`, the overlay uses exactly t
 }
 ```
 
-`overlay` and `hotkeys` are described in the [README](../README.md#hotkeys). Every section and every value
+`overlay` and `hotkeys` are described in the [README](../README.md#hotkeys). In `hotkeys`, `null` and a
+missing entry both mean "no hotkey"; the settings window writes `null` when you clear one, so you see the
+entry exists. Every section and every value
 in `appearance` is optional: what you leave out keeps its default. `{ "schemaVersion": 2, "appearance":
 { "legend": { "fontSize": 14 } } }` changes only the legend's font size.
 

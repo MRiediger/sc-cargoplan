@@ -439,8 +439,9 @@ Einstellbare Werte:
 
 **Akzeptanz:** jeden Wert der drei Abschnitte im Fenster ändern → Overlay ändert sich sofort, Neustart behält ihn; Reset pro Abschnitt; Core unverändert.
 
-### [ ] T4.4 Hotkey-Aufnahme
+### [x] T4.4 Hotkey-Aufnahme
 **Warum:** Hotkeys sind seit T3.7 nur über settings.json setzbar (D17). Tasten drücken ist schneller als tippen, und ein Tippfehler macht die ganze Datei ungültig.
+**Präzisiert in der Planung:** Aufnahme über KeyDown des eigenen fokussierten Fensters (`RecordedKey`, kein Hook); unsere Hotkeys während der Aufnahme ausgesetzt, sonst kämen ihre Tasten nie an; `HotkeyParser.TryCreate` teilt Regeln und Meldungen mit `TryParse`; belegte Kombination (eigene andere Aktion per Name, anderes Programm per `RegisterHotKey`) wird abgelehnt und nicht gespeichert, der alte Hotkey bleibt aktiv; Meldung am Feld statt Notice; „Clear“ schreibt `null`, `null` und fehlend gelten gleich; Hinweis „Ctrl, Alt or Win required. Win combinations may be taken by Windows itself.“; Esc bricht nur die Aufnahme ab, Fokusverlust/Ausblenden/Schließen ebenso; kein „Reset to defaults“ (Default = kein Hotkey); eigener Abschnitt ganz unten, eigener DataContext. Präzisierung in der Planphase, ratifiziert durch Freigabe (D35).
 - Abschnitt Hotkeys im Settings-Fenster: je Aktion (Lock, Overlay) Aufnahme per Tastendruck, Löschen möglich
 - Regeln wie `HotkeyParser` (Ctrl/Alt/Win Pflicht, F12 abgelehnt), weiterhin keine Defaults (D17)
 - Belegte Kombination → Konfliktmeldung aus T3.7

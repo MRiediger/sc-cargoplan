@@ -19,6 +19,7 @@
          away the tool to undo it (D34). Like the editor: owned by the overlay, so topmost with it; ShowActivated=False for
          showing it again after the auto-lock, opening calls Activate(). No OK or Cancel: every change applies at once (D30). -->
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <!-- Slider limits are AppearanceRules' (x:Static), so nothing set here is ever corrected with a notice (D34). -->
         <Style x:Key="ValueSliderStyle" TargetType="Slider">
             <Setter Property="IsSnapToTickEnabled" Value="True" />
@@ -107,6 +108,33 @@
                         Value="{Binding Alpha}" Style="{StaticResource ValueSliderStyle}"
                         ToolTip="Transparency: left is see-through, right is opaque" />
             </DockPanel>
+        </DataTemplate>
+
+        <!-- One hotkey (D35): the button records, Clear removes it. While recording the window's key events go to it. -->
+        <DataTemplate DataType="{x:Type vm:HotkeyEditor}">
+            <StackPanel Margin="0,3">
+                <DockPanel>
+                    <TextBlock Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LabelStyle}" />
+                    <Button DockPanel.Dock="Right" Content="Clear" Command="{Binding ClearCommand, Mode=OneTime}"
+                            Margin="6,0,0,0" Padding="8,2" ToolTip="No hotkey for this" />
+                    <Button Content="{Binding Display}" Command="{Binding RecordCommand, Mode=OneTime}" Padding="8,2"
+                            ToolTip="Click, then press the keys"
+                            PreviewKeyDown="OnHotkeyKeyDown" LostKeyboardFocus="OnHotkeyLostFocus" />
+                </DockPanel>
+                <TextBlock Text="{x:Static vm:HotkeyEditor.RecordingHint}" TextWrapping="Wrap" Margin="0,2,0,0"
+                           Visibility="{Binding IsRecording, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Margin="0,2,0,0" Foreground="{StaticResource EditorProblemBrush}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Problem}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </StackPanel>
         </DataTemplate>
 
         <!-- A halo (D28): off keeps colour and size. -->
@@ -260,6 +288,16 @@
                     </DockPanel>
                     <ContentControl Content="{Binding ButtonsHalo, Mode=OneTime}" />
                     <Button Command="{Binding ResetButtonsCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
+                </StackPanel>
+            </GroupBox>
+
+            <!-- Set once, like header and buttons. No "Reset to defaults": the default is no hotkey (D17), which is Clear. -->
+            <GroupBox x:Name="HotkeysSection" Header="Hotkeys" Style="{StaticResource SectionStyle}"
+                      d:DataContext="{d:DesignInstance vm:HotkeysViewModel}">
+                <StackPanel>
+                    <TextBlock Text="{x:Static vm:HotkeysViewModel.Hint}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                    <ContentControl Content="{Binding Lock, Mode=OneTime}" />
+                    <ContentControl Content="{Binding Overlay, Mode=OneTime}" />
                 </StackPanel>
             </GroupBox>
         </StackPanel>

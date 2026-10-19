@@ -13,6 +13,16 @@ public enum HotkeyModifiers : uint
     NoRepeat = 0x4000, // MOD_NOREPEAT: holding the keys fires once, not once per auto-repeat
 }
 
+/// <summary>What a hotkey does; the names in settings.json are toggleLock and toggleOverlay (D17).</summary>
+public enum HotkeyAction
+{
+    /// <summary>Switches the manual lock, like the padlock.</summary>
+    ToggleLock,
+
+    /// <summary>Hides the overlay and shows it again.</summary>
+    ToggleOverlay,
+}
+
 /// <summary>A key combination as RegisterHotKey takes it. Built by <see cref="HotkeyParser"/>.</summary>
 /// <param name="VirtualKey">Win32 virtual-key code.</param>
 public sealed record Hotkey(HotkeyModifiers Modifiers, uint VirtualKey)

@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using CargoPlan.App.Hotkeys;
 using CargoPlan.App.ViewModels;
 
 namespace CargoPlan.App;
@@ -14,17 +15,33 @@ public partial class SettingsWindow : Window
     // The colour picker that is open, if any: only one, a click elsewhere closes it (StaysOpen=False).
     private Popup? _openPicker;
 
+    private readonly HotkeysViewModel _hotkeys;
+
+    /// <param name="hotkeys">The Hotkeys section's own data context: hotkeys are no part of the look (D35).</param>
     /// <param name="owner">Must already be shown: Owner rejects a window that was never shown.</param>
-    public SettingsWindow(SettingsViewModel viewModel, OverlayViewModel overlay, Window owner)
+    public SettingsWindow(SettingsViewModel viewModel, HotkeysViewModel hotkeys, OverlayViewModel overlay, Window owner)
     {
         InitializeComponent();
         DataContext = viewModel;
+        _hotkeys = hotkeys;
+        HotkeysSection.DataContext = hotkeys;
         Owner = owner;
         OverlayWindow.HideWithOverlay(this, overlay);
 
         // A popup is a window of its own and stays when this one hides. Hidden means Star Citizen just took the cursor:
-        // the tractor-beam grab, and a colour pad left standing would catch exactly that click (T4.2c).
-        IsVisibleChanged += (_, _) => ClosePicker();
+        // the tractor-beam grab, and a colour pad left standing would catch exactly that click (T4.2c). A recording
+        // ends too, or our hotkeys would stay suspended in flight (D35).
+        IsVisibleChanged += (_, _) =>
+        {
+            ClosePicker();
+            CancelRecording();
+        };
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        CancelRecording();
+        base.OnClosed(e);
     }
 
     /// <summary>
@@ -50,6 +67,43 @@ public partial class SettingsWindow : Window
         }
 
         e.Handled = true;
+    }
+
+    /// <summary>
+    /// While a hotkey records, every key belongs to it: no Esc closing the window, no Space pressing the button. Esc
+    /// cancels; a modifier alone waits for the key after it.
+    /// </summary>
+    private void OnHotkeyKeyDown(object sender, KeyEventArgs e)
+    {
+        if (sender is not FrameworkElement { DataContext: HotkeyEditor { IsRecording: true } editor })
+        {
+            return;
+        }
+
+        e.Handled = true;
+        if (e.Key == Key.Escape)
+        {
+            editor.Cancel();
+        }
+        else if (RecordedKey.From(e.Key, e.SystemKey, Keyboard.Modifiers) is var (modifiers, virtualKey))
+        {
+            editor.Capture(modifiers, virtualKey);
+        }
+    }
+
+    // Clicked elsewhere, Alt+Tab, window hidden: the recording ends and our hotkeys come back.
+    private void OnHotkeyLostFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: HotkeyEditor editor })
+        {
+            editor.Cancel();
+        }
+    }
+
+    private void CancelRecording()
+    {
+        _hotkeys.Lock.Cancel();
+        _hotkeys.Overlay.Cancel();
     }
 
     private void OnPickerOpened(object? sender, EventArgs e) => _openPicker = (Popup?)sender;
