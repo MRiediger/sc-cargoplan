@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -16,41 +15,23 @@ public partial class MissionEditorWindow : Window
     private const string MissionFileFilter = "Mission files (*.json)|*.json|All files (*.*)|*.*";
 
     private readonly MissionEditorViewModel _viewModel;
-    private readonly OverlayViewModel _overlay;
 
     /// <param name="owner">Must already be shown: Owner rejects a window that was never shown.</param>
     public MissionEditorWindow(MissionEditorViewModel viewModel, OverlayViewModel overlay, Window owner)
     {
         InitializeComponent();
         _viewModel = viewModel;
-        _overlay = overlay;
         DataContext = viewModel;
         Owner = owner;
-        overlay.PropertyChanged += OnOverlayChanged;
+        OverlayWindow.HideWithOverlay(this, overlay);
         viewModel.Planned += OnPlanned;
     }
 
     protected override void OnClosed(EventArgs e)
     {
-        _overlay.PropertyChanged -= OnOverlayChanged;
         _viewModel.Planned -= OnPlanned;
         _viewModel.Detach();
         base.OnClosed(e);
-    }
-
-    /// <summary>
-    /// Hidden with the overlay (hotkey), and while Star Citizen has the mouse: as an owned window of the topmost overlay
-    /// the editor is topmost too and would catch the tractor-beam click (D11, D19). Shown again without activation,
-    /// because ShowActivated=False applies to every Show(), so the game keeps the focus.
-    /// Sources: https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-setwindowpos (owned windows of a
-    /// topmost window are topmost), dotnet/wpf Window.nCmdForShow (SW_SHOWNA on every show without ShowActivated).
-    /// </summary>
-    private void OnOverlayChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName is nameof(OverlayViewModel.IsOverlayHidden) or nameof(OverlayViewModel.IsAutoLocked))
-        {
-            OverlayWindow.ApplyHidden(this, _overlay.IsOverlayHidden || _overlay.IsAutoLocked);
-        }
     }
 
     /// <summary>The plan is in the overlay, the next step is loading in the game (D19).</summary>

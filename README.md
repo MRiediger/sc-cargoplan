@@ -51,13 +51,21 @@ Start with `--locked` to begin with the padlock locked.
 
 **Remembers where you put it:** drag the overlay next to your cargo grid and resize it once; position and size are saved right away, so they survive a restart and even a crash. They live in `%LocalAppData%\SC-CargoPlan\settings.json`. To reset the overlay to its default size and position, close it and delete that file (your hotkeys and look go with it). If you unplug a monitor, the overlay moves back onto the screens you have.
 
-**Your look:** background and its transparency, frames, text colours, the legend's font size, crate opacity, rack number colour and size, and a halo for reading over bright scenes are set in the same file, until the settings window arrives. So is where the legend stands (top or bottom; left, centre or right) and whether it shows the destination lines at all. Every key, its default and its range: [settings file format](docs/settings-format.md). The stop colours stay fixed: they are chosen to stay apart with colour blindness.
+**Your look:** the **gear** in the header, right next to the padlock, opens the settings window. Every change shows in the overlay at once and is saved, there is no OK or Cancel; each section has **Reset to defaults**. Tune it in the game, where you can see whether the legend reads over the hangar lights.
+
+- **Window:** background colour, and its slider is the overlay's transparency; frame colour and width.
+- **Legend:** text colour, text size (or the Windows text size), and a halo for reading over bright scenes.
+- **Legend layout:** where the legend stands (top or bottom; left, centre or right) and whether it shows the destination lines at all. A section of its own, so resetting the legend's colours doesn't move it.
+
+A colour is a hex code like `#141414` (the `#` is optional) plus a slider for its transparency; a code that isn't one turns the field red and changes nothing. The settings window hides with the overlay, like the editor, and opens next to it. Header, crate and button colours are still set in the file until the window gets them too. Every key, its default and its range: [settings file format](docs/settings-format.md). The stop colours stay fixed: they are chosen to stay apart with colour blindness.
+
+**Overlay unreadable?** If you turned the text and frame invisible, the gear is still there and still takes clicks: move the mouse to the right end of the header, just left of the padlock, until the tool tip "Settings" shows, and click. Or close the overlay and delete the `appearance` part from `settings.json`: the look goes back to the defaults, your position and hotkeys stay.
 
 ### Entering missions
 
 **This is the full loop:** accept your contracts, enter them in the editor, press **Plan**, load the racks as the overlay shows, tick each destination at its cargo lift. No terminal, no other tool.
 
-Open the editor with the **pencil** in the overlay's header (next to the padlock), or with **Open editor** while there is no plan. The pencil is hidden while the overlay is locked: planning needs a free cursor. The editor is a normal window, so it takes the focus while you type; afterwards click back into the game (or Alt+Tab).
+Open the editor with the **pencil** in the overlay's header (left of the gear), or with **Open editor** while there is no plan. The pencil is hidden while the overlay is locked: planning needs a free cursor. The editor is a normal window, so it takes the focus while you type; afterwards click back into the game (or Alt+Tab).
 
 - **One row per contract item, two numbers from the contract:** Destination, Commodity, **SCU** and **Max crate** (the "4 SCU or smaller" in the contract text). A contract with two commodities for the same destination is two rows with the same destination.
 - **The crates appear by themselves:** the **Crates** column shows how the freight elevator delivers them, the largest allowed crate first, the rest in smaller ones: 6 SCU at max 4 is `4+2`, 15 SCU at max 4 is `4+4+4+2+1`.
@@ -106,7 +114,7 @@ Both files are in `%LocalAppData%\SC-CargoPlan\` and are saved as soon as someth
 | `settings.json` | Overlay position and size, hotkeys, look ([format](docs/settings-format.md)) | Default size, position and look, no hotkeys. Your plan stays. |
 | `plan.json` | Your current plan: the missions you entered, which crate lies where in which rack, ticks ([format](docs/plan-format.md)). The editor opens with these missions. A plan file from an older version is converted when the overlay loads it and saved in the new format; your ticks stay. | The overlay starts without a plan. Your settings stay. |
 
-If a file can't be read, the overlay starts without it and says so in an amber line. A single setting out of range or a colour that isn't one is corrected on its own, named in that line, and the rest of `settings.json` applies. It doesn't overwrite the file: `settings.json` stays until you move the overlay, `plan.json` until you make a new plan.
+If a file can't be read, the overlay starts without it and says so in an amber line. A single setting out of range or a colour that isn't one is corrected on its own, named in that line, and the rest of `settings.json` applies. It doesn't overwrite the file: `settings.json` stays until you move the overlay or change a setting, `plan.json` until you make a new plan.
 
 ## Build
 

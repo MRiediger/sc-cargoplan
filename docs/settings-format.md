@@ -1,9 +1,10 @@
 # Settings file format
 
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
-the legend stands and the overlay's look. Position and size are saved whenever you move the overlay. Until
-the settings window arrives, you can set the rest by hand: close the overlay, edit the file, start the
-overlay again.
+the legend stands and the overlay's look. Position and size are saved whenever you move the overlay; the
+settings window (the gear in the header) saves what you change there. Header, crates and buttons are
+still set by hand until the settings window gets them, and so are the hotkeys: close the overlay, edit
+the file, start the overlay again.
 
 ## Example with every default
 
@@ -136,11 +137,11 @@ Ticking a destination off never moves the ship view, in any position.
 - **A colour that isn't one** (`"red"`, `"#12345"`) takes its default.
 - **A legend position that isn't one** (`"up"`, `"Bottom-Left"`) takes `bottom-left`.
 - In all these cases everything else in the file applies, and an amber line in the overlay names the value. The
-  file stays as it is until you move the overlay; then it is saved with the corrected values.
+  file stays as it is until you move the overlay or change a setting; then it is saved with the corrected values.
 - **A misspelt key** (`"fontsize"`), **a wrong type** (`"fontSize": "big"`), `null` for a colour or a file
   that isn't JSON makes the whole file unreadable: the overlay starts with defaults, no hotkeys, and says so.
-  It doesn't overwrite the file until you move the overlay. Fix the file before you move it, or your hotkeys
-  are gone.
+  It doesn't overwrite the file until you move the overlay or change a setting. Fix the file before that, or
+  your hotkeys are gone.
 
 ## Versions
 
@@ -149,6 +150,6 @@ Ticking a destination off never moves the ship view, in any position.
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
 | 2 | this version | plus `appearance`; `legend` came later as an optional part of version 2 |
 
-A version 1 file is read as it is, with the default look. The next save (moving the overlay) writes
+A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a
 version 2 file and starts with defaults.

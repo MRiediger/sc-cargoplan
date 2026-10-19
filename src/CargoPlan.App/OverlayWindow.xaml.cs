@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.App.ViewModels;
 using CargoPlan.App.Win32;
@@ -12,12 +13,15 @@ namespace CargoPlan.App;
 public partial class OverlayWindow : Window
 {
     private readonly OverlayViewModel _viewModel;
+    private readonly SettingsSession _settings;
     private MissionEditorWindow? _editor;
+    private SettingsWindow? _settingsWindow;
 
-    public OverlayWindow(OverlayViewModel viewModel)
+    public OverlayWindow(OverlayViewModel viewModel, SettingsSession settings)
     {
         InitializeComponent();
         _viewModel = viewModel;
+        _settings = settings;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
@@ -67,6 +71,25 @@ public partial class OverlayWindow : Window
         }
     }
 
+    /// <summary>
+    /// Editor and settings window follow <see cref="OverlayViewModel.AreToolWindowsHidden"/> (D19, D34). Shown again
+    /// without activation, because ShowActivated=False applies to every Show(), so the game keeps the focus.
+    /// Sources: https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-setwindowpos (owned windows of a
+    /// topmost window are topmost), dotnet/wpf Window.nCmdForShow (SW_SHOWNA on every show without ShowActivated).
+    /// </summary>
+    internal static void HideWithOverlay(Window toolWindow, OverlayViewModel viewModel)
+    {
+        PropertyChangedEventHandler onChanged = (_, e) =>
+        {
+            if (e.PropertyName == nameof(OverlayViewModel.AreToolWindowsHidden))
+            {
+                ApplyHidden(toolWindow, viewModel.AreToolWindowsHidden);
+            }
+        };
+        viewModel.PropertyChanged += onChanged;
+        toolWindow.Closed += (_, _) => viewModel.PropertyChanged -= onChanged;
+    }
+
     /// <summary>Locked = click-through, see <see cref="NativeMethods.SetClickThrough"/>.</summary>
     private void ApplyLock(bool locked)
     {
@@ -96,6 +119,36 @@ public partial class OverlayWindow : Window
         }
 
         _editor.Activate();
+    }
+
+    /// <summary>
+    /// Gear: one settings window at a time, a second click brings it to the front, like the editor. Opens next to the
+    /// overlay; the position is not saved (D34).
+    /// </summary>
+    private void OnOpenSettings(object sender, RoutedEventArgs e)
+    {
+        if (_settingsWindow is null)
+        {
+            // SystemFonts lives in WPF, so the window reads it and the view model stays WPF-free (D31).
+            var current = _settings.Current;
+            _settingsWindow = new SettingsWindow(
+                new SettingsViewModel(current.Appearance, current.Legend, SystemFonts.MessageFontSize, _settings.ChangeLook), _viewModel, this);
+
+            Rect screen = new(
+                SystemParameters.VirtualScreenLeft,
+                SystemParameters.VirtualScreenTop,
+                SystemParameters.VirtualScreenWidth,
+                SystemParameters.VirtualScreenHeight);
+            var position = SettingsWindowPlacement.NextTo(
+                new Rect(Left, Top, ActualWidth, ActualHeight), new Size(_settingsWindow.Width, _settingsWindow.Height), screen);
+            _settingsWindow.Left = position.X;
+            _settingsWindow.Top = position.Y;
+
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow.Show();
+        }
+
+        _settingsWindow.Activate();
     }
 
     /// <summary>

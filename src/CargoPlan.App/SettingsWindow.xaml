@@ -1,0 +1,166 @@
+<Window x:Class="CargoPlan.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:CargoPlan.App.ViewModels"
+        xmlns:st="clr-namespace:CargoPlan.App.Settings"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance vm:SettingsViewModel}"
+        Title="SC-CargoPlan settings"
+        Width="400" Height="640"
+        MinWidth="340" MinHeight="300"
+        Topmost="True"
+        ShowInTaskbar="True"
+        ShowActivated="False"
+        KeyDown="OnKeyDown">
+    <!-- The system look, not the overlay theme: whatever the player sets, this window stays readable, so nobody themes
+         away the tool to undo it (D34). Like the editor: owned by the overlay, so topmost with it; ShowActivated=False for
+         showing it again after the auto-lock, opening calls Activate(). No OK or Cancel: every change applies at once (D30). -->
+    <Window.Resources>
+        <!-- Slider limits are AppearanceRules' (x:Static), so nothing set here is ever corrected with a notice (D34). -->
+        <Style x:Key="ValueSliderStyle" TargetType="Slider">
+            <Setter Property="IsSnapToTickEnabled" Value="True" />
+            <Setter Property="TickFrequency" Value="1" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="ValueTextStyle" TargetType="TextBlock">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Margin" Value="6,0,0,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="Width" Value="110" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="RowStyle" TargetType="DockPanel">
+            <Setter Property="Margin" Value="0,3" />
+        </Style>
+        <Style x:Key="SectionStyle" TargetType="GroupBox">
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="Padding" Value="6" />
+        </Style>
+        <Style x:Key="ResetButtonStyle" TargetType="Button">
+            <Setter Property="Content" Value="Reset to defaults" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Margin" Value="0,6,0,0" />
+            <Setter Property="Padding" Value="8,2" />
+        </Style>
+
+        <!-- One colour: hex for the hue, slider for the alpha (= transparency), swatch on a checkerboard. An invalid hex
+             tints the field like an invalid editor row and changes nothing (the background, not the border: the system
+             template paints the border blue while the field has the focus). -->
+        <DataTemplate DataType="{x:Type vm:ColourField}">
+            <DockPanel>
+                <Border DockPanel.Dock="Right" Width="28" Height="20" Margin="6,0,0,0"
+                        Background="{StaticResource SwatchCheckerBrush}"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.ControlDarkBrushKey}}" BorderThickness="1">
+                    <!-- A string binds to Brush through BrushConverter, the target type's converter.
+                         Source: dotnet/wpf, PresentationFramework/MS/Internal/Data/DefaultValueConverter.cs -->
+                    <Rectangle Fill="{Binding Value}" />
+                </Border>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding AlphaPercent}" Style="{StaticResource ValueTextStyle}" />
+                <TextBox DockPanel.Dock="Left" Width="72" VerticalContentAlignment="Center"
+                         Text="{Binding Hex, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="{x:Static vm:ColourField.HexHint}">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsValid}" Value="False">
+                                    <Setter Property="Background" Value="{StaticResource InvalidRowBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+                <Slider Margin="6,0,0,0" Minimum="{Binding MinAlpha, Mode=OneTime}" Maximum="{x:Static vm:ColourField.MaxAlpha}"
+                        Value="{Binding Alpha}" Style="{StaticResource ValueSliderStyle}"
+                        ToolTip="Transparency: left is see-through, right is opaque" />
+            </DockPanel>
+        </DataTemplate>
+
+        <!-- A halo (D28): off keeps colour and size. -->
+        <DataTemplate DataType="{x:Type vm:HaloEditor}">
+            <StackPanel>
+                <CheckBox Content="Halo around the text" IsChecked="{Binding Enabled}" Margin="0,3" />
+                <StackPanel IsEnabled="{Binding Enabled}">
+                    <DockPanel Style="{StaticResource RowStyle}">
+                        <TextBlock Text="Halo colour" Style="{StaticResource LabelStyle}" />
+                        <ContentControl Content="{Binding Colour, Mode=OneTime}" />
+                    </DockPanel>
+                    <DockPanel Style="{StaticResource RowStyle}">
+                        <TextBlock Text="Halo size" Style="{StaticResource LabelStyle}" />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding Size}" Style="{StaticResource ValueTextStyle}" />
+                        <Slider Minimum="{x:Static st:AppearanceRules.MinHaloSize}" Maximum="{x:Static st:AppearanceRules.MaxHaloSize}"
+                                Value="{Binding Size}" Style="{StaticResource ValueSliderStyle}" />
+                    </DockPanel>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="8">
+            <GroupBox Header="Window" Style="{StaticResource SectionStyle}">
+                <StackPanel>
+                    <DockPanel Style="{StaticResource RowStyle}">
+                        <TextBlock Text="Background" Style="{StaticResource LabelStyle}" />
+                        <ContentControl Content="{Binding WindowBackground, Mode=OneTime}" />
+                    </DockPanel>
+                    <DockPanel Style="{StaticResource RowStyle}">
+                        <TextBlock Text="Border colour" Style="{StaticResource LabelStyle}" />
+                        <ContentControl Content="{Binding WindowBorderColor, Mode=OneTime}" />
+                    </DockPanel>
+                    <DockPanel Style="{StaticResource RowStyle}">
+                        <TextBlock Text="Border width" Style="{StaticResource LabelStyle}" />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding WindowBorderThickness}" Style="{StaticResource ValueTextStyle}" />
+                        <Slider Minimum="0" Maximum="{x:Static st:AppearanceRules.MaxBorderThickness}"
+                                Value="{Binding WindowBorderThickness}" Style="{StaticResource ValueSliderStyle}" />
+                    </DockPanel>
+                    <Button Command="{Binding ResetWindowCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Legend" Style="{StaticResource SectionStyle}">
+                <StackPanel>
+                    <DockPanel Style="{StaticResource RowStyle}">
+                        <TextBlock Text="Text colour" Style="{StaticResource LabelStyle}" />
+                        <ContentControl Content="{Binding LegendForeground, Mode=OneTime}" />
+                    </DockPanel>
+                    <CheckBox Content="Use Windows text size" IsChecked="{Binding UseWindowsFontSize}" Margin="0,3" />
+                    <DockPanel>
+                        <DockPanel.Style>
+                            <Style TargetType="DockPanel" BasedOn="{StaticResource RowStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding UseWindowsFontSize}" Value="True">
+                                        <Setter Property="IsEnabled" Value="False" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DockPanel.Style>
+                        <TextBlock Text="Text size" Style="{StaticResource LabelStyle}" />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding LegendFontSize}" Style="{StaticResource ValueTextStyle}" />
+                        <Slider Minimum="{x:Static st:AppearanceRules.MinFontSize}" Maximum="{x:Static st:AppearanceRules.MaxFontSize}"
+                                Value="{Binding LegendFontSize}" Style="{StaticResource ValueSliderStyle}" />
+                    </DockPanel>
+                    <ContentControl Content="{Binding LegendHalo, Mode=OneTime}" />
+                    <Button Command="{Binding ResetLegendCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}"
+                            ToolTip="Colour, size and halo; where the legend stands is reset below" />
+                </StackPanel>
+            </GroupBox>
+
+            <!-- Its own section (D33): resetting the legend's look must not move it. -->
+            <GroupBox Header="Legend layout" Style="{StaticResource SectionStyle}">
+                <StackPanel>
+                    <CheckBox Content="Show the destination lines" IsChecked="{Binding IsLegendVisible}" Margin="0,3"
+                              ToolTip="Off hides only the lines; hints and warnings stay" />
+                    <DockPanel Style="{StaticResource RowStyle}">
+                        <TextBlock Text="Position" Style="{StaticResource LabelStyle}" />
+                        <ComboBox ItemsSource="{Binding LegendPositions, Mode=OneTime}" SelectedItem="{Binding LegendPosition}" />
+                    </DockPanel>
+                    <Button Command="{Binding ResetLegendLayoutCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
+                </StackPanel>
+            </GroupBox>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

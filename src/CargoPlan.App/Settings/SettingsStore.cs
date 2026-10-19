@@ -52,16 +52,22 @@ public static class SettingsStore
 
             var (appearance, appearanceProblems) = AppearanceRules.Normalize(settings.Appearance);
             var (legend, legendProblems) = AppearanceRules.Normalize(settings.Legend);
-            string[] problems = [.. legendProblems, .. appearanceProblems];
             return (
                 settings with { SchemaVersion = SupportedSchemaVersion, Appearance = appearance, Legend = legend },
-                problems.Length == 0 ? null : string.Join(Environment.NewLine, problems.Select(p => $"settings.json: {p}")));
+                Corrections([.. legendProblems, .. appearanceProblems]));
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
             return (AppSettings.Default, Problem(path, ex.Message));
         }
     }
+
+    /// <summary>
+    /// The notice for values <see cref="AppearanceRules"/> corrected, one line each; null if none. Shared by loading and
+    /// the settings window, so a correction reads the same wherever it came from (D34).
+    /// </summary>
+    public static string? Corrections(IReadOnlyList<string> problems) =>
+        problems.Count == 0 ? null : string.Join(Environment.NewLine, problems.Select(p => $"settings.json: {p}"));
 
     /// <summary>Replaces the file in one step (<see cref="AtomicFile"/>).</summary>
     /// <exception cref="IOException">The file can't be written.</exception>
@@ -80,5 +86,5 @@ public static class SettingsStore
             .GetTypeInfo(typeof(AppSettings));
 
     private static string Problem(string path, string reason) =>
-        $"Settings not loaded, using defaults ({reason}). Moving the overlay overwrites {path}.";
+        $"Settings not loaded, using defaults ({reason}). Moving the overlay or changing a setting overwrites {path}.";
 }

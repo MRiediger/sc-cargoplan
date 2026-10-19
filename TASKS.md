@@ -412,14 +412,23 @@ Einstellbare Werte:
 
 **Akzeptanz:** alle sechs Positionen und „aus“ per settings.json; Abhaken und Legenden-Drag in jeder Position; Ansicht springt beim Abhaken nicht; Legende aus + kaputte settings.json → Notice sichtbar; Core unverändert.
 
-### [ ] T4.2 Zahnrad + Settings-Fenster
+### [x] T4.2a Zahnrad + Settings-Fenster (Window, Legend, Legend layout)
 **Warum:** settings.json von Hand zu bearbeiten schreckt Hauler ab (D17). Die Lesbarkeit über hellem und dunklem Hintergrund stellt man im Spiel ein, nicht im Texteditor.
-- Zahnrad in der Kopfzeile (Platz seit der T3.7-Notiz vorgesehen), verhält sich beim Lock wie der Stift: eine Regel für alle Kopfzeilen-Buttons
+**Präzisiert in der Planung:** Schnitt in T4.2a/T4.2b nach Abschnitten, jeder Teil für sich nutzbar; `SettingsSession` als einzige Besitzerin von `AppSettings` (Start und Live über dieselbe Apply-Methode, `ChangeLook` normalisiert wie das Laden und speichert entprellt, Bounds über die Session statt eigener Kopie im `OverlayBoundsSaver`); `SettingsViewModel` WPF-frei, liefert Appearance + Legend-Layout statt ganzem `AppSettings` (sonst veraltete Bounds); Farbe = Hex `#RRGGBB` + Alpha-Regler + Swatch, ungültig → Feld markiert (Hintergrund, weil der System-Rahmen bei Fokus blau wird), kein Apply, keine Notice; Reglergrenzen aus `AppearanceRules`; „Use Windows text size“ = `null`; Legend layout eigener Abschnitt mit eigenem Reset; Fenster im Systemlook, eine Instanz, Esc/X schließen, neben dem Overlay, Position nicht gespeichert; Zahnrad rechts neben dem Stift am Schloss; Rettungsweg Tooltip + README statt Code; kein Hotkey-Platzhalter. Präzisierung in der Planphase, ratifiziert durch Freigabe (D34).
+- Zahnrad in der Kopfzeile, verhält sich beim Lock wie der Stift: eine Regel für alle Kopfzeilen-Buttons
 - Settings-Fenster: aktivierbar, Topmost, bei Auto-Lock ausgeblendet wie der Editor (D19), eins gleichzeitig
-- Abschnitte Fenster / Legende / Kisten / Kopfzeile / Buttons mit den Werten oben
+- Abschnitte Window / Legend / Legend layout
 - Live-Vorschau: jede Änderung wirkt sofort und wird gespeichert, kein OK/Cancel (D30); „Reset to defaults“ pro Abschnitt
 
-**Akzeptanz:** jeden Wert im Fenster ändern → Overlay ändert sich sofort, Neustart behält ihn; Reset pro Abschnitt; Auto-Lock blendet das Fenster aus und wieder ein; Core unverändert.
+**Akzeptanz:** jeden Wert der drei Abschnitte im Fenster ändern → Overlay ändert sich sofort, Neustart behält ihn; Reset pro Abschnitt; Auto-Lock blendet das Fenster aus und wieder ein; Core unverändert.
+
+### [ ] T4.2b Settings-Fenster: Header, Crates, Buttons
+**Warum:** Der Rest der Werte aus T4.1 gehört ins selbe Fenster, sonst bleibt für Kopfzeile, Kisten und Buttons der Texteditor.
+- Abschnitte Header (Text colour, Halo), Crates (Fill/Edge alpha 0–255, Rack number colour, Rack number size 8–48, Halo/Umriss), Buttons (Background Alpha ≥ 1, Border colour/width, Corner radius, Halo) mit `ColourField`/`HaloEditor` aus T4.2a
+- „Reset to defaults“ pro Abschnitt, Tests nach dem Muster von T4.2a
+- README/settings-format: „still set in the file“ entfällt
+
+**Akzeptanz:** jeden Wert der drei Abschnitte im Fenster ändern → Overlay ändert sich sofort, Neustart behält ihn; Reset pro Abschnitt; Core unverändert.
 
 ### [ ] T4.4 Hotkey-Aufnahme
 **Warum:** Hotkeys sind seit T3.7 nur über settings.json setzbar (D17). Tasten drücken ist schneller als tippen, und ein Tippfehler macht die ganze Datei ungültig.

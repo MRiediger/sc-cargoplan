@@ -95,7 +95,15 @@
                  Height and right margin keep clear of the lock window (36 px at 4 px inset, LockWindowPlacement). -->
             <!-- "All stops delivered." sits here, not in the legend: the header's fixed height keeps the ship view still (D16). -->
             <DockPanel DockPanel.Dock="Top" Height="30" Margin="0,0,30,0">
-                <!-- Opens the mission editor, next to the padlock. Locked it is hidden but keeps its space (T3.7 notes):
+                <!-- Opens the settings window, next to the padlock: window controls right, plan controls left of it (D34).
+                     Hidden while locked like every header button. Over an invisible theme the system tool tip still finds
+                     it: the button background keeps alpha 1, so it takes the hover (README, "Overlay unreadable?"). -->
+                <Button DockPanel.Dock="Right" ToolTip="Settings" Click="OnOpenSettings" Style="{StaticResource HeaderButtonStyle}">
+                    <!-- E713 Setting. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                    <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                               Foreground="{DynamicResource HeaderForegroundBrush}" />
+                </Button>
+                <!-- Opens the mission editor, left of the gear. Locked it is hidden but keeps its space (T3.7 notes):
                      planning is a step with a free cursor, and a locked overlay is click-through anyway. -->
                 <Button DockPanel.Dock="Right" ToolTip="Enter missions" Click="OnOpenEditor" Style="{StaticResource HeaderButtonStyle}">
                     <!-- E70F Edit. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->

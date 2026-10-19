@@ -80,6 +80,7 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     /// <summary>Set by the cursor state monitor while Star Citizen has the mouse (T3.3).</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLocked))]
+    [NotifyPropertyChangedFor(nameof(AreToolWindowsHidden))]
     public partial bool IsAutoLocked { get; set; }
 
     /// <summary>
@@ -134,7 +135,15 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 
     /// <summary>Both windows hide while true. Hiding resets nothing: position, zoom, orbit and lock stay as they are.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AreToolWindowsHidden))]
     public partial bool IsOverlayHidden { get; set; }
+
+    /// <summary>
+    /// Editor and settings window hide with the overlay, and while Star Citizen has the mouse: owned by the topmost overlay
+    /// they are topmost too and would catch the tractor-beam click (D11, D19). Not with the manual lock: that is the
+    /// player's choice with a free cursor.
+    /// </summary>
+    public bool AreToolWindowsHidden => IsOverlayHidden || IsAutoLocked;
 
     /// <summary>
     /// false hides the legend's stop lines; hints, warnings and notices stay (D33). Bound by the window, so the settings

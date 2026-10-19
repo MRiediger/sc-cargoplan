@@ -51,6 +51,39 @@ public class OverlayViewModelTests
         viewModel.IsLocked.Should().Be(expected);
     }
 
+    [Theory]
+    [InlineData(false, false, false)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    public void Tool_windows_hide_with_the_overlay_and_while_auto_locked(bool hidden, bool autoLocked, bool expected)
+    {
+        var viewModel = WithPlan();
+
+        viewModel.IsOverlayHidden = hidden;
+        viewModel.IsAutoLocked = autoLocked;
+
+        viewModel.AreToolWindowsHidden.Should().Be(expected);
+    }
+
+    [Fact]
+    public void Tool_windows_hide_without_the_manual_lock()
+    {
+        var viewModel = WithPlan();
+
+        viewModel.IsManuallyLocked = true;
+
+        viewModel.AreToolWindowsHidden.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Hiding_and_auto_lock_raise_PropertyChanged_for_the_tool_windows()
+    {
+        var viewModel = WithPlan();
+
+        Changes(viewModel, () => viewModel.IsOverlayHidden = true).Should().Contain(nameof(OverlayViewModel.AreToolWindowsHidden));
+        Changes(viewModel, () => viewModel.IsAutoLocked = true).Should().Contain(nameof(OverlayViewModel.AreToolWindowsHidden));
+    }
+
     [Fact]
     public void IsManuallyLocked_raises_PropertyChanged_for_IsLocked_so_the_window_can_switch_click_through()
     {

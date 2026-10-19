@@ -2,7 +2,6 @@
 using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Plans;
 using CargoPlan.App.Settings;
-using CargoPlan.App.Theme;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Plans;
@@ -37,26 +36,24 @@ public partial class App : Application
         var options = StartOptions.Parse(e.Args);
         var (settings, settingsProblem) = SettingsStore.Load(SettingsStore.DefaultPath);
 
-        // Before any window: their DynamicResources find the theme from the first layout on.
-        ThemeResources.Apply(Resources, settings.Appearance);
-
         var ship = ShipLoader.Load(ShipId);
-        var viewModel = new OverlayViewModel(ship)
-        {
-            IsManuallyLocked = options.Locked,
-            IsLegendVisible = settings.Legend.Visible,
-            LegendPosition = LegendPosition.Parse(settings.Legend.Position),
-        };
+        var viewModel = new OverlayViewModel(ship) { IsManuallyLocked = options.Locked };
         viewModel.SetNotice(NoticeSource.Settings, settingsProblem);
 
+        // Before any window: their DynamicResources find the theme from the first layout on. The settings window
+        // changes the look through the same session (D34).
+        var session = new SettingsSession(Resources, viewModel, SettingsStore.DefaultPath, settings);
+
         // Bounds before Show(), so the window appears in place instead of jumping there.
-        var overlay = new OverlayWindow(viewModel);
+        var overlay = new OverlayWindow(viewModel, session);
         if (settings.Overlay is { } saved)
         {
             RestoreBounds(overlay, saved);
         }
 
-        _boundsSaver = new OverlayBoundsSaver(overlay, viewModel, SettingsStore.DefaultPath, settings);
+        // The saver's Closed handler goes first and hands over pending bounds; Flush then writes a pending look change.
+        _boundsSaver = new OverlayBoundsSaver(overlay, session);
+        overlay.Closed += (_, _) => session.Flush();
 
         // Before Show(): SourceInitialized, where the hotkeys get registered, is raised inside Show().
         _hotkeys = new HotkeyService(overlay, settings.Hotkeys, viewModel);
