@@ -11,10 +11,10 @@ namespace CargoPlan.App.ShipView;
 
 /// <summary>
 /// Paints a <see cref="ShipScene"/> as <see cref="SceneProjector"/> projects it for the current camera: frame, rack
-/// edges, the cells of all racks back to front, red and cyan edges, rack numbers on top. Only redraws when the scene, the size, the camera, zoom or pan change; no
+/// edges, the boxes of each rack back to front, red and cyan edges, rack numbers on top. Only redraws when the scene, the size, the camera, zoom or pan change; no
 /// timer, no animation (D14). Mouse (rules in <see cref="DragGesture"/>): left drag turns and tilts the camera, a click
 /// on cargo ticks its stop off or back (D16), right drag on cargo moves it to another rack (D20), right drag elsewhere
-/// pans, wheel zooms around the cursor, double-click on free or empty space resets, hover shows the placement. Left
+/// pans, wheel zooms around the cursor, double-click on free or empty space resets, hover shows the crate. Left
 /// clicks are handled here, so the window's DragMove only works outside the view (D15).
 /// </summary>
 public sealed class ShipViewControl : FrameworkElement
@@ -57,7 +57,7 @@ public sealed class ShipViewControl : FrameworkElement
         typeof(ICommand),
         typeof(ShipViewControl));
 
-    // Opened by hand instead of ToolTipService: the text changes with the cell under the cursor.
+    // Opened by hand instead of ToolTipService: the text changes with the crate under the cursor.
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/controls/how-to-position-a-tooltip
     private readonly ToolTip _toolTip;
 
@@ -136,18 +136,18 @@ public sealed class ShipViewControl : FrameworkElement
             DrawEdges(dc, rack, RackPen, transform);
         }
 
-        // All cells of all racks back to front, so the cells in front cover the ones behind, across racks too.
-        foreach (var cell in scene.Cells)
+        // Rack by rack back to front, each rack's boxes back to front: the boxes in front cover the ones behind (D21).
+        foreach (var box in scene.Racks.SelectMany(r => r.Boxes))
         {
             // Value equality: an equal twin fades too; MovePlacement moves either, they are interchangeable.
-            var fade = dragged is not null && cell.Cell.Placement == dragged;
+            var fade = dragged is not null && box.Box.Placement == dragged;
             if (fade)
             {
                 dc.PushOpacity(DraggedOpacity);
             }
 
-            var (fill, pen) = cell.Cell.Fill == CellFill.Free ? (null, FreeCellPen) : (Fill(cell.Cell), CellPen);
-            foreach (var face in cell.Faces)
+            var (fill, pen) = box.Box.Fill == CellFill.Free ? (null, FreeCellPen) : (Fill(box.Box), CellPen);
+            foreach (var face in box.Faces)
             {
                 dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
             }
@@ -403,8 +403,8 @@ public sealed class ShipViewControl : FrameworkElement
     }
 
     /// <summary>Cargo only; free cells have no fill.</summary>
-    private static Brush Fill(SceneCell cell) =>
-        cell.Fill == CellFill.Delivered ? MissionPalette.DeliveredBrush : MissionPalette.Brush(cell.PaletteIndex!.Value);
+    private static Brush Fill(SceneBox box) =>
+        box.Fill == CellFill.Delivered ? MissionPalette.DeliveredBrush : MissionPalette.Brush(box.PaletteIndex!.Value);
 
     // StreamGeometry: the lightweight geometry for drawing only, frozen after filling.
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.media.streamgeometrycontext

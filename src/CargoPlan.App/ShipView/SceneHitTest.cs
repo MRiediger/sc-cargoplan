@@ -3,33 +3,44 @@ using CargoPlan.Core.Models;
 
 namespace CargoPlan.App.ShipView;
 
-/// <summary>What lies on top at a point: the rack, and its placement there; <paramref name="Placement"/> is null on a free cell.</summary>
-public sealed record SceneHit(string RackId, Placement? Placement);
+/// <summary>
+/// What lies on top at a point: the rack, its placement and crate there. <paramref name="Placement"/> is null on a free
+/// cell, <paramref name="Crate"/> too and in an overloaded rack.
+/// </summary>
+public sealed record SceneHit(string RackId, Placement? Placement, CrateId? Crate);
 
 /// <summary>What lies under a point of the scene, front to back. Pure geometry, so it is testable without a window.</summary>
 public static class SceneHitTest
 {
-    /// <summary>The tool tip of the cargo on top at <paramref name="point"/> (projected units); see <see cref="CellAt"/>.</summary>
-    public static string? ToolTipAt(ProjectedScene scene, Point point) => CellAt(scene, point)?.Cell.ToolTip;
+    /// <summary>The tool tip of the cargo on top at <paramref name="point"/> (projected units); see <see cref="BoxAt"/>.</summary>
+    public static string? ToolTipAt(ProjectedScene scene, Point point) => BoxAt(scene, point)?.Box.ToolTip;
 
     /// <summary>The stop whose cargo lies on top at <paramref name="point"/>, delivered or not; null on free or empty space.</summary>
     public static string? DestinationAt(ProjectedScene scene, Point point) => PlacementAt(scene, point)?.Destination;
 
     /// <summary>The placement on top at <paramref name="point"/>, delivered or not; null on free or empty space.</summary>
-    public static Placement? PlacementAt(ProjectedScene scene, Point point) => CellAt(scene, point)?.Cell.Placement;
+    public static Placement? PlacementAt(ProjectedScene scene, Point point) => BoxAt(scene, point)?.Box.Placement;
 
     /// <summary>
-    /// The topmost rack at <paramref name="point"/> with its placement there; null off the racks. Any face of the rack
-    /// counts, free cells and the gaps between cells too: a drop onto them is a drop onto the rack (D20).
+    /// The topmost rack at <paramref name="point"/> with its placement and crate there; null off the racks. Any face of
+    /// the rack counts, free cells and the gaps between boxes too: a drop onto them is a drop onto the rack (D20).
     /// </summary>
-    public static SceneHit? HitAt(ProjectedScene scene, Point point) =>
-        RackAt(scene, point) is { } rack ? new SceneHit(rack.RackId, CargoCellOf(rack, point)?.Cell.Placement) : null;
+    public static SceneHit? HitAt(ProjectedScene scene, Point point)
+    {
+        if (RackAt(scene, point) is not { } rack)
+        {
+            return null;
+        }
+
+        var box = CargoBoxOf(rack, point)?.Box;
+        return new SceneHit(rack.RackId, box?.Placement, box?.Crate);
+    }
 
     /// <summary>
-    /// The cargo cell on top at <paramref name="point"/> (projected units), delivered or not. The first rack hit
+    /// The cargo box on top at <paramref name="point"/> (projected units), delivered or not. The first rack hit
     /// decides, even on its free cells: it covers whatever lies behind it.
     /// </summary>
-    public static ProjectedCell? CellAt(ProjectedScene scene, Point point) => RackAt(scene, point) is { } rack ? CargoCellOf(rack, point) : null;
+    public static ProjectedBox? BoxAt(ProjectedScene scene, Point point) => RackAt(scene, point) is { } rack ? CargoBoxOf(rack, point) : null;
 
     /// <summary>Even-odd rule: a ray from the point crosses the outline an odd number of times if the point is inside.</summary>
     public static bool Contains(IReadOnlyList<Point> polygon, Point point)
@@ -63,18 +74,18 @@ public static class SceneHitTest
     }
 
     /// <summary>
-    /// The rack's frontmost cell with cargo at the point. Free cells are drawn as outlines only, so the cargo of the
+    /// The rack's frontmost box with cargo at the point. Free cells are drawn as outlines only, so the cargo of the
     /// same rack behind them shows and answers (D21).
     /// </summary>
-    private static ProjectedCell? CargoCellOf(ProjectedRack rack, Point point)
+    private static ProjectedBox? CargoBoxOf(ProjectedRack rack, Point point)
     {
-        // Cells are back to front, so walk them backwards.
-        for (var i = rack.Cells.Count - 1; i >= 0; i--)
+        // Boxes are back to front, so walk them backwards.
+        for (var i = rack.Boxes.Count - 1; i >= 0; i--)
         {
-            var cell = rack.Cells[i];
-            if (cell.Cell.Fill != CellFill.Free && cell.Faces.Any(face => Contains(face.Polygon, point)))
+            var box = rack.Boxes[i];
+            if (box.Box.Fill != CellFill.Free && box.Faces.Any(face => Contains(face.Polygon, point)))
             {
-                return cell;
+                return box;
             }
         }
 

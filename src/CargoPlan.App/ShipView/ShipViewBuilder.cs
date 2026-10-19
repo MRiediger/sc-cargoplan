@@ -49,29 +49,43 @@ public static class ShipViewBuilder
     {
         var origin = rack.Origin;
 
-        SceneCell[] cells = [.. RackCells.Build(rack, placements, fillOrder).Select(cell =>
+        // One box per block; GroupBy keeps the order of first appearance, the fill order of each box's first cell.
+        SceneBox[] boxes = [.. RackCells.Build(rack, placements, fillOrder, isViolated).GroupBy(c => c.Block).Select(block =>
         {
+            var cell = block.First();
             var (fill, index, toolTip) = cell.Placement switch
             {
                 null => (CellFill.Free, (int?)null, (string?)null),
-                var p => (p.Delivered ? CellFill.Delivered : CellFill.Mission, palette[p.Destination], ToolTip(rack, p)),
+                var p => (p.Delivered ? CellFill.Delivered : CellFill.Mission, palette[p.Destination], ToolTip(rack, placements, p, cell.Crate)),
             };
 
-            // Grid axes are the ship axes (D14): length along x, width along y, stack along z.
-            ShipPoint min = new(origin.X + cell.Length, origin.Y + cell.Width, origin.Z + cell.Stack);
-            return new SceneCell(new ShipBox(min, new ShipPoint(min.X + 1, min.Y + 1, min.Z + 1)), fill, index, toolTip, cell.Placement);
+            return new SceneBox(ToShip(origin, block.Key), fill, index, toolTip, cell.Placement, cell.Crate);
         })];
 
-        return new SceneRack(rack.Id, rack.Number, isViolated, rack.Bounds, cells);
+        return new SceneRack(rack.Id, rack.Number, isViolated, rack.Bounds, boxes);
     }
 
-    /// <summary>"Rack 1 · port upper · 16 SCU Titanium (4×4)": crate count × crate size, as in the text renderer.</summary>
-    private static string ToolTip(Rack rack, Placement placement)
+    /// <summary>Grid axes are the ship axes (D14): length along x, width along y, stack along z.</summary>
+    private static ShipBox ToShip(ShipPoint origin, GridBox box)
+    {
+        ShipPoint min = new(origin.X + box.Length, origin.Y + box.Width, origin.Z + box.Stack);
+        return new ShipBox(min, new ShipPoint(min.X + box.Size.Length, min.Y + box.Size.Width, min.Z + box.Size.Stack));
+    }
+
+    /// <summary>
+    /// "Shubin · Rack 2 · port lower · 8 SCU Agricium crate (1 of 1)"; equal placements in the rack count together, like
+    /// their crate numbers. Without a crate (an overloaded rack) the placement: "Rack 1 · port upper · 16 SCU Titanium (4×4)",
+    /// crate count × crate size, as in the text renderer.
+    /// </summary>
+    private static string ToolTip(Rack rack, IReadOnlyList<Placement> placements, Placement placement, CrateId? crate)
     {
         var item = placement.Item;
         var crateScu = (int)item.CrateSize;
         var position = $"{rack.Position.Side} {rack.Position.Level}".ToLowerInvariant();
-        var text = Invariant($"Rack {rack.Number} · {position} · {item.Scu} SCU {item.Commodity} ({item.Scu / crateScu}×{crateScu})");
+        var text = crate is null
+            ? Invariant($"Rack {rack.Number} · {position} · {item.Scu} SCU {item.Commodity} ({item.Scu / crateScu}×{crateScu})")
+            : Invariant($"{placement.Destination} · Rack {rack.Number} · {position} · {crateScu} SCU {item.Commodity} crate ({crate.Number} of {placements.Where(p => p == placement).Sum(p => p.Item.Scu) / crateScu})");
         return placement.Delivered ? text + " (delivered)" : text;
     }
+
 }

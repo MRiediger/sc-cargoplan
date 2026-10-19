@@ -16,7 +16,7 @@ public class SceneHitTestTests
     private static readonly ShipScene Scene = BuildSample();
     private static readonly ProjectedScene Projected = SceneProjector.Project(Scene, Default);
 
-    // Rack 1 (Riker Titanium, full), top layer.
+    // Rack 1 (Riker Titanium, four 4 SCU crates), top layer: crate 3 at the bow end.
     private static readonly Point Rack1Top = Default.Project(2.5, 1.5, 5);
 
     // Rack 3 (Orison 14/16), top layer, outer row, aft end: free.
@@ -42,9 +42,21 @@ public class SceneHitTestTests
     }
 
     [Fact]
-    public void Tool_tip_names_rack_position_and_cargo()
+    public void Tool_tip_names_stop_rack_position_and_crate()
     {
-        SceneHitTest.ToolTipAt(Projected, Rack1Top).Should().Be("Rack 1 · port upper · 16 SCU Titanium (4×4)");
+        SceneHitTest.ToolTipAt(Projected, Rack1Top).Should().Be("Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4)");
+    }
+
+    [Fact]
+    public void An_overloaded_rack_names_the_placement_not_a_crate()
+    {
+        // Shubin onto the full Rack 1: its cells are shares, not crates.
+        var (ship, plan) = TestPlans.Load();
+        var moved = LoadPlanner.MovePlacement(plan, ship, plan.Placements.Single(p => p.Destination == "Shubin"), "rack-0");
+        var projected = SceneProjector.Project(Build(moved, ship), Default);
+
+        SceneHitTest.ToolTipAt(projected, Rack1Top).Should().Be("Rack 1 · port upper · 16 SCU Titanium (4×4)");
+        SceneHitTest.HitAt(projected, Rack1Top)!.Crate.Should().BeNull();
     }
 
     [Fact]
@@ -53,7 +65,7 @@ public class SceneHitTestTests
         // (2, 0, 3.5) lies on Rack 3's port face, hidden behind Rack 1: same screen point as (3.5, 1.5, 5) on Rack 1's top.
         var point = Default.Project(2, 0, 3.5);
 
-        SceneHitTest.ToolTipAt(Projected, point).Should().StartWith("Rack 1 ·");
+        SceneHitTest.ToolTipAt(Projected, point).Should().StartWith("Riker · Rack 1 ·");
     }
 
     [Fact]
@@ -75,7 +87,7 @@ public class SceneHitTestTests
         var delivered = plan with { Placements = [.. plan.Placements.Select(p => p with { Delivered = true })] };
         var projected = SceneProjector.Project(ShipViewBuilder.Build(delivered, ship, [], FillOrder.BowFirst), Default);
 
-        SceneHitTest.ToolTipAt(projected, Rack1Top).Should().Be("Rack 1 · port upper · 16 SCU Titanium (4×4) (delivered)");
+        SceneHitTest.ToolTipAt(projected, Rack1Top).Should().Be("Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4) (delivered)");
     }
 
     [Fact]
@@ -110,15 +122,16 @@ public class SceneHitTestTests
     [Fact]
     public void Cargo_seen_through_a_free_cell_of_the_same_rack_answers()
     {
-        // Rack 2's outer top row is free; through its outline the top row next to the spindle shows: Shubin.
-        SceneHitTest.DestinationAt(Projected, Default.Project(2.5, 2.5, 2)).Should().Be("Shubin");
+        // Rack 2's top layer is free at the aft half; through its outline Riker's Quartz crate below shows, one cell
+        // along the view direction (1, 1, 1) at (0.8, 1.8, 1).
+        SceneHitTest.DestinationAt(Projected, Default.Project(1.8, 2.8, 2)).Should().Be("Riker");
     }
 
     [Fact]
-    public void A_gap_between_cells_shows_the_cell_behind()
+    public void A_gap_between_crates_shows_the_crate_behind()
     {
-        // x = 3 is the joint between two top cells of Rack 1; the cell below the joint shows through.
-        SceneHitTest.DestinationAt(Projected, Default.Project(3, 1.5, 5)).Should().Be("Riker");
+        // x = 2 is the joint between two top crates of Rack 1; the crate below the joint shows through.
+        SceneHitTest.DestinationAt(Projected, Default.Project(2, 1.5, 5)).Should().Be("Riker");
     }
 
     [Fact]
@@ -127,7 +140,7 @@ public class SceneHitTestTests
         var (_, plan) = TestPlans.Load();
         var titanium = plan.Placements.Single(p => p.Item.Commodity == "Titanium");
 
-        SceneHitTest.HitAt(Projected, Rack1Top).Should().Be(new SceneHit("rack-0", titanium));
+        SceneHitTest.HitAt(Projected, Rack1Top).Should().Be(new SceneHit("rack-0", titanium, new CrateId(titanium, 3)));
         SceneHitTest.PlacementAt(Projected, Rack1Top).Should().Be(titanium);
     }
 
@@ -135,7 +148,7 @@ public class SceneHitTestTests
     public void Hit_on_a_free_cell_names_the_rack_without_a_placement()
     {
         // A drop target: free cells belong to their rack.
-        SceneHitTest.HitAt(Projected, Rack3Free).Should().Be(new SceneHit("rack-2", null));
+        SceneHitTest.HitAt(Projected, Rack3Free).Should().Be(new SceneHit("rack-2", null, null));
         SceneHitTest.PlacementAt(Projected, Rack3Free).Should().BeNull();
     }
 
@@ -143,7 +156,7 @@ public class SceneHitTestTests
     public void Hit_on_a_gap_between_free_cells_still_names_the_rack()
     {
         // x = 1: the joint between the two free cells of Rack 3, nothing behind it.
-        SceneHitTest.HitAt(Projected, Default.Project(1, -1.5, 5)).Should().Be(new SceneHit("rack-2", null));
+        SceneHitTest.HitAt(Projected, Default.Project(1, -1.5, 5)).Should().Be(new SceneHit("rack-2", null, null));
     }
 
     [Fact]
@@ -161,25 +174,26 @@ public class SceneHitTestTests
     [Fact]
     public void From_below_the_bottom_layer_answers()
     {
-        // Rack 2's bottom layer: Riker's Quartz next to the spindle, Shubin's Agricium in the outer row.
+        // Rack 2's bottom layer: Shubin's Agricium at the bow half, Riker's Quartz crates at the aft half, one per row.
         var below = new IsoProjection(IsoProjection.DefaultYaw, -IsoProjection.DefaultPitch);
         var projected = SceneProjector.Project(Scene, below);
 
-        SceneHitTest.ToolTipAt(projected, below.Project(2.5, 2.5, 0)).Should().Be("Rack 2 · port lower · 8 SCU Agricium (1×8)");
-        SceneHitTest.ToolTipAt(projected, below.Project(2.5, 1.5, 0)).Should().Be("Rack 2 · port lower · 4 SCU Quartz (2×2)");
+        SceneHitTest.ToolTipAt(projected, below.Project(2.5, 2.5, 0)).Should().Be("Shubin · Rack 2 · port lower · 8 SCU Agricium crate (1 of 1)");
+        SceneHitTest.ToolTipAt(projected, below.Project(1, 1.5, 0)).Should().Be("Riker · Rack 2 · port lower · 2 SCU Quartz crate (1 of 2)");
+        SceneHitTest.ToolTipAt(projected, below.Project(1, 2.5, 0)).Should().Be("Riker · Rack 2 · port lower · 2 SCU Quartz crate (2 of 2)");
     }
 
     [Fact]
     public void Right_drag_from_a_cell_onto_another_rack_moves_its_placement()
     {
-        // Riker's Quartz in Rack 2 shows on the bow face, bottom layer next to the spindle.
+        // Shubin's crate in Rack 2 shows on the bow face, bottom layer next to the spindle.
         var (_, plan) = TestPlans.Load();
-        var quartz = plan.Placements.Single(p => p.Item.Commodity == "Quartz");
+        var shubin = plan.Placements.Single(p => p.Destination == "Shubin");
         var down = SceneHitTest.HitAt(Projected, Default.Project(4, 1.5, 0.5));
 
         var gesture = DragGesture.Resolve(MouseButton.Right, down, moved: true, SceneHitTest.HitAt(Projected, Rack1Top));
 
-        down.Should().Be(new SceneHit("rack-1", quartz));
-        gesture.Should().Be(new Gesture.Move(quartz, "rack-0"));
+        down.Should().Be(new SceneHit("rack-1", shubin, new CrateId(shubin, 1)));
+        gesture.Should().Be(new Gesture.Move(shubin, "rack-0"));
     }
 }

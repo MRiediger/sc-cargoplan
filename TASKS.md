@@ -281,8 +281,9 @@ T3.11 ist dreigeteilt: a = Core, b = Kisten in der Ansicht, c = Auswahl und Gest
 
 **Akzeptanz:** `dotnet test` grün (Teilen 8→6+2, Merge, Rest 0, kein Vielfaches, mehrere Moves, Delivered, MoveStop eines Splits = ein Placement, SavedPlan nach Split + Merge); CLI-Ausgabe der Fixtures byte-gleich.
 
-### [ ] T3.11b Kisten in der Schiffsansicht
+### [x] T3.11b Kisten in der Schiffsansicht
 **Warum:** Kisten verschiebt man nur, wenn man sie sieht.
+**Präzisiert in der Planung:** Blöcke in derselben Füllreihenfolge wie die Zellen (Ebene außen, Reihe ab Mittellinie, Length in Füllrichtung), Stapelachse bleibt z (D14); Block-Code kennt nur Grid-Positionen und ihren Rang, ein Wechsel der Stapelachse (Backlog `orientation`) ändert nur `Positions` und die Grid→Schiff-Abbildung; größte Kiste zuerst, bei gleicher Größe Plan-Reihenfolge (sonst fällt der Hull A bei Riker 4+4 + Shubin 8 in den Fallback); First-Fit = früheste erste Zelle, Tie früheste letzte; `CrateId(Placement, Number)` als Wert, stabil über Neuaufbau und Orbit, Planer-Zwillinge zählen weiter; Tooltip mit Ware und Position (`Shubin · Rack 2 · port lower · 8 SCU Agricium crate (1 of 1)`, abgeliefert + ` (delivered)`); `SceneHit(RackId, Placement?, CrateId?)`; rotes Rack ohne Blöcke, Überladung anteilig ohne Kisten-Id mit altem Placement-Tooltip, Formverstoß ohne Überladung zellweise mit Ids; Fallback pro Placement als Ganzes, getestet über ein künstliches 3×2×2-Rack; **Kiste = eigener Quader** (`SceneBox`, Inset 0,05 ringsum wie die Zelle, drei Flächen, keine Innenkanten), freie Zellen Einzelwürfel, keine Tönung; **Trennachsen-Painter** (D15-Backlog gezogen): Paare mit überlappendem Bildrechteck (Sweep über Bild-x), Richtung aus der Trennachse (`DrawOrder.Compare`, widersprechende Achsen = keine Kante), Kahn ab der Mittelpunkt-Tiefe-Reihenfolge, Zyklus → Mittelpunkt-Tiefe + `Debug.WriteLine`; derselbe Painter für die Racks, gezeichnet Rack für Rack; Painter geprüft mit unabhängigem Strahl-Orakel aus vier Kamerawinkeln, Zyklus mit Windrad; 1.000-Kisten-Test (1er) < 50 ms; verworfen nach Vergleichsbild: Zellen mit Innenkanten-Logik (Haarlinien) und zwei Tönungen pro Farbe; Entscheidung als D21-Addendum, D23 bleibt für c; `CrateMove`/`MoveCrates` erst in c; Core unverändert. Präzisierung in der Planphase, ratifiziert durch Freigabe (D21).
 - `RackCells.Build` liefert pro Zelle eine Kisten-Id (Placement + laufende Nummer), Blockform aus `CrateSize` (D9), gelegt in Füllreihenfolge; passt ein Block nicht mehr → zellweise für dieses Placement
 - Fuge nur zwischen Kisten, Tooltip pro Kiste (`Shubin · Rack 2 · 2 SCU crate (1 of 4)`)
 - Hit-Test liefert die Kiste (`SceneHit` mit `CrateId?`); Überladung bleibt zellweise anteilig
@@ -376,7 +377,6 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).
 - Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).
 - Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).
-- Painter per Trennachse + topologische Sortierung, sobald ein Schiff mit ungleich großen Racks falsch gezeichnet wird (D15).
 - Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).
 - Orbit-Snap auf feste Winkel (z. B. 45°-Raster per Taste), falls freies Drehen schwer wiederholbar ist (D15).
 - Hotkey-Aufnahme-UI (Tasten drücken statt tippen) und damit das Zahnrad in der Kopfzeile, sobald settings.json-Editieren Nutzer abschreckt (D17).

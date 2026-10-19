@@ -4,7 +4,7 @@ using CargoPlan.Core.Models;
 namespace CargoPlan.App.ShipView;
 
 /// <summary>
-/// Projects a <see cref="ShipScene"/> for one camera: visible faces of racks and cells, rack numbers and frame.
+/// Projects a <see cref="ShipScene"/> for one camera: visible faces of racks and their boxes, rack numbers and frame.
 /// Pure and cheap, so the view reprojects on every orbit step instead of the view model rebuilding the scene (D15).
 /// </summary>
 public static class SceneProjector
@@ -15,8 +15,9 @@ public static class SceneProjector
     // Same rounding as DrawOrder: faces of equal projected area stay equal, so ties fall to the order below.
     private const int AreaDecimals = 9;
 
-    // Drawn size of a cell: the gap between neighbours shows the grid (D21).
+    // Drawn size of a cell: every box is this much smaller all round, so the gap between boxes is the same everywhere (D21).
     private const double CellSize = 0.9;
+    private const double Inset = (1 - CellSize) / 2;
 
     // Also the preference on equal area: top or bottom first, then the sides, then the ends.
     private static readonly BoxFace[] AllFaces = [BoxFace.Top, BoxFace.Bottom, BoxFace.Port, BoxFace.Starboard, BoxFace.Bow, BoxFace.Aft];
@@ -24,31 +25,27 @@ public static class SceneProjector
     public static ProjectedScene Project(ShipScene scene, IsoProjection camera)
     {
         var visible = VisibleFaces(camera);
-        var inset = (1 - CellSize) / 2;
 
-        var cells = DrawOrder.CellsBackToFront(scene.Racks, camera)
-            .Select(c => (c.Rack.RackId, Cell: new ProjectedCell(c.Cell, Faces(Corners(c.Cell.Bounds, inset), visible, camera))))
-            .ToArray();
-        var cellsOfRack = cells.ToLookup(c => c.RackId, c => c.Cell);
-
-        ProjectedRack[] racks = [.. DrawOrder.BackToFront(scene.Racks, camera).Select(r => ProjectRack(r, [.. cellsOfRack[r.RackId]], visible, camera))];
+        ProjectedRack[] racks = [.. DrawOrder.BackToFront(scene.Racks, camera).Select(r => ProjectRack(r, visible, camera))];
         var (frame, extent) = Frame(scene.Bounds, camera);
-        return new ProjectedScene(racks, [.. cells.Select(c => c.Cell)], frame, extent);
+        return new ProjectedScene(racks, frame, extent);
     }
 
     /// <summary>The faces turned towards the camera: their outward normal points against the view direction.</summary>
     public static IReadOnlyList<BoxFace> VisibleFaces(IsoProjection camera) => [.. AllFaces.Where(f => Facing(f, camera) < -EdgeOn)];
 
-    private static ProjectedRack ProjectRack(SceneRack rack, IReadOnlyList<ProjectedCell> cells, IReadOnlyList<BoxFace> visible, IsoProjection camera)
+    private static ProjectedRack ProjectRack(SceneRack rack, IReadOnlyList<BoxFace> visible, IsoProjection camera)
     {
         var box = rack.Bounds;
         var faces = Faces(Corners(box, 0), visible, camera);
+        ProjectedBox[] boxes = [.. DrawOrder.BoxesBackToFront(rack.Boxes, camera)
+            .Select(b => new ProjectedBox(b, Faces(Corners(b.Bounds, Inset), visible, camera)))];
 
         // Orthographic: a face appears scaled by how squarely it faces the camera.
         var label = faces.OrderByDescending(f => Math.Round(Area(f.Face, box) * -Facing(f.Face, camera), AreaDecimals)).First();
         Point centre = new(label.Polygon.Average(p => p.X), label.Polygon.Average(p => p.Y));
 
-        return new ProjectedRack(rack.RackId, rack.Number, rack.IsViolated, faces, cells, centre);
+        return new ProjectedRack(rack.RackId, rack.Number, rack.IsViolated, faces, boxes, centre);
     }
 
     /// <summary>The face's outward normal · view direction: negative when it faces the camera.</summary>
@@ -127,6 +124,6 @@ public static class SceneProjector
         return (edges, extent);
     }
 
-    /// <summary>A box corner in cells; not a <see cref="ShipPoint"/>, a drawn cell is smaller than a whole cell.</summary>
+    /// <summary>A box corner in cells; not a <see cref="ShipPoint"/>, a drawn box is smaller than its whole cells.</summary>
     private readonly record struct Corner(double X, double Y, double Z);
 }

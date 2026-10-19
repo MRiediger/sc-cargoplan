@@ -8,10 +8,10 @@ public class DragGestureTests
 {
     private static readonly Placement Titanium = new("Riker", "rack-0", new CargoItem("Titanium", 16, CrateSize.Four));
 
-    private static readonly SceneHit Cargo = new("rack-0", Titanium);
-    private static readonly SceneHit Delivered = new("rack-0", Titanium with { Delivered = true });
-    private static readonly SceneHit Free = new("rack-2", null);
-    private static readonly SceneHit OtherRack = new("rack-1", null);
+    private static readonly SceneHit Cargo = new("rack-0", Titanium, new CrateId(Titanium, 1));
+    private static readonly SceneHit Delivered = new("rack-0", Titanium with { Delivered = true }, new CrateId(Titanium with { Delivered = true }, 1));
+    private static readonly SceneHit Free = new("rack-2", null, null);
+    private static readonly SceneHit OtherRack = new("rack-1", null, null);
 
     /// <summary>InlineData can't hold records, so the theories name the hit.</summary>
     private static SceneHit? Hit(string name) => name switch
@@ -56,7 +56,7 @@ public class DragGestureTests
     [Fact]
     public void Right_drag_from_cargo_onto_another_rack_moves_it()
     {
-        DragGesture.Resolve(MouseButton.Right, Cargo, moved: true, new SceneHit("rack-1", Titanium with { RackId = "rack-1" }))
+        DragGesture.Resolve(MouseButton.Right, Cargo, moved: true, new SceneHit("rack-1", Titanium with { RackId = "rack-1" }, null))
             .Should().Be(new Gesture.Move(Titanium, "rack-1"));
     }
 
@@ -69,7 +69,7 @@ public class DragGestureTests
     [Fact]
     public void Right_drag_from_cargo_back_onto_its_own_rack_does_nothing()
     {
-        DragGesture.Resolve(MouseButton.Right, Cargo, moved: true, new SceneHit("rack-0", null)).Should().Be(new Gesture.None());
+        DragGesture.Resolve(MouseButton.Right, Cargo, moved: true, new SceneHit("rack-0", null, null)).Should().Be(new Gesture.None());
     }
 
     [Fact]

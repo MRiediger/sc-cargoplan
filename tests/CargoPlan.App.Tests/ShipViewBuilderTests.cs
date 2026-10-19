@@ -15,7 +15,15 @@ public class ShipViewBuilderTests
 
     /// <summary>Distinct mission colours in a rack, in fill order.</summary>
     private static IEnumerable<int?> MissionColours(SceneRack rack) =>
-        rack.Cells.Where(s => s.Fill == CellFill.Mission).Select(s => s.PaletteIndex).Distinct();
+        rack.Boxes.Where(s => s.Fill == CellFill.Mission).Select(s => s.PaletteIndex).Distinct();
+
+    private static int Volume(ShipBox box) => (box.Max.X - box.Min.X) * (box.Max.Y - box.Min.Y) * (box.Max.Z - box.Min.Z);
+
+    private static IEnumerable<ShipPoint> CellsOf(ShipBox box) =>
+        from x in Enumerable.Range(box.Min.X, box.Max.X - box.Min.X)
+        from y in Enumerable.Range(box.Min.Y, box.Max.Y - box.Min.Y)
+        from z in Enumerable.Range(box.Min.Z, box.Max.Z - box.Min.Z)
+        select new ShipPoint(x, y, z);
 
     [Fact]
     public void Racks_come_in_rack_order()
@@ -31,7 +39,7 @@ public class ShipViewBuilderTests
         var riker = scene.Legend.Single(e => e.Destination == "Riker").PaletteIndex;
 
         MissionColours(RackNumber(scene, 1)).Should().Equal(riker);
-        MissionColours(RackNumber(scene, 2)).Should().StartWith(riker);
+        MissionColours(RackNumber(scene, 2)).Should().Contain(riker);
     }
 
     [Fact]
@@ -42,8 +50,9 @@ public class ShipViewBuilderTests
 
         var rack2 = RackNumber(scene, 2);
 
-        MissionColours(rack2).Should().Equal(legend["Riker"], legend["Shubin"]);
-        rack2.Cells.Should().Contain(c => c.Fill == CellFill.Free);
+        // The largest crate goes first: Shubin's 8 SCU crate before Riker's 2 SCU crates.
+        MissionColours(rack2).Should().Equal(legend["Shubin"], legend["Riker"]);
+        rack2.Boxes.Should().Contain(c => c.Fill == CellFill.Free);
     }
 
     [Fact]
@@ -86,35 +95,74 @@ public class ShipViewBuilderTests
 
         scene.Racks.Where(r => r.IsViolated).Select(r => r.Number).Should().Equal(1);
         scene.Violations.Should().Equal("Rack 1 overloaded: 24/16 SCU");
-        RackNumber(scene, 1).Cells.Should().NotContain(c => c.Fill == CellFill.Free);
-        RackNumber(scene, 1).Cells.Select(c => c.Placement!.Destination).Distinct().Should().Equal("Riker", "Shubin");
+        RackNumber(scene, 1).Boxes.Should().NotContain(c => c.Fill == CellFill.Free);
+        RackNumber(scene, 1).Boxes.Select(c => c.Placement!.Destination).Distinct().Should().Equal("Riker", "Shubin");
     }
 
     [Fact]
-    public void Cells_are_unit_boxes_that_fill_the_rack_exactly()
+    public void Boxes_fill_the_rack_exactly_without_overlap()
     {
         foreach (var rack in Build(Sample.Plan).Racks)
         {
             var (min, max) = (rack.Bounds.Min, rack.Bounds.Max);
+            ShipPoint[] cells = [.. rack.Boxes.SelectMany(b => CellsOf(b.Bounds))];
 
-            rack.Cells.Should().HaveCount((max.X - min.X) * (max.Y - min.Y) * (max.Z - min.Z));
-            rack.Cells.Select(c => c.Bounds).Should().OnlyHaveUniqueItems();
-            rack.Cells.Should().OnlyContain(c =>
-                c.Bounds.Max.X - c.Bounds.Min.X == 1 && c.Bounds.Max.Y - c.Bounds.Min.Y == 1 && c.Bounds.Max.Z - c.Bounds.Min.Z == 1
-                && c.Bounds.Min.X >= min.X && c.Bounds.Max.X <= max.X
-                && c.Bounds.Min.Y >= min.Y && c.Bounds.Max.Y <= max.Y
-                && c.Bounds.Min.Z >= min.Z && c.Bounds.Max.Z <= max.Z);
+            cells.Should().HaveCount(Volume(rack.Bounds)).And.OnlyHaveUniqueItems();
+            cells.Should().OnlyContain(c =>
+                c.X >= min.X && c.X < max.X && c.Y >= min.Y && c.Y < max.Y && c.Z >= min.Z && c.Z < max.Z);
         }
     }
 
     [Fact]
-    public void Cells_fill_from_the_bow_in_the_lowest_layer_first()
+    public void Crates_of_4_4_and_8_are_three_boxes_in_their_shape()
     {
-        // Rack 2 (y 1..3, z 0..2): Riker's 4 SCU Quartz take the row next to the spindle, bottom layer.
+        Placement Crates(string destination, int scu, CrateSize size) => new(destination, "rack-0", new CargoItem("Titanium", scu, size));
+        LoadPlan plan = new(Sample.Ship.Id, [Crates("Riker", 4, CrateSize.Four), Crates("Shubin", 4, CrateSize.Four), Crates("Orison", 8, CrateSize.Eight)], []);
+
+        var rack1 = RackNumber(Build(plan), 1);
+
+        rack1.Boxes.Should().HaveCount(3);
+        rack1.Boxes.Select(b => Volume(b.Bounds)).Should().Equal(8, 4, 4);
+        rack1.Boxes.Should().OnlyContain(b => b.Crate != null && b.Fill == CellFill.Mission);
+    }
+
+    [Fact]
+    public void Boxes_come_in_fill_order_of_their_first_cell()
+    {
+        // Rack 2 (y 1..3, z 0..2): Shubin's 8 SCU crate takes the bow half, Riker's 2 SCU Quartz crates the aft half of
+        // the bottom layer, the row next to the spindle first; the free cells of the top layer follow.
         var rack2 = RackNumber(Build(Sample.Plan), 2);
 
-        rack2.Cells[0].Bounds.Should().Be(new ShipBox(new ShipPoint(3, 1, 0), new ShipPoint(4, 2, 1)));
-        rack2.Cells.Take(4).Should().OnlyContain(c => c.Placement!.Destination == "Riker" && c.Bounds.Min.Y == 1 && c.Bounds.Min.Z == 0);
+        rack2.Boxes.Take(3).Select(b => b.Bounds).Should().Equal(
+            new ShipBox(new ShipPoint(2, 1, 0), new ShipPoint(4, 3, 2)),
+            new ShipBox(new ShipPoint(0, 1, 0), new ShipPoint(2, 2, 1)),
+            new ShipBox(new ShipPoint(0, 2, 0), new ShipPoint(2, 3, 1)));
+        rack2.Boxes.Skip(3).Should().HaveCount(4).And.OnlyContain(b => b.Fill == CellFill.Free && Volume(b.Bounds) == 1);
+    }
+
+    [Fact]
+    public void A_crate_is_one_box_with_its_id()
+    {
+        var shubin = Sample.Plan.Placements.Single(p => p.Destination == "Shubin");
+
+        RackNumber(Build(Sample.Plan), 2).Boxes.Where(b => b.Placement == shubin).Should().ContainSingle().Which
+            .Should().Be(new SceneBox(
+                new ShipBox(new ShipPoint(2, 1, 0), new ShipPoint(4, 3, 2)),
+                CellFill.Mission,
+                Build(Sample.Plan).Legend.Single(e => e.Destination == "Shubin").PaletteIndex,
+                "Shubin · Rack 2 · port lower · 8 SCU Agricium crate (1 of 1)",
+                shubin,
+                new CrateId(shubin, 1)));
+    }
+
+    [Fact]
+    public void Free_cells_and_the_cells_of_an_overloaded_rack_are_boxes_of_one_cell()
+    {
+        var shubin = Sample.Plan.Placements.Single(p => p.Destination == "Shubin");
+        var scene = Build(LoadPlanner.MovePlacement(Sample.Plan, Sample.Ship, shubin, "rack-0"));
+
+        RackNumber(scene, 1).Boxes.Should().HaveCount(16).And.OnlyContain(b => Volume(b.Bounds) == 1 && b.Crate == null);
+        RackNumber(scene, 2).Boxes.Where(b => b.Fill == CellFill.Free).Should().OnlyContain(b => Volume(b.Bounds) == 1 && b.Crate == null);
     }
 
     [Fact]
@@ -122,7 +170,7 @@ public class ShipViewBuilderTests
     {
         var rack2 = ShipViewBuilder.Build(Sample.Plan, Sample.Ship, [], FillOrder.SternFirst).Racks.Single(r => r.Number == 2);
 
-        rack2.Cells[0].Bounds.Min.Should().Be(new ShipPoint(0, 1, 0));
+        rack2.Boxes[0].Bounds.Min.Should().Be(new ShipPoint(0, 1, 0));
     }
 
     [Fact]
@@ -139,7 +187,7 @@ public class ShipViewBuilderTests
     {
         var scene = Build(new LoadPlan(Sample.Ship.Id, [], []));
 
-        scene.Racks.SelectMany(r => r.Cells).Should().OnlyContain(c => c.Fill == CellFill.Free);
+        scene.Racks.SelectMany(r => r.Boxes).Should().OnlyContain(c => c.Fill == CellFill.Free);
         scene.Legend.Should().BeEmpty();
     }
 
@@ -153,7 +201,7 @@ public class ShipViewBuilderTests
 
         var rack4 = RackNumber(Build(delivered), 4);
 
-        rack4.Cells.Should().Contain(c => c.Fill == CellFill.Delivered).And.NotContain(c => c.Fill == CellFill.Mission);
+        rack4.Boxes.Should().Contain(c => c.Fill == CellFill.Delivered).And.NotContain(c => c.Fill == CellFill.Mission);
     }
 
     [Fact]
@@ -163,8 +211,8 @@ public class ShipViewBuilderTests
         var riker = scene.Legend.Single(e => e.Destination == "Riker");
 
         // Rack 1 holds only Riker; Rack 2 keeps Shubin's colour next to Riker's grey.
-        RackNumber(scene, 1).Cells.Should().NotContain(c => c.Fill == CellFill.Mission);
-        RackNumber(scene, 2).Cells.Should().Contain(c => c.Fill == CellFill.Delivered);
+        RackNumber(scene, 1).Boxes.Should().NotContain(c => c.Fill == CellFill.Mission);
+        RackNumber(scene, 2).Boxes.Should().Contain(c => c.Fill == CellFill.Delivered);
         MissionColours(RackNumber(scene, 2)).Should().Equal(scene.Legend.Single(e => e.Destination == "Shubin").PaletteIndex);
         riker.Delivered.Should().BeTrue();
         scene.Legend.Where(e => e.Destination != "Riker").Should().OnlyContain(e => !e.Delivered);
@@ -190,8 +238,8 @@ public class ShipViewBuilderTests
         var plan = LoadPlanner.SetDelivered(Sample.Plan, Sample.Ship, "Riker", true);
         var rack2 = RackNumber(Build(plan), 2);
 
-        rack2.Cells.Select(c => c.Placement).Distinct().Should().Equal([.. plan.PlacementsForRack("rack-1"), null]);
-        rack2.Cells.Select(c => c.Placement?.Destination).Distinct().Should().Equal("Riker", "Shubin", null);
+        rack2.Boxes.Select(c => c.Placement).Distinct().Should().BeEquivalentTo([.. plan.PlacementsForRack("rack-1"), null]);
+        rack2.Boxes.Select(c => c.Placement?.Destination).Distinct().Should().BeEquivalentTo(["Riker", "Shubin", null]);
     }
 
     [Fact]

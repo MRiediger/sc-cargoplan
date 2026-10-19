@@ -27,9 +27,6 @@ public class SceneProjectorTests
 
     private static Point Centre(IReadOnlyList<Point> polygon) => new(polygon.Average(p => p.X), polygon.Average(p => p.Y));
 
-    private static double Depth(ShipBox box, IsoProjection camera) =>
-        camera.Depth((box.Min.X + box.Max.X) / 2.0, (box.Min.Y + box.Max.Y) / 2.0, (box.Min.Z + box.Max.Z) / 2.0);
-
     [Fact]
     public void Default_view_sees_top_port_and_bow()
     {
@@ -55,21 +52,35 @@ public class SceneProjectorTests
     }
 
     [Fact]
-    public void Every_rack_and_every_cell_shows_the_visible_faces()
+    public void Every_rack_and_every_box_shows_the_visible_faces()
     {
         foreach (var rack in SceneProjector.Project(Scene, IsoProjection.Default).Racks)
         {
             rack.Faces.Select(f => f.Face).Should().Equal(BoxFace.Top, BoxFace.Port, BoxFace.Bow);
             rack.Faces.Should().AllSatisfy(f => f.Polygon.Should().HaveCount(4));
-            rack.Cells.Should().HaveCount(16).And.AllSatisfy(c => c.Faces.Select(f => f.Face).Should().Equal(BoxFace.Top, BoxFace.Port, BoxFace.Bow));
+            rack.Boxes.Should().NotBeEmpty().And.AllSatisfy(b => b.Faces.Select(f => f.Face).Should().Equal(BoxFace.Top, BoxFace.Port, BoxFace.Bow));
         }
     }
 
     [Fact]
-    public void Cells_are_drawn_smaller_than_one_cell_so_the_grid_shows()
+    public void A_crate_is_one_box_with_the_gap_of_a_cell_all_round()
     {
-        // In the default view one cell is 1 unit long on all three axes (IsoProjection).
-        var cell = SceneProjector.Project(Scene, IsoProjection.Default).Cells[0];
+        // Shubin's 8 SCU crate in Rack 2 is x 2..4, y 1..3, z 0..2. In the default view one cell is 1 unit long on all
+        // three axes (IsoProjection): the drawn crate is 2 − 2 × 0.05 long, like a cell is 1 − 2 × 0.05.
+        var crate = SceneProjector.Project(Scene, IsoProjection.Default).Racks
+            .SelectMany(r => r.Boxes)
+            .Single(b => b.Box.Bounds == new ShipBox(new ShipPoint(2, 1, 0), new ShipPoint(4, 3, 2)));
+        var top = crate.Faces.Single(f => f.Face == BoxFace.Top).Polygon;
+
+        crate.Faces.Should().HaveCount(3);
+        (top[1] - top[0]).Length.Should().BeApproximately(1.9, 1e-9);
+        (top[2] - top[1]).Length.Should().BeApproximately(1.9, 1e-9);
+    }
+
+    [Fact]
+    public void Free_cells_are_drawn_smaller_than_one_cell_so_the_grid_shows()
+    {
+        var cell = SceneProjector.Project(Scene, IsoProjection.Default).Racks.SelectMany(r => r.Boxes).First(b => b.Box.Fill == CellFill.Free);
         var top = cell.Faces.Single(f => f.Face == BoxFace.Top).Polygon;
 
         (top[1] - top[0]).Length.Should().BeApproximately(0.9, 1e-9);
@@ -86,41 +97,32 @@ public class SceneProjectorTests
     [InlineData(45, -35.26)]
     [InlineData(225, 35.26)]
     [InlineData(300, -70)]
-    public void Cells_of_all_racks_come_back_to_front(double yaw, double pitch)
+    public void Each_rack_projects_its_boxes_in_draw_order(double yaw, double pitch)
     {
         var camera = new IsoProjection(yaw, pitch);
-        var projected = SceneProjector.Project(Scene, camera);
 
-        projected.Cells.Should().HaveCount(Scene.Racks.Sum(r => r.Cells.Count));
-        projected.Cells.Select(c => Math.Round(Depth(c.Cell.Bounds, camera), 9)).Should().BeInDescendingOrder();
+        foreach (var rack in SceneProjector.Project(Scene, camera).Racks)
+        {
+            var own = Scene.Racks.Single(r => r.RackId == rack.RackId).Boxes;
+            rack.Boxes.Select(b => b.Box).Should().Equal(DrawOrder.BoxesBackToFront(own, camera));
+        }
     }
 
     [Fact]
     public void From_above_a_layer_is_drawn_over_the_one_below_and_from_below_the_other_way_round()
     {
-        // Rack 2, bow end of the row next to the spindle: bottom layer z 0..1, top layer z 1..2.
-        ShipBox lower = new(new ShipPoint(3, 1, 0), new ShipPoint(4, 2, 1));
-        ShipBox upper = new(new ShipPoint(3, 1, 1), new ShipPoint(4, 2, 2));
+        // Rack 3 (Orison, y −2..0, z 3..5): two 4 SCU Laranite crates at the bow end, one above the other.
+        ShipBox lower = new(new ShipPoint(2, -2, 3), new ShipPoint(4, 0, 4));
+        ShipBox upper = new(new ShipPoint(2, -2, 4), new ShipPoint(4, 0, 5));
 
-        int IndexOf(ProjectedScene scene, ShipBox box) => scene.Cells.ToList().FindIndex(c => c.Cell.Bounds == box);
+        int IndexOf(ProjectedScene scene, ShipBox box) =>
+            scene.Racks.Single(r => r.Number == 3).Boxes.ToList().FindIndex(b => b.Box.Bounds == box);
 
         var above = SceneProjector.Project(Scene, IsoProjection.Default);
         var below = SceneProjector.Project(Scene, new IsoProjection(DefaultYaw, -DefaultPitch));
 
-        IndexOf(above, lower).Should().BeLessThan(IndexOf(above, upper));
-        IndexOf(below, upper).Should().BeLessThan(IndexOf(below, lower));
-    }
-
-    [Fact]
-    public void Each_rack_keeps_its_own_cells_in_the_same_order()
-    {
-        var projected = SceneProjector.Project(Scene, IsoProjection.Default);
-
-        foreach (var rack in projected.Racks)
-        {
-            var own = Scene.Racks.Single(r => r.RackId == rack.RackId).Cells;
-            rack.Cells.Should().Equal(projected.Cells.Where(c => own.Contains(c.Cell)));
-        }
+        IndexOf(above, lower).Should().BeLessThan(IndexOf(above, upper)).And.BeGreaterThanOrEqualTo(0);
+        IndexOf(below, upper).Should().BeLessThan(IndexOf(below, lower)).And.BeGreaterThanOrEqualTo(0);
     }
 
     [Theory]
@@ -179,12 +181,12 @@ public class SceneProjectorTests
     }
 
     [Fact]
-    public void A_rack_of_1000_cells_projects_within_50_ms()
+    public void A_rack_of_1000_crates_projects_within_50_ms()
     {
-        // Hull A has 64 cells, a Hull C would have about 4,600 (D21).
+        // Hull A has 64 cells, a Hull C would have about 4,600 (D21); 1 SCU crates are the most boxes a rack can hold.
         Rack rack = new("big", 0, 1000, new Dimensions(10, 10, 10), new RackPosition(RackSide.Port, RackLevel.Upper), new ShipPoint(0, 0, 0));
         Ship ship = new("big", "Synthetic", 1000, [rack]);
-        LoadPlan plan = new(ship.Id, [new Placement("Riker", rack.Id, new CargoItem("Titanium", 600, CrateSize.One))], []);
+        LoadPlan plan = new(ship.Id, [new Placement("Riker", rack.Id, new CargoItem("Titanium", 1000, CrateSize.One))], []);
         var scene = ShipViewBuilder.Build(plan, ship, [], FillOrder.BowFirst);
 
         // Warm-up: the first call pays for the JIT, not for the cells.
@@ -193,7 +195,7 @@ public class SceneProjectorTests
         var projected = SceneProjector.Project(scene, new IsoProjection(100, 20));
         watch.Stop();
 
-        projected.Cells.Should().HaveCount(1000);
+        projected.Racks.Single().Boxes.Should().HaveCount(1000);
         watch.Elapsed.Should().BeLessThan(TimeSpan.FromMilliseconds(50));
     }
 }
