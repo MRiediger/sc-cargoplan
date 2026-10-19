@@ -10,8 +10,8 @@ using CargoPlan.Core.Models;
 namespace CargoPlan.App.ShipView;
 
 /// <summary>
-/// Paints a <see cref="ShipScene"/> as <see cref="SceneProjector"/> projects it for the current camera: frame, racks
-/// back to front, rack numbers on top. Only redraws when the scene, the size, the camera, zoom or pan change; no
+/// Paints a <see cref="ShipScene"/> as <see cref="SceneProjector"/> projects it for the current camera: frame, rack
+/// edges, the cells of all racks back to front, red and cyan edges, rack numbers on top. Only redraws when the scene, the size, the camera, zoom or pan change; no
 /// timer, no animation (D14). Mouse (rules in <see cref="DragGesture"/>): left drag turns and tilts the camera, a click
 /// on cargo ticks its stop off or back (D16), right drag on cargo moves it to another rack (D20), right drag elsewhere
 /// pans, wheel zooms around the cursor, double-click on free or empty space resets, hover shows the placement. Left
@@ -29,7 +29,8 @@ public sealed class ShipViewControl : FrameworkElement
     private const double DraggedOpacity = 0.35;
 
     private static readonly Pen FramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Frame), 1) { DashStyle = DashStyles.Dash });
-    private static readonly Pen SegmentPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 0.5));
+    private static readonly Pen CellPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 0.5));
+    private static readonly Pen FreeCellPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.FreeEdge), 0.5));
     private static readonly Pen RackPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 1));
     private static readonly Pen ViolationPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Violation), 2.5));
     private static readonly Pen DragTargetPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.DragTarget), 2.5));
@@ -56,7 +57,7 @@ public sealed class ShipViewControl : FrameworkElement
         typeof(ICommand),
         typeof(ShipViewControl));
 
-    // Opened by hand instead of ToolTipService: the text changes with the segment under the cursor.
+    // Opened by hand instead of ToolTipService: the text changes with the cell under the cursor.
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/controls/how-to-position-a-tooltip
     private readonly ToolTip _toolTip;
 
@@ -129,30 +130,38 @@ public sealed class ShipViewControl : FrameworkElement
         // Only once the drag has left the drag rectangle: a right click alone changes nothing on screen.
         var (dragged, target) = _drag is { IsMoving: true } drag ? (drag.Dragged, drag.Target) : (null, null);
 
-        // Each rack completely, back to front, so the racks in front cover the ones behind.
-        foreach (var rack in scene.Racks)
+        // Plain rack edges first: cargo in front covers them like any other part of the ship (D21).
+        foreach (var rack in scene.Racks.Where(r => !IsHighlighted(r, target)))
         {
-            foreach (var strip in rack.Strips)
-            {
-                // Value equality: an equal twin fades too; MovePlacement moves either, they are interchangeable.
-                var fade = dragged is not null && strip.Placement == dragged;
-                if (fade)
-                {
-                    dc.PushOpacity(DraggedOpacity);
-                }
+            DrawEdges(dc, rack, RackPen, transform);
+        }
 
-                dc.DrawGeometry(Fill(strip), SegmentPen, Polygon(strip.Polygon, transform));
-                if (fade)
-                {
-                    dc.Pop();
-                }
+        // All cells of all racks back to front, so the cells in front cover the ones behind, across racks too.
+        foreach (var cell in scene.Cells)
+        {
+            // Value equality: an equal twin fades too; MovePlacement moves either, they are interchangeable.
+            var fade = dragged is not null && cell.Cell.Placement == dragged;
+            if (fade)
+            {
+                dc.PushOpacity(DraggedOpacity);
             }
 
-            var edge = rack.RackId == target ? DragTargetPen : rack.IsViolated ? ViolationPen : RackPen;
-            foreach (var face in rack.Faces)
+            var (fill, pen) = cell.Cell.Fill == CellFill.Free ? (null, FreeCellPen) : (Fill(cell.Cell), CellPen);
+            foreach (var face in cell.Faces)
             {
-                dc.DrawGeometry(null, edge, Polygon(face.Polygon, transform));
+                dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
             }
+
+            if (fade)
+            {
+                dc.Pop();
+            }
+        }
+
+        // Red and cyan on top, like the numbers: a violation or the drop target must never hide behind cargo.
+        foreach (var rack in scene.Racks.Where(r => IsHighlighted(r, target)))
+        {
+            DrawEdges(dc, rack, rack.RackId == target ? DragTargetPen : ViolationPen, transform);
         }
 
         // Numbers last: always visible, even where a rack in front covers the labelled face.
@@ -383,12 +392,19 @@ public sealed class ShipViewControl : FrameworkElement
         _toolTip.IsOpen = text is not null;
     }
 
-    private static Brush Fill(SceneStrip strip) => strip.Fill switch
+    private static bool IsHighlighted(ProjectedRack rack, string? target) => rack.RackId == target || rack.IsViolated;
+
+    private static void DrawEdges(DrawingContext dc, ProjectedRack rack, Pen pen, ViewTransform transform)
     {
-        SegmentFill.Mission => MissionPalette.Brush(strip.PaletteIndex!.Value),
-        SegmentFill.Delivered => MissionPalette.DeliveredBrush,
-        _ => MissionPalette.FreeBrush,
-    };
+        foreach (var face in rack.Faces)
+        {
+            dc.DrawGeometry(null, pen, Polygon(face.Polygon, transform));
+        }
+    }
+
+    /// <summary>Cargo only; free cells have no fill.</summary>
+    private static Brush Fill(SceneCell cell) =>
+        cell.Fill == CellFill.Delivered ? MissionPalette.DeliveredBrush : MissionPalette.Brush(cell.PaletteIndex!.Value);
 
     // StreamGeometry: the lightweight geometry for drawing only, frozen after filling.
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.media.streamgeometrycontext

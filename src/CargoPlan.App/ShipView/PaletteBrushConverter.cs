@@ -7,7 +7,7 @@ namespace CargoPlan.App.ShipView;
 
 /// <summary>
 /// Legend swatch: a stop's palette index to the same brush the ship view paints with. The view itself draws in
-/// <c>OnRender</c> and needs no converter, there is no binding per segment.
+/// <c>OnRender</c> and needs no converter, there is no binding per cell.
 /// </summary>
 // Source: https://learn.microsoft.com/dotnet/api/system.windows.data.ivalueconverter
 [ValueConversion(typeof(int), typeof(Brush))]

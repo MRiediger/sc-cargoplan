@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Windows;
 using CargoPlan.App.ShipView;
+using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 
 namespace CargoPlan.App.Tests;
@@ -15,7 +16,7 @@ public class SceneProjectorTests
     private static ShipScene BuildSample()
     {
         var (ship, plan) = TestPlans.Load();
-        return ShipViewBuilder.Build(plan, ship, LoadPlanner.Validate(plan, ship));
+        return ShipViewBuilder.Build(plan, ship, LoadPlanner.Validate(plan, ship), FillOrder.BowFirst);
     }
 
     private static ProjectedRack RackNumber(ProjectedScene scene, int number) => scene.Racks.Single(r => r.Number == number);
@@ -25,6 +26,9 @@ public class SceneProjectorTests
         Math.Abs(polygon.Zip(polygon.Skip(1).Append(polygon[0])).Sum(e => e.First.X * e.Second.Y - e.Second.X * e.First.Y)) / 2;
 
     private static Point Centre(IReadOnlyList<Point> polygon) => new(polygon.Average(p => p.X), polygon.Average(p => p.Y));
+
+    private static double Depth(ShipBox box, IsoProjection camera) =>
+        camera.Depth((box.Min.X + box.Max.X) / 2.0, (box.Min.Y + box.Max.Y) / 2.0, (box.Min.Z + box.Max.Z) / 2.0);
 
     [Fact]
     public void Default_view_sees_top_port_and_bow()
@@ -51,14 +55,24 @@ public class SceneProjectorTests
     }
 
     [Fact]
-    public void Every_rack_shows_its_visible_faces_and_strips_on_them()
+    public void Every_rack_and_every_cell_shows_the_visible_faces()
     {
         foreach (var rack in SceneProjector.Project(Scene, IsoProjection.Default).Racks)
         {
             rack.Faces.Select(f => f.Face).Should().Equal(BoxFace.Top, BoxFace.Port, BoxFace.Bow);
             rack.Faces.Should().AllSatisfy(f => f.Polygon.Should().HaveCount(4));
-            rack.Strips.Select(s => s.Face).Distinct().Should().BeEquivalentTo(new[] { BoxFace.Top, BoxFace.Port, BoxFace.Bow });
+            rack.Cells.Should().HaveCount(16).And.AllSatisfy(c => c.Faces.Select(f => f.Face).Should().Equal(BoxFace.Top, BoxFace.Port, BoxFace.Bow));
         }
+    }
+
+    [Fact]
+    public void Cells_are_drawn_smaller_than_one_cell_so_the_grid_shows()
+    {
+        // In the default view one cell is 1 unit long on all three axes (IsoProjection).
+        var cell = SceneProjector.Project(Scene, IsoProjection.Default).Cells[0];
+        var top = cell.Faces.Single(f => f.Face == BoxFace.Top).Polygon;
+
+        (top[1] - top[0]).Length.Should().BeApproximately(0.9, 1e-9);
     }
 
     [Fact]
@@ -67,38 +81,45 @@ public class SceneProjectorTests
         SceneProjector.Project(Scene, IsoProjection.Default).Racks.Select(r => r.Number).Should().Equal(4, 2, 3, 1);
     }
 
+    [Theory]
+    [InlineData(45, 35.26)]
+    [InlineData(45, -35.26)]
+    [InlineData(225, 35.26)]
+    [InlineData(300, -70)]
+    public void Cells_of_all_racks_come_back_to_front(double yaw, double pitch)
+    {
+        var camera = new IsoProjection(yaw, pitch);
+        var projected = SceneProjector.Project(Scene, camera);
+
+        projected.Cells.Should().HaveCount(Scene.Racks.Sum(r => r.Cells.Count));
+        projected.Cells.Select(c => Math.Round(Depth(c.Cell.Bounds, camera), 9)).Should().BeInDescendingOrder();
+    }
+
     [Fact]
-    public void The_bow_face_shows_only_the_bow_end_segment()
+    public void From_above_a_layer_is_drawn_over_the_one_below_and_from_below_the_other_way_round()
+    {
+        // Rack 2, bow end of the row next to the spindle: bottom layer z 0..1, top layer z 1..2.
+        ShipBox lower = new(new ShipPoint(3, 1, 0), new ShipPoint(4, 2, 1));
+        ShipBox upper = new(new ShipPoint(3, 1, 1), new ShipPoint(4, 2, 2));
+
+        int IndexOf(ProjectedScene scene, ShipBox box) => scene.Cells.ToList().FindIndex(c => c.Cell.Bounds == box);
+
+        var above = SceneProjector.Project(Scene, IsoProjection.Default);
+        var below = SceneProjector.Project(Scene, new IsoProjection(DefaultYaw, -DefaultPitch));
+
+        IndexOf(above, lower).Should().BeLessThan(IndexOf(above, upper));
+        IndexOf(below, upper).Should().BeLessThan(IndexOf(below, lower));
+    }
+
+    [Fact]
+    public void Each_rack_keeps_its_own_cells_in_the_same_order()
     {
         var projected = SceneProjector.Project(Scene, IsoProjection.Default);
 
         foreach (var rack in projected.Racks)
         {
-            var first = Scene.Racks.Single(r => r.Number == rack.Number).Segments[0];
-            rack.Strips.Where(s => s.Face == BoxFace.Bow).Should().ContainSingle().Which.ToolTip.Should().Be(first.ToolTip);
-        }
-    }
-
-    [Fact]
-    public void The_aft_face_shows_only_the_aft_end_segment()
-    {
-        // Rack 3 holds 14/16 SCU: its free rest is the aft end.
-        var rack3 = RackNumber(SceneProjector.Project(Scene, new IsoProjection(DefaultYaw + 180, DefaultPitch)), 3);
-
-        rack3.Strips.Where(s => s.Face == BoxFace.Aft).Should().ContainSingle().Which.Fill.Should().Be(SegmentFill.Free);
-    }
-
-    [Fact]
-    public void The_bottom_shows_the_same_segments_as_the_top()
-    {
-        var above = SceneProjector.Project(Scene, IsoProjection.Default);
-        var below = SceneProjector.Project(Scene, new IsoProjection(DefaultYaw, -DefaultPitch));
-
-        foreach (var rack in above.Racks)
-        {
-            var top = rack.Strips.Where(s => s.Face == BoxFace.Top).Select(s => (s.Fill, s.PaletteIndex, s.ToolTip));
-            var bottom = RackNumber(below, rack.Number).Strips.Where(s => s.Face == BoxFace.Bottom).Select(s => (s.Fill, s.PaletteIndex, s.ToolTip));
-            bottom.Should().Equal(top);
+            var own = Scene.Racks.Single(r => r.RackId == rack.RackId).Cells;
+            rack.Cells.Should().Equal(projected.Cells.Where(c => own.Contains(c.Cell)));
         }
     }
 
@@ -155,5 +176,24 @@ public class SceneProjectorTests
         }
 
         watch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(1));
+    }
+
+    [Fact]
+    public void A_rack_of_1000_cells_projects_within_50_ms()
+    {
+        // Hull A has 64 cells, a Hull C would have about 4,600 (D21).
+        Rack rack = new("big", 0, 1000, new Dimensions(10, 10, 10), new RackPosition(RackSide.Port, RackLevel.Upper), new ShipPoint(0, 0, 0));
+        Ship ship = new("big", "Synthetic", 1000, [rack]);
+        LoadPlan plan = new(ship.Id, [new Placement("Riker", rack.Id, new CargoItem("Titanium", 600, CrateSize.One))], []);
+        var scene = ShipViewBuilder.Build(plan, ship, [], FillOrder.BowFirst);
+
+        // Warm-up: the first call pays for the JIT, not for the cells.
+        SceneProjector.Project(scene, IsoProjection.Default);
+        var watch = Stopwatch.StartNew();
+        var projected = SceneProjector.Project(scene, new IsoProjection(100, 20));
+        watch.Stop();
+
+        projected.Cells.Should().HaveCount(1000);
+        watch.Elapsed.Should().BeLessThan(TimeSpan.FromMilliseconds(50));
     }
 }

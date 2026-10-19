@@ -4,7 +4,7 @@ using CargoPlan.Core.Models;
 namespace CargoPlan.App.ShipView;
 
 /// <summary>
-/// Projects a <see cref="ShipScene"/> for one camera: visible faces, the segments on them, rack numbers and frame.
+/// Projects a <see cref="ShipScene"/> for one camera: visible faces of racks and cells, rack numbers and frame.
 /// Pure and cheap, so the view reprojects on every orbit step instead of the view model rebuilding the scene (D15).
 /// </summary>
 public static class SceneProjector
@@ -15,44 +15,40 @@ public static class SceneProjector
     // Same rounding as DrawOrder: faces of equal projected area stay equal, so ties fall to the order below.
     private const int AreaDecimals = 9;
 
+    // Drawn size of a cell: the gap between neighbours shows the grid (D21).
+    private const double CellSize = 0.9;
+
     // Also the preference on equal area: top or bottom first, then the sides, then the ends.
     private static readonly BoxFace[] AllFaces = [BoxFace.Top, BoxFace.Bottom, BoxFace.Port, BoxFace.Starboard, BoxFace.Bow, BoxFace.Aft];
 
     public static ProjectedScene Project(ShipScene scene, IsoProjection camera)
     {
         var visible = VisibleFaces(camera);
-        ProjectedRack[] racks = [.. DrawOrder.BackToFront(scene.Racks, camera).Select(r => ProjectRack(r, visible, camera))];
+        var inset = (1 - CellSize) / 2;
+
+        var cells = DrawOrder.CellsBackToFront(scene.Racks, camera)
+            .Select(c => (c.Rack.RackId, Cell: new ProjectedCell(c.Cell, Faces(Corners(c.Cell.Bounds, inset), visible, camera))))
+            .ToArray();
+        var cellsOfRack = cells.ToLookup(c => c.RackId, c => c.Cell);
+
+        ProjectedRack[] racks = [.. DrawOrder.BackToFront(scene.Racks, camera).Select(r => ProjectRack(r, [.. cellsOfRack[r.RackId]], visible, camera))];
         var (frame, extent) = Frame(scene.Bounds, camera);
-        return new ProjectedScene(racks, frame, extent);
+        return new ProjectedScene(racks, [.. cells.Select(c => c.Cell)], frame, extent);
     }
 
     /// <summary>The faces turned towards the camera: their outward normal points against the view direction.</summary>
     public static IReadOnlyList<BoxFace> VisibleFaces(IsoProjection camera) => [.. AllFaces.Where(f => Facing(f, camera) < -EdgeOn)];
 
-    private static ProjectedRack ProjectRack(SceneRack rack, IReadOnlyList<BoxFace> visible, IsoProjection camera)
+    private static ProjectedRack ProjectRack(SceneRack rack, IReadOnlyList<ProjectedCell> cells, IReadOnlyList<BoxFace> visible, IsoProjection camera)
     {
-        var (box, segments) = (rack.Bounds, rack.Segments);
-
-        List<SceneStrip> strips = [];
-        foreach (var face in visible)
-        {
-            // The ends show only the segment that reaches them; the other faces run along x and show all.
-            IEnumerable<SceneSegment> shown = face switch
-            {
-                BoxFace.Bow => [segments[0]],
-                BoxFace.Aft => [segments[^1]],
-                _ => segments,
-            };
-            strips.AddRange(shown.Select(s => new SceneStrip(face, Polygon(face, box, s.Aft, s.Bow, camera), s.Fill, s.PaletteIndex, s.ToolTip, s.Placement)));
-        }
-
-        ProjectedFace[] faces = [.. visible.Select(f => new ProjectedFace(f, Polygon(f, box, box.Min.X, box.Max.X, camera)))];
+        var box = rack.Bounds;
+        var faces = Faces(Corners(box, 0), visible, camera);
 
         // Orthographic: a face appears scaled by how squarely it faces the camera.
         var label = faces.OrderByDescending(f => Math.Round(Area(f.Face, box) * -Facing(f.Face, camera), AreaDecimals)).First();
         Point centre = new(label.Polygon.Average(p => p.X), label.Polygon.Average(p => p.Y));
 
-        return new ProjectedRack(rack.RackId, rack.Number, rack.IsViolated, faces, strips, centre);
+        return new ProjectedRack(rack.RackId, rack.Number, rack.IsViolated, faces, cells, centre);
     }
 
     /// <summary>The face's outward normal · view direction: negative when it faces the camera.</summary>
@@ -82,10 +78,17 @@ public static class SceneProjector
         };
     }
 
-    /// <summary>The face's corners from x = <paramref name="aft"/> to <paramref name="bow"/>; the ends ignore both.</summary>
-    private static Point[] Polygon(BoxFace face, ShipBox box, double aft, double bow, IsoProjection camera)
+    /// <summary>The box's corners, moved <paramref name="inset"/> cells inwards on every side.</summary>
+    private static (Corner Min, Corner Max) Corners(ShipBox box, double inset) => (
+        new Corner(box.Min.X + inset, box.Min.Y + inset, box.Min.Z + inset),
+        new Corner(box.Max.X - inset, box.Max.Y - inset, box.Max.Z - inset));
+
+    private static ProjectedFace[] Faces((Corner Min, Corner Max) box, IReadOnlyList<BoxFace> visible, IsoProjection camera) =>
+        [.. visible.Select(f => new ProjectedFace(f, Polygon(f, box.Min, box.Max, camera)))];
+
+    private static Point[] Polygon(BoxFace face, Corner min, Corner max, IsoProjection camera)
     {
-        var (min, max) = (box.Min, box.Max);
+        var (aft, bow) = (min.X, max.X);
         return face switch
         {
             BoxFace.Top => Level(max.Z),
@@ -123,4 +126,7 @@ public static class SceneProjector
         var extent = corners.Aggregate(new Rect(corners[0], corners[0]), (rect, p) => Rect.Union(rect, p));
         return (edges, extent);
     }
+
+    /// <summary>A box corner in cells; not a <see cref="ShipPoint"/>, a drawn cell is smaller than a whole cell.</summary>
+    private readonly record struct Corner(double X, double Y, double Z);
 }

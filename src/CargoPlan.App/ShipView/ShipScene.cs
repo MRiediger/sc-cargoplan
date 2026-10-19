@@ -32,16 +32,16 @@ public sealed record ShipScene(
 }
 
 /// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MovePlacement</c>).</param>
-/// <param name="Segments">Along x from the bow end; together they cover the rack's length.</param>
-public sealed record SceneRack(string RackId, int Number, bool IsViolated, ShipBox Bounds, IReadOnlyList<SceneSegment> Segments);
+/// <param name="Cells">Every cell of the rack's grid once, in fill order (<see cref="RackCells"/>).</param>
+public sealed record SceneRack(string RackId, int Number, bool IsViolated, ShipBox Bounds, IReadOnlyList<SceneCell> Cells);
 
 /// <summary>
-/// One placement's share of a rack, from x = <paramref name="Aft"/> to x = <paramref name="Bow"/> in cells.
-/// <paramref name="PaletteIndex"/>, <paramref name="ToolTip"/> and <paramref name="Placement"/> are null for free space.
+/// One SCU of a rack, a box of one cell in ship coordinates. <paramref name="PaletteIndex"/>, <paramref name="ToolTip"/>
+/// and <paramref name="Placement"/> are null for a free cell.
 /// </summary>
-public sealed record SceneSegment(double Aft, double Bow, SegmentFill Fill, int? PaletteIndex, string? ToolTip, Placement? Placement);
+public sealed record SceneCell(ShipBox Bounds, CellFill Fill, int? PaletteIndex, string? ToolTip, Placement? Placement);
 
-public enum SegmentFill
+public enum CellFill
 {
     Mission,
     Delivered,
@@ -64,29 +64,26 @@ public enum BoxFace
 /// paints it.
 /// </summary>
 /// <param name="Racks">Back to front (<see cref="DrawOrder"/>).</param>
+/// <param name="Cells">The cells of all racks, back to front (<see cref="DrawOrder.CellsBackToFront"/>): the painter's order.</param>
 /// <param name="Frame">The 12 edges of <c>Ship.Bounds</c>.</param>
 /// <param name="Extent">Encloses the frame, for fit-to-view.</param>
-public sealed record ProjectedScene(IReadOnlyList<ProjectedRack> Racks, IReadOnlyList<SceneLine> Frame, Rect Extent);
+public sealed record ProjectedScene(IReadOnlyList<ProjectedRack> Racks, IReadOnlyList<ProjectedCell> Cells, IReadOnlyList<SceneLine> Frame, Rect Extent);
 
-/// <param name="Faces">The faces the camera sees.</param>
-/// <param name="Strips">The segments on those faces; together they cover the faces.</param>
+/// <param name="Faces">The faces of the rack's box the camera sees: its edges and its area for the hit test.</param>
+/// <param name="Cells">The rack's own cells, back to front, the same objects as in <see cref="ProjectedScene.Cells"/>.</param>
 /// <param name="LabelCentre">Centre of the largest visible face, where the rack number goes.</param>
 public sealed record ProjectedRack(
     string RackId,
     int Number,
     bool IsViolated,
     IReadOnlyList<ProjectedFace> Faces,
-    IReadOnlyList<SceneStrip> Strips,
+    IReadOnlyList<ProjectedCell> Cells,
     Point LabelCentre);
 
 public sealed record ProjectedFace(BoxFace Face, IReadOnlyList<Point> Polygon);
 
-/// <summary>
-/// One segment on one face. <paramref name="PaletteIndex"/>, <paramref name="ToolTip"/> and <paramref name="Placement"/>
-/// are null for free space.
-/// </summary>
-public sealed record SceneStrip(
-    BoxFace Face, IReadOnlyList<Point> Polygon, SegmentFill Fill, int? PaletteIndex, string? ToolTip, Placement? Placement);
+/// <summary>A <see cref="SceneCell"/> as the camera sees it, drawn slightly smaller than a cell so the grid shows.</summary>
+public sealed record ProjectedCell(SceneCell Cell, IReadOnlyList<ProjectedFace> Faces);
 
 public sealed record SceneLine(Point From, Point To);
 

@@ -14,6 +14,10 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 
     public const string AllDeliveredText = "All stops delivered.";
 
+    // Not a setting yet: shared between a coordinator and haulers it would belong to the plan, kept locally to
+    // settings.json; decided once it is needed (D21).
+    private const FillOrder DefaultFillOrder = FillOrder.BowFirst;
+
     public Ship Ship { get; } = ship;
 
     // [ObservableProperty] on partial properties (Toolkit 8.4+, C# 14 here): the generator writes the
@@ -125,6 +129,9 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 
     public bool HasPlan => Plan is not null;
 
+    /// <summary>Where the cells of a rack start in the ship view; the one place that decides it (D21).</summary>
+    public FillOrder FillOrder => DefaultFillOrder;
+
     /// <summary>
     /// What the ship view and the legend draw: the plan with Core's validation (D10), or the empty ship without a plan.
     /// Built once per change of <see cref="Plan"/>, not per binding.
@@ -135,7 +142,7 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/observableproperty#running-code-upon-changes
     partial void OnPlanChanged(LoadPlan? value) => Scene = value is null
         ? EmptyScene(Ship)
-        : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value, Ship));
+        : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value, Ship), FillOrder);
 
-    private static ShipScene EmptyScene(Ship ship) => ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
+    private static ShipScene EmptyScene(Ship ship) => ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, [], DefaultFillOrder);
 }

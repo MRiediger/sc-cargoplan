@@ -26,8 +26,8 @@ public static class MissionPalette
     /// <summary>Delivered cargo: dark, so it doesn't read as the white stop colour.</summary>
     public static Color Delivered { get; } = Color.FromRgb(0x5A, 0x5A, 0x5A);
 
-    /// <summary>Free space: barely filled, the rack edges show its outline.</summary>
-    public static Color Free { get; } = Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF);
+    /// <summary>Edges of a free cell: no fill, a faint outline, so the cargo behind it shows (D21).</summary>
+    public static Color FreeEdge { get; } = Color.FromArgb(0x50, 0xE6, 0xE6, 0xE6);
 
     /// <summary>Edges of a rack that <c>LoadPlanner.Validate</c> rejects (D10); only violations are red.</summary>
     public static Color Violation { get; } = Color.FromRgb(0xFF, 0x2A, 0x2A);
@@ -56,8 +56,6 @@ public static class MissionPalette
     private static readonly SolidColorBrush[] MissionBrushes = [.. Colors.Select(c => Frozen(c with { A = FillAlpha }))];
 
     public static SolidColorBrush DeliveredBrush { get; } = Frozen(Delivered with { A = FillAlpha });
-
-    public static SolidColorBrush FreeBrush { get; } = Frozen(Free);
 
     /// <summary>Violation messages in the legend, the same red as the rack edges.</summary>
     public static SolidColorBrush ViolationBrush { get; } = Frozen(Violation);

@@ -260,7 +260,15 @@ T3.8 ist geteilt: a = Persistenz und leerer Zustand, b = Editor.
 
 **Akzeptanz:** Funktioniert, Überladung sichtbar.
 
-Phase 3 ist mit T3.9 nummeriert komplett; offen bleiben nur Backlog-Punkte.
+### [x] T3.10 SCU-Zellen in der Schiffsansicht
+**Warum:** Im Spiel werden Kisten in Ebenen gestapelt; „12 SCU Riker“ als Ebene + Reihe ist beim Beladen greifbarer als ein Balkenanteil. Später soll ein Koordinator großer Schiffe allen dieselbe Füllrichtung zeigen.
+**Präzisiert in der Planung:** `RackSegments` → `RackCells.Build(rack, placements, FillOrder)`, eine Zelle pro SCU in Plan-Reihenfolge, Rest frei; Füllreihenfolge Ebene (z) → Reihe (von der Mittellinie nach außen, kleineres |y| zuerst, Backbord/Steuerbord spiegelsymmetrisch) → Length innen in Füllrichtung (12 SCU = Ebene + Längsreihe, Richtungstest mit 10 SCU); `enum FillOrder { BowFirst, SternFirst }`, Default BowFirst als Konstante in `OverlayViewModel.FillOrder`, `ShipViewBuilder.Build` ohne Default; Speicherort der Richtung (plan.json vs. settings.json) bewusst offen (D21); Überladung anteilig nach SCU (größter Rest, jedes Placement ≥ 1 Zelle, damit es zurückgezogen werden kann) statt Überhang weglassen; Zelle als 0,9er-Quader, Painter über alle Zellen aller Racks nach Zellmittelpunkt-Tiefe (Tie: Rack-Nummer, Füllindex, `DrawOrder.CellsBackToFront`); normale Rack-Kanten vor den Zellen, Rot/Cyan und Nummern danach; Free-Zellen nur schwacher Umriss (`MissionPalette.FreeEdge` statt `Free`/`FreeBrush`); Hit-Test: Rack über seine Flächen (Free und Fugen = Drop-Ziel), Placement = vorderste Frachtzelle des Racks (Fracht hinter Free-Umrissen antwortet); `SegmentFill` → `CellFill`, `SceneSegment`/`SceneStrip` → `SceneCell`/`ProjectedCell`; Performance-Test 1.000 Zellen < 50 ms; Zoom skaliert die Zellen, Nummern/Linien unverändert; Core unverändert (D21). Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- Racks als Raster einzelner 1-SCU-Zellen, gefüllt in Missionsfarbe, frei als Umriss
+- Füllrichtung als Parameter, beide Werte getestet
+
+**Akzeptanz:** `dotnet test` grün; Rack 2 der Fixture zeigt Riker-, Shubin- und freie Zellen, Ebenen bleiben beim Orbit Ebenen; Abhaken, Klick zurück und Rechts-Ziehen funktionieren auf Zellen.
+
+Phase 3 ist mit T3.10 nummeriert komplett; offen bleiben nur Backlog-Punkte.
 
 ---
 
@@ -344,3 +352,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Hotkey-Aufnahme-UI (Tasten drücken statt tippen) und damit das Zahnrad in der Kopfzeile, sobald settings.json-Editieren Nutzer abschreckt (D17).
 - Plan verwerfen ohne neuen Plan („Discard plan“), falls ein leeres Overlay nach der Route gewünscht wird; heute ersetzt nur „Plan“ den alten Plan (D19).
 - Editor-Position in `settings.json`, Entwurfs-Autosave, Undo im Editor, falls der Zwei-Minuten-Durchlauf daran scheitert (D19).
+- Füllrichtung der Zellen konfigurierbar; geteilt zwischen Koordinator und Haulern gehört sie in `plan.json`, als persönliche Vorliebe in `settings.json` (D21).
+- Rückfall auf Segmente ab einer Zellenzahl, sobald ein großes Schiff (Hull C, ~4.600 Zellen) beim Orbit ruckelt (D21).
+- Rack-Nummern und Linien beim Zoom konstant klein halten statt mitzuskalieren (D21).
+- Kistengrößen als Blöcke und Zellbeschriftung in der Schiffsansicht (D21).

@@ -8,13 +8,14 @@ public class ShipViewBuilderTests
 {
     private static readonly (Ship Ship, LoadPlan Plan) Sample = TestPlans.Load();
 
-    private static ShipScene Build(LoadPlan plan) => ShipViewBuilder.Build(plan, Sample.Ship, LoadPlanner.Validate(plan, Sample.Ship));
+    private static ShipScene Build(LoadPlan plan) =>
+        ShipViewBuilder.Build(plan, Sample.Ship, LoadPlanner.Validate(plan, Sample.Ship), FillOrder.BowFirst);
 
     private static SceneRack RackNumber(ShipScene scene, int number) => scene.Racks.Single(r => r.Number == number);
 
-    /// <summary>Distinct mission colours in a rack, in strip order.</summary>
+    /// <summary>Distinct mission colours in a rack, in fill order.</summary>
     private static IEnumerable<int?> MissionColours(SceneRack rack) =>
-        rack.Segments.Where(s => s.Fill == SegmentFill.Mission).Select(s => s.PaletteIndex).Distinct();
+        rack.Cells.Where(s => s.Fill == CellFill.Mission).Select(s => s.PaletteIndex).Distinct();
 
     [Fact]
     public void Racks_come_in_rack_order()
@@ -42,7 +43,7 @@ public class ShipViewBuilderTests
         var rack2 = RackNumber(scene, 2);
 
         MissionColours(rack2).Should().Equal(legend["Riker"], legend["Shubin"]);
-        rack2.Segments.Should().Contain(s => s.Fill == SegmentFill.Free);
+        rack2.Cells.Should().Contain(c => c.Fill == CellFill.Free);
     }
 
     [Fact]
@@ -85,18 +86,43 @@ public class ShipViewBuilderTests
 
         scene.Racks.Where(r => r.IsViolated).Select(r => r.Number).Should().Equal(1);
         scene.Violations.Should().Equal("Rack 1 overloaded: 24/16 SCU");
+        RackNumber(scene, 1).Cells.Should().NotContain(c => c.Fill == CellFill.Free);
+        RackNumber(scene, 1).Cells.Select(c => c.Placement!.Destination).Distinct().Should().Equal("Riker", "Shubin");
     }
 
     [Fact]
-    public void Segments_run_from_the_bow_end_and_cover_the_rack()
+    public void Cells_are_unit_boxes_that_fill_the_rack_exactly()
     {
         foreach (var rack in Build(Sample.Plan).Racks)
         {
-            rack.Segments[0].Bow.Should().Be(rack.Bounds.Max.X);
-            rack.Segments[^1].Aft.Should().BeApproximately(rack.Bounds.Min.X, 1e-9);
-            rack.Segments.Zip(rack.Segments.Skip(1)).Should().AllSatisfy(pair =>
-                pair.Second.Bow.Should().BeApproximately(pair.First.Aft, 1e-9));
+            var (min, max) = (rack.Bounds.Min, rack.Bounds.Max);
+
+            rack.Cells.Should().HaveCount((max.X - min.X) * (max.Y - min.Y) * (max.Z - min.Z));
+            rack.Cells.Select(c => c.Bounds).Should().OnlyHaveUniqueItems();
+            rack.Cells.Should().OnlyContain(c =>
+                c.Bounds.Max.X - c.Bounds.Min.X == 1 && c.Bounds.Max.Y - c.Bounds.Min.Y == 1 && c.Bounds.Max.Z - c.Bounds.Min.Z == 1
+                && c.Bounds.Min.X >= min.X && c.Bounds.Max.X <= max.X
+                && c.Bounds.Min.Y >= min.Y && c.Bounds.Max.Y <= max.Y
+                && c.Bounds.Min.Z >= min.Z && c.Bounds.Max.Z <= max.Z);
         }
+    }
+
+    [Fact]
+    public void Cells_fill_from_the_bow_in_the_lowest_layer_first()
+    {
+        // Rack 2 (y 1..3, z 0..2): Riker's 4 SCU Quartz take the row next to the spindle, bottom layer.
+        var rack2 = RackNumber(Build(Sample.Plan), 2);
+
+        rack2.Cells[0].Bounds.Should().Be(new ShipBox(new ShipPoint(3, 1, 0), new ShipPoint(4, 2, 1)));
+        rack2.Cells.Take(4).Should().OnlyContain(c => c.Placement!.Destination == "Riker" && c.Bounds.Min.Y == 1 && c.Bounds.Min.Z == 0);
+    }
+
+    [Fact]
+    public void Stern_first_starts_at_the_aft_end()
+    {
+        var rack2 = ShipViewBuilder.Build(Sample.Plan, Sample.Ship, [], FillOrder.SternFirst).Racks.Single(r => r.Number == 2);
+
+        rack2.Cells[0].Bounds.Min.Should().Be(new ShipPoint(0, 1, 0));
     }
 
     [Fact]
@@ -113,7 +139,7 @@ public class ShipViewBuilderTests
     {
         var scene = Build(new LoadPlan(Sample.Ship.Id, [], []));
 
-        scene.Racks.SelectMany(r => r.Segments).Should().OnlyContain(s => s.Fill == SegmentFill.Free);
+        scene.Racks.SelectMany(r => r.Cells).Should().OnlyContain(c => c.Fill == CellFill.Free);
         scene.Legend.Should().BeEmpty();
     }
 
@@ -127,7 +153,7 @@ public class ShipViewBuilderTests
 
         var rack4 = RackNumber(Build(delivered), 4);
 
-        rack4.Segments.Should().Contain(s => s.Fill == SegmentFill.Delivered).And.NotContain(s => s.Fill == SegmentFill.Mission);
+        rack4.Cells.Should().Contain(c => c.Fill == CellFill.Delivered).And.NotContain(c => c.Fill == CellFill.Mission);
     }
 
     [Fact]
@@ -137,8 +163,8 @@ public class ShipViewBuilderTests
         var riker = scene.Legend.Single(e => e.Destination == "Riker");
 
         // Rack 1 holds only Riker; Rack 2 keeps Shubin's colour next to Riker's grey.
-        RackNumber(scene, 1).Segments.Should().NotContain(s => s.Fill == SegmentFill.Mission);
-        RackNumber(scene, 2).Segments.Should().Contain(s => s.Fill == SegmentFill.Delivered);
+        RackNumber(scene, 1).Cells.Should().NotContain(c => c.Fill == CellFill.Mission);
+        RackNumber(scene, 2).Cells.Should().Contain(c => c.Fill == CellFill.Delivered);
         MissionColours(RackNumber(scene, 2)).Should().Equal(scene.Legend.Single(e => e.Destination == "Shubin").PaletteIndex);
         riker.Delivered.Should().BeTrue();
         scene.Legend.Where(e => e.Destination != "Riker").Should().OnlyContain(e => !e.Delivered);
@@ -159,13 +185,13 @@ public class ShipViewBuilderTests
     }
 
     [Fact]
-    public void Segments_carry_their_placement_and_free_space_none()
+    public void Cells_carry_their_placement_and_free_cells_none()
     {
         var plan = LoadPlanner.SetDelivered(Sample.Plan, Sample.Ship, "Riker", true);
         var rack2 = RackNumber(Build(plan), 2);
 
-        rack2.Segments.Select(s => s.Placement).Should().Equal([.. plan.PlacementsForRack("rack-1"), null]);
-        rack2.Segments.Select(s => s.Placement?.Destination).Should().Equal("Riker", "Shubin", null);
+        rack2.Cells.Select(c => c.Placement).Distinct().Should().Equal([.. plan.PlacementsForRack("rack-1"), null]);
+        rack2.Cells.Select(c => c.Placement?.Destination).Distinct().Should().Equal("Riker", "Shubin", null);
     }
 
     [Fact]
@@ -207,7 +233,7 @@ public class ShipViewBuilderTests
     [Fact]
     public void A_plan_for_another_ship_is_rejected()
     {
-        var act = () => ShipViewBuilder.Build(Sample.Plan with { ShipId = "cutlass_black" }, Sample.Ship, []);
+        var act = () => ShipViewBuilder.Build(Sample.Plan with { ShipId = "cutlass_black" }, Sample.Ship, [], FillOrder.BowFirst);
 
         act.Should().Throw<ArgumentException>();
     }

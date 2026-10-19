@@ -8,8 +8,9 @@ namespace CargoPlan.App.ShipView;
 public static class ShipViewBuilder
 {
     /// <param name="violations">The result of <c>LoadPlanner.Validate</c> for this plan.</param>
+    /// <param name="fillOrder">Where the cells of a rack start (D21); no default, the view model decides it in one place.</param>
     /// <exception cref="ArgumentException">The plan belongs to another ship.</exception>
-    public static ShipScene Build(LoadPlan plan, Ship ship, IReadOnlyList<PlanWarning> violations)
+    public static ShipScene Build(LoadPlan plan, Ship ship, IReadOnlyList<PlanWarning> violations, FillOrder fillOrder)
     {
         plan.EnsureBelongsTo(ship);
 
@@ -17,7 +18,7 @@ public static class ShipViewBuilder
         var violated = violations.Select(v => v.RackId).ToHashSet();
 
         SceneRack[] racks = [.. ship.Racks
-            .Select(r => BuildRack(r, plan.PlacementsForRack(r.Id), palette, violated.Contains(r.Id)))];
+            .Select(r => BuildRack(r, plan.PlacementsForRack(r.Id), palette, violated.Contains(r.Id), fillOrder))];
 
         // GroupBy keeps the order of first appearance, the same order as the palette.
         LegendEntry[] legend = [.. plan.Placements
@@ -43,24 +44,25 @@ public static class ShipViewBuilder
         .Distinct()
         .Aggregate(plan, (current, destination) => LoadPlanner.SetDelivered(current, ship, destination, false));
 
-    private static SceneRack BuildRack(Rack rack, IReadOnlyList<Placement> placements, IReadOnlyDictionary<string, int> palette, bool isViolated)
+    private static SceneRack BuildRack(
+        Rack rack, IReadOnlyList<Placement> placements, IReadOnlyDictionary<string, int> palette, bool isViolated, FillOrder fillOrder)
     {
-        var max = rack.Bounds.Max.X;
-        double length = max - rack.Bounds.Min.X;
+        var origin = rack.Origin;
 
-        SceneSegment[] segments = [.. RackSegments.Build(rack, placements).Select(segment =>
+        SceneCell[] cells = [.. RackCells.Build(rack, placements, fillOrder).Select(cell =>
         {
-            // Segments count from the bow end (x max), so the plan order reads from the bow.
-            var (fill, index, toolTip) = segment.Placement switch
+            var (fill, index, toolTip) = cell.Placement switch
             {
-                null => (SegmentFill.Free, (int?)null, (string?)null),
-                var p => (p.Delivered ? SegmentFill.Delivered : SegmentFill.Mission, palette[p.Destination], ToolTip(rack, p)),
+                null => (CellFill.Free, (int?)null, (string?)null),
+                var p => (p.Delivered ? CellFill.Delivered : CellFill.Mission, palette[p.Destination], ToolTip(rack, p)),
             };
-            return new SceneSegment(
-                max - (segment.Start + segment.Length) * length, max - segment.Start * length, fill, index, toolTip, segment.Placement);
+
+            // Grid axes are the ship axes (D14): length along x, width along y, stack along z.
+            ShipPoint min = new(origin.X + cell.Length, origin.Y + cell.Width, origin.Z + cell.Stack);
+            return new SceneCell(new ShipBox(min, new ShipPoint(min.X + 1, min.Y + 1, min.Z + 1)), fill, index, toolTip, cell.Placement);
         })];
 
-        return new SceneRack(rack.Id, rack.Number, isViolated, rack.Bounds, segments);
+        return new SceneRack(rack.Id, rack.Number, isViolated, rack.Bounds, cells);
     }
 
     /// <summary>"Rack 1 · port upper · 16 SCU Titanium (4×4)": crate count × crate size, as in the text renderer.</summary>

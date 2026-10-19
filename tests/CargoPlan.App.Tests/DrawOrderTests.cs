@@ -7,7 +7,7 @@ namespace CargoPlan.App.Tests;
 public class DrawOrderTests
 {
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
-    private static readonly IReadOnlyList<SceneRack> Racks = ShipViewBuilder.Build(new LoadPlan(HullA.Id, [], []), HullA, []).Racks;
+    private static readonly IReadOnlyList<SceneRack> Racks = ShipViewBuilder.Build(new LoadPlan(HullA.Id, [], []), HullA, [], FillOrder.BowFirst).Racks;
 
     private static readonly IsoProjection FromBelow = new(IsoProjection.DefaultYaw, -IsoProjection.DefaultPitch);
     private static readonly IsoProjection FromAftStarboard = new(IsoProjection.DefaultYaw + 180, IsoProjection.DefaultPitch);
@@ -66,4 +66,22 @@ public class DrawOrderTests
     {
         DrawOrder.BackToFront(Racks, FromAftStarboard).Select(r => r.Number).Should().Equal(2, 1, 4, 3);
     }
+
+    [Fact]
+    public void Cells_of_equal_depth_fall_back_to_rack_number_then_fill_order()
+    {
+        // Racks 2 and 3 have the same depth, so many of their cells do too.
+        var order = DrawOrder.CellsBackToFront(Racks, IsoProjection.Default)
+            .Select(c => (Depth: Depth(c.Cell.Bounds), c.Rack.Number, Index: c.Rack.Cells.ToList().IndexOf(c.Cell)))
+            .ToList();
+
+        var ties = order.Zip(order.Skip(1)).Where(pair => pair.First.Depth == pair.Second.Depth).ToList();
+
+        ties.Should().Contain(pair => pair.First.Number != pair.Second.Number);
+        ties.Should().AllSatisfy(pair =>
+            (pair.First.Number, pair.First.Index).CompareTo((pair.Second.Number, pair.Second.Index)).Should().BeNegative());
+    }
+
+    private static double Depth(ShipBox box) => Math.Round(
+        IsoProjection.Default.Depth((box.Min.X + box.Max.X) / 2.0, (box.Min.Y + box.Max.Y) / 2.0, (box.Min.Z + box.Max.Z) / 2.0), 9);
 }
