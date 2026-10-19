@@ -51,7 +51,7 @@ Start with `--locked` to begin with the padlock locked.
 
 **Remembers where you put it:** drag the overlay next to your cargo grid and resize it once; position and size are saved right away, so they survive a restart and even a crash. They live in `%LocalAppData%\SC-CargoPlan\settings.json`. To reset the overlay to its default size and position, close it and delete that file (your hotkeys and look go with it). If you unplug a monitor, the overlay moves back onto the screens you have.
 
-**Your look:** background and its transparency, frames, text colours, the legend's font size, crate opacity, rack number colour and a halo for reading over bright scenes are set in the same file, until the settings window arrives. Every key, its default and its range: [settings file format](docs/settings-format.md). The stop colours stay fixed: they are chosen to stay apart with colour blindness.
+**Your look:** background and its transparency, frames, text colours, the legend's font size, crate opacity, rack number colour and size, and a halo for reading over bright scenes are set in the same file, until the settings window arrives. Every key, its default and its range: [settings file format](docs/settings-format.md). The stop colours stay fixed: they are chosen to stay apart with colour blindness.
 
 ### Entering missions
 

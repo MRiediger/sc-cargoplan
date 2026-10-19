@@ -12,6 +12,10 @@ public static class AppearanceRules
 {
     public const double MinFontSize = 8;
     public const double MaxFontSize = 32;
+
+    // A range of its own: the default (27) is near the legend's top, and a large overlay on a large screen wants more.
+    public const double MinRackNumberFontSize = 8;
+    public const double MaxRackNumberFontSize = 48;
     public const double MinHaloSize = 1;
     public const double MaxHaloSize = 20;
     public const double MaxBorderThickness = 10;
@@ -61,6 +65,7 @@ public static class AppearanceRules
                 FillAlpha = (int)check.Range("crates.fillAlpha", crates.FillAlpha, byte.MinValue, byte.MaxValue),
                 EdgeAlpha = (int)check.Range("crates.edgeAlpha", crates.EdgeAlpha, byte.MinValue, byte.MaxValue),
                 RackNumberColor = check.Colour("crates.rackNumberColor", crates.RackNumberColor, CrateAppearance.Default.RackNumberColor),
+                RackNumberFontSize = check.Range("crates.rackNumberFontSize", crates.RackNumberFontSize, MinRackNumberFontSize, MaxRackNumberFontSize),
                 Halo = check.Halo("crates.halo", crates.Halo),
             },
             buttons with

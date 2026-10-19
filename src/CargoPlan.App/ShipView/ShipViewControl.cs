@@ -23,8 +23,6 @@ namespace CargoPlan.App.ShipView;
 public sealed class ShipViewControl : FrameworkElement
 {
     private const double FitMargin = 8;
-    private const double MinLabelSize = 12;
-    private const double LabelSizePerCell = 0.9;
     private const double WheelZoomStep = 1.2;
     private const double OrbitDegreesPerPixel = 0.5;
 
@@ -49,6 +47,9 @@ public sealed class ShipViewControl : FrameworkElement
     public static readonly DependencyProperty CrateEdgeBrushProperty = ThemeProperty(nameof(CrateEdgeBrush), typeof(Brush), null);
 
     public static readonly DependencyProperty RackNumberBrushProperty = ThemeProperty(nameof(RackNumberBrush), typeof(Brush), null);
+
+    /// <summary>Pixels at every zoom; see <see cref="RackNumberSize"/> (D32).</summary>
+    public static readonly DependencyProperty RackNumberFontSizeProperty = ThemeProperty(nameof(RackNumberFontSize), typeof(double), RackNumberSize.MinSize);
 
     /// <summary>The outline of the rack numbers (D15), the crates' halo (D28); null = none.</summary>
     public static readonly DependencyProperty RackNumberHaloBrushProperty = ThemeProperty(nameof(RackNumberHaloBrush), typeof(Brush), null);
@@ -160,6 +161,12 @@ public sealed class ShipViewControl : FrameworkElement
     {
         get => (Brush?)GetValue(RackNumberBrushProperty);
         set => SetValue(RackNumberBrushProperty, value);
+    }
+
+    public double RackNumberFontSize
+    {
+        get => (double)GetValue(RackNumberFontSizeProperty);
+        set => SetValue(RackNumberFontSizeProperty, value);
     }
 
     public Brush? RackNumberHaloBrush
@@ -308,7 +315,8 @@ public sealed class ShipViewControl : FrameworkElement
             return;
         }
 
-        var size = Math.Max(MinLabelSize, LabelSizePerCell * transform.Scale);
+        // Screen pixels like every pen here: points are transformed before drawing, nothing scales the drawing itself.
+        var size = RackNumberSize.For(RackNumberFontSize, transform.Scale, source.Racks);
         var typeface = new Typeface(TextElement.GetFontFamily(this), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
         var pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
         foreach (var rack in scene.Racks)

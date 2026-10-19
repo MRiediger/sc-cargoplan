@@ -41,6 +41,7 @@ public sealed class ThemeResourcesTests
         resources[Keys.CratesFillAlpha].Should().Be((byte)0xD0);
         ColorOf(resources, Keys.CratesEdgeBrush).Should().Be(MissionPalette.RackEdge);
         ColorOf(resources, Keys.CratesRackNumberBrush).Should().Be(Colors.White);
+        resources[Keys.CratesRackNumberFontSize].Should().Be(27.0);
         ColorOf(resources, Keys.CratesHaloBrush).Should().Be(Color.FromArgb(0xE0, 0x14, 0x14, 0x14));
         resources[Keys.CratesHaloSize].Should().Be(3.0);
         ColorOf(resources, Keys.ButtonsBackgroundBrush).Should().Be(Color.FromArgb(0x01, 0x00, 0x00, 0x00));
@@ -54,6 +55,14 @@ public sealed class ThemeResourcesTests
         var resources = Applied(AppearanceSettings.Default with { Legend = LegendAppearance.Default with { FontSize = 16 } });
 
         resources[Keys.LegendFontSize].Should().Be(16.0);
+    }
+
+    [Fact]
+    public void A_rack_number_font_size_is_passed_on()
+    {
+        var resources = Applied(AppearanceSettings.Default with { Crates = CrateAppearance.Default with { RackNumberFontSize = 40 } });
+
+        resources[Keys.CratesRackNumberFontSize].Should().Be(40.0);
     }
 
     [Fact]

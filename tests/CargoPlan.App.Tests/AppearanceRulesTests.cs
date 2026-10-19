@@ -13,7 +13,7 @@ public sealed class AppearanceRulesTests
         appearance.Window.Should().Be(new WindowAppearance(Background: "#A0141414", BorderColor: "#FFE6E6E6", BorderThickness: 0));
         appearance.Header.Should().Be(new HeaderAppearance(Foreground: "#FFE6E6E6", Halo: new HaloSettings(false, "#E0141414", 3)));
         appearance.Legend.Should().Be(new LegendAppearance(Foreground: "#FFE6E6E6", FontSize: null, Halo: new HaloSettings(false, "#E0141414", 3)));
-        appearance.Crates.Should().Be(new CrateAppearance(FillAlpha: 0xD0, EdgeAlpha: 0xC0, RackNumberColor: "#FFFFFFFF", Halo: new HaloSettings(true, "#E0141414", 3)));
+        appearance.Crates.Should().Be(new CrateAppearance(FillAlpha: 0xD0, EdgeAlpha: 0xC0, RackNumberColor: "#FFFFFFFF", RackNumberFontSize: 27, Halo: new HaloSettings(true, "#E0141414", 3)));
         appearance.Buttons.Should().Be(new ButtonAppearance(
             Background: "#01000000", BorderColor: "#FFE6E6E6", BorderThickness: 0, CornerRadius: 3, Halo: new HaloSettings(false, "#E0141414", 3)));
     }
@@ -34,7 +34,7 @@ public sealed class AppearanceRulesTests
             new WindowAppearance("#E0300000", "#FF00FF00", 10),
             new HeaderAppearance("#FFFFFF00", new HaloSettings(true, "#FF000000", 20)),
             new LegendAppearance("#FF00FFFF", 32, new HaloSettings(true, "#80000000", 1)),
-            new CrateAppearance(0, 255, "#FFFF0000", HaloSettings.Off),
+            new CrateAppearance(0, 255, "#FFFF0000", 48, HaloSettings.Off),
             new ButtonAppearance("#01FFFFFF", "#FFFFFFFF", 0, 13, HaloSettings.Off));
 
         var (appearance, problems) = AppearanceRules.Normalize(custom);
@@ -69,6 +69,8 @@ public sealed class AppearanceRulesTests
         { "crates.fillAlpha", a => a with { Crates = a.Crates with { FillAlpha = -5 } }, a => a.Crates.FillAlpha, 0 },
         { "crates.fillAlpha", a => a with { Crates = a.Crates with { FillAlpha = 300 } }, a => a.Crates.FillAlpha, 255 },
         { "crates.edgeAlpha", a => a with { Crates = a.Crates with { EdgeAlpha = 300 } }, a => a.Crates.EdgeAlpha, 255 },
+        { "crates.rackNumberFontSize", a => a with { Crates = a.Crates with { RackNumberFontSize = 0 } }, a => a.Crates.RackNumberFontSize, 8 },
+        { "crates.rackNumberFontSize", a => a with { Crates = a.Crates with { RackNumberFontSize = 100 } }, a => a.Crates.RackNumberFontSize, 48 },
     };
 
     [Theory]

@@ -33,6 +33,7 @@ Without a file, or without `appearance`, the overlay uses exactly these values.
       "fillAlpha": 208,
       "edgeAlpha": 192,
       "rackNumberColor": "#FFFFFFFF",
+      "rackNumberFontSize": 27,
       "halo": { "enabled": true, "color": "#E0141414", "size": 3 }
     },
     "buttons": {
@@ -72,6 +73,7 @@ can't be changed, so only their alpha is a number of its own: `0` (invisible) to
 | `crates.fillAlpha` | Opacity of the crates in the ship view | `208` | 0–255 |
 | `crates.edgeAlpha` | Opacity of the crates' edges | `192` | 0–255 |
 | `crates.rackNumberColor` | Colour of the rack numbers | `#FFFFFFFF` | |
+| `crates.rackNumberFontSize` | Size of the rack numbers in pixels, the same at every zoom | `27` | 8–48 |
 | `crates.halo` | Outline of the rack numbers | on | |
 | `buttons.background` | Background of the glyph buttons and "Open editor" | `#01000000` | alpha at least `01` |
 | `buttons.borderColor` | Frame of the glyph buttons | `#FFE6E6E6` | |
@@ -82,6 +84,9 @@ can't be changed, so only their alpha is a number of its own: `0` (invisible) to
 **`legend.fontSize`: `null` is the default and means "the Windows font size"** (the size the legend had
 before it was a setting; Windows sets it, often 11 or 12). A number overrides it. `0` does *not* mean
 "system": it is outside the range, becomes 8 and shows a notice.
+
+**`crates.rackNumberFontSize` stays the same while you zoom.** Only when you zoom far out or make the
+overlay small, so that a number would be taller than its rack, does it shrink with the racks, down to 12.
 
 **Alpha at least `01`:** the overlay passes clicks on fully transparent pixels to the window below. With a
 background of alpha `00`, you could no longer move the overlay or press a button, so the overlay uses `01`

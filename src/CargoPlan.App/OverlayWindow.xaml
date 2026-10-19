@@ -228,6 +228,7 @@
                                 CrateFillAlpha="{DynamicResource CratesFillAlpha}"
                                 CrateEdgeBrush="{DynamicResource CratesEdgeBrush}"
                                 RackNumberBrush="{DynamicResource CratesRackNumberBrush}"
+                                RackNumberFontSize="{DynamicResource CratesRackNumberFontSize}"
                                 RackNumberHaloBrush="{DynamicResource CratesHaloBrush}"
                                 RackNumberHaloSize="{DynamicResource CratesHaloSize}" />
         </DockPanel>

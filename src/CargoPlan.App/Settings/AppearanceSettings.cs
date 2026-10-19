@@ -63,7 +63,16 @@ public sealed record LegendAppearance(string Foreground = "#FFE6E6E6", double? F
 /// </summary>
 /// <param name="FillAlpha">0–255; int, not byte, so 300 in the file is clamped instead of breaking it.</param>
 /// <param name="EdgeAlpha">0–255, the edges of the crates.</param>
-public sealed record CrateAppearance(int FillAlpha = 0xD0, int EdgeAlpha = 0xC0, string RackNumberColor = "#FFFFFFFF", HaloSettings? Halo = null)
+/// <param name="RackNumberFontSize">
+/// Pixels, the same at every zoom; smaller only where the number would no longer fit its rack (D32). The default is the
+/// size at zoom 1 in the default overlay before it was a setting.
+/// </param>
+public sealed record CrateAppearance(
+    int FillAlpha = 0xD0,
+    int EdgeAlpha = 0xC0,
+    string RackNumberColor = "#FFFFFFFF",
+    double RackNumberFontSize = 27,
+    HaloSettings? Halo = null)
 {
     public static CrateAppearance Default { get; } = new();
 

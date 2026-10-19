@@ -393,8 +393,9 @@ Einstellbare Werte:
 
 **Akzeptanz:** `dotnet test` grün (Schema 1 → Defaults für Neues, Schema-2-Rundlauf, kaputte Datei → Defaults + Notice, Datei unverändert); Wert in settings.json ändern → nach Neustart sichtbar; Core unverändert.
 
-### [ ] T4.6 Rack-Nummern und Linienstärken beim Zoom konstant
+### [x] T4.6 Rack-Nummern und Linienstärken beim Zoom konstant
 **Warum:** Rack-Nummern und Linien wachsen heute mit dem Zoom mit (Backlog aus D21). Eine Schriftgröße als Einstellung wäre damit bei jedem Zoom eine andere. Voraussetzung für die Rack-Nummern-Schriftgröße als Einstellung.
+**Präzisiert in der Planung:** Linien waren schon konstant (Zoom skaliert die Punkte, nicht die Zeichnung), also keine Code-Änderung bei den Pens; nur die Rack-Nummer wuchs. `crates.rackNumberFontSize` Default 27 (alte Größe bei Zoom 1 im Standardfenster), Bereich 8–48; passt die Nummer nicht mehr aufs Rack, schrumpft sie bis zur kürzesten Rack-Seite, nicht unter 12 (D32). Die Backlog-Zeile stand nur in D21 und ist dort per Addendum erledigt. Präzisierung in der Planphase, ratifiziert durch Freigabe.
 - Rack-Nummern in fester Bildschirmgröße, Linienstärken (Kanten, rote Kanten, Drop-Ziel, Auswahl) fest; Kisten und Zellen skalieren weiter
 - Backlog-Zeile entfällt
 - Danach `crates.rackNumberFontSize` in settings.json (optional, kein Schema-Bump, D31), Key `CratesRackNumberFontSize`

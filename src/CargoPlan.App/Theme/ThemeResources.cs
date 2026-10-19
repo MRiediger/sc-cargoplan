@@ -30,6 +30,7 @@ public static class ThemeResources
         public const string CratesFillAlpha = nameof(CratesFillAlpha);
         public const string CratesEdgeBrush = nameof(CratesEdgeBrush);
         public const string CratesRackNumberBrush = nameof(CratesRackNumberBrush);
+        public const string CratesRackNumberFontSize = nameof(CratesRackNumberFontSize);
         public const string CratesHaloBrush = nameof(CratesHaloBrush);
         public const string CratesHaloSize = nameof(CratesHaloSize);
         public const string ButtonsBackgroundBrush = nameof(ButtonsBackgroundBrush);
@@ -43,7 +44,7 @@ public static class ThemeResources
             WindowBackgroundBrush, WindowBorderBrush, WindowBorderThickness,
             HeaderForegroundBrush, HeaderHaloEffect,
             LegendForegroundBrush, LegendFontSize, LegendHaloEffect,
-            CratesFillAlpha, CratesEdgeBrush, CratesRackNumberBrush, CratesHaloBrush, CratesHaloSize,
+            CratesFillAlpha, CratesEdgeBrush, CratesRackNumberBrush, CratesRackNumberFontSize, CratesHaloBrush, CratesHaloSize,
             ButtonsBackgroundBrush, ButtonsBorderBrush, ButtonsBorderThickness, ButtonsCornerRadius, ButtonsHaloEffect,
         ];
     }
@@ -74,6 +75,7 @@ public static class ThemeResources
         // The hue of the crate edges is the rack edges'; only the alpha is a setting (D29: crate colours stay fixed).
         resources[Keys.CratesEdgeBrush] = Frozen(new SolidColorBrush(MissionPalette.RackEdge with { A = (byte)crates.EdgeAlpha }));
         resources[Keys.CratesRackNumberBrush] = Brush(crates.RackNumberColor);
+        resources[Keys.CratesRackNumberFontSize] = crates.RackNumberFontSize;
 
         // The rack numbers keep their sharp outline (D15); the halo gives its colour and width.
         Set(resources, Keys.CratesHaloBrush, crates.Halo.Enabled ? Brush(crates.Halo.Color) : null);

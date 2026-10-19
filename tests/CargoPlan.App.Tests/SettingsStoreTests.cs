@@ -121,7 +121,7 @@ public sealed class SettingsStoreTests : IDisposable
                 new WindowAppearance("#E0300000", "#FF00FF00", 2),
                 new HeaderAppearance("#FFFFFF00", new HaloSettings(true, "#FF000000", 4)),
                 new LegendAppearance("#FF00FFFF", 16, new HaloSettings(true, "#80000000", 6)),
-                new CrateAppearance(120, 64, "#FFFF0000", HaloSettings.Off),
+                new CrateAppearance(120, 64, "#FFFF0000", 40, HaloSettings.Off),
                 new ButtonAppearance("#40FFFFFF", "#FFFFFFFF", 1, 6, new HaloSettings(true, "#FF101010", 2))),
         };
 
@@ -175,6 +175,19 @@ public sealed class SettingsStoreTests : IDisposable
             Legend = LegendAppearance.Default with { FontSize = 14 },
             Crates = CrateAppearance.Default with { FillAlpha = 100 },
         });
+    }
+
+    [Fact]
+    public void Schema_2_file_without_rack_number_font_size_gets_the_default()
+    {
+        // Optional since T4.6, no schemaVersion bump (D31): a schema 2 file of T4.1 has no rackNumberFontSize.
+        WriteFile("""{ "schemaVersion": 2, "appearance": { "crates": { "fillAlpha": 100 } } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Appearance.Crates.Should().Be(CrateAppearance.Default with { FillAlpha = 100 });
+        loaded.Appearance.Crates.RackNumberFontSize.Should().Be(27);
     }
 
     [Fact]
