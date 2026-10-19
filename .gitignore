@@ -482,3 +482,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+after_example_missions.txt
+after_overflow_missions.txt
+after_split_and_shared.txt
+after_split_required.txt
