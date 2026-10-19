@@ -2,6 +2,7 @@
 using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Plans;
 using CargoPlan.App.Settings;
+using CargoPlan.App.Theme;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Plans;
@@ -35,6 +36,9 @@ public partial class App : Application
 
         var options = StartOptions.Parse(e.Args);
         var (settings, settingsProblem) = SettingsStore.Load(SettingsStore.DefaultPath);
+
+        // Before any window: their DynamicResources find the theme from the first layout on.
+        ThemeResources.Apply(Resources, settings.Appearance);
 
         var ship = ShipLoader.Load(ShipId);
         var viewModel = new OverlayViewModel(ship) { IsManuallyLocked = options.Locked };

@@ -383,8 +383,9 @@ Einstellbare Werte:
 - **Kopfzeile/Reiter:** Schriftfarbe, Halo
 - **Buttons:** Hintergrund, Rahmen, Halo, Eckenradius
 
-### [ ] T4.1 Settings-Modell Schema 2 + Theme-Ressourcen
+### [x] T4.1 Settings-Modell Schema 2 + Theme-Ressourcen
 **Warum:** Jede Einstellung braucht erst einen Platz in settings.json und einen Weg in die Oberfläche; das Settings-Fenster (T4.2) baut darauf auf.
+**Präzisiert in der Planung:** Top-Level `overlay`, `hotkeys`, `appearance` (`window`, `header`, `legend`, `crates`, `buttons`); `legend` an/aus + Position kommt mit T4.3, Rack-Nummern-Schriftgröße mit T4.6, beide ohne Schema-Bump; Transparenz = Alpha der Farbe (`#AARRGGBB`), Kisten-Alpha als Zahl 0–255 (Farben fest, D29); Wert außerhalb des Bereichs → Clamp + Notice, ungültige Farbe → Default dieses Werts + Notice, unbekannte Keys/falscher Typ weiter strikt (ganze Datei, D13); klickende Hintergründe mindestens Alpha 1; Halo pro Abschnitt `enabled`/`color`/`size`, Text weich (`DropShadowEffect`), Rack-Nummern scharfer Umriss; Button-Rahmen nur für Glyph-Buttons, „Open editor“ behält seinen Umriss in Legendenfarbe; `legend.fontSize` `null` = Windows-Nachrichtenschrift (auf dem Dev-Rechner 11, nicht 12); Schema 1 wird erst beim nächsten Speichern als 2 geschrieben, dann vollständig; Ressourcen aus Code (`ThemeResources.Apply`), nicht als Literale in App.xaml; Halo aus = Key entfernt (Spike: `null` per Indexer liefert den Property-Default, nicht `null`); positionale Records statt `init`-Properties (Spike: Source-Gen in .NET 10 setzt fehlende `init`-Properties auf null/0); Zahnrad bleibt in T4.2. Pixelvergleich alt/neu ohne Datei: 0 abweichende Pixel. Präzisierung in der Planphase, ratifiziert durch Freigabe (D31).
 - settings.json `schemaVersion` 2 mit `appearance`, `legend`, `hotkeys`; Fensterposition und -größe bleiben wie in T3.4
 - Theme-Werte als Ressourcen in `App.xaml`, Views binden per `DynamicResource` (Grundlage für die Live-Vorschau in T4.2)
 - Noch ohne UI: alle Werte wirken bereits aus settings.json
@@ -396,12 +397,13 @@ Einstellbare Werte:
 **Warum:** Rack-Nummern und Linien wachsen heute mit dem Zoom mit (Backlog aus D21). Eine Schriftgröße als Einstellung wäre damit bei jedem Zoom eine andere. Voraussetzung für die Rack-Nummern-Schriftgröße als Einstellung.
 - Rack-Nummern in fester Bildschirmgröße, Linienstärken (Kanten, rote Kanten, Drop-Ziel, Auswahl) fest; Kisten und Zellen skalieren weiter
 - Backlog-Zeile entfällt
+- Danach `crates.rackNumberFontSize` in settings.json (optional, kein Schema-Bump, D31), Key `CratesRackNumberFontSize`
 
 **Akzeptanz:** `dotnet test` grün; Zoom 0,5× bis 4×: Nummern und Linien bleiben gleich groß, Kisten skalieren; Hit-Test und Drop-Ziel unverändert.
 
 ### [ ] T4.3 Legende an/aus + Position
 **Warum:** Je nach Fensterform und Platz neben dem Kiosk steht die Legende besser oben oder unten, links, mittig oder rechts. Wer die Farben kennt, blendet sie aus.
-- Legende an/aus und Position (top/bottom × left/center/right) in settings.json
+- Legende an/aus und Position (top/bottom × left/center/right) in settings.json, Top-Level `legend` (optional, kein Schema-Bump, D31)
 - Layout-Umbau des Overlays; der reservierte Hinweisplatz (D16) bleibt, die Ansicht springt beim Abhaken nicht
 - „aus“ blendet nur die Stop-Zeilen aus; Hinweise und Notices bleiben sichtbar (an der Legendenposition), sonst sähe niemand die D13-Notice „kaputte settings.json → Defaults“
 - Abhaken (D16) und Legenden-Drag (D25) in jeder Position; ausgeblendet bleibt Abhaken per Klick in der Ansicht

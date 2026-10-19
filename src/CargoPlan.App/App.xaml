@@ -3,9 +3,9 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <!-- No StartupUri: App.OnStartup builds the view model and the window. -->
     <Application.Resources>
-        <!-- Overlay look in one place instead of hard-coded in the windows. -->
-        <SolidColorBrush x:Key="OverlayBackgroundBrush" Color="#A0141414" />
-        <SolidColorBrush x:Key="OverlayForegroundBrush" Color="#FFE6E6E6" />
+        <!-- What a player can set (window, header, legend, crates, buttons) is not here: ThemeResources.Apply adds it
+             to this dictionary from settings.json at startup, the views bind it by DynamicResource (D31). Below are the
+             fixed parts of the overlay look: state colours and fonts. -->
         <FontFamily x:Key="PlanFontFamily">Consolas</FontFamily>
         <!-- Lock window: accent marks "locked" next to the glyph, readable from the pilot seat. -->
         <SolidColorBrush x:Key="LockedForegroundBrush" Color="#FFFFB000" />
@@ -18,15 +18,21 @@
         <SolidColorBrush x:Key="HitTestBackgroundBrush" Color="#01000000" />
         <!-- Icon font that ships with Windows 10/11; a glyph instead of an emoji, whose font fallback is unreliable. -->
         <FontFamily x:Key="IconFontFamily">Segoe MDL2 Assets</FontFamily>
-        <!-- Glyph buttons on the overlay (padlock, pencil, split, merge): no own look, the glyph is the button.
+        <!-- Glyph buttons on the overlay (padlock, pencil, split, merge): by default no own look, the glyph is the button;
+             background, frame, corners and halo come from settings.json (D31).
              Not focusable: focusing would activate the window and take the foreground from the game. -->
         <Style x:Key="IconButtonStyle" TargetType="Button">
             <Setter Property="Focusable" Value="False" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{StaticResource HitTestBackgroundBrush}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border Background="{DynamicResource ButtonsBackgroundBrush}"
+                                BorderBrush="{DynamicResource ButtonsBorderBrush}"
+                                BorderThickness="{DynamicResource ButtonsBorderThickness}"
+                                CornerRadius="{DynamicResource ButtonsCornerRadius}">
+                            <!-- Halo on the content, not the border: it outlines the glyph, not the box. -->
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Effect="{DynamicResource ButtonsHaloEffect}" />
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>

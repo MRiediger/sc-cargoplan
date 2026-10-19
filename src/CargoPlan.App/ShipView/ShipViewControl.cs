@@ -31,15 +31,29 @@ public sealed class ShipViewControl : FrameworkElement
     // The dragged cargo stays in place, faded, so the rack shows what it holds without it (D20, D25).
     private const double DraggedOpacity = 0.35;
 
+    private const double CrateEdgeWidth = 0.5;
+
     private static readonly Pen FramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Frame), 1) { DashStyle = DashStyles.Dash });
-    private static readonly Pen CellPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 0.5));
-    private static readonly Pen FreeCellPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.FreeEdge), 0.5));
+    private static readonly Pen FreeCellPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.FreeEdge), CrateEdgeWidth));
     private static readonly Pen RackPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 1));
     private static readonly Pen ViolationPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Violation), 2.5));
     private static readonly Pen DragTargetPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.DragTarget), 2.5));
     private static readonly Pen SelectionPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Selection), 2.5));
-    private static readonly Pen LabelOutlinePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.LabelOutline), 3) { LineJoin = PenLineJoin.Round });
-    private static readonly Brush LabelBrush = Frozen(new SolidColorBrush(MissionPalette.LabelFill));
+
+    // Theme values (D31), set in OverlayWindow.xaml by DynamicResource: a new value redraws at once (live preview, T4.2).
+    // The defaults draw opaque crates without edges or numbers, so a missing resource shows instead of crashing.
+
+    /// <summary>Alpha of the crate fills; their colours are the stop colours and stay fixed (D29).</summary>
+    public static readonly DependencyProperty CrateFillAlphaProperty = ThemeProperty(nameof(CrateFillAlpha), typeof(byte), byte.MaxValue);
+
+    public static readonly DependencyProperty CrateEdgeBrushProperty = ThemeProperty(nameof(CrateEdgeBrush), typeof(Brush), null);
+
+    public static readonly DependencyProperty RackNumberBrushProperty = ThemeProperty(nameof(RackNumberBrush), typeof(Brush), null);
+
+    /// <summary>The outline of the rack numbers (D15), the crates' halo (D28); null = none.</summary>
+    public static readonly DependencyProperty RackNumberHaloBrushProperty = ThemeProperty(nameof(RackNumberHaloBrush), typeof(Brush), null);
+
+    public static readonly DependencyProperty RackNumberHaloSizeProperty = ThemeProperty(nameof(RackNumberHaloSize), typeof(double), 0.0);
 
     // AffectsRender: a new scene invalidates the drawing by itself.
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.frameworkpropertymetadataoptions
@@ -86,6 +100,9 @@ public sealed class ShipViewControl : FrameworkElement
     private ViewNavigation _navigation = ViewNavigation.Default;
     private Drag? _drag;
 
+    // Brushes and pens from the theme properties; null after a change until the next render.
+    private Paint? _paint;
+
     // The scene as the current camera sees it; null after a new scene or camera until the next use.
     private ProjectedScene? _projected;
 
@@ -125,6 +142,36 @@ public sealed class ShipViewControl : FrameworkElement
     {
         get => (CrateSelection)GetValue(SelectionProperty);
         set => SetValue(SelectionProperty, value);
+    }
+
+    public byte CrateFillAlpha
+    {
+        get => (byte)GetValue(CrateFillAlphaProperty);
+        set => SetValue(CrateFillAlphaProperty, value);
+    }
+
+    public Brush? CrateEdgeBrush
+    {
+        get => (Brush?)GetValue(CrateEdgeBrushProperty);
+        set => SetValue(CrateEdgeBrushProperty, value);
+    }
+
+    public Brush? RackNumberBrush
+    {
+        get => (Brush?)GetValue(RackNumberBrushProperty);
+        set => SetValue(RackNumberBrushProperty, value);
+    }
+
+    public Brush? RackNumberHaloBrush
+    {
+        get => (Brush?)GetValue(RackNumberHaloBrushProperty);
+        set => SetValue(RackNumberHaloBrushProperty, value);
+    }
+
+    public double RackNumberHaloSize
+    {
+        get => (double)GetValue(RackNumberHaloSizeProperty);
+        set => SetValue(RackNumberHaloSizeProperty, value);
     }
 
     /// <summary>
@@ -177,6 +224,7 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         var transform = CurrentTransform(scene);
+        var paint = _paint ??= Paint.From(CrateFillAlpha, CrateEdgeBrush, RackNumberHaloBrush, RackNumberHaloSize);
 
         foreach (var line in scene.Frame)
         {
@@ -202,7 +250,7 @@ public sealed class ShipViewControl : FrameworkElement
                 dc.PushOpacity(DraggedOpacity);
             }
 
-            var (fill, pen) = box.Box.Fill == CellFill.Free ? (null, FreeCellPen) : (Fill(box.Box), CellPen);
+            var (fill, pen) = box.Box.Fill == CellFill.Free ? (null, FreeCellPen) : (paint.Fill(box.Box), paint.CrateEdge);
             foreach (var face in box.Faces)
             {
                 dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
@@ -255,6 +303,11 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         // Numbers last: always visible, even where a rack in front covers the labelled face.
+        if (RackNumberBrush is not { } labelBrush)
+        {
+            return;
+        }
+
         var size = Math.Max(MinLabelSize, LabelSizePerCell * transform.Scale);
         var typeface = new Typeface(TextElement.GetFontFamily(this), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
         var pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
@@ -266,14 +319,18 @@ public sealed class ShipViewControl : FrameworkElement
                 FlowDirection.LeftToRight,
                 typeface,
                 size,
-                LabelBrush,
+                labelBrush,
                 pixelsPerDip);
             var centre = transform.Apply(rack.LabelCentre);
             var glyphs = text.BuildGeometry(new Point(centre.X - text.Width / 2, centre.Y - text.Height / 2));
 
             // Outline first, fill on top: the outline only shows outside the glyphs.
-            dc.DrawGeometry(null, LabelOutlinePen, glyphs);
-            dc.DrawGeometry(LabelBrush, null, glyphs);
+            if (paint.LabelOutline is { } outline)
+            {
+                dc.DrawGeometry(null, outline, glyphs);
+            }
+
+            dc.DrawGeometry(labelBrush, null, glyphs);
         }
     }
 
@@ -548,9 +605,11 @@ public sealed class ShipViewControl : FrameworkElement
         }
     }
 
-    /// <summary>Cargo only; free cells have no fill.</summary>
-    private static Brush Fill(SceneBox box) =>
-        box.Fill == CellFill.Delivered ? MissionPalette.DeliveredBrush : MissionPalette.Brush(box.PaletteIndex!.Value);
+    private static DependencyProperty ThemeProperty(string name, Type type, object? defaultValue) => DependencyProperty.Register(
+        name,
+        type,
+        typeof(ShipViewControl),
+        new FrameworkPropertyMetadata(defaultValue, FrameworkPropertyMetadataOptions.AffectsRender, (d, _) => ((ShipViewControl)d)._paint = null));
 
     // StreamGeometry: the lightweight geometry for drawing only, frozen after filling.
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.media.streamgeometrycontext
@@ -571,6 +630,21 @@ public sealed class ShipViewControl : FrameworkElement
     {
         freezable.Freeze();
         return freezable;
+    }
+
+    /// <summary>The theme's brushes and pens, built once per change instead of on every render.</summary>
+    /// <param name="CrateEdge">null = crates without edges.</param>
+    /// <param name="LabelOutline">null = rack numbers without outline.</param>
+    private sealed record Paint(IReadOnlyList<SolidColorBrush> Stops, SolidColorBrush Delivered, Pen? CrateEdge, Pen? LabelOutline)
+    {
+        public static Paint From(byte fillAlpha, Brush? edge, Brush? halo, double haloSize) => new(
+            [.. MissionPalette.Colors.Select(c => MissionPalette.Fill(c, fillAlpha))],
+            MissionPalette.Fill(MissionPalette.Delivered, fillAlpha),
+            edge is null ? null : Frozen(new Pen(edge, CrateEdgeWidth)),
+            halo is null ? null : Frozen(new Pen(halo, haloSize) { LineJoin = PenLineJoin.Round }));
+
+        /// <summary>Cargo only; free cells have no fill.</summary>
+        public Brush Fill(SceneBox box) => box.Fill == CellFill.Delivered ? Delivered : Stops[box.PaletteIndex!.Value];
     }
 
     /// <param name="Down">What lay under the cursor when the button went down; with the button it decides the gesture.</param>

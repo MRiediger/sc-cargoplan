@@ -3,7 +3,10 @@ using CargoPlan.Core.Models;
 
 namespace CargoPlan.App.ShipView;
 
-/// <summary>All colours of the ship view in one place: one colour per stop, plus delivered, free and rack edges.</summary>
+/// <summary>
+/// The fixed colours of the ship view in one place: one colour per stop, plus delivered, free and rack edges. What a
+/// player can set (rack numbers, crate alpha) comes from settings.json through <c>ThemeResources</c> (D31).
+/// </summary>
 public static class MissionPalette
 {
     /// <summary>
@@ -49,12 +52,12 @@ public static class MissionPalette
     /// <summary>The frame around all racks (<c>Ship.Bounds</c>), faint so it stays behind the cargo.</summary>
     public static Color Frame { get; } = Color.FromArgb(0x60, 0xE6, 0xE6, 0xE6);
 
-    /// <summary>Rack numbers: white with a dark outline, readable on every stop colour and over bright clouds.</summary>
-    public static Color LabelFill { get; } = Color.FromRgb(0xFF, 0xFF, 0xFF);
+    // Rack numbers and their outline, the crates' fill and edge alpha are settings since T4.1 (CrateAppearance, D31).
 
-    public static Color LabelOutline { get; } = Color.FromArgb(0xE0, 0x14, 0x14, 0x14);
-
-    /// <summary>Opacity of cargo fills: the game shows through a little, the colour still reads over bright clouds.</summary>
+    /// <summary>
+    /// Opacity of the legend swatches: the game shows through a little, the colour still reads over bright clouds. The
+    /// crates in the view take <c>crates.fillAlpha</c>, whose default is the same.
+    /// </summary>
     private const byte FillAlpha = 0xD0;
 
     private const byte GhostAlpha = 0x50;
@@ -63,6 +66,7 @@ public static class MissionPalette
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/advanced/freezable-objects-overview
     private static readonly SolidColorBrush[] MissionBrushes = [.. Colors.Select(c => Frozen(c with { A = FillAlpha }))];
 
+    /// <summary>The legend swatch of a delivered stop.</summary>
     public static SolidColorBrush DeliveredBrush { get; } = Frozen(Delivered with { A = FillAlpha });
 
     /// <summary>Violation messages in the legend, the same red as the rack edges.</summary>
@@ -81,6 +85,9 @@ public static class MissionPalette
 
     /// <summary>The fill of a stop's colour index from <see cref="Assign"/>.</summary>
     public static SolidColorBrush Brush(int index) => MissionBrushes[index];
+
+    /// <summary>A frozen fill of <paramref name="color"/> with <paramref name="alpha"/>, for the crates' configurable alpha.</summary>
+    public static SolidColorBrush Fill(Color color, byte alpha) => Frozen(color with { A = alpha });
 
     /// <summary>
     /// Colour index per destination, in the order destinations first appear in the plan (route order), so a split

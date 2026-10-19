@@ -49,7 +49,9 @@ The small padlock in the overlay's top-right corner locks it by hand: the overla
 
 Start with `--locked` to begin with the padlock locked.
 
-**Remembers where you put it:** drag the overlay next to your cargo grid and resize it once; position and size are saved right away, so they survive a restart and even a crash. They live in `%LocalAppData%\SC-CargoPlan\settings.json`. To reset the overlay to its default size and position, close it and delete that file (your hotkeys go with it). If you unplug a monitor, the overlay moves back onto the screens you have.
+**Remembers where you put it:** drag the overlay next to your cargo grid and resize it once; position and size are saved right away, so they survive a restart and even a crash. They live in `%LocalAppData%\SC-CargoPlan\settings.json`. To reset the overlay to its default size and position, close it and delete that file (your hotkeys and look go with it). If you unplug a monitor, the overlay moves back onto the screens you have.
+
+**Your look:** background and its transparency, frames, text colours, the legend's font size, crate opacity, rack number colour and a halo for reading over bright scenes are set in the same file, until the settings window arrives. Every key, its default and its range: [settings file format](docs/settings-format.md). The stop colours stay fixed: they are chosen to stay apart with colour blindness.
 
 ### Entering missions
 
@@ -76,7 +78,7 @@ Two global hotkeys work while Star Citizen has the focus and the cursor is hidde
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "hotkeys": {
     "toggleLock": "Ctrl+Alt+K",
     "toggleOverlay": "Ctrl+Alt+H"
@@ -84,7 +86,7 @@ Two global hotkeys work while Star Citizen has the focus and the cursor is hidde
 }
 ```
 
-Keep the `overlay` part if your file has one. Either hotkey can be left out.
+Keep the `overlay` and `appearance` parts if your file has them. Either hotkey can be left out. A file with `"schemaVersion": 1` works too.
 
 - Format: modifiers and one key joined by `+`, in any order and case. Modifiers are `Ctrl`, `Alt`, `Shift`, `Win`; **at least one of `Ctrl`, `Alt` or `Win` is required**. Keys are `A`–`Z`, `0`–`9`, `F1`–`F24` (not `F12`, Windows reserves it), `Space`, `Pause`, `ScrollLock`, `Insert`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`.
 - Pick a combination that **none of your Star Citizen bindings use**, and check it in the game's keybinding settings. If the game still reacts to it, choose another one.
@@ -101,10 +103,10 @@ Both files are in `%LocalAppData%\SC-CargoPlan\` and are saved as soon as someth
 
 | File | What | Deleting it (overlay closed) |
 |---|---|---|
-| `settings.json` | Overlay position and size, hotkeys | Default size and position, no hotkeys. Your plan stays. |
+| `settings.json` | Overlay position and size, hotkeys, look ([format](docs/settings-format.md)) | Default size, position and look, no hotkeys. Your plan stays. |
 | `plan.json` | Your current plan: the missions you entered, which crate lies where in which rack, ticks ([format](docs/plan-format.md)). The editor opens with these missions. A plan file from an older version is converted when the overlay loads it and saved in the new format; your ticks stay. | The overlay starts without a plan. Your settings stay. |
 
-If a file can't be read, the overlay starts without it and says so in an amber line. It doesn't overwrite the file: `settings.json` stays until you move the overlay, `plan.json` until you make a new plan.
+If a file can't be read, the overlay starts without it and says so in an amber line. A single setting out of range or a colour that isn't one is corrected on its own, named in that line, and the rest of `settings.json` applies. It doesn't overwrite the file: `settings.json` stays until you move the overlay, `plan.json` until you make a new plan.
 
 ## Build
 

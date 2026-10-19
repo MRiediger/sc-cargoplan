@@ -23,13 +23,22 @@
     <Window.Resources>
         <sv:PaletteBrushConverter x:Key="PaletteBrushConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <!-- Theme values are DynamicResources from settings.json (ThemeResources, D31), so the settings window can change
+             them while the overlay is open (T4.2). A halo that is off has no resource: Effect stays null. -->
         <Style x:Key="LegendTextStyle" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource OverlayForegroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
+            <Setter Property="FontSize" Value="{DynamicResource LegendFontSize}" />
+            <Setter Property="Effect" Value="{DynamicResource LegendHaloEffect}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
-        <!-- Notice lines: amber. Only lines with text exist, so nothing needs hiding. -->
-        <Style x:Key="NoticeTextStyle" TargetType="TextBlock">
+        <!-- Notice lines: amber, size and halo of the legend they stand in. Only lines with text exist, so nothing needs hiding. -->
+        <Style x:Key="NoticeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource LegendTextStyle}">
             <Setter Property="Foreground" Value="{StaticResource NoticeForegroundBrush}" />
+        </Style>
+        <!-- Ship name and "All stops delivered.": the header's colour and halo, the window's font size as before. -->
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource HeaderForegroundBrush}" />
+            <Setter Property="Effect" Value="{DynamicResource HeaderHaloEffect}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
         <!-- A legend stop line: the whole line is the button, without box or frame; the hand cursor says it is clickable.
@@ -58,23 +67,28 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <!-- Text button on the dark overlay: outline in the text colour instead of the system's grey button. -->
+        <!-- Text button on the dark overlay: outline in the legend's text colour instead of the system's grey button.
+             The outline is its own, not the glyph buttons' frame; background, corners and halo are the buttons' (D31). -->
         <Style x:Key="TextButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
-            <Setter Property="Foreground" Value="{StaticResource OverlayForegroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{StaticResource HitTestBackgroundBrush}"
-                                BorderBrush="{StaticResource OverlayForegroundBrush}"
-                                BorderThickness="1" CornerRadius="3" Padding="8,2">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Border Background="{DynamicResource ButtonsBackgroundBrush}"
+                                BorderBrush="{DynamicResource LegendForegroundBrush}"
+                                BorderThickness="1" CornerRadius="{DynamicResource ButtonsCornerRadius}" Padding="8,2">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Effect="{DynamicResource ButtonsHaloEffect}" />
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
     </Window.Resources>
-    <Border Background="{StaticResource OverlayBackgroundBrush}" CornerRadius="4" Padding="10">
+    <Border Background="{DynamicResource WindowBackgroundBrush}"
+            BorderBrush="{DynamicResource WindowBorderBrush}"
+            BorderThickness="{DynamicResource WindowBorderThickness}"
+            CornerRadius="4" Padding="10">
         <DockPanel>
             <!-- Header: grip for moving the window (DragMove), later the tab bar (T3.7 notes).
                  Height and right margin keep clear of the lock window (36 px at 4 px inset, LockWindowPlacement). -->
@@ -85,7 +99,7 @@
                 <Button DockPanel.Dock="Right" ToolTip="Enter missions" Click="OnOpenEditor" Style="{StaticResource HeaderButtonStyle}">
                     <!-- E70F Edit. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
                     <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
-                               Foreground="{StaticResource OverlayForegroundBrush}" />
+                               Foreground="{DynamicResource HeaderForegroundBrush}" />
                 </Button>
                 <!-- Merge and split the selected crates when the kiosk delivered others than planned (D27); left of the pencil,
                      hidden while locked like it. Disabled, the tool tip says why (ShowOnDisabled).
@@ -94,25 +108,26 @@
                         ToolTipService.ShowOnDisabled="True" Style="{StaticResource HeaderButtonStyle}">
                     <!-- E71B Link. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
                     <TextBlock Text="&#xE71B;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
-                               Foreground="{StaticResource OverlayForegroundBrush}" />
+                               Foreground="{DynamicResource HeaderForegroundBrush}" />
                 </Button>
                 <Button DockPanel.Dock="Right" Command="{Binding SplitCommand, Mode=OneTime}" ToolTip="{Binding SplitToolTip}"
                         ToolTipService.ShowOnDisabled="True" Style="{StaticResource HeaderButtonStyle}">
                     <!-- E8C6 Cut. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
                     <TextBlock Text="&#xE8C6;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
-                               Foreground="{StaticResource OverlayForegroundBrush}" />
+                               Foreground="{DynamicResource HeaderForegroundBrush}" />
                 </Button>
                 <TextBlock DockPanel.Dock="Right"
                            Text="{x:Static vm:OverlayViewModel.AllDeliveredText}"
                            VerticalAlignment="Top"
                            Margin="6,0,0,0"
                            Foreground="{StaticResource DeliveredForegroundBrush}"
+                           Effect="{DynamicResource HeaderHaloEffect}"
                            Visibility="{Binding Scene.AllDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 <TextBlock Text="{Binding Ship.Name, Mode=OneTime}"
                            FontWeight="Bold"
                            VerticalAlignment="Top"
                            TextTrimming="CharacterEllipsis"
-                           Style="{StaticResource LegendTextStyle}" />
+                           Style="{StaticResource HeaderTextStyle}" />
             </DockPanel>
 
             <!-- Problems with settings (D13), hotkeys (D17) and the plan file, one line per source (D18). -->
@@ -174,7 +189,7 @@
                 <ItemsControl ItemsSource="{Binding Scene.Violations, Mode=OneWay}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Mode=OneTime}" TextWrapping="Wrap"
+                            <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}"
                                        Foreground="{x:Static sv:MissionPalette.ViolationBrush}" />
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -209,7 +224,12 @@
                                 ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}"
                                 MoveCratesCommand="{Binding MoveCratesCommand, Mode=OneTime}"
                                 MoveStopCommand="{Binding MoveStopCommand, Mode=OneTime}"
-                                Selection="{Binding Selection}" />
+                                Selection="{Binding Selection}"
+                                CrateFillAlpha="{DynamicResource CratesFillAlpha}"
+                                CrateEdgeBrush="{DynamicResource CratesEdgeBrush}"
+                                RackNumberBrush="{DynamicResource CratesRackNumberBrush}"
+                                RackNumberHaloBrush="{DynamicResource CratesHaloBrush}"
+                                RackNumberHaloSize="{DynamicResource CratesHaloSize}" />
         </DockPanel>
     </Border>
 </Window>

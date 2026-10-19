@@ -9,7 +9,13 @@ namespace CargoPlan.App.Settings;
 /// <summary>Reads and writes settings.json. The file boundary: only here are file and JSON errors expected (D13).</summary>
 public static class SettingsStore
 {
-    public const int SupportedSchemaVersion = 1;
+    public const int SupportedSchemaVersion = 2;
+
+    /// <summary>
+    /// Schema 1 (T3.4–T3.15) is schema 2 without <c>appearance</c>: it reads into the same record, nothing to convert,
+    /// and the next save writes 2. Not written back on loading: the file stays as the player left it until a change (D31).
+    /// </summary>
+    private const int OldestReadableSchemaVersion = 1;
 
     /// <summary>
     /// %LocalAppData%\SC-CargoPlan\settings.json. Not next to the EXE (Program Files needs admin rights),
@@ -20,7 +26,9 @@ public static class SettingsStore
 
     /// <summary>
     /// Missing file = defaults, no problem. Broken file or unknown schema version = defaults plus a problem
-    /// text for the overlay; the file is left as it is, so a reader bug can't destroy it.
+    /// text for the overlay; the file is left as it is, so a reader bug can't destroy it. Appearance values out of
+    /// range or not a colour are corrected one by one (<see cref="AppearanceRules"/>), the problem lists them, the rest
+    /// applies. The result always has the current schema version.
     /// </summary>
     public static (AppSettings Settings, string? Problem) Load(string path)
     {
@@ -37,9 +45,15 @@ public static class SettingsStore
 
             // After deserializing instead of Core's SchemaVersion.Check (internal there): one comparison,
             // and Core stays unchanged.
-            return settings.SchemaVersion == SupportedSchemaVersion
-                ? (settings, null)
-                : (AppSettings.Default, Problem(path, $"schemaVersion {settings.SchemaVersion} is not supported."));
+            if (settings.SchemaVersion is < OldestReadableSchemaVersion or > SupportedSchemaVersion)
+            {
+                return (AppSettings.Default, Problem(path, $"schemaVersion {settings.SchemaVersion} is not supported."));
+            }
+
+            var (appearance, problems) = AppearanceRules.Normalize(settings.Appearance);
+            return (
+                settings with { SchemaVersion = SupportedSchemaVersion, Appearance = appearance },
+                problems.Count == 0 ? null : string.Join(Environment.NewLine, problems.Select(p => $"settings.json: {p}")));
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {

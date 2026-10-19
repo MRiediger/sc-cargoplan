@@ -33,7 +33,8 @@
             <Setter Property="FontFamily" Value="{StaticResource IconFontFamily}" />
             <Setter Property="FontSize" Value="20" />
             <Setter Property="Text" Value="&#xE785;" />
-            <Setter Property="Foreground" Value="{StaticResource OverlayForegroundBrush}" />
+            <!-- The padlock sits at the header's right end and takes its colour (D31); locked stays amber. -->
+            <Setter Property="Foreground" Value="{DynamicResource HeaderForegroundBrush}" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsLocked}" Value="True">
                     <Setter Property="Text" Value="&#xE72E;" />
