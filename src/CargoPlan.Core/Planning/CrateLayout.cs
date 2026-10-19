@@ -20,13 +20,73 @@ public static class CrateLayout
     public static IReadOnlyList<GridPosition>? Place(Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<CrateSize> sizes, FillOrder order)
     {
         var grid = rack.Grid;
-        var rank = Ranks(rack, order);
         var taken = new bool[grid.Length, grid.Width, grid.Stack];
         foreach (var cell in occupied.SelectMany(c => c.Cells).Where(c => Inside(grid, c)))
         {
             taken[cell.Length, cell.Width, cell.Stack] = true;
         }
 
+        return Place(rack, taken, sizes, order);
+    }
+
+    /// <summary>
+    /// <see cref="Place"/> for the parts of a split (D27): only the cells of <paramref name="box"/> are free, every other
+    /// cell counts as taken. The parts fill the crate's footprint, and what lay below the crate carries them as it carried
+    /// the crate, so nothing around it changes. Null if the parts don't fit the box.
+    /// </summary>
+    public static IReadOnlyList<GridPosition>? PlaceWithin(Rack rack, Crate box, IReadOnlyList<CrateSize> sizes, FillOrder order)
+    {
+        var grid = rack.Grid;
+        var taken = new bool[grid.Length, grid.Width, grid.Stack];
+        foreach (var cell in Cells(new GridPosition(0, 0, 0), grid))
+        {
+            taken[cell.Length, cell.Width, cell.Stack] = true;
+        }
+
+        foreach (var cell in box.Cells.Where(c => Inside(grid, c)))
+        {
+            taken[cell.Length, cell.Width, cell.Stack] = false;
+        }
+
+        return Place(rack, taken, sizes, order);
+    }
+
+    /// <summary>
+    /// Why <paramref name="crates"/> can't become one crate of <paramref name="size"/> where they lie (D27); null if their
+    /// cells are exactly that crate's box, in its only orientation (D9). The new crate then takes the same cells, so it
+    /// carries and rests as they did.
+    /// </summary>
+    public static string? BlockProblem(IReadOnlyList<Crate> crates, CrateSize size)
+    {
+        HashSet<GridPosition> cells = [.. crates.SelectMany(c => c.Cells)];
+        if (cells.Count < crates.Sum(c => (int)c.CrateSize))
+        {
+            return "The crates overlap.";
+        }
+
+        if (!Connected(cells))
+        {
+            return "The crates are not adjacent.";
+        }
+
+        Dimensions block = new(
+            cells.Max(c => c.Length) - cells.Min(c => c.Length) + 1,
+            cells.Max(c => c.Width) - cells.Min(c => c.Width) + 1,
+            cells.Max(c => c.Stack) - cells.Min(c => c.Stack) + 1);
+        if (block.Volume != cells.Count)
+        {
+            return "The crates don't form a block.";
+        }
+
+        return block == size.Dimensions
+            ? null
+            : Invariant($"Together they would be a {block} crate, {(int)size} SCU crates are {size.Dimensions}.");
+    }
+
+    /// <summary>The lay-out of <see cref="Place"/> into the free cells of <paramref name="taken"/>, which it fills.</summary>
+    private static GridPosition[]? Place(Rack rack, bool[,,] taken, IReadOnlyList<CrateSize> sizes, FillOrder order)
+    {
+        var rank = Ranks(rack, order);
         var positions = new GridPosition[sizes.Count];
 
         // OrderByDescending is stable: crates of one size keep input order.
@@ -234,6 +294,30 @@ public static class CrateLayout
         from w in Enumerable.Range(position.Width, size.Width)
         from s in Enumerable.Range(position.Stack, size.Stack)
         select new GridPosition(l, w, s);
+
+    private static readonly (int Length, int Width, int Stack)[] FaceSteps = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)];
+
+    /// <summary>True if every cell reaches every other through cells that share a face.</summary>
+    private static bool Connected(HashSet<GridPosition> cells)
+    {
+        HashSet<GridPosition> reached = [cells.First()];
+        Queue<GridPosition> next = new(reached);
+        while (next.TryDequeue(out var cell))
+        {
+            foreach (var (l, w, s) in FaceSteps)
+            {
+                // Below 0 is outside every grid, and GridPosition rejects negative values.
+                if (cell.Length + l >= 0 && cell.Width + w >= 0 && cell.Stack + s >= 0
+                    && new GridPosition(cell.Length + l, cell.Width + w, cell.Stack + s) is var neighbour
+                    && cells.Contains(neighbour) && reached.Add(neighbour))
+                {
+                    next.Enqueue(neighbour);
+                }
+            }
+        }
+
+        return reached.Count == cells.Count;
+    }
 
     private static bool Inside(Dimensions grid, GridPosition cell) =>
         cell.Length < grid.Length && cell.Width < grid.Width && cell.Stack < grid.Stack;

@@ -24,6 +24,17 @@ public sealed record MissionItem(string Commodity, int Scu, CrateSize MaxCrateSi
             .Select(g => new CargoItem(Commodity, g.Count() * (int)g.Key, g.Key)),
     ];
 
+    /// <summary>
+    /// The item with these crates, as split and merge leave it (D27): an override largest first, or none if the crates
+    /// are the derived mix. Unlike an override typed in the editor (kept as typed, D23), nobody typed this one.
+    /// </summary>
+    /// <exception cref="ArgumentException">The crates don't fit the item (<see cref="CrateMix.Problem"/>).</exception>
+    public MissionItem WithCrateList(IReadOnlyList<CrateSize> crates)
+    {
+        CrateSize[] sorted = [.. crates.OrderDescending()];
+        return new(Commodity, Scu, MaxCrateSize, sorted.SequenceEqual(CrateMix.Decompose(Scu, MaxCrateSize)) ? null : sorted);
+    }
+
     private static int ValidatedScu(int scu)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(scu, nameof(Scu));

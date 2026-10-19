@@ -18,7 +18,7 @@
         <SolidColorBrush x:Key="HitTestBackgroundBrush" Color="#01000000" />
         <!-- Icon font that ships with Windows 10/11; a glyph instead of an emoji, whose font fallback is unreliable. -->
         <FontFamily x:Key="IconFontFamily">Segoe MDL2 Assets</FontFamily>
-        <!-- Glyph buttons on the overlay (padlock, pencil): no own look, the glyph is the button.
+        <!-- Glyph buttons on the overlay (padlock, pencil, split, merge): no own look, the glyph is the button.
              Not focusable: focusing would activate the window and take the foreground from the game. -->
         <Style x:Key="IconButtonStyle" TargetType="Button">
             <Setter Property="Focusable" Value="False" />
@@ -31,6 +31,12 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <!-- Split and merge without a fitting selection (D27): faded, the tool tip says why. -->
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.4" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
         <!-- Mission editor: a normal window with the system look; only its markings need colours. -->
         <SolidColorBrush x:Key="InvalidRowBrush" Color="#FFFFD6D6" />

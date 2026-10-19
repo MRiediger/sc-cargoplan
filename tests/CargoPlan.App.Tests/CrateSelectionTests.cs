@@ -49,4 +49,16 @@ public class CrateSelectionTests
 
         selection.Toggle(scene, scene.Plan.Crates[1]).In(scene).Should().BeEquivalentTo([scene.Plan.Crates[1]]);
     }
+
+    [Fact]
+    public void Of_selects_the_crates_in_that_scene()
+    {
+        // After a split or merge the view model selects the new crates in the new scene (D27).
+        var scene = Scene();
+
+        var selection = CrateSelection.Of(scene, [scene.Plan.Crates[0], scene.Plan.Crates[1]]);
+
+        selection.In(scene).Should().BeEquivalentTo([scene.Plan.Crates[0], scene.Plan.Crates[1]]);
+        selection.In(Scene()).Should().BeEmpty();
+    }
 }

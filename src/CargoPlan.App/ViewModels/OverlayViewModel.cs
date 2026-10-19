@@ -17,15 +17,56 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 
     public const string MoveRefusedPrefix = "Move refused: ";
 
+    public const string SplitRefusedPrefix = "Split refused: ";
+
+    public const string MergeRefusedPrefix = "Merge refused: ";
+
+    public const string SplitText = "Split crate";
+
+    public const string MergeText = "Merge crates";
+
+    public const string SelectOneCrateText = "Select one crate to split.";
+
+    public const string SelectCratesText = "Select two or more crates to merge.";
+
     public Ship Ship { get; } = ship;
 
     // [ObservableProperty] on partial properties (Toolkit 8.4+, C# 14 here): the generator writes the
     // body with SetProperty and PropertyChanged.
     // Source: https://github.com/CommunityToolkit/dotnet/releases/tag/v8.4.0
+    // A new plan builds a new scene, which empties the selection (D25): buttons and tool tips follow.
+    // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/observableproperty#notifying-dependent-commands
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Scene))]
     [NotifyPropertyChangedFor(nameof(HasPlan))]
+    [NotifyPropertyChangedFor(nameof(SplitToolTip), nameof(MergeToolTip))]
+    [NotifyCanExecuteChangedFor(nameof(SplitCommand), nameof(MergeCommand))]
     public partial LoadPlan? Plan { get; set; }
+
+    /// <summary>
+    /// The crates picked by right click in the ship view (D25), bound two-way: the view picks, split and merge select
+    /// the crates they made (D27). Written by hand, not generated: a partial property can't take the initial value.
+    /// </summary>
+    public CrateSelection Selection
+    {
+        get;
+        set
+        {
+            if (SetProperty(ref field, value))
+            {
+                OnPropertyChanged(nameof(SplitToolTip));
+                OnPropertyChanged(nameof(MergeToolTip));
+                SplitCommand.NotifyCanExecuteChanged();
+                MergeCommand.NotifyCanExecuteChanged();
+            }
+        }
+    } = CrateSelection.Empty;
+
+    /// <summary>The split button's tool tip: what it does, or why it can't (D25: the reason Core would refuse with).</summary>
+    public string SplitToolTip => SplitProblem() ?? SplitText;
+
+    /// <summary>The merge button's tool tip, like <see cref="SplitToolTip"/>.</summary>
+    public string MergeToolTip => MergeProblem() ?? MergeText;
 
     /// <summary>
     /// The player's lock: --locked sets the start value, the lock window switches it via <see cref="ToggleLockCommand"/>.
@@ -144,6 +185,54 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
         {
             // Only "doesn't fit": the player's call, shown, not a bug. Other exceptions are bugs and stay unhandled.
             SetNotice(NoticeSource.Move, MoveRefusedPrefix + ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Splits the one selected crate into the two largest parts, the way the kiosk delivered it (D27); run by the header
+    /// button. Both parts stay selected, so splitting again or merging back needs no new pick.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanSplit))]
+    private void Split() => Edit(SplitRefusedPrefix, saved => LoadPlanner.SplitCrate(saved, Ship, Selected.Single()));
+
+    /// <summary>Merges the selected crates into one (D27), which stays selected; like <see cref="Split"/>.</summary>
+    [RelayCommand(CanExecute = nameof(CanMerge))]
+    private void Merge() => Edit(MergeRefusedPrefix, saved => LoadPlanner.MergeCrates(saved, Ship, [.. Selected]));
+
+    private bool CanSplit() => SplitProblem() is null;
+
+    private bool CanMerge() => MergeProblem() is null;
+
+    /// <summary>The selected crates of the current scene; empty after every plan change (D25).</summary>
+    private IReadOnlySet<Crate> Selected => Selection.In(Scene);
+
+    // Selected crates belong to the current plan, so Plan isn't null here.
+    private string? SplitProblem() => Selected.Count == 1 && Plan is { } plan
+        ? LoadPlanner.SplitProblem(new SavedPlan(Missions, plan), Ship, Selected.Single())
+        : SelectOneCrateText;
+
+    private string? MergeProblem() => Selected.Count >= 2 && Plan is { } plan
+        ? LoadPlanner.MergeProblem(new SavedPlan(Missions, plan), Ship, [.. Selected])
+        : SelectCratesText;
+
+    /// <summary>
+    /// Runs a split or merge on plan and missions together, shows and saves the result (<see cref="ShowPlan"/>) and
+    /// selects the crates it made. A refusal goes to the notice line, like a refused move (D24).
+    /// </summary>
+    private void Edit(string refusedPrefix, Func<SavedPlan, SavedPlan> edit)
+    {
+        // Unreachable without a plan: the selection is empty then, so the buttons are disabled.
+        var plan = Plan ?? throw new InvalidOperationException(NoPlanText);
+        try
+        {
+            var saved = edit(new SavedPlan(Missions, plan));
+            HashSet<Crate> before = [.. plan.Crates];
+            ShowPlan(saved);
+            Selection = CrateSelection.Of(Scene, saved.Plan.Crates.Where(c => !before.Contains(c)));
+        }
+        catch (PlanException ex)
+        {
+            SetNotice(NoticeSource.Move, refusedPrefix + ex.Message);
         }
     }
 

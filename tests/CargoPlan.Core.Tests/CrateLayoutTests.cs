@@ -378,4 +378,67 @@ public class CrateLayoutTests
 
         act.Should().Throw<PlanException>().WithMessage("*rack 1*20/16 SCU*");
     }
+
+    // --- PlaceWithin: the parts of a split stay in the crate's footprint (D27) ---
+
+    [Fact]
+    public void PlaceWithin_lays_two_2s_side_by_side_in_the_cells_of_a_4()
+    {
+        var four = At(CrateSize.Four, 2, 0, 0);
+
+        CrateLayout.PlaceWithin(Rack1, four, [CrateSize.Two, CrateSize.Two], FillOrder.BowFirst)
+            .Should().Equal(new GridPosition(2, 0, 0), new GridPosition(2, 1, 0));
+    }
+
+    [Fact]
+    public void PlaceWithin_counts_the_cells_below_the_box_as_support()
+    {
+        // The 4 lay on another crate, so its parts do too; the cells around it don't exist for them.
+        var four = At(CrateSize.Four, 0, 0, 1);
+
+        CrateLayout.PlaceWithin(Rack1, four, [CrateSize.Two, CrateSize.Two], FillOrder.BowFirst)
+            .Should().Equal(new GridPosition(0, 0, 1), new GridPosition(0, 1, 1));
+    }
+
+    [Fact]
+    public void PlaceWithin_returns_null_when_the_parts_do_not_fit_the_box()
+    {
+        CrateLayout.PlaceWithin(Rack1, At(CrateSize.Four, 2, 0, 0), [CrateSize.Eight], FillOrder.BowFirst).Should().BeNull();
+    }
+
+    // --- BlockProblem: crates merge only if together they are one crate (D27) ---
+
+    [Fact]
+    public void BlockProblem_is_null_when_the_crates_fill_the_box_of_the_size()
+    {
+        CrateLayout.BlockProblem([At(CrateSize.Two, 2, 0, 0), At(CrateSize.Two, 2, 1, 0)], CrateSize.Four).Should().BeNull();
+    }
+
+    [Fact]
+    public void BlockProblem_names_crates_that_do_not_touch()
+    {
+        CrateLayout.BlockProblem([At(CrateSize.Two, 2, 0, 0), At(CrateSize.Two, 0, 1, 0)], CrateSize.Four)
+            .Should().Be("The crates are not adjacent.");
+    }
+
+    [Fact]
+    public void BlockProblem_names_crates_that_touch_but_form_no_block()
+    {
+        CrateLayout.BlockProblem([At(CrateSize.Two, 0, 0, 0), At(CrateSize.One, 0, 1, 0), At(CrateSize.One, 0, 1, 1)], CrateSize.Four)
+            .Should().Be("The crates don't form a block.");
+    }
+
+    [Fact]
+    public void BlockProblem_names_a_block_of_the_wrong_shape()
+    {
+        CrateLayout.BlockProblem([At(CrateSize.Two, 0, 0, 0), At(CrateSize.Two, 2, 0, 0)], CrateSize.Four)
+            .Should().Be("Together they would be a 4×1×1 crate, 4 SCU crates are 2×2×1.");
+    }
+
+    [Fact]
+    public void BlockProblem_names_overlapping_crates()
+    {
+        CrateLayout.BlockProblem([At(CrateSize.Two, 0, 0, 0), At(CrateSize.Two, 1, 0, 0)], CrateSize.Four)
+            .Should().Be("The crates overlap.");
+    }
 }

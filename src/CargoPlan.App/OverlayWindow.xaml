@@ -47,6 +47,17 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- Glyph buttons in the header (pencil, split, merge): hidden while locked, but keeping their space. -->
+        <Style x:Key="HeaderButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+            <Setter Property="Width" Value="30" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                    <Setter Property="Visibility" Value="Hidden" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <!-- Text button on the dark overlay: outline in the text colour instead of the system's grey button. -->
         <Style x:Key="TextButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
             <Setter Property="Foreground" Value="{StaticResource OverlayForegroundBrush}" />
@@ -71,19 +82,24 @@
             <DockPanel DockPanel.Dock="Top" Height="30" Margin="0,0,30,0">
                 <!-- Opens the mission editor, next to the padlock. Locked it is hidden but keeps its space (T3.7 notes):
                      planning is a step with a free cursor, and a locked overlay is click-through anyway. -->
-                <Button DockPanel.Dock="Right" Width="30" VerticalAlignment="Top" Height="26"
-                        ToolTip="Enter missions" Click="OnOpenEditor">
-                    <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsLocked}" Value="True">
-                                    <Setter Property="Visibility" Value="Hidden" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
+                <Button DockPanel.Dock="Right" ToolTip="Enter missions" Click="OnOpenEditor" Style="{StaticResource HeaderButtonStyle}">
                     <!-- E70F Edit. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
                     <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                               Foreground="{StaticResource OverlayForegroundBrush}" />
+                </Button>
+                <!-- Merge and split the selected crates when the kiosk delivered others than planned (D27); left of the pencil,
+                     hidden while locked like it. Disabled, the tool tip says why (ShowOnDisabled).
+                     Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.tooltipservice.showondisabled -->
+                <Button DockPanel.Dock="Right" Command="{Binding MergeCommand, Mode=OneTime}" ToolTip="{Binding MergeToolTip}"
+                        ToolTipService.ShowOnDisabled="True" Style="{StaticResource HeaderButtonStyle}">
+                    <!-- E71B Link. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                    <TextBlock Text="&#xE71B;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                               Foreground="{StaticResource OverlayForegroundBrush}" />
+                </Button>
+                <Button DockPanel.Dock="Right" Command="{Binding SplitCommand, Mode=OneTime}" ToolTip="{Binding SplitToolTip}"
+                        ToolTipService.ShowOnDisabled="True" Style="{StaticResource HeaderButtonStyle}">
+                    <!-- E8C6 Cut. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                    <TextBlock Text="&#xE8C6;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
                                Foreground="{StaticResource OverlayForegroundBrush}" />
                 </Button>
                 <TextBlock DockPanel.Dock="Right"
@@ -192,7 +208,8 @@
                                 Scene="{Binding Scene, Mode=OneWay}"
                                 ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}"
                                 MoveCratesCommand="{Binding MoveCratesCommand, Mode=OneTime}"
-                                MoveStopCommand="{Binding MoveStopCommand, Mode=OneTime}" />
+                                MoveStopCommand="{Binding MoveStopCommand, Mode=OneTime}"
+                                Selection="{Binding Selection}" />
         </DockPanel>
     </Border>
 </Window>

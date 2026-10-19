@@ -47,6 +47,22 @@ public static class CrateMix
     }
 
     /// <summary>
+    /// What one click on Split makes of a crate (D27): the two largest sizes that add up to it and lie in its footprint
+    /// (32 → 16 + 16, not 24 + 8: a 24 is longer than a 32). Finer is splitting again. Empty for 1 SCU.
+    /// </summary>
+    public static IReadOnlyList<CrateSize> DefaultSplit(CrateSize size) => size switch
+    {
+        CrateSize.One => [],
+        CrateSize.Two => [CrateSize.One, CrateSize.One],
+        CrateSize.Four => [CrateSize.Two, CrateSize.Two],
+        CrateSize.Eight => [CrateSize.Four, CrateSize.Four],
+        CrateSize.Sixteen => [CrateSize.Eight, CrateSize.Eight],
+        CrateSize.TwentyFour => [CrateSize.Sixteen, CrateSize.Eight],
+        CrateSize.ThirtyTwo => [CrateSize.Sixteen, CrateSize.Sixteen],
+        _ => throw new ArgumentOutOfRangeException(nameof(size), size, "Unknown crate size."),
+    };
+
+    /// <summary>
     /// What is wrong with a given list of crates for an item; null = they fit. Plain numbers, so an unknown size like 3
     /// can be named. One rule for the mission file, <c>MissionItem</c> and the editor.
     /// </summary>

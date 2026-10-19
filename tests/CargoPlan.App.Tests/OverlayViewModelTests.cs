@@ -438,4 +438,128 @@ public class OverlayViewModelTests
         viewModel.Plan!.Crates.Should().OnlyContain(c => c.RackId == "rack-0");
         viewModel.Notices.Should().BeEmpty();
     }
+
+    // --- Split and merge (D27) ---
+    // Split and shared: Riker's four Titanium 4s fill Rack 1, [2, 0, 0] and [0, 0, 0] on the plate, two more on top.
+    // The file is schema 1, so every item's max crate size is its crate size: a 4 split into 2s merges back, two
+    // Lorville 2s never do.
+
+    private static Crate TitaniumAt(OverlayViewModel viewModel, int length, int width, int stack) =>
+        viewModel.Plan!.Crates.Single(c => c.RackId == "rack-0" && c.Position == new GridPosition(length, width, stack));
+
+    private static void Select(OverlayViewModel viewModel, params Crate[] crates) =>
+        viewModel.Selection = crates.Aggregate(CrateSelection.Empty, (selection, crate) => selection.Toggle(viewModel.Scene, crate));
+
+    private static IReadOnlySet<Crate> Selected(OverlayViewModel viewModel) => viewModel.Selection.In(viewModel.Scene);
+
+    [Fact]
+    public void Split_and_merge_are_disabled_without_a_selection_and_say_why()
+    {
+        var viewModel = WithPlan();
+
+        viewModel.SplitCommand.CanExecute(null).Should().BeFalse();
+        viewModel.MergeCommand.CanExecute(null).Should().BeFalse();
+        viewModel.SplitToolTip.Should().Be(OverlayViewModel.SelectOneCrateText);
+        viewModel.MergeToolTip.Should().Be(OverlayViewModel.SelectCratesText);
+    }
+
+    [Fact]
+    public void Split_is_enabled_for_one_crate_larger_than_1_SCU()
+    {
+        var viewModel = WithPlan();
+
+        Select(viewModel, TitaniumAt(viewModel, 2, 0, 0));
+
+        viewModel.SplitCommand.CanExecute(null).Should().BeTrue();
+        viewModel.SplitToolTip.Should().Be(OverlayViewModel.SplitText);
+        viewModel.MergeCommand.CanExecute(null).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Split_is_disabled_for_a_1_SCU_crate_with_Cores_reason()
+    {
+        var viewModel = WithPlan();
+
+        Select(viewModel, viewModel.Plan!.Crates.First(c => c.Commodity == "Gold"));
+
+        viewModel.SplitCommand.CanExecute(null).Should().BeFalse();
+        viewModel.SplitToolTip.Should().Be("1 SCU crates can't be split.");
+    }
+
+    [Fact]
+    public void A_new_selection_updates_buttons_and_tool_tips()
+    {
+        var viewModel = WithPlan();
+        var raised = 0;
+        viewModel.SplitCommand.CanExecuteChanged += (_, _) => raised++;
+
+        var changes = Changes(viewModel, () => Select(viewModel, TitaniumAt(viewModel, 2, 0, 0)));
+
+        changes.Should().Contain([nameof(OverlayViewModel.Selection), nameof(OverlayViewModel.SplitToolTip), nameof(OverlayViewModel.MergeToolTip)]);
+        raised.Should().BePositive();
+    }
+
+    [Fact]
+    public void SplitCommand_splits_the_crate_selects_both_parts_and_rebooks_the_mission()
+    {
+        var viewModel = WithPlan();
+        Select(viewModel, TitaniumAt(viewModel, 2, 0, 0));
+
+        var changes = Changes(viewModel, () => viewModel.SplitCommand.Execute(null));
+
+        Selected(viewModel).Should().BeEquivalentTo([TitaniumAt(viewModel, 2, 0, 0), TitaniumAt(viewModel, 2, 1, 0)]);
+        Selected(viewModel).Should().OnlyContain(c => c.CrateSize == CrateSize.Two);
+        viewModel.Missions[0].Items[0].Crates.Should().Equal(CrateSize.Four, CrateSize.Four, CrateSize.Four, CrateSize.Two, CrateSize.Two);
+
+        // PlanSaver saves on every change of Plan (D18).
+        changes.Should().Contain(nameof(OverlayViewModel.Plan));
+    }
+
+    [Fact]
+    public void MergeCommand_after_a_split_gives_the_crate_back_and_selects_it()
+    {
+        var viewModel = WithPlan();
+        var original = viewModel.Plan!;
+        Select(viewModel, TitaniumAt(viewModel, 2, 0, 0));
+        viewModel.SplitCommand.Execute(null);
+
+        // The parts stay selected, so merging back is one click.
+        viewModel.MergeCommand.CanExecute(null).Should().BeTrue();
+        viewModel.MergeToolTip.Should().Be(OverlayViewModel.MergeText);
+        viewModel.MergeCommand.Execute(null);
+
+        viewModel.Plan!.Crates.Should().Equal(original.Crates);
+        Selected(viewModel).Should().BeEquivalentTo([TitaniumAt(viewModel, 2, 0, 0)]);
+        viewModel.Missions[0].Items[0].CrateList.Should().Equal(CrateSize.Four, CrateSize.Four, CrateSize.Four, CrateSize.Four);
+    }
+
+    [Fact]
+    public void Merge_is_disabled_for_crates_that_do_not_touch_with_Cores_reason()
+    {
+        var viewModel = WithPlan();
+        Select(viewModel, TitaniumAt(viewModel, 2, 0, 0));
+        viewModel.SplitCommand.Execute(null);
+        Select(viewModel, TitaniumAt(viewModel, 0, 0, 0));
+        viewModel.SplitCommand.Execute(null);
+
+        Select(viewModel, TitaniumAt(viewModel, 2, 0, 0), TitaniumAt(viewModel, 0, 1, 0));
+
+        viewModel.MergeCommand.CanExecute(null).Should().BeFalse();
+        viewModel.MergeToolTip.Should().Be("The crates are not adjacent.");
+        viewModel.SplitToolTip.Should().Be(OverlayViewModel.SelectOneCrateText);
+    }
+
+    [Fact]
+    public void A_refused_split_shows_a_notice_and_keeps_the_plan()
+    {
+        // Unreachable through the disabled button; the command still doesn't trust it.
+        var viewModel = WithPlan();
+        var original = viewModel.Plan;
+        Select(viewModel, viewModel.Plan!.Crates.First(c => c.Commodity == "Gold"));
+
+        viewModel.SplitCommand.Execute(null);
+
+        viewModel.Plan.Should().BeSameAs(original);
+        viewModel.Notices.Should().Equal(OverlayViewModel.SplitRefusedPrefix + "1 SCU crates can't be split.");
+    }
 }

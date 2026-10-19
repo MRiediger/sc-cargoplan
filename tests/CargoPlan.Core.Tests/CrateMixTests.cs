@@ -79,4 +79,24 @@ public class CrateMixTests
     {
         CrateMix.Problem(scu, (CrateSize)max, crates).Should().Be(expected);
     }
+
+    // --- DefaultSplit: what one click on Split makes (D27) ---
+
+    [Theory]
+    [InlineData(2, 1, 1)]
+    [InlineData(4, 2, 2)]
+    [InlineData(8, 4, 4)]
+    [InlineData(16, 8, 8)]
+    [InlineData(24, 16, 8)]
+    [InlineData(32, 16, 16)]
+    public void DefaultSplit_gives_the_two_largest_sizes_that_add_up_and_fit_the_footprint(int size, params int[] expected)
+    {
+        CrateMix.DefaultSplit((CrateSize)size).Select(c => (int)c).Should().Equal(expected);
+    }
+
+    [Fact]
+    public void DefaultSplit_of_a_1_SCU_crate_is_empty()
+    {
+        CrateMix.DefaultSplit(CrateSize.One).Should().BeEmpty();
+    }
 }

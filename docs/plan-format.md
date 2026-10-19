@@ -73,6 +73,8 @@ All fields are **required**. Names are camelCase and **case-sensitive**. Unknown
 
 The crates must match the missions exactly: for every destination, commodity and crate size there are as
 many crates as the missions have (worked out from SCU and max crate size, or listed in `crates`).
+Splitting or merging crates in the overlay changes both: the item's `crates` list then names the crates as
+they lie, and goes away once they are the worked-out mix again.
 
 A crate rests on the plate (stack 0) or on other crates: every cell of its bottom needs a crate right
 below it. Crates that overlap or have nothing below them still load, the overlay marks their rack red;

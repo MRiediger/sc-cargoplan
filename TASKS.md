@@ -358,7 +358,17 @@ T3.14 ist zweigeteilt: a = Einzelkiste auf Zelle und Legenden-Drag, b = Auswahl 
 
 **Akzeptanz:** `dotnet test` grün; CLI-Ausgabe aller Fixtures byte-gleich; `--plan` mit split_and_shared: Hull-A-Kisten stapeln von der Spindel nach außen (Orbit von der Seite); Auswahl aus einem Rack nach Steuerbord bleibt ein Stapel. Im Spiel: 2 × 8er in Rack 1 – liegen beide nebeneinander von der Spindel weg, wie im Overlay?
 
-Phase 3 ist mit T3.14 und dem nachgeschobenen T3.13c komplett; offen bleiben nur Backlog-Punkte.
+### [x] T3.15 Kisten splitten und mergen
+**Warum:** Der Kiosk liefert manchmal andere Kisten als die Zerlegung (D23), z. B. 2 × 2er statt 1 × 4er. Der Spieler splittet oder merged im Overlay, und der Plan folgt dem Spiel.
+**Präzisiert in der Planung:** Split legt die Teile in den Fußabdruck der alten Kiste (`CrateLayout.PlaceWithin`, größte zuerst), passt es nicht (32 → 24 + 8) → `PlanException`; Default-Split ohne Dialog (`CrateMix.DefaultSplit`: die zwei größten Teile, 32 → 16 + 16), 1er nicht splittbar, `parts` bleibt API; Merge nur, wenn die Vereinigung genau der Quader der neuen Größe ist (`CrateLayout.BlockProblem`: Überlappung, „not adjacent“, „don't form a block“, falsche Maße), Ergebnis an der Min-Ecke; Merge nicht über die Max-Kistengröße des Vertrags und nur innerhalb einer Missionszeile (SCU pro Zeile ist Vertragsdatum); die erste passende Zeile zieht mit (`MissionItem.WithCrateList`, absteigend sortiert, gleich der Zerlegung → `null`); Aufruferfehler `ArgumentException` (fremdes Schiff, Kiste nicht im Plan oder doppelt, Delivered, < 2 Kisten), Spielregeln `PlanException`; `SplitProblem` zusätzlich zu `MergeProblem` für den Tooltip; Teile an den Index der alten Kiste, gemergte Kiste an den kleinsten Index, Split → Merge = Original; Auswahl als TwoWay-Dependency-Property `ShipViewControl.Selection` ↔ `OverlayViewModel.Selection`, `CrateSelection.Of` für die Ergebniskisten (neue minus alte); Buttons Cut `E8C6` / Link `E71B` links vom Stift, gemeinsamer `HeaderButtonStyle`, beim Lock ausgeblendet, `ToolTipService.ShowOnDisabled`, `IconButtonStyle` mit Opacity 0.4 bei Disabled; Notice „Split refused: …“/„Merge refused: …“; Verifikation korrigiert (Tooltip nach Split `(1 of 2)` für einen 2er und `(x of 3)` für die 4er statt `(1 of 5)`: der Zähler läuft im abgeleiteten Placement, das nach Kistengröße trennt; „not adjacent“ mit Riker-2ern nach zwei Splits, weil Lorville-2er in der Schema-1-Datei Max 2 haben und an der Max-Grenze scheitern). Präzisierung in der Planphase, ratifiziert durch Freigabe (D27).
+- `LoadPlanner.SplitCrate`/`SplitProblem`, `MergeCrates`/`MergeProblem` auf `SavedPlan`
+- Footprint-Regel, Merge-Formregel, Mission zieht mit
+- Split-/Merge-Buttons in der Kopfzeile, Auswahl bleibt auf den Ergebniskisten
+- D27, Nachträge D23/D25, README „When the kiosk delivers other crates“, plan-format.md
+
+**Akzeptanz:** `dotnet test` grün; CLI-Ausgabe aller Fixtures byte-gleich; split_and_shared: Riker-Titanium-4er splitten → zwei 2er im Fußabdruck, Legende „Riker · 20“, beide gewählt → Merge → wieder 4er; Editor zeigt nach Split „4+4+4+2+2“ kursiv; zwei getrennte 2er → Merge grau mit „not adjacent“. Im Spiel am Kiosk: abweichende Mischung in unter 15 s korrigiert.
+
+Phase 3 ist mit T3.15 abgeschlossen; offen bleiben nur Backlog-Punkte.
 
 ---
 

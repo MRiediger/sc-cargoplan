@@ -17,8 +17,9 @@ public sealed record SavedPlan(IReadOnlyList<MissionStop> Missions, LoadPlan Pla
 
     /// <summary>
     /// The crates are the crates of the expanded missions (D23, D24): per destination, commodity and crate size the same
-    /// number. Moving and ticking never change that, so a pair that fails here was made from other missions or edited by
-    /// hand. Where the crates lie needs the ship and is checked on reading (PlanFile).
+    /// number. Moving and ticking never change that, split and merge change crates and missions together (D27), so a pair
+    /// that fails here was made from other missions or edited by hand. Where the crates lie needs the ship and is checked
+    /// on reading (PlanFile).
     /// </summary>
     private static LoadPlan Validated(IReadOnlyList<MissionStop> missions, LoadPlan plan)
     {

@@ -1,4 +1,6 @@
+using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Plans;
 using static System.FormattableString;
 
 using Score = (int Splits, int ItemCuts, int Squares);
@@ -120,6 +122,64 @@ public static class LoadPlanner
     }
 
     /// <summary>
+    /// Splits a crate the way the kiosk delivered it (D27): <see cref="SplitCrate(SavedPlan, Ship, Crate, IReadOnlyList{CrateSize})"/>
+    /// with <see cref="CrateMix.DefaultSplit"/>, the two largest parts.
+    /// </summary>
+    /// <exception cref="ArgumentException">See the overload with parts.</exception>
+    /// <exception cref="PlanException">See the overload with parts.</exception>
+    public static SavedPlan SplitCrate(SavedPlan saved, Ship ship, Crate crate) =>
+        SplitCrate(saved, ship, crate, CrateMix.DefaultSplit(crate.CrateSize));
+
+    /// <summary>
+    /// Splits a crate into <paramref name="parts"/> that lie in its footprint (D27): every cell stays taken, so what lies
+    /// on and next to it keeps its support, and the hints stay. The parts take the crate's place in the plan, largest
+    /// first; its contract item takes the new crates as an override (<see cref="MissionItem.WithCrateList"/>). The
+    /// original stays unchanged.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// The plan belongs to another ship, or the crate isn't part of the plan or is delivered.
+    /// </exception>
+    /// <exception cref="PlanException">The crate can't be split into these parts (<see cref="SplitProblem(SavedPlan, Ship, Crate, IReadOnlyList{CrateSize})"/>).</exception>
+    public static SavedPlan SplitCrate(SavedPlan saved, Ship ship, Crate crate, IReadOnlyList<CrateSize> parts) =>
+        Split(saved, ship, crate, parts).Applied;
+
+    /// <summary>Why <see cref="SplitCrate(SavedPlan, Ship, Crate)"/> would refuse; null if it wouldn't.</summary>
+    /// <exception cref="ArgumentException">See <see cref="SplitCrate(SavedPlan, Ship, Crate, IReadOnlyList{CrateSize})"/>.</exception>
+    public static string? SplitProblem(SavedPlan saved, Ship ship, Crate crate) =>
+        SplitProblem(saved, ship, crate, CrateMix.DefaultSplit(crate.CrateSize));
+
+    /// <summary>
+    /// Why <see cref="SplitCrate(SavedPlan, Ship, Crate, IReadOnlyList{CrateSize})"/> would refuse, or null if it
+    /// wouldn't: a 1 SCU crate, parts that are no split of the crate or don't fit its footprint. One check for the
+    /// overlay's button and the split itself, so both always agree (D25).
+    /// </summary>
+    /// <exception cref="ArgumentException">See <see cref="SplitCrate(SavedPlan, Ship, Crate, IReadOnlyList{CrateSize})"/>.</exception>
+    public static string? SplitProblem(SavedPlan saved, Ship ship, Crate crate, IReadOnlyList<CrateSize> parts) =>
+        Split(saved, ship, crate, parts).Problem;
+
+    /// <summary>
+    /// Merges crates into one, the way the kiosk delivered them (D27): one destination, one commodity, one rack, sizes
+    /// adding up to a crate size the contract allows, and together exactly that crate's box. The new crate takes their
+    /// cells, so support and hints stay, and the place of the first of them in the plan; their contract item takes the
+    /// new crates (<see cref="MissionItem.WithCrateList"/>). The original stays unchanged.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// The plan belongs to another ship, there are fewer than two crates, or one isn't part of the plan, is delivered or
+    /// named twice.
+    /// </exception>
+    /// <exception cref="PlanException">The crates can't be merged (<see cref="MergeProblem"/>).</exception>
+    public static SavedPlan MergeCrates(SavedPlan saved, Ship ship, IReadOnlyList<Crate> crates) =>
+        Merge(saved, ship, crates).Applied;
+
+    /// <summary>
+    /// Why <see cref="MergeCrates"/> would refuse, or null if it wouldn't. One check for the overlay's button and the
+    /// merge itself, so both always agree (D25).
+    /// </summary>
+    /// <exception cref="ArgumentException">See <see cref="MergeCrates"/>.</exception>
+    public static string? MergeProblem(SavedPlan saved, Ship ship, IReadOnlyList<Crate> crates) =>
+        Merge(saved, ship, crates).Problem;
+
+    /// <summary>
     /// Why the plan can't be loaded as it is, per rack in rack order (<see cref="CrateLayout.Problems"/>): crates that
     /// overlap, stick out, don't fit the grid or have nothing below them. Delivered crates count, they keep their cells.
     /// Empty for every plan from the planner and its moves; only a plan file edited by hand gets here (D24). Hints for
@@ -178,26 +238,36 @@ public static class LoadPlanner
         foreach (var (crate, rackId, position) in moves)
         {
             RackOf(ship, rackId, nameof(moves));
-            var index = IndexOf(plan.Crates, crate);
-            if (index < 0)
-            {
-                throw new ArgumentException(
-                    Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination} at {crate.Position} in '{crate.RackId}' is not part of the plan."),
-                    nameof(moves));
-            }
-
-            if (!taken.Add(index))
-            {
-                throw new ArgumentException(
-                    Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination} at {crate.Position} moves more than once."),
-                    nameof(moves));
-            }
-
-            EnsureOnBoard(crate.Delivered, crate.Commodity, crate.Destination, nameof(moves));
+            var index = IndexOnBoard(plan, crate, taken, "moves", nameof(moves));
             crates[index] = crate with { RackId = rackId, Position = position };
         }
 
         return crates;
+    }
+
+    /// <summary>
+    /// The index of <paramref name="crate"/> in the plan, added to <paramref name="taken"/>; checks the caller's part: a crate
+    /// of the plan, not delivered (D16), not named twice (<paramref name="verb"/> says how it was named).
+    /// </summary>
+    private static int IndexOnBoard(LoadPlan plan, Crate crate, HashSet<int> taken, string verb, string paramName)
+    {
+        var index = IndexOf(plan.Crates, crate);
+        if (index < 0)
+        {
+            throw new ArgumentException(
+                Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination} at {crate.Position} in '{crate.RackId}' is not part of the plan."),
+                paramName);
+        }
+
+        if (!taken.Add(index))
+        {
+            throw new ArgumentException(
+                Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination} at {crate.Position} {verb} more than once."),
+                paramName);
+        }
+
+        EnsureOnBoard(crate.Delivered, crate.Commodity, crate.Destination, paramName);
+        return index;
     }
 
     /// <summary>The first new problem in a rack a move leaves or enters, in rack order; null if there is none.</summary>
@@ -208,6 +278,167 @@ public static class LoadPlanner
             .Where(r => touched.Contains(r.Id))
             .Select(r => CrateLayout.NewProblem(r, plan.CratesForRack(r.Id), [.. crates.Where(c => c.RackId == r.Id)]))
             .FirstOrDefault(problem => problem is not null);
+    }
+
+    private static Edit Split(SavedPlan saved, Ship ship, Crate crate, IReadOnlyList<CrateSize> parts)
+    {
+        var plan = saved.Plan;
+        plan.EnsureBelongsTo(ship);
+        var index = IndexOnBoard(plan, crate, [], "is named", nameof(crate));
+        var size = (int)crate.CrateSize;
+        var sum = string.Join(" + ", parts.Select(p => (int)p));
+
+        if (crate.CrateSize == CrateSize.One)
+        {
+            return Edit.Refused("1 SCU crates can't be split.");
+        }
+
+        if (parts.Count < 2)
+        {
+            return Edit.Refused(Invariant($"A {size} SCU crate splits into two or more crates."));
+        }
+
+        if (parts.Where(p => !Enum.IsDefined(p)).Select(p => (int?)p).FirstOrDefault() is { } unknown)
+        {
+            return Edit.Refused(Invariant($"{unknown} SCU is not a crate size."));
+        }
+
+        if (parts.Sum(p => (int)p) != size)
+        {
+            return Edit.Refused(Invariant($"{sum} SCU don't add up to {size} SCU."));
+        }
+
+        var rack = RackOf(ship, crate.RackId, nameof(crate));
+        if (CrateLayout.PlaceWithin(rack, crate, parts, plan.FillOrder) is not { } positions)
+        {
+            return Edit.Refused(Invariant($"{sum} SCU don't fit the footprint of the {size} SCU crate ({crate.CrateSize.Dimensions})."));
+        }
+
+        // Largest first, as the missions expand them (MissionItem.ToCargoItems). OrderByDescending is stable.
+        Crate[] pieces = [.. parts.Zip(positions)
+            .OrderByDescending(p => p.First)
+            .Select(p => new Crate(crate.Destination, crate.Commodity, p.First, crate.RackId, p.Second))];
+        List<Crate> crates = [.. plan.Crates];
+        crates.RemoveAt(index);
+        crates.InsertRange(index, pieces);
+
+        // The planner made the crate from an item that holds it (SavedPlan checks that), so there is one.
+        var item = ItemsHolding(saved.Missions, crate.Destination, crate.Commodity, [crate.CrateSize]).First();
+        return new Edit(new SavedPlan(Rebooked(saved.Missions, item, [crate.CrateSize], parts), WithHints(plan with { Crates = crates }, ship)), null);
+    }
+
+    private static Edit Merge(SavedPlan saved, Ship ship, IReadOnlyList<Crate> crates)
+    {
+        var plan = saved.Plan;
+        plan.EnsureBelongsTo(ship);
+        if (crates.Count < 2)
+        {
+            throw new ArgumentException("A merge takes two or more crates.", nameof(crates));
+        }
+
+        HashSet<int> taken = [];
+        int[] indices = [.. crates.Select(c => IndexOnBoard(plan, c, taken, "is named", nameof(crates)))];
+        var first = crates[0];
+
+        if (crates.Any(c => c.Destination != first.Destination))
+        {
+            return Edit.Refused("The crates go to different destinations.");
+        }
+
+        if (crates.Any(c => c.Commodity != first.Commodity))
+        {
+            return Edit.Refused("The crates hold different commodities.");
+        }
+
+        if (crates.Any(c => c.RackId != first.RackId))
+        {
+            return Edit.Refused("The crates lie in different racks.");
+        }
+
+        var merged = (CrateSize)crates.Sum(c => (int)c.CrateSize);
+        if (!Enum.IsDefined(merged))
+        {
+            return Edit.Refused(Invariant($"{string.Join(" + ", crates.Select(c => (int)c.CrateSize).OrderDescending())} is not a crate size."));
+        }
+
+        // One item has to hold them all: its SCU is contract data and must not move to another item.
+        CrateSize[] sizes = [.. crates.Select(c => c.CrateSize)];
+        (int Stop, int Item)[] holding = [.. ItemsHolding(saved.Missions, first.Destination, first.Commodity, sizes)];
+        if (holding.Length == 0)
+        {
+            return Edit.Refused("The crates belong to different contract items.");
+        }
+
+        // The kiosk never delivers a crate above the max crate size (D23).
+        (int Stop, int Item)[] allowed = [.. holding.Where(at => saved.Missions[at.Stop].Items[at.Item].MaxCrateSize >= merged)];
+        if (allowed.Length == 0)
+        {
+            var max = (int)saved.Missions[holding[0].Stop].Items[holding[0].Item].MaxCrateSize;
+            return Edit.Refused(Invariant($"{(int)merged} SCU crates are larger than the max crate size of {max} SCU for {first.Commodity}."));
+        }
+
+        if (CrateLayout.BlockProblem(crates, merged) is { } problem)
+        {
+            return Edit.Refused(problem);
+        }
+
+        // The new crate takes the place of the first of them in the plan; the others go, from the back.
+        GridPosition corner = new(crates.Min(c => c.Position.Length), crates.Min(c => c.Position.Width), crates.Min(c => c.Position.Stack));
+        List<Crate> list = [.. plan.Crates];
+        list[indices.Min()] = new Crate(first.Destination, first.Commodity, merged, first.RackId, corner);
+        foreach (var index in indices.Order().Skip(1).Reverse())
+        {
+            list.RemoveAt(index);
+        }
+
+        return new Edit(new SavedPlan(Rebooked(saved.Missions, allowed[0], sizes, [merged]), WithHints(plan with { Crates = list }, ship)), null);
+    }
+
+    /// <summary>
+    /// Stop and item index of every contract item for <paramref name="destination"/> and <paramref name="commodity"/>
+    /// whose crates include all of <paramref name="crates"/>, in mission order.
+    /// </summary>
+    private static IEnumerable<(int Stop, int Item)> ItemsHolding(
+        IReadOnlyList<MissionStop> missions, string destination, string commodity, IReadOnlyList<CrateSize> crates) =>
+        from s in Enumerable.Range(0, missions.Count)
+        where missions[s].Destination == destination
+        from i in Enumerable.Range(0, missions[s].Items.Count)
+        let item = missions[s].Items[i]
+        where item.Commodity == commodity && Includes(item.CrateList, crates)
+        select (s, i);
+
+    /// <summary>True if <paramref name="list"/> holds every crate of <paramref name="wanted"/>, each as often as it is wanted.</summary>
+    private static bool Includes(IReadOnlyList<CrateSize> list, IReadOnlyList<CrateSize> wanted)
+    {
+        List<CrateSize> rest = [.. list];
+        return wanted.All(rest.Remove);
+    }
+
+    /// <summary>The missions with item <paramref name="at"/> holding <paramref name="added"/> instead of <paramref name="removed"/>.</summary>
+    private static IReadOnlyList<MissionStop> Rebooked(
+        IReadOnlyList<MissionStop> missions, (int Stop, int Item) at, IReadOnlyList<CrateSize> removed, IReadOnlyList<CrateSize> added)
+    {
+        var stop = missions[at.Stop];
+        var item = stop.Items[at.Item];
+        List<CrateSize> crates = [.. item.CrateList];
+        foreach (var size in removed)
+        {
+            crates.Remove(size);
+        }
+
+        MissionItem[] items = [.. stop.Items];
+        items[at.Item] = item.WithCrateList([.. crates, .. added]);
+        MissionStop[] stops = [.. missions];
+        stops[at.Stop] = stop with { Items = items };
+        return stops;
+    }
+
+    /// <summary>A split or merge: the saved plan it gives, or why it is refused.</summary>
+    private sealed record Edit(SavedPlan? Result, string? Problem)
+    {
+        public static Edit Refused(string problem) => new(null, problem);
+
+        public SavedPlan Applied => Result ?? throw new PlanException(Problem ?? "");
     }
 
     private static int IndexOf(IReadOnlyList<Crate> crates, Crate crate)

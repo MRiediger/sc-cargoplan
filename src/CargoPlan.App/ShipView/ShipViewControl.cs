@@ -67,15 +67,24 @@ public sealed class ShipViewControl : FrameworkElement
         typeof(ICommand),
         typeof(ShipViewControl));
 
+    /// <summary>
+    /// The crates picked by right click (D25), two-way: the view picks, the view model selects what split and merge
+    /// made (D27). Bound to the scene it was made in, so a new plan empties it by itself.
+    /// </summary>
+    // Source: https://learn.microsoft.com/dotnet/api/system.windows.frameworkpropertymetadataoptions
+    public static readonly DependencyProperty SelectionProperty = DependencyProperty.Register(
+        nameof(Selection),
+        typeof(CrateSelection),
+        typeof(ShipViewControl),
+        new FrameworkPropertyMetadata(
+            CrateSelection.Empty, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+
     // Opened by hand instead of ToolTipService: the text changes with the crate under the cursor.
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/controls/how-to-position-a-tooltip
     private readonly ToolTip _toolTip;
 
     private ViewNavigation _navigation = ViewNavigation.Default;
     private Drag? _drag;
-
-    // Bound to the scene it was made in: a new plan empties it by itself (D25).
-    private CrateSelection _selection = CrateSelection.Empty;
 
     // The scene as the current camera sees it; null after a new scene or camera until the next use.
     private ProjectedScene? _projected;
@@ -112,6 +121,12 @@ public sealed class ShipViewControl : FrameworkElement
         set => SetValue(MoveStopCommandProperty, value);
     }
 
+    public CrateSelection Selection
+    {
+        get => (CrateSelection)GetValue(SelectionProperty);
+        set => SetValue(SelectionProperty, value);
+    }
+
     /// <summary>
     /// False while the overlay is locked: wheel, drags and hover do nothing. Click-through alone isn't enough, the
     /// wheel can go to the focused window instead of the one under the cursor (D15).
@@ -128,8 +143,7 @@ public sealed class ShipViewControl : FrameworkElement
                 ReleaseMouseCapture();
 
                 // Locked at the lift means loading, not planning: a selection left over must not move with the next drag.
-                _selection = CrateSelection.Empty;
-                InvalidateVisual();
+                Pick(CrateSelection.Empty);
             }
         }
     } = true;
@@ -216,7 +230,7 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         // Selected crates: an edge only, the fill stays the stop colour (D25).
-        var selected = _selection.In(source);
+        var selected = Selection.In(source);
         foreach (var box in scene.Racks.SelectMany(r => r.Boxes).Where(b => b.Box.Crate is { } crate && selected.Contains(crate)))
         {
             foreach (var face in box.Faces)
@@ -407,7 +421,7 @@ public sealed class ShipViewControl : FrameworkElement
         var current = HitAt(position);
         return drag.Stop is { } stop
             ? DragGesture.ResolveStop(stop, moved, current)
-            : DragGesture.Resolve(drag.Button, drag.Down, moved, current, drag.Dragged.Count > 0 ? DropAt(position, current, drag.Dragged) : null, _selection.In(Scene));
+            : DragGesture.Resolve(drag.Button, drag.Down, moved, current, drag.Dragged.Count > 0 ? DropAt(position, current, drag.Dragged) : null, Selection.In(Scene));
     }
 
     /// <summary>The cell under the cursor for dragged crates (<see cref="DropTarget"/>); they are air, so a crate can go a cell further.</summary>
@@ -459,7 +473,7 @@ public sealed class ShipViewControl : FrameworkElement
         ShowToolTip(null);
         var position = e.GetPosition(this);
         var down = HitAt(position);
-        _drag = new Drag(button, down, DragGesture.DraggedCrates(button, down, _selection.In(Scene)), Stop: null, position, IsMoving: false, Gesture: null, Problem: null);
+        _drag = new Drag(button, down, DragGesture.DraggedCrates(button, down, Selection.In(Scene)), Stop: null, position, IsMoving: false, Gesture: null, Problem: null);
         CaptureMouse();
     }
 
@@ -488,15 +502,20 @@ public sealed class ShipViewControl : FrameworkElement
                 Run(MoveStopCommand, move);
                 break;
             case Gesture.ToggleSelect toggle when Scene is { } scene:
-                _selection = _selection.Toggle(scene, toggle.Crate);
-                InvalidateVisual();
+                Pick(Selection.Toggle(scene, toggle.Crate));
                 break;
             case Gesture.ClearSelection:
-                _selection = CrateSelection.Empty;
-                InvalidateVisual();
+                Pick(CrateSelection.Empty);
                 break;
         }
     }
+
+    /// <summary>
+    /// Sets the selection from the view. SetCurrentValue keeps the binding, which carries the value to the view model;
+    /// AffectsRender redraws the edges.
+    /// Source: https://learn.microsoft.com/dotnet/api/system.windows.dependencyobject.setcurrentvalue
+    /// </summary>
+    private void Pick(CrateSelection selection) => SetCurrentValue(SelectionProperty, selection);
 
     private static void Run(ICommand? command, object parameter)
     {
