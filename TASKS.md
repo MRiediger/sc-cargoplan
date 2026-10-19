@@ -402,8 +402,9 @@ Einstellbare Werte:
 
 **Akzeptanz:** `dotnet test` grün; Zoom 0,5× bis 4×: Nummern und Linien bleiben gleich groß, Kisten skalieren; Hit-Test und Drop-Ziel unverändert.
 
-### [ ] T4.3 Legende an/aus + Position
+### [x] T4.3 Legende an/aus + Position
 **Warum:** Je nach Fensterform und Platz neben dem Kiosk steht die Legende besser oben oder unten, links, mittig oder rechts. Wer die Farben kennt, blendet sie aus.
+**Präzisiert in der Planung:** `legend.position` als String mit sechs Namen (`bottom-left` …, kleingeschrieben), geprüft in `AppearanceRules` wie eine Farbe: ungültig → `bottom-left` + kurze Notice („edge-alignment, e.g. bottom-right“), kein Enum-Konverter, der die ganze Datei kippen würde; left/center/right verschiebt einen Block in Inhaltsbreite, innen linksbündig (Swatches in einer Spalte), die Hint-Reserve misst mit; oben: Kopfzeile → Notices → Block → Ansicht, Notices immer am Außenrand in voller Breite, nicht im Block; Live-Umschaltung über Style-Trigger auf `OverlayViewModel.IsLegendVisible`/`LegendPosition`, nicht DynamicResource; Legenden-Drag ohne Code-Änderung (die Ansicht arbeitet in eigenen Koordinaten); „aus“ nimmt den Legenden-Drag mit, ein Stop zieht dann über die Auswahl um (README/settings-format); Akzeptanz „Legende aus + kaputte settings.json“ als Wertfehler bei `visible: false` vorgeführt, weil eine ganz kaputte Datei Defaults lädt und die Legende damit ohnehin an ist; Prüfung offscreen per `RenderTargetBitmap`: bottom-left 0 abweichende Pixel, kein Sprung beim Abhaken in allen zwölf Layouts. Präzisierung in der Planphase, ratifiziert durch Freigabe (D33).
 - Legende an/aus und Position (top/bottom × left/center/right) in settings.json, Top-Level `legend` (optional, kein Schema-Bump, D31)
 - Layout-Umbau des Overlays; der reservierte Hinweisplatz (D16) bleibt, die Ansicht springt beim Abhaken nicht
 - „aus“ blendet nur die Stop-Zeilen aus; Hinweise und Notices bleiben sichtbar (an der Legendenposition), sonst sähe niemand die D13-Notice „kaputte settings.json → Defaults“
@@ -521,3 +522,4 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Backdrop-Blur hinter dem Fenster (Spike: DWM vs. AllowsTransparency) (D28).
 - Alternative Stop-Paletten, nur geprüft farbfehlsicht-tauglich (D29).
 - Theme-Presets/Export (A4).
+- Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).

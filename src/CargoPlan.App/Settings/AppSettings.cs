@@ -7,16 +7,31 @@ namespace CargoPlan.App.Settings;
 /// <param name="Overlay">null = never saved: the window keeps its XAML size and Windows picks the position.</param>
 /// <param name="Hotkeys">null = no hotkeys; set by hand in the file (D17).</param>
 /// <param name="Appearance">Missing (schema 1) or null = the default look (D31).</param>
+/// <param name="Legend">Missing (before T4.3) or null = the legend at the bottom left with its stop lines (D33).</param>
 public sealed record AppSettings(
     int SchemaVersion,
     WindowBounds? Overlay = null,
     HotkeySettings? Hotkeys = null,
-    AppearanceSettings? Appearance = null)
+    AppearanceSettings? Appearance = null,
+    LegendSettings? Legend = null)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
 
     // Not a constant, so not a default parameter value; see AppearanceSettings.
     public AppearanceSettings Appearance { get; init; } = Appearance ?? AppearanceSettings.Default;
+
+    public LegendSettings Legend { get; init; } = Legend ?? LegendSettings.Default;
+}
+
+/// <summary>
+/// The legend's layout (D33): top level, not in <c>appearance.legend</c>, because it is layout, not look, and the
+/// settings window resets the look per section (D30). Optional, no schema bump (D31).
+/// </summary>
+/// <param name="Visible">false hides the stop lines only; hints, warnings and notices stay where the legend is.</param>
+/// <param name="Position">One of <see cref="LegendPosition.Names"/>; checked by <see cref="AppearanceRules"/>.</param>
+public sealed record LegendSettings(bool Visible = true, string Position = "bottom-left")
+{
+    public static LegendSettings Default { get; } = new();
 }
 
 /// <summary>

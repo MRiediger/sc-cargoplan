@@ -26,7 +26,7 @@ Run Star Citizen in **Borderless** window mode. In exclusive fullscreen the game
 
 _Screenshot: coming soon._
 
-**Reading the ship view:** the overlay draws your ship's cargo racks as boxes, at first seen from the front, from the port side and from above: the bow points to the lower left, the port side faces you. Turn and tilt the ship until it looks the way you see the hold, even from below for racks under the hull. Each rack shows its number on its largest visible face. Each destination has its own color, and the legend below lists it with its SCU. A destination split over two racks has the same color in both. A rack shared by two destinations shows both colors side by side; the planner's hints below the legend tell you which racks need care. Each crate is drawn as one box in its shape (a 4 SCU crate is 2 × 2 × 1 cells), with a small gap all round; free space shows as single cells. The planner places the crates: the largest first, layer by layer away from the plate (on the Hull A from the spindle outwards, as in the game), and in each layer row by row from the bow. Crates stay where the plan says, after a restart and for everyone who loads the plan, until you drag them somewhere else (see **Changing the plan**). Where the elevator really puts a crate is still up to the game. A crate always rests on the plate or on other crates. A crate that overlaps another or has nothing to rest on gets a red outline, and its rack turns red.
+**Reading the ship view:** the overlay draws your ship's cargo racks as boxes, at first seen from the front, from the port side and from above: the bow points to the lower left, the port side faces you. Turn and tilt the ship until it looks the way you see the hold, even from below for racks under the hull. Each rack shows its number on its largest visible face. Each destination has its own color, and the legend (below the ship, unless you [move it](docs/settings-format.md#legend-layout)) lists it with its SCU. A destination split over two racks has the same color in both. A rack shared by two destinations shows both colors side by side; the planner's hints below the legend tell you which racks need care. Each crate is drawn as one box in its shape (a 4 SCU crate is 2 × 2 × 1 cells), with a small gap all round; free space shows as single cells. The planner places the crates: the largest first, layer by layer away from the plate (on the Hull A from the spindle outwards, as in the game), and in each layer row by row from the bow. Crates stay where the plan says, after a restart and for everyone who loads the plan, until you drag them somewhere else (see **Changing the plan**). Where the elevator really puts a crate is still up to the game. A crate always rests on the plate or on other crates. A crate that overlaps another or has nothing to rest on gets a red outline, and its rack turns red.
 
 - **Color** = destination. Up to eight colors, from the ninth destination on they repeat (the legend says so).
 - **Gray** = delivered.
@@ -51,7 +51,7 @@ Start with `--locked` to begin with the padlock locked.
 
 **Remembers where you put it:** drag the overlay next to your cargo grid and resize it once; position and size are saved right away, so they survive a restart and even a crash. They live in `%LocalAppData%\SC-CargoPlan\settings.json`. To reset the overlay to its default size and position, close it and delete that file (your hotkeys and look go with it). If you unplug a monitor, the overlay moves back onto the screens you have.
 
-**Your look:** background and its transparency, frames, text colours, the legend's font size, crate opacity, rack number colour and size, and a halo for reading over bright scenes are set in the same file, until the settings window arrives. Every key, its default and its range: [settings file format](docs/settings-format.md). The stop colours stay fixed: they are chosen to stay apart with colour blindness.
+**Your look:** background and its transparency, frames, text colours, the legend's font size, crate opacity, rack number colour and size, and a halo for reading over bright scenes are set in the same file, until the settings window arrives. So is where the legend stands (top or bottom; left, centre or right) and whether it shows the destination lines at all. Every key, its default and its range: [settings file format](docs/settings-format.md). The stop colours stay fixed: they are chosen to stay apart with colour blindness.
 
 ### Entering missions
 
@@ -86,11 +86,11 @@ Two global hotkeys work while Star Citizen has the focus and the cursor is hidde
 }
 ```
 
-Keep the `overlay` and `appearance` parts if your file has them. Either hotkey can be left out. A file with `"schemaVersion": 1` works too.
+Keep the `overlay`, `legend` and `appearance` parts if your file has them. Either hotkey can be left out. A file with `"schemaVersion": 1` works too.
 
 - Format: modifiers and one key joined by `+`, in any order and case. Modifiers are `Ctrl`, `Alt`, `Shift`, `Win`; **at least one of `Ctrl`, `Alt` or `Win` is required**. Keys are `A`–`Z`, `0`–`9`, `F1`–`F24` (not `F12`, Windows reserves it), `Space`, `Pause`, `ScrollLock`, `Insert`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`.
 - Pick a combination that **none of your Star Citizen bindings use**, and check it in the game's keybinding settings. If the game still reacts to it, choose another one.
-- A hotkey that is taken by another program, or a typo, shows as an amber line at the bottom of the overlay; the other hotkey still works.
+- A hotkey that is taken by another program, or a typo, shows as an amber line next to the legend; the other hotkey still works.
 - If a hotkey shows no error but does nothing, another program swallows the keys before Windows hands them out (some tools do that for their own shortcuts). Choose a different combination.
 - Hidden, the overlay also leaves the taskbar; press the hotkey again to bring it back where it was.
 - A typo in a name (e.g. `toggleLok`) makes the whole file unreadable: the overlay starts with defaults and says so.

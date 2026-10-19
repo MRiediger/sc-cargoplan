@@ -3,7 +3,7 @@ using System.Globalization;
 namespace CargoPlan.App.Settings;
 
 /// <summary>
-/// Checks the values of <see cref="AppearanceSettings"/> after loading (D31). A number outside its range is clamped (closer
+/// Checks the values of <see cref="AppearanceSettings"/> and <see cref="LegendSettings"/> after loading (D31, D33). A number outside its range is clamped (closer
 /// to what the player meant than the default), an invalid colour takes its default; either way with a problem line for
 /// the overlay, and the rest of the file applies. Structural errors (unknown key, wrong JSON type) never get here:
 /// they make the whole file invalid in <see cref="SettingsStore"/>. No WPF: the load tests run without a window.
@@ -80,6 +80,14 @@ public static class AppearanceRules
         return (normalized, check.Problems);
     }
 
+    /// <summary>Checks the legend's layout (D33): an unknown position takes the default, like a colour that isn't one.</summary>
+    /// <returns>The checked legend and one line per corrected value, empty if nothing was corrected.</returns>
+    public static (LegendSettings Legend, IReadOnlyList<string> Problems) Normalize(LegendSettings legend)
+    {
+        Checker check = new();
+        return (legend with { Position = check.Position("legend.position", legend.Position) }, check.Problems);
+    }
+
     /// <summary>Collects the problem lines while one appearance is checked.</summary>
     private sealed class Checker
     {
@@ -111,6 +119,22 @@ public static class AppearanceRules
             }
 
             return colour.ToString();
+        }
+
+        /// <summary>
+        /// Top level, so the key has no "appearance." in front. The line names the pattern, not all six names: in the
+        /// default overlay those would be three amber lines (settings-format.md lists them).
+        /// </summary>
+        public string Position(string key, string text)
+        {
+            if (LegendPosition.TryParse(text, out _))
+            {
+                return text;
+            }
+
+            var fallback = LegendPosition.Default.ToString();
+            Problems.Add($"{key} \"{text}\" is not valid (edge-alignment, e.g. bottom-right), using {fallback}.");
+            return fallback;
         }
 
         public HaloSettings Halo(string key, HaloSettings halo) => halo with

@@ -41,7 +41,12 @@ public partial class App : Application
         ThemeResources.Apply(Resources, settings.Appearance);
 
         var ship = ShipLoader.Load(ShipId);
-        var viewModel = new OverlayViewModel(ship) { IsManuallyLocked = options.Locked };
+        var viewModel = new OverlayViewModel(ship)
+        {
+            IsManuallyLocked = options.Locked,
+            IsLegendVisible = settings.Legend.Visible,
+            LegendPosition = LegendPosition.Parse(settings.Legend.Position),
+        };
         viewModel.SetNotice(NoticeSource.Settings, settingsProblem);
 
         // Bounds before Show(), so the window appears in place instead of jumping there.

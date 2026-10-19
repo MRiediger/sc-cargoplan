@@ -109,7 +109,64 @@ public sealed class SettingsStoreTests : IDisposable
         // Every key in the file, so a player editing it by hand sees what there is (D31).
         File.ReadAllText(SettingsPath).Should()
             .Contain("\"appearance\"").And.Contain("\"background\": \"#A0141414\"")
-            .And.Contain("\"fontSize\": null").And.Contain("\"fillAlpha\": 208").And.Contain("\"cornerRadius\": 3");
+            .And.Contain("\"fontSize\": null").And.Contain("\"fillAlpha\": 208").And.Contain("\"cornerRadius\": 3")
+            .And.Contain("\"visible\": true").And.Contain("\"position\": \"bottom-left\"");
+    }
+
+    [Fact]
+    public void Save_then_Load_keeps_the_legend()
+    {
+        var settings = AppSettings.Default with { Legend = new LegendSettings(Visible: false, Position: "top-right") };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("""{ "schemaVersion": 1 }""")]
+    [InlineData("""{ "schemaVersion": 2, "appearance": { "crates": { "fillAlpha": 100 } } }""")]
+    [InlineData("""{ "schemaVersion": 2, "legend": null }""")]
+    public void File_without_legend_gets_the_old_layout(string content)
+    {
+        // Optional since T4.3, no schemaVersion bump (D31): bottom left, stop lines shown, as before.
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Legend.Should().Be(LegendSettings.Default);
+    }
+
+    [Fact]
+    public void Legend_with_visible_only_keeps_the_default_position()
+    {
+        WriteFile("""{ "schemaVersion": 2, "legend": { "visible": false } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Legend.Should().Be(new LegendSettings(Visible: false, Position: "bottom-left"));
+    }
+
+    [Fact]
+    public void Invalid_legend_position_takes_the_default_with_a_problem_and_the_rest_applies()
+    {
+        // The notice must show with the stop lines hidden: it stands where the legend would be (T4.3).
+        const string content = """
+            { "schemaVersion": 2, "overlay": { "left": 1, "top": 2, "width": 300, "height": 400 },
+              "legend": { "visible": false, "position": "up" }, "appearance": { "crates": { "fillAlpha": 300 } } }
+            """;
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Legend.Should().Be(new LegendSettings(Visible: false, Position: "bottom-left"));
+        loaded.Overlay.Should().Be(new WindowBounds(1, 2, 300, 400));
+        problem.Should().Contain("settings.json: legend.position \"up\"").And.Contain("crates.fillAlpha");
+        File.ReadAllText(SettingsPath).Should().Be(content);
     }
 
     [Fact]
@@ -241,6 +298,10 @@ public sealed class SettingsStoreTests : IDisposable
     [InlineData("""{ "schemaVersion": 2, "appearance": { "legend": { "fontSize": "big" } } }""")]   // wrong JSON type
     [InlineData("""{ "schemaVersion": 2, "appearance": { "crates": { "fillAlpha": 3.5 } } }""")]    // not a whole number
     [InlineData("""{ "schemaVersion": 2, "appearance": { "window": { "background": null } } }""")]  // null for a colour
+    [InlineData("""{ "schemaVersion": 2, "legend": { "align": "left" } }""")]                       // unknown key in legend
+    [InlineData("""{ "schemaVersion": 2, "legend": { "visible": "no" } }""")]                       // wrong JSON type
+    [InlineData("""{ "schemaVersion": 2, "legend": { "position": 3 } }""")]                         // a number, not a name
+    [InlineData("""{ "schemaVersion": 2, "appearance": { "legend": { "position": "top-left" } } }""")] // look, not layout: wrong level
     public void Broken_file_gives_defaults_with_a_problem_and_stays_untouched(string content)
     {
         WriteFile(content);

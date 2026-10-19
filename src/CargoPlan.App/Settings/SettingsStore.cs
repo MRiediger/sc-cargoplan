@@ -27,7 +27,7 @@ public static class SettingsStore
     /// <summary>
     /// Missing file = defaults, no problem. Broken file or unknown schema version = defaults plus a problem
     /// text for the overlay; the file is left as it is, so a reader bug can't destroy it. Appearance values out of
-    /// range or not a colour are corrected one by one (<see cref="AppearanceRules"/>), the problem lists them, the rest
+    /// range or not a colour, and an unknown legend position, are corrected one by one (<see cref="AppearanceRules"/>), the problem lists them, the rest
     /// applies. The result always has the current schema version.
     /// </summary>
     public static (AppSettings Settings, string? Problem) Load(string path)
@@ -50,10 +50,12 @@ public static class SettingsStore
                 return (AppSettings.Default, Problem(path, $"schemaVersion {settings.SchemaVersion} is not supported."));
             }
 
-            var (appearance, problems) = AppearanceRules.Normalize(settings.Appearance);
+            var (appearance, appearanceProblems) = AppearanceRules.Normalize(settings.Appearance);
+            var (legend, legendProblems) = AppearanceRules.Normalize(settings.Legend);
+            string[] problems = [.. legendProblems, .. appearanceProblems];
             return (
-                settings with { SchemaVersion = SupportedSchemaVersion, Appearance = appearance },
-                problems.Count == 0 ? null : string.Join(Environment.NewLine, problems.Select(p => $"settings.json: {p}")));
+                settings with { SchemaVersion = SupportedSchemaVersion, Appearance = appearance, Legend = legend },
+                problems.Length == 0 ? null : string.Join(Environment.NewLine, problems.Select(p => $"settings.json: {p}")));
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {

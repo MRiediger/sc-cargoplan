@@ -1,19 +1,20 @@
 # Settings file format
 
-`%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys and the
-overlay's look. Position and size are saved whenever you move the overlay. Until the settings window
-arrives, you can set the hotkeys and the look by hand: close the overlay, edit the file, start the overlay
-again.
+`%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
+the legend stands and the overlay's look. Position and size are saved whenever you move the overlay. Until
+the settings window arrives, you can set the rest by hand: close the overlay, edit the file, start the
+overlay again.
 
 ## Example with every default
 
-Without a file, or without `appearance`, the overlay uses exactly these values.
+Without a file, or without `legend` and `appearance`, the overlay uses exactly these values.
 
 ```json
 {
   "schemaVersion": 2,
   "overlay": { "left": 100, "top": 200, "width": 420, "height": 460 },
   "hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H" },
+  "legend": { "visible": true, "position": "bottom-left" },
   "appearance": {
     "window": {
       "background": "#A0141414",
@@ -105,11 +106,36 @@ A halo is a soft glow around text and glyphs, for reading over bright and dark s
 Inside a `halo`, missing keys take the defaults of this table, not those of the section: a crates halo
 written as `{ "size": 5 }` is off. Write `"enabled": true` with it.
 
+## Legend layout
+
+`legend` sits at the top level, next to `appearance`, not inside it: it says where the legend stands, while
+`appearance.legend` says how it looks. A `position` inside `appearance.legend` is an unknown key and makes
+the whole file unreadable.
+
+| Key | What | Default |
+|---|---|---|
+| `legend.visible` | Show the stop lines | `true` |
+| `legend.position` | Where the legend stands | `"bottom-left"` |
+
+**Positions:** `top-left`, `top-center`, `top-right`, `bottom-left`, `bottom-center`, `bottom-right`, in
+lower case. `top` puts the legend between the header and the ship, `bottom` below the ship. `left`,
+`center` and `right` move the legend as a block, as wide as its longest line; inside, the lines stay
+left-aligned, so the colour squares stand in one column. Amber notices always run across the full width
+at the outer edge: at the very bottom, or right under the header.
+
+**`"visible": false` hides only the stop lines.** Hints, red warnings and amber notices stay where the
+legend is. You still tick a destination by clicking its crates in the ship view. **Dragging a legend line
+onto a rack is gone with the lines:** to move a whole destination, right click each of its crates and
+right drag the selection.
+
+Ticking a destination off never moves the ship view, in any position.
+
 ## When something is wrong
 
 - **A value outside its range** is set to the nearest limit (`"fontSize": 0` → 8, `"fillAlpha": 300` → 255).
 - **A colour that isn't one** (`"red"`, `"#12345"`) takes its default.
-- In both cases everything else in the file applies, and an amber line in the overlay names the value. The
+- **A legend position that isn't one** (`"up"`, `"Bottom-Left"`) takes `bottom-left`.
+- In all these cases everything else in the file applies, and an amber line in the overlay names the value. The
   file stays as it is until you move the overlay; then it is saved with the corrected values.
 - **A misspelt key** (`"fontsize"`), **a wrong type** (`"fontSize": "big"`), `null` for a colour or a file
   that isn't JSON makes the whole file unreadable: the overlay starts with defaults, no hotkeys, and says so.
@@ -121,7 +147,7 @@ written as `{ "size": 5 }` is off. Write `"enabled": true` with it.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance` |
+| 2 | this version | plus `appearance`; `legend` came later as an optional part of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a

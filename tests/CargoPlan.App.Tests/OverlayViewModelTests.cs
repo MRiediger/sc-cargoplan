@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Missions;
@@ -218,6 +219,38 @@ public class OverlayViewModelTests
 
         Changes(viewModel, () => viewModel.ToggleOverlayCommand.Execute(null))
             .Should().Contain(nameof(OverlayViewModel.IsOverlayHidden));
+    }
+
+    [Fact]
+    public void Legend_defaults_to_the_layout_before_it_was_a_setting()
+    {
+        var viewModel = WithPlan();
+
+        viewModel.IsLegendVisible.Should().BeTrue();
+        viewModel.LegendPosition.Should().Be(LegendPosition.Default);
+    }
+
+    [Fact]
+    public void Legend_layout_raises_PropertyChanged_so_the_settings_window_can_switch_it_live()
+    {
+        // T4.2 changes both while the overlay is open; the window's triggers follow the binding (D33).
+        var viewModel = WithPlan();
+        LegendPosition topRight = new(LegendEdge.Top, LegendAlignment.Right);
+
+        Changes(viewModel, () => viewModel.LegendPosition = topRight).Should().Equal(nameof(OverlayViewModel.LegendPosition));
+        Changes(viewModel, () => viewModel.IsLegendVisible = false).Should().Equal(nameof(OverlayViewModel.IsLegendVisible));
+    }
+
+    [Fact]
+    public void Same_legend_layout_raises_nothing()
+    {
+        var viewModel = WithPlan();
+
+        Changes(viewModel, () =>
+        {
+            viewModel.LegendPosition = LegendPosition.Default;
+            viewModel.IsLegendVisible = true;
+        }).Should().BeEmpty();
     }
 
     [Fact]

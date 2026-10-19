@@ -159,6 +159,32 @@ public sealed class AppearanceRulesTests
     }
 
     [Theory]
+    [InlineData(true, "bottom-left")]
+    [InlineData(false, "top-right")]
+    [InlineData(true, "top-center")]
+    public void Valid_legend_passes_unchanged(bool visible, string position)
+    {
+        LegendSettings legend = new(visible, position);
+
+        var (normalized, problems) = AppearanceRules.Normalize(legend);
+
+        normalized.Should().Be(legend);
+        problems.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Invalid_legend_position_takes_the_default_with_a_short_problem()
+    {
+        var (legend, problems) = AppearanceRules.Normalize(new LegendSettings(Visible: false, Position: "up"));
+
+        legend.Should().Be(new LegendSettings(Visible: false, Position: "bottom-left"));
+
+        // Short on purpose: the list of six names would be three amber lines in the default overlay (settings-format.md has it).
+        problems.Should().ContainSingle().Which.Should()
+            .Be("legend.position \"up\" is not valid (edge-alignment, e.g. bottom-right), using bottom-left.");
+    }
+
+    [Theory]
     [InlineData("#A0141414", 0xA0, 0x14, 0x14, 0x14)]
     [InlineData("#00ff7F", 0xFF, 0x00, 0xFF, 0x7F)]
     public void Argb_parses_both_forms(string text, byte a, byte r, byte g, byte b)

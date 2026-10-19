@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:CargoPlan.App.ViewModels"
         xmlns:sv="clr-namespace:CargoPlan.App.ShipView"
+        xmlns:st="clr-namespace:CargoPlan.App.Settings"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:OverlayViewModel}"
         Title="SC-CargoPlan"
@@ -130,92 +131,152 @@
                            Style="{StaticResource HeaderTextStyle}" />
             </DockPanel>
 
-            <!-- Problems with settings (D13), hotkeys (D17) and the plan file, one line per source (D18). -->
-            <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding Notices, Mode=OneWay}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource NoticeTextStyle}" />
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <!-- Legend area (D33): below the ship view or between header and view, switched live through the view model
+                 (T4.2), not built once at startup. Before the ship view, which stays the last child and fills the rest.
+                 Changing DockPanel.Dock re-measures the parent DockPanel (OnDockChanged → InvalidateMeasure).
+                 Source: https://github.com/dotnet/wpf/blob/main/src/Microsoft.DotNet.Wpf/src/PresentationFramework/System/Windows/Controls/DockPanel.cs -->
+            <DockPanel>
+                <DockPanel.Style>
+                    <Style TargetType="DockPanel">
+                        <Setter Property="DockPanel.Dock" Value="Bottom" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding LegendPosition.Edge}" Value="{x:Static st:LegendEdge.Top}">
+                                <Setter Property="DockPanel.Dock" Value="Top" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DockPanel.Style>
 
-            <!-- Legend: one line per stop, then violations (red racks) and planner hints, word for word (D7).
-                 A click on a stop line ticks it off or back (D16, addendum T3.8b: a plain line, no check box); a right drag of
-                 a stop line into the ship view moves the whole stop to the rack under the cursor (D25). The lines
-                 are buttons and handle their left clicks, so DragMove works on the header, the hint lines and the border,
-                 not on the stop lines. -->
-            <StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
-                <!-- Empty state: the sentence and a second way into the editor besides the pencil. -->
+                <!-- Problems with settings (D13), hotkeys (D17) and the plan file, one line per source (D18). On the outer
+                     edge, full width and left-aligned in every position: inside the aligned block a long notice would
+                     widen it, and the stop lines would jump sideways when "Move refused" comes and goes. -->
+                <ItemsControl ItemsSource="{Binding Notices, Mode=OneWay}">
+                    <ItemsControl.Style>
+                        <Style TargetType="ItemsControl">
+                            <Setter Property="DockPanel.Dock" Value="Bottom" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding LegendPosition.Edge}" Value="{x:Static st:LegendEdge.Top}">
+                                    <Setter Property="DockPanel.Dock" Value="Top" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.Style>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource NoticeTextStyle}" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- Legend: one line per stop, then violations (red racks) and planner hints, word for word (D7).
+                     A click on a stop line ticks it off or back (D16, addendum T3.8b: a plain line, no check box); a right drag of
+                     a stop line into the ship view moves the whole stop to the rack under the cursor (D25). The lines
+                     are buttons and handle their left clicks, so DragMove works on the header, the hint lines and the border,
+                     not on the stop lines.
+                     A block as wide as its lines, left, centred or right as a whole; inside, everything stays left-aligned, so
+                     the swatches stand in one column (D33). The hidden hint reserve counts towards its width and height, so
+                     ticking moves neither the block nor the ship view in any position (D16). The gap faces the ship view. -->
                 <StackPanel>
                     <StackPanel.Style>
                         <Style TargetType="StackPanel">
+                            <Setter Property="Margin" Value="0,6,0,0" />
+                            <Setter Property="HorizontalAlignment" Value="Left" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding HasPlan}" Value="True">
-                                    <Setter Property="Visibility" Value="Collapsed" />
+                                <DataTrigger Binding="{Binding LegendPosition.Edge}" Value="{x:Static st:LegendEdge.Top}">
+                                    <Setter Property="Margin" Value="0,0,0,6" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding LegendPosition.Alignment}" Value="{x:Static st:LegendAlignment.Center}">
+                                    <Setter Property="HorizontalAlignment" Value="Center" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding LegendPosition.Alignment}" Value="{x:Static st:LegendAlignment.Right}">
+                                    <Setter Property="HorizontalAlignment" Value="Right" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
-                    <TextBlock Text="{x:Static vm:OverlayViewModel.NoPlanText}" Style="{StaticResource LegendTextStyle}" />
-                    <Button Content="Open editor" Click="OnOpenEditor" HorizontalAlignment="Left" Margin="0,4,0,0"
-                            Style="{StaticResource TextButtonStyle}" />
+                    <!-- Empty state: the sentence and a second way into the editor besides the pencil. -->
+                    <StackPanel>
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasPlan}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="{x:Static vm:OverlayViewModel.NoPlanText}" Style="{StaticResource LegendTextStyle}" />
+                        <Button Content="Open editor" Click="OnOpenEditor" HorizontalAlignment="Left" Margin="0,4,0,0"
+                                Style="{StaticResource TextButtonStyle}" />
+                    </StackPanel>
+                    <!-- Hidden by legend.visible = false: only the stop lines go (D33). Hints, warnings, notices and the empty
+                         state stay; a stop is then ticked in the ship view and moved through the crate selection. -->
+                    <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}">
+                        <ItemsControl.Style>
+                            <Style TargetType="ItemsControl">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsLegendVisible}" Value="False">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ItemsControl.Style>
+                        <ItemsControl.ItemTemplate>
+                            <!-- The command replaces the plan, so the legend is rebuilt and the grey comes from the new entry. -->
+                            <DataTemplate DataType="{x:Type sv:LegendEntry}">
+                                <Button Command="{Binding DataContext.ToggleDeliveredCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding Destination, Mode=OneTime}"
+                                        Style="{StaticResource LegendLineButtonStyle}"
+                                        MouseRightButtonDown="OnLegendRightButtonDown">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0"
+                                                   Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
+                                        <TextBlock x:Name="LabelText" Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                                    </StackPanel>
+                                </Button>
+                                <!-- Template triggers outrank values set in the template, so the grey wins over the bound colour.
+                                     Source: https://learn.microsoft.com/dotnet/desktop/wpf/properties/dependency-property-value-precedence -->
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Delivered}" Value="True">
+                                        <Setter TargetName="Swatch" Property="Fill" Value="{x:Static sv:MissionPalette.DeliveredBrush}" />
+                                        <Setter TargetName="LabelText" Property="Foreground" Value="{StaticResource DeliveredForegroundBrush}" />
+                                        <Setter TargetName="LabelText" Property="TextDecorations" Value="Strikethrough" />
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <ItemsControl ItemsSource="{Binding Scene.Violations, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}"
+                                           Foreground="{x:Static sv:MissionPalette.ViolationBrush}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <!-- Both lists share one cell: the hidden reserve (hints with nothing delivered) keeps the height, so
+                         ticking a stop off never resizes the ship view (D16). Hidden takes space, Collapsed wouldn't. -->
+                    <Grid>
+                        <ItemsControl ItemsSource="{Binding Scene.ReservedHints, Mode=OneWay}" Visibility="Hidden">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <ItemsControl ItemsSource="{Binding Scene.Hints, Mode=OneWay}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                    <TextBlock Text="{x:Static sv:MissionPalette.RepeatNotice}"
+                               Style="{StaticResource LegendTextStyle}"
+                               Visibility="{Binding Scene.PaletteRepeats, Converter={StaticResource BooleanToVisibilityConverter}}" />
                 </StackPanel>
-                <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}">
-                    <ItemsControl.ItemTemplate>
-                        <!-- The command replaces the plan, so the legend is rebuilt and the grey comes from the new entry. -->
-                        <DataTemplate DataType="{x:Type sv:LegendEntry}">
-                            <Button Command="{Binding DataContext.ToggleDeliveredCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding Destination, Mode=OneTime}"
-                                    Style="{StaticResource LegendLineButtonStyle}"
-                                    MouseRightButtonDown="OnLegendRightButtonDown">
-                                <StackPanel Orientation="Horizontal">
-                                    <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0"
-                                               Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
-                                    <TextBlock x:Name="LabelText" Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
-                                </StackPanel>
-                            </Button>
-                            <!-- Template triggers outrank values set in the template, so the grey wins over the bound colour.
-                                 Source: https://learn.microsoft.com/dotnet/desktop/wpf/properties/dependency-property-value-precedence -->
-                            <DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding Delivered}" Value="True">
-                                    <Setter TargetName="Swatch" Property="Fill" Value="{x:Static sv:MissionPalette.DeliveredBrush}" />
-                                    <Setter TargetName="LabelText" Property="Foreground" Value="{StaticResource DeliveredForegroundBrush}" />
-                                    <Setter TargetName="LabelText" Property="TextDecorations" Value="Strikethrough" />
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <ItemsControl ItemsSource="{Binding Scene.Violations, Mode=OneWay}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}"
-                                       Foreground="{x:Static sv:MissionPalette.ViolationBrush}" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <!-- Both lists share one cell: the hidden reserve (hints with nothing delivered) keeps the height, so
-                     ticking a stop off never resizes the ship view (D16). Hidden takes space, Collapsed wouldn't. -->
-                <Grid>
-                    <ItemsControl ItemsSource="{Binding Scene.ReservedHints, Mode=OneWay}" Visibility="Hidden">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                    <ItemsControl ItemsSource="{Binding Scene.Hints, Mode=OneWay}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </Grid>
-                <TextBlock Text="{x:Static sv:MissionPalette.RepeatNotice}"
-                           Style="{StaticResource LegendTextStyle}"
-                           Visibility="{Binding Scene.PaletteRepeats, Converter={StaticResource BooleanToVisibilityConverter}}" />
-            </StackPanel>
+            </DockPanel>
 
             <!-- Last child fills the rest. Left drag here orbits, a click on cargo ticks its stop, right drag on a crate
                  puts it on the cell under the cursor, right drag elsewhere pans; DragMove works on header, hint lines and border. -->

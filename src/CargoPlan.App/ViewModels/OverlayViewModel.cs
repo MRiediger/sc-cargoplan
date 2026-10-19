@@ -1,3 +1,4 @@
+using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
@@ -134,6 +135,23 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     /// <summary>Both windows hide while true. Hiding resets nothing: position, zoom, orbit and lock stay as they are.</summary>
     [ObservableProperty]
     public partial bool IsOverlayHidden { get; set; }
+
+    /// <summary>
+    /// false hides the legend's stop lines; hints, warnings and notices stay (D33). Bound by the window, so the settings
+    /// window (T4.2) can switch it live. By hand, not generated: a partial property can't take the initial value.
+    /// </summary>
+    public bool IsLegendVisible
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = true;
+
+    /// <summary>Where the legend stands (D33); bound like <see cref="IsLegendVisible"/>.</summary>
+    public LegendPosition LegendPosition
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = LegendPosition.Default;
 
     // Generates ToggleLockCommand (IRelayCommand), bound by the lock window's button and run by the toggleLock hotkey.
     // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand
