@@ -17,8 +17,27 @@ public class LoadPlannerOverrideTests
         new Rack("rack-1", 1, 8, new Dimensions(2, 2, 2), new RackPosition(RackSide.Port, RackLevel.Lower), new ShipPoint(0, 1, 0)),
     ]);
 
+    /// <summary>One stop, two items, 12 SCU in Rack 1: two 4s on the plate, the two 2s on top of them.</summary>
+    private static readonly Stop[] TitaniumAndQuartz =
+        [new Stop("Riker", 1, [new CargoItem("Titanium", 8, CrateSize.Four), new CargoItem("Quartz", 4, CrateSize.Two)])];
+
+    /// <summary>
+    /// Four 1s along the row next to the spindle in Rack 1, an 8 alone in Rack 2: 12 SCU would fit Rack 1, the 8's shape doesn't.
+    /// </summary>
+    private static readonly Stop[] GoldThenAgricium =
+    [
+        new Stop("Lorville", 1, [new CargoItem("Gold", 4, CrateSize.One)]),
+        new Stop("Shubin", 2, [new CargoItem("Agricium", 8, CrateSize.Eight)]),
+    ];
+
     private static Placement Single(LoadPlan plan, string destination, string commodity) =>
         plan.Placements.Single(p => p.Destination == destination && p.Item.Commodity == commodity);
+
+    private static Crate CrateAt(LoadPlan plan, string rackId, int length, int width, int stack) =>
+        plan.Crates.Single(c => c.RackId == rackId && c.Position == new GridPosition(length, width, stack));
+
+    /// <summary>Every plan the planner and its moves make is laid out correctly (D24).</summary>
+    private static void ShouldBeValid(LoadPlan plan, Ship ship) => LoadPlanner.Validate(plan, ship).Should().BeEmpty();
 
     // --- MovePlacement ---
 
@@ -26,12 +45,12 @@ public class LoadPlannerOverrideTests
     public void MovePlacement_leaves_original_plan_unchanged()
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
-        Placement[] placementsBefore = [.. plan.Placements];
+        Crate[] cratesBefore = [.. plan.Crates];
         PlanWarning[] warningsBefore = [.. plan.Warnings];
 
-        var moved = LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Riker", "Quartz"), "rack-0");
+        var moved = LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Orison", "Gold"), "rack-1");
 
-        plan.Placements.Should().Equal(placementsBefore);
+        plan.Crates.Should().Equal(cratesBefore);
         plan.Warnings.Should().Equal(warningsBefore);
         moved.Should().NotBeSameAs(plan);
     }
@@ -48,28 +67,50 @@ public class LoadPlannerOverrideTests
             plan.Placements[0],
             shubin with { RackId = "rack-3" },
             plan.Placements[2]);
+        ShouldBeValid(moved, HullA);
     }
 
     [Fact]
-    public void MovePlacement_into_occupied_rack_warns_shared()
+    public void MovePlacement_lays_the_crates_out_around_the_cargo_of_the_target_rack()
     {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
+        // Rack 2 holds Riker's two 2s on the plate and Shubin's 8: Orison's two 1s go on top of the 2s.
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
 
-        var moved = LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Orison", "Agricium"), "rack-0");
+        var moved = LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Orison", "Gold"), "rack-1");
 
-        moved.Warnings.Should().Equal(
-            new PlanWarning("rack-0", "Rack 1 shared by Riker, Orison – identify crates by count"));
+        moved.Crates.Where(c => c.Commodity == "Gold").Select(c => (c.RackId, c.Position.Stack)).Should().Equal(("rack-1", 1), ("rack-1", 1));
+        plan.CratesForRack("rack-1").Should().BeSubsetOf(moved.Crates);
+        ShouldBeValid(moved, HullA);
     }
 
     [Fact]
-    public void MovePlacement_joining_a_split_stop_drops_its_hints()
+    public void MovePlacement_into_occupied_rack_derives_the_hints_anew()
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
 
-        var moved = LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Riker", "Quartz"), "rack-0");
+        var moved = LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Orison", "Gold"), "rack-1");
 
-        // Riker no longer spans racks and Rack 2 holds only Shubin: stale hints would send the player to the wrong rack.
-        moved.Warnings.Should().BeEmpty();
+        moved.Warnings.Should().Equal(
+            new PlanWarning("rack-0", "Riker spans racks 1+2"),
+            new PlanWarning("rack-1", "Rack 2 shared by Riker, Shubin, Orison – identify crates by count"),
+            new PlanWarning("rack-1", "Riker spans racks 1+2"),
+            new PlanWarning("rack-1", "Orison spans racks 2+3"),
+            new PlanWarning("rack-2", "Orison spans racks 2+3"));
+    }
+
+    [Fact]
+    public void MovePlacement_back_joins_the_split_and_restores_the_plan()
+    {
+        var plan = LoadPlanner.Plan(HullA, TitaniumAndQuartz);
+
+        var split = LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Riker", "Quartz"), "rack-1");
+        var back = LoadPlanner.MovePlacement(split, HullA, Single(split, "Riker", "Quartz"), "rack-0");
+
+        split.Warnings.Should().Equal(
+            new PlanWarning("rack-0", "Riker spans racks 1+2"),
+            new PlanWarning("rack-1", "Riker spans racks 1+2"));
+        back.Crates.Should().Equal(plan.Crates);
+        back.Warnings.Should().BeEmpty();
     }
 
     [Fact]
@@ -83,6 +124,28 @@ public class LoadPlannerOverrideTests
         moved.Warnings.Should().Equal(
             new PlanWarning("rack-0", "Riker spans racks 1+4"),
             new PlanWarning("rack-3", "Riker spans racks 1+4"));
+    }
+
+    [Fact]
+    public void MovePlacement_refuses_a_full_rack()
+    {
+        // No overload any more (D24): the plan stays, the reason names the rack and what it holds.
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
+
+        var act = () => LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Riker", "Quartz"), "rack-0");
+
+        act.Should().Throw<PlanException>().WithMessage("4 SCU Quartz for Riker doesn't fit rack 1: 16/16 SCU taken.");
+    }
+
+    [Fact]
+    public void MovePlacement_refuses_a_crate_whose_shape_finds_no_room()
+    {
+        // 4 + 8 = 12 SCU, but the 1s take the row next to the spindle on the plate: no 2×2×2 place is left.
+        var plan = LoadPlanner.Plan(HullA, GoldThenAgricium);
+
+        var act = () => LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Shubin", "Agricium"), "rack-0");
+
+        act.Should().Throw<PlanException>().WithMessage("8 SCU Agricium for Shubin doesn't fit rack 1: 4/16 SCU taken.");
     }
 
     [Fact]
@@ -103,7 +166,17 @@ public class LoadPlannerOverrideTests
 
         var act = () => LoadPlanner.MovePlacement(plan, HullA, foreign, "rack-0");
 
-        act.Should().Throw<ArgumentException>().WithParameterName("moves");
+        act.Should().Throw<ArgumentException>().WithParameterName("placement");
+    }
+
+    [Fact]
+    public void MovePlacement_rejects_delivered_placement()
+    {
+        var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions), HullA, "Shubin", true);
+
+        var act = () => LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Shubin", "Quartz"), "rack-3");
+
+        act.Should().Throw<ArgumentException>().WithParameterName("placement").WithMessage("*delivered*");
     }
 
     [Fact]
@@ -116,246 +189,187 @@ public class LoadPlannerOverrideTests
         act.Should().Throw<ArgumentException>().WithParameterName("ship");
     }
 
-    // --- MoveCrates ---
-
-    /// <summary>One stop, 8 SCU in 2 SCU crates: the planner puts it into Rack 1.</summary>
-    private static readonly Stop[] EightQuartz = [new Stop("Shubin", 1, [new CargoItem("Quartz", 8, CrateSize.Two)])];
-
-    private static Placement Resized(Placement placement, int scu, string? rackId = null) =>
-        placement with { RackId = rackId ?? placement.RackId, Item = new CargoItem(placement.Item.Commodity, scu, placement.Item.CrateSize) };
-
-    /// <summary>D22: after a move every rack holds at most one placement per destination, commodity, crate size and state.</summary>
-    private static void ShouldHaveNoTwins(LoadPlan plan) =>
-        plan.Placements
-            .GroupBy(p => (p.RackId, p.Destination, p.Item.Commodity, p.Item.CrateSize, p.Delivered))
-            .Should().OnlyContain(g => g.Count() == 1);
+    // --- MoveCrate ---
+    // Example missions in Rack 1: Riker's three 4s at [2,0,0] and [0,0,0] on the plate, [2,0,1] on top (bow first).
 
     [Fact]
-    public void MoveCrates_splits_a_placement()
+    public void MoveCrate_puts_a_crate_at_a_free_supported_cell_of_another_rack()
     {
-        var plan = LoadPlanner.Plan(HullA, EightQuartz);
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
-        var moved = LoadPlanner.MoveCrates(plan, HullA, [(plan.Placements[0], 2)], "rack-1");
+        var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
 
-        moved.Placements.Should().Equal(
-            Resized(plan.Placements[0], 6),
-            Resized(plan.Placements[0], 2, "rack-1"));
+        CrateAt(moved, "rack-3", 0, 0, 0).Destination.Should().Be("Riker");
+        moved.PlacementsForStop("Riker").Select(p => (p.RackId, p.Item.Scu)).Should().Equal(("rack-0", 8), ("rack-3", 4));
         moved.Warnings.Should().Equal(
-            new PlanWarning("rack-0", "Shubin spans racks 1+2"),
-            new PlanWarning("rack-1", "Shubin spans racks 1+2"));
-        ShouldHaveNoTwins(moved);
+            new PlanWarning("rack-0", "Riker spans racks 1+4"),
+            new PlanWarning("rack-3", "Riker spans racks 1+4"));
+        ShouldBeValid(moved, HullA);
     }
 
     [Fact]
-    public void MoveCrates_puts_a_new_part_behind_the_cargo_of_the_target_rack()
+    public void MoveCrate_within_a_rack_onto_another_crate()
     {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
-        var moved = LoadPlanner.MoveCrates(plan, HullA, [(Single(plan, "Riker", "Quartz"), 2)], "rack-3");
+        var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-0", new GridPosition(0, 0, 1));
 
-        moved.PlacementsForRack("rack-3").Select(p => p.Destination).Should().Equal("Lorville", "Riker");
-        moved.Warnings.Should().Contain(new PlanWarning("rack-3", "Rack 4 shared by Lorville, Riker – identify crates by count"));
-        ShouldHaveNoTwins(moved);
-    }
-
-    [Fact]
-    public void MoveCrates_joins_cargo_of_the_same_kind_in_the_target_rack()
-    {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitRequired);
-
-        var moved = LoadPlanner.MoveCrates(plan, HullA, [(plan.Placements[0], 4)], "rack-1");
-
-        // Riker 16 + 4 becomes 12 + 8: the part joins the placement already in Rack 2, at its place in the plan.
-        moved.Placements.Should().Equal(
-            Resized(plan.Placements[0], 12),
-            Resized(plan.Placements[1], 8));
-        ShouldHaveNoTwins(moved);
-    }
-
-    [Fact]
-    public void MoveCrates_back_joins_into_one_placement_and_restores_the_plan()
-    {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
-        var split = LoadPlanner.MoveCrates(plan, HullA, [(Single(plan, "Riker", "Quartz"), 2)], "rack-3");
-        var part = split.PlacementsForRack("rack-3").Single(p => p.Destination == "Riker");
-
-        var back = LoadPlanner.MoveCrates(split, HullA, [(part, 2)], "rack-1");
-
-        back.Placements.Should().Equal(plan.Placements);
-        back.Warnings.Should().Equal(plan.Warnings);
-    }
-
-    [Fact]
-    public void MoveCrates_all_crates_without_partner_keep_their_place_in_the_plan()
-    {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
-        var quartz = Single(plan, "Riker", "Quartz");
-
-        var moved = LoadPlanner.MoveCrates(plan, HullA, [(quartz, 4)], "rack-3");
-
-        moved.Placements.Should().Equal(plan.Placements.Select(p => p == quartz ? p with { RackId = "rack-3" } : p));
-    }
-
-    [Fact]
-    public void MoveCrates_several_moves_into_one_rack()
-    {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
-        var quartz = Single(plan, "Riker", "Quartz");
-        var gold = Single(plan, "Orison", "Gold");
-
-        var moved = LoadPlanner.MoveCrates(plan, HullA, [(quartz, 2), (gold, 1)], "rack-3");
-
-        moved.Placements.Should().Equal(
-            plan.Placements[0],
-            Resized(quartz, 2),
-            plan.Placements[2],
-            plan.Placements[3],
-            Resized(gold, 1),
-            plan.Placements[5],
-            Resized(quartz, 2, "rack-3"),
-            Resized(gold, 1, "rack-3"));
-        ShouldHaveNoTwins(moved);
-    }
-
-    [Fact]
-    public void MoveCrates_two_parts_of_a_split_into_a_third_rack_become_one_placement()
-    {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitRequired);
-
-        var moved = LoadPlanner.MoveCrates(plan, HullA, [(plan.Placements[0], 16), (plan.Placements[1], 4)], "rack-2");
-
-        moved.Placements.Should().Equal(Resized(plan.Placements[0], 20, "rack-2"));
-        moved.Warnings.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void MoveCrates_within_the_same_rack_changes_nothing()
-    {
-        var plan = LoadPlanner.Plan(HullA, EightQuartz);
-
-        var moved = LoadPlanner.MoveCrates(plan, HullA, [(plan.Placements[0], 2)], "rack-0");
-
+        CrateAt(moved, "rack-0", 0, 0, 1).Destination.Should().Be("Riker");
         moved.Placements.Should().Equal(plan.Placements);
+        ShouldBeValid(moved, HullA);
     }
 
     [Fact]
-    public void MoveCrates_joins_twins_from_the_planner_anywhere()
+    public void MoveCrate_leaves_original_plan_unchanged()
     {
-        // Two equal mission rows give two equal placements in Rack 1.
-        var plan = LoadPlanner.Plan(HullA,
-        [
-            new Stop("Riker", 1, [new CargoItem("Quartz", 4, CrateSize.Two), new CargoItem("Quartz", 4, CrateSize.Two)]),
-            new Stop("Shubin", 2, [new CargoItem("Gold", 2, CrateSize.One)]),
-        ]);
-        plan.PlacementsForRack("rack-0").Should().HaveCount(2);
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
+        Crate[] before = [.. plan.Crates];
 
-        var moved = LoadPlanner.MoveCrates(plan, HullA, [(Single(plan, "Shubin", "Gold"), 2)], "rack-2");
+        LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
 
-        moved.Placements.Should().Equal(
-            new Placement("Riker", "rack-0", new CargoItem("Quartz", 8, CrateSize.Two)),
-            new Placement("Shubin", "rack-2", new CargoItem("Gold", 2, CrateSize.One)));
+        plan.Crates.Should().Equal(before);
     }
 
     [Fact]
-    public void MoveCrates_takes_twins_as_two_sources()
+    public void MoveCrate_refuses_an_occupied_cell()
     {
-        var plan = LoadPlanner.Plan(HullA,
-            [new Stop("Riker", 1, [new CargoItem("Quartz", 4, CrateSize.Two), new CargoItem("Quartz", 4, CrateSize.Two)])]);
-        var twin = plan.Placements[0];
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
-        var moved = LoadPlanner.MoveCrates(plan, HullA, [(twin, 4), (twin, 2)], "rack-1");
+        var act = () => LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-0", new GridPosition(0, 0, 0));
 
-        // The first twin moves whole and keeps its place, the second one's part joins it.
-        moved.Placements.Should().Equal(
-            new Placement("Riker", "rack-1", new CargoItem("Quartz", 6, CrateSize.Two)),
-            new Placement("Riker", "rack-0", new CargoItem("Quartz", 2, CrateSize.Two)));
+        act.Should().Throw<PlanException>().WithMessage("4 SCU crate of Titanium for Riker would overlap cargo for Riker in rack 1.");
     }
 
     [Fact]
-    public void MoveCrates_leaves_original_plan_unchanged()
+    public void MoveCrate_refuses_a_place_outside_the_grid()
     {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
-        Placement[] placementsBefore = [.. plan.Placements];
-        PlanWarning[] warningsBefore = [.. plan.Warnings];
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
-        LoadPlanner.MoveCrates(plan, HullA, [(Single(plan, "Riker", "Quartz"), 2)], "rack-3");
+        var act = () => LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(3, 0, 0));
 
-        plan.Placements.Should().Equal(placementsBefore);
-        plan.Warnings.Should().Equal(warningsBefore);
-    }
-
-    [Theory]
-    [InlineData(3, "3 SCU of Quartz for Riker is not a whole number of its 2 SCU crates.*")]
-    [InlineData(0, "0 SCU of Quartz for Riker is not a whole number of its 2 SCU crates.*")]
-    [InlineData(6, "6 SCU of Quartz for Riker to move, but only 4 SCU are placed in 'rack-1'.*")]
-    public void MoveCrates_rejects_scu_that_is_not_whole_crates_of_the_source(int scu, string message)
-    {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
-
-        var act = () => LoadPlanner.MoveCrates(plan, HullA, [(Single(plan, "Riker", "Quartz"), scu)], "rack-3");
-
-        act.Should().Throw<ArgumentException>().WithParameterName("moves").WithMessage(message);
+        act.Should().Throw<PlanException>().WithMessage("4 SCU crate of Titanium for Riker doesn't fit rack 4 (4×2×2) at [3, 0, 0].");
     }
 
     [Fact]
-    public void MoveCrates_rejects_delivered_source()
+    public void MoveCrate_refuses_a_crate_the_rack_cannot_hold()
     {
-        // D16/D20: delivered crates are off the ship.
-        var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared), HullA, "Riker", true);
+        var plan = LoadPlanner.Plan(SmallRackShip, [new Stop("Riker", 1, [new CargoItem("Titanium", 16, CrateSize.Sixteen)])]);
 
-        var act = () => LoadPlanner.MoveCrates(plan, HullA, [(Single(plan, "Riker", "Quartz"), 2)], "rack-3");
+        var act = () => LoadPlanner.MoveCrate(plan, SmallRackShip, plan.Crates[0], "rack-1", new GridPosition(0, 0, 0));
 
-        act.Should().Throw<ArgumentException>().WithParameterName("moves").WithMessage("*delivered*");
+        act.Should().Throw<PlanException>().WithMessage("*doesn't fit rack 2 (2×2×2)*");
     }
 
     [Fact]
-    public void MoveCrates_rejects_the_same_source_twice()
+    public void MoveCrate_refuses_a_crate_with_nothing_below_it()
     {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
-        var quartz = Single(plan, "Riker", "Quartz");
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
-        var act = () => LoadPlanner.MoveCrates(plan, HullA, [(quartz, 2), (quartz, 2)], "rack-3");
+        var act = () => LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 1));
 
-        act.Should().Throw<ArgumentException>().WithParameterName("moves");
+        act.Should().Throw<PlanException>().WithMessage("4 SCU crate of Titanium for Riker would have nothing below it in rack 4.");
     }
 
     [Fact]
-    public void MoveCrates_split_and_join_keep_the_saved_plan_valid()
+    public void MoveCrate_refuses_to_pull_a_crate_from_under_another()
     {
-        var missions = MissionFixtures.SplitAndSharedMissions;
+        // Nothing slides down (D24): the crate on top would float, so the move is refused.
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
+
+        var act = () => LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 0), "rack-3", new GridPosition(0, 0, 0));
+
+        act.Should().Throw<PlanException>().WithMessage("*would leave the 4 SCU crate of Titanium for Riker with nothing below it.");
+    }
+
+    [Fact]
+    public void MoveCrate_rejects_a_crate_not_in_the_plan()
+    {
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
+        Crate foreign = new("Lorville", "Gold", CrateSize.One, "rack-3", new GridPosition(0, 0, 0));
+
+        var act = () => LoadPlanner.MoveCrate(plan, HullA, foreign, "rack-3", new GridPosition(1, 0, 0));
+
+        act.Should().Throw<ArgumentException>().WithParameterName("crate");
+    }
+
+    [Fact]
+    public void MoveCrate_rejects_a_delivered_crate()
+    {
+        var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions), HullA, "Riker", true);
+
+        var act = () => LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
+
+        act.Should().Throw<ArgumentException>().WithParameterName("crate").WithMessage("*delivered*");
+    }
+
+    [Fact]
+    public void MoveCrate_rejects_unknown_rack()
+    {
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
+
+        var act = () => LoadPlanner.MoveCrate(plan, HullA, plan.Crates[0], "rack-9", new GridPosition(0, 0, 0));
+
+        act.Should().Throw<ArgumentException>().WithParameterName("targetRackId");
+    }
+
+    [Fact]
+    public void MoveCrate_keeps_the_saved_plan_valid()
+    {
+        // PlanSaver saves SavedPlan(Missions, Plan); its constructor checks the crates per stop, commodity and size.
+        var missions = MissionFixtures.LoadMissions("example_missions");
         var plan = LoadPlanner.Plan(HullA, missions.ToStops());
-        var split = LoadPlanner.MoveCrates(plan, HullA, [(Single(plan, "Riker", "Quartz"), 2), (Single(plan, "Orison", "Gold"), 1)], "rack-3");
-        var joined = LoadPlanner.MoveStop(split, HullA, "Riker", "rack-0");
 
-        var act = () => new SavedPlan(missions, joined);
+        var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
 
+        var act = () => new SavedPlan(missions, moved);
         act.Should().NotThrow();
-        ShouldHaveNoTwins(joined);
     }
 
     // --- MoveStop ---
 
     [Fact]
-    public void MoveStop_of_a_split_stop_becomes_one_placement()
+    public void MoveStop_gathers_a_split_stop_in_one_rack()
     {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitRequired);
+        var plan = LoadPlanner.Plan(HullA, TitaniumAndQuartz);
+        var split = LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Riker", "Quartz"), "rack-1");
 
-        var moved = LoadPlanner.MoveStop(plan, HullA, "Riker", "rack-2");
+        var moved = LoadPlanner.MoveStop(split, HullA, "Riker", "rack-2");
 
-        moved.Placements.Should().Equal(new Placement("Riker", "rack-2", new CargoItem("Titanium", 20, CrateSize.Four)));
+        moved.Placements.Select(p => (p.Item.Commodity, p.RackId)).Should().Equal(("Titanium", "rack-2"), ("Quartz", "rack-2"));
         moved.Warnings.Should().BeEmpty();
+        ShouldBeValid(moved, HullA);
     }
 
     [Fact]
-    public void MoveStop_moves_every_item_of_the_stop()
+    public void MoveStop_lays_the_stop_out_as_a_fresh_plan_would()
+    {
+        var plan = LoadPlanner.Plan(HullA, TitaniumAndQuartz);
+
+        // Rack 2 lies on the same side as Rack 1; a starboard rack would be its mirror image.
+        var moved = LoadPlanner.MoveStop(plan, HullA, "Riker", "rack-1");
+
+        moved.Crates.Should().Equal(plan.Crates.Select(c => c with { RackId = "rack-1" }));
+    }
+
+    [Fact]
+    public void MoveStop_refuses_a_rack_without_room()
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
 
-        var moved = LoadPlanner.MoveStop(plan, HullA, "Orison", "rack-0");
+        var act = () => LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-0");
 
-        moved.PlacementsForStop("Orison").Select(p => p.RackId).Should().Equal("rack-0", "rack-0");
-        moved.PlacementsForRack("rack-2").Should().BeEmpty();
-        ShouldHaveNoTwins(moved);
+        act.Should().Throw<PlanException>().WithMessage("Shubin doesn't fit rack 1: 16/16 SCU taken.");
+    }
+
+    [Fact]
+    public void MoveStop_counts_delivered_crates_as_taken()
+    {
+        // Lorville's 1s are off the ship but keep their cells, so ticking back gives a valid plan (D24).
+        var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, GoldThenAgricium), HullA, "Lorville", true);
+
+        var act = () => LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-0");
+
+        act.Should().Throw<PlanException>();
     }
 
     [Fact]
@@ -365,7 +379,7 @@ public class LoadPlannerOverrideTests
 
         var moved = LoadPlanner.MoveStop(plan, HullA, "Riker", "rack-3");
 
-        moved.Placements.Should().Equal(plan.Placements);
+        moved.Crates.Should().Equal(plan.Crates);
     }
 
     [Fact]
@@ -376,6 +390,16 @@ public class LoadPlannerOverrideTests
         var act = () => LoadPlanner.MoveStop(plan, HullA, "Lorvile", "rack-0");
 
         act.Should().Throw<ArgumentException>().WithParameterName("destination").WithMessage("*'Lorvile'*");
+    }
+
+    [Fact]
+    public void MoveStop_rejects_unknown_rack()
+    {
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
+
+        var act = () => LoadPlanner.MoveStop(plan, HullA, "Riker", "rack-9");
+
+        act.Should().Throw<ArgumentException>().WithParameterName("targetRackId");
     }
 
     // --- SetDelivered ---
@@ -460,12 +484,26 @@ public class LoadPlannerOverrideTests
         act.Should().Throw<ArgumentException>().WithParameterName("ship");
     }
 
+    [Fact]
+    public void SetDelivered_keeps_every_crate_where_it_is()
+    {
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
+
+        var delivered = LoadPlanner.SetDelivered(plan, HullA, "Riker", true);
+
+        delivered.Crates.Select(c => (c.RackId, c.Position)).Should().Equal(plan.Crates.Select(c => (c.RackId, c.Position)));
+    }
+
     // --- Validate ---
+
+    private static Crate Box(string destination, CrateSize size, int length, int stack, bool delivered = false) =>
+        new(destination, "Titanium", size, "rack-0", new GridPosition(length, 0, stack), delivered);
 
     [Theory]
     [InlineData("example_missions")]
     [InlineData("split_required")]
     [InlineData("split_and_shared")]
+    [InlineData("crate_mix")]
     public void Validate_planner_output_has_no_violations(string fixture)
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.Load(fixture));
@@ -474,34 +512,40 @@ public class LoadPlannerOverrideTests
     }
 
     [Fact]
-    public void Validate_overloaded_rack_warns_with_rack()
+    public void Validate_reports_overlapping_crates_per_rack()
     {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
-        var moved = LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Shubin", "Quartz"), "rack-0");
+        // Only a plan file edited by hand gets here; the overlay shows the rack red (D24).
+        LoadPlan plan = new(HullA.Id, [Box("Riker", CrateSize.Eight, 0, 0), Box("Shubin", CrateSize.Two, 0, 1)], []);
 
-        LoadPlanner.Validate(moved, HullA).Should().Equal(
-            new PlanWarning("rack-0", "Rack 1 overloaded: 22/16 SCU"));
+        LoadPlanner.Validate(plan, HullA).Should().Equal(
+            new PlanWarning("rack-0", "Crates of Riker and Shubin overlap in rack 1"));
     }
 
     [Fact]
-    public void Validate_counts_delivered_cargo_towards_capacity()
+    public void Validate_reports_a_crate_with_nothing_below_it()
     {
-        // Until the lift takes the crates, they still take the room (D10, D16).
-        var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions), HullA, "Riker", true);
-        var moved = LoadPlanner.MovePlacement(plan, HullA, Single(plan, "Shubin", "Quartz"), "rack-0");
+        LoadPlan plan = new(HullA.Id, [Box("Riker", CrateSize.One, 0, 1)], []);
 
-        LoadPlanner.Validate(moved, HullA).Should().Equal(
-            new PlanWarning("rack-0", "Rack 1 overloaded: 22/16 SCU"));
+        LoadPlanner.Validate(plan, HullA).Should().Equal(
+            new PlanWarning("rack-0", "1 SCU crate of Titanium for Riker in rack 1 has nothing below it"));
+    }
+
+    [Fact]
+    public void Validate_counts_delivered_crates()
+    {
+        // Until the lift takes the crates, they still take the room (D16, D24).
+        LoadPlan plan = new(HullA.Id, [Box("Riker", CrateSize.Eight, 0, 0, delivered: true), Box("Shubin", CrateSize.Two, 0, 1)], []);
+
+        LoadPlanner.Validate(plan, HullA).Should().ContainSingle().Which.Message.Should().Contain("overlap");
     }
 
     [Fact]
     public void Validate_crate_too_large_for_rack_warns()
     {
         var plan = LoadPlanner.Plan(SmallRackShip, [new Stop("Riker", 1, [new CargoItem("Titanium", 16, CrateSize.Sixteen)])]);
-        var moved = LoadPlanner.MovePlacement(plan, SmallRackShip, plan.Placements[0], "rack-1");
+        var moved = plan with { Crates = [plan.Crates[0] with { RackId = "rack-1" }] };
 
         LoadPlanner.Validate(moved, SmallRackShip).Should().Equal(
-            new PlanWarning("rack-1", "Rack 2 overloaded: 16/8 SCU"),
             new PlanWarning("rack-1", "16 SCU crate of Titanium for Riker doesn't fit rack 2 (2×2×2)"));
     }
 
@@ -516,10 +560,10 @@ public class LoadPlannerOverrideTests
     }
 
     [Fact]
-    public void Validate_rejects_placement_in_unknown_rack()
+    public void Validate_rejects_crate_in_unknown_rack()
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
-        var broken = plan with { Placements = [plan.Placements[0] with { RackId = "rack-9" }] };
+        var broken = plan with { Crates = [plan.Crates[0] with { RackId = "rack-9" }] };
 
         var act = () => LoadPlanner.Validate(broken, HullA);
 

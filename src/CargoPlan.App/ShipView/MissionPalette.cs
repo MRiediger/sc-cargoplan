@@ -29,7 +29,7 @@ public static class MissionPalette
     /// <summary>Edges of a free cell: no fill, a faint outline, so the cargo behind it shows (D21).</summary>
     public static Color FreeEdge { get; } = Color.FromArgb(0x50, 0xE6, 0xE6, 0xE6);
 
-    /// <summary>Edges of a rack that <c>LoadPlanner.Validate</c> rejects (D10); only violations are red.</summary>
+    /// <summary>Edges of a rack that <c>LoadPlanner.Validate</c> rejects (D24); only violations are red.</summary>
     public static Color Violation { get; } = Color.FromRgb(0xFF, 0x2A, 0x2A);
 
     /// <summary>

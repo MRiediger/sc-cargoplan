@@ -110,7 +110,7 @@ public class DrawOrderTests
     {
         var camera = new IsoProjection(yaw, pitch);
         Placement Crates(string destination, int scu, CrateSize size) => new(destination, "rack-0", new CargoItem("Titanium", scu, size));
-        LoadPlan plan = new(HullA.Id, [Crates("Riker", 4, CrateSize.Four), Crates("Shubin", 4, CrateSize.Four), Crates("Orison", 8, CrateSize.Eight)], []);
+        var plan = TestPlans.Of(HullA, Crates("Riker", 4, CrateSize.Four), Crates("Shubin", 4, CrateSize.Four), Crates("Orison", 8, CrateSize.Eight));
         var rack1 = ShipViewBuilder.Build(plan, HullA, [], FillOrder.BowFirst).Racks[0];
 
         var order = DrawOrder.BoxesBackToFront(rack1.Boxes, camera);

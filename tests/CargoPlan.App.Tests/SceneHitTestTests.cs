@@ -50,10 +50,9 @@ public class SceneHitTestTests
     [Fact]
     public void An_overloaded_rack_names_the_placement_not_a_crate()
     {
-        // Shubin onto the full Rack 1: its cells are shares, not crates.
+        // Shubin in the full Rack 1 (a plan file edited by hand): its cells are shares, not crates.
         var (ship, plan) = TestPlans.Load();
-        var moved = LoadPlanner.MovePlacement(plan, ship, plan.Placements.Single(p => p.Destination == "Shubin"), "rack-0");
-        var projected = SceneProjector.Project(Build(moved, ship), Default);
+        var projected = SceneProjector.Project(Build(TestPlans.Overloaded(plan), ship), Default);
 
         SceneHitTest.ToolTipAt(projected, Rack1Top).Should().Be("Rack 1 · port upper · 16 SCU Titanium (4×4)");
         SceneHitTest.HitAt(projected, Rack1Top)!.Crate.Should().BeNull();
@@ -84,7 +83,7 @@ public class SceneHitTestTests
     public void Delivered_cargo_says_so()
     {
         var (ship, plan) = TestPlans.Load();
-        var delivered = plan with { Placements = [.. plan.Placements.Select(p => p with { Delivered = true })] };
+        var delivered = plan with { Crates = [.. plan.Crates.Select(c => c with { Delivered = true })] };
         var projected = SceneProjector.Project(ShipViewBuilder.Build(delivered, ship, [], FillOrder.BowFirst), Default);
 
         SceneHitTest.ToolTipAt(projected, Rack1Top).Should().Be("Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4) (delivered)");

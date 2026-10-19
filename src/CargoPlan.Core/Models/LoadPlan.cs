@@ -1,8 +1,29 @@
 namespace CargoPlan.Core.Models;
 
-/// <summary>The result of planning: which cargo goes into which rack.</summary>
-public sealed record LoadPlan(string ShipId, IReadOnlyList<Placement> Placements, IReadOnlyList<PlanWarning> Warnings)
+/// <summary>
+/// The result of planning: every crate with its rack and position (D24), the planner's hints, and the fill order that
+/// lays out crates moved later.
+/// </summary>
+public sealed record LoadPlan(
+    string ShipId, IReadOnlyList<Crate> Crates, IReadOnlyList<PlanWarning> Warnings, FillOrder FillOrder = FillOrder.BowFirst)
 {
+    /// <summary>
+    /// The crates grouped by rack, destination, commodity, crate size and delivered state, in order of first appearance:
+    /// what hints, legend and text renderer work on (D24). Derived on every read, not stored: a <c>with</c> on
+    /// <see cref="Crates"/> skips initializers and would leave stored placements stale. GroupBy keeps the order of first
+    /// appearance (learn.microsoft.com, Enumerable.GroupBy, Remarks).
+    /// </summary>
+    public IReadOnlyList<Placement> Placements =>
+    [
+        .. Crates
+            .GroupBy(c => (c.RackId, c.Destination, c.Commodity, c.CrateSize, c.Delivered))
+            .Select(g => new Placement(
+                g.Key.Destination, g.Key.RackId, new CargoItem(g.Key.Commodity, g.Count() * (int)g.Key.CrateSize, g.Key.CrateSize), g.Key.Delivered)),
+    ];
+
+    public IReadOnlyList<Crate> CratesForRack(string rackId) =>
+        [.. Crates.Where(c => c.RackId == rackId)];
+
     public IReadOnlyList<Placement> PlacementsForRack(string rackId) =>
         [.. Placements.Where(p => p.RackId == rackId)];
 

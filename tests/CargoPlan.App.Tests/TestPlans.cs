@@ -24,4 +24,15 @@ internal static class TestPlans
     }
 
     public static (Ship Ship, LoadPlan Plan) Load() => (ShipLoader.Load("hull_a"), SplitAndShared().Plan);
+
+    /// <summary>
+    /// The split-and-shared plan with Shubin's 8 SCU crate in the full Rack 1, on top of Riker's crates: what a plan file
+    /// edited by hand can hold. The planner and its moves never make it (D24); it loads and shows red.
+    /// </summary>
+    public static LoadPlan Overloaded(LoadPlan plan) =>
+        plan with { Crates = [.. plan.Crates.Select(c => c.Destination == "Shubin" ? c with { RackId = "rack-0" } : c)] };
+
+    /// <summary>A plan of exactly these placements, laid out the way the planner lays out crates (D24).</summary>
+    public static LoadPlan Of(Ship ship, params Placement[] placements) =>
+        new(ship.Id, CrateLayout.LayOut(ship, placements, FillOrder.BowFirst), []);
 }

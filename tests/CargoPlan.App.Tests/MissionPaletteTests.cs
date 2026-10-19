@@ -1,14 +1,13 @@
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Ships;
 
 namespace CargoPlan.App.Tests;
 
 public class MissionPaletteTests
 {
-    private static LoadPlan PlanFor(params string[] destinations) => new(
-        "hull_a",
-        [.. destinations.Select(d => new Placement(d, "rack-0", new CargoItem("Gold", 1, CrateSize.One)))],
-        []);
+    private static LoadPlan PlanFor(params string[] destinations) =>
+        TestPlans.Of(ShipLoader.Load("hull_a"), [.. destinations.Select(d => new Placement(d, "rack-0", new CargoItem("Gold", 1, CrateSize.One)))]);
 
     [Fact]
     public void Has_eight_colours()

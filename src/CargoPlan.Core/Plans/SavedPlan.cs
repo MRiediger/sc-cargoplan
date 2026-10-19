@@ -16,8 +16,9 @@ public sealed record SavedPlan(IReadOnlyList<MissionStop> Missions, LoadPlan Pla
     public LoadPlan Plan { get; } = Validated(Missions, Plan);
 
     /// <summary>
-    /// The placements cover the expanded missions exactly: same SCU per destination, commodity and crate size. Moving and
-    /// ticking never change that, so a pair that fails here was made from other missions or edited by hand.
+    /// The crates are the crates of the expanded missions (D23, D24): per destination, commodity and crate size the same
+    /// number. Moving and ticking never change that, so a pair that fails here was made from other missions or edited by
+    /// hand. Where the crates lie needs the ship and is checked on reading (PlanFile).
     /// </summary>
     private static LoadPlan Validated(IReadOnlyList<MissionStop> missions, LoadPlan plan)
     {
@@ -28,28 +29,29 @@ public sealed record SavedPlan(IReadOnlyList<MissionStop> Missions, LoadPlan Pla
         }
 
         HashSet<string> destinations = [.. missions.Select(s => s.Destination)];
-        if (plan.Placements.FirstOrDefault(p => !destinations.Contains(p.Destination)) is { } stray)
+        if (plan.Crates.FirstOrDefault(c => !destinations.Contains(c.Destination)) is { } stray)
         {
             throw new ArgumentException($"Cargo for '{stray.Destination}' is placed, but the missions have no such stop.", nameof(Plan));
         }
 
-        var needed = ScuBy(missions.ToStops().SelectMany(s => s.Items.Select(i => (s.Destination, Item: i))));
-        var placed = ScuBy(plan.Placements.Select(p => (p.Destination, p.Item)));
+        var needed = missions.ToStops()
+            .SelectMany(s => s.Items.Select(i => (Key: (s.Destination, i.Commodity, Size: i.CrateSize), Count: i.Scu / (int)i.CrateSize)))
+            .GroupBy(c => c.Key)
+            .ToDictionary(g => g.Key, g => g.Sum(c => c.Count));
+        var placed = plan.Crates
+            .GroupBy(c => (c.Destination, c.Commodity, Size: c.CrateSize))
+            .ToDictionary(g => g.Key, g => g.Count());
         foreach (var key in needed.Keys.Union(placed.Keys))
         {
-            var (scuNeeded, scuPlaced) = (needed.GetValueOrDefault(key), placed.GetValueOrDefault(key));
-            if (scuNeeded != scuPlaced)
+            var (countNeeded, countPlaced) = (needed.GetValueOrDefault(key), placed.GetValueOrDefault(key));
+            if (countNeeded != countPlaced)
             {
                 throw new ArgumentException(Invariant(
-                    $"{key.Destination}, {key.Commodity} ({(int)key.Size} SCU crates): {scuPlaced} of {scuNeeded} SCU placed."),
+                    $"{key.Destination}, {key.Commodity}: {countPlaced} of {countNeeded} crates of {(int)key.Size} SCU placed."),
                     nameof(Plan));
             }
         }
 
         return plan;
     }
-
-    private static Dictionary<(string Destination, string Commodity, CrateSize Size), int> ScuBy(
-        IEnumerable<(string Destination, CargoItem Item)> cargo) =>
-        cargo.GroupBy(c => (c.Destination, c.Item.Commodity, c.Item.CrateSize)).ToDictionary(g => g.Key, g => g.Sum(c => c.Item.Scu));
 }

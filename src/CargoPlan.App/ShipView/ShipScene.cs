@@ -16,7 +16,7 @@ namespace CargoPlan.App.ShipView;
 /// The hints of the same plan with nothing delivered. The legend reserves their space, so ticking a stop off never
 /// resizes the ship view (D16). Never fewer or shorter than <paramref name="Hints"/>.
 /// </param>
-/// <param name="Violations">From <c>LoadPlanner.Validate</c>; these racks are red (D10).</param>
+/// <param name="Violations">From <c>LoadPlanner.Validate</c>; these racks are red (D24).</param>
 /// <param name="PaletteRepeats">More stops than colours.</param>
 public sealed record ShipScene(
     IReadOnlyList<SceneRack> Racks,

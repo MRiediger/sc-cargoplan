@@ -294,27 +294,51 @@ public class OverlayViewModelTests
         viewModel.Plan!.Placements.Single(p => p.Item.Commodity == commodity);
 
     [Fact]
-    public void MovePlacementCommand_onto_a_full_rack_overloads_it_and_drops_stale_hints()
+    public void MovePlacementCommand_onto_a_full_rack_is_refused_with_a_notice_and_keeps_the_plan()
     {
         var viewModel = WithPlan();
+        var original = viewModel.Plan!;
 
-        // Riker's 4 SCU Quartz from rack 2 to rack 1, which holds Riker's 16 SCU Titanium already.
-        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Quartz"), "rack-0"));
+        // Riker's 4 SCU Quartz from rack 2 to rack 1, which Riker's 16 SCU Titanium fills: no overload any more (D24).
+        var changes = Changes(viewModel, () => viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Quartz"), "rack-0")));
 
-        Cargo(viewModel, "Quartz").RackId.Should().Be("rack-0");
-        viewModel.Scene.Violations.Should().Equal("Rack 1 overloaded: 20/16 SCU");
-        viewModel.Scene.Racks.Where(r => r.IsViolated).Select(r => r.Number).Should().Equal(1);
-        viewModel.Scene.Hints.Should().BeEmpty();
+        viewModel.Plan.Should().BeSameAs(original);
+        changes.Should().NotContain(nameof(OverlayViewModel.Plan));
+        viewModel.Notices.Should().Equal(OverlayViewModel.MoveRefusedPrefix + "4 SCU Quartz for Riker doesn't fit rack 1: 16/16 SCU taken.");
+        viewModel.Scene.Violations.Should().BeEmpty();
     }
 
     [Fact]
-    public void MovePlacementCommand_within_capacity_derives_hints_anew_and_stays_valid()
+    public void A_successful_move_clears_the_refusal()
+    {
+        var viewModel = WithPlan();
+        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Quartz"), "rack-0"));
+
+        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Gold"), "rack-1"));
+
+        viewModel.Notices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_new_plan_clears_the_refusal()
+    {
+        var viewModel = WithPlan();
+        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Quartz"), "rack-0"));
+
+        viewModel.ShowPlan(TestPlans.SplitAndShared());
+
+        viewModel.Notices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void MovePlacementCommand_with_room_derives_hints_anew_and_stays_valid()
     {
         var viewModel = WithPlan();
 
-        // Orison's 2 SCU Gold from rack 3 to rack 2 (12 + 2 = 14/16).
+        // Orison's 2 SCU Gold from rack 3 to rack 2 (12 + 2 = 14/16), on top of Riker's Quartz.
         viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Gold"), "rack-1"));
 
+        Cargo(viewModel, "Gold").RackId.Should().Be("rack-1");
         viewModel.Scene.Violations.Should().BeEmpty();
         viewModel.Scene.Hints.Should().Contain(["Rack 2 shared by Riker, Shubin, Orison – identify crates by count", "Orison spans racks 2+3"]);
     }
@@ -325,10 +349,10 @@ public class OverlayViewModelTests
         var viewModel = WithPlan();
         var original = viewModel.Plan!;
 
-        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Agricium"), "rack-0"));
-        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Agricium"), "rack-1"));
+        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Gold"), "rack-1"));
+        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Gold"), "rack-2"));
 
-        viewModel.Plan!.Placements.Should().Equal(original.Placements);
+        viewModel.Plan!.Crates.Should().Equal(original.Crates);
         viewModel.Plan!.Warnings.Should().Equal(original.Warnings);
     }
 
@@ -337,17 +361,17 @@ public class OverlayViewModelTests
     {
         var viewModel = WithPlan();
 
-        Changes(viewModel, () => viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Agricium"), "rack-0")))
+        Changes(viewModel, () => viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Gold"), "rack-1")))
             .Should().Contain([nameof(OverlayViewModel.Plan), nameof(OverlayViewModel.Scene)]);
     }
 
     [Fact]
     public void A_moved_plan_still_covers_its_missions()
     {
-        // PlanSaver saves SavedPlan(Missions, Plan); its constructor checks the SCU per stop, commodity and crate size.
+        // PlanSaver saves SavedPlan(Missions, Plan); its constructor checks the crates per stop, commodity and crate size.
         var viewModel = WithPlan();
 
-        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Tungsten"), "rack-0"));
+        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Gold"), "rack-1"));
 
         viewModel.Invoking(v => new SavedPlan(v.Missions, v.Plan!)).Should().NotThrow();
     }

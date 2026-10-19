@@ -6,4 +6,7 @@ public enum NoticeSource
     Settings,
     Hotkeys,
     Plan,
+
+    /// <summary>A refused right drag (D24); cleared by the next move or plan.</summary>
+    Move,
 }

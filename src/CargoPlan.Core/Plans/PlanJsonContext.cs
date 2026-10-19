@@ -12,4 +12,5 @@ namespace CargoPlan.Core.Plans;
     RespectRequiredConstructorParameters = true,
     WriteIndented = true)]
 [JsonSerializable(typeof(PlanFileDto))]
+[JsonSerializable(typeof(PlanFileV1Dto))]
 internal sealed partial class PlanJsonContext : JsonSerializerContext;

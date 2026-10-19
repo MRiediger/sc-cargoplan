@@ -303,13 +303,31 @@ T3.11 ist zweigeteilt: a = Core, b = Kisten in der Ansicht. Je ein Plan, je eine
 
 **Offen:** Kiosk-Screenshot als Beleg für D23 nach `docs/images/kiosk-crate-mix.png`, eigener Commit, Link in D23 setzen.
 
-### [ ] T3.13 Positionen
-**Warum:** Platzhalter – Text folgt (D24).
+T3.13 ist zweigeteilt: a = Core und Planformat, b = die Ansicht liest die Positionen. Je ein Plan, je eine Freigabe. Gesten erst in T3.14.
+
+### [x] T3.13a Kisten mit Positionen, Layout in Core, plan.json Schema 2
+**Warum:** Beim Beladen – und beim Koordinieren großer Schiffe – zählt, **wo** eine Kiste liegt; Drift zur Realität lässt sich nur mit gespeicherten Positionen korrigieren.
+**Präzisiert in der Planung:** Kiste ist die primäre Einheit (`Crate`, `GridPosition`), `LoadPlan.Crates` ist die Wahrheit, `Placements` wird bei jedem Zugriff abgeleitet (kein gespeichertes Feld, weil `with` Initializer überspringt); Zwillinge aus gleichen Missionszeilen verschmelzen; `CrateLayout` in Core (Algorithmus aus `RackCells` plus Stützregel: jede Bodenzelle über der Platte braucht eine andere Kiste darunter, Delivered belegt und stützt); `LayOut` als ein Weg für Planer und Migration; `FillOrder` nach Core und in den Plan, `LoadPlanner.Plan` mit optionalem `fillOrder` (Default BowFirst); `MoveCrate` mit Zielzelle, `MoveStop`/`MovePlacement` als Re-Layout im Zielrack, `MoveCrates` mit Split/Merge entfällt; Ablehnung als `PlanException` (Platzgründe), Aufruferfehler bleiben `ArgumentException`, damit das Overlay nur Ablehnungen fängt; `Validate` meldet Überlappung, außerhalb/zu groß, fehlende Stütze, keine Überladungsmeldung mehr; plan.json Schema 2 (`fillOrder`, `crates` mit `position`), `warnings` bleibt gespeichert; Laden lehnt ab: unbekanntes Rack, Kiste außerhalb des Rasters, Kistenmenge ≠ Missionen; lädt und zeigt rot: Überlappung, fehlende Stütze; Schema 1 wird beim Laden über `LayOut` migriert, Haken bleiben, die App schreibt beim Start v2, überladenes v1-Rack = kaputte Datei; `SavedPlan` prüft die Kisten-Multimenge; App minimal: `FillOrder` aus Core, Rechts-Ziehen fängt die Ablehnung ab → `NoticeSource.Move` „Move refused: …“, nächster Move oder Plan löscht sie; `RackCells` zeichnet bis 13b weiter aus den abgeleiteten Placements; die App-Tests bauen das „überladene Rack“ jetzt als von Hand editierte Datei (`TestPlans.Overloaded`). Präzisierung in der Planphase, ratifiziert durch Freigabe (D24).
+- `Crate`, `GridPosition`, `FillOrder` in Core; `LoadPlan.Crates`, abgeleitete `Placements`
+- `CrateLayout.Place`/`LayOut`/`Problems` mit Stützregel; erschöpfender D9-Test
+- `MoveCrate`, `MoveStop`, `MovePlacement` mit Ablehnung statt Überladung
+- plan.json Schema 2, Migration aus Schema 1
+- D24, plan-format.md, README
+
+**Akzeptanz:** `dotnet test` grün (D9 mit Stützregel für alle Mischungen ≤ 16 aus 1/2/4/8/16, beide Füllrichtungen, beide Seiten); CLI-Ausgabe aller Fixtures byte-gleich; alte plan.json (v1) → App startet, Datei danach v2, Haken erhalten; Rechts-Ziehen in ein volles Rack → Hinweiszeile, nichts rot.
+
+### [ ] T3.13b Schiffsansicht zeigt gespeicherte Positionen
+**Warum:** Die Ansicht soll zeigen, was im Plan steht, nicht eine eigene Zeichenregel.
+- `ShipViewBuilder` nimmt `plan.Crates` (Position + Größe → Box in Schiffskoordinaten), kein eigenes Layout; `RackCells` und `RackCellsTests` entfallen
+- `CrateId` = die Kiste selbst; Hit-Test, Tooltip (`(1 of N)` über das abgeleitete Placement), Painter unverändert
+- Rechts-Ziehen bewegt weiter das abgeleitete Placement als Ganzes (Re-Layout seit 13a)
+
+**Akzeptanz:** `dotnet test` grün; `--plan` mit split_and_shared zeigt dasselbe Bild wie nach T3.12; im Spiel Rack 1 mit 2 × 8er laden – liegen die Kisten, wo das Overlay sie zeigt? Wenn nein, ist das der Fall für T3.14.
 
 ### [ ] T3.14 Ziehen (Auswahl und Gesten)
-**Warum:** Mehrere Kisten oder ein ganzes Ziel in einem Zug umplanen. (Früher T3.11c.)
-- Auswahl = Menge von Kisten-Ids im `ShipViewControl`, nicht persistiert; Rechtsklick auf Kiste = umschalten, auf Leerfläche = leeren
-- Rechts-Ziehen von einer Kiste = `MoveCrates` (Auswahl, wenn die Startkiste darin ist), von einer Legendenzeile = `MoveStop`
+**Warum:** Mehrere Kisten oder ein ganzes Ziel in einem Zug umplanen. (Früher T3.11c.) Seit D24 tragen Kisten Positionen; Moves lehnen ab statt zu überladen.
+- Auswahl = Menge von Kisten (`Crate`, D24) im `ShipViewControl`, nicht persistiert; Rechtsklick auf Kiste = umschalten, auf Leerfläche = leeren
+- Rechts-Ziehen von einer Kiste = `MoveCrate` auf die Zelle unter dem Cursor (Auswahl: Re-Layout im Zielrack), von einer Legendenzeile = `MoveStop`
 - Auswahlrahmen `MissionPalette.Selection`; gesperrt leert die Auswahl
 - Entscheidungseintrag (nächste freie Nummer), README-Bedienung neu
 
@@ -398,7 +416,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Hotkey-Aufnahme-UI (Tasten drücken statt tippen) und damit das Zahnrad in der Kopfzeile, sobald settings.json-Editieren Nutzer abschreckt (D17).
 - Plan verwerfen ohne neuen Plan („Discard plan“), falls ein leeres Overlay nach der Route gewünscht wird; heute ersetzt nur „Plan“ den alten Plan (D19).
 - Editor-Position in `settings.json`, Entwurfs-Autosave, Undo im Editor, falls der Zwei-Minuten-Durchlauf daran scheitert (D19).
-- Füllrichtung der Zellen konfigurierbar; geteilt zwischen Koordinator und Haulern gehört sie in `plan.json`, als persönliche Vorliebe in `settings.json` (D21).
+- Füllrichtung im Editor wählbar; gespeichert wird sie seit D24 im Plan (`fillOrder`).
 - Rückfall auf Segmente ab einer Zellenzahl, sobald ein großes Schiff (Hull C, ~4.600 Zellen) beim Orbit ruckelt (D21).
 - Rack-Nummern und Linien beim Zoom konstant klein halten statt mitzuskalieren (D21).
 - Kistengrößen als Blöcke und Zellbeschriftung in der Schiffsansicht (D21).

@@ -87,14 +87,11 @@ public class ShipViewBuilderTests
     [Fact]
     public void An_overloaded_rack_is_red_and_its_violation_is_listed()
     {
-        // Shubin's 8 SCU onto the full Rack 1: 24/16 SCU.
-        var shubin = Sample.Plan.Placements.Single(p => p.Destination == "Shubin");
-        var moved = LoadPlanner.MovePlacement(Sample.Plan, Sample.Ship, shubin, "rack-0");
-
-        var scene = Build(moved);
+        // Shubin's 8 SCU in the full Rack 1: 24/16 SCU, only possible in a plan file edited by hand (D24).
+        var scene = Build(TestPlans.Overloaded(Sample.Plan));
 
         scene.Racks.Where(r => r.IsViolated).Select(r => r.Number).Should().Equal(1);
-        scene.Violations.Should().Equal("Rack 1 overloaded: 24/16 SCU");
+        scene.Violations.Should().Equal("Crates of Riker and Shubin overlap in rack 1");
         RackNumber(scene, 1).Boxes.Should().NotContain(c => c.Fill == CellFill.Free);
         RackNumber(scene, 1).Boxes.Select(c => c.Placement!.Destination).Distinct().Should().Equal("Riker", "Shubin");
     }
@@ -117,7 +114,7 @@ public class ShipViewBuilderTests
     public void Crates_of_4_4_and_8_are_three_boxes_in_their_shape()
     {
         Placement Crates(string destination, int scu, CrateSize size) => new(destination, "rack-0", new CargoItem("Titanium", scu, size));
-        LoadPlan plan = new(Sample.Ship.Id, [Crates("Riker", 4, CrateSize.Four), Crates("Shubin", 4, CrateSize.Four), Crates("Orison", 8, CrateSize.Eight)], []);
+        var plan = TestPlans.Of(Sample.Ship, Crates("Riker", 4, CrateSize.Four), Crates("Shubin", 4, CrateSize.Four), Crates("Orison", 8, CrateSize.Eight));
 
         var rack1 = RackNumber(Build(plan), 1);
 
@@ -158,8 +155,7 @@ public class ShipViewBuilderTests
     [Fact]
     public void Free_cells_and_the_cells_of_an_overloaded_rack_are_boxes_of_one_cell()
     {
-        var shubin = Sample.Plan.Placements.Single(p => p.Destination == "Shubin");
-        var scene = Build(LoadPlanner.MovePlacement(Sample.Plan, Sample.Ship, shubin, "rack-0"));
+        var scene = Build(TestPlans.Overloaded(Sample.Plan));
 
         RackNumber(scene, 1).Boxes.Should().HaveCount(16).And.OnlyContain(b => Volume(b.Bounds) == 1 && b.Crate == null);
         RackNumber(scene, 2).Boxes.Where(b => b.Fill == CellFill.Free).Should().OnlyContain(b => Volume(b.Bounds) == 1 && b.Crate == null);
@@ -196,7 +192,7 @@ public class ShipViewBuilderTests
     {
         var delivered = Sample.Plan with
         {
-            Placements = [.. Sample.Plan.Placements.Select(p => p.Destination == "Lorville" ? p with { Delivered = true } : p)],
+            Crates = [.. Sample.Plan.Crates.Select(c => c.Destination == "Lorville" ? c with { Delivered = true } : c)],
         };
 
         var rack4 = RackNumber(Build(delivered), 4);

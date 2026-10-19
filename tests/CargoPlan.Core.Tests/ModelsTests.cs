@@ -312,26 +312,116 @@ public class ModelsTests
         delivered.Delivered.Should().BeTrue();
     }
 
-    [Fact]
-    public void LoadPlan_filters_placements_by_rack_and_by_stop()
-    {
-        var riker = new Placement("Riker", "rack-0", new CargoItem("Titanium", 12, CrateSize.Four));
-        var shubin = new Placement("Shubin", "rack-1", new CargoItem("Quartz", 10, CrateSize.Two));
-        var rikerOverflow = new Placement("Riker", "rack-1", new CargoItem("Titanium", 4, CrateSize.Four));
-        var plan = new LoadPlan("hull_a", [riker, shubin, rikerOverflow], []);
+    private static Crate Box(string destination, string commodity, CrateSize size, string rackId, int length, int stack = 0, bool delivered = false) =>
+        new(destination, commodity, size, rackId, new GridPosition(length, 0, stack), delivered);
 
-        plan.PlacementsForRack("rack-1").Should().Equal(shubin, rikerOverflow);
-        plan.PlacementsForStop("Riker").Should().Equal(riker, rikerOverflow);
+    [Fact]
+    public void LoadPlan_derives_one_placement_per_rack_destination_commodity_size_and_state_in_order_of_first_crate()
+    {
+        var plan = new LoadPlan("hull_a",
+        [
+            Box("Riker", "Titanium", CrateSize.Four, "rack-0", 0),
+            Box("Shubin", "Quartz", CrateSize.Two, "rack-1", 0),
+            Box("Riker", "Titanium", CrateSize.Four, "rack-0", 2),
+            Box("Riker", "Titanium", CrateSize.Four, "rack-1", 2),
+            Box("Riker", "Titanium", CrateSize.Two, "rack-0", 0, stack: 1),
+        ], []);
+
+        plan.Placements.Should().Equal(
+            new Placement("Riker", "rack-0", new CargoItem("Titanium", 8, CrateSize.Four)),
+            new Placement("Shubin", "rack-1", new CargoItem("Quartz", 2, CrateSize.Two)),
+            new Placement("Riker", "rack-1", new CargoItem("Titanium", 4, CrateSize.Four)),
+            new Placement("Riker", "rack-0", new CargoItem("Titanium", 2, CrateSize.Two)));
+    }
+
+    [Fact]
+    public void LoadPlan_keeps_delivered_and_on_board_crates_of_one_kind_apart()
+    {
+        var plan = new LoadPlan("hull_a",
+            [Box("Riker", "Titanium", CrateSize.Four, "rack-0", 0, delivered: true), Box("Riker", "Titanium", CrateSize.Four, "rack-0", 2)], []);
+
+        plan.Placements.Select(p => p.Delivered).Should().Equal(true, false);
+    }
+
+    [Fact]
+    public void LoadPlan_placements_follow_a_with_on_its_crates()
+    {
+        // Derived on every read: a stored list would keep the old crates after `with`.
+        var plan = new LoadPlan("hull_a", [Box("Riker", "Titanium", CrateSize.Four, "rack-0", 0)], []);
+
+        var moved = plan with { Crates = [plan.Crates[0] with { RackId = "rack-3" }] };
+
+        moved.Placements.Should().ContainSingle().Which.RackId.Should().Be("rack-3");
+    }
+
+    [Fact]
+    public void LoadPlan_filters_crates_and_placements_by_rack_and_by_stop()
+    {
+        var plan = new LoadPlan("hull_a",
+        [
+            Box("Riker", "Titanium", CrateSize.Four, "rack-0", 0),
+            Box("Shubin", "Quartz", CrateSize.Two, "rack-1", 0),
+            Box("Riker", "Titanium", CrateSize.Four, "rack-1", 2),
+        ], []);
+
+        plan.CratesForRack("rack-1").Should().Equal(plan.Crates[1], plan.Crates[2]);
+        plan.PlacementsForRack("rack-1").Select(p => p.Destination).Should().Equal("Shubin", "Riker");
+        plan.PlacementsForStop("Riker").Select(p => p.RackId).Should().Equal("rack-0", "rack-1");
     }
 
     [Fact]
     public void LoadPlan_returns_empty_list_for_unknown_rack_or_stop()
     {
-        var plan = new LoadPlan("hull_a",
-            [new Placement("Riker", "rack-0", new CargoItem("Titanium", 12, CrateSize.Four))], []);
+        var plan = new LoadPlan("hull_a", [Box("Riker", "Titanium", CrateSize.Four, "rack-0", 0)], []);
 
+        plan.CratesForRack("rack-9").Should().BeEmpty();
         plan.PlacementsForRack("rack-9").Should().BeEmpty();
         plan.PlacementsForStop("Orison").Should().BeEmpty();
+    }
+
+    [Fact]
+    public void LoadPlan_fills_bow_first_by_default()
+    {
+        new LoadPlan("hull_a", [], []).FillOrder.Should().Be(FillOrder.BowFirst);
+    }
+
+    // --- Crate / GridPosition ---
+
+    [Fact]
+    public void Crate_cells_are_its_shape_from_its_position()
+    {
+        var crate = Box("Riker", "Titanium", CrateSize.Four, "rack-0", 1, stack: 1);
+
+        crate.Cells.Should().BeEquivalentTo(
+        [
+            new GridPosition(1, 0, 1), new GridPosition(2, 0, 1), new GridPosition(1, 1, 1), new GridPosition(2, 1, 1),
+        ]);
+        crate.Bottom.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public void Crate_bottom_of_an_8_is_its_lower_half()
+    {
+        Box("Riker", "Titanium", CrateSize.Eight, "rack-0", 0).Bottom.Should().OnlyContain(c => c.Stack == 0).And.HaveCount(4);
+    }
+
+    [Fact]
+    public void Crate_rejects_an_unknown_crate_size()
+    {
+        var act = () => new Crate("Riker", "Titanium", (CrateSize)3, "rack-0", new GridPosition(0, 0, 0));
+
+        act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName("CrateSize");
+    }
+
+    [Theory]
+    [InlineData(-1, 0, 0, "Length")]
+    [InlineData(0, -1, 0, "Width")]
+    [InlineData(0, 0, -1, "Stack")]
+    public void GridPosition_rejects_negative_coordinates(int length, int width, int stack, string parameter)
+    {
+        var act = () => new GridPosition(length, width, stack);
+
+        act.Should().Throw<ArgumentOutOfRangeException>().WithParameterName(parameter);
     }
 
     [Fact]

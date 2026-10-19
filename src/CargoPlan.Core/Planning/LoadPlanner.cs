@@ -5,20 +5,21 @@ using Score = (int Splits, int ItemCuts, int Squares);
 
 namespace CargoPlan.Core.Planning;
 
-/// <summary>Decides which rack each stop of a route goes into.</summary>
+/// <summary>Decides which rack each stop of a route goes into, and where its crates lie there (D24).</summary>
 public static class LoadPlanner
 {
     /// <summary>
     /// Plans the stops into the ship's racks. Racks fill in rack order (Rack 1 first) in route order, one rack
     /// per stop while racks last. With more stops than racks, only route-neighbours share a rack, spread evenly.
     /// A stop is split over neighbouring racks only if no plan without a split exists, preferably between
-    /// its items. Every shared rack and every rack holding part of a split stop gets a warning.
+    /// its items. Every shared rack and every rack holding part of a split stop gets a warning. Then each rack's
+    /// crates are laid out in <paramref name="fillOrder"/> (<see cref="CrateLayout.LayOut"/>), stored with the plan.
     /// </summary>
     /// <exception cref="ArgumentException">Two stops share an order or a destination.</exception>
     /// <exception cref="PlanException">
-    /// A crate's shape fits no rack, the stops exceed the ship, or their crates don't fit in route order.
+    /// A crate's shape fits no rack, the stops exceed the ship, or their crates don't fit in route order or in a rack's grid.
     /// </exception>
-    public static LoadPlan Plan(Ship ship, IReadOnlyList<Stop> stops)
+    public static LoadPlan Plan(Ship ship, IReadOnlyList<Stop> stops, FillOrder fillOrder = FillOrder.BowFirst)
     {
         EnsureUnique(stops);
 
@@ -30,7 +31,7 @@ public static class LoadPlanner
         var line = CrateLine.Of(route);
         if (line.Length == 0)
         {
-            return new LoadPlan(ship.Id, [], []);
+            return new LoadPlan(ship.Id, [], [], fillOrder);
         }
 
         var segments = Partition(racks, line);
@@ -40,138 +41,199 @@ public static class LoadPlanner
             .GroupBy(c => (c.Stop, c.Item))
             .Select(g => Place(line.Stops[g.Key.Stop], g.Key.Item, segment.Rack, g.Sum(c => c.Scu))))];
 
-        return new LoadPlan(ship.Id, placements, Hints(racks, placements));
+        return WithHints(new LoadPlan(ship.Id, CrateLayout.LayOut(ship, placements, fillOrder), [], fillOrder), ship);
     }
 
     /// <summary>
-    /// Moves crates to another rack, as the player decides at the cargo lift (D22). Each move takes <c>Scu</c> of its
-    /// source in whole crates; the rest stays. In the target rack the crates join cargo of the same destination,
-    /// commodity and crate size; without such cargo all crates of a source keep its place in the plan, a part goes
-    /// behind the target rack's cargo. Afterwards every rack holds at most one placement per destination, commodity,
-    /// crate size and delivered state. Never refuses an overloaded rack or a crate that doesn't fit; <see cref="Validate"/>
-    /// reports those. The hints are derived anew, so the plan never shows stale ones. The original plan stays unchanged.
+    /// Puts one crate at a cell of a rack, as the player sees it at the cargo lift (D24). The crate must fit the grid,
+    /// find its cells free and rest on the plate or other crates; no crate may lose its support by the move. Nothing
+    /// slides down: what doesn't hold is refused, the player sees what they do. Hints are derived anew. The original
+    /// plan stays unchanged.
     /// </summary>
     /// <exception cref="ArgumentException">
-    /// The plan belongs to another ship, the ship has no such rack, a source isn't part of the plan (or is named twice)
-    /// or is delivered, or a move isn't whole crates of what its source holds.
+    /// The plan belongs to another ship, the ship has no such rack, or the crate isn't part of the plan or is delivered.
     /// </exception>
-    public static LoadPlan MoveCrates(LoadPlan plan, Ship ship, IReadOnlyList<(Placement Source, int Scu)> moves, string targetRackId)
+    /// <exception cref="PlanException">The crate doesn't fit there, or another crate would lose its support.</exception>
+    public static LoadPlan MoveCrate(LoadPlan plan, Ship ship, Crate crate, string targetRackId, GridPosition targetPosition)
     {
         plan.EnsureBelongsTo(ship);
-        if (!ship.Racks.Any(r => r.Id == targetRackId))
+        var target = RackOf(ship, targetRackId);
+        List<Crate> crates = [.. plan.Crates];
+        var index = crates.IndexOf(crate);
+        if (index < 0)
         {
-            throw new ArgumentException($"Ship '{ship.Id}' has no rack '{targetRackId}'.", nameof(targetRackId));
+            throw new ArgumentException(
+                Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination} at {crate.Position} in '{crate.RackId}' is not part of the plan."),
+                nameof(crate));
         }
 
-        // Copy first, then change the copy: the original plan keeps its list. Null = all crates of a source joined others.
-        List<Placement?> placements = [.. plan.Placements];
-        foreach (var (index, scu) in Claim(plan.Placements, moves))
-        {
-            // Only the move's own source index changes, so the original placement is still the current one.
-            var source = plan.Placements[index];
-            if (source.RackId == targetRackId)
-            {
-                continue;
-            }
+        EnsureOnBoard(crate.Delivered, crate.Commodity, crate.Destination, nameof(crate));
 
-            var rest = source.Item.Scu - scu;
-            var partner = placements.FindIndex(p => p is { Delivered: false } && p.RackId == targetRackId && SameCargo(p, source));
-            if (partner >= 0)
+        var moved = crate with { RackId = target.Id, Position = targetPosition };
+        crates[index] = moved;
+        var what = Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination}");
+        if (!target.CanHold(crate.CrateSize) || !CrateLayout.Fits(target, moved))
+        {
+            throw new PlanException(Invariant($"{what} doesn't fit rack {target.Number} ({target.Grid}) at {targetPosition}."));
+        }
+
+        Crate[] neighbours = [.. crates.Where((c, i) => i != index && c.RackId == target.Id)];
+        if (neighbours.FirstOrDefault(c => CrateLayout.Overlap(c, moved)) is { } blocking)
+        {
+            throw new PlanException(Invariant($"{what} would overlap cargo for {blocking.Destination} in rack {target.Number}."));
+        }
+
+        if (!CrateLayout.Rests(moved, neighbours))
+        {
+            throw new PlanException(Invariant($"{what} would have nothing below it in rack {target.Number}."));
+        }
+
+        // Crates of the old rack that rested on the moved one: the emptied cells are not filled by sliding, the move is refused.
+        for (var i = 0; i < crates.Count; i++)
+        {
+            var other = plan.Crates[i];
+            if (i != index && other.RackId == crate.RackId
+                && CrateLayout.Rests(other, plan.Crates.Where((c, j) => j != i && c.RackId == other.RackId))
+                && !CrateLayout.Rests(other, crates.Where((c, j) => j != i && c.RackId == other.RackId)))
             {
-                placements[partner] = Resized(placements[partner]!, placements[partner]!.Item.Scu + scu);
-                placements[index] = rest > 0 ? Resized(source, rest) : null;
-            }
-            else if (rest == 0)
-            {
-                placements[index] = source with { RackId = targetRackId };
-            }
-            else
-            {
-                placements[index] = Resized(source, rest);
-                placements.Add(Resized(source, scu) with { RackId = targetRackId });
+                throw new PlanException(Invariant(
+                    $"Moving the {what} would leave the {(int)other.CrateSize} SCU crate of {other.Commodity} for {other.Destination} with nothing below it."));
             }
         }
 
-        var merged = Merged(placements.OfType<Placement>());
-        return plan with { Placements = merged, Warnings = Hints([.. ship.Racks.OrderBy(r => r.Index)], merged) };
+        return WithHints(plan with { Crates = crates }, ship);
     }
 
-    /// <summary>Moves one whole placement to another rack: <see cref="MoveCrates"/> with all its crates.</summary>
-    /// <exception cref="ArgumentException">See <see cref="MoveCrates"/>.</exception>
-    public static LoadPlan MovePlacement(LoadPlan plan, Ship ship, Placement placement, string targetRackId) =>
-        MoveCrates(plan, ship, [(placement, placement.Item.Scu)], targetRackId);
+    /// <summary>
+    /// Moves the crates of one placement to another rack and lays them out there around the crates it holds, in the
+    /// plan's fill order (D24). The overlay's right drag (D20) until crates are dragged one by one (T3.14). The original
+    /// plan stays unchanged.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// The plan belongs to another ship, the ship has no such rack, or the placement isn't part of the plan or is delivered.
+    /// </exception>
+    /// <exception cref="PlanException">The crates don't fit the free space of the target rack.</exception>
+    public static LoadPlan MovePlacement(LoadPlan plan, Ship ship, Placement placement, string targetRackId)
+    {
+        plan.EnsureBelongsTo(ship);
+        var target = RackOf(ship, targetRackId);
+        var item = placement.Item;
+        if (!plan.Placements.Contains(placement))
+        {
+            throw new ArgumentException(
+                Invariant($"Placement of {item.Scu} SCU {item.Commodity} for {placement.Destination} in '{placement.RackId}' is not part of the plan."),
+                nameof(placement));
+        }
+
+        EnsureOnBoard(placement.Delivered, item.Commodity, placement.Destination, nameof(placement));
+
+        return Relayout(plan, ship, target,
+            c => c.RackId == placement.RackId && c.Destination == placement.Destination && c.Commodity == item.Commodity
+                 && c.CrateSize == item.CrateSize && !c.Delivered,
+            Invariant($"{item.Scu} SCU {item.Commodity} for {placement.Destination}"));
+    }
 
     /// <summary>
-    /// Moves every crate of a stop still on board to another rack; split parts join there (D22). Delivered cargo is off
-    /// the ship and stays, so a delivered stop moves nothing. The original plan stays unchanged.
+    /// Moves every crate of a stop still on board to another rack and lays them out there around the crates it holds,
+    /// split parts included (D24). Delivered cargo is off the ship and stays, so a delivered stop moves nothing.
+    /// The original plan stays unchanged.
     /// </summary>
     /// <exception cref="ArgumentException">
     /// The plan belongs to another ship, has no stop <paramref name="destination"/>, or the ship has no such rack.
     /// </exception>
+    /// <exception cref="PlanException">The crates don't fit the free space of the target rack.</exception>
     public static LoadPlan MoveStop(LoadPlan plan, Ship ship, string destination, string targetRackId)
     {
         plan.EnsureBelongsTo(ship);
-        if (!plan.Placements.Any(p => p.Destination == destination))
-        {
-            throw new ArgumentException($"The plan has no stop '{destination}'.", nameof(destination));
-        }
+        var target = RackOf(ship, targetRackId);
+        EnsureStop(plan, destination);
 
-        return MoveCrates(plan, ship,
-            [.. plan.Placements.Where(p => p.Destination == destination && !p.Delivered).Select(p => (Source: p, p.Item.Scu))],
-            targetRackId);
+        return Relayout(plan, ship, target, c => c.Destination == destination && !c.Delivered, destination);
     }
 
     /// <summary>
-    /// Marks every placement of a stop as delivered, or back. A stop is unloaded in one visit, split parts included,
-    /// so the unit is the stop, not the placement. The hints are derived anew without delivered cargo; capacity in
-    /// <see cref="Validate"/> still counts it (D16). The original plan stays unchanged, placement order too.
+    /// Marks every crate of a stop as delivered, or back. A stop is unloaded in one visit, split parts included,
+    /// so the unit is the stop. The hints are derived anew without delivered cargo; the crates keep their cells (D16,
+    /// D24), so ticking back always gives the plan before. The original plan stays unchanged, crate order too.
     /// </summary>
     /// <exception cref="ArgumentException">The plan belongs to another ship or has no stop <paramref name="destination"/>.</exception>
     public static LoadPlan SetDelivered(LoadPlan plan, Ship ship, string destination, bool delivered)
     {
         plan.EnsureBelongsTo(ship);
-        if (!plan.Placements.Any(p => p.Destination == destination))
-        {
-            throw new ArgumentException($"The plan has no stop '{destination}'.", nameof(destination));
-        }
+        EnsureStop(plan, destination);
 
-        List<Placement> placements = [.. plan.Placements
-            .Select(p => p.Destination == destination ? p with { Delivered = delivered } : p)];
-        return plan with { Placements = placements, Warnings = Hints([.. ship.Racks.OrderBy(r => r.Index)], placements) };
+        return WithHints(plan with { Crates = [.. plan.Crates.Select(c => c.Destination == destination ? c with { Delivered = delivered } : c)] }, ship);
     }
 
     /// <summary>
-    /// Violations that keep the plan from being loaded, per rack in rack order: more SCU than the rack holds,
-    /// and crates whose shape doesn't fit the rack (per crate, not per mix, D9). Empty for every plan from
-    /// <see cref="Plan"/>; hints for the player (shared racks, split stops) are in <see cref="LoadPlan.Warnings"/>.
+    /// Why the plan can't be loaded as it is, per rack in rack order (<see cref="CrateLayout.Problems"/>): crates that
+    /// overlap, stick out, don't fit the grid or have nothing below them. Delivered crates count, they keep their cells.
+    /// Empty for every plan from the planner and its moves; only a plan file edited by hand gets here (D24). Hints for
+    /// the player (shared racks, split stops) are in <see cref="LoadPlan.Warnings"/>.
     /// </summary>
     /// <exception cref="ArgumentException">The plan belongs to another ship or uses a rack the ship doesn't have.</exception>
     public static IReadOnlyList<PlanWarning> Validate(LoadPlan plan, Ship ship)
     {
         plan.EnsureBelongsTo(ship);
-        if (plan.Placements.FirstOrDefault(p => !ship.Racks.Any(r => r.Id == p.RackId)) is { } stray)
+        if (plan.Crates.FirstOrDefault(c => !ship.Racks.Any(r => r.Id == c.RackId)) is { } stray)
         {
             throw new ArgumentException(
-                $"Placement for {stray.Destination} is in rack '{stray.RackId}', which ship '{ship.Id}' doesn't have.", nameof(plan));
+                $"Crate for {stray.Destination} is in rack '{stray.RackId}', which ship '{ship.Id}' doesn't have.", nameof(plan));
         }
 
-        List<PlanWarning> violations = [];
-        foreach (var rack in ship.Racks.OrderBy(r => r.Index))
+        return [.. ship.Racks.OrderBy(r => r.Index)
+            .SelectMany(rack => CrateLayout.Problems(rack, plan.CratesForRack(rack.Id)).Select(problem => new PlanWarning(rack.Id, problem)))];
+    }
+
+    /// <summary>
+    /// Takes the crates <paramref name="moving"/> picks out of the plan and lays them out in <paramref name="target"/>
+    /// around the crates that stay there. Moved crates keep their index in the crate list, so placements keep their order.
+    /// </summary>
+    private static LoadPlan Relayout(LoadPlan plan, Ship ship, Rack target, Func<Crate, bool> moving, string what)
+    {
+        int[] moved = [.. Enumerable.Range(0, plan.Crates.Count).Where(i => moving(plan.Crates[i]))];
+        if (moved.Length == 0)
         {
-            var placements = plan.PlacementsForRack(rack.Id);
-            var used = placements.Sum(p => p.Item.Scu);
-            if (used > rack.CapacityScu)
-            {
-                violations.Add(new PlanWarning(rack.Id, Invariant($"Rack {rack.Number} overloaded: {used}/{rack.CapacityScu} SCU")));
-            }
-
-            violations.AddRange(placements
-                .Where(p => !rack.CanHold(p.Item.CrateSize))
-                .Select(p => new PlanWarning(rack.Id, Invariant(
-                    $"{(int)p.Item.CrateSize} SCU crate of {p.Item.Commodity} for {p.Destination} doesn't fit rack {rack.Number} ({rack.Grid})"))));
+            return plan;
         }
 
-        return violations;
+        Crate[] staying = [.. plan.Crates.Where((c, i) => c.RackId == target.Id && !moved.Contains(i))];
+        var positions = CrateLayout.Place(target, staying, [.. moved.Select(i => plan.Crates[i].CrateSize)], plan.FillOrder)
+            ?? throw new PlanException(Invariant(
+                $"{what} doesn't fit rack {target.Number}: {staying.Sum(c => (int)c.CrateSize)}/{target.CapacityScu} SCU taken."));
+
+        List<Crate> crates = [.. plan.Crates];
+        foreach (var (index, position) in moved.Zip(positions))
+        {
+            crates[index] = crates[index] with { RackId = target.Id, Position = position };
+        }
+
+        return WithHints(plan with { Crates = crates }, ship);
+    }
+
+    private static LoadPlan WithHints(LoadPlan plan, Ship ship) =>
+        plan with { Warnings = Hints([.. ship.Racks.OrderBy(r => r.Index)], plan.Placements) };
+
+    // The parameter name of the public methods: all of them call it targetRackId.
+    private static Rack RackOf(Ship ship, string targetRackId) =>
+        ship.Racks.FirstOrDefault(r => r.Id == targetRackId)
+        ?? throw new ArgumentException($"Ship '{ship.Id}' has no rack '{targetRackId}'.", nameof(targetRackId));
+
+    private static void EnsureStop(LoadPlan plan, string destination)
+    {
+        if (!plan.Crates.Any(c => c.Destination == destination))
+        {
+            throw new ArgumentException($"The plan has no stop '{destination}'.", nameof(destination));
+        }
+    }
+
+    /// <summary>Delivered cargo is off the ship (D16): it can't be moved.</summary>
+    private static void EnsureOnBoard(bool delivered, string commodity, string destination, string paramName)
+    {
+        if (delivered)
+        {
+            throw new ArgumentException($"{commodity} for {destination} is delivered, its crates are off the ship.", paramName);
+        }
     }
 
     /// <summary>
@@ -211,66 +273,6 @@ public static class LoadPlanner
 
         return warnings;
     }
-
-    /// <summary>
-    /// Pairs each move with the index of its source in <paramref name="placements"/>. Equal placements are
-    /// interchangeable, so each move takes the first one no earlier move took.
-    /// </summary>
-    private static List<(int Index, int Scu)> Claim(IReadOnlyList<Placement> placements, IReadOnlyList<(Placement Source, int Scu)> moves)
-    {
-        List<(int Index, int Scu)> claimed = [];
-        foreach (var (source, scu) in moves)
-        {
-            var (item, crate) = (source.Item, (int)source.Item.CrateSize);
-            var index = Enumerable.Range(0, placements.Count)
-                .FirstOrDefault(i => placements[i] == source && !claimed.Exists(c => c.Index == i), -1);
-            if (index < 0)
-            {
-                throw new ArgumentException(Invariant(
-                    $"Placement of {item.Scu} SCU {item.Commodity} for {source.Destination} in '{source.RackId}' is not part of the plan or is moved twice."),
-                    nameof(moves));
-            }
-
-            if (source.Delivered)
-            {
-                throw new ArgumentException($"{item.Commodity} for {source.Destination} is delivered, its crates are off the ship.", nameof(moves));
-            }
-
-            if (scu <= 0 || scu % crate != 0)
-            {
-                throw new ArgumentException(Invariant(
-                    $"{scu} SCU of {item.Commodity} for {source.Destination} is not a whole number of its {crate} SCU crates."),
-                    nameof(moves));
-            }
-
-            if (scu > item.Scu)
-            {
-                throw new ArgumentException(Invariant(
-                    $"{scu} SCU of {item.Commodity} for {source.Destination} to move, but only {item.Scu} SCU are placed in '{source.RackId}'."),
-                    nameof(moves));
-            }
-
-            claimed.Add((index, scu));
-        }
-
-        return claimed;
-    }
-
-    /// <summary>
-    /// Joins placements of the same cargo and state in the same rack into the first one. GroupBy yields the groups in
-    /// the order of their first element, so plan order stays (learn.microsoft.com, Enumerable.GroupBy, Remarks).
-    /// </summary>
-    private static List<Placement> Merged(IEnumerable<Placement> placements) =>
-        [.. placements
-            .GroupBy(p => (p.RackId, p.Destination, p.Item.Commodity, p.Item.CrateSize, p.Delivered))
-            .Select(g => g.Skip(1).Any() ? Resized(g.First(), g.Sum(p => p.Item.Scu)) : g.First())];
-
-    private static bool SameCargo(Placement a, Placement b) =>
-        a.Destination == b.Destination && a.Item.Commodity == b.Item.Commodity && a.Item.CrateSize == b.Item.CrateSize;
-
-    /// <summary>The same cargo with another amount; <c>with</c> can't change <see cref="CargoItem.Scu"/> (get-only).</summary>
-    private static Placement Resized(Placement placement, int scu) =>
-        placement with { Item = new CargoItem(placement.Item.Commodity, scu, placement.Item.CrateSize) };
 
     private static void EnsureUnique(IReadOnlyList<Stop> stops)
     {
@@ -435,7 +437,7 @@ public static class LoadPlanner
     }
 
     /// <summary>One crate of item <see cref="Item"/> of stop <see cref="Stop"/> (indices into <see cref="CrateLine.Stops"/>).</summary>
-    private readonly record struct Crate(int Stop, int Item, int Scu);
+    private readonly record struct LineCrate(int Stop, int Item, int Scu);
 
     /// <summary>Crates [Start, End) of the line go into <see cref="Rack"/>.</summary>
     private readonly record struct Segment(Rack Rack, int Start, int End);
@@ -444,7 +446,7 @@ public static class LoadPlanner
     /// The route as one row of crates: stops in route order, items in input order. Rack boundaries fall
     /// between crates, so racks always hold whole crates and neighbouring parts of the route.
     /// </summary>
-    private sealed record CrateLine(Stop[] Stops, Crate[] Crates, int[] ScuBefore, int[] StopStart)
+    private sealed record CrateLine(Stop[] Stops, LineCrate[] Crates, int[] ScuBefore, int[] StopStart)
     {
         public int Length => Crates.Length;
 
@@ -452,7 +454,7 @@ public static class LoadPlanner
         {
             // A stop without items has no crates and takes no rack.
             Stop[] stops = [.. route.Where(s => s.Items.Count > 0)];
-            List<Crate> crates = [];
+            List<LineCrate> crates = [];
             var stopStart = new int[stops.Length];
             for (var s = 0; s < stops.Length; s++)
             {
@@ -460,7 +462,7 @@ public static class LoadPlanner
                 for (var i = 0; i < stops[s].Items.Count; i++)
                 {
                     var crateScu = (int)stops[s].Items[i].CrateSize;
-                    crates.AddRange(Enumerable.Repeat(new Crate(s, i, crateScu), stops[s].Items[i].Scu / crateScu));
+                    crates.AddRange(Enumerable.Repeat(new LineCrate(s, i, crateScu), stops[s].Items[i].Scu / crateScu));
                 }
             }
 

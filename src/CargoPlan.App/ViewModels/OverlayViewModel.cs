@@ -15,9 +15,7 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 
     public const string AllDeliveredText = "All stops delivered.";
 
-    // Not a setting yet: shared between a coordinator and haulers it would belong to the plan, kept locally to
-    // settings.json; decided once it is needed (D21).
-    private const FillOrder DefaultFillOrder = FillOrder.BowFirst;
+    public const string MoveRefusedPrefix = "Move refused: ";
 
     public Ship Ship { get; } = ship;
 
@@ -89,6 +87,7 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     {
         Missions = saved.Missions;
         Plan = saved.Plan;
+        SetNotice(NoticeSource.Move, null);
     }
 
     /// <summary>Both windows hide while true. Hiding resets nothing: position, zoom, orbit and lock stay as they are.</summary>
@@ -119,25 +118,31 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     }
 
     /// <summary>
-    /// Puts a placement into another rack, run by a right drag in the ship view (D20). Core derives the hints anew and
-    /// never refuses an overload; the scene shows it red (D10). Saved like every change of <see cref="Plan"/>.
-    /// One record as parameter: a generated command takes at most one.
+    /// Puts a placement into another rack, run by a right drag in the ship view (D20). Core lays its crates out there
+    /// and derives the hints anew; if they don't fit, Core refuses and the plan stays, with the reason in a notice line
+    /// (D24). Saved like every change of <see cref="Plan"/>. One record as parameter: a generated command takes at most one.
     /// </summary>
     [RelayCommand]
     private void MovePlacement(Gesture.Move move)
     {
         // Unreachable without a plan: the view has no cargo to drag then.
         var plan = Plan ?? throw new InvalidOperationException(NoPlanText);
-        Plan = LoadPlanner.MovePlacement(plan, Ship, move.Placement, move.TargetRackId);
+        try
+        {
+            Plan = LoadPlanner.MovePlacement(plan, Ship, move.Placement, move.TargetRackId);
+            SetNotice(NoticeSource.Move, null);
+        }
+        catch (PlanException ex)
+        {
+            // Only "doesn't fit": the player's call, shown, not a bug. Other exceptions are bugs and stay unhandled.
+            SetNotice(NoticeSource.Move, MoveRefusedPrefix + ex.Message);
+        }
     }
 
     public bool HasPlan => Plan is not null;
 
-    /// <summary>Where the cells of a rack start in the ship view; the one place that decides it (D21).</summary>
-    public FillOrder FillOrder => DefaultFillOrder;
-
     /// <summary>
-    /// What the ship view and the legend draw: the plan with Core's validation (D10), or the empty ship without a plan.
+    /// What the ship view and the legend draw: the plan with Core's validation (D24), or the empty ship without a plan.
     /// Built once per change of <see cref="Plan"/>, not per binding.
     /// </summary>
     public ShipScene Scene { get; private set; } = EmptyScene(ship);
@@ -146,7 +151,11 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/observableproperty#running-code-upon-changes
     partial void OnPlanChanged(LoadPlan? value) => Scene = value is null
         ? EmptyScene(Ship)
-        : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value, Ship), FillOrder);
+        : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value, Ship), value.FillOrder);
 
-    private static ShipScene EmptyScene(Ship ship) => ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, [], DefaultFillOrder);
+    private static ShipScene EmptyScene(Ship ship)
+    {
+        var empty = new LoadPlan(ship.Id, [], []);
+        return ShipViewBuilder.Build(empty, ship, [], empty.FillOrder);
+    }
 }

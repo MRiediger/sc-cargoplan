@@ -2,13 +2,6 @@ using CargoPlan.Core.Models;
 
 namespace CargoPlan.App.ShipView;
 
-/// <summary>Which end of a rack's length the cells fill from (D21). A drawing choice, not where crates go.</summary>
-public enum FillOrder
-{
-    BowFirst,
-    SternFirst,
-}
-
 /// <summary>
 /// One crate of a placement, counted from 1. A value: the same plan gives the same ids on every rebuild, so a selection
 /// can hold them (T3.11c). Equal placements in one rack (D22) count on, so their crates never share an id.
@@ -188,7 +181,7 @@ public static class RackCells
         from s in Enumerable.Range(box.Stack, box.Size.Stack)
         select (l, w, s);
 
-    /// <summary>An overloaded rack (only after a manual move, D10): cells by SCU share, in plan order, no crates.</summary>
+    /// <summary>An overloaded rack (only in a plan file edited by hand, D24): cells by SCU share, in plan order, no crates.</summary>
     private static RackCell[] Shared(Rack rack, (int Length, int Width, int Stack)[] positions, IReadOnlyList<Placement> placements)
     {
         var counts = CellCounts(rack.CapacityScu, placements);

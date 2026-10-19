@@ -186,7 +186,7 @@ public class SceneProjectorTests
         // Hull A has 64 cells, a Hull C would have about 4,600 (D21); 1 SCU crates are the most boxes a rack can hold.
         Rack rack = new("big", 0, 1000, new Dimensions(10, 10, 10), new RackPosition(RackSide.Port, RackLevel.Upper), new ShipPoint(0, 0, 0));
         Ship ship = new("big", "Synthetic", 1000, [rack]);
-        LoadPlan plan = new(ship.Id, [new Placement("Riker", rack.Id, new CargoItem("Titanium", 1000, CrateSize.One))], []);
+        var plan = TestPlans.Of(ship, new Placement("Riker", rack.Id, new CargoItem("Titanium", 1000, CrateSize.One)));
         var scene = ShipViewBuilder.Build(plan, ship, [], FillOrder.BowFirst);
 
         // Warm-up: the first call pays for the JIT, not for the cells.

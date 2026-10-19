@@ -1,6 +1,7 @@
 using System.Text.Json;
 using CargoPlan.Core.Json;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Planning;
 
 namespace CargoPlan.Core.Plans;
 
@@ -10,12 +11,19 @@ namespace CargoPlan.Core.Plans;
 /// </summary>
 public static class PlanFile
 {
-    public const int SupportedSchemaVersion = 1;
+    /// <summary>The version the writer writes: crates with positions (D24).</summary>
+    public const int SupportedSchemaVersion = 2;
 
-    /// <summary>Reads a plan file for <paramref name="ship"/>. The stream is left open.</summary>
+    /// <summary>Placements without positions; still read and laid out on reading, never written.</summary>
+    public const int LegacySchemaVersion = 1;
+
+    private static readonly int[] ReadableSchemaVersions = [LegacySchemaVersion, SupportedSchemaVersion];
+
+    /// <summary>Reads a plan file for <paramref name="ship"/>, schema 1 or 2. The stream is left open.</summary>
     /// <param name="sourceName">Shown in error messages, e.g. the file path.</param>
     /// <exception cref="PlanFormatException">
-    /// The content is broken, is for another ship, uses racks the ship doesn't have, or doesn't match its missions.
+    /// The content is broken, is for another ship, uses racks the ship doesn't have, has a crate outside its rack,
+    /// doesn't match its missions, or is a schema 1 plan with more cargo in a rack than its grid holds.
     /// </exception>
     public static SavedPlan Read(Stream stream, string sourceName, Ship ship)
     {
@@ -25,14 +33,13 @@ public static class PlanFile
         try
         {
             using var document = JsonDocument.Parse(stream);
-            SchemaVersion.Check(document.RootElement, SupportedSchemaVersion);
+            var root = document.RootElement;
 
-            var dto = document.RootElement.Deserialize(PlanJsonContext.Default.PlanFileDto)
-                ?? throw new JsonException("The file contains null.");
-
-            return dto.ToSavedPlan(ship);
+            return SchemaVersion.Check(root, ReadableSchemaVersions) == LegacySchemaVersion
+                ? (root.Deserialize(PlanJsonContext.Default.PlanFileV1Dto) ?? throw new JsonException("The file contains null.")).ToSavedPlan(ship)
+                : (root.Deserialize(PlanJsonContext.Default.PlanFileDto) ?? throw new JsonException("The file contains null.")).ToSavedPlan(ship);
         }
-        catch (Exception ex) when (ex is JsonException or ArgumentException)
+        catch (Exception ex) when (ex is JsonException or ArgumentException or PlanException)
         {
             throw new PlanFormatException(sourceName, ex.Message, ex);
         }

@@ -4,7 +4,7 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Missions;
 
 /// <summary>
-/// File format of a cargo item of one crate size, as an SCU number (1, 2, 4, 8): a placement in a plan file, and an
+/// File format of a cargo item of one crate size, as an SCU number (1, 2, 4, 8): a placement of a schema 1 plan file, and an
 /// item of a version 1 mission file.
 /// </summary>
 internal sealed record CargoItemDto(string Commodity, int Scu, int CrateSize)
@@ -34,6 +34,4 @@ internal sealed record CargoItemDto(string Commodity, int Scu, int CrateSize)
             throw new ArgumentException($"Stop '{destination}', {Commodity}: {ex.Message}", ex);
         }
     }
-
-    public static CargoItemDto FromCargoItem(CargoItem item) => new(item.Commodity, item.Scu, (int)item.CrateSize);
 }
