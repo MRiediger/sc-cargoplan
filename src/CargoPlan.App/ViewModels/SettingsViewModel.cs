@@ -6,14 +6,21 @@ namespace CargoPlan.App.ViewModels;
 
 /// <summary>
 /// State of the settings window (D30, D34): every change builds the look anew and hands it to <c>apply</c> at once, no
-/// OK or Cancel; "Reset to defaults" per section. WPF-free, so the tests need no window. Sections without fields here
-/// (header, crates, buttons until T4.2b) pass through unchanged.
+/// OK or Cancel; "Reset to defaults" per section. WPF-free, so the tests need no window. Sections in the window's order:
+/// the ones a player touches most first (T4.2b).
 /// </summary>
 public sealed partial class SettingsViewModel : ObservableObject
 {
+    public const string LegendHaloLabel = "Halo around the text";
+
+    public const string CratesHaloLabel = "Outline around the rack numbers";
+
+    public const string HeaderHaloLabel = "Halo around the ship name";
+
+    public const string ButtonsHaloLabel = "Halo around the glyphs";
+
     private readonly double _windowsFontSize;
     private readonly Action<AppearanceSettings, LegendSettings> _apply;
-    private AppearanceSettings _appearance;
 
     // True while fields are loaded (constructor, reset): their change calls are one change, applied once at the end.
     private bool _loading = true;
@@ -25,18 +32,27 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// </param>
     public SettingsViewModel(AppearanceSettings appearance, LegendSettings legend, double windowsFontSize, Action<AppearanceSettings, LegendSettings> apply)
     {
-        _appearance = appearance;
         _windowsFontSize = Math.Clamp(windowsFontSize, AppearanceRules.MinFontSize, AppearanceRules.MaxFontSize);
         _apply = apply;
 
         WindowBackground = new(appearance.Window.Background, AppearanceRules.MinClickableAlpha, OnChanged);
         WindowBorderColor = new(appearance.Window.BorderColor, minAlpha: 0, OnChanged);
         LegendForeground = new(appearance.Legend.Foreground, minAlpha: 0, OnChanged);
-        LegendHalo = new(appearance.Legend.Halo, OnChanged);
+        LegendHalo = new(appearance.Legend.Halo, LegendHaloLabel, OnChanged);
+        CratesRackNumberColor = new(appearance.Crates.RackNumberColor, minAlpha: 0, OnChanged);
+        CratesHalo = new(appearance.Crates.Halo, CratesHaloLabel, OnChanged);
+        HeaderForeground = new(appearance.Header.Foreground, minAlpha: 0, OnChanged);
+        HeaderHalo = new(appearance.Header.Halo, HeaderHaloLabel, OnChanged);
+        ButtonsBackground = new(appearance.Buttons.Background, AppearanceRules.MinClickableAlpha, OnChanged);
+        ButtonsBorderColor = new(appearance.Buttons.BorderColor, minAlpha: 0, OnChanged);
+        ButtonsHalo = new(appearance.Buttons.Halo, ButtonsHaloLabel, OnChanged);
 
         LoadWindow(appearance.Window);
         LoadLegend(appearance.Legend);
         LoadLayout(legend);
+        LoadCrates(appearance.Crates);
+        LoadHeader(appearance.Header);
+        LoadButtons(appearance.Buttons);
         _loading = false;
     }
 
@@ -83,6 +99,50 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public IReadOnlyList<string> LegendPositions => Settings.LegendPosition.Names;
 
+    // Crates: their colours are the stop colours (D29), so only fill and edge alpha, 0–255 like the file.
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CratesFillPercent))]
+    public partial int CratesFillAlpha { get; set; }
+
+    public string CratesFillPercent => ColourField.Percent(CratesFillAlpha);
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CratesEdgePercent))]
+    public partial int CratesEdgeAlpha { get; set; }
+
+    public string CratesEdgePercent => ColourField.Percent(CratesEdgeAlpha);
+
+    public ColourField CratesRackNumberColor { get; }
+
+    [ObservableProperty]
+    public partial double CratesRackNumberFontSize { get; set; }
+
+    /// <summary>The sharp outline of the rack numbers (D31): its size is a stroke width.</summary>
+    public HaloEditor CratesHalo { get; }
+
+    // Header
+
+    /// <summary>Also the glyphs: pencil, gear, split, merge, padlock. Invisible, the gear is found by its tool tip (D34).</summary>
+    public ColourField HeaderForeground { get; }
+
+    public HaloEditor HeaderHalo { get; }
+
+    // Buttons
+
+    /// <summary>At least <see cref="AppearanceRules.MinClickableAlpha"/>, or clicks pass through the buttons.</summary>
+    public ColourField ButtonsBackground { get; }
+
+    public ColourField ButtonsBorderColor { get; }
+
+    [ObservableProperty]
+    public partial double ButtonsBorderThickness { get; set; }
+
+    [ObservableProperty]
+    public partial double ButtonsCornerRadius { get; set; }
+
+    public HaloEditor ButtonsHalo { get; }
+
     [RelayCommand]
     private void ResetWindow() => Batch(() => LoadWindow(WindowAppearance.Default));
 
@@ -92,6 +152,15 @@ public sealed partial class SettingsViewModel : ObservableObject
     [RelayCommand]
     private void ResetLegendLayout() => Batch(() => LoadLayout(LegendSettings.Default));
 
+    [RelayCommand]
+    private void ResetCrates() => Batch(() => LoadCrates(CrateAppearance.Default));
+
+    [RelayCommand]
+    private void ResetHeader() => Batch(() => LoadHeader(HeaderAppearance.Default));
+
+    [RelayCommand]
+    private void ResetButtons() => Batch(() => LoadButtons(ButtonAppearance.Default));
+
     partial void OnWindowBorderThicknessChanged(double value) => OnChanged();
 
     // The slider follows the switch: ticked it shows the Windows size, unticked it starts there (D31). One change.
@@ -100,6 +169,16 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnLegendFontSizeChanged(double value) => OnChanged();
 
     partial void OnIsLegendVisibleChanged(bool value) => OnChanged();
+
+    partial void OnCratesFillAlphaChanged(int value) => OnChanged();
+
+    partial void OnCratesEdgeAlphaChanged(int value) => OnChanged();
+
+    partial void OnCratesRackNumberFontSizeChanged(double value) => OnChanged();
+
+    partial void OnButtonsBorderThicknessChanged(double value) => OnChanged();
+
+    partial void OnButtonsCornerRadiusChanged(double value) => OnChanged();
 
     private void LoadWindow(WindowAppearance window)
     {
@@ -123,6 +202,30 @@ public sealed partial class SettingsViewModel : ObservableObject
         LegendPosition = legend.Position;
     }
 
+    private void LoadCrates(CrateAppearance crates)
+    {
+        CratesFillAlpha = crates.FillAlpha;
+        CratesEdgeAlpha = crates.EdgeAlpha;
+        CratesRackNumberColor.Load(crates.RackNumberColor);
+        CratesRackNumberFontSize = crates.RackNumberFontSize;
+        CratesHalo.Load(crates.Halo);
+    }
+
+    private void LoadHeader(HeaderAppearance header)
+    {
+        HeaderForeground.Load(header.Foreground);
+        HeaderHalo.Load(header.Halo);
+    }
+
+    private void LoadButtons(ButtonAppearance buttons)
+    {
+        ButtonsBackground.Load(buttons.Background);
+        ButtonsBorderColor.Load(buttons.BorderColor);
+        ButtonsBorderThickness = buttons.BorderThickness;
+        ButtonsCornerRadius = buttons.CornerRadius;
+        ButtonsHalo.Load(buttons.Halo);
+    }
+
     /// <summary>Runs <paramref name="load"/> as one change: applied once afterwards, or not at all inside the constructor.</summary>
     private void Batch(Action load)
     {
@@ -140,11 +243,12 @@ public sealed partial class SettingsViewModel : ObservableObject
             return;
         }
 
-        _appearance = _appearance with
-        {
-            Window = new(WindowBackground.Value, WindowBorderColor.Value, WindowBorderThickness),
-            Legend = new(LegendForeground.Value, UseWindowsFontSize ? null : LegendFontSize, LegendHalo.Value),
-        };
-        _apply(_appearance, new LegendSettings(IsLegendVisible, LegendPosition));
+        AppearanceSettings appearance = new(
+            new WindowAppearance(WindowBackground.Value, WindowBorderColor.Value, WindowBorderThickness),
+            new HeaderAppearance(HeaderForeground.Value, HeaderHalo.Value),
+            new LegendAppearance(LegendForeground.Value, UseWindowsFontSize ? null : LegendFontSize, LegendHalo.Value),
+            new CrateAppearance(CratesFillAlpha, CratesEdgeAlpha, CratesRackNumberColor.Value, CratesRackNumberFontSize, CratesHalo.Value),
+            new ButtonAppearance(ButtonsBackground.Value, ButtonsBorderColor.Value, ButtonsBorderThickness, ButtonsCornerRadius, ButtonsHalo.Value));
+        _apply(appearance, new LegendSettings(IsLegendVisible, LegendPosition));
     }
 }

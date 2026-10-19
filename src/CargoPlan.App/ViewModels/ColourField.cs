@@ -52,7 +52,10 @@ public sealed partial class ColourField : ObservableObject
     [NotifyPropertyChangedFor(nameof(AlphaPercent))]
     public partial int Alpha { get; set; }
 
-    public string AlphaPercent => $"{Math.Round(Alpha * 100.0 / byte.MaxValue)} %";
+    public string AlphaPercent => Percent(Alpha);
+
+    /// <summary>An alpha 0–255 as the window shows it, also for the crates' alphas, so every transparency reads alike.</summary>
+    public static string Percent(int alpha) => $"{Math.Round(alpha * 100.0 / byte.MaxValue)} %";
 
     /// <summary>false marks the field; the overlay keeps <see cref="Value"/>, the last valid colour.</summary>
     [ObservableProperty]

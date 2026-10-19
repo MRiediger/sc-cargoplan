@@ -8,20 +8,28 @@ public sealed partial class HaloEditor : ObservableObject
 {
     private readonly Action _changed;
 
+    /// <param name="label">What the halo surrounds; for the rack numbers it is a sharp outline, not a glow (D31).</param>
     /// <param name="changed">Called after every change; the owner ignores the calls while it loads values.</param>
-    public HaloEditor(HaloSettings halo, Action changed)
+    public HaloEditor(HaloSettings halo, string label, Action changed)
     {
+        Label = label;
         _changed = changed;
         Colour = new ColourField(halo.Color, minAlpha: 0, changed);
         Load(halo);
     }
+
+    /// <summary>The switch's text in the window.</summary>
+    public string Label { get; }
 
     public ColourField Colour { get; }
 
     [ObservableProperty]
     public partial bool Enabled { get; set; }
 
-    /// <summary>Between <see cref="AppearanceRules.MinHaloSize"/> and <see cref="AppearanceRules.MaxHaloSize"/>, the slider's limits.</summary>
+    /// <summary>
+    /// Between <see cref="AppearanceRules.MinHaloSize"/> and <see cref="AppearanceRules.MaxHaloSize"/>, the slider's limits.
+    /// Blur radius for text, stroke width for the rack numbers.
+    /// </summary>
     [ObservableProperty]
     public partial double Size { get; set; }
 

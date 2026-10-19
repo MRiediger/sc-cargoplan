@@ -279,6 +279,154 @@ public sealed class SettingsViewModelTests
         viewModel.WindowBorderColor.Hex.Should().Be("#E6E6E6");
     }
 
+    // Crates, header, buttons (T4.2b)
+
+    [Fact]
+    public void Fields_of_crates_header_and_buttons_start_with_the_current_look()
+    {
+        var appearance = Changed with
+        {
+            Crates = new CrateAppearance(100, 50, "#FF00FFFF", 30, HaloSettings.Off),
+            Buttons = new ButtonAppearance("#20FFFFFF", "#FF0000FF", 2, 5, HaloSettings.On),
+        };
+
+        var viewModel = Create(appearance);
+
+        viewModel.CratesFillAlpha.Should().Be(100);
+        viewModel.CratesEdgeAlpha.Should().Be(50);
+        viewModel.CratesRackNumberColor.Value.Should().Be("#FF00FFFF");
+        viewModel.CratesRackNumberFontSize.Should().Be(30);
+        viewModel.CratesHalo.Enabled.Should().BeFalse();
+        viewModel.HeaderForeground.Value.Should().Be("#FF123456");
+        viewModel.HeaderHalo.Enabled.Should().BeTrue();
+        viewModel.ButtonsBackground.Value.Should().Be("#20FFFFFF");
+        viewModel.ButtonsBorderColor.Value.Should().Be("#FF0000FF");
+        viewModel.ButtonsBorderThickness.Should().Be(2);
+        viewModel.ButtonsCornerRadius.Should().Be(5);
+        viewModel.ButtonsHalo.Enabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Crate_values_apply_once_with_only_that_value_changed()
+    {
+        var viewModel = Create(Changed);
+
+        viewModel.CratesEdgeAlpha = 10;
+
+        _applied.Should().ContainSingle();
+        Last.Appearance.Should().Be(Changed with { Crates = Changed.Crates with { EdgeAlpha = 10 } });
+    }
+
+    [Fact]
+    public void Every_crate_value_applies()
+    {
+        var viewModel = Create();
+
+        viewModel.CratesFillAlpha = 64;
+        viewModel.CratesRackNumberColor.Hex = "#FFFF00";
+        viewModel.CratesRackNumberFontSize = 40;
+        viewModel.CratesHalo.Enabled = false;
+
+        Last.Appearance.Crates.Should().Be(new CrateAppearance(64, 0xC0, "#FFFFFF00", 40, HaloSettings.On with { Enabled = false }));
+    }
+
+    [Fact]
+    public void Header_values_apply()
+    {
+        var viewModel = Create();
+
+        viewModel.HeaderForeground.Hex = "#00FF00";
+        viewModel.HeaderHalo.Enabled = true;
+
+        Last.Appearance.Header.Should().Be(new HeaderAppearance("#FF00FF00", HaloSettings.On));
+    }
+
+    [Fact]
+    public void Every_button_value_applies()
+    {
+        var viewModel = Create();
+
+        viewModel.ButtonsBackground.Alpha = 0x80;
+        viewModel.ButtonsBorderColor.Hex = "#FF0000";
+        viewModel.ButtonsBorderThickness = 1;
+        viewModel.ButtonsCornerRadius = 0;
+        viewModel.ButtonsHalo.Size = 6;
+
+        Last.Appearance.Buttons.Should().Be(new ButtonAppearance("#80000000", "#FFFF0000", 1, 0, HaloSettings.Off with { Size = 6 }));
+    }
+
+    [Fact]
+    public void Button_background_keeps_alpha_one()
+    {
+        Create().ButtonsBackground.MinAlpha.Should().Be(AppearanceRules.MinClickableAlpha);
+    }
+
+    [Fact]
+    public void Reset_crates_resets_only_the_crates_once()
+    {
+        var viewModel = Create(Changed, new LegendSettings(false, "top-center"));
+
+        viewModel.ResetCratesCommand.Execute(null);
+
+        _applied.Should().ContainSingle();
+        Last.Appearance.Should().Be(Changed with { Crates = CrateAppearance.Default });
+        Last.Legend.Should().Be(new LegendSettings(false, "top-center"));
+        viewModel.CratesFillAlpha.Should().Be(CrateAppearance.Default.FillAlpha);
+        viewModel.CratesHalo.Enabled.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Reset_header_resets_only_the_header_once()
+    {
+        var viewModel = Create(Changed);
+
+        viewModel.ResetHeaderCommand.Execute(null);
+
+        _applied.Should().ContainSingle();
+        Last.Appearance.Should().Be(Changed with { Header = HeaderAppearance.Default });
+        viewModel.HeaderForeground.Value.Should().Be(HeaderAppearance.Default.Foreground);
+    }
+
+    [Fact]
+    public void Reset_buttons_resets_only_the_buttons_once()
+    {
+        var viewModel = Create(Changed);
+
+        viewModel.ResetButtonsCommand.Execute(null);
+
+        _applied.Should().ContainSingle();
+        Last.Appearance.Should().Be(Changed with { Buttons = ButtonAppearance.Default });
+        viewModel.ButtonsCornerRadius.Should().Be(ButtonAppearance.Default.CornerRadius);
+    }
+
+    /// <summary>The crates' halo is the sharp outline of the rack numbers, its size a stroke width (D31): the window says so.</summary>
+    [Fact]
+    public void Each_halo_says_what_it_surrounds()
+    {
+        var viewModel = Create();
+
+        viewModel.LegendHalo.Label.Should().Be("Halo around the text");
+        viewModel.CratesHalo.Label.Should().Be("Outline around the rack numbers");
+        viewModel.HeaderHalo.Label.Should().Be("Halo around the ship name");
+        viewModel.ButtonsHalo.Label.Should().Be("Halo around the glyphs");
+    }
+
+    [Theory]
+    [InlineData(0, "0 %")]
+    [InlineData(208, "82 %")]
+    [InlineData(255, "100 %")]
+    public void Crate_alphas_show_as_percent_like_the_colours(int alpha, string expected)
+    {
+        var viewModel = Create();
+
+        viewModel.CratesFillAlpha = alpha;
+        viewModel.CratesEdgeAlpha = alpha;
+
+        viewModel.CratesFillPercent.Should().Be(expected);
+        viewModel.CratesEdgePercent.Should().Be(expected);
+        ColourField.Percent(alpha).Should().Be(expected);
+    }
+
     /// <summary>
     /// The sliders take their limits from <see cref="AppearanceRules"/> (x:Static in the window): at every limit the result
     /// needs no correction, so the settings window never causes a notice.
@@ -291,14 +439,29 @@ public sealed class SettingsViewModelTests
         var viewModel = Create();
         viewModel.UseWindowsFontSize = false;
 
-        foreach (var field in new[] { viewModel.WindowBackground, viewModel.WindowBorderColor, viewModel.LegendForeground, viewModel.LegendHalo.Colour })
+        ColourField[] colours =
+        [
+            viewModel.WindowBackground, viewModel.WindowBorderColor, viewModel.LegendForeground, viewModel.CratesRackNumberColor,
+            viewModel.HeaderForeground, viewModel.ButtonsBackground, viewModel.ButtonsBorderColor,
+        ];
+        HaloEditor[] halos = [viewModel.LegendHalo, viewModel.CratesHalo, viewModel.HeaderHalo, viewModel.ButtonsHalo];
+        foreach (var field in colours.Concat(halos.Select(h => h.Colour)))
         {
             field.Alpha = atMinimum ? field.MinAlpha : byte.MaxValue;
         }
 
+        foreach (var halo in halos)
+        {
+            halo.Size = atMinimum ? AppearanceRules.MinHaloSize : AppearanceRules.MaxHaloSize;
+        }
+
         viewModel.WindowBorderThickness = atMinimum ? 0 : AppearanceRules.MaxBorderThickness;
         viewModel.LegendFontSize = atMinimum ? AppearanceRules.MinFontSize : AppearanceRules.MaxFontSize;
-        viewModel.LegendHalo.Size = atMinimum ? AppearanceRules.MinHaloSize : AppearanceRules.MaxHaloSize;
+        viewModel.CratesFillAlpha = atMinimum ? byte.MinValue : byte.MaxValue;
+        viewModel.CratesEdgeAlpha = atMinimum ? byte.MinValue : byte.MaxValue;
+        viewModel.CratesRackNumberFontSize = atMinimum ? AppearanceRules.MinRackNumberFontSize : AppearanceRules.MaxRackNumberFontSize;
+        viewModel.ButtonsBorderThickness = atMinimum ? 0 : AppearanceRules.MaxBorderThickness;
+        viewModel.ButtonsCornerRadius = atMinimum ? 0 : AppearanceRules.MaxCornerRadius;
 
         AppearanceRules.Normalize(Last.Appearance).Problems.Should().BeEmpty();
         AppearanceRules.Normalize(Last.Legend).Problems.Should().BeEmpty();

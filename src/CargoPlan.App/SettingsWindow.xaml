@@ -57,7 +57,9 @@
                      outside also unticks the button. While open, the button takes no clicks: otherwise the click that
                      closes the popup (StaysOpen=False) would open it again at once. -->
                 <Grid DockPanel.Dock="Right" Margin="6,0,0,0">
-                    <ToggleButton x:Name="SwatchButton" Width="32" Height="22" Padding="1" ToolTip="Pick a colour">
+                    <!-- Stretch: a button centres its content, and a swatch without a size of its own would shrink to 0 × 0. -->
+                    <ToggleButton x:Name="SwatchButton" Width="32" Height="22" Padding="1" ToolTip="Pick a colour"
+                                  HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                         <ToggleButton.Style>
                             <Style TargetType="ToggleButton">
                                 <Style.Triggers>
@@ -110,14 +112,15 @@
         <!-- A halo (D28): off keeps colour and size. -->
         <DataTemplate DataType="{x:Type vm:HaloEditor}">
             <StackPanel>
-                <CheckBox Content="Halo around the text" IsChecked="{Binding Enabled}" Margin="0,3" />
+                <!-- The label says what it surrounds: for the rack numbers a sharp outline whose size is a stroke width (D31). -->
+                <CheckBox Content="{Binding Label, Mode=OneTime}" IsChecked="{Binding Enabled}" Margin="0,3" />
                 <StackPanel IsEnabled="{Binding Enabled}">
                     <DockPanel Style="{StaticResource RowStyle}">
-                        <TextBlock Text="Halo colour" Style="{StaticResource LabelStyle}" />
+                        <TextBlock Text="Colour" Style="{StaticResource LabelStyle}" />
                         <ContentControl Content="{Binding Colour, Mode=OneTime}" />
                     </DockPanel>
                     <DockPanel Style="{StaticResource RowStyle}">
-                        <TextBlock Text="Halo size" Style="{StaticResource LabelStyle}" />
+                        <TextBlock Text="Size" Style="{StaticResource LabelStyle}" />
                         <TextBlock DockPanel.Dock="Right" Text="{Binding Size}" Style="{StaticResource ValueTextStyle}" />
                         <Slider Minimum="{x:Static st:AppearanceRules.MinHaloSize}" Maximum="{x:Static st:AppearanceRules.MaxHaloSize}"
                                 Value="{Binding Size}" Style="{StaticResource ValueSliderStyle}" />
@@ -187,6 +190,76 @@
                         <ComboBox ItemsSource="{Binding LegendPositions, Mode=OneTime}" SelectedItem="{Binding LegendPosition}" />
                     </DockPanel>
                     <Button Command="{Binding ResetLegendLayoutCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
+                </StackPanel>
+            </GroupBox>
+
+            <!-- Order (T4.2b): what a player touches most comes first. After transparency and legend it is the crate fill:
+                 at the lift you want to see the real crates through the planned ones. Header and buttons are set once. -->
+            <GroupBox Header="Crates" Style="{StaticResource SectionStyle}">
+                <StackPanel>
+                    <DockPanel Style="{StaticResource RowStyle}" ToolTip="The crate colours are the destination colours and stay fixed">
+                        <TextBlock Text="Fill" Style="{StaticResource LabelStyle}" />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding CratesFillPercent}" Style="{StaticResource ValueTextStyle}" />
+                        <Slider Minimum="0" Maximum="{x:Static vm:ColourField.MaxAlpha}"
+                                Value="{Binding CratesFillAlpha}" Style="{StaticResource ValueSliderStyle}" />
+                    </DockPanel>
+                    <DockPanel Style="{StaticResource RowStyle}">
+                        <TextBlock Text="Edges" Style="{StaticResource LabelStyle}" />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding CratesEdgePercent}" Style="{StaticResource ValueTextStyle}" />
+                        <Slider Minimum="0" Maximum="{x:Static vm:ColourField.MaxAlpha}"
+                                Value="{Binding CratesEdgeAlpha}" Style="{StaticResource ValueSliderStyle}" />
+                    </DockPanel>
+                    <DockPanel Style="{StaticResource RowStyle}">
+                        <TextBlock Text="Rack numbers" Style="{StaticResource LabelStyle}" />
+                        <ContentControl Content="{Binding CratesRackNumberColor, Mode=OneTime}" />
+                    </DockPanel>
+                    <DockPanel Style="{StaticResource RowStyle}" ToolTip="The same at every zoom; smaller only where a number no longer fits its rack">
+                        <TextBlock Text="Number size" Style="{StaticResource LabelStyle}" />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding CratesRackNumberFontSize}" Style="{StaticResource ValueTextStyle}" />
+                        <Slider Minimum="{x:Static st:AppearanceRules.MinRackNumberFontSize}" Maximum="{x:Static st:AppearanceRules.MaxRackNumberFontSize}"
+                                Value="{Binding CratesRackNumberFontSize}" Style="{StaticResource ValueSliderStyle}" />
+                    </DockPanel>
+                    <ContentControl Content="{Binding CratesHalo, Mode=OneTime}" />
+                    <Button Command="{Binding ResetCratesCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Header" Style="{StaticResource SectionStyle}">
+                <StackPanel>
+                    <DockPanel Style="{StaticResource RowStyle}"
+                               ToolTip="Ship name and the glyphs: pencil, gear, split, merge, padlock. Made invisible, the gear still shows its tool tip">
+                        <TextBlock Text="Text and glyphs" Style="{StaticResource LabelStyle}" />
+                        <ContentControl Content="{Binding HeaderForeground, Mode=OneTime}" />
+                    </DockPanel>
+                    <ContentControl Content="{Binding HeaderHalo, Mode=OneTime}" />
+                    <Button Command="{Binding ResetHeaderCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Buttons" Style="{StaticResource SectionStyle}">
+                <StackPanel>
+                    <DockPanel Style="{StaticResource RowStyle}" ToolTip="Behind the glyph buttons and Open editor">
+                        <TextBlock Text="Background" Style="{StaticResource LabelStyle}" />
+                        <ContentControl Content="{Binding ButtonsBackground, Mode=OneTime}" />
+                    </DockPanel>
+                    <DockPanel Style="{StaticResource RowStyle}" ToolTip="Frame of the glyph buttons; Open editor keeps its outline in the legend colour">
+                        <TextBlock Text="Border colour" Style="{StaticResource LabelStyle}" />
+                        <ContentControl Content="{Binding ButtonsBorderColor, Mode=OneTime}" />
+                    </DockPanel>
+                    <DockPanel Style="{StaticResource RowStyle}">
+                        <TextBlock Text="Border width" Style="{StaticResource LabelStyle}" />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding ButtonsBorderThickness}" Style="{StaticResource ValueTextStyle}" />
+                        <Slider Minimum="0" Maximum="{x:Static st:AppearanceRules.MaxBorderThickness}"
+                                Value="{Binding ButtonsBorderThickness}" Style="{StaticResource ValueSliderStyle}" />
+                    </DockPanel>
+                    <DockPanel Style="{StaticResource RowStyle}">
+                        <TextBlock Text="Corners" Style="{StaticResource LabelStyle}" />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding ButtonsCornerRadius}" Style="{StaticResource ValueTextStyle}" />
+                        <Slider Minimum="0" Maximum="{x:Static st:AppearanceRules.MaxCornerRadius}"
+                                Value="{Binding ButtonsCornerRadius}" Style="{StaticResource ValueSliderStyle}" />
+                    </DockPanel>
+                    <ContentControl Content="{Binding ButtonsHalo, Mode=OneTime}" />
+                    <Button Command="{Binding ResetButtonsCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
                 </StackPanel>
             </GroupBox>
         </StackPanel>

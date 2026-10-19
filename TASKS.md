@@ -430,8 +430,9 @@ Einstellbare Werte:
 
 **Akzeptanz:** Farbe per Picker wählen → Overlay ändert sich beim Ziehen, Hex-Feld folgt, Neustart behält sie; Esc mit offenem Picker schließt nur den Picker; Auto-Lock schließt den Picker; Core unverändert.
 
-### [ ] T4.2b Settings-Fenster: Header, Crates, Buttons
+### [x] T4.2b Settings-Fenster: Header, Crates, Buttons
 **Warum:** Der Rest der Werte aus T4.1 gehört ins selbe Fenster, sonst bleibt für Kopfzeile, Kisten und Buttons der Texteditor.
+**Präzisiert in der Planung:** Reihenfolge Window → Legend → Legend layout → Crates → Header → Buttons (am Aufzug ist die Kisten-Füllung der nächste Regler nach Transparenz und Legende); jeder Halo nennt, was er umgibt (`HaloEditor.Label`), bei den Kisten „Outline around the rack numbers“; Kisten-Alpha in Prozent wie die Farben (`ColourField.Percent`), gespeichert 0–255; Kopfzeilenfarbe „Text and glyphs“ mit Hinweis auf den Rettungsweg. Präzisierung in der Planphase, ratifiziert durch Freigabe (D34-Addendum). Beim Laufzeit-Check gefunden und mit behoben: der Swatch aus T4.2c war 0 × 0 groß (der Button zentriert seinen Inhalt), jetzt gestreckt.
 - Abschnitte Header (Text colour, Halo), Crates (Fill/Edge alpha 0–255, Rack number colour, Rack number size 8–48, Halo/Umriss), Buttons (Background Alpha ≥ 1, Border colour/width, Corner radius, Halo) mit `ColourField`/`HaloEditor` aus T4.2a
 - „Reset to defaults“ pro Abschnitt, Tests nach dem Muster von T4.2a
 - README/settings-format: „still set in the file“ entfällt

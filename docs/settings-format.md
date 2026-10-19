@@ -2,9 +2,8 @@
 
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
 the legend stands and the overlay's look. Position and size are saved whenever you move the overlay; the
-settings window (the gear in the header) saves what you change there. Header, crates and buttons are
-still set by hand until the settings window gets them, and so are the hotkeys: close the overlay, edit
-the file, start the overlay again.
+settings window (the gear in the header) sets and saves the look and the legend layout. Only the hotkeys
+are still set by hand: close the overlay, edit the file, start the overlay again.
 
 ## Example with every default
 
