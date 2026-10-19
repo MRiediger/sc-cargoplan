@@ -124,7 +124,8 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     /// takes at most one.
     /// </summary>
     [RelayCommand]
-    private void MoveCrates(Gesture.MoveCrates move) => TryMove(plan => LoadPlanner.MoveCrates(plan, Ship, CrateDrop.Moves(move)));
+    private void MoveCrates(Gesture.MoveCrates move) =>
+        TryMove(plan => LoadPlanner.MoveCrates(plan, Ship, CrateDrop.Moves(Ship, move) ?? throw new PlanException(CrateDrop.OutsideRacks)));
 
     /// <summary>Puts a whole stop into a rack, run by a right drag of its legend line into the ship view (D25); like <see cref="MoveCrates"/>.</summary>
     [RelayCommand]

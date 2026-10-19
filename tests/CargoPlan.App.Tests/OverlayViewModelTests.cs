@@ -382,6 +382,34 @@ public class OverlayViewModelTests
     }
 
     [Fact]
+    public void MoveCratesCommand_moves_a_selection_keeping_its_offset()
+    {
+        var viewModel = WithPlan();
+        var gold = viewModel.Plan!.Crates.Where(c => c.Commodity == "Gold").ToArray();
+        var bow = gold.Single(c => c.Position.Length == 1);
+
+        viewModel.MoveCratesCommand.Execute(new Gesture.MoveCrates(bow, gold, "rack-1", new GridPosition(1, 1, 1)));
+
+        viewModel.Plan!.Crates.Where(c => c.Commodity == "Gold").Select(c => (c.RackId, c.Position))
+            .Should().BeEquivalentTo([("rack-1", new GridPosition(1, 1, 1)), ("rack-1", new GridPosition(0, 1, 1))]);
+        viewModel.Notices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void MoveCratesCommand_with_a_crate_beyond_every_rack_is_refused_with_a_notice()
+    {
+        var viewModel = WithPlan();
+        var original = viewModel.Plan!;
+        var gold = original.Crates.Where(c => c.Commodity == "Gold").ToArray();
+        var aft = gold.Single(c => c.Position.Length == 0);
+
+        viewModel.MoveCratesCommand.Execute(new Gesture.MoveCrates(aft, gold, "rack-1", new GridPosition(3, 1, 1)));
+
+        viewModel.Plan.Should().BeSameAs(original);
+        viewModel.Notices.Should().Equal(OverlayViewModel.MoveRefusedPrefix + CrateDrop.OutsideRacks);
+    }
+
+    [Fact]
     public void MoveStopCommand_onto_a_full_rack_is_refused_with_a_notice()
     {
         var viewModel = WithPlan();

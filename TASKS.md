@@ -337,14 +337,15 @@ T3.14 ist zweigeteilt: a = Einzelkiste auf Zelle und Legenden-Drag, b = Auswahl 
 
 **Akzeptanz:** `dotnet test` grün; Verifikation im Overlay; im Spiel am Aufzug: eine Kiste liegt anders als geplant → im Overlay dorthin ziehen, weiterladen, am Ziel entladen – stimmt das Overlay die ganze Route über mit der Platte überein?
 
-### [ ] T3.14b Mehrere Kisten auswählen und gemeinsam ziehen
+### [x] T3.14b Mehrere Kisten auswählen und gemeinsam ziehen
 **Warum:** Mehrere Kisten in einem Zug umplanen.
+**Präzisiert in der Planung:** in derselben Session wie 14a umgesetzt; `CrateMove.Shift(ship, crates, anchor, rackId, position)` in Core, Versatz in Schiffskoordinaten, Zielrack = Rack, das die neue Min-Ecke enthält, sonst null; `CrateDrop.Moves(ship, move)` liefert null → `CrateDrop.OutsideRacks` als einziger Text für Vorschau und Notice; `CrateSelection` als unveränderliche Klasse, gebunden per Referenz an die `ShipScene` (jede Plan-Änderung = neue Szene = leere Auswahl, ohne WPF getestet); `DragGesture.DraggedCrates` (angefasste Kiste zuerst) ersetzt `DraggedCrate`, `Resolve` bekommt die Auswahl; Rechtsklick auf Delivered behält die Auswahl; Geister für jede Kiste der Auswahl, bei „außerhalb“ nur der Anker rot; Auswahlkante Magenta `#FF00FF`, 2,5 px, nach den roten Kanten; Verifikation korrigiert (die zwei oberen Lorville-2er liegen mit einer Zelle Abstand in einer Reihe und passen so nicht nach Rack 2: stattdessen innerhalb von Rack 4 in die freie Reihe und die zwei Orison-Gold-1er nach Rack 2). Präzisierung in der Planphase, ratifiziert durch Freigabe (D25).
 - Auswahl = Menge von Kisten, View-Zustand gebunden an die Szene (leer nach jeder Plan-Änderung), nicht persistiert; Rechtsklick auf Kiste = umschalten, auf Leerfläche = leeren, Delivered nicht auswählbar
 - Ziehen einer ausgewählten Kiste bewegt die Auswahl, Versatz in Schiffskoordinaten (`CrateMove.Shift`), eine Kiste außerhalb aller Racks = ganzer Move ungültig
 - Auswahlkante `MissionPalette.Selection`; gesperrt leert die Auswahl
 - D25 abschließen, README-Auswahlabsatz
 
-**Akzeptanz:** `dotnet test` grün; zwei Lorville-Tungsten per Rechtsklick wählen, zusammen nach Rack 2, Versatz erhalten; Rechtsklick auf Leerfläche leert; `--locked`: nichts geht.
+**Akzeptanz:** `dotnet test` grün; die zwei oberen Lorville-Tungsten in Rack 4 per Rechtsklick wählen und zusammen in die freie Reihe daneben ziehen, Versatz erhalten; die zwei Orison-Gold zusammen nach Rack 2; Rechtsklick auf Leerfläche leert; `--locked`: nichts geht.
 
 Phase 3 ist mit T3.14 nummeriert komplett; offen bleiben nur Backlog-Punkte.
 

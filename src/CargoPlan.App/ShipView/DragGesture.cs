@@ -23,40 +23,59 @@ public abstract record Gesture
     /// <summary>Put every crate of a stop on board into a rack (D25), dragged from its legend line; the parameter of <c>MoveStopCommand</c>.</summary>
     public sealed record MoveStop(string Destination, string TargetRackId) : Gesture;
 
+    /// <summary>Add the crate to the selection, or take it out (D25).</summary>
+    public sealed record ToggleSelect(Crate Crate) : Gesture;
+
+    public sealed record ClearSelection : Gesture;
+
     public sealed record None : Gesture;
 }
 
 /// <summary>
 /// The mouse rules of the ship view as one pure table (D20, D25). Left: orbit when dragged, anywhere; a click on cargo
-/// ticks its stop. Right: dragged from a crate still on board, it moves that crate to the cell under the cursor
-/// (<see cref="DropTarget"/>); dragged from anywhere else, it pans. A stop line dragged from the legend moves the whole
-/// stop to the rack under the cursor. The control asks on every move (preview, or pan) and on release.
+/// ticks its stop. Right: a click on a crate still on board selects it or takes it out, on free or empty space clears
+/// the selection; dragged from a crate still on board, it moves that crate (with the selection, if the crate is part of
+/// it) to the cell under the cursor (<see cref="DropTarget"/>); dragged from anywhere else, it pans. A stop line dragged
+/// from the legend moves the whole stop to the rack under the cursor. The control asks on every move (preview, or pan)
+/// and on release.
 /// </summary>
 public static class DragGesture
 {
     /// <param name="down">What lay under the cursor when the button went down; null off the racks.</param>
     /// <param name="moved">The drag has left the system drag rectangle; until then a release is a click.</param>
     /// <param name="current">What lies under the cursor now, or on release.</param>
-    /// <param name="drop">The cell under the cursor for the dragged crate; null if there is none.</param>
-    public static Gesture Resolve(MouseButton button, SceneHit? down, bool moved, SceneHit? current, Drop? drop) => button switch
-    {
-        MouseButton.Left when moved => new Gesture.Orbit(),
-        MouseButton.Left when current?.Placement is { } placement => new Gesture.Click(placement.Destination),
-        MouseButton.Right when !moved => new Gesture.None(),
-        MouseButton.Right when DraggedCrate(button, down) is { } crate =>
-            drop is { } target && (target.RackId != crate.RackId || target.Position != crate.Position)
-                ? new Gesture.MoveCrates(crate, [crate], target.RackId, target.Position)
-                : new Gesture.None(),
-        MouseButton.Right => new Gesture.Pan(),
-        _ => new Gesture.None(),
-    };
+    /// <param name="drop">The cell under the cursor for the crate the drag picked up; null if there is none.</param>
+    /// <param name="selection">The crates selected in the current scene (<see cref="CrateSelection"/>).</param>
+    public static Gesture Resolve(MouseButton button, SceneHit? down, bool moved, SceneHit? current, Drop? drop, IReadOnlySet<Crate> selection) =>
+        button switch
+        {
+            MouseButton.Left when moved => new Gesture.Orbit(),
+            MouseButton.Left when current?.Placement is { } placement => new Gesture.Click(placement.Destination),
+
+            // Delivered crates are off the ship (D16): they can't be picked, and a click on them keeps the selection.
+            MouseButton.Right when !moved => down?.Crate switch
+            {
+                { Delivered: false } crate => new Gesture.ToggleSelect(crate),
+                { Delivered: true } => new Gesture.None(),
+                null => new Gesture.ClearSelection(),
+            },
+            MouseButton.Right when down?.Crate is { Delivered: false } anchor =>
+                drop is { } target && (target.RackId != anchor.RackId || target.Position != anchor.Position)
+                    ? new Gesture.MoveCrates(anchor, DraggedCrates(button, down, selection), target.RackId, target.Position)
+                    : new Gesture.None(),
+            MouseButton.Right => new Gesture.Pan(),
+            _ => new Gesture.None(),
+        };
 
     /// <summary>
-    /// The crate a press picks up: right button on a crate still on board. Delivered crates are off the ship (D16), so
-    /// a drag from them pans like one from free space.
+    /// The crates a press picks up: right button on a crate still on board takes the whole selection if the crate is
+    /// part of it, otherwise that crate alone. Delivered crates are off the ship (D16), so a drag from them pans like
+    /// one from free space. The pressed crate comes first. Empty if the press picks nothing up.
     /// </summary>
-    public static Crate? DraggedCrate(MouseButton button, SceneHit? down) =>
-        button == MouseButton.Right && down?.Crate is { Delivered: false } crate ? crate : null;
+    public static IReadOnlyList<Crate> DraggedCrates(MouseButton button, SceneHit? down, IReadOnlySet<Crate> selection) =>
+        button == MouseButton.Right && down?.Crate is { Delivered: false } crate
+            ? selection.Contains(crate) ? [crate, .. selection.Where(c => c != crate)] : [crate]
+            : [];
 
     /// <summary>A stop line dragged from the legend: onto any face of a rack it moves the stop there; anywhere else, nothing.</summary>
     public static Gesture ResolveStop(string destination, bool moved, SceneHit? current) =>

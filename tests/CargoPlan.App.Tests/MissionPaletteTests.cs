@@ -50,7 +50,8 @@ public class MissionPaletteTests
     [Fact]
     public void Delivered_free_and_violation_colours_differ_from_every_stop_colour()
     {
-        MissionPalette.Colors.Should().NotContain([MissionPalette.Delivered, MissionPalette.FreeEdge, MissionPalette.Violation]);
+        MissionPalette.Colors.Should().NotContain([MissionPalette.Delivered, MissionPalette.FreeEdge, MissionPalette.Violation, MissionPalette.Selection]);
+        MissionPalette.Selection.Should().NotBe(MissionPalette.DragTarget).And.NotBe(MissionPalette.Violation);
     }
 
     [Fact]

@@ -38,6 +38,12 @@ public static class MissionPalette
     /// </summary>
     public static Color DragTarget { get; } = Color.FromRgb(0x00, 0xFF, 0xFF);
 
+    /// <summary>
+    /// Edges of a selected crate (D25): magenta is in no stop colour (the palette's reddish purple is much paler) and is
+    /// neither the cyan of a target nor the red of a violation.
+    /// </summary>
+    public static Color Selection { get; } = Color.FromRgb(0xFF, 0x00, 0xFF);
+
     public static Color RackEdge { get; } = Color.FromArgb(0xC0, 0xE6, 0xE6, 0xE6);
 
     /// <summary>The frame around all racks (<c>Ship.Bounds</c>), faint so it stays behind the cargo.</summary>

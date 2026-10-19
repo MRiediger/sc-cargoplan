@@ -14,7 +14,8 @@ namespace CargoPlan.App.ShipView;
 /// edges, the boxes of each rack back to front, red and cyan edges, the ghost of a dragged crate, rack numbers on top.
 /// Only redraws when the scene, the size, the camera, zoom, pan or a drag's target change; no timer, no animation (D14).
 /// Mouse (rules in <see cref="DragGesture"/>): left drag turns and tilts the camera, a click on cargo ticks its stop off
-/// or back (D16), right drag on a crate puts it on the cell under the cursor (D25), right drag elsewhere pans, wheel
+/// or back (D16), right click on a crate selects it or takes it out and on free space clears the selection, right drag
+/// on a crate puts it (and the selection it belongs to) on the cell under the cursor (D25), right drag elsewhere pans, wheel
 /// zooms around the cursor, double-click on free or empty space resets, hover shows the crate. A stop line of the legend
 /// starts its drag here too (<see cref="StartStopDrag"/>). Left clicks are handled here, so the window's DragMove only
 /// works outside the view (D15).
@@ -36,6 +37,7 @@ public sealed class ShipViewControl : FrameworkElement
     private static readonly Pen RackPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 1));
     private static readonly Pen ViolationPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Violation), 2.5));
     private static readonly Pen DragTargetPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.DragTarget), 2.5));
+    private static readonly Pen SelectionPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Selection), 2.5));
     private static readonly Pen LabelOutlinePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.LabelOutline), 3) { LineJoin = PenLineJoin.Round });
     private static readonly Brush LabelBrush = Frozen(new SolidColorBrush(MissionPalette.LabelFill));
 
@@ -71,6 +73,9 @@ public sealed class ShipViewControl : FrameworkElement
 
     private ViewNavigation _navigation = ViewNavigation.Default;
     private Drag? _drag;
+
+    // Bound to the scene it was made in: a new plan empties it by itself (D25).
+    private CrateSelection _selection = CrateSelection.Empty;
 
     // The scene as the current camera sees it; null after a new scene or camera until the next use.
     private ProjectedScene? _projected;
@@ -121,6 +126,10 @@ public sealed class ShipViewControl : FrameworkElement
             {
                 ShowToolTip(null);
                 ReleaseMouseCapture();
+
+                // Locked at the lift means loading, not planning: a selection left over must not move with the next drag.
+                _selection = CrateSelection.Empty;
+                InvalidateVisual();
             }
         }
     } = true;
@@ -206,11 +215,22 @@ public sealed class ShipViewControl : FrameworkElement
             DrawEdges(dc, rack, rack.RackId == target ? DragTargetPen : ViolationPen, transform);
         }
 
-        // The ghost at the target cell: cyan where Core allows the drop, red where it refuses (D25).
+        // Selected crates: an edge only, the fill stays the stop colour (D25).
+        var selected = _selection.In(source);
+        foreach (var box in scene.Racks.SelectMany(r => r.Boxes).Where(b => b.Box.Crate is { } crate && selected.Contains(crate)))
+        {
+            foreach (var face in box.Faces)
+            {
+                dc.DrawGeometry(null, SelectionPen, Polygon(face.Polygon, transform));
+            }
+        }
+
+        // The ghosts at the target cells: cyan where Core allows the drop, red where it refuses (D25). A selection that
+        // reaches past every rack shows only the crate under the cursor, red.
         if (drag?.Gesture is Gesture.MoveCrates move)
         {
             var (fill, pen) = drag.Value.Problem is null ? (MissionPalette.DropBrush, DragTargetPen) : (MissionPalette.RefusedDropBrush, ViolationPen);
-            foreach (var crateMove in CrateDrop.Moves(move))
+            foreach (var crateMove in CrateDrop.Moves(source.Ship, move) ?? [new CrateMove(move.Anchor, move.RackId, move.Position)])
             {
                 var rack = source.Ship.Racks.Single(r => r.Id == crateMove.RackId);
                 foreach (var face in SceneProjector.ProjectBox(ShipViewBuilder.BoxOf(rack, crateMove.Position, crateMove.Crate.CrateSize), _navigation.Camera))
@@ -387,7 +407,7 @@ public sealed class ShipViewControl : FrameworkElement
         var current = HitAt(position);
         return drag.Stop is { } stop
             ? DragGesture.ResolveStop(stop, moved, current)
-            : DragGesture.Resolve(drag.Button, drag.Down, moved, current, drag.Dragged.Count > 0 ? DropAt(position, current, drag.Dragged) : null);
+            : DragGesture.Resolve(drag.Button, drag.Down, moved, current, drag.Dragged.Count > 0 ? DropAt(position, current, drag.Dragged) : null, _selection.In(Scene));
     }
 
     /// <summary>The cell under the cursor for dragged crates (<see cref="DropTarget"/>); they are air, so a crate can go a cell further.</summary>
@@ -439,8 +459,7 @@ public sealed class ShipViewControl : FrameworkElement
         ShowToolTip(null);
         var position = e.GetPosition(this);
         var down = HitAt(position);
-        Crate[] dragged = DragGesture.DraggedCrate(button, down) is { } crate ? [crate] : [];
-        _drag = new Drag(button, down, dragged, Stop: null, position, IsMoving: false, Gesture: null, Problem: null);
+        _drag = new Drag(button, down, DragGesture.DraggedCrates(button, down, _selection.In(Scene)), Stop: null, position, IsMoving: false, Gesture: null, Problem: null);
         CaptureMouse();
     }
 
@@ -467,6 +486,14 @@ public sealed class ShipViewControl : FrameworkElement
                 break;
             case Gesture.MoveStop move:
                 Run(MoveStopCommand, move);
+                break;
+            case Gesture.ToggleSelect toggle when Scene is { } scene:
+                _selection = _selection.Toggle(scene, toggle.Crate);
+                InvalidateVisual();
+                break;
+            case Gesture.ClearSelection:
+                _selection = CrateSelection.Empty;
+                InvalidateVisual();
                 break;
         }
     }
@@ -529,7 +556,7 @@ public sealed class ShipViewControl : FrameworkElement
 
     /// <param name="Down">What lay under the cursor when the button went down; with the button it decides the gesture.</param>
     /// <param name="Dragged">
-    /// The crates the drag holds, drawn faded: the one a right press picked up (<see cref="DragGesture.DraggedCrate"/>),
+    /// The crates the drag holds, drawn faded: what a right press picked up (<see cref="DragGesture.DraggedCrates"/>),
     /// or a stop's crates on board; empty for orbit and pan.
     /// </param>
     /// <param name="Stop">The destination of a legend line being dragged (<see cref="StartStopDrag"/>); null for a drag in the view.</param>

@@ -198,7 +198,7 @@ public class SceneHitTestTests
         var current = SceneHitTest.HitAt(Projected, Rack3Free);
         var drop = DropTarget.Resolve(ship.Racks.Single(r => r.Id == current!.RackId), plan.CratesForRack(current!.RackId), Default, Rack3Free);
 
-        var gesture = DragGesture.Resolve(MouseButton.Right, down, moved: true, current, drop);
+        var gesture = DragGesture.Resolve(MouseButton.Right, down, moved: true, current, drop, new HashSet<Crate>());
 
         down.Should().Be(new SceneHit("rack-1", plan.Placements.Single(p => p.Destination == "Shubin"), shubin));
         var move = gesture.Should().BeOfType<Gesture.MoveCrates>().Subject;
