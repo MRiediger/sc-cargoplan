@@ -109,7 +109,8 @@
             </ItemsControl>
 
             <!-- Legend: one line per stop, then violations (red racks) and planner hints, word for word (D7).
-                 A click on a stop line ticks it off or back (D16, addendum T3.8b: a plain line, no check box). The lines
+                 A click on a stop line ticks it off or back (D16, addendum T3.8b: a plain line, no check box); a right drag of
+                 a stop line into the ship view moves the whole stop to the rack under the cursor (D25). The lines
                  are buttons and handle their left clicks, so DragMove works on the header, the hint lines and the border,
                  not on the stop lines. -->
             <StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
@@ -134,7 +135,8 @@
                         <DataTemplate DataType="{x:Type sv:LegendEntry}">
                             <Button Command="{Binding DataContext.ToggleDeliveredCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                     CommandParameter="{Binding Destination, Mode=OneTime}"
-                                    Style="{StaticResource LegendLineButtonStyle}">
+                                    Style="{StaticResource LegendLineButtonStyle}"
+                                    MouseRightButtonDown="OnLegendRightButtonDown">
                                 <StackPanel Orientation="Horizontal">
                                     <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0"
                                                Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
@@ -184,12 +186,13 @@
                            Visibility="{Binding Scene.PaletteRepeats, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </StackPanel>
 
-            <!-- Last child fills the rest. Left drag here orbits, a click on cargo ticks its stop, right drag on cargo
-                 moves it to another rack, right drag elsewhere pans; DragMove works on header, hint lines and border. -->
+            <!-- Last child fills the rest. Left drag here orbits, a click on cargo ticks its stop, right drag on a crate
+                 puts it on the cell under the cursor, right drag elsewhere pans; DragMove works on header, hint lines and border. -->
             <sv:ShipViewControl x:Name="ShipView"
                                 Scene="{Binding Scene, Mode=OneWay}"
                                 ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}"
-                                MovePlacementCommand="{Binding MovePlacementCommand, Mode=OneTime}" />
+                                MoveCratesCommand="{Binding MoveCratesCommand, Mode=OneTime}"
+                                MoveStopCommand="{Binding MoveStopCommand, Mode=OneTime}" />
         </DockPanel>
     </Border>
 </Window>

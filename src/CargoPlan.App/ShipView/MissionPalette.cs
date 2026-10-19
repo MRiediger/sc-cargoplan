@@ -33,8 +33,8 @@ public static class MissionPalette
     public static Color Violation { get; } = Color.FromRgb(0xFF, 0x2A, 0x2A);
 
     /// <summary>
-    /// Edges of the rack a dragged placement would drop into (D20): cyan is in no stop colour and is not the red of
-    /// a violation, so the target never reads as either.
+    /// Edges of the rack a dragged stop would go into and of a dragged crate's ghost where it fits (D25): cyan is in no
+    /// stop colour and is not the red of a violation, so the target never reads as either.
     /// </summary>
     public static Color DragTarget { get; } = Color.FromRgb(0x00, 0xFF, 0xFF);
 
@@ -51,6 +51,8 @@ public static class MissionPalette
     /// <summary>Opacity of cargo fills: the game shows through a little, the colour still reads over bright clouds.</summary>
     private const byte FillAlpha = 0xD0;
 
+    private const byte GhostAlpha = 0x50;
+
     // Frozen brushes are read-only and can be shared without copying on every render.
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/advanced/freezable-objects-overview
     private static readonly SolidColorBrush[] MissionBrushes = [.. Colors.Select(c => Frozen(c with { A = FillAlpha }))];
@@ -59,6 +61,14 @@ public static class MissionPalette
 
     /// <summary>Violation messages in the legend, the same red as the rack edges.</summary>
     public static SolidColorBrush ViolationBrush { get; } = Frozen(Violation);
+
+    /// <summary>
+    /// Fill of the ghost a dragged crate shows at its target cell (D25): cyan where Core allows it, red where it refuses.
+    /// Faint, so the cargo around the target still shows; the edges carry the colour.
+    /// </summary>
+    public static SolidColorBrush DropBrush { get; } = Frozen(DragTarget with { A = GhostAlpha });
+
+    public static SolidColorBrush RefusedDropBrush { get; } = Frozen(Violation with { A = GhostAlpha });
 
     /// <summary>Legend line for <see cref="Repeats"/>.</summary>
     public static string RepeatNotice { get; } = $"More than {Colors.Count} stops: colors repeat.";

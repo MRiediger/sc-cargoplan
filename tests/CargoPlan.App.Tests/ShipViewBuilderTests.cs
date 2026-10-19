@@ -200,11 +200,11 @@ public class ShipViewBuilderTests
     }
 
     [Fact]
-    public void A_moved_placement_is_drawn_where_the_plan_stores_it()
+    public void A_moved_crate_is_drawn_where_the_plan_stores_it()
     {
-        // Orison's Gold to Rack 2 (D20 verification): Core lays it out there, the view reads the result.
-        var gold = Sample.Plan.Placements.Single(p => p.Destination == "Orison" && p.Item.Commodity == "Gold");
-        var moved = LoadPlanner.MovePlacement(Sample.Plan, Sample.Ship, gold, "rack-1");
+        // One of Orison's Gold crates onto Riker's Quartz in Rack 2 (D25): Core puts it there, the view reads the result.
+        var gold = Sample.Plan.Crates.First(c => c.Commodity == "Gold");
+        var moved = LoadPlanner.MoveCrate(Sample.Plan, Sample.Ship, gold, "rack-1", new GridPosition(0, 0, 1));
 
         var rack2 = RackNumber(Build(moved), 2);
 

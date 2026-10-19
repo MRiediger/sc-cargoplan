@@ -32,8 +32,13 @@ public static class ShipViewBuilder
             Messages(plan),
             Messages(Undelivered(plan, ship)),
             [.. violations.Select(v => v.Message)],
-            MissionPalette.Repeats(plan));
+            MissionPalette.Repeats(plan),
+            plan,
+            ship);
     }
+
+    /// <summary>A crate of <paramref name="size"/> at <paramref name="position"/> of <paramref name="rack"/>, in ship coordinates.</summary>
+    public static ShipBox BoxOf(Rack rack, GridPosition position, CrateSize size) => ToShip(rack.Origin, position, size.Dimensions);
 
     private static string[] Messages(LoadPlan plan) => [.. plan.Warnings.Select(w => w.Message).Distinct()];
 

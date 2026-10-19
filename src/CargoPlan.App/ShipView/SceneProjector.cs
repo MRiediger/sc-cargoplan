@@ -31,6 +31,10 @@ public static class SceneProjector
         return new ProjectedScene(racks, frame, extent);
     }
 
+    /// <summary>The visible faces of one box, drawn as small as a crate of the scene: the ghost of a dragged crate (D25).</summary>
+    public static IReadOnlyList<ProjectedFace> ProjectBox(ShipBox box, IsoProjection camera) =>
+        Faces(Corners(box, Inset), VisibleFaces(camera), camera);
+
     /// <summary>The faces turned towards the camera: their outward normal points against the view direction.</summary>
     public static IReadOnlyList<BoxFace> VisibleFaces(IsoProjection camera) => [.. AllFaces.Where(f => Facing(f, camera) < -EdgeOn)];
 

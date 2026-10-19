@@ -56,6 +56,21 @@ public sealed record IsoProjection
 
     public Point Project(ShipPoint point) => Project(point.X, point.Y, point.Z);
 
+    /// <summary>
+    /// A point in ship coordinates that projects to <paramref name="projected"/>; every point of the line through it
+    /// along <see cref="ViewDirection"/> does too. The inverse of <see cref="Project(double, double, double)"/> on the
+    /// two screen axes, which are unit vectors in the ship: right (−sin yaw, cos yaw, 0) and down
+    /// (cos yaw·sin pitch, sin yaw·sin pitch, −cos pitch), both at right angles to the view direction.
+    /// </summary>
+    public (double X, double Y, double Z) Unproject(Point projected)
+    {
+        var (right, down) = (projected.X / Stretch, projected.Y / Stretch);
+        return (
+            -right * _sinYaw + down * _cosYaw * _sinPitch,
+            right * _cosYaw + down * _sinYaw * _sinPitch,
+            -down * _cosPitch);
+    }
+
     /// <summary>Distance along <see cref="ViewDirection"/>, up to a constant: larger lies further back.</summary>
     public double Depth(double x, double y, double z)
     {

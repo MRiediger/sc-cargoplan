@@ -18,6 +18,8 @@ namespace CargoPlan.App.ShipView;
 /// </param>
 /// <param name="Violations">From <c>LoadPlanner.Validate</c>; these racks are red (D24).</param>
 /// <param name="PaletteRepeats">More stops than colours.</param>
+/// <param name="Plan">The plan drawn, empty without one: a drag asks Core with it where a crate may go (D25).</param>
+/// <param name="Ship">The plan's ship: racks with grid and origin for the drop target (D25).</param>
 public sealed record ShipScene(
     IReadOnlyList<SceneRack> Racks,
     ShipBox Bounds,
@@ -25,13 +27,15 @@ public sealed record ShipScene(
     IReadOnlyList<string> Hints,
     IReadOnlyList<string> ReservedHints,
     IReadOnlyList<string> Violations,
-    bool PaletteRepeats)
+    bool PaletteRepeats,
+    LoadPlan Plan,
+    Ship Ship)
 {
     /// <summary>Every stop is delivered; false without stops.</summary>
     public bool AllDelivered => Legend.Count > 0 && Legend.All(e => e.Delivered);
 }
 
-/// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MovePlacement</c>).</param>
+/// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MoveCrates</c>, <c>MoveStop</c>).</param>
 /// <param name="Boxes">
 /// The rack's crates where the plan stores them (D24), by placement and in plan order, then its free cells. Overlapping
 /// crates of a plan file edited by hand are all there.

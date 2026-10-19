@@ -11,11 +11,13 @@ namespace CargoPlan.App.ShipView;
 
 /// <summary>
 /// Paints a <see cref="ShipScene"/> as <see cref="SceneProjector"/> projects it for the current camera: frame, rack
-/// edges, the boxes of each rack back to front, red and cyan edges, rack numbers on top. Only redraws when the scene, the size, the camera, zoom or pan change; no
-/// timer, no animation (D14). Mouse (rules in <see cref="DragGesture"/>): left drag turns and tilts the camera, a click
-/// on cargo ticks its stop off or back (D16), right drag on cargo moves it to another rack (D20), right drag elsewhere
-/// pans, wheel zooms around the cursor, double-click on free or empty space resets, hover shows the crate. Left
-/// clicks are handled here, so the window's DragMove only works outside the view (D15).
+/// edges, the boxes of each rack back to front, red and cyan edges, the ghost of a dragged crate, rack numbers on top.
+/// Only redraws when the scene, the size, the camera, zoom, pan or a drag's target change; no timer, no animation (D14).
+/// Mouse (rules in <see cref="DragGesture"/>): left drag turns and tilts the camera, a click on cargo ticks its stop off
+/// or back (D16), right drag on a crate puts it on the cell under the cursor (D25), right drag elsewhere pans, wheel
+/// zooms around the cursor, double-click on free or empty space resets, hover shows the crate. A stop line of the legend
+/// starts its drag here too (<see cref="StartStopDrag"/>). Left clicks are handled here, so the window's DragMove only
+/// works outside the view (D15).
 /// </summary>
 public sealed class ShipViewControl : FrameworkElement
 {
@@ -25,7 +27,7 @@ public sealed class ShipViewControl : FrameworkElement
     private const double WheelZoomStep = 1.2;
     private const double OrbitDegreesPerPixel = 0.5;
 
-    // The dragged cargo stays in place, faded, so the rack shows what it holds without it (D20).
+    // The dragged cargo stays in place, faded, so the rack shows what it holds without it (D20, D25).
     private const double DraggedOpacity = 0.35;
 
     private static readonly Pen FramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Frame), 1) { DashStyle = DashStyles.Dash });
@@ -51,9 +53,15 @@ public sealed class ShipViewControl : FrameworkElement
         typeof(ICommand),
         typeof(ShipViewControl));
 
-    /// <summary>Runs with a <see cref="Gesture.Move"/> when cargo is dropped onto another rack.</summary>
-    public static readonly DependencyProperty MovePlacementCommandProperty = DependencyProperty.Register(
-        nameof(MovePlacementCommand),
+    /// <summary>Runs with a <see cref="Gesture.MoveCrates"/> when a crate is dropped onto a cell, also where Core refuses it.</summary>
+    public static readonly DependencyProperty MoveCratesCommandProperty = DependencyProperty.Register(
+        nameof(MoveCratesCommand),
+        typeof(ICommand),
+        typeof(ShipViewControl));
+
+    /// <summary>Runs with a <see cref="Gesture.MoveStop"/> when a legend line is dropped onto a rack.</summary>
+    public static readonly DependencyProperty MoveStopCommandProperty = DependencyProperty.Register(
+        nameof(MoveStopCommand),
         typeof(ICommand),
         typeof(ShipViewControl));
 
@@ -87,14 +95,20 @@ public sealed class ShipViewControl : FrameworkElement
         set => SetValue(ToggleStopCommandProperty, value);
     }
 
-    public ICommand? MovePlacementCommand
+    public ICommand? MoveCratesCommand
     {
-        get => (ICommand?)GetValue(MovePlacementCommandProperty);
-        set => SetValue(MovePlacementCommandProperty, value);
+        get => (ICommand?)GetValue(MoveCratesCommandProperty);
+        set => SetValue(MoveCratesCommandProperty, value);
+    }
+
+    public ICommand? MoveStopCommand
+    {
+        get => (ICommand?)GetValue(MoveStopCommandProperty);
+        set => SetValue(MoveStopCommandProperty, value);
     }
 
     /// <summary>
-    /// False while the overlay is locked: wheel, both drags and hover do nothing. Click-through alone isn't enough, the
+    /// False while the overlay is locked: wheel, drags and hover do nothing. Click-through alone isn't enough, the
     /// wheel can go to the focused window instead of the one under the cursor (D15).
     /// </summary>
     public bool IsNavigationEnabled
@@ -111,11 +125,30 @@ public sealed class ShipViewControl : FrameworkElement
         }
     } = true;
 
+    /// <summary>
+    /// Starts the right drag of a legend line (D25): the window's legend calls it on a right press, the drag runs here
+    /// with the mouse captured, and a release over a rack runs <see cref="MoveStopCommand"/>. Ignored while locked or
+    /// while another drag runs.
+    /// </summary>
+    public void StartStopDrag(string destination, MouseButtonEventArgs e)
+    {
+        if (!IsNavigationEnabled || _drag is not null || Scene is not { } scene)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        ShowToolTip(null);
+        Crate[] onBoard = [.. scene.Plan.Crates.Where(c => c.Destination == destination && !c.Delivered)];
+        _drag = new Drag(MouseButton.Right, null, onBoard, destination, e.GetPosition(this), IsMoving: false, Gesture: null, Problem: null);
+        CaptureMouse();
+    }
+
     protected override void OnRender(DrawingContext dc)
     {
         // An almost transparent background: a layered window passes clicks on fully transparent pixels through.
         dc.DrawRectangle((Brush)FindResource("HitTestBackgroundBrush"), null, new Rect(RenderSize));
-        if (Projected() is not { } scene)
+        if (Projected() is not { } scene || Scene is not { } source)
         {
             return;
         }
@@ -128,7 +161,8 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         // Only once the drag has left the drag rectangle: a right click alone changes nothing on screen.
-        var (dragged, target) = _drag is { IsMoving: true } drag ? (drag.Dragged, drag.Target) : (null, null);
+        var drag = _drag is { IsMoving: true } moving ? moving : (Drag?)null;
+        var target = (drag?.Gesture as Gesture.MoveStop)?.TargetRackId;
 
         // Plain rack edges first: cargo in front covers them like any other part of the ship (D21).
         foreach (var rack in scene.Racks.Where(r => !IsHighlighted(r, target)))
@@ -139,8 +173,7 @@ public sealed class ShipViewControl : FrameworkElement
         // Rack by rack back to front, each rack's boxes back to front: the boxes in front cover the ones behind (D21).
         foreach (var box in scene.Racks.SelectMany(r => r.Boxes))
         {
-            // Value equality: an equal twin fades too; MovePlacement moves either, they are interchangeable.
-            var fade = dragged is not null && box.Box.Placement == dragged;
+            var fade = drag is { } d && box.Box.Crate is { } crate && d.Dragged.Contains(crate);
             if (fade)
             {
                 dc.PushOpacity(DraggedOpacity);
@@ -171,6 +204,20 @@ public sealed class ShipViewControl : FrameworkElement
         foreach (var rack in scene.Racks.Where(r => IsHighlighted(r, target)))
         {
             DrawEdges(dc, rack, rack.RackId == target ? DragTargetPen : ViolationPen, transform);
+        }
+
+        // The ghost at the target cell: cyan where Core allows the drop, red where it refuses (D25).
+        if (drag?.Gesture is Gesture.MoveCrates move)
+        {
+            var (fill, pen) = drag.Value.Problem is null ? (MissionPalette.DropBrush, DragTargetPen) : (MissionPalette.RefusedDropBrush, ViolationPen);
+            foreach (var crateMove in CrateDrop.Moves(move))
+            {
+                var rack = source.Ship.Racks.Single(r => r.Id == crateMove.RackId);
+                foreach (var face in SceneProjector.ProjectBox(ShipViewBuilder.BoxOf(rack, crateMove.Position, crateMove.Crate.CrateSize), _navigation.Camera))
+                {
+                    dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
+                }
+            }
         }
 
         // Numbers last: always visible, even where a rack in front covers the labelled face.
@@ -232,10 +279,11 @@ public sealed class ShipViewControl : FrameworkElement
 
     protected override void OnLostMouseCapture(MouseEventArgs e)
     {
-        // A faded placement or a highlighted target must not stay on screen.
-        if (_drag is { IsMoving: true, Dragged: not null })
+        // Faded cargo, a highlighted target or a ghost and its reason must not stay on screen.
+        if (_drag is { IsMoving: true } drag && drag.Dragged.Count > 0)
         {
             InvalidateVisual();
+            ShowToolTip(null);
         }
 
         _drag = null;
@@ -259,9 +307,9 @@ public sealed class ShipViewControl : FrameworkElement
             }
 
             var delta = position - drag.From;
-            var gesture = DragGesture.Resolve(drag.Button, drag.Down, moved: true, HitAt(position));
-            var target = (gesture as Gesture.Move)?.TargetRackId;
-            _drag = drag with { From = position, IsMoving = true, Target = target };
+            var gesture = Resolve(drag, position, moved: true);
+            var problem = gesture is Gesture.MoveCrates move && Scene is { } source ? CrateDrop.Problem(source.Plan, source.Ship, move) : null;
+            _drag = drag with { From = position, IsMoving = true, Gesture = gesture, Problem = problem };
 
             switch (gesture)
             {
@@ -273,9 +321,11 @@ public sealed class ShipViewControl : FrameworkElement
                     Navigate(_navigation.PanBy(delta));
                     break;
 
-                // Moving cargo: the ship stands still; redraw only when the fade starts or the target changes.
-                case Gesture.Move or Gesture.None when !drag.IsMoving || target != drag.Target:
+                // Moving cargo: the ship stands still; redraw only when the fade starts or the target or its reason change.
+                case Gesture.MoveCrates or Gesture.MoveStop or Gesture.None
+                    when !drag.IsMoving || !Equals(TargetOf(gesture), TargetOf(drag.Gesture)) || problem != drag.Problem:
                     InvalidateVisual();
+                    ShowToolTip(problem);
                     break;
             }
 
@@ -285,7 +335,14 @@ public sealed class ShipViewControl : FrameworkElement
         ShowToolTip(SceneHitTest.ToolTipAt(scene, CurrentTransform(scene).Invert(position)));
     }
 
-    protected override void OnMouseLeave(MouseEventArgs e) => ShowToolTip(null);
+    protected override void OnMouseLeave(MouseEventArgs e)
+    {
+        // A drag keeps its reason on screen while the cursor leaves the view, e.g. coming from the legend.
+        if (_drag is null)
+        {
+            ShowToolTip(null);
+        }
+    }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
@@ -310,11 +367,41 @@ public sealed class ShipViewControl : FrameworkElement
         Math.Abs(end.X - start.X) <= SystemParameters.MinimumHorizontalDragDistance
         && Math.Abs(end.Y - start.Y) <= SystemParameters.MinimumVerticalDragDistance;
 
+    /// <summary>What a drag aims at, to redraw only when it changes; a new gesture record is made on every move.</summary>
+    private static object? TargetOf(Gesture? gesture) => gesture switch
+    {
+        Gesture.MoveCrates move => (move.RackId, move.Position),
+        Gesture.MoveStop move => move.TargetRackId,
+        _ => null,
+    };
+
     private string? DestinationAt(Point position) =>
         Projected() is { } scene ? SceneHitTest.DestinationAt(scene, CurrentTransform(scene).Invert(position)) : null;
 
     private SceneHit? HitAt(Point position) =>
         Projected() is { } scene ? SceneHitTest.HitAt(scene, CurrentTransform(scene).Invert(position)) : null;
+
+    /// <summary>The gesture of <paramref name="drag"/> with the cursor at <paramref name="position"/>.</summary>
+    private Gesture Resolve(Drag drag, Point position, bool moved)
+    {
+        var current = HitAt(position);
+        return drag.Stop is { } stop
+            ? DragGesture.ResolveStop(stop, moved, current)
+            : DragGesture.Resolve(drag.Button, drag.Down, moved, current, drag.Dragged.Count > 0 ? DropAt(position, current, drag.Dragged) : null);
+    }
+
+    /// <summary>The cell under the cursor for dragged crates (<see cref="DropTarget"/>); they are air, so a crate can go a cell further.</summary>
+    private Drop? DropAt(Point position, SceneHit? current, IReadOnlyList<Crate> dragged)
+    {
+        if (current is null || Scene is not { } scene || Projected() is not { } projected)
+        {
+            return null;
+        }
+
+        var rack = scene.Ship.Racks.Single(r => r.Id == current.RackId);
+        Crate[] staying = [.. scene.Plan.CratesForRack(rack.Id).Where(c => !dragged.Contains(c))];
+        return DropTarget.Resolve(rack, staying, _navigation.Camera, CurrentTransform(projected).Invert(position));
+    }
 
     private ProjectedScene? Projected() => Scene is { } scene ? _projected ??= SceneProjector.Project(scene, _navigation.Camera) : null;
 
@@ -326,7 +413,7 @@ public sealed class ShipViewControl : FrameworkElement
         _projected = null;
         ShowToolTip(null);
 
-        // A drag holds a placement of the old plan; MovePlacement would not find it in the new one.
+        // A drag holds crates of the old plan; Core would not find them in the new one.
         ReleaseMouseCapture();
     }
 
@@ -352,7 +439,8 @@ public sealed class ShipViewControl : FrameworkElement
         ShowToolTip(null);
         var position = e.GetPosition(this);
         var down = HitAt(position);
-        _drag = new Drag(button, down, DragGesture.DraggedPlacement(button, down), position, IsMoving: false, Target: null);
+        Crate[] dragged = DragGesture.DraggedCrate(button, down) is { } crate ? [crate] : [];
+        _drag = new Drag(button, down, dragged, Stop: null, position, IsMoving: false, Gesture: null, Problem: null);
         CaptureMouse();
     }
 
@@ -366,16 +454,19 @@ public sealed class ShipViewControl : FrameworkElement
         e.Handled = true;
 
         // Resolve before releasing the capture, which clears the drag; run the command after, so the new plan is drawn
-        // without the fade.
-        var gesture = DragGesture.Resolve(button, drag.Down, drag.IsMoving, HitAt(e.GetPosition(this)));
+        // without the fade. A refused drop runs too: the view model shows the reason (D24).
+        var gesture = Resolve(drag, e.GetPosition(this), drag.IsMoving);
         ReleaseMouseCapture();
         switch (gesture)
         {
             case Gesture.Click click:
                 Run(ToggleStopCommand, click.Destination);
                 break;
-            case Gesture.Move move:
-                Run(MovePlacementCommand, move);
+            case Gesture.MoveCrates move:
+                Run(MoveCratesCommand, move);
+                break;
+            case Gesture.MoveStop move:
+                Run(MoveStopCommand, move);
                 break;
         }
     }
@@ -437,9 +528,22 @@ public sealed class ShipViewControl : FrameworkElement
     }
 
     /// <param name="Down">What lay under the cursor when the button went down; with the button it decides the gesture.</param>
-    /// <param name="Dragged">The placement a right drag picked up (<see cref="DragGesture.DraggedPlacement"/>), drawn faded.</param>
+    /// <param name="Dragged">
+    /// The crates the drag holds, drawn faded: the one a right press picked up (<see cref="DragGesture.DraggedCrate"/>),
+    /// or a stop's crates on board; empty for orbit and pan.
+    /// </param>
+    /// <param name="Stop">The destination of a legend line being dragged (<see cref="StartStopDrag"/>); null for a drag in the view.</param>
     /// <param name="From">Where the button went down until the drag moves, then the last position.</param>
     /// <param name="IsMoving">Left the drag rectangle; until then, releasing the button is a click.</param>
-    /// <param name="Target">The rack <paramref name="Dragged"/> would drop into now, highlighted; null if none.</param>
-    private readonly record struct Drag(MouseButton Button, SceneHit? Down, Placement? Dragged, Point From, bool IsMoving, string? Target);
+    /// <param name="Gesture">What the drag means at the last position; drawn as ghost or cyan rack.</param>
+    /// <param name="Problem">Core's reason to refuse the drop at the last position, shown red with this as tool tip (D25).</param>
+    private readonly record struct Drag(
+        MouseButton Button,
+        SceneHit? Down,
+        IReadOnlyList<Crate> Dragged,
+        string? Stop,
+        Point From,
+        bool IsMoving,
+        Gesture? Gesture,
+        string? Problem);
 }

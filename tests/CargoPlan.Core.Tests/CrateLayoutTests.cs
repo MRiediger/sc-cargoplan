@@ -302,6 +302,42 @@ public class CrateLayoutTests
         CrateLayout.Faulty(Rack1, [outside]).Should().BeEquivalentTo([outside]);
     }
 
+    // --- NewProblem: what a move breaks, from the same findings as Problems (D25) ---
+
+    [Fact]
+    public void NewProblem_of_an_unchanged_rack_is_null_even_if_it_has_problems()
+    {
+        // A plan file edited by hand: the overlap was there before the move, the move didn't make it.
+        Crate[] crates = [At(CrateSize.Eight, 0, 0, 0), At(CrateSize.Two, 0, 0, 1, "Shubin")];
+
+        CrateLayout.NewProblem(Rack1, crates, crates).Should().BeNull();
+    }
+
+    [Fact]
+    public void NewProblem_names_a_crate_moved_onto_another()
+    {
+        var riker = At(CrateSize.Eight, 0, 0, 0);
+
+        CrateLayout.NewProblem(Rack1, [riker], [riker, At(CrateSize.Two, 0, 0, 1, "Shubin")])
+            .Should().Be("Crates of Riker and Shubin overlap in rack 1");
+    }
+
+    [Fact]
+    public void NewProblem_names_a_crate_that_loses_its_support()
+    {
+        var below = At(CrateSize.Four, 0, 0, 0);
+        var above = At(CrateSize.Four, 0, 0, 1, "Shubin");
+
+        CrateLayout.NewProblem(Rack1, [below, above], [above]).Should().Be("4 SCU crate of Titanium for Shubin in rack 1 has nothing below it");
+    }
+
+    [Fact]
+    public void NewProblem_names_a_crate_moved_outside_the_grid()
+    {
+        CrateLayout.NewProblem(Rack1, [], [At(CrateSize.Four, 3, 0, 0)])
+            .Should().Be("4 SCU crate of Titanium for Riker at [3, 0, 0] lies outside rack 1 (4×2×2)");
+    }
+
     [Fact]
     public void Fits_is_true_only_inside_the_grid()
     {

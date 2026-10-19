@@ -101,6 +101,25 @@ public static class CrateLayout
     public static IReadOnlySet<Crate> Faulty(Rack rack, IReadOnlyList<Crate> crates) =>
         Findings(rack, crates).SelectMany(f => f.Crates).ToHashSet();
 
+    /// <summary>
+    /// The first problem the crates of one rack have <paramref name="after"/> a move and didn't have
+    /// <paramref name="before"/>; null if the move breaks nothing (D25). A moved crate is a new record, so everything
+    /// it causes is new; a problem of a plan file edited by hand that the move doesn't touch stays out.
+    /// </summary>
+    public static string? NewProblem(Rack rack, IReadOnlyList<Crate> before, IReadOnlyList<Crate> after)
+    {
+        var old = Findings(rack, before).ToArray();
+        foreach (var finding in Findings(rack, after))
+        {
+            if (!old.Any(o => o.Message == finding.Message && o.Crates.SequenceEqual(finding.Crates)))
+            {
+                return finding.Message;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Every problem with the crates it names; the one place for the rules of <see cref="Problems"/> and <see cref="Faulty"/>.</summary>
     private static IEnumerable<(string Message, Crate[] Crates)> Findings(Rack rack, IReadOnlyList<Crate> crates)
     {

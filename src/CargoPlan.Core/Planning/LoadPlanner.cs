@@ -45,98 +45,52 @@ public static class LoadPlanner
     }
 
     /// <summary>
-    /// Puts one crate at a cell of a rack, as the player sees it at the cargo lift (D24). The crate must fit the grid,
-    /// find its cells free and rest on the plate or other crates; no crate may lose its support by the move. Nothing
-    /// slides down: what doesn't hold is refused, the player sees what they do. Hints are derived anew. The original
-    /// plan stays unchanged.
+    /// Puts one crate at a cell of a rack, as the player sees it at the cargo lift (D24): <see cref="MoveCrates"/> with one move.
+    /// </summary>
+    /// <exception cref="ArgumentException">See <see cref="MoveCrates"/>.</exception>
+    /// <exception cref="PlanException">See <see cref="MoveCrates"/>.</exception>
+    public static LoadPlan MoveCrate(LoadPlan plan, Ship ship, Crate crate, string targetRackId, GridPosition targetPosition) =>
+        MoveCrates(plan, ship, [new CrateMove(crate, targetRackId, targetPosition)]);
+
+    /// <summary>
+    /// Puts crates at cells of racks, all at once (D25): every crate leaves its cells, then all take their new ones, so
+    /// crates of one move may carry each other. Each must fit its grid, find its cells free and rest on the plate or
+    /// other crates; no crate may lose its support. Nothing slides down: what doesn't hold is refused with the reason
+    /// of <see cref="MoveProblem"/>, the player sees what they do. Crates keep their index, so placements keep their
+    /// order; hints are derived anew. The original plan stays unchanged.
     /// </summary>
     /// <exception cref="ArgumentException">
-    /// The plan belongs to another ship, the ship has no such rack, or the crate isn't part of the plan or is delivered.
+    /// The plan belongs to another ship, the ship has no such rack, or a crate isn't part of the plan, is delivered or
+    /// moves twice.
     /// </exception>
-    /// <exception cref="PlanException">The crate doesn't fit there, or another crate would lose its support.</exception>
-    public static LoadPlan MoveCrate(LoadPlan plan, Ship ship, Crate crate, string targetRackId, GridPosition targetPosition)
+    /// <exception cref="PlanException">A crate doesn't fit where it goes, or another crate would lose its support.</exception>
+    public static LoadPlan MoveCrates(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves)
     {
-        plan.EnsureBelongsTo(ship);
-        var target = RackOf(ship, targetRackId);
-        List<Crate> crates = [.. plan.Crates];
-        var index = crates.IndexOf(crate);
-        if (index < 0)
+        var crates = Moved(plan, ship, moves);
+        if (moves.Count == 0)
         {
-            throw new ArgumentException(
-                Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination} at {crate.Position} in '{crate.RackId}' is not part of the plan."),
-                nameof(crate));
+            return plan;
         }
 
-        EnsureOnBoard(crate.Delivered, crate.Commodity, crate.Destination, nameof(crate));
-
-        var moved = crate with { RackId = target.Id, Position = targetPosition };
-        crates[index] = moved;
-        var what = Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination}");
-        if (!target.CanHold(crate.CrateSize) || !CrateLayout.Fits(target, moved))
-        {
-            throw new PlanException(Invariant($"{what} doesn't fit rack {target.Number} ({target.Grid}) at {targetPosition}."));
-        }
-
-        Crate[] neighbours = [.. crates.Where((c, i) => i != index && c.RackId == target.Id)];
-        if (neighbours.FirstOrDefault(c => CrateLayout.Overlap(c, moved)) is { } blocking)
-        {
-            throw new PlanException(Invariant($"{what} would overlap cargo for {blocking.Destination} in rack {target.Number}."));
-        }
-
-        if (!CrateLayout.Rests(moved, neighbours))
-        {
-            throw new PlanException(Invariant($"{what} would have nothing below it in rack {target.Number}."));
-        }
-
-        // Crates of the old rack that rested on the moved one: the emptied cells are not filled by sliding, the move is refused.
-        for (var i = 0; i < crates.Count; i++)
-        {
-            var other = plan.Crates[i];
-            if (i != index && other.RackId == crate.RackId
-                && CrateLayout.Rests(other, plan.Crates.Where((c, j) => j != i && c.RackId == other.RackId))
-                && !CrateLayout.Rests(other, crates.Where((c, j) => j != i && c.RackId == other.RackId)))
-            {
-                throw new PlanException(Invariant(
-                    $"Moving the {what} would leave the {(int)other.CrateSize} SCU crate of {other.Commodity} for {other.Destination} with nothing below it."));
-            }
-        }
-
-        return WithHints(plan with { Crates = crates }, ship);
+        return Problem(plan, ship, moves, crates) is { } problem
+            ? throw new PlanException(problem)
+            : WithHints(plan with { Crates = crates }, ship);
     }
 
     /// <summary>
-    /// Moves the crates of one placement to another rack and lays them out there around the crates it holds, in the
-    /// plan's fill order (D24). The overlay's right drag (D20) until crates are dragged one by one (T3.14). The original
-    /// plan stays unchanged.
+    /// Why <see cref="MoveCrates"/> would refuse these moves, or null if it wouldn't: the first new problem of
+    /// <see cref="CrateLayout.NewProblem"/> in the racks the crates leave or enter, in rack order. One check for the
+    /// overlay's preview while dragging and for the drop, so both always agree (D25).
     /// </summary>
-    /// <exception cref="ArgumentException">
-    /// The plan belongs to another ship, the ship has no such rack, or the placement isn't part of the plan or is delivered.
-    /// </exception>
-    /// <exception cref="PlanException">The crates don't fit the free space of the target rack.</exception>
-    public static LoadPlan MovePlacement(LoadPlan plan, Ship ship, Placement placement, string targetRackId)
-    {
-        plan.EnsureBelongsTo(ship);
-        var target = RackOf(ship, targetRackId);
-        var item = placement.Item;
-        if (!plan.Placements.Contains(placement))
-        {
-            throw new ArgumentException(
-                Invariant($"Placement of {item.Scu} SCU {item.Commodity} for {placement.Destination} in '{placement.RackId}' is not part of the plan."),
-                nameof(placement));
-        }
-
-        EnsureOnBoard(placement.Delivered, item.Commodity, placement.Destination, nameof(placement));
-
-        return Relayout(plan, ship, target,
-            c => c.RackId == placement.RackId && c.Destination == placement.Destination && c.Commodity == item.Commodity
-                 && c.CrateSize == item.CrateSize && !c.Delivered,
-            Invariant($"{item.Scu} SCU {item.Commodity} for {placement.Destination}"));
-    }
+    /// <exception cref="ArgumentException">See <see cref="MoveCrates"/>.</exception>
+    public static string? MoveProblem(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves) =>
+        Problem(plan, ship, moves, Moved(plan, ship, moves));
 
     /// <summary>
     /// Moves every crate of a stop still on board to another rack and lays them out there around the crates it holds,
-    /// split parts included (D24). Delivered cargo is off the ship and stays, so a delivered stop moves nothing.
-    /// The original plan stays unchanged.
+    /// split parts included (D24); the overlay's drag of a legend line (D25). Delivered cargo is off the ship and stays,
+    /// so a delivered stop moves nothing; a stop whose crates on board all lie in the target rack already stays as it is,
+    /// it isn't laid out anew. The original plan stays unchanged.
     /// </summary>
     /// <exception cref="ArgumentException">
     /// The plan belongs to another ship, has no stop <paramref name="destination"/>, or the ship has no such rack.
@@ -145,7 +99,7 @@ public static class LoadPlanner
     public static LoadPlan MoveStop(LoadPlan plan, Ship ship, string destination, string targetRackId)
     {
         plan.EnsureBelongsTo(ship);
-        var target = RackOf(ship, targetRackId);
+        var target = RackOf(ship, targetRackId, nameof(targetRackId));
         EnsureStop(plan, destination);
 
         return Relayout(plan, ship, target, c => c.Destination == destination && !c.Delivered, destination);
@@ -188,11 +142,12 @@ public static class LoadPlanner
     /// <summary>
     /// Takes the crates <paramref name="moving"/> picks out of the plan and lays them out in <paramref name="target"/>
     /// around the crates that stay there. Moved crates keep their index in the crate list, so placements keep their order.
+    /// Nothing to move, or everything already in the target rack: the plan as it is.
     /// </summary>
     private static LoadPlan Relayout(LoadPlan plan, Ship ship, Rack target, Func<Crate, bool> moving, string what)
     {
         int[] moved = [.. Enumerable.Range(0, plan.Crates.Count).Where(i => moving(plan.Crates[i]))];
-        if (moved.Length == 0)
+        if (moved.All(i => plan.Crates[i].RackId == target.Id))
         {
             return plan;
         }
@@ -211,13 +166,69 @@ public static class LoadPlanner
         return WithHints(plan with { Crates = crates }, ship);
     }
 
+    /// <summary>
+    /// The plan's crates with every move applied at the crate's index; checks the caller's part: ship, racks, crates of
+    /// the plan, none delivered or moved twice.
+    /// </summary>
+    private static List<Crate> Moved(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves)
+    {
+        plan.EnsureBelongsTo(ship);
+        List<Crate> crates = [.. plan.Crates];
+        HashSet<int> taken = [];
+        foreach (var (crate, rackId, position) in moves)
+        {
+            RackOf(ship, rackId, nameof(moves));
+            var index = IndexOf(plan.Crates, crate);
+            if (index < 0)
+            {
+                throw new ArgumentException(
+                    Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination} at {crate.Position} in '{crate.RackId}' is not part of the plan."),
+                    nameof(moves));
+            }
+
+            if (!taken.Add(index))
+            {
+                throw new ArgumentException(
+                    Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination} at {crate.Position} moves more than once."),
+                    nameof(moves));
+            }
+
+            EnsureOnBoard(crate.Delivered, crate.Commodity, crate.Destination, nameof(moves));
+            crates[index] = crate with { RackId = rackId, Position = position };
+        }
+
+        return crates;
+    }
+
+    /// <summary>The first new problem in a rack a move leaves or enters, in rack order; null if there is none.</summary>
+    private static string? Problem(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves, List<Crate> crates)
+    {
+        HashSet<string> touched = [.. moves.SelectMany(m => (string[])[m.Crate.RackId, m.RackId])];
+        return ship.Racks.OrderBy(r => r.Index)
+            .Where(r => touched.Contains(r.Id))
+            .Select(r => CrateLayout.NewProblem(r, plan.CratesForRack(r.Id), [.. crates.Where(c => c.RackId == r.Id)]))
+            .FirstOrDefault(problem => problem is not null);
+    }
+
+    private static int IndexOf(IReadOnlyList<Crate> crates, Crate crate)
+    {
+        for (var i = 0; i < crates.Count; i++)
+        {
+            if (crates[i] == crate)
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     private static LoadPlan WithHints(LoadPlan plan, Ship ship) =>
         plan with { Warnings = Hints([.. ship.Racks.OrderBy(r => r.Index)], plan.Placements) };
 
-    // The parameter name of the public methods: all of them call it targetRackId.
-    private static Rack RackOf(Ship ship, string targetRackId) =>
-        ship.Racks.FirstOrDefault(r => r.Id == targetRackId)
-        ?? throw new ArgumentException($"Ship '{ship.Id}' has no rack '{targetRackId}'.", nameof(targetRackId));
+    private static Rack RackOf(Ship ship, string rackId, string paramName) =>
+        ship.Racks.FirstOrDefault(r => r.Id == rackId)
+        ?? throw new ArgumentException($"Ship '{ship.Id}' has no rack '{rackId}'.", paramName);
 
     private static void EnsureStop(LoadPlan plan, string destination)
     {

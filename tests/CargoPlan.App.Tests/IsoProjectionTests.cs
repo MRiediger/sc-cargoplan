@@ -145,4 +145,33 @@ public class IsoProjectionTests
         below.Depth(0, 0, 0).Should().BeLessThan(below.Depth(0, 0, 1));
         Default.Depth(0, 0, 0).Should().BeGreaterThan(Default.Depth(0, 0, 1));
     }
+
+    [Theory]
+    [InlineData(45, 35)]
+    [InlineData(45, -35)]
+    [InlineData(225, 35)]
+    [InlineData(170, -80)]
+    [InlineData(0, 0)]
+    public void Unproject_gives_a_point_that_projects_back(double yaw, double pitch)
+    {
+        var camera = new IsoProjection(yaw, pitch);
+        Point projected = new(1.7, -2.3);
+
+        var (x, y, z) = camera.Unproject(projected);
+
+        ShouldBeAt(camera.Project(x, y, z), projected.X, projected.Y);
+    }
+
+    [Fact]
+    public void Unproject_lies_on_the_view_line_of_the_projected_point()
+    {
+        // A ship point and the unprojected point differ only along the view direction.
+        var (x, y, z) = Default.Unproject(Default.Project(2, 3, 4));
+        var d = Default.ViewDirection;
+        var t = Default.Depth(2, 3, 4) - Default.Depth(x, y, z);
+
+        x.Should().BeApproximately(2 - t * d.X, 1e-9);
+        y.Should().BeApproximately(3 - t * d.Y, 1e-9);
+        z.Should().BeApproximately(4 - t * d.Z, 1e-9);
+    }
 }

@@ -28,6 +28,15 @@ public class SceneProjectorTests
     private static Point Centre(IReadOnlyList<Point> polygon) => new(polygon.Average(p => p.X), polygon.Average(p => p.Y));
 
     [Fact]
+    public void A_single_box_projects_like_the_same_box_in_a_scene()
+    {
+        // The ghost of a dragged crate (D25) has the faces and the inset of a crate the scene draws.
+        var box = SceneProjector.Project(Scene, IsoProjection.Default).Racks.SelectMany(r => r.Boxes).First(b => b.Box.Crate is not null);
+
+        SceneProjector.ProjectBox(box.Box.Bounds, IsoProjection.Default).Should().BeEquivalentTo(box.Faces, o => o.WithStrictOrdering());
+    }
+
+    [Fact]
     public void Default_view_sees_top_port_and_bow()
     {
         SceneProjector.VisibleFaces(IsoProjection.Default).Should().Equal(BoxFace.Top, BoxFace.Port, BoxFace.Bow);

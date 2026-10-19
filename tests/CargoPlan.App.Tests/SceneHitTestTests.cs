@@ -188,16 +188,20 @@ public class SceneHitTestTests
     }
 
     [Fact]
-    public void Right_drag_from_a_cell_onto_another_rack_moves_its_placement()
+    public void Right_drag_from_a_crate_onto_a_free_cell_of_another_rack_moves_it_there()
     {
-        // Shubin's crate in Rack 2 shows on the bow face, bottom layer next to the spindle.
-        var (_, plan) = TestPlans.Load();
-        var shubin = plan.Placements.Single(p => p.Destination == "Shubin");
+        // Shubin's crate in Rack 2 shows on the bow face, bottom layer next to the spindle. Rack 3's free cell at the aft
+        // end lies on Orison's Laranite, so the crate would go there (D25); whether it fits is Core's call.
+        var (ship, plan) = TestPlans.Load();
+        var shubin = plan.Crates.Single(c => c.Destination == "Shubin");
         var down = SceneHitTest.HitAt(Projected, Default.Project(4, 1.5, 0.5));
+        var current = SceneHitTest.HitAt(Projected, Rack3Free);
+        var drop = DropTarget.Resolve(ship.Racks.Single(r => r.Id == current!.RackId), plan.CratesForRack(current!.RackId), Default, Rack3Free);
 
-        var gesture = DragGesture.Resolve(MouseButton.Right, down, moved: true, SceneHitTest.HitAt(Projected, Rack1Top));
+        var gesture = DragGesture.Resolve(MouseButton.Right, down, moved: true, current, drop);
 
-        down.Should().Be(new SceneHit("rack-1", shubin, plan.Crates.Single(c => c.Destination == "Shubin")));
-        gesture.Should().Be(new Gesture.Move(shubin, "rack-0"));
+        down.Should().Be(new SceneHit("rack-1", plan.Placements.Single(p => p.Destination == "Shubin"), shubin));
+        var move = gesture.Should().BeOfType<Gesture.MoveCrates>().Subject;
+        (move.Anchor, move.RackId, move.Position).Should().Be((shubin, "rack-2", new GridPosition(0, 0, 1)));
     }
 }

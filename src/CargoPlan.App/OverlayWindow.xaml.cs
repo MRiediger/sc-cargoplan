@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
+using CargoPlan.App.ShipView;
 using CargoPlan.App.ViewModels;
 using CargoPlan.App.Win32;
 
@@ -95,6 +96,18 @@ public partial class OverlayWindow : Window
         }
 
         _editor.Activate();
+    }
+
+    /// <summary>
+    /// A right press on a stop line starts its drag into the ship view, which moves the whole stop (D25). The view runs
+    /// the drag; a delivered stop is off the ship and stays. Left on the line stays the tick (D16).
+    /// </summary>
+    private void OnLegendRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: LegendEntry { Delivered: false } entry })
+        {
+            ShipView.StartStopDrag(entry.Destination, e);
+        }
     }
 
     // Borderless window: drag on header, hint lines and border. The ship view (orbit) and the legend's stop lines

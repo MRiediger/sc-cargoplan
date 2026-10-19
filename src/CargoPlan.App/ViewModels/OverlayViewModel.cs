@@ -118,18 +118,25 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     }
 
     /// <summary>
-    /// Puts a placement into another rack, run by a right drag in the ship view (D20). Core lays its crates out there
-    /// and derives the hints anew; if they don't fit, Core refuses and the plan stays, with the reason in a notice line
-    /// (D24). Saved like every change of <see cref="Plan"/>. One record as parameter: a generated command takes at most one.
+    /// Puts crates on cells, run by a right drag in the ship view (D25). Core checks the result and derives the hints
+    /// anew; if a crate doesn't hold there, Core refuses and the plan stays, with the reason the preview showed in a
+    /// notice line (D24). Saved like every change of <see cref="Plan"/>. One record as parameter: a generated command
+    /// takes at most one.
     /// </summary>
     [RelayCommand]
-    private void MovePlacement(Gesture.Move move)
+    private void MoveCrates(Gesture.MoveCrates move) => TryMove(plan => LoadPlanner.MoveCrates(plan, Ship, CrateDrop.Moves(move)));
+
+    /// <summary>Puts a whole stop into a rack, run by a right drag of its legend line into the ship view (D25); like <see cref="MoveCrates"/>.</summary>
+    [RelayCommand]
+    private void MoveStop(Gesture.MoveStop move) => TryMove(plan => LoadPlanner.MoveStop(plan, Ship, move.Destination, move.TargetRackId));
+
+    private void TryMove(Func<LoadPlan, LoadPlan> move)
     {
-        // Unreachable without a plan: the view has no cargo to drag then.
+        // Unreachable without a plan: the view has no cargo and the legend no lines to drag then.
         var plan = Plan ?? throw new InvalidOperationException(NoPlanText);
         try
         {
-            Plan = LoadPlanner.MovePlacement(plan, Ship, move.Placement, move.TargetRackId);
+            Plan = move(plan);
             SetNotice(NoticeSource.Move, null);
         }
         catch (PlanException ex)

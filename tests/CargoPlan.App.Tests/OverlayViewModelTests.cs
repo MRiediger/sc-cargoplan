@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using CargoPlan.App.ShipView;
 using CargoPlan.App.ViewModels;
+using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
@@ -290,21 +291,25 @@ public class OverlayViewModelTests
             .Should().Contain([nameof(OverlayViewModel.Plan), nameof(OverlayViewModel.Scene)]);
     }
 
-    private static Placement Cargo(OverlayViewModel viewModel, string commodity) =>
-        viewModel.Plan!.Placements.Single(p => p.Item.Commodity == commodity);
+    // Split and shared: Orison's two Gold crates lie on top in Rack 3, Riker's Quartz on the plate of Rack 2 (aft half).
+    private static Gesture.MoveCrates GoldTo(OverlayViewModel viewModel, string rackId, int length, int width, int stack)
+    {
+        var gold = viewModel.Plan!.Crates.First(c => c.Commodity == "Gold");
+        return new Gesture.MoveCrates(gold, [gold], rackId, new GridPosition(length, width, stack));
+    }
 
     [Fact]
-    public void MovePlacementCommand_onto_a_full_rack_is_refused_with_a_notice_and_keeps_the_plan()
+    public void MoveCratesCommand_onto_a_taken_cell_is_refused_with_a_notice_and_keeps_the_plan()
     {
         var viewModel = WithPlan();
         var original = viewModel.Plan!;
 
-        // Riker's 4 SCU Quartz from rack 2 to rack 1, which Riker's 16 SCU Titanium fills: no overload any more (D24).
-        var changes = Changes(viewModel, () => viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Quartz"), "rack-0")));
+        // Rack 1 is full of Riker's Titanium: no overload (D24), the reason is the one the preview showed (D25).
+        var changes = Changes(viewModel, () => viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-0", 0, 0, 1)));
 
         viewModel.Plan.Should().BeSameAs(original);
         changes.Should().NotContain(nameof(OverlayViewModel.Plan));
-        viewModel.Notices.Should().Equal(OverlayViewModel.MoveRefusedPrefix + "4 SCU Quartz for Riker doesn't fit rack 1: 16/16 SCU taken.");
+        viewModel.Notices.Should().Equal(OverlayViewModel.MoveRefusedPrefix + "Crates of Riker and Orison overlap in rack 1");
         viewModel.Scene.Violations.Should().BeEmpty();
     }
 
@@ -312,9 +317,9 @@ public class OverlayViewModelTests
     public void A_successful_move_clears_the_refusal()
     {
         var viewModel = WithPlan();
-        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Quartz"), "rack-0"));
+        viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-0", 0, 0, 1));
 
-        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Gold"), "rack-1"));
+        viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-1", 0, 0, 1));
 
         viewModel.Notices.Should().BeEmpty();
     }
@@ -323,7 +328,7 @@ public class OverlayViewModelTests
     public void A_new_plan_clears_the_refusal()
     {
         var viewModel = WithPlan();
-        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Quartz"), "rack-0"));
+        viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-0", 0, 0, 1));
 
         viewModel.ShowPlan(TestPlans.SplitAndShared());
 
@@ -331,37 +336,37 @@ public class OverlayViewModelTests
     }
 
     [Fact]
-    public void MovePlacementCommand_with_room_derives_hints_anew_and_stays_valid()
+    public void MoveCratesCommand_puts_the_crate_on_the_cell_and_derives_hints_anew()
     {
         var viewModel = WithPlan();
 
-        // Orison's 2 SCU Gold from rack 3 to rack 2 (12 + 2 = 14/16), on top of Riker's Quartz.
-        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Gold"), "rack-1"));
+        viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-1", 0, 0, 1));
 
-        Cargo(viewModel, "Gold").RackId.Should().Be("rack-1");
+        viewModel.Plan!.CratesForRack("rack-1").Should().Contain(c => c.Commodity == "Gold" && c.Position == new GridPosition(0, 0, 1));
         viewModel.Scene.Violations.Should().BeEmpty();
         viewModel.Scene.Hints.Should().Contain(["Rack 2 shared by Riker, Shubin, Orison – identify crates by count", "Orison spans racks 2+3"]);
     }
 
     [Fact]
-    public void MovePlacementCommand_back_restores_the_plan()
+    public void MoveCratesCommand_back_restores_the_plan()
     {
         var viewModel = WithPlan();
         var original = viewModel.Plan!;
+        var gold = original.Crates.First(c => c.Commodity == "Gold");
 
-        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Gold"), "rack-1"));
-        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Gold"), "rack-2"));
+        viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-1", 0, 0, 1));
+        viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, gold.RackId, gold.Position.Length, gold.Position.Width, gold.Position.Stack));
 
         viewModel.Plan!.Crates.Should().Equal(original.Crates);
         viewModel.Plan!.Warnings.Should().Equal(original.Warnings);
     }
 
     [Fact]
-    public void MovePlacementCommand_raises_PropertyChanged_for_Plan_so_the_plan_is_saved()
+    public void MoveCratesCommand_raises_PropertyChanged_for_Plan_so_the_plan_is_saved()
     {
         var viewModel = WithPlan();
 
-        Changes(viewModel, () => viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Gold"), "rack-1")))
+        Changes(viewModel, () => viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-1", 0, 0, 1)))
             .Should().Contain([nameof(OverlayViewModel.Plan), nameof(OverlayViewModel.Scene)]);
     }
 
@@ -371,8 +376,38 @@ public class OverlayViewModelTests
         // PlanSaver saves SavedPlan(Missions, Plan); its constructor checks the crates per stop, commodity and crate size.
         var viewModel = WithPlan();
 
-        viewModel.MovePlacementCommand.Execute(new Gesture.Move(Cargo(viewModel, "Gold"), "rack-1"));
+        viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-1", 0, 0, 1));
 
         viewModel.Invoking(v => new SavedPlan(v.Missions, v.Plan!)).Should().NotThrow();
+    }
+
+    [Fact]
+    public void MoveStopCommand_onto_a_full_rack_is_refused_with_a_notice()
+    {
+        var viewModel = WithPlan();
+        var original = viewModel.Plan!;
+
+        viewModel.MoveStopCommand.Execute(new Gesture.MoveStop("Shubin", "rack-0"));
+
+        viewModel.Plan.Should().BeSameAs(original);
+        viewModel.Notices.Should().Equal(OverlayViewModel.MoveRefusedPrefix + "Shubin doesn't fit rack 1: 16/16 SCU taken.");
+    }
+
+    [Fact]
+    public void MoveStopCommand_with_room_moves_every_crate_of_the_stop()
+    {
+        // Riker's one 4 SCU crate leaves room for Shubin's 8 in Rack 1.
+        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"));
+        IReadOnlyList<MissionStop> missions =
+        [
+            new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]),
+            new("Shubin", 2, [new MissionItem("Agricium", 8, CrateSize.Eight)]),
+        ];
+        viewModel.ShowPlan(new SavedPlan(missions, LoadPlanner.Plan(viewModel.Ship, missions.ToStops())));
+
+        viewModel.MoveStopCommand.Execute(new Gesture.MoveStop("Shubin", "rack-0"));
+
+        viewModel.Plan!.Crates.Should().OnlyContain(c => c.RackId == "rack-0");
+        viewModel.Notices.Should().BeEmpty();
     }
 }

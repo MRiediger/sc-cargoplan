@@ -325,14 +325,26 @@ T3.13 ist zweigeteilt: a = Core und Planformat, b = die Ansicht liest die Positi
 
 **Akzeptanz:** `dotnet test` grün; `--plan` mit split_and_shared zeigt dasselbe Bild wie nach T3.12; im Spiel Rack 1 mit 2 × 8er laden – liegen die Kisten, wo das Overlay sie zeigt? Wenn nein, ist das der Fall für T3.14.
 
-### [ ] T3.14 Ziehen (Auswahl und Gesten)
-**Warum:** Mehrere Kisten oder ein ganzes Ziel in einem Zug umplanen. (Früher T3.11c.) Seit D24 tragen Kisten Positionen; Moves lehnen ab statt zu überladen.
-- Auswahl = Menge von Kisten (`Crate`, D24) im `ShipViewControl`, nicht persistiert; Rechtsklick auf Kiste = umschalten, auf Leerfläche = leeren
-- Rechts-Ziehen von einer Kiste = `MoveCrate` auf die Zelle unter dem Cursor (Auswahl: Re-Layout im Zielrack), von einer Legendenzeile = `MoveStop`
-- Auswahlrahmen `MissionPalette.Selection`; gesperrt leert die Auswahl
-- Entscheidungseintrag (nächste freie Nummer), README-Bedienung neu
+T3.14 ist zweigeteilt: a = Einzelkiste auf Zelle und Legenden-Drag, b = Auswahl mehrerer Kisten. Ein Plan, je eine Session.
 
-**Akzeptanz:** `dotnet test` grün; Verifikation im Overlay und im Spiel am Aufzug (Task-Text T3.11).
+### [x] T3.14a Kiste auf Zelle ziehen, Ziel aus der Legende
+**Warum:** Am Aufzug liegt eine Kiste woanders als geplant – der Spieler zieht sie im Overlay dorthin, wo sie wirklich ist, und der Plan stimmt wieder. (Früher T3.11c.) Seit D24 tragen Kisten Positionen; Moves lehnen ab statt zu überladen.
+**Präzisiert in der Planung:** Zielzelle = sichtbare Fläche wie im Hit-Test (D21): Kiste auf der Sichtlinie → oben drauf über der getroffenen Zelle, Oberkante = Rasterhöhe → kein Ziel; sonst vorderste freie Zelle, das Ziel fällt in ihrer Säule auf Kiste oder Platte (`DropTarget.Resolve(rack, crates, camera, point)`, Strahl aus `IsoProjection.Unproject`, Slab-Schnitt); die erste Regel „letzte freie Zelle entlang der Sichtlinie“ in der Umsetzung verworfen (leeres Rack wird seitlich verlassen, äußere Bodenreihe unerreichbar); gezogene Kisten sind Luft; statt `CanPlace` eine Prüfung für Vorschau und Drop: `CrateLayout.NewProblem(rack, before, after)` aus den privaten `Findings`, `LoadPlanner.MoveProblem`, `MoveCrates(plan, ship, moves)` atomar mit `CrateMove`, Ablehnungstexte = Findings-Texte; `MoveCrate` Wrapper (Parametername `moves`), `LoadPlanner.MovePlacement`, `MovePlacementCommand`, `Gesture.Move` entfernt; `MoveStop` ins Rack, das das Ziel schon ganz hält = unverändert; Drop auf die eigene Position oder ohne Ziel = keine Geste; Geisterkiste cyan/rot (`MissionPalette.DropBrush`/`RefusedDropBrush`, `SceneProjector.ProjectBox`), Grund als Tooltip, Loslassen auf Rot → Notice; `CrateDrop` als ein Weg für Vorschau und VM; `ShipScene` trägt `Plan` und `Ship`; Legenden-Drag über `ShipViewControl.StartStopDrag`, Zielrack cyan, Kisten des Ziels blass; Verifikation korrigiert (8er-Shubin ist rasterhoch, Shubin passt in split_and_shared in kein anderes Rack, Erfolgsfall Legende mit eigenem Plan). Präzisierung in der Planphase, ratifiziert durch Freigabe (D25).
+- Rechts-Ziehen einer Kiste auf die Zelle unter dem Cursor, Vorschau mit Grund
+- Rechts-Ziehen einer Legendenzeile auf ein Rack = `MoveStop`
+- Gültigkeit in Core, atomare Mehrfach-Moves
+- D25, README-Bedienung neu
+
+**Akzeptanz:** `dotnet test` grün; Verifikation im Overlay; im Spiel am Aufzug: eine Kiste liegt anders als geplant → im Overlay dorthin ziehen, weiterladen, am Ziel entladen – stimmt das Overlay die ganze Route über mit der Platte überein?
+
+### [ ] T3.14b Mehrere Kisten auswählen und gemeinsam ziehen
+**Warum:** Mehrere Kisten in einem Zug umplanen.
+- Auswahl = Menge von Kisten, View-Zustand gebunden an die Szene (leer nach jeder Plan-Änderung), nicht persistiert; Rechtsklick auf Kiste = umschalten, auf Leerfläche = leeren, Delivered nicht auswählbar
+- Ziehen einer ausgewählten Kiste bewegt die Auswahl, Versatz in Schiffskoordinaten (`CrateMove.Shift`), eine Kiste außerhalb aller Racks = ganzer Move ungültig
+- Auswahlkante `MissionPalette.Selection`; gesperrt leert die Auswahl
+- D25 abschließen, README-Auswahlabsatz
+
+**Akzeptanz:** `dotnet test` grün; zwei Lorville-Tungsten per Rechtsklick wählen, zusammen nach Rack 2, Versatz erhalten; Rechtsklick auf Leerfläche leert; `--locked`: nichts geht.
 
 Phase 3 ist mit T3.14 nummeriert komplett; offen bleiben nur Backlog-Punkte.
 
