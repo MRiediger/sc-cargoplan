@@ -268,7 +268,37 @@ T3.8 ist geteilt: a = Persistenz und leerer Zustand, b = Editor.
 
 **Akzeptanz:** `dotnet test` grün; Rack 2 der Fixture zeigt Riker-, Shubin- und freie Zellen, Ebenen bleiben beim Orbit Ebenen; Abhaken, Klick zurück und Rechts-Ziehen funktionieren auf Zellen.
 
-Phase 3 ist mit T3.10 nummeriert komplett; offen bleiben nur Backlog-Punkte.
+T3.11 ist dreigeteilt: a = Core, b = Kisten in der Ansicht, c = Auswahl und Gesten. Je ein Plan, je eine Freigabe.
+
+### [x] T3.11a Kistenweise verschieben (Core)
+**Warum:** Am Aufzug entscheidet man kistenweise („die zwei Shubin-Kisten noch auf die andere Platte“) oder zielweise.
+**Präzisiert in der Planung:** `MoveCrates(plan, ship, moves, targetRackId)` mit `(Placement Source, int Scu)`; Reihenfolge: voller Move ohne Partner bleibt am Index, Merge wächst am Index des Placements im Zielrack, nur ein Teil ohne Partner wird hinten angehängt; Merge-Schlüssel enthält `Delivered`, Zusammenlegen gilt für den ganzen Plan (auch Planer-Zwillinge aus doppelten Missionszeilen); Quellen gegen den Originalplan aufgelöst (Zwillinge = verschiedene Quellen, dieselbe Quelle zweimal = Fehler), Quelle im Zielrack = nichts; `MovePlacement` bleibt als Wrapper bis T3.11c und lehnt nun Delivered ab (UI erlaubt das seit D20 nicht); `MoveStop` eines abgelieferten Stops bewegt nichts, unbekanntes Ziel = Fehler; Test „MoveStop eines Splits“ mit split_required statt split_and_shared (dort hat Riker zwei Waren); Kistengrößen-Satz („Crate sizes are what you enter; the game only shows totals …“) in D22 und README, Editor-Default unverändert. Präzisierung in der Planphase, ratifiziert durch Freigabe (D22).
+- `LoadPlanner.MoveCrates`: teilen, im Zielrack zusammenlegen, Delivered nie Quelle, Hinweise neu, Überladung erlaubt
+- `MovePlacement` = `MoveCrates` mit vollem Umfang, eine Implementierung
+- `LoadPlanner.MoveStop`: alle nicht abgelieferten Placements eines Ziels
+- Invariante: pro Rack höchstens ein Placement je Ziel/Ware/Kistengröße; `SavedPlan`-Summen bleiben
+- D22
+
+**Akzeptanz:** `dotnet test` grün (Teilen 8→6+2, Merge, Rest 0, kein Vielfaches, mehrere Moves, Delivered, MoveStop eines Splits = ein Placement, SavedPlan nach Split + Merge); CLI-Ausgabe der Fixtures byte-gleich.
+
+### [ ] T3.11b Kisten in der Schiffsansicht
+**Warum:** Kisten verschiebt man nur, wenn man sie sieht.
+- `RackCells.Build` liefert pro Zelle eine Kisten-Id (Placement + laufende Nummer), Blockform aus `CrateSize` (D9), gelegt in Füllreihenfolge; passt ein Block nicht mehr → zellweise für dieses Placement
+- Fuge nur zwischen Kisten, Tooltip pro Kiste (`Shubin · Rack 2 · 2 SCU crate (1 of 4)`)
+- Hit-Test liefert die Kiste (`SceneHit` mit `CrateId?`); Überladung bleibt zellweise anteilig
+
+**Akzeptanz:** `dotnet test` grün (4+4+8 und 2+2+2+2 lückenlos, keine Überschneidung, Ids fortlaufend, Fallback bei 20 SCU, beide Füllrichtungen).
+
+### [ ] T3.11c Auswahl und Gesten
+**Warum:** Mehrere Kisten oder ein ganzes Ziel in einem Zug umplanen.
+- Auswahl = Menge von Kisten-Ids im `ShipViewControl`, nicht persistiert; Rechtsklick auf Kiste = umschalten, auf Leerfläche = leeren
+- Rechts-Ziehen von einer Kiste = `MoveCrates` (Auswahl, wenn die Startkiste darin ist), von einer Legendenzeile = `MoveStop`
+- Auswahlrahmen `MissionPalette.Selection`; gesperrt leert die Auswahl
+- D23, README-Bedienung neu
+
+**Akzeptanz:** `dotnet test` grün; Verifikation im Overlay und im Spiel am Aufzug (Task-Text T3.11).
+
+Phase 3 ist mit T3.11 nummeriert komplett; offen bleiben nur Backlog-Punkte.
 
 ---
 

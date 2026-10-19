@@ -56,6 +56,7 @@ Start with `--locked` to begin with the padlock locked.
 Open the editor with the **pencil** in the overlay's header (next to the padlock), or with **Open editor** while there is no plan. The pencil is hidden while the overlay is locked: planning needs a free cursor. The editor is a normal window, so it takes the focus while you type; afterwards click back into the game (or Alt+Tab).
 
 - **One row per cargo item:** Destination, Commodity, SCU, Crate size. A contract with two commodities for the same destination is two rows with the same destination.
+- **Crate sizes are what you enter; the game only shows totals.** Enter one row per crate size as you see the crates at the elevator.
 - **Stop order:** the **Stop** column shows the route. Stops follow the first row of each destination, so `Riker, Shubin, Orison, Shubin` gives stops 1, 2, 3, 2. Use **↑**/**↓** to move rows; destinations match regardless of upper or lower case.
 - **New rows:** type into the empty row at the bottom (Tab from the last cell gets you there), or press **Add**. A new row takes the crate size of the row above.
 - **Mistakes show in red:** an empty destination or commodity, an SCU that isn't a whole number, or an SCU that doesn't fill whole crates (17 SCU in 4 SCU crates). The reason is in the tool tip and below the grid; **Plan** stays off until every row is fixed. If the missions don't fit the ship, the reason shows in the same place.

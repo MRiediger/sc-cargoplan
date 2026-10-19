@@ -44,14 +44,18 @@ public static class LoadPlanner
     }
 
     /// <summary>
-    /// Moves one placement to another rack, as the player decides. Never refuses an overloaded rack or a crate
-    /// that doesn't fit; <see cref="Validate"/> reports those. The hints (shared racks, split stops) are derived
-    /// anew, so the plan never shows stale ones. The original plan stays unchanged.
+    /// Moves crates to another rack, as the player decides at the cargo lift (D22). Each move takes <c>Scu</c> of its
+    /// source in whole crates; the rest stays. In the target rack the crates join cargo of the same destination,
+    /// commodity and crate size; without such cargo all crates of a source keep its place in the plan, a part goes
+    /// behind the target rack's cargo. Afterwards every rack holds at most one placement per destination, commodity,
+    /// crate size and delivered state. Never refuses an overloaded rack or a crate that doesn't fit; <see cref="Validate"/>
+    /// reports those. The hints are derived anew, so the plan never shows stale ones. The original plan stays unchanged.
     /// </summary>
     /// <exception cref="ArgumentException">
-    /// The plan belongs to another ship, the ship has no such rack, or the placement isn't part of the plan.
+    /// The plan belongs to another ship, the ship has no such rack, a source isn't part of the plan (or is named twice)
+    /// or is delivered, or a move isn't whole crates of what its source holds.
     /// </exception>
-    public static LoadPlan MovePlacement(LoadPlan plan, Ship ship, Placement placement, string targetRackId)
+    public static LoadPlan MoveCrates(LoadPlan plan, Ship ship, IReadOnlyList<(Placement Source, int Scu)> moves, string targetRackId)
     {
         plan.EnsureBelongsTo(ship);
         if (!ship.Racks.Any(r => r.Id == targetRackId))
@@ -59,20 +63,62 @@ public static class LoadPlanner
             throw new ArgumentException($"Ship '{ship.Id}' has no rack '{targetRackId}'.", nameof(targetRackId));
         }
 
-        // Copy first, then change the copy: the original plan keeps its list.
-        List<Placement> placements = [.. plan.Placements];
-
-        // Value equality: equal placements are interchangeable, so the first one moves. Same index keeps route order.
-        var index = placements.IndexOf(placement);
-        if (index < 0)
+        // Copy first, then change the copy: the original plan keeps its list. Null = all crates of a source joined others.
+        List<Placement?> placements = [.. plan.Placements];
+        foreach (var (index, scu) in Claim(plan.Placements, moves))
         {
-            throw new ArgumentException(Invariant(
-                $"Placement of {placement.Item.Scu} SCU {placement.Item.Commodity} for {placement.Destination} in '{placement.RackId}' is not part of the plan."),
-                nameof(placement));
+            // Only the move's own source index changes, so the original placement is still the current one.
+            var source = plan.Placements[index];
+            if (source.RackId == targetRackId)
+            {
+                continue;
+            }
+
+            var rest = source.Item.Scu - scu;
+            var partner = placements.FindIndex(p => p is { Delivered: false } && p.RackId == targetRackId && SameCargo(p, source));
+            if (partner >= 0)
+            {
+                placements[partner] = Resized(placements[partner]!, placements[partner]!.Item.Scu + scu);
+                placements[index] = rest > 0 ? Resized(source, rest) : null;
+            }
+            else if (rest == 0)
+            {
+                placements[index] = source with { RackId = targetRackId };
+            }
+            else
+            {
+                placements[index] = Resized(source, rest);
+                placements.Add(Resized(source, scu) with { RackId = targetRackId });
+            }
         }
 
-        placements[index] = placement with { RackId = targetRackId };
-        return plan with { Placements = placements, Warnings = Hints([.. ship.Racks.OrderBy(r => r.Index)], placements) };
+        var merged = Merged(placements.OfType<Placement>());
+        return plan with { Placements = merged, Warnings = Hints([.. ship.Racks.OrderBy(r => r.Index)], merged) };
+    }
+
+    /// <summary>Moves one whole placement to another rack: <see cref="MoveCrates"/> with all its crates.</summary>
+    /// <exception cref="ArgumentException">See <see cref="MoveCrates"/>.</exception>
+    public static LoadPlan MovePlacement(LoadPlan plan, Ship ship, Placement placement, string targetRackId) =>
+        MoveCrates(plan, ship, [(placement, placement.Item.Scu)], targetRackId);
+
+    /// <summary>
+    /// Moves every crate of a stop still on board to another rack; split parts join there (D22). Delivered cargo is off
+    /// the ship and stays, so a delivered stop moves nothing. The original plan stays unchanged.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// The plan belongs to another ship, has no stop <paramref name="destination"/>, or the ship has no such rack.
+    /// </exception>
+    public static LoadPlan MoveStop(LoadPlan plan, Ship ship, string destination, string targetRackId)
+    {
+        plan.EnsureBelongsTo(ship);
+        if (!plan.Placements.Any(p => p.Destination == destination))
+        {
+            throw new ArgumentException($"The plan has no stop '{destination}'.", nameof(destination));
+        }
+
+        return MoveCrates(plan, ship,
+            [.. plan.Placements.Where(p => p.Destination == destination && !p.Delivered).Select(p => (Source: p, p.Item.Scu))],
+            targetRackId);
     }
 
     /// <summary>
@@ -165,6 +211,66 @@ public static class LoadPlanner
 
         return warnings;
     }
+
+    /// <summary>
+    /// Pairs each move with the index of its source in <paramref name="placements"/>. Equal placements are
+    /// interchangeable, so each move takes the first one no earlier move took.
+    /// </summary>
+    private static List<(int Index, int Scu)> Claim(IReadOnlyList<Placement> placements, IReadOnlyList<(Placement Source, int Scu)> moves)
+    {
+        List<(int Index, int Scu)> claimed = [];
+        foreach (var (source, scu) in moves)
+        {
+            var (item, crate) = (source.Item, (int)source.Item.CrateSize);
+            var index = Enumerable.Range(0, placements.Count)
+                .FirstOrDefault(i => placements[i] == source && !claimed.Exists(c => c.Index == i), -1);
+            if (index < 0)
+            {
+                throw new ArgumentException(Invariant(
+                    $"Placement of {item.Scu} SCU {item.Commodity} for {source.Destination} in '{source.RackId}' is not part of the plan or is moved twice."),
+                    nameof(moves));
+            }
+
+            if (source.Delivered)
+            {
+                throw new ArgumentException($"{item.Commodity} for {source.Destination} is delivered, its crates are off the ship.", nameof(moves));
+            }
+
+            if (scu <= 0 || scu % crate != 0)
+            {
+                throw new ArgumentException(Invariant(
+                    $"{scu} SCU of {item.Commodity} for {source.Destination} is not a whole number of its {crate} SCU crates."),
+                    nameof(moves));
+            }
+
+            if (scu > item.Scu)
+            {
+                throw new ArgumentException(Invariant(
+                    $"{scu} SCU of {item.Commodity} for {source.Destination} to move, but only {item.Scu} SCU are placed in '{source.RackId}'."),
+                    nameof(moves));
+            }
+
+            claimed.Add((index, scu));
+        }
+
+        return claimed;
+    }
+
+    /// <summary>
+    /// Joins placements of the same cargo and state in the same rack into the first one. GroupBy yields the groups in
+    /// the order of their first element, so plan order stays (learn.microsoft.com, Enumerable.GroupBy, Remarks).
+    /// </summary>
+    private static List<Placement> Merged(IEnumerable<Placement> placements) =>
+        [.. placements
+            .GroupBy(p => (p.RackId, p.Destination, p.Item.Commodity, p.Item.CrateSize, p.Delivered))
+            .Select(g => g.Skip(1).Any() ? Resized(g.First(), g.Sum(p => p.Item.Scu)) : g.First())];
+
+    private static bool SameCargo(Placement a, Placement b) =>
+        a.Destination == b.Destination && a.Item.Commodity == b.Item.Commodity && a.Item.CrateSize == b.Item.CrateSize;
+
+    /// <summary>The same cargo with another amount; <c>with</c> can't change <see cref="CargoItem.Scu"/> (get-only).</summary>
+    private static Placement Resized(Placement placement, int scu) =>
+        placement with { Item = new CargoItem(placement.Item.Commodity, scu, placement.Item.CrateSize) };
 
     private static void EnsureUnique(IReadOnlyList<Stop> stops)
     {
