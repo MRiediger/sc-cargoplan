@@ -72,7 +72,7 @@ public class PlanFileTests
         // The player's override survives a restart.
         var planned = Planned(MissionFixtures.SplitAndSharedMissions);
         var gold = planned.Plan.Crates.First(c => c.Commodity == "Gold");
-        SavedPlan saved = new(planned.Missions, LoadPlanner.MoveCrate(planned.Plan, HullA, gold, "rack-3", new GridPosition(0, 0, 1)));
+        SavedPlan saved = new(planned.Missions, LoadPlanner.MoveCrate(planned.Plan, HullA, gold, "rack-3", new GridPosition(0, 1, 1)));
 
         var loaded = RoundTrip(saved);
 

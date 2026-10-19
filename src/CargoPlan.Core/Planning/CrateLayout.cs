@@ -12,8 +12,8 @@ public static class CrateLayout
     /// <summary>
     /// Positions for crates of <paramref name="sizes"/> in the free cells of <paramref name="rack"/>, in the order of
     /// <paramref name="sizes"/>; null if one doesn't fit. Fill order: layer by layer from the plate; in a layer row by row
-    /// from the centreline outwards, so port and starboard racks are mirror images; in a row along the length from the end
-    /// <paramref name="order"/> names (D21). The largest crate goes first (ties in input order), each at the free place
+    /// in grid order (the rack's stack axis makes port and starboard racks mirror images, D26); in a row along the length
+    /// from the end <paramref name="order"/> names (D21). The largest crate goes first (ties in input order), each at the free place
     /// whose first cell comes first in fill order, on a tie whose last cell does, and only where it rests on the plate
     /// or on other crates. <paramref name="occupied"/> keep their cells, delivered ones too (D24).
     /// </summary>
@@ -178,17 +178,15 @@ public static class CrateLayout
         var grid = rack.Grid;
         var rank = new int[grid.Length, grid.Width, grid.Stack];
 
-        // y = 0 is the centreline (port is positive y, D14). OrderBy is stable: a rack centred on it starts at its min side.
-        int[] rows = [.. Enumerable.Range(0, grid.Width).OrderBy(w => Math.Abs(rack.Origin.Y + w + 0.5))];
-
+        // Grid order only (D26): the stack axis puts the grid into the ship, so port and starboard mirror without help here.
         var next = 0;
         for (var stack = 0; stack < grid.Stack; stack++)
         {
-            foreach (var width in rows)
+            for (var width = 0; width < grid.Width; width++)
             {
                 for (var step = 0; step < grid.Length; step++)
                 {
-                    // Length 0 is the aft end: x grows towards the bow.
+                    // Length 0 is the aft end: x grows towards the bow (on racks stacking along x, length runs up, D26).
                     rank[order == FillOrder.BowFirst ? grid.Length - 1 - step : step, width, stack] = next++;
                 }
             }

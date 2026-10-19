@@ -5,44 +5,77 @@ public sealed record CrateMove(Crate Crate, string RackId, GridPosition Position
 {
     /// <summary>
     /// Moves for <paramref name="crates"/> that put <paramref name="anchor"/> at <paramref name="position"/> of
-    /// <paramref name="rackId"/> and keep every other crate's offset to it in ship coordinates (origin + position, D14),
-    /// so a selection over two racks lands in the two racks at the same offset (D25). Null if a crate's min corner
-    /// lands in no rack; whether the crates fit is <c>LoadPlanner.MoveProblem</c>'s call. Order as in <paramref name="crates"/>.
+    /// <paramref name="rackId"/> and keep every other crate where it was relative to it (D25, D26): crates from one rack
+    /// keep their grid offset, so a stack stays a stack even between racks stacking in opposite directions; crates from
+    /// several racks keep their offset in ship coordinates, so they land in the racks at the same offset. Null if a crate's
+    /// min corner lands in no rack; whether the crates fit is <c>LoadPlanner.MoveProblem</c>'s call. Order as in <paramref name="crates"/>.
     /// </summary>
     /// <exception cref="ArgumentException">The ship has no rack of a crate or no rack <paramref name="rackId"/>.</exception>
     public static IReadOnlyList<CrateMove>? Shift(Ship ship, IReadOnlyList<Crate> crates, Crate anchor, string rackId, GridPosition position)
     {
-        var from = Corner(ship, anchor.RackId, anchor.Position);
-        var to = Corner(ship, rackId, position);
-        var (dx, dy, dz) = (to.X - from.X, to.Y - from.Y, to.Z - from.Z);
+        var source = RackOf(ship, anchor.RackId);
+        var target = RackOf(ship, rackId);
+        return crates.All(c => c.RackId == source.Id)
+            ? InGrid(target, crates, anchor, position)
+            : InShip(ship, source, target, crates, anchor, position);
+    }
 
+    private static List<CrateMove>? InGrid(Rack target, IReadOnlyList<Crate> crates, Crate anchor, GridPosition position)
+    {
+        var grid = target.Grid;
         List<CrateMove> moves = [];
         foreach (var crate in crates)
         {
-            var corner = Corner(ship, crate.RackId, crate.Position);
-            ShipPoint target = new(corner.X + dx, corner.Y + dy, corner.Z + dz);
-            if (ship.Racks.FirstOrDefault(r => Contains(r, target)) is not { } rack)
+            var (l, w, s) = (
+                position.Length + crate.Position.Length - anchor.Position.Length,
+                position.Width + crate.Position.Width - anchor.Position.Width,
+                position.Stack + crate.Position.Stack - anchor.Position.Stack);
+            if (l < 0 || w < 0 || s < 0 || l >= grid.Length || w >= grid.Width || s >= grid.Stack)
             {
                 return null;
             }
 
-            moves.Add(new CrateMove(crate, rack.Id, new GridPosition(target.X - rack.Origin.X, target.Y - rack.Origin.Y, target.Z - rack.Origin.Z)));
+            moves.Add(new CrateMove(crate, target.Id, new GridPosition(l, w, s)));
         }
 
         return moves;
     }
 
-    /// <summary>The min corner of a cell in ship coordinates.</summary>
-    private static ShipPoint Corner(Ship ship, string rackId, GridPosition position)
+    private static List<CrateMove>? InShip(Ship ship, Rack source, Rack target, IReadOnlyList<Crate> crates, Crate anchor, GridPosition position)
     {
-        var origin = (ship.Racks.FirstOrDefault(r => r.Id == rackId)
-            ?? throw new ArgumentException($"Ship '{ship.Id}' has no rack '{rackId}'.", nameof(rackId))).Origin;
-        return new ShipPoint(origin.X + position.Length, origin.Y + position.Width, origin.Z + position.Stack);
+        var from = source.CellBox(anchor.Position, anchor.CrateSize).Min;
+        var to = target.CellBox(position, anchor.CrateSize).Min;
+        var (dx, dy, dz) = (to.X - from.X, to.Y - from.Y, to.Z - from.Z);
+
+        List<CrateMove> moves = [];
+        foreach (var crate in crates)
+        {
+            if (crate == anchor)
+            {
+                // Named by the caller: no rack earlier in rack order may claim it if it sticks out of the target.
+                moves.Add(new CrateMove(crate, target.Id, position));
+                continue;
+            }
+
+            var box = RackOf(ship, crate.RackId).CellBox(crate.Position, crate.CrateSize);
+            ShipBox moved = new(
+                new ShipPoint(box.Min.X + dx, box.Min.Y + dy, box.Min.Z + dz),
+                new ShipPoint(box.Max.X + dx, box.Max.Y + dy, box.Max.Z + dz));
+
+            // Racks don't overlap, but a crate sticking out could have its min corner in two: rack order decides.
+            var landing = ship.Racks.Select(r => (Rack: r, Position: r.ToGrid(moved))).FirstOrDefault(l => l.Position is not null);
+            if (landing.Position is null)
+            {
+                return null;
+            }
+
+            moves.Add(new CrateMove(crate, landing.Rack.Id, landing.Position));
+        }
+
+        return moves;
     }
 
-    /// <summary>True if <paramref name="point"/> is the min corner of a cell of the rack's grid.</summary>
-    private static bool Contains(Rack rack, ShipPoint point) =>
-        point.X >= rack.Origin.X && point.X < rack.Origin.X + rack.Grid.Length
-        && point.Y >= rack.Origin.Y && point.Y < rack.Origin.Y + rack.Grid.Width
-        && point.Z >= rack.Origin.Z && point.Z < rack.Origin.Z + rack.Grid.Stack;
+    private static Rack RackOf(Ship ship, string rackId) =>
+        ship.Racks.FirstOrDefault(r => r.Id == rackId)
+        ?? throw new ArgumentException($"Ship '{ship.Id}' has no rack '{rackId}'.", nameof(rackId));
 }

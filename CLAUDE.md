@@ -34,7 +34,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 ## Domänenfakten
 
 - **MISC Hull A:** 64 SCU, Spindel mit **4 Platten à 16 SCU**, getrennt beladbar (bestätigt). Rack = Ziel ist umsetzbar.
-- **Lage:** 2 Seiten × 2 Ebenen, **nicht vorne→hinten**. Rack 1 = Backbord oben, Rack 2 = Backbord unten, Rack 3 = Steuerbord oben, Rack 4 = Steuerbord unten. Rack-Reihenfolge = Planungsreihenfolge, unabhängig von der Lage.
+- **Lage:** 2 Seiten × 2 Ebenen, **nicht vorne→hinten**. Rack 1 = Backbord oben, Rack 2 = Backbord unten, Rack 3 = Steuerbord oben, Rack 4 = Steuerbord unten. Rack-Reihenfolge = Planungsreihenfolge, unabhängig von der Lage. Gestapelt wird **von der Spindel nach außen** (Rack 1/2 `+y`, Rack 3/4 `-y`); jedes Rack nennt seine Stapelachse im Schiffs-JSON (D26).
 - **Raster:** jede Platte 4 × 2 × 2 Zellen (Length entlang der Spindel × Width quer × Stack weg von der Platte), 1 Zelle = 1 SCU = 1,25 m. Kisten in fester Orientierung: 1 = 1×1×1, 2 = 2×1×1, 4 = 2×2×1, 8 = 2×2×2, 16 = 4×2×2, 24 = 6×2×2, 32 = 4×4×2. Jede Mischung ≤ 16 passt in eine Platte, deshalb **kein 3D-Packer** (D9).
 - Später: Cutlass Black, RAFT, Community-Beiträge für weitere Schiffe.
 - Begriffe: **Rack** = Schiffsabschnitt (Platte), **Grid** = Zellraster eines Racks, **Cell** = 1 SCU, **Position** = Seite + Ebene (Spieler-Sprache), **Origin** = Min-Ecke des Racks in Schiffskoordinaten (x Bug, y Backbord, z oben, in Zellen; D14), **Stop** = Zielhafen in Reihenfolge, **Placement** = Fracht → Rack.

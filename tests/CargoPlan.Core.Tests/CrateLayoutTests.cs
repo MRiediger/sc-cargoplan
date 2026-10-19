@@ -8,7 +8,7 @@ public class CrateLayoutTests
 {
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
 
-    // Port upper (y 1..3) and starboard upper (y −2..0), mirror images across the spindle.
+    // Port upper (stacks to +y) and starboard upper (stacks to −y), mirror images across the spindle (D26).
     private static readonly Rack Rack1 = HullA.Racks[0];
     private static readonly Rack Rack3 = HullA.Racks[2];
 
@@ -98,11 +98,11 @@ public class CrateLayoutTests
     }
 
     [Fact]
-    public void Rows_next_to_the_centreline_fill_first_on_both_sides()
+    public void Rows_fill_in_grid_order_on_both_sides()
     {
-        // Rack 1's row 0 is y 1..2, Rack 3's row 1 is y −1..0: both next to the spindle, so the halves mirror.
+        // The layout knows only the grid (D26): the halves mirror through the stack axis (+y, −y), not the row order.
         Layer(Laid(Rack1, FillOrder.BowFirst, Repeat(CrateSize.One, 10)), 1).Should().OnlyContain(c => c.Width == 0);
-        Layer(Laid(Rack3, FillOrder.BowFirst, Repeat(CrateSize.One, 10)), 1).Should().OnlyContain(c => c.Width == 1);
+        Layer(Laid(Rack3, FillOrder.BowFirst, Repeat(CrateSize.One, 10)), 1).Should().OnlyContain(c => c.Width == 0);
     }
 
     [Theory]

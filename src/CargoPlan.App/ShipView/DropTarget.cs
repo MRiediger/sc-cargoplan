@@ -17,10 +17,11 @@ public static class DropTarget
 
     /// <summary>
     /// The cell under <paramref name="projected"/> (projected units) in <paramref name="rack"/>, seen as the hit test
-    /// sees it (D21): a crate on the line of sight answers even behind free outlines, and the drop goes on top of it,
-    /// over the cell the line meets; no target if the crate reaches the top of the grid. Without a crate on the line,
-    /// the frontmost free cell answers and the drop falls down its column onto the next crate or the plate, so every
-    /// cell on the plate can be reached from above. Nothing on screen slides later: whether the crate fits is Core's call.
+    /// sees it (D21): a crate on the line of sight answers even behind free outlines, and the drop goes on top of it
+    /// (one step further along the stack), over the cell the line meets; no target if the crate reaches the end of the
+    /// stack. Without a crate on the line, the frontmost free cell answers and the drop falls down its stack column onto
+    /// the next crate or the plate, so every cell on the plate can be reached from outside. "Down" is the grid's stack
+    /// axis, wherever the rack points it (D26). Nothing on screen slides later: whether the crate fits is Core's call.
     /// </summary>
     /// <param name="crates">The rack's crates, delivered ones too (they carry, D24), without the dragged ones: those are air.</param>
     /// <returns>Null if the line of sight misses the rack.</returns>
@@ -46,7 +47,7 @@ public static class DropTarget
                from w in Enumerable.Range(0, grid.Width)
                from s in Enumerable.Range(0, grid.Stack)
                let cell = new GridPosition(l, w, s)
-               let entry = Entry(rack.Origin, cell, origin, direction)
+               let entry = Entry(rack.CellBox(cell, CrateSize.One), origin, direction)
                where entry is not null
                orderby entry
                select cell,
@@ -78,11 +79,11 @@ public static class DropTarget
     /// nearer the camera); null if it misses. The slab method: the line is inside the box where it is inside all three
     /// pairs of planes. Source: Kay &amp; Kajiya (1986), Ray tracing complex scenes, SIGGRAPH '86.
     /// </summary>
-    private static double? Entry(ShipPoint rackOrigin, GridPosition cell, (double X, double Y, double Z) origin, (double X, double Y, double Z) direction)
+    private static double? Entry(ShipBox cell, (double X, double Y, double Z) origin, (double X, double Y, double Z) direction)
     {
         var (enter, leave) = (double.NegativeInfinity, double.PositiveInfinity);
         foreach (var (min, start, step) in (ReadOnlySpan<(double, double, double)>)
-            [(rackOrigin.X + cell.Length, origin.X, direction.X), (rackOrigin.Y + cell.Width, origin.Y, direction.Y), (rackOrigin.Z + cell.Stack, origin.Z, direction.Z)])
+            [(cell.Min.X, origin.X, direction.X), (cell.Min.Y, origin.Y, direction.Y), (cell.Min.Z, origin.Z, direction.Z)])
         {
             if (Math.Abs(step) < Graze)
             {

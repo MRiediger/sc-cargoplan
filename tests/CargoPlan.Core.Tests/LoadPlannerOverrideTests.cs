@@ -95,8 +95,8 @@ public class LoadPlannerOverrideTests
 
         var moved = LoadPlanner.MoveCrates(plan, HullA,
         [
-            Move(plan, "rack-2", (1, 1, 1), "rack-1", (0, 0, 1)),
-            Move(plan, "rack-2", (0, 1, 1), "rack-1", (1, 0, 1)),
+            Move(plan, "rack-2", (1, 0, 1), "rack-1", (0, 0, 1)),
+            Move(plan, "rack-2", (0, 0, 1), "rack-1", (1, 0, 1)),
         ]);
 
         moved.Warnings.Should().Equal(

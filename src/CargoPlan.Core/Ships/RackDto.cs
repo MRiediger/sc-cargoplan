@@ -1,10 +1,11 @@
 using CargoPlan.Core.Models;
 using static System.FormattableString;
+using Axis = CargoPlan.Core.Models.StackAxis;
 
 namespace CargoPlan.Core.Ships;
 
 /// <summary>File format of a rack. The index is not stored; it comes from the position in the array.</summary>
-internal sealed record RackDto(string Id, int CapacityScu, GridDto Grid, PositionDto Position, IReadOnlyList<int> Origin)
+internal sealed record RackDto(string Id, int CapacityScu, GridDto Grid, PositionDto Position, IReadOnlyList<int> Origin, string StackAxis)
 {
     private const int OriginAxes = 3;
 
@@ -19,7 +20,7 @@ internal sealed record RackDto(string Id, int CapacityScu, GridDto Grid, Positio
                 nameof(CapacityScu), CapacityScu, $"Rack '{Id}' needs a positive capacityScu.");
         }
 
-        return new Rack(Id, index, CapacityScu, Grid.ToDimensions(Id), Position.ToPosition(Id), ToOrigin());
+        return new Rack(Id, index, CapacityScu, Grid.ToDimensions(Id), Position.ToPosition(Id), ToOrigin(), ToStackAxis(index));
     }
 
     // STJ already rejects null and non-integers; only the length is left.
@@ -28,6 +29,20 @@ internal sealed record RackDto(string Id, int CapacityScu, GridDto Grid, Positio
             ? new ShipPoint(x, y, z)
             : throw new ArgumentException(
                 Invariant($"Rack '{Id}': origin needs {OriginAxes} values [x, y, z], got {Origin.Count}."), nameof(Origin));
+
+    // Plain strings and an explicit switch, like PositionDto: STJ's enum converter can't read "+y".
+    private Axis ToStackAxis(int index) => StackAxis switch
+    {
+        "+x" => Axis.PlusX,
+        "-x" => Axis.MinusX,
+        "+y" => Axis.PlusY,
+        "-y" => Axis.MinusY,
+        "+z" => Axis.PlusZ,
+        "-z" => Axis.MinusZ,
+        _ => throw new ArgumentException(
+            Invariant($"Rack {index + 1} ('{Id}'): stackAxis '{StackAxis}' is unknown, use \"+x\", \"-x\", \"+y\", \"-y\", \"+z\" or \"-z\"."),
+            nameof(StackAxis)),
+    };
 
     internal static void ThrowOnDuplicateIds(IEnumerable<string> ids, string owner)
     {

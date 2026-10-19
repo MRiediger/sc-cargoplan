@@ -58,6 +58,15 @@ public class ShipLoaderTests
             new ShipPoint(0, -2, 0));
     }
 
+    // In the game the Hull A stacks from the spindle outwards (D26).
+    [Fact]
+    public void Load_hull_a_stacks_away_from_the_spindle()
+    {
+        var ship = ShipLoader.Load("hull_a");
+
+        ship.Racks.Select(r => r.StackAxis).Should().Equal(StackAxis.PlusY, StackAxis.PlusY, StackAxis.MinusY, StackAxis.MinusY);
+    }
+
     [Fact]
     public void Load_hull_a_bounds_span_all_racks()
     {
@@ -135,11 +144,14 @@ public class ShipLoaderTests
     [InlineData("missing_property")]        // no "name"
     [InlineData("null_name")]               // "name": null
     [InlineData("id_mismatch")]             // "id" differs from file name
-    [InlineData("unsupported_schema")]      // "schemaVersion": 4
+    [InlineData("unsupported_schema")]      // "schemaVersion": 5
+    [InlineData("previous_schema")]         // "schemaVersion": 3, no "stackAxis"
     [InlineData("old_schema")]              // "schemaVersion": 2, no "origin"
     [InlineData("missing_schema")]          // no "schemaVersion"
     [InlineData("missing_origin")]          // v3 rack without "origin"
     [InlineData("origin_wrong_length")]     // "origin": [0, 0]
+    [InlineData("missing_stack_axis")]      // v4 rack without "stackAxis"
+    [InlineData("unknown_stack_axis")]      // "stackAxis": "up"
     [InlineData("overlapping_racks")]       // Hull A with Rack 4 on Rack 2's origin
     [InlineData("duplicate_rack_id")]       // two racks with the same id
     [InlineData("no_racks")]                // empty rack list
@@ -171,15 +183,17 @@ public class ShipLoaderTests
     {
         var act = () => ShipLoader.Load(TestShips, "unsupported_schema");
 
-        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 4*");
+        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 5*");
     }
 
-    [Fact]
-    public void Load_old_schema_names_version_and_expected_version()
+    [Theory]
+    [InlineData("previous_schema", "*schemaVersion 3*expected 4*")]
+    [InlineData("old_schema", "*schemaVersion 2*expected 4*")]
+    public void Load_old_schema_names_version_and_expected_version(string shipId, string expectedMessage)
     {
-        var act = () => ShipLoader.Load(TestShips, "old_schema");
+        var act = () => ShipLoader.Load(TestShips, shipId);
 
-        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 2*expected 3*");
+        act.Should().Throw<ShipFormatException>().WithMessage(expectedMessage);
     }
 
     [Fact]
@@ -226,6 +240,16 @@ public class ShipLoaderTests
         act.Should().Throw<ShipFormatException>().WithMessage("*rack-0*left*");
     }
 
+    [Theory]
+    [InlineData("missing_stack_axis", "*stackAxis*")]   // required since schemaVersion 4
+    [InlineData("unknown_stack_axis", "*Rack 1 ('rack-0')*stackAxis 'up'*\"+x\"*")]
+    public void Load_bad_stack_axis_names_the_field(string shipId, string expectedMessage)
+    {
+        var act = () => ShipLoader.Load(TestShips, shipId);
+
+        act.Should().Throw<ShipFormatException>().WithMessage(expectedMessage);
+    }
+
     [Fact]
     public void Load_unknown_property_names_the_property()
     {
@@ -239,7 +263,7 @@ public class ShipLoaderTests
     [Fact]
     public void RackDto_with_zero_capacity_throws_on_mapping()
     {
-        var dto = new RackDto("rack-0", 0, new GridDto(4, 2, 2), new PositionDto("port", "upper"), [0, 0, 0]);
+        var dto = new RackDto("rack-0", 0, new GridDto(4, 2, 2), new PositionDto("port", "upper"), [0, 0, 0], "+z");
 
         var act = () => dto.ToRack(0);
 
@@ -254,5 +278,32 @@ public class ShipLoaderTests
         var act = () => new PositionDto(side, level).ToPosition("rack-0");
 
         act.Should().Throw<ArgumentException>().WithMessage("*rack-0*");
+    }
+
+    [Theory]
+    [InlineData("+x", StackAxis.PlusX)]
+    [InlineData("-x", StackAxis.MinusX)]
+    [InlineData("+y", StackAxis.PlusY)]
+    [InlineData("-y", StackAxis.MinusY)]
+    [InlineData("+z", StackAxis.PlusZ)]
+    [InlineData("-z", StackAxis.MinusZ)]
+    public void RackDto_maps_every_stack_axis(string stackAxis, StackAxis expected)
+    {
+        var dto = new RackDto("rack-0", 16, new GridDto(4, 2, 2), new PositionDto("port", "upper"), [0, 0, 0], stackAxis);
+
+        dto.ToRack(0).StackAxis.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("+Z")]   // case-sensitive like every other field
+    [InlineData("z")]    // the sign is required
+    [InlineData("4")]    // no numbers for enums
+    public void RackDto_rejects_unknown_stack_axis(string stackAxis)
+    {
+        var dto = new RackDto("rack-0", 16, new GridDto(4, 2, 2), new PositionDto("port", "upper"), [0, 0, 0], stackAxis);
+
+        var act = () => dto.ToRack(0);
+
+        act.Should().Throw<ArgumentException>().WithMessage($"*Rack 1 ('rack-0')*'{stackAxis}'*");
     }
 }

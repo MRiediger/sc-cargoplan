@@ -13,14 +13,9 @@ public class ShipViewBuilderTests
 
     private static SceneRack RackNumber(ShipScene scene, int number) => scene.Racks.Single(r => r.Number == number);
 
-    /// <summary>The crate's box in ship coordinates: the rack's origin plus its stored position, in its shape (D14, D24).</summary>
-    private static ShipBox BoxOf(Crate crate)
-    {
-        var origin = Sample.Ship.Racks.Single(r => r.Id == crate.RackId).Origin;
-        var size = crate.CrateSize.Dimensions;
-        ShipPoint min = new(origin.X + crate.Position.Length, origin.Y + crate.Position.Width, origin.Z + crate.Position.Stack);
-        return new ShipBox(min, new ShipPoint(min.X + size.Length, min.Y + size.Width, min.Z + size.Stack));
-    }
+    /// <summary>The crate's box in ship coordinates: its stored position mapped by its rack (D24, D26; the mapping is Core's test).</summary>
+    private static ShipBox BoxOf(Crate crate) =>
+        Sample.Ship.Racks.Single(r => r.Id == crate.RackId).CellBox(crate.Position, crate.CrateSize);
 
     /// <summary>Distinct mission colours in a rack, in box order.</summary>
     private static IEnumerable<int?> MissionColours(SceneRack rack) =>
@@ -122,7 +117,7 @@ public class ShipViewBuilderTests
     [Fact]
     public void A_crate_without_support_is_marked_and_its_rack_red()
     {
-        // A plan file edited by hand: one crate on the plate, one in the top layer beside it with nothing below.
+        // A plan file edited by hand: one crate on the plate, one in the second layer beside it with nothing under it.
         Crate onPlate = new("Riker", "Titanium", CrateSize.One, "rack-0", new GridPosition(0, 0, 0));
         Crate floating = new("Riker", "Titanium", CrateSize.One, "rack-0", new GridPosition(1, 0, 1));
 
@@ -160,19 +155,19 @@ public class ShipViewBuilderTests
     }
 
     [Fact]
-    public void Rack_2_shows_the_same_boxes_as_before_T3_13b()
+    public void Rack_2_shows_its_crates_from_the_spindle_outwards()
     {
-        // Rack 2 (y 1..3, z 0..2): Shubin's 8 SCU crate takes the bow half, Riker's 2 SCU Quartz crates the aft half of
-        // the bottom layer; four free cells in the top layer. The picture T3.13a drew, now read from the plan.
+        // Rack 2 (y 1..3, z 0..2, stacking to port, D26): Shubin's 8 SCU crate takes the bow half, Riker's 2 SCU Quartz
+        // crates the aft half of the layer at the spindle, one above the other; four free cells in the outer layer.
         var rack2 = RackNumber(Build(Sample.Plan), 2);
 
         rack2.Boxes.Where(b => b.Fill != CellFill.Free).Select(b => b.Bounds).Should().BeEquivalentTo(
         [
             new ShipBox(new ShipPoint(2, 1, 0), new ShipPoint(4, 3, 2)),
             new ShipBox(new ShipPoint(0, 1, 0), new ShipPoint(2, 2, 1)),
-            new ShipBox(new ShipPoint(0, 2, 0), new ShipPoint(2, 3, 1)),
+            new ShipBox(new ShipPoint(0, 1, 1), new ShipPoint(2, 2, 2)),
         ]);
-        rack2.Boxes.Where(b => b.Fill == CellFill.Free).Should().HaveCount(4).And.OnlyContain(b => Volume(b.Bounds) == 1 && b.Bounds.Min.Z == 1);
+        rack2.Boxes.Where(b => b.Fill == CellFill.Free).Should().HaveCount(4).And.OnlyContain(b => Volume(b.Bounds) == 1 && b.Bounds.Min.Y == 2);
     }
 
     [Fact]

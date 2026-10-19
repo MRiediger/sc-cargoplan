@@ -233,7 +233,7 @@ public sealed class ShipViewControl : FrameworkElement
             foreach (var crateMove in CrateDrop.Moves(source.Ship, move) ?? [new CrateMove(move.Anchor, move.RackId, move.Position)])
             {
                 var rack = source.Ship.Racks.Single(r => r.Id == crateMove.RackId);
-                foreach (var face in SceneProjector.ProjectBox(ShipViewBuilder.BoxOf(rack, crateMove.Position, crateMove.Crate.CrateSize), _navigation.Camera))
+                foreach (var face in SceneProjector.ProjectBox(rack.CellBox(crateMove.Position, crateMove.Crate.CrateSize), _navigation.Camera))
                 {
                     dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
                 }

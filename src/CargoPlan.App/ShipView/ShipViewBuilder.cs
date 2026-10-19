@@ -7,8 +7,6 @@ namespace CargoPlan.App.ShipView;
 /// <summary>Turns a plan into a <see cref="ShipScene"/>. Reads Core's results, plans nothing.</summary>
 public static class ShipViewBuilder
 {
-    private static readonly Dimensions OneCell = new(1, 1, 1);
-
     /// <param name="violations">The result of <c>LoadPlanner.Validate</c> for this plan.</param>
     /// <exception cref="ArgumentException">The plan belongs to another ship.</exception>
     public static ShipScene Build(LoadPlan plan, Ship ship, IReadOnlyList<PlanWarning> violations)
@@ -37,9 +35,6 @@ public static class ShipViewBuilder
             ship);
     }
 
-    /// <summary>A crate of <paramref name="size"/> at <paramref name="position"/> of <paramref name="rack"/>, in ship coordinates.</summary>
-    public static ShipBox BoxOf(Rack rack, GridPosition position, CrateSize size) => ToShip(rack.Origin, position, size.Dimensions);
-
     private static string[] Messages(LoadPlan plan) => [.. plan.Warnings.Select(w => w.Message).Distinct()];
 
     /// <summary>The plan with every stop back on board; Core derives its hints (D16).</summary>
@@ -65,7 +60,7 @@ public static class ShipViewBuilder
             Crate[] own = [.. crates.Where(c => Belongs(c, placement))];
             var fill = placement.Delivered ? CellFill.Delivered : CellFill.Mission;
             return own.Select((crate, i) => new SceneBox(
-                ToShip(rack.Origin, crate.Position, crate.CrateSize.Dimensions),
+                rack.CellBox(crate.Position, crate.CrateSize),
                 fill,
                 palette[placement.Destination],
                 ToolTip(rack, placement, i + 1, own.Length),
@@ -83,7 +78,7 @@ public static class ShipViewBuilder
                from s in Enumerable.Range(0, grid.Stack)
                let cell = new GridPosition(l, w, s)
                where !taken.Contains(cell)
-               select new SceneBox(ToShip(rack.Origin, cell, OneCell), CellFill.Free, null, null, null, null, IsViolated: false),
+               select new SceneBox(rack.CellBox(cell, CrateSize.One), CellFill.Free, null, null, null, null, IsViolated: false),
         ];
 
         return new SceneRack(rack.Id, rack.Number, isViolated, rack.Bounds, [.. cargo, .. free]);
@@ -95,13 +90,6 @@ public static class ShipViewBuilder
         && crate.Commodity == placement.Item.Commodity
         && crate.CrateSize == placement.Item.CrateSize
         && crate.Delivered == placement.Delivered;
-
-    /// <summary>Grid axes are the ship axes (D14): length along x, width along y, stack along z.</summary>
-    private static ShipBox ToShip(ShipPoint origin, GridPosition position, Dimensions size)
-    {
-        ShipPoint min = new(origin.X + position.Length, origin.Y + position.Width, origin.Z + position.Stack);
-        return new ShipBox(min, new ShipPoint(min.X + size.Length, min.Y + size.Width, min.Z + size.Stack));
-    }
 
     /// <summary>
     /// "Shubin · Rack 2 · port lower · 8 SCU Agricium crate (1 of 1)": <paramref name="number"/> counts the crate within

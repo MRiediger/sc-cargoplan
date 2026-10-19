@@ -1,12 +1,12 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "overlapping_racks",
   "name": "Hull A with Rack 4 on Rack 2's origin",
   "totalScu": 64,
   "racks": [
-    { "id": "rack-0", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "upper" }, "origin": [0, 1, 3] },
-    { "id": "rack-1", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "lower" }, "origin": [0, 1, 0] },
-    { "id": "rack-2", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "starboard", "level": "upper" }, "origin": [0, -2, 3] },
-    { "id": "rack-3", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "starboard", "level": "lower" }, "origin": [0, 1, 0] }
+    { "id": "rack-0", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "upper" }, "origin": [0, 1, 3], "stackAxis": "+z" },
+    { "id": "rack-1", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "lower" }, "origin": [0, 1, 0], "stackAxis": "+z" },
+    { "id": "rack-2", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "starboard", "level": "upper" }, "origin": [0, -2, 3], "stackAxis": "+z" },
+    { "id": "rack-3", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "starboard", "level": "lower" }, "origin": [0, 1, 0], "stackAxis": "+z" }
   ]
 }

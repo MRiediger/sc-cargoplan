@@ -120,12 +120,13 @@ public class SceneProjectorTests
     [Fact]
     public void From_above_a_layer_is_drawn_over_the_one_below_and_from_below_the_other_way_round()
     {
-        // Rack 3 (Orison, y −2..0, z 3..5): two 4 SCU Laranite crates at the bow end, one above the other.
-        ShipBox lower = new(new ShipPoint(2, -2, 3), new ShipPoint(4, 0, 4));
-        ShipBox upper = new(new ShipPoint(2, -2, 4), new ShipPoint(4, 0, 5));
+        // Rack 2 (y 1..3, z 0..2, stacking to port, D26): Riker's two 2 SCU Quartz crates at the aft end next to the
+        // spindle, one above the other (width runs up on the plate).
+        ShipBox lower = new(new ShipPoint(0, 1, 0), new ShipPoint(2, 2, 1));
+        ShipBox upper = new(new ShipPoint(0, 1, 1), new ShipPoint(2, 2, 2));
 
         int IndexOf(ProjectedScene scene, ShipBox box) =>
-            scene.Racks.Single(r => r.Number == 3).Boxes.ToList().FindIndex(b => b.Box.Bounds == box);
+            scene.Racks.Single(r => r.Number == 2).Boxes.ToList().FindIndex(b => b.Box.Bounds == box);
 
         var above = SceneProjector.Project(Scene, IsoProjection.Default);
         var below = SceneProjector.Project(Scene, new IsoProjection(DefaultYaw, -DefaultPitch));

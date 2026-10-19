@@ -1,12 +1,12 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "sum_mismatch",
   "name": "Racks sum to 60",
   "totalScu": 64,
   "racks": [
-    { "id": "rack-0", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "upper" }, "origin": [0, 0, 0] },
-    { "id": "rack-1", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "upper" }, "origin": [0, 0, 3] },
-    { "id": "rack-2", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "upper" }, "origin": [0, 0, 6] },
-    { "id": "rack-3", "capacityScu": 12, "grid": { "length": 3, "width": 2, "stack": 2 }, "position": { "side": "starboard", "level": "lower" }, "origin": [0, 0, 9] }
+    { "id": "rack-0", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "upper" }, "origin": [0, 0, 0], "stackAxis": "+z" },
+    { "id": "rack-1", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "upper" }, "origin": [0, 0, 3], "stackAxis": "+z" },
+    { "id": "rack-2", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "upper" }, "origin": [0, 0, 6], "stackAxis": "+z" },
+    { "id": "rack-3", "capacityScu": 12, "grid": { "length": 3, "width": 2, "stack": 2 }, "position": { "side": "starboard", "level": "lower" }, "origin": [0, 0, 9], "stackAxis": "+z" }
   ]
 }

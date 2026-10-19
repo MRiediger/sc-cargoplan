@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 4,
+  "id": "missing_stack_axis",
+  "name": "Rack without stackAxis",
+  "totalScu": 16,
+  "racks": [
+    { "id": "rack-0", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 }, "position": { "side": "port", "level": "upper" }, "origin": [0, 1, 0] }
+  ]
+}

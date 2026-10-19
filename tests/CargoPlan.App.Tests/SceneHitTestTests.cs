@@ -7,8 +7,9 @@ using CargoPlan.Core.Planning;
 namespace CargoPlan.App.Tests;
 
 /// <summary>
-/// Points are cell centres in ship coordinates (D14), projected with the default camera. Crates lie where the planner
-/// put them, bow first: in each layer the row next to the spindle, then the outer row (<c>CrateLayout</c>, D24).
+/// Points are on cell faces in ship coordinates (D14), projected with the default camera. Crates lie where the planner
+/// put them, bow first: the layer at the spindle, lower row first, then the outer layer (<c>CrateLayout</c>, D24); port
+/// racks stack to +y, starboard racks to −y (D26).
 /// </summary>
 public class SceneHitTestTests
 {
@@ -16,10 +17,10 @@ public class SceneHitTestTests
     private static readonly ShipScene Scene = BuildSample();
     private static readonly ProjectedScene Projected = SceneProjector.Project(Scene, Default);
 
-    // Rack 1 (Riker Titanium, four 4 SCU crates), top layer: crate 3 at the bow end.
-    private static readonly Point Rack1Top = Default.Project(2.5, 1.5, 5);
+    // Rack 1 (Riker Titanium, four 4 SCU crates flat against the plate), seen from above: crate 3, outer layer, bow end.
+    private static readonly Point Rack1Top = Default.Project(2.5, 2.5, 5);
 
-    // Rack 3 (Orison 14/16), top layer, outer row, aft end: free.
+    // Rack 3 (Orison 14/16), outer layer, upper row, aft end: free.
     private static readonly Point Rack3Free = Default.Project(0.5, -1.5, 5);
 
     private static ShipScene BuildSample()
@@ -123,15 +124,15 @@ public class SceneHitTestTests
     [Fact]
     public void Cargo_seen_through_a_free_cell_of_the_same_rack_answers()
     {
-        // Rack 2's top layer is free at the aft half; through its outline Riker's Quartz crate below shows, one cell
-        // along the view direction (1, 1, 1) at (0.8, 1.8, 1).
+        // Rack 2's outer layer is free at the aft half; through its outline Riker's Quartz crates at the spindle show,
+        // one cell along the view direction (1, 1, 1) at (0.8, 1.8, 1).
         SceneHitTest.DestinationAt(Projected, Default.Project(1.8, 2.8, 2)).Should().Be("Riker");
     }
 
     [Fact]
     public void A_gap_between_crates_shows_the_crate_behind()
     {
-        // x = 2 is the joint between two top crates of Rack 1; the crate below the joint shows through.
+        // x = 2 is the joint between two crates of Rack 1 at the spindle, seen from above; the crate behind shows through.
         SceneHitTest.DestinationAt(Projected, Default.Project(2, 1.5, 5)).Should().Be("Riker");
     }
 
@@ -176,22 +177,23 @@ public class SceneHitTestTests
     }
 
     [Fact]
-    public void From_below_the_bottom_layer_answers()
+    public void From_below_the_lowest_crates_answer()
     {
-        // Rack 2's bottom layer: Shubin's Agricium at the bow half, Riker's Quartz crates at the aft half, one per row.
+        // Rack 2 from below: Shubin's Agricium at the bow half, Riker's lower Quartz crate at the aft end next to the
+        // spindle; the upper one shows its port face through the free outer cells.
         var below = new IsoProjection(IsoProjection.DefaultYaw, -IsoProjection.DefaultPitch);
         var projected = SceneProjector.Project(Scene, below);
 
         SceneHitTest.ToolTipAt(projected, below.Project(2.5, 2.5, 0)).Should().Be("Shubin · Rack 2 · port lower · 8 SCU Agricium crate (1 of 1)");
         SceneHitTest.ToolTipAt(projected, below.Project(1, 1.5, 0)).Should().Be("Riker · Rack 2 · port lower · 2 SCU Quartz crate (1 of 2)");
-        SceneHitTest.ToolTipAt(projected, below.Project(1, 2.5, 0)).Should().Be("Riker · Rack 2 · port lower · 2 SCU Quartz crate (2 of 2)");
+        SceneHitTest.ToolTipAt(projected, below.Project(1, 2, 1.5)).Should().Be("Riker · Rack 2 · port lower · 2 SCU Quartz crate (2 of 2)");
     }
 
     [Fact]
     public void Right_drag_from_a_crate_onto_a_free_cell_of_another_rack_moves_it_there()
     {
-        // Shubin's crate in Rack 2 shows on the bow face, bottom layer next to the spindle. Rack 3's free cell at the aft
-        // end lies on Orison's Laranite, so the crate would go there (D25); whether it fits is Core's call.
+        // Shubin's crate in Rack 2 shows on the bow face. Rack 3's free cell at the aft end of the outer layer lies on
+        // Orison's Laranite, so the crate would go there (D25); whether it fits is Core's call.
         var (ship, plan) = TestPlans.Load();
         var shubin = plan.Crates.Single(c => c.Destination == "Shubin");
         var down = SceneHitTest.HitAt(Projected, Default.Project(4, 1.5, 0.5));
@@ -202,6 +204,6 @@ public class SceneHitTestTests
 
         down.Should().Be(new SceneHit("rack-1", plan.Placements.Single(p => p.Destination == "Shubin"), shubin));
         var move = gesture.Should().BeOfType<Gesture.MoveCrates>().Subject;
-        (move.Anchor, move.RackId, move.Position).Should().Be((shubin, "rack-2", new GridPosition(0, 0, 1)));
+        (move.Anchor, move.RackId, move.Position).Should().Be((shubin, "rack-2", new GridPosition(0, 1, 1)));
     }
 }

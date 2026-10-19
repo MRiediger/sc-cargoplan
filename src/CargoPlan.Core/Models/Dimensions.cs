@@ -5,7 +5,7 @@ namespace CargoPlan.Core.Models;
 /// <summary>
 /// A box measured in cells (1 cell = 1 SCU = 1.25 m): <see cref="Length"/> along the rack's plate,
 /// <see cref="Width"/> across it, <see cref="Stack"/> away from it. Used for rack grids and crates.
-/// For drawing, a rack grid maps Length/Width/Stack to the ship's x/y/z (D14); the physical stacking direction is not modelled.
+/// Where these axes lie in the ship is the rack's <see cref="Rack.StackAxis"/> (D26).
 /// </summary>
 public sealed record Dimensions(int Length, int Width, int Stack)
 {

@@ -1,9 +1,9 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "id": "zero_grid_axis",
   "name": "Grid with width 0",
   "totalScu": 16,
   "racks": [
-    { "id": "rack-0", "capacityScu": 16, "grid": { "length": 4, "width": 0, "stack": 2 }, "position": { "side": "port", "level": "upper" }, "origin": [0, 0, 0] }
+    { "id": "rack-0", "capacityScu": 16, "grid": { "length": 4, "width": 0, "stack": 2 }, "position": { "side": "port", "level": "upper" }, "origin": [0, 0, 0], "stackAxis": "+z" }
   ]
 }

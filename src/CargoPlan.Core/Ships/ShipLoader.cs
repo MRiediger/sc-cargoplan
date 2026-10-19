@@ -8,7 +8,7 @@ namespace CargoPlan.Core.Ships;
 /// <summary>Loads ship layouts embedded as "ships/&lt;id&gt;.json" resources.</summary>
 public static class ShipLoader
 {
-    public const int SupportedSchemaVersion = 3;
+    public const int SupportedSchemaVersion = 4;
 
     private const string ResourcePrefix = "ships/";
     private const string ResourceSuffix = ".json";

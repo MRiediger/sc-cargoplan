@@ -347,7 +347,18 @@ T3.14 ist zweigeteilt: a = Einzelkiste auf Zelle und Legenden-Drag, b = Auswahl 
 
 **Akzeptanz:** `dotnet test` grün; die zwei oberen Lorville-Tungsten in Rack 4 per Rechtsklick wählen und zusammen in die freie Reihe daneben ziehen, Versatz erhalten; die zwei Orison-Gold zusammen nach Rack 2; Rechtsklick auf Leerfläche leert; `--locked`: nichts geht.
 
-Phase 3 ist mit T3.14 nummeriert komplett; offen bleiben nur Backlog-Punkte.
+### [x] T3.13c Stapelachse pro Rack (Schiffsschema 4)
+**Warum:** Der Hull A stapelt im Spiel von der Spindel nach außen, das Overlay zeichnete nach D14 nach oben. Die seit T3.10 offene Prüfung im Spiel (2 × 8er in Rack 1) konnte so nicht gelingen. Nachgeschoben nach T3.14, die Nummer gehört zu den Positionen (T3.13).
+**Präzisiert in der Planung:** Schiffs-JSON Schema 4, pro Rack `stackAxis` `"+x" | "-x" | "+y" | "-y" | "+z" | "-z"` (Pflicht, case-sensitiv, expliziter Switch wie `side`/`level`, unbekannt → Fehler mit Rack-Nummer und Wert), v3 abgelehnt; Achsrahmen: ±z → Length x, Width y · ±y → Length x, Width z · ±x → Length z, Width y; negative Achse zählt von der Max-Seite, `Origin` bleibt Min-Ecke; Hull A Rack 1/2 `+y`, Rack 3/4 `-y`, gleiche `Bounds`; eine Abbildung in Core: `Rack.CellBox(GridPosition, CrateSize)` und `Rack.ToGrid(ShipBox)` (kein `ToShip(GridPosition)`/`ToGrid(ShipPoint)`, niemand bräuchte sie); `Rack`-Konstruktor mit `StackAxis = PlusZ` als Default (alte Konvention, Test-Racks unverändert); `ShipViewBuilder` (ohne `ToShip`/`BoxOf`), Ghost in `ShipViewControl` und `DropTarget` nutzen `CellBox`, die Säulenregel bleibt im Grid; `CrateLayout.Ranks` füllt Width-Reihen in Grid-Reihenfolge statt „Mittellinie zuerst“ über `Origin.Y` (Steuerbord-Layouts neuer Pläne ändern sich, gespeicherte Positionen bleiben gültig, kein Planformat-Bump); `CrateMove.Shift` als Hybrid: Auswahl in einem Rack → Grid-Offsets zum Anker (Stapel bleibt Stapel, auch Backbord → Steuerbord), über mehrere Racks → Box-Translation in Schiffskoordinaten, Ziel = erstes Rack mit `ToGrid(box) != null`; Core-Tests geändert, wo die Regel sich ändert (Reihenfolge, `Shift`) und wo Steuerbord-Positionen aus dem alten Layout fest eingetragen waren (gespiegelt w → 1 − w); App-Tests auf die neue Abbildung umgerechnet, Szenarien gleich. Präzisierung in der Planphase, ratifiziert durch Freigabe (D26).
+- `StackAxis`, `Rack.CellBox`/`ToGrid`/`Bounds` aus einem Achsrahmen
+- Schiffsschema 4, `hull_a.json`, Test-Schiffe
+- `CrateLayout`-Reihenfolge, `CrateMove.Shift`-Hybrid
+- App: Builder, Ghost, `DropTarget`
+- D26, Nachträge D14/D21/D25, ship-format.md
+
+**Akzeptanz:** `dotnet test` grün; CLI-Ausgabe aller Fixtures byte-gleich; `--plan` mit split_and_shared: Hull-A-Kisten stapeln von der Spindel nach außen (Orbit von der Seite); Auswahl aus einem Rack nach Steuerbord bleibt ein Stapel. Im Spiel: 2 × 8er in Rack 1 – liegen beide nebeneinander von der Spindel weg, wie im Overlay?
+
+Phase 3 ist mit T3.14 und dem nachgeschobenen T3.13c komplett; offen bleiben nur Backlog-Punkte.
 
 ---
 
@@ -422,7 +433,7 @@ Phase 3 ist mit T3.14 nummeriert komplett; offen bleiben nur Backlog-Punkte.
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
-- Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).
+- ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26); freie Rotation pro Rack erst, wenn ein Schiff sie braucht.
 - Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).
 - Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).
 - Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).
