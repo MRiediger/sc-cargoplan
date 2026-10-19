@@ -31,14 +31,15 @@ public sealed record ShipScene(
     public bool AllDelivered => Legend.Count > 0 && Legend.All(e => e.Delivered);
 }
 
+/// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MovePlacement</c>).</param>
 /// <param name="Segments">Along x from the bow end; together they cover the rack's length.</param>
-public sealed record SceneRack(int Number, bool IsViolated, ShipBox Bounds, IReadOnlyList<SceneSegment> Segments);
+public sealed record SceneRack(string RackId, int Number, bool IsViolated, ShipBox Bounds, IReadOnlyList<SceneSegment> Segments);
 
 /// <summary>
 /// One placement's share of a rack, from x = <paramref name="Aft"/> to x = <paramref name="Bow"/> in cells.
-/// <paramref name="PaletteIndex"/>, <paramref name="ToolTip"/> and <paramref name="Destination"/> are null for free space.
+/// <paramref name="PaletteIndex"/>, <paramref name="ToolTip"/> and <paramref name="Placement"/> are null for free space.
 /// </summary>
-public sealed record SceneSegment(double Aft, double Bow, SegmentFill Fill, int? PaletteIndex, string? ToolTip, string? Destination);
+public sealed record SceneSegment(double Aft, double Bow, SegmentFill Fill, int? PaletteIndex, string? ToolTip, Placement? Placement);
 
 public enum SegmentFill
 {
@@ -71,6 +72,7 @@ public sealed record ProjectedScene(IReadOnlyList<ProjectedRack> Racks, IReadOnl
 /// <param name="Strips">The segments on those faces; together they cover the faces.</param>
 /// <param name="LabelCentre">Centre of the largest visible face, where the rack number goes.</param>
 public sealed record ProjectedRack(
+    string RackId,
     int Number,
     bool IsViolated,
     IReadOnlyList<ProjectedFace> Faces,
@@ -80,11 +82,11 @@ public sealed record ProjectedRack(
 public sealed record ProjectedFace(BoxFace Face, IReadOnlyList<Point> Polygon);
 
 /// <summary>
-/// One segment on one face. <paramref name="PaletteIndex"/>, <paramref name="ToolTip"/> and <paramref name="Destination"/>
+/// One segment on one face. <paramref name="PaletteIndex"/>, <paramref name="ToolTip"/> and <paramref name="Placement"/>
 /// are null for free space.
 /// </summary>
 public sealed record SceneStrip(
-    BoxFace Face, IReadOnlyList<Point> Polygon, SegmentFill Fill, int? PaletteIndex, string? ToolTip, string? Destination);
+    BoxFace Face, IReadOnlyList<Point> Polygon, SegmentFill Fill, int? PaletteIndex, string? ToolTip, Placement? Placement);
 
 public sealed record SceneLine(Point From, Point To);
 

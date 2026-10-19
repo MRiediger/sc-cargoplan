@@ -32,6 +32,12 @@ public static class MissionPalette
     /// <summary>Edges of a rack that <c>LoadPlanner.Validate</c> rejects (D10); only violations are red.</summary>
     public static Color Violation { get; } = Color.FromRgb(0xFF, 0x2A, 0x2A);
 
+    /// <summary>
+    /// Edges of the rack a dragged placement would drop into (D20): cyan is in no stop colour and is not the red of
+    /// a violation, so the target never reads as either.
+    /// </summary>
+    public static Color DragTarget { get; } = Color.FromRgb(0x00, 0xFF, 0xFF);
+
     public static Color RackEdge { get; } = Color.FromArgb(0xC0, 0xE6, 0xE6, 0xE6);
 
     /// <summary>The frame around all racks (<c>Ship.Bounds</c>), faint so it stays behind the cargo.</summary>

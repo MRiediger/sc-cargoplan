@@ -253,11 +253,14 @@ T3.8 ist geteilt: a = Persistenz und leerer Zustand, b = Editor.
 
 **Akzeptanz:** Durchlauf Eingabe → Plan → Overlay → Abhaken ohne Terminal; Haken überleben Neustart (auch nach Absturz/Kill, seit T3.8a). **MVP fertig.**
 
-### [ ] T3.9 Drag-and-drop-Override
+### [x] T3.9 Drag-and-drop-Override
 **Warum:** T2.3 im UI nutzbar.
+**Präzisiert in der Planung:** Rechts-Ziehen auf Fracht = Placement verschieben, Rechts-Ziehen auf freier/leerer Fläche = Pan wie bisher, Links = Orbit/Klick überall (Orbit darf nicht davon abhängen, wo man anfasst); Modifier per A3 geprüft: `Keyboard.Modifiers` (`GetKeyState`) ohne Fokus unzuverlässig, `MK_SHIFT`/`MK_CONTROL` im wParam der Maus-Nachricht wären lesbar, verworfen wegen Hook und Taste an SC; Einheit = Placement, nicht Stop (Split-Stop teilweise verschiebbar); Delivered nicht ziehbar (Rechts-Ziehen darauf pannt); Ziel = Rack unter dem Cursor beim Loslassen über alle Flächen, gleiches/kein Rack = nichts; beim Ziehen Placement halbtransparent, Zielrack mit Cyan-Kante (`MissionPalette.DragTarget` + `DragTargetPen` statt `DragTargetBrush`), kein Ghost; Überladung erlaubt, rot nach `Validate`, kein Dialog; Rückgängig = zurückziehen, kein Undo-Stack; Gestenlogik als reine Tabelle `DragGesture.Resolve(button, down, moved, current)` plus `DraggedPlacement`, vom Control bei jeder Bewegung und beim Loslassen gefragt; Szene trägt `Placement` statt `Destination` und `RackId` pro Rack, `SceneHitTest.HitAt`/`PlacementAt`; `MovePlacementCommand` mit dem Record `Gesture.Move` als einzigem Parameter (generierte Commands nehmen höchstens einen); Szenenwechsel bricht einen Drag ab; Legenden-Sprung beim Move akzeptiert; gesperrt wirkungslos über `IsNavigationEnabled`; Verifikation an die Fixture angepasst (Rack 1 hat 16 SCU Titanium, Riker-Quartz nach Rack 1 = 20/16 rot; ohne Überladung Orison-Gold nach Rack 2 = 14/16); Entscheidung als D20 statt D21 (nächste freie Nummer, D19 war der letzte Eintrag); Core unverändert. Präzisierung in der Planphase, ratifiziert durch Freigabe (D20).
 - Placement auf anderes Rack ziehen → `MovePlacement()`, `Validate()`-Warnungen, überladenes Rack rot
 
 **Akzeptanz:** Funktioniert, Überladung sichtbar.
+
+Phase 3 ist mit T3.9 nummeriert komplett; offen bleiben nur Backlog-Punkte.
 
 ---
 

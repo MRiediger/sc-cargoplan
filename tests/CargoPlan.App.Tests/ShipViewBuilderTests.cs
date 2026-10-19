@@ -159,12 +159,19 @@ public class ShipViewBuilderTests
     }
 
     [Fact]
-    public void Segments_carry_their_destination_and_free_space_none()
+    public void Segments_carry_their_placement_and_free_space_none()
     {
-        var scene = Build(LoadPlanner.SetDelivered(Sample.Plan, Sample.Ship, "Riker", true));
-        var rack2 = RackNumber(scene, 2);
+        var plan = LoadPlanner.SetDelivered(Sample.Plan, Sample.Ship, "Riker", true);
+        var rack2 = RackNumber(Build(plan), 2);
 
-        rack2.Segments.Select(s => s.Destination).Should().Equal("Riker", "Shubin", null);
+        rack2.Segments.Select(s => s.Placement).Should().Equal([.. plan.PlacementsForRack("rack-1"), null]);
+        rack2.Segments.Select(s => s.Placement?.Destination).Should().Equal("Riker", "Shubin", null);
+    }
+
+    [Fact]
+    public void Racks_carry_their_rack_id_for_a_drop()
+    {
+        Build(Sample.Plan).Racks.Select(r => r.RackId).Should().Equal(Sample.Ship.Racks.Select(r => r.Id));
     }
 
     [Fact]

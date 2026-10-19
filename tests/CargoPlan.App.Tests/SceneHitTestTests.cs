@@ -100,6 +100,36 @@ public class SceneHitTestTests
     }
 
     [Fact]
+    public void Hit_on_cargo_names_its_rack_and_placement()
+    {
+        var (_, plan) = TestPlans.Load();
+        var titanium = plan.Placements.Single(p => p.Item.Commodity == "Titanium");
+
+        SceneHitTest.HitAt(Projected, Default.Project(2, 2, 5)).Should().Be(new SceneHit("rack-0", titanium));
+        SceneHitTest.PlacementAt(Projected, Default.Project(2, 2, 5)).Should().Be(titanium);
+    }
+
+    [Fact]
+    public void Hit_on_free_space_names_the_rack_without_a_placement()
+    {
+        // A drop target: free space belongs to its rack.
+        SceneHitTest.HitAt(Projected, Default.Project(0.25, -1, 5)).Should().Be(new SceneHit("rack-2", null));
+        SceneHitTest.PlacementAt(Projected, Default.Project(0.25, -1, 5)).Should().BeNull();
+    }
+
+    [Fact]
+    public void Hit_off_the_racks_is_null()
+    {
+        SceneHitTest.HitAt(Projected, new Point(100, 100)).Should().BeNull();
+    }
+
+    [Fact]
+    public void Hit_follows_the_rack_in_front()
+    {
+        SceneHitTest.HitAt(Projected, Default.Project(2, 0, 3.5))!.RackId.Should().Be("rack-0");
+    }
+
+    [Fact]
     public void From_below_the_bottom_face_answers()
     {
         // Rack 2's bottom face, middle: Riker x 4..3, Shubin x 3..1, free x 1..0.

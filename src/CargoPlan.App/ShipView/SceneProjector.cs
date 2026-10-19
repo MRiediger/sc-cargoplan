@@ -43,7 +43,7 @@ public static class SceneProjector
                 BoxFace.Aft => [segments[^1]],
                 _ => segments,
             };
-            strips.AddRange(shown.Select(s => new SceneStrip(face, Polygon(face, box, s.Aft, s.Bow, camera), s.Fill, s.PaletteIndex, s.ToolTip, s.Destination)));
+            strips.AddRange(shown.Select(s => new SceneStrip(face, Polygon(face, box, s.Aft, s.Bow, camera), s.Fill, s.PaletteIndex, s.ToolTip, s.Placement)));
         }
 
         ProjectedFace[] faces = [.. visible.Select(f => new ProjectedFace(f, Polygon(f, box, box.Min.X, box.Max.X, camera)))];
@@ -52,7 +52,7 @@ public static class SceneProjector
         var label = faces.OrderByDescending(f => Math.Round(Area(f.Face, box) * -Facing(f.Face, camera), AreaDecimals)).First();
         Point centre = new(label.Polygon.Average(p => p.X), label.Polygon.Average(p => p.Y));
 
-        return new ProjectedRack(rack.Number, rack.IsViolated, faces, strips, centre);
+        return new ProjectedRack(rack.RackId, rack.Number, rack.IsViolated, faces, strips, centre);
     }
 
     /// <summary>The face's outward normal · view direction: negative when it faces the camera.</summary>

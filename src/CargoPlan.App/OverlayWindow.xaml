@@ -184,11 +184,12 @@
                            Visibility="{Binding Scene.PaletteRepeats, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </StackPanel>
 
-            <!-- Last child fills the rest. Left drag here orbits, a click on cargo ticks its stop, right drag pans;
-                 DragMove works on header, hint lines and border. -->
+            <!-- Last child fills the rest. Left drag here orbits, a click on cargo ticks its stop, right drag on cargo
+                 moves it to another rack, right drag elsewhere pans; DragMove works on header, hint lines and border. -->
             <sv:ShipViewControl x:Name="ShipView"
                                 Scene="{Binding Scene, Mode=OneWay}"
-                                ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}" />
+                                ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}"
+                                MovePlacementCommand="{Binding MovePlacementCommand, Mode=OneTime}" />
         </DockPanel>
     </Border>
 </Window>

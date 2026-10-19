@@ -57,10 +57,10 @@ public static class ShipViewBuilder
                 var p => (p.Delivered ? SegmentFill.Delivered : SegmentFill.Mission, palette[p.Destination], ToolTip(rack, p)),
             };
             return new SceneSegment(
-                max - (segment.Start + segment.Length) * length, max - segment.Start * length, fill, index, toolTip, segment.Placement?.Destination);
+                max - (segment.Start + segment.Length) * length, max - segment.Start * length, fill, index, toolTip, segment.Placement);
         })];
 
-        return new SceneRack(rack.Number, isViolated, rack.Bounds, segments);
+        return new SceneRack(rack.Id, rack.Number, isViolated, rack.Bounds, segments);
     }
 
     /// <summary>"Rack 1 · port upper · 16 SCU Titanium (4×4)": crate count × crate size, as in the text renderer.</summary>
