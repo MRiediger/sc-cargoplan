@@ -32,15 +32,18 @@ public sealed record ShipScene(
 }
 
 /// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MovePlacement</c>).</param>
-/// <param name="Boxes">The rack's grid as boxes, each cell in exactly one, in fill order of their first cell (<see cref="RackCells"/>).</param>
+/// <param name="Boxes">
+/// The rack's crates where the plan stores them (D24), by placement and in plan order, then its free cells. Overlapping
+/// crates of a plan file edited by hand are all there.
+/// </param>
 public sealed record SceneRack(string RackId, int Number, bool IsViolated, ShipBox Bounds, IReadOnlyList<SceneBox> Boxes);
 
 /// <summary>
-/// One box of a rack in ship coordinates: a crate in its shape, or a single cell (free, a share of an overloaded rack,
-/// a crate that fitted no block). <paramref name="PaletteIndex"/>, <paramref name="ToolTip"/> and
-/// <paramref name="Placement"/> are null for a free cell; <paramref name="Crate"/> also in an overloaded rack.
+/// One box of a rack in ship coordinates: a crate in its shape, or a free cell. <paramref name="PaletteIndex"/>,
+/// <paramref name="ToolTip"/>, <paramref name="Placement"/> (the crate's derived placement) and <paramref name="Crate"/>
+/// are null for a free cell. <paramref name="IsViolated"/>: the crate is named by a problem (<c>CrateLayout.Faulty</c>).
 /// </summary>
-public sealed record SceneBox(ShipBox Bounds, CellFill Fill, int? PaletteIndex, string? ToolTip, Placement? Placement, CrateId? Crate);
+public sealed record SceneBox(ShipBox Bounds, CellFill Fill, int? PaletteIndex, string? ToolTip, Placement? Placement, Crate? Crate, bool IsViolated);
 
 public enum CellFill
 {

@@ -8,7 +8,7 @@ namespace CargoPlan.App.Tests;
 public class DrawOrderTests
 {
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
-    private static readonly IReadOnlyList<SceneRack> Racks = ShipViewBuilder.Build(new LoadPlan(HullA.Id, [], []), HullA, [], FillOrder.BowFirst).Racks;
+    private static readonly IReadOnlyList<SceneRack> Racks = ShipViewBuilder.Build(new LoadPlan(HullA.Id, [], []), HullA, []).Racks;
 
     private static readonly IsoProjection FromBelow = new(IsoProjection.DefaultYaw, -IsoProjection.DefaultPitch);
     private static readonly IsoProjection FromAftStarboard = new(IsoProjection.DefaultYaw + 180, IsoProjection.DefaultPitch);
@@ -16,7 +16,7 @@ public class DrawOrderTests
     private static RackPosition PositionOf(SceneRack rack) => HullA.Racks.Single(r => r.Number == rack.Number).Position;
 
     private static SceneBox Box(int x0, int y0, int z0, int x1, int y1, int z1) =>
-        new(new ShipBox(new ShipPoint(x0, y0, z0), new ShipPoint(x1, y1, z1)), CellFill.Free, null, null, null, null);
+        new(new ShipBox(new ShipPoint(x0, y0, z0), new ShipPoint(x1, y1, z1)), CellFill.Free, null, null, null, null, IsViolated: false);
 
     [Fact]
     public void Hull_A_draws_starboard_lower_first_and_port_upper_last()
@@ -72,7 +72,7 @@ public class DrawOrderTests
     }
 
     [Fact]
-    public void Equal_cells_come_by_centre_depth_ties_in_fill_order()
+    public void Equal_cells_come_by_centre_depth_ties_in_given_order()
     {
         // An empty rack is 16 equal cells: the centre depth is already a correct order, the painter keeps it.
         var cells = Racks[1].Boxes;
@@ -111,7 +111,7 @@ public class DrawOrderTests
         var camera = new IsoProjection(yaw, pitch);
         Placement Crates(string destination, int scu, CrateSize size) => new(destination, "rack-0", new CargoItem("Titanium", scu, size));
         var plan = TestPlans.Of(HullA, Crates("Riker", 4, CrateSize.Four), Crates("Shubin", 4, CrateSize.Four), Crates("Orison", 8, CrateSize.Eight));
-        var rack1 = ShipViewBuilder.Build(plan, HullA, [], FillOrder.BowFirst).Racks[0];
+        var rack1 = ShipViewBuilder.Build(plan, HullA, []).Racks[0];
 
         var order = DrawOrder.BoxesBackToFront(rack1.Boxes, camera);
 
@@ -128,7 +128,7 @@ public class DrawOrderTests
     {
         var camera = new IsoProjection(yaw, pitch);
         var (ship, plan) = TestPlans.Load();
-        var racks = DrawOrder.BackToFront(ShipViewBuilder.Build(plan, ship, LoadPlanner.Validate(plan, ship), FillOrder.BowFirst).Racks, camera);
+        var racks = DrawOrder.BackToFront(ShipViewBuilder.Build(plan, ship, LoadPlanner.Validate(plan, ship)).Racks, camera);
 
         ShouldMatchRays([.. racks.Select(r => r.Bounds)], camera);
         ShouldMatchRays([.. racks.SelectMany(r => DrawOrder.BoxesBackToFront(r.Boxes, camera)).Select(b => b.Bounds)], camera);

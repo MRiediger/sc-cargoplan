@@ -4,10 +4,10 @@ using CargoPlan.Core.Models;
 namespace CargoPlan.App.ShipView;
 
 /// <summary>
-/// What lies on top at a point: the rack, its placement and crate there. <paramref name="Placement"/> is null on a free
-/// cell, <paramref name="Crate"/> too and in an overloaded rack.
+/// What lies on top at a point: the rack, its placement and crate there. <paramref name="Placement"/> and
+/// <paramref name="Crate"/> are null on a free cell.
 /// </summary>
-public sealed record SceneHit(string RackId, Placement? Placement, CrateId? Crate);
+public sealed record SceneHit(string RackId, Placement? Placement, Crate? Crate);
 
 /// <summary>What lies under a point of the scene, front to back. Pure geometry, so it is testable without a window.</summary>
 public static class SceneHitTest

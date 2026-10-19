@@ -90,20 +90,31 @@ public static class CrateLayout
     /// one cell, a crate with an empty cell under its bottom (D24). Delivered crates count, they keep their cells.
     /// Empty for every plan the planner makes.
     /// </summary>
-    public static IReadOnlyList<string> Problems(Rack rack, IReadOnlyList<Crate> crates)
+    public static IReadOnlyList<string> Problems(Rack rack, IReadOnlyList<Crate> crates) =>
+        // An 8 across two crates of one stop overlaps both: one line is enough.
+        [.. Findings(rack, crates).Select(f => f.Message).Distinct()];
+
+    /// <summary>
+    /// The crates <see cref="Problems"/> names, so the ship view can mark the crate, not only its rack. Empty for every
+    /// plan the planner makes. Equal crates (a file edited by hand) count once.
+    /// </summary>
+    public static IReadOnlySet<Crate> Faulty(Rack rack, IReadOnlyList<Crate> crates) =>
+        Findings(rack, crates).SelectMany(f => f.Crates).ToHashSet();
+
+    /// <summary>Every problem with the crates it names; the one place for the rules of <see cref="Problems"/> and <see cref="Faulty"/>.</summary>
+    private static IEnumerable<(string Message, Crate[] Crates)> Findings(Rack rack, IReadOnlyList<Crate> crates)
     {
-        List<string> problems = [];
         foreach (var crate in crates)
         {
             var size = (int)crate.CrateSize;
             if (!rack.CanHold(crate.CrateSize))
             {
-                problems.Add(Invariant($"{size} SCU crate of {crate.Commodity} for {crate.Destination} doesn't fit rack {rack.Number} ({rack.Grid})"));
+                yield return (Invariant($"{size} SCU crate of {crate.Commodity} for {crate.Destination} doesn't fit rack {rack.Number} ({rack.Grid})"), [crate]);
             }
             else if (!Fits(rack, crate))
             {
-                problems.Add(Invariant(
-                    $"{size} SCU crate of {crate.Commodity} for {crate.Destination} at {crate.Position} lies outside rack {rack.Number} ({rack.Grid})"));
+                yield return (Invariant(
+                    $"{size} SCU crate of {crate.Commodity} for {crate.Destination} at {crate.Position} lies outside rack {rack.Number} ({rack.Grid})"), [crate]);
             }
         }
 
@@ -113,17 +124,15 @@ public static class CrateLayout
             {
                 if (Overlap(crates[a], crates[b]))
                 {
-                    problems.Add(Invariant($"Crates of {crates[a].Destination} and {crates[b].Destination} overlap in rack {rack.Number}"));
+                    yield return (Invariant($"Crates of {crates[a].Destination} and {crates[b].Destination} overlap in rack {rack.Number}"), [crates[a], crates[b]]);
                 }
             }
         }
 
-        problems.AddRange(crates
-            .Where((crate, i) => !Rests(crate, crates.Where((_, j) => j != i)))
-            .Select(c => Invariant($"{(int)c.CrateSize} SCU crate of {c.Commodity} for {c.Destination} in rack {rack.Number} has nothing below it")));
-
-        // An 8 across two crates of one stop overlaps both: one line is enough.
-        return [.. problems.Distinct()];
+        foreach (var crate in crates.Where((crate, i) => !Rests(crate, crates.Where((_, j) => j != i))))
+        {
+            yield return (Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination} in rack {rack.Number} has nothing below it"), [crate]);
+        }
     }
 
     /// <summary>True if two crates share a cell.</summary>

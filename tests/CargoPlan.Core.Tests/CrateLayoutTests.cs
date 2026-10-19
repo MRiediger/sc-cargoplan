@@ -264,6 +264,44 @@ public class CrateLayoutTests
             .Should().Equal("16 SCU crate of Titanium for Riker doesn't fit rack 1 (3×2×2)");
     }
 
+    // --- Faulty: the crates the problems name, for the ship view (T3.13b) ---
+
+    [Fact]
+    public void Faulty_of_a_laid_out_rack_is_empty()
+    {
+        CrateLayout.Faulty(Rack1, [At(CrateSize.Eight, 2, 0, 0), At(CrateSize.Four, 0, 0, 0), At(CrateSize.Four, 0, 0, 1)]).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Faulty_holds_both_overlapping_crates_and_not_the_others()
+    {
+        var (riker, shubin, orison) = (At(CrateSize.Eight, 2, 0, 0, "Riker"), At(CrateSize.Two, 2, 0, 1, "Shubin"), At(CrateSize.Four, 0, 0, 0, "Orison"));
+
+        CrateLayout.Faulty(Rack1, [riker, shubin, orison]).Should().BeEquivalentTo([riker, shubin]);
+    }
+
+    [Fact]
+    public void Faulty_holds_a_crate_without_support_but_not_the_one_beside_it()
+    {
+        var (floating, below) = (At(CrateSize.One, 0, 0, 1, "Riker"), At(CrateSize.One, 1, 0, 0, "Shubin"));
+
+        CrateLayout.Faulty(Rack1, [floating, below]).Should().BeEquivalentTo([floating]);
+    }
+
+    [Fact]
+    public void Faulty_counts_a_delivered_crate_as_support()
+    {
+        CrateLayout.Faulty(Rack1, [At(CrateSize.One, 0, 0, 0, delivered: true), At(CrateSize.One, 0, 0, 1)]).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Faulty_holds_a_crate_outside_the_grid()
+    {
+        var outside = At(CrateSize.Four, 3, 0, 0);
+
+        CrateLayout.Faulty(Rack1, [outside]).Should().BeEquivalentTo([outside]);
+    }
+
     [Fact]
     public void Fits_is_true_only_inside_the_grid()
     {

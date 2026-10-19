@@ -7,8 +7,8 @@ using CargoPlan.Core.Planning;
 namespace CargoPlan.App.Tests;
 
 /// <summary>
-/// Points are cell centres in ship coordinates (D14), projected with the default camera. Fill order bow first: in
-/// each layer the row next to the spindle, then the outer row (<see cref="RackCells"/>).
+/// Points are cell centres in ship coordinates (D14), projected with the default camera. Crates lie where the planner
+/// put them, bow first: in each layer the row next to the spindle, then the outer row (<c>CrateLayout</c>, D24).
 /// </summary>
 public class SceneHitTestTests
 {
@@ -29,7 +29,7 @@ public class SceneHitTestTests
     }
 
     private static ShipScene Build(LoadPlan plan, Ship ship) =>
-        ShipViewBuilder.Build(plan, ship, LoadPlanner.Validate(plan, ship), FillOrder.BowFirst);
+        ShipViewBuilder.Build(plan, ship, LoadPlanner.Validate(plan, ship));
 
     [Fact]
     public void Polygon_contains_inner_points_only()
@@ -48,14 +48,16 @@ public class SceneHitTestTests
     }
 
     [Fact]
-    public void An_overloaded_rack_names_the_placement_not_a_crate()
+    public void Overlapping_crates_answer_as_crates()
     {
-        // Shubin in the full Rack 1 (a plan file edited by hand): its cells are shares, not crates.
+        // Shubin's crate in the full Rack 1 (a plan file edited by hand), over Riker's crate 3: both are drawn, both
+        // marked; whichever the painter puts on top answers with its crate.
         var (ship, plan) = TestPlans.Load();
         var projected = SceneProjector.Project(Build(TestPlans.Overloaded(plan), ship), Default);
 
-        SceneHitTest.ToolTipAt(projected, Rack1Top).Should().Be("Rack 1 · port upper · 16 SCU Titanium (4×4)");
-        SceneHitTest.HitAt(projected, Rack1Top)!.Crate.Should().BeNull();
+        SceneHitTest.HitAt(projected, Rack1Top)!.Crate.Should().NotBeNull();
+        SceneHitTest.BoxAt(projected, Rack1Top)!.Box.IsViolated.Should().BeTrue();
+        SceneHitTest.ToolTipAt(projected, Rack1Top).Should().MatchRegex(@" crate \(\d of \d\)$");
     }
 
     [Fact]
@@ -84,7 +86,7 @@ public class SceneHitTestTests
     {
         var (ship, plan) = TestPlans.Load();
         var delivered = plan with { Crates = [.. plan.Crates.Select(c => c with { Delivered = true })] };
-        var projected = SceneProjector.Project(ShipViewBuilder.Build(delivered, ship, [], FillOrder.BowFirst), Default);
+        var projected = SceneProjector.Project(ShipViewBuilder.Build(delivered, ship, []), Default);
 
         SceneHitTest.ToolTipAt(projected, Rack1Top).Should().Be("Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4) (delivered)");
     }
@@ -139,7 +141,10 @@ public class SceneHitTestTests
         var (_, plan) = TestPlans.Load();
         var titanium = plan.Placements.Single(p => p.Item.Commodity == "Titanium");
 
-        SceneHitTest.HitAt(Projected, Rack1Top).Should().Be(new SceneHit("rack-0", titanium, new CrateId(titanium, 3)));
+        // The third Titanium crate in plan order, the one the tool tip calls "3 of 4".
+        var crate = plan.Crates.Where(c => c.Commodity == "Titanium").ElementAt(2);
+
+        SceneHitTest.HitAt(Projected, Rack1Top).Should().Be(new SceneHit("rack-0", titanium, crate));
         SceneHitTest.PlacementAt(Projected, Rack1Top).Should().Be(titanium);
     }
 
@@ -192,7 +197,7 @@ public class SceneHitTestTests
 
         var gesture = DragGesture.Resolve(MouseButton.Right, down, moved: true, SceneHitTest.HitAt(Projected, Rack1Top));
 
-        down.Should().Be(new SceneHit("rack-1", shubin, new CrateId(shubin, 1)));
+        down.Should().Be(new SceneHit("rack-1", shubin, plan.Crates.Single(c => c.Destination == "Shubin")));
         gesture.Should().Be(new Gesture.Move(shubin, "rack-0"));
     }
 }

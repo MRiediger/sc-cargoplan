@@ -22,7 +22,7 @@ public static class DrawOrder
     public static IReadOnlyList<SceneRack> BackToFront(IEnumerable<SceneRack> racks, IsoProjection camera) =>
         BackToFront([.. racks], r => r.Bounds, r => r.Number, camera);
 
-    /// <summary>A rack's boxes back to front; ties in the given order, which for a rack is fill order.</summary>
+    /// <summary>A rack's boxes back to front; ties in the given order (<see cref="SceneRack.Boxes"/>).</summary>
     public static IReadOnlyList<SceneBox> BoxesBackToFront(IReadOnlyList<SceneBox> boxes, IsoProjection camera)
     {
         Dictionary<SceneBox, int> index = [];

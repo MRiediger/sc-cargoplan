@@ -158,7 +158,16 @@ public sealed class ShipViewControl : FrameworkElement
             }
         }
 
-        // Red and cyan on top, like the numbers: a violation or the drop target must never hide behind cargo.
+        // Red and cyan on top, like the numbers: a violation or the drop target must never hide behind cargo. A faulty
+        // crate (overlap, nothing below it) gets its own red outline, so the player sees which one (D24).
+        foreach (var box in scene.Racks.SelectMany(r => r.Boxes).Where(b => b.Box.IsViolated))
+        {
+            foreach (var face in box.Faces)
+            {
+                dc.DrawGeometry(null, ViolationPen, Polygon(face.Polygon, transform));
+            }
+        }
+
         foreach (var rack in scene.Racks.Where(r => IsHighlighted(r, target)))
         {
             DrawEdges(dc, rack, rack.RackId == target ? DragTargetPen : ViolationPen, transform);

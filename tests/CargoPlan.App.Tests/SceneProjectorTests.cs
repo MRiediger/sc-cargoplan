@@ -16,7 +16,7 @@ public class SceneProjectorTests
     private static ShipScene BuildSample()
     {
         var (ship, plan) = TestPlans.Load();
-        return ShipViewBuilder.Build(plan, ship, LoadPlanner.Validate(plan, ship), FillOrder.BowFirst);
+        return ShipViewBuilder.Build(plan, ship, LoadPlanner.Validate(plan, ship));
     }
 
     private static ProjectedRack RackNumber(ProjectedScene scene, int number) => scene.Racks.Single(r => r.Number == number);
@@ -187,7 +187,7 @@ public class SceneProjectorTests
         Rack rack = new("big", 0, 1000, new Dimensions(10, 10, 10), new RackPosition(RackSide.Port, RackLevel.Upper), new ShipPoint(0, 0, 0));
         Ship ship = new("big", "Synthetic", 1000, [rack]);
         var plan = TestPlans.Of(ship, new Placement("Riker", rack.Id, new CargoItem("Titanium", 1000, CrateSize.One)));
-        var scene = ShipViewBuilder.Build(plan, ship, [], FillOrder.BowFirst);
+        var scene = ShipViewBuilder.Build(plan, ship, []);
 
         // Warm-up: the first call pays for the JIT, not for the cells.
         SceneProjector.Project(scene, IsoProjection.Default);

@@ -8,8 +8,10 @@ public class DragGestureTests
 {
     private static readonly Placement Titanium = new("Riker", "rack-0", new CargoItem("Titanium", 16, CrateSize.Four));
 
-    private static readonly SceneHit Cargo = new("rack-0", Titanium, new CrateId(Titanium, 1));
-    private static readonly SceneHit Delivered = new("rack-0", Titanium with { Delivered = true }, new CrateId(Titanium with { Delivered = true }, 1));
+    private static readonly Crate Crate = new("Riker", "Titanium", CrateSize.Four, "rack-0", new GridPosition(0, 0, 0));
+
+    private static readonly SceneHit Cargo = new("rack-0", Titanium, Crate);
+    private static readonly SceneHit Delivered = new("rack-0", Titanium with { Delivered = true }, Crate with { Delivered = true });
     private static readonly SceneHit Free = new("rack-2", null, null);
     private static readonly SceneHit OtherRack = new("rack-1", null, null);
 

@@ -151,11 +151,7 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/observableproperty#running-code-upon-changes
     partial void OnPlanChanged(LoadPlan? value) => Scene = value is null
         ? EmptyScene(Ship)
-        : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value, Ship), value.FillOrder);
+        : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value, Ship));
 
-    private static ShipScene EmptyScene(Ship ship)
-    {
-        var empty = new LoadPlan(ship.Id, [], []);
-        return ShipViewBuilder.Build(empty, ship, [], empty.FillOrder);
-    }
+    private static ShipScene EmptyScene(Ship ship) => ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
 }

@@ -316,8 +316,9 @@ T3.13 ist zweigeteilt: a = Core und Planformat, b = die Ansicht liest die Positi
 
 **Akzeptanz:** `dotnet test` grün (D9 mit Stützregel für alle Mischungen ≤ 16 aus 1/2/4/8/16, beide Füllrichtungen, beide Seiten); CLI-Ausgabe aller Fixtures byte-gleich; alte plan.json (v1) → App startet, Datei danach v2, Haken erhalten; Rechts-Ziehen in ein volles Rack → Hinweiszeile, nichts rot.
 
-### [ ] T3.13b Schiffsansicht zeigt gespeicherte Positionen
+### [x] T3.13b Schiffsansicht zeigt gespeicherte Positionen
 **Warum:** Die Ansicht soll zeigen, was im Plan steht, nicht eine eigene Zeichenregel.
+**Präzisiert in der Planung:** `ShipViewBuilder` zeichnet `plan.CratesForRack(rack)` bei `Rack.Origin + Position` in `CrateSize.Dimensions`, Farbe über das abgeleitete Placement, freie Zellen = Rasterzellen ohne Kiste; `RackCells`, `RackCellsTests`, `CrateId`, `GridBox` gelöscht; `SceneBox.Crate`/`SceneHit.Crate` sind `Crate?`; Tooltip `(i of N)` = Index in Plan-Reihenfolge innerhalb des abgeleiteten Placements; Rack rot aus `Validate` wie bisher, zusätzlich `SceneBox.IsViolated` aus neuem `CrateLayout.Faulty` (Core, liest dieselbe private Befundliste wie `Problems`, Texte byte-gleich; nur für rote Racks aufgerufen), rot umrandet über allen Boxen; `ShipViewBuilder.Build` ohne `fillOrder`; Boxen nach Placement in Plan-Reihenfolge, dann freie Zellen (Painter sortiert unverändert, Reihenfolge-Tests auf Mengen umgestellt); überlappende Kisten beide gezeichnet und markiert; README ohne Task-Nummer. Präzisierung in der Planphase, ratifiziert durch Freigabe (D24).
 - `ShipViewBuilder` nimmt `plan.Crates` (Position + Größe → Box in Schiffskoordinaten), kein eigenes Layout; `RackCells` und `RackCellsTests` entfallen
 - `CrateId` = die Kiste selbst; Hit-Test, Tooltip (`(1 of N)` über das abgeleitete Placement), Painter unverändert
 - Rechts-Ziehen bewegt weiter das abgeleitete Placement als Ganzes (Re-Layout seit 13a)

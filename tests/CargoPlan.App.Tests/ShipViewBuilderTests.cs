@@ -9,11 +9,20 @@ public class ShipViewBuilderTests
     private static readonly (Ship Ship, LoadPlan Plan) Sample = TestPlans.Load();
 
     private static ShipScene Build(LoadPlan plan) =>
-        ShipViewBuilder.Build(plan, Sample.Ship, LoadPlanner.Validate(plan, Sample.Ship), FillOrder.BowFirst);
+        ShipViewBuilder.Build(plan, Sample.Ship, LoadPlanner.Validate(plan, Sample.Ship));
 
     private static SceneRack RackNumber(ShipScene scene, int number) => scene.Racks.Single(r => r.Number == number);
 
-    /// <summary>Distinct mission colours in a rack, in fill order.</summary>
+    /// <summary>The crate's box in ship coordinates: the rack's origin plus its stored position, in its shape (D14, D24).</summary>
+    private static ShipBox BoxOf(Crate crate)
+    {
+        var origin = Sample.Ship.Racks.Single(r => r.Id == crate.RackId).Origin;
+        var size = crate.CrateSize.Dimensions;
+        ShipPoint min = new(origin.X + crate.Position.Length, origin.Y + crate.Position.Width, origin.Z + crate.Position.Stack);
+        return new ShipBox(min, new ShipPoint(min.X + size.Length, min.Y + size.Width, min.Z + size.Stack));
+    }
+
+    /// <summary>Distinct mission colours in a rack, in box order.</summary>
     private static IEnumerable<int?> MissionColours(SceneRack rack) =>
         rack.Boxes.Where(s => s.Fill == CellFill.Mission).Select(s => s.PaletteIndex).Distinct();
 
@@ -50,8 +59,7 @@ public class ShipViewBuilderTests
 
         var rack2 = RackNumber(scene, 2);
 
-        // The largest crate goes first: Shubin's 8 SCU crate before Riker's 2 SCU crates.
-        MissionColours(rack2).Should().Equal(legend["Shubin"], legend["Riker"]);
+        MissionColours(rack2).Should().BeEquivalentTo([legend["Shubin"], legend["Riker"]]);
         rack2.Boxes.Should().Contain(c => c.Fill == CellFill.Free);
     }
 
@@ -97,6 +105,34 @@ public class ShipViewBuilderTests
     }
 
     [Fact]
+    public void Overlapping_crates_are_both_drawn_where_they_lie_and_marked()
+    {
+        var plan = TestPlans.Overloaded(Sample.Plan);
+        var shubin = plan.Crates.Single(c => c.Destination == "Shubin");
+        var rack1 = RackNumber(Build(plan), 1);
+
+        // Every crate as stored, overlap or not; marked are Shubin's crate and exactly the Riker crates it covers.
+        rack1.Boxes.Select(b => b.Crate).Should().BeEquivalentTo(plan.CratesForRack("rack-0"));
+        rack1.Boxes.Should().OnlyContain(b => b.Bounds == BoxOf(b.Crate!));
+        rack1.Boxes.Where(b => b.IsViolated).Select(b => b.Crate).Should().BeEquivalentTo(
+            plan.CratesForRack("rack-0").Where(c => c == shubin || CrateLayout.Overlap(c, shubin)));
+        rack1.Boxes.Should().Contain(b => !b.IsViolated);
+    }
+
+    [Fact]
+    public void A_crate_without_support_is_marked_and_its_rack_red()
+    {
+        // A plan file edited by hand: one crate on the plate, one in the top layer beside it with nothing below.
+        Crate onPlate = new("Riker", "Titanium", CrateSize.One, "rack-0", new GridPosition(0, 0, 0));
+        Crate floating = new("Riker", "Titanium", CrateSize.One, "rack-0", new GridPosition(1, 0, 1));
+
+        var rack1 = RackNumber(Build(new LoadPlan(Sample.Ship.Id, [onPlate, floating], [])), 1);
+
+        rack1.IsViolated.Should().BeTrue();
+        rack1.Boxes.Where(b => b.IsViolated).Select(b => b.Crate).Should().Equal(floating);
+    }
+
+    [Fact]
     public void Boxes_fill_the_rack_exactly_without_overlap()
     {
         foreach (var rack in Build(Sample.Plan).Racks)
@@ -119,54 +155,80 @@ public class ShipViewBuilderTests
         var rack1 = RackNumber(Build(plan), 1);
 
         rack1.Boxes.Should().HaveCount(3);
-        rack1.Boxes.Select(b => Volume(b.Bounds)).Should().Equal(8, 4, 4);
+        rack1.Boxes.Select(b => Volume(b.Bounds)).Should().BeEquivalentTo([8, 4, 4]);
         rack1.Boxes.Should().OnlyContain(b => b.Crate != null && b.Fill == CellFill.Mission);
     }
 
     [Fact]
-    public void Boxes_come_in_fill_order_of_their_first_cell()
+    public void Rack_2_shows_the_same_boxes_as_before_T3_13b()
     {
         // Rack 2 (y 1..3, z 0..2): Shubin's 8 SCU crate takes the bow half, Riker's 2 SCU Quartz crates the aft half of
-        // the bottom layer, the row next to the spindle first; the free cells of the top layer follow.
+        // the bottom layer; four free cells in the top layer. The picture T3.13a drew, now read from the plan.
         var rack2 = RackNumber(Build(Sample.Plan), 2);
 
-        rack2.Boxes.Take(3).Select(b => b.Bounds).Should().Equal(
+        rack2.Boxes.Where(b => b.Fill != CellFill.Free).Select(b => b.Bounds).Should().BeEquivalentTo(
+        [
             new ShipBox(new ShipPoint(2, 1, 0), new ShipPoint(4, 3, 2)),
             new ShipBox(new ShipPoint(0, 1, 0), new ShipPoint(2, 2, 1)),
-            new ShipBox(new ShipPoint(0, 2, 0), new ShipPoint(2, 3, 1)));
-        rack2.Boxes.Skip(3).Should().HaveCount(4).And.OnlyContain(b => b.Fill == CellFill.Free && Volume(b.Bounds) == 1);
+            new ShipBox(new ShipPoint(0, 2, 0), new ShipPoint(2, 3, 1)),
+        ]);
+        rack2.Boxes.Where(b => b.Fill == CellFill.Free).Should().HaveCount(4).And.OnlyContain(b => Volume(b.Bounds) == 1 && b.Bounds.Min.Z == 1);
     }
 
     [Fact]
-    public void A_crate_is_one_box_with_its_id()
+    public void A_crate_is_one_box_at_its_stored_position()
     {
         var shubin = Sample.Plan.Placements.Single(p => p.Destination == "Shubin");
+        var crate = Sample.Plan.Crates.Single(c => c.Destination == "Shubin");
 
         RackNumber(Build(Sample.Plan), 2).Boxes.Where(b => b.Placement == shubin).Should().ContainSingle().Which
             .Should().Be(new SceneBox(
-                new ShipBox(new ShipPoint(2, 1, 0), new ShipPoint(4, 3, 2)),
+                BoxOf(crate),
                 CellFill.Mission,
                 Build(Sample.Plan).Legend.Single(e => e.Destination == "Shubin").PaletteIndex,
                 "Shubin · Rack 2 · port lower · 8 SCU Agricium crate (1 of 1)",
                 shubin,
-                new CrateId(shubin, 1)));
+                crate,
+                IsViolated: false));
     }
 
     [Fact]
-    public void Free_cells_and_the_cells_of_an_overloaded_rack_are_boxes_of_one_cell()
+    public void Every_crate_is_drawn_where_the_plan_stores_it()
     {
-        var scene = Build(TestPlans.Overloaded(Sample.Plan));
-
-        RackNumber(scene, 1).Boxes.Should().HaveCount(16).And.OnlyContain(b => Volume(b.Bounds) == 1 && b.Crate == null);
-        RackNumber(scene, 2).Boxes.Where(b => b.Fill == CellFill.Free).Should().OnlyContain(b => Volume(b.Bounds) == 1 && b.Crate == null);
+        Build(Sample.Plan).Racks.SelectMany(r => r.Boxes).Where(b => b.Crate is not null).Select(b => (b.Crate, b.Bounds))
+            .Should().BeEquivalentTo(Sample.Plan.Crates.Select(c => ((Crate?)c, BoxOf(c))));
     }
 
     [Fact]
-    public void Stern_first_starts_at_the_aft_end()
+    public void A_moved_placement_is_drawn_where_the_plan_stores_it()
     {
-        var rack2 = ShipViewBuilder.Build(Sample.Plan, Sample.Ship, [], FillOrder.SternFirst).Racks.Single(r => r.Number == 2);
+        // Orison's Gold to Rack 2 (D20 verification): Core lays it out there, the view reads the result.
+        var gold = Sample.Plan.Placements.Single(p => p.Destination == "Orison" && p.Item.Commodity == "Gold");
+        var moved = LoadPlanner.MovePlacement(Sample.Plan, Sample.Ship, gold, "rack-1");
 
-        rack2.Boxes[0].Bounds.Min.Should().Be(new ShipPoint(0, 1, 0));
+        var rack2 = RackNumber(Build(moved), 2);
+
+        rack2.Boxes.Where(b => b.Crate is { Destination: "Orison" }).Select(b => b.Bounds).Should().BeEquivalentTo(
+            moved.CratesForRack("rack-1").Where(c => c.Destination == "Orison").Select(BoxOf));
+        rack2.Boxes.Should().NotContain(b => b.IsViolated);
+    }
+
+    [Fact]
+    public void Free_cells_are_boxes_of_one_cell_without_a_crate()
+    {
+        RackNumber(Build(Sample.Plan), 2).Boxes.Where(b => b.Fill == CellFill.Free)
+            .Should().OnlyContain(b => Volume(b.Bounds) == 1 && b.Crate == null && b.Placement == null && !b.IsViolated);
+    }
+
+    [Fact]
+    public void A_stern_first_plan_shows_its_stored_layout()
+    {
+        // The view has no fill order of its own: a plan laid out stern first is drawn stern first.
+        var sternFirst = Sample.Plan with { Crates = CrateLayout.LayOut(Sample.Ship, Sample.Plan.Placements, FillOrder.SternFirst), FillOrder = FillOrder.SternFirst };
+
+        var shubin = RackNumber(Build(sternFirst), 2).Boxes.Single(b => b.Crate is { Destination: "Shubin" });
+
+        shubin.Bounds.Min.Should().Be(new ShipPoint(0, 1, 0));
     }
 
     [Fact]
@@ -277,7 +339,7 @@ public class ShipViewBuilderTests
     [Fact]
     public void A_plan_for_another_ship_is_rejected()
     {
-        var act = () => ShipViewBuilder.Build(Sample.Plan with { ShipId = "cutlass_black" }, Sample.Ship, [], FillOrder.BowFirst);
+        var act = () => ShipViewBuilder.Build(Sample.Plan with { ShipId = "cutlass_black" }, Sample.Ship, []);
 
         act.Should().Throw<ArgumentException>();
     }
