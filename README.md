@@ -79,6 +79,7 @@ Open the editor with the **pencil** in the overlay's header (left of the gear), 
 - **Plan** sends the rows to the overlay, saves them and closes the editor. If the missions don't fit, the editor stays open with the reason. Planning again makes a new plan: ticks and moved cargo are cleared. The editor says so beforehand if you have ticked a destination.
 - **Next route:** the editor opens with your current missions. **Clear rows** empties the rows for the next route; the overlay keeps the old plan until you press **Plan**. Closing the editor without **Plan** throws away your changes, not your plan.
 - **Import… / Export…** read and write [mission files](docs/mission-format.md), e.g. to share a route. Export writes the rows as they are, planned or not. Older files with one crate size per row still import; their crates show as typed by hand.
+- **Fill order** next to **Plan** chooses which end of each rack the crates start from: **Bow first** or **Stern first**. It takes effect when you press **Plan** and is saved with the plan, so it stays after a restart and the editor opens with it. Clearing or importing rows keeps it; exported mission files don't carry it.
 - **Copy as text** copies the current plan as plain text, ready to paste into Discord or your org chat.
 
 When Star Citizen takes the mouse (flight), the overlay turns click-through and an open editor hides, so neither catches a click meant for the game. The editor comes back when the cursor does, without taking the focus. The overlay hotkey hides it too.

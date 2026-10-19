@@ -1,4 +1,5 @@
 using CargoPlan.App.Plans;
+using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
@@ -48,6 +49,22 @@ public sealed class PlanStoreTests : IDisposable
         loaded.Plan.Warnings.Should().Equal(saved.Plan.Warnings);
         loaded.Missions.Should().BeEquivalentTo(saved.Missions, o => o.WithStrictOrdering());
         loaded.Plan.PlacementsForStop("Riker").Should().OnlyContain(p => p.Delivered);
+    }
+
+    /// <summary>The fill order chosen in the editor survives a restart (T4.5).</summary>
+    [Fact]
+    public void Save_then_Load_keeps_the_fill_order()
+    {
+        var planned = TestPlans.SplitAndShared();
+        SavedPlan saved = new(planned.Missions, LoadPlanner.Plan(HullA, planned.Missions.ToStops(), FillOrder.SternFirst));
+
+        PlanStore.Save(PlanPath, saved);
+        var (loaded, problem) = PlanStore.Load(PlanPath, HullA);
+
+        problem.Should().BeNull();
+        loaded!.Plan.FillOrder.Should().Be(FillOrder.SternFirst);
+        loaded.Plan.Crates.Should().Equal(saved.Plan.Crates);
+        File.ReadAllText(PlanPath).Should().Contain("\"fillOrder\": \"sternFirst\"");
     }
 
     [Fact]

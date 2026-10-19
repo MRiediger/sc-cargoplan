@@ -49,7 +49,7 @@ All fields are **required**. Names are camelCase and **case-sensitive**. Unknown
 | `schemaVersion` | number | `2`. Files with `1` are still read, see [Older plan files](#older-plan-files). |
 | `shipId` | string | The ship the plan is for, e.g. `"hull_a"` ([ship files](ship-format.md)). |
 | `missions` | object | A complete [mission file](mission-format.md), with its own `schemaVersion`. Both mission versions are read; saving writes version 2. You can copy it out and use it as a mission file. |
-| `fillOrder` | string | `"bowFirst"` or `"sternFirst"`: which end of a rack's length crates fill from when they are laid out again, e.g. after a move. Part of the plan, so everyone loading it sees the same layout. |
+| `fillOrder` | string | `"bowFirst"` or `"sternFirst"`: which end of a rack's length crates fill from, when planned and when laid out again, e.g. after a move. Chosen as **Fill order** in the editor. Part of the plan, so everyone loading it sees the same layout. |
 | `crates` | array | Every crate: what, for whom, which rack, which cell. |
 | `warnings` | array | The planner's hints, word for word as the overlay shows them. Stored, not computed again on loading. |
 

@@ -1,5 +1,9 @@
 using CargoPlan.App.Editor;
 using CargoPlan.App.ViewModels;
+using CargoPlan.Core.Missions;
+using CargoPlan.Core.Models;
+using CargoPlan.Core.Planning;
+using CargoPlan.Core.Plans;
 using CargoPlan.Core.Rendering;
 using CargoPlan.Core.Ships;
 
@@ -353,6 +357,90 @@ public sealed class MissionEditorViewModelTests : IDisposable
         overlay.ToggleDeliveredCommand.Execute("Riker");
 
         changes.Should().BeEmpty();
+    }
+
+    // --- Fill order (T4.5) ---
+
+    private static OverlayViewModel OverlayWithSternFirstPlan()
+    {
+        var overlay = EmptyOverlay();
+        var planned = TestPlans.SplitAndShared();
+        overlay.ShowPlan(new SavedPlan(planned.Missions, LoadPlanner.Plan(overlay.Ship, planned.Missions.ToStops(), FillOrder.SternFirst)));
+        return overlay;
+    }
+
+    [Fact]
+    public void Without_a_plan_the_fill_order_is_bow_first()
+    {
+        new MissionEditorViewModel(EmptyOverlay()).FillOrder.Should().Be(FillOrder.BowFirst);
+    }
+
+    [Fact]
+    public void The_editor_starts_with_the_fill_order_of_the_current_plan()
+    {
+        new MissionEditorViewModel(OverlayWithSternFirstPlan()).FillOrder.Should().Be(FillOrder.SternFirst);
+    }
+
+    [Fact]
+    public void Plan_uses_the_chosen_fill_order()
+    {
+        var overlay = EmptyOverlay();
+        var editor = FourRows(overlay);
+        var stops = MissionRows.ToStops(editor.Rows).Stops.ToStops();
+
+        editor.FillOrder = FillOrder.SternFirst;
+        editor.PlanCommand.Execute(null);
+
+        overlay.Plan!.FillOrder.Should().Be(FillOrder.SternFirst);
+        overlay.Plan.Should().BeEquivalentTo(LoadPlanner.Plan(overlay.Ship, stops, FillOrder.SternFirst));
+        overlay.Plan.Crates.Select(c => c.Position).Should().NotEqual(
+            LoadPlanner.Plan(overlay.Ship, stops, FillOrder.BowFirst).Crates.Select(c => c.Position), "the chosen end must make a difference");
+    }
+
+    [Fact]
+    public void Changing_the_fill_order_marks_unplanned_changes()
+    {
+        var editor = new MissionEditorViewModel(OverlayWithPlan());
+
+        editor.FillOrder = FillOrder.SternFirst;
+
+        editor.IsDirty.Should().BeTrue();
+        editor.Title.Should().Be(MissionEditorViewModel.UnplannedTitleText);
+    }
+
+    [Fact]
+    public void Changing_the_fill_order_leaves_the_overlay_plan_until_Plan()
+    {
+        var overlay = OverlayWithPlan();
+        var plan = overlay.Plan;
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.FillOrder = FillOrder.SternFirst;
+
+        overlay.Plan.Should().BeSameAs(plan);
+    }
+
+    [Fact]
+    public void Clear_rows_and_import_keep_the_fill_order()
+    {
+        var path = Path.Combine(_folder, "missions.json");
+        var editor = FourRows(EmptyOverlay());
+        editor.Export(path);
+        editor.FillOrder = FillOrder.SternFirst;
+
+        editor.ClearRowsCommand.Execute(null);
+        editor.FillOrder.Should().Be(FillOrder.SternFirst);
+
+        editor.Import(path);
+        editor.FillOrder.Should().Be(FillOrder.SternFirst);
+    }
+
+    [Fact]
+    public void The_choices_are_bow_first_and_stern_first()
+    {
+        MissionEditorViewModel.FillOrders.Should().Equal(
+            new FillOrderChoice(FillOrder.BowFirst, "Bow first"),
+            new FillOrderChoice(FillOrder.SternFirst, "Stern first"));
     }
 
     // --- Import, export, text ---

@@ -49,6 +49,14 @@
         <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
             <Button DockPanel.Dock="Right" Content="Plan" Command="{Binding PlanCommand}" Padding="16,4"
                     VerticalAlignment="Bottom" ToolTip="Plan the rows and show them in the overlay" />
+            <!-- Next to Plan, because it takes effect there (D24, T4.5). "Fill order" as the key in plan.json, so the word
+                 is found again in the file. -->
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="8,0,8,0"
+                        ToolTip="Which end of each rack the crates fill from. Takes effect when you press Plan.">
+                <TextBlock Text="Fill order:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.FillOrders}" DisplayMemberPath="Text"
+                          SelectedValuePath="Value" SelectedValue="{Binding FillOrder}" MinWidth="90" />
+            </StackPanel>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{StaticResource EditorProblemBrush}" />
                 <TextBlock Text="{x:Static vm:MissionEditorViewModel.ClearsDeliveredText}" TextWrapping="Wrap"

@@ -448,8 +448,9 @@ Einstellbare Werte:
 
 **Akzeptanz:** Hotkey im Fenster setzen → wirkt sofort ohne Neustart, steht in settings.json; belegte Kombination → Meldung, der andere Hotkey bleibt aktiv; Shift+L und F12 werden abgelehnt.
 
-### [ ] T4.5 Füllrichtung im Editor
+### [x] T4.5 Füllrichtung im Editor
 **Warum:** Ein Koordinator soll allen dieselbe Füllrichtung zeigen (T3.10). Seit D24 steht sie im Plan (`fillOrder`), wählbar ist sie aber noch nicht.
+**Präzisiert in der Planung:** ComboBox „Fill order:“ links vom Plan-Button (derselbe Begriff wie der Key `fillOrder`), Einträge „Bow first“/„Stern first“ (`FillOrderChoice`); Änderung markiert „unplanned changes“, wirkt erst mit Plan; Clear rows und Import behalten die Richtung; Startwert aus dem aktuellen Plan, ohne Plan Bug zuerst; Mission-Dateien tragen die Richtung nicht (Backlog, Core-Format). Präzisierung in der Planphase, ratifiziert durch Freigabe (D24-Addendum).
 - Auswahl Bug zuerst / Heck zuerst im Editor, wirkt beim nächsten „Plan“
 - Gespeichert im Plan (D24), nicht in settings.json
 - Core unverändert: `LoadPlanner.Plan` nimmt `fillOrder` schon
@@ -541,4 +542,5 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Backdrop-Blur hinter dem Fenster (Spike: DWM vs. AllowsTransparency) (D28).
 - Alternative Stop-Paletten, nur geprüft farbfehlsicht-tauglich (D29).
 - Theme-Presets/Export (A4).
+- Füllrichtung in Mission-Dateien (Export/Import), falls Koordinatoren sie mit der Route teilen wollen; heute nur über plan.json (Core-Formatwechsel, D24-Addendum).
 - Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).

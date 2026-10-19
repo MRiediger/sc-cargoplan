@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.IO;
 using CargoPlan.App.Editor;
 using CargoPlan.Core.Missions;
+using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Rendering;
@@ -32,10 +33,14 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     // The last plan, import, export or clipboard problem; the next edit clears it.
     private string? _actionProblem;
 
+    // A field of its own, not the property's: the constructor sets the start value without marking a change.
+    private FillOrder _fillOrder;
+
     /// <summary>Starts with the missions of the overlay's plan, or one blank row without a plan.</summary>
     public MissionEditorViewModel(OverlayViewModel overlay)
     {
         _overlay = overlay;
+        _fillOrder = overlay.Plan?.FillOrder ?? FillOrder.BowFirst;
         Rows = [.. MissionRows.FromStops(overlay.Missions)];
         if (Rows.Count == 0)
         {
@@ -49,6 +54,29 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     }
 
     public ObservableCollection<MissionRow> Rows { get; }
+
+    public static IReadOnlyList<FillOrderChoice> FillOrders { get; } =
+    [
+        new(FillOrder.BowFirst, "Bow first"),
+        new(FillOrder.SternFirst, "Stern first"),
+    ];
+
+    /// <summary>
+    /// Which end of each rack the crates fill from (D24), for the next <see cref="PlanCommand"/>; starts with the current
+    /// plan's. Like the rows a draft: changing it changes nothing until Plan. Clear rows and Import keep it, it belongs
+    /// to the player's way of loading, not to the missions.
+    /// </summary>
+    public FillOrder FillOrder
+    {
+        get => _fillOrder;
+        set
+        {
+            if (SetProperty(ref _fillOrder, value))
+            {
+                Edited();
+            }
+        }
+    }
 
     /// <summary>The rows went to the overlay as a new plan; the window closes on it (D19). Not raised when planning fails.</summary>
     public event EventHandler? Planned;
@@ -168,7 +196,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         var stops = _result.Stops;
         try
         {
-            var plan = LoadPlanner.Plan(_overlay.Ship, stops.ToStops());
+            var plan = LoadPlanner.Plan(_overlay.Ship, stops.ToStops(), FillOrder);
             _overlay.ShowPlan(new SavedPlan(stops, plan));
             IsDirty = false;
             SetActionProblem(null);
