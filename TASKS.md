@@ -487,7 +487,7 @@ Einstellbare Werte:
 ### [ ] T6.3 Integration
 **Warum:** Knopf statt Tipparbeit.
 - Button „Load from ContractTracker“ im Editor, Pfad-Autodetektion mit manuellem Fallback
-- Optional Auto-Refresh, nur bei offenem Editor
+- Zusätzlich Auto-Refresh, nur bei offenem overlay
 
 **Akzeptanz:** Auftrag annehmen → Tracker erfasst → ein Klick → Plan steht.
 
