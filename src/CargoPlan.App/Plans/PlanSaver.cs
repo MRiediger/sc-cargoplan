@@ -9,8 +9,8 @@ namespace CargoPlan.App.Plans;
 
 /// <summary>
 /// Saves the plan whenever it changes, debounced: a Star Citizen crash between two stops must not lose the ticks (D18).
-/// Listens to <see cref="OverlayViewModel.Plan"/> itself, so every way of changing the plan saves it: tick, and
-/// later editor and drag and drop.
+/// Listens to <see cref="OverlayViewModel.Plan"/> itself, so every way of changing the plan saves it: tick, editor,
+/// and later drag and drop.
 /// </summary>
 public sealed class PlanSaver
 {
@@ -64,7 +64,7 @@ public sealed class PlanSaver
 
     private void Save()
     {
-        // Nothing sets the plan back to null yet; discarding a plan comes with the editor (T3.8b).
+        // Nothing sets the plan back to null: the editor replaces a plan, it doesn't discard one (backlog, D19).
         if (_viewModel.Plan is not { } plan)
         {
             return;

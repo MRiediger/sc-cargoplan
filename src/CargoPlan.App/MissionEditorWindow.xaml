@@ -1,0 +1,95 @@
+<Window x:Class="CargoPlan.App.MissionEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:CargoPlan.App.ViewModels"
+        xmlns:ed="clr-namespace:CargoPlan.App.Editor"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance vm:MissionEditorViewModel}"
+        Title="{Binding Title}"
+        Width="560" Height="420"
+        MinWidth="420" MinHeight="260"
+        Topmost="True"
+        ShowInTaskbar="True"
+        ShowActivated="False"
+        WindowStartupLocation="CenterOwner">
+    <!-- A normal window: here the player types, so it takes the focus on purpose (no WS_EX_NOACTIVATE, no click-through).
+         Topmost comes with the topmost overlay as owner anyway. ShowActivated=False is for showing it again after the
+         auto-lock (D19); opening it calls Activate() explicitly. -->
+    <Window.Resources>
+        <ed:SelectedRowConverter x:Key="SelectedRowConverter" />
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="ToolbarButtonStyle" TargetType="Button">
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="Padding" Value="8,2" />
+        </Style>
+    </Window.Resources>
+
+    <!-- ButtonBase.Click bubbles before the button runs its command: every button first ends the cell edit,
+         because moving or removing rows during an edit transaction throws.
+         Source: ButtonBase.OnClick raises Click, then executes the command (dotnet/wpf, ButtonBase.cs). -->
+    <DockPanel Margin="8" ButtonBase.Click="OnAnyButtonClick">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="Add" Command="{Binding AddRowCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTip="Add a row (or type into the empty row at the bottom)" />
+            <Button Content="Remove" Command="{Binding RemoveRowCommand}" Style="{StaticResource ToolbarButtonStyle}" />
+            <Button Content="↑" Command="{Binding MoveUpCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTip="Move up: stops follow the first row of each destination" />
+            <Button Content="↓" Command="{Binding MoveDownCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTip="Move down" />
+            <Button Content="Clear rows" Command="{Binding ClearRowsCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                    Margin="12,0,4,0" ToolTip="Start the next route; the overlay keeps its plan until you plan again" />
+            <Button Content="Import…" Click="OnImport" Style="{StaticResource ToolbarButtonStyle}" Margin="12,0,4,0" />
+            <Button Content="Export…" Click="OnExport" IsEnabled="{Binding CanExport}" Style="{StaticResource ToolbarButtonStyle}" />
+            <Button Content="Copy as text" Click="OnCopyText" IsEnabled="{Binding HasPlan}" Style="{StaticResource ToolbarButtonStyle}"
+                    Margin="12,0,0,0" ToolTip="Copy the current plan for Discord or org chat" />
+        </StackPanel>
+
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+            <Button DockPanel.Dock="Right" Content="Plan" Command="{Binding PlanCommand}" Padding="16,4"
+                    VerticalAlignment="Bottom" ToolTip="Plan the rows and show them in the overlay" />
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{StaticResource EditorProblemBrush}" />
+                <TextBlock Text="{x:Static vm:MissionEditorViewModel.ClearsDeliveredText}" TextWrapping="Wrap"
+                           Foreground="{StaticResource EditorWarningBrush}"
+                           Visibility="{Binding ClearsDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Bindings with UpdateSourceTrigger=PropertyChanged: the data grid would otherwise commit only at the end of the
+             edit, and the stop column, the red row and the Plan button would lag behind the typing.
+             Sorting is off: it would reorder the view, not the route. -->
+        <DataGrid x:Name="Grid"
+                  ItemsSource="{Binding Rows}"
+                  SelectedItem="{Binding SelectedRow, Converter={StaticResource SelectedRowConverter}}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="True"
+                  CanUserDeleteRows="True"
+                  CanUserSortColumns="False"
+                  CanUserReorderColumns="False"
+                  SelectionMode="Single"
+                  HeadersVisibility="Column">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasError}" Value="True">
+                            <Setter Property="Background" Value="{StaticResource InvalidRowBrush}" />
+                            <Setter Property="ToolTip" Value="{Binding Error}" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Stop" Binding="{Binding StopNumber}" IsReadOnly="True" Width="Auto" />
+                <DataGridTextColumn Header="Destination" Binding="{Binding Destination, UpdateSourceTrigger=PropertyChanged}" Width="2*" />
+                <DataGridTextColumn Header="Commodity" Binding="{Binding Commodity, UpdateSourceTrigger=PropertyChanged}" Width="2*" />
+                <DataGridTextColumn Header="SCU" Binding="{Binding Scu, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                <DataGridComboBoxColumn Header="Crate size"
+                                        ItemsSource="{x:Static ed:MissionRows.CrateSizes}"
+                                        SelectedItemBinding="{Binding CrateSize, UpdateSourceTrigger=PropertyChanged}"
+                                        Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </DockPanel>
+</Window>

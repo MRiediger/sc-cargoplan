@@ -11,6 +11,7 @@ namespace CargoPlan.App;
 public partial class OverlayWindow : Window
 {
     private readonly OverlayViewModel _viewModel;
+    private MissionEditorWindow? _editor;
 
     public OverlayWindow(OverlayViewModel viewModel)
     {
@@ -80,7 +81,23 @@ public partial class OverlayWindow : Window
         NativeMethods.SetClickThrough(hwnd, locked);
     }
 
-    // Borderless window: drag on header, hint lines and border. The ship view (orbit) and the legend's check boxes
+    /// <summary>
+    /// Pencil and "Open editor": one editor at a time, a second click brings it to the front. Activate() because the
+    /// editor has ShowActivated=False (D19); the click on the overlay gives this process the right to take the foreground.
+    /// </summary>
+    private void OnOpenEditor(object sender, RoutedEventArgs e)
+    {
+        if (_editor is null)
+        {
+            _editor = new MissionEditorWindow(new MissionEditorViewModel(_viewModel), _viewModel, this);
+            _editor.Closed += (_, _) => _editor = null;
+            _editor.Show();
+        }
+
+        _editor.Activate();
+    }
+
+    // Borderless window: drag on header, hint lines and border. The ship view (orbit) and the legend's stop lines
     // handle their own left clicks, so this never runs there (D15, D16).
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragMove();
 }

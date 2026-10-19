@@ -32,6 +32,36 @@
             <Setter Property="Foreground" Value="{StaticResource NoticeForegroundBrush}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
+        <!-- A legend stop line: the whole line is the button, without box or frame; the hand cursor says it is clickable.
+             Delivered is shown by the template's triggers, so the button needs no checked state of its own (D16). -->
+        <Style x:Key="LegendLineButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{StaticResource HitTestBackgroundBrush}">
+                            <ContentPresenter VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- Text button on the dark overlay: outline in the text colour instead of the system's grey button. -->
+        <Style x:Key="TextButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+            <Setter Property="Foreground" Value="{StaticResource OverlayForegroundBrush}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{StaticResource HitTestBackgroundBrush}"
+                                BorderBrush="{StaticResource OverlayForegroundBrush}"
+                                BorderThickness="1" CornerRadius="3" Padding="8,2">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <Border Background="{StaticResource OverlayBackgroundBrush}" CornerRadius="4" Padding="10">
         <DockPanel>
@@ -39,6 +69,23 @@
                  Height and right margin keep clear of the lock window (36 px at 4 px inset, LockWindowPlacement). -->
             <!-- "All stops delivered." sits here, not in the legend: the header's fixed height keeps the ship view still (D16). -->
             <DockPanel DockPanel.Dock="Top" Height="30" Margin="0,0,30,0">
+                <!-- Opens the mission editor, next to the padlock. Locked it is hidden but keeps its space (T3.7 notes):
+                     planning is a step with a free cursor, and a locked overlay is click-through anyway. -->
+                <Button DockPanel.Dock="Right" Width="30" VerticalAlignment="Top" Height="26"
+                        ToolTip="Enter missions" Click="OnOpenEditor">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                                    <Setter Property="Visibility" Value="Hidden" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                    <!-- E70F Edit. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                    <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                               Foreground="{StaticResource OverlayForegroundBrush}" />
+                </Button>
                 <TextBlock DockPanel.Dock="Right"
                            Text="{x:Static vm:OverlayViewModel.AllDeliveredText}"
                            VerticalAlignment="Top"
@@ -62,35 +109,38 @@
             </ItemsControl>
 
             <!-- Legend: one line per stop, then violations (red racks) and planner hints, word for word (D7).
-                 Each stop line is a check box: ticked = delivered (D16). Check boxes handle their left clicks,
-                 so DragMove works on the header, the hint lines and the border, not on the stop lines. -->
+                 A click on a stop line ticks it off or back (D16, addendum T3.8b: a plain line, no check box). The lines
+                 are buttons and handle their left clicks, so DragMove works on the header, the hint lines and the border,
+                 not on the stop lines. -->
             <StackPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
-                <TextBlock Text="{x:Static vm:OverlayViewModel.NoPlanText}">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource LegendTextStyle}">
+                <!-- Empty state: the sentence and a second way into the editor besides the pencil. -->
+                <StackPanel>
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding HasPlan}" Value="True">
                                     <Setter Property="Visibility" Value="Collapsed" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                    </StackPanel.Style>
+                    <TextBlock Text="{x:Static vm:OverlayViewModel.NoPlanText}" Style="{StaticResource LegendTextStyle}" />
+                    <Button Content="Open editor" Click="OnOpenEditor" HorizontalAlignment="Left" Margin="0,4,0,0"
+                            Style="{StaticResource TextButtonStyle}" />
+                </StackPanel>
                 <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}">
                     <ItemsControl.ItemTemplate>
-                        <!-- The command replaces the plan, so the legend is rebuilt and IsChecked comes from the new entry. -->
+                        <!-- The command replaces the plan, so the legend is rebuilt and the grey comes from the new entry. -->
                         <DataTemplate DataType="{x:Type sv:LegendEntry}">
-                            <CheckBox IsChecked="{Binding Delivered, Mode=OneWay}"
-                                      Command="{Binding DataContext.ToggleDeliveredCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                      CommandParameter="{Binding Destination, Mode=OneTime}"
-                                      Focusable="False"
-                                      VerticalContentAlignment="Center">
+                            <Button Command="{Binding DataContext.ToggleDeliveredCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding Destination, Mode=OneTime}"
+                                    Style="{StaticResource LegendLineButtonStyle}">
                                 <StackPanel Orientation="Horizontal">
                                     <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0"
                                                Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
                                     <TextBlock x:Name="LabelText" Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
                                 </StackPanel>
-                            </CheckBox>
+                            </Button>
                             <!-- Template triggers outrank values set in the template, so the grey wins over the bound colour.
                                  Source: https://learn.microsoft.com/dotnet/desktop/wpf/properties/dependency-property-value-precedence -->
                             <DataTemplate.Triggers>

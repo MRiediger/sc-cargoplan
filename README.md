@@ -35,9 +35,9 @@ _Screenshot: coming soon._
 
 Hover over a colored area to see what goes there, e.g. `Rack 1 · port upper · 16 SCU Titanium (4×4)` (4 crates of 4 SCU). Inside the view: **left drag** turns and tilts the ship, **right drag** moves it, the **mouse wheel** zooms, a **double-click** next to the cargo resets the view. To move the overlay window, drag it by its header (the ship name), the hint lines below the legend or the border.
 
-**Unloading:** when a destination has taken its cargo, tick it in the legend or click any of its cargo in the view. Its racks turn gray, the legend line is struck through, and the hints about that destination disappear, so the next cargo lift only shows what is still on board. The ship stays where it is. A destination split over two racks is ticked once, both racks turn gray. Clicked the wrong one? Click again. When every destination is ticked, the header says "All stops delivered." Ticking doesn't take the focus from the game, so the terminal keeps working. Every tick is saved right away, so a game crash or a restart between two stops keeps your plan and your ticks.
+**Unloading:** when a destination has taken its cargo, click its line in the legend or any of its cargo in the view. Its racks turn gray, the legend line is struck through, and the hints about that destination disappear, so the next cargo lift only shows what is still on board. The ship stays where it is. A destination split over two racks is ticked once, both racks turn gray. Clicked the wrong one? Click again. When every destination is ticked, the header says "All stops delivered." Ticking doesn't take the focus from the game, so the terminal keeps working. Every tick is saved right away, so a game crash or a restart between two stops keeps your plan and your ticks.
 
-Without a plan, the overlay shows your ship with empty racks and "No plan. Open the editor to enter missions." The mission editor is not there yet; until then a plan comes from a plan file (see Build).
+Without a plan, the overlay shows your ship with empty racks, "No plan. Open the editor to enter missions." and an **Open editor** button (see [Entering missions](#entering-missions)).
 
 **Never eats your tractor-beam click:** the overlay becomes click-through automatically while Star Citizen has the mouse. In flight and first person the game hides the cursor and it follows your view, so a click over a normal window would be lost. As soon as the cursor shows (mobiGlas, Esc menu, terminals) or another program is in front, the overlay is interactive again: you can zoom, hover and move it.
 
@@ -46,6 +46,23 @@ The small padlock in the overlay's top-right corner locks it by hand: the overla
 Start with `--locked` to begin with the padlock locked.
 
 **Remembers where you put it:** drag the overlay next to your cargo grid and resize it once; position and size are saved right away, so they survive a restart and even a crash. They live in `%LocalAppData%\SC-CargoPlan\settings.json`. To reset the overlay to its default size and position, close it and delete that file (your hotkeys go with it). If you unplug a monitor, the overlay moves back onto the screens you have.
+
+### Entering missions
+
+**This is the full loop:** accept your contracts, enter them in the editor, press **Plan**, load the racks as the overlay shows, tick each destination at its cargo lift. No terminal, no other tool.
+
+Open the editor with the **pencil** in the overlay's header (next to the padlock), or with **Open editor** while there is no plan. The pencil is hidden while the overlay is locked: planning needs a free cursor. The editor is a normal window, so it takes the focus while you type; afterwards click back into the game (or Alt+Tab).
+
+- **One row per cargo item:** Destination, Commodity, SCU, Crate size. A contract with two commodities for the same destination is two rows with the same destination.
+- **Stop order:** the **Stop** column shows the route. Stops follow the first row of each destination, so `Riker, Shubin, Orison, Shubin` gives stops 1, 2, 3, 2. Use **↑**/**↓** to move rows; destinations match regardless of upper or lower case.
+- **New rows:** type into the empty row at the bottom (Tab from the last cell gets you there), or press **Add**. A new row takes the crate size of the row above.
+- **Mistakes show in red:** an empty destination or commodity, an SCU that isn't a whole number, or an SCU that doesn't fill whole crates (17 SCU in 4 SCU crates). The reason is in the tool tip and below the grid; **Plan** stays off until every row is fixed. If the missions don't fit the ship, the reason shows in the same place.
+- **Plan** sends the rows to the overlay, saves them and closes the editor. If the missions don't fit, the editor stays open with the reason. Planning again makes a new plan: ticks are cleared. The editor says so beforehand if you have ticked a destination.
+- **Next route:** the editor opens with your current missions. **Clear rows** empties the rows for the next route; the overlay keeps the old plan until you press **Plan**. Closing the editor without **Plan** throws away your changes, not your plan.
+- **Import… / Export…** read and write [mission files](docs/mission-format.md), e.g. to share a route. Export writes the rows as they are, planned or not.
+- **Copy as text** copies the current plan as plain text, ready to paste into Discord or your org chat.
+
+When Star Citizen takes the mouse (flight), the overlay turns click-through and an open editor hides, so neither catches a click meant for the game. The editor comes back when the cursor does, without taking the focus. The overlay hotkey hides it too.
 
 ### Hotkeys
 
@@ -79,7 +96,7 @@ Both files are in `%LocalAppData%\SC-CargoPlan\` and are saved as soon as someth
 | File | What | Deleting it (overlay closed) |
 |---|---|---|
 | `settings.json` | Overlay position and size, hotkeys | Default size and position, no hotkeys. Your plan stays. |
-| `plan.json` | Your current plan: missions, which cargo goes into which rack, ticks ([format](docs/plan-format.md)) | The overlay starts without a plan. Your settings stay. |
+| `plan.json` | Your current plan: the missions you entered, which cargo goes into which rack, ticks ([format](docs/plan-format.md)). The editor opens with these missions. | The overlay starts without a plan. Your settings stay. |
 
 If a file can't be read, the overlay starts without it and says so in an amber line. It doesn't overwrite the file: `settings.json` stays until you move the overlay, `plan.json` until you make a new plan.
 

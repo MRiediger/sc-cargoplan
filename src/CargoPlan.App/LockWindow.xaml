@@ -18,19 +18,8 @@
     <!-- The way back from a locked overlay: click-through only while auto-locked (cursor hidden), never by the
          manual lock. WS_EX_NOACTIVATE and the click-through switch are set in code-behind. -->
     <Window.Resources>
-        <Style x:Key="LockButtonStyle" TargetType="Button">
-            <!-- Not focusable: focusing would activate the window and take the foreground from the game. -->
-            <Setter Property="Focusable" Value="False" />
+        <Style x:Key="LockButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
             <Setter Property="ToolTip" Value="Unlocked" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{StaticResource HitTestBackgroundBrush}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsLocked}" Value="True">
                     <Setter Property="ToolTip" Value="Locked – clicks pass through" />
