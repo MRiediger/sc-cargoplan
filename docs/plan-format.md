@@ -8,20 +8,20 @@ what is in it.
 ## Example
 
 [`tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json`](../tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json),
-shortened to one stop:
+shortened to one stop and saved once (the fixture itself still embeds schema 1 missions, which are read too):
 
 ```json
 {
   "schemaVersion": 1,
   "shipId": "hull_a",
   "missions": {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "stops": [
       {
         "destination": "Riker",
         "items": [
-          { "commodity": "Titanium", "scu": 16, "crateSize": 4 },
-          { "commodity": "Quartz", "scu": 4, "crateSize": 2 }
+          { "commodity": "Titanium", "scu": 16, "maxCrateSize": 4 },
+          { "commodity": "Quartz", "scu": 4, "maxCrateSize": 2 }
         ]
       }
     ]
@@ -47,7 +47,7 @@ All fields are **required**. Names are camelCase and **case-sensitive**. Unknown
 |---|---|---|
 | `schemaVersion` | number | Must be `1`. |
 | `shipId` | string | The ship the plan is for, e.g. `"hull_a"` ([ship files](ship-format.md)). |
-| `missions` | object | A complete [mission file](mission-format.md), with its own `schemaVersion`. You can copy it out and use it as a mission file. |
+| `missions` | object | A complete [mission file](mission-format.md), with its own `schemaVersion`. Both mission versions are read; saving writes version 2. You can copy it out and use it as a mission file. |
 | `placements` | array | Which cargo goes into which rack. |
 | `warnings` | array | The planner's hints, word for word as the overlay shows them. Stored, not computed again on loading. |
 
@@ -57,7 +57,7 @@ All fields are **required**. Names are camelCase and **case-sensitive**. Unknown
 |---|---|---|
 | `destination` | string | A destination from `missions`, same spelling. |
 | `rackId` | string | A rack `id` of the ship. |
-| `item` | object | Commodity, SCU and crate size, as an item in the mission file. A stop's item split over two racks has one placement per rack. |
+| `item` | object | Commodity, SCU and one `crateSize`, the format of a schema 1 mission item. A mission item with several crate sizes (4 + 2) has one placement per crate size; split over two racks, one per rack. |
 | `delivered` | boolean | `true` once the stop is ticked off. All placements of a stop are ticked together. |
 
 ### Warning
@@ -68,7 +68,7 @@ All fields are **required**. Names are camelCase and **case-sensitive**. Unknown
 | `message` | string | The hint text. |
 
 The placements must cover the missions exactly: for every destination, commodity and crate size the SCU
-of the placements add up to the SCU in the missions. A rack may hold more than its capacity or a crate
+of the placements add up to the SCU of the missions' crates (worked out or listed in `crates`). A rack may hold more than its capacity or a crate
 that doesn't fit it (after a manual move); the overlay marks such racks red.
 
 ## Errors

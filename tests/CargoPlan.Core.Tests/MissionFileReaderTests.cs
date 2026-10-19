@@ -45,6 +45,51 @@ public class MissionFileReaderTests
         stop.Items.Should().AllSatisfy(i => i.CrateSize.Should().Be(CrateSize.Four));
     }
 
+    // --- Schema 1 (still read, D23) ---
+
+    [Fact]
+    public void Read_v1_item_has_its_crate_size_as_max_and_its_crates_as_explicit_list()
+    {
+        var titanium = MissionFixtures.LoadMissions("example_missions")[0].Items.Should().ContainSingle().Which;
+
+        titanium.MaxCrateSize.Should().Be(CrateSize.Four);
+        titanium.Crates.Should().Equal(CrateSize.Four, CrateSize.Four, CrateSize.Four);
+    }
+
+    // --- Schema 2 (D23) ---
+
+    [Fact]
+    public void Read_v2_item_without_crates_derives_its_mix()
+    {
+        var greenGlade = MissionFixtures.CrateMixMissions[0];
+
+        greenGlade.Items.Should().AllSatisfy(i => i.Crates.Should().BeNull());
+        greenGlade.Items[0].CrateList.Should().Equal(CrateSize.Four, CrateSize.Two);
+        greenGlade.Items[1].CrateList.Should().Equal(CrateSize.Four, CrateSize.Four, CrateSize.Four, CrateSize.Two, CrateSize.One);
+    }
+
+    [Fact]
+    public void Read_v2_item_with_crates_keeps_the_override()
+    {
+        var titanium = MissionFixtures.CrateMixMissions[1].Items.Should().ContainSingle().Which;
+
+        titanium.Should().BeEquivalentTo(new MissionItem("Titanium", 6, CrateSize.Four, [CrateSize.Two, CrateSize.Two, CrateSize.Two]));
+    }
+
+    [Fact]
+    public void Read_v2_file_expands_into_one_cargo_item_per_crate_size()
+    {
+        var stops = MissionFixtures.Load("crate_mix");
+
+        stops[0].Items.Should().Equal(
+            new CargoItem("Stims", 4, CrateSize.Four),
+            new CargoItem("Stims", 2, CrateSize.Two),
+            new CargoItem("Scrap", 12, CrateSize.Four),
+            new CargoItem("Scrap", 2, CrateSize.Two),
+            new CargoItem("Scrap", 1, CrateSize.One));
+        stops[1].Items.Should().Equal(new CargoItem("Titanium", 6, CrateSize.Two));
+    }
+
     [Fact]
     public void Read_assigns_order_from_array_position_starting_at_1()
     {
@@ -64,8 +109,12 @@ public class MissionFileReaderTests
     [InlineData("blank_commodity")]             // "commodity": ""
     [InlineData("missing_property")]            // no "crateSize"
     [InlineData("missing_schema")]              // no "schemaVersion"
-    [InlineData("unsupported_schema")]          // "schemaVersion": 2
+    [InlineData("unsupported_schema")]          // "schemaVersion": 3
     [InlineData("malformed")]                   // not valid JSON
+    [InlineData("crates_sum_mismatch")]         // v2: 6 SCU as 2+2
+    [InlineData("crate_above_max")]             // v2: an 8 SCU crate at max 4
+    [InlineData("crate_unknown_size")]          // v2: 3 SCU crates
+    [InlineData("crate_size_in_v2")]            // v2 with the v1 field "crateSize"
     public void Read_invalid_file_throws_MissionFormatException_naming_the_source(string name)
     {
         var resourceName = MissionFixtures.InvalidResourceName(name);
@@ -83,7 +132,11 @@ public class MissionFileReaderTests
     [InlineData("unknown_property", "*SCU*")]
     [InlineData("duplicate_destination", "*riker*more than once*")]
     [InlineData("scu_not_multiple_of_crate", "*Riker*Titanium*20 SCU*8 SCU crates*")]
-    [InlineData("unsupported_schema", "*schemaVersion 2*")]
+    [InlineData("unsupported_schema", "*schemaVersion 3*expected 1 or 2*")]
+    [InlineData("crates_sum_mismatch", "*Riker*Titanium*add up to 4 SCU, not 6*")]
+    [InlineData("crate_above_max", "*Riker*Titanium*8 SCU crates are larger than the max crate size of 4 SCU*")]
+    [InlineData("crate_unknown_size", "*Riker*Titanium*3 SCU is not a crate size*")]
+    [InlineData("crate_size_in_v2", "*crateSize*")]
     public void Read_invalid_file_explains_the_problem(string name, string expectedMessage)
     {
         var resourceName = MissionFixtures.InvalidResourceName(name);
@@ -122,7 +175,7 @@ public class MissionFileReaderTests
 
             var stops = MissionFileReader.Read(path);
 
-            stops.Should().BeEquivalentTo(MissionFixtures.ExampleMissions, o => o.WithStrictOrdering());
+            stops.Should().BeEquivalentTo(MissionFixtures.LoadMissions("example_missions"), o => o.WithStrictOrdering());
         }
         finally
         {
@@ -158,13 +211,15 @@ public class MissionFileReaderTests
 
     // --- Serialization (export in T3.8 writes the same format) ---
 
-    [Fact]
-    public void Serialized_stops_read_back_unchanged()
+    [Theory]
+    [InlineData("overflow_missions")]
+    [InlineData("crate_mix")]
+    public void Serialized_stops_read_back_unchanged(string fixture)
     {
-        var original = MissionFixtures.OverflowMissions;
+        var original = MissionFixtures.LoadMissions(fixture);
 
         var json = JsonSerializer.SerializeToUtf8Bytes(
-            MissionFileDto.FromStops(original), MissionJsonContext.Default.MissionFileDto);
+            MissionFileDto.FromMissionStops(original), MissionJsonContext.Default.MissionFileDto);
         using var stream = new MemoryStream(json);
         var roundTripped = MissionFileReader.Read(stream, "roundtrip.json");
 
@@ -174,16 +229,16 @@ public class MissionFileReaderTests
     [Fact]
     public void FromStops_writes_stops_in_route_order()
     {
-        Stop[] stops =
+        MissionStop[] stops =
         [
-            new("Orison", 2, [new CargoItem("Agricium", 8, CrateSize.Eight)]),
-            new("Riker", 1, [new CargoItem("Titanium", 12, CrateSize.Four)]),
+            new("Orison", 2, [new MissionItem("Agricium", 8, CrateSize.Eight)]),
+            new("Riker", 1, [new MissionItem("Titanium", 12, CrateSize.Four)]),
         ];
 
-        var dto = MissionFileDto.FromStops(stops);
+        var dto = MissionFileDto.FromMissionStops(stops);
 
-        dto.SchemaVersion.Should().Be(MissionFileReader.SupportedSchemaVersion);
+        dto.SchemaVersion.Should().Be(MissionFileReader.CurrentSchemaVersion);
         dto.Stops.Select(s => s.Destination).Should().Equal("Riker", "Orison");
-        dto.Stops[0].Items[0].Should().Be(new CargoItemDto("Titanium", 12, 4));
+        dto.Stops[0].Items[0].Should().Be(new MissionItemDto("Titanium", 12, 4));
     }
 }

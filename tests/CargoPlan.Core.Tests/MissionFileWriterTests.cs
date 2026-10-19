@@ -7,7 +7,7 @@ namespace CargoPlan.Core.Tests;
 
 public class MissionFileWriterTests
 {
-    private static IReadOnlyList<Stop> RoundTrip(IReadOnlyList<Stop> stops)
+    private static IReadOnlyList<MissionStop> RoundTrip(IReadOnlyList<MissionStop> stops)
     {
         using var stream = new MemoryStream();
         MissionFileWriter.Write(stream, stops);
@@ -15,38 +15,59 @@ public class MissionFileWriterTests
         return MissionFileReader.Read(stream, "roundtrip");
     }
 
+    private static JsonDocument Written(IReadOnlyList<MissionStop> stops)
+    {
+        using var stream = new MemoryStream();
+        MissionFileWriter.Write(stream, stops);
+        return JsonDocument.Parse(Encoding.UTF8.GetString(stream.ToArray()));
+    }
+
     [Theory]
     [InlineData("example_missions")]
     [InlineData("overflow_missions")]
     [InlineData("split_required")]
     [InlineData("split_and_shared")]
+    [InlineData("crate_mix")]
     public void Write_then_Read_gives_the_same_stops(string fixture)
     {
-        var stops = MissionFixtures.Load(fixture);
+        // Schema 1 fixtures come back as schema 2 with their explicit crates, schema 2 as it was (D23).
+        var stops = MissionFixtures.LoadMissions(fixture);
 
-        // Stop holds its items in a list, which compares by reference; equivalence compares the content.
+        // MissionStop holds its items in a list, which compares by reference; equivalence compares the content.
         RoundTrip(stops).Should().BeEquivalentTo(stops, o => o.WithStrictOrdering());
     }
 
     [Fact]
     public void Write_keeps_route_order_even_if_the_list_is_not_sorted()
     {
-        Stop riker = new("Riker", 1, [new CargoItem("Titanium", 4, CrateSize.Four)]);
-        Stop shubin = new("Shubin", 2, [new CargoItem("Quartz", 2, CrateSize.Two)]);
+        MissionStop riker = new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]);
+        MissionStop shubin = new("Shubin", 2, [new MissionItem("Quartz", 2, CrateSize.Two)]);
 
         RoundTrip([shubin, riker]).Select(s => s.Destination).Should().Equal("Riker", "Shubin");
     }
 
     [Fact]
-    public void Write_writes_schema_version_1_and_leaves_the_stream_open()
+    public void Write_writes_schema_version_2_even_for_a_v1_file_and_leaves_the_stream_open()
     {
         using var stream = new MemoryStream();
 
-        MissionFileWriter.Write(stream, MissionFixtures.ExampleMissions);
+        MissionFileWriter.Write(stream, MissionFixtures.LoadMissions("example_missions"));
 
         stream.CanRead.Should().BeTrue();
         using var document = JsonDocument.Parse(Encoding.UTF8.GetString(stream.ToArray()));
-        document.RootElement.GetProperty("schemaVersion").GetInt32().Should().Be(MissionFileReader.SupportedSchemaVersion);
+        document.RootElement.GetProperty("schemaVersion").GetInt32().Should().Be(MissionFileReader.CurrentSchemaVersion);
+    }
+
+    [Fact]
+    public void Write_writes_crates_only_for_an_overridden_item()
+    {
+        using var document = Written(MissionFixtures.CrateMixMissions);
+
+        var items = document.RootElement.GetProperty("stops").EnumerateArray()
+            .SelectMany(s => s.GetProperty("items").EnumerateArray()).ToList();
+        items.Select(i => i.TryGetProperty("crates", out _)).Should().Equal(false, false, true);
+        items[2].GetProperty("crates").EnumerateArray().Select(c => c.GetInt32()).Should().Equal(2, 2, 2);
+        items[0].GetProperty("maxCrateSize").GetInt32().Should().Be(4);
     }
 
     [Fact]
@@ -63,8 +84,8 @@ public class MissionFileWriterTests
     [Fact]
     public void Write_with_a_duplicate_destination_throws_because_the_file_could_not_be_read_back()
     {
-        Stop riker = new("Riker", 1, [new CargoItem("Titanium", 4, CrateSize.Four)]);
-        Stop rikerAgain = new("riker", 2, [new CargoItem("Quartz", 2, CrateSize.Two)]);
+        MissionStop riker = new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]);
+        MissionStop rikerAgain = new("riker", 2, [new MissionItem("Quartz", 2, CrateSize.Two)]);
         using var stream = new MemoryStream();
 
         var act = () => MissionFileWriter.Write(stream, [riker, rikerAgain]);

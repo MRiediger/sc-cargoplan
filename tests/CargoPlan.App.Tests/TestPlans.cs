@@ -20,7 +20,7 @@ internal static class TestPlans
             ?? throw new InvalidOperationException($"Test resource '{ResourceName}' not found.");
 
         var missions = MissionFileReader.Read(stream, ResourceName);
-        return new SavedPlan(missions, LoadPlanner.Plan(ShipLoader.Load("hull_a"), missions));
+        return new SavedPlan(missions, LoadPlanner.Plan(ShipLoader.Load("hull_a"), missions.ToStops()));
     }
 
     public static (Ship Ship, LoadPlan Plan) Load() => (ShipLoader.Load("hull_a"), SplitAndShared().Plan);

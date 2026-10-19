@@ -1,4 +1,5 @@
 using CargoPlan.App.ShipView;
+using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
@@ -77,8 +78,11 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
         OnPropertyChanged(nameof(Notices));
     }
 
-    /// <summary>The missions <see cref="Plan"/> was made from, saved with it (D18). Set together with it by <see cref="ShowPlan"/>.</summary>
-    public IReadOnlyList<Stop> Missions { get; private set; } = [];
+    /// <summary>
+    /// The missions <see cref="Plan"/> was made from, as entered (D23), saved with it (D18). Set together with it by
+    /// <see cref="ShowPlan"/>.
+    /// </summary>
+    public IReadOnlyList<MissionStop> Missions { get; private set; } = [];
 
     /// <summary>Shows a plan with its missions. Missions first: the plan's PropertyChanged starts the save, which reads both.</summary>
     public void ShowPlan(SavedPlan saved)

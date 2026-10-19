@@ -168,7 +168,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         var stops = _result.Stops;
         try
         {
-            var plan = LoadPlanner.Plan(_overlay.Ship, stops);
+            var plan = LoadPlanner.Plan(_overlay.Ship, stops.ToStops());
             _overlay.ShowPlan(new SavedPlan(stops, plan));
             IsDirty = false;
             SetActionProblem(null);
@@ -208,12 +208,12 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     {
         AttachRows();
 
-        // A blank new row, from the Add button or the data grid's new-item row, takes the crate size of the row above:
-        // contracts of one board mostly use one crate size.
+        // A blank new row, from the Add button or the data grid's new-item row, takes the max crate size of the row
+        // above: contracts of one board mostly share one. The crates by hand belong to their row and are not copied.
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is [MissionRow { IsBlank: true } added]
             && e.NewStartingIndex > 0)
         {
-            added.CrateSize = Rows[e.NewStartingIndex - 1].CrateSize;
+            added.MaxCrateSize = Rows[e.NewStartingIndex - 1].MaxCrateSize;
         }
 
         Edited();
@@ -268,6 +268,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         {
             Rows[i].StopNumber = _result.StopNumbers[i];
             Rows[i].Error = _result.Errors[i];
+            Rows[i].CratesText = _result.CrateTexts[i];
         }
 
         OnPropertyChanged(nameof(Problem));

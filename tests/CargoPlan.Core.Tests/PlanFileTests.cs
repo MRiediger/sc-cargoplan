@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Nodes;
+using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
@@ -13,7 +14,7 @@ public class PlanFileTests
 
     private const string FixtureName = "plans/split_and_shared.json";
 
-    private static SavedPlan Planned(IReadOnlyList<Stop> missions) => new(missions, LoadPlanner.Plan(HullA, missions));
+    private static SavedPlan Planned(IReadOnlyList<MissionStop> missions) => new(missions, LoadPlanner.Plan(HullA, missions.ToStops()));
 
     private static string FixtureText()
     {
@@ -53,13 +54,13 @@ public class PlanFileTests
 
         var saved = PlanFile.Read(stream, FixtureName, HullA);
 
-        ShouldMatch(saved, Planned(MissionFixtures.SplitAndShared));
+        ShouldMatch(saved, Planned(MissionFixtures.SplitAndSharedMissions));
     }
 
     [Fact]
     public void Write_then_Read_keeps_missions_placements_hints_and_delivered()
     {
-        var planned = Planned(MissionFixtures.SplitAndShared);
+        var planned = Planned(MissionFixtures.SplitAndSharedMissions);
         SavedPlan saved = new(planned.Missions, LoadPlanner.SetDelivered(planned.Plan, HullA, "Riker", true));
 
         var loaded = RoundTrip(saved);
@@ -73,7 +74,7 @@ public class PlanFileTests
     public void Write_then_Read_keeps_a_moved_and_overloaded_placement()
     {
         // The player's override survives a restart, even one Validate complains about (D10).
-        var planned = Planned(MissionFixtures.SplitAndShared);
+        var planned = Planned(MissionFixtures.SplitAndSharedMissions);
         var lorville = planned.Plan.PlacementsForStop("Lorville").Single();
         SavedPlan saved = new(planned.Missions, LoadPlanner.MovePlacement(planned.Plan, HullA, lorville, "rack-0"));
 
@@ -88,7 +89,7 @@ public class PlanFileTests
     {
         using var stream = new MemoryStream();
 
-        PlanFile.Write(stream, Planned(MissionFixtures.ExampleMissions));
+        PlanFile.Write(stream, Planned(MissionFixtures.LoadMissions("example_missions")));
 
         var json = Encoding.UTF8.GetString(stream.ToArray());
         json.Should().Contain("\"schemaVersion\": 1").And.Contain("\"shipId\": \"hull_a\"")
@@ -96,11 +97,37 @@ public class PlanFileTests
     }
 
     [Fact]
+    public void Write_gives_schema_2_missions_inside_a_schema_1_plan_file()
+    {
+        // The fixture embeds schema 1 missions; a save turns them into schema 2, the plan file keeps its version (D23).
+        using var stream = new MemoryStream();
+
+        PlanFile.Write(stream, Planned(MissionFixtures.SplitAndSharedMissions));
+
+        var node = JsonNode.Parse(Encoding.UTF8.GetString(stream.ToArray()))!;
+        node["schemaVersion"]!.GetValue<int>().Should().Be(PlanFile.SupportedSchemaVersion);
+        node["missions"]!["schemaVersion"]!.GetValue<int>().Should().Be(MissionFileReader.CurrentSchemaVersion);
+        node["missions"]!["stops"]![0]!["items"]![0]!["maxCrateSize"]!.GetValue<int>().Should().Be(4);
+    }
+
+    [Fact]
+    public void Write_then_Read_keeps_derived_and_overridden_crates()
+    {
+        var saved = Planned(MissionFixtures.CrateMixMissions);
+
+        var loaded = RoundTrip(saved);
+
+        ShouldMatch(loaded, saved);
+        loaded.Missions[0].Items[0].Crates.Should().BeNull();
+        loaded.Missions[1].Items[0].Crates.Should().Equal(CrateSize.Two, CrateSize.Two, CrateSize.Two);
+    }
+
+    [Fact]
     public void Write_leaves_the_stream_open()
     {
         using var stream = new MemoryStream();
 
-        PlanFile.Write(stream, Planned(MissionFixtures.ExampleMissions));
+        PlanFile.Write(stream, Planned(MissionFixtures.LoadMissions("example_missions")));
 
         stream.CanWrite.Should().BeTrue();
     }
@@ -112,9 +139,27 @@ public class PlanFileTests
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
 
-        var act = () => new SavedPlan(MissionFixtures.ExampleMissions, plan);
+        var act = () => new SavedPlan(MissionFixtures.LoadMissions("example_missions"), plan);
 
         act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void SavedPlan_checks_the_placements_against_the_expanded_items()
+    {
+        MissionStop[] missions = [new("Riker", 1, [new MissionItem("Stims", 15, CrateSize.Four)])];
+        Placement[] expanded =
+        [
+            new("Riker", "rack-0", new CargoItem("Stims", 12, CrateSize.Four), false),
+            new("Riker", "rack-0", new CargoItem("Stims", 2, CrateSize.Two), false),
+            new("Riker", "rack-0", new CargoItem("Stims", 1, CrateSize.One), false),
+        ];
+
+        var complete = () => new SavedPlan(missions, new LoadPlan("hull_a", expanded, []));
+        var withoutTheOne = () => new SavedPlan(missions, new LoadPlan("hull_a", expanded[..2], []));
+
+        complete.Should().NotThrow();
+        withoutTheOne.Should().Throw<ArgumentException>().WithMessage("*Riker*Stims (1 SCU crates)*0 of 1 SCU*");
     }
 
     [Fact]
@@ -149,7 +194,7 @@ public class PlanFileTests
     /// <summary>One change to the fixture each; the rest stays valid, so the change is what fails.</summary>
     private static readonly Dictionary<string, Action<JsonNode>> Changes = new()
     {
-        ["inner_schema"] = n => n["missions"]!["schemaVersion"] = 2,
+        ["inner_schema"] = n => n["missions"]!["schemaVersion"] = 3,
         ["unknown_property"] = n => n["opacity"] = 0.5,
         ["missing_delivered"] = n => n["placements"]![0]!.AsObject().Remove("delivered"),
         ["foreign_ship"] = n => n["shipId"] = "cutlass_black",
@@ -162,7 +207,7 @@ public class PlanFileTests
     };
 
     [Theory]
-    [InlineData("inner_schema", "*schemaVersion 2*")]
+    [InlineData("inner_schema", "*missions: schemaVersion 3*expected 1 or 2*")]
     [InlineData("unknown_property", "*opacity*")]
     [InlineData("missing_delivered", "*delivered*")]
     [InlineData("foreign_ship", "*'cutlass_black'*'hull_a'*")]

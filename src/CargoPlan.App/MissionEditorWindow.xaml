@@ -8,8 +8,8 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:MissionEditorViewModel}"
         Title="{Binding Title}"
-        Width="560" Height="420"
-        MinWidth="420" MinHeight="260"
+        Width="660" Height="420"
+        MinWidth="480" MinHeight="260"
         Topmost="True"
         ShowInTaskbar="True"
         ShowActivated="False"
@@ -85,10 +85,43 @@
                 <DataGridTextColumn Header="Destination" Binding="{Binding Destination, UpdateSourceTrigger=PropertyChanged}" Width="2*" />
                 <DataGridTextColumn Header="Commodity" Binding="{Binding Commodity, UpdateSourceTrigger=PropertyChanged}" Width="2*" />
                 <DataGridTextColumn Header="SCU" Binding="{Binding Scu, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                <DataGridComboBoxColumn Header="Crate size"
-                                        ItemsSource="{x:Static ed:MissionRows.CrateSizes}"
-                                        SelectedItemBinding="{Binding CrateSize, UpdateSourceTrigger=PropertyChanged}"
+                <DataGridComboBoxColumn Header="Max crate"
+                                        ItemsSource="{x:Static ed:MissionRows.MaxCrateSizes}"
+                                        SelectedItemBinding="{Binding MaxCrateSize, UpdateSourceTrigger=PropertyChanged}"
                                         Width="*" />
+                <!-- Shows the crates derived from SCU and max (D23), or the ones typed by hand in italics. Editing starts
+                     empty for a derived row, so clicking in and out never turns the derivation into an override;
+                     an empty box means "derive again". FocusManager puts the caret into the box when editing starts.
+                     Source: https://learn.microsoft.com/dotnet/api/system.windows.input.focusmanager.focusedelement -->
+                <DataGridTemplateColumn Header="Crates" Width="1.5*">
+                    <DataGridTemplateColumn.HeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="ToolTip" Value="{x:Static ed:MissionRows.CratesToolTipText}" />
+                        </Style>
+                    </DataGridTemplateColumn.HeaderStyle>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate DataType="ed:MissionRow">
+                            <TextBlock Text="{Binding CratesText}" ToolTip="{x:Static ed:MissionRows.CratesToolTipText}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsCrateOverride}" Value="True">
+                                                <Setter Property="FontStyle" Value="Italic" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate DataType="ed:MissionRow">
+                            <TextBox Text="{Binding Crates, UpdateSourceTrigger=PropertyChanged}"
+                                     FocusManager.FocusedElement="{Binding RelativeSource={RelativeSource Self}}"
+                                     FontStyle="Italic" BorderThickness="0" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
     </DockPanel>

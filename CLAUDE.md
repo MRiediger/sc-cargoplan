@@ -27,7 +27,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 
 **Nicht erkennen, sondern festlegen.** Vor dem Beladen wird bestimmt, welches Ziel in welchen Schiffsabschnitt kommt. Der Spieler lädt nach Plan, das Overlay hält die Zuordnung fest, am Ziel wird der Block abgehakt.
 
-- **Input:** pro Mission: Ziel → Ware → SCU → Kistengröße (1/2/4/8/16/24/32 SCU)
+- **Input:** pro Mission: Ziel → Ware → SCU → maximale Kistengröße (1/2/4/8/16/24/32 SCU), wie im Vertrag; Kistenmix abgeleitet (gierig, größte zuerst), pro Item übersteuerbar (D23)
 - **Verarbeitung:** Bin-Packing mit Reihenfolge-Constraint. Erster Stopp in Rack 1, die folgenden in Rack-Reihenfolge, kein Ziel über eine Abschnittsgrenze, wenn vermeidbar.
 - **Output:** halbtransparentes Always-on-top-Overlay mit **Click-through als Modus** (Lock, D11), Schiff schematisch, farbige Blöcke pro Ziel mit Label („Riker · 12 SCU Titanium“), abhakbar.
 

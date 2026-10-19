@@ -26,12 +26,12 @@ public sealed class MissionEditorViewModelTests : IDisposable
         return overlay;
     }
 
-    private static void Fill(MissionRow row, string destination, string commodity, string scu, int crateSize)
+    private static void Fill(MissionRow row, string destination, string commodity, string scu, int maxCrateSize)
     {
         row.Destination = destination;
         row.Commodity = commodity;
         row.Scu = scu;
-        row.CrateSize = crateSize;
+        row.MaxCrateSize = maxCrateSize;
     }
 
     /// <summary>Editor with the four example rows: Riker, Shubin, Orison, then a second commodity for Shubin.</summary>
@@ -87,26 +87,43 @@ public sealed class MissionEditorViewModelTests : IDisposable
     }
 
     [Fact]
-    public void A_new_row_takes_the_crate_size_of_the_row_above()
+    public void A_new_row_takes_the_max_crate_size_of_the_row_above_but_not_its_crates()
     {
         var editor = new MissionEditorViewModel(EmptyOverlay());
-        Fill(editor.Rows[0], "Riker", "Titanium", "8", 4);
+        Fill(editor.Rows[0], "Riker", "Titanium", "8", 8);
+        editor.Rows[0].Crates = "4+4";
 
         editor.AddRowCommand.Execute(null);
 
-        editor.Rows[1].CrateSize.Should().Be(4);
+        editor.Rows[1].MaxCrateSize.Should().Be(8);
+        editor.Rows[1].Crates.Should().BeEmpty();
         editor.SelectedRow.Should().BeSameAs(editor.Rows[1]);
     }
 
     [Fact]
-    public void A_row_added_by_the_data_grid_takes_the_crate_size_of_the_row_above_too()
+    public void A_row_added_by_the_data_grid_takes_the_max_crate_size_of_the_row_above_too()
     {
         var editor = new MissionEditorViewModel(EmptyOverlay());
         Fill(editor.Rows[0], "Riker", "Titanium", "8", 8);
 
         editor.Rows.Add(new MissionRow());
 
-        editor.Rows[1].CrateSize.Should().Be(8);
+        editor.Rows[1].MaxCrateSize.Should().Be(8);
+    }
+
+    [Fact]
+    public void Each_row_shows_its_crates_derived_or_by_hand()
+    {
+        var editor = new MissionEditorViewModel(EmptyOverlay());
+        Fill(editor.Rows[0], "Green Glade", "Stims", "6", 4);
+
+        editor.Rows[0].CratesText.Should().Be("4+2");
+
+        editor.Rows[0].Crates = "2+2+2";
+
+        editor.Rows[0].CratesText.Should().Be("2+2+2");
+        editor.Rows[0].IsCrateOverride.Should().BeTrue();
+        editor.Problem.Should().BeNull();
     }
 
     [Fact]
@@ -125,11 +142,10 @@ public sealed class MissionEditorViewModelTests : IDisposable
     {
         var editor = FourRows(EmptyOverlay());
 
-        editor.Rows[1].Scu = "17";
-        editor.Rows[1].CrateSize = 4;
+        editor.Rows[1].Crates = "2+2+3";
 
-        editor.Rows[1].Error.Should().Be("17 SCU can't be packed in 4 SCU crates.");
-        editor.Problem.Should().Be("Row 2: 17 SCU can't be packed in 4 SCU crates.");
+        editor.Rows[1].Error.Should().Be("3 SCU is not a crate size.");
+        editor.Problem.Should().Be("Row 2: 3 SCU is not a crate size.");
         editor.PlanCommand.CanExecute(null).Should().BeFalse();
         editor.CanExport.Should().BeFalse();
     }
@@ -226,6 +242,24 @@ public sealed class MissionEditorViewModelTests : IDisposable
         overlay.Plan!.Placements.Sum(p => p.Item.Scu).Should().Be(22);
         editor.IsDirty.Should().BeFalse();
         editor.Problem.Should().BeNull();
+    }
+
+    [Fact]
+    public void Plan_expands_derived_and_overridden_crates_into_cargo_items()
+    {
+        // T3.12 verification: 6 Stims at max 4 is one 4 and one 2; overridden as 2+2+2 it is three 2s (D23).
+        var overlay = EmptyOverlay();
+        var editor = new MissionEditorViewModel(overlay);
+        Fill(editor.Rows[0], "Green Glade", "Stims", "6", 4);
+        editor.AddRowCommand.Execute(null);
+        Fill(editor.Rows[1], "Riker", "Stims", "6", 4);
+        editor.Rows[1].Crates = "2+2+2";
+
+        editor.PlanCommand.Execute(null);
+
+        overlay.Plan!.PlacementsForStop("Green Glade").Select(p => (p.Item.Scu, (int)p.Item.CrateSize)).Should().Equal((4, 4), (2, 2));
+        overlay.Plan!.PlacementsForStop("Riker").Select(p => (p.Item.Scu, (int)p.Item.CrateSize)).Should().Equal((6, 2));
+        overlay.Missions[0].Items[0].Crates.Should().BeNull();
     }
 
     [Fact]
@@ -336,6 +370,22 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
         MissionRows.ToStops(editor.Rows).Stops.Should().BeEquivalentTo(before, o => o.WithStrictOrdering());
         editor.Problem.Should().BeNull();
+    }
+
+    [Fact]
+    public void Export_writes_crates_only_for_the_overridden_row_and_Import_brings_both_back()
+    {
+        var path = Path.Combine(_folder, "missions.json");
+        var editor = FourRows(EmptyOverlay());
+        editor.Rows[0].Crates = "2+2+4";
+
+        editor.Export(path);
+        editor.ClearRowsCommand.Execute(null);
+        editor.Import(path);
+
+        File.ReadAllText(path).Split("\"crates\"").Should().HaveCount(2, "one row has an override");
+        editor.Rows.Select(r => r.Crates).Should().Equal("2+2+4", "", "", "");
+        editor.Rows.Select(r => r.IsCrateOverride).Should().Equal(true, false, false, false);
     }
 
     [Fact]

@@ -144,10 +144,12 @@ to the rack capacity fits (see [D9](decisions.md)). If a new ship's grid breaks 
 2. Add its shape to the `Dimensions` switch in the same file.
 3. Add one row each to the theories `CrateSize_dimensions_match_the_game` and `CrateSize_volume_equals_scu`
    in `tests/CargoPlan.Core.Tests/ModelsTests.cs`.
-4. Add the size to the `crateSize` list in [mission-format.md](mission-format.md) and to the table above.
+4. Add it to `CrateMix.Sizes` in [`src/CargoPlan.Core/Models/CrateMix.cs`](../src/CargoPlan.Core/Models/CrateMix.cs)
+   at its place (largest first), if the freight elevator uses it when it works out the crates of a contract (D23).
+5. Add the size to the `maxCrateSize` list in [mission-format.md](mission-format.md) and to the table above.
 
-That's it: mission files accept the new size, and the shape check and the planner's pre-check use it
-automatically.
+That's it: mission files and the editor accept the new size, and the shape check and the planner's pre-check
+use it automatically.
 
 ## Checklist for a new ship PR
 

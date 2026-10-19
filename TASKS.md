@@ -268,7 +268,7 @@ T3.8 ist geteilt: a = Persistenz und leerer Zustand, b = Editor.
 
 **Akzeptanz:** `dotnet test` grün; Rack 2 der Fixture zeigt Riker-, Shubin- und freie Zellen, Ebenen bleiben beim Orbit Ebenen; Abhaken, Klick zurück und Rechts-Ziehen funktionieren auf Zellen.
 
-T3.11 ist dreigeteilt: a = Core, b = Kisten in der Ansicht, c = Auswahl und Gesten. Je ein Plan, je eine Freigabe.
+T3.11 ist zweigeteilt: a = Core, b = Kisten in der Ansicht. Je ein Plan, je eine Freigabe. Das frühere T3.11c (Auswahl und Gesten) folgt als T3.14, nach Kistenmix (T3.12) und Positionen (T3.13).
 
 ### [x] T3.11a Kistenweise verschieben (Core)
 **Warum:** Am Aufzug entscheidet man kistenweise („die zwei Shubin-Kisten noch auf die andere Platte“) oder zielweise.
@@ -290,16 +290,32 @@ T3.11 ist dreigeteilt: a = Core, b = Kisten in der Ansicht, c = Auswahl und Gest
 
 **Akzeptanz:** `dotnet test` grün (4+4+8 und 2+2+2+2 lückenlos, keine Überschneidung, Ids fortlaufend, Fallback bei 20 SCU, beide Füllrichtungen).
 
-### [ ] T3.11c Auswahl und Gesten
-**Warum:** Mehrere Kisten oder ein ganzes Ziel in einem Zug umplanen.
+### [x] T3.12 Kistenmix aus den Vertragsdaten
+**Warum:** Vertragstext und ContractTracker nennen pro Ziel und Ware nur SCU und maximale Kistengröße, nicht die Kistenmischung. Der Spieler soll genau diese zwei Zahlen eintragen; das Tool leitet die Kisten ab, wie der Aufzug sie liefert (größte erlaubte zuerst, Rest kleiner), und lässt sich übersteuern, wenn der Kiosk anders liefert.
+**Präzisiert in der Planung:** „beim Lesen expandiert“ wird zu „der Reader liefert die Eingabe, `MissionItem.ToCargoItems()` expandiert vor dem Planen“ – sonst verlöre der Editor Max und Übersteuerung; dafür neue Eingabe-Typen `MissionItem`/`MissionStop` in Core, `MissionFileReader.Read`, `SavedPlan.Missions` und `OverlayViewModel.Missions` tragen sie, `LoadPlanner.Plan` bleibt auf `Stop`; `CrateMix.Sizes` als ausgeschriebene Liste (nicht aus dem Enum); `CrateMix.Problem` als eine Regel für Datei, `MissionItem` und Editor (keine D19-Doppelregel für Kisten); plan.json liest `missions` als rohes JSON (beide Schemata innen), `CargoItemDto` bleibt für Placements; `Invalid/unsupported_schema` von 2 auf 3, die alte Datei wird `crate_size_in_v2`; Übersteuerung gleich der Zerlegung wird nicht normalisiert, die Bearbeitung startet leer; Tooltip an der Kisten-Spalte; Editor-Fenster 660 breit. Präzisierung in der Planphase, ratifiziert durch Freigabe (D23).
+- `CrateMix.Decompose(scu, max)` gierig über `CrateMix.Sizes`, 0 oder unbekannte Größe → `ArgumentException`
+- Zerlegung ist Eingabe, nicht Modell: ein `CargoItem` pro Kistengröße, absteigend; Planer, Hinweise, Renderer unverändert
+- Missions-JSON Schema 2 (`maxCrateSize`, optional `crates` als Übersteuerung), Schema 1 lesbar, Writer schreibt 2; plan.json ohne Schema-Sprung
+- Editor: Max. Kiste (Default Zeile darüber, erste 4), Kisten als Text der Zerlegung, Klick = Übersteuerung, kursiv, Validierung inline
+- D23, mission-format.md, plan-format.md, README „Entering missions“
+
+**Akzeptanz:** `dotnet test` grün; CLI-Ausgabe aller v1-Fixtures byte-gleich; Editor: „Green Glade · Stims · 6 · max 4“ → „4+2“, Plan → eine 4er und eine 2er; „2+2+2“ → drei 2er; „2+2+3“ → Fehler; Export → `crates` nur bei der übersteuerten Zeile → Import identisch; v1-Datei → Plan wie vorher. Im Spiel: Vertrag nur aus dem Text eintragen, Kiosk vergleichen, unter 30 s für zwei Ziele.
+
+**Offen:** Kiosk-Screenshot als Beleg für D23 nach `docs/images/kiosk-crate-mix.png`, eigener Commit, Link in D23 setzen.
+
+### [ ] T3.13 Positionen
+**Warum:** Platzhalter – Text folgt (D24).
+
+### [ ] T3.14 Ziehen (Auswahl und Gesten)
+**Warum:** Mehrere Kisten oder ein ganzes Ziel in einem Zug umplanen. (Früher T3.11c.)
 - Auswahl = Menge von Kisten-Ids im `ShipViewControl`, nicht persistiert; Rechtsklick auf Kiste = umschalten, auf Leerfläche = leeren
 - Rechts-Ziehen von einer Kiste = `MoveCrates` (Auswahl, wenn die Startkiste darin ist), von einer Legendenzeile = `MoveStop`
 - Auswahlrahmen `MissionPalette.Selection`; gesperrt leert die Auswahl
-- D23, README-Bedienung neu
+- Entscheidungseintrag (nächste freie Nummer), README-Bedienung neu
 
 **Akzeptanz:** `dotnet test` grün; Verifikation im Overlay und im Spiel am Aufzug (Task-Text T3.11).
 
-Phase 3 ist mit T3.11 nummeriert komplett; offen bleiben nur Backlog-Punkte.
+Phase 3 ist mit T3.14 nummeriert komplett; offen bleiben nur Backlog-Punkte.
 
 ---
 
@@ -337,7 +353,7 @@ Phase 3 ist mit T3.11 nummeriert komplett; offen bleiben nur Backlog-Punkte.
 **Warum:** Erst schauen, dann Code.
 - DB-Pfad finden (`%APPDATA%`/`%LOCALAPPDATA%`), in `docs/contracttracker-schema.md` notieren
 - Kopie anlegen, `sqlite3 copy.db .schema`, Tabellen/Spalten dokumentieren
-- Mapping skizzieren: Spalten → `Stop.Destination`, `CargoItem.Commodity`, `Scu`, `CrateSize`. Was fehlt?
+- Mapping skizzieren: Spalten → `MissionStop.Destination`, `MissionItem.Commodity`, `Scu`, `MaxCrateSize` (D23). Was fehlt?
 - Lizenz des Trackers prüfen: dürfen wir die DB lesen und das dokumentieren?
 
 **Akzeptanz:** Doku vorhanden, offene Fragen gelistet. Kein Code.

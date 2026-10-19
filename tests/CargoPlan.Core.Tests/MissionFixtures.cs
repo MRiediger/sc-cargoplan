@@ -21,7 +21,20 @@ internal static class MissionFixtures
     /// <summary>4 stops, 54 SCU: Riker (20) splits over racks 1+2 and shares rack 2 with Shubin.</summary>
     public static IReadOnlyList<Stop> SplitAndShared => Load("split_and_shared");
 
-    public static IReadOnlyList<Stop> Load(string name)
+    /// <summary>The same route as entered (schema 1: explicit crates per item).</summary>
+    public static IReadOnlyList<MissionStop> SplitAndSharedMissions => LoadMissions("split_and_shared");
+
+    /// <summary>
+    /// Schema 2: Green Glade 6 Stims and 15 Scrap, max 4, derived (4+2, 4+4+4+2+1); Riker 6 Titanium, max 4,
+    /// overridden as 2+2+2.
+    /// </summary>
+    public static IReadOnlyList<MissionStop> CrateMixMissions => LoadMissions("crate_mix");
+
+    /// <summary>A fixture expanded for the planner.</summary>
+    public static IReadOnlyList<Stop> Load(string name) => LoadMissions(name).ToStops();
+
+    /// <summary>A fixture as entered, for the file format tests.</summary>
+    public static IReadOnlyList<MissionStop> LoadMissions(string name)
     {
         var resourceName = ResourceName(name);
         using var stream = Open(resourceName);

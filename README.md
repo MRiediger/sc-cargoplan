@@ -6,7 +6,7 @@ A cargo load-plan overlay for Star Citizen hauling (Alpha 4.10.x).
 
 ## What
 
-You enter your hauling missions (destination, commodity, SCU, crate size). SC-CargoPlan decides which destination goes into which section of your ship and shows the plan as a translucent, always-on-top overlay that turns click-through while you fly. At each stop you tick off what you delivered.
+You enter your hauling missions as the contract states them (destination, commodity, SCU, max crate size); the crates follow from that. SC-CargoPlan decides which destination goes into which section of your ship and shows the plan as a translucent, always-on-top overlay that turns click-through while you fly. At each stop you tick off what you delivered.
 
 ## Why
 
@@ -55,14 +55,15 @@ Start with `--locked` to begin with the padlock locked.
 
 Open the editor with the **pencil** in the overlay's header (next to the padlock), or with **Open editor** while there is no plan. The pencil is hidden while the overlay is locked: planning needs a free cursor. The editor is a normal window, so it takes the focus while you type; afterwards click back into the game (or Alt+Tab).
 
-- **One row per cargo item:** Destination, Commodity, SCU, Crate size. A contract with two commodities for the same destination is two rows with the same destination.
-- **Crate sizes are what you enter; the game only shows totals.** Enter one row per crate size as you see the crates at the elevator.
+- **One row per contract item, two numbers from the contract:** Destination, Commodity, **SCU** and **Max crate** (the "4 SCU or smaller" in the contract text). A contract with two commodities for the same destination is two rows with the same destination.
+- **The crates appear by themselves:** the **Crates** column shows how the freight elevator delivers them, the largest allowed crate first, the rest in smaller ones: 6 SCU at max 4 is `4+2`, 15 SCU at max 4 is `4+4+4+2+1`.
+- **The kiosk delivered something else?** Click the **Crates** cell and type what you got, e.g. `2+2+2`. Crates typed by hand show in *italics*; clear the cell to go back to the worked-out mix.
 - **Stop order:** the **Stop** column shows the route. Stops follow the first row of each destination, so `Riker, Shubin, Orison, Shubin` gives stops 1, 2, 3, 2. Use **↑**/**↓** to move rows; destinations match regardless of upper or lower case.
-- **New rows:** type into the empty row at the bottom (Tab from the last cell gets you there), or press **Add**. A new row takes the crate size of the row above.
-- **Mistakes show in red:** an empty destination or commodity, an SCU that isn't a whole number, or an SCU that doesn't fill whole crates (17 SCU in 4 SCU crates). The reason is in the tool tip and below the grid; **Plan** stays off until every row is fixed. If the missions don't fit the ship, the reason shows in the same place.
+- **New rows:** type into the empty row at the bottom (Tab from the last cell gets you there), or press **Add**. A new row takes the max crate size of the row above; the first row starts at 4.
+- **Mistakes show in red:** an empty destination or commodity, an SCU that isn't a whole number, or crates typed by hand that don't add up to the SCU, aren't a crate size or are larger than the max (`2+2+3` for 6 SCU). The reason is in the tool tip and below the grid; **Plan** stays off until every row is fixed. If the missions don't fit the ship, the reason shows in the same place.
 - **Plan** sends the rows to the overlay, saves them and closes the editor. If the missions don't fit, the editor stays open with the reason. Planning again makes a new plan: ticks and moved cargo are cleared. The editor says so beforehand if you have ticked a destination.
 - **Next route:** the editor opens with your current missions. **Clear rows** empties the rows for the next route; the overlay keeps the old plan until you press **Plan**. Closing the editor without **Plan** throws away your changes, not your plan.
-- **Import… / Export…** read and write [mission files](docs/mission-format.md), e.g. to share a route. Export writes the rows as they are, planned or not.
+- **Import… / Export…** read and write [mission files](docs/mission-format.md), e.g. to share a route. Export writes the rows as they are, planned or not. Older files with one crate size per row still import; their crates show as typed by hand.
 - **Copy as text** copies the current plan as plain text, ready to paste into Discord or your org chat.
 
 When Star Citizen takes the mouse (flight), the overlay turns click-through and an open editor hides, so neither catches a click meant for the game. The editor comes back when the cursor does, without taking the focus. The overlay hotkey hides it too.

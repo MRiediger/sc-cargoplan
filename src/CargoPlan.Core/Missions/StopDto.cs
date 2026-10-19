@@ -3,10 +3,10 @@ using static System.FormattableString;
 
 namespace CargoPlan.Core.Missions;
 
-/// <summary>File format of a stop. The order is not stored; it comes from the position in the array.</summary>
+/// <summary>File format of a stop in schema version 1 (read only). The order comes from the position in the array.</summary>
 internal sealed record StopDto(string Destination, IReadOnlyList<CargoItemDto> Items)
 {
-    public Stop ToStop(int order)
+    public MissionStop ToMissionStop(int order)
     {
         if (string.IsNullOrWhiteSpace(Destination))
         {
@@ -19,9 +19,13 @@ internal sealed record StopDto(string Destination, IReadOnlyList<CargoItemDto> I
             throw new ArgumentException($"Stop '{Destination}' has no items.", nameof(Items));
         }
 
-        return new Stop(Destination, order, [.. Items.Select(i => i.ToCargoItem(Destination))]);
+        return new MissionStop(Destination, order, [.. Items.Select(i => ToMissionItem(i.ToCargoItem(Destination)))]);
     }
 
-    public static StopDto FromStop(Stop stop) =>
-        new(stop.Destination, [.. stop.Items.Select(CargoItemDto.FromCargoItem)]);
+    /// <summary>
+    /// A version 1 item names its crates exactly: SCU / crate size crates of one size. So the max is that size and the
+    /// crates are an explicit list, which stays the same even if the derivation rule changes (D23).
+    /// </summary>
+    private static MissionItem ToMissionItem(CargoItem item) =>
+        new(item.Commodity, item.Scu, item.CrateSize, [.. Enumerable.Repeat(item.CrateSize, item.Scu / (int)item.CrateSize)]);
 }

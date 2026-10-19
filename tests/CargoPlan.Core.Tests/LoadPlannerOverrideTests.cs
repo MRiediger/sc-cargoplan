@@ -1,3 +1,4 @@
+using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
@@ -321,8 +322,8 @@ public class LoadPlannerOverrideTests
     [Fact]
     public void MoveCrates_split_and_join_keep_the_saved_plan_valid()
     {
-        var missions = MissionFixtures.SplitAndShared;
-        var plan = LoadPlanner.Plan(HullA, missions);
+        var missions = MissionFixtures.SplitAndSharedMissions;
+        var plan = LoadPlanner.Plan(HullA, missions.ToStops());
         var split = LoadPlanner.MoveCrates(plan, HullA, [(Single(plan, "Riker", "Quartz"), 2), (Single(plan, "Orison", "Gold"), 1)], "rack-3");
         var joined = LoadPlanner.MoveStop(split, HullA, "Riker", "rack-0");
 

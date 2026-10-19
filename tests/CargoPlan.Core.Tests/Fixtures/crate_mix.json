@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 2,
+  "stops": [
+    {
+      "destination": "Green Glade",
+      "items": [
+        { "commodity": "Stims", "scu": 6, "maxCrateSize": 4 },
+        { "commodity": "Scrap", "scu": 15, "maxCrateSize": 4 }
+      ]
+    },
+    {
+      "destination": "Riker",
+      "items": [
+        { "commodity": "Titanium", "scu": 6, "maxCrateSize": 4, "crates": [2, 2, 2] }
+      ]
+    }
+  ]
+}

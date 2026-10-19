@@ -3,7 +3,10 @@ using static System.FormattableString;
 
 namespace CargoPlan.Core.Missions;
 
-/// <summary>File format of a cargo item. The crate size is written as an SCU number (1, 2, 4, 8).</summary>
+/// <summary>
+/// File format of a cargo item of one crate size, as an SCU number (1, 2, 4, 8): a placement in a plan file, and an
+/// item of a version 1 mission file.
+/// </summary>
 internal sealed record CargoItemDto(string Commodity, int Scu, int CrateSize)
 {
     public CargoItem ToCargoItem(string destination)

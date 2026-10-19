@@ -23,7 +23,7 @@ var originalEncoding = Console.OutputEncoding;
 Console.OutputEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 try
 {
-    var stops = MissionFileReader.Read(options.MissionsPath);
+    var stops = MissionFileReader.Read(options.MissionsPath).ToStops();
     var ship = ShipLoader.Load(options.ShipId);
     var plan = LoadPlanner.Plan(ship, stops);
     Console.WriteLine(PlanTextRenderer.Render(plan, ship));
