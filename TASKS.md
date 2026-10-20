@@ -479,9 +479,69 @@ Einstellbare Werte:
 
 ---
 
-## Phase 5 – Release (vor dem Import, weil Reichweite vorne steht)
+## Phase 5 – Import aus ContractTracker V2 (vor dem Release, weil die meisten Hauler CT parallel laufen lassen und keine Missionsdateien schreiben)
 
-### [ ] T5.1 Publish-Profil
+Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1 sind neu.
+
+### [ ] T5.1 Exit-Button und feste Notices
+**Warum:** Beenden geht heute nur über die Taskleiste. Notices wandern mit der Legendenposition (D33) und schieben oben die Ansicht; mit dem CT-Import kommen mehr davon.
+- Exit-Button in der Kopfzeile zwischen Zahnrad und Schloss, Lock-Verhalten wie die anderen Header-Buttons (nicht fokussierbar, gesperrt ausgeblendet)
+- Beenden ohne Dialog, schreibt Ausstehendes wie `overlay.Closed` (Settings, Plan)
+- Notices immer fix unten links, unabhängig von `legend.position` (Addendum zu D33)
+
+**Akzeptanz:** Haken setzen, sofort Exit → Neustart zeigt den Haken; gesperrt ist der Button nicht sichtbar; Legende `top-right` → Notice steht unten links; Core unverändert.
+
+### [ ] T5.2 Schema erkunden
+**Warum:** Erst schauen, dann Code. ContractTracker ist closed source; ohne Fingerabdruck liest ein CT-Update still falsch.
+- DB-Pfad finden (`%APPDATA%`/`%LOCALAPPDATA%`), in `docs/contracttracker-schema.md` notieren
+- Kopie anlegen, an der Kopie `sqlite3 copy.db .schema` und `PRAGMA user_version`
+- Schema-Fingerabdruck definieren: Tabellen + Spalten, die wir lesen
+- Prüfen, ob die maximale Kistengröße in der DB steht (D23 nimmt das an)
+- Mapping skizzieren: Spalten → `MissionStop.Destination`, `MissionItem.Commodity`, `Scu`, `MaxCrateSize` (D23), Pickup. Was fehlt?
+- Lizenzfrage an Yuiki über den Nexus-Discord: dürfen wir die DB lesen und das dokumentieren?
+- Doku minimal: nur die gelesenen Spalten
+
+**Akzeptanz:** Doku vorhanden (Pfad, `user_version`, Fingerabdruck, Mapping, offene Fragen), Lizenzfrage gestellt und Stand notiert. Kein Code.
+
+### [ ] T5.3 Read-only-Reader
+**Warum:** Ziele, Waren, SCU automatisch, ohne die DB des laufenden Trackers zu stören.
+- `CargoPlan.Import`: Reader liest die aktiven Verträge in die Eingabetypen (`MissionStop`/`MissionItem`, D23)
+- Connection-String `Mode=ReadOnly`, Tracker schreibt parallel
+- Fingerabdruck aus T5.2 vor dem Lesen prüfen; Abweichung → nichts lesen, Notice „ContractTracker schema not supported, use Load from file“
+- Inhaltsschlüssel pro Vertrag: Ziel + Ware + SCU + Pickup
+- Tests gegen eine Fixture-DB mit nachgebautem Schema (nur die gelesenen Spalten)
+
+**Akzeptanz:** Tests grün (Lesen, Fingerabdruck-Abweichung, gleicher Inhalt = gleicher Schlüssel), echter Lauf gegen Martins DB liefert plausible Stops. Martin kann erklären, was `Mode=ReadOnly` verhindert.
+
+### [ ] T5.4 Sync in den Plan
+**Warum:** Hauler nehmen Aufträge nacheinander an und liefern einzeln ab; neu planen löscht Positionen und Haken (T3.8b).
+- Einzige Core-Änderung der Phase, erste seit T3.15: Spike zuerst
+- Neue Missionen inkrementell in den bestehenden Plan legen, Positionen und Haken bleiben
+- Einzelne Mission aus CT verschwunden = erfüllt, raus aus dem Plan
+- Alle gleichzeitig verschwunden = CT-Reset → Plan bleibt + Notice
+- `FileSystemWatcher` auf DB + `-wal`, 500 ms entprellt
+- Refresh-Button
+
+**Akzeptanz:** Tests grün (inkrementell ohne Bewegung liegender Kisten, Haken bleiben, Entfernen einer Mission, CT-Reset); im Spiel: zweiten Auftrag annehmen → erscheint im Overlay, Kisten und Haken des ersten unverändert; Auftrag abschließen → verschwindet; Refresh lädt auch ohne Watcher-Ereignis.
+
+### [ ] T5.5 Settings-Abschnitt „ContractTracker“
+**Warum:** Nicht jede Installation liegt am Standardpfad, nicht jeder will Auto-Sync.
+- Abschnitt „ContractTracker“ im Settings-Fenster: Pfad (Autodetektion + manuell), Auto-Sync an/aus
+- „Load from ContractTracker“ bleibt als manueller Knopf
+
+**Akzeptanz:** Autodetektion findet Martins DB; manueller Pfad wirkt ohne Neustart und überlebt ihn; Auto-Sync aus → CT-Änderung ändert den Plan nicht, der Knopf lädt.
+
+---
+
+## Phase 6 – Release
+
+### [ ] T6.1 settings.json sichern
+**Warum:** Release-Vorbedingung. Das erste Speichern überschreibt eine kaputte oder von Hand geänderte settings.json (D34), ohne Weg zurück.
+- `settings.json` vor dem ersten Überschreiben als `settings.json.bak` sichern
+
+**Akzeptanz:** settings.json von Hand ändern (auch kaputt), Overlay bewegen → `settings.json.bak` enthält den alten Inhalt byte-gleich; Core unverändert.
+
+### [ ] T6.2 Publish-Profil
 **Warum:** Eine EXE, Doppelklick, läuft. Sonst nutzt es niemand.
 - `src/CargoPlan.App/Properties/PublishProfiles/win-x64-selfcontained.pubxml`: `SelfContained=true`, `PublishSingleFile=true`, `IncludeNativeLibrariesForSelfExtract=true`, `RuntimeIdentifier=win-x64`
 - Zweites Profil framework-dependent (klein, braucht .NET Desktop Runtime)
@@ -489,7 +549,7 @@ Einstellbare Werte:
 
 **Akzeptanz:** Beide Publish-Läufe liefern eine startfähige EXE. Self-contained < 80 MB. Martin kann erklären, warum WPF nicht getrimmt werden kann.
 
-### [ ] T5.2 Release-Workflow
+### [ ] T6.3 Release-Workflow
 **Warum:** Tag setzen → Download steht. Kein manuelles Hochladen.
 - `.github/workflows/release.yml`: Trigger `push` auf `tags: v*`, publish beider Profile, `softprops/action-gh-release` hängt beide EXEs + SHA256 an
 - `MinVer` oder `GitVersion` für Versionsnummer aus Tag (eines wählen, begründen)
@@ -497,7 +557,7 @@ Einstellbare Werte:
 
 **Akzeptanz:** `git tag v0.1.0 && git push --tags` erzeugt Release mit beiden Dateien. Martin kann erklären, was SmartScreen prüft und warum Code-Signing-Zertifikate das Problem lösen würden.
 
-### [ ] T5.3 Repo-Hygiene für Contributor
+### [ ] T6.4 Repo-Hygiene für Contributor
 **Warum:** Erster externer PR soll nicht an Unklarheit scheitern.
 - `CONTRIBUTING.md` (englisch): build, test, Schiff beisteuern, PR-Regeln
 - Issue-Templates: Bug, Ship request, Feature
@@ -507,38 +567,10 @@ Einstellbare Werte:
 
 ---
 
-## Phase 6 – Import aus ContractTracker V2
-
-### [ ] T6.1 Schema erkunden
-**Warum:** Erst schauen, dann Code.
-- DB-Pfad finden (`%APPDATA%`/`%LOCALAPPDATA%`), in `docs/contracttracker-schema.md` notieren
-- Kopie anlegen, `sqlite3 copy.db .schema`, Tabellen/Spalten dokumentieren
-- Mapping skizzieren: Spalten → `MissionStop.Destination`, `MissionItem.Commodity`, `Scu`, `MaxCrateSize` (D23). Was fehlt?
-- Lizenz des Trackers prüfen: dürfen wir die DB lesen und das dokumentieren?
-
-**Akzeptanz:** Doku vorhanden, offene Fragen gelistet. Kein Code.
-
-### [ ] T6.2 Read-only-Reader
-**Warum:** Ziele, Waren, SCU automatisch.
-- `CargoPlan.Import/ContractTrackerReader.cs`: `IReadOnlyList<Stop> ReadActiveMissions(string dbPath)`
-- Connection-String `Mode=ReadOnly`, Tracker schreibt parallel
-- Test gegen Mini-SQLite-Fixture mit nachgebautem Schema (In-Memory oder Temp-Datei)
-
-**Akzeptanz:** Tests grün, echter Lauf gegen Martins DB liefert plausible Stops. Martin kann erklären, was `Mode=ReadOnly` verhindert.
-
-### [ ] T6.3 Integration
-**Warum:** Knopf statt Tipparbeit.
-- Button „Load from ContractTracker“ im Editor, Pfad-Autodetektion mit manuellem Fallback
-- Zusätzlich Auto-Refresh, nur bei offenem overlay
-
-**Akzeptanz:** Auftrag annehmen → Tracker erfasst → ein Klick → Plan steht.
-
----
-
 ## Phase 7 – Ausbau (optional, Reihenfolge frei)
 
 ### [ ] T7.1 Weitere Schiffe – `cutlass_black.json`, `raft.json`, Schiffsauswahl im Editor
-### [ ] T7.2 Auto-Update – **Velopack** evaluieren (ersetzt T5.1-Publish durch Installer mit Delta-Updates)
+### [ ] T7.2 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
 ### [ ] T7.3 winget-Manifest – `winget install SC-CargoPlan`
 ### [ ] T7.4 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
 ### [ ] T7.5 Lokalisierung – `.resx`, Deutsch als zweite Sprache
