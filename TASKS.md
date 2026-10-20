@@ -483,8 +483,9 @@ Einstellbare Werte:
 
 Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1 sind neu.
 
-### [ ] T5.1 Exit-Button und feste Notices
+### [x] T5.1 Exit-Button und feste Notices
 **Warum:** Beenden geht heute nur über die Taskleiste. Notices wandern mit der Legendenposition (D33) und schieben oben die Ansicht; mit dem CT-Import kommen mehr davon.
+**Präzisiert in der Planung:** Exit ruft `Close()` auf dem Overlay, denselben Weg wie die Taskleiste; die vorhandenen `Closed`-Handler (`OverlayBoundsSaver`, `SettingsSession.Flush`, `PlanSaver`) schreiben Ausstehendes, kein zweiter Speicherpfad, kein `Shutdown()`. Exit verhält sich wie das Zahnrad (`HeaderButtonStyle`, gesperrt `Hidden`), nicht wie das Schloss, das als eigenes Fenster immer sichtbar bleibt. Glyph E8BB ChromeClose, Tooltip „Exit“, ganz rechts in der Kopfzeile, Zahnrad links daneben. Notices werden gestapelt: eigenes Kind des äußeren DockPanels, unterste Zeile, volle Breite; eine untere Legende steht darüber, niemand weicht seitlich aus. Die README-Anleitung für ein unsichtbares Theme zeigt jetzt auf den zweiten Button von rechts. Präzisierung in der Planphase, ratifiziert durch Freigabe (Addenda zu D33 und D34).
 - Exit-Button in der Kopfzeile zwischen Zahnrad und Schloss, Lock-Verhalten wie die anderen Header-Buttons (nicht fokussierbar, gesperrt ausgeblendet)
 - Beenden ohne Dialog, schreibt Ausstehendes wie `overlay.Closed` (Settings, Plan)
 - Notices immer fix unten links, unabhängig von `legend.position` (Addendum zu D33)

@@ -162,6 +162,14 @@ public partial class OverlayWindow : Window
     }
 
     /// <summary>
+    /// Exit: Close(), the same way as closing from the taskbar, not Application.Shutdown(). The savers write what is
+    /// pending in their Closed handlers (bounds, settings, plan); owned windows close with the overlay, and the last
+    /// window closing ends the app (ShutdownMode.OnLastWindowClose, the default). No dialog: nothing is lost (D34, T5.1).
+    /// Source: https://learn.microsoft.com/dotnet/api/system.windows.application.shutdownmode
+    /// </summary>
+    private void OnExit(object sender, RoutedEventArgs e) => Close();
+
+    /// <summary>
     /// The overlay owns the tool windows, so it switches the open ones (D36); ones opened later read the mode from the
     /// session. A third tool window must be added here.
     /// </summary>

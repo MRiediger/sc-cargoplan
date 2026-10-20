@@ -70,7 +70,7 @@ can't be changed, so only their alpha is a number of its own: `0` (invisible) to
 | `window.background` | Background of the overlay | `#A0141414` | alpha at least `01` |
 | `window.borderColor` | Frame around the overlay | `#FFE6E6E6` | |
 | `window.borderThickness` | Width of that frame in pixels, `0` = none | `0` | 0–10 |
-| `header.foreground` | Ship name and the glyphs (pencil, split, merge, padlock) | `#FFE6E6E6` | |
+| `header.foreground` | Ship name and the glyphs (pencil, gear, split, merge, exit, padlock) | `#FFE6E6E6` | |
 | `header.halo` | Halo around ship name and "All stops delivered." | off | |
 | `legend.foreground` | Stop lines and hints; also the outline of "Open editor" | `#FFE6E6E6` | |
 | `legend.fontSize` | Font size of the legend, hints, warnings and notices | `null` | 8–32 |
@@ -124,11 +124,11 @@ the whole file unreadable.
 **Positions:** `top-left`, `top-center`, `top-right`, `bottom-left`, `bottom-center`, `bottom-right`, in
 lower case. `top` puts the legend between the header and the ship, `bottom` below the ship. `left`,
 `center` and `right` move the legend as a block, as wide as its longest line; inside, the lines stay
-left-aligned, so the colour squares stand in one column. Amber notices always run across the full width
-at the outer edge: at the very bottom, or right under the header.
+left-aligned, so the colour squares stand in one column. Amber notices always stand at the very bottom,
+across the full width, wherever the legend is.
 
-**`"visible": false` hides only the stop lines.** Hints, red warnings and amber notices stay where the
-legend is. You still tick a destination by clicking its crates in the ship view. **Dragging a legend line
+**`"visible": false` hides only the stop lines.** Hints and red warnings stay where the legend is, amber
+notices at the bottom. You still tick a destination by clicking its crates in the ship view. **Dragging a legend line
 onto a rack is gone with the lines:** to move a whole destination, right click each of its crates and
 right drag the selection.
 

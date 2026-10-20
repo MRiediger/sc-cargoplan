@@ -19,7 +19,7 @@
         <SolidColorBrush x:Key="HitTestBackgroundBrush" Color="#01000000" />
         <!-- Icon font that ships with Windows 10/11; a glyph instead of an emoji, whose font fallback is unreliable. -->
         <FontFamily x:Key="IconFontFamily">Segoe MDL2 Assets</FontFamily>
-        <!-- Glyph buttons on the overlay (padlock, pencil, split, merge): by default no own look, the glyph is the button;
+        <!-- Glyph buttons on the overlay (padlock, pencil, gear, split, merge, exit): by default no own look, the glyph is the button;
              background, frame, corners and halo come from settings.json (D31).
              Not focusable: focusing would activate the window and take the foreground from the game. -->
         <Style x:Key="IconButtonStyle" TargetType="Button">

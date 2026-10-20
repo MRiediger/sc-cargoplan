@@ -276,7 +276,7 @@
             <GroupBox Header="Header" Style="{StaticResource SectionStyle}">
                 <StackPanel>
                     <DockPanel Style="{StaticResource RowStyle}"
-                               ToolTip="Ship name and the glyphs: pencil, gear, split, merge, padlock. Made invisible, the gear still shows its tool tip">
+                               ToolTip="Ship name and the glyphs: pencil, gear, split, merge, exit, padlock. Made invisible, the gear still shows its tool tip">
                         <TextBlock Text="Text and glyphs" Style="{StaticResource LabelStyle}" />
                         <ContentControl Content="{Binding HeaderForeground, Mode=OneTime}" />
                     </DockPanel>

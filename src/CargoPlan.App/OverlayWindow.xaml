@@ -32,7 +32,7 @@
             <Setter Property="Effect" Value="{DynamicResource LegendHaloEffect}" />
             <Setter Property="TextWrapping" Value="Wrap" />
         </Style>
-        <!-- Notice lines: amber, size and halo of the legend they stand in. Only lines with text exist, so nothing needs hiding. -->
+        <!-- Notice lines: amber, size and halo of the legend. Only lines with text exist, so nothing needs hiding. -->
         <Style x:Key="NoticeTextStyle" TargetType="TextBlock" BasedOn="{StaticResource LegendTextStyle}">
             <Setter Property="Foreground" Value="{StaticResource NoticeForegroundBrush}" />
         </Style>
@@ -57,7 +57,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Glyph buttons in the header (pencil, split, merge): hidden while locked, but keeping their space. -->
+        <!-- Glyph buttons in the header (pencil, gear, split, merge, exit): hidden while locked, but keeping their space. -->
         <Style x:Key="HeaderButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
             <Setter Property="Width" Value="30" />
             <Setter Property="Height" Value="26" />
@@ -95,7 +95,15 @@
                  Height and right margin keep clear of the lock window (36 px at 4 px inset, LockWindowPlacement). -->
             <!-- "All stops delivered." sits here, not in the legend: the header's fixed height keeps the ship view still (D16). -->
             <DockPanel DockPanel.Dock="Top" Height="30" Margin="0,0,30,0">
-                <!-- Opens the settings window, next to the padlock: window controls right, plan controls left of it (D34).
+                <!-- Exits the app, next to the padlock, without a dialog: closes the overlay like the taskbar does, so its
+                     Closed handlers write what is pending (bounds, settings, plan). Hidden while locked like every header
+                     button (D34, addendum T5.1). -->
+                <Button DockPanel.Dock="Right" ToolTip="Exit" Click="OnExit" Style="{StaticResource HeaderButtonStyle}">
+                    <!-- E8BB ChromeClose. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                    <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                               Foreground="{DynamicResource HeaderForegroundBrush}" />
+                </Button>
+                <!-- Opens the settings window, left of the exit button: window controls right, plan controls left of them (D34).
                      Hidden while locked like every header button. Over an invisible theme the system tool tip still finds
                      it: the button background keeps alpha 1, so it takes the hover (README, "Overlay unreadable?"). -->
                 <Button DockPanel.Dock="Right" ToolTip="Settings" Click="OnOpenSettings" Style="{StaticResource HeaderButtonStyle}">
@@ -139,6 +147,18 @@
                            Style="{StaticResource HeaderTextStyle}" />
             </DockPanel>
 
+            <!-- Problems with settings (D13), hotkeys (D17) and the plan file, one line per source (D18). Always the bottom
+                 line, full width and left-aligned, wherever the legend stands (D33, addendum T5.1): docked before the legend
+                 area, so a bottom legend stands above it, and a notice coming and going never moves a top legend or the
+                 ship view's top edge. Inside the aligned block a long notice would widen it and move the stop lines. -->
+            <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding Notices, Mode=OneWay}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource NoticeTextStyle}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
             <!-- Legend area (D33): below the ship view or between header and view, switched live through the view model
                  (T4.2), not built once at startup. Before the ship view, which stays the last child and fills the rest.
                  Changing DockPanel.Dock re-measures the parent DockPanel (OnDockChanged → InvalidateMeasure).
@@ -154,27 +174,6 @@
                         </Style.Triggers>
                     </Style>
                 </DockPanel.Style>
-
-                <!-- Problems with settings (D13), hotkeys (D17) and the plan file, one line per source (D18). On the outer
-                     edge, full width and left-aligned in every position: inside the aligned block a long notice would
-                     widen it, and the stop lines would jump sideways when "Move refused" comes and goes. -->
-                <ItemsControl ItemsSource="{Binding Notices, Mode=OneWay}">
-                    <ItemsControl.Style>
-                        <Style TargetType="ItemsControl">
-                            <Setter Property="DockPanel.Dock" Value="Bottom" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding LegendPosition.Edge}" Value="{x:Static st:LegendEdge.Top}">
-                                    <Setter Property="DockPanel.Dock" Value="Top" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </ItemsControl.Style>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource NoticeTextStyle}" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
 
                 <!-- Legend: one line per stop, then violations (red racks) and planner hints, word for word (D7).
                      A click on a stop line ticks it off or back (D16, addendum T3.8b: a plain line, no check box); a right drag of
@@ -217,8 +216,8 @@
                         <Button Content="Open editor" Click="OnOpenEditor" HorizontalAlignment="Left" Margin="0,4,0,0"
                                 Style="{StaticResource TextButtonStyle}" />
                     </StackPanel>
-                    <!-- Hidden by legend.visible = false: only the stop lines go (D33). Hints, warnings, notices and the empty
-                         state stay; a stop is then ticked in the ship view and moved through the crate selection. -->
+                    <!-- Hidden by legend.visible = false: only the stop lines go (D33). Hints, warnings and the empty state
+                         stay, notices are at the bottom anyway; a stop is then ticked in the ship view and moved through the crate selection. -->
                     <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}">
                         <ItemsControl.Style>
                             <Style TargetType="ItemsControl">
