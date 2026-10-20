@@ -507,7 +507,7 @@ Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1
 **Warum:** Ziele, Waren, SCU automatisch, ohne die DB des laufenden Trackers zu stören.
 - `CargoPlan.Import`: Reader liest die aktiven Verträge in die Eingabetypen (`MissionStop`/`MissionItem`, D23)
 - Connection-String `Mode=ReadOnly`, Tracker schreibt parallel
-- Fingerabdruck aus T5.2 vor dem Lesen prüfen; Abweichung → nichts lesen, Notice „ContractTracker schema not supported, use Load from file“
+- Fingerabdruck aus T5.2 vor dem Lesen prüfen; Abweichung → nichts lesen, Notice „ContractTracker schema not supported – enter missions in the editor or use Import…“ (der Text zitiert den Editor-Knopf, nicht umgekehrt)
 - Inhaltsschlüssel pro Vertrag: Ziel + Ware + SCU + Pickup
 - Tests gegen eine Fixture-DB mit nachgebautem Schema (nur die gelesenen Spalten)
 
@@ -520,14 +520,14 @@ Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1
 - Einzelne Mission aus CT verschwunden = erfüllt, raus aus dem Plan
 - Alle gleichzeitig verschwunden = CT-Reset → Plan bleibt + Notice
 - `FileSystemWatcher` auf DB + `-wal`, 500 ms entprellt
-- Refresh-Button
+- Knopf „Load from ContractTracker“ im Editor neben „Import…“: manuelles „jetzt lesen“, auch wenn der Watcher schweigt oder Auto-Sync (T5.5) aus ist; nicht in der Kopfzeile, die ist mit sechs Buttons voll, und wer nachlädt, ist ohnehin im Editor
 
-**Akzeptanz:** Tests grün (inkrementell ohne Bewegung liegender Kisten, Haken bleiben, Entfernen einer Mission, CT-Reset); im Spiel: zweiten Auftrag annehmen → erscheint im Overlay, Kisten und Haken des ersten unverändert; Auftrag abschließen → verschwindet; Refresh lädt auch ohne Watcher-Ereignis.
+**Akzeptanz:** Tests grün (inkrementell ohne Bewegung liegender Kisten, Haken bleiben, Entfernen einer Mission, CT-Reset); im Spiel: zweiten Auftrag annehmen → erscheint im Overlay, Kisten und Haken des ersten unverändert; Auftrag abschließen → verschwindet; „Load from ContractTracker“ lädt auch ohne Watcher-Ereignis.
 
 ### [ ] T5.5 Settings-Abschnitt „ContractTracker“
 **Warum:** Nicht jede Installation liegt am Standardpfad, nicht jeder will Auto-Sync.
 - Abschnitt „ContractTracker“ im Settings-Fenster: Pfad (Autodetektion + manuell), Auto-Sync an/aus
-- „Load from ContractTracker“ bleibt als manueller Knopf
+- „Load from ContractTracker“ im Editor (aus T5.4) bleibt der manuelle Weg, auch bei Auto-Sync aus
 
 **Akzeptanz:** Autodetektion findet Martins DB; manueller Pfad wirkt ohne Neustart und überlebt ihn; Auto-Sync aus → CT-Änderung ändert den Plan nicht, der Knopf lädt.
 
