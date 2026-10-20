@@ -5,7 +5,9 @@ namespace CargoPlan.Core.Models;
 /// derived from crates (<see cref="LoadPlan.Placements"/>). In a valid plan no two crates share a cell, so the position
 /// tells two crates of the same kind apart.
 /// </summary>
-public sealed record Crate(string Destination, string Commodity, CrateSize CrateSize, string RackId, GridPosition Position, bool Delivered = false)
+/// <param name="Mission">Id of the mission the crate belongs to (D42); 0 in a plan without missions (planner, CLI).</param>
+public sealed record Crate(
+    string Destination, string Commodity, CrateSize CrateSize, string RackId, GridPosition Position, bool Delivered = false, int Mission = 0)
 {
     // Get-only (no init): a `with` expression skips the constructor and must not bypass validation.
     public CrateSize CrateSize { get; } =

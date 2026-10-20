@@ -25,6 +25,13 @@ public static class ContractTrackerReader
     /// </summary>
     private const int DefaultBusyTimeoutSeconds = 5;
 
+    /// <summary>
+    /// %APPDATA%\SCContractTracker\contracts.db, the one place ContractTracker keeps its database (D38). A path of
+    /// one's own comes with T5.5.
+    /// </summary>
+    public static string DefaultPath { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SCContractTracker", "contracts.db");
+
     /// <summary>Every column read, with its declared type (docs/contracttracker-schema.md, "Fingerprint").</summary>
     private static readonly (string Table, string Column, string Type)[] Fingerprint =
     [
@@ -45,9 +52,21 @@ public static class ContractTrackerReader
     /// </remarks>
     /// <exception cref="SqliteException">The file is not a readable SQLite database.</exception>
     public static ContractTrackerReadResult ReadSince(string databasePath, long lastId) =>
-        ReadSince(databasePath, lastId, DefaultBusyTimeoutSeconds);
+        Read(databasePath, lastId, [], DefaultBusyTimeoutSeconds);
 
-    internal static ContractTrackerReadResult ReadSince(string databasePath, long lastId, int busyTimeoutSeconds)
+    internal static ContractTrackerReadResult ReadSince(string databasePath, long lastId, int busyTimeoutSeconds) =>
+        Read(databasePath, lastId, [], busyTimeoutSeconds);
+
+    /// <summary>
+    /// <see cref="ReadSince(string, long)"/>, and which of <paramref name="knownIds"/> (the plan's captures) are still in
+    /// ContractTracker, for the deletion rule (D39 addendum). A missing file, another schema or a busy database read
+    /// nothing: <see cref="ContractTrackerReadResult.Present"/> is null then, not empty, so nothing counts as deleted.
+    /// </summary>
+    /// <exception cref="SqliteException">The file is not a readable SQLite database.</exception>
+    public static ContractTrackerReadResult Read(string databasePath, long lastId, IReadOnlyCollection<long> knownIds) =>
+        Read(databasePath, lastId, knownIds, DefaultBusyTimeoutSeconds);
+
+    private static ContractTrackerReadResult Read(string databasePath, long lastId, IReadOnlyCollection<long> knownIds, int busyTimeoutSeconds)
     {
         if (!File.Exists(databasePath))
         {
@@ -60,7 +79,7 @@ public static class ContractTrackerReader
             using var connection = new SqliteConnection(ConnectionString(databasePath, busyTimeoutSeconds));
             connection.Open();
             return MatchesFingerprint(connection)
-                ? new([.. Captures(ReadContracts(connection, lastId)).Select(ToCandidate)], null)
+                ? new([.. Captures(ReadContracts(connection, lastId)).Select(ToCandidate)], null, Present(connection, knownIds))
                 : new([], SchemaNotSupportedNotice);
         }
         catch (SqliteException ex) when (ex.SqliteErrorCode is SqliteBusy or SqliteLocked)
@@ -139,6 +158,28 @@ public static class ContractTrackerReader
                     .Select(r => ((int)r.Amount!.Value, r.Destination!)),
             ])),
         ];
+    }
+
+    /// <summary>
+    /// The known ids that still have a row. All ids, not a parameter list: the database holds a session's contracts, a few
+    /// dozen rows. A second statement, so a row deleted between the two reads counts as gone, which the next read confirms.
+    /// </summary>
+    private static HashSet<long> Present(SqliteConnection connection, IReadOnlyCollection<long> knownIds)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = """SELECT "Id" FROM "Contracts" """;
+
+        HashSet<long> present = [];
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            if (knownIds.Contains(reader.GetInt64(0)))
+            {
+                present.Add(reader.GetInt64(0));
+            }
+        }
+
+        return present;
     }
 
     private static string? StringOrNull(SqliteDataReader reader, int ordinal) => reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);

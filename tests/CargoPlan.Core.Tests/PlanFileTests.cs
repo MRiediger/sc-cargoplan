@@ -15,17 +15,38 @@ public class PlanFileTests
     // Schema 1: placements without positions, as saved before D24. Kept as the migration's input.
     private const string V1FixtureName = "plans/split_and_shared.json";
 
-    private static SavedPlan Planned(IReadOnlyList<MissionStop> missions, FillOrder fillOrder = FillOrder.BowFirst) =>
-        new(missions, LoadPlanner.Plan(HullA, missions.ToStops(), fillOrder));
+    // Schema 2: crates with positions, missions as an embedded mission file, as saved before D42.
+    private const string V2FixtureName = "plans/split_and_shared_v2.json";
 
-    private static string V1FixtureText()
+    private static SavedPlan Planned(IReadOnlyList<MissionStop> missions, FillOrder fillOrder = FillOrder.BowFirst) =>
+        SavedPlan.FromStops(missions, LoadPlanner.Plan(HullA, missions.ToStops(), fillOrder));
+
+    private static string FixtureText(string name)
     {
-        using var reader = new StreamReader(MissionFixtures.Open(V1FixtureName));
+        using var reader = new StreamReader(MissionFixtures.Open(name));
         return reader.ReadToEnd();
     }
 
-    /// <summary>The split-and-shared plan as schema 2 writes it.</summary>
-    private static string V2Text() => Written(Planned(MissionFixtures.SplitAndSharedMissions));
+    private static string V1FixtureText() => FixtureText(V1FixtureName);
+
+    /// <summary>The split-and-shared plan as schema 2 wrote it.</summary>
+    private static string V2Text() => FixtureText(V2FixtureName);
+
+    /// <summary>The split-and-shared plan as schema 3 writes it.</summary>
+    private static string V3Text() => Written(Planned(MissionFixtures.SplitAndSharedMissions));
+
+    /// <summary>
+    /// Riker 12 Titanium typed, a capture of Shubin 8 Quartz with an assumed crate size and one of three listed
+    /// destinations, a capture that didn't fit, watermark 41.
+    /// </summary>
+    private static SavedPlan WithCaptures()
+    {
+        static MissionStop Stop(string destination, string commodity, int scu, CrateSize max) => new(destination, 1, [new MissionItem(commodity, scu, max)]);
+        SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []), 41);
+        var typed = LoadPlanner.PlaceInto(empty, HullA, [Stop("Riker", "Titanium", 12, CrateSize.Four)]);
+        var captured = LoadPlanner.PlaceInto(typed, HullA, [Stop("Shubin", "Quartz", 8, CrateSize.Four)], new ContractSource([36, 37], true, 3));
+        return LoadPlanner.PlaceInto(captured, HullA, [Stop("Orison", "Gold", 32, CrateSize.ThirtyTwo)], new ContractSource([40]));
+    }
 
     private static string Written(SavedPlan saved)
     {
@@ -45,13 +66,14 @@ public class PlanFileTests
     private static void ShouldMatch(SavedPlan actual, SavedPlan expected)
     {
         actual.Missions.Should().BeEquivalentTo(expected.Missions, o => o.WithStrictOrdering());
+        actual.Watermark.Should().Be(expected.Watermark);
         actual.Plan.ShipId.Should().Be(expected.Plan.ShipId);
         actual.Plan.FillOrder.Should().Be(expected.Plan.FillOrder);
         actual.Plan.Crates.Should().Equal(expected.Plan.Crates);
         actual.Plan.Warnings.Should().Equal(expected.Plan.Warnings);
     }
 
-    // --- Schema 2 round trip ---
+    // --- Schema 3 round trip ---
 
     [Fact]
     public void Write_then_Read_keeps_missions_crates_hints_and_delivered()
@@ -99,22 +121,41 @@ public class PlanFileTests
         var loaded = RoundTrip(saved);
 
         ShouldMatch(loaded, saved);
-        loaded.Missions[0].Items[0].Crates.Should().BeNull();
-        loaded.Missions[1].Items[0].Crates.Should().Equal(CrateSize.Two, CrateSize.Two, CrateSize.Two);
+        loaded.Missions[0].Stops[0].Items[0].Crates.Should().BeNull();
+        loaded.Missions[1].Stops[0].Items[0].Crates.Should().Equal(CrateSize.Two, CrateSize.Two, CrateSize.Two);
     }
 
     [Fact]
-    public void Write_produces_camel_case_schema_2_with_fill_order_and_crate_positions()
+    public void Write_then_Read_keeps_captures_unplaced_missions_and_the_watermark()
+    {
+        var saved = WithCaptures();
+
+        var loaded = RoundTrip(saved);
+
+        ShouldMatch(loaded, saved);
+        loaded.Missions[1].Contract.Should().BeEquivalentTo(new ContractSource([36, 37], true, 3));
+        loaded.Missions[2].Unplaced.Should().BeTrue();
+        loaded.Watermark.Should().Be(41);
+    }
+
+    [Fact]
+    public void Write_produces_camel_case_schema_3_with_missions_watermark_and_crate_positions()
     {
         var node = JsonNode.Parse(Written(Planned(MissionFixtures.LoadMissions("example_missions"))))!;
 
-        node["schemaVersion"]!.GetValue<int>().Should().Be(2);
+        node["schemaVersion"]!.GetValue<int>().Should().Be(3);
         node["shipId"]!.GetValue<string>().Should().Be("hull_a");
         node["fillOrder"]!.GetValue<string>().Should().Be("bowFirst");
-        node["missions"]!["schemaVersion"]!.GetValue<int>().Should().Be(MissionFileReader.CurrentSchemaVersion);
-        node["missions"]!["stops"]![0]!["items"]![0]!["maxCrateSize"]!.GetValue<int>().Should().Be(4);
+        node["contractTrackerWatermark"]!.GetValue<long>().Should().Be(0);
+        var mission = node["missions"]![0]!;
+        mission["id"]!.GetValue<int>().Should().Be(1);
+        mission["unplaced"]!.GetValue<bool>().Should().BeFalse();
+        mission.AsObject().Should().NotContainKey("contract");
+        mission["stops"]![0]!["destination"]!.GetValue<string>().Should().Be("Riker");
+        mission["stops"]![0]!["items"]![0]!["maxCrateSize"]!.GetValue<int>().Should().Be(4);
 
         var crate = node["crates"]![0]!;
+        crate["mission"]!.GetValue<int>().Should().Be(1);
         crate["destination"]!.GetValue<string>().Should().Be("Riker");
         crate["commodity"]!.GetValue<string>().Should().Be("Titanium");
         crate["crateSize"]!.GetValue<int>().Should().Be(4);
@@ -122,6 +163,26 @@ public class PlanFileTests
         crate["position"]!.AsArray().Select(v => v!.GetValue<int>()).Should().Equal(2, 0, 0);
         crate["delivered"]!.GetValue<bool>().Should().BeFalse();
         node.AsObject().Should().NotContainKey("placements");
+    }
+
+    [Fact]
+    public void Write_writes_a_capture_with_its_ids()
+    {
+        var contract = JsonNode.Parse(Written(WithCaptures()))!["missions"]![1]!["contract"]!;
+
+        contract["contractIds"]!.AsArray().Select(v => v!.GetValue<long>()).Should().Equal(36, 37);
+        contract["crateSizeAssumed"]!.GetValue<bool>().Should().BeTrue();
+        contract["listedDestinations"]!.GetValue<int>().Should().Be(3);
+    }
+
+    [Fact]
+    public void Write_leaves_out_what_a_mission_doesnt_have()
+    {
+        var missions = JsonNode.Parse(Written(WithCaptures()))!["missions"]!;
+
+        missions[0]!.AsObject().Should().NotContainKey("contract");
+        missions[0]!["stops"]![0]!["items"]![0]!.AsObject().Should().NotContainKey("crates");
+        missions[2]!["contract"]!.AsObject().Should().NotContainKey("listedDestinations");
     }
 
     [Fact]
@@ -168,7 +229,7 @@ public class PlanFileTests
     }
 
     [Fact]
-    public void Schema_1_is_written_back_as_schema_2()
+    public void Schema_1_is_written_back_as_schema_3()
     {
         var saved = Read(V1FixtureText());
 
@@ -210,13 +271,52 @@ public class PlanFileTests
         act.Should().Throw<PlanFormatException>().WithMessage(expectedMessage);
     }
 
+    // --- Schema 2 migration (D42) ---
+
+    [Fact]
+    public void Schema_2_loads_one_mission_per_stop_with_its_crates()
+    {
+        var saved = Read(V2Text());
+
+        ShouldMatch(saved, Planned(MissionFixtures.SplitAndSharedMissions));
+        saved.Missions.Select(m => m.Stops.Single().Destination).Should().Equal(MissionFixtures.SplitAndSharedMissions.Select(s => s.Destination));
+        saved.Plan.Crates.Should().OnlyContain(c => saved.MissionOf(c.Mission).Stops[0].Destination == c.Destination);
+        saved.Watermark.Should().Be(0);
+    }
+
+    [Fact]
+    public void Schema_2_keeps_ticks_and_positions()
+    {
+        var node = JsonNode.Parse(V2Text())!;
+        foreach (var crate in node["crates"]!.AsArray().Where(c => c!["destination"]!.GetValue<string>() == "Riker"))
+        {
+            crate!["delivered"] = true;
+        }
+
+        var saved = Read(node.ToJsonString());
+
+        saved.Plan.Crates.Where(c => c.Destination == "Riker").Should().OnlyContain(c => c.Delivered);
+        saved.Plan.Crates.Select(c => (c.RackId, c.Position)).Should().Equal(Read(V2Text()).Plan.Crates.Select(c => (c.RackId, c.Position)));
+    }
+
+    [Fact]
+    public void Schema_2_is_written_back_as_schema_3()
+    {
+        var saved = Read(V2Text());
+
+        var node = JsonNode.Parse(Written(saved))!;
+
+        node["schemaVersion"]!.GetValue<int>().Should().Be(PlanFile.SupportedSchemaVersion);
+        ShouldMatch(Read(node.ToJsonString()), saved);
+    }
+
     // --- Red, not refused (D24) ---
 
     [Fact]
     public void Read_loads_overlapping_crates_and_Validate_shows_them()
     {
         // Overlap and support are the player's business to see, not a broken file: the rack turns red.
-        var node = JsonNode.Parse(V2Text())!;
+        var node = JsonNode.Parse(V3Text())!;
         node["crates"]![1]!["position"] = node["crates"]![0]!["position"]!.DeepClone();
 
         var saved = Read(node.ToJsonString());
@@ -231,7 +331,7 @@ public class PlanFileTests
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
 
-        var act = () => new SavedPlan(MissionFixtures.LoadMissions("example_missions"), plan);
+        var act = () => SavedPlan.FromStops(MissionFixtures.LoadMissions("example_missions"), plan);
 
         act.Should().Throw<ArgumentException>();
     }
@@ -239,8 +339,8 @@ public class PlanFileTests
     [Fact]
     public void SavedPlan_checks_the_crates_against_the_expanded_items()
     {
-        MissionStop[] missions = [new("Riker", 1, [new MissionItem("Stims", 15, CrateSize.Four)])];
-        Crate Stims(CrateSize size, int length, int width, int stack) => new("Riker", "Stims", size, "rack-0", new GridPosition(length, width, stack));
+        Mission[] missions = [new(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 15, CrateSize.Four)])])];
+        Crate Stims(CrateSize size, int length, int width, int stack) => new("Riker", "Stims", size, "rack-0", new GridPosition(length, width, stack), Mission: 1);
         Crate[] crates =
         [
             Stims(CrateSize.Four, 2, 0, 0), Stims(CrateSize.Four, 0, 0, 0), Stims(CrateSize.Four, 2, 0, 1),
@@ -255,12 +355,61 @@ public class PlanFileTests
     }
 
     [Fact]
-    public void SavedPlan_rejects_no_missions()
+    public void SavedPlan_allows_no_missions()
     {
-        // Such a file could not be read back: a mission file needs at least one stop.
+        // The plan after its last mission was removed, and before the first capture (D41, D42).
         var act = () => new SavedPlan([], new LoadPlan("hull_a", [], []));
 
-        act.Should().Throw<ArgumentException>();
+        act.Should().NotThrow();
+    }
+
+    [Fact]
+    public void SavedPlan_rejects_a_crate_of_an_unknown_mission()
+    {
+        var saved = Planned(MissionFixtures.SplitAndSharedMissions);
+
+        var act = () => new SavedPlan(saved.Missions, saved.Plan with { Crates = [saved.Plan.Crates[0] with { Mission = 9 }, .. saved.Plan.Crates.Skip(1)] });
+
+        act.Should().Throw<ArgumentException>().WithMessage("*mission 9*");
+    }
+
+    [Fact]
+    public void SavedPlan_rejects_crates_of_an_unplaced_mission()
+    {
+        var saved = Planned(MissionFixtures.SplitAndSharedMissions);
+
+        var act = () => new SavedPlan([saved.Missions[0] with { Unplaced = true }, .. saved.Missions.Skip(1)], saved.Plan);
+
+        act.Should().Throw<ArgumentException>().WithMessage("*didn't fit*");
+    }
+
+    [Fact]
+    public void SavedPlan_rejects_a_mission_id_twice()
+    {
+        var saved = Planned(MissionFixtures.SplitAndSharedMissions);
+        var twice = new Mission(saved.Missions[0].Id, saved.Missions[1].Stops);
+
+        var act = () => new SavedPlan([saved.Missions[0], twice, .. saved.Missions.Skip(2)], saved.Plan);
+
+        act.Should().Throw<ArgumentException>().WithMessage("*id 1*more than once*");
+    }
+
+    [Fact]
+    public void SavedPlan_rejects_one_destination_spelt_two_ways()
+    {
+        MissionStop Stop(string destination) => new(destination, 1, [new MissionItem("Gold", 4, CrateSize.Four)]);
+
+        var act = () => new SavedPlan([new Mission(1, [Stop("Riker")]), new Mission(2, [Stop("riker")], Unplaced: true)], new LoadPlan("hull_a", [], []));
+
+        act.Should().Throw<ArgumentException>().WithMessage("*spelt more than one way*");
+    }
+
+    [Fact]
+    public void SavedPlan_stops_merge_missions_per_destination_in_unload_order_then_unplaced()
+    {
+        var saved = WithCaptures();
+
+        saved.Stops.Select(s => (s.Destination, s.Order)).Should().Equal(("Riker", 1), ("Shubin", 2), ("Orison", 3));
     }
 
     // --- Broken files ---
@@ -269,7 +418,7 @@ public class PlanFileTests
     {
         { "not json", "*plan.json*" },
         { "null", "*schemaVersion*" },
-        { """{ "schemaVersion": 3 }""", "*schemaVersion 3*expected 1 or 2*" },
+        { """{ "schemaVersion": 4 }""", "*schemaVersion 4*expected 1 or 2 or 3*" },
         { """{ "shipId": "hull_a" }""", "*schemaVersion*" },
     };
 
@@ -317,7 +466,7 @@ public class PlanFileTests
     [InlineData("negative_position", "*position needs 3 values*")]
     [InlineData("outside", "*4 SCU crate of Titanium for Riker at [3, 0, 0] lies outside rack 1 (4×2×2)*")]
     [InlineData("unknown_fill_order", "*fillOrder 'diagonal'*")]
-    public void Read_invalid_plan_throws_PlanFormatException_naming_the_source_and_reason(string change, string expectedMessage)
+    public void Read_invalid_schema_2_plan_throws_PlanFormatException_naming_the_source_and_reason(string change, string expectedMessage)
     {
         var node = JsonNode.Parse(V2Text())!;
         Changes[change](node);
@@ -327,5 +476,43 @@ public class PlanFileTests
         var ex = act.Should().Throw<PlanFormatException>().WithMessage(expectedMessage).Which;
         ex.SourceName.Should().Be("broken.json");
         ex.Message.Should().Contain("broken.json");
+    }
+
+    /// <summary>One change to the schema 3 file each; the rest stays valid, so the change is what fails.</summary>
+    private static readonly Dictionary<string, Action<JsonNode>> V3Changes = new()
+    {
+        ["unknown_property"] = n => n["opacity"] = 0.5,
+        ["missing_watermark"] = n => n.AsObject().Remove("contractTrackerWatermark"),
+        ["negative_watermark"] = n => n["contractTrackerWatermark"] = -1,
+        ["missing_unplaced"] = n => n["missions"]![0]!.AsObject().Remove("unplaced"),
+        ["mission_id_0"] = n => n["missions"]![0]!["id"] = 0,
+        ["mission_without_stops"] = n => n["missions"]![0]!["stops"] = new JsonArray(),
+        ["crate_of_unknown_mission"] = n => n["crates"]![0]!["mission"] = 9,
+        ["crate_without_mission"] = n => n["crates"]![0]!.AsObject().Remove("mission"),
+        ["missing_crate"] = n => n["crates"]!.AsArray().RemoveAt(0),
+        ["contract_without_ids"] = n => n["missions"]![0]!["contract"] = new JsonObject { ["contractIds"] = new JsonArray(), ["crateSizeAssumed"] = false },
+        ["unknown_rack"] = n => n["crates"]![0]!["rackId"] = "rack-9",
+    };
+
+    [Theory]
+    [InlineData("unknown_property", "*opacity*")]
+    [InlineData("missing_watermark", "*contractTrackerWatermark*")]
+    [InlineData("negative_watermark", "*watermark*")]
+    [InlineData("missing_unplaced", "*unplaced*")]
+    [InlineData("mission_id_0", "*mission id*")]
+    [InlineData("mission_without_stops", "*Mission 1*no stop*")]
+    [InlineData("crate_of_unknown_mission", "*mission 9*")]
+    [InlineData("crate_without_mission", "*mission 0*")]
+    [InlineData("missing_crate", "*Riker, Titanium: 3 of 4 crates of 4 SCU placed*")]
+    [InlineData("contract_without_ids", "*at least one ContractTracker id*")]
+    [InlineData("unknown_rack", "*rack-9*")]
+    public void Read_invalid_schema_3_plan_throws_PlanFormatException(string change, string expectedMessage)
+    {
+        var node = JsonNode.Parse(V3Text())!;
+        V3Changes[change](node);
+
+        var act = () => Read(node.ToJsonString(), "broken.json");
+
+        act.Should().Throw<PlanFormatException>().WithMessage(expectedMessage).Which.SourceName.Should().Be("broken.json");
     }
 }

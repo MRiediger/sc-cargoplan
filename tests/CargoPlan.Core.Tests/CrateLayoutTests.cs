@@ -139,12 +139,13 @@ public class CrateLayoutTests
     }
 
     [Fact]
-    public void Place_counts_delivered_crates_as_occupied()
+    public void Place_lays_crates_into_the_cells_of_delivered_cargo()
     {
-        // Delivered cargo keeps its cells: unticking it must give a valid plan again (D16, D24).
+        // Delivered cargo is off the ship; its cells are free (D24 addendum).
         Crate[] occupied = [At(CrateSize.Sixteen, 0, 0, 0, delivered: true)];
 
-        CrateLayout.Place(Rack1, occupied, Riker(CrateSize.One), [], FillOrder.BowFirst).Should().BeNull();
+        CrateLayout.Place(Rack1, occupied, Riker(CrateSize.Sixteen), [], FillOrder.BowFirst)
+            .Should().Equal(CrateLayout.Place(Rack1, [], Riker(CrateSize.Sixteen), [], FillOrder.BowFirst));
     }
 
     [Fact]
@@ -252,9 +253,22 @@ public class CrateLayoutTests
     }
 
     [Fact]
-    public void Problems_count_a_delivered_crate_as_support()
+    public void Problems_dont_count_a_delivered_crate_as_support()
     {
-        CrateLayout.Problems(Rack1, [At(CrateSize.One, 0, 0, 0, delivered: true), At(CrateSize.One, 0, 0, 1)], []).Should().BeEmpty();
+        CrateLayout.Problems(Rack1, [At(CrateSize.One, 0, 0, 0, delivered: true), At(CrateSize.One, 0, 0, 1)], [])
+            .Should().Equal("1 SCU crate of Titanium for Riker in rack 1 has nothing below it");
+    }
+
+    [Fact]
+    public void Problems_ignore_overlap_with_delivered_cargo()
+    {
+        CrateLayout.Problems(Rack1, [At(CrateSize.Eight, 0, 0, 0, delivered: true), At(CrateSize.Two, 0, 0, 0, "Shubin")], []).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Problems_skip_delivered_crates_themselves()
+    {
+        CrateLayout.Problems(Rack1, [At(CrateSize.One, 0, 0, 1, delivered: true)], []).Should().BeEmpty();
     }
 
     [Fact]
@@ -303,9 +317,11 @@ public class CrateLayoutTests
     }
 
     [Fact]
-    public void Faulty_counts_a_delivered_crate_as_support()
+    public void Faulty_names_the_crate_on_delivered_cargo_not_the_delivered_one()
     {
-        CrateLayout.Faulty(Rack1, [At(CrateSize.One, 0, 0, 0, delivered: true), At(CrateSize.One, 0, 0, 1)], []).Should().BeEmpty();
+        var upper = At(CrateSize.One, 0, 0, 1);
+
+        CrateLayout.Faulty(Rack1, [At(CrateSize.One, 0, 0, 0, delivered: true), upper], []).Should().BeEquivalentTo([upper]);
     }
 
     [Fact]
@@ -378,10 +394,11 @@ public class CrateLayoutTests
     }
 
     [Fact]
-    public void Problems_ignore_the_order_below_delivered_cargo()
+    public void Problems_know_no_order_on_delivered_cargo()
     {
+        // Delivered cargo carries nothing, so the crate floats; there is no order to break (D24 addendum).
         CrateLayout.Problems(Rack1, [At(CrateSize.Four, 0, 0, 0, "Riker", delivered: true), At(CrateSize.Four, 0, 0, 1, "Shubin")], ["Riker", "Shubin"])
-            .Should().BeEmpty();
+            .Should().Equal("4 SCU crate of Titanium for Shubin in rack 1 has nothing below it");
     }
 
     [Fact]

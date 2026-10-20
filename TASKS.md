@@ -534,6 +534,20 @@ Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1
 ### [ ] T5.4 Auto-Apply mit Markierungen + inkrementell platzieren
 **Warum:** Hauler drücken F3 am Terminal und schauen aufs Overlay, den Editor öffnen sie nur bei Fehlern (D39-Addendum). CT-Importe sind je Capture lückenhaft (D38), deshalb sichtbar markieren statt still übernehmen. Hauler nehmen Aufträge nacheinander an; neu planen löscht Positionen und Haken (T3.8b).
 **Präzisiert in der Planung:** Neu gefasst nach dem D39-Addendum (Revision des Prüforts von D39, ratifiziert durch Freigabe): Markierung in der Legende statt Pflichtschritt im Editor; jede Erfassung eine eigene Mission, Duplikate nur markiert; Entfernen einer Mission bewegt keine anderen Kisten. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+**Präzisiert in der Planung (Umsetzung):** Zwei Commits, T5.4b Core + Import (ohne WPF testbar), T5.4c App.
+- **Erster Sync:** Wasserstand 0 → alles aus CT, auch bei migriertem Schema-2-Plan.
+- **Unplatzierte Missionen:** Retry bei jedem Sync, nicht nach einem Haken.
+- **Duplikat:** Teilmenge der (Ziel, Ware)-Paare statt Überlappung (Beleg 36 vs. 37/38), abgeleitet statt gespeichert; kein Marker für den Kindzeilen-Fallback.
+- **Abgehakte Kisten:** grau bis überbaut, kein Drop-Ziel; Haken unter einer liegenden Kiste → rot, nicht abgelehnt.
+- **Schema 3:** Stops unter der Mission statt Id am Item, Stop-Sicht abgeleitet.
+- **Reihenfolge:** Legende und Stapelregel nach `UnloadOrder` (erste Kiste an Bord), `Route` nur für die Farben; Korrektur bei der Freigabe.
+- **„In CT gelöscht“** = alle Ids der Erfassung fehlen; „nicht gelesen“ ist nie „gelöscht“.
+- **Sync pausiert** bei kaputtem plan.json.
+- **Fehlerfälle:** Fehlende DB ohne Notice, Datei ohne SQLite-DB mit Notice.
+- **Delete mission:** Statuszeile „plan updated“.
+- **README:** „retry before you load“.
+
+Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Addenda).
 - `FileSystemWatcher` auf DB + `-wal` übernimmt Kandidaten seit dem Wasserstand **direkt** in den Plan; **Wasserstand = höchste übernommene Id**, steigt bei Übernahme, gehört zum Plan. „Diff, don't react“ (D38) bleibt: Arbeit nur, wenn Zeilen über dem Wasserstand existieren oder eine Plan-Id in CT fehlt; Mapping-Write, Checkpoint und unser eigener Lesezugriff (`-wal`/`-shm`) ergeben nichts
 - **Legende** zeigt die Hinweise pro Stop: Größe angenommen (`4 SCU?`), Ziele unvollständig (`⚠ 1 of 3 destinations`), Fallback auf Kindzeilen, `⚠ duplicate?`
 - **Jede Erfassung eine eigene Mission, nichts wird ersetzt:** gleiche Ware + überlappende Ziele mit einer Mission ohne Haken → `⚠ duplicate?`, keine Notice; verschwindet beim ersten Haken auf einer der beiden. Retry nach OCR-Fehler → Spieler löscht die falsche Mission im Editor

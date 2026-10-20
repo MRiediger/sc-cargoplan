@@ -73,7 +73,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
         var editor = new MissionEditorViewModel(overlay);
 
-        MissionRows.ToStops(editor.Rows).Stops.Should().BeEquivalentTo(overlay.Missions, o => o.WithStrictOrdering());
+        MissionRows.ToStops(editor.Rows).Stops.Should().BeEquivalentTo(overlay.Saved!.Stops, o => o.WithStrictOrdering());
         editor.IsDirty.Should().BeFalse();
         editor.Title.Should().Be(MissionEditorViewModel.TitleText);
     }
@@ -242,7 +242,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
         editor.PlanCommand.Execute(null);
 
-        overlay.Missions.Select(s => s.Destination).Should().Equal("Riker", "Shubin", "Orison");
+        overlay.Saved!.Stops.Select(s => s.Destination).Should().Equal("Riker", "Shubin", "Orison");
         overlay.Plan!.Placements.Sum(p => p.Item.Scu).Should().Be(22);
         editor.IsDirty.Should().BeFalse();
         editor.Problem.Should().BeNull();
@@ -263,7 +263,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
         overlay.Plan!.PlacementsForStop("Green Glade").Select(p => (p.Item.Scu, (int)p.Item.CrateSize)).Should().Equal((4, 4), (2, 2));
         overlay.Plan!.PlacementsForStop("Riker").Select(p => (p.Item.Scu, (int)p.Item.CrateSize)).Should().Equal((6, 2));
-        overlay.Missions[0].Items[0].Crates.Should().BeNull();
+        overlay.Missions[0].Stops[0].Items[0].Crates.Should().BeNull();
     }
 
     [Fact]
@@ -365,7 +365,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
     {
         var overlay = EmptyOverlay();
         var planned = TestPlans.SplitAndShared();
-        overlay.ShowPlan(new SavedPlan(planned.Missions, LoadPlanner.Plan(overlay.Ship, planned.Missions.ToStops(), FillOrder.SternFirst)));
+        overlay.ShowPlan(SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(overlay.Ship, planned.Stops.ToStops(), FillOrder.SternFirst)));
         return overlay;
     }
 
@@ -392,7 +392,8 @@ public sealed class MissionEditorViewModelTests : IDisposable
         editor.PlanCommand.Execute(null);
 
         overlay.Plan!.FillOrder.Should().Be(FillOrder.SternFirst);
-        overlay.Plan.Should().BeEquivalentTo(LoadPlanner.Plan(overlay.Ship, stops, FillOrder.SternFirst));
+        // The missions are the editor's rows (D42); the layout is the planner's.
+        overlay.Plan.Crates.Select(c => c with { Mission = 0 }).Should().Equal(LoadPlanner.Plan(overlay.Ship, stops, FillOrder.SternFirst).Crates);
         overlay.Plan.Crates.Select(c => c.Position).Should().NotEqual(
             LoadPlanner.Plan(overlay.Ship, stops, FillOrder.BowFirst).Crates.Select(c => c.Position), "the chosen end must make a difference");
     }

@@ -349,6 +349,27 @@ public class OverlayViewModelTests
     }
 
     [Fact]
+    public void ToggleDeliveredCommand_back_onto_cells_taken_again_is_refused_with_a_notice()
+    {
+        // Riker is ticked, Shubin's 8 goes where Riker's 4 lay (D24 addendum): Riker can't come back on board.
+        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"));
+        IReadOnlyList<MissionStop> missions =
+        [
+            new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]),
+            new("Shubin", 2, [new MissionItem("Agricium", 8, CrateSize.Eight)]),
+        ];
+        viewModel.ShowPlan(SavedPlan.FromStops(missions, LoadPlanner.Plan(viewModel.Ship, missions.ToStops())));
+        viewModel.ToggleDeliveredCommand.Execute("Riker");
+        viewModel.MoveStopCommand.Execute(new Gesture.MoveStop("Shubin", "rack-0"));
+        var reused = viewModel.Plan!;
+
+        viewModel.ToggleDeliveredCommand.Execute("Riker");
+
+        viewModel.Plan.Should().BeSameAs(reused);
+        viewModel.Notices.Should().ContainSingle().Which.Should().StartWith(OverlayViewModel.TickRefusedPrefix + "Riker can't go back on board: ");
+    }
+
+    [Fact]
     public void ToggleDeliveredCommand_raises_PropertyChanged_for_Plan_and_Scene()
     {
         var viewModel = WithPlan();
@@ -498,7 +519,7 @@ public class OverlayViewModelTests
             new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]),
             new("Shubin", 2, [new MissionItem("Agricium", 8, CrateSize.Eight)]),
         ];
-        viewModel.ShowPlan(new SavedPlan(missions, LoadPlanner.Plan(viewModel.Ship, missions.ToStops())));
+        viewModel.ShowPlan(SavedPlan.FromStops(missions, LoadPlanner.Plan(viewModel.Ship, missions.ToStops())));
 
         viewModel.MoveStopCommand.Execute(new Gesture.MoveStop("Shubin", "rack-0"));
 
@@ -576,7 +597,7 @@ public class OverlayViewModelTests
 
         Selected(viewModel).Should().BeEquivalentTo([TitaniumAt(viewModel, 2, 0, 0), TitaniumAt(viewModel, 2, 1, 0)]);
         Selected(viewModel).Should().OnlyContain(c => c.CrateSize == CrateSize.Two);
-        viewModel.Missions[0].Items[0].Crates.Should().Equal(CrateSize.Four, CrateSize.Four, CrateSize.Four, CrateSize.Two, CrateSize.Two);
+        viewModel.Missions[0].Stops[0].Items[0].Crates.Should().Equal(CrateSize.Four, CrateSize.Four, CrateSize.Four, CrateSize.Two, CrateSize.Two);
 
         // PlanSaver saves on every change of Plan (D18).
         changes.Should().Contain(nameof(OverlayViewModel.Plan));
@@ -597,7 +618,7 @@ public class OverlayViewModelTests
 
         viewModel.Plan!.Crates.Should().Equal(original.Crates);
         Selected(viewModel).Should().BeEquivalentTo([TitaniumAt(viewModel, 2, 0, 0)]);
-        viewModel.Missions[0].Items[0].CrateList.Should().Equal(CrateSize.Four, CrateSize.Four, CrateSize.Four, CrateSize.Four);
+        viewModel.Missions[0].Stops[0].Items[0].CrateList.Should().Equal(CrateSize.Four, CrateSize.Four, CrateSize.Four, CrateSize.Four);
     }
 
     [Fact]

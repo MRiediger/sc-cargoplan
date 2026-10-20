@@ -394,6 +394,62 @@ public class ModelsTests
     }
 
     [Fact]
+    public void LoadPlan_unload_order_is_the_route_while_nothing_is_delivered()
+    {
+        var plan = new LoadPlan("hull_a",
+        [
+            Box("Shubin", "Quartz", CrateSize.Two, "rack-1", 0),
+            Box("Riker", "Titanium", CrateSize.Four, "rack-0", 0),
+            Box("Shubin", "Quartz", CrateSize.Two, "rack-0", 2),
+        ], []);
+
+        plan.UnloadOrder.Should().Equal(plan.Route);
+    }
+
+    [Fact]
+    public void LoadPlan_unload_order_keeps_a_delivered_stop_in_its_place()
+    {
+        // Ticking never moves a legend line (D16).
+        var plan = new LoadPlan("hull_a",
+        [
+            Box("Riker", "Titanium", CrateSize.Four, "rack-0", 0, delivered: true),
+            Box("Riker", "Titanium", CrateSize.Four, "rack-0", 2, delivered: true),
+            Box("Shubin", "Quartz", CrateSize.Two, "rack-1", 0),
+        ], []);
+
+        plan.UnloadOrder.Should().Equal("Riker", "Shubin");
+    }
+
+    [Fact]
+    public void LoadPlan_unload_order_puts_a_new_visit_to_a_delivered_stop_last()
+    {
+        // Riker was delivered, a new Riker contract came after Shubin: Riker is unloaded last (D41), the colour stays (Route).
+        Crate[] crates =
+        [
+            Box("Riker", "Titanium", CrateSize.Four, "rack-0", 0, delivered: true),
+            Box("Shubin", "Quartz", CrateSize.Two, "rack-1", 0),
+            Box("Riker", "Gold", CrateSize.Four, "rack-0", 2),
+        ];
+
+        new LoadPlan("hull_a", crates, []).UnloadOrder.Should().Equal("Shubin", "Riker");
+        new LoadPlan("hull_a", crates, []).Route.Should().Equal("Riker", "Shubin");
+    }
+
+    [Fact]
+    public void LoadPlan_unload_order_keeps_a_delivered_second_visit_last()
+    {
+        // The last run of a delivered stop's crates is its latest visit, so ticking it doesn't move it back up.
+        var plan = new LoadPlan("hull_a",
+        [
+            Box("Riker", "Titanium", CrateSize.Four, "rack-0", 0, delivered: true),
+            Box("Shubin", "Quartz", CrateSize.Two, "rack-1", 0),
+            Box("Riker", "Gold", CrateSize.Four, "rack-0", 2, delivered: true),
+        ], []);
+
+        plan.UnloadOrder.Should().Equal("Shubin", "Riker");
+    }
+
+    [Fact]
     public void LoadPlan_fills_bow_first_by_default()
     {
         new LoadPlan("hull_a", [], []).FillOrder.Should().Be(FillOrder.BowFirst);

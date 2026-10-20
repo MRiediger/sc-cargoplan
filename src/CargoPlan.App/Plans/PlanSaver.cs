@@ -65,14 +65,14 @@ public sealed class PlanSaver
     private void Save()
     {
         // Nothing sets the plan back to null: the editor replaces a plan, it doesn't discard one (backlog, D19).
-        if (_viewModel.Plan is not { } plan)
+        if (_viewModel.Saved is not { } saved)
         {
             return;
         }
 
         try
         {
-            PlanStore.Save(_path, new SavedPlan(_viewModel.Missions, plan));
+            PlanStore.Save(_path, saved);
             _viewModel.SetNotice(NoticeSource.Plan, null); // A load or save problem is solved once the file is written.
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

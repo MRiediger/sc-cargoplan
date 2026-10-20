@@ -24,4 +24,7 @@ public sealed record ContractTrackerCandidate(
 {
     /// <summary>The drop-off list names more destinations than were read.</summary>
     public bool DestinationsIncomplete => ListedDestinationCount > Stops.Count;
+
+    /// <summary>The candidate as the sync takes it into the plan (D39 addendum): stops, ids and the legend's hints.</summary>
+    public ContractCapture ToCapture() => new(Stops, new ContractSource(ContractIds, CrateSizeAssumed, ListedDestinationCount));
 }

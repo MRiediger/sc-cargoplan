@@ -18,6 +18,8 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 
     public const string MoveRefusedPrefix = "Move refused: ";
 
+    public const string TickRefusedPrefix = "Tick refused: ";
+
     public const string SplitRefusedPrefix = "Split refused: ";
 
     public const string MergeRefusedPrefix = "Merge refused: ";
@@ -120,15 +122,22 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     }
 
     /// <summary>
-    /// The missions <see cref="Plan"/> was made from, as entered (D23), saved with it (D18). Set together with it by
+    /// The missions <see cref="Plan"/> was made from, as entered (D23, D42), saved with it (D18). Set together with it by
     /// <see cref="ShowPlan"/>.
     /// </summary>
-    public IReadOnlyList<MissionStop> Missions { get; private set; } = [];
+    public IReadOnlyList<Mission> Missions { get; private set; } = [];
+
+    /// <summary>The ContractTracker watermark of the plan (D39 addendum), saved with it; set by <see cref="ShowPlan"/>.</summary>
+    public long Watermark { get; private set; }
+
+    /// <summary>Missions, plan and watermark together; null without a plan.</summary>
+    public SavedPlan? Saved => Plan is { } plan ? new SavedPlan(Missions, plan, Watermark) : null;
 
     /// <summary>Shows a plan with its missions. Missions first: the plan's PropertyChanged starts the save, which reads both.</summary>
     public void ShowPlan(SavedPlan saved)
     {
         Missions = saved.Missions;
+        Watermark = saved.Watermark;
         Plan = saved.Plan;
         SetNotice(NoticeSource.Move, null);
     }
@@ -172,8 +181,10 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     private void ToggleOverlay() => IsOverlayHidden = !IsOverlayHidden;
 
     /// <summary>
-    /// Ticks a stop off in the legend, or back after a misclick: the whole stop, split parts included (D16).
-    /// A method parameter makes the generator write an <c>IRelayCommand&lt;string&gt;</c>; the legend passes the destination.
+    /// Ticks a stop off in the legend, or back after a misclick: the whole stop, split parts included (D16). Ticking back
+    /// is refused once another crate took a cell of the stop (D24 addendum); the reason goes to the notice line, like a
+    /// refused move. A method parameter makes the generator write an <c>IRelayCommand&lt;string&gt;</c>; the legend passes
+    /// the destination.
     /// </summary>
     // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand#command-parameters
     [RelayCommand]
@@ -182,7 +193,15 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
         // Unreachable without a plan: the legend has no lines then.
         var plan = Plan ?? throw new InvalidOperationException(NoPlanText);
         var delivered = plan.PlacementsForStop(destination).All(p => p.Delivered);
-        Plan = LoadPlanner.SetDelivered(plan, Ship, destination, !delivered);
+        try
+        {
+            Plan = LoadPlanner.SetDelivered(plan, Ship, destination, !delivered);
+            SetNotice(NoticeSource.Move, null);
+        }
+        catch (PlanException ex)
+        {
+            SetNotice(NoticeSource.Move, TickRefusedPrefix + ex.Message);
+        }
     }
 
     /// <summary>
@@ -235,11 +254,11 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 
     // Selected crates belong to the current plan, so Plan isn't null here.
     private string? SplitProblem() => Selected.Count == 1 && Plan is { } plan
-        ? LoadPlanner.SplitProblem(new SavedPlan(Missions, plan), Ship, Selected.Single())
+        ? LoadPlanner.SplitProblem(new SavedPlan(Missions, plan, Watermark), Ship, Selected.Single())
         : SelectOneCrateText;
 
     private string? MergeProblem() => Selected.Count >= 2 && Plan is { } plan
-        ? LoadPlanner.MergeProblem(new SavedPlan(Missions, plan), Ship, [.. Selected])
+        ? LoadPlanner.MergeProblem(new SavedPlan(Missions, plan, Watermark), Ship, [.. Selected])
         : SelectCratesText;
 
     /// <summary>
@@ -252,7 +271,7 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
         var plan = Plan ?? throw new InvalidOperationException(NoPlanText);
         try
         {
-            var saved = edit(new SavedPlan(Missions, plan));
+            var saved = edit(new SavedPlan(Missions, plan, Watermark));
             HashSet<Crate> before = [.. plan.Crates];
             ShowPlan(saved);
             Selection = CrateSelection.Of(Scene, saved.Plan.Crates.Where(c => !before.Contains(c)));

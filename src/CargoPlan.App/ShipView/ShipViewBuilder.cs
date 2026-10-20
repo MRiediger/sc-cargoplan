@@ -28,7 +28,7 @@ public static class ShipViewBuilder
             ship.Bounds,
             legend,
             Messages(plan),
-            Messages(Undelivered(plan, ship)),
+            [.. LoadPlanner.HintsOnBoard(plan, ship).Select(w => w.Message).Distinct()],
             [.. violations.Select(v => v.Message)],
             MissionPalette.Repeats(plan),
             plan,
@@ -36,13 +36,6 @@ public static class ShipViewBuilder
     }
 
     private static string[] Messages(LoadPlan plan) => [.. plan.Warnings.Select(w => w.Message).Distinct()];
-
-    /// <summary>The plan with every stop back on board; Core derives its hints (D16).</summary>
-    private static LoadPlan Undelivered(LoadPlan plan, Ship ship) => plan.Placements
-        .Where(p => p.Delivered)
-        .Select(p => p.Destination)
-        .Distinct()
-        .Aggregate(plan, (current, destination) => LoadPlanner.SetDelivered(current, ship, destination, false));
 
     /// <summary>
     /// The rack's crates where the plan stores them (D24), then the cells no crate takes. No layout here: the only one is
@@ -53,7 +46,7 @@ public static class ShipViewBuilder
         var crates = plan.CratesForRack(rack.Id);
 
         // Only a red rack can hold a faulty crate; valid plans skip the check of every pair.
-        IReadOnlySet<Crate> faulty = isViolated ? CrateLayout.Faulty(rack, crates, plan.Route) : new HashSet<Crate>();
+        IReadOnlySet<Crate> faulty = isViolated ? CrateLayout.Faulty(rack, crates, plan.UnloadOrder) : new HashSet<Crate>();
 
         SceneBox[] cargo = [.. plan.PlacementsForRack(rack.Id).SelectMany(placement =>
         {

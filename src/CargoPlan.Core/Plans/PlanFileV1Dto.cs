@@ -6,7 +6,7 @@ namespace CargoPlan.Core.Plans;
 
 /// <summary>
 /// Plan file schema 1 (placements, no crate positions): read, never written. Its placements are laid out the way the
-/// planner lays out a fresh plan, so an upgrade keeps the plan of a running route (D24).
+/// planner lays out a fresh plan, so an upgrade keeps the plan of a running route (D24); one mission per stop (D42).
 /// </summary>
 internal sealed record PlanFileV1Dto(
     int SchemaVersion,
@@ -27,6 +27,6 @@ internal sealed record PlanFileV1Dto(
         new LoadPlan(ShipId, [], []).EnsureBelongsTo(ship);
         var crates = CrateLayout.LayOut(ship, placements, FillOrder.BowFirst);
 
-        return PlanFileDto.Checked(missions, new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrder.BowFirst), ship);
+        return SavedPlan.FromStops(missions, PlanFileDto.Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrder.BowFirst), ship));
     }
 }

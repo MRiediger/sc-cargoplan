@@ -239,7 +239,7 @@ public class MissionRowsTests
     [Fact]
     public void FromStops_gives_one_row_per_item_in_route_order()
     {
-        var missions = TestPlans.SplitAndShared().Missions;
+        var missions = TestPlans.SplitAndShared().Stops;
 
         var rows = MissionRows.FromStops(missions);
 
@@ -253,7 +253,7 @@ public class MissionRowsTests
     public void FromStops_of_a_v1_file_gives_explicit_crates_marked_as_override()
     {
         // Riker 16 Titanium in 4 SCU crates (schema 1): exactly those crates, not a derivation (D23).
-        var rows = MissionRows.FromStops(TestPlans.SplitAndShared().Missions);
+        var rows = MissionRows.FromStops(TestPlans.SplitAndShared().Stops);
 
         rows[0].Crates.Should().Be("4+4+4+4");
         rows[0].IsCrateOverride.Should().BeTrue();
@@ -275,7 +275,7 @@ public class MissionRowsTests
     {
         MissionStop[] derived = [new("Green Glade", 1, [new MissionItem("Stims", 6, CrateSize.Four)])];
 
-        foreach (var missions in new[] { TestPlans.SplitAndShared().Missions, derived })
+        foreach (var missions in new[] { TestPlans.SplitAndShared().Stops, derived })
         {
             var stops = MissionRows.ToStops(MissionRows.FromStops(missions)).Stops;
 

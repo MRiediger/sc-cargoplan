@@ -41,7 +41,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     {
         _overlay = overlay;
         _fillOrder = overlay.Plan?.FillOrder ?? FillOrder.BowFirst;
-        Rows = [.. MissionRows.FromStops(overlay.Missions)];
+        Rows = [.. MissionRows.FromStops(overlay.Saved?.Stops ?? [])];
         if (Rows.Count == 0)
         {
             Rows.Add(new MissionRow());
@@ -197,7 +197,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         try
         {
             var plan = LoadPlanner.Plan(_overlay.Ship, stops.ToStops(), FillOrder);
-            _overlay.ShowPlan(new SavedPlan(stops, plan));
+            _overlay.ShowPlan(SavedPlan.FromStops(stops, plan, _overlay.Watermark));
             IsDirty = false;
             SetActionProblem(null);
             Planned?.Invoke(this, EventArgs.Empty);

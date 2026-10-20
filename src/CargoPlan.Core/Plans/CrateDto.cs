@@ -3,8 +3,12 @@ using static System.FormattableString;
 
 namespace CargoPlan.Core.Plans;
 
-/// <summary>File format of a crate (plan schema 2, D24): what, for whom, which rack, which cell.</summary>
-internal sealed record CrateDto(string Destination, string Commodity, int CrateSize, string RackId, IReadOnlyList<int> Position, bool Delivered)
+/// <summary>
+/// File format of a crate (plan schema 2 and 3, D24): what, for whom, which rack, which cell; from schema 3 which mission
+/// (D42). Schema 2 has no mission: 0, assigned by destination on reading.
+/// </summary>
+internal sealed record CrateDto(
+    string Destination, string Commodity, int CrateSize, string RackId, IReadOnlyList<int> Position, bool Delivered, int Mission = 0)
 {
     private const int PositionAxes = 3;
 
@@ -32,10 +36,10 @@ internal sealed record CrateDto(string Destination, string Commodity, int CrateS
                 nameof(Position));
         }
 
-        return new Crate(Destination, Commodity, (Models.CrateSize)CrateSize, RackId, new GridPosition(length, width, stack), Delivered);
+        return new Crate(Destination, Commodity, (Models.CrateSize)CrateSize, RackId, new GridPosition(length, width, stack), Delivered, Mission);
     }
 
     public static CrateDto FromCrate(Crate crate) => new(
         crate.Destination, crate.Commodity, (int)crate.CrateSize, crate.RackId,
-        [crate.Position.Length, crate.Position.Width, crate.Position.Stack], crate.Delivered);
+        [crate.Position.Length, crate.Position.Width, crate.Position.Stack], crate.Delivered, crate.Mission);
 }

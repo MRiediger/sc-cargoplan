@@ -321,7 +321,7 @@ public class LoadPlannerOverrideTests
 
         var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
 
-        var act = () => new SavedPlan(missions, moved);
+        var act = () => SavedPlan.FromStops(missions, moved);
         act.Should().NotThrow();
     }
 
@@ -401,14 +401,15 @@ public class LoadPlannerOverrideTests
     }
 
     [Fact]
-    public void MoveStop_counts_delivered_crates_as_taken()
+    public void MoveStop_lays_crates_into_the_cells_of_delivered_cargo()
     {
-        // Lorville's 1s are off the ship but keep their cells, so ticking back gives a valid plan (D24).
+        // Lorville's 1s are off the ship, their cells are free (D24 addendum).
         var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, GoldThenAgricium), HullA, "Lorville", true);
 
-        var act = () => LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-0");
+        var moved = LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-0");
 
-        act.Should().Throw<PlanException>();
+        moved.Crates.Single(c => c.Destination == "Shubin").RackId.Should().Be("rack-0");
+        ShouldBeValid(moved, HullA);
     }
 
     [Fact]
@@ -477,6 +478,37 @@ public class LoadPlannerOverrideTests
 
         undone.Placements.Should().Equal(plan.Placements);
         undone.Warnings.Should().Equal(plan.Warnings);
+    }
+
+    [Fact]
+    public void SetDelivered_refuses_to_tick_back_when_its_cells_are_taken_again()
+    {
+        var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, GoldThenAgricium), HullA, "Lorville", true);
+        var reused = LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-0");
+
+        var act = () => LoadPlanner.SetDelivered(reused, HullA, "Lorville", false);
+
+        act.Should().Throw<PlanException>().WithMessage("Lorville can't go back on board: *overlap*");
+    }
+
+    [Fact]
+    public void SetDelivered_of_the_stop_below_leaves_the_crate_above_floating()
+    {
+        // The later stop was unloaded first: the player restacked in the game, the plan shows it red, never refuses.
+        LoadPlan plan = new(HullA.Id, [Box("Riker", CrateSize.Four, 0, 1), Box("Shubin", CrateSize.Four, 0, 0)], []);
+
+        var delivered = LoadPlanner.SetDelivered(plan, HullA, "Shubin", true);
+
+        LoadPlanner.Validate(delivered, HullA).Should().Equal(
+            new PlanWarning("rack-0", "4 SCU crate of Titanium for Riker in rack 1 has nothing below it"));
+    }
+
+    [Fact]
+    public void HintsOnBoard_are_the_hints_with_nothing_delivered()
+    {
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
+
+        LoadPlanner.HintsOnBoard(LoadPlanner.SetDelivered(plan, HullA, "Riker", true), HullA).Should().Equal(plan.Warnings);
     }
 
     [Fact]
@@ -570,12 +602,12 @@ public class LoadPlannerOverrideTests
     }
 
     [Fact]
-    public void Validate_counts_delivered_crates()
+    public void Validate_ignores_delivered_crates()
     {
-        // Until the lift takes the crates, they still take the room (D16, D24).
+        // Delivered cargo is off the ship: no overlap, and it carries nothing (D24 addendum).
         LoadPlan plan = new(HullA.Id, [Box("Riker", CrateSize.Eight, 0, 0, delivered: true), Box("Shubin", CrateSize.Two, 0, 1)], []);
 
-        LoadPlanner.Validate(plan, HullA).Should().ContainSingle().Which.Message.Should().Contain("overlap");
+        LoadPlanner.Validate(plan, HullA).Should().ContainSingle().Which.Message.Should().Contain("nothing below it");
     }
 
     [Fact]

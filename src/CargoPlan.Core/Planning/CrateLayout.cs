@@ -15,7 +15,7 @@ public static class CrateLayout
     /// makes port and starboard racks mirror images, D26); in a row along the length from the end <paramref name="order"/>
     /// names (D21). The largest crate goes first (ties in input order), each at the free place whose first cell comes first
     /// in fill order, on a tie whose last cell does, and only where it rests on the plate or on other crates.
-    /// <paramref name="occupied"/> keep their cells, delivered ones too (D24).
+    /// <paramref name="occupied"/> keep their cells; delivered ones are off the ship, their cells are free (D24 addendum).
     /// The stacking rule is tried, not forced (D24 addendum): if that layout lays a new crate on a crate of an earlier stop
     /// of <paramref name="route"/>, an exact search looks for one that doesn't. If there is none, the first layout stays and
     /// <see cref="Problems"/> names the crate: the cargo fits, so the order is a finding, never a refusal.
@@ -23,6 +23,7 @@ public static class CrateLayout
     public static IReadOnlyList<GridPosition>? Place(
         Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<string> route, FillOrder order)
     {
+        occupied = [.. occupied.Where(c => !c.Delivered)];
         var grid = rack.Grid;
         var taken = new bool[grid.Length, grid.Width, grid.Stack];
         foreach (var cell in occupied.SelectMany(c => c.Cells).Where(c => Inside(grid, c)))
@@ -162,7 +163,8 @@ public static class CrateLayout
 
     /// <summary>
     /// Why the crates of one rack can't lie as they are: a crate the grid can't hold or that sticks out, two crates in
-    /// one cell, a crate with an empty cell under its bottom (D24). Delivered crates count, they keep their cells.
+    /// one cell, a crate with an empty cell under its bottom (D24). Delivered crates are off the ship: they take no cell,
+    /// carry nothing and are not checked (D24 addendum).
     /// Also every crate lying on cargo of an earlier stop of <paramref name="route"/> (D24 addendum): possible, only tedious
     /// at the elevator. The planner never makes the others; this one only where a rack has no layout in route order.
     /// </summary>
@@ -201,8 +203,9 @@ public static class CrateLayout
     /// Every problem with the crates it names; the one place for the rules of <see cref="Problems"/>, <see cref="Faulty"/>
     /// and <see cref="NewProblem"/>. Blocking: the crates can't lie like this. Not blocking: the stacking order.
     /// </summary>
-    private static IEnumerable<(string Message, Crate[] Crates, bool Blocking)> Findings(Rack rack, IReadOnlyList<Crate> crates, IReadOnlyList<string> route)
+    private static IEnumerable<(string Message, Crate[] Crates, bool Blocking)> Findings(Rack rack, IReadOnlyList<Crate> all, IReadOnlyList<string> route)
     {
+        Crate[] crates = [.. all.Where(c => !c.Delivered)];
         foreach (var crate in crates)
         {
             var size = (int)crate.CrateSize;
@@ -217,9 +220,9 @@ public static class CrateLayout
             }
         }
 
-        for (var a = 0; a < crates.Count; a++)
+        for (var a = 0; a < crates.Length; a++)
         {
-            for (var b = a + 1; b < crates.Count; b++)
+            for (var b = a + 1; b < crates.Length; b++)
             {
                 if (Overlap(crates[a], crates[b]))
                 {
@@ -311,7 +314,7 @@ public static class CrateLayout
         GridPosition[] cells = [.. Cells(new GridPosition(0, 0, 0), grid).OrderBy(c => rank[c.Length, c.Width, c.Stack])];
 
         // Who holds a cell: free, empty (left out by the search, carries nothing) or the stop index of the crate there.
-        // Delivered cargo carries anything, as in Rests (D24).
+        // Place passes only cargo on board: delivered cells are free (D24 addendum).
         var owner = new int[grid.Length, grid.Width, grid.Stack];
         foreach (var cell in cells)
         {
@@ -322,7 +325,7 @@ public static class CrateLayout
         {
             foreach (var cell in crate.Cells.Where(c => Inside(grid, c)))
             {
-                owner[cell.Length, cell.Width, cell.Stack] = crate.Delivered ? int.MaxValue : StopIndex(route, crate.Destination);
+                owner[cell.Length, cell.Width, cell.Stack] = StopIndex(route, crate.Destination);
             }
         }
 

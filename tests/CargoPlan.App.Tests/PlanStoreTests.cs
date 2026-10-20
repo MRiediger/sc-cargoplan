@@ -56,7 +56,7 @@ public sealed class PlanStoreTests : IDisposable
     public void Save_then_Load_keeps_the_fill_order()
     {
         var planned = TestPlans.SplitAndShared();
-        SavedPlan saved = new(planned.Missions, LoadPlanner.Plan(HullA, planned.Missions.ToStops(), FillOrder.SternFirst));
+        var saved = SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(HullA, planned.Stops.ToStops(), FillOrder.SternFirst));
 
         PlanStore.Save(PlanPath, saved);
         var (loaded, problem) = PlanStore.Load(PlanPath, HullA);

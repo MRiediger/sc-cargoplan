@@ -1,6 +1,7 @@
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Import.ContractTracker;
+using Microsoft.Data.Sqlite;
 
 namespace CargoPlan.Import.Tests;
 
@@ -201,6 +202,77 @@ public class ContractTrackerReaderTests
     }
 
     [Fact]
+    public void Read_names_which_of_the_known_ids_are_still_there()
+    {
+        // Deleted in ContractTracker: the plan's missions whose ids are gone (D39 addendum).
+        using var database = new TempContractDatabase();
+        database.AddContract(30, "Silicon", ImportFixtures.RawText(ImportFixtures.SiliconMaxSize), (10, "Melodic Fields Station"));
+        database.AddContract(36, "Stims", ImportFixtures.RawText(ImportFixtures.StimsOcrErrors), (4, "Thundering Express Station"));
+
+        var result = ContractTrackerReader.Read(database.Path, 36, [30, 31, 36]);
+
+        result.Present.Should().BeEquivalentTo([30L, 36L]);
+        result.Candidates.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Read_of_a_missing_file_knows_nothing_about_the_known_ids()
+    {
+        // Not read is not deleted: a missing file must not take missions out of the plan (T5.4).
+        var result = ContractTrackerReader.Read(Path.Combine(Path.GetTempPath(), $"missing-{Guid.NewGuid():N}.db"), 0, [30]);
+
+        result.Present.Should().BeNull();
+        result.Notice.Should().BeNull();
+    }
+
+    [Fact]
+    public void Read_of_another_schema_knows_nothing_about_the_known_ids()
+    {
+        using var database = new TempContractDatabase(ImportFixtures.Schema.Replace("\"RawOcrText\"", "\"OcrText\"", StringComparison.Ordinal));
+
+        ContractTrackerReader.Read(database.Path, 0, [30]).Present.Should().BeNull();
+    }
+
+    [Fact]
+    public void Read_of_a_file_that_is_no_database_throws()
+    {
+        // A path to another file: the caller shows a notice (T5.4c), unlike a missing file, which says nothing.
+        var path = Path.Combine(Path.GetTempPath(), $"not-a-db-{Guid.NewGuid():N}.db");
+        File.WriteAllText(path, "This is not a SQLite database, just text long enough to have a header.");
+        try
+        {
+            var act = () => ContractTrackerReader.Read(path, 0, []);
+
+            act.Should().Throw<SqliteException>();
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Candidate_becomes_a_capture_with_its_ids_and_hints()
+    {
+        using var database = new TempContractDatabase();
+        AddStimsSplit(database);
+        var candidate = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Single();
+
+        var capture = candidate.ToCapture();
+
+        capture.Stops.Should().BeSameAs(candidate.Stops);
+        capture.Source.Should().BeEquivalentTo(new ContractSource([32, 33], CrateSizeAssumed: true, ListedDestinations: 3));
+    }
+
+    [Fact]
+    public void Default_path_is_in_the_roaming_app_data()
+    {
+        // D38: %APPDATA%\SCContractTracker\contracts.db, one fixed path.
+        ContractTrackerReader.DefaultPath.Should().Be(
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SCContractTracker", "contracts.db"));
+    }
+
+    [Fact]
     public void Capture_time_is_read_as_utc()
     {
         using var database = new TempContractDatabase();
@@ -246,6 +318,7 @@ public class ContractTrackerReaderTests
 
         result.Candidates.Should().BeEmpty();
         result.Notice.Should().BeNull();
+        result.Present.Should().BeNull();
     }
 
     private static void AddStimsSplit(TempContractDatabase database)

@@ -7,46 +7,45 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Plans;
 
 /// <summary>
-/// File format of a plan file (schema version 2, docs/plan-format.md): every crate with its rack and position (D24).
-/// <see cref="Missions"/> is a complete mission file, so the editor reads it with the mission file's checks and it can be
-/// copied out as one. Kept as raw JSON, so both mission schema versions are read inside (D23); writing always gives the
-/// current one.
+/// File format of a plan file (schema version 3, docs/plan-format.md): the missions with their stops and where they came
+/// from (D42), every crate with its mission, rack and position (D24), and the ContractTracker watermark (D39 addendum).
 /// </summary>
 internal sealed record PlanFileDto(
     int SchemaVersion,
     string ShipId,
-    JsonElement Missions,
     string FillOrder,
+    long ContractTrackerWatermark,
+    IReadOnlyList<MissionDto> Missions,
     IReadOnlyList<CrateDto> Crates,
     IReadOnlyList<PlanWarningDto> Warnings)
 {
     private const string BowFirst = "bowFirst";
     private const string SternFirst = "sternFirst";
 
-    /// <exception cref="JsonException">The missions are not a mission file of a supported schema version.</exception>
     /// <exception cref="ArgumentException">A value violates the domain rules, or the plan doesn't fit the ship or its missions.</exception>
     public SavedPlan ToSavedPlan(Ship ship)
     {
-        var missions = ParseMissions(Missions);
-        LoadPlan plan = new(ShipId, [.. Crates.Select(c => c.ToCrate())], [.. Warnings.Select(w => w.ToPlanWarning())], ToFillOrder());
+        Mission[] missions = [.. Missions.Select(m => m.ToMission())];
+        LoadPlan plan = new(ShipId, [.. Crates.Select(c => c.ToCrate())], [.. Warnings.Select(w => w.ToPlanWarning())], ParseFillOrder(FillOrder));
 
-        return Checked(missions, plan, ship);
+        return new SavedPlan(missions, Checked(plan, ship), ContractTrackerWatermark);
     }
 
     public static PlanFileDto FromSavedPlan(SavedPlan saved) => new(
         PlanFile.SupportedSchemaVersion,
         saved.Plan.ShipId,
-        JsonSerializer.SerializeToElement(MissionFileDto.FromMissionStops(saved.Missions), MissionJsonContext.Default.MissionFileDto),
         saved.Plan.FillOrder == Models.FillOrder.BowFirst ? BowFirst : SternFirst,
+        saved.Watermark,
+        [.. saved.Missions.Select(MissionDto.FromMission)],
         [.. saved.Plan.Crates.Select(CrateDto.FromCrate)],
         [.. saved.Plan.Warnings.Select(PlanWarningDto.FromPlanWarning)]);
 
     /// <summary>
-    /// The checks both schema versions share: ship, racks, crates inside their grid, then the missions (D24). Overlap and
-    /// crates without support load; <c>LoadPlanner.Validate</c> shows them red.
+    /// The checks every schema version shares: ship, racks, crates inside their grid (D24). Overlap and crates without
+    /// support load; <c>LoadPlanner.Validate</c> shows them red. The missions are the caller's, via <see cref="SavedPlan"/>.
     /// </summary>
-    /// <exception cref="ArgumentException">The plan doesn't fit the ship or its missions.</exception>
-    internal static SavedPlan Checked(IReadOnlyList<MissionStop> missions, LoadPlan plan, Ship ship)
+    /// <exception cref="ArgumentException">The plan doesn't fit the ship.</exception>
+    internal static LoadPlan Checked(LoadPlan plan, Ship ship)
     {
         // Ship first: on another ship every rack would be "unknown", which hides the actual reason.
         plan.EnsureBelongsTo(ship);
@@ -72,9 +71,10 @@ internal sealed record PlanFileDto(
                 nameof(Crates));
         }
 
-        return new SavedPlan(missions, plan);
+        return plan;
     }
 
+    /// <summary>The embedded mission file of schema 1 and 2.</summary>
     /// <exception cref="JsonException">The missions are not a mission file of a supported schema version.</exception>
     internal static IReadOnlyList<MissionStop> ParseMissions(JsonElement missions)
     {
@@ -90,10 +90,10 @@ internal sealed record PlanFileDto(
     }
 
     // A plain string and an explicit switch: STJ's enum converter would also accept numbers and other casing (as PositionDto).
-    private Models.FillOrder ToFillOrder() => FillOrder switch
+    internal static Models.FillOrder ParseFillOrder(string fillOrder) => fillOrder switch
     {
         BowFirst => Models.FillOrder.BowFirst,
         SternFirst => Models.FillOrder.SternFirst,
-        _ => throw new ArgumentException($"fillOrder '{FillOrder}' is unknown, use \"{BowFirst}\" or \"{SternFirst}\".", nameof(FillOrder)),
+        _ => throw new ArgumentException($"fillOrder '{fillOrder}' is unknown, use \"{BowFirst}\" or \"{SternFirst}\".", nameof(FillOrder)),
     };
 }

@@ -26,13 +26,13 @@ public class SplitMergeTests
     /// <summary>One stop, Riker, with these items, planned.</summary>
     private static SavedPlan Riker(Ship ship, params MissionItem[] items) => Saved(ship, new MissionStop("Riker", 1, items));
 
-    private static SavedPlan Saved(Ship ship, params MissionStop[] missions) => new(missions, LoadPlanner.Plan(ship, missions.ToStops()));
+    private static SavedPlan Saved(Ship ship, params MissionStop[] missions) => SavedPlan.FromStops(missions, LoadPlanner.Plan(ship, missions.ToStops()));
 
     private static Crate CrateAt(SavedPlan saved, string rackId, int length, int width, int stack) =>
         saved.Plan.Crates.Single(c => c.RackId == rackId && c.Position == new GridPosition(length, width, stack));
 
     private static Crate Crate(CrateSize size, int length, int width, int stack, string commodity = "Titanium") =>
-        new("Riker", commodity, size, "rack-0", new GridPosition(length, width, stack));
+        new("Riker", commodity, size, "rack-0", new GridPosition(length, width, stack), Mission: 1);
 
     /// <summary>The crates where the player moved them in the overlay (D25); the missions stay.</summary>
     private static SavedPlan Moved(SavedPlan saved, Ship ship, params (Crate Crate, string RackId, GridPosition Position)[] moves) =>
@@ -145,6 +145,35 @@ public class SplitMergeTests
             new CargoItem("Titanium", 12, CrateSize.Four), new CargoItem("Titanium", 4, CrateSize.Two));
     }
 
+    /// <summary>Riker 4 Titanium twice, as two captures (D42): two missions to one stop.</summary>
+    private static SavedPlan TwoMissions(CrateSize max)
+    {
+        MissionStop stop = new("Riker", 1, [new MissionItem("Titanium", 4, max)]);
+        SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []));
+        return LoadPlanner.PlaceInto(LoadPlanner.PlaceInto(empty, HullA, [stop]), HullA, [stop]);
+    }
+
+    [Fact]
+    public void Split_keeps_the_mission_of_the_crate()
+    {
+        var saved = TwoMissions(CrateSize.Four);
+        var second = saved.Plan.Crates.Single(c => c.Mission == 2);
+
+        var split = LoadPlanner.SplitCrate(saved, HullA, second);
+
+        split.Plan.Crates.Count(c => c.Mission == 2).Should().Be(2);
+        split.MissionOf(2).Stops[0].Items[0].Crates.Should().Equal(CrateSize.Two, CrateSize.Two);
+        split.MissionOf(1).Should().BeSameAs(saved.MissionOf(1));
+    }
+
+    [Fact]
+    public void Merge_refuses_crates_of_two_missions()
+    {
+        var saved = TwoMissions(CrateSize.Eight);
+
+        LoadPlanner.MergeProblem(saved, HullA, saved.Plan.Crates).Should().Be("The crates belong to different missions.");
+    }
+
     [Fact]
     public void Split_rebooks_the_contract_item()
     {
@@ -152,8 +181,8 @@ public class SplitMergeTests
 
         var split = LoadPlanner.SplitCrate(saved, HullA, saved.Plan.Crates[0]);
 
-        split.Missions[0].Items[0].Crates.Should().Equal(CrateSize.Four, CrateSize.Four, CrateSize.Two, CrateSize.Two);
-        split.Missions[0].Items[1].Should().BeSameAs(saved.Missions[0].Items[1]);
+        split.Missions[0].Stops[0].Items[0].Crates.Should().Equal(CrateSize.Four, CrateSize.Four, CrateSize.Two, CrateSize.Two);
+        split.Missions[0].Stops[0].Items[1].Should().BeSameAs(saved.Missions[0].Stops[0].Items[1]);
     }
 
     [Fact]
@@ -165,7 +194,7 @@ public class SplitMergeTests
         LoadPlanner.SplitCrate(saved, HullA, saved.Plan.Crates[0]);
 
         saved.Plan.Crates.Should().Equal(before);
-        saved.Missions[0].Items[0].Crates.Should().BeNull();
+        saved.Missions[0].Stops[0].Items[0].Crates.Should().BeNull();
     }
 
     [Fact]
@@ -219,7 +248,7 @@ public class SplitMergeTests
         var merged = LoadPlanner.MergeCrates(moved, HullA, moved.Plan.Crates);
 
         merged.Plan.Crates.Should().Equal(Crate(CrateSize.Four, 2, 0, 0));
-        merged.Missions[0].Items[0].Crates.Should().BeNull();
+        merged.Missions[0].Stops[0].Items[0].Crates.Should().BeNull();
         ShouldBeValid(merged, HullA);
     }
 
@@ -248,7 +277,7 @@ public class SplitMergeTests
         var merged = LoadPlanner.MergeCrates(moved, HullA, moved.Plan.Crates);
 
         merged.Plan.Crates.Should().Equal(Crate(CrateSize.Eight, 2, 0, 0, "Agricium"));
-        merged.Missions[0].Items[0].Crates.Should().BeNull();
+        merged.Missions[0].Stops[0].Items[0].Crates.Should().BeNull();
         ShouldBeValid(merged, HullA);
     }
 
