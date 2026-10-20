@@ -21,7 +21,7 @@ public class CrateLayoutTests
     /// <summary>Lays out <paramref name="sizes"/> in an empty rack and returns them as crates, in input order.</summary>
     private static Crate[] Laid(Rack rack, FillOrder order, params CrateSize[] sizes)
     {
-        var positions = CrateLayout.Place(rack, [], sizes, order);
+        var positions = CrateLayout.Place(rack, [], Riker(sizes), [], order);
 
         positions.Should().NotBeNull();
         return [.. sizes.Zip(positions!).Select(p => new Crate("Riker", "Titanium", p.First, rack.Id, p.Second))];
@@ -31,6 +31,20 @@ public class CrateLayoutTests
         crates.SelectMany(c => c.Cells).Where(c => c.Stack == stack);
 
     private static CrateSize[] Repeat(CrateSize size, int count) => [.. Enumerable.Repeat(size, count)];
+
+    /// <summary>Crates to place, all of one stop.</summary>
+    private static (CrateSize Size, string Destination)[] Riker(params CrateSize[] sizes) => [.. sizes.Select(s => (s, "Riker"))];
+
+    /// <summary>Crates to place, one stop per letter: "A" is the first stop of the route.</summary>
+    private static (CrateSize Size, string Destination)[] Of(params (CrateSize Size, string Destination)[] crates) => crates;
+
+    private static Crate[] AsCrates(Rack rack, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<GridPosition> positions) =>
+        [.. crates.Zip(positions).Select(p => new Crate(p.First.Destination, "Titanium", p.First.Size, rack.Id, p.Second))];
+
+    private static readonly string[] AbcRoute = ["A", "B", "C"];
+
+    // An expression tree (OnlyContain) can't hold a collection expression.
+    private static readonly string[] NoRoute = [];
 
     // --- Place: the drawing rule of the ship view, now in Core (D21, D24) ---
 
@@ -43,7 +57,7 @@ public class CrateLayoutTests
         var crates = Laid(Rack1, order, CrateSize.Four, CrateSize.Four, CrateSize.Eight);
 
         crates.SelectMany(c => c.Cells).Should().HaveCount(16).And.OnlyHaveUniqueItems();
-        CrateLayout.Problems(Rack1, crates).Should().BeEmpty();
+        CrateLayout.Problems(Rack1, crates, []).Should().BeEmpty();
     }
 
     [Theory]
@@ -119,7 +133,7 @@ public class CrateLayoutTests
         // The bow half is taken by an 8; two 4s fit only on the stern half, one above the other.
         Crate[] occupied = [At(CrateSize.Eight, 2, 0, 0)];
 
-        var positions = CrateLayout.Place(Rack1, occupied, [CrateSize.Four, CrateSize.Four], FillOrder.BowFirst);
+        var positions = CrateLayout.Place(Rack1, occupied, Riker(CrateSize.Four, CrateSize.Four), [], FillOrder.BowFirst);
 
         positions.Should().Equal(new GridPosition(0, 0, 0), new GridPosition(0, 0, 1));
     }
@@ -130,20 +144,20 @@ public class CrateLayoutTests
         // Delivered cargo keeps its cells: unticking it must give a valid plan again (D16, D24).
         Crate[] occupied = [At(CrateSize.Sixteen, 0, 0, 0, delivered: true)];
 
-        CrateLayout.Place(Rack1, occupied, [CrateSize.One], FillOrder.BowFirst).Should().BeNull();
+        CrateLayout.Place(Rack1, occupied, Riker(CrateSize.One), [], FillOrder.BowFirst).Should().BeNull();
     }
 
     [Fact]
     public void Place_returns_null_when_a_crate_has_no_room()
     {
-        CrateLayout.Place(Rack1, [], [CrateSize.Eight, CrateSize.Eight, CrateSize.One], FillOrder.BowFirst).Should().BeNull();
+        CrateLayout.Place(Rack1, [], Riker(CrateSize.Eight, CrateSize.Eight, CrateSize.One), [], FillOrder.BowFirst).Should().BeNull();
     }
 
     [Fact]
     public void Place_returns_null_for_a_crate_the_grid_cannot_hold()
     {
         // 8 + 4 = 12 SCU fit the short rack by volume, but the 4 has only a strip one cell long left.
-        CrateLayout.Place(Short, [], [CrateSize.Eight, CrateSize.Four], FillOrder.BowFirst).Should().BeNull();
+        CrateLayout.Place(Short, [], Riker(CrateSize.Eight, CrateSize.Four), [], FillOrder.BowFirst).Should().BeNull();
     }
 
     [Fact]
@@ -153,7 +167,7 @@ public class CrateLayoutTests
         // and every place above would bridge an empty cell.
         Crate[] occupied = [At(CrateSize.One, 1, 0, 0), At(CrateSize.One, 3, 0, 0), At(CrateSize.One, 1, 1, 0), At(CrateSize.One, 3, 1, 0)];
 
-        CrateLayout.Place(Rack1, occupied, [CrateSize.Two], FillOrder.BowFirst).Should().BeNull();
+        CrateLayout.Place(Rack1, occupied, Riker(CrateSize.Two), [], FillOrder.BowFirst).Should().BeNull();
     }
 
     [Fact]
@@ -162,7 +176,7 @@ public class CrateLayoutTests
         // Bottom full: the next crate lies on top, where the crates below carry it.
         Crate[] occupied = [At(CrateSize.Four, 0, 0, 0), At(CrateSize.Four, 2, 0, 0)];
 
-        var positions = CrateLayout.Place(Rack1, occupied, [CrateSize.Four], FillOrder.BowFirst);
+        var positions = CrateLayout.Place(Rack1, occupied, Riker(CrateSize.Four), [], FillOrder.BowFirst);
 
         positions.Should().Equal(new GridPosition(2, 0, 1));
     }
@@ -183,9 +197,9 @@ public class CrateLayoutTests
             {
                 foreach (var mix in mixes)
                 {
-                    var positions = CrateLayout.Place(rack, [], mix, order);
+                    var positions = CrateLayout.Place(rack, [], Riker(mix), [], order);
                     Crate[] crates = positions is null ? [] : [.. mix.Zip(positions).Select(p => new Crate("Riker", "Titanium", p.First, rack.Id, p.Second))];
-                    if (positions is null || CrateLayout.Problems(rack, crates).Count > 0)
+                    if (positions is null || CrateLayout.Problems(rack, crates, []).Count > 0)
                     {
                         failed.Add($"rack {rack.Number}, {order}: {string.Join("+", mix.Select(s => (int)s))}");
                     }
@@ -220,47 +234,47 @@ public class CrateLayoutTests
     [Fact]
     public void Problems_of_a_laid_out_rack_are_none()
     {
-        CrateLayout.Problems(Rack1, [At(CrateSize.Eight, 2, 0, 0), At(CrateSize.Four, 0, 0, 0), At(CrateSize.Four, 0, 0, 1)]).Should().BeEmpty();
+        CrateLayout.Problems(Rack1, [At(CrateSize.Eight, 2, 0, 0), At(CrateSize.Four, 0, 0, 0), At(CrateSize.Four, 0, 0, 1)], []).Should().BeEmpty();
     }
 
     [Fact]
     public void Problems_name_overlapping_crates()
     {
-        CrateLayout.Problems(Rack1, [At(CrateSize.Eight, 2, 0, 0, "Riker"), At(CrateSize.Two, 2, 0, 1, "Shubin")])
+        CrateLayout.Problems(Rack1, [At(CrateSize.Eight, 2, 0, 0, "Riker"), At(CrateSize.Two, 2, 0, 1, "Shubin")], [])
             .Should().Equal("Crates of Riker and Shubin overlap in rack 1");
     }
 
     [Fact]
     public void Problems_name_a_crate_without_support()
     {
-        CrateLayout.Problems(Rack1, [At(CrateSize.One, 0, 0, 1)])
+        CrateLayout.Problems(Rack1, [At(CrateSize.One, 0, 0, 1)], [])
             .Should().Equal("1 SCU crate of Titanium for Riker in rack 1 has nothing below it");
     }
 
     [Fact]
     public void Problems_count_a_delivered_crate_as_support()
     {
-        CrateLayout.Problems(Rack1, [At(CrateSize.One, 0, 0, 0, delivered: true), At(CrateSize.One, 0, 0, 1)]).Should().BeEmpty();
+        CrateLayout.Problems(Rack1, [At(CrateSize.One, 0, 0, 0, delivered: true), At(CrateSize.One, 0, 0, 1)], []).Should().BeEmpty();
     }
 
     [Fact]
     public void A_crate_standing_on_itself_is_not_floating()
     {
         // An 8 is two cells high: its upper half rests on its own lower half, which lies on the plate.
-        CrateLayout.Problems(Rack1, [At(CrateSize.Eight, 0, 0, 0)]).Should().BeEmpty();
+        CrateLayout.Problems(Rack1, [At(CrateSize.Eight, 0, 0, 0)], []).Should().BeEmpty();
     }
 
     [Fact]
     public void Problems_name_a_crate_outside_the_grid()
     {
-        CrateLayout.Problems(Rack1, [At(CrateSize.Four, 3, 0, 0)])
+        CrateLayout.Problems(Rack1, [At(CrateSize.Four, 3, 0, 0)], [])
             .Should().Equal("4 SCU crate of Titanium for Riker at [3, 0, 0] lies outside rack 1 (4×2×2)");
     }
 
     [Fact]
     public void Problems_name_a_crate_the_grid_cannot_hold()
     {
-        CrateLayout.Problems(Short, [new Crate("Riker", "Titanium", CrateSize.Sixteen, Short.Id, new GridPosition(0, 0, 0))])
+        CrateLayout.Problems(Short, [new Crate("Riker", "Titanium", CrateSize.Sixteen, Short.Id, new GridPosition(0, 0, 0))], [])
             .Should().Equal("16 SCU crate of Titanium for Riker doesn't fit rack 1 (3×2×2)");
     }
 
@@ -269,7 +283,7 @@ public class CrateLayoutTests
     [Fact]
     public void Faulty_of_a_laid_out_rack_is_empty()
     {
-        CrateLayout.Faulty(Rack1, [At(CrateSize.Eight, 2, 0, 0), At(CrateSize.Four, 0, 0, 0), At(CrateSize.Four, 0, 0, 1)]).Should().BeEmpty();
+        CrateLayout.Faulty(Rack1, [At(CrateSize.Eight, 2, 0, 0), At(CrateSize.Four, 0, 0, 0), At(CrateSize.Four, 0, 0, 1)], []).Should().BeEmpty();
     }
 
     [Fact]
@@ -277,7 +291,7 @@ public class CrateLayoutTests
     {
         var (riker, shubin, orison) = (At(CrateSize.Eight, 2, 0, 0, "Riker"), At(CrateSize.Two, 2, 0, 1, "Shubin"), At(CrateSize.Four, 0, 0, 0, "Orison"));
 
-        CrateLayout.Faulty(Rack1, [riker, shubin, orison]).Should().BeEquivalentTo([riker, shubin]);
+        CrateLayout.Faulty(Rack1, [riker, shubin, orison], []).Should().BeEquivalentTo([riker, shubin]);
     }
 
     [Fact]
@@ -285,13 +299,13 @@ public class CrateLayoutTests
     {
         var (floating, below) = (At(CrateSize.One, 0, 0, 1, "Riker"), At(CrateSize.One, 1, 0, 0, "Shubin"));
 
-        CrateLayout.Faulty(Rack1, [floating, below]).Should().BeEquivalentTo([floating]);
+        CrateLayout.Faulty(Rack1, [floating, below], []).Should().BeEquivalentTo([floating]);
     }
 
     [Fact]
     public void Faulty_counts_a_delivered_crate_as_support()
     {
-        CrateLayout.Faulty(Rack1, [At(CrateSize.One, 0, 0, 0, delivered: true), At(CrateSize.One, 0, 0, 1)]).Should().BeEmpty();
+        CrateLayout.Faulty(Rack1, [At(CrateSize.One, 0, 0, 0, delivered: true), At(CrateSize.One, 0, 0, 1)], []).Should().BeEmpty();
     }
 
     [Fact]
@@ -299,7 +313,7 @@ public class CrateLayoutTests
     {
         var outside = At(CrateSize.Four, 3, 0, 0);
 
-        CrateLayout.Faulty(Rack1, [outside]).Should().BeEquivalentTo([outside]);
+        CrateLayout.Faulty(Rack1, [outside], []).Should().BeEquivalentTo([outside]);
     }
 
     // --- NewProblem: what a move breaks, from the same findings as Problems (D25) ---
@@ -346,6 +360,279 @@ public class CrateLayoutTests
         CrateLayout.Fits(Rack1, At(CrateSize.Eight, 0, 0, 1)).Should().BeFalse();
     }
 
+    // --- Stacking order: never a later stop on an earlier one (D24 addendum, T5.4a) ---
+
+    [Fact]
+    public void Problems_name_a_later_stop_lying_on_an_earlier_one()
+    {
+        CrateLayout.Problems(Rack1, [At(CrateSize.Four, 0, 0, 0, "Riker"), At(CrateSize.Four, 0, 0, 1, "Shubin")], ["Riker", "Shubin"])
+            .Should().Equal("4 SCU crate of Titanium for Shubin in rack 1 lies on cargo for Riker, which is unloaded first");
+    }
+
+    [Fact]
+    public void Problems_accept_an_earlier_stop_on_a_later_one()
+    {
+        // The upper crate goes first: that is the right order.
+        CrateLayout.Problems(Rack1, [At(CrateSize.Four, 0, 0, 0, "Shubin"), At(CrateSize.Four, 0, 0, 1, "Riker")], ["Riker", "Shubin"])
+            .Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Problems_ignore_the_order_below_delivered_cargo()
+    {
+        CrateLayout.Problems(Rack1, [At(CrateSize.Four, 0, 0, 0, "Riker", delivered: true), At(CrateSize.Four, 0, 0, 1, "Shubin")], ["Riker", "Shubin"])
+            .Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Problems_without_a_route_know_no_order()
+    {
+        CrateLayout.Problems(Rack1, [At(CrateSize.Four, 0, 0, 0, "Riker"), At(CrateSize.Four, 0, 0, 1, "Shubin")], []).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Faulty_holds_the_later_crate_on_top_not_the_one_below()
+    {
+        var (riker, shubin) = (At(CrateSize.Four, 0, 0, 0, "Riker"), At(CrateSize.Four, 0, 0, 1, "Shubin"));
+
+        CrateLayout.Faulty(Rack1, [riker, shubin], ["Riker", "Shubin"]).Should().BeEquivalentTo([shubin]);
+    }
+
+    [Fact]
+    public void NewProblem_never_refuses_for_the_order()
+    {
+        // Laying a later stop on an earlier one is possible, only tedious at the elevator: a finding, not a refusal.
+        var riker = At(CrateSize.Four, 0, 0, 0, "Riker");
+
+        CrateLayout.NewProblem(Rack1, [riker], [riker, At(CrateSize.Four, 0, 0, 1, "Shubin")]).Should().BeNull();
+    }
+
+    [Fact]
+    public void Place_puts_an_earlier_stop_on_top_of_a_later_one()
+    {
+        // The greedy layout puts A on the plate (largest first, input order) and B on top of it; the search turns it round.
+        var crates = Of((CrateSize.Four, "A"), (CrateSize.Four, "B"), (CrateSize.Four, "B"), (CrateSize.Four, "B"));
+
+        var positions = CrateLayout.Place(Rack1, [], crates, AbcRoute, FillOrder.BowFirst);
+
+        positions.Should().NotBeNull();
+        positions![0].Stack.Should().Be(1);
+        CrateLayout.Problems(Rack1, AsCrates(Rack1, crates, positions), AbcRoute).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Place_keeps_the_order_around_occupied_crates()
+    {
+        // Riker, the first stop, takes the bow half of the plate: Shubin's 4s go stern, one on the other, not on Riker.
+        Crate[] occupied = [At(CrateSize.Four, 2, 0, 0, "Riker")];
+
+        var positions = CrateLayout.Place(Rack1, occupied, Of((CrateSize.Four, "Shubin"), (CrateSize.Four, "Shubin")), ["Riker", "Shubin"], FillOrder.BowFirst);
+
+        positions.Should().Equal(new GridPosition(0, 0, 0), new GridPosition(0, 0, 1));
+    }
+
+    [Fact]
+    public void Place_lays_out_as_before_when_no_ordered_layout_exists()
+    {
+        // 8 and 4 take the whole plate, and the 1 of the last stop may lie on nothing of an earlier one: no order fits.
+        var crates = Of((CrateSize.Eight, "A"), (CrateSize.Four, "B"), (CrateSize.One, "C"));
+
+        var positions = CrateLayout.Place(Rack1, [], crates, AbcRoute, FillOrder.BowFirst);
+
+        positions.Should().Equal(CrateLayout.Place(Rack1, [], crates, [], FillOrder.BowFirst));
+        CrateLayout.Problems(Rack1, AsCrates(Rack1, crates, positions!), AbcRoute)
+            .Should().Equal("1 SCU crate of Titanium for C in rack 1 lies on cargo for B, which is unloaded first");
+    }
+
+    [Fact]
+    public void Place_lays_out_16_crates_of_three_stops_in_under_100_ms()
+    {
+        (CrateSize Size, string Destination)[] crates =
+            [.. Enumerable.Repeat((CrateSize.One, "A"), 5), .. Enumerable.Repeat((CrateSize.One, "B"), 5), .. Enumerable.Repeat((CrateSize.One, "C"), 6)];
+        CrateLayout.Place(Rack1, [], crates, AbcRoute, FillOrder.BowFirst);
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var positions = CrateLayout.Place(Rack1, [], crates, AbcRoute, FillOrder.BowFirst);
+        watch.Stop();
+
+        CrateLayout.Problems(Rack1, AsCrates(Rack1, crates, positions!), AbcRoute).Should().BeEmpty();
+        watch.ElapsedMilliseconds.Should().BeLessThan(100);
+    }
+
+    [Fact]
+    public void Place_gives_up_on_the_order_in_under_100_ms()
+    {
+        // 15 of 16 cells, no ordered layout: the search has to try them all before it falls back.
+        var crates = Of((CrateSize.Eight, "A"), (CrateSize.Four, "B"), (CrateSize.One, "C"), (CrateSize.One, "C"), (CrateSize.One, "C"));
+        CrateLayout.Place(Rack1, [], crates, AbcRoute, FillOrder.BowFirst);
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var positions = CrateLayout.Place(Rack1, [], crates, AbcRoute, FillOrder.BowFirst);
+        watch.Stop();
+
+        positions.Should().NotBeNull();
+        watch.ElapsedMilliseconds.Should().BeLessThan(100);
+    }
+
+    /// <summary>
+    /// The search finds an ordered layout whenever one exists: every split of every mix of up to 8 crates over 2 and 3
+    /// stops, against a brute force that tries every crate at every place. Slow (about a minute), so not part of the
+    /// default run (default.runsettings); run it with
+    /// <c>dotnet test tests/CargoPlan.Core.Tests -p:RunSettingsFilePath= --filter Category=Exhaustive</c>.
+    /// </summary>
+    [Theory]
+    [Trait("Category", "Exhaustive")]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void Place_finds_an_ordered_layout_whenever_one_exists(int stops)
+    {
+        var mixes = Mixes(16, [CrateSize.Sixteen, CrateSize.Eight, CrateSize.Four, CrateSize.Two, CrateSize.One])
+            .Where(m => m.Length >= stops && m.Length <= 8)
+            .ToArray();
+        string[] route = [.. AbcRoute.Take(stops)];
+
+        List<string> wrong = [];
+        foreach (var split in mixes.SelectMany(m => Splits(m, stops)))
+        {
+            (CrateSize Size, string Destination)[] crates = [.. split.Select(c => (c.Size, route[c.Rank]))];
+            var exists = OrderedLayoutExists(Rack1.Grid, [.. split]);
+            foreach (var order in Enum.GetValues<FillOrder>())
+            {
+                var positions = CrateLayout.Place(Rack1, [], crates, route, order)!;
+                var ordered = CrateLayout.Problems(Rack1, AsCrates(Rack1, crates, positions), route).Count == 0;
+                if (ordered != exists)
+                {
+                    wrong.Add($"{order}: {string.Join(" ", split.Select(c => $"{(int)c.Size}@{c.Rank}"))} (exists {exists})");
+                }
+            }
+        }
+
+        wrong.Should().BeEmpty();
+    }
+
+    /// <summary>Every way to give the crates of <paramref name="mix"/> to <paramref name="stops"/> stops, each stop at least one.</summary>
+    private static IEnumerable<(CrateSize Size, int Rank)[]> Splits(CrateSize[] mix, int stops)
+    {
+        (CrateSize Size, int Count)[] groups = [.. mix.GroupBy(s => s).Select(g => (g.Key, g.Count()))];
+
+        IEnumerable<(CrateSize, int)[]> From(int group)
+        {
+            if (group == groups.Length)
+            {
+                yield return [];
+                yield break;
+            }
+
+            foreach (var rest in From(group + 1))
+            {
+                foreach (var counts in Counts(groups[group].Count, stops))
+                {
+                    yield return [.. counts.SelectMany((n, rank) => Enumerable.Repeat((groups[group].Size, rank), n)), .. rest];
+                }
+            }
+        }
+
+        return From(0).Where(s => Enumerable.Range(0, stops).All(rank => s.Any(c => c.Item2 == rank)));
+    }
+
+    /// <summary>Every way to put <paramref name="count"/> equal crates into <paramref name="stops"/> stops.</summary>
+    private static IEnumerable<int[]> Counts(int count, int stops)
+    {
+        if (stops == 1)
+        {
+            yield return [count];
+            yield break;
+        }
+
+        for (var first = 0; first <= count; first++)
+        {
+            foreach (var rest in Counts(count - first, stops - 1))
+            {
+                yield return [first, .. rest];
+            }
+        }
+    }
+
+    /// <summary>
+    /// Brute force for the test only: any crate at any free place, as long as it rests on the plate or on crates of its own
+    /// or a later stop (rank). Memoised on the cells and the crates left.
+    /// </summary>
+    private static bool OrderedLayoutExists(Dimensions grid, List<(CrateSize Size, int Rank)> crates)
+    {
+        var owner = new int[grid.Length, grid.Width, grid.Stack];
+        foreach (var cell in CellsOf(new GridPosition(0, 0, 0), grid))
+        {
+            owner[cell.Length, cell.Width, cell.Stack] = -1;
+        }
+
+        Dictionary<string, bool> memo = [];
+        crates.Sort();
+        return Search(crates);
+
+        bool Search(List<(CrateSize Size, int Rank)> left)
+        {
+            if (left.Count == 0)
+            {
+                return true;
+            }
+
+            var key = string.Join(",", owner.Cast<int>()) + "|" + string.Join(",", left);
+            if (memo.TryGetValue(key, out var known))
+            {
+                return known;
+            }
+
+            var found = false;
+            foreach (var crate in left.Distinct().ToArray())
+            {
+                var size = crate.Size.Dimensions;
+                for (var l = 0; l + size.Length <= grid.Length && !found; l++)
+                {
+                    for (var w = 0; w + size.Width <= grid.Width && !found; w++)
+                    {
+                        for (var s = 0; s + size.Stack <= grid.Stack && !found; s++)
+                        {
+                            GridPosition[] cells = [.. CellsOf(new GridPosition(l, w, s), size)];
+                            if (cells.Any(c => owner[c.Length, c.Width, c.Stack] >= 0)
+                                || cells.Any(c => c.Stack == s && s > 0 && owner[c.Length, c.Width, s - 1] < crate.Rank))
+                            {
+                                continue;
+                            }
+
+                            foreach (var c in cells)
+                            {
+                                owner[c.Length, c.Width, c.Stack] = crate.Rank;
+                            }
+
+                            left.Remove(crate);
+                            found = Search(left);
+                            left.Add(crate);
+                            left.Sort();
+                            foreach (var c in cells)
+                            {
+                                owner[c.Length, c.Width, c.Stack] = -1;
+                            }
+                        }
+                    }
+                }
+
+                if (found)
+                {
+                    break;
+                }
+            }
+
+            memo[key] = found;
+            return found;
+        }
+    }
+
+    private static IEnumerable<GridPosition> CellsOf(GridPosition position, Dimensions size) =>
+        from l in Enumerable.Range(position.Length, size.Length)
+        from w in Enumerable.Range(position.Width, size.Width)
+        from s in Enumerable.Range(position.Stack, size.Stack)
+        select new GridPosition(l, w, s);
+
     // --- LayOut: placements of a whole ship, the one path for planner and plan file migration ---
 
     [Fact]
@@ -365,7 +652,7 @@ public class CrateLayoutTests
             ("Shubin", "Agricium", "rack-1", false),
             ("Riker", "Titanium", "rack-0", true), ("Riker", "Titanium", "rack-0", true),
             ("Riker", "Titanium", "rack-0", true), ("Riker", "Titanium", "rack-0", true));
-        HullA.Racks.Should().OnlyContain(r => CrateLayout.Problems(r, crates.Where(c => c.RackId == r.Id).ToArray()).Count == 0);
+        HullA.Racks.Should().OnlyContain(r => CrateLayout.Problems(r, crates.Where(c => c.RackId == r.Id).ToArray(), NoRoute).Count == 0);
     }
 
     [Fact]

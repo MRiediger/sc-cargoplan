@@ -21,6 +21,13 @@ public sealed record LoadPlan(
                 g.Key.Destination, g.Key.RackId, new CargoItem(g.Key.Commodity, g.Count() * (int)g.Key.CrateSize, g.Key.CrateSize), g.Key.Delivered)),
     ];
 
+    /// <summary>
+    /// The destinations in order of their first crate: route order for a planned plan (moves, split and merge keep the
+    /// crate order), the order of legend and palette, and the order the stacking rule follows (D24 addendum). Derived like
+    /// <see cref="Placements"/>; GroupBy keeps the order of first appearance.
+    /// </summary>
+    public IReadOnlyList<string> Route => [.. Crates.GroupBy(c => c.Destination).Select(g => g.Key)];
+
     public IReadOnlyList<Crate> CratesForRack(string rackId) =>
         [.. Crates.Where(c => c.RackId == rackId)];
 

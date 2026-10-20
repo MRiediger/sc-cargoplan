@@ -105,7 +105,10 @@ public class LoadPlannerOverrideTests
             new PlanWarning("rack-1", "Riker spans racks 1+2"),
             new PlanWarning("rack-1", "Orison spans racks 2+3"),
             new PlanWarning("rack-2", "Orison spans racks 2+3"));
-        ShouldBeValid(moved, HullA);
+
+        // Orison is unloaded after Riker: laid and marked, not refused (D24 addendum).
+        LoadPlanner.Validate(moved, HullA).Select(w => w.Message)
+            .Should().Equal("1 SCU crate of Gold for Orison in rack 2 lies on cargo for Riker, which is unloaded first");
     }
 
     [Fact]
@@ -323,6 +326,32 @@ public class LoadPlannerOverrideTests
     }
 
     // --- MoveStop ---
+
+    [Fact]
+    public void MoveCrate_lays_a_later_stop_on_an_earlier_one_and_marks_it()
+    {
+        // Shubin's top 2 from Rack 2 onto Riker's free top in Rack 1: possible, only tedious at Riker's elevator (D24 addendum).
+        var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
+
+        var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-1", 2, 0, 1), "rack-0", new GridPosition(0, 0, 1));
+
+        LoadPlanner.Validate(moved, HullA).Select(w => w.Message)
+            .Should().Equal("2 SCU crate of Quartz for Shubin in rack 1 lies on cargo for Riker, which is unloaded first");
+    }
+
+    [Fact]
+    public void MoveStop_lays_a_later_stop_on_an_earlier_one_and_marks_it()
+    {
+        // Riker's two 4s cover the plate of Rack 1; Shubin's 4 fits only on top of them.
+        var plan = LoadPlanner.Plan(HullA,
+            [new Stop("Riker", 1, [new CargoItem("Titanium", 8, CrateSize.Four)]), new Stop("Shubin", 2, [new CargoItem("Quartz", 4, CrateSize.Four)])]);
+
+        var moved = LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-0");
+
+        moved.CratesForRack("rack-0").Should().ContainSingle(c => c.Destination == "Shubin" && c.Position.Stack == 1);
+        LoadPlanner.Validate(moved, HullA).Select(w => w.Message)
+            .Should().Equal("4 SCU crate of Quartz for Shubin in rack 1 lies on cargo for Riker, which is unloaded first");
+    }
 
     [Fact]
     public void MoveStop_gathers_a_split_stop_in_one_rack()

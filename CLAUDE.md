@@ -85,6 +85,7 @@ sc-cargoplan/
 ```powershell
 dotnet build                                   # alles kompilieren
 dotnet test                                    # alle Tests
+dotnet test tests/CargoPlan.Core.Tests -p:RunSettingsFilePath= --filter Category=Exhaustive   # Layout-Vollprüfung (~1 min), nicht im Standardlauf
 dotnet run --project src/CargoPlan.App         # Overlay starten
 dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json
 dotnet run --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/example_missions.json

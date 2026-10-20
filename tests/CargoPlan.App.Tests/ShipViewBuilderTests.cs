@@ -205,7 +205,9 @@ public class ShipViewBuilderTests
 
         rack2.Boxes.Where(b => b.Crate is { Destination: "Orison" }).Select(b => b.Bounds).Should().BeEquivalentTo(
             moved.CratesForRack("rack-1").Where(c => c.Destination == "Orison").Select(BoxOf));
-        rack2.Boxes.Should().NotContain(b => b.IsViolated);
+
+        // Orison is unloaded after Riker: the crate lies there and is marked, not refused (D24 addendum).
+        rack2.Boxes.Where(b => b.IsViolated).Should().ContainSingle().Which.Crate!.Position.Should().Be(new GridPosition(0, 0, 1));
     }
 
     [Fact]

@@ -380,6 +380,20 @@ public class ModelsTests
     }
 
     [Fact]
+    public void LoadPlan_route_is_the_order_of_first_appearance_of_each_destination()
+    {
+        // The order of legend and palette, and the order the stacking rule follows (D24 addendum).
+        var plan = new LoadPlan("hull_a",
+        [
+            Box("Shubin", "Quartz", CrateSize.Two, "rack-1", 0),
+            Box("Riker", "Titanium", CrateSize.Four, "rack-0", 0),
+            Box("Shubin", "Quartz", CrateSize.Two, "rack-0", 2),
+        ], []);
+
+        plan.Route.Should().Equal("Shubin", "Riker");
+    }
+
+    [Fact]
     public void LoadPlan_fills_bow_first_by_default()
     {
         new LoadPlan("hull_a", [], []).FillOrder.Should().Be(FillOrder.BowFirst);

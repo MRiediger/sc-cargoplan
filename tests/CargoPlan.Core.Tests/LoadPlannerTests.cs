@@ -69,6 +69,47 @@ public class LoadPlannerTests
         plan.Warnings.Should().BeEmpty();
     }
 
+    // --- Stacking order: never a later stop on an earlier one (D24 addendum, T5.4a) ---
+
+    private static Stop StopIn(string destination, int order, int scu, CrateSize size) =>
+        new(destination, order, [new CargoItem("Titanium", scu, size)]);
+
+    [Fact]
+    public void Plan_puts_the_earlier_stop_on_top_where_two_stops_share_a_rack()
+    {
+        // Full Hull A: Riker spills one 4 into rack 2, where Shubin follows. Riker is unloaded first, so it lies outside.
+        var plan = LoadPlanner.Plan(HullA,
+            [StopIn("Riker", 1, 20, CrateSize.Four), StopIn("Shubin", 2, 12, CrateSize.Four),
+             StopIn("Orison", 3, 16, CrateSize.Sixteen), StopIn("Lorville", 4, 16, CrateSize.Sixteen)]);
+
+        plan.CratesForRack("rack-1").Single(c => c.Destination == "Riker").Position.Stack.Should().Be(1);
+        LoadPlanner.Validate(plan, HullA).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Plan_four_stops_of_12_and_one_of_16_in_8s_lays_out_in_route_order()
+    {
+        // 4 SCU are left in every rack; planned anew, earlier stops lie on later ones, never the other way round.
+        var plan = LoadPlanner.Plan(HullA,
+            [StopIn("Riker", 1, 12, CrateSize.Four), StopIn("Shubin", 2, 12, CrateSize.Four), StopIn("Orison", 3, 12, CrateSize.Four),
+             StopIn("Lorville", 4, 12, CrateSize.Four), StopIn("Area18", 5, 16, CrateSize.Eight)]);
+
+        LoadPlanner.Validate(plan, HullA).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Plan_marks_a_rack_without_an_ordered_layout_instead_of_failing()
+    {
+        // 61 of 64 SCU: three 16s take racks 2 to 4, the first three stops share rack 1, where 8 and 4 cover the plate
+        // and the last stop's 1 can only lie on an earlier one. The cargo fits; the order is a finding, not a refusal.
+        var plan = LoadPlanner.Plan(HullA,
+            [StopIn("Riker", 1, 8, CrateSize.Eight), StopIn("Shubin", 2, 4, CrateSize.Four), StopIn("Orison", 3, 1, CrateSize.One),
+             StopIn("Lorville", 4, 16, CrateSize.Sixteen), StopIn("Area18", 5, 16, CrateSize.Sixteen), StopIn("Everus", 6, 16, CrateSize.Sixteen)]);
+
+        LoadPlanner.Validate(plan, HullA).Select(w => w.Message)
+            .Should().Equal("1 SCU crate of Titanium for Orison in rack 1 lies on cargo for Shubin, which is unloaded first");
+    }
+
     [Fact]
     public void Plan_without_stops_returns_empty_plan()
     {

@@ -53,7 +53,7 @@ public static class ShipViewBuilder
         var crates = plan.CratesForRack(rack.Id);
 
         // Only a red rack can hold a faulty crate; valid plans skip the check of every pair.
-        IReadOnlySet<Crate> faulty = isViolated ? CrateLayout.Faulty(rack, crates) : new HashSet<Crate>();
+        IReadOnlySet<Crate> faulty = isViolated ? CrateLayout.Faulty(rack, crates, plan.Route) : new HashSet<Crate>();
 
         SceneBox[] cargo = [.. plan.PlacementsForRack(rack.Id).SelectMany(placement =>
         {

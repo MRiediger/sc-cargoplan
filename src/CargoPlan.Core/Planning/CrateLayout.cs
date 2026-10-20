@@ -10,14 +10,18 @@ namespace CargoPlan.Core.Planning;
 public static class CrateLayout
 {
     /// <summary>
-    /// Positions for crates of <paramref name="sizes"/> in the free cells of <paramref name="rack"/>, in the order of
-    /// <paramref name="sizes"/>; null if one doesn't fit. Fill order: layer by layer from the plate; in a layer row by row
-    /// in grid order (the rack's stack axis makes port and starboard racks mirror images, D26); in a row along the length
-    /// from the end <paramref name="order"/> names (D21). The largest crate goes first (ties in input order), each at the free place
-    /// whose first cell comes first in fill order, on a tie whose last cell does, and only where it rests on the plate
-    /// or on other crates. <paramref name="occupied"/> keep their cells, delivered ones too (D24).
+    /// Positions for <paramref name="crates"/> in the free cells of <paramref name="rack"/>, in their order; null if one
+    /// doesn't fit. Fill order: layer by layer from the plate; in a layer row by row in grid order (the rack's stack axis
+    /// makes port and starboard racks mirror images, D26); in a row along the length from the end <paramref name="order"/>
+    /// names (D21). The largest crate goes first (ties in input order), each at the free place whose first cell comes first
+    /// in fill order, on a tie whose last cell does, and only where it rests on the plate or on other crates.
+    /// <paramref name="occupied"/> keep their cells, delivered ones too (D24).
+    /// The stacking rule is tried, not forced (D24 addendum): if that layout lays a new crate on a crate of an earlier stop
+    /// of <paramref name="route"/>, an exact search looks for one that doesn't. If there is none, the first layout stays and
+    /// <see cref="Problems"/> names the crate: the cargo fits, so the order is a finding, never a refusal.
     /// </summary>
-    public static IReadOnlyList<GridPosition>? Place(Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<CrateSize> sizes, FillOrder order)
+    public static IReadOnlyList<GridPosition>? Place(
+        Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<string> route, FillOrder order)
     {
         var grid = rack.Grid;
         var taken = new bool[grid.Length, grid.Width, grid.Stack];
@@ -26,7 +30,17 @@ public static class CrateLayout
             taken[cell.Length, cell.Width, cell.Stack] = true;
         }
 
-        return Place(rack, taken, sizes, order);
+        if (Place(rack, taken, [.. crates.Select(c => c.Size)], order) is not { } positions)
+        {
+            return null;
+        }
+
+        // Only what the new crates break counts; a plan file edited by hand may bring its own disorder.
+        Crate[] placed = [.. crates.Zip(positions).Select(p => new Crate(p.First.Destination, "", p.First.Size, rack.Id, p.Second))];
+        HashSet<Crate> fresh = new(placed, ReferenceEqualityComparer.Instance);
+        return OutOfOrder([.. occupied, .. placed], route).Any(pair => fresh.Contains(pair.Upper) || fresh.Contains(pair.Lower))
+            ? InOrder(rack, occupied, crates, route, order) ?? positions
+            : positions;
     }
 
     /// <summary>
@@ -123,13 +137,14 @@ public static class CrateLayout
                 $"Placement for {stray.Destination} is in rack '{stray.RackId}', which ship '{ship.Id}' doesn't have.", nameof(placements));
         }
 
-        // One entry per crate, in plan order.
+        // One entry per crate, in plan order; the route is the order of first appearance, as LoadPlan.Route derives it.
         Placement[] crates = [.. placements.SelectMany(p => Enumerable.Repeat(p, p.Item.Scu / (int)p.Item.CrateSize))];
+        string[] route = [.. placements.GroupBy(p => p.Destination).Select(g => g.Key)];
         var positions = new GridPosition[crates.Length];
         foreach (var rack in ship.Racks)
         {
             int[] inRack = [.. Enumerable.Range(0, crates.Length).Where(i => crates[i].RackId == rack.Id)];
-            var laid = Place(rack, [], [.. inRack.Select(i => crates[i].Item.CrateSize)], order)
+            var laid = Place(rack, [], [.. inRack.Select(i => (crates[i].Item.CrateSize, crates[i].Destination))], route, order)
                 ?? throw new PlanException(Invariant(
                     $"Crates for rack {rack.Number} don't fit its grid ({rack.Grid}): {inRack.Sum(i => (int)crates[i].Item.CrateSize)}/{rack.CapacityScu} SCU."));
             foreach (var (index, position) in inRack.Zip(laid))
@@ -148,28 +163,30 @@ public static class CrateLayout
     /// <summary>
     /// Why the crates of one rack can't lie as they are: a crate the grid can't hold or that sticks out, two crates in
     /// one cell, a crate with an empty cell under its bottom (D24). Delivered crates count, they keep their cells.
-    /// Empty for every plan the planner makes.
+    /// Also every crate lying on cargo of an earlier stop of <paramref name="route"/> (D24 addendum): possible, only tedious
+    /// at the elevator. The planner never makes the others; this one only where a rack has no layout in route order.
     /// </summary>
-    public static IReadOnlyList<string> Problems(Rack rack, IReadOnlyList<Crate> crates) =>
+    public static IReadOnlyList<string> Problems(Rack rack, IReadOnlyList<Crate> crates, IReadOnlyList<string> route) =>
         // An 8 across two crates of one stop overlaps both: one line is enough.
-        [.. Findings(rack, crates).Select(f => f.Message).Distinct()];
+        [.. Findings(rack, crates, route).Select(f => f.Message).Distinct()];
 
     /// <summary>
-    /// The crates <see cref="Problems"/> names, so the ship view can mark the crate, not only its rack. Empty for every
-    /// plan the planner makes. Equal crates (a file edited by hand) count once.
+    /// The crates <see cref="Problems"/> names, so the ship view can mark the crate, not only its rack; of a crate on cargo
+    /// of an earlier stop, the upper one. Equal crates (a file edited by hand) count once.
     /// </summary>
-    public static IReadOnlySet<Crate> Faulty(Rack rack, IReadOnlyList<Crate> crates) =>
-        Findings(rack, crates).SelectMany(f => f.Crates).ToHashSet();
+    public static IReadOnlySet<Crate> Faulty(Rack rack, IReadOnlyList<Crate> crates, IReadOnlyList<string> route) =>
+        Findings(rack, crates, route).SelectMany(f => f.Crates).ToHashSet();
 
     /// <summary>
-    /// The first problem the crates of one rack have <paramref name="after"/> a move and didn't have
+    /// The first blocking problem the crates of one rack have <paramref name="after"/> a move and didn't have
     /// <paramref name="before"/>; null if the move breaks nothing (D25). A moved crate is a new record, so everything
-    /// it causes is new; a problem of a plan file edited by hand that the move doesn't touch stays out.
+    /// it causes is new; a problem of a plan file edited by hand that the move doesn't touch stays out. The stacking order
+    /// never refuses a move: the player picks the cell, the plan marks it (D24 addendum).
     /// </summary>
     public static string? NewProblem(Rack rack, IReadOnlyList<Crate> before, IReadOnlyList<Crate> after)
     {
-        var old = Findings(rack, before).ToArray();
-        foreach (var finding in Findings(rack, after))
+        var old = Findings(rack, before, []).Where(f => f.Blocking).ToArray();
+        foreach (var finding in Findings(rack, after, []).Where(f => f.Blocking))
         {
             if (!old.Any(o => o.Message == finding.Message && o.Crates.SequenceEqual(finding.Crates)))
             {
@@ -180,20 +197,23 @@ public static class CrateLayout
         return null;
     }
 
-    /// <summary>Every problem with the crates it names; the one place for the rules of <see cref="Problems"/> and <see cref="Faulty"/>.</summary>
-    private static IEnumerable<(string Message, Crate[] Crates)> Findings(Rack rack, IReadOnlyList<Crate> crates)
+    /// <summary>
+    /// Every problem with the crates it names; the one place for the rules of <see cref="Problems"/>, <see cref="Faulty"/>
+    /// and <see cref="NewProblem"/>. Blocking: the crates can't lie like this. Not blocking: the stacking order.
+    /// </summary>
+    private static IEnumerable<(string Message, Crate[] Crates, bool Blocking)> Findings(Rack rack, IReadOnlyList<Crate> crates, IReadOnlyList<string> route)
     {
         foreach (var crate in crates)
         {
             var size = (int)crate.CrateSize;
             if (!rack.CanHold(crate.CrateSize))
             {
-                yield return (Invariant($"{size} SCU crate of {crate.Commodity} for {crate.Destination} doesn't fit rack {rack.Number} ({rack.Grid})"), [crate]);
+                yield return (Invariant($"{size} SCU crate of {crate.Commodity} for {crate.Destination} doesn't fit rack {rack.Number} ({rack.Grid})"), [crate], true);
             }
             else if (!Fits(rack, crate))
             {
                 yield return (Invariant(
-                    $"{size} SCU crate of {crate.Commodity} for {crate.Destination} at {crate.Position} lies outside rack {rack.Number} ({rack.Grid})"), [crate]);
+                    $"{size} SCU crate of {crate.Commodity} for {crate.Destination} at {crate.Position} lies outside rack {rack.Number} ({rack.Grid})"), [crate], true);
             }
         }
 
@@ -203,14 +223,203 @@ public static class CrateLayout
             {
                 if (Overlap(crates[a], crates[b]))
                 {
-                    yield return (Invariant($"Crates of {crates[a].Destination} and {crates[b].Destination} overlap in rack {rack.Number}"), [crates[a], crates[b]]);
+                    yield return (Invariant($"Crates of {crates[a].Destination} and {crates[b].Destination} overlap in rack {rack.Number}"), [crates[a], crates[b]], true);
                 }
             }
         }
 
         foreach (var crate in crates.Where((crate, i) => !Rests(crate, crates.Where((_, j) => j != i))))
         {
-            yield return (Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination} in rack {rack.Number} has nothing below it"), [crate]);
+            yield return (Invariant($"{(int)crate.CrateSize} SCU crate of {crate.Commodity} for {crate.Destination} in rack {rack.Number} has nothing below it"), [crate], true);
+        }
+
+        foreach (var (upper, lower) in OutOfOrder(crates, route).DistinctBy(p => (p.Upper, p.Lower.Destination)))
+        {
+            yield return (Invariant(
+                $"{(int)upper.CrateSize} SCU crate of {upper.Commodity} for {upper.Destination} in rack {rack.Number} lies on cargo for {lower.Destination}, which is unloaded first"),
+                [upper], false);
+        }
+    }
+
+    /// <summary>
+    /// The stacking rule (D24 addendum): a crate may rest only on crates unloaded no earlier than itself, its own stop or a
+    /// later one. Stop indices from <see cref="StopIndex"/>.
+    /// </summary>
+    private static bool MayRestOn(int upperStop, int lowerStop) => lowerStop >= upperStop;
+
+    /// <summary>
+    /// The place of <paramref name="destination"/> in <paramref name="route"/>; a destination not in it comes after all of
+    /// it, in no order among its kind. So an empty route knows no order.
+    /// </summary>
+    private static int StopIndex(IReadOnlyList<string> route, string destination)
+    {
+        for (var i = 0; i < route.Count; i++)
+        {
+            if (route[i] == destination)
+            {
+                return i;
+            }
+        }
+
+        return route.Count;
+    }
+
+    /// <summary>
+    /// Every crate lying right on a crate that <see cref="MayRestOn"/> forbids, with that crate. Delivered cargo is off the
+    /// ship and has no order (D16); an 8 resting on its own lower half is no pair, and a crate inside another (overlap, a
+    /// file edited by hand) doesn't lie on it.
+    /// </summary>
+    private static IEnumerable<(Crate Upper, Crate Lower)> OutOfOrder(IReadOnlyList<Crate> crates, IReadOnlyList<string> route)
+    {
+        // Overlapping crates of a file edited by hand: the first keeps the cell, Problems names the overlap anyway.
+        Dictionary<GridPosition, Crate> byCell = [];
+        foreach (var crate in crates)
+        {
+            foreach (var cell in crate.Cells)
+            {
+                byCell.TryAdd(cell, crate);
+            }
+        }
+
+        foreach (var upper in crates.Where(c => !c.Delivered && c.Position.Stack > 0))
+        {
+            var lowers = upper.Bottom
+                .Select(b => byCell.GetValueOrDefault(new GridPosition(b.Length, b.Width, b.Stack - 1)))
+                .OfType<Crate>()
+                .Distinct();
+            foreach (var lower in lowers.Where(l =>
+                         !l.Delivered && !Overlap(upper, l) && !MayRestOn(StopIndex(route, upper.Destination), StopIndex(route, l.Destination))))
+            {
+                yield return (upper, lower);
+            }
+        }
+    }
+
+    /// <summary>
+    /// A layout of <paramref name="crates"/> in the free cells that keeps the stacking rule; null if there is none. Exact
+    /// search within one rack: the cells in fill order, at each free cell either one of the crates left whose first cell it
+    /// is, or nothing; crates of one size and stop are tried once, not in every order. Deterministic: largest first, then
+    /// later stops first, leaving the cell empty last.
+    /// </summary>
+    private static GridPosition[]? InOrder(
+        Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<string> route, FillOrder order)
+    {
+        const int free = -1;
+        const int empty = -2;
+        var grid = rack.Grid;
+        var rank = Ranks(rack, order);
+        GridPosition[] cells = [.. Cells(new GridPosition(0, 0, 0), grid).OrderBy(c => rank[c.Length, c.Width, c.Stack])];
+
+        // Who holds a cell: free, empty (left out by the search, carries nothing) or the stop index of the crate there.
+        // Delivered cargo carries anything, as in Rests (D24).
+        var owner = new int[grid.Length, grid.Width, grid.Stack];
+        foreach (var cell in cells)
+        {
+            owner[cell.Length, cell.Width, cell.Stack] = free;
+        }
+
+        foreach (var crate in occupied)
+        {
+            foreach (var cell in crate.Cells.Where(c => Inside(grid, c)))
+            {
+                owner[cell.Length, cell.Width, cell.Stack] = crate.Delivered ? int.MaxValue : StopIndex(route, crate.Destination);
+            }
+        }
+
+        // OrderByDescending is stable; the indices of a kind stay in input order.
+        var kinds = Enumerable.Range(0, crates.Count)
+            .GroupBy(i => (crates[i].Size, Stop: StopIndex(route, crates[i].Destination)))
+            .OrderByDescending(g => g.Key.Size)
+            .ThenByDescending(g => g.Key.Stop)
+            .Select(g => (g.Key.Size, g.Key.Stop, Indices: g.ToArray()))
+            .ToArray();
+        var left = kinds.Select(k => k.Indices.Length).ToArray();
+        var scuLeft = crates.Sum(c => (int)c.Size);
+        var positions = new GridPosition[crates.Count];
+
+        return Fill(0) ? positions : null;
+
+        bool Fill(int next)
+        {
+            if (scuLeft == 0)
+            {
+                return true;
+            }
+
+            while (next < cells.Length && owner[cells[next].Length, cells[next].Width, cells[next].Stack] != free)
+            {
+                next++;
+            }
+
+            if (cells.Skip(next).Count(c => owner[c.Length, c.Width, c.Stack] == free) < scuLeft)
+            {
+                return false;
+            }
+
+            var cell = cells[next];
+            for (var k = 0; k < kinds.Length; k++)
+            {
+                var (size, stop, indices) = kinds[k];
+                if (left[k] == 0 || StartingAt(cell, size.Dimensions) is not { } position || !CanTake(position, size.Dimensions, stop))
+                {
+                    continue;
+                }
+
+                Mark(position, size.Dimensions, stop);
+                positions[indices[indices.Length - left[k]]] = position;
+                (left[k], scuLeft) = (left[k] - 1, scuLeft - (int)size);
+                if (Fill(next + 1))
+                {
+                    return true;
+                }
+
+                (left[k], scuLeft) = (left[k] + 1, scuLeft + (int)size);
+                Mark(position, size.Dimensions, free);
+            }
+
+            owner[cell.Length, cell.Width, cell.Stack] = empty;
+            if (Fill(next + 1))
+            {
+                return true;
+            }
+
+            owner[cell.Length, cell.Width, cell.Stack] = free;
+            return false;
+        }
+
+        // The place of a crate whose first cell in fill order is this one; null if it would stick out.
+        GridPosition? StartingAt(GridPosition cell, Dimensions size)
+        {
+            foreach (var corner in Cells(new GridPosition(0, 0, 0), size))
+            {
+                if (cell.Length < corner.Length || cell.Width < corner.Width || cell.Stack < corner.Stack)
+                {
+                    continue;
+                }
+
+                GridPosition position = new(cell.Length - corner.Length, cell.Width - corner.Width, cell.Stack - corner.Stack);
+                if (Inside(grid, new GridPosition(position.Length + size.Length - 1, position.Width + size.Width - 1, position.Stack + size.Stack - 1))
+                    && Cells(position, size).Min(c => rank[c.Length, c.Width, c.Stack]) == rank[cell.Length, cell.Width, cell.Stack])
+                {
+                    return position;
+                }
+            }
+
+            return null;
+        }
+
+        // Free cells, and every bottom cell on the plate or on cargo it may rest on.
+        bool CanTake(GridPosition position, Dimensions size, int stop) =>
+            Cells(position, size).All(c => owner[c.Length, c.Width, c.Stack] == free)
+            && (position.Stack == 0 || Cells(position, size).Where(c => c.Stack == position.Stack)
+                .All(c => owner[c.Length, c.Width, c.Stack - 1] >= 0 && MayRestOn(stop, owner[c.Length, c.Width, c.Stack - 1])));
+
+        void Mark(GridPosition position, Dimensions size, int value)
+        {
+            foreach (var c in Cells(position, size))
+            {
+                owner[c.Length, c.Width, c.Stack] = value;
+            }
         }
     }
 

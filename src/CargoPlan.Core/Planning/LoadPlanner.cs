@@ -181,9 +181,10 @@ public static class LoadPlanner
 
     /// <summary>
     /// Why the plan can't be loaded as it is, per rack in rack order (<see cref="CrateLayout.Problems"/>): crates that
-    /// overlap, stick out, don't fit the grid or have nothing below them. Delivered crates count, they keep their cells.
-    /// Empty for every plan from the planner and its moves; only a plan file edited by hand gets here (D24). Hints for
-    /// the player (shared racks, split stops) are in <see cref="LoadPlan.Warnings"/>.
+    /// overlap, stick out, don't fit the grid or have nothing below them, and crates lying on cargo of an earlier stop.
+    /// Delivered crates count, they keep their cells. The planner and its moves never make the first kind; only a plan file
+    /// edited by hand gets there (D24). The order comes where a rack has no layout in route order or the player put a
+    /// crate there (D24 addendum). Hints for the player (shared racks, split stops) are in <see cref="LoadPlan.Warnings"/>.
     /// </summary>
     /// <exception cref="ArgumentException">The plan belongs to another ship or uses a rack the ship doesn't have.</exception>
     public static IReadOnlyList<PlanWarning> Validate(LoadPlan plan, Ship ship)
@@ -195,8 +196,9 @@ public static class LoadPlanner
                 $"Crate for {stray.Destination} is in rack '{stray.RackId}', which ship '{ship.Id}' doesn't have.", nameof(plan));
         }
 
+        var route = plan.Route;
         return [.. ship.Racks.OrderBy(r => r.Index)
-            .SelectMany(rack => CrateLayout.Problems(rack, plan.CratesForRack(rack.Id)).Select(problem => new PlanWarning(rack.Id, problem)))];
+            .SelectMany(rack => CrateLayout.Problems(rack, plan.CratesForRack(rack.Id), route).Select(problem => new PlanWarning(rack.Id, problem)))];
     }
 
     /// <summary>
@@ -213,7 +215,8 @@ public static class LoadPlanner
         }
 
         Crate[] staying = [.. plan.Crates.Where((c, i) => c.RackId == target.Id && !moved.Contains(i))];
-        var positions = CrateLayout.Place(target, staying, [.. moved.Select(i => plan.Crates[i].CrateSize)], plan.FillOrder)
+        var positions = CrateLayout.Place(
+                target, staying, [.. moved.Select(i => (plan.Crates[i].CrateSize, plan.Crates[i].Destination))], plan.Route, plan.FillOrder)
             ?? throw new PlanException(Invariant(
                 $"{what} doesn't fit rack {target.Number}: {staying.Sum(c => (int)c.CrateSize)}/{target.CapacityScu} SCU taken."));
 

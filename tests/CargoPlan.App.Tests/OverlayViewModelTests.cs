@@ -409,7 +409,8 @@ public class OverlayViewModelTests
         viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-1", 0, 0, 1));
 
         viewModel.Plan!.CratesForRack("rack-1").Should().Contain(c => c.Commodity == "Gold" && c.Position == new GridPosition(0, 0, 1));
-        viewModel.Scene.Violations.Should().BeEmpty();
+        // Orison on Riker: laid and marked, not refused (D24 addendum).
+        viewModel.Scene.Violations.Should().Equal("1 SCU crate of Gold for Orison in rack 2 lies on cargo for Riker, which is unloaded first");
         viewModel.Scene.Hints.Should().Contain(["Rack 2 shared by Riker, Shubin, Orison – identify crates by count", "Orison spans racks 2+3"]);
     }
 
