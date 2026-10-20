@@ -58,6 +58,14 @@ int Plan(PlanCommand plan)
 // For bug reports: the output with --raw holds what a test fixture needs (T5.3).
 int Contracts(ContractsCommand contracts)
 {
+    // The reader reads nothing from a missing file and stays silent (the settings window says "not found", T5.5);
+    // on the command line a mistyped path must not look like "no new contracts".
+    if (!File.Exists(contracts.DatabasePath))
+    {
+        Console.Error.WriteLine($"File not found: {contracts.DatabasePath}");
+        return ExitFailed;
+    }
+
     var result = ContractTrackerReader.ReadSince(contracts.DatabasePath, contracts.SinceId);
     if (result.Notice is { } notice)
     {
