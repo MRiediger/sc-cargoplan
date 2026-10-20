@@ -492,8 +492,9 @@ Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1
 
 **Akzeptanz:** Haken setzen, sofort Exit → Neustart zeigt den Haken; gesperrt ist der Button nicht sichtbar; Legende `top-right` → Notice steht unten links; Core unverändert.
 
-### [ ] T5.2 Schema erkunden
+### [x] T5.2 Schema erkunden
 **Warum:** Erst schauen, dann Code. ContractTracker ist closed source; ohne Fingerabdruck liest ein CT-Update still falsch.
+**Präzisiert in der Planung:** Befund als D38 (Tabelle Frage → Befund → Konsequenz für T5.3/T5.4, nur Konzepte, keine Tabellen- oder Spaltennamen, damit D38 ein CT-Update übersteht) und in `docs/contracttracker-schema.md` (Pfad, Pragmas, Fingerabdruck, Mapping, offene Fragen; nur dort stehen Namen, nur diese Datei fällt bei einem Nein von Yuiki). Dazu die Fixture `tests/CargoPlan.Import.Tests/Fixtures/ct_schema.sql`, Testdaten, kein Produktcode. Zusätzlich beobachtet: Lebenszyklus F3/F4/F5, Löschen und Erledigen in der Hauptapp, Edit per Location-Mapping, Dateien bei laufendem und beendetem CT, Schreibmuster pro F3 (WAL-Commit-Frames). Werkzeug `sqlite3` per winget, kein NuGet. Lizenzfrage war schon gestellt, nur der Stand wird notiert. Präzisierung in der Planphase, ratifiziert durch Freigabe (D38).
 - DB-Pfad finden (`%APPDATA%`/`%LOCALAPPDATA%`), in `docs/contracttracker-schema.md` notieren
 - Kopie anlegen, an der Kopie `sqlite3 copy.db .schema` und `PRAGMA user_version`
 - Schema-Fingerabdruck definieren: Tabellen + Spalten, die wir lesen
@@ -506,6 +507,7 @@ Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1
 
 ### [ ] T5.3 Read-only-Reader
 **Warum:** Ziele, Waren, SCU automatisch, ohne die DB des laufenden Trackers zu stören.
+**Vor der Planung D38 lesen:** Pickup ist als Schlüssel unbrauchbar (Kandidat: CT-Ids), die max. Kistengröße fehlt in der DB, ein Import ist je Erfassung unvollständig und verrauscht.
 - `CargoPlan.Import`: Reader liest die aktiven Verträge in die Eingabetypen (`MissionStop`/`MissionItem`, D23)
 - Connection-String `Mode=ReadOnly`, Tracker schreibt parallel
 - Fingerabdruck aus T5.2 vor dem Lesen prüfen; Abweichung → nichts lesen, Notice „ContractTracker schema not supported – enter missions in the editor or use Import…“ (der Text zitiert den Editor-Knopf, nicht umgekehrt)
