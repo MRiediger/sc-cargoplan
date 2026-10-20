@@ -521,26 +521,30 @@ Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1
 
 **Akzeptanz:** Tests grün: Fingerabdruck-Abweichung → nichts gelesen + Notice; 2+1-Split → ein Kandidat mit zwei Ids; 1-Ziel-Capture mit `Dellver`/`O0/5` → drei Ziele; Listenfragmente vor `DETAILS` ergeben keine Ware; beide Größenphrasen erkannt, fehlende → `crateSizeAssumed`; kein Parser-Ziel → Kindzeilen + `usedFallbackRows`; `ReadSince` liefert nur Ids > Wasserstand; Parser-Tests ohne DB. Echter Lauf gegen eine Kopie von Martins DB liefert plausible Kandidaten. Martin kann erklären, was `Mode=ReadOnly` verhindert und was nicht (`-wal`/`-shm`).
 
-### [ ] T5.4 Import-Durchsicht im Editor + inkrementell platzieren
-**Warum:** CT-Importe sind je Capture lückenhaft (D38); ein still übernommener Plan fällt erst am Aufzug auf (D39). Hauler nehmen Aufträge nacheinander an; neu planen löscht Positionen und Haken (T3.8b).
-**Präzisiert in der Planung:** Neu gefasst nach D39 (Revision von D37, ratifiziert durch Freigabe). Wasserstand = höchste durchgesehene Id, nicht höchste übernommene: sonst taucht ein verworfener Kandidat wieder auf. Präzisierung in der Planphase, ratifiziert durch Freigabe.
-- Knopf „Sync from ContractTracker“ im Editor neben „Import…“: holt Kandidaten seit dem Wasserstand und zeigt sie als ct-Zeilen mit Hinweisen (Größe angenommen, unvollständig, Fallback). Nicht in der Kopfzeile, die ist mit sechs Buttons voll, und wer nachlädt, ist ohnehin im Editor. „Sync“, nicht „Load“: „Import…“ daneben ersetzt den Plan, diese Aktion legt inkrementell nach und behält Positionen und Haken; „Load“ würde dieselbe Bedeutung wie „Import…“ nahelegen. Präzisierung in der Planphase, ratifiziert durch Freigabe.
-- Spieler bestätigt, korrigiert oder verwirft; Bestätigtes geht in den Plan. **Wasserstand = höchste durchgesehene Id** (übernommen oder verworfen), gehört zum Plan. Editor ohne Entscheidung geschlossen → Kandidaten bleiben offen, Wasserstand bleibt
+### [ ] T5.4 Auto-Apply mit Markierungen + inkrementell platzieren
+**Warum:** Hauler drücken F3 am Terminal und schauen aufs Overlay, den Editor öffnen sie nur bei Fehlern (D39-Addendum). CT-Importe sind je Capture lückenhaft (D38), deshalb sichtbar markieren statt still übernehmen. Hauler nehmen Aufträge nacheinander an; neu planen löscht Positionen und Haken (T3.8b).
+**Präzisiert in der Planung:** Neu gefasst nach dem D39-Addendum (Revision des Prüforts von D39, ratifiziert durch Freigabe): Markierung in der Legende statt Pflichtschritt im Editor; jede Erfassung eine eigene Mission, Duplikate nur markiert; Entfernen einer Mission bewegt keine anderen Kisten. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- `FileSystemWatcher` auf DB + `-wal` übernimmt Kandidaten seit dem Wasserstand **direkt** in den Plan; **Wasserstand = höchste übernommene Id**, steigt bei Übernahme, gehört zum Plan. „Diff, don't react“ (D38) bleibt: Arbeit nur, wenn Zeilen über dem Wasserstand existieren oder eine Plan-Id in CT fehlt; Mapping-Write, Checkpoint und unser eigener Lesezugriff (`-wal`/`-shm`) ergeben nichts
+- **Legende** zeigt die Hinweise pro Stop: Größe angenommen (`4 SCU?`), Ziele unvollständig (`⚠ 1 of 3 destinations`), Fallback auf Kindzeilen, `⚠ duplicate?`
+- **Jede Erfassung eine eigene Mission, nichts wird ersetzt:** gleiche Ware + überlappende Ziele mit einer Mission ohne Haken → `⚠ duplicate?`, keine Notice; verschwindet beim ersten Haken auf einer der beiden. Retry nach OCR-Fehler → Spieler löscht die falsche Mission im Editor
+- **In CT gelöscht:** alle Kisten der Mission abgehakt → Mission raus; sonst Notice, Plan bleibt. Dafür prüft der Reader, welche Plan-Ids in CT noch existieren (Erweiterung hier, T5.3 bleibt wie formuliert)
+- Übernommene Missionen behalten ihre **CT-Ids im Plan** (nötig für die Löschnotiz). Plan-Format prüfen; ändert es sich, eigener Eintrag in decisions.md
 - Einzige Core-Änderung der Phase, erste seit T3.15: Mission in den bestehenden Plan legen, ohne andere zu verschieben; Positionen und Haken bleiben. Spike zuerst
-- `FileSystemWatcher` auf DB + `-wal`: nur Notice „ContractTracker has N new contracts“, keine Planmutation. „Diff, don't react“ (D38) bleibt: Notice nur, wenn Zeilen über dem Wasserstand existieren; Mapping-Write, Checkpoint und unser eigener Lesezugriff (`-wal`/`-shm`) ergeben nichts
-- In CT gelöschte Zeilen: Notice, nichts automatisch
-- Entfällt (D39): Reset-Erkennung, „verschwindet = erfüllt“, Multimenge, Debounce-Logik auf Inhalt
+- **Mission entfernen** (in CT gelöscht, im Editor gelöscht) nimmt nur ihre Kisten heraus, andere bewegen sich nicht, Haken bleiben
+- Knopf „Sync from ContractTracker“ im Editor neben „Import…“ bleibt als manueller Weg: übernimmt Kandidaten seit dem Wasserstand wie der Watcher. „Sync“, nicht „Load“: „Import…“ daneben ersetzt den Plan, diese Aktion legt inkrementell nach
+- Entfällt (D39): Reset-Erkennung, Multimenge, Debounce-Logik auf Inhalt; „verschwindet = erfüllt“ nur in der engen Form oben
 
-**Akzeptanz:** Tests grün (inkrementell ohne Bewegung liegender Kisten, Haken bleiben, Wasserstand steigt bei Übernahme und bei Verwerfen, nicht beim bloßen Öffnen; Dateievent ohne neue Zeilen → keine Notice); im Spiel: zweiten Auftrag erfassen → Notice, „Sync from ContractTracker“ zeigt ihn als ct-Zeile mit Hinweisen, nach Bestätigung im Overlay, Kisten und Haken des ersten unverändert; Kandidat verwerfen → nicht im Plan, taucht beim nächsten Sync nicht wieder auf; Editor ohne Entscheidung schließen → Kandidat beim nächsten Sync wieder da.
+**Akzeptanz:** Tests grün (inkrementell ohne Bewegung liegender Kisten, Haken bleiben, Wasserstand steigt bei Übernahme, Dateievent ohne neue Zeilen → nichts; Duplikat-Markierung nur ohne Haken; Entfernen bewegt keine anderen Kisten; Entfernen nach CT-Löschung nur bei vollständig abgehakt); im Spiel: zweiten Auftrag erfassen → ohne Klick im Overlay, Kisten und Haken des ersten unverändert; Capture ohne Größenphrase → `?` in der Legende; F4 vor dem ersten Haken → zweite Mission mit `⚠ duplicate?`, erste unverändert, keine Notice; F4 nach dem ersten Haken → beide im Plan, keine Markierung; falsche Mission im Editor löschen → weg, übrige Kisten und Haken unverändert; in CT löschen bei vollständig abgehakt → Mission weg; bei offenen Kisten → Notice, Plan bleibt.
 
 ### [ ] T5.5 Settings-Abschnitt „ContractTracker“
-**Warum:** Nicht jede Installation liegt am Standardpfad, nicht jeder will die Notice bei neuen Verträgen.
-**Präzisiert in der Planung:** „Auto-Sync an/aus“ wird „Notify about new contracts“ an/aus (D39: es gibt keinen Auto-Sync mehr); der Hotkey öffnet den Editor statt zu laden. Präzisierung in der Planphase, ratifiziert durch Freigabe.
-- Abschnitt „ContractTracker“ im Settings-Fenster: Pfad (Autodetektion + manuell), „Notify about new contracts“ an/aus (schaltet nur die Watcher-Notice aus T5.4)
-- „Sync from ContractTracker“ im Editor (aus T5.4) bleibt der manuelle Weg, auch bei Notice aus
-- Optionaler Hotkey „Sync from ContractTracker“ im Hotkeys-Abschnitt, Default `null` (keine Default-Hotkeys, D17): öffnet den Editor mit den neuen Kandidaten, wie der Knopf. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+**Warum:** Nicht jede Installation liegt am Standardpfad, nicht jeder will Erfassungen ohne Zutun im Plan, und wer CT nicht hat, soll erfahren, woher.
+**Präzisiert in der Planung:** Schalter wieder „Auto-sync“ an/aus (D39-Addendum: Übernahme ohne Pflichtschritt im Editor); der Hotkey übernimmt direkt, statt den Editor zu öffnen; Abschnitt auch ohne CT sichtbar. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- Abschnitt „ContractTracker“ im Settings-Fenster: Pfad (Autodetektion + manuell), „Auto-sync“ an/aus. Aus → Watcher zeigt nur Notice „N new contracts“, Übernahme per Knopf oder Hotkey
+- CT nicht gefunden → Abschnitt bleibt sichtbar mit Hinweis „ContractTracker not found – set path or install“ und Link zur Nexus-Seite von ContractTracker (URL bei der Umsetzung prüfen, A3)
+- „Sync from ContractTracker“ im Editor (aus T5.4) bleibt der manuelle Weg, auch bei Auto-sync aus
+- Optionaler Hotkey „Sync from ContractTracker“ im Hotkeys-Abschnitt, Default `null` (keine Default-Hotkeys, D17): übernimmt direkt wie der Knopf, öffnet nicht den Editor
 
-**Akzeptanz:** Autodetektion findet Martins DB; manueller Pfad wirkt ohne Neustart und überlebt ihn; Notice aus → neuer CT-Vertrag erzeugt keine Notice, der Knopf holt ihn trotzdem; Hotkey gesetzt → öffnet den Editor mit Kandidaten, ohne Eintrag kein Hotkey.
+**Akzeptanz:** Autodetektion findet Martins DB; manueller Pfad wirkt ohne Neustart und überlebt ihn; Auto-sync aus → neuer CT-Vertrag erzeugt nur die Notice „N new contracts“ und steht nicht im Plan, Knopf oder Hotkey übernimmt ihn; Hotkey gesetzt → übernimmt ohne Editor, ohne Eintrag kein Hotkey; CT fehlt oder Pfad ungültig → Abschnitt sichtbar mit Hinweis und Nexus-Link.
 
 ---
 
