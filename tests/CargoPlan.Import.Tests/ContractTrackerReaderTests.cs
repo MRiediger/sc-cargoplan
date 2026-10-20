@@ -76,6 +76,23 @@ public class ContractTrackerReaderTests
     }
 
     [Fact]
+    public void Capture_from_the_accepted_tab_is_one_candidate_with_full_names()
+    {
+        using var database = new TempContractDatabase();
+        var raw = ImportFixtures.RawText(ImportFixtures.StimsAcceptedTab);
+        database.AddContract(37, "Stims", raw, (4, "High Course Hurston's L5 Lagrange point"));
+        database.AddContract(38, "Stims", raw,
+            (4, "Thunde oss Station at Hurston's L3 Lagrange point. - Freight elevator at Green Glade Station at Hurston's L1 Lagrange point"));
+
+        var candidate = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Should().ContainSingle().Subject;
+
+        candidate.ContractIds.Should().Equal(37, 38);
+        candidate.Stops.Select(s => s.Destination).Should().Equal("Green Glade Station", "High Course Station", "Thundering Express Station");
+        candidate.UsedFallbackRows.Should().BeFalse();
+        candidate.DestinationsIncomplete.Should().BeFalse();
+    }
+
+    [Fact]
     public void Same_text_with_a_gap_in_the_ids_is_two_candidates()
     {
         using var database = new TempContractDatabase();

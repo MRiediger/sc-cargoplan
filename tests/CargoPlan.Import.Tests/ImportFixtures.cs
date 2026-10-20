@@ -29,6 +29,12 @@ internal static class ImportFixtures
     /// <summary>Id 36 (CT found 1 destination): "Dellver", "O0/5", "O/3", "LS"; drop-off list of 3.</summary>
     public const string StimsOcrErrors = "stims_ocr_errors";
 
+    /// <summary>
+    /// Ids 37/38, from the Accepted tab: "Contract Deadline", ends in TRACK/ABANDON instead of ACCEPT OFFER; "to Thunde"
+    /// breaks mid-word, "to High Course" is cut off; Stims 3/4/4, drop-off list of 3.
+    /// </summary>
+    public const string StimsAcceptedTab = "stims_accepted_tab";
+
     public static string RawText(string name) => ReadResource($"rawtext/{name}.txt");
 
     public static string Schema => ReadResource("ct_schema.sql");

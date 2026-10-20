@@ -49,30 +49,33 @@ internal static partial class ContractTextParser
             .Where(d => d.Scu > 0 && d.Destination.Length > 0 && d.Commodity.Length > 0)
             .ToList();
 
-        // Names a cut-off destination can be completed from: the drop-off list, the prose, the other deliveries.
-        List<string> names =
-        [
-            .. lines.Select(l => FreightElevatorName.Match(l)).Where(m => m.Success)
-                .Select(m => ContractText.NormalizeDestination(m.Groups["name"].Value)),
-            .. read.Select(d => d.Destination),
-        ];
+        // A line without a name end may break anywhere, also mid-word ("to Thunde"). Pickups and prose never complete.
+        // Step 1: the drop-off list. Null = still a fragment.
+        var dropOffNames = DropOffEntries(lines).Select(l => FreightElevatorName.Match(l)).Where(m => m.Success)
+            .Select(m => ContractText.NormalizeDestination(m.Groups["name"].Value))
+            .ToList();
+        var listed = read.Select(d => d.Complete ? d.Destination : CompletedFrom(d.Destination, dropOffNames)).ToList();
 
-        return [.. read.Select(d => new ParsedDelivery(d.Complete ? d.Destination : Completed(d.Destination, names), d.Commodity, d.Scu))];
+        // Step 2: a fragment left over takes a longer destination of the same capture ("Thundering" → "Thundering Express",
+        // ids 28/29 have no list), otherwise it stays.
+        var names = read.Select((d, i) => listed[i] ?? d.Destination).ToList();
+        return
+        [
+            .. read.Select((d, i) => new ParsedDelivery(
+                listed[i] ?? CompletedFrom(d.Destination, names.Where(n => n.Length > d.Destination.Length)) ?? d.Destination,
+                d.Commodity,
+                d.Scu)),
+        ];
     }
 
     /// <summary>
-    /// The longest name that starts with the fragment ("Thundering" → "Thundering Express Station"), as long as all such
-    /// names are starts of each other; otherwise, or without one, the fragment stays.
+    /// The one name that starts with the fragment, character by character ("Thunde" → "Thundering Express Station");
+    /// null if none or several do.
     /// </summary>
-    private static string Completed(string fragment, IReadOnlyList<string> names)
-    {
-        var longer = names.Where(n => n.StartsWith(fragment + " ", StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(n => n.Length)
-            .ToList();
-        return longer is [var longest, ..] && longer.All(n => longest.StartsWith(n, StringComparison.OrdinalIgnoreCase))
-            ? longest
-            : fragment;
-    }
+    private static string? CompletedFrom(string fragment, IEnumerable<string> names) =>
+        names.Where(n => n.StartsWith(fragment, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() is [var only] ? only : null;
 
     private static CrateSize? MaxCrateSize(string text) =>
         SizePhrase.Match(text) is { Success: true } match
@@ -81,19 +84,19 @@ internal static partial class ContractTextParser
             ? (CrateSize)size
             : null;
 
-    /// <summary>Entries after the drop-off heading up to the pick-up heading; null without a drop-off list.</summary>
-    private static int? ListedDestinationCount(string[] lines)
-    {
-        var heading = Array.FindIndex(lines, l => AnchorForm(l).StartsWith(AnchorForm(DropOffHeading), StringComparison.Ordinal));
-        if (heading < 0)
-        {
-            return null;
-        }
+    /// <summary>Entries of the drop-off list; null without one.</summary>
+    private static int? ListedDestinationCount(string[] lines) => HasDropOffList(lines) ? DropOffEntries(lines).Count() : null;
 
-        return lines.Skip(heading + 1)
+    private static bool HasDropOffList(string[] lines) => Array.FindIndex(lines, IsDropOffHeading) >= 0;
+
+    /// <summary>"- Freight elevator at …" lines after the drop-off heading, up to the pick-up heading.</summary>
+    private static IEnumerable<string> DropOffEntries(string[] lines) =>
+        lines.SkipWhile(l => !IsDropOffHeading(l)).Skip(1)
             .TakeWhile(l => !AnchorForm(l).StartsWith(AnchorForm(PickUpHeading), StringComparison.Ordinal))
-            .Count(l => ListEntry.IsMatch(l));
-    }
+            .Where(l => ListEntry.IsMatch(l));
+
+    private static bool IsDropOffHeading(string line) =>
+        AnchorForm(line).StartsWith(AnchorForm(DropOffHeading), StringComparison.Ordinal);
 
     private static bool IsHeading(string line, string heading) =>
         AnchorForm(line).Equals(AnchorForm(heading), StringComparison.Ordinal);

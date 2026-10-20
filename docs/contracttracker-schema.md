@@ -77,6 +77,20 @@ alone. Without pooling no handle stays open after a read.
 | `Contracts.SessionId`, `Sessions` | not needed for the plan |
 | `LocationMappings` | ContractTracker's corrections apply to its own parsing; CargoPlan parses the raw text and normalises itself (D40) |
 
+## Raw text layouts
+
+Observed with ContractTracker 2.2.0.0, English game client.
+
+| | Offer view (contract list) | Accepted view (ids 37/38) |
+|---|---|---|
+| Header | "Contract Availability" + remaining time | "Contract Deadline" |
+| Start of the contract text | `DETAILS` | `DETAILS` |
+| End of the contract text | `ACCEPT OFFER` | `TRACK`, `ABANDON` (no `ACCEPT OFFER`) |
+
+In both, delivery lines ("Deliver 0/N SCU of … to …") may break **anywhere, also mid-word**: "to Thunde" with
+"oss Station" two lines further down; "to High Course" with the rest of the name lost. The parser completes such a
+fragment from the drop-off list by character prefix, only if exactly one entry matches (D40).
+
 ## Open questions
 
 - Is `Contracts.Status` ever anything but `Active`, or `ContractObjectives.Completed` ever 1?
@@ -84,5 +98,3 @@ alone. Without pooling no handle stays open after a read.
 - Does ContractTracker skip an identical repeated capture, or was the key press missed?
 - What makes ContractTracker close its connection and checkpoint while running?
 - What does the raw OCR text look like with a German game client? Observed in English only.
-- Capture from the "Accepted" tab not observed: all captures so far come from the offer view, where "ACCEPT OFFER"
-  ends the contract text. The parser treats that heading as optional (D40).

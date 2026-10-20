@@ -126,6 +126,55 @@ public class ContractTextParserTests
     }
 
     [Fact]
+    public void Capture_from_the_accepted_tab_gives_full_names()
+    {
+        // No ACCEPT OFFER; "to Thunde" breaks mid-word, "to High Course" is cut off: both completed from the drop-off list.
+        var parsed = ContractTextParser.Parse(ImportFixtures.RawText(ImportFixtures.StimsAcceptedTab));
+
+        parsed.Deliveries.Should().Equal(
+            new ParsedDelivery("Green Glade Station", "Stims", 3),
+            new ParsedDelivery("High Course Station", "Stims", 4),
+            new ParsedDelivery("Thundering Express Station", "Stims", 4));
+        parsed.ListedDestinationCount.Should().Be(3);
+        parsed.MaxCrateSize.Should().BeNull();
+    }
+
+    [Fact]
+    public void Fragment_matching_several_list_entries_stays()
+    {
+        const string text = """
+            DETAILS
+            Deliver 0/4 SCU of Stims to Thunde
+            DROP OFF LOCATIONS (ANY ORDER)
+            - Freight elevator at Thundering Express Station at Hurston's L3
+            - Freight elevator at Thunderhead Station at Hurston's L4
+            ACCEPT OFFER
+            """;
+
+        var parsed = ContractTextParser.Parse(text);
+
+        parsed.Deliveries.Should().Equal(new ParsedDelivery("Thunde", "Stims", 4));
+    }
+
+    [Fact]
+    public void Pick_up_list_and_prose_do_not_complete_a_destination()
+    {
+        // Only the drop-off list names destinations; a pickup sharing the prefix must not be taken for one.
+        const string text = """
+            DETAILS
+            Deliver 0/9 SCU of Waste to Thunde
+            Taken to a freight elevator at Thundering Express Station at Hurston's L3.
+            PICK UP LOCATIONS (ANY ORDER)
+            - Freight elevator at Thundering Express Station at Hurston's L3
+            ACCEPT OFFER
+            """;
+
+        var parsed = ContractTextParser.Parse(text);
+
+        parsed.Deliveries.Should().Equal(new ParsedDelivery("Thunde", "Waste", 9));
+    }
+
+    [Fact]
     public void Pick_up_list_is_not_counted_as_destinations()
     {
         var parsed = ContractTextParser.Parse(ImportFixtures.RawText(ImportFixtures.WasteBiggerThan));
