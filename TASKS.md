@@ -505,35 +505,42 @@ Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1
 
 **Akzeptanz:** Doku vorhanden (Pfad, `user_version`, Fingerabdruck, Mapping, offene Fragen), Lizenzfrage gestellt und Stand notiert. Kein Code.
 
-### [ ] T5.3 Read-only-Reader
-**Warum:** Ziele, Waren, SCU automatisch, ohne die DB des laufenden Trackers zu stören.
-**Vor der Planung D38 lesen:** Pickup ist als Schlüssel unbrauchbar (Kandidat: CT-Ids), die max. Kistengröße fehlt in der DB, ein Import ist je Erfassung unvollständig und verrauscht.
-- `CargoPlan.Import`: Reader liest die aktiven Verträge in die Eingabetypen (`MissionStop`/`MissionItem`, D23)
-- Connection-String `Mode=ReadOnly`, Tracker schreibt parallel
-- Fingerabdruck aus T5.2 vor dem Lesen prüfen; Abweichung → nichts lesen, Notice „ContractTracker schema not supported – enter missions in the editor or use Import…“ (der Text zitiert den Editor-Knopf, nicht umgekehrt)
-- Inhaltsschlüssel pro Vertrag: Ziel + Ware + SCU + Pickup
-- Tests gegen eine Fixture-DB mit nachgebautem Schema (nur die gelesenen Spalten)
+### [ ] T5.3 Read-only-Reader und Rohtext-Parser
+**Warum:** Ziele, Waren, SCU und max. Kistengröße automatisch, ohne die DB des laufenden Trackers zu stören. CT liefert Capture und OCR; die Zerlegung des Vertragstexts machen wir selbst (D38-Addendum: der Rohtext ist vollständig, CTs Parser verliert Ziele).
+**Vor der Planung D38 + Addendum und D39 lesen.** Kein Auto-Sync in den Plan; der Reader liefert **Import-Kandidaten** für die Durchsicht im Editor (T5.4).
+**Präzisiert in der Planung:** Gruppierung über lückenlose Ids statt gleicher Capture-Zeit (die zwei Zeilen einer Erfassung lagen 0,36 ms auseinander); der Parser liest nur zwischen `DETAILS` und `ACCEPT OFFER`, weil die Listenfragmente vor `DETAILS` stehen, nicht danach; Akzeptanz ergänzt. Präzisierung in der Planphase, ratifiziert durch Freigabe (D39).
+- `CargoPlan.Import`: Reader liest Vertragszeilen mit Id, Capture-Zeit, Rohtext und Kindzeilen; Fingerabdruck (schema.md) vor dem Lesen prüfen, Abweichung → nichts lesen, Notice „ContractTracker schema not supported – enter missions in the editor or use Import…“ (der Text zitiert den Editor-Knopf, nicht umgekehrt)
+- Connection-String `Mode=ReadOnly`, Tracker schreibt parallel (WAL); Lock → Retry, keine Notice. Eigener Lesezugriff legt `-wal`/`-shm` an (D38) – dokumentiert, kein Aufräumen
+- **Gruppierung:** Zeilen mit byteweise gleichem Rohtext und lückenlos aufeinanderfolgenden CT-Ids = eine Erfassung = ein Kandidat (D38: eine Transaktion pro Capture); Schlüssel des Kandidaten sind seine CT-Ids (AUTOINCREMENT, nie wiederverwendet). Kein Inhaltsschlüssel – Pickup ist unbrauchbar, gleiche Inhalte sind nicht unterscheidbar (D38)
+- **Parser auf den Rohtext:** Ware, Ziele mit SCU aus den „Deliver … to …“-Zeilen und der Drop-off-Liste; tolerant gegen OCR-Fehler (`Dellver`, `O/3`, `LS` für `L5`); liest nur zwischen `DETAILS` und `ACCEPT OFFER`: Listenfragmente (`· Stims (3 SCU)`, abgeschnittene Zeilen) stehen davor im Kopfblock, danach nur Ziffernrauschen (D38-Addendum). Kindzeilen nur als Fallback, wenn der Parser kein Ziel findet
+- **Max. Kistengröße** aus zwei beobachteten Phrasen („Max size will be N SCU.“, „none of the containers are bigger than N SCU.“, Zeilenumbruch innerhalb erlaubt); fehlt sie → Default größte Kiste, die in die SCU passt, Kandidat trägt `crateSizeAssumed = true`
+- **Kandidat** (`ContractTrackerCandidate`, nur in `.Import`): Mission in Eingabetypen (`MissionStop`/`MissionItem`, D23) + CT-Ids + Capture-Zeit + Hinweise für die Durchsicht: `crateSizeAssumed`, `usedFallbackRows`, Zielanzahl laut Parser vs. laut Drop-off-Liste (Abweichung = unvollständig)
+- `ReadSince(lastId)`: nur Zeilen mit Id > Wasserstand; der Wasserstand selbst gehört zum Plan (T5.4)
+- Tests: Fixture-DB `ct_schema.sql` (nur gelesene Spalten) + Rohtext-Fixtures aus den echten Captures (anonymisiert, ohne Datum), darunter absichtlich: OCR-Fehler, Listenfragmente, 2+1-Split, fehlende Größenphrase, Fallback-Fall. Parser ohne DB testbar
+- Offen (schema.md): deutscher Spiel-Client nicht beobachtet; ob CT Mappings beim nächsten Capture anwendet
 
-**Akzeptanz:** Tests grün (Lesen, Fingerabdruck-Abweichung, gleicher Inhalt = gleicher Schlüssel), echter Lauf gegen Martins DB liefert plausible Stops. Martin kann erklären, was `Mode=ReadOnly` verhindert.
+**Akzeptanz:** Tests grün: Fingerabdruck-Abweichung → nichts gelesen + Notice; 2+1-Split → ein Kandidat mit zwei Ids; 1-Ziel-Capture mit `Dellver`/`O0/5` → drei Ziele; Listenfragmente vor `DETAILS` ergeben keine Ware; beide Größenphrasen erkannt, fehlende → `crateSizeAssumed`; kein Parser-Ziel → Kindzeilen + `usedFallbackRows`; `ReadSince` liefert nur Ids > Wasserstand; Parser-Tests ohne DB. Echter Lauf gegen eine Kopie von Martins DB liefert plausible Kandidaten. Martin kann erklären, was `Mode=ReadOnly` verhindert und was nicht (`-wal`/`-shm`).
 
-### [ ] T5.4 Sync in den Plan
-**Warum:** Hauler nehmen Aufträge nacheinander an und liefern einzeln ab; neu planen löscht Positionen und Haken (T3.8b).
-- Einzige Core-Änderung der Phase, erste seit T3.15: Spike zuerst
-- Neue Missionen inkrementell in den bestehenden Plan legen, Positionen und Haken bleiben
-- Einzelne Mission aus CT verschwunden = erfüllt, raus aus dem Plan
-- Alle gleichzeitig verschwunden = CT-Reset → Plan bleibt + Notice
-- `FileSystemWatcher` auf DB + `-wal`, 500 ms entprellt
-- Knopf „Sync from ContractTracker“ im Editor neben „Import…“: manuelles „jetzt lesen“, auch wenn der Watcher schweigt oder Auto-Sync (T5.5) aus ist; nicht in der Kopfzeile, die ist mit sechs Buttons voll, und wer nachlädt, ist ohnehin im Editor. „Sync“, nicht „Load“: „Import…“ daneben ersetzt den Plan, diese Aktion legt inkrementell nach und behält Positionen und Haken; „Load“ würde dieselbe Bedeutung wie „Import…“ nahelegen. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+### [ ] T5.4 Import-Durchsicht im Editor + inkrementell platzieren
+**Warum:** CT-Importe sind je Capture lückenhaft (D38); ein still übernommener Plan fällt erst am Aufzug auf (D39). Hauler nehmen Aufträge nacheinander an; neu planen löscht Positionen und Haken (T3.8b).
+**Präzisiert in der Planung:** Neu gefasst nach D39 (Revision von D37, ratifiziert durch Freigabe). Wasserstand = höchste durchgesehene Id, nicht höchste übernommene: sonst taucht ein verworfener Kandidat wieder auf. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- Knopf „Sync from ContractTracker“ im Editor neben „Import…“: holt Kandidaten seit dem Wasserstand und zeigt sie als ct-Zeilen mit Hinweisen (Größe angenommen, unvollständig, Fallback). Nicht in der Kopfzeile, die ist mit sechs Buttons voll, und wer nachlädt, ist ohnehin im Editor. „Sync“, nicht „Load“: „Import…“ daneben ersetzt den Plan, diese Aktion legt inkrementell nach und behält Positionen und Haken; „Load“ würde dieselbe Bedeutung wie „Import…“ nahelegen. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- Spieler bestätigt, korrigiert oder verwirft; Bestätigtes geht in den Plan. **Wasserstand = höchste durchgesehene Id** (übernommen oder verworfen), gehört zum Plan. Editor ohne Entscheidung geschlossen → Kandidaten bleiben offen, Wasserstand bleibt
+- Einzige Core-Änderung der Phase, erste seit T3.15: Mission in den bestehenden Plan legen, ohne andere zu verschieben; Positionen und Haken bleiben. Spike zuerst
+- `FileSystemWatcher` auf DB + `-wal`: nur Notice „ContractTracker has N new contracts“, keine Planmutation. „Diff, don't react“ (D38) bleibt: Notice nur, wenn Zeilen über dem Wasserstand existieren; Mapping-Write, Checkpoint und unser eigener Lesezugriff (`-wal`/`-shm`) ergeben nichts
+- In CT gelöschte Zeilen: Notice, nichts automatisch
+- Entfällt (D39): Reset-Erkennung, „verschwindet = erfüllt“, Multimenge, Debounce-Logik auf Inhalt
 
-**Akzeptanz:** Tests grün (inkrementell ohne Bewegung liegender Kisten, Haken bleiben, Entfernen einer Mission, CT-Reset); im Spiel: zweiten Auftrag annehmen → erscheint im Overlay, Kisten und Haken des ersten unverändert; Auftrag abschließen → verschwindet; „Sync from ContractTracker“ lädt auch ohne Watcher-Ereignis.
+**Akzeptanz:** Tests grün (inkrementell ohne Bewegung liegender Kisten, Haken bleiben, Wasserstand steigt bei Übernahme und bei Verwerfen, nicht beim bloßen Öffnen; Dateievent ohne neue Zeilen → keine Notice); im Spiel: zweiten Auftrag erfassen → Notice, „Sync from ContractTracker“ zeigt ihn als ct-Zeile mit Hinweisen, nach Bestätigung im Overlay, Kisten und Haken des ersten unverändert; Kandidat verwerfen → nicht im Plan, taucht beim nächsten Sync nicht wieder auf; Editor ohne Entscheidung schließen → Kandidat beim nächsten Sync wieder da.
 
 ### [ ] T5.5 Settings-Abschnitt „ContractTracker“
-**Warum:** Nicht jede Installation liegt am Standardpfad, nicht jeder will Auto-Sync.
-- Abschnitt „ContractTracker“ im Settings-Fenster: Pfad (Autodetektion + manuell), Auto-Sync an/aus
-- „Sync from ContractTracker“ im Editor (aus T5.4) bleibt der manuelle Weg, auch bei Auto-Sync aus
-- Optionaler Hotkey „Sync from ContractTracker“ im Hotkeys-Abschnitt, Default `null` (keine Default-Hotkeys, D17): dieselbe Aktion wie der Knopf, auch im Spiel ohne Cursor. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+**Warum:** Nicht jede Installation liegt am Standardpfad, nicht jeder will die Notice bei neuen Verträgen.
+**Präzisiert in der Planung:** „Auto-Sync an/aus“ wird „Notify about new contracts“ an/aus (D39: es gibt keinen Auto-Sync mehr); der Hotkey öffnet den Editor statt zu laden. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- Abschnitt „ContractTracker“ im Settings-Fenster: Pfad (Autodetektion + manuell), „Notify about new contracts“ an/aus (schaltet nur die Watcher-Notice aus T5.4)
+- „Sync from ContractTracker“ im Editor (aus T5.4) bleibt der manuelle Weg, auch bei Notice aus
+- Optionaler Hotkey „Sync from ContractTracker“ im Hotkeys-Abschnitt, Default `null` (keine Default-Hotkeys, D17): öffnet den Editor mit den neuen Kandidaten, wie der Knopf. Präzisierung in der Planphase, ratifiziert durch Freigabe.
 
-**Akzeptanz:** Autodetektion findet Martins DB; manueller Pfad wirkt ohne Neustart und überlebt ihn; Auto-Sync aus → CT-Änderung ändert den Plan nicht, der Knopf lädt; Hotkey gesetzt → lädt wie der Knopf, ohne Eintrag kein Hotkey.
+**Akzeptanz:** Autodetektion findet Martins DB; manueller Pfad wirkt ohne Neustart und überlebt ihn; Notice aus → neuer CT-Vertrag erzeugt keine Notice, der Knopf holt ihn trotzdem; Hotkey gesetzt → öffnet den Editor mit Kandidaten, ohne Eintrag kein Hotkey.
 
 ---
 
