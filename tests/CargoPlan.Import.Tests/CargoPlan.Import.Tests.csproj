@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AwesomeAssertions" Version="9.6.0" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -13,11 +14,18 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Using Include="AwesomeAssertions" />
     <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CargoPlan.Import\CargoPlan.Import.csproj" />
+  </ItemGroup>
+
+  <!-- Raw OCR texts of real captures (D38 addendum) and the fingerprint schema, read via ImportFixtures. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures/RawText/*.txt" LogicalName="rawtext/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Fixtures/ct_schema.sql" LogicalName="ct_schema.sql" />
   </ItemGroup>
 
 </Project>

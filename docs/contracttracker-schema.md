@@ -32,6 +32,8 @@ The reader reads exactly these columns. Before reading, each must exist with thi
 |---|---|---|
 | `Contracts` | `Id` | `INTEGER` |
 | `Contracts` | `Name` | `TEXT` |
+| `Contracts` | `CapturedAt` | `TEXT` |
+| `Contracts` | `RawOcrText` | `TEXT` |
 | `ContractObjectives` | `Id` | `INTEGER` |
 | `ContractObjectives` | `ContractId` | `INTEGER` |
 | `ContractObjectives` | `Amount` | `INTEGER` |
@@ -41,17 +43,28 @@ The same columns, rebuilt for tests: [`tests/CargoPlan.Import.Tests/Fixtures/ct_
 
 ## Mapping
 
+CargoPlan parses `Contracts.RawOcrText` itself (D39); ContractTracker's destination rows are the fallback when the
+text holds no readable delivery line. Both go through the same normalisation (D40).
+
 | CargoPlan | ContractTracker | Note |
 |---|---|---|
-| `MissionStop.Destination` | `ContractObjectives.Destination` | OCR text, may carry a tail of contract prose |
-| `MissionItem.Commodity` | `Contracts.Name` | one `Contracts` row per commodity |
-| `MissionItem.Scu` | `ContractObjectives.Amount` | per destination |
-| `MissionItem.MaxCrateSize` | – | **missing**; only in the prose of `Contracts.RawOcrText`, if at all |
-| `MissionStop.Order` | – | **missing**; ContractTracker has no route order |
+| `MissionStop.Destination` | "Deliver … to *destination*" lines in `RawOcrText`; fallback `ContractObjectives.Destination` | station name only, cut before " at …"/" above …" (D40) |
+| `MissionItem.Commodity` | "… SCU of *commodity* to …" in `RawOcrText`; fallback `Contracts.Name` | one capture may hold several commodities |
+| `MissionItem.Scu` | "… 0/*N* SCU …" in `RawOcrText`; fallback `ContractObjectives.Amount` | per destination |
+| `MissionItem.MaxCrateSize` | prose in `RawOcrText` ("Max size will be N SCU.", "none of the containers are bigger than N SCU.") | missing → largest crate that fits the SCU, marked as assumed |
+| `MissionStop.Order` | – | order in the text; ContractTracker has no route order |
+| Capture time | `Contracts.CapturedAt` | UTC without a marker, e.g. `2026-10-20 08:22:54.1193454` |
 | Pickup | (`Contracts.PickupLocation`) | CargoPlan has no pickup field; the text varies per capture, several pickups are joined with ` / ` |
-| Identity | `Contracts.Id`, `ContractObjectives.Id` | AUTOINCREMENT, never reused, also after a reset |
+| Identity | `Contracts.Id` | AUTOINCREMENT, never reused, also after a reset; the rows of one capture have consecutive ids and identical `RawOcrText` |
 
 `ContractObjectives.ContractId` references `Contracts.Id` with `ON DELETE CASCADE`.
+
+## How CargoPlan opens it
+
+`Mode=ReadOnly;Pooling=False`, retrying a busy or locked database for 5 seconds. Read-only means no write into tables
+or schema; it does **not** mean no file is touched: while ContractTracker is closed, SQLite creates
+`contracts.db-wal` and `contracts.db-shm` next to the database and may leave them there (D38). CargoPlan leaves them
+alone. Without pooling no handle stays open after a read.
 
 ## Not read
 
@@ -61,8 +74,8 @@ The same columns, rebuilt for tests: [`tests/CargoPlan.Import.Tests/Fixtures/ct_
 | `Contracts.Reward` | no field in CargoPlan; 0 in every row observed |
 | `Contracts.Status` | `Active` in every row observed; ContractTracker deletes instead |
 | `ContractObjectives.Completed` | 0 in every row observed; ContractTracker deletes instead |
-| `Contracts.CapturedAt` | UTC without a marker; not needed for the plan |
-| `Contracts.RawOcrText`, `Contracts.SessionId`, `Sessions`, `LocationMappings` | not needed yet; T5.3 may add `LocationMappings` (OCR text → correct name) or parse the max crate size from `RawOcrText`, and then extends the fingerprint |
+| `Contracts.SessionId`, `Sessions` | not needed for the plan |
+| `LocationMappings` | ContractTracker's corrections apply to its own parsing; CargoPlan parses the raw text and normalises itself (D40) |
 
 ## Open questions
 
@@ -71,3 +84,5 @@ The same columns, rebuilt for tests: [`tests/CargoPlan.Import.Tests/Fixtures/ct_
 - Does ContractTracker skip an identical repeated capture, or was the key press missed?
 - What makes ContractTracker close its connection and checkpoint while running?
 - What does the raw OCR text look like with a German game client? Observed in English only.
+- Capture from the "Accepted" tab not observed: all captures so far come from the offer view, where "ACCEPT OFFER"
+  ends the contract text. The parser treats that heading as optional (D40).

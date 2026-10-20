@@ -88,6 +88,7 @@ dotnet test                                    # alle Tests
 dotnet run --project src/CargoPlan.App         # Overlay starten
 dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json
 dotnet run --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/example_missions.json
+dotnet run --project src/CargoPlan.Cli -- contracts <copy-of-contracts.db> [--since <id>] [--raw]   # nur gegen eine Kopie (D38)
 dotnet publish src/CargoPlan.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
 ```
 
