@@ -70,3 +70,4 @@ The same columns, rebuilt for tests: [`tests/CargoPlan.Import.Tests/Fixtures/ct_
 - Does ContractTracker apply a `LocationMappings` row to later captures (`UseCount`)?
 - Does ContractTracker skip an identical repeated capture, or was the key press missed?
 - What makes ContractTracker close its connection and checkpoint while running?
+- What does the raw OCR text look like with a German game client? Observed in English only.
