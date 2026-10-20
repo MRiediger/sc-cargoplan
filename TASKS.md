@@ -522,6 +522,14 @@ Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1
 
 **Akzeptanz:** Tests grün: Fingerabdruck-Abweichung → nichts gelesen + Notice; 2+1-Split → ein Kandidat mit zwei Ids; 1-Ziel-Capture mit `Dellver`/`O0/5` → drei Ziele; Listenfragmente vor `DETAILS` ergeben keine Ware; beide Größenphrasen erkannt, fehlende → `crateSizeAssumed`; kein Parser-Ziel → Kindzeilen + `usedFallbackRows`; `ReadSince` liefert nur Ids > Wasserstand; Parser-Tests ohne DB; Accepted-Capture 37/38 mit Umbruch mitten im Wort → „Thundering Express Station“ (Namen vollständig). Echter Lauf gegen eine Kopie von Martins DB liefert plausible Kandidaten.
 
+### [ ] T5.4a Stapelregel nach Zielreihenfolge
+**Warum:** Eine Kiste, auf der entlang der Stapelachse eine andere liegt, lässt sich im Spiel nicht entnehmen (Martin, Spike T5.4). `CrateLayout.Place` legt nach Größe, nicht nach Route: Im vollen Hull A (A 20, B 12, C 16, D 16 SCU, max. 4) liegt B in Rack 2 auf A, das zuerst abgeladen wird. Mit A in 2er-Kisten liegt A auf B: das ist das Soll, die obere Kiste geht zuerst runter. Der Plan ist heute schon falsch, mit oder ohne CT – **Release-Blocker**. Vor T5.4, weil `PlaceInto` (D41) `CrateLayout.Place` nutzt und die Regel erbt: eine Regel, eine Stelle.
+- **Regel (D24-Addendum):** Auf einer Kiste darf nur eine Kiste desselben oder eines früheren Stops liegen, nie ein späterer Stop auf einem früheren. Reihenfolge = Stop-Reihenfolge des Plans (Legende/Route). Eine Regel in `CrateLayout`, genutzt von `Place` und den Prüfungen
+- Gilt für `Plan`, `MoveStop`, Drag (D25, Ablehnung mit Grund) und `Validate`; offen, wie ein gespeicherter Plan mit falscher Stapelung erscheint
+- Bestehende Planer-Tests mit geteilten Racks prüfen: Layouts ändern sich, wo heute ein späterer Stop auf einem früheren liegt
+
+**Akzeptanz:** Tests grün: A 20 / B 12 / C 16 / D 16 in 4ern → A liegt außen auf B, nie B auf A; vier Stops à 12 (4er) + 16 SCU in 8ern → geht auf, weil frühere Stops auf späteren liegen dürfen; Drag einer Kiste eines späteren Stops auf eine eines früheren → abgelehnt mit Grund; bestehende Planer-Tests grün oder bewusst angepasst und begründet. Im Overlay zeigt der erste Plan Rack 2 mit A außen auf B.
+
 ### [ ] T5.4 Auto-Apply mit Markierungen + inkrementell platzieren
 **Warum:** Hauler drücken F3 am Terminal und schauen aufs Overlay, den Editor öffnen sie nur bei Fehlern (D39-Addendum). CT-Importe sind je Capture lückenhaft (D38), deshalb sichtbar markieren statt still übernehmen. Hauler nehmen Aufträge nacheinander an; neu planen löscht Positionen und Haken (T3.8b).
 **Präzisiert in der Planung:** Neu gefasst nach dem D39-Addendum (Revision des Prüforts von D39, ratifiziert durch Freigabe): Markierung in der Legende statt Pflichtschritt im Editor; jede Erfassung eine eigene Mission, Duplikate nur markiert; Entfernen einer Mission bewegt keine anderen Kisten. Präzisierung in der Planphase, ratifiziert durch Freigabe.
@@ -530,7 +538,7 @@ Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1
 - **Jede Erfassung eine eigene Mission, nichts wird ersetzt:** gleiche Ware + überlappende Ziele mit einer Mission ohne Haken → `⚠ duplicate?`, keine Notice; verschwindet beim ersten Haken auf einer der beiden. Retry nach OCR-Fehler → Spieler löscht die falsche Mission im Editor
 - **In CT gelöscht:** alle Kisten der Mission abgehakt → Mission raus; sonst Notice, Plan bleibt. Dafür prüft der Reader, welche Plan-Ids in CT noch existieren (Erweiterung hier, T5.3 bleibt wie formuliert)
 - Übernommene Missionen behalten ihre **CT-Ids im Plan** (nötig für die Löschnotiz). Plan-Format prüfen; ändert es sich, eigener Eintrag in decisions.md
-- Einzige Core-Änderung der Phase, erste seit T3.15: Mission in den bestehenden Plan legen, ohne andere zu verschieben; Positionen und Haken bleiben. Spike zuerst
+- Einzige Core-Änderung der Phase, erste seit T3.15: Mission in den bestehenden Plan legen, ohne andere zu verschieben; Positionen und Haken bleiben. Spike erledigt: D41 (inkrementell platzieren), D42 (Missions-Identität, Schema 3); setzt T5.4a voraus
 - **Mission entfernen** (in CT gelöscht, im Editor gelöscht) nimmt nur ihre Kisten heraus, andere bewegen sich nicht, Haken bleiben
 - Knopf „Sync from ContractTracker“ im Editor neben „Import…“ bleibt als manueller Weg: übernimmt Kandidaten seit dem Wasserstand wie der Watcher. „Sync“, nicht „Load“: „Import…“ daneben ersetzt den Plan, diese Aktion legt inkrementell nach
 - Entfällt (D39): Reset-Erkennung, Multimenge, Debounce-Logik auf Inhalt; „verschwindet = erfüllt“ nur in der engen Form oben
