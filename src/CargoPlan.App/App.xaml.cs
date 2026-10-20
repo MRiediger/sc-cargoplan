@@ -1,4 +1,4 @@
-﻿using System.Windows;
+using System.Windows;
 using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Plans;
 using CargoPlan.App.Settings;
@@ -72,6 +72,14 @@ public partial class App : Application
         // Overlay first: the lock window's Owner must be a window that has been shown.
         overlay.Show();
         new LockWindow(viewModel, overlay).Show();
+
+#if DEBUG
+        // Next to the overlay, not instead of it: a tool window theme is judged against the overlay (T4.7a).
+        if (options.ThemeSample)
+        {
+            new ThemeSampleWindow(overlay).Show();
+        }
+#endif
 
         _cursorMonitor = new CursorStateMonitor(viewModel);
         _cursorMonitor.Start();

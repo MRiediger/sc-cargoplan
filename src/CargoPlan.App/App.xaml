@@ -1,6 +1,7 @@
 ﻿<Application x:Class="CargoPlan.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:app="clr-namespace:CargoPlan.App">
     <!-- No StartupUri: App.OnStartup builds the view model and the window. -->
     <Application.Resources>
         <!-- What a player can set (window, header, legend, crates, buttons) is not here: ThemeResources.Apply adds it
@@ -57,5 +58,30 @@
                 </DrawingGroup>
             </DrawingBrush.Drawing>
         </DrawingBrush>
+        <!-- Hue slider of the colour picker (T4.2c): the spectrum is its track. Fluent's slider doesn't draw Background,
+             so this template does; thumb and repeat buttons are Fluent's own styles, looked up in the tool window (D36). -->
+        <Style x:Key="HueSliderStyle" TargetType="Slider">
+            <Setter Property="Background" Value="{x:Static app:SaturationValuePad.HueSpectrum}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Slider">
+                        <Grid MinHeight="22" Background="Transparent">
+                            <Border Height="6" CornerRadius="3" VerticalAlignment="Center" Background="{TemplateBinding Background}" />
+                            <Track x:Name="PART_Track">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static Slider.DecreaseLarge}" Style="{DynamicResource SliderButtonStyle}" />
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="{x:Static Slider.IncreaseLarge}" Style="{DynamicResource SliderButtonStyle}" />
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{DynamicResource SliderThumbStyle}" />
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Application.Resources>
 </Application>

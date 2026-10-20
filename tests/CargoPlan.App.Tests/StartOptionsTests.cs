@@ -42,6 +42,20 @@ public class StartOptionsTests
         options.Locked.Should().Be(args.Contains("--locked"));
     }
 
+    [Theory]
+    [InlineData("--theme-sample")]
+    [InlineData("--Theme-Sample")]
+    public void Theme_sample_switch_ignores_case(string arg)
+    {
+        StartOptions.Parse([arg]).Should().Be(new StartOptions(false, null, null, ThemeSample: true));
+    }
+
+    [Fact]
+    public void Theme_sample_is_off_by_default()
+    {
+        StartOptions.Parse(["--locked"]).ThemeSample.Should().BeFalse();
+    }
+
     [Fact]
     public void Unknown_arguments_are_ignored()
     {

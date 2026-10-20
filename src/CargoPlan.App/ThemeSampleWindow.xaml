@@ -1,0 +1,173 @@
+<Window x:Class="CargoPlan.App.ThemeSampleWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="clr-namespace:CargoPlan.App"
+        xmlns:vm="clr-namespace:CargoPlan.App.ViewModels"
+        xmlns:ed="clr-namespace:CargoPlan.App.Editor"
+        Title="Theme sample (T4.7a)"
+        Width="480" Height="780"
+        Topmost="True">
+    <!-- Developer window, Debug builds only (csproj): every control the tool windows use, to judge the tool window theme in
+         light and dark next to the overlay before the real windows get it (T4.7a, D36). -->
+    <DockPanel Margin="8">
+        <!-- The pattern for the tool windows (D36): an own style is BasedOn Fluent's, which ToolWindowThemer.Apply put into
+             the window's resources before InitializeComponent; without BasedOn it falls back to the system look. Own styles
+             stand here, one level below the window: a style keyed {x:Type Slider} looking up {x:Type Slider} skips its own
+             dictionary, merged Fluent included, and gets no base at all. Fluent draws a disabled slider and text box like
+             enabled ones, so they fade like the overlay's icon buttons. -->
+        <DockPanel.Resources>
+            <Style TargetType="Slider" BasedOn="{StaticResource {x:Type Slider}}">
+                <Style.Triggers>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Opacity" Value="0.4" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Style.Triggers>
+                    <Trigger Property="IsEnabled" Value="False">
+                        <Setter Property="Opacity" Value="0.4" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+        </DockPanel.Resources>
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <DockPanel>
+                <TextBlock Text="Mode" Width="110" VerticalAlignment="Center" />
+                <ComboBox x:Name="ModeBox" SelectionChanged="OnModeChanged" />
+            </DockPanel>
+            <TextBlock Text="Applies to this window and to open settings and editor windows; ones opened later get it too."
+                       TextWrapping="Wrap" Margin="0,6,0,0" />
+            <TextBlock x:Name="Report" TextWrapping="Wrap" Margin="0,6,0,0" FontFamily="Consolas" />
+        </StackPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <GroupBox Header="Fields" Margin="0,0,0,8" Padding="6">
+                    <StackPanel>
+                        <DockPanel Margin="0,3">
+                            <TextBlock Text="Text box" Width="110" VerticalAlignment="Center" />
+                            <TextBox Text="#E6E6E6" ToolTip="Right-click for the context menu" />
+                        </DockPanel>
+                        <DockPanel Margin="0,3">
+                            <TextBlock Text="Invalid" Width="110" VerticalAlignment="Center" />
+                            <TextBox Text="#GG0000" Background="{DynamicResource SystemFillColorCriticalBackgroundBrush}" />
+                        </DockPanel>
+                        <DockPanel Margin="0,3">
+                            <TextBlock Text="Disabled" Width="110" VerticalAlignment="Center" />
+                            <TextBox Text="can't edit" IsEnabled="False" />
+                        </DockPanel>
+                        <DockPanel Margin="0,3">
+                            <TextBlock Text="Combo box" Width="110" VerticalAlignment="Center" />
+                            <ComboBox x:Name="PositionBox" SelectedIndex="0" />
+                        </DockPanel>
+                        <DockPanel Margin="0,3">
+                            <TextBlock Text="Combo disabled" Width="110" VerticalAlignment="Center" />
+                            <ComboBox IsEnabled="False" SelectedIndex="0">
+                                <ComboBoxItem Content="bottom-left" />
+                            </ComboBox>
+                        </DockPanel>
+                        <CheckBox Content="Use Windows text size" IsChecked="True" Margin="0,3" />
+                        <CheckBox Content="Halo around the text" Margin="0,3" />
+                        <CheckBox Content="Disabled" IsChecked="True" IsEnabled="False" Margin="0,3" />
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Sliders and colour" Margin="0,0,0,8" Padding="6">
+                    <StackPanel>
+                        <DockPanel Margin="0,3">
+                            <TextBlock Text="Border width" Width="110" VerticalAlignment="Center" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding Value, ElementName=WidthSlider}" Width="40" Margin="6,0,0,0" />
+                            <Slider x:Name="WidthSlider" Minimum="0" Maximum="10" Value="3" IsSnapToTickEnabled="True" TickFrequency="1" />
+                        </DockPanel>
+                        <DockPanel Margin="0,3">
+                            <TextBlock Text="Disabled" Width="110" VerticalAlignment="Center" />
+                            <Slider Minimum="0" Maximum="10" Value="6" IsEnabled="False" />
+                        </DockPanel>
+                        <!-- The picker as in the settings window: swatch toggles a popup with pad and hue slider. -->
+                        <DockPanel Margin="0,3" DataContext="{Binding Colour, RelativeSource={RelativeSource AncestorType=Window}}">
+                            <TextBlock Text="Colour" Width="110" VerticalAlignment="Center" />
+                            <Grid DockPanel.Dock="Right" Margin="6,0,0,0">
+                                <ToggleButton x:Name="SwatchButton" Width="32" Height="22" Padding="1" ToolTip="Pick a colour"
+                                              HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                    <Border Background="{StaticResource SwatchCheckerBrush}">
+                                        <Rectangle Fill="{Binding Value}" />
+                                    </Border>
+                                </ToggleButton>
+                                <Popup x:Name="Picker" PlacementTarget="{Binding ElementName=SwatchButton}" Placement="Bottom"
+                                       StaysOpen="False" IsOpen="{Binding IsChecked, ElementName=SwatchButton, Mode=TwoWay}">
+                                    <Border Background="{DynamicResource FlyoutBackground}"
+                                            BorderBrush="{DynamicResource FlyoutBorderBrush}" BorderThickness="1" Padding="8">
+                                        <StackPanel>
+                                            <app:SaturationValuePad Width="200" Height="140" Cursor="Cross"
+                                                                    Hue="{Binding Hue}" Saturation="{Binding Saturation}" Brightness="{Binding Brightness}" />
+                                            <Slider Margin="0,8,0,0" Minimum="0" Maximum="360" Value="{Binding Hue}"
+                                                    Style="{StaticResource HueSliderStyle}" ToolTip="Hue" />
+                                        </StackPanel>
+                                    </Border>
+                                </Popup>
+                            </Grid>
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding AlphaPercent}" Width="40" Margin="6,0,0,0" VerticalAlignment="Center" />
+                            <TextBox DockPanel.Dock="Left" Width="72" Text="{Binding Hex, UpdateSourceTrigger=PropertyChanged}" />
+                            <Slider Margin="6,0,0,0" Minimum="0" Maximum="{x:Static vm:ColourField.MaxAlpha}" Value="{Binding Alpha}"
+                                    VerticalAlignment="Center" />
+                        </DockPanel>
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Buttons and messages" Margin="0,0,0,8" Padding="6">
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,3">
+                            <Button Content="Reset to defaults" Padding="8,2" Margin="0,0,6,0" ToolTip="A tool tip" />
+                            <Button Content="Ctrl+Alt+L" Padding="8,2" Margin="0,0,6,0" />
+                            <Button Content="Disabled" Padding="8,2" IsEnabled="False" />
+                        </StackPanel>
+                        <TextBlock Text="Problem: Ctrl, Alt or Win required." Foreground="{DynamicResource SystemFillColorCriticalBrush}" Margin="0,3" />
+                        <TextBlock Text="Warning: Planning clears the delivered ticks." Foreground="{DynamicResource SystemFillColorCautionBrush}" Margin="0,3" />
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Mission rows" Padding="6">
+                    <DataGrid x:Name="Grid" Height="240" AutoGenerateColumns="False" CanUserAddRows="True"
+                              CanUserSortColumns="False" CanUserReorderColumns="False" SelectionMode="Single"
+                              HeadersVisibility="Column">
+                        <!-- Fluent's rows are a keyed style the grid sets, there is no implicit one to base on. Row and cell
+                             templates paint a fixed transparent background, so an invalid row gets a frame instead of a
+                             tint: the row template binds BorderBrush (D36). -->
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasError}" Value="True">
+                                        <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                                        <Setter Property="BorderThickness" Value="1" />
+                                        <Setter Property="ToolTip" Value="An invalid row" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Stop" Binding="{Binding Stop}" IsReadOnly="True" Width="Auto" />
+                            <DataGridTextColumn Header="Destination" Binding="{Binding Destination}" Width="2*" />
+                            <DataGridTextColumn Header="Commodity" Binding="{Binding Commodity}" Width="2*" />
+                            <DataGridTextColumn Header="SCU" Binding="{Binding Scu}" Width="*" />
+                            <DataGridComboBoxColumn Header="Max crate" ItemsSource="{x:Static ed:MissionRows.MaxCrateSizes}"
+                                                    SelectedItemBinding="{Binding MaxCrate}" Width="*" />
+                            <DataGridTemplateColumn Header="Crates" Width="1.5*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Crates}" FontStyle="Italic" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                                <DataGridTemplateColumn.CellEditingTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Crates}" FontStyle="Italic" BorderThickness="0" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellEditingTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

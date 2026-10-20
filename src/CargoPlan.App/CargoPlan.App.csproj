@@ -9,6 +9,12 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
 
+  <!-- The theme sample (T4.7a) is a developer window: not in the Release build. -->
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <Page Remove="ThemeSampleWindow.xaml" />
+    <Compile Remove="ThemeSampleWindow.xaml.cs" />
+  </ItemGroup>
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>

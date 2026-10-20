@@ -457,6 +457,24 @@ Einstellbare Werte:
 
 **Akzeptanz:** „Heck zuerst“ → Plan → Kisten beginnen am Heck; Neustart behält die Richtung (plan.json); der Editor startet mit der Richtung des aktuellen Plans.
 
+### [x] T4.7a Werkzeugfenster-Theme: Fluent-Spike + Musterseite
+**Warum:** Settings-Fenster, Editor und Picker stehen im hellen Systemlook (D34) und blenden über dem dunklen Spiel. Drei feste Modi light/dark/system; das Overlay bleibt `appearance` (D34).
+**Präzisiert in der Planung:** zuerst Fluent-Spike (`Window.ThemeMode`, nur auf Werkzeugfenstern, `Application.ThemeMode` bleibt `None`), Timebox halbe Session; Weiche F (Fluent) / E (eigene Templates) nach sieben Kriterien: 1 Overlay und Lock-Fenster unverändert, Gear-Tooltip im Systemlook; 2 jedes verwendete Control in light und dark lesbar (DataGrid, ComboBox-Popup, ScrollBar, ToolTip, Kontextmenü, Picker-Popup); 3 `System` folgt live, Titelleiste mit; 4 Settings-Fenster bei 400 px ohne Layoutbruch; 5 Akzent überschreibbar, `WPF0001` lokal per `#pragma`; 6 Markierungsfarben (ungültig, Problem, Warnung) folgen dem Modus; 7 **Martins Blick im Spiel** („Overlay oder Windows?“). **Die Session hält nach dem Spike an**, erst nach Martins Urteil geht es mit E oder F weiter. Weg E: Palette als C#-Record ohne Defaults (Compiler erzwingt gleiche Keys), Templates in einem pro Werkzeugfenster gemergten `ToolStyles.xaml` (nicht App.xaml, sonst trifft es Overlay-Tooltips), `WM_SETTINGCHANGE` am HwndSource mit Neulesen von `AppsUseLightTheme`, DWM-Titelleiste (`DWMWA_USE_IMMERSIVE_DARK_MODE` = 20, Fehler ignoriert), High Contrast → Systemlook, Kontrast-Test ≥ 4,5:1; reicht die Session nicht, Schnitt in 4.7a/4.7a2 (ScrollBar, DataGrid, ContextMenu, Popup). Präzisierung in der Planphase, ratifiziert durch Freigabe.
+**Präzisiert nach dem Spike (Weg F, Akzent Teal fest):** `Settings/ToolWindowTheme` (Enum System/Light/Dark, WPF-frei; Parsen erst 4.7b); `Theme/ToolWindowThemer.Apply` setzt `ThemeMode` pro Fenster (einzige `WPF0001`-Stelle) und Teal über die sieben `SystemColors.AccentColor*Key`; Muster für eigene Styles: `Apply` vor `InitializeComponent`, `BasedOn` Fluent, eigene Styles eine Ebene unter dem Fenster (sonst kein Base), DataGrid-Zeilen `BasedOn` `DefaultDataGridRowStyle`; `HueSliderStyle` in App.xaml; deaktivierte Slider/TextBox mit Opacity 0.4; Popup über `FlyoutBackground`; Markierungen über `SystemFillColor*`; Fluent kann Zeilen nicht tönen, eine ungültige Zeile bekommt deshalb einen 1-px-Rahmen in `SystemFillColorCriticalBrush` (statt roter Schrift); Musterseite öffnet neben dem Overlay statt allein (Gate 1 und 7). Präzisierung in der Planphase, ratifiziert durch Freigabe (D36).
+- Musterseite `--theme-sample`, nur im Debug-Build: jedes Control der Werkzeugfenster, Moduswahl light/dark/system live
+- Spike-Ergebnis pro Kriterium in D36
+
+**Akzeptanz:** Kriterien 1–6 belegt; Martin nimmt die Musterseite in beiden Modi im Spiel ab; `--theme-sample` fehlt im Release-Build; Core unverändert.
+
+### [ ] T4.7b Werkzeugfenster-Theme: Setting + Verdrahtung
+**Warum:** Erst mit Setting und Verdrahtung sieht der Spieler den Modus in Settings-Fenster, Editor und Picker.
+**Präzisiert in der Planung:** Top-Level `"toolWindowTheme"` (light|dark|system, klein), optional, kein Schema-Bump; `null` und fehlend = `system` ohne Notice (wie `legend: null`, T4.3), ungültiger String → `system` + Notice wie `legend.position`; nicht unter `appearance`, damit „Reset to defaults“ ihn nicht mitnimmt; `Settings/ToolWindowTheme` WPF-frei (Names/TryParse/Resolve), die WPF-Seite heißt `ToolWindowThemer`; Abschnitt „Tool windows“ nach Buttons, vor Hotkeys, ComboBox „Follow Windows / Light / Dark“, Apply-on-change (D30), kein Reset. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- `SettingsSession.ChangeToolWindowTheme`, entprellt gespeichert wie Hotkeys
+- Settings-Fenster, Editor und Picker-Popup folgen dem Modus; Datei-Dialoge und MessageBox bleiben System
+- settings-format.md, README, D36
+
+**Akzeptanz:** Modus im Fenster wechseln → Settings, Editor und Picker folgen sofort, Neustart behält ihn; „system“ folgt dem Windows-Wechsel live; Reset eines Abschnitts lässt den Modus stehen; `"toolWindowTheme": "blue"` → system + Notice, `null` → system ohne Notice; Overlay unverändert; Core unverändert.
+
 ---
 
 ## Phase 5 – Release (vor dem Import, weil Reichweite vorne steht)
