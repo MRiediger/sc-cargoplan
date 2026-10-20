@@ -486,3 +486,6 @@ after_example_missions.txt
 after_overflow_missions.txt
 after_split_and_shared.txt
 after_split_required.txt
+ct_copy.db
+ct_copy.db-shm
+ct_copy.db-wal
