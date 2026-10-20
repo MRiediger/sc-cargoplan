@@ -520,16 +520,17 @@ Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1
 - Einzelne Mission aus CT verschwunden = erfüllt, raus aus dem Plan
 - Alle gleichzeitig verschwunden = CT-Reset → Plan bleibt + Notice
 - `FileSystemWatcher` auf DB + `-wal`, 500 ms entprellt
-- Knopf „Load from ContractTracker“ im Editor neben „Import…“: manuelles „jetzt lesen“, auch wenn der Watcher schweigt oder Auto-Sync (T5.5) aus ist; nicht in der Kopfzeile, die ist mit sechs Buttons voll, und wer nachlädt, ist ohnehin im Editor
+- Knopf „Sync from ContractTracker“ im Editor neben „Import…“: manuelles „jetzt lesen“, auch wenn der Watcher schweigt oder Auto-Sync (T5.5) aus ist; nicht in der Kopfzeile, die ist mit sechs Buttons voll, und wer nachlädt, ist ohnehin im Editor. „Sync“, nicht „Load“: „Import…“ daneben ersetzt den Plan, diese Aktion legt inkrementell nach und behält Positionen und Haken; „Load“ würde dieselbe Bedeutung wie „Import…“ nahelegen. Präzisierung in der Planphase, ratifiziert durch Freigabe.
 
-**Akzeptanz:** Tests grün (inkrementell ohne Bewegung liegender Kisten, Haken bleiben, Entfernen einer Mission, CT-Reset); im Spiel: zweiten Auftrag annehmen → erscheint im Overlay, Kisten und Haken des ersten unverändert; Auftrag abschließen → verschwindet; „Load from ContractTracker“ lädt auch ohne Watcher-Ereignis.
+**Akzeptanz:** Tests grün (inkrementell ohne Bewegung liegender Kisten, Haken bleiben, Entfernen einer Mission, CT-Reset); im Spiel: zweiten Auftrag annehmen → erscheint im Overlay, Kisten und Haken des ersten unverändert; Auftrag abschließen → verschwindet; „Sync from ContractTracker“ lädt auch ohne Watcher-Ereignis.
 
 ### [ ] T5.5 Settings-Abschnitt „ContractTracker“
 **Warum:** Nicht jede Installation liegt am Standardpfad, nicht jeder will Auto-Sync.
 - Abschnitt „ContractTracker“ im Settings-Fenster: Pfad (Autodetektion + manuell), Auto-Sync an/aus
-- „Load from ContractTracker“ im Editor (aus T5.4) bleibt der manuelle Weg, auch bei Auto-Sync aus
+- „Sync from ContractTracker“ im Editor (aus T5.4) bleibt der manuelle Weg, auch bei Auto-Sync aus
+- Optionaler Hotkey „Sync from ContractTracker“ im Hotkeys-Abschnitt, Default `null` (keine Default-Hotkeys, D17): dieselbe Aktion wie der Knopf, auch im Spiel ohne Cursor. Präzisierung in der Planphase, ratifiziert durch Freigabe.
 
-**Akzeptanz:** Autodetektion findet Martins DB; manueller Pfad wirkt ohne Neustart und überlebt ihn; Auto-Sync aus → CT-Änderung ändert den Plan nicht, der Knopf lädt.
+**Akzeptanz:** Autodetektion findet Martins DB; manueller Pfad wirkt ohne Neustart und überlebt ihn; Auto-Sync aus → CT-Änderung ändert den Plan nicht, der Knopf lädt; Hotkey gesetzt → lädt wie der Knopf, ohne Eintrag kein Hotkey.
 
 ---
 
