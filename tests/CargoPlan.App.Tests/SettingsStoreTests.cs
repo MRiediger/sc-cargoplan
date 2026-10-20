@@ -169,6 +169,63 @@ public sealed class SettingsStoreTests : IDisposable
         File.ReadAllText(SettingsPath).Should().Be(content);
     }
 
+    // Tool window theme (T4.7b, D36)
+
+    [Fact]
+    public void Save_then_Load_keeps_the_tool_window_theme()
+    {
+        var settings = AppSettings.Default with { ToolWindowTheme = "dark" };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+        File.ReadAllText(SettingsPath).Should().Contain("\"toolWindowTheme\": \"dark\"");
+    }
+
+    [Theory]
+    [InlineData("""{ "schemaVersion": 2 }""")]
+    [InlineData("""{ "schemaVersion": 2, "toolWindowTheme": null }""")]
+    public void File_without_tool_window_theme_follows_Windows_without_a_problem(string content)
+    {
+        // Optional, no schemaVersion bump (D31); null reads like missing, as legend: null (T4.3).
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.ToolWindowTheme.Should().Be("system");
+    }
+
+    [Fact]
+    public void Invalid_tool_window_theme_follows_Windows_with_a_problem_and_the_rest_applies()
+    {
+        const string content = """
+            { "schemaVersion": 2, "toolWindowTheme": "blue", "legend": { "visible": false } }
+            """;
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.ToolWindowTheme.Should().Be("system");
+        loaded.Legend.Visible.Should().BeFalse();
+        problem.Should().Be("settings.json: toolWindowTheme \"blue\" is not valid (system, light or dark), using system.");
+        File.ReadAllText(SettingsPath).Should().Be(content);
+    }
+
+    [Fact]
+    public void Tool_window_theme_of_the_wrong_JSON_type_makes_the_file_invalid()
+    {
+        // Structural like every wrong type (D13): defaults plus a notice, not a correction.
+        WriteFile("""{ "schemaVersion": 2, "toolWindowTheme": 1 }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(AppSettings.Default);
+        problem.Should().StartWith("Settings not loaded");
+    }
+
     [Fact]
     public void Save_then_Load_keeps_the_appearance()
     {

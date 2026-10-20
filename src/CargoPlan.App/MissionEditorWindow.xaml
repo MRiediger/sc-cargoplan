@@ -16,20 +16,21 @@
         WindowStartupLocation="CenterOwner">
     <!-- A normal window: here the player types, so it takes the focus on purpose (no WS_EX_NOACTIVATE, no click-through).
          Topmost comes with the topmost overlay as owner anyway. ShowActivated=False is for showing it again after the
-         auto-lock (D19); opening it calls Activate() explicitly. -->
-    <Window.Resources>
-        <ed:SelectedRowConverter x:Key="SelectedRowConverter" />
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <Style x:Key="ToolbarButtonStyle" TargetType="Button">
-            <Setter Property="Margin" Value="0,0,4,0" />
-            <Setter Property="Padding" Value="8,2" />
-        </Style>
-    </Window.Resources>
+         auto-lock (D19); opening it calls Activate() explicitly. Fluent light or dark, like the settings window (D36). -->
 
     <!-- ButtonBase.Click bubbles before the button runs its command: every button first ends the cell edit,
          because moving or removing rows during an edit transaction throws.
          Source: ButtonBase.OnClick raises Click, then executes the command (dotnet/wpf, ButtonBase.cs). -->
     <DockPanel Margin="8" ButtonBase.Click="OnAnyButtonClick">
+        <!-- One level below the window, so BasedOn finds Fluent's styles (D36). -->
+        <DockPanel.Resources>
+            <ed:SelectedRowConverter x:Key="SelectedRowConverter" />
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+            <Style x:Key="ToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                <Setter Property="Margin" Value="0,0,4,0" />
+                <Setter Property="Padding" Value="8,2" />
+            </Style>
+        </DockPanel.Resources>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
             <Button Content="Add" Command="{Binding AddRowCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Add a row (or type into the empty row at the bottom)" />
@@ -58,16 +59,19 @@
                           SelectedValuePath="Value" SelectedValue="{Binding FillOrder}" MinWidth="90" />
             </StackPanel>
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{StaticResource EditorProblemBrush}" />
+                <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
                 <TextBlock Text="{x:Static vm:MissionEditorViewModel.ClearsDeliveredText}" TextWrapping="Wrap"
-                           Foreground="{StaticResource EditorWarningBrush}"
+                           Foreground="{DynamicResource SystemFillColorCautionBrush}"
                            Visibility="{Binding ClearsDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </StackPanel>
         </DockPanel>
 
         <!-- Bindings with UpdateSourceTrigger=PropertyChanged: the data grid would otherwise commit only at the end of the
              edit, and the stop column, the red row and the Plan button would lag behind the typing.
-             Sorting is off: it would reorder the view, not the route. -->
+             Sorting is off: it would reorder the view, not the route. Fluent's row and cell templates paint a fixed
+             transparent background, so an invalid row gets a frame instead of a tint: the row template binds BorderBrush.
+             Rows and headers are keyed Fluent styles the grid sets, there is no implicit one to base on (D36).
+             Source: dotnet/wpf, PresentationFramework.Fluent/Styles/DataGrid.xaml -->
         <DataGrid x:Name="Grid"
                   ItemsSource="{Binding Rows}"
                   SelectedItem="{Binding SelectedRow, Converter={StaticResource SelectedRowConverter}}"
@@ -79,10 +83,11 @@
                   SelectionMode="Single"
                   HeadersVisibility="Column">
             <DataGrid.RowStyle>
-                <Style TargetType="DataGridRow">
+                <Style TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding HasError}" Value="True">
-                            <Setter Property="Background" Value="{StaticResource InvalidRowBrush}" />
+                            <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCriticalBrush}" />
+                            <Setter Property="BorderThickness" Value="1" />
                             <Setter Property="ToolTip" Value="{Binding Error}" />
                         </DataTrigger>
                     </Style.Triggers>
@@ -103,7 +108,7 @@
                      Source: https://learn.microsoft.com/dotnet/api/system.windows.input.focusmanager.focusedelement -->
                 <DataGridTemplateColumn Header="Crates" Width="1.5*">
                     <DataGridTemplateColumn.HeaderStyle>
-                        <Style TargetType="DataGridColumnHeader">
+                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource DefaultDataGridColumnHeaderStyle}">
                             <Setter Property="ToolTip" Value="{x:Static ed:MissionRows.CratesToolTipText}" />
                         </Style>
                     </DataGridTemplateColumn.HeaderStyle>

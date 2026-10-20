@@ -4,6 +4,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
+using CargoPlan.App.Theme;
 using CargoPlan.App.ViewModels;
 using CargoPlan.App.Win32;
 
@@ -116,7 +117,7 @@ public partial class OverlayWindow : Window
     {
         if (_editor is null)
         {
-            _editor = new MissionEditorWindow(new MissionEditorViewModel(_viewModel), _viewModel, this);
+            _editor = new MissionEditorWindow(new MissionEditorViewModel(_viewModel), _viewModel, _settings.ToolWindowTheme, this);
             _editor.Closed += (_, _) => _editor = null;
             _editor.Show();
         }
@@ -135,9 +136,12 @@ public partial class OverlayWindow : Window
             // SystemFonts lives in WPF, so the window reads it and the view model stays WPF-free (D31).
             var current = _settings.Current;
             _settingsWindow = new SettingsWindow(
-                new SettingsViewModel(current.Appearance, current.Legend, SystemFonts.MessageFontSize, _settings.ChangeLook),
+                new SettingsViewModel(
+                    current.Appearance, current.Legend, SystemFonts.MessageFontSize, _settings.ChangeLook,
+                    _settings.ToolWindowTheme, ChangeToolWindowTheme),
                 _createHotkeys(),
                 _viewModel,
+                _settings.ToolWindowTheme,
                 this);
 
             Rect screen = new(
@@ -155,6 +159,19 @@ public partial class OverlayWindow : Window
         }
 
         _settingsWindow.Activate();
+    }
+
+    /// <summary>
+    /// The overlay owns the tool windows, so it switches the open ones (D36); ones opened later read the mode from the
+    /// session. A third tool window must be added here.
+    /// </summary>
+    private void ChangeToolWindowTheme(ToolWindowTheme theme)
+    {
+        _settings.ChangeToolWindowTheme(theme);
+        foreach (var window in new Window?[] { _settingsWindow, _editor }.OfType<Window>())
+        {
+            ToolWindowThemer.Apply(window, theme);
+        }
     }
 
     /// <summary>

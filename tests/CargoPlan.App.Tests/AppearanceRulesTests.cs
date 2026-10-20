@@ -159,6 +159,28 @@ public sealed class AppearanceRulesTests
     }
 
     [Theory]
+    [InlineData("system")]
+    [InlineData("light")]
+    [InlineData("dark")]
+    public void Valid_tool_window_theme_passes_unchanged(string theme)
+    {
+        var (normalized, problems) = AppearanceRules.NormalizeToolWindowTheme(theme);
+
+        normalized.Should().Be(theme);
+        problems.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Invalid_tool_window_theme_follows_Windows_with_a_problem()
+    {
+        var (normalized, problems) = AppearanceRules.NormalizeToolWindowTheme("blue");
+
+        normalized.Should().Be("system");
+        problems.Should().ContainSingle().Which.Should()
+            .Be("toolWindowTheme \"blue\" is not valid (system, light or dark), using system.");
+    }
+
+    [Theory]
     [InlineData(true, "bottom-left")]
     [InlineData(false, "top-right")]
     [InlineData(true, "top-center")]

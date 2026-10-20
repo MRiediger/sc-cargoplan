@@ -466,9 +466,11 @@ Einstellbare Werte:
 
 **Akzeptanz:** Kriterien 1–6 belegt; Martin nimmt die Musterseite in beiden Modi im Spiel ab; `--theme-sample` fehlt im Release-Build; Core unverändert.
 
-### [ ] T4.7b Werkzeugfenster-Theme: Setting + Verdrahtung
+### [x] T4.7b Werkzeugfenster-Theme: Setting + Verdrahtung
 **Warum:** Erst mit Setting und Verdrahtung sieht der Spieler den Modus in Settings-Fenster, Editor und Picker.
 **Präzisiert in der Planung:** Top-Level `"toolWindowTheme"` (light|dark|system, klein), optional, kein Schema-Bump; `null` und fehlend = `system` ohne Notice (wie `legend: null`, T4.3), ungültiger String → `system` + Notice wie `legend.position`; nicht unter `appearance`, damit „Reset to defaults“ ihn nicht mitnimmt; `Settings/ToolWindowTheme` WPF-frei (Names/TryParse/Resolve), die WPF-Seite heißt `ToolWindowThemer`; Abschnitt „Tool windows“ nach Buttons, vor Hotkeys, ComboBox „Follow Windows / Light / Dark“, Apply-on-change (D30), kein Reset. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+**Präzisiert in der Umsetzungsplanung:** kein `Resolve` (nur Weg E brauchte es, Fluent folgt Windows selbst); `OverlayWindow` schaltet die offenen Werkzeugfenster live um, weil es beide besitzt, neue Fenster bekommen den Modus im Konstruktor; die Musterseite schaltet nur noch sich selbst (sonst kämpft sie gegen das Setting); `AppSettings.ToolWindowTheme` ist ein String, geparst über `ToolWindowThemes` (Names/TryParse/Parse/ToName) neben dem Enum. Präzisierung in der Planphase, ratifiziert durch Freigabe (D36).
+**Präzisiert nach der Abnahme:** Text im Dark-Modus grau (`#D0D0D0`, nach Augenmaß aus drei Kandidaten) statt Fluents reinem Weiß; dafür kommt `Resolve` zurück (Registry wie Fluent) und `SystemEvents.UserPreferenceChanged` hält „Follow Windows“ live; Fokusrahmen bleibt weiß, High Contrast unangetastet. Präzisierung in der Planphase, ratifiziert durch Freigabe (D36, Nachtrag).
 - `SettingsSession.ChangeToolWindowTheme`, entprellt gespeichert wie Hotkeys
 - Settings-Fenster, Editor und Picker-Popup folgen dem Modus; Datei-Dialoge und MessageBox bleiben System
 - settings-format.md, README, D36

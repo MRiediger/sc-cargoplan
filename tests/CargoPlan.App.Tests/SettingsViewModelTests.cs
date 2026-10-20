@@ -8,9 +8,20 @@ public sealed class SettingsViewModelTests
     private const double WindowsFontSize = 11;
 
     private readonly List<(AppearanceSettings Appearance, LegendSettings Legend)> _applied = [];
+    private readonly List<ToolWindowTheme> _themes = [];
 
-    private SettingsViewModel Create(AppearanceSettings? appearance = null, LegendSettings? legend = null, double windowsFontSize = WindowsFontSize) =>
-        new(appearance ?? AppearanceSettings.Default, legend ?? LegendSettings.Default, windowsFontSize, (a, l) => _applied.Add((a, l)));
+    private SettingsViewModel Create(
+        AppearanceSettings? appearance = null,
+        LegendSettings? legend = null,
+        double windowsFontSize = WindowsFontSize,
+        ToolWindowTheme toolWindowTheme = ToolWindowTheme.System) =>
+        new(
+            appearance ?? AppearanceSettings.Default,
+            legend ?? LegendSettings.Default,
+            windowsFontSize,
+            (a, l) => _applied.Add((a, l)),
+            toolWindowTheme,
+            _themes.Add);
 
     private (AppearanceSettings Appearance, LegendSettings Legend) Last => _applied[^1];
 
@@ -465,5 +476,60 @@ public sealed class SettingsViewModelTests
 
         AppearanceRules.Normalize(Last.Appearance).Problems.Should().BeEmpty();
         AppearanceRules.Normalize(Last.Legend).Problems.Should().BeEmpty();
+    }
+
+    // Tool windows (T4.7b): not part of the look, so it has its own callback and no reset.
+
+    [Fact]
+    public void The_tool_window_theme_starts_as_given_and_opening_changes_nothing()
+    {
+        var viewModel = Create(toolWindowTheme: ToolWindowTheme.Dark);
+
+        viewModel.ToolWindowTheme.Should().Be(ToolWindowTheme.Dark);
+        _themes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Choosing_a_tool_window_theme_calls_its_callback_not_apply()
+    {
+        var viewModel = Create();
+
+        viewModel.ToolWindowTheme = ToolWindowTheme.Light;
+
+        _themes.Should().Equal(ToolWindowTheme.Light);
+        _applied.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Choosing_the_same_tool_window_theme_again_calls_nothing()
+    {
+        var viewModel = Create(toolWindowTheme: ToolWindowTheme.Light);
+
+        viewModel.ToolWindowTheme = ToolWindowTheme.Light;
+
+        _themes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void No_reset_touches_the_tool_window_theme()
+    {
+        var viewModel = Create(Changed, toolWindowTheme: ToolWindowTheme.Dark);
+
+        viewModel.ResetWindowCommand.Execute(null);
+        viewModel.ResetLegendCommand.Execute(null);
+        viewModel.ResetLegendLayoutCommand.Execute(null);
+        viewModel.ResetCratesCommand.Execute(null);
+        viewModel.ResetHeaderCommand.Execute(null);
+        viewModel.ResetButtonsCommand.Execute(null);
+
+        viewModel.ToolWindowTheme.Should().Be(ToolWindowTheme.Dark);
+        _themes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void The_tool_window_choices_are_every_mode_in_the_file_order_with_player_words()
+    {
+        SettingsViewModel.ToolWindowThemeChoices.Select(c => ToolWindowThemes.ToName(c.Value)).Should().Equal(ToolWindowThemes.Names);
+        SettingsViewModel.ToolWindowThemeChoices.Select(c => c.Text).Should().Equal("Follow Windows", "Light", "Dark");
     }
 }

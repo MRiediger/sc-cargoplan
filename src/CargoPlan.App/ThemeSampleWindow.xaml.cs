@@ -34,28 +34,15 @@ public partial class ThemeSampleWindow : Window
         ModeBox.SelectedItem = _theme;
         PositionBox.ItemsSource = LegendPosition.Names;
         Grid.ItemsSource = SampleRows();
-
-        // Settings and editor opened later (gear, pencil) get the mode when they load; class handlers run for every Window.
-        EventManager.RegisterClassHandler(typeof(Window), LoadedEvent, new RoutedEventHandler((sender, _) =>
-        {
-            if (sender is Window window && IsToolWindow(window))
-            {
-                ToolWindowThemer.Apply(window, _theme);
-            }
-        }));
     }
 
     public ColourField Colour { get; } = new("#FF2A9DB0", minAlpha: 0, () => { });
 
-    private static bool IsToolWindow(Window window) => window is SettingsWindow or MissionEditorWindow or ThemeSampleWindow;
-
+    /// <summary>This window only: settings and editor follow the setting in the settings window (T4.7b).</summary>
     private void OnModeChanged(object sender, SelectionChangedEventArgs e)
     {
         _theme = (ToolWindowTheme)ModeBox.SelectedItem;
-        foreach (var window in Application.Current.Windows.OfType<Window>().Where(IsToolWindow))
-        {
-            ToolWindowThemer.Apply(window, _theme);
-        }
+        ToolWindowThemer.Apply(this, _theme);
 
         // After the next render: the report compares what the overlay shows now with what it showed at start.
         Dispatcher.InvokeAsync(UpdateReport, DispatcherPriority.ContextIdle);

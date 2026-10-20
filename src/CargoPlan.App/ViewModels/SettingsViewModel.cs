@@ -21,6 +21,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private readonly double _windowsFontSize;
     private readonly Action<AppearanceSettings, LegendSettings> _apply;
+    private readonly Action<ToolWindowTheme> _changeToolWindowTheme;
 
     // True while fields are loaded (constructor, reset): their change calls are one change, applied once at the end.
     private bool _loading = true;
@@ -30,10 +31,19 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// Gets the new look and legend layout after every change; the session merges them into the one AppSettings, so
     /// bounds moved while this window is open stay (D34).
     /// </param>
-    public SettingsViewModel(AppearanceSettings appearance, LegendSettings legend, double windowsFontSize, Action<AppearanceSettings, LegendSettings> apply)
+    /// <param name="changeToolWindowTheme">Gets a new tool window mode; apart from <paramref name="apply"/>, because it is no part of the overlay's look (D36).</param>
+    public SettingsViewModel(
+        AppearanceSettings appearance,
+        LegendSettings legend,
+        double windowsFontSize,
+        Action<AppearanceSettings, LegendSettings> apply,
+        ToolWindowTheme toolWindowTheme,
+        Action<ToolWindowTheme> changeToolWindowTheme)
     {
         _windowsFontSize = Math.Clamp(windowsFontSize, AppearanceRules.MinFontSize, AppearanceRules.MaxFontSize);
         _apply = apply;
+        _changeToolWindowTheme = changeToolWindowTheme;
+        ToolWindowTheme = toolWindowTheme;
 
         WindowBackground = new(appearance.Window.Background, AppearanceRules.MinClickableAlpha, OnChanged);
         WindowBorderColor = new(appearance.Window.BorderColor, minAlpha: 0, OnChanged);
@@ -143,6 +153,18 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public HaloEditor ButtonsHalo { get; }
 
+    // Tool windows (D36): this window and the editor, not the overlay. Set once, so no reset.
+
+    public static IReadOnlyList<ToolWindowThemeChoice> ToolWindowThemeChoices { get; } =
+    [
+        new(Settings.ToolWindowTheme.System, "Follow Windows"),
+        new(Settings.ToolWindowTheme.Light, "Light"),
+        new(Settings.ToolWindowTheme.Dark, "Dark"),
+    ];
+
+    [ObservableProperty]
+    public partial ToolWindowTheme ToolWindowTheme { get; set; }
+
     [RelayCommand]
     private void ResetWindow() => Batch(() => LoadWindow(WindowAppearance.Default));
 
@@ -179,6 +201,15 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnButtonsBorderThicknessChanged(double value) => OnChanged();
 
     partial void OnButtonsCornerRadiusChanged(double value) => OnChanged();
+
+    // Not OnChanged: the mode is no part of the look. The constructor sets it while loading, which calls nothing.
+    partial void OnToolWindowThemeChanged(ToolWindowTheme value)
+    {
+        if (!_loading)
+        {
+            _changeToolWindowTheme(value);
+        }
+    }
 
     private void LoadWindow(WindowAppearance window)
     {

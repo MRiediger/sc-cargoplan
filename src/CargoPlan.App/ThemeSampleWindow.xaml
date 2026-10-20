@@ -36,7 +36,7 @@
                 <TextBlock Text="Mode" Width="110" VerticalAlignment="Center" />
                 <ComboBox x:Name="ModeBox" SelectionChanged="OnModeChanged" />
             </DockPanel>
-            <TextBlock Text="Applies to this window and to open settings and editor windows; ones opened later get it too."
+            <TextBlock Text="Applies to this window only; settings and editor follow the setting in the settings window."
                        TextWrapping="Wrap" Margin="0,6,0,0" />
             <TextBlock x:Name="Report" TextWrapping="Wrap" Margin="0,6,0,0" FontFamily="Consolas" />
         </StackPanel>

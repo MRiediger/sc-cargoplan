@@ -243,6 +243,36 @@ public sealed class SettingsSessionTests : IDisposable
         File.ReadAllText(SettingsPath).Should().Contain("\"toggleLock\": null").And.Contain("\"toggleOverlay\": null");
     }
 
+    // Tool window theme (T4.7b)
+
+    [Fact]
+    public void ChangeToolWindowTheme_writes_on_flush_and_keeps_the_rest()
+    {
+        var hotkeys = new HotkeySettings("Ctrl+Alt+L", null);
+        var session = Create(AppSettings.Default with { Overlay = Bounds, Appearance = Thick, Hotkeys = hotkeys });
+
+        session.ChangeToolWindowTheme(ToolWindowTheme.Dark);
+
+        session.ToolWindowTheme.Should().Be(ToolWindowTheme.Dark);
+        File.Exists(SettingsPath).Should().BeFalse();
+
+        session.Flush();
+
+        Saved().Should().Be(AppSettings.Default with { Overlay = Bounds, Appearance = Thick, Hotkeys = hotkeys, ToolWindowTheme = "dark" });
+    }
+
+    [Fact]
+    public void ChangeLook_keeps_the_tool_window_theme()
+    {
+        var session = Create(AppSettings.Default with { ToolWindowTheme = "light" });
+
+        session.ChangeLook(Thick, LegendSettings.Default);
+        session.Flush();
+
+        Saved().ToolWindowTheme.Should().Be("light");
+        session.ToolWindowTheme.Should().Be(ToolWindowTheme.Light);
+    }
+
     [Fact]
     public void Colours_reach_the_resources()
     {

@@ -1,6 +1,8 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using CargoPlan.App.Settings;
+using CargoPlan.App.Theme;
 using CargoPlan.App.ViewModels;
 using Microsoft.Win32;
 
@@ -16,9 +18,12 @@ public partial class MissionEditorWindow : Window
 
     private readonly MissionEditorViewModel _viewModel;
 
+    /// <param name="theme">The tool windows' mode (D36); the overlay switches it later through <see cref="ToolWindowThemer"/>.</param>
     /// <param name="owner">Must already be shown: Owner rejects a window that was never shown.</param>
-    public MissionEditorWindow(MissionEditorViewModel viewModel, OverlayViewModel overlay, Window owner)
+    public MissionEditorWindow(MissionEditorViewModel viewModel, OverlayViewModel overlay, ToolWindowTheme theme, Window owner)
     {
+        // Before InitializeComponent, so the own styles in the XAML find Fluent's with BasedOn (D36).
+        ToolWindowThemer.Apply(this, theme);
         InitializeComponent();
         _viewModel = viewModel;
         DataContext = viewModel;

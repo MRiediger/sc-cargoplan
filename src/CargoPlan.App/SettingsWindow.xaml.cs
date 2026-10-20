@@ -2,6 +2,8 @@ using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using CargoPlan.App.Hotkeys;
+using CargoPlan.App.Settings;
+using CargoPlan.App.Theme;
 using CargoPlan.App.ViewModels;
 
 namespace CargoPlan.App;
@@ -18,9 +20,12 @@ public partial class SettingsWindow : Window
     private readonly HotkeysViewModel _hotkeys;
 
     /// <param name="hotkeys">The Hotkeys section's own data context: hotkeys are no part of the look (D35).</param>
+    /// <param name="theme">The tool windows' mode (D36); the overlay switches it later through <see cref="ToolWindowThemer"/>.</param>
     /// <param name="owner">Must already be shown: Owner rejects a window that was never shown.</param>
-    public SettingsWindow(SettingsViewModel viewModel, HotkeysViewModel hotkeys, OverlayViewModel overlay, Window owner)
+    public SettingsWindow(SettingsViewModel viewModel, HotkeysViewModel hotkeys, OverlayViewModel overlay, ToolWindowTheme theme, Window owner)
     {
+        // Before InitializeComponent, so the own styles in the XAML find Fluent's with BasedOn (D36).
+        ToolWindowThemer.Apply(this, theme);
         InitializeComponent();
         DataContext = viewModel;
         _hotkeys = hotkeys;

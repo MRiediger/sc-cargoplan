@@ -3,7 +3,8 @@ using System.Globalization;
 namespace CargoPlan.App.Settings;
 
 /// <summary>
-/// Checks the values of <see cref="AppearanceSettings"/> and <see cref="LegendSettings"/> after loading (D31, D33). A number outside its range is clamped (closer
+/// Checks the values of <see cref="AppearanceSettings"/>, <see cref="LegendSettings"/> and the tool windows' mode after
+/// loading (D31, D33, D36). A number outside its range is clamped (closer
 /// to what the player meant than the default), an invalid colour takes its default; either way with a problem line for
 /// the overlay, and the rest of the file applies. Structural errors (unknown key, wrong JSON type) never get here:
 /// they make the whole file invalid in <see cref="SettingsStore"/>. No WPF: the load tests run without a window.
@@ -86,6 +87,20 @@ public static class AppearanceRules
     {
         Checker check = new();
         return (legend with { Position = check.Position("legend.position", legend.Position) }, check.Problems);
+    }
+
+    /// <summary>Checks the tool windows' mode (D36): an unknown name follows Windows, like a colour that isn't one.</summary>
+    /// <returns>The checked name and one line if it was corrected, empty otherwise.</returns>
+    public static (string Theme, IReadOnlyList<string> Problems) NormalizeToolWindowTheme(string theme)
+    {
+        if (ToolWindowThemes.TryParse(theme, out _))
+        {
+            return (theme, []);
+        }
+
+        var fallback = ToolWindowThemes.DefaultName;
+        var names = ToolWindowThemes.Names;
+        return (fallback, [$"toolWindowTheme \"{theme}\" is not valid ({string.Join(", ", names.Take(names.Count - 1))} or {names[^1]}), using {fallback}."]);
     }
 
     /// <summary>Collects the problem lines while one appearance is checked.</summary>

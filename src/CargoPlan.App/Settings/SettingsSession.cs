@@ -80,6 +80,20 @@ public sealed class SettingsSession
         _timer.Start();
     }
 
+    /// <summary>The tool windows' mode (D36); the overlay switches the open ones, new ones read it here.</summary>
+    public ToolWindowTheme ToolWindowTheme => ToolWindowThemes.Parse(Current.ToolWindowTheme);
+
+    /// <summary>
+    /// From the settings window: saved after <see cref="Debounce"/> like a hotkey. Applying it is the overlay's job: it owns
+    /// the tool windows, this session only the overlay's look.
+    /// </summary>
+    public void ChangeToolWindowTheme(ToolWindowTheme theme)
+    {
+        Current = Current with { ToolWindowTheme = ToolWindowThemes.ToName(theme) };
+        _timer.Stop();
+        _timer.Start();
+    }
+
     /// <summary>
     /// From <see cref="OverlayBoundsSaver"/>, which has debounced already: saved at once, a pending look change with it.
     /// </summary>

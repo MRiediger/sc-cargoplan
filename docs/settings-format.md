@@ -1,13 +1,14 @@
 # Settings file format
 
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
-the legend stands and the overlay's look. Position and size are saved whenever you move the overlay; the
-settings window (the gear in the header) sets and saves the look, the legend layout and the hotkeys. You
-can still edit the file by hand: close the overlay, edit the file, start the overlay again.
+the legend stands, the overlay's look and the tool windows' theme. Position and size are saved whenever you
+move the overlay; the settings window (the gear in the header) sets and saves the look, the legend layout, the
+tool window theme and the hotkeys. You can still edit the file by hand: close the overlay, edit the file, start
+the overlay again.
 
 ## Example with every default
 
-Without a file, or without `legend` and `appearance`, the overlay uses exactly these values.
+Without a file, or without `legend`, `toolWindowTheme` and `appearance`, the overlay uses exactly these values.
 
 ```json
 {
@@ -15,6 +16,7 @@ Without a file, or without `legend` and `appearance`, the overlay uses exactly t
   "overlay": { "left": 100, "top": 200, "width": 420, "height": 460 },
   "hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H" },
   "legend": { "visible": true, "position": "bottom-left" },
+  "toolWindowTheme": "system",
   "appearance": {
     "window": {
       "background": "#A0141414",
@@ -132,11 +134,26 @@ right drag the selection.
 
 Ticking a destination off never moves the ship view, in any position.
 
+## Tool window theme
+
+`toolWindowTheme` sets light or dark for the settings window and the mission editor, colour picker included.
+It doesn't change the overlay: that is `appearance`. It sits at the top level, not inside `appearance`, so
+**Reset to defaults** in the settings window never switches it.
+
+| Value | What |
+|---|---|
+| `"system"` | Follows the Windows app mode (Settings → Personalisation → Colours), also while the windows are open. The default. |
+| `"light"` | Always light |
+| `"dark"` | Always dark, easier on the eyes next to the game |
+
+Lower case only. Missing or `null` means `"system"`. File dialogs and message boxes keep the Windows look.
+
 ## When something is wrong
 
 - **A value outside its range** is set to the nearest limit (`"fontSize": 0` → 8, `"fillAlpha": 300` → 255).
 - **A colour that isn't one** (`"red"`, `"#12345"`) takes its default.
 - **A legend position that isn't one** (`"up"`, `"Bottom-Left"`) takes `bottom-left`.
+- **A tool window theme that isn't one** (`"blue"`, `"Dark"`) takes `system`.
 - In all these cases everything else in the file applies, and an amber line in the overlay names the value. The
   file stays as it is until you move the overlay or change a setting; then it is saved with the corrected values.
 - **A misspelt key** (`"fontsize"`), **a wrong type** (`"fontSize": "big"`), `null` for a colour or a file
@@ -149,7 +166,7 @@ Ticking a destination off never moves the ship view, in any position.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend` came later as an optional part of version 2 |
+| 2 | this version | plus `appearance`; `legend` and `toolWindowTheme` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a

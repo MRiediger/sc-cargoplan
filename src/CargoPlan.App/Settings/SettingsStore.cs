@@ -27,7 +27,7 @@ public static class SettingsStore
     /// <summary>
     /// Missing file = defaults, no problem. Broken file or unknown schema version = defaults plus a problem
     /// text for the overlay; the file is left as it is, so a reader bug can't destroy it. Appearance values out of
-    /// range or not a colour, and an unknown legend position, are corrected one by one (<see cref="AppearanceRules"/>), the problem lists them, the rest
+    /// range or not a colour, an unknown legend position and an unknown tool window theme, are corrected one by one (<see cref="AppearanceRules"/>), the problem lists them, the rest
     /// applies. The result always has the current schema version.
     /// </summary>
     public static (AppSettings Settings, string? Problem) Load(string path)
@@ -52,9 +52,10 @@ public static class SettingsStore
 
             var (appearance, appearanceProblems) = AppearanceRules.Normalize(settings.Appearance);
             var (legend, legendProblems) = AppearanceRules.Normalize(settings.Legend);
+            var (theme, themeProblems) = AppearanceRules.NormalizeToolWindowTheme(settings.ToolWindowTheme);
             return (
-                settings with { SchemaVersion = SupportedSchemaVersion, Appearance = appearance, Legend = legend },
-                Corrections([.. legendProblems, .. appearanceProblems]));
+                settings with { SchemaVersion = SupportedSchemaVersion, Appearance = appearance, Legend = legend, ToolWindowTheme = theme },
+                Corrections([.. legendProblems, .. appearanceProblems, .. themeProblems]));
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {

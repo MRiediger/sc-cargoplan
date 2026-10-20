@@ -8,12 +8,17 @@ namespace CargoPlan.App.Settings;
 /// <param name="Hotkeys">null = no hotkeys; set by hand in the file (D17).</param>
 /// <param name="Appearance">Missing (schema 1) or null = the default look (D31).</param>
 /// <param name="Legend">Missing (before T4.3) or null = the legend at the bottom left with its stop lines (D33).</param>
+/// <param name="ToolWindowTheme">
+/// Missing (before T4.7b) or null = "system". Top level, not in <c>appearance</c>: "Reset to defaults" resets the overlay's
+/// look per section and must not switch the tool windows (D36). One of <see cref="ToolWindowThemes.Names"/>.
+/// </param>
 public sealed record AppSettings(
     int SchemaVersion,
     WindowBounds? Overlay = null,
     HotkeySettings? Hotkeys = null,
     AppearanceSettings? Appearance = null,
-    LegendSettings? Legend = null)
+    LegendSettings? Legend = null,
+    string? ToolWindowTheme = null)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
 
@@ -21,6 +26,8 @@ public sealed record AppSettings(
     public AppearanceSettings Appearance { get; init; } = Appearance ?? AppearanceSettings.Default;
 
     public LegendSettings Legend { get; init; } = Legend ?? LegendSettings.Default;
+
+    public string ToolWindowTheme { get; init; } = ToolWindowTheme ?? ToolWindowThemes.DefaultName;
 }
 
 /// <summary>

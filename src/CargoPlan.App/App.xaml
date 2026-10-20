@@ -45,11 +45,8 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <!-- Mission editor: a normal window with the system look; only its markings need colours. -->
-        <SolidColorBrush x:Key="InvalidRowBrush" Color="#FFFFD6D6" />
-        <SolidColorBrush x:Key="EditorProblemBrush" Color="#FFB00020" />
-        <SolidColorBrush x:Key="EditorWarningBrush" Color="#FF9A6700" />
-        <!-- Settings window, also the system look (D34): a checkerboard behind each colour swatch makes its alpha visible. -->
+        <!-- Tool windows (settings, editor) take their colours from Fluent, markings included (D36); none are kept here.
+             Settings window: a checkerboard behind each colour swatch makes its alpha visible, in light and dark alike. -->
         <DrawingBrush x:Key="SwatchCheckerBrush" TileMode="Tile" Viewport="0,0,8,8" ViewportUnits="Absolute">
             <DrawingBrush.Drawing>
                 <DrawingGroup>

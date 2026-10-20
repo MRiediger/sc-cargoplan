@@ -59,6 +59,7 @@ Start with `--locked` to begin with the padlock locked.
 - **Crates:** how solid the crates and their edges are (at the lift, turn the fill down to see the real crates through the planned ones), the colour and size of the rack numbers, and their outline.
 - **Header:** the colour of the ship name and the glyphs (pencil, gear, split, merge, padlock), and a halo around the ship name.
 - **Buttons:** background, frame and rounded corners of the glyph buttons, and a halo around the glyphs.
+- **Tool windows:** light, dark or follow Windows for the settings window and the mission editor; the overlay keeps the look you set above. Set once, so no reset.
 
 A colour is a hex code like `#141414` (the `#` is optional) plus a slider for its transparency; a code that isn't one turns the field red and changes nothing. Or click the colour square next to it: a picker opens, where you drag across the square for how vivid and how bright, and along the rainbow bar for the hue. The overlay follows while you drag. Esc or a click elsewhere closes the picker. The settings window hides with the overlay, like the editor, and opens next to it. Every key, its default and its range: [settings file format](docs/settings-format.md). The stop colours stay fixed: they are chosen to stay apart with colour blindness.
 
@@ -108,7 +109,7 @@ Both files are in `%LocalAppData%\SC-CargoPlan\` and are saved as soon as someth
 
 | File | What | Deleting it (overlay closed) |
 |---|---|---|
-| `settings.json` | Overlay position and size, hotkeys, look ([format](docs/settings-format.md)) | Default size, position and look, no hotkeys. Your plan stays. |
+| `settings.json` | Overlay position and size, hotkeys, look, tool window theme ([format](docs/settings-format.md)) | Default size, position and look, no hotkeys. Your plan stays. |
 | `plan.json` | Your current plan: the missions you entered, which crate lies where in which rack, ticks ([format](docs/plan-format.md)). The editor opens with these missions. A plan file from an older version is converted when the overlay loads it and saved in the new format; your ticks stay. | The overlay starts without a plan. Your settings stay. |
 
 If a file can't be read, the overlay starts without it and says so in an amber line. A single setting out of range or a colour that isn't one is corrected on its own, named in that line, and the rest of `settings.json` applies. It doesn't overwrite the file: `settings.json` stays until you move the overlay or change a setting, `plan.json` until you make a new plan.
