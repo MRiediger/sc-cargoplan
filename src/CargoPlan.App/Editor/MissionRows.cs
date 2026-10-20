@@ -95,16 +95,84 @@ public static class MissionRows
 
     /// <summary>One row per item, stops in route order; an override (or a schema 1 item's explicit crates) as text.</summary>
     public static IReadOnlyList<MissionRow> FromStops(IEnumerable<MissionStop> stops) =>
+        [.. stops.OrderBy(s => s.Order).SelectMany(s => s.Items.Select(item => Row(s.Destination, item, null)))];
+
+    /// <summary>
+    /// One row per item of the plan's missions (D42), destinations in <paramref name="order"/> (the route), within a
+    /// destination missions in plan order; each row knows its mission and where it came from (T5.4).
+    /// </summary>
+    public static IReadOnlyList<MissionRow> FromMissions(IReadOnlyList<Mission> missions, IReadOnlyList<string> order) =>
     [
-        .. stops.OrderBy(s => s.Order).SelectMany(s => s.Items.Select(item => new MissionRow
-        {
-            Destination = s.Destination,
-            Commodity = item.Commodity,
-            Scu = item.Scu.ToString(CultureInfo.InvariantCulture),
-            MaxCrateSize = (int)item.MaxCrateSize,
-            Crates = item.Crates is { } crates ? Format(crates) : "",
-        })),
+        .. order.SelectMany(destination => missions.SelectMany(m => m.Stops
+            .Where(s => s.Destination == destination)
+            .SelectMany(s => s.Items.Select(item => Row(destination, item, m))))),
     ];
+
+    /// <summary>
+    /// Valid rows as missions for <c>LoadPlanner.Plan</c> (D42), with the route: rows of a ContractTracker capture of
+    /// <paramref name="known"/> stay that mission with its ids (its size stays assumed while one of its rows does); typed
+    /// rows of one destination are one mission, numbered above the known ids. Destinations take the spelling of their stop.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">A row is invalid (<see cref="ToStops"/> has a problem).</exception>
+    public static (IReadOnlyList<Mission> Missions, IReadOnlyList<string> Route) ToMissions(IReadOnlyList<MissionRow> rows, IReadOnlyList<Mission> known)
+    {
+        var result = ToStops(rows);
+        if (result.Problem is { } problem)
+        {
+            throw new InvalidOperationException(problem);
+        }
+
+        string[] route = [.. result.Stops.Select(s => s.Destination)];
+        var spelling = route.ToDictionary(d => d, d => d, StringComparer.OrdinalIgnoreCase);
+        var captures = known.Where(m => m.Contract is not null).ToDictionary(m => m.Id);
+        var nextId = known.Count == 0 ? 1 : known.Max(m => m.Id) + 1;
+
+        // A capture's rows by its id, typed rows by destination; in the order of each group's first row.
+        List<(int? Capture, List<(string Destination, MissionItem Item, bool Assumed)> Items)> groups = [];
+        foreach (var row in rows.Where(r => !r.IsBlank))
+        {
+            var destination = spelling[row.Destination.Trim()];
+            var item = Check(row, destination).Item ?? throw new InvalidOperationException("A valid row has an item.");
+            int? capture = row.MissionId is { } id && captures.ContainsKey(id) ? id : null;
+            var group = groups.FindIndex(g => capture is not null
+                ? g.Capture == capture
+                : g.Capture is null && string.Equals(g.Items[0].Destination, destination, StringComparison.Ordinal));
+            if (group < 0)
+            {
+                groups.Add((capture, []));
+                group = groups.Count - 1;
+            }
+
+            groups[group].Items.Add((destination, item, row.MaxCrateSizeAssumed));
+        }
+
+        Mission[] missions =
+        [
+            .. groups.Select(g =>
+            {
+                MissionStop[] stops = [.. g.Items.GroupBy(i => i.Destination)
+                    .Select((stop, index) => new MissionStop(stop.Key, index + 1, [.. stop.Select(i => i.Item)]))];
+                return g.Capture is { } id
+                    ? new Mission(id, stops, captures[id].Contract! with { CrateSizeAssumed = g.Items.Any(i => i.Assumed) })
+                    : new Mission(nextId++, stops);
+            }),
+        ];
+        return (missions, route);
+    }
+
+    private static MissionRow Row(string destination, MissionItem item, Mission? mission) => new()
+    {
+        Destination = destination,
+        Commodity = item.Commodity,
+        Scu = item.Scu.ToString(CultureInfo.InvariantCulture),
+        MaxCrateSize = (int)item.MaxCrateSize,
+        Crates = item.Crates is { } crates ? Format(crates) : "",
+        MissionId = mission?.Id,
+        Source = MissionText.Source(mission?.Contract),
+
+        // After MaxCrateSize, whose change ends the assumption.
+        MaxCrateSizeAssumed = mission?.Contract?.CrateSizeAssumed == true,
+    };
 
     /// <summary>
     /// The SCU rule repeats MissionItem's, with a message fit for the status line (ArgumentException appends the

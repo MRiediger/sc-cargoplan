@@ -35,13 +35,19 @@
             <Button Content="Add" Command="{Binding AddRowCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Add a row (or type into the empty row at the bottom)" />
             <Button Content="Remove" Command="{Binding RemoveRowCommand}" Style="{StaticResource ToolbarButtonStyle}" />
+            <Button Content="Delete mission" Command="{Binding DeleteMissionCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTip="Take the selected row's mission out of the plan now, with its crates; nothing else moves, no need to press Plan. Typed rows of one stop are one mission." />
             <Button Content="↑" Command="{Binding MoveUpCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Move up: stops follow the first row of each destination" />
             <Button Content="↓" Command="{Binding MoveDownCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Move down" />
             <Button Content="Clear rows" Command="{Binding ClearRowsCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     Margin="12,0,4,0" ToolTip="Start the next route; the overlay keeps its plan until you plan again" />
-            <Button Content="Import…" Click="OnImport" Style="{StaticResource ToolbarButtonStyle}" Margin="12,0,4,0" />
+            <Button Content="Import…" Click="OnImport" Style="{StaticResource ToolbarButtonStyle}" Margin="12,0,4,0"
+                    ToolTip="Replace the rows with a mission file" />
+            <!-- "Sync", not "Load": Import… next to it replaces the rows, this adds new captures to the plan (T5.4). -->
+            <Button Content="Sync from ContractTracker" Command="{Binding SyncCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTip="Add contracts captured in ContractTracker to the plan, and place waiting missions that fit now" />
             <Button Content="Export…" Click="OnExport" IsEnabled="{Binding CanExport}" Style="{StaticResource ToolbarButtonStyle}" />
             <Button Content="Copy as text" Click="OnCopyText" IsEnabled="{Binding HasPlan}" Style="{StaticResource ToolbarButtonStyle}"
                     Margin="12,0,0,0" ToolTip="Copy the current plan for Discord or org chat" />
@@ -60,6 +66,7 @@
             </StackPanel>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
+                <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
                 <TextBlock Text="{x:Static vm:MissionEditorViewModel.ClearsDeliveredText}" TextWrapping="Wrap"
                            Foreground="{DynamicResource SystemFillColorCautionBrush}"
                            Visibility="{Binding ClearsDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
@@ -95,6 +102,8 @@
             </DataGrid.RowStyle>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Stop" Binding="{Binding StopNumber}" IsReadOnly="True" Width="Auto" />
+                <!-- Where the row came from: "ct 37–38" for a ContractTracker capture, empty if typed (T5.4). -->
+                <DataGridTextColumn Header="Source" Binding="{Binding Source, Mode=OneTime}" IsReadOnly="True" Width="Auto" />
                 <DataGridTextColumn Header="Destination" Binding="{Binding Destination, UpdateSourceTrigger=PropertyChanged}" Width="2*" />
                 <DataGridTextColumn Header="Commodity" Binding="{Binding Commodity, UpdateSourceTrigger=PropertyChanged}" Width="2*" />
                 <DataGridTextColumn Header="SCU" Binding="{Binding Scu, UpdateSourceTrigger=PropertyChanged}" Width="*" />

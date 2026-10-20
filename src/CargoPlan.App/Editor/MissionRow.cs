@@ -33,6 +33,19 @@ public sealed partial class MissionRow : ObservableObject
     [ObservableProperty]
     public partial int MaxCrateSize { get; set; }
 
+    /// <summary>The mission the row belongs to in the overlay's plan (D42); null for a row not planned yet.</summary>
+    public int? MissionId { get; init; }
+
+    /// <summary>Where the row came from: "ct 37–38" for a ContractTracker capture, empty if typed (T5.4).</summary>
+    public string Source { get; init; } = "";
+
+    /// <summary>
+    /// The max crate size was assumed by the import (the contract named none); the legend shows "4 SCU?". Picking a size
+    /// ends the assumption, so the "?" goes with the next Plan.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool MaxCrateSizeAssumed { get; set; }
+
     /// <summary>The crates as the kiosk delivered them, typed as "2+2+2"; empty = derived from SCU and max (D23).</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsCrateOverride))]
@@ -61,6 +74,9 @@ public sealed partial class MissionRow : ObservableObject
     public bool IsBlank =>
         string.IsNullOrWhiteSpace(Destination) && string.IsNullOrWhiteSpace(Commodity) && string.IsNullOrWhiteSpace(Scu)
         && !IsCrateOverride;
+
+    // Generated hook: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/observableproperty#running-code-upon-changes
+    partial void OnMaxCrateSizeChanged(int value) => MaxCrateSizeAssumed = false;
 
     /// <summary>The properties the player types; the others are results.</summary>
     public static bool IsInput(string? propertyName) =>

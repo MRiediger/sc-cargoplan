@@ -1,6 +1,7 @@
 using CargoPlan.App.Editor;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Plans;
 
 namespace CargoPlan.App.Tests;
 
@@ -281,5 +282,58 @@ public class MissionRowsTests
 
             stops.Should().BeEquivalentTo(missions, o => o.WithStrictOrdering());
         }
+    }
+
+    // --- Missions (T5.4) ---
+
+    private static Mission Captured(int id, long contractId, params MissionStop[] stops) =>
+        new(id, [.. stops.Select((s, i) => s with { Order = i + 1 })], new ContractSource([contractId], CrateSizeAssumed: true));
+
+    private static MissionStop Stop(string destination, string commodity, int scu = 4) => new(destination, 1, [new MissionItem(commodity, scu, CrateSize.Four)]);
+
+    [Fact]
+    public void ToMissions_makes_the_typed_rows_of_one_destination_one_mission()
+    {
+        MissionRow[] rows = [Row("Riker", "Titanium", "8", 4), Row("Shubin", "Quartz", "4", 2), Row("riker", "Gold", "2", 1)];
+
+        var (missions, route) = MissionRows.ToMissions(rows, []);
+
+        route.Should().Equal("Riker", "Shubin");
+        missions.Select(m => (m.Id, m.Stops.Single().Destination, m.Stops.Single().Items.Count)).Should().Equal((1, "Riker", 2), (2, "Shubin", 1));
+        missions.Should().OnlyContain(m => m.Contract == null);
+    }
+
+    [Fact]
+    public void ToMissions_keeps_a_capture_with_its_id_and_ids_and_numbers_typed_ones_above()
+    {
+        Mission[] known = [Captured(4, 36, Stop("Riker", "Stims"), Stop("Shubin", "Stims"))];
+        var rows = MissionRows.FromMissions(known, ["Riker", "Shubin"]).Append(Row("Riker", "Gold", "2", 1)).ToArray();
+
+        var (missions, _) = MissionRows.ToMissions(rows, known);
+
+        missions.Select(m => (m.Id, MissionText.Source(m.Contract))).Should().Equal((4, "ct 36"), (5, ""));
+        missions[0].Stops.Select(s => s.Destination).Should().Equal("Riker", "Shubin");
+        missions[0].Contract!.CrateSizeAssumed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void FromMissions_gives_rows_in_route_order_with_mission_and_source()
+    {
+        Mission[] known = [Captured(1, 36, Stop("Shubin", "Stims")), new Mission(2, [Stop("Riker", "Titanium")])];
+
+        var rows = MissionRows.FromMissions(known, ["Riker", "Shubin"]);
+
+        rows.Select(r => (r.Destination, r.MissionId, r.Source, r.MaxCrateSizeAssumed)).Should().Equal(
+            ("Riker", 2, "", false), ("Shubin", 1, "ct 36", true));
+    }
+
+    [Fact]
+    public void Changing_the_max_crate_size_ends_the_assumption()
+    {
+        var row = MissionRows.FromMissions([Captured(1, 36, Stop("Shubin", "Stims"))], ["Shubin"]).Single();
+
+        row.MaxCrateSize = 2;
+
+        row.MaxCrateSizeAssumed.Should().BeFalse();
     }
 }

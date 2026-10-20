@@ -1,6 +1,8 @@
 using CargoPlan.App.ShipView;
+using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
+using CargoPlan.Core.Plans;
 
 namespace CargoPlan.App.Tests;
 
@@ -339,5 +341,100 @@ public class ShipViewBuilderTests
         var act = () => ShipViewBuilder.Build(Sample.Plan with { ShipId = "cutlass_black" }, Sample.Ship, []);
 
         act.Should().Throw<ArgumentException>();
+    }
+
+    // --- Missions in the legend (T5.4) ---
+
+    private static SavedPlan EmptySaved => new([], new LoadPlan(Sample.Ship.Id, [], []));
+
+    private static MissionStop Stop(string destination, string commodity = "Stims", int scu = 4, CrateSize max = CrateSize.Four) =>
+        new(destination, 1, [new MissionItem(commodity, scu, max)]);
+
+    private static SavedPlan Captured(SavedPlan saved, ContractSource source, params MissionStop[] stops) =>
+        LoadPlanner.PlaceInto(saved, Sample.Ship, [.. stops.Select((s, i) => s with { Order = i + 1 })], source);
+
+    private static ShipScene BuildSaved(SavedPlan saved) =>
+        ShipViewBuilder.Build(saved, Sample.Ship, LoadPlanner.Validate(saved.Plan, Sample.Ship));
+
+    private static SavedPlan Delivered(SavedPlan saved, string destination) =>
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, Sample.Ship, destination, true), saved.Watermark);
+
+    [Fact]
+    public void Two_markings_of_one_stop_stand_in_its_line_size_first()
+    {
+        var saved = Captured(EmptySaved, new ContractSource([36], CrateSizeAssumed: true, ListedDestinations: 3), Stop("Riker"));
+
+        BuildSaved(saved).Legend.Single().Label.Should().Be("Riker · 4 SCU · 4 SCU? · ⚠ 1 of 3 destinations");
+    }
+
+    [Fact]
+    public void Assumed_sizes_of_two_missions_at_one_stop_are_named_together()
+    {
+        var first = Captured(EmptySaved, new ContractSource([1], CrateSizeAssumed: true), Stop("Riker", "Stims", 4, CrateSize.Four));
+        var saved = Captured(first, new ContractSource([2], CrateSizeAssumed: true), Stop("Riker", "Gold", 2, CrateSize.Two));
+
+        BuildSaved(saved).Legend.Single().Label.Should().Be("Riker · 6 SCU · 4/2 SCU?");
+    }
+
+    [Fact]
+    public void A_stop_without_doubt_has_no_marking()
+    {
+        var saved = Captured(EmptySaved, new ContractSource([36], ListedDestinations: 1), Stop("Riker"));
+
+        BuildSaved(saved).Legend.Single().Label.Should().Be("Riker · 4 SCU");
+    }
+
+    [Fact]
+    public void A_duplicate_is_marked_and_its_reserve_keeps_the_marking_after_a_tick()
+    {
+        var saved = Captured(Captured(EmptySaved, new ContractSource([1]), Stop("Riker"), Stop("Shubin")), new ContractSource([2]), Stop("Shubin"));
+
+        var shubin = BuildSaved(saved).Legend.Single(e => e.Destination == "Shubin");
+        var ticked = BuildSaved(Delivered(saved, "Riker")).Legend.Single(e => e.Destination == "Shubin");
+
+        shubin.Label.Should().Be("Shubin · 8 SCU · ⚠ duplicate?");
+        ticked.Label.Should().Be("Shubin · 8 SCU");
+        ticked.ReserveLabel.Should().Be(shubin.Label);
+    }
+
+    [Fact]
+    public void A_mission_that_doesnt_fit_has_its_own_line_with_the_reason()
+    {
+        var full = Enumerable.Range(1, 4).Aggregate(EmptySaved, (saved, i) =>
+            Captured(saved, new ContractSource([i]), Stop($"Stop {i}", "Gold", i == 4 ? 8 : 16, i == 4 ? CrateSize.Eight : CrateSize.Sixteen)));
+        var saved = Captured(full, new ContractSource([5]), Stop("Hurston", "Gold", 8, CrateSize.Eight), Stop("Area18", "Gold", 8, CrateSize.Eight));
+
+        var unplaced = BuildSaved(saved).Unplaced.Should().ContainSingle().Which;
+
+        unplaced.MissionId.Should().Be(5);
+        unplaced.Label.Should().Be("Hurston + 1 · 16 SCU · ⚠ doesn't fit (16 SCU, 8 free) – tick to drop");
+        BuildSaved(saved).Legend.Should().NotContain(e => e.Destination == "Hurston");
+    }
+
+    [Fact]
+    public void The_legend_follows_the_unload_order_and_a_stop_keeps_its_colour()
+    {
+        // Riker delivered, a new Riker contract after Shubin: Riker is unloaded last, its line goes last (T5.4).
+        var saved = Captured(Captured(EmptySaved, new ContractSource([1]), Stop("Riker")), new ContractSource([2]), Stop("Shubin"));
+        var colour = BuildSaved(saved).Legend.Single(e => e.Destination == "Riker").PaletteIndex;
+
+        var again = Captured(Delivered(saved, "Riker"), new ContractSource([3]), Stop("Riker", "Gold"));
+
+        var legend = BuildSaved(again).Legend;
+        legend.Select(e => e.Destination).Should().Equal("Shubin", "Riker");
+        legend.Single(e => e.Destination == "Riker").PaletteIndex.Should().Be(colour);
+    }
+
+    [Fact]
+    public void A_delivered_crate_whose_cells_are_taken_again_is_not_drawn()
+    {
+        Crate delivered = new("Riker", "Titanium", CrateSize.Four, "rack-0", new GridPosition(2, 0, 0), Delivered: true);
+        Crate onTop = new("Shubin", "Quartz", CrateSize.Two, "rack-0", new GridPosition(2, 0, 0));
+        Crate elsewhere = delivered with { Position = new GridPosition(0, 0, 0) };
+
+        var rack1 = RackNumber(Build(new LoadPlan(Sample.Ship.Id, [delivered, onTop, elsewhere], [])), 1);
+
+        rack1.Boxes.Where(b => b.Crate is not null).Select(b => b.Crate).Should().BeEquivalentTo([onTop, elsewhere]);
+        rack1.Boxes.Sum(b => Volume(b.Bounds)).Should().Be(16, "every cell is drawn once: crates on board, grey ones still lying there, free cells");
     }
 }

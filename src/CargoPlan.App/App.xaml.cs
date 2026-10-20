@@ -1,4 +1,5 @@
 using System.Windows;
+using CargoPlan.App.ContractTracker;
 using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Plans;
 using CargoPlan.App.Settings;
@@ -6,6 +7,7 @@ using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App;
 
@@ -29,6 +31,9 @@ public partial class App : Application
     // Same here: the view model's and the overlay's events keep it alive.
     private PlanSaver? _planSaver;
 
+    // Same here: its timer and watcher keep it alive until the overlay closes.
+    private ContractTrackerSync? _contractTracker;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -46,7 +51,10 @@ public partial class App : Application
 
         // Bounds before Show(), so the window appears in place instead of jumping there. The hotkeys' view model is made
         // when the settings window opens; by then _hotkeys exists (it needs the overlay, so it comes after it).
-        var overlay = new OverlayWindow(viewModel, session, () => CreateHotkeysViewModel(session));
+        // ContractTracker at its one path (D38); a path of one's own comes with T5.5.
+        var contractTracker = new ContractTrackerSync(viewModel, ContractTrackerReader.DefaultPath);
+        _contractTracker = contractTracker;
+        var overlay = new OverlayWindow(viewModel, session, () => CreateHotkeysViewModel(session), () => contractTracker.SyncAsync(manual: true));
         if (settings.Overlay is { } saved)
         {
             RestoreBounds(overlay, saved);
@@ -68,6 +76,11 @@ public partial class App : Application
         {
             viewModel.ShowPlan(plan);
         }
+        else if (planProblem is not null)
+        {
+            // The file stays until the player makes a new plan; a capture must not overwrite it (T5.4).
+            viewModel.PauseContractTracker();
+        }
 
         // Overlay first: the lock window's Owner must be a window that has been shown.
         overlay.Show();
@@ -83,6 +96,10 @@ public partial class App : Application
 
         _cursorMonitor = new CursorStateMonitor(viewModel);
         _cursorMonitor.Start();
+
+        // After the start plan, so the first read knows its watermark; it comes after the debounce, with the overlay up.
+        contractTracker.Start();
+        overlay.Closed += (_, _) => contractTracker.Dispose();
     }
 
     protected override void OnExit(ExitEventArgs e)

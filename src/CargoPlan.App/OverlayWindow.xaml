@@ -238,7 +238,12 @@
                                     <StackPanel Orientation="Horizontal">
                                         <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0"
                                                    Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
-                                        <TextBlock x:Name="LabelText" Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                                        <!-- The reserve (the label with nothing delivered) lies hidden under it: a tick that takes a
+                                             marking away keeps the line's width, so the block doesn't move (D16, D33). -->
+                                        <Grid>
+                                            <TextBlock Text="{Binding ReserveLabel, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" Visibility="Hidden" />
+                                            <TextBlock x:Name="LabelText" Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                                        </Grid>
                                     </StackPanel>
                                 </Button>
                                 <!-- Template triggers outrank values set in the template, so the grey wins over the bound colour.
@@ -250,6 +255,23 @@
                                         <Setter TargetName="LabelText" Property="TextDecorations" Value="Strikethrough" />
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <!-- Missions that didn't fit (D41): a hollow swatch, the reason, and a click drops the mission. Shown even
+                         with legend.visible = false, like the hints: they ask for something (T5.4). -->
+                    <ItemsControl ItemsSource="{Binding Scene.Unplaced, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type sv:UnplacedEntry}">
+                                <Button Command="{Binding DataContext.DropMissionCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding MissionId, Mode=OneTime}"
+                                        Style="{StaticResource LegendLineButtonStyle}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Rectangle Width="12" Height="12" Margin="0,0,6,0" Fill="Transparent"
+                                                   Stroke="{DynamicResource LegendForegroundBrush}" StrokeThickness="1" />
+                                        <TextBlock Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                                    </StackPanel>
+                                </Button>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

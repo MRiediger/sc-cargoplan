@@ -1,9 +1,11 @@
+using CargoPlan.App.Editor;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
+using CargoPlan.Import.ContractTracker;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -32,19 +34,47 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 
     public const string SelectCratesText = "Select two or more crates to merge.";
 
+    public const string SyncPausedText = "ContractTracker sync paused: plan file not loaded. Plan in the editor to start it again.";
+
+    public const string DeletedContractsPrefix = "Deleted in ContractTracker, crates still on board: ";
+
+    public const string DeletedContractsSuffix = ". Tick their stops or delete the missions in the editor.";
+
     public Ship Ship { get; } = ship;
 
-    // [ObservableProperty] on partial properties (Toolkit 8.4+, C# 14 here): the generator writes the
-    // body with SetProperty and PropertyChanged.
-    // Source: https://github.com/CommunityToolkit/dotnet/releases/tag/v8.4.0
-    // A new plan builds a new scene, which empties the selection (D25): buttons and tool tips follow.
-    // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/observableproperty#notifying-dependent-commands
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Scene))]
-    [NotifyPropertyChangedFor(nameof(HasPlan))]
-    [NotifyPropertyChangedFor(nameof(SplitToolTip), nameof(MergeToolTip))]
-    [NotifyCanExecuteChangedFor(nameof(SplitCommand), nameof(MergeCommand))]
-    public partial LoadPlan? Plan { get; set; }
+    /// <summary>
+    /// The plan with its missions and the ContractTracker watermark: the one state every change goes through and
+    /// <c>PlanSaver</c> saves (D18, T5.4). Set by <see cref="ShowPlan"/>, ticks, moves, split and merge, the sync and
+    /// removing a mission. Written by hand like <see cref="Selection"/>: the scene is built before PropertyChanged, so
+    /// bindings read the new one. A new plan builds a new scene, which empties the selection (D25): buttons and tool tips
+    /// follow.
+    /// </summary>
+    public SavedPlan? Saved
+    {
+        get;
+        private set
+        {
+            if (!SetProperty(ref field, value))
+            {
+                return;
+            }
+
+            Scene = value is null ? EmptyScene(Ship) : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value.Plan, Ship));
+            OnPropertyChanged(nameof(Plan));
+            OnPropertyChanged(nameof(Missions));
+            OnPropertyChanged(nameof(Watermark));
+            OnPropertyChanged(nameof(Scene));
+            OnPropertyChanged(nameof(HasPlan));
+            OnPropertyChanged(nameof(SplitToolTip));
+            OnPropertyChanged(nameof(MergeToolTip));
+            SplitCommand.NotifyCanExecuteChanged();
+            MergeCommand.NotifyCanExecuteChanged();
+            UpdateDeletedContracts();
+        }
+    }
+
+    /// <summary>The crates of <see cref="Saved"/>; null without a plan.</summary>
+    public LoadPlan? Plan => Saved?.Plan;
 
     /// <summary>
     /// The crates picked by right click in the ship view (D25), bound two-way: the view picks, split and merge select
@@ -121,25 +151,104 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
         OnPropertyChanged(nameof(Notices));
     }
 
-    /// <summary>
-    /// The missions <see cref="Plan"/> was made from, as entered (D23, D42), saved with it (D18). Set together with it by
-    /// <see cref="ShowPlan"/>.
-    /// </summary>
-    public IReadOnlyList<Mission> Missions { get; private set; } = [];
+    /// <summary>The missions of <see cref="Saved"/>, as entered or captured (D23, D42); empty without a plan.</summary>
+    public IReadOnlyList<Mission> Missions => Saved?.Missions ?? [];
 
-    /// <summary>The ContractTracker watermark of the plan (D39 addendum), saved with it; set by <see cref="ShowPlan"/>.</summary>
-    public long Watermark { get; private set; }
+    /// <summary>The ContractTracker watermark of <see cref="Saved"/> (D39 addendum); 0 without a plan.</summary>
+    public long Watermark => Saved?.Watermark ?? 0;
 
-    /// <summary>Missions, plan and watermark together; null without a plan.</summary>
-    public SavedPlan? Saved => Plan is { } plan ? new SavedPlan(Missions, plan, Watermark) : null;
+    // The ids ContractTracker still had at the last read; null before one. Kept to name deleted contracts on every change.
+    private IReadOnlySet<long>? _present;
 
-    /// <summary>Shows a plan with its missions. Missions first: the plan's PropertyChanged starts the save, which reads both.</summary>
+    // plan.json couldn't be read: the sync must not overwrite it with a plan of its own (T5.4 planning).
+    private bool _contractTrackerPaused;
+
+    /// <summary>Shows a plan made in the editor or loaded; ends a sync pause.</summary>
     public void ShowPlan(SavedPlan saved)
     {
-        Missions = saved.Missions;
-        Watermark = saved.Watermark;
-        Plan = saved.Plan;
+        Saved = saved;
         SetNotice(NoticeSource.Move, null);
+        if (_contractTrackerPaused)
+        {
+            _contractTrackerPaused = false;
+            SetNotice(NoticeSource.ContractTracker, null);
+        }
+    }
+
+    /// <summary>
+    /// The one way a ContractTracker read reaches the plan (T5.4), on the UI thread: Core takes the captures in
+    /// (<see cref="ContractSync.Apply"/>). A read without new captures and without a missing id changes nothing (D38: diff,
+    /// don't react), so no new scene and no save; the button (<paramref name="manual"/>) always syncs, which also places
+    /// waiting missions that fit now. Without a plan, a capture starts one.
+    /// </summary>
+    public void ApplyContractTracker(ContractTrackerReadResult result, bool manual = false)
+    {
+        if (_contractTrackerPaused)
+        {
+            return;
+        }
+
+        SetNotice(NoticeSource.ContractTracker, result.Notice);
+        // The plan didn't know the new captures' ids when asking; they are there, of course.
+        if (result.Present is { } present)
+        {
+            _present = new HashSet<long>([.. present, .. result.Candidates.SelectMany(c => c.ContractIds)]);
+        }
+
+        var known = ContractTrackerQuery().KnownIds;
+        if (!manual && result.Candidates.Count == 0 && (result.Present is not { } read || known.All(read.Contains)))
+        {
+            UpdateDeletedContracts();
+            return;
+        }
+
+        var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []));
+        var applied = ContractSync.Apply(current, Ship, [.. result.Candidates.Select(c => c.ToCapture())], result.Present);
+        if (!ReferenceEquals(applied, current))
+        {
+            Saved = applied;
+        }
+
+        UpdateDeletedContracts();
+    }
+
+    /// <summary>A read that failed for a reason the player has to fix, e.g. a file that is no database.</summary>
+    public void ShowContractTrackerProblem(string text) => SetNotice(NoticeSource.ContractTracker, text);
+
+    /// <summary>Stops the sync until the next <see cref="ShowPlan"/>; plan.json couldn't be read and stays as it is.</summary>
+    public void PauseContractTracker()
+    {
+        _contractTrackerPaused = true;
+        SetNotice(NoticeSource.ContractTracker, SyncPausedText);
+    }
+
+    /// <summary>What the next read needs: the watermark and the capture ids of the plan, whose deletion it reports.</summary>
+    public (long Watermark, IReadOnlyCollection<long> KnownIds) ContractTrackerQuery() =>
+        (Watermark, [.. Missions.SelectMany(m => m.Contract?.ContractIds ?? [])]);
+
+    /// <summary>Takes a mission out with its crates (D42), from the editor's Delete mission; nothing else moves.</summary>
+    public void RemoveMission(int missionId)
+    {
+        // Unreachable without a plan: the editor has no mission rows and the legend no lines then.
+        var saved = Saved ?? throw new InvalidOperationException(NoPlanText);
+        Saved = LoadPlanner.RemoveMission(saved, Ship, missionId);
+    }
+
+    /// <summary>Ticking the line of a mission that didn't fit drops it (D41): abandoned, out of the plan.</summary>
+    [RelayCommand]
+    private void DropMission(int missionId) => RemoveMission(missionId);
+
+    /// <summary>The notice for contracts deleted in ContractTracker with crates on board; derived again on every change.</summary>
+    private void UpdateDeletedContracts()
+    {
+        if (_present is null || Saved is not { } saved || ContractSync.Conflicts(saved, _present) is not [_, ..] conflicts)
+        {
+            SetNotice(NoticeSource.DeletedContracts, null);
+            return;
+        }
+
+        var names = conflicts.Select(saved.MissionOf).Select(m => $"{MissionText.Name(m)} ({MissionText.Source(m.Contract)})");
+        SetNotice(NoticeSource.DeletedContracts, DeletedContractsPrefix + string.Join(", ", names) + DeletedContractsSuffix);
     }
 
     /// <summary>Both windows hide while true. Hiding resets nothing: position, zoom, orbit and lock stay as they are.</summary>
@@ -195,7 +304,7 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
         var delivered = plan.PlacementsForStop(destination).All(p => p.Delivered);
         try
         {
-            Plan = LoadPlanner.SetDelivered(plan, Ship, destination, !delivered);
+            Saved = WithCrates(LoadPlanner.SetDelivered(plan, Ship, destination, !delivered));
             SetNotice(NoticeSource.Move, null);
         }
         catch (PlanException ex)
@@ -224,7 +333,7 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
         var plan = Plan ?? throw new InvalidOperationException(NoPlanText);
         try
         {
-            Plan = move(plan);
+            Saved = WithCrates(move(plan));
             SetNotice(NoticeSource.Move, null);
         }
         catch (PlanException ex)
@@ -254,11 +363,11 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 
     // Selected crates belong to the current plan, so Plan isn't null here.
     private string? SplitProblem() => Selected.Count == 1 && Plan is { } plan
-        ? LoadPlanner.SplitProblem(new SavedPlan(Missions, plan, Watermark), Ship, Selected.Single())
+        ? LoadPlanner.SplitProblem(Saved!, Ship, Selected.Single())
         : SelectOneCrateText;
 
     private string? MergeProblem() => Selected.Count >= 2 && Plan is { } plan
-        ? LoadPlanner.MergeProblem(new SavedPlan(Missions, plan, Watermark), Ship, [.. Selected])
+        ? LoadPlanner.MergeProblem(Saved!, Ship, [.. Selected])
         : SelectCratesText;
 
     /// <summary>
@@ -271,7 +380,7 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
         var plan = Plan ?? throw new InvalidOperationException(NoPlanText);
         try
         {
-            var saved = edit(new SavedPlan(Missions, plan, Watermark));
+            var saved = edit(Saved!);
             HashSet<Crate> before = [.. plan.Crates];
             ShowPlan(saved);
             Selection = CrateSelection.Of(Scene, saved.Plan.Crates.Where(c => !before.Contains(c)));
@@ -290,11 +399,8 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     /// </summary>
     public ShipScene Scene { get; private set; } = EmptyScene(ship);
 
-    // Runs before PropertyChanged for Plan and Scene, so bindings read the new scene.
-    // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/observableproperty#running-code-upon-changes
-    partial void OnPlanChanged(LoadPlan? value) => Scene = value is null
-        ? EmptyScene(Ship)
-        : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value, Ship));
+    /// <summary>The plan with new crates (a tick, a move); missions and watermark stay.</summary>
+    private SavedPlan WithCrates(LoadPlan plan) => new(Missions, plan, Watermark);
 
     private static ShipScene EmptyScene(Ship ship) => ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
 }

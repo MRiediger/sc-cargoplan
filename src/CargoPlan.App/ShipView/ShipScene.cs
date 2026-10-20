@@ -20,6 +20,7 @@ namespace CargoPlan.App.ShipView;
 /// <param name="PaletteRepeats">More stops than colours.</param>
 /// <param name="Plan">The plan drawn, empty without one: a drag asks Core with it where a crate may go (D25).</param>
 /// <param name="Ship">The plan's ship: racks with grid and origin for the drop target (D25).</param>
+/// <param name="Unplaced">Missions that didn't fit (D41), one line each after the stops; ticking one drops it.</param>
 public sealed record ShipScene(
     IReadOnlyList<SceneRack> Racks,
     ShipBox Bounds,
@@ -29,7 +30,8 @@ public sealed record ShipScene(
     IReadOnlyList<string> Violations,
     bool PaletteRepeats,
     LoadPlan Plan,
-    Ship Ship)
+    Ship Ship,
+    IReadOnlyList<UnplacedEntry> Unplaced)
 {
     /// <summary>Every stop is delivered; false without stops.</summary>
     public bool AllDelivered => Legend.Count > 0 && Legend.All(e => e.Delivered);
@@ -94,8 +96,22 @@ public sealed record ProjectedBox(SceneBox Box, IReadOnlyList<ProjectedFace> Fac
 
 public sealed record SceneLine(Point From, Point To);
 
-/// <summary>One stop in the legend, in route order. <paramref name="Delivered"/>: all its placements are delivered.</summary>
-public sealed record LegendEntry(int PaletteIndex, string Destination, int Scu, bool Delivered = false)
+/// <summary>
+/// One stop in the legend, in unload order (T5.4). <paramref name="Delivered"/>: all its placements are delivered.
+/// <paramref name="Markings"/>: what is uncertain about its missions ("4 SCU? · ⚠ duplicate?"), empty if nothing;
+/// <paramref name="ReserveMarkings"/> the same with nothing delivered, so the line keeps its width when a tick takes a
+/// marking away (D16, D33).
+/// </summary>
+public sealed record LegendEntry(int PaletteIndex, string Destination, int Scu, bool Delivered = false, string Markings = "", string ReserveMarkings = "")
 {
-    public string Label => Invariant($"{Destination} · {Scu} SCU");
+    public string Label => WithMarkings(Markings);
+
+    /// <summary>The widest the label gets: laid out hidden under it.</summary>
+    public string ReserveLabel => WithMarkings(ReserveMarkings);
+
+    private string WithMarkings(string markings) =>
+        markings.Length == 0 ? Invariant($"{Destination} · {Scu} SCU") : Invariant($"{Destination} · {Scu} SCU · {markings}");
 }
+
+/// <summary>A mission that didn't fit (D41): its line in the legend, and the id a tick drops it by.</summary>
+public sealed record UnplacedEntry(int MissionId, string Label);

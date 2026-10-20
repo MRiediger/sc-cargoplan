@@ -100,7 +100,7 @@ public class DragGestureTests
     [InlineData("delivered")]
     public void Right_drag_off_the_crates_on_board_pans(string hit)
     {
-        // Delivered crates are gone from the ship (D16), so they can't be moved; they are a drop target, though.
+        // Delivered crates are gone from the ship (D16, D24 addendum): they can't be moved, and they are no drop target.
         Resolve(MouseButton.Right, Hit(hit), moved: true, OtherRack, Elsewhere, BothSelected).Should().Be(new Gesture.Pan());
     }
 

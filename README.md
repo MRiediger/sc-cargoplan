@@ -87,6 +87,23 @@ Open the editor with the **pencil** in the overlay's header (left of the gear), 
 
 When Star Citizen takes the mouse (flight), the overlay turns click-through and an open editor hides, so neither catches a click meant for the game. The editor comes back when the cursor does, without taking the focus. The overlay hotkey hides it too.
 
+### ContractTracker
+
+If you use ContractTracker to capture contracts (F3 at the terminal), the overlay takes every capture into the plan by itself, a few moments after you press F3. No editor, no click.
+
+- **Nothing that's loaded moves.** A new contract goes into free cells: first the rack of a destination already on board, then an empty rack, then any rack with room. Crates and ticks you have stay where they are. Ticked crates are off the ship, so their cells are free for new ones.
+- **Each capture is a mission of its own.** The legend marks what the capture couldn't tell for sure, at the stop it concerns:
+  - `4 SCU?`: the contract named no max crate size, so the largest crate that fits was assumed. Check the kiosk; pick the right size in the editor if it differs.
+  - `⚠ 1 of 3 destinations`: the contract lists more destinations than were read. Capture it again, or add the missing rows in the editor.
+  - `⚠ duplicate?`: another mission without a tick has the same commodity for the same destinations. Two real contracts: ignore it, it goes with the first tick. A second capture of the same contract: delete one in the editor.
+  - `⚠ doesn't fit (16 SCU, 8 free) – tick to drop`: no room for the whole contract (the cargo lift hands out whole contracts). Click the line to drop it, or wait: it is placed as soon as there is room, at the next capture or with **Sync from ContractTracker**.
+- **Retry before you load.** A recapture (F4) is a new mission. Before your first tick it is marked `⚠ duplicate?`; after a tick it isn't, and you see the destination twice. Delete the wrong one in the editor.
+- **Deleted in ContractTracker:** a contract you have fully ticked (or that didn't fit) leaves the plan as soon as you delete it there. One with crates still on board stays, and an amber line names it until you tick it or delete it in the editor.
+- **In the editor**, the **Source** column shows where a row came from (`ct 37–38` = ContractTracker's ids, empty = typed). **Delete mission** takes the selected row's mission out of the plan at once, with its crates; nothing else moves and you don't press **Plan** for it (typed rows of one destination count as one mission). **Sync from ContractTracker** takes in what came since the last sync, the same as a capture does.
+- The first time, everything that is in ContractTracker comes in. Delete old contracts there first (× or F5) if you don't want them.
+
+The overlay only reads ContractTracker's database at `%AppData%\SCContractTracker\contracts.db`, never writes it, and never touches the game.
+
 ### Hotkeys
 
 Two global hotkeys work while Star Citizen has the focus and the cursor is hidden: one switches the padlock, one hides the overlay and brings it back (dogfight, landing). There are **no default hotkeys**: a hotkey takes its keys away from every other program, the game included, and any default could clash with one of your Star Citizen bindings.
@@ -112,7 +129,7 @@ Both files are in `%LocalAppData%\SC-CargoPlan\` and are saved as soon as someth
 | File | What | Deleting it (overlay closed) |
 |---|---|---|
 | `settings.json` | Overlay position and size, hotkeys, look, tool window theme ([format](docs/settings-format.md)) | Default size, position and look, no hotkeys. Your plan stays. |
-| `plan.json` | Your current plan: the missions you entered, which crate lies where in which rack, ticks ([format](docs/plan-format.md)). The editor opens with these missions. A plan file from an older version is converted when the overlay loads it and saved in the new format; your ticks stay. | The overlay starts without a plan. Your settings stay. |
+| `plan.json` | Your current plan: the missions you entered or captured, which crate lies where in which rack, ticks ([format](docs/plan-format.md)). The editor opens with these missions. A plan file from an older version is converted when the overlay loads it and saved in the new format; your ticks stay. | The overlay starts without a plan. Your settings stay. |
 
 If a file can't be read, the overlay starts without it and says so in an amber line. A single setting out of range or a colour that isn't one is corrected on its own, named in that line, and the rest of `settings.json` applies. It doesn't overwrite the file: `settings.json` stays until you move the overlay or change a setting, `plan.json` until you make a new plan.
 

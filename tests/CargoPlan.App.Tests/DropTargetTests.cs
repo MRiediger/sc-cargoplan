@@ -36,6 +36,13 @@ public class DropTargetTests
     }
 
     [Fact]
+    public void Delivered_cargo_is_air()
+    {
+        // Off the ship, its cells free (D24 addendum): the drop falls through it onto the plate.
+        Resolve([At(CrateSize.One, 1, 1, 0) with { Delivered = true }], 1.5, 1.5, 5).Should().Be(new Drop("rack-0", new GridPosition(1, 1, 0)));
+    }
+
+    [Fact]
     public void A_crate_under_the_cursor_takes_the_drop_on_top_of_it()
     {
         // Its top face: the top of the rack the camera sees, no free cell in front of it.

@@ -7,6 +7,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
 
@@ -320,14 +321,14 @@ public class OverlayViewModelTests
     }
 
     [Fact]
-    public void Setting_Plan_raises_PropertyChanged_for_Scene_and_HasPlan()
+    public void ShowPlan_raises_PropertyChanged_for_Saved_Plan_Scene_and_HasPlan()
     {
         var viewModel = WithPlan();
-        Stop riker = new("Riker", 1, [new CargoItem("Titanium", 4, CrateSize.Four)]);
-        var newPlan = LoadPlanner.Plan(viewModel.Ship, [riker]);
+        MissionStop riker = new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]);
+        var newPlan = SavedPlan.FromStops([riker], LoadPlanner.Plan(viewModel.Ship, [riker.ToStop()]));
 
-        Changes(viewModel, () => viewModel.Plan = newPlan)
-            .Should().Contain([nameof(OverlayViewModel.Scene), nameof(OverlayViewModel.HasPlan)]);
+        Changes(viewModel, () => viewModel.ShowPlan(newPlan)).Should().Contain(
+            [nameof(OverlayViewModel.Saved), nameof(OverlayViewModel.Plan), nameof(OverlayViewModel.Scene), nameof(OverlayViewModel.HasPlan)]);
         viewModel.Scene.Legend.Should().Equal(new LegendEntry(0, "Riker", 4));
     }
 
@@ -649,5 +650,161 @@ public class OverlayViewModelTests
 
         viewModel.Plan.Should().BeSameAs(original);
         viewModel.Notices.Should().Equal(OverlayViewModel.SplitRefusedPrefix + "1 SCU crates can't be split.");
+    }
+
+    // --- ContractTracker (T5.4) ---
+
+    private static ContractTrackerCandidate Candidate(long id, string destination, int scu = 4, CrateSize max = CrateSize.Four, bool sizeAssumed = false) =>
+        new([id], null, [new MissionStop(destination, 1, [new MissionItem("Stims", scu, max)])], sizeAssumed, false, null, null);
+
+    /// <param name="present">The known ids still in ContractTracker; null = not read.</param>
+    private static ContractTrackerReadResult Read(long[]? present, params ContractTrackerCandidate[] candidates) =>
+        new(candidates, null, present is null ? null : new HashSet<long>(present));
+
+    private static OverlayViewModel Empty() => new(ShipLoader.Load("hull_a"));
+
+    [Fact]
+    public void ApplyContractTracker_without_a_plan_starts_one_with_the_capture()
+    {
+        var viewModel = Empty();
+
+        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker")));
+
+        viewModel.HasPlan.Should().BeTrue();
+        viewModel.Missions.Should().ContainSingle().Which.Contract!.ContractIds.Should().Equal(36);
+        viewModel.Watermark.Should().Be(36);
+        viewModel.Scene.Legend.Single().Destination.Should().Be("Riker");
+    }
+
+    [Fact]
+    public void ApplyContractTracker_keeps_crates_and_ticks_of_the_plan()
+    {
+        var viewModel = WithPlan();
+        viewModel.ToggleDeliveredCommand.Execute("Riker");
+        var before = viewModel.Plan!.Crates;
+
+        viewModel.ApplyContractTracker(Read(null, Candidate(40, "Area18", 1, CrateSize.One)));
+
+        viewModel.Plan!.Crates.Take(before.Count).Should().Equal(before);
+    }
+
+    [Fact]
+    public void ApplyContractTracker_without_news_changes_nothing()
+    {
+        // A checkpoint or our own read: no PropertyChanged, so no new scene (a drag goes on) and no save (D38).
+        var viewModel = Empty();
+        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker")));
+
+        Changes(viewModel, () => viewModel.ApplyContractTracker(Read([36]))).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ApplyContractTracker_of_a_mission_that_doesnt_fit_raises_PropertyChanged_for_Saved()
+    {
+        // The plan's crates stay the same; PlanSaver listens to Saved, so the new mission and watermark are saved.
+        var viewModel = Empty();
+
+        Changes(viewModel, () => viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker", 32, CrateSize.ThirtyTwo))))
+            .Should().Contain(nameof(OverlayViewModel.Saved));
+        viewModel.Scene.Unplaced.Should().ContainSingle();
+    }
+
+    [Fact]
+    public void A_deleted_contract_with_crates_on_board_gives_a_notice_until_its_stop_is_ticked()
+    {
+        var viewModel = Empty();
+        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker")));
+
+        viewModel.ApplyContractTracker(Read([]));
+
+        viewModel.HasPlan.Should().BeTrue();
+        viewModel.Notices.Should().Equal(OverlayViewModel.DeletedContractsPrefix + "Riker (ct 36)" + OverlayViewModel.DeletedContractsSuffix);
+
+        viewModel.ToggleDeliveredCommand.Execute("Riker");
+
+        viewModel.Notices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_deleted_contract_that_is_ticked_leaves_the_plan_at_the_next_sync_without_a_notice()
+    {
+        var viewModel = Empty();
+        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin")));
+        viewModel.ToggleDeliveredCommand.Execute("Riker");
+
+        viewModel.ApplyContractTracker(Read([37]));
+
+        viewModel.Missions.Should().ContainSingle().Which.Contract!.ContractIds.Should().Equal(37);
+        viewModel.Notices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ApplyContractTracker_shows_the_readers_notice()
+    {
+        var viewModel = Empty();
+
+        viewModel.ApplyContractTracker(new ContractTrackerReadResult([], ContractTrackerReader.SchemaNotSupportedNotice));
+
+        viewModel.Notices.Should().Equal(ContractTrackerReader.SchemaNotSupportedNotice);
+    }
+
+    [Fact]
+    public void A_paused_sync_takes_nothing_until_a_new_plan()
+    {
+        // plan.json couldn't be read: the sync must not overwrite it (T5.4 planning).
+        var viewModel = Empty();
+        viewModel.PauseContractTracker();
+
+        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker")));
+
+        viewModel.HasPlan.Should().BeFalse();
+        viewModel.Notices.Should().Equal(OverlayViewModel.SyncPausedText);
+
+        viewModel.ShowPlan(TestPlans.SplitAndShared());
+        viewModel.ApplyContractTracker(Read(null, Candidate(36, "Area18", 1, CrateSize.One)));
+
+        viewModel.Notices.Should().BeEmpty();
+        viewModel.Watermark.Should().Be(36);
+    }
+
+    [Fact]
+    public void A_read_without_news_doesnt_place_a_waiting_mission_but_the_button_does()
+    {
+        // Retry at the sync (T5.4 planning); a file event without new rows or missing ids stays a no-op (D38).
+        var viewModel = Empty();
+        viewModel.ApplyContractTracker(Read([], [.. Enumerable.Range(1, 5).Select(i => Candidate(i, $"Stop {i}", 16, CrateSize.Sixteen))]));
+        viewModel.ToggleDeliveredCommand.Execute("Stop 1");
+
+        viewModel.ApplyContractTracker(Read([1, 2, 3, 4, 5]));
+        viewModel.Missions[^1].Unplaced.Should().BeTrue();
+
+        viewModel.ApplyContractTracker(Read([1, 2, 3, 4, 5]), manual: true);
+        viewModel.Missions[^1].Unplaced.Should().BeFalse();
+    }
+
+    [Fact]
+    public void DropMissionCommand_takes_the_mission_out()
+    {
+        var viewModel = Empty();
+        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin", 32, CrateSize.ThirtyTwo)));
+        var crates = viewModel.Plan!.Crates;
+
+        viewModel.DropMissionCommand.Execute(2);
+
+        viewModel.Missions.Select(m => m.Id).Should().Equal(1);
+        viewModel.Plan!.Crates.Should().Equal(crates);
+        viewModel.Scene.Unplaced.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ContractTrackerQuery_names_the_watermark_and_the_plans_capture_ids()
+    {
+        var viewModel = Empty();
+        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin")));
+
+        var (watermark, known) = viewModel.ContractTrackerQuery();
+
+        watermark.Should().Be(37);
+        known.Should().BeEquivalentTo([36L, 37L]);
     }
 }

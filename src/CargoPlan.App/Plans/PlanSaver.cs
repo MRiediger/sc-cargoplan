@@ -9,8 +9,8 @@ namespace CargoPlan.App.Plans;
 
 /// <summary>
 /// Saves the plan whenever it changes, debounced: a Star Citizen crash between two stops must not lose the ticks (D18).
-/// Listens to <see cref="OverlayViewModel.Plan"/> itself, so every way of changing the plan saves it: tick, editor,
-/// and later drag and drop.
+/// Listens to <see cref="OverlayViewModel.Saved"/> itself, so every way of changing the plan saves it: tick, editor,
+/// drag and drop, and the ContractTracker sync, also when it only adds a mission that didn't fit (T5.4).
 /// </summary>
 public sealed class PlanSaver
 {
@@ -36,7 +36,7 @@ public sealed class PlanSaver
 
     private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(OverlayViewModel.Plan))
+        if (e.PropertyName == nameof(OverlayViewModel.Saved))
         {
             _timer.Stop();
             _timer.Start();

@@ -22,6 +22,9 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     public const string TitleText = "Missions";
     public const string UnplannedTitleText = "Missions – unplanned changes";
     public const string ClearsDeliveredText = "Planning again clears delivered marks.";
+    public const string MissionDeletedText = "Mission deleted – plan updated, no need to press Plan.";
+    public const string ChangedOutsideText =
+        "The plan changed outside the editor (ContractTracker or the legend): new missions were added below. Plan replaces the plan with these rows.";
 
     private readonly OverlayViewModel _overlay;
 
@@ -36,12 +39,24 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     // A field of its own, not the property's: the constructor sets the start value without marking a change.
     private FillOrder _fillOrder;
 
+    // "Sync from ContractTracker": the overlay's sync, the same read the watcher runs (T5.4); null without one.
+    private readonly Func<Task>? _syncFromContractTracker;
+
+    // The overlay's missions the rows were made from: a tick keeps the list, a sync or a deletion makes a new one.
+    private IReadOnlyList<Mission> _missions;
+
+    // Set while the editor itself changes the overlay's plan, which then needs no reaction.
+    private bool _ownChange;
+
     /// <summary>Starts with the missions of the overlay's plan, or one blank row without a plan.</summary>
-    public MissionEditorViewModel(OverlayViewModel overlay)
+    /// <param name="syncFromContractTracker">Runs a ContractTracker sync; the Sync button is off without it.</param>
+    public MissionEditorViewModel(OverlayViewModel overlay, Func<Task>? syncFromContractTracker = null)
     {
         _overlay = overlay;
+        _syncFromContractTracker = syncFromContractTracker;
         _fillOrder = overlay.Plan?.FillOrder ?? FillOrder.BowFirst;
-        Rows = [.. MissionRows.FromStops(overlay.Saved?.Stops ?? [])];
+        _missions = overlay.Missions;
+        Rows = [.. RowsOf(overlay)];
         if (Rows.Count == 0)
         {
             Rows.Add(new MissionRow());
@@ -82,8 +97,15 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     public event EventHandler? Planned;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RemoveRowCommand), nameof(MoveUpCommand), nameof(MoveDownCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveRowCommand), nameof(MoveUpCommand), nameof(MoveDownCommand), nameof(DeleteMissionCommand))]
     public partial MissionRow? SelectedRow { get; set; }
+
+    /// <summary>
+    /// What happened to the plan that the player should know, not a problem: a mission deleted, or the plan changed from
+    /// outside while rows were edited. The next edit clears it.
+    /// </summary>
+    [ObservableProperty]
+    public partial string? Status { get; set; }
 
     /// <summary>The rows differ from the overlay's plan: edited, imported or cleared since opening or the last plan.</summary>
     [ObservableProperty]
@@ -189,15 +211,18 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanMoveDown))]
     private void MoveDown() => Move(+1);
 
-    /// <summary>A new route is a new plan: ticks and moves of the old one are gone (D19). A problem keeps the editor open.</summary>
+    /// <summary>
+    /// A new route is a new plan: ticks and moves of the old one are gone (D19). Captures keep their ids, the watermark
+    /// stays (T5.4). A problem keeps the editor open.
+    /// </summary>
     [RelayCommand(CanExecute = nameof(CanExport))]
     private void Plan()
     {
-        var stops = _result.Stops;
+        var (missions, route) = MissionRows.ToMissions(Rows, _overlay.Missions);
         try
         {
-            var plan = LoadPlanner.Plan(_overlay.Ship, stops.ToStops(), FillOrder);
-            _overlay.ShowPlan(SavedPlan.FromStops(stops, plan, _overlay.Watermark));
+            var saved = LoadPlanner.Plan(_overlay.Ship, missions, route, FillOrder, _overlay.Watermark);
+            ChangeOverlay(() => _overlay.ShowPlan(saved));
             IsDirty = false;
             SetActionProblem(null);
             Planned?.Invoke(this, EventArgs.Empty);
@@ -207,6 +232,47 @@ public sealed partial class MissionEditorViewModel : ObservableObject
             SetActionProblem(ex.Message);
         }
     }
+
+    /// <summary>
+    /// Takes the selected row's mission out of the plan at once, with its crates; nothing else moves, ticks stay (D42).
+    /// Unlike the rows a draft no more: deleting needs no planning. Its rows leave the draft, which stays as clean as it
+    /// was; the status line says so, so nobody presses Plan for it and plans everything anew.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanDeleteMission))]
+    private void DeleteMission()
+    {
+        if (SelectedRow?.MissionId is not { } id)
+        {
+            return;
+        }
+
+        var wasDirty = IsDirty;
+        ChangeOverlay(() => _overlay.RemoveMission(id));
+        _missions = _overlay.Missions;
+        foreach (var row in Rows.Where(r => r.MissionId == id).ToList())
+        {
+            Rows.Remove(row);
+        }
+
+        if (Rows.Count == 0)
+        {
+            Rows.Add(new MissionRow());
+        }
+
+        SelectedRow = null;
+        IsDirty = wasDirty;
+        Status = MissionDeletedText;
+    }
+
+    /// <summary>Runs the overlay's ContractTracker sync, like a capture would (T5.4); new missions come in as rows.</summary>
+    // A method returning Task gives an AsyncRelayCommand (IAsyncRelayCommand).
+    // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand#asynchronous-commands
+    [RelayCommand(CanExecute = nameof(CanSync))]
+    private Task Sync() => _syncFromContractTracker?.Invoke() ?? Task.CompletedTask;
+
+    private bool CanSync() => _syncFromContractTracker is not null;
+
+    private bool CanDeleteMission() => SelectedRow?.MissionId is { } id && _overlay.Missions.Any(m => m.Id == id);
 
     private bool HasSelection() => SelectedRow is not null;
 
@@ -261,16 +327,71 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
     private void OnOverlayChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(OverlayViewModel.Plan))
+        if (e.PropertyName != nameof(OverlayViewModel.Plan))
         {
-            OnPropertyChanged(nameof(HasPlan));
-            OnPropertyChanged(nameof(ClearsDelivered));
+            return;
+        }
+
+        OnPropertyChanged(nameof(HasPlan));
+        OnPropertyChanged(nameof(ClearsDelivered));
+        DeleteMissionCommand.NotifyCanExecuteChanged();
+
+        // A tick keeps the missions; a capture, a waiting mission placed or one dropped in the legend doesn't.
+        if (_ownChange || ReferenceEquals(_overlay.Missions, _missions))
+        {
+            return;
+        }
+
+        _missions = _overlay.Missions;
+        if (IsDirty)
+        {
+            // The edits stay; new missions come in as rows, or Plan would drop a capture the watermark has passed.
+            HashSet<int> shown = [.. Rows.Select(r => r.MissionId).OfType<int>()];
+            foreach (var row in RowsOf(_overlay).Where(r => r.MissionId is { } id && !shown.Contains(id)))
+            {
+                Rows.Add(row);
+            }
+
+            IsDirty = true;
+            Status = ChangedOutsideText;
+            return;
+        }
+
+        Rows.Clear();
+        foreach (var row in RowsOf(_overlay))
+        {
+            Rows.Add(row);
+        }
+
+        if (Rows.Count == 0)
+        {
+            Rows.Add(new MissionRow());
+        }
+
+        IsDirty = false;
+    }
+
+    /// <summary>Rows of the overlay's missions in route order (T5.4); none without a plan.</summary>
+    private static IReadOnlyList<MissionRow> RowsOf(OverlayViewModel overlay) =>
+        overlay.Saved is { } saved ? MissionRows.FromMissions(saved.Missions, [.. saved.Stops.Select(s => s.Destination)]) : [];
+
+    private void ChangeOverlay(Action change)
+    {
+        _ownChange = true;
+        try
+        {
+            change();
+        }
+        finally
+        {
+            _ownChange = false;
         }
     }
 
     private void Edited()
     {
         _actionProblem = null;
+        Status = null;
         IsDirty = true;
         Evaluate();
     }

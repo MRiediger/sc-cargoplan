@@ -7,6 +7,12 @@ public enum NoticeSource
     Hotkeys,
     Plan,
 
+    /// <summary>Why ContractTracker can't be read, or that the sync is paused (T5.4).</summary>
+    ContractTracker,
+
+    /// <summary>Contracts deleted in ContractTracker with crates still on board (D39 addendum).</summary>
+    DeletedContracts,
+
     /// <summary>A refused right drag (D24); cleared by the next move or plan.</summary>
     Move,
 }

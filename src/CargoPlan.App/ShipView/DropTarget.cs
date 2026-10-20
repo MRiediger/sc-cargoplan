@@ -23,7 +23,8 @@ public static class DropTarget
     /// the next crate or the plate, so every cell on the plate can be reached from outside. "Down" is the grid's stack
     /// axis, wherever the rack points it (D26). Nothing on screen slides later: whether the crate fits is Core's call.
     /// </summary>
-    /// <param name="crates">The rack's crates, delivered ones too (they carry, D24), without the dragged ones: those are air.</param>
+    /// <param name="crates">The rack's crates without the dragged ones: those are air, and so is delivered cargo, which is off
+    /// the ship and carries nothing (D24 addendum).</param>
     /// <returns>Null if the line of sight misses the rack.</returns>
     public static Drop? Resolve(Rack rack, IReadOnlyList<Crate> crates, IsoProjection camera, Point projected)
     {
@@ -31,7 +32,7 @@ public static class DropTarget
         var direction = camera.ViewDirection;
 
         Dictionary<GridPosition, Crate> taken = [];
-        foreach (var crate in crates)
+        foreach (var crate in crates.Where(c => !c.Delivered))
         {
             foreach (var cell in crate.Cells)
             {

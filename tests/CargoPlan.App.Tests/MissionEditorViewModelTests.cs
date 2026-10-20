@@ -6,6 +6,7 @@ using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Rendering;
 using CargoPlan.Core.Ships;
+using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
 
@@ -528,5 +529,148 @@ public sealed class MissionEditorViewModelTests : IDisposable
         editor.ShowProblem("Clipboard is in use.");
 
         editor.Problem.Should().Be("Clipboard is in use.");
+    }
+
+    // --- Missions and ContractTracker (T5.4) ---
+
+    private static ContractTrackerCandidate Candidate(long id, string destination, string commodity = "Stims", bool sizeAssumed = false) =>
+        new([id], null, [new MissionStop(destination, 1, [new MissionItem(commodity, 4, CrateSize.Four)])], sizeAssumed, false, null, null);
+
+    /// <summary>Riker typed, then captures 36 (Shubin) and 37 (Orison, crate size assumed).</summary>
+    private static OverlayViewModel OverlayWithCaptures()
+    {
+        var overlay = EmptyOverlay();
+        MissionStop riker = new("Riker", 1, [new MissionItem("Titanium", 8, CrateSize.Four)]);
+        overlay.ShowPlan(SavedPlan.FromStops([riker], LoadPlanner.Plan(overlay.Ship, [riker.ToStop()])));
+        overlay.ApplyContractTracker(new ContractTrackerReadResult([Candidate(36, "Shubin"), Candidate(37, "Orison", sizeAssumed: true)], null, new HashSet<long>()));
+        return overlay;
+    }
+
+    [Fact]
+    public void Rows_show_where_a_mission_came_from()
+    {
+        var editor = new MissionEditorViewModel(OverlayWithCaptures());
+
+        editor.Rows.Select(r => (r.Destination, r.Source)).Should().Equal(("Riker", ""), ("Shubin", "ct 36"), ("Orison", "ct 37"));
+    }
+
+    [Fact]
+    public void Plan_keeps_the_watermark_and_the_captures()
+    {
+        var overlay = OverlayWithCaptures();
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.PlanCommand.Execute(null);
+
+        overlay.Watermark.Should().Be(37);
+        overlay.Missions.Select(m => MissionText.Source(m.Contract)).Should().Equal("", "ct 36", "ct 37");
+    }
+
+    [Fact]
+    public void A_changed_max_crate_size_is_no_assumption_anymore()
+    {
+        var overlay = OverlayWithCaptures();
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.Rows.Single(r => r.Destination == "Orison").MaxCrateSize = 2;
+        editor.PlanCommand.Execute(null);
+
+        overlay.Missions.Single(m => m.Contract?.ContractIds[0] == 37).Contract!.CrateSizeAssumed.Should().BeFalse();
+    }
+
+    [Fact]
+    public void An_untouched_assumed_size_stays_assumed()
+    {
+        var overlay = OverlayWithCaptures();
+
+        new MissionEditorViewModel(overlay).PlanCommand.Execute(null);
+
+        overlay.Missions.Single(m => m.Contract?.ContractIds[0] == 37).Contract!.CrateSizeAssumed.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DeleteMission_takes_out_its_rows_and_crates_at_once_and_moves_nothing_else()
+    {
+        var overlay = OverlayWithCaptures();
+        overlay.ToggleDeliveredCommand.Execute("Riker");
+        var editor = new MissionEditorViewModel(overlay);
+        var others = overlay.Plan!.Crates.Where(c => c.Destination != "Shubin").ToArray();
+
+        editor.SelectedRow = editor.Rows.Single(r => r.Destination == "Shubin");
+        editor.DeleteMissionCommand.Execute(null);
+
+        overlay.Plan!.Crates.Should().Equal(others);
+        editor.Rows.Select(r => r.Destination).Should().Equal("Riker", "Orison");
+        editor.IsDirty.Should().BeFalse();
+        editor.Status.Should().Be(MissionEditorViewModel.MissionDeletedText);
+    }
+
+    [Fact]
+    public void DeleteMission_on_a_typed_row_takes_the_typed_rows_of_its_stop()
+    {
+        var overlay = OverlayWithCaptures();
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.SelectedRow = editor.Rows.Single(r => r.Destination == "Riker");
+        editor.DeleteMissionCommand.Execute(null);
+
+        overlay.Plan!.Crates.Should().NotContain(c => c.Destination == "Riker");
+        editor.Rows.Select(r => r.Destination).Should().Equal("Shubin", "Orison");
+    }
+
+    [Fact]
+    public void DeleteMission_is_off_for_a_row_not_planned_yet()
+    {
+        var editor = new MissionEditorViewModel(OverlayWithCaptures());
+
+        editor.AddRowCommand.Execute(null);
+
+        editor.DeleteMissionCommand.CanExecute(null).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Sync_runs_the_overlays_sync()
+    {
+        var synced = 0;
+        var editor = new MissionEditorViewModel(EmptyOverlay(), () =>
+        {
+            synced++;
+            return Task.CompletedTask;
+        });
+
+        await editor.SyncCommand.ExecuteAsync(null);
+
+        synced.Should().Be(1);
+    }
+
+    [Fact]
+    public void A_capture_while_the_editor_is_open_shows_up_in_a_clean_draft()
+    {
+        var overlay = OverlayWithCaptures();
+        var editor = new MissionEditorViewModel(overlay);
+
+        overlay.ApplyContractTracker(new ContractTrackerReadResult([Candidate(38, "Lorville")], null, new HashSet<long>([36, 37])));
+
+        editor.Rows.Select(r => r.Destination).Should().Equal("Riker", "Shubin", "Orison", "Lorville");
+        editor.IsDirty.Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_capture_while_the_draft_is_changed_keeps_the_edits_adds_its_rows_and_says_so()
+    {
+        // The capture is above the watermark now: if Plan dropped it, it would never come back (T5.4).
+        var overlay = OverlayWithCaptures();
+        var editor = new MissionEditorViewModel(overlay);
+        editor.Rows[0].Scu = "12";
+
+        overlay.ApplyContractTracker(new ContractTrackerReadResult([Candidate(38, "Lorville")], null, new HashSet<long>([36, 37])));
+
+        editor.Rows.Select(r => (r.Destination, r.Scu)).Should().Equal(("Riker", "12"), ("Shubin", "4"), ("Orison", "4"), ("Lorville", "4"));
+        editor.IsDirty.Should().BeTrue();
+        editor.Status.Should().Be(MissionEditorViewModel.ChangedOutsideText);
+
+        editor.PlanCommand.Execute(null);
+
+        overlay.Missions.Should().Contain(m => m.Contract != null && m.Contract.ContractIds[0] == 38);
     }
 }

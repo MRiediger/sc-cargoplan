@@ -1,5 +1,8 @@
+using CargoPlan.App.Editor;
+using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
+using CargoPlan.Core.Plans;
 using static System.FormattableString;
 
 namespace CargoPlan.App.ShipView;
@@ -7,9 +10,28 @@ namespace CargoPlan.App.ShipView;
 /// <summary>Turns a plan into a <see cref="ShipScene"/>. Reads Core's results, plans nothing.</summary>
 public static class ShipViewBuilder
 {
+    public const string DuplicateText = "⚠ duplicate?";
+
+    public const string TickToDropText = " – tick to drop";
+
+    public const string FitsNowText = "fits now, placed at the next sync";
+
+    private const string Separator = " · ";
+
+    /// <summary>A plan without missions: no markings, no unplaced lines (plans built in tests and by the planner alone).</summary>
     /// <param name="violations">The result of <c>LoadPlanner.Validate</c> for this plan.</param>
     /// <exception cref="ArgumentException">The plan belongs to another ship.</exception>
-    public static ShipScene Build(LoadPlan plan, Ship ship, IReadOnlyList<PlanWarning> violations)
+    public static ShipScene Build(LoadPlan plan, Ship ship, IReadOnlyList<PlanWarning> violations) => Build(plan, null, ship, violations);
+
+    /// <summary>
+    /// The plan with its missions (D42): the legend marks per stop what is uncertain about its missions (T5.4) and lists
+    /// the missions that didn't fit (D41).
+    /// </summary>
+    /// <param name="violations">The result of <c>LoadPlanner.Validate</c> for this plan.</param>
+    /// <exception cref="ArgumentException">The plan belongs to another ship.</exception>
+    public static ShipScene Build(SavedPlan saved, Ship ship, IReadOnlyList<PlanWarning> violations) => Build(saved.Plan, saved, ship, violations);
+
+    private static ShipScene Build(LoadPlan plan, SavedPlan? saved, Ship ship, IReadOnlyList<PlanWarning> violations)
     {
         plan.EnsureBelongsTo(ship);
 
@@ -18,10 +40,17 @@ public static class ShipViewBuilder
 
         SceneRack[] racks = [.. ship.Racks.Select(r => BuildRack(r, plan, palette, violated.Contains(r.Id)))];
 
-        // GroupBy keeps the order of first appearance, the same order as the palette.
-        LegendEntry[] legend = [.. plan.Placements
-            .GroupBy(p => p.Destination)
-            .Select(g => new LegendEntry(palette[g.Key], g.Key, g.Sum(p => p.Item.Scu), g.All(p => p.Delivered)))];
+        // Unload order (T5.4): a new visit to a delivered stop comes last; the colour stays the palette's (route order).
+        var duplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(saved);
+        var reserveDuplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(OnBoard(saved));
+        var placements = plan.Placements.ToLookup(p => p.Destination);
+        LegendEntry[] legend = [.. plan.UnloadOrder.Select(destination => new LegendEntry(
+            palette[destination],
+            destination,
+            placements[destination].Sum(p => p.Item.Scu),
+            placements[destination].All(p => p.Delivered),
+            Markings(saved, destination, duplicates),
+            Markings(saved, destination, reserveDuplicates)))];
 
         return new ShipScene(
             racks,
@@ -32,8 +61,63 @@ public static class ShipViewBuilder
             [.. violations.Select(v => v.Message)],
             MissionPalette.Repeats(plan),
             plan,
-            ship);
+            ship,
+            saved is null ? [] : [.. saved.Missions.Where(m => m.Unplaced).Select(m => Unplaced(saved, ship, m, duplicates))]);
     }
+
+    /// <summary>
+    /// What is uncertain about the missions going to <paramref name="destination"/>, in a fixed order: the crate size
+    /// first ("4 SCU?", it belongs to the quantity), then missing destinations, then a possible duplicate.
+    /// </summary>
+    private static string Markings(SavedPlan? saved, string destination, IReadOnlySet<int> duplicates)
+    {
+        if (saved is null)
+        {
+            return "";
+        }
+
+        Mission[] missions = [.. saved.Missions.Where(m => !m.Unplaced && m.Stops.Any(s => s.Destination == destination))];
+        return Joined(
+        [
+            AssumedSizes(missions.Where(m => m.Contract?.CrateSizeAssumed == true).SelectMany(m => m.Stops.Where(s => s.Destination == destination))),
+            .. missions.Select(Incomplete).Distinct(),
+            missions.Any(m => duplicates.Contains(m.Id)) ? DuplicateText : "",
+        ]);
+    }
+
+    /// <summary>"Hurston + 1 · 16 SCU · ⚠ doesn't fit (16 SCU, 8 free) – tick to drop", with the mission's own markings.</summary>
+    private static UnplacedEntry Unplaced(SavedPlan saved, Ship ship, Mission mission, IReadOnlySet<int> duplicates)
+    {
+        var name = MissionText.Name(mission);
+        var reason = LoadPlanner.PlaceProblem(saved, ship, mission.Id) ?? FitsNowText;
+        return new UnplacedEntry(mission.Id, Joined(
+        [
+            Invariant($"{name} · {mission.TotalScu} SCU"),
+            mission.Contract?.CrateSizeAssumed == true ? AssumedSizes(mission.Stops) : "",
+            Incomplete(mission),
+            duplicates.Contains(mission.Id) ? DuplicateText : "",
+            $"⚠ {reason}{TickToDropText}",
+        ]));
+    }
+
+    /// <summary>"4 SCU?", or "4/2 SCU?" for items with different max crate sizes; empty without items.</summary>
+    private static string AssumedSizes(IEnumerable<MissionStop> stops)
+    {
+        int[] sizes = [.. stops.SelectMany(s => s.Items).Select(i => (int)i.MaxCrateSize).Distinct().OrderDescending()];
+        return sizes.Length == 0 ? "" : Invariant($"{string.Join("/", sizes)} SCU?");
+    }
+
+    /// <summary>"⚠ 1 of 3 destinations" if the contract's drop-off list names more than were read; else empty.</summary>
+    private static string Incomplete(Mission mission) =>
+        mission.Contract?.ListedDestinations is { } listed && listed > mission.Stops.Count
+            ? Invariant($"⚠ {mission.Stops.Count} of {listed} destinations")
+            : "";
+
+    private static string Joined(IEnumerable<string> parts) => string.Join(Separator, parts.Where(p => p.Length > 0));
+
+    /// <summary>The plan with every crate on board: the legend's reserve keeps the markings a tick takes away (D16).</summary>
+    private static SavedPlan OnBoard(SavedPlan saved) =>
+        new(saved.Missions, saved.Plan with { Crates = [.. saved.Plan.Crates.Select(c => c with { Delivered = false })] }, saved.Watermark);
 
     private static string[] Messages(LoadPlan plan) => [.. plan.Warnings.Select(w => w.Message).Distinct()];
 
@@ -47,10 +131,11 @@ public static class ShipViewBuilder
 
         // Only a red rack can hold a faulty crate; valid plans skip the check of every pair.
         IReadOnlySet<Crate> faulty = isViolated ? CrateLayout.Faulty(rack, crates, plan.UnloadOrder) : new HashSet<Crate>();
+        var drawn = Drawn(crates);
 
         SceneBox[] cargo = [.. plan.PlacementsForRack(rack.Id).SelectMany(placement =>
         {
-            Crate[] own = [.. crates.Where(c => Belongs(c, placement))];
+            Crate[] own = [.. drawn.Where(c => Belongs(c, placement))];
             var fill = placement.Delivered ? CellFill.Delivered : CellFill.Mission;
             return own.Select((crate, i) => new SceneBox(
                 rack.CellBox(crate.Position, crate.CrateSize),
@@ -62,7 +147,7 @@ public static class ShipViewBuilder
                 faulty.Contains(crate)));
         })];
 
-        HashSet<GridPosition> taken = [.. crates.SelectMany(c => c.Cells)];
+        HashSet<GridPosition> taken = [.. drawn.SelectMany(c => c.Cells)];
         var grid = rack.Grid;
         SceneBox[] free =
         [
@@ -75,6 +160,29 @@ public static class ShipViewBuilder
         ];
 
         return new SceneRack(rack.Id, rack.Number, isViolated, rack.Bounds, [.. cargo, .. free]);
+    }
+
+    /// <summary>
+    /// The crates of a rack to draw: every crate on board, and a delivered one only while its cells are free (D24 addendum:
+    /// delivered cargo is off the ship). Of two delivered crates in the same cells, the later in the plan, the latest visit.
+    /// </summary>
+    private static IReadOnlyList<Crate> Drawn(IReadOnlyList<Crate> crates)
+    {
+        HashSet<GridPosition> taken = [.. crates.Where(c => !c.Delivered).SelectMany(c => c.Cells)];
+        HashSet<Crate> hidden = new(ReferenceEqualityComparer.Instance);
+        foreach (var crate in crates.Where(c => c.Delivered).Reverse())
+        {
+            if (crate.Cells.Any(taken.Contains))
+            {
+                hidden.Add(crate);
+            }
+            else
+            {
+                taken.UnionWith(crate.Cells);
+            }
+        }
+
+        return [.. crates.Where(c => !hidden.Contains(c))];
     }
 
     /// <summary>The crate is one of the placement's: the grouping of <c>LoadPlan.Placements</c>, within one rack.</summary>

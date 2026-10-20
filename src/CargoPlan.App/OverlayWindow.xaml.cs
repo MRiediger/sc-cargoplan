@@ -16,16 +16,19 @@ public partial class OverlayWindow : Window
     private readonly OverlayViewModel _viewModel;
     private readonly SettingsSession _settings;
     private readonly Func<HotkeysViewModel> _createHotkeys;
+    private readonly Func<Task> _syncFromContractTracker;
     private MissionEditorWindow? _editor;
     private SettingsWindow? _settingsWindow;
 
     /// <param name="createHotkeys">Made per settings window, from the hotkeys as they are then.</param>
-    public OverlayWindow(OverlayViewModel viewModel, SettingsSession settings, Func<HotkeysViewModel> createHotkeys)
+    /// <param name="syncFromContractTracker">The editor's "Sync from ContractTracker" (T5.4).</param>
+    public OverlayWindow(OverlayViewModel viewModel, SettingsSession settings, Func<HotkeysViewModel> createHotkeys, Func<Task> syncFromContractTracker)
     {
         InitializeComponent();
         _viewModel = viewModel;
         _settings = settings;
         _createHotkeys = createHotkeys;
+        _syncFromContractTracker = syncFromContractTracker;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
     }
@@ -117,7 +120,7 @@ public partial class OverlayWindow : Window
     {
         if (_editor is null)
         {
-            _editor = new MissionEditorWindow(new MissionEditorViewModel(_viewModel), _viewModel, _settings.ToolWindowTheme, this);
+            _editor = new MissionEditorWindow(new MissionEditorViewModel(_viewModel, _syncFromContractTracker), _viewModel, _settings.ToolWindowTheme, this);
             _editor.Closed += (_, _) => _editor = null;
             _editor.Show();
         }
