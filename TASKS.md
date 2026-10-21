@@ -531,6 +531,7 @@ Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1
 - **Belohnung** aus „Reward“ am Textanfang → `ParsedContract.Reward` → Kandidat → `ContractSource.Reward` (Core, ein Feld). Duplikat = Teilmenge **und** Belohnung gleich oder mindestens eine unbekannt (D39-Addendum)
 - **Overlay-Text im Rohtext:** README-Satz im Abschnitt ContractTracker, Overlay außerhalb von CTs Capture-Region (F6)
 - Fixtures aus den echten Rohtexten (anonymisiert, ohne Datum): Id 47, Id 48, Silicon-Capture mit Overlay-Text
+- Nachtrag: CLI `contracts` hängt ` · reward 50,250` an die Kopfzeile, wenn die Belohnung bekannt ist; sie entscheidet über Duplikate, ein Bug-Report braucht sie
 
 **Akzeptanz:** Tests grün: 47 → „Everus Harbor“, max. 1 SCU; 48 → „Everus Harbor“, Größe weiter `?`; Silicon → genau ein Ziel mit 7 SCU, max. 1 SCU, keine Overlay-Zeile als Ware oder Ziel; „to“-Prosa vervollständigt, „from“-Prosa nicht; 47 vs. 48 nicht markiert, Retry mit gleicher Belohnung markiert; Belohnung übersteht Speichern und Laden. Echter Lauf gegen eine Kopie von Martins DB zeigt 47/48 als „Everus Harbor“. Core-Änderung nur Belohnung (Feld + Vergleich).
 

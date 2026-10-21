@@ -12,9 +12,17 @@ internal static class CandidateTextRenderer
     {
         var text = new StringBuilder();
         text.Append(CultureInfo.InvariantCulture, $"Contracts {string.Join(", ", candidate.ContractIds)}");
-        text.AppendLine(candidate.CapturedAt is { } capturedAt
+        text.Append(candidate.CapturedAt is { } capturedAt
             ? string.Create(CultureInfo.InvariantCulture, $" · captured {capturedAt:yyyy-MM-dd HH:mm:ss}Z")
             : " · capture time unreadable");
+
+        // The reward decides duplicates (T5.3b): a bug report without it can't be followed.
+        if (candidate.Reward is { } reward)
+        {
+            text.Append(CultureInfo.InvariantCulture, $" · reward {reward:N0}");
+        }
+
+        text.AppendLine();
 
         // "?" after an assumed size, as the legend will show it (T5.4).
         var assumed = candidate.CrateSizeAssumed ? "?" : "";
