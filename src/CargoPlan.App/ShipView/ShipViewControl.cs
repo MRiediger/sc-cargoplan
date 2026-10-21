@@ -5,6 +5,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using CargoPlan.App.Win32;
 using CargoPlan.Core.Models;
 
 namespace CargoPlan.App.ShipView;
@@ -18,7 +19,8 @@ namespace CargoPlan.App.ShipView;
 /// on a crate puts it (and the selection it belongs to) on the cell under the cursor (D25), right drag elsewhere pans, wheel
 /// zooms around the cursor, double-click on free or empty space resets, hover shows the crate. A stop line of the legend
 /// starts its drag here too (<see cref="StartStopDrag"/>). Left clicks are handled here, so the window's DragMove only
-/// works outside the view (D15).
+/// works outside the view (D15). While the mouse is captured, a poll of the cursor drives the drag once per frame: with
+/// Star Citizen in front no mouse moves arrive (D45).
 /// </summary>
 public sealed class ShipViewControl : FrameworkElement
 {
@@ -100,6 +102,12 @@ public sealed class ShipViewControl : FrameworkElement
 
     private ViewNavigation _navigation = ViewNavigation.Default;
     private Drag? _drag;
+
+    // The frame the poll last ran in: Rendering can come more than once per frame (D45).
+    private TimeSpan _lastPollTime;
+
+    // The drag's button read as down at the start: only then does "not down" mean released rather than a failed call (D45).
+    private bool _buttonArmed;
 
     // Brushes and pens from the theme properties; null after a change until the next render.
     private Paint? _paint;
@@ -218,7 +226,7 @@ public sealed class ShipViewControl : FrameworkElement
         ShowToolTip(null);
         Crate[] onBoard = [.. scene.Plan.Crates.Where(c => c.Destination == destination && !c.Delivered)];
         _drag = new Drag(MouseButton.Right, null, onBoard, destination, e.GetPosition(this), IsMoving: false, Gesture: null, Problem: null);
-        CaptureMouse();
+        CaptureForDrag(MouseButton.Right);
     }
 
     protected override void OnRender(DrawingContext dc)
@@ -378,6 +386,9 @@ public sealed class ShipViewControl : FrameworkElement
 
     protected override void OnLostMouseCapture(MouseEventArgs e)
     {
+        // Every end of a drag comes here (release, lock, new scene, another window): the one place the poll stops.
+        CompositionTarget.Rendering -= OnRendering;
+
         // Faded cargo, a highlighted target or a ghost and its reason must not stay on screen.
         if (_drag is { IsMoving: true } drag && drag.Dragged.Count > 0)
         {
@@ -397,41 +408,86 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         var position = e.GetPosition(this);
-        if (_drag is { } drag)
+        if (_drag is not null)
         {
-            // Inside the drag rectangle it may still be a click: the ship stands still until the drag leaves it.
-            if (!drag.IsMoving && IsWithinDragRectangle(drag.From, position))
-            {
-                return;
-            }
-
-            var delta = position - drag.From;
-            var gesture = Resolve(drag, position, moved: true);
-            var problem = gesture is Gesture.MoveCrates move && Scene is { } source ? CrateDrop.Problem(source.Plan, source.Ship, move) : null;
-            _drag = drag with { From = position, IsMoving = true, Gesture = gesture, Problem = problem };
-
-            switch (gesture)
-            {
-                // Like grabbing the ship: dragging right turns its near side right, dragging down tilts its top towards you.
-                case Gesture.Orbit:
-                    Navigate(_navigation.OrbitBy(-delta.X * OrbitDegreesPerPixel, delta.Y * OrbitDegreesPerPixel));
-                    break;
-                case Gesture.Pan:
-                    Navigate(_navigation.PanBy(delta));
-                    break;
-
-                // Moving cargo: the ship stands still; redraw only when the fade starts or the target or its reason change.
-                case Gesture.MoveCrates or Gesture.MoveStop or Gesture.None
-                    when !drag.IsMoving || !Equals(TargetOf(gesture), TargetOf(drag.Gesture)) || problem != drag.Problem:
-                    InvalidateVisual();
-                    ShowToolTip(problem);
-                    break;
-            }
-
+            UpdateGesture(position);
             return;
         }
 
         ShowToolTip(SceneHitTest.ToolTipAt(scene, CurrentTransform(scene).Invert(position)));
+    }
+
+    /// <summary>
+    /// Moves the running drag to <paramref name="positionInControl"/>; returns at once where it hasn't moved. Called by
+    /// MouseMove and, while the mouse is captured, once per frame from the cursor (<see cref="OnRendering"/>, D45).
+    /// </summary>
+    private void UpdateGesture(Point positionInControl)
+    {
+        // From is the press point until the drag moves, then the last position: every gesture below sets it.
+        if (!IsNavigationEnabled || Projected() is null || _drag is not { } drag || positionInControl == drag.From)
+        {
+            return;
+        }
+
+        // Inside the drag rectangle it may still be a click: the ship stands still until the drag leaves it.
+        if (!drag.IsMoving && IsWithinDragRectangle(drag.From, positionInControl))
+        {
+            return;
+        }
+
+        var delta = positionInControl - drag.From;
+        var gesture = Resolve(drag, positionInControl, moved: true);
+        var problem = gesture is Gesture.MoveCrates move && Scene is { } source ? CrateDrop.Problem(source.Plan, source.Ship, move) : null;
+        _drag = drag with { From = positionInControl, IsMoving = true, Gesture = gesture, Problem = problem };
+
+        switch (gesture)
+        {
+            // Like grabbing the ship: dragging right turns its near side right, dragging down tilts its top towards you.
+            case Gesture.Orbit:
+                Navigate(_navigation.OrbitBy(-delta.X * OrbitDegreesPerPixel, delta.Y * OrbitDegreesPerPixel));
+                break;
+            case Gesture.Pan:
+                Navigate(_navigation.PanBy(delta));
+                break;
+
+            // Moving cargo: the ship stands still; redraw only when the fade starts or the target or its reason change.
+            case Gesture.MoveCrates or Gesture.MoveStop or Gesture.None
+                when !drag.IsMoving || !Equals(TargetOf(gesture), TargetOf(drag.Gesture)) || problem != drag.Problem:
+                InvalidateVisual();
+                ShowToolTip(problem);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// The poll while the mouse is captured: the cursor drives the drag, and a button released without an up ends it like
+    /// the up (D45). Not Mouse.GetPosition or Mouse.LeftButton: WPF answers both from the last mouse message it got.
+    /// Source: https://learn.microsoft.com/dotnet/api/system.windows.media.compositiontarget.rendering
+    /// </summary>
+    private void OnRendering(object? sender, EventArgs e)
+    {
+        // Rendering also comes when the visual tree forces an extra update; the frames differ in RenderingTime.
+        // Source: https://learn.microsoft.com/dotnet/api/system.windows.media.renderingeventargs.renderingtime
+        if (e is not RenderingEventArgs args || args.RenderingTime == _lastPollTime || _drag is not { } drag)
+        {
+            return;
+        }
+
+        _lastPollTime = args.RenderingTime;
+        if (NativeMethods.GetCursorPosition() is not { } screen)
+        {
+            return;
+        }
+
+        var position = PointFromScreen(screen);
+        if (_buttonArmed && !NativeMethods.IsMouseButtonDown(drag.Button))
+        {
+            FinishDrag(drag, position);
+        }
+        else
+        {
+            UpdateGesture(position);
+        }
     }
 
     protected override void OnMouseLeave(MouseEventArgs e)
@@ -539,7 +595,22 @@ public sealed class ShipViewControl : FrameworkElement
         var position = e.GetPosition(this);
         var down = HitAt(position);
         _drag = new Drag(button, down, DragGesture.DraggedCrates(button, down, Selection.In(Scene)), Stop: null, position, IsMoving: false, Gesture: null, Problem: null);
-        CaptureMouse();
+        CaptureForDrag(button);
+    }
+
+    /// <summary>Captures the mouse for a drag and starts the poll that <see cref="OnLostMouseCapture"/> stops (D45).</summary>
+    private void CaptureForDrag(MouseButton button)
+    {
+        if (!CaptureMouse())
+        {
+            return;
+        }
+
+        _buttonArmed = NativeMethods.IsMouseButtonDown(button);
+
+        // -= first: never two handlers on the static event, which would keep the poll and this control alive.
+        CompositionTarget.Rendering -= OnRendering;
+        CompositionTarget.Rendering += OnRendering;
     }
 
     private void EndDrag(MouseButtonEventArgs e, MouseButton button)
@@ -550,10 +621,15 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         e.Handled = true;
+        FinishDrag(drag, e.GetPosition(this));
+    }
 
+    /// <summary>Ends <paramref name="drag"/> at <paramref name="position"/>: on the button's up, or from the poll where the up didn't come (D45).</summary>
+    private void FinishDrag(Drag drag, Point position)
+    {
         // Resolve before releasing the capture, which clears the drag; run the command after, so the new plan is drawn
         // without the fade. A refused drop runs too: the view model shows the reason (D24).
-        var gesture = Resolve(drag, e.GetPosition(this), drag.IsMoving);
+        var gesture = Resolve(drag, position, drag.IsMoving);
         ReleaseMouseCapture();
         switch (gesture)
         {

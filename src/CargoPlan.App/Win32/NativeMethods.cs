@@ -1,11 +1,13 @@
 using System.ComponentModel;
 using System.Runtime.InteropServices;
+using System.Windows;
+using System.Windows.Input;
 using CargoPlan.App.Hotkeys;
 
 namespace CargoPlan.App.Win32;
 
 /// <summary>
-/// Win32 calls for our own windows, plus read-only queries of the foreground window and the cursor.
+/// Win32 calls for our own windows, plus read-only queries of the foreground window, the cursor and the mouse buttons.
 /// Never anything in the game process (EAC).
 /// The Ptr variants exist in 64-bit user32.dll only; the app runs as a 64-bit process.
 /// </summary>
@@ -24,6 +26,13 @@ internal static partial class NativeMethods
 
     // Source: https://learn.microsoft.com/en-us/windows/win32/inputdev/wm-hotkey
     public const int WM_HOTKEY = 0x0312;
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+    private const int VK_LBUTTON = 0x01;
+    private const int VK_RBUTTON = 0x02;
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics
+    private const int SM_SWAPBUTTON = 23;
 
     // Source: https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
     private const int ERROR_ACCESS_DENIED = 5;
@@ -109,6 +118,31 @@ internal static partial class NativeMethods
     }
 
     /// <summary>
+    /// The cursor in screen pixels, read now instead of from the last mouse message: with Star Citizen in front our
+    /// windows get no WM_MOUSEMOVE while the cursor moves (D45). null where the input desktop isn't ours (secure desktop).
+    /// </summary>
+    public static Point? GetCursorPosition() => GetCursorPos(out var point) ? new Point(point.x, point.y) : null;
+
+    /// <summary>
+    /// Whether the logical button, as WPF names it, is physically held down now, independent of our message queue (D45).
+    /// Also false when the call fails (e.g. UIPI towards an elevated foreground window): trust false only after a true.
+    /// </summary>
+    public static bool IsMouseButtonDown(MouseButton button)
+    {
+        // GetAsyncKeyState reads the physical buttons; with swapped buttons the logical left is the physical right.
+        var swapped = GetSystemMetrics(SM_SWAPBUTTON) != 0;
+        var virtualKey = (button, swapped) switch
+        {
+            (MouseButton.Left, false) or (MouseButton.Right, true) => VK_LBUTTON,
+            (MouseButton.Left, true) or (MouseButton.Right, false) => VK_RBUTTON,
+            _ => throw new ArgumentOutOfRangeException(nameof(button), button, "Drags use the left or right button only."),
+        };
+
+        // The high bit, the sign bit of the SHORT, is set while the key is down.
+        return GetAsyncKeyState(virtualKey) < 0;
+    }
+
+    /// <summary>
     /// Registers a system-wide hotkey for our own window: Windows posts WM_HOTKEY with <paramref name="id"/> as wParam,
     /// whichever program has the focus. No hook, nothing in another process (EAC, D17).
     /// false = another program (or our other hotkey) already has the combination; the player picks another one.
@@ -166,6 +200,19 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool GetCursorInfo(ref CURSORINFO pci);
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getcursorpos
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetCursorPos(out POINT lpPoint);
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getasynckeystate
+    [LibraryImport("user32.dll")]
+    private static partial short GetAsyncKeyState(int vKey);
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics
+    [LibraryImport("user32.dll")]
+    private static partial int GetSystemMetrics(int nIndex);
 
     // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey
     [LibraryImport("user32.dll", SetLastError = true)]
