@@ -84,6 +84,24 @@ public static class SettingsStore
     public static void Save(string path, AppSettings settings) =>
         AtomicFile.Write(path, stream => JsonSerializer.Serialize(stream, settings, WriteTypeInfo));
 
+    /// <summary>settings.json.bak, next to the file.</summary>
+    public static string BackupPath(string path) => path + ".bak";
+
+    /// <summary>
+    /// Copies the file as it is, byte for byte, even if it isn't JSON: a hand edit the next save would overwrite stays
+    /// recoverable (T6.1). No file = nothing to keep, and an older backup stays. Once per run is the caller's job (<see cref="SettingsSession"/>).
+    /// Source: https://learn.microsoft.com/dotnet/api/system.io.file.copy (overwrite overload; keeps the file's attributes)
+    /// </summary>
+    /// <exception cref="IOException">The backup is locked or can't be written.</exception>
+    /// <exception cref="UnauthorizedAccessException">No permission, or the backup is read-only or hidden.</exception>
+    public static void BackUp(string path)
+    {
+        if (File.Exists(path))
+        {
+            File.Copy(path, BackupPath(path), overwrite: true);
+        }
+    }
+
     /// <summary>
     /// The default encoder writes '+' as + (HTML-sensitive), so a hand-written "Ctrl+Alt+L" would come back as
     /// "Ctrl+Alt+L" after the next save. The relaxed encoder leaves it alone; "unsafe" only matters for JSON
@@ -95,5 +113,5 @@ public static class SettingsStore
             .GetTypeInfo(typeof(AppSettings));
 
     private static string Problem(string path, string reason) =>
-        $"Settings not loaded, using defaults ({reason}). Moving the overlay or changing a setting overwrites {path}.";
+        $"Settings not loaded, using defaults ({reason}). The next save overwrites {path}, keeping the old file as {Path.GetFileName(BackupPath(path))}.";
 }

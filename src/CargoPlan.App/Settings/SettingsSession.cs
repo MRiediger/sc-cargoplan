@@ -25,6 +25,9 @@ public sealed class SettingsSession
     // What the last look change had corrected: the notice stays after saving, so a wrong slider limit can't hide (D34).
     private string? _corrections;
 
+    // Set after the first backup succeeded, not before: a failed copy writes nothing and the next save tries again (D47).
+    private bool _backedUp;
+
     /// <summary>Applies <paramref name="settings"/> at once, before any window exists; writes nothing (D31: the file stays as the player left it until a change).</summary>
     /// <param name="settings">As loaded, checked by <see cref="AppearanceRules"/>.</param>
     public SettingsSession(ResourceDictionary resources, OverlayViewModel viewModel, string path, AppSettings settings)
@@ -145,6 +148,12 @@ public sealed class SettingsSession
         _timer.Stop();
         try
         {
+            if (!_backedUp)
+            {
+                SettingsStore.BackUp(_path);
+                _backedUp = true;
+            }
+
             SettingsStore.Save(_path, Current);
 
             // A load or save problem is solved once the file is written; a correction of the last change is not.

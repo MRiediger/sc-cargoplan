@@ -138,7 +138,7 @@ Both files are in `%LocalAppData%\SC-CargoPlan\` and are saved as soon as someth
 | `settings.json` | Overlay position and size, hotkeys, look, tool window theme, ContractTracker path and auto-sync ([format](docs/settings-format.md)) | Default size, position and look, no hotkeys. Your plan stays. |
 | `plan.json` | Your current plan: the missions you entered or captured, which crate lies where in which rack, ticks ([format](docs/plan-format.md)). The editor opens with these missions. A plan file from an older version is converted when the overlay loads it and saved in the new format; your ticks stay. | The overlay starts without a plan. Your settings stay. |
 
-If a file can't be read, the overlay starts without it and says so in an amber line. A single setting out of range or a colour that isn't one is corrected on its own, named in that line, and the rest of `settings.json` applies. It doesn't overwrite the file: `settings.json` stays until you move the overlay or change a setting, `plan.json` until you make a new plan.
+If a file can't be read, the overlay starts without it and says so in an amber line. A single setting out of range or a colour that isn't one is corrected on its own, named in that line, and the rest of `settings.json` applies. It doesn't overwrite the file: `settings.json` stays until you move the overlay or change a setting, `plan.json` until you make a new plan. Before the first save after each start, the old `settings.json` is kept as `settings.json.bak`, so a hand edit is never lost to one click.
 
 ## Build
 

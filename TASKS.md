@@ -600,9 +600,11 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 
 **Befund:** Zustände A/B/C ohne Blocker, Leerzustand und Settings selbsterklärend, Auto-Detect funktioniert, Sync ~1 s. Screenshots in `docs/screenshots/first-start/`.
 
-### [ ] T6.1 settings.json sichern
+### [x] T6.1 settings.json sichern
 **Warum:** Release-Vorbedingung. Das erste Speichern überschreibt eine kaputte oder von Hand geänderte settings.json (D34), ohne Weg zurück.
 - `settings.json` einmal pro Prozesslaufzeit, vor dem ersten Schreiben, als `settings.json.bak` sichern
+
+**Präzisiert in der Planung:** Flag „already backed up“ in `SettingsSession` (einziger Besitzer pro Lauf, D34), nicht statisch; die Kopie macht `SettingsStore.BackUp` (`File.Copy`, overwrite, byte-gleich auch bei Nicht-JSON). Keine settings.json → kein Backup, Flag trotzdem gesetzt. Flag erst nach erfolgreicher Kopie: scheitert sie, wird nicht geschrieben und der nächste Save versucht es erneut. Lade-Hinweis bei kaputter Datei: „The next save overwrites {path}, keeping the old file as settings.json.bak.“; README und settings-format.md nennen die `.bak`. Präzisierung in der Planphase, ratifiziert durch Freigabe (D47).
 
 **Akzeptanz:** settings.json von Hand ändern (auch kaputt), Overlay bewegen → `settings.json.bak` enthält den alten Inhalt byte-gleich; weiteres Speichern im selben Lauf ändert `settings.json.bak` nicht; Core unverändert.
 

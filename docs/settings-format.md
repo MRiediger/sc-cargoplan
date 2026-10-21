@@ -176,8 +176,12 @@ says "ContractTracker not found" and links to its page.
   file stays as it is until you move the overlay or change a setting; then it is saved with the corrected values.
 - **A misspelt key** (`"fontsize"`), **a wrong type** (`"fontSize": "big"`), `null` for a colour or a file
   that isn't JSON makes the whole file unreadable: the overlay starts with defaults, no hotkeys, and says so.
-  It doesn't overwrite the file until you move the overlay or change a setting. Fix the file before that, or
-  your hotkeys are gone.
+  It doesn't overwrite the file until you move the overlay or change a setting. Fix the file before that; if you
+  don't, the first save keeps the old file as `settings.json.bak` next to it.
+
+The first save after each start copies `settings.json` as it was to `settings.json.bak`, byte for byte, even if it
+isn't JSON; later saves in the same run leave the backup alone. The next start's first save replaces it, so copy it
+away if you want to keep it longer.
 
 ## Versions
 

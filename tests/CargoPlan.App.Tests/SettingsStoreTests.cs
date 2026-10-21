@@ -448,6 +448,57 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Broken_file_problem_says_the_next_save_keeps_a_backup()
+    {
+        WriteFile("{ broken");
+
+        var (_, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().Contain($"The next save overwrites {SettingsPath}, keeping the old file as settings.json.bak.");
+    }
+
+    // Backup (T6.1)
+
+    [Fact]
+    public void BackUp_copies_byte_for_byte_even_if_the_file_is_not_JSON()
+    {
+        // BOM, broken JSON and a byte that is no UTF-8: a copy that decodes and re-encodes would change it.
+        byte[] content = [0xEF, 0xBB, 0xBF, (byte)'{', (byte)' ', 0xFF, (byte)'\r', (byte)'\n'];
+        Directory.CreateDirectory(_folder);
+        File.WriteAllBytes(SettingsPath, content);
+
+        SettingsStore.BackUp(SettingsPath);
+
+        File.ReadAllBytes(SettingsStore.BackupPath(SettingsPath)).Should().Equal(content);
+        File.ReadAllBytes(SettingsPath).Should().Equal(content);
+    }
+
+    [Fact]
+    public void BackUp_replaces_an_older_backup()
+    {
+        WriteFile("new");
+        File.WriteAllText(SettingsStore.BackupPath(SettingsPath), "from an earlier run");
+
+        SettingsStore.BackUp(SettingsPath);
+
+        File.ReadAllText(SettingsStore.BackupPath(SettingsPath)).Should().Be("new");
+    }
+
+    [Fact]
+    public void BackUp_without_a_file_writes_nothing()
+    {
+        SettingsStore.BackUp(SettingsPath);
+
+        File.Exists(SettingsStore.BackupPath(SettingsPath)).Should().BeFalse();
+    }
+
+    [Fact]
+    public void BackupPath_is_next_to_the_file()
+    {
+        SettingsStore.BackupPath(SettingsPath).Should().Be(Path.Combine(_folder, "settings.json.bak"));
+    }
+
+    [Fact]
     public void DefaultPath_is_in_local_app_data()
     {
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);

@@ -147,6 +147,61 @@ public sealed class SettingsSessionTests : IDisposable
         _viewModel.Notices.Should().BeEmpty();
     }
 
+    // Backup (T6.1)
+
+    private string BackupPath => SettingsStore.BackupPath(SettingsPath);
+
+    [Fact]
+    public void The_first_save_backs_up_the_file_as_it_was_and_later_saves_leave_the_backup()
+    {
+        const string broken = """{ "schemaVersion": 2, "overlay": """;
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(SettingsPath, broken);
+        var original = File.ReadAllBytes(SettingsPath);
+        var session = Create();
+
+        session.ChangeBounds(Bounds);
+        session.ChangeBounds(Bounds with { Left = 11 });
+
+        File.ReadAllBytes(BackupPath).Should().Equal(original);
+        Saved().Overlay.Should().Be(Bounds with { Left = 11 });
+    }
+
+    [Fact]
+    public void Without_a_file_no_backup_is_written()
+    {
+        var session = Create();
+
+        session.ChangeBounds(Bounds);
+        session.ChangeBounds(Bounds with { Left = 11 });
+
+        File.Exists(BackupPath).Should().BeFalse();
+        _viewModel.Notices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_failed_backup_leaves_the_file_alone_and_the_next_save_retries()
+    {
+        const string handEdited = """{ "schemaVersion": 2 }""";
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(SettingsPath, handEdited);
+        var session = Create();
+
+        using (File.Open(BackupPath, FileMode.Create, FileAccess.ReadWrite, FileShare.None)) // locked: the copy fails
+        {
+            session.ChangeBounds(Bounds);
+
+            _viewModel.Notices.Should().ContainSingle().Which.Should().StartWith("Settings not saved");
+            File.ReadAllText(SettingsPath).Should().Be(handEdited);
+        }
+
+        session.ChangeBounds(Bounds with { Left = 11 });
+
+        File.ReadAllText(BackupPath).Should().Be(handEdited);
+        Saved().Overlay.Should().Be(Bounds with { Left = 11 });
+        _viewModel.Notices.Should().BeEmpty();
+    }
+
     /// <summary>Preview and save run the same check as loading: what the overlay shows now is what it shows after a restart.</summary>
     [Fact]
     public void ChangeLook_corrects_like_loading_and_the_notice_outlasts_the_save()
