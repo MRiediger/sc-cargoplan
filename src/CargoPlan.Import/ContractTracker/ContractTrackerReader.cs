@@ -26,8 +26,8 @@ public static class ContractTrackerReader
     private const int DefaultBusyTimeoutSeconds = 5;
 
     /// <summary>
-    /// %APPDATA%\SCContractTracker\contracts.db, the one place ContractTracker keeps its database (D38). A path of
-    /// one's own comes with T5.5.
+    /// %APPDATA%\SCContractTracker\contracts.db, the one place ContractTracker keeps its database (D38). The settings
+    /// window can set another path (D44).
     /// </summary>
     public static string DefaultPath { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SCContractTracker", "contracts.db");
@@ -70,7 +70,7 @@ public static class ContractTrackerReader
     {
         if (!File.Exists(databasePath))
         {
-            // "ContractTracker not found" is the settings window's notice (T5.5), not the reader's.
+            // "ContractTracker not found" is the settings window's and the manual sync's notice (D44), not the reader's.
             return ContractTrackerReadResult.Nothing;
         }
 
@@ -78,9 +78,18 @@ public static class ContractTrackerReader
         {
             using var connection = new SqliteConnection(ConnectionString(databasePath, busyTimeoutSeconds));
             connection.Open();
-            return MatchesFingerprint(connection)
-                ? new([.. Captures(ReadContracts(connection, lastId)).Select(ToCandidate)], null, Present(connection, knownIds))
-                : new([], SchemaNotSupportedNotice);
+            if (!MatchesFingerprint(connection))
+            {
+                return new([], SchemaNotSupportedNotice);
+            }
+
+            // A new file starts its ids at 1 again; above the old watermark nothing would ever come (D44).
+            var looksNew = HighestIdEverGiven(connection) < lastId;
+            return new(
+                [.. Captures(ReadContracts(connection, looksNew ? 0 : lastId)).Select(ToCandidate)],
+                null,
+                looksNew ? new HashSet<long>() : Present(connection, knownIds),
+                looksNew);
         }
         catch (SqliteException ex) when (ex.SqliteErrorCode is SqliteBusy or SqliteLocked)
         {
@@ -180,6 +189,28 @@ public static class ContractTrackerReader
         }
 
         return present;
+    }
+
+    /// <summary>
+    /// The highest id the contracts table ever gave. SQLite keeps it in sqlite_sequence for an AUTOINCREMENT table; deleting
+    /// rows, the newest or all of them (F5), never lowers it, unlike MAX(Id). A new file has no row yet: 0. null = can't
+    /// tell (no AUTOINCREMENT, but rows), so nothing is guessed.
+    /// Source: https://www.sqlite.org/autoinc.html
+    /// </summary>
+    private static long? HighestIdEverGiven(SqliteConnection connection)
+    {
+        // sqlite_sequence exists only once an AUTOINCREMENT table does; naming it otherwise fails to prepare.
+        var sequence = Scalar(connection, "SELECT count(*) FROM sqlite_master WHERE type = 'table' AND name = 'sqlite_sequence'") > 0
+            ? Scalar(connection, "SELECT seq FROM sqlite_sequence WHERE name = 'Contracts' COLLATE NOCASE")
+            : null;
+        return sequence ?? (Scalar(connection, """SELECT count(*) FROM "Contracts" """) == 0 ? 0 : null);
+    }
+
+    private static long? Scalar(SqliteConnection connection, string sql)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return command.ExecuteScalar() is long value ? value : null;
     }
 
     private static string? StringOrNull(SqliteDataReader reader, int ordinal) => reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);

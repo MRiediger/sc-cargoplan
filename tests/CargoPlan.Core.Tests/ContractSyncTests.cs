@@ -56,6 +56,40 @@ public class ContractSyncTests
     }
 
     [Fact]
+    public void Apply_of_a_new_database_takes_its_captures_below_the_old_watermark()
+    {
+        // Reinstalled or recreated: ids start at 1 again; the old watermark 57 would hide them for good (D44).
+        SavedPlan saved = new([], new LoadPlan(HullA.Id, [], []), 57);
+
+        var applied = ContractSync.Apply(
+            saved, HullA, [Capture([1], Stop("Riker")), Capture([2], Stop("Shubin")), Capture([3], Stop("Orison"))], Present(),
+            databaseIsNew: true);
+
+        applied.Missions.Should().HaveCount(3);
+        applied.Watermark.Should().Be(3);
+    }
+
+    [Fact]
+    public void Apply_of_an_empty_new_database_sets_the_watermark_back()
+    {
+        SavedPlan saved = new([], new LoadPlan(HullA.Id, [], []), 57);
+
+        ContractSync.Apply(saved, HullA, [], Present(), databaseIsNew: true).Watermark.Should().Be(0);
+    }
+
+    [Fact]
+    public void Apply_of_a_new_database_removes_old_missions_that_are_delivered()
+    {
+        // The old file's ids are gone with it: a delivered mission leaves, as if deleted in ContractTracker.
+        var saved = Delivered(Applied(Empty, Capture([50], Stop("Riker"))), "Riker");
+
+        var applied = ContractSync.Apply(saved, HullA, [Capture([1], Stop("Shubin"))], Present(), databaseIsNew: true);
+
+        applied.Missions.Select(m => m.Contract!.ContractIds.Single()).Should().Equal(1);
+        applied.Watermark.Should().Be(1);
+    }
+
+    [Fact]
     public void Apply_without_anything_new_returns_the_same_plan()
     {
         var saved = Applied(Empty, Capture([36], Stop("Riker")));

@@ -40,6 +40,12 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
 
     public const string DeletedContractsSuffix = ". Tick their stops or delete the missions in the editor.";
 
+    public const string DatabaseLooksNewText = "ContractTracker database looks new – all contracts imported.";
+
+    /// <summary>Auto-sync off (D44): what a capture says instead of coming into the plan.</summary>
+    public static string NewContractsText(int count) =>
+        $"{count} new {(count == 1 ? "contract" : "contracts")} in ContractTracker – take {(count == 1 ? "it" : "them")} in with Sync from ContractTracker (editor or hotkey).";
+
     public Ship Ship { get; } = ship;
 
     /// <summary>
@@ -179,7 +185,8 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     /// The one way a ContractTracker read reaches the plan (T5.4), on the UI thread: Core takes the captures in
     /// (<see cref="ContractSync.Apply"/>). A read without new captures and without a missing id changes nothing (D38: diff,
     /// don't react), so no new scene and no save; the button (<paramref name="manual"/>) always syncs, which also places
-    /// waiting missions that fit now. Without a plan, a capture starts one.
+    /// waiting missions that fit now. Without a plan, a capture starts one. A new database (D44) always changes the plan:
+    /// its watermark goes back, also when the file is still empty.
     /// </summary>
     public void ApplyContractTracker(ContractTrackerReadResult result, bool manual = false)
     {
@@ -188,7 +195,7 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
             return;
         }
 
-        SetNotice(NoticeSource.ContractTracker, result.Notice);
+        SetNotice(NoticeSource.ContractTracker, result.Notice ?? (result.DatabaseLooksNew ? DatabaseLooksNewText : null));
         // The plan didn't know the new captures' ids when asking; they are there, of course.
         if (result.Present is { } present)
         {
@@ -196,20 +203,37 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
         }
 
         var known = ContractTrackerQuery().KnownIds;
-        if (!manual && result.Candidates.Count == 0 && (result.Present is not { } read || known.All(read.Contains)))
+        if (!manual && !result.DatabaseLooksNew && result.Candidates.Count == 0 && (result.Present is not { } read || known.All(read.Contains)))
         {
             UpdateDeletedContracts();
             return;
         }
 
         var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []));
-        var applied = ContractSync.Apply(current, Ship, [.. result.Candidates.Select(c => c.ToCapture())], result.Present);
+        var applied = ContractSync.Apply(
+            current, Ship, [.. result.Candidates.Select(c => c.ToCapture())], result.Present, result.DatabaseLooksNew);
         if (!ReferenceEquals(applied, current))
         {
             Saved = applied;
         }
 
         UpdateDeletedContracts();
+    }
+
+    /// <summary>
+    /// Auto-sync off (D44): a read only counts the captures above the watermark; the plan stays as it is, deleted contracts
+    /// included. The reader's notice wins; the count goes once the button or hotkey takes them in.
+    /// </summary>
+    public void ShowNewContracts(ContractTrackerReadResult result)
+    {
+        if (_contractTrackerPaused)
+        {
+            return;
+        }
+
+        SetNotice(
+            NoticeSource.ContractTracker,
+            result.Notice ?? (result.Candidates.Count > 0 ? NewContractsText(result.Candidates.Count) : null));
     }
 
     /// <summary>A read that failed for a reason the player has to fix, e.g. a file that is no database.</summary>

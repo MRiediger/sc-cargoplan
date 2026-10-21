@@ -41,6 +41,12 @@ The reader reads exactly these columns. Before reading, each must exist with thi
 
 The same columns, rebuilt for tests: [`tests/CargoPlan.Import.Tests/Fixtures/ct_schema.sql`](../tests/CargoPlan.Import.Tests/Fixtures/ct_schema.sql).
 
+**Besides the fingerprint**, the reader reads SQLite's own `sqlite_sequence` row for `Contracts`: the highest id the
+table ever gave (AUTOINCREMENT). Deleting rows, the newest or all of them (F5), never lowers it; a new file starts at 0.
+Below the plan's watermark it means a new database (reinstall, another path), and everything is read from the start
+(D44). Without `sqlite_sequence` (no AUTOINCREMENT) nothing is detected; a table with rows but no sequence row counts as
+"can't tell". Observed on 2026-10-21: `seq` 57 with a single row left, id 57.
+
 ## Mapping
 
 CargoPlan parses `Contracts.RawOcrText` itself (D39); ContractTracker's destination rows are the fallback when the
@@ -62,6 +68,7 @@ text holds no readable delivery line. Both go through the same normalisation (D4
 
 ## How CargoPlan opens it
 
+At `%APPDATA%\SCContractTracker\contracts.db` unless the settings name another file (D44).
 `Mode=ReadOnly;Pooling=False`, retrying a busy or locked database for 5 seconds. Read-only means no write into tables
 or schema; it does **not** mean no file is touched: while ContractTracker is closed, SQLite creates
 `contracts.db-wal` and `contracts.db-shm` next to the database and may leave them there (D38). CargoPlan leaves them

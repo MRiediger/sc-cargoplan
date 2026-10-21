@@ -1,3 +1,5 @@
+using CargoPlan.Import.ContractTracker;
+
 namespace CargoPlan.App.Settings;
 
 /// <summary>
@@ -12,13 +14,15 @@ namespace CargoPlan.App.Settings;
 /// Missing (before T4.7b) or null = "system". Top level, not in <c>appearance</c>: "Reset to defaults" resets the overlay's
 /// look per section and must not switch the tool windows (D36). One of <see cref="ToolWindowThemes.Names"/>.
 /// </param>
+/// <param name="ContractTracker">Missing (before T5.5) or null = detect ContractTracker and sync by itself (D44).</param>
 public sealed record AppSettings(
     int SchemaVersion,
     WindowBounds? Overlay = null,
     HotkeySettings? Hotkeys = null,
     AppearanceSettings? Appearance = null,
     LegendSettings? Legend = null,
-    string? ToolWindowTheme = null)
+    string? ToolWindowTheme = null,
+    ContractTrackerSettings? ContractTracker = null)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
 
@@ -28,6 +32,8 @@ public sealed record AppSettings(
     public LegendSettings Legend { get; init; } = Legend ?? LegendSettings.Default;
 
     public string ToolWindowTheme { get; init; } = ToolWindowTheme ?? ToolWindowThemes.DefaultName;
+
+    public ContractTrackerSettings ContractTracker { get; init; } = ContractTracker ?? ContractTrackerSettings.Default;
 }
 
 /// <summary>
@@ -47,4 +53,20 @@ public sealed record LegendSettings(bool Visible = true, string Position = "bott
 /// </summary>
 /// <param name="ToggleLock">Switches the manual lock, like the padlock.</param>
 /// <param name="ToggleOverlay">Hides the overlay and shows it again.</param>
-public sealed record HotkeySettings(string? ToggleLock = null, string? ToggleOverlay = null);
+/// <param name="SyncContractTracker">Takes new ContractTracker captures into the plan (D44).</param>
+public sealed record HotkeySettings(string? ToggleLock = null, string? ToggleOverlay = null, string? SyncContractTracker = null);
+
+/// <summary>
+/// Where ContractTracker's database is and whether captures come into the plan by themselves (D44). Optional, no schema
+/// bump (D31); without it the overlay does what T5.4 did.
+/// </summary>
+/// <param name="Path">null = detect it at ContractTracker's one place (D38); otherwise a full path, checked by
+/// <see cref="AppearanceRules.NormalizeContractTracker"/>.</param>
+/// <param name="AutoSync">false = a capture only gives the notice "N new contracts"; the editor's button or the hotkey takes them in.</param>
+public sealed record ContractTrackerSettings(string? Path = null, bool AutoSync = true)
+{
+    public static ContractTrackerSettings Default { get; } = new();
+
+    /// <summary>The file the sync reads: <see cref="Path"/>, or ContractTracker's own place.</summary>
+    public string DatabasePath => Path ?? ContractTrackerReader.DefaultPath;
+}

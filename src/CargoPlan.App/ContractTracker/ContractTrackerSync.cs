@@ -9,7 +9,8 @@ namespace CargoPlan.App.ContractTracker;
 /// <summary>
 /// Takes ContractTracker captures into the plan without a click (T5.4): watches the database and its write-ahead log,
 /// waits until writing rests, reads off the UI thread and hands the result to the overlay in one place
-/// (<see cref="OverlayViewModel.ApplyContractTracker"/>). The editor's "Sync from ContractTracker" runs the same read.
+/// (<see cref="OverlayViewModel.ApplyContractTracker"/>). The editor's "Sync from ContractTracker" and its hotkey run the
+/// same read. With auto-sync off, a read only counts what is new (D44).
 /// </summary>
 public sealed class ContractTrackerSync : IDisposable
 {
@@ -18,8 +19,13 @@ public sealed class ContractTrackerSync : IDisposable
 
     public const string NotReadablePrefix = "ContractTracker database not readable: ";
 
+    /// <summary>Button or hotkey without a database: the player asked, so the overlay answers (D44). The watcher stays silent.</summary>
+    public static string NotFoundText(string databasePath) =>
+        $"ContractTracker not found at {databasePath} – set the path in the settings.";
+
     private readonly OverlayViewModel _viewModel;
-    private readonly string _databasePath;
+    private string _databasePath;
+    private bool _autoSync;
     private readonly Func<string, long, IReadOnlyCollection<long>, ContractTrackerReadResult> _read;
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
     private readonly DispatcherTimer _timer = new() { Interval = Debounce };
@@ -32,11 +38,16 @@ public sealed class ContractTrackerSync : IDisposable
 
     /// <param name="read">The reader; <see cref="ContractTrackerReader.Read(string, long, IReadOnlyCollection{long})"/> by
     /// default, replaced in tests.</param>
+    /// <param name="autoSync">false = the watcher only counts new captures (D44).</param>
     public ContractTrackerSync(
-        OverlayViewModel viewModel, string databasePath, Func<string, long, IReadOnlyCollection<long>, ContractTrackerReadResult>? read = null)
+        OverlayViewModel viewModel,
+        string databasePath,
+        Func<string, long, IReadOnlyCollection<long>, ContractTrackerReadResult>? read = null,
+        bool autoSync = true)
     {
         _viewModel = viewModel;
         _databasePath = databasePath;
+        _autoSync = autoSync;
         _read = read ?? ContractTrackerReader.Read;
         _timer.Tick += OnTick;
     }
@@ -47,6 +58,32 @@ public sealed class ContractTrackerSync : IDisposable
     /// still reads.
     /// </summary>
     public void Start()
+    {
+        Watch();
+        _timer.Start();
+    }
+
+    /// <summary>
+    /// From the settings window (D44), without a restart: a new path gets a watcher of its own; either way the next read
+    /// comes after the debounce, as at the start, and reads even if the files look as before, so turning auto-sync on
+    /// takes in what waited. Not awaited here: the read runs from the timer like any other.
+    /// </summary>
+    public void Configure(string databasePath, bool autoSync)
+    {
+        if (!string.Equals(databasePath, _databasePath, StringComparison.OrdinalIgnoreCase))
+        {
+            _databasePath = databasePath;
+            _watcher?.Dispose();
+            _watcher = null;
+            Watch();
+        }
+
+        _autoSync = autoSync;
+        _afterLastRead = null;
+        Restart();
+    }
+
+    private void Watch()
     {
         if (Path.GetDirectoryName(_databasePath) is { } folder && Directory.Exists(folder))
         {
@@ -63,8 +100,6 @@ public sealed class ContractTrackerSync : IDisposable
             _watcher.Error += OnWatcherError;
             _watcher.EnableRaisingEvents = true;
         }
-
-        _timer.Start();
     }
 
     /// <summary>
@@ -72,7 +107,8 @@ public sealed class ContractTrackerSync : IDisposable
     /// one more afterwards. Called on the UI thread; the reader runs on the thread pool, the result comes back here
     /// (await resumes in WPF's synchronization context). A file that is no database gives a notice.
     /// </summary>
-    /// <param name="manual">The editor's button: syncs even without news, which places waiting missions that fit now.</param>
+    /// <param name="manual">The editor's button or the hotkey: syncs even without news, which places waiting missions that
+    /// fit now, and with auto-sync off too; a missing database gives a notice.</param>
     public async Task SyncAsync(bool manual = false)
     {
         if (_reading)
@@ -88,10 +124,27 @@ public sealed class ContractTrackerSync : IDisposable
             {
                 _pending = false;
                 var (watermark, known) = _viewModel.ContractTrackerQuery();
+
+                // Taken before the pool thread starts: Configure may change the field meanwhile, the next round reads there.
+                var path = _databasePath;
                 try
                 {
-                    var result = await Task.Run(() => _read(_databasePath, watermark, known));
-                    _viewModel.ApplyContractTracker(result, manual);
+                    if (manual && !File.Exists(path))
+                    {
+                        _viewModel.ShowContractTrackerProblem(NotFoundText(path));
+                    }
+                    else
+                    {
+                        var result = await Task.Run(() => _read(path, watermark, known));
+                        if (manual || _autoSync)
+                        {
+                            _viewModel.ApplyContractTracker(result, manual);
+                        }
+                        else
+                        {
+                            _viewModel.ShowNewContracts(result);
+                        }
+                    }
                 }
                 catch (SqliteException ex)
                 {
@@ -99,7 +152,7 @@ public sealed class ContractTrackerSync : IDisposable
                     _viewModel.ShowContractTrackerProblem(NotReadablePrefix + ex.Message);
                 }
 
-                _afterLastRead = ContractTrackerFileState.Of(_databasePath);
+                _afterLastRead = ContractTrackerFileState.Of(path);
             }
             while (_pending);
         }

@@ -218,6 +218,77 @@ public class ContractTrackerReaderTests
         result.Candidates.Should().BeEmpty();
     }
 
+    // --- New database (D44): ids start again at 1, the plan's watermark would hide every capture ---
+
+    [Fact]
+    public void A_new_database_below_the_watermark_is_read_from_the_start()
+    {
+        using var database = AddThreeCaptures(new TempContractDatabase());
+
+        var result = ContractTrackerReader.Read(database.Path, 57, [50, 57]);
+
+        result.DatabaseLooksNew.Should().BeTrue();
+        result.Candidates.SelectMany(c => c.ContractIds).Should().Equal(1, 2, 3);
+        result.Present.Should().BeEmpty("the plan's ids belong to the old file");
+    }
+
+    [Fact]
+    public void An_empty_new_database_looks_new_too()
+    {
+        // Reinstalled, nothing captured yet: the watermark must still go back, or capture 1 never comes in.
+        using var database = new TempContractDatabase();
+
+        var result = ContractTrackerReader.Read(database.Path, 57, [57]);
+
+        result.DatabaseLooksNew.Should().BeTrue();
+        result.Candidates.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Deleting_the_newest_contract_is_no_new_database()
+    {
+        // MAX(Id) drops to 50 here; the highest id ever given stays 57, so nothing is read twice.
+        using var database = new TempContractDatabase();
+        database.AddContract(50, "Silicon", ImportFixtures.RawText(ImportFixtures.SiliconMaxSize), (10, "Melodic Fields Station"));
+        database.AddContract(57, "Waste", ImportFixtures.RawText(ImportFixtures.WasteBiggerThan), (9, "Everus Harbor above Hurston"));
+        using (var connection = database.Open())
+        using (var delete = connection.CreateCommand())
+        {
+            delete.CommandText = "DELETE FROM \"Contracts\" WHERE \"Id\" = 57";
+            delete.ExecuteNonQuery();
+        }
+
+        var result = ContractTrackerReader.Read(database.Path, 57, [50, 57]);
+
+        result.DatabaseLooksNew.Should().BeFalse();
+        result.Candidates.Should().BeEmpty();
+        result.Present.Should().BeEquivalentTo([50L]);
+    }
+
+    [Fact]
+    public void The_same_database_at_the_watermark_is_not_new()
+    {
+        using var database = AddThreeCaptures(new TempContractDatabase());
+
+        var result = ContractTrackerReader.Read(database.Path, 3, [1, 2, 3]);
+
+        result.DatabaseLooksNew.Should().BeFalse();
+        result.Candidates.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Without_autoincrement_a_new_database_is_not_detected()
+    {
+        // No sqlite_sequence, no highest id ever given: read as before, nothing guessed.
+        using var database = AddThreeCaptures(new TempContractDatabase(
+            ImportFixtures.Schema.Replace("AUTOINCREMENT", "", StringComparison.Ordinal)));
+
+        var result = ContractTrackerReader.Read(database.Path, 57, [57]);
+
+        result.DatabaseLooksNew.Should().BeFalse();
+        result.Candidates.Should().BeEmpty();
+    }
+
     [Fact]
     public void Read_of_a_missing_file_knows_nothing_about_the_known_ids()
     {
@@ -351,6 +422,15 @@ public class ContractTrackerReaderTests
         result.Candidates.Should().BeEmpty();
         result.Notice.Should().BeNull();
         result.Present.Should().BeNull();
+    }
+
+    // Three captures with different raw texts, so consecutive ids don't group them into one.
+    private static TempContractDatabase AddThreeCaptures(TempContractDatabase database)
+    {
+        database.AddContract(1, "Silicon", ImportFixtures.RawText(ImportFixtures.SiliconMaxSize), (10, "Melodic Fields Station"));
+        database.AddContract(2, "Waste", ImportFixtures.RawText(ImportFixtures.WasteBiggerThan), (9, "Everus Harbor above Hurston"));
+        database.AddContract(3, "Stims", ImportFixtures.RawText(ImportFixtures.StimsOcrErrors), (4, "Thundering Express Station"));
+        return database;
     }
 
     private static void AddStimsSplit(TempContractDatabase database)

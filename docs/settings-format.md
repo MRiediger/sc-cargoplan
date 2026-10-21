@@ -1,22 +1,24 @@
 # Settings file format
 
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
-the legend stands, the overlay's look and the tool windows' theme. Position and size are saved whenever you
-move the overlay; the settings window (the gear in the header) sets and saves the look, the legend layout, the
-tool window theme and the hotkeys. You can still edit the file by hand: close the overlay, edit the file, start
+the legend stands, the overlay's look, the tool windows' theme and where ContractTracker is. Position and size
+are saved whenever you move the overlay; the settings window (the gear in the header) sets and saves the look,
+the legend layout, the tool window theme, the hotkeys and the ContractTracker settings. You can still edit the file by hand: close the overlay, edit the file, start
 the overlay again.
 
 ## Example with every default
 
-Without a file, or without `legend`, `toolWindowTheme` and `appearance`, the overlay uses exactly these values.
+Without a file, or without `legend`, `toolWindowTheme`, `contractTracker` and `appearance`, the overlay uses
+exactly these values.
 
 ```json
 {
   "schemaVersion": 2,
   "overlay": { "left": 100, "top": 200, "width": 420, "height": 460 },
-  "hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H" },
+  "hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": null },
   "legend": { "visible": true, "position": "bottom-left" },
   "toolWindowTheme": "system",
+  "contractTracker": { "path": null, "autoSync": true },
   "appearance": {
     "window": {
       "background": "#A0141414",
@@ -50,7 +52,8 @@ Without a file, or without `legend`, `toolWindowTheme` and `appearance`, the ove
 }
 ```
 
-`overlay` and `hotkeys` are described in the [README](../README.md#hotkeys). In `hotkeys`, `null` and a
+`overlay` and `hotkeys` are described in the [README](../README.md#hotkeys); `syncContractTracker` takes
+new ContractTracker captures into the plan like the editor's button. In `hotkeys`, `null` and a
 missing entry both mean "no hotkey"; the settings window writes `null` when you clear one, so you see the
 entry exists. Every section and every value
 in `appearance` is optional: what you leave out keeps its default. `{ "schemaVersion": 2, "appearance":
@@ -148,12 +151,27 @@ It doesn't change the overlay: that is `appearance`. It sits at the top level, n
 
 Lower case only. Missing or `null` means `"system"`. File dialogs and message boxes keep the Windows look.
 
+## ContractTracker
+
+`contractTracker` sits at the top level. Without it, or with `null`, the overlay finds ContractTracker at its
+own place and takes every capture into the plan by itself.
+
+| Key | What | Default |
+|---|---|---|
+| `contractTracker.path` | Full path of ContractTracker's `contracts.db`; `null` = `%AppData%\SCContractTracker\contracts.db` | `null` |
+| `contractTracker.autoSync` | `true`: captures come into the plan by themselves. `false`: an amber line says "N new contracts"; **Sync from ContractTracker** (editor or hotkey) takes them in | `true` |
+
+The settings window sets both (**Browse…**, **Detect automatically**, **Auto-sync**); a new path is watched at once,
+without a restart. A path whose file doesn't exist is kept: ContractTracker may come later. The settings window
+says "ContractTracker not found" and links to its page.
+
 ## When something is wrong
 
 - **A value outside its range** is set to the nearest limit (`"fontSize": 0` → 8, `"fillAlpha": 300` → 255).
 - **A colour that isn't one** (`"red"`, `"#12345"`) takes its default.
 - **A legend position that isn't one** (`"up"`, `"Bottom-Left"`) takes `bottom-left`.
 - **A tool window theme that isn't one** (`"blue"`, `"Dark"`) takes `system`.
+- **A ContractTracker path that isn't a full path** (`"contracts.db"`, `""`) is detected instead (`null`).
 - In all these cases everything else in the file applies, and an amber line in the overlay names the value. The
   file stays as it is until you move the overlay or change a setting; then it is saved with the corrected values.
 - **A misspelt key** (`"fontsize"`), **a wrong type** (`"fontSize": "big"`), `null` for a colour or a file
@@ -166,7 +184,7 @@ Lower case only. Missing or `null` means `"system"`. File dialogs and message bo
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend` and `toolWindowTheme` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker` and `hotkeys.syncContractTracker` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a

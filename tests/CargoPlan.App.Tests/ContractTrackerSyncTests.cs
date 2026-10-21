@@ -104,7 +104,8 @@ public sealed class ContractTrackerSyncTests : IDisposable
     [Fact]
     public async Task SyncAsync_of_a_missing_database_shows_nothing()
     {
-        // The real reader: a missing file reads nothing and says nothing; "not found" belongs to T5.5.
+        // The real reader: a missing file reads nothing, and the watcher says nothing either; players without
+        // ContractTracker see the hint in the settings window only (D44).
         var overlay = Overlay();
         using var sync = new ContractTrackerSync(overlay, DatabasePath);
 
@@ -112,6 +113,63 @@ public sealed class ContractTrackerSyncTests : IDisposable
 
         overlay.Notices.Should().BeEmpty();
         overlay.HasPlan.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task The_button_or_hotkey_on_a_missing_database_says_where_to_set_the_path()
+    {
+        var overlay = Overlay();
+        using var sync = new ContractTrackerSync(overlay, DatabasePath);
+
+        await sync.SyncAsync(manual: true);
+
+        overlay.Notices.Should().Equal(ContractTrackerSync.NotFoundText(DatabasePath));
+        ContractTrackerSync.NotFoundText(DatabasePath).Should().Be($"ContractTracker not found at {DatabasePath} – set the path in the settings.");
+    }
+
+    // --- Settings (T5.5, D44) ---
+
+    [Fact]
+    public async Task Auto_sync_off_shows_only_the_count_and_the_button_takes_them_in()
+    {
+        File.WriteAllText(DatabasePath, "db");
+        var overlay = Overlay();
+        using var sync = new ContractTrackerSync(
+            overlay, DatabasePath, (_, watermark, _) => new ContractTrackerReadResult(
+                [.. new[] { 36L, 37L }.Where(id => id > watermark).Select(id => Candidate(id, $"Stop {id}"))], null, new HashSet<long>()),
+            autoSync: false);
+
+        await sync.SyncAsync();
+
+        overlay.HasPlan.Should().BeFalse();
+        overlay.Notices.Should().Equal(OverlayViewModel.NewContractsText(2));
+
+        await sync.SyncAsync(manual: true);
+
+        overlay.Missions.Should().HaveCount(2);
+        overlay.Notices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Configure_turns_auto_sync_on_and_reads_the_new_path()
+    {
+        var other = Path.Combine(_folder, "other.db");
+        var overlay = Overlay();
+        List<string> paths = [];
+        using var sync = new ContractTrackerSync(
+            overlay, DatabasePath, (path, _, _) =>
+            {
+                paths.Add(path);
+                return new ContractTrackerReadResult([Candidate(36, "Riker")], null, new HashSet<long>());
+            },
+            autoSync: false);
+        await sync.SyncAsync();
+
+        sync.Configure(other, autoSync: true);
+        await sync.SyncAsync();
+
+        paths.Should().Equal(DatabasePath, other);
+        overlay.Missions.Should().ContainSingle();
     }
 
     [Fact]

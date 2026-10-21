@@ -102,24 +102,30 @@ If you use ContractTracker to capture contracts (F3 at the terminal), the overla
 - **In the editor**, the **Source** column shows where a row came from (`ct 37–38` = ContractTracker's ids, empty = typed). **Delete mission** takes the selected row's mission out of the plan at once, with its crates; nothing else moves and you don't press **Plan** for it (typed rows of one destination count as one mission). **Sync from ContractTracker** takes in what came since the last sync, the same as a capture does.
 - The first time, everything that is in ContractTracker comes in. Delete old contracts there first (× or F5) if you don't want them.
 - **Keep the overlay outside ContractTracker's capture region** (the area you set with F6), or ContractTracker reads the legend along with the contract.
+- **Settings** (the gear), section **ContractTracker**:
+  - The overlay finds ContractTracker by itself. If yours keeps its database elsewhere, pick `contracts.db` with **Browse…**; **Detect automatically** goes back. A new path works at once, without a restart.
+  - **Auto-sync** off: captures don't come into the plan by themselves; an amber line says `2 new contracts in ContractTracker`. **Sync from ContractTracker** in the editor, or its hotkey, takes them in.
+  - Without ContractTracker the section says so and links to its page on Nexus Mods.
+- **Hotkey "Sync from ContractTracker"** (section Hotkeys, not set by default): takes new captures in like the editor's button, without opening the editor. If the database isn't there, an amber line says where the overlay looked.
+- **New database:** if ContractTracker starts over with a new file (reinstalled, another path), the overlay notices and takes in everything in it once (`ContractTracker database looks new – all contracts imported`).
 
-The overlay only reads ContractTracker's database at `%AppData%\SCContractTracker\contracts.db`, never writes it, and never touches the game.
+The overlay only reads ContractTracker's database (by default `%AppData%\SCContractTracker\contracts.db`), never writes it, and never touches the game.
 
 ### Hotkeys
 
-Two global hotkeys work while Star Citizen has the focus and the cursor is hidden: one switches the padlock, one hides the overlay and brings it back (dogfight, landing). There are **no default hotkeys**: a hotkey takes its keys away from every other program, the game included, and any default could clash with one of your Star Citizen bindings.
+Three global hotkeys work while Star Citizen has the focus and the cursor is hidden: one switches the padlock, one hides the overlay and brings it back (dogfight, landing), one takes new ContractTracker captures in (see [ContractTracker](#contracttracker)). There are **no default hotkeys**: a hotkey takes its keys away from every other program, the game included, and any default could clash with one of your Star Citizen bindings.
 
-**Set them in the settings window** (the gear), section **Hotkeys**: click the button next to *Lock / unlock* or *Hide / show overlay*, then press the keys. The hotkey works at once and is saved. **Esc** cancels, **Clear** removes it.
+**Set them in the settings window** (the gear), section **Hotkeys**: click the button next to *Lock / unlock*, *Hide / show overlay* or *Sync from ContractTracker*, then press the keys. The hotkey works at once and is saved. **Esc** cancels, **Clear** removes it.
 
 - **At least one of `Ctrl`, `Alt` or `Win` is required**, plus one key: `A`–`Z`, `0`–`9`, `F1`–`F24` (not `F12`, Windows reserves it), `Space`, `Pause`, `ScrollLock`, `Insert`, `Delete`, `Home`, `End`, `PageUp`, `PageDown`. Anything else is refused right at the button, with the reason.
 - Pick a combination that **none of your Star Citizen bindings use**, and check it in the game's keybinding settings. If the game still reacts to it, choose another one.
 - **Win combinations** may be taken by Windows itself (`Win+L` locks the PC): pressing them while recording does nothing.
 - A combination another program already uses is refused, and your old hotkey stays. Often you won't even get that far: Windows hands such a combination to the other program, so pressing it while recording does nothing. Choose a different one.
-- The two hotkeys can't share a combination; the window says which one has it.
+- The hotkeys can't share a combination; the window says which one has it.
 - If a hotkey works in the window but does nothing later, another program swallows the keys before Windows hands them out (some tools do that for their own shortcuts). Choose a different combination.
 - Hidden, the overlay also leaves the taskbar; press the hotkey again to bring it back where it was.
 
-You can still write them into `%LocalAppData%\SC-CargoPlan\settings.json` by hand (overlay closed), e.g. `"hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H" }`, modifiers and key joined by `+` in any order and case; `null` or a missing entry means no hotkey. A hotkey that is invalid or taken shows as an amber line next to the legend and next to its button in the settings window; the other hotkey still works. A typo in a name (e.g. `toggleLok`) makes the whole file unreadable: the overlay starts with defaults and says so.
+You can still write them into `%LocalAppData%\SC-CargoPlan\settings.json` by hand (overlay closed), e.g. `"hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": "Ctrl+Alt+J" }`, modifiers and key joined by `+` in any order and case; `null` or a missing entry means no hotkey. A hotkey that is invalid or taken shows as an amber line next to the legend and next to its button in the settings window; the other hotkeys still work. A typo in a name (e.g. `toggleLok`) makes the whole file unreadable: the overlay starts with defaults and says so.
 
 No hooks: recording reads the keys you press in the settings window itself, and the hotkeys use the normal Windows hotkey service; nothing touches the game process.
 
@@ -129,7 +135,7 @@ Both files are in `%LocalAppData%\SC-CargoPlan\` and are saved as soon as someth
 
 | File | What | Deleting it (overlay closed) |
 |---|---|---|
-| `settings.json` | Overlay position and size, hotkeys, look, tool window theme ([format](docs/settings-format.md)) | Default size, position and look, no hotkeys. Your plan stays. |
+| `settings.json` | Overlay position and size, hotkeys, look, tool window theme, ContractTracker path and auto-sync ([format](docs/settings-format.md)) | Default size, position and look, no hotkeys. Your plan stays. |
 | `plan.json` | Your current plan: the missions you entered or captured, which crate lies where in which rack, ticks ([format](docs/plan-format.md)). The editor opens with these missions. A plan file from an older version is converted when the overlay loads it and saved in the new format; your ticks stay. | The overlay starts without a plan. Your settings stay. |
 
 If a file can't be read, the overlay starts without it and says so in an amber line. A single setting out of range or a colour that isn't one is corrected on its own, named in that line, and the rest of `settings.json` applies. It doesn't overwrite the file: `settings.json` stays until you move the overlay or change a setting, `plan.json` until you make a new plan.

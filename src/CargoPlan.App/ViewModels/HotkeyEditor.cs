@@ -14,6 +14,8 @@ public sealed partial class HotkeyEditor : ObservableObject
 
     public const string OverlayLabel = "Hide / show overlay";
 
+    public const string SyncLabel = "Sync from ContractTracker";
+
     public const string NotSetText = "Not set";
 
     public const string RecordingText = "Press the keys…";

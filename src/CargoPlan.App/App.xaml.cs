@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using CargoPlan.App.ContractTracker;
 using CargoPlan.App.Hotkeys;
@@ -7,7 +8,7 @@ using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
-using CargoPlan.Import.ContractTracker;
+using CommunityToolkit.Mvvm.Input;
 
 namespace CargoPlan.App;
 
@@ -51,10 +52,16 @@ public partial class App : Application
 
         // Bounds before Show(), so the window appears in place instead of jumping there. The hotkeys' view model is made
         // when the settings window opens; by then _hotkeys exists (it needs the overlay, so it comes after it).
-        // ContractTracker at its one path (D38); a path of one's own comes with T5.5.
-        var contractTracker = new ContractTrackerSync(viewModel, ContractTrackerReader.DefaultPath);
+        // ContractTracker where the settings say, detected by default (D44).
+        var contractTracker = new ContractTrackerSync(
+            viewModel, settings.ContractTracker.DatabasePath, autoSync: settings.ContractTracker.AutoSync);
         _contractTracker = contractTracker;
-        var overlay = new OverlayWindow(viewModel, session, () => CreateHotkeysViewModel(session), () => contractTracker.SyncAsync(manual: true));
+        var overlay = new OverlayWindow(
+            viewModel,
+            session,
+            () => CreateHotkeysViewModel(session),
+            () => CreateContractTrackerSection(session, contractTracker),
+            () => contractTracker.SyncAsync(manual: true));
         if (settings.Overlay is { } saved)
         {
             RestoreBounds(overlay, saved);
@@ -64,8 +71,11 @@ public partial class App : Application
         _boundsSaver = new OverlayBoundsSaver(overlay, session);
         overlay.Closed += (_, _) => session.Flush();
 
-        // Before Show(): SourceInitialized, where the hotkeys get registered, is raised inside Show().
-        _hotkeys = new HotkeyService(overlay, settings.Hotkeys, viewModel);
+        // Before Show(): SourceInitialized, where the hotkeys get registered, is raised inside Show(). The sync hotkey runs
+        // the editor's button; AsyncRelayCommand rethrows on the UI thread what SyncAsync doesn't handle.
+        // Source: https://learn.microsoft.com/dotnet/api/communitytoolkit.mvvm.input.asyncrelaycommandoptions
+        _hotkeys = new HotkeyService(
+            overlay, settings.Hotkeys, viewModel, new AsyncRelayCommand(() => contractTracker.SyncAsync(manual: true)));
 
         // Before the start plan: a --plan file becomes plan.json this way, without a rule of its own.
         // A plan from plan.json is written back once, unchanged.
@@ -130,6 +140,17 @@ public partial class App : Application
             hotkeys.Suspend,
             hotkeys.Resume);
     }
+
+    /// <summary>
+    /// The settings window's ContractTracker section (D44): saved through the session, applied to the sync at once, so a
+    /// new path is watched without a restart (D30).
+    /// </summary>
+    private static ContractTrackerSectionViewModel CreateContractTrackerSection(SettingsSession session, ContractTrackerSync sync) =>
+        new(session.Current.ContractTracker, File.Exists, settings =>
+        {
+            session.ChangeContractTracker(settings);
+            sync.Configure(settings.DatabasePath, settings.AutoSync);
+        });
 
     /// <summary>--plan wins over plan.json; a missing --plan file is a problem, a missing plan.json is the empty start.</summary>
     private static (SavedPlan? Plan, string? Problem) LoadStartPlan(StartOptions options, Ship ship)

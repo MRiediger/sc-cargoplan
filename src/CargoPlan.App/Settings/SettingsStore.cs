@@ -53,9 +53,17 @@ public static class SettingsStore
             var (appearance, appearanceProblems) = AppearanceRules.Normalize(settings.Appearance);
             var (legend, legendProblems) = AppearanceRules.Normalize(settings.Legend);
             var (theme, themeProblems) = AppearanceRules.NormalizeToolWindowTheme(settings.ToolWindowTheme);
+            var (contractTracker, contractTrackerProblems) = AppearanceRules.NormalizeContractTracker(settings.ContractTracker);
             return (
-                settings with { SchemaVersion = SupportedSchemaVersion, Appearance = appearance, Legend = legend, ToolWindowTheme = theme },
-                Corrections([.. legendProblems, .. appearanceProblems, .. themeProblems]));
+                settings with
+                {
+                    SchemaVersion = SupportedSchemaVersion,
+                    Appearance = appearance,
+                    Legend = legend,
+                    ToolWindowTheme = theme,
+                    ContractTracker = contractTracker,
+                },
+                Corrections([.. legendProblems, .. appearanceProblems, .. themeProblems, .. contractTrackerProblems]));
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {

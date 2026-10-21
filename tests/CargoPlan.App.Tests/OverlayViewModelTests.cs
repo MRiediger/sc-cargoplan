@@ -796,6 +796,83 @@ public class OverlayViewModelTests
         viewModel.Scene.Unplaced.Should().BeEmpty();
     }
 
+    // --- ContractTracker settings (T5.5, D44) ---
+
+    [Fact]
+    public void A_new_database_takes_its_captures_below_the_old_watermark_and_says_so()
+    {
+        var viewModel = Empty();
+        viewModel.ApplyContractTracker(Read([], Candidate(57, "Riker")));
+
+        viewModel.ApplyContractTracker(new ContractTrackerReadResult([Candidate(1, "Shubin")], null, new HashSet<long>(), DatabaseLooksNew: true));
+
+        viewModel.Watermark.Should().Be(1);
+        viewModel.Missions.Select(m => m.Contract!.ContractIds.Single()).Should().Equal(57, 1);
+        viewModel.Notices.Should().Contain(OverlayViewModel.DatabaseLooksNewText);
+    }
+
+    [Fact]
+    public void An_empty_new_database_sets_the_watermark_back_and_is_saved()
+    {
+        var viewModel = Empty();
+        viewModel.ApplyContractTracker(Read([], Candidate(57, "Riker")));
+        viewModel.ToggleDeliveredCommand.Execute("Riker");
+
+        var changes = Changes(viewModel, () => viewModel.ApplyContractTracker(new ContractTrackerReadResult([], null, new HashSet<long>(), DatabaseLooksNew: true)));
+
+        changes.Should().Contain(nameof(OverlayViewModel.Saved));
+        viewModel.Watermark.Should().Be(0);
+    }
+
+    [Fact]
+    public void ShowNewContracts_counts_the_captures_and_leaves_the_plan_alone()
+    {
+        var viewModel = Empty();
+
+        viewModel.ShowNewContracts(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin")));
+
+        viewModel.HasPlan.Should().BeFalse();
+        viewModel.Notices.Should().Equal(OverlayViewModel.NewContractsText(2));
+        OverlayViewModel.NewContractsText(2).Should().StartWith("2 new contracts in ContractTracker");
+        OverlayViewModel.NewContractsText(1).Should().StartWith("1 new contract in ContractTracker");
+    }
+
+    [Fact]
+    public void ShowNewContracts_without_captures_says_nothing_and_the_readers_notice_wins()
+    {
+        var viewModel = Empty();
+        viewModel.ShowNewContracts(Read([], Candidate(36, "Riker")));
+
+        viewModel.ShowNewContracts(Read([]));
+        viewModel.Notices.Should().BeEmpty();
+
+        viewModel.ShowNewContracts(new ContractTrackerReadResult([], ContractTrackerReader.SchemaNotSupportedNotice));
+        viewModel.Notices.Should().Equal(ContractTrackerReader.SchemaNotSupportedNotice);
+    }
+
+    [Fact]
+    public void ShowNewContracts_keeps_a_paused_sync_paused()
+    {
+        var viewModel = Empty();
+        viewModel.PauseContractTracker();
+
+        viewModel.ShowNewContracts(Read([], Candidate(36, "Riker")));
+
+        viewModel.Notices.Should().Equal(OverlayViewModel.SyncPausedText);
+    }
+
+    [Fact]
+    public void Taking_the_new_contracts_in_clears_their_notice()
+    {
+        var viewModel = Empty();
+        viewModel.ShowNewContracts(Read([], Candidate(36, "Riker")));
+
+        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker")), manual: true);
+
+        viewModel.Notices.Should().BeEmpty();
+        viewModel.Missions.Should().ContainSingle();
+    }
+
     [Fact]
     public void ContractTrackerQuery_names_the_watermark_and_the_plans_capture_ids()
     {

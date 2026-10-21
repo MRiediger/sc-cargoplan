@@ -16,18 +16,26 @@ public partial class OverlayWindow : Window
     private readonly OverlayViewModel _viewModel;
     private readonly SettingsSession _settings;
     private readonly Func<HotkeysViewModel> _createHotkeys;
+    private readonly Func<ContractTrackerSectionViewModel> _createContractTracker;
     private readonly Func<Task> _syncFromContractTracker;
     private MissionEditorWindow? _editor;
     private SettingsWindow? _settingsWindow;
 
     /// <param name="createHotkeys">Made per settings window, from the hotkeys as they are then.</param>
+    /// <param name="createContractTracker">Made per settings window, from the ContractTracker settings as they are then (D44).</param>
     /// <param name="syncFromContractTracker">The editor's "Sync from ContractTracker" (T5.4).</param>
-    public OverlayWindow(OverlayViewModel viewModel, SettingsSession settings, Func<HotkeysViewModel> createHotkeys, Func<Task> syncFromContractTracker)
+    public OverlayWindow(
+        OverlayViewModel viewModel,
+        SettingsSession settings,
+        Func<HotkeysViewModel> createHotkeys,
+        Func<ContractTrackerSectionViewModel> createContractTracker,
+        Func<Task> syncFromContractTracker)
     {
         InitializeComponent();
         _viewModel = viewModel;
         _settings = settings;
         _createHotkeys = createHotkeys;
+        _createContractTracker = createContractTracker;
         _syncFromContractTracker = syncFromContractTracker;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -143,6 +151,7 @@ public partial class OverlayWindow : Window
                     current.Appearance, current.Legend, SystemFonts.MessageFontSize, _settings.ChangeLook,
                     _settings.ToolWindowTheme, ChangeToolWindowTheme),
                 _createHotkeys(),
+                _createContractTracker(),
                 _viewModel,
                 _settings.ToolWindowTheme,
                 this);

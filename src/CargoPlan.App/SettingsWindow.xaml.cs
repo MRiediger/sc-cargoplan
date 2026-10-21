@@ -1,3 +1,5 @@
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -5,6 +7,7 @@ using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Settings;
 using CargoPlan.App.Theme;
 using CargoPlan.App.ViewModels;
+using Microsoft.Win32;
 
 namespace CargoPlan.App;
 
@@ -17,12 +20,23 @@ public partial class SettingsWindow : Window
     // The colour picker that is open, if any: only one, a click elsewhere closes it (StaysOpen=False).
     private Popup? _openPicker;
 
+    private const string DatabaseFilter = "ContractTracker database (contracts.db)|contracts.db|SQLite database (*.db)|*.db|All files (*.*)|*.*";
+
     private readonly HotkeysViewModel _hotkeys;
+    private readonly ContractTrackerSectionViewModel _contractTracker;
+    private readonly OverlayViewModel _overlay;
 
     /// <param name="hotkeys">The Hotkeys section's own data context: hotkeys are no part of the look (D35).</param>
+    /// <param name="contractTracker">The ContractTracker section's own data context (D44).</param>
     /// <param name="theme">The tool windows' mode (D36); the overlay switches it later through <see cref="ToolWindowThemer"/>.</param>
     /// <param name="owner">Must already be shown: Owner rejects a window that was never shown.</param>
-    public SettingsWindow(SettingsViewModel viewModel, HotkeysViewModel hotkeys, OverlayViewModel overlay, ToolWindowTheme theme, Window owner)
+    public SettingsWindow(
+        SettingsViewModel viewModel,
+        HotkeysViewModel hotkeys,
+        ContractTrackerSectionViewModel contractTracker,
+        OverlayViewModel overlay,
+        ToolWindowTheme theme,
+        Window owner)
     {
         // Before InitializeComponent, so the own styles in the XAML find Fluent's with BasedOn (D36).
         ToolWindowThemer.Apply(this, theme);
@@ -30,6 +44,9 @@ public partial class SettingsWindow : Window
         DataContext = viewModel;
         _hotkeys = hotkeys;
         HotkeysSection.DataContext = hotkeys;
+        _contractTracker = contractTracker;
+        ContractTrackerSection.DataContext = contractTracker;
+        _overlay = overlay;
         Owner = owner;
         OverlayWindow.HideWithOverlay(this, overlay);
 
@@ -107,8 +124,43 @@ public partial class SettingsWindow : Window
 
     private void CancelRecording()
     {
-        _hotkeys.Lock.Cancel();
-        _hotkeys.Overlay.Cancel();
+        foreach (var editor in _hotkeys.All)
+        {
+            editor.Cancel();
+        }
+    }
+
+    // Microsoft.Win32 dialogs ship with WPF, like the editor's Import.
+    // Source: https://learn.microsoft.com/dotnet/desktop/wpf/windows/how-to-open-common-system-dialog-box
+    private void OnBrowseContractTracker(object sender, RoutedEventArgs e)
+    {
+        OpenFileDialog dialog = new() { Title = "ContractTracker database", Filter = DatabaseFilter };
+        if (System.IO.Path.GetDirectoryName(_contractTracker.PathText) is { } folder && System.IO.Directory.Exists(folder))
+        {
+            dialog.InitialDirectory = folder;
+        }
+
+        if (dialog.ShowDialog(this) == true)
+        {
+            _contractTracker.SetPath(dialog.FileName);
+        }
+    }
+
+    /// <summary>
+    /// The browser opens the Nexus page; .NET starts no URL without the shell. A Win32 boundary: no browser set up is
+    /// a notice, not a crash.
+    /// Source: https://learn.microsoft.com/dotnet/api/system.diagnostics.processstartinfo.useshellexecute
+    /// </summary>
+    private void OnOpenNexus(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo(ContractTrackerSectionViewModel.NexusUrl) { UseShellExecute = true })?.Dispose();
+        }
+        catch (Win32Exception ex)
+        {
+            _overlay.SetNotice(NoticeSource.Settings, $"Could not open {ContractTrackerSectionViewModel.NexusUrl} ({ex.Message}).");
+        }
     }
 
     private void OnPickerOpened(object? sender, EventArgs e) => _openPicker = (Popup?)sender;

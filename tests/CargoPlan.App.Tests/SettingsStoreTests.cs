@@ -1,4 +1,5 @@
 using CargoPlan.App.Settings;
+using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
 
@@ -167,6 +168,71 @@ public sealed class SettingsStoreTests : IDisposable
         loaded.Overlay.Should().Be(new WindowBounds(1, 2, 300, 400));
         problem.Should().Contain("settings.json: legend.position \"up\"").And.Contain("crates.fillAlpha");
         File.ReadAllText(SettingsPath).Should().Be(content);
+    }
+
+    // ContractTracker (T5.5, D44)
+
+    [Fact]
+    public void Save_then_Load_keeps_the_ContractTracker_settings_and_hotkey()
+    {
+        var settings = AppSettings.Default with
+        {
+            ContractTracker = new ContractTrackerSettings(@"D:\Games\CT\contracts.db", AutoSync: false),
+            Hotkeys = new HotkeySettings(SyncContractTracker: "Ctrl+Alt+S"),
+        };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+        File.ReadAllText(SettingsPath).Should().Contain("\"contractTracker\"").And.Contain("\"autoSync\": false")
+            .And.Contain("\"syncContractTracker\": \"Ctrl+Alt+S\"");
+    }
+
+    [Theory]
+    [InlineData("""{ "schemaVersion": 2 }""")]
+    [InlineData("""{ "schemaVersion": 2, "contractTracker": null }""")]
+    [InlineData("""{ "schemaVersion": 2, "contractTracker": { } }""")]
+    public void File_without_ContractTracker_settings_detects_it_and_syncs(string content)
+    {
+        // Optional, no schemaVersion bump (D31, D44): what T5.4 did without a setting.
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.ContractTracker.Should().Be(new ContractTrackerSettings(null, AutoSync: true));
+        loaded.ContractTracker.DatabasePath.Should().Be(ContractTrackerReader.DefaultPath);
+    }
+
+    [Theory]
+    [InlineData("contracts.db")]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void ContractTracker_path_that_is_not_a_full_path_detects_it_with_a_problem_and_the_rest_applies(string path)
+    {
+        var content = $$"""
+            { "schemaVersion": 2, "contractTracker": { "path": "{{path}}", "autoSync": false } }
+            """;
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.ContractTracker.Should().Be(new ContractTrackerSettings(null, AutoSync: false));
+        problem.Should().Be($"settings.json: contractTracker.path \"{path}\" is not a full path, detecting ContractTracker instead.");
+        File.ReadAllText(SettingsPath).Should().Be(content);
+    }
+
+    [Fact]
+    public void Unknown_key_in_the_ContractTracker_settings_makes_the_file_invalid()
+    {
+        WriteFile("""{ "schemaVersion": 2, "contractTracker": { "autosync": false } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(AppSettings.Default);
+        problem.Should().StartWith("Settings not loaded");
     }
 
     // Tool window theme (T4.7b, D36)

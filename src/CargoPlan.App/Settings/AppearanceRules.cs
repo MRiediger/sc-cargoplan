@@ -3,8 +3,8 @@ using System.Globalization;
 namespace CargoPlan.App.Settings;
 
 /// <summary>
-/// Checks the values of <see cref="AppearanceSettings"/>, <see cref="LegendSettings"/> and the tool windows' mode after
-/// loading (D31, D33, D36). A number outside its range is clamped (closer
+/// Checks the values of <see cref="AppearanceSettings"/>, <see cref="LegendSettings"/>, the tool windows' mode and ContractTracker's path after
+/// loading (D31, D33, D36, D44). A number outside its range is clamped (closer
 /// to what the player meant than the default), an invalid colour takes its default; either way with a problem line for
 /// the overlay, and the rest of the file applies. Structural errors (unknown key, wrong JSON type) never get here:
 /// they make the whole file invalid in <see cref="SettingsStore"/>. No WPF: the load tests run without a window.
@@ -101,6 +101,23 @@ public static class AppearanceRules
         var fallback = ToolWindowThemes.DefaultName;
         var names = ToolWindowThemes.Names;
         return (fallback, [$"toolWindowTheme \"{theme}\" is not valid ({string.Join(", ", names.Take(names.Count - 1))} or {names[^1]}), using {fallback}."]);
+    }
+
+    /// <summary>
+    /// Checks ContractTracker's path (D44): one that isn't a full path (relative, empty) detects ContractTracker instead,
+    /// like a colour that isn't one. Whether the file exists is not checked: ContractTracker may be installed later.
+    /// </summary>
+    /// <returns>The checked settings and one line if the path was corrected, empty otherwise.</returns>
+    public static (ContractTrackerSettings ContractTracker, IReadOnlyList<string> Problems) NormalizeContractTracker(
+        ContractTrackerSettings contractTracker)
+    {
+        // Source: https://learn.microsoft.com/dotnet/api/system.io.path.ispathfullyqualified
+        if (contractTracker.Path is not { } path || System.IO.Path.IsPathFullyQualified(path))
+        {
+            return (contractTracker, []);
+        }
+
+        return (contractTracker with { Path = null }, [$"contractTracker.path \"{path}\" is not a full path, detecting ContractTracker instead."]);
     }
 
     /// <summary>Collects the problem lines while one appearance is checked.</summary>

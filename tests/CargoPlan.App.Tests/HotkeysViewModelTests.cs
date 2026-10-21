@@ -222,7 +222,7 @@ public sealed class HotkeysViewModelTests
     }
 
     [Fact]
-    public void Both_actions_have_their_labels()
+    public void Every_action_has_its_label()
     {
         var viewModel = Create();
 
@@ -230,6 +230,31 @@ public sealed class HotkeysViewModelTests
         viewModel.Lock.Label.Should().Be(HotkeyEditor.LockLabel);
         viewModel.Overlay.Action.Should().Be(HotkeyAction.ToggleOverlay);
         viewModel.Overlay.Label.Should().Be(HotkeyEditor.OverlayLabel);
+        viewModel.Sync.Action.Should().Be(HotkeyAction.SyncContractTracker);
+        viewModel.Sync.Label.Should().Be("Sync from ContractTracker");
+    }
+
+    [Fact]
+    public void The_sync_hotkey_is_not_set_by_default_and_comes_from_the_file()
+    {
+        // No defaults (D17): without an entry there is no hotkey.
+        Create().Sync.Hotkey.Should().BeNull();
+        Create(new HotkeySettings(SyncContractTracker: "Ctrl+Alt+S")).Sync.Display.Should().Be("Ctrl+Alt+S");
+    }
+
+    [Fact]
+    public void The_lock_combination_is_refused_for_the_sync_and_the_other_way_round()
+    {
+        var viewModel = Create(new HotkeySettings("Ctrl+Alt+L", null, "Ctrl+Alt+H"));
+
+        viewModel.Sync.RecordCommand.Execute(null);
+        viewModel.Sync.Capture(CtrlAlt, VK_L);
+        viewModel.Overlay.RecordCommand.Execute(null);
+        viewModel.Overlay.Capture(CtrlAlt, VK_H);
+
+        viewModel.Sync.Problem.Should().Be($"Ctrl+Alt+L is already used for {HotkeyEditor.LockLabel}.");
+        viewModel.Overlay.Problem.Should().Be($"Ctrl+Alt+H is already used for {HotkeyEditor.SyncLabel}.");
+        _set.Should().BeEmpty();
     }
 
     [Fact]

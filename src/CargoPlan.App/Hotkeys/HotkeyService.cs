@@ -31,7 +31,8 @@ public sealed class HotkeyService
 
     /// <param name="window">Not shown yet: registers on its SourceInitialized.</param>
     /// <param name="settings">null or a null entry = that hotkey is not set (no defaults, D17).</param>
-    public HotkeyService(Window window, HotkeySettings? settings, OverlayViewModel viewModel)
+    /// <param name="syncContractTracker">The editor's "Sync from ContractTracker", which lives in the composition root, not in the view model (D44).</param>
+    public HotkeyService(Window window, HotkeySettings? settings, OverlayViewModel viewModel, ICommand syncContractTracker)
     {
         _window = window;
         _viewModel = viewModel;
@@ -39,9 +40,16 @@ public sealed class HotkeyService
         {
             [HotkeyAction.ToggleLock] = viewModel.ToggleLockCommand,
             [HotkeyAction.ToggleOverlay] = viewModel.ToggleOverlayCommand,
+            [HotkeyAction.SyncContractTracker] = syncContractTracker,
         };
 
-        foreach (var (action, text) in new[] { (HotkeyAction.ToggleLock, settings?.ToggleLock), (HotkeyAction.ToggleOverlay, settings?.ToggleOverlay) })
+        (HotkeyAction, string?)[] texts =
+        [
+            (HotkeyAction.ToggleLock, settings?.ToggleLock),
+            (HotkeyAction.ToggleOverlay, settings?.ToggleOverlay),
+            (HotkeyAction.SyncContractTracker, settings?.SyncContractTracker),
+        ];
+        foreach (var (action, text) in texts)
         {
             if (text is null)
             {
@@ -214,6 +222,7 @@ public sealed class HotkeyService
     {
         HotkeyAction.ToggleLock => "toggleLock",
         HotkeyAction.ToggleOverlay => "toggleOverlay",
+        HotkeyAction.SyncContractTracker => "syncContractTracker",
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
     };
 

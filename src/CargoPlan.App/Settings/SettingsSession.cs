@@ -73,9 +73,22 @@ public sealed class SettingsSession
             {
                 HotkeyAction.ToggleLock => hotkeys with { ToggleLock = text },
                 HotkeyAction.ToggleOverlay => hotkeys with { ToggleOverlay = text },
+                HotkeyAction.SyncContractTracker => hotkeys with { SyncContractTracker = text },
                 _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
             },
         };
+        _timer.Stop();
+        _timer.Start();
+    }
+
+    /// <summary>
+    /// From the settings window: saved after <see cref="Debounce"/> like a hotkey. Applying it is the sync's job (D44), wired
+    /// in the composition root like the hotkeys. Not checked again: the window only hands over full paths from the file
+    /// dialog, or null (A6: checks at the file boundary).
+    /// </summary>
+    public void ChangeContractTracker(ContractTrackerSettings contractTracker)
+    {
+        Current = Current with { ContractTracker = contractTracker };
         _timer.Stop();
         _timer.Start();
     }

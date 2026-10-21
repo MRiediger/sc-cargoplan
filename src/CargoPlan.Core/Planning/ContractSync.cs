@@ -18,9 +18,17 @@ public static class ContractSync
     /// </summary>
     /// <param name="present">The ids of the plan's captures still in ContractTracker; null if it wasn't read, then
     /// nothing counts as deleted.</param>
+    /// <param name="databaseIsNew">ContractTracker's ids started again at 1 (a new file, D44): the watermark goes back to 0,
+    /// so the new file's captures come in.</param>
     /// <exception cref="ArgumentException">The plan belongs to another ship, or a capture makes no valid mission.</exception>
-    public static SavedPlan Apply(SavedPlan saved, Ship ship, IReadOnlyList<ContractCapture> captures, IReadOnlySet<long>? present)
+    public static SavedPlan Apply(
+        SavedPlan saved, Ship ship, IReadOnlyList<ContractCapture> captures, IReadOnlySet<long>? present, bool databaseIsNew = false)
     {
+        if (databaseIsNew && saved.Watermark > 0)
+        {
+            saved = new SavedPlan(saved.Missions, saved.Plan);
+        }
+
         var current = saved;
         if (present is not null)
         {

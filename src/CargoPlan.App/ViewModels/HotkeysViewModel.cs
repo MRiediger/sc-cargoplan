@@ -4,8 +4,8 @@ using CargoPlan.App.Settings;
 namespace CargoPlan.App.ViewModels;
 
 /// <summary>
-/// The Hotkeys section of the settings window (T4.4, D35): both actions, so one can refuse the other's combination by
-/// name before Windows would. Still no defaults (D17).
+/// The Hotkeys section of the settings window (T4.4, D35): every action, so one can refuse another's combination by
+/// name before Windows would. Still no defaults (D17); the sync came with T5.5 (D44).
 /// </summary>
 public sealed class HotkeysViewModel
 {
@@ -22,17 +22,20 @@ public sealed class HotkeysViewModel
         _set = set;
         Lock = new(HotkeyAction.ToggleLock, HotkeyEditor.LockLabel, settings?.ToggleLock, Commit, suspend, resume);
         Overlay = new(HotkeyAction.ToggleOverlay, HotkeyEditor.OverlayLabel, settings?.ToggleOverlay, Commit, suspend, resume);
+        Sync = new(HotkeyAction.SyncContractTracker, HotkeyEditor.SyncLabel, settings?.SyncContractTracker, Commit, suspend, resume);
     }
 
     public HotkeyEditor Lock { get; }
 
     public HotkeyEditor Overlay { get; }
 
-    private string? Commit(HotkeyEditor editor, Hotkey? hotkey)
-    {
-        var other = ReferenceEquals(editor, Lock) ? Overlay : Lock;
-        return hotkey is not null && hotkey == other.Hotkey
-            ? $"{hotkey} is already used for {other.Label}."
+    public HotkeyEditor Sync { get; }
+
+    /// <summary>Every editor, in the window's order; the window cancels their recordings.</summary>
+    public IEnumerable<HotkeyEditor> All => [Lock, Overlay, Sync];
+
+    private string? Commit(HotkeyEditor editor, Hotkey? hotkey) =>
+        hotkey is not null && All.FirstOrDefault(other => !ReferenceEquals(other, editor) && other.Hotkey == hotkey) is { } taken
+            ? $"{hotkey} is already used for {taken.Label}."
             : _set(editor.Action, hotkey);
-    }
 }

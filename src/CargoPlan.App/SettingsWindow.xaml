@@ -328,6 +328,37 @@
                     <TextBlock Text="{x:Static vm:HotkeysViewModel.Hint}" TextWrapping="Wrap" Margin="0,0,0,4" />
                     <ContentControl Content="{Binding Lock, Mode=OneTime}" />
                     <ContentControl Content="{Binding Overlay, Mode=OneTime}" />
+                    <ContentControl Content="{Binding Sync, Mode=OneTime}" />
+                </StackPanel>
+            </GroupBox>
+
+            <!-- Where ContractTracker's database is and whether captures come in by themselves (D44). Visible without
+                 ContractTracker too, with where to get it. No "Reset to defaults": that is "Detect automatically". -->
+            <GroupBox x:Name="ContractTrackerSection" Header="ContractTracker" Style="{StaticResource SectionStyle}"
+                      d:DataContext="{d:DesignInstance vm:ContractTrackerSectionViewModel}">
+                <StackPanel>
+                    <TextBlock Text="Database" />
+                    <TextBox Text="{Binding PathText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Margin="0,2,0,0" />
+                    <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    <TextBlock Margin="0,2,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsFound}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                        <Hyperlink Click="OnOpenNexus" ToolTip="{x:Static vm:ContractTrackerSectionViewModel.NexusUrl}">Get ContractTracker on Nexus Mods</Hyperlink>
+                    </TextBlock>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+                        <Button Content="Detect automatically" Command="{Binding DetectAutomaticallyCommand, Mode=OneTime}"
+                                Padding="8,2" Margin="0,0,6,0" ToolTip="Use ContractTracker's own place (%AppData%\SCContractTracker)" />
+                        <Button Content="Browse…" Click="OnBrowseContractTracker" Padding="8,2" ToolTip="Pick contracts.db yourself" />
+                    </StackPanel>
+                    <CheckBox Content="Auto-sync" IsChecked="{Binding AutoSync}" Margin="0,8,0,0"
+                              ToolTip="Off: a capture only shows &quot;N new contracts&quot;; Sync from ContractTracker in the editor or its hotkey takes them in" />
                 </StackPanel>
             </GroupBox>
         </StackPanel>

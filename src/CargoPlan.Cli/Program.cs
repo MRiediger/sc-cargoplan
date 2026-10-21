@@ -58,7 +58,7 @@ int Plan(PlanCommand plan)
 // For bug reports: the output with --raw holds what a test fixture needs (T5.3).
 int Contracts(ContractsCommand contracts)
 {
-    // The reader reads nothing from a missing file and stays silent (the settings window says "not found", T5.5);
+    // The reader reads nothing from a missing file and stays silent (the settings window says "not found", D44);
     // on the command line a mistyped path must not look like "no new contracts".
     if (!File.Exists(contracts.DatabasePath))
     {
@@ -71,6 +71,13 @@ int Contracts(ContractsCommand contracts)
     {
         Console.Error.WriteLine(notice);
         return ExitFailed;
+    }
+
+    // Same rule as the overlay (D44): ids that never reached --since mean a new database, read from the start.
+    if (result.DatabaseLooksNew)
+    {
+        Console.WriteLine(string.Create(
+            CultureInfo.InvariantCulture, $"Database looks new (no id ever reached {contracts.SinceId}): reading from the start."));
     }
 
     Console.WriteLine(result.Candidates.Count == 0
