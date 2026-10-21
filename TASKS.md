@@ -621,7 +621,7 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 
 **Befund:** Ordner 143,2 MB in 416 Dateien (260 im Wurzelordner, 13 Sprachordner à 12), ZIP (`Compress-Archive`) 62,0 MB. Aus dem entpackten ZIP: Overlay startet, Fußzeile und `CargoPlan.Cli --version` zeigen `0.0.0-dev+2290a0a…`, `plan` und `contracts` (Kopie der CT-DB) laufen. Kollisionscheck (App und Cli getrennt publiziert, SHA256 verglichen): 196 gleichnamige Dateien, 2 unterschiedlich (`WindowsBase.dll`, `SQLitePCLRaw.provider.e_sqlite3.dll`), daher die Reihenfolge Cli → App (D48).
 
-### [ ] T6.3 Release-Workflow
+### [x] T6.3 Release-Workflow
 **Warum:** Tag setzen → Download steht. Kein manuelles Hochladen.
 - Kein MinVer/GitVersion: `Directory.Build.props` setzt `<Version>0.0.0-dev</Version>`; CI setzt `-p:Version` aus dem Tag (ohne „v“) und bricht ab, wenn der Rest kein SemVer ist
 - `.github/workflows/release.yml`: Trigger `push` auf `tags: v*`, `build/publish.ps1` aus T6.2 (D48), `softprops/action-gh-release` hängt ein ZIP + SHA256 an
@@ -632,6 +632,8 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 **Akzeptanz:** Tag `v0.1.0-rc.1` pushen → Prerelease mit ZIP + SHA256 und den handgeschriebenen Notes, Version 0.1.0-rc.1 in Settings und CLI; Tag `v0.1` → Workflow bricht ab, kein Release.
 
 **Befund (lokal):** Ordner 134,9 MB in 260 Dateien, keine Unterordner (vorher 143,2 MB / 416), ZIP 58,7 MB (vorher 62,0), ein Wurzelordner, alle Einträge mit `/`, `.sha256` passt zu `Get-FileHash`. `publish.ps1 -Version 0.1.0-rc.1` → `CargoPlan.Cli --version` aus dem entpackten ZIP zeigt `0.1.0-rc.1+9796bfb…`. Tag-Regex: `v0.1.0`, `v0.1.0-rc.1` ✓; `v0.1`, `v01.0.0`, `v0.1.0-rc.01`, `v0.1.0+build`, `v0.1.0-` ✗. Kollisionscheck nach D50 unverändert: 196 gleichnamig, 2 unterschiedlich, Vereinigung 259 + `LICENSE` = 260.
+
+**Befund (CI):** CI auf `6bbc115` grün (ubuntu, windows). Tag `v0.1.0-rc.1` → Release-Lauf grün, [Prerelease](https://github.com/MRiediger/sc-cargoplan/releases/tag/v0.1.0-rc.1) mit ZIP + `.sha256`, Body = Notes-Datei; heruntergeladenes ZIP passt zur `.sha256`, 260 Einträge unter `SC-CargoPlan/`, gleiche Namen und entpackte Größe (134,9 MB) wie lokal; `CargoPlan.Cli --version` zeigt `0.1.0-rc.1+6bbc115…`, die Fußzeile des Settings-Fensters „SC-CargoPlan 0.1.0-rc.1+6bbc115…“ (von Martin geprüft). Das CI-ZIP ist 60,7 MB statt lokal 58,7 MB: gleicher Inhalt, nur anders komprimiert (vermutlich .NET auf dem Runner gegenüber .NET Framework unter Windows PowerShell 5.1, nicht untersucht), also nicht byte-gleich. Tag `v0.1` → Lauf [39652136154](https://github.com/MRiediger/sc-cargoplan/actions/runs/39652136154) scheitert in „Version from tag“ („Tag 'v0.1' is not v<SemVer> …“), Rest übersprungen, kein Release; Tag lokal und remote gelöscht. **Der rote Lauf in der Actions-Historie ist dieser absichtliche Negativtest, kein Fehler.**
 
 ### [ ] T6.4 Repo-Hygiene für Contributor
 **Warum:** Erster externer PR soll nicht an Unklarheit scheitern.
