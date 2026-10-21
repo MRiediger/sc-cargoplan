@@ -489,3 +489,6 @@ after_split_required.txt
 ct_copy.db
 ct_copy.db-shm
 ct_copy.db-wal
+contracts.db
+contracts.db-shm
+contracts.db-wal
