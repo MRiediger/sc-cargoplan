@@ -1,0 +1,68 @@
+name: Release
+
+# A tag v<SemVer> builds, tests and publishes the release (D49). ci.yml only runs for main and PRs, not for tags.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Release ${{ github.ref_name }}
+    runs-on: windows-latest
+
+    env:
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # First, so a bad tag stops before anything is built. The tag goes in through env, never into the script text.
+      - name: Version from tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          $version = $env:TAG.Substring(1)
+          # SemVer 2.0 (https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string)
+          # without build metadata: the SDK appends +<commit> itself. [0-9], not \d, which .NET matches for any digit.
+          $semVer = '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-((0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*))?$'
+          if ($version -cnotmatch $semVer) {
+              Write-Output "::error::Tag '$env:TAG' is not v<SemVer> (like v0.1.0 or v0.1.0-rc.1, no build metadata)."
+              exit 1
+          }
+          $notes = "docs/release-notes/v$version.md"
+          if (-not (Test-Path $notes)) {
+              Write-Output "::error::Release notes $notes are missing. Commit them before tagging."
+              exit 1
+          }
+          "VERSION=$version" >> $env:GITHUB_ENV
+          "PRERELEASE=$($version.Contains('-').ToString().ToLowerInvariant())" >> $env:GITHUB_ENV
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore -p:Version=$env:VERSION
+
+      - name: Test
+        run: dotnet test -c Release --no-build
+
+      - name: Publish
+        run: ./build/publish.ps1 -Version $env:VERSION
+
+      # Pinned to a commit: a third-party action with write access to the repository (D49).
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          files: |
+            out/publish/SC-CargoPlan-v${{ env.VERSION }}-win-x64.zip
+            out/publish/SC-CargoPlan-v${{ env.VERSION }}-win-x64.zip.sha256
+          body_path: docs/release-notes/v${{ env.VERSION }}.md
+          prerelease: ${{ env.PRERELEASE }}
+          fail_on_unmatched_files: true

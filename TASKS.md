@@ -619,7 +619,7 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 
 **Akzeptanz:** Ein ZIP; `CargoPlan.App.exe` startet nach dem Entpacken; ZIP < 80 MB; Settings und CLI zeigen dieselbe Version.
 
-**Befund:** Ordner 143,2 MB in 416 Dateien (260 im Wurzelordner, 13 Sprachordner à 12), ZIP (`Compress-Archive`) 62,0 MB. Aus dem entpackten ZIP: Overlay startet, Fußzeile und `CargoPlan.Cli --version` zeigen `0.0.0-dev+2290a0a…`, `plan` und `contracts` (Kopie der CT-DB) laufen.
+**Befund:** Ordner 143,2 MB in 416 Dateien (260 im Wurzelordner, 13 Sprachordner à 12), ZIP (`Compress-Archive`) 62,0 MB. Aus dem entpackten ZIP: Overlay startet, Fußzeile und `CargoPlan.Cli --version` zeigen `0.0.0-dev+2290a0a…`, `plan` und `contracts` (Kopie der CT-DB) laufen. Kollisionscheck (App und Cli getrennt publiziert, SHA256 verglichen): 196 gleichnamige Dateien, 2 unterschiedlich (`WindowsBase.dll`, `SQLitePCLRaw.provider.e_sqlite3.dll`), daher die Reihenfolge Cli → App (D48).
 
 ### [ ] T6.3 Release-Workflow
 **Warum:** Tag setzen → Download steht. Kein manuelles Hochladen.
@@ -627,7 +627,11 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 - `.github/workflows/release.yml`: Trigger `push` auf `tags: v*`, `build/publish.ps1` aus T6.2 (D48), `softprops/action-gh-release` hängt ein ZIP + SHA256 an
 - Release-Notes als Body-Datei, von Hand geschrieben, nicht `generate_release_notes`
 
-**Akzeptanz:** Tag `v0.1.0` pushen → Release mit ZIP + SHA256 und den handgeschriebenen Notes, Version 0.1.0 in Settings und CLI; Tag `v0.1` → Workflow bricht ab, kein Release.
+**Präzisiert in der Planung:** Erster Schritt prüft den Tag (SemVer 2.0 ohne Build-Metadaten, das SDK hängt `+<sha>` selbst an) und verlangt `docs/release-notes/v<version>.md`, sonst Abbruch vor dem Build. Prerelease-Suffix → `prerelease: true`. `-p:Version` schon beim Build, Test ohne Neubau, dann `publish.ps1 -Version`. `publish.ps1` schreibt `out/publish/SC-CargoPlan/`, das ZIP `SC-CargoPlan-v<version>-win-x64.zip` mit Wurzelordner `SC-CargoPlan/` (Einträge mit `/`, auch unter Windows PowerShell 5.1) und eine `.sha256` im `sha256sum`-Format; ohne `-Version` bleibt 0.0.0-dev. `softprops/action-gh-release` v3.0.3 auf den Commit gepinnt. `SatelliteResourceLanguages` = `en` (D50). Akzeptanz mit `v0.1.0-rc.1` statt `v0.1.0`; `v0.1.0` erst nach T6.5, rc.1 bleibt bis dahin als Prerelease stehen (Prüfbuild für T6.5), dann Release und Tag löschen. Präzisierung in der Planphase, ratifiziert durch Freigabe (D49, D50).
+
+**Akzeptanz:** Tag `v0.1.0-rc.1` pushen → Prerelease mit ZIP + SHA256 und den handgeschriebenen Notes, Version 0.1.0-rc.1 in Settings und CLI; Tag `v0.1` → Workflow bricht ab, kein Release.
+
+**Befund (lokal):** Ordner 134,9 MB in 260 Dateien, keine Unterordner (vorher 143,2 MB / 416), ZIP 58,7 MB (vorher 62,0), ein Wurzelordner, alle Einträge mit `/`, `.sha256` passt zu `Get-FileHash`. `publish.ps1 -Version 0.1.0-rc.1` → `CargoPlan.Cli --version` aus dem entpackten ZIP zeigt `0.1.0-rc.1+9796bfb…`. Tag-Regex: `v0.1.0`, `v0.1.0-rc.1` ✓; `v0.1`, `v01.0.0`, `v0.1.0-rc.01`, `v0.1.0+build`, `v0.1.0-` ✗. Kollisionscheck nach D50 unverändert: 196 gleichnamig, 2 unterschiedlich, Vereinigung 259 + `LICENSE` = 260.
 
 ### [ ] T6.4 Repo-Hygiene für Contributor
 **Warum:** Erster externer PR soll nicht an Unklarheit scheitern.
@@ -642,7 +646,8 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 - Abschnitte: Was · Download · Erstes Mal · CT-Anbindung · Hotkeys · Known issues · Bug melden · Credits · Lizenz
 - SmartScreen-Warnung bei der unsignierten EXE ehrlich dokumentieren (aus T6.3 hierher)
 - Kein Ruckel-Hinweis mehr (in 7e94ac3 entfernt, D45)
-- Jede Verhaltensaussage am Release-Build geprüft
+- Jede Verhaltensaussage am Release-Build geprüft (das ZIP aus dem Prerelease `v0.1.0-rc.1`)
+- Danach Tag `v0.1.0` (Notes `docs/release-notes/v0.1.0.md`), dann Release und Tag `v0.1.0-rc.1` löschen (D49)
 
 **Akzeptanz:** Alle Abschnitte vorhanden; jede Verhaltensaussage am Build nachvollzogen; Links funktionieren.
 

@@ -7,6 +7,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Keeps only English satellite assemblies, like the UI (D50). Also filters the WPF runtime pack's 13 language
+         folders in the self-contained publish; localization (T7.5) has to add its language here.
+         Source: https://github.com/dotnet/sdk/blob/main/src/Tasks/Microsoft.NET.Build.Tasks/ResolveRuntimePackAssets.cs -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <!-- Release metadata. A release build overrides Version with the tag (T6.3); the SDK appends the commit hash to

@@ -1,15 +1,25 @@
-# Publishes the overlay and the CLI into one folder (D46, D48): self-contained win-x64, one shared runtime, no single
-# file, no trimming. The only place the publish settings live; CI (T6.3) calls this script too.
-# Usage: ./build/publish.ps1   → out/publish
+# Publishes the overlay and the CLI into one folder and zips it (D46, D48, D49): self-contained win-x64, one shared
+# runtime, no single file, no trimming. The only place the publish settings live; the release workflow calls it too.
+# Usage: ./build/publish.ps1 [-Version 0.1.0]
+#   → out/publish/SC-CargoPlan/ and out/publish/SC-CargoPlan-v<version>-win-x64.zip with its .sha256
+# Without -Version the build keeps the 0.0.0-dev of Directory.Build.props.
+param(
+    [string]$Version
+)
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path $PSScriptRoot -Parent
-$output = Join-Path $root 'out\publish'
+$publish = Join-Path $root 'out\publish'
+# The ZIP's root folder (D49): 260 files loose in the extract folder would bury the EXE.
+$output = Join-Path $publish 'SC-CargoPlan'
 $common = @('-c', 'Release', '-r', 'win-x64', '--self-contained', 'true', '-o', $output)
+if ($Version) {
+    $common += "-p:Version=$Version"
+}
 
 # Start empty: files a former build left behind (a removed dependency) must not ship.
-if (Test-Path $output) {
-    Remove-Item $output -Recurse -Force
+if (Test-Path $publish) {
+    Remove-Item $publish -Recurse -Force
 }
 
 # The App goes last, keep the order. Two of the files both publish differ (checked in T6.2), and the App's must win:
@@ -25,3 +35,35 @@ foreach ($project in 'CargoPlan.Cli', 'CargoPlan.App') {
 
 # MIT asks for the licence text with every copy.
 Copy-Item (Join-Path $root 'LICENSE') $output
+
+# The ZIP's name carries the version the build used; without -Version it comes from MSBuild, not a second copy here.
+$zipVersion = $Version
+if (-not $zipVersion) {
+    $zipVersion = (dotnet msbuild (Join-Path $root 'src\CargoPlan.App\CargoPlan.App.csproj') -getProperty:Version).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        throw "Reading the version failed with exit code $LASTEXITCODE."
+    }
+}
+
+# Entries one by one with forward slashes, as the ZIP format asks: under Windows PowerShell 5.1 (.NET Framework) both
+# Compress-Archive and ZipFile.CreateFromDirectory write backslashes, pwsh 7 (the release runner) doesn't. This way a
+# local ZIP is the same as the released one.
+# Source: https://learn.microsoft.com/en-us/dotnet/api/system.io.compression.zipfileextensions.createentryfromfile
+Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+$zipName = "SC-CargoPlan-v$zipVersion-win-x64.zip"
+$zip = Join-Path $publish $zipName
+$archive = [System.IO.Compression.ZipFile]::Open($zip, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+    foreach ($file in Get-ChildItem $output -Recurse -File) {
+        $entry = (Split-Path $output -Leaf) + '/' + $file.FullName.Substring($output.Length + 1).Replace('\', '/')
+        [void][System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+            $archive, $file.FullName, $entry, [System.IO.Compression.CompressionLevel]::Optimal)
+    }
+}
+finally {
+    $archive.Dispose()
+}
+
+# sha256sum format ("<hash>  <name>"), so `sha256sum -c` checks it; Get-FileHash compares case-insensitively.
+$hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+[System.IO.File]::WriteAllText("$zip.sha256", "$hash  $zipName`n")
