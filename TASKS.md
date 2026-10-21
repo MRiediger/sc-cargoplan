@@ -589,7 +589,7 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 
 ## Phase 6 – Release
 
-### [ ] T6.0 Erster Start (Spike)
+### [x] T6.0 Erster Start (Spike)
 **Warum:** Wer nach dem Download ein leeres Overlay sieht und nicht weiterweiß, schließt es wieder. Vor dem Release prüfen, was ein Hauler ohne README vorfindet.
 - Drei Zustände durchspielen: (1) kein Plan, kein CT; (2) kein Plan, CT vorhanden; (3) Plan vorhanden, CT-DB gelöscht
 - Screenshots je Zustand in `docs/screenshots/first-start/`
@@ -597,6 +597,8 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 - Kein Code
 
 **Akzeptanz:** Ein Hauler kommt ohne README vom leeren Overlay zu Editor und Settings; Screenshots und Liste liegen vor.
+
+**Befund:** Zustände A/B/C ohne Blocker, Leerzustand und Settings selbsterklärend, Auto-Detect funktioniert, Sync ~1 s. Screenshots in `docs/screenshots/first-start/`.
 
 ### [ ] T6.1 settings.json sichern
 **Warum:** Release-Vorbedingung. Das erste Speichern überschreibt eine kaputte oder von Hand geänderte settings.json (D34), ohne Weg zurück.

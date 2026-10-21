@@ -492,3 +492,5 @@ ct_copy.db-wal
 contracts.db
 contracts.db-shm
 contracts.db-wal
+
+out/
