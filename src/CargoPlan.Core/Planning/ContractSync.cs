@@ -50,15 +50,20 @@ public static class ContractSync
     /// <summary>
     /// The missions that may be a second capture of another one (D39 addendum): of two missions without any ticked crate,
     /// the later one, if the destinations and commodities it delivers are all delivered by the other, or the other way
-    /// round. Overlapping alone is no duplicate: two real contracts can share destinations (36 and 37/38). Derived, not
-    /// stored, so it goes with the first tick on either and comes back with ticking back. Names compare ignoring case (D40).
+    /// round. Overlapping alone is no duplicate: two real contracts can share destinations (36 and 37/38). Different
+    /// rewards are two contracts too (47 and 48, T5.3b); an unknown reward (typed, older capture) doesn't rule one out.
+    /// Derived, not stored, so it goes with the first tick on either and comes back with ticking back. Names compare
+    /// ignoring case (D40).
     /// </summary>
     public static IReadOnlySet<int> Duplicates(SavedPlan saved)
     {
         HashSet<int> ticked = [.. saved.Plan.Crates.Where(c => c.Delivered).Select(c => c.Mission)];
         var candidates = saved.Missions
             .Where(m => !ticked.Contains(m.Id))
-            .Select(m => (m.Id, Deliveries: m.Deliveries.Select(d => (d.Destination.ToUpperInvariant(), d.Commodity.ToUpperInvariant())).ToHashSet()))
+            .Select(m => (
+                m.Id,
+                m.Contract?.Reward,
+                Deliveries: m.Deliveries.Select(d => (d.Destination.ToUpperInvariant(), d.Commodity.ToUpperInvariant())).ToHashSet()))
             .ToArray();
 
         HashSet<int> duplicates = [];
@@ -66,8 +71,9 @@ public static class ContractSync
         {
             for (var earlier = 0; earlier < later; earlier++)
             {
-                if (candidates[later].Deliveries.IsSubsetOf(candidates[earlier].Deliveries)
-                    || candidates[earlier].Deliveries.IsSubsetOf(candidates[later].Deliveries))
+                var (first, second) = (candidates[earlier], candidates[later]);
+                if ((first.Reward is null || second.Reward is null || first.Reward == second.Reward)
+                    && (second.Deliveries.IsSubsetOf(first.Deliveries) || first.Deliveries.IsSubsetOf(second.Deliveries)))
                 {
                     duplicates.Add(candidates[later].Id);
                 }

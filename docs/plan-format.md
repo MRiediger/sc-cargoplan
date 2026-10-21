@@ -33,7 +33,7 @@ doesn't mind.
       "stops": [
         { "destination": "Shubin", "items": [ { "commodity": "Quartz", "scu": 4, "maxCrateSize": 4 } ] }
       ],
-      "contract": { "contractIds": [36, 37], "crateSizeAssumed": true, "listedDestinations": 3 }
+      "contract": { "contractIds": [36, 37], "crateSizeAssumed": true, "listedDestinations": 3, "reward": 50250 }
     }
   ],
   "crates": [
@@ -80,6 +80,7 @@ Missions to the same destination share one stop at the cargo lift: one legend li
 | `contractIds` | array | ContractTracker's ids of the capture's rows, at least one. Once all of them are deleted in ContractTracker and nothing of the mission is on board, the mission leaves the plan. |
 | `crateSizeAssumed` | boolean | The contract named no max crate size; the legend shows the size with a `?`. |
 | `listedDestinations` | number | Optional: how many destinations the contract's drop-off list names. More than the mission's stops: the legend warns that destinations are missing. |
+| `reward` | number | Optional: the contract's reward as read from the capture. Left out when unknown. Two captures with different rewards are never marked as duplicates. |
 
 ### Crate
 

@@ -157,13 +157,13 @@ public class ContractTextParserTests
     }
 
     [Fact]
-    public void Pick_up_list_and_prose_do_not_complete_a_destination()
+    public void Pick_up_list_and_prose_from_a_pickup_do_not_complete_a_destination()
     {
-        // Only the drop-off list names destinations; a pickup sharing the prefix must not be taken for one.
+        // A pickup sharing the prefix must not be taken for a destination: the pick-up list and "from a freight elevator".
         const string text = """
             DETAILS
             Deliver 0/9 SCU of Waste to Thunde
-            Taken to a freight elevator at Thundering Express Station at Hurston's L3.
+            1. Pick up cargo from a freight elevator at Thundering Express Station at Hurston's L3.
             PICK UP LOCATIONS (ANY ORDER)
             - Freight elevator at Thundering Express Station at Hurston's L3
             ACCEPT OFFER
@@ -173,6 +173,100 @@ public class ContractTextParserTests
 
         parsed.Deliveries.Should().Equal(new ParsedDelivery("Thunde", "Waste", 9));
     }
+
+    [Theory]
+    [InlineData("Taken to a freight elevator at Thundering Express Station at Hurston's L3.")]
+    [InlineData("2. Deliver to a freight elevator at Thundering\nExpress Station above Hurston.")]
+    [InlineData("taken to a freight elevator at Thundering Express Station. Don't")]
+    public void Prose_with_to_completes_a_destination(string prose)
+    {
+        // The verb doesn't matter, "to a freight elevator at" names a destination (T5.3b).
+        var parsed = ContractTextParser.Parse($"DETAILS\nDeliver 0/9 SCU of Waste to Thunde\n{prose}\nACCEPT OFFER");
+
+        parsed.Deliveries.Should().Equal(new ParsedDelivery("Thundering Express Station", "Waste", 9));
+    }
+
+    [Fact]
+    public void Drop_off_list_completes_before_the_prose()
+    {
+        const string text = """
+            DETAILS
+            Deliver 0/4 SCU of Stims to Thunde
+            Deliver to a freight elevator at Thunderhead Station at Hurston's L4.
+            DROP OFF LOCATIONS (ANY ORDER)
+            - Freight elevator at Thundering Express Station at Hurston's L3
+            ACCEPT OFFER
+            """;
+
+        var parsed = ContractTextParser.Parse(text);
+
+        parsed.Deliveries.Should().Equal(new ParsedDelivery("Thundering Express Station", "Stims", 4));
+    }
+
+    [Theory]
+    [InlineData(ImportFixtures.WasteTornAboy)]
+    [InlineData(ImportFixtures.WasteTornAbov)]
+    public void Torn_above_at_the_end_of_a_delivery_line_is_dropped(string fixture)
+    {
+        // Ids 47/48: "to Everus Harbor aboy" / "abov", the line broke inside "above".
+        var parsed = ContractTextParser.Parse(ImportFixtures.RawText(fixture));
+
+        parsed.Deliveries.Should().Equal(new ParsedDelivery("Everus Harbor", "Waste", 9));
+    }
+
+    [Fact]
+    public void Size_phrase_lost_in_the_ocr_stays_missing()
+    {
+        // Id 48: "Don't" is followed by "D", the line with "bigger than" was not read.
+        ContractTextParser.Parse(ImportFixtures.RawText(ImportFixtures.WasteTornAbov)).MaxCrateSize.Should().BeNull();
+    }
+
+    [Fact]
+    public void Overlay_text_in_the_capture_gives_no_commodity_or_destination()
+    {
+        // Our own legend in ContractTracker's capture region: "MISC Hull A", "No plan. Open t", "Open editor".
+        var parsed = ContractTextParser.Parse(ImportFixtures.RawText(ImportFixtures.SiliconOverlayText));
+
+        parsed.Deliveries.Should().Equal(new ParsedDelivery("High Course Station", "Silicon", 7));
+        parsed.MaxCrateSize.Should().Be(CrateSize.One);
+        parsed.ListedDestinationCount.Should().BeNull();
+        parsed.Reward.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("Max size willb 1 SCU.", CrateSize.One)]
+    [InlineData("Max size will be l SCU.", CrateSize.One)]
+    [InlineData("Maxsize will be I6 SCU.", CrateSize.Sixteen)]
+    [InlineData("none of the containers are bigger than O8 SCU.", CrateSize.Eight)]
+    [InlineData("containers are biggerthan |\nSCU.", CrateSize.One)]
+    public void Size_phrase_tolerates_misread_words_and_digits(string phrase, CrateSize expected)
+    {
+        var parsed = ContractTextParser.Parse($"DETAILS\nDeliver 0/9 SCU of Waste to Everus Harbor above\n{phrase}\nACCEPT OFFER");
+
+        parsed.MaxCrateSize.Should().Be(expected);
+    }
+
+    [Fact]
+    public void Corrected_size_that_is_no_crate_size_counts_as_missing()
+    {
+        // "l2" reads as 12: no crate size, so "?" rather than a wrong size without one (T5.3b).
+        var parsed = ContractTextParser.Parse("DETAILS\nDeliver 0/9 SCU of Waste to Everus Harbor above\nMax size will be l2 SCU.");
+
+        parsed.MaxCrateSize.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(ImportFixtures.WasteTornAboy, 50_250L)]
+    [InlineData(ImportFixtures.WasteTornAbov, 72_500L)]
+    public void Reward_is_read_from_the_start_of_the_text(string fixture, long expected) =>
+        ContractTextParser.Parse(ImportFixtures.RawText(fixture)).Reward.Should().Be(expected);
+
+    [Theory]
+    [InlineData("Reward\n5O,250\nDETAILS")]
+    [InlineData("Junior Rank - Small Cargo Haul\nReward\n50,250\nDETAILS")]
+    [InlineData("Reward\nContract Availability\nDETAILS")]
+    public void Unreadable_or_misplaced_reward_is_unknown(string text) =>
+        ContractTextParser.Parse(text).Reward.Should().BeNull();
 
     [Fact]
     public void Pick_up_list_is_not_counted_as_destinations()
@@ -242,8 +336,25 @@ public class ContractTextParserTests
     [InlineData("HUR-LS Faithful Dream Station.", "HUR-L5 Faithful Dream Station")]
     [InlineData("Hurston's LS Lagrange point", "Hurston's L5 Lagrange point")]
     [InlineData("Lorville", "Lorville")]
+    [InlineData("Everus Harbor ab", "Everus Harbor")]
+    [InlineData("Everus Harbor abo", "Everus Harbor")]
+    [InlineData("Everus Harbor abov", "Everus Harbor")]
+    [InlineData("Everus Harbor aboy", "Everus Harbor")]
+    [InlineData("Everus Harbor abeve", "Everus Harbor")]
+    [InlineData("Port Olisar St", "Port Olisar St")]
+    [InlineData("Everus Harbor a", "Everus Harbor a")]
+    [InlineData("Everus Harbor ax", "Everus Harbor ax")]
+    [InlineData("Everus Harbor Station", "Everus Harbor Station")]
     public void Destination_is_normalised(string text, string expected) =>
         ContractText.NormalizeDestination(text).Should().Be(expected);
+
+    [Theory]
+    [InlineData("Everus Harbor abov", true)]
+    [InlineData("Everus Harbor aboy", true)]
+    [InlineData("Everus Harbor a", false)]
+    [InlineData("Thunde", false)]
+    public void Torn_above_counts_as_the_end_of_the_name(string text, bool expected) =>
+        ContractText.HasNameEnd(text).Should().Be(expected);
 
     [Theory]
     [InlineData(" Pressurized   Ice ", "Pressurized Ice")]

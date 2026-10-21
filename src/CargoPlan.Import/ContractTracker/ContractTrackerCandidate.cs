@@ -12,6 +12,7 @@ namespace CargoPlan.Import.ContractTracker;
 /// <param name="CrateSizeAssumed">The text names no max crate size; each item has the largest crate that fits its SCU.</param>
 /// <param name="UsedFallbackRows">No delivery line was readable; the stops are ContractTracker's own destination rows.</param>
 /// <param name="ListedDestinationCount">Entries of the contract's drop-off list; null if it has none.</param>
+/// <param name="Reward">The contract's reward from the raw text; null if unknown (T5.3b).</param>
 /// <param name="RawText">The raw OCR text, for bug reports (CLI <c>--raw</c>).</param>
 public sealed record ContractTrackerCandidate(
     IReadOnlyList<long> ContractIds,
@@ -20,11 +21,12 @@ public sealed record ContractTrackerCandidate(
     bool CrateSizeAssumed,
     bool UsedFallbackRows,
     int? ListedDestinationCount,
+    long? Reward,
     string? RawText)
 {
     /// <summary>The drop-off list names more destinations than were read.</summary>
     public bool DestinationsIncomplete => ListedDestinationCount > Stops.Count;
 
-    /// <summary>The candidate as the sync takes it into the plan (D39 addendum): stops, ids and the legend's hints.</summary>
-    public ContractCapture ToCapture() => new(Stops, new ContractSource(ContractIds, CrateSizeAssumed, ListedDestinationCount));
+    /// <summary>The candidate as the sync takes it into the plan (D39 addendum): stops, ids, the legend's hints, the reward.</summary>
+    public ContractCapture ToCapture() => new(Stops, new ContractSource(ContractIds, CrateSizeAssumed, ListedDestinationCount, Reward));
 }

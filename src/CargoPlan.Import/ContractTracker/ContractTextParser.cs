@@ -21,8 +21,9 @@ internal static partial class ContractTextParser
 
     public static ParsedContract Parse(string rawText)
     {
-        var lines = Block(rawText.ReplaceLineEndings("\n").Split('\n'));
-        return new(Deliveries(lines), MaxCrateSize(string.Join('\n', lines)), ListedDestinationCount(lines));
+        var text = rawText.ReplaceLineEndings("\n");
+        var lines = Block(text.Split('\n'));
+        return new(Deliveries(lines), MaxCrateSize(string.Join('\n', lines)), ListedDestinationCount(lines), Reward(text));
     }
 
     /// <summary>
@@ -49,14 +50,19 @@ internal static partial class ContractTextParser
             .Where(d => d.Scu > 0 && d.Destination.Length > 0 && d.Commodity.Length > 0)
             .ToList();
 
-        // A line without a name end may break anywhere, also mid-word ("to Thunde"). Pickups and prose never complete.
-        // Step 1: the drop-off list. Null = still a fragment.
+        // A line without a name end may break anywhere, also mid-word ("to Thunde"). Pickups never complete.
+        // Step 1: the drop-off list; step 2: "to a freight elevator at …" in the prose (T5.3b). Null = still a fragment.
         var dropOffNames = DropOffEntries(lines).Select(l => FreightElevatorName.Match(l)).Where(m => m.Success)
             .Select(m => ContractText.NormalizeDestination(m.Groups["name"].Value))
             .ToList();
-        var listed = read.Select(d => d.Complete ? d.Destination : CompletedFrom(d.Destination, dropOffNames)).ToList();
+        var proseNames = ProseDestination.Matches(string.Join('\n', lines))
+            .Select(m => ContractText.NormalizeDestination(m.Groups["name"].Value))
+            .ToList();
+        var listed = read
+            .Select(d => d.Complete ? d.Destination : CompletedFrom(d.Destination, dropOffNames) ?? CompletedFrom(d.Destination, proseNames))
+            .ToList();
 
-        // Step 2: a fragment left over takes a longer destination of the same capture ("Thundering" → "Thundering Express",
+        // Step 3: a fragment left over takes a longer destination of the same capture ("Thundering" → "Thundering Express",
         // ids 28/29 have no list), otherwise it stays.
         var names = read.Select((d, i) => listed[i] ?? d.Destination).ToList();
         return
@@ -77,11 +83,34 @@ internal static partial class ContractTextParser
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList() is [var only] ? only : null;
 
+    /// <summary>
+    /// The size, its digits corrected (<see cref="OcrDigits"/>); null if the result is no crate size: a "?" in the
+    /// legend is better than a wrong size without one.
+    /// </summary>
     private static CrateSize? MaxCrateSize(string text) =>
         SizePhrase.Match(text) is { Success: true } match
-        && int.TryParse(match.Groups["size"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var size)
+        && int.TryParse(OcrDigits(match.Groups["size"].Value), NumberStyles.None, CultureInfo.InvariantCulture, out var size)
         && Enum.IsDefined((CrateSize)size)
             ? (CrateSize)size
+            : null;
+
+    /// <summary>
+    /// Digits as OCR misreads them in the size, which the game prints in blue: O for 0; I, L and | for 1 ("l SCU").
+    /// </summary>
+    private static string OcrDigits(string text) =>
+        string.Concat(text.Select(c => char.ToUpperInvariant(c) switch
+        {
+            'O' => '0',
+            'I' or 'L' or '|' => '1',
+            _ => c,
+        }));
+
+    /// <summary>The amount after "Reward" at the start of the text, separators dropped ("50,250"); null if unreadable.</summary>
+    private static long? Reward(string text) =>
+        RewardLine.Match(text) is { Success: true } match
+        && long.TryParse(match.Groups["reward"].Value.Replace(",", "").Replace(".", ""), NumberStyles.None,
+            CultureInfo.InvariantCulture, out var reward)
+            ? reward
             : null;
 
     /// <summary>Entries of the drop-off list; null without one.</summary>
@@ -138,8 +167,25 @@ internal static partial class ContractTextParser
     [GeneratedRegex(@"^\s*[-•·]?\s*Freight\s+elevator\s+at\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex ListEntry { get; }
 
-    /// <summary>"Max size will be 1 SCU." / "none of the containers are bigger than 4 SCU." (D38 addendum), line breaks allowed.</summary>
-    [GeneratedRegex(@"(?:max\s+size\s+will\s+be|none\s+of\s+the\s+containers\s+are\s+bigger\s+than)\s+(?<size>\d{1,3})\s*SCU",
+    /// <summary>
+    /// "to a freight elevator at High Course Station at …": a destination named in the prose, whatever the verb
+    /// ("Deliver to", "taken to"). "from a freight elevator" is a pickup and doesn't match. The name may break across
+    /// lines and ends before " at", " above" or the end of the sentence.
+    /// </summary>
+    [GeneratedRegex(@"\bto\s+a\s+freight\s+elevator\s+at\s+(?<name>[^.]+?)(?:\s+(?:at|above)\b|\.)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex ProseDestination { get; }
+
+    /// <summary>
+    /// "Max size will be 1 SCU." / "none of the containers are bigger than 4 SCU." (D38 addendum), line breaks allowed.
+    /// Tolerant (T5.3b): up to two words of any spelling after "Max size" ("willb"), only "bigger than" of the second
+    /// phrase, and digits OCR may read as letters (<see cref="OcrDigits"/>).
+    /// </summary>
+    [GeneratedRegex(@"(?:max\s*size\s+(?:\S{1,8}\s+){0,2}|bigger\s*than\s*)(?<size>[\dOIL|]{1,3})\s*SCU",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SizePhrase { get; }
+
+    /// <summary>"Reward" and the amount on its own line at the very start of the text ("Reward\n 50,250").</summary>
+    [GeneratedRegex(@"\A\s*Reward\s*(?<reward>[\d,.]+)[ \t]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
+    private static partial Regex RewardLine { get; }
 }

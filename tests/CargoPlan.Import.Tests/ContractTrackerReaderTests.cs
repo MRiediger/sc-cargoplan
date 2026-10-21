@@ -1,5 +1,8 @@
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Planning;
+using CargoPlan.Core.Plans;
+using CargoPlan.Core.Ships;
 using CargoPlan.Import.ContractTracker;
 using Microsoft.Data.Sqlite;
 
@@ -262,6 +265,35 @@ public class ContractTrackerReaderTests
 
         capture.Stops.Should().BeSameAs(candidate.Stops);
         capture.Source.Should().BeEquivalentTo(new ContractSource([32, 33], CrateSizeAssumed: true, ListedDestinations: 3));
+    }
+
+    [Fact]
+    public void Candidate_carries_the_reward_into_the_capture()
+    {
+        using var database = new TempContractDatabase();
+        database.AddContract(47, "Waste", ImportFixtures.RawText(ImportFixtures.WasteTornAboy), (9, "Everus Harbor aboy"));
+
+        var candidate = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Single();
+
+        candidate.Reward.Should().Be(50_250);
+        candidate.ToCapture().Source.Reward.Should().Be(50_250);
+    }
+
+    [Fact]
+    public void Two_contracts_to_the_same_place_are_no_duplicate_but_a_retry_is()
+    {
+        // Ids 47/48: Waste 9 to Everus Harbor twice, rewards 50,250 and 72,500. Id 49: a retry of 47, same text.
+        using var database = new TempContractDatabase();
+        database.AddContract(47, "Waste", ImportFixtures.RawText(ImportFixtures.WasteTornAboy), (9, "Everus Harbor aboy"));
+        database.AddContract(48, "Waste", ImportFixtures.RawText(ImportFixtures.WasteTornAbov), (9, "Everus Harbor abov"));
+        database.AddContract(49, "Waste", ImportFixtures.RawText(ImportFixtures.WasteTornAboy), (9, "Everus Harbor aboy"));
+        var captures = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Select(c => c.ToCapture()).ToList();
+        var ship = ShipLoader.Load("hull_a");
+
+        var saved = ContractSync.Apply(new SavedPlan([], new LoadPlan(ship.Id, [], [])), ship, captures, null);
+
+        var duplicates = ContractSync.Duplicates(saved);
+        saved.Missions.Where(m => duplicates.Contains(m.Id)).Select(m => m.Contract!.ContractIds.Single()).Should().Equal(49);
     }
 
     [Fact]

@@ -655,7 +655,7 @@ public class OverlayViewModelTests
     // --- ContractTracker (T5.4) ---
 
     private static ContractTrackerCandidate Candidate(long id, string destination, int scu = 4, CrateSize max = CrateSize.Four, bool sizeAssumed = false) =>
-        new([id], null, [new MissionStop(destination, 1, [new MissionItem("Stims", scu, max)])], sizeAssumed, false, null, null);
+        new([id], null, [new MissionStop(destination, 1, [new MissionItem("Stims", scu, max)])], sizeAssumed, false, null, null, null);
 
     /// <param name="present">The known ids still in ContractTracker; null = not read.</param>
     private static ContractTrackerReadResult Read(long[]? present, params ContractTrackerCandidate[] candidates) =>

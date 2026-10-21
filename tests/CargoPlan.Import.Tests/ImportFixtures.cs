@@ -35,6 +35,24 @@ internal static class ImportFixtures
     /// </summary>
     public const string StimsAcceptedTab = "stims_accepted_tab";
 
+    /// <summary>
+    /// Id 47: Waste 9 to "Everus Harbor aboy" (line ends in a torn "above"), "bigger than 1 SCU", reward 50,250 at the
+    /// start; prose "taken to a freight elevator at Everus Harbor above Hurston", pick-up list.
+    /// </summary>
+    public const string WasteTornAboy = "waste_torn_aboy";
+
+    /// <summary>
+    /// Id 48, another contract to the same place: Waste 9 to "Everus Harbor abov", size phrase lost in the OCR,
+    /// reward 72,500; pick-up list of 4 interleaved with "Collect" lines.
+    /// </summary>
+    public const string WasteTornAbov = "waste_torn_abov";
+
+    /// <summary>
+    /// Silicon 7 to "High Course Station" (line cut, no completion in the text), "Max size willb 1 SCU", no reward line;
+    /// CargoPlan's own overlay ("MISC Hull A", "No plan. Open t", "Open editor") read into the capture.
+    /// </summary>
+    public const string SiliconOverlayText = "silicon_overlay_text";
+
     public static string RawText(string name) => ReadResource($"rawtext/{name}.txt");
 
     public static string Schema => ReadResource("ct_schema.sql");

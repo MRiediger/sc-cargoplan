@@ -36,15 +36,15 @@ public class PlanFileTests
     private static string V3Text() => Written(Planned(MissionFixtures.SplitAndSharedMissions));
 
     /// <summary>
-    /// Riker 12 Titanium typed, a capture of Shubin 8 Quartz with an assumed crate size and one of three listed
-    /// destinations, a capture that didn't fit, watermark 41.
+    /// Riker 12 Titanium typed, a capture of Shubin 8 Quartz with an assumed crate size, one of three listed
+    /// destinations and a reward of 50,250, a capture that didn't fit, watermark 41.
     /// </summary>
     private static SavedPlan WithCaptures()
     {
         static MissionStop Stop(string destination, string commodity, int scu, CrateSize max) => new(destination, 1, [new MissionItem(commodity, scu, max)]);
         SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []), 41);
         var typed = LoadPlanner.PlaceInto(empty, HullA, [Stop("Riker", "Titanium", 12, CrateSize.Four)]);
-        var captured = LoadPlanner.PlaceInto(typed, HullA, [Stop("Shubin", "Quartz", 8, CrateSize.Four)], new ContractSource([36, 37], true, 3));
+        var captured = LoadPlanner.PlaceInto(typed, HullA, [Stop("Shubin", "Quartz", 8, CrateSize.Four)], new ContractSource([36, 37], true, 3, 50_250));
         return LoadPlanner.PlaceInto(captured, HullA, [Stop("Orison", "Gold", 32, CrateSize.ThirtyTwo)], new ContractSource([40]));
     }
 
@@ -133,7 +133,8 @@ public class PlanFileTests
         var loaded = RoundTrip(saved);
 
         ShouldMatch(loaded, saved);
-        loaded.Missions[1].Contract.Should().BeEquivalentTo(new ContractSource([36, 37], true, 3));
+        loaded.Missions[1].Contract.Should().BeEquivalentTo(new ContractSource([36, 37], true, 3, 50_250));
+        loaded.Missions[2].Contract!.Reward.Should().BeNull();
         loaded.Missions[2].Unplaced.Should().BeTrue();
         loaded.Watermark.Should().Be(41);
     }
@@ -173,6 +174,7 @@ public class PlanFileTests
         contract["contractIds"]!.AsArray().Select(v => v!.GetValue<long>()).Should().Equal(36, 37);
         contract["crateSizeAssumed"]!.GetValue<bool>().Should().BeTrue();
         contract["listedDestinations"]!.GetValue<int>().Should().Be(3);
+        contract["reward"]!.GetValue<long>().Should().Be(50_250);
     }
 
     [Fact]
@@ -182,7 +184,7 @@ public class PlanFileTests
 
         missions[0]!.AsObject().Should().NotContainKey("contract");
         missions[0]!["stops"]![0]!["items"]![0]!.AsObject().Should().NotContainKey("crates");
-        missions[2]!["contract"]!.AsObject().Should().NotContainKey("listedDestinations");
+        missions[2]!["contract"]!.AsObject().Should().NotContainKey("listedDestinations").And.NotContainKey("reward");
     }
 
     [Fact]

@@ -13,26 +13,53 @@ internal static partial class ContractText
 {
     private static readonly char[] TrailingPunctuation = ['.', ',', ';', ':', '?', '!'];
 
+    private const string Above = "above";
+
     /// <summary>
     /// The station name: whitespace collapsed, "LS" read for "L5" corrected, and everything from " at …", " above …"
-    /// or the end of a sentence cut off ("Everus Harbor above Hurston" → "Everus Harbor").
+    /// or the end of a sentence cut off ("Everus Harbor above Hurston" → "Everus Harbor"); without such an end, an
+    /// "above" torn off by the line break goes too ("Everus Harbor abov" → "Everus Harbor", T5.3b).
     /// </summary>
     public static string NormalizeDestination(string text)
     {
         var name = LagrangeMisread.Replace(Collapse(text), "L5");
-        return LocationTail.Replace(name, "").TrimEnd(TrailingPunctuation).TrimEnd();
+        var cut = LocationTail.IsMatch(name) ? LocationTail.Replace(name, "") : WithoutTornAbove(name);
+        return cut.TrimEnd(TrailingPunctuation).TrimEnd();
     }
 
     /// <summary>The commodity: whitespace collapsed, no punctuation at the end.</summary>
     public static string NormalizeCommodity(string text) => Collapse(text).TrimEnd(TrailingPunctuation).TrimEnd();
 
     /// <summary>
-    /// Whether a destination as read shows where its name ends (" at", " above", "."). Without it the line may have
-    /// been cut off in the middle of the name ("to Thundering").
+    /// Whether a destination as read shows where its name ends (" at", " above", ".", a torn "abov"). Without it the
+    /// line may have been cut off in the middle of the name ("to Thundering").
     /// </summary>
-    public static bool HasNameEnd(string text) => LocationTail.IsMatch(Collapse(text));
+    public static bool HasNameEnd(string text)
+    {
+        var name = Collapse(text);
+        return LocationTail.IsMatch(name) || WithoutTornAbove(name).Length < name.Length;
+    }
 
     private static string Collapse(string text) => Whitespace.Replace(text, " ").Trim();
+
+    /// <summary>
+    /// The name without a last word that is what's left of "above" at a line break: its start from two characters on
+    /// ("ab", "abo", "abov"), or from four characters on with one character misread ("aboy"). Shorter words with a
+    /// misread character stay, they may be part of the name ("St"). A whole " at" is the location tail already.
+    /// </summary>
+    private static string WithoutTornAbove(string name) =>
+        LastWord.Match(name) is { Success: true } last && IsTornAbove(last.Groups["word"].Value) ? name[..last.Index] : name;
+
+    private static bool IsTornAbove(string word)
+    {
+        if (word.Length is < 2 or > 5)
+        {
+            return false;
+        }
+
+        var misread = word.Where((c, i) => char.ToLowerInvariant(c) != Above[i]).Count();
+        return misread == 0 || (misread == 1 && word.Length >= 4);
+    }
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex Whitespace { get; }
@@ -44,4 +71,8 @@ internal static partial class ContractText
     /// <summary>From the first " at", " above" or sentence end to the end of the text.</summary>
     [GeneratedRegex(@"\s+(?:at|above)(?:\s.*)?$|\.(?:\s.*)?$", RegexOptions.CultureInvariant)]
     private static partial Regex LocationTail { get; }
+
+    /// <summary>The last word after at least one other ("Everus Harbor abov" → "abov").</summary>
+    [GeneratedRegex(@"\s(?<word>\S+)$", RegexOptions.CultureInvariant)]
+    private static partial Regex LastWord { get; }
 }

@@ -225,6 +225,7 @@ public static class ContractTrackerReader
             CrateSizeAssumed: max is null,
             UsedFallbackRows: usedFallback,
             parsed?.ListedDestinationCount,
+            parsed?.Reward,
             first.RawText);
     }
 

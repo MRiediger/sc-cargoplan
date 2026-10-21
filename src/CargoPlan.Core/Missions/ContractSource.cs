@@ -7,7 +7,13 @@ namespace CargoPlan.Core.Missions;
 /// <param name="CrateSizeAssumed">The text named no max crate size; the legend shows "4 SCU?".</param>
 /// <param name="ListedDestinations">Entries of the contract's drop-off list; null if it has none. More than the
 /// mission's stops: the legend shows "⚠ 1 of 3 destinations".</param>
-public sealed record ContractSource(IReadOnlyList<long> ContractIds, bool CrateSizeAssumed = false, int? ListedDestinations = null)
+/// <param name="Reward">The contract's reward in aUEC; null if the text had none or it wasn't readable. Two captures
+/// with different rewards are two contracts, never a duplicate (D39 addendum).</param>
+public sealed record ContractSource(
+    IReadOnlyList<long> ContractIds,
+    bool CrateSizeAssumed = false,
+    int? ListedDestinations = null,
+    long? Reward = null)
 {
     public IReadOnlyList<long> ContractIds { get; } =
         ContractIds.Count > 0 ? ContractIds : throw new ArgumentException("A capture has at least one ContractTracker id.", nameof(ContractIds));

@@ -534,7 +534,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
     // --- Missions and ContractTracker (T5.4) ---
 
     private static ContractTrackerCandidate Candidate(long id, string destination, string commodity = "Stims", bool sizeAssumed = false) =>
-        new([id], null, [new MissionStop(destination, 1, [new MissionItem(commodity, 4, CrateSize.Four)])], sizeAssumed, false, null, null);
+        new([id], null, [new MissionStop(destination, 1, [new MissionItem(commodity, 4, CrateSize.Four)])], sizeAssumed, false, null, null, null);
 
     /// <summary>Riker typed, then captures 36 (Shubin) and 37 (Orison, crate size assumed).</summary>
     private static OverlayViewModel OverlayWithCaptures()

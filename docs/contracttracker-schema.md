@@ -48,10 +48,11 @@ text holds no readable delivery line. Both go through the same normalisation (D4
 
 | CargoPlan | ContractTracker | Note |
 |---|---|---|
-| `MissionStop.Destination` | "Deliver … to *destination*" lines in `RawOcrText`; fallback `ContractObjectives.Destination` | station name only, cut before " at …"/" above …" (D40) |
+| `MissionStop.Destination` | "Deliver … to *destination*" lines in `RawOcrText`; fallback `ContractObjectives.Destination` | station name only, cut before " at …"/" above …" or a torn "abov"/"aboy" (D40) |
 | `MissionItem.Commodity` | "… SCU of *commodity* to …" in `RawOcrText`; fallback `Contracts.Name` | one capture may hold several commodities |
 | `MissionItem.Scu` | "… 0/*N* SCU …" in `RawOcrText`; fallback `ContractObjectives.Amount` | per destination |
-| `MissionItem.MaxCrateSize` | prose in `RawOcrText` ("Max size will be N SCU.", "none of the containers are bigger than N SCU.") | missing → largest crate that fits the SCU, marked as assumed |
+| `MissionItem.MaxCrateSize` | prose in `RawOcrText` ("Max size will be N SCU.", "none of the containers are bigger than N SCU.") | tolerant: up to two misread words after "Max size", O/I/L/\| in the number corrected; missing or no crate size → largest crate that fits the SCU, marked as assumed (D40) |
+| `ContractSource.Reward` | "Reward" line at the start of `RawOcrText` ("Reward\n50,250"), not `Contracts.Reward` | null if missing or the line is not just a number; decides duplicates (D39 addendum) |
 | `MissionStop.Order` | – | order in the text; ContractTracker has no route order |
 | Capture time | `Contracts.CapturedAt` | UTC without a marker, e.g. `2026-10-20 08:22:54.1193454` |
 | Pickup | (`Contracts.PickupLocation`) | CargoPlan has no pickup field; the text varies per capture, several pickups are joined with ` / ` |
@@ -71,7 +72,7 @@ alone. Without pooling no handle stays open after a read.
 | Column | Why not |
 |---|---|
 | `Contracts.PickupLocation` | no field in CargoPlan; unreliable as a key |
-| `Contracts.Reward` | no field in CargoPlan; 0 in every row observed |
+| `Contracts.Reward` | 0 in every row observed; CargoPlan reads the reward from `RawOcrText` instead |
 | `Contracts.Status` | `Active` in every row observed; ContractTracker deletes instead |
 | `ContractObjectives.Completed` | 0 in every row observed; ContractTracker deletes instead |
 | `Contracts.SessionId`, `Sessions` | not needed for the plan |
@@ -88,8 +89,13 @@ Observed with ContractTracker 2.2.0.0, English game client.
 | End of the contract text | `ACCEPT OFFER` | `TRACK`, `ABANDON` (no `ACCEPT OFFER`) |
 
 In both, delivery lines ("Deliver 0/N SCU of … to …") may break **anywhere, also mid-word**: "to Thunde" with
-"oss Station" two lines further down; "to High Course" with the rest of the name lost. The parser completes such a
-fragment from the drop-off list by character prefix, only if exactly one entry matches (D40).
+"oss Station" two lines further down; "to High Course" with the rest of the name lost; "to Everus Harbor abov" with
+"Hurston." on the next line (ids 47/48). The parser completes such a fragment by character prefix, only if exactly
+one name matches: first from the drop-off list, then from "to a freight elevator at …" in the prose (D40).
+
+Ids 47/48 start with "Reward" and the amount on the next line; ids 28–38 start with the contract title, so whether the
+reward is in the text depends on the capture region. Whatever else is inside the region is read too, our own overlay
+included ("MISC Hull A", "No plan. Open t…").
 
 ## Open questions
 

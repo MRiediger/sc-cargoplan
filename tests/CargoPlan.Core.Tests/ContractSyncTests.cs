@@ -198,4 +198,28 @@ public class ContractSyncTests
         ContractSync.Duplicates(ticked).Should().BeEmpty();
         ContractSync.Duplicates(back).Should().Equal(2);
     }
+
+    [Fact]
+    public void Duplicates_ignore_contracts_with_different_rewards()
+    {
+        // Ids 47 and 48: two real contracts, Waste to Everus Harbor, 50,250 and 72,500 (T5.3b).
+        var saved = Applied(Empty, RewardCapture(47, 50_250, Stop("Everus Harbor", "Waste")), RewardCapture(48, 72_500, Stop("Everus Harbor", "Waste")));
+
+        ContractSync.Duplicates(saved).Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(50_250L, 50_250L)]
+    [InlineData(50_250L, null)]
+    [InlineData(null, 50_250L)]
+    [InlineData(null, null)]
+    public void Duplicates_mark_a_subset_with_the_same_or_an_unknown_reward(long? first, long? second)
+    {
+        var saved = Applied(Empty, RewardCapture(1, first, Stop("Everus Harbor", "Waste")), RewardCapture(2, second, Stop("Everus Harbor", "Waste")));
+
+        ContractSync.Duplicates(saved).Should().Equal(2);
+    }
+
+    private static ContractCapture RewardCapture(long id, long? reward, MissionStop stop) =>
+        new([stop], new ContractSource([id], Reward: reward));
 }

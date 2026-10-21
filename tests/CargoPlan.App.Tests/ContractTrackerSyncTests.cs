@@ -20,7 +20,7 @@ public sealed class ContractTrackerSyncTests : IDisposable
     private string DatabasePath => Path.Combine(_folder, "contracts.db");
 
     private static ContractTrackerCandidate Candidate(long id, string destination) =>
-        new([id], null, [new MissionStop(destination, 1, [new MissionItem("Stims", 4, CrateSize.Four)])], false, false, null, null);
+        new([id], null, [new MissionStop(destination, 1, [new MissionItem("Stims", 4, CrateSize.Four)])], false, false, null, null, null);
 
     private static OverlayViewModel Overlay() => new(ShipLoader.Load("hull_a"));
 
