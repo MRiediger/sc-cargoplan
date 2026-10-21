@@ -24,7 +24,7 @@ A decision changes only through a new entry that supersedes the old one.
 - **Counter-argument:** Mutable classes are simpler to bind in WPF and need no copies when one value changes.
 - **Consequence:** Value equality makes tests short and plans comparable. Validated properties are get-only so `with` can't bypass validation. The UI needs view models instead of binding the records directly.
 
-## D4 – Single-file EXE distribution
+## D4 – Single-file EXE distribution (superseded by D46)
 
 - **Context:** Haulers should start the overlay without installing anything.
 - **Decision:** Publish a self-contained single-file EXE (~70 MB), plus a small framework-dependent EXE (~3 MB) for users who have the .NET Desktop Runtime.
@@ -432,3 +432,10 @@ A decision changes only through a new entry that supersedes the old one.
 - **Counter-argument:** Three P/Invokes more, and up to ~60 polls per second with a render pass every frame – only during a drag. The drag follows the overlay's frame rate, not the mouse. If Star Citizen runs elevated and we don't, the up guard stays off (never armed); the poll still runs.
 - **Alternative B, raw input** (`RegisterRawInputDevices` with `RIDEV_INPUTSINK`): rejected as not needed. `GetCursorPos` gives the screen position we need; raw input gives relative deltas we would have to turn into positions, and a second input path next to WPF's.
 - **Consequence:** The README's "Known issues" and the backlog item on in-game drag lag go.
+
+## D46 – Release artifact: self-contained win-x64 folder in one ZIP
+
+- **Context:** D4 planned a self-contained single-file EXE plus a framework-dependent one. Measured for the release: framework-dependent 1.8 MB, self-contained 61.9 MB. The overlay and the CLI both ship.
+- **Decision:** One publish, self-contained, `win-x64`, no `PublishSingleFile`; App and Cli in the same folder, sharing one runtime, zipped as the only artifact. Self-contained despite the size: our haulers have .NET 8 (ContractTracker), not .NET 10, so the runtime download happens either way – this way without an error dialog. No trimming (WPF can't be trimmed), no ReadyToRun without a startup-time measurement. Only `win-x64`.
+- **Counter-argument:** A download 34 times larger than framework-dependent. Runtime patches arrive only with a new release of ours; accepted, the app has no network access. A folder of many files instead of one EXE, where a user can start the wrong one. Windows on ARM runs the x64 build under emulation.
+- **Consequence:** D4 is superseded: no second profile, no single file (T6.2). The version comes from the tag (T6.3) and shows in the settings window and `CargoPlan.Cli --version`. Auto-update stays T7.2.

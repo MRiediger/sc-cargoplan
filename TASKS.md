@@ -589,35 +589,62 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 
 ## Phase 6 – Release
 
+### [ ] T6.0 Erster Start (Spike)
+**Warum:** Wer nach dem Download ein leeres Overlay sieht und nicht weiterweiß, schließt es wieder. Vor dem Release prüfen, was ein Hauler ohne README vorfindet.
+- Drei Zustände durchspielen: (1) kein Plan, kein CT; (2) kein Plan, CT vorhanden; (3) Plan vorhanden, CT-DB gelöscht
+- Screenshots je Zustand in `docs/screenshots/first-start/`
+- Ergebnis: Liste „Blocker / Backlog“ (Blocker → Task vor dem Release, Rest → Backlog)
+- Kein Code
+
+**Akzeptanz:** Ein Hauler kommt ohne README vom leeren Overlay zu Editor und Settings; Screenshots und Liste liegen vor.
+
 ### [ ] T6.1 settings.json sichern
 **Warum:** Release-Vorbedingung. Das erste Speichern überschreibt eine kaputte oder von Hand geänderte settings.json (D34), ohne Weg zurück.
-- `settings.json` vor dem ersten Überschreiben als `settings.json.bak` sichern
+- `settings.json` einmal pro Prozesslaufzeit, vor dem ersten Schreiben, als `settings.json.bak` sichern
 
-**Akzeptanz:** settings.json von Hand ändern (auch kaputt), Overlay bewegen → `settings.json.bak` enthält den alten Inhalt byte-gleich; Core unverändert.
+**Akzeptanz:** settings.json von Hand ändern (auch kaputt), Overlay bewegen → `settings.json.bak` enthält den alten Inhalt byte-gleich; weiteres Speichern im selben Lauf ändert `settings.json.bak` nicht; Core unverändert.
 
 ### [ ] T6.2 Publish-Profil
-**Warum:** Eine EXE, Doppelklick, läuft. Sonst nutzt es niemand.
-- `src/CargoPlan.App/Properties/PublishProfiles/win-x64-selfcontained.pubxml`: `SelfContained=true`, `PublishSingleFile=true`, `IncludeNativeLibrariesForSelfExtract=true`, `RuntimeIdentifier=win-x64`
-- Zweites Profil framework-dependent (klein, braucht .NET Desktop Runtime)
+**Warum:** Entpacken, Doppelklick, läuft. Sonst nutzt es niemand.
+- Ein Profil (D46): `src/CargoPlan.App/Properties/PublishProfiles/win-x64-selfcontained.pubxml`, `SelfContained=true`, `RuntimeIdentifier=win-x64`; kein `PublishSingleFile`, kein `IncludeNativeLibrariesForSelfExtract`, kein zweites Profil
+- App und Cli in denselben Publish-Ordner, daraus ein ZIP
+- Version sichtbar in der Fußzeile des Settings-Fensters und per `CargoPlan.Cli --version`, beide aus `AssemblyInformationalVersion`
 - App-Icon, Assembly-Metadaten (Version, Author, Repo-URL)
 
-**Akzeptanz:** Beide Publish-Läufe liefern eine startfähige EXE. Self-contained < 80 MB. Martin kann erklären, warum WPF nicht getrimmt werden kann.
+**Akzeptanz:** Ein ZIP; `CargoPlan.App.exe` startet nach dem Entpacken; ZIP < 80 MB; Settings und CLI zeigen dieselbe Version.
 
 ### [ ] T6.3 Release-Workflow
 **Warum:** Tag setzen → Download steht. Kein manuelles Hochladen.
-- `.github/workflows/release.yml`: Trigger `push` auf `tags: v*`, publish beider Profile, `softprops/action-gh-release` hängt beide EXEs + SHA256 an
-- `MinVer` oder `GitVersion` für Versionsnummer aus Tag (eines wählen, begründen)
-- README: Download-Abschnitt, Hinweis zum SmartScreen-Warnhinweis bei unsignierten EXEs (ehrlich dokumentieren)
+- Kein MinVer/GitVersion: `Directory.Build.props` setzt `<Version>0.0.0-dev</Version>`; CI setzt `-p:Version` aus dem Tag (ohne „v“) und bricht ab, wenn der Rest kein SemVer ist
+- `.github/workflows/release.yml`: Trigger `push` auf `tags: v*`, publish des Profils aus T6.2, `softprops/action-gh-release` hängt ein ZIP + SHA256 an
+- Release-Notes als Body-Datei, von Hand geschrieben, nicht `generate_release_notes`
 
-**Akzeptanz:** `git tag v0.1.0 && git push --tags` erzeugt Release mit beiden Dateien. Martin kann erklären, was SmartScreen prüft und warum Code-Signing-Zertifikate das Problem lösen würden.
+**Akzeptanz:** Tag `v0.1.0` pushen → Release mit ZIP + SHA256 und den handgeschriebenen Notes, Version 0.1.0 in Settings und CLI; Tag `v0.1` → Workflow bricht ab, kein Release.
 
 ### [ ] T6.4 Repo-Hygiene für Contributor
 **Warum:** Erster externer PR soll nicht an Unklarheit scheitern.
 - `CONTRIBUTING.md` (englisch): build, test, Schiff beisteuern, PR-Regeln
-- Issue-Templates: Bug, Ship request, Feature
+- Issue-Templates: Bug, Ship request, Feature; Bug verlangt die Version und die Ausgabe von `contracts --raw`
 - `docs/screenshots/` mit Overlay über dem Spiel
 
 **Akzeptanz:** Dateien vorhanden, Links aus README funktionieren.
+
+### [ ] T6.5 README final
+**Warum:** Das README ist die Download-Seite. Was dort steht, muss der Build tun.
+- Abschnitte: Was · Download · Erstes Mal · CT-Anbindung · Hotkeys · Known issues · Bug melden · Credits · Lizenz
+- SmartScreen-Warnung bei der unsignierten EXE ehrlich dokumentieren (aus T6.3 hierher)
+- Kein Ruckel-Hinweis mehr (in 7e94ac3 entfernt, D45)
+- Jede Verhaltensaussage am Release-Build geprüft
+
+**Akzeptanz:** Alle Abschnitte vorhanden; jede Verhaltensaussage am Build nachvollzogen; Links funktionieren.
+
+### [ ] T6.6 Nexus Mods
+**Warum:** Viele Hauler finden Tools auf Nexus, dort liegt auch ContractTracker.
+- Nach dem GitHub-Tag, gleiches ZIP wie im GitHub-Release
+- Permissions aus der MIT-Lizenz abgeleitet
+- Credit für ContractTracker
+
+**Akzeptanz:** Nexus-Seite online mit dem ZIP des GitHub-Releases (gleiche SHA256), Permissions passend zu MIT, CT-Credit sichtbar.
 
 ---
 
