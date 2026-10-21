@@ -544,7 +544,7 @@ Umnummeriert mit D37: der Import war Phase 6, der Release Phase 5. T5.1 und T6.1
 
 **Akzeptanz:** Tests grün: A 20 / B 12 / C 16 / D 16 in 4ern → A liegt außen auf B, nie B auf A; vier Stops à 12 (4er) + 16 SCU in 8ern → geht auf, weil frühere Stops auf späteren liegen dürfen; Drag einer Kiste eines späteren Stops auf eine eines früheren → gelegt, Kiste rot, Befund in der Legende; bestehende Planer-Tests grün oder bewusst angepasst und begründet. Im Overlay zeigt der erste Plan Rack 2 mit A außen auf B.
 
-### [ ] T5.4 Auto-Apply mit Markierungen + inkrementell platzieren
+### [x] T5.4 Auto-Apply mit Markierungen + inkrementell platzieren
 **Warum:** Hauler drücken F3 am Terminal und schauen aufs Overlay, den Editor öffnen sie nur bei Fehlern (D39-Addendum). CT-Importe sind je Capture lückenhaft (D38), deshalb sichtbar markieren statt still übernehmen. Hauler nehmen Aufträge nacheinander an; neu planen löscht Positionen und Haken (T3.8b).
 **Präzisiert in der Planung:** Neu gefasst nach dem D39-Addendum (Revision des Prüforts von D39, ratifiziert durch Freigabe): Markierung in der Legende statt Pflichtschritt im Editor; jede Erfassung eine eigene Mission, Duplikate nur markiert; Entfernen einer Mission bewegt keine anderen Kisten. Präzisierung in der Planphase, ratifiziert durch Freigabe.
 **Präzisiert in der Planung (Umsetzung):** Zwei Commits, T5.4b Core + Import (ohne WPF testbar), T5.4c App.
