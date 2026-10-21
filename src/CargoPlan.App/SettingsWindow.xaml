@@ -135,13 +135,15 @@
             <!-- One hotkey (D35): the button records, Clear removes it. While recording the window's key events go to it. -->
             <DataTemplate DataType="{x:Type vm:HotkeyEditor}">
                 <StackPanel Margin="0,3">
+                    <!-- Both buttons flush right, the label takes the rest: "Sync from ContractTracker" is wider than
+                         the label column of the other sections. A narrow window wraps it rather than cutting it. -->
                     <DockPanel>
-                        <TextBlock Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LabelStyle}" />
                         <Button DockPanel.Dock="Right" Content="Clear" Command="{Binding ClearCommand, Mode=OneTime}"
                                 Margin="6,0,0,0" Padding="8,2" ToolTip="No hotkey for this" />
-                        <Button Content="{Binding Display}" Command="{Binding RecordCommand, Mode=OneTime}" Padding="8,2"
-                                ToolTip="Click, then press the keys"
+                        <Button DockPanel.Dock="Right" Content="{Binding Display}" Command="{Binding RecordCommand, Mode=OneTime}"
+                                Padding="8,2" ToolTip="Click, then press the keys"
                                 PreviewKeyDown="OnHotkeyKeyDown" LostKeyboardFocus="OnHotkeyLostFocus" />
+                        <TextBlock Text="{Binding Label, Mode=OneTime}" VerticalAlignment="Center" TextWrapping="Wrap" />
                     </DockPanel>
                     <TextBlock Text="{x:Static vm:HotkeyEditor.RecordingHint}" TextWrapping="Wrap" Margin="0,2,0,0"
                                Visibility="{Binding IsRecording, Converter={StaticResource BooleanToVisibilityConverter}}" />
