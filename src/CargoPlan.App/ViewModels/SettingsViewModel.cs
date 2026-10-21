@@ -1,3 +1,4 @@
+using System.Reflection;
 using CargoPlan.App.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -18,6 +19,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     public const string HeaderHaloLabel = "Halo around the ship name";
 
     public const string ButtonsHaloLabel = "Halo around the glyphs";
+
+    /// <summary>
+    /// The footer: product and the build's informational version, the same as <c>CargoPlan.Cli --version</c>. One line a
+    /// hauler copies into a bug report; the commit hash after "+" names the exact build.
+    /// Source: https://learn.microsoft.com/en-us/dotnet/core/compatibility/sdk/8.0/source-link
+    /// </summary>
+    public static string VersionLine { get; } =
+        $"SC-CargoPlan {Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown"}";
 
     private readonly double _windowsFontSize;
     private readonly Action<AppearanceSettings, LegendSettings> _apply;

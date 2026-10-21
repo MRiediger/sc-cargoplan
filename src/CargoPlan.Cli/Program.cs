@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 using CargoPlan.Cli;
 using CargoPlan.Core.Missions;
@@ -17,6 +18,7 @@ if (Command.Parse(args) is not { } command)
 {
     Console.Error.WriteLine("Usage: CargoPlan.Cli plan <missions.json> [--ship <id>]");
     Console.Error.WriteLine("       CargoPlan.Cli contracts <contracts.db> [--since <id>] [--raw]");
+    Console.Error.WriteLine("       CargoPlan.Cli --version");
     Console.Error.WriteLine($"Ships: {string.Join(", ", ShipLoader.ListShips())} (default: {Command.DefaultShipId})");
     return ExitUsage;
 }
@@ -33,6 +35,7 @@ try
     {
         PlanCommand plan => Plan(plan),
         ContractsCommand contracts => Contracts(contracts),
+        VersionCommand => Version(),
         _ => throw new UnreachableException($"Unknown command {command}."),
     };
 }
@@ -86,6 +89,16 @@ int Contracts(ContractsCommand contracts)
     return ExitSuccess;
 }
 
+// Only the version, like `dotnet --version`: the same string as in the settings window's footer, for bug reports.
+// The commit hash after "+" stays: it names the exact build.
+// Source: https://learn.microsoft.com/en-us/dotnet/core/compatibility/sdk/8.0/source-link
+int Version()
+{
+    Console.WriteLine(Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                      ?? "unknown");
+    return ExitSuccess;
+}
+
 /// <summary>Command line, parsed by hand (D8).</summary>
 internal abstract record Command
 {
@@ -97,6 +110,7 @@ internal abstract record Command
         ["plan", var path] when !IsOption(path) => new PlanCommand(path, DefaultShipId),
         ["plan", var path, "--ship", var shipId] when !IsOption(path) && !IsOption(shipId) => new PlanCommand(path, shipId),
         ["contracts", var path, .. var options] when !IsOption(path) => ContractsCommand.Parse(path, options),
+        ["--version"] => new VersionCommand(),
         _ => null,
     };
 
@@ -105,6 +119,9 @@ internal abstract record Command
 
 /// <summary>plan &lt;missions.json&gt; [--ship &lt;id&gt;]</summary>
 internal sealed record PlanCommand(string MissionsPath, string ShipId) : Command;
+
+/// <summary>--version</summary>
+internal sealed record VersionCommand : Command;
 
 /// <summary>contracts &lt;contracts.db&gt; [--since &lt;id&gt;] [--raw], options in any order.</summary>
 internal sealed record ContractsCommand(string DatabasePath, long SinceId, bool Raw) : Command

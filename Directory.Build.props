@@ -9,4 +9,15 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <!-- Release metadata. A release build overrides Version with the tag (T6.3); the SDK appends the commit hash to
+       the informational version (0.0.0-dev+<sha>), which the settings footer and the CLI's version option show.
+       Source: https://learn.microsoft.com/en-us/dotnet/core/compatibility/sdk/8.0/source-link -->
+  <PropertyGroup>
+    <Version>0.0.0-dev</Version>
+    <Authors>MRiediger</Authors>
+    <Product>SC-CargoPlan</Product>
+    <Copyright>Copyright (c) 2026 MRiediger</Copyright>
+    <RepositoryUrl>https://github.com/MRiediger/sc-cargoplan</RepositoryUrl>
+  </PropertyGroup>
+
 </Project>

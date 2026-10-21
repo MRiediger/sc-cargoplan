@@ -608,19 +608,23 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 
 **Akzeptanz:** settings.json von Hand ändern (auch kaputt), Overlay bewegen → `settings.json.bak` enthält den alten Inhalt byte-gleich; weiteres Speichern im selben Lauf ändert `settings.json.bak` nicht; Core unverändert.
 
-### [ ] T6.2 Publish-Profil
+### [x] T6.2 Publish-Profil
 **Warum:** Entpacken, Doppelklick, läuft. Sonst nutzt es niemand.
 - Ein Profil (D46): `src/CargoPlan.App/Properties/PublishProfiles/win-x64-selfcontained.pubxml`, `SelfContained=true`, `RuntimeIdentifier=win-x64`; kein `PublishSingleFile`, kein `IncludeNativeLibrariesForSelfExtract`, kein zweites Profil
 - App und Cli in denselben Publish-Ordner, daraus ein ZIP
 - Version sichtbar in der Fußzeile des Settings-Fensters und per `CargoPlan.Cli --version`, beide aus `AssemblyInformationalVersion`
 - App-Icon, Assembly-Metadaten (Version, Author, Repo-URL)
 
+**Präzisiert in der Planung:** Statt `win-x64-selfcontained.pubxml` ist `build/publish.ps1` das einzige Profil: ein pubxml gilt pro Projekt, zwei Projekte brauchen ohnehin zwei Aufrufe; Cli zuerst, App zuletzt (zwei gleichnamige Dateien unterscheiden sich, die der App müssen gewinnen), Ordner vorher leeren, `LICENSE` hinein, PDBs bleiben drin. `Directory.Build.props`: `Version` 0.0.0-dev, `Authors`/`Company` MRiediger wie LICENSE, `Product`, `Copyright`, `RepositoryUrl`; kein `PackageLicenseExpression` (wirkt nur bei `dotnet pack`). Version mit vollem Commit-Hash: Fußzeile „SC-CargoPlan 0.0.0-dev+<sha>“ außerhalb des Scrollbereichs, markierbar, Trenner oben, keine zweite Schriftgröße; `--version` gibt nur die Version aus. App-Icon in den Backlog (keine `.ico` im Repo). ZIP-Wurzelordner entscheidet T6.3. Präzisierung in der Planphase, ratifiziert durch Freigabe (D48).
+
 **Akzeptanz:** Ein ZIP; `CargoPlan.App.exe` startet nach dem Entpacken; ZIP < 80 MB; Settings und CLI zeigen dieselbe Version.
+
+**Befund:** Ordner 143,2 MB in 416 Dateien (260 im Wurzelordner, 13 Sprachordner à 12), ZIP (`Compress-Archive`) 62,0 MB. Aus dem entpackten ZIP: Overlay startet, Fußzeile und `CargoPlan.Cli --version` zeigen `0.0.0-dev+2290a0a…`, `plan` und `contracts` (Kopie der CT-DB) laufen.
 
 ### [ ] T6.3 Release-Workflow
 **Warum:** Tag setzen → Download steht. Kein manuelles Hochladen.
 - Kein MinVer/GitVersion: `Directory.Build.props` setzt `<Version>0.0.0-dev</Version>`; CI setzt `-p:Version` aus dem Tag (ohne „v“) und bricht ab, wenn der Rest kein SemVer ist
-- `.github/workflows/release.yml`: Trigger `push` auf `tags: v*`, publish des Profils aus T6.2, `softprops/action-gh-release` hängt ein ZIP + SHA256 an
+- `.github/workflows/release.yml`: Trigger `push` auf `tags: v*`, `build/publish.ps1` aus T6.2 (D48), `softprops/action-gh-release` hängt ein ZIP + SHA256 an
 - Release-Notes als Body-Datei, von Hand geschrieben, nicht `generate_release_notes`
 
 **Akzeptanz:** Tag `v0.1.0` pushen → Release mit ZIP + SHA256 und den handgeschriebenen Notes, Version 0.1.0 in Settings und CLI; Tag `v0.1` → Workflow bricht ab, kein Release.
@@ -666,6 +670,7 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
+- App-Icon (`.ico` mit 16/32/48/256 px, `<ApplicationIcon>` im App-csproj), sobald ein Icon vorliegt; aus T6.2 (D48).
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
 - ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26); freie Rotation pro Rack erst, wenn ein Schiff sie braucht.
 - Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).

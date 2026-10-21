@@ -19,350 +19,359 @@
          nobody themes away the tool to undo it (D34). Like the editor: owned by the overlay, so topmost with it;
          ShowActivated=False for showing it again after the auto-lock, opening calls Activate(). No OK or Cancel: every
          change applies at once (D30). -->
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <!-- One level below the window, not in Window.Resources: there a style keyed {x:Type Slider} that looks up
-             {x:Type Slider} would skip the dictionary that holds Fluent and fall back to the system look (D36). Every
-             own style of a control Fluent styles is BasedOn Fluent's; TextBlock and DockPanel have none to base on. -->
-        <ScrollViewer.Resources>
-            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-            <!-- Fluent draws a disabled slider and text box like enabled ones: they fade like the overlay's icon buttons.
-                 First, so the keyed styles below base on these and fade too. -->
-            <Style TargetType="Slider" BasedOn="{StaticResource {x:Type Slider}}">
-                <Style.Triggers>
-                    <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Opacity" Value="0.4" />
-                    </Trigger>
-                </Style.Triggers>
-            </Style>
-            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                <Style.Triggers>
-                    <Trigger Property="IsEnabled" Value="False">
-                        <Setter Property="Opacity" Value="0.4" />
-                    </Trigger>
-                </Style.Triggers>
-            </Style>
-            <!-- Slider limits are AppearanceRules' (x:Static), so nothing set here is ever corrected with a notice (D34). -->
-            <Style x:Key="ValueSliderStyle" TargetType="Slider" BasedOn="{StaticResource {x:Type Slider}}">
-                <Setter Property="IsSnapToTickEnabled" Value="True" />
-                <Setter Property="TickFrequency" Value="1" />
-                <Setter Property="VerticalAlignment" Value="Center" />
-            </Style>
-            <Style x:Key="ValueTextStyle" TargetType="TextBlock">
-                <Setter Property="Width" Value="40" />
-                <Setter Property="Margin" Value="6,0,0,0" />
-                <Setter Property="VerticalAlignment" Value="Center" />
-            </Style>
-            <Style x:Key="LabelStyle" TargetType="TextBlock">
-                <Setter Property="Width" Value="110" />
-                <Setter Property="VerticalAlignment" Value="Center" />
-            </Style>
-            <Style x:Key="RowStyle" TargetType="DockPanel">
-                <Setter Property="Margin" Value="0,3" />
-            </Style>
-            <Style x:Key="SectionStyle" TargetType="GroupBox" BasedOn="{StaticResource {x:Type GroupBox}}">
-                <Setter Property="Margin" Value="0,0,0,8" />
-                <Setter Property="Padding" Value="6" />
-            </Style>
-            <Style x:Key="ResetButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                <Setter Property="Content" Value="Reset to defaults" />
-                <Setter Property="HorizontalAlignment" Value="Right" />
-                <Setter Property="Margin" Value="0,6,0,0" />
-                <Setter Property="Padding" Value="8,2" />
-            </Style>
+    <DockPanel>
+        <!-- Footer outside the scroll, always visible: the version as one line to copy into a bug report (T6.2). Read-only
+             text box, not a text block, so it can be selected. -->
+        <Border DockPanel.Dock="Bottom" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                Padding="8,4">
+            <TextBox Text="{x:Static vm:SettingsViewModel.VersionLine}" IsReadOnly="True" TextWrapping="Wrap"
+                     BorderThickness="0" Background="Transparent" Padding="0" />
+        </Border>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <!-- One level below the window, not in Window.Resources: there a style keyed {x:Type Slider} that looks up
+                 {x:Type Slider} would skip the dictionary that holds Fluent and fall back to the system look (D36). Every
+                 own style of a control Fluent styles is BasedOn Fluent's; TextBlock and DockPanel have none to base on. -->
+            <ScrollViewer.Resources>
+                <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+                <!-- Fluent draws a disabled slider and text box like enabled ones: they fade like the overlay's icon buttons.
+                     First, so the keyed styles below base on these and fade too. -->
+                <Style TargetType="Slider" BasedOn="{StaticResource {x:Type Slider}}">
+                    <Style.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                    <Style.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.4" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+                <!-- Slider limits are AppearanceRules' (x:Static), so nothing set here is ever corrected with a notice (D34). -->
+                <Style x:Key="ValueSliderStyle" TargetType="Slider" BasedOn="{StaticResource {x:Type Slider}}">
+                    <Setter Property="IsSnapToTickEnabled" Value="True" />
+                    <Setter Property="TickFrequency" Value="1" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                </Style>
+                <Style x:Key="ValueTextStyle" TargetType="TextBlock">
+                    <Setter Property="Width" Value="40" />
+                    <Setter Property="Margin" Value="6,0,0,0" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                </Style>
+                <Style x:Key="LabelStyle" TargetType="TextBlock">
+                    <Setter Property="Width" Value="110" />
+                    <Setter Property="VerticalAlignment" Value="Center" />
+                </Style>
+                <Style x:Key="RowStyle" TargetType="DockPanel">
+                    <Setter Property="Margin" Value="0,3" />
+                </Style>
+                <Style x:Key="SectionStyle" TargetType="GroupBox" BasedOn="{StaticResource {x:Type GroupBox}}">
+                    <Setter Property="Margin" Value="0,0,0,8" />
+                    <Setter Property="Padding" Value="6" />
+                </Style>
+                <Style x:Key="ResetButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                    <Setter Property="Content" Value="Reset to defaults" />
+                    <Setter Property="HorizontalAlignment" Value="Right" />
+                    <Setter Property="Margin" Value="0,6,0,0" />
+                    <Setter Property="Padding" Value="8,2" />
+                </Style>
 
-            <!-- One colour: hex for the hue, slider for the alpha (= transparency), swatch on a checkerboard. An invalid hex
-                 tints the field in Fluent's error colour and changes nothing (the background, not the border: the template
-                 marks the focus with the accent there). -->
-            <DataTemplate DataType="{x:Type vm:ColourField}">
-                <DockPanel>
-                    <!-- The swatch opens the picker (T4.2c). Popup and button are bound both ways, so closing the popup by a click
-                         outside also unticks the button. While open, the button takes no clicks: otherwise the click that
-                         closes the popup (StaysOpen=False) would open it again at once. -->
-                    <Grid DockPanel.Dock="Right" Margin="6,0,0,0">
-                        <!-- Stretch: a button centres its content, and a swatch without a size of its own would shrink to 0 × 0. -->
-                        <ToggleButton x:Name="SwatchButton" Width="32" Height="22" Padding="1" ToolTip="Pick a colour"
-                                      HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
-                            <ToggleButton.Style>
-                                <Style TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+                <!-- One colour: hex for the hue, slider for the alpha (= transparency), swatch on a checkerboard. An invalid hex
+                     tints the field in Fluent's error colour and changes nothing (the background, not the border: the template
+                     marks the focus with the accent there). -->
+                <DataTemplate DataType="{x:Type vm:ColourField}">
+                    <DockPanel>
+                        <!-- The swatch opens the picker (T4.2c). Popup and button are bound both ways, so closing the popup by a click
+                             outside also unticks the button. While open, the button takes no clicks: otherwise the click that
+                             closes the popup (StaysOpen=False) would open it again at once. -->
+                        <Grid DockPanel.Dock="Right" Margin="6,0,0,0">
+                            <!-- Stretch: a button centres its content, and a swatch without a size of its own would shrink to 0 × 0. -->
+                            <ToggleButton x:Name="SwatchButton" Width="32" Height="22" Padding="1" ToolTip="Pick a colour"
+                                          HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+                                <ToggleButton.Style>
+                                    <Style TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsOpen, ElementName=Picker}" Value="True">
+                                                <Setter Property="IsHitTestVisible" Value="False" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ToggleButton.Style>
+                                <Border Background="{StaticResource SwatchCheckerBrush}">
+                                    <!-- A string binds to Brush through BrushConverter, the target type's converter.
+                                         Source: dotnet/wpf, PresentationFramework/MS/Internal/Data/DefaultValueConverter.cs -->
+                                    <Rectangle Fill="{Binding Value}" />
+                                </Border>
+                            </ToggleButton>
+                            <Popup x:Name="Picker" PlacementTarget="{Binding ElementName=SwatchButton}" Placement="Bottom"
+                                   StaysOpen="False" IsOpen="{Binding IsChecked, ElementName=SwatchButton, Mode=TwoWay}"
+                                   Opened="OnPickerOpened" Closed="OnPickerClosed">
+                                <!-- Fluent's flyout colours: SystemColors would stay light in dark mode (D36). -->
+                                <Border Background="{DynamicResource FlyoutBackground}"
+                                        BorderBrush="{DynamicResource FlyoutBorderBrush}" BorderThickness="1" Padding="8">
+                                    <StackPanel>
+                                        <app:SaturationValuePad Width="200" Height="140" Cursor="Cross"
+                                                                Hue="{Binding Hue}" Saturation="{Binding Saturation}" Brightness="{Binding Brightness}" />
+                                        <Slider Margin="0,8,0,0" Minimum="0" Maximum="360" Value="{Binding Hue}"
+                                                Style="{StaticResource HueSliderStyle}" ToolTip="Hue" />
+                                    </StackPanel>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding AlphaPercent}" Style="{StaticResource ValueTextStyle}" />
+                        <TextBox DockPanel.Dock="Left" Width="72" VerticalContentAlignment="Center"
+                                 Text="{Binding Hex, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="{x:Static vm:ColourField.HexHint}">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsOpen, ElementName=Picker}" Value="True">
-                                            <Setter Property="IsHitTestVisible" Value="False" />
+                                        <DataTrigger Binding="{Binding IsValid}" Value="False">
+                                            <Setter Property="Background" Value="{DynamicResource SystemFillColorCriticalBackgroundBrush}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </ToggleButton.Style>
-                            <Border Background="{StaticResource SwatchCheckerBrush}">
-                                <!-- A string binds to Brush through BrushConverter, the target type's converter.
-                                     Source: dotnet/wpf, PresentationFramework/MS/Internal/Data/DefaultValueConverter.cs -->
-                                <Rectangle Fill="{Binding Value}" />
-                            </Border>
-                        </ToggleButton>
-                        <Popup x:Name="Picker" PlacementTarget="{Binding ElementName=SwatchButton}" Placement="Bottom"
-                               StaysOpen="False" IsOpen="{Binding IsChecked, ElementName=SwatchButton, Mode=TwoWay}"
-                               Opened="OnPickerOpened" Closed="OnPickerClosed">
-                            <!-- Fluent's flyout colours: SystemColors would stay light in dark mode (D36). -->
-                            <Border Background="{DynamicResource FlyoutBackground}"
-                                    BorderBrush="{DynamicResource FlyoutBorderBrush}" BorderThickness="1" Padding="8">
-                                <StackPanel>
-                                    <app:SaturationValuePad Width="200" Height="140" Cursor="Cross"
-                                                            Hue="{Binding Hue}" Saturation="{Binding Saturation}" Brightness="{Binding Brightness}" />
-                                    <Slider Margin="0,8,0,0" Minimum="0" Maximum="360" Value="{Binding Hue}"
-                                            Style="{StaticResource HueSliderStyle}" ToolTip="Hue" />
-                                </StackPanel>
-                            </Border>
-                        </Popup>
-                    </Grid>
-                    <TextBlock DockPanel.Dock="Right" Text="{Binding AlphaPercent}" Style="{StaticResource ValueTextStyle}" />
-                    <TextBox DockPanel.Dock="Left" Width="72" VerticalContentAlignment="Center"
-                             Text="{Binding Hex, UpdateSourceTrigger=PropertyChanged}"
-                             ToolTip="{x:Static vm:ColourField.HexHint}">
-                        <TextBox.Style>
-                            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsValid}" Value="False">
-                                        <Setter Property="Background" Value="{DynamicResource SystemFillColorCriticalBackgroundBrush}" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBox.Style>
-                    </TextBox>
-                    <Slider Margin="6,0,0,0" Minimum="{Binding MinAlpha, Mode=OneTime}" Maximum="{x:Static vm:ColourField.MaxAlpha}"
-                            Value="{Binding Alpha}" Style="{StaticResource ValueSliderStyle}"
-                            ToolTip="Transparency: left is see-through, right is opaque" />
-                </DockPanel>
-            </DataTemplate>
-
-            <!-- One hotkey (D35): the button records, Clear removes it. While recording the window's key events go to it. -->
-            <DataTemplate DataType="{x:Type vm:HotkeyEditor}">
-                <StackPanel Margin="0,3">
-                    <!-- Both buttons flush right, the label takes the rest: "Sync from ContractTracker" is wider than
-                         the label column of the other sections. A narrow window wraps it rather than cutting it. -->
-                    <DockPanel>
-                        <Button DockPanel.Dock="Right" Content="Clear" Command="{Binding ClearCommand, Mode=OneTime}"
-                                Margin="6,0,0,0" Padding="8,2" ToolTip="No hotkey for this" />
-                        <Button DockPanel.Dock="Right" Content="{Binding Display}" Command="{Binding RecordCommand, Mode=OneTime}"
-                                Padding="8,2" ToolTip="Click, then press the keys"
-                                PreviewKeyDown="OnHotkeyKeyDown" LostKeyboardFocus="OnHotkeyLostFocus" />
-                        <TextBlock Text="{Binding Label, Mode=OneTime}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                            </TextBox.Style>
+                        </TextBox>
+                        <Slider Margin="6,0,0,0" Minimum="{Binding MinAlpha, Mode=OneTime}" Maximum="{x:Static vm:ColourField.MaxAlpha}"
+                                Value="{Binding Alpha}" Style="{StaticResource ValueSliderStyle}"
+                                ToolTip="Transparency: left is see-through, right is opaque" />
                     </DockPanel>
-                    <TextBlock Text="{x:Static vm:HotkeyEditor.RecordingHint}" TextWrapping="Wrap" Margin="0,2,0,0"
-                               Visibility="{Binding IsRecording, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                    <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Margin="0,2,0,0" Foreground="{DynamicResource SystemFillColorCriticalBrush}">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Problem}" Value="{x:Null}">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </StackPanel>
-            </DataTemplate>
+                </DataTemplate>
 
-            <!-- A halo (D28): off keeps colour and size. -->
-            <DataTemplate DataType="{x:Type vm:HaloEditor}">
-                <StackPanel>
-                    <!-- The label says what it surrounds: for the rack numbers a sharp outline whose size is a stroke width (D31). -->
-                    <CheckBox Content="{Binding Label, Mode=OneTime}" IsChecked="{Binding Enabled}" Margin="0,3" />
-                    <StackPanel IsEnabled="{Binding Enabled}">
+                <!-- One hotkey (D35): the button records, Clear removes it. While recording the window's key events go to it. -->
+                <DataTemplate DataType="{x:Type vm:HotkeyEditor}">
+                    <StackPanel Margin="0,3">
+                        <!-- Both buttons flush right, the label takes the rest: "Sync from ContractTracker" is wider than
+                             the label column of the other sections. A narrow window wraps it rather than cutting it. -->
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Clear" Command="{Binding ClearCommand, Mode=OneTime}"
+                                    Margin="6,0,0,0" Padding="8,2" ToolTip="No hotkey for this" />
+                            <Button DockPanel.Dock="Right" Content="{Binding Display}" Command="{Binding RecordCommand, Mode=OneTime}"
+                                    Padding="8,2" ToolTip="Click, then press the keys"
+                                    PreviewKeyDown="OnHotkeyKeyDown" LostKeyboardFocus="OnHotkeyLostFocus" />
+                            <TextBlock Text="{Binding Label, Mode=OneTime}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                        </DockPanel>
+                        <TextBlock Text="{x:Static vm:HotkeyEditor.RecordingHint}" TextWrapping="Wrap" Margin="0,2,0,0"
+                                   Visibility="{Binding IsRecording, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                        <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Margin="0,2,0,0" Foreground="{DynamicResource SystemFillColorCriticalBrush}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Problem}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+
+                <!-- A halo (D28): off keeps colour and size. -->
+                <DataTemplate DataType="{x:Type vm:HaloEditor}">
+                    <StackPanel>
+                        <!-- The label says what it surrounds: for the rack numbers a sharp outline whose size is a stroke width (D31). -->
+                        <CheckBox Content="{Binding Label, Mode=OneTime}" IsChecked="{Binding Enabled}" Margin="0,3" />
+                        <StackPanel IsEnabled="{Binding Enabled}">
+                            <DockPanel Style="{StaticResource RowStyle}">
+                                <TextBlock Text="Colour" Style="{StaticResource LabelStyle}" />
+                                <ContentControl Content="{Binding Colour, Mode=OneTime}" />
+                            </DockPanel>
+                            <DockPanel Style="{StaticResource RowStyle}">
+                                <TextBlock Text="Size" Style="{StaticResource LabelStyle}" />
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Size}" Style="{StaticResource ValueTextStyle}" />
+                                <Slider Minimum="{x:Static st:AppearanceRules.MinHaloSize}" Maximum="{x:Static st:AppearanceRules.MaxHaloSize}"
+                                        Value="{Binding Size}" Style="{StaticResource ValueSliderStyle}" />
+                            </DockPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </DataTemplate>
+            </ScrollViewer.Resources>
+
+            <StackPanel Margin="8">
+                <GroupBox Header="Window" Style="{StaticResource SectionStyle}">
+                    <StackPanel>
                         <DockPanel Style="{StaticResource RowStyle}">
-                            <TextBlock Text="Colour" Style="{StaticResource LabelStyle}" />
-                            <ContentControl Content="{Binding Colour, Mode=OneTime}" />
+                            <TextBlock Text="Background" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding WindowBackground, Mode=OneTime}" />
                         </DockPanel>
                         <DockPanel Style="{StaticResource RowStyle}">
-                            <TextBlock Text="Size" Style="{StaticResource LabelStyle}" />
-                            <TextBlock DockPanel.Dock="Right" Text="{Binding Size}" Style="{StaticResource ValueTextStyle}" />
-                            <Slider Minimum="{x:Static st:AppearanceRules.MinHaloSize}" Maximum="{x:Static st:AppearanceRules.MaxHaloSize}"
-                                    Value="{Binding Size}" Style="{StaticResource ValueSliderStyle}" />
+                            <TextBlock Text="Border colour" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding WindowBorderColor, Mode=OneTime}" />
                         </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}">
+                            <TextBlock Text="Border width" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding WindowBorderThickness}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="0" Maximum="{x:Static st:AppearanceRules.MaxBorderThickness}"
+                                    Value="{Binding WindowBorderThickness}" Style="{StaticResource ValueSliderStyle}" />
+                        </DockPanel>
+                        <Button Command="{Binding ResetWindowCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
                     </StackPanel>
-                </StackPanel>
-            </DataTemplate>
-        </ScrollViewer.Resources>
+                </GroupBox>
 
-        <StackPanel Margin="8">
-            <GroupBox Header="Window" Style="{StaticResource SectionStyle}">
-                <StackPanel>
-                    <DockPanel Style="{StaticResource RowStyle}">
-                        <TextBlock Text="Background" Style="{StaticResource LabelStyle}" />
-                        <ContentControl Content="{Binding WindowBackground, Mode=OneTime}" />
-                    </DockPanel>
-                    <DockPanel Style="{StaticResource RowStyle}">
-                        <TextBlock Text="Border colour" Style="{StaticResource LabelStyle}" />
-                        <ContentControl Content="{Binding WindowBorderColor, Mode=OneTime}" />
-                    </DockPanel>
-                    <DockPanel Style="{StaticResource RowStyle}">
-                        <TextBlock Text="Border width" Style="{StaticResource LabelStyle}" />
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding WindowBorderThickness}" Style="{StaticResource ValueTextStyle}" />
-                        <Slider Minimum="0" Maximum="{x:Static st:AppearanceRules.MaxBorderThickness}"
-                                Value="{Binding WindowBorderThickness}" Style="{StaticResource ValueSliderStyle}" />
-                    </DockPanel>
-                    <Button Command="{Binding ResetWindowCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
-                </StackPanel>
-            </GroupBox>
-
-            <GroupBox Header="Legend" Style="{StaticResource SectionStyle}">
-                <StackPanel>
-                    <DockPanel Style="{StaticResource RowStyle}">
-                        <TextBlock Text="Text colour" Style="{StaticResource LabelStyle}" />
-                        <ContentControl Content="{Binding LegendForeground, Mode=OneTime}" />
-                    </DockPanel>
-                    <CheckBox Content="Use Windows text size" IsChecked="{Binding UseWindowsFontSize}" Margin="0,3" />
-                    <DockPanel>
-                        <DockPanel.Style>
-                            <Style TargetType="DockPanel" BasedOn="{StaticResource RowStyle}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding UseWindowsFontSize}" Value="True">
-                                        <Setter Property="IsEnabled" Value="False" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DockPanel.Style>
-                        <TextBlock Text="Text size" Style="{StaticResource LabelStyle}" />
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding LegendFontSize}" Style="{StaticResource ValueTextStyle}" />
-                        <Slider Minimum="{x:Static st:AppearanceRules.MinFontSize}" Maximum="{x:Static st:AppearanceRules.MaxFontSize}"
-                                Value="{Binding LegendFontSize}" Style="{StaticResource ValueSliderStyle}" />
-                    </DockPanel>
-                    <ContentControl Content="{Binding LegendHalo, Mode=OneTime}" />
-                    <Button Command="{Binding ResetLegendCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}"
-                            ToolTip="Colour, size and halo; where the legend stands is reset below" />
-                </StackPanel>
-            </GroupBox>
-
-            <!-- Its own section (D33): resetting the legend's look must not move it. -->
-            <GroupBox Header="Legend layout" Style="{StaticResource SectionStyle}">
-                <StackPanel>
-                    <CheckBox Content="Show the destination lines" IsChecked="{Binding IsLegendVisible}" Margin="0,3"
-                              ToolTip="Off hides only the lines; hints and warnings stay" />
-                    <DockPanel Style="{StaticResource RowStyle}">
-                        <TextBlock Text="Position" Style="{StaticResource LabelStyle}" />
-                        <ComboBox ItemsSource="{Binding LegendPositions, Mode=OneTime}" SelectedItem="{Binding LegendPosition}" />
-                    </DockPanel>
-                    <Button Command="{Binding ResetLegendLayoutCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
-                </StackPanel>
-            </GroupBox>
-
-            <!-- Order (T4.2b): what a player touches most comes first. After transparency and legend it is the crate fill:
-                 at the lift you want to see the real crates through the planned ones. Header and buttons are set once. -->
-            <GroupBox Header="Crates" Style="{StaticResource SectionStyle}">
-                <StackPanel>
-                    <DockPanel Style="{StaticResource RowStyle}" ToolTip="The crate colours are the destination colours and stay fixed">
-                        <TextBlock Text="Fill" Style="{StaticResource LabelStyle}" />
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding CratesFillPercent}" Style="{StaticResource ValueTextStyle}" />
-                        <Slider Minimum="0" Maximum="{x:Static vm:ColourField.MaxAlpha}"
-                                Value="{Binding CratesFillAlpha}" Style="{StaticResource ValueSliderStyle}" />
-                    </DockPanel>
-                    <DockPanel Style="{StaticResource RowStyle}">
-                        <TextBlock Text="Edges" Style="{StaticResource LabelStyle}" />
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding CratesEdgePercent}" Style="{StaticResource ValueTextStyle}" />
-                        <Slider Minimum="0" Maximum="{x:Static vm:ColourField.MaxAlpha}"
-                                Value="{Binding CratesEdgeAlpha}" Style="{StaticResource ValueSliderStyle}" />
-                    </DockPanel>
-                    <DockPanel Style="{StaticResource RowStyle}">
-                        <TextBlock Text="Rack numbers" Style="{StaticResource LabelStyle}" />
-                        <ContentControl Content="{Binding CratesRackNumberColor, Mode=OneTime}" />
-                    </DockPanel>
-                    <DockPanel Style="{StaticResource RowStyle}" ToolTip="The same at every zoom; smaller only where a number no longer fits its rack">
-                        <TextBlock Text="Number size" Style="{StaticResource LabelStyle}" />
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding CratesRackNumberFontSize}" Style="{StaticResource ValueTextStyle}" />
-                        <Slider Minimum="{x:Static st:AppearanceRules.MinRackNumberFontSize}" Maximum="{x:Static st:AppearanceRules.MaxRackNumberFontSize}"
-                                Value="{Binding CratesRackNumberFontSize}" Style="{StaticResource ValueSliderStyle}" />
-                    </DockPanel>
-                    <ContentControl Content="{Binding CratesHalo, Mode=OneTime}" />
-                    <Button Command="{Binding ResetCratesCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
-                </StackPanel>
-            </GroupBox>
-
-            <GroupBox Header="Header" Style="{StaticResource SectionStyle}">
-                <StackPanel>
-                    <DockPanel Style="{StaticResource RowStyle}"
-                               ToolTip="Ship name and the glyphs: pencil, gear, split, merge, exit, padlock. Made invisible, the gear still shows its tool tip">
-                        <TextBlock Text="Text and glyphs" Style="{StaticResource LabelStyle}" />
-                        <ContentControl Content="{Binding HeaderForeground, Mode=OneTime}" />
-                    </DockPanel>
-                    <ContentControl Content="{Binding HeaderHalo, Mode=OneTime}" />
-                    <Button Command="{Binding ResetHeaderCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
-                </StackPanel>
-            </GroupBox>
-
-            <GroupBox Header="Buttons" Style="{StaticResource SectionStyle}">
-                <StackPanel>
-                    <DockPanel Style="{StaticResource RowStyle}" ToolTip="Behind the glyph buttons and Open editor">
-                        <TextBlock Text="Background" Style="{StaticResource LabelStyle}" />
-                        <ContentControl Content="{Binding ButtonsBackground, Mode=OneTime}" />
-                    </DockPanel>
-                    <DockPanel Style="{StaticResource RowStyle}" ToolTip="Frame of the glyph buttons; Open editor keeps its outline in the legend colour">
-                        <TextBlock Text="Border colour" Style="{StaticResource LabelStyle}" />
-                        <ContentControl Content="{Binding ButtonsBorderColor, Mode=OneTime}" />
-                    </DockPanel>
-                    <DockPanel Style="{StaticResource RowStyle}">
-                        <TextBlock Text="Border width" Style="{StaticResource LabelStyle}" />
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding ButtonsBorderThickness}" Style="{StaticResource ValueTextStyle}" />
-                        <Slider Minimum="0" Maximum="{x:Static st:AppearanceRules.MaxBorderThickness}"
-                                Value="{Binding ButtonsBorderThickness}" Style="{StaticResource ValueSliderStyle}" />
-                    </DockPanel>
-                    <DockPanel Style="{StaticResource RowStyle}">
-                        <TextBlock Text="Corners" Style="{StaticResource LabelStyle}" />
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding ButtonsCornerRadius}" Style="{StaticResource ValueTextStyle}" />
-                        <Slider Minimum="0" Maximum="{x:Static st:AppearanceRules.MaxCornerRadius}"
-                                Value="{Binding ButtonsCornerRadius}" Style="{StaticResource ValueSliderStyle}" />
-                    </DockPanel>
-                    <ContentControl Content="{Binding ButtonsHalo, Mode=OneTime}" />
-                    <Button Command="{Binding ResetButtonsCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
-                </StackPanel>
-            </GroupBox>
-
-            <!-- Set once, like header and buttons; not part of the overlay's look, so no "Reset to defaults" (D36). -->
-            <GroupBox Header="Tool windows" Style="{StaticResource SectionStyle}">
-                <DockPanel Style="{StaticResource RowStyle}" ToolTip="Settings and mission editor; the overlay's look is set above">
-                    <TextBlock Text="Theme" Style="{StaticResource LabelStyle}" />
-                    <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.ToolWindowThemeChoices}" DisplayMemberPath="Text"
-                              SelectedValuePath="Value" SelectedValue="{Binding ToolWindowTheme}" />
-                </DockPanel>
-            </GroupBox>
-
-            <!-- Set once, like header and buttons. No "Reset to defaults": the default is no hotkey (D17), which is Clear. -->
-            <GroupBox x:Name="HotkeysSection" Header="Hotkeys" Style="{StaticResource SectionStyle}"
-                      d:DataContext="{d:DesignInstance vm:HotkeysViewModel}">
-                <StackPanel>
-                    <TextBlock Text="{x:Static vm:HotkeysViewModel.Hint}" TextWrapping="Wrap" Margin="0,0,0,4" />
-                    <ContentControl Content="{Binding Lock, Mode=OneTime}" />
-                    <ContentControl Content="{Binding Overlay, Mode=OneTime}" />
-                    <ContentControl Content="{Binding Sync, Mode=OneTime}" />
-                </StackPanel>
-            </GroupBox>
-
-            <!-- Where ContractTracker's database is and whether captures come in by themselves (D44). Visible without
-                 ContractTracker too, with where to get it. No "Reset to defaults": that is "Detect automatically". -->
-            <GroupBox x:Name="ContractTrackerSection" Header="ContractTracker" Style="{StaticResource SectionStyle}"
-                      d:DataContext="{d:DesignInstance vm:ContractTrackerSectionViewModel}">
-                <StackPanel>
-                    <TextBlock Text="Database" />
-                    <TextBox Text="{Binding PathText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Margin="0,2,0,0" />
-                    <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,4,0,0" />
-                    <TextBlock Margin="0,2,0,0">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsFound}" Value="True">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                        <Hyperlink Click="OnOpenNexus" ToolTip="{x:Static vm:ContractTrackerSectionViewModel.NexusUrl}">Get ContractTracker on Nexus Mods</Hyperlink>
-                    </TextBlock>
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
-                        <Button Content="Detect automatically" Command="{Binding DetectAutomaticallyCommand, Mode=OneTime}"
-                                Padding="8,2" Margin="0,0,6,0" ToolTip="Use ContractTracker's own place (%AppData%\SCContractTracker)" />
-                        <Button Content="Browse…" Click="OnBrowseContractTracker" Padding="8,2" ToolTip="Pick contracts.db yourself" />
+                <GroupBox Header="Legend" Style="{StaticResource SectionStyle}">
+                    <StackPanel>
+                        <DockPanel Style="{StaticResource RowStyle}">
+                            <TextBlock Text="Text colour" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding LegendForeground, Mode=OneTime}" />
+                        </DockPanel>
+                        <CheckBox Content="Use Windows text size" IsChecked="{Binding UseWindowsFontSize}" Margin="0,3" />
+                        <DockPanel>
+                            <DockPanel.Style>
+                                <Style TargetType="DockPanel" BasedOn="{StaticResource RowStyle}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding UseWindowsFontSize}" Value="True">
+                                            <Setter Property="IsEnabled" Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DockPanel.Style>
+                            <TextBlock Text="Text size" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding LegendFontSize}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="{x:Static st:AppearanceRules.MinFontSize}" Maximum="{x:Static st:AppearanceRules.MaxFontSize}"
+                                    Value="{Binding LegendFontSize}" Style="{StaticResource ValueSliderStyle}" />
+                        </DockPanel>
+                        <ContentControl Content="{Binding LegendHalo, Mode=OneTime}" />
+                        <Button Command="{Binding ResetLegendCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}"
+                                ToolTip="Colour, size and halo; where the legend stands is reset below" />
                     </StackPanel>
-                    <CheckBox Content="Auto-sync" IsChecked="{Binding AutoSync}" Margin="0,8,0,0"
-                              ToolTip="Off: a capture only shows &quot;N new contracts&quot;; Sync from ContractTracker in the editor or its hotkey takes them in" />
-                </StackPanel>
-            </GroupBox>
-        </StackPanel>
-    </ScrollViewer>
+                </GroupBox>
+
+                <!-- Its own section (D33): resetting the legend's look must not move it. -->
+                <GroupBox Header="Legend layout" Style="{StaticResource SectionStyle}">
+                    <StackPanel>
+                        <CheckBox Content="Show the destination lines" IsChecked="{Binding IsLegendVisible}" Margin="0,3"
+                                  ToolTip="Off hides only the lines; hints and warnings stay" />
+                        <DockPanel Style="{StaticResource RowStyle}">
+                            <TextBlock Text="Position" Style="{StaticResource LabelStyle}" />
+                            <ComboBox ItemsSource="{Binding LegendPositions, Mode=OneTime}" SelectedItem="{Binding LegendPosition}" />
+                        </DockPanel>
+                        <Button Command="{Binding ResetLegendLayoutCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Order (T4.2b): what a player touches most comes first. After transparency and legend it is the crate fill:
+                     at the lift you want to see the real crates through the planned ones. Header and buttons are set once. -->
+                <GroupBox Header="Crates" Style="{StaticResource SectionStyle}">
+                    <StackPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The crate colours are the destination colours and stay fixed">
+                            <TextBlock Text="Fill" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding CratesFillPercent}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="0" Maximum="{x:Static vm:ColourField.MaxAlpha}"
+                                    Value="{Binding CratesFillAlpha}" Style="{StaticResource ValueSliderStyle}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}">
+                            <TextBlock Text="Edges" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding CratesEdgePercent}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="0" Maximum="{x:Static vm:ColourField.MaxAlpha}"
+                                    Value="{Binding CratesEdgeAlpha}" Style="{StaticResource ValueSliderStyle}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}">
+                            <TextBlock Text="Rack numbers" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding CratesRackNumberColor, Mode=OneTime}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The same at every zoom; smaller only where a number no longer fits its rack">
+                            <TextBlock Text="Number size" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding CratesRackNumberFontSize}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="{x:Static st:AppearanceRules.MinRackNumberFontSize}" Maximum="{x:Static st:AppearanceRules.MaxRackNumberFontSize}"
+                                    Value="{Binding CratesRackNumberFontSize}" Style="{StaticResource ValueSliderStyle}" />
+                        </DockPanel>
+                        <ContentControl Content="{Binding CratesHalo, Mode=OneTime}" />
+                        <Button Command="{Binding ResetCratesCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Header" Style="{StaticResource SectionStyle}">
+                    <StackPanel>
+                        <DockPanel Style="{StaticResource RowStyle}"
+                                   ToolTip="Ship name and the glyphs: pencil, gear, split, merge, exit, padlock. Made invisible, the gear still shows its tool tip">
+                            <TextBlock Text="Text and glyphs" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding HeaderForeground, Mode=OneTime}" />
+                        </DockPanel>
+                        <ContentControl Content="{Binding HeaderHalo, Mode=OneTime}" />
+                        <Button Command="{Binding ResetHeaderCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Buttons" Style="{StaticResource SectionStyle}">
+                    <StackPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="Behind the glyph buttons and Open editor">
+                            <TextBlock Text="Background" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding ButtonsBackground, Mode=OneTime}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="Frame of the glyph buttons; Open editor keeps its outline in the legend colour">
+                            <TextBlock Text="Border colour" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding ButtonsBorderColor, Mode=OneTime}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}">
+                            <TextBlock Text="Border width" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding ButtonsBorderThickness}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="0" Maximum="{x:Static st:AppearanceRules.MaxBorderThickness}"
+                                    Value="{Binding ButtonsBorderThickness}" Style="{StaticResource ValueSliderStyle}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}">
+                            <TextBlock Text="Corners" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding ButtonsCornerRadius}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="0" Maximum="{x:Static st:AppearanceRules.MaxCornerRadius}"
+                                    Value="{Binding ButtonsCornerRadius}" Style="{StaticResource ValueSliderStyle}" />
+                        </DockPanel>
+                        <ContentControl Content="{Binding ButtonsHalo, Mode=OneTime}" />
+                        <Button Command="{Binding ResetButtonsCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Set once, like header and buttons; not part of the overlay's look, so no "Reset to defaults" (D36). -->
+                <GroupBox Header="Tool windows" Style="{StaticResource SectionStyle}">
+                    <DockPanel Style="{StaticResource RowStyle}" ToolTip="Settings and mission editor; the overlay's look is set above">
+                        <TextBlock Text="Theme" Style="{StaticResource LabelStyle}" />
+                        <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.ToolWindowThemeChoices}" DisplayMemberPath="Text"
+                                  SelectedValuePath="Value" SelectedValue="{Binding ToolWindowTheme}" />
+                    </DockPanel>
+                </GroupBox>
+
+                <!-- Set once, like header and buttons. No "Reset to defaults": the default is no hotkey (D17), which is Clear. -->
+                <GroupBox x:Name="HotkeysSection" Header="Hotkeys" Style="{StaticResource SectionStyle}"
+                          d:DataContext="{d:DesignInstance vm:HotkeysViewModel}">
+                    <StackPanel>
+                        <TextBlock Text="{x:Static vm:HotkeysViewModel.Hint}" TextWrapping="Wrap" Margin="0,0,0,4" />
+                        <ContentControl Content="{Binding Lock, Mode=OneTime}" />
+                        <ContentControl Content="{Binding Overlay, Mode=OneTime}" />
+                        <ContentControl Content="{Binding Sync, Mode=OneTime}" />
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Where ContractTracker's database is and whether captures come in by themselves (D44). Visible without
+                     ContractTracker too, with where to get it. No "Reset to defaults": that is "Detect automatically". -->
+                <GroupBox x:Name="ContractTrackerSection" Header="ContractTracker" Style="{StaticResource SectionStyle}"
+                          d:DataContext="{d:DesignInstance vm:ContractTrackerSectionViewModel}">
+                    <StackPanel>
+                        <TextBlock Text="Database" />
+                        <TextBox Text="{Binding PathText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Margin="0,2,0,0" />
+                        <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                        <TextBlock Margin="0,2,0,0">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsFound}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                            <Hyperlink Click="OnOpenNexus" ToolTip="{x:Static vm:ContractTrackerSectionViewModel.NexusUrl}">Get ContractTracker on Nexus Mods</Hyperlink>
+                        </TextBlock>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+                            <Button Content="Detect automatically" Command="{Binding DetectAutomaticallyCommand, Mode=OneTime}"
+                                    Padding="8,2" Margin="0,0,6,0" ToolTip="Use ContractTracker's own place (%AppData%\SCContractTracker)" />
+                            <Button Content="Browse…" Click="OnBrowseContractTracker" Padding="8,2" ToolTip="Pick contracts.db yourself" />
+                        </StackPanel>
+                        <CheckBox Content="Auto-sync" IsChecked="{Binding AutoSync}" Margin="0,8,0,0"
+                                  ToolTip="Off: a capture only shows &quot;N new contracts&quot;; Sync from ContractTracker in the editor or its hotkey takes them in" />
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
 </Window>

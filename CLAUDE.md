@@ -52,7 +52,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 | Tests | **xUnit** + `AwesomeAssertions` | Standard im .NET-Ökosystem. AwesomeAssertions ist der Apache-2.0-Fork von FluentAssertions (ab v8 kommerziell lizenziert). |
 | Click-through | Win32 `SetWindowLongPtrW` schaltet `WS_EX_TRANSPARENT` via `[LibraryImport]`, HWND aus `WindowInteropHelper`; `WS_EX_LAYERED` setzt WPF selbst (D11) | Keine Lib nötig. |
 | Hotkeys | Win32 `RegisterHotKey` + `HwndSource.AddHook` für `WM_HOTKEY` | Global, auch wenn das Spiel den Fokus hat, keine Lib. |
-| Distribution | `dotnet publish -r win-x64 --self-contained -p:PublishSingleFile=true` → **eine EXE (~70 MB)**, zusätzlich framework-dependent (~3 MB) | Nutzer sollen nichts installieren müssen. Kleine Variante für die, die .NET haben. WPF kann nicht getrimmt werden. |
+| Distribution | `build/publish.ps1` → App + Cli self-contained `win-x64` in **einem Ordner** (`out/publish`, 143 MB, 416 Dateien), **ein ZIP (~62 MB)**; kein Single-File, kein pubxml (D46, D48) | Nutzer sollen nichts installieren müssen; Hauler haben .NET 8, nicht 10. WPF kann nicht getrimmt werden. |
 | CI/CD | GitHub Actions, `windows-latest`, Release bei Git-Tag | Niemand baut von Hand. |
 | Lizenz | **MIT** | Maximale Verbreitung. |
 
@@ -64,7 +64,9 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 sc-cargoplan/
 ├── CLAUDE.md · TASKS.md · README.md · LICENSE
 ├── SC-CargoPlan.sln
-├── Directory.Build.props          # gemeinsame Settings: LangVersion, Nullable, TreatWarningsAsErrors
+├── Directory.Build.props          # gemeinsame Settings: LangVersion, Nullable, TreatWarningsAsErrors, Version, Metadaten
+├── build/
+│   └── publish.ps1                # Release-Ordner out/publish (D48)
 ├── src/
 │   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader, Ships/*.json als EmbeddedResource
 │   ├── CargoPlan.Import/          # net10.0 – ContractTracker SQLite-Reader
@@ -90,7 +92,8 @@ dotnet run --project src/CargoPlan.App         # Overlay starten
 dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json
 dotnet run --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/example_missions.json
 dotnet run --project src/CargoPlan.Cli -- contracts <copy-of-contracts.db> [--since <id>] [--raw]   # nur gegen eine Kopie (D38)
-dotnet publish src/CargoPlan.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
+./build/publish.ps1                            # App + Cli nach out/publish (D48), Reihenfolge im Skript nicht ändern
+dotnet run --project src/CargoPlan.Cli -- --version
 ```
 
 ## Anti-Patterns – wovor Claude Code sich schützen soll
