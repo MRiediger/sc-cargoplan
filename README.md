@@ -133,6 +133,10 @@ Both files are in `%LocalAppData%\SC-CargoPlan\` and are saved as soon as someth
 
 If a file can't be read, the overlay starts without it and says so in an amber line. A single setting out of range or a colour that isn't one is corrected on its own, named in that line, and the rest of `settings.json` applies. It doesn't overwrite the file: `settings.json` stays until you move the overlay or change a setting, `plan.json` until you make a new plan.
 
+### Known issues
+
+While Star Citizen is in the foreground, the overlay receives only a few mouse movements per second, so dragging crates looks jerky, but where a crate lands is still exact. This happens with or without ContractTracker.
+
 ## Build
 
 Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download) on Windows.
