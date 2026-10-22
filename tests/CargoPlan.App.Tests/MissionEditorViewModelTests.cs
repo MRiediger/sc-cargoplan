@@ -156,6 +156,19 @@ public sealed class MissionEditorViewModelTests : IDisposable
     }
 
     [Fact]
+    public void A_blocked_Plan_says_why_in_its_tool_tip()
+    {
+        var editor = FourRows(EmptyOverlay());
+        editor.PlanToolTip.Should().Be(MissionEditorViewModel.PlanText);
+        using var monitor = editor.Monitor();
+
+        editor.Rows[3].Crates = "2";
+
+        editor.PlanToolTip.Should().Be("Row 4: 2 SCU crates are larger than the max crate size of 1 SCU.");
+        monitor.Should().RaisePropertyChangeFor(e => e.PlanToolTip);
+    }
+
+    [Fact]
     public void MoveUp_on_the_first_row_changes_nothing()
     {
         var editor = FourRows(EmptyOverlay());

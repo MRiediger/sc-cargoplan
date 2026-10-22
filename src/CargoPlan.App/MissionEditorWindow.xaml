@@ -54,8 +54,10 @@
         </StackPanel>
 
         <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
+            <!-- Disabled, the tool tip says why (ShowOnDisabled), like the overlay's split and merge buttons.
+                 Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.tooltipservice.showondisabled -->
             <Button DockPanel.Dock="Right" Content="Plan" Command="{Binding PlanCommand}" Padding="16,4"
-                    VerticalAlignment="Bottom" ToolTip="Plan the rows and show them in the overlay" />
+                    VerticalAlignment="Bottom" ToolTip="{Binding PlanToolTip}" ToolTipService.ShowOnDisabled="True" />
             <!-- Next to Plan, because it takes effect there (D24, T4.5). "Fill order" as the key in plan.json, so the word
                  is found again in the file. -->
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="8,0,8,0"

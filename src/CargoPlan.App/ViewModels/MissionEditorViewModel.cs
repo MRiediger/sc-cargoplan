@@ -22,6 +22,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     public const string TitleText = "Missions";
     public const string UnplannedTitleText = "Missions – unplanned changes";
     public const string ClearsDeliveredText = "Planning again clears delivered marks.";
+    public const string PlanText = "Plan the rows and show them in the overlay";
     public const string MissionDeletedText = "Mission deleted – plan updated, no need to press Plan.";
     public const string ChangedOutsideText =
         "The plan changed outside the editor (ContractTracker or the legend): new missions were added below. Plan replaces the plan with these rows.";
@@ -119,6 +120,12 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
     /// <summary>Every filled row is valid, so the rows make a route that can be planned and exported.</summary>
     public bool CanExport => _result.IsValid;
+
+    /// <summary>
+    /// The Plan button's tool tip: while the rows block it, why, like the overlay's split and merge buttons (D27); a
+    /// disabled button is hard to tell from an enabled one in the dark theme.
+    /// </summary>
+    public string PlanToolTip => _result.Problem ?? PlanText;
 
     public bool HasPlan => _overlay.Plan is not null;
 
@@ -422,6 +429,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
         OnPropertyChanged(nameof(Problem));
         OnPropertyChanged(nameof(CanExport));
+        OnPropertyChanged(nameof(PlanToolTip));
         PlanCommand.NotifyCanExecuteChanged();
     }
 
