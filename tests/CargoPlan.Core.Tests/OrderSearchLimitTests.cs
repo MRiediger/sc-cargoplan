@@ -16,7 +16,7 @@ public class OrderSearchLimitTests
         [new Rack("rack-0", 0, 64, new Dimensions(4, 4, 4), new RackPosition(RackSide.Port, RackLevel.Lower), new ShipPoint(0, 0, 0))]);
 
     private const string Note =
-        "Rack 1: stacking order not checked – too many crates for the check. Crates are placed, verify the unload order by hand.";
+        "Rack 1: too many crates to rearrange – red crates lie on cargo that unloads earlier. Check the unload order by hand.";
 
     /// <summary>
     /// Riker's 32 fills the plate, Shubin's twenty 1s go on top of it, later on earlier. Riker can't stand on them either
@@ -84,6 +84,25 @@ public class OrderSearchLimitTests
 
         saved.Missions.Should().OnlyContain(m => !m.Unplaced);
         saved.Plan.Warnings.Should().Contain(new PlanWarning("rack-0", Note));
+    }
+
+    [Fact]
+    public void MoveStop_notes_the_target_rack_too()
+    {
+        // Two cubes: Riker's 4 alone in rack 1, Shubin's 49 1s alone in rack 2, so the plan has no note. Moved onto Riker
+        // they are the PlaceInto case above: 48 cells off Riker's columns for 49 crates, too many ways to try.
+        Ship cubes = new("cubes", "Two cubes test ship", 128,
+        [
+            new Rack("rack-0", 0, 64, new Dimensions(4, 4, 4), new RackPosition(RackSide.Port, RackLevel.Lower), new ShipPoint(0, 0, 0)),
+            new Rack("rack-1", 1, 64, new Dimensions(4, 4, 4), new RackPosition(RackSide.Starboard, RackLevel.Lower), new ShipPoint(4, 0, 0)),
+        ]);
+        var plan = LoadPlanner.Plan(cubes,
+            [new Stop("Riker", 1, [new CargoItem("Gold", 4, CrateSize.Four)]), new Stop("Shubin", 2, [new CargoItem("Iron", 49, CrateSize.One)])]);
+
+        var moved = LoadPlanner.MoveStop(plan, cubes, "Shubin", "rack-0");
+
+        plan.Warnings.Should().NotContain(w => w.Message == Note);
+        moved.Warnings.Should().Contain(new PlanWarning("rack-0", Note));
     }
 
     private static SavedPlan ReadBack(SavedPlan saved)

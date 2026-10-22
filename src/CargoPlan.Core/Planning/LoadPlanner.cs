@@ -880,7 +880,7 @@ public static class LoadPlanner
         racks.Select(r => new PlanWarning(r.Id, OrderUncheckedNote(r)));
 
     private static string OrderUncheckedNote(Rack rack) => Invariant(
-        $"Rack {rack.Number}: stacking order not checked – too many crates for the check. Crates are placed, verify the unload order by hand.");
+        $"Rack {rack.Number}: too many crates to rearrange – red crates lie on cargo that unloads earlier. Check the unload order by hand.");
 
     private static Rack RackOf(Ship ship, string rackId, string paramName) =>
         ship.Racks.FirstOrDefault(r => r.Id == rackId)
