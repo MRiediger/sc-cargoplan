@@ -27,7 +27,8 @@ public static class CrateSizeExtensions
             CrateSize.Eight => new(2, 2, 2),
             CrateSize.Sixteen => new(4, 2, 2),
             CrateSize.TwentyFour => new(6, 2, 2),
-            CrateSize.ThirtyTwo => new(4, 4, 2),
+            // 10 × 2.5 × 2.5 m: Star Citizen Wiki and Fleetyards' maxContainerSize (D57).
+            CrateSize.ThirtyTwo => new(8, 2, 2),
             _ => throw new ArgumentOutOfRangeException(nameof(size), size, "Unknown crate size."),
         };
     }

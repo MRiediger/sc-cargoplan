@@ -47,8 +47,9 @@ public static class CrateMix
     }
 
     /// <summary>
-    /// What one click on Split makes of a crate (D27): the two largest sizes that add up to it and lie in its footprint
-    /// (32 → 16 + 16, not 24 + 8: a 24 is longer than a 32). Finer is splitting again. Empty for 1 SCU.
+    /// What one click on Split makes of a crate (D27 addendum): halves if half is a crate size, else the largest size that
+    /// fits plus the rest (24 → 16 + 8). So 32 → 16 + 16, although 24 + 8 fits the 8×2×2 too (D57). Finer is splitting
+    /// again. Empty for 1 SCU.
     /// </summary>
     public static IReadOnlyList<CrateSize> DefaultSplit(CrateSize size) => size switch
     {

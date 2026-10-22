@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 4,
+  "id": "uneven_long",
+  "name": "Uneven long",
+  "totalScu": 180,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 90,
+      "grid": { "length": 10, "width": 3, "stack": 3 },
+      "position": { "side": "port", "level": "lower" },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 90,
+      "grid": { "length": 10, "width": 3, "stack": 3 },
+      "position": { "side": "starboard", "level": "lower" },
+      "origin": [10, 0, 0],
+      "stackAxis": "+z"
+    }
+  ]
+}

@@ -88,7 +88,7 @@ Missions to the same destination share one stop at the cargo lift: one legend li
 |---|---|---|
 | `destination` | string | A destination of its mission, same spelling. |
 | `commodity` | string | The commodity, as in its mission. |
-| `crateSize` | number | 1, 2, 4, 8, 16, 24 or 32 (SCU). Crates are never turned: 1 = 1×1×1 cells, 2 = 2×1×1, 4 = 2×2×1, 8 = 2×2×2, 16 = 4×2×2, 24 = 6×2×2, 32 = 4×4×2 (length × width × stack). |
+| `crateSize` | number | 1, 2, 4, 8, 16, 24 or 32 (SCU). Crates are never turned: 1 = 1×1×1 cells, 2 = 2×1×1, 4 = 2×2×1, 8 = 2×2×2, 16 = 4×2×2, 24 = 6×2×2, 32 = 8×2×2 (length × width × stack). |
 | `rackId` | string | A rack `id` of the ship. |
 | `position` | array | `[length, width, stack]`, the crate's corner cell counted from 0 at the rack's corner: length along the rack, width across it, stack away from the plate. The whole crate must lie inside the rack's `grid`. |
 | `delivered` | boolean | `true` once the stop is ticked off. All crates of a stop are ticked together. A delivered crate is off the ship: its cells are free for new crates, and it carries nothing. Ticking back works until another crate takes one of its cells. |

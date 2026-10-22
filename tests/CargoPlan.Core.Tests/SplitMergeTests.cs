@@ -14,10 +14,10 @@ public class SplitMergeTests
 {
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
 
-    /// <summary>One 6×4×2 rack (48 SCU): room for the 24 and 32 SCU crates no Hull A rack holds.</summary>
+    /// <summary>One 8×3×2 rack (48 SCU): room for the 24 and 32 SCU crates (6×2×2, 8×2×2, D57) no Hull A rack holds.</summary>
     private static readonly Ship BigRackShip = new("big_rack", "Big rack test ship", 48,
     [
-        new Rack("rack-0", 0, 48, new Dimensions(6, 4, 2), new RackPosition(RackSide.Port, RackLevel.Upper), new ShipPoint(0, 0, 0)),
+        new Rack("rack-0", 0, 48, new Dimensions(8, 3, 2), new RackPosition(RackSide.Port, RackLevel.Upper), new ShipPoint(0, 0, 0)),
     ]);
 
     private static MissionItem Item(string commodity, int scu, CrateSize max, params CrateSize[] crates) =>
@@ -82,18 +82,46 @@ public class SplitMergeTests
         ShouldBeValid(split, ship);
     }
 
-    [Fact]
-    public void Split_refuses_parts_that_do_not_fit_the_footprint()
+    // Every crate from 8 SCU up is n × 2 × 2 cells (D57), so every split of a crate fits its footprint (a 32 has 211).
+    // SplitProblem keeps the footprint check for crate shapes to come.
+    [Theory]
+    [InlineData(CrateSize.Two)]
+    [InlineData(CrateSize.Four)]
+    [InlineData(CrateSize.Eight)]
+    [InlineData(CrateSize.Sixteen)]
+    [InlineData(CrateSize.TwentyFour)]
+    [InlineData(CrateSize.ThirtyTwo)]
+    public void Every_split_of_a_crate_fits_its_footprint(CrateSize size)
     {
-        // A 24 is 6 cells long, a 32 only 4.
-        var saved = Riker(BigRackShip, Item("Titanium", 32, CrateSize.ThirtyTwo));
-        CrateSize[] parts = [CrateSize.TwentyFour, CrateSize.Eight];
+        var saved = Riker(BigRackShip, Item("Titanium", (int)size, size));
+        var crate = saved.Plan.Crates.Single();
+        CrateSize[] smaller = [.. Enum.GetValues<CrateSize>().Where(s => s < size).OrderDescending()];
 
-        var act = () => LoadPlanner.SplitCrate(saved, BigRackShip, saved.Plan.Crates[0], parts);
+        Splits((int)size, smaller).Should().NotBeEmpty()
+            .And.OnlyContain(parts => LoadPlanner.SplitProblem(saved, BigRackShip, crate, parts) == null);
+    }
 
-        const string reason = "24 + 8 SCU don't fit the footprint of the 32 SCU crate (4×4×2).";
-        act.Should().Throw<PlanException>().WithMessage(reason);
-        LoadPlanner.SplitProblem(saved, BigRackShip, saved.Plan.Crates[0], parts).Should().Be(reason);
+    /// <summary>Every multiset of <paramref name="sizes"/> (largest first) that adds up to <paramref name="scu"/>.</summary>
+    private static IEnumerable<CrateSize[]> Splits(int scu, CrateSize[] sizes, int from = 0)
+    {
+        if (scu == 0)
+        {
+            yield return [];
+            yield break;
+        }
+
+        for (var i = from; i < sizes.Length; i++)
+        {
+            if ((int)sizes[i] > scu)
+            {
+                continue;
+            }
+
+            foreach (var rest in Splits(scu - (int)sizes[i], sizes, i))
+            {
+                yield return [sizes[i], .. rest];
+            }
+        }
     }
 
     [Fact]

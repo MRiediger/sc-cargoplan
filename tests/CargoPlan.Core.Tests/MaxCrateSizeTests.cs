@@ -6,22 +6,22 @@ using CargoPlan.Core.Plans;
 namespace CargoPlan.Core.Tests;
 
 /// <summary>
-/// A rack's max crate size (D56): the game's limit, which the grid alone doesn't give. The Carrack's racks are 4×4×4
-/// cells, so a 32 SCU crate (4×4×2) fits by shape, but the game takes crates up to 16 SCU.
+/// A rack's max crate size (D56): a limit on top of the grid. Synthetic: an 8×2×2 rack takes a 32 SCU crate (8×2×2, D57)
+/// by shape, the limit says 16. No shipped ship needs it since D57: Fleetyards' limit equals what the grid allows.
 /// </summary>
 public class MaxCrateSizeTests
 {
     private static Rack Limited(int index, ShipPoint origin) =>
-        new($"rack-{index}", index, 64, new Dimensions(4, 4, 4), new RackPosition(RackSide.Port, RackLevel.Lower), origin, StackAxis.PlusZ, CrateSize.Sixteen);
+        new($"rack-{index}", index, 32, new Dimensions(8, 2, 2), new RackPosition(RackSide.Port, RackLevel.Lower), origin, StackAxis.PlusZ, CrateSize.Sixteen);
 
-    /// <summary>One Carrack-like rack: 4×4×4, crates up to 16 SCU.</summary>
-    private static readonly Ship Carrack = new("carrack_like", "Carrack-like test ship", 64, [Limited(0, new ShipPoint(0, 0, 0))]);
+    /// <summary>One rack of 8×2×2, crates up to 16 SCU.</summary>
+    private static readonly Ship LimitedShip = new("limited", "Limited test ship", 32, [Limited(0, new ShipPoint(0, 0, 0))]);
 
-    /// <summary>Rack 1 like the Carrack's, rack 2 a 4×4×2 without a limit: the only one for a 32.</summary>
-    private static readonly Ship Mixed = new("mixed", "Mixed test ship", 96,
+    /// <summary>Rack 1 limited, rack 2 an 8×2×2 without a limit: the only one for a 32.</summary>
+    private static readonly Ship Mixed = new("mixed", "Mixed test ship", 64,
     [
         Limited(0, new ShipPoint(0, 0, 0)),
-        new Rack("rack-1", 1, 32, new Dimensions(4, 4, 2), new RackPosition(RackSide.Starboard, RackLevel.Lower), new ShipPoint(4, 0, 0)),
+        new Rack("rack-1", 1, 32, new Dimensions(8, 2, 2), new RackPosition(RackSide.Starboard, RackLevel.Lower), new ShipPoint(8, 0, 0)),
     ]);
 
     private static MissionStop Stop(string destination, int scu, CrateSize max, params CrateSize[] crates) =>
@@ -36,13 +36,13 @@ public class MaxCrateSizeTests
     [InlineData(CrateSize.ThirtyTwo, false)]
     public void CanHold_respects_the_max_crate_size(CrateSize size, bool expected)
     {
-        Carrack.Racks[0].CanHold(size).Should().Be(expected);
+        LimitedShip.Racks[0].CanHold(size).Should().Be(expected);
     }
 
     [Fact]
     public void Without_a_max_crate_size_the_grid_decides()
     {
-        var rack = new Rack("rack-0", 0, 64, new Dimensions(4, 4, 4), new RackPosition(RackSide.Port, RackLevel.Lower), new ShipPoint(0, 0, 0));
+        var rack = new Rack("rack-0", 0, 32, new Dimensions(8, 2, 2), new RackPosition(RackSide.Port, RackLevel.Lower), new ShipPoint(0, 0, 0));
 
         rack.CanHold(CrateSize.ThirtyTwo).Should().BeTrue();
     }
@@ -50,19 +50,19 @@ public class MaxCrateSizeTests
     [Fact]
     public void Plan_refuses_a_32_in_a_ship_whose_racks_take_16()
     {
-        var act = () => LoadPlanner.Plan(Carrack, [Stop("Riker", 32, CrateSize.ThirtyTwo).ToStop()]);
+        var act = () => LoadPlanner.Plan(LimitedShip, [Stop("Riker", 32, CrateSize.ThirtyTwo).ToStop()]);
 
         act.Should().Throw<PlanException>().Which.Message.Should().Be(
-            "32 SCU crate of Titanium for Riker doesn't fit any rack of carrack_like (racks take crates up to 16 SCU).");
+            "32 SCU crate of Titanium for Riker doesn't fit any rack of limited (racks take crates up to 16 SCU).");
     }
 
     [Fact]
     public void Plan_lays_16s_into_the_limited_rack()
     {
-        var plan = LoadPlanner.Plan(Carrack, [Stop("Riker", 64, CrateSize.Sixteen).ToStop()]);
+        var plan = LoadPlanner.Plan(LimitedShip, [Stop("Riker", 32, CrateSize.Sixteen).ToStop()]);
 
-        plan.Crates.Should().HaveCount(4).And.OnlyContain(c => c.CrateSize == CrateSize.Sixteen);
-        LoadPlanner.Validate(plan, Carrack).Should().BeEmpty();
+        plan.Crates.Should().HaveCount(2).And.OnlyContain(c => c.CrateSize == CrateSize.Sixteen);
+        LoadPlanner.Validate(plan, LimitedShip).Should().BeEmpty();
     }
 
     // By SCU the 32 goes to rack 1; the layout refuses it there, the shape-aware fallback (D54) finds rack 2.
@@ -93,12 +93,12 @@ public class MaxCrateSizeTests
         act.Should().Throw<PlanException>().WithMessage("*32 SCU crate of Titanium for Riker doesn't fit rack 1 (takes crates up to 16 SCU)*");
     }
 
-    // Two 16s side by side are a 32's block, and the contract allows 32: only the rack says no.
+    // Two 16s end to end are a 32's block, and the contract allows 32: only the rack says no.
     [Fact]
     public void Merging_two_16s_in_a_limited_rack_is_refused()
     {
-        var saved = Planned(Carrack, Stop("Riker", 32, CrateSize.ThirtyTwo, CrateSize.Sixteen, CrateSize.Sixteen));
+        var saved = Planned(LimitedShip, Stop("Riker", 32, CrateSize.ThirtyTwo, CrateSize.Sixteen, CrateSize.Sixteen));
 
-        LoadPlanner.MergeProblem(saved, Carrack, saved.Plan.Crates).Should().Be("Rack 1 takes crates up to 16 SCU.");
+        LoadPlanner.MergeProblem(saved, LimitedShip, saved.Plan.Crates).Should().Be("Rack 1 takes crates up to 16 SCU.");
     }
 }

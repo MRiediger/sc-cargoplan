@@ -161,7 +161,7 @@ public class PlaceIntoTests
 
     // --- Shape-aware fallback (D54) ---
 
-    private static readonly Ship Uneven = TestShips.Load("spike_uneven");
+    private static readonly Ship Uneven = TestShips.Load("uneven_long");
 
     private static SavedPlan EmptyUneven => new([], new LoadPlan(Uneven.Id, [], []));
 
@@ -210,7 +210,7 @@ public class PlaceIntoTests
     [Fact]
     public void PlaceProblem_names_the_crate_size_the_fallback_found_no_room_for()
     {
-        // A 32 in each rack: 86 SCU free, but no gap for a third 32.
+        // A 32 in each rack: 180 − 64 = 116 SCU free, but no gap for a third 32.
         var two = new[] { "Area18", "Port Tressler" }.Aggregate(EmptyUneven,
             (saved, destination) => LoadPlanner.PlaceInto(saved, Uneven, [new MissionStop(destination, 1, [new MissionItem("Gold", 32, CrateSize.ThirtyTwo)])]));
 

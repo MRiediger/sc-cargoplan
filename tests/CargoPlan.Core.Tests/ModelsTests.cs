@@ -39,7 +39,7 @@ public class ModelsTests
     [InlineData(CrateSize.Eight, 2, 2, 2)]
     [InlineData(CrateSize.Sixteen, 4, 2, 2)]
     [InlineData(CrateSize.TwentyFour, 6, 2, 2)]
-    [InlineData(CrateSize.ThirtyTwo, 4, 4, 2)]
+    [InlineData(CrateSize.ThirtyTwo, 8, 2, 2)]
     public void CrateSize_dimensions_match_the_game(CrateSize size, int length, int width, int stack)
     {
         size.Dimensions.Should().Be(new Dimensions(length, width, stack));

@@ -8,11 +8,12 @@ namespace CargoPlan.Core.Tests;
 
 /// <summary>
 /// The shape-aware fallback (D54): when the SCU partition doesn't fit a rack's grid, every crate goes largest first into
-/// the first rack that takes it. spike_uneven has two racks of 5×5×3: each holds one 32 SCU crate, by SCU it would be two.
+/// the first rack that takes it. uneven_long has two racks of 10×3×3 (90 SCU): each holds one 32 SCU crate (8×2×2, D57),
+/// by SCU it would be two. It replays runs 3 and 4 of spike S7.0, whose 5×5×3 racks take no 32 since D57.
 /// </summary>
 public class LoadPlannerShapeTests
 {
-    private static readonly Ship Uneven = TestShips.Load("spike_uneven");
+    private static readonly Ship Uneven = TestShips.Load("uneven_long");
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
 
     private const string FallbackNote = "Racks not in route order – crates placed where they fit";
@@ -81,8 +82,8 @@ public class LoadPlannerShapeTests
     [Fact]
     public void Place_lays_the_largest_crate_first_whatever_the_input_order()
     {
-        // The route order puts Area18's 1s before the 32; laid in that order, 43 1s would leave no two free layers for it.
-        (CrateSize Size, string Destination)[] crates = [.. Enumerable.Repeat((CrateSize.One, "Area18"), 43), (CrateSize.ThirtyTwo, "Port Tressler")];
+        // The route order puts Area18's 1s before the 32; laid in that order, 58 1s (90 − 32) would leave no 8×2×2 gap for it.
+        (CrateSize Size, string Destination)[] crates = [.. Enumerable.Repeat((CrateSize.One, "Area18"), 58), (CrateSize.ThirtyTwo, "Port Tressler")];
 
         var positions = CrateLayout.Place(Uneven.Racks[0], [], crates, ["Area18", "Port Tressler"], FillOrder.BowFirst);
 
@@ -98,7 +99,7 @@ public class LoadPlannerShapeTests
         // A 1 of Dest2 from the top of rack 1 to a free cell on the plate of rack 2.
         var top = plan.Crates.Where(c => c.Destination == "Dest2").MaxBy(c => c.Position.Stack)!;
         HashSet<GridPosition> taken = [.. plan.CratesForRack("rack-1").SelectMany(c => c.Cells)];
-        var free = Enumerable.Range(0, 5).SelectMany(l => Enumerable.Range(0, 5).Select(w => new GridPosition(l, w, 0))).First(p => !taken.Contains(p));
+        var free = Enumerable.Range(0, 10).SelectMany(l => Enumerable.Range(0, 3).Select(w => new GridPosition(l, w, 0))).First(p => !taken.Contains(p));
 
         var ticked = LoadPlanner.SetDelivered(plan, Uneven, "Dest1", true);
         var moved = LoadPlanner.MoveCrate(plan, Uneven, top, "rack-1", free);
@@ -121,15 +122,17 @@ public class LoadPlannerShapeTests
         plan.Warnings.Should().NotContain(w => w.Message == FallbackNote);
     }
 
+    // Dest1's two 32s take one rack each, Dest2's two find no gap: 180 − 128 = 52 SCU free.
     [Fact]
     public void Plan_rejects_run_3_naming_what_doesnt_fit()
     {
         var act = () => LoadPlanner.Plan(Uneven, MissionFixtures.Load("spike_uneven_run3"));
 
         act.Should().Throw<PlanException>().Which.Message.Should().Be(
-            "Dest2 doesn't fit: no room for 2 × 32 SCU crates of Titanium – 22 SCU free, but no gap of that shape. Leave a stop out or take a ship with bigger racks.");
+            "Dest2 doesn't fit: no room for 2 × 32 SCU crates of Titanium – 52 SCU free, but no gap of that shape. Leave a stop out or take a ship with bigger racks.");
     }
 
+    // One 32 per rack, the third finds none: 180 − 96 = 84 SCU free.
     [Fact]
     public void Plan_names_the_stop_whose_32_finds_no_rack()
     {
@@ -143,7 +146,7 @@ public class LoadPlannerShapeTests
         var act = () => LoadPlanner.Plan(Uneven, route);
 
         act.Should().Throw<PlanException>().Which.Message.Should().Be(
-            "Seraphim doesn't fit: no room for 1 × 32 SCU crate of Titanium – 54 SCU free, but no gap of that shape. Leave a stop out or take a ship with bigger racks.");
+            "Seraphim doesn't fit: no room for 1 × 32 SCU crate of Titanium – 84 SCU free, but no gap of that shape. Leave a stop out or take a ship with bigger racks.");
     }
 
     [Fact]
