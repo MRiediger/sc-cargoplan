@@ -686,8 +686,8 @@ PNG, kein Spielername/Org im Bild, Overlay außerhalb des CT-Capture-Bereichs.
 - Abschnitte: Was · Download · Erstes Mal · CT-Anbindung · Hotkeys · Known issues · Bug melden · Credits · Lizenz
 - SmartScreen-Warnung bei der unsignierten EXE ehrlich dokumentieren (aus T6.3 hierher)
 - Kein Ruckel-Hinweis mehr (in 7e94ac3 entfernt, D45)
-- Jede Verhaltensaussage am Release-Build geprüft (das ZIP aus dem Prerelease `v0.1.0-rc.2`, nach T6.4b)
-- Danach Tag `v0.1.0` (Notes `docs/release-notes/v0.1.0.md`), dann Release und Tag `v0.1.0-rc.2` löschen (D49). rc.2 ersetzt rc.1: Prerelease aus `1bfd3ba` grün, Download passt zur `.sha256`, 260 Dateien unter `SC-CargoPlan/`, `CargoPlan.Cli --version` = `0.1.0-rc.2+1bfd3ba…`; Release und Tag `v0.1.0-rc.1` danach gelöscht (remote und lokal)
+- Jede Verhaltensaussage am Release-Build geprüft (das ZIP aus dem Prerelease `v0.1.0-rc.3`, nach T6.4b und dem Editor-Absturz-Fix `7f04dd7`)
+- Danach Tag `v0.1.0` (Notes `docs/release-notes/v0.1.0.md`), dann die noch vorhandenen rc-Releases und -Tags löschen (D49). rc.3 ersetzt rc.2, das den Editor-Absturz noch enthält. rc.2 ersetzt rc.1: Prerelease aus `1bfd3ba` grün, Download passt zur `.sha256`, 260 Dateien unter `SC-CargoPlan/`, `CargoPlan.Cli --version` = `0.1.0-rc.2+1bfd3ba…`; Release und Tag `v0.1.0-rc.1` danach gelöscht (remote und lokal)
 
 **Akzeptanz:** Alle Abschnitte vorhanden; jede Verhaltensaussage am Build nachvollzogen; Links funktionieren.
 
