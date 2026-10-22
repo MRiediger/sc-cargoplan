@@ -718,13 +718,57 @@ PNG, kein Spielername/Org im Bild, Overlay außerhalb des CT-Capture-Bereichs.
 
 ---
 
-## Phase 7 – Ausbau (optional, Reihenfolge frei)
+## Phase 7 – Schiffe vor Nexus (D53)
 
-### [ ] T7.1 Weitere Schiffe – `cutlass_black.json`, `raft.json`, Schiffsauswahl im Editor
-### [ ] T7.2 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
-### [ ] T7.3 winget-Manifest – `winget install SC-CargoPlan`
-### [ ] T7.4 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
-### [ ] T7.5 Lokalisierung – `.resx`, Deutsch als zweite Sprache
+### [x] S7.0 Planer-Last und Geometrie-Korrektheit (Spike)
+**Warum:** Vor weiteren Schiffen (T7.1) wissen, ob der Planer auf großen bzw. ungleichen Gittern trägt. Kein Code, keine Spike-Dateien im Repo.
+- Synthetische Schiffe, eingebettet, nach dem Spike gelöscht: `spike_large` = 5 Racks à 8×4×4 (640 Zellen, je Rack 4 × 32er); `spike_uneven` = 2 Racks à 5×5×3 (jede Achse +1 gegenüber der 32er 4×4×2, geometrisch 1 × 32er pro Rack, rechnerisch 2)
+- Messung: `CargoPlan.Cli plan <missions> --ship <id>` (Release-Build), `Stopwatch` um den Prozess, je 3 Läufe, Median; Baseline Hull A mit `example_missions.json` für den Prozessstart
+- Lauf 3: 2 Ziele à 64 SCU (je 2 × 32er), damit jedes Ziel nach SCU genau in ein Rack passt und nur die Geometrie scheitern kann
+
+**Befund:**
+
+| Lauf | Schiff | Eingabe | Median (3×) | Ausgang | Platziert / Eingabe |
+|---|---|---|---|---|---|
+| Baseline | hull_a | example_missions (3 Ziele, 30 SCU) | 100 ms | ok | 30 / 30 SCU |
+| 1 | spike_large | 20 × 32 SCU auf 4 Ziele (Schiff 100 % voll) | 110 ms | ok, jedes Ziel über 2 Racks, Racks 2–4 geteilt (Warnungen korrekt) | 640 / 640 SCU |
+| 2 | spike_large | 60 × 8 SCU auf 4 Ziele | 106 ms | ok, ein Rack pro Ziel, Rack 5 leer | 480 / 480 SCU |
+| 3 | spike_uneven | 4 × 32 SCU auf 2 Ziele (128 / 150 SCU) | 92 ms | `PlanException`: „Crates for rack 1 don't fit its grid (5×5×3): 64/75 SCU.“ | 0 / 128 SCU, sauber abgelehnt |
+
+- Planerzeit netto ≈ 10 ms (Lauf minus Baseline); alle 3 Läufe je Fall bit-gleich in der Ausgabe. **Bewertung: ≤ 1 s → ok.** Phase 7 muss nicht mit dem Planer beginnen.
+- UI-Thread (nur nachgesehen): Editor-„Plan“ ruft `LoadPlanner.Plan` synchron im UI-Thread (`MissionEditorViewModel.Plan`); beim CT-Sync läuft nur das Lesen in `Task.Run`, `ApplyContractTracker` (→ `PlaceInto`) danach im UI-Thread. Bei ~10 ms unkritisch.
+- Grenze des Spikes: nur 4 Ziele ≤ Racks. Mehr Ziele als Racks (geteilte Racks, `Partition`) wurden nicht gemessen.
+- Lauf 3 wie erwartet: D9 gilt nur für Hull A; der Planer verteilt nach SCU, die Geometrie prüft erst `CrateLayout.LayOut`. → Backlog.
+
+### [ ] T7.0 Formbewusste Partition – lösbare Beladungen nicht ablehnen (Auslöser: S7.0 Lauf 4)
+Aus dem Backlog übernommen:
+- Formbewusste `Partition` (Racks nach legbarer Anordnung in Routenreihenfolge, nicht nur nach SCU), falls Stapel-Befunde in echten Plänen häufig sind. Beleg aus dem Spike T5.4 (Brute-Force, abgebrochen): 3 Stops in einem Rack → 207 Aufteilungen ohne Anordnung bis Mischung 146/186; 4 Stops → 397 bis Mischung 65/170 (D24-Addendum, T5.4a).
+- Geometrie bei Schiffen, deren Grid kein Vielfaches der Kistenmaße ist (D9 gilt nur für Hull A), sobald T7.1 ein solches Schiff bringt: `Plan` verteilt nach SCU und scheitert erst beim Legen, die Meldung („64/75 SCU“) klingt nach Platz und nennt nur Rack 1. `PlaceProblem` sagt es schon besser („no room for 8 SCU crates“). Beleg: S7.0, Lauf 3.
+
+**Warnung:** Der Brute-Force-Ansatz wurde in T5.4 aus Kombinatorik-Gründen abgebrochen (siehe Beleg in der ersten Zeile).
+
+**Akzeptanz:**
+- Lauf 4 ergibt 104 / 104 SCU, Lauf 3 wirft weiter mit Exit-Code 1
+- Hull-A-Pläne bleiben byte-gleich, bestehende Planer-Tests unverändert grün
+- neuer Lastfall Hull A, 8 Ziele gemischt (mehrere Stops pro Rack), gemessen vor und nach dem Umbau, ≤ 1 s
+- die neue Partition gilt auch in `PlaceInto` (CT-Sync)
+- die Meldung bei wirklich unlösbaren Fällen ist in Hauler-Sprache (Richtung `PlaceProblem`)
+- Testschiff `spike_uneven` als Fixture unter `tests/`, nicht unter `Ships/`
+
+### [ ] T7.1 Schiffsentwürfe – 73 Dateien aus Erecs Guide (inkl. Cutlass Black, RAFT), Ordner `ships/` im ZIP statt eingebettet (D-Eintrag), Lade-Validierung (eine kaputte Datei blendet nur dieses Schiff aus, ein fehlender Ordner zeigt eine Meldung statt eines Crashs), Test über alle Dateien
+### [ ] T7.2 Schiffsauswahl – Editor nach Hersteller gruppiert, Wahl in settings.json statt `App.ShipId`-const, Plan beim Schiffswechsel bzw. bei ShipId-Mismatch beim Laden (heute: ungefangene ArgumentException in `ShipViewBuilder`), Fallback auf hull_a bei fehlender Schiffsdatei
+### [ ] T7.3 Schiffsansicht bei großen Gittern – Hull C, C2: Racknummern (`RackNumberSize`: ein Wert für alle Racks), Fit, Legende
+### [ ] T7.4 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
+
+→ Tag `v0.1.0` → T6.6 Nexus
+
+---
+
+## Phase 8 – nach dem Launch
+
+### [ ] T8.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
+### [ ] T8.2 winget-Manifest – `winget install SC-CargoPlan`
+### [ ] T8.3 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
 
 ---
 
@@ -748,5 +792,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Alternative Stop-Paletten, nur geprüft farbfehlsicht-tauglich (D29).
 - Theme-Presets/Export (A4).
 - Füllrichtung in Mission-Dateien (Export/Import), falls Koordinatoren sie mit der Route teilen wollen; heute nur über plan.json (Core-Formatwechsel, D24-Addendum).
-- Formbewusste `Partition` (Racks nach legbarer Anordnung in Routenreihenfolge, nicht nur nach SCU), falls Stapel-Befunde in echten Plänen häufig sind. Beleg aus dem Spike T5.4 (Brute-Force, abgebrochen): 3 Stops in einem Rack → 207 Aufteilungen ohne Anordnung bis Mischung 146/186; 4 Stops → 397 bis Mischung 65/170 (D24-Addendum, T5.4a).
+- ~~Formbewusste `Partition` (Racks nach legbarer Anordnung in Routenreihenfolge, nicht nur nach SCU), falls Stapel-Befunde in echten Plänen häufig sind. Beleg aus dem Spike T5.4 (Brute-Force, abgebrochen): 3 Stops in einem Rack → 207 Aufteilungen ohne Anordnung bis Mischung 146/186; 4 Stops → 397 bis Mischung 65/170 (D24-Addendum, T5.4a).~~ → T7.0
+- ~~Geometrie bei Schiffen, deren Grid kein Vielfaches der Kistenmaße ist (D9 gilt nur für Hull A), sobald T7.1 ein solches Schiff bringt: `Plan` verteilt nach SCU und scheitert erst beim Legen, die Meldung („64/75 SCU“) klingt nach Platz und nennt nur Rack 1. `PlaceProblem` sagt es schon besser („no room for 8 SCU crates“). Beleg: S7.0, Lauf 3.~~ → T7.0
 - Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).
+- Mehrsprachigkeit, falls nicht-englische Hauler danach fragen. Beginnt beim Parser (deutsche CT-Captures als Fixtures), nicht bei `.resx` (D53).
