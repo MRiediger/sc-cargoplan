@@ -14,14 +14,7 @@ const int ExitSuccess = 0;
 const int ExitFailed = 1;
 const int ExitUsage = 2;
 
-if (Command.Parse(args) is not { } command)
-{
-    Console.Error.WriteLine("Usage: CargoPlan.Cli plan <missions.json> [--ship <id>]");
-    Console.Error.WriteLine("       CargoPlan.Cli contracts <contracts.db> [--since <id>] [--raw]");
-    Console.Error.WriteLine("       CargoPlan.Cli --version");
-    Console.Error.WriteLine($"Ships: {string.Join(", ", ShipLoader.ListShips())} (default: {Command.DefaultShipId})");
-    return ExitUsage;
-}
+var command = Command.Parse(args);
 
 // The renderers write "·", "×", "–" and "⚠"; the default console code page (e.g. 850) has no "–".
 // The setter calls SetConsoleOutputCP, which changes the console shared with the calling shell, so restore it.
@@ -33,6 +26,7 @@ try
 {
     return command switch
     {
+        null => Usage(),
         PlanCommand plan => Plan(plan),
         ContractsCommand contracts => Contracts(contracts),
         VersionCommand => Version(),
@@ -40,7 +34,8 @@ try
     };
 }
 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or SqliteException
-                               or MissionFormatException or ShipNotFoundException or ShipFormatException or PlanException)
+                               or MissionFormatException or ShipFolderException or ShipNotFoundException or ShipFormatException
+                               or PlanException)
 {
     Console.Error.WriteLine(ex.Message);
     return ExitFailed;
@@ -50,12 +45,34 @@ finally
     Console.OutputEncoding = originalEncoding;
 }
 
+// Inside the try: the ships line needs the ships folder, and a missing one is the same message as for plan (D56).
+int Usage()
+{
+    Console.Error.WriteLine("Usage: CargoPlan.Cli plan <missions.json> [--ship <id>]");
+    Console.Error.WriteLine("       CargoPlan.Cli contracts <contracts.db> [--since <id>] [--raw]");
+    Console.Error.WriteLine("       CargoPlan.Cli --version");
+    Console.Error.WriteLine($"Ships: {string.Join(", ", LoadShips().Ships.Select(s => s.Id))} (default: {Command.DefaultShipId})");
+    return ExitUsage;
+}
+
 int Plan(PlanCommand plan)
 {
     var stops = MissionFileReader.Read(plan.MissionsPath).ToStops();
-    var ship = ShipLoader.Load(plan.ShipId);
+    var ship = LoadShips().Get(plan.ShipId);
     Console.WriteLine(PlanTextRenderer.Render(LoadPlanner.Plan(ship, stops), ship));
     return ExitSuccess;
+}
+
+// A broken ship file costs only its ship; the reason goes to stderr, so a skipped --ship is explained (D56).
+ShipCatalog LoadShips()
+{
+    var catalog = ShipLoader.LoadAll();
+    foreach (var problem in catalog.Problems)
+    {
+        Console.Error.WriteLine($"Skipped: {problem}");
+    }
+
+    return catalog;
 }
 
 // For bug reports: the output with --raw holds what a test fixture needs (T5.3).
@@ -102,7 +119,7 @@ int Version()
 /// <summary>Command line, parsed by hand (D8).</summary>
 internal abstract record Command
 {
-    public const string DefaultShipId = "hull_a";
+    public const string DefaultShipId = ShipLoader.FallbackShipId;
 
     /// <summary>null = not a valid command line.</summary>
     public static Command? Parse(string[] args) => args switch

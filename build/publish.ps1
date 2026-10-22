@@ -64,6 +64,20 @@ finally {
     $archive.Dispose()
 }
 
+# Without ships/ the overlay doesn't start (D56). dotnet publish takes the folder from Core's items (measured in T7.1a),
+# so this checks the ZIP the haulers get, not a copy step of its own.
+$required = 'SC-CargoPlan/ships/hull_a.json'
+$archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
+try {
+    $found = $null -ne $archive.GetEntry($required)
+}
+finally {
+    $archive.Dispose()
+}
+if (-not $found) {
+    throw "$zipName has no $required - the ships folder didn't reach the publish folder."
+}
+
 # sha256sum format ("<hash>  <name>"), so `sha256sum -c` checks it; Get-FileHash compares case-insensitively.
 $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
 [System.IO.File]::WriteAllText("$zip.sha256", "$hash  $zipName`n")

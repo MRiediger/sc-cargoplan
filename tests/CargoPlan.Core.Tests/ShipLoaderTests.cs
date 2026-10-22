@@ -1,4 +1,3 @@
-using System.Reflection;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
 
@@ -6,10 +5,7 @@ namespace CargoPlan.Core.Tests;
 
 public class ShipLoaderTests
 {
-    // Broken ship files live as embedded resources in this test assembly (TestShips/*.json).
-    private static readonly Assembly TestShips = typeof(ShipLoaderTests).Assembly;
-
-    // --- Shipped ships (CargoPlan.Core) ---
+    // --- Shipped ships (ships/ next to the test assembly) ---
 
     [Fact]
     public void Load_hull_a_returns_four_racks_of_16_scu()
@@ -95,14 +91,24 @@ public class ShipLoaderTests
     }
 
     [Fact]
-    public void ListShips_contains_hull_a()
+    public void LoadAll_contains_hull_a()
     {
-        ShipLoader.ListShips().Should().Contain("hull_a");
+        ShipLoader.LoadAll().Ships.Select(s => s.Id).Should().Contain(ShipLoader.FallbackShipId);
     }
 
-    public static TheoryData<string> ShippedShipIds => [.. ShipLoader.ListShips()];
+    // Gate for the ship files (T7.1b converts ~96): every file in ships/ loads, none is skipped.
+    [Fact]
+    public void LoadAll_loads_every_shipped_file_without_problems()
+    {
+        var catalog = ShipLoader.LoadAll();
 
-    // Gate for community PRs: every ship file in Core must load.
+        catalog.Problems.Should().BeEmpty();
+        catalog.Ships.Should().HaveCount(Directory.GetFiles(ShipLoader.DefaultFolder, "*.json").Length);
+    }
+
+    public static TheoryData<string> ShippedShipIds => [.. ShipLoader.ListShips(ShipLoader.DefaultFolder)];
+
+    // Gate for community PRs: every ship file in ships/ must load; one case per file names the broken one.
     [Theory]
     [MemberData(nameof(ShippedShipIds))]
     public void Every_shipped_ship_loads(string shipId)
@@ -134,7 +140,144 @@ public class ShipLoaderTests
         act.Should().Throw<ShipNotFoundException>();
     }
 
-    // --- Test ships (this assembly) ---
+    // --- The ships folder (D56) ---
+
+    [Fact]
+    public void LoadAll_without_folder_throws_ShipFolderException_naming_the_folder()
+    {
+        using var folder = new ShipFolder();
+        Directory.Delete(folder.Path);
+
+        var act = () => ShipLoader.LoadAll(folder.Path);
+
+        act.Should().Throw<ShipFolderException>()
+            .WithMessage("Ships folder missing next to the exe – unzip the release again.*")
+            .Which.Message.Should().Contain(folder.Path);
+    }
+
+    [Fact]
+    public void Load_without_folder_throws_ShipFolderException()
+    {
+        using var folder = new ShipFolder();
+        Directory.Delete(folder.Path);
+
+        var act = () => ShipLoader.Load(folder.Path, "hull_a");
+
+        act.Should().Throw<ShipFolderException>();
+    }
+
+    [Theory]
+    [InlineData("malformed")]            // JSON error
+    [InlineData("id_mismatch")]          // id ≠ file name
+    [InlineData("unknown_stack_axis")]   // format invalid
+    [InlineData("overlapping_racks")]    // racks overlap
+    public void LoadAll_skips_a_broken_file_and_names_it(string shipId)
+    {
+        using var folder = new ShipFolder();
+        folder.AddShipped("hull_a");
+        folder.AddTestShip(shipId);
+
+        var catalog = ShipLoader.LoadAll(folder.Path);
+
+        catalog.Ships.Select(s => s.Id).Should().Equal("hull_a");
+        catalog.Problems.Should().ContainSingle().Which.Should().Contain($"'{shipId}.json'");
+    }
+
+    [Fact]
+    public void LoadAll_without_hull_a_throws_ShipFolderException()
+    {
+        using var folder = new ShipFolder();
+        folder.AddTestShip("spike_uneven");
+
+        var act = () => ShipLoader.LoadAll(folder.Path);
+
+        act.Should().Throw<ShipFolderException>()
+            .WithMessage("Ship file hull_a.json missing – unzip the release again.*");
+    }
+
+    [Fact]
+    public void LoadAll_with_broken_hull_a_throws_ShipFolderException_with_the_reason()
+    {
+        using var folder = new ShipFolder();
+        folder.Write("hull_a", "{");
+        folder.AddTestShip("spike_uneven");
+
+        var act = () => ShipLoader.LoadAll(folder.Path);
+
+        act.Should().Throw<ShipFolderException>()
+            .WithMessage("Ship file hull_a.json is invalid – unzip the release again.*'hull_a.json'*")
+            .WithInnerException<ShipFormatException>();
+    }
+
+    // Ordinal: the same order on every machine and culture; "2" sorts before "_".
+    [Fact]
+    public void LoadAll_sorts_ships_by_id_ordinal()
+    {
+        using var folder = new ShipFolder();
+        folder.AddShipped("hull_a");
+        folder.AddRenamed("spike_uneven", "b_ship");
+        folder.AddRenamed("spike_uneven", "a_ship");
+        folder.AddRenamed("spike_uneven", "hull2");
+
+        var catalog = ShipLoader.LoadAll(folder.Path);
+
+        catalog.Ships.Select(s => s.Id).Should().Equal("a_ship", "b_ship", "hull2", "hull_a");
+    }
+
+    [Fact]
+    public void LoadAll_ignores_files_that_are_not_json()
+    {
+        using var folder = new ShipFolder();
+        folder.AddShipped("hull_a");
+        File.WriteAllText(Path.Combine(folder.Path, "README.txt"), "not a ship");
+        File.WriteAllText(Path.Combine(folder.Path, "hull_a.json.bak"), "{");
+
+        var catalog = ShipLoader.LoadAll(folder.Path);
+
+        catalog.Ships.Select(s => s.Id).Should().Equal("hull_a");
+        catalog.Problems.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Catalog_Get_of_a_skipped_ship_throws_ShipNotFoundException_listing_loaded_ids()
+    {
+        using var folder = new ShipFolder();
+        folder.AddShipped("hull_a");
+        folder.AddTestShip("malformed");
+
+        var act = () => ShipLoader.LoadAll(folder.Path).Get("malformed");
+
+        act.Should().Throw<ShipNotFoundException>().Which.AvailableShipIds.Should().Equal("hull_a");
+    }
+
+    /// <summary>A ships folder of its own per test, deleted afterwards.</summary>
+    private sealed class ShipFolder : IDisposable
+    {
+        public string Path { get; } = Directory.CreateTempSubdirectory("cargoplan-ships-").FullName;
+
+        public void AddShipped(string shipId) =>
+            File.Copy(System.IO.Path.Combine(ShipLoader.DefaultFolder, shipId + ".json"), FileOf(shipId));
+
+        public void AddTestShip(string shipId) => File.Copy(TestShips.PathOf(shipId), FileOf(shipId));
+
+        // A copy of a test ship under another id; the id inside must match the file name.
+        public void AddRenamed(string shipId, string newId) =>
+            Write(newId, File.ReadAllText(TestShips.PathOf(shipId)).Replace($"\"id\": \"{shipId}\"", $"\"id\": \"{newId}\""));
+
+        public void Write(string shipId, string json) => File.WriteAllText(FileOf(shipId), json);
+
+        public void Dispose()
+        {
+            if (Directory.Exists(Path))
+            {
+                Directory.Delete(Path, recursive: true);
+            }
+        }
+
+        private string FileOf(string shipId) => System.IO.Path.Combine(Path, shipId + ".json");
+    }
+
+    // --- Test ships (TestShips/) ---
 
     [Theory]
     [InlineData("malformed")]               // not valid JSON
@@ -159,19 +302,19 @@ public class ShipLoaderTests
     [InlineData("zero_grid_axis")]          // grid width 0
     [InlineData("unknown_side")]            // "side": "left"
     [InlineData("unknown_level")]           // "level": "middle"
-    public void Load_invalid_ship_throws_ShipFormatException_naming_the_resource(string shipId)
+    public void Load_invalid_ship_throws_ShipFormatException_naming_the_file(string shipId)
     {
-        var act = () => ShipLoader.Load(TestShips, shipId);
+        var act = () => TestShips.Load(shipId);
 
         var ex = act.Should().Throw<ShipFormatException>().Which;
-        ex.ResourceName.Should().Be($"ships/{shipId}.json");
-        ex.Message.Should().Contain($"ships/{shipId}.json");
+        ex.FileName.Should().Be($"{shipId}.json");
+        ex.Message.Should().Contain($"'{shipId}.json'");
     }
 
     [Fact]
     public void Load_sum_mismatch_reports_the_rack_sum()
     {
-        var act = () => ShipLoader.Load(TestShips, "sum_mismatch");
+        var act = () => TestShips.Load("sum_mismatch");
 
         act.Should().Throw<ShipFormatException>()
             .WithMessage("*60*64*")
@@ -181,7 +324,7 @@ public class ShipLoaderTests
     [Fact]
     public void Load_unsupported_schema_names_the_version()
     {
-        var act = () => ShipLoader.Load(TestShips, "unsupported_schema");
+        var act = () => TestShips.Load("unsupported_schema");
 
         act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 5*");
     }
@@ -191,7 +334,7 @@ public class ShipLoaderTests
     [InlineData("old_schema", "*schemaVersion 2*expected 4*")]
     public void Load_old_schema_names_version_and_expected_version(string shipId, string expectedMessage)
     {
-        var act = () => ShipLoader.Load(TestShips, shipId);
+        var act = () => TestShips.Load(shipId);
 
         act.Should().Throw<ShipFormatException>().WithMessage(expectedMessage);
     }
@@ -199,7 +342,7 @@ public class ShipLoaderTests
     [Fact]
     public void Load_overlapping_racks_names_both_rack_numbers()
     {
-        var act = () => ShipLoader.Load(TestShips, "overlapping_racks");
+        var act = () => TestShips.Load("overlapping_racks");
 
         act.Should().Throw<ShipFormatException>()
             .WithMessage("*Rack 2 ('rack-1')*[0, 1, 0]*Rack 4 ('rack-3')*[0, 1, 0]*overlap*")
@@ -211,7 +354,7 @@ public class ShipLoaderTests
     [InlineData("origin_wrong_length", "*rack-0*origin*got 2*")]
     public void Load_bad_origin_names_the_field(string shipId, string expectedMessage)
     {
-        var act = () => ShipLoader.Load(TestShips, shipId);
+        var act = () => TestShips.Load(shipId);
 
         act.Should().Throw<ShipFormatException>().WithMessage(expectedMessage);
     }
@@ -219,7 +362,7 @@ public class ShipLoaderTests
     [Fact]
     public void Load_grid_capacity_mismatch_names_rack_and_numbers()
     {
-        var act = () => ShipLoader.Load(TestShips, "grid_capacity_mismatch");
+        var act = () => TestShips.Load("grid_capacity_mismatch");
 
         act.Should().Throw<ShipFormatException>().WithMessage("*rack-0*4×2×2*16*12*");
     }
@@ -227,7 +370,7 @@ public class ShipLoaderTests
     [Fact]
     public void Load_zero_grid_axis_names_rack_and_axis()
     {
-        var act = () => ShipLoader.Load(TestShips, "zero_grid_axis");
+        var act = () => TestShips.Load("zero_grid_axis");
 
         act.Should().Throw<ShipFormatException>().WithMessage("*rack-0*width*");
     }
@@ -235,7 +378,7 @@ public class ShipLoaderTests
     [Fact]
     public void Load_unknown_side_names_rack_and_value()
     {
-        var act = () => ShipLoader.Load(TestShips, "unknown_side");
+        var act = () => TestShips.Load("unknown_side");
 
         act.Should().Throw<ShipFormatException>().WithMessage("*rack-0*left*");
     }
@@ -245,7 +388,7 @@ public class ShipLoaderTests
     [InlineData("unknown_stack_axis", "*Rack 1 ('rack-0')*stackAxis 'up'*\"+x\"*")]
     public void Load_bad_stack_axis_names_the_field(string shipId, string expectedMessage)
     {
-        var act = () => ShipLoader.Load(TestShips, shipId);
+        var act = () => TestShips.Load(shipId);
 
         act.Should().Throw<ShipFormatException>().WithMessage(expectedMessage);
     }
@@ -253,7 +396,7 @@ public class ShipLoaderTests
     [Fact]
     public void Load_unknown_property_names_the_property()
     {
-        var act = () => ShipLoader.Load(TestShips, "unknown_property");
+        var act = () => TestShips.Load("unknown_property");
 
         act.Should().Throw<ShipFormatException>().WithMessage("*capacitySCU*");
     }

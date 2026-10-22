@@ -161,7 +161,7 @@ public class PlaceIntoTests
 
     // --- Shape-aware fallback (D54) ---
 
-    private static readonly Ship Uneven = ShipLoader.Load(typeof(PlaceIntoTests).Assembly, "spike_uneven");
+    private static readonly Ship Uneven = TestShips.Load("spike_uneven");
 
     private static SavedPlan EmptyUneven => new([], new LoadPlan(Uneven.Id, [], []));
 

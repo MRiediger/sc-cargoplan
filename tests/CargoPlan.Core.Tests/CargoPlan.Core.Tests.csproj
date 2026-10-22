@@ -25,11 +25,9 @@
     <ProjectReference Include="..\..\src\CargoPlan.Core\CargoPlan.Core.csproj" />
   </ItemGroup>
 
-  <!-- Broken ship files for ShipLoaderTests. Same "ships/<file>.json" naming as in Core,
-       independent of namespace and folder. -->
+  <!-- Broken and synthetic ship files, read from TestShips/ next to the test assembly like ships/ next to the exe (D56). -->
   <ItemGroup>
-    <None Remove="TestShips/*.json" />
-    <EmbeddedResource Include="TestShips/*.json" LogicalName="ships/%(Filename)%(Extension)" />
+    <None Update="TestShips/*.json" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
   <!-- Mission files for tests, read via MissionFixtures. The files stay on disk as well,

@@ -8,11 +8,12 @@
     <InternalsVisibleTo Include="CargoPlan.Core.Tests" />
   </ItemGroup>
 
-  <!-- Ship layouts are compiled into the DLL. The explicit LogicalName ("ships/hull_a.json")
-       keeps resource names independent of namespace and folder. Adding a ship = adding a file. -->
+  <!-- Ship layouts live in the repo's ships/ folder and are copied to ships/ next to every exe and test assembly that
+       references Core, and into the publish folder (D56). Adding a ship = adding a file. IfDifferent, not PreserveNewest:
+       a file restored by git keeps an older timestamp and would not be copied.
+       Source: https://learn.microsoft.com/visualstudio/msbuild/common-msbuild-project-items -->
   <ItemGroup>
-    <None Remove="Ships/*.json" />
-    <EmbeddedResource Include="Ships/*.json" LogicalName="ships/%(Filename)%(Extension)" />
+    <None Include="..\..\ships\*.json" Link="ships\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
 </Project>

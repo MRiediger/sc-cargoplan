@@ -12,7 +12,7 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class LoadPlannerShapeTests
 {
-    private static readonly Ship Uneven = ShipLoader.Load(typeof(LoadPlannerShapeTests).Assembly, "spike_uneven");
+    private static readonly Ship Uneven = TestShips.Load("spike_uneven");
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
 
     private const string FallbackNote = "Racks not in route order – crates placed where they fit";

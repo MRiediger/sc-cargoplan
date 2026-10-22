@@ -18,8 +18,10 @@ namespace CargoPlan.App;
 /// </summary>
 public partial class App : Application
 {
-    /// <summary>The only ship until there is a ship selection (T7.1).</summary>
-    public const string ShipId = "hull_a";
+    /// <summary>The only ship until there is a ship selection (T7.2).</summary>
+    public const string ShipId = ShipLoader.FallbackShipId;
+
+    private const int ExitShipsFolderBroken = 1;
 
     private CursorStateMonitor? _cursorMonitor;
 
@@ -39,10 +41,24 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
+        // First: without the ships folder there is nothing to draw. One message, then the end, no crash dialog (D56).
+        // The catalog's problems (skipped ship files) are shown with the ship selection (T7.2).
+        ShipCatalog ships;
+        try
+        {
+            ships = ShipLoader.LoadAll();
+        }
+        catch (ShipFolderException ex)
+        {
+            MessageBox.Show(ex.Message, "SC-CargoPlan", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(ExitShipsFolderBroken);
+            return;
+        }
+
         var options = StartOptions.Parse(e.Args);
         var (settings, settingsProblem) = SettingsStore.Load(SettingsStore.DefaultPath);
 
-        var ship = ShipLoader.Load(ShipId);
+        var ship = ships.Get(ShipId);
         var viewModel = new OverlayViewModel(ship) { IsManuallyLocked = options.Locked };
         viewModel.SetNotice(NoticeSource.Settings, settingsProblem);
 
