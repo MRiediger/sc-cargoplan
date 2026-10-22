@@ -36,6 +36,9 @@ public sealed class ShipViewControl : FrameworkElement
     private static readonly Pen FramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Frame), 1) { DashStyle = DashStyles.Dash });
     private static readonly Pen FreeCellPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.FreeEdge), CrateEdgeWidth));
     private static readonly Pen RackPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 1));
+
+    // The bow wedge (D52) is filled faintly in the free cells' edge colour: dashed lines alone were hard to see in the game.
+    private static readonly Brush BowWedgeFill = Frozen(new SolidColorBrush(MissionPalette.FreeEdge));
     private static readonly Pen ViolationPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Violation), 2.5));
     private static readonly Pen DragTargetPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.DragTarget), 2.5));
     private static readonly Pen SelectionPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Selection), 2.5));
@@ -250,6 +253,12 @@ public sealed class ShipViewControl : FrameworkElement
         var drag = _drag is { IsMoving: true } moving ? moving : (Drag?)null;
         var target = (drag?.Gesture as Gesture.MoveStop)?.TargetRackId;
 
+        // The bow wedge lies beyond every rack: behind all of them seen from the stern, in front seen from the bow (D52).
+        if (!scene.BowWedge.InFront)
+        {
+            DrawBowWedge(dc, scene.BowWedge, transform);
+        }
+
         // Plain rack edges first: cargo in front covers them like any other part of the ship (D21).
         foreach (var rack in scene.Racks.Where(r => !IsHighlighted(r, target)))
         {
@@ -275,6 +284,11 @@ public sealed class ShipViewControl : FrameworkElement
             {
                 dc.Pop();
             }
+        }
+
+        if (scene.BowWedge.InFront)
+        {
+            DrawBowWedge(dc, scene.BowWedge, transform);
         }
 
         // Red and cyan on top, like the numbers: a violation or the drop target must never hide behind cargo. A faulty
@@ -686,6 +700,15 @@ public sealed class ShipViewControl : FrameworkElement
         foreach (var face in rack.Faces)
         {
             dc.DrawGeometry(null, pen, Polygon(face.Polygon, transform));
+        }
+    }
+
+    // Convex: the faces turned towards the camera never cover each other, so they need no order.
+    private static void DrawBowWedge(DrawingContext dc, ProjectedWedge wedge, ViewTransform transform)
+    {
+        foreach (var face in wedge.Faces)
+        {
+            dc.DrawGeometry(BowWedgeFill, RackPen, Polygon(face.Polygon, transform));
         }
     }
 

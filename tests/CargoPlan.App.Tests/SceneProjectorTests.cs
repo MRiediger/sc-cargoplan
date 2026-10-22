@@ -167,14 +167,71 @@ public class SceneProjectorTests
     [InlineData(0, 0)]
     [InlineData(135, -60)]
     [InlineData(270, 85)]
-    public void Extent_encloses_the_frame(double yaw, double pitch)
+    public void Extent_encloses_the_frame_and_the_bow_wedge(double yaw, double pitch)
     {
         var projected = SceneProjector.Project(Scene, new IsoProjection(yaw, pitch));
 
         projected.Frame.Should().HaveCount(12);
-        projected.Frame.SelectMany(l => new[] { l.From, l.To }).Should().OnlyContain(p =>
-            p.X >= projected.Extent.Left - 1e-9 && p.X <= projected.Extent.Right + 1e-9
-            && p.Y >= projected.Extent.Top - 1e-9 && p.Y <= projected.Extent.Bottom + 1e-9);
+        projected.Frame.SelectMany(l => new[] { l.From, l.To })
+            .Concat(projected.BowWedge.Faces.SelectMany(f => f.Polygon))
+            .Should().OnlyContain(p =>
+                p.X >= projected.Extent.Left - 1e-9 && p.X <= projected.Extent.Right + 1e-9
+                && p.Y >= projected.Extent.Top - 1e-9 && p.Y <= projected.Extent.Bottom + 1e-9);
+    }
+
+    [Theory]
+    [InlineData(4, 1)] // Hull A: 10 % of the length is 0.4 cells, the nose keeps its minimum
+    [InlineData(20, 2)] // 10 % of the length
+    public void Bow_wedge_has_a_tip_top_bottom_and_two_flanks_beyond_the_bow(int length, double nose)
+    {
+        ShipBox bounds = new(new ShipPoint(0, -2, 0), new ShipPoint(length, 3, 5));
+
+        var wedge = SceneProjector.BowWedge(bounds);
+
+        wedge.Select(f => f.Face).Should().BeEquivalentTo([BoxFace.Bow, BoxFace.Top, BoxFace.Bottom, BoxFace.Port, BoxFace.Starboard]);
+        var corners = wedge.SelectMany(f => f.Corners).ToArray();
+        corners.Should().OnlyContain(p => p.X >= length && p.Z >= 0 && p.Z <= 5);
+
+        // The tip: half the width (5 cells around y = 0.5), the full height.
+        var tip = wedge.Single(f => f.Face == BoxFace.Bow).Corners;
+        tip.Should().OnlyContain(p => Math.Abs(p.X - (length + nose)) < 1e-9);
+        tip.Select(p => (p.Y, p.Z)).Should().BeEquivalentTo([(-0.75, 0.0), (1.75, 0.0), (-0.75, 5.0), (1.75, 5.0)]);
+
+        // Every normal points out of the wedge: away from its centre.
+        var (cx, cy, cz) = (corners.Average(p => p.X), corners.Average(p => p.Y), corners.Average(p => p.Z));
+        wedge.Should().OnlyContain(f =>
+            (f.Corners.Average(p => p.X) - cx) * f.Normal.X
+            + (f.Corners.Average(p => p.Y) - cy) * f.Normal.Y
+            + (f.Corners.Average(p => p.Z) - cz) * f.Normal.Z > 0);
+    }
+
+    [Theory]
+    [InlineData(45)]
+    [InlineData(135)]
+    [InlineData(225)]
+    [InlineData(315)]
+    public void Bow_wedge_points_bowwards_on_screen(double yaw)
+    {
+        var camera = new IsoProjection(yaw, DefaultPitch);
+        var projected = SceneProjector.Project(Scene, camera);
+        var (min, max) = (Scene.Bounds.Min, Scene.Bounds.Max);
+        Point[] tip = [.. SceneProjector.BowWedge(Scene.Bounds)
+            .Single(f => f.Face == BoxFace.Bow).Corners
+            .Select(p => camera.Project(p.X, p.Y, p.Z))];
+
+        // From the bow side the wedge lies in front of every rack and shows its tip; from the stern it lies behind (D52).
+        var bowSide = Math.Cos(yaw * Math.PI / 180) > 0;
+        projected.BowWedge.InFront.Should().Be(bowSide);
+        projected.BowWedge.Faces.Any(f => f.Face == BoxFace.Bow).Should().Be(bowSide);
+
+        var boxCentre = camera.Project((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0);
+        var bowwards = camera.Project(1, 0, 0) - camera.Project(0, 0, 0);
+        ((Centre(tip) - boxCentre) * bowwards).Should().BePositive();
+        if (yaw == DefaultYaw)
+        {
+            // The bow stays on the left in the default view (D15).
+            Centre(tip).X.Should().BeLessThan(boxCentre.X);
+        }
     }
 
     [Fact]

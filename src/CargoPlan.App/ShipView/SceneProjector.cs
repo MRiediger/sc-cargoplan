@@ -4,7 +4,7 @@ using CargoPlan.Core.Models;
 namespace CargoPlan.App.ShipView;
 
 /// <summary>
-/// Projects a <see cref="ShipScene"/> for one camera: visible faces of racks and their boxes, rack numbers and frame.
+/// Projects a <see cref="ShipScene"/> for one camera: visible faces of racks and their boxes, rack numbers, frame and bow wedge.
 /// Pure and cheap, so the view reprojects on every orbit step instead of the view model rebuilding the scene (D15).
 /// </summary>
 public static class SceneProjector
@@ -19,6 +19,12 @@ public static class SceneProjector
     private const double CellSize = 0.9;
     private const double Inset = (1 - CellSize) / 2;
 
+    // The bow wedge (D52): a nose beyond the bow end of the frame, a tenth of the ship's length but at least one cell,
+    // narrowing to half the width at the full height. The racks reach the bow, so it can't taper within the frame.
+    private const double NoseMinLength = 1;
+    private const double NoseLengthShare = 0.1;
+    private const double NoseTipWidthShare = 0.5;
+
     // Also the preference on equal area: top or bottom first, then the sides, then the ends.
     private static readonly BoxFace[] AllFaces = [BoxFace.Top, BoxFace.Bottom, BoxFace.Port, BoxFace.Starboard, BoxFace.Bow, BoxFace.Aft];
 
@@ -27,8 +33,8 @@ public static class SceneProjector
         var visible = VisibleFaces(camera);
 
         ProjectedRack[] racks = [.. DrawOrder.BackToFront(scene.Racks, camera).Select(r => ProjectRack(r, visible, camera))];
-        var (frame, extent) = Frame(scene.Bounds, camera);
-        return new ProjectedScene(racks, frame, extent);
+        var frame = Frame(scene.Bounds, camera);
+        return new ProjectedScene(racks, frame, ProjectWedge(scene.Bounds, camera), Extent(scene.Bounds, frame, camera));
     }
 
     /// <summary>The visible faces of one box, drawn as small as a crate of the scene: the ghost of a dragged crate (D25).</summary>
@@ -111,23 +117,75 @@ public static class SceneProjector
             [camera.Project(x, min.Y, min.Z), camera.Project(x, max.Y, min.Z), camera.Project(x, max.Y, max.Z), camera.Project(x, min.Y, max.Z)];
     }
 
+    /// <summary>
+    /// The 5 faces of the bow wedge in ship coordinates (D52): the tip, top, bottom and the two flanks; its base is the
+    /// box's bow face. Only a marker for the bow; the racks give no hull shape.
+    /// </summary>
+    public static IReadOnlyList<BowWedgeFace> BowWedge(ShipBox box)
+    {
+        var (min, max) = (box.Min, box.Max);
+        var nose = Math.Max(NoseMinLength, NoseLengthShare * (max.X - min.X));
+        var tipX = max.X + nose;
+        var centreY = (min.Y + max.Y) / 2.0;
+        var halfTip = NoseTipWidthShare * (max.Y - min.Y) / 2;
+
+        // Round the bow face and the tip: starboard bottom, port bottom, port top, starboard top.
+        Corner[] bow = [new(max.X, min.Y, min.Z), new(max.X, max.Y, min.Z), new(max.X, max.Y, max.Z), new(max.X, min.Y, max.Z)];
+        Corner[] tip =
+        [
+            new(tipX, centreY - halfTip, min.Z), new(tipX, centreY + halfTip, min.Z),
+            new(tipX, centreY + halfTip, max.Z), new(tipX, centreY - halfTip, max.Z),
+        ];
+
+        // A flank narrows by `inwards` over `nose`; its normal is at right angles to that, in the x-y plane.
+        var inwards = max.Y - (centreY + halfTip);
+        var length = Math.Sqrt(inwards * inwards + nose * nose);
+        return
+        [
+            new(BoxFace.Bow, tip, (1, 0, 0)),
+            new(BoxFace.Top, [bow[3], bow[2], tip[2], tip[3]], (0, 0, 1)),
+            new(BoxFace.Bottom, [bow[0], bow[1], tip[1], tip[0]], (0, 0, -1)),
+            new(BoxFace.Port, [bow[1], bow[2], tip[2], tip[1]], (inwards / length, nose / length, 0)),
+            new(BoxFace.Starboard, [bow[0], bow[3], tip[3], tip[0]], (inwards / length, -nose / length, 0)),
+        ];
+    }
+
+    private static ProjectedWedge ProjectWedge(ShipBox box, IsoProjection camera)
+    {
+        var d = camera.ViewDirection;
+        ProjectedFace[] faces = [.. from face in BowWedge(box)
+                                    where face.Normal.X * d.X + face.Normal.Y * d.Y + face.Normal.Z * d.Z < -EdgeOn
+                                    select new ProjectedFace(face.Face, [.. face.Corners.Select(c => camera.Project(c.X, c.Y, c.Z))])];
+
+        // The camera looks against +x: the wedge, beyond every rack's bow end, is nearer.
+        return new ProjectedWedge(faces, InFront: d.X < 0);
+    }
+
     /// <summary>The 12 edges of the box: every pair of corners that differ on exactly one axis.</summary>
-    private static (SceneLine[] Edges, Rect Extent) Frame(ShipBox box, IsoProjection camera)
+    private static SceneLine[] Frame(ShipBox box, IsoProjection camera)
     {
         Point[] corners = [.. Enumerable.Range(0, 8).Select(i => camera.Project(
             (i & 1) == 0 ? box.Min.X : box.Max.X,
             (i & 2) == 0 ? box.Min.Y : box.Max.Y,
             (i & 4) == 0 ? box.Min.Z : box.Max.Z))];
 
-        SceneLine[] edges = [.. from i in Enumerable.Range(0, 8)
-                                from axis in (int[])[1, 2, 4]
-                                where (i & axis) == 0
-                                select new SceneLine(corners[i], corners[i | axis])];
-
-        var extent = corners.Aggregate(new Rect(corners[0], corners[0]), (rect, p) => Rect.Union(rect, p));
-        return (edges, extent);
+        return [.. from i in Enumerable.Range(0, 8)
+                   from axis in (int[])[1, 2, 4]
+                   where (i & axis) == 0
+                   select new SceneLine(corners[i], corners[i | axis])];
     }
 
-    /// <summary>A box corner in cells; not a <see cref="ShipPoint"/>, a drawn box is smaller than its whole cells.</summary>
-    private readonly record struct Corner(double X, double Y, double Z);
+    /// <summary>Encloses the frame and every corner of the wedge, seen or not, so the fit doesn't change as faces turn away.</summary>
+    private static Rect Extent(ShipBox box, IReadOnlyList<SceneLine> frame, IsoProjection camera)
+    {
+        Point[] points =
+        [
+            .. frame.SelectMany(l => new[] { l.From, l.To }),
+            .. BowWedge(box).SelectMany(f => f.Corners).Select(c => camera.Project(c.X, c.Y, c.Z)),
+        ];
+        return points.Aggregate(new Rect(points[0], points[0]), (rect, p) => Rect.Union(rect, p));
+    }
+
+    /// <summary>A point in cells; not a <see cref="ShipPoint"/>, a drawn box is smaller than its whole cells.</summary>
+    public readonly record struct Corner(double X, double Y, double Z);
 }

@@ -171,6 +171,16 @@ public class SceneHitTestTests
     }
 
     [Fact]
+    public void Hit_on_the_bow_wedge_is_null()
+    {
+        // The nose beyond the bow (x 4–5 on Hull A, D52) is drawn, not hit: off the racks in the default view.
+        var nose = Default.Project(4.8, 0.5, 0);
+
+        SceneHitTest.HitAt(Projected, nose).Should().BeNull();
+        SceneHitTest.ToolTipAt(Projected, nose).Should().BeNull();
+    }
+
+    [Fact]
     public void Hit_follows_the_rack_in_front()
     {
         SceneHitTest.HitAt(Projected, Default.Project(2, 0, 3.5))!.RackId.Should().Be("rack-0");

@@ -655,14 +655,31 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 
 PNG, kein Spielername/Org im Bild, Overlay außerhalb des CT-Capture-Bereichs.
 
+### [ ] T6.4b Bow marker in the ship view
+**Warum:** Release-Blocker, Präzisierung in der T6.5-Planung: ohne Markierung ist Rack 1 nicht von Rack 4 zu unterscheiden, sobald der Spieler die Ansicht gedreht hat.
+- Form, keine Beschriftung: Keil am Bug, Bug bleibt links in der Default-Kamera (D15)
+- Keine Schiffsformat-Änderung, keine Settings-Option, Core unverändert
+- Test: Keil am Bug-Ende in den vier Default-Yaw-Quadranten; Hit-Test und Drop-Target unverändert
+- D-Eintrag mit Gegenargument (stumpfe Schiffe bekommen eine Nase)
+
+**Präzisiert in der Planung:** Befund: `ShipScene` kennt keinen Rumpf, `Ship.Bounds` ist die Vereinigung der Rack-Boxen, gezeichnet als gestrichelter Rahmen aus Linien außerhalb des Painters (D21); Hit-Test und Drop-Target sehen ihn nicht. Die Racks reichen bis zur Bugkante, eine Verjüngung auf den letzten 10 % schnitte durch sie (und wären beim Hull A 0,4 Zellen). Daher Nase **vor** der Bugkante, Länge max(1 Zelle, 10 % der Länge), Spitze halbe Breite, volle Höhe, Linien wie der Rahmen (gestrichelt, `MissionPalette.Frame`), nicht gefüllt, kein Painter-Eingriff. Folge für T6.5: `src` ändert sich nach rc.1, geprüft wird am Prerelease `v0.1.0-rc.2`. Präzisierung in der Planphase, ratifiziert durch Freigabe (D52).
+
+**Akzeptanz:** Keil am Bug in allen vier Quadranten (Test); Hit-Test unverändert (bestehende Tests grün, Klick auf die Nase trifft nichts); Martin hat die Sichtbarkeit im Spiel beurteilt.
+
+**Befund (Linien):** `SceneProjector.BowWedge` als 8 Kanten, `Frame` 20 statt 12 Linien. In der Default-Kamera bleibt die Hull-A-Nase im alten Extent (v max 3,375 < 3,5; u min −4,98 > −5,20), Default-Zoom und Nummerngröße unverändert (`RackNumberSizeTests` grün ohne Änderung). Im Spiel kaum erkennbar (Martin): Stil des Rahmens, keine Fläche.
+
+**Nachbesserung, präzisiert:** Nase als 5 gefüllte Flächen (Spitze, oben, unten, zwei Flanken), Füllung `MissionPalette.FreeEdge` (Alpha 0x50; freie Zellen selbst haben keine Füllung, daher deren Kantenfarbe als Fläche), Kanten `RackPen` durchgezogen; sichtbare Flächen über die Normalen. Painter-Befund: die x-Achse trennt Nase und Racks immer, der Yaw-Quadrant entscheidet (Bugseite → nach den Kisten, vor Rot/Cyan; sonst vor den Rack-Kanten); kein `DrawOrder`-Eintrag. Länge bleibt max(1 Zelle, 10 %). Präzisierung in der Planphase, ratifiziert durch Freigabe (D52-Addendum).
+
+**Befund (Flächen):** `BowWedge` liefert `BowWedgeFace` (Fläche, Ecken, Normale nach außen), `ProjectedScene.BowWedge` die sichtbaren Flächen und `InFront`; `Frame` wieder 12 Linien, Extent umschließt alle Keil-Ecken. Tests: 5 Flächen mit Spitzenmaßen und Normalen nach außen (Hull A, 20-Zellen-Box); in vier Yaw-Quadranten Spitze bugwärts, `InFront` und sichtbare Spitze genau von der Bugseite; Klick auf die Nase trifft nichts. Tests 564/798/93 (+7 App gegenüber main), 0 Warnungen.
+
 ### [ ] T6.5 README final
 **Warum:** Das README ist die Download-Seite. Was dort steht, muss der Build tun.
 - Vorbedingung: Screenshots aus der T6.4-Liste liegen in `docs/screenshots/`
 - Abschnitte: Was · Download · Erstes Mal · CT-Anbindung · Hotkeys · Known issues · Bug melden · Credits · Lizenz
 - SmartScreen-Warnung bei der unsignierten EXE ehrlich dokumentieren (aus T6.3 hierher)
 - Kein Ruckel-Hinweis mehr (in 7e94ac3 entfernt, D45)
-- Jede Verhaltensaussage am Release-Build geprüft (das ZIP aus dem Prerelease `v0.1.0-rc.1`)
-- Danach Tag `v0.1.0` (Notes `docs/release-notes/v0.1.0.md`), dann Release und Tag `v0.1.0-rc.1` löschen (D49)
+- Jede Verhaltensaussage am Release-Build geprüft (das ZIP aus dem Prerelease `v0.1.0-rc.2`, nach T6.4b)
+- Danach Tag `v0.1.0` (Notes `docs/release-notes/v0.1.0.md`), dann Releases und Tags `v0.1.0-rc.1` und `v0.1.0-rc.2` löschen (D49)
 
 **Akzeptanz:** Alle Abschnitte vorhanden; jede Verhaltensaussage am Build nachvollzogen; Links funktionieren.
 

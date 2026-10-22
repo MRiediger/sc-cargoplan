@@ -75,8 +75,20 @@ public enum BoxFace
 /// </summary>
 /// <param name="Racks">Back to front (<see cref="DrawOrder.BackToFront"/>): the painter draws rack by rack.</param>
 /// <param name="Frame">The 12 edges of <c>Ship.Bounds</c>.</param>
-/// <param name="Extent">Encloses the frame, for fit-to-view.</param>
-public sealed record ProjectedScene(IReadOnlyList<ProjectedRack> Racks, IReadOnlyList<SceneLine> Frame, Rect Extent);
+/// <param name="BowWedge">The nose that marks the bow (D52).</param>
+/// <param name="Extent">Encloses the frame and the bow wedge, for fit-to-view.</param>
+public sealed record ProjectedScene(IReadOnlyList<ProjectedRack> Racks, IReadOnlyList<SceneLine> Frame, ProjectedWedge BowWedge, Rect Extent);
+
+/// <summary>One face of the bow wedge in ship coordinates (D52): <see cref="BoxFace.Bow"/> is its tip, Port and Starboard its flanks.</summary>
+/// <param name="Normal">Outward, unit length; the flanks' normals are not along an axis.</param>
+public sealed record BowWedgeFace(BoxFace Face, IReadOnlyList<SceneProjector.Corner> Corners, (double X, double Y, double Z) Normal);
+
+/// <param name="Faces">The faces turned towards the camera.</param>
+/// <param name="InFront">
+/// The wedge lies beyond the bow end of every rack, so the x axis always separates them: seen from the bow side it is
+/// drawn after the racks, otherwise before them, without a place in <see cref="DrawOrder"/>.
+/// </param>
+public sealed record ProjectedWedge(IReadOnlyList<ProjectedFace> Faces, bool InFront);
 
 /// <param name="Faces">The faces of the rack's box the camera sees: its edges and its area for the hit test.</param>
 /// <param name="Boxes">The rack's own boxes, back to front (<see cref="DrawOrder.BoxesBackToFront"/>).</param>
