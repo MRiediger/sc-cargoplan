@@ -10,11 +10,15 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$Source,
-    [string]$ShipsFolder = (Join-Path (Split-Path $PSScriptRoot -Parent) 'ships'),
+    # Default ships/ next to tools/, set below: Windows PowerShell 5.1 leaves $PSScriptRoot empty in parameter defaults.
+    [string]$ShipsFolder,
     [switch]$Create,
     [string]$Force
 )
 $ErrorActionPreference = 'Stop'
+if (-not $ShipsFolder) {
+    $ShipsFolder = Join-Path (Split-Path $PSScriptRoot -Parent) 'ships'
+}
 
 $SchemaVersion = 4
 $CellMeters = [decimal]1.25

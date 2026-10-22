@@ -51,6 +51,20 @@ public class ImportFleetyardsScriptTests
         work.ShipIds().Should().BeEmpty();
     }
 
+    // Without -ShipsFolder the script takes ships/ next to its tools/ folder: the repo layout, and the test output's
+    // (Core copies ships/ there). Only a compare, so nothing is written next to the test assembly.
+    [Fact]
+    public async Task Without_ShipsFolder_the_ships_folder_next_to_tools_is_used()
+    {
+        using var work = new Workspace();
+
+        var run = await work.Run(withShipsFolder: false);
+
+        run.ExitCode.Should().Be(Deviation, run.Error);
+        run.Output.Should().MatchRegex(@"new\s+row_ship");
+        File.Exists(Path.Combine(ShipLoader.DefaultFolder, "row_ship.json")).Should().BeFalse();
+    }
+
     [Fact]
     public async Task Compare_reports_same_and_writes_nothing()
     {
@@ -197,7 +211,9 @@ public class ImportFleetyardsScriptTests
                 .Select(f => $"{f} {File.GetLastWriteTimeUtc(f):O} {Convert.ToHexString(File.ReadAllBytes(f))}"),
         ];
 
-        public async Task<ScriptRun> Run(params string[] arguments)
+        public Task<ScriptRun> Run(params string[] arguments) => Run(withShipsFolder: true, arguments);
+
+        public async Task<ScriptRun> Run(bool withShipsFolder, params string[] arguments)
         {
             ProcessStartInfo start = new(Shell())
             {
@@ -205,8 +221,9 @@ public class ImportFleetyardsScriptTests
                 RedirectStandardError = true,
                 UseShellExecute = false,
             };
+            string[] folder = withShipsFolder ? ["-ShipsFolder", Ships] : [];
             foreach (var argument in (string[])["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", Script,
-                         "-Source", Export, "-ShipsFolder", Ships, .. arguments])
+                         "-Source", Export, .. folder, .. arguments])
             {
                 start.ArgumentList.Add(argument);
             }
