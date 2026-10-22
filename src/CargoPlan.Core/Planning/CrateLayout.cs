@@ -24,14 +24,7 @@ public static class CrateLayout
         Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<string> route, FillOrder order)
     {
         occupied = [.. occupied.Where(c => !c.Delivered)];
-        var grid = rack.Grid;
-        var taken = new bool[grid.Length, grid.Width, grid.Stack];
-        foreach (var cell in occupied.SelectMany(c => c.Cells).Where(c => Inside(grid, c)))
-        {
-            taken[cell.Length, cell.Width, cell.Stack] = true;
-        }
-
-        if (Place(rack, taken, [.. crates.Select(c => c.Size)], order) is not { } positions)
+        if (Place(RackSpace.Around(rack, occupied, order), [.. crates.Select(c => c.Size)]) is not { } positions)
         {
             return null;
         }
@@ -63,7 +56,7 @@ public static class CrateLayout
             taken[cell.Length, cell.Width, cell.Stack] = false;
         }
 
-        return Place(rack, taken, sizes, order);
+        return Place(new RackSpace(rack, taken, order), sizes);
     }
 
     /// <summary>
@@ -98,29 +91,65 @@ public static class CrateLayout
             : Invariant($"Together they would be a {block} crate, {(int)size} SCU crates are {size.Dimensions}.");
     }
 
-    /// <summary>The lay-out of <see cref="Place"/> into the free cells of <paramref name="taken"/>, which it fills.</summary>
-    private static GridPosition[]? Place(Rack rack, bool[,,] taken, IReadOnlyList<CrateSize> sizes, FillOrder order)
+    /// <summary>The lay-out of <see cref="Place"/> into the free cells of <paramref name="space"/>, which it fills.</summary>
+    private static GridPosition[]? Place(RackSpace space, IReadOnlyList<CrateSize> sizes)
     {
-        var rank = Ranks(rack, order);
         var positions = new GridPosition[sizes.Count];
 
         // OrderByDescending is stable: crates of one size keep input order.
         foreach (var i in Enumerable.Range(0, sizes.Count).OrderByDescending(i => sizes[i]))
         {
-            if (FirstFit(sizes[i].Dimensions, rank, taken) is not { } position)
+            if (space.Add(sizes[i]) is not { } position)
             {
                 return null;
-            }
-
-            foreach (var cell in Cells(position, sizes[i].Dimensions))
-            {
-                taken[cell.Length, cell.Width, cell.Stack] = true;
             }
 
             positions[i] = position;
         }
 
         return positions;
+    }
+
+    /// <summary>
+    /// The free cells of one rack, filled crate by crate as <see cref="Place"/> fills them: each crate at its first fit
+    /// (<see cref="FirstFit"/>). The one code path for laying out and for probing a rack (D54): crates added largest
+    /// first take exactly the cells <see cref="Place"/> gives the same sizes around the same cargo.
+    /// </summary>
+    internal sealed class RackSpace
+    {
+        private readonly bool[,,] _taken;
+        private readonly int[,,] _rank;
+
+        internal RackSpace(Rack rack, bool[,,] taken, FillOrder order) => (_taken, _rank) = (taken, Ranks(rack, order));
+
+        /// <summary>The free cells of <paramref name="rack"/> around the cargo on board of <paramref name="occupied"/>.</summary>
+        public static RackSpace Around(Rack rack, IEnumerable<Crate> occupied, FillOrder order)
+        {
+            var grid = rack.Grid;
+            var taken = new bool[grid.Length, grid.Width, grid.Stack];
+            foreach (var cell in occupied.Where(c => !c.Delivered).SelectMany(c => c.Cells).Where(c => Inside(grid, c)))
+            {
+                taken[cell.Length, cell.Width, cell.Stack] = true;
+            }
+
+            return new RackSpace(rack, taken, order);
+        }
+
+        /// <summary>Takes the first fit for a crate of <paramref name="size"/> and returns it; null, and nothing taken, if there is none.</summary>
+        public GridPosition? Add(CrateSize size)
+        {
+            if (FirstFit(size.Dimensions, _rank, _taken) is not { } position)
+            {
+                return null;
+            }
+
+            foreach (var cell in Cells(position, size.Dimensions))
+            {
+                _taken[cell.Length, cell.Width, cell.Stack] = true;
+            }
+
+            return position;
+        }
     }
 
     /// <summary>
