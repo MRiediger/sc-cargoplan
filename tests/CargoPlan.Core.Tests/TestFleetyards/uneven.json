@@ -1,0 +1,21 @@
+[
+  {
+    "slug": "tstm-uneven",
+    "name": "Uneven",
+    "manufacturer": "TSTM",
+    "cargoHolds": [
+      {
+        "capacity": 8,
+        "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 },
+        "maxContainerSize": { "size": 8 },
+        "name": "hardpoint_cargo_good"
+      },
+      {
+        "capacity": 8,
+        "dimensions": { "x": 2.0, "y": 2.5, "z": 2.5 },
+        "maxContainerSize": { "size": 8 },
+        "name": "hardpoint_cargo_bad"
+      }
+    ]
+  }
+]

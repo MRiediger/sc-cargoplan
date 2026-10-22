@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 4,
+  "id": "offset_ship",
+  "name": "TSTM Offset Ship",
+  "manufacturer": "TSTM",
+  "fleetyardsSlug": "tstm-offset-ship",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-01-15",
+  "notes": "rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game",
+  "totalScu": 32,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 16,
+      "grid": { "length": 4, "width": 2, "stack": 2 },
+      "position": { "side": "port", "level": "lower" },
+      "origin": [0, -2, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 16
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 16,
+      "grid": { "length": 4, "width": 2, "stack": 2 },
+      "position": { "side": "starboard", "level": "upper" },
+      "origin": [0, -6, 3],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    }
+  ]
+}

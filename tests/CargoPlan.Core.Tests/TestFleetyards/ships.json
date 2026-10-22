@@ -1,0 +1,79 @@
+[
+  {
+    "slug": "tstm-offset-ship",
+    "name": "Offset Ship",
+    "manufacturer": "TSTM",
+    "cargo": 32.0,
+    "cargoHolds": [
+      {
+        "capacity": 16,
+        "dimensions": { "x": 2.5, "y": 5.0, "z": 2.5 },
+        "maxContainerSize": { "size": 16, "dimensions": { "x": 5.0, "y": 2.5, "z": 2.5 } },
+        "name": "hardpoint_cargo_left",
+        "offset": { "x": 0.0, "y": 0.0, "z": 0.0 }
+      },
+      {
+        "capacity": 16,
+        "dimensions": { "x": 2.5, "y": 5.0, "z": 2.5 },
+        "maxContainerSize": { "size": 8, "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 } },
+        "name": "hardpoint_cargo_right",
+        "offset": { "x": 5.0, "y": 0.0, "z": 3.75 }
+      }
+    ]
+  },
+  {
+    "slug": "tstm-row-ship",
+    "name": "Row Ship",
+    "manufacturer": "TSTM",
+    "cargo": 26.0,
+    "cargoHolds": [
+      {
+        "capacity": 2,
+        "dimensions": { "x": 1.25, "y": 2.5, "z": 1.25 },
+        "maxContainerSize": { "size": 2, "dimensions": { "x": 2.5, "y": 1.25, "z": 1.25 } },
+        "name": "hardpoint_cargo_ladder"
+      },
+      {
+        "capacity": 16,
+        "dimensions": { "x": 5.0, "y": 2.5, "z": 2.5 },
+        "maxContainerSize": { "size": 16, "dimensions": { "x": 5.0, "y": 2.5, "z": 2.5 } },
+        "name": "hardpoint_cargo_wide"
+      },
+      {
+        "capacity": 8,
+        "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 },
+        "maxContainerSize": { "size": 8, "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 } },
+        "name": "hardpoint_cargo_small"
+      }
+    ]
+  },
+  {
+    "slug": "tstm-overlap-ship",
+    "name": "Overlap Ship",
+    "manufacturer": "TSTM",
+    "cargo": 16.0,
+    "cargoHolds": [
+      {
+        "capacity": 8,
+        "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 },
+        "maxContainerSize": { "size": 8, "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 } },
+        "name": "hardpoint_cargo_module_01",
+        "offset": { "x": 0.0, "y": 0.0, "z": 0.0 }
+      },
+      {
+        "capacity": 8,
+        "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 },
+        "maxContainerSize": { "size": 8, "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 } },
+        "name": "hardpoint_cargo_module_02",
+        "offset": { "x": 0.0, "y": 0.0, "z": 0.0 }
+      }
+    ]
+  },
+  {
+    "slug": "tstm-no-grid",
+    "name": "No Grid",
+    "manufacturer": "TSTM",
+    "cargo": 12.0,
+    "cargoHolds": [ ]
+  }
+]

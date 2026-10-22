@@ -30,6 +30,13 @@
     <None Update="TestShips/*.json" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
+  <!-- Fleetyards import (T7.1b): the script under test, linked from tools/ so the test needn't search the repo root,
+       a synthetic export and the ship files it must produce. -->
+  <ItemGroup>
+    <None Include="..\..\tools\import-fleetyards.ps1" Link="tools\import-fleetyards.ps1" CopyToOutputDirectory="IfDifferent" />
+    <None Update="TestFleetyards/**/*.json" CopyToOutputDirectory="IfDifferent" />
+  </ItemGroup>
+
   <!-- Mission files for tests, read via MissionFixtures. The files stay on disk as well,
        so the CLI can use them as examples. -->
   <ItemGroup>
