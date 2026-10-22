@@ -302,6 +302,8 @@ public class ShipLoaderTests
     [InlineData("zero_grid_axis")]          // grid width 0
     [InlineData("unknown_side")]            // "side": "left"
     [InlineData("unknown_level")]           // "level": "middle"
+    [InlineData("max_crate_size_invalid")]  // "maxCrateSize": 12
+    [InlineData("blank_manufacturer")]      // "manufacturer": " "
     public void Load_invalid_ship_throws_ShipFormatException_naming_the_file(string shipId)
     {
         var act = () => TestShips.Load(shipId);
@@ -399,6 +401,47 @@ public class ShipLoaderTests
         var act = () => TestShips.Load("unknown_property");
 
         act.Should().Throw<ShipFormatException>().WithMessage("*capacitySCU*");
+    }
+
+    // --- Optional fields (D56): no schema bump, files without them load as before ---
+
+    [Fact]
+    public void Load_reads_max_crate_size_and_ship_metadata()
+    {
+        var ship = TestShips.Load("max_crate_size");
+
+        ship.Racks.Select(r => r.MaxCrateSize).Should().Equal(CrateSize.Sixteen, null);
+        (ship.Manufacturer, ship.FleetyardsSlug, ship.Source, ship.Notes)
+            .Should().Be(("RSI", "test-ship", "Fleetyards", "Rack 1 takes crates up to 16 SCU."));
+    }
+
+    [Fact]
+    public void Load_without_optional_fields_leaves_them_null()
+    {
+        var ship = TestShips.Load("spike_uneven");
+
+        ship.Racks.Should().OnlyContain(r => r.MaxCrateSize == null);
+        new[] { ship.Manufacturer, ship.FleetyardsSlug, ship.Source, ship.Notes }.Should().OnlyContain(v => v == null);
+    }
+
+    // The 4×2×2 grid takes no crate above 16 SCU anyway; a limit would only repeat it (ship-format.md).
+    [Fact]
+    public void Load_hull_a_has_its_metadata_and_no_max_crate_size()
+    {
+        var ship = ShipLoader.Load("hull_a");
+
+        (ship.Manufacturer, ship.FleetyardsSlug, ship.Source).Should().Be(("MISC", "misc-hull-a", "in game"));
+        ship.Racks.Should().OnlyContain(r => r.MaxCrateSize == null);
+    }
+
+    [Theory]
+    [InlineData("max_crate_size_invalid", "*Rack 1 ('rack-0')*maxCrateSize 12*1, 2, 4, 8, 16, 24, 32*")]
+    [InlineData("blank_manufacturer", "*manufacturer*")]
+    public void Load_bad_optional_field_names_the_field(string shipId, string expectedMessage)
+    {
+        var act = () => TestShips.Load(shipId);
+
+        act.Should().Throw<ShipFormatException>().WithMessage(expectedMessage);
     }
 
     // --- DTO mapping ---

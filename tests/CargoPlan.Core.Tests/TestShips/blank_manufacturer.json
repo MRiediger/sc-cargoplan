@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 4,
+  "id": "blank_manufacturer",
+  "name": "Blank manufacturer",
+  "manufacturer": " ",
+  "totalScu": 16,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 16,
+      "grid": { "length": 4, "width": 2, "stack": 2 },
+      "position": { "side": "port", "level": "lower" },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z"
+    }
+  ]
+}

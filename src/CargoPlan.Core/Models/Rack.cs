@@ -6,10 +6,12 @@ namespace CargoPlan.Core.Models;
 /// A separately loadable ship section. <see cref="Index"/> 0 is Rack 1, the first in rack order;
 /// where the rack physically sits is <see cref="Position"/> in player words and <see cref="Origin"/> in ship coordinates (D14).
 /// The grid must hold exactly <see cref="CapacityScu"/> cells. Crates stack along <see cref="StackAxis"/> (D26); the
-/// default is the old drawing convention, so racks built in code stack up.
+/// default is the old drawing convention, so racks built in code stack up. <see cref="MaxCrateSize"/> is the game's limit
+/// on top of the grid (D56); null means the grid alone decides.
 /// </summary>
 public sealed record Rack(
-    string Id, int Index, int CapacityScu, Dimensions Grid, RackPosition Position, ShipPoint Origin, StackAxis StackAxis = StackAxis.PlusZ)
+    string Id, int Index, int CapacityScu, Dimensions Grid, RackPosition Position, ShipPoint Origin, StackAxis StackAxis = StackAxis.PlusZ,
+    CrateSize? MaxCrateSize = null)
 {
     private const int X = 0, Y = 1, Z = 2;
 
@@ -18,6 +20,7 @@ public sealed record Rack(
     public int Index { get; } = NonNegative(Index);
     public int CapacityScu { get; } = Positive(CapacityScu);
     public Dimensions Grid { get; } = Matching(Id, Grid, CapacityScu);
+    public CrateSize? MaxCrateSize { get; } = Known(MaxCrateSize);
 
     /// <summary>Player-facing rack number: racks count from 1, <see cref="Index"/> stays 0-based (D6).</summary>
     public int Number => Index + 1;
@@ -54,8 +57,14 @@ public sealed record Rack(
         return new GridPosition(position[0], position[1], position[2]);
     }
 
-    /// <summary>True if one crate of this size fits the grid in its fixed orientation (no turning).</summary>
-    public bool CanHold(CrateSize size)
+    /// <summary>
+    /// True if the rack takes one crate of this size: no larger than <see cref="MaxCrateSize"/>, and fitting the grid in
+    /// its fixed orientation (no turning). The one check for "may this size go here"; layout and moves ask it (D56).
+    /// </summary>
+    public bool CanHold(CrateSize size) => size <= (MaxCrateSize ?? size) && FitsGrid(size);
+
+    /// <summary>True if one crate of this size fits the grid in its fixed orientation, whatever <see cref="MaxCrateSize"/> says.</summary>
+    public bool FitsGrid(CrateSize size)
     {
         var crate = size.Dimensions;
         return crate.Length <= Grid.Length && crate.Width <= Grid.Width && crate.Stack <= Grid.Stack;
@@ -106,6 +115,9 @@ public sealed record Rack(
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
         return value;
     }
+
+    private static CrateSize? Known(CrateSize? size) =>
+        size is not { } s || Enum.IsDefined(s) ? size : throw new ArgumentOutOfRangeException(nameof(MaxCrateSize), size, "Unknown crate size.");
 
     private static Dimensions Matching(string id, Dimensions grid, int capacityScu) =>
         grid.Volume == capacityScu

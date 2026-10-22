@@ -768,6 +768,12 @@ public static class LoadPlanner
             return Edit.Refused(Invariant($"{(int)merged} SCU crates are larger than the max crate size of {max} SCU for {first.Commodity}."));
         }
 
+        // The game's limit per rack (D56): the block may have the shape, the rack still refuses the size.
+        if (RackOf(ship, first.RackId, nameof(crates)) is { MaxCrateSize: { } rackMax } rack && merged > rackMax)
+        {
+            return Edit.Refused(Invariant($"Rack {rack.Number} takes crates up to {(int)rackMax} SCU."));
+        }
+
         if (CrateLayout.BlockProblem(crates, merged) is { } problem)
         {
             return Edit.Refused(problem);
@@ -956,8 +962,8 @@ public static class LoadPlanner
     }
 
     /// <summary>
-    /// Names the first crate in route order whose shape fits no rack. Checked per crate, not per mix:
-    /// for Hull A every mix up to the rack capacity fits (D9).
+    /// Names the first crate in route order whose shape or size no rack takes (<see cref="Rack.CanHold"/>). Checked per
+    /// crate, not per mix: for Hull A every mix up to the rack capacity fits (D9).
     /// </summary>
     private static void EnsureCratesFitShip(Ship ship, Stop[] route)
     {
@@ -965,13 +971,22 @@ public static class LoadPlanner
         {
             if (stop.Items.FirstOrDefault(i => !ship.Racks.Any(r => r.CanHold(i.CrateSize))) is { } item)
             {
-                // MaxBy keeps the first rack on a tie.
-                var largest = ship.Racks.MaxBy(r => r.Grid.Volume);
                 throw new PlanException(Invariant(
-                    $"{(int)item.CrateSize} SCU crate of {item.Commodity} for {stop.Destination} doesn't fit any rack of {ship.Id} (largest rack {largest?.Grid})."));
+                    $"{(int)item.CrateSize} SCU crate of {item.Commodity} for {stop.Destination} doesn't fit any rack of {ship.Id} ({WhyNoRack(ship, item.CrateSize)})."));
             }
         }
     }
+
+    /// <summary>
+    /// Why no rack of <paramref name="ship"/> takes the size: if some rack's grid would hold it, the max crate size stops
+    /// it there (D56), and the largest of those limits is named; else the largest rack's grid.
+    /// </summary>
+    private static string WhyNoRack(Ship ship, CrateSize size) =>
+        // Max skips nulls and is null for none; a rack whose grid holds the size and has no limit would take it.
+        ship.Racks.Where(r => r.FitsGrid(size)).Max(r => r.MaxCrateSize) is { } max
+            ? Invariant($"racks take crates up to {(int)max} SCU")
+            // MaxBy keeps the first rack on a tie.
+            : Invariant($"largest rack {ship.Racks.MaxBy(r => r.Grid.Volume)?.Grid}");
 
     /// <summary>Names the first stop in route order that no longer fits into the ship.</summary>
     private static void EnsureFitsShip(Ship ship, Stop[] route)

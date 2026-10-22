@@ -2,8 +2,14 @@ using static System.FormattableString;
 
 namespace CargoPlan.Core.Models;
 
-/// <summary>A ship layout. The rack capacities must add up to <see cref="TotalScu"/>.</summary>
-public sealed record Ship(string Id, string Name, int TotalScu, IReadOnlyList<Rack> Racks)
+/// <summary>
+/// A ship layout. The rack capacities must add up to <see cref="TotalScu"/>. The optional data describes the ship, it
+/// doesn't change the plan (D56): <see cref="Manufacturer"/> code such as "MISC", <see cref="FleetyardsSlug"/> to match
+/// other Fleetyards data such as the outline, <see cref="Source"/> of the values, free <see cref="Notes"/>.
+/// </summary>
+public sealed record Ship(
+    string Id, string Name, int TotalScu, IReadOnlyList<Rack> Racks,
+    string? Manufacturer = null, string? FleetyardsSlug = null, string? Source = null, string? Notes = null)
 {
     public int TotalScu { get; } = TotalScu;
 

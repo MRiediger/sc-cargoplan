@@ -2,6 +2,9 @@
   "schemaVersion": 4,
   "id": "hull_a",
   "name": "MISC Hull A",
+  "manufacturer": "MISC",
+  "fleetyardsSlug": "misc-hull-a",
+  "source": "in game",
   "totalScu": 64,
   "racks": [
     {

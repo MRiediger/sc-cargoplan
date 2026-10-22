@@ -140,14 +140,16 @@ public static class CrateLayout
     /// <summary>
     /// The free cells of one rack, filled crate by crate as <see cref="Place"/> fills them: each crate at its first fit
     /// (<see cref="FirstFit"/>). The one code path for laying out and for probing a rack (D54): crates added largest
-    /// first take exactly the cells <see cref="Place"/> gives the same sizes around the same cargo.
+    /// first take exactly the cells <see cref="Place"/> gives the same sizes around the same cargo. A size the rack
+    /// doesn't take (<see cref="Rack.CanHold"/>, its max crate size, D56) finds no fit, wherever there is room.
     /// </summary>
     internal sealed class RackSpace
     {
+        private readonly Rack _rack;
         private readonly bool[,,] _taken;
         private readonly int[,,] _rank;
 
-        internal RackSpace(Rack rack, bool[,,] taken, FillOrder order) => (_taken, _rank) = (taken, Ranks(rack, order));
+        internal RackSpace(Rack rack, bool[,,] taken, FillOrder order) => (_rack, _taken, _rank) = (rack, taken, Ranks(rack, order));
 
         /// <summary>The free cells of <paramref name="rack"/> around the cargo on board of <paramref name="occupied"/>.</summary>
         public static RackSpace Around(Rack rack, IEnumerable<Crate> occupied, FillOrder order)
@@ -165,7 +167,7 @@ public static class CrateLayout
         /// <summary>Takes the first fit for a crate of <paramref name="size"/> and returns it; null, and nothing taken, if there is none.</summary>
         public GridPosition? Add(CrateSize size)
         {
-            if (FirstFit(size.Dimensions, _rank, _taken) is not { } position)
+            if (!_rack.CanHold(size) || FirstFit(size.Dimensions, _rank, _taken) is not { } position)
             {
                 return null;
             }
@@ -302,7 +304,8 @@ public static class CrateLayout
             var size = (int)crate.CrateSize;
             if (!rack.CanHold(crate.CrateSize))
             {
-                yield return (Invariant($"{size} SCU crate of {crate.Commodity} for {crate.Destination} doesn't fit rack {rack.Number} ({rack.Grid})"), [crate], true);
+                yield return (Invariant(
+                    $"{size} SCU crate of {crate.Commodity} for {crate.Destination} doesn't fit rack {rack.Number} ({Refusal(rack, crate.CrateSize)})"), [crate], true);
             }
             else if (!Fits(rack, crate))
             {
@@ -334,6 +337,13 @@ public static class CrateLayout
                 [upper], false);
         }
     }
+
+    /// <summary>
+    /// Why <paramref name="rack"/> doesn't take a crate of <paramref name="size"/> (<see cref="Rack.CanHold"/> is false):
+    /// its max crate size if that is the cause (D56), else its grid.
+    /// </summary>
+    internal static string Refusal(Rack rack, CrateSize size) =>
+        rack.FitsGrid(size) && rack.MaxCrateSize is { } max ? Invariant($"takes crates up to {(int)max} SCU") : Invariant($"{rack.Grid}");
 
     /// <summary>
     /// The stacking rule (D24 addendum): a crate may rest only on crates unloaded no earlier than itself, its own stop or a
