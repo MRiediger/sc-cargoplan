@@ -807,6 +807,7 @@ Fleetyards gegen `hull_a.json`. Gegenprobe gegen Erecs Guide. Details im Planpro
 - Mit `length` = Fleetyards-y hätte der Planer in 67 Racks / 22 Schiffen Kisten abgelehnt, die das Spiel nimmt; mit der längeren Seite in 26 Racks / 6 Schiffen, alle wegen der 32er-Form (→ T7.1c).
 - `-Create`: 95 Dateien, hull_a „same“; zweiter Abgleich: 96 same, Exit 0, idempotent. CLI `plan example_missions.json --ship` c2_hercules / caterpillar / hull_b: Exit 0.
 - Fehler beim ersten echten Lauf: `$PSScriptRoot` ist in 5.1 in `param()`-Defaults leer → Default im Rumpf, Test ohne `-ShipsFolder` (`1d555f9`).
+- Nachtrag Abnahme: `-Create` schrieb in einen Ordner ohne `hull_a.json` eine Fleetyards-Hull-A (ohne Spindelachsen). Jetzt „skipped … never written by the import“, kein Exit 1; Test `Create_never_writes_hull_a`.
 - Tests: Core 732 (626 + 1 position + 10 Skript + 95 `Every_shipped_ship_loads`), App 810 (+1 Tooltip), Import 93, alle grün; `LoadAll().Problems` leer.
 
 ### [x] T7.1c 32-SCU-Kistenform – vor T7.2

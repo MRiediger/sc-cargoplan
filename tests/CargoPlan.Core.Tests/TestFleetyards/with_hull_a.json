@@ -1,0 +1,29 @@
+[
+  {
+    "slug": "misc-hull-a",
+    "name": "Hull A",
+    "manufacturer": "MISC",
+    "cargoHolds": [
+      {
+        "capacity": 16,
+        "dimensions": { "x": 2.5, "y": 5.0, "z": 2.5 },
+        "maxContainerSize": { "size": 16 },
+        "name": "hardpoint_cargo",
+        "offset": { "x": 0.0, "y": 0.0, "z": 0.0 }
+      }
+    ]
+  },
+  {
+    "slug": "tstm-small",
+    "name": "Small",
+    "manufacturer": "TSTM",
+    "cargoHolds": [
+      {
+        "capacity": 8,
+        "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 },
+        "maxContainerSize": { "size": 8 },
+        "name": "hardpoint_cargo"
+      }
+    ]
+  }
+]

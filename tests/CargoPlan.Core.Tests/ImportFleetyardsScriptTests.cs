@@ -151,6 +151,19 @@ public class ImportFleetyardsScriptTests
         work.ShipIds().Should().BeEmpty();
     }
 
+    // hull_a.json is measured in game and the fallback ship (D56): the import never writes it, not even where it's missing.
+    [Fact]
+    public async Task Create_never_writes_hull_a()
+    {
+        using var work = new Workspace("with_hull_a.json");
+
+        var run = await work.Run("-Create");
+
+        run.ExitCode.Should().Be(0, run.Error);
+        work.ShipIds().Should().Equal("small");
+        run.Output.Should().MatchRegex(@"skipped\s+hull_a\s+.*never written");
+    }
+
     [Fact]
     public async Task Force_refuses_hull_a()
     {

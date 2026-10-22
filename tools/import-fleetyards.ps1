@@ -3,7 +3,7 @@
 # "Importing from Fleetyards".
 # Usage: ./tools/import-fleetyards.ps1 -Source <ships.json> [-ShipsFolder <folder>] [-Create] [-Force <id>]
 #   Default: compares the grid data of existing files with the export and writes nothing.
-#   -Create writes ships that have no file yet. -Force <id> rewrites one ship's grid data (grid, capacityScu,
+#   -Create writes ships that have no file yet, never hull_a. -Force <id> rewrites one ship's grid data (grid, capacityScu,
 #   maxCrateSize, totalScu, source); origins, stack axes, positions, rack order and notes are hand work and stay.
 # Exit code: 0 in sync, 1 a deviation or a new ship not written, 2 an error (then nothing is written).
 # Runs under Windows PowerShell 5.1 and PowerShell 7. ASCII only: 5.1 reads a script without BOM as ANSI.
@@ -342,7 +342,11 @@ try {
         $draft = $drafts[$id]
         $path = Join-Path $ShipsFolder "$id.json"
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-            if ($Create) {
+            if ($id -eq $FallbackShipId) {
+                # Measured in game, not taken from Fleetyards: a missing hull_a.json is restored from git, not imported.
+                $status = 'skipped'; $detail = 'never written by the import (fallback ship, D56) - restore it from git'
+            }
+            elseif ($Create) {
                 $writes[$path] = Format-Ship $draft
                 $status = 'created'; $detail = Get-Summary $draft
             }
