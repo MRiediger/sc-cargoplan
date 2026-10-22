@@ -18,10 +18,30 @@ public static class CrateLayout
     /// <paramref name="occupied"/> keep their cells; delivered ones are off the ship, their cells are free (D24 addendum).
     /// The stacking rule is tried, not forced (D24 addendum): if that layout lays a new crate on a crate of an earlier stop
     /// of <paramref name="route"/>, an exact search looks for one that doesn't. If there is none, the first layout stays and
-    /// <see cref="Problems"/> names the crate: the cargo fits, so the order is a finding, never a refusal.
+    /// <see cref="Problems"/> names the crate: the cargo fits, so the order is a finding, never a refusal. The search gives
+    /// up after <see cref="MaxOrderSearchSteps"/> steps and keeps the first layout too (<see cref="Lay"/> says so, D54).
     /// </summary>
     public static IReadOnlyList<GridPosition>? Place(
-        Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<string> route, FillOrder order)
+        Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<string> route, FillOrder order) =>
+        Lay(rack, occupied, crates, route, order)?.Positions;
+
+    /// <summary>
+    /// Steps of the exact search for a layout in route order before it gives up: cells it fills or leaves empty (D54).
+    /// A count, not a time, so a plan comes out the same on every machine. Derivation (T7.0, Release build): the Hull A
+    /// needs at most 2,859 steps (exhaustive check, every mix of up to 8 crates over 2 and 3 stops), 164 in the default
+    /// tests; one step costs about 22 µs on a rack of 1,008 cells (100,000 steps took 2.5 s). 30,000 is about 10 × the
+    /// Hull A's need and keeps that rack under 1 s; on a slow PC it may take 2 s.
+    /// </summary>
+    internal const int MaxOrderSearchSteps = 30_000;
+
+    /// <summary>
+    /// <see cref="Place"/> with what the caller has to tell the player: <see cref="Laying.OrderUnchecked"/> if the search for
+    /// the route order gave up at <paramref name="maxOrderSearchSteps"/>, so the first layout stays without the order having
+    /// been tried in full. Null if a crate doesn't fit.
+    /// </summary>
+    internal static Laying? Lay(
+        Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<string> route, FillOrder order,
+        int maxOrderSearchSteps = MaxOrderSearchSteps)
     {
         occupied = [.. occupied.Where(c => !c.Delivered)];
         if (Place(RackSpace.Around(rack, occupied, order), [.. crates.Select(c => c.Size)]) is not { } positions)
@@ -32,10 +52,17 @@ public static class CrateLayout
         // Only what the new crates break counts; a plan file edited by hand may bring its own disorder.
         Crate[] placed = [.. crates.Zip(positions).Select(p => new Crate(p.First.Destination, "", p.First.Size, rack.Id, p.Second))];
         HashSet<Crate> fresh = new(placed, ReferenceEqualityComparer.Instance);
-        return OutOfOrder([.. occupied, .. placed], route).Any(pair => fresh.Contains(pair.Upper) || fresh.Contains(pair.Lower))
-            ? InOrder(rack, occupied, crates, route, order) ?? positions
-            : positions;
+        if (!OutOfOrder([.. occupied, .. placed], route).Any(pair => fresh.Contains(pair.Upper) || fresh.Contains(pair.Lower)))
+        {
+            return new Laying(positions, false);
+        }
+
+        var (ordered, gaveUp) = InOrder(rack, occupied, crates, route, order, maxOrderSearchSteps);
+        return new Laying(ordered ?? positions, gaveUp);
     }
+
+    /// <summary>Positions of a <see cref="Lay"/>, and whether the search for the route order gave up on the way.</summary>
+    internal sealed record Laying(IReadOnlyList<GridPosition> Positions, bool OrderUnchecked);
 
     /// <summary>
     /// <see cref="Place"/> for the parts of a split (D27): only the cells of <paramref name="box"/> are free, every other
@@ -159,7 +186,13 @@ public static class CrateLayout
     /// </summary>
     /// <exception cref="ArgumentException">A placement is in a rack the ship doesn't have.</exception>
     /// <exception cref="PlanException">The crates of a rack don't fit its grid.</exception>
-    public static IReadOnlyList<Crate> LayOut(Ship ship, IReadOnlyList<Placement> placements, FillOrder order)
+    public static IReadOnlyList<Crate> LayOut(Ship ship, IReadOnlyList<Placement> placements, FillOrder order) =>
+        LayOutShip(ship, placements, order).Crates;
+
+    /// <summary><see cref="LayOut"/> with the racks whose search for the route order gave up (<see cref="Laying.OrderUnchecked"/>).</summary>
+    /// <exception cref="ArgumentException">A placement is in a rack the ship doesn't have.</exception>
+    /// <exception cref="PlanException">The crates of a rack don't fit its grid.</exception>
+    internal static ShipLayout LayOutShip(Ship ship, IReadOnlyList<Placement> placements, FillOrder order)
     {
         if (placements.FirstOrDefault(p => !ship.Racks.Any(r => r.Id == p.RackId)) is { } stray)
         {
@@ -171,21 +204,32 @@ public static class CrateLayout
         Placement[] crates = [.. placements.SelectMany(p => Enumerable.Repeat(p, p.Item.Scu / (int)p.Item.CrateSize))];
         string[] route = [.. placements.GroupBy(p => p.Destination).Select(g => g.Key)];
         var positions = new GridPosition[crates.Length];
+        List<Rack> orderUnchecked = [];
         foreach (var rack in ship.Racks)
         {
             int[] inRack = [.. Enumerable.Range(0, crates.Length).Where(i => crates[i].RackId == rack.Id)];
-            var laid = Place(rack, [], [.. inRack.Select(i => (crates[i].Item.CrateSize, crates[i].Destination))], route, order)
+            var laid = Lay(rack, [], [.. inRack.Select(i => (crates[i].Item.CrateSize, crates[i].Destination))], route, order)
                 ?? throw new PlanException(Invariant(
                     $"Crates for rack {rack.Number} don't fit its grid ({rack.Grid}): {inRack.Sum(i => (int)crates[i].Item.CrateSize)}/{rack.CapacityScu} SCU."));
-            foreach (var (index, position) in inRack.Zip(laid))
+            foreach (var (index, position) in inRack.Zip(laid.Positions))
             {
                 positions[index] = position;
             }
+
+            if (laid.OrderUnchecked)
+            {
+                orderUnchecked.Add(rack);
+            }
         }
 
-        return [.. crates.Zip(positions).Select(c =>
-            new Crate(c.First.Destination, c.First.Item.Commodity, c.First.Item.CrateSize, c.First.RackId, c.Second, c.First.Delivered))];
+        return new ShipLayout(
+            [.. crates.Zip(positions).Select(c =>
+                new Crate(c.First.Destination, c.First.Item.Commodity, c.First.Item.CrateSize, c.First.RackId, c.Second, c.First.Delivered))],
+            orderUnchecked);
     }
+
+    /// <summary>The crates of <see cref="LayOutShip"/>, and the racks whose search for the route order gave up.</summary>
+    internal sealed record ShipLayout(IReadOnlyList<Crate> Crates, IReadOnlyList<Rack> OrderUnchecked);
 
     /// <summary>True if every cell of <paramref name="crate"/> lies inside the grid of <paramref name="rack"/>.</summary>
     public static bool Fits(Rack rack, Crate crate) => crate.Cells.All(c => Inside(rack.Grid, c));
@@ -331,10 +375,12 @@ public static class CrateLayout
     /// A layout of <paramref name="crates"/> in the free cells that keeps the stacking rule; null if there is none. Exact
     /// search within one rack: the cells in fill order, at each free cell either one of the crates left whose first cell it
     /// is, or nothing; crates of one size and stop are tried once, not in every order. Deterministic: largest first, then
-    /// later stops first, leaving the cell empty last.
+    /// later stops first, leaving the cell empty last. After <paramref name="maxSteps"/> steps it gives up with null and
+    /// <c>GaveUp</c>: on a large grid the search runs for minutes (T7.0, 1,008 cells, four stops).
     /// </summary>
-    private static GridPosition[]? InOrder(
-        Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<string> route, FillOrder order)
+    private static (GridPosition[]? Positions, bool GaveUp) InOrder(
+        Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<string> route, FillOrder order,
+        int maxSteps)
     {
         const int free = -1;
         const int empty = -2;
@@ -368,14 +414,21 @@ public static class CrateLayout
         var left = kinds.Select(k => k.Indices.Length).ToArray();
         var scuLeft = crates.Sum(c => (int)c.Size);
         var positions = new GridPosition[crates.Count];
+        var steps = 0;
 
-        return Fill(0) ? positions : null;
+        return Fill(0) ? (positions, false) : (null, steps > maxSteps);
 
         bool Fill(int next)
         {
             if (scuLeft == 0)
             {
                 return true;
+            }
+
+            // Once over the limit every level returns at once, so giving up costs no more than the depth.
+            if (++steps > maxSteps)
+            {
+                return false;
             }
 
             while (next < cells.Length && owner[cells[next].Length, cells[next].Width, cells[next].Stack] != free)

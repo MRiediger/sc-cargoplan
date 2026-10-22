@@ -462,6 +462,31 @@ public class CrateLayoutTests
     }
 
     [Fact]
+    public void Place_keeps_the_first_layout_when_the_order_search_runs_out_of_steps()
+    {
+        // The layout above that the search turns round: with one step it gives up, and the greedy layout stays, marked (D24 addendum T7.0).
+        var crates = Of((CrateSize.Four, "A"), (CrateSize.Four, "B"), (CrateSize.Four, "B"), (CrateSize.Four, "B"));
+
+        var laid = CrateLayout.Lay(Rack1, [], crates, AbcRoute, FillOrder.BowFirst, maxOrderSearchSteps: 1)!;
+
+        laid.OrderUnchecked.Should().BeTrue();
+        laid.Positions.Should().Equal(CrateLayout.Place(Rack1, [], crates, [], FillOrder.BowFirst));
+        CrateLayout.Problems(Rack1, AsCrates(Rack1, crates, [.. laid.Positions]), AbcRoute)
+            .Should().NotBeEmpty().And.OnlyContain(p => p.EndsWith("which is unloaded first"));
+    }
+
+    [Fact]
+    public void Lay_says_the_order_was_checked_when_the_search_ends_in_time()
+    {
+        // No ordered layout exists (8, 4, 1 of three stops), but the search proves it within the limit: checked.
+        var none = CrateLayout.Lay(Rack1, [], Of((CrateSize.Eight, "A"), (CrateSize.Four, "B"), (CrateSize.One, "C")), AbcRoute, FillOrder.BowFirst)!;
+        var turned = CrateLayout.Lay(Rack1, [], Of((CrateSize.Four, "A"), (CrateSize.Four, "B"), (CrateSize.Four, "B"), (CrateSize.Four, "B")), AbcRoute, FillOrder.BowFirst)!;
+
+        none.OrderUnchecked.Should().BeFalse();
+        turned.OrderUnchecked.Should().BeFalse();
+    }
+
+    [Fact]
     public void Place_lays_out_16_crates_of_three_stops_in_under_100_ms()
     {
         (CrateSize Size, string Destination)[] crates =

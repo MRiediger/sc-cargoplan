@@ -43,7 +43,8 @@ public static class LoadPlanner
             .GroupBy(c => (c.Stop, c.Item))
             .Select(g => Place(line.Stops[g.Key.Stop], g.Key.Item, segment.Rack, g.Sum(c => c.Scu))))];
 
-        return WithHints(new LoadPlan(ship.Id, CrateLayout.LayOut(ship, placements, fillOrder), [], fillOrder), ship);
+        var layout = CrateLayout.LayOutShip(ship, placements, fillOrder);
+        return WithHints(new LoadPlan(ship.Id, layout.Crates, [], fillOrder), ship, layout.OrderUnchecked);
     }
 
     /// <summary>
@@ -146,7 +147,8 @@ public static class LoadPlanner
     public static IReadOnlyList<PlanWarning> HintsOnBoard(LoadPlan plan, Ship ship)
     {
         plan.EnsureBelongsTo(ship);
-        return Hints([.. ship.Racks.OrderBy(r => r.Index)], (plan with { Crates = [.. plan.Crates.Select(c => c with { Delivered = false })] }).Placements);
+        Rack[] racks = [.. ship.Racks.OrderBy(r => r.Index)];
+        return [.. Hints(racks, (plan with { Crates = [.. plan.Crates.Select(c => c with { Delivered = false })] }).Placements), .. Notes(plan, racks, [])];
     }
 
     /// <summary>
@@ -193,8 +195,8 @@ public static class LoadPlanner
             .ToDictionary(d => d, d => d, StringComparer.OrdinalIgnoreCase);
         Mission mission = new(saved.NextMissionId, [.. stops.Select(s => s with { Destination = spelling.GetValueOrDefault(s.Destination, s.Destination) })], contract);
 
-        return TryPlace(saved.Plan, ship, mission).Crates is { } crates
-            ? new SavedPlan([.. saved.Missions, mission], WithHints(saved.Plan with { Crates = crates }, ship), saved.Watermark)
+        return TryPlace(saved.Plan, ship, mission) is ({ } crates, _, var orderUnchecked)
+            ? new SavedPlan([.. saved.Missions, mission], WithHints(saved.Plan with { Crates = crates }, ship, orderUnchecked), saved.Watermark)
             : new SavedPlan([.. saved.Missions, mission with { Unplaced = true }], saved.Plan, saved.Watermark);
     }
 
@@ -209,7 +211,7 @@ public static class LoadPlanner
     {
         saved.Plan.EnsureBelongsTo(ship);
         var mission = saved.MissionOf(missionId);
-        if (!mission.Unplaced || TryPlace(saved.Plan, ship, mission) is not (null, { } failed))
+        if (!mission.Unplaced || TryPlace(saved.Plan, ship, mission) is not (null, { } failed, _))
         {
             return null;
         }
@@ -231,11 +233,11 @@ public static class LoadPlanner
         var current = saved;
         foreach (var waiting in saved.Missions.Where(m => m.Unplaced))
         {
-            if (TryPlace(current.Plan, ship, waiting).Crates is { } crates)
+            if (TryPlace(current.Plan, ship, waiting) is ({ } crates, _, var orderUnchecked))
             {
                 current = new SavedPlan(
                     [.. current.Missions.Select(m => m.Id == waiting.Id ? m with { Unplaced = false } : m)],
-                    WithHints(current.Plan with { Crates = crates }, ship),
+                    WithHints(current.Plan with { Crates = crates }, ship, orderUnchecked),
                     current.Watermark);
             }
         }
@@ -261,12 +263,14 @@ public static class LoadPlanner
 
     /// <summary>
     /// The crates of <paramref name="plan"/> with those of <paramref name="mission"/> laid in (rule of <see cref="PlaceInto"/>);
-    /// or, if a crate has no place, the size of the first that hasn't.
+    /// or, if a crate has no place, the size of the first that hasn't. With the crates, the racks whose search for the route
+    /// order gave up (<see cref="CrateLayout.Lay"/>).
     /// </summary>
-    private static (List<Crate>? Crates, CrateSize? Failed) TryPlace(LoadPlan plan, Ship ship, Mission mission)
+    private static (List<Crate>? Crates, CrateSize? Failed, IReadOnlyList<Rack> OrderUnchecked) TryPlace(LoadPlan plan, Ship ship, Mission mission)
     {
         Rack[] racks = [.. ship.Racks.OrderBy(r => r.Index)];
         List<Crate> crates = [.. plan.Crates];
+        List<Rack> orderUnchecked = [];
         MissionStop[] stops = [.. mission.Stops.OrderBy(s => s.Order)];
 
         // The order after placing: destinations on board keep their place, the mission's others follow in contract order.
@@ -287,7 +291,7 @@ public static class LoadPlanner
             List<Crate> fresh = [];
             if (candidates.Select(r => Laid(r, stop.Destination, kinds, [])).FirstOrDefault(laid => laid is not null) is { } whole)
             {
-                fresh.AddRange(whole);
+                Take(whole);
             }
             else
             {
@@ -296,10 +300,10 @@ public static class LoadPlanner
                 {
                     if (racks.Select(r => Laid(r, stop.Destination, [kind], fresh)).FirstOrDefault(laid => laid is not null) is not { } one)
                     {
-                        return (null, kind.Size);
+                        return (null, kind.Size, []);
                     }
 
-                    fresh.AddRange(one);
+                    Take(one);
                 }
             }
 
@@ -308,16 +312,27 @@ public static class LoadPlanner
                 ? crates.FindLastIndex(c => c.Destination == stop.Destination) + 1
                 : crates.Count;
             crates.InsertRange(at, fresh);
+
+            void Take((Crate[] Crates, Rack Rack, bool OrderUnchecked)? laid)
+            {
+                fresh.AddRange(laid!.Value.Crates);
+                if (laid.Value.OrderUnchecked && !orderUnchecked.Contains(laid.Value.Rack))
+                {
+                    orderUnchecked.Add(laid.Value.Rack);
+                }
+            }
         }
 
-        return (crates, null);
+        return (crates, null, orderUnchecked);
 
         // The kinds laid out in one rack around what lies there and the crates placed for this stop so far; null if they don't fit.
-        Crate[]? Laid(Rack rack, string destination, (CrateSize Size, string Commodity)[] laying, IReadOnlyList<Crate> placedForStop)
+        (Crate[] Crates, Rack Rack, bool OrderUnchecked)? Laid(
+            Rack rack, string destination, (CrateSize Size, string Commodity)[] laying, IReadOnlyList<Crate> placedForStop)
         {
             Crate[] occupied = [.. crates.Concat(placedForStop).Where(c => c.RackId == rack.Id)];
-            return CrateLayout.Place(rack, occupied, [.. laying.Select(k => (k.Size, destination))], route, plan.FillOrder) is { } positions
-                ? [.. laying.Zip(positions).Select(p => new Crate(destination, p.First.Commodity, p.First.Size, rack.Id, p.Second, Mission: mission.Id))]
+            return CrateLayout.Lay(rack, occupied, [.. laying.Select(k => (k.Size, destination))], route, plan.FillOrder) is { } laid
+                ? ([.. laying.Zip(laid.Positions).Select(p => new Crate(destination, p.First.Commodity, p.First.Size, rack.Id, p.Second, Mission: mission.Id))],
+                    rack, laid.OrderUnchecked)
                 : null;
         }
     }
@@ -428,18 +443,18 @@ public static class LoadPlanner
         }
 
         Crate[] staying = [.. plan.Crates.Where((c, i) => c.RackId == target.Id && !moved.Contains(i))];
-        var positions = CrateLayout.Place(
+        var laid = CrateLayout.Lay(
                 target, staying, [.. moved.Select(i => (plan.Crates[i].CrateSize, plan.Crates[i].Destination))], plan.UnloadOrder, plan.FillOrder)
             ?? throw new PlanException(Invariant(
                 $"{what} doesn't fit rack {target.Number}: {staying.Sum(c => (int)c.CrateSize)}/{target.CapacityScu} SCU taken."));
 
         List<Crate> crates = [.. plan.Crates];
-        foreach (var (index, position) in moved.Zip(positions))
+        foreach (var (index, position) in moved.Zip(laid.Positions))
         {
             crates[index] = crates[index] with { RackId = target.Id, Position = position };
         }
 
-        return WithHints(plan with { Crates = crates }, ship);
+        return WithHints(plan with { Crates = crates }, ship, laid.OrderUnchecked ? [target] : []);
     }
 
     /// <summary>
@@ -687,8 +702,30 @@ public static class LoadPlanner
         return -1;
     }
 
-    private static LoadPlan WithHints(LoadPlan plan, Ship ship) =>
-        plan with { Warnings = Hints([.. ship.Racks.OrderBy(r => r.Index)], plan.Placements) };
+    /// <summary>
+    /// The plan with its hints derived anew from the placements, and the notes it carries plus a note for every rack in
+    /// <paramref name="orderUnchecked"/> (<see cref="Notes"/>).
+    /// </summary>
+    private static LoadPlan WithHints(LoadPlan plan, Ship ship, IEnumerable<Rack>? orderUnchecked = null)
+    {
+        Rack[] racks = [.. ship.Racks.OrderBy(r => r.Index)];
+        return plan with { Warnings = [.. Hints(racks, plan.Placements), .. Notes(plan, racks, orderUnchecked ?? [])] };
+    }
+
+    /// <summary>
+    /// The planner's notes, once per rack in rack order: those <paramref name="plan"/> carries and those for
+    /// <paramref name="orderUnchecked"/>. A note says what the crates can't: that the search for the route order gave up
+    /// there (<see cref="CrateLayout.Lay"/>). So it is carried, not derived, until the next Plan starts without it (D54).
+    /// </summary>
+    private static IEnumerable<PlanWarning> Notes(LoadPlan plan, Rack[] racks, IEnumerable<Rack> orderUnchecked)
+    {
+        HashSet<string> noted = [.. orderUnchecked.Select(r => r.Id)];
+        noted.UnionWith(racks.Where(r => plan.Warnings.Contains(new PlanWarning(r.Id, OrderUncheckedNote(r)))).Select(r => r.Id));
+        return racks.Where(r => noted.Contains(r.Id)).Select(r => new PlanWarning(r.Id, OrderUncheckedNote(r)));
+    }
+
+    private static string OrderUncheckedNote(Rack rack) => Invariant(
+        $"Rack {rack.Number}: stacking order not checked – too many crates for the check. Crates are placed, verify the unload order by hand.");
 
     private static Rack RackOf(Ship ship, string rackId, string paramName) =>
         ship.Racks.FirstOrDefault(r => r.Id == rackId)
