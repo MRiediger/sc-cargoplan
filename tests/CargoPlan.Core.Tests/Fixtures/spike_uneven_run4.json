@@ -1,0 +1,4 @@
+{ "schemaVersion": 1, "stops": [
+{ "destination": "Dest1", "items": [ { "commodity": "Titanium", "scu": 64, "crateSize": 32 } ] },
+{ "destination": "Dest2", "items": [ { "commodity": "Quartz",   "scu": 40, "crateSize": 1  } ] }
+] }

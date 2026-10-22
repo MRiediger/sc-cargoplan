@@ -194,6 +194,21 @@ public static class CrateLayout
     /// <exception cref="PlanException">The crates of a rack don't fit its grid.</exception>
     internal static ShipLayout LayOutShip(Ship ship, IReadOnlyList<Placement> placements, FillOrder order)
     {
+        var (layout, problem) = LaidOut(ship, placements, order);
+        return layout ?? throw new PlanException(problem!);
+    }
+
+    /// <summary>
+    /// <see cref="LayOutShip"/>, or null if the crates of a rack don't fit its grid: then the planner tries another split
+    /// over the racks (D54).
+    /// </summary>
+    /// <exception cref="ArgumentException">A placement is in a rack the ship doesn't have.</exception>
+    internal static ShipLayout? TryLayOut(Ship ship, IReadOnlyList<Placement> placements, FillOrder order) =>
+        LaidOut(ship, placements, order).Layout;
+
+    /// <summary>The layout of <see cref="LayOutShip"/>, or why the first rack that doesn't take its crates doesn't.</summary>
+    private static (ShipLayout? Layout, string? Problem) LaidOut(Ship ship, IReadOnlyList<Placement> placements, FillOrder order)
+    {
         if (placements.FirstOrDefault(p => !ship.Racks.Any(r => r.Id == p.RackId)) is { } stray)
         {
             throw new ArgumentException(
@@ -208,9 +223,12 @@ public static class CrateLayout
         foreach (var rack in ship.Racks)
         {
             int[] inRack = [.. Enumerable.Range(0, crates.Length).Where(i => crates[i].RackId == rack.Id)];
-            var laid = Lay(rack, [], [.. inRack.Select(i => (crates[i].Item.CrateSize, crates[i].Destination))], route, order)
-                ?? throw new PlanException(Invariant(
+            if (Lay(rack, [], [.. inRack.Select(i => (crates[i].Item.CrateSize, crates[i].Destination))], route, order) is not { } laid)
+            {
+                return (null, Invariant(
                     $"Crates for rack {rack.Number} don't fit its grid ({rack.Grid}): {inRack.Sum(i => (int)crates[i].Item.CrateSize)}/{rack.CapacityScu} SCU."));
+            }
+
             foreach (var (index, position) in inRack.Zip(laid.Positions))
             {
                 positions[index] = position;
@@ -222,10 +240,10 @@ public static class CrateLayout
             }
         }
 
-        return new ShipLayout(
+        return (new ShipLayout(
             [.. crates.Zip(positions).Select(c =>
                 new Crate(c.First.Destination, c.First.Item.Commodity, c.First.Item.CrateSize, c.First.RackId, c.Second, c.First.Delivered))],
-            orderUnchecked);
+            orderUnchecked), null);
     }
 
     /// <summary>The crates of <see cref="LayOutShip"/>, and the racks whose search for the route order gave up.</summary>

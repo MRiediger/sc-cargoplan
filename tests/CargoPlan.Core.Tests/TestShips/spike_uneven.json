@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 4,
+  "id": "spike_uneven",
+  "name": "Spike uneven",
+  "totalScu": 150,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 75,
+      "grid": { "length": 5, "width": 5, "stack": 3 },
+      "position": { "side": "port", "level": "lower" },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 75,
+      "grid": { "length": 5, "width": 5, "stack": 3 },
+      "position": { "side": "starboard", "level": "lower" },
+      "origin": [5, 0, 0],
+      "stackAxis": "+z"
+    }
+  ]
+}

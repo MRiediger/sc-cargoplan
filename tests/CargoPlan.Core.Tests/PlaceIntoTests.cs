@@ -159,6 +159,67 @@ public class PlaceIntoTests
         LoadPlanner.PlaceInto(saved, HullA, [Stop("Riker", "Gold", 4, CrateSize.Four)]).Watermark.Should().Be(41);
     }
 
+    // --- Shape-aware fallback (D54) ---
+
+    private static readonly Ship Uneven = ShipLoader.Load(typeof(PlaceIntoTests).Assembly, "spike_uneven");
+
+    private static SavedPlan EmptyUneven => new([], new LoadPlan(Uneven.Id, [], []));
+
+    /// <summary>Area18 70 × 1, then Port Tressler 2 × 32: stop by stop Area18 fills rack 1 and the second 32 finds no room.</summary>
+    private static readonly MissionStop[] OnesThen32s =
+        [new("Area18", 1, [new MissionItem("Quartz", 70, CrateSize.One)]), new("Port Tressler", 2, [new MissionItem("Titanium", 64, CrateSize.ThirtyTwo)])];
+
+    [Fact]
+    public void PlaceInto_lays_a_mission_largest_first_when_stop_by_stop_fails()
+    {
+        var saved = LoadPlanner.PlaceInto(EmptyUneven, Uneven, OnesThen32s);
+
+        saved.Missions.Should().OnlyContain(m => !m.Unplaced);
+        saved.Plan.Crates.Sum(c => (int)c.CrateSize).Should().Be(134);
+        Uneven.Racks.Should().OnlyContain(r => saved.Plan.CratesForRack(r.Id).Count(c => c.CrateSize == CrateSize.ThirtyTwo) == 1);
+        LoadPlanner.Validate(saved.Plan, Uneven).Should().OnlyContain(w => w.Message.EndsWith("which is unloaded first"));
+    }
+
+    [Fact]
+    public void PlaceInto_on_the_Hull_A_places_a_mission_stop_by_stop_would_leave_out()
+    {
+        // Rack 1 has 12 SCU free, rack 2 has 4, racks 3 and 4 are full. Stop by stop Hurston's 4s take rack 1 and Area18's 8
+        // finds no room; largest first the 8 goes into rack 1, a 4 on top of Riker's, the other 4 into rack 2 (D54).
+        var before = Placed(
+            Stop("Riker", "Gold", 4, CrateSize.Four), Stop("Shubin", "Gold", 12, CrateSize.Four),
+            Stop("Orison", "Gold", 16, CrateSize.Sixteen), Stop("Lorville", "Gold", 16, CrateSize.Sixteen));
+
+        var saved = LoadPlanner.PlaceInto(before, HullA,
+            [Stop("Hurston", "Iron", 8, CrateSize.Four), Stop("Area18", "Iron", 8, CrateSize.Eight) with { Order = 2 }]);
+
+        saved.Missions[^1].Unplaced.Should().BeFalse();
+        saved.Plan.Crates.Take(before.Plan.Crates.Count).Should().Equal(before.Plan.Crates);
+        RacksOf(saved, "Area18").Should().Equal("rack-0");
+        RacksOf(saved, "Hurston").Should().Equal("rack-0", "rack-1");
+    }
+
+    [Fact]
+    public void RetryUnplaced_places_a_waiting_mission_through_the_fallback()
+    {
+        SavedPlan waiting = new([new Mission(1, OnesThen32s, null, Unplaced: true)], new LoadPlan(Uneven.Id, [], []));
+
+        LoadPlanner.PlaceProblem(waiting, Uneven, 1).Should().BeNull();
+        LoadPlanner.RetryUnplaced(waiting, Uneven).Missions.Single().Unplaced.Should().BeFalse();
+    }
+
+    [Fact]
+    public void PlaceProblem_names_the_crate_size_the_fallback_found_no_room_for()
+    {
+        // A 32 in each rack: 86 SCU free, but no gap for a third 32.
+        var two = new[] { "Area18", "Port Tressler" }.Aggregate(EmptyUneven,
+            (saved, destination) => LoadPlanner.PlaceInto(saved, Uneven, [new MissionStop(destination, 1, [new MissionItem("Gold", 32, CrateSize.ThirtyTwo)])]));
+
+        var saved = LoadPlanner.PlaceInto(two, Uneven, [new MissionStop("Seraphim", 1, [new MissionItem("Gold", 32, CrateSize.ThirtyTwo)])]);
+
+        saved.Missions[^1].Unplaced.Should().BeTrue();
+        LoadPlanner.PlaceProblem(saved, Uneven, saved.Missions[^1].Id).Should().Be("doesn't fit (no room for 32 SCU crates)");
+    }
+
     // --- RetryUnplaced ---
 
     [Fact]

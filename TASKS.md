@@ -742,7 +742,7 @@ PNG, kein Spielername/Org im Bild, Overlay außerhalb des CT-Capture-Bereichs.
 - Grenze des Spikes: nur 4 Ziele ≤ Racks. Mehr Ziele als Racks (geteilte Racks, `Partition`) wurden nicht gemessen. → Lastfall in T7.0
 - Lauf 3 wie erwartet: D9 gilt nur für Hull A; der Planer verteilt nach SCU, die Geometrie prüft erst `CrateLayout.LayOut`. → T7.0.
 
-### [ ] T7.0 Formbewusste Partition – lösbare Beladungen nicht ablehnen (Auslöser: S7.0 Lauf 4)
+### [x] T7.0 Formbewusste Partition – lösbare Beladungen nicht ablehnen (Auslöser: S7.0 Lauf 4)
 Aus dem Backlog übernommen:
 - Formbewusste `Partition` (Racks nach legbarer Anordnung in Routenreihenfolge, nicht nur nach SCU), falls Stapel-Befunde in echten Plänen häufig sind. Beleg aus dem Spike T5.4 (Brute-Force, abgebrochen): 3 Stops in einem Rack → 207 Aufteilungen ohne Anordnung bis Mischung 146/186; 4 Stops → 397 bis Mischung 65/170 (D24-Addendum, T5.4a).
 - Geometrie bei Schiffen, deren Grid kein Vielfaches der Kistenmaße ist (D9 gilt nur für Hull A), sobald T7.1 ein solches Schiff bringt: `Plan` verteilt nach SCU und scheitert erst beim Legen, die Meldung („64/75 SCU“) klingt nach Platz und nennt nur Rack 1. `PlaceProblem` sagt es schon besser („no room for 8 SCU crates“). Beleg: S7.0, Lauf 3.
@@ -756,6 +756,22 @@ Aus dem Backlog übernommen:
 - die neue Partition gilt auch in `PlaceInto` (CT-Sync)
 - die Meldung bei wirklich unlösbaren Fällen ist in Hauler-Sprache (Richtung `PlaceProblem`)
 - Testschiff `spike_uneven` als Fixture unter `tests/`, nicht unter `Ships/`
+
+**Präzisiert in der Planung (D54):** SCU-Partition zuerst, Fallback nur, wenn das Legen scheitert, nicht wenn schon die SCU-Partition scheitert (D6, Hull-A-Test „Crates don't fit*Orison*“). Fallback = First-Fit-Decreasing mit der Rackwahl von `PlaceInto` (D41), ohne Suche; Probe und Legen teilen `CrateLayout.RackSpace`. Fallback-Plan: Notiz „Racks not in route order – crates placed where they fit“ in jedem Rack mit Fracht, von `WithHints` mitgetragen, nicht beim `PlaceInto`-Fallback. Meldung: „{Ziel} doesn't fit: no room for {n} × {Größe} SCU crate(s) of {Ware} – {frei} SCU free, but no gap of that shape. Leave a stop out or take a ship with bigger racks.“ Hull-A-Lastfall mit 1–16 SCU, ohne 24/32 (passen in kein Hull-A-Rack). Stapelbewusste Partition bleibt Backlog. Nachtrag B1 (Befund Schritt 0): die exakte Stapelsuche hing auf 1.008 Zellen → Budget 30.000 Schritte, Notiz „Rack N: stacking order not checked – …“. Commits: Golden → `RackSpace` → Budget → Fallback. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+
+**Befund** (Release-CLI, je 3 Läufe, Median; Spike-Schiffe aus S7.0 nachgebaut, auf dem alten Core bit-gleich zu S7.0 geprüft, nach der Messung gelöscht):
+
+| Lauf | Schiff | Vorher | Nachher | Ausgang nachher |
+|---|---|---|---|---|
+| Hull-A-Lastfall (8 Ziele, 58 SCU) | hull_a | 106 ms, 58/58 | 107 ms, 58/58 | bit-gleich zu vorher |
+| 1, 2, 5 | spike_large | 119 / 109 / 119 ms | 120 / 109 / 123 ms | bit-gleich zu S7.0 |
+| 3 | spike_uneven | 90 ms, Exit 1 („64/75 SCU“) | 96 ms, Exit 1 | „Dest2 doesn't fit: no room for 2 × 32 SCU crates of Titanium – 22 SCU free, …“ |
+| 4 | spike_uneven | 90 ms, Exit 1, 0/104 | 159 ms, Exit 0, **104/104** | Fallback-Notiz in beiden Racks |
+| huge (1 Rack 12×12×7, 4 Ziele, alle 7 Größen, 958 SCU) | spike_huge | > 15 min (> 50 Mio. Schritte), abgebrochen | 877 ms, Exit 0, 958/958 | Notiz „stacking order not checked“ |
+
+- Hull A braucht höchstens 2.859 Suchschritte (Exhaustive), ein Schritt kostet auf 1.008 Zellen ≈ 22 µs → Budget 30.000 (≈ 10 ×), Herleitung in D54 und am Code.
+- `PlaceInto` auf der Hull A platziert jetzt Missionen, die stopweise `Unplaced` blieben (12 + 4 SCU frei, Stops 4 + 4 und 8) – gewollt, D54.
+- Nicht per eigenem Test abgedeckt: die Notiz bei `MoveStop` (eine Zeile in `Relayout`).
 
 ### [ ] T7.1 Schiffsentwürfe – 73 Dateien aus Erecs Guide (inkl. Cutlass Black, RAFT), Ordner `ships/` im ZIP statt eingebettet (D-Eintrag), Lade-Validierung (eine kaputte Datei blendet nur dieses Schiff aus, ein fehlender Ordner zeigt eine Meldung statt eines Crashs), Test über alle Dateien
 ### [ ] T7.2 Schiffsauswahl – Editor nach Hersteller gruppiert, Wahl in settings.json statt `App.ShipId`-const, Plan beim Schiffswechsel bzw. bei ShipId-Mismatch beim Laden (heute: ungefangene ArgumentException in `ShipViewBuilder`), Fallback auf hull_a bei fehlender Schiffsdatei
@@ -796,5 +812,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Füllrichtung in Mission-Dateien (Export/Import), falls Koordinatoren sie mit der Route teilen wollen; heute nur über plan.json (Core-Formatwechsel, D24-Addendum).
 - ~~Formbewusste `Partition` (Racks nach legbarer Anordnung in Routenreihenfolge, nicht nur nach SCU), falls Stapel-Befunde in echten Plänen häufig sind. Beleg aus dem Spike T5.4 (Brute-Force, abgebrochen): 3 Stops in einem Rack → 207 Aufteilungen ohne Anordnung bis Mischung 146/186; 4 Stops → 397 bis Mischung 65/170 (D24-Addendum, T5.4a).~~ → T7.0
 - ~~Geometrie bei Schiffen, deren Grid kein Vielfaches der Kistenmaße ist (D9 gilt nur für Hull A), sobald T7.1 ein solches Schiff bringt: `Plan` verteilt nach SCU und scheitert erst beim Legen, die Meldung („64/75 SCU“) klingt nach Platz und nennt nur Rack 1. `PlaceProblem` sagt es schon besser („no room for 8 SCU crates“). Beleg: S7.0, Lauf 3.~~ → T7.0
+- Stapelbewusste Partition: Racks so verteilen, dass keine Stapel-Befunde entstehen (Rest der übernommenen T7.0-Zeile), falls Stapel-Befunde in echten Plänen häufig sind (D54).
+- `CrateLayout.InOrder` beschleunigen (`StartingAt` ohne LINQ, Pruning), Auslöser: ein echter Plan mit der Notiz „stacking order not checked“ (D54).
+- Planen in `Task.Run` statt im UI-Thread (`MissionEditorViewModel.Plan`, CT-Sync), Auslöser: ein gemeldetes Einfrieren (D54).
 - Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).
 - Mehrsprachigkeit, falls nicht-englische Hauler danach fragen. Beginnt beim Parser (deutsche CT-Captures als Fixtures), nicht bei `.resx` (D53).
