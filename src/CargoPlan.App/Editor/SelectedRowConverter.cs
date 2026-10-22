@@ -10,7 +10,14 @@ namespace CargoPlan.App.Editor;
 /// </summary>
 public sealed class SelectedRowConverter : IValueConverter
 {
-    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value;
+    /// <summary>
+    /// Null is never written into the grid. After ConvertBack turned the placeholder into null, the binding converts the
+    /// new source value back to the target: that null left the placeholder in SelectedItems with SelectedItem null, and
+    /// with a UI Automation client listening DataGrid builds a peer for SelectedItem and throws (the editor crash). The
+    /// view model sets null only when the selected row leaves the rows, and the grid drops that selection by itself.
+    /// Source: https://learn.microsoft.com/dotnet/api/system.windows.data.binding.donothing
+    /// </summary>
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value ?? Binding.DoNothing;
 
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => value as MissionRow;
 }
