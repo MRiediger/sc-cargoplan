@@ -105,7 +105,7 @@
                 </Button>
                 <!-- Opens the settings window, left of the exit button: window controls right, plan controls left of them (D34).
                      Hidden while locked like every header button. Over an invisible theme the system tool tip still finds
-                     it: the button background keeps alpha 1, so it takes the hover (README, "Overlay unreadable?"). -->
+                     it: the button background keeps alpha 1, so it takes the hover (user guide, "Overlay unreadable?"). -->
                 <Button DockPanel.Dock="Right" ToolTip="Settings" Click="OnOpenSettings" Style="{StaticResource HeaderButtonStyle}">
                     <!-- E713 Setting. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
                     <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"

@@ -52,7 +52,7 @@ exactly these values.
 }
 ```
 
-`overlay` and `hotkeys` are described in the [README](../README.md#hotkeys); `syncContractTracker` takes
+`overlay` and `hotkeys` are described in the [user guide](user-guide.md#hotkeys); `syncContractTracker` takes
 new ContractTracker captures into the plan like the editor's button. In `hotkeys`, `null` and a
 missing entry both mean "no hotkey"; the settings window writes `null` when you clear one, so you see the
 entry exists. Every section and every value
