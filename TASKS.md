@@ -635,16 +635,29 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 
 **Befund (CI):** CI auf `6bbc115` grün (ubuntu, windows). Tag `v0.1.0-rc.1` → Release-Lauf grün, [Prerelease](https://github.com/MRiediger/sc-cargoplan/releases/tag/v0.1.0-rc.1) mit ZIP + `.sha256`, Body = Notes-Datei; heruntergeladenes ZIP passt zur `.sha256`, 260 Einträge unter `SC-CargoPlan/`, gleiche Namen und entpackte Größe (134,9 MB) wie lokal; `CargoPlan.Cli --version` zeigt `0.1.0-rc.1+6bbc115…`, die Fußzeile des Settings-Fensters „SC-CargoPlan 0.1.0-rc.1+6bbc115…“ (von Martin geprüft). Das CI-ZIP ist 60,7 MB statt lokal 58,7 MB: gleicher Inhalt, nur anders komprimiert (vermutlich .NET auf dem Runner gegenüber .NET Framework unter Windows PowerShell 5.1, nicht untersucht), also nicht byte-gleich. Tag `v0.1` → Lauf [39652136154](https://github.com/MRiediger/sc-cargoplan/actions/runs/39652136154) scheitert in „Version from tag“ („Tag 'v0.1' is not v<SemVer> …“), Rest übersprungen, kein Release; Tag lokal und remote gelöscht. **Der rote Lauf in der Actions-Historie ist dieser absichtliche Negativtest, kein Fehler.**
 
-### [ ] T6.4 Repo-Hygiene für Contributor
+### [x] T6.4 Repo-Hygiene für Contributor
 **Warum:** Erster externer PR soll nicht an Unklarheit scheitern.
 - `CONTRIBUTING.md` (englisch): build, test, Schiff beisteuern, PR-Regeln
 - Issue-Templates: Bug, Ship request, Feature; Bug verlangt die Version und die Ausgabe von `contracts --raw`
 - `docs/screenshots/` mit Overlay über dem Spiel
 
+**Präzisiert in der Planung:** CONTRIBUTING mit den Befehlen aus ci.yml, Publish nur über `build/publish.ps1` (D48), Schiff → ship-format.md mit `stackAxis` und Quelle. Issue Forms: Bug mit Pflichtfeldern Version (`input`, aus der Settings-Fußzeile), Schritte, erwartet, beobachtet, Screenshot (`upload`), SC-Version, Fenstermodus; `contracts --raw` optional mit „required if missions are involved“ (Issue Forms kennen kein bedingtes Pflichtfeld). Ship fragt zusätzlich Position und Rack-Reihenfolge ab, Label `ship` neu. Feature: Problem zuerst. `config.yml`: keine leeren Issues, Fragen → Discussions. Dazu PR-Template (vier Checkboxen aus den PR-Regeln) und `SECURITY.md` (Private vulnerability reporting), README-Abschnitt „Contributing“ mit den Links. Dependabot je Ökosystem eine Gruppe, monatlich (D51), alte PRs geschlossen, D49-Addendum. Code of Conduct → Backlog. Screenshots: T6.4 schließt mit der Liste, die Bilder macht Martin, Vorbedingung von T6.5. Präzisierung in der Planphase, ratifiziert durch Freigabe (D51).
+
 **Akzeptanz:** Dateien vorhanden, Links aus README funktionieren.
+
+**Befund:** Alle README- und CONTRIBUTING-Links auf vorhandene Dateien und Anker geprüft. Community-Profil 42 % → 85 %; REST `issue_template` bleibt null und GraphQL `issueTemplates` leer, laut Sekundärquelle bei YAML-Issue-Forms immer so (devactivity.com, nicht GitHub-Doku); `config.yml` wird erkannt (Contact-Link da), den Template-Chooser prüft Martin eingeloggt. Dependabot: App.Tests fehlte in allen alten PRs, weil der letzte volle Scan (16.10.) vor App.Tests (18.10.) lag, kein Fehler (Log: `CargoPlan.App.csproj` mit `"Error": null`). Push der neuen Konfiguration startet die Läufe sofort. Dependabot schloss #4, #8–#11 selbst, #6, #7, #13–#16 von Hand. #17 (checkout v7, setup-dotnet v6 in ci.yml **und** release.yml) und #18 (coverlet 10.1.0, Test.Sdk 18.11.0, xunit.runner.visualstudio 4.0.1 in allen drei Test-Projekten) grün auf beiden Runnern mit 564/791/93 wie main, squash-gemergt; lokal 0 Warnungen, 564/791/93. softprops bleibt v3.0.3 (neuestes Release). Private vulnerability reporting und Dependabot alerts an, Dependabot security updates aus.
+
+**Screenshots für README und Nexus** (Martin, nach `docs/screenshots/`; vorhanden sind nur die T6.0-Bilder ohne Spiel im Hintergrund):
+1. `overlay-ingame-elevator.png` – Overlay mit echtem Plan (3–4 Ziele, Legende, ein Ziel abgehakt) über dem Spiel am Frachtaufzug
+2. `editor.png` – Editor mit mehreren Zeilen (zwei Ziele, ein handgetippter Kistenmix kursiv)
+3. `settings.png` – Settings-Fenster mit Fußzeile (Version)
+4. optional `overlay-drag.png` (Drag mit cyan Ghost); Nexus-Titelbild bei T6.6 nach Nexus-Format
+
+PNG, kein Spielername/Org im Bild, Overlay außerhalb des CT-Capture-Bereichs.
 
 ### [ ] T6.5 README final
 **Warum:** Das README ist die Download-Seite. Was dort steht, muss der Build tun.
+- Vorbedingung: Screenshots aus der T6.4-Liste liegen in `docs/screenshots/`
 - Abschnitte: Was · Download · Erstes Mal · CT-Anbindung · Hotkeys · Known issues · Bug melden · Credits · Lizenz
 - SmartScreen-Warnung bei der unsignierten EXE ehrlich dokumentieren (aus T6.3 hierher)
 - Kein Ruckel-Hinweis mehr (in 7e94ac3 entfernt, D45)
@@ -677,6 +690,7 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
+- `CODE_OF_CONDUCT.md`, sobald es Contributors gibt; Community Standards mahnt es an, ein Solo-Repo braucht es vor dem ersten Hauler nicht (T6.4).
 - App-Icon (`.ico` mit 16/32/48/256 px, `<ApplicationIcon>` im App-csproj), sobald ein Icon vorliegt; aus T6.2 (D48).
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
 - ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26); freie Rotation pro Rack erst, wenn ein Schiff sie braucht.
