@@ -772,7 +772,7 @@ Aus dem Backlog übernommen:
 - Hull A braucht höchstens 2.859 Suchschritte (Exhaustive), ein Schritt kostet auf 1.008 Zellen ≈ 22 µs → Budget 30.000 (≈ 10 ×), Herleitung in D54 und am Code.
 - `PlaceInto` auf der Hull A platziert jetzt Missionen, die stopweise `Unplaced` blieben (12 + 4 SCU frei, Stops 4 + 4 und 8) – gewollt, D54.
 
-### [ ] T7.1a Schiffsordner statt eingebettet
+### [x] T7.1a Schiffsordner statt eingebettet
 Infrastruktur mit hull_a allein. D-Eintrag: Ordner `ships/` neben der Exe statt `EmbeddedResource`
 (Hybrid abgelehnt: zwei Quellen, bei Bug-Reports unklar, welche aktiv war). Ablage im Repo-Root `ships/`,
 Core kopiert ins Output. Laden: Ordner fehlt → Meldung und Ende, kein Crash; eine Datei kaputt → nur dieses
@@ -782,6 +782,15 @@ Carrack 4×4×4 Zellen erlaubt 16, nicht 32; `CanHold` und `EnsureCratesFitShip`
 `manufacturer` (Code wie „MISC“, für die Gruppierung in T7.2), `source`, `notes`. hull_a: `source: "in game"`.
 publish.ps1 kopiert `ships/` ins ZIP, Prüfschritt + Negativtest wie D49. Tests: Ordner-Fälle, Carrack-Fall,
 „alle Dateien in ships/ laden“. Lizenz: nur abgeleitete Dateien ins Repo.
+
+**Präzisiert in der Planung (D56):** `ShipLoader.LoadAll` → `ShipCatalog` (Schiffe nach Id sortiert, `StringComparer.Ordinal`, plus eine Problemzeile je kaputter Datei); Ordner fehlt bzw. hull_a fehlt/kaputt → `ShipFolderException`, App: eine MessageBox, Exit-Code 1; CLI: „Skipped: …“ auf stderr, Exit 1. `Load(id)` bleibt case-sensitive (Lookup in der Dateiliste, nicht `File.Exists`). `CopyToOutputDirectory="IfDifferent"` statt `PreserveNewest` (von Git wiederhergestellte Dateien behalten die alte mtime). publish.ps1 kopiert nicht selbst: vor dem Umbau gemessen, `dotnet publish` legt Cores `ships/`-Items schon ab; das Skript prüft nur den ZIP-Eintrag. Zusätzlich `fleetyardsSlug` pro Schiff (T7.5), hull_a: `manufacturer` „MISC“, `fleetyardsSlug` „misc-hull-a“, kein `maxCrateSize` (Begründung in ship-format.md). Die Metadaten stehen schon im `Ship`-Modell, ohne Leser, ohne Ausgabeänderung. `maxCrateSize` prüfen `Rack.CanHold` (neu: `FitsGrid` für die Geometrie), `RackSpace.Add` (Plan, PlaceInto, Split, T7.0-Probe), die Findings (Moves) und als dritte Stelle der Merge (zwei 16er nebeneinander haben die Form einer 32er). Präzisierung in der Planphase, ratifiziert durch Freigabe.
+
+**Befund:**
+- Aufrufer außerhalb der Tests vorher: 3 Stellen in 2 Dateien (App `Load`, CLI `ListShips` + `Load`).
+- CLI `plan example_missions.json`: byte-gleich zum Stand vor T7.1a (Worktree von `2d30fab` gebaut). Kaputte `x.json` neben hull_a → „Skipped: Ship file 'x.json' is invalid: …“, Plan läuft, Exit 0; `--ship x` → zusätzlich „Ship 'x' not found. Available ships: hull_a.“, Exit 1. Ordner umbenannt → „Ships folder missing next to the exe – unzip the release again. Expected: …“, Exit 1 (auch für die Usage); `--version` braucht den Ordner nicht.
+- App ohne `ships/`: ein Fenster „SC-CargoPlan“ mit derselben Meldung und OK, Exit-Code 1, kein Prozess bleibt. Mit Ordner: normaler Start, Schließen mit Exit 0.
+- publish.ps1: 261 Dateien (vorher 260, + `ships/hull_a.json`), ZIP 58,7 MB. Negativtest: `ships/hull_a.json` umbenannt → Skript rot („… has no SC-CargoPlan/ships/hull_a.json …“), kein `.sha256`.
+- Tests: Core 626 (608 nach dem Ordner-Commit, +18 für Formatzusätze und Carrack-Fall), App 809, Import 93, alle grün; `ships/` kommt auch transitiv in App.Tests und Import.Tests an.
 
 ### [ ] T7.1b Fleetyards-Import
 `tools/import-fleetyards.ps1`: `ships.json` (Export aus `sc-ship-outlines/fetch.ps1`, bleibt außerhalb des Repos)

@@ -52,7 +52,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 | Tests | **xUnit** + `AwesomeAssertions` | Standard im .NET-Ökosystem. AwesomeAssertions ist der Apache-2.0-Fork von FluentAssertions (ab v8 kommerziell lizenziert). |
 | Click-through | Win32 `SetWindowLongPtrW` schaltet `WS_EX_TRANSPARENT` via `[LibraryImport]`, HWND aus `WindowInteropHelper`; `WS_EX_LAYERED` setzt WPF selbst (D11) | Keine Lib nötig. |
 | Hotkeys | Win32 `RegisterHotKey` + `HwndSource.AddHook` für `WM_HOTKEY` | Global, auch wenn das Spiel den Fokus hat, keine Lib. |
-| Distribution | `build/publish.ps1` → App + Cli self-contained `win-x64` in **einem Ordner** (`out/publish/SC-CargoPlan`, 135 MB, 260 Dateien), **ein ZIP (~59 MB)** mit SHA256; kein Single-File, kein pubxml, Satellites nur `en` (D46, D48, D49, D50) | Nutzer sollen nichts installieren müssen; Hauler haben .NET 8, nicht 10. WPF kann nicht getrimmt werden. |
+| Distribution | `build/publish.ps1` → App + Cli self-contained `win-x64` in **einem Ordner** (`out/publish/SC-CargoPlan`, 135 MB, 261 Dateien inkl. `ships/`), **ein ZIP (~59 MB)** mit SHA256; kein Single-File, kein pubxml, Satellites nur `en` (D46, D48, D49, D50) | Nutzer sollen nichts installieren müssen; Hauler haben .NET 8, nicht 10. WPF kann nicht getrimmt werden. |
 | CI/CD | GitHub Actions, `windows-latest`, Release bei Git-Tag | Niemand baut von Hand. |
 | Lizenz | **MIT** | Maximale Verbreitung. |
 
@@ -66,9 +66,10 @@ sc-cargoplan/
 ├── SC-CargoPlan.sln
 ├── Directory.Build.props          # gemeinsame Settings: LangVersion, Nullable, TreatWarningsAsErrors, Version, Metadaten
 ├── build/
-│   └── publish.ps1                # Release-Ordner + ZIP nach out/publish (D48, D49)
+│   └── publish.ps1                # Release-Ordner + ZIP nach out/publish (D48, D49), prüft ships/ im ZIP (D56)
+├── ships/                         # Schiffsdateien <id>.json, neben die Exe kopiert (D56); hull_a ist Pflicht
 ├── src/
-│   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader, Ships/*.json als EmbeddedResource
+│   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader (liest ships/ neben der Exe)
 │   ├── CargoPlan.Import/          # net10.0 – ContractTracker SQLite-Reader
 │   ├── CargoPlan.Cli/             # net10.0 – Plan im Terminal ausgeben (Debugging ohne UI)
 │   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Win32-Interop

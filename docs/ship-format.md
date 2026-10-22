@@ -1,19 +1,25 @@
 # Ship file format
 
-Ships are data, not code. Each ship is one JSON file in
-[`src/CargoPlan.Core/Ships/`](../src/CargoPlan.Core/Ships/). Every `*.json` in that folder is compiled
-into `CargoPlan.Core.dll` as an embedded resource named `ships/<file name>`, so adding a ship means
-adding one file. No C# and no `.csproj` change needed.
+Ships are data, not code. Each ship is one JSON file in [`ships/`](../ships/) in the repository root. The build
+copies the folder next to the exe, and the release ZIP carries it as `SC-CargoPlan/ships/` (see [D56](decisions.md)),
+so adding a ship means adding one file. No C# and no `.csproj` change needed.
+
+The app reads every `*.json` in that folder at start. A file that is broken costs only its own ship; the reason is
+reported (the CLI prints it, the app will show it with the ship selection). Without the folder, or without a valid
+`hull_a.json`, the app doesn't start and asks to unzip the release again: the Hull A is the fallback ship.
 
 ## Example
 
-`src/CargoPlan.Core/Ships/hull_a.json` (shortened to two of four racks):
+`ships/hull_a.json` (shortened to two of four racks):
 
 ```json
 {
   "schemaVersion": 4,
   "id": "hull_a",
   "name": "MISC Hull A",
+  "manufacturer": "MISC",
+  "fleetyardsSlug": "misc-hull-a",
+  "source": "in game",
   "totalScu": 64,
   "racks": [
     {
@@ -38,7 +44,8 @@ adding one file. No C# and no `.csproj` change needed.
 
 ## Fields
 
-All fields are **required**. Names are camelCase and **case-sensitive**, and so are the values of
+All fields are **required** unless the table says *optional*. Optional fields came later without a schema bump: a
+file without them loads as before. Names are camelCase and **case-sensitive**, and so are the values of
 `side`, `level` and `stackAxis`. Unknown fields are an error, so a typo like `capacitySCU` fails the build instead of
 being ignored silently.
 
@@ -49,6 +56,10 @@ being ignored silently.
 | `schemaVersion` | number | Must be `4`. Bumped only when the format changes incompatibly; older files are rejected with the version they have and the one expected. |
 | `id` | string | Must equal the file name without `.json` (`hull_a.json` → `"hull_a"`). Use lowercase `snake_case`: Linux file systems are case-sensitive. |
 | `name` | string | Display name, e.g. `"MISC Hull A"`. |
+| `manufacturer` | string | *Optional.* Manufacturer code as Fleetyards writes it, e.g. `"MISC"`, `"RSI"`; ships are grouped by it. Not empty if present. |
+| `fleetyardsSlug` | string | *Optional.* The ship's slug on Fleetyards, e.g. `"misc-hull-a"`, to match other Fleetyards data such as the outline. Not empty if present. |
+| `source` | string | *Optional.* Where the values come from, e.g. `"in game"` (measured in the hangar) or `"Fleetyards"`. Not empty if present. |
+| `notes` | string | *Optional.* Anything a reviewer should know, e.g. what was checked and what wasn't. Not empty if present. |
 | `totalScu` | number | Cargo capacity of the ship. Must equal the sum of all `capacityScu`. |
 | `racks` | array | At least one rack. **Order matters:** the array order is the **rack order** (Rack 1, Rack 2, …). The planner fills racks in this order, puts the first stop into Rack 1 and lets only racks next to each other in this order share a stop. The rack order says nothing about where a rack sits; that is `position`. |
 
@@ -64,6 +75,18 @@ A rack is a separately loadable section of the cargo hold, usually one plate.
 | `position` | object | Where the rack sits in player words ("port upper"), see below. Shown as text, not used for planning. |
 | `origin` | array | Where the rack sits in ship coordinates: `[x, y, z]`, three whole numbers, see [Coordinates](#coordinates). Used to draw the ship, not for planning. Racks must not overlap. |
 | `stackAxis` | string | The ship direction crates stack in, away from the plate: `"+x"`, `"-x"`, `"+y"`, `"-y"`, `"+z"` or `"-z"`, see [Stack axis](#stack-axis). |
+| `maxCrateSize` | number | *Optional.* The largest crate the game lets onto this rack, in SCU: `1`, `2`, `4`, `8`, `16`, `24` or `32`. Left out, the grid alone decides. See [Max crate size](#max-crate-size). |
+
+### Max crate size
+
+The grid says which crates fit by shape; the game may allow less. A Carrack rack is 4×4×4 cells, so a 32 SCU crate
+(4×4×2) would fit, but the game takes crates up to 16 SCU there: `"maxCrateSize": 16`. Fleetyards lists the value as
+`maxContainerSize`. The planner never puts a larger crate into the rack, and a move or merge that would make one is
+refused.
+
+Set it only where it limits something the grid would allow, and only from a source: a value the grid already
+enforces says nothing new and would look like a measurement. That is why `hull_a.json` has none: its 4×2×2 racks take
+no crate above 16 SCU by shape, and the game's limit there is not measured.
 
 ### Grid
 
@@ -154,7 +177,8 @@ minimum corner on the grid and leave a cell of gap where something sits between 
 A schematic layout is enough; the overlay draws boxes, not the ship.
 
 If you take grid sizes measured by others, such as a community catalogue, check its license before copying
-values into a ship file, and name the source in your PR.
+values into a ship file, name the source in your PR and in `source`. Only values derived from it go into the repo,
+not the catalogue's raw data (D56).
 
 ## Crate sizes
 
@@ -170,7 +194,8 @@ Crates have a fixed shape in cells (length × width × stack) and are never turn
 | 24 | 6×2×2 |
 | 32 | 4×4×2 |
 
-A crate fits a rack if each of its three sides fits the grid. The planner rejects a mission with a
+A crate fits a rack if each of its three sides fits the grid and it is no larger than the rack's
+[`maxCrateSize`](#max-crate-size). The planner rejects a mission with a
 crate that fits no rack of the ship. It does not pack crates in 3D: for the Hull A, any mix of crates up
 to the rack capacity fits (see [D9](decisions.md)). If a new ship's grid breaks that, open an issue.
 
@@ -189,12 +214,14 @@ use it automatically.
 
 ## Checklist for a new ship PR
 
-- [ ] File is `src/CargoPlan.Core/Ships/<id>.json`, lowercase `snake_case`, and `id` inside matches.
+- [ ] File is `ships/<id>.json`, lowercase `snake_case`, and `id` inside matches.
 - [ ] `schemaVersion` is `4`.
 - [ ] Rack capacities add up to `totalScu`, and each rack's `length × width × stack` equals its `capacityScu`.
 - [ ] Racks are listed **in rack order** (the order to fill them), each with its `position` and `origin`.
 - [ ] Racks don't overlap, and `origin` agrees with `position` (port = positive y, upper = higher z).
 - [ ] Each rack's `stackAxis` points away from its plate, as in the game.
-- [ ] Values measured in game (current patch named in the PR description).
+- [ ] Values measured in game (current patch named in the PR description), or their source named in `source`.
+- [ ] `maxCrateSize` only where the game allows less than the grid, with its source.
 - [ ] `dotnet test` passes. The test `Every_shipped_ship_loads` loads every ship file and reports the
-      exact problem (file name, field, value) if something is wrong.
+      exact problem (file name, field, value) if something is wrong; `LoadAll_loads_every_shipped_file_without_problems`
+      fails if any file in `ships/` would be skipped.
