@@ -770,6 +770,7 @@ Aus dem Backlog übernommen:
 | huge (1 Rack 12×12×7, 4 Ziele, alle 7 Größen, 958 SCU) | spike_huge | > 15 min (> 50 Mio. Schritte), abgebrochen | 877 ms, Exit 0, 958/958 | Notiz „too many crates to rearrange“ |
 
 - Hull A braucht höchstens 2.859 Suchschritte (Exhaustive), ein Schritt kostet auf 1.008 Zellen ≈ 22 µs → Budget 30.000 (≈ 10 ×), Herleitung in D54 und am Code.
+- Nachtrag T7.1c: Die Zusammensetzung der huge-Ladung wurde nicht festgehalten, `spike_huge` war gelöscht; die 877 ms sind nicht reproduzierbar. Nachbau mit denselben Eckdaten (Zusammensetzung im T7.1c-Befund): 577 ms mit der alten 32er, 636 ms mit 8×2×2.
 - `PlaceInto` auf der Hull A platziert jetzt Missionen, die stopweise `Unplaced` blieben (12 + 4 SCU frei, Stops 4 + 4 und 8) – gewollt, D54.
 
 ### [x] T7.1a Schiffsordner statt eingebettet
