@@ -1,0 +1,362 @@
+{
+  "schemaVersion": 3,
+  "shipId": "hull_a",
+  "fillOrder": "sternFirst",
+  "contractTrackerWatermark": 0,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Riker",
+          "items": [
+            {
+              "commodity": "Titanium",
+              "scu": 16,
+              "maxCrateSize": 4,
+              "crates": [
+                4,
+                4,
+                4,
+                4
+              ]
+            },
+            {
+              "commodity": "Quartz",
+              "scu": 4,
+              "maxCrateSize": 2,
+              "crates": [
+                2,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Shubin",
+          "items": [
+            {
+              "commodity": "Agricium",
+              "scu": 8,
+              "maxCrateSize": 8,
+              "crates": [
+                8
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Orison",
+          "items": [
+            {
+              "commodity": "Laranite",
+              "scu": 12,
+              "maxCrateSize": 4,
+              "crates": [
+                4,
+                4,
+                4
+              ]
+            },
+            {
+              "commodity": "Gold",
+              "scu": 2,
+              "maxCrateSize": 1,
+              "crates": [
+                1,
+                1
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Lorville",
+          "items": [
+            {
+              "commodity": "Tungsten",
+              "scu": 12,
+              "maxCrateSize": 2,
+              "crates": [
+                2,
+                2,
+                2,
+                2,
+                2,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Quartz",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Quartz",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Shubin",
+      "commodity": "Agricium",
+      "crateSize": 8,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Laranite",
+      "crateSize": 4,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Laranite",
+      "crateSize": 4,
+      "rackId": "rack-2",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Laranite",
+      "crateSize": 4,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Gold",
+      "crateSize": 1,
+      "rackId": "rack-2",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Gold",
+      "crateSize": 1,
+      "rackId": "rack-2",
+      "position": [
+        3,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tungsten",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 4
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tungsten",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 4
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tungsten",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 4
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tungsten",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        2,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 4
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tungsten",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 4
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tungsten",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 4
+    }
+  ],
+  "warnings": [
+    {
+      "rackId": "rack-0",
+      "message": "Riker spans racks 1\u002B2"
+    },
+    {
+      "rackId": "rack-1",
+      "message": "Rack 2 shared by Riker, Shubin \u2013 identify crates by count"
+    },
+    {
+      "rackId": "rack-1",
+      "message": "Riker spans racks 1\u002B2"
+    }
+  ]
+}

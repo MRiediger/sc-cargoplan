@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 3,
+  "shipId": "hull_a",
+  "fillOrder": "sternFirst",
+  "contractTrackerWatermark": 0,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Riker",
+          "items": [
+            {
+              "commodity": "Titanium",
+              "scu": 20,
+              "maxCrateSize": 4,
+              "crates": [
+                4,
+                4,
+                4,
+                4,
+                4
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    }
+  ],
+  "warnings": [
+    {
+      "rackId": "rack-0",
+      "message": "Riker spans racks 1\u002B2"
+    },
+    {
+      "rackId": "rack-1",
+      "message": "Riker spans racks 1\u002B2"
+    }
+  ]
+}

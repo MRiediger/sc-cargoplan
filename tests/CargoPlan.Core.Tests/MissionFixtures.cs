@@ -30,6 +30,12 @@ internal static class MissionFixtures
     /// </summary>
     public static IReadOnlyList<MissionStop> CrateMixMissions => LoadMissions("crate_mix");
 
+    /// <summary>
+    /// Schema 2, 8 stops, 58 of 64 SCU in 1–16 SCU crates: Lorville 16 alone, Riker 12, Shubin and Orison share rack 3,
+    /// four stops share rack 4 (T7.0 load case).
+    /// </summary>
+    public static IReadOnlyList<MissionStop> HullAEightStopsMissions => LoadMissions("hull_a_eight_stops");
+
     /// <summary>A fixture expanded for the planner.</summary>
     public static IReadOnlyList<Stop> Load(string name) => LoadMissions(name).ToStops();
 

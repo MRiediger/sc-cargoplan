@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 3,
+  "shipId": "hull_a",
+  "fillOrder": "sternFirst",
+  "contractTrackerWatermark": 0,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Green Glade",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 6,
+              "maxCrateSize": 4
+            },
+            {
+              "commodity": "Scrap",
+              "scu": 15,
+              "maxCrateSize": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Riker",
+          "items": [
+            {
+              "commodity": "Titanium",
+              "scu": 6,
+              "maxCrateSize": 4,
+              "crates": [
+                2,
+                2,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Green Glade",
+      "commodity": "Stims",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Green Glade",
+      "commodity": "Stims",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Green Glade",
+      "commodity": "Scrap",
+      "crateSize": 4,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Green Glade",
+      "commodity": "Scrap",
+      "crateSize": 4,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Green Glade",
+      "commodity": "Scrap",
+      "crateSize": 4,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Green Glade",
+      "commodity": "Scrap",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Green Glade",
+      "commodity": "Scrap",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 2,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 2,
+      "rackId": "rack-2",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 2,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 2
+    }
+  ],
+  "warnings": [
+    {
+      "rackId": "rack-0",
+      "message": "Green Glade spans racks 1\u002B2"
+    },
+    {
+      "rackId": "rack-1",
+      "message": "Green Glade spans racks 1\u002B2"
+    }
+  ]
+}

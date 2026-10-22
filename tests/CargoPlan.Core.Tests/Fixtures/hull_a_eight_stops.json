@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 2,
+  "stops": [
+    { "destination": "Lorville", "items": [ { "commodity": "Gold", "scu": 16, "maxCrateSize": 16 } ] },
+    { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 12, "maxCrateSize": 4 } ] },
+    { "destination": "Shubin", "items": [ { "commodity": "Quartz", "scu": 6, "maxCrateSize": 2 } ] },
+    { "destination": "Orison", "items": [ { "commodity": "Agricium", "scu": 8, "maxCrateSize": 8 } ] },
+    { "destination": "Everus Harbor", "items": [ { "commodity": "Scrap", "scu": 5, "maxCrateSize": 1 } ] },
+    {
+      "destination": "Area18",
+      "items": [
+        { "commodity": "Stims", "scu": 4, "maxCrateSize": 4 },
+        { "commodity": "Medical Supplies", "scu": 2, "maxCrateSize": 1 }
+      ]
+    },
+    { "destination": "Port Tressler", "items": [ { "commodity": "Copper", "scu": 3, "maxCrateSize": 2 } ] },
+    { "destination": "Seraphim", "items": [ { "commodity": "Iron", "scu": 2, "maxCrateSize": 2 } ] }
+  ]
+}

@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 3,
+  "shipId": "hull_a",
+  "fillOrder": "sternFirst",
+  "contractTrackerWatermark": 0,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Riker",
+          "items": [
+            {
+              "commodity": "Titanium",
+              "scu": 12,
+              "maxCrateSize": 4,
+              "crates": [
+                4,
+                4,
+                4
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Shubin",
+          "items": [
+            {
+              "commodity": "Quartz",
+              "scu": 10,
+              "maxCrateSize": 2,
+              "crates": [
+                2,
+                2,
+                2,
+                2,
+                2
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Orison",
+          "items": [
+            {
+              "commodity": "Agricium",
+              "scu": 8,
+              "maxCrateSize": 8,
+              "crates": [
+                8
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Shubin",
+      "commodity": "Quartz",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2
+    },
+    {
+      "destination": "Shubin",
+      "commodity": "Quartz",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2
+    },
+    {
+      "destination": "Shubin",
+      "commodity": "Quartz",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 2
+    },
+    {
+      "destination": "Shubin",
+      "commodity": "Quartz",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 2
+    },
+    {
+      "destination": "Shubin",
+      "commodity": "Quartz",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 2
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Agricium",
+      "crateSize": 8,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3
+    }
+  ],
+  "warnings": []
+}
