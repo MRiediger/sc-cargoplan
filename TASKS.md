@@ -759,7 +759,7 @@ Aus dem Backlog übernommen:
 
 **Präzisiert in der Planung (D54):** SCU-Partition zuerst, Fallback nur, wenn das Legen scheitert, nicht wenn schon die SCU-Partition scheitert (D6, Hull-A-Test „Crates don't fit*Orison*“). Fallback = First-Fit-Decreasing mit der Rackwahl von `PlaceInto` (D41), ohne Suche; Probe und Legen teilen `CrateLayout.RackSpace`. Fallback-Plan: Notiz „Racks not in route order – crates placed where they fit“ in jedem Rack mit Fracht, von `WithHints` mitgetragen, nicht beim `PlaceInto`-Fallback. Meldung: „{Ziel} doesn't fit: no room for {n} × {Größe} SCU crate(s) of {Ware} – {frei} SCU free, but no gap of that shape. Leave a stop out or take a ship with bigger racks.“ Hull-A-Lastfall mit 1–16 SCU, ohne 24/32 (passen in kein Hull-A-Rack). Stapelbewusste Partition bleibt Backlog. Nachtrag B1 (Befund Schritt 0): die exakte Stapelsuche hing auf 1.008 Zellen → Budget 30.000 Schritte, Notiz „Rack N: too many crates to rearrange – red crates lie on cargo that unloads earlier. Check the unload order by hand.“ (ersetzt nach der Umsetzung „stacking order not checked“: geprüft wird die Reihenfolge immer, nur die Umordnung entfällt). Commits: Golden → `RackSpace` → Budget → Fallback. Präzisierung in der Planphase, ratifiziert durch Freigabe.
 
-**Befund** (Release-CLI, je 3 Läufe, Median; Spike-Schiffe aus S7.0 nachgebaut, auf dem alten Core bit-gleich zu S7.0 geprüft, nach der Messung gelöscht):
+**Befund** (Release-CLI, je 3 Läufe, Median, gemessen an `0b7d62b`, Endstand `854d360` liegt wenige ms daneben; Spike-Schiffe aus S7.0 nachgebaut, auf dem alten Core bit-gleich zu S7.0 geprüft, nach der Messung gelöscht):
 
 | Lauf | Schiff | Vorher | Nachher | Ausgang nachher |
 |---|---|---|---|---|
@@ -772,10 +772,31 @@ Aus dem Backlog übernommen:
 - Hull A braucht höchstens 2.859 Suchschritte (Exhaustive), ein Schritt kostet auf 1.008 Zellen ≈ 22 µs → Budget 30.000 (≈ 10 ×), Herleitung in D54 und am Code.
 - `PlaceInto` auf der Hull A platziert jetzt Missionen, die stopweise `Unplaced` blieben (12 + 4 SCU frei, Stops 4 + 4 und 8) – gewollt, D54.
 
-### [ ] T7.1 Schiffsentwürfe – 73 Dateien aus Erecs Guide (inkl. Cutlass Black, RAFT), Ordner `ships/` im ZIP statt eingebettet (D-Eintrag), Lade-Validierung (eine kaputte Datei blendet nur dieses Schiff aus, ein fehlender Ordner zeigt eine Meldung statt eines Crashs), Test über alle Dateien
+### [ ] T7.1a Schiffsordner statt eingebettet
+Infrastruktur mit hull_a allein. D-Eintrag: Ordner `ships/` neben der Exe statt `EmbeddedResource`
+(Hybrid abgelehnt: zwei Quellen, bei Bug-Reports unklar, welche aktiv war). Ablage im Repo-Root `ships/`,
+Core kopiert ins Output. Laden: Ordner fehlt → Meldung und Ende, kein Crash; eine Datei kaputt → nur dieses
+Schiff fehlt, Grund gesammelt (CLI gibt ihn aus, App zeigt ihn in T7.2); hull_a fehlt → wie Ordner fehlt.
+Formatzusätze, optional, kein Schema-Bump: pro Rack `maxCrateSize` (Spiel-Limit, Fleetyards `maxContainerSize`,
+Carrack 4×4×4 Zellen erlaubt 16, nicht 32; `CanHold` und `EnsureCratesFitShip` prüfen es), pro Schiff
+`manufacturer` (Code wie „MISC“, für die Gruppierung in T7.2), `source`, `notes`. hull_a: `source: "in game"`.
+publish.ps1 kopiert `ships/` ins ZIP, Prüfschritt + Negativtest wie D49. Tests: Ordner-Fälle, Carrack-Fall,
+„alle Dateien in ships/ laden“. Lizenz: nur abgeleitete Dateien ins Repo.
+
+### [ ] T7.1b Fleetyards-Import
+`tools/import-fleetyards.ps1`: `ships.json` (Export aus `sc-ship-outlines/fetch.ps1`, bleibt außerhalb des Repos)
+→ Dateien in `ships/`. Scope: jedes Schiff mit Frachtgitter (erwartet 96). Abgleichmodus meldet Abweichungen
+bei bestehenden Dateien, überschreibt nie Origin/stackAxis/Reihenfolge/Notizen. Erste Zahl: Hull A aus
+Fleetyards gegen `hull_a.json`. Gegenprobe gegen Erecs Guide. Details im Planprompt.
+
 ### [ ] T7.2 Schiffsauswahl – Editor nach Hersteller gruppiert, Wahl in settings.json statt `App.ShipId`-const, Plan beim Schiffswechsel bzw. bei ShipId-Mismatch beim Laden (heute: ungefangene ArgumentException in `ShipViewBuilder`), Fallback auf hull_a bei fehlender Schiffsdatei
 ### [ ] T7.3 Schiffsansicht bei großen Gittern – Hull C, C2: Racknummern (`RackNumberSize`: ein Wert für alle Racks), Fit, Legende
 ### [ ] T7.4 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
+### [ ] T7.5 Schiffsumriss aus `ship-outlines.json` (D55) – nach T7.4, vor dem Tag
+- Erste Zahl: Orbit mit Apollo-Polygon (99 Punkte) bei laufendem SC, Messung wie D21. Ruckelt es → Phase 8.
+- `ship-outlines.json` + `NOTICE.md` neben `ships/` im ZIP; Zuordnung über Schiffs-Id; ohne Eintrag bleibt der Keil.
+- Polygon unter den Racks, Themefarbe, Bow-Label bleibt wie D52 (Platz ohne Keil klären).
+- Sichtprüfung an 5 Schiffen im Overlay: Hull A, C2, Caterpillar, Reclaimer, 890 Jump (die drei letzten sind die zweideutigen).
 
 → Tag `v0.1.0` → T6.6 Nexus
 
@@ -798,7 +819,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
 - ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26); freie Rotation pro Rack erst, wenn ein Schiff sie braucht.
 - Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).
-- Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).
+- ~~Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).~~ Übernommen als T7.5 (D55).
 - Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).
 - Orbit-Snap auf feste Winkel (z. B. 45°-Raster per Taste), falls freies Drehen schwer wiederholbar ist (D15).
 - Plan verwerfen ohne neuen Plan („Discard plan“), falls ein leeres Overlay nach der Route gewünscht wird; heute ersetzt nur „Plan“ den alten Plan (D19).
