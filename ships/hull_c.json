@@ -5,7 +5,7 @@
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-hull-c",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards",
+  "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards; stackAxis set by hand after the Hull A's spindle pattern, not from Fleetyards",
   "totalScu": 4608,
   "racks": [
     {
@@ -13,7 +13,7 @@
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -21,7 +21,7 @@
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
       "origin": [-9, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -29,7 +29,7 @@
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
       "origin": [-18, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -37,7 +37,7 @@
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
       "origin": [-27, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -45,7 +45,7 @@
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
       "origin": [-36, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -53,7 +53,7 @@
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
       "origin": [-45, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -61,7 +61,7 @@
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
       "origin": [-54, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -69,7 +69,7 @@
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
       "origin": [-63, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -77,7 +77,7 @@
       "capacityScu": 192,
       "grid": { "length": 8, "width": 4, "stack": 6 },
       "origin": [-72, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -85,7 +85,7 @@
       "capacityScu": 192,
       "grid": { "length": 8, "width": 4, "stack": 6 },
       "origin": [-81, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -93,7 +93,7 @@
       "capacityScu": 192,
       "grid": { "length": 8, "width": 4, "stack": 6 },
       "origin": [-90, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -101,7 +101,7 @@
       "capacityScu": 192,
       "grid": { "length": 8, "width": 4, "stack": 6 },
       "origin": [-99, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -109,7 +109,7 @@
       "capacityScu": 192,
       "grid": { "length": 8, "width": 4, "stack": 6 },
       "origin": [-108, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -117,7 +117,7 @@
       "capacityScu": 192,
       "grid": { "length": 8, "width": 4, "stack": 6 },
       "origin": [-117, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -125,7 +125,7 @@
       "capacityScu": 192,
       "grid": { "length": 8, "width": 4, "stack": 6 },
       "origin": [-126, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     },
     {
@@ -133,7 +133,7 @@
       "capacityScu": 192,
       "grid": { "length": 8, "width": 4, "stack": 6 },
       "origin": [-135, 0, 0],
-      "stackAxis": "+z",
+      "stackAxis": "+y",
       "maxCrateSize": 32
     }
   ]
