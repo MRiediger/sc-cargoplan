@@ -1,0 +1,25 @@
+# Source: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-githubs-form-schema
+name: Feature request
+description: Something that would make hauling with SC-CargoPlan easier.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What gets in your way while hauling? Describe the situation, not the solution.
+      placeholder: At the cargo lift I can't tell which of two Riker missions a crate belongs to, because …
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: How could SC-CargoPlan help? Optional.
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do today
+      description: How do you work around it now? Optional.

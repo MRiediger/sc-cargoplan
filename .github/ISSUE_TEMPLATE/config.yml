@@ -1,0 +1,6 @@
+# Source: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas
+    url: https://github.com/MRiediger/sc-cargoplan/discussions
+    about: Ask how something works or talk an idea through before it becomes an issue.

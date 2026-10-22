@@ -1,0 +1,61 @@
+# Source: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-githubs-form-schema
+name: Ship request
+description: Measurements for a ship SC-CargoPlan doesn't know yet.
+labels: [enhancement, ship]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A ship is one JSON file; [ship-format.md](https://github.com/MRiediger/sc-cargoplan/blob/main/docs/ship-format.md#measuring-a-ship) explains how to measure it in the hangar. Can write JSON? A pull request with the file is even better.
+
+  - type: input
+    id: ship
+    attributes:
+      label: Ship
+      description: Manufacturer and name.
+      placeholder: Drake Cutlass Black
+    validations:
+      required: true
+
+  - type: textarea
+    id: racks
+    attributes:
+      label: Racks
+      description: |
+        One line per separately loadable plate, **in the order haulers should fill them** (first stop first).
+        Size in SCU cells: along the plate × across it × how many crates stack away from it. Position as seen facing the bow.
+      placeholder: |
+        Rack 1: 4 × 2 × 2 = 16 SCU, port upper
+        Rack 2: 4 × 2 × 2 = 16 SCU, port lower
+    validations:
+      required: true
+
+  - type: textarea
+    id: stack-axis
+    attributes:
+      label: Stack axis per rack
+      description: |
+        Which way does a second layer of crates go, away from the plate? Up, down, to port, to starboard, to the bow or to the stern.
+        See [Stack axis](https://github.com/MRiediger/sc-cargoplan/blob/main/docs/ship-format.md#stack-axis).
+      placeholder: |
+        Rack 1: to port
+        Rack 2: to port
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: Measured in the game yourself, or a link to where the numbers come from (e.g. Erec's guide).
+    validations:
+      required: true
+
+  - type: input
+    id: game-version
+    attributes:
+      label: Star Citizen version
+      description: The patch the measurements are from.
+      placeholder: 4.10.1-LIVE
+    validations:
+      required: true

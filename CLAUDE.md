@@ -62,7 +62,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 
 ```
 sc-cargoplan/
-├── CLAUDE.md · TASKS.md · README.md · LICENSE
+├── CLAUDE.md · TASKS.md · README.md · LICENSE · CONTRIBUTING.md · SECURITY.md
 ├── SC-CargoPlan.sln
 ├── Directory.Build.props          # gemeinsame Settings: LangVersion, Nullable, TreatWarningsAsErrors, Version, Metadaten
 ├── build/
@@ -77,9 +77,13 @@ sc-cargoplan/
 │   └── CargoPlan.Import.Tests/
 ├── docs/
 │   └── contracttracker-schema.md
-└── .github/workflows/
-    ├── ci.yml                     # build + test bei jedem Push/PR
-    └── release.yml                # publish + GitHub Release bei Tag v*
+└── .github/
+    ├── dependabot.yml             # nuget + github-actions, je eine Gruppe, monatlich (D51)
+    ├── PULL_REQUEST_TEMPLATE.md
+    ├── ISSUE_TEMPLATE/            # bug, ship, feature + config (keine leeren Issues, Fragen → Discussions)
+    └── workflows/
+        ├── ci.yml                 # build + test bei jedem Push/PR
+        └── release.yml            # publish + GitHub Release bei Tag v*
 ```
 
 ## Befehle

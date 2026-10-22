@@ -156,6 +156,10 @@ To try the overlay with a plan, start it with a plan file; it becomes your saved
 dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json
 ```
 
+## Contributing
+
+Found a bug, want a ship added or have an idea? [Open an issue](../../issues/new/choose); questions go to [Discussions](../../discussions). To build, test or contribute a ship file, see [CONTRIBUTING.md](CONTRIBUTING.md) and the [ship file format](docs/ship-format.md). Security issues: [SECURITY.md](SECURITY.md).
+
 ## License
 
 [MIT](LICENSE)

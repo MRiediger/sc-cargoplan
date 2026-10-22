@@ -1,0 +1,79 @@
+# Source: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-githubs-form-schema
+name: Bug report
+description: Something in SC-CargoPlan doesn't work as it should.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: SC-CargoPlan version
+      description: Copy it from the footer of the settings window (the gear in the overlay's header).
+      placeholder: 0.1.0+6bbc115…
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Enter two missions for Riker and Shubin in the editor
+        2. Press Plan
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: What should have happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: observed
+    attributes:
+      label: Observed
+      description: What happened instead? Copy any amber line from the overlay word for word.
+    validations:
+      required: true
+
+  - type: upload
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: The overlay (and the editor or settings window, if involved) when it goes wrong.
+    validations:
+      required: true
+      accept: ".png,.jpg,.jpeg,.gif,.webp,.mp4,.webm"
+
+  - type: textarea
+    id: contracts
+    attributes:
+      label: ContractTracker contracts
+      description: |
+        **Required if missions or ContractTracker are involved.** It shows what the overlay read from ContractTracker.
+        1. Copy `%AppData%\SCContractTracker\contracts.db` (or your own path) to your desktop.
+        2. In the SC-CargoPlan folder, run: `.\CargoPlan.Cli.exe contracts "$env:USERPROFILE\Desktop\contracts.db" --raw`
+        3. Read it before you paste it: it holds the contract texts as ContractTracker captured them.
+      render: text
+
+  - type: input
+    id: game-version
+    attributes:
+      label: Star Citizen version
+      placeholder: 4.10.1-LIVE
+    validations:
+      required: true
+
+  - type: dropdown
+    id: window-mode
+    attributes:
+      label: Star Citizen window mode
+      options:
+        - Borderless
+        - Windowed
+        - Fullscreen
+    validations:
+      required: true
