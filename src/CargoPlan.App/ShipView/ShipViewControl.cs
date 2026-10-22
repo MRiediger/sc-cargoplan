@@ -5,7 +5,6 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using CargoPlan.App.Settings;
 using CargoPlan.App.Win32;
 using CargoPlan.Core.Models;
 
@@ -249,6 +248,10 @@ public sealed class ShipViewControl : FrameworkElement
         var transform = CurrentTransform(scene);
         var paint = _paint ??= Paint.From(CrateFillAlpha, CrateEdgeBrush, RackNumberHaloBrush, RackNumberHaloSize);
 
+        // Screen pixels like every pen here: points are transformed before drawing, nothing scales the drawing itself.
+        // One size for the rack numbers and the bow label.
+        var numberSize = RackNumberSize.For(RackNumberFontSize, transform.Scale, source.Racks);
+
         foreach (var line in scene.Frame)
         {
             dc.DrawLine(FramePen, transform.Apply(line.From), transform.Apply(line.To));
@@ -261,7 +264,7 @@ public sealed class ShipViewControl : FrameworkElement
         // The bow wedge lies beyond every rack: behind all of them seen from the stern, in front seen from the bow (D52).
         if (!scene.BowWedge.InFront)
         {
-            DrawBowWedge(dc, scene.BowWedge, transform, paint);
+            DrawBowWedge(dc, scene.BowWedge, transform, paint, numberSize);
         }
 
         // Plain rack edges first: cargo in front covers them like any other part of the ship (D21).
@@ -293,7 +296,7 @@ public sealed class ShipViewControl : FrameworkElement
 
         if (scene.BowWedge.InFront)
         {
-            DrawBowWedge(dc, scene.BowWedge, transform, paint);
+            DrawBowWedge(dc, scene.BowWedge, transform, paint, numberSize);
         }
 
         // Red and cyan on top, like the numbers: a violation or the drop target must never hide behind cargo. A faulty
@@ -342,8 +345,6 @@ public sealed class ShipViewControl : FrameworkElement
             return;
         }
 
-        // Screen pixels like every pen here: points are transformed before drawing, nothing scales the drawing itself.
-        var size = RackNumberSize.For(RackNumberFontSize, transform.Scale, source.Racks);
         var typeface = new Typeface(TextElement.GetFontFamily(this), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
         var pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
         foreach (var rack in scene.Racks)
@@ -353,7 +354,7 @@ public sealed class ShipViewControl : FrameworkElement
                 CultureInfo.InvariantCulture,
                 FlowDirection.LeftToRight,
                 typeface,
-                size,
+                numberSize,
                 labelBrush,
                 pixelsPerDip);
             var centre = transform.Apply(rack.LabelCentre);
@@ -713,7 +714,7 @@ public sealed class ShipViewControl : FrameworkElement
 
     // Convex: the faces turned towards the camera never cover each other, so they need no order. The label lies on the
     // floor, so it is drawn with the faces, in their place in the draw order, in the rack numbers' colour and outline.
-    private void DrawBowWedge(DrawingContext dc, ProjectedWedge wedge, ViewTransform transform, Paint paint)
+    private void DrawBowWedge(DrawingContext dc, ProjectedWedge wedge, ViewTransform transform, Paint paint, double numberSize)
     {
         foreach (var face in wedge.Faces)
         {
@@ -734,9 +735,8 @@ public sealed class ShipViewControl : FrameworkElement
             BowLabelEmSize,
             brush,
             VisualTreeHelper.GetDpi(this).PixelsPerDip);
-        // The rack number size scales it like the numbers, from the default down; above the default it would leave the floor.
-        var sizeShare = RackNumberFontSize / CrateAppearance.Default.RackNumberFontSize;
-        var glyphs = FloorLabel.Lay(text.BuildGeometry(new Point(0, 0)), wedge.Floor, transform, sizeShare);
+        // As large on the screen as a rack number (D32, shrinking included), as far as the floor has room.
+        var glyphs = FloorLabel.Lay(text.BuildGeometry(new Point(0, 0)), BowLabelEmSize, wedge.Floor, transform, numberSize);
         DrawLabel(dc, glyphs, brush, paint);
     }
 

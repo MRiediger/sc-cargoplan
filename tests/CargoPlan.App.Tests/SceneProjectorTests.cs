@@ -248,7 +248,7 @@ public class SceneProjectorTests
         var camera = new IsoProjection(yaw, DefaultPitch);
         var projected = SceneProjector.Project(Scene, camera);
         ViewTransform transform = new(40, new Vector(200, 200));
-        var label = LayBowLabel(projected.BowWedge.Floor, transform, sizeShare: 1);
+        var label = FloorLabel.Lay(Glyphs("Bow"), LabelEmSize, projected.BowWedge.Floor, transform, screenEmSize: 27);
 
         // Flattened into screen pixels: no transform left that would skew a pen's outline.
         (label.Transform?.Value ?? Matrix.Identity).IsIdentity.Should().BeTrue();
@@ -265,29 +265,45 @@ public class SceneProjectorTests
         points.Should().NotBeEmpty().And.OnlyContain(p => SceneHitTest.Contains(floor, p));
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Bow_label_B_is_as_tall_on_screen_as_a_rack_number_digit(double zoom)
+    {
+        // The default overlay's ship view, as in RackNumberSizeTests.
+        var projected = SceneProjector.Project(Scene, IsoProjection.Default);
+        var fit = ViewTransform.Fit(projected.Extent, new Size(400, 302), margin: 8);
+        ViewTransform transform = new(fit.Scale * zoom, fit.Offset * zoom);
+        var numberSize = RackNumberSize.For(27, transform.Scale, Scene.Racks);
+
+        // The B of "Bow" from its top to its baseline, through the label's matrix onto the screen.
+        var placement = FloorLabel.Placement(Glyphs("Bow").Bounds, LabelEmSize, projected.BowWedge.Floor, transform, numberSize);
+        var b = Glyphs("B").Bounds;
+        var bOnScreen = (placement.Transform(b.TopLeft) - placement.Transform(b.BottomLeft)).Length;
+
+        bOnScreen.Should().BeApproximately(Glyphs("1", numberSize).Bounds.Height, 1);
+    }
+
     [Fact]
-    public void Bow_label_shrinks_with_the_rack_number_size_but_never_outgrows_the_floor()
+    public void Bow_label_never_leaves_a_short_floor()
     {
-        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge.Floor;
+        // A floor of a narrow ship: a tenth of a cell of room across, far less than a rack number needs.
+        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge.Floor with { Room = new Size(0.1, 0.7) };
         ViewTransform transform = new(40, new Vector(200, 200));
-        var full = LayBowLabel(floor, transform, sizeShare: 1).Bounds;
+        var ink = Glyphs("Bow").Bounds;
 
-        var half = LayBowLabel(floor, transform, sizeShare: 0.5).Bounds;
-        half.Width.Should().BeApproximately(full.Width / 2, 0.5);
-        half.Height.Should().BeApproximately(full.Height / 2, 0.5);
-        // Shrunk around the floor's centre: the skewed glyphs' bounds shrink around it too.
-        var floorCentre = transform.Apply(floor.Centre);
-        var expected = floorCentre + (Centre([full.TopLeft, full.BottomRight]) - floorCentre) / 2;
-        (Centre([half.TopLeft, half.BottomRight]) - expected).Length.Should().BeLessThan(0.5);
+        var placement = FloorLabel.Placement(ink, LabelEmSize, floor, transform, screenEmSize: 27);
 
-        LayBowLabel(floor, transform, sizeShare: 2).Bounds.Should().Be(full);
+        var acrossCells = (placement.Transform(ink.TopRight) - placement.Transform(ink.TopLeft)).Length / (floor.Across.Length * transform.Scale);
+        acrossCells.Should().BeApproximately(0.1, 1e-9);
     }
 
-    private static PathGeometry LayBowLabel(WedgeFloor floor, ViewTransform transform, double sizeShare)
-    {
-        FormattedText text = new("Bow", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 100, Brushes.White, 1);
-        return FloorLabel.Lay(text.BuildGeometry(new Point(0, 0)), floor, transform, sizeShare);
-    }
+    // The label's text is built at this size and scaled onto the floor, like ShipViewControl's.
+    private const double LabelEmSize = 100;
+
+    private static Geometry Glyphs(string text, double emSize = LabelEmSize) =>
+        new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal), emSize, Brushes.White, 1)
+            .BuildGeometry(new Point(0, 0));
 
     [Fact]
     public void A_full_turn_projects_fast_enough_for_dragging()

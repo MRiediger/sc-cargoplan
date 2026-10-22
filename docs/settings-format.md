@@ -81,7 +81,7 @@ can't be changed, so only their alpha is a number of its own: `0` (invisible) to
 | `crates.fillAlpha` | Opacity of the crates in the ship view | `208` | 0–255 |
 | `crates.edgeAlpha` | Opacity of the crates' edges | `192` | 0–255 |
 | `crates.rackNumberColor` | Colour of the rack numbers and the "Bow" label | `#FFFFFFFF` | |
-| `crates.rackNumberFontSize` | Size of the rack numbers in pixels, the same at every zoom; below 27 it shrinks the "Bow" label too | `27` | 8–48 |
+| `crates.rackNumberFontSize` | Size of the rack numbers and the "Bow" label in pixels, the same at every zoom | `27` | 8–48 |
 | `crates.halo` | Outline of the rack numbers and the "Bow" label | on | |
 | `buttons.background` | Background of the glyph buttons and "Open editor" | `#01000000` | alpha at least `01` |
 | `buttons.borderColor` | Frame of the glyph buttons | `#FFE6E6E6` | |
@@ -95,8 +95,8 @@ before it was a setting; Windows sets it, often 11 or 12). A number overrides it
 
 **`crates.rackNumberFontSize` stays the same while you zoom.** Only when you zoom far out or make the
 overlay small, so that a number would be taller than its rack, does it shrink with the racks, down to 12.
-The "Bow" label lies on the floor of the bow wedge and zooms with it; at 27 it fills the floor's room, a
-smaller size shrinks it in proportion (13.5 makes it half as large), a larger one leaves it as it is.
+The "Bow" label lies flat on the floor of the bow wedge, its capitals as tall on the screen as the rack
+numbers' digits, shrinking included; only where the floor has no room for that does it stay smaller.
 
 **Alpha at least `01`:** the overlay passes clicks on fully transparent pixels to the window below. With a
 background of alpha `00`, you could no longer move the overlay or press a button, so the overlay uses `01`
