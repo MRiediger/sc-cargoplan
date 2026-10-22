@@ -510,6 +510,7 @@ A decision changes only through a new entry that supersedes the old one.
 - **Counter-argument:** In the fallback the route no longer decides the racks: stop 1 need not be in rack 1, and stops that are no route neighbours share racks (D5/D6 hold for SCU plans only). First-fit decreasing is a heuristic: a load with a layout it misses is still refused. The fallback never runs on the Hull A, so its bugs show only on other ships. (b) would keep route order but miss loads where two stops must share both racks. The notes are the only warnings that can go stale (D10 promised none): a rack dragged back into route order keeps its note until the next Plan. 10 × is a thin margin over the Hull A's need, and on a slow PC the large rack may take 2 s; a time limit would give different plans on different machines.
 - **Consequence:** Hull A plans from `Plan` stay byte-identical (golden test, S7.0 runs 1, 2 and 5 bit-identical in the CLI). `PlaceInto` on the Hull A now places missions it left unplaced before, e.g. racks with 12 and 4 SCU free and a mission of stops 4 + 4 and 8: stop by stop fails, first-fit decreasing lays 8 → rack 1, 4 → rack 1, 4 → rack 2. That is intended, not a break of byte-identity: a mission placed before is placed as before, since the fallback runs only after a failure. `LayOut`'s grid message is left for the schema 1 migration. Backlog: a split in route order that avoids stacking findings; a faster exact search, once a real plan shows the note; planning off the UI thread (`Task.Run`), once a freeze is reported.
 - **Addendum (T7.1c):** the composition of the 958 SCU load behind "877 ms" was not recorded and the spike ship was deleted, so that number can't be reproduced. T7.1c rebuilt a load with the same key figures (one 12×12×7 rack, four stops, all seven sizes; composition in TASKS.md, T7.1c): 577 ms with the old 32 SCU shape, 636 ms with 8×2×2 (D57), median of three Release CLI runs, both with the note.
+- **Addendum (T7.1d):** the fixed budget of 30,000 steps is replaced by one scaled by the rack's cells (D58).
 
 ## D55 – Ship outlines from traced Fleetyards renders
 
@@ -537,3 +538,25 @@ A decision changes only through a new entry that supersedes the old one.
 - **Decision:** `CrateSize.ThirtyTwo` is 8×2×2. No other production code changes: split, merge and the layout work on `Dimensions`. The Hull A golden plans stay byte-identical (no 32 fits a 4×2×2 plate either way). Test ships that relied on the old shape get new ones: `uneven_long` (2 racks 10×3×3, one 32 per rack by shape, two by SCU) replays S7.0 runs 3 and 4, the order search test uses an 8×2×4 rack, the max crate size tests an 8×2×2 rack with a limit of 16, the split tests an 8×3×2 rack. Precision in the planning phase, ratified by approval.
 - **Counter-argument:** Never measured in the game: the Wiki and Fleetyards may both derive from the same game files, so they are not independent. If the in-game container is turned or the 32 has a second shape, all three tables are wrong together. Longer crates change the stacking search: a 10×3×3 rack lays run 4 within the budget, a 9×3×3 rack doesn't (T7.1c findings).
 - **Consequence:** Hull B, C1, Freelancer, Shiv and Starlancer MAX/TAC now take 32s (26 racks, 0 left that allow a 32 but can't hold it). `maxCrateSize` limits nothing in the shipped data (D56 addendum). The default split stays 16 + 16 (D27 addendum). `CLAUDE.md`, `ship-format.md` and `plan-format.md` list 8×2×2.
+
+## D58 – Search budget scaled by the rack's cells
+
+- **Context:** D54 limits the exact search for a layout in route order to 30,000 steps. T7.1c found a 9×3×3 rack (81 cells, 32 + 40 × 1) that needs about 1.57 million steps and solves in 509 ms; with 30,000 the planner drops the solution and shows the note. 57 racks in 26 shipped ships have more than 80 cells. A step costs more on a larger rack: about 5.7 µs on 1,008 cells, 0.3 µs on 81 (T7.1d, Release). The rule set before measuring: the largest budget that keeps the stress load (one 12×12×7 rack, 958 SCU, composition in TASKS.md T7.1c) at or under 1.5 s, since the editor plans on the UI thread.
+- **Measurements (T7.1d):** Release CLI, three runs each, median; every output byte-identical across runs, exit 0. "note" = "too many crates to rearrange".
+
+  | Budget | Stress load (1,008 cells) | 9×3×3 run 4 (81) | Hull A load case (16) | C2 small hold (216, 1 × 32 + 20 × 8 + 24 × 1) |
+  |---|---|---|---|---|
+  | 30,000 | 635 ms, note | 191 ms, note | 115 ms | 127 ms |
+  | 100,000 | 1,028 ms, note | – | – | – |
+  | 150,000 | 1,301 ms, note | note | – | – |
+  | 200,000 | 1,602 ms, note | – | – | – |
+  | 300,000 | 2,300 ms, note | 433 ms, note | 114 ms | 130 ms |
+  | 1 million | 6,218 ms, note | 680 ms, note | 118 ms | 126 ms |
+  | 2 million | 11,651 ms, note | 844 ms, solved | 114 ms | 125 ms |
+  | 4 million | 23,329 ms, note | 840 ms, solved | 114 ms | 127 ms |
+  | **scaled** | 150,000: 1,307 ms, note | 1,866,666: 863 ms, solved | 9,450,000: 110 ms | 700,000: 132 ms |
+
+- **Options:** (a) keep 30,000; (b) the rule's fixed budget, 150,000: none of the four cases gains, the stress load takes 0.67 s longer; (c) a budget per rack, scaled by its cells.
+- **Decision:** (c). `CrateLayout.MaxOrderSearchSteps(cells) = 150,000 × 1,008 / cells`: steps × cells stay constant, the stress rack keeps the rule's 150,000. Still a count of steps, not a time, so plans are the same on every machine. **Hull A:** 16 cells give 9,450,000 steps; the Hull A needs at most 2,859 (exhaustive check, D54) and its 8-stop load case starts no search at all, so its plans don't change (golden files unchanged since d93b8c6, exhaustive check green). The tests of plans that reach the limit become the category "Slow", out of the default run and in a CI step of their own; the 1 s wall-clock assertion goes (it failed CI at 1,099 and 1,297 ms since T7.0). Precision in the planning phase, ratified by approval.
+- **Counter-argument:** Every plan that reaches the limit now costs about the same, about 1.3 s in Release on any rack, and 2–3 s on a slow PC, on the UI thread. The constant comes from one machine. Limit tests can't be cheap any more: a rack that reaches the limit spends the whole budget, so they leave the default run, and a case that reached the limit with 30,000 may now solve (the 8×2×4 PlaceInto and MoveStop cases did, they moved to an 8×4×4 rack).
+- **Consequence:** The 9×3×3 case of T7.1c lays without the note. The backlog line "speed up `InOrder`" stays with its trigger. `dotnet test` stays fast; `Category=Slow` runs separately (CLAUDE.md, CI).

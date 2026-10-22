@@ -46,3 +46,7 @@ jobs:
 
       - name: Test
         run: dotnet test -c Release --no-build
+
+      # Plans that reach the search limit take about 1.3 s each (D58) and stay out of the default run (default.runsettings).
+      - name: Slow tests
+        run: dotnet test tests/CargoPlan.Core.Tests -c Release --no-build -p:RunSettingsFilePath= --filter Category=Slow

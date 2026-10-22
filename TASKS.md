@@ -825,6 +825,17 @@ Fleetyards gibt die 32er als 8×2×2 an (Reihe 8/16/24/32 = 2/4/6/8 lang, in sic
 - Stresslauf nachgebaut (spike_huge war gelöscht, Zusammensetzung jetzt festgehalten): 1 Rack 12×12×7, 4 Ziele, 958 SCU = 6×32, 6×24, 10×16, 20×8, 30×4, 40×2, 102×1 (Dest1/2 je 2×32, 2×24, 3×16, 5×8, 8×4, 10×2, 26×1; Dest3/4 je 1×32, 1×24, 2×16, 5×8, 7×4, 10×2, 25×1). Release-CLI, je 3 Läufe: 4×4×2 849/577/574 ms, Median **577 ms**; 8×2×2 892/636/621 ms, Median **636 ms**; beide 958/958, Exit 0, beide mit Suchgrenzen-Hinweis.
 - Tests: Core 737 (732 − 1 Footprint + 6 Invariante), App 810, Import 93, alle grün; Exhaustive 2/2 grün (57 s).
 
+### [x] T7.1d Suchbudget neu kalibrieren
+Befund T7.1c: 9×3×3 mit 32 + 40×1 braucht 1,57 Mio. Schritte (509 ms) und wird mit 30.000 verworfen; 57 Racks in 26 Schiffen haben über 80 Zellen. Messreihe 30.000 / 300.000 / 1 Mio. / 2 Mio. / 4 Mio. (Release-CLI, je 3×, Median): spike_huge, 9×3×3, Hull-A-Lastfall, C2 small hold. Auswahlregel vorab: größtes Budget mit spike_huge ≤ 1,5 s. Determinismus bleibt (Schritte, nicht Zeit).
+
+**Präzisiert in der Planung (D58):** Die Regel ergab 150.000, aber keiner der vier Fälle gewann dadurch etwas (9×3×3 erst ab 2 Mio. gelöst, spike_huge +0,67 s) → Budget nach Zellen skaliert: `MaxOrderSearchSteps(cells) = 150.000 × 1.008 / cells`, eigener D-Eintrag D58 statt D54-Addendum, Formel als Unit-Test. Limit-Tests: Jeder Plan am Limit kostet mit Skalierung etwa gleich viel (~1,3 s Release, ~8 s Debug), billiger wird kein Rack → Kategorie `Slow` (aus dem Standardlauf, eigener CI-Schritt); PlaceInto/MoveStop auf 8×4×4 (4 + 113 × 1), weil 8×2×4 mit 4 + 49 das Limit nicht mehr erreicht und eine feste 32er die Suche sofort beweisen lässt. Zeit-Assert (1 s) entfernt: Er hat die CI seit T7.0 rot gemacht (1.099 / 1.297 ms auf den Runnern). Zwischenmessungen 100.000 / 150.000 / 200.000 für die Auswahlregel. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+
+**Befund:**
+- Messtabelle in D58. Skaliert (Repo-Release-Build, Median): spike_huge 150.000 Schritte 1.307 ms mit Hinweis; 9×3×3 1,87 Mio. 863 ms **ohne** Hinweis; Hull A 9,45 Mio. 110 ms (kein Suchlauf); C2 small 700.000 132 ms (1 Suchlauf, 45 Schritte). Alle Ausgaben je Fall byte-gleich, Exit 0.
+- Schrittkosten: ~5,7 µs auf 1.008 Zellen, ~0,3 µs auf 81. Scheinbare +31 ms bei Hull A/C2 in der Scratch-Kopie kamen vom Build-Ort (Temp-Ordner), nicht von der Formel: eine unveränderte HEAD-Kopie zeigt sie auch.
+- Golden-Dateien seit `d93b8c6` unverändert, Exhaustive 2/2 grün (55 s). Slow 4/4 grün (Debug 8 / 8 / 1 / 1 s, Release 3 / 3 / 0,5 / 0,5 s).
+- Tests: Core 738 im Standardlauf (5 Limit-Tests → 1 schnell + 4 Slow, + 4 Formelfälle), App 810, Import 93.
+
 ### [ ] T7.2 Schiffsauswahl – Editor nach Hersteller gruppiert, Wahl in settings.json statt `App.ShipId`-const, Plan beim Schiffswechsel bzw. bei ShipId-Mismatch beim Laden (heute: ungefangene ArgumentException in `ShipViewBuilder`), Fallback auf hull_a bei fehlender Schiffsdatei
 ### [ ] T7.3 Schiffsansicht bei großen Gittern – Hull C, C2: Racknummern (`RackNumberSize`: ein Wert für alle Racks), Fit, Legende
 ### [ ] T7.4 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
@@ -843,6 +854,14 @@ Fleetyards gibt die 32er als 8×2×2 an (Reihe 8/16/24/32 = 2/4/6/8 lang, in sic
 ### [ ] T8.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
 ### [ ] T8.2 winget-Manifest – `winget install SC-CargoPlan`
 ### [ ] T8.3 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
+
+---
+
+## Lehren
+
+Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
+
+- **Vor jedem Push `gh run list -L 3`.** Rote Läufe erst klären, dann pushen. Anlass T7.1d: Die CI war seit T7.0 rot (1-s-Zeit-Assert in `OrderSearchLimitTests`, 1.099 / 1.297 ms auf den Runnern), unbemerkt über mehrere Pushes.
 
 ---
 

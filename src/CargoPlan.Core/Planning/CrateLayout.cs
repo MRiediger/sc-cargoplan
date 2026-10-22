@@ -26,22 +26,25 @@ public static class CrateLayout
         Lay(rack, occupied, crates, route, order)?.Positions;
 
     /// <summary>
-    /// Steps of the exact search for a layout in route order before it gives up: cells it fills or leaves empty (D54).
-    /// A count, not a time, so a plan comes out the same on every machine. Derivation (T7.0, Release build): the Hull A
-    /// needs at most 2,859 steps (exhaustive check, every mix of up to 8 crates over 2 and 3 stops), 164 in the default
-    /// tests; one step costs about 22 µs on a rack of 1,008 cells (100,000 steps took 2.5 s). 30,000 is about 10 × the
-    /// Hull A's need and keeps that rack under 1 s; on a slow PC it may take 2 s.
+    /// Steps × cells of the exact search for a layout in route order before it gives up (D58): a step fills or leaves
+    /// empty one cell, and costs more the more cells the rack has (T7.1d, Release: about 5.7 µs on 1,008 cells, 0.3 µs on
+    /// 81). 150,000 steps on the 1,008 cells of the T7.0 stress rack plan in 1.3 s, the largest budget measured under
+    /// 1.5 s; a 9×3×3 rack that needs 1.57 million steps gets 1.87 million. The Hull A needs at most 2,859 steps (16
+    /// cells: 9.45 million), so its plans don't change. A count, not a time: a plan comes out the same on every machine.
     /// </summary>
-    internal const int MaxOrderSearchSteps = 30_000;
+    internal const long OrderSearchCellSteps = 150_000L * 1_008;
+
+    /// <summary>The steps the search may take in a rack of <paramref name="cells"/> cells (D58).</summary>
+    internal static int MaxOrderSearchSteps(int cells) => (int)Math.Min(int.MaxValue, OrderSearchCellSteps / cells);
 
     /// <summary>
     /// <see cref="Place"/> with what the caller has to tell the player: <see cref="Laying.OrderUnchecked"/> if the search for
-    /// the route order gave up at <paramref name="maxOrderSearchSteps"/>, so the first layout stays without the order having
-    /// been tried in full. Null if a crate doesn't fit.
+    /// the route order gave up at <paramref name="maxOrderSearchSteps"/> (default: <see cref="MaxOrderSearchSteps"/> of the
+    /// rack), so the first layout stays without the order having been tried in full. Null if a crate doesn't fit.
     /// </summary>
     internal static Laying? Lay(
         Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<string> route, FillOrder order,
-        int maxOrderSearchSteps = MaxOrderSearchSteps)
+        int? maxOrderSearchSteps = null)
     {
         occupied = [.. occupied.Where(c => !c.Delivered)];
         if (Place(RackSpace.Around(rack, occupied, order), [.. crates.Select(c => c.Size)]) is not { } positions)
@@ -57,7 +60,7 @@ public static class CrateLayout
             return new Laying(positions, false);
         }
 
-        var (ordered, gaveUp) = InOrder(rack, occupied, crates, route, order, maxOrderSearchSteps);
+        var (ordered, gaveUp) = InOrder(rack, occupied, crates, route, order, maxOrderSearchSteps ?? MaxOrderSearchSteps(rack.Grid.Volume));
         return new Laying(ordered ?? positions, gaveUp);
     }
 
