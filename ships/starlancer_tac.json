@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 4,
+  "id": "starlancer_tac",
+  "name": "MISC Starlancer TAC",
+  "manufacturer": "MISC",
+  "fleetyardsSlug": "misc-starlancer-tac",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game",
+  "totalScu": 96,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 48,
+      "grid": { "length": 8, "width": 2, "stack": 3 },
+      "position": { "side": "port", "level": "lower" },
+      "origin": [0, -2, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 48,
+      "grid": { "length": 8, "width": 2, "stack": 3 },
+      "position": { "side": "starboard", "level": "lower" },
+      "origin": [0, -6, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    }
+  ]
+}

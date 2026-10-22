@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 4,
+  "id": "mole",
+  "name": "ARGO MOLE",
+  "manufacturer": "ARGO",
+  "fleetyardsSlug": "argo-mole",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 32,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 32,
+      "grid": { "length": 4, "width": 4, "stack": 2 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 16
+    }
+  ]
+}

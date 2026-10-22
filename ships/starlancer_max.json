@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 4,
+  "id": "starlancer_max",
+  "name": "MISC Starlancer MAX",
+  "manufacturer": "MISC",
+  "fleetyardsSlug": "misc-starlancer-max",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game",
+  "totalScu": 224,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 64,
+      "grid": { "length": 16, "width": 2, "stack": 2 },
+      "position": { "side": "port", "level": "lower" },
+      "origin": [9, -2, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 64,
+      "grid": { "length": 16, "width": 2, "stack": 2 },
+      "position": { "side": "starboard", "level": "lower" },
+      "origin": [9, -6, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    },
+    {
+      "id": "rack-2",
+      "capacityScu": 48,
+      "grid": { "length": 8, "width": 2, "stack": 3 },
+      "position": { "side": "port", "level": "lower" },
+      "origin": [0, -2, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    },
+    {
+      "id": "rack-3",
+      "capacityScu": 48,
+      "grid": { "length": 8, "width": 2, "stack": 3 },
+      "position": { "side": "starboard", "level": "lower" },
+      "origin": [0, -6, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    }
+  ]
+}

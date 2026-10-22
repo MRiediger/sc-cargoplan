@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 4,
+  "id": "ironclad",
+  "name": "DRAK Ironclad",
+  "manufacturer": "DRAK",
+  "fleetyardsSlug": "drak-ironclad",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 2200,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 720,
+      "grid": { "length": 20, "width": 6, "stack": 6 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 720,
+      "grid": { "length": 20, "width": 6, "stack": 6 },
+      "origin": [-21, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    },
+    {
+      "id": "rack-2",
+      "capacityScu": 360,
+      "grid": { "length": 10, "width": 6, "stack": 6 },
+      "origin": [-32, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    },
+    {
+      "id": "rack-3",
+      "capacityScu": 360,
+      "grid": { "length": 10, "width": 6, "stack": 6 },
+      "origin": [-43, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    },
+    {
+      "id": "rack-4",
+      "capacityScu": 8,
+      "grid": { "length": 2, "width": 2, "stack": 2 },
+      "origin": [-46, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-5",
+      "capacityScu": 8,
+      "grid": { "length": 2, "width": 2, "stack": 2 },
+      "origin": [-49, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-6",
+      "capacityScu": 8,
+      "grid": { "length": 2, "width": 2, "stack": 2 },
+      "origin": [-52, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-7",
+      "capacityScu": 8,
+      "grid": { "length": 2, "width": 2, "stack": 2 },
+      "origin": [-55, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-8",
+      "capacityScu": 8,
+      "grid": { "length": 2, "width": 2, "stack": 2 },
+      "origin": [-58, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    }
+  ]
+}

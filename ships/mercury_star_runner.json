@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 4,
+  "id": "mercury_star_runner",
+  "name": "CRUS Mercury Star Runner",
+  "manufacturer": "CRUS",
+  "fleetyardsSlug": "crus-mercury-star-runner",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 114,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 108,
+      "grid": { "length": 6, "width": 6, "stack": 3 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 24
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 6,
+      "grid": { "length": 3, "width": 1, "stack": 2 },
+      "origin": [-4, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 2
+    }
+  ]
+}

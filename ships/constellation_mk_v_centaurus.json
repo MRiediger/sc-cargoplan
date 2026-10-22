@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 4,
+  "id": "constellation_mk_v_centaurus",
+  "name": "RSI Constellation Mk V Centaurus",
+  "manufacturer": "RSI",
+  "fleetyardsSlug": "rsi-constellation-mk-v-centaurus",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 240,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 240,
+      "grid": { "length": 10, "width": 6, "stack": 4 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    }
+  ]
+}

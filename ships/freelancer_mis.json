@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 4,
+  "id": "freelancer_mis",
+  "name": "MISC Freelancer MIS",
+  "manufacturer": "MISC",
+  "fleetyardsSlug": "misc-freelancer-mis",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards; racks 2, 3 turned so length is the longer side (crates don't turn)",
+  "totalScu": 36,
+  "racks": [
+    {
+      "id": "rack-2",
+      "capacityScu": 24,
+      "grid": { "length": 4, "width": 2, "stack": 3 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 16
+    },
+    {
+      "id": "rack-0",
+      "capacityScu": 6,
+      "grid": { "length": 2, "width": 1, "stack": 3 },
+      "origin": [-3, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 2
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 6,
+      "grid": { "length": 2, "width": 1, "stack": 3 },
+      "origin": [-6, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 2
+    }
+  ]
+}

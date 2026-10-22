@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 4,
+  "id": "starfarer",
+  "name": "MISC Starfarer",
+  "manufacturer": "MISC",
+  "fleetyardsSlug": "misc-starfarer",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards; racks 2, 4 turned so length is the longer side (crates don't turn)",
+  "totalScu": 291,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 175,
+      "grid": { "length": 7, "width": 5, "stack": 5 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 24
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 50,
+      "grid": { "length": 5, "width": 2, "stack": 5 },
+      "origin": [-6, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 16
+    },
+    {
+      "id": "rack-2",
+      "capacityScu": 8,
+      "grid": { "length": 2, "width": 2, "stack": 2 },
+      "origin": [-9, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-3",
+      "capacityScu": 50,
+      "grid": { "length": 5, "width": 2, "stack": 5 },
+      "origin": [-15, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 16
+    },
+    {
+      "id": "rack-4",
+      "capacityScu": 8,
+      "grid": { "length": 2, "width": 2, "stack": 2 },
+      "origin": [-18, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    }
+  ]
+}

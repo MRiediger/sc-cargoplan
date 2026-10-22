@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 4,
+  "id": "polaris",
+  "name": "RSI Polaris",
+  "manufacturer": "RSI",
+  "fleetyardsSlug": "rsi-polaris",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 576,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 288,
+      "grid": { "length": 12, "width": 6, "stack": 4 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 288,
+      "grid": { "length": 12, "width": 6, "stack": 4 },
+      "origin": [-13, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    }
+  ]
+}

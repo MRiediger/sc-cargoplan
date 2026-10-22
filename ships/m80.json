@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 4,
+  "id": "m80",
+  "name": "ORIG M80",
+  "manufacturer": "ORIG",
+  "fleetyardsSlug": "orig-m80",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 2,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 2,
+      "grid": { "length": 2, "width": 1, "stack": 1 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 2
+    }
+  ]
+}

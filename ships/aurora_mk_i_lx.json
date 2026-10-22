@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 4,
+  "id": "aurora_mk_i_lx",
+  "name": "RSI Aurora Mk I LX",
+  "manufacturer": "RSI",
+  "fleetyardsSlug": "rsi-aurora-mk-i-lx",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 3,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 3,
+      "grid": { "length": 3, "width": 1, "stack": 1 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 2
+    }
+  ]
+}

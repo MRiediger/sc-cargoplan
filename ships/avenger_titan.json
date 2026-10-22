@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 4,
+  "id": "avenger_titan",
+  "name": "AEGS Avenger Titan",
+  "manufacturer": "AEGS",
+  "fleetyardsSlug": "aegs-avenger-titan",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 8,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 8,
+      "grid": { "length": 4, "width": 2, "stack": 1 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 4
+    }
+  ]
+}

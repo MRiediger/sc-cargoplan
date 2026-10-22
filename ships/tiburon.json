@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 4,
+  "id": "tiburon",
+  "name": "AEGS Tiburon",
+  "manufacturer": "AEGS",
+  "fleetyardsSlug": "aegs-tiburon",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 64,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 64,
+      "grid": { "length": 8, "width": 4, "stack": 2 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    }
+  ]
+}

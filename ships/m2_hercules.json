@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 4,
+  "id": "m2_hercules",
+  "name": "CRUS M2 Hercules",
+  "manufacturer": "CRUS",
+  "fleetyardsSlug": "crus-m2-hercules",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 522,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 360,
+      "grid": { "length": 15, "width": 8, "stack": 3 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 162,
+      "grid": { "length": 9, "width": 6, "stack": 3 },
+      "origin": [-10, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    }
+  ]
+}

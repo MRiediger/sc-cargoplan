@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 4,
+  "id": "asgard",
+  "name": "ANVL Asgard",
+  "manufacturer": "ANVL",
+  "fleetyardsSlug": "anvl-asgard",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 180,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 180,
+      "grid": { "length": 9, "width": 5, "stack": 4 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    }
+  ]
+}

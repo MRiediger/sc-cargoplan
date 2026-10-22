@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 4,
+  "id": "400i",
+  "name": "ORIG 400i",
+  "manufacturer": "ORIG",
+  "fleetyardsSlug": "orig-400i",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 42,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 42,
+      "grid": { "length": 7, "width": 3, "stack": 2 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 24
+    }
+  ]
+}

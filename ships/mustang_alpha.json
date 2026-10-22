@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 4,
+  "id": "mustang_alpha",
+  "name": "CNOU Mustang Alpha",
+  "manufacturer": "CNOU",
+  "fleetyardsSlug": "cnou-mustang-alpha",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards; rack 1 turned so length is the longer side (crates don't turn)",
+  "totalScu": 4,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 4,
+      "grid": { "length": 4, "width": 1, "stack": 1 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 2
+    }
+  ]
+}

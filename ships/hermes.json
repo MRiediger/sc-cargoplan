@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 4,
+  "id": "hermes",
+  "name": "RSI Hermes",
+  "manufacturer": "RSI",
+  "fleetyardsSlug": "rsi-hermes",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 288,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 144,
+      "grid": { "length": 18, "width": 4, "stack": 2 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 144,
+      "grid": { "length": 18, "width": 4, "stack": 2 },
+      "origin": [-19, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    }
+  ]
+}

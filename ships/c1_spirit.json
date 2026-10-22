@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 4,
+  "id": "c1_spirit",
+  "name": "CRUS C1 Spirit",
+  "manufacturer": "CRUS",
+  "fleetyardsSlug": "crus-c1-spirit",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 64,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 32,
+      "grid": { "length": 8, "width": 2, "stack": 2 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 32,
+      "grid": { "length": 8, "width": 2, "stack": 2 },
+      "origin": [-9, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    }
+  ]
+}

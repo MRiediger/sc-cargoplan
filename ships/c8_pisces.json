@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 4,
+  "id": "c8_pisces",
+  "name": "ANVL C8 Pisces",
+  "manufacturer": "ANVL",
+  "fleetyardsSlug": "anvl-c8-pisces",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game",
+  "totalScu": 4,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 2,
+      "grid": { "length": 2, "width": 1, "stack": 1 },
+      "position": { "side": "starboard", "level": "lower" },
+      "origin": [0, -3, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 2
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 2,
+      "grid": { "length": 2, "width": 1, "stack": 1 },
+      "position": { "side": "port", "level": "lower" },
+      "origin": [0, -1, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 2
+    }
+  ]
+}

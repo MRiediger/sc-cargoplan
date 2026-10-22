@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 4,
+  "id": "135c",
+  "name": "ORIG 135c",
+  "manufacturer": "ORIG",
+  "fleetyardsSlug": "orig-135c",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 6,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 2,
+      "grid": { "length": 2, "width": 1, "stack": 1 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 2
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 4,
+      "grid": { "length": 4, "width": 1, "stack": 1 },
+      "origin": [-5, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 2
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 4,
+  "id": "valkyrie",
+  "name": "ANVL Valkyrie",
+  "manufacturer": "ANVL",
+  "fleetyardsSlug": "anvl-valkyrie",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 90,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 90,
+      "grid": { "length": 6, "width": 5, "stack": 3 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 24
+    }
+  ]
+}

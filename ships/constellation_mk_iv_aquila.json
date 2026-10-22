@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 4,
+  "id": "constellation_mk_iv_aquila",
+  "name": "RSI Constellation Mk IV Aquila",
+  "manufacturer": "RSI",
+  "fleetyardsSlug": "rsi-constellation-mk-iv-aquila",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "totalScu": 96,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 96,
+      "grid": { "length": 8, "width": 4, "stack": 3 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 32
+    }
+  ]
+}

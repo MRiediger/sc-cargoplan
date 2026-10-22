@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 4,
+  "id": "reclaimer",
+  "name": "AEGS Reclaimer",
+  "manufacturer": "AEGS",
+  "fleetyardsSlug": "aegs-reclaimer",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards; racks 5, 7, 9, 10, 11, 12 turned so length is the longer side (crates don't turn)",
+  "totalScu": 420,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 27,
+      "grid": { "length": 3, "width": 3, "stack": 3 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 27,
+      "grid": { "length": 3, "width": 3, "stack": 3 },
+      "origin": [-4, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-2",
+      "capacityScu": 27,
+      "grid": { "length": 3, "width": 3, "stack": 3 },
+      "origin": [-8, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-3",
+      "capacityScu": 27,
+      "grid": { "length": 3, "width": 3, "stack": 3 },
+      "origin": [-12, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-4",
+      "capacityScu": 70,
+      "grid": { "length": 7, "width": 5, "stack": 2 },
+      "origin": [-20, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 24
+    },
+    {
+      "id": "rack-5",
+      "capacityScu": 50,
+      "grid": { "length": 5, "width": 5, "stack": 2 },
+      "origin": [-26, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 16
+    },
+    {
+      "id": "rack-6",
+      "capacityScu": 70,
+      "grid": { "length": 7, "width": 5, "stack": 2 },
+      "origin": [-34, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 24
+    },
+    {
+      "id": "rack-7",
+      "capacityScu": 50,
+      "grid": { "length": 5, "width": 5, "stack": 2 },
+      "origin": [-40, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 16
+    },
+    {
+      "id": "rack-8",
+      "capacityScu": 18,
+      "grid": { "length": 3, "width": 2, "stack": 3 },
+      "origin": [-44, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-9",
+      "capacityScu": 18,
+      "grid": { "length": 3, "width": 2, "stack": 3 },
+      "origin": [-48, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-10",
+      "capacityScu": 18,
+      "grid": { "length": 3, "width": 2, "stack": 3 },
+      "origin": [-52, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-11",
+      "capacityScu": 18,
+      "grid": { "length": 3, "width": 2, "stack": 3 },
+      "origin": [-56, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    }
+  ]
+}
