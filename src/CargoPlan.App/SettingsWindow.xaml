@@ -269,7 +269,7 @@
                                     Value="{Binding CratesEdgeAlpha}" Style="{StaticResource ValueSliderStyle}" />
                         </DockPanel>
                         <DockPanel Style="{StaticResource RowStyle}">
-                            <TextBlock Text="Rack numbers" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="Rack numbers and bow label" Style="{StaticResource LabelStyle}" />
                             <ContentControl Content="{Binding CratesRackNumberColor, Mode=OneTime}" />
                         </DockPanel>
                         <DockPanel Style="{StaticResource RowStyle}" ToolTip="The same at every zoom; smaller only where a number no longer fits its rack">

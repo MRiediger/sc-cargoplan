@@ -88,7 +88,15 @@ public sealed record BowWedgeFace(BoxFace Face, IReadOnlyList<SceneProjector.Cor
 /// The wedge lies beyond the bow end of every rack, so the x axis always separates them: seen from the bow side it is
 /// drawn after the racks, otherwise before them, without a place in <see cref="DrawOrder"/>.
 /// </param>
-public sealed record ProjectedWedge(IReadOnlyList<ProjectedFace> Faces, bool InFront);
+/// <param name="Floor">Where the "Bow" label lies.</param>
+public sealed record ProjectedWedge(IReadOnlyList<ProjectedFace> Faces, bool InFront, WedgeFloor Floor);
+
+/// <summary>
+/// The bow wedge's floor as the camera sees it, for the label lying on it (D52): from <paramref name="Centre"/>, one cell
+/// across the ship (+y) and one cell towards the bow (+x), in projected units; <paramref name="Room"/> in cells, across
+/// by along.
+/// </summary>
+public sealed record WedgeFloor(Point Centre, Vector Across, Vector Bowwards, Size Room);
 
 /// <param name="Faces">The faces of the rack's box the camera sees: its edges and its area for the hit test.</param>
 /// <param name="Boxes">The rack's own boxes, back to front (<see cref="DrawOrder.BoxesBackToFront"/>).</param>

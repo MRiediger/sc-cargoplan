@@ -49,6 +49,9 @@ public static class MissionPalette
 
     public static Color RackEdge { get; } = Color.FromArgb(0xC0, 0xE6, 0xE6, 0xE6);
 
+    /// <summary>The bow wedge's faces (D52): a trace of fill, so it reads as a body without hiding the crates behind it.</summary>
+    public static Color BowWedgeFill { get; } = Color.FromArgb(0x18, 0xE6, 0xE6, 0xE6);
+
     /// <summary>The frame around all racks (<c>Ship.Bounds</c>), faint so it stays behind the cargo.</summary>
     public static Color Frame { get; } = Color.FromArgb(0x60, 0xE6, 0xE6, 0xE6);
 

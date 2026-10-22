@@ -417,7 +417,7 @@ public sealed class SettingsViewModelTests
         var viewModel = Create();
 
         viewModel.LegendHalo.Label.Should().Be("Halo around the text");
-        viewModel.CratesHalo.Label.Should().Be("Outline around the rack numbers");
+        viewModel.CratesHalo.Label.Should().Be("Outline around the rack numbers and the bow label");
         viewModel.HeaderHalo.Label.Should().Be("Halo around the ship name");
         viewModel.ButtonsHalo.Label.Should().Be("Halo around the glyphs");
     }

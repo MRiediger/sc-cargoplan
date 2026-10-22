@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Windows;
+using System.Windows.Media;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
@@ -227,11 +229,64 @@ public class SceneProjectorTests
         var boxCentre = camera.Project((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0);
         var bowwards = camera.Project(1, 0, 0) - camera.Project(0, 0, 0);
         ((Centre(tip) - boxCentre) * bowwards).Should().BePositive();
+        ((projected.BowWedge.Floor.Centre - boxCentre) * bowwards).Should().BePositive();
         if (yaw == DefaultYaw)
         {
-            // The bow stays on the left in the default view (D15).
+            // The bow stays on the left in the default view (D15), and so does its label.
             Centre(tip).X.Should().BeLessThan(boxCentre.X);
+            projected.BowWedge.Floor.Centre.X.Should().BeLessThan(boxCentre.X);
         }
+    }
+
+    [Theory]
+    [InlineData(45)]
+    [InlineData(135)]
+    [InlineData(225)]
+    [InlineData(315)]
+    public void Bow_label_lies_on_the_wedge_floor(double yaw)
+    {
+        var camera = new IsoProjection(yaw, DefaultPitch);
+        var projected = SceneProjector.Project(Scene, camera);
+        ViewTransform transform = new(40, new Vector(200, 200));
+        var label = LayBowLabel(projected.BowWedge.Floor, transform, sizeShare: 1);
+
+        // Flattened into screen pixels: no transform left that would skew a pen's outline.
+        (label.Transform?.Value ?? Matrix.Identity).IsIdentity.Should().BeTrue();
+        Point[] floor = [.. SceneProjector.BowWedge(Scene.Bounds).Single(f => f.Face == BoxFace.Bottom).Corners
+            .Select(c => transform.Apply(camera.Project(c.X, c.Y, c.Z)))];
+        Point[] points = [.. label.Figures.SelectMany(f => f.Segments
+            .SelectMany(s => s switch
+            {
+                PolyLineSegment poly => poly.Points,
+                LineSegment line => [line.Point],
+                _ => throw new InvalidOperationException($"Not flattened: {s.GetType().Name}"),
+            })
+            .Prepend(f.StartPoint))];
+        points.Should().NotBeEmpty().And.OnlyContain(p => SceneHitTest.Contains(floor, p));
+    }
+
+    [Fact]
+    public void Bow_label_shrinks_with_the_rack_number_size_but_never_outgrows_the_floor()
+    {
+        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge.Floor;
+        ViewTransform transform = new(40, new Vector(200, 200));
+        var full = LayBowLabel(floor, transform, sizeShare: 1).Bounds;
+
+        var half = LayBowLabel(floor, transform, sizeShare: 0.5).Bounds;
+        half.Width.Should().BeApproximately(full.Width / 2, 0.5);
+        half.Height.Should().BeApproximately(full.Height / 2, 0.5);
+        // Shrunk around the floor's centre: the skewed glyphs' bounds shrink around it too.
+        var floorCentre = transform.Apply(floor.Centre);
+        var expected = floorCentre + (Centre([full.TopLeft, full.BottomRight]) - floorCentre) / 2;
+        (Centre([half.TopLeft, half.BottomRight]) - expected).Length.Should().BeLessThan(0.5);
+
+        LayBowLabel(floor, transform, sizeShare: 2).Bounds.Should().Be(full);
+    }
+
+    private static PathGeometry LayBowLabel(WedgeFloor floor, ViewTransform transform, double sizeShare)
+    {
+        FormattedText text = new("Bow", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface("Segoe UI"), 100, Brushes.White, 1);
+        return FloorLabel.Lay(text.BuildGeometry(new Point(0, 0)), floor, transform, sizeShare);
     }
 
     [Fact]

@@ -5,6 +5,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using CargoPlan.App.Settings;
 using CargoPlan.App.Win32;
 using CargoPlan.Core.Models;
 
@@ -37,8 +38,12 @@ public sealed class ShipViewControl : FrameworkElement
     private static readonly Pen FreeCellPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.FreeEdge), CrateEdgeWidth));
     private static readonly Pen RackPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 1));
 
-    // The bow wedge (D52) is filled faintly in the free cells' edge colour: dashed lines alone were hard to see in the game.
-    private static readonly Brush BowWedgeFill = Frozen(new SolidColorBrush(MissionPalette.FreeEdge));
+    // The bow wedge (D52): faces with a trace of fill and rack edges, dashed lines alone were hard to see in the game.
+    private static readonly Brush BowWedgeFill = Frozen(new SolidColorBrush(MissionPalette.BowWedgeFill));
+
+    // Its label lies on its floor; built at this size, then scaled to the floor, so only the proportions count.
+    private const string BowLabel = "Bow";
+    private const double BowLabelEmSize = 100;
     private static readonly Pen ViolationPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Violation), 2.5));
     private static readonly Pen DragTargetPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.DragTarget), 2.5));
     private static readonly Pen SelectionPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Selection), 2.5));
@@ -256,7 +261,7 @@ public sealed class ShipViewControl : FrameworkElement
         // The bow wedge lies beyond every rack: behind all of them seen from the stern, in front seen from the bow (D52).
         if (!scene.BowWedge.InFront)
         {
-            DrawBowWedge(dc, scene.BowWedge, transform);
+            DrawBowWedge(dc, scene.BowWedge, transform, paint);
         }
 
         // Plain rack edges first: cargo in front covers them like any other part of the ship (D21).
@@ -288,7 +293,7 @@ public sealed class ShipViewControl : FrameworkElement
 
         if (scene.BowWedge.InFront)
         {
-            DrawBowWedge(dc, scene.BowWedge, transform);
+            DrawBowWedge(dc, scene.BowWedge, transform, paint);
         }
 
         // Red and cyan on top, like the numbers: a violation or the drop target must never hide behind cargo. A faulty
@@ -352,16 +357,19 @@ public sealed class ShipViewControl : FrameworkElement
                 labelBrush,
                 pixelsPerDip);
             var centre = transform.Apply(rack.LabelCentre);
-            var glyphs = text.BuildGeometry(new Point(centre.X - text.Width / 2, centre.Y - text.Height / 2));
-
-            // Outline first, fill on top: the outline only shows outside the glyphs.
-            if (paint.LabelOutline is { } outline)
-            {
-                dc.DrawGeometry(null, outline, glyphs);
-            }
-
-            dc.DrawGeometry(labelBrush, null, glyphs);
+            DrawLabel(dc, text.BuildGeometry(new Point(centre.X - text.Width / 2, centre.Y - text.Height / 2)), labelBrush, paint);
         }
+    }
+
+    // Outline first, fill on top: the outline only shows outside the glyphs.
+    private static void DrawLabel(DrawingContext dc, Geometry glyphs, Brush brush, Paint paint)
+    {
+        if (paint.LabelOutline is { } outline)
+        {
+            dc.DrawGeometry(null, outline, glyphs);
+        }
+
+        dc.DrawGeometry(brush, null, glyphs);
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -703,13 +711,33 @@ public sealed class ShipViewControl : FrameworkElement
         }
     }
 
-    // Convex: the faces turned towards the camera never cover each other, so they need no order.
-    private static void DrawBowWedge(DrawingContext dc, ProjectedWedge wedge, ViewTransform transform)
+    // Convex: the faces turned towards the camera never cover each other, so they need no order. The label lies on the
+    // floor, so it is drawn with the faces, in their place in the draw order, in the rack numbers' colour and outline.
+    private void DrawBowWedge(DrawingContext dc, ProjectedWedge wedge, ViewTransform transform, Paint paint)
     {
         foreach (var face in wedge.Faces)
         {
             dc.DrawGeometry(BowWedgeFill, RackPen, Polygon(face.Polygon, transform));
         }
+
+        if (RackNumberBrush is not { } brush)
+        {
+            return;
+        }
+
+        var typeface = new Typeface(TextElement.GetFontFamily(this), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
+        FormattedText text = new(
+            BowLabel,
+            CultureInfo.InvariantCulture,
+            FlowDirection.LeftToRight,
+            typeface,
+            BowLabelEmSize,
+            brush,
+            VisualTreeHelper.GetDpi(this).PixelsPerDip);
+        // The rack number size scales it like the numbers, from the default down; above the default it would leave the floor.
+        var sizeShare = RackNumberFontSize / CrateAppearance.Default.RackNumberFontSize;
+        var glyphs = FloorLabel.Lay(text.BuildGeometry(new Point(0, 0)), wedge.Floor, transform, sizeShare);
+        DrawLabel(dc, glyphs, brush, paint);
     }
 
     private static DependencyProperty ThemeProperty(string name, Type type, object? defaultValue) => DependencyProperty.Register(

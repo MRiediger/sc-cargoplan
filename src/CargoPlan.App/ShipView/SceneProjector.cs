@@ -25,6 +25,9 @@ public static class SceneProjector
     private const double NoseLengthShare = 0.1;
     private const double NoseTipWidthShare = 0.5;
 
+    // The "Bow" label on the wedge's floor keeps this share of the nose's length and of the tip's width.
+    private const double LabelRoomShare = 0.7;
+
     // Also the preference on equal area: top or bottom first, then the sides, then the ends.
     private static readonly BoxFace[] AllFaces = [BoxFace.Top, BoxFace.Bottom, BoxFace.Port, BoxFace.Starboard, BoxFace.Bow, BoxFace.Aft];
 
@@ -153,12 +156,23 @@ public static class SceneProjector
     private static ProjectedWedge ProjectWedge(ShipBox box, IsoProjection camera)
     {
         var d = camera.ViewDirection;
-        ProjectedFace[] faces = [.. from face in BowWedge(box)
+        var wedge = BowWedge(box);
+        ProjectedFace[] faces = [.. from face in wedge
                                     where face.Normal.X * d.X + face.Normal.Y * d.Y + face.Normal.Z * d.Z < -EdgeOn
                                     select new ProjectedFace(face.Face, [.. face.Corners.Select(c => camera.Project(c.X, c.Y, c.Z))])];
 
+        // The label's room: the middle of the floor's length and of the tip's width, the narrow end of the trapezoid.
+        var tip = wedge.Single(f => f.Face == BoxFace.Bow).Corners;
+        var (nose, tipWidth) = (tip[0].X - box.Max.X, tip.Max(c => c.Y) - tip.Min(c => c.Y));
+        var origin = camera.Project(0, 0, 0);
+        WedgeFloor floor = new(
+            camera.Project(box.Max.X + nose / 2, (box.Min.Y + box.Max.Y) / 2.0, box.Min.Z),
+            camera.Project(0, 1, 0) - origin,
+            camera.Project(1, 0, 0) - origin,
+            new Size(LabelRoomShare * tipWidth, LabelRoomShare * nose));
+
         // The camera looks against +x: the wedge, beyond every rack's bow end, is nearer.
-        return new ProjectedWedge(faces, InFront: d.X < 0);
+        return new ProjectedWedge(faces, InFront: d.X < 0, floor);
     }
 
     /// <summary>The 12 edges of the box: every pair of corners that differ on exactly one axis.</summary>

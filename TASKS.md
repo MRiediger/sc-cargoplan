@@ -655,7 +655,7 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 
 PNG, kein Spielername/Org im Bild, Overlay außerhalb des CT-Capture-Bereichs.
 
-### [ ] T6.4b Bow marker in the ship view
+### [x] T6.4b Bow marker in the ship view
 **Warum:** Release-Blocker, Präzisierung in der T6.5-Planung: ohne Markierung ist Rack 1 nicht von Rack 4 zu unterscheiden, sobald der Spieler die Ansicht gedreht hat.
 - Form, keine Beschriftung: Keil am Bug, Bug bleibt links in der Default-Kamera (D15)
 - Keine Schiffsformat-Änderung, keine Settings-Option, Core unverändert
@@ -670,7 +670,11 @@ PNG, kein Spielername/Org im Bild, Overlay außerhalb des CT-Capture-Bereichs.
 
 **Nachbesserung, präzisiert:** Nase als 5 gefüllte Flächen (Spitze, oben, unten, zwei Flanken), Füllung `MissionPalette.FreeEdge` (Alpha 0x50; freie Zellen selbst haben keine Füllung, daher deren Kantenfarbe als Fläche), Kanten `RackPen` durchgezogen; sichtbare Flächen über die Normalen. Painter-Befund: die x-Achse trennt Nase und Racks immer, der Yaw-Quadrant entscheidet (Bugseite → nach den Kisten, vor Rot/Cyan; sonst vor den Rack-Kanten); kein `DrawOrder`-Eintrag. Länge bleibt max(1 Zelle, 10 %). Präzisierung in der Planphase, ratifiziert durch Freigabe (D52-Addendum).
 
-**Befund (Flächen):** `BowWedge` liefert `BowWedgeFace` (Fläche, Ecken, Normale nach außen), `ProjectedScene.BowWedge` die sichtbaren Flächen und `InFront`; `Frame` wieder 12 Linien, Extent umschließt alle Keil-Ecken. Tests: 5 Flächen mit Spitzenmaßen und Normalen nach außen (Hull A, 20-Zellen-Box); in vier Yaw-Quadranten Spitze bugwärts, `InFront` und sichtbare Spitze genau von der Bugseite; Klick auf die Nase trifft nichts. Tests 564/798/93 (+7 App gegenüber main), 0 Warnungen.
+**Befund (Flächen):** `BowWedge` liefert `BowWedgeFace` (Fläche, Ecken, Normale nach außen), `ProjectedScene.BowWedge` die sichtbaren Flächen und `InFront`; `Frame` wieder 12 Linien, Extent umschließt alle Keil-Ecken. Tests: 5 Flächen mit Spitzenmaßen und Normalen nach außen (Hull A, 20-Zellen-Box); in vier Yaw-Quadranten Spitze bugwärts, `InFront` und sichtbare Spitze genau von der Bugseite; Klick auf die Nase trifft nichts. Tests 564/798/93 (+7 App gegenüber main), 0 Warnungen. Im Spiel (Martin): Fläche verdeckt die Container.
+
+**Nachbesserung 2, präzisiert:** Füllung eigene Farbe `MissionPalette.BowWedgeFill`, Alpha 0x18. Schriftzug „Bow“ (UI-Text Englisch, Martin schrieb „Bug“) flach auf dem Nasenboden wie in Martins Skizze, Zeile quer zum Schiff, Buchstabenoberkanten achtern; mit der Nase gezeichnet. Die Rack-Nummer-Einstellungen gelten auch für ihn: Farbe und Umriss direkt, Schriftgröße relativ zum Default 27, gedeckelt (nie größer als der Nasenboden); Settings-Fenster „Rack numbers and bow label“, Umriss-Label „Outline around the rack numbers and the bow label“. Präzisierung in der Planphase, ratifiziert durch Freigabe (D52-Addendum 2).
+
+**Befund (Schriftzug):** `FloorLabel.Lay` legt die Glyphen per affiner Matrix auf den projizierten Boden (`WedgeFloor`: Mitte, eine Zelle quer und bugwärts, Platz 70 % von Nasenlänge und Spitzenbreite), zentriert die Tinte (nicht den Zeilenkasten) und flacht in Bildschirmpixel ab: keine Transformation bleibt, der Umriss wird in Pixeln gezogen (für WPF nicht dokumentiert, ob `Geometry.Transform` den Stift mitskaliert; so egal). Tests: in vier Quadranten jeder Punkt des Schriftzugs im projizierten Nasenboden; Anteil 0,5 halbiert Breite und Höhe um die Bodenmitte, Anteil 2 = Anteil 1. Im Spiel: passt (Martin). Tests 564/803/93, 0 Warnungen. Ein erster Testlauf lief gegen den alten Build, weil das offene Overlay die EXE sperrte; nach dem Beenden neu gebaut.
 
 ### [ ] T6.5 README final
 **Warum:** Das README ist die Download-Seite. Was dort steht, muss der Build tun.

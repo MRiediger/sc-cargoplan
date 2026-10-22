@@ -14,7 +14,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 {
     public const string LegendHaloLabel = "Halo around the text";
 
-    public const string CratesHaloLabel = "Outline around the rack numbers";
+    public const string CratesHaloLabel = "Outline around the rack numbers and the bow label";
 
     public const string HeaderHaloLabel = "Halo around the ship name";
 
