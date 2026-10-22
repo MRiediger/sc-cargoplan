@@ -13,7 +13,8 @@ public class DrawOrderTests
     private static readonly IsoProjection FromBelow = new(IsoProjection.DefaultYaw, -IsoProjection.DefaultPitch);
     private static readonly IsoProjection FromAftStarboard = new(IsoProjection.DefaultYaw + 180, IsoProjection.DefaultPitch);
 
-    private static RackPosition PositionOf(SceneRack rack) => HullA.Racks.Single(r => r.Number == rack.Number).Position;
+    private static RackPosition PositionOf(SceneRack rack) =>
+        HullA.Racks.Single(r => r.Number == rack.Number).Position ?? throw new InvalidOperationException("Every Hull A rack has a position.");
 
     private static SceneBox Box(int x0, int y0, int z0, int x1, int y1, int z1) =>
         new(new ShipBox(new ShipPoint(x0, y0, z0), new ShipPoint(x1, y1, z1)), CellFill.Free, null, null, null, null, IsViolated: false);

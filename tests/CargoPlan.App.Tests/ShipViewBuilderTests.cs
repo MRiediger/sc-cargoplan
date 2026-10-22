@@ -189,6 +189,19 @@ public class ShipViewBuilderTests
                 IsViolated: false));
     }
 
+    // A ship draft without positions (T7.1b): the tooltip leaves the segment out instead of showing an empty one.
+    [Fact]
+    public void A_crate_in_a_rack_without_position_has_a_tooltip_without_it()
+    {
+        var ship = Sample.Ship;
+        Ship withoutPositions = new(ship.Id, ship.Name, ship.TotalScu, [.. ship.Racks.Select(r => r with { Position = null })]);
+
+        var scene = ShipViewBuilder.Build(Sample.Plan, withoutPositions, LoadPlanner.Validate(Sample.Plan, withoutPositions));
+
+        RackNumber(scene, 2).Boxes.Single(b => b.Placement?.Destination == "Shubin").ToolTip
+            .Should().Be("Shubin · Rack 2 · 8 SCU Agricium crate (1 of 1)");
+    }
+
     [Fact]
     public void Every_crate_is_drawn_where_the_plan_stores_it()
     {

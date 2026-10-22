@@ -4,13 +4,14 @@ namespace CargoPlan.Core.Models;
 
 /// <summary>
 /// A separately loadable ship section. <see cref="Index"/> 0 is Rack 1, the first in rack order;
-/// where the rack physically sits is <see cref="Position"/> in player words and <see cref="Origin"/> in ship coordinates (D14).
+/// where the rack physically sits is <see cref="Position"/> in player words (null where unknown, e.g. a ship draft with a
+/// generated arrangement) and <see cref="Origin"/> in ship coordinates (D14).
 /// The grid must hold exactly <see cref="CapacityScu"/> cells. Crates stack along <see cref="StackAxis"/> (D26); the
 /// default is the old drawing convention, so racks built in code stack up. <see cref="MaxCrateSize"/> is the game's limit
 /// on top of the grid (D56); null means the grid alone decides.
 /// </summary>
 public sealed record Rack(
-    string Id, int Index, int CapacityScu, Dimensions Grid, RackPosition Position, ShipPoint Origin, StackAxis StackAxis = StackAxis.PlusZ,
+    string Id, int Index, int CapacityScu, Dimensions Grid, RackPosition? Position, ShipPoint Origin, StackAxis StackAxis = StackAxis.PlusZ,
     CrateSize? MaxCrateSize = null)
 {
     private const int X = 0, Y = 1, Z = 2;

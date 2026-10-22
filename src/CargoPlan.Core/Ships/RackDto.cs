@@ -6,11 +6,13 @@ namespace CargoPlan.Core.Ships;
 
 /// <summary>
 /// File format of a rack. The index is not stored; it comes from the position in the array. <see cref="MaxCrateSize"/>
-/// is optional (D56): a parameter with a default is not required, even with RespectRequiredConstructorParameters.
+/// and <see cref="Position"/> are optional (D56): a parameter with a default is not required, even with
+/// RespectRequiredConstructorParameters. JSON binds by name, so their place at the end doesn't change the file.
 /// Source: https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializeroptions.respectrequiredconstructorparameters
 /// </summary>
 internal sealed record RackDto(
-    string Id, int CapacityScu, GridDto Grid, PositionDto Position, IReadOnlyList<int> Origin, string StackAxis, int? MaxCrateSize = null)
+    string Id, int CapacityScu, GridDto Grid, IReadOnlyList<int> Origin, string StackAxis, int? MaxCrateSize = null,
+    PositionDto? Position = null)
 {
     private const int OriginAxes = 3;
 
@@ -25,7 +27,7 @@ internal sealed record RackDto(
                 nameof(CapacityScu), CapacityScu, $"Rack '{Id}' needs a positive capacityScu.");
         }
 
-        return new Rack(Id, index, CapacityScu, Grid.ToDimensions(Id), Position.ToPosition(Id), ToOrigin(), ToStackAxis(index), ToMaxCrateSize(index));
+        return new Rack(Id, index, CapacityScu, Grid.ToDimensions(Id), Position?.ToPosition(Id), ToOrigin(), ToStackAxis(index), ToMaxCrateSize(index));
     }
 
     private CrateSize? ToMaxCrateSize(int index) =>

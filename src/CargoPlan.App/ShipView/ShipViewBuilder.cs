@@ -194,13 +194,14 @@ public static class ShipViewBuilder
 
     /// <summary>
     /// "Shubin · Rack 2 · port lower · 8 SCU Agricium crate (1 of 1)": <paramref name="number"/> counts the crate within
-    /// its placement in plan order, <paramref name="count"/> is the placement's number of crates.
+    /// its placement in plan order, <paramref name="count"/> is the placement's number of crates. A rack without a
+    /// position (ship draft, T7.1b) leaves that segment out.
     /// </summary>
     private static string ToolTip(Rack rack, Placement placement, int number, int count)
     {
         var item = placement.Item;
-        var position = $"{rack.Position.Side} {rack.Position.Level}".ToLowerInvariant();
-        var text = Invariant($"{placement.Destination} · Rack {rack.Number} · {position} · {(int)item.CrateSize} SCU {item.Commodity} crate ({number} of {count})");
+        var position = rack.Position is { } p ? $"{p.Side} {p.Level} · ".ToLowerInvariant() : "";
+        var text = Invariant($"{placement.Destination} · Rack {rack.Number} · {position}{(int)item.CrateSize} SCU {item.Commodity} crate ({number} of {count})");
         return placement.Delivered ? text + " (delivered)" : text;
     }
 }

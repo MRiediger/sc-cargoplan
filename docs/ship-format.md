@@ -72,7 +72,7 @@ A rack is a separately loadable section of the cargo hold, usually one plate.
 | `id` | string | Unique within the ship. Convention: `rack-0`, `rack-1`, … in rack order. Players see "Rack 1", "Rack 2", … |
 | `capacityScu` | number | Greater than 0. Must equal `length × width × stack` of the grid. |
 | `grid` | object | The rack's cell grid, see below. |
-| `position` | object | Where the rack sits in player words ("port upper"), see below. Shown as text, not used for planning. |
+| `position` | object | *Optional.* Where the rack sits in player words ("port upper"), see below. Shown in the crate tooltip, not used for planning. Leave it out where it isn't known: a ship draft with a generated rack arrangement has none, and the tooltip then skips it. |
 | `origin` | array | Where the rack sits in ship coordinates: `[x, y, z]`, three whole numbers, see [Coordinates](#coordinates). Used to draw the ship, not for planning. Racks must not overlap. |
 | `stackAxis` | string | The ship direction crates stack in, away from the plate: `"+x"`, `"-x"`, `"+y"`, `"-y"`, `"+z"` or `"-z"`, see [Stack axis](#stack-axis). |
 | `maxCrateSize` | number | *Optional.* The largest crate the game lets onto this rack, in SCU: `1`, `2`, `4`, `8`, `16`, `24` or `32`. Left out, the grid alone decides. See [Max crate size](#max-crate-size). |
@@ -217,8 +217,8 @@ use it automatically.
 - [ ] File is `ships/<id>.json`, lowercase `snake_case`, and `id` inside matches.
 - [ ] `schemaVersion` is `4`.
 - [ ] Rack capacities add up to `totalScu`, and each rack's `length × width × stack` equals its `capacityScu`.
-- [ ] Racks are listed **in rack order** (the order to fill them), each with its `position` and `origin`.
-- [ ] Racks don't overlap, and `origin` agrees with `position` (port = positive y, upper = higher z).
+- [ ] Racks are listed **in rack order** (the order to fill them), each with its `origin` and, where known, its `position`.
+- [ ] Racks don't overlap, and `origin` agrees with `position` if given (port = positive y, upper = higher z).
 - [ ] Each rack's `stackAxis` points away from its plate, as in the game.
 - [ ] Values measured in game (current patch named in the PR description), or their source named in `source`.
 - [ ] `maxCrateSize` only where the game allows less than the grid, with its source.

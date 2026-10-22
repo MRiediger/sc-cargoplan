@@ -21,7 +21,6 @@
       "id": "rack-1",
       "capacityScu": 32,
       "grid": { "length": 4, "width": 4, "stack": 2 },
-      "position": { "side": "starboard", "level": "lower" },
       "origin": [4, 0, 0],
       "stackAxis": "+z"
     }

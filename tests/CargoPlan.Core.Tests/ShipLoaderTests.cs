@@ -77,15 +77,15 @@ public class ShipLoaderTests
     {
         var racks = ShipLoader.Load("hull_a").Racks;
 
-        racks.Where(r => r.Position.Side == RackSide.Port)
+        racks.Where(r => r.Position is { Side: RackSide.Port })
             .Should().AllSatisfy(r => r.Bounds.Min.Y.Should().BePositive());
-        racks.Where(r => r.Position.Side == RackSide.Starboard)
+        racks.Where(r => r.Position is { Side: RackSide.Starboard })
             .Should().AllSatisfy(r => r.Bounds.Max.Y.Should().BeLessThanOrEqualTo(0));
 
-        foreach (var side in racks.GroupBy(r => r.Position.Side))
+        foreach (var side in racks.GroupBy(r => r.Position?.Side))
         {
-            var upper = side.Single(r => r.Position.Level == RackLevel.Upper);
-            var lower = side.Single(r => r.Position.Level == RackLevel.Lower);
+            var upper = side.Single(r => r.Position is { Level: RackLevel.Upper });
+            var lower = side.Single(r => r.Position is { Level: RackLevel.Lower });
             upper.Bounds.Min.Z.Should().BeGreaterThanOrEqualTo(lower.Bounds.Max.Z);
         }
     }
@@ -415,6 +415,15 @@ public class ShipLoaderTests
             .Should().Be(("RSI", "test-ship", "Fleetyards", "Rack 1 takes crates up to 16 SCU."));
     }
 
+    // Ship drafts with a generated rack arrangement leave it out: a made-up "port lower" would show in the tooltip (T7.1b).
+    [Fact]
+    public void Load_reads_position_only_where_given()
+    {
+        var ship = TestShips.Load("max_crate_size");
+
+        ship.Racks.Select(r => r.Position).Should().Equal(new RackPosition(RackSide.Port, RackLevel.Lower), null);
+    }
+
     [Fact]
     public void Load_without_optional_fields_leaves_them_null()
     {
@@ -449,7 +458,7 @@ public class ShipLoaderTests
     [Fact]
     public void RackDto_with_zero_capacity_throws_on_mapping()
     {
-        var dto = new RackDto("rack-0", 0, new GridDto(4, 2, 2), new PositionDto("port", "upper"), [0, 0, 0], "+z");
+        var dto = new RackDto("rack-0", 0, new GridDto(4, 2, 2), [0, 0, 0], "+z", Position: new PositionDto("port", "upper"));
 
         var act = () => dto.ToRack(0);
 
@@ -475,7 +484,7 @@ public class ShipLoaderTests
     [InlineData("-z", StackAxis.MinusZ)]
     public void RackDto_maps_every_stack_axis(string stackAxis, StackAxis expected)
     {
-        var dto = new RackDto("rack-0", 16, new GridDto(4, 2, 2), new PositionDto("port", "upper"), [0, 0, 0], stackAxis);
+        var dto = new RackDto("rack-0", 16, new GridDto(4, 2, 2), [0, 0, 0], stackAxis, Position: new PositionDto("port", "upper"));
 
         dto.ToRack(0).StackAxis.Should().Be(expected);
     }
@@ -486,7 +495,7 @@ public class ShipLoaderTests
     [InlineData("4")]    // no numbers for enums
     public void RackDto_rejects_unknown_stack_axis(string stackAxis)
     {
-        var dto = new RackDto("rack-0", 16, new GridDto(4, 2, 2), new PositionDto("port", "upper"), [0, 0, 0], stackAxis);
+        var dto = new RackDto("rack-0", 16, new GridDto(4, 2, 2), [0, 0, 0], stackAxis, Position: new PositionDto("port", "upper"));
 
         var act = () => dto.ToRack(0);
 
