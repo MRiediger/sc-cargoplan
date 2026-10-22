@@ -728,17 +728,19 @@ PNG, kein Spielername/Org im Bild, Overlay außerhalb des CT-Capture-Bereichs.
 
 **Befund:**
 
-| Lauf | Schiff | Eingabe | Median (3×) | Ausgang | Platziert / Eingabe |
-|---|---|---|---|---|---|
-| Baseline | hull_a | example_missions (3 Ziele, 30 SCU) | 100 ms | ok | 30 / 30 SCU |
-| 1 | spike_large | 20 × 32 SCU auf 4 Ziele (Schiff 100 % voll) | 110 ms | ok, jedes Ziel über 2 Racks, Racks 2–4 geteilt (Warnungen korrekt) | 640 / 640 SCU |
-| 2 | spike_large | 60 × 8 SCU auf 4 Ziele | 106 ms | ok, ein Rack pro Ziel, Rack 5 leer | 480 / 480 SCU |
-| 3 | spike_uneven | 4 × 32 SCU auf 2 Ziele (128 / 150 SCU) | 92 ms | `PlanException`: „Crates for rack 1 don't fit its grid (5×5×3): 64/75 SCU.“ | 0 / 128 SCU, sauber abgelehnt |
+| Lauf | Schiff | Eingabe | Median (3×) | Exit-Code | Ausgang | Platziert / Eingabe |
+|---|---|---|---|---|---|---|
+| Baseline | hull_a | example_missions (3 Ziele, 30 SCU) | 100 ms | 0 | ok | 30 / 30 SCU |
+| 1 | spike_large | 20 × 32 SCU auf 4 Ziele (Schiff 100 % voll) | 110 ms | 0 | ok, jedes Ziel über 2 Racks, Racks 2–4 geteilt (Warnungen korrekt) | 640 / 640 SCU |
+| 2 | spike_large | 60 × 8 SCU auf 4 Ziele | 106 ms | 0 | ok, ein Rack pro Ziel, Rack 5 leer | 480 / 480 SCU |
+| 3 | spike_uneven | 4 × 32 SCU auf 2 Ziele (128 / 150 SCU) | 92 ms | 1 | `PlanException`: „Crates for rack 1 don't fit its grid (5×5×3): 64/75 SCU.“ | 0 / 128 SCU, sauber abgelehnt |
+| 4 | spike_uneven | Ziel 1: 2 × 32 SCU, Ziel 2: 40 × 1 SCU (104 / 150 SCU) | 91 ms | 1 | `PlanException`: „Crates for rack 1 don't fit its grid (5×5×3): 64/75 SCU.“ – lösbar mit je einem 32er pro Rack, 1er in den Rest | 0 / 104 SCU, zu Unrecht abgelehnt |
+| 5 | spike_large | alle sieben Größen, 615 SCU (4 Ziele, 1–32 SCU) | 116 ms | 0 | ok, Ziele 1–3 je über 2 Racks, Racks 2–3 geteilt (Warnungen korrekt) | 615 / 615 SCU |
 
-- Planerzeit netto ≈ 10 ms (Lauf minus Baseline); alle 3 Läufe je Fall bit-gleich in der Ausgabe. **Bewertung: ≤ 1 s → ok.** Phase 7 muss nicht mit dem Planer beginnen.
+- Planerzeit netto ≈ 10–17 ms über der Hull-A-Baseline, Prozessstart ≈ 90–100 ms; alle 3 Läufe je Fall bit-gleich in der Ausgabe. **Bewertung: ≤ 1 s → ok.** Laufzeit ok, Korrektheit nicht: Lauf 4 lehnt eine lösbare Beladung ab (Partition nach SCU, beide 32er in Rack 1) → T7.0 vor T7.1.
 - UI-Thread (nur nachgesehen): Editor-„Plan“ ruft `LoadPlanner.Plan` synchron im UI-Thread (`MissionEditorViewModel.Plan`); beim CT-Sync läuft nur das Lesen in `Task.Run`, `ApplyContractTracker` (→ `PlaceInto`) danach im UI-Thread. Bei ~10 ms unkritisch.
-- Grenze des Spikes: nur 4 Ziele ≤ Racks. Mehr Ziele als Racks (geteilte Racks, `Partition`) wurden nicht gemessen.
-- Lauf 3 wie erwartet: D9 gilt nur für Hull A; der Planer verteilt nach SCU, die Geometrie prüft erst `CrateLayout.LayOut`. → Backlog.
+- Grenze des Spikes: nur 4 Ziele ≤ Racks. Mehr Ziele als Racks (geteilte Racks, `Partition`) wurden nicht gemessen. → Lastfall in T7.0
+- Lauf 3 wie erwartet: D9 gilt nur für Hull A; der Planer verteilt nach SCU, die Geometrie prüft erst `CrateLayout.LayOut`. → T7.0.
 
 ### [ ] T7.0 Formbewusste Partition – lösbare Beladungen nicht ablehnen (Auslöser: S7.0 Lauf 4)
 Aus dem Backlog übernommen:
