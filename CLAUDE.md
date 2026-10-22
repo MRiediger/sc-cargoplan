@@ -68,6 +68,7 @@ sc-cargoplan/
 ├── build/
 │   └── publish.ps1                # Release-Ordner + ZIP nach out/publish (D48, D49), prüft ships/ im ZIP (D56)
 ├── ships/                         # Schiffsdateien <id>.json, neben die Exe kopiert (D56); hull_a ist Pflicht
+├── tools/import-fleetyards.ps1    # Fleetyards-Export → ships/ (Abgleich, -Create, -Force <id>), Export bleibt außerhalb (T7.1b)
 ├── src/
 │   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader (liest ships/ neben der Exe)
 │   ├── CargoPlan.Import/          # net10.0 – ContractTracker SQLite-Reader
@@ -97,6 +98,7 @@ dotnet run --project src/CargoPlan.App         # Overlay starten
 dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json
 dotnet run --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/example_missions.json
 dotnet run --project src/CargoPlan.Cli -- contracts <copy-of-contracts.db> [--since <id>] [--raw]   # nur gegen eine Kopie (D38)
+./tools/import-fleetyards.ps1 -Source <ships.json> [-Create] [-Force <id>]   # Schiffe gegen Fleetyards abgleichen, Exit 1 = Abweichung (T7.1b)
 ./build/publish.ps1 [-Version 0.1.0]           # App + Cli nach out/publish/SC-CargoPlan + ZIP + SHA256 (D48, D49), Reihenfolge im Skript nicht ändern
 dotnet run --project src/CargoPlan.Cli -- --version
 ```

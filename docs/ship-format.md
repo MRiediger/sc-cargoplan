@@ -69,7 +69,7 @@ A rack is a separately loadable section of the cargo hold, usually one plate.
 
 | Field | Type | Rules |
 |---|---|---|
-| `id` | string | Unique within the ship. Convention: `rack-0`, `rack-1`, … in rack order. Players see "Rack 1", "Rack 2", … |
+| `id` | string | Unique within the ship. Convention: `rack-0`, `rack-1`, … in rack order. Players see "Rack 1", "Rack 2", … Ships imported from Fleetyards use the hold's index there instead (`rack-<index>`), so the import finds the rack again after hand reordering; their ids need not run in order. |
 | `capacityScu` | number | Greater than 0. Must equal `length × width × stack` of the grid. |
 | `grid` | object | The rack's cell grid, see below. |
 | `position` | object | *Optional.* Where the rack sits in player words ("port upper"), see below. Shown in the crate tooltip, not used for planning. Leave it out where it isn't known: a ship draft with a generated rack arrangement has none, and the tooltip then skips it. |
@@ -84,9 +84,11 @@ The grid says which crates fit by shape; the game may allow less. A Carrack rack
 `maxContainerSize`. The planner never puts a larger crate into the rack, and a move or merge that would make one is
 refused.
 
-Set it only where it limits something the grid would allow, and only from a source: a value the grid already
+By hand, set it only where it limits something the grid would allow, and only from a source: a value the grid already
 enforces says nothing new and would look like a measurement. That is why `hull_a.json` has none: its 4×2×2 racks take
-no crate above 16 SCU by shape, and the game's limit there is not measured.
+no crate above 16 SCU by shape, and the game's limit there is not measured. Ships imported from Fleetyards carry its
+value on every rack: the source is named in `source`, and a limit the grid enforces today may matter once a crate
+shape changes (T7.1c).
 
 ### Grid
 
@@ -179,6 +181,28 @@ A schematic layout is enough; the overlay draws boxes, not the ship.
 If you take grid sizes measured by others, such as a community catalogue, check its license before copying
 values into a ship file, name the source in your PR and in `source`. Only values derived from it go into the repo,
 not the catalogue's raw data (D56).
+
+## Importing from Fleetyards
+
+Most ship files are drafts converted from Fleetyards' ship data (D53 addendum). To bring them up to date after a
+patch:
+
+1. **Fetch:** run `fetch.ps1` of the `sc-ship-outlines` pipeline. It writes `ships.json`, Fleetyards' raw export,
+   which stays outside this repo.
+2. **Compare:** `./tools/import-fleetyards.ps1 -Source <path>/ships.json`. It compares every file in `ships/` with the
+   export and writes nothing. Each ship is listed as `same`, `new`, `different` (with the file's and Fleetyards' value)
+   or `skipped` (no cargo grid). Exit code 0 means in sync, 1 a difference or a new ship, 2 an error.
+3. **Check the differences:** add new ships with `-Create`. For a changed ship, look at the patch notes or in game, then
+   take Fleetyards' values with `-Force <id>`. That rewrites the grid data only (grid, `capacityScu`,
+   `maxCrateSize`, `totalScu`, `source`); `origin`, `stackAxis`, `position`, rack order and `notes` are hand work and
+   stay. `hull_a.json` is never written.
+4. **Commit:** run `dotnet test` (every file must load), then commit the changed files with the export date.
+
+What the import does: the id is the Fleetyards slug without the manufacturer code (`crus-c2-hercules` →
+`c2_hercules`), cells are metres divided by 1.25, `length` is the longer horizontal side (crates don't turn, a turned
+rack is named in `notes`). Fleetyards' rack offsets are used when every rack has one, none overlap and none is
+turned, with `position` derived from them; otherwise the racks get a generated row, Rack 1 at the bow and one cell
+between racks, and no `position`. Racks that take nothing above 2 SCU (ladders, walkways) go last.
 
 ## Crate sizes
 

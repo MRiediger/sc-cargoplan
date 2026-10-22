@@ -792,11 +792,25 @@ publish.ps1 kopiert `ships/` ins ZIP, Prüfschritt + Negativtest wie D49. Tests:
 - publish.ps1: 261 Dateien (vorher 260, + `ships/hull_a.json`), ZIP 58,7 MB. Negativtest: `ships/hull_a.json` umbenannt → Skript rot („… has no SC-CargoPlan/ships/hull_a.json …“), kein `.sha256`.
 - Tests: Core 626 (608 nach dem Ordner-Commit, +18 für Formatzusätze und Carrack-Fall), App 809, Import 93, alle grün; `ships/` kommt auch transitiv in App.Tests und Import.Tests an.
 
-### [ ] T7.1b Fleetyards-Import
+### [x] T7.1b Fleetyards-Import
 `tools/import-fleetyards.ps1`: `ships.json` (Export aus `sc-ship-outlines/fetch.ps1`, bleibt außerhalb des Repos)
 → Dateien in `ships/`. Scope: jedes Schiff mit Frachtgitter (erwartet 96). Abgleichmodus meldet Abweichungen
 bei bestehenden Dateien, überschreibt nie Origin/stackAxis/Reihenfolge/Notizen. Erste Zahl: Hull A aus
 Fleetyards gegen `hull_a.json`. Gegenprobe gegen Erecs Guide. Details im Planprompt.
+
+**Präzisiert in der Planung (D53-, D56-Addendum):** Gegenprobe Guide entfällt (kein Guide-JSON, nur PDF/`guide.txt`). Fleetyards-Achsen: x quer (Vorzeichen: nach Steuerbord, Hull B/Starlancer stützen es, Pisces widerspricht), y längs, z hoch; Offset = Min-Ecke (Mittelpunkt-Lesart gemessen schlechter). Gitter: `length` = längere horizontale Seite, gedrehte Racks in `notes` (Backlog „Kisten drehbar“). Offsets nur, wenn alle Racks einen haben, keine überlappen und keins gedreht ist (5 Schiffe), mit `position` aus der Lage und Notiz „port/starboard from Fleetyards x sign, not checked in game“; sonst Standardreihe (Rack 1 am Bug, eine Zelle Abstand) **ohne** `position` – dafür `position` optional (gemessen: einzige Anzeige ist der Kisten-Tooltip). Rack-Ids `rack-<Fleetyards-Index>`. `maxCrateSize` an jedem importierten Rack; fehlt es in der Datei (hull_a), ist das keine Abweichung. `-Force` nur bei gleicher Rack-Id-Menge, schreibt auch `source`, verweigert hull_a. Exit 0/1/2, nicht geschriebene neue Schiffe zählen als 1. Testexport mit 4 synthetischen Schiffen (+ Überlappung), Skript läuft unter 5.1 und pwsh 7. Commits 0 (position optional) und 2a/2b (Ausgabe/Handkorrektur) getrennt. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+
+**Befund** (Export 2026-10-22):
+- 117 Schiffe, 96 mit Gitter, 21 ohne (übersprungen), 9 mit Offsets an allen Racks; 0 Id-Kollisionen, 0 Maße oder Offsets außerhalb des 1,25-m-Rasters, Kapazität = Zellen in 288/288 Racks, Racksumme = `cargo` in 96/96.
+- Hull A gegen `hull_a.json`: Gitter 4×2×2, Kapazität 16/64 und Ebenenabstand (1 Zelle) gleich. Abweichend: Reihenfolge (Fleetyards je Seite unten zuerst = unsere 2, 1, 4, 3), Abstand Backbord–Steuerbord 3 statt 1 Zelle, `stackAxis` fehlt bei Fleetyards (Datei `±y`), `maxCrateSize` 16 bei Fleetyards, in der Datei bewusst weggelassen. Der Abgleich meldet hull_a als „same“.
+- Offsets überlappen bei Carrack (9 Paare), Caterpillar (39), Hull C (2); Mittelpunkt-Lesart: Caterpillar 91, Starlancer MAX 2, 21 Origins vom Raster. Ursache: Racks mit identischem Offset und Maß (modul-lokal). → Standardreihe mit Notiz.
+- Mit `length` = Fleetyards-y hätte der Planer in 67 Racks / 22 Schiffen Kisten abgelehnt, die das Spiel nimmt; mit der längeren Seite in 26 Racks / 6 Schiffen, alle wegen der 32er-Form (→ T7.1c).
+- `-Create`: 95 Dateien, hull_a „same“; zweiter Abgleich: 96 same, Exit 0, idempotent. CLI `plan example_missions.json --ship` c2_hercules / caterpillar / hull_b: Exit 0.
+- Fehler beim ersten echten Lauf: `$PSScriptRoot` ist in 5.1 in `param()`-Defaults leer → Default im Rumpf, Test ohne `-ShipsFolder` (`1d555f9`).
+- Tests: Core 732 (626 + 1 position + 10 Skript + 95 `Every_shipped_ship_loads`), App 810 (+1 Tooltip), Import 93, alle grün; `LoadAll().Problems` leer.
+
+### [ ] T7.1c 32-SCU-Kistenform – vor T7.2
+Fleetyards gibt die 32er als 8×2×2 an (Reihe 8/16/24/32 = 2/4/6/8 lang, in sich konsistent), `CrateSize` als 4×4×2. Mit 4×4×2 nehmen 26 Racks in 6 Schiffen (Hull B, C1, Freelancer, Shiv, Starlancer MAX/TAC) keine 32er, obwohl ihre Datei 32 erlaubt. Spielprüfung durch Martin, dann D-Eintrag, `CrateSize`, T7.0-Fixtures, Golden-Tests prüfen.
 
 ### [ ] T7.2 Schiffsauswahl – Editor nach Hersteller gruppiert, Wahl in settings.json statt `App.ShipId`-const, Plan beim Schiffswechsel bzw. bei ShipId-Mismatch beim Laden (heute: ungefangene ArgumentException in `ShipViewBuilder`), Fallback auf hull_a bei fehlender Schiffsdatei
 ### [ ] T7.3 Schiffsansicht bei großen Gittern – Hull C, C2: Racknummern (`RackNumberSize`: ein Wert für alle Racks), Fit, Legende
@@ -842,6 +856,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~Formbewusste `Partition` (Racks nach legbarer Anordnung in Routenreihenfolge, nicht nur nach SCU), falls Stapel-Befunde in echten Plänen häufig sind. Beleg aus dem Spike T5.4 (Brute-Force, abgebrochen): 3 Stops in einem Rack → 207 Aufteilungen ohne Anordnung bis Mischung 146/186; 4 Stops → 397 bis Mischung 65/170 (D24-Addendum, T5.4a).~~ → T7.0
 - ~~Geometrie bei Schiffen, deren Grid kein Vielfaches der Kistenmaße ist (D9 gilt nur für Hull A), sobald T7.1 ein solches Schiff bringt: `Plan` verteilt nach SCU und scheitert erst beim Legen, die Meldung („64/75 SCU“) klingt nach Platz und nennt nur Rack 1. `PlaceProblem` sagt es schon besser („no room for 8 SCU crates“). Beleg: S7.0, Lauf 3.~~ → T7.0
 - Stapelbewusste Partition: Racks so verteilen, dass keine Stapel-Befunde entstehen (Rest der übernommenen T7.0-Zeile), falls Stapel-Befunde in echten Plänen häufig sind (D54).
+- Sync Ships in der App (Fleetyards-API), falls sich Frachtgitter häufiger ändern als Releases erscheinen oder Hauler zwischen Releases fehlende Schiffe melden. Voraussetzungen: D-Eintrag Netzwerkzugriff des Overlays, Lizenzfrage für Laufzeitabrufe, Merge-Logik aus import-fleetyards.ps1 nach C# (T7.1b).
+- Kisten horizontal drehbar (Gier 90°) im Planer, statt Racks beim Import zu drehen (T7.1b: `length` = längere Seite, Rack in `notes` genannt). Auslöser: ein Schiff, dessen Rack nur mit gedrehten Kisten so voll wird wie im Spiel, oder ein Hauler-Report über abgelehnte Kisten, die im Spiel passen.
 - `CrateLayout.InOrder` beschleunigen (`StartingAt` ohne LINQ, Pruning), Auslöser: ein echter Plan mit der Notiz „too many crates to rearrange“ (D54).
 - Planen in `Task.Run` statt im UI-Thread (`MissionEditorViewModel.Plan`, CT-Sync), Auslöser: ein gemeldetes Einfrieren (D54).
 - Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).
