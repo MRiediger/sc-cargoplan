@@ -176,7 +176,7 @@ public class SceneProjectorTests
 
         projected.Frame.Should().HaveCount(12);
         projected.Frame.SelectMany(l => new[] { l.From, l.To })
-            .Concat(projected.BowWedge.Faces.SelectMany(f => f.Polygon))
+            .Concat(projected.BowWedge!.Faces.SelectMany(f => f.Polygon))
             .Should().OnlyContain(p =>
                 p.X >= projected.Extent.Left - 1e-9 && p.X <= projected.Extent.Right + 1e-9
                 && p.Y >= projected.Extent.Top - 1e-9 && p.Y <= projected.Extent.Bottom + 1e-9);
@@ -224,18 +224,18 @@ public class SceneProjectorTests
 
         // From the bow side the wedge lies in front of every rack and shows its tip; from the stern it lies behind (D52).
         var bowSide = Math.Cos(yaw * Math.PI / 180) > 0;
-        projected.BowWedge.InFront.Should().Be(bowSide);
-        projected.BowWedge.Faces.Any(f => f.Face == BoxFace.Bow).Should().Be(bowSide);
+        projected.BowWedge!.InFront.Should().Be(bowSide);
+        projected.BowWedge!.Faces.Any(f => f.Face == BoxFace.Bow).Should().Be(bowSide);
 
         var boxCentre = camera.Project((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0);
         var bowwards = camera.Project(1, 0, 0) - camera.Project(0, 0, 0);
         ((Centre(tip) - boxCentre) * bowwards).Should().BePositive();
-        ((projected.BowWedge.Floor.Centre - boxCentre) * bowwards).Should().BePositive();
+        ((projected.BowWedge!.Floor.Centre - boxCentre) * bowwards).Should().BePositive();
         if (yaw == DefaultYaw)
         {
             // The bow stays on the left in the default view (D15), and so does its label.
             Centre(tip).X.Should().BeLessThan(boxCentre.X);
-            projected.BowWedge.Floor.Centre.X.Should().BeLessThan(boxCentre.X);
+            projected.BowWedge!.Floor.Centre.X.Should().BeLessThan(boxCentre.X);
         }
     }
 
@@ -249,7 +249,7 @@ public class SceneProjectorTests
         var camera = new IsoProjection(yaw, DefaultPitch);
         var projected = SceneProjector.Project(Scene, camera);
         ViewTransform transform = new(40, new Vector(200, 200));
-        var label = FloorLabel.Lay(Glyphs("Bow"), LabelEmSize, projected.BowWedge.Floor, transform, screenEmSize: 27);
+        var label = FloorLabel.Lay(Glyphs("Bow"), LabelEmSize, projected.BowWedge!.Floor, transform, screenEmSize: 27);
 
         // Flattened into screen pixels: no transform left that would skew a pen's outline.
         (label.Transform?.Value ?? Matrix.Identity).IsIdentity.Should().BeTrue();
@@ -278,7 +278,7 @@ public class SceneProjectorTests
         var numberSize = RackNumberSize.For(27, transform.Scale, Scene.Racks);
 
         // The B of "Bow" from its top to its baseline, through the label's matrix onto the screen.
-        var placement = FloorLabel.Placement(Glyphs("Bow").Bounds, LabelEmSize, projected.BowWedge.Floor, transform, numberSize);
+        var placement = FloorLabel.Placement(Glyphs("Bow").Bounds, LabelEmSize, projected.BowWedge!.Floor, transform, numberSize);
         var b = Glyphs("B").Bounds;
         var bOnScreen = (placement.Transform(b.TopLeft) - placement.Transform(b.BottomLeft)).Length;
 
@@ -289,7 +289,7 @@ public class SceneProjectorTests
     public void Bow_label_keeps_to_a_floor_with_room_for_the_minimum()
     {
         // One cell across at 40 px: room for about 21 px, less than the setting, more than the minimum.
-        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge.Floor with { Room = new Size(1, 0.7) };
+        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge!.Floor with { Room = new Size(1, 0.7) };
         ViewTransform transform = new(40, new Vector(200, 200));
         var ink = Glyphs("Bow").Bounds;
 
@@ -304,7 +304,7 @@ public class SceneProjectorTests
     public void Bow_label_on_a_short_floor_shrinks_only_to_the_minimum_like_a_rack_number()
     {
         // A floor of a narrow ship: a tenth of a cell of room across, far less than a rack number needs (D32, D61).
-        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge.Floor with { Room = new Size(0.1, 0.7) };
+        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge!.Floor with { Room = new Size(0.1, 0.7) };
         ViewTransform transform = new(40, new Vector(200, 200));
 
         var placement = FloorLabel.Placement(Glyphs("Bow").Bounds, LabelEmSize, floor, transform, screenEmSize: 27);
@@ -315,7 +315,7 @@ public class SceneProjectorTests
     [Fact]
     public void Bow_label_keeps_a_setting_below_the_minimum()
     {
-        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge.Floor with { Room = new Size(0.1, 0.7) };
+        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge!.Floor with { Room = new Size(0.1, 0.7) };
         ViewTransform transform = new(40, new Vector(200, 200));
 
         var placement = FloorLabel.Placement(Glyphs("Bow").Bounds, LabelEmSize, floor, transform, screenEmSize: 8);
@@ -424,6 +424,127 @@ public class SceneProjectorTests
     private static Geometry Glyphs(string text, double emSize = LabelEmSize) =>
         new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal), emSize, Brushes.White, 1)
             .BuildGeometry(new Point(0, 0));
+
+    // --- Bow marker (D62): outline, none, or the wedge for ships without an outline ---
+
+    // An arrow 20 m long, 8 m wide, pointing to the bow, placed on the scene's racks as the overlay does.
+    private static readonly ShipOutline Arrow = new("arrow", [new(10, 0), new(-10, 4), new(-10, -4)]);
+
+    private static ShipScene WithOutline(ShipScene scene) =>
+        scene with { Marker = new BowMarker.Outline(OutlinePlacement.Place(Arrow, scene.Bounds)) };
+
+    private static ShipScene WithoutMarker(ShipScene scene) => scene with { Marker = new BowMarker.None() };
+
+    [Fact]
+    public void A_scene_shows_the_bow_wedge_unless_told_otherwise()
+    {
+        // Ships without an outline, and every scene built in tests, keep the wedge with its label (D52).
+        var projected = SceneProjector.Project(Scene, IsoProjection.Default);
+
+        Scene.Marker.Should().BeOfType<BowMarker.Wedge>();
+        projected.BowWedge.Should().NotBeNull();
+        projected.Outline.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(45, 35.26)]
+    [InlineData(225, -40)]
+    public void With_an_outline_there_is_no_wedge_and_the_outline_is_projected_on_the_floor(double yaw, double pitch)
+    {
+        var camera = new IsoProjection(yaw, pitch);
+        var scene = WithOutline(Scene);
+
+        var projected = SceneProjector.Project(scene, camera);
+
+        projected.BowWedge.Should().BeNull();
+        projected.Outline.Should().Equal(((BowMarker.Outline)scene.Marker).Points.Select(p => camera.Project(p.X, p.Y, p.Z)));
+    }
+
+    [Theory]
+    [InlineData(45, 35.26)]
+    [InlineData(0, 0)]
+    [InlineData(270, 85)]
+    public void A_compact_ship_fits_its_racks_and_its_whole_outline(double yaw, double pitch)
+    {
+        var projected = SceneProjector.Project(WithOutline(Scene), new IsoProjection(yaw, pitch));
+
+        ShouldEnclose(projected.Extent, projected.Outline!);
+        ShouldEnclose(projected.Extent, projected.Frame.SelectMany(l => new[] { l.From, l.To }));
+        projected.FitExtent.Should().Be(projected.Extent);
+    }
+
+    [Theory]
+    [InlineData(70, 35.26)]
+    [InlineData(225, -40)]
+    public void A_long_ship_fits_its_loaded_racks_and_the_bow_up_to_the_outline_tip_but_not_the_whole_outline(double yaw, double pitch)
+    {
+        // Racks 1 and 3 hold cargo (D61); the bow zone runs from the racks' bow face to the outline's tip.
+        var camera = new IsoProjection(yaw, pitch);
+        var scene = WithOutline(CaterpillarWith("rack-0", "rack-6"));
+        var tip = OutlinePlacement.Tip(((BowMarker.Outline)scene.Marker).Points);
+        var rack = Caterpillar.Racks.ToDictionary(r => r.Number, r => r.Bounds);
+        var bounds = Caterpillar.Bounds;
+        Point[] wanted =
+        [
+            .. Corners(rack[1], camera),
+            .. Corners(rack[3], camera),
+            .. Corners(new ShipBox(new ShipPoint(bounds.Max.X, bounds.Min.Y, bounds.Min.Z), bounds.Max), camera),
+            camera.Project(tip.X, tip.Y, bounds.Min.Z),
+            camera.Project(tip.X, tip.Y, bounds.Max.Z),
+        ];
+        var enclosing = wanted.Aggregate(new Rect(wanted[0], wanted[0]), (r, p) => Rect.Union(r, p));
+
+        var projected = SceneProjector.Project(scene, camera);
+
+        projected.FitExtent.Width.Should().BeApproximately(enclosing.Width, 1e-9);
+        projected.FitExtent.Height.Should().BeApproximately(enclosing.Height, 1e-9);
+        ShouldEnclose(projected.FitExtent, wanted);
+        ShouldEnclose(projected.Extent, projected.Outline!);
+        projected.FitExtent.Width.Should().BeLessThan(projected.Extent.Width);
+    }
+
+    [Theory]
+    [InlineData(45, 35.26)]
+    [InlineData(225, -40)]
+    public void Without_a_marker_there_is_neither_wedge_nor_outline_and_the_extent_is_the_frame(double yaw, double pitch)
+    {
+        var camera = new IsoProjection(yaw, pitch);
+
+        var projected = SceneProjector.Project(WithoutMarker(Scene), camera);
+
+        projected.BowWedge.Should().BeNull();
+        projected.Outline.Should().BeNull();
+        Point[] frame = [.. Corners(Scene.Bounds, camera)];
+        projected.Extent.Should().Be(frame.Aggregate(new Rect(frame[0], frame[0]), (r, p) => Rect.Union(r, p)));
+        projected.FitExtent.Should().Be(projected.Extent);
+    }
+
+    [Fact]
+    public void Without_a_marker_a_long_ship_fits_its_loaded_racks_only()
+    {
+        var camera = IsoProjection.DefaultFor(Caterpillar.Bounds);
+        Point[] loaded = [.. Corners(Caterpillar.Racks[0].Bounds, camera)];
+
+        var projected = SceneProjector.Project(WithoutMarker(CaterpillarWith("rack-0")), camera);
+
+        projected.FitExtent.Should().Be(loaded.Aggregate(new Rect(loaded[0], loaded[0]), (r, p) => Rect.Union(r, p)));
+    }
+
+    [Fact]
+    public void Projecting_the_largest_outline_stays_fast_enough_for_dragging()
+    {
+        // Gate polygon of D55: the Hull D's 362 points, the largest of the file; a full turn like the test below.
+        var hullD = new ShipOutline("hull-d", [.. Enumerable.Range(0, 362).Select(i => new OutlinePoint(100 * Math.Cos(i * Math.Tau / 362), 38 * Math.Sin(i * Math.Tau / 362)))]);
+        var scene = Scene with { Marker = new BowMarker.Outline(OutlinePlacement.Place(hullD, Scene.Bounds)) };
+
+        var watch = Stopwatch.StartNew();
+        for (var yaw = 0; yaw < 360; yaw++)
+        {
+            SceneProjector.Project(scene, new IsoProjection(yaw, DefaultPitch));
+        }
+
+        watch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(1));
+    }
 
     [Fact]
     public void A_full_turn_projects_fast_enough_for_dragging()

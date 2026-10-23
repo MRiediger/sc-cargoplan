@@ -884,4 +884,71 @@ public class OverlayViewModelTests
         watermark.Should().Be(37);
         known.Should().BeEquivalentTo([36L, 37L]);
     }
+
+    // --- Bow marker (D62) ---
+
+    private static readonly ShipOutlineCatalog Outlines = ShipOutlineLoader.Load();
+
+    [Fact]
+    public void A_ship_with_an_outline_shows_it_instead_of_the_wedge()
+    {
+        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a")) { Outlines = Outlines };
+
+        viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>();
+    }
+
+    [Fact]
+    public void The_outline_stays_through_a_new_plan_and_a_ship_change()
+    {
+        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"), ShipLoader.LoadAll()) { Outlines = Outlines };
+
+        viewModel.ShowPlan(TestPlans.SplitAndShared());
+        viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>();
+
+        viewModel.ChangeShip(ShipLoader.Load("c2_hercules"));
+        viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>();
+    }
+
+    [Fact]
+    public void A_ship_without_an_outline_keeps_the_wedge()
+    {
+        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a")) { Outlines = ShipOutlineCatalog.Empty };
+
+        viewModel.Scene.Marker.Should().BeOfType<BowMarker.Wedge>();
+    }
+
+    [Fact]
+    public void Mode_none_takes_every_marker_away_and_redraws_keeping_the_plan()
+    {
+        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a")) { Outlines = Outlines };
+        viewModel.ShowPlan(TestPlans.SplitAndShared());
+        var plan = viewModel.Plan;
+
+        var changes = Changes(viewModel, () => viewModel.OutlineMode = ShipOutlineMode.None);
+
+        viewModel.Scene.Marker.Should().BeOfType<BowMarker.None>();
+        viewModel.Plan.Should().BeSameAs(plan);
+        changes.Should().Contain(nameof(OverlayViewModel.Scene));
+    }
+
+    [Fact]
+    public void Setting_the_same_mode_again_keeps_the_scene()
+    {
+        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a")) { Outlines = Outlines };
+        var scene = viewModel.Scene;
+
+        viewModel.OutlineMode = ShipOutlineMode.Outline;
+
+        viewModel.Scene.Should().BeSameAs(scene);
+    }
+
+    [Fact]
+    public void Outline_problems_make_one_notice_line()
+    {
+        OverlayViewModel.OutlinesNoticeText([]).Should().BeNull();
+        OverlayViewModel.OutlinesNoticeText(["ship-outlines.json can't be read: gone"])
+            .Should().Be("Ship outlines: ship-outlines.json can't be read: gone – ships without one show the bow wedge.");
+        OverlayViewModel.OutlinesNoticeText(["Outline 2: 'x' needs at least 3 points.", "b", "c"])
+            .Should().Be("Ship outlines: Outline 2: 'x' needs at least 3 points. (+2 more) – ships without one show the bow wedge.");
+    }
 }

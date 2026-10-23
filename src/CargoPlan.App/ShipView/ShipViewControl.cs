@@ -46,6 +46,10 @@ public sealed class ShipViewControl : FrameworkElement
     // The bow wedge (D52): faces with a trace of fill and rack edges, dashed lines alone were hard to see in the game.
     private static readonly Brush BowWedgeFill = Frozen(new SolidColorBrush(MissionPalette.BowWedgeFill));
 
+    // The ship outline (D62): a backdrop, so a thin line in the rack numbers' colour, toned down below the racks' edges.
+    private const double OutlineWidth = 1;
+    private const double OutlineOpacity = 0.6;
+
     // Its label lies on its floor; built at this size, then scaled to the floor, so only the proportions count.
     private const string BowLabel = "Bow";
     private const double BowLabelEmSize = 100;
@@ -252,11 +256,19 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         var transform = CurrentTransform(scene);
-        var paint = _paint ??= Paint.From(CrateFillAlpha, CrateEdgeBrush, RackNumberHaloBrush, RackNumberHaloSize);
+        var paint = _paint ??= Paint.From(CrateFillAlpha, CrateEdgeBrush, RackNumberHaloBrush, RackNumberHaloSize, RackNumberBrush);
 
         // Screen pixels like every pen here: points are transformed before drawing, nothing scales the drawing itself.
         // One size for the rack numbers and the bow label.
         var numberSize = RackNumberSize.For(RackNumberFontSize, transform.Scale, source.Racks);
+
+        // The outline is a backdrop (D62): under frame, racks and grid from every side, so it never needs a draw order.
+        if (scene.Outline is { } outline)
+        {
+            var geometry = Polygon(outline, transform);
+            dc.DrawGeometry(BowWedgeFill, paint.OutlineHalo, geometry);
+            dc.DrawGeometry(null, paint.OutlineLine, geometry);
+        }
 
         foreach (var line in scene.Frame)
         {
@@ -268,9 +280,9 @@ public sealed class ShipViewControl : FrameworkElement
         var target = (drag?.Gesture as Gesture.MoveStop)?.TargetRackId;
 
         // The bow wedge lies beyond every rack: behind all of them seen from the stern, in front seen from the bow (D52).
-        if (!scene.BowWedge.InFront)
+        if (scene.BowWedge is { InFront: false } behind)
         {
-            DrawBowWedge(dc, scene.BowWedge, transform, paint, numberSize);
+            DrawBowWedge(dc, behind, transform, paint, numberSize);
         }
 
         // Plain rack edges first: cargo in front covers them like any other part of the ship (D21).
@@ -308,9 +320,9 @@ public sealed class ShipViewControl : FrameworkElement
             });
         }
 
-        if (scene.BowWedge.InFront)
+        if (scene.BowWedge is { InFront: true } inFront)
         {
-            DrawBowWedge(dc, scene.BowWedge, transform, paint, numberSize);
+            DrawBowWedge(dc, inFront, transform, paint, numberSize);
         }
 
         // Red and cyan on top, like the numbers: a violation or the drop target must never hide behind cargo. A faulty
@@ -811,13 +823,25 @@ public sealed class ShipViewControl : FrameworkElement
     /// <summary>The theme's brushes and pens, built once per change instead of on every render.</summary>
     /// <param name="CrateEdge">null = crates without edges.</param>
     /// <param name="LabelOutline">null = rack numbers without outline.</param>
-    private sealed record Paint(IReadOnlyList<SolidColorBrush> Stops, SolidColorBrush Delivered, Pen? CrateEdge, Pen? LabelOutline)
+    /// <param name="OutlineLine">The ship outline's line (D62) in the rack numbers' colour, toned down; null without that colour.</param>
+    /// <param name="OutlineHalo">Under that line, as wide as the line plus the halo on both sides (D28); null with the halo off.</param>
+    private sealed record Paint(
+        IReadOnlyList<SolidColorBrush> Stops, SolidColorBrush Delivered, Pen? CrateEdge, Pen? LabelOutline, Pen? OutlineLine, Pen? OutlineHalo)
     {
-        public static Paint From(byte fillAlpha, Brush? edge, Brush? halo, double haloSize) => new(
+        public static Paint From(byte fillAlpha, Brush? edge, Brush? halo, double haloSize, Brush? line) => new(
             [.. MissionPalette.Colors.Select(c => MissionPalette.Fill(c, fillAlpha))],
             MissionPalette.Fill(MissionPalette.Delivered, fillAlpha),
             edge is null ? null : Frozen(new Pen(edge, CrateEdgeWidth)),
-            halo is null ? null : Frozen(new Pen(halo, haloSize) { LineJoin = PenLineJoin.Round }));
+            halo is null ? null : Frozen(new Pen(halo, haloSize) { LineJoin = PenLineJoin.Round }),
+            line is null ? null : Frozen(new Pen(Toned(line), OutlineWidth) { LineJoin = PenLineJoin.Round }),
+            halo is null ? null : Frozen(new Pen(halo, OutlineWidth + 2 * haloSize) { LineJoin = PenLineJoin.Round }));
+
+        private static Brush Toned(Brush brush)
+        {
+            var toned = brush.CloneCurrentValue();
+            toned.Opacity *= OutlineOpacity;
+            return toned;
+        }
 
         /// <summary>Cargo only; free cells have no fill.</summary>
         public Brush Fill(SceneBox box) => box.Fill == CellFill.Delivered ? Delivered : Stops[box.PaletteIndex!.Value];

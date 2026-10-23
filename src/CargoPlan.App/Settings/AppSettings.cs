@@ -23,6 +23,10 @@ namespace CargoPlan.App.Settings;
 /// Catalog ids of the ships chosen last, latest first, the current one included (T7.2c, <c>ShipChoices.Remember</c>); written
 /// with <paramref name="Ship"/>. Missing (before T7.2c) or null = none yet. Unknown ids stay, like <c>ship</c>.
 /// </param>
+/// <param name="ShipOutline">
+/// What marks the bow in the ship view (D62), one of <see cref="ShipOutlineModes.Names"/>. Missing (before T7.4) or null =
+/// "outline". Top level like <paramref name="ToolWindowTheme"/>: the crates' "Reset to defaults" must not switch it.
+/// </param>
 public sealed record AppSettings(
     int SchemaVersion,
     WindowBounds? Overlay = null,
@@ -32,7 +36,8 @@ public sealed record AppSettings(
     string? ToolWindowTheme = null,
     ContractTrackerSettings? ContractTracker = null,
     string? Ship = null,
-    IReadOnlyList<string>? RecentShips = null)
+    IReadOnlyList<string>? RecentShips = null,
+    string? ShipOutline = null)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
 
@@ -47,6 +52,8 @@ public sealed record AppSettings(
     public LegendSettings Legend { get; init; } = Legend ?? LegendSettings.Default;
 
     public string ToolWindowTheme { get; init; } = ToolWindowTheme ?? ToolWindowThemes.DefaultName;
+
+    public string ShipOutline { get; init; } = ShipOutline ?? ShipOutlineModes.DefaultName;
 
     public ContractTrackerSettings ContractTracker { get; init; } = ContractTracker ?? ContractTrackerSettings.Default;
 }

@@ -38,6 +38,7 @@ public sealed class SettingsSession
         _timer.Tick += OnTick;
         Current = settings;
         ApplyLook();
+        _viewModel.OutlineMode = ShipOutline;
     }
 
     public AppSettings Current { get; private set; }
@@ -123,6 +124,18 @@ public sealed class SettingsSession
     public void ChangeToolWindowTheme(ToolWindowTheme theme)
     {
         Current = Current with { ToolWindowTheme = ToolWindowThemes.ToName(theme) };
+        _timer.Stop();
+        _timer.Start();
+    }
+
+    /// <summary>What marks the bow in the ship view (D62).</summary>
+    public ShipOutlineMode ShipOutline => ShipOutlineModes.Parse(Current.ShipOutline);
+
+    /// <summary>From the settings window: the overlay redraws at once (D30), saved after <see cref="Debounce"/>.</summary>
+    public void ChangeShipOutline(ShipOutlineMode mode)
+    {
+        _viewModel.OutlineMode = mode;
+        Current = Current with { ShipOutline = ShipOutlineModes.ToName(mode) };
         _timer.Stop();
         _timer.Start();
     }

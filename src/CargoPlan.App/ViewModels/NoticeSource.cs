@@ -4,6 +4,10 @@ namespace CargoPlan.App.ViewModels;
 public enum NoticeSource
 {
     Settings,
+
+    /// <summary>ship-outlines.json or some of its entries didn't load (D62); set once at the start.</summary>
+    Outlines,
+
     Hotkeys,
     Plan,
 

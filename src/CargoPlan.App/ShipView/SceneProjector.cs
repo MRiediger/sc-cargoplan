@@ -38,18 +38,48 @@ public static class SceneProjector
 
         ProjectedRack[] racks = [.. DrawOrder.BackToFront(scene.Racks, camera).Select(r => ProjectRack(r, visible, camera, isLong))];
         var frame = Frame(scene.Bounds, camera);
-        var extent = Extent(scene.Bounds, scene.Bounds, camera);
-        return new ProjectedScene(racks, frame, ProjectWedge(scene.Bounds, camera), extent, FitExtent(scene, isLong, extent, camera));
+        Point[]? outline = scene.Marker is BowMarker.Outline o ? [.. o.Points.Select(p => camera.Project(p.X, p.Y, p.Z))] : null;
+        var extent = Extent(scene.Bounds, outline ?? Bow(scene, camera), camera);
+        return new ProjectedScene(
+            racks,
+            frame,
+            scene.Marker is BowMarker.Wedge ? ProjectWedge(scene.Bounds, camera) : null,
+            outline,
+            extent,
+            FitExtent(scene, isLong, extent, camera));
     }
 
     /// <summary>
-    /// A long ship's racks lie in one row: fit to the loaded ones and the bow wedge, so their crates are as large as the
-    /// view allows (D61). The empty ones further aft stay in the scene, outside the fit.
+    /// A long ship's racks lie in one row: fit to the loaded ones and the bow, so their crates are as large as the view
+    /// allows and the bow stays in sight (D61). The empty ones further aft stay in the scene, outside the fit, and so does
+    /// the outline beyond the bow zone (D62).
     /// </summary>
     private static Rect FitExtent(ShipScene scene, bool isLong, Rect extent, IsoProjection camera)
     {
         ShipBox[] loaded = [.. scene.Racks.Where(r => r.IsLoaded).Select(r => r.Bounds)];
-        return isLong && loaded.Length > 0 ? Extent(loaded.Aggregate((a, b) => a.Union(b)), scene.Bounds, camera) : extent;
+        return isLong && loaded.Length > 0 ? Extent(loaded.Aggregate((a, b) => a.Union(b)), Bow(scene, camera), camera) : extent;
+    }
+
+    /// <summary>
+    /// What marks the bow, seen or not, so the fit doesn't change as faces turn away: every corner of the wedge, or with an
+    /// outline the zone from the racks' bow face to its tip at the racks' full height, or nothing.
+    /// </summary>
+    private static IEnumerable<Point> Bow(ShipScene scene, IsoProjection camera)
+    {
+        var bounds = scene.Bounds;
+        return scene.Marker switch
+        {
+            BowMarker.Wedge => BowWedge(bounds).SelectMany(f => f.Corners).Select(c => camera.Project(c.X, c.Y, c.Z)),
+            BowMarker.Outline o when OutlinePlacement.Tip(o.Points) is var tip =>
+            [
+                .. from y in new[] { bounds.Min.Y, bounds.Max.Y }
+                   from z in new[] { bounds.Min.Z, bounds.Max.Z }
+                   select camera.Project(bounds.Max.X, y, z),
+                camera.Project(tip.X, tip.Y, bounds.Min.Z),
+                camera.Project(tip.X, tip.Y, bounds.Max.Z),
+            ],
+            _ => [],
+        };
     }
 
     /// <summary>The visible faces of one box, drawn as small as a crate of the scene: the ghost of a dragged crate (D25).</summary>
@@ -213,17 +243,10 @@ public static class SceneProjector
                    select new SceneLine(corners[i], corners[i | axis])];
     }
 
-    /// <summary>
-    /// Encloses <paramref name="box"/> and every corner of the wedge of <paramref name="bounds"/>, seen or not, so the
-    /// fit doesn't change as faces turn away.
-    /// </summary>
-    private static Rect Extent(ShipBox box, ShipBox bounds, IsoProjection camera)
+    /// <summary>Encloses <paramref name="box"/> and <paramref name="marker"/>: the bow marker's points (<see cref="Bow"/>) or the outline.</summary>
+    private static Rect Extent(ShipBox box, IEnumerable<Point> marker, IsoProjection camera)
     {
-        Point[] points =
-        [
-            .. Frame(box, camera).SelectMany(l => new[] { l.From, l.To }),
-            .. BowWedge(bounds).SelectMany(f => f.Corners).Select(c => camera.Project(c.X, c.Y, c.Z)),
-        ];
+        Point[] points = [.. Frame(box, camera).SelectMany(l => new[] { l.From, l.To }), .. marker];
         return points.Aggregate(new Rect(points[0], points[0]), (rect, p) => Rect.Union(rect, p));
     }
 

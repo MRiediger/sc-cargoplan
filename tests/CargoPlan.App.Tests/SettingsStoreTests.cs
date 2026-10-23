@@ -360,6 +360,49 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Save_then_Load_keeps_the_ship_outline_mode()
+    {
+        var settings = AppSettings.Default with { ShipOutline = "none" };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+        File.ReadAllText(SettingsPath).Should().Contain("\"shipOutline\": \"none\"");
+    }
+
+    [Theory]
+    [InlineData("""{ "schemaVersion": 2 }""")]
+    [InlineData("""{ "schemaVersion": 2, "shipOutline": null }""")]
+    public void File_without_ship_outline_draws_the_outline_without_a_problem(string content)
+    {
+        // Optional, no schemaVersion bump (D31, D62).
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.ShipOutline.Should().Be("outline");
+    }
+
+    [Fact]
+    public void Invalid_ship_outline_draws_the_outline_with_a_problem_and_the_rest_applies()
+    {
+        const string content = """
+            { "schemaVersion": 2, "shipOutline": "prism", "legend": { "visible": false } }
+            """;
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.ShipOutline.Should().Be("outline");
+        loaded.Legend.Visible.Should().BeFalse();
+        problem.Should().Be("settings.json: shipOutline \"prism\" is not valid (outline or none), using outline.");
+        File.ReadAllText(SettingsPath).Should().Be(content);
+    }
+
+    [Fact]
     public void Tool_window_theme_of_the_wrong_JSON_type_makes_the_file_invalid()
     {
         // Structural like every wrong type (D13): defaults plus a notice, not a correction.

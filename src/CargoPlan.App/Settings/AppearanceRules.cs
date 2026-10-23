@@ -103,6 +103,20 @@ public static class AppearanceRules
         return (fallback, [$"toolWindowTheme \"{theme}\" is not valid ({string.Join(", ", names.Take(names.Count - 1))} or {names[^1]}), using {fallback}."]);
     }
 
+    /// <summary>Checks the bow marker's mode (D62): an unknown name draws the outline, like a colour that isn't one.</summary>
+    /// <returns>The checked name and one line if it was corrected, empty otherwise.</returns>
+    public static (string Mode, IReadOnlyList<string> Problems) NormalizeShipOutline(string mode)
+    {
+        if (ShipOutlineModes.TryParse(mode, out _))
+        {
+            return (mode, []);
+        }
+
+        var fallback = ShipOutlineModes.DefaultName;
+        var names = ShipOutlineModes.Names;
+        return (fallback, [$"shipOutline \"{mode}\" is not valid ({string.Join(", ", names.Take(names.Count - 1))} or {names[^1]}), using {fallback}."]);
+    }
+
     /// <summary>
     /// Checks ContractTracker's path (D44): one that isn't a full path (relative, empty) detects ContractTracker instead,
     /// like a colour that isn't one. Whether the file exists is not checked: ContractTracker may be installed later.

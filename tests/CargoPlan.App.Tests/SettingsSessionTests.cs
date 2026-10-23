@@ -391,6 +391,30 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void The_start_applies_the_ship_outline_mode_to_the_overlay()
+    {
+        Create(AppSettings.Default with { ShipOutline = "none" });
+
+        _viewModel.OutlineMode.Should().Be(ShipOutlineMode.None);
+    }
+
+    [Fact]
+    public void ChangeShipOutline_applies_at_once_writes_on_flush_and_keeps_the_rest()
+    {
+        var session = Create(AppSettings.Default with { Overlay = Bounds, Appearance = Thick, ToolWindowTheme = "dark" });
+
+        session.ChangeShipOutline(ShipOutlineMode.None);
+
+        _viewModel.OutlineMode.Should().Be(ShipOutlineMode.None);
+        session.ShipOutline.Should().Be(ShipOutlineMode.None);
+        File.Exists(SettingsPath).Should().BeFalse();
+
+        session.Flush();
+
+        Saved().Should().Be(AppSettings.Default with { Overlay = Bounds, Appearance = Thick, ToolWindowTheme = "dark", ShipOutline = "none" });
+    }
+
+    [Fact]
     public void ChangeLook_keeps_the_tool_window_theme()
     {
         var session = Create(AppSettings.Default with { ToolWindowTheme = "light" });

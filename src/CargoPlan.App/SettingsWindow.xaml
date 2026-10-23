@@ -322,6 +322,18 @@
                     </StackPanel>
                 </GroupBox>
 
+                <!-- What marks the bow (D62); a setting of its own in the file, so the crates' reset doesn't touch it. -->
+                <GroupBox Header="Ship view" Style="{StaticResource SectionStyle}">
+                    <StackPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The ship's silhouette under the racks shows where the bow is">
+                            <TextBlock Text="Ship outline" Style="{StaticResource LabelStyle}" />
+                            <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.ShipOutlineChoices}" DisplayMemberPath="Text"
+                                      SelectedValuePath="Value" SelectedValue="{Binding ShipOutline}" />
+                        </DockPanel>
+                        <Button Command="{Binding ResetShipViewCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
+                    </StackPanel>
+                </GroupBox>
+
                 <!-- Set once, like header and buttons; not part of the overlay's look, so no "Reset to defaults" (D36). -->
                 <GroupBox Header="Tool windows" Style="{StaticResource SectionStyle}">
                     <DockPanel Style="{StaticResource RowStyle}" ToolTip="Settings and mission editor; the overlay's look is set above">

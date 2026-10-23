@@ -304,7 +304,8 @@ public partial class OverlayWindow : Window
             _settingsWindow = new SettingsWindow(
                 new SettingsViewModel(
                     current.Appearance, current.Legend, SystemFonts.MessageFontSize, _settings.ChangeLook,
-                    _settings.ToolWindowTheme, ChangeToolWindowTheme),
+                    _settings.ToolWindowTheme, ChangeToolWindowTheme,
+                    _settings.ShipOutline, _settings.ChangeShipOutline),
                 _createHotkeys(),
                 _createContractTracker(),
                 _viewModel,

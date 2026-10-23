@@ -9,19 +9,23 @@ public sealed class SettingsViewModelTests
 
     private readonly List<(AppearanceSettings Appearance, LegendSettings Legend)> _applied = [];
     private readonly List<ToolWindowTheme> _themes = [];
+    private readonly List<ShipOutlineMode> _outlines = [];
 
     private SettingsViewModel Create(
         AppearanceSettings? appearance = null,
         LegendSettings? legend = null,
         double windowsFontSize = WindowsFontSize,
-        ToolWindowTheme toolWindowTheme = ToolWindowTheme.System) =>
+        ToolWindowTheme toolWindowTheme = ToolWindowTheme.System,
+        ShipOutlineMode shipOutline = ShipOutlineMode.Outline) =>
         new(
             appearance ?? AppearanceSettings.Default,
             legend ?? LegendSettings.Default,
             windowsFontSize,
             (a, l) => _applied.Add((a, l)),
             toolWindowTheme,
-            _themes.Add);
+            _themes.Add,
+            shipOutline,
+            _outlines.Add);
 
     private (AppearanceSettings Appearance, LegendSettings Legend) Last => _applied[^1];
 
@@ -531,5 +535,43 @@ public sealed class SettingsViewModelTests
     {
         SettingsViewModel.ToolWindowThemeChoices.Select(c => ToolWindowThemes.ToName(c.Value)).Should().Equal(ToolWindowThemes.Names);
         SettingsViewModel.ToolWindowThemeChoices.Select(c => c.Text).Should().Equal("Follow Windows", "Light", "Dark");
+    }
+
+    [Fact]
+    public void Choosing_a_ship_outline_mode_calls_its_callback_not_apply()
+    {
+        var viewModel = Create();
+
+        viewModel.ShipOutline = ShipOutlineMode.None;
+
+        _outlines.Should().Equal(ShipOutlineMode.None);
+        _applied.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void The_constructor_loads_the_ship_outline_mode_without_calling_back()
+    {
+        var viewModel = Create(shipOutline: ShipOutlineMode.None);
+
+        viewModel.ShipOutline.Should().Be(ShipOutlineMode.None);
+        _outlines.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Reset_of_the_ship_view_goes_back_to_the_outline()
+    {
+        var viewModel = Create(shipOutline: ShipOutlineMode.None);
+
+        viewModel.ResetShipViewCommand.Execute(null);
+
+        viewModel.ShipOutline.Should().Be(ShipOutlineMode.Outline);
+        _outlines.Should().Equal(ShipOutlineMode.Outline);
+    }
+
+    [Fact]
+    public void The_ship_outline_choices_are_every_mode_in_the_file_order_with_player_words()
+    {
+        SettingsViewModel.ShipOutlineChoices.Select(c => ShipOutlineModes.ToName(c.Value)).Should().Equal(ShipOutlineModes.Names);
+        SettingsViewModel.ShipOutlineChoices.Select(c => c.Text).Should().Equal("Outline", "None");
     }
 }

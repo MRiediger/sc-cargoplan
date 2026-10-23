@@ -35,6 +35,26 @@ public sealed record ShipScene(
 {
     /// <summary>Every stop is delivered; false without stops.</summary>
     public bool AllDelivered => Legend.Count > 0 && Legend.All(e => e.Delivered);
+
+    /// <summary>What marks the bow (D62); set by the overlay from the setting and the ship's outline, the wedge otherwise.</summary>
+    public BowMarker Marker { get; init; } = new BowMarker.Wedge();
+}
+
+/// <summary>What marks the bow in the ship view (D62): the ship's outline, the bow wedge for a ship without one, or nothing.</summary>
+public abstract record BowMarker
+{
+    private BowMarker()
+    {
+    }
+
+    /// <summary>The bow wedge with its "Bow" label (D52).</summary>
+    public sealed record Wedge : BowMarker;
+
+    /// <summary>The ship's outline on the racks' floor, in cells (<see cref="OutlinePlacement"/>); no wedge, no label.</summary>
+    public sealed record Outline(IReadOnlyList<SceneProjector.Corner> Points) : BowMarker;
+
+    /// <summary>Racks and frame only.</summary>
+    public sealed record None : BowMarker;
 }
 
 /// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MoveCrates</c>, <c>MoveStop</c>).</param>
@@ -81,12 +101,20 @@ public enum BoxFace
 /// </summary>
 /// <param name="Racks">Back to front (<see cref="DrawOrder.BackToFront"/>): the painter draws rack by rack.</param>
 /// <param name="Frame">The 12 edges of <c>Ship.Bounds</c>.</param>
-/// <param name="BowWedge">The nose that marks the bow (D52).</param>
-/// <param name="Extent">Encloses the frame and the bow wedge.</param>
+/// <param name="BowWedge">The nose that marks the bow (D52); null unless the scene's marker is the wedge.</param>
+/// <param name="Outline">The ship's outline on the floor (D62); null unless the scene's marker is an outline.</param>
+/// <param name="Extent">Encloses the frame and the marker: the bow wedge or the outline.</param>
 /// <param name="FitExtent">
-/// What fit-to-view shows: on a long ship with cargo its loaded racks and the bow wedge, otherwise <paramref name="Extent"/> (D61).
+/// What fit-to-view shows: on a long ship with cargo its loaded racks and the bow (the wedge, or the zone up to the outline's
+/// tip), otherwise <paramref name="Extent"/> (D61, D62).
 /// </param>
-public sealed record ProjectedScene(IReadOnlyList<ProjectedRack> Racks, IReadOnlyList<SceneLine> Frame, ProjectedWedge BowWedge, Rect Extent, Rect FitExtent);
+public sealed record ProjectedScene(
+    IReadOnlyList<ProjectedRack> Racks,
+    IReadOnlyList<SceneLine> Frame,
+    ProjectedWedge? BowWedge,
+    IReadOnlyList<Point>? Outline,
+    Rect Extent,
+    Rect FitExtent);
 
 /// <summary>One face of the bow wedge in ship coordinates (D52): <see cref="BoxFace.Bow"/> is its tip, Port and Starboard its flanks.</summary>
 /// <param name="Normal">Outward, unit length; the flanks' normals are not along an axis.</param>

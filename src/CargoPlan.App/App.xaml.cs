@@ -53,13 +53,22 @@ public partial class App : Application
             return;
         }
 
+        // Once per start, not per ship change (200 KB). A broken file costs the outlines, never the start (D62).
+        var outlines = ShipOutlineLoader.Load();
+
         var options = StartOptions.Parse(e.Args);
         var (settings, settingsProblem) = SettingsStore.Load(SettingsStore.DefaultPath);
 
         // The settings' ship, else the start plan's, else the Hull A; one that doesn't load never stops the start (T7.2).
         var (ship, shipNotice) = ShipChoices.Resolve(ships, settings.Ship, PlanStore.PeekShipId(options.PlanPath ?? PlanStore.DefaultPath));
-        var viewModel = new OverlayViewModel(ship, ships) { IsManuallyLocked = options.Locked, RecentShips = settings.RecentShips ?? [] };
+        var viewModel = new OverlayViewModel(ship, ships)
+        {
+            IsManuallyLocked = options.Locked,
+            RecentShips = settings.RecentShips ?? [],
+            Outlines = outlines,
+        };
         viewModel.SetNotice(NoticeSource.Settings, settingsProblem);
+        viewModel.SetNotice(NoticeSource.Outlines, OverlayViewModel.OutlinesNoticeText(outlines.Problems));
         viewModel.SetNotice(NoticeSource.Ship, shipNotice);
 
         // Before any window: their DynamicResources find the theme from the first layout on. The settings window

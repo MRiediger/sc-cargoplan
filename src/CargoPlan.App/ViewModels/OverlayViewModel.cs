@@ -56,6 +56,45 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     public static string TicksStayText(int stops) => $"{stops} {(stops == 1 ? "stop" : "stops")} already ticked – ticks stay.";
 
+    /// <summary>One line for what went wrong with ship-outlines.json (D62): the first problem and how many more; null if none.</summary>
+    public static string? OutlinesNoticeText(IReadOnlyList<string> problems) => problems.Count switch
+    {
+        0 => null,
+        1 => $"Ship outlines: {problems[0]} – ships without one show the bow wedge.",
+        _ => $"Ship outlines: {problems[0]} (+{problems.Count - 1} more) – ships without one show the bow wedge.",
+    };
+
+    /// <summary>
+    /// The outlines loaded at the start (D55), matched to a ship by its Fleetyards slug. Set once by the composition root;
+    /// the scene built before it gets its marker here.
+    /// </summary>
+    public ShipOutlineCatalog Outlines
+    {
+        get;
+        init
+        {
+            field = value;
+            Scene = Marked(Scene);
+        }
+    } = ShipOutlineCatalog.Empty;
+
+    /// <summary>What marks the bow (D62), from the settings; a change redraws the ship view at once, plan and camera stay.</summary>
+    public ShipOutlineMode OutlineMode
+    {
+        get;
+        set
+        {
+            if (field == value)
+            {
+                return;
+            }
+
+            field = value;
+            Scene = Marked(Scene);
+            OnPropertyChanged(nameof(Scene));
+        }
+    }
+
     /// <summary>The ship the plan, the ship view and the header are for; changed only by <see cref="ChangeShip"/>.</summary>
     public Ship Ship { get; private set; } = ship;
 
@@ -101,7 +140,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
                 return;
             }
 
-            Scene = value is null ? EmptyScene(Ship) : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value.Plan, Ship));
+            Scene = Marked(value is null ? EmptyScene(Ship) : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value.Plan, Ship)));
             OnPropertyChanged(nameof(Plan));
             OnPropertyChanged(nameof(Missions));
             OnPropertyChanged(nameof(Watermark));
@@ -269,7 +308,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         SetNotice(NoticeSource.Replan, null);
         if (replanned is null)
         {
-            Scene = EmptyScene(ship);
+            Scene = Marked(EmptyScene(ship));
             OnPropertyChanged(nameof(Scene));
         }
         else
@@ -528,4 +567,15 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     private SavedPlan WithCrates(LoadPlan plan) => new(Missions, plan, Watermark);
 
     private static ShipScene EmptyScene(Ship ship) => ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
+
+    /// <summary>
+    /// The scene with its bow marker (D62): the ship's outline, the wedge for a ship without one, or none. Every scene the
+    /// overlay shows passes here; placing an outline costs a pass over its points.
+    /// </summary>
+    private ShipScene Marked(ShipScene scene) => scene with
+    {
+        Marker = OutlineMode == ShipOutlineMode.None ? new BowMarker.None()
+            : Outlines.For(scene.Ship) is { } outline ? new BowMarker.Outline(OutlinePlacement.Place(outline, scene.Ship.Bounds))
+            : new BowMarker.Wedge(),
+    };
 }
