@@ -58,7 +58,7 @@ public partial class App : Application
 
         // The settings' ship, else the start plan's, else the Hull A; one that doesn't load never stops the start (T7.2).
         var (ship, shipNotice) = ShipChoices.Resolve(ships, settings.Ship, PlanStore.PeekShipId(options.PlanPath ?? PlanStore.DefaultPath));
-        var viewModel = new OverlayViewModel(ship, ships) { IsManuallyLocked = options.Locked };
+        var viewModel = new OverlayViewModel(ship, ships) { IsManuallyLocked = options.Locked, RecentShips = settings.RecentShips ?? [] };
         viewModel.SetNotice(NoticeSource.Settings, settingsProblem);
         viewModel.SetNotice(NoticeSource.Ship, shipNotice);
 
@@ -113,7 +113,7 @@ public partial class App : Application
         {
             if (e.PropertyName == nameof(OverlayViewModel.Ship))
             {
-                session.ChangeShip(viewModel.Ship.Id);
+                session.ChangeShip(viewModel.Ship.Id, viewModel.RecentShips);
             }
         };
 

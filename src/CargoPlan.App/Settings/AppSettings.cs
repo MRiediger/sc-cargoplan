@@ -19,6 +19,10 @@ namespace CargoPlan.App.Settings;
 /// The ship's catalog id (D59), written only by a choice in the overlay header (T7.2b). Missing (before T7.2) or null = the ship of
 /// plan.json, else the Hull A. A ship that doesn't load is kept here; the start falls back and says so (T7.2).
 /// </param>
+/// <param name="RecentShips">
+/// Catalog ids of the ships chosen last, latest first, the current one included (T7.2c, <c>ShipChoices.Remember</c>); written
+/// with <paramref name="Ship"/>. Missing (before T7.2c) or null = none yet. Unknown ids stay, like <c>ship</c>.
+/// </param>
 public sealed record AppSettings(
     int SchemaVersion,
     WindowBounds? Overlay = null,
@@ -27,9 +31,15 @@ public sealed record AppSettings(
     LegendSettings? Legend = null,
     string? ToolWindowTheme = null,
     ContractTrackerSettings? ContractTracker = null,
-    string? Ship = null)
+    string? Ship = null,
+    IReadOnlyList<string>? RecentShips = null)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
+
+    // Edited by hand, a gap names no ship: dropped here, at the file boundary (A6). RespectNullableAnnotations doesn't
+    // reach list elements ("Limitations"). Source: https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/nullable-annotations
+    public IReadOnlyList<string>? RecentShips { get; init; } =
+        RecentShips is null ? null : [.. RecentShips.Where(id => !string.IsNullOrWhiteSpace(id))];
 
     // Not a constant, so not a default parameter value; see AppearanceSettings.
     public AppearanceSettings Appearance { get; init; } = Appearance ?? AppearanceSettings.Default;

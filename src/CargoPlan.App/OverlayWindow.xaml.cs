@@ -78,7 +78,8 @@ public partial class OverlayWindow : Window
 
     // --- Ship selection (T7.2b) ---
     // The box is not focusable, so keys don't reach it and the wheel doesn't select in the closed box: a selection
-    // changes only by a click in the open list, and every selection change is a choice (as in the editor, T7.2).
+    // changes only by a click in the open list or Enter in its search (T7.2c), and every selection change is a choice
+    // (as in the editor, T7.2), except while the overlay shows its ship or the search filters (_showingShip).
 
     private bool _showingShip;
 
@@ -105,6 +106,97 @@ public partial class OverlayWindow : Window
 
         // After the list has closed (a click selects before it closes), so the dialog doesn't sit under the open popup.
         Dispatcher.BeginInvoke(() => ChangeShip(choice), DispatcherPriority.Background);
+    }
+
+    // --- Ship search (T7.2c, D60) ---
+    // The one exception to "the overlay never takes the focus" (D11): keys must reach the field. Spike over Star Citizen:
+    // the field has the focus after the opening click, one click into the game gives it back.
+
+    private TextBox ShipSearch => (TextBox)ShipBox.Template.FindName("ShipSearch", ShipBox);
+
+    /// <summary>The opening click on the overlay gives this process the right to take the foreground (as the pencil's editor).</summary>
+    private void OnShipListOpened(object? sender, EventArgs e)
+    {
+        Activate();
+        var search = ShipSearch;
+        if (search.Tag is null)
+        {
+            // Wired once, at the first opening: the template exists by then.
+            search.Tag = true;
+            search.TextChanged += OnShipSearchChanged;
+            search.PreviewKeyDown += OnShipSearchKeyDown;
+            // Visible only while the list is open (template trigger): focus it as soon as it shows.
+            search.IsVisibleChanged += (_, _) =>
+            {
+                if (search.IsVisible)
+                {
+                    Keyboard.Focus(search);
+                }
+            };
+        }
+    }
+
+    /// <summary>Closing empties the search, so the list opens unfiltered next time, and shows the overlay's ship again.</summary>
+    private void OnShipListClosed(object? sender, EventArgs e)
+    {
+        ShipSearch.Text = "";
+        ShowCurrentShip();
+    }
+
+    /// <summary>
+    /// Filters on every key (<see cref="ShipChoices.Matches"/>). A filter that hides the selected entry clears the
+    /// selection, which isn't a choice; the cleared search selects the overlay's ship again.
+    /// </summary>
+    private void OnShipSearchChanged(object sender, TextChangedEventArgs e)
+    {
+        var query = ShipSearch.Text;
+        _showingShip = true;
+        try
+        {
+            ShipBox.Items.Filter = string.IsNullOrWhiteSpace(query) ? null : o => o is ShipChoice c && ShipChoices.Matches(c, query);
+        }
+        finally
+        {
+            _showingShip = false;
+        }
+
+        if (ShipBox.Items.Filter is null)
+        {
+            ShowCurrentShip();
+        }
+    }
+
+    /// <summary>
+    /// Esc empties the search, then closes the list; Enter chooses the one ship left, as a click would. Tab and the arrow
+    /// and page keys stay in the field: they would move the focus out of it, and the box closes when it loses the focus
+    /// (app run T7.2c); the wheel scrolls the list. Alt+F4 would close the overlay, which is the app (D34).
+    /// </summary>
+    private void OnShipSearchKeyDown(object sender, KeyEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case Key.Escape when ShipSearch.Text.Length > 0:
+                ShipSearch.Text = "";
+                break;
+            case Key.Escape:
+                ShipBox.IsDropDownOpen = false;
+                break;
+            case Key.Enter:
+                if (ShipChoices.SingleMatch(ShipBox.Items.OfType<ShipChoice>()) is { } match)
+                {
+                    ShipBox.SelectedItem = match;
+                    ShipBox.IsDropDownOpen = false;
+                }
+
+                break;
+            case Key.Tab or Key.Up or Key.Down or Key.PageUp or Key.PageDown:
+            case Key.System when e.SystemKey == Key.F4:
+                break;
+            default:
+                return;
+        }
+
+        e.Handled = true;
     }
 
     /// <summary>

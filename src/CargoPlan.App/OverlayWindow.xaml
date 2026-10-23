@@ -71,7 +71,9 @@
         <!-- The header's ship selection (T7.2b): closed it looks like the ship name, with a chevron; the list in the header's
              colours on the window colour without transparency, since it stands over the game. Not focusable, like the
              header buttons: focusing would activate the overlay. Without keyboard focus the closed box ignores the wheel,
-             and a selection changes only by a click in the open list.
+             and a selection changes only by a click in the open list or by Enter in the search.
+             Open, the name line is the search field (T7.2c, D60): the one place the overlay takes the keyboard. As wide as
+             the list and as high as one entry, outlined like the buttons, 2 px above the list.
              Parts: https://learn.microsoft.com/dotnet/desktop/wpf/controls/combobox (PART_Popup, ItemsPresenter in a
              ScrollViewer). Source: dotnet/wpf, PresentationFramework/System/Windows/Controls/ComboBox.cs (OnMouseWheel) -->
         <!-- The ship list's scroll track left and right of the thumb: invisible, but it takes the click that pages. -->
@@ -151,12 +153,29 @@
                                     </ControlTemplate>
                                 </ToggleButton.Template>
                             </ToggleButton>
-                            <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                            <!-- The search field over the name while the list is open (T7.2c). The text margins are one less
+                                 than an entry's, which the outline takes: as high as one entry. Placeholder while empty. -->
+                            <Border x:Name="SearchArea" Visibility="Collapsed" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                    Width="{Binding ActualWidth, ElementName=PopupBorder}"
+                                    Background="{DynamicResource WindowOpaqueBackgroundBrush}"
+                                    BorderBrush="{DynamicResource ButtonsBorderBrush}" BorderThickness="1" CornerRadius="4">
+                                <Grid>
+                                    <TextBlock x:Name="SearchPlaceholder" Text="Search ships…" Opacity="0.6" Margin="2,1,8,1"
+                                               Visibility="Collapsed" IsHitTestVisible="False"
+                                               Foreground="{DynamicResource HeaderForegroundBrush}" />
+                                    <TextBox x:Name="ShipSearch" Background="Transparent" BorderThickness="0" Padding="0" Margin="0,1,8,1"
+                                             FontWeight="Bold"
+                                             Foreground="{DynamicResource HeaderForegroundBrush}"
+                                             CaretBrush="{DynamicResource HeaderForegroundBrush}"
+                                             AutomationProperties.Name="Search ships" />
+                                </Grid>
+                            </Border>
+                            <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" VerticalOffset="2"
                                    AllowsTransparency="True" Focusable="False" PopupAnimation="None">
-                                <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                <Border x:Name="PopupBorder" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                                         MaxHeight="{TemplateBinding MaxDropDownHeight}"
                                         Background="{DynamicResource WindowOpaqueBackgroundBrush}"
-                                        BorderBrush="{DynamicResource HeaderForegroundBrush}" BorderThickness="1"
+                                        BorderBrush="{DynamicResource ButtonsBorderBrush}" BorderThickness="1"
                                         CornerRadius="4" Padding="0,2">
                                     <ScrollViewer>
                                         <ScrollViewer.Resources>
@@ -207,6 +226,14 @@
                                 </Border>
                             </Popup>
                         </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsDropDownOpen" Value="True">
+                                <Setter TargetName="SearchArea" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <DataTrigger Binding="{Binding Text, ElementName=ShipSearch}" Value="">
+                                <Setter TargetName="SearchPlaceholder" Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -293,8 +320,8 @@
                      header right of the name still moves the window. Locked: the name as text, like the hidden buttons. -->
                 <Grid HorizontalAlignment="Left" VerticalAlignment="Top">
                     <Grid.Resources>
-                        <!-- Grouped in the order of first appearance; ShipChoices.Of sorts. -->
-                        <CollectionViewSource x:Key="ShipsView" Source="{Binding ShipSelection, Mode=OneTime}">
+                        <!-- Grouped in the order of first appearance; ShipChoices.Of sorts. OneWay: Recent changes with the ship (T7.2c). -->
+                        <CollectionViewSource x:Key="ShipsView" Source="{Binding ShipSelection, Mode=OneWay}">
                             <CollectionViewSource.GroupDescriptions>
                                 <PropertyGroupDescription PropertyName="Group" />
                             </CollectionViewSource.GroupDescriptions>
@@ -303,6 +330,8 @@
                     <ComboBox x:Name="ShipBox" Style="{StaticResource ShipBoxStyle}"
                               ItemsSource="{Binding Source={StaticResource ShipsView}}"
                               ToolTip="Your ship. Click to change it; a plan is planned anew for the new ship."
+                              IsSynchronizedWithCurrentItem="False"
+                              DropDownOpened="OnShipListOpened" DropDownClosed="OnShipListClosed"
                               SelectionChanged="OnShipSelectionChanged">
                         <ComboBox.GroupStyle>
                             <GroupStyle>

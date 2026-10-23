@@ -61,8 +61,25 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     public ShipCatalog Ships { get; } = ships ?? new ShipCatalog([ship], []);
 
-    /// <summary>The header's ship selection (T7.2b): the catalog grouped by manufacturer, ships that didn't load last.</summary>
-    public IReadOnlyList<ShipChoice> ShipSelection => field ??= ShipChoices.Of(Ships);
+    private IReadOnlyList<string> _recentShips = [];
+
+    private IReadOnlyList<ShipChoice>? _shipSelection;
+
+    /// <summary>
+    /// The ships chosen last, latest first, the current one included (T7.2c): from settings.json at the start, then kept
+    /// by <see cref="ChangeShip"/>, which updates them before it tells <see cref="Ship"/>, so the settings get both at once.
+    /// </summary>
+    public IReadOnlyList<string> RecentShips
+    {
+        get => _recentShips;
+        init => _recentShips = value;
+    }
+
+    /// <summary>
+    /// The header's ship selection (T7.2b): the recent ships on top (T7.2c), then the catalog grouped by manufacturer,
+    /// ships that didn't load last. Built anew by <see cref="ChangeShip"/>, since Recent changes with the ship.
+    /// </summary>
+    public IReadOnlyList<ShipChoice> ShipSelection => _shipSelection ??= ShipChoices.Of(Ships, RecentShips, Ship.Id);
 
     /// <summary>The entry of <see cref="Ship"/> in <see cref="ShipSelection"/>; follows <see cref="ChangeShip"/>.</summary>
     public ShipChoice CurrentShipChoice => ShipSelection.First(c => c.Id == Ship.Id);
@@ -245,6 +262,8 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
         // Planned before the switch: the scene is built once, for the new ship with its plan.
         var replanned = Saved is { } saved ? LoadPlanner.Replan(saved, ship) : null;
+        _recentShips = ShipChoices.Remember(_recentShips, Ship.Id, ship.Id);
+        _shipSelection = null;
         Ship = ship;
         SetNotice(NoticeSource.Ship, null);
         SetNotice(NoticeSource.Replan, null);
@@ -259,6 +278,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         }
 
         OnPropertyChanged(nameof(Ship));
+        OnPropertyChanged(nameof(ShipSelection));
         OnPropertyChanged(nameof(CurrentShipChoice));
     }
 

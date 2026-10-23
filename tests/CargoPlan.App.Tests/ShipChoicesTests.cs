@@ -101,4 +101,123 @@ public class ShipChoicesTests
 
         shipped.Should().Equal("A2 Hercules", "C1 Spirit", "C2 Hercules", "Intrepid", "M2 Hercules", "Mercury Star Runner");
     }
+
+    // --- Recent (T7.2c) ---
+
+    private static readonly Ship HullC = ShipLoader.Load("hull_c");
+    private static readonly Ship Freelancer = ShipLoader.Load("freelancer");
+    private static readonly Ship Starfarer = ShipLoader.Load("starfarer");
+
+    private static readonly ShipCatalog Five = new([C2, HullA, HullC, Freelancer, Starfarer], [new ShipProblem("broken", "no racks")]);
+
+    [Fact]
+    public void Of_puts_the_recent_ships_on_top_with_their_full_names_and_keeps_them_in_their_groups()
+    {
+        var choices = ShipChoices.Of(Five, ["hull_c", "c2_hercules"], "hull_a");
+
+        choices.Take(2).Select(c => (c.Group, c.Text, c.Ship)).Should().Equal(
+            (ShipChoices.RecentGroup, "MISC Hull C", HullC), (ShipChoices.RecentGroup, "CRUS C2 Hercules", C2));
+        choices.Skip(2).Should().Equal(ShipChoices.Of(Five));
+    }
+
+    [Fact]
+    public void Of_leaves_the_current_ship_out_of_Recent_and_shows_three()
+    {
+        var choices = ShipChoices.Of(Five, ["hull_a", "hull_c", "c2_hercules", "freelancer", "starfarer"], "hull_a");
+
+        choices.Where(c => c.Group == ShipChoices.RecentGroup).Select(c => c.Id)
+            .Should().Equal("hull_c", "c2_hercules", "freelancer");
+    }
+
+    [Fact]
+    public void Of_skips_recent_ids_that_dont_load()
+    {
+        var choices = ShipChoices.Of(Five, ["nope", "broken", "freelancer"], "hull_a");
+
+        choices.Where(c => c.Group == ShipChoices.RecentGroup).Select(c => c.Id).Should().Equal("freelancer");
+    }
+
+    [Fact]
+    public void Of_without_recent_ships_has_no_Recent_group()
+    {
+        ShipChoices.Of(Five, ["hull_a"], "hull_a").Should().Equal(ShipChoices.Of(Five));
+    }
+
+    [Fact]
+    public void Remember_puts_the_new_ship_first_and_the_one_left_behind_second()
+    {
+        ShipChoices.Remember([], "hull_a", "c2_hercules").Should().Equal("c2_hercules", "hull_a");
+    }
+
+    [Fact]
+    public void Remember_moves_a_ship_already_listed_to_the_front_without_a_duplicate()
+    {
+        ShipChoices.Remember(["c2_hercules", "hull_a", "hull_c"], "c2_hercules", "hull_c")
+            .Should().Equal("hull_c", "c2_hercules", "hull_a");
+    }
+
+    [Fact]
+    public void Remember_keeps_the_current_ship_and_three_more()
+    {
+        ShipChoices.Remember(["freelancer", "hull_a", "hull_c", "c2_hercules"], "freelancer", "starfarer")
+            .Should().Equal("starfarer", "freelancer", "hull_a", "hull_c");
+    }
+
+    // --- Search (T7.2c) ---
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    [InlineData("hull")]
+    [InlineData("HULL A")]
+    [InlineData("misc")]
+    [InlineData("misc hull")]
+    [InlineData(" hull a ")]
+    public void Matches_finds_a_ship_by_name_or_manufacturer_ignoring_case(string query)
+    {
+        ShipChoices.Matches(ShipChoices.Of(Catalog).Single(c => c.Id == "hull_a"), query).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("hercules")]
+    [InlineData("rec")]
+    [InlineData("other")]
+    public void Matches_ignores_the_group_names(string query)
+    {
+        var recentHullA = ShipChoices.Of(Five, ["hull_a"], "c2_hercules").First();
+
+        ShipChoices.Matches(recentHullA, query).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Matches_finds_a_ship_that_didnt_load_by_its_id()
+    {
+        ShipChoices.Matches(ShipChoices.Of(Catalog).Last(), "brok").Should().BeTrue();
+    }
+
+    [Fact]
+    public void SingleMatch_is_the_one_ship_left_also_when_it_is_listed_twice()
+    {
+        var shown = ShipChoices.Of(Five, ["hull_c"], "hull_a").Where(c => ShipChoices.Matches(c, "hull c")).ToList();
+
+        shown.Should().HaveCount(2);
+        ShipChoices.SingleMatch(shown)!.Id.Should().Be("hull_c");
+    }
+
+    [Fact]
+    public void SingleMatch_is_null_for_two_ships_or_none()
+    {
+        var all = ShipChoices.Of(Five);
+
+        ShipChoices.SingleMatch(all.Where(c => ShipChoices.Matches(c, "hull"))).Should().BeNull();
+        ShipChoices.SingleMatch(all.Where(c => ShipChoices.Matches(c, "xyz"))).Should().BeNull();
+    }
+
+    [Fact]
+    public void SingleMatch_ignores_ships_that_didnt_load()
+    {
+        var shown = ShipChoices.Of(Five).Where(c => c.Id is "broken" or "freelancer");
+
+        ShipChoices.SingleMatch(shown)!.Id.Should().Be("freelancer");
+    }
 }

@@ -273,6 +273,47 @@ public sealed class SettingsStoreTests : IDisposable
         SettingsStore.Load(SettingsPath).Settings.Ship.Should().Be("nope");
     }
 
+    // Recent ships (T7.2c)
+
+    [Fact]
+    public void Save_then_Load_keeps_the_recent_ships_in_order()
+    {
+        var settings = AppSettings.Default with { Ship = "hull_c", RecentShips = ["hull_c", "c2_hercules", "hull_a"] };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        // A list compares by reference in a record, so field by field.
+        loaded.Should().BeEquivalentTo(settings, o => o.WithStrictOrdering());
+        problem.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("""{ "schemaVersion": 2 }""")]
+    [InlineData("""{ "schemaVersion": 2, "recentShips": null }""")]
+    public void File_without_recent_ships_names_none_without_a_problem(string content)
+    {
+        // Optional, no schemaVersion bump (D31), like "ship".
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.RecentShips.Should().BeNull();
+    }
+
+    [Fact]
+    public void Empty_entries_in_recent_ships_are_dropped()
+    {
+        // Edited by hand: a gap names no ship. Unknown ids stay; only the catalog knows which load (like "ship").
+        WriteFile("""{ "schemaVersion": 2, "recentShips": ["hull_c", null, " ", "nope"] }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.RecentShips.Should().Equal("hull_c", "nope");
+    }
+
     // Tool window theme (T4.7b, D36)
 
     [Fact]

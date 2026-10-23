@@ -23,6 +23,10 @@ Without a plan, the overlay shows your ship with empty racks, "No plan. Open the
 **Open editor** button (see [Entering missions](#entering-missions)).
 
 **Your ship:** click the ship name at the header's left end and pick your ship from the list, grouped by manufacturer.
+The ships you chose last stand on top under "Recent". To find a ship faster, just type: the name line becomes a search
+field while the list is open, and every key narrows the list by name or manufacturer code ("hull c", "crus"). Enter
+picks the ship when only one is left, Esc empties the search, a second Esc closes the list. While the list is open your
+keys go to the search, not to the game; after picking, one click into the game gives it the keys back.
 With a plan the overlay asks first, then plans your missions anew for the new ship; ticks stay. Like the header buttons
 the list is hidden while the overlay is locked, the name stays.
 

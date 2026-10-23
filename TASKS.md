@@ -863,7 +863,7 @@ Martin hat die Auswahl im Editor nicht gefunden und am Schiffsnamen im Header ge
 - App-Lauf (plan.json/settings.json gesichert und byte-gleich zurück): Box „MISC Hull A“, 96 Einträge in 13 Gruppen, Vorauswahl Hull A; gesperrt Box weg, Name als Text. Mit offenem, ungeplantem Editor: Nein → Hull A, nichts geschrieben; Ja → Header und Editor „CRUS C2 Hercules“, Editor behält 7 Zeilen und „unplanned changes“, kein „changed outside“, `ship: "c2_hercules"`, plan.json für die C2.
 - Sichtprüfung (Martin): Optik abgenommen; Bildlaufleiste der Liste auf Wunsch angeglichen: 8 px, keine Pfeile, Spur unsichtbar, Griff in Header-Farbe (35 %, unter der Maus 60 %), nur in der Schiffsliste.
 - Tests: App 850 (849 − 5 Editor-Auswahl + 3 Editor + 2 Overlay + 1 Theme); der Test „Wechsel von außen ≠ changed outside“ vor der Id-Erkennung rot gesehen. Core 848, Import 93.
-### [ ] T7.2c Schiffsliste: Suche im Header und Gruppe „Recent“ (Martins Wunsch nach T7.2b)
+### [x] T7.2c Schiffsliste: Suche im Header und Gruppe „Recent“ (Martins Wunsch nach T7.2b)
 96 Schiffe sind eine lange Liste. Zwei Hilfen, die sich ergänzen:
 
 1. **Suche:** Bei offener Liste wird die Namenszeile im Header zum Eingabefeld (Platzhalter „Search ships…“, modern
@@ -888,6 +888,31 @@ Offen für die Planung: Wo Recent gespeichert wird (`settings.json`, neues optio
 D31) und ob das aktuelle Schiff darin erscheint. Filter und Recent-Reihenfolge als reine Funktionen neben `ShipChoices`
 (Tests zuerst). D-Eintrag: das Overlay nimmt erstmals Tastatur (Gegenargument D11), D59-Addendum für Recent.
 User Guide „Your ship“ ergänzen.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (D60, D59-Addendum T7.2c):** Recent als `recentShips` in
+settings.json ohne Schema-Bump, geschrieben zusammen mit `ship` (aktuelles + 3, max. 4 Ids); Recent ohne das aktuelle
+Schiff, mit vollem Namen, zusätzlich in der Herstellergruppe; leeres Feld zeigt den Platzhalter; Feldtext 2 px eingerückt;
+kein automatisches Zurückgeben des Vordergrunds; Suche über Hersteller-Code und vollen Namen (Katalog kennt nur Codes);
+Enter nur bei genau einem Schiff (Recent + Gruppe zählt einmal); Alt+F4 im Feld geschluckt; Look aus der Sichtprüfung im
+Spike: Feld so breit wie die Liste und so hoch wie ein Eintrag, 1 px Rahmen in `ButtonsBorderBrush`, 2 px Abstand zur
+Liste, Listenrahmen ebenfalls `ButtonsBorderBrush`.
+
+**Befund:**
+- Spike ohne SC (UIA, echte Klicks und Tasten gegen ein Stand-in-Fenster, das seine Tasten protokolliert, temporäre
+  Hotkeys): a) Fokus im Feld nach dem Öffnen, Tippen filtert 5/5; b) nach Esc ein Klick ins Stand-in gibt ihm Vordergrund
+  und Tasten zurück 5/5; c) Lock-Hotkey bei Fokus im Feld schließt die Liste und sperrt, Entsperren und neues Öffnen gehen
+  5/5; d) F und Tab landen nur im Feld, Stand-in bekommt 0 Tasten 5/5. `Activate()` immer `True`.
+- Spike über SC (Martin, Borderless): a–d grün.
+- Nebenbefunde: Auto-Lock greift bei offener Suche nicht (SC nicht im Vordergrund, `AutoLockRule`); nach Schließen oder
+  Sperren bleibt das Overlay im Vordergrund bis zum Klick ins Spiel.
+- App-Lauf (plan.json/settings.json gesichert und byte-gleich zurück): Alt+F4 im Feld wirkungslos; **Pfeil runter schloss
+  zunächst die Liste** (Fokus wandert aus dem Feld, die Box klappt bei Fokusverlust zu) → Pfeile, Bild auf/ab und Tab
+  bleiben im Feld; Enter bei 3 Treffern nichts, bei einem Treffer Rückfrage (Plan mit Missionen), Ja → Hull C;
+  settings.json danach `"recentShips": ["hull_c", "hull_a"]`; Liste zeigt „Recent: MISC Hull A“.
+- Offen für Martin: Die Liste öffnet auf dem aktuellen Schiff, Recent steht dann oberhalb des sichtbaren Teils.
+- Tests: App 877 (850 + 21 `ShipChoices` + 4 Settings + 2 Schiffswechsel; vor dem Code rot gesehen: Compile-Fehler zu
+  `RecentShips`, `Matches`, `RecentGroup`, `Remember`, `SingleMatch`, `ChangeShip`/`Of` mit neuen Argumenten), Core 848,
+  Import 93.
 
 ### [ ] T7.3 Schiffsansicht bei großen Gittern – Hull C, C2: Racknummern (`RackNumberSize`: ein Wert für alle Racks), Fit, Legende
 Befund aus T7.2 (Hull C, Caterpillar, C2; Screenshots im T7.2-Scratchpad):

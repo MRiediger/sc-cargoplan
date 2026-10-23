@@ -336,14 +336,17 @@ public sealed class SettingsSessionTests : IDisposable
     {
         var session = Create(AppSettings.Default with { Overlay = Bounds, Appearance = Thick });
 
-        session.ChangeShip("c2_hercules");
+        session.ChangeShip("c2_hercules", ["c2_hercules", "hull_a"]);
 
         session.Current.Ship.Should().Be("c2_hercules");
         File.Exists(SettingsPath).Should().BeFalse();
 
         session.Flush();
 
-        Saved().Should().Be(AppSettings.Default with { Overlay = Bounds, Appearance = Thick, Ship = "c2_hercules" });
+        // The recent ships with it (T7.2c); a list compares by reference in a record, so field by field.
+        Saved().Should().BeEquivalentTo(
+            AppSettings.Default with { Overlay = Bounds, Appearance = Thick, Ship = "c2_hercules", RecentShips = ["c2_hercules", "hull_a"] },
+            o => o.WithStrictOrdering());
     }
 
     [Fact]
@@ -351,7 +354,7 @@ public sealed class SettingsSessionTests : IDisposable
     {
         var session = Create(AppSettings.Default with { Ship = "c2_hercules" });
 
-        session.ChangeShip("c2_hercules");
+        session.ChangeShip("c2_hercules", ["c2_hercules"]);
         session.Flush();
 
         File.Exists(SettingsPath).Should().BeFalse();

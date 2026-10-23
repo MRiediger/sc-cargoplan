@@ -99,15 +99,16 @@ public sealed class SettingsSession
     /// <summary>
     /// From a ship change in the overlay header (T7.2b): saved after <see cref="Debounce"/> like a hotkey. Applying it is the
     /// overlay's job (it replans, D59); the start's fallback ship never comes here, so the file keeps the choice.
+    /// The recent ships come along: the overlay keeps them (T7.2c).
     /// </summary>
-    public void ChangeShip(string shipId)
+    public void ChangeShip(string shipId, IReadOnlyList<string> recentShips)
     {
         if (shipId == Current.Ship)
         {
             return;
         }
 
-        Current = Current with { Ship = shipId };
+        Current = Current with { Ship = shipId, RecentShips = recentShips };
         _timer.Stop();
         _timer.Start();
     }

@@ -1,20 +1,21 @@
 # Settings file format
 
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
-the legend stands, the overlay's look, the tool windows' theme, where ContractTracker is and your ship. Position and size
+the legend stands, the overlay's look, the tool windows' theme, where ContractTracker is, your ship and the ships you chose last. Position and size
 are saved whenever you move the overlay; the settings window (the gear in the header) sets and saves the look,
-the legend layout, the tool window theme, the hotkeys and the ContractTracker settings; the ship name in the overlay header sets the ship. You can still edit the file by hand: close the overlay, edit the file, start
+the legend layout, the tool window theme, the hotkeys and the ContractTracker settings; the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
 the overlay again.
 
 ## Example with every default
 
-Without a file, or without `ship`, `legend`, `toolWindowTheme`, `contractTracker` and `appearance`, the overlay uses
-exactly these values.
+Without a file, or without `ship`, `recentShips`, `legend`, `toolWindowTheme`, `contractTracker` and `appearance`, the
+overlay uses exactly these values.
 
 ```json
 {
   "schemaVersion": 2,
   "ship": null,
+  "recentShips": null,
   "overlay": { "left": 100, "top": 200, "width": 420, "height": 460 },
   "hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": null },
   "legend": { "visible": true, "position": "bottom-left" },
@@ -179,6 +180,15 @@ the new ship.
 | `null` or missing | The ship of the saved plan, if that ship loads; otherwise the Hull A. Nothing is written until you choose. The default. |
 | an id | That ship. If it is missing or its file is broken, the overlay starts with the Hull A and an amber line says why ("Ship 'x' not loaded: … – using MISC Hull A."). The value stays in the file, so the ship comes back once its file is fixed. |
 
+`recentShips` lists the ships you chose last, latest first, the current one included (`["c2_hercules", "hull_a"]`).
+Every change in the header writes it together with `ship`; the list keeps 4 ids. The ship list shows up to 3 of them,
+without the current ship, in the group "Recent" on top.
+
+| Value | What |
+|---|---|
+| `null` or missing | No group "Recent" yet. The default. |
+| ids | Those ships under "Recent". An id whose ship doesn't load is skipped there and stays in the file; an empty entry (`null`, `""`) is dropped. |
+
 ## When something is wrong
 
 - **A value outside its range** is set to the nearest limit (`"fontSize": 0` → 8, `"fillAlpha": 300` → 255).
@@ -202,7 +212,7 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker` and `ship` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `ship` and `recentShips` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a

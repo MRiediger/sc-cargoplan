@@ -1,3 +1,4 @@
+using CargoPlan.App.Editor;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
@@ -92,6 +93,36 @@ public class ShipChangeTests
 
         viewModel.CurrentShipChoice.Id.Should().Be("c2_hercules");
         changes.Should().Contain(nameof(OverlayViewModel.CurrentShipChoice));
+    }
+
+    [Fact]
+    public void ShipSelection_starts_with_the_recent_ships_of_the_settings()
+    {
+        var viewModel = new OverlayViewModel(HullA, Catalog) { RecentShips = ["hull_a", "c2_hercules"] };
+
+        viewModel.ShipSelection.Where(c => c.Group == ShipChoices.RecentGroup).Select(c => c.Id).Should().Equal("c2_hercules");
+    }
+
+    [Fact]
+    public void ChangeShip_remembers_both_ships_before_it_tells_the_ship_and_rebuilds_the_selection()
+    {
+        var viewModel = Overlay(HullA);
+        IReadOnlyList<string>? recentWhenShipChanged = null;
+        viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(OverlayViewModel.Ship))
+            {
+                // The composition root saves both on this change (T7.2c).
+                recentWhenShipChanged = viewModel.RecentShips;
+            }
+        };
+
+        var changes = Changes(viewModel, () => viewModel.ChangeShip(C2));
+
+        recentWhenShipChanged.Should().Equal("c2_hercules", "hull_a");
+        viewModel.ShipSelection.Where(c => c.Group == ShipChoices.RecentGroup).Select(c => c.Id).Should().Equal("hull_a");
+        changes.Should().ContainInOrder(
+            nameof(OverlayViewModel.Ship), nameof(OverlayViewModel.ShipSelection), nameof(OverlayViewModel.CurrentShipChoice));
     }
 
     [Fact]
