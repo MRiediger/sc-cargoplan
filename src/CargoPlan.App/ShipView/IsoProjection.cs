@@ -21,6 +21,18 @@ public sealed record IsoProjection
     /// <summary>Bow, port and above: the bow points left-down, port right-down, up stays up (D15).</summary>
     public static IsoProjection Default { get; } = new(DefaultYaw, DefaultPitch);
 
+    /// <summary>A ship longer than this many times its width is long (D61).</summary>
+    public const double LongShipRatio = 2;
+
+    /// <summary>The default camera's yaw for a long ship: from port, the length lies level and the bow points left (D61).</summary>
+    public const double LongShipYaw = 90;
+
+    /// <summary>Longer along x than <see cref="LongShipRatio"/> times its width along y: one row of racks, seen best from the side (D61).</summary>
+    public static bool IsLong(ShipBox bounds) => bounds.Max.X - bounds.Min.X > LongShipRatio * (bounds.Max.Y - bounds.Min.Y);
+
+    /// <summary>The camera a ship starts with: <see cref="Default"/>, or from the side for a long ship (D61).</summary>
+    public static IsoProjection DefaultFor(ShipBox bounds) => IsLong(bounds) ? new(LongShipYaw, DefaultPitch) : Default;
+
     // √(3/2) stretches the true projection so that in the default view one cell is 1 unit long on all three axes,
     // exactly the formula before T3.5c: u = (y − x)·cos 30°, v = (x + y)·sin 30° − z.
     private static readonly double Stretch = Math.Sqrt(1.5);

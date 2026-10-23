@@ -148,6 +148,7 @@ public static class ShipViewBuilder
         })];
 
         HashSet<GridPosition> taken = [.. drawn.SelectMany(c => c.Cells)];
+        HashSet<int> loadedLayers = [.. taken.Select(c => c.Stack)];
         var grid = rack.Grid;
         SceneBox[] free =
         [
@@ -156,7 +157,7 @@ public static class ShipViewBuilder
                from s in Enumerable.Range(0, grid.Stack)
                let cell = new GridPosition(l, w, s)
                where !taken.Contains(cell)
-               select new SceneBox(rack.CellBox(cell, CrateSize.One), CellFill.Free, null, null, null, null, IsViolated: false),
+               select new SceneBox(rack.CellBox(cell, CrateSize.One), CellFill.Free, null, null, null, null, IsViolated: false, loadedLayers.Contains(s)),
         ];
 
         return new SceneRack(rack.Id, rack.Number, isViolated, rack.Bounds, [.. cargo, .. free]);

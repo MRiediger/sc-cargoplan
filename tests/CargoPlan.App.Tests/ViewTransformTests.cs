@@ -1,5 +1,6 @@
 using System.Windows;
 using CargoPlan.App.ShipView;
+using CargoPlan.Core.Ships;
 
 namespace CargoPlan.App.Tests;
 
@@ -113,6 +114,16 @@ public class ViewTransformTests
     public void Default_navigation_looks_from_the_default_camera()
     {
         ViewNavigation.Default.Camera.Should().Be(IsoProjection.Default);
+    }
+
+    [Theory]
+    [InlineData("hull_a")]
+    [InlineData("caterpillar")]
+    public void Default_navigation_for_a_ship_looks_from_its_default_camera(string shipId)
+    {
+        var bounds = ShipLoader.Load(shipId).Bounds;
+
+        ViewNavigation.DefaultFor(bounds).Should().Be(ViewNavigation.Default with { Camera = IsoProjection.DefaultFor(bounds) });
     }
 
     [Fact]

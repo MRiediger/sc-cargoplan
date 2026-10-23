@@ -1,4 +1,5 @@
 using System.Windows;
+using CargoPlan.Core.Models;
 
 namespace CargoPlan.App.ShipView;
 
@@ -39,6 +40,9 @@ public sealed record ViewNavigation(double Zoom, Vector Pan, IsoProjection Camer
     public const double MaxZoom = 4;
 
     public static ViewNavigation Default { get; } = new(1, new Vector(0, 0), IsoProjection.Default);
+
+    /// <summary>Zoom 1, no pan, the ship's own default camera (<see cref="IsoProjection.DefaultFor"/>).</summary>
+    public static ViewNavigation DefaultFor(ShipBox bounds) => Default with { Camera = IsoProjection.DefaultFor(bounds) };
 
     /// <summary>Screen = fit, then zoom around the screen origin, then pan.</summary>
     public ViewTransform On(ViewTransform fit) => new(fit.Scale * Zoom, fit.Offset * Zoom + Pan);

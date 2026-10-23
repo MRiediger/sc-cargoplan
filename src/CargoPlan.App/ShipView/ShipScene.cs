@@ -42,14 +42,20 @@ public sealed record ShipScene(
 /// The rack's crates where the plan stores them (D24), by placement and in plan order, then its free cells. Overlapping
 /// crates of a plan file edited by hand are all there.
 /// </param>
-public sealed record SceneRack(string RackId, int Number, bool IsViolated, ShipBox Bounds, IReadOnlyList<SceneBox> Boxes);
+public sealed record SceneRack(string RackId, int Number, bool IsViolated, ShipBox Bounds, IReadOnlyList<SceneBox> Boxes)
+{
+    /// <summary>Holds a crate, delivered ones included, so ticking a stop off changes nothing that depends on it (D16, D61).</summary>
+    public bool IsLoaded => Boxes.Any(b => b.Fill != CellFill.Free);
+}
 
 /// <summary>
 /// One box of a rack in ship coordinates: a crate in its shape, or a free cell. <paramref name="PaletteIndex"/>,
 /// <paramref name="ToolTip"/>, <paramref name="Placement"/> (the crate's derived placement) and <paramref name="Crate"/>
 /// are null for a free cell. <paramref name="IsViolated"/>: the crate is named by a problem (<c>CrateLayout.Faulty</c>).
+/// <paramref name="InLoadedLayer"/>: a free cell in a stack layer that holds a crate (<see cref="FreeCellGrid"/>, D61).
 /// </summary>
-public sealed record SceneBox(ShipBox Bounds, CellFill Fill, int? PaletteIndex, string? ToolTip, Placement? Placement, Crate? Crate, bool IsViolated);
+public sealed record SceneBox(
+    ShipBox Bounds, CellFill Fill, int? PaletteIndex, string? ToolTip, Placement? Placement, Crate? Crate, bool IsViolated, bool InLoadedLayer = false);
 
 public enum CellFill
 {
@@ -76,8 +82,11 @@ public enum BoxFace
 /// <param name="Racks">Back to front (<see cref="DrawOrder.BackToFront"/>): the painter draws rack by rack.</param>
 /// <param name="Frame">The 12 edges of <c>Ship.Bounds</c>.</param>
 /// <param name="BowWedge">The nose that marks the bow (D52).</param>
-/// <param name="Extent">Encloses the frame and the bow wedge, for fit-to-view.</param>
-public sealed record ProjectedScene(IReadOnlyList<ProjectedRack> Racks, IReadOnlyList<SceneLine> Frame, ProjectedWedge BowWedge, Rect Extent);
+/// <param name="Extent">Encloses the frame and the bow wedge.</param>
+/// <param name="FitExtent">
+/// What fit-to-view shows: on a long ship with cargo its loaded racks and the bow wedge, otherwise <paramref name="Extent"/> (D61).
+/// </param>
+public sealed record ProjectedScene(IReadOnlyList<ProjectedRack> Racks, IReadOnlyList<SceneLine> Frame, ProjectedWedge BowWedge, Rect Extent, Rect FitExtent);
 
 /// <summary>One face of the bow wedge in ship coordinates (D52): <see cref="BoxFace.Bow"/> is its tip, Port and Starboard its flanks.</summary>
 /// <param name="Normal">Outward, unit length; the flanks' normals are not along an axis.</param>
@@ -100,14 +109,21 @@ public sealed record WedgeFloor(Point Centre, Vector Across, Vector Bowwards, Si
 
 /// <param name="Faces">The faces of the rack's box the camera sees: its edges and its area for the hit test.</param>
 /// <param name="Boxes">The rack's own boxes, back to front (<see cref="DrawOrder.BoxesBackToFront"/>).</param>
-/// <param name="LabelCentre">Centre of the largest visible face, where the rack number goes.</param>
+/// <param name="LabelCentre">
+/// Where the rack number goes: the centre of the largest visible face, or with <paramref name="LabelAbove"/> the top
+/// middle of the rack's outline, the number standing on it.
+/// </param>
+/// <param name="LabelAbove">On a long ship the number stands above its rack, never over its crates (D61).</param>
+/// <param name="IsLoaded"><see cref="SceneRack.IsLoaded"/>; empty racks of a long ship are drawn dimmed (D61).</param>
 public sealed record ProjectedRack(
     string RackId,
     int Number,
     bool IsViolated,
     IReadOnlyList<ProjectedFace> Faces,
     IReadOnlyList<ProjectedBox> Boxes,
-    Point LabelCentre);
+    Point LabelCentre,
+    bool LabelAbove,
+    bool IsLoaded);
 
 public sealed record ProjectedFace(BoxFace Face, IReadOnlyList<Point> Polygon);
 

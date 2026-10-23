@@ -1,5 +1,7 @@
 using System.Windows;
 using CargoPlan.App.ShipView;
+using CargoPlan.Core.Models;
+using CargoPlan.Core.Ships;
 
 namespace CargoPlan.App.Tests;
 
@@ -173,5 +175,42 @@ public class IsoProjectionTests
         x.Should().BeApproximately(2 - t * d.X, 1e-9);
         y.Should().BeApproximately(3 - t * d.Y, 1e-9);
         z.Should().BeApproximately(4 - t * d.Z, 1e-9);
+    }
+
+    [Theory]
+    [InlineData("hull_a", false)]
+    [InlineData("c2_hercules", true)]
+    [InlineData("starfarer", true)]
+    [InlineData("caterpillar", true)]
+    [InlineData("hull_c", true)]
+    public void A_ship_longer_than_twice_its_width_is_long(string shipId, bool isLong)
+    {
+        IsoProjection.IsLong(ShipLoader.Load(shipId).Bounds).Should().Be(isLong);
+    }
+
+    [Fact]
+    public void Exactly_twice_as_long_as_wide_is_not_long()
+    {
+        IsoProjection.IsLong(new ShipBox(new ShipPoint(0, 0, 0), new ShipPoint(10, 5, 3))).Should().BeFalse();
+        IsoProjection.IsLong(new ShipBox(new ShipPoint(0, 0, 0), new ShipPoint(11, 5, 3))).Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_compact_ship_keeps_the_default_camera()
+    {
+        IsoProjection.DefaultFor(ShipLoader.Load("hull_a").Bounds).Should().BeSameAs(Default);
+    }
+
+    [Fact]
+    public void A_long_ship_is_seen_from_port_above_with_its_length_flatter_than_by_default()
+    {
+        var camera = IsoProjection.DefaultFor(ShipLoader.Load("caterpillar").Bounds);
+        var bow = camera.Project(1, 0, 0);
+
+        // The bow still points left (D15), the length runs flatter than the default's 30° (D61).
+        camera.Pitch.Should().Be(IsoProjection.DefaultPitch);
+        bow.X.Should().BeNegative();
+        Math.Abs(bow.Y / bow.X).Should().BeLessThan(Math.Tan(Math.PI / 6) - 1e-9);
+        SceneProjector.VisibleFaces(camera).Should().Contain([BoxFace.Top, BoxFace.Port]);
     }
 }

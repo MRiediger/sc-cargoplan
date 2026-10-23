@@ -25,15 +25,20 @@ public static class FloorLabel
     /// <paramref name="floor"/>, the <paramref name="ink"/> centred: the line runs across the ship and the letters' tops
     /// point aft, so it reads from in front of the bow. Along the letters' upright axis one em is
     /// <paramref name="screenEmSize"/> pixels, so a capital stands as tall on the screen as a digit of that size; at
-    /// most as large as the floor's room.
+    /// most as large as the floor's room, but never smaller than the smallest rack number for it (D32, D61): a floor
+    /// too small for that is left by the label, as rack numbers below it overlap.
     /// </summary>
     public static Matrix Placement(Rect ink, double emSize, WedgeFloor floor, ViewTransform transform, double screenEmSize)
     {
         // The upright axis lies along the ship's x: one cell of it is this many pixels at the current camera and zoom.
         var uprightPixelsPerCell = floor.Bowwards.Length * transform.Scale;
+        double CellsPerUnitAt(double pixels) => pixels / (emSize * uprightPixelsPerCell);
+
+        // A setting below the minimum is kept, as for the rack numbers.
+        var room = Math.Min(floor.Room.Width / ink.Width, floor.Room.Height / ink.Height);
         var cellsPerUnit = Math.Min(
-            screenEmSize / (emSize * uprightPixelsPerCell),
-            Math.Min(floor.Room.Width / ink.Width, floor.Room.Height / ink.Height));
+            CellsPerUnitAt(screenEmSize),
+            Math.Max(room, CellsPerUnitAt(Math.Min(screenEmSize, RackNumberSize.MinSize))));
         var across = floor.Across * (transform.Scale * cellsPerUnit);
         var down = floor.Bowwards * (transform.Scale * cellsPerUnit);
 

@@ -32,6 +32,50 @@ public class ShipViewBuilderTests
         select new ShipPoint(x, y, z);
 
     [Fact]
+    public void Free_cells_know_whether_their_stack_layer_holds_a_crate()
+    {
+        // Rack 1 stacks to port (+y, D26) from y = 1: one 1 SCU crate fills a cell of the first layer, y 1..2 (D61).
+        var plan = TestPlans.Of(Sample.Ship, new Placement("Riker", "rack-0", new CargoItem("Titanium", 1, CrateSize.One)));
+
+        var free = RackNumber(Build(plan), 1).Boxes.Where(b => b.Fill == CellFill.Free).ToArray();
+
+        free.Where(b => b.Bounds.Min.Y == 1).Should().HaveCount(7).And.OnlyContain(b => b.InLoadedLayer);
+        free.Where(b => b.Bounds.Min.Y == 2).Should().HaveCount(8).And.OnlyContain(b => !b.InLoadedLayer);
+    }
+
+    [Fact]
+    public void Free_cells_follow_the_stack_axis_upwards_too()
+    {
+        // The Caterpillar's rack 1 stacks up (+z): a 2 SCU crate is one layer high.
+        var ship = Core.Ships.ShipLoader.Load("caterpillar");
+        var plan = TestPlans.Of(ship, new Placement("Riker", "rack-0", new CargoItem("Titanium", 2, CrateSize.Two)));
+
+        var rack = ShipViewBuilder.Build(plan, ship, []).Racks.Single(r => r.Number == 1);
+
+        rack.Boxes.Where(b => b.Fill == CellFill.Free).Should().OnlyContain(b => b.InLoadedLayer == (b.Bounds.Min.Z == 0));
+    }
+
+    [Fact]
+    public void An_empty_rack_has_no_loaded_layer_and_holds_no_cargo()
+    {
+        var plan = TestPlans.Of(Sample.Ship, new Placement("Riker", "rack-0", new CargoItem("Titanium", 1, CrateSize.One)));
+
+        var scene = Build(plan);
+
+        scene.Racks.Where(r => r.IsLoaded).Select(r => r.Number).Should().Equal(1);
+        RackNumber(scene, 2).Boxes.Should().OnlyContain(b => b.Fill == CellFill.Free && !b.InLoadedLayer);
+    }
+
+    [Fact]
+    public void Delivered_cargo_still_counts_as_cargo_in_its_rack()
+    {
+        // Ticking a stop off must not refit the view of a long ship (D16, D61).
+        var delivered = LoadPlanner.SetDelivered(Sample.Plan, Sample.Ship, "Lorville", true);
+
+        Build(delivered).Racks.Should().OnlyContain(r => r.IsLoaded);
+    }
+
+    [Fact]
     public void Racks_come_in_rack_order()
     {
         // The draw order depends on the camera; the projector sorts (DrawOrder).

@@ -34,10 +34,22 @@ public static class SceneProjector
     public static ProjectedScene Project(ShipScene scene, IsoProjection camera)
     {
         var visible = VisibleFaces(camera);
+        var isLong = IsoProjection.IsLong(scene.Bounds);
 
-        ProjectedRack[] racks = [.. DrawOrder.BackToFront(scene.Racks, camera).Select(r => ProjectRack(r, visible, camera))];
+        ProjectedRack[] racks = [.. DrawOrder.BackToFront(scene.Racks, camera).Select(r => ProjectRack(r, visible, camera, isLong))];
         var frame = Frame(scene.Bounds, camera);
-        return new ProjectedScene(racks, frame, ProjectWedge(scene.Bounds, camera), Extent(scene.Bounds, frame, camera));
+        var extent = Extent(scene.Bounds, scene.Bounds, camera);
+        return new ProjectedScene(racks, frame, ProjectWedge(scene.Bounds, camera), extent, FitExtent(scene, isLong, extent, camera));
+    }
+
+    /// <summary>
+    /// A long ship's racks lie in one row: fit to the loaded ones and the bow wedge, so their crates are as large as the
+    /// view allows (D61). The empty ones further aft stay in the scene, outside the fit.
+    /// </summary>
+    private static Rect FitExtent(ShipScene scene, bool isLong, Rect extent, IsoProjection camera)
+    {
+        ShipBox[] loaded = [.. scene.Racks.Where(r => r.IsLoaded).Select(r => r.Bounds)];
+        return isLong && loaded.Length > 0 ? Extent(loaded.Aggregate((a, b) => a.Union(b)), scene.Bounds, camera) : extent;
     }
 
     /// <summary>The visible faces of one box, drawn as small as a crate of the scene: the ghost of a dragged crate (D25).</summary>
@@ -47,18 +59,30 @@ public static class SceneProjector
     /// <summary>The faces turned towards the camera: their outward normal points against the view direction.</summary>
     public static IReadOnlyList<BoxFace> VisibleFaces(IsoProjection camera) => [.. AllFaces.Where(f => Facing(f, camera) < -EdgeOn)];
 
-    private static ProjectedRack ProjectRack(SceneRack rack, IReadOnlyList<BoxFace> visible, IsoProjection camera)
+    private static ProjectedRack ProjectRack(SceneRack rack, IReadOnlyList<BoxFace> visible, IsoProjection camera, bool isLong)
     {
         var box = rack.Bounds;
         var faces = Faces(Corners(box, 0), visible, camera);
         ProjectedBox[] boxes = [.. DrawOrder.BoxesBackToFront(rack.Boxes, camera)
             .Select(b => new ProjectedBox(b, Faces(Corners(b.Bounds, Inset), visible, camera)))];
 
-        // Orthographic: a face appears scaled by how squarely it faces the camera.
-        var label = faces.OrderByDescending(f => Math.Round(Area(f.Face, box) * -Facing(f.Face, camera), AreaDecimals)).First();
-        Point centre = new(label.Polygon.Average(p => p.X), label.Polygon.Average(p => p.Y));
+        return new ProjectedRack(rack.RackId, rack.Number, rack.IsViolated, faces, boxes, LabelCentre(faces, box, camera, isLong), isLong, rack.IsLoaded);
+    }
 
-        return new ProjectedRack(rack.RackId, rack.Number, rack.IsViolated, faces, boxes, centre);
+    /// <summary>
+    /// On a long ship the top middle of the outline: the racks lie in a row, the space above them is free (D61). Otherwise
+    /// the centre of the largest visible face; orthographic, a face appears scaled by how squarely it faces the camera.
+    /// </summary>
+    private static Point LabelCentre(IReadOnlyList<ProjectedFace> faces, ShipBox box, IsoProjection camera, bool isLong)
+    {
+        if (isLong)
+        {
+            Point[] outline = [.. faces.SelectMany(f => f.Polygon)];
+            return new Point((outline.Min(p => p.X) + outline.Max(p => p.X)) / 2, outline.Min(p => p.Y));
+        }
+
+        var label = faces.OrderByDescending(f => Math.Round(Area(f.Face, box) * -Facing(f.Face, camera), AreaDecimals)).First();
+        return new Point(label.Polygon.Average(p => p.X), label.Polygon.Average(p => p.Y));
     }
 
     /// <summary>The face's outward normal · view direction: negative when it faces the camera.</summary>
@@ -189,13 +213,16 @@ public static class SceneProjector
                    select new SceneLine(corners[i], corners[i | axis])];
     }
 
-    /// <summary>Encloses the frame and every corner of the wedge, seen or not, so the fit doesn't change as faces turn away.</summary>
-    private static Rect Extent(ShipBox box, IReadOnlyList<SceneLine> frame, IsoProjection camera)
+    /// <summary>
+    /// Encloses <paramref name="box"/> and every corner of the wedge of <paramref name="bounds"/>, seen or not, so the
+    /// fit doesn't change as faces turn away.
+    /// </summary>
+    private static Rect Extent(ShipBox box, ShipBox bounds, IsoProjection camera)
     {
         Point[] points =
         [
-            .. frame.SelectMany(l => new[] { l.From, l.To }),
-            .. BowWedge(box).SelectMany(f => f.Corners).Select(c => camera.Project(c.X, c.Y, c.Z)),
+            .. Frame(box, camera).SelectMany(l => new[] { l.From, l.To }),
+            .. BowWedge(bounds).SelectMany(f => f.Corners).Select(c => camera.Project(c.X, c.Y, c.Z)),
         ];
         return points.Aggregate(new Rect(points[0], points[0]), (rect, p) => Rect.Union(rect, p));
     }

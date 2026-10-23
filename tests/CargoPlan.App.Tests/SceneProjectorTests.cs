@@ -5,6 +5,7 @@ using System.Windows.Media;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
+using CargoPlan.Core.Ships;
 
 namespace CargoPlan.App.Tests;
 
@@ -285,17 +286,136 @@ public class SceneProjectorTests
     }
 
     [Fact]
-    public void Bow_label_never_leaves_a_short_floor()
+    public void Bow_label_keeps_to_a_floor_with_room_for_the_minimum()
     {
-        // A floor of a narrow ship: a tenth of a cell of room across, far less than a rack number needs.
-        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge.Floor with { Room = new Size(0.1, 0.7) };
+        // One cell across at 40 px: room for about 21 px, less than the setting, more than the minimum.
+        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge.Floor with { Room = new Size(1, 0.7) };
         ViewTransform transform = new(40, new Vector(200, 200));
         var ink = Glyphs("Bow").Bounds;
 
         var placement = FloorLabel.Placement(ink, LabelEmSize, floor, transform, screenEmSize: 27);
 
         var acrossCells = (placement.Transform(ink.TopRight) - placement.Transform(ink.TopLeft)).Length / (floor.Across.Length * transform.Scale);
-        acrossCells.Should().BeApproximately(0.1, 1e-9);
+        acrossCells.Should().BeApproximately(1, 1e-9);
+        ScreenEm(placement).Should().BeInRange(RackNumberSize.MinSize, 27);
+    }
+
+    [Fact]
+    public void Bow_label_on_a_short_floor_shrinks_only_to_the_minimum_like_a_rack_number()
+    {
+        // A floor of a narrow ship: a tenth of a cell of room across, far less than a rack number needs (D32, D61).
+        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge.Floor with { Room = new Size(0.1, 0.7) };
+        ViewTransform transform = new(40, new Vector(200, 200));
+
+        var placement = FloorLabel.Placement(Glyphs("Bow").Bounds, LabelEmSize, floor, transform, screenEmSize: 27);
+
+        ScreenEm(placement).Should().BeApproximately(RackNumberSize.MinSize, 1e-9);
+    }
+
+    [Fact]
+    public void Bow_label_keeps_a_setting_below_the_minimum()
+    {
+        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge.Floor with { Room = new Size(0.1, 0.7) };
+        ViewTransform transform = new(40, new Vector(200, 200));
+
+        var placement = FloorLabel.Placement(Glyphs("Bow").Bounds, LabelEmSize, floor, transform, screenEmSize: 8);
+
+        ScreenEm(placement).Should().BeApproximately(8, 1e-9);
+    }
+
+    /// <summary>One em of the label along its upright axis, in screen pixels.</summary>
+    private static double ScreenEm(Matrix placement) => new Vector(placement.M21, placement.M22).Length * LabelEmSize;
+
+    private static readonly Ship Caterpillar = ShipLoader.Load("caterpillar");
+
+    /// <summary>The Caterpillar with one 1 SCU crate in each of these racks.</summary>
+    private static ShipScene CaterpillarWith(params string[] rackIds) => ShipViewBuilder.Build(
+        TestPlans.Of(Caterpillar, [.. rackIds.Select(id => new Placement("Riker", id, new CargoItem("Titanium", 1, CrateSize.One)))]),
+        Caterpillar,
+        []);
+
+    private static Point[] Corners(ShipBox box, IsoProjection camera) =>
+    [
+        .. from x in new[] { box.Min.X, box.Max.X }
+           from y in new[] { box.Min.Y, box.Max.Y }
+           from z in new[] { box.Min.Z, box.Max.Z }
+           select camera.Project(x, y, z),
+    ];
+
+    private static void ShouldEnclose(Rect rect, IEnumerable<Point> points) => points.Should().OnlyContain(p =>
+        p.X >= rect.Left - 1e-9 && p.X <= rect.Right + 1e-9 && p.Y >= rect.Top - 1e-9 && p.Y <= rect.Bottom + 1e-9);
+
+    [Fact]
+    public void Fit_extent_of_a_compact_ship_is_its_extent()
+    {
+        var projected = SceneProjector.Project(Scene, IsoProjection.Default);
+
+        projected.FitExtent.Should().Be(projected.Extent);
+    }
+
+    [Fact]
+    public void Fit_extent_of_a_long_ship_without_cargo_is_its_extent()
+    {
+        var projected = SceneProjector.Project(CaterpillarWith(), IsoProjection.DefaultFor(Caterpillar.Bounds));
+
+        projected.FitExtent.Should().Be(projected.Extent);
+    }
+
+    [Theory]
+    [InlineData(90, 35.26)]
+    [InlineData(45, 35.26)]
+    [InlineData(225, -40)]
+    public void Fit_extent_of_a_long_ship_holds_its_loaded_racks_and_the_bow_wedge(double yaw, double pitch)
+    {
+        // Racks 1 and 3 hold cargo; rack 2 lies between them, racks 4 to 14 further aft (D61).
+        var camera = new IsoProjection(yaw, pitch);
+        var projected = SceneProjector.Project(CaterpillarWith("rack-0", "rack-6"), camera);
+        var rack = Caterpillar.Racks.ToDictionary(r => r.Number, r => r.Bounds);
+        Point[] wanted =
+        [
+            .. Corners(rack[1], camera),
+            .. Corners(rack[3], camera),
+            .. SceneProjector.BowWedge(Caterpillar.Bounds).SelectMany(f => f.Corners).Select(c => camera.Project(c.X, c.Y, c.Z)),
+        ];
+        var enclosing = wanted.Aggregate(new Rect(wanted[0], wanted[0]), (r, p) => Rect.Union(r, p));
+
+        ShouldEnclose(projected.FitExtent, wanted);
+        projected.FitExtent.Width.Should().BeApproximately(enclosing.Width, 1e-9);
+        projected.FitExtent.Height.Should().BeApproximately(enclosing.Height, 1e-9);
+        ShouldEnclose(projected.Extent, Corners(rack[14], camera));
+        projected.FitExtent.Width.Should().BeLessThan(projected.Extent.Width);
+    }
+
+    [Fact]
+    public void Projected_racks_know_whether_they_hold_cargo()
+    {
+        var projected = SceneProjector.Project(CaterpillarWith("rack-0"), IsoProjection.Default);
+
+        projected.Racks.Where(r => r.IsLoaded).Select(r => r.Number).Should().Equal(1);
+    }
+
+    [Theory]
+    [InlineData(90, 35.26)]
+    [InlineData(45, 35.26)]
+    [InlineData(225, 35.26)]
+    [InlineData(100, -30)]
+    public void On_a_long_ship_the_rack_number_stands_above_its_rack(double yaw, double pitch)
+    {
+        // Above the outline, in the middle of its width: never over a crate of its own rack, even a full one (D61).
+        foreach (var rack in SceneProjector.Project(CaterpillarWith("rack-0"), new IsoProjection(yaw, pitch)).Racks)
+        {
+            Point[] outline = [.. rack.Faces.SelectMany(f => f.Polygon)];
+
+            rack.LabelAbove.Should().BeTrue();
+            rack.LabelCentre.Y.Should().BeApproximately(outline.Min(p => p.Y), 1e-9);
+            rack.LabelCentre.X.Should().BeApproximately((outline.Min(p => p.X) + outline.Max(p => p.X)) / 2, 1e-9);
+        }
+    }
+
+    [Fact]
+    public void On_a_compact_ship_the_rack_number_stays_on_its_face()
+    {
+        SceneProjector.Project(Scene, IsoProjection.Default).Racks.Should().OnlyContain(r => !r.LabelAbove);
     }
 
     // The label's text is built at this size and scaled onto the floor, like ShipViewControl's.
