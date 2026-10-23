@@ -44,7 +44,10 @@ the hint lines below the legend or the border.
 The overlay draws your ship's cargo racks as boxes, at first seen from the front, from the port side and from above:
 the bow points to the lower left (the wedge in front of the racks, with "Bow" on its floor, marks the bow), the port side
 faces you. Turn and tilt the ship until it looks the way you see the hold, even from below for racks under the hull.
-Each rack shows its number on its largest visible face. Each destination has its own color, and the legend (below the
+Each rack shows its number on its largest visible face. Long ships (more than twice as long as wide, such as the C2,
+the Caterpillar or the Hull C) start seen from the port side with the length almost level, and the view shows the racks
+that hold cargo; the empty racks further aft are dimmed and come into view when you zoom out. Their numbers stand above
+the racks, so a full rack never hides its number. Each destination has its own color, and the legend (below the
 ship, unless you [move it](settings-format.md#legend-layout)) lists it with its SCU. A destination split over two racks
 has the same color in both. A rack shared by two destinations shows both colors side by side; the planner's hints below
 the legend tell you which racks need care.
@@ -58,12 +61,12 @@ rests on the plate or on other crates.
 
 - **Color** = destination. Up to eight colors, from the ninth destination on they repeat (the legend says so).
 - **Gray** = delivered.
-- **Outline only** = free cell.
+- **Outline only** = free cell. Far out, only the free cells in the layers that hold crates are drawn.
 - **Red** = a finding, see [Stacking order and red crates](#stacking-order-and-red-crates).
 
 Hover over a crate to see what it is, e.g. `Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4)`. Inside the
 view: **left drag** turns and tilts the ship, **right drag** next to the crates moves the view, the **mouse wheel**
-zooms, a **double-click** next to the cargo resets the view.
+zooms, a **double-click** next to the cargo resets the view to the ship's starting view.
 
 ## Entering missions
 

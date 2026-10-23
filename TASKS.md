@@ -914,7 +914,7 @@ Liste, Listenrahmen ebenfalls `ButtonsBorderBrush`.
   `RecentShips`, `Matches`, `RecentGroup`, `Remember`, `SingleMatch`, `ChangeShip`/`Of` mit neuen Argumenten), Core 848,
   Import 93.
 
-### [ ] T7.3 Schiffsansicht bei großen Gittern – Hull C, C2: Racknummern (`RackNumberSize`: ein Wert für alle Racks), Fit, Legende
+### [x] T7.3 Schiffsansicht bei großen Gittern – Hull C, C2: Racknummern (`RackNumberSize`: ein Wert für alle Racks), Fit, Legende
 Befund aus T7.2 (Hull C, Caterpillar, C2; Screenshots im T7.2-Scratchpad):
 1. Lange Reihe passt nicht ins Bild (Hull C 16, Caterpillar 14 Racks in der Diagonale, Kisten unkenntlich):
    Standardreihe beim Import in Zeilen statt einer Reihe, oder Kamera-Fit auf belegte Racks. Mit einem Schiff beginnen.
@@ -924,6 +924,39 @@ Befund aus T7.2 (Hull C, Caterpillar, C2; Screenshots im T7.2-Scratchpad):
 5. Fill-order-ComboBox liest sich für Screenreader als Record-ToString: wie ShipChoice beheben.
 
 Je ein Schiff pro Problem: Hull C (1, 2, 4), Caterpillar (3), Starfarer als Normalfall-Kontrolle.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (D61, Addenda D15, D21, D32, D52):** Abnahme als
+Sichtprüfung bei 800 × 600 px mit der 8-Stopp-Fixture je Schiff. 12 px Kistenkante hart für C2 und Starfarer, für Hull C
+und Caterpillar Ziel; dort hart: alle belegten Racks im Standard-Fit mit lesbarer Nummer, Kisten zählbar nach ≤ 2
+Mausrad-Stufen (Hull C mit Racks 1–8 = 71 Zellen in Reihe kommt bei 800 px höchstens auf 9,7 px). Hull A pixelgleich.
+„Lang“ = länger als 2 × breit (geometrisch, nicht nach Fenstergröße); lang heißt Standard-Yaw 70°, Fit auf belegte Racks
++ Keil (gelieferte zählen, ein Tick fittet nicht neu), leere Racks gedimmt, Nummer über dem Rack mit Platz oben im Fit.
+Für alle Schiffe: freie Zellen unter 12 px pro Zelle nur in Stapelebenen mit Kisten; „Bow“ schrumpft durch den Platz auf
+dem Keilboden nur bis 12 px. Yaw 90 aus dem Plan fiel an Martins Zusatz durch (Caterpillar-Modul mit Kisten in allen vier
+Tiefenreihen, Vergleich 90/70/60: bei 90 nicht zählbar); die Platzreserve oben kam, weil die Nummern bei schräger Reihe
+abgeschnitten waren. FloorLabel-Tests stehen bei den bestehenden in `SceneProjectorTests` statt in einer neuen Datei; der
+Test „Label verlässt nie den Boden“ (D52-Addendum 3) ist durch die Mindestgrößen-Regel ersetzt. Keine Datenänderung in
+`ships/`, kein Planer-Code.
+
+**Befund:**
+- Planung per CLI: Hull C und Caterpillar belegen mit der 8-Stopp-Fixture Racks 1–8, C2 beide, Starfarer alle fünf
+  (Caterpillar-Rack-Ids sind nicht nach Nummer sortiert).
+- Messwerte 1-SCU-Kante x / z, Standard-Fit, 800 × 600 px bei 106 dpi (vorher, Diagonale, ganzes Schiff):
+  C2 21,5 / 18,3 px (14,9), Starfarer 21,8 / 18,5 (14,3), Caterpillar 11,8 / 10,0 (6,6), nach 2 Stufen 17,0 / 14,4;
+  Hull C 8,0 / 6,8 (3,8), nach 2 Stufen 11,6 / 9,8. Hull A 32,5 px, unverändert.
+- Hull A: Screenshot vorher/nachher mit deckendem Hintergrund, im Fensterinneren 0 Pixel Unterschied (nur die äußeren
+  3 px, wo sich der 1-DIP-Rahmen bei 106 dpi mit dem Desktop dahinter mischt).
+- Tiefe (Caterpillar Rack 1, 16 × 1 + 4 × 2 SCU, eine volle Lage 6 × 4): bei Yaw 90 liegen die vier Reihen als Bänder
+  übereinander, bei 70 und 60 sind alle Kisten zählbar. Martin: 70.
+- FillOrder per UI Automation: vorher `FillOrderChoice { Value = BowFirst, Text = Bow first }`, nachher „Bow first“,
+  „Stern first“.
+- Sichtprüfung (Martin): abgenommen mit Yaw 70, Nasenlänge und Rastergrenze 12 unverändert.
+- Legende: kein Befund.
+- Nebenbefund: Scratch-Läufe der App überschreiben `settings.json.bak` (erstes Speichern pro Lauf); in T7.3 nicht
+  gesichert, aus der unveränderten settings.json wiederhergestellt (gleiche Größe). plan.json und settings.json
+  byte-gleich zurück.
+- Tests: App 910 (877 − 1 ersetzter + 34), Core 848, Import 93; vor dem Code rot gesehen (31 Compile-Fehler, 2 FloorLabel-
+  Asserts gegen den alten Code, 2 Compile-Fehler zu `Fit(…, top)`).
 ### [ ] T7.4 Schiffsumriss aus `ship-outlines.json` (D55) – vor T7.5, vor dem Tag
 - Erste Zahl: Orbit mit Apollo-Polygon (99 Punkte) bei laufendem SC, Messung wie D21. Ruckelt es → Phase 8.
 - `ship-outlines.json` + `NOTICE.md` neben `ships/` im ZIP; Zuordnung über Schiffs-Id; ohne Eintrag bleibt der Keil.
@@ -969,6 +1002,11 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Plan verwerfen ohne neuen Plan („Discard plan“), falls ein leeres Overlay nach der Route gewünscht wird; heute ersetzt nur „Plan“ den alten Plan (D19).
 - Editor-Position in `settings.json`, Entwurfs-Autosave, Undo im Editor, falls der Zwei-Minuten-Durchlauf daran scheitert (D19).
 - Rückfall auf Segmente ab einer Zellenzahl, sobald ein großes Schiff (Hull C, ~4.600 Zellen) beim Orbit ruckelt (D21).
+- Spindelmuster für Hull B/C wie bei Hull A statt der generierten Reihe (Daten, T7.1b-Nachtrag), sobald die echte Anordnung
+  bekannt ist (D61).
+- Nasenlänge des Bug-Keils auf die Schiffsbreite deckeln (Hull C 14 → 6 Zellen, ~10 % mehr Maßstab), falls lange Schiffe
+  im Spiel zu klein wirken (D61).
+- Rastergrenze über 12 px (z. B. 20), falls das volle Raster der C2 (18 px pro Zelle) im Spiel stört (D61).
 - Kistengrößen als Blöcke und Zellbeschriftung in der Schiffsansicht (D21).
 - Backdrop-Blur hinter dem Fenster (Spike: DWM vs. AllowsTransparency) (D28).
 - Alternative Stop-Paletten, nur geprüft farbfehlsicht-tauglich (D29).
