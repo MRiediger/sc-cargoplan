@@ -990,6 +990,89 @@ als Screenshot-Vergleich, kein Golden-PNG-Test.
   12,0 m der Silhouette) korrigiert.
 - Nebenbefund PowerShell: `$s` und `$S` sind dieselbe Variable; zwei Scratch-Skripte sind daran gescheitert, AppData danach
   byte-gleich zurück.
+### [x] T7.4b Spike Holo-Ansicht (kein Prod-Code, kein Commit außer dem Befund)
+- Holo als dritte Kulisse neben Keil und Umriss, vor dem Release. Quelle: Fleetyards `holo.gltf` aller 117 Schiffe
+  (`sc-ship-outlines/raw/<slug>/`). Drei Gates mit Schwellen vorab; ein rotes Gate → Phase 8, alle grün → T7.4c.
+- Gate 1 Lizenz (Martin), Gate 2 Netz und Cache (Release-Asset, eine Datei beim Schiffswechsel, Cache in
+  `%LocalAppData%`, Download < 2 s, Cache-Hit < 50 ms), Gate 3 Rendern (Weg a `OnRender`, Weg b `Viewport3D`;
+  Median-Zuwachs ≤ 1 ms, p95 ≤ 16 ms, RAM pro Mesh, Martins Urteil).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** D63 statt D62 (D62 ist der Umriss). Dezimierer
+`@gltf-transform/cli` 4.5.1 per npx, Version in `sc-ship-outlines/TOOLS.md`; danach stdlib-Python ins eigene Format.
+Download per Range-Request auf das rc.3-Asset, Länge = größte dezimierte Datei, kein Upload vor Gate 1. Orbit per Timer
+(12°/s, 30 s, ≥ 300 Frames, sonst ungültig) statt Hand-Ziehen. Budgets 5 k / 20 k / 50 k Dreiecke. Weg (a) in den
+Varianten flat, shaded, edges, silhouette (kamera-abhängig, pro Frame; nur 5 k und 20 k). Gate 1 mit drei Zuständen
+(grün / rot / offen, Frist Tag `v0.1.0`). Nach den ersten Läufen (Martin): Maßstab 1:1 (1 Zelle = 1,25 m) statt der
+Umriss-Regel 1,2 × Racks, jedes Schiff mit eigenem Holo unter dem neu geplanten Acht-Stopp-Plan (D59), Fit zeigt das ganze
+Holo; Zielbild Hidden-Line nach drei Referenzbildern (opak, nur sichtbare Kanten, drei Kantenstufen), echtes 3D statt
+2D-Umriss; Variante hiddenline in beiden Wegen, `viewport3d-flat` für den flat-Look über Weg (b); SC-Lauf eingegrenzt auf
+die drei Looks shaded / flat / hiddenline über Weg (b), 20 k, Hull A und Caterpillar.
+
+**Befund:**
+
+| Gate | Messung | Schwelle | Ergebnis |
+|---|---|---|---|
+| 1 Lizenz | Martin, 23.10.2026: „volle Freigabe erhalten“; Grundlage Mail von Marten (Fleetyards); CIG hat weder freigegeben noch untersagt | schriftlich | **grün** |
+| 2 Download | Range auf rc.3 über `github.com` → 302 → `release-assets.githubusercontent.com`, Status 206, je 5 Läufe mit frischem `HttpClient`: 86 KB 167 ms, 311 KB 231 ms, 777 KB 228 ms Median; kältester Lauf 625 ms | < 2 s | **grün** |
+| 2 Cache-Hit | Lesen + Parsen aus `%LocalAppData%`, 20 Läufe: 0,08 / 0,17 / 0,65 ms Median, max. 1,2 ms; Schreiben 0,2–1,2 ms | < 50 ms | **grün** |
+| 2 Daten | siehe unten; Bug 5/5 richtig | – | mit Einschränkung |
+| 3 Rendern | mit SC, Weg (b), 20 k: Δ +0,21–0,30 ms, p95 1,4–4,0 ms, 60 / 60 fps, SC-Bildrate unverändert (Martin) | ≤ 1 ms / ≤ 16 ms | **grün** |
+| 3 RAM | mit SC, 20 k: shaded +15–22 MB, flat +16–24 MB, hiddenline +42–48 MB | Zahl | – |
+| 3 Blick | Racks bleiben Blickfang (Martin); das `Viewport3D` liegt als Ebene hinter der Schiffsansicht, der Rumpf verdeckt nie Kisten | Urteil | **grün** |
+
+- **Rohdaten:** alle 117 Draco-komprimiert (54 Text-glTF mit base64, 63 GLB unter `.gltf`), 773 MB, 0,28–9,35 Mio.
+  Dreiecke (Hull D bis Ironclad Assault). Die Holos enthalten das Schiffsinnere (Tanks, Leitungen, Cockpit), Hull D auch das
+  voll beladene Frachtgitter.
+- **Dezimierung:** Draco → `copy` → nur `POSITION` (flache Normalen trennen Vertices, `weld` verschmilzt nur bitgleiche) →
+  `weld` → `simplify --error 1 --lock-border false`. meshoptimizer erreicht 20 k und 50 k nur bei Hull A und Hull D; bei
+  C2, Caterpillar und Ironclad bleibt er bei 181 k / 606 k / 994 k stehen (gesperrte Vertices nicht-mannigfaltiger
+  Topologie, 1.476 Komponenten beim C2), bei 5 k auch Hull A (10 k) und Hull D (8 k). Rest per Vertex-Clustering
+  (stdlib): erreicht jedes Budget, zerstört aber Kanten (C2 mit Splitterdreiecken, Caterpillar mit Löchern).
+- **Größen** (eigenes Format `SCH1`, float32 + uint16/32): 5 k 56–86 KB, 20 k 246–311 KB, 50 k 541–777 KB.
+- **Achsen-Check** (IoU der Draufsicht gegen das Umriss-Polygon): Bug 5/5 richtig bei jedem Budget; Spiegelung bei den
+  asymmetrischen Schiffen eindeutig richtig (Caterpillar 0,58 gegen gespiegelt 0,31, Ironclad 0,80 gegen 0,66); Breite
+  ±5 % verfehlt beim C2 (−7,6 %, Holo gegen Render) und bei Hull A 5 k (−13 %, Clustering).
+- **Gate 3 ohne SC** (Release, 1:1, Hull A / C2 / Caterpillar / Ironclad): Weg (a) hält 60 fps nur bei 5 k (Δ +0,3–1,7 ms);
+  ab 20 k 30 fps (flat, shaded, silhouette) bzw. 20 fps (edges), shaded bei 50 k p95 bis 31 ms. Hiddenline über (a)
+  (Maler-Algorithmus, ein `DrawGeometry` pro Dreieck): schon 5 k nur 30 fps, 20 k 12 fps. Weg (b) bei allen Schiffen und
+  Budgets 60 fps, Δ ≤ 0,44 ms; RAM bei 50 k bis +109 MB (hiddenline). `OnRender`-Zeit allein unterschätzt Weg (a): die Last
+  trägt WPFs Render-Thread (silhouette 20 k: 2,6 ms in `OnRender`, Frames alle 50 ms).
+- **Look:** wählbar (Martin): shaded, flat und hiddenline neben dem Umriss. Hiddenline-Kantenstufen (Knickwinkel 20° /
+  35° / 60°) trennen auf dezimierten Meshes kaum (Hull A 20 k: 18.510 / 16.633 / 14.495 Linien); die Kantenstreifen von
+  Weg (b) sind ungleich dick.
+- **Maßstab 1:1:** die generierte Rack-Reihe des Caterpillar (D53) ist länger als der Rumpf und ragt hinten heraus.
+- Spike-Code (Worktree `spike/t74b-holo`) gelöscht; Pipeline- und Messskripte und die Meshes lagen nur im Scratchpad der
+  Sitzung, nicht im Repo, nichts davon wurde hochgeladen. AppData nach
+  jeder Serie byte-gleich zurück; dazwischen hat Martin die App selbst benutzt (Overlay verschoben, Recent), dieser
+  Stand bleibt.
+
+**D63-Entwurf „Holo backdrop“ (für `decisions.md` in T7.4c):**
+- **Context:** D62 draws a flat traced outline; the maintenance panel in the game shows a 3D hologram. Fleetyards serves a
+  holo model (`holo.gltf`, Draco) for all 117 ships with cargo, CIG game models. T7.4b measured it.
+- **Options:** backdrop wedge / outline / holo flat / holo shaded / holo hidden line; source repo / app ZIP / release
+  asset downloaded on demand / Fleetyards API.
+- **Decision:** Holos are used, as a choice next to the outline (shaded, flat, hidden line), drawn by a `Viewport3D`
+  behind the ship view at true scale. A non-commercial fan project; Fleetyards does the same; CIG has neither allowed nor
+  forbidden it. It holds until CIG or Fleetyards says stop. Holos come only as a release asset of their own, one file per
+  ship, downloaded on a ship change and cached per ship and version; never from Fleetyards.
+- **Counter-argument:** In Marten's words (Fleetyards): „Grauzone, keine offizielle Freigabe, nicht im Fansite-Kit.“
+  Tolerance is an observation, not a right; a stop can come without warning. The overlay's first network access. The
+  launch slips again, after D53 and D55, on 23 Oct 2026. Dependence on GitHub's release hosting. meshoptimizer can't
+  reduce three of five meshes; clustering spoils their edges.
+- **Consequence:** Holos only as a release asset of their own, not in the app ZIP, not in the repo, their own NOTICE. A
+  stop means: delete the asset, the app shows the outline; no new release, no Nexus withdrawal. Setting "Download ship
+  holograms", default on, off means no access; one sentence in README and Nexus description: "Ship holograms are an
+  optional download; they derive from game models and may be withdrawn on request."
+
+### [ ] T7.4c Holo-Kulisse (D63) – vor T7.5, vor dem Tag
+- Aus T7.4b: Look wählbar (shaded, flat, hiddenline) neben dem Umriss, Keil bleibt Fallback, über `Viewport3D` hinter der
+  Schiffsansicht, Maßstab 1:1, ganzes Holo im Fit.
+- Download: nur HTTPS von unserem Release, nur beim Schiffswechsel, Timeout ≤ 5 s, jeder Fehler endet still im Umriss
+  (eine Notice beim ersten Fehler pro Lauf), Schalter „Download ship holograms“ (Default an), Cache pro Schiff und Version.
+- Pipeline in `sc-ship-outlines`: alle 117 dezimieren, Budget festlegen (20 k gemessen), Clustering-Kanten bei C2 /
+  Caterpillar / Ironclad klären; Kantenstufen für hiddenline (Mindestlänge statt nur Knickwinkel).
+- Offen: Lage in z (Spike: Mitte der Racks), Racks außerhalb des Rumpfs (Caterpillar), Ladung im Holo (Hull D), RAM bei
+  hiddenline (+42–48 MB bei 20 k), NOTICE mit Quelle und Datum, README-/Nexus-Satz.
 ### [ ] T7.5 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
 - Known issue (aus T7.2, D59; T7.2b: Wechsel jetzt im Overlay): „On ships with large racks and many small crates, Plan or a ship change can take a few seconds. The overlay doesn’t respond meanwhile.“
 - Reihenfolge (23.10.2026): Umriss vor Doku, T7.4 und T7.5 getauscht (D55-Addendum). Die Screenshots zeigen den Endzustand, Doku zuletzt vermeidet einen dritten Tausch. Präzisierung in der Planphase, ratifiziert durch Freigabe.
@@ -1025,7 +1108,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26); freie Rotation pro Rack erst, wenn ein Schiff sie braucht.
 - Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).
 - ~~Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).~~ Übernommen als T7.4 (D55).
-- Umriss in 3D wie im Maintenance Panel (Prisma aus Draufsicht + Höhe, grober Rumpf aus Drauf- und Seitenansicht, oder Holo-Modelle), falls der flache Umriss im Spiel nicht reicht (D62).
+- ~~Umriss in 3D wie im Maintenance Panel (Prisma aus Draufsicht + Höhe, grober Rumpf aus Drauf- und Seitenansicht, oder Holo-Modelle), falls der flache Umriss im Spiel nicht reicht (D62).~~ Holo-Modelle übernommen als T7.4b (Spike) und T7.4c.
 - Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).
 - Orbit-Snap auf feste Winkel (z. B. 45°-Raster per Taste), falls freies Drehen schwer wiederholbar ist (D15).
 - Plan verwerfen ohne neuen Plan („Discard plan“), falls ein leeres Overlay nach der Route gewünscht wird; heute ersetzt nur „Plan“ den alten Plan (D19).
