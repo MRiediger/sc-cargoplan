@@ -1,6 +1,10 @@
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Threading;
+using CargoPlan.App.Editor;
 using CargoPlan.App.Settings;
 using CargoPlan.App.Theme;
 using CargoPlan.App.ViewModels;
@@ -30,10 +34,13 @@ public partial class MissionEditorWindow : Window
         Owner = owner;
         OverlayWindow.HideWithOverlay(this, overlay);
         viewModel.Planned += OnPlanned;
+        viewModel.PropertyChanged += OnViewModelChanged;
+        ShowCurrentShip();
     }
 
     protected override void OnClosed(EventArgs e)
     {
+        _viewModel.PropertyChanged -= OnViewModelChanged;
         _viewModel.Planned -= OnPlanned;
         _viewModel.Detach();
         base.OnClosed(e);
@@ -41,6 +48,81 @@ public partial class MissionEditorWindow : Window
 
     /// <summary>The plan is in the overlay, the next step is loading in the game (D19).</summary>
     private void OnPlanned(object? sender, EventArgs e) => Close();
+
+    // --- Ship selection (T7.2) ---
+    // A closed ComboBox selects at once on arrow keys (SelectNext/SelectPrev) and, with keyboard focus, on the mouse
+    // wheel (a class handler that also runs for handled events); an open one only highlights until Enter or a click.
+    // So keys, typing and the wheel open the list first, and every selection change is a choice: committed at once.
+    // Source: dotnet/wpf, PresentationFramework/System/Windows/Controls/ComboBox.cs (KeyDownHandler, OnMouseWheel, FocusItem)
+
+    private bool _showingShip;
+
+    private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MissionEditorViewModel.CurrentShip))
+        {
+            ShowCurrentShip();
+        }
+    }
+
+    /// <summary>The overlay's ship in the box, without counting as a choice.</summary>
+    private void ShowCurrentShip()
+    {
+        _showingShip = true;
+        try
+        {
+            ShipBox.SelectedItem = _viewModel.CurrentShip;
+        }
+        finally
+        {
+            _showingShip = false;
+        }
+    }
+
+    private void OnShipBoxPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (!ShipBox.IsDropDownOpen && e.Key is Key.Up or Key.Down or Key.PageUp or Key.PageDown or Key.Home or Key.End)
+        {
+            ShipBox.IsDropDownOpen = true;
+            e.Handled = true;
+        }
+    }
+
+    // Not handled: the text goes on to the text search, which only highlights in the open list.
+    private void OnShipBoxPreviewTextInput(object sender, TextCompositionEventArgs e) => ShipBox.IsDropDownOpen = true;
+
+    private void OnShipBoxPreviewMouseWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (!ShipBox.IsDropDownOpen && ShipBox.IsKeyboardFocusWithin)
+        {
+            ShipBox.IsDropDownOpen = true;
+        }
+    }
+
+    private void OnShipSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_showingShip || ShipBox.SelectedItem is not ShipChoice choice || choice.Id == _viewModel.CurrentShip.Id)
+        {
+            return;
+        }
+
+        // After the list has closed (a click selects before it closes), so the dialog doesn't sit under the open popup.
+        Dispatcher.BeginInvoke(() => ChangeShip(choice), DispatcherPriority.Background);
+    }
+
+    /// <summary>Asks first when there is a plan (D59); declined or not loadable, the box shows the overlay's ship again.</summary>
+    private void ChangeShip(ShipChoice choice)
+    {
+        if (!choice.IsSelectable
+            || (_viewModel.ShipChangeQuestion(choice) is { } question
+                && MessageBox.Show(this, question, "Change ship", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes))
+        {
+            ShowCurrentShip();
+            return;
+        }
+
+        _viewModel.ChangeShip(choice);
+    }
 
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.datagrid.commitedit
     private void OnAnyButtonClick(object sender, RoutedEventArgs e) => Grid.CommitEdit(DataGridEditingUnit.Row, exitEditingMode: true);

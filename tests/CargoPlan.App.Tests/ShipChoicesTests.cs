@@ -63,4 +63,42 @@ public class ShipChoicesTests
     {
         ShipChoices.Resolve(Catalog, "hull_a", "c2_hercules").Should().Be((HullA, (string?)null));
     }
+
+    // --- Of: the editor's selection ---
+
+    [Fact]
+    public void Of_groups_by_manufacturer_and_shows_the_name_without_its_code()
+    {
+        var choices = ShipChoices.Of(Catalog);
+
+        choices.Take(2).Select(c => (c.Group, c.Text, c.Ship)).Should().Equal(("CRUS", "C2 Hercules", C2), ("MISC", "Hull A", HullA));
+    }
+
+    [Fact]
+    public void Of_lists_ships_that_didnt_load_last_and_not_selectable()
+    {
+        var broken = ShipChoices.Of(Catalog).Last();
+
+        broken.Should().Be(new ShipChoice(
+            "broken", ShipChoices.NotLoadedGroup, "broken – Ship file 'broken.json' is invalid: no racks.", null, "Ship file 'broken.json' is invalid: no racks."));
+        broken.IsSelectable.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Of_puts_a_ship_without_manufacturer_under_Other_with_its_full_name()
+    {
+        var plain = HullA with { Id = "plain", Name = "Plain Hauler", Manufacturer = null };
+
+        var choices = ShipChoices.Of(new ShipCatalog([plain, C2, HullA], []));
+
+        choices.Select(c => (c.Group, c.Text)).Should().Equal(("CRUS", "C2 Hercules"), ("MISC", "Hull A"), (ShipChoices.OtherGroup, "Plain Hauler"));
+    }
+
+    [Fact]
+    public void Of_sorts_within_a_group_by_shown_name()
+    {
+        var shipped = ShipChoices.Of(ShipLoader.LoadAll()).Where(c => c.Group == "CRUS").Select(c => c.Text);
+
+        shipped.Should().Equal("A2 Hercules", "C1 Spirit", "C2 Hercules", "Intrepid", "M2 Hercules", "Mercury Star Runner");
+    }
 }

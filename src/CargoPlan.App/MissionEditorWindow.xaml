@@ -30,7 +30,52 @@
                 <Setter Property="Margin" Value="0,0,4,0" />
                 <Setter Property="Padding" Value="8,2" />
             </Style>
+            <!-- Grouped in the order of first appearance; ShipChoices.Of sorts. -->
+            <CollectionViewSource x:Key="ShipsView" Source="{Binding Ships}">
+                <CollectionViewSource.GroupDescriptions>
+                    <PropertyGroupDescription PropertyName="Group" />
+                </CollectionViewSource.GroupDescriptions>
+            </CollectionViewSource>
         </DockPanel.Resources>
+        <!-- Its own row above the toolbar: unlike Fill order it takes effect at once, a plan is planned anew (D59). -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8"
+                    ToolTip="The ship you haul with. Takes effect at once: a plan is planned anew for it.">
+            <TextBlock Text="Ship:" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <!-- Typing jumps to the first ship whose name starts with it (TextSearch on Text). Selected and committed
+                 only by Enter or a click: see the handlers. Source: dotnet/wpf, PresentationFramework/.../ComboBox.cs -->
+            <ComboBox x:Name="ShipBox" MinWidth="260" MaxDropDownHeight="420"
+                      ItemsSource="{Binding Source={StaticResource ShipsView}}"
+                      TextSearch.TextPath="Text"
+                      PreviewKeyDown="OnShipBoxPreviewKeyDown"
+                      PreviewTextInput="OnShipBoxPreviewTextInput"
+                      PreviewMouseWheel="OnShipBoxPreviewMouseWheel"
+                      SelectionChanged="OnShipSelectionChanged">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type ed:ShipChoice}">
+                        <TextBlock Text="{Binding Text}" MaxWidth="420" TextTrimming="CharacterEllipsis" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+                <ComboBox.GroupStyle>
+                    <GroupStyle>
+                        <GroupStyle.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="8,6,0,2" />
+                            </DataTemplate>
+                        </GroupStyle.HeaderTemplate>
+                    </GroupStyle>
+                </ComboBox.GroupStyle>
+                <ComboBox.ItemContainerStyle>
+                    <!-- Ships that didn't load stay visible with their reason (D56), but can't be chosen. Without the
+                         automation name a screen reader reads the record's ToString(). -->
+                    <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                        <Setter Property="AutomationProperties.Name" Value="{Binding Text}" />
+                        <Setter Property="IsEnabled" Value="{Binding IsSelectable}" />
+                        <Setter Property="ToolTip" Value="{Binding Problem}" />
+                        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+                    </Style>
+                </ComboBox.ItemContainerStyle>
+            </ComboBox>
+        </StackPanel>
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
             <Button Content="Add" Command="{Binding AddRowCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Add a row (or type into the empty row at the bottom)" />
