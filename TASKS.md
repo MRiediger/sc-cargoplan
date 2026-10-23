@@ -863,6 +863,32 @@ Martin hat die Auswahl im Editor nicht gefunden und am Schiffsnamen im Header ge
 - App-Lauf (plan.json/settings.json gesichert und byte-gleich zurück): Box „MISC Hull A“, 96 Einträge in 13 Gruppen, Vorauswahl Hull A; gesperrt Box weg, Name als Text. Mit offenem, ungeplantem Editor: Nein → Hull A, nichts geschrieben; Ja → Header und Editor „CRUS C2 Hercules“, Editor behält 7 Zeilen und „unplanned changes“, kein „changed outside“, `ship: "c2_hercules"`, plan.json für die C2.
 - Sichtprüfung (Martin): Optik abgenommen; Bildlaufleiste der Liste auf Wunsch angeglichen: 8 px, keine Pfeile, Spur unsichtbar, Griff in Header-Farbe (35 %, unter der Maus 60 %), nur in der Schiffsliste.
 - Tests: App 850 (849 − 5 Editor-Auswahl + 3 Editor + 2 Overlay + 1 Theme); der Test „Wechsel von außen ≠ changed outside“ vor der Id-Erkennung rot gesehen. Core 848, Import 93.
+### [ ] T7.2c Schiffsliste: Suche im Header und Gruppe „Recent“ (Martins Wunsch nach T7.2b)
+96 Schiffe sind eine lange Liste. Zwei Hilfen, die sich ergänzen:
+
+1. **Suche:** Bei offener Liste wird die Namenszeile im Header zum Eingabefeld (Platzhalter „Search ships…“, modern
+   integriert, kein zweites Feld über der Liste). Jeder Tastendruck filtert nach Name und Hersteller, ohne Groß/klein.
+   Esc leert bzw. schließt, Enter wählt bei genau einem Treffer. Danach Commit-Regel und Dialog wie T7.2b.
+2. **Recent:** Gruppe „Recent“ ganz oben mit den letzten 3 gewählten Schiffen (ohne das aktuelle?), gespeichert über
+   Neustarts. Braucht keine Tastatur und keinen Fokuswechsel, also auch baubar, wenn die Suche am Spike scheitert.
+
+Knackpunkt Suche: Tastatur heißt Fokus. Das Overlay nimmt dem Spiel seit D11 (Addendum T3.6) nie den Fokus
+(`WS_EX_NOACTIVATE`, nichts im Header fokussierbar). Beim Aufklappen holt sich das Overlay deshalb den Vordergrund
+(wie der Editor beim Öffnen); solange die Liste offen ist, gehen Tasten nicht ans Spiel. Tippen ohne Fokuswechsel ginge
+nur per globalem Tastatur-Hook: **ausgeschlossen** (CLAUDE.md: keine Hooks; für EAC ein Keylogger).
+
+Zuerst prüfen, je 5 Versuche über SC (Borderless), Ergebnis vor dem Umbau melden:
+- a) Feld hat nach dem Aufklappen per Klick sofort den Fokus (Tippen filtert ohne zweiten Klick).
+- b) Nach Auswahl bzw. Esc bekommt SC den Fokus mit einem Klick ins Spiel zurück (kein Alt+Tab).
+- c) Auto-Lock bzw. Lock-Hotkey, während das Feld den Fokus hat: Liste zu, Lock korrekt, nichts hängt.
+- d) Tasten, die SC sonst bekommt (z. B. F, Tab), landen bei offener Liste nur im Feld.
+Fällt a) oder b) durch: nur Recent bauen, Suche ins Backlog mit Befund.
+
+Offen für die Planung: Wo Recent gespeichert wird (`settings.json`, neues optionales Feld ohne Schema-Bump wie `ship`,
+D31) und ob das aktuelle Schiff darin erscheint. Filter und Recent-Reihenfolge als reine Funktionen neben `ShipChoices`
+(Tests zuerst). D-Eintrag: das Overlay nimmt erstmals Tastatur (Gegenargument D11), D59-Addendum für Recent.
+User Guide „Your ship“ ergänzen.
+
 ### [ ] T7.3 Schiffsansicht bei großen Gittern – Hull C, C2: Racknummern (`RackNumberSize`: ein Wert für alle Racks), Fit, Legende
 Befund aus T7.2 (Hull C, Caterpillar, C2; Screenshots im T7.2-Scratchpad):
 1. Lange Reihe passt nicht ins Bild (Hull C 16, Caterpillar 14 Racks in der Diagonale, Kisten unkenntlich):
