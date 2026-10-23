@@ -3,7 +3,7 @@ using CargoPlan.Core.Ships;
 
 namespace CargoPlan.App.Editor;
 
-/// <summary>One entry of the editor's ship selection: a catalog entry (D59), or one that didn't load.</summary>
+/// <summary>One entry of the header's ship selection (T7.2b): a catalog entry (D59), or one that didn't load.</summary>
 /// <param name="Group">The manufacturer's code ("CRUS"), <see cref="ShipChoices.OtherGroup"/> or <see cref="ShipChoices.NotLoadedGroup"/>.</param>
 /// <param name="Text">The name without the code the group shows already ("C2 Hercules"); id and reason for one that didn't load.</param>
 /// <param name="Ship">null = didn't load, not selectable.</param>
@@ -14,7 +14,7 @@ public sealed record ShipChoice(string Id, string Group, string Text, Ship? Ship
 }
 
 /// <summary>
-/// The ship the overlay starts with and the editor's selection (T7.2). A ship is a catalog entry, never a file name
+/// The ship the overlay starts with and the header's selection (T7.2, moved from the editor in T7.2b). A ship is a catalog entry, never a file name
 /// (D59); a ship that didn't load never stops the start: the Hull A takes its place and a notice says why.
 /// </summary>
 public static class ShipChoices

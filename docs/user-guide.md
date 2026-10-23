@@ -22,14 +22,18 @@ overlay included.
 Without a plan, the overlay shows your ship with empty racks, "No plan. Open the editor to enter missions." and an
 **Open editor** button (see [Entering missions](#entering-missions)).
 
+**Your ship:** click the ship name at the header's left end and pick your ship from the list, grouped by manufacturer.
+With a plan the overlay asks first, then plans your missions anew for the new ship; ticks stay. Like the header buttons
+the list is hidden while the overlay is locked, the name stays.
+
 **Exit:** the **X** at the header's right end, next to the padlock, closes SC-CargoPlan. There is no "are you sure?":
 your plan, ticks, position and look are saved before it closes. Like every header button it is hidden while the overlay
 is locked.
 
 **Remembers where you put it:** drag the overlay next to your cargo grid and resize it once; position and size are
 saved right away, so they survive a restart and even a crash. If you unplug a monitor, the overlay moves back onto the
-screens you have. To move the overlay window, drag it by its header (the ship name), the hint lines below the legend or
-the border.
+screens you have. To move the overlay window, drag it by its header (next to the ship name, which opens the ship list),
+the hint lines below the legend or the border.
 
 ## Reading the ship view
 

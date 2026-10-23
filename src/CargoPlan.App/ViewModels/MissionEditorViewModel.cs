@@ -49,6 +49,9 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     // Set while the editor itself changes the overlay's plan, which then needs no reaction.
     private bool _ownChange;
 
+    // The overlay's ship the rows were made for: a ship change replans the same missions (D59).
+    private string _shipId;
+
     /// <summary>Starts with the missions of the overlay's plan, or one blank row without a plan.</summary>
     /// <param name="syncFromContractTracker">Runs a ContractTracker sync; the Sync button is off without it.</param>
     public MissionEditorViewModel(OverlayViewModel overlay, Func<Task>? syncFromContractTracker = null)
@@ -57,7 +60,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         _syncFromContractTracker = syncFromContractTracker;
         _fillOrder = overlay.Plan?.FillOrder ?? FillOrder.BowFirst;
         _missions = overlay.Missions;
-        Ships = ShipChoices.Of(overlay.Ships);
+        _shipId = overlay.Ship.Id;
         Rows = [.. RowsOf(overlay)];
         if (Rows.Count == 0)
         {
@@ -95,29 +98,8 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         }
     }
 
-    /// <summary>The ship selection (T7.2): the overlay's catalog grouped by manufacturer, ships that didn't load last.</summary>
-    public IReadOnlyList<ShipChoice> Ships { get; }
-
-    /// <summary>The entry of the overlay's ship; unlike the rows no draft, a change takes effect at once (D59).</summary>
-    public ShipChoice CurrentShip => Ships.First(c => c.Id == _overlay.Ship.Id);
-
-    /// <summary>The dialog text before <see cref="ChangeShip"/>; null = change at once (<see cref="OverlayViewModel.ShipChangeQuestion"/>).</summary>
-    public string? ShipChangeQuestion(ShipChoice choice) => choice.Ship is { } ship ? _overlay.ShipChangeQuestion(ship) : null;
-
-    /// <summary>
-    /// Puts the overlay on the chosen ship, which replans its plan (D59). The rows stay as they are, edited or not: the
-    /// missions are the same, so there is nothing to reload and no "changed outside" to report.
-    /// </summary>
-    public void ChangeShip(ShipChoice choice)
-    {
-        if (choice.Ship is not { } ship)
-        {
-            return;
-        }
-
-        ChangeOverlay(() => _overlay.ChangeShip(ship));
-        _missions = _overlay.Missions;
-    }
+    /// <summary>The ship the rows are planned for; changed in the overlay header, not here (T7.2b).</summary>
+    public string ShipName => _overlay.Ship.Name;
 
     /// <summary>The rows went to the overlay as a new plan; the window closes on it (D19). Not raised when planning fails.</summary>
     public event EventHandler? Planned;
@@ -361,7 +343,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     {
         if (e.PropertyName == nameof(OverlayViewModel.Ship))
         {
-            OnPropertyChanged(nameof(CurrentShip));
+            OnPropertyChanged(nameof(ShipName));
             return;
         }
 
@@ -377,6 +359,15 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         // A tick keeps the missions; a capture, a waiting mission placed or one dropped in the legend doesn't.
         if (_ownChange || ReferenceEquals(_overlay.Missions, _missions))
         {
+            return;
+        }
+
+        // A ship change from the header (T7.2b): the overlay sets its ship before the replanned plan. The missions are
+        // the same, so the rows stay as they are, edited or not, and there is no "changed outside" to report.
+        if (_overlay.Ship.Id != _shipId)
+        {
+            _shipId = _overlay.Ship.Id;
+            _missions = _overlay.Missions;
             return;
         }
 

@@ -72,7 +72,27 @@ public class ShipChangeTests
         viewModel.Notices.Should().NotContain(n => n.StartsWith("Plan was made for", StringComparison.Ordinal));
     }
 
-    // --- A ship change from the editor ---
+    // --- A ship change from the overlay header (T7.2b) ---
+
+    [Fact]
+    public void ShipSelection_lists_the_catalog_and_CurrentShipChoice_is_the_ships()
+    {
+        var viewModel = Overlay(HullA);
+
+        viewModel.ShipSelection.Should().HaveCount(Catalog.Ships.Count + Catalog.Problems.Count);
+        viewModel.CurrentShipChoice.Id.Should().Be("hull_a");
+    }
+
+    [Fact]
+    public void ChangeShip_moves_CurrentShipChoice()
+    {
+        var viewModel = Overlay(HullA);
+
+        var changes = Changes(viewModel, () => viewModel.ChangeShip(C2));
+
+        viewModel.CurrentShipChoice.Id.Should().Be("c2_hercules");
+        changes.Should().Contain(nameof(OverlayViewModel.CurrentShipChoice));
+    }
 
     [Fact]
     public void ChangeShip_without_a_plan_shows_the_empty_new_ship()

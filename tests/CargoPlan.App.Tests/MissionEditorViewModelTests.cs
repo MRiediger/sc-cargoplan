@@ -31,42 +31,33 @@ public sealed class MissionEditorViewModelTests : IDisposable
         return overlay;
     }
 
-    // --- Ship selection (T7.2) ---
+    // --- The ship, changed in the overlay header (T7.2b) ---
+
+    private static readonly ShipCatalog Catalog = ShipLoader.LoadAll();
 
     private static OverlayViewModel OverlayOfCatalog()
     {
-        var catalog = ShipLoader.LoadAll();
-        var overlay = new OverlayViewModel(catalog.Get("hull_a"), catalog);
+        var overlay = new OverlayViewModel(Catalog.Get("hull_a"), Catalog);
         overlay.ShowPlan(TestPlans.SplitAndShared());
         return overlay;
     }
 
     [Fact]
-    public void Ships_list_the_overlays_catalog_and_CurrentShip_is_the_overlays()
-    {
-        var editor = new MissionEditorViewModel(OverlayOfCatalog());
-
-        editor.Ships.Should().HaveCount(ShipLoader.LoadAll().Ships.Count);
-        editor.CurrentShip.Id.Should().Be("hull_a");
-    }
-
-    [Fact]
-    public void ChangeShip_moves_the_overlay_and_CurrentShip_follows()
+    public void ShipName_is_the_overlays_and_follows_a_ship_change()
     {
         var overlay = OverlayOfCatalog();
         var editor = new MissionEditorViewModel(overlay);
         List<string?> changed = [];
         editor.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
 
-        editor.ChangeShip(editor.Ships.Single(c => c.Id == "c2_hercules"));
+        overlay.ChangeShip(Catalog.Get("c2_hercules"));
 
-        overlay.Plan!.ShipId.Should().Be("c2_hercules");
-        editor.CurrentShip.Id.Should().Be("c2_hercules");
-        changed.Should().Contain(nameof(MissionEditorViewModel.CurrentShip));
+        editor.ShipName.Should().Be("CRUS C2 Hercules");
+        changed.Should().Contain(nameof(MissionEditorViewModel.ShipName));
     }
 
     [Fact]
-    public void ChangeShip_keeps_a_dirty_draft_and_says_nothing_of_a_change_outside()
+    public void A_ship_change_keeps_a_dirty_draft_and_says_nothing_of_a_change_outside()
     {
         var overlay = OverlayOfCatalog();
         var editor = new MissionEditorViewModel(overlay);
@@ -74,7 +65,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
         Fill(editor.Rows[^1], "Area18", "Stims", "4", 4);
         var rows = editor.Rows.Count;
 
-        editor.ChangeShip(editor.Ships.Single(c => c.Id == "c2_hercules"));
+        overlay.ChangeShip(Catalog.Get("c2_hercules"));
 
         editor.IsDirty.Should().BeTrue();
         editor.Rows.Should().HaveCount(rows);
@@ -82,26 +73,17 @@ public sealed class MissionEditorViewModelTests : IDisposable
     }
 
     [Fact]
-    public void ChangeShip_with_a_clean_draft_keeps_the_rows_and_stays_clean()
+    public void A_ship_change_keeps_a_clean_draft_clean()
     {
         var overlay = OverlayOfCatalog();
         var editor = new MissionEditorViewModel(overlay);
         var rows = editor.Rows.Select(r => (r.Destination, r.Commodity, r.Scu)).ToList();
 
-        editor.ChangeShip(editor.Ships.Single(c => c.Id == "c2_hercules"));
+        overlay.ChangeShip(Catalog.Get("c2_hercules"));
         overlay.ToggleDeliveredCommand.Execute("Riker");
 
         editor.IsDirty.Should().BeFalse();
         editor.Rows.Select(r => (r.Destination, r.Commodity, r.Scu)).Should().Equal(rows);
-    }
-
-    [Fact]
-    public void ShipChangeQuestion_is_the_overlays()
-    {
-        var editor = new MissionEditorViewModel(OverlayOfCatalog());
-
-        editor.ShipChangeQuestion(editor.Ships.Single(c => c.Id == "c2_hercules"))
-            .Should().Be(OverlayViewModel.ReplanQuestionText("CRUS C2 Hercules"));
     }
 
     private static void Fill(MissionRow row, string destination, string commodity, string scu, int maxCrateSize)

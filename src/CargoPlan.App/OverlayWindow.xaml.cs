@@ -1,7 +1,10 @@
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Interop;
+using System.Windows.Threading;
+using CargoPlan.App.Editor;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.App.Theme;
@@ -39,6 +42,7 @@ public partial class OverlayWindow : Window
         _syncFromContractTracker = syncFromContractTracker;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
+        ShowCurrentShip();
     }
 
     // The HWND exists from SourceInitialized on; before that there is no native window to style.
@@ -66,6 +70,58 @@ public partial class OverlayWindow : Window
         {
             ApplyHidden(this, _viewModel.IsOverlayHidden);
         }
+        else if (e.PropertyName == nameof(OverlayViewModel.CurrentShipChoice))
+        {
+            ShowCurrentShip();
+        }
+    }
+
+    // --- Ship selection (T7.2b) ---
+    // The box is not focusable, so keys don't reach it and the wheel doesn't select in the closed box: a selection
+    // changes only by a click in the open list, and every selection change is a choice (as in the editor, T7.2).
+
+    private bool _showingShip;
+
+    /// <summary>The overlay's ship in the box, without counting as a choice.</summary>
+    private void ShowCurrentShip()
+    {
+        _showingShip = true;
+        try
+        {
+            ShipBox.SelectedItem = _viewModel.CurrentShipChoice;
+        }
+        finally
+        {
+            _showingShip = false;
+        }
+    }
+
+    private void OnShipSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_showingShip || ShipBox.SelectedItem is not ShipChoice choice || choice.Id == _viewModel.Ship.Id)
+        {
+            return;
+        }
+
+        // After the list has closed (a click selects before it closes), so the dialog doesn't sit under the open popup.
+        Dispatcher.BeginInvoke(() => ChangeShip(choice), DispatcherPriority.Background);
+    }
+
+    /// <summary>
+    /// Asks first when there is a plan (D59); declined or not loadable, the box shows the overlay's ship again. The dialog
+    /// takes the foreground; a click into the game gives it back (spike T7.2b over Star Citizen).
+    /// </summary>
+    private void ChangeShip(ShipChoice choice)
+    {
+        if (choice.Ship is not { } ship
+            || (_viewModel.ShipChangeQuestion(ship) is { } question
+                && MessageBox.Show(this, question, "Change ship", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes))
+        {
+            ShowCurrentShip();
+            return;
+        }
+
+        _viewModel.ChangeShip(ship);
     }
 
     /// <summary>
@@ -110,6 +166,13 @@ public partial class OverlayWindow : Window
     {
         // Before the HWND check: the view must ignore wheel and drag even before the window shows.
         ShipView.IsNavigationEnabled = !locked;
+
+        // The ship list is a window of its own and not click-through: left open over the game it would catch clicks.
+        // The padlock and the game taking the mouse close it anyway, the lock hotkey doesn't (spike T7.2b: 0 of 5).
+        if (locked)
+        {
+            ShipBox.IsDropDownOpen = false;
+        }
 
         var hwnd = new WindowInteropHelper(this).Handle;
         if (hwnd == 0)
@@ -207,6 +270,13 @@ public partial class OverlayWindow : Window
     }
 
     // Borderless window: drag on header, hint lines and border. The ship view (orbit) and the legend's stop lines
-    // handle their own left clicks, so this never runs there (D15, D16).
-    private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e) => DragMove();
+    // handle their own left clicks, so this never runs there (D15, D16). Clicks in the open ship list (a group header)
+    // bubble up to here too: the popup's logical parent is the box.
+    private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (!ShipBox.IsDropDownOpen)
+        {
+            DragMove();
+        }
+    }
 }

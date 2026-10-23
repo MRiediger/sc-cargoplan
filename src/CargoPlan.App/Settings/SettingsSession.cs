@@ -97,7 +97,7 @@ public sealed class SettingsSession
     }
 
     /// <summary>
-    /// From a ship change in the editor (T7.2): saved after <see cref="Debounce"/> like a hotkey. Applying it is the
+    /// From a ship change in the overlay header (T7.2b): saved after <see cref="Debounce"/> like a hotkey. Applying it is the
     /// overlay's job (it replans, D59); the start's fallback ship never comes here, so the file keeps the choice.
     /// </summary>
     public void ChangeShip(string shipId)

@@ -68,6 +68,155 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        <!-- The header's ship selection (T7.2b): closed it looks like the ship name, with a chevron; the list in the header's
+             colours on the window colour without transparency, since it stands over the game. Not focusable, like the
+             header buttons: focusing would activate the overlay. Without keyboard focus the closed box ignores the wheel,
+             and a selection changes only by a click in the open list.
+             Parts: https://learn.microsoft.com/dotnet/desktop/wpf/controls/combobox (PART_Popup, ItemsPresenter in a
+             ScrollViewer). Source: dotnet/wpf, PresentationFramework/System/Windows/Controls/ComboBox.cs (OnMouseWheel) -->
+        <!-- The ship list's scroll track left and right of the thumb: invisible, but it takes the click that pages. -->
+        <Style x:Key="ShipListPageButtonStyle" TargetType="RepeatButton">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="ShipBoxStyle" TargetType="ComboBox">
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="MaxDropDownHeight" Value="420" />
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Text, Mode=OneTime}" MaxWidth="420" TextTrimming="CharacterEllipsis"
+                                   Foreground="{DynamicResource HeaderForegroundBrush}" />
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <!-- Ships that didn't load stay visible with their reason (D56), but can't be chosen. Without the
+                         automation name a screen reader reads the record's ToString(). -->
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Focusable" Value="False" />
+                        <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
+                        <Setter Property="IsEnabled" Value="{Binding IsSelectable, Mode=OneTime}" />
+                        <Setter Property="ToolTip" Value="{Binding Problem, Mode=OneTime}" />
+                        <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Grid Background="{StaticResource HitTestBackgroundBrush}">
+                                        <Border x:Name="Highlight" Background="{DynamicResource HeaderForegroundBrush}" Opacity="0" />
+                                        <ContentPresenter x:Name="Content" Margin="16,2,8,2" />
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Highlight" Property="Opacity" Value="0.12" />
+                                        </Trigger>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="Highlight" Property="Opacity" Value="0.25" />
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter TargetName="Content" Property="Opacity" Value="0.5" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <!-- Opens on press, as the system's box does; the ComboBox closes it again. -->
+                            <ToggleButton Focusable="False" ClickMode="Press" Cursor="Hand"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <DockPanel Background="{StaticResource HitTestBackgroundBrush}">
+                                            <!-- E70D ChevronDown. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                                            <TextBlock DockPanel.Dock="Right" Text="&#xE70D;" FontFamily="{StaticResource IconFontFamily}"
+                                                       FontSize="10" Margin="6,4,0,0"
+                                                       Foreground="{DynamicResource HeaderForegroundBrush}"
+                                                       Effect="{DynamicResource HeaderHaloEffect}" />
+                                            <TextBlock Text="{Binding Ship.Name, Mode=OneWay}" FontWeight="Bold"
+                                                       TextTrimming="CharacterEllipsis" Style="{StaticResource HeaderTextStyle}" />
+                                        </DockPanel>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+                            <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom"
+                                   AllowsTransparency="True" Focusable="False" PopupAnimation="None">
+                                <Border MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                        Background="{DynamicResource WindowOpaqueBackgroundBrush}"
+                                        BorderBrush="{DynamicResource HeaderForegroundBrush}" BorderThickness="1"
+                                        CornerRadius="4" Padding="0,2">
+                                    <ScrollViewer>
+                                        <ScrollViewer.Resources>
+                                            <!-- A slim bar in the header's colour instead of the system's light grey one: no
+                                                 arrows, an invisible track that pages on click, a thumb that brightens under
+                                                 the mouse. Vertical only, the list doesn't scroll sideways.
+                                                 Parts: https://learn.microsoft.com/dotnet/desktop/wpf/controls/scrollbar (PART_Track) -->
+                                            <Style TargetType="ScrollBar">
+                                                <Setter Property="Width" Value="8" />
+                                                <Setter Property="MinWidth" Value="8" />
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ScrollBar">
+                                                            <!-- Reversed: a vertical track counts upwards, a scroll bar downwards. -->
+                                                            <Track x:Name="PART_Track" IsDirectionReversed="True" Margin="2,2,2,2">
+                                                                <Track.DecreaseRepeatButton>
+                                                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Style="{StaticResource ShipListPageButtonStyle}" />
+                                                                </Track.DecreaseRepeatButton>
+                                                                <Track.IncreaseRepeatButton>
+                                                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Style="{StaticResource ShipListPageButtonStyle}" />
+                                                                </Track.IncreaseRepeatButton>
+                                                                <Track.Thumb>
+                                                                    <Thumb>
+                                                                        <Thumb.Template>
+                                                                            <ControlTemplate TargetType="Thumb">
+                                                                                <Border x:Name="Grip" CornerRadius="2" Opacity="0.35"
+                                                                                        Background="{DynamicResource HeaderForegroundBrush}" />
+                                                                                <ControlTemplate.Triggers>
+                                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                                        <Setter TargetName="Grip" Property="Opacity" Value="0.6" />
+                                                                                    </Trigger>
+                                                                                    <Trigger Property="IsDragging" Value="True">
+                                                                                        <Setter TargetName="Grip" Property="Opacity" Value="0.6" />
+                                                                                    </Trigger>
+                                                                                </ControlTemplate.Triggers>
+                                                                            </ControlTemplate>
+                                                                        </Thumb.Template>
+                                                                    </Thumb>
+                                                                </Track.Thumb>
+                                                            </Track>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ScrollViewer.Resources>
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <!-- Locked: hidden like the header buttons; the name shows as text instead (header). -->
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <!-- Text button on the dark overlay: outline in the legend's text colour instead of the system's grey button.
              The outline is its own, not the glyph buttons' frame; background, corners and halo are the buttons' (D31). -->
         <Style x:Key="TextButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
@@ -140,11 +289,47 @@
                            Foreground="{StaticResource DeliveredForegroundBrush}"
                            Effect="{DynamicResource HeaderHaloEffect}"
                            Visibility="{Binding Scene.AllDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <TextBlock Text="{Binding Ship.Name, Mode=OneWay}"
-                           FontWeight="Bold"
-                           VerticalAlignment="Top"
-                           TextTrimming="CharacterEllipsis"
-                           Style="{StaticResource HeaderTextStyle}" />
+                <!-- The ship selection sits on the ship name, where haulers look for it (T7.2b, D59). Left-aligned, so the
+                     header right of the name still moves the window. Locked: the name as text, like the hidden buttons. -->
+                <Grid HorizontalAlignment="Left" VerticalAlignment="Top">
+                    <Grid.Resources>
+                        <!-- Grouped in the order of first appearance; ShipChoices.Of sorts. -->
+                        <CollectionViewSource x:Key="ShipsView" Source="{Binding ShipSelection, Mode=OneTime}">
+                            <CollectionViewSource.GroupDescriptions>
+                                <PropertyGroupDescription PropertyName="Group" />
+                            </CollectionViewSource.GroupDescriptions>
+                        </CollectionViewSource>
+                    </Grid.Resources>
+                    <ComboBox x:Name="ShipBox" Style="{StaticResource ShipBoxStyle}"
+                              ItemsSource="{Binding Source={StaticResource ShipsView}}"
+                              ToolTip="Your ship. Click to change it; a plan is planned anew for the new ship."
+                              SelectionChanged="OnShipSelectionChanged">
+                        <ComboBox.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="8,6,8,2"
+                                                   Foreground="{DynamicResource HeaderForegroundBrush}" />
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </ComboBox.GroupStyle>
+                    </ComboBox>
+                    <TextBlock Text="{Binding Ship.Name, Mode=OneWay}"
+                               FontWeight="Bold"
+                               TextTrimming="CharacterEllipsis">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource HeaderTextStyle}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
             </DockPanel>
 
             <!-- Problems with settings (D13), hotkeys (D17) and the plan file, one line per source (D18). Always the bottom

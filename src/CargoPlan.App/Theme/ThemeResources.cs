@@ -20,6 +20,7 @@ public static class ThemeResources
     public static class Keys
     {
         public const string WindowBackgroundBrush = nameof(WindowBackgroundBrush);
+        public const string WindowOpaqueBackgroundBrush = nameof(WindowOpaqueBackgroundBrush);
         public const string WindowBorderBrush = nameof(WindowBorderBrush);
         public const string WindowBorderThickness = nameof(WindowBorderThickness);
         public const string HeaderForegroundBrush = nameof(HeaderForegroundBrush);
@@ -41,7 +42,7 @@ public static class ThemeResources
 
         public static IReadOnlyList<string> All { get; } =
         [
-            WindowBackgroundBrush, WindowBorderBrush, WindowBorderThickness,
+            WindowBackgroundBrush, WindowOpaqueBackgroundBrush, WindowBorderBrush, WindowBorderThickness,
             HeaderForegroundBrush, HeaderHaloEffect,
             LegendForegroundBrush, LegendFontSize, LegendHaloEffect,
             CratesFillAlpha, CratesEdgeBrush, CratesRackNumberBrush, CratesRackNumberFontSize, CratesHaloBrush, CratesHaloSize,
@@ -54,6 +55,10 @@ public static class ThemeResources
     {
         var window = appearance.Window;
         resources[Keys.WindowBackgroundBrush] = Brush(window.Background);
+
+        // The header's ship list (T7.2b) stands over the game: a see-through window colour would leave it unreadable.
+        var background = Argb.Parse(window.Background);
+        resources[Keys.WindowOpaqueBackgroundBrush] = Frozen(new SolidColorBrush(Color.FromRgb(background.R, background.G, background.B)));
         resources[Keys.WindowBorderBrush] = Brush(window.BorderColor);
         resources[Keys.WindowBorderThickness] = new Thickness(window.BorderThickness);
 

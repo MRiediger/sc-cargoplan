@@ -40,7 +40,7 @@ public partial class App : Application
         base.OnStartup(e);
 
         // First: without the ships folder there is nothing to draw. One message, then the end, no crash dialog (D56).
-        // The catalog's problems (skipped ship files) are shown in the editor's ship selection (T7.2).
+        // The catalog's problems (skipped ship files) are shown in the header's ship selection (T7.2b).
         ShipCatalog ships;
         try
         {

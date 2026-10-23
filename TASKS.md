@@ -849,6 +849,20 @@ Befund T7.1c: 9×3×3 mit 32 + 40×1 braucht 1,57 Mio. Schritte (509 ms) und wir
 - Nebenbefund Planer (vorher schon so, ohne Wechsel nachgestellt): echte CT-Captures per `PlaceInto` in den Hull-A-Plan legen Kisten auf früher entladene Stopps (rot, weiche Regel D24-Addendum) → Beleg an der Backlog-Zeile „Stapelbewusste Partition“.
 - Befund für T7.3 (Screenshots im Scratchpad): Hull C 16 Racks als lange Diagonale, Kisten in Rack 1 kaum sichtbar, Zellraster dominiert, Bug-Keil winzig; Caterpillar 14 Racks in einer Reihe, Kisten klein, Racknummern über den Boxen.
 - Tests: Core 848 (738 + 7 Replan + 96 Schiffe + 8 PlanFile − 1 gestrichener Fremdschiff-Fall), + 1 `Slow`; App 849 (810 + 39); Import 93; Exhaustive und Slow grün, Goldens unverändert.
+- Nachtrag: Die Auswahl zog in T7.2b vom Editor in den Overlay-Header (Hauler-Feedback); der Editor zeigt nur noch „Ship: <Name>“.
+
+### [x] T7.2b Schiffsauswahl im Overlay-Header (Präzisierung zu T7.2, Hauler-Feedback)
+
+Martin hat die Auswahl im Editor nicht gefunden und am Schiffsnamen im Header gesucht. Die Auswahl zieht dorthin, keine neue Logik: `ShipChoices`, `ShipChangeQuestion`, `ChangeShip` bleiben, nur der Ort ändert sich. Gesperrt: Name als Text. Keine Tastatur (WS_EX_NOACTIVATE), Mausrad scrollt die Liste. Editor zeigt nur den Namen. Dialog gehört dem Overlay.
+
+**Präzisiert in der Planung (D59-Addendum):** Liste auf der Fensterfarbe ohne Alpha (`WindowOpaqueBackgroundBrush`), weil der Header-Abschnitt keinen Hintergrund hat und die Liste über dem Spiel steht. Commit wie T7.2 portiert (SelectionChanged + Guard, Dialog nach dem Schließen); Korrektur zum Tasktext: T7.2 übernimmt bei SelectionChanged, „nur Klick“ entsteht, weil die Box nicht fokussierbar ist. „Lock blendet aus“ per DataTrigger auf `IsLocked` wie die Header-Buttons, vorgeführt per UI Automation statt Unit-Test. Der Editor erkennt einen Wechsel von außen an der Schiffs-Id (vorher `_ownChange`). Liste schließt beim Lock; kein DragMove bei offener Liste. User Guide: Name ist entsperrt kein Ziehgriff mehr. Spike um f) ergänzt (Fokus und Lock nach dem Dialog); bei Fehlschlag wäre die Bestätigung ein Zustand im Overlay geworden. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+
+**Befund:**
+- Spike über SC (Martin, Borderless): a) Liste über dem Spiel ja, b) SC behält den Fokus nach Auswahl ja, c) Mausrad scrollt ja, d) Auto-Lock schließt die Liste ja, e) Schloss schließt sie ja, f) nach dem Dialog Klick ins Spiel reicht (kein Alt+Tab), Auto-Lock geht, nichts hängt. → MessageBox bleibt; Inline-Bestätigung wäre größer (VM-Zustand, Layout, Lock-Regel).
+- Ohne SC (UIA, temporäre Hotkeys): Popup-HWND `TOPMOST | NOACTIVATE | LAYERED | TOOLWINDOW`. Bei offener Liste schließt Schloss 5/5, Ausblenden 5/5, **Lock-Hotkey 0/5** → `ApplyLock` schließt die Liste explizit, danach 5/5.
+- App-Lauf (plan.json/settings.json gesichert und byte-gleich zurück): Box „MISC Hull A“, 96 Einträge in 13 Gruppen, Vorauswahl Hull A; gesperrt Box weg, Name als Text. Mit offenem, ungeplantem Editor: Nein → Hull A, nichts geschrieben; Ja → Header und Editor „CRUS C2 Hercules“, Editor behält 7 Zeilen und „unplanned changes“, kein „changed outside“, `ship: "c2_hercules"`, plan.json für die C2.
+- Sichtprüfung (Martin): Optik abgenommen; Bildlaufleiste der Liste auf Wunsch angeglichen: 8 px, keine Pfeile, Spur unsichtbar, Griff in Header-Farbe (35 %, unter der Maus 60 %), nur in der Schiffsliste.
+- Tests: App 850 (849 − 5 Editor-Auswahl + 3 Editor + 2 Overlay + 1 Theme); der Test „Wechsel von außen ≠ changed outside“ vor der Id-Erkennung rot gesehen. Core 848, Import 93.
 ### [ ] T7.3 Schiffsansicht bei großen Gittern – Hull C, C2: Racknummern (`RackNumberSize`: ein Wert für alle Racks), Fit, Legende
 Befund aus T7.2 (Hull C, Caterpillar, C2; Screenshots im T7.2-Scratchpad):
 1. Lange Reihe passt nicht ins Bild (Hull C 16, Caterpillar 14 Racks in der Diagonale, Kisten unkenntlich):
@@ -865,7 +879,7 @@ Je ein Schiff pro Problem: Hull C (1, 2, 4), Caterpillar (3), Starfarer als Norm
 - `ship-outlines.json` + `NOTICE.md` neben `ships/` im ZIP; Zuordnung über Schiffs-Id; ohne Eintrag bleibt der Keil.
 - Polygon unter den Racks, Themefarbe, Bow-Label bleibt wie D52 (Platz ohne Keil klären).
 - Sichtprüfung an 5 Schiffen im Overlay: Hull A, C2, Caterpillar, Reclaimer, 890 Jump (die drei letzten sind die zweideutigen).
-- Known issue (aus T7.2, D59): „On ships with large racks and many small crates, Plan can take a few seconds. The window doesn’t respond meanwhile.“
+- Known issue (aus T7.2, D59; T7.2b: Wechsel jetzt im Overlay): „On ships with large racks and many small crates, Plan or a ship change can take a few seconds. The overlay doesn’t respond meanwhile.“
 
 → Tag `v0.1.0` → T6.6 Nexus
 

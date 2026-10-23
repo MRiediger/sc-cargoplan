@@ -125,7 +125,7 @@ Both older versions are read and saved as schema 3 right after loading; moves an
 ## A plan for another ship
 
 A plan file whose `shipId` is not the overlay's ship loads anyway: its missions are planned anew for the
-overlay's ship, as a ship change in the editor does (D59). Missions, ContractTracker ids, the watermark, the fill
+overlay's ship, as a ship change in the overlay header does (D59). Missions, ContractTracker ids, the watermark, the fill
 order and the ticks of whole stops stay; crate positions and manual moves don't. If the missions don't fit as a
 whole plan, they go in mission by mission and the rest waits as "doesn't fit" in the legend. An amber line says
 "Plan was made for CRUS C2 Hercules, replanned for MISC Hull A.", and the next save writes the plan for the new ship.

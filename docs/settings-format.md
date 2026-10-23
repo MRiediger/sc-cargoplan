@@ -3,7 +3,7 @@
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
 the legend stands, the overlay's look, the tool windows' theme, where ContractTracker is and your ship. Position and size
 are saved whenever you move the overlay; the settings window (the gear in the header) sets and saves the look,
-the legend layout, the tool window theme, the hotkeys and the ContractTracker settings; the mission editor sets the ship. You can still edit the file by hand: close the overlay, edit the file, start
+the legend layout, the tool window theme, the hotkeys and the ContractTracker settings; the ship name in the overlay header sets the ship. You can still edit the file by hand: close the overlay, edit the file, start
 the overlay again.
 
 ## Example with every default
@@ -171,7 +171,8 @@ says "ContractTracker not found" and links to its page.
 ## Ship
 
 `ship` is the id of the ship you haul with, the name of its file in `ships/` without `.json` (`"c2_hercules"`).
-The **Ship** box of the mission editor writes it; changing it there plans the current plan anew for the new ship.
+The ship selection on the ship name in the overlay header writes it; changing it there plans the current plan anew for
+the new ship.
 
 | Value | What |
 |---|---|

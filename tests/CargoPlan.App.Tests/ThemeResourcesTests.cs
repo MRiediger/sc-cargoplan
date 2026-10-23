@@ -50,6 +50,14 @@ public sealed class ThemeResourcesTests
     }
 
     [Fact]
+    public void The_opaque_window_background_is_the_window_colour_without_its_alpha()
+    {
+        var resources = Applied(AppearanceSettings.Default);
+
+        ColorOf(resources, Keys.WindowOpaqueBackgroundBrush).Should().Be(Color.FromArgb(0xFF, 0x14, 0x14, 0x14));
+    }
+
+    [Fact]
     public void A_font_size_overrides_the_windows_size()
     {
         var resources = Applied(AppearanceSettings.Default with { Legend = LegendAppearance.Default with { FontSize = 16 } });

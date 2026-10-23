@@ -50,7 +50,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     public static string ReplannedText(string madeFor, string current) => $"Plan was made for {madeFor}, replanned for {current}.";
 
-    /// <summary>What the editor asks before a ship change with a plan (D59).</summary>
+    /// <summary>What the overlay asks before a ship change with a plan (D59).</summary>
     public static string ReplanQuestionText(string ship) =>
         $"Replan for {ship}? Crate positions change and manual moves are lost; split crates keep their sizes.";
 
@@ -60,6 +60,12 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public Ship Ship { get; private set; } = ship;
 
     public ShipCatalog Ships { get; } = ships ?? new ShipCatalog([ship], []);
+
+    /// <summary>The header's ship selection (T7.2b): the catalog grouped by manufacturer, ships that didn't load last.</summary>
+    public IReadOnlyList<ShipChoice> ShipSelection => field ??= ShipChoices.Of(Ships);
+
+    /// <summary>The entry of <see cref="Ship"/> in <see cref="ShipSelection"/>; follows <see cref="ChangeShip"/>.</summary>
+    public ShipChoice CurrentShipChoice => ShipSelection.First(c => c.Id == Ship.Id);
 
     /// <summary>
     /// The plan with its missions and the ContractTracker watermark: the one state every change goes through and
@@ -209,7 +215,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     }
 
     /// <summary>
-    /// The question before <see cref="ChangeShip"/> (D59), for the editor's dialog; null = change at once (no mission in
+    /// The question before <see cref="ChangeShip"/> (D59), for the overlay's dialog; null = change at once (no mission in
     /// the plan, or the same ship). Names the ticked stops, which keep their ticks.
     /// </summary>
     public string? ShipChangeQuestion(Ship ship)
@@ -253,6 +259,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         }
 
         OnPropertyChanged(nameof(Ship));
+        OnPropertyChanged(nameof(CurrentShipChoice));
     }
 
     /// <summary>

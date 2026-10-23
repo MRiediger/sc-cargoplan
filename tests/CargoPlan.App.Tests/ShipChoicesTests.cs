@@ -4,7 +4,7 @@ using CargoPlan.Core.Ships;
 
 namespace CargoPlan.App.Tests;
 
-/// <summary>Which ship the overlay starts with (T7.2), and the entries of the editor's ship selection.</summary>
+/// <summary>Which ship the overlay starts with (T7.2), and the entries of the header's ship selection (T7.2b).</summary>
 public class ShipChoicesTests
 {
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
@@ -44,7 +44,7 @@ public class ShipChoicesTests
     [Fact]
     public void Resolve_without_a_ship_in_the_settings_takes_the_plans_ship()
     {
-        // Not saved: settings.json gets "ship" only from a choice in the editor (D59).
+        // Not saved: settings.json gets "ship" only from a choice in the overlay header (D59, T7.2b).
         ShipChoices.Resolve(Catalog, null, "c2_hercules").Should().Be((C2, "Ship set to CRUS C2 Hercules from your plan."));
     }
 
