@@ -17,14 +17,16 @@ public sealed record ViewTransform(double Scale, Vector Offset)
     /// The largest scale that shows all of <paramref name="extent"/> with <paramref name="margin"/> on every side,
     /// centred. A viewport smaller than four margins shrinks the margin instead of losing the picture.
     /// </summary>
-    public static ViewTransform Fit(Rect extent, Size viewport, double margin)
+    /// <param name="top">Pixels kept free above the margin: room for the rack numbers above a long ship's racks (D61).</param>
+    public static ViewTransform Fit(Rect extent, Size viewport, double margin, double top = 0)
     {
-        var edge = Math.Min(margin, Math.Min(viewport.Width, viewport.Height) / 4);
+        var height = Math.Max(viewport.Height - top, 0);
+        var edge = Math.Min(margin, Math.Min(viewport.Width, height) / 4);
         var scale = Math.Max(
-            Math.Min((viewport.Width - 2 * edge) / extent.Width, (viewport.Height - 2 * edge) / extent.Height),
+            Math.Min((viewport.Width - 2 * edge) / extent.Width, (height - 2 * edge) / extent.Height),
             MinScale);
 
-        Vector centre = new(viewport.Width / 2, viewport.Height / 2);
+        Vector centre = new(viewport.Width / 2, height / 2 + top);
         Vector extentCentre = new(extent.X + extent.Width / 2, extent.Y + extent.Height / 2);
         return new ViewTransform(scale, centre - extentCentre * scale);
     }

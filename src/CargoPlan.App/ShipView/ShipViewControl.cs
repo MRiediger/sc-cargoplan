@@ -33,6 +33,12 @@ public sealed class ShipViewControl : FrameworkElement
 
     private const double CrateEdgeWidth = 0.5;
 
+    // A long ship's empty racks stay visible behind the loaded ones the fit shows, but don't compete with them (D61).
+    private const double EmptyRackOpacity = 0.4;
+
+    // On a long ship the rack number stands this many pixels above its rack (D61).
+    private const double LabelGap = 4;
+
     private static readonly Pen FramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Frame), 1) { DashStyle = DashStyles.Dash });
     private static readonly Pen FreeCellPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.FreeEdge), CrateEdgeWidth));
     private static readonly Pen RackPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 1));
@@ -71,7 +77,7 @@ public sealed class ShipViewControl : FrameworkElement
         nameof(Scene),
         typeof(ShipScene),
         typeof(ShipViewControl),
-        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, (d, _) => ((ShipViewControl)d).OnSceneChanged()));
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender, (d, e) => ((ShipViewControl)d).OnSceneChanged((ShipScene?)e.OldValue)));
 
     /// <summary>Runs with the clicked cargo's destination as parameter.</summary>
     public static readonly DependencyProperty ToggleStopCommandProperty = DependencyProperty.Register(
@@ -268,30 +274,38 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         // Plain rack edges first: cargo in front covers them like any other part of the ship (D21).
+        var isLong = IsoProjection.IsLong(source.Bounds);
         foreach (var rack in scene.Racks.Where(r => !IsHighlighted(r, target)))
         {
-            DrawEdges(dc, rack, RackPen, transform);
+            Dimmed(dc, isLong && !rack.IsLoaded, () => DrawEdges(dc, rack, RackPen, transform));
         }
 
         // Rack by rack back to front, each rack's boxes back to front: the boxes in front cover the ones behind (D21).
-        foreach (var box in scene.Racks.SelectMany(r => r.Boxes))
+        // Free cells only as far as the screen size allows (D61).
+        foreach (var rack in scene.Racks)
         {
-            var fade = drag is { } d && box.Box.Crate is { } crate && d.Dragged.Contains(crate);
-            if (fade)
+            Dimmed(dc, isLong && !rack.IsLoaded, () =>
             {
-                dc.PushOpacity(DraggedOpacity);
-            }
+                foreach (var box in rack.Boxes.Where(b => b.Box.Fill != CellFill.Free || FreeCellGrid.Draws(b.Box, transform.Scale)))
+                {
+                    var fade = drag is { } d && box.Box.Crate is { } crate && d.Dragged.Contains(crate);
+                    if (fade)
+                    {
+                        dc.PushOpacity(DraggedOpacity);
+                    }
 
-            var (fill, pen) = box.Box.Fill == CellFill.Free ? (null, FreeCellPen) : (paint.Fill(box.Box), paint.CrateEdge);
-            foreach (var face in box.Faces)
-            {
-                dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
-            }
+                    var (fill, pen) = box.Box.Fill == CellFill.Free ? (null, FreeCellPen) : (paint.Fill(box.Box), paint.CrateEdge);
+                    foreach (var face in box.Faces)
+                    {
+                        dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
+                    }
 
-            if (fade)
-            {
-                dc.Pop();
-            }
+                    if (fade)
+                    {
+                        dc.Pop();
+                    }
+                }
+            });
         }
 
         if (scene.BowWedge.InFront)
@@ -357,8 +371,24 @@ public sealed class ShipViewControl : FrameworkElement
                 numberSize,
                 labelBrush,
                 pixelsPerDip);
+            // Above its rack the number stands on its baseline (D61); on its face it is centred.
             var centre = transform.Apply(rack.LabelCentre);
-            DrawLabel(dc, text.BuildGeometry(new Point(centre.X - text.Width / 2, centre.Y - text.Height / 2)), labelBrush, paint);
+            var top = rack.LabelAbove ? centre.Y - LabelGap - text.Baseline : centre.Y - text.Height / 2;
+            DrawLabel(dc, text.BuildGeometry(new Point(centre.X - text.Width / 2, top)), labelBrush, paint);
+        }
+    }
+
+    private static void Dimmed(DrawingContext dc, bool dimmed, Action draw)
+    {
+        if (dimmed)
+        {
+            dc.PushOpacity(EmptyRackOpacity);
+        }
+
+        draw();
+        if (dimmed)
+        {
+            dc.Pop();
         }
     }
 
@@ -386,7 +416,7 @@ public sealed class ShipViewControl : FrameworkElement
         // Reset only off the cargo: there the second click of a double-click is a click of its own and ticks back.
         if (e.ClickCount == 2 && DestinationAt(e.GetPosition(this)) is null)
         {
-            Navigate(ViewNavigation.Default);
+            Navigate(Scene is { } scene ? ViewNavigation.DefaultFor(scene.Bounds) : ViewNavigation.Default);
             return;
         }
 
@@ -583,13 +613,24 @@ public sealed class ShipViewControl : FrameworkElement
 
     private ProjectedScene? Projected() => Scene is { } scene ? _projected ??= SceneProjector.Project(scene, _navigation.Camera) : null;
 
-    // The fit follows the projected extent, so the ship stays in view while the camera turns.
-    private ViewTransform CurrentTransform(ProjectedScene scene) => _navigation.On(ViewTransform.Fit(scene.Extent, RenderSize, FitMargin));
+    // The fit follows the projected extent, so the ship stays in view while the camera turns; on a long ship it shows the
+    // loaded racks and keeps room on top for the numbers standing above them (D61).
+    private ViewTransform CurrentTransform(ProjectedScene scene) => _navigation.On(ViewTransform.Fit(
+        scene.FitExtent,
+        RenderSize,
+        FitMargin,
+        scene.Racks.Any(r => r.LabelAbove) ? RackNumberFontSize + LabelGap + RackNumberHaloSize : 0));
 
-    private void OnSceneChanged()
+    private void OnSceneChanged(ShipScene? old)
     {
         _projected = null;
         ShowToolTip(null);
+
+        // Another ship starts from its own default camera (D61); a tick or a new plan on the same ship keeps the view (D16).
+        if (Scene is { } scene && old?.Ship.Id != scene.Ship.Id)
+        {
+            _navigation = ViewNavigation.DefaultFor(scene.Bounds);
+        }
 
         // A drag holds crates of the old plan; Core would not find them in the new one.
         ReleaseMouseCapture();

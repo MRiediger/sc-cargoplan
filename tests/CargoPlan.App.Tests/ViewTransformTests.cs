@@ -53,6 +53,25 @@ public class ViewTransformTests
     }
 
     [Fact]
+    public void Fit_with_room_on_top_keeps_that_room_free_above_the_extent()
+    {
+        // Rack numbers standing above the racks of a long ship need it (D61).
+        Size viewport = new(400, 300);
+
+        var fit = ViewTransform.Fit(Extent, viewport, Margin, top: 30);
+
+        fit.Apply(Extent.TopLeft).Y.Should().BeApproximately(Margin + 30, 1e-9);
+        fit.Scale.Should().BeApproximately((300 - 30 - 2 * Margin) / Extent.Height, 1e-9);
+        ShouldBeInside(fit.Apply(Extent.BottomRight), viewport);
+    }
+
+    [Fact]
+    public void Fit_without_room_on_top_is_the_plain_fit()
+    {
+        ViewTransform.Fit(Extent, new Size(400, 300), Margin, top: 0).Should().Be(ViewTransform.Fit(Extent, new Size(400, 300), Margin));
+    }
+
+    [Fact]
     public void Inverting_undoes_applying()
     {
         var fit = ViewTransform.Fit(Extent, new Size(400, 300), Margin);

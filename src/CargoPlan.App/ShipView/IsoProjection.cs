@@ -24,8 +24,11 @@ public sealed record IsoProjection
     /// <summary>A ship longer than this many times its width is long (D61).</summary>
     public const double LongShipRatio = 2;
 
-    /// <summary>The default camera's yaw for a long ship: from port, the length lies level and the bow points left (D61).</summary>
-    public const double LongShipYaw = 90;
+    /// <summary>
+    /// The default camera's yaw for a long ship: from port, the length nearly level and the bow pointing left; the bow
+    /// faces still show, so crates behind each other stay countable (D61, 90° hid them).
+    /// </summary>
+    public const double LongShipYaw = 70;
 
     /// <summary>Longer along x than <see cref="LongShipRatio"/> times its width along y: one row of racks, seen best from the side (D61).</summary>
     public static bool IsLong(ShipBox bounds) => bounds.Max.X - bounds.Min.X > LongShipRatio * (bounds.Max.Y - bounds.Min.Y);

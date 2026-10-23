@@ -70,7 +70,14 @@
                         ToolTip="Which end of each rack the crates fill from. Takes effect when you press Plan.">
                 <TextBlock Text="Fill order:" VerticalAlignment="Center" Margin="0,0,4,0" />
                 <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.FillOrders}" DisplayMemberPath="Text"
-                          SelectedValuePath="Value" SelectedValue="{Binding FillOrder}" MinWidth="90" />
+                          SelectedValuePath="Value" SelectedValue="{Binding FillOrder}" MinWidth="90">
+                    <!-- Without a name a screen reader reads the record's ToString(), as for the ship list (T7.2). -->
+                    <ComboBox.ItemContainerStyle>
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
+                        </Style>
+                    </ComboBox.ItemContainerStyle>
+                </ComboBox>
             </StackPanel>
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
