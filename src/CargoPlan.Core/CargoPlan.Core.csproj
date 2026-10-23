@@ -16,4 +16,9 @@
     <None Include="..\..\ships\*.json" Link="ships\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
+  <!-- Ship outlines (D55) the same way, with their licence note: not under the repo's MIT licence, so a folder of their own. -->
+  <ItemGroup>
+    <None Include="..\..\outlines\*" Link="outlines\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
+  </ItemGroup>
+
 </Project>

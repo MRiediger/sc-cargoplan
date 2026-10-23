@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-22",
+  "ships": [
+    { "slug": "good-ship", "name": "Good Ship", "lengthM": 20.0, "outline": [[10, 0], [-10, 5], [-10, -5]] },
+    { "slug": "two-points", "outline": [[10, 0], [-10, 5]] },
+    { "slug": "three-numbers", "outline": [[10, 0, 1], [-10, 5, 1], [-10, -5, 1]] },
+    { "slug": "good-ship", "outline": [[1, 0], [-1, 1], [-1, -1]] },
+    { "outline": [[10, 0], [-10, 5], [-10, -5]] },
+    { "slug": "flat", "outline": [[10, 0], [-10, 0], [0, 0]] },
+    { "slug": "second-good", "outline": [[5, 0], [-5, 2], [-5, -2], [0, -1]] }
+  ]
+}
