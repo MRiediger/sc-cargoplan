@@ -235,6 +235,44 @@ public sealed class SettingsStoreTests : IDisposable
         problem.Should().StartWith("Settings not loaded");
     }
 
+    // Ship (T7.2, D59)
+
+    [Fact]
+    public void Save_then_Load_keeps_the_ship()
+    {
+        var settings = AppSettings.Default with { Ship = "c2_hercules" };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+        File.ReadAllText(SettingsPath).Should().Contain("\"ship\": \"c2_hercules\"");
+    }
+
+    [Theory]
+    [InlineData("""{ "schemaVersion": 2 }""")]
+    [InlineData("""{ "schemaVersion": 2, "ship": null }""")]
+    public void File_without_a_ship_names_none_without_a_problem(string content)
+    {
+        // Optional, no schemaVersion bump (D31); the start picks the ship then (plan.json's or the Hull A).
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Ship.Should().BeNull();
+    }
+
+    [Fact]
+    public void An_unknown_ship_is_kept_as_written()
+    {
+        // Only the ship catalog knows which ships load; the start falls back and says so, the file keeps the choice.
+        WriteFile("""{ "schemaVersion": 2, "ship": "nope" }""");
+
+        SettingsStore.Load(SettingsPath).Settings.Ship.Should().Be("nope");
+    }
+
     // Tool window theme (T4.7b, D36)
 
     [Fact]

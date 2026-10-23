@@ -329,6 +329,34 @@ public sealed class SettingsSessionTests : IDisposable
         Saved().Should().Be(AppSettings.Default with { Overlay = Bounds, Appearance = Thick, Hotkeys = hotkeys, ContractTracker = changed });
     }
 
+    // Ship (T7.2)
+
+    [Fact]
+    public void ChangeShip_writes_on_flush_and_keeps_the_rest()
+    {
+        var session = Create(AppSettings.Default with { Overlay = Bounds, Appearance = Thick });
+
+        session.ChangeShip("c2_hercules");
+
+        session.Current.Ship.Should().Be("c2_hercules");
+        File.Exists(SettingsPath).Should().BeFalse();
+
+        session.Flush();
+
+        Saved().Should().Be(AppSettings.Default with { Overlay = Bounds, Appearance = Thick, Ship = "c2_hercules" });
+    }
+
+    [Fact]
+    public void ChangeShip_to_the_ship_already_set_writes_nothing()
+    {
+        var session = Create(AppSettings.Default with { Ship = "c2_hercules" });
+
+        session.ChangeShip("c2_hercules");
+        session.Flush();
+
+        File.Exists(SettingsPath).Should().BeFalse();
+    }
+
     [Fact]
     public void ChangeLook_keeps_the_ContractTracker_settings()
     {

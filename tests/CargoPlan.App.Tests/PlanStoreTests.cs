@@ -107,6 +107,16 @@ public sealed class PlanStoreTests : IDisposable
     }
 
     [Fact]
+    public void PeekShipId_reads_the_plans_ship_and_null_without_a_file()
+    {
+        PlanStore.PeekShipId(PlanPath).Should().BeNull();
+
+        PlanStore.Save(PlanPath, TestPlans.SplitAndShared());
+
+        PlanStore.PeekShipId(PlanPath).Should().Be("hull_a");
+    }
+
+    [Fact]
     public void Save_creates_the_missing_folder_and_leaves_no_temp_file_behind()
     {
         PlanStore.Save(PlanPath, TestPlans.SplitAndShared());

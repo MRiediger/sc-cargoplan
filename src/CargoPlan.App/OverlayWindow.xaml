@@ -140,7 +140,7 @@
                            Foreground="{StaticResource DeliveredForegroundBrush}"
                            Effect="{DynamicResource HeaderHaloEffect}"
                            Visibility="{Binding Scene.AllDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <TextBlock Text="{Binding Ship.Name, Mode=OneTime}"
+                <TextBlock Text="{Binding Ship.Name, Mode=OneWay}"
                            FontWeight="Bold"
                            VerticalAlignment="Top"
                            TextTrimming="CharacterEllipsis"

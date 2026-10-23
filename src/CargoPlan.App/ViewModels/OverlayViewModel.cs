@@ -50,7 +50,14 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     public static string ReplannedText(string madeFor, string current) => $"Plan was made for {madeFor}, replanned for {current}.";
 
-    public Ship Ship { get; } = ship;
+    /// <summary>What the editor asks before a ship change with a plan (D59).</summary>
+    public static string ReplanQuestionText(string ship) =>
+        $"Replan for {ship}? Crate positions change and manual moves are lost; split crates keep their sizes.";
+
+    public static string TicksStayText(int stops) => $"{stops} {(stops == 1 ? "stop" : "stops")} already ticked – ticks stay.";
+
+    /// <summary>The ship the plan, the ship view and the header are for; changed only by <see cref="ChangeShip"/>.</summary>
+    public Ship Ship { get; private set; } = ship;
 
     public ShipCatalog Ships { get; } = ships ?? new ShipCatalog([ship], []);
 
@@ -199,6 +206,53 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             _contractTrackerPaused = false;
             SetNotice(NoticeSource.ContractTracker, null);
         }
+    }
+
+    /// <summary>
+    /// The question before <see cref="ChangeShip"/> (D59), for the editor's dialog; null = change at once (no mission in
+    /// the plan, or the same ship). Names the ticked stops, which keep their ticks.
+    /// </summary>
+    public string? ShipChangeQuestion(Ship ship)
+    {
+        if (Missions.Count == 0 || ship.Id == Ship.Id)
+        {
+            return null;
+        }
+
+        var ticked = Scene.Legend.Count(l => l.Delivered);
+        return ticked == 0
+            ? ReplanQuestionText(ship.Name)
+            : ReplanQuestionText(ship.Name) + Environment.NewLine + TicksStayText(ticked);
+    }
+
+    /// <summary>
+    /// Puts the overlay on another ship (D59): the plan is planned anew for it (<see cref="LoadPlanner.Replan"/>), the
+    /// missions, ticks and the watermark stay, so the ContractTracker sync goes on as before. Without a plan only the ship
+    /// view changes. Clears the start's ship and replan notices: the player chose.
+    /// </summary>
+    public void ChangeShip(Ship ship)
+    {
+        if (ship.Id == Ship.Id)
+        {
+            return;
+        }
+
+        // Planned before the switch: the scene is built once, for the new ship with its plan.
+        var replanned = Saved is { } saved ? LoadPlanner.Replan(saved, ship) : null;
+        Ship = ship;
+        SetNotice(NoticeSource.Ship, null);
+        SetNotice(NoticeSource.Replan, null);
+        if (replanned is null)
+        {
+            Scene = EmptyScene(ship);
+            OnPropertyChanged(nameof(Scene));
+        }
+        else
+        {
+            Saved = replanned;
+        }
+
+        OnPropertyChanged(nameof(Ship));
     }
 
     /// <summary>

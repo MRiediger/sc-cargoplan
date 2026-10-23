@@ -37,6 +37,29 @@ public static class PlanStore
         }
     }
 
+    /// <summary>
+    /// The plan's ship id, for the start without a ship in settings.json (T7.2); null without a file or if it can't be
+    /// read. Reading problems are <see cref="Load"/>'s to report, so they aren't reported twice.
+    /// </summary>
+    public static string? PeekShipId(string path)
+    {
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var stream = File.OpenRead(path);
+            return PlanFile.ReadShipId(stream);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Load opens the same file next and names the problem in the notice.
+            return null;
+        }
+    }
+
     /// <summary>Replaces the file in one step (<see cref="AtomicFile"/>).</summary>
     /// <exception cref="IOException">The file can't be written.</exception>
     /// <exception cref="UnauthorizedAccessException">No permission for the folder or the file.</exception>

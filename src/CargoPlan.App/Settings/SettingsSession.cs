@@ -96,6 +96,22 @@ public sealed class SettingsSession
         _timer.Start();
     }
 
+    /// <summary>
+    /// From a ship change in the editor (T7.2): saved after <see cref="Debounce"/> like a hotkey. Applying it is the
+    /// overlay's job (it replans, D59); the start's fallback ship never comes here, so the file keeps the choice.
+    /// </summary>
+    public void ChangeShip(string shipId)
+    {
+        if (shipId == Current.Ship)
+        {
+            return;
+        }
+
+        Current = Current with { Ship = shipId };
+        _timer.Stop();
+        _timer.Start();
+    }
+
     /// <summary>The tool windows' mode (D36); the overlay switches the open ones, new ones read it here.</summary>
     public ToolWindowTheme ToolWindowTheme => ToolWindowThemes.Parse(Current.ToolWindowTheme);
 

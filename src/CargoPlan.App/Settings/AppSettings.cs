@@ -15,6 +15,10 @@ namespace CargoPlan.App.Settings;
 /// look per section and must not switch the tool windows (D36). One of <see cref="ToolWindowThemes.Names"/>.
 /// </param>
 /// <param name="ContractTracker">Missing (before T5.5) or null = detect ContractTracker and sync by itself (D44).</param>
+/// <param name="Ship">
+/// The ship's catalog id (D59), written only by a choice in the editor. Missing (before T7.2) or null = the ship of
+/// plan.json, else the Hull A. A ship that doesn't load is kept here; the start falls back and says so (T7.2).
+/// </param>
 public sealed record AppSettings(
     int SchemaVersion,
     WindowBounds? Overlay = null,
@@ -22,7 +26,8 @@ public sealed record AppSettings(
     AppearanceSettings? Appearance = null,
     LegendSettings? Legend = null,
     string? ToolWindowTheme = null,
-    ContractTrackerSettings? ContractTracker = null)
+    ContractTrackerSettings? ContractTracker = null,
+    string? Ship = null)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
 

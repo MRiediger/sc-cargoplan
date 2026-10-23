@@ -1,6 +1,7 @@
 using System.IO;
 using System.Windows;
 using CargoPlan.App.ContractTracker;
+using CargoPlan.App.Editor;
 using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Plans;
 using CargoPlan.App.Settings;
@@ -18,9 +19,6 @@ namespace CargoPlan.App;
 /// </summary>
 public partial class App : Application
 {
-    /// <summary>The only ship until there is a ship selection (T7.2).</summary>
-    public const string ShipId = ShipLoader.FallbackShipId;
-
     private const int ExitShipsFolderBroken = 1;
 
     private CursorStateMonitor? _cursorMonitor;
@@ -42,7 +40,7 @@ public partial class App : Application
         base.OnStartup(e);
 
         // First: without the ships folder there is nothing to draw. One message, then the end, no crash dialog (D56).
-        // The catalog's problems (skipped ship files) are shown with the ship selection (T7.2).
+        // The catalog's problems (skipped ship files) are shown in the editor's ship selection (T7.2).
         ShipCatalog ships;
         try
         {
@@ -58,9 +56,11 @@ public partial class App : Application
         var options = StartOptions.Parse(e.Args);
         var (settings, settingsProblem) = SettingsStore.Load(SettingsStore.DefaultPath);
 
-        var ship = ships.Get(ShipId);
-        var viewModel = new OverlayViewModel(ship) { IsManuallyLocked = options.Locked };
+        // The settings' ship, else the start plan's, else the Hull A; one that doesn't load never stops the start (T7.2).
+        var (ship, shipNotice) = ShipChoices.Resolve(ships, settings.Ship, PlanStore.PeekShipId(options.PlanPath ?? PlanStore.DefaultPath));
+        var viewModel = new OverlayViewModel(ship, ships) { IsManuallyLocked = options.Locked };
         viewModel.SetNotice(NoticeSource.Settings, settingsProblem);
+        viewModel.SetNotice(NoticeSource.Ship, shipNotice);
 
         // Before any window: their DynamicResources find the theme from the first layout on. The settings window
         // changes the look through the same session (D34).
@@ -107,6 +107,15 @@ public partial class App : Application
             // The file stays until the player makes a new plan; a capture must not overwrite it (T5.4).
             viewModel.PauseContractTracker();
         }
+
+        // After the start: the fallback or the plan's ship isn't a choice and stays out of settings.json (T7.2).
+        viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(OverlayViewModel.Ship))
+            {
+                session.ChangeShip(viewModel.Ship.Id);
+            }
+        };
 
         // Overlay first: the lock window's Owner must be a window that has been shown.
         overlay.Show();
