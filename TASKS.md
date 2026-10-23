@@ -957,11 +957,39 @@ Test „Label verlässt nie den Boden“ (D52-Addendum 3) ist durch die Mindestg
   byte-gleich zurück.
 - Tests: App 910 (877 − 1 ersetzter + 34), Core 848, Import 93; vor dem Code rot gesehen (31 Compile-Fehler, 2 FloorLabel-
   Asserts gegen den alten Code, 2 Compile-Fehler zu `Fit(…, top)`).
-### [ ] T7.4 Schiffsumriss aus `ship-outlines.json` (D55) – vor T7.5, vor dem Tag
+### [x] T7.4 Schiffsumriss aus `ship-outlines.json` (D55) – vor T7.5, vor dem Tag
 - Erste Zahl: Orbit mit Apollo-Polygon (99 Punkte) bei laufendem SC, Messung wie D21. Ruckelt es → Phase 8.
 - `ship-outlines.json` + `NOTICE.md` neben `ships/` im ZIP; Zuordnung über Schiffs-Id; ohne Eintrag bleibt der Keil.
 - Polygon unter den Racks, Themefarbe, Bow-Label bleibt wie D52 (Platz ohne Keil klären).
 - Sichtprüfung an 5 Schiffen im Overlay: Hull A, C2, Caterpillar, Reclaimer, 890 Jump (die drei letzten sind die zweideutigen).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (D62, Addenda D52, D55, D61):** Gate-Polygon Hull D
+(362 Punkte, das größte der Datei) statt Apollo; Gate = A/B mit Schwellen (Median + ≤ 1 ms, p95 ≤ 16 ms) plus Martins
+Urteil. Ablage `outlines/` neben `ships/` (in `ships/` läse `ShipLoader` die Datei als Schiff), publish.ps1 prüft beide
+Dateien. Zuordnung über `fleetyardsSlug` statt Schiffs-Id. Ladefehler → eine Notice-Zeile beim Start. Umriss als
+skalierte Kulisse (Racks × 1,2 in der bindenden Achse, Mitte der Racks, Boden), kompakt ganz im Fit, lang belegte Racks
++ Bugzone; Hull-A-Schranke ≥ 24 px Kistenkante, sonst Lang-Regel auch kompakt. Falsch getracte Einträge fliegen aus der
+Datei, kein neues Feld. Nach der Phase-A-Pause (Martin): Umriss ist Standard, mit Umriss **kein Keil und kein
+„Bow“-Label**; Preferences-Sektion „Ship view“ mit „Ship outline“: Outline / None (`shipOutline` in settings.json); der
+Keil mit Label bleibt stiller Fallback für Schiffe ohne Eintrag; Gate auf dem echten Code statt Spike. „Pixel-Diff 0“
+als Screenshot-Vergleich, kein Golden-PNG-Test.
+
+**Befund:**
+- Daten: 117 Einträge, 11.429 Punkte; alle 96 Schiffe finden ihren Umriss. Größte: Hull D 362, Hull E 344 (ohne
+  Schiffsdatei), RAFT 203.
+- Gate: ohne SC Hull A ohne Umriss Median 0,76 ms, p95 1,24 ms pro `OnRender` (Release, 32 Renders/s beim Ziehen). In-game
+  von Martin abgenommen; das Log des Gate-Skripts enthält keinen Orbit, die In-Game-ms sind nicht erfasst.
+- Sichtprüfung (800 × 600 px, 106 dpi, Hull-A-Acht-Stopp-Plan je Schiff neu geplant, Kistenkante x, Keil → Umriss): Hull A
+  32,5 → 27,7 px, C2 20,4 → 20,4, Caterpillar 11,8 → 11,7, Reclaimer 14,0 → 14,2, 890 Jump 12,9 → 13,0. Look abgenommen
+  (Martin). Keil-Pfad bei allen fünf pixelgleich (Eintrag fehlt: 0 px); Ordner fehlt oder Datei kaputt: Notice-Zeile + Keil.
+- Bugrichtung Reclaimer (Klaue unter dem Bug in der Seitenansicht) und 890 Jump (spitze Nase) gegen die Pipeline-Vorschau
+  geprüft: richtig, nichts gestrichen.
+- publish.ps1: ZIP 58,9 MB, 358 Dateien, beide Umriss-Dateien drin.
+- Tests: App 953 (910 + 43), Core 862 (848 + 14), Import 93, Slow 5; vor dem Code rot gesehen (Compile-Fehler zu
+  `ShipOutlineLoader`, `OutlinePoint`, `ShipOutlineMode`); ein eigener Testfehler (Breite 12,5 m aus dem Export statt
+  12,0 m der Silhouette) korrigiert.
+- Nebenbefund PowerShell: `$s` und `$S` sind dieselbe Variable; zwei Scratch-Skripte sind daran gescheitert, AppData danach
+  byte-gleich zurück.
 ### [ ] T7.5 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
 - Known issue (aus T7.2, D59; T7.2b: Wechsel jetzt im Overlay): „On ships with large racks and many small crates, Plan or a ship change can take a few seconds. The overlay doesn’t respond meanwhile.“
 - Reihenfolge (23.10.2026): Umriss vor Doku, T7.4 und T7.5 getauscht (D55-Addendum). Die Screenshots zeigen den Endzustand, Doku zuletzt vermeidet einen dritten Tausch. Präzisierung in der Planphase, ratifiziert durch Freigabe.
@@ -997,6 +1025,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26); freie Rotation pro Rack erst, wenn ein Schiff sie braucht.
 - Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).
 - ~~Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).~~ Übernommen als T7.4 (D55).
+- Umriss in 3D wie im Maintenance Panel (Prisma aus Draufsicht + Höhe, grober Rumpf aus Drauf- und Seitenansicht, oder Holo-Modelle), falls der flache Umriss im Spiel nicht reicht (D62).
 - Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).
 - Orbit-Snap auf feste Winkel (z. B. 45°-Raster per Taste), falls freies Drehen schwer wiederholbar ist (D15).
 - Plan verwerfen ohne neuen Plan („Discard plan“), falls ein leeres Overlay nach der Route gewünscht wird; heute ersetzt nur „Plan“ den alten Plan (D19).

@@ -42,8 +42,10 @@ the hint lines below the legend or the border.
 ## Reading the ship view
 
 The overlay draws your ship's cargo racks as boxes, at first seen from the front, from the port side and from above:
-the bow points to the lower left (the wedge in front of the racks, with "Bow" on its floor, marks the bow), the port side
-faces you. Turn and tilt the ship until it looks the way you see the hold, even from below for racks under the hull.
+the bow points to the lower left, the port side faces you. Under the racks lies your ship's outline seen from above, so
+you can tell bow, sides and shape at a glance; it is a backdrop scaled to the racks, not a scale drawing, and doesn't
+say where a rack sits in the hull. A ship without an outline shows a wedge in front of the racks instead, with "Bow" on
+its floor. Turn and tilt the ship until it looks the way you see the hold, even from below for racks under the hull.
 Each rack shows its number on its largest visible face. Long ships (more than twice as long as wide, such as the C2,
 the Caterpillar or the Hull C) start seen from the port side with the length almost level, and the view shows the racks
 that hold cargo; the empty racks further aft are dimmed and come into view when you zoom out. Their numbers stand above
@@ -267,7 +269,7 @@ Start with `--locked` to begin with the padlock locked.
 
 The **gear** in the header, left of the X, opens the settings window. Every change shows in the overlay at once and is
 saved, there is no OK or Cancel. Tune it in the game, where you can see whether the legend reads over the hangar
-lights. The sections Window, Legend, Legend layout, Crates, Header and Buttons each have **Reset to defaults**; Tool
+lights. The sections Window, Legend, Legend layout, Crates, Header, Buttons and Ship view each have **Reset to defaults**; Tool
 windows, Hotkeys and ContractTracker have none (their defaults are "follow Windows", "no hotkey" and
 **Detect automatically**).
 
@@ -277,9 +279,12 @@ windows, Hotkeys and ContractTracker have none (their defaults are "follow Windo
   destination lines at all. A section of its own, so resetting the legend's colours doesn't move it.
 - **Crates:** how solid the crates and their edges are (at the lift, turn the fill down to see the real crates through
   the planned ones), the colour and size of the rack numbers and the "Bow" label on the bow wedge, and their outline.
+  The ship outline's line takes the rack numbers' colour, toned down.
 - **Header:** the colour of the ship name and the glyphs (pencil, gear, split, merge, exit, padlock), and a halo around
   the ship name.
 - **Buttons:** background, frame and rounded corners of the glyph buttons, and a halo around the glyphs.
+- **Ship view:** **Ship outline** shows the ship's outline under the racks (the default) or **None**: racks and frame
+  only, without any mark of the bow.
 - **Tool windows:** light, dark or follow Windows for the settings window and the mission editor; the overlay keeps the
   look you set above.
 - **Hotkeys:** see [Hotkeys](#hotkeys).
