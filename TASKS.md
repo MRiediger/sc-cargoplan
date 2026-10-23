@@ -784,7 +784,7 @@ Carrack 4×4×4 Zellen erlaubt 16, nicht 32; `CanHold` und `EnsureCratesFitShip`
 publish.ps1 kopiert `ships/` ins ZIP, Prüfschritt + Negativtest wie D49. Tests: Ordner-Fälle, Carrack-Fall,
 „alle Dateien in ships/ laden“. Lizenz: nur abgeleitete Dateien ins Repo.
 
-**Präzisiert in der Planung (D56):** `ShipLoader.LoadAll` → `ShipCatalog` (Schiffe nach Id sortiert, `StringComparer.Ordinal`, plus eine Problemzeile je kaputter Datei); Ordner fehlt bzw. hull_a fehlt/kaputt → `ShipFolderException`, App: eine MessageBox, Exit-Code 1; CLI: „Skipped: …“ auf stderr, Exit 1. `Load(id)` bleibt case-sensitive (Lookup in der Dateiliste, nicht `File.Exists`). `CopyToOutputDirectory="IfDifferent"` statt `PreserveNewest` (von Git wiederhergestellte Dateien behalten die alte mtime). publish.ps1 kopiert nicht selbst: vor dem Umbau gemessen, `dotnet publish` legt Cores `ships/`-Items schon ab; das Skript prüft nur den ZIP-Eintrag. Zusätzlich `fleetyardsSlug` pro Schiff (T7.5), hull_a: `manufacturer` „MISC“, `fleetyardsSlug` „misc-hull-a“, kein `maxCrateSize` (Begründung in ship-format.md). Die Metadaten stehen schon im `Ship`-Modell, ohne Leser, ohne Ausgabeänderung. `maxCrateSize` prüfen `Rack.CanHold` (neu: `FitsGrid` für die Geometrie), `RackSpace.Add` (Plan, PlaceInto, Split, T7.0-Probe), die Findings (Moves) und als dritte Stelle der Merge (zwei 16er nebeneinander haben die Form einer 32er). Präzisierung in der Planphase, ratifiziert durch Freigabe.
+**Präzisiert in der Planung (D56):** `ShipLoader.LoadAll` → `ShipCatalog` (Schiffe nach Id sortiert, `StringComparer.Ordinal`, plus eine Problemzeile je kaputter Datei); Ordner fehlt bzw. hull_a fehlt/kaputt → `ShipFolderException`, App: eine MessageBox, Exit-Code 1; CLI: „Skipped: …“ auf stderr, Exit 1. `Load(id)` bleibt case-sensitive (Lookup in der Dateiliste, nicht `File.Exists`). `CopyToOutputDirectory="IfDifferent"` statt `PreserveNewest` (von Git wiederhergestellte Dateien behalten die alte mtime). publish.ps1 kopiert nicht selbst: vor dem Umbau gemessen, `dotnet publish` legt Cores `ships/`-Items schon ab; das Skript prüft nur den ZIP-Eintrag. Zusätzlich `fleetyardsSlug` pro Schiff (T7.4), hull_a: `manufacturer` „MISC“, `fleetyardsSlug` „misc-hull-a“, kein `maxCrateSize` (Begründung in ship-format.md). Die Metadaten stehen schon im `Ship`-Modell, ohne Leser, ohne Ausgabeänderung. `maxCrateSize` prüfen `Rack.CanHold` (neu: `FitsGrid` für die Geometrie), `RackSpace.Add` (Plan, PlaceInto, Split, T7.0-Probe), die Findings (Moves) und als dritte Stelle der Merge (zwei 16er nebeneinander haben die Form einer 32er). Präzisierung in der Planphase, ratifiziert durch Freigabe.
 
 **Befund:**
 - Aufrufer außerhalb der Tests vorher: 3 Stellen in 2 Dateien (App `Load`, CLI `ListShips` + `Load`).
@@ -924,13 +924,14 @@ Befund aus T7.2 (Hull C, Caterpillar, C2; Screenshots im T7.2-Scratchpad):
 5. Fill-order-ComboBox liest sich für Screenreader als Record-ToString: wie ShipChoice beheben.
 
 Je ein Schiff pro Problem: Hull C (1, 2, 4), Caterpillar (3), Starfarer als Normalfall-Kontrolle.
-### [ ] T7.4 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
-### [ ] T7.5 Schiffsumriss aus `ship-outlines.json` (D55) – nach T7.4, vor dem Tag
+### [ ] T7.4 Schiffsumriss aus `ship-outlines.json` (D55) – vor T7.5, vor dem Tag
 - Erste Zahl: Orbit mit Apollo-Polygon (99 Punkte) bei laufendem SC, Messung wie D21. Ruckelt es → Phase 8.
 - `ship-outlines.json` + `NOTICE.md` neben `ships/` im ZIP; Zuordnung über Schiffs-Id; ohne Eintrag bleibt der Keil.
 - Polygon unter den Racks, Themefarbe, Bow-Label bleibt wie D52 (Platz ohne Keil klären).
 - Sichtprüfung an 5 Schiffen im Overlay: Hull A, C2, Caterpillar, Reclaimer, 890 Jump (die drei letzten sind die zweideutigen).
+### [ ] T7.5 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
 - Known issue (aus T7.2, D59; T7.2b: Wechsel jetzt im Overlay): „On ships with large racks and many small crates, Plan or a ship change can take a few seconds. The overlay doesn’t respond meanwhile.“
+- Reihenfolge (23.10.2026): Umriss vor Doku, T7.4 und T7.5 getauscht (D55-Addendum). Die Screenshots zeigen den Endzustand, Doku zuletzt vermeidet einen dritten Tausch. Präzisierung in der Planphase, ratifiziert durch Freigabe.
 
 → Tag `v0.1.0` → T6.6 Nexus
 
@@ -962,7 +963,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
 - ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26); freie Rotation pro Rack erst, wenn ein Schiff sie braucht.
 - Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).
-- ~~Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).~~ Übernommen als T7.5 (D55).
+- ~~Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).~~ Übernommen als T7.4 (D55).
 - Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).
 - Orbit-Snap auf feste Winkel (z. B. 45°-Raster per Taste), falls freies Drehen schwer wiederholbar ist (D15).
 - Plan verwerfen ohne neuen Plan („Discard plan“), falls ein leeres Overlay nach der Route gewünscht wird; heute ersetzt nur „Plan“ den alten Plan (D19).
