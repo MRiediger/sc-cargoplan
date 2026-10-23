@@ -845,17 +845,27 @@ Befund T7.1c: 9×3×3 mit 32 + 40×1 braucht 1,57 Mio. Schritte (509 ms) und wir
 - Halter: ein `Ship` nur in `OverlayViewModel`; `App.ShipId` an 1 Stelle gelesen; Header-Bindung war `OneTime`.
 - Größter Fixture-Plan 8 Missionen / 19 Kisten. Replan des Beispiels (3 Stopps) auf alle 96 Schiffe: zusammen < 2 s (Debug). Der 8-Stopp-Lastfall auf der **Freelancer** (Rack 9×2×3): **~4 s Release** (CLI 4.252 / 4.051 / 3.963 ms), 8 s Debug, Suchlimit (D58) – gleich beim Editor-Plan auf diesem Schiff → Test `Slow`, Messwert an der Backlog-Zeile „Planen in `Task.Run`“.
 - App-Lauf (echte plan.json/settings.json gesichert und byte-gleich zurück): ohne `ship` + C2-Plan → Header „CRUS C2 Hercules“, „Ship set to … from your plan.“, `ship` nicht geschrieben; `ship: hull_a` + C2-Plan → neu geplant + Hinweis, plan.json danach hull_a; `ship: nope` → Hull A + „Ship 'nope' not loaded: not found – using MISC Hull A.“, `nope` bleibt. Editor per UI Automation: „C2“ tippen öffnet die Liste und hebt C2 Hercules hervor (Auswahl bleibt Hull A), Enter → Dialog; Nein → Hull A, nichts geschrieben; Ja → `ship: "c2_hercules"`, plan.json für die C2. CT-Sync lief beim Start auf dem jeweiligen Schiff weiter.
-- Nebenbefund: ComboBox-Einträge hießen für Screenreader `ShipChoice { Id = … }` (Record-`ToString`) → `AutomationProperties.Name`. `FillOrderChoice` hat dieselbe Lücke (offen seit T4.7).
+- Nebenbefund: ComboBox-Einträge hießen für Screenreader `ShipChoice { Id = … }` (Record-`ToString`) → `AutomationProperties.Name`. `FillOrderChoice` hat dieselbe Lücke (offen seit T4.7) → T7.3, Punkt 5.
 - Nebenbefund Planer (vorher schon so, ohne Wechsel nachgestellt): echte CT-Captures per `PlaceInto` in den Hull-A-Plan legen Kisten auf früher entladene Stopps (rot, weiche Regel D24-Addendum) → Beleg an der Backlog-Zeile „Stapelbewusste Partition“.
 - Befund für T7.3 (Screenshots im Scratchpad): Hull C 16 Racks als lange Diagonale, Kisten in Rack 1 kaum sichtbar, Zellraster dominiert, Bug-Keil winzig; Caterpillar 14 Racks in einer Reihe, Kisten klein, Racknummern über den Boxen.
 - Tests: Core 848 (738 + 7 Replan + 96 Schiffe + 8 PlanFile − 1 gestrichener Fremdschiff-Fall), + 1 `Slow`; App 849 (810 + 39); Import 93; Exhaustive und Slow grün, Goldens unverändert.
 ### [ ] T7.3 Schiffsansicht bei großen Gittern – Hull C, C2: Racknummern (`RackNumberSize`: ein Wert für alle Racks), Fit, Legende
+Befund aus T7.2 (Hull C, Caterpillar, C2; Screenshots im T7.2-Scratchpad):
+1. Lange Reihe passt nicht ins Bild (Hull C 16, Caterpillar 14 Racks in der Diagonale, Kisten unkenntlich):
+   Standardreihe beim Import in Zeilen statt einer Reihe, oder Kamera-Fit auf belegte Racks. Mit einem Schiff beginnen.
+2. Zellraster dominiert auf großen Racks (Hull C 8×8×6): Linienstärke oder Raster erst ab Zoom.
+3. Racknummern liegen über den Kisten (Caterpillar).
+4. Bug-Keil winzig bei langen Schiffen: Mindestgröße in Bildschirmpixeln wie Racknummern (D32).
+5. Fill-order-ComboBox liest sich für Screenreader als Record-ToString: wie ShipChoice beheben.
+
+Je ein Schiff pro Problem: Hull C (1, 2, 4), Caterpillar (3), Starfarer als Normalfall-Kontrolle.
 ### [ ] T7.4 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
 ### [ ] T7.5 Schiffsumriss aus `ship-outlines.json` (D55) – nach T7.4, vor dem Tag
 - Erste Zahl: Orbit mit Apollo-Polygon (99 Punkte) bei laufendem SC, Messung wie D21. Ruckelt es → Phase 8.
 - `ship-outlines.json` + `NOTICE.md` neben `ships/` im ZIP; Zuordnung über Schiffs-Id; ohne Eintrag bleibt der Keil.
 - Polygon unter den Racks, Themefarbe, Bow-Label bleibt wie D52 (Platz ohne Keil klären).
 - Sichtprüfung an 5 Schiffen im Overlay: Hull A, C2, Caterpillar, Reclaimer, 890 Jump (die drei letzten sind die zweideutigen).
+- Known issue (aus T7.2, D59): „On ships with large racks and many small crates, Plan can take a few seconds. The window doesn’t respond meanwhile.“
 
 → Tag `v0.1.0` → T6.6 Nexus
 
@@ -874,6 +884,7 @@ Befund T7.1c: 9×3×3 mit 32 + 40×1 braucht 1,57 Mio. Schritte (509 ms) und wir
 Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 
 - **Vor jedem Push `gh run list -L 3`.** Rote Läufe erst klären, dann pushen. Anlass T7.1d: Die CI war seit T7.0 rot (1-s-Zeit-Assert in `OrderSearchLimitTests`, 1.099 / 1.297 ms auf den Runnern), unbemerkt über mehrere Pushes.
+- **Tests vor der Implementierung heißt: erst rot sehen.** Neue Tests vor dem Code laufen lassen und das Scheitern (Compile- oder Assert-Fehler) festhalten, dann implementieren. Anlass T7.2: Die Core-Tests (Replan, PlanFile, Katalog) wurden vor dem Code geschrieben, aber erst danach ausgeführt; in der App lief es richtig.
 
 ---
 
@@ -900,11 +911,12 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~Formbewusste `Partition` (Racks nach legbarer Anordnung in Routenreihenfolge, nicht nur nach SCU), falls Stapel-Befunde in echten Plänen häufig sind. Beleg aus dem Spike T5.4 (Brute-Force, abgebrochen): 3 Stops in einem Rack → 207 Aufteilungen ohne Anordnung bis Mischung 146/186; 4 Stops → 397 bis Mischung 65/170 (D24-Addendum, T5.4a).~~ → T7.0
 - ~~Geometrie bei Schiffen, deren Grid kein Vielfaches der Kistenmaße ist (D9 gilt nur für Hull A), sobald T7.1 ein solches Schiff bringt: `Plan` verteilt nach SCU und scheitert erst beim Legen, die Meldung („64/75 SCU“) klingt nach Platz und nennt nur Rack 1. `PlaceProblem` sagt es schon besser („no room for 8 SCU crates“). Beleg: S7.0, Lauf 3.~~ → T7.0
 - Stapelbewusste Partition: Racks so verteilen, dass keine Stapel-Befunde entstehen (Rest der übernommenen T7.0-Zeile), falls Stapel-Befunde in echten Plänen häufig sind (D54). Beleg T7.2: echte CT-Captures (High Course Station, 11 SCU) per `PlaceInto` in den Hull-A-Plan split_and_shared → 3 rote Kisten auf Riker/Orison/Lorville.
+- Ein Ziel pro Rack auf Mehrrack-Schiffen, wenn die Last es zulässt (Partition nach SCU füllt heute Rack 1 mit allen Zielen, C2: sechs Ziele in Rack 1). Auslöser: Hauler eines Mehrrack-Schiffs meldet, dass er ein Ziel pro Rack will. Planer-Änderung, D6-Addendum. Beleg T7.2: Legende „Rack 1 shared by Riker, Shubin, High Course Station, Melodic Fields Station, Faithful Dream Station, Everus Harbor – identify crates by count“; auf einem 480-Zellen-Rack hilft „by count“ nicht mehr.
 - Frachtmodule (Aurora-Heckmodul, Retaliator, Caterpillar `module_01–04`) als zusätzliche Katalogeinträge aus einer Datei, ohne Änderung an Plan-Schema oder Auswahl (D59). Auslöser: erstes Schiff in `ships/` mit im Spiel wechselbarem Frachtmodul.
 - Haken eines Altbesuchs beim Schiffswechsel erhalten: ein abgehakter Stopp, der danach neue Fracht bekam (D41), kommt nach `Replan` unabgehakt zurück und belegt Platz (D59). Auslöser: Meldung eines Haulers.
 - Sync Ships in der App (Fleetyards-API), falls sich Frachtgitter häufiger ändern als Releases erscheinen oder Hauler zwischen Releases fehlende Schiffe melden. Voraussetzungen: D-Eintrag Netzwerkzugriff des Overlays, Lizenzfrage für Laufzeitabrufe, Merge-Logik aus import-fleetyards.ps1 nach C# (T7.1b).
 - Kisten horizontal drehbar (Gier 90°) im Planer, statt Racks beim Import zu drehen (T7.1b: `length` = längere Seite, Rack in `notes` genannt). Auslöser: ein Schiff, dessen Rack nur mit gedrehten Kisten so voll wird wie im Spiel, oder ein Hauler-Report über abgelehnte Kisten, die im Spiel passen.
 - `CrateLayout.InOrder` beschleunigen (`StartingAt` ohne LINQ, Pruning), Auslöser: ein echter Plan mit der Notiz „too many crates to rearrange“ (D54). Erwartet bei Racks ab ~80 Zellen mit vielen 1-SCU-Kisten (T7.1c: 9×3×3, 32 + 40 × 1).
-- Planen in `Task.Run` statt im UI-Thread (`MissionEditorViewModel.Plan`, CT-Sync, Schiffswechsel), Auslöser: ein gemeldetes Einfrieren (D54). Messwert T7.2: 8-Stopp-Lastfall auf der Freelancer ~4 s Release (Suchlimit, D58), beim Editor-Plan wie beim Wechsel (`ReplanTests`, `Slow`).
+- Planen in `Task.Run` statt im UI-Thread (`MissionEditorViewModel.Plan`, CT-Sync, Schiffswechsel), Auslöser: ein gemeldetes Einfrieren (D54) oder der erste Hauler-Report zur Planungsdauer. Messwert T7.2: 8-Stopp-Lastfall auf der Freelancer ~4 s Release (Suchlimit, D58), beim Editor-Plan wie beim Wechsel (`ReplanTests`, `Slow`). Ein UI-Task (Knopf gesperrt, „Planning…“), kein Planer-Task; kann als erster nach dem Launch kommen. Bis dahin Known issue (T7.5).
 - Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).
 - Mehrsprachigkeit, falls nicht-englische Hauler danach fragen. Beginnt beim Parser (deutsche CT-Captures als Fixtures), nicht bei `.resx` (D53).
