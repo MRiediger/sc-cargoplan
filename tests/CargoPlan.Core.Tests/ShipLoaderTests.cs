@@ -180,7 +180,9 @@ public class ShipLoaderTests
         var catalog = ShipLoader.LoadAll(folder.Path);
 
         catalog.Ships.Select(s => s.Id).Should().Equal("hull_a");
-        catalog.Problems.Should().ContainSingle().Which.Should().Contain($"'{shipId}.json'");
+        var problem = catalog.Problems.Should().ContainSingle().Which;
+        problem.ShipId.Should().Be(shipId);
+        problem.Message.Should().Contain($"'{shipId}.json'");
     }
 
     [Fact]

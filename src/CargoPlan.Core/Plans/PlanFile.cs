@@ -22,11 +22,15 @@ public static class PlanFile
 
     private static readonly int[] ReadableSchemaVersions = [LegacySchemaVersion, PreviousSchemaVersion, SupportedSchemaVersion];
 
-    /// <summary>Reads a plan file for <paramref name="ship"/>, schema 1, 2 or 3. The stream is left open.</summary>
+    /// <summary>
+    /// Reads a plan file for <paramref name="ship"/>, schema 1, 2 or 3. The stream is left open. A schema 2 or 3 plan for
+    /// another ship loads with its own ship id and without the grid checks; the caller plans it anew (D59).
+    /// </summary>
     /// <param name="sourceName">Shown in error messages, e.g. the file path.</param>
     /// <exception cref="PlanFormatException">
-    /// The content is broken, is for another ship, uses racks the ship doesn't have, has a crate outside its rack,
-    /// doesn't match its missions, or is a schema 1 plan with more cargo in a rack than its grid holds.
+    /// The content is broken, uses racks the ship doesn't have, has a crate outside its rack, doesn't match its
+    /// missions, or is a schema 1 plan for another ship (laying it out needs its grid) or with more cargo in a rack than
+    /// its grid holds.
     /// </exception>
     public static SavedPlan Read(Stream stream, string sourceName, Ship ship)
     {
@@ -48,6 +52,30 @@ public static class PlanFile
         catch (Exception ex) when (ex is JsonException or ArgumentException or PlanException)
         {
             throw new PlanFormatException(sourceName, ex.Message, ex);
+        }
+    }
+
+    /// <summary>
+    /// The plan's ship id alone, before choosing the ship to read it for (T7.2: without a ship in settings.json the start
+    /// takes the plan's). Null if the file has none or isn't JSON; <see cref="Read"/> names that problem. The stream is
+    /// left open.
+    /// </summary>
+    public static string? ReadShipId(Stream stream)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+
+        try
+        {
+            using var document = JsonDocument.Parse(stream);
+            return document.RootElement is { ValueKind: JsonValueKind.Object } root
+                && root.TryGetProperty("shipId", out var shipId) && shipId.ValueKind == JsonValueKind.String
+                ? shipId.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            // Not this method's to report: the real read follows and says what is wrong with the file.
+            return null;
         }
     }
 

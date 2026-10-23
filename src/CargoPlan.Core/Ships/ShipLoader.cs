@@ -36,7 +36,7 @@ public static class ShipLoader
         }
 
         List<Ship> ships = [];
-        List<string> problems = [];
+        List<ShipProblem> problems = [];
         foreach (var id in ids)
         {
             try
@@ -51,7 +51,7 @@ public static class ShipLoader
                     throw new ShipFolderException($"Ship file {FallbackShipId}{FileSuffix} is invalid – unzip the release again. {problem}", ex);
                 }
 
-                problems.Add(problem);
+                problems.Add(new ShipProblem(id, problem));
             }
         }
 

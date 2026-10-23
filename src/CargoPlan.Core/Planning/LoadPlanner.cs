@@ -268,6 +268,41 @@ public static class LoadPlanner
     }
 
     /// <summary>
+    /// The plan on another ship (D59): its missions planned anew in the order the editor shows them
+    /// (<see cref="SavedPlan.Stops"/>), as the editor's Plan would; if that fails, mission by mission into the empty ship
+    /// in mission order (<see cref="RetryUnplaced"/>), the rest waits unplaced (D41). Every stop ticked as a whole gets its
+    /// tick back. Missions, sources, watermark and fill order stay; positions and moves go, split crates keep their sizes
+    /// (they are in the missions, D27). The only method that takes a plan of another ship.
+    /// </summary>
+    public static SavedPlan Replan(SavedPlan saved, Ship ship)
+    {
+        var fillOrder = saved.Plan.FillOrder;
+        if (saved.Missions.Count == 0)
+        {
+            return new SavedPlan([], new LoadPlan(ship.Id, [], [], fillOrder), saved.Watermark);
+        }
+
+        string[] ticked = [.. saved.Plan.Crates.GroupBy(c => c.Destination).Where(g => g.All(c => c.Delivered)).Select(g => g.Key)];
+        SavedPlan replanned;
+        try
+        {
+            replanned = Plan(ship, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], fillOrder, saved.Watermark);
+        }
+        catch (PlanException)
+        {
+            // Too much for the ship, or no layout: what fits comes in mission by mission, as captures do (D41).
+            SavedPlan empty = new([.. saved.Missions.Select(m => m with { Unplaced = true })], new LoadPlan(ship.Id, [], [], fillOrder), saved.Watermark);
+            replanned = RetryUnplaced(empty, ship);
+        }
+
+        // Ticking never refuses (only ticking back can); a ticked stop whose mission waits has no crates to tick.
+        var plan = ticked
+            .Where(destination => replanned.Plan.Crates.Any(c => c.Destination == destination))
+            .Aggregate(replanned.Plan, (current, destination) => SetDelivered(current, ship, destination, true));
+        return new SavedPlan(replanned.Missions, plan, replanned.Watermark);
+    }
+
+    /// <summary>
     /// Takes a mission out of the plan with its crates (D42): deleted in the editor, dropped in the legend, or gone from
     /// ContractTracker. Nothing else moves, ticks stay; a crate that rested on one of its crates floats and is marked
     /// (<see cref="Validate"/>). The original stays unchanged.

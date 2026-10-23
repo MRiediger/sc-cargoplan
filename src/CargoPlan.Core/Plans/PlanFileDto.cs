@@ -41,14 +41,19 @@ internal sealed record PlanFileDto(
         [.. saved.Plan.Warnings.Select(PlanWarningDto.FromPlanWarning)]);
 
     /// <summary>
-    /// The checks every schema version shares: ship, racks, crates inside their grid (D24). Overlap and crates without
+    /// The checks every schema version shares: racks, crates inside their grid (D24). Overlap and crates without
     /// support load; <c>LoadPlanner.Validate</c> shows them red. The missions are the caller's, via <see cref="SavedPlan"/>.
+    /// A plan for another ship skips the grid: its racks are another ship's, and the overlay plans it anew from its
+    /// missions (<c>LoadPlanner.Replan</c>, D59).
     /// </summary>
     /// <exception cref="ArgumentException">The plan doesn't fit the ship.</exception>
     internal static LoadPlan Checked(LoadPlan plan, Ship ship)
     {
-        // Ship first: on another ship every rack would be "unknown", which hides the actual reason.
-        plan.EnsureBelongsTo(ship);
+        if (plan.ShipId != ship.Id)
+        {
+            return plan;
+        }
+
         var racks = ship.Racks.ToDictionary(r => r.Id);
         if (plan.Crates.FirstOrDefault(c => !racks.ContainsKey(c.RackId)) is { } stray)
         {

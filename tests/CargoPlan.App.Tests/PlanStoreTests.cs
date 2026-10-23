@@ -92,16 +92,17 @@ public sealed class PlanStoreTests : IDisposable
     }
 
     [Fact]
-    public void Plan_for_another_ship_gives_a_problem_and_stays_untouched()
+    public void Plan_for_another_ship_loads_with_its_ship_and_stays_untouched()
     {
+        // The overlay plans it anew for its ship (D59); the file changes only when the replanned plan is saved.
         PlanStore.Save(PlanPath, TestPlans.SplitAndShared());
         var content = File.ReadAllText(PlanPath).Replace("\"shipId\": \"hull_a\"", "\"shipId\": \"cutlass_black\"");
         File.WriteAllText(PlanPath, content);
 
         var (loaded, problem) = PlanStore.Load(PlanPath, HullA);
 
-        loaded.Should().BeNull();
-        problem.Should().Contain("'cutlass_black'").And.Contain("'hull_a'");
+        problem.Should().BeNull();
+        loaded!.Plan.ShipId.Should().Be("cutlass_black");
         File.ReadAllText(PlanPath).Should().Be(content);
     }
 

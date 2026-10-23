@@ -69,7 +69,7 @@ ShipCatalog LoadShips()
     var catalog = ShipLoader.LoadAll();
     foreach (var problem in catalog.Problems)
     {
-        Console.Error.WriteLine($"Skipped: {problem}");
+        Console.Error.WriteLine($"Skipped: {problem.Message}");
     }
 
     return catalog;

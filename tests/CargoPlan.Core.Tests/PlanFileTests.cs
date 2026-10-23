@@ -440,7 +440,6 @@ public class PlanFileTests
         ["inner_schema"] = n => n["missions"]!["schemaVersion"] = 3,
         ["unknown_property"] = n => n["opacity"] = 0.5,
         ["missing_delivered"] = n => n["crates"]![0]!.AsObject().Remove("delivered"),
-        ["foreign_ship"] = n => n["shipId"] = "cutlass_black",
         ["unknown_rack"] = n => n["crates"]![0]!["rackId"] = "rack-9",
         ["unknown_warning_rack"] = n => n["warnings"]![0]!["rackId"] = "rack-9",
         ["missing_crate"] = n => n["crates"]!.AsArray().RemoveAt(0),
@@ -457,7 +456,6 @@ public class PlanFileTests
     [InlineData("inner_schema", "*missions: schemaVersion 3*expected 1 or 2*")]
     [InlineData("unknown_property", "*opacity*")]
     [InlineData("missing_delivered", "*delivered*")]
-    [InlineData("foreign_ship", "*'cutlass_black'*'hull_a'*")]
     [InlineData("unknown_rack", "*rack-9*")]
     [InlineData("unknown_warning_rack", "*rack-9*")]
     [InlineData("missing_crate", "*Riker, Titanium: 3 of 4 crates of 4 SCU placed*")]
@@ -516,5 +514,59 @@ public class PlanFileTests
         var act = () => Read(node.ToJsonString(), "broken.json");
 
         act.Should().Throw<PlanFormatException>().WithMessage(expectedMessage).Which.SourceName.Should().Be("broken.json");
+    }
+
+    // --- A plan for another ship (D59): read without its grid, the overlay plans it anew ---
+
+    [Fact]
+    public void Schema_3_for_another_ship_loads_with_its_ship_id_and_missions()
+    {
+        var node = JsonNode.Parse(V3Text())!;
+        node["shipId"] = "c2_hercules";
+        node["crates"]![0]!["rackId"] = "rack-9";
+
+        var saved = Read(node.ToJsonString());
+
+        saved.Plan.ShipId.Should().Be("c2_hercules");
+        saved.Missions.Should().BeEquivalentTo(Planned(MissionFixtures.SplitAndSharedMissions).Missions, o => o.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void Schema_2_for_another_ship_loads_one_mission_per_stop()
+    {
+        var node = JsonNode.Parse(V2Text())!;
+        node["shipId"] = "cutlass_black";
+
+        var saved = Read(node.ToJsonString());
+
+        saved.Plan.ShipId.Should().Be("cutlass_black");
+        saved.Missions.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public void Schema_3_for_another_ship_still_checks_the_crates_against_the_missions()
+    {
+        var node = JsonNode.Parse(V3Text())!;
+        node["shipId"] = "c2_hercules";
+        node["crates"]!.AsArray().RemoveAt(0);
+
+        var act = () => Read(node.ToJsonString());
+
+        act.Should().Throw<PlanFormatException>().WithMessage("*Riker, Titanium: 3 of 4 crates of 4 SCU placed*");
+    }
+
+    // --- ReadShipId: which ship the start takes when settings.json names none (T7.2) ---
+
+    [Theory]
+    [InlineData("""{ "schemaVersion": 3, "shipId": "c2_hercules" }""", "c2_hercules")]
+    [InlineData("""{ "schemaVersion": 3 }""", null)]
+    [InlineData("""{ "shipId": 5 }""", null)]
+    [InlineData("""[ "hull_a" ]""", null)]
+    [InlineData("not json", null)]
+    public void ReadShipId_gives_the_ship_id_or_null(string json, string? expected)
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
+
+        PlanFile.ReadShipId(stream).Should().Be(expected);
     }
 }

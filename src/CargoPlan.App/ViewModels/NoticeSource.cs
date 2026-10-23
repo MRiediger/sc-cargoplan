@@ -7,6 +7,12 @@ public enum NoticeSource
     Hotkeys,
     Plan,
 
+    /// <summary>The chosen ship didn't load and the overlay uses another (T7.2); cleared by a ship change.</summary>
+    Ship,
+
+    /// <summary>A plan made for another ship was planned anew (D59); cleared by the next plan or ship change.</summary>
+    Replan,
+
     /// <summary>Why ContractTracker can't be read, or that the sync is paused (T5.4).</summary>
     ContractTracker,
 

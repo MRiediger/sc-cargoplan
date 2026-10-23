@@ -5,6 +5,7 @@ using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
+using CargoPlan.Core.Ships;
 using CargoPlan.Import.ContractTracker;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -12,7 +13,8 @@ using CommunityToolkit.Mvvm.Input;
 namespace CargoPlan.App.ViewModels;
 
 /// <summary>State of the overlay window. Shows what Core computes; no planning here.</summary>
-public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
+/// <param name="ships">The ships there are (D59: a ship is a catalog entry); null = only <paramref name="ship"/>.</param>
+public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = null) : ObservableObject
 {
     public const string NoPlanText = "No plan. Open the editor to enter missions.";
 
@@ -46,7 +48,11 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     public static string NewContractsText(int count) =>
         $"{count} new {(count == 1 ? "contract" : "contracts")} in ContractTracker – take {(count == 1 ? "it" : "them")} in with Sync from ContractTracker (editor or hotkey).";
 
+    public static string ReplannedText(string madeFor, string current) => $"Plan was made for {madeFor}, replanned for {current}.";
+
     public Ship Ship { get; } = ship;
+
+    public ShipCatalog Ships { get; } = ships ?? new ShipCatalog([ship], []);
 
     /// <summary>
     /// The plan with its missions and the ContractTracker watermark: the one state every change goes through and
@@ -169,9 +175,23 @@ public sealed partial class OverlayViewModel(Ship ship) : ObservableObject
     // plan.json couldn't be read: the sync must not overwrite it with a plan of its own (T5.4 planning).
     private bool _contractTrackerPaused;
 
-    /// <summary>Shows a plan made in the editor or loaded; ends a sync pause.</summary>
+    /// <summary>
+    /// Shows a plan made in the editor or loaded; ends a sync pause. A plan for another ship (plan.json) is planned anew
+    /// for this one and says so (D59): every other way into <see cref="Saved"/> goes through Core with <see cref="Ship"/>,
+    /// so the ship view never gets a plan of another ship.
+    /// </summary>
     public void ShowPlan(SavedPlan saved)
     {
+        if (saved.Plan.ShipId == Ship.Id)
+        {
+            SetNotice(NoticeSource.Replan, null);
+        }
+        else
+        {
+            SetNotice(NoticeSource.Replan, ReplannedText(Ships.Find(saved.Plan.ShipId)?.Name ?? saved.Plan.ShipId, Ship.Name));
+            saved = LoadPlanner.Replan(saved, Ship);
+        }
+
         Saved = saved;
         SetNotice(NoticeSource.Move, null);
         if (_contractTrackerPaused)
