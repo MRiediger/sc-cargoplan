@@ -122,13 +122,26 @@ Both older versions are read and saved as schema 3 right after loading; moves an
   read as schema 2. One exception: version 1 allowed more cargo in a rack than it holds (after a manual
   move); such a plan can't be laid out and shows the error below.
 
+## A plan for another ship
+
+A plan file whose `shipId` is not the overlay's ship loads anyway: its missions are planned anew for the
+overlay's ship, as a ship change in the editor does (D59). Missions, ContractTracker ids, the watermark, the fill
+order and the ticks of whole stops stay; crate positions and manual moves don't. If the missions don't fit as a
+whole plan, they go in mission by mission and the rest waits as "doesn't fit" in the legend. An amber line says
+"Plan was made for CRUS C2 Hercules, replanned for MISC Hull A.", and the next save writes the plan for the new ship.
+Its crates are not checked against the old ship's racks; the crates against their missions still are.
+
+Without a `ship` in [settings.json](settings-format.md), the overlay takes the plan's ship instead, if it loads.
+
+A schema 1 file for another ship is an error (below): laying out its cargo needs that ship's grid.
+
 ## Errors
 
 The overlay never overwrites a plan file it can't read. It starts with the empty ship and shows why in
 an amber line, for example:
 
 ```
-Plan not loaded (Plan file 'C:\Users\you\AppData\Local\SC-CargoPlan\plan.json' is invalid: The plan is for ship 'cutlass_black', not 'hull_a'.). The file stays until you make a new plan.
+Plan not loaded (Plan file 'C:\Users\you\AppData\Local\SC-CargoPlan\plan.json' is invalid: Crate for Riker is in rack 'rack-9', which ship 'hull_a' doesn't have.). The file stays until you make a new plan.
 ```
 
 A crate outside its rack, a rack the ship doesn't have, a crate of a mission the file doesn't have, or
