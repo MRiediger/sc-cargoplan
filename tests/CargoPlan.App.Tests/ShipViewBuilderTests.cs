@@ -118,12 +118,6 @@ public class ShipViewBuilderTests
     }
 
     [Fact]
-    public void Hints_are_the_planner_messages_word_for_word_once_each()
-    {
-        Build(Sample.Plan).Hints.Should().Equal(Sample.Plan.Warnings.Select(w => w.Message).Distinct());
-    }
-
-    [Fact]
     public void Planner_hints_colour_no_rack_red()
     {
         var scene = Build(Sample.Plan);
@@ -320,7 +314,7 @@ public class ShipViewBuilderTests
     }
 
     [Fact]
-    public void A_delivered_split_stop_is_grey_in_both_racks_and_its_hints_are_gone()
+    public void A_delivered_split_stop_is_grey_in_both_racks()
     {
         var scene = Build(LoadPlanner.SetDelivered(Sample.Plan, Sample.Ship, "Riker", true));
         var riker = scene.Legend.Single(e => e.Destination == "Riker");
@@ -331,20 +325,6 @@ public class ShipViewBuilderTests
         MissionColours(RackNumber(scene, 2)).Should().Equal(scene.Legend.Single(e => e.Destination == "Shubin").PaletteIndex);
         riker.Delivered.Should().BeTrue();
         scene.Legend.Where(e => e.Destination != "Riker").Should().OnlyContain(e => !e.Delivered);
-        scene.Hints.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void Reserved_hints_are_those_of_the_plan_without_deliveries()
-    {
-        // The legend reserves their space, so ticking a stop off doesn't resize the view (no zoom jump).
-        var expected = Build(Sample.Plan).Hints;
-
-        var scene = Build(LoadPlanner.SetDelivered(Sample.Plan, Sample.Ship, "Riker", true));
-
-        expected.Should().NotBeEmpty();
-        scene.ReservedHints.Should().Equal(expected);
-        Build(Sample.Plan).ReservedHints.Should().Equal(expected);
     }
 
     [Fact]

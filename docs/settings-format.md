@@ -78,8 +78,8 @@ can't be changed, so only their alpha is a number of its own: `0` (invisible) to
 | `window.borderThickness` | Width of that frame in pixels, `0` = none | `0` | 0–10 |
 | `header.foreground` | Ship name and the glyphs (pencil, gear, split, merge, exit, padlock) | `#FFE6E6E6` | |
 | `header.halo` | Halo around ship name and "All stops delivered." | off | |
-| `legend.foreground` | Stop lines and hints; also the outline of "Open editor" | `#FFE6E6E6` | |
-| `legend.fontSize` | Font size of the legend, hints, warnings and notices | `null` | 8–32 |
+| `legend.foreground` | Stop lines; also the outline of "Open editor" | `#FFE6E6E6` | |
+| `legend.fontSize` | Font size of the legend, warnings and notices | `null` | 8–32 |
 | `legend.halo` | Halo around the legend's text | off | |
 | `crates.fillAlpha` | Opacity of the crates in the ship view | `208` | 0–255 |
 | `crates.edgeAlpha` | Opacity of the crates' edges | `192` | 0–255 |
@@ -136,7 +136,7 @@ lower case. `top` puts the legend between the header and the ship, `bottom` belo
 left-aligned, so the colour squares stand in one column. Amber notices always stand at the very bottom,
 across the full width, wherever the legend is.
 
-**`"visible": false` hides only the stop lines.** Hints and red warnings stay where the legend is, amber
+**`"visible": false` hides only the stop lines.** Red warnings stay where the legend is, amber
 notices at the bottom. You still tick a destination by clicking its crates in the ship view. **Dragging a legend line
 onto a rack is gone with the lines:** to move a whole destination, right click each of its crates and
 right drag the selection.

@@ -91,9 +91,9 @@ More: [user guide – ContractTracker](docs/user-guide.md#contracttracker).
 - **Drag** (right mouse button) a crate to where the lift really put it, or a legend line onto another rack. Cyan means
   it fits, red means it doesn't.
 - **Split / Merge** (scissors, chain links): when the kiosk hands out two 2s instead of a 4, or the other way round.
-- **Hints:** the app doesn't know your route; the lines below the legend say what lies where: a rack shared by two
-  destinations, a destination spanning racks, or `crate for Shubin sits on cargo for Riker` where crates had to be
-  stacked. **Red** is only for crates that can't lie like that (overlapping, nothing below).
+- **Colors say what lies where:** the app doesn't know your route. Two colors in a rack are two destinations; a color
+  on top of another has to come off first. **Red** is only for crates that can't lie like that (overlapping, nothing
+  below).
 
 More: [user guide – at the cargo lift](docs/user-guide.md#at-the-cargo-lift),
 [reading the ship view](docs/user-guide.md#reading-the-ship-view).

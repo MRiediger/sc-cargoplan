@@ -1115,7 +1115,9 @@ die drei Looks shaded / flat / hiddenline über Weg (b), 20 k, Hull A und Caterp
 - [x] Alter plan.json (8-Stopp-Plan vor B2 mit beiden alten Notizen) lädt ohne Replan, Positionen und Haken gleich, Notizen weg, Hinweise neu; Hurston-Plan vom 23.10. (B1-Fixture) grün
 - [x] Golden-Files: crate_mix und hull_a_eight_stops neu, example_missions, split_and_shared, split_required byte-identisch; 8-Stopp: Seraphim Rack 4 → 3, Fremdauflage-Paare 4 (Rack 4) → 4 (1 in Rack 3, 3 in Rack 4)
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 878, App 957, Import 118); Slow und Exhaustive grün
-- Offen für Martin: App-Start mit der eigenen plan.json (keine roten Reihenfolge-Befunde, Hinweise neu, Positionen und Haken gleich); Spieltest am Aufzug vor dem Merge (wie B1).
+- [x] App-Start mit Martins plan.json: keine roten Reihenfolge-Befunde, Positionen und Haken gleich (Screenshot 24.10.)
+- [x] Nachtrag nach der Abnahme (Martin): keine Hinweiszeilen unter der Legende, die Farben zeigen Teilen und Stapeln; Core behält die Hinweise für CLI und plan.json (D64-Addendum, D16-Addendum). Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- Offen für Martin: Spieltest am Aufzug vor dem Merge (wie B1).
 - Offen: `PlaceInto` und `MoveStop` haben keinen Test mehr, der ihre Suchgrenzen-Notiz erreicht: Mit der Säulen-Schranke erschöpft kein gefundener Fall das Budget (die Stresslast legt in 246 Schritten). Abgedeckt sind das Aufgeben (`Lay` mit 1 Schritt) und das Weitertragen der Notiz.
 
 ### [ ] B3 Verschieben annehmen statt ablehnen (vier Stufen)

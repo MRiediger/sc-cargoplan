@@ -362,7 +362,7 @@ public partial class OverlayWindow : Window
         }
     }
 
-    // Borderless window: drag on header, hint lines and border. The ship view (orbit) and the legend's stop lines
+    // Borderless window: drag on header, warning lines and border. The ship view (orbit) and the legend's stop lines
     // handle their own left clicks, so this never runs there (D15, D16). Clicks in the open ship list (a group header)
     // bubble up to here too: the popup's logical parent is the box.
     private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)

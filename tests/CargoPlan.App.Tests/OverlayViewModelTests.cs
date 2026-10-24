@@ -432,9 +432,9 @@ public class OverlayViewModelTests
         viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-1", 0, 0, 1));
 
         viewModel.Plan!.CratesForRack("rack-1").Should().Contain(c => c.Commodity == "Gold" && c.Position == new GridPosition(0, 0, 1));
-        // Orison on Riker: laid and hinted at, nothing red (D64).
+        // Orison on Riker: laid, nothing red; the plan's hints say it, the overlay doesn't show them (D64).
         viewModel.Scene.Violations.Should().BeEmpty();
-        viewModel.Scene.Hints.Should().Contain(
+        viewModel.Plan!.Warnings.Select(w => w.Message).Should().Contain(
             ["Rack 2 shared by Riker, Shubin, Orison – identify crates by count", "Orison spans racks 2+3", "Rack 2: crate for Orison sits on cargo for Riker"]);
     }
 

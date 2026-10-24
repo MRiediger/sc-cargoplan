@@ -176,18 +176,6 @@ public static class LoadPlanner
     }
 
     /// <summary>
-    /// The hints the plan would have with every stop on board, without checking cells: the legend keeps their space, so
-    /// ticking never resizes the ship view (D16). Ticking back may be refused (<see cref="SetDelivered"/>); this never is.
-    /// </summary>
-    /// <exception cref="ArgumentException">The plan belongs to another ship.</exception>
-    public static IReadOnlyList<PlanWarning> HintsOnBoard(LoadPlan plan, Ship ship)
-    {
-        plan.EnsureBelongsTo(ship);
-        Rack[] racks = [.. ship.Racks.OrderBy(r => r.Index)];
-        return [.. Hints(racks, plan with { Crates = [.. plan.Crates.Select(c => c with { Delivered = false })] }), .. Notes(plan, racks, [])];
-    }
-
-    /// <summary>
     /// Plans missions from scratch, as the editor's Plan does (D19): their stops merged per destination in
     /// <paramref name="stopOrder"/> go through <see cref="Plan(Ship, IReadOnlyList{Stop}, FillOrder)"/>, then every crate
     /// gets a mission that holds its kind. Equal crates of two missions can't be told apart in the game (D38), so which of

@@ -441,7 +441,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public bool AreToolWindowsHidden => IsOverlayHidden || IsAutoLocked;
 
     /// <summary>
-    /// false hides the legend's stop lines; hints, warnings and notices stay (D33). Bound by the window, so the settings
+    /// false hides the legend's stop lines; warnings and notices stay (D33). Bound by the window, so the settings
     /// window (T4.2) can switch it live. By hand, not generated: a partial property can't take the initial value.
     /// </summary>
     public bool IsLegendVisible

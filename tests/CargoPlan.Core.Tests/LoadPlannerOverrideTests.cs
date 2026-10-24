@@ -504,13 +504,6 @@ public class LoadPlannerOverrideTests
             new PlanWarning("rack-0", "4 SCU crate of Titanium for Riker in rack 1 has nothing below it"));
     }
 
-    [Fact]
-    public void HintsOnBoard_are_the_hints_with_nothing_delivered()
-    {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
-
-        LoadPlanner.HintsOnBoard(LoadPlanner.SetDelivered(plan, HullA, "Riker", true), HullA).Should().Equal(plan.Warnings);
-    }
 
     [Fact]
     public void SetDelivered_drops_the_hints_of_the_delivered_stop()

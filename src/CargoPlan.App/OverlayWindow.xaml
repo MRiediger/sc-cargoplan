@@ -392,7 +392,7 @@
                 <!-- Legend: one line per stop, then violations (red racks) and planner hints, word for word (D7).
                      A click on a stop line ticks it off or back (D16, addendum T3.8b: a plain line, no check box); a right drag of
                      a stop line into the ship view moves the whole stop to the rack under the cursor (D25). The lines
-                     are buttons and handle their left clicks, so DragMove works on the header, the hint lines and the border,
+                     are buttons and handle their left clicks, so DragMove works on the header, the lines below the stops and the border,
                      not on the stop lines.
                      A block as wide as its lines, left, centred or right as a whole; inside, everything stays left-aligned, so
                      the swatches stand in one column (D33). The hidden hint reserve counts towards its width and height, so
@@ -430,8 +430,8 @@
                         <Button Content="Open editor" Click="OnOpenEditor" HorizontalAlignment="Left" Margin="0,4,0,0"
                                 Style="{StaticResource TextButtonStyle}" />
                     </StackPanel>
-                    <!-- Hidden by legend.visible = false: only the stop lines go (D33). Hints, warnings and the empty state
-                         stay, notices are at the bottom anyway; a stop is then ticked in the ship view and moved through the crate selection. -->
+                    <!-- Hidden by legend.visible = false: only the stop lines go (D33). Warnings and the empty state stay,
+                         notices are at the bottom anyway; a stop is then ticked in the ship view and moved through the crate selection. -->
                     <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}">
                         <ItemsControl.Style>
                             <Style TargetType="ItemsControl">
@@ -473,7 +473,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                     <!-- Missions that didn't fit (D41): a hollow swatch, the reason, and a click drops the mission. Shown even
-                         with legend.visible = false, like the hints: they ask for something (T5.4). -->
+                         with legend.visible = false, like the warnings: they ask for something (T5.4). -->
                     <ItemsControl ItemsSource="{Binding Scene.Unplaced, Mode=OneWay}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type sv:UnplacedEntry}">
@@ -497,24 +497,6 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <!-- Both lists share one cell: the hidden reserve (hints with nothing delivered) keeps the height, so
-                         ticking a stop off never resizes the ship view (D16). Hidden takes space, Collapsed wouldn't. -->
-                    <Grid>
-                        <ItemsControl ItemsSource="{Binding Scene.ReservedHints, Mode=OneWay}" Visibility="Hidden">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <ItemsControl ItemsSource="{Binding Scene.Hints, Mode=OneWay}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </Grid>
                     <TextBlock Text="{x:Static sv:MissionPalette.RepeatNotice}"
                                Style="{StaticResource LegendTextStyle}"
                                Visibility="{Binding Scene.PaletteRepeats, Converter={StaticResource BooleanToVisibilityConverter}}" />
@@ -522,7 +504,7 @@
             </DockPanel>
 
             <!-- Last child fills the rest. Left drag here orbits, a click on cargo ticks its stop, right drag on a crate
-                 puts it on the cell under the cursor, right drag elsewhere pans; DragMove works on header, hint lines and border. -->
+                 puts it on the cell under the cursor, right drag elsewhere pans; DragMove works on header, warning lines and border. -->
             <sv:ShipViewControl x:Name="ShipView"
                                 Scene="{Binding Scene, Mode=OneWay}"
                                 ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}"

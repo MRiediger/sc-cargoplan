@@ -62,7 +62,7 @@ public sealed record AppSettings(
 /// The legend's layout (D33): top level, not in <c>appearance.legend</c>, because it is layout, not look, and the
 /// settings window resets the look per section (D30). Optional, no schema bump (D31).
 /// </summary>
-/// <param name="Visible">false hides the stop lines only; hints, warnings and notices stay where the legend is.</param>
+/// <param name="Visible">false hides the stop lines only; warnings and notices stay where the legend is.</param>
 /// <param name="Position">One of <see cref="LegendPosition.Names"/>; checked by <see cref="AppearanceRules"/>.</param>
 public sealed record LegendSettings(bool Visible = true, string Position = "bottom-left")
 {

@@ -80,7 +80,6 @@ public class StackingSearchLimitTests
 
         ticked.Warnings.Should().Contain(new PlanWarning("rack-0", Note));
         moved.Warnings.Should().Contain(new PlanWarning("rack-0", Note));
-        LoadPlanner.HintsOnBoard(ticked, HullA).Should().Contain(new PlanWarning("rack-0", Note));
         read.Plan.Warnings.Should().Contain(new PlanWarning("rack-0", Note));
     }
 

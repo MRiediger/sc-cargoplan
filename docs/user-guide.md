@@ -37,7 +37,7 @@ is locked.
 **Remembers where you put it:** drag the overlay next to your cargo grid and resize it once; position and size are
 saved right away, so they survive a restart and even a crash. If you unplug a monitor, the overlay moves back onto the
 screens you have. To move the overlay window, drag it by its header (next to the ship name, which opens the ship list),
-the hint lines below the legend or the border.
+the red lines below the legend, if any, or the border.
 
 ## Reading the ship view
 
@@ -51,8 +51,8 @@ the Caterpillar or the Hull C) start seen from the port side with the length alm
 that hold cargo; the empty racks further aft are dimmed and come into view when you zoom out. Their numbers stand above
 the racks, so a full rack never hides its number. Each destination has its own color, and the legend (below the
 ship, unless you [move it](settings-format.md#legend-layout)) lists it with its SCU. A destination split over two racks
-has the same color in both. A rack shared by two destinations shows both colors side by side; the planner's hints below
-the legend tell you which racks need care.
+has the same color in both. A rack shared by two destinations shows both colors side by side, and a crate on another
+destination's cargo shows its color on top of theirs: the colors say what lies where, no text lines needed.
 
 Each crate is drawn as one box in its shape (a 4 SCU crate is 2 × 2 × 1 cells), with a small gap all round; free space
 shows as single cells. Which rack a destination gets doesn't depend on the order you entered the missions: the
@@ -67,7 +67,7 @@ rests on the plate or on other crates.
 - **Color** = destination. Up to eight colors, from the ninth destination on they repeat (the legend says so).
 - **Gray** = delivered.
 - **Outline only** = free cell. Far out, only the free cells in the layers that hold crates are drawn.
-- **Red** = a crate that can't lie like this, see [Hints and red crates](#hints-and-red-crates).
+- **Red** = a crate that can't lie like this, see [Stacking and red crates](#stacking-and-red-crates).
 
 Hover over a crate to see what it is, e.g. `Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4)`. Inside the
 view: **left drag** turns and tilts the ship, **right drag** next to the crates moves the view, the **mouse wheel**
@@ -204,8 +204,7 @@ it, and never touches the game.
 ### Unloading
 
 When a destination has taken its cargo, click its line in the legend or any of its cargo in the view. Its racks turn
-gray, the legend line is struck through, and the hints about that destination disappear, so the next cargo lift only
-shows what is still on board. The ship stays where it is. A destination split over two racks is ticked once, both racks
+gray and the legend line is struck through, so the next cargo lift only shows what is still on board. The ship stays where it is. A destination split over two racks is ticked once, both racks
 turn gray. Clicked the wrong one? Click again. When every destination is ticked, the header says "All stops delivered."
 Ticking doesn't take the focus from the game, so the terminal keeps working. Every tick is saved right away, so a game
 crash or a restart between two stops keeps your plan and your ticks.
@@ -244,18 +243,12 @@ together in exactly that crate's shape (two 2s side by side make a 4, two 2s in 
 them together first. A grayed-out button tells you why when you hover over it. Split and merge never move other crates,
 and the mission in the editor follows: its crates column then lists the crates as they are, in italics.
 
-### Hints and red crates
+### Stacking and red crates
 
-The app doesn't know your route, so it doesn't tell you which stop comes first. It tells you what lies where. The white
-lines below the legend are hints:
-
-- `Rack 2 shared by Riker, Shubin – identify crates by count`: two destinations in one rack; the elevator takes only
-  its own crates, so count them off.
-- `Riker spans racks 1+2`: one destination in two racks; unload both at Riker.
-- `Rack 2: crate for Shubin sits on cargo for Riker`: a Shubin crate lies on Riker's cargo, directly or on crates that
-  do. Before Riker's crates below can go, Shubin's has to come off; at Shubin's elevator it can go straight away. The
-  planner avoids this where a layout allows; where none does (several destinations fill a rack), it makes the plan
-  anyway and says so. Drag a crate onto another destination's cargo and the hint appears too.
+The app doesn't know your route, so it doesn't tell you which stop comes first; the colors show what lies where. A rack
+with two colors holds two destinations: the elevator takes only its own crates. A crate whose color sits on top of
+another's has to come off before the cargo below can go. The planner avoids that where a layout allows; where none does
+(several destinations fill a rack), it makes the plan anyway.
 
 **Red** is for crates that can't lie like this: overlapping another, or with nothing below them. Only a plan file edited
 by hand gets those, or ticking a stop whose crates carried another one: the crate on top then floats until you drag it.
