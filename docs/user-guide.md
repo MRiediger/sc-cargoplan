@@ -72,9 +72,8 @@ rests on the plate or on other crates.
 **How full is the ship?** The header shows it next to the ship name: `56/64 · 8 free` is 56 SCU on board of 64, 8 free.
 While a mission waits for room, `· 16 waiting` follows with its SCU: that is the moment for
 [Re-plan](#changing-the-plan). Ticked crates are off the ship and don't count. The numbers stay while the overlay is
-locked; in a narrow overlay the ship name gives way first. Each rack says the same behind its number, `3 · 12/16` (turn
-it off under **Crates** in the settings), and as a tool tip anywhere over it, `Rack 3 · 12 / 16 SCU`, empty racks
-included.
+locked; in a narrow overlay the ship name gives way first. Each rack says the same as a tool tip anywhere over it,
+`Rack 3 · 12 / 16 SCU`, empty racks included.
 
 Hover over a crate to see what it is, e.g. `Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4)`, with its
 rack's load in a second line. Inside the view: **left drag** turns and tilts the ship, **right drag** next to the crates moves the view, the **mouse wheel**
@@ -310,8 +309,7 @@ windows, Hotkeys and ContractTracker have none (their defaults are "follow Windo
 - **Legend layout:** where the legend stands (top or bottom; left, centre or right) and whether it shows the
   destination lines at all. A section of its own, so resetting the legend's colours doesn't move it.
 - **Crates:** how solid the crates and their edges are (at the lift, turn the fill down to see the real crates through
-  the planned ones), the colour and size of the rack numbers and the "Bow" label on the bow wedge, and their outline;
-  **Show load after rack numbers** switches the `3 · 12/16` behind each number (on by default).
+  the planned ones), the colour and size of the rack numbers and the "Bow" label on the bow wedge, and their outline.
   The ship outline's line takes the rack numbers' colour, toned down.
 - **Header:** the colour of the ship name and the glyphs (pencil, gear, split, merge, exit, padlock), and a halo around
   the ship name.

@@ -1206,13 +1206,13 @@ Entscheidung (Regel): Kein realistischer Fall kommt über 7 ms, also läuft Re-p
 - [ ] Im Spiel: Kommt der Hotkey-Dialog nach vorn, wenn Star Citizen den Fokus hat? Schiffswechsel-Dialog mittig im Overlay (nicht per UIA geprüft)
 - Offen für Martin: Spieltest am Aufzug vor dem Merge (wie B1–B3).
 
-### [ ] B5 Kapazitätsanzeige (Kopfzeile, Rack-Tooltip, Zahl hinter der Racknummer)
+### [ ] B5 Kapazitätsanzeige (Kopfzeile, Rack-Tooltip)
 **Warum:** Am Aufzug war weder die Maximal- noch die Restkapazität sichtbar, fürs Schiff nicht und pro Rack nicht; nur die Legende zeigte SCU je Ziel. Martins Vorgabe: beides im Overlay, Schiff und Rack.
-**Präzisiert in der Planung:** Kopfzeile immer im kompakten Format `56/64 · 8 free` bzw. `56/64 · 8 free · 16 waiting`, kein Formatwechsel (ersetzt `56 / 64 SCU · 8 free` aus dem Auftrag); reicht die Breite nicht, kürzt der Schiffsname mit Ellipse, die Kapazität nie; über einer Kiste deren Tooltip plus Rack-Zeile, über dem übrigen Rack nur die Rack-Zeile; `waiting` zählt SCU; ohne Plan `0/64 · 64 free`, leere Racks `2 · 0/16`; `LoadPlan.ScuOnBoard` in Core (D24-Regel an einer Stelle, auch für `PlaceProblem`); Lock-Prüfung als Test über die XAML des Overlays (keine Fenster-Tests im Projekt). Bei der Freigabe ergänzt (E1): Gate zusätzlich am Schiff mit dem kleinsten Rack-Grid, Befund an Martin, kein eigener Fix. Im Gate gefunden und behoben: Der Schiffsname brach in zwei Zeilen um („MISC“ über „Hull A“) statt zu kürzen, weil der Header-Stil umbricht; beide Namensfelder jetzt `NoWrap`. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+**Präzisiert in der Planung:** Kopfzeile immer im kompakten Format `56/64 · 8 free` bzw. `56/64 · 8 free · 16 waiting`, kein Formatwechsel (ersetzt `56 / 64 SCU · 8 free` aus dem Auftrag); reicht die Breite nicht, kürzt der Schiffsname mit Ellipse, die Kapazität nie; über einer Kiste deren Tooltip plus Rack-Zeile, über dem übrigen Rack nur die Rack-Zeile; `waiting` zählt SCU; ohne Plan `0/64 · 64 free`; `LoadPlan.ScuOnBoard` in Core (D24-Regel an einer Stelle, auch für `PlaceProblem`); Lock-Prüfung als Test über die XAML des Overlays (keine Fenster-Tests im Projekt). Bei der Freigabe ergänzt (E1): Gate zusätzlich am Schiff mit dem kleinsten Rack-Grid, Befund an Martin, kein eigener Fix. Im Gate gefunden und behoben: Der Schiffsname brach in zwei Zeilen um („MISC“ über „Hull A“) statt zu kürzen, weil der Header-Stil umbricht; beide Namensfelder jetzt `NoWrap`. Nach dem Gate (Martin): nur Racknummern, die Zahl `3 · 12/16` dahinter ist zu viel; sie fliegt samt Schalter `crates.showRackLoad` ganz raus (Martins Wahl auf Rückfrage, statt Default aus), settings.json bleibt unverändert. Präzisierung in der Planphase, ratifiziert durch Freigabe.
 - Core: `LoadPlan.ScuOnBoard(rackId?)`
-- App: `ShipScene.WaitingScu`/`CapacityText`, `RackLoad` (Tooltip, Label) an `SceneRack` und `ProjectedRack`, `SceneHitTest.ToolTipAt` übers ganze Rack, Kopfzeile `CapacityText` ohne `IsLocked`-Trigger, `crates.showRackLoad` (`CrateAppearance`, `ThemeResources.Keys.CratesShowRackLoad`, `ShipViewControl.ShowRackLoad`, Checkbox „Show load after rack numbers“ im Abschnitt Crates)
+- App: `ShipScene.WaitingScu`/`CapacityText`, `RackLoad` (Tooltip) an `SceneRack` und `ProjectedRack`, `SceneHitTest.ToolTipAt` übers ganze Rack, Kopfzeile `CapacityText` ohne `IsLocked`-Trigger, Schiffsname `NoWrap`
 
-**Gate-Messwerte** (echtes Overlay offscreen, Default-Look, Zoom 1, 420 × 460 px, Entwickler-VM; Harness im Scratchpad, nicht im Repo):
+**Gate-Messwerte der entfernten Zahl hinter der Racknummer** (Grundlage für Martins Entscheidung; echtes Overlay offscreen, Default-Look, Zoom 1, 420 × 460 px, Entwickler-VM; Harness im Scratchpad, nicht im Repo):
 
 | Fall | Label | Breite Label | Breite Rack | Verhältnis | Überlappung |
 |---|---|---|---|---|---|
@@ -1225,12 +1225,12 @@ Kleinstes Rack-Grid: fünf Schiffe mit 1 Zelle gleichauf, alle gemessen. Kopfzei
 **Akzeptanz:**
 - [x] Kapazitätswerte aus dem Plan: Max, geladen, frei, wartend; abgehakte Kisten zählen nicht; nach Haken, Move und Re-plan aktuell (`ShipViewBuilderTests`, `OverlayViewModelTests`, `ReplanCommandTests`: Fragmentierung `32/64 · 32 free · 16 waiting` → nach Re-plan `48/64 · 16 free`)
 - [x] Rack-Tooltip `Rack 3 · 14 / 16 SCU`, auch bei leerem Rack und über freien Zellen; über einer Kiste als zweite Zeile (`SceneHitTestTests`)
-- [x] Racknummer-Text mit und ohne `showRackLoad` (`RackLoad.Label`); Round-Trip `crates.showRackLoad` in `SettingsStore`, fehlendes Feld → an; Settings-Fenster und Reset Crates (`SettingsViewModelTests`); DynamicResource (`ThemeResourcesTests`)
+- [x] Racknummer zeigt nur die Nummer (Gate-Bild Hull A nach dem Rückbau); kein `showRackLoad` mehr in Code, Settings-Fenster und settings-format.md
 - [x] Lock-Modus: kein `IsLocked`-Trigger am Kapazitätstext und an seinen Vorfahren, auch nicht über `{StaticResource}`-Stile (`OverlayHeaderXamlTests`); im Gate-Bild gesperrt sichtbar
 - [x] Name kürzt statt umzubrechen, Kapazität nie gekürzt (XAML-Test, Gate-Bilder 420 px mit `waiting`)
 - [x] Vor der Umsetzung rot (Compile-Fehler); der `NoWrap`-Test kam mit dem Fix aus dem Gate
-- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 920, App 1002, Import 119); Slow grün
-- [ ] Look von Kopfzeile, Rack-Labels und Tooltip; Umgang mit Overlays unter 310 px (Taste-Gate Martin)
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 920, App 997, Import 119); Slow grün
+- [ ] Look von Kopfzeile und Tooltip; Umgang mit Overlays unter 310 px (Taste-Gate Martin)
 - Offen für Martin: Spieltest am Aufzug vor dem Merge (wie B1–B4).
 
 ---
