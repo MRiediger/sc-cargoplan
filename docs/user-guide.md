@@ -241,8 +241,10 @@ call: the app does it.
 
 To move several crates at once, **right click** each of them first: a magenta edge marks the selection. Every other
 crate of the same mission gets a white edge and all the rest is dimmed, so you see which crates came together; with one
-crate selected, a line top left says where it is collected, what it is and where it goes: `Lorville · Titanium · Riker`.
-Rows you type for one destination count as one mission, captures each as their own. Right drag any
+crate selected, a line top left says where it is collected, what it is and where it goes: `from Lorville · Titanium · to
+Riker`. Rows you type for one destination count as one mission, captures each as their own. With more than one mission
+on board, each `From …` line in the legend has a check box: tick it to select every crate collected there that is still on
+board, untick it to take them out of the selection again. Right drag any
 selected crate and the whole selection goes along, every crate keeping its place relative to the one you hold, even
 across racks. If the selection doesn't fit as it is, the app finds room as above, crate by crate, and may spread it over
 racks. A selection moves as a whole: if one crate fits nowhere, nothing moves, and the amber line names the crates

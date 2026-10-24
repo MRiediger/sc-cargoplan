@@ -1206,7 +1206,16 @@ D-Eintrag ist D68 (D64 war vergeben).
 - Befund für die Sichtprüfung: Getippte Zeilen eines Ziels sind eine Mission (D42-Addendum). Lorville und Everus Harbor
   im Editor getippt rahmen deshalb gemeinsam; die Infozeile trennt sie, CT-Captures sind eigene Missionen.
 - Offen: Sichtprüfung und Look-Gate Rahmen (Martin).
-- Commits 6012d2a (Modell, Migration, CT, Editor), c03f7a4 (Infozeile, Rahmen), 2d9b5b8 (Legende) und dieser.
+- Commits 6012d2a (Modell, Migration, CT, Editor), c03f7a4 (Infozeile, Rahmen), 2d9b5b8 (Legende), 4af8b51 (Doku).
+
+**Nachtrag nach Martins erstem Blick (Testplan volle Hull A, zwei Missionen):** Infozeile „from <Ort> · <Ware> · to <Ziel>“;
+Haken neben „From <Ort>“ bei mehr als einer Mission an Bord; Editor-Buttonzeile bricht um. **Präzisierung in der
+Planphase, ratifiziert durch Freigabe:** der Haken ist eine echte Auswahl (D25), nur an Kopfzeilen mit Abholort, ohne
+abgehakte Kisten, gesetzt solange alle Kisten des Orts markiert sind; „from“/„to“ klein; 4 px unter jedem Button, damit
+umbrochene Zeilen Abstand halten. Geprüft: Mauspfad (`OnClick`) offscreen markiert 6 Kisten, nimmt sie heraus,
+markiert erneut, das Binding bleibt, leere Auswahl nimmt den Haken weg (der Automation-Toggle führt den Befehl nicht
+aus, deshalb der Mauspfad); Editor bei 520 px zweizeilig, bei 1.100 px einzeilig; Overlay ohne Abholort weiter
+byte-gleich zu 924a6f1. Tests 2.236 grün (App 1.116). Commits 91af570 und dieser.
 
 ### [ ] T7.5 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
 - Known issue (aus T7.2, D59; T7.2b: Wechsel jetzt im Overlay): „On ships with large racks and many small crates, Plan or a ship change can take a few seconds. The overlay doesn’t respond meanwhile.“
