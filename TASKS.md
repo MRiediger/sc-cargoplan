@@ -1064,15 +1064,77 @@ die drei Looks shaded / flat / hiddenline über Weg (b), 20 k, Hull A und Caterp
   holograms", default on, off means no access; one sentence in README and Nexus description: "Ship holograms are an
   optional download; they derive from game models and may be withdrawn on request."
 
-### [ ] T7.4c Holo-Kulisse (D63) – vor T7.5, vor dem Tag
-- Aus T7.4b: Look wählbar (shaded, flat, hiddenline) neben dem Umriss, Keil bleibt Fallback, über `Viewport3D` hinter der
-  Schiffsansicht, Maßstab 1:1, ganzes Holo im Fit.
-- Download: nur HTTPS von unserem Release, nur beim Schiffswechsel, Timeout ≤ 5 s, jeder Fehler endet still im Umriss
-  (eine Notice beim ersten Fehler pro Lauf), Schalter „Download ship holograms“ (Default an), Cache pro Schiff und Version.
+### [x] T7.4c-1 Holo-Daten (D63): Pipeline, Format, Release-Ordner – vor T7.5, vor dem Tag
 - Pipeline in `sc-ship-outlines`: alle 117 dezimieren, Budget festlegen (20 k gemessen), Clustering-Kanten bei C2 /
   Caterpillar / Ironclad klären; Kantenstufen für hiddenline (Mindestlänge statt nur Knickwinkel).
-- Offen: Lage in z (Spike: Mitte der Racks), Racks außerhalb des Rumpfs (Caterpillar), Ladung im Holo (Hull D), RAM bei
-  hiddenline (+42–48 MB bei 20 k), NOTICE mit Quelle und Datum, README-/Nexus-Satz.
+- NOTICE mit Quelle und Datum; Hosting als Release-Asset; Format, auf das T7.4c-2 aufsetzt.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (D63):** T7.4c ist in T7.4c-1 (Daten) und T7.4c-2 (App)
+geschnitten. Hosting: eigenes Daten-Release, Tag `holo-v1`, `--prerelease --latest=false` (die README verlinkt
+`releases/latest`), dazu `manifest.json` mit SHA256 pro Datei; ein fehlender Slug heißt zurückgezogen, ein gescheiterter
+Abruf behält den Cache. settings.json für T7.4c-2: `shipOutline` um `holo-shaded` / `holo-flat` / `holo-hiddenline`
+erweitert, dazu `downloadShipHolograms`. Nicht saubere und abgelehnte Schiffe werden nicht veröffentlicht, der Grund
+steht in `rejected.md` im Pipeline-Repo. Das Pipeline-Repo kommt unter Git, privates Remote (Martin legt es an und
+pusht). Werkzeuge: meshoptimizer 1.3.0 direkt per API, numpy 2.5.3 und opencv-python-headless 5.0.0.93 in `.venv`,
+Node 24.16.0 gepinnt (Martin nannte 22, installiert und LTS ist 24). Kanten kommen mit drei Stufen aus der Pipeline,
+Innenleben fällt per Sichtbarkeit (100 Richtungen) vor jeder Dezimierung, Fenster bleiben. Trimmungen bei der Freigabe:
+keine Tiefenkarten-Metrik, Remeshing ist Phase 8, Martin gibt pro Kontaktbogen frei. Am Kalibrier-Halt (Martin):
+Methode Prune + Permissive ohne Sloppy (Vorbehalt in TOOLS.md und D63), Splitter nur relativ (≤ 1,5 × Hull A = 15,63 %),
+Budget als Leiter 20 / 30 / 40 k, erste Stufe, die alle Kriterien erfüllt; Gate 3 in T7.4c-2 am größten ausgelieferten
+Budget mit SC. Bei der Umsetzung: „Dreiecke ±10 %“ heißt höchstens 110 % der Stufe; Kontur im Hidden-Line nur entlang
+glatter Kanten (< 30°), Teil des Formats; Hausdorff der Flächen statt der Randlinien (ein Loch, das nur in einer Maske
+offen ist, zählte sonst über seinen eigenen Rand); Achswahl per IoU über beide Achsen; Streuteile fallen vor dem Skalieren.
+
+**Befund:**
+
+| Schritt | Messung | Ergebnis |
+|---|---|---|
+| Experiment (Hull A, Hull D, C2, Caterpillar, Ironclad Assault, 20 k) | M1 = Prune; M2 = + Permissive, Rest per Sloppy | Hull A, C2 sauber; Hull D bleibt bei 0,5 % Fehler bei 30,7 k stehen, Ironclad bei 47,8 k, Caterpillar verfehlt den Hausdorff; Permissive senkt Dreiecke bei gleichem Fehler (Ironclad 39,9 k), Sloppy erreicht das Budget nie und hebt den Hausdorff (Ironclad 0,83 → 1,28 %) |
+| Cull, k an Hull A / Hull D | Löcher aus 30 neuen Richtungen bei k = 1 / 2 / 4 / 8 | Hull A 0,093 / 0,098 / 0,106 / 0,127 %, Hull D 0,032 / 0,047 / 0,083 / 0,167 %; k = 2; entfernt Hull A 62 %, Caterpillar 73 % der Dreiecke |
+| Gegenprobe (Avenger Titan, RAFT, Polaris, Vulcan, Endeavor) | eingefrorene Methode und Schwellen | 3 sauber (20 k / 30 k / 30 k), RAFT und Polaris am Hausdorff: dasselbe Muster wie im Experiment |
+| Determinismus | 5 Schiffe ab `flatten` neu | byte-gleich |
+| Alle 117 | 195 min, 0 Abbrüche | 37 × 20 k, 21 × 30 k, 11 × 40 k sauber; 48 nicht sauber (Hausdorff 44, Splitter 7, IoU 2, F-Score 2, Dreiecke 1) |
+| Achsen | IoU der Draufsicht gegen den Umriss | nach dem Fix min. 0,868 (300i), Gegenachse immer ≤ 0,77 |
+| Gate (Martin, 24.10.2026) | 6 saubere, 4 nicht saubere Bögen | alle 117 freigegeben, `rejected.md` leer |
+| Release-Ordner | `verify` | 117 Dateien + NOTICE + Manifest, 64,7 MB, 333–799 KB pro Schiff, 0 Probleme, `pipelineCommit` 36dec60 |
+
+- **Nicht sauber** heißt bei 43 der 47 vor dem Achs-Fix vermessenen (die Syulen kam erst danach dazu): schmale Anbauten
+  (Läufe, Antennen, Türmchen) fehlen, höchstens 2–6,4 px breit auf 512 px; die Flächen decken sich (IoU meist
+  0,97–0,99). Mehr fehlt bei Hull D und E (Ladung im Modell, 10–16 px), Orion (12,8 px) und Kraken (16 px); die Hull C
+  trägt ihre Ladung ebenfalls, ihr fehlen 6 px.
+- **Nach dem vollen Lauf gefunden**, für die Metriken unsichtbar (sie vergleichen mit einer Referenz in denselben
+  Achsen): fünf Schiffe, die breiter als lang sind (Syulen 16 × 28 m, Clipper, Corsair, Railen, Aurora Mk II), lagen
+  quer; die Cutter Scout hat 2.450 Streuteile über das Vierfache ihrer Länge, das Schiff kam auf ein Drittel. Fix:
+  Streuteile raus, Achse per IoU über beide Achsen. Ein Zwischenschritt (Achse nach Fleetyards-Seitenverhältnis) drehte
+  Mule und Reliant falsch (die Reliant fliegt mit senkrechten Flügeln) und ist verworfen. 9 Schiffe neu, 108 byte-gleich.
+  Seitdem zeigt der Kontaktbogen den Umriss rot über der Draufsicht.
+- **Kantenstufen:** L1 881–3.000, L2 2.886–15.000, L3 fast immer an der Kappe 15.000. Mit jeder Knickkante als Kontur
+  sahen die drei Stufen gleich aus (Hull A 20 k: 18.604 Konturkanten); seit der Regel „Kontur nur < 30°“ 435.
+- **Größtes Mesh:** Constellation Centaurus 50.782 Dreiecke (kommt innerhalb 0,5 % nicht unter 40 k), dann Ironclad
+  Assault 40.025. Fünf Gruppen von Varianten teilen ein Modell und sind byte-gleich (z. B. Aurora Mk I CL/ES/LN/LX/MR).
+- **Pipeline-Repo** `sc-ship-outlines`: 35 Python-Tests (`unittest`), vor dem Code rot gesehen
+  (`ModuleNotFoundError: holo_mesh`, später je ein Assert- oder Attributfehler pro neuem Test); Commits 1cead41..36dec60.
+  Kein Upload: Der Release-Ordner liegt in `sc-ship-outlines/holo/holo-v1`, hochgeladen wird mit Martins OK.
+- `docs/holo-format.md` neu (SCH2, Hidden-Line-Regel, Manifest). sc-cargoplan sonst unverändert: kein Code, kein
+  App-Lauf, AppData unberührt.
+
+### [ ] T7.4c-2 Holo-Kulisse in der App (D63) – vor T7.5, vor dem Tag
+- Aus T7.4b: Look wählbar (shaded, flat, hiddenline) neben dem Umriss, Keil bleibt Fallback, über `Viewport3D` hinter der
+  Schiffsansicht, Maßstab 1:1, ganzes Holo im Fit.
+- Leser in Core nach `docs/holo-format.md` (WPF-frei, Tests vor dem Code); flat trennt Vertices pro Dreieck, shaded an den
+  Stufe-3-Kanten, `BackMaterial` gegen Lücken; Kontur nur entlang Kanten < 30°.
+- Download: nur HTTPS von `releases/download/holo-v1/…`, nur beim Schiffswechsel (und für das Startschiff), Timeout ≤ 5 s,
+  jeder Fehler endet still im Umriss (eine Notice beim ersten Fehler pro Lauf), Schalter „Download ship holograms“
+  (Default an, aus = kein Zugriff); `manifest.json` einmal pro Lauf: fehlender Slug = zurückgezogen (Cache-Datei weg),
+  anderer Hash = neu laden, Abruf gescheitert = Cache bleibt. Cache in `%LocalAppData%` pro Schiff und Datenversion.
+- Settings: `shipOutline` um `holo-shaded` / `holo-flat` / `holo-hiddenline`, `downloadShipHolograms` (optional, kein
+  Schema-Bump, D31), Sektion „Ship view“ (D62).
+- Offen: Lage in z (Spike: Mitte der Racks), Racks außerhalb des Rumpfs (Caterpillar), Ladung im Holo (Hull C/D/E),
+  RAM bei hiddenline (+42–48 MB bei 20 k gemessen), Hidden-Line-Weg (b) mit Linienbreite unabhängig vom Fit.
+- Gate 3 mit dem echten Code (A/B gegen den Umriss, mit SC, Martin) am größten Mesh (Centaurus, 50,8 k): Δ ≤ 1 ms,
+  p95 ≤ 16 ms. AppData vor Scratch-Läufen sichern und per Hash zurück.
+- Ein Satz in README und User Guide: „Ship holograms are an optional download; they derive from game models and may be
+  withdrawn on request.“
 ### [ ] T7.5 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
 - Known issue (aus T7.2, D59; T7.2b: Wechsel jetzt im Overlay): „On ships with large racks and many small crates, Plan or a ship change can take a few seconds. The overlay doesn’t respond meanwhile.“
 - Reihenfolge (23.10.2026): Umriss vor Doku, T7.4 und T7.5 getauscht (D55-Addendum). Die Screenshots zeigen den Endzustand, Doku zuletzt vermeidet einen dritten Tausch. Präzisierung in der Planphase, ratifiziert durch Freigabe.
