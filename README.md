@@ -91,9 +91,9 @@ More: [user guide – ContractTracker](docs/user-guide.md#contracttracker).
 - **Drag** (right mouse button) a crate to where the lift really put it, or a legend line onto another rack. Cyan means
   it fits, red means it doesn't.
 - **Split / Merge** (scissors, chain links): when the kiosk hands out two 2s instead of a 4, or the other way round.
-- **Stacking order:** a crate should only rest on cargo that is unloaded at its own stop or later. Where the planner
-  can't avoid it, the plan is made anyway and the crate on top turns **red**, with a red line below the legend saying
-  which one. Red is a finding, not an error: reorder, drag, or restack at the stop.
+- **Hints:** the app doesn't know your route; the lines below the legend say what lies where: a rack shared by two
+  destinations, a destination spanning racks, or `crate for Shubin sits on cargo for Riker` where crates had to be
+  stacked. **Red** is only for crates that can't lie like that (overlapping, nothing below).
 
 More: [user guide – at the cargo lift](docs/user-guide.md#at-the-cargo-lift),
 [reading the ship view](docs/user-guide.md#reading-the-ship-view).
@@ -119,8 +119,6 @@ More: [user guide – settings](docs/user-guide.md#settings-and-your-look),
 - **No auto-update:** check the [releases](https://github.com/MRiediger/sc-cargoplan/releases) for new versions.
 - **Exclusive fullscreen** hides the overlay; use Borderless.
 - **Camera and zoom** of the ship view are back to the default after a restart.
-- **Red stacking findings** can appear with three or more stops in one rack: the planner doesn't yet pick racks by
-  crate shapes.
 
 ## Report a bug
 

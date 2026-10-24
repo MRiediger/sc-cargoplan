@@ -60,7 +60,7 @@ fields are an error.
 | `contractTrackerWatermark` | number | The highest ContractTracker id taken into the plan, `0` for none. Captures above it are new; it only rises. |
 | `missions` | array | Every mission: what you typed or ContractTracker captured, one contract each. May be empty. |
 | `crates` | array | Every crate: what, for whom, for which mission, which rack, which cell. Their order is the route: a stop is unloaded in the order of its first crate still on board. |
-| `warnings` | array | The planner's hints, word for word as the overlay shows them. Stored, not computed again on loading. |
+| `warnings` | array | The planner's hints, word for word as the overlay shows them. Stored; on loading they are derived anew from the crates, so notes an older version wrote (e.g. "Racks not in route order") drop and positions and ticks stay. |
 
 ### Mission
 

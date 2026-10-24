@@ -28,7 +28,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 **Nicht erkennen, sondern festlegen.** Vor dem Beladen wird bestimmt, welches Ziel in welchen Schiffsabschnitt kommt. Der Spieler lädt nach Plan, das Overlay hält die Zuordnung fest, am Ziel wird der Block abgehakt.
 
 - **Input:** pro Mission: Ziel → Ware → SCU → maximale Kistengröße (1/2/4/8/16/24/32 SCU), wie im Vertrag; Kistenmix abgeleitet (gierig, größte zuerst), pro Item übersteuerbar (D23)
-- **Verarbeitung:** Bin-Packing mit Reihenfolge-Constraint. Erster Stopp in Rack 1, die folgenden in Rack-Reihenfolge, kein Ziel über eine Abschnittsgrenze, wenn vermeidbar.
+- **Verarbeitung:** Bin-Packing ohne Reihenfolge (D64): Ziel zusammenhalten, ein Ziel pro Rack, keine Kiste auf fremder Fracht, wenn vermeidbar. Die Route entscheidet der Spieler am Terminal; die App sagt nur, was auf wem liegt.
 - **Output:** halbtransparentes Always-on-top-Overlay mit **Click-through als Modus** (Lock, D11), Schiff schematisch, farbige Blöcke pro Ziel mit Label („Riker · 12 SCU Titanium“), abhakbar.
 
 ## Domänenfakten
@@ -94,8 +94,8 @@ sc-cargoplan/
 ```powershell
 dotnet build                                   # alles kompilieren
 dotnet test                                    # alle Tests
-dotnet test tests/CargoPlan.Core.Tests -p:RunSettingsFilePath= --filter Category=Exhaustive   # Layout-Vollprüfung (~1 min), nicht im Standardlauf
-dotnet test tests/CargoPlan.Core.Tests -p:RunSettingsFilePath= --filter Category=Slow         # Pläne am Suchlimit (~20 s Debug, D58), nicht im Standardlauf, CI eigener Schritt
+dotnet test tests/CargoPlan.Core.Tests -p:RunSettingsFilePath= --filter Category=Exhaustive   # Layout-Vollprüfung (~9 min), nicht im Standardlauf
+dotnet test tests/CargoPlan.Core.Tests -p:RunSettingsFilePath= --filter Category=Slow         # große Pläne (Stresslast, Freelancer; < 1 s seit D64), nicht im Standardlauf, CI eigener Schritt
 dotnet run --project src/CargoPlan.App         # Overlay starten
 dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json
 dotnet run --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/example_missions.json
