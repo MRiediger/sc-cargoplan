@@ -10,13 +10,15 @@ public sealed class SettingsViewModelTests
     private readonly List<(AppearanceSettings Appearance, LegendSettings Legend)> _applied = [];
     private readonly List<ToolWindowTheme> _themes = [];
     private readonly List<ShipOutlineMode> _outlines = [];
+    private readonly List<bool> _downloads = [];
 
     private SettingsViewModel Create(
         AppearanceSettings? appearance = null,
         LegendSettings? legend = null,
         double windowsFontSize = WindowsFontSize,
         ToolWindowTheme toolWindowTheme = ToolWindowTheme.System,
-        ShipOutlineMode shipOutline = ShipOutlineMode.Outline) =>
+        ShipOutlineMode shipOutline = ShipOutlineMode.Outline,
+        bool downloadShipHolograms = true) =>
         new(
             appearance ?? AppearanceSettings.Default,
             legend ?? LegendSettings.Default,
@@ -25,7 +27,9 @@ public sealed class SettingsViewModelTests
             toolWindowTheme,
             _themes.Add,
             shipOutline,
-            _outlines.Add);
+            _outlines.Add,
+            downloadShipHolograms,
+            _downloads.Add);
 
     private (AppearanceSettings Appearance, LegendSettings Legend) Last => _applied[^1];
 
@@ -558,14 +562,36 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
-    public void Reset_of_the_ship_view_goes_back_to_the_outline()
+    public void Reset_of_the_ship_view_goes_back_to_the_outline_and_downloads_on()
     {
-        var viewModel = Create(shipOutline: ShipOutlineMode.None);
+        var viewModel = Create(shipOutline: ShipOutlineMode.None, downloadShipHolograms: false);
 
         viewModel.ResetShipViewCommand.Execute(null);
 
         viewModel.ShipOutline.Should().Be(ShipOutlineMode.Outline);
+        viewModel.DownloadShipHolograms.Should().BeTrue();
         _outlines.Should().Equal(ShipOutlineMode.Outline);
+        _downloads.Should().Equal(true);
+    }
+
+    [Fact]
+    public void The_download_switch_calls_its_callback_not_apply_and_loads_without_calling_back()
+    {
+        var viewModel = Create(downloadShipHolograms: false);
+        viewModel.DownloadShipHolograms.Should().BeFalse();
+        _downloads.Should().BeEmpty();
+
+        viewModel.DownloadShipHolograms = true;
+
+        _downloads.Should().Equal(true);
+        _applied.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void The_switch_says_what_it_sends_and_what_stays()
+    {
+        SettingsViewModel.DownloadShipHologramsHint.Should().Be(
+            "Downloads one file per ship from github.com when you pick a ship. Nothing else is sent. Already downloaded holograms stay.");
     }
 
     [Fact]

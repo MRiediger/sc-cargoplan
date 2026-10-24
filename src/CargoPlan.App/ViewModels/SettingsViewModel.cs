@@ -20,6 +20,10 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public const string ButtonsHaloLabel = "Halo around the glyphs";
 
+    /// <summary>Under the switch "Download ship holograms" (D63): what goes out, and what the switch doesn't take away.</summary>
+    public const string DownloadShipHologramsHint =
+        "Downloads one file per ship from github.com when you pick a ship. Nothing else is sent. Already downloaded holograms stay.";
+
     /// <summary>
     /// The footer: product and the build's informational version, the same as <c>CargoPlan.Cli --version</c>. One line a
     /// hauler copies into a bug report; the commit hash after "+" names the exact build.
@@ -32,6 +36,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly Action<AppearanceSettings, LegendSettings> _apply;
     private readonly Action<ToolWindowTheme> _changeToolWindowTheme;
     private readonly Action<ShipOutlineMode> _changeShipOutline;
+    private readonly Action<bool> _changeDownloadShipHolograms;
 
     // True while fields are loaded (constructor, reset): their change calls are one change, applied once at the end.
     private bool _loading = true;
@@ -43,6 +48,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// </param>
     /// <param name="changeToolWindowTheme">Gets a new tool window mode; apart from <paramref name="apply"/>, because it is no part of the overlay's look (D36).</param>
     /// <param name="changeShipOutline">Gets a new bow marker mode (D62); apart from <paramref name="apply"/>, it is a setting of its own in the file.</param>
+    /// <param name="changeDownloadShipHolograms">Gets the switch "Download ship holograms" (D63), like <paramref name="changeShipOutline"/>.</param>
     public SettingsViewModel(
         AppearanceSettings appearance,
         LegendSettings legend,
@@ -51,14 +57,18 @@ public sealed partial class SettingsViewModel : ObservableObject
         ToolWindowTheme toolWindowTheme,
         Action<ToolWindowTheme> changeToolWindowTheme,
         ShipOutlineMode shipOutline,
-        Action<ShipOutlineMode> changeShipOutline)
+        Action<ShipOutlineMode> changeShipOutline,
+        bool downloadShipHolograms,
+        Action<bool> changeDownloadShipHolograms)
     {
         _windowsFontSize = Math.Clamp(windowsFontSize, AppearanceRules.MinFontSize, AppearanceRules.MaxFontSize);
         _apply = apply;
         _changeToolWindowTheme = changeToolWindowTheme;
         _changeShipOutline = changeShipOutline;
+        _changeDownloadShipHolograms = changeDownloadShipHolograms;
         ToolWindowTheme = toolWindowTheme;
         ShipOutline = shipOutline;
+        DownloadShipHolograms = downloadShipHolograms;
 
         WindowBackground = new(appearance.Window.Background, AppearanceRules.MinClickableAlpha, OnChanged);
         WindowBorderColor = new(appearance.Window.BorderColor, minAlpha: 0, OnChanged);
@@ -180,7 +190,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial ToolWindowTheme ToolWindowTheme { get; set; }
 
-    // Ship view (D62, D63): what lies behind the racks. Part of what the overlay shows, so it has a reset like the look's sections.
+    // Ship view (D62, D63): what lies behind the racks and whether holograms may be downloaded. Part of what the overlay
+    // shows, so it has a reset like the look's sections.
 
     public static IReadOnlyList<ShipOutlineChoice> ShipOutlineChoices { get; } =
     [
@@ -194,8 +205,17 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial ShipOutlineMode ShipOutline { get; set; }
 
+    /// <summary>Off = no network access at all; holograms already downloaded still show (Martin, T7.4c-2).</summary>
+    [ObservableProperty]
+    public partial bool DownloadShipHolograms { get; set; }
+
+    // Two settings of their own, each with its own callback: the reset changes each only if it differs.
     [RelayCommand]
-    private void ResetShipView() => ShipOutline = Settings.ShipOutlineMode.Outline;
+    private void ResetShipView()
+    {
+        ShipOutline = Settings.ShipOutlineMode.Outline;
+        DownloadShipHolograms = true;
+    }
 
     [RelayCommand]
     private void ResetWindow() => Batch(() => LoadWindow(WindowAppearance.Default));
@@ -249,6 +269,15 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!_loading)
         {
             _changeShipOutline(value);
+        }
+    }
+
+    // Like the ship outline mode: a setting of its own.
+    partial void OnDownloadShipHologramsChanged(bool value)
+    {
+        if (!_loading)
+        {
+            _changeDownloadShipHolograms(value);
         }
     }
 

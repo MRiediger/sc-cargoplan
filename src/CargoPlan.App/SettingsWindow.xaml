@@ -322,14 +322,17 @@
                     </StackPanel>
                 </GroupBox>
 
-                <!-- What marks the bow (D62); a setting of its own in the file, so the crates' reset doesn't touch it. -->
+                <!-- What lies behind the racks (D62, D63) and whether holograms may be downloaded; settings of their own in
+                     the file, so the crates' reset doesn't touch them. -->
                 <GroupBox Header="Ship view" Style="{StaticResource SectionStyle}">
                     <StackPanel>
-                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The ship's silhouette under the racks shows where the bow is">
-                            <TextBlock Text="Ship outline" Style="{StaticResource LabelStyle}" />
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The ship's outline or hologram behind the racks shows where the bow is">
+                            <TextBlock Text="Backdrop" Style="{StaticResource LabelStyle}" />
                             <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.ShipOutlineChoices}" DisplayMemberPath="Text"
                                       SelectedValuePath="Value" SelectedValue="{Binding ShipOutline}" />
                         </DockPanel>
+                        <CheckBox Content="Download ship holograms" IsChecked="{Binding DownloadShipHolograms}" Margin="0,8,0,0" />
+                        <TextBlock Text="{x:Static vm:SettingsViewModel.DownloadShipHologramsHint}" TextWrapping="Wrap" Margin="0,2,0,0" />
                         <Button Command="{Binding ResetShipViewCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
                     </StackPanel>
                 </GroupBox>

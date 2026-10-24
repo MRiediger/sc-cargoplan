@@ -318,7 +318,8 @@ public partial class OverlayWindow : Window
                 new SettingsViewModel(
                     current.Appearance, current.Legend, SystemFonts.MessageFontSize, _settings.ChangeLook,
                     _settings.ToolWindowTheme, ChangeToolWindowTheme,
-                    _settings.ShipOutline, _settings.ChangeShipOutline),
+                    _settings.ShipOutline, _settings.ChangeShipOutline,
+                    _settings.DownloadShipHolograms, _settings.ChangeDownloadShipHolograms),
                 _createHotkeys(),
                 _createContractTracker(),
                 _viewModel,
