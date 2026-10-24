@@ -32,6 +32,7 @@ The reader reads exactly these columns. Before reading, each must exist with thi
 |---|---|---|
 | `Contracts` | `Id` | `INTEGER` |
 | `Contracts` | `Name` | `TEXT` |
+| `Contracts` | `PickupLocation` | `TEXT` |
 | `Contracts` | `CapturedAt` | `TEXT` |
 | `Contracts` | `RawOcrText` | `TEXT` |
 | `ContractObjectives` | `Id` | `INTEGER` |
@@ -61,7 +62,7 @@ text holds no readable delivery line. Both go through the same normalisation (D4
 | `ContractSource.Reward` | "Reward" line at the start of `RawOcrText` ("Reward\n50,250"), not `Contracts.Reward` | null if missing or the line is not just a number; decides duplicates (D39 addendum) |
 | `MissionStop.Order` | – | order in the text; ContractTracker has no route order |
 | Capture time | `Contracts.CapturedAt` | UTC without a marker, e.g. `2026-10-20 08:22:54.1193454` |
-| Pickup | (`Contracts.PickupLocation`) | CargoPlan has no pickup field; the text varies per capture, several pickups are joined with ` / ` |
+| `MissionItem.Pickup` | `Contracts.PickupLocation` | per row, so per commodity; split at "/", trimmed, otherwise as captured, OCR errors included (D68); several pickups come joined with ` / `, never with amounts; the text varies per capture, so it is no key |
 | Identity | `Contracts.Id` | AUTOINCREMENT, never reused, also after a reset; the rows of one capture have consecutive ids and identical `RawOcrText` |
 
 `ContractObjectives.ContractId` references `Contracts.Id` with `ON DELETE CASCADE`.
@@ -78,7 +79,6 @@ alone. Without pooling no handle stays open after a read.
 
 | Column | Why not |
 |---|---|
-| `Contracts.PickupLocation` | no field in CargoPlan; unreliable as a key |
 | `Contracts.Reward` | 0 in every row observed; CargoPlan reads the reward from `RawOcrText` instead |
 | `Contracts.Status` | `Active` in every row observed; ContractTracker deletes instead |
 | `ContractObjectives.Completed` | 0 in every row observed; ContractTracker deletes instead |

@@ -37,7 +37,7 @@ often as it fits, the rest in smaller ones. 6 SCU at max 4 are a 4 and a 2; 15 S
 ## Fields
 
 Names are camelCase and **case-sensitive**. Unknown fields are an error, so a typo like `"SCU"` is
-reported instead of being ignored silently. All fields are **required** except `crates`.
+reported instead of being ignored silently. All fields are **required** except `crates` and `pickup`.
 
 ### File
 
@@ -61,6 +61,7 @@ reported instead of being ignored silently. All fields are **required** except `
 | `scu` | number | Total amount in SCU, greater than 0. |
 | `maxCrateSize` | number | The largest crate size the contract allows, in SCU: `1`, `2`, `4`, `8`, `16`, `24` or `32`. |
 | `crates` | array of numbers | Optional. The crates as the kiosk delivered them, e.g. `[2, 2, 2]`. Each one a crate size up to `maxCrateSize`, together exactly `scu`. Leave it out to let the tool work them out. |
+| `pickup` | array of strings | Optional. Where the crates are collected, e.g. `["Lorville"]`, or several places for a contract with several pickups, without amounts. Spaces around a name, empty names and a name repeated (in any case) are dropped. The overlay shows it when you select a crate and groups the legend by it. |
 
 A crate that fits no rack of the ship is rejected by the planner.
 

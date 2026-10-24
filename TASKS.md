@@ -1171,6 +1171,43 @@ hidden line), je ein Farbfeld ohne Alpha-Regler unter dem Deckkraft-Regler, imme
   offscreen geöffnet.
 - Commits ab4acbb, de96e92, 31541bf, 8c7a123 und dieser; Pipeline a406e95. Martin pusht.
 
+### [ ] T7.4d Mission und Abholort sichtbar machen (D68) – vor T7.5
+- Problem aus dem Spiel: Kisten kommen pro Mission und Abholort hoch, das Overlay färbt pro Ziel; zwei Missionen zum selben
+  Ziel oder eine Mission mit drei Abholorten sind nicht zu unterscheiden.
+- Modell: `pickup` optional am Item, jede Kiste kennt ihr Item; Merge nur bei gleichem Item, Split erbt.
+- Ansicht ohne Planer-Code: Infozeile bei genau einer markierten Kiste, Auswahl rahmt die Mission und dimmt den Rest,
+  Legende mit Kopfzeile pro Abholort; Haken pro Stop (D16), Legende „aus“ blendet Kopfzeilen mit aus (D33).
+- Sichtprüfung (Martin): Hull A, zwei Missionen nach Riker aus Lorville und Everus Harbor, gleiche Ware und Kistengröße;
+  Drei-Orte-Mission am Abholort B.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** ein Item mit einer Liste von Abholorten ohne Mengen; Feld
+`pickup`, Editor-Spalte „Pickup“ zwischen Stop und Source, die CT-Spalte „Source“ bleibt; Legende mit einer Kopfzeile pro
+Ortsliste („From A, B, C“, gleiche Orte in beliebiger Reihenfolge und Schreibweise = eine Liste), darunter jedes Ziel
+einmal; Infozeile mit „ / “; ohne Abholort im ganzen Plan keine Kopfzeile, sonst Kopfzeile ohne Text für Items ohne
+Abholort; `Crate.Item` = Index in `Mission.Items`, Bump auf plan.json Schema 4 mit Migration aus 3, Missionsdatei bleibt
+Schema 2 (`pickup` optional); Merge nur im selben Item, auch ohne Abholort; Hull-A-Goldens neu erzeugt, Diff nur
+`schemaVersion` und `item`; Infozeile über der Schiffsansicht ohne eigenen Platz (kein Neu-Fitten beim Markieren);
+neue Zeile erbt den Abholort; Dimmen 0,4 wie leere Racks (D61), Rahmenfarbe Look-Gate (Vorschlag weiß, 1,5 px);
+CT liest `Contracts.PickupLocation` (Fingerprint, Split an „/“, OCR-Text unverändert, nicht im Duplikat-Schlüssel);
+D-Eintrag ist D68 (D64 war vergeben).
+
+**Befund:**
+
+| Frage | Ergebnis |
+|---|---|
+| Wo gab es einen Abholort? | Nirgends: Editor-„Source“ ist die CT-Capture, Missionsdatei, plan.json, `Stop`, `Mission.Contract` ohne Feld |
+| Kannte die Kiste ihr Item? | Nein, nur die Mission (Warteschlange pro Ziel + Ware + Größe) → Schema 4 |
+| CT-Teilmengen pro Abholort? | Nein: `PickupLocation` ein Freitext pro Zeile, Fixtures „Collect Waste from …“ viermal ohne SCU, nur „0/9 SCU“ |
+| Goldens | 10 Dateien, bis auf `schemaVersion` und `item` identisch, Racks und Positionen unverändert |
+| Overlay offscreen (Hull A, acht Stops, ohne Auswahl) | byte-gleich zu 924a6f1, nach Commit 2 und 3 |
+| Echte CT-DB (Kopie) | Fingerprint mit `PickupLocation` passt, Kandidaten werden gelesen |
+| Tests | 2.231 grün (Core 992, Import 128, App 1.111), Slow grün; kein neues NuGet-Paket |
+
+- Befund für die Sichtprüfung: Getippte Zeilen eines Ziels sind eine Mission (D42-Addendum). Lorville und Everus Harbor
+  im Editor getippt rahmen deshalb gemeinsam; die Infozeile trennt sie, CT-Captures sind eigene Missionen.
+- Offen: Sichtprüfung und Look-Gate Rahmen (Martin).
+- Commits 6012d2a (Modell, Migration, CT, Editor), c03f7a4 (Infozeile, Rahmen), 2d9b5b8 (Legende) und dieser.
+
 ### [ ] T7.5 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
 - Known issue (aus T7.2, D59; T7.2b: Wechsel jetzt im Overlay): „On ships with large racks and many small crates, Plan or a ship change can take a few seconds. The overlay doesn’t respond meanwhile.“
 - Reihenfolge (23.10.2026): Umriss vor Doku, T7.4 und T7.5 getauscht (D55-Addendum). Die Screenshots zeigen den Endzustand, Doku zuletzt vermeidet einen dritten Tausch. Präzisierung in der Planphase, ratifiziert durch Freigabe.
@@ -1390,4 +1427,9 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - B1-Restfall: abgeschnittenes Fragment ohne Ergänzung. Capture 21–25 (24.10.): „to Thur“ bricht um, OCR liest „Thundering“ als „Thur…“, „Melg“ entsprechend; die Ergänzung aus der Drop-off-Liste greift nicht, weil das Fragment kein Präfix ist. Auslöser: weitere Fälle in echten Captures.
 - Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).
 - Undo für Drags und Re-plan: ab Stufe 3 (D65) ist Zurückziehen kein Undo mehr, ein Re-plan (B4) verwirft Moves. Auslöser: ein Hauler verliert eine Lage durch einen Drop.
+- Mengen pro Abholort („collect 3 from A, 2 from B“) statt einer Ortsliste ohne Mengen (D68). Auslöser: CT oder das Spiel
+  nennen die Teilmengen.
+- Kisten anderer Missionen ausblenden statt dimmen (D68). Auslöser: Martin oder ein Hauler will es nach dem Spieltest.
+- Abholort ändern ohne Re-plan (heute braucht jede Editor-Änderung „Plan“, D19). Auslöser: ein Hauler trägt Abholorte erst
+  nach dem Beladen nach und verliert dabei Moves.
 - Mehrsprachigkeit, falls nicht-englische Hauler danach fragen. Beginnt beim Parser (deutsche CT-Captures als Fixtures), nicht bei `.resx` (D53).

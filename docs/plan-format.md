@@ -7,15 +7,15 @@ need to write it by hand; this page explains what is in it.
 
 ## Example
 
-Two missions. Mission 1 was typed in the editor: Riker, 8 SCU Titanium (max crate 4), two 4 SCU crates on
-the plate of Rack 1. Mission 2 came from ContractTracker (capture ids 36 and 37): Shubin, 4 SCU Quartz; the
+Two missions. Mission 1 was typed in the editor: Riker, 8 SCU Titanium (max crate 4) collected at Lorville,
+two 4 SCU crates on the plate of Rack 1. Mission 2 came from ContractTracker (capture ids 36 and 37): Shubin, 4 SCU Quartz; the
 contract named no max crate size, so the largest one that fits was assumed, and its drop-off list named
 three destinations of which one was read. Saved files write each position over several lines; the reader
 doesn't mind.
 
 ```json
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
   "contractTrackerWatermark": 37,
@@ -24,7 +24,7 @@ doesn't mind.
       "id": 1,
       "unplaced": false,
       "stops": [
-        { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 8, "maxCrateSize": 4 } ] }
+        { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 8, "maxCrateSize": 4, "pickup": ["Lorville"] } ] }
       ]
     },
     {
@@ -37,9 +37,9 @@ doesn't mind.
     }
   ],
   "crates": [
-    { "destination": "Riker", "commodity": "Titanium", "crateSize": 4, "rackId": "rack-0", "position": [2, 0, 0], "delivered": false, "mission": 1 },
-    { "destination": "Riker", "commodity": "Titanium", "crateSize": 4, "rackId": "rack-0", "position": [0, 0, 0], "delivered": false, "mission": 1 },
-    { "destination": "Shubin", "commodity": "Quartz", "crateSize": 4, "rackId": "rack-1", "position": [2, 0, 0], "delivered": false, "mission": 2 }
+    { "destination": "Riker", "commodity": "Titanium", "crateSize": 4, "rackId": "rack-0", "position": [2, 0, 0], "delivered": false, "mission": 1, "item": 0 },
+    { "destination": "Riker", "commodity": "Titanium", "crateSize": 4, "rackId": "rack-0", "position": [0, 0, 0], "delivered": false, "mission": 1, "item": 0 },
+    { "destination": "Shubin", "commodity": "Quartz", "crateSize": 4, "rackId": "rack-1", "position": [2, 0, 0], "delivered": false, "mission": 2, "item": 0 }
   ],
   "warnings": []
 }
@@ -54,7 +54,7 @@ fields are an error.
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `3`. Files with `1` and `2` are still read, see [Older plan files](#older-plan-files). |
+| `schemaVersion` | number | `4`. Files with `1`, `2` and `3` are still read, see [Older plan files](#older-plan-files). |
 | `shipId` | string | The ship the plan is for, e.g. `"hull_a"` ([ship files](ship-format.md)). |
 | `fillOrder` | string | `"bowFirst"` or `"sternFirst"`: which end of a rack's length crates fill from, when planned and when laid out again, e.g. after a move. Chosen as **Fill order** in the editor. Part of the plan, so everyone loading it sees the same layout. |
 | `contractTrackerWatermark` | number | The highest ContractTracker id taken into the plan, `0` for none. Captures above it are new; it only rises. |
@@ -68,10 +68,11 @@ fields are an error.
 |---|---|---|
 | `id` | number | 1 or more, unique in the file. Crates name their mission by it. |
 | `unplaced` | boolean | `true` if the mission didn't fit when it came; it then has no crates. The overlay places it as soon as it fits, at the next sync with ContractTracker. |
-| `stops` | array | Its stops as in a [mission file](mission-format.md): `destination` and `items` with `commodity`, `scu`, `maxCrateSize` and optionally `crates`. One stop per destination; the same destination in two missions has the same spelling. |
+| `stops` | array | Its stops as in a [mission file](mission-format.md): `destination` and `items` with `commodity`, `scu`, `maxCrateSize` and optionally `crates` and `pickup`. One stop per destination; the same destination in two missions has the same spelling. |
 | `contract` | object | Optional: the ContractTracker capture it came from. Missing for missions typed in the editor or read from a mission file. |
 
-Missions to the same destination share one stop at the cargo lift: one legend line, one tick.
+Missions to the same destination share one stop at the cargo lift: one tick. The legend shows it once, or once per
+pickup list when items name their pickup.
 
 ### Capture
 
@@ -93,6 +94,7 @@ Missions to the same destination share one stop at the cargo lift: one legend li
 | `position` | array | `[length, width, stack]`, the crate's corner cell counted from 0 at the rack's corner: length along the rack, width across it, stack away from the plate. The whole crate must lie inside the rack's `grid`. |
 | `delivered` | boolean | `true` once the stop is ticked off. All crates of a stop are ticked together. A delivered crate is off the ship: its cells are free for new crates, and it carries nothing. Ticking back works until another crate takes one of its cells. |
 | `mission` | number | The `id` of the mission the crate belongs to; not an `unplaced` one. |
+| `item` | number | Which item of its mission the crate belongs to, counted from 0 over the mission's stops and their items in file order. Its destination and commodity are the crate's. Two items of one kind (e.g. from two pickups) keep their own crates. |
 
 ### Warning
 
@@ -101,8 +103,8 @@ Missions to the same destination share one stop at the cargo lift: one legend li
 | `rackId` | string | A rack `id` of the ship. |
 | `message` | string | The hint text. |
 
-The crates must match the missions exactly: for every mission, destination, commodity and crate size there
-are as many crates as the mission has (worked out from SCU and max crate size, or listed in `crates`).
+The crates must match the missions exactly: for every item of every mission and every crate size there are as
+many crates as the item has (worked out from SCU and max crate size, or listed in `crates`).
 Splitting or merging crates in the overlay changes both: the item's `crates` list then names the crates as
 they lie, and goes away once they are the worked-out mix again.
 
@@ -112,7 +114,10 @@ red; the planner and the overlay's moves never make them.
 
 ## Older plan files
 
-Both older versions are read and saved as schema 3 right after loading; moves and ticks stay.
+All older versions are read and saved as schema 4 right after loading; moves and ticks stay.
+
+- **Schema 3** (before crates named their item) has crates without `item`. Each mission's crates of one kind
+  take its items of that kind in order.
 
 - **Schema 2** (before missions had ids) has `missions` as one embedded [mission file](mission-format.md)
   and crates without `mission`. Each stop becomes a mission of its own, its crates belong to it, and the

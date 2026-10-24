@@ -51,7 +51,9 @@ Each rack shows its number on its largest visible face. Long ships (more than tw
 the Caterpillar or the Hull C) start seen from the port side with the length almost level, and the view shows the racks
 that hold cargo; the empty racks further aft are dimmed and come into view when you zoom out. Their numbers stand above
 the racks, so a full rack never hides its number. Each destination has its own color, and the legend (below the
-ship, unless you [move it](settings-format.md#legend-layout)) lists it with its SCU. A destination split over two racks
+ship, unless you [move it](settings-format.md#legend-layout)) lists it with its SCU; once your missions name their
+pickups, the legend groups its lines under `From Lorville`, `From A, B, C` and so on, a destination once under each
+pickup it is collected at. A destination split over two racks
 has the same color in both. A rack shared by two destinations shows both colors side by side, and a crate on another
 destination's cargo shows its color on top of theirs: the colors say what lies where, no text lines needed.
 
@@ -100,8 +102,11 @@ so it takes the focus while you type; afterwards click back into the game (or Al
   colors follow it. It doesn't decide the racks, and which stop you fly to first is up to you. Stops follow the first
   row of each destination, so `Riker, Shubin, Orison, Shubin` gives stops 1, 2, 3, 2. Use **↑**/**↓** to move rows;
   destinations match regardless of upper or lower case.
+- **Pickup** (optional): where you collect the crates, e.g. `Lorville`, or `Area18 / Lorville` for a contract with
+  several pickups (the contract names no amounts per pickup, so neither does the row). Two rows with the same commodity
+  for the same destination from two pickups stay apart in the plan.
 - **New rows:** type into the empty row at the bottom (Tab from the last cell gets you there), or press **Add**. A new
-  row takes the max crate size of the row above; the first row starts at 4.
+  row takes the max crate size and the pickup of the row above; the first row starts at 4.
 - **Mistakes show in red:** an empty destination or commodity, an SCU that isn't a whole number, or crates typed by hand
   that don't add up to the SCU, aren't a crate size or are larger than the max (`2+2+3` for 6 SCU). The reason is in the
   tool tip and below the grid; **Plan** stays off until every row is fixed, and hovering over it shows why. If the
@@ -184,6 +189,8 @@ itself, a few moments after you press F3. No editor, no click.
 - **Deleted in ContractTracker:** a contract you have fully ticked (or that didn't fit) leaves the plan as soon as you
   delete it there. One with crates still on board stays, and an amber line names it until you tick it or delete it in
   the editor.
+- **Pickup** comes along from ContractTracker as it was read, misreadings included; correct it in the editor's
+  **Pickup** column if you want the legend tidy.
 - **In the editor**, the **Source** column shows where a row came from (`ct 37–38` = ContractTracker's ids, empty =
   typed). **Delete mission** takes the selected row's mission out of the plan at once, with its crates; nothing else
   moves and you don't press **Plan** for it (typed rows of one destination count as one mission).
@@ -232,7 +239,10 @@ the crate fits nowhere, its ghost turns **red** with "no room for 4 SCU crate" w
 are never split on their own; that stays the scissors' job. Putting a crate on another destination's cargo is your
 call: the app does it.
 
-To move several crates at once, **right click** each of them first: a magenta edge marks the selection. Right drag any
+To move several crates at once, **right click** each of them first: a magenta edge marks the selection. Every other
+crate of the same mission gets a white edge and all the rest is dimmed, so you see which crates came together; with one
+crate selected, a line top left says where it is collected, what it is and where it goes: `Lorville · Titanium · Riker`.
+Rows you type for one destination count as one mission, captures each as their own. Right drag any
 selected crate and the whole selection goes along, every crate keeping its place relative to the one you hold, even
 across racks. If the selection doesn't fit as it is, the app finds room as above, crate by crate, and may spread it over
 racks. A selection moves as a whole: if one crate fits nowhere, nothing moves, and the amber line names the crates
