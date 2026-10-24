@@ -53,6 +53,20 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     public const string PlanUnchangedText = "Plan unchanged";
 
+    public const string ReplanToolTipText = "Re-plan: lay out all cargo on board anew – ticks and crate sizes stay, you restack the ship";
+
+    public const string NothingToReplanText = "Re-plan: no cargo on board";
+
+    /// <summary>What the overlay asks before every re-plan (D66): no way past it, button or hotkey.</summary>
+    public const string ReplanConfirmText =
+        "Re-plan? All cargo on board is laid out anew: crates change racks and cells, you restack the ship, and manual moves are lost. Ticks and crate sizes stay.";
+
+    /// <summary>
+    /// Asks the player before a re-plan and says whether to go on; the overlay window shows a message box. The view model
+    /// stays WPF-free, and without a window the answer is no: a re-plan never runs unconfirmed.
+    /// </summary>
+    public Func<string, bool> ConfirmReplan { get; set; } = _ => false;
+
     /// <summary>
     /// What the player's Re-plan did (D66), instead of asking first: how many crates on board moved, or that nothing did;
     /// then the missions that still wait.
@@ -172,6 +186,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             OnPropertyChanged(nameof(HasPlan));
             OnPropertyChanged(nameof(SplitToolTip));
             OnPropertyChanged(nameof(MergeToolTip));
+            OnPropertyChanged(nameof(ReplanToolTip));
             SplitCommand.NotifyCanExecuteChanged();
             MergeCommand.NotifyCanExecuteChanged();
             ReplanCommand.NotifyCanExecuteChanged();
@@ -206,6 +221,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>The merge button's tool tip, like <see cref="SplitToolTip"/>.</summary>
     public string MergeToolTip => MergeProblem() ?? MergeText;
+
+    /// <summary>The header's Re-plan button's tool tip (D66), like <see cref="SplitToolTip"/>: what it does, or why it can't.</summary>
+    public string ReplanToolTip => CanReplan() ? ReplanToolTipText : NothingToReplanText;
 
     /// <summary>
     /// The player's lock: --locked sets the start value, the lock window switches it via <see cref="ToggleLockCommand"/>.
@@ -430,15 +448,21 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     }
 
     /// <summary>
-    /// Lays out the cargo on board anew, as a fresh plan of the same missions would (D66): the editor's Re-plan button and
-    /// the replan hotkey. Ticks, crate sizes and fill order stay, waiting missions get placed where they fit. No question
-    /// first, the notice line says what happened; if nothing moved and nothing came in, the plan stays as it is (no new
-    /// scene, the selection stays). Synchronous: the measured cases take a few milliseconds (B4).
+    /// Lays out the cargo on board anew, as a fresh plan of the same missions would (D66): the header's and the editor's
+    /// Re-plan button and the replan hotkey. Ticks, crate sizes and fill order stay, waiting missions get placed where
+    /// they fit. Only after the player said yes (<see cref="ConfirmReplan"/>); then the notice line says what happened. If
+    /// nothing moved and nothing came in, the plan stays as it is (no new scene, the selection stays). Synchronous: the
+    /// measured cases take a few milliseconds (B4).
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanReplan))]
     private void Replan()
     {
         var saved = Saved ?? throw new InvalidOperationException(NoPlanText);
+        if (!ConfirmReplan(ReplanConfirmText))
+        {
+            return;
+        }
+
         var replanned = LoadPlanner.Replan(saved, Ship);
         var moved = LoadPlanner.MovedCrates(saved.Plan, replanned.Plan);
         var changed = moved > 0 || replanned.Missions.Count(m => m.Unplaced) < saved.Missions.Count(m => m.Unplaced);

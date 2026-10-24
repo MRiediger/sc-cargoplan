@@ -36,9 +36,10 @@ public sealed class ReplanCommandTests
         return LoadPlanner.PlaceInto(saved, HullA, [Stop("Orison", "Gold", 16, CrateSize.Sixteen)]);
     }
 
+    /// <summary>The overlay with the plan; every re-plan question answered yes, as the window's message box would.</summary>
     private static OverlayViewModel Showing(SavedPlan saved)
     {
-        var overlay = new OverlayViewModel(HullA);
+        var overlay = new OverlayViewModel(HullA) { ConfirmReplan = _ => true };
         overlay.ShowPlan(saved);
         return overlay;
     }
@@ -63,6 +64,52 @@ public sealed class ReplanCommandTests
 
         overlay.ReplanCommand.CanExecute(null).Should().BeFalse();
         raised.Should().BePositive();
+    }
+
+    [Fact]
+    public void Replan_asks_first_and_a_no_changes_nothing()
+    {
+        var overlay = Showing(Fragmented());
+        var saved = overlay.Saved;
+        List<string> asked = [];
+        overlay.ConfirmReplan = question =>
+        {
+            asked.Add(question);
+            return false;
+        };
+
+        overlay.ReplanCommand.Execute(null);
+
+        asked.Should().Equal(OverlayViewModel.ReplanConfirmText);
+        overlay.Saved.Should().BeSameAs(saved);
+        overlay.Notices.Should().NotContain(n => n.StartsWith("Plan ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Without_a_way_to_ask_Replan_does_nothing()
+    {
+        // Never without confirmation (Martin, B4): the view model's default answer is no.
+        var overlay = new OverlayViewModel(HullA);
+        overlay.ShowPlan(Fragmented());
+        var saved = overlay.Saved;
+
+        overlay.ReplanCommand.Execute(null);
+
+        overlay.Saved.Should().BeSameAs(saved);
+    }
+
+    [Fact]
+    public void The_header_buttons_tool_tip_says_what_it_does_or_why_it_cant()
+    {
+        var overlay = new OverlayViewModel(HullA);
+        overlay.ReplanToolTip.Should().Be(OverlayViewModel.NothingToReplanText);
+
+        var changed = new List<string?>();
+        overlay.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+        overlay.ShowPlan(Fragmented());
+
+        overlay.ReplanToolTip.Should().Be(OverlayViewModel.ReplanToolTipText);
+        changed.Should().Contain(nameof(OverlayViewModel.ReplanToolTip));
     }
 
     [Fact]

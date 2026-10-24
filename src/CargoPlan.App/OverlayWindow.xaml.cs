@@ -42,6 +42,12 @@ public partial class OverlayWindow : Window
         _syncFromContractTracker = syncFromContractTracker;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
+
+        // Every re-plan asks first, from the header, the editor or the hotkey (D66); No is the default, the
+        // action is destructive. Like the ship change, the dialog takes the foreground and a click into the game gives it
+        // back (D59 addendum T7.2b).
+        viewModel.ConfirmReplan = question =>
+            ConfirmDialog.Ask(CurrentWindow(), "Re-plan", question, yesIsDefault: false, _settings.ToolWindowTheme);
         ShowCurrentShip();
     }
 
@@ -200,6 +206,13 @@ public partial class OverlayWindow : Window
     }
 
     /// <summary>
+    /// The window a question belongs in the middle of (D66): the app's active window, the editor after a click on
+    /// its Re-plan, else the overlay, which never takes the focus (D11) and so is never the active one.
+    /// </summary>
+    private Window CurrentWindow() =>
+        Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive && w is not ConfirmDialog) ?? this;
+
+    /// <summary>
     /// Asks first when there is a plan (D59); declined or not loadable, the box shows the overlay's ship again. The dialog
     /// takes the foreground; a click into the game gives it back (spike T7.2b over Star Citizen).
     /// </summary>
@@ -207,7 +220,7 @@ public partial class OverlayWindow : Window
     {
         if (choice.Ship is not { } ship
             || (_viewModel.ShipChangeQuestion(ship) is { } question
-                && MessageBox.Show(this, question, "Change ship", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes))
+                && !ConfirmDialog.Ask(CurrentWindow(), "Change ship", question, yesIsDefault: true, _settings.ToolWindowTheme)))
         {
             ShowCurrentShip();
             return;

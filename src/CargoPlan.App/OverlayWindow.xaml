@@ -294,7 +294,16 @@
                     <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
                                Foreground="{DynamicResource HeaderForegroundBrush}" />
                 </Button>
-                <!-- Merge and split the selected crates when the kiosk delivered others than planned (D27); left of the pencil,
+                <!-- Re-plan (D66) between the pencil and merge, Martin's choice after B4: also here, not only in the editor.
+                     It asks first (ConfirmDialog), then the notice line says what happened; disabled, the tool tip says why,
+                     like split and merge. -->
+                <Button DockPanel.Dock="Right" Command="{Binding ReplanCommand, Mode=OneTime}" ToolTip="{Binding ReplanToolTip}"
+                        ToolTipService.ShowOnDisabled="True" Style="{StaticResource HeaderButtonStyle}">
+                    <!-- E72C Refresh. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                    <TextBlock Text="&#xE72C;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                               Foreground="{DynamicResource HeaderForegroundBrush}" />
+                </Button>
+                <!-- Merge and split the selected crates when the kiosk delivered others than planned (D27); left of the re-plan button,
                      hidden while locked like it. Disabled, the tool tip says why (ShowOnDisabled).
                      Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.tooltipservice.showondisabled -->
                 <Button DockPanel.Dock="Right" Command="{Binding MergeCommand, Mode=OneTime}" ToolTip="{Binding MergeToolTip}"
