@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 2,
+  "stops": [
+    {
+      "destination": "Thundering Express Station",
+      "items": [
+        { "commodity": "Stims", "scu": 4, "maxCrateSize": 4 },
+        { "commodity": "Processed Food", "scu": 6, "maxCrateSize": 4 },
+        { "commodity": "Pressurized Ice", "scu": 4, "maxCrateSize": 4 },
+        { "commodity": "Stims", "scu": 2, "maxCrateSize": 2 }
+      ]
+    },
+    {
+      "destination": "Green Glade Station",
+      "items": [
+        { "commodity": "Stims", "scu": 4, "maxCrateSize": 4 },
+        { "commodity": "Pressurized Ice", "scu": 4, "maxCrateSize": 4 },
+        { "commodity": "Pressurized Ice", "scu": 6, "maxCrateSize": 4 },
+        { "commodity": "Pressurized Ice", "scu": 7, "maxCrateSize": 4 },
+        { "commodity": "Stims", "scu": 2, "maxCrateSize": 2 }
+      ]
+    },
+    {
+      "destination": "Melodic Fields Station",
+      "items": [
+        { "commodity": "Stims", "scu": 4, "maxCrateSize": 4 },
+        { "commodity": "Processed Food", "scu": 6, "maxCrateSize": 4 },
+        { "commodity": "Stims", "scu": 3, "maxCrateSize": 2 }
+      ]
+    },
+    {
+      "destination": "Faithful Dream Station",
+      "items": [
+        { "commodity": "Stims", "scu": 3, "maxCrateSize": 2 }
+      ]
+    }
+  ]
+}

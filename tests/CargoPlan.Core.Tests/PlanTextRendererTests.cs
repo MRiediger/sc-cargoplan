@@ -64,8 +64,8 @@ public class PlanTextRendererTests
                               Shubin    12 SCU Titanium (6×2)
                               ! Rack 2 shared by Riker, Shubin – identify crates by count
                               ! Riker spans racks 1+2
-            [Rack 3 · 16/16]  Orison    16 SCU Titanium (8×2)
-            [Rack 4 · 16/16]  Lorville  16 SCU Titanium (8×2)
+            [Rack 3 · 16/16]  Lorville  16 SCU Titanium (8×2)
+            [Rack 4 · 16/16]  Orison    16 SCU Titanium (8×2)
 
             Warnings:
             - Riker spans racks 1+2

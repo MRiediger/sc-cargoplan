@@ -14,28 +14,13 @@ public class LoadPlannerTests
     private static Stop StopOf(string destination, int order, int scu) =>
         new(destination, order, [new CargoItem("Titanium", scu, CrateSize.Two)]);
 
-    /// <summary>One stop per SCU value, in route order, named from <see cref="Destinations"/>.</summary>
+    /// <summary>One stop per SCU value, in input order, named from <see cref="Destinations"/>.</summary>
     private static IReadOnlyList<Stop> Route(params int[] scus) =>
         [.. scus.Select((scu, i) => StopOf(Destinations[i], i + 1, scu))];
 
     /// <summary>Destinations per Hull A rack, in rack order.</summary>
     private static string[][] StopsPerRack(LoadPlan plan) =>
         [.. HullA.Racks.Select(r => plan.PlacementsForRack(r.Id).Select(p => p.Destination).Distinct().ToArray())];
-
-    /// <summary>Drops a name that repeats its predecessor, so a stop split over neighbouring racks counts once.</summary>
-    private static List<string> WithoutRepeats(IEnumerable<string> names)
-    {
-        List<string> result = [];
-        foreach (var name in names)
-        {
-            if (result.Count == 0 || result[^1] != name)
-            {
-                result.Add(name);
-            }
-        }
-
-        return result;
-    }
 
     // --- Cases from TASKS.md ---
 
@@ -50,46 +35,47 @@ public class LoadPlannerTests
     }
 
     [Fact]
-    public void Plan_two_8_scu_stops_and_one_16_scu_stop_uses_three_racks()
+    public void Plan_two_8_scu_stops_and_one_16_scu_stop_uses_three_racks_largest_first()
     {
         var plan = LoadPlanner.Plan(HullA, Route(8, 8, 16));
 
         StopsPerRack(plan).Should().BeEquivalentTo<string[]>(
-            [["Riker"], ["Shubin"], ["Orison"], []], o => o.WithStrictOrdering());
+            [["Orison"], ["Riker"], ["Shubin"], []], o => o.WithStrictOrdering());
         plan.Warnings.Should().BeEmpty();
     }
 
     [Fact]
-    public void Plan_four_16_scu_stops_fills_all_racks_in_route_order()
+    public void Plan_four_16_scu_stops_fill_all_racks_by_name()
     {
         var plan = LoadPlanner.Plan(HullA, Route(16, 16, 16, 16));
 
         StopsPerRack(plan).Should().BeEquivalentTo<string[]>(
-            [["Riker"], ["Shubin"], ["Orison"], ["Lorville"]], o => o.WithStrictOrdering());
+            [["Lorville"], ["Orison"], ["Riker"], ["Shubin"]], o => o.WithStrictOrdering());
         plan.Warnings.Should().BeEmpty();
     }
 
-    // --- Stacking order: never a later stop on an earlier one (D24 addendum, T5.4a) ---
+    // --- Stacking: no crate on another destination's cargo where a layout avoids it (D64) ---
 
     private static Stop StopIn(string destination, int order, int scu, CrateSize size) =>
         new(destination, order, [new CargoItem("Titanium", scu, size)]);
 
     [Fact]
-    public void Plan_puts_the_earlier_stop_on_top_where_two_stops_share_a_rack()
+    public void Plan_hints_where_a_split_destination_and_another_must_stack()
     {
-        // Full Hull A: Riker spills one 4 into rack 2, where Shubin follows. Riker is unloaded first, so it lies outside.
+        // Full Hull A: Riker spills one 4 into rack 2, where Shubin's three 4s need six of eight columns: one sits on the other.
         var plan = LoadPlanner.Plan(HullA,
             [StopIn("Riker", 1, 20, CrateSize.Four), StopIn("Shubin", 2, 12, CrateSize.Four),
              StopIn("Orison", 3, 16, CrateSize.Sixteen), StopIn("Lorville", 4, 16, CrateSize.Sixteen)]);
 
-        plan.CratesForRack("rack-1").Single(c => c.Destination == "Riker").Position.Stack.Should().Be(1);
+        StopsPerRack(plan)[1].Should().BeEquivalentTo("Riker", "Shubin");
+        plan.Warnings.Should().Contain(new PlanWarning("rack-1", "Rack 2: crate for Shubin sits on cargo for Riker"));
         LoadPlanner.Validate(plan, HullA).Should().BeEmpty();
     }
 
     [Fact]
-    public void Plan_four_stops_of_12_and_one_of_16_in_8s_lays_out_in_route_order()
+    public void Plan_four_stops_of_12_and_one_of_16_in_8s_lays_out_without_problems()
     {
-        // 4 SCU are left in every rack; planned anew, earlier stops lie on later ones, never the other way round.
+        // 4 SCU are left in every rack; Area18's 8s go where they fit.
         var plan = LoadPlanner.Plan(HullA,
             [StopIn("Riker", 1, 12, CrateSize.Four), StopIn("Shubin", 2, 12, CrateSize.Four), StopIn("Orison", 3, 12, CrateSize.Four),
              StopIn("Lorville", 4, 12, CrateSize.Four), StopIn("Area18", 5, 16, CrateSize.Eight)]);
@@ -98,16 +84,16 @@ public class LoadPlannerTests
     }
 
     [Fact]
-    public void Plan_marks_a_rack_without_an_ordered_layout_instead_of_failing()
+    public void Plan_hints_at_a_rack_where_destinations_must_stack_instead_of_failing()
     {
-        // 61 of 64 SCU: three 16s take racks 2 to 4, the first three stops share rack 1, where 8 and 4 cover the plate
-        // and the last stop's 1 can only lie on an earlier one. The cargo fits; the order is a finding, not a refusal.
+        // 61 of 64 SCU: three 16s take racks 1 to 3, the three others share rack 4, where 8 and 4 cover the plate and the
+        // 1 can only lie on one of them. The cargo fits; stacking is a hint, not a refusal.
         var plan = LoadPlanner.Plan(HullA,
             [StopIn("Riker", 1, 8, CrateSize.Eight), StopIn("Shubin", 2, 4, CrateSize.Four), StopIn("Orison", 3, 1, CrateSize.One),
              StopIn("Lorville", 4, 16, CrateSize.Sixteen), StopIn("Area18", 5, 16, CrateSize.Sixteen), StopIn("Everus", 6, 16, CrateSize.Sixteen)]);
 
-        LoadPlanner.Validate(plan, HullA).Select(w => w.Message)
-            .Should().Equal("1 SCU crate of Titanium for Orison in rack 1 lies on cargo for Shubin, which is unloaded first");
+        LoadPlanner.Validate(plan, HullA).Should().BeEmpty();
+        plan.Warnings.Should().Contain(new PlanWarning("rack-3", "Rack 4: crate for Orison sits on cargo for Shubin"));
     }
 
     [Fact]
@@ -123,12 +109,14 @@ public class LoadPlannerTests
     // --- Ordering and items ---
 
     [Fact]
-    public void Plan_orders_stops_by_order_not_by_list_position()
+    public void Plan_lists_stops_by_order_and_racks_them_by_size_and_name()
     {
+        // The order is the legend's (D64); the racks don't follow it.
         var plan = LoadPlanner.Plan(HullA, [StopOf("Orison", 3, 8), StopOf("Riker", 1, 8), StopOf("Shubin", 2, 8)]);
 
+        plan.Route.Should().Equal("Riker", "Shubin", "Orison");
         StopsPerRack(plan).Should().BeEquivalentTo<string[]>(
-            [["Riker"], ["Shubin"], ["Orison"], []], o => o.WithStrictOrdering());
+            [["Orison"], ["Riker"], ["Shubin"], []], o => o.WithStrictOrdering());
     }
 
     [Fact]
@@ -147,13 +135,14 @@ public class LoadPlannerTests
     // --- Sharing when there are more stops than racks ---
 
     [Fact]
-    public void Plan_five_stops_share_rack_1_and_warn()
+    public void Plan_five_stops_share_one_rack_and_warn()
     {
+        // By name, each into an empty rack; the fifth joins the first rack. The hint names them in list order.
         var plan = LoadPlanner.Plan(HullA, Route(4, 4, 4, 4, 4));
 
         StopsPerRack(plan).Should().BeEquivalentTo<string[]>(
-            [["Riker", "Shubin"], ["Orison"], ["Lorville"], ["Area18"]], o => o.WithStrictOrdering());
-        plan.Warnings.Should().Equal(new PlanWarning("rack-0", "Rack 1 shared by Riker, Shubin – identify crates by count"));
+            [["Shubin", "Area18"], ["Lorville"], ["Orison"], ["Riker"]], o => o.WithStrictOrdering());
+        plan.Warnings.Should().Equal(new PlanWarning("rack-0", "Rack 1 shared by Shubin, Area18 – identify crates by count"));
     }
 
     [Fact]
@@ -162,13 +151,13 @@ public class LoadPlannerTests
         var plan = LoadPlanner.Plan(HullA, Route(2, 2, 2, 2, 2, 2, 2, 2));
 
         StopsPerRack(plan).Should().BeEquivalentTo<string[]>(
-            [["Riker", "Shubin"], ["Orison", "Lorville"], ["Area18", "Everus"], ["Baijini", "Tressler"]],
+            [["Orison", "Area18"], ["Riker", "Baijini"], ["Shubin", "Everus"], ["Lorville", "Tressler"]],
             o => o.WithStrictOrdering());
         plan.Warnings.Should().Equal(
-            new PlanWarning("rack-0", "Rack 1 shared by Riker, Shubin – identify crates by count"),
-            new PlanWarning("rack-1", "Rack 2 shared by Orison, Lorville – identify crates by count"),
-            new PlanWarning("rack-2", "Rack 3 shared by Area18, Everus – identify crates by count"),
-            new PlanWarning("rack-3", "Rack 4 shared by Baijini, Tressler – identify crates by count"));
+            new PlanWarning("rack-0", "Rack 1 shared by Orison, Area18 – identify crates by count"),
+            new PlanWarning("rack-1", "Rack 2 shared by Riker, Baijini – identify crates by count"),
+            new PlanWarning("rack-2", "Rack 3 shared by Shubin, Everus – identify crates by count"),
+            new PlanWarning("rack-3", "Rack 4 shared by Lorville, Tressler – identify crates by count"));
     }
 
     [Fact]
@@ -177,31 +166,13 @@ public class LoadPlannerTests
         var plan = LoadPlanner.Plan(HullA, Route(4, 16, 4, 4, 4, 4));
 
         StopsPerRack(plan).Should().BeEquivalentTo<string[]>(
-            [["Riker"], ["Shubin"], ["Orison", "Lorville"], ["Area18", "Everus"]], o => o.WithStrictOrdering());
-    }
-
-    [Theory]
-    [InlineData(new[] { 4, 4, 4, 4, 4 })]
-    [InlineData(new[] { 2, 2, 2, 2, 2, 2, 2, 2 })]
-    [InlineData(new[] { 4, 16, 4, 4, 4, 4 })]
-    [InlineData(new[] { 12, 10, 8 })]
-    [InlineData(new[] { 20, 12, 16, 16 })]
-    [InlineData(new[] { 10, 10, 10, 10, 10, 4 })]
-    public void Plan_racks_in_rack_order_hold_the_route_in_order(int[] scus)
-    {
-        var route = Route(scus);
-
-        var plan = LoadPlanner.Plan(HullA, route);
-
-        // Reading the racks in rack order must give the route: shared racks hold only neighbours,
-        // a split stop fills neighbouring racks.
-        WithoutRepeats(StopsPerRack(plan).SelectMany(r => r)).Should().Equal(route.Select(s => s.Destination));
+            [["Shubin"], ["Orison", "Area18"], ["Riker", "Everus"], ["Lorville"]], o => o.WithStrictOrdering());
     }
 
     // --- Splitting a stop across racks ---
 
     [Fact]
-    public void Plan_split_required_spans_two_neighbouring_racks()
+    public void Plan_split_required_spans_two_racks()
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitRequired);
 
@@ -243,7 +214,7 @@ public class LoadPlannerTests
         var plan = LoadPlanner.Plan(HullA, Route(20, 12, 16, 16));
 
         StopsPerRack(plan).Should().BeEquivalentTo<string[]>(
-            [["Riker"], ["Riker", "Shubin"], ["Orison"], ["Lorville"]], o => o.WithStrictOrdering());
+            [["Riker"], ["Riker", "Shubin"], ["Lorville"], ["Orison"]], o => o.WithStrictOrdering());
         plan.Warnings.Should().Equal(
             new PlanWarning("rack-0", "Riker spans racks 1+2"),
             new PlanWarning("rack-1", "Rack 2 shared by Riker, Shubin – identify crates by count"),
@@ -277,11 +248,12 @@ public class LoadPlannerTests
     // --- No valid plan ---
 
     [Fact]
-    public void Plan_overflow_missions_throws_with_missing_scu_and_stop()
+    public void Plan_overflow_missions_throws_with_missing_scu()
     {
         var act = () => LoadPlanner.Plan(HullA, MissionFixtures.OverflowMissions);
 
-        act.Should().Throw<PlanException>().WithMessage("Ship capacity exceeded: 8 SCU missing, stop 'Orison'*");
+        // No stop is named: without a route none of them is the one that doesn't fit (D64).
+        act.Should().Throw<PlanException>().WithMessage("Ship capacity exceeded: 8 SCU missing (stops need 72 SCU*");
     }
 
     [Fact]
@@ -289,23 +261,25 @@ public class LoadPlannerTests
     {
         var act = () => LoadPlanner.Plan(HullA, Route(16, 16, 16, 16, 4));
 
-        act.Should().Throw<PlanException>().WithMessage("Ship capacity exceeded: 4 SCU missing, stop 'Area18'*");
+        act.Should().Throw<PlanException>().WithMessage("Ship capacity exceeded: 4 SCU missing*");
     }
 
     [Fact]
-    public void Plan_throws_when_whole_crates_do_not_fit_behind_previous_stops()
+    public void Plan_fits_crates_that_no_cut_of_a_route_fitted()
     {
-        // 60 of 64 SCU: no 8 SCU crate fits next to Riker, Shubin fills racks 1–3, Orison has no rack left.
-        Stop[] route =
+        // 60 of 64 SCU. In route order Shubin's 8s followed Riker, and Orison found no rack (before D64); without a route
+        // Shubin takes three racks and Riker and Orison share the fourth.
+        Stop[] stops =
         [
             new("Riker", 1, [new CargoItem("Titanium", 10, CrateSize.Two)]),
             new("Shubin", 2, [new CargoItem("Quartz", 48, CrateSize.Eight)]),
             new("Orison", 3, [new CargoItem("Agricium", 2, CrateSize.One)]),
         ];
 
-        var act = () => LoadPlanner.Plan(HullA, route);
+        var plan = LoadPlanner.Plan(HullA, stops);
 
-        act.Should().Throw<PlanException>().WithMessage("Crates don't fit*Orison*");
+        StopsPerRack(plan).Should().BeEquivalentTo<string[]>(
+            [["Shubin"], ["Shubin"], ["Shubin"], ["Riker", "Orison"]], o => o.WithStrictOrdering());
     }
 
     // --- Crate shape ---

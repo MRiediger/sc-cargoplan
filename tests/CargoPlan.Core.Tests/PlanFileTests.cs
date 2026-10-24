@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
@@ -202,6 +203,27 @@ public class PlanFileTests
         PlanFile.Write(stream, Planned(MissionFixtures.LoadMissions("example_missions")));
 
         stream.CanWrite.Should().BeTrue();
+    }
+
+    // --- A plan from before D64 ---
+
+    [Fact]
+    public void A_plan_from_before_D64_loads_as_saved_with_its_hints_derived_anew()
+    {
+        // The eight-stop plan as the route-order planner wrote it: four stops in rack 4, with both of its route notes.
+        var text = FixtureText("plans/before_b2_eight_stops.json");
+        using var document = JsonDocument.Parse(text);
+        var saved = Read(text);
+
+        saved.Plan.Crates.Select(c => (c.Destination, c.RackId, c.Position, c.Delivered)).Should().Equal(
+            document.RootElement.GetProperty("crates").EnumerateArray().Select(c => (
+                c.GetProperty("destination").GetString()!,
+                c.GetProperty("rackId").GetString()!,
+                new GridPosition(c.GetProperty("position")[0].GetInt32(), c.GetProperty("position")[1].GetInt32(), c.GetProperty("position")[2].GetInt32()),
+                c.GetProperty("delivered").GetBoolean())));
+        saved.Plan.Warnings.Select(w => w.Message).Should().NotContain(m => m.Contains("route order") || m.Contains("unloads earlier"));
+        saved.Plan.Warnings.Should().Contain(new PlanWarning("rack-3", "Rack 4: crate for Everus Harbor sits on cargo for Area18"));
+        LoadPlanner.Validate(saved.Plan, HullA).Should().BeEmpty();
     }
 
     // --- Schema 1 migration (D24) ---

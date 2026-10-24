@@ -1,0 +1,408 @@
+{
+  "schemaVersion": 3,
+  "shipId": "hull_a",
+  "fillOrder": "bowFirst",
+  "contractTrackerWatermark": 0,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Lorville",
+          "items": [
+            {
+              "commodity": "Gold",
+              "scu": 16,
+              "maxCrateSize": 16
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Riker",
+          "items": [
+            {
+              "commodity": "Titanium",
+              "scu": 12,
+              "maxCrateSize": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Shubin",
+          "items": [
+            {
+              "commodity": "Quartz",
+              "scu": 6,
+              "maxCrateSize": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Orison",
+          "items": [
+            {
+              "commodity": "Agricium",
+              "scu": 8,
+              "maxCrateSize": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Everus Harbor",
+          "items": [
+            {
+              "commodity": "Scrap",
+              "scu": 5,
+              "maxCrateSize": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Area18",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 4,
+              "maxCrateSize": 4
+            },
+            {
+              "commodity": "Medical Supplies",
+              "scu": 2,
+              "maxCrateSize": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Port Tressler",
+          "items": [
+            {
+              "commodity": "Copper",
+              "scu": 3,
+              "maxCrateSize": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Seraphim",
+          "items": [
+            {
+              "commodity": "Iron",
+              "scu": 2,
+              "maxCrateSize": 2
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Lorville",
+      "commodity": "Gold",
+      "crateSize": 16,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2
+    },
+    {
+      "destination": "Riker",
+      "commodity": "Titanium",
+      "crateSize": 4,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 2
+    },
+    {
+      "destination": "Shubin",
+      "commodity": "Quartz",
+      "crateSize": 2,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3
+    },
+    {
+      "destination": "Shubin",
+      "commodity": "Quartz",
+      "crateSize": 2,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 3
+    },
+    {
+      "destination": "Shubin",
+      "commodity": "Quartz",
+      "crateSize": 2,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Agricium",
+      "crateSize": 8,
+      "rackId": "rack-2",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 4
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Scrap",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        3,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 5
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Scrap",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 5
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Scrap",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        1,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 5
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Scrap",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 5
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Scrap",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        3,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 5
+    },
+    {
+      "destination": "Area18",
+      "commodity": "Stims",
+      "crateSize": 4,
+      "rackId": "rack-3",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 6
+    },
+    {
+      "destination": "Area18",
+      "commodity": "Medical Supplies",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        2,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 6
+    },
+    {
+      "destination": "Area18",
+      "commodity": "Medical Supplies",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        1,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 6
+    },
+    {
+      "destination": "Port Tressler",
+      "commodity": "Copper",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 7
+    },
+    {
+      "destination": "Port Tressler",
+      "commodity": "Copper",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 7
+    },
+    {
+      "destination": "Seraphim",
+      "commodity": "Iron",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 8
+    }
+  ],
+  "warnings": [
+    {
+      "rackId": "rack-2",
+      "message": "Rack 3 shared by Shubin, Orison – identify crates by count"
+    },
+    {
+      "rackId": "rack-3",
+      "message": "Rack 4 shared by Everus Harbor, Area18, Port Tressler, Seraphim – identify crates by count"
+    },
+    {
+      "rackId": "rack-3",
+      "message": "Racks not in route order – crates placed where they fit"
+    },
+    {
+      "rackId": "rack-3",
+      "message": "Rack 4: too many crates to rearrange – red crates lie on cargo that unloads earlier. Check the unload order by hand."
+    }
+  ]
+}

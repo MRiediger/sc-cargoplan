@@ -19,9 +19,9 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, l
         Watermark >= 0 ? Watermark : throw new ArgumentOutOfRangeException(nameof(Watermark), Watermark, "The watermark is 0 or more.");
 
     /// <summary>
-    /// One stop per destination with the items of every mission, as planner, editor and mission file see the route: in
-    /// <see cref="LoadPlan.UnloadOrder"/>, then destinations only unplaced missions go to, in mission order. Within a stop,
-    /// items in mission order. Derived on every read.
+    /// One stop per destination with the items of every mission, as planner, editor and mission file see them: in
+    /// <see cref="LoadPlan.Route"/> (the order of the legend, D64), then destinations only unplaced missions go to, in
+    /// mission order. Within a stop, items in mission order. Derived on every read.
     /// </summary>
     public IReadOnlyList<MissionStop> Stops
     {
@@ -31,7 +31,7 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, l
                 .SelectMany(m => m.Stops)
                 .GroupBy(s => s.Destination)
                 .ToDictionary(g => g.Key, g => g.SelectMany(s => s.Items).ToArray());
-            string[] order = [.. Plan.UnloadOrder.Where(items.ContainsKey).Union(items.Keys)];
+            string[] order = [.. Plan.Route.Where(items.ContainsKey).Union(items.Keys)];
             return [.. order.Select((destination, index) => new MissionStop(destination, index + 1, items[destination]))];
         }
     }

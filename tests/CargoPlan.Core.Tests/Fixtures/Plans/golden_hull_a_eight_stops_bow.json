@@ -327,9 +327,9 @@
       "crateSize": 1,
       "rackId": "rack-3",
       "position": [
-        2,
         1,
-        1
+        1,
+        0
       ],
       "delivered": false,
       "mission": 6
@@ -340,9 +340,9 @@
       "crateSize": 1,
       "rackId": "rack-3",
       "position": [
+        0,
         1,
-        1,
-        1
+        0
       ],
       "delivered": false,
       "mission": 6
@@ -366,7 +366,7 @@
       "crateSize": 1,
       "rackId": "rack-3",
       "position": [
-        0,
+        2,
         1,
         1
       ],
@@ -377,11 +377,11 @@
       "destination": "Seraphim",
       "commodity": "Iron",
       "crateSize": 2,
-      "rackId": "rack-3",
+      "rackId": "rack-2",
       "position": [
         0,
         1,
-        0
+        1
       ],
       "delivered": false,
       "mission": 8
@@ -390,11 +390,27 @@
   "warnings": [
     {
       "rackId": "rack-2",
-      "message": "Rack 3 shared by Shubin, Orison \u2013 identify crates by count"
+      "message": "Rack 3 shared by Shubin, Orison, Seraphim \u2013 identify crates by count"
+    },
+    {
+      "rackId": "rack-2",
+      "message": "Rack 3: crate for Seraphim sits on cargo for Shubin"
     },
     {
       "rackId": "rack-3",
-      "message": "Rack 4 shared by Everus Harbor, Area18, Port Tressler, Seraphim \u2013 identify crates by count"
+      "message": "Rack 4 shared by Everus Harbor, Area18, Port Tressler \u2013 identify crates by count"
+    },
+    {
+      "rackId": "rack-3",
+      "message": "Rack 4: crate for Everus Harbor sits on cargo for Area18"
+    },
+    {
+      "rackId": "rack-3",
+      "message": "Rack 4: crate for Everus Harbor sits on cargo for Port Tressler"
+    },
+    {
+      "rackId": "rack-3",
+      "message": "Rack 4: crate for Port Tressler sits on cargo for Area18"
     }
   ]
 }

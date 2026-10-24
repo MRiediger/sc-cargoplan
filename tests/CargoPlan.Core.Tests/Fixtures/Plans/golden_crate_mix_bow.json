@@ -52,7 +52,7 @@
       "destination": "Green Glade",
       "commodity": "Stims",
       "crateSize": 4,
-      "rackId": "rack-0",
+      "rackId": "rack-1",
       "position": [
         2,
         0,
@@ -65,6 +65,32 @@
       "destination": "Green Glade",
       "commodity": "Stims",
       "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Green Glade",
+      "commodity": "Scrap",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1
+    },
+    {
+      "destination": "Green Glade",
+      "commodity": "Scrap",
+      "crateSize": 4,
       "rackId": "rack-0",
       "position": [
         0,
@@ -78,33 +104,7 @@
       "destination": "Green Glade",
       "commodity": "Scrap",
       "crateSize": 4,
-      "rackId": "rack-1",
-      "position": [
-        2,
-        0,
-        0
-      ],
-      "delivered": false,
-      "mission": 1
-    },
-    {
-      "destination": "Green Glade",
-      "commodity": "Scrap",
-      "crateSize": 4,
-      "rackId": "rack-1",
-      "position": [
-        0,
-        0,
-        0
-      ],
-      "delivered": false,
-      "mission": 1
-    },
-    {
-      "destination": "Green Glade",
-      "commodity": "Scrap",
-      "crateSize": 4,
-      "rackId": "rack-1",
+      "rackId": "rack-0",
       "position": [
         2,
         0,
@@ -117,7 +117,7 @@
       "destination": "Green Glade",
       "commodity": "Scrap",
       "crateSize": 2,
-      "rackId": "rack-1",
+      "rackId": "rack-0",
       "position": [
         0,
         0,
@@ -130,7 +130,7 @@
       "destination": "Green Glade",
       "commodity": "Scrap",
       "crateSize": 1,
-      "rackId": "rack-1",
+      "rackId": "rack-0",
       "position": [
         1,
         1,

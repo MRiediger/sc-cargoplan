@@ -22,7 +22,8 @@ public class LoadPlannerOverrideTests
         [new Stop("Riker", 1, [new CargoItem("Titanium", 8, CrateSize.Four), new CargoItem("Quartz", 4, CrateSize.Two)])];
 
     /// <summary>
-    /// Four 1s along the row next to the spindle in Rack 1, an 8 alone in Rack 2: 12 SCU would fit Rack 1, the 8's shape doesn't.
+    /// The 8 alone in Rack 1 (largest first, D64), four 1s along the row next to the spindle in Rack 2: 12 SCU would fit one
+    /// rack, the 8's shape and the 1s' row don't leave it a gap.
     /// </summary>
     private static readonly Stop[] GoldThenAgricium =
     [
@@ -104,11 +105,11 @@ public class LoadPlannerOverrideTests
             new PlanWarning("rack-1", "Rack 2 shared by Riker, Shubin, Orison – identify crates by count"),
             new PlanWarning("rack-1", "Riker spans racks 1+2"),
             new PlanWarning("rack-1", "Orison spans racks 2+3"),
+            new PlanWarning("rack-1", "Rack 2: crate for Orison sits on cargo for Riker"),
             new PlanWarning("rack-2", "Orison spans racks 2+3"));
 
-        // Orison is unloaded after Riker: laid and marked, not refused (D24 addendum).
-        LoadPlanner.Validate(moved, HullA).Select(w => w.Message)
-            .Should().Equal("1 SCU crate of Gold for Orison in rack 2 lies on cargo for Riker, which is unloaded first");
+        // A crate on other cargo is laid and hinted at, not refused or marked (D64).
+        LoadPlanner.Validate(moved, HullA).Should().BeEmpty();
     }
 
     [Fact]
@@ -328,19 +329,19 @@ public class LoadPlannerOverrideTests
     // --- MoveStop ---
 
     [Fact]
-    public void MoveCrate_lays_a_later_stop_on_an_earlier_one_and_marks_it()
+    public void MoveCrate_lays_a_crate_on_other_cargo_and_hints_at_it()
     {
-        // Shubin's top 2 from Rack 2 onto Riker's free top in Rack 1: possible, only tedious at Riker's elevator (D24 addendum).
+        // Shubin's top 2 from Rack 2 onto Riker's free top in Rack 1: possible, only tedious at the elevator (D64).
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
         var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-1", 2, 0, 1), "rack-0", new GridPosition(0, 0, 1));
 
-        LoadPlanner.Validate(moved, HullA).Select(w => w.Message)
-            .Should().Equal("2 SCU crate of Quartz for Shubin in rack 1 lies on cargo for Riker, which is unloaded first");
+        moved.Warnings.Should().Contain(new PlanWarning("rack-0", "Rack 1: crate for Shubin sits on cargo for Riker"));
+        LoadPlanner.Validate(moved, HullA).Should().BeEmpty();
     }
 
     [Fact]
-    public void MoveStop_lays_a_later_stop_on_an_earlier_one_and_marks_it()
+    public void MoveStop_lays_a_stop_on_other_cargo_and_hints_at_it()
     {
         // Riker's two 4s cover the plate of Rack 1; Shubin's 4 fits only on top of them.
         var plan = LoadPlanner.Plan(HullA,
@@ -349,8 +350,8 @@ public class LoadPlannerOverrideTests
         var moved = LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-0");
 
         moved.CratesForRack("rack-0").Should().ContainSingle(c => c.Destination == "Shubin" && c.Position.Stack == 1);
-        LoadPlanner.Validate(moved, HullA).Select(w => w.Message)
-            .Should().Equal("4 SCU crate of Quartz for Shubin in rack 1 lies on cargo for Riker, which is unloaded first");
+        moved.Warnings.Should().Contain(new PlanWarning("rack-0", "Rack 1: crate for Shubin sits on cargo for Riker"));
+        LoadPlanner.Validate(moved, HullA).Should().BeEmpty();
     }
 
     [Fact]
@@ -406,9 +407,9 @@ public class LoadPlannerOverrideTests
         // Lorville's 1s are off the ship, their cells are free (D24 addendum).
         var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, GoldThenAgricium), HullA, "Lorville", true);
 
-        var moved = LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-0");
+        var moved = LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-1");
 
-        moved.Crates.Single(c => c.Destination == "Shubin").RackId.Should().Be("rack-0");
+        moved.Crates.Single(c => c.Destination == "Shubin").RackId.Should().Be("rack-1");
         ShouldBeValid(moved, HullA);
     }
 
@@ -484,7 +485,7 @@ public class LoadPlannerOverrideTests
     public void SetDelivered_refuses_to_tick_back_when_its_cells_are_taken_again()
     {
         var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, GoldThenAgricium), HullA, "Lorville", true);
-        var reused = LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-0");
+        var reused = LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-1");
 
         var act = () => LoadPlanner.SetDelivered(reused, HullA, "Lorville", false);
 

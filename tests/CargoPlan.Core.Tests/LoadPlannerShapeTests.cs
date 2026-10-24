@@ -7,23 +7,21 @@ using CargoPlan.Core.Ships;
 namespace CargoPlan.Core.Tests;
 
 /// <summary>
-/// The shape-aware fallback (D54): when the SCU partition doesn't fit a rack's grid, every crate goes largest first into
-/// the first rack that takes it. uneven_long has two racks of 10×3×3 (90 SCU): each holds one 32 SCU crate (8×2×2, D57),
-/// by SCU it would be two. It replays runs 3 and 4 of spike S7.0, whose 5×5×3 racks take no 32 since D57.
+/// Racks whose grid isn't a multiple of the crate shapes (D54): the planner's search checks every rack's crates against its
+/// grid (D64), and refuses what finds no gap. uneven_long has two racks of 10×3×3 (90 SCU): each holds one 32 SCU crate
+/// (8×2×2, D57), by SCU it would be two. It replays runs 3 and 4 of spike S7.0, whose 5×5×3 racks take no 32 since D57.
 /// </summary>
 public class LoadPlannerShapeTests
 {
     private static readonly Ship Uneven = TestShips.Load("uneven_long");
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
 
-    private const string FallbackNote = "Racks not in route order – crates placed where they fit";
-
     private static Stop StopOf(string destination, int order, string commodity, int scu, CrateSize size) =>
         new(destination, order, [new CargoItem(commodity, scu, size)]);
 
     /// <summary>
-    /// Area18 70 × 1 before Port Tressler 2 × 32. By SCU Port Tressler's 32s share rack 2; by shape each rack takes one,
-    /// and Area18's 1s fill the rest of both racks: two stops in both racks, which no cut of the route gives.
+    /// Area18 70 × 1 and Port Tressler 2 × 32. By SCU Port Tressler's 32s share a rack; by shape each rack takes one, and
+    /// Area18's 1s fill the rest of both racks: two destinations in both racks.
     /// </summary>
     private static readonly Stop[] OnesThen32s =
         [StopOf("Area18", 1, "Quartz", 70, CrateSize.One), StopOf("Port Tressler", 2, "Titanium", 64, CrateSize.ThirtyTwo)];
@@ -31,10 +29,6 @@ public class LoadPlannerShapeTests
     private static IReadOnlyList<Stop> Run4 => MissionFixtures.Load("spike_uneven_run4");
 
     private static int Scu(LoadPlan plan) => plan.Crates.Sum(c => (int)c.CrateSize);
-
-    /// <summary>Findings that make a plan unloadable; a crate on cargo unloaded first is only marked (D24 addendum).</summary>
-    private static IEnumerable<string> Blocking(LoadPlan plan, Ship ship) =>
-        LoadPlanner.Validate(plan, ship).Select(w => w.Message).Where(m => !m.EndsWith("which is unloaded first"));
 
     [Theory]
     [InlineData(FillOrder.BowFirst)]
@@ -45,20 +39,18 @@ public class LoadPlannerShapeTests
 
         Scu(plan).Should().Be(104);
         Uneven.Racks.Should().OnlyContain(r => plan.CratesForRack(r.Id).Count(c => c.CrateSize == CrateSize.ThirtyTwo) == 1);
-        Blocking(plan, Uneven).Should().BeEmpty();
+        LoadPlanner.Validate(plan, Uneven).Should().BeEmpty();
     }
 
     [Fact]
-    public void Plan_of_run_4_gives_the_derived_hints_and_the_fallback_note()
+    public void Plan_of_run_4_gives_the_derived_hints()
     {
         var plan = LoadPlanner.Plan(Uneven, Run4);
 
         plan.Warnings.Should().Equal(
             new PlanWarning("rack-0", "Rack 1 shared by Dest1, Dest2 – identify crates by count"),
             new PlanWarning("rack-0", "Dest1 spans racks 1+2"),
-            new PlanWarning("rack-1", "Dest1 spans racks 1+2"),
-            new PlanWarning("rack-0", FallbackNote),
-            new PlanWarning("rack-1", FallbackNote));
+            new PlanWarning("rack-1", "Dest1 spans racks 1+2"));
     }
 
     [Fact]
@@ -67,59 +59,27 @@ public class LoadPlannerShapeTests
         var plan = LoadPlanner.Plan(Uneven, OnesThen32s);
 
         Scu(plan).Should().Be(134);
-        Blocking(plan, Uneven).Should().BeEmpty();
+        LoadPlanner.Validate(plan, Uneven).Should().BeEmpty();
         plan.Warnings.Should().Equal(
             new PlanWarning("rack-0", "Rack 1 shared by Area18, Port Tressler – identify crates by count"),
             new PlanWarning("rack-0", "Area18 spans racks 1+2"),
             new PlanWarning("rack-0", "Port Tressler spans racks 1+2"),
             new PlanWarning("rack-1", "Rack 2 shared by Area18, Port Tressler – identify crates by count"),
             new PlanWarning("rack-1", "Area18 spans racks 1+2"),
-            new PlanWarning("rack-1", "Port Tressler spans racks 1+2"),
-            new PlanWarning("rack-0", FallbackNote),
-            new PlanWarning("rack-1", FallbackNote));
+            new PlanWarning("rack-1", "Port Tressler spans racks 1+2"));
     }
 
     [Fact]
     public void Place_lays_the_largest_crate_first_whatever_the_input_order()
     {
-        // The route order puts Area18's 1s before the 32; laid in that order, 58 1s (90 − 32) would leave no 8×2×2 gap for it.
+        // The input puts Area18's 1s before the 32; laid in that order, 58 1s (90 − 32) would leave no 8×2×2 gap for it.
         (CrateSize Size, string Destination)[] crates = [.. Enumerable.Repeat((CrateSize.One, "Area18"), 58), (CrateSize.ThirtyTwo, "Port Tressler")];
 
-        var positions = CrateLayout.Place(Uneven.Racks[0], [], crates, ["Area18", "Port Tressler"], FillOrder.BowFirst);
+        var positions = CrateLayout.Place(Uneven.Racks[0], [], crates, FillOrder.BowFirst);
 
         positions.Should().NotBeNull();
         CrateLayout.Problems(Uneven.Racks[0], [.. crates.Zip(positions!).Select(p =>
-            new Crate(p.First.Destination, "Gold", p.First.Size, "rack-0", p.Second))], []).Should().BeEmpty();
-    }
-
-    [Fact]
-    public void The_fallback_note_stays_through_ticks_moves_and_the_plan_file()
-    {
-        var plan = LoadPlanner.Plan(Uneven, Run4);
-        // A 1 of Dest2 from the top of rack 1 to a free cell on the plate of rack 2.
-        var top = plan.Crates.Where(c => c.Destination == "Dest2").MaxBy(c => c.Position.Stack)!;
-        HashSet<GridPosition> taken = [.. plan.CratesForRack("rack-1").SelectMany(c => c.Cells)];
-        var free = Enumerable.Range(0, 10).SelectMany(l => Enumerable.Range(0, 3).Select(w => new GridPosition(l, w, 0))).First(p => !taken.Contains(p));
-
-        var ticked = LoadPlanner.SetDelivered(plan, Uneven, "Dest1", true);
-        var moved = LoadPlanner.MoveCrate(plan, Uneven, top, "rack-1", free);
-        var read = ReadBack(SavedPlan.FromStops(MissionFixtures.LoadMissions("spike_uneven_run4"), plan));
-
-        foreach (var warnings in (IReadOnlyList<PlanWarning>[])[ticked.Warnings, moved.Warnings, read.Plan.Warnings, LoadPlanner.HintsOnBoard(ticked, Uneven)])
-        {
-            warnings.Should().Contain([new PlanWarning("rack-0", FallbackNote), new PlanWarning("rack-1", FallbackNote)]);
-        }
-    }
-
-    [Fact]
-    public void A_new_plan_without_the_fallback_has_no_note()
-    {
-        // After run 4, Dest2 alone: the SCU partition fits, the note doesn't come along.
-        LoadPlanner.Plan(Uneven, Run4);
-
-        var plan = LoadPlanner.Plan(Uneven, [.. Run4.Where(s => s.Destination == "Dest2")]);
-
-        plan.Warnings.Should().NotContain(w => w.Message == FallbackNote);
+            new Crate(p.First.Destination, "Gold", p.First.Size, "rack-0", p.Second))]).Should().BeEmpty();
     }
 
     // Dest1's two 32s take one rack each, Dest2's two find no gap: 180 − 128 = 52 SCU free.
@@ -150,19 +110,11 @@ public class LoadPlannerShapeTests
     }
 
     [Fact]
-    public void Hull_A_load_case_is_laid_whole_without_the_fallback()
+    public void Hull_A_load_case_is_laid_whole()
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.HullAEightStopsMissions.ToStops());
 
         Scu(plan).Should().Be(58);
-        plan.Warnings.Should().NotContain(w => w.Message == FallbackNote);
-    }
-
-    private static SavedPlan ReadBack(SavedPlan saved)
-    {
-        using var stream = new MemoryStream();
-        PlanFile.Write(stream, saved);
-        using var input = new MemoryStream(stream.ToArray());
-        return PlanFile.Read(input, "plan.json", Uneven);
+        LoadPlanner.Validate(plan, HullA).Should().BeEmpty();
     }
 }

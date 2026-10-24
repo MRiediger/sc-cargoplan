@@ -42,7 +42,8 @@ internal sealed record PlanFileDto(
 
     /// <summary>
     /// The checks every schema version shares: racks, crates inside their grid (D24). Overlap and crates without
-    /// support load; <c>LoadPlanner.Validate</c> shows them red. The missions are the caller's, via <see cref="SavedPlan"/>.
+    /// support load; <c>LoadPlanner.Validate</c> shows them red. The hints are derived anew from the crates, positions and
+    /// ticks stay (D64). The missions are the caller's, via <see cref="SavedPlan"/>.
     /// A plan for another ship skips the grid: its racks are another ship's, and the overlay plans it anew from its
     /// missions (<c>LoadPlanner.Replan</c>, D59).
     /// </summary>
@@ -76,7 +77,8 @@ internal sealed record PlanFileDto(
                 nameof(Crates));
         }
 
-        return plan;
+        // Hints are derived anew: a plan from before D64 loses its route notes and shows what sits on what.
+        return LoadPlanner.WithHints(plan, ship);
     }
 
     /// <summary>The embedded mission file of schema 1 and 2.</summary>

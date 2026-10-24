@@ -44,7 +44,7 @@ public class ContractSyncTests
     {
         var saved = Applied(Empty, Capture([40], Stop("Shubin")), Capture([39], Stop("Riker")));
 
-        saved.Plan.UnloadOrder.Should().Equal("Riker", "Shubin");
+        saved.Plan.Route.Should().Equal("Riker", "Shubin");
     }
 
     [Fact]

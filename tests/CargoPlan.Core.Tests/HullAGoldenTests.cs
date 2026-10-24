@@ -8,9 +8,10 @@ using CargoPlan.Core.Ships;
 namespace CargoPlan.Core.Tests;
 
 /// <summary>
-/// Hull A plans stay byte-identical (T7.0, D54): every Hull A mission fixture in both fill orders, written as a plan
-/// file and compared with the file the planner wrote before the shape-aware fallback. A difference changes the
-/// layout of every route a player plans, so the golden files are never regenerated to make this pass.
+/// Hull A plans stay byte-identical: every Hull A mission fixture in both fill orders, written as a plan file and compared
+/// with the golden file. A difference changes the layout of every route a player plans, so the golden files are never
+/// regenerated to make this pass, only with a decision that changes the planner's objective on purpose: D64 (no route
+/// order) regenerated crate_mix and hull_a_eight_stops and left the other three byte-identical.
 /// </summary>
 public class HullAGoldenTests
 {
@@ -47,7 +48,7 @@ public class HullAGoldenTests
         var act = () => LoadPlanner.Plan(HullA, MissionFixtures.OverflowMissions);
 
         act.Should().Throw<PlanException>().Which.Message.Should().Be(
-            "Ship capacity exceeded: 8 SCU missing, stop 'Orison' doesn't fit (stops need 72 SCU, ship 'hull_a' holds 64 SCU).");
+            "Ship capacity exceeded: 8 SCU missing (stops need 72 SCU, ship 'hull_a' holds 64 SCU).");
     }
 
     private static string Written(string fixture, FillOrder fillOrder)

@@ -62,7 +62,7 @@ public class PlaceIntoTests
     }
 
     [Fact]
-    public void PlaceInto_joins_a_destination_on_board_in_its_rack_and_its_place_in_the_route()
+    public void PlaceInto_joins_a_destination_on_board_in_its_rack_and_its_place_in_the_list()
     {
         // One handover at the elevator (D42): the new crates go behind Riker's crates, not to the end.
         var saved = Placed(
@@ -71,19 +71,20 @@ public class PlaceIntoTests
         RacksOf(saved, "Riker").Should().Equal("rack-0");
         saved.Plan.Crates.Select(c => (c.Destination, c.Mission)).Should().Equal(
             ("Riker", 1), ("Riker", 1), ("Riker", 3), ("Shubin", 2), ("Shubin", 2));
-        saved.Plan.UnloadOrder.Should().Equal("Riker", "Shubin");
+        saved.Plan.Route.Should().Equal("Riker", "Shubin");
     }
 
     [Fact]
-    public void PlaceInto_a_delivered_destination_is_a_new_visit_at_the_end()
+    public void PlaceInto_puts_new_crates_of_a_delivered_destination_behind_its_crates()
     {
+        // No route, no "new visit at the end" (D64): a destination's crates stay together in the list, its legend line too.
         var delivered = Delivered(Placed(Stop("Riker", "Titanium", 8, CrateSize.Four), Stop("Shubin", "Quartz", 8, CrateSize.Four)), "Riker");
 
         var saved = LoadPlanner.PlaceInto(delivered, HullA, [Stop("Riker", "Gold", 4, CrateSize.Four)]);
 
-        saved.Plan.UnloadOrder.Should().Equal("Shubin", "Riker");
+        saved.Plan.Crates.Select(c => (c.Destination, c.Delivered)).Should().Equal(
+            ("Riker", true), ("Riker", true), ("Riker", false), ("Shubin", false), ("Shubin", false));
         saved.Plan.Route.Should().Equal("Riker", "Shubin");
-        Delivered(saved, "Riker").Plan.UnloadOrder.Should().Equal("Shubin", "Riker");
     }
 
     [Fact]
@@ -292,22 +293,22 @@ public class PlaceIntoTests
         saved.Watermark.Should().Be(7);
         saved.Plan.Crates.Count(c => c.Mission == 1).Should().Be(2);
         saved.Plan.Crates.Count(c => c.Mission == 2).Should().Be(3);
-        saved.Plan.UnloadOrder.Should().Equal("Riker", "Shubin");
+        saved.Plan.Route.Should().Equal("Riker", "Shubin");
     }
 
     [Fact]
-    public void Plan_with_missions_follows_the_route_given()
+    public void Plan_with_missions_lists_the_stops_in_the_order_given()
     {
         Mission[] missions = [new(1, [Stop("Riker", "Titanium", 4, CrateSize.Four), Stop("Orison", "Gold", 4, CrateSize.Four) with { Order = 2 }]), new(2, [Stop("Shubin", "Quartz", 4, CrateSize.Four)])];
 
-        LoadPlanner.Plan(HullA, missions, ["Riker", "Shubin", "Orison"]).Plan.UnloadOrder.Should().Equal("Riker", "Shubin", "Orison");
+        LoadPlanner.Plan(HullA, missions, ["Riker", "Shubin", "Orison"]).Plan.Route.Should().Equal("Riker", "Shubin", "Orison");
     }
 
     [Fact]
-    public void Plan_with_missions_rejects_a_route_missing_a_destination()
+    public void Plan_with_missions_rejects_a_stop_order_missing_a_destination()
     {
         var act = () => LoadPlanner.Plan(HullA, [new Mission(1, [Stop("Riker", "Titanium", 4, CrateSize.Four)])], ["Shubin"]);
 
-        act.Should().Throw<ArgumentException>().WithParameterName("route");
+        act.Should().Throw<ArgumentException>().WithParameterName("stopOrder");
     }
 }

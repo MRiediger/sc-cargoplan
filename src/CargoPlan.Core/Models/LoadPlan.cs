@@ -22,37 +22,11 @@ public sealed record LoadPlan(
     ];
 
     /// <summary>
-    /// The destinations in order of their first crate, which never changes: the identity of a stop for the palette, so a
-    /// stop keeps its colour. Legend and stacking rule follow <see cref="UnloadOrder"/>. Derived like
-    /// <see cref="Placements"/>; GroupBy keeps the order of first appearance.
+    /// The destinations in order of their first crate: the order the player entered them, which legend and palette show
+    /// (D64). Display only: the planner assumes no route. Derived like <see cref="Placements"/>; GroupBy keeps the order of
+    /// first appearance.
     /// </summary>
     public IReadOnlyList<string> Route => [.. Crates.GroupBy(c => c.Destination).Select(g => g.Key)];
-
-    /// <summary>
-    /// The order stops are unloaded in: the order of the legend and of the stacking rule (D24 addendum). A stop with cargo
-    /// on board ranks by its first crate on board; a delivered one by the start of its last run of crates in the list, its
-    /// latest visit. So ticking never moves a stop, and a new visit to a delivered stop, appended to the list, comes last
-    /// (D41). While nothing is delivered it equals <see cref="Route"/>. Derived like <see cref="Placements"/>.
-    /// </summary>
-    public IReadOnlyList<string> UnloadOrder =>
-    [
-        .. Crates.Select((crate, index) => (crate, index))
-            .GroupBy(p => p.crate.Destination)
-            .OrderBy(g => g.Any(p => !p.crate.Delivered) ? g.First(p => !p.crate.Delivered).index : LastRunStart([.. g.Select(p => p.index)]))
-            .Select(g => g.Key),
-    ];
-
-    /// <summary>The first index of the last run of consecutive indices in an ascending list.</summary>
-    private static int LastRunStart(int[] indices)
-    {
-        var start = indices.Length - 1;
-        while (start > 0 && indices[start - 1] == indices[start] - 1)
-        {
-            start--;
-        }
-
-        return indices[start];
-    }
 
     public IReadOnlyList<Crate> CratesForRack(string rackId) =>
         [.. Crates.Where(c => c.RackId == rackId)];
