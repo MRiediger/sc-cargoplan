@@ -286,6 +286,28 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
     private bool CanSync() => _syncFromContractTracker is not null;
 
+    /// <summary>
+    /// The overlay's Re-plan (D66): lays out the cargo on board anew, not the rows. Its own change, so no "changed
+    /// outside"; a draft stays a draft, clean rows show a mission it placed.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanReplan))]
+    private void Replan()
+    {
+        ChangeOverlay(() => _overlay.ReplanCommand.Execute(null));
+        if (ReferenceEquals(_overlay.Missions, _missions))
+        {
+            return;
+        }
+
+        _missions = _overlay.Missions;
+        if (!IsDirty)
+        {
+            ShowOverlayRows();
+        }
+    }
+
+    private bool CanReplan() => _overlay.ReplanCommand.CanExecute(null);
+
     private bool CanDeleteMission() => SelectedRow?.MissionId is { } id && _overlay.Missions.Any(m => m.Id == id);
 
     private bool HasSelection() => SelectedRow is not null;
@@ -355,6 +377,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(HasPlan));
         OnPropertyChanged(nameof(ClearsDelivered));
         DeleteMissionCommand.NotifyCanExecuteChanged();
+        ReplanCommand.NotifyCanExecuteChanged();
 
         // A tick keeps the missions; a capture, a waiting mission placed or one dropped in the legend doesn't.
         if (_ownChange || ReferenceEquals(_overlay.Missions, _missions))
@@ -386,6 +409,12 @@ public sealed partial class MissionEditorViewModel : ObservableObject
             return;
         }
 
+        ShowOverlayRows();
+    }
+
+    /// <summary>The rows anew from the overlay's missions, clean; one blank row without missions.</summary>
+    private void ShowOverlayRows()
+    {
         Rows.Clear();
         foreach (var row in RowsOf(_overlay))
         {

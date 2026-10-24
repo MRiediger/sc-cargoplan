@@ -78,6 +78,7 @@ public sealed class SettingsSession
                 HotkeyAction.ToggleLock => hotkeys with { ToggleLock = text },
                 HotkeyAction.ToggleOverlay => hotkeys with { ToggleOverlay = text },
                 HotkeyAction.SyncContractTracker => hotkeys with { SyncContractTracker = text },
+                HotkeyAction.Replan => hotkeys with { Replan = text },
                 _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
             },
         };

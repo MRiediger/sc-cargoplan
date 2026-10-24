@@ -51,6 +51,23 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     public static string ReplannedText(string madeFor, string current) => $"Plan was made for {madeFor}, replanned for {current}.";
 
+    public const string PlanUnchangedText = "Plan unchanged";
+
+    /// <summary>
+    /// What the player's Re-plan did (D66), instead of asking first: how many crates on board moved, or that nothing did;
+    /// then the missions that still wait.
+    /// </summary>
+    public static string ReplanText(bool changed, int moved, IReadOnlyList<string> waiting)
+    {
+        var text = changed ? $"Plan rebuilt – {moved} {(moved == 1 ? "crate" : "crates")} moved" : PlanUnchangedText;
+        return waiting.Count switch
+        {
+            0 => text,
+            1 => $"{text} – {waiting[0]} still doesn't fit",
+            _ => $"{text} – {string.Join(", ", waiting)} still don't fit",
+        };
+    }
+
     public const string StopsMergedPrefix = "Stops merged: ";
 
     /// <summary>The notice for stops renamed to another name of their place (B1); null if none was.</summary>
@@ -157,6 +174,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             OnPropertyChanged(nameof(MergeToolTip));
             SplitCommand.NotifyCanExecuteChanged();
             MergeCommand.NotifyCanExecuteChanged();
+            ReplanCommand.NotifyCanExecuteChanged();
             UpdateDeletedContracts();
         }
     }
@@ -410,6 +428,30 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         var saved = Saved ?? throw new InvalidOperationException(NoPlanText);
         Saved = LoadPlanner.RemoveMission(saved, Ship, missionId);
     }
+
+    /// <summary>
+    /// Lays out the cargo on board anew, as a fresh plan of the same missions would (D66): the editor's Re-plan button and
+    /// the replan hotkey. Ticks, crate sizes and fill order stay, waiting missions get placed where they fit. No question
+    /// first, the notice line says what happened; if nothing moved and nothing came in, the plan stays as it is (no new
+    /// scene, the selection stays). Synchronous: the measured cases take a few milliseconds (B4).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanReplan))]
+    private void Replan()
+    {
+        var saved = Saved ?? throw new InvalidOperationException(NoPlanText);
+        var replanned = LoadPlanner.Replan(saved, Ship);
+        var moved = LoadPlanner.MovedCrates(saved.Plan, replanned.Plan);
+        var changed = moved > 0 || replanned.Missions.Count(m => m.Unplaced) < saved.Missions.Count(m => m.Unplaced);
+        if (changed)
+        {
+            Saved = replanned;
+        }
+
+        SetNotice(NoticeSource.Replan, null);
+        SetNotice(NoticeSource.Move, ReplanText(changed, moved, [.. replanned.Missions.Where(m => m.Unplaced).Select(MissionText.Name)]));
+    }
+
+    private bool CanReplan() => Plan?.Crates.Any(c => !c.Delivered) == true;
 
     /// <summary>Ticking the line of a mission that didn't fit drops it (D41): abandoned, out of the plan.</summary>
     [RelayCommand]

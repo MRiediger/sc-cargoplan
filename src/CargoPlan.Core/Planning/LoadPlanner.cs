@@ -302,13 +302,146 @@ public static class LoadPlanner
     }
 
     /// <summary>
+    /// The plan laid out anew: on another ship when the player switches (D59), on its own ship when the player asks for
+    /// it (Re-plan, D66). Missions, sources, watermark and fill order stay; positions and moves go, split crates keep their
+    /// sizes (they are in the missions, D27). The only method that takes a plan of another ship.
+    /// </summary>
+    public static SavedPlan Replan(SavedPlan saved, Ship ship) =>
+        saved.Plan.ShipId == ship.Id ? ReplanInPlace(saved, ship) : ReplanForShip(saved, ship);
+
+    /// <summary>
+    /// How many crates on board in <paramref name="before"/> lie elsewhere in <paramref name="after"/>: another rack or
+    /// another cell (B4). Crates have no identity, so of equal crates (destination, commodity, size) only as many count as
+    /// find no place one of them lies on in <paramref name="after"/>, ticked or not: a tick moves nothing. Crates new on board count not.
+    /// </summary>
+    public static int MovedCrates(LoadPlan before, LoadPlan after)
+    {
+        var left = after.Crates.GroupBy(Lying).ToDictionary(g => g.Key, g => g.Count());
+        var moved = 0;
+        foreach (var key in before.Crates.Where(c => !c.Delivered).Select(Lying))
+        {
+            if (left.GetValueOrDefault(key) > 0)
+            {
+                left[key]--;
+            }
+            else
+            {
+                moved++;
+            }
+        }
+
+        return moved;
+    }
+
+    private static (string, string, CrateSize, string, GridPosition) Lying(Crate crate) =>
+        (crate.Destination, crate.Commodity, crate.CrateSize, crate.RackId, crate.Position);
+
+    /// <summary>
+    /// The player's Re-plan (D66): the cargo on board laid out as a fresh <see cref="Plan(Ship, IReadOnlyList{Mission}, IReadOnlyList{string}, FillOrder, long)"/>
+    /// of the same missions would lay it, waiting missions included, so the result doesn't depend on the order things came
+    /// in (D64). Ticked crates are off the ship: they stay where they lay, ticked, and take no room (D24), also when only
+    /// part of a stop is ticked (D41). Never loses cargo: if the waiting missions don't fit, the cargo on board is laid
+    /// out without them and they wait (<see cref="RetryUnplaced"/>); if even that finds no layout, the plan stays as it is.
+    /// The missions stay the same list unless one of them got placed.
+    /// </summary>
+    private static SavedPlan ReplanInPlace(SavedPlan saved, Ship ship)
+    {
+        Crate[] delivered = [.. saved.Plan.Crates.Where(c => c.Delivered)];
+        Mission[] onBoard = [.. saved.Missions.Select(m => m.Unplaced ? m : WithoutDelivered(m, delivered)).OfType<Mission>()];
+        if (onBoard.Length == 0)
+        {
+            return saved;
+        }
+
+        string[] route = [.. saved.Stops.Select(s => s.Destination)];
+        if (PlannedOrNull(ship, onBoard, route, saved.Plan.FillOrder) is { } all)
+        {
+            IReadOnlyList<Mission> missions = saved.Missions.Any(m => m.Unplaced) ? [.. saved.Missions.Select(m => m with { Unplaced = false })] : saved.Missions;
+            return new SavedPlan(missions, Joined(all, delivered, route, ship), saved.Watermark);
+        }
+
+        if (PlannedOrNull(ship, [.. onBoard.Where(m => !m.Unplaced)], route, saved.Plan.FillOrder) is { } placed)
+        {
+            return RetryUnplaced(new SavedPlan(saved.Missions, Joined(placed, delivered, route, ship), saved.Watermark), ship);
+        }
+
+        // No layout of the cargo on board (a heuristic ship, D54): the player's one stays, the waiting missions get a try.
+        return RetryUnplaced(saved, ship);
+    }
+
+    /// <summary>
+    /// <paramref name="mission"/> with only the crates still on board: its ticked crates taken out of its items' crate
+    /// lists (D41: a stop can be ticked in part). Null if everything is ticked.
+    /// </summary>
+    private static Mission? WithoutDelivered(Mission mission, IReadOnlyList<Crate> delivered)
+    {
+        var gone = delivered.Where(c => c.Mission == mission.Id)
+            .GroupBy(c => (c.Destination, c.Commodity))
+            .ToDictionary(g => g.Key, g => g.Select(c => c.CrateSize).ToList());
+        if (gone.Count == 0)
+        {
+            return mission;
+        }
+
+        MissionStop[] stops =
+        [
+            .. mission.Stops
+                .Select(s => s with { Items = [.. s.Items.Select(i => Remaining(i, gone.GetValueOrDefault((s.Destination, i.Commodity)))).OfType<MissionItem>()] })
+                .Where(s => s.Items.Count > 0),
+        ];
+        return stops.Length == 0 ? null : new Mission(mission.Id, stops, mission.Contract);
+    }
+
+    /// <summary>The item without the crates in <paramref name="gone"/>, which it takes out of that list; null if none is left.</summary>
+    private static MissionItem? Remaining(MissionItem item, List<CrateSize>? gone)
+    {
+        if (gone is null)
+        {
+            return item;
+        }
+
+        List<CrateSize> left = [];
+        foreach (var crate in item.CrateList)
+        {
+            if (!gone.Remove(crate))
+            {
+                left.Add(crate);
+            }
+        }
+
+        return left.Count == 0 ? null : new MissionItem(item.Commodity, left.Sum(c => (int)c), item.MaxCrateSize, left);
+    }
+
+    /// <summary>The editor's Plan of <paramref name="missions"/> in <paramref name="route"/>; null if they have no layout.</summary>
+    private static LoadPlan? PlannedOrNull(Ship ship, IReadOnlyList<Mission> missions, string[] route, FillOrder fillOrder)
+    {
+        HashSet<string> destinations = [.. missions.SelectMany(m => m.Stops).Select(s => s.Destination)];
+        try
+        {
+            return Plan(ship, missions, [.. route.Where(destinations.Contains)], fillOrder).Plan;
+        }
+        catch (PlanException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// The ticked crates as they lay and the crates planned anew, destination by destination in <paramref name="route"/>,
+    /// so legend and colours stay (D64). Without ticked crates the plan itself, hints and notes as planned.
+    /// </summary>
+    private static LoadPlan Joined(LoadPlan planned, Crate[] delivered, string[] route, Ship ship) =>
+        delivered.Length == 0
+            ? planned
+            : WithHints(planned with { Crates = [.. route.SelectMany(d => delivered.Where(c => c.Destination == d).Concat(planned.Crates.Where(c => c.Destination == d)))] }, ship);
+
+    /// <summary>
     /// The plan on another ship (D59): its missions planned anew in the order the editor shows them
     /// (<see cref="SavedPlan.Stops"/>), as the editor's Plan would; if that fails, mission by mission into the empty ship
     /// in mission order (<see cref="RetryUnplaced"/>), the rest waits unplaced (D41). Every stop ticked as a whole gets its
-    /// tick back. Missions, sources, watermark and fill order stay; positions and moves go, split crates keep their sizes
-    /// (they are in the missions, D27). The only method that takes a plan of another ship.
+    /// tick back.
     /// </summary>
-    public static SavedPlan Replan(SavedPlan saved, Ship ship)
+    private static SavedPlan ReplanForShip(SavedPlan saved, Ship ship)
     {
         var fillOrder = saved.Plan.FillOrder;
         if (saved.Missions.Count == 0)

@@ -29,6 +29,6 @@ public enum NoticeSource
     /// <summary>Contracts deleted in ContractTracker with crates still on board (D39 addendum).</summary>
     DeletedContracts,
 
-    /// <summary>A refused right drag (D24); cleared by the next move or plan.</summary>
+    /// <summary>What the last move or Re-plan did, or why a move was refused (D24, D65, D66); cleared by the next move, tick or plan.</summary>
     Move,
 }

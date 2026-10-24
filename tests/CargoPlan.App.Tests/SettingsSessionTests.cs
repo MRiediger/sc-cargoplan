@@ -296,7 +296,7 @@ public sealed class SettingsSessionTests : IDisposable
         session.Flush();
 
         File.ReadAllText(SettingsPath).Should().Contain("\"toggleLock\": null").And.Contain("\"toggleOverlay\": null")
-            .And.Contain("\"syncContractTracker\": null");
+            .And.Contain("\"syncContractTracker\": null").And.Contain("\"replan\": null");
     }
 
     [Fact]
@@ -308,6 +308,17 @@ public sealed class SettingsSessionTests : IDisposable
         session.Flush();
 
         Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", "Ctrl+Alt+S"));
+    }
+
+    [Fact]
+    public void ChangeHotkey_for_the_replan_keeps_the_other_actions()
+    {
+        var session = Create(AppSettings.Default with { Hotkeys = new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", "Ctrl+Alt+S") });
+
+        session.ChangeHotkey(HotkeyAction.Replan, Key("Ctrl+Alt+R"));
+        session.Flush();
+
+        Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", "Ctrl+Alt+S", "Ctrl+Alt+R"));
     }
 
     // ContractTracker (T5.5, D44)

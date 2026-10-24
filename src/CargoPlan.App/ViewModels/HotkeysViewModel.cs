@@ -5,7 +5,7 @@ namespace CargoPlan.App.ViewModels;
 
 /// <summary>
 /// The Hotkeys section of the settings window (T4.4, D35): every action, so one can refuse another's combination by
-/// name before Windows would. Still no defaults (D17); the sync came with T5.5 (D44).
+/// name before Windows would. Still no defaults (D17); the sync came with T5.5 (D44), the re-plan with B4 (D66).
 /// </summary>
 public sealed class HotkeysViewModel
 {
@@ -23,6 +23,7 @@ public sealed class HotkeysViewModel
         Lock = new(HotkeyAction.ToggleLock, HotkeyEditor.LockLabel, settings?.ToggleLock, Commit, suspend, resume);
         Overlay = new(HotkeyAction.ToggleOverlay, HotkeyEditor.OverlayLabel, settings?.ToggleOverlay, Commit, suspend, resume);
         Sync = new(HotkeyAction.SyncContractTracker, HotkeyEditor.SyncLabel, settings?.SyncContractTracker, Commit, suspend, resume);
+        Replan = new(HotkeyAction.Replan, HotkeyEditor.ReplanLabel, settings?.Replan, Commit, suspend, resume);
     }
 
     public HotkeyEditor Lock { get; }
@@ -31,8 +32,10 @@ public sealed class HotkeysViewModel
 
     public HotkeyEditor Sync { get; }
 
+    public HotkeyEditor Replan { get; }
+
     /// <summary>Every editor, in the window's order; the window cancels their recordings.</summary>
-    public IEnumerable<HotkeyEditor> All => [Lock, Overlay, Sync];
+    public IEnumerable<HotkeyEditor> All => [Lock, Overlay, Sync, Replan];
 
     private string? Commit(HotkeyEditor editor, Hotkey? hotkey) =>
         hotkey is not null && All.FirstOrDefault(other => !ReferenceEquals(other, editor) && other.Hotkey == hotkey) is { } taken

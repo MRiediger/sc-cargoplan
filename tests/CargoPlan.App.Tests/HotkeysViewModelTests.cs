@@ -232,6 +232,42 @@ public sealed class HotkeysViewModelTests
         viewModel.Overlay.Label.Should().Be(HotkeyEditor.OverlayLabel);
         viewModel.Sync.Action.Should().Be(HotkeyAction.SyncContractTracker);
         viewModel.Sync.Label.Should().Be("Sync from ContractTracker");
+        viewModel.Replan.Action.Should().Be(HotkeyAction.Replan);
+        viewModel.Replan.Label.Should().Be("Re-plan");
+        viewModel.All.Should().Equal(viewModel.Lock, viewModel.Overlay, viewModel.Sync, viewModel.Replan);
+    }
+
+    [Fact]
+    public void The_replan_hotkey_is_not_set_by_default_and_comes_from_the_file()
+    {
+        // No defaults (D17), like the sync (D44): without an entry there is no hotkey.
+        Create().Replan.Hotkey.Should().BeNull();
+        Create(new HotkeySettings(Replan: "Ctrl+Alt+R")).Replan.Display.Should().Be("Ctrl+Alt+R");
+    }
+
+    [Fact]
+    public void Recording_the_replan_hotkey_sets_it_and_clear_removes_it()
+    {
+        var viewModel = Create();
+
+        viewModel.Replan.RecordCommand.Execute(null);
+        viewModel.Replan.Capture(CtrlAlt, VK_L);
+        viewModel.Replan.ClearCommand.Execute(null);
+
+        _set.Should().Equal((HotkeyAction.Replan, Key("Ctrl+Alt+L")), (HotkeyAction.Replan, (Hotkey?)null));
+        viewModel.Replan.Hotkey.Should().BeNull();
+    }
+
+    [Fact]
+    public void The_sync_combination_is_refused_for_the_replan()
+    {
+        var viewModel = Create(new HotkeySettings(SyncContractTracker: "Ctrl+Alt+H"));
+
+        viewModel.Replan.RecordCommand.Execute(null);
+        viewModel.Replan.Capture(CtrlAlt, VK_H);
+
+        viewModel.Replan.Problem.Should().Be($"Ctrl+Alt+H is already used for {HotkeyEditor.SyncLabel}.");
+        _set.Should().BeEmpty();
     }
 
     [Fact]

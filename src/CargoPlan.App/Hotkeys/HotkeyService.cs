@@ -41,6 +41,7 @@ public sealed class HotkeyService
             [HotkeyAction.ToggleLock] = viewModel.ToggleLockCommand,
             [HotkeyAction.ToggleOverlay] = viewModel.ToggleOverlayCommand,
             [HotkeyAction.SyncContractTracker] = syncContractTracker,
+            [HotkeyAction.Replan] = viewModel.ReplanCommand,
         };
 
         (HotkeyAction, string?)[] texts =
@@ -48,6 +49,7 @@ public sealed class HotkeyService
             (HotkeyAction.ToggleLock, settings?.ToggleLock),
             (HotkeyAction.ToggleOverlay, settings?.ToggleOverlay),
             (HotkeyAction.SyncContractTracker, settings?.SyncContractTracker),
+            (HotkeyAction.Replan, settings?.Replan),
         ];
         foreach (var (action, text) in texts)
         {
@@ -194,7 +196,14 @@ public sealed class HotkeyService
     {
         if (msg == NativeMethods.WM_HOTKEY && _commands.FirstOrDefault(c => Id(c.Key) == (int)wParam).Value is { } command)
         {
-            command.Execute(null);
+            // The toolkit's commands don't check CanExecute in Execute; a button's binding does, a hotkey has to: a
+            // re-plan without cargo on board does nothing, a second sync doesn't start while one runs.
+            // Source: https://github.com/CommunityToolkit/dotnet/blob/main/src/CommunityToolkit.Mvvm/Input/RelayCommand.cs (Execute)
+            if (command.CanExecute(null))
+            {
+                command.Execute(null);
+            }
+
             handled = true;
         }
 
@@ -223,6 +232,7 @@ public sealed class HotkeyService
         HotkeyAction.ToggleLock => "toggleLock",
         HotkeyAction.ToggleOverlay => "toggleOverlay",
         HotkeyAction.SyncContractTracker => "syncContractTracker",
+        HotkeyAction.Replan => "replan",
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
     };
 

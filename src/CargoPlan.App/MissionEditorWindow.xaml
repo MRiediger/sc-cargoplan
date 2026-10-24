@@ -51,6 +51,9 @@
                     Margin="12,0,4,0" ToolTip="Start the next route; the overlay keeps its plan until you plan again" />
             <Button Content="Import…" Click="OnImport" Style="{StaticResource ToolbarButtonStyle}" Margin="12,0,4,0"
                     ToolTip="Replace the rows with a mission file" />
+            <!-- Lays out the plan, not the rows: a deliberate action next to Import and Sync, not in the overlay header (D66). -->
+            <Button Content="Re-plan" Command="{Binding ReplanCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTip="Lay out all cargo on board anew – ticks, crate sizes and fill order stay; you restack the ship" />
             <!-- "Sync", not "Load": Import… next to it replaces the rows, this adds new captures to the plan (T5.4). -->
             <Button Content="Sync from ContractTracker" Command="{Binding SyncCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Add contracts captured in ContractTracker to the plan, and place waiting missions that fit now" />
