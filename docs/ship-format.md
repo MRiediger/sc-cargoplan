@@ -82,7 +82,8 @@ A rack is a separately loadable section of the cargo hold, usually one plate.
 The grid says which crates fit by shape; the game may allow less. For a rack of 8×2×2 cells that takes crates up to
 16 SCU, although a 32 SCU crate (8×2×2) would fit, write `"maxCrateSize": 16`. Fleetyards lists the value as
 `maxContainerSize`; for every shipped ship it equals the largest crate the grid takes (D57), so today it limits
-nothing. The planner never puts a larger crate into the rack, and a move or merge that would make one is refused.
+nothing. The planner never puts a larger crate into the rack, a move puts such a crate into another rack instead, and a
+merge that would make one is refused.
 
 By hand, set it only where it limits something the grid would allow, and only from a source: a value the grid already
 enforces says nothing new and would look like a measurement. That is why `hull_a.json` has none: its 4×2×2 racks take

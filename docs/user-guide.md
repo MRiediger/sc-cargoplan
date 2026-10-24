@@ -214,18 +214,29 @@ crash or a restart between two stops keeps your plan and your ticks.
 When the elevator puts a crate somewhere else than planned, make the plan follow the plate. **Right drag a crate** onto
 the cell where it really lies, in the same rack or another one. Point at a crate to put it on top of that crate, or at a
 free cell to put it into that gap; it drops down to the next crate or the plate below, never hanging in the air. While
-you drag, the crate fades and a ghost shows where it would go: **cyan** if it fits, **red** if it doesn't, with the
-reason when you hover. Release on cyan to move it; release on red and nothing moves, an amber line says why.
+you drag, the crate fades and a **cyan ghost** shows where it will go.
+
+If the crate can't lie at that cell, the app finds room instead of saying no, and the ghosts show it before you let go:
+first the nearest free place in that rack; then the rack laid out anew, so other crates in it may move; then other
+destinations' crates move out of that rack into others to make room ("Moved 2 crates for Shubin to rack 1 to make
+room"); then another rack ("No room in rack 4 – placed in rack 2"). Every crate that changes place fades and gets a cyan
+ghost, and the line in amber says what moved. Crates that lay on the one you pulled away settle down where it was. If
+the crate fits nowhere, its ghost turns **red** with "no room for 4 SCU crate" when you hover, and nothing moves. Crates
+are never split on their own; that stays the scissors' job. Putting a crate on another destination's cargo is your
+call: the app does it.
 
 To move several crates at once, **right click** each of them first: a magenta edge marks the selection. Right drag any
 selected crate and the whole selection goes along, every crate keeping its place relative to the one you hold, even
-across racks; if one of them would land outside the racks or doesn't fit, nothing moves. Right click a selected crate
-again to take it out, or right click free space to clear the selection; any change of the plan and locking the overlay
-clear it too.
+across racks. If the selection doesn't fit as it is, the app finds room as above, crate by crate, and may spread it over
+racks. A selection moves as a whole: if one crate fits nowhere, nothing moves, and the amber line names the crates
+without room. Right click a selected crate again to take it out, or right click free space to clear the selection; any
+change of the plan and locking the overlay clear it too.
 
 To move a whole destination, **right drag its line in the legend** onto a rack: its crates fade, the rack gets a cyan
-edge, and on release its crates are laid out in that rack around the cargo already there. If they don't fit, the amber
-line says so. Either way, the hints are worked out again for the new layout. Changed your mind? Drag it back.
+edge and the ghosts show where they go. On release they are laid into that rack, other crates there rearranged or moved
+to other racks to make room. If the whole destination is too much for the rack, as much as fits goes in and the rest
+stays where it is ("No room in rack 3 – 1 crate stays in rack 2"). Either way, the hints are worked out again for the new
+layout. Dragging back undoes a move only as long as nothing else had to move for it.
 
 Delivered crates can't be dragged, they are off the ship: their cells count as free, so crates can go where they lay.
 Moves are saved like ticks; pressing **Plan** in the editor makes a new plan and drops them (see

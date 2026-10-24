@@ -88,8 +88,9 @@ More: [user guide – ContractTracker](docs/user-guide.md#contracttracker).
 
 - **Tick** a destination when the lift has taken its cargo: click its legend line or any of its crates. It turns gray;
   click again to undo. Ticks are saved at once.
-- **Drag** (right mouse button) a crate to where the lift really put it, or a legend line onto another rack. Cyan means
-  it fits, red means it doesn't.
+- **Drag** (right mouse button) a crate to where the lift really put it, or a legend line onto another rack. Cyan ghosts
+  show where everything goes; if the cell is taken, the app finds room and says what it moved. Red only when the cargo
+  fits nowhere.
 - **Split / Merge** (scissors, chain links): when the kiosk hands out two 2s instead of a 4, or the other way round.
 - **Colors say what lies where:** the app doesn't know your route. Two colors in a rack are two destinations; a color
   on top of another has to come off first. **Red** is only for crates that can't lie like that (overlapping, nothing

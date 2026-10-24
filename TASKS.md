@@ -1120,7 +1120,35 @@ die drei Looks shaded / flat / hiddenline über Weg (b), 20 k, Hull A und Caterp
 - Offen für Martin: Spieltest am Aufzug vor dem Merge (wie B1).
 - Offen: `PlaceInto` und `MoveStop` haben keinen Test mehr, der ihre Suchgrenzen-Notiz erreicht: Mit der Säulen-Schranke erschöpft kein gefundener Fall das Budget (die Stresslast legt in 246 Schritten). Abgedeckt sind das Aufgeben (`Lay` mit 1 Schritt) und das Weitertragen der Notiz.
 
-### [ ] B3 Verschieben annehmen statt ablehnen (vier Stufen)
+### [ ] B3 Verschieben annehmen statt ablehnen (vier Stufen, D65)
+**Warum:** Am Aufzug kam „Move refused … has nothing below it“, obwohl Platz war: Core prüfte einen Drop nur an genau der Zielzelle. `DropTarget` ließ nur die Säule unter dem Cursor fallen, nicht den Fußabdruck; eine unter einer anderen weggezogene Kiste ließ die obere schweben; `MoveStop` lehnte ein Rack ab, das um seine Fracht herum voll war. Martins Vorgabe: Ist eine Zuordnung möglich, wird der Move angenommen; abgelehnt wird nur, wenn die Fracht nirgends passt.
+**Präzisiert in der Planung:** Stufe 3b „Fremde Fracht verdrängen“ vor Stufe 4 (Martins Wahl auf Rückfrage): wenigste SCU des fremden Ziels im Zielrack zuerst, größte Kiste zuerst, eine Ebene (verdrängte Kisten nur um liegende Fracht herum, D41-Reihenfolge, Quellrack normaler Kandidat), sonst Stufe 4 mit Quellrack als letztem Kandidaten; Notices „Moved k crates for X to rack M to make room“ und „No room in rack N – placed in rack M“; Auswahl atomar (Notice nennt nur Kisten ohne Platz), Legenden-Drag teilweise mit „No room in rack N – k crates stay in rack M“, die Asymmetrie in D65 benannt (E1); Stufe 2 nach Grid-Schritten, dann Nähe zur eigenen Fracht, dann Füllrang; Gruppe erst als Block durch 1–3b, dann kistenweise durch 1–4; ohne Zellabsicht (Shift null) ist Stufe 2 das Legen um die liegende Fracht; Vorschau-Schlüssel aus Zielrack, Zelle, Anker und Landezellen inkl. Shift null (E2); Geister für jede Kiste, die den Platz wechselt; `Pending` als cyane Rack-Kante mit „Rack N will be rearranged“; Messung als eigene Kategorie `Timing` (von Hand, nicht in CI, druckt eine Tabelle) statt `Slow`; Pending-Entscheidung nach Martins nativem Release-Lauf, nahe 16 ms → Pending (E3); Screenshot-Fall nachgebaut (4er Pressurized Ice für Green Glade Station auf den 2er von Faithful Dream Station in Rack 2, halb über einer Lücke neben Melodic Fields Station); User-Guide-Abschnitt heißt „Changing the plan“. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- `MoveResolution` (Core, neu): Stufen 1 Gravity, 2 freie Lage, 3 Re-Layout, 3b Verdrängen, 4 Ausweichen, 5 Ablehnung; Quellrack-Gravity; `MoveOutcome`/`MoveStage`; `LoadPlanner.ResolveMove`/`ResolveStopMove` mit `upTo`; `MoveCrates`/`MoveStop` als Wrapper, `MoveProblem` entfernt
+- App: `CrateDrop.Outcome`/`StopOutcome`/`KeyOf`/`Changed`/`Text`/`PreviewStage`; Vorschau-Geister, Legenden-Vorschau, Notices ohne Präfix; `CrateDrop.OutsideRacks` entfernt
+
+**Messwerte** (Release, Median aus 3 nach Aufwärmlauf, Entwickler-VM; `dotnet test tests/CargoPlan.Core.Tests -c Release -p:RunSettingsFilePath= --filter Category=Timing --logger "console;verbosity=detailed"`):
+
+| Fall | Gravity | Freie Lage | Re-Layout | Verdrängen | Ausweichen | Legende | Vorschau max |
+|---|---|---|---|---|---|---|---|
+| Freelancer, 8 Stopps | 0,19 ms | 0,24 ms | 0,62 ms (4 Kisten: 0,56) | 0,31 ms | 0,29 ms | abgelehnt 0,16 ms | 0,22 ms |
+| Hull A, Hurston 24.10. | 0,03 ms | 0,03 ms | 0,05 ms (4 Kisten: 0,04) | 0,09 ms (4 Kisten: 0,10) | 0,23 ms | verdrängt 0,19–0,96 ms | 0,03 ms |
+| Stresslast + Dock | 2,65 ms | 2,72 ms | 39,6 ms (4 Kisten: 41,0) | – | 4 Kisten: 8,17 ms | verdrängt 158 ms | 6,21 ms |
+
+Entscheidung (Regel): Stufe 1–2 laufen in jedem Frame (überall unter 16 ms). Stufe 3–4 liegen in der VM bei Freelancer und Hull A unter 1 ms, auf dem Stress-Rack bei 40–158 ms. Nach Regel E3 entscheidet Martins nativer Lauf: liegt ein Fall nahe an oder über 16 ms, wird `CrateDrop.PreviewStage` auf `FreeSpot` gesetzt (Vorschau `Pending`), sonst bleibt die volle Vorschau. Martins Wert: offen.
+
+**Akzeptanz:**
+- [x] Je Stufe ein Core-Test, der genau diese Stufe erzwingt (`MoveStage` geprüft), bei Stufe 1–2 bewegt sich keine fremde Kiste; vor der Umsetzung rot (Screenshot-Fall „… Green Glade Station in rack 2 has nothing below it“, weggezogene Kiste, Drop in die Luft, Hurston-Plan „… Everus Harbor in rack 1 has nothing below it“, die übrigen als Compile-Fehler)
+- [x] Quellrack-Gravity nach Einzel- und Mehrfach-Drag
+- [x] Auswahl: Translation erhalten (Fall, nächste freie Lage), Shift null → Erfolg, Aufteilung über Racks mit „Riker spans racks 2+4“, Teilerfolg ganz abgelehnt
+- [x] Legenden-Drag: ganzes Ziel ins Rack, volles Rack → Verdrängung, Ziel größer als das Rack → Rest bleibt mit Notice, keine Kiste passt → abgelehnt
+- [x] Einzelkiste nie geteilt: 4er bei 6 freien SCU in Stücken → „no room for 4 SCU crate“
+- [x] Vorschau-Äquivalenz: jede Zielzelle jedes Racks für einen 1er und einen 4er, `upTo: FreeSpot` gleich vollem Ergebnis, wo Stufe ≤ 2, sonst `Pending`; Determinismus; Vorschau-Schlüssel (E2): andere Versatzlage bei gleicher Zelle → neuer Schlüssel
+- [x] Regressionen: Shift-Hybrid und `MoveCrates_moves_crates_that_carry_each_other_together` grün; acht Core- und drei App-Tests, die Ablehnungen erwarteten, erwarten jetzt den aufgelösten Move; echte Ablehnung im VM-Test mit vollem Hull A
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 902, App 960, Import 119); Slow grün; Timing läuft (25 s)
+- [ ] Martins nativer Timing-Lauf → `PreviewStage` gesetzt, Wert hier (E3)
+- [ ] Look von Geistern, verdrängten Kisten und `Pending`-Kante (Taste-Gate Martin)
+- Offen für Martin: Spieltest am Aufzug vor dem Merge (wie B1/B2).
+- Beobachtung: Eine Kiste, die unter eigener Fracht liegt, verliert beim Ziehen ihr Loch an die nachrutschende Kiste; findet sie dann nirgends Platz, wird abgelehnt (der Plan bleibt, die Kiste also liegen). Hurston-Fall: Green-Glade-4er unter einem eigenen 1er auf ein Rack voller Green Glade.
 ### [ ] B4 Knopf „Re-plan“ im Editor
 ### [ ] B5 Kapazitätsanzeige (Kopfzeile, Rack-Tooltip, Zahl hinter der Racknummer)
 
@@ -1182,4 +1210,5 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Optionale Spieler-Reihenfolge (Legende per Drag sortieren) → Stapelhinweise relativ zur Spieler-Reihenfolge („Shubin liegt auf Riker, Riker kommt zuerst“). Auslöser: Hauler wollen wieder wissen, welche Kiste zuerst runter muss (D64).
 - B1-Restfall: abgeschnittenes Fragment ohne Ergänzung. Capture 21–25 (24.10.): „to Thur“ bricht um, OCR liest „Thundering“ als „Thur…“, „Melg“ entsprechend; die Ergänzung aus der Drop-off-Liste greift nicht, weil das Fragment kein Präfix ist. Auslöser: weitere Fälle in echten Captures.
 - Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).
+- Undo für Drags und Re-plan: ab Stufe 3 (D65) ist Zurückziehen kein Undo mehr, ein Re-plan (B4) verwirft Moves. Auslöser: ein Hauler verliert eine Lage durch einen Drop.
 - Mehrsprachigkeit, falls nicht-englische Hauler danach fragen. Beginnt beim Parser (deutsche CT-Captures als Fixtures), nicht bei `.resx` (D53).
