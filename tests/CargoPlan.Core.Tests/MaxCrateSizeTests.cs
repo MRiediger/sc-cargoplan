@@ -84,16 +84,17 @@ public class MaxCrateSizeTests
     }
 
     [Fact]
-    public void Moving_a_32_into_a_limited_rack_is_refused()
+    public void Moving_a_32_into_a_limited_rack_keeps_it_in_the_rack_without_a_limit()
     {
         var plan = LoadPlanner.Plan(Mixed, [Stop("Riker", 32, CrateSize.ThirtyTwo).ToStop()]);
 
-        var act = () => LoadPlanner.MoveCrate(plan, Mixed, plan.Crates[0], "rack-0", new GridPosition(0, 0, 0));
+        var outcome = LoadPlanner.ResolveMove(plan, Mixed, [new CrateMove(plan.Crates[0], "rack-0", new GridPosition(0, 0, 0))]);
 
-        act.Should().Throw<PlanException>().WithMessage("*32 SCU crate of Titanium for Riker doesn't fit rack 1 (takes crates up to 16 SCU)*");
+        outcome.Stage.Should().Be(MoveStage.Elsewhere);
+        outcome.Plan!.Crates.Should().Equal(plan.Crates);
+        outcome.Notices.Should().Equal("No room in rack 1 – placed in rack 2");
     }
 
-    // Two 16s end to end are a 32's block, and the contract allows 32: only the rack says no.
     [Fact]
     public void Merging_two_16s_in_a_limited_rack_is_refused()
     {

@@ -652,7 +652,7 @@ public static class CrateLayout
     }
 
     /// <summary>Rank of every cell in fill order. Only this knows the axes; the rest works on ranks.</summary>
-    private static int[,,] Ranks(Rack rack, FillOrder order)
+    internal static int[,,] Ranks(Rack rack, FillOrder order)
     {
         var grid = rack.Grid;
         var rank = new int[grid.Length, grid.Width, grid.Stack];

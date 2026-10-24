@@ -20,14 +20,14 @@ public class StackingSearchLimitTests
     private const string Note = "Rack 1: too many crates to rearrange – a layout without crates on other cargo may exist.";
 
     /// <summary>The T7.0 stress rack (T7.1c, D58): one rack of 12×12×7, 1,008 cells.</summary>
-    private static readonly Ship Huge = new("huge", "Stress test ship", 1_008,
+    internal static readonly Ship Huge = new("huge", "Stress test ship", 1_008,
         [new Rack("rack-0", 0, 1_008, new Dimensions(12, 12, 7), new RackPosition(RackSide.Port, RackLevel.Lower), new ShipPoint(0, 0, 0))]);
 
     /// <summary>
     /// The T7.1c stress load, 958 SCU: Dest1/2 each 2 × 32, 2 × 24, 3 × 16, 5 × 8, 8 × 4, 10 × 2, 26 × 1; Dest3/4 each 1 × 32,
     /// 1 × 24, 2 × 16, 5 × 8, 7 × 4, 10 × 2, 25 × 1.
     /// </summary>
-    private static readonly Stop[] Stress =
+    internal static readonly Stop[] Stress =
     [
         StressStop("Dest1", 1, 2, 2, 3, 5, 8, 10, 26),
         StressStop("Dest2", 2, 2, 2, 3, 5, 8, 10, 26),

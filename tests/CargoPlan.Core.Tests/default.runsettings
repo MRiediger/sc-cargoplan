@@ -2,13 +2,14 @@
 <!--
   Default run of the Core tests: the exhaustive layout check (Trait "Category" = "Exhaustive") and the plans that reach
   the search limit ("Slow", about 1.3 s each in Release, D58) take too long for every run and stay out; CI runs "Slow" in
-  a step of its own. The commands that run them alone are in CLAUDE.md (Befehle): they empty RunSettingsFilePath, because a
-  filter on the command line is joined with this one by AND, and an inline TestCaseFilter doesn't replace it (tried).
+  a step of its own. "Timing" measures moves per stage (B3, D65) and prints a table; it runs by hand only. The commands
+  that run them alone are in CLAUDE.md (Befehle): they empty RunSettingsFilePath, because a filter on the command line is
+  joined with this one by AND, and an inline TestCaseFilter doesn't replace it (tried).
   RunConfiguration/TestCaseFilter: https://learn.microsoft.com/visualstudio/test/configure-unit-tests-by-using-a-dot-runsettings-file
   xUnit traits as filter properties: https://learn.microsoft.com/dotnet/core/tools/dotnet-test-vstest#filter-option-details
 -->
 <RunSettings>
   <RunConfiguration>
-    <TestCaseFilter>Category!=Exhaustive&amp;Category!=Slow</TestCaseFilter>
+    <TestCaseFilter>Category!=Exhaustive&amp;Category!=Slow&amp;Category!=Timing</TestCaseFilter>
   </RunConfiguration>
 </RunSettings>

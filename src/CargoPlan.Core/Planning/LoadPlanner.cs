@@ -92,57 +92,91 @@ public static class LoadPlanner
         MoveCrates(plan, ship, [new CrateMove(crate, targetRackId, targetPosition)]);
 
     /// <summary>
-    /// Puts crates at cells of racks, all at once (D25): every crate leaves its cells, then all take their new ones, so
-    /// crates of one move may carry each other. Each must fit its grid, find its cells free and rest on the plate or
-    /// other crates; no crate may lose its support. Nothing slides down: what doesn't hold is refused with the reason
-    /// of <see cref="MoveProblem"/>, the player sees what they do. Crates keep their index, so placements keep their
-    /// order; hints are derived anew. The original plan stays unchanged.
+    /// Puts crates at cells of racks, all at once (D25), and finds room where a cell doesn't hold them (D65): the plan of
+    /// <see cref="ResolveMove(LoadPlan, Ship, IReadOnlyList{CrateMove}, MoveStage)"/>, its notices dropped. Crates keep
+    /// their index, so placements keep their order; hints are derived anew. The original plan stays unchanged.
     /// </summary>
     /// <exception cref="ArgumentException">
     /// The plan belongs to another ship, the ship has no such rack, or a crate isn't part of the plan, is delivered or
     /// moves twice.
     /// </exception>
-    /// <exception cref="PlanException">A crate doesn't fit where it goes, or another crate would lose its support.</exception>
-    public static LoadPlan MoveCrates(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves)
-    {
-        var crates = Moved(plan, ship, moves);
-        if (moves.Count == 0)
-        {
-            return plan;
-        }
+    /// <exception cref="PlanException">No rack takes the crates (<see cref="MoveOutcome.Refusal"/>).</exception>
+    public static LoadPlan MoveCrates(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves) =>
+        moves.Count == 0 ? plan : Applied(ResolveMove(plan, ship, moves));
 
-        return Problem(plan, ship, moves, crates) is { } problem
-            ? throw new PlanException(problem)
-            : WithHints(plan with { Crates = crates }, ship);
+    /// <summary>Why <see cref="MoveCrates"/> would refuse these moves, or null if it wouldn't (D25, D65).</summary>
+    /// <exception cref="ArgumentException">See <see cref="MoveCrates"/>.</exception>
+    public static string? MoveProblem(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves) =>
+        ResolveMove(plan, ship, moves).Refusal;
+
+    /// <summary>
+    /// Where crates go when the player puts each at a cell (D65): the cell itself, fallen onto the next crate or the plate;
+    /// else the nearest free place in its rack; else that rack laid out anew; else other destinations' cargo displaced from
+    /// it; else another rack. A selection moves as a whole or not at all. One function for the overlay's preview and the
+    /// drop: with <paramref name="upTo"/> below <see cref="MoveStage.Relayout"/> it answers
+    /// <see cref="MoveStage.Pending"/> instead of laying a rack out anew. The original plan stays unchanged.
+    /// </summary>
+    /// <exception cref="ArgumentException">See <see cref="MoveCrates"/>.</exception>
+    public static MoveOutcome ResolveMove(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves, MoveStage upTo = MoveStage.Refused)
+    {
+        plan.EnsureBelongsTo(ship);
+        HashSet<int> taken = [];
+        return MoveResolution.Crates(plan, ship,
+            [.. moves.Select(m => new MoveResolution.Intent(IndexOnBoard(plan, m.Crate, taken, "moves", nameof(moves)), RackOf(ship, m.RackId, nameof(moves)), m.Position))],
+            upTo);
     }
 
     /// <summary>
-    /// Why <see cref="MoveCrates"/> would refuse these moves, or null if it wouldn't: the first new problem of
-    /// <see cref="CrateLayout.NewProblem"/> in the racks the crates leave or enter, in rack order. One check for the
-    /// overlay's preview while dragging and for the drop, so both always agree (D25).
+    /// A drag of <paramref name="crates"/> that puts <paramref name="anchor"/> at <paramref name="position"/> of
+    /// <paramref name="rackId"/>, the others at their offset to it (<see cref="CrateMove.Shift"/>), resolved as
+    /// <see cref="ResolveMove(LoadPlan, Ship, IReadOnlyList{CrateMove}, MoveStage)"/> does. If a crate's offset lands in no
+    /// rack, the crates go into the anchor's rack without cells (D65).
     /// </summary>
     /// <exception cref="ArgumentException">See <see cref="MoveCrates"/>.</exception>
-    public static string? MoveProblem(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves) =>
-        Problem(plan, ship, moves, Moved(plan, ship, moves));
+    public static MoveOutcome ResolveMove(
+        LoadPlan plan, Ship ship, IReadOnlyList<Crate> crates, Crate anchor, string rackId, GridPosition position, MoveStage upTo = MoveStage.Refused)
+    {
+        plan.EnsureBelongsTo(ship);
+        if (CrateMove.Shift(ship, crates, anchor, rackId, position) is { } moves)
+        {
+            return ResolveMove(plan, ship, moves, upTo);
+        }
+
+        var target = RackOf(ship, rackId, nameof(rackId));
+        HashSet<int> taken = [];
+        return MoveResolution.Crates(plan, ship, [.. crates.Select(c => new MoveResolution.Intent(IndexOnBoard(plan, c, taken, "moves", nameof(crates)), target, null))], upTo);
+    }
 
     /// <summary>
-    /// Moves every crate of a stop still on board to another rack and lays them out there around the crates it holds,
-    /// split parts included (D24); the overlay's drag of a legend line (D25). Delivered cargo is off the ship and stays,
-    /// so a delivered stop moves nothing; a stop whose crates on board all lie in the target rack already stays as it is,
-    /// it isn't laid out anew. The original plan stays unchanged.
+    /// Moves every crate of a stop still on board to another rack (D25): the plan of <see cref="ResolveStopMove"/>, its
+    /// notices dropped. A stop whose crates on board all lie in the target rack stays as it is. The original plan stays unchanged.
     /// </summary>
     /// <exception cref="ArgumentException">
     /// The plan belongs to another ship, has no stop <paramref name="destination"/>, or the ship has no such rack.
     /// </exception>
-    /// <exception cref="PlanException">The crates don't fit the free space of the target rack.</exception>
-    public static LoadPlan MoveStop(LoadPlan plan, Ship ship, string destination, string targetRackId)
+    /// <exception cref="PlanException">No crate of the stop gets into the target rack.</exception>
+    public static LoadPlan MoveStop(LoadPlan plan, Ship ship, string destination, string targetRackId) =>
+        Applied(ResolveStopMove(plan, ship, destination, targetRackId));
+
+    /// <summary>
+    /// Where a stop goes when the player drags its legend line onto a rack (D65): its crates on board laid around the
+    /// cargo there, else the rack laid out anew, else other destinations' cargo displaced; what still doesn't fit stays
+    /// where it lies, with a notice. Delivered cargo is off the ship and stays, so a delivered stop moves nothing. Preview
+    /// and drop as with <see cref="ResolveMove(LoadPlan, Ship, IReadOnlyList{CrateMove}, MoveStage)"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">See <see cref="MoveStop"/>.</exception>
+    public static MoveOutcome ResolveStopMove(LoadPlan plan, Ship ship, string destination, string targetRackId, MoveStage upTo = MoveStage.Refused)
     {
         plan.EnsureBelongsTo(ship);
         var target = RackOf(ship, targetRackId, nameof(targetRackId));
         EnsureStop(plan, destination);
 
-        return Relayout(plan, ship, target, c => c.Destination == destination && !c.Delivered, destination);
+        int[] moving = [.. Enumerable.Range(0, plan.Crates.Count).Where(i => plan.Crates[i] is { Delivered: false } c && c.Destination == destination && c.RackId != target.Id)];
+        return MoveResolution.Stop(plan, ship, moving, target, upTo);
     }
+
+    private static LoadPlan Applied(MoveOutcome outcome) =>
+        outcome.Plan ?? throw new PlanException(outcome.Refusal ?? "");
 
     /// <summary>
     /// Marks every crate of a stop as delivered, or back. A stop is unloaded in one visit, split parts included,
@@ -682,53 +716,6 @@ public static class LoadPlanner
     }
 
     /// <summary>
-    /// Takes the crates <paramref name="moving"/> picks out of the plan and lays them out in <paramref name="target"/>
-    /// around the crates that stay there. Moved crates keep their index in the crate list, so placements keep their order.
-    /// Nothing to move, or everything already in the target rack: the plan as it is.
-    /// </summary>
-    private static LoadPlan Relayout(LoadPlan plan, Ship ship, Rack target, Func<Crate, bool> moving, string what)
-    {
-        int[] moved = [.. Enumerable.Range(0, plan.Crates.Count).Where(i => moving(plan.Crates[i]))];
-        if (moved.All(i => plan.Crates[i].RackId == target.Id))
-        {
-            return plan;
-        }
-
-        Crate[] staying = [.. plan.Crates.Where((c, i) => c.RackId == target.Id && !moved.Contains(i))];
-        var laid = CrateLayout.Lay(
-                target, staying, [.. moved.Select(i => (plan.Crates[i].CrateSize, plan.Crates[i].Destination))], plan.FillOrder)
-            ?? throw new PlanException(Invariant(
-                $"{what} doesn't fit rack {target.Number}: {staying.Sum(c => (int)c.CrateSize)}/{target.CapacityScu} SCU taken."));
-
-        List<Crate> crates = [.. plan.Crates];
-        foreach (var (index, position) in moved.Zip(laid.Positions))
-        {
-            crates[index] = crates[index] with { RackId = target.Id, Position = position };
-        }
-
-        return WithHints(plan with { Crates = crates }, ship, laid.GaveUp ? StackingUncheckedNotes([target]) : []);
-    }
-
-    /// <summary>
-    /// The plan's crates with every move applied at the crate's index; checks the caller's part: ship, racks, crates of
-    /// the plan, none delivered or moved twice.
-    /// </summary>
-    private static List<Crate> Moved(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves)
-    {
-        plan.EnsureBelongsTo(ship);
-        List<Crate> crates = [.. plan.Crates];
-        HashSet<int> taken = [];
-        foreach (var (crate, rackId, position) in moves)
-        {
-            RackOf(ship, rackId, nameof(moves));
-            var index = IndexOnBoard(plan, crate, taken, "moves", nameof(moves));
-            crates[index] = crate with { RackId = rackId, Position = position };
-        }
-
-        return crates;
-    }
-
-    /// <summary>
     /// The index of <paramref name="crate"/> in the plan, added to <paramref name="taken"/>; checks the caller's part: a crate
     /// of the plan, not delivered (D16), not named twice (<paramref name="verb"/> says how it was named).
     /// </summary>
@@ -751,16 +738,6 @@ public static class LoadPlanner
 
         EnsureOnBoard(crate.Delivered, crate.Commodity, crate.Destination, paramName);
         return index;
-    }
-
-    /// <summary>The first new problem in a rack a move leaves or enters, in rack order; null if there is none.</summary>
-    private static string? Problem(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves, List<Crate> crates)
-    {
-        HashSet<string> touched = [.. moves.SelectMany(m => (string[])[m.Crate.RackId, m.RackId])];
-        return ship.Racks.OrderBy(r => r.Index)
-            .Where(r => touched.Contains(r.Id))
-            .Select(r => CrateLayout.NewProblem(r, plan.CratesForRack(r.Id), [.. crates.Where(c => c.RackId == r.Id)]))
-            .FirstOrDefault(problem => problem is not null);
     }
 
     private static Edit Split(SavedPlan saved, Ship ship, Crate crate, IReadOnlyList<CrateSize> parts)
@@ -982,7 +959,7 @@ public static class LoadPlanner
         return racks.Select(r => new PlanWarning(r.Id, StackingUncheckedNote(r))).Where(present.Contains);
     }
 
-    private static IEnumerable<PlanWarning> StackingUncheckedNotes(IEnumerable<Rack> racks) =>
+    internal static IEnumerable<PlanWarning> StackingUncheckedNotes(IEnumerable<Rack> racks) =>
         racks.Select(r => new PlanWarning(r.Id, StackingUncheckedNote(r)));
 
     private static string StackingUncheckedNote(Rack rack) => Invariant(
