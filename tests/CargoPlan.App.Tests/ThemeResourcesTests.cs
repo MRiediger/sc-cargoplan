@@ -44,7 +44,6 @@ public sealed class ThemeResourcesTests
         resources[Keys.CratesRackNumberFontSize].Should().Be(27.0);
         ColorOf(resources, Keys.CratesHaloBrush).Should().Be(Color.FromArgb(0xE0, 0x14, 0x14, 0x14));
         resources[Keys.CratesHaloSize].Should().Be(3.0);
-        resources[Keys.CratesShowRackLoad].Should().Be(true);
         ColorOf(resources, Keys.ButtonsBackgroundBrush).Should().Be(Color.FromArgb(0x01, 0x00, 0x00, 0x00));
         resources[Keys.ButtonsBorderThickness].Should().Be(new Thickness(0));
         resources[Keys.ButtonsCornerRadius].Should().Be(new CornerRadius(3));
@@ -72,14 +71,6 @@ public sealed class ThemeResourcesTests
         var resources = Applied(AppearanceSettings.Default with { Crates = CrateAppearance.Default with { RackNumberFontSize = 40 } });
 
         resources[Keys.CratesRackNumberFontSize].Should().Be(40.0);
-    }
-
-    [Fact]
-    public void Rack_load_off_is_passed_on()
-    {
-        var resources = Applied(AppearanceSettings.Default with { Crates = CrateAppearance.Default with { ShowRackLoad = false } });
-
-        resources[Keys.CratesShowRackLoad].Should().Be(false);
     }
 
     [Fact]

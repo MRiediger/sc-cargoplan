@@ -407,13 +407,9 @@ public class ShipViewBuilderTests
     }
 
     [Fact]
-    public void Racks_know_their_load_for_tool_tip_and_number()
+    public void Racks_know_their_load_for_the_tool_tip()
     {
-        var rack = RackNumber(Build(Sample.Plan), 3);
-
-        rack.Load.ToolTip.Should().Be("Rack 3 · 14 / 16 SCU");
-        rack.Load.Label(showLoad: true).Should().Be("3 · 14/16");
-        rack.Load.Label(showLoad: false).Should().Be("3");
+        RackNumber(Build(Sample.Plan), 3).Load.ToolTip.Should().Be("Rack 3 · 14 / 16 SCU");
     }
 
     [Fact]
@@ -424,7 +420,6 @@ public class ShipViewBuilderTests
         var rack = RackNumber(Build(plan), 2);
 
         rack.Load.ToolTip.Should().Be("Rack 2 · 0 / 16 SCU");
-        rack.Load.Label(showLoad: true).Should().Be("2 · 0/16");
     }
 
     // --- Missions in the legend (T5.4) ---

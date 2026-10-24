@@ -278,8 +278,6 @@
                             <Slider Minimum="{x:Static st:AppearanceRules.MinRackNumberFontSize}" Maximum="{x:Static st:AppearanceRules.MaxRackNumberFontSize}"
                                     Value="{Binding CratesRackNumberFontSize}" Style="{StaticResource ValueSliderStyle}" />
                         </DockPanel>
-                        <CheckBox Content="Show load after rack numbers" IsChecked="{Binding CratesShowRackLoad}" Margin="0,3"
-                                  ToolTip="3 · 12/16: SCU on board of the rack's cells; ticked crates don't count" />
                         <ContentControl Content="{Binding CratesHalo, Mode=OneTime}" />
                         <Button Command="{Binding ResetCratesCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
                     </StackPanel>

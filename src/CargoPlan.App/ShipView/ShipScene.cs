@@ -71,7 +71,7 @@ public abstract record BowMarker
 /// The rack's crates where the plan stores them (D24), by placement and in plan order, then its free cells. Overlapping
 /// crates of a plan file edited by hand are all there.
 /// </param>
-/// <param name="Load">What the rack holds on board, for its tool tip and its number (D67).</param>
+/// <param name="Load">What the rack holds on board, for its tool tip (D67).</param>
 public sealed record SceneRack(string RackId, int Number, bool IsViolated, ShipBox Bounds, IReadOnlyList<SceneBox> Boxes, RackLoad Load)
 {
     /// <summary>Holds a crate, delivered ones included, so ticking a stop off changes nothing that depends on it (D16, D61).</summary>
@@ -83,9 +83,6 @@ public sealed record RackLoad(int Number, int LoadedScu, int CapacityScu)
 {
     /// <summary>"Rack 3 · 12 / 16 SCU": over any part of the rack, under a crate's own tool tip.</summary>
     public string ToolTip => Invariant($"Rack {Number} · {LoadedScu} / {CapacityScu} SCU");
-
-    /// <summary>"3 · 12/16" with the load, "3" without (<c>crates.showRackLoad</c>).</summary>
-    public string Label(bool showLoad) => showLoad ? Invariant($"{Number} · {LoadedScu}/{CapacityScu}") : Invariant($"{Number}");
 }
 
 /// <summary>

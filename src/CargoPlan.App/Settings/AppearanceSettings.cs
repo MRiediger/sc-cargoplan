@@ -67,14 +67,12 @@ public sealed record LegendAppearance(string Foreground = "#FFE6E6E6", double? F
 /// Pixels, the same at every zoom; smaller only where the number would no longer fit its rack (D32). The default is the
 /// size at zoom 1 in the default overlay before it was a setting.
 /// </param>
-/// <param name="ShowRackLoad">"3 · 12/16" behind the rack number instead of "3" (D67); optional since B5, default on.</param>
 public sealed record CrateAppearance(
     int FillAlpha = 0xD0,
     int EdgeAlpha = 0xC0,
     string RackNumberColor = "#FFFFFFFF",
     double RackNumberFontSize = 27,
-    HaloSettings? Halo = null,
-    bool ShowRackLoad = true)
+    HaloSettings? Halo = null)
 {
     public static CrateAppearance Default { get; } = new();
 

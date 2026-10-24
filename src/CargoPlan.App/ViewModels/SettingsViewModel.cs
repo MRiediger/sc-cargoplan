@@ -146,10 +146,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The sharp outline of the rack numbers (D31): its size is a stroke width.</summary>
     public HaloEditor CratesHalo { get; }
 
-    /// <summary>"3 · 12/16" instead of "3" (D67).</summary>
-    [ObservableProperty]
-    public partial bool CratesShowRackLoad { get; set; }
-
     // Header
 
     /// <summary>Also the glyphs: pencil, gear, split, merge, padlock. Invisible, the gear is found by its tool tip (D34).</summary>
@@ -231,8 +227,6 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnCratesRackNumberFontSizeChanged(double value) => OnChanged();
 
-    partial void OnCratesShowRackLoadChanged(bool value) => OnChanged();
-
     partial void OnButtonsBorderThicknessChanged(double value) => OnChanged();
 
     partial void OnButtonsCornerRadiusChanged(double value) => OnChanged();
@@ -284,7 +278,6 @@ public sealed partial class SettingsViewModel : ObservableObject
         CratesRackNumberColor.Load(crates.RackNumberColor);
         CratesRackNumberFontSize = crates.RackNumberFontSize;
         CratesHalo.Load(crates.Halo);
-        CratesShowRackLoad = crates.ShowRackLoad;
     }
 
     private void LoadHeader(HeaderAppearance header)
@@ -323,7 +316,7 @@ public sealed partial class SettingsViewModel : ObservableObject
             new WindowAppearance(WindowBackground.Value, WindowBorderColor.Value, WindowBorderThickness),
             new HeaderAppearance(HeaderForeground.Value, HeaderHalo.Value),
             new LegendAppearance(LegendForeground.Value, UseWindowsFontSize ? null : LegendFontSize, LegendHalo.Value),
-            new CrateAppearance(CratesFillAlpha, CratesEdgeAlpha, CratesRackNumberColor.Value, CratesRackNumberFontSize, CratesHalo.Value, CratesShowRackLoad),
+            new CrateAppearance(CratesFillAlpha, CratesEdgeAlpha, CratesRackNumberColor.Value, CratesRackNumberFontSize, CratesHalo.Value),
             new ButtonAppearance(ButtonsBackground.Value, ButtonsBorderColor.Value, ButtonsBorderThickness, ButtonsCornerRadius, ButtonsHalo.Value));
         _apply(appearance, new LegendSettings(IsLegendVisible, LegendPosition));
     }

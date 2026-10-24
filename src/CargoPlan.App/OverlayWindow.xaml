@@ -537,8 +537,7 @@
                                 RackNumberBrush="{DynamicResource CratesRackNumberBrush}"
                                 RackNumberFontSize="{DynamicResource CratesRackNumberFontSize}"
                                 RackNumberHaloBrush="{DynamicResource CratesHaloBrush}"
-                                RackNumberHaloSize="{DynamicResource CratesHaloSize}"
-                                ShowRackLoad="{DynamicResource CratesShowRackLoad}" />
+                                RackNumberHaloSize="{DynamicResource CratesHaloSize}" />
         </DockPanel>
     </Border>
 </Window>
