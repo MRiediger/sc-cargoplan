@@ -62,7 +62,7 @@ outline (D62).
   "dataVersion": "holo-v1",
   "formatVersion": 2,
   "generatedAt": "2026-10-24",
-  "pipelineCommit": "36dec60",
+  "pipelineCommit": "2959336",
   "tools": { "meshoptimizer": "1.3.0", "gltf-transform": "4.5.1", "node": "24.16.0", "python": "3.14.5", "numpy": "2.5.3" },
   "ships": [
     { "slug": "misc-hull-a", "file": "misc-hull-a.holo", "bytes": 396120, "sha256": "…", "rawSha256": "…",

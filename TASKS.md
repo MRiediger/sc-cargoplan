@@ -1096,7 +1096,7 @@ offen ist, zählte sonst über seinen eigenen Rand); Achswahl per IoU über beid
 | Alle 117 | 195 min, 0 Abbrüche | 37 × 20 k, 21 × 30 k, 11 × 40 k sauber; 48 nicht sauber (Hausdorff 44, Splitter 7, IoU 2, F-Score 2, Dreiecke 1) |
 | Achsen | IoU der Draufsicht gegen den Umriss | nach dem Fix min. 0,868 (300i), Gegenachse immer ≤ 0,77 |
 | Gate (Martin, 24.10.2026) | 6 saubere, 4 nicht saubere Bögen | alle 117 freigegeben, `rejected.md` leer |
-| Release-Ordner | `verify` | 117 Dateien + NOTICE + Manifest, 64,7 MB, 333–799 KB pro Schiff, 0 Probleme, `pipelineCommit` 36dec60 |
+| Release-Ordner | `verify` | 117 Dateien + NOTICE + Manifest, 64,7 MB, 333–799 KB pro Schiff, 0 Probleme, `pipelineCommit` 2959336 (NOTICE-Satz nach Martins Wortlaut) |
 
 - **Nicht sauber** heißt bei 43 der 47 vor dem Achs-Fix vermessenen (die Syulen kam erst danach dazu): schmale Anbauten
   (Läufe, Antennen, Türmchen) fehlen, höchstens 2–6,4 px breit auf 512 px; die Flächen decken sich (IoU meist
@@ -1113,7 +1113,7 @@ offen ist, zählte sonst über seinen eigenen Rand); Achswahl per IoU über beid
 - **Größtes Mesh:** Constellation Centaurus 50.782 Dreiecke (kommt innerhalb 0,5 % nicht unter 40 k), dann Ironclad
   Assault 40.025. Fünf Gruppen von Varianten teilen ein Modell und sind byte-gleich (z. B. Aurora Mk I CL/ES/LN/LX/MR).
 - **Pipeline-Repo** `sc-ship-outlines`: 35 Python-Tests (`unittest`), vor dem Code rot gesehen
-  (`ModuleNotFoundError: holo_mesh`, später je ein Assert- oder Attributfehler pro neuem Test); Commits 1cead41..36dec60.
+  (`ModuleNotFoundError: holo_mesh`, später je ein Assert- oder Attributfehler pro neuem Test); Commits 1cead41..2959336.
   Kein Upload: Der Release-Ordner liegt in `sc-ship-outlines/holo/holo-v1`, hochgeladen wird mit Martins OK.
 - `docs/holo-format.md` neu (SCH2, Hidden-Line-Regel, Manifest). sc-cargoplan sonst unverändert: kein Code, kein
   App-Lauf, AppData unberührt.
