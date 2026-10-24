@@ -24,14 +24,19 @@ public sealed partial class ColourField : ObservableObject
     /// <param name="colour">"#AARRGGBB", checked by <see cref="AppearanceRules"/>.</param>
     /// <param name="minAlpha">The slider's minimum: <see cref="AppearanceRules.MinClickableAlpha"/> for a background that takes clicks.</param>
     /// <param name="changed">Called after every change that gives a valid colour, never for an invalid hex.</param>
-    public ColourField(string colour, byte minAlpha, Action changed)
+    /// <param name="hasAlpha">false = always opaque, no slider: the hologram's colours, whose opacity has a slider of its own (D63).</param>
+    public ColourField(string colour, byte minAlpha, Action changed, bool hasAlpha = true)
     {
         MinAlpha = minAlpha;
+        HasAlpha = hasAlpha;
         _changed = changed;
         Load(colour);
     }
 
     public byte MinAlpha { get; }
+
+    /// <summary>false hides the alpha slider and keeps the colour opaque.</summary>
+    public bool HasAlpha { get; }
 
     /// <summary>As typed: "#RRGGBB" or "RRGGBB", any case. Eight digits are invalid, or field and slider would disagree.</summary>
     public string Hex
@@ -89,7 +94,7 @@ public sealed partial class ColourField : ObservableObject
     {
         var argb = Argb.Parse(colour);
         Hex = $"#{argb.R:X2}{argb.G:X2}{argb.B:X2}";
-        Alpha = argb.A;
+        Alpha = HasAlpha ? argb.A : byte.MaxValue;
     }
 
     partial void OnAlphaChanged(int value) => Update();

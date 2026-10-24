@@ -3,13 +3,14 @@
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
 the legend stands, the overlay's look, the tool windows' theme, where ContractTracker is, your ship and the ships you chose last. Position and size
 are saved whenever you move the overlay; the settings window (the gear in the header) sets and saves the look,
-the legend layout, the ship view (outline or hologram, its opacity, hologram downloads), the tool window theme, the hotkeys and the ContractTracker settings; the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
+the legend layout, the ship view (outline or hologram, its opacity and colours, hologram downloads), the tool window theme, the hotkeys and the ContractTracker settings; the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
 the overlay again.
 
 ## Example with every default
 
 Without a file, or without `ship`, `recentShips`, `legend`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`,
-`toolWindowTheme`, `contractTracker` and `appearance`, the overlay uses exactly these values.
+`holoHullColor`, `holoEdgeColor`, `toolWindowTheme`, `contractTracker` and `appearance`, the overlay uses exactly these
+values.
 
 ```json
 {
@@ -22,6 +23,8 @@ Without a file, or without `ship`, `recentShips`, `legend`, `shipOutline`, `down
   "shipOutline": "outline",
   "downloadShipHolograms": true,
   "holoOpacity": 0.4,
+  "holoHullColor": "#FF9CB0C0",
+  "holoEdgeColor": "#FFE6E6E6",
   "toolWindowTheme": "system",
   "contractTracker": { "path": null, "autoSync": true },
   "appearance": {
@@ -148,8 +151,8 @@ Ticking a destination off never moves the ship view, in any position.
 
 ## Ship view
 
-`shipOutline` sets what lies behind the racks in the ship view; `holoOpacity` and `downloadShipHolograms` go with it.
-All three sit at the top level, so the crates' **Reset to defaults** never switches them; the settings window's
+`shipOutline` sets what lies behind the racks in the ship view; `holoOpacity`, `holoHullColor`, `holoEdgeColor` and
+`downloadShipHolograms` go with it. All of them sit at the top level, so the crates' **Reset to defaults** never switches them; the settings window's
 **Ship view** section has a reset of its own.
 
 | `shipOutline` | What |
@@ -164,6 +167,12 @@ Lower case only. Missing or `null` means `"outline"`; any other text means `"out
 
 `holoOpacity` is the hologram's opacity, from `0.1` to `1`; missing means `0.4`. A value outside is clamped, with a
 notice.
+
+`holoHullColor` colours the hologram's hull in `"holo-shaded"` and `"holo-flat"` (default `"#FF9CB0C0"`),
+`holoEdgeColor` its edges in `"holo-hiddenline"` (default `"#FFE6E6E6"`); the hidden-line hull stays dark, it only hides
+what lies behind it. `"#RRGGBB"` or `"#AARRGGBB"`, written back as `"#FFRRGGBB"`: a hologram is always opaque, its
+opacity is `holoOpacity`, so an alpha below `FF` is set to `FF` with a notice. Not a colour, missing or `null` means the
+default, with a notice for one that isn't a colour.
 
 `downloadShipHolograms`: `true` (the default) lets a hologram look download the ship's file from this repository's
 release `holo-v1` on GitHub when you pick a ship, one file per ship, and the list of files at most once a day. Nothing
@@ -241,7 +250,7 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms` and `holoOpacity` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor` and `holoEdgeColor` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a

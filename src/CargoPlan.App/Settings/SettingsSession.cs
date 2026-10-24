@@ -40,6 +40,8 @@ public sealed class SettingsSession
         ApplyLook();
         _viewModel.OutlineMode = ShipOutline;
         _viewModel.HoloOpacity = Current.HoloOpacity;
+        _viewModel.HoloHullColor = Current.HoloHullColor;
+        _viewModel.HoloEdgeColor = Current.HoloEdgeColor;
     }
 
     public AppSettings Current { get; private set; }
@@ -163,6 +165,19 @@ public sealed class SettingsSession
     {
         _viewModel.HoloOpacity = opacity;
         Current = Current with { HoloOpacity = opacity };
+        _timer.Stop();
+        _timer.Start();
+    }
+
+    /// <summary>
+    /// From the settings window's two colour fields (D63): the overlay redraws at once (D30), saved after
+    /// <see cref="Debounce"/>. Not checked again: the fields hand over opaque "#AARRGGBB" only (A6).
+    /// </summary>
+    public void ChangeHoloColors(string hull, string edge)
+    {
+        _viewModel.HoloHullColor = hull;
+        _viewModel.HoloEdgeColor = edge;
+        Current = Current with { HoloHullColor = hull, HoloEdgeColor = edge };
         _timer.Stop();
         _timer.Start();
     }

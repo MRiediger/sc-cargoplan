@@ -10,6 +10,21 @@ public sealed class ColourFieldTests
     private ColourField Create(string colour = "#A0FF0000") => new(colour, minAlpha: 0, () => _changes++);
 
     [Fact]
+    public void A_field_without_alpha_is_always_opaque()
+    {
+        // The hologram's colours (D63): WPF 3D sorts no transparent triangles, its opacity has a slider of its own.
+        var field = new ColourField("#809CB0C0", minAlpha: 0, () => _changes++, hasAlpha: false);
+
+        field.HasAlpha.Should().BeFalse();
+        field.Alpha.Should().Be(255);
+        field.Value.Should().Be("#FF9CB0C0");
+
+        field.Hex = "#112233";
+
+        field.Value.Should().Be("#FF112233");
+    }
+
+    [Fact]
     public void Opening_shows_the_colour_in_the_picker()
     {
         var field = Create("#FF00FF00");

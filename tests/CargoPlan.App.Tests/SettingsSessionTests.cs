@@ -442,6 +442,22 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void The_start_and_ChangeHoloColors_apply_the_hologram_colours_and_save_on_flush()
+    {
+        var session = Create(AppSettings.Default with { HoloEdgeColor = "#FFFFCC00" });
+        _viewModel.HoloEdgeColor.Should().Be("#FFFFCC00");
+        _viewModel.HoloHullColor.Should().Be("#FF9CB0C0");
+
+        session.ChangeHoloColors("#FF336699", "#FF00FF00");
+
+        _viewModel.HoloHullColor.Should().Be("#FF336699");
+        _viewModel.HoloEdgeColor.Should().Be("#FF00FF00");
+        File.Exists(SettingsPath).Should().BeFalse();
+        session.Flush();
+        Saved().Should().Be(AppSettings.Default with { HoloHullColor = "#FF336699", HoloEdgeColor = "#FF00FF00" });
+    }
+
+    [Fact]
     public void The_start_applies_the_hologram_opacity_to_the_overlay()
     {
         Create(AppSettings.Default with { HoloOpacity = 0.7 });

@@ -1145,7 +1145,9 @@ ein Versuch pro Lauf; Rückzug nur durch ein Manifest von jetzt oder aus den 24 
 Jede 2xx-Antwort, Länge und SHA256 entscheiden. User-Agent ohne Commit-Hash. z: Mitte auf Mitte. Fit zeigt das ganze
 Holo. Linien als kamerazugewandte Streifen. Liste heißt „Backdrop“. Umriss-Vergleich per Scratch-Harness. Beim Bau:
 `Holo` der VM nur bei Holo-Look und passendem Schiff, Mesh im Speicher für Look-Wechsel, `ShipViewChanged`-Event der
-Session; nach dem Look-Gate (Martin) Deckkraft als Regler `holoOpacity` (0,1–1, Standard 0,4) im Deckkraft-Commit.
+Session; nach dem Look-Gate (Martin) Deckkraft als Regler `holoOpacity` (0,1–1, Standard 0,4) im Deckkraft-Commit;
+danach zwei Farben (Martin: Variante C von drei) `holoHullColor` (Rumpf bei shaded/flat) und `holoEdgeColor` (Kanten bei
+hidden line), je ein Farbfeld ohne Alpha-Regler unter dem Deckkraft-Regler, immer deckend.
 
 **Befund:**
 
@@ -1161,7 +1163,7 @@ Session; nach dem Look-Gate (Martin) Deckkraft als Regler `holoOpacity` (0,1–1
 
 - Die Kosten bei Zoom hängen an der Kantenzahl, nicht an den Dreiecken (fast jedes Schiff hat 15.000 Kanten auf
   Stufe 3; Streifenbau Hull A 2,09 ms, Centaurus 1,80 ms): Die vorab geplante Rot-Regel hätte das falsche Schiff getroffen.
-- Tests: 2.147 grün (Core 954, Import 119, App 1.074), mit synthetischem SCH2 und Fake-Handler; zwei absichtliche
+- Tests: 2.159 grün (Core 954, Import 119, App 1.086), mit synthetischem SCH2 und Fake-Handler; zwei absichtliche
   Fehler im Download-Code fängt die Suite. Kein neues NuGet-Paket. AppData in keinem Scratch-Lauf berührt.
 - Nach dem Doku-Commit (Martin): Preferences schloss die App. Ursache: die Grenzen des Deckkraft-Reglers als `int` per
   `x:Static` an `Slider.Minimum` (ein `double`), WPF wandelt dort nicht um. Kein Test öffnete das Settings-Fenster;

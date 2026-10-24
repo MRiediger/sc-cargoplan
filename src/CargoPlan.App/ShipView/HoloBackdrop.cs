@@ -22,6 +22,20 @@ public sealed class HoloBackdrop : FrameworkElement
         typeof(HoloBackdrop),
         new PropertyMetadata(null, (d, _) => ((HoloBackdrop)d).OnHoloChanged()));
 
+    /// <summary>The hull in the shaded and flat looks; bound to the settings' holoHullColor.</summary>
+    public static readonly DependencyProperty HullColorProperty = DependencyProperty.Register(
+        nameof(HullColor),
+        typeof(Color),
+        typeof(HoloBackdrop),
+        new PropertyMetadata((Color)ColorConverter.ConvertFromString(AppearanceRules.DefaultHoloHullColor), (d, _) => ((HoloBackdrop)d).OnColorsChanged()));
+
+    /// <summary>The edges in the hidden-line look; bound to the settings' holoEdgeColor.</summary>
+    public static readonly DependencyProperty EdgeColorProperty = DependencyProperty.Register(
+        nameof(EdgeColor),
+        typeof(Color),
+        typeof(HoloBackdrop),
+        new PropertyMetadata((Color)ColorConverter.ConvertFromString(AppearanceRules.DefaultHoloEdgeColor), (d, _) => ((HoloBackdrop)d).OnColorsChanged()));
+
     /// <summary>Bound to <see cref="ShipViewControl.View"/>.</summary>
     public static readonly DependencyProperty ViewProperty = DependencyProperty.Register(
         nameof(View),
@@ -29,9 +43,7 @@ public sealed class HoloBackdrop : FrameworkElement
         typeof(HoloBackdrop),
         new PropertyMetadata(null, (d, _) => ((HoloBackdrop)d).OnViewChanged()));
 
-    private static readonly Material Lit = Frozen(new DiffuseMaterial(Frozen(new SolidColorBrush(MissionPalette.HoloFill))));
     private static readonly Material HiddenFill = Unlit(MissionPalette.HoloHiddenFill);
-    private static readonly Material Line = Unlit(MissionPalette.HoloLine);
 
     private readonly Viewport3D _viewport = new() { IsHitTestVisible = false };
     // Far plane at twice the camera's distance instead of the default infinity, so depth keeps its precision.
@@ -39,7 +51,7 @@ public sealed class HoloBackdrop : FrameworkElement
     private readonly OrthographicCamera _camera = new() { NearPlaneDistance = 0, FarPlaneDistance = 2 * HoloCamera.Distance };
     private readonly DirectionalLight _light = new(MissionPalette.HoloLight, new Vector3D(0, 0, -1));
     private readonly GeometryModel3D _surface = new();
-    private readonly GeometryModel3D _lines = new() { Material = Line, BackMaterial = Line };
+    private readonly GeometryModel3D _lines = new();
 
     // What the strips were built for: they change with the camera, the scale and the edge level, not with a pan.
     private (IsoProjection Camera, double Scale, int Level)? _linesFor;
@@ -54,6 +66,7 @@ public sealed class HoloBackdrop : FrameworkElement
             Content = new Model3DGroup { Children = [new AmbientLight(MissionPalette.HoloAmbient), _light, _surface, _lines] },
         });
         AddVisualChild(_viewport);
+        OnColorsChanged();
     }
 
     public PreparedHolo? Holo
@@ -66,6 +79,18 @@ public sealed class HoloBackdrop : FrameworkElement
     {
         get => (ShipViewState?)GetValue(ViewProperty);
         set => SetValue(ViewProperty, value);
+    }
+
+    public Color HullColor
+    {
+        get => (Color)GetValue(HullColorProperty);
+        set => SetValue(HullColorProperty, value);
+    }
+
+    public Color EdgeColor
+    {
+        get => (Color)GetValue(EdgeColorProperty);
+        set => SetValue(EdgeColorProperty, value);
     }
 
     // One visual child (AddVisualChild in the constructor), laid out over the whole element; the layout overrides below
@@ -97,13 +122,32 @@ public sealed class HoloBackdrop : FrameworkElement
             return;
         }
 
-        // BackMaterial too: a hull with gaps shows its inside instead of holes (T7.4b).
-        var material = holo.Look == ShipOutlineMode.HoloHiddenline ? HiddenFill : Lit;
-        _surface.Material = material;
-        _surface.BackMaterial = material;
         _surface.Geometry = holo.Surface;
+        ApplySurfaceMaterial(holo);
         Visibility = Visibility.Visible;
         OnViewChanged();
+    }
+
+    /// <summary>A new colour from the settings window: new materials, the geometry stays.</summary>
+    private void OnColorsChanged()
+    {
+        var line = Unlit(EdgeColor);
+        _lines.Material = line;
+        _lines.BackMaterial = line;
+        if (Holo is { } holo)
+        {
+            ApplySurfaceMaterial(holo);
+        }
+    }
+
+    // BackMaterial too: a hull with gaps shows its inside instead of holes (T7.4b).
+    private void ApplySurfaceMaterial(PreparedHolo holo)
+    {
+        var material = holo.Look == ShipOutlineMode.HoloHiddenline
+            ? HiddenFill
+            : Frozen(new DiffuseMaterial(Frozen(new SolidColorBrush(HullColor))));
+        _surface.Material = material;
+        _surface.BackMaterial = material;
     }
 
     private void OnViewChanged()

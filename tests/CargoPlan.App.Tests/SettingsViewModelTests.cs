@@ -12,6 +12,7 @@ public sealed class SettingsViewModelTests
     private readonly List<ShipOutlineMode> _outlines = [];
     private readonly List<bool> _downloads = [];
     private readonly List<double> _opacities = [];
+    private readonly List<(string Hull, string Edge)> _colours = [];
 
     private SettingsViewModel Create(
         AppearanceSettings? appearance = null,
@@ -20,7 +21,9 @@ public sealed class SettingsViewModelTests
         ToolWindowTheme toolWindowTheme = ToolWindowTheme.System,
         ShipOutlineMode shipOutline = ShipOutlineMode.Outline,
         bool downloadShipHolograms = true,
-        double holoOpacity = 0.4) =>
+        double holoOpacity = 0.4,
+        string holoHullColor = "#FF9CB0C0",
+        string holoEdgeColor = "#FFE6E6E6") =>
         new(
             appearance ?? AppearanceSettings.Default,
             legend ?? LegendSettings.Default,
@@ -33,7 +36,10 @@ public sealed class SettingsViewModelTests
             downloadShipHolograms,
             _downloads.Add,
             holoOpacity,
-            _opacities.Add);
+            _opacities.Add,
+            holoHullColor,
+            holoEdgeColor,
+            (hull, edge) => _colours.Add((hull, edge)));
 
     private (AppearanceSettings Appearance, LegendSettings Legend) Last => _applied[^1];
 
@@ -627,6 +633,48 @@ public sealed class SettingsViewModelTests
         viewModel.ShipOutline = mode;
 
         viewModel.IsHologramLook.Should().Be(on);
+    }
+
+    [Fact]
+    public void The_hologram_colours_load_without_alpha_and_call_back_with_both()
+    {
+        var viewModel = Create(holoHullColor: "#FF336699");
+        viewModel.HoloHullColour.HasAlpha.Should().BeFalse();
+        viewModel.HoloEdgeColour.HasAlpha.Should().BeFalse();
+        _colours.Should().BeEmpty();
+
+        viewModel.HoloEdgeColour.Hex = "#FFCC00";
+
+        _colours.Should().Equal(("#FF336699", "#FFFFCC00"));
+        _applied.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Reset_of_the_ship_view_sets_the_accepted_hologram_colours_once()
+    {
+        var viewModel = Create(holoHullColor: "#FF336699", holoEdgeColor: "#FFFFCC00");
+
+        viewModel.ResetShipViewCommand.Execute(null);
+
+        viewModel.HoloHullColour.Value.Should().Be("#FF9CB0C0");
+        viewModel.HoloEdgeColour.Value.Should().Be("#FFE6E6E6");
+        _colours.Should().Equal(("#FF9CB0C0", "#FFE6E6E6"));
+    }
+
+    [Theory]
+    [InlineData(ShipOutlineMode.Outline, false, false)]
+    [InlineData(ShipOutlineMode.HoloShaded, true, false)]
+    [InlineData(ShipOutlineMode.HoloFlat, true, false)]
+    [InlineData(ShipOutlineMode.HoloHiddenline, false, true)]
+    [InlineData(ShipOutlineMode.None, false, false)]
+    public void Each_colour_row_is_on_for_the_looks_it_colours(ShipOutlineMode mode, bool hull, bool edges)
+    {
+        var viewModel = Create(shipOutline: ShipOutlineMode.HoloFlat);
+
+        viewModel.ShipOutline = mode;
+
+        viewModel.ColoursHull.Should().Be(hull);
+        viewModel.ColoursEdges.Should().Be(edges);
     }
 
     [Fact]

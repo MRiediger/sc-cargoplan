@@ -145,6 +145,20 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         set => SetProperty(ref field, value);
     } = AppearanceRules.DefaultHoloOpacity;
 
+    /// <summary>The hologram's hull in the shaded and flat looks (D63), "#AARRGGBB" from the settings; bound by the backdrop.</summary>
+    public string HoloHullColor
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = AppearanceRules.DefaultHoloHullColor;
+
+    /// <summary>The hologram's edges in the hidden-line look, like <see cref="HoloHullColor"/>.</summary>
+    public string HoloEdgeColor
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = AppearanceRules.DefaultHoloEdgeColor;
+
     // The last hologram the loader handed over; shown only while it fits (Holo).
     private PreparedHolo? _holo;
 

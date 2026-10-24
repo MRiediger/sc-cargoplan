@@ -38,6 +38,12 @@ public static class AppearanceRules
     /// <summary>Martin's look gate in the game (T7.4c-2): a backdrop, the racks stay what the eye finds first.</summary>
     public const double DefaultHoloOpacity = 0.4;
 
+    /// <summary>The hull in the shaded and flat looks (D63): a cool grey, apart from every stop colour.</summary>
+    public const string DefaultHoloHullColor = "#FF9CB0C0";
+
+    /// <summary>The edges in the hidden-line look (D63), in the rack edges' grey.</summary>
+    public const string DefaultHoloEdgeColor = "#FFE6E6E6";
+
     /// <returns>The checked appearance and one line per corrected value, empty if nothing was corrected.</returns>
     public static (AppearanceSettings Appearance, IReadOnlyList<string> Problems) Normalize(AppearanceSettings appearance)
     {
@@ -133,6 +139,28 @@ public static class AppearanceRules
         return clamped == opacity
             ? (opacity, [])
             : (clamped, [string.Create(CultureInfo.InvariantCulture, $"holoOpacity {opacity} is outside {MinHoloOpacity}–{MaxHoloOpacity}, using {clamped}.")]);
+    }
+
+    /// <summary>
+    /// Checks one of the hologram's colours (D63): not a colour takes its default, an alpha is set to opaque, since WPF 3D
+    /// sorts no transparent triangles (the opacity has a slider of its own); either way with a line.
+    /// </summary>
+    /// <param name="key">The top-level key, for the line: "holoHullColor" or "holoEdgeColor".</param>
+    /// <returns>The checked colour as "#AARRGGBB" and one line if it was corrected, empty otherwise.</returns>
+    public static (string Colour, IReadOnlyList<string> Problems) NormalizeHoloColor(string key, string colour, string fallback)
+    {
+        if (!Argb.TryParse(colour, out var argb))
+        {
+            return (fallback, [$"{key} \"{colour}\" is not a colour (#RRGGBB), using {fallback}."]);
+        }
+
+        if (argb.A == byte.MaxValue)
+        {
+            return (argb.ToString(), []);
+        }
+
+        var opaque = (argb with { A = byte.MaxValue }).ToString();
+        return (opaque, [$"{key} alpha {argb.A} is not used, holograms are opaque, using {opaque}."]);
     }
 
     /// <summary>

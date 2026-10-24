@@ -529,7 +529,8 @@
                  The hologram lies under the ship view in the same cell (D63): it never covers a crate and takes no click. -->
             <Grid>
                 <sv:HoloBackdrop Holo="{Binding Holo, Mode=OneWay}" View="{Binding View, ElementName=ShipView, Mode=OneWay}"
-                                 Opacity="{Binding HoloOpacity, Mode=OneWay}" />
+                                 Opacity="{Binding HoloOpacity, Mode=OneWay}"
+                                 HullColor="{Binding HoloHullColor, Mode=OneWay}" EdgeColor="{Binding HoloEdgeColor, Mode=OneWay}" />
                 <sv:ShipViewControl x:Name="ShipView"
                                     Scene="{Binding Scene, Mode=OneWay}"
                                     ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}"

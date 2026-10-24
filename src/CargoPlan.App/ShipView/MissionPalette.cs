@@ -56,16 +56,11 @@ public static class MissionPalette
     public static Color Frame { get; } = Color.FromArgb(0x60, 0xE6, 0xE6, 0xE6);
 
     // The hologram behind the racks (D63). Opaque colours: WPF 3D sorts no transparent triangles, so the whole backdrop
-    // is faded instead (settings.json holoOpacity). Accepted in T7.4c-2's look gate.
-
-    /// <summary>The hull in the shaded and flat looks, lit by the light below: a cool grey, apart from every stop colour.</summary>
-    public static Color HoloFill { get; } = Color.FromRgb(0x9C, 0xB0, 0xC0);
+    // is faded instead (settings.json holoOpacity). Hull and edge colours are settings too (holoHullColor, holoEdgeColor);
+    // what stays here was accepted in T7.4c-2's look gate.
 
     /// <summary>The hidden-line look's hull: as dark as the window, so it only hides what lies behind it.</summary>
     public static Color HoloHiddenFill { get; } = Color.FromRgb(0x14, 0x14, 0x14);
-
-    /// <summary>The hidden-line look's edges, in the rack edges' grey.</summary>
-    public static Color HoloLine { get; } = Color.FromRgb(0xE6, 0xE6, 0xE6);
 
     /// <summary>Light from everywhere, so the faces turned away don't go black.</summary>
     public static Color HoloAmbient { get; } = Color.FromRgb(0x50, 0x50, 0x50);

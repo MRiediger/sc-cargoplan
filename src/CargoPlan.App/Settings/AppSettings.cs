@@ -38,6 +38,11 @@ namespace CargoPlan.App.Settings;
 /// <see cref="AppearanceRules.DefaultHoloOpacity"/>. Top level next to <paramref name="ShipOutline"/>: the Ship view
 /// section resets it, the crates' reset doesn't.
 /// </param>
+/// <param name="HoloHullColor">
+/// The hologram's hull in the shaded and flat looks (D63), "#AARRGGBB", always opaque. Missing or null =
+/// <see cref="AppearanceRules.DefaultHoloHullColor"/>; checked by <see cref="AppearanceRules.NormalizeHoloColor"/>.
+/// </param>
+/// <param name="HoloEdgeColor">The hologram's edges in the hidden-line look, like <paramref name="HoloHullColor"/>.</param>
 public sealed record AppSettings(
     int SchemaVersion,
     WindowBounds? Overlay = null,
@@ -50,7 +55,9 @@ public sealed record AppSettings(
     IReadOnlyList<string>? RecentShips = null,
     string? ShipOutline = null,
     bool DownloadShipHolograms = true,
-    double HoloOpacity = AppearanceRules.DefaultHoloOpacity)
+    double HoloOpacity = AppearanceRules.DefaultHoloOpacity,
+    string? HoloHullColor = null,
+    string? HoloEdgeColor = null)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
 
@@ -67,6 +74,10 @@ public sealed record AppSettings(
     public string ToolWindowTheme { get; init; } = ToolWindowTheme ?? ToolWindowThemes.DefaultName;
 
     public string ShipOutline { get; init; } = ShipOutline ?? ShipOutlineModes.DefaultName;
+
+    public string HoloHullColor { get; init; } = HoloHullColor ?? AppearanceRules.DefaultHoloHullColor;
+
+    public string HoloEdgeColor { get; init; } = HoloEdgeColor ?? AppearanceRules.DefaultHoloEdgeColor;
 
     public ContractTrackerSettings ContractTracker { get; init; } = ContractTracker ?? ContractTrackerSettings.Default;
 }

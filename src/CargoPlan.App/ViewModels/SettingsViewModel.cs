@@ -38,6 +38,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly Action<ShipOutlineMode> _changeShipOutline;
     private readonly Action<bool> _changeDownloadShipHolograms;
     private readonly Action<double> _changeHoloOpacity;
+    private readonly Action<string, string> _changeHoloColors;
 
     // True while fields are loaded (constructor, reset): their change calls are one change, applied once at the end.
     private bool _loading = true;
@@ -51,6 +52,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <param name="changeShipOutline">Gets a new bow marker mode (D62); apart from <paramref name="apply"/>, it is a setting of its own in the file.</param>
     /// <param name="changeDownloadShipHolograms">Gets the switch "Download ship holograms" (D63), like <paramref name="changeShipOutline"/>.</param>
     /// <param name="changeHoloOpacity">Gets the hologram's opacity as a share, 0.1 to 1 (D63), like <paramref name="changeShipOutline"/>.</param>
+    /// <param name="changeHoloColors">Gets the hologram's hull and edge colours after either changes (D63), like <paramref name="changeShipOutline"/>.</param>
     public SettingsViewModel(
         AppearanceSettings appearance,
         LegendSettings legend,
@@ -63,7 +65,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         bool downloadShipHolograms,
         Action<bool> changeDownloadShipHolograms,
         double holoOpacity,
-        Action<double> changeHoloOpacity)
+        Action<double> changeHoloOpacity,
+        string holoHullColor,
+        string holoEdgeColor,
+        Action<string, string> changeHoloColors)
     {
         _windowsFontSize = Math.Clamp(windowsFontSize, AppearanceRules.MinFontSize, AppearanceRules.MaxFontSize);
         _apply = apply;
@@ -71,10 +76,13 @@ public sealed partial class SettingsViewModel : ObservableObject
         _changeShipOutline = changeShipOutline;
         _changeDownloadShipHolograms = changeDownloadShipHolograms;
         _changeHoloOpacity = changeHoloOpacity;
+        _changeHoloColors = changeHoloColors;
         ToolWindowTheme = toolWindowTheme;
         ShipOutline = shipOutline;
         DownloadShipHolograms = downloadShipHolograms;
         HoloOpacityPercent = ToPercent(holoOpacity);
+        HoloHullColour = new(holoHullColor, minAlpha: 0, OnHoloColoursChanged, hasAlpha: false);
+        HoloEdgeColour = new(holoEdgeColor, minAlpha: 0, OnHoloColoursChanged, hasAlpha: false);
 
         WindowBackground = new(appearance.Window.Background, AppearanceRules.MinClickableAlpha, OnChanged);
         WindowBorderColor = new(appearance.Window.BorderColor, minAlpha: 0, OnChanged);
@@ -210,7 +218,20 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsHologramLook))]
+    [NotifyPropertyChangedFor(nameof(ColoursHull))]
+    [NotifyPropertyChangedFor(nameof(ColoursEdges))]
     public partial ShipOutlineMode ShipOutline { get; set; }
+
+    /// <summary>The hull colour applies to the shaded and flat looks; its row is on only for them.</summary>
+    public bool ColoursHull => ShipOutline is Settings.ShipOutlineMode.HoloShaded or Settings.ShipOutlineMode.HoloFlat;
+
+    /// <summary>The edge colour applies to the hidden-line look; the hull there stays dark, it only hides.</summary>
+    public bool ColoursEdges => ShipOutline is Settings.ShipOutlineMode.HoloHiddenline;
+
+    /// <summary>Opaque, without an alpha slider: the opacity is the slider above (D63).</summary>
+    public ColourField HoloHullColour { get; }
+
+    public ColourField HoloEdgeColour { get; }
 
     /// <summary>The opacity slider is on only for a hologram look; the outline keeps its own line.</summary>
     public bool IsHologramLook => ShipOutline.IsHologram();
@@ -241,6 +262,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         ShipOutline = Settings.ShipOutlineMode.Outline;
         DownloadShipHolograms = true;
         HoloOpacityPercent = ToPercent(AppearanceRules.DefaultHoloOpacity);
+        Batch(() =>
+        {
+            HoloHullColour.Load(AppearanceRules.DefaultHoloHullColor);
+            HoloEdgeColour.Load(AppearanceRules.DefaultHoloEdgeColor);
+        }, OnHoloColoursChanged);
     }
 
     [RelayCommand]
@@ -318,6 +344,15 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private static int ToPercent(double share) => (int)Math.Round(share * 100);
 
+    // Like the ship outline mode: settings of their own, both colours in one call.
+    private void OnHoloColoursChanged()
+    {
+        if (!_loading)
+        {
+            _changeHoloColors(HoloHullColour.Value, HoloEdgeColour.Value);
+        }
+    }
+
     private void LoadWindow(WindowAppearance window)
     {
         WindowBackground.Load(window.Background);
@@ -365,13 +400,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     }
 
     /// <summary>Runs <paramref name="load"/> as one change: applied once afterwards, or not at all inside the constructor.</summary>
-    private void Batch(Action load)
+    /// <param name="apply">What applies the change; the look's <see cref="OnChanged"/> unless a setting of its own.</param>
+    private void Batch(Action load, Action? apply = null)
     {
         var wasLoading = _loading;
         _loading = true;
         load();
         _loading = wasLoading;
-        OnChanged();
+        (apply ?? OnChanged)();
     }
 
     private void OnChanged()

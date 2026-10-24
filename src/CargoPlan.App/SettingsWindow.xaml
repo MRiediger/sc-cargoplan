@@ -120,7 +120,8 @@
                                 </Border>
                             </Popup>
                         </Grid>
-                        <TextBlock DockPanel.Dock="Right" Text="{Binding AlphaPercent}" Style="{StaticResource ValueTextStyle}" />
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding AlphaPercent}" Style="{StaticResource ValueTextStyle}"
+                                   Visibility="{Binding HasAlpha, Mode=OneTime, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <TextBox DockPanel.Dock="Left" Width="72" VerticalContentAlignment="Center"
                                  Text="{Binding Hex, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="{x:Static vm:ColourField.HexHint}">
@@ -136,7 +137,8 @@
                         </TextBox>
                         <Slider Margin="6,0,0,0" Minimum="{Binding MinAlpha, Mode=OneTime}" Maximum="{x:Static vm:ColourField.MaxAlpha}"
                                 Value="{Binding Alpha}" Style="{StaticResource ValueSliderStyle}"
-                                ToolTip="Transparency: left is see-through, right is opaque" />
+                                ToolTip="Transparency: left is see-through, right is opaque"
+                                Visibility="{Binding HasAlpha, Mode=OneTime, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     </DockPanel>
                 </DataTemplate>
 
@@ -338,6 +340,16 @@
                             <Slider Minimum="{x:Static vm:SettingsViewModel.MinHoloOpacityPercent}"
                                     Maximum="{x:Static vm:SettingsViewModel.MaxHoloOpacityPercent}"
                                     Value="{Binding HoloOpacityPercent}" Style="{StaticResource ValueSliderStyle}" TickFrequency="5" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" IsEnabled="{Binding ColoursHull}"
+                                   ToolTip="The hologram's hull in the shaded and flat looks">
+                            <TextBlock Text="Hull colour" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding HoloHullColour, Mode=OneTime}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" IsEnabled="{Binding ColoursEdges}"
+                                   ToolTip="The hologram's edges in the hidden-line look">
+                            <TextBlock Text="Edge colour" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding HoloEdgeColour, Mode=OneTime}" />
                         </DockPanel>
                         <CheckBox Content="Download ship holograms" IsChecked="{Binding DownloadShipHolograms}" Margin="0,8,0,0" />
                         <TextBlock Text="{x:Static vm:SettingsViewModel.DownloadShipHologramsHint}" TextWrapping="Wrap" Margin="0,2,0,0" />

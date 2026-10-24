@@ -318,7 +318,8 @@ windows, Hotkeys and ContractTracker have none (their defaults are "follow Windo
 - **Ship view:** **Backdrop** shows the ship's outline under the racks (the default), its hologram in one of three
   looks (shaded, flat, hidden line), or **None**: racks and frame only, without any mark of the bow. The hologram is
   true to scale and the view fits all of it, so on a long ship the crates come out smaller than with the outline.
-  **Hologram opacity** (10–100 %, default 40 %) sets how strongly it shows. **Download ship holograms:** ship
+  **Hologram opacity** (10–100 %, default 40 %) sets how strongly it shows, **Hull colour** the hull in the shaded and
+  flat looks, **Edge colour** the edges in the hidden-line look. **Download ship holograms:** ship
   holograms are an optional download from this repository's releases; they derive from game models and may be
   withdrawn on request – the app checks at most once a day. Off means no network access at all; holograms already
   downloaded stay. Until a hologram is there, and when it can't be fetched, the outline shows; the first failure of a

@@ -386,6 +386,45 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Save_then_Load_keeps_the_hologram_colours()
+    {
+        var settings = AppSettings.Default with { HoloHullColor = "#FF336699", HoloEdgeColor = "#FFFFCC00" };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+        File.ReadAllText(SettingsPath).Should().Contain("\"holoHullColor\": \"#FF336699\"").And.Contain("\"holoEdgeColor\": \"#FFFFCC00\"");
+    }
+
+    [Fact]
+    public void File_without_hologram_colours_takes_the_accepted_ones_without_a_problem()
+    {
+        WriteFile("""{ "schemaVersion": 2, "holoHullColor": null }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.HoloHullColor.Should().Be("#FF9CB0C0");
+        loaded.HoloEdgeColor.Should().Be("#FFE6E6E6");
+    }
+
+    [Fact]
+    public void Hologram_colours_are_opaque_and_an_invalid_one_takes_its_default_with_a_problem()
+    {
+        WriteFile("""{ "schemaVersion": 2, "holoHullColor": "blue", "holoEdgeColor": "#80FFCC00" }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.HoloHullColor.Should().Be("#FF9CB0C0");
+        loaded.HoloEdgeColor.Should().Be("#FFFFCC00");
+        problem.Should().Be(
+            "settings.json: holoHullColor \"blue\" is not a colour (#RRGGBB), using #FF9CB0C0." + Environment.NewLine
+            + "settings.json: holoEdgeColor alpha 128 is not used, holograms are opaque, using #FFFFCC00.");
+    }
+
+    [Fact]
     public void Save_then_Load_keeps_the_hologram_opacity()
     {
         var settings = AppSettings.Default with { HoloOpacity = 0.65 };
