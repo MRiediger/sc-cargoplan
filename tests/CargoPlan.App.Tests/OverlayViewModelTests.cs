@@ -387,28 +387,71 @@ public class OverlayViewModelTests
         return new Gesture.MoveCrates(gold, [gold], rackId, new GridPosition(length, width, stack));
     }
 
-    [Fact]
-    public void MoveCratesCommand_onto_a_taken_cell_is_refused_with_a_notice_and_keeps_the_plan()
+    /// <summary>
+    /// A full Hull A where Riker's 4 finds no room elsewhere (D65): Rack 1 holds Riker's 8, the 4 and a 1 on top of the 4;
+    /// Racks 2–4 hold two 8s each. Without the 4 the 1 settles into its place, and no rack has a 2×2 gap left.
+    /// </summary>
+    private static (OverlayViewModel ViewModel, Gesture.MoveCrates Refused) Full()
     {
-        var viewModel = WithPlan();
+        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"));
+        Crate[] crates =
+        [
+            new("Riker", "Titanium", CrateSize.Eight, "rack-0", new GridPosition(0, 0, 0)),
+            new("Riker", "Titanium", CrateSize.Four, "rack-0", new GridPosition(2, 0, 0)),
+            new("Riker", "Titanium", CrateSize.One, "rack-0", new GridPosition(3, 0, 1)),
+            .. new[] { ("Shubin", "rack-1"), ("Orison", "rack-2"), ("Lorville", "rack-3") }.SelectMany(s => new Crate[]
+            {
+                new(s.Item1, "Titanium", CrateSize.Eight, s.Item2, new GridPosition(0, 0, 0)),
+                new(s.Item1, "Titanium", CrateSize.Eight, s.Item2, new GridPosition(2, 0, 0)),
+            }),
+        ];
+        IReadOnlyList<MissionStop> missions =
+        [
+            new("Riker", 1, [new MissionItem("Titanium", 13, CrateSize.Eight)]),
+            new("Shubin", 2, [new MissionItem("Titanium", 16, CrateSize.Eight)]),
+            new("Orison", 3, [new MissionItem("Titanium", 16, CrateSize.Eight)]),
+            new("Lorville", 4, [new MissionItem("Titanium", 16, CrateSize.Eight)]),
+        ];
+        viewModel.ShowPlan(SavedPlan.FromStops(missions, new LoadPlan(viewModel.Ship.Id, crates, [])));
+        var four = viewModel.Plan!.Crates[1];
+        return (viewModel, new Gesture.MoveCrates(four, [four], "rack-1", new GridPosition(0, 0, 0)));
+    }
+
+    [Fact]
+    public void MoveCratesCommand_without_room_anywhere_is_refused_with_a_notice_and_keeps_the_plan()
+    {
+        var (viewModel, refused) = Full();
         var original = viewModel.Plan!;
 
-        // Rack 1 is full of Riker's Titanium: no overload (D24), the reason is the one the preview showed (D25).
-        var changes = Changes(viewModel, () => viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-0", 0, 0, 1)));
+        var changes = Changes(viewModel, () => viewModel.MoveCratesCommand.Execute(refused));
 
         viewModel.Plan.Should().BeSameAs(original);
         changes.Should().NotContain(nameof(OverlayViewModel.Plan));
-        viewModel.Notices.Should().Equal(OverlayViewModel.MoveRefusedPrefix + "Crates of Riker and Orison overlap in rack 1");
+        viewModel.Notices.Should().Equal(OverlayViewModel.MoveRefusedPrefix + "no room for 4 SCU crate");
+        viewModel.Scene.Violations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void MoveCratesCommand_onto_a_full_rack_makes_room_and_says_what_moved()
+    {
+        // Rack 1 is full of Riker's Titanium: a Riker crate makes room for Orison's Gold (D65), not a refusal any more.
+        var viewModel = WithPlan();
+
+        viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-0", 0, 0, 1));
+
+        viewModel.Plan!.CratesForRack("rack-0").Should().Contain(c => c.Commodity == "Gold");
+        viewModel.Notices.Should().ContainSingle().Which.Should().StartWith("Moved ").And.EndWith(" to make room");
         viewModel.Scene.Violations.Should().BeEmpty();
     }
 
     [Fact]
     public void A_successful_move_clears_the_refusal()
     {
-        var viewModel = WithPlan();
-        viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-0", 0, 0, 1));
+        var (viewModel, refused) = Full();
+        viewModel.MoveCratesCommand.Execute(refused);
 
-        viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-1", 0, 0, 1));
+        var eight = viewModel.Plan!.Crates[0];
+        viewModel.MoveCratesCommand.Execute(new Gesture.MoveCrates(eight, [eight], "rack-0", eight.Position));
 
         viewModel.Notices.Should().BeEmpty();
     }
@@ -416,8 +459,8 @@ public class OverlayViewModelTests
     [Fact]
     public void A_new_plan_clears_the_refusal()
     {
-        var viewModel = WithPlan();
-        viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-0", 0, 0, 1));
+        var (viewModel, refused) = Full();
+        viewModel.MoveCratesCommand.Execute(refused);
 
         viewModel.ShowPlan(TestPlans.SplitAndShared());
 
@@ -487,29 +530,27 @@ public class OverlayViewModelTests
     }
 
     [Fact]
-    public void MoveCratesCommand_with_a_crate_beyond_every_rack_is_refused_with_a_notice()
+    public void MoveCratesCommand_with_a_crate_beyond_every_rack_lays_the_selection_into_the_target_rack()
     {
         var viewModel = WithPlan();
-        var original = viewModel.Plan!;
-        var gold = original.Crates.Where(c => c.Commodity == "Gold").ToArray();
+        var gold = viewModel.Plan!.Crates.Where(c => c.Commodity == "Gold").ToArray();
         var aft = gold.Single(c => c.Position.Length == 0);
 
         viewModel.MoveCratesCommand.Execute(new Gesture.MoveCrates(aft, gold, "rack-1", new GridPosition(3, 1, 1)));
 
-        viewModel.Plan.Should().BeSameAs(original);
-        viewModel.Notices.Should().Equal(OverlayViewModel.MoveRefusedPrefix + CrateDrop.OutsideRacks);
+        viewModel.Plan!.Crates.Where(c => c.Commodity == "Gold").Should().OnlyContain(c => c.RackId == "rack-1");
+        viewModel.Notices.Should().BeEmpty();
     }
 
     [Fact]
-    public void MoveStopCommand_onto_a_full_rack_is_refused_with_a_notice()
+    public void MoveStopCommand_onto_a_full_rack_displaces_other_cargo_with_a_notice()
     {
         var viewModel = WithPlan();
-        var original = viewModel.Plan!;
 
         viewModel.MoveStopCommand.Execute(new Gesture.MoveStop("Shubin", "rack-0"));
 
-        viewModel.Plan.Should().BeSameAs(original);
-        viewModel.Notices.Should().Equal(OverlayViewModel.MoveRefusedPrefix + "Shubin doesn't fit rack 1: 16/16 SCU taken.");
+        viewModel.Plan!.Crates.Single(c => c.Destination == "Shubin").RackId.Should().Be("rack-0");
+        viewModel.Notices.Should().Equal("Moved 2 crates for Riker to rack 2 to make room");
     }
 
     [Fact]

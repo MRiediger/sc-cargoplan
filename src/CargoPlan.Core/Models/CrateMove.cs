@@ -8,7 +8,7 @@ public sealed record CrateMove(Crate Crate, string RackId, GridPosition Position
     /// <paramref name="rackId"/> and keep every other crate where it was relative to it (D25, D26): crates from one rack
     /// keep their grid offset, so a stack stays a stack even between racks stacking in opposite directions; crates from
     /// several racks keep their offset in ship coordinates, so they land in the racks at the same offset. Null if a crate's
-    /// min corner lands in no rack; whether the crates fit is <c>LoadPlanner.MoveProblem</c>'s call. Order as in <paramref name="crates"/>.
+    /// min corner lands in no rack; where the crates end up is <c>LoadPlanner.ResolveMove</c>'s call (D65). Order as in <paramref name="crates"/>.
     /// </summary>
     /// <exception cref="ArgumentException">The ship has no rack of a crate or no rack <paramref name="rackId"/>.</exception>
     public static IReadOnlyList<CrateMove>? Shift(Ship ship, IReadOnlyList<Crate> crates, Crate anchor, string rackId, GridPosition position)

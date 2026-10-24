@@ -104,11 +104,6 @@ public static class LoadPlanner
     public static LoadPlan MoveCrates(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves) =>
         moves.Count == 0 ? plan : Applied(ResolveMove(plan, ship, moves));
 
-    /// <summary>Why <see cref="MoveCrates"/> would refuse these moves, or null if it wouldn't (D25, D65).</summary>
-    /// <exception cref="ArgumentException">See <see cref="MoveCrates"/>.</exception>
-    public static string? MoveProblem(LoadPlan plan, Ship ship, IReadOnlyList<CrateMove> moves) =>
-        ResolveMove(plan, ship, moves).Refusal;
-
     /// <summary>
     /// Where crates go when the player puts each at a cell (D65): the cell itself, fallen onto the next crate or the plate;
     /// else the nearest free place in its rack; else that rack laid out anew; else other destinations' cargo displaced from

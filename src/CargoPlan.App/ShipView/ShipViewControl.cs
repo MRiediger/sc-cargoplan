@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using CargoPlan.App.Win32;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Planning;
 
 namespace CargoPlan.App.ShipView;
 
@@ -242,7 +243,7 @@ public sealed class ShipViewControl : FrameworkElement
         e.Handled = true;
         ShowToolTip(null);
         Crate[] onBoard = [.. scene.Plan.Crates.Where(c => c.Destination == destination && !c.Delivered)];
-        _drag = new Drag(MouseButton.Right, null, onBoard, destination, e.GetPosition(this), IsMoving: false, Gesture: null, Problem: null);
+        _drag = new Drag(MouseButton.Right, null, onBoard, destination, e.GetPosition(this), IsMoving: false, Gesture: null, Key: null, Outcome: null);
         CaptureForDrag(MouseButton.Right);
     }
 
@@ -277,7 +278,18 @@ public sealed class ShipViewControl : FrameworkElement
 
         // Only once the drag has left the drag rectangle: a right click alone changes nothing on screen.
         var drag = _drag is { IsMoving: true } moving ? moving : (Drag?)null;
-        var target = (drag?.Gesture as Gesture.MoveStop)?.TargetRackId;
+
+        // The target rack's edge: always for a stop, for crates only while the preview leaves the layout to the drop (D65).
+        var target = drag?.Gesture switch
+        {
+            Gesture.MoveStop stop => stop.TargetRackId,
+            Gesture.MoveCrates crates when drag.Value.Outcome?.Stage == MoveStage.Pending => crates.RackId,
+            _ => null,
+        };
+
+        // Every crate that changes place fades where it is; its ghost shows where it goes (D65).
+        var changed = drag?.Outcome is { } preview ? CrateDrop.Changed(source.Plan, preview) : [];
+        HashSet<Crate> fading = drag is { } held ? [.. held.Dragged, .. changed.Select(c => c.Before)] : [];
 
         // The bow wedge lies beyond every rack: behind all of them seen from the stern, in front seen from the bow (D52).
         if (scene.BowWedge is { InFront: false } behind)
@@ -300,7 +312,7 @@ public sealed class ShipViewControl : FrameworkElement
             {
                 foreach (var box in rack.Boxes.Where(b => b.Box.Fill != CellFill.Free || FreeCellGrid.Draws(b.Box, transform.Scale)))
                 {
-                    var fade = drag is { } d && box.Box.Crate is { } crate && d.Dragged.Contains(crate);
+                    var fade = box.Box.Crate is { } crate && fading.Contains(crate);
                     if (fade)
                     {
                         dc.PushOpacity(DraggedOpacity);
@@ -350,18 +362,18 @@ public sealed class ShipViewControl : FrameworkElement
             }
         }
 
-        // The ghosts at the target cells: cyan where Core allows the drop, red where it refuses (D25). A selection that
-        // reaches past every rack shows only the crate under the cursor, red.
-        if (drag?.Gesture is Gesture.MoveCrates move)
+        // The ghosts: cyan where Core puts every crate that changes place, dragged or moved to make room; red at the cells
+        // aimed at where Core refuses (D25, D65). A refused selection reaching past every rack shows the crate held only.
+        foreach (var after in changed.Select(c => c.After))
         {
-            var (fill, pen) = drag.Value.Problem is null ? (MissionPalette.DropBrush, DragTargetPen) : (MissionPalette.RefusedDropBrush, ViolationPen);
+            DrawGhost(dc, source.Ship, after, MissionPalette.DropBrush, DragTargetPen, transform);
+        }
+
+        if (drag?.Gesture is Gesture.MoveCrates move && drag.Value.Outcome?.Stage == MoveStage.Refused)
+        {
             foreach (var crateMove in CrateDrop.Moves(source.Ship, move) ?? [new CrateMove(move.Anchor, move.RackId, move.Position)])
             {
-                var rack = source.Ship.Racks.Single(r => r.Id == crateMove.RackId);
-                foreach (var face in SceneProjector.ProjectBox(rack.CellBox(crateMove.Position, crateMove.Crate.CrateSize), _navigation.Camera))
-                {
-                    dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
-                }
+                DrawGhost(dc, source.Ship, crateMove.Crate with { RackId = crateMove.RackId, Position = crateMove.Position }, MissionPalette.RefusedDropBrush, ViolationPen, transform);
             }
         }
 
@@ -387,6 +399,15 @@ public sealed class ShipViewControl : FrameworkElement
             var centre = transform.Apply(rack.LabelCentre);
             var top = rack.LabelAbove ? centre.Y - LabelGap - text.Baseline : centre.Y - text.Height / 2;
             DrawLabel(dc, text.BuildGeometry(new Point(centre.X - text.Width / 2, top)), labelBrush, paint);
+        }
+    }
+
+    private void DrawGhost(DrawingContext dc, Ship ship, Crate crate, Brush fill, Pen pen, ViewTransform transform)
+    {
+        var rack = ship.Racks.Single(r => r.Id == crate.RackId);
+        foreach (var face in SceneProjector.ProjectBox(rack.CellBox(crate.Position, crate.CrateSize), _navigation.Camera))
+        {
+            dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
         }
     }
 
@@ -502,8 +523,11 @@ public sealed class ShipViewControl : FrameworkElement
 
         var delta = positionInControl - drag.From;
         var gesture = Resolve(drag, positionInControl, moved: true);
-        var problem = gesture is Gesture.MoveCrates move && Scene is { } source ? CrateDrop.Problem(source.Plan, source.Ship, move) : null;
-        _drag = drag with { From = positionInControl, IsMoving = true, Gesture = gesture, Problem = problem };
+
+        // Core resolves the drop only when what it depends on changes (E2), not on every mouse move.
+        var key = PreviewKey(gesture);
+        var outcome = Equals(key, drag.Key) ? drag.Outcome : Preview(gesture);
+        _drag = drag with { From = positionInControl, IsMoving = true, Gesture = gesture, Key = key, Outcome = outcome };
 
         switch (gesture)
         {
@@ -517,12 +541,33 @@ public sealed class ShipViewControl : FrameworkElement
 
             // Moving cargo: the ship stands still; redraw only when the fade starts or the target or its reason change.
             case Gesture.MoveCrates or Gesture.MoveStop or Gesture.None
-                when !drag.IsMoving || !Equals(TargetOf(gesture), TargetOf(drag.Gesture)) || problem != drag.Problem:
+                when !drag.IsMoving || !Equals(TargetOf(gesture), TargetOf(drag.Gesture)) || outcome != drag.Outcome:
                 InvalidateVisual();
-                ShowToolTip(problem);
+                ShowToolTip(outcome is { } shown && TargetRack(gesture) is { } rack ? CrateDrop.Text(shown, rack) : null);
                 break;
         }
     }
+
+    /// <summary>What the preview of <paramref name="gesture"/> depends on: the crate drag's key, the stop and its rack; null for anything else.</summary>
+    private object? PreviewKey(Gesture gesture) => gesture switch
+    {
+        Gesture.MoveCrates move when Scene is { } scene => CrateDrop.KeyOf(scene.Ship, move),
+        Gesture.MoveStop move => move,
+        _ => null,
+    };
+
+    /// <summary>Core's outcome of dropping here, as far as the preview resolves (<see cref="CrateDrop.PreviewStage"/>); null for no move.</summary>
+    private MoveOutcome? Preview(Gesture gesture) => (gesture, Scene) switch
+    {
+        (Gesture.MoveCrates move, { } scene) => CrateDrop.Outcome(scene.Plan, scene.Ship, move, CrateDrop.PreviewStage),
+        (Gesture.MoveStop move, { } scene) => CrateDrop.StopOutcome(scene.Plan, scene.Ship, move, CrateDrop.PreviewStage),
+        _ => null,
+    };
+
+    private Rack? TargetRack(Gesture gesture) =>
+        Scene is { } scene && gesture switch { Gesture.MoveCrates move => move.RackId, Gesture.MoveStop move => move.TargetRackId, _ => null } is { } rackId
+            ? scene.Ship.Racks.Single(r => r.Id == rackId)
+            : null;
 
     /// <summary>
     /// The poll while the mouse is captured: the cursor drives the drag, and a button released without an up ends it like
@@ -670,7 +715,7 @@ public sealed class ShipViewControl : FrameworkElement
         ShowToolTip(null);
         var position = e.GetPosition(this);
         var down = HitAt(position);
-        _drag = new Drag(button, down, DragGesture.DraggedCrates(button, down, Selection.In(Scene)), Stop: null, position, IsMoving: false, Gesture: null, Problem: null);
+        _drag = new Drag(button, down, DragGesture.DraggedCrates(button, down, Selection.In(Scene)), Stop: null, position, IsMoving: false, Gesture: null, Key: null, Outcome: null);
         CaptureForDrag(button);
     }
 
@@ -856,7 +901,8 @@ public sealed class ShipViewControl : FrameworkElement
     /// <param name="From">Where the button went down until the drag moves, then the last position.</param>
     /// <param name="IsMoving">Left the drag rectangle; until then, releasing the button is a click.</param>
     /// <param name="Gesture">What the drag means at the last position; drawn as ghost or cyan rack.</param>
-    /// <param name="Problem">Core's reason to refuse the drop at the last position, shown red with this as tool tip (D25).</param>
+    /// <param name="Key">What <see cref="Outcome"/> was resolved for (<see cref="PreviewKey"/>); the same key, the same outcome.</param>
+    /// <param name="Outcome">Core's result of dropping at the last position (D65): its ghosts in cyan, a refusal red, its text as tool tip.</param>
     private readonly record struct Drag(
         MouseButton Button,
         SceneHit? Down,
@@ -865,5 +911,6 @@ public sealed class ShipViewControl : FrameworkElement
         Point From,
         bool IsMoving,
         Gesture? Gesture,
-        string? Problem);
+        object? Key,
+        MoveOutcome? Outcome);
 }

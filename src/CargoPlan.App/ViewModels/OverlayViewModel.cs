@@ -491,33 +491,30 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     }
 
     /// <summary>
-    /// Puts crates on cells, run by a right drag in the ship view (D25). Core checks the result and derives the hints
-    /// anew; if a crate doesn't hold there, Core refuses and the plan stays, with the reason the preview showed in a
-    /// notice line (D24). Saved like every change of <see cref="Plan"/>. One record as parameter: a generated command
-    /// takes at most one.
+    /// Puts crates on cells, run by a right drag in the ship view (D25). Core finds room where the cells don't hold them
+    /// and derives the hints anew (D65); what moved besides the dragged crates goes to the notice line. Only if no rack
+    /// takes them does the plan stay, with "Move refused: …" as the preview showed it. Saved like every change of
+    /// <see cref="Plan"/>. One record as parameter: a generated command takes at most one.
     /// </summary>
     [RelayCommand]
-    private void MoveCrates(Gesture.MoveCrates move) =>
-        TryMove(plan => LoadPlanner.MoveCrates(plan, Ship, CrateDrop.Moves(Ship, move) ?? throw new PlanException(CrateDrop.OutsideRacks)));
+    private void MoveCrates(Gesture.MoveCrates move) => Apply(plan => CrateDrop.Outcome(plan, Ship, move));
 
     /// <summary>Puts a whole stop into a rack, run by a right drag of its legend line into the ship view (D25); like <see cref="MoveCrates"/>.</summary>
     [RelayCommand]
-    private void MoveStop(Gesture.MoveStop move) => TryMove(plan => LoadPlanner.MoveStop(plan, Ship, move.Destination, move.TargetRackId));
+    private void MoveStop(Gesture.MoveStop move) => Apply(plan => CrateDrop.StopOutcome(plan, Ship, move));
 
-    private void TryMove(Func<LoadPlan, LoadPlan> move)
+    private void Apply(Func<LoadPlan, MoveOutcome> resolve)
     {
         // Unreachable without a plan: the view has no cargo and the legend no lines to drag then.
-        var plan = Plan ?? throw new InvalidOperationException(NoPlanText);
-        try
+        var outcome = resolve(Plan ?? throw new InvalidOperationException(NoPlanText));
+        if (outcome.Plan is not { } moved)
         {
-            Saved = WithCrates(move(plan));
-            SetNotice(NoticeSource.Move, null);
+            SetNotice(NoticeSource.Move, MoveRefusedPrefix + outcome.Refusal);
+            return;
         }
-        catch (PlanException ex)
-        {
-            // Only "doesn't fit": the player's call, shown, not a bug. Other exceptions are bugs and stay unhandled.
-            SetNotice(NoticeSource.Move, MoveRefusedPrefix + ex.Message);
-        }
+
+        Saved = WithCrates(moved);
+        SetNotice(NoticeSource.Move, outcome.Notices.Count == 0 ? null : string.Join(" · ", outcome.Notices));
     }
 
     /// <summary>

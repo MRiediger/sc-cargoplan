@@ -1,25 +1,69 @@
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
+using static System.FormattableString;
 
 namespace CargoPlan.App.ShipView;
 
 /// <summary>
-/// A crate drag as Core's moves, and why Core would refuse it: one way for the preview while dragging and for the drop,
-/// so the ghosts' colour and the result always agree (D25). Plans nothing itself.
+/// A drag as Core's move and what Core makes of it (D25, D65): one way for the preview while dragging and for the drop,
+/// so the ghosts and the result always agree. Plans nothing itself.
 /// </summary>
 public static class CrateDrop
 {
-    /// <summary>The refusal when a dragged selection reaches past every rack: there is no cell to ask Core about.</summary>
-    public const string OutsideRacks = "A selected crate would land outside the racks.";
+    /// <summary>
+    /// How far the preview resolves a drag on every frame (D65): all stages. Set to <see cref="MoveStage.FreeSpot"/> if a
+    /// new layout costs more than a frame (16 ms) on Martin's machine (B3, E3); the preview then shows
+    /// <see cref="MoveStage.Pending"/> and the drop resolves fully.
+    /// </summary>
+    public const MoveStage PreviewStage = MoveStage.Refused;
 
     /// <summary>
-    /// The anchor with its min corner at the target cell, the other crates at the same offset to it in ship coordinates
-    /// (<see cref="CrateMove.Shift"/>); null if one of them lands in no rack.
+    /// The anchor with its min corner at the target cell, the other crates at the same offset to it
+    /// (<see cref="CrateMove.Shift"/>); null if one of them lands in no rack. The cells the player aims at, drawn red
+    /// where Core refuses.
     /// </summary>
     public static IReadOnlyList<CrateMove>? Moves(Ship ship, Gesture.MoveCrates move) =>
         CrateMove.Shift(ship, move.Crates, move.Anchor, move.RackId, move.Position);
 
-    /// <summary>Core's reason to refuse the drop (<see cref="LoadPlanner.MoveProblem"/>), or <see cref="OutsideRacks"/>; null if it fits.</summary>
-    public static string? Problem(LoadPlan plan, Ship ship, Gesture.MoveCrates move) =>
-        Moves(ship, move) is { } moves ? LoadPlanner.MoveProblem(plan, ship, moves) : OutsideRacks;
+    /// <summary>Where Core puts the dragged crates (<see cref="LoadPlanner.ResolveMove(LoadPlan, Ship, IReadOnlyList{Crate}, Crate, string, GridPosition, MoveStage)"/>).</summary>
+    public static MoveOutcome Outcome(LoadPlan plan, Ship ship, Gesture.MoveCrates move, MoveStage upTo = MoveStage.Refused) =>
+        LoadPlanner.ResolveMove(plan, ship, move.Crates, move.Anchor, move.RackId, move.Position, upTo);
+
+    /// <summary>Where Core puts a stop dragged from the legend (<see cref="LoadPlanner.ResolveStopMove"/>).</summary>
+    public static MoveOutcome StopOutcome(LoadPlan plan, Ship ship, Gesture.MoveStop move, MoveStage upTo = MoveStage.Refused) =>
+        LoadPlanner.ResolveStopMove(plan, ship, move.Destination, move.TargetRackId, upTo);
+
+    /// <summary>
+    /// What the preview of a crate drag depends on (E2): target rack and cell, the crate held and where the others land
+    /// (<see cref="Moves"/>, null if one lands in no rack). Equal keys give equal outcomes, so the preview resolves again
+    /// only when the key changes, not on every mouse move.
+    /// </summary>
+    public static Key KeyOf(Ship ship, Gesture.MoveCrates move) => new(move.Anchor, move.RackId, move.Position, Moves(ship, move));
+
+    /// <summary>Every crate the outcome puts into another rack or cell than <paramref name="plan"/>: the ghosts of the preview.</summary>
+    public static IReadOnlyList<(Crate Before, Crate After)> Changed(LoadPlan plan, MoveOutcome outcome) =>
+        outcome.Plan is { } after
+            ? [.. plan.Crates.Zip(after.Crates).Where(p => p.First.RackId != p.Second.RackId || p.First.Position != p.Second.Position)]
+            : [];
+
+    /// <summary>
+    /// The preview's tool tip: why Core refuses, that the target rack will be laid out on release, or what moves besides
+    /// the dragged cargo; null if nothing needs saying.
+    /// </summary>
+    public static string? Text(MoveOutcome outcome, Rack target) => outcome.Stage switch
+    {
+        MoveStage.Refused => outcome.Refusal,
+        MoveStage.Pending => Invariant($"Rack {target.Number} will be rearranged"),
+        _ => outcome.Notices.Count == 0 ? null : string.Join(Environment.NewLine, outcome.Notices),
+    };
+
+    /// <summary>See <see cref="KeyOf"/>; compares the landing cells by value.</summary>
+    public sealed record Key(Crate Anchor, string RackId, GridPosition Position, IReadOnlyList<CrateMove>? Moves)
+    {
+        public bool Equals(Key? other) =>
+            other is not null && Anchor == other.Anchor && RackId == other.RackId && Position == other.Position
+            && (Moves is null ? other.Moves is null : other.Moves is not null && Moves.SequenceEqual(other.Moves));
+
+        public override int GetHashCode() => HashCode.Combine(Anchor, RackId, Position, Moves?.Count);
+    }
 }

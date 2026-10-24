@@ -169,18 +169,18 @@ public class LoadPlannerOverrideTests
         act.Should().Throw<ArgumentException>().WithParameterName("ship");
     }
 
-    // --- MoveProblem: the reason a move is refused, one check for preview and drop (D25) ---
+    // --- ResolveMove: one result for preview and drop (D25, D65) ---
 
     [Fact]
-    public void MoveProblem_is_null_for_a_valid_move()
+    public void ResolveMove_keeps_a_valid_move_at_its_cell()
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
-        LoadPlanner.MoveProblem(plan, HullA, [Move(plan, "rack-0", (2, 0, 1), "rack-3", (0, 0, 0))]).Should().BeNull();
+        LoadPlanner.ResolveMove(plan, HullA, [Move(plan, "rack-0", (2, 0, 1), "rack-3", (0, 0, 0))]).Stage.Should().Be(MoveStage.Gravity);
     }
 
     [Fact]
-    public void MoveProblem_ignores_problems_the_plan_already_has()
+    public void ResolveMove_ignores_problems_the_plan_already_has()
     {
         // A plan file edited by hand: two crates overlap in Rack 1. Moving a third crate elsewhere doesn't touch them.
         LoadPlan plan = new(HullA.Id,
@@ -190,7 +190,7 @@ public class LoadPlannerOverrideTests
             new Crate("Orison", "Gold", CrateSize.One, "rack-1", new GridPosition(0, 0, 0)),
         ], []);
 
-        LoadPlanner.MoveProblem(plan, HullA, [new CrateMove(plan.Crates[2], "rack-3", new GridPosition(0, 0, 0))]).Should().BeNull();
+        LoadPlanner.ResolveMove(plan, HullA, [new CrateMove(plan.Crates[2], "rack-3", new GridPosition(0, 0, 0))]).Stage.Should().Be(MoveStage.Gravity);
     }
 
     // --- MoveCrate: one crate, the wrapper of MoveCrates ---

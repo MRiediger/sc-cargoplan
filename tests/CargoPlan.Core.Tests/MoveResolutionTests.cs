@@ -31,10 +31,11 @@ public class MoveResolutionTests
             C("Melodic Fields Station", CrateSize.One, "rack-1", 0, 1, 0, "Processed Food"));
         CrateMove drop = new(greenGlade, "rack-1", new GridPosition(0, 0, 1));
 
-        LoadPlanner.MoveProblem(plan, HullA, [drop]).Should().BeNull();
-        var moved = LoadPlanner.MoveCrates(plan, HullA, [drop]);
+        var outcome = LoadPlanner.ResolveMove(plan, HullA, [drop]);
+        var moved = outcome.Plan!;
 
         // The only free, supported place of its shape in Rack 2: the bow half of the plate.
+        outcome.Stage.Should().Be(MoveStage.FreeSpot);
         moved.Crates[0].Should().Be(greenGlade with { RackId = "rack-1", Position = new GridPosition(2, 0, 0) });
         moved.Crates.Skip(1).Should().Equal(plan.Crates.Skip(1));
         ShouldBeValid(moved, HullA);
