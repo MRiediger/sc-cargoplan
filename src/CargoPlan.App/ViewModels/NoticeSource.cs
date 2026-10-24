@@ -17,6 +17,12 @@ public enum NoticeSource
     /// <summary>A plan made for another ship was planned anew (D59); cleared by the next plan or ship change.</summary>
     Replan,
 
+    /// <summary>
+    /// Stops of the plan renamed to another name of the same place (B1), on loading or by a sync; cleared by the next plan
+    /// and by the next sync that takes something in without a merge.
+    /// </summary>
+    Stops,
+
     /// <summary>Why ContractTracker can't be read, or that the sync is paused (T5.4).</summary>
     ContractTracker,
 

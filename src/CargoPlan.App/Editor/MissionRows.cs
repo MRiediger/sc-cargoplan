@@ -1,6 +1,7 @@
 using System.Globalization;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
+using CargoPlan.Import;
 using static System.FormattableString;
 
 namespace CargoPlan.App.Editor;
@@ -53,8 +54,9 @@ public static class MissionRows
         var errors = new string?[rows.Count];
         var crateTexts = new string[rows.Count];
 
-        // Case-insensitive like the mission file and the planner: "Riker" and "riker" are the same cargo lift.
-        Dictionary<string, int> stopOf = new(StringComparer.OrdinalIgnoreCase);
+        // "Riker" and "riker" are the same cargo lift, so are "Thundering Express" and "Thundering Express Station" (B1);
+        // the stop keeps the longer name.
+        Dictionary<string, int> stopOf = new(DestinationNames.Comparer);
         List<(string Destination, List<MissionItem> Items)> stops = [];
 
         for (var i = 0; i < rows.Count; i++)
@@ -75,6 +77,8 @@ public static class MissionRows
                     stopOf[destination] = stop;
                     stops.Add((destination, []));
                 }
+
+                stops[stop] = (DestinationNames.Preferred(stops[stop].Destination, destination), stops[stop].Items);
 
                 stopNumbers[i] = stop + 1;
             }
@@ -123,7 +127,7 @@ public static class MissionRows
         }
 
         string[] route = [.. result.Stops.Select(s => s.Destination)];
-        var spelling = route.ToDictionary(d => d, d => d, StringComparer.OrdinalIgnoreCase);
+        var spelling = route.ToDictionary(d => d, d => d, DestinationNames.Comparer);
         var captures = known.Where(m => m.Contract is not null).ToDictionary(m => m.Id);
         var nextId = known.Count == 0 ? 1 : known.Max(m => m.Id) + 1;
 

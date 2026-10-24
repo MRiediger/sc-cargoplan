@@ -46,6 +46,20 @@ public class MissionRowsTests
     }
 
     [Fact]
+    public void Names_of_one_place_are_one_stop_with_the_longer_name()
+    {
+        // B1: "Thundering Express" and "Thundering Express Station" are one cargo lift (DestinationNames).
+        MissionRow[] rows = [Row("Thundering Express", "Pressurized Ice", "3", 2), Row("Thundering Express Station", "Stims", "4", 4)];
+
+        var result = MissionRows.ToStops(rows);
+
+        result.StopNumbers.Should().Equal(1, 1);
+        result.Stops.Should().ContainSingle().Which.Destination.Should().Be("Thundering Express Station");
+        MissionRows.ToMissions(rows, []).Missions.Should().ContainSingle()
+            .Which.Stops.Should().ContainSingle().Which.Destination.Should().Be("Thundering Express Station");
+    }
+
+    [Fact]
     public void Destinations_group_case_insensitive_and_trimmed_and_keep_the_first_spelling()
     {
         // "Riker" and " riker " are the same cargo lift, as in the mission file and the planner.

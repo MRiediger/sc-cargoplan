@@ -1,0 +1,347 @@
+{
+  "schemaVersion": 3,
+  "shipId": "hull_a",
+  "fillOrder": "bowFirst",
+  "contractTrackerWatermark": 18,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Melodic Fieids",
+          "items": [
+            {
+              "commodity": "Pressurized Ice",
+              "scu": 4,
+              "maxCrateSize": 4,
+              "crates": [
+                2,
+                2
+              ]
+            }
+          ]
+        },
+        {
+          "destination": "Faithful Dream Station",
+          "items": [
+            {
+              "commodity": "Processed Food",
+              "scu": 5,
+              "maxCrateSize": 4,
+              "crates": [
+                2,
+                2,
+                1
+              ]
+            }
+          ]
+        },
+        {
+          "destination": "Thundering Express",
+          "items": [
+            {
+              "commodity": "Pressurized Ice",
+              "scu": 3,
+              "maxCrateSize": 2
+            }
+          ]
+        },
+        {
+          "destination": "Melodic Fields Station",
+          "items": [
+            {
+              "commodity": "Processed Food",
+              "scu": 5,
+              "maxCrateSize": 4,
+              "crates": [
+                2,
+                2,
+                1
+              ]
+            }
+          ]
+        }
+      ],
+      "contract": {
+        "contractIds": [
+          9,
+          10,
+          11,
+          12
+        ],
+        "crateSizeAssumed": true,
+        "listedDestinations": 2
+      }
+    },
+    {
+      "id": 2,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Everus Harbor",
+          "items": [
+            {
+              "commodity": "Waste",
+              "scu": 11,
+              "maxCrateSize": 4
+            }
+          ]
+        }
+      ],
+      "contract": {
+        "contractIds": [
+          17
+        ],
+        "crateSizeAssumed": false
+      }
+    },
+    {
+      "id": 3,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Everus Harbor",
+          "items": [
+            {
+              "commodity": "Waste",
+              "scu": 12,
+              "maxCrateSize": 4
+            }
+          ]
+        }
+      ],
+      "contract": {
+        "contractIds": [
+          18
+        ],
+        "crateSizeAssumed": false,
+        "reward": 80750
+      }
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Melodic Fieids",
+      "commodity": "Pressurized Ice",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": true,
+      "mission": 1
+    },
+    {
+      "destination": "Melodic Fieids",
+      "commodity": "Pressurized Ice",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": true,
+      "mission": 1
+    },
+    {
+      "destination": "Faithful Dream Station",
+      "commodity": "Processed Food",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": true,
+      "mission": 1
+    },
+    {
+      "destination": "Faithful Dream Station",
+      "commodity": "Processed Food",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": true,
+      "mission": 1
+    },
+    {
+      "destination": "Faithful Dream Station",
+      "commodity": "Processed Food",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        3,
+        0,
+        1
+      ],
+      "delivered": true,
+      "mission": 1
+    },
+    {
+      "destination": "Thundering Express",
+      "commodity": "Pressurized Ice",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        1,
+        0
+      ],
+      "delivered": true,
+      "mission": 1
+    },
+    {
+      "destination": "Thundering Express",
+      "commodity": "Pressurized Ice",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        1,
+        1,
+        0
+      ],
+      "delivered": true,
+      "mission": 1
+    },
+    {
+      "destination": "Melodic Fields Station",
+      "commodity": "Processed Food",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": true,
+      "mission": 1
+    },
+    {
+      "destination": "Melodic Fields Station",
+      "commodity": "Processed Food",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": true,
+      "mission": 1
+    },
+    {
+      "destination": "Melodic Fields Station",
+      "commodity": "Processed Food",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": true,
+      "mission": 1
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": true,
+      "mission": 2
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": true,
+      "mission": 2
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": true,
+      "mission": 2
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        1,
+        0,
+        1
+      ],
+      "delivered": true,
+      "mission": 2
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 4,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": true,
+      "mission": 3
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 4,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": true,
+      "mission": 3
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 4,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": true,
+      "mission": 3
+    }
+  ],
+  "warnings": []
+}

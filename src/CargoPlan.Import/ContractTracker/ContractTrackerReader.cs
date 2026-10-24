@@ -271,11 +271,14 @@ public static class ContractTrackerReader
            select new ParsedDelivery(destination, commodity, objective.Amount),
     ];
 
-    /// <summary>One stop per destination, one item per commodity, in the order of the text.</summary>
+    /// <summary>
+    /// One stop per place (<see cref="DestinationNames"/>) under its preferred name, one item per commodity, in the order
+    /// of the text.
+    /// </summary>
     private static IReadOnlyList<MissionStop> Stops(IReadOnlyList<ParsedDelivery> deliveries, CrateSize? max) =>
     [
-        .. deliveries.GroupBy(d => d.Destination, StringComparer.OrdinalIgnoreCase)
-            .Select((stop, index) => new MissionStop(stop.First().Destination, index + 1,
+        .. deliveries.GroupBy(d => d.Destination, DestinationNames.Comparer)
+            .Select((stop, index) => new MissionStop(stop.Select(d => d.Destination).Aggregate(DestinationNames.Preferred), index + 1,
             [
                 .. stop.GroupBy(d => d.Commodity, StringComparer.OrdinalIgnoreCase)
                     .Select(item => Item(item.First().Commodity, item.Sum(d => d.Scu), max)),

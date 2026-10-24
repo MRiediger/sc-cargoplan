@@ -1,11 +1,12 @@
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace CargoPlan.Import.ContractTracker;
 
 /// <summary>
 /// The one place where OCR text becomes a name (D40). The parser and the child-row fallback both call it, so a
-/// destination or commodity comes out the same however it was read. Comparing candidates (T5.4) normalises nothing
-/// itself; it uses the comparer destinations use everywhere: ordinal, ignoring case.
+/// destination or commodity comes out the same however it was read. Which names are one place is decided once where
+/// they enter the plan (<see cref="DestinationNames"/>, B1); behind that, names compare ordinal, ignoring case.
 /// </summary>
 // Source-generated regexes on partial properties (.NET 9+):
 // https://learn.microsoft.com/dotnet/standard/base-types/regular-expression-source-generators
@@ -38,6 +39,26 @@ internal static partial class ContractText
     {
         var name = Collapse(text);
         return LocationTail.IsMatch(name) || WithoutTornAbove(name).Length < name.Length;
+    }
+
+    /// <summary>
+    /// Text as OCR may read it: no spaces, upper case, O and 0 alike, I, L, 1 and | alike ("DETAlLS", "ACCEPT 0FFER",
+    /// "Melodic Fieids"). Applied to both sides of a comparison: headings, name completion, names of one place (B1).
+    /// </summary>
+    public static string AnchorForm(string text)
+    {
+        var form = new StringBuilder(text.Length);
+        foreach (var c in text.Where(c => !char.IsWhiteSpace(c)))
+        {
+            form.Append(char.ToUpperInvariant(c) switch
+            {
+                '0' => 'O',
+                'L' or '1' or '|' => 'I',
+                var upper => upper,
+            });
+        }
+
+        return form.ToString();
     }
 
     private static string Collapse(string text) => Whitespace.Replace(text, " ").Trim();

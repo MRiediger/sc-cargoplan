@@ -6,6 +6,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Import;
 using CargoPlan.Import.ContractTracker;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -49,6 +50,12 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         $"{count} new {(count == 1 ? "contract" : "contracts")} in ContractTracker – take {(count == 1 ? "it" : "them")} in with Sync from ContractTracker (editor or hotkey).";
 
     public static string ReplannedText(string madeFor, string current) => $"Plan was made for {madeFor}, replanned for {current}.";
+
+    public const string StopsMergedPrefix = "Stops merged: ";
+
+    /// <summary>The notice for stops renamed to another name of their place (B1); null if none was.</summary>
+    public static string? StopsMergedText(IReadOnlyList<(string From, string To)> merged) =>
+        merged.Count == 0 ? null : StopsMergedPrefix + string.Join(", ", merged.Select(m => $"{m.From} → {m.To}"));
 
     /// <summary>What the overlay asks before a ship change with a plan (D59).</summary>
     public static string ReplanQuestionText(string ship) =>
@@ -261,7 +268,10 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             saved = LoadPlanner.Replan(saved, Ship);
         }
 
-        Saved = saved;
+        // A plan from before B1 may hold two names of one place; the editor's plans never do.
+        var unified = DestinationNames.Unify(saved, Ship, []);
+        SetNotice(NoticeSource.Stops, StopsMergedText(unified.Merged));
+        Saved = unified.Saved;
         SetNotice(NoticeSource.Move, null);
         if (_contractTrackerPaused)
         {
@@ -349,9 +359,12 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             return;
         }
 
+        // One name per place before Core sees the captures (B1), so new crates join the rack of their place (D41). A read
+        // without news returned above, so the notice of loading stays until something comes in.
         var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []));
-        var applied = ContractSync.Apply(
-            current, Ship, [.. result.Candidates.Select(c => c.ToCapture())], result.Present, result.DatabaseLooksNew);
+        var unified = DestinationNames.Unify(current, Ship, [.. result.Candidates.Select(c => c.ToCapture())]);
+        SetNotice(NoticeSource.Stops, StopsMergedText(unified.Merged));
+        var applied = ContractSync.Apply(unified.Saved, Ship, unified.Captures, result.Present, result.DatabaseLooksNew);
         if (!ReferenceEquals(applied, current))
         {
             Saved = applied;

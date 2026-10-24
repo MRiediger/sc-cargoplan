@@ -319,6 +319,44 @@ public static class LoadPlanner
     }
 
     /// <summary>
+    /// Gives the stop <paramref name="from"/> the name <paramref name="to"/> (B1), in every mission and on every crate, so
+    /// two names of one place become one stop. Mechanical: which names are one place, the import decides. A mission with
+    /// both keeps one stop at the place of the first, items in stop order. Nothing moves, ticks stay, hints are derived anew.
+    /// </summary>
+    /// <exception cref="ArgumentException">The plan belongs to another ship, has no stop <paramref name="from"/>, or the
+    /// names are the same.</exception>
+    public static SavedPlan RenameStop(SavedPlan saved, Ship ship, string from, string to)
+    {
+        saved.Plan.EnsureBelongsTo(ship);
+        if (string.Equals(from, to, StringComparison.Ordinal))
+        {
+            throw new ArgumentException($"'{from}' is renamed to itself.", nameof(to));
+        }
+
+        if (!saved.Missions.Any(m => m.Stops.Any(s => s.Destination == from)))
+        {
+            throw new ArgumentException($"The plan has no stop '{from}'.", nameof(from));
+        }
+
+        Mission[] missions = [.. saved.Missions.Select(m => m.Stops.Any(s => s.Destination == from) ? Renamed(m, from, to) : m)];
+        Crate[] crates = [.. saved.Plan.Crates.Select(c => c.Destination == from ? c with { Destination = to } : c)];
+        return new SavedPlan(missions, WithHints(saved.Plan with { Crates = crates }, ship), saved.Watermark);
+    }
+
+    private static Mission Renamed(Mission mission, string from, string to)
+    {
+        MissionStop[] stops = [.. mission.Stops.OrderBy(s => s.Order)];
+        var first = Array.FindIndex(stops, s => s.Destination == from || s.Destination == to);
+        MissionItem[] items = [.. stops.Where(s => s.Destination == from || s.Destination == to).SelectMany(s => s.Items)];
+        MissionStop[] kept =
+        [
+            .. stops.Select((s, index) => index == first ? new MissionStop(to, s.Order, items) : s)
+                .Where((s, index) => index == first || (s.Destination != from && s.Destination != to)),
+        ];
+        return new Mission(mission.Id, [.. kept.Select((s, index) => s with { Order = index + 1 })], mission.Contract, mission.Unplaced);
+    }
+
+    /// <summary>
     /// The crates of <paramref name="plan"/> with those of <paramref name="mission"/> laid in (rule of <see cref="PlaceInto"/>);
     /// or, if a crate has no place, the size of the first that hasn't. Stop by stop first; if a crate finds no place there,
     /// the whole mission largest first (<see cref="LargestFirst"/>, D54), and its failure is the one named. With the crates,

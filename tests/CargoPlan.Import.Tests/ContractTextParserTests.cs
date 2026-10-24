@@ -140,6 +140,56 @@ public class ContractTextParserTests
     }
 
     [Fact]
+    public void Ocr_errors_in_the_list_and_the_fragment_still_complete()
+    {
+        // B1: "Fieids" for "Fields" in the delivery line, "alevator" for "elevator" in the list. Both gave a stop of their
+        // own in the game ("Melodic Fieids", "Thundering Express").
+        var parsed = ContractTextParser.Parse(ImportFixtures.RawText(ImportFixtures.HurstonAnyOrder));
+
+        parsed.Deliveries.Should().Equal(
+            new ParsedDelivery("Melodic Fields Station", "Pressurized Ice", 6),
+            new ParsedDelivery("Faithful Dream Station", "Processed Food", 5),
+            new ParsedDelivery("Thundering Express Station", "Pressurized Ice", 3),
+            new ParsedDelivery("Melodic Fields Station", "Processed Food", 5));
+        parsed.ListedDestinationCount.Should().Be(3);
+    }
+
+    [Theory]
+    [InlineData("Freight alevator at")]
+    [InlineData("Freight levator at")]
+    public void List_entry_with_a_misread_elevator_counts(string entry)
+    {
+        var text = $"""
+            DETAILS
+            Deliver 0/4 SCU of Stims to Thundering
+            DROP OFF LOCATIONS (ANY ORDER)
+            - {entry} Thundering Express Station at Hurston's L3
+            ACCEPT OFFER
+            """;
+
+        var parsed = ContractTextParser.Parse(text);
+
+        parsed.Deliveries.Should().Equal(new ParsedDelivery("Thundering Express Station", "Stims", 4));
+        parsed.ListedDestinationCount.Should().Be(1);
+    }
+
+    [Fact]
+    public void Fragment_with_a_misread_letter_takes_the_list_spelling()
+    {
+        const string text = """
+            DETAILS
+            Deliver 0/6 SCU of Pressurized Ice to Melodic Fieids
+            DROP OFF LOCATIONS (ANY ORDER)
+            - Freight elevator at Melodic Fields Station at Hurston's L4
+            ACCEPT OFFER
+            """;
+
+        var parsed = ContractTextParser.Parse(text);
+
+        parsed.Deliveries.Should().Equal(new ParsedDelivery("Melodic Fields Station", "Pressurized Ice", 6));
+    }
+
+    [Fact]
     public void Fragment_matching_several_list_entries_stays()
     {
         const string text = """

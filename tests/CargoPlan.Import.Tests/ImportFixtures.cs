@@ -53,7 +53,22 @@ internal static class ImportFixtures
     /// </summary>
     public const string SiliconOverlayText = "silicon_overlay_text";
 
+    /// <summary>
+    /// Ids 9–12 (B1, 24.10.2026): Ice 6 to "Melodic Fieids" (l read as i), Food 5 to "Faithful Dream", Ice 3 to
+    /// "Thundering Express", Food 5 to "Melodic Fields", every line cut before "Station"; drop-off list of 3, one entry
+    /// read as "Freight alevator at Thundering Express Station".
+    /// </summary>
+    public const string HurstonAnyOrder = "hurston_any_order";
+
+    /// <summary>
+    /// Martin's plan.json after the route of ids 9–12 (B1), every crate ticked: stops "Melodic Fieids", "Faithful Dream
+    /// Station", "Thundering Express", "Melodic Fields Station" (mission 1) and Everus Harbor (17, 18); watermark 18.
+    /// </summary>
+    public const string HurstonPlan = "hurston_2026-10-23";
+
     public static string RawText(string name) => ReadResource($"rawtext/{name}.txt");
+
+    public static string Plan(string name) => ReadResource($"plans/{name}.json");
 
     public static string Schema => ReadResource("ct_schema.sql");
 

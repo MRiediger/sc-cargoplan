@@ -143,6 +143,49 @@ public class ContractTrackerReaderTests
     }
 
     [Fact]
+    public void Capture_with_misread_names_gives_one_stop_per_place()
+    {
+        // B1: ids 9–12 gave five stops in the game, "Melodic Fieids" and "Thundering Express" among them.
+        using var database = new TempContractDatabase();
+        var raw = ImportFixtures.RawText(ImportFixtures.HurstonAnyOrder);
+        database.AddContract(9, "Pressurized Ice", raw, (6, "Melodic Fieids Hey"));
+        database.AddContract(10, "Processed Food", raw, (5, "Faithful Dream Station at Hurston's L2 Lagrange point"));
+        database.AddContract(11, "Pressurized Ice", raw, (3, "Thundering Express Lagrange point - Freight elevator at Faithful Dream Station"));
+        database.AddContract(12, "Processed Food", raw, (5, "Melodic Fields Station at Hurston's L4 Lagrange point"));
+
+        var candidate = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Should().ContainSingle().Subject;
+
+        candidate.Stops.Should().BeEquivalentTo(
+            [
+                new MissionStop("Melodic Fields Station", 1,
+                [
+                    new MissionItem("Pressurized Ice", 6, CrateSize.Four),
+                    new MissionItem("Processed Food", 5, CrateSize.Four),
+                ]),
+                new MissionStop("Faithful Dream Station", 2, [new MissionItem("Processed Food", 5, CrateSize.Four)]),
+                new MissionStop("Thundering Express Station", 3, [new MissionItem("Pressurized Ice", 3, CrateSize.Two)]),
+            ],
+            o => o.WithStrictOrdering());
+        candidate.DestinationsIncomplete.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Spellings_that_differ_only_by_ocr_letters_are_one_stop()
+    {
+        using var database = new TempContractDatabase();
+        database.AddContract(50, "Stims", """
+            DETAILS
+            Deliver 0/4 SCU of Stims to Thundering Express Statlon at Hurston's L3.
+            Deliver 0/2 SCU of Waste to Thundering Express Station at Hurston's L3.
+            ACCEPT OFFER
+            """, (4, "Thundering Express Station"));
+
+        var candidate = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Should().ContainSingle().Subject;
+
+        candidate.Stops.Should().ContainSingle().Which.Items.Should().HaveCount(2);
+    }
+
+    [Fact]
     public void Size_phrase_sets_the_max_crate_size()
     {
         using var database = new TempContractDatabase();

@@ -22,10 +22,11 @@
     <ProjectReference Include="..\..\src\CargoPlan.Import\CargoPlan.Import.csproj" />
   </ItemGroup>
 
-  <!-- Raw OCR texts of real captures (D38 addendum) and the fingerprint schema, read via ImportFixtures. -->
+  <!-- Raw OCR texts of real captures (D38 addendum), the fingerprint schema and real plan files, read via ImportFixtures. -->
   <ItemGroup>
     <EmbeddedResource Include="Fixtures/RawText/*.txt" LogicalName="rawtext/%(Filename)%(Extension)" />
     <EmbeddedResource Include="Fixtures/ct_schema.sql" LogicalName="ct_schema.sql" />
+    <EmbeddedResource Include="Fixtures/Plans/*.json" LogicalName="plans/%(Filename)%(Extension)" />
   </ItemGroup>
 
 </Project>

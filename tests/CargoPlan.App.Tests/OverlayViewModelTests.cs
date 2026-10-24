@@ -663,6 +663,61 @@ public class OverlayViewModelTests
 
     private static OverlayViewModel Empty() => new(ShipLoader.Load("hull_a"));
 
+    // --- One stop per place (B1) ---
+
+    private const string MergedText = OverlayViewModel.StopsMergedPrefix + "Thundering Express → Thundering Express Station";
+
+    /// <summary>A plan as before B1: the fragment and the full name of one place as two stops.</summary>
+    private static SavedPlan TwoNamesOfOnePlace()
+    {
+        var ship = ShipLoader.Load("hull_a");
+        var empty = new SavedPlan([], new LoadPlan(ship.Id, [], []));
+        var first = LoadPlanner.PlaceInto(empty, ship, [new MissionStop("Thundering Express", 1, [new MissionItem("Ice", 4, CrateSize.Four)])]);
+        return LoadPlanner.PlaceInto(first, ship, [new MissionStop("Thundering Express Station", 1, [new MissionItem("Stims", 4, CrateSize.Four)])]);
+    }
+
+    [Fact]
+    public void ShowPlan_merges_names_of_one_place_and_says_so_until_the_next_plan()
+    {
+        var viewModel = Empty();
+
+        viewModel.ShowPlan(TwoNamesOfOnePlace());
+
+        viewModel.Scene.Legend.Select(l => l.Destination).Should().Equal("Thundering Express Station");
+        viewModel.Notices.Should().Equal(MergedText);
+
+        viewModel.ShowPlan(TestPlans.SplitAndShared());
+
+        viewModel.Notices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ApplyContractTracker_with_the_longer_name_renames_the_stop_and_says_so()
+    {
+        // K1: the sync renames a stop of the plan, so the player sees it like a merge on loading.
+        var viewModel = Empty();
+        viewModel.ApplyContractTracker(Read([], Candidate(36, "Thundering Express")));
+
+        viewModel.ApplyContractTracker(Read([36], Candidate(37, "Thundering Express Station")));
+
+        viewModel.Scene.Legend.Select(l => l.Destination).Should().Equal("Thundering Express Station");
+        viewModel.Notices.Should().Equal(MergedText);
+    }
+
+    [Fact]
+    public void Merge_notice_stays_through_a_read_without_news_and_goes_with_the_next_sync()
+    {
+        // The start reads ContractTracker once after the debounce; that read must not take the loading notice away.
+        var viewModel = Empty();
+        viewModel.ShowPlan(TwoNamesOfOnePlace());
+
+        viewModel.ApplyContractTracker(Read([]));
+        viewModel.Notices.Should().Equal(MergedText);
+
+        viewModel.ApplyContractTracker(Read([], Candidate(40, "Riker")));
+        viewModel.Notices.Should().BeEmpty();
+    }
+
     [Fact]
     public void ApplyContractTracker_without_a_plan_starts_one_with_the_capture()
     {

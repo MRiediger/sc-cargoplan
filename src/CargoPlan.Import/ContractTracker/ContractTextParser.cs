@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 using CargoPlan.Core.Models;
 
@@ -13,7 +12,7 @@ namespace CargoPlan.Import.ContractTracker;
 // https://learn.microsoft.com/dotnet/standard/base-types/regular-expression-source-generators
 internal static partial class ContractTextParser
 {
-    // Headings as the game prints them, compared in their anchor form (see AnchorForm).
+    // Headings as the game prints them, compared in their anchor form (see ContractText.AnchorForm).
     private const string StartHeading = "DETAILS";
     private const string EndHeading = "ACCEPT OFFER";
     private const string DropOffHeading = "DROP OFF LOCATIONS";
@@ -76,11 +75,12 @@ internal static partial class ContractTextParser
 
     /// <summary>
     /// The one name that starts with the fragment, character by character ("Thunde" → "Thundering Express Station");
-    /// null if none or several do.
+    /// null if none or several do. Both read as OCR may read them (<see cref="ContractText.AnchorForm"/>), so "Melodic
+    /// Fieids" finds "Melodic Fields Station" and takes its spelling (B1).
     /// </summary>
     private static string? CompletedFrom(string fragment, IEnumerable<string> names) =>
-        names.Where(n => n.StartsWith(fragment, StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+        names.Where(n => ContractText.AnchorForm(n).StartsWith(ContractText.AnchorForm(fragment), StringComparison.Ordinal))
+            .DistinctBy(ContractText.AnchorForm, StringComparer.Ordinal)
             .ToList() is [var only] ? only : null;
 
     /// <summary>
@@ -121,34 +121,14 @@ internal static partial class ContractTextParser
     /// <summary>"- Freight elevator at …" lines after the drop-off heading, up to the pick-up heading.</summary>
     private static IEnumerable<string> DropOffEntries(string[] lines) =>
         lines.SkipWhile(l => !IsDropOffHeading(l)).Skip(1)
-            .TakeWhile(l => !AnchorForm(l).StartsWith(AnchorForm(PickUpHeading), StringComparison.Ordinal))
+            .TakeWhile(l => !ContractText.AnchorForm(l).StartsWith(ContractText.AnchorForm(PickUpHeading), StringComparison.Ordinal))
             .Where(l => ListEntry.IsMatch(l));
 
     private static bool IsDropOffHeading(string line) =>
-        AnchorForm(line).StartsWith(AnchorForm(DropOffHeading), StringComparison.Ordinal);
+        ContractText.AnchorForm(line).StartsWith(ContractText.AnchorForm(DropOffHeading), StringComparison.Ordinal);
 
     private static bool IsHeading(string line, string heading) =>
-        AnchorForm(line).Equals(AnchorForm(heading), StringComparison.Ordinal);
-
-    /// <summary>
-    /// A heading as OCR may read it: no spaces, upper case, O and 0 alike, I, L, 1 and | alike
-    /// ("DETAlLS", "ACCEPT 0FFER"). Applied to both sides of a comparison.
-    /// </summary>
-    private static string AnchorForm(string text)
-    {
-        var form = new StringBuilder(text.Length);
-        foreach (var c in text.Where(c => !char.IsWhiteSpace(c)))
-        {
-            form.Append(char.ToUpperInvariant(c) switch
-            {
-                '0' => 'O',
-                'L' or '1' or '|' => 'I',
-                var upper => upper,
-            });
-        }
-
-        return form.ToString();
-    }
+        ContractText.AnchorForm(line).Equals(ContractText.AnchorForm(heading), StringComparison.Ordinal);
 
     /// <summary>
     /// "Deliver 0/4 SCU of Stims to Thundering Express Station": anchored on "/N SCU of … to …". The word before and
@@ -158,13 +138,16 @@ internal static partial class ContractTextParser
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex DeliveryLine { get; }
 
-    /// <summary>"freight elevator at Faithful Dream Station at Hurston's L2": a full name, in lists and prose.</summary>
-    [GeneratedRegex(@"freight\s+elevator\s+at\s+(?<name>.+?)\s+(?:at|above)\b",
+    /// <summary>
+    /// "freight elevator at Faithful Dream Station at Hurston's L2": a full name, in lists and prose. The first letter of
+    /// "elevator" may be misread or lost ("Freight alevator at", B1), here and in the two patterns below.
+    /// </summary>
+    [GeneratedRegex(@"freight\s+\w?levator\s+at\s+(?<name>.+?)\s+(?:at|above)\b",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex FreightElevatorName { get; }
 
     /// <summary>"- Freight elevator at …", the dash sometimes lost.</summary>
-    [GeneratedRegex(@"^\s*[-•·]?\s*Freight\s+elevator\s+at\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    [GeneratedRegex(@"^\s*[-•·]?\s*Freight\s+\w?levator\s+at\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex ListEntry { get; }
 
     /// <summary>
@@ -172,7 +155,7 @@ internal static partial class ContractTextParser
     /// ("Deliver to", "taken to"). "from a freight elevator" is a pickup and doesn't match. The name may break across
     /// lines and ends before " at", " above" or the end of the sentence.
     /// </summary>
-    [GeneratedRegex(@"\bto\s+a\s+freight\s+elevator\s+at\s+(?<name>[^.]+?)(?:\s+(?:at|above)\b|\.)",
+    [GeneratedRegex(@"\bto\s+a\s+freight\s+\w?levator\s+at\s+(?<name>[^.]+?)(?:\s+(?:at|above)\b|\.)",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex ProseDestination { get; }
 
