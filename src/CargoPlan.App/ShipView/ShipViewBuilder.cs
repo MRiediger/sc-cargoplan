@@ -16,6 +16,9 @@ public static class ShipViewBuilder
 
     public const string FitsNowText = "fits now, placed at the next sync";
 
+    /// <summary>The legend's header over a pickup list: "From A, B" (T7.4d, D68).</summary>
+    public const string FromText = "From ";
+
     private const string Separator = " · ";
 
     /// <summary>A plan without missions: no markings, no unplaced lines (plans built in tests and by the planner alone).</summary>
@@ -45,13 +48,14 @@ public static class ShipViewBuilder
         var reserveDuplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(OnBoard(saved));
         var placements = plan.Placements.ToLookup(p => p.Destination);
         Mission[] unplaced = saved is null ? [] : [.. saved.Missions.Where(m => m.Unplaced)];
-        LegendEntry[] legend = [.. plan.Route.Select(destination => new LegendEntry(
-            palette[destination],
-            destination,
-            placements[destination].Sum(p => p.Item.Scu),
-            placements[destination].All(p => p.Delivered),
-            Markings(saved, destination, duplicates),
-            Markings(saved, destination, reserveDuplicates)))];
+        LegendEntry[] legend = [.. LegendLines(plan, saved).Select(line => new LegendEntry(
+            palette[line.Destination],
+            line.Destination,
+            line.Scu,
+            placements[line.Destination].All(p => p.Delivered),
+            Markings(saved, line.Destination, duplicates, line.Missions),
+            Markings(saved, line.Destination, reserveDuplicates, line.Missions),
+            line.Header))];
 
         return new ShipScene(
             racks,
@@ -66,17 +70,41 @@ public static class ShipViewBuilder
     }
 
     /// <summary>
-    /// What is uncertain about the missions going to <paramref name="destination"/>, in a fixed order: the crate size
-    /// first ("4 SCU?", it belongs to the quantity), then missing destinations, then a possible duplicate.
+    /// The legend's lines (T7.4d, D68): one per destination in the route without any pickup in the plan, as before;
+    /// otherwise one per pickup list and destination, lists in the order they first appear along the route, a list's
+    /// destinations in route order, the header on its first line. A list is a set of places, any case.
     /// </summary>
-    private static string Markings(SavedPlan? saved, string destination, IReadOnlySet<int> duplicates)
+    private static IEnumerable<(string? Header, string Destination, int Scu, IReadOnlySet<int>? Missions)> LegendLines(LoadPlan plan, SavedPlan? saved)
+    {
+        var crates = plan.Route.SelectMany(d => plan.Crates.Where(c => c.Destination == d))
+            .Select(c => (Crate: c, Pickup: saved?.Missions.FirstOrDefault(m => m.Id == c.Mission)?.Items.ElementAtOrDefault(c.Item).Item?.Pickup))
+            .ToArray();
+        if (crates.All(c => c.Pickup is null))
+        {
+            return plan.Route.Select(d => ((string?)null, d, crates.Where(c => c.Crate.Destination == d).Sum(c => (int)c.Crate.CrateSize), (IReadOnlySet<int>?)null));
+        }
+
+        return crates.GroupBy(c => c.Pickup is { } pickup ? string.Join('\n', pickup.Select(p => p.ToUpperInvariant()).Order(StringComparer.Ordinal)) : "")
+            .SelectMany(list => list.GroupBy(c => c.Crate.Destination).Select((stop, index) => (
+                index == 0 ? (list.First().Pickup is { } pickup ? FromText + string.Join(", ", pickup) : "") : null,
+                stop.Key,
+                stop.Sum(c => (int)c.Crate.CrateSize),
+                (IReadOnlySet<int>?)stop.Select(c => c.Crate.Mission).ToHashSet())));
+    }
+
+    /// <summary>
+    /// What is uncertain about the missions going to <paramref name="destination"/> (only those in <paramref name="only"/>,
+    /// if given), in a fixed order: the crate size first ("4 SCU?", it belongs to the quantity), then missing
+    /// destinations, then a possible duplicate.
+    /// </summary>
+    private static string Markings(SavedPlan? saved, string destination, IReadOnlySet<int> duplicates, IReadOnlySet<int>? only)
     {
         if (saved is null)
         {
             return "";
         }
 
-        Mission[] missions = [.. saved.Missions.Where(m => !m.Unplaced && m.Stops.Any(s => s.Destination == destination))];
+        Mission[] missions = [.. saved.Missions.Where(m => !m.Unplaced && m.Stops.Any(s => s.Destination == destination) && (only is null || only.Contains(m.Id)))];
         return Joined(
         [
             AssumedSizes(missions.Where(m => m.Contract?.CrateSizeAssumed == true).SelectMany(m => m.Stops.Where(s => s.Destination == destination))),

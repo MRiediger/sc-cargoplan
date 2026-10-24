@@ -396,7 +396,8 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             return null;
         }
 
-        var ticked = Scene.Legend.Count(l => l.Delivered);
+        // A stop under two pickup headers is one stop (D68).
+        var ticked = Scene.Legend.Where(l => l.Delivered).Select(l => l.Destination).Distinct().Count();
         return ticked == 0
             ? ReplanQuestionText(ship.Name)
             : ReplanQuestionText(ship.Name) + Environment.NewLine + TicksStayText(ticked);

@@ -466,24 +466,32 @@
                         <ItemsControl.ItemTemplate>
                             <!-- The command replaces the plan, so the legend is rebuilt and the grey comes from the new entry. -->
                             <DataTemplate DataType="{x:Type sv:LegendEntry}">
-                                <Button Command="{Binding DataContext.ToggleDeliveredCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding Destination, Mode=OneTime}"
-                                        Style="{StaticResource LegendLineButtonStyle}"
-                                        MouseRightButtonDown="OnLegendRightButtonDown">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0"
-                                                   Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
-                                        <!-- The reserve (the label with nothing delivered) lies hidden under it: a tick that takes a
-                                             marking away keeps the line's width, so the block doesn't move (D16, D33). -->
-                                        <Grid>
-                                            <TextBlock Text="{Binding ReserveLabel, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" Visibility="Hidden" />
-                                            <TextBlock x:Name="LabelText" Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
-                                        </Grid>
-                                    </StackPanel>
-                                </Button>
+                                <!-- "From A, B" over the first line of a pickup list (T7.4d, D68): no tick of its own, it goes with
+                                     the stop lines when the legend is hidden (D33). "" keeps an empty line for items without pickup. -->
+                                <StackPanel>
+                                    <TextBlock x:Name="HeaderText" Text="{Binding Header, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                                    <Button Command="{Binding DataContext.ToggleDeliveredCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding Destination, Mode=OneTime}"
+                                            Style="{StaticResource LegendLineButtonStyle}"
+                                            MouseRightButtonDown="OnLegendRightButtonDown">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0"
+                                                       Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
+                                            <!-- The reserve (the label with nothing delivered) lies hidden under it: a tick that takes a
+                                                 marking away keeps the line's width, so the block doesn't move (D16, D33). -->
+                                            <Grid>
+                                                <TextBlock Text="{Binding ReserveLabel, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" Visibility="Hidden" />
+                                                <TextBlock x:Name="LabelText" Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
                                 <!-- Template triggers outrank values set in the template, so the grey wins over the bound colour.
                                      Source: https://learn.microsoft.com/dotnet/desktop/wpf/properties/dependency-property-value-precedence -->
                                 <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Header}" Value="{x:Null}">
+                                        <Setter TargetName="HeaderText" Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
                                     <DataTrigger Binding="{Binding Delivered}" Value="True">
                                         <Setter TargetName="Swatch" Property="Fill" Value="{x:Static sv:MissionPalette.DeliveredBrush}" />
                                         <Setter TargetName="LabelText" Property="Foreground" Value="{StaticResource DeliveredForegroundBrush}" />

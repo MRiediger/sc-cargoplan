@@ -189,9 +189,15 @@ public sealed record SceneLine(Point From, Point To);
 /// One stop in the legend, in the order the stops were entered (D64). <paramref name="Delivered"/>: all its placements are delivered.
 /// <paramref name="Markings"/>: what is uncertain about its missions ("4 SCU? · ⚠ duplicate?"), empty if nothing;
 /// <paramref name="ReserveMarkings"/> the same with nothing delivered, so the line keeps its width when a tick takes a
-/// marking away (D16, D33).
+/// marking away (D16, D33). With pickups in the plan a stop has one line per pickup list (T7.4d, D68), the tick still
+/// the stop's.
 /// </summary>
-public sealed record LegendEntry(int PaletteIndex, string Destination, int Scu, bool Delivered = false, string Markings = "", string ReserveMarkings = "")
+/// <param name="Header">
+/// The line over this one, on the first line of a pickup list: "From A, B"; "" for the items without pickup next to
+/// others; null on every other line and in a plan without pickups.
+/// </param>
+public sealed record LegendEntry(
+    int PaletteIndex, string Destination, int Scu, bool Delivered = false, string Markings = "", string ReserveMarkings = "", string? Header = null)
 {
     public string Label => WithMarkings(Markings);
 
