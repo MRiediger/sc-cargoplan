@@ -37,6 +37,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly Action<ToolWindowTheme> _changeToolWindowTheme;
     private readonly Action<ShipOutlineMode> _changeShipOutline;
     private readonly Action<bool> _changeDownloadShipHolograms;
+    private readonly Action<double> _changeHoloOpacity;
 
     // True while fields are loaded (constructor, reset): their change calls are one change, applied once at the end.
     private bool _loading = true;
@@ -49,6 +50,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <param name="changeToolWindowTheme">Gets a new tool window mode; apart from <paramref name="apply"/>, because it is no part of the overlay's look (D36).</param>
     /// <param name="changeShipOutline">Gets a new bow marker mode (D62); apart from <paramref name="apply"/>, it is a setting of its own in the file.</param>
     /// <param name="changeDownloadShipHolograms">Gets the switch "Download ship holograms" (D63), like <paramref name="changeShipOutline"/>.</param>
+    /// <param name="changeHoloOpacity">Gets the hologram's opacity as a share, 0.1 to 1 (D63), like <paramref name="changeShipOutline"/>.</param>
     public SettingsViewModel(
         AppearanceSettings appearance,
         LegendSettings legend,
@@ -59,16 +61,20 @@ public sealed partial class SettingsViewModel : ObservableObject
         ShipOutlineMode shipOutline,
         Action<ShipOutlineMode> changeShipOutline,
         bool downloadShipHolograms,
-        Action<bool> changeDownloadShipHolograms)
+        Action<bool> changeDownloadShipHolograms,
+        double holoOpacity,
+        Action<double> changeHoloOpacity)
     {
         _windowsFontSize = Math.Clamp(windowsFontSize, AppearanceRules.MinFontSize, AppearanceRules.MaxFontSize);
         _apply = apply;
         _changeToolWindowTheme = changeToolWindowTheme;
         _changeShipOutline = changeShipOutline;
         _changeDownloadShipHolograms = changeDownloadShipHolograms;
+        _changeHoloOpacity = changeHoloOpacity;
         ToolWindowTheme = toolWindowTheme;
         ShipOutline = shipOutline;
         DownloadShipHolograms = downloadShipHolograms;
+        HoloOpacityPercent = ToPercent(holoOpacity);
 
         WindowBackground = new(appearance.Window.Background, AppearanceRules.MinClickableAlpha, OnChanged);
         WindowBorderColor = new(appearance.Window.BorderColor, minAlpha: 0, OnChanged);
@@ -203,7 +209,23 @@ public sealed partial class SettingsViewModel : ObservableObject
     ];
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsHologramLook))]
     public partial ShipOutlineMode ShipOutline { get; set; }
+
+    /// <summary>The opacity slider is on only for a hologram look; the outline keeps its own line.</summary>
+    public bool IsHologramLook => ShipOutline.IsHologram();
+
+    /// <summary>The slider's bounds in percent, like the file's 0.1 to 1.</summary>
+    public static int MinHoloOpacityPercent => ToPercent(AppearanceRules.MinHoloOpacity);
+
+    public static int MaxHoloOpacityPercent => ToPercent(AppearanceRules.MaxHoloOpacity);
+
+    /// <summary>The hologram's opacity in whole percent, as the slider moves; the file and the overlay get the share.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HoloOpacityText))]
+    public partial int HoloOpacityPercent { get; set; }
+
+    public string HoloOpacityText => $"{HoloOpacityPercent} %";
 
     /// <summary>Off = no network access at all; holograms already downloaded still show (Martin, T7.4c-2).</summary>
     [ObservableProperty]
@@ -215,6 +237,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         ShipOutline = Settings.ShipOutlineMode.Outline;
         DownloadShipHolograms = true;
+        HoloOpacityPercent = ToPercent(AppearanceRules.DefaultHoloOpacity);
     }
 
     [RelayCommand]
@@ -280,6 +303,17 @@ public sealed partial class SettingsViewModel : ObservableObject
             _changeDownloadShipHolograms(value);
         }
     }
+
+    // Like the ship outline mode: a setting of its own.
+    partial void OnHoloOpacityPercentChanged(int value)
+    {
+        if (!_loading)
+        {
+            _changeHoloOpacity(value / 100.0);
+        }
+    }
+
+    private static int ToPercent(double share) => (int)Math.Round(share * 100);
 
     private void LoadWindow(WindowAppearance window)
     {

@@ -55,6 +55,7 @@ public static class SettingsStore
             var (theme, themeProblems) = AppearanceRules.NormalizeToolWindowTheme(settings.ToolWindowTheme);
             var (contractTracker, contractTrackerProblems) = AppearanceRules.NormalizeContractTracker(settings.ContractTracker);
             var (shipOutline, shipOutlineProblems) = AppearanceRules.NormalizeShipOutline(settings.ShipOutline);
+            var (holoOpacity, holoOpacityProblems) = AppearanceRules.NormalizeHoloOpacity(settings.HoloOpacity);
             return (
                 settings with
                 {
@@ -64,8 +65,9 @@ public static class SettingsStore
                     ToolWindowTheme = theme,
                     ContractTracker = contractTracker,
                     ShipOutline = shipOutline,
+                    HoloOpacity = holoOpacity,
                 },
-                Corrections([.. legendProblems, .. appearanceProblems, .. themeProblems, .. contractTrackerProblems, .. shipOutlineProblems]));
+                Corrections([.. legendProblems, .. appearanceProblems, .. themeProblems, .. contractTrackerProblems, .. shipOutlineProblems, .. holoOpacityProblems]));
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {

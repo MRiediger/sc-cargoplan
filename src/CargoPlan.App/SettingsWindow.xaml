@@ -331,6 +331,14 @@
                             <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.ShipOutlineChoices}" DisplayMemberPath="Text"
                                       SelectedValuePath="Value" SelectedValue="{Binding ShipOutline}" />
                         </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" IsEnabled="{Binding IsHologramLook}"
+                                   ToolTip="How strongly the hologram shows behind the racks">
+                            <TextBlock Text="Hologram opacity" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding HoloOpacityText}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="{x:Static vm:SettingsViewModel.MinHoloOpacityPercent}"
+                                    Maximum="{x:Static vm:SettingsViewModel.MaxHoloOpacityPercent}"
+                                    Value="{Binding HoloOpacityPercent}" Style="{StaticResource ValueSliderStyle}" TickFrequency="5" />
+                        </DockPanel>
                         <CheckBox Content="Download ship holograms" IsChecked="{Binding DownloadShipHolograms}" Margin="0,8,0,0" />
                         <TextBlock Text="{x:Static vm:SettingsViewModel.DownloadShipHologramsHint}" TextWrapping="Wrap" Margin="0,2,0,0" />
                         <Button Command="{Binding ResetShipViewCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />

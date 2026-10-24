@@ -30,6 +30,14 @@ public static class AppearanceRules
     /// </summary>
     public const byte MinClickableAlpha = 1;
 
+    /// <summary>The hologram's opacity (D63): below a tenth it can't be seen, and "None" is the way to have none.</summary>
+    public const double MinHoloOpacity = 0.1;
+
+    public const double MaxHoloOpacity = 1;
+
+    /// <summary>Martin's look gate in the game (T7.4c-2): a backdrop, the racks stay what the eye finds first.</summary>
+    public const double DefaultHoloOpacity = 0.4;
+
     /// <returns>The checked appearance and one line per corrected value, empty if nothing was corrected.</returns>
     public static (AppearanceSettings Appearance, IReadOnlyList<string> Problems) Normalize(AppearanceSettings appearance)
     {
@@ -115,6 +123,16 @@ public static class AppearanceRules
         var fallback = ShipOutlineModes.DefaultName;
         var names = ShipOutlineModes.Names;
         return (fallback, [$"shipOutline \"{mode}\" is not valid ({string.Join(", ", names.Take(names.Count - 1))} or {names[^1]}), using {fallback}."]);
+    }
+
+    /// <summary>Checks the hologram's opacity (D63): outside its range it is clamped, like a slider value in the appearance.</summary>
+    /// <returns>The checked value and one line if it was corrected, empty otherwise.</returns>
+    public static (double Opacity, IReadOnlyList<string> Problems) NormalizeHoloOpacity(double opacity)
+    {
+        var clamped = Math.Clamp(opacity, MinHoloOpacity, MaxHoloOpacity);
+        return clamped == opacity
+            ? (opacity, [])
+            : (clamped, [string.Create(CultureInfo.InvariantCulture, $"holoOpacity {opacity} is outside {MinHoloOpacity}–{MaxHoloOpacity}, using {clamped}.")]);
     }
 
     /// <summary>

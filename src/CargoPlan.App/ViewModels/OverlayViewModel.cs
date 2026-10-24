@@ -138,6 +138,13 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         }
     }
 
+    /// <summary>The hologram backdrop's opacity (D63), from the settings; bound by the backdrop, so the slider applies live.</summary>
+    public double HoloOpacity
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = AppearanceRules.DefaultHoloOpacity;
+
     // The last hologram the loader handed over; shown only while it fits (Holo).
     private PreparedHolo? _holo;
 

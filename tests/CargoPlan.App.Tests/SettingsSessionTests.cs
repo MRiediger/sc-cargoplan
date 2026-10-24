@@ -442,6 +442,27 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void The_start_applies_the_hologram_opacity_to_the_overlay()
+    {
+        Create(AppSettings.Default with { HoloOpacity = 0.7 });
+
+        _viewModel.HoloOpacity.Should().Be(0.7);
+    }
+
+    [Fact]
+    public void ChangeHoloOpacity_applies_at_once_and_writes_on_flush()
+    {
+        var session = Create(AppSettings.Default with { ShipOutline = "holo-flat" });
+
+        session.ChangeHoloOpacity(0.25);
+
+        _viewModel.HoloOpacity.Should().Be(0.25);
+        File.Exists(SettingsPath).Should().BeFalse();
+        session.Flush();
+        Saved().Should().Be(AppSettings.Default with { ShipOutline = "holo-flat", HoloOpacity = 0.25 });
+    }
+
+    [Fact]
     public void ChangeShipOutline_tells_the_ship_view()
     {
         var session = Create(AppSettings.Default);

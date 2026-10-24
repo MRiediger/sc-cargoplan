@@ -33,6 +33,11 @@ namespace CargoPlan.App.Settings;
 /// access at all, holograms already downloaded still show. A default like <c>ContractTrackerSettings.AutoSync</c>, optional,
 /// no schema bump (D31).
 /// </param>
+/// <param name="HoloOpacity">
+/// The hologram backdrop's opacity, <see cref="AppearanceRules.MinHoloOpacity"/> to 1 (D63); missing (before T7.4c-2) =
+/// <see cref="AppearanceRules.DefaultHoloOpacity"/>. Top level next to <paramref name="ShipOutline"/>: the Ship view
+/// section resets it, the crates' reset doesn't.
+/// </param>
 public sealed record AppSettings(
     int SchemaVersion,
     WindowBounds? Overlay = null,
@@ -44,7 +49,8 @@ public sealed record AppSettings(
     string? Ship = null,
     IReadOnlyList<string>? RecentShips = null,
     string? ShipOutline = null,
-    bool DownloadShipHolograms = true)
+    bool DownloadShipHolograms = true,
+    double HoloOpacity = AppearanceRules.DefaultHoloOpacity)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
 

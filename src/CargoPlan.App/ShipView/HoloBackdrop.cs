@@ -12,7 +12,7 @@ namespace CargoPlan.App.ShipView;
 /// The ship's hologram behind the ship view (D63, the spike's way b): a <see cref="Viewport3D"/> as the layer under
 /// <see cref="ShipViewControl"/>, its camera following the view's (<see cref="HoloCamera"/>), so the hologram never
 /// covers a crate. Collapsed without a hologram, so the outline modes draw exactly as before. Never hit: the ship view
-/// above takes every click.
+/// above takes every click. Its opacity is a setting (holoOpacity), bound in the overlay's markup.
 /// </summary>
 public sealed class HoloBackdrop : FrameworkElement
 {
@@ -47,7 +47,6 @@ public sealed class HoloBackdrop : FrameworkElement
     public HoloBackdrop()
     {
         IsHitTestVisible = false;
-        Opacity = MissionPalette.HoloOpacity;
         Visibility = Visibility.Collapsed;
         _viewport.Camera = _camera;
         _viewport.Children.Add(new ModelVisual3D

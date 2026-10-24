@@ -528,7 +528,8 @@
                  puts it on the cell under the cursor, right drag elsewhere pans; DragMove works on header, warning lines and border.
                  The hologram lies under the ship view in the same cell (D63): it never covers a crate and takes no click. -->
             <Grid>
-                <sv:HoloBackdrop Holo="{Binding Holo, Mode=OneWay}" View="{Binding View, ElementName=ShipView, Mode=OneWay}" />
+                <sv:HoloBackdrop Holo="{Binding Holo, Mode=OneWay}" View="{Binding View, ElementName=ShipView, Mode=OneWay}"
+                                 Opacity="{Binding HoloOpacity, Mode=OneWay}" />
                 <sv:ShipViewControl x:Name="ShipView"
                                     Scene="{Binding Scene, Mode=OneWay}"
                                     ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}"

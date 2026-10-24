@@ -11,6 +11,7 @@ public sealed class SettingsViewModelTests
     private readonly List<ToolWindowTheme> _themes = [];
     private readonly List<ShipOutlineMode> _outlines = [];
     private readonly List<bool> _downloads = [];
+    private readonly List<double> _opacities = [];
 
     private SettingsViewModel Create(
         AppearanceSettings? appearance = null,
@@ -18,7 +19,8 @@ public sealed class SettingsViewModelTests
         double windowsFontSize = WindowsFontSize,
         ToolWindowTheme toolWindowTheme = ToolWindowTheme.System,
         ShipOutlineMode shipOutline = ShipOutlineMode.Outline,
-        bool downloadShipHolograms = true) =>
+        bool downloadShipHolograms = true,
+        double holoOpacity = 0.4) =>
         new(
             appearance ?? AppearanceSettings.Default,
             legend ?? LegendSettings.Default,
@@ -29,7 +31,9 @@ public sealed class SettingsViewModelTests
             shipOutline,
             _outlines.Add,
             downloadShipHolograms,
-            _downloads.Add);
+            _downloads.Add,
+            holoOpacity,
+            _opacities.Add);
 
     private (AppearanceSettings Appearance, LegendSettings Legend) Last => _applied[^1];
 
@@ -585,6 +589,44 @@ public sealed class SettingsViewModelTests
 
         _downloads.Should().Equal(true);
         _applied.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void The_opacity_slider_works_in_percent_and_calls_its_callback_with_the_share()
+    {
+        var viewModel = Create(holoOpacity: 0.65);
+        viewModel.HoloOpacityPercent.Should().Be(65);
+        viewModel.HoloOpacityText.Should().Be("65 %");
+        _opacities.Should().BeEmpty();
+
+        viewModel.HoloOpacityPercent = 30;
+
+        _opacities.Should().Equal(0.3);
+        _applied.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Reset_of_the_ship_view_sets_the_opacity_back_to_40_percent()
+    {
+        var viewModel = Create(holoOpacity: 0.8);
+
+        viewModel.ResetShipViewCommand.Execute(null);
+
+        viewModel.HoloOpacityPercent.Should().Be(40);
+        _opacities.Should().Equal(0.4);
+    }
+
+    [Theory]
+    [InlineData(ShipOutlineMode.Outline, false)]
+    [InlineData(ShipOutlineMode.HoloHiddenline, true)]
+    [InlineData(ShipOutlineMode.None, false)]
+    public void The_opacity_slider_is_on_only_for_a_hologram_look(ShipOutlineMode mode, bool on)
+    {
+        var viewModel = Create(shipOutline: ShipOutlineMode.HoloFlat);
+
+        viewModel.ShipOutline = mode;
+
+        viewModel.IsHologramLook.Should().Be(on);
     }
 
     [Fact]

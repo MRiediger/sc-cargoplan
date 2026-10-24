@@ -39,6 +39,7 @@ public sealed class SettingsSession
         Current = settings;
         ApplyLook();
         _viewModel.OutlineMode = ShipOutline;
+        _viewModel.HoloOpacity = Current.HoloOpacity;
     }
 
     public AppSettings Current { get; private set; }
@@ -149,6 +150,21 @@ public sealed class SettingsSession
         _timer.Stop();
         _timer.Start();
         ShipViewChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>The hologram backdrop's opacity (D63).</summary>
+    public double HoloOpacity => Current.HoloOpacity;
+
+    /// <summary>
+    /// From the settings window's slider: the overlay redraws at once (D30), saved after <see cref="Debounce"/>, so a drag
+    /// writes once. Not checked again: the slider only hands over values in range (A6).
+    /// </summary>
+    public void ChangeHoloOpacity(double opacity)
+    {
+        _viewModel.HoloOpacity = opacity;
+        Current = Current with { HoloOpacity = opacity };
+        _timer.Stop();
+        _timer.Start();
     }
 
     /// <summary>From the settings window (D63): saved after <see cref="Debounce"/>; the loader follows via <see cref="ShipViewChanged"/>.</summary>

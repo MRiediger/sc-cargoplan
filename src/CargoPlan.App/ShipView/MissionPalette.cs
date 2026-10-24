@@ -56,7 +56,7 @@ public static class MissionPalette
     public static Color Frame { get; } = Color.FromArgb(0x60, 0xE6, 0xE6, 0xE6);
 
     // The hologram behind the racks (D63). Opaque colours: WPF 3D sorts no transparent triangles, so the whole backdrop
-    // is faded instead (HoloOpacity). Martin judges the look in T7.4c-2's gate.
+    // is faded instead (settings.json holoOpacity). Accepted in T7.4c-2's look gate.
 
     /// <summary>The hull in the shaded and flat looks, lit by the light below: a cool grey, apart from every stop colour.</summary>
     public static Color HoloFill { get; } = Color.FromRgb(0x9C, 0xB0, 0xC0);
@@ -72,9 +72,6 @@ public static class MissionPalette
 
     /// <summary>The light along the view, following the camera: the faces turned to the player are the brightest.</summary>
     public static Color HoloLight { get; } = Color.FromRgb(0xB0, 0xB0, 0xB0);
-
-    /// <summary>The whole backdrop's opacity: a backdrop, the racks stay what the eye finds first (T7.4b, Martin).</summary>
-    public const double HoloOpacity = 0.5;
 
     // Rack numbers and their outline, the crates' fill and edge alpha are settings since T4.1 (CrateAppearance, D31).
 

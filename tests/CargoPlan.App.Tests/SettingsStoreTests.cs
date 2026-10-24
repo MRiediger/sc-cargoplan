@@ -386,6 +386,43 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Save_then_Load_keeps_the_hologram_opacity()
+    {
+        var settings = AppSettings.Default with { HoloOpacity = 0.65 };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+        File.ReadAllText(SettingsPath).Should().Contain("\"holoOpacity\": 0.65");
+    }
+
+    [Fact]
+    public void File_without_the_hologram_opacity_takes_40_percent_without_a_problem()
+    {
+        WriteFile("""{ "schemaVersion": 2 }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.HoloOpacity.Should().Be(0.4);
+    }
+
+    [Theory]
+    [InlineData("0.05", 0.1, "0.1")]
+    [InlineData("1.5", 1, "1")]
+    public void A_hologram_opacity_out_of_range_is_clamped_with_a_problem(string written, double used, string usedText)
+    {
+        WriteFile($$"""{ "schemaVersion": 2, "holoOpacity": {{written}} }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.HoloOpacity.Should().Be(used);
+        problem.Should().Be($"settings.json: holoOpacity {written} is outside 0.1–1, using {usedText}.");
+    }
+
+    [Fact]
     public void File_without_the_download_switch_downloads_holograms_without_a_problem()
     {
         // Optional, no schemaVersion bump (D31, D63); default on.
