@@ -1150,6 +1150,62 @@ Entscheidung (Regel): Stufe 1–2 laufen in jedem Frame (überall unter 16 ms). 
 - Offen für Martin: Spieltest am Aufzug vor dem Merge (wie B1/B2).
 - Beobachtung: Eine Kiste, die unter eigener Fracht liegt, verliert beim Ziehen ihr Loch an die nachrutschende Kiste; findet sie dann nirgends Platz, wird abgelehnt (der Plan bleibt, die Kiste also liegen). Hurston-Fall: Green-Glade-4er unter einem eigenen 1er auf ein Rack voller Green Glade.
 ### [ ] B4 Knopf „Re-plan“ im Editor
+**Warum:** Zwei Aufträge geladen, ein dritter passt kapazitiv, aber nicht mehr in die gewachsene Anordnung (Fragmentierung, D64-Gegenargument): `PlaceInto` legt ihn als wartend ab, eine Mission ohne Kisten lässt sich nicht ziehen. Martins Vorgabe: Der Spieler entscheidet aktiv, alles neu sortieren zu lassen, und nimmt das Umladen in Kauf; die B3-Stufen bleiben konservativ, Re-plan ist die bewusste, destruktive Aktion.
+
+**Messwerte vor der Umsetzung (E1)** – Planzeit ganzer Prozesse, Median aus 5 nach Aufwärmlauf, Entwickler-VM; zwei Messwege mit verschiedener Konfiguration:
+
+| Fall | B2: `dotnet run -c Release` (inkl. Build-Check, ~1,2 s Start) | Release-Apphost `CargoPlan.Cli.exe` direkt (Build 24.10. 06:57, Stand B2) |
+|---|---|---|
+| `--version` (nur Start) | – | 38 ms |
+| example_missions | – | 144 ms |
+| split_and_shared | – | 149 ms |
+| split_required | – | 147 ms |
+| crate_mix | – | 147 ms |
+| Hull A acht Stopps | – | 168 ms |
+| Hull A Hurston 24.10. | 1.395 ms | 160 ms |
+| Freelancer acht Stopps | 1.401 ms | 159 ms |
+
+Der Unterschied ist der Start von `dotnet run` (MSBuild-Prüfung, Host), nicht das Planen; der Apphost enthält noch Start, JIT und das Laden der 96 Schiffe. Verbindlich für die Entscheidung ist `ReplanTimingTests` (im Prozess, Release, Median aus 3 nach Aufwärmlauf); Gate: liegt ein realistischer Fall (alle Fixtures außer Stresslast) über ~100 ms → Stopp, `Task.Run`-Variante vorlegen.
+
+**`ReplanTimingTests`** (verbindlich; Release, im Prozess, `dotnet test tests/CargoPlan.Core.Tests -c Release -p:RunSettingsFilePath= --filter Category=Timing --logger "console;verbosity=detailed"`; erster Lauf nach dem Plan, von dem er ausgeht, dann Median aus 3):
+
+| Fall | erster Lauf | Median |
+|---|---|---|
+| example_missions | 7,0 ms | 0,4 ms |
+| split_and_shared | 1,0 ms | 0,7 ms |
+| split_required | 0,3 ms | 0,3 ms |
+| crate_mix | 0,4 ms | 0,4 ms |
+| Hull A acht Stopps | 6,3 ms | 3,2 ms |
+| Hull A Hurston 24.10. | 2,5 ms | 2,1 ms |
+| Freelancer acht Stopps | 2,3 ms | 2,3 ms |
+| Stresslast 12×12×7 (kein Schiff) | 186 ms | 80,2 ms |
+
+Entscheidung (Regel): Kein realistischer Fall kommt über 7 ms, also läuft Re-plan synchron auf dem UI-Thread, ohne Sperre und ohne Versionszähler. Die Backlog-Zeile „Planen in `Task.Run`“ ist damit geschlossen.
+
+**Präzisiert in der Planung:** `Replan` plante abgehakte Stopps mit (sie belegten Platz) und verlor Teil-Haken (D41). Deshalb dispatcht es jetzt auf `ReplanInPlace` (eigenes Schiff, neu: abgehakte Kisten bleiben liegen und belegen nichts) und `ReplanForShip` (D59, unverändert). Keine API-Änderung (E3). Kaskade: alle Missionen; sonst die Fracht an Bord neu und die Wartenden danach (`RetryUnplaced`); sonst bleibt die Anordnung. N zählt nur Kisten, die vorher an Bord waren (Multimenge, Haken sind kein Move). `Plan unchanged` heißt: nichts bewegt und nichts neu platziert. Bleibt eine Mission wartend, hängt „– X still doesn't fit“ an (E2). Füllrichtung kommt aus dem Plan, nicht aus dem Editor-Entwurf. Notice-Quelle ist `Move` (verschwindet beim nächsten Move, Haken oder Plan). Alle Hotkeys prüfen `CanExecute` vor `Execute`: Die Toolkit-Kommandos tun das nicht selbst, ein Button-Binding schon. Bei der Freigabe ergänzt: E1 (Messtabelle mit Build-Konfiguration vor der Umsetzung, `ReplanTimingTests` verbindlich), E2, E3. Nach der ersten Umsetzung (Martin): Re-plan zusätzlich als Header-Knopf ↻ (E72C Refresh) zwischen Merge und Stift; jede Ausführung fragt vorher („niemals so“); alle Bestätigungen erscheinen mittig im aktuellen Fenster statt mittig auf dem Monitor. Das ist ein eigener `ConfirmDialog` (Fluent, topmost, `CenterOwner`), auch für den Schiffswechsel; vorausgewählt ist No bei Re-plan, Yes beim Schiffswechsel. Gegen einen CBT-Hook, der die MessageBox verschiebt, spricht „keine Hooks“. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- Core: `LoadPlanner.Replan` → `ReplanInPlace`/`ReplanForShip`, neu `LoadPlanner.MovedCrates`
+- App: `OverlayViewModel.ReplanCommand` mit `ConfirmReplan` (Standardantwort Nein), Header-Knopf ↻ mit Tooltip, `ConfirmDialog` (neu, Besitzer = aktives Fenster, sonst Overlay; auch Schiffswechsel), Editor-Knopf „Re-plan“ zwischen „Import…“ und „Sync from ContractTracker“ als eigene Änderung (Entwurf bleibt Entwurf), Hotkey `replan` (`HotkeyAction`, `HotkeySettings`, Settings-Fenster), `CanExecute`-Prüfung in `HotkeyService`
+
+**Akzeptanz:**
+- [x] `Replan` ≡ frischer `Plan`: sechs Fixtures, nach `PlaceInto` gewachsen, Kisten und Hinweise gleich; Füllrichtung und Watermark bleiben (`ReplanInPlaceTests`)
+- [x] Haken bleiben: abgehakter Stopp mit Rack und Lage unverändert, der Rest wie ein frischer Plan ohne ihn; Teil-Haken (D41) bleibt; abgehakte Zellen nimmt eine wartende Mission (Hull A voll + Shubin abgehakt → Orison platziert)
+- [x] Übersteuerungen: geteilte Kiste (T3.15) und getippte Kistenliste (T3.12, crate_mix) behalten ihre Größen
+- [x] Notice-Zählung: `MovedCrates` 1 bei einem Move, 0 ohne; Haken und neue Kisten zählen nicht; kanonischer Plan → 0 und dieselbe Missionsliste; Texte (Singular/Plural, Suffix für Wartende) als Theorie
+- [x] Szenario Hull A: zwei Aufträge mit je zwei Zielen à 8 SCU (ein Ziel pro Rack), dritter 16 SCU → „doesn't fit (no room for 16 SCU crates)“, `RetryUnplaced` ändert nichts; nach Re-plan alles platziert, `Validate` leer
+- [x] Kaskade: wartende Mission ohne Platz → Rest neu gelegt, sie wartet weiter, Notice „… – Orison still doesn't fit“
+- [x] Sync nach Re-plan: dieselben Captures → keine Mission neu oder weg, Kisten gleich, keine Konflikte
+- [x] Knopf-Zustand: ohne Plan aus, alles abgehakt aus (mit `CanExecuteChanged`); Editor folgt dem Overlay; Entwurf bleibt dirty ohne „changed outside“, sauberer Editor zeigt die Zeilen neu
+- [x] Hotkey: Aufnahme, Clear = `null`, Sync-Kombination abgelehnt, Session speichert `replan`, Round-Trip in settings.json
+- [x] Vor der Umsetzung rot: Core 8 von 18 (Haken, Missionsliste, `MovedCrates`), App als Compile-Fehler; das Szenario war schon grün (das alte `Replan` plante auf dem eigenen Schiff frisch) und bleibt Akzeptanztest
+- [x] App-Lauf (UI Automation, AppData gesichert und wiederhergestellt, Auto-Sync für den Lauf aus): Szenario geladen → Legende „Everus Harbor · 16 SCU · ⚠ doesn't fit (no room for 16 SCU crates)“; Re-plan im Editor → „Plan rebuilt – 4 crates moved“, Warnung weg, plan.json ohne Wartende; Hotkey Ctrl+Alt+F9 → „Plan unchanged“
+- [x] Header-Knopf ↻ zwischen Merge und Stift, gesperrt mit Tooltip „Re-plan: no cargo on board“
+- [x] Bestätigung: Header, Editor und Hotkey fragen; No ändert nichts und schreibt keine Notice; ohne Fenster antwortet das ViewModel Nein (Tests); im App-Lauf ist No fokussiert
+- [x] Dialog mittig im aktuellen Fenster (UIA, AppData je Lauf frisch gesichert und per Hash zurückgespielt): Header 0/0 px zum Overlay-Mittelpunkt, Editor 0/0 px zum Editor (der an den Monitorrand geschoben war), Hotkey 0/0 px zum Overlay; Screenshots zeigen den Dialog deckend über dem Fenster
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 919, App 983, Import 119); Slow grün; Timing läuft
+- [ ] Look und Platz von Header-Knopf und Dialog (Taste-Gate Martin)
+- [ ] Im Spiel: Kommt der Hotkey-Dialog nach vorn, wenn Star Citizen den Fokus hat? Schiffswechsel-Dialog mittig im Overlay (nicht per UIA geprüft)
+- Offen für Martin: Spieltest am Aufzug vor dem Merge (wie B1–B3).
+
 ### [ ] B5 Kapazitätsanzeige (Kopfzeile, Rack-Tooltip, Zahl hinter der Racknummer)
 
 ---
@@ -1202,11 +1258,11 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~Stapelbewusste Partition: Racks so verteilen, dass keine Stapel-Befunde entstehen (Rest der übernommenen T7.0-Zeile), falls Stapel-Befunde in echten Plänen häufig sind (D54). Beleg T7.2: echte CT-Captures (High Course Station, 11 SCU) per `PlaceInto` in den Hull-A-Plan split_and_shared → 3 rote Kisten auf Riker/Orison/Lorville.~~ Erledigt in B2 (D64): Prio 3 wählt auch zwischen Zuordnungen, `PlaceInto` nimmt das Rack ohne Fremdauflage.
 - ~~Ein Ziel pro Rack auf Mehrrack-Schiffen, wenn die Last es zulässt (Partition nach SCU füllt heute Rack 1 mit allen Zielen, C2: sechs Ziele in Rack 1). Auslöser: Hauler eines Mehrrack-Schiffs meldet, dass er ein Ziel pro Rack will. Planer-Änderung, D6-Addendum. Beleg T7.2: Legende „Rack 1 shared by Riker, Shubin, High Course Station, Melodic Fields Station, Faithful Dream Station, Everus Harbor – identify crates by count“; auf einem 480-Zellen-Rack hilft „by count“ nicht mehr.~~ Erledigt in B2 (D64): Prio 2 „wenigste Ziele im vollsten Rack, dann wenigste geteilte Racks“.
 - Frachtmodule (Aurora-Heckmodul, Retaliator, Caterpillar `module_01–04`) als zusätzliche Katalogeinträge aus einer Datei, ohne Änderung an Plan-Schema oder Auswahl (D59). Auslöser: erstes Schiff in `ships/` mit im Spiel wechselbarem Frachtmodul.
-- Haken eines Altbesuchs beim Schiffswechsel erhalten: ein abgehakter Stopp, der danach neue Fracht bekam (D41), kommt nach `Replan` unabgehakt zurück und belegt Platz (D59). Auslöser: Meldung eines Haulers.
+- Haken eines Altbesuchs beim Schiffswechsel erhalten: ein abgehakter Stopp, der danach neue Fracht bekam (D41), kommt nach `Replan` auf einem anderen Schiff unabgehakt zurück und belegt Platz (D59); auf dem eigenen Schiff erledigt in B4 (D66). Auslöser: Meldung eines Haulers.
 - Sync Ships in der App (Fleetyards-API), falls sich Frachtgitter häufiger ändern als Releases erscheinen oder Hauler zwischen Releases fehlende Schiffe melden. Voraussetzungen: D-Eintrag Netzwerkzugriff des Overlays, Lizenzfrage für Laufzeitabrufe, Merge-Logik aus import-fleetyards.ps1 nach C# (T7.1b).
 - Kisten horizontal drehbar (Gier 90°) im Planer, statt Racks beim Import zu drehen (T7.1b: `length` = längere Seite, Rack in `notes` genannt). Auslöser: ein Schiff, dessen Rack nur mit gedrehten Kisten so voll wird wie im Spiel, oder ein Hauler-Report über abgelehnte Kisten, die im Spiel passen.
 - `CrateLayout.InOrder` beschleunigen (`StartingAt` ohne LINQ, Pruning), Auslöser: ein echter Plan mit der Notiz „too many crates to rearrange“ (D54). Erwartet bei Racks ab ~80 Zellen mit vielen 1-SCU-Kisten (T7.1c: 9×3×3, 32 + 40 × 1).
-- Planen in `Task.Run` statt im UI-Thread (`MissionEditorViewModel.Plan`, CT-Sync, Schiffswechsel), Auslöser: ein gemeldetes Einfrieren (D54) oder der erste Hauler-Report zur Planungsdauer. Messwert T7.2: 8-Stopp-Lastfall auf der Freelancer ~4 s Release (Suchlimit, D58), beim Editor-Plan wie beim Wechsel (`ReplanTests`, `Slow`). Ein UI-Task (Knopf gesperrt, „Planning…“), kein Planer-Task; kann als erster nach dem Launch kommen. Bis dahin Known issue (T7.5).
+- ~~Planen in `Task.Run` statt im UI-Thread (`MissionEditorViewModel.Plan`, CT-Sync, Schiffswechsel), Auslöser: ein gemeldetes Einfrieren (D54) oder der erste Hauler-Report zur Planungsdauer. Messwert T7.2: 8-Stopp-Lastfall auf der Freelancer ~4 s Release (Suchlimit, D58), beim Editor-Plan wie beim Wechsel (`ReplanTests`, `Slow`). Ein UI-Task (Knopf gesperrt, „Planning…“), kein Planer-Task; kann als erster nach dem Launch kommen. Bis dahin Known issue (T7.5).~~ Geschlossen in B4 (D66): seit B2 plant jedes Fixture im Prozess in höchstens 3,2 ms (Median, erster Lauf 7 ms, Freelancer-Lastfall 2,3 ms, `ReplanTimingTests`); nur die Stresslast (kein Schiff) braucht 80 ms. Wiederöffnen bei einem gemeldeten Einfrieren.
 - Optionale Spieler-Reihenfolge (Legende per Drag sortieren) → Stapelhinweise relativ zur Spieler-Reihenfolge („Shubin liegt auf Riker, Riker kommt zuerst“). Auslöser: Hauler wollen wieder wissen, welche Kiste zuerst runter muss (D64).
 - B1-Restfall: abgeschnittenes Fragment ohne Ergänzung. Capture 21–25 (24.10.): „to Thur“ bricht um, OCR liest „Thundering“ als „Thur…“, „Melg“ entsprechend; die Ergänzung aus der Drop-off-Liste greift nicht, weil das Fragment kein Präfix ist. Auslöser: weitere Fälle in echten Captures.
 - Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).

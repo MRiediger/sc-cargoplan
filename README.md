@@ -52,7 +52,8 @@ Without a plan the overlay shows your empty ship and an **Open editor** button.
   through to the game. With the cursor showing (mobiGlas, terminals) you can use it. The padlock locks it
   click-through by hand.
 - **Hotkeys:** there are **none by default**, because any default could clash with your Star Citizen bindings. Set them
-  in the settings window (the gear), section **Hotkeys**: lock/unlock, hide/show the overlay, sync from ContractTracker.
+  in the settings window (the gear), section **Hotkeys**: lock/unlock, hide/show the overlay, sync from ContractTracker,
+  re-plan.
   At least one of Ctrl, Alt or Win plus one key.
 - **Settings** (the gear): look, legend position, hotkeys, ContractTracker; see [Settings](#settings).
 
@@ -63,7 +64,9 @@ More: [user guide – first start](docs/user-guide.md#first-start), [entering mi
 
 If you capture contracts with [ContractTracker](https://www.nexusmods.com/starcitizen/mods/34) (F3 at the terminal),
 the overlay finds it by itself and takes every capture into the plan a few moments later, without a click. Nothing that
-is already loaded moves. The editor's **Sync from ContractTracker** (or its hotkey) does the same by hand.
+is already loaded moves. The editor's **Sync from ContractTracker** (or its hotkey) does the same by hand. If a new
+contract doesn't fit into the layout that grew, although there is room, **Re-plan** (↻ in the header, or in the editor) lays
+everything on board out anew after asking; your ticks stay.
 
 <!-- image: docs/screenshots/first-start/B-plan-from-ct.png -->
 

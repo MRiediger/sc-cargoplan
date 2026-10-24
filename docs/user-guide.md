@@ -118,13 +118,13 @@ hides it too.
 
 ## Hotkeys
 
-Three global hotkeys work while Star Citizen has the focus and the cursor is hidden: one switches the padlock, one hides
+Four global hotkeys work while Star Citizen has the focus and the cursor is hidden: one switches the padlock, one hides
 the overlay and brings it back (dogfight, landing), one takes new ContractTracker captures in (see
-[ContractTracker](#contracttracker)). There are **no default hotkeys**: a hotkey takes its keys away from every other
+[ContractTracker](#contracttracker)), one re-plans (see [Changing the plan](#changing-the-plan)). There are **no default hotkeys**: a hotkey takes its keys away from every other
 program, the game included, and any default could clash with one of your Star Citizen bindings.
 
 **Set them in the settings window** (the gear), section **Hotkeys**: click the button next to *Lock / unlock*,
-*Hide / show overlay* or *Sync from ContractTracker*, then press the keys. The hotkey works at once and is saved. **Esc**
+*Hide / show overlay*, *Sync from ContractTracker* or *Re-plan*, then press the keys. The hotkey works at once and is saved. **Esc**
 cancels, **Clear** removes it.
 
 - **At least one of `Ctrl`, `Alt` or `Win` is required**, plus one key: `A`–`Z`, `0`–`9`, `F1`–`F24` (not `F12`,
@@ -143,7 +143,7 @@ cancels, **Clear** removes it.
 - Hidden, the overlay also leaves the taskbar; press the hotkey again to bring it back where it was.
 
 You can still write them into `%LocalAppData%\SC-CargoPlan\settings.json` by hand (overlay closed), e.g.
-`"hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": "Ctrl+Alt+J" }`,
+`"hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": "Ctrl+Alt+J", "replan": "Ctrl+Alt+R" }`,
 modifiers and key joined by `+` in any order and case; `null` or a missing entry means no hotkey. A hotkey that is
 invalid or taken shows as an amber line next to the legend and next to its button in the settings window; the other
 hotkeys still work. A typo in a name (e.g. `toggleLok`) makes the whole file unreadable: the overlay starts with
@@ -239,8 +239,20 @@ stays where it is ("No room in rack 3 – 1 crate stays in rack 2"). Either way,
 layout. Dragging back undoes a move only as long as nothing else had to move for it.
 
 Delivered crates can't be dragged, they are off the ship: their cells count as free, so crates can go where they lay.
-Moves are saved like ticks; pressing **Plan** in the editor makes a new plan and drops them (see
-[Entering missions](#entering-missions)).
+Moves are saved like ticks; pressing **Plan** in the editor makes a new plan from the rows and drops them and your ticks
+(see [Entering missions](#entering-missions)); **Re-plan** drops the moves and keeps the ticks (below).
+
+**Re-plan** (↻ in the header next to the pencil, or in the editor next to *Import…*, or its hotkey) lays out everything on board anew, as a fresh plan of the same
+missions would. Use it when the plan has grown in pieces: two contracts are loaded and a third one says `⚠ doesn't fit
+(no room for 16 SCU crates)` although there is room, only not in one piece. It is your call, because it costs work: crates
+change racks and cells, so **you restack the ship** at the cargo lift. What it drops: where every crate on board lies,
+and your moves. What it keeps: your ticks (ticked crates are off the ship and take no room), the crate sizes (split,
+merged or typed in the editor), the fill order, the legend's order and colours, and the missions themselves. It always
+asks first, in the middle of the window you clicked in (*No* is preselected, so Enter keeps your plan), and there is no
+undo. Afterwards the amber line says what happened, `Plan rebuilt – 4 crates moved`, or `Plan unchanged` if the layout
+already was the fresh one; a contract that still doesn't fit is named (`– Everus Harbor still doesn't fit`). The buttons
+are grayed out while nothing unticked is on board. Rows you are editing stay a draft: Re-plan works on
+the plan, not on the rows.
 
 ### When the kiosk delivers other crates
 
