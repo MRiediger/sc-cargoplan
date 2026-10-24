@@ -44,15 +44,47 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, l
         Missions.FirstOrDefault(m => m.Id == id) ?? throw new ArgumentException(Invariant($"The plan has no mission {id}."), nameof(id));
 
     /// <summary>
-    /// A plan with one mission per stop, its crates assigned by destination: the missions of a plan made before missions
-    /// existed (plan schema 1 and 2, D42), and of a plan made from a route alone.
+    /// A plan with one mission per stop, its crates assigned by destination and then to the items holding their kind
+    /// (<see cref="WithItems"/>): the missions of a plan made before missions existed (plan schema 1 and 2, D42), and of a
+    /// plan made from a route alone.
     /// </summary>
     /// <exception cref="ArgumentException">The plan doesn't fit the stops (see the constructor).</exception>
     public static SavedPlan FromStops(IReadOnlyList<MissionStop> stops, LoadPlan plan, long watermark = 0)
     {
         Mission[] missions = [.. stops.OrderBy(s => s.Order).Select((s, index) => new Mission(index + 1, [s with { Order = 1 }]))];
         var idOf = missions.ToDictionary(m => m.Stops[0].Destination, m => m.Id);
-        return new SavedPlan(missions, plan with { Crates = [.. plan.Crates.Select(c => c with { Mission = idOf.GetValueOrDefault(c.Destination) })] }, watermark);
+        Crate[] owned = [.. plan.Crates.Select(c => c with { Mission = idOf.GetValueOrDefault(c.Destination) })];
+        return new SavedPlan(missions, plan with { Crates = WithItems(missions, owned, _ => false) }, watermark);
+    }
+
+    /// <summary>
+    /// The crates with their items (D68): each keeps its mission, those <paramref name="keep"/> picks keep their item too,
+    /// the others take the items of their mission still free for their kind (destination, commodity, crate size), in item
+    /// order and plan order. Which of two equal crates gets which item is no choice the game knows of (D38). A crate with
+    /// no item left keeps its index, and the constructor names the mismatch.
+    /// </summary>
+    internal static IReadOnlyList<Crate> WithItems(IReadOnlyList<Mission> missions, IReadOnlyList<Crate> crates, Func<Crate, bool> keep)
+    {
+        var free = missions
+            .SelectMany(m => m.Items.SelectMany((at, index) => at.Item.CrateList.Select(size =>
+                (Key: (m.Id, at.Stop.Destination, at.Item.Commodity, size), Index: index))))
+            .GroupBy(s => s.Key)
+            .ToDictionary(g => g.Key, g => g.Select(s => s.Index).ToList());
+
+        foreach (var kept in crates.Where(keep))
+        {
+            free.GetValueOrDefault(KindOf(kept))?.Remove(kept.Item);
+        }
+
+        return [.. crates.Select(c => keep(c) || free.GetValueOrDefault(KindOf(c)) is not [var next, ..] list ? c : Took(list, c with { Item = next }))];
+
+        static (int, string, string, CrateSize) KindOf(Crate crate) => (crate.Mission, crate.Destination, crate.Commodity, crate.CrateSize);
+
+        static Crate Took(List<int> list, Crate crate)
+        {
+            list.RemoveAt(0);
+            return crate;
+        }
     }
 
     private static IReadOnlyList<Mission> ValidatedMissions(IReadOnlyList<Mission> missions)
@@ -75,8 +107,8 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, l
     }
 
     /// <summary>
-    /// The crates of every placed mission are the crates of its expanded items (D23, D24): per destination, commodity and
-    /// crate size the same number; an unplaced mission has none (D41). Moving and ticking never change that, split and
+    /// The crates of every placed mission are the crates of its expanded items (D23, D24): per item (D68) and crate size
+    /// the same number, every crate naming an item of its destination and commodity; an unplaced mission has none (D41). Moving and ticking never change that, split and
     /// merge change crates and missions together (D27), so a pair that fails here was made from other missions or edited
     /// by hand. Where the crates lie needs the ship and is checked on reading (PlanFile).
     /// </summary>
@@ -101,15 +133,31 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, l
             {
                 throw new ArgumentException(Invariant($"Cargo for '{crate.Destination}' is placed for mission {mission.Id}, which doesn't go there."), nameof(Plan));
             }
+
+            var items = mission.Items;
+            if (crate.Item < 0 || crate.Item >= items.Count)
+            {
+                throw new ArgumentException(Invariant(
+                    $"A crate for '{crate.Destination}' names item {crate.Item} of mission {mission.Id}, which has {items.Count} items."), nameof(Plan));
+            }
+
+            var (stop, item) = items[crate.Item];
+            if ((stop.Destination, item.Commodity) != (crate.Destination, crate.Commodity))
+            {
+                throw new ArgumentException(Invariant(
+                    $"A crate of {crate.Commodity} for '{crate.Destination}' names item {crate.Item} of mission {mission.Id}, which is {item.Commodity} for '{stop.Destination}'."),
+                    nameof(Plan));
+            }
         }
 
+        // Per contract item (D68): an item's crates are its crate list, and no crate counts for another item of its kind.
         var needed = missions.Where(m => !m.Unplaced)
-            .SelectMany(m => m.Stops.Select(s => s.ToStop()).SelectMany(s => s.Items.Select(i =>
-                (Key: (m.Id, s.Destination, i.Commodity, Size: i.CrateSize), Count: i.Scu / (int)i.CrateSize))))
-            .GroupBy(c => c.Key)
-            .ToDictionary(g => g.Key, g => g.Sum(c => c.Count));
+            .SelectMany(m => m.Items.SelectMany((at, index) => at.Item.CrateList.Select(size =>
+                (m.Id, Item: index, at.Stop.Destination, at.Item.Commodity, Size: size))))
+            .GroupBy(key => key)
+            .ToDictionary(g => g.Key, g => g.Count());
         var placed = plan.Crates
-            .GroupBy(c => (c.Mission, c.Destination, c.Commodity, Size: c.CrateSize))
+            .GroupBy(c => (c.Mission, c.Item, c.Destination, c.Commodity, Size: c.CrateSize))
             .ToDictionary(g => g.Key, g => g.Count());
         foreach (var key in needed.Keys.Union(placed.Keys))
         {

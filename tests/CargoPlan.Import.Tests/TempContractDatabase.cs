@@ -28,7 +28,7 @@ internal sealed class TempContractDatabase : IDisposable
         using var connection = Open();
         using var contract = connection.CreateCommand();
         contract.CommandText = """
-            INSERT INTO "Contracts" ("Id", "Name", "CapturedAt", "RawOcrText") VALUES ($id, $name, $capturedAt, $raw)
+            INSERT INTO "Contracts" ("Id", "Name", "PickupLocation", "CapturedAt", "RawOcrText") VALUES ($id, $name, '', $capturedAt, $raw)
             """;
         contract.Parameters.AddWithValue("$id", id);
         contract.Parameters.AddWithValue("$name", name);
@@ -47,6 +47,17 @@ internal sealed class TempContractDatabase : IDisposable
             objective.Parameters.AddWithValue("$destination", destination);
             objective.ExecuteNonQuery();
         }
+    }
+
+    /// <summary>The pickup text of a contract row; <see cref="AddContract(long, string, string?, (int Amount, string Destination)[])"/> leaves it empty.</summary>
+    public void SetPickup(long id, string pickup)
+    {
+        using var connection = Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """UPDATE "Contracts" SET "PickupLocation" = $pickup WHERE "Id" = $id""";
+        command.Parameters.AddWithValue("$id", id);
+        command.Parameters.AddWithValue("$pickup", pickup);
+        command.ExecuteNonQuery();
     }
 
     /// <summary>A writing connection, e.g. to hold a lock while the reader tries to read.</summary>

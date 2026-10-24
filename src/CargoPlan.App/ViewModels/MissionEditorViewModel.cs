@@ -338,12 +338,14 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     {
         AttachRows();
 
-        // A blank new row, from the Add button or the data grid's new-item row, takes the max crate size of the row
-        // above: contracts of one board mostly share one. The crates by hand belong to their row and are not copied.
+        // A blank new row, from the Add button or the data grid's new-item row, takes the max crate size and the pickup
+        // of the row above: contracts of one board mostly share them (D23, D68). The crates by hand belong to their row
+        // and are not copied.
         if (e.Action == NotifyCollectionChangedAction.Add && e.NewItems is [MissionRow { IsBlank: true } added]
             && e.NewStartingIndex > 0)
         {
             added.MaxCrateSize = Rows[e.NewStartingIndex - 1].MaxCrateSize;
+            added.Pickup = Rows[e.NewStartingIndex - 1].Pickup;
         }
 
         Edited();

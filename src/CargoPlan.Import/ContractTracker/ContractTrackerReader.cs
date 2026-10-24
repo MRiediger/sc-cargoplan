@@ -37,6 +37,7 @@ public static class ContractTrackerReader
     [
         ("Contracts", "Id", "INTEGER"),
         ("Contracts", "Name", "TEXT"),
+        ("Contracts", "PickupLocation", "TEXT"),
         ("Contracts", "CapturedAt", "TEXT"),
         ("Contracts", "RawOcrText", "TEXT"),
         ("ContractObjectives", "Id", "INTEGER"),
@@ -142,20 +143,20 @@ public static class ContractTrackerReader
     {
         using var command = connection.CreateCommand();
         command.CommandText = """
-            SELECT c."Id", c."Name", c."CapturedAt", c."RawOcrText", o."Amount", o."Destination"
+            SELECT c."Id", c."Name", c."CapturedAt", c."RawOcrText", o."Amount", o."Destination", c."PickupLocation"
             FROM "Contracts" c LEFT JOIN "ContractObjectives" o ON o."ContractId" = c."Id"
             WHERE c."Id" > $lastId
             ORDER BY c."Id", o."Id"
             """;
         command.Parameters.AddWithValue("$lastId", lastId);
 
-        List<(long Id, string Name, string? CapturedAt, string? RawText, long? Amount, string? Destination)> rows = [];
+        List<(long Id, string Name, string? CapturedAt, string? RawText, long? Amount, string? Destination, string? Pickup)> rows = [];
         using (var reader = command.ExecuteReader())
         {
             while (reader.Read())
             {
                 rows.Add((reader.GetInt64(0), StringOrNull(reader, 1) ?? "", StringOrNull(reader, 2), StringOrNull(reader, 3),
-                          reader.IsDBNull(4) ? null : reader.GetInt64(4), StringOrNull(reader, 5)));
+                          reader.IsDBNull(4) ? null : reader.GetInt64(4), StringOrNull(reader, 5), StringOrNull(reader, 6)));
             }
         }
 
@@ -165,7 +166,7 @@ public static class ContractTrackerReader
             [
                 .. g.Where(r => r is { Amount: > 0 and <= int.MaxValue, Destination: not null })
                     .Select(r => ((int)r.Amount!.Value, r.Destination!)),
-            ])),
+            ], g.First().Pickup)),
         ];
     }
 
@@ -252,7 +253,7 @@ public static class ContractTrackerReader
         return new(
             [.. capture.Select(c => c.Id)],
             CapturedAt(first.CapturedAt),
-            Stops(usedFallback ? FallbackDeliveries(capture) : fromText, max),
+            Stops(usedFallback ? FallbackDeliveries(capture) : fromText, max, PickupsByCommodity(capture)),
             CrateSizeAssumed: max is null,
             UsedFallbackRows: usedFallback,
             parsed?.ListedDestinationCount,
@@ -273,21 +274,31 @@ public static class ContractTrackerReader
 
     /// <summary>
     /// One stop per place (<see cref="DestinationNames"/>) under its preferred name, one item per commodity, in the order
-    /// of the text.
+    /// of the text; each item with the pickup of its commodity's rows.
     /// </summary>
-    private static IReadOnlyList<MissionStop> Stops(IReadOnlyList<ParsedDelivery> deliveries, CrateSize? max) =>
+    private static IReadOnlyList<MissionStop> Stops(
+        IReadOnlyList<ParsedDelivery> deliveries, CrateSize? max, IReadOnlyDictionary<string, IReadOnlyList<string>?> pickups) =>
     [
         .. deliveries.GroupBy(d => d.Destination, DestinationNames.Comparer)
             .Select((stop, index) => new MissionStop(stop.Select(d => d.Destination).Aggregate(DestinationNames.Preferred), index + 1,
             [
                 .. stop.GroupBy(d => d.Commodity, StringComparer.OrdinalIgnoreCase)
-                    .Select(item => Item(item.First().Commodity, item.Sum(d => d.Scu), max)),
+                    .Select(item => Item(item.First().Commodity, item.Sum(d => d.Scu), max, pickups.GetValueOrDefault(item.Key))),
             ])),
     ];
 
     /// <summary>Without a size in the text: the largest crate that fits the SCU (T5.3), marked as assumed.</summary>
-    private static MissionItem Item(string commodity, int scu, CrateSize? max) =>
-        new(commodity, scu, max ?? CrateMix.Sizes.First(size => (int)size <= scu));
+    private static MissionItem Item(string commodity, int scu, CrateSize? max, IReadOnlyList<string>? pickup) =>
+        new(commodity, scu, max ?? CrateMix.Sizes.First(size => (int)size <= scu), Pickup: pickup);
+
+    /// <summary>
+    /// The pickup per commodity (D68): a contract row is one commodity (D38), its pickup text split at "/" and normalized
+    /// as the editor does (<see cref="Pickups.Parse"/>), the OCR text itself unchanged. Several pickups are joined with
+    /// " / " in that text, without amounts, so the item gets the list. Rows of one commodity share theirs.
+    /// </summary>
+    private static Dictionary<string, IReadOnlyList<string>?> PickupsByCommodity(IReadOnlyList<Contract> capture) =>
+        capture.GroupBy(c => ContractText.NormalizeCommodity(c.Name), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => Pickups.Normalized(g.SelectMany(c => Pickups.Parse(c.Pickup) ?? [])), StringComparer.OrdinalIgnoreCase);
 
     /// <summary>ContractTracker writes UTC without a marker (D38).</summary>
     private static DateTimeOffset? CapturedAt(string? text) =>
@@ -297,5 +308,5 @@ public static class ContractTrackerReader
             : null;
 
     private sealed record Contract(
-        long Id, string Name, string? CapturedAt, string? RawText, IReadOnlyList<(int Amount, string Destination)> Objectives);
+        long Id, string Name, string? CapturedAt, string? RawText, IReadOnlyList<(int Amount, string Destination)> Objectives, string? Pickup);
 }

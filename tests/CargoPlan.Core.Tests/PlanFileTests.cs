@@ -33,8 +33,8 @@ public class PlanFileTests
     /// <summary>The split-and-shared plan as schema 2 wrote it.</summary>
     private static string V2Text() => FixtureText(V2FixtureName);
 
-    /// <summary>The split-and-shared plan as schema 3 writes it.</summary>
-    private static string V3Text() => Written(Planned(MissionFixtures.SplitAndSharedMissions));
+    /// <summary>The split-and-shared plan as schema 4 writes it.</summary>
+    private static string V4Text() => Written(Planned(MissionFixtures.SplitAndSharedMissions));
 
     /// <summary>
     /// Riker 12 Titanium typed, a capture of Shubin 8 Quartz with an assumed crate size, one of three listed
@@ -141,11 +141,11 @@ public class PlanFileTests
     }
 
     [Fact]
-    public void Write_produces_camel_case_schema_3_with_missions_watermark_and_crate_positions()
+    public void Write_produces_camel_case_schema_4_with_missions_watermark_and_crate_positions()
     {
         var node = JsonNode.Parse(Written(Planned(MissionFixtures.LoadMissions("example_missions"))))!;
 
-        node["schemaVersion"]!.GetValue<int>().Should().Be(3);
+        node["schemaVersion"]!.GetValue<int>().Should().Be(4);
         node["shipId"]!.GetValue<string>().Should().Be("hull_a");
         node["fillOrder"]!.GetValue<string>().Should().Be("bowFirst");
         node["contractTrackerWatermark"]!.GetValue<long>().Should().Be(0);
@@ -157,6 +157,7 @@ public class PlanFileTests
         mission["stops"]![0]!["items"]![0]!["maxCrateSize"]!.GetValue<int>().Should().Be(4);
 
         var crate = node["crates"]![0]!;
+        crate["item"]!.GetValue<int>().Should().Be(0);
         crate["mission"]!.GetValue<int>().Should().Be(1);
         crate["destination"]!.GetValue<string>().Should().Be("Riker");
         crate["commodity"]!.GetValue<string>().Should().Be("Titanium");
@@ -253,7 +254,7 @@ public class PlanFileTests
     }
 
     [Fact]
-    public void Schema_1_is_written_back_as_schema_3()
+    public void Schema_1_is_written_back_as_schema_4()
     {
         var saved = Read(V1FixtureText());
 
@@ -324,7 +325,7 @@ public class PlanFileTests
     }
 
     [Fact]
-    public void Schema_2_is_written_back_as_schema_3()
+    public void Schema_2_is_written_back_as_schema_4()
     {
         var saved = Read(V2Text());
 
@@ -340,7 +341,7 @@ public class PlanFileTests
     public void Read_loads_overlapping_crates_and_Validate_shows_them()
     {
         // Overlap and support are the player's business to see, not a broken file: the rack turns red.
-        var node = JsonNode.Parse(V3Text())!;
+        var node = JsonNode.Parse(V4Text())!;
         node["crates"]![1]!["position"] = node["crates"]![0]!["position"]!.DeepClone();
 
         var saved = Read(node.ToJsonString());
@@ -442,7 +443,7 @@ public class PlanFileTests
     {
         { "not json", "*plan.json*" },
         { "null", "*schemaVersion*" },
-        { """{ "schemaVersion": 4 }""", "*schemaVersion 4*expected 1 or 2 or 3*" },
+        { """{ "schemaVersion": 5 }""", "*schemaVersion 5*expected 1 or 2 or 3 or 4*" },
         { """{ "shipId": "hull_a" }""", "*schemaVersion*" },
     };
 
@@ -500,7 +501,7 @@ public class PlanFileTests
         ex.Message.Should().Contain("broken.json");
     }
 
-    /// <summary>One change to the schema 3 file each; the rest stays valid, so the change is what fails.</summary>
+    /// <summary>One change to the schema 4 file each; the rest stays valid, so the change is what fails.</summary>
     private static readonly Dictionary<string, Action<JsonNode>> V3Changes = new()
     {
         ["unknown_property"] = n => n["opacity"] = 0.5,
@@ -528,9 +529,9 @@ public class PlanFileTests
     [InlineData("missing_crate", "*Riker, Titanium: 3 of 4 crates of 4 SCU placed*")]
     [InlineData("contract_without_ids", "*at least one ContractTracker id*")]
     [InlineData("unknown_rack", "*rack-9*")]
-    public void Read_invalid_schema_3_plan_throws_PlanFormatException(string change, string expectedMessage)
+    public void Read_invalid_schema_4_plan_throws_PlanFormatException(string change, string expectedMessage)
     {
-        var node = JsonNode.Parse(V3Text())!;
+        var node = JsonNode.Parse(V4Text())!;
         V3Changes[change](node);
 
         var act = () => Read(node.ToJsonString(), "broken.json");
@@ -543,7 +544,7 @@ public class PlanFileTests
     [Fact]
     public void Schema_3_for_another_ship_loads_with_its_ship_id_and_missions()
     {
-        var node = JsonNode.Parse(V3Text())!;
+        var node = JsonNode.Parse(V4Text())!;
         node["shipId"] = "c2_hercules";
         node["crates"]![0]!["rackId"] = "rack-9";
 
@@ -568,7 +569,7 @@ public class PlanFileTests
     [Fact]
     public void Schema_3_for_another_ship_still_checks_the_crates_against_the_missions()
     {
-        var node = JsonNode.Parse(V3Text())!;
+        var node = JsonNode.Parse(V4Text())!;
         node["shipId"] = "c2_hercules";
         node["crates"]!.AsArray().RemoveAt(0);
 

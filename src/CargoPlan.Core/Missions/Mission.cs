@@ -24,6 +24,30 @@ public sealed record Mission(int Id, IReadOnlyList<MissionStop> Stops, ContractS
     public IEnumerable<(string Destination, string Commodity)> Deliveries =>
         Stops.SelectMany(s => s.Items.Select(i => (s.Destination, i.Commodity)));
 
+    /// <summary>
+    /// Every item with its stop, stops and items in list order: a crate names its item by the index here
+    /// (<see cref="Models.Crate.Item"/>, D68). Derived on every read.
+    /// </summary>
+    public IReadOnlyList<(MissionStop Stop, MissionItem Item)> Items => [.. Stops.SelectMany(s => s.Items.Select(i => (s, i)))];
+
+    /// <summary>The mission with item <paramref name="index"/> (<see cref="Items"/>) replaced; stops, id, source and state stay.</summary>
+    public Mission WithItem(int index, MissionItem item)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        var (stop, inStop) = (0, index);
+        while (inStop >= Stops[stop].Items.Count)
+        {
+            inStop -= Stops[stop].Items.Count;
+            stop++;
+        }
+
+        MissionItem[] items = [.. Stops[stop].Items];
+        items[inStop] = item;
+        MissionStop[] stops = [.. Stops];
+        stops[stop] = stops[stop] with { Items = items };
+        return new(Id, stops, Contract, Unplaced);
+    }
+
     private static IReadOnlyList<MissionStop> ValidatedStops(int id, IReadOnlyList<MissionStop> stops)
     {
         if (stops.Count == 0 || stops.Any(s => s.Items.Count == 0))

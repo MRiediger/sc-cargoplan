@@ -120,6 +120,8 @@
             </DataGrid.RowStyle>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Stop" Binding="{Binding StopNumber}" IsReadOnly="True" Width="Auto" />
+                <!-- Where the crates are collected, "A / B" (D68); before Source, so a row reads pickup → destination. -->
+                <DataGridTextColumn Header="Pickup" Binding="{Binding Pickup, UpdateSourceTrigger=PropertyChanged}" Width="2*" />
                 <!-- Where the row came from: "ct 37–38" for a ContractTracker capture, empty if typed (T5.4). -->
                 <DataGridTextColumn Header="Source" Binding="{Binding Source, Mode=OneTime}" IsReadOnly="True" Width="Auto" />
                 <DataGridTextColumn Header="Destination" Binding="{Binding Destination, UpdateSourceTrigger=PropertyChanged}" Width="2*" />

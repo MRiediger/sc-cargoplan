@@ -5,9 +5,10 @@ namespace CargoPlan.Core.Missions;
 
 /// <summary>
 /// File format of a contract item (schema version 2, D23). Crate sizes as SCU numbers; <see cref="Crates"/> is the
-/// optional override of the derived mix and left out when writing an item without one.
+/// optional override of the derived mix and left out when writing an item without one, as is <see cref="Pickup"/>
+/// (D68, optional, so no schema bump).
 /// </summary>
-internal sealed record MissionItemDto(string Commodity, int Scu, int MaxCrateSize, IReadOnlyList<int>? Crates = null)
+internal sealed record MissionItemDto(string Commodity, int Scu, int MaxCrateSize, IReadOnlyList<int>? Crates = null, IReadOnlyList<string>? Pickup = null)
 {
     public MissionItem ToMissionItem(string destination)
     {
@@ -31,7 +32,8 @@ internal sealed record MissionItemDto(string Commodity, int Scu, int MaxCrateSiz
 
         try
         {
-            return new MissionItem(Commodity, Scu, (CrateSize)MaxCrateSize, Crates?.Select(c => (CrateSize)c).ToList());
+            // Hand-written files may spell the places loosely; the item takes them as the editor does (A6).
+            return new MissionItem(Commodity, Scu, (CrateSize)MaxCrateSize, Crates?.Select(c => (CrateSize)c).ToList(), Pickups.Normalized(Pickup));
         }
         catch (ArgumentException ex)
         {
@@ -41,5 +43,5 @@ internal sealed record MissionItemDto(string Commodity, int Scu, int MaxCrateSiz
     }
 
     public static MissionItemDto FromMissionItem(MissionItem item) =>
-        new(item.Commodity, item.Scu, (int)item.MaxCrateSize, item.Crates?.Select(c => (int)c).ToList());
+        new(item.Commodity, item.Scu, (int)item.MaxCrateSize, item.Crates?.Select(c => (int)c).ToList(), item.Pickup);
 }

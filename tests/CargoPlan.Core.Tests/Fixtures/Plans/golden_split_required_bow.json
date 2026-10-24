@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
   "contractTrackerWatermark": 0,
@@ -40,7 +40,8 @@
         0
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -53,7 +54,8 @@
         0
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -66,7 +68,8 @@
         1
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -79,7 +82,8 @@
         1
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -92,7 +96,8 @@
         0
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     }
   ],
   "warnings": [

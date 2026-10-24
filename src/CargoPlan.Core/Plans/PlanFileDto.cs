@@ -7,8 +7,9 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Plans;
 
 /// <summary>
-/// File format of a plan file (schema version 3, docs/plan-format.md): the missions with their stops and where they came
-/// from (D42), every crate with its mission, rack and position (D24), and the ContractTracker watermark (D39 addendum).
+/// File format of a plan file (schema version 4, docs/plan-format.md): the missions with their stops and where they came
+/// from (D42), every crate with its mission and item (D68), rack and position (D24), and the ContractTracker watermark
+/// (D39 addendum). Schema 3 is the same without items: read, each crate given an item of its mission on reading.
 /// </summary>
 internal sealed record PlanFileDto(
     int SchemaVersion,
@@ -26,8 +27,14 @@ internal sealed record PlanFileDto(
     public SavedPlan ToSavedPlan(Ship ship)
     {
         Mission[] missions = [.. Missions.Select(m => m.ToMission())];
-        LoadPlan plan = new(ShipId, [.. Crates.Select(c => c.ToCrate())], [.. Warnings.Select(w => w.ToPlanWarning())], ParseFillOrder(FillOrder));
+        CheckItems(Crates, SchemaVersion);
+        IReadOnlyList<Crate> crates = [.. Crates.Select(c => c.ToCrate())];
+        if (SchemaVersion == PlanFile.ItemlessSchemaVersion)
+        {
+            crates = SavedPlan.WithItems(missions, crates, _ => false);
+        }
 
+        LoadPlan plan = new(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], ParseFillOrder(FillOrder));
         return new SavedPlan(missions, Checked(plan, ship), ContractTrackerWatermark);
     }
 
@@ -79,6 +86,22 @@ internal sealed record PlanFileDto(
 
         // Hints are derived anew: a plan from before D64 loses its route notes and shows what sits on what.
         return LoadPlanner.WithHints(plan, ship);
+    }
+
+    /// <summary>Every crate of schema 4 names its item; before schema 4 none does (D68).</summary>
+    /// <exception cref="ArgumentException">A crate breaks that.</exception>
+    internal static void CheckItems(IReadOnlyList<CrateDto> crates, int schemaVersion)
+    {
+        if (schemaVersion >= PlanFile.SupportedSchemaVersion && crates.FirstOrDefault(c => c.Item is null) is { } without)
+        {
+            throw new ArgumentException(Invariant($"A crate for '{without.Destination}' has no item, which schema {schemaVersion} requires."), nameof(Crates));
+        }
+
+        if (schemaVersion < PlanFile.SupportedSchemaVersion && crates.FirstOrDefault(c => c.Item is not null) is { } named)
+        {
+            throw new ArgumentException(Invariant(
+                $"A crate for '{named.Destination}' names an item, which is new in schema {PlanFile.SupportedSchemaVersion} (the file says {schemaVersion})."), nameof(Crates));
+        }
     }
 
     /// <summary>The embedded mission file of schema 1 and 2.</summary>

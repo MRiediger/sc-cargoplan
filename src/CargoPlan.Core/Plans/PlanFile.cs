@@ -11,8 +11,11 @@ namespace CargoPlan.Core.Plans;
 /// </summary>
 public static class PlanFile
 {
-    /// <summary>The version the writer writes: missions with ids, crates with missions (D42) and the watermark.</summary>
-    public const int SupportedSchemaVersion = 3;
+    /// <summary>The version the writer writes: missions with ids, crates with missions (D42) and items (D68), the watermark.</summary>
+    public const int SupportedSchemaVersion = 4;
+
+    /// <summary>Crates with missions but without items (D42); still read, items assigned on reading (D68), never written.</summary>
+    public const int ItemlessSchemaVersion = 3;
 
     /// <summary>Placements without positions; still read and laid out on reading, never written.</summary>
     public const int LegacySchemaVersion = 1;
@@ -20,10 +23,10 @@ public static class PlanFile
     /// <summary>Crates with positions, no missions (D24); still read, one mission per stop, never written.</summary>
     public const int PreviousSchemaVersion = 2;
 
-    private static readonly int[] ReadableSchemaVersions = [LegacySchemaVersion, PreviousSchemaVersion, SupportedSchemaVersion];
+    private static readonly int[] ReadableSchemaVersions = [LegacySchemaVersion, PreviousSchemaVersion, ItemlessSchemaVersion, SupportedSchemaVersion];
 
     /// <summary>
-    /// Reads a plan file for <paramref name="ship"/>, schema 1, 2 or 3. The stream is left open. A schema 2 or 3 plan for
+    /// Reads a plan file for <paramref name="ship"/>, schema 1 to 4. The stream is left open. A schema 2 to 4 plan for
     /// another ship loads with its own ship id and without the grid checks; the caller plans it anew (D59).
     /// </summary>
     /// <param name="sourceName">Shown in error messages, e.g. the file path.</param>

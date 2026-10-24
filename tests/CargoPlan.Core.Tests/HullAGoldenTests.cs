@@ -11,7 +11,9 @@ namespace CargoPlan.Core.Tests;
 /// Hull A plans stay byte-identical: every Hull A mission fixture in both fill orders, written as a plan file and compared
 /// with the golden file. A difference changes the layout of every route a player plans, so the golden files are never
 /// regenerated to make this pass, only with a decision that changes the planner's objective on purpose: D64 (no route
-/// order) regenerated crate_mix and hull_a_eight_stops and left the other three byte-identical.
+/// order) regenerated crate_mix and hull_a_eight_stops and left the other three byte-identical. D68 (plan schema 4)
+/// regenerated all ten for the format alone: apart from <c>schemaVersion</c> and each crate's <c>item</c> they are the
+/// files before, racks and positions unchanged.
 /// </summary>
 public class HullAGoldenTests
 {

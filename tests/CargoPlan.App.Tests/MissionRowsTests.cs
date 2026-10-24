@@ -350,4 +350,61 @@ public class MissionRowsTests
 
         row.MaxCrateSizeAssumed.Should().BeFalse();
     }
+
+    // --- Pickup (D68) ---
+
+    [Fact]
+    public void A_typed_pickup_becomes_the_items_list_of_places()
+    {
+        var row = Row("Everus Harbor", "Stims", "7", 4);
+        row.Pickup = " Lorville / Area18 /lorville ";
+
+        MissionRows.ToStops([row]).Stops[0].Items[0].Pickup.Should().Equal("Lorville", "Area18");
+    }
+
+    [Fact]
+    public void An_empty_pickup_is_none()
+    {
+        var row = Row("Riker", "Titanium", "4", 4);
+        row.Pickup = " / ";
+
+        MissionRows.ToStops([row]).Stops[0].Items[0].Pickup.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_row_with_only_a_pickup_is_blank()
+    {
+        // A new row takes the pickup of the row above, as it takes the max crate size: that alone is no mission yet.
+        MissionRow row = new() { Pickup = "Lorville" };
+
+        row.IsBlank.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Two_rows_of_one_kind_from_two_pickups_are_two_items_of_one_mission()
+    {
+        var lorville = Row("Riker", "Titanium", "8", 8);
+        lorville.Pickup = "Lorville";
+        var everus = Row("Riker", "Titanium", "8", 8);
+        everus.Pickup = "Everus Harbor";
+
+        var (missions, _) = MissionRows.ToMissions([lorville, everus], []);
+
+        missions.Single().Items.Select(i => i.Item.Pickup![0]).Should().Equal("Lorville", "Everus Harbor");
+    }
+
+    [Fact]
+    public void FromStops_shows_the_pickup_joined_with_a_slash_and_a_capture_without_one_empty()
+    {
+        MissionStop everus = new("Everus Harbor", 1, [new MissionItem("Stims", 7, CrateSize.Four, Pickup: ["A", "B", "C"])]);
+
+        MissionRows.FromStops([everus]).Single().Pickup.Should().Be("A / B / C");
+        MissionRows.FromMissions([Captured(1, 36, Stop("Shubin", "Stims"))], ["Shubin"]).Single().Pickup.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void The_pickup_is_input()
+    {
+        MissionRow.IsInput(nameof(MissionRow.Pickup)).Should().BeTrue();
+    }
 }

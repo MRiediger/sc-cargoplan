@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "shipId": "hull_a",
   "fillOrder": "sternFirst",
   "contractTrackerWatermark": 0,
@@ -121,7 +121,8 @@
         0
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -134,7 +135,8 @@
         0
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -147,7 +149,8 @@
         1
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -160,7 +163,8 @@
         1
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -173,7 +177,8 @@
         0
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 1
     },
     {
       "destination": "Riker",
@@ -186,7 +191,8 @@
         0
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 1
     },
     {
       "destination": "Shubin",
@@ -199,7 +205,8 @@
         0
       ],
       "delivered": false,
-      "mission": 2
+      "mission": 2,
+      "item": 0
     },
     {
       "destination": "Orison",
@@ -212,7 +219,8 @@
         0
       ],
       "delivered": false,
-      "mission": 3
+      "mission": 3,
+      "item": 0
     },
     {
       "destination": "Orison",
@@ -225,7 +233,8 @@
         0
       ],
       "delivered": false,
-      "mission": 3
+      "mission": 3,
+      "item": 0
     },
     {
       "destination": "Orison",
@@ -238,7 +247,8 @@
         1
       ],
       "delivered": false,
-      "mission": 3
+      "mission": 3,
+      "item": 0
     },
     {
       "destination": "Orison",
@@ -251,7 +261,8 @@
         1
       ],
       "delivered": false,
-      "mission": 3
+      "mission": 3,
+      "item": 1
     },
     {
       "destination": "Orison",
@@ -264,7 +275,8 @@
         1
       ],
       "delivered": false,
-      "mission": 3
+      "mission": 3,
+      "item": 1
     },
     {
       "destination": "Lorville",
@@ -277,7 +289,8 @@
         0
       ],
       "delivered": false,
-      "mission": 4
+      "mission": 4,
+      "item": 0
     },
     {
       "destination": "Lorville",
@@ -290,7 +303,8 @@
         0
       ],
       "delivered": false,
-      "mission": 4
+      "mission": 4,
+      "item": 0
     },
     {
       "destination": "Lorville",
@@ -303,7 +317,8 @@
         0
       ],
       "delivered": false,
-      "mission": 4
+      "mission": 4,
+      "item": 0
     },
     {
       "destination": "Lorville",
@@ -316,7 +331,8 @@
         0
       ],
       "delivered": false,
-      "mission": 4
+      "mission": 4,
+      "item": 0
     },
     {
       "destination": "Lorville",
@@ -329,7 +345,8 @@
         1
       ],
       "delivered": false,
-      "mission": 4
+      "mission": 4,
+      "item": 0
     },
     {
       "destination": "Lorville",
@@ -342,7 +359,8 @@
         1
       ],
       "delivered": false,
-      "mission": 4
+      "mission": 4,
+      "item": 0
     }
   ],
   "warnings": [

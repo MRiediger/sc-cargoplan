@@ -17,6 +17,7 @@ public sealed partial class MissionRow : ObservableObject
         MaxCrateSize = MissionRows.DefaultMaxCrateSize;
         Crates = "";
         CratesText = "";
+        Pickup = "";
     }
 
     [ObservableProperty]
@@ -32,6 +33,13 @@ public sealed partial class MissionRow : ObservableObject
     /// <summary>The contract's max crate size in SCU, picked from <see cref="MissionRows.MaxCrateSizes"/> (D23).</summary>
     [ObservableProperty]
     public partial int MaxCrateSize { get; set; }
+
+    /// <summary>
+    /// Where the item's crates are collected, typed as "A / B" (D68); empty = not known. Not part of <see cref="IsBlank"/>:
+    /// a new row takes it from the row above, like the max crate size.
+    /// </summary>
+    [ObservableProperty]
+    public partial string Pickup { get; set; }
 
     /// <summary>The mission the row belongs to in the overlay's plan (D42); null for a row not planned yet.</summary>
     public int? MissionId { get; init; }
@@ -80,5 +88,5 @@ public sealed partial class MissionRow : ObservableObject
 
     /// <summary>The properties the player types; the others are results.</summary>
     public static bool IsInput(string? propertyName) =>
-        propertyName is nameof(Destination) or nameof(Commodity) or nameof(Scu) or nameof(MaxCrateSize) or nameof(Crates);
+        propertyName is nameof(Destination) or nameof(Commodity) or nameof(Scu) or nameof(MaxCrateSize) or nameof(Crates) or nameof(Pickup);
 }

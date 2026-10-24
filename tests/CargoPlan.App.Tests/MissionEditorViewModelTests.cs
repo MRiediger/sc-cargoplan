@@ -161,6 +161,30 @@ public sealed class MissionEditorViewModelTests : IDisposable
     }
 
     [Fact]
+    public void A_new_row_takes_the_pickup_of_the_row_above()
+    {
+        // Contracts of one board mostly start at one pickup (D68), like the max crate size (D23).
+        var editor = new MissionEditorViewModel(EmptyOverlay());
+        Fill(editor.Rows[0], "Riker", "Titanium", "8", 8);
+        editor.Rows[0].Pickup = "Lorville";
+
+        editor.AddRowCommand.Execute(null);
+
+        editor.Rows[1].Pickup.Should().Be("Lorville");
+        editor.Rows[1].IsBlank.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Editing_a_pickup_marks_unplanned_changes()
+    {
+        var editor = new MissionEditorViewModel(OverlayWithPlan());
+
+        editor.Rows[0].Pickup = "Lorville";
+
+        editor.IsDirty.Should().BeTrue();
+    }
+
+    [Fact]
     public void A_row_added_by_the_data_grid_takes_the_max_crate_size_of_the_row_above_too()
     {
         var editor = new MissionEditorViewModel(EmptyOverlay());
@@ -462,7 +486,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
         overlay.Plan!.FillOrder.Should().Be(FillOrder.SternFirst);
         // The missions are the editor's rows (D42); the layout is the planner's.
-        overlay.Plan.Crates.Select(c => c with { Mission = 0 }).Should().Equal(LoadPlanner.Plan(overlay.Ship, stops, FillOrder.SternFirst).Crates);
+        overlay.Plan.Crates.Select(c => c with { Mission = 0, Item = 0 }).Should().Equal(LoadPlanner.Plan(overlay.Ship, stops, FillOrder.SternFirst).Crates);
         overlay.Plan.Crates.Select(c => c.Position).Should().NotEqual(
             LoadPlanner.Plan(overlay.Ship, stops, FillOrder.BowFirst).Crates.Select(c => c.Position), "the chosen end must make a difference");
     }

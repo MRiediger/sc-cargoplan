@@ -7,12 +7,15 @@ namespace CargoPlan.Core.Missions;
 /// Input, not model: the planner sees the <see cref="CargoItem"/>s of <see cref="ToCargoItems"/>.
 /// </summary>
 /// <param name="Crates">Override of the derived mix; null = <see cref="CrateMix.Decompose"/>.</param>
-public sealed record MissionItem(string Commodity, int Scu, CrateSize MaxCrateSize, IReadOnlyList<CrateSize>? Crates = null)
+/// <param name="Pickup">Where its crates are collected, without amounts (D68); null = not known. <see cref="Pickups.Normalized"/>.</param>
+public sealed record MissionItem(
+    string Commodity, int Scu, CrateSize MaxCrateSize, IReadOnlyList<CrateSize>? Crates = null, IReadOnlyList<string>? Pickup = null)
 {
     // Get-only (no init): a `with` expression skips the constructor and must not bypass validation.
     public int Scu { get; } = ValidatedScu(Scu);
     public CrateSize MaxCrateSize { get; } = ValidatedMax(MaxCrateSize);
     public IReadOnlyList<CrateSize>? Crates { get; } = ValidatedCrates(Scu, MaxCrateSize, Crates);
+    public IReadOnlyList<string>? Pickup { get; } = ValidatedPickup(Pickup);
 
     /// <summary>The crates of this item: the override if there is one, else the derived mix.</summary>
     public IReadOnlyList<CrateSize> CrateList => Crates ?? CrateMix.Decompose(Scu, MaxCrateSize);
@@ -32,7 +35,7 @@ public sealed record MissionItem(string Commodity, int Scu, CrateSize MaxCrateSi
     public MissionItem WithCrateList(IReadOnlyList<CrateSize> crates)
     {
         CrateSize[] sorted = [.. crates.OrderDescending()];
-        return new(Commodity, Scu, MaxCrateSize, sorted.SequenceEqual(CrateMix.Decompose(Scu, MaxCrateSize)) ? null : sorted);
+        return new(Commodity, Scu, MaxCrateSize, sorted.SequenceEqual(CrateMix.Decompose(Scu, MaxCrateSize)) ? null : sorted, Pickup);
     }
 
     private static int ValidatedScu(int scu)
@@ -52,5 +55,21 @@ public sealed record MissionItem(string Commodity, int Scu, CrateSize MaxCrateSi
         }
 
         return crates;
+    }
+
+    /// <summary>An empty list is no pickup; otherwise the list must already be normalized, the callers' boundary does that (A6).</summary>
+    private static IReadOnlyList<string>? ValidatedPickup(IReadOnlyList<string>? pickup)
+    {
+        if (pickup is null || pickup.Count == 0)
+        {
+            return null;
+        }
+
+        if (!pickup.SequenceEqual(Pickups.Normalized(pickup) ?? []))
+        {
+            throw new ArgumentException($"Pickup '{string.Join(Pickups.Separator, pickup)}' has a blank, untrimmed or repeated place.", nameof(Pickup));
+        }
+
+        return pickup;
     }
 }

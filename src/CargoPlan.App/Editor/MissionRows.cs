@@ -171,6 +171,7 @@ public static class MissionRows
         Scu = item.Scu.ToString(CultureInfo.InvariantCulture),
         MaxCrateSize = (int)item.MaxCrateSize,
         Crates = item.Crates is { } crates ? Format(crates) : "",
+        Pickup = Pickups.Text(item.Pickup),
         MissionId = mission?.Id,
         Source = MissionText.Source(mission?.Contract),
 
@@ -206,9 +207,10 @@ public static class MissionRows
         }
 
         var max = (CrateSize)row.MaxCrateSize;
+        var pickup = Pickups.Parse(row.Pickup);
         if (!row.IsCrateOverride)
         {
-            return (new MissionItem(commodity, scu, max), null);
+            return (new MissionItem(commodity, scu, max, Pickup: pickup), null);
         }
 
         if (ParseCrates(row.Crates) is not { } crates)
@@ -221,7 +223,7 @@ public static class MissionRows
             return (null, problem);
         }
 
-        return (new MissionItem(commodity, scu, max, [.. crates.Select(c => (CrateSize)c)]), null);
+        return (new MissionItem(commodity, scu, max, [.. crates.Select(c => (CrateSize)c)], pickup), null);
     }
 
     /// <summary>The crates column: an override normalised ("2 + 2+2" → "2+2+2") or as typed if it can't be read, else the derived mix.</summary>

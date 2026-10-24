@@ -476,6 +476,100 @@ public class ContractTrackerReaderTests
         return database;
     }
 
+    // --- Pickup (D68): ContractTracker's pickup text, split at "/", noise kept ---
+
+    [Fact]
+    public void The_pickup_of_a_capture_goes_to_its_items()
+    {
+        using var database = new TempContractDatabase();
+        AddStimsSplit(database);
+        database.SetPickup(32, "Everus Harbor");
+        database.SetPickup(33, "Everus Harbor");
+
+        var candidate = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Should().ContainSingle().Subject;
+
+        candidate.Stops.SelectMany(s => s.Items).Should().AllSatisfy(i => i.Pickup.Should().Equal("Everus Harbor"));
+    }
+
+    [Theory]
+    [InlineData("HUR-L1 Green Glade Station / HUR-L2 Faithful Dream Station", "HUR-L1 Green Glade Station|HUR-L2 Faithful Dream Station")]
+    [InlineData("Everus Harbor DROP OFF LOCATIONS (ANY ORDER)", "Everus Harbor DROP OFF LOCATIONS (ANY ORDER)")]
+    [InlineData("Everus H - Freight elevator at High Course Station", "Everus H - Freight elevator at High Course Station")]
+    [InlineData(" Everus Harbor /everus harbor/ ", "Everus Harbor")]
+    public void The_pickup_text_is_split_at_the_slash_and_otherwise_kept(string pickup, string expected)
+    {
+        // OCR noise stays as captured (D38): the player sees what ContractTracker read and corrects it in the editor.
+        using var database = new TempContractDatabase();
+        database.AddContract(36, "Stims", null, (4, "Thundering Express Station"));
+        database.SetPickup(36, pickup);
+
+        var item = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Single().Stops.Single().Items.Single();
+
+        item.Pickup.Should().Equal(expected.Split('|'));
+    }
+
+    [Fact]
+    public void An_empty_pickup_text_is_no_pickup()
+    {
+        using var database = new TempContractDatabase();
+        AddStimsSplit(database);
+
+        var candidate = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Single();
+
+        candidate.Stops.SelectMany(s => s.Items).Should().AllSatisfy(i => i.Pickup.Should().BeNull());
+    }
+
+    [Fact]
+    public void Each_commodity_of_a_capture_takes_the_pickup_of_its_row()
+    {
+        using var database = new TempContractDatabase();
+        var raw = ImportFixtures.RawText(ImportFixtures.IceAndFood);
+        database.AddContract(28, "Pressurized Ice", raw, (7, "Thundering Express Station"));
+        database.AddContract(29, "Processed Food", raw, (9, "Thundering Express Station"));
+        database.SetPickup(28, "Everus Harbor");
+        database.SetPickup(29, "Baijini Point");
+
+        var items = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Single().Stops.Single().Items;
+
+        items.Select(i => (i.Commodity, i.Pickup![0])).Should().Equal(("Pressurized Ice", "Everus Harbor"), ("Processed Food", "Baijini Point"));
+    }
+
+    [Fact]
+    public void Without_the_pickup_column_nothing_is_read()
+    {
+        using var database = new TempContractDatabase();
+        AddStimsSplit(database);
+        using (var connection = database.Open())
+        using (var rename = connection.CreateCommand())
+        {
+            rename.CommandText = "ALTER TABLE \"Contracts\" RENAME COLUMN \"PickupLocation\" TO \"Pickup\"";
+            rename.ExecuteNonQuery();
+        }
+
+        var result = ContractTrackerReader.ReadSince(database.Path, 0);
+
+        result.Candidates.Should().BeEmpty();
+        result.Notice.Should().Be(ContractTrackerReader.SchemaNotSupportedNotice);
+    }
+
+    [Fact]
+    public void A_retry_with_another_pickup_text_is_still_a_retry()
+    {
+        // D38: the same contract gave three pickup texts; the pickup is no part of the duplicate rule.
+        using var database = new TempContractDatabase();
+        database.AddContract(47, "Waste", ImportFixtures.RawText(ImportFixtures.WasteTornAboy), (9, "Everus Harbor aboy"));
+        database.AddContract(49, "Waste", ImportFixtures.RawText(ImportFixtures.WasteTornAboy), (9, "Everus Harbor aboy"));
+        database.SetPickup(47, "HUR-L4 Melodic Fields / HUR-L1 Green Glad");
+        database.SetPickup(49, "HUR-L4 Melodic Fiel");
+        var captures = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Select(c => c.ToCapture()).ToList();
+        var ship = ShipLoader.Load("hull_a");
+
+        var saved = ContractSync.Apply(new SavedPlan([], new LoadPlan(ship.Id, [], [])), ship, captures, null);
+
+        var duplicates = ContractSync.Duplicates(saved);
+        saved.Missions.Where(m => duplicates.Contains(m.Id)).Select(m => m.Contract!.ContractIds.Single()).Should().Equal(49);
+    }
+
     private static void AddStimsSplit(TempContractDatabase database)
     {
         // CT's rows for this capture: 2 + 1 destinations, byte-identical raw text, consecutive ids.

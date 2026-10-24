@@ -6,13 +6,16 @@ namespace CargoPlan.Core.Models;
 /// tells two crates of the same kind apart.
 /// </summary>
 /// <param name="Mission">Id of the mission the crate belongs to (D42); 0 in a plan without missions (planner, CLI).</param>
+/// <param name="Item">
+/// Index of its contract item in the mission's <c>Items</c> (D68), so two items of one kind stay two (another pickup);
+/// 0 in a plan without missions. Like the mission, checked against the missions by <c>SavedPlan</c>.
+/// </param>
 public sealed record Crate(
-    string Destination, string Commodity, CrateSize CrateSize, string RackId, GridPosition Position, bool Delivered = false, int Mission = 0)
+    string Destination, string Commodity, CrateSize CrateSize, string RackId, GridPosition Position, bool Delivered = false, int Mission = 0, int Item = 0)
 {
     // Get-only (no init): a `with` expression skips the constructor and must not bypass validation.
     public CrateSize CrateSize { get; } =
         Enum.IsDefined(CrateSize) ? CrateSize : throw new ArgumentOutOfRangeException(nameof(CrateSize), CrateSize, "Unknown crate size.");
-
     /// <summary>The cells the crate fills, in its only orientation (D9).</summary>
     public IEnumerable<GridPosition> Cells
     {

@@ -5,6 +5,7 @@
 CREATE TABLE "Contracts" (
     "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "Name" TEXT NOT NULL,
+    "PickupLocation" TEXT NOT NULL,
     "CapturedAt" TEXT NOT NULL,
     "RawOcrText" TEXT NULL
 );

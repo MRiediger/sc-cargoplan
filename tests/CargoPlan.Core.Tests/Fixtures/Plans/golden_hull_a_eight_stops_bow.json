@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
   "contractTrackerWatermark": 0,
@@ -150,7 +150,8 @@
         0
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -163,7 +164,8 @@
         0
       ],
       "delivered": false,
-      "mission": 2
+      "mission": 2,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -176,7 +178,8 @@
         0
       ],
       "delivered": false,
-      "mission": 2
+      "mission": 2,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -189,7 +192,8 @@
         1
       ],
       "delivered": false,
-      "mission": 2
+      "mission": 2,
+      "item": 0
     },
     {
       "destination": "Shubin",
@@ -202,7 +206,8 @@
         0
       ],
       "delivered": false,
-      "mission": 3
+      "mission": 3,
+      "item": 0
     },
     {
       "destination": "Shubin",
@@ -215,7 +220,8 @@
         0
       ],
       "delivered": false,
-      "mission": 3
+      "mission": 3,
+      "item": 0
     },
     {
       "destination": "Shubin",
@@ -228,7 +234,8 @@
         1
       ],
       "delivered": false,
-      "mission": 3
+      "mission": 3,
+      "item": 0
     },
     {
       "destination": "Orison",
@@ -241,7 +248,8 @@
         0
       ],
       "delivered": false,
-      "mission": 4
+      "mission": 4,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -254,7 +262,8 @@
         1
       ],
       "delivered": false,
-      "mission": 5
+      "mission": 5,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -267,7 +276,8 @@
         1
       ],
       "delivered": false,
-      "mission": 5
+      "mission": 5,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -280,7 +290,8 @@
         1
       ],
       "delivered": false,
-      "mission": 5
+      "mission": 5,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -293,7 +304,8 @@
         1
       ],
       "delivered": false,
-      "mission": 5
+      "mission": 5,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -306,7 +318,8 @@
         1
       ],
       "delivered": false,
-      "mission": 5
+      "mission": 5,
+      "item": 0
     },
     {
       "destination": "Area18",
@@ -319,7 +332,8 @@
         0
       ],
       "delivered": false,
-      "mission": 6
+      "mission": 6,
+      "item": 0
     },
     {
       "destination": "Area18",
@@ -332,7 +346,8 @@
         0
       ],
       "delivered": false,
-      "mission": 6
+      "mission": 6,
+      "item": 1
     },
     {
       "destination": "Area18",
@@ -345,7 +360,8 @@
         0
       ],
       "delivered": false,
-      "mission": 6
+      "mission": 6,
+      "item": 1
     },
     {
       "destination": "Port Tressler",
@@ -358,7 +374,8 @@
         0
       ],
       "delivered": false,
-      "mission": 7
+      "mission": 7,
+      "item": 0
     },
     {
       "destination": "Port Tressler",
@@ -371,7 +388,8 @@
         1
       ],
       "delivered": false,
-      "mission": 7
+      "mission": 7,
+      "item": 0
     },
     {
       "destination": "Seraphim",
@@ -384,7 +402,8 @@
         1
       ],
       "delivered": false,
-      "mission": 8
+      "mission": 8,
+      "item": 0
     }
   ],
   "warnings": [
