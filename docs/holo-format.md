@@ -86,3 +86,25 @@ outline (D62).
 **Withdrawal:** a ship removed from the manifest is withdrawn; an app deletes its cached file and shows the outline.
 A manifest that can't be fetched (offline, timeout, a moment without the file while it is replaced) withdraws
 nothing: the app keeps its cache.
+
+**Withdrawing everything:** publish a manifest with an empty `ships` list. Don't delete the manifest: a 404 reads as
+"can't be fetched" and keeps every cache.
+
+## Reading side (SC-CargoPlan)
+
+How the overlay gets and uses the files (D63). The overlay's only network access.
+
+- **Requests:** plain HTTPS GETs of `https://github.com/MRiediger/sc-cargoplan/releases/download/holo-v1/<file>`
+  (GitHub redirects to its asset host), User-Agent `SC-CargoPlan/<version>`, 5 s per request. Any 2xx answer is
+  taken; a file is kept only if its length and SHA256 match the manifest. Nothing else is sent, no API, no token.
+- **Cache:** `%LocalAppData%\SC-CargoPlan\holo\holo-v1\`, one `<slug>.holo` per ship and the last `manifest.json`.
+- **Manifest:** a cached copy younger than 24 hours is used without a request; otherwise the app asks once per run,
+  when it first needs a hologram. A manifest fetched now or within those 24 hours withdraws ships it doesn't list; an
+  older one only stands in while the release can't be reached.
+- **A ship's file:** taken from the cache when its hash matches the manifest, else downloaded. Without any manifest
+  (offline on the first run) a cached file is shown, it was checked when it was written.
+- **Downloads off** (`downloadShipHolograms: false`): no request at all; cached files still show.
+- **Reading:** every rule of [File](#file) is checked (`HoloReader`); a file that breaks one shows the outline.
+- **Failures** end in the outline; the first of a run names its reason in the overlay's notice line.
+- **Drawing:** metres ÷ 1.25 = cells, the middle of the bounds on the middle of the racks in x, y and z; the looks
+  and the hidden-line levels by zoom (level 1 below 1.5×, 2 below 3×, 3 from 3×) are described in D63.

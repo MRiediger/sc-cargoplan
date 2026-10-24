@@ -45,7 +45,8 @@ The overlay draws your ship's cargo racks as boxes, at first seen from the front
 the bow points to the lower left, the port side faces you. Under the racks lies your ship's outline seen from above, so
 you can tell bow, sides and shape at a glance; it is a backdrop scaled to the racks, not a scale drawing, and doesn't
 say where a rack sits in the hull. A ship without an outline shows a wedge in front of the racks instead, with "Bow" on
-its floor. Turn and tilt the ship until it looks the way you see the hold, even from below for racks under the hull.
+its floor. Instead of the outline the ship's 3D hologram can stand behind the racks, true to scale (**Ship view** in the
+[settings](#settings-and-your-look)). Turn and tilt the ship until it looks the way you see the hold, even from below for racks under the hull.
 Each rack shows its number on its largest visible face. Long ships (more than twice as long as wide, such as the C2,
 the Caterpillar or the Hull C) start seen from the port side with the length almost level, and the view shows the racks
 that hold cargo; the empty racks further aft are dimmed and come into view when you zoom out. Their numbers stand above
@@ -314,8 +315,15 @@ windows, Hotkeys and ContractTracker have none (their defaults are "follow Windo
 - **Header:** the colour of the ship name and the glyphs (pencil, gear, split, merge, exit, padlock), and a halo around
   the ship name.
 - **Buttons:** background, frame and rounded corners of the glyph buttons, and a halo around the glyphs.
-- **Ship view:** **Ship outline** shows the ship's outline under the racks (the default) or **None**: racks and frame
-  only, without any mark of the bow.
+- **Ship view:** **Backdrop** shows the ship's outline under the racks (the default), its hologram in one of three
+  looks (shaded, flat, hidden line), or **None**: racks and frame only, without any mark of the bow. The hologram is
+  true to scale and the view fits all of it, so on a long ship the crates come out smaller than with the outline.
+  **Hologram opacity** (10–100 %, default 40 %) sets how strongly it shows. **Download ship holograms:** ship
+  holograms are an optional download from this repository's releases; they derive from game models and may be
+  withdrawn on request – the app checks at most once a day. Off means no network access at all; holograms already
+  downloaded stay. Until a hologram is there, and when it can't be fetched, the outline shows; the first failure of a
+  run says why in an amber line. Known limits: on some long ships the rack row reaches out of the hull (Caterpillar);
+  the Hull C, D and E show their cargo in the hologram; a hologram look takes about 40–50 MB more memory.
 - **Tool windows:** light, dark or follow Windows for the settings window and the mission editor; the overlay keeps the
   look you set above.
 - **Hotkeys:** see [Hotkeys](#hotkeys).
@@ -333,11 +341,12 @@ for a bug report.
 
 ## Where your data lives
 
-Both files are in `%LocalAppData%\SC-CargoPlan\` and are saved as soon as something changes.
+The files are in `%LocalAppData%\SC-CargoPlan\`; settings and plan are saved as soon as something changes.
 
 | File | What | Deleting it (overlay closed) |
 |---|---|---|
 | `settings.json` | Overlay position and size, hotkeys, look, tool window theme, ContractTracker path and auto-sync ([format](settings-format.md)) | Default size, position and look, no hotkeys, ContractTracker detected automatically. Your plan stays. |
+| `holo\holo-v1\` | Ship holograms you downloaded, one file per ship, and the list of them ([format](holo-format.md)). | Downloaded again when you pick the ship, if downloads are on. |
 | `plan.json` | Your current plan: the missions you entered or captured, which crate lies where in which rack, ticks ([format](plan-format.md)). The editor opens with these missions. A plan file from an older version is converted when the overlay loads it and saved in the new format; your ticks stay. | The overlay starts without a plan. Your settings stay. |
 
 If a file can't be read, the overlay starts without it and says so in an amber line. A single setting out of range or a

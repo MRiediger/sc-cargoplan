@@ -1119,7 +1119,7 @@ offen ist, zählte sonst über seinen eigenen Rand); Achswahl per IoU über beid
 - `docs/holo-format.md` neu (SCH2, Hidden-Line-Regel, Manifest). sc-cargoplan sonst unverändert: kein Code, kein
   App-Lauf, AppData unberührt.
 
-### [ ] T7.4c-2 Holo-Kulisse in der App (D63) – vor T7.5, vor dem Tag
+### [x] T7.4c-2 Holo-Kulisse in der App (D63) – vor T7.5, vor dem Tag
 - Aus T7.4b: Look wählbar (shaded, flat, hiddenline) neben dem Umriss, Keil bleibt Fallback, über `Viewport3D` hinter der
   Schiffsansicht, Maßstab 1:1, ganzes Holo im Fit.
 - Leser in Core nach `docs/holo-format.md` (WPF-frei, Tests vor dem Code); flat trennt Vertices pro Dreieck, shaded an den
@@ -1136,6 +1136,35 @@ offen ist, zählte sonst über seinen eigenen Rand); Achswahl per IoU über beid
   p95 ≤ 16 ms. AppData vor Scratch-Läufen sichern und per Hash zurück.
 - Ein Satz in README und User Guide: „Ship holograms are an optional download; they derive from game models and may be
   withdrawn on request.“
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Gate-3-Schiff ist die Centaurus mit 50,8 k (nicht ein
+40-k-Schiff); über 40 k liegt nur sie, als Override im Pipeline-Repo festgehalten (`overrides.json`, `run-all.ps1`
+meldet jedes Schiff über 110 % ohne Eintrag, `TOOLS.md`; T7.4c-1-Nachtrag a406e95, Doppellauf byte-gleich), die
+Ironclad Assault (40.025) liegt in der 110-%-Toleranz. Schalter aus = kein Netz, gecachte Holos bleiben sichtbar
+(„Already downloaded holograms stay.“); Rückzug = Stopp der Verbreitung. Manifest jünger als 24 h = kein Abruf, sonst
+ein Versuch pro Lauf; Rückzug nur durch ein Manifest von jetzt oder aus den 24 h; Kill-Switch = leere `ships`-Liste.
+Jede 2xx-Antwort, Länge und SHA256 entscheiden. User-Agent ohne Commit-Hash. z: Mitte auf Mitte. Fit zeigt das ganze
+Holo. Linien als kamerazugewandte Streifen. Liste heißt „Backdrop“. Umriss-Vergleich per Scratch-Harness. Beim Bau:
+`Holo` der VM nur bei Holo-Look und passendem Schiff, Mesh im Speicher für Look-Wechsel, `ShipViewChanged`-Event der
+Session; nach dem Look-Gate (Martin) Deckkraft als Regler `holoOpacity` (0,1–1, Standard 0,4) im Deckkraft-Commit.
+
+**Befund:**
+
+| Schritt | Messung | Ergebnis |
+|---|---|---|
+| Leser gegen holo-v1 | alle 117 Dateien, Länge und SHA256 gegen das Manifest | 117 / 117 |
+| Aufbereitung Centaurus | `long`-Hash (a ^ b) kollidierte | 2 s → 18–35 ms (Fibonacci-Mischung) |
+| Umriss-Modus | Overlay offscreen, Hull A, C2, Caterpillar, Centaurus, vor und nach T7.4c-2 | byte-gleich |
+| Kamera | WPF-Projektion gegen `IsoProjection` + `ViewTransform`, vier Kameras | 1e-6 |
+| Download echt | Manifest + Hull A kalt / Centaurus / Cache | 1,2 s / 413 ms / 6 ms |
+| Gate 3 mit SC (Martin) | Centaurus, hiddenline, Orbit 12°/s, je 30 s | Zoom 1: Δ +0,12 ms, p95 3,31 ms; Zoom 3: Δ +4,10 ms, p95 11,07 ms, im Spiel flüssig → grün nach Martins Urteil; shaded/flat 1,56/1,55 ms; RAM hiddenline +41 MB |
+| Look-Gate (Martin) | Farben, z-Lage, „Backdrop“, Deckkraft | grün, Deckkraft 0,4 als Regler |
+
+- Die Kosten bei Zoom hängen an der Kantenzahl, nicht an den Dreiecken (fast jedes Schiff hat 15.000 Kanten auf
+  Stufe 3; Streifenbau Hull A 2,09 ms, Centaurus 1,80 ms): Die vorab geplante Rot-Regel hätte das falsche Schiff getroffen.
+- Tests: 2.146 grün (Core 954, Import 119, App 1.073), mit synthetischem SCH2 und Fake-Handler; zwei absichtliche
+  Fehler im Download-Code fängt die Suite. Kein neues NuGet-Paket. AppData in keinem Scratch-Lauf berührt.
+- Commits ab4acbb, de96e92, 31541bf, 8c7a123 und dieser; Pipeline a406e95. Martin pusht.
+
 ### [ ] T7.5 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
 - Known issue (aus T7.2, D59; T7.2b: Wechsel jetzt im Overlay): „On ships with large racks and many small crates, Plan or a ship change can take a few seconds. The overlay doesn’t respond meanwhile.“
 - Reihenfolge (23.10.2026): Umriss vor Doku, T7.4 und T7.5 getauscht (D55-Addendum). Die Screenshots zeigen den Endzustand, Doku zuletzt vermeidet einen dritten Tausch. Präzisierung in der Planphase, ratifiziert durch Freigabe.

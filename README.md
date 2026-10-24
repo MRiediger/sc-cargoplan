@@ -142,7 +142,11 @@ More: [user guide – settings](docs/user-guide.md#settings-and-your-look),
 ## Credits
 
 - [ContractTracker](https://www.nexusmods.com/starcitizen/mods/34) by Yuiki captures the contracts. SC-CargoPlan only
-  reads its local database, never writes it, and sends nothing anywhere.
+  reads its local database, never writes it, and sends none of it anywhere.
+- Ship holograms are an optional download from this repository's releases; they derive from game models and may be
+  withdrawn on request – the app checks at most once a day. Turn downloads off under Settings → Ship view; holograms
+  already downloaded stay. They come from [Fleetyards](https://fleetyards.net)' holo models of CIG's ships; the
+  release's `NOTICE.md` has the details.
 - The stop colours are the [Okabe-Ito palette](https://jfly.uni-koeln.de/color/) (Color Universal Design), chosen to
   stay apart with colour blindness.
 

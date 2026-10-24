@@ -3,13 +3,13 @@
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
 the legend stands, the overlay's look, the tool windows' theme, where ContractTracker is, your ship and the ships you chose last. Position and size
 are saved whenever you move the overlay; the settings window (the gear in the header) sets and saves the look,
-the legend layout, the ship outline, the tool window theme, the hotkeys and the ContractTracker settings; the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
+the legend layout, the ship view (outline or hologram, its opacity, hologram downloads), the tool window theme, the hotkeys and the ContractTracker settings; the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
 the overlay again.
 
 ## Example with every default
 
-Without a file, or without `ship`, `recentShips`, `legend`, `shipOutline`, `toolWindowTheme`, `contractTracker` and
-`appearance`, the overlay uses exactly these values.
+Without a file, or without `ship`, `recentShips`, `legend`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`,
+`toolWindowTheme`, `contractTracker` and `appearance`, the overlay uses exactly these values.
 
 ```json
 {
@@ -20,6 +20,8 @@ Without a file, or without `ship`, `recentShips`, `legend`, `shipOutline`, `tool
   "hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": null, "replan": null },
   "legend": { "visible": true, "position": "bottom-left" },
   "shipOutline": "outline",
+  "downloadShipHolograms": true,
+  "holoOpacity": 0.4,
   "toolWindowTheme": "system",
   "contractTracker": { "path": null, "autoSync": true },
   "appearance": {
@@ -101,7 +103,7 @@ before it was a setting; Windows sets it, often 11 or 12). A number overrides it
 overlay small, so that a number would be taller than its rack, does it shrink with the racks, down to 12.
 The "Bow" label lies flat on the floor of the bow wedge, its capitals as tall on the screen as the rack
 numbers' digits, shrinking included; only where the floor has no room for that does it stay smaller. Only a ship without
-an outline has the wedge and the label (see [Ship outline](#ship-outline)).
+an outline has the wedge and the label (see [Ship view](#ship-view)).
 
 **Alpha at least `01`:** the overlay passes clicks on fully transparent pixels to the window below. With a
 background of alpha `00`, you could no longer move the overlay or press a button, so the overlay uses `01`
@@ -144,17 +146,29 @@ right drag the selection.
 
 Ticking a destination off never moves the ship view, in any position.
 
-## Ship outline
+## Ship view
 
-`shipOutline` sets what marks the bow in the ship view. It sits at the top level, so the crates' **Reset to defaults**
-never switches it; the settings window's **Ship view** section has a reset of its own.
+`shipOutline` sets what lies behind the racks in the ship view; `holoOpacity` and `downloadShipHolograms` go with it.
+All three sit at the top level, so the crates' **Reset to defaults** never switches them; the settings window's
+**Ship view** section has a reset of its own.
 
-| Value | What |
+| `shipOutline` | What |
 |---|---|
 | `"outline"` | The ship's outline seen from above, under the racks: bow, sides and shape. A ship without an outline in `outlines/ship-outlines.json` shows the bow wedge with "Bow" on its floor. The default. |
+| `"holo-shaded"` | The ship's 3D hologram behind the racks, true to scale, softly lit from the camera. Until it is there, and for a ship without one, the outline. |
+| `"holo-flat"` | The same, every face in one shade. |
+| `"holo-hiddenline"` | The same as a dark hull with its visible edges as lines; zooming in shows more edges (from 1.5× and 3×). |
 | `"none"` | Racks and frame only, no outline, no wedge, no label. |
 
 Lower case only. Missing or `null` means `"outline"`; any other text means `"outline"` too, with a notice.
+
+`holoOpacity` is the hologram's opacity, from `0.1` to `1`; missing means `0.4`. A value outside is clamped, with a
+notice.
+
+`downloadShipHolograms`: `true` (the default) lets a hologram look download the ship's file from this repository's
+release `holo-v1` on GitHub when you pick a ship, one file per ship, and the list of files at most once a day. Nothing
+else is sent. `false` means no network access at all; holograms already downloaded still show. They are kept in
+`%LocalAppData%\SC-CargoPlan\holo\holo-v1\` ([format](holo-format.md)).
 
 ## Tool window theme
 
@@ -227,7 +241,7 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `ship`, `recentShips` and `shipOutline` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms` and `holoOpacity` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a

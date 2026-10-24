@@ -52,6 +52,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 | Tests | **xUnit** + `AwesomeAssertions` | Standard im .NET-Ökosystem. AwesomeAssertions ist der Apache-2.0-Fork von FluentAssertions (ab v8 kommerziell lizenziert). |
 | Click-through | Win32 `SetWindowLongPtrW` schaltet `WS_EX_TRANSPARENT` via `[LibraryImport]`, HWND aus `WindowInteropHelper`; `WS_EX_LAYERED` setzt WPF selbst (D11) | Keine Lib nötig. |
 | Hotkeys | Win32 `RegisterHotKey` + `HwndSource.AddHook` für `WM_HOTKEY` | Global, auch wenn das Spiel den Fokus hat, keine Lib. |
+| Netz | **Einziger Netzzugriff:** `HoloSource` (App) lädt Schiffs-Hologramme per BCL-`HttpClient`, nur GET auf die Release-Assets `releases/download/holo-v1/`, Manifest höchstens einmal am Tag, Schalter `downloadShipHolograms` (D63) | Hologramme stammen aus CIG-Modellen und müssen zurückziehbar sein: eigenes Daten-Release statt ZIP oder Repo. Jeder weitere Netzzugriff braucht einen eigenen D-Eintrag. |
 | Distribution | `build/publish.ps1` → App + Cli self-contained `win-x64` in **einem Ordner** (`out/publish/SC-CargoPlan`, 137 MB, 358 Dateien inkl. `ships/` und `outlines/`), **ein ZIP (~59 MB)** mit SHA256; kein Single-File, kein pubxml, Satellites nur `en` (D46, D48, D49, D50) | Nutzer sollen nichts installieren müssen; Hauler haben .NET 8, nicht 10. WPF kann nicht getrimmt werden. |
 | CI/CD | GitHub Actions, `windows-latest`, Release bei Git-Tag | Niemand baut von Hand. |
 | Lizenz | **MIT** | Maximale Verbreitung. |
@@ -71,10 +72,10 @@ sc-cargoplan/
 ├── outlines/                      # ship-outlines.json + NOTICE.md (nicht MIT), neben die Exe kopiert, Zuordnung per fleetyardsSlug (D55, D62)
 ├── tools/import-fleetyards.ps1    # Fleetyards-Export → ships/ (Abgleich, -Create, -Force <id>), Export bleibt außerhalb (T7.1b)
 ├── src/
-│   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader (liest ships/ und outlines/ neben der Exe)
+│   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader (liest ships/ und outlines/ neben der Exe), Holo-Leser SCH2 (D63)
 │   ├── CargoPlan.Import/          # net10.0 – ContractTracker SQLite-Reader
 │   ├── CargoPlan.Cli/             # net10.0 – Plan im Terminal ausgeben (Debugging ohne UI)
-│   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Win32-Interop
+│   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Win32-Interop, Holo-Download und -Cache (einziger Netzzugriff, D63)
 ├── tests/
 │   ├── CargoPlan.Core.Tests/
 │   └── CargoPlan.Import.Tests/
