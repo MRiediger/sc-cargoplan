@@ -6,6 +6,9 @@ public sealed class ShipOutlineModeTests
 {
     [Theory]
     [InlineData("outline", ShipOutlineMode.Outline)]
+    [InlineData("holo-shaded", ShipOutlineMode.HoloShaded)]
+    [InlineData("holo-flat", ShipOutlineMode.HoloFlat)]
+    [InlineData("holo-hiddenline", ShipOutlineMode.HoloHiddenline)]
     [InlineData("none", ShipOutlineMode.None)]
     public void Every_name_parses_and_writes_back_the_same(string text, ShipOutlineMode expected)
     {
@@ -16,9 +19,9 @@ public sealed class ShipOutlineModeTests
     }
 
     [Fact]
-    public void Names_are_the_two_modes_outline_first()
+    public void Names_are_the_five_modes_outline_first()
     {
-        ShipOutlineModes.Names.Should().Equal("outline", "none");
+        ShipOutlineModes.Names.Should().Equal("outline", "holo-shaded", "holo-flat", "holo-hiddenline", "none");
         ShipOutlineModes.DefaultName.Should().Be("outline");
     }
 
@@ -26,6 +29,8 @@ public sealed class ShipOutlineModeTests
     [InlineData("prism")]
     [InlineData("")]
     [InlineData("Outline")] // strict like the keys: lower case only
+    [InlineData("holoshaded")] // the enum's name lower-cased
+    [InlineData("holo-x")]
     [InlineData("1")]       // Enum.TryParse would take a number
     public void Anything_else_is_not_a_mode(string text)
     {
@@ -48,6 +53,14 @@ public sealed class ShipOutlineModeTests
         var (mode, problems) = AppearanceRules.NormalizeShipOutline("prism");
 
         mode.Should().Be("outline");
-        problems.Should().Equal("shipOutline \"prism\" is not valid (outline or none), using outline.");
+        problems.Should().Equal("shipOutline \"prism\" is not valid (outline, holo-shaded, holo-flat, holo-hiddenline or none), using outline.");
     }
+
+    [Theory]
+    [InlineData(ShipOutlineMode.Outline, false)]
+    [InlineData(ShipOutlineMode.HoloShaded, true)]
+    [InlineData(ShipOutlineMode.HoloFlat, true)]
+    [InlineData(ShipOutlineMode.HoloHiddenline, true)]
+    [InlineData(ShipOutlineMode.None, false)]
+    public void The_three_hologram_looks_are_holograms(ShipOutlineMode mode, bool hologram) => mode.IsHologram().Should().Be(hologram);
 }

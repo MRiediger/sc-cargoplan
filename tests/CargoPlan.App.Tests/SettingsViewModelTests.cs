@@ -572,6 +572,6 @@ public sealed class SettingsViewModelTests
     public void The_ship_outline_choices_are_every_mode_in_the_file_order_with_player_words()
     {
         SettingsViewModel.ShipOutlineChoices.Select(c => ShipOutlineModes.ToName(c.Value)).Should().Equal(ShipOutlineModes.Names);
-        SettingsViewModel.ShipOutlineChoices.Select(c => c.Text).Should().Equal("Outline", "None");
+        SettingsViewModel.ShipOutlineChoices.Select(c => c.Text).Should().Equal("Outline", "Hologram – shaded", "Hologram – flat", "Hologram – hidden line", "None");
     }
 }

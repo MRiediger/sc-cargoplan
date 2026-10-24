@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using CargoPlan.App.ContractTracker;
 using CargoPlan.App.Editor;
+using CargoPlan.App.Holo;
 using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Plans;
 using CargoPlan.App.Settings;
@@ -34,6 +35,11 @@ public partial class App : Application
 
     // Same here: its timer and watcher keep it alive until the overlay closes.
     private ContractTrackerSync? _contractTracker;
+
+    // The holograms (D63): the overlay's only network access. One HttpClient for the whole run, not disposed when the
+    // overlay closes: a fetch still running would then hit a disposed client; the process ends right after.
+    // Source: https://learn.microsoft.com/dotnet/fundamentals/networking/http/httpclient-guidelines
+    private HoloLoader? _holoLoader;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -125,6 +131,23 @@ public partial class App : Application
                 session.ChangeShip(viewModel.Ship.Id, viewModel.RecentShips);
             }
         };
+
+        // The hologram of the ship and look (D63): once the overlay is up, on a ship change, on a new look or switch.
+        // Every request cancels the one before; the outline shows until the hologram is there.
+        var holoLoader = _holoLoader = new HoloLoader(viewModel, HoloSource.CreateDefault());
+        overlay.Loaded += async (_, _) => await RequestHologram();
+        session.ShipViewChanged += async (_, _) => await RequestHologram();
+        viewModel.PropertyChanged += async (_, e) =>
+        {
+            if (e.PropertyName == nameof(OverlayViewModel.Ship))
+            {
+                await RequestHologram();
+            }
+        };
+
+        // Handlers are async void (CLAUDE.md: event handlers only); the loader ends every expected failure in the
+        // outline and a notice, anything else is a bug and surfaces.
+        Task RequestHologram() => holoLoader.RequestAsync(viewModel.Ship, session.ShipOutline, session.DownloadShipHolograms);
 
         // Overlay first: the lock window's Owner must be a window that has been shown.
         overlay.Show();

@@ -49,7 +49,7 @@ public sealed record ShipScene(
     public BowMarker Marker { get; init; } = new BowMarker.Wedge();
 }
 
-/// <summary>What marks the bow in the ship view (D62): the ship's outline, the bow wedge for a ship without one, or nothing.</summary>
+/// <summary>What marks the bow in the ship view (D62, D63): the ship's outline, its hologram, the bow wedge for a ship without either, or nothing.</summary>
 public abstract record BowMarker
 {
     private BowMarker()
@@ -64,6 +64,12 @@ public abstract record BowMarker
 
     /// <summary>Racks and frame only.</summary>
     public sealed record None : BowMarker;
+
+    /// <summary>
+    /// The ship's hologram behind the racks (D63), drawn by the backdrop, not by the ship view; its box in cells
+    /// (<see cref="HoloPlacement"/>) is all the scene needs: the fit shows the whole hologram.
+    /// </summary>
+    public sealed record Holo(SceneProjector.Corner Min, SceneProjector.Corner Max) : BowMarker;
 }
 
 /// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MoveCrates</c>, <c>MoveStop</c>).</param>

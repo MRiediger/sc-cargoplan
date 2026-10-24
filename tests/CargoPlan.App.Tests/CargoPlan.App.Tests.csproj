@@ -35,6 +35,12 @@
                       LogicalName="missions/split_and_shared.json" Link="Fixtures\split_and_shared.json" />
   </ItemGroup>
 
+  <!-- The synthetic SCH2 writer of Core's hologram tests, linked like the fixture above: the hologram view and loader
+       tests need a valid file, and no game model may enter the repo (D63). -->
+  <ItemGroup>
+    <Compile Include="..\CargoPlan.Core.Tests\HoloFixtures.cs" Link="HoloFixtures.cs" />
+  </ItemGroup>
+
   <!-- The overlay's markup, read as XML by OverlayHeaderXamlTests: what stays visible while locked (D67). -->
   <ItemGroup>
     <EmbeddedResource Include="..\..\src\CargoPlan.App\OverlayWindow.xaml"

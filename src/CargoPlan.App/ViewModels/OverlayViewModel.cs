@@ -1,4 +1,5 @@
 using CargoPlan.App.Editor;
+using CargoPlan.App.Holo;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Missions;
@@ -102,6 +103,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         _ => $"Ship outlines: {problems[0]} (+{problems.Count - 1} more) – ships without one show the bow wedge.",
     };
 
+    /// <summary>The notice line when a hologram can't be shown (D63); one per run, from <see cref="HoloLoader"/>.</summary>
+    public static string HoloNoticeText(string reason) => $"Ship hologram not available: {reason} – showing the outline";
+
     /// <summary>
     /// The outlines loaded at the start (D55), matched to a ship by its Fleetyards slug. Set once by the composition root;
     /// the scene built before it gets its marker here.
@@ -116,7 +120,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         }
     } = ShipOutlineCatalog.Empty;
 
-    /// <summary>What marks the bow (D62), from the settings; a change redraws the ship view at once, plan and camera stay.</summary>
+    /// <summary>What lies behind the racks (D62, D63), from the settings; a change redraws the ship view at once, plan and camera stay.</summary>
     public ShipOutlineMode OutlineMode
     {
         get;
@@ -130,7 +134,41 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             field = value;
             Scene = Marked(Scene);
             OnPropertyChanged(nameof(Scene));
+            OnPropertyChanged(nameof(Holo));
         }
+    }
+
+    // The last hologram the loader handed over; shown only while it fits (Holo).
+    private PreparedHolo? _holo;
+
+    /// <summary>
+    /// The hologram the backdrop draws (D63): the one <see cref="HoloLoader"/> handed over, while a hologram look is chosen
+    /// and it belongs to <see cref="Ship"/>; null otherwise, so another ship or the outline hides it at once, before the
+    /// loader answers. Not loaded here: the view model only shows.
+    /// </summary>
+    public PreparedHolo? Holo => OutlineMode.IsHologram() && _holo is { } holo && holo.ShipId == Ship.Id ? holo : null;
+
+    /// <summary>
+    /// From <see cref="HoloLoader"/>: the hologram for the current ship and look, or null for the outline. The scene is
+    /// built anew only when the hologram's box changes, since a new scene empties the selection (D25): another look of the
+    /// same ship only redraws the backdrop.
+    /// </summary>
+    public void ShowHolo(PreparedHolo? holo)
+    {
+        if (ReferenceEquals(holo, _holo))
+        {
+            return;
+        }
+
+        var before = Holo?.Placement;
+        _holo = holo;
+        if (!Equals(before, Holo?.Placement))
+        {
+            Scene = Marked(Scene);
+            OnPropertyChanged(nameof(Scene));
+        }
+
+        OnPropertyChanged(nameof(Holo));
     }
 
     /// <summary>The ship the plan, the ship view and the header are for; changed only by <see cref="ChangeShip"/>.</summary>
@@ -365,6 +403,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         OnPropertyChanged(nameof(Ship));
         OnPropertyChanged(nameof(ShipSelection));
         OnPropertyChanged(nameof(CurrentShipChoice));
+        OnPropertyChanged(nameof(Holo));
     }
 
     /// <summary>
@@ -645,12 +684,14 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     private static ShipScene EmptyScene(Ship ship) => ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
 
     /// <summary>
-    /// The scene with its bow marker (D62): the ship's outline, the wedge for a ship without one, or none. Every scene the
-    /// overlay shows passes here; placing an outline costs a pass over its points.
+    /// The scene with its bow marker (D62, D63): the hologram where one is shown for the scene's ship, else the ship's
+    /// outline, the wedge for a ship without one, or none. Every scene the overlay shows passes here; placing an outline
+    /// costs a pass over its points.
     /// </summary>
     private ShipScene Marked(ShipScene scene) => scene with
     {
         Marker = OutlineMode == ShipOutlineMode.None ? new BowMarker.None()
+            : Holo is { } holo && holo.ShipId == scene.Ship.Id ? new BowMarker.Holo(holo.Placement.Min, holo.Placement.Max)
             : Outlines.For(scene.Ship) is { } outline ? new BowMarker.Outline(OutlinePlacement.Place(outline, scene.Ship.Bounds))
             : new BowMarker.Wedge(),
     };

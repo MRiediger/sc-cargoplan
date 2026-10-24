@@ -180,11 +180,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial ToolWindowTheme ToolWindowTheme { get; set; }
 
-    // Ship view (D62): what marks the bow. Part of what the overlay shows, so it has a reset like the look's sections.
+    // Ship view (D62, D63): what lies behind the racks. Part of what the overlay shows, so it has a reset like the look's sections.
 
     public static IReadOnlyList<ShipOutlineChoice> ShipOutlineChoices { get; } =
     [
         new(Settings.ShipOutlineMode.Outline, "Outline"),
+        new(Settings.ShipOutlineMode.HoloShaded, "Hologram – shaded"),
+        new(Settings.ShipOutlineMode.HoloFlat, "Hologram – flat"),
+        new(Settings.ShipOutlineMode.HoloHiddenline, "Hologram – hidden line"),
         new(Settings.ShipOutlineMode.None, "None"),
     ];
 

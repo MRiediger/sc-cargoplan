@@ -386,6 +386,26 @@ public class SceneProjectorTests
         projected.FitExtent.Width.Should().BeLessThan(projected.Extent.Width);
     }
 
+    [Theory]
+    [InlineData(70, 35.26)]
+    [InlineData(225, -40)]
+    public void A_hologram_is_fitted_whole_even_on_a_long_ship_with_cargo(double yaw, double pitch)
+    {
+        // A box longer than the Caterpillar's racks: the hull may reach beyond them, and the fit shows all of it (D63).
+        var camera = new IsoProjection(yaw, pitch);
+        var bounds = Caterpillar.Bounds;
+        SceneProjector.Corner min = new(bounds.Min.X - 10, bounds.Min.Y - 3, bounds.Min.Z - 2);
+        SceneProjector.Corner max = new(bounds.Max.X + 12, bounds.Max.Y + 3, bounds.Max.Z + 4);
+        var scene = CaterpillarWith("rack-0", "rack-6") with { Marker = new BowMarker.Holo(min, max) };
+
+        var projected = SceneProjector.Project(scene, camera);
+
+        projected.FitExtent.Should().Be(projected.Extent);
+        ShouldEnclose(projected.Extent, from x in new[] { min.X, max.X } from y in new[] { min.Y, max.Y } from z in new[] { min.Z, max.Z } select camera.Project(x, y, z));
+        projected.BowWedge.Should().BeNull();
+        projected.Outline.Should().BeNull();
+    }
+
     [Fact]
     public void Projected_racks_know_whether_they_hold_cargo()
     {

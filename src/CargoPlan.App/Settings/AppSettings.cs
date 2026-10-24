@@ -24,8 +24,14 @@ namespace CargoPlan.App.Settings;
 /// with <paramref name="Ship"/>. Missing (before T7.2c) or null = none yet. Unknown ids stay, like <c>ship</c>.
 /// </param>
 /// <param name="ShipOutline">
-/// What marks the bow in the ship view (D62), one of <see cref="ShipOutlineModes.Names"/>. Missing (before T7.4) or null =
-/// "outline". Top level like <paramref name="ToolWindowTheme"/>: the crates' "Reset to defaults" must not switch it.
+/// What lies behind the racks in the ship view (D62, D63), one of <see cref="ShipOutlineModes.Names"/>. Missing (before
+/// T7.4) or null = "outline". Top level like <paramref name="ToolWindowTheme"/>: the crates' "Reset to defaults" must not
+/// switch it.
+/// </param>
+/// <param name="DownloadShipHolograms">
+/// Missing (before T7.4c-2) = true: a hologram look downloads the ship's file from the release (D63). false = no network
+/// access at all, holograms already downloaded still show. A default like <c>ContractTrackerSettings.AutoSync</c>, optional,
+/// no schema bump (D31).
 /// </param>
 public sealed record AppSettings(
     int SchemaVersion,
@@ -37,7 +43,8 @@ public sealed record AppSettings(
     ContractTrackerSettings? ContractTracker = null,
     string? Ship = null,
     IReadOnlyList<string>? RecentShips = null,
-    string? ShipOutline = null)
+    string? ShipOutline = null,
+    bool DownloadShipHolograms = true)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
 

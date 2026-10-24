@@ -129,8 +129,17 @@ public sealed class SettingsSession
         _timer.Start();
     }
 
-    /// <summary>What marks the bow in the ship view (D62).</summary>
+    /// <summary>What lies behind the racks in the ship view (D62, D63).</summary>
     public ShipOutlineMode ShipOutline => ShipOutlineModes.Parse(Current.ShipOutline);
+
+    /// <summary>The switch "Download ship holograms" (D63).</summary>
+    public bool DownloadShipHolograms => Current.DownloadShipHolograms;
+
+    /// <summary>
+    /// Look or download switch changed: the composition root asks the hologram loader again. An event, not a call into
+    /// the loader: the session owns settings and the overlay's look, the loader belongs to the app.
+    /// </summary>
+    public event EventHandler? ShipViewChanged;
 
     /// <summary>From the settings window: the overlay redraws at once (D30), saved after <see cref="Debounce"/>.</summary>
     public void ChangeShipOutline(ShipOutlineMode mode)
@@ -139,6 +148,21 @@ public sealed class SettingsSession
         Current = Current with { ShipOutline = ShipOutlineModes.ToName(mode) };
         _timer.Stop();
         _timer.Start();
+        ShipViewChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>From the settings window (D63): saved after <see cref="Debounce"/>; the loader follows via <see cref="ShipViewChanged"/>.</summary>
+    public void ChangeDownloadShipHolograms(bool download)
+    {
+        if (download == Current.DownloadShipHolograms)
+        {
+            return;
+        }
+
+        Current = Current with { DownloadShipHolograms = download };
+        _timer.Stop();
+        _timer.Start();
+        ShipViewChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>

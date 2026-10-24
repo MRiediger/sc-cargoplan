@@ -33,6 +33,12 @@ public sealed record ViewTransform(double Scale, Vector Offset)
 }
 
 /// <summary>
+/// What the ship view shows right now (D63): its camera, the transform to pixels, the zoom on top of the fit and its
+/// size. <c>ShipViewControl.View</c> publishes it for the hologram backdrop, which draws the same picture in 3D.
+/// </summary>
+public sealed record ShipViewState(IsoProjection Camera, ViewTransform Transform, double Zoom, Size Size);
+
+/// <summary>
 /// The player's camera, and zoom and pan on top of the fit. Kept apart from the fit so resizing the window or turning
 /// the camera refits, and the default (default camera, zoom 1, no pan) always shows the whole ship. Not persisted (A4).
 /// </summary>

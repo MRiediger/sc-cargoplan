@@ -1,5 +1,4 @@
 using System.Net;
-using System.Security.Cryptography;
 using System.Text;
 using CargoPlan.App.Holo;
 
@@ -18,7 +17,7 @@ public sealed class HoloSourceTests : IDisposable
     private static readonly DateTimeOffset Now = new(2026, 10, 25, 12, 0, 0, TimeSpan.Zero);
 
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"));
-    private readonly FakeHandler _handler = new();
+    private readonly FakeHttp.FakeHandler _handler = new();
 
     public void Dispose()
     {
@@ -32,14 +31,9 @@ public sealed class HoloSourceTests : IDisposable
 
     private string CachedManifest => Path.Combine(_folder, "manifest.json");
 
-    private HoloSource Source(TimeSpan? timeout = null) => new(_handler, _folder, new FixedClock(Now), timeout ?? TimeSpan.FromSeconds(5), "1.2.3");
+    private HoloSource Source(TimeSpan? timeout = null) => new(_handler, _folder, new FakeHttp.FixedClock(Now), timeout ?? TimeSpan.FromSeconds(5), "1.2.3");
 
-    private static string Hash(byte[] data) => Convert.ToHexStringLower(SHA256.HashData(data));
-
-    private static byte[] Manifest(params (string Slug, byte[] Data)[] ships) => Encoding.UTF8.GetBytes($$"""
-        { "dataVersion": "holo-v1", "formatVersion": 2, "ships": [ {{string.Join(", ", ships.Select(s =>
-            $$"""{ "slug": "{{s.Slug}}", "file": "{{s.Slug}}.holo", "bytes": {{s.Data.Length}}, "sha256": "{{Hash(s.Data)}}", "budget": 20000 }"""))}} ] }
-        """);
+    private static byte[] Manifest(params (string Slug, byte[] Data)[] ships) => FakeHttp.Manifest(ships);
 
     private void Cache(string path, byte[] data, TimeSpan age)
     {
@@ -48,7 +42,7 @@ public sealed class HoloSourceTests : IDisposable
         File.SetLastWriteTimeUtc(path, (Now - age).UtcDateTime);
     }
 
-    private void Serve(string file, byte[] data) => _handler.Answer(file, () => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(data) });
+    private void Serve(string file, byte[] data) => _handler.Serve(file, data);
 
     // --- Download ---
 
@@ -301,37 +295,5 @@ public sealed class HoloSourceTests : IDisposable
         Serve("manifest.json", Manifest((Slug, File1)));
         Serve(Slug + ".holo", File1);
         (await source.GetAsync(Slug, true, CancellationToken.None)).Should().BeOfType<HoloFetch.Found>();
-    }
-
-    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
-    }
-
-    /// <summary>Answers per file name; logs every request. Unknown files get a 404.</summary>
-    private sealed class FakeHandler : HttpMessageHandler
-    {
-        private readonly Dictionary<string, Func<CancellationToken, Task<HttpResponseMessage>>> _answers = [];
-
-        public List<(string Uri, string Method, string UserAgent)> Requests { get; } = [];
-
-        public void Answer(string file, Func<HttpResponseMessage> answer) => _answers[file] = _ => Task.FromResult(answer());
-
-        public void Hang(string file) => _answers[file] = async token =>
-        {
-            await Task.Delay(Timeout.Infinite, token);
-            throw new InvalidOperationException("unreachable");
-        };
-
-        public void Fail(string file) => _answers[file] = _ => throw new HttpRequestException("No such host is known.");
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            var uri = request.RequestUri!.ToString();
-            Requests.Add((uri, request.Method.Method, request.Headers.UserAgent.ToString()));
-            return _answers.TryGetValue(uri[(uri.LastIndexOf('/') + 1)..], out var answer)
-                ? answer(cancellationToken)
-                : Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
-        }
     }
 }

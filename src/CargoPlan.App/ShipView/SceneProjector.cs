@@ -52,17 +52,20 @@ public static class SceneProjector
     /// <summary>
     /// A long ship's racks lie in one row: fit to the loaded ones and the bow, so their crates are as large as the view
     /// allows and the bow stays in sight (D61). The empty ones further aft stay in the scene, outside the fit, and so does
-    /// the outline beyond the bow zone (D62).
+    /// the outline beyond the bow zone (D62). A hologram is fitted whole, on every ship (Martin, T7.4b; D63).
     /// </summary>
     private static Rect FitExtent(ShipScene scene, bool isLong, Rect extent, IsoProjection camera)
     {
         ShipBox[] loaded = [.. scene.Racks.Where(r => r.IsLoaded).Select(r => r.Bounds)];
-        return isLong && loaded.Length > 0 ? Extent(loaded.Aggregate((a, b) => a.Union(b)), Bow(scene, camera), camera) : extent;
+        return isLong && loaded.Length > 0 && scene.Marker is not BowMarker.Holo
+            ? Extent(loaded.Aggregate((a, b) => a.Union(b)), Bow(scene, camera), camera)
+            : extent;
     }
 
     /// <summary>
     /// What marks the bow, seen or not, so the fit doesn't change as faces turn away: every corner of the wedge, or with an
-    /// outline the zone from the racks' bow face to its tip at the racks' full height, or nothing.
+    /// outline the zone from the racks' bow face to its tip at the racks' full height, or the 8 corners of the hologram's
+    /// box, or nothing.
     /// </summary>
     private static IEnumerable<Point> Bow(ShipScene scene, IsoProjection camera)
     {
@@ -78,6 +81,11 @@ public static class SceneProjector
                 camera.Project(tip.X, tip.Y, bounds.Min.Z),
                 camera.Project(tip.X, tip.Y, bounds.Max.Z),
             ],
+            BowMarker.Holo h =>
+                from x in new[] { h.Min.X, h.Max.X }
+                from y in new[] { h.Min.Y, h.Max.Y }
+                from z in new[] { h.Min.Z, h.Max.Z }
+                select camera.Project(x, y, z),
             _ => [],
         };
     }

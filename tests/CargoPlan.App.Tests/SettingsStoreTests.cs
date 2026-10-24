@@ -372,6 +372,32 @@ public sealed class SettingsStoreTests : IDisposable
         File.ReadAllText(SettingsPath).Should().Contain("\"shipOutline\": \"none\"");
     }
 
+    [Fact]
+    public void Save_then_Load_keeps_a_hologram_look_and_downloads_off()
+    {
+        var settings = AppSettings.Default with { ShipOutline = "holo-hiddenline", DownloadShipHolograms = false };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+        File.ReadAllText(SettingsPath).Should().Contain("\"shipOutline\": \"holo-hiddenline\"").And.Contain("\"downloadShipHolograms\": false");
+    }
+
+    [Fact]
+    public void File_without_the_download_switch_downloads_holograms_without_a_problem()
+    {
+        // Optional, no schemaVersion bump (D31, D63); default on.
+        WriteFile("""{ "schemaVersion": 2, "shipOutline": "holo-flat" }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.DownloadShipHolograms.Should().BeTrue();
+        loaded.ShipOutline.Should().Be("holo-flat");
+    }
+
     [Theory]
     [InlineData("""{ "schemaVersion": 2 }""")]
     [InlineData("""{ "schemaVersion": 2, "shipOutline": null }""")]
@@ -398,7 +424,7 @@ public sealed class SettingsStoreTests : IDisposable
 
         loaded.ShipOutline.Should().Be("outline");
         loaded.Legend.Visible.Should().BeFalse();
-        problem.Should().Be("settings.json: shipOutline \"prism\" is not valid (outline or none), using outline.");
+        problem.Should().Be("settings.json: shipOutline \"prism\" is not valid (outline, holo-shaded, holo-flat, holo-hiddenline or none), using outline.");
         File.ReadAllText(SettingsPath).Should().Be(content);
     }
 

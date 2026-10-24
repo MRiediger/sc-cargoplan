@@ -426,6 +426,35 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void ChangeDownloadShipHolograms_writes_on_flush_and_tells_the_ship_view()
+    {
+        var session = Create(AppSettings.Default with { ShipOutline = "holo-shaded" });
+        var told = 0;
+        session.ShipViewChanged += (_, _) => told++;
+
+        session.ChangeDownloadShipHolograms(false);
+        session.ChangeDownloadShipHolograms(false);
+
+        told.Should().Be(1);
+        session.DownloadShipHolograms.Should().BeFalse();
+        session.Flush();
+        Saved().Should().Be(AppSettings.Default with { ShipOutline = "holo-shaded", DownloadShipHolograms = false });
+    }
+
+    [Fact]
+    public void ChangeShipOutline_tells_the_ship_view()
+    {
+        var session = Create(AppSettings.Default);
+        var told = 0;
+        session.ShipViewChanged += (_, _) => told++;
+
+        session.ChangeShipOutline(ShipOutlineMode.HoloFlat);
+
+        told.Should().Be(1);
+        _viewModel.OutlineMode.Should().Be(ShipOutlineMode.HoloFlat);
+    }
+
+    [Fact]
     public void ChangeLook_keeps_the_tool_window_theme()
     {
         var session = Create(AppSettings.Default with { ToolWindowTheme = "light" });

@@ -525,19 +525,23 @@
             </DockPanel>
 
             <!-- Last child fills the rest. Left drag here orbits, a click on cargo ticks its stop, right drag on a crate
-                 puts it on the cell under the cursor, right drag elsewhere pans; DragMove works on header, warning lines and border. -->
-            <sv:ShipViewControl x:Name="ShipView"
-                                Scene="{Binding Scene, Mode=OneWay}"
-                                ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}"
-                                MoveCratesCommand="{Binding MoveCratesCommand, Mode=OneTime}"
-                                MoveStopCommand="{Binding MoveStopCommand, Mode=OneTime}"
-                                Selection="{Binding Selection}"
-                                CrateFillAlpha="{DynamicResource CratesFillAlpha}"
-                                CrateEdgeBrush="{DynamicResource CratesEdgeBrush}"
-                                RackNumberBrush="{DynamicResource CratesRackNumberBrush}"
-                                RackNumberFontSize="{DynamicResource CratesRackNumberFontSize}"
-                                RackNumberHaloBrush="{DynamicResource CratesHaloBrush}"
-                                RackNumberHaloSize="{DynamicResource CratesHaloSize}" />
+                 puts it on the cell under the cursor, right drag elsewhere pans; DragMove works on header, warning lines and border.
+                 The hologram lies under the ship view in the same cell (D63): it never covers a crate and takes no click. -->
+            <Grid>
+                <sv:HoloBackdrop Holo="{Binding Holo, Mode=OneWay}" View="{Binding View, ElementName=ShipView, Mode=OneWay}" />
+                <sv:ShipViewControl x:Name="ShipView"
+                                    Scene="{Binding Scene, Mode=OneWay}"
+                                    ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}"
+                                    MoveCratesCommand="{Binding MoveCratesCommand, Mode=OneTime}"
+                                    MoveStopCommand="{Binding MoveStopCommand, Mode=OneTime}"
+                                    Selection="{Binding Selection}"
+                                    CrateFillAlpha="{DynamicResource CratesFillAlpha}"
+                                    CrateEdgeBrush="{DynamicResource CratesEdgeBrush}"
+                                    RackNumberBrush="{DynamicResource CratesRackNumberBrush}"
+                                    RackNumberFontSize="{DynamicResource CratesRackNumberFontSize}"
+                                    RackNumberHaloBrush="{DynamicResource CratesHaloBrush}"
+                                    RackNumberHaloSize="{DynamicResource CratesHaloSize}" />
+            </Grid>
         </DockPanel>
     </Border>
 </Window>

@@ -114,6 +114,20 @@ public sealed class ShipViewControl : FrameworkElement
         new FrameworkPropertyMetadata(
             CrateSelection.Empty, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
+    // Read-only: only this control knows camera, zoom and pan; the hologram backdrop binds to it (D63).
+    // Source: https://learn.microsoft.com/dotnet/desktop/wpf/properties/read-only-dependency-properties
+    private static readonly DependencyPropertyKey ViewPropertyKey = DependencyProperty.RegisterReadOnly(
+        nameof(View),
+        typeof(ShipViewState),
+        typeof(ShipViewControl),
+        new PropertyMetadata(null));
+
+    /// <summary>
+    /// What the view shows right now: camera, transform, zoom, size. Set whenever one of them changes, before the view
+    /// redraws, so the backdrop's 3D picture changes in the same frame as the racks (D63).
+    /// </summary>
+    public static readonly DependencyProperty ViewProperty = ViewPropertyKey.DependencyProperty;
+
     // Opened by hand instead of ToolTipService: the text changes with the crate under the cursor.
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/controls/how-to-position-a-tooltip
     private readonly ToolTip _toolTip;
@@ -170,6 +184,8 @@ public sealed class ShipViewControl : FrameworkElement
         get => (CrateSelection)GetValue(SelectionProperty);
         set => SetValue(SelectionProperty, value);
     }
+
+    public ShipViewState? View => (ShipViewState?)GetValue(ViewProperty);
 
     public byte CrateFillAlpha
     {
@@ -691,6 +707,7 @@ public sealed class ShipViewControl : FrameworkElement
 
         // A drag holds crates of the old plan; Core would not find them in the new one.
         ReleaseMouseCapture();
+        PublishView();
     }
 
     private void Navigate(ViewNavigation navigation)
@@ -701,7 +718,23 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         _navigation = navigation;
+        PublishView();
         InvalidateVisual();
+    }
+
+    protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+    {
+        base.OnRenderSizeChanged(sizeInfo);
+        PublishView();
+    }
+
+    /// <summary>Sets <see cref="View"/> from the current camera, scene and size; nothing before the first layout.</summary>
+    private void PublishView()
+    {
+        if (Projected() is { } scene && RenderSize is { Width: > 0, Height: > 0 })
+        {
+            SetValue(ViewPropertyKey, new ShipViewState(_navigation.Camera, CurrentTransform(scene), _navigation.Zoom, RenderSize));
+        }
     }
 
     private void StartDrag(MouseButtonEventArgs e, MouseButton button)
@@ -838,11 +871,17 @@ public sealed class ShipViewControl : FrameworkElement
         DrawLabel(dc, glyphs, brush, paint);
     }
 
+    // The rack numbers' size and halo set the room above a long ship's racks, so the fit and with it the view.
     private static DependencyProperty ThemeProperty(string name, Type type, object? defaultValue) => DependencyProperty.Register(
         name,
         type,
         typeof(ShipViewControl),
-        new FrameworkPropertyMetadata(defaultValue, FrameworkPropertyMetadataOptions.AffectsRender, (d, _) => ((ShipViewControl)d)._paint = null));
+        new FrameworkPropertyMetadata(defaultValue, FrameworkPropertyMetadataOptions.AffectsRender, (d, _) =>
+        {
+            var view = (ShipViewControl)d;
+            view._paint = null;
+            view.PublishView();
+        }));
 
     // StreamGeometry: the lightweight geometry for drawing only, frozen after filling.
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.media.streamgeometrycontext

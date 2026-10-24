@@ -36,9 +36,12 @@ public sealed record IsoProjection
     /// <summary>The camera a ship starts with: <see cref="Default"/>, or from the side for a long ship (D61).</summary>
     public static IsoProjection DefaultFor(ShipBox bounds) => IsLong(bounds) ? new(LongShipYaw, DefaultPitch) : Default;
 
-    // √(3/2) stretches the true projection so that in the default view one cell is 1 unit long on all three axes,
-    // exactly the formula before T3.5c: u = (y − x)·cos 30°, v = (x + y)·sin 30° − z.
-    private static readonly double Stretch = Math.Sqrt(1.5);
+    /// <summary>
+    /// √(3/2) stretches the true projection so that in the default view one cell is 1 unit long on all three axes,
+    /// exactly the formula before T3.5c: u = (y − x)·cos 30°, v = (x + y)·sin 30° − z. A length at right angles to the
+    /// view is this many projected units per cell; the hologram's 3D camera needs it (D63).
+    /// </summary>
+    public static readonly double Stretch = Math.Sqrt(1.5);
 
     private readonly double _sinYaw;
     private readonly double _cosYaw;

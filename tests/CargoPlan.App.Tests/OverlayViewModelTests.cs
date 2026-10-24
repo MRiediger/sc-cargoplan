@@ -1,12 +1,15 @@
 using System.ComponentModel;
+using CargoPlan.App.Holo;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.App.ViewModels;
+using CargoPlan.Core.Holo;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
@@ -1072,5 +1075,88 @@ public class OverlayViewModelTests
             .Should().Be("Ship outlines: ship-outlines.json can't be read: gone – ships without one show the bow wedge.");
         OverlayViewModel.OutlinesNoticeText(["Outline 2: 'x' needs at least 3 points.", "b", "c"])
             .Should().Be("Ship outlines: Outline 2: 'x' needs at least 3 points. (+2 more) – ships without one show the bow wedge.");
+    }
+
+    // --- Hologram (D63) ---
+
+    private static PreparedHolo HoloFor(Ship ship, ShipOutlineMode look = ShipOutlineMode.HoloShaded)
+    {
+        var (vertices, triangles) = HoloFixtures.Cube();
+        System.Numerics.Vector3[] hull = [.. vertices.Select(v => new System.Numerics.Vector3((v.X - 0.5f) * 30, (v.Y - 0.5f) * 12, v.Z * 8))];
+        return PreparedHolo.Prepare(ship, HoloReader.Read(HoloFixtures.Write(hull, triangles, HoloFixtures.CubeEdges(), 4, 8, 30)), look);
+    }
+
+    [Fact]
+    public void A_hologram_of_the_ship_replaces_the_outline_in_a_hologram_look()
+    {
+        var hullA = ShipLoader.Load("hull_a");
+        var viewModel = new OverlayViewModel(hullA) { Outlines = Outlines, OutlineMode = ShipOutlineMode.HoloShaded };
+        var holo = HoloFor(hullA);
+
+        var changes = Changes(viewModel, () => viewModel.ShowHolo(holo));
+
+        viewModel.Holo.Should().BeSameAs(holo);
+        viewModel.Scene.Marker.Should().Be(new BowMarker.Holo(holo.Placement.Min, holo.Placement.Max));
+        changes.Should().Contain([nameof(OverlayViewModel.Holo), nameof(OverlayViewModel.Scene)]);
+    }
+
+    [Fact]
+    public void Until_the_hologram_is_there_a_hologram_look_shows_the_outline()
+    {
+        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a")) { Outlines = Outlines, OutlineMode = ShipOutlineMode.HoloHiddenline };
+
+        viewModel.Holo.Should().BeNull();
+        viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>();
+    }
+
+    [Fact]
+    public void Another_ship_hides_the_old_ships_hologram_at_once()
+    {
+        var hullA = ShipLoader.Load("hull_a");
+        var viewModel = new OverlayViewModel(hullA, ShipLoader.LoadAll()) { Outlines = Outlines, OutlineMode = ShipOutlineMode.HoloFlat };
+        viewModel.ShowHolo(HoloFor(hullA, ShipOutlineMode.HoloFlat));
+
+        var changes = Changes(viewModel, () => viewModel.ChangeShip(ShipLoader.Load("c2_hercules")));
+
+        viewModel.Holo.Should().BeNull();
+        viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>();
+        changes.Should().Contain(nameof(OverlayViewModel.Holo));
+    }
+
+    [Fact]
+    public void The_outline_look_hides_the_hologram()
+    {
+        var hullA = ShipLoader.Load("hull_a");
+        var viewModel = new OverlayViewModel(hullA) { Outlines = Outlines, OutlineMode = ShipOutlineMode.HoloShaded };
+        viewModel.ShowHolo(HoloFor(hullA));
+
+        var changes = Changes(viewModel, () => viewModel.OutlineMode = ShipOutlineMode.Outline);
+
+        viewModel.Holo.Should().BeNull();
+        viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>();
+        changes.Should().Contain(nameof(OverlayViewModel.Holo));
+    }
+
+    [Fact]
+    public void Showing_the_same_hologram_again_keeps_the_scene_and_its_selection()
+    {
+        var hullA = ShipLoader.Load("hull_a");
+        var viewModel = new OverlayViewModel(hullA) { Outlines = Outlines, OutlineMode = ShipOutlineMode.HoloShaded };
+        var holo = HoloFor(hullA);
+        viewModel.ShowHolo(holo);
+        var scene = viewModel.Scene;
+
+        viewModel.ShowHolo(holo);
+        viewModel.ShowHolo(holo with { Look = ShipOutlineMode.HoloFlat });
+
+        // Another look has the same box: the fit and the selection stay, only the backdrop redraws.
+        viewModel.Scene.Should().BeSameAs(scene);
+    }
+
+    [Fact]
+    public void The_hologram_notice_names_the_reason()
+    {
+        OverlayViewModel.HoloNoticeText("no answer from github.com within 5 s")
+            .Should().Be("Ship hologram not available: no answer from github.com within 5 s – showing the outline");
     }
 }
