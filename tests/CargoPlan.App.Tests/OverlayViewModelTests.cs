@@ -380,6 +380,30 @@ public class OverlayViewModelTests
             .Should().Contain([nameof(OverlayViewModel.Plan), nameof(OverlayViewModel.Scene)]);
     }
 
+    [Fact]
+    public void Capacity_follows_ticks_without_a_path_of_its_own()
+    {
+        // The header binds Scene.CapacityText (D67); a tick builds a new scene and raises Scene.
+        var viewModel = WithPlan();
+        viewModel.Scene.CapacityText.Should().Be("54/64 · 10 free");
+
+        Changes(viewModel, () => viewModel.ToggleDeliveredCommand.Execute("Lorville")).Should().Contain(nameof(OverlayViewModel.Scene));
+
+        viewModel.Scene.CapacityText.Should().Be("42/64 · 22 free");
+    }
+
+    [Fact]
+    public void Rack_load_follows_a_move()
+    {
+        var viewModel = WithPlan();
+
+        viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-3", 0, 0, 0));
+
+        viewModel.Scene.Racks.Single(r => r.Number == 3).Load.ToolTip.Should().Be("Rack 3 · 13 / 16 SCU");
+        viewModel.Scene.Racks.Single(r => r.Number == 4).Load.ToolTip.Should().Be("Rack 4 · 13 / 16 SCU");
+        viewModel.Scene.CapacityText.Should().Be("54/64 · 10 free");
+    }
+
     // Split and shared: Orison's two Gold crates lie on top in Rack 3, Riker's Quartz on the plate of Rack 2 (aft half).
     private static Gesture.MoveCrates GoldTo(OverlayViewModel viewModel, string rackId, int length, int width, int stack)
     {

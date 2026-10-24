@@ -76,6 +76,9 @@ public sealed class ShipViewControl : FrameworkElement
 
     public static readonly DependencyProperty RackNumberHaloSizeProperty = ThemeProperty(nameof(RackNumberHaloSize), typeof(double), 0.0);
 
+    /// <summary>"3 · 12/16" instead of "3" (D67); without the resource the number alone, as before.</summary>
+    public static readonly DependencyProperty ShowRackLoadProperty = ThemeProperty(nameof(ShowRackLoad), typeof(bool), false);
+
     // AffectsRender: a new scene invalidates the drawing by itself.
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.frameworkpropertymetadataoptions
     public static readonly DependencyProperty SceneProperty = DependencyProperty.Register(
@@ -205,6 +208,12 @@ public sealed class ShipViewControl : FrameworkElement
     {
         get => (double)GetValue(RackNumberHaloSizeProperty);
         set => SetValue(RackNumberHaloSizeProperty, value);
+    }
+
+    public bool ShowRackLoad
+    {
+        get => (bool)GetValue(ShowRackLoadProperty);
+        set => SetValue(ShowRackLoadProperty, value);
     }
 
     /// <summary>
@@ -385,10 +394,12 @@ public sealed class ShipViewControl : FrameworkElement
 
         var typeface = new Typeface(TextElement.GetFontFamily(this), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
         var pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+        // The load behind the number (D67) in the number's size: the size rule looks at the rack's height, not the text's width.
+        var showLoad = ShowRackLoad;
         foreach (var rack in scene.Racks)
         {
             FormattedText text = new(
-                rack.Number.ToString(CultureInfo.InvariantCulture),
+                rack.Load.Label(showLoad),
                 CultureInfo.InvariantCulture,
                 FlowDirection.LeftToRight,
                 typeface,

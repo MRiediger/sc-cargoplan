@@ -147,8 +147,9 @@
                                                        FontSize="10" Margin="6,4,0,0"
                                                        Foreground="{DynamicResource HeaderForegroundBrush}"
                                                        Effect="{DynamicResource HeaderHaloEffect}" />
+                                            <!-- One line: the header's style wraps, and the 30 px header holds two (D67). -->
                                             <TextBlock Text="{Binding Ship.Name, Mode=OneWay}" FontWeight="Bold"
-                                                       TextTrimming="CharacterEllipsis" Style="{StaticResource HeaderTextStyle}" />
+                                                       TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Style="{StaticResource HeaderTextStyle}" />
                                         </DockPanel>
                                     </ControlTemplate>
                                 </ToggleButton.Template>
@@ -325,49 +326,60 @@
                            Foreground="{StaticResource DeliveredForegroundBrush}"
                            Effect="{DynamicResource HeaderHaloEffect}"
                            Visibility="{Binding Scene.AllDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <!-- The ship selection sits on the ship name, where haulers look for it (T7.2b, D59). Left-aligned, so the
-                     header right of the name still moves the window. Locked: the name as text, like the hidden buttons. -->
-                <Grid HorizontalAlignment="Left" VerticalAlignment="Top">
-                    <Grid.Resources>
-                        <!-- Grouped in the order of first appearance; ShipChoices.Of sorts. OneWay: Recent changes with the ship (T7.2c). -->
-                        <CollectionViewSource x:Key="ShipsView" Source="{Binding ShipSelection, Mode=OneWay}">
-                            <CollectionViewSource.GroupDescriptions>
-                                <PropertyGroupDescription PropertyName="Group" />
-                            </CollectionViewSource.GroupDescriptions>
-                        </CollectionViewSource>
-                    </Grid.Resources>
-                    <ComboBox x:Name="ShipBox" Style="{StaticResource ShipBoxStyle}"
-                              ItemsSource="{Binding Source={StaticResource ShipsView}}"
-                              ToolTip="Your ship. Click to change it; a plan is planned anew for the new ship."
-                              IsSynchronizedWithCurrentItem="False"
-                              DropDownOpened="OnShipListOpened" DropDownClosed="OnShipListClosed"
-                              SelectionChanged="OnShipSelectionChanged">
-                        <ComboBox.GroupStyle>
-                            <GroupStyle>
-                                <GroupStyle.HeaderTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="8,6,8,2"
-                                                   Foreground="{DynamicResource HeaderForegroundBrush}" />
-                                    </DataTemplate>
-                                </GroupStyle.HeaderTemplate>
-                            </GroupStyle>
-                        </ComboBox.GroupStyle>
-                    </ComboBox>
-                    <TextBlock Text="{Binding Ship.Name, Mode=OneWay}"
-                               FontWeight="Bold"
-                               TextTrimming="CharacterEllipsis">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock" BasedOn="{StaticResource HeaderTextStyle}">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsLocked}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                </Grid>
+                <!-- Ship name and capacity, left-aligned, so the header right of them still moves the window. The capacity
+                     (D67) is docked right of the name, which as the last child takes what is left and trims: the name gives
+                     way, the capacity never. No IsLocked trigger: it is information, not a control, and stays while locked. -->
+                <DockPanel HorizontalAlignment="Left" VerticalAlignment="Top">
+                    <TextBlock x:Name="CapacityText" DockPanel.Dock="Right"
+                               Text="{Binding Scene.CapacityText, Mode=OneWay}"
+                               TextWrapping="NoWrap"
+                               Margin="8,0,0,0"
+                               Style="{StaticResource HeaderTextStyle}" />
+                    <!-- The ship selection sits on the ship name, where haulers look for it (T7.2b, D59). Locked: the name as
+                         text, like the hidden buttons. -->
+                    <Grid VerticalAlignment="Top">
+                        <Grid.Resources>
+                            <!-- Grouped in the order of first appearance; ShipChoices.Of sorts. OneWay: Recent changes with the ship (T7.2c). -->
+                            <CollectionViewSource x:Key="ShipsView" Source="{Binding ShipSelection, Mode=OneWay}">
+                                <CollectionViewSource.GroupDescriptions>
+                                    <PropertyGroupDescription PropertyName="Group" />
+                                </CollectionViewSource.GroupDescriptions>
+                            </CollectionViewSource>
+                        </Grid.Resources>
+                        <ComboBox x:Name="ShipBox" Style="{StaticResource ShipBoxStyle}"
+                                  ItemsSource="{Binding Source={StaticResource ShipsView}}"
+                                  ToolTip="Your ship. Click to change it; a plan is planned anew for the new ship."
+                                  IsSynchronizedWithCurrentItem="False"
+                                  DropDownOpened="OnShipListOpened" DropDownClosed="OnShipListClosed"
+                                  SelectionChanged="OnShipSelectionChanged">
+                            <ComboBox.GroupStyle>
+                                <GroupStyle>
+                                    <GroupStyle.HeaderTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="8,6,8,2"
+                                                       Foreground="{DynamicResource HeaderForegroundBrush}" />
+                                        </DataTemplate>
+                                    </GroupStyle.HeaderTemplate>
+                                </GroupStyle>
+                            </ComboBox.GroupStyle>
+                        </ComboBox>
+                        <TextBlock Text="{Binding Ship.Name, Mode=OneWay}"
+                                   FontWeight="Bold"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextWrapping="NoWrap">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource HeaderTextStyle}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+                </DockPanel>
             </DockPanel>
 
             <!-- Problems with settings (D13), hotkeys (D17) and the plan file, one line per source (D18). Always the bottom
@@ -525,7 +537,8 @@
                                 RackNumberBrush="{DynamicResource CratesRackNumberBrush}"
                                 RackNumberFontSize="{DynamicResource CratesRackNumberFontSize}"
                                 RackNumberHaloBrush="{DynamicResource CratesHaloBrush}"
-                                RackNumberHaloSize="{DynamicResource CratesHaloSize}" />
+                                RackNumberHaloSize="{DynamicResource CratesHaloSize}"
+                                ShowRackLoad="{DynamicResource CratesShowRackLoad}" />
         </DockPanel>
     </Border>
 </Window>

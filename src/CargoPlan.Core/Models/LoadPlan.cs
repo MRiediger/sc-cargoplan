@@ -37,6 +37,13 @@ public sealed record LoadPlan(
     public IReadOnlyList<Placement> PlacementsForStop(string destination) =>
         [.. Placements.Where(p => p.Destination == destination)];
 
+    /// <summary>
+    /// SCU of the crates on board, in the whole ship or in rack <paramref name="rackId"/>: delivered crates are off the ship
+    /// and take no room (D24). What the capacity display shows (D67) and what a waiting mission's room is measured against.
+    /// </summary>
+    public int ScuOnBoard(string? rackId = null) =>
+        Crates.Where(c => !c.Delivered && (rackId is null || c.RackId == rackId)).Sum(c => (int)c.CrateSize);
+
     public IReadOnlyList<PlanWarning> WarningsForRack(string rackId) =>
         [.. Warnings.Where(w => w.RackId == rackId)];
 

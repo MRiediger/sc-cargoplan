@@ -43,9 +43,9 @@ public class SceneHitTestTests
     }
 
     [Fact]
-    public void Tool_tip_names_stop_rack_position_and_crate()
+    public void Tool_tip_names_stop_rack_position_and_crate_then_the_rack_load()
     {
-        SceneHitTest.ToolTipAt(Projected, Rack1Top).Should().Be("Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4)");
+        SceneHitTest.ToolTipAt(Projected, Rack1Top).Should().Be("Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4)\nRack 1 · 16 / 16 SCU");
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class SceneHitTestTests
 
         SceneHitTest.HitAt(projected, Rack1Top)!.Crate.Should().NotBeNull();
         SceneHitTest.BoxAt(projected, Rack1Top)!.Box.IsViolated.Should().BeTrue();
-        SceneHitTest.ToolTipAt(projected, Rack1Top).Should().MatchRegex(@" crate \(\d of \d\)$");
+        SceneHitTest.ToolTipAt(projected, Rack1Top).Should().MatchRegex(@" crate \(\d of \d\)\nRack 1 · 24 / 16 SCU$");
     }
 
     [Fact]
@@ -71,9 +71,19 @@ public class SceneHitTestTests
     }
 
     [Fact]
-    public void Free_cells_have_no_tool_tip()
+    public void Free_cells_show_the_rack_load()
     {
-        SceneHitTest.ToolTipAt(Projected, Rack3Free).Should().BeNull();
+        // The rack's tool tip, not a cell's: an empty rack shows it too (D67).
+        SceneHitTest.ToolTipAt(Projected, Rack3Free).Should().Be("Rack 3 · 14 / 16 SCU");
+    }
+
+    [Fact]
+    public void An_empty_rack_shows_its_load()
+    {
+        var (ship, _) = TestPlans.Load();
+        var projected = SceneProjector.Project(Build(new LoadPlan(ship.Id, [], []), ship), Default);
+
+        SceneHitTest.ToolTipAt(projected, Rack3Free).Should().Be("Rack 3 · 0 / 16 SCU");
     }
 
     [Fact]
@@ -89,7 +99,7 @@ public class SceneHitTestTests
         var delivered = plan with { Crates = [.. plan.Crates.Select(c => c with { Delivered = true })] };
         var projected = SceneProjector.Project(ShipViewBuilder.Build(delivered, ship, []), Default);
 
-        SceneHitTest.ToolTipAt(projected, Rack1Top).Should().Be("Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4) (delivered)");
+        SceneHitTest.ToolTipAt(projected, Rack1Top).Should().Be("Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4) (delivered)\nRack 1 · 0 / 16 SCU");
     }
 
     [Fact]
@@ -194,9 +204,10 @@ public class SceneHitTestTests
         var below = new IsoProjection(IsoProjection.DefaultYaw, -IsoProjection.DefaultPitch);
         var projected = SceneProjector.Project(Scene, below);
 
-        SceneHitTest.ToolTipAt(projected, below.Project(2.5, 2.5, 0)).Should().Be("Shubin · Rack 2 · port lower · 8 SCU Agricium crate (1 of 1)");
-        SceneHitTest.ToolTipAt(projected, below.Project(1, 1.5, 0)).Should().Be("Riker · Rack 2 · port lower · 2 SCU Quartz crate (1 of 2)");
-        SceneHitTest.ToolTipAt(projected, below.Project(1, 2, 1.5)).Should().Be("Riker · Rack 2 · port lower · 2 SCU Quartz crate (2 of 2)");
+        const string rack2 = "\nRack 2 · 12 / 16 SCU";
+        SceneHitTest.ToolTipAt(projected, below.Project(2.5, 2.5, 0)).Should().Be("Shubin · Rack 2 · port lower · 8 SCU Agricium crate (1 of 1)" + rack2);
+        SceneHitTest.ToolTipAt(projected, below.Project(1, 1.5, 0)).Should().Be("Riker · Rack 2 · port lower · 2 SCU Quartz crate (1 of 2)" + rack2);
+        SceneHitTest.ToolTipAt(projected, below.Project(1, 2, 1.5)).Should().Be("Riker · Rack 2 · port lower · 2 SCU Quartz crate (2 of 2)" + rack2);
     }
 
     [Fact]

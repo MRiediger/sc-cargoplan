@@ -493,6 +493,34 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Save_then_Load_keeps_the_rack_load_switch()
+    {
+        var settings = AppSettings.Default with
+        {
+            Appearance = AppearanceSettings.Default with { Crates = CrateAppearance.Default with { ShowRackLoad = false } },
+        };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Should().Be(settings);
+        File.ReadAllText(SettingsPath).Should().Contain("\"showRackLoad\": false");
+    }
+
+    [Fact]
+    public void File_without_the_rack_load_switch_shows_the_load()
+    {
+        // Optional since B5, no schemaVersion bump (D31, D67).
+        WriteFile("""{ "schemaVersion": 2, "appearance": { "crates": { "fillAlpha": 100 } } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Appearance.Crates.ShowRackLoad.Should().BeTrue();
+    }
+
+    [Fact]
     public void Null_section_or_halo_means_its_defaults()
     {
         WriteFile("""{ "schemaVersion": 2, "appearance": { "window": null, "crates": { "halo": null } } }""");

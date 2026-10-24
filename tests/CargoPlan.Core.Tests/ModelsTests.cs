@@ -380,6 +380,24 @@ public class ModelsTests
     }
 
     [Fact]
+    public void LoadPlan_counts_scu_on_board_without_delivered_crates_for_the_ship_and_per_rack()
+    {
+        // Delivered crates are off the ship and take no room (D24), so the capacity display (D67) leaves them out.
+        var plan = new LoadPlan("hull_a",
+        [
+            Box("Riker", "Titanium", CrateSize.Four, "rack-0", 0),
+            Box("Shubin", "Quartz", CrateSize.Two, "rack-1", 0),
+            Box("Riker", "Titanium", CrateSize.Eight, "rack-1", 2, delivered: true),
+            Box("Riker", "Titanium", CrateSize.One, "rack-1", 2, stack: 1),
+        ], []);
+
+        plan.ScuOnBoard().Should().Be(7);
+        plan.ScuOnBoard("rack-0").Should().Be(4);
+        plan.ScuOnBoard("rack-1").Should().Be(3);
+        plan.ScuOnBoard("rack-9").Should().Be(0);
+    }
+
+    [Fact]
     public void LoadPlan_route_is_the_order_of_first_appearance_of_each_destination()
     {
         // The order of legend and palette (D64).

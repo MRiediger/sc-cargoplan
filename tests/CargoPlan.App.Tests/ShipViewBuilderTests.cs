@@ -381,6 +381,52 @@ public class ShipViewBuilderTests
         act.Should().Throw<ArgumentException>();
     }
 
+    // --- Capacity (D67) ---
+
+    [Fact]
+    public void Capacity_reads_loaded_of_max_and_free_in_one_compact_format()
+    {
+        // Racks 16 + 12 + 14 + 12 of the ship's 64 cells.
+        Build(Sample.Plan).CapacityText.Should().Be("54/64 · 10 free");
+    }
+
+    [Fact]
+    public void Capacity_without_a_plan_shows_the_empty_ship()
+    {
+        Build(new LoadPlan(Sample.Ship.Id, [], [])).CapacityText.Should().Be("0/64 · 64 free");
+    }
+
+    [Fact]
+    public void Delivered_crates_take_no_capacity()
+    {
+        // Lorville's 12 SCU in rack 4 are off the ship (D24), drawn grey but not counted.
+        var scene = Build(LoadPlanner.SetDelivered(Sample.Plan, Sample.Ship, "Lorville", true));
+
+        scene.CapacityText.Should().Be("42/64 · 22 free");
+        RackNumber(scene, 4).Load.ToolTip.Should().Be("Rack 4 · 0 / 16 SCU");
+    }
+
+    [Fact]
+    public void Racks_know_their_load_for_tool_tip_and_number()
+    {
+        var rack = RackNumber(Build(Sample.Plan), 3);
+
+        rack.Load.ToolTip.Should().Be("Rack 3 · 14 / 16 SCU");
+        rack.Load.Label(showLoad: true).Should().Be("3 · 14/16");
+        rack.Load.Label(showLoad: false).Should().Be("3");
+    }
+
+    [Fact]
+    public void An_empty_rack_shows_its_load_too()
+    {
+        var plan = TestPlans.Of(Sample.Ship, new Placement("Riker", "rack-0", new CargoItem("Titanium", 4, CrateSize.Four)));
+
+        var rack = RackNumber(Build(plan), 2);
+
+        rack.Load.ToolTip.Should().Be("Rack 2 · 0 / 16 SCU");
+        rack.Load.Label(showLoad: true).Should().Be("2 · 0/16");
+    }
+
     // --- Missions in the legend (T5.4) ---
 
     private static SavedPlan EmptySaved => new([], new LoadPlan(Sample.Ship.Id, [], []));
@@ -447,6 +493,18 @@ public class ShipViewBuilderTests
         unplaced.MissionId.Should().Be(5);
         unplaced.Label.Should().Be("Hurston + 1 · 16 SCU · ⚠ doesn't fit (16 SCU, 8 free) – tick to drop");
         BuildSaved(saved).Legend.Should().NotContain(e => e.Destination == "Hurston");
+    }
+
+    [Fact]
+    public void Capacity_names_the_scu_of_missions_waiting_for_room()
+    {
+        // The case in which the player reaches for re-plan (D66, D67): 56 SCU on board, a 16 SCU mission waits.
+        var full = Enumerable.Range(1, 4).Aggregate(EmptySaved, (saved, i) =>
+            Captured(saved, new ContractSource([i]), Stop($"Stop {i}", "Gold", i == 4 ? 8 : 16, i == 4 ? CrateSize.Eight : CrateSize.Sixteen)));
+        var saved = Captured(full, new ContractSource([5]), Stop("Hurston", "Gold", 8, CrateSize.Eight), Stop("Area18", "Gold", 8, CrateSize.Eight));
+
+        BuildSaved(full).CapacityText.Should().Be("56/64 · 8 free");
+        BuildSaved(saved).CapacityText.Should().Be("56/64 · 8 free · 16 waiting");
     }
 
     [Fact]

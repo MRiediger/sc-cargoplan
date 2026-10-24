@@ -96,7 +96,7 @@ public static class SceneProjector
         ProjectedBox[] boxes = [.. DrawOrder.BoxesBackToFront(rack.Boxes, camera)
             .Select(b => new ProjectedBox(b, Faces(Corners(b.Bounds, Inset), visible, camera)))];
 
-        return new ProjectedRack(rack.RackId, rack.Number, rack.IsViolated, faces, boxes, LabelCentre(faces, box, camera, isLong), isLong, rack.IsLoaded);
+        return new ProjectedRack(rack.RackId, rack.Number, rack.IsViolated, faces, boxes, LabelCentre(faces, box, camera, isLong), isLong, rack.IsLoaded, rack.Load);
     }
 
     /// <summary>

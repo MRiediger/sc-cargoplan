@@ -12,8 +12,19 @@ public sealed record SceneHit(string RackId, Placement? Placement, Crate? Crate)
 /// <summary>What lies under a point of the scene, front to back. Pure geometry, so it is testable without a window.</summary>
 public static class SceneHitTest
 {
-    /// <summary>The tool tip of the cargo on top at <paramref name="point"/> (projected units); see <see cref="BoxAt"/>.</summary>
-    public static string? ToolTipAt(ProjectedScene scene, Point point) => BoxAt(scene, point)?.Box.ToolTip;
+    /// <summary>
+    /// The tool tip at <paramref name="point"/> (projected units): the cargo's on top (<see cref="BoxAt"/>) with its rack's
+    /// load below, over the rest of a rack the load alone, so an empty rack has one too (D67); null off the racks.
+    /// </summary>
+    public static string? ToolTipAt(ProjectedScene scene, Point point)
+    {
+        if (RackAt(scene, point) is not { } rack)
+        {
+            return null;
+        }
+
+        return CargoBoxOf(rack, point)?.Box.ToolTip is { } crate ? crate + "\n" + rack.Load.ToolTip : rack.Load.ToolTip;
+    }
 
     /// <summary>The stop whose cargo lies on top at <paramref name="point"/>, delivered or not; null on free or empty space.</summary>
     public static string? DestinationAt(ProjectedScene scene, Point point) => PlacementAt(scene, point)?.Destination;

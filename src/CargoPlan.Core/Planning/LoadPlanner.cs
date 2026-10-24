@@ -272,7 +272,7 @@ public static class LoadPlanner
             return null;
         }
 
-        var free = ship.TotalScu - saved.Plan.Crates.Where(c => !c.Delivered).Sum(c => (int)c.CrateSize);
+        var free = ship.TotalScu - saved.Plan.ScuOnBoard();
         return mission.TotalScu > free
             ? Invariant($"doesn't fit ({mission.TotalScu} SCU, {free} free)")
             : Invariant($"doesn't fit (no room for {(int)failed} SCU crates)");

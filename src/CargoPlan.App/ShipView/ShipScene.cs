@@ -16,6 +16,7 @@ namespace CargoPlan.App.ShipView;
 /// <param name="Plan">The plan drawn, empty without one: a drag asks Core with it where a crate may go (D25).</param>
 /// <param name="Ship">The plan's ship: racks with grid and origin for the drop target (D25).</param>
 /// <param name="Unplaced">Missions that didn't fit (D41), one line each after the stops; ticking one drops it.</param>
+/// <param name="WaitingScu">SCU of the missions in <paramref name="Unplaced"/>.</param>
 public sealed record ShipScene(
     IReadOnlyList<SceneRack> Racks,
     ShipBox Bounds,
@@ -24,10 +25,25 @@ public sealed record ShipScene(
     bool PaletteRepeats,
     LoadPlan Plan,
     Ship Ship,
-    IReadOnlyList<UnplacedEntry> Unplaced)
+    IReadOnlyList<UnplacedEntry> Unplaced,
+    int WaitingScu)
 {
     /// <summary>Every stop is delivered; false without stops.</summary>
     public bool AllDelivered => Legend.Count > 0 && Legend.All(e => e.Delivered);
+
+    /// <summary>
+    /// The header's capacity (D67), one compact format: "56/64 · 8 free", with "· 16 waiting" while missions wait for room.
+    /// Max is every rack cell of the ship, loaded what is on board (delivered crates are off it, D24).
+    /// </summary>
+    public string CapacityText
+    {
+        get
+        {
+            var loaded = Plan.ScuOnBoard();
+            var text = Invariant($"{loaded}/{Ship.TotalScu} · {Ship.TotalScu - loaded} free");
+            return WaitingScu > 0 ? Invariant($"{text} · {WaitingScu} waiting") : text;
+        }
+    }
 
     /// <summary>What marks the bow (D62); set by the overlay from the setting and the ship's outline, the wedge otherwise.</summary>
     public BowMarker Marker { get; init; } = new BowMarker.Wedge();
@@ -55,10 +71,21 @@ public abstract record BowMarker
 /// The rack's crates where the plan stores them (D24), by placement and in plan order, then its free cells. Overlapping
 /// crates of a plan file edited by hand are all there.
 /// </param>
-public sealed record SceneRack(string RackId, int Number, bool IsViolated, ShipBox Bounds, IReadOnlyList<SceneBox> Boxes)
+/// <param name="Load">What the rack holds on board, for its tool tip and its number (D67).</param>
+public sealed record SceneRack(string RackId, int Number, bool IsViolated, ShipBox Bounds, IReadOnlyList<SceneBox> Boxes, RackLoad Load)
 {
     /// <summary>Holds a crate, delivered ones included, so ticking a stop off changes nothing that depends on it (D16, D61).</summary>
     public bool IsLoaded => Boxes.Any(b => b.Fill != CellFill.Free);
+}
+
+/// <summary>SCU on board of a rack against its cells (D67); delivered crates don't count (D24).</summary>
+public sealed record RackLoad(int Number, int LoadedScu, int CapacityScu)
+{
+    /// <summary>"Rack 3 · 12 / 16 SCU": over any part of the rack, under a crate's own tool tip.</summary>
+    public string ToolTip => Invariant($"Rack {Number} · {LoadedScu} / {CapacityScu} SCU");
+
+    /// <summary>"3 · 12/16" with the load, "3" without (<c>crates.showRackLoad</c>).</summary>
+    public string Label(bool showLoad) => showLoad ? Invariant($"{Number} · {LoadedScu}/{CapacityScu}") : Invariant($"{Number}");
 }
 
 /// <summary>
@@ -136,6 +163,7 @@ public sealed record WedgeFloor(Point Centre, Vector Across, Vector Bowwards, Si
 /// </param>
 /// <param name="LabelAbove">On a long ship the number stands above its rack, never over its crates (D61).</param>
 /// <param name="IsLoaded"><see cref="SceneRack.IsLoaded"/>; empty racks of a long ship are drawn dimmed (D61).</param>
+/// <param name="Load"><see cref="SceneRack.Load"/>.</param>
 public sealed record ProjectedRack(
     string RackId,
     int Number,
@@ -144,7 +172,8 @@ public sealed record ProjectedRack(
     IReadOnlyList<ProjectedBox> Boxes,
     Point LabelCentre,
     bool LabelAbove,
-    bool IsLoaded);
+    bool IsLoaded,
+    RackLoad Load);
 
 public sealed record ProjectedFace(BoxFace Face, IReadOnlyList<Point> Polygon);
 

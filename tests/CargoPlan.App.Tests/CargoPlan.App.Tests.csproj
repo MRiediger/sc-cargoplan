@@ -35,4 +35,10 @@
                       LogicalName="missions/split_and_shared.json" Link="Fixtures\split_and_shared.json" />
   </ItemGroup>
 
+  <!-- The overlay's markup, read as XML by OverlayHeaderXamlTests: what stays visible while locked (D67). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\CargoPlan.App\OverlayWindow.xaml"
+                      LogicalName="xaml/OverlayWindow.xaml" Link="Xaml\OverlayWindow.xaml" />
+  </ItemGroup>
+
 </Project>

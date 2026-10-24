@@ -67,7 +67,7 @@ public sealed class RackNumberSizeTests
     [Fact]
     public void Shortest_side_comes_from_the_rack_bounds()
     {
-        SceneRack flat = new("flat", 1, IsViolated: false, new ShipBox(new ShipPoint(0, 0, 0), new ShipPoint(4, 3, 1)), []);
+        SceneRack flat = new("flat", 1, IsViolated: false, new ShipBox(new ShipPoint(0, 0, 0), new ShipPoint(4, 3, 1)), [], new RackLoad(1, 0, 12));
 
         RackNumberSize.ShortestSide(HullA).Should().Be(2);
         RackNumberSize.ShortestSide([.. HullA, flat]).Should().Be(1);

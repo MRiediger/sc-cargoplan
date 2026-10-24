@@ -127,6 +127,18 @@ public sealed class ReplanCommandTests
     }
 
     [Fact]
+    public void The_header_capacity_names_the_waiting_mission_until_a_replan_places_it()
+    {
+        // The case the "waiting" part is for (D67): 32 SCU free, the 16 SCU mission still waits.
+        var overlay = Showing(Fragmented());
+        overlay.Scene.CapacityText.Should().Be("32/64 · 32 free · 16 waiting");
+
+        overlay.ReplanCommand.Execute(null);
+
+        overlay.Scene.CapacityText.Should().Be("48/64 · 16 free");
+    }
+
+    [Fact]
     public void A_second_replan_changes_nothing_and_says_so()
     {
         var overlay = Showing(Fragmented());

@@ -34,6 +34,7 @@ public static class ThemeResources
         public const string CratesRackNumberFontSize = nameof(CratesRackNumberFontSize);
         public const string CratesHaloBrush = nameof(CratesHaloBrush);
         public const string CratesHaloSize = nameof(CratesHaloSize);
+        public const string CratesShowRackLoad = nameof(CratesShowRackLoad);
         public const string ButtonsBackgroundBrush = nameof(ButtonsBackgroundBrush);
         public const string ButtonsBorderBrush = nameof(ButtonsBorderBrush);
         public const string ButtonsBorderThickness = nameof(ButtonsBorderThickness);
@@ -45,7 +46,7 @@ public static class ThemeResources
             WindowBackgroundBrush, WindowOpaqueBackgroundBrush, WindowBorderBrush, WindowBorderThickness,
             HeaderForegroundBrush, HeaderHaloEffect,
             LegendForegroundBrush, LegendFontSize, LegendHaloEffect,
-            CratesFillAlpha, CratesEdgeBrush, CratesRackNumberBrush, CratesRackNumberFontSize, CratesHaloBrush, CratesHaloSize,
+            CratesFillAlpha, CratesEdgeBrush, CratesRackNumberBrush, CratesRackNumberFontSize, CratesHaloBrush, CratesHaloSize, CratesShowRackLoad,
             ButtonsBackgroundBrush, ButtonsBorderBrush, ButtonsBorderThickness, ButtonsCornerRadius, ButtonsHaloEffect,
         ];
     }
@@ -85,6 +86,7 @@ public static class ThemeResources
         // The rack numbers keep their sharp outline (D15); the halo gives its colour and width.
         Set(resources, Keys.CratesHaloBrush, crates.Halo.Enabled ? Brush(crates.Halo.Color) : null);
         resources[Keys.CratesHaloSize] = crates.Halo.Size;
+        resources[Keys.CratesShowRackLoad] = crates.ShowRackLoad;
 
         var buttons = appearance.Buttons;
         resources[Keys.ButtonsBackgroundBrush] = Brush(buttons.Background);

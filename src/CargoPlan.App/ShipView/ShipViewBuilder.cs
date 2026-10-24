@@ -44,6 +44,7 @@ public static class ShipViewBuilder
         var duplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(saved);
         var reserveDuplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(OnBoard(saved));
         var placements = plan.Placements.ToLookup(p => p.Destination);
+        Mission[] unplaced = saved is null ? [] : [.. saved.Missions.Where(m => m.Unplaced)];
         LegendEntry[] legend = [.. plan.Route.Select(destination => new LegendEntry(
             palette[destination],
             destination,
@@ -60,7 +61,8 @@ public static class ShipViewBuilder
             MissionPalette.Repeats(plan),
             plan,
             ship,
-            saved is null ? [] : [.. saved.Missions.Where(m => m.Unplaced).Select(m => Unplaced(saved, ship, m, duplicates))]);
+            saved is null ? [] : [.. unplaced.Select(m => Unplaced(saved, ship, m, duplicates))],
+            unplaced.Sum(m => m.TotalScu));
     }
 
     /// <summary>
@@ -156,7 +158,7 @@ public static class ShipViewBuilder
                select new SceneBox(rack.CellBox(cell, CrateSize.One), CellFill.Free, null, null, null, null, IsViolated: false, loadedLayers.Contains(s)),
         ];
 
-        return new SceneRack(rack.Id, rack.Number, isViolated, rack.Bounds, [.. cargo, .. free]);
+        return new SceneRack(rack.Id, rack.Number, isViolated, rack.Bounds, [.. cargo, .. free], new RackLoad(rack.Number, plan.ScuOnBoard(rack.Id), rack.CapacityScu));
     }
 
     /// <summary>

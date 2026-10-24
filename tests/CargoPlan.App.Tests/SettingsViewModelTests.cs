@@ -346,6 +346,30 @@ public sealed class SettingsViewModelTests
     }
 
     [Fact]
+    public void Rack_load_switch_starts_with_the_current_look_and_applies_once()
+    {
+        var off = Changed with { Crates = Changed.Crates with { ShowRackLoad = false } };
+        var viewModel = Create(off);
+        viewModel.CratesShowRackLoad.Should().BeFalse();
+
+        viewModel.CratesShowRackLoad = true;
+
+        _applied.Should().ContainSingle();
+        Last.Appearance.Should().Be(off with { Crates = off.Crates with { ShowRackLoad = true } });
+    }
+
+    [Fact]
+    public void Reset_crates_shows_the_rack_load_again()
+    {
+        var viewModel = Create(Changed with { Crates = Changed.Crates with { ShowRackLoad = false } });
+
+        viewModel.ResetCratesCommand.Execute(null);
+
+        viewModel.CratesShowRackLoad.Should().BeTrue();
+        Last.Appearance.Crates.ShowRackLoad.Should().BeTrue();
+    }
+
+    [Fact]
     public void Header_values_apply()
     {
         var viewModel = Create();
