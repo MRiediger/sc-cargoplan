@@ -400,7 +400,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         IsDirty = false;
     }
 
-    /// <summary>Rows of the overlay's missions in route order (T5.4); none without a plan.</summary>
+    /// <summary>Rows of the overlay's missions in the legend's order (T5.4, D64); none without a plan.</summary>
     private static IReadOnlyList<MissionRow> RowsOf(OverlayViewModel overlay) =>
         overlay.Saved is { } saved ? MissionRows.FromMissions(saved.Missions, [.. saved.Stops.Select(s => s.Destination)]) : [];
 

@@ -97,12 +97,12 @@ public static class MissionRows
         return new MissionRowsResult(route, stopNumbers, errors, crateTexts, problem);
     }
 
-    /// <summary>One row per item, stops in route order; an override (or a schema 1 item's explicit crates) as text.</summary>
+    /// <summary>One row per item, stops in their order; an override (or a schema 1 item's explicit crates) as text.</summary>
     public static IReadOnlyList<MissionRow> FromStops(IEnumerable<MissionStop> stops) =>
         [.. stops.OrderBy(s => s.Order).SelectMany(s => s.Items.Select(item => Row(s.Destination, item, null)))];
 
     /// <summary>
-    /// One row per item of the plan's missions (D42), destinations in <paramref name="order"/> (the route), within a
+    /// One row per item of the plan's missions (D42), destinations in <paramref name="order"/> (the legend's), within a
     /// destination missions in plan order; each row knows its mission and where it came from (T5.4).
     /// </summary>
     public static IReadOnlyList<MissionRow> FromMissions(IReadOnlyList<Mission> missions, IReadOnlyList<string> order) =>

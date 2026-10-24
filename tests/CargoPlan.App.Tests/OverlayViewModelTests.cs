@@ -352,7 +352,8 @@ public class OverlayViewModelTests
     [Fact]
     public void ToggleDeliveredCommand_back_onto_cells_taken_again_is_refused_with_a_notice()
     {
-        // Riker is ticked, Shubin's 8 goes where Riker's 4 lay (D24 addendum): Riker can't come back on board.
+        // Shubin's 8 in Rack 1, Riker's 4 in Rack 2 (largest first, D64). Riker is ticked, Shubin's 8 goes where Riker's 4
+        // lay (D24 addendum): Riker can't come back on board.
         var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"));
         IReadOnlyList<MissionStop> missions =
         [
@@ -361,7 +362,7 @@ public class OverlayViewModelTests
         ];
         viewModel.ShowPlan(SavedPlan.FromStops(missions, LoadPlanner.Plan(viewModel.Ship, missions.ToStops())));
         viewModel.ToggleDeliveredCommand.Execute("Riker");
-        viewModel.MoveStopCommand.Execute(new Gesture.MoveStop("Shubin", "rack-0"));
+        viewModel.MoveStopCommand.Execute(new Gesture.MoveStop("Shubin", "rack-1"));
         var reused = viewModel.Plan!;
 
         viewModel.ToggleDeliveredCommand.Execute("Riker");
@@ -431,9 +432,10 @@ public class OverlayViewModelTests
         viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-1", 0, 0, 1));
 
         viewModel.Plan!.CratesForRack("rack-1").Should().Contain(c => c.Commodity == "Gold" && c.Position == new GridPosition(0, 0, 1));
-        // Orison on Riker: laid and marked, not refused (D24 addendum).
-        viewModel.Scene.Violations.Should().Equal("1 SCU crate of Gold for Orison in rack 2 lies on cargo for Riker, which is unloaded first");
-        viewModel.Scene.Hints.Should().Contain(["Rack 2 shared by Riker, Shubin, Orison – identify crates by count", "Orison spans racks 2+3"]);
+        // Orison on Riker: laid and hinted at, nothing red (D64).
+        viewModel.Scene.Violations.Should().BeEmpty();
+        viewModel.Scene.Hints.Should().Contain(
+            ["Rack 2 shared by Riker, Shubin, Orison – identify crates by count", "Orison spans racks 2+3", "Rack 2: crate for Orison sits on cargo for Riker"]);
     }
 
     [Fact]
@@ -513,7 +515,7 @@ public class OverlayViewModelTests
     [Fact]
     public void MoveStopCommand_with_room_moves_every_crate_of_the_stop()
     {
-        // Riker's one 4 SCU crate leaves room for Shubin's 8 in Rack 1.
+        // Riker's one 4 SCU crate leaves room for Shubin's 8 in Rack 2 (Shubin, the larger, is in Rack 1, D64).
         var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"));
         IReadOnlyList<MissionStop> missions =
         [
@@ -522,9 +524,9 @@ public class OverlayViewModelTests
         ];
         viewModel.ShowPlan(SavedPlan.FromStops(missions, LoadPlanner.Plan(viewModel.Ship, missions.ToStops())));
 
-        viewModel.MoveStopCommand.Execute(new Gesture.MoveStop("Shubin", "rack-0"));
+        viewModel.MoveStopCommand.Execute(new Gesture.MoveStop("Shubin", "rack-1"));
 
-        viewModel.Plan!.Crates.Should().OnlyContain(c => c.RackId == "rack-0");
+        viewModel.Plan!.Crates.Should().OnlyContain(c => c.RackId == "rack-1");
         viewModel.Notices.Should().BeEmpty();
     }
 

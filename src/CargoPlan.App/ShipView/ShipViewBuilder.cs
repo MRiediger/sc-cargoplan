@@ -40,11 +40,11 @@ public static class ShipViewBuilder
 
         SceneRack[] racks = [.. ship.Racks.Select(r => BuildRack(r, plan, palette, violated.Contains(r.Id)))];
 
-        // Unload order (T5.4): a new visit to a delivered stop comes last; the colour stays the palette's (route order).
+        // The order of the crate list, as the player entered the stops: display only, no route (D64); the palette's too.
         var duplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(saved);
         var reserveDuplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(OnBoard(saved));
         var placements = plan.Placements.ToLookup(p => p.Destination);
-        LegendEntry[] legend = [.. plan.UnloadOrder.Select(destination => new LegendEntry(
+        LegendEntry[] legend = [.. plan.Route.Select(destination => new LegendEntry(
             palette[destination],
             destination,
             placements[destination].Sum(p => p.Item.Scu),
@@ -130,7 +130,7 @@ public static class ShipViewBuilder
         var crates = plan.CratesForRack(rack.Id);
 
         // Only a red rack can hold a faulty crate; valid plans skip the check of every pair.
-        IReadOnlySet<Crate> faulty = isViolated ? CrateLayout.Faulty(rack, crates, plan.UnloadOrder) : new HashSet<Crate>();
+        IReadOnlySet<Crate> faulty = isViolated ? CrateLayout.Faulty(rack, crates) : new HashSet<Crate>();
         var drawn = Drawn(crates);
 
         SceneBox[] cargo = [.. plan.PlacementsForRack(rack.Id).SelectMany(placement =>

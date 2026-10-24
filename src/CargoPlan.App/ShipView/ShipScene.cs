@@ -161,7 +161,7 @@ public sealed record ProjectedBox(SceneBox Box, IReadOnlyList<ProjectedFace> Fac
 public sealed record SceneLine(Point From, Point To);
 
 /// <summary>
-/// One stop in the legend, in unload order (T5.4). <paramref name="Delivered"/>: all its placements are delivered.
+/// One stop in the legend, in the order the stops were entered (D64). <paramref name="Delivered"/>: all its placements are delivered.
 /// <paramref name="Markings"/>: what is uncertain about its missions ("4 SCU? · ⚠ duplicate?"), empty if nothing;
 /// <paramref name="ReserveMarkings"/> the same with nothing delivered, so the line keeps its width when a tick takes a
 /// marking away (D16, D33).

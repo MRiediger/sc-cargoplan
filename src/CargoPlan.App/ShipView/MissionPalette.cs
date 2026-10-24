@@ -93,7 +93,7 @@ public static class MissionPalette
     public static SolidColorBrush Fill(Color color, byte alpha) => Frozen(color with { A = alpha });
 
     /// <summary>
-    /// Colour index per destination, in the order destinations first appear in the plan (route order), so a split
+    /// Colour index per destination, in the order destinations first appear in the plan (as entered, D64), so a split
     /// stop has the same colour in every rack. From stop 9 on, colours repeat (<see cref="Repeats"/>).
     /// </summary>
     public static IReadOnlyDictionary<string, int> Assign(LoadPlan plan)

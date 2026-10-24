@@ -265,8 +265,9 @@ public class ShipViewBuilderTests
         rack2.Boxes.Where(b => b.Crate is { Destination: "Orison" }).Select(b => b.Bounds).Should().BeEquivalentTo(
             moved.CratesForRack("rack-1").Where(c => c.Destination == "Orison").Select(BoxOf));
 
-        // Orison is unloaded after Riker: the crate lies there and is marked, not refused (D24 addendum).
-        rack2.Boxes.Where(b => b.IsViolated).Should().ContainSingle().Which.Crate!.Position.Should().Be(new GridPosition(0, 0, 1));
+        // On Riker's cargo: a hint, nothing red (D64).
+        rack2.Boxes.Should().NotContain(b => b.IsViolated);
+        moved.Warnings.Should().Contain(new PlanWarning("rack-1", "Rack 2: crate for Orison sits on cargo for Riker"));
     }
 
     [Fact]
@@ -469,16 +470,16 @@ public class ShipViewBuilderTests
     }
 
     [Fact]
-    public void The_legend_follows_the_unload_order_and_a_stop_keeps_its_colour()
+    public void The_legend_keeps_the_order_of_entry_and_a_stop_keeps_its_colour()
     {
-        // Riker delivered, a new Riker contract after Shubin: Riker is unloaded last, its line goes last (T5.4).
+        // Riker delivered, a new Riker contract after Shubin: no route (D64), so Riker's line stays where it was.
         var saved = Captured(Captured(EmptySaved, new ContractSource([1]), Stop("Riker")), new ContractSource([2]), Stop("Shubin"));
         var colour = BuildSaved(saved).Legend.Single(e => e.Destination == "Riker").PaletteIndex;
 
         var again = Captured(Delivered(saved, "Riker"), new ContractSource([3]), Stop("Riker", "Gold"));
 
         var legend = BuildSaved(again).Legend;
-        legend.Select(e => e.Destination).Should().Equal("Shubin", "Riker");
+        legend.Select(e => e.Destination).Should().Equal("Riker", "Shubin");
         legend.Single(e => e.Destination == "Riker").PaletteIndex.Should().Be(colour);
     }
 
