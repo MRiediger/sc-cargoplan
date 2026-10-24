@@ -215,10 +215,13 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The opacity slider is on only for a hologram look; the outline keeps its own line.</summary>
     public bool IsHologramLook => ShipOutline.IsHologram();
 
-    /// <summary>The slider's bounds in percent, like the file's 0.1 to 1.</summary>
-    public static int MinHoloOpacityPercent => ToPercent(AppearanceRules.MinHoloOpacity);
+    /// <summary>
+    /// The slider's bounds in percent, like the file's 0.1 to 1. double, not int: x:Static hands the value over as it is,
+    /// and an int on Slider.Minimum throws when the window opens.
+    /// </summary>
+    public static double MinHoloOpacityPercent => ToPercent(AppearanceRules.MinHoloOpacity);
 
-    public static int MaxHoloOpacityPercent => ToPercent(AppearanceRules.MaxHoloOpacity);
+    public static double MaxHoloOpacityPercent => ToPercent(AppearanceRules.MaxHoloOpacity);
 
     /// <summary>The hologram's opacity in whole percent, as the slider moves; the file and the overlay get the share.</summary>
     [ObservableProperty]

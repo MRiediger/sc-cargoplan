@@ -1161,8 +1161,12 @@ Session; nach dem Look-Gate (Martin) Deckkraft als Regler `holoOpacity` (0,1–1
 
 - Die Kosten bei Zoom hängen an der Kantenzahl, nicht an den Dreiecken (fast jedes Schiff hat 15.000 Kanten auf
   Stufe 3; Streifenbau Hull A 2,09 ms, Centaurus 1,80 ms): Die vorab geplante Rot-Regel hätte das falsche Schiff getroffen.
-- Tests: 2.146 grün (Core 954, Import 119, App 1.073), mit synthetischem SCH2 und Fake-Handler; zwei absichtliche
+- Tests: 2.147 grün (Core 954, Import 119, App 1.074), mit synthetischem SCH2 und Fake-Handler; zwei absichtliche
   Fehler im Download-Code fängt die Suite. Kein neues NuGet-Paket. AppData in keinem Scratch-Lauf berührt.
+- Nach dem Doku-Commit (Martin): Preferences schloss die App. Ursache: die Grenzen des Deckkraft-Reglers als `int` per
+  `x:Static` an `Slider.Minimum` (ein `double`), WPF wandelt dort nicht um. Kein Test öffnete das Settings-Fenster;
+  neu `SettingsWindowXamlTests` (jede statische Reglergrenze ein `double`, vor dem Fix rot), dazu das echte Fenster
+  offscreen geöffnet.
 - Commits ab4acbb, de96e92, 31541bf, 8c7a123 und dieser; Pipeline a406e95. Martin pusht.
 
 ### [ ] T7.5 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“

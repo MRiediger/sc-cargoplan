@@ -47,4 +47,10 @@
                       LogicalName="xaml/OverlayWindow.xaml" Link="Xaml\OverlayWindow.xaml" />
   </ItemGroup>
 
+  <!-- The settings window's markup, read by SettingsWindowXamlTests: slider bounds must be doubles (T7.4c-2 crash). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\CargoPlan.App\SettingsWindow.xaml"
+                      LogicalName="xaml/SettingsWindow.xaml" Link="Xaml\SettingsWindow.xaml" />
+  </ItemGroup>
+
 </Project>
