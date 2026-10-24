@@ -13,9 +13,12 @@ public static class SelectionFocus
 {
     private const string Separator = " · ";
 
+    private const string FromPrefix = "from ";
+    private const string ToPrefix = "to ";
+
     /// <summary>
-    /// "Lorville · Titanium · Riker", or "Titanium · Riker" without pickup, for exactly one selected crate; null for none
-    /// or several.
+    /// "from Lorville · Titanium · to Riker", or "Titanium · to Riker" without pickup, for exactly one selected crate; null
+    /// for none or several.
     /// </summary>
     public static string? InfoLine(SavedPlan? saved, IReadOnlySet<Crate> selected)
     {
@@ -26,8 +29,22 @@ public static class SelectionFocus
 
         var crate = selected.Single();
         var pickup = saved.Missions.FirstOrDefault(m => m.Id == crate.Mission)?.Items.ElementAtOrDefault(crate.Item).Item?.Pickup;
-        string[] parts = pickup is null ? [crate.Commodity, crate.Destination] : [Pickups.Text(pickup), crate.Commodity, crate.Destination];
+        var destination = ToPrefix + crate.Destination;
+        string[] parts = pickup is null ? [crate.Commodity, destination] : [FromPrefix + Pickups.Text(pickup), crate.Commodity, destination];
         return string.Join(Separator, parts);
+    }
+
+    /// <summary>Every one of <paramref name="crates"/> is selected, and there is one: the legend's pickup check box is ticked.</summary>
+    public static bool HasAll(IReadOnlySet<Crate> selected, IReadOnlyList<Crate> crates) => crates.Count > 0 && crates.All(selected.Contains);
+
+    /// <summary>
+    /// The pickup check box clicked: <paramref name="crates"/> taken out of the selection if all of them are in it, else
+    /// added to it; the rest of the selection stays.
+    /// </summary>
+    public static CrateSelection Toggled(CrateSelection selection, ShipScene scene, IReadOnlyList<Crate> crates)
+    {
+        var selected = selection.In(scene);
+        return CrateSelection.Of(scene, HasAll(selected, crates) ? selected.Except(crates) : selected.Union(crates));
     }
 
     /// <summary>The missions the selected crates belong to; empty without selection.</summary>

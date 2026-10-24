@@ -34,8 +34,8 @@ public class SelectionFocusTests
     {
         var saved = TwoRikers();
 
-        SelectionFocus.InfoLine(saved, new HashSet<Crate> { CrateOf(saved, 1, "Titanium") }).Should().Be("Lorville · Titanium · Riker");
-        SelectionFocus.InfoLine(saved, new HashSet<Crate> { CrateOf(saved, 2, "Titanium") }).Should().Be("Everus Harbor · Titanium · Riker");
+        SelectionFocus.InfoLine(saved, new HashSet<Crate> { CrateOf(saved, 1, "Titanium") }).Should().Be("from Lorville · Titanium · to Riker");
+        SelectionFocus.InfoLine(saved, new HashSet<Crate> { CrateOf(saved, 2, "Titanium") }).Should().Be("from Everus Harbor · Titanium · to Riker");
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public class SelectionFocusTests
     {
         var saved = TwoRikers();
 
-        SelectionFocus.InfoLine(saved, new HashSet<Crate> { CrateOf(saved, 3, "Stims") }).Should().Be("A / B / C · Stims · Orison");
+        SelectionFocus.InfoLine(saved, new HashSet<Crate> { CrateOf(saved, 3, "Stims") }).Should().Be("from A / B / C · Stims · to Orison");
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class SelectionFocusTests
     {
         var saved = TwoRikers();
 
-        SelectionFocus.InfoLine(saved, new HashSet<Crate> { CrateOf(saved, 3, "Gold") }).Should().Be("Gold · Orison");
+        SelectionFocus.InfoLine(saved, new HashSet<Crate> { CrateOf(saved, 3, "Gold") }).Should().Be("Gold · to Orison");
     }
 
     [Fact]

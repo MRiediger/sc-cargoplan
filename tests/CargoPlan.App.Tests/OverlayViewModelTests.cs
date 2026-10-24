@@ -45,7 +45,7 @@ public class OverlayViewModelTests
         var changes = Changes(viewModel, () => viewModel.Selection = CrateSelection.Empty.Toggle(viewModel.Scene, crate));
 
         changes.Should().Contain(nameof(OverlayViewModel.SelectionInfo));
-        viewModel.SelectionInfo.Should().Be($"{crate.Commodity} · Riker");
+        viewModel.SelectionInfo.Should().Be($"{crate.Commodity} · to Riker");
 
         changes = Changes(viewModel, () => viewModel.ToggleDeliveredCommand.Execute("Shubin"));
 

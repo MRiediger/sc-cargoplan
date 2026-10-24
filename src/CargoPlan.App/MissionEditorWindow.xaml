@@ -27,7 +27,8 @@
             <ed:SelectedRowConverter x:Key="SelectedRowConverter" />
             <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
             <Style x:Key="ToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                <Setter Property="Margin" Value="0,0,4,0" />
+                <!-- 4 below: rows keep apart when the toolbar wraps; the panel's own margin is 4 less. -->
+                <Setter Property="Margin" Value="0,0,4,4" />
                 <Setter Property="Padding" Value="8,2" />
             </Style>
         </DockPanel.Resources>
@@ -37,7 +38,8 @@
             <TextBlock Text="Ship:" Margin="0,0,6,0" />
             <TextBlock Text="{Binding ShipName}" FontWeight="SemiBold" />
         </StackPanel>
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+        <!-- Wraps in a narrow window instead of cutting the last buttons off (T7.4d). -->
+        <WrapPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
             <Button Content="Add" Command="{Binding AddRowCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Add a row (or type into the empty row at the bottom)" />
             <Button Content="Remove" Command="{Binding RemoveRowCommand}" Style="{StaticResource ToolbarButtonStyle}" />
@@ -48,8 +50,8 @@
             <Button Content="↓" Command="{Binding MoveDownCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Move down" />
             <Button Content="Clear rows" Command="{Binding ClearRowsCommand}" Style="{StaticResource ToolbarButtonStyle}"
-                    Margin="12,0,4,0" ToolTip="Start the next route; the overlay keeps its plan until you plan again" />
-            <Button Content="Import…" Click="OnImport" Style="{StaticResource ToolbarButtonStyle}" Margin="12,0,4,0"
+                    Margin="12,0,4,4" ToolTip="Start the next route; the overlay keeps its plan until you plan again" />
+            <Button Content="Import…" Click="OnImport" Style="{StaticResource ToolbarButtonStyle}" Margin="12,0,4,4"
                     ToolTip="Replace the rows with a mission file" />
             <!-- Lays out the plan, not the rows: a deliberate action next to Import and Sync, not in the overlay header (D66). -->
             <Button Content="Re-plan" Command="{Binding ReplanCommand}" Style="{StaticResource ToolbarButtonStyle}"
@@ -59,8 +61,8 @@
                     ToolTip="Add contracts captured in ContractTracker to the plan, and place waiting missions that fit now" />
             <Button Content="Export…" Click="OnExport" IsEnabled="{Binding CanExport}" Style="{StaticResource ToolbarButtonStyle}" />
             <Button Content="Copy as text" Click="OnCopyText" IsEnabled="{Binding HasPlan}" Style="{StaticResource ToolbarButtonStyle}"
-                    Margin="12,0,0,0" ToolTip="Copy the current plan for Discord or org chat" />
-        </StackPanel>
+                    Margin="12,0,0,4" ToolTip="Copy the current plan for Discord or org chat" />
+        </WrapPanel>
 
         <DockPanel DockPanel.Dock="Bottom" Margin="0,8,0,0">
             <!-- Disabled, the tool tip says why (ShowOnDisabled), like the overlay's split and merge buttons.

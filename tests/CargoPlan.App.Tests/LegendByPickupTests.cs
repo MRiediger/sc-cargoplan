@@ -107,4 +107,78 @@ public class LegendByPickupTests
 
         viewModel.ShipChangeQuestion(Catalog.Get("c2_hercules")).Should().EndWith(Environment.NewLine + "1 stop already ticked – ticks stay.");
     }
+
+    // --- Check box at a pickup header: selects that pickup's crates ---
+
+    /// <summary>Lorville: Riker and Shubin; Everus Harbor: Riker and Orison; nothing typed without pickup.</summary>
+    private static SavedPlan TwoPickupMissions() => Planned(
+        new Mission(1, [new("Riker", 1, [Item("Titanium", 16, CrateSize.Eight, "Lorville")]), new("Shubin", 2, [Item("Quartz", 16, CrateSize.Four, "Lorville")])]),
+        new Mission(2, [new("Riker", 1, [Item("Titanium", 16, CrateSize.Eight, "Everus Harbor")]), new("Orison", 2, [Item("Gold", 16, CrateSize.Sixteen, "Everus Harbor")])]));
+
+    [Fact]
+    public void A_pickup_header_holds_the_crates_on_board_of_its_pickup()
+    {
+        var saved = TwoPickupMissions();
+
+        var lorville = Legend(saved).Single(e => e.Header == "From Lorville");
+
+        lorville.PickupCrates.Should().BeEquivalentTo(saved.Plan.Crates.Where(c => c.Mission == 1));
+        Legend(saved).Where(e => e.Header is null).Should().OnlyContain(e => e.PickupCrates == null);
+    }
+
+    [Fact]
+    public void Delivered_crates_are_left_out_of_the_check_box()
+    {
+        var saved = TwoPickupMissions();
+        SavedPlan ticked = new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, "Shubin", true));
+
+        Legend(ticked).Single(e => e.Header == "From Lorville").PickupCrates
+            .Should().BeEquivalentTo(saved.Plan.Crates.Where(c => c.Mission == 1 && c.Destination == "Riker"));
+    }
+
+    [Fact]
+    public void One_mission_gets_no_check_box_nor_does_the_header_without_pickup()
+    {
+        var one = Planned(new Mission(1, [new("Riker", 1, [Item("Titanium", 8, CrateSize.Eight, "Lorville")]), new("Shubin", 2, [Item("Quartz", 4, CrateSize.Four, "Area18")])]));
+        var mixed = Planned(
+            new Mission(1, [new("Riker", 1, [Item("Titanium", 8, CrateSize.Eight, "Lorville")])]),
+            new Mission(2, [new("Shubin", 1, [Item("Quartz", 4, CrateSize.Four)])]));
+
+        Legend(one).Should().OnlyContain(e => e.PickupCrates == null);
+        Legend(mixed).Single(e => e.Header == "").PickupCrates.Should().BeNull();
+        Legend(mixed).Single(e => e.Header == "From Lorville").PickupCrates.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void The_check_box_selects_its_crates_and_takes_them_out_again()
+    {
+        var viewModel = new OverlayViewModel(HullA, Catalog);
+        viewModel.ShowPlan(TwoPickupMissions());
+        var orison = viewModel.Plan!.Crates.Single(c => c.Destination == "Orison");
+        viewModel.Selection = CrateSelection.Empty.Toggle(viewModel.Scene, orison);
+        var lorville = viewModel.Scene.Legend.Single(e => e.Header == "From Lorville");
+
+        viewModel.TogglePickupCommand.Execute(lorville);
+
+        viewModel.Selection.In(viewModel.Scene).Should().BeEquivalentTo([.. lorville.PickupCrates!, orison]);
+        SelectionFocus.HasAll(viewModel.Selection.In(viewModel.Scene), lorville.PickupCrates!).Should().BeTrue();
+
+        viewModel.TogglePickupCommand.Execute(lorville);
+
+        viewModel.Selection.In(viewModel.Scene).Should().BeEquivalentTo([orison]);
+    }
+
+    [Fact]
+    public void A_check_box_with_part_of_its_crates_selected_selects_the_rest()
+    {
+        var viewModel = new OverlayViewModel(HullA, Catalog);
+        viewModel.ShowPlan(TwoPickupMissions());
+        var lorville = viewModel.Scene.Legend.Single(e => e.Header == "From Lorville");
+        viewModel.Selection = CrateSelection.Empty.Toggle(viewModel.Scene, lorville.PickupCrates![0]);
+
+        SelectionFocus.HasAll(viewModel.Selection.In(viewModel.Scene), lorville.PickupCrates).Should().BeFalse();
+        viewModel.TogglePickupCommand.Execute(lorville);
+
+        viewModel.Selection.In(viewModel.Scene).Should().BeEquivalentTo(lorville.PickupCrates);
+    }
 }

@@ -196,8 +196,13 @@ public sealed record SceneLine(Point From, Point To);
 /// The line over this one, on the first line of a pickup list: "From A, B"; "" for the items without pickup next to
 /// others; null on every other line and in a plan without pickups.
 /// </param>
+/// <param name="PickupCrates">
+/// On a header with a pickup while more than one mission is on board: that pickup's crates still on board, which its
+/// check box selects (<see cref="SelectionFocus.Toggled"/>); null elsewhere, and no check box.
+/// </param>
 public sealed record LegendEntry(
-    int PaletteIndex, string Destination, int Scu, bool Delivered = false, string Markings = "", string ReserveMarkings = "", string? Header = null)
+    int PaletteIndex, string Destination, int Scu, bool Delivered = false, string Markings = "", string ReserveMarkings = "", string? Header = null,
+    IReadOnlyList<Crate>? PickupCrates = null)
 {
     public string Label => WithMarkings(Markings);
 

@@ -604,6 +604,16 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     [RelayCommand]
     private void ToggleOverlay() => IsOverlayHidden = !IsOverlayHidden;
 
+    /// <summary>The check box at a pickup header of the legend: selects that pickup's crates, or takes them out (T7.4d).</summary>
+    [RelayCommand]
+    private void TogglePickup(LegendEntry entry)
+    {
+        if (entry.PickupCrates is { } crates)
+        {
+            Selection = SelectionFocus.Toggled(Selection, Scene, crates);
+        }
+    }
+
     /// <summary>
     /// Ticks a stop off in the legend, or back after a misclick: the whole stop, split parts included (D16). Ticking back
     /// is refused once another crate took a cell of the stop (D24 addendum); the reason goes to the notice line, like a

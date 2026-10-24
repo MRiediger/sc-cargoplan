@@ -55,7 +55,8 @@ public static class ShipViewBuilder
             placements[line.Destination].All(p => p.Delivered),
             Markings(saved, line.Destination, duplicates, line.Missions),
             Markings(saved, line.Destination, reserveDuplicates, line.Missions),
-            line.Header))];
+            line.Header,
+            line.PickupCrates))];
 
         return new ShipScene(
             racks,
@@ -72,24 +73,31 @@ public static class ShipViewBuilder
     /// <summary>
     /// The legend's lines (T7.4d, D68): one per destination in the route without any pickup in the plan, as before;
     /// otherwise one per pickup list and destination, lists in the order they first appear along the route, a list's
-    /// destinations in route order, the header on its first line. A list is a set of places, any case.
+    /// destinations in route order, the header on its first line. A list is a set of places, any case. With more than one
+    /// mission on board, a header with a pickup carries that pickup's crates on board for its check box.
     /// </summary>
-    private static IEnumerable<(string? Header, string Destination, int Scu, IReadOnlySet<int>? Missions)> LegendLines(LoadPlan plan, SavedPlan? saved)
+    private static IEnumerable<(string? Header, string Destination, int Scu, IReadOnlySet<int>? Missions, IReadOnlyList<Crate>? PickupCrates)> LegendLines(
+        LoadPlan plan, SavedPlan? saved)
     {
         var crates = plan.Route.SelectMany(d => plan.Crates.Where(c => c.Destination == d))
             .Select(c => (Crate: c, Pickup: saved?.Missions.FirstOrDefault(m => m.Id == c.Mission)?.Items.ElementAtOrDefault(c.Item).Item?.Pickup))
             .ToArray();
         if (crates.All(c => c.Pickup is null))
         {
-            return plan.Route.Select(d => ((string?)null, d, crates.Where(c => c.Crate.Destination == d).Sum(c => (int)c.Crate.CrateSize), (IReadOnlySet<int>?)null));
+            return plan.Route.Select(d => (
+                (string?)null, d, crates.Where(c => c.Crate.Destination == d).Sum(c => (int)c.Crate.CrateSize), (IReadOnlySet<int>?)null, (IReadOnlyList<Crate>?)null));
         }
 
+        var checkable = plan.Crates.Where(c => !c.Delivered).Select(c => c.Mission).Distinct().Count() > 1;
         return crates.GroupBy(c => c.Pickup is { } pickup ? string.Join('\n', pickup.Select(p => p.ToUpperInvariant()).Order(StringComparer.Ordinal)) : "")
             .SelectMany(list => list.GroupBy(c => c.Crate.Destination).Select((stop, index) => (
                 index == 0 ? (list.First().Pickup is { } pickup ? FromText + string.Join(", ", pickup) : "") : null,
                 stop.Key,
                 stop.Sum(c => (int)c.Crate.CrateSize),
-                (IReadOnlySet<int>?)stop.Select(c => c.Crate.Mission).ToHashSet())));
+                (IReadOnlySet<int>?)stop.Select(c => c.Crate.Mission).ToHashSet(),
+                index == 0 && checkable && list.First().Pickup is not null
+                    ? (IReadOnlyList<Crate>?)[.. list.Select(c => c.Crate).Where(c => !c.Delivered)]
+                    : null)));
     }
 
     /// <summary>

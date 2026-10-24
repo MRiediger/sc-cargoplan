@@ -23,6 +23,7 @@
     <!-- MinWidth/MinHeight: header, a small ship view and the legend stay visible; restoring saved bounds uses them too. -->
     <Window.Resources>
         <sv:PaletteBrushConverter x:Key="PaletteBrushConverter" />
+        <sv:PickupCheckedConverter x:Key="PickupCheckedConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <!-- Theme values are DynamicResources from settings.json (ThemeResources, D31), so the settings window can change
              them while the overlay is open (T4.2). A halo that is off has no resource: Effect stays null. -->
@@ -467,9 +468,39 @@
                             <!-- The command replaces the plan, so the legend is rebuilt and the grey comes from the new entry. -->
                             <DataTemplate DataType="{x:Type sv:LegendEntry}">
                                 <!-- "From A, B" over the first line of a pickup list (T7.4d, D68): no tick of its own, it goes with
-                                     the stop lines when the legend is hidden (D33). "" keeps an empty line for items without pickup. -->
+                                     the stop lines when the legend is hidden (D33). "" keeps an empty line for items without pickup.
+                                     With more than one mission on board a check box in the swatch column selects the pickup's crates;
+                                     it shows ticked while all of them are selected (PickupCheckedConverter). -->
                                 <StackPanel>
-                                    <TextBlock x:Name="HeaderText" Text="{Binding Header, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                                    <StackPanel x:Name="HeaderRow" Orientation="Horizontal">
+                                        <CheckBox x:Name="PickupCheck" Width="12" Height="12" Margin="0,0,6,0" VerticalAlignment="Center"
+                                                  Focusable="False" Cursor="Hand"
+                                                  Command="{Binding DataContext.TogglePickupCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  CommandParameter="{Binding Mode=OneTime}">
+                                            <CheckBox.IsChecked>
+                                                <MultiBinding Converter="{StaticResource PickupCheckedConverter}" Mode="TwoWay">
+                                                    <Binding Mode="OneWay" />
+                                                    <Binding Path="DataContext.Selection" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                    <Binding Path="DataContext.Scene" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                </MultiBinding>
+                                            </CheckBox.IsChecked>
+                                            <CheckBox.Template>
+                                                <ControlTemplate TargetType="CheckBox">
+                                                    <Border BorderBrush="{DynamicResource LegendForegroundBrush}" BorderThickness="1"
+                                                            Background="{StaticResource HitTestBackgroundBrush}">
+                                                        <Path x:Name="Mark" Data="M 1.5,5 L 4,7.5 L 8.5,2" Stroke="{DynamicResource LegendForegroundBrush}"
+                                                              StrokeThickness="1.5" Visibility="Hidden" />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsChecked" Value="True">
+                                                            <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </CheckBox.Template>
+                                        </CheckBox>
+                                        <TextBlock Text="{Binding Header, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                                    </StackPanel>
                                     <Button Command="{Binding DataContext.ToggleDeliveredCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                             CommandParameter="{Binding Destination, Mode=OneTime}"
                                             Style="{StaticResource LegendLineButtonStyle}"
@@ -490,7 +521,10 @@
                                      Source: https://learn.microsoft.com/dotnet/desktop/wpf/properties/dependency-property-value-precedence -->
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding Header}" Value="{x:Null}">
-                                        <Setter TargetName="HeaderText" Property="Visibility" Value="Collapsed" />
+                                        <Setter TargetName="HeaderRow" Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding PickupCrates}" Value="{x:Null}">
+                                        <Setter TargetName="PickupCheck" Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Delivered}" Value="True">
                                         <Setter TargetName="Swatch" Property="Fill" Value="{x:Static sv:MissionPalette.DeliveredBrush}" />
