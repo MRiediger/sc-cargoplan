@@ -1081,6 +1081,29 @@ die drei Looks shaded / flat / hiddenline über Weg (b), 20 k, Hull A und Caterp
 
 ---
 
+## Bugfix B1–B5 (24.10.2026) – eingeschoben vor T7.4c, Branch `fix/plan-rules`
+
+**Warum:** Spieltest am Aufzug (Covalex, Hull A, 7 Stops): rote „… which is unloaded first“-Notices zu einer Reihenfolge, die der Spieler nie festgelegt hat; „Move refused … has nothing below it“ statt einer gültigen Lage; keine Kapazitätsanzeige; ein Ziel als zwei Stops („Thundering Express“ / „… Station“). Martins Vorgaben: Die Reihenfolge der Ziele entscheidet der Spieler, nie die App; ist eine Zuordnung möglich, wird sie angenommen, nicht abgelehnt. Merge nach `main` erst nach Martins Spieltest am Aufzug mit der Covalex-Route (nach Normalisierung 5 Stops).
+**Präzisiert in der Planung (Session-Start):** T7.4/T7.4b sind erledigt, eingeschoben wird vor T7.4c. D10 ist seit D24 abgelöst, und abgehakte Kisten geben ihre Zellen seit T5.4 frei (D24-Addendum): Der D10-Punkt aus B3 entfällt samt D-Nummer. D63 ist für die Holos reserviert, neue Einträge ab D64. `decisions.md` bleibt Englisch wie D1–D62. Commits ohne Co-Authored-By, Martin pusht. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+
+### [x] B1 Zielnamen normalisieren
+**Diagnose (CT-DB read-only, `immutable=1`):** Capture 9–12 ist ein Capture mit vier Objectives; beide Varianten kommen aus demselben Rohtext, nicht aus zwei Feldern. Jede Lieferzeile bricht vor „Station“ um; „to Melodic Fieids“ (l als i gelesen) ist kein Zeichenpräfix von „Melodic Fields Station“, der Listeneintrag „Freight alevator at Thundering Express Station“ zählte nicht (2 von 3). Über Captures hinweg setzte nichts „X“ und „X Station“ gleich.
+**Präzisiert in der Planung:** Parser und Suffix-Netz (Martins Wahl auf Rückfrage); Notice auch im Sync-Pfad, gelöscht beim nächsten Sync mit Übernahme ohne Merge (K1); Schlüssel erst falten, dann gefaltetes „Station“ wortweise abstreifen (K3); Inhaltsschlüssel der Duplikate geprüft (K2: Missionen kommen und gehen über CT-Ids, nach `Unify` ein Name pro Ort, keine Änderung an `ContractSync`). Präzisierung in der Planphase, ratifiziert durch Freigabe (D40-Addendum B1).
+- Parser: Ergänzung in der `AnchorForm` (I/L/1/| und O/0 gleich), „elevator“ mit verlesenem oder fehlendem ersten Buchstaben
+- `DestinationNames` (Import): ein Ort = gleicher Schlüssel, längerer Name gewinnt; angewandt in Reader, Sync (`Unify` vor `ContractSync.Apply`), Editor-Zeilen und `ShowPlan` (alte plan.json einmalig, Notice „Stops merged: A → B“)
+- `LoadPlanner.RenameStop` (Core): mechanisch, Missionen und Kisten gemeinsam, nichts bewegt, Haken bleiben
+
+**Akzeptanz:** Tests grün (die vier Screenshot-Namen, Capture 9–12 als Fixture → 3 Stops, Martins plan.json vom 23.10. als Fixture → „Melodic Fieids“ gemergt, Positionen und Haken gleich; Unify + Sync derselben Erfassung → keine Mission weg oder neu, nur Namen; Editor-Zeilen „X“ und „X Station“ → ein Stop). CLI `contracts` gegen eine DB-Kopie: 9–12 ergibt 3 Stops ohne „⚠ 2 of 3 destinations“. Offen für Martin: App-Start mit der eigenen plan.json → Notice „Stops merged: Melodic Fieids → Melodic Fields Station“, beim zweiten Start keine.
+
+### [ ] B2 Stop-Reihenfolge aus dem Planer entfernen (eigener Plan, D64; Golden-Files dort bewusst neu)
+- Messbefehl Freelancer-Lastfall (vorher/nachher, Release, 3 Läufe, Median; rekonstruiert, in T7.2 nicht notiert): `dotnet run -c Release --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/hull_a_eight_stops.json --ship freelancer`
+
+### [ ] B3 Verschieben annehmen statt ablehnen (vier Stufen)
+### [ ] B4 Knopf „Re-plan“ im Editor
+### [ ] B5 Kapazitätsanzeige (Kopfzeile, Rack-Tooltip, Zahl hinter der Racknummer)
+
+---
+
 ## Phase 8 – nach dem Launch
 
 ### [ ] T8.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)

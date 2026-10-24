@@ -54,7 +54,7 @@ text holds no readable delivery line. Both go through the same normalisation (D4
 
 | CargoPlan | ContractTracker | Note |
 |---|---|---|
-| `MissionStop.Destination` | "Deliver … to *destination*" lines in `RawOcrText`; fallback `ContractObjectives.Destination` | station name only, cut before " at …"/" above …" or a torn "abov"/"aboy" (D40) |
+| `MissionStop.Destination` | "Deliver … to *destination*" lines in `RawOcrText`; fallback `ContractObjectives.Destination` | station name only, cut before " at …"/" above …" or a torn "abov"/"aboy" (D40); a cut-off name is completed from the drop-off list or the prose, compared as OCR reads ("Fieids" = "Fields", "Freight alevator at" counts); names of one place ("X" and "X Station") are one stop under the longer name (D40 addendum B1) |
 | `MissionItem.Commodity` | "… SCU of *commodity* to …" in `RawOcrText`; fallback `Contracts.Name` | one capture may hold several commodities |
 | `MissionItem.Scu` | "… 0/*N* SCU …" in `RawOcrText`; fallback `ContractObjectives.Amount` | per destination |
 | `MissionItem.MaxCrateSize` | prose in `RawOcrText` ("Max size will be N SCU.", "none of the containers are bigger than N SCU.") | tolerant: up to two misread words after "Max size", O/I/L/\| in the number corrected; missing or no crate size → largest crate that fits the SCU, marked as assumed (D40) |
