@@ -1097,6 +1097,7 @@ offen ist, zählte sonst über seinen eigenen Rand); Achswahl per IoU über beid
 | Achsen | IoU der Draufsicht gegen den Umriss | nach dem Fix min. 0,868 (300i), Gegenachse immer ≤ 0,77 |
 | Gate (Martin, 24.10.2026) | 6 saubere, 4 nicht saubere Bögen | alle 117 freigegeben, `rejected.md` leer |
 | Release-Ordner | `verify` | 117 Dateien + NOTICE + Manifest, 64,7 MB, 333–799 KB pro Schiff, 0 Probleme, `pipelineCommit` 2959336 (NOTICE-Satz nach Martins Wortlaut) |
+| Upload (Martin, 24.10.2026) | `holo-v1` als Pre-Release, Immutable Releases aus; danach anonym mit `curl` | 119 Assets; `manifest.json` 200 nach einer Weiterleitung in 0,45 s, byte-gleich mit dem Ordner; `misc-hull-a.holo` SHA256 = Manifest; unbekannter Slug 404; `releases/latest` leitet auf `/releases`, rc.3 unverändert |
 
 - **Nicht sauber** heißt bei 43 der 47 vor dem Achs-Fix vermessenen (die Syulen kam erst danach dazu): schmale Anbauten
   (Läufe, Antennen, Türmchen) fehlen, höchstens 2–6,4 px breit auf 512 px; die Flächen decken sich (IoU meist
