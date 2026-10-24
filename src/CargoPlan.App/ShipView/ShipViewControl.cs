@@ -35,6 +35,7 @@ public sealed class ShipViewControl : FrameworkElement
     private const double CrateEdgeWidth = 0.5;
 
     // A long ship's empty racks stay visible behind the loaded ones the fit shows, but don't compete with them (D61).
+    // Crates of other missions while a crate is selected take the same value (T7.4d, D68).
     private const double EmptyRackOpacity = 0.4;
 
     // On a long ship the rack number stands this many pixels above its rack (D61).
@@ -57,6 +58,7 @@ public sealed class ShipViewControl : FrameworkElement
     private static readonly Pen ViolationPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Violation), 2.5));
     private static readonly Pen DragTargetPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.DragTarget), 2.5));
     private static readonly Pen SelectionPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Selection), 2.5));
+    private static readonly Pen MissionFramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.MissionFrame), 1.5));
 
     // Theme values (D31), set in OverlayWindow.xaml by DynamicResource: a new value redraws at once (live preview, T4.2).
     // The defaults draw opaque crates without edges or numbers, so a missing resource shows instead of crashing.
@@ -307,6 +309,10 @@ public sealed class ShipViewControl : FrameworkElement
         var changed = drag?.Outcome is { } preview ? CrateDrop.Changed(source.Plan, preview) : [];
         HashSet<Crate> fading = drag is { } held ? [.. held.Dragged, .. changed.Select(c => c.Before)] : [];
 
+        // A selection frames its missions and dims every other crate (T7.4d, D68).
+        var selected = Selection.In(source);
+        var focus = SelectionFocus.Missions(selected);
+
         // The bow wedge lies beyond every rack: behind all of them seen from the stern, in front seen from the bow (D52).
         if (scene.BowWedge is { InFront: false } behind)
         {
@@ -335,10 +341,13 @@ public sealed class ShipViewControl : FrameworkElement
                     }
 
                     var (fill, pen) = box.Box.Fill == CellFill.Free ? (null, FreeCellPen) : (paint.Fill(box.Box), paint.CrateEdge);
-                    foreach (var face in box.Faces)
+                    Dimmed(dc, SelectionFocus.Dims(box.Box.Crate, focus), () =>
                     {
-                        dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
-                    }
+                        foreach (var face in box.Faces)
+                        {
+                            dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
+                        }
+                    });
 
                     if (fade)
                     {
@@ -368,8 +377,15 @@ public sealed class ShipViewControl : FrameworkElement
             DrawEdges(dc, rack, rack.RackId == target ? DragTargetPen : ViolationPen, transform);
         }
 
-        // Selected crates: an edge only, the fill stays the stop colour (D25).
-        var selected = Selection.In(source);
+        // The selected missions' crates, then the selected crates on top: edges only, the fill stays the stop colour (D25).
+        foreach (var box in scene.Racks.SelectMany(r => r.Boxes).Where(b => SelectionFocus.Frames(b.Box.Crate, focus)))
+        {
+            foreach (var face in box.Faces)
+            {
+                dc.DrawGeometry(null, MissionFramePen, Polygon(face.Polygon, transform));
+            }
+        }
+
         foreach (var box in scene.Racks.SelectMany(r => r.Boxes).Where(b => b.Box.Crate is { } crate && selected.Contains(crate)))
         {
             foreach (var face in box.Faces)

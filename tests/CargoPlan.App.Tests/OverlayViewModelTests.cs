@@ -34,6 +34,25 @@ public class OverlayViewModelTests
         return names;
     }
 
+    // --- Info line (T7.4d) ---
+
+    [Fact]
+    public void SelectionInfo_follows_the_selection_and_goes_with_a_new_plan()
+    {
+        var viewModel = WithPlan();
+        var crate = viewModel.Plan!.Crates.First(c => c.Destination == "Riker");
+
+        var changes = Changes(viewModel, () => viewModel.Selection = CrateSelection.Empty.Toggle(viewModel.Scene, crate));
+
+        changes.Should().Contain(nameof(OverlayViewModel.SelectionInfo));
+        viewModel.SelectionInfo.Should().Be($"{crate.Commodity} · Riker");
+
+        changes = Changes(viewModel, () => viewModel.ToggleDeliveredCommand.Execute("Shubin"));
+
+        changes.Should().Contain(nameof(OverlayViewModel.SelectionInfo));
+        viewModel.SelectionInfo.Should().BeNull();
+    }
+
     [Fact]
     public void IsLocked_defaults_to_false_so_the_overlay_starts_interactive()
     {

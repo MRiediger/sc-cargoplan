@@ -47,6 +47,12 @@ public static class MissionPalette
     /// </summary>
     public static Color Selection { get; } = Color.FromRgb(0xFF, 0x00, 0xFF);
 
+    /// <summary>
+    /// Edges of every crate of a selected mission (T7.4d, D68), under the magenta of the selected crates themselves; white
+    /// is in no stop colour either. A proposal for Martin's look gate.
+    /// </summary>
+    public static Color MissionFrame { get; } = Color.FromRgb(0xFF, 0xFF, 0xFF);
+
     public static Color RackEdge { get; } = Color.FromArgb(0xC0, 0xE6, 0xE6, 0xE6);
 
     /// <summary>The bow wedge's faces (D52): a trace of fill, so it reads as a body without hiding the crates behind it.</summary>

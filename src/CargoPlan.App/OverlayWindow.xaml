@@ -531,6 +531,20 @@
                 <sv:HoloBackdrop Holo="{Binding Holo, Mode=OneWay}" View="{Binding View, ElementName=ShipView, Mode=OneWay}"
                                  Opacity="{Binding HoloOpacity, Mode=OneWay}"
                                  HullColor="{Binding HoloHullColor, Mode=OneWay}" EdgeColor="{Binding HoloEdgeColor, Mode=OneWay}" />
+                <!-- One selected crate: pickup · commodity · destination (T7.4d). Over the view, not above it: a line that came
+                     and went with the selection would refit the ship under the cursor. Never hit, so the view keeps the mouse. -->
+                <TextBlock Text="{Binding SelectionInfo, Mode=OneWay}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
+                           HorizontalAlignment="Left" VerticalAlignment="Top" Panel.ZIndex="1" IsHitTestVisible="False">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource HeaderTextStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding SelectionInfo}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
                 <sv:ShipViewControl x:Name="ShipView"
                                     Scene="{Binding Scene, Mode=OneWay}"
                                     ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}"

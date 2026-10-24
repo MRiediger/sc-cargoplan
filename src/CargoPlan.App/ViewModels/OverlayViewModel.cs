@@ -134,6 +134,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             field = value;
             Scene = Marked(Scene);
             OnPropertyChanged(nameof(Scene));
+            OnPropertyChanged(nameof(SelectionInfo));
             OnPropertyChanged(nameof(Holo));
         }
     }
@@ -187,6 +188,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         {
             Scene = Marked(Scene);
             OnPropertyChanged(nameof(Scene));
+            OnPropertyChanged(nameof(SelectionInfo));
         }
 
         OnPropertyChanged(nameof(Holo));
@@ -242,6 +244,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             OnPropertyChanged(nameof(Missions));
             OnPropertyChanged(nameof(Watermark));
             OnPropertyChanged(nameof(Scene));
+            OnPropertyChanged(nameof(SelectionInfo));
             OnPropertyChanged(nameof(HasPlan));
             OnPropertyChanged(nameof(SplitToolTip));
             OnPropertyChanged(nameof(MergeToolTip));
@@ -269,11 +272,18 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             {
                 OnPropertyChanged(nameof(SplitToolTip));
                 OnPropertyChanged(nameof(MergeToolTip));
+                OnPropertyChanged(nameof(SelectionInfo));
                 SplitCommand.NotifyCanExecuteChanged();
                 MergeCommand.NotifyCanExecuteChanged();
             }
         }
     } = CrateSelection.Empty;
+
+    /// <summary>
+    /// The info line above the ship view (T7.4d): pickup, commodity and destination of the one selected crate; null for
+    /// none or several, and with every new scene, which empties the selection (D25).
+    /// </summary>
+    public string? SelectionInfo => SelectionFocus.InfoLine(Saved, Selection.In(Scene));
 
     /// <summary>The split button's tool tip: what it does, or why it can't (D25: the reason Core would refuse with).</summary>
     public string SplitToolTip => SplitProblem() ?? SplitText;
@@ -415,6 +425,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         {
             Scene = Marked(EmptyScene(ship));
             OnPropertyChanged(nameof(Scene));
+            OnPropertyChanged(nameof(SelectionInfo));
         }
         else
         {
