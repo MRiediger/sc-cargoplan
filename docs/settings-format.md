@@ -42,7 +42,8 @@ Without a file, or without `ship`, `recentShips`, `legend`, `shipOutline`, `tool
       "edgeAlpha": 192,
       "rackNumberColor": "#FFFFFFFF",
       "rackNumberFontSize": 27,
-      "halo": { "enabled": true, "color": "#E0141414", "size": 3 }
+      "halo": { "enabled": true, "color": "#E0141414", "size": 3 },
+      "showRackLoad": true
     },
     "buttons": {
       "background": "#01000000",
@@ -87,6 +88,7 @@ can't be changed, so only their alpha is a number of its own: `0` (invisible) to
 | `crates.rackNumberColor` | Colour of the rack numbers and the "Bow" label | `#FFFFFFFF` | |
 | `crates.rackNumberFontSize` | Size of the rack numbers and the "Bow" label in pixels, the same at every zoom | `27` | 8–48 |
 | `crates.halo` | Outline of the rack numbers and the "Bow" label | on | |
+| `crates.showRackLoad` | `3 · 12/16` behind each rack number (SCU on board of the rack's cells) instead of `3`; optional | `true` | `true`/`false` |
 | `buttons.background` | Background of the glyph buttons and "Open editor" | `#01000000` | alpha at least `01` |
 | `buttons.borderColor` | Frame of the glyph buttons | `#FFE6E6E6` | |
 | `buttons.borderThickness` | Width of that frame, `0` = none | `0` | 0–10 |
@@ -227,8 +229,9 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `ship`, `recentShips` and `shipOutline` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `ship`, `recentShips`, `shipOutline` and `crates.showRackLoad` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a
-version 2 file and starts with defaults.
+version 2 file and starts with defaults. The same goes for an optional part it doesn't know yet: once a newer version
+has saved `crates.showRackLoad`, an older one takes the file for broken (unknown key) and starts with defaults.

@@ -1207,6 +1207,31 @@ Entscheidung (Regel): Kein realistischer Fall kommt über 7 ms, also läuft Re-p
 - Offen für Martin: Spieltest am Aufzug vor dem Merge (wie B1–B3).
 
 ### [ ] B5 Kapazitätsanzeige (Kopfzeile, Rack-Tooltip, Zahl hinter der Racknummer)
+**Warum:** Am Aufzug war weder die Maximal- noch die Restkapazität sichtbar, fürs Schiff nicht und pro Rack nicht; nur die Legende zeigte SCU je Ziel. Martins Vorgabe: beides im Overlay, Schiff und Rack.
+**Präzisiert in der Planung:** Kopfzeile immer im kompakten Format `56/64 · 8 free` bzw. `56/64 · 8 free · 16 waiting`, kein Formatwechsel (ersetzt `56 / 64 SCU · 8 free` aus dem Auftrag); reicht die Breite nicht, kürzt der Schiffsname mit Ellipse, die Kapazität nie; über einer Kiste deren Tooltip plus Rack-Zeile, über dem übrigen Rack nur die Rack-Zeile; `waiting` zählt SCU; ohne Plan `0/64 · 64 free`, leere Racks `2 · 0/16`; `LoadPlan.ScuOnBoard` in Core (D24-Regel an einer Stelle, auch für `PlaceProblem`); Lock-Prüfung als Test über die XAML des Overlays (keine Fenster-Tests im Projekt). Bei der Freigabe ergänzt (E1): Gate zusätzlich am Schiff mit dem kleinsten Rack-Grid, Befund an Martin, kein eigener Fix. Im Gate gefunden und behoben: Der Schiffsname brach in zwei Zeilen um („MISC“ über „Hull A“) statt zu kürzen, weil der Header-Stil umbricht; beide Namensfelder jetzt `NoWrap`. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- Core: `LoadPlan.ScuOnBoard(rackId?)`
+- App: `ShipScene.WaitingScu`/`CapacityText`, `RackLoad` (Tooltip, Label) an `SceneRack` und `ProjectedRack`, `SceneHitTest.ToolTipAt` übers ganze Rack, Kopfzeile `CapacityText` ohne `IsLocked`-Trigger, `crates.showRackLoad` (`CrateAppearance`, `ThemeResources.Keys.CratesShowRackLoad`, `ShipViewControl.ShowRackLoad`, Checkbox „Show load after rack numbers“ im Abschnitt Crates)
+
+**Gate-Messwerte** (echtes Overlay offscreen, Default-Look, Zoom 1, 420 × 460 px, Entwickler-VM; Harness im Scratchpad, nicht im Repo):
+
+| Fall | Label | Breite Label | Breite Rack | Verhältnis | Überlappung |
+|---|---|---|---|---|---|
+| Hull A, Hurston 24.10. (27 px Nummer, 27,2 px/Zelle) | `1 · 16/16` | 111,8 px | 141,1 px | 0,79× | keine |
+| Syulen (6 Racks à 1 Zelle, Nummern über den Racks) | `1 · 1/1` | 80,8 px | 81,3 px | 0,99× | keine |
+| Aurora Mk II / Mule / Reliant Tana / UTV (1 Zelle) | `1 · 1/1` | 80,8 px | 279–323 px | 0,25–0,29× | keine |
+
+Kleinstes Rack-Grid: fünf Schiffe mit 1 Zelle gleichauf, alle gemessen. Kopfzeile: `55/64 · 9 free` 64 px, mit `· 16 waiting` 129 px. Vollständig sichtbar ab 310 px Overlay-Breite, mit `waiting` ab 370 px; bei der Mindestbreite 240 px bleiben links der sechs Header-Knöpfe ~10 px, die Kapazität wird unter ihnen abgeschnitten (Befund an Martin). Im Lock-Modus rückt die Kapazität 16 px nach links (der Name verliert den Chevron).
+
+**Akzeptanz:**
+- [x] Kapazitätswerte aus dem Plan: Max, geladen, frei, wartend; abgehakte Kisten zählen nicht; nach Haken, Move und Re-plan aktuell (`ShipViewBuilderTests`, `OverlayViewModelTests`, `ReplanCommandTests`: Fragmentierung `32/64 · 32 free · 16 waiting` → nach Re-plan `48/64 · 16 free`)
+- [x] Rack-Tooltip `Rack 3 · 14 / 16 SCU`, auch bei leerem Rack und über freien Zellen; über einer Kiste als zweite Zeile (`SceneHitTestTests`)
+- [x] Racknummer-Text mit und ohne `showRackLoad` (`RackLoad.Label`); Round-Trip `crates.showRackLoad` in `SettingsStore`, fehlendes Feld → an; Settings-Fenster und Reset Crates (`SettingsViewModelTests`); DynamicResource (`ThemeResourcesTests`)
+- [x] Lock-Modus: kein `IsLocked`-Trigger am Kapazitätstext und an seinen Vorfahren, auch nicht über `{StaticResource}`-Stile (`OverlayHeaderXamlTests`); im Gate-Bild gesperrt sichtbar
+- [x] Name kürzt statt umzubrechen, Kapazität nie gekürzt (XAML-Test, Gate-Bilder 420 px mit `waiting`)
+- [x] Vor der Umsetzung rot (Compile-Fehler); der `NoWrap`-Test kam mit dem Fix aus dem Gate
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 920, App 1002, Import 119); Slow grün
+- [ ] Look von Kopfzeile, Rack-Labels und Tooltip; Umgang mit Overlays unter 310 px (Taste-Gate Martin)
+- Offen für Martin: Spieltest am Aufzug vor dem Merge (wie B1–B4).
 
 ---
 
