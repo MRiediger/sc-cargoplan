@@ -105,7 +105,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public static string ReplanQuestionText(string ship) =>
         $"Replan for {ship}? Crate positions change and manual moves are lost; split crates keep their sizes.";
 
-    public static string TicksStayText(int stops) => $"{stops} {(stops == 1 ? "stop" : "stops")} already ticked – ticks stay.";
+    /// <summary>A delivery is a legend line, a mission's cargo for one destination (D69); each keeps its tick (K2.2).</summary>
+    public static string TicksStayText(int deliveries) =>
+        $"{deliveries} {(deliveries == 1 ? "delivery" : "deliveries")} already ticked – ticks stay.";
 
     /// <summary>One line for what went wrong with ship-outlines.json (D62): the first problem and how many more; null if none.</summary>
     public static string? OutlinesNoticeText(IReadOnlyList<string> problems) => problems.Count switch
@@ -408,7 +410,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>
     /// The question before <see cref="ChangeShip"/> (D59), for the overlay's dialog; null = change at once (no mission in
-    /// the plan, or the same ship). Names the ticked stops, which keep their ticks.
+    /// the plan, or the same ship). Counts the ticked deliveries, which keep their ticks (K2.2).
     /// </summary>
     public string? ShipChangeQuestion(Ship ship)
     {
@@ -417,8 +419,8 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             return null;
         }
 
-        // A stop is ticked once every line of it is (B6): only those keep their tick on the other ship (D59).
-        var ticked = Scene.Legend.GroupBy(l => l.Destination).Count(stop => stop.All(l => l.Delivered));
+        // Every ticked line keeps its tick on the other ship (K2.2), a stop with two ticked lines too.
+        var ticked = Scene.Legend.Count(l => l.Delivered);
         return ticked == 0
             ? ReplanQuestionText(ship.Name)
             : ReplanQuestionText(ship.Name) + Environment.NewLine + TicksStayText(ticked);
@@ -426,7 +428,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>
     /// Puts the overlay on another ship (D59): the plan is planned anew for it (<see cref="LoadPlanner.Replan"/>), the
-    /// missions, ticks and the watermark stay, so the ContractTracker sync goes on as before. Without a plan only the ship
+    /// missions, ticks (off the ship, K2.2) and the watermark stay, so the ContractTracker sync goes on as before. Without a plan only the ship
     /// view changes. Clears the start's ship and replan notices: the player chose.
     /// </summary>
     public void ChangeShip(Ship ship)
