@@ -246,12 +246,12 @@ public class CrateRotationTests
     // --- Plan file schema 5 ---
 
     [Fact]
-    public void Write_writes_schema_5_and_rotated_only_where_true()
+    public void Write_writes_rotated_only_where_true()
     {
         var ship = OneRack(3, 2, 1);
         var node = JsonNode.Parse(Written(Planned(ship, Item(6, CrateSize.Two))))!;
 
-        node["schemaVersion"]!.GetValue<int>().Should().Be(5);
+        node["schemaVersion"]!.GetValue<int>().Should().Be(PlanFile.SupportedSchemaVersion);
         var crates = node["crates"]!.AsArray().Select(c => c!.AsObject()).ToList();
         crates.Count(c => c.ContainsKey("rotated")).Should().Be(1);
         crates.Single(c => c.ContainsKey("rotated"))["rotated"]!.GetValue<bool>().Should().BeTrue();

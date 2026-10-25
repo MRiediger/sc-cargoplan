@@ -78,6 +78,34 @@ public class ReplanTimingTests(ITestOutputHelper output)
         }
     }
 
+    /// <summary>
+    /// What a ship change costs (D59, K2.2): the eight stops from the Hull A to the Freelancer and back, without ticks and
+    /// with the first two stops of the legend ticked. Measured before and after ticks survive the change.
+    /// </summary>
+    [Fact]
+    public void Ship_change_with_and_without_ticks()
+    {
+        var hullA = ShipLoader.Load("hull_a");
+        var freelancer = ShipLoader.Load("freelancer");
+        var stops = MissionFixtures.LoadMissions("hull_a_eight_stops");
+        var plain = SavedPlan.FromStops(stops, LoadPlanner.Plan(hullA, stops.ToStops()), CrateCap.Of(hullA));
+        var ticked = plain.Plan.Route.Take(2).Aggregate(plain, (saved, destination) =>
+            new SavedPlan(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, hullA, destination, true), saved.CrateCap, saved.Watermark));
+
+        output.WriteLine("| Case | first ms | median ms |");
+        foreach (var (name, saved) in new[] { ("no ticks", plain), ("two stops ticked", ticked) })
+        {
+            var watch = Stopwatch.StartNew();
+            var there = LoadPlanner.Replan(saved, freelancer);
+            var first = watch.Elapsed.TotalMilliseconds;
+            var median = Median(() => LoadPlanner.Replan(saved, freelancer));
+            var back = Median(() => LoadPlanner.Replan(there, hullA));
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"| Hull A → Freelancer, {name} | {first:F1} | {median:F1} |"));
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"| Freelancer → Hull A, {name} | | {back:F1} |"));
+        }
+    }
+
     private static (string Name, Ship Ship, IReadOnlyList<MissionStop> Stops)[] Cases()
     {
         var hullA = ShipLoader.Load("hull_a");
