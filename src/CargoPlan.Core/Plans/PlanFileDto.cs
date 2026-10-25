@@ -28,14 +28,41 @@ internal sealed record PlanFileDto(
     {
         Mission[] missions = [.. Missions.Select(m => m.ToMission())];
         CheckItems(Crates, SchemaVersion);
-        IReadOnlyList<Crate> crates = [.. Crates.Select(c => c.ToCrate())];
-        if (SchemaVersion == PlanFile.ItemlessSchemaVersion)
+        Crate[] crates = [.. Crates.Select(c => c.ToCrate())];
+        var plan = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], ParseFillOrder(FillOrder)), ship);
+
+        return UnderCap(ship, cap => new SavedPlan(
+            missions,
+            SchemaVersion == PlanFile.ItemlessSchemaVersion ? plan with { Crates = SavedPlan.WithItems(missions, crates, _ => false, cap) } : plan,
+            cap,
+            ContractTrackerWatermark));
+    }
+
+    /// <summary>
+    /// The saved plan under the ship's cap (D70). A file whose derived mixes were split under another cap (saved before
+    /// D70, or on another ship) gets the largest cap its crates fit, as <see cref="CapReason.Saved"/>, and the overlay plans
+    /// it anew (<c>LoadPlanner.Replan</c>). The cap isn't stored: the file stays what it was.
+    /// </summary>
+    /// <exception cref="ArgumentException">The plan doesn't fit its missions under any cap; the ship's reason is named.</exception>
+    internal static SavedPlan UnderCap(Ship ship, Func<CrateCap, SavedPlan> make)
+    {
+        var own = CrateCap.Of(ship);
+        CrateCap[] caps = [own, .. Enum.GetValues<CrateSize>().OrderDescending().Where(s => s != own.Size).Select(s => new CrateCap(s, CapReason.Saved))];
+        ArgumentException? first = null;
+        foreach (var cap in caps)
         {
-            crates = SavedPlan.WithItems(missions, crates, _ => false);
+            try
+            {
+                return make(cap);
+            }
+            catch (ArgumentException ex)
+            {
+                // Another cap may fit; if none does, the ship's own reason is the one to name.
+                first ??= ex;
+            }
         }
 
-        LoadPlan plan = new(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], ParseFillOrder(FillOrder));
-        return new SavedPlan(missions, Checked(plan, ship), ContractTrackerWatermark);
+        throw first!;
     }
 
     public static PlanFileDto FromSavedPlan(SavedPlan saved) => new(

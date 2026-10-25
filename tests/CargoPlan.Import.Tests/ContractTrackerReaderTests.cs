@@ -404,7 +404,7 @@ public class ContractTrackerReaderTests
         var captures = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Select(c => c.ToCapture()).ToList();
         var ship = ShipLoader.Load("hull_a");
 
-        var saved = ContractSync.Apply(new SavedPlan([], new LoadPlan(ship.Id, [], [])), ship, captures, null);
+        var saved = ContractSync.Apply(new SavedPlan([], new LoadPlan(ship.Id, [], []), CrateCap.Of(ship)), ship, captures, null);
 
         var duplicates = ContractSync.Duplicates(saved);
         saved.Missions.Where(m => duplicates.Contains(m.Id)).Select(m => m.Contract!.ContractIds.Single()).Should().Equal(49);
@@ -570,7 +570,7 @@ public class ContractTrackerReaderTests
         var captures = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Select(c => c.ToCapture()).ToList();
         var ship = ShipLoader.Load("hull_a");
 
-        var saved = ContractSync.Apply(new SavedPlan([], new LoadPlan(ship.Id, [], [])), ship, captures, null);
+        var saved = ContractSync.Apply(new SavedPlan([], new LoadPlan(ship.Id, [], []), CrateCap.Of(ship)), ship, captures, null);
 
         var duplicates = ContractSync.Duplicates(saved);
         saved.Missions.Where(m => duplicates.Contains(m.Id)).Select(m => m.Contract!.ContractIds.Single()).Should().Equal(49);

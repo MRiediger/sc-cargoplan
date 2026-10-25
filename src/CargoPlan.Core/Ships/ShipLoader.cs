@@ -7,7 +7,12 @@ namespace CargoPlan.Core.Ships;
 /// <summary>Loads ship layouts from "&lt;id&gt;.json" files in the ships folder next to the exe (D56).</summary>
 public static class ShipLoader
 {
-    public const int SupportedSchemaVersion = 4;
+    /// <summary>Schema 5 marks <c>maxCrateSize</c> as the door limit (D70); the field reads the same in schema 4, which stays readable.</summary>
+    public const int SupportedSchemaVersion = 5;
+
+    private const int PreviousSchemaVersion = 4;
+
+    private static readonly int[] ReadableSchemaVersions = [PreviousSchemaVersion, SupportedSchemaVersion];
 
     /// <summary>The folder's name next to the exe, and in the repo root.</summary>
     public const string FolderName = "ships";
@@ -102,7 +107,7 @@ public static class ShipLoader
         try
         {
             using var document = JsonDocument.Parse(stream);
-            SchemaVersion.Check(document.RootElement, SupportedSchemaVersion);
+            SchemaVersion.Check(document.RootElement, ReadableSchemaVersions);
 
             var dto = document.RootElement.Deserialize(ShipJsonContext.Default.ShipDto)
                 ?? throw new JsonException("The file contains null.");

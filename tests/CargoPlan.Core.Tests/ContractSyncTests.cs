@@ -11,7 +11,7 @@ public class ContractSyncTests
 {
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
 
-    private static SavedPlan Empty => new([], new LoadPlan(HullA.Id, [], []));
+    private static SavedPlan Empty => new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA));
 
     private static MissionStop Stop(string destination, string commodity = "Stims", int scu = 4, CrateSize max = CrateSize.Four) =>
         new(destination, 1, [new MissionItem(commodity, scu, max)]);
@@ -24,7 +24,7 @@ public class ContractSyncTests
         ContractSync.Apply(saved, HullA, captures, null);
 
     private static SavedPlan Delivered(SavedPlan saved, string destination) =>
-        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, destination, true), saved.Watermark);
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, destination, true), saved.CrateCap, saved.Watermark);
 
     private static HashSet<long> Present(params long[] ids) => [.. ids];
 
@@ -50,7 +50,7 @@ public class ContractSyncTests
     [Fact]
     public void Apply_ignores_captures_at_or_below_the_watermark()
     {
-        SavedPlan saved = new([], new LoadPlan(HullA.Id, [], []), 40);
+        SavedPlan saved = new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA), 40);
 
         Applied(saved, Capture([40], Stop("Riker"))).Should().BeSameAs(saved);
     }
@@ -59,7 +59,7 @@ public class ContractSyncTests
     public void Apply_of_a_new_database_takes_its_captures_below_the_old_watermark()
     {
         // Reinstalled or recreated: ids start at 1 again; the old watermark 57 would hide them for good (D44).
-        SavedPlan saved = new([], new LoadPlan(HullA.Id, [], []), 57);
+        SavedPlan saved = new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA), 57);
 
         var applied = ContractSync.Apply(
             saved, HullA, [Capture([1], Stop("Riker")), Capture([2], Stop("Shubin")), Capture([3], Stop("Orison"))], Present(),
@@ -72,7 +72,7 @@ public class ContractSyncTests
     [Fact]
     public void Apply_of_an_empty_new_database_sets_the_watermark_back()
     {
-        SavedPlan saved = new([], new LoadPlan(HullA.Id, [], []), 57);
+        SavedPlan saved = new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA), 57);
 
         ContractSync.Apply(saved, HullA, [], Present(), databaseIsNew: true).Watermark.Should().Be(0);
     }
@@ -122,7 +122,8 @@ public class ContractSyncTests
     [Fact]
     public void Apply_removes_a_deleted_mission_that_didnt_fit()
     {
-        var saved = Applied(Empty, Capture([36], Stop("Riker", "Gold", 32, CrateSize.ThirtyTwo)));
+        // More than the Hull A holds; a 32 SCU crate would be capped to two 16s and fit (D70).
+        var saved = Applied(Empty, Capture([36], Stop("Riker", "Gold", 72, CrateSize.Eight)));
 
         ContractSync.Apply(saved, HullA, [], Present()).Missions.Should().BeEmpty();
     }
@@ -227,7 +228,7 @@ public class ContractSyncTests
         var saved = Applied(Empty, Capture([1], Stop("Riker"), Stop("Shubin")), Capture([2], Stop("Shubin")));
 
         var ticked = Delivered(saved, "Riker");
-        var back = new SavedPlan(ticked.Missions, LoadPlanner.SetDelivered(ticked.Plan, HullA, "Riker", false), ticked.Watermark);
+        var back = new SavedPlan(ticked.Missions, LoadPlanner.SetDelivered(ticked.Plan, HullA, "Riker", false), ticked.CrateCap, ticked.Watermark);
 
         ContractSync.Duplicates(ticked).Should().BeEmpty();
         ContractSync.Duplicates(back).Should().Equal(2);

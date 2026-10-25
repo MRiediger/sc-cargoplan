@@ -458,7 +458,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
     {
         var overlay = EmptyOverlay();
         var planned = TestPlans.SplitAndShared();
-        overlay.ShowPlan(SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(overlay.Ship, planned.Stops.ToStops(), FillOrder.SternFirst)));
+        overlay.ShowPlan(SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(overlay.Ship, planned.Stops.ToStops(), FillOrder.SternFirst), CrateCap.Of(overlay.Ship)));
         return overlay;
     }
 
@@ -633,7 +633,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
     {
         var overlay = EmptyOverlay();
         MissionStop riker = new("Riker", 1, [new MissionItem("Titanium", 8, CrateSize.Four)]);
-        overlay.ShowPlan(SavedPlan.FromStops([riker], LoadPlanner.Plan(overlay.Ship, [riker.ToStop()])));
+        overlay.ShowPlan(SavedPlan.FromStops([riker], LoadPlanner.Plan(overlay.Ship, [riker.ToStop()]), CrateCap.Of(overlay.Ship)));
         overlay.ApplyContractTracker(new ContractTrackerReadResult([Candidate(36, "Shubin"), Candidate(37, "Orison", sizeAssumed: true)], null, new HashSet<long>()));
         return overlay;
     }

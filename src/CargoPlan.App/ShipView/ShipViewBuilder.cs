@@ -159,7 +159,7 @@ public static class ShipViewBuilder
 
     /// <summary>The plan with every crate on board: the legend's reserve keeps the markings a tick takes away (D16).</summary>
     private static SavedPlan OnBoard(SavedPlan saved) =>
-        new(saved.Missions, saved.Plan with { Crates = [.. saved.Plan.Crates.Select(c => c with { Delivered = false })] }, saved.Watermark);
+        new(saved.Missions, saved.Plan with { Crates = [.. saved.Plan.Crates.Select(c => c with { Delivered = false })] }, saved.CrateCap, saved.Watermark);
 
     /// <summary>
     /// The rack's crates where the plan stores them (D24), then the cells no crate takes. No layout here: the only one is

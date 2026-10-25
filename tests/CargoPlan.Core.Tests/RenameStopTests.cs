@@ -17,7 +17,7 @@ public class RenameStopTests
 
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
 
-    private static SavedPlan Empty => new([], new LoadPlan(HullA.Id, [], []));
+    private static SavedPlan Empty => new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA));
 
     private static MissionStop Stop(string destination, string commodity, int scu, int order = 1) =>
         new(destination, order, [new MissionItem(commodity, scu, CrateSize.Four)]);
@@ -68,7 +68,7 @@ public class RenameStopTests
     public void Ticks_stay_with_their_crates()
     {
         var before = TwoCaptures();
-        var ticked = new SavedPlan(before.Missions, LoadPlanner.SetDelivered(before.Plan, HullA, Short, true), before.Watermark);
+        var ticked = new SavedPlan(before.Missions, LoadPlanner.SetDelivered(before.Plan, HullA, Short, true), before.CrateCap, before.Watermark);
 
         var after = LoadPlanner.RenameStop(ticked, HullA, Short, Full);
 

@@ -424,7 +424,7 @@ public class ShipViewBuilderTests
 
     // --- Missions in the legend (T5.4) ---
 
-    private static SavedPlan EmptySaved => new([], new LoadPlan(Sample.Ship.Id, [], []));
+    private static SavedPlan EmptySaved => new([], new LoadPlan(Sample.Ship.Id, [], []), CrateCap.Of(Sample.Ship));
 
     private static MissionStop Stop(string destination, string commodity = "Stims", int scu = 4, CrateSize max = CrateSize.Four) =>
         new(destination, 1, [new MissionItem(commodity, scu, max)]);
@@ -436,7 +436,7 @@ public class ShipViewBuilderTests
         ShipViewBuilder.Build(saved, Sample.Ship, LoadPlanner.Validate(saved.Plan, Sample.Ship));
 
     private static SavedPlan Delivered(SavedPlan saved, string destination) =>
-        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, Sample.Ship, destination, true), saved.Watermark);
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, Sample.Ship, destination, true), saved.CrateCap, saved.Watermark);
 
     [Fact]
     public void Two_markings_of_one_stop_stand_in_its_line_size_first()

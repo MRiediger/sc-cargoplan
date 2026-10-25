@@ -23,6 +23,7 @@ internal sealed record PlanFileV2Dto(
         Models.LoadPlan plan = new(
             ShipId, [.. Crates.Select(c => c.ToCrate())], [.. Warnings.Select(w => w.ToPlanWarning())], PlanFileDto.ParseFillOrder(FillOrder));
 
-        return SavedPlan.FromStops(stops, PlanFileDto.Checked(plan, ship));
+        var checkedPlan = PlanFileDto.Checked(plan, ship);
+        return PlanFileDto.UnderCap(ship, cap => SavedPlan.FromStops(stops, checkedPlan, cap));
     }
 }

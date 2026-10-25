@@ -26,7 +26,7 @@ public static class ContractSync
     {
         if (databaseIsNew && saved.Watermark > 0)
         {
-            saved = new SavedPlan(saved.Missions, saved.Plan);
+            saved = new SavedPlan(saved.Missions, saved.Plan, saved.CrateCap);
         }
 
         var current = saved;
@@ -42,7 +42,7 @@ public static class ContractSync
         foreach (var capture in captures.Where(c => c.Source.ContractIds.Min() > saved.Watermark).OrderBy(c => c.Source.ContractIds.Min()))
         {
             var placed = LoadPlanner.PlaceInto(current, ship, capture.Stops, capture.Source);
-            current = new SavedPlan(placed.Missions, placed.Plan, Math.Max(current.Watermark, capture.Source.ContractIds.Max()));
+            current = new SavedPlan(placed.Missions, placed.Plan, placed.CrateCap, Math.Max(current.Watermark, capture.Source.ContractIds.Max()));
         }
 
         return current;

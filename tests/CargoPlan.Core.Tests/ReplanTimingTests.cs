@@ -37,7 +37,7 @@ public class ReplanTimingTests(ITestOutputHelper output)
         output.WriteLine("| Case | first ms | median ms |");
         foreach (var (name, ship, stops) in cases)
         {
-            var saved = SavedPlan.FromStops(stops, LoadPlanner.Plan(ship, stops.ToStops()));
+            var saved = SavedPlan.FromStops(stops, LoadPlanner.Plan(ship, stops.ToStops()), CrateCap.Of(ship));
             var watch = Stopwatch.StartNew();
             var replanned = LoadPlanner.Replan(saved, ship);
             var first = watch.Elapsed.TotalMilliseconds;

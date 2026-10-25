@@ -347,7 +347,7 @@ public class OverlayViewModelTests
     {
         var viewModel = WithPlan();
         MissionStop riker = new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]);
-        var newPlan = SavedPlan.FromStops([riker], LoadPlanner.Plan(viewModel.Ship, [riker.ToStop()]));
+        var newPlan = SavedPlan.FromStops([riker], LoadPlanner.Plan(viewModel.Ship, [riker.ToStop()]), CrateCap.Of(viewModel.Ship));
 
         Changes(viewModel, () => viewModel.ShowPlan(newPlan)).Should().Contain(
             [nameof(OverlayViewModel.Saved), nameof(OverlayViewModel.Plan), nameof(OverlayViewModel.Scene), nameof(OverlayViewModel.HasPlan)]);
@@ -383,7 +383,7 @@ public class OverlayViewModelTests
             new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]),
             new("Shubin", 2, [new MissionItem("Agricium", 8, CrateSize.Eight)]),
         ];
-        viewModel.ShowPlan(SavedPlan.FromStops(missions, LoadPlanner.Plan(viewModel.Ship, missions.ToStops())));
+        viewModel.ShowPlan(SavedPlan.FromStops(missions, LoadPlanner.Plan(viewModel.Ship, missions.ToStops()), CrateCap.Of(viewModel.Ship)));
         viewModel.ToggleDeliveredCommand.Execute("Riker");
         viewModel.MoveLegendCommand.Execute(LegendMove(viewModel, "Shubin", "rack-1"));
         var reused = viewModel.Plan!;
@@ -459,7 +459,7 @@ public class OverlayViewModelTests
             new("Orison", 3, [new MissionItem("Titanium", 16, CrateSize.Eight)]),
             new("Lorville", 4, [new MissionItem("Titanium", 16, CrateSize.Eight)]),
         ];
-        viewModel.ShowPlan(SavedPlan.FromStops(missions, new LoadPlan(viewModel.Ship.Id, crates, [])));
+        viewModel.ShowPlan(SavedPlan.FromStops(missions, new LoadPlan(viewModel.Ship.Id, crates, []), CrateCap.Of(viewModel.Ship)));
         var four = viewModel.Plan!.Crates[1];
         return (viewModel, new Gesture.MoveCrates(four, [four], "rack-1", new GridPosition(0, 0, 0)));
     }
@@ -559,7 +559,7 @@ public class OverlayViewModelTests
 
         viewModel.MoveCratesCommand.Execute(GoldTo(viewModel, "rack-1", 0, 0, 1));
 
-        viewModel.Invoking(v => new SavedPlan(v.Missions, v.Plan!)).Should().NotThrow();
+        viewModel.Invoking(v => new SavedPlan(v.Missions, v.Plan!, CrateCap.Of(v.Ship))).Should().NotThrow();
     }
 
     [Fact]
@@ -614,7 +614,7 @@ public class OverlayViewModelTests
             new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]),
             new("Shubin", 2, [new MissionItem("Agricium", 8, CrateSize.Eight)]),
         ];
-        viewModel.ShowPlan(SavedPlan.FromStops(missions, LoadPlanner.Plan(viewModel.Ship, missions.ToStops())));
+        viewModel.ShowPlan(SavedPlan.FromStops(missions, LoadPlanner.Plan(viewModel.Ship, missions.ToStops()), CrateCap.Of(viewModel.Ship)));
 
         viewModel.MoveLegendCommand.Execute(LegendMove(viewModel, "Shubin", "rack-1"));
 
@@ -765,7 +765,7 @@ public class OverlayViewModelTests
     private static SavedPlan TwoNamesOfOnePlace()
     {
         var ship = ShipLoader.Load("hull_a");
-        var empty = new SavedPlan([], new LoadPlan(ship.Id, [], []));
+        var empty = new SavedPlan([], new LoadPlan(ship.Id, [], []), CrateCap.Of(ship));
         var first = LoadPlanner.PlaceInto(empty, ship, [new MissionStop("Thundering Express", 1, [new MissionItem("Ice", 4, CrateSize.Four)])]);
         return LoadPlanner.PlaceInto(first, ship, [new MissionStop("Thundering Express Station", 1, [new MissionItem("Stims", 4, CrateSize.Four)])]);
     }
@@ -854,7 +854,7 @@ public class OverlayViewModelTests
         // The plan's crates stay the same; PlanSaver listens to Saved, so the new mission and watermark are saved.
         var viewModel = Empty();
 
-        Changes(viewModel, () => viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker", 32, CrateSize.ThirtyTwo))))
+        Changes(viewModel, () => viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker", 72, CrateSize.Eight))))
             .Should().Contain(nameof(OverlayViewModel.Saved));
         viewModel.Scene.Unplaced.Should().ContainSingle();
     }
@@ -936,7 +936,7 @@ public class OverlayViewModelTests
     public void DropMissionCommand_takes_the_mission_out()
     {
         var viewModel = Empty();
-        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin", 32, CrateSize.ThirtyTwo)));
+        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin", 72, CrateSize.Eight)));
         var crates = viewModel.Plan!.Crates;
 
         viewModel.DropMissionCommand.Execute(2);

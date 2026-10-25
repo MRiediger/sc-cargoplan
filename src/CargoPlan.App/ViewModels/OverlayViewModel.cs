@@ -481,7 +481,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
         // One name per place before Core sees the captures (B1), so new crates join the rack of their place (D41). A read
         // without news returned above, so the notice of loading stays until something comes in.
-        var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []));
+        var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []), CrateCap.Of(Ship));
         var unified = DestinationNames.Unify(current, Ship, [.. result.Candidates.Select(c => c.ToCapture())]);
         SetNotice(NoticeSource.Stops, StopsMergedText(unified.Merged));
         SetNotice(NoticeSource.Pickups, null);
@@ -760,7 +760,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public ShipScene Scene { get; private set; } = EmptyScene(ship);
 
     /// <summary>The plan with new crates (a tick, a move); missions and watermark stay.</summary>
-    private SavedPlan WithCrates(LoadPlan plan) => new(Missions, plan, Watermark);
+    private SavedPlan WithCrates(LoadPlan plan) => new(Missions, plan, Saved?.CrateCap ?? CrateCap.Of(Ship), Watermark);
 
     private static ShipScene EmptyScene(Ship ship) => ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
 

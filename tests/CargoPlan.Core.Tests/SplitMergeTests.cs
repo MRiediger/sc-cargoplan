@@ -26,7 +26,7 @@ public class SplitMergeTests
     /// <summary>One stop, Riker, with these items, planned.</summary>
     private static SavedPlan Riker(Ship ship, params MissionItem[] items) => Saved(ship, new MissionStop("Riker", 1, items));
 
-    private static SavedPlan Saved(Ship ship, params MissionStop[] missions) => SavedPlan.FromStops(missions, LoadPlanner.Plan(ship, missions.ToStops()));
+    private static SavedPlan Saved(Ship ship, params MissionStop[] missions) => SavedPlan.FromStops(missions, LoadPlanner.Plan(ship, missions.ToStops()), CrateCap.Of(ship));
 
     private static Crate CrateAt(SavedPlan saved, string rackId, int length, int width, int stack) =>
         saved.Plan.Crates.Single(c => c.RackId == rackId && c.Position == new GridPosition(length, width, stack));
@@ -36,7 +36,7 @@ public class SplitMergeTests
 
     /// <summary>The crates where the player moved them in the overlay (D25); the missions stay.</summary>
     private static SavedPlan Moved(SavedPlan saved, Ship ship, params (Crate Crate, string RackId, GridPosition Position)[] moves) =>
-        new(saved.Missions, LoadPlanner.MoveCrates(saved.Plan, ship, [.. moves.Select(m => new CrateMove(m.Crate, m.RackId, m.Position))]));
+        new(saved.Missions, LoadPlanner.MoveCrates(saved.Plan, ship, [.. moves.Select(m => new CrateMove(m.Crate, m.RackId, m.Position))]), saved.CrateCap);
 
     /// <summary>Every plan split and merge make is laid out correctly (D24).</summary>
     private static void ShouldBeValid(SavedPlan saved, Ship ship) => LoadPlanner.Validate(saved.Plan, ship).Should().BeEmpty();
@@ -177,7 +177,7 @@ public class SplitMergeTests
     private static SavedPlan TwoMissions(CrateSize max)
     {
         MissionStop stop = new("Riker", 1, [new MissionItem("Titanium", 4, max)]);
-        SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []));
+        SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA));
         return LoadPlanner.PlaceInto(LoadPlanner.PlaceInto(empty, HullA, [stop]), HullA, [stop]);
     }
 
@@ -238,7 +238,7 @@ public class SplitMergeTests
     {
         // Delivered crates can't be selected (D25), so only a bug gets here.
         var saved = Riker(HullA, Item("Titanium", 4, CrateSize.Four));
-        SavedPlan delivered = new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, "Riker", true));
+        SavedPlan delivered = new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, "Riker", true), saved.CrateCap);
 
         var act = () => LoadPlanner.SplitCrate(delivered, HullA, delivered.Plan.Crates[0]);
 
@@ -441,7 +441,7 @@ public class SplitMergeTests
     public void Merge_rejects_delivered_crates()
     {
         var saved = Riker(HullA, Item("Titanium", 4, CrateSize.Four, CrateSize.Two, CrateSize.Two));
-        SavedPlan delivered = new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, "Riker", true));
+        SavedPlan delivered = new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, "Riker", true), saved.CrateCap);
 
         var act = () => LoadPlanner.MergeCrates(delivered, HullA, delivered.Plan.Crates);
 

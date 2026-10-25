@@ -81,7 +81,7 @@ public class MissionItemTests
     {
         MissionItem titanium = new("Titanium", 16, CrateSize.Four);
 
-        var split = titanium.WithCrateList([CrateSize.Four, CrateSize.Two, CrateSize.Four, CrateSize.Two, CrateSize.Four]);
+        var split = titanium.WithCrateList([CrateSize.Four, CrateSize.Two, CrateSize.Four, CrateSize.Two, CrateSize.Four], CrateCap.None);
 
         split.Should().BeEquivalentTo(new { Commodity = "Titanium", Scu = 16, MaxCrateSize = CrateSize.Four });
         split.Crates.Should().Equal(CrateSize.Four, CrateSize.Four, CrateSize.Four, CrateSize.Two, CrateSize.Two);
@@ -93,7 +93,7 @@ public class MissionItemTests
         // Nobody typed it, so it isn't kept as typed (T3.12 keeps only typed overrides).
         MissionItem titanium = new("Titanium", 6, CrateSize.Four, [CrateSize.Two, CrateSize.Two, CrateSize.Two]);
 
-        titanium.WithCrateList([CrateSize.Two, CrateSize.Four]).Crates.Should().BeNull();
+        titanium.WithCrateList([CrateSize.Two, CrateSize.Four], CrateCap.None).Crates.Should().BeNull();
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public class MissionItemTests
     {
         MissionItem titanium = new("Titanium", 6, CrateSize.Four);
 
-        var act = () => titanium.WithCrateList([CrateSize.Four, CrateSize.Four]);
+        var act = () => titanium.WithCrateList([CrateSize.Four, CrateSize.Four], CrateCap.None);
 
         act.Should().Throw<ArgumentException>().WithMessage("*add up to 8 SCU, not 6*");
     }

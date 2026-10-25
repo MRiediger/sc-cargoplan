@@ -7,8 +7,9 @@ namespace CargoPlan.Core.Planning;
 /// Finds room for moved cargo instead of refusing it (D65), stage by stage, each tried only if the one before finds no
 /// room: (1) the cell aimed at, fallen along the stack axis; (2) the nearest free, supported place in the target rack;
 /// (3) the target rack laid out anew; (3b) other destinations' cargo displaced from the target rack, one level deep;
-/// (4) other racks, the dragged cargo's own rack last. Refused only if no rack takes it. Crates left floating where the
-/// cargo was lifted settle along the stack axis. Deterministic: no clock, one layout budget per move (D58).
+/// (4) other racks, the dragged cargo's own rack last. Refused only if no rack takes it. A rack whose door refuses a crate
+/// (D70) is no target for it: stage 4 at once, and the notice names the door. Crates left floating where the cargo was
+/// lifted settle along the stack axis. Deterministic: no clock, one layout budget per move (D58).
 /// </summary>
 internal static class MoveResolution
 {
@@ -31,6 +32,13 @@ internal static class MoveResolution
         if (start is null)
         {
             return Refused(plan, intents.Select(i => i.Index));
+        }
+
+        // No stage in a rack can take a crate its door refuses: crate by crate at once, which sends that one elsewhere.
+        // Not Pending: stage 4 costs little, and the preview would announce a rearrangement that doesn't come.
+        if (intents.Any(i => DoorRefuses(plan, i)))
+        {
+            return OneByOne(plan, ship, start, intents);
         }
 
         Intent[][] groups = [.. intents.GroupBy(i => i.Rack.Index).OrderBy(g => g.Key).Select(g => g.ToArray())];
@@ -70,7 +78,7 @@ internal static class MoveResolution
         var stage = MoveStage.Gravity;
         List<string> notices = [];
         List<int> failed = [];
-        Dictionary<Rack, List<string>> elsewhere = [];
+        Dictionary<(Rack Rack, bool Door), List<string>> elsewhere = [];
         var single = intents.Count == 1;
 
         foreach (var intent in intents
@@ -82,9 +90,10 @@ internal static class MoveResolution
             int[] index = [intent.Index];
             Board? placed = null;
             var at = stage;
+            var door = DoorRefuses(plan, intent);
 
-            // One crate alone went through stages 1–3b as the block already.
-            if (!single)
+            // One crate alone went through stages 1–3b as the block already; a door that refuses it leaves none to try.
+            if (!single && !door)
             {
                 List<string> displacing = [];
                 (placed, at) = intent.Position is not null && Gravity(board.Copy(), one) is { } fallen ? (fallen, MoveStage.Gravity)
@@ -98,9 +107,9 @@ internal static class MoveResolution
             if (placed is null && Elsewhere(board.Copy(), intent) is { } other)
             {
                 (placed, at) = (other, MoveStage.Elsewhere);
-                if (!elsewhere.TryGetValue(intent.Rack, out var racks))
+                if (!elsewhere.TryGetValue((intent.Rack, door), out var racks))
                 {
-                    elsewhere[intent.Rack] = racks = [];
+                    elsewhere[(intent.Rack, door)] = racks = [];
                 }
 
                 racks.Add(other.Slots[intent.Index]!.RackId);
@@ -121,10 +130,14 @@ internal static class MoveResolution
             return Refused(plan, failed);
         }
 
-        notices.AddRange(elsewhere.OrderBy(e => e.Key.Index)
-            .Select(e => Invariant($"No room in rack {e.Key.Number} – placed in {RackList(ship, e.Value)}")));
+        notices.AddRange(elsewhere.OrderBy(e => e.Key.Rack.Index).ThenBy(e => e.Key.Door)
+            .Select(e => e.Key.Door
+                ? Invariant($"Rack {e.Key.Rack.Number}: {CrateCap.Of(e.Key.Rack).Text} – placed in {RackList(ship, e.Value)}")
+                : Invariant($"No room in rack {e.Key.Rack.Number} – placed in {RackList(ship, e.Value)}")));
         return board.Outcome(plan, ship, stage, notices);
     }
+
+    private static bool DoorRefuses(LoadPlan plan, Intent intent) => intent.Rack.DoorRefuses(plan.Crates[intent.Index].CrateSize);
 
     /// <summary>The board with every group placed by <paramref name="place"/>, in rack order; null if one group finds no room.</summary>
     private static Board? Each(Board start, Intent[][] groups, Func<Board, Intent[], Board?> place)

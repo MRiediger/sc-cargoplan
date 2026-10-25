@@ -20,7 +20,7 @@ public class PlanFileTests
     private const string V2FixtureName = "plans/split_and_shared_v2.json";
 
     private static SavedPlan Planned(IReadOnlyList<MissionStop> missions, FillOrder fillOrder = FillOrder.BowFirst) =>
-        SavedPlan.FromStops(missions, LoadPlanner.Plan(HullA, missions.ToStops(), fillOrder));
+        SavedPlan.FromStops(missions, LoadPlanner.Plan(HullA, missions.ToStops(), fillOrder), CrateCap.Of(HullA));
 
     private static string FixtureText(string name)
     {
@@ -43,10 +43,11 @@ public class PlanFileTests
     private static SavedPlan WithCaptures()
     {
         static MissionStop Stop(string destination, string commodity, int scu, CrateSize max) => new(destination, 1, [new MissionItem(commodity, scu, max)]);
-        SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []), 41);
+        SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA), 41);
         var typed = LoadPlanner.PlaceInto(empty, HullA, [Stop("Riker", "Titanium", 12, CrateSize.Four)]);
         var captured = LoadPlanner.PlaceInto(typed, HullA, [Stop("Shubin", "Quartz", 8, CrateSize.Four)], new ContractSource([36, 37], true, 3, 50_250));
-        return LoadPlanner.PlaceInto(captured, HullA, [Stop("Orison", "Gold", 32, CrateSize.ThirtyTwo)], new ContractSource([40]));
+        // More than the Hull A holds, so it waits (a 32 SCU crate would be capped to 16s and fit, D70).
+        return LoadPlanner.PlaceInto(captured, HullA, [Stop("Orison", "Gold", 72, CrateSize.Eight)], new ContractSource([40]));
     }
 
     private static string Written(SavedPlan saved)
@@ -80,7 +81,7 @@ public class PlanFileTests
     public void Write_then_Read_keeps_missions_crates_hints_and_delivered()
     {
         var planned = Planned(MissionFixtures.SplitAndSharedMissions);
-        SavedPlan saved = new(planned.Missions, LoadPlanner.SetDelivered(planned.Plan, HullA, "Riker", true));
+        SavedPlan saved = new(planned.Missions, LoadPlanner.SetDelivered(planned.Plan, HullA, "Riker", true), planned.CrateCap);
 
         var loaded = RoundTrip(saved);
 
@@ -95,7 +96,7 @@ public class PlanFileTests
         // The player's override survives a restart.
         var planned = Planned(MissionFixtures.SplitAndSharedMissions);
         var gold = planned.Plan.Crates.First(c => c.Commodity == "Gold");
-        SavedPlan saved = new(planned.Missions, LoadPlanner.MoveCrate(planned.Plan, HullA, gold, "rack-3", new GridPosition(0, 1, 1)));
+        SavedPlan saved = new(planned.Missions, LoadPlanner.MoveCrate(planned.Plan, HullA, gold, "rack-3", new GridPosition(0, 1, 1)), planned.CrateCap);
 
         var loaded = RoundTrip(saved);
 
@@ -356,7 +357,7 @@ public class PlanFileTests
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
 
-        var act = () => SavedPlan.FromStops(MissionFixtures.LoadMissions("example_missions"), plan);
+        var act = () => SavedPlan.FromStops(MissionFixtures.LoadMissions("example_missions"), plan, CrateCap.Of(HullA));
 
         act.Should().Throw<ArgumentException>();
     }
@@ -372,8 +373,8 @@ public class PlanFileTests
             Stims(CrateSize.Two, 0, 0, 1), Stims(CrateSize.One, 0, 1, 1),
         ];
 
-        var complete = () => new SavedPlan(missions, new LoadPlan("hull_a", crates, []));
-        var withoutTheOne = () => new SavedPlan(missions, new LoadPlan("hull_a", crates[..4], []));
+        var complete = () => new SavedPlan(missions, new LoadPlan("hull_a", crates, []), CrateCap.Of(HullA));
+        var withoutTheOne = () => new SavedPlan(missions, new LoadPlan("hull_a", crates[..4], []), CrateCap.Of(HullA));
 
         complete.Should().NotThrow();
         withoutTheOne.Should().Throw<ArgumentException>().WithMessage("*Riker, Stims: 0 of 1 crates of 1 SCU placed*");
@@ -383,7 +384,7 @@ public class PlanFileTests
     public void SavedPlan_allows_no_missions()
     {
         // The plan after its last mission was removed, and before the first capture (D41, D42).
-        var act = () => new SavedPlan([], new LoadPlan("hull_a", [], []));
+        var act = () => new SavedPlan([], new LoadPlan("hull_a", [], []), CrateCap.Of(HullA));
 
         act.Should().NotThrow();
     }
@@ -393,7 +394,7 @@ public class PlanFileTests
     {
         var saved = Planned(MissionFixtures.SplitAndSharedMissions);
 
-        var act = () => new SavedPlan(saved.Missions, saved.Plan with { Crates = [saved.Plan.Crates[0] with { Mission = 9 }, .. saved.Plan.Crates.Skip(1)] });
+        var act = () => new SavedPlan(saved.Missions, saved.Plan with { Crates = [saved.Plan.Crates[0] with { Mission = 9 }, .. saved.Plan.Crates.Skip(1)] }, saved.CrateCap);
 
         act.Should().Throw<ArgumentException>().WithMessage("*mission 9*");
     }
@@ -403,7 +404,7 @@ public class PlanFileTests
     {
         var saved = Planned(MissionFixtures.SplitAndSharedMissions);
 
-        var act = () => new SavedPlan([saved.Missions[0] with { Unplaced = true }, .. saved.Missions.Skip(1)], saved.Plan);
+        var act = () => new SavedPlan([saved.Missions[0] with { Unplaced = true }, .. saved.Missions.Skip(1)], saved.Plan, saved.CrateCap);
 
         act.Should().Throw<ArgumentException>().WithMessage("*didn't fit*");
     }
@@ -414,7 +415,7 @@ public class PlanFileTests
         var saved = Planned(MissionFixtures.SplitAndSharedMissions);
         var twice = new Mission(saved.Missions[0].Id, saved.Missions[1].Stops);
 
-        var act = () => new SavedPlan([saved.Missions[0], twice, .. saved.Missions.Skip(2)], saved.Plan);
+        var act = () => new SavedPlan([saved.Missions[0], twice, .. saved.Missions.Skip(2)], saved.Plan, saved.CrateCap);
 
         act.Should().Throw<ArgumentException>().WithMessage("*id 1*more than once*");
     }
@@ -424,7 +425,7 @@ public class PlanFileTests
     {
         MissionStop Stop(string destination) => new(destination, 1, [new MissionItem("Gold", 4, CrateSize.Four)]);
 
-        var act = () => new SavedPlan([new Mission(1, [Stop("Riker")]), new Mission(2, [Stop("riker")], Unplaced: true)], new LoadPlan("hull_a", [], []));
+        var act = () => new SavedPlan([new Mission(1, [Stop("Riker")]), new Mission(2, [Stop("riker")], Unplaced: true)], new LoadPlan("hull_a", [], []), CrateCap.Of(HullA));
 
         act.Should().Throw<ArgumentException>().WithMessage("*spelt more than one way*");
     }

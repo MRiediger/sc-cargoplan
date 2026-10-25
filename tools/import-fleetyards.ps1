@@ -21,7 +21,7 @@ if (-not $ShipsFolder) {
     $ShipsFolder = Join-Path (Split-Path $PSScriptRoot -Parent) 'ships'
 }
 
-$SchemaVersion = 4
+$SchemaVersion = 5
 $CellMeters = [decimal]1.25
 $FallbackShipId = 'hull_a'
 $CrateSizes = @(1, 2, 4, 8, 16, 24, 32)
