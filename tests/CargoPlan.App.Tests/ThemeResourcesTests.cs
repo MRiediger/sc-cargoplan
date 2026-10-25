@@ -80,6 +80,44 @@ public sealed class ThemeResourcesTests
     }
 
     [Fact]
+    public void The_selection_edge_defaults_to_the_look_before_it_was_a_setting()
+    {
+        // K4.4: magenta 2.5 px over a dark 4.5 px contour, as K4.2 drew it (D25 addendum).
+        var resources = Applied(AppearanceSettings.Default);
+
+        var pen = resources[Keys.CratesSelectionPen].Should().BeOfType<Pen>().Subject;
+        ((SolidColorBrush)pen.Brush).Color.Should().Be(Color.FromRgb(0xFF, 0x00, 0xFF));
+        pen.Thickness.Should().Be(2.5);
+        var outline = resources[Keys.CratesSelectionOutlinePen].Should().BeOfType<Pen>().Subject;
+        ((SolidColorBrush)outline.Brush).Color.Should().Be(Color.FromArgb(0xA0, 0, 0, 0));
+        outline.Thickness.Should().Be(4.5);
+        outline.LineJoin.Should().Be(PenLineJoin.Round);
+        pen.IsFrozen.Should().BeTrue();
+        outline.IsFrozen.Should().BeTrue();
+    }
+
+    [Fact]
+    public void The_contour_is_the_edge_plus_its_size_on_both_sides_and_gone_when_off()
+    {
+        ResourceDictionary resources = new();
+        ThemeResources.Apply(resources, AppearanceSettings.Default with
+        {
+            Crates = CrateAppearance.Default with { SelectionColor = "#FF00FF00", SelectionWidth = 4, SelectionOutline = new HaloSettings(true, "#FFFFFFFF", 2) },
+        });
+
+        ((Pen)resources[Keys.CratesSelectionPen]).Thickness.Should().Be(4);
+        ((SolidColorBrush)((Pen)resources[Keys.CratesSelectionPen]).Brush).Color.Should().Be(Colors.Lime);
+        ((Pen)resources[Keys.CratesSelectionOutlinePen]).Thickness.Should().Be(8);
+
+        ThemeResources.Apply(resources, AppearanceSettings.Default with
+        {
+            Crates = CrateAppearance.Default with { SelectionOutline = CrateAppearance.Default.SelectionOutline with { Enabled = false } },
+        });
+
+        resources.Contains(Keys.CratesSelectionOutlinePen).Should().BeFalse();
+    }
+
+    [Fact]
     public void A_rack_number_font_size_is_passed_on()
     {
         var resources = Applied(AppearanceSettings.Default with { Crates = CrateAppearance.Default with { RackNumberFontSize = 40 } });

@@ -1,3 +1,4 @@
+using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
@@ -35,15 +36,19 @@ public class MissionPaletteTests
     }
 
     [Fact]
-    public void Selection_differs_from_the_drop_target_and_the_problem_red()
+    public void The_default_selection_differs_from_the_drop_target_and_the_problem_red()
     {
-        MissionPalette.Selection.Should().NotBe(MissionPalette.DragTarget).And.NotBe(MissionPalette.Violation);
+        // A setting since K4.4; its default keeps D25's rule.
+        var selection = Argb.Parse(CrateAppearance.Default.SelectionColor);
+        var colour = System.Windows.Media.Color.FromArgb(selection.A, selection.R, selection.G, selection.B);
+
+        colour.Should().NotBe(MissionPalette.DragTarget).And.NotBe(MissionPalette.Violation);
     }
 
     [Fact]
     public void The_under_stroke_is_dark_and_wider_than_the_edges_it_lies_under()
     {
-        // P6: under the red, magenta and cyan edges, so they read on any stop colour.
+        // P6: under the red and cyan edges, so they read on any stop colour (the selection's contour is a setting, K4.4).
         MissionPalette.EdgeUnderStroke.Should().Match<System.Windows.Media.Color>(c => c.R == 0 && c.G == 0 && c.B == 0 && c.A > 0);
         MissionPalette.EdgeUnderStrokeWidth.Should().BeGreaterThan(MissionPalette.EdgeWidth);
     }

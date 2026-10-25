@@ -355,13 +355,16 @@ public sealed class SettingsViewModelTests : IDisposable
     {
         var appearance = Changed with
         {
-            Crates = new CrateAppearance(100, 50, "#FF00FFFF", 30, HaloSettings.Off, "tolMuted"),
+            Crates = new CrateAppearance(100, 50, "#FF00FFFF", 30, HaloSettings.Off, "tolMuted", "#C000FF00", 4, new HaloSettings(false, "#FFFFFFFF", 2)),
             Buttons = new ButtonAppearance("#20FFFFFF", "#FF0000FF", 2, 5, HaloSettings.On),
         };
 
         var viewModel = Create(appearance);
 
         viewModel.StopPalette.Should().Be(StopPaletteName.TolMuted);
+        viewModel.CratesSelectionColor.Value.Should().Be("#C000FF00");
+        viewModel.CratesSelectionWidth.Should().Be(4);
+        viewModel.CratesSelectionOutline.Value.Should().Be(new HaloSettings(false, "#FFFFFFFF", 2));
         viewModel.CratesFillAlpha.Should().Be(100);
         viewModel.CratesEdgeAlpha.Should().Be(50);
         viewModel.CratesRackNumberColor.Value.Should().Be("#FF00FFFF");
@@ -444,6 +447,27 @@ public sealed class SettingsViewModelTests : IDisposable
         viewModel.CratesFillAlpha.Should().Be(CrateAppearance.Default.FillAlpha);
         viewModel.CratesHalo.Enabled.Should().BeTrue();
         viewModel.StopPalette.Should().Be(StopPaletteName.OkabeIto);
+        viewModel.CratesSelectionWidth.Should().Be(2.5);
+    }
+
+    [Fact]
+    public void The_selection_edge_applies_colour_width_and_contour()
+    {
+        // K4.4: Martin at K4.2's look gate.
+        var viewModel = Create();
+
+        viewModel.CratesSelectionColor.Hex = "#00FF00";
+        viewModel.CratesSelectionWidth = 5;
+        viewModel.CratesSelectionOutline.Size = 3;
+
+        Last.Appearance.Crates.Should().Be(CrateAppearance.Default with
+        {
+            SelectionColor = "#FF00FF00",
+            SelectionWidth = 5,
+            SelectionOutline = CrateAppearance.Default.SelectionOutline with { Size = 3 },
+        });
+        viewModel.CratesSelectionColor.MinAlpha.Should().Be(0);
+        viewModel.CratesSelectionOutline.Label.Should().Be(SettingsViewModel.SelectionOutlineLabel);
     }
 
     [Fact]

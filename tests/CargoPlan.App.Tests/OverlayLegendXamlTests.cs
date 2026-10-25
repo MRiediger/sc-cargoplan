@@ -35,6 +35,16 @@ public class OverlayLegendXamlTests
     }
 
     [Fact]
+    public void The_ship_view_takes_the_selection_edge_from_the_theme()
+    {
+        // K4.4: colour, width and contour are settings, so DynamicResources the settings window changes live.
+        var view = Named(Root(), "ShipView");
+
+        view.Attribute("SelectionPen")!.Value.Should().Be("{DynamicResource CratesSelectionPen}");
+        view.Attribute("SelectionOutlinePen")!.Value.Should().Be("{DynamicResource CratesSelectionOutlinePen}");
+    }
+
+    [Fact]
     public void The_repeat_notice_comes_from_the_stop_count_and_the_palette()
     {
         var root = Root();

@@ -15,7 +15,8 @@ public sealed class AppearanceRulesTests
         appearance.Legend.Should().Be(new LegendAppearance(
             Foreground: "#FFE6E6E6", FontSize: null, Halo: new HaloSettings(false, "#E0141414", 3), CheckBoxColor: "#FFB0B0B0", CheckMarkColor: "#FFB0B0B0"));
         appearance.Crates.Should().Be(new CrateAppearance(
-            FillAlpha: 0xD0, EdgeAlpha: 0xC0, RackNumberColor: "#FFFFFFFF", RackNumberFontSize: 27, Halo: new HaloSettings(true, "#E0141414", 3), StopPalette: "okabeIto"));
+            FillAlpha: 0xD0, EdgeAlpha: 0xC0, RackNumberColor: "#FFFFFFFF", RackNumberFontSize: 27, Halo: new HaloSettings(true, "#E0141414", 3), StopPalette: "okabeIto",
+            SelectionColor: "#FFFF00FF", SelectionWidth: 2.5, SelectionOutline: new HaloSettings(true, "#A0000000", 1)));
         appearance.Buttons.Should().Be(new ButtonAppearance(
             Background: "#01000000", BorderColor: "#FFE6E6E6", BorderThickness: 0, CornerRadius: 3, Halo: new HaloSettings(false, "#E0141414", 3)));
     }
@@ -36,7 +37,7 @@ public sealed class AppearanceRulesTests
             new WindowAppearance("#E0300000", "#FF00FF00", 10),
             new HeaderAppearance("#FFFFFF00", new HaloSettings(true, "#FF000000", 20)),
             new LegendAppearance("#FF00FFFF", 32, new HaloSettings(true, "#80000000", 1), "#40FF0000", "#FF00FF00"),
-            new CrateAppearance(0, 255, "#FFFF0000", 48, HaloSettings.Off, "tolMuted"),
+            new CrateAppearance(0, 255, "#FFFF0000", 48, HaloSettings.Off, "tolMuted", "#8000FF00", 8, new HaloSettings(false, "#FFFFFFFF", 20)),
             new ButtonAppearance("#01FFFFFF", "#FFFFFFFF", 0, 13, HaloSettings.Off));
 
         var (appearance, problems) = AppearanceRules.Normalize(custom);
@@ -73,6 +74,9 @@ public sealed class AppearanceRulesTests
         { "crates.edgeAlpha", a => a with { Crates = a.Crates with { EdgeAlpha = 300 } }, a => a.Crates.EdgeAlpha, 255 },
         { "crates.rackNumberFontSize", a => a with { Crates = a.Crates with { RackNumberFontSize = 0 } }, a => a.Crates.RackNumberFontSize, 8 },
         { "crates.rackNumberFontSize", a => a with { Crates = a.Crates with { RackNumberFontSize = 100 } }, a => a.Crates.RackNumberFontSize, 48 },
+        { "crates.selectionWidth", a => a with { Crates = a.Crates with { SelectionWidth = 0 } }, a => a.Crates.SelectionWidth, 1 },
+        { "crates.selectionWidth", a => a with { Crates = a.Crates with { SelectionWidth = 12 } }, a => a.Crates.SelectionWidth, 8 },
+        { "crates.selectionOutline.size", a => a with { Crates = a.Crates with { SelectionOutline = a.Crates.SelectionOutline with { Size = 0 } } }, a => a.Crates.SelectionOutline.Size, 1 },
     };
 
     [Theory]
@@ -148,6 +152,18 @@ public sealed class AppearanceRulesTests
         appearance.Crates.StopPalette.Should().Be("okabeIto");
         problems.Should().ContainSingle().Which.Should().Be(
             $"appearance.crates.stopPalette \"{name}\" is not valid (okabeIto, tolBright or tolMuted), using okabeIto.");
+    }
+
+    [Fact]
+    public void Invalid_selection_colour_takes_the_magenta_with_a_problem()
+    {
+        var (appearance, problems) = AppearanceRules.Normalize(AppearanceSettings.Default with
+        {
+            Crates = CrateAppearance.Default with { SelectionColor = "pink" },
+        });
+
+        appearance.Crates.SelectionColor.Should().Be("#FFFF00FF");
+        problems.Should().ContainSingle().Which.Should().Contain("appearance.crates.selectionColor");
     }
 
     [Fact]
