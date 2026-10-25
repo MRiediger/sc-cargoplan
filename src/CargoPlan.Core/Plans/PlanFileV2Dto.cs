@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CargoPlan.Core.Json;
 
 namespace CargoPlan.Core.Plans;
 
@@ -22,7 +23,7 @@ internal sealed record PlanFileV2Dto(
         PlanFileDto.CheckItems(Crates, SchemaVersion);
         PlanFileDto.CheckRotated(Crates, SchemaVersion);
         Models.LoadPlan plan = new(
-            ShipId, [.. Crates.Select(c => c.ToCrate())], [.. Warnings.Select(w => w.ToPlanWarning())], PlanFileDto.ParseFillOrder(FillOrder));
+            ShipId, [.. Crates.Select(c => c.ToCrate())], [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder));
 
         var (checkedPlan, racksChanged) = PlanFileDto.Checked(plan, ship);
         return PlanFileDto.UnderCap(ship, cap => SavedPlan.FromStops(stops, checkedPlan, cap), racksChanged);

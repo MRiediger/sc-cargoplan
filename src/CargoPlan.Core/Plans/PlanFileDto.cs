@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CargoPlan.Core.Json;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
@@ -21,9 +22,6 @@ internal sealed record PlanFileDto(
     IReadOnlyList<CrateDto> Crates,
     IReadOnlyList<PlanWarningDto> Warnings)
 {
-    private const string BowFirst = "bowFirst";
-    private const string SternFirst = "sternFirst";
-
     /// <exception cref="ArgumentException">A value violates the domain rules, or the plan doesn't fit the ship or its missions.</exception>
     public SavedPlan ToSavedPlan(Ship ship)
     {
@@ -31,7 +29,7 @@ internal sealed record PlanFileDto(
         CheckItems(Crates, SchemaVersion);
         CheckRotated(Crates, SchemaVersion);
         Crate[] crates = [.. Crates.Select(c => c.ToCrate())];
-        var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], ParseFillOrder(FillOrder)), ship);
+        var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder)), ship);
 
         return UnderCap(ship, cap => new SavedPlan(
             missions,
@@ -82,7 +80,7 @@ internal sealed record PlanFileDto(
     public static PlanFileDto FromSavedPlan(SavedPlan saved) => new(
         PlanFile.SupportedSchemaVersion,
         saved.Plan.ShipId,
-        saved.Plan.FillOrder == Models.FillOrder.BowFirst ? BowFirst : SternFirst,
+        FillOrderJson.Text(saved.Plan.FillOrder),
         saved.Watermark,
         [.. saved.Missions.Select(MissionDto.FromMission)],
         [.. saved.Plan.Crates.Select(CrateDto.FromCrate)],
@@ -156,13 +154,13 @@ internal sealed record PlanFileDto(
         }
     }
 
-    /// <summary>The embedded mission file of schema 1 and 2.</summary>
+    /// <summary>The embedded mission file of schema 1 and 2; never 3, the plan has its own fill order (D72).</summary>
     /// <exception cref="JsonException">The missions are not a mission file of a supported schema version.</exception>
     internal static IReadOnlyList<MissionStop> ParseMissions(JsonElement missions)
     {
         try
         {
-            return MissionFileReader.Parse(missions);
+            return MissionFileReader.Parse(missions, MissionFileReader.EmbeddedSchemaVersions).Stops;
         }
         catch (JsonException ex)
         {
@@ -170,12 +168,4 @@ internal sealed record PlanFileDto(
             throw new JsonException($"missions: {ex.Message}", ex);
         }
     }
-
-    // A plain string and an explicit switch: STJ's enum converter would also accept numbers and other casing (as PositionDto).
-    internal static Models.FillOrder ParseFillOrder(string fillOrder) => fillOrder switch
-    {
-        BowFirst => Models.FillOrder.BowFirst,
-        SternFirst => Models.FillOrder.SternFirst,
-        _ => throw new ArgumentException($"fillOrder '{fillOrder}' is unknown, use \"{BowFirst}\" or \"{SternFirst}\".", nameof(FillOrder)),
-    };
 }

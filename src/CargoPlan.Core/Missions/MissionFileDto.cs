@@ -1,18 +1,48 @@
+using System.Text.Json.Serialization;
+using CargoPlan.Core.Json;
+using static System.FormattableString;
+
 namespace CargoPlan.Core.Missions;
 
 /// <summary>
-/// File format of a mission JSON (schema version 2, D23). Read via <see cref="ToMissionStops"/>, written via
-/// <see cref="FromMissionStops"/>, so import and export share one format. Version 1 is still read
-/// (<see cref="MissionFileV1Dto"/>), never written.
+/// File format of a mission JSON (schema version 3, D72: schema 2 with an optional fill order). Read via
+/// <see cref="ToMissionFile"/>, written via <see cref="FromMissionStops"/>, so import and export share one format.
+/// Version 2 is the same without <see cref="FillOrder"/>; version 1 (<see cref="MissionFileV1Dto"/>) is still read,
+/// neither is written.
 /// </summary>
-internal sealed record MissionFileDto(int SchemaVersion, IReadOnlyList<MissionStopDto> Stops)
+/// <remarks>
+/// <see cref="FillOrder"/> is optional, so it has a default and stands last; <c>JsonPropertyOrder</c> on
+/// <see cref="Stops"/> writes it before the stops, where it is read at a glance. Source:
+/// https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/customize-properties#configure-the-order-of-serialized-properties
+/// </remarks>
+internal sealed record MissionFileDto(
+    int SchemaVersion,
+    [property: JsonPropertyOrder(1)] IReadOnlyList<MissionStopDto> Stops,
+    string? FillOrder = null)
 {
+    /// <exception cref="ArgumentException">A value violates the domain rules, or a schema 2 file names a fill order.</exception>
+    public MissionFile ToMissionFile()
+    {
+        const int withFillOrder = MissionFileReader.NoFillOrderSchemaVersion + 1;
+        if (FillOrder is not null && SchemaVersion < withFillOrder)
+        {
+            throw new ArgumentException(
+                Invariant($"fillOrder is new in schema {withFillOrder} (the file says {SchemaVersion})."), nameof(FillOrder));
+        }
+
+        return new(ToMissionStops(), FillOrder is null ? null : FillOrderJson.Parse(FillOrder));
+    }
+
     /// <exception cref="ArgumentException">A value violates the domain rules.</exception>
     public IReadOnlyList<MissionStop> ToMissionStops() =>
         CheckedRoute([.. Stops.Select((s, index) => s.ToMissionStop(index + 1))]);
 
-    public static MissionFileDto FromMissionStops(IEnumerable<MissionStop> stops) =>
-        new(MissionFileReader.CurrentSchemaVersion, [.. stops.OrderBy(s => s.Order).Select(MissionStopDto.FromMissionStop)]);
+    /// <summary>Always with the fill order: an export says how its rows were meant to be loaded (D72).</summary>
+    public static MissionFileDto FromMissionStops(IEnumerable<MissionStop> stops, Models.FillOrder fillOrder) =>
+        new(
+            MissionFileReader.CurrentSchemaVersion,
+            [.. stops.OrderBy(s => s.Order).Select(MissionStopDto.FromMissionStop)],
+            FillOrderJson.Text(fillOrder));
 
     /// <summary>The route rules of both schema versions. Array order is the route: first stop = Order 1.</summary>
     /// <exception cref="ArgumentException">No stop, or a destination twice.</exception>

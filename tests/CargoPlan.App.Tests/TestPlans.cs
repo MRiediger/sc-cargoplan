@@ -19,7 +19,7 @@ internal static class TestPlans
         using var stream = typeof(TestPlans).Assembly.GetManifestResourceStream(ResourceName)
             ?? throw new InvalidOperationException($"Test resource '{ResourceName}' not found.");
 
-        var missions = MissionFileReader.Read(stream, ResourceName);
+        var missions = MissionFileReader.Read(stream, ResourceName).Stops;
         var hullA = ShipLoader.Load("hull_a");
         return SavedPlan.FromStops(missions, LoadPlanner.Plan(hullA, missions.ToStops()), CrateCap.Of(hullA));
     }

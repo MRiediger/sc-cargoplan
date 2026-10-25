@@ -153,7 +153,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     {
         try
         {
-            var stops = MissionFileReader.Read(path);
+            var stops = MissionFileReader.Read(path).Stops;
             Rows.Clear();
             foreach (var row in MissionRows.FromStops(stops))
             {
@@ -180,7 +180,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
         try
         {
-            AtomicFile.Write(path, stream => MissionFileWriter.Write(stream, _result.Stops));
+            AtomicFile.Write(path, stream => MissionFileWriter.Write(stream, _result.Stops, FillOrder));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
