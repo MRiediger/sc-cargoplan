@@ -578,6 +578,57 @@ public static class LoadPlanner
     }
 
     /// <summary>
+    /// Ticks are route state, not on the undo stack (K2.4): the ticks that changed between <paramref name="reference"/>
+    /// (the plan the step left, or the undo restored) and <paramref name="current"/> carry over to <paramref name="target"/>,
+    /// the snapshot being restored, per delivery (a mission's crates for one destination, K2.2). Ticks the step itself
+    /// changed stay as the snapshot has them: undoing the editor's Plan, which clears every tick (D19), brings them back.
+    /// A delivery is known by its contract where it has one, so a capture placed again under another mission id keeps its
+    /// tick. Ticking back can find no room in the snapshot: that delivery stays ticked and the reason is returned.
+    /// <paramref name="target"/> itself when nothing changed.
+    /// </summary>
+    public static (SavedPlan Plan, IReadOnlyList<string> Refused) CarryTicks(SavedPlan target, SavedPlan reference, SavedPlan current, Ship ship)
+    {
+        var was = Deliveries(reference);
+        var now = Deliveries(current);
+        var plan = target.Plan;
+        List<string> refused = [];
+        foreach (var (delivery, (missionId, ticked)) in Deliveries(target))
+        {
+            if (!now.TryGetValue(delivery, out var tick)
+                || (was.TryGetValue(delivery, out var before) && before.Ticked == tick.Ticked)
+                || tick.Ticked == ticked)
+            {
+                continue;
+            }
+
+            try
+            {
+                plan = SetDelivered(plan, ship, delivery.Destination, missionId, tick.Ticked);
+            }
+            catch (PlanException ex)
+            {
+                refused.Add(ex.Message);
+            }
+        }
+
+        return (ReferenceEquals(plan, target.Plan) ? target : new SavedPlan(target.Missions, plan, target.CrateCap, target.Watermark), refused);
+    }
+
+    /// <summary>
+    /// Every delivery with crates on the plan, by its contract (the lowest id; a capture's ids are its own, D38) or, typed,
+    /// its mission id, with the mission id in this plan and whether all its crates are ticked.
+    /// </summary>
+    private static Dictionary<(long Contract, int Typed, string Destination), (int Mission, bool Ticked)> Deliveries(SavedPlan saved)
+    {
+        var contracts = saved.Missions.ToDictionary(m => m.Id, m => m.Contract?.ContractIds.Min());
+        return saved.Plan.Crates
+            .GroupBy(c => (c.Mission, c.Destination))
+            .ToDictionary(
+                g => contracts[g.Key.Mission] is { } contract ? (contract, 0, g.Key.Destination) : (0L, g.Key.Mission, g.Key.Destination),
+                g => (g.Key.Mission, g.All(c => c.Delivered)));
+    }
+
+    /// <summary>
     /// The player's Discard plan (K2.3): no missions, no crates, no ticks, and the ContractTracker watermark back at 0, so
     /// the next sync takes every contract in again (Martin's variant a: nothing remembers what was discarded). The fill
     /// order stays, it is the player's way of loading (T4.5); the plan is for <paramref name="ship"/>.
