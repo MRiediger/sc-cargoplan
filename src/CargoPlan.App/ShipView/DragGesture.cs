@@ -20,8 +20,11 @@ public abstract record Gesture
     /// </summary>
     public sealed record MoveCrates(Crate Anchor, IReadOnlyList<Crate> Crates, string RackId, GridPosition Position) : Gesture;
 
-    /// <summary>Put every crate of a stop on board into a rack (D25), dragged from its legend line; the parameter of <c>MoveStopCommand</c>.</summary>
-    public sealed record MoveStop(string Destination, string TargetRackId) : Gesture;
+    /// <summary>
+    /// Put <paramref name="Crates"/> into a rack without a cell (D25, B6): a legend line's or a mission header's crates on
+    /// board, dragged from the legend; the parameter of <c>MoveLegendCommand</c>.
+    /// </summary>
+    public sealed record MoveLegend(IReadOnlyList<Crate> Crates, string TargetRackId) : Gesture;
 
     /// <summary>Add the crate to the selection, or take it out (D25).</summary>
     public sealed record ToggleSelect(Crate Crate) : Gesture;
@@ -35,9 +38,9 @@ public abstract record Gesture
 /// The mouse rules of the ship view as one pure table (D20, D25). Left: orbit when dragged, anywhere; a click on cargo
 /// ticks its stop. Right: a click on a crate still on board selects it or takes it out, on free or empty space clears
 /// the selection; dragged from a crate still on board, it moves that crate (with the selection, if the crate is part of
-/// it) to the cell under the cursor (<see cref="DropTarget"/>); dragged from anywhere else, it pans. A stop line dragged
-/// from the legend moves the whole stop to the rack under the cursor. The control asks on every move (preview, or pan)
-/// and on release.
+/// it) to the cell under the cursor (<see cref="DropTarget"/>); dragged from anywhere else, it pans. A line or header
+/// dragged from the legend moves its crates to the rack under the cursor. The control asks on every move (preview, or
+/// pan) and on release.
 /// </summary>
 public static class DragGesture
 {
@@ -77,7 +80,7 @@ public static class DragGesture
             ? selection.Contains(crate) ? [crate, .. selection.Where(c => c != crate)] : [crate]
             : [];
 
-    /// <summary>A stop line dragged from the legend: onto any face of a rack it moves the stop there; anywhere else, nothing.</summary>
-    public static Gesture ResolveStop(string destination, bool moved, SceneHit? current) =>
-        moved && current is { } target ? new Gesture.MoveStop(destination, target.RackId) : new Gesture.None();
+    /// <summary>A legend line or header dragged: onto any face of a rack it moves its crates there; anywhere else, nothing.</summary>
+    public static Gesture ResolveLegend(IReadOnlyList<Crate> crates, bool moved, SceneHit? current) =>
+        moved && current is { } target ? new Gesture.MoveLegend(crates, target.RackId) : new Gesture.None();
 }

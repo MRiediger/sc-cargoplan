@@ -197,6 +197,155 @@ public class LegendByMissionTests
         viewModel.Scene.Legend.Should().HaveCount(2).And.OnlyContain(e => e.Delivered);
     }
 
+    // --- Check boxes: the line's or the mission's crates on board as the selection (D25) ---
+
+    /// <summary>Lorville: Riker and Shubin; Everus Harbor: Riker and Orison.</summary>
+    private static OverlayViewModel TwoPickupMissions()
+    {
+        var viewModel = new OverlayViewModel(HullA, Catalog);
+        viewModel.ShowPlan(Planned(
+            new Mission(1, [new("Riker", 1, [Item("Titanium", 16, CrateSize.Eight, "Lorville")]), new("Shubin", 2, [Item("Quartz", 16, CrateSize.Four, "Lorville")])]),
+            new Mission(2, [new("Riker", 1, [Item("Titanium", 16, CrateSize.Eight, "Everus Harbor")]), new("Orison", 2, [Item("Gold", 16, CrateSize.Sixteen, "Everus Harbor")])])));
+        return viewModel;
+    }
+
+    private static IReadOnlySet<Crate> Selected(OverlayViewModel viewModel) => viewModel.Selection.In(viewModel.Scene);
+
+    private static LegendEntry Line(OverlayViewModel viewModel, int mission, string destination) =>
+        viewModel.Scene.Legend.Single(e => e.Mission == mission && e.Destination == destination);
+
+    private static LegendEntry Header(OverlayViewModel viewModel, int mission) =>
+        viewModel.Scene.Legend.Single(e => e.Mission == mission && e.Header is not null);
+
+    [Fact]
+    public void A_line_box_selects_its_crates_and_takes_them_out_again()
+    {
+        var viewModel = TwoPickupMissions();
+        var riker = Line(viewModel, 2, "Riker");
+
+        viewModel.ToggleCratesCommand.Execute(riker.Crates);
+
+        Selected(viewModel).Should().BeEquivalentTo(riker.Crates);
+        SelectionFocus.State(Selected(viewModel), riker.Crates).Should().BeTrue();
+
+        viewModel.ToggleCratesCommand.Execute(riker.Crates);
+
+        Selected(viewModel).Should().BeEmpty();
+        SelectionFocus.State(Selected(viewModel), riker.Crates).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Two_ticked_boxes_select_both_lines()
+    {
+        var viewModel = TwoPickupMissions();
+        var riker = Line(viewModel, 1, "Riker");
+        var orison = Line(viewModel, 2, "Orison");
+
+        viewModel.ToggleCratesCommand.Execute(riker.Crates);
+        viewModel.ToggleCratesCommand.Execute(orison.Crates);
+
+        Selected(viewModel).Should().BeEquivalentTo([.. riker.Crates, .. orison.Crates]);
+    }
+
+    [Fact]
+    public void The_header_box_selects_every_crate_of_its_mission_on_board()
+    {
+        var viewModel = TwoPickupMissions();
+
+        viewModel.ToggleCratesCommand.Execute(Header(viewModel, 1).MissionCrates);
+
+        Selected(viewModel).Should().BeEquivalentTo(viewModel.Plan!.Crates.Where(c => c.Mission == 1));
+    }
+
+    [Fact]
+    public void A_box_with_part_of_its_crates_selected_shows_part_and_a_click_selects_all_then_none()
+    {
+        // E1: null → true → false.
+        var viewModel = TwoPickupMissions();
+        var shubin = Line(viewModel, 1, "Shubin");
+        viewModel.Selection = CrateSelection.Empty.Toggle(viewModel.Scene, shubin.Crates[0]);
+
+        SelectionFocus.State(Selected(viewModel), shubin.Crates).Should().BeNull();
+        viewModel.ToggleCratesCommand.Execute(shubin.Crates);
+        SelectionFocus.State(Selected(viewModel), shubin.Crates).Should().BeTrue();
+        viewModel.ToggleCratesCommand.Execute(shubin.Crates);
+        SelectionFocus.State(Selected(viewModel), shubin.Crates).Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_right_click_in_the_view_shows_in_the_boxes()
+    {
+        var viewModel = TwoPickupMissions();
+        var orison = Line(viewModel, 2, "Orison");
+
+        viewModel.Selection = CrateSelection.Empty.Toggle(viewModel.Scene, orison.Crates.Single());
+
+        SelectionFocus.State(Selected(viewModel), orison.Crates).Should().BeTrue();
+        SelectionFocus.State(Selected(viewModel), Header(viewModel, 2).MissionCrates!).Should().BeNull();
+        SelectionFocus.State(Selected(viewModel), Header(viewModel, 1).MissionCrates!).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Ticked_crates_are_never_in_a_box()
+    {
+        var viewModel = TwoPickupMissions();
+        viewModel.ToggleLineCommand.Execute(Line(viewModel, 1, "Shubin"));
+
+        Line(viewModel, 1, "Shubin").Crates.Should().BeEmpty();
+        Header(viewModel, 1).MissionCrates.Should().OnlyContain(c => !c.Delivered).And.OnlyContain(c => c.Destination == "Riker");
+    }
+
+    [Fact]
+    public void A_box_selects_and_ticks_nothing()
+    {
+        var viewModel = TwoPickupMissions();
+        var crates = viewModel.Plan!.Crates;
+
+        viewModel.ToggleCratesCommand.Execute(Line(viewModel, 1, "Riker").Crates);
+
+        viewModel.Plan.Crates.Should().BeSameAs(crates);
+    }
+
+    [Fact]
+    public void The_view_reads_the_box_through_the_converter()
+    {
+        var viewModel = TwoPickupMissions();
+        var riker = Line(viewModel, 1, "Riker");
+        var converter = new LegendCheckedConverter();
+        object? State() => converter.Convert([riker.Crates, viewModel.Selection, viewModel.Scene], typeof(bool?), null, System.Globalization.CultureInfo.InvariantCulture);
+
+        State().Should().Be(false);
+        viewModel.ToggleCratesCommand.Execute(riker.Crates);
+        State().Should().Be(true);
+    }
+
+    // --- Legend drag: the line's or the mission's crates, atomic (D65 addendum) ---
+
+    [Fact]
+    public void Dragging_a_line_moves_exactly_its_crates()
+    {
+        var viewModel = TwoPickupMissions();
+        var riker = Line(viewModel, 2, "Riker");
+        var others = viewModel.Plan!.Crates.Where(c => !riker.Crates.Contains(c)).ToArray();
+
+        viewModel.MoveLegendCommand.Execute(new Gesture.MoveLegend(riker.Crates, "rack-3"));
+
+        viewModel.Plan!.Crates.Where(c => c.Mission == 2 && c.Destination == "Riker").Should().OnlyContain(c => c.RackId == "rack-3");
+        viewModel.Plan.Crates.Where(c => !(c.Mission == 2 && c.Destination == "Riker")).Should().HaveCount(others.Length);
+    }
+
+    [Fact]
+    public void Dragging_a_header_moves_its_whole_mission()
+    {
+        var viewModel = TwoPickupMissions();
+        var before = viewModel.Plan!;
+
+        viewModel.MoveLegendCommand.Execute(new Gesture.MoveLegend(Header(viewModel, 2).MissionCrates!, "rack-3"));
+
+        var outcome = CrateDrop.LegendOutcome(before, HullA, new Gesture.MoveLegend([.. before.Crates.Where(c => c.Mission == 2)], "rack-3"));
+        viewModel.Plan.Should().BeEquivalentTo(outcome.Plan);
+    }
+
     [Fact]
     public void The_ship_change_question_counts_a_stop_with_two_ticked_lines_once()
     {

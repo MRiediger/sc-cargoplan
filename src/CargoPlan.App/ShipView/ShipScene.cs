@@ -72,7 +72,7 @@ public abstract record BowMarker
     public sealed record Holo(SceneProjector.Corner Min, SceneProjector.Corner Max) : BowMarker;
 }
 
-/// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MoveCrates</c>, <c>MoveStop</c>).</param>
+/// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MoveCrates</c>, <c>ResolveMoveToRack</c>).</param>
 /// <param name="Boxes">
 /// The rack's crates where the plan stores them (D24), by placement and in plan order, then its free cells. Overlapping
 /// crates of a plan file edited by hand are all there.
@@ -202,9 +202,10 @@ public sealed record SceneLine(Point From, Point To);
 /// On a header line: every crate of its mission still on board, for the header's check box and drag; null elsewhere,
 /// and when none is left.
 /// </param>
+/// <param name="Grouped">The legend has headers: the line stands indented under its mission's.</param>
 public sealed record LegendEntry(
     int PaletteIndex, string Destination, int Scu, bool Delivered = false, string Markings = "", string ReserveMarkings = "", string? Header = null,
-    int Mission = 0, IReadOnlyList<Crate>? Crates = null, IReadOnlyList<Crate>? MissionCrates = null)
+    int Mission = 0, IReadOnlyList<Crate>? Crates = null, IReadOnlyList<Crate>? MissionCrates = null, bool Grouped = false)
 {
     public const string ToText = "To ";
 

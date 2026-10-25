@@ -60,7 +60,8 @@ public static class ShipViewBuilder
             line.Header,
             line.Mission,
             [.. line.Crates.Where(c => !c.Delivered)],
-            line.MissionCrates))];
+            line.MissionCrates,
+            line.Grouped))];
 
         return new ShipScene(
             racks,
@@ -80,7 +81,7 @@ public static class ShipViewBuilder
     /// board has a pickup, the first line of each mission carries its header ("From A, B" from every item's pickup, or
     /// "From ?") and the mission's crates on board for the header's check box; without any, no line has a header.
     /// </summary>
-    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates)> LegendLines(
+    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped)> LegendLines(
         LoadPlan plan, SavedPlan? saved)
     {
         var rank = plan.Route.Select((destination, index) => (destination, index)).ToDictionary(r => r.destination, r => r.index);
@@ -100,7 +101,8 @@ public static class ShipViewBuilder
                 mission.Key,
                 stop.Key,
                 (IReadOnlyList<Crate>)[.. stop],
-                headed && index == 0 && onBoard.Length > 0 ? (IReadOnlyList<Crate>?)onBoard : null));
+                headed && index == 0 && onBoard.Length > 0 ? (IReadOnlyList<Crate>?)onBoard : null,
+                headed));
         });
     }
 

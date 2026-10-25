@@ -29,9 +29,9 @@ public static class CrateDrop
     public static MoveOutcome Outcome(LoadPlan plan, Ship ship, Gesture.MoveCrates move, MoveStage upTo = MoveStage.Refused) =>
         LoadPlanner.ResolveMove(plan, ship, move.Crates, move.Anchor, move.RackId, move.Position, upTo);
 
-    /// <summary>Where Core puts a stop dragged from the legend (<see cref="LoadPlanner.ResolveStopMove"/>).</summary>
-    public static MoveOutcome StopOutcome(LoadPlan plan, Ship ship, Gesture.MoveStop move, MoveStage upTo = MoveStage.Refused) =>
-        LoadPlanner.ResolveStopMove(plan, ship, move.Destination, move.TargetRackId, upTo);
+    /// <summary>Where Core puts the crates of a legend line or header dragged onto a rack (<see cref="LoadPlanner.ResolveMoveToRack"/>).</summary>
+    public static MoveOutcome LegendOutcome(LoadPlan plan, Ship ship, Gesture.MoveLegend move, MoveStage upTo = MoveStage.Refused) =>
+        LoadPlanner.ResolveMoveToRack(plan, ship, move.Crates, move.TargetRackId, upTo);
 
     /// <summary>
     /// What the preview of a crate drag depends on (E2): target rack and cell, the crate held and where the others land

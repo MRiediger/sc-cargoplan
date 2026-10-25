@@ -385,7 +385,7 @@ public class OverlayViewModelTests
         ];
         viewModel.ShowPlan(SavedPlan.FromStops(missions, LoadPlanner.Plan(viewModel.Ship, missions.ToStops())));
         viewModel.ToggleDeliveredCommand.Execute("Riker");
-        viewModel.MoveStopCommand.Execute(new Gesture.MoveStop("Shubin", "rack-1"));
+        viewModel.MoveLegendCommand.Execute(LegendMove(viewModel, "Shubin", "rack-1"));
         var reused = viewModel.Plan!;
 
         viewModel.ToggleDeliveredCommand.Execute("Riker");
@@ -589,19 +589,23 @@ public class OverlayViewModelTests
         viewModel.Notices.Should().BeEmpty();
     }
 
+    /// <summary>The drag of the destination's legend line (one mission per stop in these plans) onto a rack.</summary>
+    private static Gesture.MoveLegend LegendMove(OverlayViewModel viewModel, string destination, string rackId) =>
+        new(viewModel.Scene.Legend.Single(e => e.Destination == destination).Crates, rackId);
+
     [Fact]
-    public void MoveStopCommand_onto_a_full_rack_displaces_other_cargo_with_a_notice()
+    public void MoveLegendCommand_onto_a_full_rack_displaces_other_cargo_with_a_notice()
     {
         var viewModel = WithPlan();
 
-        viewModel.MoveStopCommand.Execute(new Gesture.MoveStop("Shubin", "rack-0"));
+        viewModel.MoveLegendCommand.Execute(LegendMove(viewModel, "Shubin", "rack-0"));
 
         viewModel.Plan!.Crates.Single(c => c.Destination == "Shubin").RackId.Should().Be("rack-0");
         viewModel.Notices.Should().Equal("Moved 2 crates for Riker to rack 2 to make room");
     }
 
     [Fact]
-    public void MoveStopCommand_with_room_moves_every_crate_of_the_stop()
+    public void MoveLegendCommand_with_room_moves_every_crate_of_the_line()
     {
         // Riker's one 4 SCU crate leaves room for Shubin's 8 in Rack 2 (Shubin, the larger, is in Rack 1, D64).
         var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"));
@@ -612,7 +616,7 @@ public class OverlayViewModelTests
         ];
         viewModel.ShowPlan(SavedPlan.FromStops(missions, LoadPlanner.Plan(viewModel.Ship, missions.ToStops())));
 
-        viewModel.MoveStopCommand.Execute(new Gesture.MoveStop("Shubin", "rack-1"));
+        viewModel.MoveLegendCommand.Execute(LegendMove(viewModel, "Shubin", "rack-1"));
 
         viewModel.Plan!.Crates.Should().OnlyContain(c => c.RackId == "rack-1");
         viewModel.Notices.Should().BeEmpty();

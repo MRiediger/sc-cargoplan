@@ -17,6 +17,9 @@ public class MoveResolutionTests
 
     private static LoadPlan PlanOf(params Crate[] crates) => new(HullA.Id, crates, []);
 
+    /// <summary>A destination's crates on board: what its legend line drags (B6).</summary>
+    private static Crate[] Of(LoadPlan plan, string destination) => [.. plan.Crates.Where(c => c.Destination == destination && !c.Delivered)];
+
     private static void ShouldBeValid(LoadPlan plan, Ship ship) => LoadPlanner.Validate(plan, ship).Should().BeEmpty();
 
     [Fact]
@@ -351,7 +354,7 @@ public class MoveResolutionTests
     {
         var plan = PlanOf(C("Riker", CrateSize.Four, "rack-0", 0, 0, 0), C("Riker", CrateSize.Four, "rack-0", 2, 0, 0));
 
-        var outcome = LoadPlanner.ResolveStopMove(plan, HullA, "Riker", "rack-3");
+        var outcome = LoadPlanner.ResolveMoveToRack(plan, HullA, Of(plan, "Riker"), "rack-3");
 
         outcome.Stage.Should().Be(MoveStage.FreeSpot);
         outcome.Plan!.Crates.Should().OnlyContain(c => c.RackId == "rack-3");
@@ -364,7 +367,7 @@ public class MoveResolutionTests
             C("Riker", CrateSize.Four, "rack-0", 0, 0, 0), C("Riker", CrateSize.Four, "rack-0", 2, 0, 0),
             C("Shubin", CrateSize.Eight, "rack-3", 0, 0, 0), C("Shubin", CrateSize.Eight, "rack-3", 2, 0, 0));
 
-        var outcome = LoadPlanner.ResolveStopMove(plan, HullA, "Riker", "rack-3");
+        var outcome = LoadPlanner.ResolveMoveToRack(plan, HullA, Of(plan, "Riker"), "rack-3");
 
         outcome.Stage.Should().Be(MoveStage.Displace);
         outcome.Plan!.Crates.Where(c => c.Destination == "Riker").Should().OnlyContain(c => c.RackId == "rack-3");
@@ -373,30 +376,30 @@ public class MoveResolutionTests
     }
 
     [Fact]
-    public void A_destination_larger_than_the_rack_fills_it_and_the_rest_stays()
+    public void Crates_more_than_the_rack_holds_go_as_a_whole_the_rest_into_other_racks()
     {
-        // Riker's five 4s: four in Rack 1, one in Rack 2. Rack 3 holds Shubin's two 8s; Rack 4 is empty.
+        // B6 (D69): atomic like a selection, no longer partial. Riker's five 4s: four in Rack 1, one in Rack 2. Rack 3 holds
+        // Shubin's two 8s; Rack 4 is empty.
         var plan = PlanOf(
             C("Riker", CrateSize.Four, "rack-0", 0, 0, 0), C("Riker", CrateSize.Four, "rack-0", 2, 0, 0),
             C("Riker", CrateSize.Four, "rack-0", 0, 0, 1), C("Riker", CrateSize.Four, "rack-0", 2, 0, 1),
             C("Riker", CrateSize.Four, "rack-1", 0, 0, 0),
             C("Shubin", CrateSize.Eight, "rack-2", 0, 0, 0), C("Shubin", CrateSize.Eight, "rack-2", 2, 0, 0));
 
-        var outcome = LoadPlanner.ResolveStopMove(plan, HullA, "Riker", "rack-2");
+        var outcome = LoadPlanner.ResolveMoveToRack(plan, HullA, Of(plan, "Riker"), "rack-2");
 
-        outcome.Stage.Should().Be(MoveStage.Displace);
-        outcome.Plan!.Crates.Where(c => c.Destination == "Riker").GroupBy(c => c.RackId).ToDictionary(g => g.Key, g => g.Count())
-            .Should().BeEquivalentTo(new Dictionary<string, int> { ["rack-2"] = 4, ["rack-1"] = 1 });
-        outcome.Notices.Should().Equal("Moved 2 crates for Shubin to rack 1 to make room", "No room in rack 3 – 1 crate stays in rack 2");
+        outcome.Plan.Should().NotBeNull();
+        outcome.Plan!.Crates.Count(c => c.Destination == "Riker" && c.RackId == "rack-2").Should().Be(4);
+        outcome.Plan.Crates.Should().HaveCount(plan.Crates.Count);
         ShouldBeValid(outcome.Plan, HullA);
     }
 
     [Fact]
-    public void A_destination_with_no_crate_fitting_the_rack_is_refused()
+    public void Crates_with_no_room_anywhere_are_refused_and_nothing_moves()
     {
         var plan = TinyCorners();
 
-        var outcome = LoadPlanner.ResolveStopMove(plan, Tiny, "Riker", "rack-1");
+        var outcome = LoadPlanner.ResolveMoveToRack(plan, Tiny, Of(plan, "Riker"), "rack-1");
 
         outcome.Stage.Should().Be(MoveStage.Refused);
         outcome.Refusal.Should().Be("no room for 4 SCU crate");

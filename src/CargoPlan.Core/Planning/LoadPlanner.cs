@@ -143,31 +143,24 @@ public static class LoadPlanner
     }
 
     /// <summary>
-    /// Moves every crate of a stop still on board to another rack (D25): the plan of <see cref="ResolveStopMove"/>, its
-    /// notices dropped. A stop whose crates on board all lie in the target rack stays as it is. The original plan stays unchanged.
+    /// Where crates go when the player drags a legend line or a mission's header onto a rack (B6, D69): the crates
+    /// outside the rack into it without a cell, as a selection without one goes (D65): laid around the cargo there, else
+    /// the rack laid out anew, else other destinations' cargo displaced, else crate by crate, other racks last. Atomic:
+    /// if one crate finds no room, nothing moves. Crates already in the rack stay where they lie, so a drop onto the rack
+    /// holding them all changes nothing. Preview and drop as with
+    /// <see cref="ResolveMove(LoadPlan, Ship, IReadOnlyList{CrateMove}, MoveStage)"/>.
     /// </summary>
     /// <exception cref="ArgumentException">
-    /// The plan belongs to another ship, has no stop <paramref name="destination"/>, or the ship has no such rack.
+    /// The plan belongs to another ship, the ship has no such rack, or a crate isn't part of the plan, is delivered or
+    /// is named twice.
     /// </exception>
-    /// <exception cref="PlanException">No crate of the stop gets into the target rack.</exception>
-    public static LoadPlan MoveStop(LoadPlan plan, Ship ship, string destination, string targetRackId) =>
-        Applied(ResolveStopMove(plan, ship, destination, targetRackId));
-
-    /// <summary>
-    /// Where a stop goes when the player drags its legend line onto a rack (D65): its crates on board laid around the
-    /// cargo there, else the rack laid out anew, else other destinations' cargo displaced; what still doesn't fit stays
-    /// where it lies, with a notice. Delivered cargo is off the ship and stays, so a delivered stop moves nothing. Preview
-    /// and drop as with <see cref="ResolveMove(LoadPlan, Ship, IReadOnlyList{CrateMove}, MoveStage)"/>.
-    /// </summary>
-    /// <exception cref="ArgumentException">See <see cref="MoveStop"/>.</exception>
-    public static MoveOutcome ResolveStopMove(LoadPlan plan, Ship ship, string destination, string targetRackId, MoveStage upTo = MoveStage.Refused)
+    public static MoveOutcome ResolveMoveToRack(LoadPlan plan, Ship ship, IReadOnlyList<Crate> crates, string rackId, MoveStage upTo = MoveStage.Refused)
     {
         plan.EnsureBelongsTo(ship);
-        var target = RackOf(ship, targetRackId, nameof(targetRackId));
-        EnsureStop(plan, destination);
-
-        int[] moving = [.. Enumerable.Range(0, plan.Crates.Count).Where(i => plan.Crates[i] is { Delivered: false } c && c.Destination == destination && c.RackId != target.Id)];
-        return MoveResolution.Stop(plan, ship, moving, target, upTo);
+        var target = RackOf(ship, rackId, nameof(rackId));
+        HashSet<int> taken = [];
+        MoveResolution.Intent[] intents = [.. crates.Select(c => new MoveResolution.Intent(IndexOnBoard(plan, c, taken, "moves", nameof(crates)), target, null))];
+        return MoveResolution.Crates(plan, ship, [.. intents.Where(i => plan.Crates[i.Index].RackId != target.Id)], upTo);
     }
 
     private static LoadPlan Applied(MoveOutcome outcome) =>

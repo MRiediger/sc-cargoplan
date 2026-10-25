@@ -617,11 +617,15 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     [RelayCommand]
     private void ToggleOverlay() => IsOverlayHidden = !IsOverlayHidden;
 
-    /// <summary>The check box at a mission's header in the legend: selects the mission's crates, or takes them out (T7.4d, B6).</summary>
+    /// <summary>
+    /// A check box in the legend (B6, D69): selects a line's or a mission header's crates on board, or takes them out
+    /// once all are selected; the rest of the selection stays. The same selection as a right click in the view (D25), so
+    /// the same drag moves it.
+    /// </summary>
     [RelayCommand]
-    private void TogglePickup(LegendEntry entry)
+    private void ToggleCrates(IReadOnlyList<Crate>? crates)
     {
-        if (entry.MissionCrates is { } crates)
+        if (crates is { Count: > 0 })
         {
             Selection = SelectionFocus.Toggled(Selection, Scene, crates);
         }
@@ -678,9 +682,12 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     [RelayCommand]
     private void MoveCrates(Gesture.MoveCrates move) => Apply(plan => CrateDrop.Outcome(plan, Ship, move));
 
-    /// <summary>Puts a whole stop into a rack, run by a right drag of its legend line into the ship view (D25); like <see cref="MoveCrates"/>.</summary>
+    /// <summary>
+    /// Puts a legend line's or a mission header's crates into a rack, run by a right drag from the legend into the ship view
+    /// (D25, B6); atomic like a selection, like <see cref="MoveCrates"/>.
+    /// </summary>
     [RelayCommand]
-    private void MoveStop(Gesture.MoveStop move) => Apply(plan => CrateDrop.StopOutcome(plan, Ship, move));
+    private void MoveLegend(Gesture.MoveLegend move) => Apply(plan => CrateDrop.LegendOutcome(plan, Ship, move));
 
     private void Apply(Func<LoadPlan, MoveOutcome> resolve)
     {

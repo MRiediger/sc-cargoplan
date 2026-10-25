@@ -350,14 +350,22 @@ public class LoadPlannerOverrideTests
         LoadPlanner.Validate(moved, HullA).Should().BeEmpty();
     }
 
+    // --- ResolveMoveToRack: a legend line or a mission's header dropped onto a rack (B6, D69) ---
+
+    /// <summary>A destination's crates on board, as a legend line holds them (one mission per stop in these plans).</summary>
+    private static Crate[] OnBoard(LoadPlan plan, string destination) => [.. plan.Crates.Where(c => c.Destination == destination && !c.Delivered)];
+
+    private static LoadPlan ToRack(LoadPlan plan, string destination, string rackId) =>
+        LoadPlanner.ResolveMoveToRack(plan, HullA, OnBoard(plan, destination), rackId).Plan!;
+
     [Fact]
-    public void MoveStop_lays_a_stop_on_other_cargo_and_hints_at_it()
+    public void ToRack_lays_crates_on_other_cargo_and_hints_at_it()
     {
         // Riker's two 4s cover the plate of Rack 1; Shubin's 4 fits only on top of them.
         var plan = LoadPlanner.Plan(HullA,
             [new Stop("Riker", 1, [new CargoItem("Titanium", 8, CrateSize.Four)]), new Stop("Shubin", 2, [new CargoItem("Quartz", 4, CrateSize.Four)])]);
 
-        var moved = LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-0");
+        var moved = ToRack(plan, "Shubin", "rack-0");
 
         moved.CratesForRack("rack-0").Should().ContainSingle(c => c.Destination == "Shubin" && c.Position.Stack == 1);
         moved.Warnings.Should().Contain(new PlanWarning("rack-0", "Rack 1: crate for Shubin sits on cargo for Riker"));
@@ -365,7 +373,7 @@ public class LoadPlannerOverrideTests
     }
 
     [Fact]
-    public void MoveStop_gathers_a_split_stop_in_one_rack()
+    public void ToRack_gathers_a_split_stop_in_one_rack()
     {
         var plan = LoadPlanner.Plan(HullA, TitaniumAndQuartz);
         var split = LoadPlanner.MoveCrates(plan, HullA,
@@ -374,7 +382,7 @@ public class LoadPlannerOverrideTests
             Move(plan, "rack-0", (0, 0, 1), "rack-1", (0, 0, 0)),
         ]);
 
-        var moved = LoadPlanner.MoveStop(split, HullA, "Riker", "rack-2");
+        var moved = ToRack(split, "Riker", "rack-2");
 
         moved.Placements.Select(p => (p.Item.Commodity, p.RackId)).Should().Equal(("Titanium", "rack-2"), ("Quartz", "rack-2"));
         moved.Warnings.Should().BeEmpty();
@@ -382,32 +390,33 @@ public class LoadPlannerOverrideTests
     }
 
     [Fact]
-    public void MoveStop_lays_the_stop_out_as_a_fresh_plan_would()
+    public void ToRack_lays_the_crates_out_as_a_fresh_plan_would()
     {
         var plan = LoadPlanner.Plan(HullA, TitaniumAndQuartz);
 
         // Rack 2 lies on the same side as Rack 1; a starboard rack would be its mirror image.
-        var moved = LoadPlanner.MoveStop(plan, HullA, "Riker", "rack-1");
+        var moved = ToRack(plan, "Riker", "rack-1");
 
         moved.Crates.Should().Equal(plan.Crates.Select(c => c with { RackId = "rack-1" }));
     }
 
     [Fact]
-    public void MoveStop_into_the_rack_that_holds_the_whole_stop_changes_nothing()
+    public void ToRack_into_the_rack_that_holds_all_the_crates_changes_nothing()
     {
         // A drop of a legend line onto its own rack must not shuffle the crates there (D25).
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
 
-        LoadPlanner.MoveStop(plan, HullA, "Lorville", "rack-3").Should().BeSameAs(plan);
+        ToRack(plan, "Lorville", "rack-3").Should().BeSameAs(plan);
     }
 
     [Fact]
-    public void MoveStop_onto_a_full_rack_displaces_other_cargo()
+    public void ToRack_onto_a_full_rack_displaces_other_cargo()
     {
-        // Rack 1 is full of Riker's Titanium: two 4s go to Riker's Quartz in Rack 2, where Shubin's 8 left room (D65).
+        // E2: stage 3b stays in the group run. Rack 1 is full of Riker's Titanium: two 4s go to Riker's Quartz in Rack 2,
+        // where Shubin's 8 left room (D65).
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
 
-        var outcome = LoadPlanner.ResolveStopMove(plan, HullA, "Shubin", "rack-0");
+        var outcome = LoadPlanner.ResolveMoveToRack(plan, HullA, OnBoard(plan, "Shubin"), "rack-0");
 
         outcome.Stage.Should().Be(MoveStage.Displace);
         outcome.Plan!.Crates.Single(c => c.Destination == "Shubin").RackId.Should().Be("rack-0");
@@ -417,45 +426,36 @@ public class LoadPlannerOverrideTests
     }
 
     [Fact]
-    public void MoveStop_lays_crates_into_the_cells_of_delivered_cargo()
+    public void ToRack_lays_crates_into_the_cells_of_delivered_cargo()
     {
         // Lorville's 1s are off the ship, their cells are free (D24 addendum).
         var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, GoldThenAgricium), HullA, "Lorville", true);
 
-        var moved = LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-1");
+        var moved = ToRack(plan, "Shubin", "rack-1");
 
         moved.Crates.Single(c => c.Destination == "Shubin").RackId.Should().Be("rack-1");
         ShouldBeValid(moved, HullA);
     }
 
     [Fact]
-    public void MoveStop_of_a_delivered_stop_moves_nothing()
+    public void ToRack_rejects_a_delivered_crate()
     {
+        // A ticked line has no crates on board, so the legend never drags one; Core refuses it like a crate drag.
         var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared), HullA, "Riker", true);
 
-        var moved = LoadPlanner.MoveStop(plan, HullA, "Riker", "rack-3");
+        var act = () => LoadPlanner.ResolveMoveToRack(plan, HullA, [plan.Crates.First(c => c.Destination == "Riker")], "rack-3");
 
-        moved.Crates.Should().Equal(plan.Crates);
+        act.Should().Throw<ArgumentException>().WithParameterName("crates");
     }
 
     [Fact]
-    public void MoveStop_rejects_unknown_destination()
+    public void ToRack_rejects_unknown_rack()
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
 
-        var act = () => LoadPlanner.MoveStop(plan, HullA, "Lorvile", "rack-0");
+        var act = () => LoadPlanner.ResolveMoveToRack(plan, HullA, OnBoard(plan, "Riker"), "rack-9");
 
-        act.Should().Throw<ArgumentException>().WithParameterName("destination").WithMessage("*'Lorvile'*");
-    }
-
-    [Fact]
-    public void MoveStop_rejects_unknown_rack()
-    {
-        var plan = LoadPlanner.Plan(HullA, MissionFixtures.SplitAndShared);
-
-        var act = () => LoadPlanner.MoveStop(plan, HullA, "Riker", "rack-9");
-
-        act.Should().Throw<ArgumentException>().WithParameterName("targetRackId");
+        act.Should().Throw<ArgumentException>().WithParameterName("rackId");
     }
 
     // --- SetDelivered ---
@@ -500,7 +500,7 @@ public class LoadPlannerOverrideTests
     public void SetDelivered_refuses_to_tick_back_when_its_cells_are_taken_again()
     {
         var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, GoldThenAgricium), HullA, "Lorville", true);
-        var reused = LoadPlanner.MoveStop(plan, HullA, "Shubin", "rack-1");
+        var reused = ToRack(plan, "Shubin", "rack-1");
 
         var act = () => LoadPlanner.SetDelivered(reused, HullA, "Lorville", false);
 
