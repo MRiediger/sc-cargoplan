@@ -109,6 +109,26 @@ public static class AppearanceRules
         return (normalized, check.Problems);
     }
 
+    /// <summary>A whole look (K4.3): the same checks as settings.json's keys, so a look file reads like the settings file.</summary>
+    /// <returns>The checked look and one line per corrected value, empty if nothing was corrected.</returns>
+    public static (Look Look, IReadOnlyList<string> Problems) Normalize(Look look)
+    {
+        var (appearance, appearanceProblems) = Normalize(look.Appearance);
+        var (legend, legendProblems) = Normalize(look.Legend);
+        var (theme, themeProblems) = NormalizeToolWindowTheme(look.ToolWindowTheme);
+        var (shipOutline, shipOutlineProblems) = NormalizeShipOutline(look.ShipOutline);
+        var (holoOpacity, holoOpacityProblems) = NormalizeHoloOpacity(look.HoloOpacity);
+        var (holoHull, holoHullProblems) = NormalizeHoloColor("holoHullColor", look.HoloHullColor, DefaultHoloHullColor);
+        var (holoEdge, holoEdgeProblems) = NormalizeHoloColor("holoEdgeColor", look.HoloEdgeColor, DefaultHoloEdgeColor);
+        var (shipView, shipViewProblems) = Normalize(new ShipViewSettings(look.MaxZoomPxPerCell));
+        return (
+            new Look(appearance, legend, theme, shipOutline, holoOpacity, holoHull, holoEdge, shipView.MaxZoomPxPerCell),
+            [
+                .. legendProblems, .. appearanceProblems, .. themeProblems, .. shipOutlineProblems, .. holoOpacityProblems,
+                .. holoHullProblems, .. holoEdgeProblems, .. shipViewProblems,
+            ]);
+    }
+
     /// <summary>Checks the legend's layout (D33): an unknown position takes the default, like a colour that isn't one.</summary>
     /// <returns>The checked legend and one line per corrected value, empty if nothing was corrected.</returns>
     public static (LegendSettings Legend, IReadOnlyList<string> Problems) Normalize(LegendSettings legend)

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "legend": {
+    "visible": true,
+    "position": "bottom-left"
+  },
+  "shipOutline": "outline",
+  "holoOpacity": 0.4,
+  "holoHullColor": "#FF9CB0C0",
+  "holoEdgeColor": "#FFE6E6E6",
+  "shipView": {
+    "maxZoomPxPerCell": 160
+  },
+  "toolWindowTheme": "system",
+  "appearance": {
+    "window": {
+      "background": "#FF000000",
+      "borderColor": "#FFFFFFFF",
+      "borderThickness": 1
+    },
+    "header": {
+      "foreground": "#FFFFFFFF",
+      "halo": {
+        "enabled": true,
+        "color": "#FF000000",
+        "size": 4
+      }
+    },
+    "legend": {
+      "foreground": "#FFFFFFFF",
+      "fontSize": 14,
+      "checkBoxColor": "#FFFFFFFF",
+      "checkMarkColor": "#FFFFFFFF",
+      "halo": {
+        "enabled": true,
+        "color": "#FF000000",
+        "size": 4
+      }
+    },
+    "crates": {
+      "fillAlpha": 255,
+      "edgeAlpha": 255,
+      "rackNumberColor": "#FFFFFFFF",
+      "rackNumberFontSize": 32,
+      "stopPalette": "okabeIto",
+      "halo": {
+        "enabled": true,
+        "color": "#FF000000",
+        "size": 4
+      }
+    },
+    "buttons": {
+      "background": "#FF000000",
+      "borderColor": "#FFFFFFFF",
+      "borderThickness": 1,
+      "cornerRadius": 3,
+      "halo": {
+        "enabled": true,
+        "color": "#FF000000",
+        "size": 4
+      }
+    }
+  }
+}

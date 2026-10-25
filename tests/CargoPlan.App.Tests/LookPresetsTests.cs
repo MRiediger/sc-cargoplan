@@ -24,7 +24,8 @@ public class LookPresetsTests
         using MemoryStream written = new();
         LookFile.Write(written, Look.Default);
 
-        Resource("default").Should().Equal(written.ToArray());
+        // Line ends aside: git stores LF and checks out CRLF here (text=auto), the writer uses Windows' CRLF.
+        Text(Resource("default")).Should().Be(Text(written.ToArray()));
     }
 
     [Fact]
@@ -75,6 +76,8 @@ public class LookPresetsTests
         stream.CopyTo(copy);
         return copy.ToArray();
     }
+
+    private static string Text(byte[] bytes) => System.Text.Encoding.UTF8.GetString(bytes).ReplaceLineEndings("\n");
 
     private static string SourcePath(string fileName, [CallerFilePath] string testFile = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(testFile)!, "..", "..", "src", "CargoPlan.App", "Looks", fileName + LookFile.Extension));
