@@ -20,6 +20,9 @@ public enum NoticeSource
     /// <summary>A plan made for another ship was planned anew (D59); cleared by the next plan or ship change.</summary>
     Replan,
 
+    /// <summary>A derived crate mix on board is split into smaller crates than its contract allows (D70); follows the plan.</summary>
+    CrateCap,
+
     /// <summary>
     /// Stops of the plan renamed to another name of the same place (B1), on loading or by a sync; cleared by the next plan
     /// and by the next sync that takes something in without a merge.

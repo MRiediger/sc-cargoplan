@@ -32,7 +32,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     // Rows whose PropertyChanged we listen to. Clear() raises Reset without the old items, so they are tracked here.
     private readonly HashSet<MissionRow> _attached = [];
 
-    private MissionRowsResult _result = MissionRows.ToStops([]);
+    private MissionRowsResult _result = MissionRows.ToStops([], CrateCap.None);
 
     // The last plan, import, export or clipboard problem; the next edit clears it.
     private string? _actionProblem;
@@ -368,6 +368,9 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         if (e.PropertyName == nameof(OverlayViewModel.Ship))
         {
             OnPropertyChanged(nameof(ShipName));
+
+            // The crates column shows derived mixes split up to the ship's cap (D70).
+            Evaluate();
             return;
         }
 
@@ -472,7 +475,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
     private void Evaluate()
     {
-        _result = MissionRows.ToStops(Rows);
+        _result = MissionRows.ToStops(Rows, CrateCap.Of(_overlay.Ship));
         for (var i = 0; i < Rows.Count; i++)
         {
             Rows[i].StopNumber = _result.StopNumbers[i];

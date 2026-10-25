@@ -23,7 +23,7 @@ public class MissionRowsTests
             Row("Shubin", "Gold", "2", 1),
         ];
 
-        var result = MissionRows.ToStops(rows);
+        var result = MissionRows.ToStops(rows, CrateCap.None);
 
         result.StopNumbers.Should().Equal(1, 2, 3, 2);
         result.Stops.Select(s => (s.Destination, s.Order)).Should().Equal(("Riker", 1), ("Shubin", 2), ("Orison", 3));
@@ -39,7 +39,7 @@ public class MissionRowsTests
             Row("Shubin", "Gold", "2", 1),
         ];
 
-        var shubin = MissionRows.ToStops(rows).Stops[0];
+        var shubin = MissionRows.ToStops(rows, CrateCap.None).Stops[0];
 
         shubin.Items.Should().BeEquivalentTo(
             [new MissionItem("Quartz", 4, CrateSize.Two), new MissionItem("Gold", 2, CrateSize.One)], o => o.WithStrictOrdering());
@@ -51,7 +51,7 @@ public class MissionRowsTests
         // B1: "Thundering Express" and "Thundering Express Station" are one cargo lift (DestinationNames).
         MissionRow[] rows = [Row("Thundering Express", "Pressurized Ice", "3", 2), Row("Thundering Express Station", "Stims", "4", 4)];
 
-        var result = MissionRows.ToStops(rows);
+        var result = MissionRows.ToStops(rows, CrateCap.None);
 
         result.StopNumbers.Should().Equal(1, 1);
         result.Stops.Should().ContainSingle().Which.Destination.Should().Be("Thundering Express Station");
@@ -65,7 +65,7 @@ public class MissionRowsTests
         // "Riker" and " riker " are the same cargo lift, as in the mission file and the planner.
         MissionRow[] rows = [Row("Riker", "Titanium", "8", 4), Row(" riker ", " Gold ", "2", 1)];
 
-        var stop = MissionRows.ToStops(rows).Stops.Should().ContainSingle().Which;
+        var stop = MissionRows.ToStops(rows, CrateCap.None).Stops.Should().ContainSingle().Which;
 
         stop.Destination.Should().Be("Riker");
         stop.Items[1].Commodity.Should().Be("Gold");
@@ -76,7 +76,7 @@ public class MissionRowsTests
     {
         MissionRow[] rows = [Row("", " ", "", 4), Row("Riker", "Titanium", "8", 4), new MissionRow()];
 
-        var result = MissionRows.ToStops(rows);
+        var result = MissionRows.ToStops(rows, CrateCap.None);
 
         result.StopNumbers.Should().Equal(null, 1, null);
         result.Errors.Should().AllSatisfy(e => e.Should().BeNull());
@@ -87,13 +87,13 @@ public class MissionRowsTests
     [Fact]
     public void A_row_with_only_crates_typed_is_not_blank()
     {
-        MissionRows.ToStops([Row("", "", "", 4, "2+2")]).Errors.Should().Equal(MissionRows.DestinationEmptyText);
+        MissionRows.ToStops([Row("", "", "", 4, "2+2")], CrateCap.None).Errors.Should().Equal(MissionRows.DestinationEmptyText);
     }
 
     [Fact]
     public void Only_blank_rows_give_no_stops_and_ask_for_a_mission()
     {
-        var result = MissionRows.ToStops([new MissionRow()]);
+        var result = MissionRows.ToStops([new MissionRow()], CrateCap.None);
 
         result.Stops.Should().BeEmpty();
         result.IsValid.Should().BeFalse();
@@ -115,7 +115,7 @@ public class MissionRowsTests
     [Fact]
     public void Without_override_the_item_derives_its_crates_and_the_row_shows_them()
     {
-        var result = MissionRows.ToStops([Row("Green Glade", "Stims", "6", 4)]);
+        var result = MissionRows.ToStops([Row("Green Glade", "Stims", "6", 4)], CrateCap.None);
 
         var item = result.Stops[0].Items.Should().ContainSingle().Which;
         item.Crates.Should().BeNull();
@@ -128,7 +128,7 @@ public class MissionRowsTests
     [InlineData(" 2 + 2+2 ")]
     public void An_override_becomes_the_items_crates_and_shows_normalised(string crates)
     {
-        var result = MissionRows.ToStops([Row("Green Glade", "Stims", "6", 4, crates)]);
+        var result = MissionRows.ToStops([Row("Green Glade", "Stims", "6", 4, crates)], CrateCap.None);
 
         result.Stops[0].Items[0].Crates.Should().Equal(CrateSize.Two, CrateSize.Two, CrateSize.Two);
         result.CrateTexts.Should().Equal("2+2+2");
@@ -140,20 +140,20 @@ public class MissionRowsTests
         // Typed is typed: the row stays marked as by hand, and the file keeps the list (D23).
         var row = Row("Green Glade", "Stims", "6", 4, "4+2");
 
-        MissionRows.ToStops([row]).Stops[0].Items[0].Crates.Should().Equal(CrateSize.Four, CrateSize.Two);
+        MissionRows.ToStops([row], CrateCap.None).Stops[0].Items[0].Crates.Should().Equal(CrateSize.Four, CrateSize.Two);
         row.IsCrateOverride.Should().BeTrue();
     }
 
     [Fact]
     public void Crates_text_is_empty_while_the_scu_is_invalid()
     {
-        MissionRows.ToStops([Row("Green Glade", "Stims", "abc", 4)]).CrateTexts.Should().Equal("");
+        MissionRows.ToStops([Row("Green Glade", "Stims", "abc", 4)], CrateCap.None).CrateTexts.Should().Equal("");
     }
 
     [Fact]
     public void An_invalid_override_shows_as_typed()
     {
-        MissionRows.ToStops([Row("Green Glade", "Stims", "6", 4, "2+2+3")]).CrateTexts.Should().Equal("2+2+3");
+        MissionRows.ToStops([Row("Green Glade", "Stims", "6", 4, "2+2+3")], CrateCap.None).CrateTexts.Should().Equal("2+2+3");
     }
 
     // --- Validation ---
@@ -174,7 +174,7 @@ public class MissionRowsTests
     [InlineData("Riker", "Titanium", "6", 4, "2,2,2", MissionRows.CratesInvalidText)]
     public void Each_rule_has_its_own_message(string destination, string commodity, string scu, int max, string crates, string expected)
     {
-        var result = MissionRows.ToStops([Row(destination, commodity, scu, max, crates)]);
+        var result = MissionRows.ToStops([Row(destination, commodity, scu, max, crates)], CrateCap.None);
 
         result.Errors.Should().Equal(expected);
         result.Stops.Should().BeEmpty();
@@ -185,7 +185,7 @@ public class MissionRowsTests
     public void Any_scu_fits_any_max_crate_size_without_override()
     {
         // Before D23, 17 SCU in 4 SCU crates was an error; now it is 4+4+4+4+1.
-        MissionRows.ToStops([Row("Riker", "Titanium", "17", 4)]).IsValid.Should().BeTrue();
+        MissionRows.ToStops([Row("Riker", "Titanium", "17", 4)], CrateCap.None).IsValid.Should().BeTrue();
     }
 
     [Fact]
@@ -193,7 +193,7 @@ public class MissionRowsTests
     {
         MissionRow[] rows = [Row("Riker", "Titanium", "8", 4), Row("Shubin", "Quartz", "6", 4, "2+2"), Row("Orison", "", "8", 8)];
 
-        MissionRows.ToStops(rows).Problem.Should().Be("Row 2: The crates add up to 4 SCU, not 6.");
+        MissionRows.ToStops(rows, CrateCap.None).Problem.Should().Be("Row 2: The crates add up to 4 SCU, not 6.");
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public class MissionRowsTests
         // The stop column still shows what the arrows do while a row is being fixed.
         MissionRow[] rows = [Row("Riker", "Titanium", "8", 4), Row("Shubin", "Quartz", "abc", 4)];
 
-        var result = MissionRows.ToStops(rows);
+        var result = MissionRows.ToStops(rows, CrateCap.None);
 
         result.Stops.Should().BeEmpty();
         result.StopNumbers.Should().Equal(1, 2);
@@ -211,13 +211,13 @@ public class MissionRowsTests
     [Fact]
     public void A_row_without_destination_has_no_stop_number()
     {
-        MissionRows.ToStops([Row("", "Titanium", "8", 4)]).StopNumbers.Should().Equal([null]);
+        MissionRows.ToStops([Row("", "Titanium", "8", 4)], CrateCap.None).StopNumbers.Should().Equal([null]);
     }
 
     [Fact]
     public void Scu_accepts_surrounding_spaces()
     {
-        MissionRows.ToStops([Row("Riker", "Titanium", " 8 ", 4)]).Stops[0].TotalScu.Should().Be(8);
+        MissionRows.ToStops([Row("Riker", "Titanium", " 8 ", 4)], CrateCap.None).Stops[0].TotalScu.Should().Be(8);
     }
 
     [Fact]
@@ -233,7 +233,7 @@ public class MissionRowsTests
                 foreach (var crates in overrides)
                 {
                     var text = string.Join("+", crates);
-                    var acceptedHere = MissionRows.ToStops([Row("Riker", "Titanium", $"{scu}", (int)max, text)]).IsValid;
+                    var acceptedHere = MissionRows.ToStops([Row("Riker", "Titanium", $"{scu}", (int)max, text)], CrateCap.None).IsValid;
                     IReadOnlyList<CrateSize>? list = crates.Length == 0 ? null : [.. crates.Select(c => (CrateSize)c)];
                     var acceptedByCore = Record.Exception(() => new MissionItem("Titanium", scu, max, list)) is null;
 
@@ -292,7 +292,7 @@ public class MissionRowsTests
 
         foreach (var missions in new[] { TestPlans.SplitAndShared().Stops, derived })
         {
-            var stops = MissionRows.ToStops(MissionRows.FromStops(missions)).Stops;
+            var stops = MissionRows.ToStops(MissionRows.FromStops(missions), CrateCap.None).Stops;
 
             stops.Should().BeEquivalentTo(missions, o => o.WithStrictOrdering());
         }
@@ -359,7 +359,7 @@ public class MissionRowsTests
         var row = Row("Everus Harbor", "Stims", "7", 4);
         row.Pickup = " Lorville / Area18 /lorville ";
 
-        MissionRows.ToStops([row]).Stops[0].Items[0].Pickup.Should().Equal("Lorville", "Area18");
+        MissionRows.ToStops([row], CrateCap.None).Stops[0].Items[0].Pickup.Should().Equal("Lorville", "Area18");
     }
 
     [Fact]
@@ -368,7 +368,7 @@ public class MissionRowsTests
         var row = Row("Riker", "Titanium", "4", 4);
         row.Pickup = " / ";
 
-        MissionRows.ToStops([row]).Stops[0].Items[0].Pickup.Should().BeNull();
+        MissionRows.ToStops([row], CrateCap.None).Stops[0].Items[0].Pickup.Should().BeNull();
     }
 
     [Fact]
