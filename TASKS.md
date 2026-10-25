@@ -1798,7 +1798,7 @@ Problemrot und Delivered-Grau; P5 Key `appearance.crates.stopPalette`, ComboBox 
 unter Problem-, Auswahl- und DragTarget-Rand in jeder Palette; P7 `customStopColors` → Backlog; P8 Tooltip unverändert,
 Ansicht und Legende holen ihre Pinsel aus einer Funktion; P9 `downloadShipHolograms` gehört nicht zum Look (Netzschalter, D63).
 
-### [ ] K4.1 Checkbox- und Haken-Farbe in den Preferences (D69-Addendum) (25.10.2026)
+### [x] K4.1 Checkbox- und Haken-Farbe in den Preferences (D69-Addendum) (25.10.2026)
 **Warum:** Backlog D69, Taste-Gate B6: Martin will Farbe und Deckkraft der Legenden-Checkboxen wählen, Kasten und Haken getrennt.
 
 **Ist-Zustand vor K4.1 (A1):** `LegendCheckBoxStyle` (OverlayWindow.xaml) band Rahmen, Haken und Strich an `x:Static MissionPalette.CheckBoxBrush` (`#B0B0B0`); kein Test prüfte die Farbe. Einen Chevron zum Auf-/Zuklappen gibt es in der Legende nicht (B6 rückt nur ein); gemeint ist der Haken.
@@ -1813,10 +1813,10 @@ Ansicht und Legende holen ihre Pinsel aus einer Funktion; P9 `downloadShipHologr
 - [x] Kasten und Haken getrennt einstellbar, jede Änderung wendet genau ihren Wert an; Reset Legend stellt beide auf Grau
 - [x] Template bindet beide Keys per DynamicResource (XAML-Test)
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.235 → 1.241)
-- [ ] Gate (Martin, Publish-Build): Werte ändern wirkt sofort in der Legende; Haken und Kasten unabhängig; Reset Legend stellt Grau her; Neustart behält die Werte
+- [x] Gate (Martin, Publish-Build, 25.10., abgenommen): Werte ändern wirkt sofort in der Legende; Haken und Kasten unabhängig; Reset Legend stellt Grau her; Neustart behält die Werte
 - Commits 1a43821 (Tests rot), b7c8d98 (App), 7b12355 (Doku).
 
-### [ ] K4.2 Stop-Paletten als Preset-Auswahl, Schraffur bei Wiederholung (D29-, D25-Addendum) (25.10.2026)
+### [x] K4.2 Stop-Paletten als Preset-Auswahl, Schraffur bei Wiederholung (D29-, D25-Addendum) (25.10.2026)
 **Warum:** D29 hielt die Stop-Farben fest auf Okabe-Ito; Martin will eine Auswahl aus geprüften, farbfehlsicht-tauglichen Paletten (Stufe 2), und mehr Ziele als Farben sollen unterscheidbar bleiben.
 
 **Ist-Zustand vor K4.2 (A1):** `MissionPalette.Colors` (8) und `Assign` mit `% Colors.Count` (die Runde ging verloren); Index → Pinsel an zwei Stellen (`ShipViewControl.Paint`, `PaletteBrushConverter` mit festem Alpha `0xD0`); Problem- und Auswahlrand 2,5 px ohne Absicherung; Muster nur als `SwatchCheckerBrush`. Eine neue Szene leert die Auswahl (D25), daher läuft die Palette nicht über die Szene.
@@ -1845,11 +1845,11 @@ Ansicht und Legende holen ihre Pinsel aus einer Funktion; P9 `downloadShipHologr
 - [x] Erledigte Kisten grau ohne Muster, Auswahl Magenta, Problem Rot, beide mit dunklem Unterstrich
 - [x] Renderkosten der Schraffur gemessen (+0,4 bis 1,3 ms auf ~25 ms)
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.241 → 1.281)
-- [ ] Gate (Martin, Publish-Build): Hull A mit 8 Zielen, Palette wechseln → alle Kisten färben sofort um; C2 oder Hull C mit mehr Zielen als Farben → Schraffur sichtbar und in der Legende identisch; Problemkiste und Auswahl in jeder Palette erkennbar
-- [ ] Taste-Gate (Martin): Kachel 6 DIP, Strich 1,5 DIP, Unterstrich Schwarz `A0` 4,5 px
+- [x] Gate (Martin, Publish-Build, 25.10., abgenommen): Hull A mit 8 Zielen, Palette wechseln → alle Kisten färben sofort um; C2 oder Hull C mit mehr Zielen als Farben → Schraffur sichtbar und in der Legende identisch; Problemkiste und Auswahl in jeder Palette erkennbar
+- [x] Taste-Gate (Martin, 25.10., abgenommen): Kachel 6 DIP, Strich 1,5 DIP, Unterstrich Schwarz `A0` 4,5 px; dazu der Wunsch, den Auswahlrand einstellbar zu machen → K4.4
 - Commits 2ec27f9 (Tests rot), 0ea24d0 (App), 23a450a (Doku).
 
-### [ ] K4.3 Look-Presets und Export/Import (D77) (25.10.2026)
+### [x] K4.3 Look-Presets und Export/Import (D77) (25.10.2026)
 **Warum:** Backlog A4: Hauler tauschen Looks, Martin lädt für die T7.5-Screenshots ein definiertes Preset.
 
 **Ist-Zustand vor K4.3 (A1):** Keine eingebetteten Ressourcen (Schiffe und Umrisse sind kopierte Dateien), keine Look-Gleichheit; `SettingsViewModel` konnte von außen nicht neu laden, `Batch` unterdrückt die eigenen Callbacks ganz; `SettingsSession.Save` überschreibt die Zeile `NoticeSource.Settings` nach jedem Speichern.
@@ -1864,8 +1864,8 @@ Ansicht und Legende holen ihre Pinsel aus einer Funktion; P9 `downloadShipHologr
 - [x] Presets Default, High contrast, Minimal eingebettet; Default = Code-Defaults = Export
 - [x] Preset-Box folgt jeder Änderung („Custom“), Preset wirkt sofort mit Notice „Preset applied: …“, Import „Look imported: …“, Fehler „Look not imported: …“
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.281 → 1.320)
-- [ ] High contrast und Minimal: Martin stellt sie im Spiel ein und exportiert sie; die Exporte ersetzen die Entwürfe (eigener Commit), Screenshot-Abgleich je Preset
-- [ ] Gate (Martin, Publish-Build): Preset wechseln → Overlay ändert sich sofort; Export → Datei (Name ohne Endung getippt: bekommt sie `.cargoplan-look.json`?); einen Wert ändern → „Custom“; Import der Datei → zurück; Import einer Datei mit `schemaVersion: 2` → Fehlermeldung, nichts geändert; Hotkeys und CT-Pfad nach Import unverändert
+- [x] High contrast und Minimal: von Martin abgenommen (25.10.), die Entwürfe bleiben die Presets
+- [x] Gate (Martin, Publish-Build, 25.10., abgenommen): Preset wechseln → Overlay ändert sich sofort; Export → Datei (Name ohne Endung getippt: bekommt sie `.cargoplan-look.json`?); einen Wert ändern → „Custom“; Import der Datei → zurück; Import einer Datei mit `schemaVersion: 2` → Fehlermeldung, nichts geändert; Hotkeys und CT-Pfad nach Import unverändert
 - Commits 73910e3 (Tests Datei rot), 0c79ccb (Datei, Presets), 47636aa (Tests Fenster rot), 8df8135 (Fenster, Import, Export), Doku-Commit.
 
 ### Abschluss der K4-Session (offen bis zur Abnahme)
