@@ -1783,6 +1783,39 @@ Reihenfolge innerhalb von K1 (Branch `feat/k1-ship-view`): K1.1 Zoom-Grenzen →
 - **Für K5 relevant:** Gespeicherte Kameras sind schiffsfest (Anker = projizierte Mitte von `Ship.Bounds`); ändert K5 die Origins (`offset`/`rotation`), verschieben sich gespeicherte Ansichten – Datenupdate, kein Bug (D76).
 - **Offen:** Antwort von Torlek zu `limits.max = 1` und damit die `unverified`-Liste der Türen (32 Racks in 16 Schiffen, K3.1); Rastergrenze 12 px/Zelle bleibt, „höher, falls das volle C2-Raster im Spiel stört“ ist Beobachtung, kein Task.
 
+Reihenfolge innerhalb von K4 (Branch `feat/k4-look`): K4.1 Checkbox/Haken → K4.2 Stop-Paletten → K4.3 Look-Presets mit
+Export/Import. K4.3 zuletzt, weil es exportiert, was K4.1 und K4.2 an Keys anlegen. Nur App, Core unberührt; Schemas
+bleiben (Schiff 5, Plan 6, Mission 3, settings 2 mit neuen optionalen Keys); neu ist die Look-Datei mit Schema 1.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (für K4.1–K4.3):** P1 „Chevron“ ist der Haken in der
+Checkbox, der Strich für „teilweise“ nimmt die Haken-Farbe; P2 zwei Keys statt vier (`checkBoxColor`, `checkMarkColor`,
+Deckkraft = Alpha, D31) unter `appearance.legend`; P3 eine Auswahlfarbe der Checkbox gibt es nicht (angehakt = Haken-Farbe),
+die Kisten-Magenta bleibt eine eigene Quelle; P4 Paletten Okabe-Ito 8 (unverändert), Tol Bright 6 ohne Grau `#BBBBBB`
+(Korrektur K1 bei der Freigabe: Grau heißt im Overlay „erledigt“), Tol Muted 7 ohne Indigo `#332288` und Wein `#882255`
+(auf dem dunklen Overlay unsichtbar, wie Okabe-Schwarz in D15), IBM entfällt (keine Primärquelle, Orange näher am Problemrot
+als heute); P4b der Test prüft Nähe statt Gleichheit: ΔE76 ≥ 33,6 (heutiges Minimum Vermillion ↔ Problemrot) gegen
+Problemrot und Delivered-Grau; P5 Key `appearance.crates.stopPalette`, ComboBox im Abschnitt Crates; P6 dunkler Unterstrich
+unter Problem-, Auswahl- und DragTarget-Rand in jeder Palette; P7 `customStopColors` → Backlog; P8 Tooltip unverändert,
+Ansicht und Legende holen ihre Pinsel aus einer Funktion; P9 `downloadShipHolograms` gehört nicht zum Look (Netzschalter, D63).
+
+### [ ] K4.1 Checkbox- und Haken-Farbe in den Preferences (D69-Addendum) (25.10.2026)
+**Warum:** Backlog D69, Taste-Gate B6: Martin will Farbe und Deckkraft der Legenden-Checkboxen wählen, Kasten und Haken getrennt.
+
+**Ist-Zustand vor K4.1 (A1):** `LegendCheckBoxStyle` (OverlayWindow.xaml) band Rahmen, Haken und Strich an `x:Static MissionPalette.CheckBoxBrush` (`#B0B0B0`); kein Test prüfte die Farbe. Einen Chevron zum Auf-/Zuklappen gibt es in der Legende nicht (B6 rückt nur ein); gemeint ist der Haken.
+- Settings: `LegendAppearance(…, CheckBoxColor, CheckMarkColor)`, Default `#FFB0B0B0`, `AppearanceRules` prüft beide wie jede Farbe (Alpha 0 erlaubt)
+- Theme: `LegendCheckBoxBrush`, `LegendCheckMarkBrush`; Template per DynamicResource (Rahmen / Haken und Strich); `MissionPalette.CheckBoxBrush` entfällt
+- Fenster: Abschnitt Legend mit „Check box“ und „Check mark“ (`ColourField`, Picker, Alpha in Prozent), Reset Legend deckt beide ab
+- Tests: `AppearanceRulesTests`, `ThemeResourcesTests`, `SettingsViewModelTests`, `SettingsStoreTests` (Rundreise), neu `OverlayLegendXamlTests`
+
+**Akzeptanz:**
+- [x] Rot gesehen (Compile-Fehler, 1a43821), dann grün
+- [x] Defaults = altes Grau, ohne Datei sieht die Legende aus wie vorher; ungültige Farbe → Grau mit Notice; Alpha 0 erlaubt
+- [x] Kasten und Haken getrennt einstellbar, jede Änderung wendet genau ihren Wert an; Reset Legend stellt beide auf Grau
+- [x] Template bindet beide Keys per DynamicResource (XAML-Test)
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.235 → 1.241)
+- [ ] Gate (Martin, Publish-Build): Werte ändern wirkt sofort in der Legende; Haken und Kasten unabhängig; Reset Legend stellt Grau her; Neustart behält die Werte
+- Commits 1a43821 (Tests rot), b7c8d98 (App), Doku-Commit.
+
 ---
 
 ## Phase 8 – nach dem Launch

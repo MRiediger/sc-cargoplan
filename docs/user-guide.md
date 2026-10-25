@@ -368,7 +368,9 @@ windows, Hotkeys and ContractTracker have none (their defaults are "follow Windo
 **Detect automatically**).
 
 - **Window:** background colour, and its slider is the overlay's transparency; frame colour and width.
-- **Legend:** text colour, text size (or the Windows text size), and a halo for reading over bright scenes.
+- **Legend:** text colour, text size (or the Windows text size), a halo for reading over bright scenes, and the colours
+  of the check boxes: **Check box** is the frame, **Check mark** the tick and the bar inside it, each with its own
+  transparency.
 - **Legend layout:** where the legend stands (top or bottom; left, centre or right) and whether it shows the
   destination lines at all. A section of its own, so resetting the legend's colours doesn't move it.
 - **Crates:** how solid the crates and their edges are (at the lift, turn the fill down to see the real crates through

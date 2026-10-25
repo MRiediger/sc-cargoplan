@@ -41,7 +41,9 @@ values.
     "legend": {
       "foreground": "#FFE6E6E6",
       "fontSize": null,
-      "halo": { "enabled": false, "color": "#E0141414", "size": 3 }
+      "halo": { "enabled": false, "color": "#E0141414", "size": 3 },
+      "checkBoxColor": "#FFB0B0B0",
+      "checkMarkColor": "#FFB0B0B0"
     },
     "crates": {
       "fillAlpha": 208,
@@ -89,6 +91,8 @@ can't be changed, so only their alpha is a number of its own: `0` (invisible) to
 | `legend.foreground` | Stop lines; also the outline of "Open editor" | `#FFE6E6E6` | |
 | `legend.fontSize` | Font size of the legend, warnings and notices | `null` | 8–32 |
 | `legend.halo` | Halo around the legend's text | off | |
+| `legend.checkBoxColor` | Frame of the check boxes that select a line's crates | `#FFB0B0B0` | |
+| `legend.checkMarkColor` | Tick (all selected) and bar (part selected) inside the box | `#FFB0B0B0` | |
 | `crates.fillAlpha` | Opacity of the crates in the ship view | `208` | 0–255 |
 | `crates.edgeAlpha` | Opacity of the crates' edges | `192` | 0–255 |
 | `crates.rackNumberColor` | Colour of the rack numbers and the "Bow" label | `#FFFFFFFF` | |
@@ -112,7 +116,8 @@ an outline has the wedge and the label (see [Ship view](#ship-view)).
 
 **Alpha at least `01`:** the overlay passes clicks on fully transparent pixels to the window below. With a
 background of alpha `00`, you could no longer move the overlay or press a button, so the overlay uses `01`
-instead (still invisible) and says so.
+instead (still invisible) and says so. The legend's check boxes may go down to `00`: the box keeps an invisible
+background of its own that takes the click.
 
 ## Halo
 
@@ -269,7 +274,7 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor` and `shipView` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView`, `appearance.legend.checkBoxColor` and `appearance.legend.checkMarkColor` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a
