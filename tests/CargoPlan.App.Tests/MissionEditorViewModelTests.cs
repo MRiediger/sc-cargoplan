@@ -515,18 +515,100 @@ public sealed class MissionEditorViewModelTests : IDisposable
     }
 
     [Fact]
-    public void Clear_rows_and_import_keep_the_fill_order()
+    public void Clear_rows_keeps_the_fill_order()
     {
-        var path = Path.Combine(_folder, "missions.json");
         var editor = FourRows(EmptyOverlay());
-        editor.Export(path);
         editor.FillOrder = FillOrder.SternFirst;
 
         editor.ClearRowsCommand.Execute(null);
+
         editor.FillOrder.Should().Be(FillOrder.SternFirst);
+    }
+
+    // --- Fill order in mission files (D72) ---
+
+    /// <summary>The split-and-shared missions as a schema 3 file with <paramref name="fillOrder"/>, written by Core's writer.</summary>
+    private string MissionFileWith(FillOrder fillOrder)
+    {
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, $"{fillOrder}.json");
+        using var stream = File.Create(path);
+        MissionFileWriter.Write(stream, TestPlans.SplitAndShared().Stops, fillOrder);
+        return path;
+    }
+
+    [Fact]
+    public void Import_of_a_file_with_a_fill_order_sets_it_as_an_unplanned_change()
+    {
+        var overlay = OverlayWithPlan();
+        var plan = overlay.Plan;
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.Import(MissionFileWith(FillOrder.SternFirst));
+
+        editor.FillOrder.Should().Be(FillOrder.SternFirst);
+        editor.IsDirty.Should().BeTrue();
+        overlay.Plan.Should().BeSameAs(plan, "like every edit it waits for Plan");
+    }
+
+    [Fact]
+    public void Import_of_a_file_without_a_fill_order_keeps_the_editors()
+    {
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, "schema2.json");
+        File.WriteAllText(path, """
+            { "schemaVersion": 2, "stops": [ { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 4, "maxCrateSize": 4 } ] } ] }
+            """);
+        var editor = FourRows(EmptyOverlay());
+        editor.FillOrder = FillOrder.SternFirst;
 
         editor.Import(path);
+
+        editor.Problem.Should().BeNull();
         editor.FillOrder.Should().Be(FillOrder.SternFirst);
+    }
+
+    [Theory]
+    [InlineData(FillOrder.BowFirst, "bowFirst")]
+    [InlineData(FillOrder.SternFirst, "sternFirst")]
+    public void Export_writes_the_fill_order_of_the_draft(FillOrder fillOrder, string expected)
+    {
+        var path = Path.Combine(_folder, "missions.json");
+        var editor = FourRows(OverlayWithPlan());
+        editor.FillOrder = fillOrder;
+
+        editor.Export(path);
+
+        MissionFileReader.Read(path).FillOrder.Should().Be(fillOrder);
+        File.ReadAllText(path).Should().Contain($"\"fillOrder\": \"{expected}\"");
+    }
+
+    [Fact]
+    public void Import_then_Export_gives_the_file_back_byte_for_byte()
+    {
+        var source = MissionFileWith(FillOrder.SternFirst);
+        var target = Path.Combine(_folder, "exported.json");
+        var editor = new MissionEditorViewModel(EmptyOverlay());
+
+        editor.Import(source);
+        editor.Export(target);
+
+        File.ReadAllBytes(target).Should().Equal(File.ReadAllBytes(source));
+    }
+
+    [Fact]
+    public void A_stern_first_file_imported_and_planned_lays_from_the_stern()
+    {
+        var overlay = EmptyOverlay();
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.Import(MissionFileWith(FillOrder.SternFirst));
+        editor.PlanCommand.Execute(null);
+
+        var stops = MissionRows.ToStops(editor.Rows, CrateCap.None).Stops.ToStops();
+        overlay.Plan!.FillOrder.Should().Be(FillOrder.SternFirst);
+        overlay.Plan.Crates.Select(c => c.Position).Should().Equal(
+            LoadPlanner.Plan(overlay.Ship, stops, FillOrder.SternFirst).Crates.Select(c => c.Position));
     }
 
     [Fact]
