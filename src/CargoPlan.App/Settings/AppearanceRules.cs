@@ -21,6 +21,14 @@ public static class AppearanceRules
     public const double MaxHaloSize = 20;
     public const double MaxBorderThickness = 10;
 
+    /// <summary>
+    /// The selected crates' edge (K4.4): from a hairline to a band that still leaves a 1 SCU crate's face visible at the
+    /// default zoom (about 30 px per cell on the Hull A, D32).
+    /// </summary>
+    public const double MinSelectionWidth = 1;
+
+    public const double MaxSelectionWidth = 8;
+
     /// <summary>Half the height of a header button (26 px): more would make it a pill that no longer fits.</summary>
     public const double MaxCornerRadius = 13;
 
@@ -96,6 +104,9 @@ public static class AppearanceRules
                 RackNumberFontSize = check.Range("crates.rackNumberFontSize", crates.RackNumberFontSize, MinRackNumberFontSize, MaxRackNumberFontSize),
                 Halo = check.Halo("crates.halo", crates.Halo),
                 StopPalette = check.StopPalette("crates.stopPalette", crates.StopPalette),
+                SelectionColor = check.Colour("crates.selectionColor", crates.SelectionColor, CrateAppearance.Default.SelectionColor),
+                SelectionWidth = check.Range("crates.selectionWidth", crates.SelectionWidth, MinSelectionWidth, MaxSelectionWidth),
+                SelectionOutline = check.Halo("crates.selectionOutline", crates.SelectionOutline),
             },
             buttons with
             {

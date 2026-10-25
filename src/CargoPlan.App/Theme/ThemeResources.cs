@@ -36,6 +36,8 @@ public static class ThemeResources
         public const string CratesRackNumberFontSize = nameof(CratesRackNumberFontSize);
         public const string CratesHaloBrush = nameof(CratesHaloBrush);
         public const string CratesHaloSize = nameof(CratesHaloSize);
+        public const string CratesSelectionPen = nameof(CratesSelectionPen);
+        public const string CratesSelectionOutlinePen = nameof(CratesSelectionOutlinePen);
         public const string ButtonsBackgroundBrush = nameof(ButtonsBackgroundBrush);
         public const string ButtonsBorderBrush = nameof(ButtonsBorderBrush);
         public const string ButtonsBorderThickness = nameof(ButtonsBorderThickness);
@@ -48,6 +50,7 @@ public static class ThemeResources
             HeaderForegroundBrush, HeaderHaloEffect,
             LegendForegroundBrush, LegendFontSize, LegendHaloEffect, LegendCheckBoxBrush, LegendCheckMarkBrush,
             CratesFillAlpha, CratesEdgeBrush, CratesRackNumberBrush, CratesRackNumberFontSize, CratesHaloBrush, CratesHaloSize,
+            CratesSelectionPen, CratesSelectionOutlinePen,
             ButtonsBackgroundBrush, ButtonsBorderBrush, ButtonsBorderThickness, ButtonsCornerRadius, ButtonsHaloEffect,
         ];
     }
@@ -89,6 +92,14 @@ public static class ThemeResources
         // The rack numbers keep their sharp outline (D15); the halo gives its colour and width.
         Set(resources, Keys.CratesHaloBrush, crates.Halo.Enabled ? Brush(crates.Halo.Color) : null);
         resources[Keys.CratesHaloSize] = crates.Halo.Size;
+
+        // The selected crates' edge (D25, K4.4) as ready pens: the view draws them per face and only needs them, not the
+        // values. The contour lies under the edge, its size on each side; round joins, so it has no spikes at sharp corners.
+        resources[Keys.CratesSelectionPen] = Frozen(new Pen(Brush(crates.SelectionColor), crates.SelectionWidth));
+        var outline = crates.SelectionOutline;
+        Set(resources, Keys.CratesSelectionOutlinePen, outline.Enabled
+            ? Frozen(new Pen(Brush(outline.Color), crates.SelectionWidth + 2 * outline.Size) { LineJoin = PenLineJoin.Round })
+            : null);
 
         var buttons = appearance.Buttons;
         resources[Keys.ButtonsBackgroundBrush] = Brush(buttons.Background);

@@ -79,17 +79,28 @@ public sealed record LegendAppearance(
 /// size at zoom 1 in the default overlay before it was a setting.
 /// </param>
 /// <param name="StopPalette">One of <see cref="StopPaletteNames.Names"/>; the default is the palette of before.</param>
+/// <param name="SelectionColor">The edge of a selected crate (D25, K4.4); the default magenta is in no stop colour.</param>
+/// <param name="SelectionWidth">That edge's width in screen pixels.</param>
+/// <param name="SelectionOutline">
+/// A dark contour under the edge, so it reads on every stop colour (K4.2); its size is the contour's width on each side
+/// of the edge. The default draws the edge as K4.2 did: 2.5 px over 4.5 px.
+/// </param>
 public sealed record CrateAppearance(
     int FillAlpha = 0xD0,
     int EdgeAlpha = 0xC0,
     string RackNumberColor = "#FFFFFFFF",
     double RackNumberFontSize = 27,
     HaloSettings? Halo = null,
-    string StopPalette = "okabeIto")
+    string StopPalette = "okabeIto",
+    string SelectionColor = "#FFFF00FF",
+    double SelectionWidth = 2.5,
+    HaloSettings? SelectionOutline = null)
 {
     public static CrateAppearance Default { get; } = new();
 
     public HaloSettings Halo { get; init; } = Halo ?? HaloSettings.On;
+
+    public HaloSettings SelectionOutline { get; init; } = SelectionOutline ?? new HaloSettings(true, "#A0000000", 1);
 }
 
 /// <summary>

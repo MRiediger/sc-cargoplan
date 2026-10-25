@@ -694,7 +694,9 @@
                                     RackNumberBrush="{DynamicResource CratesRackNumberBrush}"
                                     RackNumberFontSize="{DynamicResource CratesRackNumberFontSize}"
                                     RackNumberHaloBrush="{DynamicResource CratesHaloBrush}"
-                                    RackNumberHaloSize="{DynamicResource CratesHaloSize}" />
+                                    RackNumberHaloSize="{DynamicResource CratesHaloSize}"
+                                    SelectionPen="{DynamicResource CratesSelectionPen}"
+                                    SelectionOutlinePen="{DynamicResource CratesSelectionOutlinePen}" />
             </Grid>
         </DockPanel>
     </Border>

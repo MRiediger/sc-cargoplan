@@ -58,9 +58,8 @@ public sealed class ShipViewControl : FrameworkElement
     private const double BowLabelEmSize = 100;
     private static readonly Pen ViolationPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Violation), MissionPalette.EdgeWidth));
     private static readonly Pen DragTargetPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.DragTarget), MissionPalette.EdgeWidth));
-    private static readonly Pen SelectionPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Selection), MissionPalette.EdgeWidth));
-
-    // Under those three on crates and ghosts (K4.2, P6): round joins, so the wider dark line has no spikes at sharp corners.
+    // Under those two on crates and ghosts (K4.2, P6): round joins, so the wider dark line has no spikes at sharp corners.
+    // The selection's edge and contour are settings since K4.4 (SelectionPen, SelectionOutlinePen).
     private static readonly Pen EdgeUnderPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.EdgeUnderStroke), MissionPalette.EdgeUnderStrokeWidth)
     {
         LineJoin = PenLineJoin.Round,
@@ -90,6 +89,12 @@ public sealed class ShipViewControl : FrameworkElement
     public static readonly DependencyProperty RackNumberHaloBrushProperty = ThemeProperty(nameof(RackNumberHaloBrush), typeof(Brush), null);
 
     public static readonly DependencyProperty RackNumberHaloSizeProperty = ThemeProperty(nameof(RackNumberHaloSize), typeof(double), 0.0);
+
+    /// <summary>The selected crates' edge (D25, K4.4); null = selected crates show no edge.</summary>
+    public static readonly DependencyProperty SelectionPenProperty = ThemeProperty(nameof(SelectionPen), typeof(Pen), null);
+
+    /// <summary>The dark contour under that edge (K4.2, K4.4); null = none.</summary>
+    public static readonly DependencyProperty SelectionOutlinePenProperty = ThemeProperty(nameof(SelectionOutlinePen), typeof(Pen), null);
 
     // AffectsRender: a new scene invalidates the drawing by itself.
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.frameworkpropertymetadataoptions
@@ -280,6 +285,18 @@ public sealed class ShipViewControl : FrameworkElement
         set => SetValue(RackNumberHaloSizeProperty, value);
     }
 
+    public Pen? SelectionPen
+    {
+        get => (Pen?)GetValue(SelectionPenProperty);
+        set => SetValue(SelectionPenProperty, value);
+    }
+
+    public Pen? SelectionOutlinePen
+    {
+        get => (Pen?)GetValue(SelectionOutlinePenProperty);
+        set => SetValue(SelectionOutlinePenProperty, value);
+    }
+
     /// <summary>
     /// False while the overlay is locked: wheel, drags and hover do nothing. Click-through alone isn't enough, the
     /// wheel can go to the focused window instead of the one under the cursor (D15).
@@ -440,11 +457,21 @@ public sealed class ShipViewControl : FrameworkElement
             }
         }
 
-        foreach (var box in scene.Racks.SelectMany(r => r.Boxes).Where(b => b.Box.Crate is { } crate && selected.Contains(crate)))
+        if (SelectionPen is { } selectionPen)
         {
-            foreach (var face in box.Faces)
+            var outlinePen = SelectionOutlinePen;
+            foreach (var box in scene.Racks.SelectMany(r => r.Boxes).Where(b => b.Box.Crate is { } crate && selected.Contains(crate)))
             {
-                DrawEdged(dc, null, SelectionPen, Polygon(face.Polygon, transform));
+                foreach (var face in box.Faces)
+                {
+                    var geometry = Polygon(face.Polygon, transform);
+                    if (outlinePen is not null)
+                    {
+                        dc.DrawGeometry(null, outlinePen, geometry);
+                    }
+
+                    dc.DrawGeometry(null, selectionPen, geometry);
+                }
             }
         }
 

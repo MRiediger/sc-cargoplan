@@ -23,6 +23,9 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public const string ButtonsHaloLabel = "Halo around the glyphs";
 
+    /// <summary>The selection's contour (K4.4): its size is the width on each side of the edge.</summary>
+    public const string SelectionOutlineLabel = "Contour around the selection edge";
+
     /// <summary>Under the switch "Download ship holograms" (D63): what goes out, and what the switch doesn't take away.</summary>
     public const string DownloadShipHologramsHint =
         "Downloads one file per ship from github.com when you pick a ship. Nothing else is sent. Already downloaded holograms stay.";
@@ -108,6 +111,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         LegendCheckMark = new(appearance.Legend.CheckMarkColor, minAlpha: 0, OnChanged);
         CratesRackNumberColor = new(appearance.Crates.RackNumberColor, minAlpha: 0, OnChanged);
         CratesHalo = new(appearance.Crates.Halo, CratesHaloLabel, OnChanged);
+        CratesSelectionColor = new(appearance.Crates.SelectionColor, minAlpha: 0, OnChanged);
+        CratesSelectionOutline = new(appearance.Crates.SelectionOutline, SelectionOutlineLabel, OnChanged);
         HeaderForeground = new(appearance.Header.Foreground, minAlpha: 0, OnChanged);
         HeaderHalo = new(appearance.Header.Halo, HeaderHaloLabel, OnChanged);
         ButtonsBackground = new(appearance.Buttons.Background, AppearanceRules.MinClickableAlpha, OnChanged);
@@ -281,6 +286,20 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>The sharp outline of the rack numbers (D31): its size is a stroke width.</summary>
     public HaloEditor CratesHalo { get; }
 
+    /// <summary>The selected crates' edge (D25, K4.4).</summary>
+    public ColourField CratesSelectionColor { get; }
+
+    [ObservableProperty]
+    public partial double CratesSelectionWidth { get; set; }
+
+    /// <summary>The slider's bounds, the file's range; double for x:Static like the max zoom's.</summary>
+    public static double MinSelectionWidth => AppearanceRules.MinSelectionWidth;
+
+    public static double MaxSelectionWidth => AppearanceRules.MaxSelectionWidth;
+
+    /// <summary>The dark contour under the selection edge (K4.2, K4.4).</summary>
+    public HaloEditor CratesSelectionOutline { get; }
+
     // Header
 
     /// <summary>Also the glyphs: pencil, gear, split, merge, padlock. Invisible, the gear is found by its tool tip (D34).</summary>
@@ -428,6 +447,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnCratesRackNumberFontSizeChanged(double value) => OnChanged();
 
+    partial void OnCratesSelectionWidthChanged(double value) => OnChanged();
+
     partial void OnButtonsBorderThicknessChanged(double value) => OnChanged();
 
     partial void OnButtonsCornerRadiusChanged(double value) => OnChanged();
@@ -526,6 +547,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         CratesRackNumberColor.Load(crates.RackNumberColor);
         CratesRackNumberFontSize = crates.RackNumberFontSize;
         CratesHalo.Load(crates.Halo);
+        CratesSelectionColor.Load(crates.SelectionColor);
+        CratesSelectionWidth = crates.SelectionWidth;
+        CratesSelectionOutline.Load(crates.SelectionOutline);
     }
 
     private void LoadHeader(HeaderAppearance header)
@@ -571,7 +595,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         new LegendAppearance(
             LegendForeground.Value, UseWindowsFontSize ? null : LegendFontSize, LegendHalo.Value, LegendCheckBox.Value, LegendCheckMark.Value),
         new CrateAppearance(
-            CratesFillAlpha, CratesEdgeAlpha, CratesRackNumberColor.Value, CratesRackNumberFontSize, CratesHalo.Value, StopPaletteNames.ToName(StopPalette)),
+            CratesFillAlpha, CratesEdgeAlpha, CratesRackNumberColor.Value, CratesRackNumberFontSize, CratesHalo.Value, StopPaletteNames.ToName(StopPalette),
+            CratesSelectionColor.Value, CratesSelectionWidth, CratesSelectionOutline.Value),
         new ButtonAppearance(ButtonsBackground.Value, ButtonsBorderColor.Value, ButtonsBorderThickness, ButtonsCornerRadius, ButtonsHalo.Value));
 
     /// <summary>After any change of the look from the window: the last preset or import notice is out of date, the box follows.</summary>

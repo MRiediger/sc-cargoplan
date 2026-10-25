@@ -25,19 +25,14 @@ public static class MissionPalette
     /// </summary>
     public static Color DragTarget { get; } = Color.FromRgb(0x00, 0xFF, 0xFF);
 
-    /// <summary>
-    /// Edges of a selected crate (D25): magenta is in no stop colour (Okabe-Ito's reddish purple is much paler, Tol's
-    /// purples closer, hence <see cref="EdgeUnderStroke"/>) and is neither the cyan of a target nor the red of a violation.
-    /// </summary>
-    public static Color Selection { get; } = Color.FromRgb(0xFF, 0x00, 0xFF);
+    // The edge of a selected crate (D25) is a setting since K4.4: CrateAppearance.SelectionColor, magenta by default.
 
-    /// <summary>Width of the red, cyan and magenta edges in screen pixels (D24, D25).</summary>
+    /// <summary>Width of the red and cyan edges in screen pixels (D24, D25).</summary>
     public const double EdgeWidth = 2.5;
 
     /// <summary>
-    /// Under the red, cyan and magenta edges on crates and ghosts (K4.2, P6): a dark line wider than the edge, so the edge
-    /// reads on every stop colour of every palette, also where a palette's purple is near the selection's magenta.
-    /// Colour and width are proposals for Martin's look gate.
+    /// Under the red and cyan edges on crates and ghosts (K4.2, P6): a dark line wider than the edge, so the edge reads on
+    /// every stop colour of every palette. Accepted at K4.2's look gate; the selection's contour is a setting (K4.4).
     /// </summary>
     public static Color EdgeUnderStroke { get; } = Color.FromArgb(0xA0, 0x00, 0x00, 0x00);
 

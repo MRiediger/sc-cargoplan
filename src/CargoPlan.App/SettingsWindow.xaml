@@ -321,6 +321,18 @@
                                     Value="{Binding CratesRackNumberFontSize}" Style="{StaticResource ValueSliderStyle}" />
                         </DockPanel>
                         <ContentControl Content="{Binding CratesHalo, Mode=OneTime}" />
+                        <!-- The selected crates' edge (D25, K4.4): colour, width in half pixels (default 2.5), and its contour. -->
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The edge of crates you selected with a right click">
+                            <TextBlock Text="Selection" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding CratesSelectionColor, Mode=OneTime}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}">
+                            <TextBlock Text="Selection width" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding CratesSelectionWidth}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="{x:Static vm:SettingsViewModel.MinSelectionWidth}" Maximum="{x:Static vm:SettingsViewModel.MaxSelectionWidth}"
+                                    Value="{Binding CratesSelectionWidth}" Style="{StaticResource ValueSliderStyle}" TickFrequency="0.5" />
+                        </DockPanel>
+                        <ContentControl Content="{Binding CratesSelectionOutline, Mode=OneTime}" />
                         <Button Command="{Binding ResetCratesCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
                     </StackPanel>
                 </GroupBox>

@@ -43,10 +43,17 @@
       "rackNumberColor": "#FFFFFFFF",
       "rackNumberFontSize": 27,
       "stopPalette": "okabeIto",
+      "selectionColor": "#FFFF00FF",
+      "selectionWidth": 2.5,
       "halo": {
         "enabled": true,
         "color": "#E0141414",
         "size": 3
+      },
+      "selectionOutline": {
+        "enabled": true,
+        "color": "#A0000000",
+        "size": 1
       }
     },
     "buttons": {
