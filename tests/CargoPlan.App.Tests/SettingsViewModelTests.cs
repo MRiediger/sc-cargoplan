@@ -13,6 +13,7 @@ public sealed class SettingsViewModelTests
     private readonly List<bool> _downloads = [];
     private readonly List<double> _opacities = [];
     private readonly List<(string Hull, string Edge)> _colours = [];
+    private readonly List<double> _maxZooms = [];
 
     private SettingsViewModel Create(
         AppearanceSettings? appearance = null,
@@ -23,7 +24,8 @@ public sealed class SettingsViewModelTests
         bool downloadShipHolograms = true,
         double holoOpacity = 0.4,
         string holoHullColor = "#FF9CB0C0",
-        string holoEdgeColor = "#FFE6E6E6") =>
+        string holoEdgeColor = "#FFE6E6E6",
+        double maxZoom = 160) =>
         new(
             appearance ?? AppearanceSettings.Default,
             legend ?? LegendSettings.Default,
@@ -39,7 +41,9 @@ public sealed class SettingsViewModelTests
             _opacities.Add,
             holoHullColor,
             holoEdgeColor,
-            (hull, edge) => _colours.Add((hull, edge)));
+            (hull, edge) => _colours.Add((hull, edge)),
+            maxZoom,
+            _maxZooms.Add);
 
     private (AppearanceSettings Appearance, LegendSettings Legend) Last => _applied[^1];
 
@@ -659,6 +663,39 @@ public sealed class SettingsViewModelTests
         viewModel.HoloHullColour.Value.Should().Be("#FF9CB0C0");
         viewModel.HoloEdgeColour.Value.Should().Be("#FFE6E6E6");
         _colours.Should().Equal(("#FF9CB0C0", "#FFE6E6E6"));
+    }
+
+    [Fact]
+    public void The_max_zoom_slider_loads_without_calling_back_and_calls_its_callback_not_apply()
+    {
+        // A setting of its own in the file (shipView, D76), like the hologram's opacity.
+        var viewModel = Create(maxZoom: 120);
+        viewModel.MaxZoom.Should().Be(120);
+        viewModel.MaxZoomText.Should().Be("120 px per cell");
+        _maxZooms.Should().BeEmpty();
+
+        viewModel.MaxZoom = 200;
+
+        _maxZooms.Should().Equal(200);
+        _applied.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void The_max_zoom_slider_has_the_file_s_range()
+    {
+        SettingsViewModel.MinMaxZoom.Should().Be(AppearanceRules.MinMaxZoom);
+        SettingsViewModel.MaxMaxZoom.Should().Be(AppearanceRules.MaxMaxZoom);
+    }
+
+    [Fact]
+    public void Reset_of_the_ship_view_sets_the_max_zoom_back_to_160()
+    {
+        var viewModel = Create(maxZoom: 80);
+
+        viewModel.ResetShipViewCommand.Execute(null);
+
+        viewModel.MaxZoom.Should().Be(160);
+        _maxZooms.Should().Equal(160);
     }
 
     [Theory]

@@ -503,6 +503,27 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void The_start_applies_the_max_zoom_to_the_overlay()
+    {
+        Create(AppSettings.Default with { ShipView = new ShipViewSettings(MaxZoomPxPerCell: 90) });
+
+        _viewModel.MaxZoomPxPerCell.Should().Be(90);
+    }
+
+    [Fact]
+    public void ChangeMaxZoom_applies_at_once_and_writes_on_flush()
+    {
+        var session = Create();
+
+        session.ChangeMaxZoom(200);
+
+        _viewModel.MaxZoomPxPerCell.Should().Be(200);
+        File.Exists(SettingsPath).Should().BeFalse();
+        session.Flush();
+        Saved().Should().Be(AppSettings.Default with { ShipView = new ShipViewSettings(MaxZoomPxPerCell: 200) });
+    }
+
+    [Fact]
     public void ChangeShipOutline_tells_the_ship_view()
     {
         var session = Create(AppSettings.Default);

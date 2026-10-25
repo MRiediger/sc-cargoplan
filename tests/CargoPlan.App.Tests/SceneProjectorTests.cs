@@ -406,6 +406,24 @@ public class SceneProjectorTests
         projected.Outline.Should().BeNull();
     }
 
+    [Theory]
+    [InlineData(70, 35.26)]
+    [InlineData(225, -40)]
+    public void The_anchor_is_the_projected_centre_of_the_ship_whatever_is_loaded(double yaw, double pitch)
+    {
+        // The player's framing hangs on it (D76): a sync loading a rack further aft moves the fit, never the anchor.
+        var camera = new IsoProjection(yaw, pitch);
+        var bounds = Caterpillar.Bounds;
+        var centre = camera.Project((bounds.Min.X + bounds.Max.X) / 2.0, (bounds.Min.Y + bounds.Max.Y) / 2.0, (bounds.Min.Z + bounds.Max.Z) / 2.0);
+
+        var bowOnly = SceneProjector.Project(CaterpillarWith("rack-0"), camera);
+        var bowAndAft = SceneProjector.Project(CaterpillarWith("rack-0", "rack-13"), camera);
+
+        bowOnly.Anchor.Should().Be(centre);
+        bowAndAft.Anchor.Should().Be(centre);
+        bowAndAft.FitExtent.Should().NotBe(bowOnly.FitExtent);
+    }
+
     [Fact]
     public void Projected_racks_know_whether_they_hold_cargo()
     {

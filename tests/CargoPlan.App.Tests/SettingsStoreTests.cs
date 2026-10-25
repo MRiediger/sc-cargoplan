@@ -463,6 +463,45 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void File_without_the_ship_view_zooms_to_160_pixels_per_cell_without_a_problem()
+    {
+        // Optional, no schemaVersion bump (D31, D76).
+        WriteFile("""{ "schemaVersion": 2 }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.ShipView.Should().Be(ShipViewSettings.Default);
+        loaded.ShipView.MaxZoomPxPerCell.Should().Be(160);
+    }
+
+    [Fact]
+    public void Save_then_Load_keeps_the_max_zoom()
+    {
+        var settings = AppSettings.Default with { ShipView = new ShipViewSettings(MaxZoomPxPerCell: 90) };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+        File.ReadAllText(SettingsPath).Should().Contain("\"maxZoomPxPerCell\": 90");
+    }
+
+    [Theory]
+    [InlineData("20", 40)]
+    [InlineData("500", 240)]
+    public void A_max_zoom_out_of_range_is_clamped_with_a_problem(string written, double used)
+    {
+        WriteFile($$"""{ "schemaVersion": 2, "shipView": { "maxZoomPxPerCell": {{written}} } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.ShipView.MaxZoomPxPerCell.Should().Be(used);
+        problem.Should().Be($"settings.json: shipView.maxZoomPxPerCell {written} is outside 40–240, using {used}.");
+    }
+
+    [Fact]
     public void File_without_the_download_switch_downloads_holograms_without_a_problem()
     {
         // Optional, no schemaVersion bump (D31, D63); default on.
