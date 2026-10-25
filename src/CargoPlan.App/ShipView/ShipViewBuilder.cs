@@ -178,7 +178,7 @@ public static class ShipViewBuilder
             Crate[] own = [.. drawn.Where(c => Belongs(c, placement))];
             var fill = placement.Delivered ? CellFill.Delivered : CellFill.Mission;
             return own.Select((crate, i) => new SceneBox(
-                rack.CellBox(crate.Position, crate.CrateSize),
+                rack.CellBox(crate),
                 fill,
                 palette[placement.Destination],
                 ToolTip(rack, placement, i + 1, own.Length),

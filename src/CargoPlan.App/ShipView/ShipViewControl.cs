@@ -404,7 +404,7 @@ public sealed class ShipViewControl : FrameworkElement
         {
             foreach (var crateMove in CrateDrop.Moves(source.Ship, move) ?? [new CrateMove(move.Anchor, move.RackId, move.Position)])
             {
-                DrawGhost(dc, source.Ship, crateMove.Crate with { RackId = crateMove.RackId, Position = crateMove.Position }, MissionPalette.RefusedDropBrush, ViolationPen, transform);
+                DrawGhost(dc, source.Ship, crateMove.Crate with { RackId = crateMove.RackId, Position = crateMove.Position, Rotated = crateMove.Rotated }, MissionPalette.RefusedDropBrush, ViolationPen, transform);
             }
         }
 
@@ -436,7 +436,7 @@ public sealed class ShipViewControl : FrameworkElement
     private void DrawGhost(DrawingContext dc, Ship ship, Crate crate, Brush fill, Pen pen, ViewTransform transform)
     {
         var rack = ship.Racks.Single(r => r.Id == crate.RackId);
-        foreach (var face in SceneProjector.ProjectBox(rack.CellBox(crate.Position, crate.CrateSize), _navigation.Camera))
+        foreach (var face in SceneProjector.ProjectBox(rack.CellBox(crate), _navigation.Camera))
         {
             dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
         }

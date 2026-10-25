@@ -82,9 +82,6 @@ public sealed record Rack(
     /// <summary>True if one crate of this size fits the grid turned or not (D71), whatever <see cref="MaxCrateSize"/> says.</summary>
     public bool FitsGrid(CrateSize size) => FitsGrid(Grid, size);
 
-    /// <summary>True if one box of <paramref name="shape"/> fits the grid as it lies.</summary>
-    public bool Fits(Dimensions shape) => Fits(Grid, shape);
-
     private static bool FitsGrid(Dimensions grid, CrateSize size) => Fits(grid, size.Shape(false)) || Fits(grid, size.Shape(true));
 
     private static bool Fits(Dimensions grid, Dimensions shape) =>
