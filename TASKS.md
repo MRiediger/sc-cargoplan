@@ -1588,6 +1588,38 @@ Reihenfolge innerhalb von K2 (Branch `feat/k2-plan-editor`): K2.1 Füllrichtung 
 - Die CLI-Textausgabe nennt Racks, keine Zellen: Mit und ohne Feld sieht sie gleich aus, P5 ist dort nicht sichtbar.
 - Commits 5b39915 (Fixtures), 7008222 (Core-Tests rot), eb76cd5 (Core), af87047 (App-Tests rot), 1f7c98f (App), Doku-Commit.
 
+### [ ] K2.2 Haken-Erhalt beim Schiffswechsel und bei `RacksChanged` (D59-Addendum) (25.10.2026)
+**Warum:** Offene Zeile aus D59: Auf einem anderen Schiff kamen nur ganz abgehakte Stopps abgehakt zurück, Legendenzeilen und der D41-Fall nicht, und abgehakte Fracht belegte beim Planen Platz; seit K3.2 galt das auch für `RacksChanged`. Regel: Was abgeliefert ist, bleibt abgeliefert.
+
+**Ist-Zustand vor K2.2 (A1):** Der Haken liegt seit D24 pro Kiste (`Crate.Delivered`), `SetDelivered` hakt ganze Lieferungen ab (Stopp oder Mission × Ziel). Auf dem eigenen Schiff war der D41-Fall damit schon gelöst (neue Fracht = neue Mission); der Verlust lag nur in `ReplanForShip`, über das Schiffswechsel, `RacksChanged` und fremde Kappung laufen.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 Einheit = Lieferung (Mission × Ziel, die Legendenzeile), ganz abgehakt = alle Kisten abgehakt; abgelieferte Lieferungen verlassen die Mission vor dem Planen, ohne Haken bleibt der Weg der alte; P2 Variante **B** (Martin): abgelieferte Fracht war nie auf dem neuen Schiff, wird nicht gezeichnet, nur die Legende zeigt den Haken; Kennzeichen **Plan-Schema 6** mit `crates[].offShip` (Martin, statt einer Platzhalter-Position); Zurückhaken legt ein wie `PlaceInto` (Martin, statt Ablehnen); P3 Off-Ship-Kisten werden von Rack-, Gitter- und `Validate`-Prüfung übergangen (eine gesetzte 16 auf dem Clipper bleibt abgehakt); P4 bekannte Grenze: eine Mission, deren Rest auf dem neuen Schiff wartet, verliert den Haken ihrer Lieferung; P5 die Frage zählt Lieferungen; P6 Addenda zu D59, D41, D24 statt eigenem D-Eintrag.
+- Core: `Crate.NoRack`, `Crate.OffShip`, `Crate.OffShipOf`; `ReplanForShip` mit `Undelivered`, `PlanOrPlace`; `LayStop` aus `StopByStop` herausgelöst, genutzt von `BackOnBoard` (Zurückhaken); `SetDelivered` legt Off-Ship-Kisten ein; `Validate` und `PlanFileDto.Checked` übergehen sie; Plan-Schema 6 (`PlanFile.NoOffShipSchemaVersion = 5`, `CrateDto.OffShip`, `CheckOffShip`); `CheckRotated` nennt Schema 5 statt des aktuellen
+- App: `ShipChangeQuestion`/`TicksStayText` zählen Lieferungen („2 deliveries already ticked – ticks stay.“); Zeichnung, Legende und Text brauchen nichts, Off-Ship-Kisten liegen in keinem Rack
+- Tests: `ShipChangeTickTests` (16), `ReplanTimingTests.Ship_change_with_and_without_ticks`, App `ShipChangeTests`/`LegendByMissionTests` (+4, zwei Texte geändert); Schema-Tests auf 6, `Schema_7_is_refused`
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.372 / 141 / 1.151 | 1.388 / 141 / 1.155 |
+| Golden-Files geändert | erwartet nur `schemaVersion` (Schema 6) | nur `schemaVersion` 5 → 6, Rest byte-gleich |
+| `ReplanTests`, `ReplanInPlaceTests`, B2-Property-Test | grün | unverändert grün; Slow grün |
+| `ReplanTimingTests` Median (Release) | example 0,4 · split_and_shared 0,8 · split_required 0,3 · crate_mix 0,5 · Hull A acht Stopps 6,2 · Hurston 2,3 · Freelancer 2,5 · Perseus 2,9 · Stresslast 82,5 ms | 0,5 · 0,8 · 0,3 · 0,5 · 6,5 · 2,2 · 2,6 · 2,9 · 76,1 ms; Suchzähler gleich |
+| Schiffswechsel acht Stopps (Release, Median) | Hull A → Freelancer 1,1 / mit zwei Stopps abgehakt 1,3; zurück 3,3 / 3,4 ms | 1,2 / 1,0; zurück 3,1 / 0,9 ms |
+
+**Akzeptanz:**
+- [x] Abgehakter Stopp und abgehakte Legendenzeile bleiben über Schiffswechsel hin und zurück abgehakt; die andere Mission desselben Ziels bleibt an Bord
+- [x] D41-Fall: Stopp abgehakt, Sync legt neue Mission dorthin nach → nach dem Wechsel nur die alte Lieferung abgehakt
+- [x] Abgehakte Fracht belegt nichts: die Fracht an Bord liegt wie ein Plan ohne sie; 72 SCU auf der C2 mit 32 abgehakt passen ganz auf die Hull A
+- [x] `RacksChanged` behält Zeilenhaken; Sync und Re-plan auf dem neuen Schiff lassen Off-Ship-Kisten stehen
+- [x] Zurückhaken legt in freie Zellen, sonst nichts bewegt, Legende behält die Reihenfolge; ohne Platz abgelehnt
+- [x] Plan-Schema 6 schreibt `offShip` nur bei true; Schema 5 mit `offShip`, ohne `delivered` oder mit Rack → Fehler; Schema 7 abgelehnt
+- [x] Overlay: Kisten eines abgehakten Stopps auf dem neuen Schiff nicht gezeichnet; Frage zählt Lieferungen
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün
+- [ ] Gate (Martin): Hull A, einen Stopp und eine Legendenzeile abhaken, auf die Freelancer wechseln → beide Haken bleiben, deren Kisten fehlen in der Ansicht, Kapazität ohne sie; zurück auf die Hull A → gleich; einen Haken zurücknehmen → Kisten erscheinen
+- Commits 16257ed (Core-Tests rot), da24cf0 (Core), 97bf144 (App-Tests rot), 69fdc76 (App), Doku-Commit.
+
 ---
 
 ## Phase 8 – nach dem Launch

@@ -15,7 +15,7 @@ doesn't mind.
 
 ```json
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
   "contractTrackerWatermark": 37,
@@ -54,7 +54,7 @@ fields are an error.
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `5`. Files with `1` to `4` are still read, see [Older plan files](#older-plan-files). |
+| `schemaVersion` | number | `6`. Files with `1` to `5` are still read, see [Older plan files](#older-plan-files). |
 | `shipId` | string | The ship the plan is for, e.g. `"hull_a"` ([ship files](ship-format.md)). |
 | `fillOrder` | string | `"bowFirst"` or `"sternFirst"`: which end of a rack's length crates fill from, when planned and when laid out again, e.g. after a move. Chosen as **Fill order** in the editor. Part of the plan, so everyone loading it sees the same layout. |
 | `contractTrackerWatermark` | number | The highest ContractTracker id taken into the plan, `0` for none. Captures above it are new; it only rises. |
@@ -90,12 +90,13 @@ pickup list when items name their pickup.
 | `destination` | string | A destination of its mission, same spelling. |
 | `commodity` | string | The commodity, as in its mission. |
 | `crateSize` | number | 1, 2, 4, 8, 16, 24 or 32 (SCU). Unturned: 1 = 1×1×1 cells, 2 = 2×1×1, 4 = 2×2×1, 8 = 2×2×2, 16 = 4×2×2, 24 = 6×2×2, 32 = 8×2×2 (length × width × stack). |
-| `rackId` | string | A rack `id` of the ship. |
-| `position` | array | `[length, width, stack]`, the crate's corner cell counted from 0 at the rack's corner: length along the rack, width across it, stack away from the plate. The whole crate must lie inside the rack's `grid`. |
-| `delivered` | boolean | `true` once the stop is ticked off. All crates of a stop are ticked together. A delivered crate is off the ship: its cells are free for new crates, and it carries nothing. Ticking back works until another crate takes one of its cells. |
+| `rackId` | string | A rack `id` of the ship; `""` for a crate that is `offShip`. |
+| `position` | array | `[length, width, stack]`, the crate's corner cell counted from 0 at the rack's corner: length along the rack, width across it, stack away from the plate. The whole crate must lie inside the rack's `grid`. `[0, 0, 0]` and not checked for a crate that is `offShip`. |
+| `delivered` | boolean | `true` once its delivery is ticked off: a stop (every mission's crates for it) or one mission's crates for it (a legend line). A delivered crate is off the ship: its cells are free for new crates, and it carries nothing. Ticking back works until another crate takes one of its cells. |
 | `mission` | number | The `id` of the mission the crate belongs to; not an `unplaced` one. |
 | `item` | number | Which item of its mission the crate belongs to, counted from 0 over the mission's stops and their items in file order. Its destination and commodity are the crate's. Two items of one kind (e.g. from two pickups) keep their own crates. |
 | `rotated` | boolean | Optional, written only as `true`: the crate is turned 90° about its rack's stack axis, so length and width swap (a turned 2 is 1×2×1, a turned 32 is 2×8×2). Only 2, 16, 24 and 32 turn; `true` on a 1, 4 or 8 is an error. Missing means unturned (D71). |
+| `offShip` | boolean | Optional, written only as `true`: the crate was delivered before the plan was planned anew for another ship or for racks that changed, so it was never on this ship. It lies in no rack (`rackId` `""`), takes no room and isn't drawn. Needs `delivered`. Ticked back, it is laid into free cells like new cargo, or refused if there is no room. |
 
 ### Warning
 
@@ -115,8 +116,11 @@ red; the planner and the overlay's moves never make them.
 
 ## Older plan files
 
-All older versions are read and saved as schema 5 right after loading; moves and ticks stay. An app from before
-schema 5 refuses a schema 5 file, so it never drops how a crate lies.
+All older versions are read and saved as schema 6 right after loading; moves and ticks stay. An app from before
+schema 6 refuses a schema 6 file, so it never draws delivered cargo into a rack it was never in.
+
+- **Schema 5** (before cargo could be off the ship) has no `offShip`: every crate lies in a rack. `offShip` in a
+  schema 5 file is an error.
 
 - **Schema 4** (before crates turned) has no `rotated`: every crate lies unturned. `rotated` in a schema 4 file is an
   error.
@@ -136,7 +140,8 @@ schema 5 refuses a schema 5 file, so it never drops how a crate lies.
 
 A plan file whose `shipId` is not the overlay's ship loads anyway: its missions are planned anew for the
 overlay's ship, as a ship change in the overlay header does (D59). Missions, ContractTracker ids, the watermark, the fill
-order and the ticks of whole stops stay; crate positions and manual moves don't. If the missions don't fit as a
+order and the ticks stay; crate positions and manual moves don't. Each ticked delivery (a legend line) stays ticked
+and goes `offShip`: it takes no room on the new ship, so only the cargo still on board is planned. If the missions don't fit as a
 whole plan, they go in mission by mission and the rest waits as "doesn't fit" in the legend. An amber line says
 "Plan was made for CRUS C2 Hercules, replanned for MISC Hull A.", and the next save writes the plan for the new ship.
 Its crates are not checked against the old ship's racks; the crates against their missions still are.
@@ -149,7 +154,7 @@ A schema 1 file for another ship is an error (below): laying out its cargo needs
 
 A crate that lies outside its rack in today's ship file means the racks changed since the file was written: a newer
 app version with updated ship data (for example, the racks of 21 ships went back to Fleetyards' orientation, D71).
-Such a file loads like a plan for another ship: its missions are planned anew, ticks of whole stops stay, positions
+Such a file loads like a plan for another ship: its missions are planned anew, ticks stay (`offShip`), positions
 and moves don't, and the amber line says "Plan was made for other racks, replanned for MISC Freelancer.". This holds
 for every schema version.
 
