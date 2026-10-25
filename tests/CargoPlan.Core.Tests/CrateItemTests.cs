@@ -202,11 +202,11 @@ public class CrateItemTests
     private static SavedPlan Read(string json) => PlanFile.Read(new MemoryStream(Encoding.UTF8.GetBytes(json)), "plan.json", HullA);
 
     [Fact]
-    public void Write_writes_schema_4_with_the_item_of_every_crate_and_the_pickups()
+    public void Write_writes_schema_5_with_the_item_of_every_crate_and_the_pickups()
     {
         var node = JsonNode.Parse(Written(Planned(TwoPickups())))!;
 
-        node["schemaVersion"]!.GetValue<int>().Should().Be(4);
+        node["schemaVersion"]!.GetValue<int>().Should().Be(5);
         node["crates"]!.AsArray().Select(c => c!["item"]!.GetValue<int>()).Order().Should().Equal(0, 1);
         node["missions"]![0]!["stops"]![0]!["items"]![1]!["pickup"]!.AsArray().Select(p => p!.GetValue<string>()).Should().Equal("Area18");
     }

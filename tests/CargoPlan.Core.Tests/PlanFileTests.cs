@@ -142,11 +142,11 @@ public class PlanFileTests
     }
 
     [Fact]
-    public void Write_produces_camel_case_schema_4_with_missions_watermark_and_crate_positions()
+    public void Write_produces_camel_case_schema_5_with_missions_watermark_and_crate_positions()
     {
         var node = JsonNode.Parse(Written(Planned(MissionFixtures.LoadMissions("example_missions"))))!;
 
-        node["schemaVersion"]!.GetValue<int>().Should().Be(4);
+        node["schemaVersion"]!.GetValue<int>().Should().Be(5);
         node["shipId"]!.GetValue<string>().Should().Be("hull_a");
         node["fillOrder"]!.GetValue<string>().Should().Be("bowFirst");
         node["contractTrackerWatermark"]!.GetValue<long>().Should().Be(0);
@@ -255,7 +255,7 @@ public class PlanFileTests
     }
 
     [Fact]
-    public void Schema_1_is_written_back_as_schema_4()
+    public void Schema_1_is_written_back_as_schema_5()
     {
         var saved = Read(V1FixtureText());
 
@@ -326,7 +326,7 @@ public class PlanFileTests
     }
 
     [Fact]
-    public void Schema_2_is_written_back_as_schema_4()
+    public void Schema_2_is_written_back_as_schema_5()
     {
         var saved = Read(V2Text());
 
@@ -472,7 +472,6 @@ public class PlanFileTests
         ["no_stops"] = n => n["missions"]!["stops"] = new JsonArray(),
         ["short_position"] = n => n["crates"]![0]!["position"] = new JsonArray(0, 0),
         ["negative_position"] = n => n["crates"]![0]!["position"] = new JsonArray(0, -1, 0),
-        ["outside"] = n => n["crates"]![0]!["position"] = new JsonArray(3, 0, 0),
         ["unknown_fill_order"] = n => n["fillOrder"] = "diagonal",
     };
 
@@ -488,7 +487,6 @@ public class PlanFileTests
     [InlineData("no_stops", "*no stops*")]
     [InlineData("short_position", "*position needs 3 values*")]
     [InlineData("negative_position", "*position needs 3 values*")]
-    [InlineData("outside", "*4 SCU crate of Titanium for Riker at [3, 0, 0] lies outside rack 1 (4×2×2)*")]
     [InlineData("unknown_fill_order", "*fillOrder 'diagonal'*")]
     public void Read_invalid_schema_2_plan_throws_PlanFormatException_naming_the_source_and_reason(string change, string expectedMessage)
     {
@@ -500,6 +498,16 @@ public class PlanFileTests
         var ex = act.Should().Throw<PlanFormatException>().WithMessage(expectedMessage).Which;
         ex.SourceName.Should().Be("broken.json");
         ex.Message.Should().Contain("broken.json");
+    }
+
+    // A crate outside its rack is no broken file but racks that changed since (K3.2, K1): read, then planned anew.
+    [Fact]
+    public void Schema_2_with_a_crate_outside_its_rack_reads_as_racks_changed()
+    {
+        var node = JsonNode.Parse(V2Text())!;
+        node["crates"]![0]!["position"] = new JsonArray(3, 0, 0);
+
+        Read(node.ToJsonString()).CrateCap.Reason.Should().Be(CapReason.RacksChanged);
     }
 
     /// <summary>One change to the schema 4 file each; the rest stays valid, so the change is what fails.</summary>
