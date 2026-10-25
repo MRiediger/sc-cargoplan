@@ -14,7 +14,8 @@ public sealed class AppearanceRulesTests
         appearance.Header.Should().Be(new HeaderAppearance(Foreground: "#FFE6E6E6", Halo: new HaloSettings(false, "#E0141414", 3)));
         appearance.Legend.Should().Be(new LegendAppearance(
             Foreground: "#FFE6E6E6", FontSize: null, Halo: new HaloSettings(false, "#E0141414", 3), CheckBoxColor: "#FFB0B0B0", CheckMarkColor: "#FFB0B0B0"));
-        appearance.Crates.Should().Be(new CrateAppearance(FillAlpha: 0xD0, EdgeAlpha: 0xC0, RackNumberColor: "#FFFFFFFF", RackNumberFontSize: 27, Halo: new HaloSettings(true, "#E0141414", 3)));
+        appearance.Crates.Should().Be(new CrateAppearance(
+            FillAlpha: 0xD0, EdgeAlpha: 0xC0, RackNumberColor: "#FFFFFFFF", RackNumberFontSize: 27, Halo: new HaloSettings(true, "#E0141414", 3), StopPalette: "okabeIto"));
         appearance.Buttons.Should().Be(new ButtonAppearance(
             Background: "#01000000", BorderColor: "#FFE6E6E6", BorderThickness: 0, CornerRadius: 3, Halo: new HaloSettings(false, "#E0141414", 3)));
     }
@@ -35,7 +36,7 @@ public sealed class AppearanceRulesTests
             new WindowAppearance("#E0300000", "#FF00FF00", 10),
             new HeaderAppearance("#FFFFFF00", new HaloSettings(true, "#FF000000", 20)),
             new LegendAppearance("#FF00FFFF", 32, new HaloSettings(true, "#80000000", 1), "#40FF0000", "#FF00FF00"),
-            new CrateAppearance(0, 255, "#FFFF0000", 48, HaloSettings.Off),
+            new CrateAppearance(0, 255, "#FFFF0000", 48, HaloSettings.Off, "tolMuted"),
             new ButtonAppearance("#01FFFFFF", "#FFFFFFFF", 0, 13, HaloSettings.Off));
 
         var (appearance, problems) = AppearanceRules.Normalize(custom);
@@ -130,6 +131,23 @@ public sealed class AppearanceRulesTests
 
         appearance.Legend.Should().Be(LegendAppearance.Default);
         problems.Should().ContainSingle().Which.Should().Contain($"appearance.legend.{key}").And.Contain("using #FFB0B0B0");
+    }
+
+    [Theory]
+    [InlineData("ibm")]
+    [InlineData("OkabeIto")]
+    [InlineData("tol-bright")]
+    [InlineData("")]
+    public void Unknown_stop_palette_takes_okabe_ito_with_a_problem(string name)
+    {
+        var (appearance, problems) = AppearanceRules.Normalize(AppearanceSettings.Default with
+        {
+            Crates = CrateAppearance.Default with { StopPalette = name },
+        });
+
+        appearance.Crates.StopPalette.Should().Be("okabeIto");
+        problems.Should().ContainSingle().Which.Should().Be(
+            $"appearance.crates.stopPalette \"{name}\" is not valid (okabeIto, tolBright or tolMuted), using okabeIto.");
     }
 
     [Fact]

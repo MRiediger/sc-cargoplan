@@ -67,6 +67,24 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void The_stop_palette_goes_to_the_view_model_at_start_and_on_change()
+    {
+        // K4.2: not a theme resource but a view model property, so the scene and with it the selection stay (D25).
+        _viewModel.StopPalette.Should().BeSameAs(ShipView.StopPalettes.OkabeIto);
+        var session = Create(AppSettings.Default with
+        {
+            Appearance = AppearanceSettings.Default with { Crates = CrateAppearance.Default with { StopPalette = "tolMuted" } },
+        });
+        _viewModel.StopPalette.Should().BeSameAs(ShipView.StopPalettes.TolMuted);
+        var scene = _viewModel.Scene;
+
+        session.ChangeLook(AppearanceSettings.Default with { Crates = CrateAppearance.Default with { StopPalette = "tolBright" } }, LegendSettings.Default);
+
+        _viewModel.StopPalette.Should().BeSameAs(ShipView.StopPalettes.TolBright);
+        _viewModel.Scene.Should().BeSameAs(scene);
+    }
+
+    [Fact]
     public void ChangeBounds_writes_at_once_with_a_pending_look()
     {
         var session = Create();

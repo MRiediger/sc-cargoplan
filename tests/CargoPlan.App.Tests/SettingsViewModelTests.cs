@@ -52,7 +52,7 @@ public sealed class SettingsViewModelTests
         new WindowAppearance("#40102030", "#FF00FF00", 2),
         new HeaderAppearance("#FF123456", HaloSettings.On),
         new LegendAppearance("#FFABCDEF", 14, new HaloSettings(true, "#80FFFFFF", 5), "#80FF0000", "#FF00FF00"),
-        new CrateAppearance(FillAlpha: 100),
+        new CrateAppearance(FillAlpha: 100, StopPalette: "tolBright"),
         new ButtonAppearance(CornerRadius: 0));
 
     [Fact]
@@ -338,12 +338,13 @@ public sealed class SettingsViewModelTests
     {
         var appearance = Changed with
         {
-            Crates = new CrateAppearance(100, 50, "#FF00FFFF", 30, HaloSettings.Off),
+            Crates = new CrateAppearance(100, 50, "#FF00FFFF", 30, HaloSettings.Off, "tolMuted"),
             Buttons = new ButtonAppearance("#20FFFFFF", "#FF0000FF", 2, 5, HaloSettings.On),
         };
 
         var viewModel = Create(appearance);
 
+        viewModel.StopPalette.Should().Be(StopPaletteName.TolMuted);
         viewModel.CratesFillAlpha.Should().Be(100);
         viewModel.CratesEdgeAlpha.Should().Be(50);
         viewModel.CratesRackNumberColor.Value.Should().Be("#FF00FFFF");
@@ -425,6 +426,27 @@ public sealed class SettingsViewModelTests
         Last.Legend.Should().Be(new LegendSettings(false, "top-center"));
         viewModel.CratesFillAlpha.Should().Be(CrateAppearance.Default.FillAlpha);
         viewModel.CratesHalo.Enabled.Should().BeTrue();
+        viewModel.StopPalette.Should().Be(StopPaletteName.OkabeIto);
+    }
+
+    [Fact]
+    public void A_stop_palette_applies_once_with_only_the_palette_changed()
+    {
+        var viewModel = Create();
+
+        viewModel.StopPalette = StopPaletteName.TolMuted;
+
+        _applied.Should().ContainSingle();
+        Last.Appearance.Should().Be(AppearanceSettings.Default with { Crates = CrateAppearance.Default with { StopPalette = "tolMuted" } });
+    }
+
+    [Fact]
+    public void The_stop_palettes_name_their_colour_count()
+    {
+        SettingsViewModel.StopPaletteChoices.Select(c => (c.Value, c.Text)).Should().Equal(
+            (StopPaletteName.OkabeIto, "Okabe-Ito · 8 colors"),
+            (StopPaletteName.TolBright, "Tol Bright · 6 colors"),
+            (StopPaletteName.TolMuted, "Tol Muted · 7 colors"));
     }
 
     [Fact]
