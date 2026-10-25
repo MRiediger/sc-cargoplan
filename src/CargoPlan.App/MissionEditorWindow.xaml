@@ -56,6 +56,9 @@
             <!-- Lays out the plan, not the rows: a deliberate action next to Import and Sync, not in the overlay header (D66). -->
             <Button Content="Re-plan" Command="{Binding ReplanCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Lay out all cargo on board anew – ticks, crate sizes and fill order stay; you restack the ship" />
+            <!-- Empties the plan, not the rows; the next sync starts over (K2.3, Martin's variant a). -->
+            <Button Content="Discard plan" Command="{Binding DiscardPlanCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTip="Empty the plan and start over; the next Sync from ContractTracker brings every contract back. Fill order stays." />
             <!-- "Sync", not "Load": Import… next to it replaces the rows, this adds new captures to the plan (T5.4). -->
             <Button Content="Sync from ContractTracker" Command="{Binding SyncCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Add contracts captured in ContractTracker to the plan, and place waiting missions that fit now" />

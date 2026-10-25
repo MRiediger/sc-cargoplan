@@ -1558,6 +1558,138 @@ D58 bleibt unberührt (kein Budget-Problem, keine offene Frage). Rot nach dem R�
 - [x] Gate Traktorstrahl (Martin, 25.10., bestanden): 2er hochkant an eine Hull-A-Platte geht im Spiel; `CanTurn` bleibt für jedes Rack
 - Commits 04669b3 (Rückbau), 3c8a52b (Core-Tests rot), 748a3ed (Core), 52f6475 (Zeichnen), c4af6ad (App-Tests rot), b34c8be (Rad), b173294 (Doku), Abnahme-Commit; Merge `--no-ff` nach main.
 
+Reihenfolge innerhalb von K2 (Branch `feat/k2-plan-editor`): K2.1 Füllrichtung → K2.2 Haken-Erhalt → K2.3 Discard plan → K2.4 Undo/Redo zuletzt, weil der Stack alle anderen Aktionen umschließt. Schema-Stand vor K2: Schiff 5, Plan 5, Mission 2.
+
+### [x] K2.1 Füllrichtung in Missionsdateien (D72) (25.10.2026)
+**Warum:** Die Füllrichtung stand nur in `plan.json` (D24, T4.5); ein Koordinator, der die Route als Missionsdatei teilt, konnte sie nicht mitgeben (Guide: „exported mission files don't carry it“).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 `MissionFileReader.Read` liefert `MissionFile(Stops, FillOrder?)`, `MissionFileWriter.Write(stream, stops, fillOrder)` mit Pflichtparameter (kein zweiter Lesepfad); P2 Wörter und Switch aus `PlanFileDto` nach `FillOrderJson` verschoben, nicht kopiert; P3 `fillOrder` in Schema 2 abgelehnt, unbekannter Wert mit der Meldung des Plans, Schema 3 ohne Feld gültig; P4 eingebettete Missionen in Plan-Schema 1/2 bleiben Mission 1|2 (bestehender Test `inner_schema`); P5 CLI `plan` nimmt die Richtung aus der Datei, sonst Bug zuerst; P6 Import mit Feld setzt den Entwurf (wirkt erst mit Plan), ohne Feld bleibt die Richtung, Export schreibt die des Entwurfs; P7 `fillOrder` direkt nach `schemaVersion`; P8 eigener Eintrag D72, D24-Addendum.
+- Core: `MissionFile`, `FillOrderJson` (`Parse`, `Text`), `MissionFileDto(SchemaVersion, Stops, FillOrder?)` mit `ToMissionFile`, `JsonPropertyOrder` auf `Stops`; `MissionFileReader.CurrentSchemaVersion = 3`, `NoFillOrderSchemaVersion = 2`, `EmbeddedSchemaVersions`; `PlanFileDto`/`PlanFileV2Dto` über `FillOrderJson`
+- App: `MissionEditorViewModel.Import` setzt `FillOrder` aus der Datei, `Export` übergibt sie
+- Daten/Tests: Fixtures `fill_order_stern.json` (Writer-Format), `schema3_without_fill_order.json`, `Invalid/fill_order_in_v2.json`, `Invalid/unknown_fill_order.json`; `Invalid/unsupported_schema` 3 → 4; Reader-, Writer- und Editor-Tests; `MissionFixtures.LoadFile`/`Text`
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.358 / 141 / 1.145 | 1.372 / 141 / 1.151 |
+| Golden-Files und Plan-Fixtures geändert | erwartet 0 | 0 |
+| Missions-Fixtures geändert | erwartet nur `Invalid/unsupported_schema` | nur diese (3 → 4) |
+| Schema-3-Datei lesen → schreiben | – | byte-gleich (Core bis auf Zeilenenden; Editor Import → Export byte-gleich) |
+| Alter Leser auf Schema 3 | – | „schemaVersion 3 is not supported (expected 1 or 2)“ |
+
+**Akzeptanz:**
+- [x] Schema 3 mit `fillOrder` lädt mit Richtung, ohne Feld und Schema 1/2 ohne (`MissionFileReaderTests`)
+- [x] Import mit Feld setzt die Richtung als ungeplante Änderung, ohne Feld bleibt sie; Clear rows behält sie (`MissionEditorViewModelTests`)
+- [x] Export schreibt die Richtung immer, nach `schemaVersion`; Rundreise byte-gleich (`MissionFileWriterTests`, Editor)
+- [x] Stern-first-Datei importiert und geplant → Kisten wie `SternFirst`
+- [x] `fillOrder` in Schema 2 und unbekannter Wert → Fehlermeldung mit Grund; Schema 4 → „expected 1 or 2 or 3“
+- [x] Goldens unverändert; `dotnet build` ohne Warnungen; `dotnet test` grün
+- Die CLI-Textausgabe nennt Racks, keine Zellen: Mit und ohne Feld sieht sie gleich aus, P5 ist dort nicht sichtbar.
+- Commits 5b39915 (Fixtures), 7008222 (Core-Tests rot), eb76cd5 (Core), af87047 (App-Tests rot), 1f7c98f (App), Doku-Commit.
+
+### [x] K2.2 Haken-Erhalt beim Schiffswechsel und bei `RacksChanged` (D75) (25.10.2026)
+**Warum:** Offene Zeile aus D59: Auf einem anderen Schiff kamen nur ganz abgehakte Stopps abgehakt zurück, Legendenzeilen und der D41-Fall nicht, und abgehakte Fracht belegte beim Planen Platz; seit K3.2 galt das auch für `RacksChanged`. Regel: Was abgeliefert ist, bleibt abgeliefert.
+
+**Ist-Zustand vor K2.2 (A1):** Der Haken liegt seit D24 pro Kiste (`Crate.Delivered`), `SetDelivered` hakt ganze Lieferungen ab (Stopp oder Mission × Ziel). Auf dem eigenen Schiff war der D41-Fall damit schon gelöst (neue Fracht = neue Mission); der Verlust lag nur in `ReplanForShip`, über das Schiffswechsel, `RacksChanged` und fremde Kappung laufen.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 Einheit = Lieferung (Mission × Ziel, die Legendenzeile), ganz abgehakt = alle Kisten abgehakt; abgelieferte Lieferungen verlassen die Mission vor dem Planen, ohne Haken bleibt der Weg der alte; P2 Variante **B** (Martin): abgelieferte Fracht war nie auf dem neuen Schiff, wird nicht gezeichnet, nur die Legende zeigt den Haken; Kennzeichen **Plan-Schema 6** mit `crates[].offShip` (Martin, statt einer Platzhalter-Position); Zurückhaken legt ein wie `PlaceInto` (Martin, statt Ablehnen); P3 Off-Ship-Kisten werden von Rack-, Gitter- und `Validate`-Prüfung übergangen (eine gesetzte 16 auf dem Clipper bleibt abgehakt); P4 bekannte Grenze: eine Mission, deren Rest auf dem neuen Schiff wartet, verliert den Haken ihrer Lieferung; P5 die Frage zählt Lieferungen; P6 Addenda zu D59, D41, D24 statt eigenem D-Eintrag – bei der Abnahme auf Martins Wunsch eigener Eintrag **D75** (nach D73/D74, ohne Umnummerierung), D59 behält einen Verweis.
+- Core: `Crate.NoRack`, `Crate.OffShip`, `Crate.OffShipOf`; `ReplanForShip` mit `Undelivered`, `PlanOrPlace`; `LayStop` aus `StopByStop` herausgelöst, genutzt von `BackOnBoard` (Zurückhaken); `SetDelivered` legt Off-Ship-Kisten ein; `Validate` und `PlanFileDto.Checked` übergehen sie; Plan-Schema 6 (`PlanFile.NoOffShipSchemaVersion = 5`, `CrateDto.OffShip`, `CheckOffShip`); `CheckRotated` nennt Schema 5 statt des aktuellen
+- App: `ShipChangeQuestion`/`TicksStayText` zählen Lieferungen („2 deliveries already ticked – ticks stay.“); Zeichnung, Legende und Text brauchen nichts, Off-Ship-Kisten liegen in keinem Rack
+- Tests: `ShipChangeTickTests` (16), `ReplanTimingTests.Ship_change_with_and_without_ticks`, App `ShipChangeTests`/`LegendByMissionTests` (+4, zwei Texte geändert); Schema-Tests auf 6, `Schema_7_is_refused`
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.372 / 141 / 1.151 | 1.388 / 141 / 1.155 |
+| Golden-Files geändert | erwartet nur `schemaVersion` (Schema 6) | nur `schemaVersion` 5 → 6, Rest byte-gleich |
+| `ReplanTests`, `ReplanInPlaceTests`, B2-Property-Test | grün | unverändert grün; Slow grün |
+| `ReplanTimingTests` Median (Release) | example 0,4 · split_and_shared 0,8 · split_required 0,3 · crate_mix 0,5 · Hull A acht Stopps 6,2 · Hurston 2,3 · Freelancer 2,5 · Perseus 2,9 · Stresslast 82,5 ms | 0,5 · 0,8 · 0,3 · 0,5 · 6,5 · 2,2 · 2,6 · 2,9 · 76,1 ms; Suchzähler gleich |
+| Schiffswechsel acht Stopps (Release, Median) | Hull A → Freelancer 1,1 / mit zwei Stopps abgehakt 1,3; zurück 3,3 / 3,4 ms | 1,2 / 1,0; zurück 3,1 / 0,9 ms |
+
+**Akzeptanz:**
+- [x] Abgehakter Stopp und abgehakte Legendenzeile bleiben über Schiffswechsel hin und zurück abgehakt; die andere Mission desselben Ziels bleibt an Bord
+- [x] D41-Fall: Stopp abgehakt, Sync legt neue Mission dorthin nach → nach dem Wechsel nur die alte Lieferung abgehakt
+- [x] Abgehakte Fracht belegt nichts: die Fracht an Bord liegt wie ein Plan ohne sie; 72 SCU auf der C2 mit 32 abgehakt passen ganz auf die Hull A
+- [x] `RacksChanged` behält Zeilenhaken; Sync und Re-plan auf dem neuen Schiff lassen Off-Ship-Kisten stehen
+- [x] Zurückhaken legt in freie Zellen, sonst nichts bewegt, Legende behält die Reihenfolge; ohne Platz abgelehnt
+- [x] Plan-Schema 6 schreibt `offShip` nur bei true; Schema 5 mit `offShip`, ohne `delivered` oder mit Rack → Fehler; Schema 7 abgelehnt
+- [x] Overlay: Kisten eines abgehakten Stopps auf dem neuen Schiff nicht gezeichnet; Frage zählt Lieferungen
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün
+- [x] Gate (Martin, 25.10., bestanden): Hull A, einen Stopp und eine Legendenzeile abhaken, auf die Freelancer wechseln → beide Haken bleiben, deren Kisten fehlen in der Ansicht, Kapazität ohne sie; zurück auf die Hull A → gleich; einen Haken zurücknehmen → Kisten erscheinen
+- Commits 16257ed (Core-Tests rot), da24cf0 (Core), 97bf144 (App-Tests rot), 69fdc76 (App), Doku-Commit.
+
+### [x] K2.3 Discard plan (D73) (25.10.2026)
+**Warum:** Nur „Plan“ ersetzte bisher einen Plan (D19); nach einer Route blieb der alte stehen. Martins Entscheidung: Variante a – Plan leeren **und** Sync-Baseline zurück, der nächste Sync legt alle CT-Verträge wieder nach; kein Merken verworfener Verträge.
+
+**Ist-Zustand vor K2.3 (A1):** Die Sync-Baseline ist der `Watermark` im `SavedPlan`. Ohne Plan legt der Sync einen neuen mit Bug zuerst an, der Editor startet mit Bug zuerst; `HasPlan` war `Plan is not null`.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 leer heißt leerer Plan (keine Missionen, Kisten, Haken, Watermark 0, alte Füllrichtung, Schiff des Overlays), nicht `null`; P2 `HasPlan` = hat Missionen (leerer Plan zeigt den leeren Zustand wie T3.8a, auch nach Löschen der letzten Mission); P3 `LoadPlanner.Discard`; P4 Kommando `DiscardPlan` im Overlay-VM, Notice statt Frage („Plan discarded – the next sync brings every ContractTracker contract back.“); P5 Editor-Knopf „Discard plan“ neben Re-plan, eigene Änderung wie Re-plan; P6 Hotkey `discardPlan`, Default null, settings.json Schema 2 bleibt; P7 laufender Watcher legt beim nächsten Signal nach (gewollt, im Guide); P8 eigener Eintrag D73, Addenda D19, D44.
+- Core: `LoadPlanner.Discard`
+- App: `OverlayViewModel.DiscardPlanCommand`, `DiscardedText`, `HasPlan`; `MissionEditorViewModel.DiscardPlanCommand`, `HasPlan` vom Overlay; `HotkeyAction.DiscardPlan`, `HotkeySettings.DiscardPlan`, `HotkeyService`, `SettingsSession`, `HotkeysViewModel.Discard`, `HotkeyEditor.DiscardLabel`, Zeile im Settings-Fenster, Knopf im Editor
+- Tests: `DiscardTests` (Core, gegen `ContractSync.Apply`), `DiscardPlanCommandTests` (App), Hotkey- und Settings-Tests
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.388 / 141 / 1.155 | 1.391 / 141 / 1.165 |
+| Golden-Files geändert | erwartet 0 | 0 |
+| `ContractSync.Apply` mit Verträgen 36–38 unter Watermark 41 | ohne Discard: nichts | nach Discard: alle drei, Watermark 38, Richtung bleibt |
+
+**Akzeptanz:**
+- [x] Discard leert Missionen, Kisten, Haken; Watermark 0; Füllrichtung und Schiff bleiben (Core und Overlay)
+- [x] Nächster Sync nach Discard bringt alle Verträge zurück
+- [x] Leerer Zustand („No plan…“), Notice, kein Dialog; Kommando ohne Missionen aus
+- [x] Editor-Knopf folgt dem Overlay; saubere Zeilen → eine leere Zeile, Entwurf bleibt, kein „changed outside“, Richtung bleibt
+- [x] Hotkey `discardPlan`: kein Default, Kollision abgelehnt, von Session und Store geschrieben
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [x] Gate (Martin, 25.10., bestanden): Plan mit CT-Verträgen → Discard → leer, Notice; Sync → alles wieder da. Editor-Plan „Stern first“ → Discard → leer, Editor zeigt weiter „Stern first“, auch nach Neustart. Hotkey belegen und auslösen. Blick auf den Notice-Text (Geschmack)
+- Commits 4b3f6bb (Core-Tests rot), 14c5996 (Core), 57cca8b (App-Tests rot), 6d2b53b (App), Doku-Commit.
+
+### [x] K2.4 Undo/Redo (D74) (25.10.2026)
+**Warum:** Seit D65 bewegt ein Drop mehr als die gezogene Kiste, Re-plan (D66) und Discard (D73) ändern den ganzen Plan; Zurückziehen half nur in Stufe 1–2. Martins Entscheidung: Snapshot-Stack mit Redo, nicht persistiert.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Sync (Martin, gegen das Leeren der Stacks): Stacks bleiben, Undo/Redo = Snapshot wiederherstellen und sofort inkrementell syncen, Sync kein Schritt; Haken pro Lieferung auf den wiederhergestellten Plan übertragen; Schiffswechsel leert beide Stacks mit Notice (Martin). P1 Mission löschen (Editor, Legende) ist ein Schritt; P2 Resync ohne Datenbank-Lesen: Captures des aktuellen Plans, die weder Snapshot noch Referenz kannten, kommen per `Apply` wieder herein, Entfernen mit `_present`; P3 Haken: nur was sich seit dem Schritt geändert hat (sonst verlöre Undo von „Plan“ die alten Haken, D19), Schlüssel Vertrag statt Missions-Id; P4 Eintrag = Ziel + Referenz; P5 `MaxSteps` 100 nach Messung; P6 ↶ ↷ links vom Zahnrad, nur mit Schritt, beim Lock versteckt; P7 Hotkeys `undo`/`redo`; P8 `ContractSync.Resync`, `LoadPlanner.CarryTicks`, `PlanHistory`; P9 eigener Eintrag D74, Addenda D59, D65, D66.
+- Core: `ContractSync.Resync`, `LoadPlanner.CarryTicks`
+- App: `PlanHistory`; `OverlayViewModel.Step`, `UndoCommand`, `RedoCommand`, `CanUndo`, `CanRedo`, `HistoryClearedByShipChangeText`; Kopfzeilen-Knöpfe; Hotkeys `undo`/`redo` (`HotkeyAction`, `HotkeySettings`, `HotkeyService`, `SettingsSession`, `HotkeysViewModel`, Settings-Fenster)
+- Tests: `UndoRestoreTests` (Core, 10), `UndoRedoTests` (App), `UndoTimingTests` (App, Timing, von Hand; App-Tests haben jetzt `default.runsettings` wie Core), Kopfzeilen-XAML, Hotkey- und Settings-Tests
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.391 / 141 / 1.165 | 1.401 / 141 / 1.182 |
+| Golden-Files geändert | erwartet 0 | 0 |
+| Speicher ganzer Plan (Hull A acht Stopps / Hurston 25.10. / C2 acht Stopps) | 8,6 / 10,5 / 8,2 KB | – (Snapshots teilen Unverändertes) |
+| Zuwachs je Move | 2,5 / 1,9 / 1,7 KB | – |
+| Plan anzeigen (Validierung + Szene) | 0,4 / 0,4 / 0,6 ms | – |
+| Erstes Undo nach Move, Sync und Haken (mit Resync) / Redo | – | 0,85–0,99 / 0,44–0,48 · 0,88–0,91 / 0,38–0,39 · 1,18–1,19 / 0,53 ms (Ziel < 16 ms) |
+
+**Akzeptanz:**
+- [x] Drei Moves, dreimal Undo, zweimal Redo, neuer Move → Redo weg (`UndoRedoTests`)
+- [x] Re-plan → Undo stellt die alte Anordnung her; Discard → Undo bringt den Plan zurück
+- [x] Move → Haken → Undo → Haken steht; → Redo → Haken steht
+- [x] Sync nach Move → Undo behält den nachgelegten Vertrag; Ticks und Syncs sind keine Schritte
+- [x] Plan im Editor, Mission löschen, Split sind Schritte; Schiffswechsel leert beide Stacks mit Notice
+- [x] `MaxSteps` 100; Kopfzeile ↶ ↷ links vom Zahnrad, nur mit Schritt, beim Lock versteckt; Hotkeys ohne Default
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [x] Gate (Martin, 25.10., bestanden): Hull A, drei Moves, dreimal Undo, zweimal Redo, neuer Move → ↷ weg; Re-plan → Undo; Discard → Undo; Move → Haken → Undo → Haken steht; Sync dazwischen → Undo behält den Vertrag; Schiffswechsel → Knöpfe weg, Notice; Neustart → Knöpfe weg. Blick auf die Kopfzeile (Geschmack: Knöpfe, Kürzung des Schiffsnamens)
+- Commits 6095b57 (Messung vorher), 11e4ecd (Core-Tests rot), bfb31c0 (Core), 966b534 (App-Tests rot), 01fb78b (App), Doku-Commit.
+
+### Abschluss der K2-Session (25.10.2026)
+- Alle vier Tasks von Martin abgenommen (Gates K2.2–K2.4 bestanden, K2.1 ohne Gate). K2.2 bekam bei der Abnahme einen eigenen Eintrag (D75).
+- Tests: Core 1.358 → 1.401, Import 141 → 141, App 1.145 → 1.182; Slow grün; Exhaustive grün (8 min 7 s).
+- Merge `--no-ff` nach main, Push durch Martin.
+
+**Übergabe für den K1-Startprompt:**
+- **Schema-Stand:** Schiff 5, Plan **6** (`crates[].offShip`, K2.2), Mission **3** (`fillOrder`, K2.1), settings.json 2 (neue optionale Hotkeys `discardPlan`, `undo`, `redo`). Eine App von vor K2 lehnt jede neue `plan.json` und jede exportierte Missionsdatei ab.
+- **Geänderte Goldens:** nur die zehn Hull-A-Goldens, nur `schemaVersion` 5 → 6 (K2.2); sonst byte-gleich. Missions-Fixture `Invalid/unsupported_schema` 3 → 4.
+- **Neu für K1 relevant:** `HasPlan` heißt „hat Missionen“ (K2.3); jede Plan-Änderung des Spielers läuft über `OverlayViewModel.Step` (K2.4) – K1-Aktionen an der Ansicht (Zoom, Kamera, Pan) sind keine Schritte. Die Kopfzeile trägt mit Verlauf zwei Knöpfe mehr (↶ ↷), der Schiffsname wird früher gekürzt (D67). App-Tests haben jetzt `default.runsettings` (Kategorie Timing nur von Hand).
+- **Offen aus K3:** Antwort von Torlek zu `limits.max = 1` (K3.1) und damit die Liste der ungeprüften Türen (32 Racks in 16 Schiffen); Budget-Befund aus K3.2: D58 bleibt unberührt, keine offene Frage; Rad-Routing (D71): Star Citizen sieht das Rad während eines Drags mit, und es hängt an Windows' „scroll inactive windows“ – im Spiel nicht weiter geprüft.
+- **Offen aus K2:** eine Mission, deren Rest auf dem neuen Schiff wartet, verliert den Haken ihrer abgelieferten Lieferung (D75); der Resync nach Undo liest die Datenbank nicht, ein seit dem letzten Lesen in CT gelöschter Vertrag geht erst beim nächsten echten Sync (D74); Undo-Verlauf nicht persistiert.
+
 ---
 
 ## Phase 8 – nach dem Launch

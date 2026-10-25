@@ -105,25 +105,25 @@ public class PickupTests
         (changed.Id, changed.Contract).Should().Be((3, mission.Contract));
     }
 
-    // --- Mission file: optional, schema 2 stays (D68) ---
+    // --- Mission file: optional, no schema bump of its own (D68) ---
 
     private static IReadOnlyList<MissionStop> RoundTrip(IReadOnlyList<MissionStop> stops)
     {
         using var stream = new MemoryStream();
-        MissionFileWriter.Write(stream, stops);
+        MissionFileWriter.Write(stream, stops, FillOrder.BowFirst);
         stream.Position = 0;
-        return MissionFileReader.Read(stream, "roundtrip");
+        return MissionFileReader.Read(stream, "roundtrip").Stops;
     }
 
     private static string Written(IReadOnlyList<MissionStop> stops)
     {
         using var stream = new MemoryStream();
-        MissionFileWriter.Write(stream, stops);
+        MissionFileWriter.Write(stream, stops, FillOrder.BowFirst);
         return Encoding.UTF8.GetString(stream.ToArray());
     }
 
     private static IReadOnlyList<MissionStop> Read(string json) =>
-        MissionFileReader.Read(new MemoryStream(Encoding.UTF8.GetBytes(json)), "missions.json");
+        MissionFileReader.Read(new MemoryStream(Encoding.UTF8.GetBytes(json)), "missions.json").Stops;
 
     [Fact]
     public void Write_then_Read_keeps_the_pickup()
@@ -139,7 +139,7 @@ public class PickupTests
         MissionStop riker = new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]);
 
         using var document = JsonDocument.Parse(Written([riker]));
-        document.RootElement.GetProperty("schemaVersion").GetInt32().Should().Be(2);
+        document.RootElement.GetProperty("schemaVersion").GetInt32().Should().Be(MissionFileReader.CurrentSchemaVersion);
         document.RootElement.GetProperty("stops")[0].GetProperty("items")[0].TryGetProperty("pickup", out _).Should().BeFalse();
     }
 

@@ -83,8 +83,8 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
     /// <summary>
     /// Which end of each rack the crates fill from (D24), for the next <see cref="PlanCommand"/>; starts with the current
-    /// plan's. Like the rows a draft: changing it changes nothing until Plan. Clear rows and Import keep it, it belongs
-    /// to the player's way of loading, not to the missions.
+    /// plan's. Like the rows a draft: changing it changes nothing until Plan. Clear rows keeps it, it belongs to the
+    /// player's way of loading, not to the missions; Import sets it when the file names one, Export always writes it (D72).
     /// </summary>
     public FillOrder FillOrder
     {
@@ -134,7 +134,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     /// </summary>
     public string PlanToolTip => _result.Problem ?? PlanText;
 
-    public bool HasPlan => _overlay.Plan is not null;
+    public bool HasPlan => _overlay.HasPlan;
 
     /// <summary>The current plan has ticked stops, and a new plan starts without ticks (D19).</summary>
     public bool ClearsDelivered => _overlay.Plan?.Placements.Any(p => p.Delivered) == true;
@@ -148,16 +148,25 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     /// <summary>The overlay's plan as text for Discord or org chat; null without a plan.</summary>
     public string? PlanAsText() => _overlay.Plan is { } plan ? PlanTextRenderer.Render(plan, _overlay.Ship) : null;
 
-    /// <summary>Replaces the rows with the missions of a mission file; a broken file keeps the rows.</summary>
+    /// <summary>
+    /// Replaces the rows with the missions of a mission file, and the fill order with the file's if it names one; a broken
+    /// file keeps both.
+    /// </summary>
     public void Import(string path)
     {
         try
         {
-            var stops = MissionFileReader.Read(path);
+            var file = MissionFileReader.Read(path);
             Rows.Clear();
-            foreach (var row in MissionRows.FromStops(stops))
+            foreach (var row in MissionRows.FromStops(file.Stops))
             {
                 Rows.Add(row);
+            }
+
+            // A shared route says how it was meant to be loaded (D72); a file without a fill order leaves the player's.
+            if (file.FillOrder is { } fillOrder)
+            {
+                FillOrder = fillOrder;
             }
         }
         catch (MissionFormatException ex)
@@ -170,7 +179,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         }
     }
 
-    /// <summary>Writes the current rows as a mission file, planned or not. Only valid rows can be exported.</summary>
+    /// <summary>Writes the current rows and fill order as a mission file, planned or not. Only valid rows can be exported.</summary>
     public void Export(string path)
     {
         if (!CanExport)
@@ -180,7 +189,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
         try
         {
-            AtomicFile.Write(path, stream => MissionFileWriter.Write(stream, _result.Stops));
+            AtomicFile.Write(path, stream => MissionFileWriter.Write(stream, _result.Stops, FillOrder));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -308,6 +317,23 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
     private bool CanReplan() => _overlay.ReplanCommand.CanExecute(null);
 
+    /// <summary>
+    /// The overlay's Discard plan (K2.3): empties the plan, not the rows. Its own change like <see cref="ReplanCommand"/>:
+    /// clean rows show the empty plan (one blank row), a draft stays a draft; the fill order stays either way.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanDiscardPlan))]
+    private void DiscardPlan()
+    {
+        ChangeOverlay(() => _overlay.DiscardPlanCommand.Execute(null));
+        _missions = _overlay.Missions;
+        if (!IsDirty)
+        {
+            ShowOverlayRows();
+        }
+    }
+
+    private bool CanDiscardPlan() => _overlay.DiscardPlanCommand.CanExecute(null);
+
     private bool CanDeleteMission() => SelectedRow?.MissionId is { } id && _overlay.Missions.Any(m => m.Id == id);
 
     private bool HasSelection() => SelectedRow is not null;
@@ -383,6 +409,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(ClearsDelivered));
         DeleteMissionCommand.NotifyCanExecuteChanged();
         ReplanCommand.NotifyCanExecuteChanged();
+        DiscardPlanCommand.NotifyCanExecuteChanged();
 
         // A tick keeps the missions; a capture, a waiting mission placed or one dropped in the legend doesn't.
         if (_ownChange || ReferenceEquals(_overlay.Missions, _missions))

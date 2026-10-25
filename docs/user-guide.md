@@ -27,7 +27,9 @@ The ships you chose last stand on top under "Recent". To find a ship faster, jus
 field while the list is open, and every key narrows the list by name or manufacturer code ("hull c", "crus"). Enter
 picks the ship when only one is left, Esc empties the search, a second Esc closes the list. While the list is open your
 keys go to the search, not to the game; after picking, one click into the game gives it the keys back.
-With a plan the overlay asks first, then plans your missions anew for the new ship; ticks stay. Like the header buttons
+With a plan the overlay asks first, then plans your missions anew for the new ship. Ticks stay, also a single legend line:
+cargo you have delivered was never on the new ship, so it takes no room there and isn't drawn, only its legend line
+stays struck through. Tick it back and it is laid into free cells. Like the header buttons
 the list is hidden while the overlay is locked, the name stays.
 
 **Exit:** the **X** at the header's right end, next to the padlock, closes SC-CargoPlan. There is no "are you sure?":
@@ -127,7 +129,8 @@ so it takes the focus while you type; afterwards click back into the game (or Al
   as they are, planned or not. Older files with one crate size per row still import; their crates show as typed by hand.
 - **Fill order** next to **Plan** chooses which end of each rack the crates start from: **Bow first** or
   **Stern first**. It takes effect when you press **Plan** and is saved with the plan, so it stays after a restart and
-  the editor opens with it. Clearing or importing rows keeps it; exported mission files don't carry it.
+  the editor opens with it. Clearing rows keeps it. Export writes it into the mission file, and importing a file that
+  names one sets it, so a shared route arrives with the fill order it was planned with; older files keep yours.
 - **Copy as text** copies the current plan as plain text, ready to paste into Discord or your org chat.
 
 When Star Citizen takes the mouse (flight), the overlay turns click-through and an open editor hides, so neither catches
@@ -142,7 +145,7 @@ the overlay and brings it back (dogfight, landing), one takes new ContractTracke
 program, the game included, and any default could clash with one of your Star Citizen bindings.
 
 **Set them in the settings window** (the gear), section **Hotkeys**: click the button next to *Lock / unlock*,
-*Hide / show overlay*, *Sync from ContractTracker* or *Re-plan*, then press the keys. The hotkey works at once and is saved. **Esc**
+*Hide / show overlay*, *Sync from ContractTracker*, *Re-plan*, *Discard plan*, *Undo* or *Redo*, then press the keys. The hotkey works at once and is saved. **Esc**
 cancels, **Clear** removes it.
 
 - **At least one of `Ctrl`, `Alt` or `Win` is required**, plus one key: `A`–`Z`, `0`–`9`, `F1`–`F24` (not `F12`,
@@ -161,7 +164,7 @@ cancels, **Clear** removes it.
 - Hidden, the overlay also leaves the taskbar; press the hotkey again to bring it back where it was.
 
 You can still write them into `%LocalAppData%\SC-CargoPlan\settings.json` by hand (overlay closed), e.g.
-`"hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": "Ctrl+Alt+J", "replan": "Ctrl+Alt+R" }`,
+`"hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": "Ctrl+Alt+J", "replan": "Ctrl+Alt+R", "discardPlan": null, "undo": null, "redo": null }`,
 modifiers and key joined by `+` in any order and case; `null` or a missing entry means no hotkey. A hotkey that is
 invalid or taken shows as an amber line next to the legend and next to its button in the settings window; the other
 hotkeys still work. A typo in a name (e.g. `toggleLok`) makes the whole file unreadable: the overlay starts with
@@ -211,7 +214,7 @@ itself, a few moments after you press F3. No editor, no click.
   moves and you don't press **Plan** for it (typed rows of one destination count as one mission).
   **Sync from ContractTracker** takes in what came since the last sync, the same as a capture does.
 - The first time, everything that is in ContractTracker comes in. Delete old contracts there first (× or F5) if you
-  don't want them.
+  don't want them. **Discard plan** starts over the same way (see [Changing the plan](#changing-the-plan)).
 - **Keep the overlay outside ContractTracker's capture region** (the area you set with F6), or ContractTracker reads
   the legend along with the contract.
 - **Settings** (the gear), section **ContractTracker**:
@@ -279,7 +282,8 @@ To move a line's crates, **right drag the line in the legend** onto a rack; righ
 whole mission. The crates fade, the rack gets a cyan edge and the ghosts show where they go. On release they are laid
 into that rack, other crates there rearranged or moved to other racks to make room. Like a selection, they move as a
 whole: what doesn't fit into that rack goes into another one ("No room in rack 3 – placed in rack 2"), and if one crate
-fits nowhere, nothing moves. Dragging back undoes a move only as long as nothing else had to move for it.
+fits nowhere, nothing moves. To take a move back, use **Undo** (below): dragging back only restores it as long as
+nothing else had to move for it.
 
 Delivered crates can't be dragged, they are off the ship: their cells count as free, so crates can go where they lay.
 Moves are saved like ticks; pressing **Plan** in the editor makes a new plan from the rows and drops them and your ticks
@@ -291,11 +295,26 @@ missions would. Use it when the plan has grown in pieces: two contracts are load
 change racks and cells, so **you restack the ship** at the cargo lift. What it drops: where every crate on board lies,
 and your moves. What it keeps: your ticks (ticked crates are off the ship and take no room), the crate sizes (split,
 merged or typed in the editor), the fill order, the legend's order and colours, and the missions themselves. It always
-asks first, in the middle of the window you clicked in (*No* is preselected, so Enter keeps your plan), and there is no
-undo. Afterwards the amber line says what happened, `Plan rebuilt – 4 crates moved`, or `Plan unchanged` if the layout
+asks first, in the middle of the window you clicked in (*No* is preselected, so Enter keeps your plan); **Undo** takes
+it back. Afterwards the amber line says what happened, `Plan rebuilt – 4 crates moved`, or `Plan unchanged` if the layout
 already was the fresh one; a contract that still doesn't fit is named (`– Everus Harbor still doesn't fit`). The buttons
 are grayed out while nothing unticked is on board. Rows you are editing stay a draft: Re-plan works on
 the plan, not on the rows.
+
+**Discard plan** (in the editor next to *Re-plan*, or its hotkey) empties the plan when the run is over: missions, crates
+and ticks go, the overlay shows *No plan* as on the first start, and the amber line says `Plan discarded – the next sync
+brings every ContractTracker contract back.` It doesn't ask; **Undo** brings the plan back. The fill order stays. With ContractTracker the overlay
+starts over as on the first start: the next **Sync from ContractTracker** takes in every contract still in ContractTracker,
+so delete the finished ones there first (× or F5). With auto-sync on that happens at the next capture by itself. Rows you
+are editing stay a draft; clean rows become one empty row.
+
+**Undo and redo** (↶ and ↷ in the header left of the gear, or their hotkeys) go back and forward through your changes
+to the plan: moves, legend drags, turning a crate, split and merge, Re-plan, **Plan** in the editor, deleting a mission
+and Discard plan. ↶ shows once there is something to undo, ↷ once you have undone something; a new change drops what
+you could redo. Ticks are not undone: they are where you are on the route, so a tick you set after a move stays when you
+undo the move. A sync isn't undone either: a contract that came in from ContractTracker after a move is still there
+when you undo the move. Changing the ship empties both (the amber line says `Undo history cleared by ship change`),
+and so does closing the overlay: undo is not saved. The last 100 changes can be undone.
 
 ### When the kiosk delivers other crates
 

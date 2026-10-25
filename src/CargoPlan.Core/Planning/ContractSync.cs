@@ -49,6 +49,27 @@ public static class ContractSync
     }
 
     /// <summary>
+    /// The sync that follows an undo or redo (K2.4, Martin: restore the snapshot, then sync incrementally): the captures
+    /// <paramref name="current"/> holds that neither <paramref name="target"/> nor <paramref name="reference"/> (the plan
+    /// the step left) knew came in by a sync since, and are placed into <paramref name="target"/> again by
+    /// <see cref="Apply"/>; with <paramref name="present"/> missions gone from ContractTracker leave as in a sync. The
+    /// database isn't read: what the plan knows is enough, and an undo never takes in a contract the player hasn't synced
+    /// yet. A capture the step itself removed or added is known to one of the two and stays as the snapshot has it.
+    /// </summary>
+    /// <param name="present">The capture ids ContractTracker had at the last read; null if it wasn't read.</param>
+    public static SavedPlan Resync(SavedPlan target, SavedPlan reference, SavedPlan current, Ship ship, IReadOnlySet<long>? present)
+    {
+        HashSet<long> known = [.. target.Missions.Concat(reference.Missions).SelectMany(m => m.Contract?.ContractIds ?? [])];
+        ContractCapture[] since =
+        [
+            .. current.Missions
+                .Where(m => m.Contract is { } contract && !contract.ContractIds.Any(known.Contains))
+                .Select(m => new ContractCapture(m.Stops, m.Contract!)),
+        ];
+        return Apply(target, ship, since, present);
+    }
+
+    /// <summary>
     /// Ids of the missions deleted in ContractTracker that still have crates on board: the plan keeps them, the player
     /// ticks them or deletes them in the editor (D39 addendum).
     /// </summary>

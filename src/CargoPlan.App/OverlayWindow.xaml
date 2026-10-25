@@ -324,6 +324,23 @@
                     <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
                                Foreground="{DynamicResource HeaderForegroundBrush}" />
                 </Button>
+                <!-- Undo and redo (K2.4) left of the gear, ↶ ↷: each only while there is a step for it (the border collapses),
+                     hidden while locked like every header button (the button's style keeps that, a local Visibility on the
+                     button would override its trigger). -->
+                <Border DockPanel.Dock="Right" Visibility="{Binding CanRedo, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Button Command="{Binding RedoCommand, Mode=OneTime}" ToolTip="Redo" Style="{StaticResource HeaderButtonStyle}">
+                        <!-- E7A6 Redo. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                        <TextBlock Text="&#xE7A6;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                                   Foreground="{DynamicResource HeaderForegroundBrush}" />
+                    </Button>
+                </Border>
+                <Border DockPanel.Dock="Right" Visibility="{Binding CanUndo, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Button Command="{Binding UndoCommand, Mode=OneTime}" ToolTip="Undo" Style="{StaticResource HeaderButtonStyle}">
+                        <!-- E7A7 Undo. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                        <TextBlock Text="&#xE7A7;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                                   Foreground="{DynamicResource HeaderForegroundBrush}" />
+                    </Button>
+                </Border>
                 <!-- Opens the mission editor, left of the gear. Locked it is hidden but keeps its space (T3.7 notes):
                      planning is a step with a free cursor, and a locked overlay is click-through anyway. -->
                 <Button DockPanel.Dock="Right" ToolTip="Enter missions" Click="OnOpenEditor" Style="{StaticResource HeaderButtonStyle}">

@@ -234,7 +234,42 @@ public sealed class HotkeysViewModelTests
         viewModel.Sync.Label.Should().Be("Sync from ContractTracker");
         viewModel.Replan.Action.Should().Be(HotkeyAction.Replan);
         viewModel.Replan.Label.Should().Be("Re-plan");
-        viewModel.All.Should().Equal(viewModel.Lock, viewModel.Overlay, viewModel.Sync, viewModel.Replan);
+        viewModel.Discard.Action.Should().Be(HotkeyAction.DiscardPlan);
+        viewModel.Discard.Label.Should().Be("Discard plan");
+        viewModel.Undo.Action.Should().Be(HotkeyAction.Undo);
+        viewModel.Undo.Label.Should().Be("Undo");
+        viewModel.Redo.Action.Should().Be(HotkeyAction.Redo);
+        viewModel.Redo.Label.Should().Be("Redo");
+        viewModel.All.Should().Equal(viewModel.Lock, viewModel.Overlay, viewModel.Sync, viewModel.Replan, viewModel.Discard, viewModel.Undo, viewModel.Redo);
+    }
+
+    [Fact]
+    public void The_undo_and_redo_hotkeys_are_not_set_by_default_and_come_from_the_file()
+    {
+        Create().Undo.Hotkey.Should().BeNull();
+        Create().Redo.Hotkey.Should().BeNull();
+        Create(new HotkeySettings(Undo: "Ctrl+Alt+Z", Redo: "Ctrl+Alt+Y")).Undo.Display.Should().Be("Ctrl+Alt+Z");
+        Create(new HotkeySettings(Undo: "Ctrl+Alt+Z", Redo: "Ctrl+Alt+Y")).Redo.Display.Should().Be("Ctrl+Alt+Y");
+    }
+
+    [Fact]
+    public void The_discard_hotkey_is_not_set_by_default_and_comes_from_the_file()
+    {
+        // No defaults (D17), like the re-plan (D66).
+        Create().Discard.Hotkey.Should().BeNull();
+        Create(new HotkeySettings(DiscardPlan: "Ctrl+Alt+D")).Discard.Display.Should().Be("Ctrl+Alt+D");
+    }
+
+    [Fact]
+    public void The_replan_combination_is_refused_for_the_discard()
+    {
+        var viewModel = Create(new HotkeySettings(Replan: "Ctrl+Alt+H"));
+
+        viewModel.Discard.RecordCommand.Execute(null);
+        viewModel.Discard.Capture(CtrlAlt, VK_H);
+
+        viewModel.Discard.Problem.Should().Be($"Ctrl+Alt+H is already used for {HotkeyEditor.ReplanLabel}.");
+        _set.Should().BeEmpty();
     }
 
     [Fact]

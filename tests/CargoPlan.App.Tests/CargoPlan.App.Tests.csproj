@@ -3,6 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net10.0-windows</TargetFramework>
     <IsPackable>false</IsPackable>
+    <!-- Keeps the Timing category out of the default run, like the Core tests (K2.4).
+         https://learn.microsoft.com/visualstudio/test/configure-unit-tests-by-using-a-dot-runsettings-file#set-a-build-property -->
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)\default.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <!-- Linux compiles this project (EnableWindowsTargeting in CI) but can't run it: there is no
@@ -33,6 +36,9 @@
   <ItemGroup>
     <EmbeddedResource Include="..\CargoPlan.Core.Tests\Fixtures\split_and_shared.json"
                       LogicalName="missions/split_and_shared.json" Link="Fixtures\split_and_shared.json" />
+    <!-- The T7.0 load case, eight stops: what an undo costs (UndoTimingTests, K2.4). -->
+    <EmbeddedResource Include="..\CargoPlan.Core.Tests\Fixtures\hull_a_eight_stops.json"
+                      LogicalName="missions/hull_a_eight_stops.json" Link="Fixtures\hull_a_eight_stops.json" />
   </ItemGroup>
 
   <!-- Martin's plan of 25 Oct with ContractTracker's raw pickup text (B6), the Import tests' fixture linked like the one above. -->

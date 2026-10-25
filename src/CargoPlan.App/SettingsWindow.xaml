@@ -375,6 +375,9 @@
                         <ContentControl Content="{Binding Overlay, Mode=OneTime}" />
                         <ContentControl Content="{Binding Sync, Mode=OneTime}" />
                         <ContentControl Content="{Binding Replan, Mode=OneTime}" />
+                        <ContentControl Content="{Binding Discard, Mode=OneTime}" />
+                        <ContentControl Content="{Binding Undo, Mode=OneTime}" />
+                        <ContentControl Content="{Binding Redo, Mode=OneTime}" />
                     </StackPanel>
                 </GroupBox>
 

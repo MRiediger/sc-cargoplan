@@ -68,6 +68,24 @@ public class OverlayHeaderXamlTests
     }
 
     [Fact]
+    public void Undo_and_redo_stand_left_of_the_gear_show_only_with_a_step_and_hide_while_locked()
+    {
+        // K2.4: in a DockPanel docked right, later in the markup is further left: gear, redo, undo reads ↶ ↷ ⚙.
+        var buttons = Root().Descendants().Where(e => e.Name.LocalName == "Button").ToList();
+        var gear = buttons.FindIndex(b => (string?)b.Attribute("ToolTip") == "Settings");
+        var redo = buttons.FindIndex(b => (string?)b.Attribute("Command") == "{Binding RedoCommand, Mode=OneTime}");
+        var undo = buttons.FindIndex(b => (string?)b.Attribute("Command") == "{Binding UndoCommand, Mode=OneTime}");
+
+        (gear, redo, undo).Should().Be((gear, gear + 1, gear + 2));
+        foreach (var (index, flag) in new[] { (redo, "CanRedo"), (undo, "CanUndo") })
+        {
+            var button = buttons[index];
+            button.Attribute("Style")!.Value.Should().Be("{StaticResource HeaderButtonStyle}", "hidden while locked like every header button");
+            button.Parent!.Attribute("Visibility")!.Value.Should().Be($"{{Binding {flag}, Converter={{StaticResource BooleanToVisibilityConverter}}}}");
+        }
+    }
+
+    [Fact]
     public void The_ship_name_trims_on_one_line_instead_of_wrapping()
     {
         // The header's text style wraps and the 30 px header holds two lines: without NoWrap the name broke in two

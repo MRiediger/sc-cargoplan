@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 2,
+  "fillOrder": "sternFirst",
+  "stops": [
+    {
+      "destination": "Riker",
+      "items": [
+        { "commodity": "Titanium", "scu": 12, "maxCrateSize": 4 }
+      ]
+    }
+  ]
+}

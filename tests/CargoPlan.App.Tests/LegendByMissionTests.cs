@@ -346,13 +346,37 @@ public class LegendByMissionTests
         viewModel.Plan.Should().BeEquivalentTo(outcome.Plan);
     }
 
+    // K2.2: every ticked line keeps its tick on another ship, so the question counts lines, one per delivery.
     [Fact]
-    public void The_ship_change_question_counts_a_stop_with_two_ticked_lines_once()
+    public void The_ship_change_question_counts_a_stop_with_two_ticked_lines_as_two_deliveries()
     {
         var viewModel = new OverlayViewModel(HullA, Catalog);
         viewModel.ShowPlan(TwoRikers());
         viewModel.ToggleDeliveredCommand.Execute("Riker");
 
-        viewModel.ShipChangeQuestion(Catalog.Get("c2_hercules")).Should().EndWith(Environment.NewLine + "1 stop already ticked – ticks stay.");
+        viewModel.ShipChangeQuestion(Catalog.Get("c2_hercules")).Should().EndWith(Environment.NewLine + "2 deliveries already ticked – ticks stay.");
+    }
+
+    [Fact]
+    public void The_ship_change_question_counts_one_ticked_line_of_a_stop()
+    {
+        var viewModel = new OverlayViewModel(HullA, Catalog);
+        viewModel.ShowPlan(TwoRikers());
+        viewModel.ToggleLineCommand.Execute(viewModel.Scene.Legend.Single(e => e.Mission == 2));
+
+        viewModel.ShipChangeQuestion(Catalog.Get("c2_hercules")).Should().EndWith(Environment.NewLine + "1 delivery already ticked – ticks stay.");
+    }
+
+    [Fact]
+    public void A_ticked_line_stays_ticked_on_another_ship_and_the_other_line_of_its_stop_stays_on_board()
+    {
+        var viewModel = new OverlayViewModel(HullA, Catalog);
+        viewModel.ShowPlan(TwoRikers());
+        viewModel.ToggleLineCommand.Execute(viewModel.Scene.Legend.Single(e => e.Mission == 2));
+
+        viewModel.ChangeShip(Catalog.Get("c2_hercules"));
+
+        viewModel.Scene.Legend.Single(e => e.Mission == 2).Delivered.Should().BeTrue();
+        viewModel.Scene.Legend.Where(e => e.Mission != 2).Should().OnlyContain(e => !e.Delivered);
     }
 }

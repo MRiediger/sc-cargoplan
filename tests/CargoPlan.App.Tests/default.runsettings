@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default run of the App tests: "Timing" measures what an undo costs (K2.4) and prints a table; it runs by hand only, as
+  in the Core tests (see their default.runsettings and CLAUDE.md, Befehle).
+  RunConfiguration/TestCaseFilter: https://learn.microsoft.com/visualstudio/test/configure-unit-tests-by-using-a-dot-runsettings-file
+-->
+<RunSettings>
+  <RunConfiguration>
+    <TestCaseFilter>Category!=Timing</TestCaseFilter>
+  </RunConfiguration>
+</RunSettings>

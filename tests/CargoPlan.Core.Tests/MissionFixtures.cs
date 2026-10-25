@@ -40,11 +40,21 @@ internal static class MissionFixtures
     public static IReadOnlyList<Stop> Load(string name) => LoadMissions(name).ToStops();
 
     /// <summary>A fixture as entered, for the file format tests.</summary>
-    public static IReadOnlyList<MissionStop> LoadMissions(string name)
+    public static IReadOnlyList<MissionStop> LoadMissions(string name) => LoadFile(name).Stops;
+
+    /// <summary>A fixture with its fill order (schema 3, D72).</summary>
+    public static MissionFile LoadFile(string name)
     {
         var resourceName = ResourceName(name);
         using var stream = Open(resourceName);
         return MissionFileReader.Read(stream, resourceName);
+    }
+
+    /// <summary>A fixture's text with \n line endings: git checks fixtures out with CRLF on Windows.</summary>
+    public static string Text(string name)
+    {
+        using var reader = new StreamReader(Open(ResourceName(name)));
+        return reader.ReadToEnd().ReplaceLineEndings("\n");
     }
 
     public static string ResourceName(string name) => $"missions/{name}.json";

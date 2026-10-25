@@ -225,7 +225,37 @@ public class ShipChangeTests
         viewModel.ToggleDeliveredCommand.Execute("Riker");
         viewModel.ToggleDeliveredCommand.Execute("Shubin");
 
-        viewModel.ShipChangeQuestion(C2).Should().EndWith(Environment.NewLine + "2 stops already ticked – ticks stay.");
+        viewModel.ShipChangeQuestion(C2).Should().EndWith(Environment.NewLine + "2 deliveries already ticked – ticks stay.");
+    }
+
+    // --- Ticked cargo was never on the new ship (K2.2) ---
+
+    [Fact]
+    public void ChangeShip_draws_no_crate_of_a_ticked_stop_and_counts_it_for_no_room()
+    {
+        var viewModel = Overlay(HullA);
+        viewModel.ShowPlan(TestPlans.SplitAndShared());
+        viewModel.ToggleDeliveredCommand.Execute("Riker");
+
+        viewModel.ChangeShip(C2);
+
+        viewModel.Scene.Racks.SelectMany(r => r.Boxes).Should().NotContain(b => b.Crate != null && b.Crate.Destination == "Riker");
+        viewModel.Plan!.ScuOnBoard().Should().Be(viewModel.Plan.Crates.Where(c => c.Destination != "Riker").Sum(c => (int)c.CrateSize));
+    }
+
+    [Fact]
+    public void Ticking_back_a_stop_ticked_before_the_change_lays_its_cargo_in()
+    {
+        var viewModel = Overlay(HullA);
+        viewModel.ShowPlan(TestPlans.SplitAndShared());
+        viewModel.ToggleDeliveredCommand.Execute("Riker");
+        viewModel.ChangeShip(C2);
+
+        viewModel.ToggleDeliveredCommand.Execute("Riker");
+
+        viewModel.Plan!.Crates.Where(c => c.Destination == "Riker").Should().NotBeEmpty().And.OnlyContain(c => !c.Delivered && !c.OffShip);
+        viewModel.Scene.Racks.SelectMany(r => r.Boxes).Should().Contain(b => b.Crate != null && b.Crate.Destination == "Riker");
+        viewModel.Scene.Legend.Single(l => l.Destination == "Riker").Delivered.Should().BeFalse();
     }
 
     [Fact]

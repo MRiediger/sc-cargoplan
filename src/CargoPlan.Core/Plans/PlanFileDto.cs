@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CargoPlan.Core.Json;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
@@ -7,10 +8,11 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Plans;
 
 /// <summary>
-/// File format of a plan file (schema version 5, docs/plan-format.md): the missions with their stops and where they came
-/// from (D42), every crate with its mission and item (D68), rack, position (D24) and whether it is turned (D71), and the
-/// ContractTracker watermark (D39 addendum). Schema 4 is the same without turned crates; schema 3 also without items:
-/// read, each crate given an item of its mission on reading.
+/// File format of a plan file (schema version 6, docs/plan-format.md): the missions with their stops and where they came
+/// from (D42), every crate with its mission and item (D68), rack, position (D24), whether it is turned (D71) and whether
+/// it is off the ship (K2.2), and the ContractTracker watermark (D39 addendum). Schema 5 is the same with every crate in
+/// a rack; schema 4 also without turned crates; schema 3 also without items: read, each crate given an item of its
+/// mission on reading.
 /// </summary>
 internal sealed record PlanFileDto(
     int SchemaVersion,
@@ -21,17 +23,15 @@ internal sealed record PlanFileDto(
     IReadOnlyList<CrateDto> Crates,
     IReadOnlyList<PlanWarningDto> Warnings)
 {
-    private const string BowFirst = "bowFirst";
-    private const string SternFirst = "sternFirst";
-
     /// <exception cref="ArgumentException">A value violates the domain rules, or the plan doesn't fit the ship or its missions.</exception>
     public SavedPlan ToSavedPlan(Ship ship)
     {
         Mission[] missions = [.. Missions.Select(m => m.ToMission())];
         CheckItems(Crates, SchemaVersion);
         CheckRotated(Crates, SchemaVersion);
+        CheckOffShip(Crates, SchemaVersion);
         Crate[] crates = [.. Crates.Select(c => c.ToCrate())];
-        var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], ParseFillOrder(FillOrder)), ship);
+        var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder)), ship);
 
         return UnderCap(ship, cap => new SavedPlan(
             missions,
@@ -82,7 +82,7 @@ internal sealed record PlanFileDto(
     public static PlanFileDto FromSavedPlan(SavedPlan saved) => new(
         PlanFile.SupportedSchemaVersion,
         saved.Plan.ShipId,
-        saved.Plan.FillOrder == Models.FillOrder.BowFirst ? BowFirst : SternFirst,
+        FillOrderJson.Text(saved.Plan.FillOrder),
         saved.Watermark,
         [.. saved.Missions.Select(MissionDto.FromMission)],
         [.. saved.Plan.Crates.Select(CrateDto.FromCrate)],
@@ -105,8 +105,9 @@ internal sealed record PlanFileDto(
             return (plan, false);
         }
 
+        // An off-ship crate (K2.2) was never on this ship: no rack to name, no grid to fit.
         var racks = ship.Racks.ToDictionary(r => r.Id);
-        if (plan.Crates.FirstOrDefault(c => !racks.ContainsKey(c.RackId)) is { } stray)
+        if (plan.Crates.FirstOrDefault(c => !c.OffShip && !racks.ContainsKey(c.RackId)) is { } stray)
         {
             throw new ArgumentException(
                 $"Crate for {stray.Destination} is in rack '{stray.RackId}', which ship '{ship.Id}' doesn't have.", nameof(Crates));
@@ -119,7 +120,7 @@ internal sealed record PlanFileDto(
         }
 
         // A crate outside its rack can't be drawn or moved; its racks changed, so the overlay plans the missions anew.
-        if (plan.Crates.Any(c => !CrateLayout.Fits(racks[c.RackId], c)))
+        if (plan.Crates.Any(c => !c.OffShip && !CrateLayout.Fits(racks[c.RackId], c)))
         {
             return (plan, true);
         }
@@ -152,17 +153,28 @@ internal sealed record PlanFileDto(
         if (schemaVersion <= PlanFile.UnrotatedSchemaVersion && crates.FirstOrDefault(c => c.Rotated is not null) is { } turned)
         {
             throw new ArgumentException(Invariant(
-                $"A crate for '{turned.Destination}' says rotated, which is new in schema {PlanFile.SupportedSchemaVersion} (the file says {schemaVersion})."), nameof(Crates));
+                $"A crate for '{turned.Destination}' says rotated, which is new in schema {PlanFile.UnrotatedSchemaVersion + 1} (the file says {schemaVersion})."), nameof(Crates));
         }
     }
 
-    /// <summary>The embedded mission file of schema 1 and 2.</summary>
+    /// <summary>Before schema 6 every crate lies in a rack (K2.2); an <c>offShip</c> there is a file from elsewhere.</summary>
+    /// <exception cref="ArgumentException">A crate breaks that.</exception>
+    internal static void CheckOffShip(IReadOnlyList<CrateDto> crates, int schemaVersion)
+    {
+        if (schemaVersion <= PlanFile.NoOffShipSchemaVersion && crates.FirstOrDefault(c => c.OffShip is not null) is { } offShip)
+        {
+            throw new ArgumentException(Invariant(
+                $"A crate for '{offShip.Destination}' says offShip, which is new in schema {PlanFile.NoOffShipSchemaVersion + 1} (the file says {schemaVersion})."), nameof(Crates));
+        }
+    }
+
+    /// <summary>The embedded mission file of schema 1 and 2; never 3, the plan has its own fill order (D72).</summary>
     /// <exception cref="JsonException">The missions are not a mission file of a supported schema version.</exception>
     internal static IReadOnlyList<MissionStop> ParseMissions(JsonElement missions)
     {
         try
         {
-            return MissionFileReader.Parse(missions);
+            return MissionFileReader.Parse(missions, MissionFileReader.EmbeddedSchemaVersions).Stops;
         }
         catch (JsonException ex)
         {
@@ -170,12 +182,4 @@ internal sealed record PlanFileDto(
             throw new JsonException($"missions: {ex.Message}", ex);
         }
     }
-
-    // A plain string and an explicit switch: STJ's enum converter would also accept numbers and other casing (as PositionDto).
-    internal static Models.FillOrder ParseFillOrder(string fillOrder) => fillOrder switch
-    {
-        BowFirst => Models.FillOrder.BowFirst,
-        SternFirst => Models.FillOrder.SternFirst,
-        _ => throw new ArgumentException($"fillOrder '{fillOrder}' is unknown, use \"{BowFirst}\" or \"{SternFirst}\".", nameof(FillOrder)),
-    };
 }

@@ -90,6 +90,34 @@ public class MissionFileReaderTests
         stops[1].Items.Should().Equal(new CargoItem("Titanium", 6, CrateSize.Two));
     }
 
+    // --- Schema 3: fill order (D72) ---
+
+    [Fact]
+    public void Read_v3_file_gives_its_fill_order()
+    {
+        var file = MissionFixtures.LoadFile("fill_order_stern");
+
+        file.FillOrder.Should().Be(FillOrder.SternFirst);
+        file.Stops.Select(s => s.Destination).Should().Equal("Riker", "Shubin");
+    }
+
+    [Fact]
+    public void Read_v3_file_without_fill_order_gives_none_and_the_same_stops()
+    {
+        var file = MissionFixtures.LoadFile("schema3_without_fill_order");
+
+        file.FillOrder.Should().BeNull();
+        file.Stops.Should().BeEquivalentTo(MissionFixtures.LoadFile("fill_order_stern").Stops, o => o.WithStrictOrdering());
+    }
+
+    [Theory]
+    [InlineData("example_missions")]   // schema 1
+    [InlineData("crate_mix")]          // schema 2
+    public void Read_v1_and_v2_files_give_no_fill_order(string fixture)
+    {
+        MissionFixtures.LoadFile(fixture).FillOrder.Should().BeNull();
+    }
+
     [Fact]
     public void Read_assigns_order_from_array_position_starting_at_1()
     {
@@ -109,12 +137,14 @@ public class MissionFileReaderTests
     [InlineData("blank_commodity")]             // "commodity": ""
     [InlineData("missing_property")]            // no "crateSize"
     [InlineData("missing_schema")]              // no "schemaVersion"
-    [InlineData("unsupported_schema")]          // "schemaVersion": 3
+    [InlineData("unsupported_schema")]          // "schemaVersion": 4
     [InlineData("malformed")]                   // not valid JSON
     [InlineData("crates_sum_mismatch")]         // v2: 6 SCU as 2+2
     [InlineData("crate_above_max")]             // v2: an 8 SCU crate at max 4
     [InlineData("crate_unknown_size")]          // v2: 3 SCU crates
     [InlineData("crate_size_in_v2")]            // v2 with the v1 field "crateSize"
+    [InlineData("fill_order_in_v2")]            // v2 with the v3 field "fillOrder"
+    [InlineData("unknown_fill_order")]          // v3: "fillOrder": "portFirst"
     public void Read_invalid_file_throws_MissionFormatException_naming_the_source(string name)
     {
         var resourceName = MissionFixtures.InvalidResourceName(name);
@@ -132,11 +162,13 @@ public class MissionFileReaderTests
     [InlineData("unknown_property", "*SCU*")]
     [InlineData("duplicate_destination", "*riker*more than once*")]
     [InlineData("scu_not_multiple_of_crate", "*Riker*Titanium*20 SCU*8 SCU crates*")]
-    [InlineData("unsupported_schema", "*schemaVersion 3*expected 1 or 2*")]
+    [InlineData("unsupported_schema", "*schemaVersion 4*expected 1 or 2 or 3*")]
     [InlineData("crates_sum_mismatch", "*Riker*Titanium*add up to 4 SCU, not 6*")]
     [InlineData("crate_above_max", "*Riker*Titanium*8 SCU crates are larger than the max crate size of 4 SCU*")]
     [InlineData("crate_unknown_size", "*Riker*Titanium*3 SCU is not a crate size*")]
     [InlineData("crate_size_in_v2", "*crateSize*")]
+    [InlineData("fill_order_in_v2", "*fillOrder*new in schema 3*the file says 2*")]
+    [InlineData("unknown_fill_order", "*fillOrder 'portFirst' is unknown*bowFirst*sternFirst*")]
     public void Read_invalid_file_explains_the_problem(string name, string expectedMessage)
     {
         var resourceName = MissionFixtures.InvalidResourceName(name);
@@ -156,7 +188,7 @@ public class MissionFileReaderTests
         const string json = """{ "schemaVersion": 1, "stops": [ { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 4, "crateSize": 4 } ] } ] }""";
         using var stream = new MemoryStream([.. Encoding.UTF8.GetPreamble(), .. Encoding.UTF8.GetBytes(json)]);
 
-        var stops = MissionFileReader.Read(stream, "bom.json");
+        var stops = MissionFileReader.Read(stream, "bom.json").Stops;
 
         stops.Should().ContainSingle().Which.Destination.Should().Be("Riker");
     }
@@ -173,7 +205,7 @@ public class MissionFileReaderTests
                 source.CopyTo(target);
             }
 
-            var stops = MissionFileReader.Read(path);
+            var stops = MissionFileReader.Read(path).Stops;
 
             stops.Should().BeEquivalentTo(MissionFixtures.LoadMissions("example_missions"), o => o.WithStrictOrdering());
         }
@@ -219,9 +251,9 @@ public class MissionFileReaderTests
         var original = MissionFixtures.LoadMissions(fixture);
 
         var json = JsonSerializer.SerializeToUtf8Bytes(
-            MissionFileDto.FromMissionStops(original), MissionJsonContext.Default.MissionFileDto);
+            MissionFileDto.FromMissionStops(original, FillOrder.BowFirst), MissionJsonContext.Default.MissionFileDto);
         using var stream = new MemoryStream(json);
-        var roundTripped = MissionFileReader.Read(stream, "roundtrip.json");
+        var roundTripped = MissionFileReader.Read(stream, "roundtrip.json").Stops;
 
         roundTripped.Should().BeEquivalentTo(original, o => o.WithStrictOrdering());
     }
@@ -235,9 +267,10 @@ public class MissionFileReaderTests
             new("Riker", 1, [new MissionItem("Titanium", 12, CrateSize.Four)]),
         ];
 
-        var dto = MissionFileDto.FromMissionStops(stops);
+        var dto = MissionFileDto.FromMissionStops(stops, FillOrder.SternFirst);
 
         dto.SchemaVersion.Should().Be(MissionFileReader.CurrentSchemaVersion);
+        dto.FillOrder.Should().Be("sternFirst");
         dto.Stops.Select(s => s.Destination).Should().Equal("Riker", "Orison");
         dto.Stops[0].Items[0].Should().Be(new MissionItemDto("Titanium", 12, 4));
     }

@@ -6,11 +6,12 @@ You can write it by hand in any text editor.
 
 ## Example
 
-[`tests/CargoPlan.Core.Tests/Fixtures/crate_mix.json`](../tests/CargoPlan.Core.Tests/Fixtures/crate_mix.json):
+Based on [`tests/CargoPlan.Core.Tests/Fixtures/crate_mix.json`](../tests/CargoPlan.Core.Tests/Fixtures/crate_mix.json):
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
+  "fillOrder": "sternFirst",
   "stops": [
     {
       "destination": "Green Glade",
@@ -37,13 +38,14 @@ often as it fits, the rest in smaller ones. 6 SCU at max 4 are a 4 and a 2; 15 S
 ## Fields
 
 Names are camelCase and **case-sensitive**. Unknown fields are an error, so a typo like `"SCU"` is
-reported instead of being ignored silently. All fields are **required** except `crates` and `pickup`.
+reported instead of being ignored silently. All fields are **required** except `fillOrder`, `crates` and `pickup`.
 
 ### File
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `2`. Files with `1` are still read (see below); export always writes `2`. |
+| `schemaVersion` | number | `3`. Files with `1` or `2` are still read (see below); export always writes `3`. |
+| `fillOrder` | string | Optional. Which end of each rack the crates start from: `"bowFirst"` or `"sternFirst"`, as in the [plan file](plan-format.md). Importing a file with it sets the editor's **Fill order**; without it the editor keeps its own. Export always writes it. |
 | `stops` | array | At least one stop. **Order matters:** list the stops in the order you fly to them. The planner puts the first stop into Rack 1. |
 
 ### Stop
@@ -65,6 +67,11 @@ reported instead of being ignored silently. All fields are **required** except `
 
 A crate that fits no rack of the ship is rejected by the planner.
 
+## Schema 2 (still read)
+
+Files written before version 3 are the same without `fillOrder`; importing one keeps the editor's fill order. A
+`fillOrder` in a version 2 file is an error: change `schemaVersion` to `3` together with it.
+
 ## Schema 1 (still read)
 
 Files written before version 2 have one crate size per item and no maximum:
@@ -85,7 +92,7 @@ Files written before version 2 have one crate size per item and no maximum:
 
 `scu` must be a multiple of `crateSize`. Such an item is read as exactly those crates: `maxCrateSize` is
 the `crateSize`, and `crates` lists them (`[4, 4, 4]`), so the editor shows them as entered by hand.
-A stop with two crate sizes of the same commodity used two items. Version 2 doesn't know `crateSize`:
+A stop with two crate sizes of the same commodity used two items. Versions 2 and 3 don't know `crateSize`:
 change `schemaVersion` only together with the items.
 
 ## Errors

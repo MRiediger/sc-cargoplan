@@ -99,6 +99,7 @@ dotnet test                                    # alle Tests
 dotnet test tests/CargoPlan.Core.Tests -p:RunSettingsFilePath= --filter Category=Exhaustive   # Layout-Vollprüfung (~9 min), nicht im Standardlauf
 dotnet test tests/CargoPlan.Core.Tests -p:RunSettingsFilePath= --filter Category=Slow         # große Pläne (Stresslast, Freelancer; < 1 s seit D64), nicht im Standardlauf, CI eigener Schritt
 dotnet test tests/CargoPlan.Core.Tests -c Release -p:RunSettingsFilePath= --filter Category=Timing --logger "console;verbosity=detailed"   # Kosten je Verschiebe-Stufe als Tabelle (D65), nur von Hand
+dotnet test tests/CargoPlan.App.Tests -c Release -p:RunSettingsFilePath= --filter Category=Timing --logger "console;verbosity=detailed"    # Speicher je Schnappschuss, Undo/Redo-Dauer (D74), nur von Hand
 dotnet run --project src/CargoPlan.App         # Overlay starten
 dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json
 dotnet run --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/example_missions.json
