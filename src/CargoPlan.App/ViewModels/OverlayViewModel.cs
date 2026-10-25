@@ -61,6 +61,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     public const string NothingToReplanText = "Re-plan: no cargo on board";
 
+    /// <summary>What Discard plan did (K2.3): a notice, no question (D66).</summary>
+    public const string DiscardedText = "Plan discarded – the next sync brings every ContractTracker contract back.";
+
     /// <summary>What the overlay asks before every re-plan (D66): no way past it, button or hotkey.</summary>
     public const string ReplanConfirmText =
         "Re-plan? All cargo on board is laid out anew: crates change racks and cells, you restack the ship, and manual moves are lost. Ticks and crate sizes stay.";
@@ -267,6 +270,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             SplitCommand.NotifyCanExecuteChanged();
             MergeCommand.NotifyCanExecuteChanged();
             ReplanCommand.NotifyCanExecuteChanged();
+            DiscardPlanCommand.NotifyCanExecuteChanged();
             UpdateDeletedContracts();
         }
     }
@@ -573,6 +577,20 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     private bool CanReplan() => Plan?.Crates.Any(c => !c.Delivered) == true;
 
+    /// <summary>
+    /// Empties the plan and the sync's baseline (K2.3, Martin's variant a): the editor's Discard plan button and the
+    /// discardPlan hotkey. Ticks go with the plan, fill order and ship stay; the next ContractTracker sync takes every
+    /// contract in again, a running auto-sync at its next signal. A notice, no question (D66).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(HasPlan))]
+    private void DiscardPlan()
+    {
+        var saved = Saved ?? throw new InvalidOperationException(NoPlanText);
+        Saved = LoadPlanner.Discard(saved, Ship);
+        SetNotice(NoticeSource.Replan, null);
+        SetNotice(NoticeSource.Move, DiscardedText);
+    }
+
     /// <summary>Ticking the line of a mission that didn't fit drops it (D41): abandoned, out of the plan.</summary>
     [RelayCommand]
     private void DropMission(int missionId) => RemoveMission(missionId);
@@ -762,7 +780,11 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         }
     }
 
-    public bool HasPlan => Plan is not null;
+    /// <summary>
+    /// There are missions to show: the legend and the editor's Copy as text. A plan without missions (discarded, K2.3, or
+    /// emptied) shows the empty state like the first start (T3.8a); it still holds the fill order and the ship.
+    /// </summary>
+    public bool HasPlan => Missions.Count > 0;
 
     /// <summary>
     /// What the ship view and the legend draw: the plan with Core's validation (D24), or the empty ship without a plan.

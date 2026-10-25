@@ -13,7 +13,10 @@ public enum HotkeyModifiers : uint
     NoRepeat = 0x4000, // MOD_NOREPEAT: holding the keys fires once, not once per auto-repeat
 }
 
-/// <summary>What a hotkey does; the names in settings.json are toggleLock, toggleOverlay, syncContractTracker and replan (D17, D44, D66).</summary>
+/// <summary>
+/// What a hotkey does; the names in settings.json are toggleLock, toggleOverlay, syncContractTracker, replan and
+/// discardPlan (D17, D44, D66, K2.3).
+/// </summary>
 public enum HotkeyAction
 {
     /// <summary>Switches the manual lock, like the padlock.</summary>
@@ -27,6 +30,9 @@ public enum HotkeyAction
 
     /// <summary>Lays out the cargo on board anew, like the editor's Re-plan button (D66).</summary>
     Replan,
+
+    /// <summary>Empties the plan, so the next sync starts over, like the editor's Discard plan button (K2.3).</summary>
+    DiscardPlan,
 }
 
 /// <summary>A key combination as RegisterHotKey takes it. Built by <see cref="HotkeyParser"/>.</summary>

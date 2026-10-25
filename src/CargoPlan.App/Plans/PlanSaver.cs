@@ -64,7 +64,7 @@ public sealed class PlanSaver
 
     private void Save()
     {
-        // Nothing sets the plan back to null: the editor replaces a plan, it doesn't discard one (backlog, D19).
+        // Nothing sets the plan back to null: Discard plan leaves an empty one with its fill order (K2.3), saved like any.
         if (_viewModel.Saved is not { } saved)
         {
             return;

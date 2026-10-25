@@ -101,7 +101,9 @@ public sealed record LegendSettings(bool Visible = true, string Position = "bott
 /// <param name="ToggleOverlay">Hides the overlay and shows it again.</param>
 /// <param name="SyncContractTracker">Takes new ContractTracker captures into the plan (D44).</param>
 /// <param name="Replan">Lays out the cargo on board anew (D66).</param>
-public sealed record HotkeySettings(string? ToggleLock = null, string? ToggleOverlay = null, string? SyncContractTracker = null, string? Replan = null);
+/// <param name="DiscardPlan">Empties the plan, so the next sync starts over (K2.3).</param>
+public sealed record HotkeySettings(
+    string? ToggleLock = null, string? ToggleOverlay = null, string? SyncContractTracker = null, string? Replan = null, string? DiscardPlan = null);
 
 /// <summary>
 /// Where ContractTracker's database is and whether captures come into the plan by themselves (D44). Optional, no schema

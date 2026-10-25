@@ -42,6 +42,7 @@ public sealed class HotkeyService
             [HotkeyAction.ToggleOverlay] = viewModel.ToggleOverlayCommand,
             [HotkeyAction.SyncContractTracker] = syncContractTracker,
             [HotkeyAction.Replan] = viewModel.ReplanCommand,
+            [HotkeyAction.DiscardPlan] = viewModel.DiscardPlanCommand,
         };
 
         (HotkeyAction, string?)[] texts =
@@ -50,6 +51,7 @@ public sealed class HotkeyService
             (HotkeyAction.ToggleOverlay, settings?.ToggleOverlay),
             (HotkeyAction.SyncContractTracker, settings?.SyncContractTracker),
             (HotkeyAction.Replan, settings?.Replan),
+            (HotkeyAction.DiscardPlan, settings?.DiscardPlan),
         ];
         foreach (var (action, text) in texts)
         {
@@ -233,6 +235,7 @@ public sealed class HotkeyService
         HotkeyAction.ToggleOverlay => "toggleOverlay",
         HotkeyAction.SyncContractTracker => "syncContractTracker",
         HotkeyAction.Replan => "replan",
+        HotkeyAction.DiscardPlan => "discardPlan",
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
     };
 

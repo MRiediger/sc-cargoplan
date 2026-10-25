@@ -134,7 +134,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     /// </summary>
     public string PlanToolTip => _result.Problem ?? PlanText;
 
-    public bool HasPlan => _overlay.Plan is not null;
+    public bool HasPlan => _overlay.HasPlan;
 
     /// <summary>The current plan has ticked stops, and a new plan starts without ticks (D19).</summary>
     public bool ClearsDelivered => _overlay.Plan?.Placements.Any(p => p.Delivered) == true;
@@ -317,6 +317,23 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
     private bool CanReplan() => _overlay.ReplanCommand.CanExecute(null);
 
+    /// <summary>
+    /// The overlay's Discard plan (K2.3): empties the plan, not the rows. Its own change like <see cref="ReplanCommand"/>:
+    /// clean rows show the empty plan (one blank row), a draft stays a draft; the fill order stays either way.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanDiscardPlan))]
+    private void DiscardPlan()
+    {
+        ChangeOverlay(() => _overlay.DiscardPlanCommand.Execute(null));
+        _missions = _overlay.Missions;
+        if (!IsDirty)
+        {
+            ShowOverlayRows();
+        }
+    }
+
+    private bool CanDiscardPlan() => _overlay.DiscardPlanCommand.CanExecute(null);
+
     private bool CanDeleteMission() => SelectedRow?.MissionId is { } id && _overlay.Missions.Any(m => m.Id == id);
 
     private bool HasSelection() => SelectedRow is not null;
@@ -392,6 +409,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         OnPropertyChanged(nameof(ClearsDelivered));
         DeleteMissionCommand.NotifyCanExecuteChanged();
         ReplanCommand.NotifyCanExecuteChanged();
+        DiscardPlanCommand.NotifyCanExecuteChanged();
 
         // A tick keeps the missions; a capture, a waiting mission placed or one dropped in the legend doesn't.
         if (_ownChange || ReferenceEquals(_overlay.Missions, _missions))
