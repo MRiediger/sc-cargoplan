@@ -394,7 +394,9 @@ The sections:
   Muted (7), each chosen by its author to stay apart with the common kinds of colour blindness; switching recolours the
   plan at once, every destination keeps its place in the order. Then how solid the crates and their edges are (at the lift, turn the fill down to see the real crates through
   the planned ones), the colour and size of the rack numbers and the "Bow" label on the bow wedge, and their outline.
-  The ship outline's line takes the rack numbers' colour, toned down.
+  The ship outline's line takes the rack numbers' colour, toned down. **Selection**, **Selection width** and **Contour
+  around the selection edge** set how crates you selected with a right click are framed (magenta over a dark contour by
+  default).
 - **Header:** the colour of the ship name and the glyphs (pencil, gear, split, merge, exit, padlock), and a halo around
   the ship name.
 - **Buttons:** background, frame and rounded corners of the glyph buttons, and a halo around the glyphs.

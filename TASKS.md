@@ -1868,12 +1868,33 @@ Ansicht und Legende holen ihre Pinsel aus einer Funktion; P9 `downloadShipHologr
 - [x] Gate (Martin, Publish-Build, 25.10., abgenommen): Preset wechseln → Overlay ändert sich sofort; Export → Datei (Name ohne Endung getippt: bekommt sie `.cargoplan-look.json`?); einen Wert ändern → „Custom“; Import der Datei → zurück; Import einer Datei mit `schemaVersion: 2` → Fehlermeldung, nichts geändert; Hotkeys und CT-Pfad nach Import unverändert
 - Commits 73910e3 (Tests Datei rot), 0c79ccb (Datei, Presets), 47636aa (Tests Fenster rot), 8df8135 (Fenster, Import, Export), Doku-Commit.
 
-### Abschluss der K4-Session (offen bis zur Abnahme)
-- Code und Doku aller drei Tasks committet auf `feat/k4-look`; offen sind Martins Gates (K4.1–K4.3), das Look-Gate K4.2 und die Preset-Exporte K4.3. Merge `--no-ff` erst nach Abnahme, Push durch Martin.
-- Tests: Core 1.401 → 1.401, Import 141 → 141, App 1.235 → 1.320; Core unberührt, Exhaustive nicht nötig.
+### [ ] K4.4 Auswahlrand einstellbar: Farbe, Breite, Kontur (D25-Addendum) (25.10.2026)
+**Warum:** Martin beim Look-Gate K4.2: Farbe, Breite und Kontur der markierten Kisten sollen in den Preferences einstellbar sein.
+
+**Ist-Zustand vor K4.4 (A1):** `ShipViewControl.SelectionPen` fest (`MissionPalette.Selection` Magenta, 2,5 px), darunter der feste Unterstrich aus K4.2 (`EdgeUnderPen`, Schwarz `A0`, 4,5 px), gemeinsam mit Problem- und Geisterrand.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** „markierte Crates“ = per Rechtsklick ausgewählte Kisten (Magenta-Rand); „Kontur“ = der dunkle Unterstrich, als Halo-Objekt (an/aus, Farbe, Breite je Seite); Problem- und Geisterrand behalten den festen Unterstrich (Zustände, keine Wahl); Ort Abschnitt Crates mit dessen Reset.
+- Settings: `CrateAppearance.SelectionColor` (`#FFFF00FF`), `SelectionWidth` (2,5, 1–8), `SelectionOutline` (an, `#A0000000`, 1); `AppearanceRules` prüft sie wie die übrigen Kistenwerte
+- Theme/Ansicht: `CratesSelectionPen`, `CratesSelectionOutlinePen` (Breite + 2 × Größe, runde Ecken, aus = Key entfernt); `ShipViewControl.SelectionPen`/`SelectionOutlinePen` per DynamicResource; `MissionPalette.Selection` entfällt
+- Fenster: „Selection“ (Farbe mit Alpha), „Selection width“ (halbe Pixel), „Contour around the selection edge“ im Abschnitt Crates
+- Presets: neu geschrieben, die drei Keys mit Defaults, alle anderen Werte unverändert (Martins Exporte von High contrast und Minimal sind byte-gleich mit den Entwürfen, Zeilenenden ausgenommen)
+- Tests: Rules, Theme, VM, Store, XAML, `MissionPaletteTests`
+
+**Akzeptanz:**
+- [x] Rot gesehen (Compile-Fehler, 7b5e9d5), dann grün
+- [x] Defaults zeichnen wie K4.2 (gleiche Stifte, gleiche Reihenfolge; nicht neu gerendert)
+- [x] Farbe, Breite, Kontur einzeln einstellbar, Kontur abschaltbar; Werte außerhalb geklemmt, ungültige Farbe → Magenta mit Notice; Reset Crates stellt alle drei zurück
+- [x] Look-Dateien tragen die drei Keys; Drift-Schutz der Default-Datei grün
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.320 → 1.328)
+- [ ] Gate (Martin, Publish-Build): Kisten auswählen, Farbe, Breite und Kontur ändern → wirkt sofort; Kontur aus → nur der Rand; Reset Crates → Magenta über dunkler Kontur; Neustart behält die Werte
+- Commits 7b5e9d5 (Tests rot), 17b1d60 (App), Doku-Commit.
+
+### Abschluss der K4-Session (offen bis zur Abnahme von K4.4)
+- K4.1–K4.3 von Martin abgenommen (25.10.2026, e2cdf9e); K4.4 committet, Gate offen. Merge `--no-ff` erst nach Abnahme, Push durch Martin.
+- Tests: Core 1.401 → 1.401, Import 141 → 141, App 1.235 → 1.328; Core unberührt, Exhaustive nicht nötig.
 
 **Übergabe für den K5-Startprompt:**
-- **Schema-Stand:** Schiff 5, Plan 6, Mission 3, settings.json 2. Neue optionale Keys (K4): `appearance.legend.checkBoxColor`, `appearance.legend.checkMarkColor`, `appearance.crates.stopPalette` (`okabeIto`, `tolBright`, `tolMuted`). Neu: Look-Datei `*.cargoplan-look.json` Schema 1 (D77).
+- **Schema-Stand:** Schiff 5, Plan 6, Mission 3, settings.json 2. Neue optionale Keys (K4): `appearance.legend.checkBoxColor`, `appearance.legend.checkMarkColor`, `appearance.crates.stopPalette` (`okabeIto`, `tolBright`, `tolMuted`), `appearance.crates.selectionColor`, `selectionWidth`, `selectionOutline`. Neu: Look-Datei `*.cargoplan-look.json` Schema 1 (D77).
 - **Look-Keys:** `appearance` komplett, `legend`, `toolWindowTheme`, `shipOutline`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView.maxZoomPxPerCell`. Nicht: Hotkeys, ContractTracker, Bounds, Kameras, Schiff, Recent, `downloadShipHolograms`.
 - **Preset-Namen (für T7.5-Screenshots):** „Default“, „High contrast“, „Minimal“ (Dateien `default`, `high-contrast`, `minimal`). Ein neuer Settings-Key mit Default zwingt `Looks/default.cargoplan-look.json` nachzuziehen (Test `The_default_file_is_what_export_writes_for_the_defaults`); neue Look-Keys müssen auch in `Look`, `LookFileContent` und `SettingsViewModel.ApplyLook`.
 - **Für K5 relevant:** Stop-Farben laufen über `OverlayViewModel.StopPalette`, nicht über die Szene; `MissionPalette.Assign` liefert Ordnungszahlen ohne Modulo.
@@ -1924,6 +1945,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~Alternative Stop-Paletten, nur geprüft farbfehlsicht-tauglich (D29).~~ → K4
 - IBM-Palette (`648FFF 785EF0 DC267F FE6100 FFB000`) als vierte Stop-Palette, sobald eine IBM-eigene Quelle die Hex-Werte nennt; Orange liegt ΔE76 26 am Problemrot (unter der Schwelle 33,6), müsste also ohne Orange kommen (K4.2). Auslöser: Hauler fragt danach.
 - `appearance.crates.customStopColors` (Hex-Liste, aktiv bei `stopPalette = custom`), falls ein Hauler mit seltener Farbfehlsicht keine der drei Paletten lesen kann. Gegen: ungeprüfte Farben (D29), und eine Liste im Look-Record bricht die Gleichheit, an der K4.3 „Custom“ erkennt (K4.2).
+- Startordner der Look-Dialoge (Export/Import, K4.3): ohne `InitialDirectory` nimmt Windows den zuletzt benutzten Ordner der App, bei Martin `AppData\Roaming\VoiceAccess\UserPhrases\de-DE`. „Dokumente“ als Start beim ersten Export, falls Hauler ihre Datei nicht wiederfinden. Auslöser: Meldung.
 - `MissionFrame` (weiß, D68) ist dieselbe Farbe wie Okabe-Weiß (ΔE 0), obwohl der Kommentar „white is in no stop colour“ sagt: ein ausgewählter Missionsrahmen um eine weiße Kiste trägt nichts. Befund aus K4.2, kein Task; Auslöser: Look-Gate oder Hauler-Meldung.
 - ~~Legenden-Checkboxen: Farbe und Deckkraft in den Preferences wählbar (Abschnitt Legend; heute fest grau `#B0B0B0`, `MissionPalette.CheckBoxBrush`, D69). Auslöser: Taste-Gate B6.~~ → K4
 - ~~Theme-Presets/Export (A4).~~ → K4

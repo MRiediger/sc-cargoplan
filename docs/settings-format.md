@@ -51,7 +51,10 @@ values.
       "rackNumberColor": "#FFFFFFFF",
       "rackNumberFontSize": 27,
       "stopPalette": "okabeIto",
-      "halo": { "enabled": true, "color": "#E0141414", "size": 3 }
+      "selectionColor": "#FFFF00FF",
+      "selectionWidth": 2.5,
+      "halo": { "enabled": true, "color": "#E0141414", "size": 3 },
+      "selectionOutline": { "enabled": true, "color": "#A0000000", "size": 1 }
     },
     "buttons": {
       "background": "#01000000",
@@ -101,6 +104,9 @@ The overlay's background `#A0141414` is a dark grey at 63 %. The crates' colours
 | `crates.rackNumberFontSize` | Size of the rack numbers and the "Bow" label in pixels, the same at every zoom | `27` | 8–48 |
 | `crates.halo` | Outline of the rack numbers and the "Bow" label | on | |
 | `crates.stopPalette` | The set of stop colours, see below | `"okabeIto"` | |
+| `crates.selectionColor` | Edge of the crates you selected with a right click | `#FFFF00FF` | |
+| `crates.selectionWidth` | Width of that edge in pixels | `2.5` | 1–8 |
+| `crates.selectionOutline` | Dark contour under that edge, a [halo](#halo) whose `size` is its width on each side | on, `#A0000000`, `1` | |
 | `buttons.background` | Background of the glyph buttons and "Open editor" | `#01000000` | alpha at least `01` |
 | `buttons.borderColor` | Frame of the glyph buttons | `#FFE6E6E6` | |
 | `buttons.borderThickness` | Width of that frame, `0` = none | `0` | 0–10 |
@@ -141,12 +147,12 @@ A halo is a soft glow around text and glyphs, for reading over bright and dark s
 
 | Key | What | Default | Range |
 |---|---|---|---|
-| `enabled` | On or off; off keeps colour and size for later | `false` (crates: `true`) | |
+| `enabled` | On or off; off keeps colour and size for later | `false` (crates and selection outline: `true`) | |
 | `color` | Colour of the glow, alpha included | `#E0141414` | |
 | `size` | Blur radius in pixels; for the rack numbers the width of their outline | `3` | 1–20 |
 
 Inside a `halo`, missing keys take the defaults of this table, not those of the section: a crates halo
-written as `{ "size": 5 }` is off. Write `"enabled": true` with it.
+written as `{ "size": 5 }` is off. Write `"enabled": true` with it. The same holds for `crates.selectionOutline`.
 
 ## Legend layout
 
@@ -327,7 +333,7 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView`, `appearance.legend.checkBoxColor`, `appearance.legend.checkMarkColor` and `appearance.crates.stopPalette` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView`, `appearance.legend.checkBoxColor`, `appearance.legend.checkMarkColor`, `appearance.crates.stopPalette`, `appearance.crates.selectionColor`, `appearance.crates.selectionWidth` and `appearance.crates.selectionOutline` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a
