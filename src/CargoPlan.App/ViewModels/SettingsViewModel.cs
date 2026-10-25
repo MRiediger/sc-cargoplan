@@ -163,7 +163,14 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public IReadOnlyList<string> LegendPositions => Settings.LegendPosition.Names;
 
-    // Crates: their colours are the stop colours (D29), so only fill and edge alpha, 0–255 like the file.
+    // Crates: their colours are the stop colours of a checked palette (D29, K4.2), so the palette, fill and edge alpha
+    // (0–255 like the file).
+
+    /// <summary>The palettes with their colour count, from the ship view's own list so text and colours never differ.</summary>
+    public static IReadOnlyList<StopPaletteChoice> StopPaletteChoices { get; } = [.. ShipView.StopPalettes.All.Select(p => new StopPaletteChoice(p.Name, p.Text))];
+
+    [ObservableProperty]
+    public partial StopPaletteName StopPalette { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CratesFillPercent))]
@@ -324,6 +331,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnIsLegendVisibleChanged(bool value) => OnChanged();
 
+    partial void OnStopPaletteChanged(StopPaletteName value) => OnChanged();
+
     partial void OnCratesFillAlphaChanged(int value) => OnChanged();
 
     partial void OnCratesEdgeAlphaChanged(int value) => OnChanged();
@@ -416,6 +425,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     private void LoadCrates(CrateAppearance crates)
     {
+        StopPalette = StopPaletteNames.Parse(crates.StopPalette);
         CratesFillAlpha = crates.FillAlpha;
         CratesEdgeAlpha = crates.EdgeAlpha;
         CratesRackNumberColor.Load(crates.RackNumberColor);
@@ -461,7 +471,8 @@ public sealed partial class SettingsViewModel : ObservableObject
             new HeaderAppearance(HeaderForeground.Value, HeaderHalo.Value),
             new LegendAppearance(
                 LegendForeground.Value, UseWindowsFontSize ? null : LegendFontSize, LegendHalo.Value, LegendCheckBox.Value, LegendCheckMark.Value),
-            new CrateAppearance(CratesFillAlpha, CratesEdgeAlpha, CratesRackNumberColor.Value, CratesRackNumberFontSize, CratesHalo.Value),
+            new CrateAppearance(
+                CratesFillAlpha, CratesEdgeAlpha, CratesRackNumberColor.Value, CratesRackNumberFontSize, CratesHalo.Value, StopPaletteNames.ToName(StopPalette)),
             new ButtonAppearance(ButtonsBackground.Value, ButtonsBorderColor.Value, ButtonsBorderThickness, ButtonsCornerRadius, ButtonsHalo.Value));
         _apply(appearance, new LegendSettings(IsLegendVisible, LegendPosition));
     }

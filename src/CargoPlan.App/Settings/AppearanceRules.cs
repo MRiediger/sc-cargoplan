@@ -95,6 +95,7 @@ public static class AppearanceRules
                 RackNumberColor = check.Colour("crates.rackNumberColor", crates.RackNumberColor, CrateAppearance.Default.RackNumberColor),
                 RackNumberFontSize = check.Range("crates.rackNumberFontSize", crates.RackNumberFontSize, MinRackNumberFontSize, MaxRackNumberFontSize),
                 Halo = check.Halo("crates.halo", crates.Halo),
+                StopPalette = check.StopPalette("crates.stopPalette", crates.StopPalette),
             },
             buttons with
             {
@@ -251,6 +252,20 @@ public static class AppearanceRules
 
             var fallback = LegendPosition.Default.ToString();
             Problems.Add($"{key} \"{text}\" is not valid (edge-alignment, e.g. bottom-right), using {fallback}.");
+            return fallback;
+        }
+
+        /// <summary>An unknown palette takes the palette of before (K4.2), like a colour that isn't one; three names fit in the line.</summary>
+        public string StopPalette(string key, string text)
+        {
+            if (StopPaletteNames.TryParse(text, out _))
+            {
+                return text;
+            }
+
+            var fallback = StopPaletteNames.DefaultName;
+            var names = StopPaletteNames.Names;
+            Problems.Add($"appearance.{key} \"{text}\" is not valid ({string.Join(", ", names.Take(names.Count - 1))} or {names[^1]}), using {fallback}.");
             return fallback;
         }
 

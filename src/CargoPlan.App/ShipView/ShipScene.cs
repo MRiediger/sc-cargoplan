@@ -12,7 +12,7 @@ namespace CargoPlan.App.ShipView;
 /// <param name="Racks">In rack order; the draw order depends on the camera (<see cref="DrawOrder"/>).</param>
 /// <param name="Bounds"><c>Ship.Bounds</c>, drawn as the frame.</param>
 /// <param name="Violations">From <c>LoadPlanner.Validate</c>; these racks are red (D24).</param>
-/// <param name="PaletteRepeats">More stops than colours.</param>
+/// <param name="StopCount">Destinations in the plan: with the chosen palette, whether colours repeat (K4.2).</param>
 /// <param name="Plan">The plan drawn, empty without one: a drag asks Core with it where a crate may go (D25).</param>
 /// <param name="Ship">The plan's ship: racks with grid and origin for the drop target (D25).</param>
 /// <param name="Unplaced">Missions that didn't fit (D41), one line each after the stops; ticking one drops it.</param>
@@ -22,7 +22,7 @@ public sealed record ShipScene(
     ShipBox Bounds,
     IReadOnlyList<LegendEntry> Legend,
     IReadOnlyList<string> Violations,
-    bool PaletteRepeats,
+    int StopCount,
     LoadPlan Plan,
     Ship Ship,
     IReadOnlyList<UnplacedEntry> Unplaced,
@@ -92,7 +92,8 @@ public sealed record RackLoad(int Number, int LoadedScu, int CapacityScu)
 }
 
 /// <summary>
-/// One box of a rack in ship coordinates: a crate in its shape, or a free cell. <paramref name="PaletteIndex"/>,
+/// One box of a rack in ship coordinates: a crate in its shape, or a free cell. <paramref name="PaletteIndex"/> (the
+/// stop's ordinal, <see cref="MissionPalette.Assign"/>),
 /// <paramref name="ToolTip"/>, <paramref name="Placement"/> (the crate's derived placement) and <paramref name="Crate"/>
 /// are null for a free cell. <paramref name="IsViolated"/>: the crate is named by a problem (<c>CrateLayout.Faulty</c>).
 /// <paramref name="InLoadedLayer"/>: a free cell in a stack layer that holds a crate (<see cref="FreeCellGrid"/>, D61).

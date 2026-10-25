@@ -69,8 +69,8 @@ public sealed record LegendAppearance(
 }
 
 /// <summary>
-/// Crates in the ship view. Their colours are the stop colours and stay fixed (D29), so only their alpha is set here.
-/// The halo is the outline of the rack numbers (D28).
+/// Crates in the ship view. Their colours are the stop colours from one of the checked palettes (D29, K4.2), so their
+/// alpha and the palette's name are set here, never a colour. The halo is the outline of the rack numbers (D28).
 /// </summary>
 /// <param name="FillAlpha">0–255; int, not byte, so 300 in the file is clamped instead of breaking it.</param>
 /// <param name="EdgeAlpha">0–255, the edges of the crates.</param>
@@ -78,12 +78,14 @@ public sealed record LegendAppearance(
 /// Pixels, the same at every zoom; smaller only where the number would no longer fit its rack (D32). The default is the
 /// size at zoom 1 in the default overlay before it was a setting.
 /// </param>
+/// <param name="StopPalette">One of <see cref="StopPaletteNames.Names"/>; the default is the palette of before.</param>
 public sealed record CrateAppearance(
     int FillAlpha = 0xD0,
     int EdgeAlpha = 0xC0,
     string RackNumberColor = "#FFFFFFFF",
     double RackNumberFontSize = 27,
-    HaloSettings? Halo = null)
+    HaloSettings? Halo = null,
+    string StopPalette = "okabeIto")
 {
     public static CrateAppearance Default { get; } = new();
 

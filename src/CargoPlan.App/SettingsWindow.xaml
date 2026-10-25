@@ -266,7 +266,14 @@
                      at the lift you want to see the real crates through the planned ones. Header and buttons are set once. -->
                 <GroupBox Header="Crates" Style="{StaticResource SectionStyle}">
                     <StackPanel>
-                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The crate colours are the destination colours and stay fixed">
+                        <!-- Only palettes checked for colour blindness (D29, K4.2); more stops than colours are hatched. -->
+                        <DockPanel Style="{StaticResource RowStyle}"
+                                   ToolTip="Destination colours, each set chosen to stay apart with colour blindness; more destinations than colours are hatched">
+                            <TextBlock Text="Stop colors" Style="{StaticResource LabelStyle}" />
+                            <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.StopPaletteChoices}" DisplayMemberPath="Text"
+                                      SelectedValuePath="Value" SelectedValue="{Binding StopPalette}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="How solid the crates are; their colours come from the stop colors above">
                             <TextBlock Text="Fill" Style="{StaticResource LabelStyle}" />
                             <TextBlock DockPanel.Dock="Right" Text="{Binding CratesFillPercent}" Style="{StaticResource ValueTextStyle}" />
                             <Slider Minimum="0" Maximum="{x:Static vm:ColourField.MaxAlpha}"
