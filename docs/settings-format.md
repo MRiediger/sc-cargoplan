@@ -142,9 +142,9 @@ lower case. `top` puts the legend between the header and the ship, `bottom` belo
 left-aligned, so the colour squares stand in one column. Amber notices always stand at the very bottom,
 across the full width, wherever the legend is.
 
-**`"visible": false` hides only the stop lines.** Red warnings stay where the legend is, amber
-notices at the bottom. You still tick a destination by clicking its crates in the ship view. **Dragging a legend line
-onto a rack is gone with the lines:** to move a whole destination, right click each of its crates and
+**`"visible": false` hides only the stop lines** and their mission headers with their check boxes. Red warnings stay
+where the legend is, amber notices at the bottom. You still tick a destination by clicking its crates in the ship view.
+**Dragging a legend line onto a rack is gone with the lines:** to move a mission's crates, right click each of them and
 right drag the selection.
 
 Ticking a destination off never moves the ship view, in any position.

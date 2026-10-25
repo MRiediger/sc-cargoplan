@@ -51,9 +51,10 @@ Each rack shows its number on its largest visible face. Long ships (more than tw
 the Caterpillar or the Hull C) start seen from the port side with the length almost level, and the view shows the racks
 that hold cargo; the empty racks further aft are dimmed and come into view when you zoom out. Their numbers stand above
 the racks, so a full rack never hides its number. Each destination has its own color, and the legend (below the
-ship, unless you [move it](settings-format.md#legend-layout)) lists it with its SCU; once your missions name their
-pickups, the legend groups its lines under `From Lorville`, `From A, B, C` and so on, a destination once under each
-pickup it is collected at. A destination split over two racks
+ship, unless you [move it](settings-format.md#legend-layout)) has a line per mission and destination, `To Riker · 12 SCU`;
+two missions to Riker give two lines in Riker's color. Once any mission names its pickup, the legend groups the lines
+by mission, each under a header with where its crates are collected: `From Lorville`, `From A, B, C`, or `From ?` where
+the mission doesn't say. Missions stand in the order their destinations first appear. A destination split over two racks
 has the same color in both. A rack shared by two destinations shows both colors side by side, and a crate on another
 destination's cargo shows its color on top of theirs: the colors say what lies where, no text lines needed.
 
@@ -189,8 +190,13 @@ itself, a few moments after you press F3. No editor, no click.
 - **Deleted in ContractTracker:** a contract you have fully ticked (or that didn't fit) leaves the plan as soon as you
   delete it there. One with crates still on board stays, and an amber line names it until you tick it or delete it in
   the editor.
-- **Pickup** comes along from ContractTracker as it was read, misreadings included; correct it in the editor's
-  **Pickup** column if you want the legend tidy.
+- **Pickup** comes along from ContractTracker as the place's name: when ContractTracker's pickup field runs on into the
+  contract's next line (`Everus Harbor. - Freight elevator at …`), only the name stays. Misreadings in the name itself
+  stay; correct them in the editor's **Pickup** column if you want the legend tidy. A plan saved before that is cleaned
+  once when it loads (`Pickups cleaned: Everus Harbor`).
+- **A pickup can be a destination too.** Waste contracts run the other way: you collect the waste at the stations and
+  deliver it to Everus Harbor, where the Stims of another contract are collected. The legend then shows
+  `To Everus Harbor · 8 SCU` next to `From Everus Harbor`; both are right.
 - **In the editor**, the **Source** column shows where a row came from (`ct 37–38` = ContractTracker's ids, empty =
   typed). **Delete mission** takes the selected row's mission out of the plan at once, with its crates; nothing else
   moves and you don't press **Plan** for it (typed rows of one destination count as one mission).
@@ -217,9 +223,11 @@ it, and never touches the game.
 
 ### Unloading
 
-When a destination has taken its cargo, click its line in the legend or any of its cargo in the view. Its racks turn
-gray and the legend line is struck through, so the next cargo lift only shows what is still on board. The ship stays where it is. A destination split over two racks is ticked once, both racks
-turn gray. Clicked the wrong one? Click again. When every destination is ticked, the header says "All stops delivered."
+When a destination has taken its cargo, click any of its cargo in the view: every crate for that station turns gray,
+whichever mission it belongs to, and its legend lines are struck through, so the next cargo lift only shows what is still
+on board. To tick one mission's crates only, click its line in the legend instead (`To Riker` under that mission). The
+ship stays where it is. A destination split over two racks is ticked once, both racks turn gray. Clicked the wrong one?
+Click again. When every destination is ticked, the header says "All stops delivered."
 Ticking doesn't take the focus from the game, so the terminal keeps working. Every tick is saved right away, so a game
 crash or a restart between two stops keeps your plan and your ticks.
 
@@ -242,20 +250,23 @@ call: the app does it.
 To move several crates at once, **right click** each of them first: a magenta edge marks the selection. Every other
 crate of the same mission gets a white edge and all the rest is dimmed, so you see which crates came together; with one
 crate selected, a line top left says where it is collected, what it is and where it goes: `from Lorville · Titanium · to
-Riker`. Rows you type for one destination count as one mission, captures each as their own. With more than one mission
-on board, each `From …` line in the legend has a check box: tick it to select every crate collected there that is still on
-board, untick it to take them out of the selection again. Right drag any
+Riker`, or `from ? · …` where the mission doesn't say. Rows you type for one destination count as one mission, captures
+each as their own. The legend's **magenta check boxes** select too: the box in front of a line selects that line's
+crates on board, the box at a mission's header the whole mission's. Several boxes add up. A box is ticked while all its
+crates are selected and shows a bar while only some are, also when you selected them with right clicks; clicking a box
+with a bar selects the rest, clicking a ticked box takes its crates out. A click on the box never ticks the line off;
+the click on the line next to it does. Right drag any
 selected crate and the whole selection goes along, every crate keeping its place relative to the one you hold, even
 across racks. If the selection doesn't fit as it is, the app finds room as above, crate by crate, and may spread it over
 racks. A selection moves as a whole: if one crate fits nowhere, nothing moves, and the amber line names the crates
 without room. Right click a selected crate again to take it out, or right click free space to clear the selection; any
 change of the plan and locking the overlay clear it too.
 
-To move a whole destination, **right drag its line in the legend** onto a rack: its crates fade, the rack gets a cyan
-edge and the ghosts show where they go. On release they are laid into that rack, other crates there rearranged or moved
-to other racks to make room. If the whole destination is too much for the rack, as much as fits goes in and the rest
-stays where it is ("No room in rack 3 – 1 crate stays in rack 2"). Either way, the hints are worked out again for the new
-layout. Dragging back undoes a move only as long as nothing else had to move for it.
+To move a line's crates, **right drag the line in the legend** onto a rack; right drag a mission's header to move the
+whole mission. The crates fade, the rack gets a cyan edge and the ghosts show where they go. On release they are laid
+into that rack, other crates there rearranged or moved to other racks to make room. Like a selection, they move as a
+whole: what doesn't fit into that rack goes into another one ("No room in rack 3 – placed in rack 2"), and if one crate
+fits nowhere, nothing moves. Dragging back undoes a move only as long as nothing else had to move for it.
 
 Delivered crates can't be dragged, they are off the ship: their cells count as free, so crates can go where they lay.
 Moves are saved like ticks; pressing **Plan** in the editor makes a new plan from the rows and drops them and your ticks

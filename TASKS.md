@@ -1217,6 +1217,8 @@ markiert erneut, das Binding bleibt, leere Auswahl nimmt den Haken weg (der Auto
 aus, deshalb der Mauspfad); Editor bei 520 px zweizeilig, bei 1.100 px einzeilig; Overlay ohne Abholort weiter
 byte-gleich zu 924a6f1. Tests 2.236 grün (App 1.116). Commits 91af570 und dieser.
 
+**Ersetzt durch B6 (D69):** Legende nach Mission statt nach Abholort-Liste, Checkbox an jeder Zeile, Infozeile mit `from ?`.
+
 ### [ ] T7.5 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
 - Known issue (aus T7.2, D59; T7.2b: Wechsel jetzt im Overlay): „On ships with large racks and many small crates, Plan or a ship change can take a few seconds. The overlay doesn’t respond meanwhile.“
 - Reihenfolge (23.10.2026): Umriss vor Doku, T7.4 und T7.5 getauscht (D55-Addendum). Die Screenshots zeigen den Endzustand, Doku zuletzt vermeidet einen dritten Tausch. Präzisierung in der Planphase, ratifiziert durch Freigabe.
@@ -1225,7 +1227,7 @@ byte-gleich zu 924a6f1. Tests 2.236 grün (App 1.116). Commits 91af570 und diese
 
 ---
 
-## Bugfix B1–B5 (24.10.2026) – eingeschoben vor T7.4c, Branch `fix/plan-rules`
+## Bugfix B1–B6 (24./25.10.2026) – eingeschoben vor T7.4c, Branch `fix/plan-rules` (B6 nach T7.4d, Branch neu ab main)
 
 **Warum:** Spieltest am Aufzug (Covalex, Hull A, 7 Stops): rote „… which is unloaded first“-Notices zu einer Reihenfolge, die der Spieler nie festgelegt hat; „Move refused … has nothing below it“ statt einer gültigen Lage; keine Kapazitätsanzeige; ein Ziel als zwei Stops („Thundering Express“ / „… Station“). Martins Vorgaben: Die Reihenfolge der Ziele entscheidet der Spieler, nie die App; ist eine Zuordnung möglich, wird sie angenommen, nicht abgelehnt. Merge nach `main` erst nach Martins Spieltest am Aufzug mit der Covalex-Route (nach Normalisierung 5 Stops).
 **Präzisiert in der Planung (Session-Start):** T7.4/T7.4b sind erledigt, eingeschoben wird vor T7.4c. D10 ist seit D24 abgelöst, und abgehakte Kisten geben ihre Zellen seit T5.4 frei (D24-Addendum): Der D10-Punkt aus B3 entfällt samt D-Nummer. D63 ist für die Holos reserviert, neue Einträge ab D64. `decisions.md` bleibt Englisch wie D1–D62. Commits ohne Co-Authored-By, Martin pusht. Präzisierung in der Planphase, ratifiziert durch Freigabe.
@@ -1377,6 +1379,38 @@ Kleinstes Rack-Grid: fünf Schiffe mit 1 Zelle gleichauf, alle gemessen. Kopfzei
 - [ ] Look von Kopfzeile und Tooltip; Umgang mit Overlays unter 310 px (Taste-Gate Martin)
 - Offen für Martin: Spieltest am Aufzug vor dem Merge (wie B1–B4).
 
+### [ ] B6 Legende nach Mission, From/To, Auswahl-Checkbox (D69)
+**Warum:** Screenshot mit Martins plan.json vom 25.10.: Die Legende aus T7.4d (D68) gruppierte nach Abholort-Liste; vier Zeilen ohne Überschrift, Rohtext als Überschrift, kein „To“, Checkbox an der Überschrift statt an den Zeilen, ein Ziel eine Zeile je Liste mit einem Haken pro Stop. Kisten kommen pro Mission hoch, der Spieler lädt und hakt pro Mission ab.
+
+**Befund:**
+
+| # | Screenshot | Ursache |
+|---|---|---|
+| 1 | Vier Zeilen ohne Überschrift | Missionen 1–3 (ct 1–4) vor T7.4d importiert, ohne `pickup`; `LegendLines` legte sie unter eine Überschrift `""` |
+| 2 | Rohtext als Überschrift | ContractTracker selbst speicherte in `PickupLocation` von ct 38 „Everus Harbor. - Freight elevator at Green Glade Station at Hurston's L1 Lagrange point“ (DB read-only, `immutable=1`); D68 übernahm es wörtlich |
+| 3 | „Everus Harbor · 8 SCU“ als Ziel | Kein Fehler: ct 4 = Waste nach Everus Harbor (8 SCU, max 1 SCU, Größe aus dem Text), Muster aller Waste-Fixtures; Rohtext nicht prüfbar (ct 1–4 in CT gelöscht, `.bak` leer), Lesart von Martin akzeptiert |
+| 4 | Kein „To“, Checkbox an der Überschrift | So gebaut in T7.4d (Checkbox nur an `From`-Zeilen bei > 1 Mission) |
+| 5 | „Stims · to High Course Station“ unter der Kopfzeile | Die Infozeile aus T7.4d bei einer markierten Kiste; bleibt, jetzt mit `from ?` |
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Überschriften nur, wenn irgendeine Mission einen Abholort hat (sonst flach, Zeilen trotzdem `To` und je Mission + Ziel); Kopf-Checkbox wählt die ganze Mission; zwei Abhak-Einheiten mit zwei Zwecken (Kistenklick in der Ansicht = ganzer Stop, Legendenzeile = Mission + Ziel); Abholort-Bereinigung beim Import und einmalig beim Laden (Notice `Pickups cleaned: …`, nur CT-Missionen); Regel „Herkunft nie als Ziel“ und Test „ct 4: kein Stop Everus Harbor“ entfallen (Befund 3); Missionen nach erstem Auftreten entlang der Route, bei Gleichstand Missionsreihenfolge; Legenden-Drag atomar wie eine Auswahl, die Teilverschiebung (D65/E1) fällt weg; D69 statt D68 (vergeben); Infozeile bleibt klein `from <Ort> · <Ware> · to <Ziel>`, ohne Abholort `from ?`; E1: Klick auf eine teilweise Checkbox wählt alles (`null → true → false`); E2: Stufe 3b bleibt im Gruppenlauf; Branch `fix/plan-rules` neu ab main (B1–B5 waren gemergt).
+- Core: `LoadPlanner.SetDelivered` mit Mission, `LoadPlanner.ResolveMoveToRack` (Kisten ohne Zelle durch `MoveResolution.Crates`); `MoveStop`, `ResolveStopMove`, `MoveResolution.Stop` entfernt
+- Import: `ContractText.NormalizePickup` (Listenstrich, Überschriften, dann `NormalizeDestination`), `PickupNames.Parse`/`Clean`
+- App: `ShipViewBuilder.LegendLines` je Mission + Ziel, `LegendEntry` mit `Mission`, `Crates`, `MissionCrates`, `Grouped`, Label `To …`; `ToggleLineCommand`, `ToggleCratesCommand`, `MoveLegendCommand`; `SelectionFocus.State`, `LegendCheckedConverter` (ersetzt `PickupCheckedConverter`), `MissionPalette.SelectionBrush`; `Gesture.MoveLegend`, `StartLegendDrag`; Notice-Quelle `Pickups`
+- Fixture: Martins plan.json vom 25.10. (`hurston_2026-10-25`, Import, in die App-Tests verlinkt)
+
+**Akzeptanz:**
+- [x] Jede Mission eine Überschrift, auch ohne Abholort (`From ?`), nie Rohtext; Martins Plan: Missionen 1, 2, 4, 3 mit `From ?`, `From ?`, `From Everus Harbor`, `From ?` (`LegendByMissionTests`)
+- [x] ct 4: Waste-Zeile `To Everus Harbor · 8 SCU` unter `From ?` (ersetzt den Test „kein Stop Everus Harbor“); CT-Pickup von ct 38 → `Everus Harbor`, Laden bereinigt einmal mit Notice, zweiter Lauf ohne (`PickupNamesTests`, `ContractTrackerReaderTests`)
+- [x] Zeilen mit `To`, Summe je Mission + Ziel (High Course Station 7 und 5), Farbe je Ziel über Gruppen gleich, Reihenfolge nach erstem Auftreten, ohne jeden Abholort keine Überschrift
+- [x] Checkbox: setzen/aufheben, Vereinigung, Kopf = ganze Mission, Spiegelung (an/aus/teilweise), E1-Zyklus, abgehakte Kisten nie in der Auswahl; Checkbox-Kommando hakt nicht ab, Zeilenklick hakt nur Mission + Ziel ab, Kistenklick weiter den ganzen Stop
+- [x] Legenden-Drag Zeile/Überschrift → `Gesture.MoveLegend` mit genau diesen Kisten; volles Zielrack → Verdrängung (E2); nirgends Platz → nichts bewegt (Core)
+- [x] Infozeile `from ? · …` ohne Abholort; Tooltip unverändert (`SceneHitTestTests` grün)
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 996, Import 141, App 1.130); Slow grün
+- Rot vor der Umsetzung: Commit 1 als Compile-Fehler in allen drei Testprojekten; in Commit 2 nur die umgezogenen Core-Tests, die App-Tests für Checkbox und Drag kamen nach dem Code (Lehre „erst rot sehen“ nicht ganz eingehalten).
+- [ ] Look Checkbox (Magenta) gegen Erledigt (grau), Einrückung der Zeilen (Taste-Gate Martin)
+- Offen für Martin: Spieltest am Aufzug vor dem Merge (wie B1–B5).
+- Commits 1fec5d6 (Legende nach Mission, Bereinigung), d3422f9 (Checkbox, Drag), dieser (Doku).
+
 ---
 
 ## Phase 8 – nach dem Launch
@@ -1429,6 +1463,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Frachtmodule (Aurora-Heckmodul, Retaliator, Caterpillar `module_01–04`) als zusätzliche Katalogeinträge aus einer Datei, ohne Änderung an Plan-Schema oder Auswahl (D59). Auslöser: erstes Schiff in `ships/` mit im Spiel wechselbarem Frachtmodul.
 - Haken eines Altbesuchs beim Schiffswechsel erhalten: ein abgehakter Stopp, der danach neue Fracht bekam (D41), kommt nach `Replan` auf einem anderen Schiff unabgehakt zurück und belegt Platz (D59); auf dem eigenen Schiff erledigt in B4 (D66). Auslöser: Meldung eines Haulers.
 - Sync Ships in der App (Fleetyards-API), falls sich Frachtgitter häufiger ändern als Releases erscheinen oder Hauler zwischen Releases fehlende Schiffe melden. Voraussetzungen: D-Eintrag Netzwerkzugriff des Overlays, Lizenzfrage für Laufzeitabrufe, Merge-Logik aus import-fleetyards.ps1 nach C# (T7.1b).
+- Abholorte von Waste-Verträgen aus den Zeilen „Collect Waste from …“ des Rohtexts lesen (die Stationen), statt nur aus ContractTrackers `PickupLocation`, das einen davon zerrissen nennt (B6, D69). Auslöser: Hauler will Waste-Missionen nach Abholort unterscheiden.
 - Kisten horizontal drehbar (Gier 90°) im Planer, statt Racks beim Import zu drehen (T7.1b: `length` = längere Seite, Rack in `notes` genannt). Auslöser: ein Schiff, dessen Rack nur mit gedrehten Kisten so voll wird wie im Spiel, oder ein Hauler-Report über abgelehnte Kisten, die im Spiel passen.
 - `CrateLayout.InOrder` beschleunigen (`StartingAt` ohne LINQ, Pruning), Auslöser: ein echter Plan mit der Notiz „too many crates to rearrange“ (D54). Erwartet bei Racks ab ~80 Zellen mit vielen 1-SCU-Kisten (T7.1c: 9×3×3, 32 + 40 × 1).
 - ~~Planen in `Task.Run` statt im UI-Thread (`MissionEditorViewModel.Plan`, CT-Sync, Schiffswechsel), Auslöser: ein gemeldetes Einfrieren (D54) oder der erste Hauler-Report zur Planungsdauer. Messwert T7.2: 8-Stopp-Lastfall auf der Freelancer ~4 s Release (Suchlimit, D58), beim Editor-Plan wie beim Wechsel (`ReplanTests`, `Slow`). Ein UI-Task (Knopf gesperrt, „Planning…“), kein Planer-Task; kann als erster nach dem Launch kommen. Bis dahin Known issue (T7.5).~~ Geschlossen in B4 (D66): seit B2 plant jedes Fixture im Prozess in höchstens 3,2 ms (Median, erster Lauf 7 ms, Freelancer-Lastfall 2,3 ms, `ReplanTimingTests`); nur die Stresslast (kein Schiff) braucht 80 ms. Wiederöffnen bei einem gemeldeten Einfrieren.
