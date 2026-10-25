@@ -3,10 +3,11 @@ using CargoPlan.App.ViewModels;
 
 namespace CargoPlan.App.Tests;
 
-public sealed class SettingsViewModelTests
+public sealed class SettingsViewModelTests : IDisposable
 {
     private const double WindowsFontSize = 11;
 
+    private readonly string _folder = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"));
     private readonly List<(AppearanceSettings Appearance, LegendSettings Legend)> _applied = [];
     private readonly List<ToolWindowTheme> _themes = [];
     private readonly List<ShipOutlineMode> _outlines = [];
@@ -14,6 +15,21 @@ public sealed class SettingsViewModelTests
     private readonly List<double> _opacities = [];
     private readonly List<(string Hull, string Edge)> _colours = [];
     private readonly List<double> _maxZooms = [];
+    private readonly List<string?> _lookNotices = [];
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_folder))
+        {
+            Directory.Delete(_folder, recursive: true);
+        }
+    }
+
+    private string LookPath(string name)
+    {
+        Directory.CreateDirectory(_folder);
+        return Path.Combine(_folder, name);
+    }
 
     private SettingsViewModel Create(
         AppearanceSettings? appearance = null,
@@ -43,7 +59,8 @@ public sealed class SettingsViewModelTests
             holoEdgeColor,
             (hull, edge) => _colours.Add((hull, edge)),
             maxZoom,
-            _maxZooms.Add);
+            _maxZooms.Add,
+            _lookNotices.Add);
 
     private (AppearanceSettings Appearance, LegendSettings Legend) Last => _applied[^1];
 
@@ -767,5 +784,190 @@ public sealed class SettingsViewModelTests
     {
         SettingsViewModel.ShipOutlineChoices.Select(c => ShipOutlineModes.ToName(c.Value)).Should().Equal(ShipOutlineModes.Names);
         SettingsViewModel.ShipOutlineChoices.Select(c => c.Text).Should().Equal("Outline", "Hologram – shaded", "Hologram – flat", "Hologram – hidden line", "None");
+    }
+
+    // Look presets, export and import (K4.3, D77)
+
+    private PresetChoice Preset(SettingsViewModel viewModel, string text) => viewModel.PresetChoices.Single(c => c.Text == text);
+
+    private string WriteLook(string name, Look look)
+    {
+        var path = LookPath(name);
+        using var file = File.Create(path);
+        LookFile.Write(file, look);
+        return path;
+    }
+
+    [Fact]
+    public void The_preset_box_lists_the_presets_and_custom()
+    {
+        Create().PresetChoices.Select(c => c.Text).Should().Equal("Default", "High contrast", "Minimal", "Custom");
+    }
+
+    [Fact]
+    public void The_window_opens_on_the_preset_the_look_is()
+    {
+        Create().SelectedPreset.Text.Should().Be("Default");
+        Create(Changed).SelectedPreset.Text.Should().Be("Custom");
+    }
+
+    [Fact]
+    public void The_look_is_what_the_window_shows()
+    {
+        var viewModel = Create(LookFileTests.Custom.Appearance, LookFileTests.Custom.Legend, toolWindowTheme: ToolWindowTheme.Dark,
+            shipOutline: ShipOutlineMode.HoloFlat, holoOpacity: 0.55, holoHullColor: "#FF336699", holoEdgeColor: "#FFFFCC00", maxZoom: 120);
+
+        viewModel.Look.Should().Be(LookFileTests.Custom);
+    }
+
+    [Fact]
+    public void A_changed_value_shows_custom_and_changing_it_back_the_preset()
+    {
+        var viewModel = Create();
+
+        viewModel.WindowBorderThickness = 5;
+        viewModel.SelectedPreset.Text.Should().Be("Custom");
+
+        viewModel.WindowBorderThickness = 0;
+        viewModel.SelectedPreset.Text.Should().Be("Default");
+    }
+
+    [Fact]
+    public void A_setting_outside_the_appearance_counts_too()
+    {
+        var viewModel = Create();
+
+        viewModel.MaxZoom = 200;
+
+        viewModel.SelectedPreset.Text.Should().Be("Custom");
+    }
+
+    [Fact]
+    public void A_preset_applies_once_each_setting_only_if_it_changes_and_says_so()
+    {
+        var viewModel = Create();
+        var preset = LookPresets.All.Single(p => p.Name == "High contrast").Look;
+
+        viewModel.SelectedPreset = Preset(viewModel, "High contrast");
+
+        _applied.Should().ContainSingle();
+        Last.Should().Be((preset.Appearance, preset.Legend));
+        _themes.Should().BeEmpty();
+        _outlines.Should().BeEmpty();
+        _opacities.Should().BeEmpty();
+        _colours.Should().BeEmpty();
+        _maxZooms.Should().BeEmpty();
+        _downloads.Should().BeEmpty();
+        viewModel.Look.Should().Be(preset);
+        viewModel.SelectedPreset.Text.Should().Be("High contrast");
+        _lookNotices[^1].Should().Be("Preset applied: High contrast.");
+    }
+
+    [Fact]
+    public void A_preset_sets_every_setting_that_differs_but_never_the_download_switch()
+    {
+        var viewModel = Create(Changed, toolWindowTheme: ToolWindowTheme.Dark, shipOutline: ShipOutlineMode.HoloFlat, downloadShipHolograms: false,
+            holoOpacity: 0.8, holoHullColor: "#FF336699", maxZoom: 80);
+
+        viewModel.SelectedPreset = Preset(viewModel, "Default");
+
+        _applied.Should().ContainSingle();
+        Last.Should().Be((AppearanceSettings.Default, LegendSettings.Default));
+        _themes.Should().Equal(ToolWindowTheme.System);
+        _outlines.Should().Equal(ShipOutlineMode.Outline);
+        _opacities.Should().Equal(0.4);
+        _colours.Should().Equal((AppearanceRules.DefaultHoloHullColor, AppearanceRules.DefaultHoloEdgeColor));
+        _maxZooms.Should().Equal(160);
+        _downloads.Should().BeEmpty();
+        viewModel.DownloadShipHolograms.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Choosing_custom_does_nothing()
+    {
+        var viewModel = Create(Changed);
+
+        viewModel.SelectedPreset = Preset(viewModel, "Custom");
+
+        _applied.Should().BeEmpty();
+        _lookNotices.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Import_applies_the_file_and_says_so()
+    {
+        var path = WriteLook("haul.cargoplan-look.json", LookFileTests.Custom);
+        var viewModel = Create();
+
+        viewModel.ImportLook(path);
+
+        viewModel.Look.Should().Be(LookFileTests.Custom);
+        _applied.Should().ContainSingle();
+        _themes.Should().Equal(ToolWindowTheme.Dark);
+        _lookNotices[^1].Should().Be("Look imported: haul.cargoplan-look.json");
+        viewModel.SelectedPreset.Text.Should().Be("Custom");
+    }
+
+    [Fact]
+    public void A_file_of_another_schema_changes_nothing_and_says_why()
+    {
+        var path = LookPath("new.cargoplan-look.json");
+        File.WriteAllText(path, """{ "schemaVersion": 2, "appearance": {} }""");
+        var viewModel = Create(Changed);
+
+        viewModel.ImportLook(path);
+
+        _applied.Should().BeEmpty();
+        viewModel.SelectedPreset.Text.Should().Be("Custom");
+        _lookNotices[^1].Should().Be("Look not imported: schemaVersion 2 is not supported (expected 1).");
+    }
+
+    [Fact]
+    public void A_missing_file_is_a_notice_too()
+    {
+        var viewModel = Create();
+
+        viewModel.ImportLook(LookPath("gone.cargoplan-look.json"));
+
+        _applied.Should().BeEmpty();
+        _lookNotices[^1].Should().StartWith("Look not imported: ");
+    }
+
+    [Fact]
+    public void Import_names_what_it_corrected()
+    {
+        var path = LookPath("bad.cargoplan-look.json");
+        File.WriteAllText(path, """{ "schemaVersion": 1, "appearance": { "window": { "background": "red" } } }""");
+        var viewModel = Create();
+
+        viewModel.ImportLook(path);
+
+        _lookNotices[^1].Should().StartWith("Look imported: bad.cargoplan-look.json")
+            .And.Contain("bad.cargoplan-look.json: appearance.window.background \"red\" is not a colour");
+    }
+
+    [Fact]
+    public void Export_then_import_gives_the_look_back()
+    {
+        var path = LookPath("mine.cargoplan-look.json");
+        var source = Create(Changed, new LegendSettings(false, "top-center"), maxZoom: 90);
+        source.ExportLook(path);
+        _lookNotices[^1].Should().Be("Look exported: mine.cargoplan-look.json");
+
+        var target = Create();
+        target.ImportLook(path);
+
+        target.Look.Should().Be(source.Look);
+    }
+
+    [Fact]
+    public void An_own_change_clears_the_look_notice()
+    {
+        var viewModel = Create();
+        viewModel.SelectedPreset = Preset(viewModel, "Minimal");
+
+        viewModel.WindowBorderThickness = 3;
+
+        _lookNotices[^1].Should().BeNull();
     }
 }
