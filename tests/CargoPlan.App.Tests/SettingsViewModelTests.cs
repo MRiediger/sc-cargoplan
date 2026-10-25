@@ -51,7 +51,7 @@ public sealed class SettingsViewModelTests
     private static readonly AppearanceSettings Changed = new(
         new WindowAppearance("#40102030", "#FF00FF00", 2),
         new HeaderAppearance("#FF123456", HaloSettings.On),
-        new LegendAppearance("#FFABCDEF", 14, new HaloSettings(true, "#80FFFFFF", 5)),
+        new LegendAppearance("#FFABCDEF", 14, new HaloSettings(true, "#80FFFFFF", 5), "#80FF0000", "#FF00FF00"),
         new CrateAppearance(FillAlpha: 100),
         new ButtonAppearance(CornerRadius: 0));
 
@@ -88,6 +88,23 @@ public sealed class SettingsViewModelTests
         viewModel.UseWindowsFontSize.Should().BeFalse();
         viewModel.LegendFontSize.Should().Be(14);
         viewModel.LegendHalo.Value.Should().Be(new HaloSettings(true, "#80FFFFFF", 5));
+        viewModel.LegendCheckBox.Value.Should().Be("#80FF0000");
+        viewModel.LegendCheckMark.Value.Should().Be("#FF00FF00");
+    }
+
+    [Fact]
+    public void Check_box_and_check_mark_apply_apart()
+    {
+        // K4.1, D69: the box's frame and the mark inside it (tick and bar) are two colours, each with its own alpha.
+        var viewModel = Create();
+
+        viewModel.LegendCheckMark.Hex = "#FF0000";
+        viewModel.LegendCheckBox.Alpha = 0x40;
+
+        _applied.Should().HaveCount(2);
+        Last.Appearance.Legend.Should().Be(LegendAppearance.Default with { CheckBoxColor = "#40B0B0B0", CheckMarkColor = "#FFFF0000" });
+        viewModel.LegendCheckBox.MinAlpha.Should().Be(0);
+        viewModel.LegendCheckMark.MinAlpha.Should().Be(0);
     }
 
     [Fact]
@@ -284,6 +301,8 @@ public sealed class SettingsViewModelTests
         Last.Legend.Should().Be(new LegendSettings(false, "top-center"));
         viewModel.UseWindowsFontSize.Should().BeTrue();
         viewModel.LegendHalo.Enabled.Should().BeFalse();
+        viewModel.LegendCheckBox.Value.Should().Be("#FFB0B0B0");
+        viewModel.LegendCheckMark.Value.Should().Be("#FFB0B0B0");
     }
 
     [Fact]

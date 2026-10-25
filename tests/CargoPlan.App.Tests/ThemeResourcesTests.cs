@@ -38,6 +38,8 @@ public sealed class ThemeResourcesTests
         ColorOf(resources, Keys.HeaderForegroundBrush).Should().Be(Color.FromArgb(0xFF, 0xE6, 0xE6, 0xE6));
         ColorOf(resources, Keys.LegendForegroundBrush).Should().Be(Color.FromArgb(0xFF, 0xE6, 0xE6, 0xE6));
         resources[Keys.LegendFontSize].Should().Be(SystemFonts.MessageFontSize);
+        ColorOf(resources, Keys.LegendCheckBoxBrush).Should().Be(Color.FromRgb(0xB0, 0xB0, 0xB0));
+        ColorOf(resources, Keys.LegendCheckMarkBrush).Should().Be(Color.FromRgb(0xB0, 0xB0, 0xB0));
         resources[Keys.CratesFillAlpha].Should().Be((byte)0xD0);
         ColorOf(resources, Keys.CratesEdgeBrush).Should().Be(MissionPalette.RackEdge);
         ColorOf(resources, Keys.CratesRackNumberBrush).Should().Be(Colors.White);
@@ -63,6 +65,18 @@ public sealed class ThemeResourcesTests
         var resources = Applied(AppearanceSettings.Default with { Legend = LegendAppearance.Default with { FontSize = 16 } });
 
         resources[Keys.LegendFontSize].Should().Be(16.0);
+    }
+
+    [Fact]
+    public void Check_box_and_check_mark_take_their_own_colours()
+    {
+        var resources = Applied(AppearanceSettings.Default with
+        {
+            Legend = LegendAppearance.Default with { CheckBoxColor = "#40FF0000", CheckMarkColor = "#FF00FF00" },
+        });
+
+        ColorOf(resources, Keys.LegendCheckBoxBrush).Should().Be(Color.FromArgb(0x40, 0xFF, 0x00, 0x00));
+        ColorOf(resources, Keys.LegendCheckMarkBrush).Should().Be(Color.FromArgb(0xFF, 0x00, 0xFF, 0x00));
     }
 
     [Fact]

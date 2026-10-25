@@ -603,7 +603,7 @@ public sealed class SettingsStoreTests : IDisposable
             Appearance = new AppearanceSettings(
                 new WindowAppearance("#E0300000", "#FF00FF00", 2),
                 new HeaderAppearance("#FFFFFF00", new HaloSettings(true, "#FF000000", 4)),
-                new LegendAppearance("#FF00FFFF", 16, new HaloSettings(true, "#80000000", 6)),
+                new LegendAppearance("#FF00FFFF", 16, new HaloSettings(true, "#80000000", 6), "#80FF0000", "#FF00FF00"),
                 new CrateAppearance(120, 64, "#FFFF0000", 40, HaloSettings.Off),
                 new ButtonAppearance("#40FFFFFF", "#FFFFFFFF", 1, 6, new HaloSettings(true, "#FF101010", 2))),
         };
