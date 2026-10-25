@@ -121,6 +121,14 @@ public class ShipLoaderTests
         ship.Id.Should().Be(shipId);
     }
 
+    // Schema 5 marks maxCrateSize as a door limit (D70); the shipped files say so, schema 4 stays readable.
+    [Theory]
+    [MemberData(nameof(ShippedShipIds))]
+    public void A_shipped_file_is_schema_5(string shipId)
+    {
+        File.ReadAllText(System.IO.Path.Combine(ShipLoader.DefaultFolder, shipId + ".json")).Should().Contain("\"schemaVersion\": 5,");
+    }
+
     // maxCrateSize is a door smaller than the grid (D70): a value the grid enforces anyway says nothing and is left out.
     [Theory]
     [MemberData(nameof(ShippedShipIds))]
@@ -301,7 +309,7 @@ public class ShipLoaderTests
     [InlineData("missing_property")]        // no "name"
     [InlineData("null_name")]               // "name": null
     [InlineData("id_mismatch")]             // "id" differs from file name
-    [InlineData("unsupported_schema")]      // "schemaVersion": 5
+    [InlineData("unsupported_schema")]      // "schemaVersion": 6
     [InlineData("previous_schema")]         // "schemaVersion": 3, no "stackAxis"
     [InlineData("old_schema")]              // "schemaVersion": 2, no "origin"
     [InlineData("missing_schema")]          // no "schemaVersion"
@@ -342,12 +350,12 @@ public class ShipLoaderTests
     {
         var act = () => TestShips.Load("unsupported_schema");
 
-        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 5*");
+        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 6*expected 4 or 5*");
     }
 
     [Theory]
-    [InlineData("previous_schema", "*schemaVersion 3*expected 4*")]
-    [InlineData("old_schema", "*schemaVersion 2*expected 4*")]
+    [InlineData("previous_schema", "*schemaVersion 3*expected 4 or 5*")]
+    [InlineData("old_schema", "*schemaVersion 2*expected 4 or 5*")]
     public void Load_old_schema_names_version_and_expected_version(string shipId, string expectedMessage)
     {
         var act = () => TestShips.Load(shipId);
@@ -427,6 +435,20 @@ public class ShipLoaderTests
         ship.Racks.Select(r => r.MaxCrateSize).Should().Equal(CrateSize.Sixteen, null);
         (ship.Manufacturer, ship.FleetyardsSlug, ship.Source, ship.Notes)
             .Should().Be(("RSI", "test-ship", "Fleetyards", "Rack 1 takes crates up to 16 SCU."));
+    }
+
+    // Schema 5 (D70) marks maxCrateSize as a door limit; the field reads the same in both, so a schema 4 file needs no migration.
+    [Fact]
+    public void Schema_4_and_5_read_alike()
+    {
+        using var folder = new ShipFolder();
+        folder.Write("max_crate_size", File.ReadAllText(TestShips.PathOf("max_crate_size")).Replace("\"schemaVersion\": 4", "\"schemaVersion\": 5"));
+
+        var five = ShipLoader.Load(folder.Path, "max_crate_size");
+        var four = TestShips.Load("max_crate_size");
+
+        five.Racks.Should().Equal(four.Racks);
+        five.Racks.Select(r => r.MaxCrateSize).Should().Equal(CrateSize.Sixteen, null);
     }
 
     // Ship drafts with a generated rack arrangement leave it out: a made-up "port lower" would show in the tooltip (T7.1b).
