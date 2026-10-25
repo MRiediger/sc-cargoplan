@@ -292,13 +292,14 @@ public static class ContractTrackerReader
         new(commodity, scu, max ?? CrateMix.Sizes.First(size => (int)size <= scu), Pickup: pickup);
 
     /// <summary>
-    /// The pickup per commodity (D68): a contract row is one commodity (D38), its pickup text split at "/" and normalized
-    /// as the editor does (<see cref="Pickups.Parse"/>), the OCR text itself unchanged. Several pickups are joined with
-    /// " / " in that text, without amounts, so the item gets the list. Rows of one commodity share theirs.
+    /// The pickup per commodity (D68): a contract row is one commodity (D38), its pickup text split at "/" and each place
+    /// cut to its name (<see cref="PickupNames.Parse"/>, B6): never the contract's next line, spelling noise in the name
+    /// stays. Several pickups are joined with " / " in that text, without amounts, so the item gets the list. Rows of one
+    /// commodity share theirs.
     /// </summary>
     private static Dictionary<string, IReadOnlyList<string>?> PickupsByCommodity(IReadOnlyList<Contract> capture) =>
         capture.GroupBy(c => ContractText.NormalizeCommodity(c.Name), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => Pickups.Normalized(g.SelectMany(c => Pickups.Parse(c.Pickup) ?? [])), StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(g => g.Key, g => Pickups.Normalized(g.SelectMany(c => PickupNames.Parse(c.Pickup) ?? [])), StringComparer.OrdinalIgnoreCase);
 
     /// <summary>ContractTracker writes UTC without a marker (D38).</summary>
     private static DateTimeOffset? CapturedAt(string? text) =>

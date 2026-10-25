@@ -186,11 +186,34 @@ public static class LoadPlanner
     {
         plan.EnsureBelongsTo(ship);
         EnsureStop(plan, destination);
+        return SetDelivered(plan, ship, destination, c => c.Destination == destination, delivered);
+    }
 
-        var changed = plan with { Crates = [.. plan.Crates.Select(c => c.Destination == destination ? c with { Delivered = delivered } : c)] };
+    /// <summary>
+    /// Marks the crates of one mission for a stop as delivered, or back: the legend's line (B6, D69), for the player who
+    /// unloads one contract's crates at a time. Otherwise as the stop's overload, ticking back refused the same way.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// The plan belongs to another ship or has no crate of <paramref name="mission"/> for <paramref name="destination"/>.
+    /// </exception>
+    /// <exception cref="PlanException">Ticking back: a crate would break a rule (<see cref="CrateLayout.NewProblem"/>).</exception>
+    public static LoadPlan SetDelivered(LoadPlan plan, Ship ship, string destination, int mission, bool delivered)
+    {
+        plan.EnsureBelongsTo(ship);
+        if (!plan.Crates.Any(c => c.Destination == destination && c.Mission == mission))
+        {
+            throw new ArgumentException(Invariant($"The plan has no crate of mission {mission} for '{destination}'."), nameof(mission));
+        }
+
+        return SetDelivered(plan, ship, destination, c => c.Destination == destination && c.Mission == mission, delivered);
+    }
+
+    private static LoadPlan SetDelivered(LoadPlan plan, Ship ship, string destination, Func<Crate, bool> ticked, bool delivered)
+    {
+        var changed = plan with { Crates = [.. plan.Crates.Select(c => ticked(c) ? c with { Delivered = delivered } : c)] };
         if (!delivered)
         {
-            HashSet<string> racks = [.. plan.Crates.Where(c => c.Destination == destination).Select(c => c.RackId)];
+            HashSet<string> racks = [.. plan.Crates.Where(ticked).Select(c => c.RackId)];
             var problem = ship.Racks.OrderBy(r => r.Index)
                 .Where(r => racks.Contains(r.Id))
                 .Select(r => CrateLayout.NewProblem(r, plan.CratesForRack(r.Id), changed.CratesForRack(r.Id)))

@@ -1,0 +1,503 @@
+{
+  "schemaVersion": 4,
+  "shipId": "hull_a",
+  "fillOrder": "bowFirst",
+  "contractTrackerWatermark": 38,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "High Course Station",
+          "items": [
+            {
+              "commodity": "Silicon",
+              "scu": 7,
+              "maxCrateSize": 4
+            }
+          ]
+        }
+      ],
+      "contract": {
+        "contractIds": [
+          1
+        ],
+        "crateSizeAssumed": true,
+        "reward": 50250
+      }
+    },
+    {
+      "id": 2,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "High Course Station",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 5,
+              "maxCrateSize": 4
+            }
+          ]
+        },
+        {
+          "destination": "Melodic Fields Station",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 3,
+              "maxCrateSize": 2
+            }
+          ]
+        },
+        {
+          "destination": "Faithful Dream Station",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "crates": [
+                2,
+                1
+              ]
+            }
+          ]
+        }
+      ],
+      "contract": {
+        "contractIds": [
+          2,
+          3
+        ],
+        "crateSizeAssumed": true,
+        "listedDestinations": 3
+      }
+    },
+    {
+      "id": 4,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Melodic Fields Station",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 2,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            }
+          ]
+        },
+        {
+          "destination": "Faithful Dream Station",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            }
+          ]
+        },
+        {
+          "destination": "Thundering Express Station",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Everus Harbor",
+                "Everus Harbor. - Freight elevator at Green Glade Station at Hurston\u0027s L1 Lagrange point"
+              ]
+            }
+          ]
+        },
+        {
+          "destination": "Green Glade Station",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 2,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Everus Harbor",
+                "Everus Harbor. - Freight elevator at Green Glade Station at Hurston\u0027s L1 Lagrange point"
+              ]
+            }
+          ]
+        }
+      ],
+      "contract": {
+        "contractIds": [
+          37,
+          38
+        ],
+        "crateSizeAssumed": true,
+        "listedDestinations": 4
+      }
+    },
+    {
+      "id": 3,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Everus Harbor",
+          "items": [
+            {
+              "commodity": "Waste",
+              "scu": 8,
+              "maxCrateSize": 1
+            }
+          ]
+        }
+      ],
+      "contract": {
+        "contractIds": [
+          4
+        ],
+        "crateSizeAssumed": false
+      }
+    }
+  ],
+  "crates": [
+    {
+      "destination": "High Course Station",
+      "commodity": "Silicon",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "High Course Station",
+      "commodity": "Silicon",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "High Course Station",
+      "commodity": "Silicon",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        1,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "High Course Station",
+      "commodity": "Stims",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "High Course Station",
+      "commodity": "Stims",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Melodic Fields Station",
+      "commodity": "Stims",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 1
+    },
+    {
+      "destination": "Melodic Fields Station",
+      "commodity": "Stims",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        3,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 1
+    },
+    {
+      "destination": "Melodic Fields Station",
+      "commodity": "Stims",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Faithful Dream Station",
+      "commodity": "Stims",
+      "crateSize": 2,
+      "rackId": "rack-2",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 2
+    },
+    {
+      "destination": "Faithful Dream Station",
+      "commodity": "Stims",
+      "crateSize": 1,
+      "rackId": "rack-2",
+      "position": [
+        3,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 2
+    },
+    {
+      "destination": "Faithful Dream Station",
+      "commodity": "Stims",
+      "crateSize": 2,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 1
+    },
+    {
+      "destination": "Faithful Dream Station",
+      "commodity": "Stims",
+      "crateSize": 1,
+      "rackId": "rack-2",
+      "position": [
+        2,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 1
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        1,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        3,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        1,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        1,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Waste",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Thundering Express Station",
+      "commodity": "Stims",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 2
+    },
+    {
+      "destination": "Thundering Express Station",
+      "commodity": "Stims",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        1,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 2
+    },
+    {
+      "destination": "Green Glade Station",
+      "commodity": "Stims",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 3
+    }
+  ],
+  "warnings": [
+    {
+      "rackId": "rack-0",
+      "message": "Rack 1 shared by High Course Station, Thundering Express Station \u2013 identify crates by count"
+    },
+    {
+      "rackId": "rack-1",
+      "message": "Rack 2 shared by Everus Harbor, Green Glade Station \u2013 identify crates by count"
+    }
+  ]
+}

@@ -467,10 +467,10 @@
                         <ItemsControl.ItemTemplate>
                             <!-- The command replaces the plan, so the legend is rebuilt and the grey comes from the new entry. -->
                             <DataTemplate DataType="{x:Type sv:LegendEntry}">
-                                <!-- "From A, B" over the first line of a pickup list (T7.4d, D68): no tick of its own, it goes with
-                                     the stop lines when the legend is hidden (D33). "" keeps an empty line for items without pickup.
-                                     With more than one mission on board a check box in the swatch column selects the pickup's crates;
-                                     it shows ticked while all of them are selected (PickupCheckedConverter). -->
+                                <!-- "From A, B" or "From ?" over the first line of a mission once any mission has a pickup (B6,
+                                     D69): no tick of its own, it goes with the lines when the legend is hidden (D33). A check box in
+                                     the swatch column selects the mission's crates; it shows ticked while all of them are selected
+                                     (PickupCheckedConverter). -->
                                 <StackPanel>
                                     <StackPanel x:Name="HeaderRow" Orientation="Horizontal">
                                         <CheckBox x:Name="PickupCheck" Width="12" Height="12" Margin="0,0,6,0" VerticalAlignment="Center"
@@ -501,8 +501,10 @@
                                         </CheckBox>
                                         <TextBlock Text="{Binding Header, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
                                     </StackPanel>
-                                    <Button Command="{Binding DataContext.ToggleDeliveredCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            CommandParameter="{Binding Destination, Mode=OneTime}"
+                                    <!-- A click ticks this line, one mission's crates for one destination (B6, D69); a click on a
+                                         crate in the ship view ticks the whole stop. -->
+                                    <Button Command="{Binding DataContext.ToggleLineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                            CommandParameter="{Binding Mode=OneTime}"
                                             Style="{StaticResource LegendLineButtonStyle}"
                                             MouseRightButtonDown="OnLegendRightButtonDown">
                                         <StackPanel Orientation="Horizontal">
@@ -523,7 +525,7 @@
                                     <DataTrigger Binding="{Binding Header}" Value="{x:Null}">
                                         <Setter TargetName="HeaderRow" Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
-                                    <DataTrigger Binding="{Binding PickupCrates}" Value="{x:Null}">
+                                    <DataTrigger Binding="{Binding MissionCrates}" Value="{x:Null}">
                                         <Setter TargetName="PickupCheck" Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Delivered}" Value="True">

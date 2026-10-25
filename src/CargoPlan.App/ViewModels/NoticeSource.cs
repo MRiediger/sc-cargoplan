@@ -26,6 +26,12 @@ public enum NoticeSource
     /// </summary>
     Stops,
 
+    /// <summary>
+    /// ContractTracker pickups of a loaded plan cut to their names (B6); cleared by the next plan and by the next sync that
+    /// takes something in.
+    /// </summary>
+    Pickups,
+
     /// <summary>Why ContractTracker can't be read, or that the sync is paused (T5.4).</summary>
     ContractTracker,
 

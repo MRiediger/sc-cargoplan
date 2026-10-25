@@ -28,6 +28,14 @@ internal static partial class ContractText
         return cut.TrimEnd(TrailingPunctuation).TrimEnd();
     }
 
+    /// <summary>
+    /// A pickup place (B6, D69): ContractTracker's pickup field can run into the next list line ("Everus Harbor. - Freight
+    /// elevator at …") or a heading ("… DROP OFF LOCATIONS (ANY ORDER)"). Both are cut off, then the name goes through
+    /// <see cref="NormalizeDestination"/> like any place. Empty if no name is left.
+    /// </summary>
+    public static string NormalizePickup(string text) =>
+        NormalizeDestination(ListHeading.Replace(ListDash.Replace(Collapse(text), ""), ""));
+
     /// <summary>The commodity: whitespace collapsed, no punctuation at the end.</summary>
     public static string NormalizeCommodity(string text) => Collapse(text).TrimEnd(TrailingPunctuation).TrimEnd();
 
@@ -92,6 +100,17 @@ internal static partial class ContractText
     /// <summary>From the first " at", " above" or sentence end to the end of the text.</summary>
     [GeneratedRegex(@"\s+(?:at|above)(?:\s.*)?$|\.(?:\s.*)?$", RegexOptions.CultureInvariant)]
     private static partial Regex LocationTail { get; }
+
+    /// <summary>
+    /// A list line's dash from its start or after a space to the end: "- Freight elevator at …". A dash inside a word stays
+    /// ("HUR-L1").
+    /// </summary>
+    [GeneratedRegex(@"(?:^|\s)[-–—](?:\s.*)?$", RegexOptions.CultureInvariant)]
+    private static partial Regex ListDash { get; }
+
+    /// <summary>The contract's list headings to the end, as the game prints them (see ContractTextParser).</summary>
+    [GeneratedRegex(@"(?:^|\s)(?:DROP\s+OFF|PICK\s+UP)\s+LOCATIONS\b.*$", RegexOptions.CultureInvariant)]
+    private static partial Regex ListHeading { get; }
 
     /// <summary>The last word after at least one other ("Everus Harbor abov" → "abov").</summary>
     [GeneratedRegex(@"\s(?<word>\S+)$", RegexOptions.CultureInvariant)]

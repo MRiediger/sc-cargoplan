@@ -574,6 +574,69 @@ public class LoadPlannerOverrideTests
         delivered.Crates.Select(c => (c.RackId, c.Position)).Should().Equal(plan.Crates.Select(c => (c.RackId, c.Position)));
     }
 
+    // --- SetDelivered for one mission (B6, D69): the legend's line is mission + destination ---
+
+    /// <summary>Riker by mission 1 and 2 side by side on the plate of Rack 1, Shubin by mission 1 on top.</summary>
+    private static LoadPlan TwoMissionsToRiker(bool rikerTwoDelivered = false) => new(HullA.Id,
+    [
+        new Crate("Riker", "Titanium", CrateSize.Four, "rack-0", new GridPosition(0, 0, 0), Mission: 1),
+        new Crate("Riker", "Titanium", CrateSize.Four, "rack-0", new GridPosition(2, 0, 0), rikerTwoDelivered, Mission: 2),
+        new Crate("Shubin", "Agricium", CrateSize.Four, "rack-0", new GridPosition(0, 0, 1), Mission: 1),
+    ], []);
+
+    [Fact]
+    public void SetDelivered_of_a_mission_ticks_only_its_crates_for_the_stop()
+    {
+        var plan = TwoMissionsToRiker();
+
+        var delivered = LoadPlanner.SetDelivered(plan, HullA, "Riker", 2, true);
+
+        delivered.Crates.Select(c => (c.Destination, c.Mission, c.Delivered)).Should().Equal(
+            ("Riker", 1, false), ("Riker", 2, true), ("Shubin", 1, false));
+    }
+
+    [Fact]
+    public void SetDelivered_of_a_mission_back_to_false_restores_the_plan()
+    {
+        var plan = TwoMissionsToRiker();
+
+        var undone = LoadPlanner.SetDelivered(LoadPlanner.SetDelivered(plan, HullA, "Riker", 2, true), HullA, "Riker", 2, false);
+
+        // The hand-built plan carries no hints; a tick derives them anew, so only the crates compare.
+        undone.Crates.Should().Equal(plan.Crates);
+    }
+
+    [Fact]
+    public void SetDelivered_of_a_mission_refuses_to_tick_back_when_its_cells_are_taken_again()
+    {
+        LoadPlan plan = new(HullA.Id,
+        [
+            new Crate("Riker", "Titanium", CrateSize.Four, "rack-0", new GridPosition(0, 0, 0), Delivered: true, Mission: 2),
+            new Crate("Shubin", "Agricium", CrateSize.Four, "rack-0", new GridPosition(0, 0, 0), Mission: 1),
+        ], []);
+
+        var act = () => LoadPlanner.SetDelivered(plan, HullA, "Riker", 2, false);
+
+        act.Should().Throw<PlanException>().WithMessage("Riker can't go back on board: *overlap*");
+    }
+
+    [Fact]
+    public void SetDelivered_of_a_mission_without_crates_for_the_stop_is_rejected()
+    {
+        var act = () => LoadPlanner.SetDelivered(TwoMissionsToRiker(), HullA, "Shubin", 2, true);
+
+        act.Should().Throw<ArgumentException>().WithParameterName("mission").WithMessage("*mission 2*'Shubin'*");
+    }
+
+    [Fact]
+    public void SetDelivered_of_the_whole_stop_still_ticks_every_mission()
+    {
+        // The ship view's click (D69): the station is the unit of unloading at the elevator.
+        var delivered = LoadPlanner.SetDelivered(TwoMissionsToRiker(), HullA, "Riker", true);
+
+        delivered.Crates.Where(c => c.Destination == "Riker").Should().AllSatisfy(c => c.Delivered.Should().BeTrue());
+    }
+
     // --- Validate ---
 
     private static Crate Box(string destination, CrateSize size, int length, int stack, bool delivered = false) =>

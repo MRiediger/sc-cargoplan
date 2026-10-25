@@ -35,6 +35,12 @@
                       LogicalName="missions/split_and_shared.json" Link="Fixtures\split_and_shared.json" />
   </ItemGroup>
 
+  <!-- Martin's plan of 25 Oct with ContractTracker's raw pickup text (B6), the Import tests' fixture linked like the one above. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\CargoPlan.Import.Tests\Fixtures\Plans\hurston_2026-10-25.json"
+                      LogicalName="plans/hurston_2026-10-25.json" Link="Fixtures\hurston_2026-10-25.json" />
+  </ItemGroup>
+
   <!-- The synthetic SCH2 writer of Core's hologram tests, linked like the fixture above: the hologram view and loader
        tests need a valid file, and no game model may enter the repo (D63). -->
   <ItemGroup>

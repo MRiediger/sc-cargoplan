@@ -14,7 +14,7 @@ namespace CargoPlan.App.ShipView;
 public sealed class PickupCheckedConverter : IMultiValueConverter
 {
     public object Convert(object[] values, Type targetType, object? parameter, CultureInfo culture) =>
-        values is [LegendEntry { PickupCrates: { } crates }, CrateSelection selection, ShipScene scene]
+        values is [LegendEntry { MissionCrates: { } crates }, CrateSelection selection, ShipScene scene]
             && SelectionFocus.HasAll(selection.In(scene), crates);
 
     // TwoWay with nothing written back: the click's own value would replace a one-way binding and end it, so the box

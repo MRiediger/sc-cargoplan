@@ -45,7 +45,7 @@ public class OverlayViewModelTests
         var changes = Changes(viewModel, () => viewModel.Selection = CrateSelection.Empty.Toggle(viewModel.Scene, crate));
 
         changes.Should().Contain(nameof(OverlayViewModel.SelectionInfo));
-        viewModel.SelectionInfo.Should().Be($"{crate.Commodity} · to Riker");
+        viewModel.SelectionInfo.Should().Be($"from ? · {crate.Commodity} · to Riker");
 
         changes = Changes(viewModel, () => viewModel.ToggleDeliveredCommand.Execute("Shubin"));
 
@@ -351,7 +351,8 @@ public class OverlayViewModelTests
 
         Changes(viewModel, () => viewModel.ShowPlan(newPlan)).Should().Contain(
             [nameof(OverlayViewModel.Saved), nameof(OverlayViewModel.Plan), nameof(OverlayViewModel.Scene), nameof(OverlayViewModel.HasPlan)]);
-        viewModel.Scene.Legend.Should().Equal(new LegendEntry(0, "Riker", 4));
+        // The entry holds its crates, a list compared by reference, so its values compare one by one.
+        viewModel.Scene.Legend.Select(e => (e.PaletteIndex, e.Label, e.Delivered, e.Header)).Should().Equal((0, "To Riker · 4 SCU", false, (string?)null));
     }
 
     [Fact]
@@ -772,7 +773,8 @@ public class OverlayViewModelTests
 
         viewModel.ShowPlan(TwoNamesOfOnePlace());
 
-        viewModel.Scene.Legend.Select(l => l.Destination).Should().Equal("Thundering Express Station");
+        // One stop, a line per mission (B6).
+        viewModel.Scene.Legend.Select(l => l.Destination).Distinct().Should().Equal("Thundering Express Station");
         viewModel.Notices.Should().Equal(MergedText);
 
         viewModel.ShowPlan(TestPlans.SplitAndShared());
@@ -789,7 +791,7 @@ public class OverlayViewModelTests
 
         viewModel.ApplyContractTracker(Read([36], Candidate(37, "Thundering Express Station")));
 
-        viewModel.Scene.Legend.Select(l => l.Destination).Should().Equal("Thundering Express Station");
+        viewModel.Scene.Legend.Select(l => l.Destination).Distinct().Should().Equal("Thundering Express Station");
         viewModel.Notices.Should().Equal(MergedText);
     }
 
