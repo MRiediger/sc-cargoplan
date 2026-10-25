@@ -145,7 +145,7 @@ the overlay and brings it back (dogfight, landing), one takes new ContractTracke
 program, the game included, and any default could clash with one of your Star Citizen bindings.
 
 **Set them in the settings window** (the gear), section **Hotkeys**: click the button next to *Lock / unlock*,
-*Hide / show overlay*, *Sync from ContractTracker* or *Re-plan*, then press the keys. The hotkey works at once and is saved. **Esc**
+*Hide / show overlay*, *Sync from ContractTracker*, *Re-plan* or *Discard plan*, then press the keys. The hotkey works at once and is saved. **Esc**
 cancels, **Clear** removes it.
 
 - **At least one of `Ctrl`, `Alt` or `Win` is required**, plus one key: `A`–`Z`, `0`–`9`, `F1`–`F24` (not `F12`,
@@ -164,7 +164,7 @@ cancels, **Clear** removes it.
 - Hidden, the overlay also leaves the taskbar; press the hotkey again to bring it back where it was.
 
 You can still write them into `%LocalAppData%\SC-CargoPlan\settings.json` by hand (overlay closed), e.g.
-`"hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": "Ctrl+Alt+J", "replan": "Ctrl+Alt+R" }`,
+`"hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": "Ctrl+Alt+J", "replan": "Ctrl+Alt+R", "discardPlan": null }`,
 modifiers and key joined by `+` in any order and case; `null` or a missing entry means no hotkey. A hotkey that is
 invalid or taken shows as an amber line next to the legend and next to its button in the settings window; the other
 hotkeys still work. A typo in a name (e.g. `toggleLok`) makes the whole file unreadable: the overlay starts with
@@ -214,7 +214,7 @@ itself, a few moments after you press F3. No editor, no click.
   moves and you don't press **Plan** for it (typed rows of one destination count as one mission).
   **Sync from ContractTracker** takes in what came since the last sync, the same as a capture does.
 - The first time, everything that is in ContractTracker comes in. Delete old contracts there first (× or F5) if you
-  don't want them.
+  don't want them. **Discard plan** starts over the same way (see [Changing the plan](#changing-the-plan)).
 - **Keep the overlay outside ContractTracker's capture region** (the area you set with F6), or ContractTracker reads
   the legend along with the contract.
 - **Settings** (the gear), section **ContractTracker**:
@@ -299,6 +299,13 @@ undo. Afterwards the amber line says what happened, `Plan rebuilt – 4 crates m
 already was the fresh one; a contract that still doesn't fit is named (`– Everus Harbor still doesn't fit`). The buttons
 are grayed out while nothing unticked is on board. Rows you are editing stay a draft: Re-plan works on
 the plan, not on the rows.
+
+**Discard plan** (in the editor next to *Re-plan*, or its hotkey) empties the plan when the run is over: missions, crates
+and ticks go, the overlay shows *No plan* as on the first start, and the amber line says `Plan discarded – the next sync
+brings every ContractTracker contract back.` It doesn't ask. The fill order stays. With ContractTracker the overlay
+starts over as on the first start: the next **Sync from ContractTracker** takes in every contract still in ContractTracker,
+so delete the finished ones there first (× or F5). With auto-sync on that happens at the next capture by itself. Rows you
+are editing stay a draft; clean rows become one empty row.
 
 ### When the kiosk delivers other crates
 

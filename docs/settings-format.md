@@ -18,7 +18,7 @@ values.
   "ship": null,
   "recentShips": null,
   "overlay": { "left": 100, "top": 200, "width": 420, "height": 460 },
-  "hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": null, "replan": null },
+  "hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": null, "replan": null, "discardPlan": null },
   "legend": { "visible": true, "position": "bottom-left" },
   "shipOutline": "outline",
   "downloadShipHolograms": true,
@@ -62,7 +62,7 @@ values.
 
 `overlay` and `hotkeys` are described in the [user guide](user-guide.md#hotkeys); `syncContractTracker` takes
 new ContractTracker captures into the plan like the editor's button, `replan` lays out the cargo on board anew like the
-editor's Re-plan. In `hotkeys`, `null` and a
+editor's Re-plan, `discardPlan` empties the plan like the editor's Discard plan. In `hotkeys`, `null` and a
 missing entry both mean "no hotkey"; the settings window writes `null` when you clear one, so you see the
 entry exists. Every section and every value
 in `appearance` is optional: what you leave out keeps its default. `{ "schemaVersion": 2, "appearance":
@@ -250,7 +250,7 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor` and `holoEdgeColor` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor` and `holoEdgeColor` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a

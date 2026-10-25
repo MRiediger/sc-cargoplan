@@ -1620,6 +1620,34 @@ Reihenfolge innerhalb von K2 (Branch `feat/k2-plan-editor`): K2.1 Füllrichtung 
 - [ ] Gate (Martin): Hull A, einen Stopp und eine Legendenzeile abhaken, auf die Freelancer wechseln → beide Haken bleiben, deren Kisten fehlen in der Ansicht, Kapazität ohne sie; zurück auf die Hull A → gleich; einen Haken zurücknehmen → Kisten erscheinen
 - Commits 16257ed (Core-Tests rot), da24cf0 (Core), 97bf144 (App-Tests rot), 69fdc76 (App), Doku-Commit.
 
+### [ ] K2.3 Discard plan (D73) (25.10.2026)
+**Warum:** Nur „Plan“ ersetzte bisher einen Plan (D19); nach einer Route blieb der alte stehen. Martins Entscheidung: Variante a – Plan leeren **und** Sync-Baseline zurück, der nächste Sync legt alle CT-Verträge wieder nach; kein Merken verworfener Verträge.
+
+**Ist-Zustand vor K2.3 (A1):** Die Sync-Baseline ist der `Watermark` im `SavedPlan`. Ohne Plan legt der Sync einen neuen mit Bug zuerst an, der Editor startet mit Bug zuerst; `HasPlan` war `Plan is not null`.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 leer heißt leerer Plan (keine Missionen, Kisten, Haken, Watermark 0, alte Füllrichtung, Schiff des Overlays), nicht `null`; P2 `HasPlan` = hat Missionen (leerer Plan zeigt den leeren Zustand wie T3.8a, auch nach Löschen der letzten Mission); P3 `LoadPlanner.Discard`; P4 Kommando `DiscardPlan` im Overlay-VM, Notice statt Frage („Plan discarded – the next sync brings every ContractTracker contract back.“); P5 Editor-Knopf „Discard plan“ neben Re-plan, eigene Änderung wie Re-plan; P6 Hotkey `discardPlan`, Default null, settings.json Schema 2 bleibt; P7 laufender Watcher legt beim nächsten Signal nach (gewollt, im Guide); P8 eigener Eintrag D73, Addenda D19, D44.
+- Core: `LoadPlanner.Discard`
+- App: `OverlayViewModel.DiscardPlanCommand`, `DiscardedText`, `HasPlan`; `MissionEditorViewModel.DiscardPlanCommand`, `HasPlan` vom Overlay; `HotkeyAction.DiscardPlan`, `HotkeySettings.DiscardPlan`, `HotkeyService`, `SettingsSession`, `HotkeysViewModel.Discard`, `HotkeyEditor.DiscardLabel`, Zeile im Settings-Fenster, Knopf im Editor
+- Tests: `DiscardTests` (Core, gegen `ContractSync.Apply`), `DiscardPlanCommandTests` (App), Hotkey- und Settings-Tests
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.388 / 141 / 1.155 | 1.391 / 141 / 1.165 |
+| Golden-Files geändert | erwartet 0 | 0 |
+| `ContractSync.Apply` mit Verträgen 36–38 unter Watermark 41 | ohne Discard: nichts | nach Discard: alle drei, Watermark 38, Richtung bleibt |
+
+**Akzeptanz:**
+- [x] Discard leert Missionen, Kisten, Haken; Watermark 0; Füllrichtung und Schiff bleiben (Core und Overlay)
+- [x] Nächster Sync nach Discard bringt alle Verträge zurück
+- [x] Leerer Zustand („No plan…“), Notice, kein Dialog; Kommando ohne Missionen aus
+- [x] Editor-Knopf folgt dem Overlay; saubere Zeilen → eine leere Zeile, Entwurf bleibt, kein „changed outside“, Richtung bleibt
+- [x] Hotkey `discardPlan`: kein Default, Kollision abgelehnt, von Session und Store geschrieben
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [ ] Gate (Martin): Plan mit CT-Verträgen → Discard → leer, Notice; Sync → alles wieder da. Editor-Plan „Stern first“ → Discard → leer, Editor zeigt weiter „Stern first“, auch nach Neustart. Hotkey belegen und auslösen. Blick auf den Notice-Text (Geschmack)
+- Commits 4b3f6bb (Core-Tests rot), 14c5996 (Core), 57cca8b (App-Tests rot), 6d2b53b (App), Doku-Commit.
+
 ---
 
 ## Phase 8 – nach dem Launch
