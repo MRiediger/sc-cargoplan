@@ -1522,7 +1522,7 @@ Vier Tests nutzten einen 32-SCU-Vertrag auf der Hull A als „passt nicht“; de
 - [ ] Gate Overlay (Martin, kein Spieltest): Hull C wählen, 16er-Vertrag per CT-Sync → Mission in der Legende wartend mit `doesn't fit (ship takes 32 SCU crates only)`
 - Commits 32b5dd2 (Tests rot), f1fb3ef (Core, Import), c32de68 (Daten), Doku-Commit.
 
-### [ ] K3.2 Kisten-Gier 90° (D71) (25.10.2026)
+### [x] K3.2 Kisten-Gier 90° (D71) (25.10.2026)
 **Warum:** Spielfakt: Kisten drehen sich im Gitter um 90° um die Stapelachse, kippen nicht. Betroffen nur ungleiche Grundflächen (2, 16, 24, 32). Bisher gab es eine Form pro Größe (D9), T7.1b drehte dafür Racks.
 
 **Präzisierung in der Planphase, ratifiziert durch Freigabe:** (1) „21 Racks“ sind 21 Schiffe mit 56 Racks (Liste aus den `notes`); (2) der Hull-C-Außenblock ist kein Beweis: bei Fleetyards x 5 × y 10 × z 7,5 m = length 8 × width 4 × stack 6, die Lage der Datei, ein 32er passt ungedreht („4×8×6“ war x×y×z gelesen); Beweis stattdessen Perseus Rack 1 und Freelancer Racks 2/3 (Martin: beide); (3) eine Kiste außerhalb des heutigen Racks wird neu geplant statt abgelehnt, unabhängig vom Schema, mit eigenem Grund `CapReason.RacksChanged` (K1); (4) Mausrad lässt sich nicht pollen, Spike vor der Geste (K2); (5) `CheckItems` verglich mit `SupportedSchemaVersion`. Dazu: ungedreht zuerst, gedreht nur wo ungedreht scheitert (Suche: zweiter Durchgang nur, wenn die erste ohne Lösung und ohne Aufgeben endet); Merge braucht einen Quader, nicht gleiche Lagen der Teile; `CrateMove.Turn` relativ (Standard: Lage behalten).
@@ -1554,9 +1554,9 @@ D58 bleibt unberührt (kein Budget-Problem, keine offene Frage). Rot nach dem R�
 - [x] Split/Merge mit gedrehten Kisten; B2-Property-Test grün
 - [x] Rad dreht nur im Einzelkisten-Drag, Vorschau = Loslassen, Mehrfachauswahl und Legende behalten die Lagen
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün; Exhaustive grün (8 min 34 s)
-- [ ] Gates Publish-Build (Martin): Hull A 2er ziehen, drehen, loslassen, Neustart → Lage bleibt; im Spiel mit SC vorne dreht das Rad; Freelancer 2er-Vertrag → Racks 2/3 gedreht; Perseus 32er-Vertrag → drei gedrehte 32er; Mehrfachauswahl mit gedrehtem 2er → Lagen bleiben; alte Freelancer-`plan.json` → „Plan was made for other racks …“
-- [ ] Gate Traktorstrahl (Martin): 2er hochkant an eine Hull-A-Platte; geht das nicht, dreht `CanTurn` nur auf Racks mit senkrechter Stapelachse (Notice `can't turn crates on this rack`)
-- Commits 04669b3 (Rückbau), 3c8a52b (Core-Tests rot), 748a3ed (Core), 52f6475 (Zeichnen), c4af6ad (App-Tests rot), b34c8be (Rad), Doku-Commit.
+- [x] Gates Publish-Build (Martin, 25.10., bestanden): Hull A 2er ziehen, drehen, loslassen, Neustart → Lage bleibt; im Spiel mit SC vorne dreht das Rad; Freelancer 2er-Vertrag → Racks 2/3 gedreht; Perseus 32er-Vertrag → drei gedrehte 32er; Mehrfachauswahl mit gedrehtem 2er → Lagen bleiben; alte Freelancer-`plan.json` → „Plan was made for other racks …“
+- [x] Gate Traktorstrahl (Martin, 25.10., bestanden): 2er hochkant an eine Hull-A-Platte geht im Spiel; `CanTurn` bleibt für jedes Rack
+- Commits 04669b3 (Rückbau), 3c8a52b (Core-Tests rot), 748a3ed (Core), 52f6475 (Zeichnen), c4af6ad (App-Tests rot), b34c8be (Rad), b173294 (Doku), Abnahme-Commit; Merge `--no-ff` nach main.
 
 ---
 
