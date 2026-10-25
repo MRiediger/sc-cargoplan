@@ -50,7 +50,8 @@ values.
       "edgeAlpha": 192,
       "rackNumberColor": "#FFFFFFFF",
       "rackNumberFontSize": 27,
-      "halo": { "enabled": true, "color": "#E0141414", "size": 3 }
+      "halo": { "enabled": true, "color": "#E0141414", "size": 3 },
+      "stopPalette": "okabeIto"
     },
     "buttons": {
       "background": "#01000000",
@@ -76,8 +77,9 @@ in `appearance` is optional: what you leave out keeps its default. `{ "schemaVer
 
 Colours are `"#AARRGGBB"` (alpha, red, green, blue) or `"#RRGGBB"` (fully opaque), hex digits in any case.
 **Transparency is the alpha of the colour:** `00` is invisible, `FF` is opaque, `80` is about half.
-The overlay's background `#A0141414` is a dark grey at 63 %. The crates' colours are the stop colours and
-can't be changed, so only their alpha is a number of its own: `0` (invisible) to `255` (opaque).
+The overlay's background `#A0141414` is a dark grey at 63 %. The crates' colours are the stop colours from
+`crates.stopPalette`, one of the checked sets below, never free colours; so their alpha is a number of its own: `0`
+(invisible) to `255` (opaque).
 
 ## Values
 
@@ -98,6 +100,7 @@ can't be changed, so only their alpha is a number of its own: `0` (invisible) to
 | `crates.rackNumberColor` | Colour of the rack numbers and the "Bow" label | `#FFFFFFFF` | |
 | `crates.rackNumberFontSize` | Size of the rack numbers and the "Bow" label in pixels, the same at every zoom | `27` | 8–48 |
 | `crates.halo` | Outline of the rack numbers and the "Bow" label | on | |
+| `crates.stopPalette` | The set of stop colours, see below | `"okabeIto"` | |
 | `buttons.background` | Background of the glyph buttons and "Open editor" | `#01000000` | alpha at least `01` |
 | `buttons.borderColor` | Frame of the glyph buttons | `#FFE6E6E6` | |
 | `buttons.borderThickness` | Width of that frame, `0` = none | `0` | 0–10 |
@@ -113,6 +116,19 @@ overlay small, so that a number would be taller than its rack, does it shrink wi
 The "Bow" label lies flat on the floor of the bow wedge, its capitals as tall on the screen as the rack
 numbers' digits, shrinking included; only where the floor has no room for that does it stay smaller. Only a ship without
 an outline has the wedge and the label (see [Ship view](#ship-view)).
+
+**`crates.stopPalette`:** each set is documented as safe with the common kinds of colour blindness by its source;
+colours that vanish on the dark overlay or look like delivered grey were left out.
+
+| Value | Colours |
+|---|---|
+| `"okabeIto"` | 8: Okabe & Ito's palette without black, with white. The default, the colours before this was a setting. |
+| `"tolBright"` | 6: Paul Tol's bright scheme without its grey |
+| `"tolMuted"` | 7: Paul Tol's muted scheme without indigo and wine |
+
+Exactly as written (camelCase). Missing means `"okabeIto"`; any other text means `"okabeIto"` too, with a notice. With
+more destinations than colours the colours repeat hatched "/", then hatched "\", then all of it again; every destination
+keeps its place in the order when you switch.
 
 **Alpha at least `01`:** the overlay passes clicks on fully transparent pixels to the window below. With a
 background of alpha `00`, you could no longer move the overlay or press a button, so the overlay uses `01`
@@ -257,6 +273,7 @@ without the current ship, in the group "Recent" on top.
 - **A colour that isn't one** (`"red"`, `"#12345"`) takes its default.
 - **A legend position that isn't one** (`"up"`, `"Bottom-Left"`) takes `bottom-left`.
 - **A tool window theme that isn't one** (`"blue"`, `"Dark"`) takes `system`.
+- **A stop palette that isn't one** (`"ibm"`, `"OkabeIto"`) takes `okabeIto`.
 - **A ContractTracker path that isn't a full path** (`"contracts.db"`, `""`) is detected instead (`null`).
 - In all these cases everything else in the file applies, and an amber line in the overlay names the value. The
   file stays as it is until you move the overlay or change a setting; then it is saved with the corrected values.
@@ -274,7 +291,7 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView`, `appearance.legend.checkBoxColor` and `appearance.legend.checkMarkColor` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView`, `appearance.legend.checkBoxColor`, `appearance.legend.checkMarkColor` and `appearance.crates.stopPalette` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a

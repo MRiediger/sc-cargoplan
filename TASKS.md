@@ -1814,7 +1814,40 @@ Ansicht und Legende holen ihre Pinsel aus einer Funktion; P9 `downloadShipHologr
 - [x] Template bindet beide Keys per DynamicResource (XAML-Test)
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.235 → 1.241)
 - [ ] Gate (Martin, Publish-Build): Werte ändern wirkt sofort in der Legende; Haken und Kasten unabhängig; Reset Legend stellt Grau her; Neustart behält die Werte
-- Commits 1a43821 (Tests rot), b7c8d98 (App), Doku-Commit.
+- Commits 1a43821 (Tests rot), b7c8d98 (App), 7b12355 (Doku).
+
+### [ ] K4.2 Stop-Paletten als Preset-Auswahl, Schraffur bei Wiederholung (D29-, D25-Addendum) (25.10.2026)
+**Warum:** D29 hielt die Stop-Farben fest auf Okabe-Ito; Martin will eine Auswahl aus geprüften, farbfehlsicht-tauglichen Paletten (Stufe 2), und mehr Ziele als Farben sollen unterscheidbar bleiben.
+
+**Ist-Zustand vor K4.2 (A1):** `MissionPalette.Colors` (8) und `Assign` mit `% Colors.Count` (die Runde ging verloren); Index → Pinsel an zwei Stellen (`ShipViewControl.Paint`, `PaletteBrushConverter` mit festem Alpha `0xD0`); Problem- und Auswahlrand 2,5 px ohne Absicherung; Muster nur als `SwatchCheckerBrush`. Eine neue Szene leert die Auswahl (D25), daher läuft die Palette nicht über die Szene.
+- Settings: `StopPaletteName` + `StopPaletteNames` (WPF-frei, Namen `okabeIto`, `tolBright`, `tolMuted`), `CrateAppearance.StopPalette`, `AppearanceRules` (unbekannt → `okabeIto` mit Notice)
+- ShipView: `StopPalettes` (drei Paletten mit Quelle), `StopPalette` (`ColorOf`, `HatchOf`, `RepeatNotice`, `Text`), `StopHatch`, `StopBrushes` (eine Funktion Ordnungszahl → Pinsel, gekachelter `DrawingBrush` in absoluten DIPs, Strich schwarz/weiß nach WCAG-Kontrast), `PaletteBrushConverter` als MultiBinding, neu `PaletteNoticeConverter`; `MissionPalette.Assign` ohne Modulo, `Colors`/`Brush`/`Repeats`/`RepeatNotice` entfallen; `ShipScene.StopCount` statt `PaletteRepeats`; `ShipViewControl.StopPalette` und dunkler Unterstrich (`EdgeUnderStroke`) unter Problem-, Auswahl- und Geisterrand
+- App: `OverlayViewModel.StopPalette`, gesetzt von `SettingsSession.ApplyLook`; ComboBox „Stop colors“ im Abschnitt Crates (`StopPaletteChoice`)
+- Tests: `StopPalettesTests` (Werte gegen Quelle, ΔE76 ≥ 33,6 gegen Problemrot und Delivered-Grau), `StopBrushesTests`, `PaletteNoticeConverterTests`, `PaletteBrushConverterTests`, `MissionPaletteTests`, Rules/Store/VM/Session, XAML-Tests; `StopHatchTimingTests` (Kategorie Timing)
+
+**Zahl vorher/nachher:**
+
+| Messung | Ergebnis |
+|---|---|
+| ΔE76 nächste Farbe zu Problemrot `FF2A2A` (Okabe / Tol Bright / Tol Muted) | 33,6 / 43,1 / 55,7 |
+| ΔE76 nächste Farbe zu Delivered `5A5A5A` | 42,2 / 34,0 / 42,1 (Okabe-Weiß 61,8, Tol-Sand 62,4) |
+| ΔE76 nächste Farbe zu Auswahl-Magenta / DragTarget-Cyan | 78,0 / 68,3 / 59,4 — 42,9 / 33,2 / 34,1 (Unterstrich) |
+| Renderzeit C2, 16 Ziele, 64 Kisten, 800 × 600, Release, Median aus 30, drei Läufe | 16 Farben ohne Muster 24,7–25,9 ms; Okabe-Ito mit 8 schraffierten Zielen 25,8–26,3 ms |
+| Standard-Look Hull A, 8 Ziele, offscreen gegen b7c8d98 | ohne Auswahl pixelgleich; mit Auswahl 4.420 Pixel anders, alle an den ausgewählten Kisten (Unterstrich) |
+| Tests (Core / Import / App) | 1.401 / 141 / 1.241 → 1.401 / 141 / 1.281 |
+
+**Akzeptanz:**
+- [x] Rot gesehen (Compile-Fehler, 2ec27f9), dann grün
+- [x] Drei Paletten, Werte gleich der Quelle minus dokumentierte Streichungen (Tol Bright ohne Grau, Tol Muted ohne Indigo und Wein); IBM entfällt
+- [x] Jede Farbe jeder Palette ΔE76 ≥ 33,6 gegen Problemrot und Delivered-Grau (Test)
+- [x] Zuordnung Ziel → Ordnungszahl bleibt beim Wechsel, nur Farbe und Muster der Zahl ändern sich; Szene und Auswahl bleiben (Session-Test)
+- [x] Mehr Ziele als Farben: Schraffur „/“, dann „\“, in Ansicht und Legende aus derselben Funktion; Hinweiszeile nennt die Palette
+- [x] Erledigte Kisten grau ohne Muster, Auswahl Magenta, Problem Rot, beide mit dunklem Unterstrich
+- [x] Renderkosten der Schraffur gemessen (+0,4 bis 1,3 ms auf ~25 ms)
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.241 → 1.281)
+- [ ] Gate (Martin, Publish-Build): Hull A mit 8 Zielen, Palette wechseln → alle Kisten färben sofort um; C2 oder Hull C mit mehr Zielen als Farben → Schraffur sichtbar und in der Legende identisch; Problemkiste und Auswahl in jeder Palette erkennbar
+- [ ] Taste-Gate (Martin): Kachel 6 DIP, Strich 1,5 DIP, Unterstrich Schwarz `A0` 4,5 px
+- Commits 2ec27f9 (Tests rot), 0ea24d0 (App), Doku-Commit.
 
 ---
 
@@ -1859,6 +1892,9 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~Kistengrößen als Blöcke und Zellbeschriftung in der Schiffsansicht (D21).~~ Gestrichen: erledigt durch T3.11b.
 - Backdrop-Blur hinter dem Fenster (Spike: DWM vs. AllowsTransparency) (D28). Auslöser: Hauler-Report „Legende trotz Halo unlesbar“.
 - ~~Alternative Stop-Paletten, nur geprüft farbfehlsicht-tauglich (D29).~~ → K4
+- IBM-Palette (`648FFF 785EF0 DC267F FE6100 FFB000`) als vierte Stop-Palette, sobald eine IBM-eigene Quelle die Hex-Werte nennt; Orange liegt ΔE76 26 am Problemrot (unter der Schwelle 33,6), müsste also ohne Orange kommen (K4.2). Auslöser: Hauler fragt danach.
+- `appearance.crates.customStopColors` (Hex-Liste, aktiv bei `stopPalette = custom`), falls ein Hauler mit seltener Farbfehlsicht keine der drei Paletten lesen kann. Gegen: ungeprüfte Farben (D29), und eine Liste im Look-Record bricht die Gleichheit, an der K4.3 „Custom“ erkennt (K4.2).
+- `MissionFrame` (weiß, D68) ist dieselbe Farbe wie Okabe-Weiß (ΔE 0), obwohl der Kommentar „white is in no stop colour“ sagt: ein ausgewählter Missionsrahmen um eine weiße Kiste trägt nichts. Befund aus K4.2, kein Task; Auslöser: Look-Gate oder Hauler-Meldung.
 - ~~Legenden-Checkboxen: Farbe und Deckkraft in den Preferences wählbar (Abschnitt Legend; heute fest grau `#B0B0B0`, `MissionPalette.CheckBoxBrush`, D69). Auslöser: Taste-Gate B6.~~ → K4
 - ~~Theme-Presets/Export (A4).~~ → K4
 - ~~Füllrichtung in Mission-Dateien (Export/Import), falls Koordinatoren sie mit der Route teilen wollen; heute nur über plan.json (Core-Formatwechsel, D24-Addendum).~~ → K2

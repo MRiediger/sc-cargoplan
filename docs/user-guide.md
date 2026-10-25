@@ -70,7 +70,9 @@ says, after a restart and for everyone who loads the plan, until you drag them s
 [Changing the plan](#changing-the-plan)). Where the elevator really puts a crate is still up to the game. A crate always
 rests on the plate or on other crates.
 
-- **Color** = destination. Up to eight colors, from the ninth destination on they repeat (the legend says so).
+- **Color** = destination. Up to eight colors (six or seven with the other stop color sets, see
+  [Settings](#settings-and-your-look)); from then on the colors repeat **hatched** "/", after another round hatched
+  "\", the same in the view and on the legend's color square (the legend says so).
 - **Gray** = delivered.
 - **Outline only** = free cell. Far out, only the free cells in the layers that hold crates are drawn.
 - **Red** = a crate that can't lie like this, see [Stacking and red crates](#stacking-and-red-crates).
@@ -373,7 +375,9 @@ windows, Hotkeys and ContractTracker have none (their defaults are "follow Windo
   transparency.
 - **Legend layout:** where the legend stands (top or bottom; left, centre or right) and whether it shows the
   destination lines at all. A section of its own, so resetting the legend's colours doesn't move it.
-- **Crates:** how solid the crates and their edges are (at the lift, turn the fill down to see the real crates through
+- **Crates:** **Stop colors**, the set of destination colors: Okabe-Ito (8 colors, the default), Tol Bright (6) or Tol
+  Muted (7), each chosen by its author to stay apart with the common kinds of colour blindness; switching recolours the
+  plan at once, every destination keeps its place in the order. Then how solid the crates and their edges are (at the lift, turn the fill down to see the real crates through
   the planned ones), the colour and size of the rack numbers and the "Bow" label on the bow wedge, and their outline.
   The ship outline's line takes the rack numbers' colour, toned down.
 - **Header:** the colour of the ship name and the glyphs (pencil, gear, split, merge, exit, padlock), and a halo around
@@ -398,8 +402,8 @@ A colour is a hex code like `#141414` (the `#` is optional) plus a slider for it
 turns the field red and changes nothing. Or click the colour square next to it: a picker opens, where you drag across
 the square for how vivid and how bright, and along the rainbow bar for the hue. The overlay follows while you drag. Esc
 or a click elsewhere closes the picker. The settings window hides with the overlay, like the editor, and opens next to
-it. Every key, its default and its range: [settings file format](settings-format.md). The stop colours stay fixed: they
-are chosen to stay apart with colour blindness.
+it. Every key, its default and its range: [settings file format](settings-format.md). There are no free stop colours,
+only the three sets above: each is checked to stay apart with colour blindness, a hand-picked one might not be.
 
 The footer of the settings window shows the version, e.g. `SC-CargoPlan 0.1.0+<commit>`; you can select and copy it
 for a bug report.
