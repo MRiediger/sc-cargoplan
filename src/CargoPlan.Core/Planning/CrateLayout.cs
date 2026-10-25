@@ -20,10 +20,12 @@ public static class CrateLayout
     /// if that layout puts a new crate on one, an exact search looks for one that doesn't. If there is none, the first
     /// layout stays and the plan's hints name the pair: the cargo fits, so stacking is a hint, never a refusal. The search
     /// gives up after <see cref="MaxStackingSearchSteps"/> steps and keeps the first layout too (<see cref="Lay"/> says so, D54).
+    /// A crate lies unturned where it can and turned 90° only where it can't (D71), so a layout that works unturned stays
+    /// as it was; the search tries turned crates only once it found nothing unturned.
     /// </summary>
-    public static IReadOnlyList<GridPosition>? Place(
+    public static IReadOnlyList<Pose>? Place(
         Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, FillOrder order) =>
-        Lay(rack, occupied, crates, order)?.Positions;
+        Lay(rack, occupied, crates, order)?.Poses;
 
     /// <summary>
     /// Steps × cells of the exact search for a layout without foreign stacking before it gives up (D58, D64): a step fills
@@ -61,34 +63,43 @@ public static class CrateLayout
         int? maxStackingSearchSteps = null)
     {
         occupied = [.. occupied.Where(c => !c.Delivered)];
-        if (Place(RackSpace.Around(rack, occupied, order), [.. crates.Select(c => c.Size)]) is not { } positions)
+        if (Place(RackSpace.Around(rack, occupied, order), [.. crates.Select(c => c.Size)]) is not { } poses)
         {
             return null;
         }
 
         // Only what the new crates do counts; a plan file edited by hand, or the player, may have stacked before.
-        Crate[] placed = [.. crates.Zip(positions).Select(p => new Crate(p.First.Destination, "", p.First.Size, rack.Id, p.Second))];
+        Crate[] placed = [.. crates.Zip(poses).Select(p => new Crate(p.First.Destination, "", p.First.Size, rack.Id, p.Second.Position, Rotated: p.Second.Rotated))];
         var byCell = ByCell(rack, [.. occupied, .. placed]);
         if (placed.All(c => Chain(c, byCell).All(lower => lower.Destination == c.Destination)))
         {
-            return new Laying(positions, true, false, 0);
+            return new Laying(poses, true, false, 0);
         }
 
         if (MustStack(rack, occupied, crates))
         {
-            return new Laying(positions, false, false, 0);
+            return new Laying(poses, false, false, 0);
         }
 
-        var (apart, gaveUp, steps) = Apart(rack, occupied, crates, order, maxStackingSearchSteps ?? MaxStackingSearchSteps(rack.Grid.Volume));
-        return new Laying(apart ?? positions, apart is not null, gaveUp, steps);
+        // Unturned first, as before D71: a layout found so stays as it was. Turned only if that search ran out of layouts,
+        // not of steps, with the steps it left.
+        var maxSteps = maxStackingSearchSteps ?? MaxStackingSearchSteps(rack.Grid.Volume);
+        var (apart, gaveUp, steps) = Apart(rack, occupied, crates, order, maxSteps, turn: false);
+        if (apart is null && !gaveUp && crates.Any(c => c.Size.Turns))
+        {
+            var (turned, turnedGaveUp, turnedSteps) = Apart(rack, occupied, crates, order, (int)(maxSteps - steps), turn: true);
+            (apart, gaveUp, steps) = (turned, turnedGaveUp, steps + turnedSteps);
+        }
+
+        return new Laying(apart ?? poses, apart is not null, gaveUp, steps);
     }
 
     /// <summary>
-    /// Positions of a <see cref="Lay"/>: <paramref name="StackingFree"/> if no new crate sits on another destination's
+    /// Poses of a <see cref="Lay"/>: <paramref name="StackingFree"/> if no new crate sits on another destination's
     /// cargo; <paramref name="GaveUp"/> if the search for such a layout ran out of steps (none is known, one may exist);
     /// neither means one was proven impossible. <paramref name="Steps"/> the search took.
     /// </summary>
-    internal sealed record Laying(IReadOnlyList<GridPosition> Positions, bool StackingFree, bool GaveUp, long Steps);
+    internal sealed record Laying(IReadOnlyList<Pose> Poses, bool StackingFree, bool GaveUp, long Steps);
 
     /// <summary>
     /// True if no layout keeps every new destination off other cargo, proven without a search (D64): such a layout gives
@@ -114,9 +125,10 @@ public static class CrateLayout
     /// <summary>
     /// <see cref="Place"/> for the parts of a split (D27): only the cells of <paramref name="box"/> are free, every other
     /// cell counts as taken. The parts fill the crate's footprint, and what lay below the crate carries them as it carried
-    /// the crate, so nothing around it changes. Null if the parts don't fit the box.
+    /// the crate, so nothing around it changes. Null if the parts don't fit the box. A part turns where the box needs it
+    /// (a turned 32 splits into turned 16s, D71).
     /// </summary>
-    public static IReadOnlyList<GridPosition>? PlaceWithin(Rack rack, Crate box, IReadOnlyList<CrateSize> sizes, FillOrder order)
+    public static IReadOnlyList<Pose>? PlaceWithin(Rack rack, Crate box, IReadOnlyList<CrateSize> sizes, FillOrder order)
     {
         var grid = rack.Grid;
         var taken = new bool[grid.Length, grid.Width, grid.Stack];
@@ -135,20 +147,26 @@ public static class CrateLayout
 
     /// <summary>
     /// Why <paramref name="crates"/> can't become one crate of <paramref name="size"/> where they lie (D27); null if their
-    /// cells are exactly that crate's box, in its only orientation (D9). The new crate then takes the same cells, so it
-    /// carries and rests as they did.
+    /// cells are exactly that crate's box, turned or not (D71). The new crate then takes the same cells, so it carries and
+    /// rests as they did.
     /// </summary>
-    public static string? BlockProblem(IReadOnlyList<Crate> crates, CrateSize size)
+    public static string? BlockProblem(IReadOnlyList<Crate> crates, CrateSize size) => Block(crates, size).Problem;
+
+    /// <summary>
+    /// <see cref="BlockProblem"/>, and whether the block is the crate turned: only the block counts, not how the parts lay
+    /// (two turned 2s side by side are an unturned 4).
+    /// </summary>
+    internal static (string? Problem, bool Rotated) Block(IReadOnlyList<Crate> crates, CrateSize size)
     {
         HashSet<GridPosition> cells = [.. crates.SelectMany(c => c.Cells)];
         if (cells.Count < crates.Sum(c => (int)c.CrateSize))
         {
-            return "The crates overlap.";
+            return ("The crates overlap.", false);
         }
 
         if (!Connected(cells))
         {
-            return "The crates are not adjacent.";
+            return ("The crates are not adjacent.", false);
         }
 
         Dimensions block = new(
@@ -157,31 +175,40 @@ public static class CrateLayout
             cells.Max(c => c.Stack) - cells.Min(c => c.Stack) + 1);
         if (block.Volume != cells.Count)
         {
-            return "The crates don't form a block.";
+            return ("The crates don't form a block.", false);
         }
 
-        return block == size.Dimensions
-            ? null
-            : Invariant($"Together they would be a {block} crate, {(int)size} SCU crates are {size.Dimensions}.");
+        if (block == size.Shape(false))
+        {
+            return (null, false);
+        }
+
+        if (size.Turns && block == size.Shape(true))
+        {
+            return (null, true);
+        }
+
+        var shapes = size.Turns ? Invariant($"{size.Shape(false)} or {size.Shape(true)}") : Invariant($"{size.Dimensions}");
+        return (Invariant($"Together they would be a {block} crate, {(int)size} SCU crates are {shapes}."), false);
     }
 
     /// <summary>The lay-out of <see cref="Place"/> into the free cells of <paramref name="space"/>, which it fills.</summary>
-    private static GridPosition[]? Place(RackSpace space, IReadOnlyList<CrateSize> sizes)
+    private static Pose[]? Place(RackSpace space, IReadOnlyList<CrateSize> sizes)
     {
-        var positions = new GridPosition[sizes.Count];
+        var poses = new Pose[sizes.Count];
 
         // OrderByDescending is stable: crates of one size keep input order.
         foreach (var i in Enumerable.Range(0, sizes.Count).OrderByDescending(i => sizes[i]))
         {
-            if (space.Add(sizes[i]) is not { } position)
+            if (space.Add(sizes[i]) is not { } pose)
             {
                 return null;
             }
 
-            positions[i] = position;
+            poses[i] = pose;
         }
 
-        return positions;
+        return poses;
     }
 
     /// <summary>
@@ -211,20 +238,31 @@ public static class CrateLayout
             return new RackSpace(rack, taken, order);
         }
 
-        /// <summary>Takes the first fit for a crate of <paramref name="size"/> and returns it; null, and nothing taken, if there is none.</summary>
-        public GridPosition? Add(CrateSize size)
+        /// <summary>
+        /// Takes the first fit for a crate of <paramref name="size"/> and returns it; null, and nothing taken, if there is
+        /// none. Unturned if it fits so anywhere, else turned (D71).
+        /// </summary>
+        public Pose? Add(CrateSize size)
         {
-            if (!_rack.CanHold(size) || FirstFit(size.Dimensions, _rank, _taken) is not { } position)
+            if (!_rack.CanHold(size))
             {
                 return null;
             }
 
-            foreach (var cell in Cells(position, size.Dimensions))
+            Pose? pose = FirstFit(size.Shape(false), _rank, _taken) is { } flat ? new Pose(flat, false)
+                : size.Turns && FirstFit(size.Shape(true), _rank, _taken) is { } turned ? new Pose(turned, true)
+                : null;
+            if (pose is not { } taken)
+            {
+                return null;
+            }
+
+            foreach (var cell in Cells(taken.Position, size.Shape(taken.Rotated)))
             {
                 _taken[cell.Length, cell.Width, cell.Stack] = true;
             }
 
-            return position;
+            return taken;
         }
     }
 
@@ -258,7 +296,7 @@ public static class CrateLayout
 
         // One entry per crate, in plan order.
         Placement[] crates = [.. placements.SelectMany(p => Enumerable.Repeat(p, p.Item.Scu / (int)p.Item.CrateSize))];
-        var positions = new GridPosition[crates.Length];
+        var poses = new Pose[crates.Length];
         List<Rack> stackingUnchecked = [];
         foreach (var rack in ship.Racks)
         {
@@ -269,9 +307,9 @@ public static class CrateLayout
                     $"Crates for rack {rack.Number} don't fit its grid ({rack.Grid}): {inRack.Sum(i => (int)crates[i].Item.CrateSize)}/{rack.CapacityScu} SCU."));
             }
 
-            foreach (var (index, position) in inRack.Zip(laid.Positions))
+            foreach (var (index, pose) in inRack.Zip(laid.Poses))
             {
-                positions[index] = position;
+                poses[index] = pose;
             }
 
             if (laid.GaveUp)
@@ -281,8 +319,8 @@ public static class CrateLayout
         }
 
         return (new ShipLayout(
-            [.. crates.Zip(positions).Select(c =>
-                new Crate(c.First.Destination, c.First.Item.Commodity, c.First.Item.CrateSize, c.First.RackId, c.Second, c.First.Delivered))],
+            [.. crates.Zip(poses).Select(c =>
+                new Crate(c.First.Destination, c.First.Item.Commodity, c.First.Item.CrateSize, c.First.RackId, c.Second.Position, c.First.Delivered, Rotated: c.Second.Rotated))],
             stackingUnchecked), null);
     }
 
@@ -382,10 +420,11 @@ public static class CrateLayout
     /// crates left whose first cell it is, or nothing; crates of one size and destination are tried once, not in every
     /// order. Deterministic: largest first, then destinations in input order, leaving the cell empty last. After
     /// <paramref name="maxSteps"/> steps it gives up with null and <c>GaveUp</c>: on a large grid the search runs for
-    /// minutes (T7.0, 1,008 cells, four stops).
+    /// minutes (T7.0, 1,008 cells, four stops). With <paramref name="turn"/> an oblong crate is tried unturned, then turned
+    /// (D71); without, as before D71.
     /// </summary>
-    private static (GridPosition[]? Positions, bool GaveUp, long Steps) Apart(
-        Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, FillOrder order, int maxSteps)
+    private static (Pose[]? Poses, bool GaveUp, long Steps) Apart(
+        Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, FillOrder order, int maxSteps, bool turn)
     {
         const int free = -1;
         const int empty = -2;
@@ -425,10 +464,10 @@ public static class CrateLayout
         var scuLeft = crates.Sum(c => (int)c.Size);
         var destinationLeft = destinations.Select(d => crates.Where(c => c.Destination == d).Sum(c => (int)c.Size)).ToArray();
         var ownRoom = new int[destinations.Count];
-        var positions = new GridPosition[crates.Count];
+        var poses = new Pose[crates.Count];
         var steps = 0L;
 
-        return Fill(0) ? (positions, false, steps) : (null, steps > maxSteps, Math.Min(steps, maxSteps));
+        return Fill(0) ? (poses, false, steps) : (null, steps > maxSteps, Math.Min(steps, maxSteps));
 
         bool Fill(int next)
         {
@@ -457,23 +496,32 @@ public static class CrateLayout
             for (var k = 0; k < kinds.Length; k++)
             {
                 var (size, destination, indices) = kinds[k];
-                if (left[k] == 0 || StartingAt(cell, size.Dimensions) is not { } position || !CanTake(position, size.Dimensions, destination))
+                if (left[k] == 0)
                 {
                     continue;
                 }
 
-                Mark(position, size.Dimensions, destination);
-                positions[indices[indices.Length - left[k]]] = position;
-                (left[k], scuLeft) = (left[k] - 1, scuLeft - (int)size);
-                destinationLeft[destination] -= (int)size;
-                if (Fill(next + 1))
+                foreach (var rotated in turn && size.Turns ? UnturnedThenTurned : UnturnedOnly)
                 {
-                    return true;
-                }
+                    var shape = size.Shape(rotated);
+                    if (StartingAt(cell, shape) is not { } position || !CanTake(position, shape, destination))
+                    {
+                        continue;
+                    }
 
-                (left[k], scuLeft) = (left[k] + 1, scuLeft + (int)size);
-                destinationLeft[destination] += (int)size;
-                Mark(position, size.Dimensions, free);
+                    Mark(position, shape, destination);
+                    poses[indices[indices.Length - left[k]]] = new Pose(position, rotated);
+                    (left[k], scuLeft) = (left[k] - 1, scuLeft - (int)size);
+                    destinationLeft[destination] -= (int)size;
+                    if (Fill(next + 1))
+                    {
+                        return true;
+                    }
+
+                    (left[k], scuLeft) = (left[k] + 1, scuLeft + (int)size);
+                    destinationLeft[destination] += (int)size;
+                    Mark(position, shape, free);
+                }
             }
 
             owner[cell.Length, cell.Width, cell.Stack] = empty;
@@ -713,6 +761,10 @@ public static class CrateLayout
         from w in Enumerable.Range(position.Width, size.Width)
         from s in Enumerable.Range(position.Stack, size.Stack)
         select new GridPosition(l, w, s);
+
+    // The ways a crate is tried in the search, unturned first (D71); arrays, so the search allocates nothing per step.
+    private static readonly bool[] UnturnedOnly = [false];
+    private static readonly bool[] UnturnedThenTurned = [false, true];
 
     private static readonly (int Length, int Width, int Stack)[] FaceSteps = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)];
 

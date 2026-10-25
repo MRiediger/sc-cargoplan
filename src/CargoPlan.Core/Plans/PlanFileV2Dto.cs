@@ -20,10 +20,11 @@ internal sealed record PlanFileV2Dto(
     {
         var stops = PlanFileDto.ParseMissions(Missions);
         PlanFileDto.CheckItems(Crates, SchemaVersion);
+        PlanFileDto.CheckRotated(Crates, SchemaVersion);
         Models.LoadPlan plan = new(
             ShipId, [.. Crates.Select(c => c.ToCrate())], [.. Warnings.Select(w => w.ToPlanWarning())], PlanFileDto.ParseFillOrder(FillOrder));
 
-        var checkedPlan = PlanFileDto.Checked(plan, ship);
-        return PlanFileDto.UnderCap(ship, cap => SavedPlan.FromStops(stops, checkedPlan, cap));
+        var (checkedPlan, racksChanged) = PlanFileDto.Checked(plan, ship);
+        return PlanFileDto.UnderCap(ship, cap => SavedPlan.FromStops(stops, checkedPlan, cap), racksChanged);
     }
 }

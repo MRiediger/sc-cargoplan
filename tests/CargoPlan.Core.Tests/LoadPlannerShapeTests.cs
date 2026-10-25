@@ -79,7 +79,7 @@ public class LoadPlannerShapeTests
 
         positions.Should().NotBeNull();
         CrateLayout.Problems(Uneven.Racks[0], [.. crates.Zip(positions!).Select(p =>
-            new Crate(p.First.Destination, "Gold", p.First.Size, "rack-0", p.Second))]).Should().BeEmpty();
+            new Crate(p.First.Destination, "Gold", p.First.Size, "rack-0", p.Second.Position, Rotated: p.Second.Rotated))]).Should().BeEmpty();
     }
 
     // Dest1's two 32s take one rack each, Dest2's two find no gap: 180 − 128 = 52 SCU free.

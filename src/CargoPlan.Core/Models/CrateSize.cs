@@ -18,7 +18,9 @@ public static class CrateSizeExtensions
     /// <param name="size">The crate size used as a receiver.</param>
     extension(CrateSize size)
     {
-        /// <summary>Crate shape in cells, in its only orientation (crates are never turned).</summary>
+        /// <summary>
+        /// Crate shape in cells as it lies unturned: length along the rack's length. <see cref="Shape"/> gives it turned (D71).
+        /// </summary>
         public Dimensions Dimensions => size switch
         {
             CrateSize.One => new(1, 1, 1),
@@ -31,5 +33,15 @@ public static class CrateSizeExtensions
             CrateSize.ThirtyTwo => new(8, 2, 2),
             _ => throw new ArgumentOutOfRangeException(nameof(size), size, "Unknown crate size."),
         };
+
+        /// <summary>True if the footprint is oblong (2, 16, 24, 32): only such a crate lies another way turned (D71).</summary>
+        public bool Turns => size.Dimensions.Length != size.Dimensions.Width;
+
+        /// <summary>
+        /// The shape in the grid, turned 90° about the stack axis or not (D71): length and width swap, the stack stays.
+        /// The plane they lie in is the rack's, across its <c>StackAxis</c>; on the Hull A's upright plates it stands upright.
+        /// </summary>
+        public Dimensions Shape(bool rotated) =>
+            rotated ? new(size.Dimensions.Width, size.Dimensions.Length, size.Dimensions.Stack) : size.Dimensions;
     }
 }

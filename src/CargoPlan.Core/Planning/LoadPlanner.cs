@@ -65,7 +65,7 @@ public static class LoadPlanner
             var laying = CrateLayout.Lay(racks[r], [], [.. inRack.Select(i => (all[i].Size, input[all[i].Stop].Destination))], fillOrder, budget.For(racks[r]))!;
             budget.Spend(racks[r], laying);
             loads.Add(new RackAssignment.RackLoad(
-                racks[r], [.. inRack.Zip(laying.Positions).Select(p => (new RackAssignment.Piece(all[p.First].Stop, all[p.First].Item, all[p.First].Size), p.Second))], laying.GaveUp));
+                racks[r], [.. inRack.Zip(laying.Poses).Select(p => (new RackAssignment.Piece(all[p.First].Stop, all[p.First].Item, all[p.First].Size), p.Second))], laying.GaveUp));
         }
 
         return WithHints(new LoadPlan(ship.Id, Crates(input, loads), [], fillOrder), ship,
@@ -80,7 +80,7 @@ public static class LoadPlanner
     [
         .. stops.SelectMany((stop, s) => stop.Items.SelectMany((item, i) => loads.SelectMany(load => load.Crates
             .Where(c => c.Piece.Stop == s && c.Piece.Item == i)
-            .Select(c => new Crate(stop.Destination, item.Commodity, c.Piece.Size, load.Rack.Id, c.Position))))),
+            .Select(c => new Crate(stop.Destination, item.Commodity, c.Piece.Size, load.Rack.Id, c.Pose.Position, Rotated: c.Pose.Rotated))))),
     ];
 
     /// <summary>
@@ -117,7 +117,7 @@ public static class LoadPlanner
         plan.EnsureBelongsTo(ship);
         HashSet<int> taken = [];
         return MoveResolution.Crates(plan, ship,
-            [.. moves.Select(m => new MoveResolution.Intent(IndexOnBoard(plan, m.Crate, taken, "moves", nameof(moves)), RackOf(ship, m.RackId, nameof(moves)), m.Position))],
+            [.. moves.Select(m => new MoveResolution.Intent(IndexOnBoard(plan, m.Crate, taken, "moves", nameof(moves)), RackOf(ship, m.RackId, nameof(moves)), m.Position, m.Rotated))],
             upTo);
     }
 
@@ -358,8 +358,9 @@ public static class LoadPlanner
         return moved;
     }
 
-    private static (string, string, CrateSize, string, GridPosition) Lying(Crate crate) =>
-        (crate.Destination, crate.Commodity, crate.CrateSize, crate.RackId, crate.Position);
+    // Turned in place is moved too (D71).
+    private static (string, string, CrateSize, string, GridPosition, bool) Lying(Crate crate) =>
+        (crate.Destination, crate.Commodity, crate.CrateSize, crate.RackId, crate.Position, crate.Rotated);
 
     /// <summary>
     /// The player's Re-plan (D66): the cargo on board laid out as a fresh <see cref="Plan(Ship, IReadOnlyList{Mission}, IReadOnlyList{string}, FillOrder, long)"/>
@@ -670,7 +671,7 @@ public static class LoadPlanner
             }
 
             budget.Spend(rack, laid);
-            return ([.. laying.Zip(laid.Positions).Select(p => new Crate(destination, p.First.Commodity, p.First.Size, rack.Id, p.Second, Mission: mission.Id))],
+            return ([.. laying.Zip(laid.Poses).Select(p => new Crate(destination, p.First.Commodity, p.First.Size, rack.Id, p.Second.Position, Mission: mission.Id, Rotated: p.Second.Rotated))],
                 rack, laid);
         }
     }
@@ -726,9 +727,9 @@ public static class LoadPlanner
                 racks[r], [.. plan.Crates.Where(c => c.RackId == racks[r].Id)], [.. inRack.Select(i => (all[i].Size, stops[all[i].Stop].Destination))], plan.FillOrder,
                 budget.For(racks[r]))!;
             budget.Spend(racks[r], laying);
-            foreach (var (i, position) in inRack.Zip(laying.Positions))
+            foreach (var (i, pose) in inRack.Zip(laying.Poses))
             {
-                laid[i] = new Crate(stops[all[i].Stop].Destination, all[i].Commodity, all[i].Size, racks[r].Id, position, Mission: mission.Id);
+                laid[i] = new Crate(stops[all[i].Stop].Destination, all[i].Commodity, all[i].Size, racks[r].Id, pose.Position, Mission: mission.Id, Rotated: pose.Rotated);
             }
 
             if (laying.GaveUp)
@@ -968,16 +969,16 @@ public static class LoadPlanner
             return Edit.Refused(Invariant($"Rack {rack.Number}: {CrateCap.Of(rack).RackText(refused)}."));
         }
 
-        if (CrateLayout.PlaceWithin(rack, crate, parts, plan.FillOrder) is not { } positions)
+        if (CrateLayout.PlaceWithin(rack, crate, parts, plan.FillOrder) is not { } poses)
         {
-            return Edit.Refused(Invariant($"{sum} SCU don't fit the footprint of the {size} SCU crate ({crate.CrateSize.Dimensions})."));
+            return Edit.Refused(Invariant($"{sum} SCU don't fit the footprint of the {size} SCU crate ({crate.Shape})."));
         }
 
         // Largest first, as the missions expand them (MissionItem.ToCargoItems). OrderByDescending is stable.
-        // The parts keep the crate's mission (D42) and item (D68).
-        Crate[] pieces = [.. parts.Zip(positions)
+        // The parts keep the crate's mission (D42) and item (D68), and turn where the footprint needs it (D71).
+        Crate[] pieces = [.. parts.Zip(poses)
             .OrderByDescending(p => p.First)
-            .Select(p => new Crate(crate.Destination, crate.Commodity, p.First, crate.RackId, p.Second, Mission: crate.Mission, Item: crate.Item))];
+            .Select(p => new Crate(crate.Destination, crate.Commodity, p.First, crate.RackId, p.Second.Position, Mission: crate.Mission, Item: crate.Item, Rotated: p.Second.Rotated))];
         List<Crate> crates = [.. plan.Crates];
         crates.RemoveAt(index);
         crates.InsertRange(index, pieces);
@@ -1047,7 +1048,9 @@ public static class LoadPlanner
             return Edit.Refused(Invariant($"Rack {rack.Number}: {CrateCap.Of(rack).RackText(merged)}."));
         }
 
-        if (CrateLayout.BlockProblem(crates, merged) is { } problem)
+        // The block decides how the new crate lies, not how the parts lay (D71).
+        var (problem, rotated) = CrateLayout.Block(crates, merged);
+        if (problem is not null)
         {
             return Edit.Refused(problem);
         }
@@ -1055,7 +1058,7 @@ public static class LoadPlanner
         // The new crate takes the place of the first of them in the plan; the others go, from the back.
         GridPosition corner = new(crates.Min(c => c.Position.Length), crates.Min(c => c.Position.Width), crates.Min(c => c.Position.Stack));
         List<Crate> list = [.. plan.Crates];
-        list[indices.Min()] = new Crate(first.Destination, first.Commodity, merged, first.RackId, corner, Mission: first.Mission, Item: first.Item);
+        list[indices.Min()] = new Crate(first.Destination, first.Commodity, merged, first.RackId, corner, Mission: first.Mission, Item: first.Item, Rotated: rotated);
         foreach (var index in indices.Order().Skip(1).Reverse())
         {
             list.RemoveAt(index);

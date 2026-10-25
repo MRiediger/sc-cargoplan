@@ -444,7 +444,7 @@ public class PlanFileTests
     {
         { "not json", "*plan.json*" },
         { "null", "*schemaVersion*" },
-        { """{ "schemaVersion": 5 }""", "*schemaVersion 5*expected 1 or 2 or 3 or 4*" },
+        { """{ "schemaVersion": 6 }""", "*schemaVersion 6*expected 1 or 2 or 3 or 4 or 5*" },
         { """{ "shipId": "hull_a" }""", "*schemaVersion*" },
     };
 

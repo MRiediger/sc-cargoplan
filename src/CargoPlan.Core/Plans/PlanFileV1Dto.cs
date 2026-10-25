@@ -27,7 +27,8 @@ internal sealed record PlanFileV1Dto(
         new LoadPlan(ShipId, [], []).EnsureBelongsTo(ship);
         var crates = CrateLayout.LayOut(ship, placements, FillOrder.BowFirst);
 
-        var plan = PlanFileDto.Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrder.BowFirst), ship);
+        // Laid out for this ship just now: every crate lies inside its rack.
+        var (plan, _) = PlanFileDto.Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrder.BowFirst), ship);
         return PlanFileDto.UnderCap(ship, cap => SavedPlan.FromStops(missions, plan, cap));
     }
 }

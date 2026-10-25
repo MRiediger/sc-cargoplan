@@ -32,10 +32,19 @@ public sealed record Rack(
     public ShipBox Bounds => Box(new GridPosition(0, 0, 0), Grid);
 
     /// <summary>
-    /// The box a crate of <paramref name="size"/> takes in the ship with its min grid corner at <paramref name="position"/>.
-    /// A free cell is <see cref="CrateSize.One"/>. The only grid-to-ship mapping (D26).
+    /// The box a crate of <paramref name="size"/> takes unturned in the ship with its min grid corner at <paramref name="position"/>.
+    /// A free cell is <see cref="CrateSize.One"/>.
     /// </summary>
     public ShipBox CellBox(GridPosition position, CrateSize size) => Box(position, size.Dimensions);
+
+    /// <summary>The box <paramref name="crate"/> takes in the ship as it lies, turned or not (D71).</summary>
+    public ShipBox CellBox(Crate crate) => Box(crate.Position, crate.Shape);
+
+    /// <summary>
+    /// The box of <paramref name="shape"/> (grid cells, length × width × stack) in the ship with its min grid corner at
+    /// <paramref name="position"/>. The only grid-to-ship mapping (D26).
+    /// </summary>
+    public ShipBox CellBox(GridPosition position, Dimensions shape) => Box(position, shape);
 
     /// <summary>
     /// The inverse of <see cref="CellBox"/>: the grid position of a crate that takes <paramref name="box"/>, or null if that
@@ -62,20 +71,24 @@ public sealed record Rack(
 
     /// <summary>
     /// True if the rack takes one crate of this size: no smaller than <see cref="MinCrateSize"/>, no larger than
-    /// <see cref="MaxCrateSize"/>, and fitting the grid in its fixed orientation (no turning). The one check for "may this
-    /// size go here"; layout and moves ask it (D56, D70).
+    /// <see cref="MaxCrateSize"/>, and fitting the grid turned or not (D71). The one check for "may this size go here";
+    /// layout and moves ask it (D56, D70).
     /// </summary>
     public bool CanHold(CrateSize size) => size >= (MinCrateSize ?? size) && size <= (MaxCrateSize ?? size) && FitsGrid(size);
 
     /// <summary>True if the grid would take the crate and a limit doesn't: the door or the minimum (D70).</summary>
     public bool LimitRefuses(CrateSize size) => FitsGrid(size) && !CanHold(size);
 
-    /// <summary>True if one crate of this size fits the grid in its fixed orientation, whatever <see cref="MaxCrateSize"/> says.</summary>
-    public bool FitsGrid(CrateSize size)
-    {
-        var crate = size.Dimensions;
-        return crate.Length <= Grid.Length && crate.Width <= Grid.Width && crate.Stack <= Grid.Stack;
-    }
+    /// <summary>True if one crate of this size fits the grid turned or not (D71), whatever <see cref="MaxCrateSize"/> says.</summary>
+    public bool FitsGrid(CrateSize size) => FitsGrid(Grid, size);
+
+    /// <summary>True if one box of <paramref name="shape"/> fits the grid as it lies.</summary>
+    public bool Fits(Dimensions shape) => Fits(Grid, shape);
+
+    private static bool FitsGrid(Dimensions grid, CrateSize size) => Fits(grid, size.Shape(false)) || Fits(grid, size.Shape(true));
+
+    private static bool Fits(Dimensions grid, Dimensions shape) =>
+        shape.Length <= grid.Length && shape.Width <= grid.Width && shape.Stack <= grid.Stack;
 
     private ShipBox Box(GridPosition position, Dimensions size)
     {
@@ -134,8 +147,7 @@ public sealed record Rack(
             return null;
         }
 
-        var shape = m.Dimensions;
-        if (m > (max ?? m) || shape.Length > grid.Length || shape.Width > grid.Width || shape.Stack > grid.Stack)
+        if (m > (max ?? m) || !FitsGrid(grid, m))
         {
             throw new ArgumentException(
                 Invariant($"Rack '{id}': minCrateSize {(int)m} is above what the rack takes (grid {grid}, maxCrateSize {(max is { } x ? Invariant($"{(int)x}") : "none")})."),

@@ -26,8 +26,8 @@ internal static class RackAssignment
     /// <summary>One crate: stop and item index into the stops as passed, and its size.</summary>
     internal readonly record struct Piece(int Stop, int Item, CrateSize Size);
 
-    /// <summary>The crates of one rack with their positions; <paramref name="StackingUnchecked"/> if the search for a layout without foreign stacking gave up.</summary>
-    internal sealed record RackLoad(Rack Rack, IReadOnlyList<(Piece Piece, GridPosition Position)> Crates, bool StackingUnchecked);
+    /// <summary>The crates of one rack with their poses; <paramref name="StackingUnchecked"/> if the search for a layout without foreign stacking gave up.</summary>
+    internal sealed record RackLoad(Rack Rack, IReadOnlyList<(Piece Piece, Pose Pose)> Crates, bool StackingUnchecked);
 
     /// <summary>The racks with cargo, in rack order, and the nodes the search took.</summary>
     internal sealed record Result(IReadOnlyList<RackLoad> Racks, long Nodes);
@@ -563,7 +563,7 @@ internal static class RackAssignment
                     cursor[(dest, line, group)] = used + 1 == items[item].Count ? (item + 1, 0) : (item, used + 1);
                     return new Piece(_dests[dest].Stop, items[item].Item, p.Size);
                 });
-                loads.Add(new RackLoad(_racks[r], [.. pieces.Zip(laying.Positions)], laying.GaveUp));
+                loads.Add(new RackLoad(_racks[r], [.. pieces.Zip(laying.Poses)], laying.GaveUp));
             }
 
             return new Result(loads, _nodes);

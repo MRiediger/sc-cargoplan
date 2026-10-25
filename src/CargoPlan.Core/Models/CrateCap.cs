@@ -16,6 +16,12 @@ public enum CapReason
 
     /// <summary>Read from a plan file whose crates were derived under another cap; the overlay plans it anew.</summary>
     Saved,
+
+    /// <summary>
+    /// Read from a plan file with a crate outside today's rack: the racks changed since it was written (K3.2, a ship data
+    /// update); the overlay plans it anew. Not a cap of its own: the sizes are those its crates fit.
+    /// </summary>
+    RacksChanged,
 }
 
 /// <summary>
@@ -70,6 +76,9 @@ public sealed record CrateCap
             : CapReason.LargestRack;
         return new CrateCap(cap._accepted, reason);
     }
+
+    /// <summary>The same sizes for another reason.</summary>
+    public CrateCap Because(CapReason reason) => new(_accepted, reason);
 
     /// <summary>True if some rack takes a crate of this size.</summary>
     public bool Accepts(CrateSize size) => (_accepted & Bit(size)) != 0;

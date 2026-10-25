@@ -14,7 +14,7 @@ namespace CargoPlan.Core.Planning;
 internal static class MoveResolution
 {
     /// <summary>A crate to move (its index in the plan), the rack it is meant for, and the cell for its min corner; null if the gesture names no cell.</summary>
-    internal sealed record Intent(int Index, Rack Rack, GridPosition? Position);
+    internal sealed record Intent(int Index, Rack Rack, GridPosition? Position, bool Rotated = false);
 
     /// <summary>
     /// A crate drag (D25): the crates as one block through stages 1–3b; if that finds no room, crate by crate (largest
@@ -169,7 +169,7 @@ internal static class MoveResolution
     {
         var rack = group[0].Rack;
         var taken = board.Taken(rack);
-        (CrateSize Size, GridPosition Position)[] crates = [.. group.Select(i => (board.Original(i.Index).CrateSize, i.Position!))];
+        (CrateSize Size, bool Rotated, GridPosition Position)[] crates = [.. group.Select(i => (board.Original(i.Index).CrateSize, i.Rotated, i.Position!))];
         if (!Free(rack, taken, crates, 0))
         {
             return null;
@@ -181,21 +181,21 @@ internal static class MoveResolution
             fall++;
         }
 
-        (CrateSize Size, GridPosition Position)[] landed = [.. crates.Select(c => (c.Size, Below(c.Position, fall)))];
-        return Rests(taken, landed) ? board.Put(rack, group.Zip(landed, (i, l) => (i.Index, l.Position))) : null;
+        (CrateSize Size, bool Rotated, GridPosition Position)[] landed = [.. crates.Select(c => (c.Size, c.Rotated, Below(c.Position, fall)))];
+        return Rests(taken, landed) ? board.Put(rack, group.Zip(landed, (i, l) => (i.Index, new Pose(l.Position, l.Rotated)))) : null;
     }
 
     /// <summary>True if every crate fits the rack and the grid with its cells <paramref name="fall"/> cells lower, on cells nothing else takes.</summary>
-    private static bool Free(Rack rack, bool[,,] taken, IReadOnlyList<(CrateSize Size, GridPosition Position)> crates, int fall) =>
-        crates.All(c => c.Position.Stack >= fall && rack.CanHold(c.Size) && Cells(Below(c.Position, fall), c.Size).All(cell => Inside(rack, cell) && !taken[cell.Length, cell.Width, cell.Stack]));
+    private static bool Free(Rack rack, bool[,,] taken, IReadOnlyList<(CrateSize Size, bool Rotated, GridPosition Position)> crates, int fall) =>
+        crates.All(c => c.Position.Stack >= fall && rack.CanHold(c.Size) && Cells(Below(c.Position, fall), c.Size.Shape(c.Rotated)).All(cell => Inside(rack, cell) && !taken[cell.Length, cell.Width, cell.Stack]));
 
     private static GridPosition Below(GridPosition position, int fall) => new(position.Length, position.Width, position.Stack - fall);
 
     /// <summary>The support rule (D24) for crates placed together: every bottom cell above the plate on taken cargo or on one of them.</summary>
-    private static bool Rests(bool[,,] taken, IReadOnlyList<(CrateSize Size, GridPosition Position)> crates)
+    private static bool Rests(bool[,,] taken, IReadOnlyList<(CrateSize Size, bool Rotated, GridPosition Position)> crates)
     {
-        HashSet<GridPosition> own = [.. crates.SelectMany(c => Cells(c.Position, c.Size))];
-        return crates.All(c => c.Position.Stack == 0 || Cells(c.Position, c.Size).Where(cell => cell.Stack == c.Position.Stack).All(cell =>
+        HashSet<GridPosition> own = [.. crates.SelectMany(c => Cells(c.Position, c.Size.Shape(c.Rotated)))];
+        return crates.All(c => c.Position.Stack == 0 || Cells(c.Position, c.Size.Shape(c.Rotated)).Where(cell => cell.Stack == c.Position.Stack).All(cell =>
             taken[cell.Length, cell.Width, cell.Stack - 1] || own.Contains(new GridPosition(cell.Length, cell.Width, cell.Stack - 1))));
     }
 
@@ -216,7 +216,7 @@ internal static class MoveResolution
 
         var taken = board.Taken(rack);
         var grid = rack.Grid;
-        var crates = group.Select(i => (board.Original(i.Index).CrateSize, Position: i.Position!, board.Original(i.Index).Destination)).ToArray();
+        var crates = group.Select(i => (board.Original(i.Index).CrateSize, i.Rotated, Position: i.Position!, board.Original(i.Index).Destination)).ToArray();
         if (crates.Any(c => !rack.CanHold(c.CrateSize)))
         {
             return null;
@@ -225,7 +225,7 @@ internal static class MoveResolution
         var rank = board.Ranks(rack);
         GridPosition[][] own = [.. crates.Select(c => board.OnBoard(rack).Where(o => o.Destination == c.Destination).SelectMany(o => o.Cells).ToArray())];
         (int Steps, int Own, int First, int Last) best = (int.MaxValue, 0, 0, 0);
-        (CrateSize, GridPosition)[]? bestPlace = null;
+        (CrateSize, bool, GridPosition)[]? bestPlace = null;
         for (var dl = -crates.Max(c => c.Position.Length); dl < grid.Length; dl++)
         {
             for (var dw = -crates.Max(c => c.Position.Width); dw < grid.Width; dw++)
@@ -238,14 +238,14 @@ internal static class MoveResolution
                         continue;
                     }
 
-                    (CrateSize Size, GridPosition Position)[] place =
-                        [.. crates.Select(c => (c.CrateSize, new GridPosition(c.Position.Length + dl, c.Position.Width + dw, c.Position.Stack + ds)))];
+                    (CrateSize Size, bool Rotated, GridPosition Position)[] place =
+                        [.. crates.Select(c => (c.CrateSize, c.Rotated, new GridPosition(c.Position.Length + dl, c.Position.Width + dw, c.Position.Stack + ds)))];
                     if (!Free(rack, taken, place, 0) || !Rests(taken, place))
                     {
                         continue;
                     }
 
-                    var cells = place.SelectMany(p => Cells(p.Position, p.Size)).ToArray();
+                    var cells = place.SelectMany(p => Cells(p.Position, p.Size.Shape(p.Rotated))).ToArray();
                     var score = (steps, OwnDistance(own, place),
                         cells.Min(c => rank[c.Length, c.Width, c.Stack]), cells.Max(c => rank[c.Length, c.Width, c.Stack]));
                     if (score.CompareTo(best) < 0)
@@ -256,18 +256,18 @@ internal static class MoveResolution
             }
         }
 
-        return bestPlace is null ? null : board.Put(rack, group.Zip(bestPlace, (i, p) => (i.Index, p.Item2)));
+        return bestPlace is null ? null : board.Put(rack, group.Zip(bestPlace, (i, p) => (i.Index, new Pose(p.Item3, p.Item2))));
     }
 
     /// <summary>For each crate the grid steps from its cells to the nearest cell of its destination's cargo in the rack (0 without any), summed.</summary>
-    private static int OwnDistance(GridPosition[][] own, (CrateSize Size, GridPosition Position)[] place)
+    private static int OwnDistance(GridPosition[][] own, (CrateSize Size, bool Rotated, GridPosition Position)[] place)
     {
         var total = 0;
         for (var i = 0; i < place.Length; i++)
         {
             if (own[i].Length > 0)
             {
-                total += Cells(place[i].Position, place[i].Size)
+                total += Cells(place[i].Position, place[i].Size.Shape(place[i].Rotated))
                     .Min(cell => own[i].Min(o => Math.Abs(o.Length - cell.Length) + Math.Abs(o.Width - cell.Width) + Math.Abs(o.Stack - cell.Stack)));
             }
         }
@@ -279,7 +279,7 @@ internal static class MoveResolution
     private static Board? LayAround(Board board, Rack rack, IReadOnlyList<int> crates)
     {
         var laid = board.Lay(rack, board.OnBoard(rack), crates);
-        return laid is null ? null : board.Put(rack, crates.Zip(laid.Positions), laid.GaveUp);
+        return laid is null ? null : board.Put(rack, crates.Zip(laid.Poses), laid.GaveUp);
     }
 
     // --- Stage 3: the target rack laid out anew ---
@@ -289,7 +289,7 @@ internal static class MoveResolution
     {
         int[] all = [.. board.IndicesIn(rack).Concat(crates).Order()];
         var laid = board.Lay(rack, [], all);
-        return laid is null ? null : board.Put(rack, all.Zip(laid.Positions), laid.GaveUp);
+        return laid is null ? null : board.Put(rack, all.Zip(laid.Poses), laid.GaveUp);
     }
 
     // --- Stage 3b: displacing other cargo ---
@@ -407,7 +407,7 @@ internal static class MoveResolution
                 continue;
             }
 
-            var placed = board.Copy().Put(rack, crates.Zip(laid.Positions), laid.GaveUp);
+            var placed = board.Copy().Put(rack, crates.Zip(laid.Poses), laid.GaveUp);
             if (laid.StackingFree)
             {
                 return placed;
@@ -444,14 +444,11 @@ internal static class MoveResolution
     private static int Rank(Board board, Rack rack, GridPosition position) =>
         Inside(rack, position) ? board.Ranks(rack)[position.Length, position.Width, position.Stack] : int.MaxValue;
 
-    private static IEnumerable<GridPosition> Cells(GridPosition position, CrateSize size)
-    {
-        var dimensions = size.Dimensions;
-        return from l in Enumerable.Range(position.Length, dimensions.Length)
-               from w in Enumerable.Range(position.Width, dimensions.Width)
-               from s in Enumerable.Range(position.Stack, dimensions.Stack)
-               select new GridPosition(l, w, s);
-    }
+    private static IEnumerable<GridPosition> Cells(GridPosition position, Dimensions shape) =>
+        from l in Enumerable.Range(position.Length, shape.Length)
+        from w in Enumerable.Range(position.Width, shape.Width)
+        from s in Enumerable.Range(position.Stack, shape.Stack)
+        select new GridPosition(l, w, s);
 
     private static bool Inside(Rack rack, GridPosition cell) =>
         cell.Length < rack.Grid.Length && cell.Width < rack.Grid.Width && cell.Stack < rack.Grid.Stack;
@@ -544,12 +541,12 @@ internal static class MoveResolution
             return laid;
         }
 
-        /// <summary>The crates at these indices into the rack at these positions; this board, changed.</summary>
-        public Board Put(Rack rack, IEnumerable<(int Index, GridPosition Position)> places, bool gaveUp = false)
+        /// <summary>The crates at these indices into the rack as these poses say; this board, changed.</summary>
+        public Board Put(Rack rack, IEnumerable<(int Index, Pose Pose)> places, bool gaveUp = false)
         {
-            foreach (var (index, position) in places)
+            foreach (var (index, pose) in places)
             {
-                Slots[index] = (Slots[index] ?? Original(index)) with { RackId = rack.Id, Position = position };
+                Slots[index] = (Slots[index] ?? Original(index)) with { RackId = rack.Id, Position = pose.Position, Rotated = pose.Rotated };
             }
 
             if (gaveUp)
@@ -588,15 +585,15 @@ internal static class MoveResolution
                 var floating = board.Slots[index]!;
                 board.Slots[index] = null;
                 var taken = board.Taken(rack);
-                (CrateSize, GridPosition)[] alone = [(floating.CrateSize, floating.Position)];
+                (CrateSize, bool, GridPosition)[] alone = [(floating.CrateSize, floating.Rotated, floating.Position)];
                 var fall = 0;
                 while (Free(rack, taken, alone, fall + 1))
                 {
                     fall++;
                 }
 
-                Intent[] self = [new(index, rack, floating.Position)];
-                if (fall > 0 && Rests(taken, [(floating.CrateSize, Below(floating.Position, fall))]))
+                Intent[] self = [new(index, rack, floating.Position, floating.Rotated)];
+                if (fall > 0 && Rests(taken, [(floating.CrateSize, floating.Rotated, Below(floating.Position, fall))]))
                 {
                     board.Slots[index] = floating with { Position = Below(floating.Position, fall) };
                 }
