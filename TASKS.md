@@ -1449,10 +1449,56 @@ main, Merge `--no-ff`. Die übernommenen Backlog-Zeilen sind unten durchgestrich
 | K2 Plan/Editor | Discard plan (Sync-Baseline zurück), Undo/Redo-Stack, `fillOrder` in Missions-JSON Schema 3 (Import/Export), Haken-Erhalt beim Schiffswechsel |
 | K1 Schiffsansicht | Zoom-Grenzen absolut in px/Zelle + Preference, Kamera/Zoom/Pan persistieren, Reset-Symbol in der Kopfzeile, Hit-Test auf die Ansichtsfläche |
 | K4 Look | Checkbox- und Chevron-Farbe/Deckkraft, Stop-Paletten-Presets, Look-Presets + Export/Import |
-| K5 Daten | Spindel-Skript Hull B/C aus dem Holo, Aurora-Frachtmodul, App-Icon |
+| K5 Daten | `offset`/`rotation` aus Fleetyards → `origin`/`stackAxis` im Import; Achsen an der Hull A kalibrieren; offen: innerer/äußerer Hull-C-Block ein Gitter oder zwei. Fortune und Moth (Gitter geändert, neue Racks), Salvation (neu) aus dem Index vom 25.10. Aurora-Frachtmodul, App-Icon |
 
-### [ ] K3.1 Türlimit pro Rack (D70)
+Reihenfolge innerhalb von K3: K3.1 → K3.3 → K3.2 (Nachtrag 25.10.: `limits.min.capacity` kam dazu).
+
+Aus dem Index vom 25.10. für K5 festgehalten: `cargoHolds[].offset`/`rotation` liegen für Hull A, Hull C, Ironclad Assault u. a. vor (Hull C: zwei Kreuze bei `y ∈ {0, 11.25}`, je vier Arme aus innen 10×10×7,5 m = 8×8×6 Zellen = 384 SCU und außen 5×10×7,5 m = 4×8×6 = 192 SCU; die vertikalen Arme tragen `rotation: 90`).
+
+### [ ] K3.1 Türlimit pro Rack (D70) (25.10.2026)
+**Warum:** Spielfakt (Fleetyards-Betreiber, 23.10.): Manche Laderäume haben eine Tür, die kleiner ist als das Gitter. Clipper: Gitter 3×2×2 nimmt eine 8, durch die Tür passen nur Kisten bis 2 SCU.
+
+**Ist-Zustand vor K3.1 (A1):** `maxCrateSize` pro Rack gab es seit D56 (`Rack.CanHold` in Layout, Moves, Merge, `PlaceInto`), aus Fleetyards `maxContainerSize`, in 284/284 Racks gleich dem Gitter (D57), also wirkungslos. Plan-Schema war schon 4 (D68), K3.2 hebt es auf 5. `Partition` heißt seit B2 `RackAssignment`.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 `maxCrateSize` ist das Türlimit, redundante Werte raus aus `ships/`; P2 Schiffs-Schema 4 → 5 als Marker für den Bedeutungswechsel (Schema 4 wird gleich gelesen); P3 Kappung der abgeleiteten Mischung durch Tür **und** Gitter (größte Kiste, die irgendein Rack nimmt); P4 im Import-Skript kein TODO (Nachtrag 25.10.: das Feld ist `limits.max.capacity`, `$DoorLimitField` entfiel); P6 eine 1 auf einem Gitter, das mehr nimmt, bleibt ungeprüft und wird nicht geschrieben (Martin: ein fehlendes Limit kostet eine Kiste, ein falsches sperrt das Rack); P5 Drag auf eine zu kleine Tür bleibt bei D65 (Stufe 4 mit Grund statt Ablehnung); K1 `SavedPlan.CrateCap` ohne Default, Tests ohne Schiff nehmen `CrateCap.None`; K2 jeder Text aus `CrateCap.Text`, Reason-Regel eigens getestet; K3 Kiosk-Gate. Regel 3 („weiß das Modell, ob abgeleitet?“): ja, `MissionItem.Crates == null`, kein neues Flag. Datenschritt vor dem Planer-Commit, damit seine Gleichheit allein gemessen wird. Eine Ablehnung „(door limit …)“ wird nicht gebaut: Eine gezogene Kiste passt immer zurück in ihr Rack.
+- Core: `CrateCap` (`Of(Ship)`, `Of(Rack)`, `Text`, `Notice`, `Limit`), `CapReason` (`None`, `Door`, `LargestRack`, `Saved`), `Rack.DoorRefuses`; `MissionItem.CrateListUnder(cap)`, `CappedBy`, `ToCargoItems(cap)`, `WithCrateList(crates, cap)` (ersetzt `CrateList`); `MissionStop.ToStop(cap)`/`ToStops(cap)`; `SavedPlan(…, CrateCap, …)`, `CratesCapped`, `FromStops(…, cap)`; `LoadPlanner`: Neuplanung nimmt `CrateCap.Of(ship)`, Arbeit am Plan `saved.CrateCap`, `Replan` in place nur bei gleicher Kappung, `PlaceProblem` „no rack accepts …“; `MoveResolution` überspringt ein Zielrack mit zu kleiner Tür; `PlanFileDto.UnderCap` (Rückfall auf die größte passende Kappung); `ShipLoader` liest 4 und 5
+- Daten/Import: 283 redundante `maxCrateSize` entfernt, alle Schiffe Schema 5; `import-fleetyards.ps1` liest `limits.max.capacity` (über 32 auf 32 geklemmt, nur unter der Gitterkiste geschrieben, eine 1 ungeprüft), `maxContainerSize` gar nicht mehr, Walkway-Reihenfolge aus dem wirksamen Maximum, `-Force` ergänzt fehlende Türen und überschreibt keine; aus dem Index vom 25.10. (`fetch.ps1`, 118 Schiffe, 97 mit Gitter, 293 Holds alle mit `limits`) tragen 14 Schiffe eine Tür: Clipper, 300i, 315p, Apollo Medivac/Triage, Cutlass Black, Idris P, Reclaimer, Shiv (2), Nomad (8), 400i, Idris M, Starfarer, Starfarer Gemini (16), `notes` nennen `limits.max.capacity`
+- App: `NoticeSource.CrateCap` aus `SavedPlan.CratesCapped`, `ShowPlan` plant Dateien unter fremder Kappung neu (`RacksReplannedText`), Editor-Spalte Crates gekappt und folgt dem Schiffswechsel
+- Tests: `CrateCapTests`, `DoorLimitTests`, `DoorLimitOverlayTests`, `MaxCrateSizeTests` (Verdrängen nie hinter eine zu kleine Tür, mit Gegenprobe), Schiffs-Schema 4/5/6, `A_shipped_max_crate_size_is_below_what_the_grid_takes`, `A_shipped_file_is_schema_5`; `Uncapped` (Core- und App-Tests)
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 996 / 141 / 1.130 | 1.210 / 141 / 1.134 |
+| Golden-Files und Fixtures geändert | erwartet 0 | 0 |
+| 4 Fixtures × 96 Schiffe, Plan-Datei-Hash, nur Datenbereinigung (alter Code) | 384 | 381 gleich, 3 Clipper (vorher und nachher abgelehnt, jetzt mit Tür) |
+| dieselben 384 Fälle mit Kappung | 384 | jeder vorher geplante Fall byte-gleich; 149 abgelehnte bleiben abgelehnt mit anderem Grund (meist Kapazität); 2 jetzt geplant (600i Executive/Explorer, crate_mix) |
+| dieselben 384 Fälle nach den Türen aus dem Index vom 25.10. | 384 | 370 gleich; 14 geändert, alle auf Schiffen mit neuer Tür; 4 davon jetzt abgelehnt (`example_missions` ist Schema 1, also gesetzte 4er, die eine Tür 2 nicht nimmt) |
+| `ReplanTimingTests` Median (Release, diese Maschine) | example 0,5 · split_and_shared 1,1 · split_required 0,6 · crate_mix 0,5 · Hull A acht Stopps 4,4 · Hurston 3,1 · Freelancer 3,1 · Stresslast 238,3 ms | 0,6 · 0,8 · 0,4 · 0,6 · 5,6 · 2,9 · 3,0 · 103,2 ms (im Rauschen; die Stresslast schwankt zwischen Läufen um mehr als das Doppelte) |
+
+**Ungeprüfte Türen** (`limits.max.capacity = 1` auf einem Gitter, das mehr nimmt; nicht geschrieben, Gitterkiste in Klammern): 100i rack-0 (2) · 125a rack-0 (2) · 135c rack-0 (2) · Cutlass Black rack-1 (2) · Cutlass Blue rack-0, -1 (2) · Cutlass Red rack-0, -1 (2) · F7C Hornet Mk II rack-0 (2) · Golem OX rack-0 (32) · Hermes rack-0, -1 (32) · Idris M rack-3, -4 (2) · Idris P rack-7, -8 (2) · Intrepid rack-0, -1 (2) · Ironclad rack-0 bis -3 (32), rack-4 bis -8 (8) · Ironclad Assault rack-0, -1 (32) · Paladin rack-0 (2) · Prowler Utility rack-0, -1 (16). 32 Racks in 16 Schiffen, dazu Fortune und Salvation (K5). Frage an Torlek (Fleetyards): „Ist `limits.max = 1` ein Default oder eingetragen – und kommt `limits` aus Starbreaker oder von Hand?“ Die Antwort entscheidet die Liste auf einmal.
+
+Vier Tests nutzten einen 32-SCU-Vertrag auf der Hull A als „passt nicht“; der wird jetzt zu 16ern gekappt und passt, sie nehmen 72 SCU.
+
+**Akzeptanz:**
+- [x] Clipper (`ships/clipper.json`, Gitter 3×2×2, Tür 2): 8-SCU-Vertrag → vier 2er, Notice `crates capped to 2 SCU (door limit)` (`DoorLimitTests`, `DoorLimitOverlayTests`, CLI `plan … --ship clipper`: `8 SCU Titanium (4×2)`, Hull A `(1×8)`)
+- [x] Gesetzte 4er → `Plan` lehnt ab mit `(door limit 2 SCU)`, `PlaceInto` lässt warten, `PlaceProblem` = `doesn't fit (no rack accepts 4 SCU crates, door limit 2 SCU)`
+- [x] Schiffswechsel leitet abgeleitete Mischungen neu ab, gesetzte bleiben; Split/Merge zurück lässt die Mischung abgeleitet
+- [x] Drag auf ein Rack mit zu kleiner Tür: Stufe 4 mit `Rack 1: door limit 16 SCU – placed in rack 2`, Vorschau zeigt es (P5)
+- [x] Verdrängen (3b) landet nie hinter einer Tür, die die Kiste abweist (mit Gegenprobe ohne Tür)
+- [x] Migration Schiffs-Schema 4 → 5 ohne Feld und mit Feld; Schema 6 abgelehnt
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 1.213, Import 141, App 1.134); Slow grün; Exhaustive grün (13 min 10 s, anfangs parallel zu anderen Tests)
+- [ ] Antwort von Torlek zur 1 → Liste der ungeprüften Türen übernehmen oder streichen
+- [ ] Gate Spiel-Build (Martin): Clipper laden, CT-Sync mit einem Vertrag über 2 SCU Kistengröße, Notice und Legende prüfen
+- [ ] Gate Kiosk (Martin, K3): am Terminal bestätigen, dass der Kiosk bei einem Vertrag mit Maximum 8 auch 2er anbietet; widerlegt → Kappung nur bei Türlimit, P3 zurück (Folge-Commit), Ergebnis in D70
+- Commits f3c4e63 (Daten, Import), f815210 (Core-Tests rot), 69ee7da (Core), 538b6c9 (App-Tests rot), 72a6115 (App), 25ac668 (Import aus `limits.max.capacity`), 84b2cc3 (Türen aus dem Index vom 25.10.), Doku-Commit.
+
+### [ ] K3.3 Untergrenze `minCrateSize` pro Rack (D70-Addendum) – nach K3.1, vor K3.2
+`limits.min.capacity` > 1 nur bei Hull C (32), MPUV Tractor (16), CSV-SM (4); ihre Gitter nehmen die Mindestkiste ungedreht. Plan freigegeben mit Korrekturen K1 (`CrateCap.Accepts`) und K2 (Neuplanung vergleicht auch `Min`).
+
 ### [ ] K3.2 Kisten-Gier 90° (D71)
+Für den Plan vorgemerkt: der äußere Hull-C-Block als Beweis-Fixture neben dem 3×2×1-Rack (Nachtrag: ein 32er passt dort nur gedreht, genau 6 Stück; in `ships/hull_c.json` steht er schon als 8×4×6, also zuerst klären, in welcher Lage).
 
 ---
 
