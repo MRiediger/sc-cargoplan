@@ -568,7 +568,7 @@ public sealed class ShipViewControl : FrameworkElement
             return;
         }
 
-        ShowToolTip(SceneHitTest.ToolTipAt(scene, CurrentTransform(scene).Invert(position)));
+        ShowToolTip(SceneHitTest.ToolTipAt(scene, CurrentTransform(scene), RenderSize, position));
     }
 
     /// <summary>
@@ -747,11 +747,12 @@ public sealed class ShipViewControl : FrameworkElement
         _ => null,
     };
 
+    // Only within the view (K1.4, D33): drawn with ClipToBounds, so a rack beyond its edge is out of sight.
     private string? DestinationAt(Point position) =>
-        Projected() is { } scene ? SceneHitTest.DestinationAt(scene, CurrentTransform(scene).Invert(position)) : null;
+        Projected() is { } scene ? SceneHitTest.DestinationAt(scene, CurrentTransform(scene), RenderSize, position) : null;
 
     private SceneHit? HitAt(Point position) =>
-        Projected() is { } scene ? SceneHitTest.HitAt(scene, CurrentTransform(scene).Invert(position)) : null;
+        Projected() is { } scene ? SceneHitTest.HitAt(scene, CurrentTransform(scene), RenderSize, position) : null;
 
     /// <summary>The gesture of <paramref name="drag"/> with the cursor at <paramref name="position"/>.</summary>
     private Gesture Resolve(Drag drag, Point position, bool moved)
