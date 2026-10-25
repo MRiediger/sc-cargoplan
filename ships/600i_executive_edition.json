@@ -1,68 +1,61 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "600i_executive_edition",
   "name": "ORIG 600i Executive-Edition",
   "manufacturer": "ORIG",
   "fleetyardsSlug": "orig-600i-executive-edition",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; racks 1, 2, 5, 6, 7 turned so length is the longer side (crates don't turn)",
+  "notes": "rack arrangement generated; grids from Fleetyards",
   "totalScu": 44,
   "racks": [
     {
       "id": "rack-0",
       "capacityScu": 8,
-      "grid": { "length": 4, "width": 1, "stack": 2 },
+      "grid": { "length": 1, "width": 4, "stack": 2 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 8,
-      "grid": { "length": 4, "width": 1, "stack": 2 },
+      "grid": { "length": 1, "width": 4, "stack": 2 },
       "origin": [-5, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-2",
       "capacityScu": 2,
       "grid": { "length": 1, "width": 1, "stack": 2 },
       "origin": [-7, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 1
+      "stackAxis": "+z"
     },
     {
       "id": "rack-3",
       "capacityScu": 2,
       "grid": { "length": 1, "width": 1, "stack": 2 },
       "origin": [-9, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 1
+      "stackAxis": "+z"
     },
     {
       "id": "rack-4",
       "capacityScu": 12,
-      "grid": { "length": 4, "width": 1, "stack": 3 },
+      "grid": { "length": 1, "width": 4, "stack": 3 },
       "origin": [-14, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-5",
       "capacityScu": 6,
-      "grid": { "length": 2, "width": 1, "stack": 3 },
+      "grid": { "length": 1, "width": 2, "stack": 3 },
       "origin": [-17, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-6",
       "capacityScu": 6,
-      "grid": { "length": 2, "width": 1, "stack": 3 },
+      "grid": { "length": 1, "width": 2, "stack": 3 },
       "origin": [-20, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     }
   ]
 }

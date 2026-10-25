@@ -11,7 +11,7 @@ public class PlaceIntoTests
 {
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
 
-    private static SavedPlan Empty => new([], new LoadPlan(HullA.Id, [], []));
+    private static SavedPlan Empty => new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA));
 
     private static MissionStop Stop(string destination, string commodity, int scu, CrateSize max) =>
         new(destination, 1, [new MissionItem(commodity, scu, max)]);
@@ -24,7 +24,7 @@ public class PlaceIntoTests
         saved.Plan.Crates.Where(c => c.Destination == destination).Select(c => c.RackId).Distinct();
 
     private static SavedPlan Delivered(SavedPlan saved, string destination) =>
-        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, destination, true), saved.Watermark);
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, destination, true), saved.CrateCap, saved.Watermark);
 
     /// <summary>Four 8 SCU crates, one per rack, each leaving a 2×2×2 half of its rack free.</summary>
     private static SavedPlan HalfFull() => Placed(
@@ -155,7 +155,7 @@ public class PlaceIntoTests
     [Fact]
     public void PlaceInto_keeps_the_watermark()
     {
-        SavedPlan saved = new([], new LoadPlan(HullA.Id, [], []), 41);
+        SavedPlan saved = new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA), 41);
 
         LoadPlanner.PlaceInto(saved, HullA, [Stop("Riker", "Gold", 4, CrateSize.Four)]).Watermark.Should().Be(41);
     }
@@ -164,7 +164,7 @@ public class PlaceIntoTests
 
     private static readonly Ship Uneven = TestShips.Load("uneven_long");
 
-    private static SavedPlan EmptyUneven => new([], new LoadPlan(Uneven.Id, [], []));
+    private static SavedPlan EmptyUneven => new([], new LoadPlan(Uneven.Id, [], []), CrateCap.Of(Uneven));
 
     /// <summary>Area18 70 × 1, then Port Tressler 2 × 32: stop by stop Area18 fills rack 1 and the second 32 finds no room.</summary>
     private static readonly MissionStop[] OnesThen32s =
@@ -203,7 +203,7 @@ public class PlaceIntoTests
     [Fact]
     public void RetryUnplaced_places_a_waiting_mission_through_the_fallback()
     {
-        SavedPlan waiting = new([new Mission(1, OnesThen32s, null, Unplaced: true)], new LoadPlan(Uneven.Id, [], []));
+        SavedPlan waiting = new([new Mission(1, OnesThen32s, null, Unplaced: true)], new LoadPlan(Uneven.Id, [], []), CrateCap.Of(Uneven));
 
         LoadPlanner.PlaceProblem(waiting, Uneven, 1).Should().BeNull();
         LoadPlanner.RetryUnplaced(waiting, Uneven).Missions.Single().Unplaced.Should().BeFalse();

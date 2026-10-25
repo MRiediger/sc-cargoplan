@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "caterpillar",
   "name": "DRAK Caterpillar",
   "manufacturer": "DRAK",
   "fleetyardsSlug": "drak-caterpillar",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards; racks 5, 6, 8, 10, 12, 14 turned so length is the longer side (crates don't turn)",
+  "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards",
   "totalScu": 576,
   "racks": [
     {
@@ -13,112 +13,98 @@
       "capacityScu": 96,
       "grid": { "length": 6, "width": 4, "stack": 4 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 24
+      "stackAxis": "+z"
     },
     {
       "id": "rack-3",
       "capacityScu": 96,
       "grid": { "length": 6, "width": 4, "stack": 4 },
       "origin": [-7, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 24
+      "stackAxis": "+z"
     },
     {
       "id": "rack-6",
       "capacityScu": 96,
       "grid": { "length": 6, "width": 4, "stack": 4 },
       "origin": [-14, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 24
+      "stackAxis": "+z"
     },
     {
       "id": "rack-9",
       "capacityScu": 96,
       "grid": { "length": 6, "width": 4, "stack": 4 },
       "origin": [-21, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 24
+      "stackAxis": "+z"
     },
     {
       "id": "rack-12",
       "capacityScu": 60,
-      "grid": { "length": 5, "width": 4, "stack": 3 },
+      "grid": { "length": 4, "width": 5, "stack": 3 },
       "origin": [-27, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-13",
       "capacityScu": 20,
-      "grid": { "length": 5, "width": 2, "stack": 2 },
+      "grid": { "length": 2, "width": 5, "stack": 2 },
       "origin": [-33, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 20,
       "grid": { "length": 5, "width": 1, "stack": 4 },
       "origin": [-39, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-2",
       "capacityScu": 8,
-      "grid": { "length": 4, "width": 1, "stack": 2 },
+      "grid": { "length": 1, "width": 4, "stack": 2 },
       "origin": [-44, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-4",
       "capacityScu": 20,
       "grid": { "length": 5, "width": 1, "stack": 4 },
       "origin": [-50, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-5",
       "capacityScu": 8,
-      "grid": { "length": 4, "width": 1, "stack": 2 },
+      "grid": { "length": 1, "width": 4, "stack": 2 },
       "origin": [-55, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-7",
       "capacityScu": 20,
       "grid": { "length": 5, "width": 1, "stack": 4 },
       "origin": [-61, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-8",
       "capacityScu": 8,
-      "grid": { "length": 4, "width": 1, "stack": 2 },
+      "grid": { "length": 1, "width": 4, "stack": 2 },
       "origin": [-66, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-10",
       "capacityScu": 20,
       "grid": { "length": 5, "width": 1, "stack": 4 },
       "origin": [-72, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-11",
       "capacityScu": 8,
-      "grid": { "length": 4, "width": 1, "stack": 2 },
+      "grid": { "length": 1, "width": 4, "stack": 2 },
       "origin": [-77, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     }
   ]
 }

@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "csv_sm",
   "name": "ARGO CSV-SM",
   "manufacturer": "ARGO",
   "fleetyardsSlug": "argo-csv-sm",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
+  "notes": "rack arrangement generated; grids from Fleetyards; crate minimums from Fleetyards limits.min.capacity",
   "totalScu": 4,
   "racks": [
     {
@@ -14,7 +14,7 @@
       "grid": { "length": 2, "width": 2, "stack": 1 },
       "origin": [0, 0, 0],
       "stackAxis": "+z",
-      "maxCrateSize": 4
+      "minCrateSize": 4
     }
   ]
 }

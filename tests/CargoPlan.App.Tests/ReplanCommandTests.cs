@@ -15,7 +15,7 @@ public sealed class ReplanCommandTests
     private static MissionStop Stop(string destination, string commodity, int scu, CrateSize max, int order = 1) =>
         new(destination, order, [new MissionItem(commodity, scu, max)]);
 
-    private static SavedPlan Empty => new([], new LoadPlan(HullA.Id, [], []));
+    private static SavedPlan Empty => new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA));
 
     /// <summary>
     /// Two contracts of two destinations each, one per rack; the third contract's 16 finds no whole rack and waits,

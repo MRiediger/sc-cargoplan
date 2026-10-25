@@ -1,13 +1,18 @@
 namespace CargoPlan.Core.Models;
 
 /// <summary>One crate of a plan and where it should lie: rack and min corner in that rack's grid (D24, D25).</summary>
-public sealed record CrateMove(Crate Crate, string RackId, GridPosition Position)
+/// <param name="Turn">Turn the crate 90° from how it lies now (D71); a square crate stays as it is.</param>
+public sealed record CrateMove(Crate Crate, string RackId, GridPosition Position, bool Turn = false)
 {
+    /// <summary>Whether the crate should lie turned after the move.</summary>
+    public bool Rotated => Crate.CrateSize.Turns && Crate.Rotated != Turn;
+
     /// <summary>
     /// Moves for <paramref name="crates"/> that put <paramref name="anchor"/> at <paramref name="position"/> of
     /// <paramref name="rackId"/> and keep every other crate where it was relative to it (D25, D26): crates from one rack
     /// keep their grid offset, so a stack stays a stack even between racks stacking in opposite directions; crates from
-    /// several racks keep their offset in ship coordinates, so they land in the racks at the same offset. Null if a crate's
+    /// several racks keep their offset in ship coordinates, so they land in the racks at the same offset. Every crate keeps
+    /// how it lies (D71). Null if a crate's
     /// min corner lands in no rack; where the crates end up is <c>LoadPlanner.ResolveMove</c>'s call (D65). Order as in <paramref name="crates"/>.
     /// </summary>
     /// <exception cref="ArgumentException">The ship has no rack of a crate or no rack <paramref name="rackId"/>.</exception>
@@ -43,8 +48,8 @@ public sealed record CrateMove(Crate Crate, string RackId, GridPosition Position
 
     private static List<CrateMove>? InShip(Ship ship, Rack source, Rack target, IReadOnlyList<Crate> crates, Crate anchor, GridPosition position)
     {
-        var from = source.CellBox(anchor.Position, anchor.CrateSize).Min;
-        var to = target.CellBox(position, anchor.CrateSize).Min;
+        var from = source.CellBox(anchor).Min;
+        var to = target.CellBox(position, anchor.Shape).Min;
         var (dx, dy, dz) = (to.X - from.X, to.Y - from.Y, to.Z - from.Z);
 
         List<CrateMove> moves = [];
@@ -57,7 +62,7 @@ public sealed record CrateMove(Crate Crate, string RackId, GridPosition Position
                 continue;
             }
 
-            var box = RackOf(ship, crate.RackId).CellBox(crate.Position, crate.CrateSize);
+            var box = RackOf(ship, crate.RackId).CellBox(crate);
             ShipBox moved = new(
                 new ShipPoint(box.Min.X + dx, box.Min.Y + dy, box.Min.Z + dz),
                 new ShipPoint(box.Max.X + dx, box.Max.Y + dy, box.Max.Z + dz));

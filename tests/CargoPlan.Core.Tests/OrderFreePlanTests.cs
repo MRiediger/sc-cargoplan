@@ -251,7 +251,7 @@ public class OrderFreePlanTests
             [new CrateMove(rikerOut, rack2.Id, freeInRack2), new CrateMove(shubin, rack1.Id, rikerOut.Position)]);
         SavedPlan saved = SavedPlan.FromStops(
             [new MissionStop("Riker", 1, [new MissionItem("Titanium", 8, CrateSize.Four)]), new MissionStop("Shubin", 2, [new MissionItem("Quartz", 4, CrateSize.Four)])],
-            swapped);
+            swapped, CrateCap.Of(HullA));
 
         var placed = LoadPlanner.PlaceInto(saved, HullA, [new MissionStop("Riker", 1, [new MissionItem("Titanium", 8, CrateSize.Four)])]);
 
@@ -264,7 +264,7 @@ public class OrderFreePlanTests
     {
         SavedPlan saved = SavedPlan.FromStops(
             [new MissionStop("Riker", 1, [new MissionItem("Titanium", 8, CrateSize.Four)])],
-            LoadPlanner.Plan(HullA, [StopOf("Riker", 1, "Titanium", 8, CrateSize.Four)]));
+            LoadPlanner.Plan(HullA, [StopOf("Riker", 1, "Titanium", 8, CrateSize.Four)]), CrateCap.Of(HullA));
 
         var placed = LoadPlanner.PlaceInto(saved, HullA, [new MissionStop("Shubin", 1, [new MissionItem("Quartz", 4, CrateSize.Four)])]);
 

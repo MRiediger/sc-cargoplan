@@ -57,7 +57,7 @@ public static class DropTarget
         if (seen.FirstOrDefault(taken.ContainsKey) is { } hit)
         {
             var below = taken[hit];
-            var top = below.Position.Stack + below.CrateSize.Dimensions.Stack;
+            var top = below.Position.Stack + below.Shape.Stack;
             return top < grid.Stack ? new Drop(rack.Id, new GridPosition(hit.Length, hit.Width, top)) : null;
         }
 

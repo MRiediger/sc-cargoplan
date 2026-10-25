@@ -52,6 +52,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     public static string ReplannedText(string madeFor, string current) => $"Plan was made for {madeFor}, replanned for {current}.";
 
+    /// <summary>A plan whose crate mixes were split for other racks (a file from before D70) was planned anew.</summary>
+    public static string RacksReplannedText(string current) => $"Plan was made for other racks, replanned for {current}.";
+
     public const string PlanUnchangedText = "Plan unchanged";
 
     public const string ReplanToolTipText = "Re-plan: lay out all cargo on board anew – ticks and crate sizes stay, you restack the ship";
@@ -249,6 +252,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             }
 
             Scene = Marked(value is null ? EmptyScene(Ship) : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value.Plan, Ship)));
+            SetNotice(NoticeSource.CrateCap, value is { CratesCapped: true } ? value.CrateCap.Notice : null);
             OnPropertyChanged(nameof(Plan));
             OnPropertyChanged(nameof(Missions));
             OnPropertyChanged(nameof(Watermark));
@@ -367,19 +371,24 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>
     /// Shows a plan made in the editor or loaded; ends a sync pause. A plan for another ship (plan.json) is planned anew
-    /// for this one and says so (D59): every other way into <see cref="Saved"/> goes through Core with <see cref="Ship"/>,
-    /// so the ship view never gets a plan of another ship.
+    /// for this one and says so (D59), and so is one whose crate mixes were split for other racks (D70): every other way
+    /// into <see cref="Saved"/> goes through Core with <see cref="Ship"/>, so the ship view never gets a plan of another ship.
     /// </summary>
     public void ShowPlan(SavedPlan saved)
     {
-        if (saved.Plan.ShipId == Ship.Id)
-        {
-            SetNotice(NoticeSource.Replan, null);
-        }
-        else
+        if (saved.Plan.ShipId != Ship.Id)
         {
             SetNotice(NoticeSource.Replan, ReplannedText(Ships.Find(saved.Plan.ShipId)?.Name ?? saved.Plan.ShipId, Ship.Name));
             saved = LoadPlanner.Replan(saved, Ship);
+        }
+        else if (saved.CrateCap != CrateCap.Of(Ship))
+        {
+            SetNotice(NoticeSource.Replan, RacksReplannedText(Ship.Name));
+            saved = LoadPlanner.Replan(saved, Ship);
+        }
+        else
+        {
+            SetNotice(NoticeSource.Replan, null);
         }
 
         // A plan from before B1 may hold two names of one place; the editor's plans never do.
@@ -481,7 +490,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
         // One name per place before Core sees the captures (B1), so new crates join the rack of their place (D41). A read
         // without news returned above, so the notice of loading stays until something comes in.
-        var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []));
+        var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []), CrateCap.Of(Ship));
         var unified = DestinationNames.Unify(current, Ship, [.. result.Candidates.Select(c => c.ToCapture())]);
         SetNotice(NoticeSource.Stops, StopsMergedText(unified.Merged));
         SetNotice(NoticeSource.Pickups, null);
@@ -760,7 +769,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public ShipScene Scene { get; private set; } = EmptyScene(ship);
 
     /// <summary>The plan with new crates (a tick, a move); missions and watermark stay.</summary>
-    private SavedPlan WithCrates(LoadPlan plan) => new(Missions, plan, Watermark);
+    private SavedPlan WithCrates(LoadPlan plan) => new(Missions, plan, Saved?.CrateCap ?? CrateCap.Of(Ship), Watermark);
 
     private static ShipScene EmptyScene(Ship ship) => ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
 

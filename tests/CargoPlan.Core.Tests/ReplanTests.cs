@@ -17,19 +17,19 @@ public class ReplanTests
 
     /// <summary>Each stop a mission of its own, as captures come in.</summary>
     private static SavedPlan Placed(Ship ship, long watermark, params (MissionStop Stop, ContractSource? Contract)[] missions) =>
-        missions.Aggregate(new SavedPlan([], new LoadPlan(ship.Id, [], []), watermark), (saved, m) => LoadPlanner.PlaceInto(saved, ship, [m.Stop], m.Contract));
+        missions.Aggregate(new SavedPlan([], new LoadPlan(ship.Id, [], []), CrateCap.Of(ship), watermark), (saved, m) => LoadPlanner.PlaceInto(saved, ship, [m.Stop], m.Contract));
 
     /// <summary>The T7.0 load case: 8 stops, 58 of 64 SCU, one mission per stop.</summary>
     private static SavedPlan EightStops(Ship ship, FillOrder fillOrder = FillOrder.BowFirst)
     {
         var stops = MissionFixtures.HullAEightStopsMissions;
-        return SavedPlan.FromStops(stops, LoadPlanner.Plan(ship, stops.ToStops(), fillOrder));
+        return SavedPlan.FromStops(stops, LoadPlanner.Plan(ship, stops.ToStops(), fillOrder), CrateCap.Of(ship));
     }
 
     private static string[] Route(SavedPlan saved) => [.. saved.Stops.Select(s => s.Destination)];
 
     private static SavedPlan Ticked(SavedPlan saved, Ship ship, string destination) =>
-        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, ship, destination, true), saved.Watermark);
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, ship, destination, true), saved.CrateCap, saved.Watermark);
 
     private static IEnumerable<(string, string, CrateSize)> Kinds(SavedPlan saved) =>
         saved.Plan.Crates.Select(c => (c.Destination, c.Commodity, c.CrateSize)).Order();
@@ -41,7 +41,7 @@ public class ReplanTests
             HullA, 41,
             (Stop("Riker", "Titanium", 12, CrateSize.Four), null),
             (Stop("Shubin", "Quartz", 8, CrateSize.Four), new ContractSource([36, 37], true, 3, 50_250)));
-        before = new SavedPlan(before.Missions, before.Plan with { FillOrder = FillOrder.SternFirst }, before.Watermark);
+        before = new SavedPlan(before.Missions, before.Plan with { FillOrder = FillOrder.SternFirst }, before.CrateCap, before.Watermark);
 
         var after = LoadPlanner.Replan(before, C2);
 
@@ -126,7 +126,7 @@ public class ReplanTests
     [Fact]
     public void Replan_of_a_plan_without_missions_is_the_empty_plan_of_the_new_ship()
     {
-        var after = LoadPlanner.Replan(new SavedPlan([], new LoadPlan(HullA.Id, [], [], FillOrder.SternFirst), 7), C2);
+        var after = LoadPlanner.Replan(new SavedPlan([], new LoadPlan(HullA.Id, [], [], FillOrder.SternFirst), CrateCap.Of(HullA), 7), C2);
 
         after.Missions.Should().BeEmpty();
         after.Plan.ShipId.Should().Be("c2_hercules");
@@ -145,7 +145,7 @@ public class ReplanTests
     {
         var ship = ShipLoader.Load(shipId);
         var example = MissionFixtures.LoadMissions("example_missions");
-        var saved = SavedPlan.FromStops(example, LoadPlanner.Plan(HullA, example.ToStops()));
+        var saved = SavedPlan.FromStops(example, LoadPlanner.Plan(HullA, example.ToStops()), CrateCap.Of(HullA));
 
         var after = LoadPlanner.Replan(Ticked(saved, HullA, "Riker"), ship);
 

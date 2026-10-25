@@ -42,7 +42,7 @@ public class ShipChangeTests
     {
         var viewModel = Overlay(HullA);
         var onC2 = OnC2();
-        SavedPlan unknown = new(onC2.Missions, onC2.Plan with { ShipId = "spike_gone" }, onC2.Watermark);
+        SavedPlan unknown = new(onC2.Missions, onC2.Plan with { ShipId = "spike_gone" }, onC2.CrateCap, onC2.Watermark);
 
         viewModel.ShowPlan(unknown);
 
@@ -55,7 +55,7 @@ public class ShipChangeTests
     {
         var viewModel = Overlay(HullA);
         var onC2 = OnC2();
-        SavedPlan ticked = new(onC2.Missions, LoadPlanner.SetDelivered(onC2.Plan, C2, "Riker", true), onC2.Watermark);
+        SavedPlan ticked = new(onC2.Missions, LoadPlanner.SetDelivered(onC2.Plan, C2, "Riker", true), onC2.CrateCap, onC2.Watermark);
 
         viewModel.ShowPlan(ticked);
 

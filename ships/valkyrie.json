@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "valkyrie",
   "name": "ANVL Valkyrie",
   "manufacturer": "ANVL",
@@ -13,8 +13,7 @@
       "capacityScu": 90,
       "grid": { "length": 6, "width": 5, "stack": 3 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 24
+      "stackAxis": "+z"
     }
   ]
 }

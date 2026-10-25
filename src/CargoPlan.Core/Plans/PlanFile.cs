@@ -11,8 +11,14 @@ namespace CargoPlan.Core.Plans;
 /// </summary>
 public static class PlanFile
 {
-    /// <summary>The version the writer writes: missions with ids, crates with missions (D42) and items (D68), the watermark.</summary>
-    public const int SupportedSchemaVersion = 4;
+    /// <summary>
+    /// The version the writer writes: missions with ids, crates with missions (D42), items (D68) and turned or not (D71),
+    /// the watermark. An app from before D71 refuses it, so it never drops a turned crate's orientation.
+    /// </summary>
+    public const int SupportedSchemaVersion = 5;
+
+    /// <summary>Crates with items, none turned (D68); still read, every crate unturned, never written.</summary>
+    public const int UnrotatedSchemaVersion = 4;
 
     /// <summary>Crates with missions but without items (D42); still read, items assigned on reading (D68), never written.</summary>
     public const int ItemlessSchemaVersion = 3;
@@ -23,17 +29,17 @@ public static class PlanFile
     /// <summary>Crates with positions, no missions (D24); still read, one mission per stop, never written.</summary>
     public const int PreviousSchemaVersion = 2;
 
-    private static readonly int[] ReadableSchemaVersions = [LegacySchemaVersion, PreviousSchemaVersion, ItemlessSchemaVersion, SupportedSchemaVersion];
+    private static readonly int[] ReadableSchemaVersions = [LegacySchemaVersion, PreviousSchemaVersion, ItemlessSchemaVersion, UnrotatedSchemaVersion, SupportedSchemaVersion];
 
     /// <summary>
-    /// Reads a plan file for <paramref name="ship"/>, schema 1 to 4. The stream is left open. A schema 2 to 4 plan for
-    /// another ship loads with its own ship id and without the grid checks; the caller plans it anew (D59).
+    /// Reads a plan file for <paramref name="ship"/>, schema 1 to 5. The stream is left open. A schema 2 to 5 plan for
+    /// another ship loads with its own ship id and without the grid checks; the caller plans it anew (D59). So does one
+    /// with a crate outside today's rack, read under <see cref="CapReason.RacksChanged"/> (K3.2).
     /// </summary>
     /// <param name="sourceName">Shown in error messages, e.g. the file path.</param>
     /// <exception cref="PlanFormatException">
-    /// The content is broken, uses racks the ship doesn't have, has a crate outside its rack, doesn't match its
-    /// missions, or is a schema 1 plan for another ship (laying it out needs its grid) or with more cargo in a rack than
-    /// its grid holds.
+    /// The content is broken, uses racks the ship doesn't have, doesn't match its missions, or is a schema 1 plan for
+    /// another ship (laying it out needs its grid) or with more cargo in a rack than its grid holds.
     /// </exception>
     public static SavedPlan Read(Stream stream, string sourceName, Ship ship)
     {

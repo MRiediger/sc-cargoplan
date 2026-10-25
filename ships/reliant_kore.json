@@ -1,28 +1,26 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "reliant_kore",
   "name": "MISC Reliant Kore",
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-reliant-kore",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; racks 1, 2 turned so length is the longer side (crates don't turn)",
+  "notes": "rack arrangement generated; grids from Fleetyards",
   "totalScu": 6,
   "racks": [
     {
       "id": "rack-0",
       "capacityScu": 3,
-      "grid": { "length": 3, "width": 1, "stack": 1 },
+      "grid": { "length": 1, "width": 3, "stack": 1 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 3,
-      "grid": { "length": 3, "width": 1, "stack": 1 },
+      "grid": { "length": 1, "width": 3, "stack": 1 },
       "origin": [-4, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     }
   ]
 }

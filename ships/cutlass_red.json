@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "cutlass_red",
   "name": "DRAK Cutlass Red",
   "manufacturer": "DRAK",
@@ -13,16 +13,14 @@
       "capacityScu": 6,
       "grid": { "length": 3, "width": 1, "stack": 2 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 6,
       "grid": { "length": 3, "width": 1, "stack": 2 },
       "origin": [-4, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     }
   ]
 }

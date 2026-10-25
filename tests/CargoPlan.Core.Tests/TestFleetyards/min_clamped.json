@@ -1,0 +1,16 @@
+[
+  {
+    "slug": "tstm-big-spindle",
+    "name": "Big Spindle",
+    "manufacturer": "TSTM",
+    "cargo": 32.0,
+    "cargoHolds": [
+      {
+        "capacity": 32,
+        "dimensions": { "x": 2.5, "y": 10.0, "z": 2.5 },
+        "limits": { "min": { "capacity": 64 }, "max": { "capacity": 64 } },
+        "name": "hardpoint_cargo_spindle"
+      }
+    ]
+  }
+]

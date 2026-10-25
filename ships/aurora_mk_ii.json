@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "aurora_mk_ii",
   "name": "RSI Aurora Mk II",
   "manufacturer": "RSI",
@@ -13,16 +13,14 @@
       "capacityScu": 1,
       "grid": { "length": 1, "width": 1, "stack": 1 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 1
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 1,
       "grid": { "length": 1, "width": 1, "stack": 1 },
       "origin": [-2, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 1
+      "stackAxis": "+z"
     }
   ]
 }

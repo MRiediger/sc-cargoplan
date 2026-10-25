@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "carrack",
   "name": "ANVL Carrack",
   "manufacturer": "ANVL",
   "fleetyardsSlug": "anvl-carrack",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards; racks 2, 5, 8 turned so length is the longer side (crates don't turn)",
+  "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards",
   "totalScu": 456,
   "racks": [
     {
@@ -13,72 +13,63 @@
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 24,
-      "grid": { "length": 4, "width": 3, "stack": 2 },
+      "grid": { "length": 3, "width": 4, "stack": 2 },
       "origin": [-5, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-2",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-10, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-3",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-15, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-4",
       "capacityScu": 24,
-      "grid": { "length": 4, "width": 3, "stack": 2 },
+      "grid": { "length": 3, "width": 4, "stack": 2 },
       "origin": [-20, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-5",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-25, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-6",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-30, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-7",
       "capacityScu": 24,
-      "grid": { "length": 4, "width": 3, "stack": 2 },
+      "grid": { "length": 3, "width": 4, "stack": 2 },
       "origin": [-35, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-8",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-40, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     }
   ]
 }

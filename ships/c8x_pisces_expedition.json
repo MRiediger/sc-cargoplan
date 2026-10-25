@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "c8x_pisces_expedition",
   "name": "ANVL C8X Pisces Expedition",
   "manufacturer": "ANVL",
@@ -14,8 +14,7 @@
       "grid": { "length": 2, "width": 1, "stack": 1 },
       "position": { "side": "starboard", "level": "lower" },
       "origin": [0, -3, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
@@ -23,8 +22,7 @@
       "grid": { "length": 2, "width": 1, "stack": 1 },
       "position": { "side": "port", "level": "lower" },
       "origin": [0, -1, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "starlancer_max",
   "name": "MISC Starlancer MAX",
   "manufacturer": "MISC",
@@ -14,8 +14,7 @@
       "grid": { "length": 16, "width": 2, "stack": 2 },
       "position": { "side": "port", "level": "lower" },
       "origin": [9, -2, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
@@ -23,8 +22,7 @@
       "grid": { "length": 16, "width": 2, "stack": 2 },
       "position": { "side": "starboard", "level": "lower" },
       "origin": [9, -6, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     },
     {
       "id": "rack-2",
@@ -32,8 +30,7 @@
       "grid": { "length": 8, "width": 2, "stack": 3 },
       "position": { "side": "port", "level": "lower" },
       "origin": [0, -2, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     },
     {
       "id": "rack-3",
@@ -41,8 +38,7 @@
       "grid": { "length": 8, "width": 2, "stack": 3 },
       "position": { "side": "starboard", "level": "lower" },
       "origin": [0, -6, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     }
   ]
 }

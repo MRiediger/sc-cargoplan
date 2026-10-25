@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "a2_hercules",
   "name": "CRUS A2 Hercules",
   "manufacturer": "CRUS",
@@ -13,8 +13,7 @@
       "capacityScu": 216,
       "grid": { "length": 18, "width": 6, "stack": 2 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     }
   ]
 }

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "paladin",
   "name": "ANVL Paladin",
   "manufacturer": "ANVL",
@@ -13,8 +13,7 @@
       "capacityScu": 4,
       "grid": { "length": 4, "width": 1, "stack": 1 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     }
   ]
 }

@@ -81,7 +81,7 @@ locked; in a narrow overlay the ship name gives way first. Each rack says the sa
 
 Hover over a crate to see what it is, e.g. `Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4)`, with its
 rack's load in a second line. Inside the view: **left drag** turns and tilts the ship, **right drag** next to the crates moves the view, the **mouse wheel**
-zooms, a **double-click** next to the cargo resets the view to the ship's starting view.
+zooms (while you drag a single crate it turns the crate instead, see [Changing the plan](#changing-the-plan)), a **double-click** next to the cargo resets the view to the ship's starting view.
 
 ## Entering missions
 
@@ -97,6 +97,11 @@ so it takes the focus while you type; afterwards click back into the game (or Al
   the same destination.
 - **The crates appear by themselves:** the **Crates** column shows how the freight elevator delivers them, the largest
   allowed crate first, the rest in smaller ones: 6 SCU at max 4 is `4+2`, 15 SCU at max 4 is `4+4+4+2+1`.
+- **Your ship's racks set a limit too:** no crate larger than the largest one a rack of your ship takes. Some holds
+  have a door smaller than the hold: the Clipper's takes crates up to 2 SCU, so an 8 SCU contract shows `2+2+2+2` and
+  the overlay says `crates capped to 2 SCU (door limit)`. On a Hull A a 32 SCU contract becomes `16+16`, `crates capped
+  to 16 SCU (largest rack)`. Change the ship and the mix follows; crates typed by hand stay as typed. Some racks take
+  only large crates: the Hull C's spindle takes 32 SCU crates only, so a contract with smaller crates waits (see below).
 - **The kiosk delivered something else?** Click the **Crates** cell and type what you got, e.g. `2+2+2`. Crates typed by
   hand show in *italics*; clear the cell to go back to the worked-out mix.
 - **Stop order:** the **Stop** column numbers the destinations in the order you entered them; the legend and the
@@ -185,6 +190,10 @@ itself, a few moments after you press F3. No editor, no click.
   - `⚠ doesn't fit (16 SCU, 8 free) – tick to drop`: no room for the whole contract (the cargo lift hands out whole
     contracts). Click the line to drop it, or wait: it is placed as soon as there is room, at the next capture or with
     **Sync from ContractTracker**.
+  - `⚠ doesn't fit (no rack accepts 4 SCU crates, door limit 2 SCU)`: crates you typed by hand are larger than any
+    rack's door takes. Clear the **Crates** cell in the editor, or type crates that get through.
+  - `⚠ doesn't fit (ship takes 32 SCU crates only)`: your ship's racks take only larger crates than this contract comes
+    in (Hull C). The app never makes crates larger than the contract allows; take the contract on another ship.
 - **Retry before you load.** A recapture (F4) is a new mission. Before your first tick it is marked `⚠ duplicate?`;
   after a tick it isn't, and you see the destination twice. Delete the wrong one in the editor.
 - **Deleted in ContractTracker:** a contract you have fully ticked (or that didn't fit) leaves the plan as soon as you
@@ -236,12 +245,16 @@ crash or a restart between two stops keeps your plan and your ticks.
 When the elevator puts a crate somewhere else than planned, make the plan follow the plate. **Right drag a crate** onto
 the cell where it really lies, in the same rack or another one. Point at a crate to put it on top of that crate, or at a
 free cell to put it into that gap; it drops down to the next crate or the plate below, never hanging in the air. While
-you drag, the crate fades and a **cyan ghost** shows where it will go.
+you drag, the crate fades and a **cyan ghost** shows where it will go. **Turn the mouse wheel** while you drag to turn
+the crate by 90°, as it turns in the game; each notch turns it once more. Let go on the crate's own cell to turn it where
+it lies. Only crates of 2, 16, 24 and 32 SCU look different turned. A selection or a legend line keeps how its crates
+lie; the wheel zooms then. The app itself turns a crate only where it doesn't fit otherwise.
 
 If the crate can't lie at that cell, the app finds room instead of saying no, and the ghosts show it before you let go:
 first the nearest free place in that rack; then the rack laid out anew, so other crates in it may move; then other
 destinations' crates move out of that rack into others to make room ("Moved 2 crates for Shubin to rack 1 to make
-room"); then another rack ("No room in rack 4 – placed in rack 2"). Every crate that changes place fades and gets a cyan
+room"); then another rack ("No room in rack 4 – placed in rack 2"). A rack whose door is too small for the crate is
+skipped at once ("Rack 1: door limit 2 SCU – placed in rack 2"). Every crate that changes place fades and gets a cyan
 ghost, and the line in amber says what moved. Crates that lay on the one you pulled away settle down where it was. If
 the crate fits nowhere, its ghost turns **red** with "no room for 4 SCU crate" when you hover, and nothing moves. Crates
 are never split on their own; that stays the scissors' job. Putting a crate on another destination's cargo is your

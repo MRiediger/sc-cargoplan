@@ -54,7 +54,7 @@ public class CrateItemTests
     {
         MissionStop riker = new("Riker", 1, [Item("Titanium", 4, CrateSize.Four), Item("Quartz", 2, CrateSize.Two)]);
 
-        var saved = SavedPlan.FromStops([riker], LoadPlanner.Plan(HullA, new[] { riker }.ToStops()));
+        var saved = SavedPlan.FromStops([riker], LoadPlanner.Plan(HullA, new[] { riker }.ToStops()), CrateCap.Of(HullA));
 
         saved.Plan.Crates.Single(c => c.Commodity == "Quartz").Item.Should().Be(1);
         ShouldNameTheirItems(saved);
@@ -63,7 +63,7 @@ public class CrateItemTests
     [Fact]
     public void PlaceInto_gives_the_new_crates_their_items()
     {
-        SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []));
+        SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA));
 
         var saved = LoadPlanner.PlaceInto(empty, HullA, TwoPickups().Stops);
 
@@ -78,7 +78,7 @@ public class CrateItemTests
         var saved = Planned(TwoPickups());
         Crate[] crates = [saved.Plan.Crates[0] with { Item = 2 }, .. saved.Plan.Crates.Skip(1)];
 
-        var act = () => new SavedPlan(saved.Missions, saved.Plan with { Crates = crates });
+        var act = () => new SavedPlan(saved.Missions, saved.Plan with { Crates = crates }, saved.CrateCap);
 
         act.Should().Throw<ArgumentException>().WithMessage("*item 2*mission 1*");
     }
@@ -89,7 +89,7 @@ public class CrateItemTests
         var saved = Planned(new Mission(1, [new("Riker", 1, [Item("Titanium", 4, CrateSize.Four), Item("Quartz", 4, CrateSize.Four)])]));
         Crate[] crates = [.. saved.Plan.Crates.Select(c => c with { Item = 1 - c.Item })];
 
-        var act = () => new SavedPlan(saved.Missions, saved.Plan with { Crates = crates });
+        var act = () => new SavedPlan(saved.Missions, saved.Plan with { Crates = crates }, saved.CrateCap);
 
         act.Should().Throw<ArgumentException>().WithMessage("*Titanium*item 1*Quartz*");
     }
@@ -100,7 +100,7 @@ public class CrateItemTests
         var saved = Planned(TwoPickups());
         Crate[] crates = [.. saved.Plan.Crates.Select(c => c with { Item = 0 })];
 
-        var act = () => new SavedPlan(saved.Missions, saved.Plan with { Crates = crates });
+        var act = () => new SavedPlan(saved.Missions, saved.Plan with { Crates = crates }, saved.CrateCap);
 
         act.Should().Throw<ArgumentException>().WithMessage("*Everus Harbor, Stims*");
     }
@@ -182,7 +182,7 @@ public class CrateItemTests
         // Riker ticked: the replan plans Orison alone, whose item is still the mission's second.
         Mission mission = new(1, [new("Riker", 1, [Item("Titanium", 4, CrateSize.Four)]), new("Orison", 2, [Item("Quartz", 4, CrateSize.Four)])]);
         var saved = Planned(mission);
-        SavedPlan ticked = new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, "Riker", true));
+        SavedPlan ticked = new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, "Riker", true), saved.CrateCap);
 
         var replanned = LoadPlanner.Replan(ticked, HullA);
 
@@ -202,11 +202,11 @@ public class CrateItemTests
     private static SavedPlan Read(string json) => PlanFile.Read(new MemoryStream(Encoding.UTF8.GetBytes(json)), "plan.json", HullA);
 
     [Fact]
-    public void Write_writes_schema_4_with_the_item_of_every_crate_and_the_pickups()
+    public void Write_writes_schema_5_with_the_item_of_every_crate_and_the_pickups()
     {
         var node = JsonNode.Parse(Written(Planned(TwoPickups())))!;
 
-        node["schemaVersion"]!.GetValue<int>().Should().Be(4);
+        node["schemaVersion"]!.GetValue<int>().Should().Be(5);
         node["crates"]!.AsArray().Select(c => c!["item"]!.GetValue<int>()).Order().Should().Equal(0, 1);
         node["missions"]![0]!["stops"]![0]!["items"]![1]!["pickup"]!.AsArray().Select(p => p!.GetValue<string>()).Should().Equal("Area18");
     }

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "starlancer_tac",
   "name": "MISC Starlancer TAC",
   "manufacturer": "MISC",
@@ -14,8 +14,7 @@
       "grid": { "length": 8, "width": 2, "stack": 3 },
       "position": { "side": "port", "level": "lower" },
       "origin": [0, -2, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
@@ -23,8 +22,7 @@
       "grid": { "length": 8, "width": 2, "stack": 3 },
       "position": { "side": "starboard", "level": "lower" },
       "origin": [0, -6, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     }
   ]
 }

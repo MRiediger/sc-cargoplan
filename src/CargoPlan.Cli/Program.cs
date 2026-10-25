@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text;
 using CargoPlan.Cli;
 using CargoPlan.Core.Missions;
+using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Rendering;
 using CargoPlan.Core.Ships;
@@ -57,8 +58,8 @@ int Usage()
 
 int Plan(PlanCommand plan)
 {
-    var stops = MissionFileReader.Read(plan.MissionsPath).ToStops();
     var ship = LoadShips().Get(plan.ShipId);
+    var stops = MissionFileReader.Read(plan.MissionsPath).ToStops(CrateCap.Of(ship));
     Console.WriteLine(PlanTextRenderer.Render(LoadPlanner.Plan(ship, stops), ship));
     return ExitSuccess;
 }

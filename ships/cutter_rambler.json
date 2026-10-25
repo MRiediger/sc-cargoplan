@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "cutter_rambler",
   "name": "DRAK Cutter Rambler",
   "manufacturer": "DRAK",
@@ -13,8 +13,7 @@
       "capacityScu": 2,
       "grid": { "length": 1, "width": 1, "stack": 2 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 1
+      "stackAxis": "+z"
     }
   ]
 }

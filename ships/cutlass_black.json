@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "cutlass_black",
   "name": "DRAK Cutlass Black",
   "manufacturer": "DRAK",
   "fleetyardsSlug": "drak-cutlass-black",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
+  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
   "totalScu": 46,
   "racks": [
     {
@@ -14,15 +14,14 @@
       "grid": { "length": 5, "width": 4, "stack": 2 },
       "origin": [0, 0, 0],
       "stackAxis": "+z",
-      "maxCrateSize": 16
+      "maxCrateSize": 2
     },
     {
       "id": "rack-1",
       "capacityScu": 6,
       "grid": { "length": 3, "width": 1, "stack": 2 },
       "origin": [-4, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     }
   ]
 }

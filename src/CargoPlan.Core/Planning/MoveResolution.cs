@@ -7,13 +7,14 @@ namespace CargoPlan.Core.Planning;
 /// Finds room for moved cargo instead of refusing it (D65), stage by stage, each tried only if the one before finds no
 /// room: (1) the cell aimed at, fallen along the stack axis; (2) the nearest free, supported place in the target rack;
 /// (3) the target rack laid out anew; (3b) other destinations' cargo displaced from the target rack, one level deep;
-/// (4) other racks, the dragged cargo's own rack last. Refused only if no rack takes it. Crates left floating where the
-/// cargo was lifted settle along the stack axis. Deterministic: no clock, one layout budget per move (D58).
+/// (4) other racks, the dragged cargo's own rack last. Refused only if no rack takes it. A rack whose door or minimum
+/// refuses a crate (D70) is no target for it: stage 4 at once, and the notice names the limit. Crates left floating where
+/// the cargo was lifted settle along the stack axis. Deterministic: no clock, one layout budget per move (D58).
 /// </summary>
 internal static class MoveResolution
 {
     /// <summary>A crate to move (its index in the plan), the rack it is meant for, and the cell for its min corner; null if the gesture names no cell.</summary>
-    internal sealed record Intent(int Index, Rack Rack, GridPosition? Position);
+    internal sealed record Intent(int Index, Rack Rack, GridPosition? Position, bool Rotated = false);
 
     /// <summary>
     /// A crate drag (D25): the crates as one block through stages 1–3b; if that finds no room, crate by crate (largest
@@ -31,6 +32,13 @@ internal static class MoveResolution
         if (start is null)
         {
             return Refused(plan, intents.Select(i => i.Index));
+        }
+
+        // No stage in a rack can take a crate a limit of it refuses: crate by crate at once, which sends that one elsewhere.
+        // Not Pending: stage 4 costs little, and the preview would announce a rearrangement that doesn't come.
+        if (intents.Any(i => LimitOf(plan, i) is not null))
+        {
+            return OneByOne(plan, ship, start, intents);
         }
 
         Intent[][] groups = [.. intents.GroupBy(i => i.Rack.Index).OrderBy(g => g.Key).Select(g => g.ToArray())];
@@ -70,7 +78,7 @@ internal static class MoveResolution
         var stage = MoveStage.Gravity;
         List<string> notices = [];
         List<int> failed = [];
-        Dictionary<Rack, List<string>> elsewhere = [];
+        Dictionary<(Rack Rack, string? Limit), List<string>> elsewhere = [];
         var single = intents.Count == 1;
 
         foreach (var intent in intents
@@ -82,9 +90,10 @@ internal static class MoveResolution
             int[] index = [intent.Index];
             Board? placed = null;
             var at = stage;
+            var limit = LimitOf(plan, intent);
 
-            // One crate alone went through stages 1–3b as the block already.
-            if (!single)
+            // One crate alone went through stages 1–3b as the block already; a limit that refuses it leaves none to try.
+            if (!single && limit is null)
             {
                 List<string> displacing = [];
                 (placed, at) = intent.Position is not null && Gravity(board.Copy(), one) is { } fallen ? (fallen, MoveStage.Gravity)
@@ -98,9 +107,9 @@ internal static class MoveResolution
             if (placed is null && Elsewhere(board.Copy(), intent) is { } other)
             {
                 (placed, at) = (other, MoveStage.Elsewhere);
-                if (!elsewhere.TryGetValue(intent.Rack, out var racks))
+                if (!elsewhere.TryGetValue((intent.Rack, limit), out var racks))
                 {
-                    elsewhere[intent.Rack] = racks = [];
+                    elsewhere[(intent.Rack, limit)] = racks = [];
                 }
 
                 racks.Add(other.Slots[intent.Index]!.RackId);
@@ -121,10 +130,16 @@ internal static class MoveResolution
             return Refused(plan, failed);
         }
 
-        notices.AddRange(elsewhere.OrderBy(e => e.Key.Index)
-            .Select(e => Invariant($"No room in rack {e.Key.Number} – placed in {RackList(ship, e.Value)}")));
+        notices.AddRange(elsewhere.OrderBy(e => e.Key.Rack.Index).ThenBy(e => e.Key.Limit, StringComparer.Ordinal)
+            .Select(e => e.Key.Limit is { } why
+                ? Invariant($"Rack {e.Key.Rack.Number}: {why} – placed in {RackList(ship, e.Value)}")
+                : Invariant($"No room in rack {e.Key.Rack.Number} – placed in {RackList(ship, e.Value)}")));
         return board.Outcome(plan, ship, stage, notices);
     }
+
+    /// <summary>Why the crate's target rack refuses it by a limit ("door limit 2 SCU", "takes 32 SCU crates only"); null if no limit does.</summary>
+    private static string? LimitOf(LoadPlan plan, Intent intent) =>
+        plan.Crates[intent.Index].CrateSize is var size && intent.Rack.LimitRefuses(size) ? CrateCap.Of(intent.Rack).RackText(size) : null;
 
     /// <summary>The board with every group placed by <paramref name="place"/>, in rack order; null if one group finds no room.</summary>
     private static Board? Each(Board start, Intent[][] groups, Func<Board, Intent[], Board?> place)
@@ -154,7 +169,7 @@ internal static class MoveResolution
     {
         var rack = group[0].Rack;
         var taken = board.Taken(rack);
-        (CrateSize Size, GridPosition Position)[] crates = [.. group.Select(i => (board.Original(i.Index).CrateSize, i.Position!))];
+        (CrateSize Size, bool Rotated, GridPosition Position)[] crates = [.. group.Select(i => (board.Original(i.Index).CrateSize, i.Rotated, i.Position!))];
         if (!Free(rack, taken, crates, 0))
         {
             return null;
@@ -166,21 +181,21 @@ internal static class MoveResolution
             fall++;
         }
 
-        (CrateSize Size, GridPosition Position)[] landed = [.. crates.Select(c => (c.Size, Below(c.Position, fall)))];
-        return Rests(taken, landed) ? board.Put(rack, group.Zip(landed, (i, l) => (i.Index, l.Position))) : null;
+        (CrateSize Size, bool Rotated, GridPosition Position)[] landed = [.. crates.Select(c => (c.Size, c.Rotated, Below(c.Position, fall)))];
+        return Rests(taken, landed) ? board.Put(rack, group.Zip(landed, (i, l) => (i.Index, new Pose(l.Position, l.Rotated)))) : null;
     }
 
     /// <summary>True if every crate fits the rack and the grid with its cells <paramref name="fall"/> cells lower, on cells nothing else takes.</summary>
-    private static bool Free(Rack rack, bool[,,] taken, IReadOnlyList<(CrateSize Size, GridPosition Position)> crates, int fall) =>
-        crates.All(c => c.Position.Stack >= fall && rack.CanHold(c.Size) && Cells(Below(c.Position, fall), c.Size).All(cell => Inside(rack, cell) && !taken[cell.Length, cell.Width, cell.Stack]));
+    private static bool Free(Rack rack, bool[,,] taken, IReadOnlyList<(CrateSize Size, bool Rotated, GridPosition Position)> crates, int fall) =>
+        crates.All(c => c.Position.Stack >= fall && rack.CanHold(c.Size) && Cells(Below(c.Position, fall), c.Size.Shape(c.Rotated)).All(cell => Inside(rack, cell) && !taken[cell.Length, cell.Width, cell.Stack]));
 
     private static GridPosition Below(GridPosition position, int fall) => new(position.Length, position.Width, position.Stack - fall);
 
     /// <summary>The support rule (D24) for crates placed together: every bottom cell above the plate on taken cargo or on one of them.</summary>
-    private static bool Rests(bool[,,] taken, IReadOnlyList<(CrateSize Size, GridPosition Position)> crates)
+    private static bool Rests(bool[,,] taken, IReadOnlyList<(CrateSize Size, bool Rotated, GridPosition Position)> crates)
     {
-        HashSet<GridPosition> own = [.. crates.SelectMany(c => Cells(c.Position, c.Size))];
-        return crates.All(c => c.Position.Stack == 0 || Cells(c.Position, c.Size).Where(cell => cell.Stack == c.Position.Stack).All(cell =>
+        HashSet<GridPosition> own = [.. crates.SelectMany(c => Cells(c.Position, c.Size.Shape(c.Rotated)))];
+        return crates.All(c => c.Position.Stack == 0 || Cells(c.Position, c.Size.Shape(c.Rotated)).Where(cell => cell.Stack == c.Position.Stack).All(cell =>
             taken[cell.Length, cell.Width, cell.Stack - 1] || own.Contains(new GridPosition(cell.Length, cell.Width, cell.Stack - 1))));
     }
 
@@ -201,7 +216,7 @@ internal static class MoveResolution
 
         var taken = board.Taken(rack);
         var grid = rack.Grid;
-        var crates = group.Select(i => (board.Original(i.Index).CrateSize, Position: i.Position!, board.Original(i.Index).Destination)).ToArray();
+        var crates = group.Select(i => (board.Original(i.Index).CrateSize, i.Rotated, Position: i.Position!, board.Original(i.Index).Destination)).ToArray();
         if (crates.Any(c => !rack.CanHold(c.CrateSize)))
         {
             return null;
@@ -210,7 +225,7 @@ internal static class MoveResolution
         var rank = board.Ranks(rack);
         GridPosition[][] own = [.. crates.Select(c => board.OnBoard(rack).Where(o => o.Destination == c.Destination).SelectMany(o => o.Cells).ToArray())];
         (int Steps, int Own, int First, int Last) best = (int.MaxValue, 0, 0, 0);
-        (CrateSize, GridPosition)[]? bestPlace = null;
+        (CrateSize, bool, GridPosition)[]? bestPlace = null;
         for (var dl = -crates.Max(c => c.Position.Length); dl < grid.Length; dl++)
         {
             for (var dw = -crates.Max(c => c.Position.Width); dw < grid.Width; dw++)
@@ -223,14 +238,14 @@ internal static class MoveResolution
                         continue;
                     }
 
-                    (CrateSize Size, GridPosition Position)[] place =
-                        [.. crates.Select(c => (c.CrateSize, new GridPosition(c.Position.Length + dl, c.Position.Width + dw, c.Position.Stack + ds)))];
+                    (CrateSize Size, bool Rotated, GridPosition Position)[] place =
+                        [.. crates.Select(c => (c.CrateSize, c.Rotated, new GridPosition(c.Position.Length + dl, c.Position.Width + dw, c.Position.Stack + ds)))];
                     if (!Free(rack, taken, place, 0) || !Rests(taken, place))
                     {
                         continue;
                     }
 
-                    var cells = place.SelectMany(p => Cells(p.Position, p.Size)).ToArray();
+                    var cells = place.SelectMany(p => Cells(p.Position, p.Size.Shape(p.Rotated))).ToArray();
                     var score = (steps, OwnDistance(own, place),
                         cells.Min(c => rank[c.Length, c.Width, c.Stack]), cells.Max(c => rank[c.Length, c.Width, c.Stack]));
                     if (score.CompareTo(best) < 0)
@@ -241,18 +256,18 @@ internal static class MoveResolution
             }
         }
 
-        return bestPlace is null ? null : board.Put(rack, group.Zip(bestPlace, (i, p) => (i.Index, p.Item2)));
+        return bestPlace is null ? null : board.Put(rack, group.Zip(bestPlace, (i, p) => (i.Index, new Pose(p.Item3, p.Item2))));
     }
 
     /// <summary>For each crate the grid steps from its cells to the nearest cell of its destination's cargo in the rack (0 without any), summed.</summary>
-    private static int OwnDistance(GridPosition[][] own, (CrateSize Size, GridPosition Position)[] place)
+    private static int OwnDistance(GridPosition[][] own, (CrateSize Size, bool Rotated, GridPosition Position)[] place)
     {
         var total = 0;
         for (var i = 0; i < place.Length; i++)
         {
             if (own[i].Length > 0)
             {
-                total += Cells(place[i].Position, place[i].Size)
+                total += Cells(place[i].Position, place[i].Size.Shape(place[i].Rotated))
                     .Min(cell => own[i].Min(o => Math.Abs(o.Length - cell.Length) + Math.Abs(o.Width - cell.Width) + Math.Abs(o.Stack - cell.Stack)));
             }
         }
@@ -264,7 +279,7 @@ internal static class MoveResolution
     private static Board? LayAround(Board board, Rack rack, IReadOnlyList<int> crates)
     {
         var laid = board.Lay(rack, board.OnBoard(rack), crates);
-        return laid is null ? null : board.Put(rack, crates.Zip(laid.Positions), laid.GaveUp);
+        return laid is null ? null : board.Put(rack, crates.Zip(laid.Poses), laid.GaveUp);
     }
 
     // --- Stage 3: the target rack laid out anew ---
@@ -274,7 +289,7 @@ internal static class MoveResolution
     {
         int[] all = [.. board.IndicesIn(rack).Concat(crates).Order()];
         var laid = board.Lay(rack, [], all);
-        return laid is null ? null : board.Put(rack, all.Zip(laid.Positions), laid.GaveUp);
+        return laid is null ? null : board.Put(rack, all.Zip(laid.Poses), laid.GaveUp);
     }
 
     // --- Stage 3b: displacing other cargo ---
@@ -392,7 +407,7 @@ internal static class MoveResolution
                 continue;
             }
 
-            var placed = board.Copy().Put(rack, crates.Zip(laid.Positions), laid.GaveUp);
+            var placed = board.Copy().Put(rack, crates.Zip(laid.Poses), laid.GaveUp);
             if (laid.StackingFree)
             {
                 return placed;
@@ -429,14 +444,11 @@ internal static class MoveResolution
     private static int Rank(Board board, Rack rack, GridPosition position) =>
         Inside(rack, position) ? board.Ranks(rack)[position.Length, position.Width, position.Stack] : int.MaxValue;
 
-    private static IEnumerable<GridPosition> Cells(GridPosition position, CrateSize size)
-    {
-        var dimensions = size.Dimensions;
-        return from l in Enumerable.Range(position.Length, dimensions.Length)
-               from w in Enumerable.Range(position.Width, dimensions.Width)
-               from s in Enumerable.Range(position.Stack, dimensions.Stack)
-               select new GridPosition(l, w, s);
-    }
+    private static IEnumerable<GridPosition> Cells(GridPosition position, Dimensions shape) =>
+        from l in Enumerable.Range(position.Length, shape.Length)
+        from w in Enumerable.Range(position.Width, shape.Width)
+        from s in Enumerable.Range(position.Stack, shape.Stack)
+        select new GridPosition(l, w, s);
 
     private static bool Inside(Rack rack, GridPosition cell) =>
         cell.Length < rack.Grid.Length && cell.Width < rack.Grid.Width && cell.Stack < rack.Grid.Stack;
@@ -529,12 +541,12 @@ internal static class MoveResolution
             return laid;
         }
 
-        /// <summary>The crates at these indices into the rack at these positions; this board, changed.</summary>
-        public Board Put(Rack rack, IEnumerable<(int Index, GridPosition Position)> places, bool gaveUp = false)
+        /// <summary>The crates at these indices into the rack as these poses say; this board, changed.</summary>
+        public Board Put(Rack rack, IEnumerable<(int Index, Pose Pose)> places, bool gaveUp = false)
         {
-            foreach (var (index, position) in places)
+            foreach (var (index, pose) in places)
             {
-                Slots[index] = (Slots[index] ?? Original(index)) with { RackId = rack.Id, Position = position };
+                Slots[index] = (Slots[index] ?? Original(index)) with { RackId = rack.Id, Position = pose.Position, Rotated = pose.Rotated };
             }
 
             if (gaveUp)
@@ -573,15 +585,15 @@ internal static class MoveResolution
                 var floating = board.Slots[index]!;
                 board.Slots[index] = null;
                 var taken = board.Taken(rack);
-                (CrateSize, GridPosition)[] alone = [(floating.CrateSize, floating.Position)];
+                (CrateSize, bool, GridPosition)[] alone = [(floating.CrateSize, floating.Rotated, floating.Position)];
                 var fall = 0;
                 while (Free(rack, taken, alone, fall + 1))
                 {
                     fall++;
                 }
 
-                Intent[] self = [new(index, rack, floating.Position)];
-                if (fall > 0 && Rests(taken, [(floating.CrateSize, Below(floating.Position, fall))]))
+                Intent[] self = [new(index, rack, floating.Position, floating.Rotated)];
+                if (fall > 0 && Rests(taken, [(floating.CrateSize, floating.Rotated, Below(floating.Position, fall))]))
                 {
                     board.Slots[index] = floating with { Position = Below(floating.Position, fall) };
                 }

@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "clipper",
   "name": "DRAK Clipper",
   "manufacturer": "DRAK",
   "fleetyardsSlug": "drak-clipper",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
   "totalScu": 12,
   "racks": [
     {
@@ -14,7 +14,7 @@
       "grid": { "length": 3, "width": 2, "stack": 2 },
       "origin": [0, 0, 0],
       "stackAxis": "+z",
-      "maxCrateSize": 8
+      "maxCrateSize": 2
     }
   ]
 }

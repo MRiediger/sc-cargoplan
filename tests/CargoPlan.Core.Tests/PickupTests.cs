@@ -71,7 +71,7 @@ public class PickupTests
     {
         MissionItem stims = new("Stims", 4, CrateSize.Four, Pickup: ["Lorville"]);
 
-        stims.WithCrateList([CrateSize.Two, CrateSize.Two]).Pickup.Should().Equal("Lorville");
+        stims.WithCrateList([CrateSize.Two, CrateSize.Two], CrateCap.None).Pickup.Should().Equal("Lorville");
     }
 
     // --- Mission: the item index a crate names ---

@@ -55,6 +55,23 @@ public class ShipViewBuilderTests
         rack.Boxes.Where(b => b.Fill == CellFill.Free).Should().OnlyContain(b => b.InLoadedLayer == (b.Bounds.Min.Z == 0));
     }
 
+    // Freelancer rack 2 is 1×2×3 and stacks up: a 2 lies there only turned (D71), across the ship.
+    [Fact]
+    public void A_turned_crate_is_drawn_as_it_lies_and_its_tooltip_stays()
+    {
+        var ship = Core.Ships.ShipLoader.Load("freelancer");
+        Crate turned = new("Riker", "Titanium", CrateSize.Two, "rack-0", new GridPosition(0, 0, 0), Rotated: true);
+        LoadPlan plan = new(ship.Id, [turned], []);
+
+        var rack = ShipViewBuilder.Build(plan, ship, []).Racks.Single(r => r.Number == 2);
+
+        var box = rack.Boxes.Single(b => b.Fill == CellFill.Mission);
+        box.Bounds.Should().Be(ship.Racks.Single(r => r.Id == "rack-0").CellBox(turned));
+        (box.Bounds.Max.X - box.Bounds.Min.X, box.Bounds.Max.Y - box.Bounds.Min.Y, box.Bounds.Max.Z - box.Bounds.Min.Z).Should().Be((1, 2, 1));
+        box.ToolTip.Should().Be("Riker · Rack 2 · 2 SCU Titanium crate (1 of 1)");
+        rack.Boxes.Count(b => b.Fill == CellFill.Free).Should().Be(4);
+    }
+
     [Fact]
     public void An_empty_rack_has_no_loaded_layer_and_holds_no_cargo()
     {
@@ -424,7 +441,7 @@ public class ShipViewBuilderTests
 
     // --- Missions in the legend (T5.4) ---
 
-    private static SavedPlan EmptySaved => new([], new LoadPlan(Sample.Ship.Id, [], []));
+    private static SavedPlan EmptySaved => new([], new LoadPlan(Sample.Ship.Id, [], []), CrateCap.Of(Sample.Ship));
 
     private static MissionStop Stop(string destination, string commodity = "Stims", int scu = 4, CrateSize max = CrateSize.Four) =>
         new(destination, 1, [new MissionItem(commodity, scu, max)]);
@@ -436,7 +453,7 @@ public class ShipViewBuilderTests
         ShipViewBuilder.Build(saved, Sample.Ship, LoadPlanner.Validate(saved.Plan, Sample.Ship));
 
     private static SavedPlan Delivered(SavedPlan saved, string destination) =>
-        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, Sample.Ship, destination, true), saved.Watermark);
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, Sample.Ship, destination, true), saved.CrateCap, saved.Watermark);
 
     [Fact]
     public void Two_markings_of_one_stop_stand_in_its_line_size_first()

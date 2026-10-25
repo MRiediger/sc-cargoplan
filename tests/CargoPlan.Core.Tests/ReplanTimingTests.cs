@@ -20,8 +20,68 @@ public class ReplanTimingTests(ITestOutputHelper output)
     [Fact]
     public void Every_fixture_on_its_ship()
     {
+        output.WriteLine("| Case | first ms | median ms |");
+        List<string> unplaced = [];
+        foreach (var (name, ship, stops) in Cases())
+        {
+            SavedPlan saved;
+            try
+            {
+                saved = SavedPlan.FromStops(stops, LoadPlanner.Plan(ship, stops.ToStops()), CrateCap.Of(ship));
+            }
+            catch (PlanException ex)
+            {
+                output.WriteLine($"| {name} | refused: {ex.Message} | |");
+                unplaced.Add(name);
+                continue;
+            }
+
+            var watch = Stopwatch.StartNew();
+            var replanned = LoadPlanner.Replan(saved, ship);
+            var first = watch.Elapsed.TotalMilliseconds;
+            var median = Median(() => LoadPlanner.Replan(saved, ship));
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"| {name} | {first:F1} | {median:F1} |"));
+
+            if (replanned.Missions.Any(m => m.Unplaced))
+            {
+                unplaced.Add(name);
+            }
+        }
+
+        unplaced.Should().BeEmpty();
+    }
+
+    /// <summary>
+    /// What the searches count, machine-independent (K3.2, D71): the nodes of the rack assignment (D64) and, per loaded rack,
+    /// the steps of its final layout search and whether it gave up (D58). Measured before and after crates turn.
+    /// </summary>
+    [Fact]
+    public void Search_counts_of_every_fixture()
+    {
+        output.WriteLine("| Case | nodes | layout steps | gave up |");
+        foreach (var (name, ship, stops) in Cases())
+        {
+            Rack[] racks = [.. ship.Racks.OrderBy(r => r.Index)];
+            Stop[] input = [.. stops.ToStops(CrateCap.Of(ship)).OrderBy(s => s.Order)];
+            var result = RackAssignment.Assign(racks, input, FillOrder.BowFirst);
+            long steps = 0;
+            var gaveUp = 0;
+            foreach (var load in result?.Racks ?? [])
+            {
+                var laying = CrateLayout.Lay(load.Rack, [], [.. load.Crates.Select(c => (c.Piece.Size, input[c.Piece.Stop].Destination))], FillOrder.BowFirst)!;
+                steps += laying.Steps;
+                gaveUp += laying.GaveUp ? 1 : 0;
+            }
+
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"| {name} | {(result is null ? "no assignment" : result.Nodes.ToString(CultureInfo.InvariantCulture))} | {steps} | {gaveUp} |"));
+        }
+    }
+
+    private static (string Name, Ship Ship, IReadOnlyList<MissionStop> Stops)[] Cases()
+    {
         var hullA = ShipLoader.Load("hull_a");
-        (string Name, Ship Ship, IReadOnlyList<MissionStop> Stops)[] cases =
+        return
         [
             ("example_missions", hullA, MissionFixtures.LoadMissions("example_missions")),
             ("split_and_shared", hullA, MissionFixtures.LoadMissions("split_and_shared")),
@@ -30,22 +90,10 @@ public class ReplanTimingTests(ITestOutputHelper output)
             ("Hull A eight stops", hullA, MissionFixtures.LoadMissions("hull_a_eight_stops")),
             ("Hull A Hurston 24 Oct", hullA, MissionFixtures.LoadMissions("hull_a_hurston_2026-10-24")),
             ("Freelancer eight stops", ShipLoader.Load("freelancer"), MissionFixtures.LoadMissions("hull_a_eight_stops")),
+            ("Perseus eight stops", ShipLoader.Load("perseus"), MissionFixtures.LoadMissions("hull_a_eight_stops")),
             ("Stress load (not a ship)", StackingSearchLimitTests.Huge,
                 [.. StackingSearchLimitTests.Stress.Select(s => new MissionStop(s.Destination, s.Order, [.. s.Items.Select(i => new MissionItem(i.Commodity, i.Scu, i.CrateSize))]))]),
         ];
-
-        output.WriteLine("| Case | first ms | median ms |");
-        foreach (var (name, ship, stops) in cases)
-        {
-            var saved = SavedPlan.FromStops(stops, LoadPlanner.Plan(ship, stops.ToStops()));
-            var watch = Stopwatch.StartNew();
-            var replanned = LoadPlanner.Replan(saved, ship);
-            var first = watch.Elapsed.TotalMilliseconds;
-            var median = Median(() => LoadPlanner.Replan(saved, ship));
-            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"| {name} | {first:F1} | {median:F1} |"));
-
-            replanned.Missions.Should().OnlyContain(m => !m.Unplaced);
-        }
     }
 
     private static double Median(Action action)

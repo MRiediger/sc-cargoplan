@@ -129,7 +129,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
         var editor = new MissionEditorViewModel(overlay);
 
-        MissionRows.ToStops(editor.Rows).Stops.Should().BeEquivalentTo(overlay.Saved!.Stops, o => o.WithStrictOrdering());
+        MissionRows.ToStops(editor.Rows, CrateCap.None).Stops.Should().BeEquivalentTo(overlay.Saved!.Stops, o => o.WithStrictOrdering());
         editor.IsDirty.Should().BeFalse();
         editor.Title.Should().Be(MissionEditorViewModel.TitleText);
     }
@@ -458,7 +458,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
     {
         var overlay = EmptyOverlay();
         var planned = TestPlans.SplitAndShared();
-        overlay.ShowPlan(SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(overlay.Ship, planned.Stops.ToStops(), FillOrder.SternFirst)));
+        overlay.ShowPlan(SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(overlay.Ship, planned.Stops.ToStops(), FillOrder.SternFirst), CrateCap.Of(overlay.Ship)));
         return overlay;
     }
 
@@ -479,7 +479,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
     {
         var overlay = EmptyOverlay();
         var editor = FourRows(overlay);
-        var stops = MissionRows.ToStops(editor.Rows).Stops.ToStops();
+        var stops = MissionRows.ToStops(editor.Rows, CrateCap.None).Stops.ToStops();
 
         editor.FillOrder = FillOrder.SternFirst;
         editor.PlanCommand.Execute(null);
@@ -544,13 +544,13 @@ public sealed class MissionEditorViewModelTests : IDisposable
     {
         var path = Path.Combine(_folder, "missions.json");
         var editor = FourRows(EmptyOverlay());
-        var before = MissionRows.ToStops(editor.Rows).Stops;
+        var before = MissionRows.ToStops(editor.Rows, CrateCap.None).Stops;
 
         editor.Export(path);
         editor.ClearRowsCommand.Execute(null);
         editor.Import(path);
 
-        MissionRows.ToStops(editor.Rows).Stops.Should().BeEquivalentTo(before, o => o.WithStrictOrdering());
+        MissionRows.ToStops(editor.Rows, CrateCap.None).Stops.Should().BeEquivalentTo(before, o => o.WithStrictOrdering());
         editor.Problem.Should().BeNull();
     }
 
@@ -633,7 +633,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
     {
         var overlay = EmptyOverlay();
         MissionStop riker = new("Riker", 1, [new MissionItem("Titanium", 8, CrateSize.Four)]);
-        overlay.ShowPlan(SavedPlan.FromStops([riker], LoadPlanner.Plan(overlay.Ship, [riker.ToStop()])));
+        overlay.ShowPlan(SavedPlan.FromStops([riker], LoadPlanner.Plan(overlay.Ship, [riker.ToStop()]), CrateCap.Of(overlay.Ship)));
         overlay.ApplyContractTracker(new ContractTrackerReadResult([Candidate(36, "Shubin"), Candidate(37, "Orison", sizeAssumed: true)], null, new HashSet<long>()));
         return overlay;
     }

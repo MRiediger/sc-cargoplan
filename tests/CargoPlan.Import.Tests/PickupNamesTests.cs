@@ -63,7 +63,7 @@ public class PickupNamesTests
     {
         // Typed in the editor: no capture behind it, the player chose the text.
         Mission typed = new(1, [new MissionStop("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four, Pickup: ["Lorville. - by the gate"])])]);
-        SavedPlan saved = new([typed], new LoadPlan(HullA.Id, [new Crate("Riker", "Titanium", CrateSize.Four, "rack-0", new GridPosition(0, 0, 0), Mission: 1)], []));
+        SavedPlan saved = new([typed], new LoadPlan(HullA.Id, [new Crate("Riker", "Titanium", CrateSize.Four, "rack-0", new GridPosition(0, 0, 0), Mission: 1)], []), CrateCap.Of(HullA));
 
         PickupNames.Clean(saved).Saved.Should().BeSameAs(saved);
     }

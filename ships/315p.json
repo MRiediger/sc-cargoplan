@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "315p",
   "name": "ORIG 315p",
   "manufacturer": "ORIG",
   "fleetyardsSlug": "orig-315p",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
+  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
   "totalScu": 12,
   "racks": [
     {
@@ -14,15 +14,14 @@
       "grid": { "length": 4, "width": 2, "stack": 1 },
       "origin": [0, 0, 0],
       "stackAxis": "+z",
-      "maxCrateSize": 4
+      "maxCrateSize": 2
     },
     {
       "id": "rack-1",
       "capacityScu": 4,
       "grid": { "length": 2, "width": 2, "stack": 1 },
       "origin": [-3, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 4
+      "stackAxis": "+z"
     }
   ]
 }

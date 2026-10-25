@@ -1,11 +1,11 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "nomad",
   "name": "CNOU Nomad",
   "manufacturer": "CNOU",
   "fleetyardsSlug": "cnou-nomad",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
+  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
   "totalScu": 24,
   "racks": [
     {
@@ -14,7 +14,7 @@
       "grid": { "length": 4, "width": 3, "stack": 2 },
       "origin": [0, 0, 0],
       "stackAxis": "+z",
-      "maxCrateSize": 16
+      "maxCrateSize": 8
     }
   ]
 }

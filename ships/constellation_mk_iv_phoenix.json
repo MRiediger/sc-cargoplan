@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "constellation_mk_iv_phoenix",
   "name": "RSI Constellation Mk IV Phoenix",
   "manufacturer": "RSI",
@@ -13,8 +13,7 @@
       "capacityScu": 80,
       "grid": { "length": 8, "width": 5, "stack": 2 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     }
   ]
 }

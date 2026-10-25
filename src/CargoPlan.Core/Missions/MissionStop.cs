@@ -7,7 +7,8 @@ public sealed record MissionStop(string Destination, int Order, IReadOnlyList<Mi
 {
     public int TotalScu => Items.Sum(i => i.Scu);
 
-    public Stop ToStop() => new(Destination, Order, [.. Items.SelectMany(i => i.ToCargoItems())]);
+    /// <summary>The planner's stop, derived mixes split up to <paramref name="cap"/> (the ship's, D70).</summary>
+    public Stop ToStop(CrateCap cap) => new(Destination, Order, [.. Items.SelectMany(i => i.ToCargoItems(cap))]);
 }
 
 // C# 14 extension members: https://learn.microsoft.com/dotnet/csharp/language-reference/keywords/extension
@@ -16,7 +17,7 @@ public static class MissionStopExtensions
     /// <param name="stops">The route as entered.</param>
     extension(IEnumerable<MissionStop> stops)
     {
-        /// <summary>The route for the planner, every item expanded into its crate sizes.</summary>
-        public IReadOnlyList<Stop> ToStops() => [.. stops.Select(s => s.ToStop())];
+        /// <summary>The route for the planner, every item expanded into its crate sizes up to <paramref name="cap"/>.</summary>
+        public IReadOnlyList<Stop> ToStops(CrateCap cap) => [.. stops.Select(s => s.ToStop(cap))];
     }
 }

@@ -332,7 +332,7 @@ public class LoadPlannerOverrideTests
 
         var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
 
-        var act = () => SavedPlan.FromStops(missions, moved);
+        var act = () => SavedPlan.FromStops(missions, moved, CrateCap.Of(HullA));
         act.Should().NotThrow();
     }
 

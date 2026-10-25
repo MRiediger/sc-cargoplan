@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "prowler_utility",
   "name": "ESPR Prowler Utility",
   "manufacturer": "ESPR",
@@ -13,16 +13,14 @@
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "origin": [-5, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     }
   ]
 }

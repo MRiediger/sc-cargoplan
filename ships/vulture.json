@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "vulture",
   "name": "DRAK Vulture",
   "manufacturer": "DRAK",
@@ -13,8 +13,7 @@
       "capacityScu": 12,
       "grid": { "length": 3, "width": 2, "stack": 2 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 8
+      "stackAxis": "+z"
     }
   ]
 }

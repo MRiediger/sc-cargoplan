@@ -33,7 +33,7 @@ public sealed class PlanStoreTests : IDisposable
     private static SavedPlan RikerDelivered()
     {
         var planned = TestPlans.SplitAndShared();
-        return new SavedPlan(planned.Missions, LoadPlanner.SetDelivered(planned.Plan, HullA, "Riker", true));
+        return new SavedPlan(planned.Missions, LoadPlanner.SetDelivered(planned.Plan, HullA, "Riker", true), planned.CrateCap);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public sealed class PlanStoreTests : IDisposable
     public void Save_then_Load_keeps_the_fill_order()
     {
         var planned = TestPlans.SplitAndShared();
-        var saved = SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(HullA, planned.Stops.ToStops(), FillOrder.SternFirst));
+        var saved = SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(HullA, planned.Stops.ToStops(), FillOrder.SternFirst), CrateCap.Of(HullA));
 
         PlanStore.Save(PlanPath, saved);
         var (loaded, problem) = PlanStore.Load(PlanPath, HullA);

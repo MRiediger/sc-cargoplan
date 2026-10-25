@@ -4,7 +4,9 @@
 # Usage: ./tools/import-fleetyards.ps1 -Source <ships.json> [-ShipsFolder <folder>] [-Create] [-Force <id>]
 #   Default: compares the grid data of existing files with the export and writes nothing.
 #   -Create writes ships that have no file yet, never hull_a. -Force <id> rewrites one ship's grid data (grid, capacityScu,
-#   maxCrateSize, totalScu, source); origins, stack axes, positions, rack order and notes are hand work and stay.
+#   totalScu, source); origins, stack axes, positions, rack order and notes are hand work and stay. A door limit
+#   (maxCrateSize, from limits.max.capacity, D70) and a minimum (minCrateSize, limits.min.capacity, K3.3) are added
+#   where the file has none, never overwritten.
 # Exit code: 0 in sync, 1 a deviation or a new ship not written, 2 an error (then nothing is written).
 # Runs under Windows PowerShell 5.1 and PowerShell 7. ASCII only: 5.1 reads a script without BOM as ANSI.
 param(
@@ -20,10 +22,13 @@ if (-not $ShipsFolder) {
     $ShipsFolder = Join-Path (Split-Path $PSScriptRoot -Parent) 'ships'
 }
 
-$SchemaVersion = 4
+$SchemaVersion = 5
 $CellMeters = [decimal]1.25
 $FallbackShipId = 'hull_a'
 $CrateSizes = @(1, 2, 4, 8, 16, 24, 32)
+# Crate sizes with their shapes in cells (SCU, length, width, stack), fixed orientation, as CrateSize.Dimensions (D57).
+# A list, not an ordered hashtable: its [int] indexer would read a position, not a key.
+$CrateShapes = @(@(1, 1, 1, 1), @(2, 2, 1, 1), @(4, 2, 2, 1), @(8, 2, 2, 2), @(16, 4, 2, 2), @(24, 6, 2, 2), @(32, 8, 2, 2))
 # Racks that take nothing above 2 SCU are ladders and walkways: they go last in rack order, but stay, so the capacity
 # matches the game (Caterpillar 576).
 $WalkwayMaxCrate = 2
@@ -46,6 +51,19 @@ function Set-Field([object]$Target, [string]$Name, [object]$Value) {
     else {
         $Target | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
     }
+}
+
+# The largest crate a hold of these cells (x, y, z in Fleetyards axes) takes. Crates turn 90 degrees about the stack
+# axis (D71), so the longer horizontal side takes the crate's length, whichever axis it lies on.
+function Get-GridCrate([int[]]$Size) {
+    $grid = @([math]::Max($Size[0], $Size[1]), [math]::Min($Size[0], $Size[1]), $Size[2])
+    $largest = 0
+    foreach ($shape in $CrateShapes) {
+        if ($shape[1] -le $grid[0] -and $shape[2] -le $grid[1] -and $shape[3] -le $grid[2]) {
+            $largest = $shape[0]
+        }
+    }
+    $largest
 }
 
 function Get-GridText([object]$Grid) {
@@ -86,11 +104,33 @@ function ConvertFrom-Hold([object]$Hold, [int]$Index, [string]$Slug) {
     if ($size[0] * $size[1] * $size[2] -ne $capacity) {
         throw "${where}: $($size -join 'x') cells hold $($size[0] * $size[1] * $size[2]) SCU, but capacity is $capacity."
     }
-    $max = $null
-    if ($null -ne $Hold.maxContainerSize) {
-        $max = [int]$Hold.maxContainerSize.size
-        if ($CrateSizes -notcontains $max) {
-            throw "${where}: maxContainerSize $max is not a crate size."
+    # The door limit is limits.max.capacity (D70); maxContainerSize isn't read. Values above the app's largest crate are
+    # clamped to 32. Only a door smaller than what the grid takes is written: one the grid enforces anyway says nothing.
+    $gridCrate = Get-GridCrate $size
+    $limit = $null
+    if ($null -ne $Hold.limits -and $null -ne $Hold.limits.max -and $null -ne $Hold.limits.max.capacity) {
+        $limit = [math]::Min([int]$Hold.limits.max.capacity, $CrateSizes[-1])
+        if ($CrateSizes -notcontains $limit) {
+            throw "${where}: limits.max.capacity $($Hold.limits.max.capacity) is not a crate size."
+        }
+    }
+    # A 1 is the one value that can also be a default: on a grid that takes more it stays unverified and isn't written
+    # (Martin, K3.1). A missing limit costs a hauler one crate at the lift; a wrong one locks the whole rack.
+    $unverified = $limit -eq 1 -and $gridCrate -gt 1
+    if ($unverified) {
+        $limit = $null
+    }
+    $max = if ($null -ne $limit -and $limit -lt $gridCrate) { $limit } else { $gridCrate }
+    $door = if ($max -lt $gridCrate) { $max } else { $null }
+    # The smallest crate the hold takes (K3.3, Hull C 32): written above 1 only, 0 counts as none, above 32 clamped.
+    $min = $null
+    if ($null -ne $Hold.limits -and $null -ne $Hold.limits.min -and [int]$Hold.limits.min.capacity -gt 1) {
+        $min = [math]::Min([int]$Hold.limits.min.capacity, $CrateSizes[-1])
+        if ($CrateSizes -notcontains $min) {
+            throw "${where}: limits.min.capacity $($Hold.limits.min.capacity) is not a crate size."
+        }
+        if ($min -gt $max) {
+            throw "${where}: limits.min.capacity $min is above what the hold takes ($max)."
         }
     }
     $offset = $null
@@ -105,10 +145,10 @@ function ConvertFrom-Hold([object]$Hold, [int]$Index, [string]$Slug) {
         Size     = $size
         Capacity = $capacity
         MaxCrate = $max
+        Door     = $door
+        Min      = $min
         Offset   = $offset
-        # Crates don't turn (D9): length takes the longer horizontal side, so a rack wider than long still takes
-        # the crates the game allows.
-        Turned   = $size[0] -gt $size[1]
+        Unverified = $unverified
     }
 }
 
@@ -125,8 +165,7 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
 
     $holds = @($Ship.cargoHolds)
     $racks = @(for ($i = 0; $i -lt $holds.Count; $i++) { ConvertFrom-Hold $holds[$i] $i $Ship.slug })
-    $ordered = @($racks | Where-Object { $null -eq $_.MaxCrate -or $_.MaxCrate -gt $WalkwayMaxCrate }) +
-        @($racks | Where-Object { $null -ne $_.MaxCrate -and $_.MaxCrate -le $WalkwayMaxCrate })
+    $ordered = @($racks | Where-Object { $_.MaxCrate -gt $WalkwayMaxCrate }) + @($racks | Where-Object { $_.MaxCrate -le $WalkwayMaxCrate })
 
     $withOffsets = @($racks | Where-Object { $null -eq $_.Offset }).Count -eq 0
     $boxes = @($racks | Where-Object { $null -ne $_.Offset } | ForEach-Object {
@@ -134,8 +173,7 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
         [pscustomobject]@{ Min = $o; Max = @(($o[0] + $s[0]), ($o[1] + $s[1]), ($o[2] + $s[2])) }
     })
     $overlap = $withOffsets -and (Test-Overlap $boxes)
-    $turned = @($racks | Where-Object { $_.Turned }).Count -gt 0
-    $arrangement = if ($withOffsets -and -not $overlap -and -not $turned) { 'fleetyards' }
+    $arrangement = if ($withOffsets -and -not $overlap) { 'fleetyards' }
         elseif ($overlap) { 'overlap' }
         else { 'generated' }
 
@@ -176,25 +214,28 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
         'overlap' { 'rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards' }
         default { 'rack arrangement generated; grids from Fleetyards' }
     }
-    $turnedNumbers = @(for ($i = 0; $i -lt $ordered.Count; $i++) { if ($ordered[$i].Turned) { $i + 1 } })
-    if ($turnedNumbers.Count) {
-        $noun = if ($turnedNumbers.Count -eq 1) { 'rack' } else { 'racks' }
-        $notes += "; $noun $($turnedNumbers -join ', ') turned so length is the longer side (crates don't turn)"
+    if (@($racks | Where-Object { $null -ne $_.Door }).Count) {
+        $notes += '; door limits from Fleetyards limits.max.capacity'
+    }
+    if (@($racks | Where-Object { $null -ne $_.Min }).Count) {
+        $notes += '; crate minimums from Fleetyards limits.min.capacity'
     }
 
     $fileRacks = @(foreach ($r in $ordered) {
         $rack = [pscustomobject]@{
             id           = $r.Id
             capacityScu  = $r.Capacity
+            # Fleetyards' own orientation (D71): length along the ship (y), width across (x).
             grid         = [pscustomobject]@{
-                length = [math]::Max($r.Size[0], $r.Size[1])
-                width  = [math]::Min($r.Size[0], $r.Size[1])
+                length = $r.Size[1]
+                width  = $r.Size[0]
                 stack  = $r.Size[2]
             }
             position     = $positions[$r.Id]
             origin       = $origins[$r.Id]
             stackAxis    = '+z'
-            maxCrateSize = $r.MaxCrate
+            maxCrateSize = $r.Door
+            minCrateSize = $r.Min
         }
         $rack
     })
@@ -209,6 +250,7 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
         totalScu       = ($racks | Measure-Object -Property Capacity -Sum).Sum
         racks          = $fileRacks
         Arrangement    = $arrangement
+        Unverified     = @($racks | Where-Object { $_.Unverified } | ForEach-Object { $_.Id })
     }
 }
 
@@ -243,8 +285,10 @@ function Format-Ship([object]$Ship) {
         }
         $fields.Add("""origin"": [$(@($r.origin) -join ', ')]")
         $fields.Add("""stackAxis"": $(Format-JsonString $r.stackAxis)")
-        if ($null -ne $r.maxCrateSize) {
-            $fields.Add("""maxCrateSize"": $($r.maxCrateSize)")
+        foreach ($limit in 'maxCrateSize', 'minCrateSize') {
+            if ($null -ne $r.$limit) {
+                $fields.Add("""${limit}"": $($r.$limit)")
+            }
         }
         $lines.Add('    {')
         $lines.Add('      ' + ($fields -join ",`n      "))
@@ -277,9 +321,14 @@ function Compare-Ship([object]$File, [object]$Draft) {
         if ([int]$f.capacityScu -ne $d.capacityScu) {
             $differences.Add("$($d.id): capacityScu file $($f.capacityScu), Fleetyards $($d.capacityScu)")
         }
-        # Left out on purpose (hull_a, ship-format.md) is no deviation; a different value is.
-        if ($null -ne $f.maxCrateSize -and [int]$f.maxCrateSize -ne $d.maxCrateSize) {
-            $differences.Add("$($d.id): maxCrateSize file $($f.maxCrateSize), Fleetyards $($d.maxCrateSize)")
+        # A door or minimum is compared only where Fleetyards names one (D70): a hand value it doesn't know is no deviation.
+        foreach ($limit in 'maxCrateSize', 'minCrateSize') {
+            if ($null -ne $d.$limit -and $null -ne $f.$limit -and [int]$f.$limit -ne $d.$limit) {
+                $differences.Add("$($d.id): $limit file $($f.$limit), Fleetyards $($d.$limit)")
+            }
+            elseif ($null -ne $d.$limit -and $null -eq $f.$limit) {
+                $differences.Add("$($d.id): $limit not in file, Fleetyards $($d.$limit)")
+            }
         }
     }
     $draftIds = @($Draft.racks | ForEach-Object { $_.id })
@@ -367,7 +416,12 @@ try {
                     $d = @($draft.racks | Where-Object { $_.id -eq [string]$r.id })[0]
                     $r.grid = $d.grid
                     $r.capacityScu = $d.capacityScu
-                    Set-Field $r 'maxCrateSize' $d.maxCrateSize
+                    # A door or minimum set by hand stays, also against Fleetyards (D70).
+                    foreach ($limit in 'maxCrateSize', 'minCrateSize') {
+                        if ($null -eq $r.$limit -and $null -ne $d.$limit) {
+                            Set-Field $r $limit $d.$limit
+                        }
+                    }
                 }
                 $file.totalScu = $draft.totalScu
                 Set-Field $file 'source' $draft.source
@@ -379,12 +433,10 @@ try {
             }
             else {
                 $status = 'same'; $detail = Get-Summary $draft
-                $unstated = @($file.racks | Where-Object { $null -eq $_.maxCrateSize })
-                if ($unstated.Count) {
-                    $values = @($draft.racks | Where-Object { $null -ne $_.maxCrateSize } | ForEach-Object { $_.maxCrateSize } | Select-Object -Unique)
-                    $detail += " (maxCrateSize not in file, Fleetyards: $($values -join ', '))"
-                }
             }
+        }
+        if ($draft.Unverified.Count) {
+            $detail += " (limits.max 1 unverified: $($draft.Unverified -join ', '))"
         }
         $counts[$status]++
         $report.Add(('{0,-10} {1,-30} {2}' -f $status, $id, $detail))

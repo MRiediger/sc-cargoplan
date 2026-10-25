@@ -1438,6 +1438,128 @@ Legende = Legenden-Drag seit B6 (Zeile auf ein Rack, atomar, `ResolveMoveToRack`
 
 ---
 
+## Backlog-Session (vor dem Release)
+
+Fünf Sessions aus dem Backlog vor dem Tag, Reihenfolge **K3 → K2 → K1 → K4 → K5 → T7.5 → Tag v0.1.0**. Je Session ein Branch ab
+main, Merge `--no-ff`. Die übernommenen Backlog-Zeilen sind unten durchgestrichen und verweisen hierher.
+
+| Session | Inhalt |
+|---|---|
+| K3 Planer-Regeln | Türlimit pro Rack, Kisten-Gier 90° |
+| K2 Plan/Editor | Discard plan (Sync-Baseline zurück), Undo/Redo-Stack, `fillOrder` in Missions-JSON Schema 3 (Import/Export), Haken-Erhalt beim Schiffswechsel |
+| K1 Schiffsansicht | Zoom-Grenzen absolut in px/Zelle + Preference, Kamera/Zoom/Pan persistieren, Reset-Symbol in der Kopfzeile, Hit-Test auf die Ansichtsfläche |
+| K4 Look | Checkbox- und Chevron-Farbe/Deckkraft, Stop-Paletten-Presets, Look-Presets + Export/Import |
+| K5 Daten | `offset`/`rotation` aus Fleetyards → `origin`/`stackAxis` im Import; Achsen an der Hull A kalibrieren; offen: innerer/äußerer Hull-C-Block ein Gitter oder zwei. Fortune und Moth (Gitter geändert, neue Racks), Salvation (neu) aus dem Index vom 25.10. Aurora-Frachtmodul, App-Icon |
+
+Reihenfolge innerhalb von K3: K3.1 → K3.3 → K3.2 (Nachtrag 25.10.: `limits.min.capacity` kam dazu).
+
+Aus dem Index vom 25.10. für K5 festgehalten: `cargoHolds[].offset`/`rotation` liegen für Hull A, Hull C, Ironclad Assault u. a. vor (Hull C: zwei Kreuze bei `y ∈ {0, 11.25}`, je vier Arme aus innen 10×10×7,5 m = 8×8×6 Zellen = 384 SCU und außen 5×10×7,5 m = 4×8×6 = 192 SCU; die vertikalen Arme tragen `rotation: 90`).
+
+### [ ] K3.1 Türlimit pro Rack (D70) (25.10.2026)
+**Warum:** Spielfakt (Fleetyards-Betreiber, 23.10.): Manche Laderäume haben eine Tür, die kleiner ist als das Gitter. Clipper: Gitter 3×2×2 nimmt eine 8, durch die Tür passen nur Kisten bis 2 SCU.
+
+**Ist-Zustand vor K3.1 (A1):** `maxCrateSize` pro Rack gab es seit D56 (`Rack.CanHold` in Layout, Moves, Merge, `PlaceInto`), aus Fleetyards `maxContainerSize`, in 284/284 Racks gleich dem Gitter (D57), also wirkungslos. Plan-Schema war schon 4 (D68), K3.2 hebt es auf 5. `Partition` heißt seit B2 `RackAssignment`.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 `maxCrateSize` ist das Türlimit, redundante Werte raus aus `ships/`; P2 Schiffs-Schema 4 → 5 als Marker für den Bedeutungswechsel (Schema 4 wird gleich gelesen); P3 Kappung der abgeleiteten Mischung durch Tür **und** Gitter (größte Kiste, die irgendein Rack nimmt); P4 im Import-Skript kein TODO (Nachtrag 25.10.: das Feld ist `limits.max.capacity`, `$DoorLimitField` entfiel); P6 eine 1 auf einem Gitter, das mehr nimmt, bleibt ungeprüft und wird nicht geschrieben (Martin: ein fehlendes Limit kostet eine Kiste, ein falsches sperrt das Rack); P5 Drag auf eine zu kleine Tür bleibt bei D65 (Stufe 4 mit Grund statt Ablehnung); K1 `SavedPlan.CrateCap` ohne Default, Tests ohne Schiff nehmen `CrateCap.None`; K2 jeder Text aus `CrateCap.Text`, Reason-Regel eigens getestet; K3 Kiosk-Gate. Regel 3 („weiß das Modell, ob abgeleitet?“): ja, `MissionItem.Crates == null`, kein neues Flag. Datenschritt vor dem Planer-Commit, damit seine Gleichheit allein gemessen wird. Eine Ablehnung „(door limit …)“ wird nicht gebaut: Eine gezogene Kiste passt immer zurück in ihr Rack.
+- Core: `CrateCap` (`Of(Ship)`, `Of(Rack)`, `Text`, `Notice`, `Limit`), `CapReason` (`None`, `Door`, `LargestRack`, `Saved`), `Rack.DoorRefuses`; `MissionItem.CrateListUnder(cap)`, `CappedBy`, `ToCargoItems(cap)`, `WithCrateList(crates, cap)` (ersetzt `CrateList`); `MissionStop.ToStop(cap)`/`ToStops(cap)`; `SavedPlan(…, CrateCap, …)`, `CratesCapped`, `FromStops(…, cap)`; `LoadPlanner`: Neuplanung nimmt `CrateCap.Of(ship)`, Arbeit am Plan `saved.CrateCap`, `Replan` in place nur bei gleicher Kappung, `PlaceProblem` „no rack accepts …“; `MoveResolution` überspringt ein Zielrack mit zu kleiner Tür; `PlanFileDto.UnderCap` (Rückfall auf die größte passende Kappung); `ShipLoader` liest 4 und 5
+- Daten/Import: 283 redundante `maxCrateSize` entfernt, alle Schiffe Schema 5; `import-fleetyards.ps1` liest `limits.max.capacity` (über 32 auf 32 geklemmt, nur unter der Gitterkiste geschrieben, eine 1 ungeprüft), `maxContainerSize` gar nicht mehr, Walkway-Reihenfolge aus dem wirksamen Maximum, `-Force` ergänzt fehlende Türen und überschreibt keine; aus dem Index vom 25.10. (`fetch.ps1`, 118 Schiffe, 97 mit Gitter, 293 Holds alle mit `limits`) tragen 14 Schiffe eine Tür: Clipper, 300i, 315p, Apollo Medivac/Triage, Cutlass Black, Idris P, Reclaimer, Shiv (2), Nomad (8), 400i, Idris M, Starfarer, Starfarer Gemini (16), `notes` nennen `limits.max.capacity`
+- App: `NoticeSource.CrateCap` aus `SavedPlan.CratesCapped`, `ShowPlan` plant Dateien unter fremder Kappung neu (`RacksReplannedText`), Editor-Spalte Crates gekappt und folgt dem Schiffswechsel
+- Tests: `CrateCapTests`, `DoorLimitTests`, `DoorLimitOverlayTests`, `MaxCrateSizeTests` (Verdrängen nie hinter eine zu kleine Tür, mit Gegenprobe), Schiffs-Schema 4/5/6, `A_shipped_max_crate_size_is_below_what_the_grid_takes`, `A_shipped_file_is_schema_5`; `Uncapped` (Core- und App-Tests)
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 996 / 141 / 1.130 | 1.210 / 141 / 1.134 |
+| Golden-Files und Fixtures geändert | erwartet 0 | 0 |
+| 4 Fixtures × 96 Schiffe, Plan-Datei-Hash, nur Datenbereinigung (alter Code) | 384 | 381 gleich, 3 Clipper (vorher und nachher abgelehnt, jetzt mit Tür) |
+| dieselben 384 Fälle mit Kappung | 384 | jeder vorher geplante Fall byte-gleich; 149 abgelehnte bleiben abgelehnt mit anderem Grund (meist Kapazität); 2 jetzt geplant (600i Executive/Explorer, crate_mix) |
+| dieselben 384 Fälle nach den Türen aus dem Index vom 25.10. | 384 | 370 gleich; 14 geändert, alle auf Schiffen mit neuer Tür; 4 davon jetzt abgelehnt (`example_missions` ist Schema 1, also gesetzte 4er, die eine Tür 2 nicht nimmt) |
+| `ReplanTimingTests` Median (Release, diese Maschine) | example 0,5 · split_and_shared 1,1 · split_required 0,6 · crate_mix 0,5 · Hull A acht Stopps 4,4 · Hurston 3,1 · Freelancer 3,1 · Stresslast 238,3 ms | 0,6 · 0,8 · 0,4 · 0,6 · 5,6 · 2,9 · 3,0 · 103,2 ms (im Rauschen; die Stresslast schwankt zwischen Läufen um mehr als das Doppelte) |
+
+**Ungeprüfte Türen** (`limits.max.capacity = 1` auf einem Gitter, das mehr nimmt; nicht geschrieben, Gitterkiste in Klammern): 100i rack-0 (2) · 125a rack-0 (2) · 135c rack-0 (2) · Cutlass Black rack-1 (2) · Cutlass Blue rack-0, -1 (2) · Cutlass Red rack-0, -1 (2) · F7C Hornet Mk II rack-0 (2) · Golem OX rack-0 (32) · Hermes rack-0, -1 (32) · Idris M rack-3, -4 (2) · Idris P rack-7, -8 (2) · Intrepid rack-0, -1 (2) · Ironclad rack-0 bis -3 (32), rack-4 bis -8 (8) · Ironclad Assault rack-0, -1 (32) · Paladin rack-0 (2) · Prowler Utility rack-0, -1 (16). 32 Racks in 16 Schiffen, dazu Fortune und Salvation (K5). Frage an Torlek (Fleetyards): „Ist `limits.max = 1` ein Default oder eingetragen – und kommt `limits` aus Starbreaker oder von Hand?“ Die Antwort entscheidet die Liste auf einmal.
+
+Vier Tests nutzten einen 32-SCU-Vertrag auf der Hull A als „passt nicht“; der wird jetzt zu 16ern gekappt und passt, sie nehmen 72 SCU.
+
+**Akzeptanz:**
+- [x] Clipper (`ships/clipper.json`, Gitter 3×2×2, Tür 2): 8-SCU-Vertrag → vier 2er, Notice `crates capped to 2 SCU (door limit)` (`DoorLimitTests`, `DoorLimitOverlayTests`, CLI `plan … --ship clipper`: `8 SCU Titanium (4×2)`, Hull A `(1×8)`)
+- [x] Gesetzte 4er → `Plan` lehnt ab mit `(door limit 2 SCU)`, `PlaceInto` lässt warten, `PlaceProblem` = `doesn't fit (no rack accepts 4 SCU crates, door limit 2 SCU)`
+- [x] Schiffswechsel leitet abgeleitete Mischungen neu ab, gesetzte bleiben; Split/Merge zurück lässt die Mischung abgeleitet
+- [x] Drag auf ein Rack mit zu kleiner Tür: Stufe 4 mit `Rack 1: door limit 16 SCU – placed in rack 2`, Vorschau zeigt es (P5)
+- [x] Verdrängen (3b) landet nie hinter einer Tür, die die Kiste abweist (mit Gegenprobe ohne Tür)
+- [x] Migration Schiffs-Schema 4 → 5 ohne Feld und mit Feld; Schema 6 abgelehnt
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 1.213, Import 141, App 1.134); Slow grün; Exhaustive grün (13 min 10 s, anfangs parallel zu anderen Tests)
+- [ ] Antwort von Torlek zur 1 → Liste der ungeprüften Türen übernehmen oder streichen
+- [ ] Gate Spiel-Build (Martin): Clipper laden, CT-Sync mit einem Vertrag über 2 SCU Kistengröße, Notice und Legende prüfen
+- [ ] Gate Kiosk (Martin, K3): am Terminal bestätigen, dass der Kiosk bei einem Vertrag mit Maximum 8 auch 2er anbietet; widerlegt → Kappung nur bei Türlimit, P3 zurück (Folge-Commit), Ergebnis in D70
+- Commits f3c4e63 (Daten, Import), f815210 (Core-Tests rot), 69ee7da (Core), 538b6c9 (App-Tests rot), 72a6115 (App), 25ac668 (Import aus `limits.max.capacity`), 84b2cc3 (Türen aus dem Index vom 25.10.), Doku-Commit.
+
+### [ ] K3.3 Untergrenze `minCrateSize` pro Rack (D70-Addendum) (25.10.2026)
+**Warum:** Fleetyards gibt neben `limits.max` auch `limits.min.capacity`; > 1 nur bei Hull C (32, die Spindel nimmt nur 32er), MPUV Tractor (16), CSV-SM (4). Ihre Gitter nehmen die Mindestkiste ungedreht (8×4×6/8×8×6, 4×2×2, 2×2×1).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** `CrateCap.Min` = kleinste Kiste, die ein Rack nimmt (Martin); K1 `CrateCap.Accepts` statt Grenzen, gierige Zerlegung nur über angenommene Größen, Rest ohne angenommene Größe → Mission wartet, kein Hochkappen; K2 Neuplanung vergleicht die ganze Menge (Bitmaske, Record-Gleichheit). Ablehnung eines Moves mit Grund nicht gebaut (unerreichbar, wie bei der Tür); Split unter das Minimum wird abgelehnt. Texte `takes 32 SCU crates only` (mit „crates“, wie die übrigen Texte).
+- Core: `Rack.MinCrateSize`, `CanHold` mit Untergrenze, `LimitRefuses`; `CrateCap` als Größenmenge (`Accepts`, `Min`, `Max`, `RackText`, `ShipText`, `Refusal`); `CrateMix.Decompose(scu, max, cap)`; `RackAssignment`-Zwillinge mit gleichem Minimum; `PlanFileDto.UnderCap` verwirft eine Kappung, die eine Kiste an Bord nicht nimmt; `RackDto.MinCrateSize`
+- Import: `limits.min.capacity` > 1 (0 = keins, über 32 geklemmt, über dem Maximum Fehler), Abgleich und `-Force` wie bei der Tür; Hull C, MPUV Tractor, CSV-SM per `-Force` aus dem Index vom 25.10.
+- Tests: `MinCrateSizeTests`, `MinCrateSizeOverlayTests`, `CrateCapTests` (Hull C, Lückenschiff), Testschiffe `min_crate_size*`, `Exactly_three_shipped_ships_have_a_minimum`, `A_shipped_minimum_is_one_the_rack_takes`, Import-Tests für `limits.min`
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.213 / 141 / 1.134 | 1.327 / 141 / 1.135 |
+| Golden-Files und Fixtures geändert | erwartet 0 | 0 |
+| Dateien mit `minCrateSize` | erwartet `csv_sm`, `hull_c`, `mpuv_tractor` | genau diese drei |
+| 4 Fixtures × 96 Schiffe gegen 84b2cc3 | 384 | 372 gleich; 12 geändert, alle auf den drei Schiffen (Hull C lehnt alle vier Fixtures ab, keine besteht nur aus 32ern) |
+
+**Akzeptanz:**
+- [x] Hull C: 64 SCU max 32 plant zwei 32er; 16 max 16 wartet, `Plan` lehnt ab mit `(ship takes 32 SCU crates only)`, `PlaceProblem` = `doesn't fit (ship takes 32 SCU crates only)`; gesetzte `[16, 16]` und 40 max 32 warten genauso
+- [x] Lückenschiff (Racks 32–32 neben 1–2): eine 8 passt nirgends, 40 max 32 → 32 + 4 × 2 (K1)
+- [x] Schiffswechsel Hull A → Hull C → Hull A: 16er wartet, dann plant er wieder
+- [x] Split einer 32 auf der Hull C abgelehnt; Move auf ein Rack mit Minimum → Stufe 4 mit `Rack 1: takes 16 SCU crates only – placed in rack 2`
+- [x] Plan-Datei mit einer 16 auf der Hull C → neu geplant mit `Plan was made for other racks …`, Mission wartet (K2, Core und Overlay)
+- [x] Schiffsdatei ohne Feld = jede Größe; Minimum über Maximum oder Gitter lädt nicht
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün
+- [ ] Gate Overlay (Martin, kein Spieltest): Hull C wählen, 16er-Vertrag per CT-Sync → Mission in der Legende wartend mit `doesn't fit (ship takes 32 SCU crates only)`
+- Commits 32b5dd2 (Tests rot), f1fb3ef (Core, Import), c32de68 (Daten), Doku-Commit.
+
+### [x] K3.2 Kisten-Gier 90° (D71) (25.10.2026)
+**Warum:** Spielfakt: Kisten drehen sich im Gitter um 90° um die Stapelachse, kippen nicht. Betroffen nur ungleiche Grundflächen (2, 16, 24, 32). Bisher gab es eine Form pro Größe (D9), T7.1b drehte dafür Racks.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** (1) „21 Racks“ sind 21 Schiffe mit 56 Racks (Liste aus den `notes`); (2) der Hull-C-Außenblock ist kein Beweis: bei Fleetyards x 5 × y 10 × z 7,5 m = length 8 × width 4 × stack 6, die Lage der Datei, ein 32er passt ungedreht („4×8×6“ war x×y×z gelesen); Beweis stattdessen Perseus Rack 1 und Freelancer Racks 2/3 (Martin: beide); (3) eine Kiste außerhalb des heutigen Racks wird neu geplant statt abgelehnt, unabhängig vom Schema, mit eigenem Grund `CapReason.RacksChanged` (K1); (4) Mausrad lässt sich nicht pollen, Spike vor der Geste (K2); (5) `CheckItems` verglich mit `SupportedSchemaVersion`. Dazu: ungedreht zuerst, gedreht nur wo ungedreht scheitert (Suche: zweiter Durchgang nur, wenn die erste ohne Lösung und ohne Aufgeben endet); Merge braucht einen Quader, nicht gleiche Lagen der Teile; `CrateMove.Turn` relativ (Standard: Lage behalten).
+- Daten/Import: `import-fleetyards.ps1` schreibt `length` = Fleetyards y, `width` = x, kein „turned“ mehr; mit Offsets an allen Racks ohne Überlappung jetzt Fleetyards-Positionen bei `-Create`. **Zurückgedreht** (Racks in Klammern, Nummern der Datei): 600i Executive Edition (1, 2, 5, 6, 7), 600i Explorer (1, 2, 5, 6, 7), 600i Touring (1, 2), Carrack (2, 5, 8), Caterpillar (5, 6, 8, 10, 12, 14), Cutter (1), F7C Hornet Mk II (1), Freelancer, DUR, MAX, MIS (je 2, 3), Idris M (1, 2), Idris P (1–6), Mustang Alpha (1), Perseus (1), Reclaimer (5, 7, 9, 10, 11, 12), Reliant Kore (1, 2), SRV (1), Starfarer, Starfarer Gemini (je 2, 4), Zeus Mk II CL (2, 3). Abgleich gegen den Index vom 25.10.: 94 same, abweichend nur Fortune, Moth, Salvation (K5).
+- Core: `CrateSize.Shape(rotated)`, `Turns`; `Crate.Rotated` (quadratisch + gedreht wirft, auch per `with`), `Crate.Shape`; `Pose`; `Rack.CellBox(Crate)`, `CellBox(position, shape)`; `FitsGrid` und Minimum in beiden Lagen; `RackSpace.Add`, `CrateLayout.Apart` (zweiter Durchgang), `Laying.Poses`, `RackLoad`, `MoveResolution.Intent.Rotated`, `Board.Put(Pose)`; Split/Merge (`CrateLayout.Block`); Plan-Schema 5 (`crates[].rotated` nur bei true, `UnrotatedSchemaVersion = 4`, `CheckRotated`); `PlanFileDto.Checked` liefert `RacksChanged`, `UnderCap(…, racksChanged)`, `CrateCap.Because`
+- App: Zeichnen über `rack.CellBox(crate)` (Kisten, Geister, `DropTarget`); Rad im Einzel-Drag dreht statt Zoom (`DragGesture.CanTurn`, `Resolve(…, turned)`, `Gesture.MoveCrates.Turn`, `CrateDrop.Moves`/`Outcome`/`Changed`, `ShipViewControl.Turn`), keine neue P/Invoke
+- Tests: `CrateRotationTests` (Core), `CrateTurnTests` und `A_turned_crate_is_drawn_as_it_lies_and_its_tooltip_stays` (App), `Schema_2_with_a_crate_outside_its_rack_reads_as_racks_changed`; `ReplanTimingTests.Search_counts_of_every_fixture`; geändert: `Place_never_lets_a_crate_float` (Schachbrett, ein gedrehter 2er passte quer), Schema-6-Beispiel, Layout-Tests lesen `Pose`
+
+**Spike K2** (Martin, Scratch-Probe, SC vorne, Probe nicht im Vordergrund): während eines Rechts-Captures `WM_MOUSEWHEEL` 38 / 37, Raw Input (`RIDEV_INPUTSINK`) ebenso 38 / 37 → Rad über `WM_MOUSEWHEEL`, kein Raw Input.
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nach Rückbau, ohne Drehung | Nachher |
+|---|---|---|---|
+| Tests (Core / Import / App) | 1.327 / 141 / 1.135 | – | 1.358 / 141 / 1.145 |
+| Golden-Files geändert | erwartet nur `schemaVersion` | – | Hull-A-Goldens nur `schemaVersion` |
+| 4 Fixtures × 96 Schiffe, geplant | 176 / 384 | 168 (53 Fälle geändert, alle auf den 21 Schiffen) | 176, dieselben Fälle; 42 Hashes anders als vorher, alle auf 16 Schiffen (Taurus `crate_mix`: Riker 6 SCU in 2ern allein im 3×2×1-Rack) |
+| Suchknoten / Layout-Schritte (Release) | – | Hull A Hurston 1.312 / 10, Stresslast 25 / 246, Freelancer keine Zuordnung | gleich; Freelancer 67 / 0 |
+| `ReplanTimingTests` Median (Release) | – | example 0,4 · split_and_shared 0,7 · split_required 0,4 · crate_mix 0,5 · Hull A acht Stopps 3,7 · Hurston 2,3 · Freelancer abgelehnt · Perseus 2,6 · Stresslast 79,6 ms | 0,6 · 0,9 · 0,4 · 0,5 · ~6,7 (dreimal gemessen: zweiter `FirstFit` bei jeder fehlschlagenden Passprobe) · 2,5 · 2,5 · 2,8 · 87–119 ms (Rauschen) |
+
+D58 bleibt unberührt (kein Budget-Problem, keine offene Frage). Rot nach dem Rückbau, vor der Drehung (erwartet): `OrderFreePlanTests` hull_a_eight_stops/freelancer, `A_shipped_max_crate_size_is_below_what_the_grid_takes` idris_p/idris_m, Slow `ReplanTests` Freelancer, Timing `MoveResolutionTimingTests.Eight_stops_on_the_Freelancer`.
+
+**Akzeptanz:**
+- [x] Rückbau der 56 Racks vor den roten Tests, Import ohne Drehung, Abgleich „same“
+- [x] 3×2×1-Rack nimmt drei 2er (einer gedreht); Perseus Rack 1 drei 32er gedreht; Freelancer 66 SCU in 2ern; Hull A dreht nie
+- [x] Drehung respektiert Tür und Minimum (`CanHold`)
+- [x] Plan-Schema 4 → 5: Schema 4 liest ungedreht, `rotated` in 4 kaputt, 6 abgelehnt; alter Leser (`0892454`) lehnt 5 ab: „schemaVersion 5 is not supported (expected 1 or 2 or 3 or 4)“
+- [x] Kiste außerhalb des heutigen Racks (Schema 2, 4, 5) → `RacksChanged`, neu geplant, ganz abgehakte Stopps behalten den Haken; Schema 5 innerhalb unverändert
+- [x] Split/Merge mit gedrehten Kisten; B2-Property-Test grün
+- [x] Rad dreht nur im Einzelkisten-Drag, Vorschau = Loslassen, Mehrfachauswahl und Legende behalten die Lagen
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün; Exhaustive grün (8 min 34 s)
+- [x] Gates Publish-Build (Martin, 25.10., bestanden): Hull A 2er ziehen, drehen, loslassen, Neustart → Lage bleibt; im Spiel mit SC vorne dreht das Rad; Freelancer 2er-Vertrag → Racks 2/3 gedreht; Perseus 32er-Vertrag → drei gedrehte 32er; Mehrfachauswahl mit gedrehtem 2er → Lagen bleiben; alte Freelancer-`plan.json` → „Plan was made for other racks …“
+- [x] Gate Traktorstrahl (Martin, 25.10., bestanden): 2er hochkant an eine Hull-A-Platte geht im Spiel; `CanTurn` bleibt für jedes Rack
+- Commits 04669b3 (Rückbau), 3c8a52b (Core-Tests rot), 748a3ed (Core), 52f6475 (Zeichnen), c4af6ad (App-Tests rot), b34c8be (Rad), b173294 (Doku), Abnahme-Commit; Merge `--no-ff` nach main.
+
+---
+
 ## Phase 8 – nach dem Launch
 
 ### [ ] T8.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
@@ -1460,43 +1582,44 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
 - `CODE_OF_CONDUCT.md`, sobald es Contributors gibt; Community Standards mahnt es an, ein Solo-Repo braucht es vor dem ersten Hauler nicht (T6.4).
-- App-Icon (`.ico` mit 16/32/48/256 px, `<ApplicationIcon>` im App-csproj), sobald ein Icon vorliegt; aus T6.2 (D48).
+- ~~App-Icon (`.ico` mit 16/32/48/256 px, `<ApplicationIcon>` im App-csproj), sobald ein Icon vorliegt; aus T6.2 (D48).~~ → K5
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
 - ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26); freie Rotation pro Rack erst, wenn ein Schiff sie braucht.
 - Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).
 - ~~Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).~~ Übernommen als T7.4 (D55).
 - ~~Umriss in 3D wie im Maintenance Panel (Prisma aus Draufsicht + Höhe, grober Rumpf aus Drauf- und Seitenansicht, oder Holo-Modelle), falls der flache Umriss im Spiel nicht reicht (D62).~~ Holo-Modelle übernommen als T7.4b (Spike) und T7.4c.
-- Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).
+- ~~Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).~~ → K1
 - Orbit-Snap auf feste Winkel (z. B. 45°-Raster per Taste), falls freies Drehen schwer wiederholbar ist (D15).
-- Plan verwerfen ohne neuen Plan („Discard plan“), falls ein leeres Overlay nach der Route gewünscht wird; heute ersetzt nur „Plan“ den alten Plan (D19).
-- Editor-Position in `settings.json`, Entwurfs-Autosave, Undo im Editor, falls der Zwei-Minuten-Durchlauf daran scheitert (D19).
-- Rückfall auf Segmente ab einer Zellenzahl, sobald ein großes Schiff (Hull C, ~4.600 Zellen) beim Orbit ruckelt (D21).
-- Spindelmuster für Hull B/C wie bei Hull A statt der generierten Reihe (Daten, T7.1b-Nachtrag), sobald die echte Anordnung
-  bekannt ist (D61).
-- Nasenlänge des Bug-Keils auf die Schiffsbreite deckeln (Hull C 14 → 6 Zellen, ~10 % mehr Maßstab), falls lange Schiffe
-  im Spiel zu klein wirken (D61).
-- Rastergrenze über 12 px (z. B. 20), falls das volle Raster der C2 (18 px pro Zelle) im Spiel stört (D61).
-- Kistengrößen als Blöcke und Zellbeschriftung in der Schiffsansicht (D21).
-- Backdrop-Blur hinter dem Fenster (Spike: DWM vs. AllowsTransparency) (D28).
-- Alternative Stop-Paletten, nur geprüft farbfehlsicht-tauglich (D29).
-- Legenden-Checkboxen: Farbe und Deckkraft in den Preferences wählbar (Abschnitt Legend; heute fest grau `#B0B0B0`, `MissionPalette.CheckBoxBrush`, D69). Auslöser: Taste-Gate B6.
-- Theme-Presets/Export (A4).
-- Füllrichtung in Mission-Dateien (Export/Import), falls Koordinatoren sie mit der Route teilen wollen; heute nur über plan.json (Core-Formatwechsel, D24-Addendum).
+- ~~Plan verwerfen ohne neuen Plan („Discard plan“), falls ein leeres Overlay nach der Route gewünscht wird; heute ersetzt nur „Plan“ den alten Plan (D19).~~ → K2
+- Editor-Position in `settings.json`, Entwurfs-Autosave, Undo im Editor, falls der Zwei-Minuten-Durchlauf daran scheitert (D19). Undo-Teil → K2.
+- ~~Rückfall auf Segmente ab einer Zellenzahl, sobald ein großes Schiff (Hull C, ~4.600 Zellen) beim Orbit ruckelt (D21).~~ Gestrichen: erledigt mit T7.3.
+- ~~Spindelmuster für Hull B/C wie bei Hull A statt der generierten Reihe (Daten, T7.1b-Nachtrag), sobald die echte Anordnung
+  bekannt ist (D61).~~ → K5
+- ~~Nasenlänge des Bug-Keils auf die Schiffsbreite deckeln (Hull C 14 → 6 Zellen, ~10 % mehr Maßstab), falls lange Schiffe
+  im Spiel zu klein wirken (D61).~~ Gestrichen: der Keil ist seit T7.4 nur noch Fallback ohne Umriss.
+- ~~Rastergrenze über 12 px (z. B. 20), falls das volle Raster der C2 (18 px pro Zelle) im Spiel stört (D61).~~ → K1
+- ~~Kistengrößen als Blöcke und Zellbeschriftung in der Schiffsansicht (D21).~~ Gestrichen: erledigt durch T3.11b.
+- Backdrop-Blur hinter dem Fenster (Spike: DWM vs. AllowsTransparency) (D28). Auslöser: Hauler-Report „Legende trotz Halo unlesbar“.
+- ~~Alternative Stop-Paletten, nur geprüft farbfehlsicht-tauglich (D29).~~ → K4
+- ~~Legenden-Checkboxen: Farbe und Deckkraft in den Preferences wählbar (Abschnitt Legend; heute fest grau `#B0B0B0`, `MissionPalette.CheckBoxBrush`, D69). Auslöser: Taste-Gate B6.~~ → K4
+- ~~Theme-Presets/Export (A4).~~ → K4
+- ~~Füllrichtung in Mission-Dateien (Export/Import), falls Koordinatoren sie mit der Route teilen wollen; heute nur über plan.json (Core-Formatwechsel, D24-Addendum).~~ → K2
 - ~~Formbewusste `Partition` (Racks nach legbarer Anordnung in Routenreihenfolge, nicht nur nach SCU), falls Stapel-Befunde in echten Plänen häufig sind. Beleg aus dem Spike T5.4 (Brute-Force, abgebrochen): 3 Stops in einem Rack → 207 Aufteilungen ohne Anordnung bis Mischung 146/186; 4 Stops → 397 bis Mischung 65/170 (D24-Addendum, T5.4a).~~ → T7.0
 - ~~Geometrie bei Schiffen, deren Grid kein Vielfaches der Kistenmaße ist (D9 gilt nur für Hull A), sobald T7.1 ein solches Schiff bringt: `Plan` verteilt nach SCU und scheitert erst beim Legen, die Meldung („64/75 SCU“) klingt nach Platz und nennt nur Rack 1. `PlaceProblem` sagt es schon besser („no room for 8 SCU crates“). Beleg: S7.0, Lauf 3.~~ → T7.0
 - ~~Stapelbewusste Partition: Racks so verteilen, dass keine Stapel-Befunde entstehen (Rest der übernommenen T7.0-Zeile), falls Stapel-Befunde in echten Plänen häufig sind (D54). Beleg T7.2: echte CT-Captures (High Course Station, 11 SCU) per `PlaceInto` in den Hull-A-Plan split_and_shared → 3 rote Kisten auf Riker/Orison/Lorville.~~ Erledigt in B2 (D64): Prio 3 wählt auch zwischen Zuordnungen, `PlaceInto` nimmt das Rack ohne Fremdauflage.
 - ~~Ein Ziel pro Rack auf Mehrrack-Schiffen, wenn die Last es zulässt (Partition nach SCU füllt heute Rack 1 mit allen Zielen, C2: sechs Ziele in Rack 1). Auslöser: Hauler eines Mehrrack-Schiffs meldet, dass er ein Ziel pro Rack will. Planer-Änderung, D6-Addendum. Beleg T7.2: Legende „Rack 1 shared by Riker, Shubin, High Course Station, Melodic Fields Station, Faithful Dream Station, Everus Harbor – identify crates by count“; auf einem 480-Zellen-Rack hilft „by count“ nicht mehr.~~ Erledigt in B2 (D64): Prio 2 „wenigste Ziele im vollsten Rack, dann wenigste geteilte Racks“.
-- Frachtmodule (Aurora-Heckmodul, Retaliator, Caterpillar `module_01–04`) als zusätzliche Katalogeinträge aus einer Datei, ohne Änderung an Plan-Schema oder Auswahl (D59). Auslöser: erstes Schiff in `ships/` mit im Spiel wechselbarem Frachtmodul.
-- Haken eines Altbesuchs beim Schiffswechsel erhalten: ein abgehakter Stopp, der danach neue Fracht bekam (D41), kommt nach `Replan` auf einem anderen Schiff unabgehakt zurück und belegt Platz (D59); auf dem eigenen Schiff erledigt in B4 (D66). Auslöser: Meldung eines Haulers.
+- ~~Frachtmodule (Aurora-Heckmodul, Retaliator, Caterpillar `module_01–04`) als zusätzliche Katalogeinträge aus einer Datei, ohne Änderung an Plan-Schema oder Auswahl (D59). Auslöser: erstes Schiff in `ships/` mit im Spiel wechselbarem Frachtmodul.~~ → K5
+- Starbreaker (Fleetyards-Extractor, Rust) als Quelle für die Gitter von Frachtmodulen. Auslöser: zweites Schiff mit Frachtmodul.
+- ~~Haken eines Altbesuchs beim Schiffswechsel erhalten: ein abgehakter Stopp, der danach neue Fracht bekam (D41), kommt nach `Replan` auf einem anderen Schiff unabgehakt zurück und belegt Platz (D59); auf dem eigenen Schiff erledigt in B4 (D66). Auslöser: Meldung eines Haulers.~~ → K2
 - Sync Ships in der App (Fleetyards-API), falls sich Frachtgitter häufiger ändern als Releases erscheinen oder Hauler zwischen Releases fehlende Schiffe melden. Voraussetzungen: D-Eintrag Netzwerkzugriff des Overlays, Lizenzfrage für Laufzeitabrufe, Merge-Logik aus import-fleetyards.ps1 nach C# (T7.1b).
 - Abholorte von Waste-Verträgen aus den Zeilen „Collect Waste from …“ des Rohtexts lesen (die Stationen), statt nur aus ContractTrackers `PickupLocation`, das einen davon zerrissen nennt (B6, D69). Auslöser: Hauler will Waste-Missionen nach Abholort unterscheiden.
-- Kisten horizontal drehbar (Gier 90°) im Planer, statt Racks beim Import zu drehen (T7.1b: `length` = längere Seite, Rack in `notes` genannt). Auslöser: ein Schiff, dessen Rack nur mit gedrehten Kisten so voll wird wie im Spiel, oder ein Hauler-Report über abgelehnte Kisten, die im Spiel passen.
+- ~~Kisten horizontal drehbar (Gier 90°) im Planer, statt Racks beim Import zu drehen (T7.1b: `length` = längere Seite, Rack in `notes` genannt). Auslöser: ein Schiff, dessen Rack nur mit gedrehten Kisten so voll wird wie im Spiel, oder ein Hauler-Report über abgelehnte Kisten, die im Spiel passen.~~ → K3.2
 - `CrateLayout.InOrder` beschleunigen (`StartingAt` ohne LINQ, Pruning), Auslöser: ein echter Plan mit der Notiz „too many crates to rearrange“ (D54). Erwartet bei Racks ab ~80 Zellen mit vielen 1-SCU-Kisten (T7.1c: 9×3×3, 32 + 40 × 1).
 - ~~Planen in `Task.Run` statt im UI-Thread (`MissionEditorViewModel.Plan`, CT-Sync, Schiffswechsel), Auslöser: ein gemeldetes Einfrieren (D54) oder der erste Hauler-Report zur Planungsdauer. Messwert T7.2: 8-Stopp-Lastfall auf der Freelancer ~4 s Release (Suchlimit, D58), beim Editor-Plan wie beim Wechsel (`ReplanTests`, `Slow`). Ein UI-Task (Knopf gesperrt, „Planning…“), kein Planer-Task; kann als erster nach dem Launch kommen. Bis dahin Known issue (T7.5).~~ Geschlossen in B4 (D66): seit B2 plant jedes Fixture im Prozess in höchstens 3,2 ms (Median, erster Lauf 7 ms, Freelancer-Lastfall 2,3 ms, `ReplanTimingTests`); nur die Stresslast (kein Schiff) braucht 80 ms. Wiederöffnen bei einem gemeldeten Einfrieren.
 - Optionale Spieler-Reihenfolge (Legende per Drag sortieren) → Stapelhinweise relativ zur Spieler-Reihenfolge („Shubin liegt auf Riker, Riker kommt zuerst“). Auslöser: Hauler wollen wieder wissen, welche Kiste zuerst runter muss (D64).
 - B1-Restfall: abgeschnittenes Fragment ohne Ergänzung. Capture 21–25 (24.10.): „to Thur“ bricht um, OCR liest „Thundering“ als „Thur…“, „Melg“ entsprechend; die Ergänzung aus der Drop-off-Liste greift nicht, weil das Fragment kein Präfix ist. Auslöser: weitere Fälle in echten Captures.
-- Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).
-- Undo für Drags und Re-plan: ab Stufe 3 (D65) ist Zurückziehen kein Undo mehr, ein Re-plan (B4) verwirft Moves. Auslöser: ein Hauler verliert eine Lage durch einen Drop.
+- ~~Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).~~ → K1
+- ~~Undo für Drags und Re-plan: ab Stufe 3 (D65) ist Zurückziehen kein Undo mehr, ein Re-plan (B4) verwirft Moves. Auslöser: ein Hauler verliert eine Lage durch einen Drop.~~ → K2
 - Mengen pro Abholort („collect 3 from A, 2 from B“) statt einer Ortsliste ohne Mengen (D68). Auslöser: CT oder das Spiel
   nennen die Teilmengen.
 - Kisten anderer Missionen ausblenden statt dimmen (D68). Auslöser: Martin oder ein Hauler will es nach dem Spieltest.

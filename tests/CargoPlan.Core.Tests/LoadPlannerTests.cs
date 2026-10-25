@@ -308,7 +308,7 @@ public class LoadPlannerTests
         var act = () => LoadPlanner.Plan(HullA, route);
 
         act.Should().Throw<PlanException>()
-            .WithMessage("24 SCU crate of Agricium for Shubin doesn't fit any rack of hull_a (largest rack 4×2×2).");
+            .WithMessage("24 SCU crate of Agricium for Shubin doesn't fit any rack of hull_a (largest rack takes 16 SCU).");
     }
 
     // --- Guards ---

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "125a",
   "name": "ORIG 125a",
   "manufacturer": "ORIG",
@@ -13,8 +13,7 @@
       "capacityScu": 2,
       "grid": { "length": 2, "width": 1, "stack": 1 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     }
   ]
 }

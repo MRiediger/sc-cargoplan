@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "325a",
   "name": "ORIG 325a",
   "manufacturer": "ORIG",
@@ -13,8 +13,7 @@
       "capacityScu": 4,
       "grid": { "length": 2, "width": 2, "stack": 1 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 4
+      "stackAxis": "+z"
     }
   ]
 }

@@ -79,6 +79,8 @@ public class ImportFleetyardsScriptTests
             run.Output.Should().MatchRegex($@"same\s+{id}");
         }
 
+        // row_ship's rack-2 (2x2x2, takes an 8) says limits.max.capacity 1: maybe a default, so not written, only named.
+        run.Output.Should().MatchRegex(@"same\s+row_ship.*\(limits\.max 1 unverified: rack-2\)");
         work.Snapshot().Should().Equal(before);
     }
 
@@ -101,29 +103,82 @@ public class ImportFleetyardsScriptTests
         work.Snapshot().Should().Equal(before);
     }
 
-    // hull_a.json has no maxCrateSize on purpose (ship-format.md); a missing value is no deviation, a different one is.
+    // offset_ship's rack-1 (2x4x2 cells, takes a 16) has limits.max.capacity 2: the door comes from the export (D70).
     [Fact]
-    public async Task Compare_accepts_a_file_without_max_crate_size()
+    public async Task Compare_reports_a_door_limit_missing_from_the_file()
     {
         using var work = new Workspace(withExpected: true);
-        work.Edit("offset_ship", t => Regex.Replace(t, @",\s*""maxCrateSize"": \d+", ""));
+        work.Edit("offset_ship", t => Regex.Replace(t, @",\s*""maxCrateSize"": 2", ""));
+
+        var run = await work.Run();
+
+        run.ExitCode.Should().Be(Deviation, run.Output);
+        run.Output.Should().MatchRegex(@"different\s+offset_ship.*rack-1: maxCrateSize not in file, Fleetyards 2");
+    }
+
+    [Fact]
+    public async Task Force_adds_a_missing_door_limit_and_keeps_one_that_differs()
+    {
+        using var work = new Workspace(withExpected: true);
+        work.Edit("offset_ship", t => Regex.Replace(t, @",\s*""maxCrateSize"": 2", ""));
+        work.Edit("overlap_ship", t => t.Replace("\"stackAxis\": \"+z\"\n    }\n  ]", "\"stackAxis\": \"+z\",\n      \"maxCrateSize\": 4\n    }\n  ]"));
+
+        (await work.Run("-Force", "offset_ship")).ExitCode.Should().Be(0);
+        var compare = await work.Run();
+
+        ShipLoader.Load(work.Ships, "offset_ship").Racks.Select(r => r.MaxCrateSize).Should().Equal(null, CrateSize.Two);
+        compare.Output.Should().MatchRegex(@"same\s+offset_ship");
+        ShipLoader.Load(work.Ships, "overlap_ship").Racks[^1].MaxCrateSize.Should().Be(CrateSize.Four);
+    }
+
+    // overlap_ship's rack-0 says limits.min.capacity 8 (K3.3); row_ship's wide hold says 0, which counts as none.
+    [Fact]
+    public async Task Compare_reports_a_minimum_missing_from_the_file()
+    {
+        using var work = new Workspace(withExpected: true);
+        work.Edit("overlap_ship", t => Regex.Replace(t, @",\s*""minCrateSize"": 8", ""));
+
+        var run = await work.Run();
+
+        run.ExitCode.Should().Be(Deviation, run.Output);
+        run.Output.Should().MatchRegex(@"different\s+overlap_ship.*rack-0: minCrateSize not in file, Fleetyards 8");
+    }
+
+    // A minimum above the app's largest crate is clamped to 32 like a door; a door of 32 says nothing on an 8x2x2 grid.
+    [Fact]
+    public async Task Create_clamps_a_minimum_above_32()
+    {
+        using var work = new Workspace("min_clamped.json");
+
+        var run = await work.Run("-Create");
+
+        run.ExitCode.Should().Be(0, run.Error);
+        var rack = ShipLoader.Load(work.Ships, "big_spindle").Racks.Single();
+        (rack.MinCrateSize, rack.MaxCrateSize).Should().Be((CrateSize.ThirtyTwo, (CrateSize?)null));
+    }
+
+    // A door limit Fleetyards doesn't name is the player's (a hand value), no deviation.
+    [Fact]
+    public async Task Compare_accepts_a_door_limit_set_by_hand()
+    {
+        using var work = new Workspace(withExpected: true);
+        work.Edit("row_ship", WithDoorLimit);
 
         var run = await work.Run();
 
         run.ExitCode.Should().Be(0, run.Output);
-        run.Output.Should().MatchRegex(@"same\s+offset_ship");
+        run.Output.Should().MatchRegex(@"same\s+row_ship");
     }
 
     [Fact]
     public async Task Force_rewrites_the_grid_data_and_keeps_the_hand_work()
     {
         using var work = new Workspace(withExpected: true);
-        work.Edit("row_ship", t => t
+        work.Edit("row_ship", t => WithDoorLimit(t)
             .Replace("\"totalScu\": 26", "\"totalScu\": 30")
             .Replace("\"capacityScu\": 8,", "\"capacityScu\": 12,")
             .Replace("{ \"length\": 2, \"width\": 2, \"stack\": 2 }", "{ \"length\": 3, \"width\": 2, \"stack\": 2 }")
             .Replace("[-3, 0, 0]", "[-4, 0, 0]")
-            .Replace("\"maxCrateSize\": 8", "\"maxCrateSize\": 4")
             .Replace("rack arrangement generated", "checked by hand"));
 
         var run = await work.Run("-Force", "row_ship");
@@ -132,14 +187,20 @@ public class ImportFleetyardsScriptTests
         var ship = ShipLoader.Load(work.Ships, "row_ship");
         ship.TotalScu.Should().Be(26);
         var rack = ship.Racks.Single(r => r.Id == "rack-2");
-        (rack.Grid, rack.CapacityScu, rack.MaxCrateSize).Should().Be((new Dimensions(2, 2, 2), 8, CrateSize.Eight));
+        (rack.Grid, rack.CapacityScu, rack.MaxCrateSize).Should().Be((new Dimensions(2, 2, 2), 8, CrateSize.Four));
         rack.Origin.Should().Be(new ShipPoint(-4, 0, 0));
         ship.Notes.Should().StartWith("checked by hand");
+        ship.Racks.Where(r => r.Id != "rack-2").Should().OnlyContain(r => r.MaxCrateSize == null);
     }
+
+    /// <summary>row_ship's rack-2 (2×2×2, which takes an 8 by its grid) with a door that takes 4 SCU at most.</summary>
+    private static string WithDoorLimit(string text) => Regex.Replace(
+        text, @"(""origin"": \[-3, 0, 0\],\s*""stackAxis"": ""\+z"")", "$1,\n      \"maxCrateSize\": 4");
 
     [Theory]
     [InlineData("duplicate_id.json", "twin")]
     [InlineData("uneven.json", "hardpoint_cargo_bad")]
+    [InlineData("bad_limit.json", "limits.max.capacity 3")]
     public async Task A_broken_export_stops_before_writing(string export, string named)
     {
         using var work = new Workspace(export);

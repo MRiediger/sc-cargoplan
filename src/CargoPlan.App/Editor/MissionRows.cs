@@ -48,7 +48,8 @@ public static class MissionRows
     /// <summary>The choices of the max crate size column, smallest first.</summary>
     public static IReadOnlyList<int> MaxCrateSizes { get; } = [.. Enum.GetValues<CrateSize>().Select(s => (int)s).Order()];
 
-    public static MissionRowsResult ToStops(IReadOnlyList<MissionRow> rows)
+    /// <param name="cap">The ship's cap (D70): the crates column shows a derived mix split up to it.</param>
+    public static MissionRowsResult ToStops(IReadOnlyList<MissionRow> rows, CrateCap cap)
     {
         var stopNumbers = new int?[rows.Count];
         var errors = new string?[rows.Count];
@@ -62,7 +63,7 @@ public static class MissionRows
         for (var i = 0; i < rows.Count; i++)
         {
             var row = rows[i];
-            crateTexts[i] = CratesText(row);
+            crateTexts[i] = CratesText(row, cap);
             if (row.IsBlank)
             {
                 continue;
@@ -120,7 +121,8 @@ public static class MissionRows
     /// <exception cref="InvalidOperationException">A row is invalid (<see cref="ToStops"/> has a problem).</exception>
     public static (IReadOnlyList<Mission> Missions, IReadOnlyList<string> Route) ToMissions(IReadOnlyList<MissionRow> rows, IReadOnlyList<Mission> known)
     {
-        var result = ToStops(rows);
+        // The crates column isn't read here: the planner splits the mixes for its ship itself.
+        var result = ToStops(rows, CrateCap.None);
         if (result.Problem is { } problem)
         {
             throw new InvalidOperationException(problem);
@@ -226,8 +228,11 @@ public static class MissionRows
         return (new MissionItem(commodity, scu, max, [.. crates.Select(c => (CrateSize)c)], pickup), null);
     }
 
-    /// <summary>The crates column: an override normalised ("2 + 2+2" → "2+2+2") or as typed if it can't be read, else the derived mix.</summary>
-    private static string CratesText(MissionRow row)
+    /// <summary>
+    /// The crates column: an override normalised ("2 + 2+2" → "2+2+2") or as typed if it can't be read, else the mix
+    /// derived up to <paramref name="cap"/>, as the planner will lay it (D70).
+    /// </summary>
+    private static string CratesText(MissionRow row, CrateCap cap)
     {
         if (row.IsCrateOverride)
         {
@@ -235,7 +240,7 @@ public static class MissionRows
         }
 
         return ParseScu(row.Scu) is { } scu && Enum.IsDefined((CrateSize)row.MaxCrateSize)
-            ? Format(CrateMix.Decompose(scu, (CrateSize)row.MaxCrateSize))
+            ? Format(CrateMix.Decompose(scu, (CrateSize)row.MaxCrateSize, cap))
             : "";
     }
 

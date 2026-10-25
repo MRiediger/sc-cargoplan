@@ -24,7 +24,7 @@ public class CrateLayoutTests
         var positions = CrateLayout.Place(rack, [], Riker(sizes), order);
 
         positions.Should().NotBeNull();
-        return [.. sizes.Zip(positions!).Select(p => new Crate("Riker", "Titanium", p.First, rack.Id, p.Second))];
+        return [.. sizes.Zip(positions!).Select(p => new Crate("Riker", "Titanium", p.First, rack.Id, p.Second.Position, Rotated: p.Second.Rotated))];
     }
 
     private static IEnumerable<GridPosition> Layer(IEnumerable<Crate> crates, int stack) =>
@@ -38,8 +38,8 @@ public class CrateLayoutTests
     /// <summary>Crates to place, one destination per letter.</summary>
     private static (CrateSize Size, string Destination)[] Of(params (CrateSize Size, string Destination)[] crates) => crates;
 
-    private static Crate[] AsCrates(Rack rack, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<GridPosition> positions) =>
-        [.. crates.Zip(positions).Select(p => new Crate(p.First.Destination, "Titanium", p.First.Size, rack.Id, p.Second))];
+    private static Crate[] AsCrates(Rack rack, IReadOnlyList<(CrateSize Size, string Destination)> crates, IReadOnlyList<Pose> poses) =>
+        [.. crates.Zip(poses).Select(p => new Crate(p.First.Destination, "Titanium", p.First.Size, rack.Id, p.Second.Position, Rotated: p.Second.Rotated))];
 
     // --- Place: the drawing rule of the ship view, now in Core (D21, D24) ---
 
@@ -130,7 +130,7 @@ public class CrateLayoutTests
 
         var positions = CrateLayout.Place(Rack1, occupied, Riker(CrateSize.Four, CrateSize.Four), FillOrder.BowFirst);
 
-        positions.Should().Equal(new GridPosition(0, 0, 0), new GridPosition(0, 0, 1));
+        positions.Should().Equal(new Pose(new GridPosition(0, 0, 0)), new Pose(new GridPosition(0, 0, 1)));
     }
 
     [Fact]
@@ -159,9 +159,9 @@ public class CrateLayoutTests
     [Fact]
     public void Place_never_lets_a_crate_float()
     {
-        // 1s on every odd length of the bottom: no two free bottom cells are neighbours, so a 2 doesn't fit below,
-        // and every place above would bridge an empty cell.
-        Crate[] occupied = [At(CrateSize.One, 1, 0, 0), At(CrateSize.One, 3, 0, 0), At(CrateSize.One, 1, 1, 0), At(CrateSize.One, 3, 1, 0)];
+        // 1s on the bottom like a chessboard: no two free bottom cells are neighbours, along or across, so a 2 doesn't fit
+        // below even turned (D71), and every place above would bridge an empty cell.
+        Crate[] occupied = [At(CrateSize.One, 1, 0, 0), At(CrateSize.One, 3, 0, 0), At(CrateSize.One, 0, 1, 0), At(CrateSize.One, 2, 1, 0)];
 
         CrateLayout.Place(Rack1, occupied, Riker(CrateSize.Two), FillOrder.BowFirst).Should().BeNull();
     }
@@ -174,7 +174,7 @@ public class CrateLayoutTests
 
         var positions = CrateLayout.Place(Rack1, occupied, Riker(CrateSize.Four), FillOrder.BowFirst);
 
-        positions.Should().Equal(new GridPosition(2, 0, 1));
+        positions.Should().Equal(new Pose(new GridPosition(2, 0, 1)));
     }
 
     /// <summary>
@@ -194,7 +194,7 @@ public class CrateLayoutTests
                 foreach (var mix in mixes)
                 {
                     var positions = CrateLayout.Place(rack, [], Riker(mix), order);
-                    Crate[] crates = positions is null ? [] : [.. mix.Zip(positions).Select(p => new Crate("Riker", "Titanium", p.First, rack.Id, p.Second))];
+                    Crate[] crates = positions is null ? [] : [.. mix.Zip(positions).Select(p => new Crate("Riker", "Titanium", p.First, rack.Id, p.Second.Position, Rotated: p.Second.Rotated))];
                     if (positions is null || CrateLayout.Problems(rack, crates).Count > 0)
                     {
                         failed.Add($"rack {rack.Number}, {order}: {string.Join("+", mix.Select(s => (int)s))}");
@@ -411,7 +411,7 @@ public class CrateLayoutTests
         var laid = CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst)!;
 
         laid.StackingFree.Should().BeTrue();
-        CrateLayout.StackedOn(Rack1, AsCrates(Rack1, crates, laid.Positions)).Should().BeEmpty();
+        CrateLayout.StackedOn(Rack1, AsCrates(Rack1, crates, laid.Poses)).Should().BeEmpty();
     }
 
     [Fact]
@@ -422,7 +422,7 @@ public class CrateLayoutTests
 
         var positions = CrateLayout.Place(Rack1, occupied, Of((CrateSize.Four, "Shubin"), (CrateSize.Four, "Shubin")), FillOrder.BowFirst);
 
-        positions.Should().Equal(new GridPosition(0, 0, 0), new GridPosition(0, 0, 1));
+        positions.Should().Equal(new Pose(new GridPosition(0, 0, 0)), new Pose(new GridPosition(0, 0, 1)));
     }
 
     [Fact]
@@ -434,7 +434,7 @@ public class CrateLayoutTests
         var laid = CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst, maxStackingSearchSteps: 0)!;
 
         (laid.StackingFree, laid.GaveUp, laid.Steps).Should().Be((false, false, 0L));
-        CrateLayout.StackedOn(Rack1, AsCrates(Rack1, crates, laid.Positions)).Should().NotBeEmpty();
+        CrateLayout.StackedOn(Rack1, AsCrates(Rack1, crates, laid.Poses)).Should().NotBeEmpty();
     }
 
     [Fact]
@@ -445,7 +445,7 @@ public class CrateLayoutTests
         var laid = CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst, maxStackingSearchSteps: 1)!;
 
         (laid.StackingFree, laid.GaveUp).Should().Be((false, true));
-        laid.Positions.Should().Equal(CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst, maxStackingSearchSteps: 0)!.Positions);
+        laid.Poses.Should().Equal(CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst, maxStackingSearchSteps: 0)!.Poses);
     }
 
     [Fact]
@@ -715,7 +715,7 @@ public class CrateLayoutTests
         var four = At(CrateSize.Four, 2, 0, 0);
 
         CrateLayout.PlaceWithin(Rack1, four, [CrateSize.Two, CrateSize.Two], FillOrder.BowFirst)
-            .Should().Equal(new GridPosition(2, 0, 0), new GridPosition(2, 1, 0));
+            .Should().Equal(new Pose(new GridPosition(2, 0, 0)), new Pose(new GridPosition(2, 1, 0)));
     }
 
     [Fact]
@@ -725,7 +725,7 @@ public class CrateLayoutTests
         var four = At(CrateSize.Four, 0, 0, 1);
 
         CrateLayout.PlaceWithin(Rack1, four, [CrateSize.Two, CrateSize.Two], FillOrder.BowFirst)
-            .Should().Equal(new GridPosition(0, 0, 1), new GridPosition(0, 1, 1));
+            .Should().Equal(new Pose(new GridPosition(0, 0, 1)), new Pose(new GridPosition(0, 1, 1)));
     }
 
     [Fact]

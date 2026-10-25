@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "asgard",
   "name": "ANVL Asgard",
   "manufacturer": "ANVL",
@@ -13,8 +13,7 @@
       "capacityScu": 180,
       "grid": { "length": 9, "width": 5, "stack": 4 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     }
   ]
 }

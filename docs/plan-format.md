@@ -15,7 +15,7 @@ doesn't mind.
 
 ```json
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
   "contractTrackerWatermark": 37,
@@ -54,7 +54,7 @@ fields are an error.
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `4`. Files with `1`, `2` and `3` are still read, see [Older plan files](#older-plan-files). |
+| `schemaVersion` | number | `5`. Files with `1` to `4` are still read, see [Older plan files](#older-plan-files). |
 | `shipId` | string | The ship the plan is for, e.g. `"hull_a"` ([ship files](ship-format.md)). |
 | `fillOrder` | string | `"bowFirst"` or `"sternFirst"`: which end of a rack's length crates fill from, when planned and when laid out again, e.g. after a move. Chosen as **Fill order** in the editor. Part of the plan, so everyone loading it sees the same layout. |
 | `contractTrackerWatermark` | number | The highest ContractTracker id taken into the plan, `0` for none. Captures above it are new; it only rises. |
@@ -89,12 +89,13 @@ pickup list when items name their pickup.
 |---|---|---|
 | `destination` | string | A destination of its mission, same spelling. |
 | `commodity` | string | The commodity, as in its mission. |
-| `crateSize` | number | 1, 2, 4, 8, 16, 24 or 32 (SCU). Crates are never turned: 1 = 1×1×1 cells, 2 = 2×1×1, 4 = 2×2×1, 8 = 2×2×2, 16 = 4×2×2, 24 = 6×2×2, 32 = 8×2×2 (length × width × stack). |
+| `crateSize` | number | 1, 2, 4, 8, 16, 24 or 32 (SCU). Unturned: 1 = 1×1×1 cells, 2 = 2×1×1, 4 = 2×2×1, 8 = 2×2×2, 16 = 4×2×2, 24 = 6×2×2, 32 = 8×2×2 (length × width × stack). |
 | `rackId` | string | A rack `id` of the ship. |
 | `position` | array | `[length, width, stack]`, the crate's corner cell counted from 0 at the rack's corner: length along the rack, width across it, stack away from the plate. The whole crate must lie inside the rack's `grid`. |
 | `delivered` | boolean | `true` once the stop is ticked off. All crates of a stop are ticked together. A delivered crate is off the ship: its cells are free for new crates, and it carries nothing. Ticking back works until another crate takes one of its cells. |
 | `mission` | number | The `id` of the mission the crate belongs to; not an `unplaced` one. |
 | `item` | number | Which item of its mission the crate belongs to, counted from 0 over the mission's stops and their items in file order. Its destination and commodity are the crate's. Two items of one kind (e.g. from two pickups) keep their own crates. |
+| `rotated` | boolean | Optional, written only as `true`: the crate is turned 90° about its rack's stack axis, so length and width swap (a turned 2 is 1×2×1, a turned 32 is 2×8×2). Only 2, 16, 24 and 32 turn; `true` on a 1, 4 or 8 is an error. Missing means unturned (D71). |
 
 ### Warning
 
@@ -114,7 +115,11 @@ red; the planner and the overlay's moves never make them.
 
 ## Older plan files
 
-All older versions are read and saved as schema 4 right after loading; moves and ticks stay.
+All older versions are read and saved as schema 5 right after loading; moves and ticks stay. An app from before
+schema 5 refuses a schema 5 file, so it never drops how a crate lies.
+
+- **Schema 4** (before crates turned) has no `rotated`: every crate lies unturned. `rotated` in a schema 4 file is an
+  error.
 
 - **Schema 3** (before crates named their item) has crates without `item`. Each mission's crates of one kind
   take its items of that kind in order.
@@ -140,6 +145,14 @@ Without a `ship` in [settings.json](settings-format.md), the overlay takes the p
 
 A schema 1 file for another ship is an error (below): laying out its cargo needs that ship's grid.
 
+## Racks that changed
+
+A crate that lies outside its rack in today's ship file means the racks changed since the file was written: a newer
+app version with updated ship data (for example, the racks of 21 ships went back to Fleetyards' orientation, D71).
+Such a file loads like a plan for another ship: its missions are planned anew, ticks of whole stops stay, positions
+and moves don't, and the amber line says "Plan was made for other racks, replanned for MISC Freelancer.". This holds
+for every schema version.
+
 ## Errors
 
 The overlay never overwrites a plan file it can't read. It starts with the empty ship and shows why in
@@ -149,8 +162,8 @@ an amber line, for example:
 Plan not loaded (Plan file 'C:\Users\you\AppData\Local\SC-CargoPlan\plan.json' is invalid: Crate for Riker is in rack 'rack-9', which ship 'hull_a' doesn't have.). The file stays until you make a new plan.
 ```
 
-A crate outside its rack, a rack the ship doesn't have, a crate of a mission the file doesn't have, or
-crates that don't match their missions are such errors. The file stays as it is until a new plan is saved.
+A rack the ship doesn't have, a crate of a mission the file doesn't have, or crates that don't match their
+missions are such errors. The file stays as it is until a new plan is saved.
 
 ## Loading a plan file at start
 

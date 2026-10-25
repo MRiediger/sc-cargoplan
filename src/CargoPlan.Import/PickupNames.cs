@@ -51,7 +51,7 @@ public static class PickupNames
         })];
 
         return changed
-            ? new(new SavedPlan(missions, saved.Plan, saved.Watermark), [.. names.Distinct(StringComparer.OrdinalIgnoreCase)])
+            ? new(new SavedPlan(missions, saved.Plan, saved.CrateCap, saved.Watermark), [.. names.Distinct(StringComparer.OrdinalIgnoreCase)])
             : new(saved, []);
     }
 }

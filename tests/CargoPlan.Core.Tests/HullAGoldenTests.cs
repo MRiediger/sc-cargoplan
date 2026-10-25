@@ -56,7 +56,7 @@ public class HullAGoldenTests
     private static string Written(string fixture, FillOrder fillOrder)
     {
         var missions = MissionFixtures.LoadMissions(fixture);
-        var saved = SavedPlan.FromStops(missions, LoadPlanner.Plan(HullA, missions.ToStops(), fillOrder));
+        var saved = SavedPlan.FromStops(missions, LoadPlanner.Plan(HullA, missions.ToStops(), fillOrder), CrateCap.Of(HullA));
         using var stream = new MemoryStream();
         PlanFile.Write(stream, saved);
         return Encoding.UTF8.GetString(stream.ToArray()).ReplaceLineEndings("\n");

@@ -19,10 +19,10 @@ public class ReplanInPlaceTests
 
     /// <summary>Each stop a mission of its own, placed one after the other as captures are: the layout grows (D41).</summary>
     private static SavedPlan Grown(params MissionStop[] stops) =>
-        stops.Aggregate(new SavedPlan([], new LoadPlan(HullA.Id, [], [])), (saved, stop) => LoadPlanner.PlaceInto(saved, HullA, [stop]));
+        stops.Aggregate(new SavedPlan([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA)), (saved, stop) => LoadPlanner.PlaceInto(saved, HullA, [stop]));
 
     private static SavedPlan Ticked(SavedPlan saved, string destination) =>
-        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, destination, true), saved.Watermark);
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, destination, true), saved.CrateCap, saved.Watermark);
 
     private static string[] Route(SavedPlan saved) => [.. saved.Stops.Select(s => s.Destination)];
 
@@ -64,7 +64,7 @@ public class ReplanInPlaceTests
     public void Replan_keeps_fill_order_and_watermark()
     {
         var grown = Grown(Stop("Riker", "Titanium", 12, CrateSize.Four), Stop("Shubin", "Quartz", 8, CrateSize.Four));
-        SavedPlan stern = new(grown.Missions, grown.Plan with { FillOrder = FillOrder.SternFirst }, 41);
+        SavedPlan stern = new(grown.Missions, grown.Plan with { FillOrder = FillOrder.SternFirst }, grown.CrateCap, 41);
 
         var after = LoadPlanner.Replan(stern, HullA);
 
@@ -133,7 +133,7 @@ public class ReplanInPlaceTests
     {
         // Two contracts of two destinations each: one destination per rack, every rack half full (D41, D64). The third
         // contract's one 16 finds no whole rack although 32 SCU are free (fragmentation).
-        SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []));
+        SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA));
         var grown = LoadPlanner.PlaceInto(empty, HullA, [Stop("A", "Titanium", 8, CrateSize.Eight), Stop("B", "Quartz", 8, CrateSize.Eight) with { Order = 2 }]);
         grown = LoadPlanner.PlaceInto(grown, HullA, [Stop("C", "Gold", 8, CrateSize.Eight), Stop("D", "Stims", 8, CrateSize.Eight) with { Order = 2 }]);
         grown = LoadPlanner.PlaceInto(grown, HullA, [Stop("E", "Agricium", 16, CrateSize.Sixteen)]);
@@ -164,7 +164,7 @@ public class ReplanInPlaceTests
     public void Replan_of_a_plan_already_laid_out_moves_nothing()
     {
         var stops = MissionFixtures.LoadMissions("hull_a_eight_stops");
-        var canonical = SavedPlan.FromStops(stops, LoadPlanner.Plan(HullA, stops.ToStops()));
+        var canonical = SavedPlan.FromStops(stops, LoadPlanner.Plan(HullA, stops.ToStops()), CrateCap.Of(HullA));
 
         var after = LoadPlanner.Replan(canonical, HullA);
 
@@ -205,7 +205,7 @@ public class ReplanInPlaceTests
             new([Stop("Y", "Quartz", 24, CrateSize.Eight)], new ContractSource([37])),
             new([Stop("Z", "Gold", 16, CrateSize.Sixteen)], new ContractSource([38])),
         ];
-        var synced = ContractSync.Apply(new SavedPlan([], new LoadPlan(HullA.Id, [], [])), HullA, captures, null);
+        var synced = ContractSync.Apply(new SavedPlan([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA)), HullA, captures, null);
 
         var replanned = LoadPlanner.Replan(synced, HullA);
         var again = ContractSync.Apply(replanned, HullA, captures, new HashSet<long>([36, 37, 38]));

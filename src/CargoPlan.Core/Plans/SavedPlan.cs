@@ -9,12 +9,14 @@ namespace CargoPlan.Core.Plans;
 /// it can't be planned again from the missions, so both are kept together (D18). The missions are kept as entered
 /// (SCU, max crate size, override), so the editor shows them as typed (D23); every crate names its mission (D42).
 /// </summary>
+/// <param name="CrateCap">The cap the derived mixes on board were split under: the ship's (<see cref="CrateCap.Of(Ship)"/>,
+/// D70). Not stored in the file; the reader takes it from the ship. No default, so no way into a plan forgets it.</param>
 /// <param name="Watermark">The highest ContractTracker id taken into the plan (D39 addendum); 0 = none yet.</param>
-public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, long Watermark = 0)
+public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, CrateCap CrateCap, long Watermark = 0)
 {
     // Get-only (no init): a `with` expression skips the constructor and must not bypass validation.
     public IReadOnlyList<Mission> Missions { get; } = ValidatedMissions(Missions);
-    public LoadPlan Plan { get; } = Validated(Missions, Plan);
+    public LoadPlan Plan { get; } = Validated(Missions, Plan, CrateCap);
     public long Watermark { get; } =
         Watermark >= 0 ? Watermark : throw new ArgumentOutOfRangeException(nameof(Watermark), Watermark, "The watermark is 0 or more.");
 
@@ -36,6 +38,9 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, l
         }
     }
 
+    /// <summary>True if a derived mix is split into smaller crates than its contract allows, for the overlay's notice (D70).</summary>
+    public bool CratesCapped => Missions.SelectMany(m => m.Items).Any(at => at.Item.CappedBy(CrateCap));
+
     /// <summary>The id the next mission gets: one above the highest, so an id is never reused within a plan.</summary>
     public int NextMissionId => Missions.Count == 0 ? 1 : Missions.Max(m => m.Id) + 1;
 
@@ -49,24 +54,24 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, l
     /// plan made from a route alone.
     /// </summary>
     /// <exception cref="ArgumentException">The plan doesn't fit the stops (see the constructor).</exception>
-    public static SavedPlan FromStops(IReadOnlyList<MissionStop> stops, LoadPlan plan, long watermark = 0)
+    public static SavedPlan FromStops(IReadOnlyList<MissionStop> stops, LoadPlan plan, CrateCap cap, long watermark = 0)
     {
         Mission[] missions = [.. stops.OrderBy(s => s.Order).Select((s, index) => new Mission(index + 1, [s with { Order = 1 }]))];
         var idOf = missions.ToDictionary(m => m.Stops[0].Destination, m => m.Id);
         Crate[] owned = [.. plan.Crates.Select(c => c with { Mission = idOf.GetValueOrDefault(c.Destination) })];
-        return new SavedPlan(missions, plan with { Crates = WithItems(missions, owned, _ => false) }, watermark);
+        return new SavedPlan(missions, plan with { Crates = WithItems(missions, owned, _ => false, cap) }, cap, watermark);
     }
 
     /// <summary>
     /// The crates with their items (D68): each keeps its mission, those <paramref name="keep"/> picks keep their item too,
     /// the others take the items of their mission still free for their kind (destination, commodity, crate size), in item
     /// order and plan order. Which of two equal crates gets which item is no choice the game knows of (D38). A crate with
-    /// no item left keeps its index, and the constructor names the mismatch.
+    /// no item left keeps its index, and the constructor names the mismatch. Derived mixes are split up to <paramref name="cap"/>.
     /// </summary>
-    internal static IReadOnlyList<Crate> WithItems(IReadOnlyList<Mission> missions, IReadOnlyList<Crate> crates, Func<Crate, bool> keep)
+    internal static IReadOnlyList<Crate> WithItems(IReadOnlyList<Mission> missions, IReadOnlyList<Crate> crates, Func<Crate, bool> keep, CrateCap cap)
     {
         var free = missions
-            .SelectMany(m => m.Items.SelectMany((at, index) => at.Item.CrateList.Select(size =>
+            .SelectMany(m => m.Items.SelectMany((at, index) => at.Item.CrateListUnder(cap).Select(size =>
                 (Key: (m.Id, at.Stop.Destination, at.Item.Commodity, size), Index: index))))
             .GroupBy(s => s.Key)
             .ToDictionary(g => g.Key, g => g.Select(s => s.Index).ToList());
@@ -110,9 +115,10 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, l
     /// The crates of every placed mission are the crates of its expanded items (D23, D24): per item (D68) and crate size
     /// the same number, every crate naming an item of its destination and commodity; an unplaced mission has none (D41). Moving and ticking never change that, split and
     /// merge change crates and missions together (D27), so a pair that fails here was made from other missions or edited
-    /// by hand. Where the crates lie needs the ship and is checked on reading (PlanFile).
+    /// by hand. Where the crates lie needs the ship and is checked on reading (PlanFile). A derived mix is the one split up
+    /// to <paramref name="cap"/> (D70).
     /// </summary>
-    private static LoadPlan Validated(IReadOnlyList<Mission> missions, LoadPlan plan)
+    private static LoadPlan Validated(IReadOnlyList<Mission> missions, LoadPlan plan, CrateCap cap)
     {
         var byId = missions.ToDictionary(m => m.Id);
         foreach (var crate in plan.Crates)
@@ -152,7 +158,7 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, l
 
         // Per contract item (D68): an item's crates are its crate list, and no crate counts for another item of its kind.
         var needed = missions.Where(m => !m.Unplaced)
-            .SelectMany(m => m.Items.SelectMany((at, index) => at.Item.CrateList.Select(size =>
+            .SelectMany(m => m.Items.SelectMany((at, index) => at.Item.CrateListUnder(cap).Select(size =>
                 (m.Id, Item: index, at.Stop.Destination, at.Item.Commodity, Size: size))))
             .GroupBy(key => key)
             .ToDictionary(g => g.Key, g => g.Count());

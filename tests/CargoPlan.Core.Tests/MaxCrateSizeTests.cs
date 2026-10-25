@@ -27,7 +27,7 @@ public class MaxCrateSizeTests
     private static MissionStop Stop(string destination, int scu, CrateSize max, params CrateSize[] crates) =>
         new(destination, 1, [new MissionItem("Titanium", scu, max, crates.Length == 0 ? null : crates)]);
 
-    private static SavedPlan Planned(Ship ship, MissionStop stop) => SavedPlan.FromStops([stop], LoadPlanner.Plan(ship, [stop.ToStop()]));
+    private static SavedPlan Planned(Ship ship, MissionStop stop) => SavedPlan.FromStops([stop], LoadPlanner.Plan(ship, [stop.ToStop()]), CrateCap.Of(ship));
 
     [Theory]
     [InlineData(CrateSize.One, true)]
@@ -53,7 +53,7 @@ public class MaxCrateSizeTests
         var act = () => LoadPlanner.Plan(LimitedShip, [Stop("Riker", 32, CrateSize.ThirtyTwo).ToStop()]);
 
         act.Should().Throw<PlanException>().Which.Message.Should().Be(
-            "32 SCU crate of Titanium for Riker doesn't fit any rack of limited (racks take crates up to 16 SCU).");
+            "32 SCU crate of Titanium for Riker doesn't fit any rack of limited (door limit 16 SCU).");
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public class MaxCrateSizeTests
     [Fact]
     public void PlaceInto_puts_a_32_into_the_rack_without_a_limit()
     {
-        var saved = LoadPlanner.PlaceInto(new SavedPlan([], new LoadPlan(Mixed.Id, [], [])), Mixed, [Stop("Riker", 32, CrateSize.ThirtyTwo)]);
+        var saved = LoadPlanner.PlaceInto(new SavedPlan([], new LoadPlan(Mixed.Id, [], []), CrateCap.Of(Mixed)), Mixed, [Stop("Riker", 32, CrateSize.ThirtyTwo)]);
 
         saved.Plan.Crates.Should().ContainSingle().Which.RackId.Should().Be("rack-1");
     }
@@ -92,7 +92,7 @@ public class MaxCrateSizeTests
 
         outcome.Stage.Should().Be(MoveStage.Elsewhere);
         outcome.Plan!.Crates.Should().Equal(plan.Crates);
-        outcome.Notices.Should().Equal("No room in rack 1 – placed in rack 2");
+        outcome.Notices.Should().Equal("Rack 1: door limit 16 SCU – placed in rack 2");
     }
 
     [Fact]
@@ -100,6 +100,53 @@ public class MaxCrateSizeTests
     {
         var saved = Planned(LimitedShip, Stop("Riker", 32, CrateSize.ThirtyTwo, CrateSize.Sixteen, CrateSize.Sixteen));
 
-        LoadPlanner.MergeProblem(saved, LimitedShip, saved.Plan.Crates).Should().Be("Rack 1 takes crates up to 16 SCU.");
+        LoadPlanner.MergeProblem(saved, LimitedShip, saved.Plan.Crates).Should().Be("Rack 1: door limit 16 SCU.");
+    }
+
+    /// <summary>
+    /// Rack 1 (2×2×2) full with Riker's 8, rack 2 (4×2×2, door <paramref name="door"/>) with Shubin's four 2s in one half,
+    /// its other half free: an 8 fits there by the grid.
+    /// </summary>
+    private static (Ship Ship, LoadPlan Plan) FullRackNextToADoor(CrateSize? door)
+    {
+        Ship ship = new("door", "Door test ship", 24,
+        [
+            new Rack("rack-0", 0, 8, new Dimensions(2, 2, 2), null, new ShipPoint(0, 0, 0)),
+            new Rack("rack-1", 1, 16, new Dimensions(4, 2, 2), null, new ShipPoint(4, 0, 0), StackAxis.PlusZ, door),
+        ]);
+        GridPosition[] shubin = [new(0, 0, 0), new(0, 1, 0), new(0, 0, 1), new(0, 1, 1)];
+        LoadPlan plan = new(ship.Id,
+        [
+            new Crate("Riker", "Titanium", CrateSize.Eight, "rack-0", new GridPosition(0, 0, 0)),
+            .. shubin.Select(p => new Crate("Shubin", "Stims", CrateSize.Two, "rack-1", p)),
+        ], []);
+        return (ship, plan);
+    }
+
+    // Stage 3b displaces only where the displaced crate may go: a door that refuses it keeps it where it is (D70).
+    [Fact]
+    public void Displacing_never_puts_a_crate_behind_a_door_that_refuses_it()
+    {
+        var (ship, plan) = FullRackNextToADoor(CrateSize.Two);
+        var top = plan.Crates.Single(c => c.Destination == "Shubin" && c.Position == new GridPosition(0, 0, 1));
+
+        var outcome = LoadPlanner.ResolveMove(plan, ship, [new CrateMove(top, "rack-0", new GridPosition(0, 0, 0))]);
+
+        outcome.Stage.Should().Be(MoveStage.Elsewhere);
+        outcome.Plan!.Crates.Single(c => c.Destination == "Riker").RackId.Should().Be("rack-0");
+        outcome.Plan.Crates.Where(c => c.RackId == "rack-1").Should().OnlyContain(c => c.CrateSize <= CrateSize.Two);
+    }
+
+    // The same move without the door: the 8 is displaced into rack 2's free half, so the door above is what stops it.
+    [Fact]
+    public void Without_the_door_the_same_move_displaces_the_8()
+    {
+        var (ship, plan) = FullRackNextToADoor(null);
+        var top = plan.Crates.Single(c => c.Destination == "Shubin" && c.Position == new GridPosition(0, 0, 1));
+
+        var outcome = LoadPlanner.ResolveMove(plan, ship, [new CrateMove(top, "rack-0", new GridPosition(0, 0, 0))]);
+
+        outcome.Stage.Should().Be(MoveStage.Displace);
+        outcome.Plan!.Crates.Single(c => c.Destination == "Riker").RackId.Should().Be("rack-1");
     }
 }

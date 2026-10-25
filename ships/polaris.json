@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "polaris",
   "name": "RSI Polaris",
   "manufacturer": "RSI",
@@ -13,16 +13,14 @@
       "capacityScu": 288,
       "grid": { "length": 12, "width": 6, "stack": 4 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 288,
       "grid": { "length": 12, "width": 6, "stack": 4 },
       "origin": [-13, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     }
   ]
 }

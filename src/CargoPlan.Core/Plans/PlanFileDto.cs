@@ -7,9 +7,10 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Plans;
 
 /// <summary>
-/// File format of a plan file (schema version 4, docs/plan-format.md): the missions with their stops and where they came
-/// from (D42), every crate with its mission and item (D68), rack and position (D24), and the ContractTracker watermark
-/// (D39 addendum). Schema 3 is the same without items: read, each crate given an item of its mission on reading.
+/// File format of a plan file (schema version 5, docs/plan-format.md): the missions with their stops and where they came
+/// from (D42), every crate with its mission and item (D68), rack, position (D24) and whether it is turned (D71), and the
+/// ContractTracker watermark (D39 addendum). Schema 4 is the same without turned crates; schema 3 also without items:
+/// read, each crate given an item of its mission on reading.
 /// </summary>
 internal sealed record PlanFileDto(
     int SchemaVersion,
@@ -28,14 +29,54 @@ internal sealed record PlanFileDto(
     {
         Mission[] missions = [.. Missions.Select(m => m.ToMission())];
         CheckItems(Crates, SchemaVersion);
-        IReadOnlyList<Crate> crates = [.. Crates.Select(c => c.ToCrate())];
-        if (SchemaVersion == PlanFile.ItemlessSchemaVersion)
+        CheckRotated(Crates, SchemaVersion);
+        Crate[] crates = [.. Crates.Select(c => c.ToCrate())];
+        var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], ParseFillOrder(FillOrder)), ship);
+
+        return UnderCap(ship, cap => new SavedPlan(
+            missions,
+            SchemaVersion == PlanFile.ItemlessSchemaVersion ? plan with { Crates = SavedPlan.WithItems(missions, crates, _ => false, cap) } : plan,
+            cap,
+            ContractTrackerWatermark), racksChanged);
+    }
+
+    /// <summary>
+    /// The saved plan under the ship's cap (D70). A file whose derived mixes were split under another cap, or with a crate
+    /// on board the ship's racks don't take (saved before D70 or K3.3, or on another ship), gets the largest cap its crates
+    /// fit, as <see cref="CapReason.Saved"/>, and the overlay plans it anew (<c>LoadPlanner.Replan</c>). The cap isn't
+    /// stored: the file stays what it was. Without such a cap it is read under the ship's own, its crates shown red.
+    /// With <paramref name="racksChanged"/> (a crate outside today's rack, K3.2) every cap tried says
+    /// <see cref="CapReason.RacksChanged"/>, so the overlay plans the file anew whichever sizes it fits.
+    /// </summary>
+    /// <exception cref="ArgumentException">The plan doesn't fit its missions under any cap; the ship's reason is named.</exception>
+    internal static SavedPlan UnderCap(Ship ship, Func<CrateCap, SavedPlan> make, bool racksChanged = false)
+    {
+        var own = CrateCap.Of(ship);
+        CrateCap[] all = [own, .. Enum.GetValues<CrateSize>().OrderDescending().Select(s => new CrateCap(s, CapReason.Saved)).Where(c => c != own)];
+        CrateCap[] caps = racksChanged ? [.. all.Select(c => c.Because(CapReason.RacksChanged)).Distinct()] : all;
+        ArgumentException? first = null;
+        SavedPlan? refused = null;
+        foreach (var cap in caps)
         {
-            crates = SavedPlan.WithItems(missions, crates, _ => false);
+            try
+            {
+                var saved = make(cap);
+                if (saved.Plan.Crates.All(c => c.Delivered || cap.Accepts(c.CrateSize)))
+                {
+                    return saved;
+                }
+
+                // A crate on board the ship's racks don't take (a minimum, K3.3): kept only for when no other cap fits.
+                refused ??= saved;
+            }
+            catch (ArgumentException ex)
+            {
+                // Another cap may fit; if none does, the ship's own reason is the one to name.
+                first ??= ex;
+            }
         }
 
-        LoadPlan plan = new(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], ParseFillOrder(FillOrder));
-        return new SavedPlan(missions, Checked(plan, ship), ContractTrackerWatermark);
+        return refused ?? throw first!;
     }
 
     public static PlanFileDto FromSavedPlan(SavedPlan saved) => new(
@@ -48,18 +89,20 @@ internal sealed record PlanFileDto(
         [.. saved.Plan.Warnings.Select(PlanWarningDto.FromPlanWarning)]);
 
     /// <summary>
-    /// The checks every schema version shares: racks, crates inside their grid (D24). Overlap and crates without
-    /// support load; <c>LoadPlanner.Validate</c> shows them red. The hints are derived anew from the crates, positions and
-    /// ticks stay (D64). The missions are the caller's, via <see cref="SavedPlan"/>.
+    /// The checks every schema version shares: racks (D24). Overlap and crates without support load;
+    /// <c>LoadPlanner.Validate</c> shows them red. The hints are derived anew from the crates, positions and ticks stay
+    /// (D64). The missions are the caller's, via <see cref="SavedPlan"/>.
     /// A plan for another ship skips the grid: its racks are another ship's, and the overlay plans it anew from its
-    /// missions (<c>LoadPlanner.Replan</c>, D59).
+    /// missions (<c>LoadPlanner.Replan</c>, D59). A crate outside its rack means the racks changed since the file was
+    /// written (K3.2: the turned racks went back to Fleetyards' orientation; any ship data update can do it), whatever the
+    /// schema: <paramref name="plan"/> as it is with <c>RacksChanged</c>, planned anew like another ship's.
     /// </summary>
-    /// <exception cref="ArgumentException">The plan doesn't fit the ship.</exception>
-    internal static LoadPlan Checked(LoadPlan plan, Ship ship)
+    /// <exception cref="ArgumentException">The plan names a rack the ship doesn't have.</exception>
+    internal static (LoadPlan Plan, bool RacksChanged) Checked(LoadPlan plan, Ship ship)
     {
         if (plan.ShipId != ship.Id)
         {
-            return plan;
+            return (plan, false);
         }
 
         var racks = ship.Racks.ToDictionary(r => r.Id);
@@ -75,32 +118,41 @@ internal sealed record PlanFileDto(
                 $"Warning \"{warning.Message}\" is for rack '{warning.RackId}', which ship '{ship.Id}' doesn't have.", nameof(Warnings));
         }
 
-        // A crate outside its rack can't be drawn or moved: a file with one is broken, not red.
-        if (plan.Crates.FirstOrDefault(c => !CrateLayout.Fits(racks[c.RackId], c)) is { } outside)
+        // A crate outside its rack can't be drawn or moved; its racks changed, so the overlay plans the missions anew.
+        if (plan.Crates.Any(c => !CrateLayout.Fits(racks[c.RackId], c)))
         {
-            var rack = racks[outside.RackId];
-            throw new ArgumentException(Invariant(
-                $"{(int)outside.CrateSize} SCU crate of {outside.Commodity} for {outside.Destination} at {outside.Position} lies outside rack {rack.Number} ({rack.Grid})."),
-                nameof(Crates));
+            return (plan, true);
         }
 
         // Hints are derived anew: a plan from before D64 loses its route notes and shows what sits on what.
-        return LoadPlanner.WithHints(plan, ship);
+        return (LoadPlanner.WithHints(plan, ship), false);
     }
 
-    /// <summary>Every crate of schema 4 names its item; before schema 4 none does (D68).</summary>
+    /// <summary>Every crate from schema 4 on names its item; before schema 4 none does (D68).</summary>
     /// <exception cref="ArgumentException">A crate breaks that.</exception>
     internal static void CheckItems(IReadOnlyList<CrateDto> crates, int schemaVersion)
     {
-        if (schemaVersion >= PlanFile.SupportedSchemaVersion && crates.FirstOrDefault(c => c.Item is null) is { } without)
+        const int withItems = PlanFile.ItemlessSchemaVersion + 1;
+        if (schemaVersion >= withItems && crates.FirstOrDefault(c => c.Item is null) is { } without)
         {
             throw new ArgumentException(Invariant($"A crate for '{without.Destination}' has no item, which schema {schemaVersion} requires."), nameof(Crates));
         }
 
-        if (schemaVersion < PlanFile.SupportedSchemaVersion && crates.FirstOrDefault(c => c.Item is not null) is { } named)
+        if (schemaVersion < withItems && crates.FirstOrDefault(c => c.Item is not null) is { } named)
         {
             throw new ArgumentException(Invariant(
-                $"A crate for '{named.Destination}' names an item, which is new in schema {PlanFile.SupportedSchemaVersion} (the file says {schemaVersion})."), nameof(Crates));
+                $"A crate for '{named.Destination}' names an item, which is new in schema {withItems} (the file says {schemaVersion})."), nameof(Crates));
+        }
+    }
+
+    /// <summary>Before schema 5 no crate turns (D71); a <c>rotated</c> there is a file from elsewhere.</summary>
+    /// <exception cref="ArgumentException">A crate breaks that.</exception>
+    internal static void CheckRotated(IReadOnlyList<CrateDto> crates, int schemaVersion)
+    {
+        if (schemaVersion <= PlanFile.UnrotatedSchemaVersion && crates.FirstOrDefault(c => c.Rotated is not null) is { } turned)
+        {
+            throw new ArgumentException(Invariant(
+                $"A crate for '{turned.Destination}' says rotated, which is new in schema {PlanFile.SupportedSchemaVersion} (the file says {schemaVersion})."), nameof(Crates));
         }
     }
 

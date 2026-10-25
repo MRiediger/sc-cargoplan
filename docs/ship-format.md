@@ -14,7 +14,7 @@ reported (the CLI prints it, the app will show it with the ship selection). With
 
 ```json
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "hull_a",
   "name": "MISC Hull A",
   "manufacturer": "MISC",
@@ -53,7 +53,7 @@ being ignored silently.
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | Must be `4`. Bumped only when the format changes incompatibly; older files are rejected with the version they have and the one expected. |
+| `schemaVersion` | number | Must be `5`; `4` is still read, the same way. Bumped when the format changes incompatibly or a field changes its meaning (5: `maxCrateSize` is the door limit, D70); older files are rejected with the version they have and the ones expected. |
 | `id` | string | Must equal the file name without `.json` (`hull_a.json` → `"hull_a"`). Use lowercase `snake_case`: Linux file systems are case-sensitive. |
 | `name` | string | Display name, e.g. `"MISC Hull A"`. |
 | `manufacturer` | string | *Optional.* Manufacturer code as Fleetyards writes it, e.g. `"MISC"`, `"RSI"`; ships are grouped by it. Not empty if present. |
@@ -75,21 +75,38 @@ A rack is a separately loadable section of the cargo hold, usually one plate.
 | `position` | object | *Optional.* Where the rack sits in player words ("port upper"), see below. Shown in the crate tooltip, not used for planning. Leave it out where it isn't known: a ship draft with a generated rack arrangement has none, and the tooltip then skips it. |
 | `origin` | array | Where the rack sits in ship coordinates: `[x, y, z]`, three whole numbers, see [Coordinates](#coordinates). Used to draw the ship, not for planning. Racks must not overlap. |
 | `stackAxis` | string | The ship direction crates stack in, away from the plate: `"+x"`, `"-x"`, `"+y"`, `"-y"`, `"+z"` or `"-z"`, see [Stack axis](#stack-axis). |
-| `maxCrateSize` | number | *Optional.* The largest crate the game lets onto this rack, in SCU: `1`, `2`, `4`, `8`, `16`, `24` or `32`. Left out, the grid alone decides. See [Max crate size](#max-crate-size). |
+| `maxCrateSize` | number | *Optional.* The door limit: the largest crate that gets through the rack's door, in SCU (`1`, `2`, `4`, `8`, `16`, `24` or `32`), where that is less than the grid takes. Left out, the grid alone decides. See [Max crate size](#max-crate-size). |
+| `minCrateSize` | number | *Optional.* The smallest crate the rack takes, in SCU, where that is more than 1 (the Hull C's spindle: `32`). Left out, any crate the grid and `maxCrateSize` allow. See [Min crate size](#min-crate-size). |
 
 ### Max crate size
 
-The grid says which crates fit by shape; the game may allow less. For a rack of 8×2×2 cells that takes crates up to
-16 SCU, although a 32 SCU crate (8×2×2) would fit, write `"maxCrateSize": 16`. Fleetyards lists the value as
-`maxContainerSize`; for every shipped ship it equals the largest crate the grid takes (D57), so today it limits
-nothing. The planner never puts a larger crate into the rack, a move puts such a crate into another rack instead, and a
-merge that would make one is refused.
+The grid says which crates fit by shape; the rack's door may let less through (D70). The Clipper's hold is 3×2×2 cells
+and takes an 8 SCU crate by shape, but its door only crates up to 2 SCU: `"maxCrateSize": 2`. The planner never puts a
+larger crate into the rack. A mix it derives from a contract is split up to the largest crate any rack of the ship
+takes, so on the Clipper an 8 SCU contract becomes four 2 SCU crates, and the overlay says "crates capped to 2 SCU
+(door limit)". A mix the player set in the editor stays as typed; if no rack takes one of its crates, the mission
+waits with "no rack accepts 4 SCU crates, door limit 2 SCU". A move puts a crate the door refuses into another rack,
+saying "Rack 1: door limit 2 SCU – placed in rack 2", and a merge that would make one is refused.
 
-By hand, set it only where it limits something the grid would allow, and only from a source: a value the grid already
-enforces says nothing new and would look like a measurement. That is why `hull_a.json` has none: its 4×2×2 racks take
-no crate above 16 SCU by shape, and the game's limit there is not measured. Ships imported from Fleetyards carry its
-value on every rack: the source is named in `source`, and a limit the grid enforces today may matter once a crate
-shape changes.
+The value comes from Fleetyards' `cargoHolds[].limits.max.capacity` (index of 25 Oct 2026). It is written only where the
+door takes less than the grid; a test checks that every shipped value limits something, and a value the grid enforces
+anyway is left out (`hull_a.json` has none). Values above 32, the largest crate the app knows, count as 32. A 1 on a grid
+that takes more is not written: it is the one value that can also be a default, so it stays unverified until Fleetyards
+confirms it (list in TASKS.md, K3.1). By hand, set it only from a source and name it in `notes`.
+
+Schema 4 called the same field "the game's limit on top of the grid" and read it the same way, so a schema 4 file loads
+unchanged; schema 5 marks the meaning.
+
+### Min crate size
+
+Some racks take only large crates: the Hull C's spindle takes 32 SCU crates only, the MPUV Tractor's rack 16s, the
+CSV-SM's 4s (Fleetyards' `limits.min.capacity`, index of 25 Oct 2026). `"minCrateSize": 32` says so; it must be a crate
+the rack takes (no larger than `maxCrateSize` and fitting the grid), else the file doesn't load. The planner never puts a
+smaller crate into the rack and never rounds a contract up: the kiosk delivers nothing above the contract's max. A
+contract whose crates the ship can't take waits with "doesn't fit (ship takes 32 SCU crates only)", also when only a rest
+is too small (40 SCU at max 32 is 32 + 8 on the Hull C). A move past such a rack says "Rack 1: takes 32 SCU crates
+only – placed in rack 2", and a split below the minimum is refused. The import writes values above 1 only; 0 counts as
+none, values above 32 as 32.
 
 ### Grid
 
@@ -194,20 +211,24 @@ patch:
    export and writes nothing. Each ship is listed as `same`, `new`, `different` (with the file's and Fleetyards' value)
    or `skipped` (no cargo grid). Exit code 0 means in sync, 1 a difference or a new ship, 2 an error.
 3. **Check the differences:** add new ships with `-Create`. For a changed ship, look at the patch notes or in game, then
-   take Fleetyards' values with `-Force <id>`. That rewrites the grid data only (grid, `capacityScu`,
-   `maxCrateSize`, `totalScu`, `source`); `origin`, `stackAxis`, `position`, rack order and `notes` are hand work and
+   take Fleetyards' values with `-Force <id>`. That rewrites the grid data only (grid, `capacityScu`, `totalScu`,
+   `source`); `origin`, `stackAxis`, `position`, rack order, `notes` and door limits (`maxCrateSize`) are hand work and
    stay. `hull_a.json` is never written.
 4. **Commit:** run `dotnet test` (every file must load), then commit the changed files with the export date.
 
 What the import does: the id is the Fleetyards slug without the manufacturer code (`crus-c2-hercules` →
-`c2_hercules`), cells are metres divided by 1.25, `length` is the longer horizontal side (crates don't turn, a turned
-rack is named in `notes`). Fleetyards' rack offsets are used when every rack has one, none overlap and none is
-turned, with `position` derived from them; otherwise the racks get a generated row, Rack 1 at the bow and one cell
+`c2_hercules`), cells are metres divided by 1.25, `length` is Fleetyards' y (along the ship) and `width` its x: the
+rack lies as Fleetyards gives it, and crates turn to fit (D71). Fleetyards' rack offsets are used when every rack has
+one and none overlap, with `position` derived from them; otherwise the racks get a generated row, Rack 1 at the bow and one cell
 between racks, and no `position`. Racks that take nothing above 2 SCU (ladders, walkways) go last.
+The door limit comes from `limits.max.capacity` as described in [Max crate size](#max-crate-size); `maxContainerSize`
+isn't read. `-Create` writes it, the compare reports a door the file lacks or holds otherwise, and `-Force` adds a
+missing one but never overwrites one already in the file. Racks whose `limits.max.capacity` is an unverified 1 are named
+after the ship's line ("limits.max 1 unverified: rack-0") without counting as a difference.
 
 ## Crate sizes
 
-Crates have a fixed shape in cells (length × width × stack) and are never turned:
+Crates have a shape in cells (length × width × stack). Turned 90° about the rack's stack axis, length and width swap (D71); a 1, 4 or 8 looks the same either way:
 
 | SCU | Shape |
 |---|---|
@@ -219,9 +240,10 @@ Crates have a fixed shape in cells (length × width × stack) and are never turn
 | 24 | 6×2×2 |
 | 32 | 8×2×2 |
 
-A crate fits a rack if each of its three sides fits the grid and it is no larger than the rack's
-[`maxCrateSize`](#max-crate-size). The planner rejects a mission with a
-crate that fits no rack of the ship. It does not pack crates in 3D: for the Hull A, any mix of crates up
+A crate fits a rack if each of its three sides fits the grid, turned or not, and it is no larger than the rack's
+[`maxCrateSize`](#max-crate-size). A mix the planner derives is split up to the largest crate any rack takes (D70): a
+32 SCU contract on the Hull A becomes two 16 SCU crates, "crates capped to 16 SCU (largest rack)". The planner rejects
+a set mix with a crate that fits no rack of the ship. It does not pack crates in 3D: for the Hull A, any mix of crates up
 to the rack capacity fits (see [D9](decisions.md)). If a new ship's grid breaks that, open an issue.
 
 ### Adding a crate size
@@ -240,13 +262,13 @@ use it automatically.
 ## Checklist for a new ship PR
 
 - [ ] File is `ships/<id>.json`, lowercase `snake_case`, and `id` inside matches.
-- [ ] `schemaVersion` is `4`.
+- [ ] `schemaVersion` is `5`.
 - [ ] Rack capacities add up to `totalScu`, and each rack's `length × width × stack` equals its `capacityScu`.
 - [ ] Racks are listed **in rack order** (the order to fill them), each with its `origin` and, where known, its `position`.
 - [ ] Racks don't overlap, and `origin` agrees with `position` if given (port = positive y, upper = higher z).
 - [ ] Each rack's `stackAxis` points away from its plate, as in the game.
 - [ ] Values measured in game (current patch named in the PR description), or their source named in `source`.
-- [ ] `maxCrateSize` only where the game allows less than the grid, with its source.
+- [ ] `maxCrateSize` only where the door takes less than the grid, `minCrateSize` only above 1, both with their source.
 - [ ] `dotnet test` passes. The test `Every_shipped_ship_loads` loads every ship file and reports the
       exact problem (file name, field, value) if something is wrong; `LoadAll_loads_every_shipped_file_without_problems`
       fails if any file in `ships/` would be skipped.

@@ -121,6 +121,54 @@ public class ShipLoaderTests
         ship.Id.Should().Be(shipId);
     }
 
+    // A rack's minimum (K3.3): the Hull C's spindle takes 32s only, the MPUV Tractor 16s, the CSV-SM 4s (Fleetyards limits.min).
+    [Fact]
+    public void Exactly_three_shipped_ships_have_a_minimum()
+    {
+        ShipLoader.LoadAll().Ships.Where(s => s.Racks.Any(r => r.MinCrateSize is not null)).Select(s => s.Id)
+            .Should().Equal("csv_sm", "hull_c", "mpuv_tractor");
+    }
+
+    [Theory]
+    [MemberData(nameof(ShippedShipIds))]
+    public void A_shipped_minimum_is_one_the_rack_takes(string shipId)
+    {
+        foreach (var rack in ShipLoader.Load(shipId).Racks.Where(r => r.MinCrateSize is not null))
+        {
+            rack.CanHold(rack.MinCrateSize!.Value).Should().BeTrue($"rack {rack.Number} of {shipId} has minCrateSize {(int)rack.MinCrateSize}");
+        }
+    }
+
+    [Fact]
+    public void Load_reads_the_minimum_and_without_one_every_size_counts()
+    {
+        var rack = TestShips.Load("min_crate_size").Racks.Single();
+
+        rack.MinCrateSize.Should().Be(CrateSize.Sixteen);
+        (rack.CanHold(CrateSize.Eight), rack.CanHold(CrateSize.Sixteen)).Should().Be((false, true));
+        TestShips.Load("max_crate_size").Racks.Should().OnlyContain(r => r.MinCrateSize == null && r.CanHold(CrateSize.One));
+    }
+
+    // Schema 5 marks maxCrateSize as a door limit (D70); the shipped files say so, schema 4 stays readable.
+    [Theory]
+    [MemberData(nameof(ShippedShipIds))]
+    public void A_shipped_file_is_schema_5(string shipId)
+    {
+        File.ReadAllText(System.IO.Path.Combine(ShipLoader.DefaultFolder, shipId + ".json")).Should().Contain("\"schemaVersion\": 5,");
+    }
+
+    // maxCrateSize is a door smaller than the grid (D70): a value the grid enforces anyway says nothing and is left out.
+    [Theory]
+    [MemberData(nameof(ShippedShipIds))]
+    public void A_shipped_max_crate_size_is_below_what_the_grid_takes(string shipId)
+    {
+        foreach (var rack in ShipLoader.Load(shipId).Racks.Where(r => r.MaxCrateSize is not null))
+        {
+            var gridTakes = (int)Enum.GetValues<CrateSize>().Where(rack.FitsGrid).Max();
+            gridTakes.Should().BeGreaterThan((int)rack.MaxCrateSize!.Value, $"rack {rack.Number} of {shipId} has maxCrateSize {(int)rack.MaxCrateSize}");
+        }
+    }
+
     [Fact]
     public void Load_unknown_id_throws_ShipNotFoundException_listing_available_ids()
     {
@@ -289,7 +337,7 @@ public class ShipLoaderTests
     [InlineData("missing_property")]        // no "name"
     [InlineData("null_name")]               // "name": null
     [InlineData("id_mismatch")]             // "id" differs from file name
-    [InlineData("unsupported_schema")]      // "schemaVersion": 5
+    [InlineData("unsupported_schema")]      // "schemaVersion": 6
     [InlineData("previous_schema")]         // "schemaVersion": 3, no "stackAxis"
     [InlineData("old_schema")]              // "schemaVersion": 2, no "origin"
     [InlineData("missing_schema")]          // no "schemaVersion"
@@ -305,6 +353,8 @@ public class ShipLoaderTests
     [InlineData("unknown_side")]            // "side": "left"
     [InlineData("unknown_level")]           // "level": "middle"
     [InlineData("max_crate_size_invalid")]  // "maxCrateSize": 12
+    [InlineData("min_crate_size_above_max")]   // "minCrateSize": 16, "maxCrateSize": 8
+    [InlineData("min_crate_size_above_grid")]  // "minCrateSize": 16 on a 2x2x2 grid
     [InlineData("blank_manufacturer")]      // "manufacturer": " "
     public void Load_invalid_ship_throws_ShipFormatException_naming_the_file(string shipId)
     {
@@ -330,12 +380,12 @@ public class ShipLoaderTests
     {
         var act = () => TestShips.Load("unsupported_schema");
 
-        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 5*");
+        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 6*expected 4 or 5*");
     }
 
     [Theory]
-    [InlineData("previous_schema", "*schemaVersion 3*expected 4*")]
-    [InlineData("old_schema", "*schemaVersion 2*expected 4*")]
+    [InlineData("previous_schema", "*schemaVersion 3*expected 4 or 5*")]
+    [InlineData("old_schema", "*schemaVersion 2*expected 4 or 5*")]
     public void Load_old_schema_names_version_and_expected_version(string shipId, string expectedMessage)
     {
         var act = () => TestShips.Load(shipId);
@@ -415,6 +465,20 @@ public class ShipLoaderTests
         ship.Racks.Select(r => r.MaxCrateSize).Should().Equal(CrateSize.Sixteen, null);
         (ship.Manufacturer, ship.FleetyardsSlug, ship.Source, ship.Notes)
             .Should().Be(("RSI", "test-ship", "Fleetyards", "Rack 1 takes crates up to 16 SCU."));
+    }
+
+    // Schema 5 (D70) marks maxCrateSize as a door limit; the field reads the same in both, so a schema 4 file needs no migration.
+    [Fact]
+    public void Schema_4_and_5_read_alike()
+    {
+        using var folder = new ShipFolder();
+        folder.Write("max_crate_size", File.ReadAllText(TestShips.PathOf("max_crate_size")).Replace("\"schemaVersion\": 4", "\"schemaVersion\": 5"));
+
+        var five = ShipLoader.Load(folder.Path, "max_crate_size");
+        var four = TestShips.Load("max_crate_size");
+
+        five.Racks.Should().Equal(four.Racks);
+        five.Racks.Select(r => r.MaxCrateSize).Should().Equal(CrateSize.Sixteen, null);
     }
 
     // Ship drafts with a generated rack arrangement leave it out: a made-up "port lower" would show in the tooltip (T7.1b).

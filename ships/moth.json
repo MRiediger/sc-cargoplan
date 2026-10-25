@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "id": "moth",
   "name": "ARGO MOTH",
   "manufacturer": "ARGO",
@@ -13,8 +13,7 @@
       "capacityScu": 32,
       "grid": { "length": 4, "width": 4, "stack": 2 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     }
   ]
 }

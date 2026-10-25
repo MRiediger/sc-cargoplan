@@ -88,7 +88,7 @@ public class DestinationNamesTests
     [Fact]
     public void A_capture_with_the_longer_name_renames_the_stop_and_joins_its_rack()
     {
-        var plan = LoadPlanner.PlaceInto(new SavedPlan([], new LoadPlan(HullA.Id, [], [])), HullA, [Stop(Short, "Pressurized Ice", 4)]);
+        var plan = LoadPlanner.PlaceInto(new SavedPlan([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA)), HullA, [Stop(Short, "Pressurized Ice", 4)]);
         ContractCapture[] captures = [new([Stop(Full, "Stims", 8)], new ContractSource([60]))];
 
         var unified = DestinationNames.Unify(plan, HullA, captures);
@@ -102,7 +102,7 @@ public class DestinationNamesTests
     [Fact]
     public void A_capture_with_the_shorter_name_takes_the_plan_spelling()
     {
-        var plan = LoadPlanner.PlaceInto(new SavedPlan([], new LoadPlan(HullA.Id, [], [])), HullA, [Stop(Full, "Stims", 4)]);
+        var plan = LoadPlanner.PlaceInto(new SavedPlan([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA)), HullA, [Stop(Full, "Stims", 4)]);
         ContractCapture[] captures = [new([Stop(Short, "Pressurized Ice", 4)], new ContractSource([60]))];
 
         var unified = DestinationNames.Unify(plan, HullA, captures);
@@ -116,7 +116,7 @@ public class DestinationNamesTests
     public void Nothing_to_unify_returns_the_same_plan_and_captures()
     {
         // D38: diff, don't react – the sync compares by reference.
-        var plan = LoadPlanner.PlaceInto(new SavedPlan([], new LoadPlan(HullA.Id, [], [])), HullA, [Stop("Riker", "Gold", 4)]);
+        var plan = LoadPlanner.PlaceInto(new SavedPlan([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA)), HullA, [Stop("Riker", "Gold", 4)]);
         ContractCapture[] captures = [new([Stop("Shubin", "Gold", 4)], new ContractSource([60]))];
 
         var unified = DestinationNames.Unify(plan, HullA, captures);
