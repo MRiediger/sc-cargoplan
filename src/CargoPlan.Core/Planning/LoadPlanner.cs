@@ -292,7 +292,7 @@ public static class LoadPlanner
 
         if (!ship.Racks.Any(r => r.CanHold(failed)))
         {
-            return Invariant($"doesn't fit (no rack accepts {(int)failed} SCU crates, {CrateCap.Of(ship).Text})");
+            return Invariant($"doesn't fit ({CrateCap.Of(ship).Refusal(failed)})");
         }
 
         var free = ship.TotalScu - saved.Plan.ScuOnBoard();
@@ -961,6 +961,13 @@ public static class LoadPlanner
         }
 
         var rack = RackOf(ship, crate.RackId, nameof(crate));
+
+        // The rack's minimum (K3.3): the parts would fit the footprint, the rack still refuses their size.
+        if (parts.Where(rack.LimitRefuses).Select(p => (CrateSize?)p).FirstOrDefault() is { } refused)
+        {
+            return Edit.Refused(Invariant($"Rack {rack.Number}: {CrateCap.Of(rack).RackText(refused)}."));
+        }
+
         if (CrateLayout.PlaceWithin(rack, crate, parts, plan.FillOrder) is not { } positions)
         {
             return Edit.Refused(Invariant($"{sum} SCU don't fit the footprint of the {size} SCU crate ({crate.CrateSize.Dimensions})."));
@@ -1035,9 +1042,9 @@ public static class LoadPlanner
         }
 
         // The rack's door (D56, D70): the block may have the shape, the door still refuses the size.
-        if (RackOf(ship, first.RackId, nameof(crates)) is var rack && rack.DoorRefuses(merged))
+        if (RackOf(ship, first.RackId, nameof(crates)) is var rack && rack.LimitRefuses(merged))
         {
-            return Edit.Refused(Invariant($"Rack {rack.Number}: {CrateCap.Of(rack).Text}."));
+            return Edit.Refused(Invariant($"Rack {rack.Number}: {CrateCap.Of(rack).RackText(merged)}."));
         }
 
         if (CrateLayout.BlockProblem(crates, merged) is { } problem)
@@ -1216,7 +1223,7 @@ public static class LoadPlanner
             if (stop.Items.FirstOrDefault(i => !ship.Racks.Any(r => r.CanHold(i.CrateSize))) is { } item)
             {
                 throw new PlanException(Invariant(
-                    $"{(int)item.CrateSize} SCU crate of {item.Commodity} for {stop.Destination} doesn't fit any rack of {ship.Id} ({CrateCap.Of(ship).Text})."));
+                    $"{(int)item.CrateSize} SCU crate of {item.Commodity} for {stop.Destination} doesn't fit any rack of {ship.Id} ({CrateCap.Of(ship).ShipText(item.CrateSize)})."));
             }
         }
     }

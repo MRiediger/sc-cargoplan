@@ -240,7 +240,7 @@ public static class MissionRows
         }
 
         return ParseScu(row.Scu) is { } scu && Enum.IsDefined((CrateSize)row.MaxCrateSize)
-            ? Format(CrateMix.Decompose(scu, cap.Limit((CrateSize)row.MaxCrateSize)))
+            ? Format(CrateMix.Decompose(scu, (CrateSize)row.MaxCrateSize, cap))
             : "";
     }
 

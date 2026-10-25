@@ -370,10 +370,10 @@ public static class CrateLayout
 
     /// <summary>
     /// Why <paramref name="rack"/> doesn't take a crate of <paramref name="size"/> (<see cref="Rack.CanHold"/> is false):
-    /// its door if that is the cause (D70), else its grid.
+    /// its door or minimum if that is the cause (D70), else its grid.
     /// </summary>
     internal static string Refusal(Rack rack, CrateSize size) =>
-        rack.DoorRefuses(size) ? CrateCap.Of(rack).Text : Invariant($"{rack.Grid}");
+        rack.LimitRefuses(size) ? CrateCap.Of(rack).RackText(size) : Invariant($"{rack.Grid}");
 
     /// <summary>
     /// A layout of <paramref name="crates"/> in the free cells where no new crate sits on another destination's cargo

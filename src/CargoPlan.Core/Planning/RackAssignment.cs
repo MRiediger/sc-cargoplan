@@ -116,7 +116,7 @@ internal static class RackAssignment
             [
                 .. racks.Select((rack, r) => racks.Take(r)
                     .Select((other, o) => (other, o))
-                    .Where(p => p.other.Grid == rack.Grid && p.other.MaxCrateSize == rack.MaxCrateSize && p.other.CapacityScu == rack.CapacityScu)
+                    .Where(p => p.other.Grid == rack.Grid && p.other.MaxCrateSize == rack.MaxCrateSize && p.other.MinCrateSize == rack.MinCrateSize && p.other.CapacityScu == rack.CapacityScu)
                     .Select(p => p.o)
                     .ToArray()),
             ];

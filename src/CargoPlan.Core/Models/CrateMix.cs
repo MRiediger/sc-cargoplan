@@ -47,6 +47,29 @@ public static class CrateMix
     }
 
     /// <summary>
+    /// The mix the elevator delivers for a ship (D70, K3.3): greedy over the sizes up to <paramref name="max"/> that some
+    /// rack takes (<see cref="CrateCap.Accepts"/>), never above the contract's max. If a rest is left that no such size
+    /// covers (Hull C: 40 at max 32 is 32 and 8), there is no mix for this ship: the contract's mix up to the cap is
+    /// returned, whose too small crate no rack takes, so the mission waits and says why.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">No SCU, or an unknown max crate size.</exception>
+    public static IReadOnlyList<CrateSize> Decompose(int scu, CrateSize max, CrateCap cap)
+    {
+        var crates = Decompose(scu, cap.Limit(max));
+        List<CrateSize> accepted = [];
+        var rest = scu;
+        foreach (var size in Sizes.Where(s => s <= max && cap.Accepts(s)))
+        {
+            for (; rest >= (int)size; rest -= (int)size)
+            {
+                accepted.Add(size);
+            }
+        }
+
+        return rest == 0 ? accepted : crates;
+    }
+
+    /// <summary>
     /// What one click on Split makes of a crate (D27 addendum): halves if half is a crate size, else the largest size that
     /// fits plus the rest (24 → 16 + 8). So 32 → 16 + 16, although 24 + 8 fits the 8×2×2 too (D57). Finer is splitting
     /// again. Empty for 1 SCU.

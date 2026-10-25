@@ -39,21 +39,30 @@ internal sealed record PlanFileDto(
     }
 
     /// <summary>
-    /// The saved plan under the ship's cap (D70). A file whose derived mixes were split under another cap (saved before
-    /// D70, or on another ship) gets the largest cap its crates fit, as <see cref="CapReason.Saved"/>, and the overlay plans
-    /// it anew (<c>LoadPlanner.Replan</c>). The cap isn't stored: the file stays what it was.
+    /// The saved plan under the ship's cap (D70). A file whose derived mixes were split under another cap, or with a crate
+    /// on board the ship's racks don't take (saved before D70 or K3.3, or on another ship), gets the largest cap its crates
+    /// fit, as <see cref="CapReason.Saved"/>, and the overlay plans it anew (<c>LoadPlanner.Replan</c>). The cap isn't
+    /// stored: the file stays what it was. Without such a cap it is read under the ship's own, its crates shown red.
     /// </summary>
     /// <exception cref="ArgumentException">The plan doesn't fit its missions under any cap; the ship's reason is named.</exception>
     internal static SavedPlan UnderCap(Ship ship, Func<CrateCap, SavedPlan> make)
     {
         var own = CrateCap.Of(ship);
-        CrateCap[] caps = [own, .. Enum.GetValues<CrateSize>().OrderDescending().Where(s => s != own.Size).Select(s => new CrateCap(s, CapReason.Saved))];
+        CrateCap[] caps = [own, .. Enum.GetValues<CrateSize>().OrderDescending().Select(s => new CrateCap(s, CapReason.Saved)).Where(c => c != own)];
         ArgumentException? first = null;
+        SavedPlan? refused = null;
         foreach (var cap in caps)
         {
             try
             {
-                return make(cap);
+                var saved = make(cap);
+                if (saved.Plan.Crates.All(c => c.Delivered || cap.Accepts(c.CrateSize)))
+                {
+                    return saved;
+                }
+
+                // A crate on board the ship's racks don't take (a minimum, K3.3): kept only for when no other cap fits.
+                refused ??= saved;
             }
             catch (ArgumentException ex)
             {
@@ -62,7 +71,7 @@ internal sealed record PlanFileDto(
             }
         }
 
-        throw first!;
+        return refused ?? throw first!;
     }
 
     public static PlanFileDto FromSavedPlan(SavedPlan saved) => new(

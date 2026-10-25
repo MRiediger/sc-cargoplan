@@ -7,7 +7,7 @@ namespace CargoPlan.Core.Missions;
 /// Input, not model: the planner sees the <see cref="CargoItem"/>s of <see cref="ToCargoItems"/>. A derived mix depends on
 /// the ship (its <see cref="CrateCap"/>, D70), so every way to the crates names one.
 /// </summary>
-/// <param name="Crates">Override of the derived mix; null = <see cref="CrateMix.Decompose"/> up to the ship's cap.</param>
+/// <param name="Crates">Override of the derived mix; null = <see cref="CrateMix.Decompose(int, CrateSize, CrateCap)"/> for the ship's cap.</param>
 /// <param name="Pickup">Where its crates are collected, without amounts (D68); null = not known. <see cref="Pickups.Normalized"/>.</param>
 public sealed record MissionItem(
     string Commodity, int Scu, CrateSize MaxCrateSize, IReadOnlyList<CrateSize>? Crates = null, IReadOnlyList<string>? Pickup = null)
@@ -19,7 +19,7 @@ public sealed record MissionItem(
     public IReadOnlyList<string>? Pickup { get; } = ValidatedPickup(Pickup);
 
     /// <summary>The crates of this item: the override if there is one, else the mix derived up to <paramref name="cap"/> (D70).</summary>
-    public IReadOnlyList<CrateSize> CrateListUnder(CrateCap cap) => Crates ?? CrateMix.Decompose(Scu, cap.Limit(MaxCrateSize));
+    public IReadOnlyList<CrateSize> CrateListUnder(CrateCap cap) => Crates ?? CrateMix.Decompose(Scu, MaxCrateSize, cap);
 
     /// <summary>True if the mix is derived and <paramref name="cap"/> makes its crates smaller than the contract allows.</summary>
     public bool CappedBy(CrateCap cap) => Crates is null && cap.Limit(MaxCrateSize) < MaxCrateSize;
@@ -40,7 +40,7 @@ public sealed record MissionItem(
     public MissionItem WithCrateList(IReadOnlyList<CrateSize> crates, CrateCap cap)
     {
         CrateSize[] sorted = [.. crates.OrderDescending()];
-        return new(Commodity, Scu, MaxCrateSize, sorted.SequenceEqual(CrateMix.Decompose(Scu, cap.Limit(MaxCrateSize))) ? null : sorted, Pickup);
+        return new(Commodity, Scu, MaxCrateSize, sorted.SequenceEqual(CrateMix.Decompose(Scu, MaxCrateSize, cap)) ? null : sorted, Pickup);
     }
 
     private static int ValidatedScu(int scu)
