@@ -1747,6 +1747,41 @@ Reihenfolge innerhalb von K1 (Branch `feat/k1-ship-view`): K1.1 Zoom-Grenzen →
 - [ ] Gate (Martin): Symbol sichtbar, Klick fittet, im Lock-Modus weg; Hotkey nach Aufnahme wirkt im Spiel
 - Commits d0b1823 (Tests rot), d49c021 (App), Doku-Commit.
 
+### [ ] K1.4 Hit-Test auf die Ansichtsfläche begrenzen (D33-Addendum) (25.10.2026)
+**Warum:** Gezeichnet wurde mit `ClipToBounds`, getroffen nicht: ein Drop über der Legende konnte ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).
+
+**Ist-Zustand vor K1.4 (A1):** `HitAt`, `DestinationAt` und der Hover-Tooltip invertierten jeden Punkt, auch außerhalb von `RenderSize`; mit gefangener Maus kommen Punkte über Legende und Kopfzeile an. `DropAt` läuft nur mit einem Treffer, `DragGesture.Resolve`/`ResolveLegend` machen ohne Treffer `None`.
+- App: `SceneHitTest.HitAt`/`DestinationAt`/`ToolTipAt(scene, transform, viewport, screen)`, außerhalb des Rechtecks (Ränder eingeschlossen) kein Treffer; das Control nutzt nur noch diese (Hover, Rechtsklick, Drop-Ziel, Legenden-Drag, Doppelklick)
+- Tests: `SceneHitTestTests` (+6: Szene allein trifft das unsichtbare Rack, außerhalb kein Treffer, Legendenzeile über der Legende bewegt nichts, innerhalb wie die Szene an Mitte und beiden Ecken)
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Hull A, Rack 1 unter eine 400 × 300-Ansicht gezoomt, Punkt (200, 350) über der Legende | Treffer `rack-0`, Legendenzeile → `MoveLegend` | kein Treffer, `None` |
+| `SceneHitTestTests` mit der Naht ohne Prüfung (b0b6fc7) / mit Prüfung | 2 von 28 rot | 28 von 28 grün |
+| Tests (Core / Import / App) | 1.401 / 141 / 1.182 (vor K1) | 1.401 / 141 / 1.235 |
+
+**Akzeptanz:**
+- [x] Rot per Assert gesehen (Naht als reine Weiterleitung), dann grün
+- [x] Außerhalb der Fläche weder Treffer noch Ziel noch Tooltip; ein Drop dort bewegt nichts, die Vorschau zeigt keinen Geist und kein Ziel
+- [x] Innerhalb der Fläche, Ränder eingeschlossen, unverändert
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [ ] Gate (Martin): Hull C hineinzoomen, ein Rack aus dem Bild schieben, Kiste über die Legende an diese Stelle ziehen → kein Drop
+- Commits b0b6fc7 (Naht, Tests rot), d3d9be8 (Prüfung), Doku-Commit.
+
+### Abschluss der K1-Session (25.10.2026)
+- K1.1–K1.4 umgesetzt, Gates offen (Martin, Publish-Build); Merge `--no-ff` nach main erst nach Abnahme, Push durch Martin.
+- Tests: Core 1.401 → 1.401, Import 141 → 141, App 1.182 → 1.235; Slow grün; Exhaustive nicht nötig (Core unberührt).
+- Keine Frame-Zeit-Messung (P9): gleiche Geometrie, nur andere Skala.
+
+**Übergabe für den K4-Startprompt:**
+- **Schema-Stand:** Schiff 5, Plan 6, Mission 3, settings.json 2. **Neue optionale Keys (K1):** `shipView.maxZoomPxPerCell` (Default 160, 40–240), `shipView.cameras` (Katalog-Id → `yaw`, `pitch`, `pxPerCell`, `panX`, `panY`), `hotkeys.resetView`. `shipView` ist ein Objekt, die älteren Ship-view-Keys (`shipOutline`, `holo*`) liegen flach; der Ship-view-Reset setzt den Zoom zurück, nie die Kameras.
+- **Hotkey-Liste:** `toggleLock`, `toggleOverlay`, `syncContractTracker`, `replan`, `discardPlan`, `undo`, `redo`, `resetView` – alle ohne Default (D17).
+- **Für K4 relevant:** Die Kopfzeile trägt jetzt rechts neben dem Zahnrad das Reset-Symbol (E9A6), ↶ ↷ links davon; Look-Presets dürfen `shipView.cameras` nicht mitnehmen (Zustand, nicht Look). Kamera-Änderungen sind kein `Step`.
+- **Für K5 relevant:** Gespeicherte Kameras sind schiffsfest (Anker = projizierte Mitte von `Ship.Bounds`); ändert K5 die Origins (`offset`/`rotation`), verschieben sich gespeicherte Ansichten – Datenupdate, kein Bug (D76).
+- **Offen:** Antwort von Torlek zu `limits.max = 1` und damit die `unverified`-Liste der Türen (32 Racks in 16 Schiffen, K3.1); Rastergrenze 12 px/Zelle bleibt, „höher, falls das volle C2-Raster im Spiel stört“ ist Beobachtung, kein Task.
+
 ---
 
 ## Phase 8 – nach dem Launch
