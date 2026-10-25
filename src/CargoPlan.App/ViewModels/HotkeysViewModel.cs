@@ -26,6 +26,8 @@ public sealed class HotkeysViewModel
         Sync = new(HotkeyAction.SyncContractTracker, HotkeyEditor.SyncLabel, settings?.SyncContractTracker, Commit, suspend, resume);
         Replan = new(HotkeyAction.Replan, HotkeyEditor.ReplanLabel, settings?.Replan, Commit, suspend, resume);
         Discard = new(HotkeyAction.DiscardPlan, HotkeyEditor.DiscardLabel, settings?.DiscardPlan, Commit, suspend, resume);
+        Undo = new(HotkeyAction.Undo, HotkeyEditor.UndoLabel, settings?.Undo, Commit, suspend, resume);
+        Redo = new(HotkeyAction.Redo, HotkeyEditor.RedoLabel, settings?.Redo, Commit, suspend, resume);
     }
 
     public HotkeyEditor Lock { get; }
@@ -38,8 +40,12 @@ public sealed class HotkeysViewModel
 
     public HotkeyEditor Discard { get; }
 
+    public HotkeyEditor Undo { get; }
+
+    public HotkeyEditor Redo { get; }
+
     /// <summary>Every editor, in the window's order; the window cancels their recordings.</summary>
-    public IEnumerable<HotkeyEditor> All => [Lock, Overlay, Sync, Replan, Discard];
+    public IEnumerable<HotkeyEditor> All => [Lock, Overlay, Sync, Replan, Discard, Undo, Redo];
 
     private string? Commit(HotkeyEditor editor, Hotkey? hotkey) =>
         hotkey is not null && All.FirstOrDefault(other => !ReferenceEquals(other, editor) && other.Hotkey == hotkey) is { } taken

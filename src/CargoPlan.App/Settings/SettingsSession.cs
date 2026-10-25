@@ -83,6 +83,8 @@ public sealed class SettingsSession
                 HotkeyAction.SyncContractTracker => hotkeys with { SyncContractTracker = text },
                 HotkeyAction.Replan => hotkeys with { Replan = text },
                 HotkeyAction.DiscardPlan => hotkeys with { DiscardPlan = text },
+                HotkeyAction.Undo => hotkeys with { Undo = text },
+                HotkeyAction.Redo => hotkeys with { Redo = text },
                 _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
             },
         };

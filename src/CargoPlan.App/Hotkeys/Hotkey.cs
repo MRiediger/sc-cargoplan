@@ -14,8 +14,8 @@ public enum HotkeyModifiers : uint
 }
 
 /// <summary>
-/// What a hotkey does; the names in settings.json are toggleLock, toggleOverlay, syncContractTracker, replan and
-/// discardPlan (D17, D44, D66, K2.3).
+/// What a hotkey does; the names in settings.json are toggleLock, toggleOverlay, syncContractTracker, replan,
+/// discardPlan, undo and redo (D17, D44, D66, K2.3, K2.4).
 /// </summary>
 public enum HotkeyAction
 {
@@ -33,6 +33,12 @@ public enum HotkeyAction
 
     /// <summary>Empties the plan, so the next sync starts over, like the editor's Discard plan button (K2.3).</summary>
     DiscardPlan,
+
+    /// <summary>Goes back one step, like the header's ↶ (K2.4).</summary>
+    Undo,
+
+    /// <summary>Goes forward one undone step, like the header's ↷ (K2.4).</summary>
+    Redo,
 }
 
 /// <summary>A key combination as RegisterHotKey takes it. Built by <see cref="HotkeyParser"/>.</summary>

@@ -39,6 +39,64 @@ public class UndoTimingTests(ITestOutputHelper output)
         }
     }
 
+    /// <summary>
+    /// Undo and redo with everything they do (K2.4): after a move a sync brought a contract and a stop was ticked, so every
+    /// undo places the contract again (Resync) and carries the tick (CarryTicks), and sets the plan (validation, scene).
+    /// Martin's bound: under 16 ms, else a sync clears the history.
+    /// </summary>
+    [Fact]
+    public void Undo_and_redo_time()
+    {
+        output.WriteLine("| Case | undo ms (median) | redo ms (median) |");
+        foreach (var (name, ship, saved) in Cases())
+        {
+            // Built anew every round: only the first undo after the sync places the contract again.
+            List<double> undo = [], redo = [];
+            for (var i = 0; i < 6; i++)
+            {
+                var overlay = new ViewModels.OverlayViewModel(ship);
+                overlay.ShowPlan(saved);
+                Move(overlay, ship);
+                var stop = new MissionStop("Area18", 1, [new MissionItem("Stims", 2, CrateSize.Two)]);
+                overlay.ApplyContractTracker(new(
+                    [new([overlay.Watermark + 100], null, [stop], false, false, null, null, null)], null, null));
+                overlay.ToggleDeliveredCommand.Execute(overlay.Plan!.Route[0]);
+                var missions = overlay.Missions.Count;
+
+                var watch = Stopwatch.StartNew();
+                overlay.UndoCommand.Execute(null);
+                undo.Add(watch.Elapsed.TotalMilliseconds);
+                overlay.Missions.Should().HaveCount(missions, "the undo places the synced contract again");
+                watch.Restart();
+                overlay.RedoCommand.Execute(null);
+                redo.Add(watch.Elapsed.TotalMilliseconds);
+            }
+
+            // The first round warms up.
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"| {name} | {undo.Skip(1).Order().ElementAt(2):F2} | {redo.Skip(1).Order().ElementAt(2):F2} |"));
+        }
+    }
+
+    private static void Move(ViewModels.OverlayViewModel overlay, Ship ship)
+    {
+        var plan = overlay.Plan!;
+        foreach (var crate in plan.Crates.Where(c => !c.Delivered))
+        {
+            foreach (var rack in ship.Racks.Where(r => r.Id != crate.RackId))
+            {
+                var move = new Gesture.MoveCrates(crate, [crate], rack.Id, new GridPosition(0, 0, 0));
+                if (CrateDrop.Outcome(plan, ship, move).Plan is { } moved && !moved.Crates.SequenceEqual(plan.Crates))
+                {
+                    overlay.MoveCratesCommand.Execute(move);
+                    return;
+                }
+            }
+        }
+
+        throw new InvalidOperationException("No move changes the plan.");
+    }
+
     private static (string Name, Ship Ship, SavedPlan Saved)[] Cases()
     {
         var hullA = ShipLoader.Load("hull_a");

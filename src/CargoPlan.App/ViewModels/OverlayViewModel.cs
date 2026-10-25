@@ -61,6 +61,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     public const string NothingToReplanText = "Re-plan: no cargo on board";
 
+    /// <summary>Why the header's ↶ and ↷ went away (K2.4): a ship change empties the history.</summary>
+    public const string HistoryClearedByShipChangeText = "Undo history cleared by ship change";
+
     /// <summary>What Discard plan did (K2.3): a notice, no question (D66).</summary>
     public const string DiscardedText = "Plan discarded – the next sync brings every ContractTracker contract back.";
 
@@ -372,6 +375,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     // The ids ContractTracker still had at the last read; null before one. Kept to name deleted contracts on every change.
     private IReadOnlySet<long>? _present;
 
+    // Undo and redo of the player's steps (K2.4); not saved, so a restart starts without.
+    private readonly PlanHistory _history = new();
+
     // plan.json couldn't be read: the sync must not overwrite it with a plan of its own (T5.4 planning).
     private bool _contractTrackerPaused;
 
@@ -403,7 +409,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         // A plan from T7.4d may hold ContractTracker's pickup text as read; saved cleaned, so it says so once (B6).
         var cleaned = PickupNames.Clean(unified.Saved);
         SetNotice(NoticeSource.Pickups, PickupsCleanedText(cleaned.Cleaned));
-        Saved = cleaned.Saved;
+        Step(cleaned.Saved);
         SetNotice(NoticeSource.Move, null);
         if (_contractTrackerPaused)
         {
@@ -449,6 +455,14 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         Ship = ship;
         SetNotice(NoticeSource.Ship, null);
         SetNotice(NoticeSource.Replan, null);
+
+        // The snapshots are the old ship's layouts (K2.4, Martin): going back would have to turn the ship back too.
+        if (_history.CanUndo || _history.CanRedo)
+        {
+            _history.Clear();
+            HistoryChanged();
+            SetNotice(NoticeSource.Move, HistoryClearedByShipChangeText);
+        }
         if (replanned is null)
         {
             Scene = Marked(EmptyScene(ship));
@@ -544,7 +558,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     {
         // Unreachable without a plan: the editor has no mission rows and the legend no lines then.
         var saved = Saved ?? throw new InvalidOperationException(NoPlanText);
-        Saved = LoadPlanner.RemoveMission(saved, Ship, missionId);
+        Step(LoadPlanner.RemoveMission(saved, Ship, missionId));
     }
 
     /// <summary>
@@ -568,7 +582,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         var changed = moved > 0 || replanned.Missions.Count(m => m.Unplaced) < saved.Missions.Count(m => m.Unplaced);
         if (changed)
         {
-            Saved = replanned;
+            Step(replanned);
         }
 
         SetNotice(NoticeSource.Replan, null);
@@ -586,7 +600,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     private void DiscardPlan()
     {
         var saved = Saved ?? throw new InvalidOperationException(NoPlanText);
-        Saved = LoadPlanner.Discard(saved, Ship);
+        Step(LoadPlanner.Discard(saved, Ship));
         SetNotice(NoticeSource.Replan, null);
         SetNotice(NoticeSource.Move, DiscardedText);
     }
@@ -728,8 +742,78 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             return;
         }
 
-        Saved = WithCrates(moved);
+        Step(WithCrates(moved));
         SetNotice(NoticeSource.Move, outcome.Notices.Count == 0 ? null : string.Join(" · ", outcome.Notices));
+    }
+
+    /// <summary>
+    /// A player's action on the plan (K2.4): moves, legend drags and turns, split and merge, re-plan, the editor's Plan,
+    /// deleting a mission, discard. Shown and saved like every change, and recorded so it can be undone; a new step drops
+    /// what was undone. Ticks and syncs set <see cref="Saved"/> directly: they are no steps and carry over instead.
+    /// </summary>
+    private void Step(SavedPlan next)
+    {
+        var before = Saved;
+        Saved = next;
+        if (before is not null && !ReferenceEquals(before, Saved))
+        {
+            _history.Record(before, Saved);
+            HistoryChanged();
+        }
+    }
+
+    /// <summary>The header's ↶ is shown while there is a step to undo.</summary>
+    public bool CanUndo => _history.CanUndo;
+
+    /// <summary>The header's ↷ is shown while there is an undone step to redo.</summary>
+    public bool CanRedo => _history.CanRedo;
+
+    /// <summary>
+    /// Goes back one step (K2.4): the header's ↶ and the undo hotkey. The plan before the step comes back, with what
+    /// happened since that is no step: contracts synced since come in again, ticks changed since carry over
+    /// (<see cref="Restored"/>).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanUndo))]
+    private void Undo()
+    {
+        var current = Saved ?? throw new InvalidOperationException(NoPlanText);
+        var restored = Restored(_history.PopUndo(), current);
+        _history.PushRedo(current, restored);
+        Saved = restored;
+        HistoryChanged();
+    }
+
+    /// <summary>Goes forward again one undone step (K2.4): the header's ↷ and the redo hotkey; like <see cref="Undo"/>.</summary>
+    [RelayCommand(CanExecute = nameof(CanRedo))]
+    private void Redo()
+    {
+        var current = Saved ?? throw new InvalidOperationException(NoPlanText);
+        var restored = Restored(_history.PopRedo(), current);
+        _history.PushUndo(current, restored);
+        Saved = restored;
+        HistoryChanged();
+    }
+
+    /// <summary>
+    /// The entry's plan with what happened since its reference that is no step (Martin: restore, then sync incrementally):
+    /// Core's <c>Resync</c> places the contracts synced since again, <c>CarryTicks</c> the ticks changed since; a tick back
+    /// without room goes to the notice line like a refused tick.
+    /// </summary>
+    private SavedPlan Restored(PlanHistory.Entry entry, SavedPlan current)
+    {
+        var resynced = ContractSync.Resync(entry.Target, entry.Reference, current, Ship, _present);
+        var (restored, refused) = LoadPlanner.CarryTicks(resynced, entry.Reference, current, Ship);
+        SetNotice(NoticeSource.Replan, null);
+        SetNotice(NoticeSource.Move, refused.Count == 0 ? null : TickRefusedPrefix + string.Join(" · ", refused));
+        return restored;
+    }
+
+    private void HistoryChanged()
+    {
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+        UndoCommand.NotifyCanExecuteChanged();
+        RedoCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>

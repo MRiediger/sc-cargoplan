@@ -175,9 +175,10 @@ public sealed class UndoRedoTests
         var overlay = Showing(TestPlans.SplitAndShared());
         var before = overlay.Saved!;
         var editor = new MissionEditorViewModel(overlay);
-        editor.Rows[0].Scu = "4";
+        editor.FillOrder = FillOrder.SternFirst;
 
         editor.PlanCommand.Execute(null);
+        overlay.Saved.Should().NotBeSameAs(before);
         overlay.UndoCommand.Execute(null);
 
         overlay.Saved.Should().BeSameAs(before);

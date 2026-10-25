@@ -20,6 +20,10 @@ public sealed partial class HotkeyEditor : ObservableObject
 
     public const string DiscardLabel = "Discard plan";
 
+    public const string UndoLabel = "Undo";
+
+    public const string RedoLabel = "Redo";
+
     public const string NotSetText = "Not set";
 
     public const string RecordingText = "Press the keys…";
