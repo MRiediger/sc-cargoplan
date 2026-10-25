@@ -1558,6 +1558,36 @@ D58 bleibt unberührt (kein Budget-Problem, keine offene Frage). Rot nach dem R�
 - [x] Gate Traktorstrahl (Martin, 25.10., bestanden): 2er hochkant an eine Hull-A-Platte geht im Spiel; `CanTurn` bleibt für jedes Rack
 - Commits 04669b3 (Rückbau), 3c8a52b (Core-Tests rot), 748a3ed (Core), 52f6475 (Zeichnen), c4af6ad (App-Tests rot), b34c8be (Rad), b173294 (Doku), Abnahme-Commit; Merge `--no-ff` nach main.
 
+Reihenfolge innerhalb von K2 (Branch `feat/k2-plan-editor`): K2.1 Füllrichtung → K2.2 Haken-Erhalt → K2.3 Discard plan → K2.4 Undo/Redo zuletzt, weil der Stack alle anderen Aktionen umschließt. Schema-Stand vor K2: Schiff 5, Plan 5, Mission 2.
+
+### [x] K2.1 Füllrichtung in Missionsdateien (D72) (25.10.2026)
+**Warum:** Die Füllrichtung stand nur in `plan.json` (D24, T4.5); ein Koordinator, der die Route als Missionsdatei teilt, konnte sie nicht mitgeben (Guide: „exported mission files don't carry it“).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 `MissionFileReader.Read` liefert `MissionFile(Stops, FillOrder?)`, `MissionFileWriter.Write(stream, stops, fillOrder)` mit Pflichtparameter (kein zweiter Lesepfad); P2 Wörter und Switch aus `PlanFileDto` nach `FillOrderJson` verschoben, nicht kopiert; P3 `fillOrder` in Schema 2 abgelehnt, unbekannter Wert mit der Meldung des Plans, Schema 3 ohne Feld gültig; P4 eingebettete Missionen in Plan-Schema 1/2 bleiben Mission 1|2 (bestehender Test `inner_schema`); P5 CLI `plan` nimmt die Richtung aus der Datei, sonst Bug zuerst; P6 Import mit Feld setzt den Entwurf (wirkt erst mit Plan), ohne Feld bleibt die Richtung, Export schreibt die des Entwurfs; P7 `fillOrder` direkt nach `schemaVersion`; P8 eigener Eintrag D72, D24-Addendum.
+- Core: `MissionFile`, `FillOrderJson` (`Parse`, `Text`), `MissionFileDto(SchemaVersion, Stops, FillOrder?)` mit `ToMissionFile`, `JsonPropertyOrder` auf `Stops`; `MissionFileReader.CurrentSchemaVersion = 3`, `NoFillOrderSchemaVersion = 2`, `EmbeddedSchemaVersions`; `PlanFileDto`/`PlanFileV2Dto` über `FillOrderJson`
+- App: `MissionEditorViewModel.Import` setzt `FillOrder` aus der Datei, `Export` übergibt sie
+- Daten/Tests: Fixtures `fill_order_stern.json` (Writer-Format), `schema3_without_fill_order.json`, `Invalid/fill_order_in_v2.json`, `Invalid/unknown_fill_order.json`; `Invalid/unsupported_schema` 3 → 4; Reader-, Writer- und Editor-Tests; `MissionFixtures.LoadFile`/`Text`
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.358 / 141 / 1.145 | 1.372 / 141 / 1.151 |
+| Golden-Files und Plan-Fixtures geändert | erwartet 0 | 0 |
+| Missions-Fixtures geändert | erwartet nur `Invalid/unsupported_schema` | nur diese (3 → 4) |
+| Schema-3-Datei lesen → schreiben | – | byte-gleich (Core bis auf Zeilenenden; Editor Import → Export byte-gleich) |
+| Alter Leser auf Schema 3 | – | „schemaVersion 3 is not supported (expected 1 or 2)“ |
+
+**Akzeptanz:**
+- [x] Schema 3 mit `fillOrder` lädt mit Richtung, ohne Feld und Schema 1/2 ohne (`MissionFileReaderTests`)
+- [x] Import mit Feld setzt die Richtung als ungeplante Änderung, ohne Feld bleibt sie; Clear rows behält sie (`MissionEditorViewModelTests`)
+- [x] Export schreibt die Richtung immer, nach `schemaVersion`; Rundreise byte-gleich (`MissionFileWriterTests`, Editor)
+- [x] Stern-first-Datei importiert und geplant → Kisten wie `SternFirst`
+- [x] `fillOrder` in Schema 2 und unbekannter Wert → Fehlermeldung mit Grund; Schema 4 → „expected 1 or 2 or 3“
+- [x] Goldens unverändert; `dotnet build` ohne Warnungen; `dotnet test` grün
+- Die CLI-Textausgabe nennt Racks, keine Zellen: Mit und ohne Feld sieht sie gleich aus, P5 ist dort nicht sichtbar.
+- Commits 5b39915 (Fixtures), 7008222 (Core-Tests rot), eb76cd5 (Core), af87047 (App-Tests rot), 1f7c98f (App), Doku-Commit.
+
 ---
 
 ## Phase 8 – nach dem Launch

@@ -127,7 +127,8 @@ so it takes the focus while you type; afterwards click back into the game (or Al
   as they are, planned or not. Older files with one crate size per row still import; their crates show as typed by hand.
 - **Fill order** next to **Plan** chooses which end of each rack the crates start from: **Bow first** or
   **Stern first**. It takes effect when you press **Plan** and is saved with the plan, so it stays after a restart and
-  the editor opens with it. Clearing or importing rows keeps it; exported mission files don't carry it.
+  the editor opens with it. Clearing rows keeps it. Export writes it into the mission file, and importing a file that
+  names one sets it, so a shared route arrives with the fill order it was planned with; older files keep yours.
 - **Copy as text** copies the current plan as plain text, ready to paste into Discord or your org chat.
 
 When Star Citizen takes the mouse (flight), the overlay turns click-through and an open editor hides, so neither catches
