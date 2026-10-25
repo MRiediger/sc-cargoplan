@@ -1648,6 +1648,36 @@ Reihenfolge innerhalb von K2 (Branch `feat/k2-plan-editor`): K2.1 Füllrichtung 
 - [ ] Gate (Martin): Plan mit CT-Verträgen → Discard → leer, Notice; Sync → alles wieder da. Editor-Plan „Stern first“ → Discard → leer, Editor zeigt weiter „Stern first“, auch nach Neustart. Hotkey belegen und auslösen. Blick auf den Notice-Text (Geschmack)
 - Commits 4b3f6bb (Core-Tests rot), 14c5996 (Core), 57cca8b (App-Tests rot), 6d2b53b (App), Doku-Commit.
 
+### [ ] K2.4 Undo/Redo (D74) (25.10.2026)
+**Warum:** Seit D65 bewegt ein Drop mehr als die gezogene Kiste, Re-plan (D66) und Discard (D73) ändern den ganzen Plan; Zurückziehen half nur in Stufe 1–2. Martins Entscheidung: Snapshot-Stack mit Redo, nicht persistiert.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Sync (Martin, gegen das Leeren der Stacks): Stacks bleiben, Undo/Redo = Snapshot wiederherstellen und sofort inkrementell syncen, Sync kein Schritt; Haken pro Lieferung auf den wiederhergestellten Plan übertragen; Schiffswechsel leert beide Stacks mit Notice (Martin). P1 Mission löschen (Editor, Legende) ist ein Schritt; P2 Resync ohne Datenbank-Lesen: Captures des aktuellen Plans, die weder Snapshot noch Referenz kannten, kommen per `Apply` wieder herein, Entfernen mit `_present`; P3 Haken: nur was sich seit dem Schritt geändert hat (sonst verlöre Undo von „Plan“ die alten Haken, D19), Schlüssel Vertrag statt Missions-Id; P4 Eintrag = Ziel + Referenz; P5 `MaxSteps` 100 nach Messung; P6 ↶ ↷ links vom Zahnrad, nur mit Schritt, beim Lock versteckt; P7 Hotkeys `undo`/`redo`; P8 `ContractSync.Resync`, `LoadPlanner.CarryTicks`, `PlanHistory`; P9 eigener Eintrag D74, Addenda D59, D65, D66.
+- Core: `ContractSync.Resync`, `LoadPlanner.CarryTicks`
+- App: `PlanHistory`; `OverlayViewModel.Step`, `UndoCommand`, `RedoCommand`, `CanUndo`, `CanRedo`, `HistoryClearedByShipChangeText`; Kopfzeilen-Knöpfe; Hotkeys `undo`/`redo` (`HotkeyAction`, `HotkeySettings`, `HotkeyService`, `SettingsSession`, `HotkeysViewModel`, Settings-Fenster)
+- Tests: `UndoRestoreTests` (Core, 10), `UndoRedoTests` (App), `UndoTimingTests` (App, Timing, von Hand; App-Tests haben jetzt `default.runsettings` wie Core), Kopfzeilen-XAML, Hotkey- und Settings-Tests
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.391 / 141 / 1.165 | 1.401 / 141 / 1.182 |
+| Golden-Files geändert | erwartet 0 | 0 |
+| Speicher ganzer Plan (Hull A acht Stopps / Hurston 25.10. / C2 acht Stopps) | 8,6 / 10,5 / 8,2 KB | – (Snapshots teilen Unverändertes) |
+| Zuwachs je Move | 2,5 / 1,9 / 1,7 KB | – |
+| Plan anzeigen (Validierung + Szene) | 0,4 / 0,4 / 0,6 ms | – |
+| Erstes Undo nach Move, Sync und Haken (mit Resync) / Redo | – | 0,85–0,99 / 0,44–0,48 · 0,88–0,91 / 0,38–0,39 · 1,18–1,19 / 0,53 ms (Ziel < 16 ms) |
+
+**Akzeptanz:**
+- [x] Drei Moves, dreimal Undo, zweimal Redo, neuer Move → Redo weg (`UndoRedoTests`)
+- [x] Re-plan → Undo stellt die alte Anordnung her; Discard → Undo bringt den Plan zurück
+- [x] Move → Haken → Undo → Haken steht; → Redo → Haken steht
+- [x] Sync nach Move → Undo behält den nachgelegten Vertrag; Ticks und Syncs sind keine Schritte
+- [x] Plan im Editor, Mission löschen, Split sind Schritte; Schiffswechsel leert beide Stacks mit Notice
+- [x] `MaxSteps` 100; Kopfzeile ↶ ↷ links vom Zahnrad, nur mit Schritt, beim Lock versteckt; Hotkeys ohne Default
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [ ] Gate (Martin): Hull A, drei Moves, dreimal Undo, zweimal Redo, neuer Move → ↷ weg; Re-plan → Undo; Discard → Undo; Move → Haken → Undo → Haken steht; Sync dazwischen → Undo behält den Vertrag; Schiffswechsel → Knöpfe weg, Notice; Neustart → Knöpfe weg. Blick auf die Kopfzeile (Geschmack: Knöpfe, Kürzung des Schiffsnamens)
+- Commits 6095b57 (Messung vorher), 11e4ecd (Core-Tests rot), bfb31c0 (Core), 966b534 (App-Tests rot), 01fb78b (App), Doku-Commit.
+
 ---
 
 ## Phase 8 – nach dem Launch
