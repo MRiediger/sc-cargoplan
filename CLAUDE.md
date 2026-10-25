@@ -18,6 +18,7 @@ Martin, 20+ Jahre IT (PowerShell, M365, Power Platform, Netzwerk). C# ist neu, P
 - **Ein Task aus `TASKS.md` pro Session.** Vorher Task vorlesen, nachher Akzeptanzkriterien einzeln abhaken.
 - **Tests vor Implementierung** bei allem mit Logik (Planer, Modelle, Reader).
 - Keine neuen NuGet-Pakete ohne kurze Begründung. Weniger Pakete = kleinere EXE = weniger Angriffsfläche.
+- **Session-Branches mit `git merge --no-ff` nach `main` mergen**, erst nach Martins Abnahme. Warum: Die Session bleibt als ein Merge-Commit sichtbar und lässt sich als Ganzes zurücknehmen (Anlass: B1–B5 wurden fast-forwarded).
 
 ## Das Problem
 
