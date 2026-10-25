@@ -1694,7 +1694,7 @@ Reihenfolge innerhalb von K1 (Branch `feat/k1-ship-view`): K1.1 Zoom-Grenzen →
 
 **Präzisierung in der Planphase, ratifiziert durch Freigabe (für K1.1–K1.4):** P1 Einheit DIPs (WPF-Pixel), wie Raster und Nummern; P2 Untergrenze bleibt 0,5 × Fit, nur die Obergrenze wird absolut (die 4 px des Briefs entfallen); P3 Zoomzeile im Abschnitt Ship view, nicht Crates; P4 Kamera als absolute Rahmung (px/Zelle + Pan in Zellen), live und gespeichert dieselbe Darstellung; P5 `pxPerCell`/`panX`/`panY` optional, nur gedreht = nur die Kamera, beim Start wird gefittet; P6 Pan vom schiffsfesten Anker (projizierte Mitte von `Ship.Bounds`), nie vom Fit der Beladung (Korrektur bei der Freigabe); P7 Reset-Symbol direkt links vom Zahnrad, rechts von ↶ ↷; P8 Hit-Test-Naht erst ohne Prüfung (rot per Assert), dann mit; P9 keine Frame-Zeit-Messung (gleiche Geometrie, nur andere Skala; das volle Raster zeichnet die Hull C schon bei 4 × Fit).
 
-### [ ] K1.1 Zoom-Grenzen absolut in Pixel pro Zelle (D76) (25.10.2026)
+### [x] K1.1 Zoom-Grenzen absolut in Pixel pro Zelle (D76) (25.10.2026)
 **Warum:** Auf großen Schiffen (C2, Hull C) reichte der maximale Zoom nicht, um einzelne Kisten zu treffen und zu lesen (Martin).
 
 **Ist-Zustand vor K1.1 (A1):** Zoom war ein Faktor 0,5–4 auf den Fit (`ViewNavigation.MinZoom`/`MaxZoom`), Pan in Pixeln um die Bildschirmecke; Hull C fittet bei 800 × 600 auf 8,0 px/Zelle (D61) → höchstens 32, mit Hologramm weniger; Hull A im Standard-Overlay ≈ 30 → 120. Der Radschritt war schon ein Faktor (1,2 pro Raste). Die Rastergrenze borgte die Mindest-Schriftgröße der Nummern (12).
@@ -1710,10 +1710,10 @@ Reihenfolge innerhalb von K1 (Branch `feat/k1-ship-view`): K1.1 Zoom-Grenzen →
 - [x] Rastergrenze 12 px/Zelle unverändert; Zoom beim Einzelkisten-Drag weiter aus (K3.2, unverändert)
 - [x] settings.json ohne `shipView` → 160 ohne Notice; Rundreise; 20 → 40 und 500 → 240 mit Notice
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.182 → 1.203)
-- [ ] Gate Publish-Build (Martin): Hull C hineinzoomen, bis eine 32er lesbar den Tooltip trifft; Hull A fühlt sich unverändert an; Preference ändern wirkt sofort
+- [x] Gate Publish-Build (Martin, 25.10., abgenommen): Hull C hineinzoomen, bis eine 32er lesbar den Tooltip trifft; Hull A fühlt sich unverändert an; Preference ändern wirkt sofort
 - Commits 8dd6803 (Tests rot), bbb9314 (App), Doku-Commit.
 
-### [ ] K1.2 Kamera-Persistenz pro Schiff (D76) (25.10.2026)
+### [x] K1.2 Kamera-Persistenz pro Schiff (D76) (25.10.2026)
 **Warum:** Backlog D15: Drehen, Zoom und Pan gingen bei jedem Neustart verloren, auf großen Schiffen nervt das mehr.
 
 **Ist-Zustand vor K1.2 (A1):** Die Navigation lebte nur im Control (`_navigation`), der Schiffswechsel setzte sie dort zurück (`OnSceneChanged`). Die Recent-Liste hält höchstens 4 Ids (`ShipChoices.Remember`) und liefert die Obergrenze. Kein Muster „VM bittet das Control“; die Auswahl läuft zweiseitig per `SetCurrentValue`.
@@ -1728,10 +1728,10 @@ Reihenfolge innerhalb von K1 (Branch `feat/k1-ship-view`): K1.1 Zoom-Grenzen →
 - [x] Gespeicherte Ansicht bleibt am selben Rack, wenn ein Sync ein Rack weiter außen belädt
 - [x] settings.json: Rundreise, `null`-Einträge und leere Ids fallen weg; `ChangeCameras` entprellt, Max-Zoom und Kameras überschreiben einander nicht
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.203 → 1.223)
-- [ ] Gate Publish-Build (Martin): Hull C drehen, zoomen, verschieben, beenden, starten → gleiche Ansicht; Schiff wechseln und zurück → gleich; Reset → Fit, Neustart → Fit
+- [x] Gate Publish-Build (Martin, 25.10., abgenommen): Hull C drehen, zoomen, verschieben, beenden, starten → gleiche Ansicht; Schiff wechseln und zurück → gleich; Reset → Fit, Neustart → Fit
 - Commits a2c05dc (Tests rot), a6b059f (App), Doku-Commit.
 
-### [ ] K1.3 Reset-Symbol in der Kopfzeile + Hotkey `resetView` (D15-Addendum) (25.10.2026)
+### [x] K1.3 Reset-Symbol in der Kopfzeile + Hotkey `resetView` (D15-Addendum) (25.10.2026)
 **Warum:** Backlog: der Reset per Doppelklick ist versteckt.
 
 **Ist-Zustand vor K1.3 (A1):** Kopfzeile von rechts: Exit, Zahnrad, ↷, ↶ (nur mit Verlauf), Stift, Re-plan …; das Schloss ist ein eigenes Fenster. `HeaderButtonStyle` blendet gesperrt aus. Hotkey-Muster K2.3/K2.4 (`HotkeyAction`, `HotkeySettings`, `HotkeyService`, `SettingsSession`, `HotkeysViewModel`, `HotkeyEditor`, Settings-Zeile).
@@ -1744,10 +1744,10 @@ Reihenfolge innerhalb von K1 (Branch `feat/k1-ship-view`): K1.1 Zoom-Grenzen →
 - [x] Hotkey `resetView`: kein Default, Kollision abgelehnt, von Session und Store geschrieben
 - [x] Screenshot Debug-Build: Symbol sichtbar zwischen Stift und Zahnrad (AppData vorher gesichert, danach hash-gleich)
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.223 → 1.229)
-- [ ] Gate (Martin): Symbol sichtbar, Klick fittet, im Lock-Modus weg; Hotkey nach Aufnahme wirkt im Spiel
+- [x] Gate (Martin, 25.10., abgenommen): Symbol sichtbar, Klick fittet, im Lock-Modus weg; Hotkey nach Aufnahme wirkt im Spiel
 - Commits d0b1823 (Tests rot), d49c021 (App), Doku-Commit.
 
-### [ ] K1.4 Hit-Test auf die Ansichtsfläche begrenzen (D33-Addendum) (25.10.2026)
+### [x] K1.4 Hit-Test auf die Ansichtsfläche begrenzen (D33-Addendum) (25.10.2026)
 **Warum:** Gezeichnet wurde mit `ClipToBounds`, getroffen nicht: ein Drop über der Legende konnte ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).
 
 **Ist-Zustand vor K1.4 (A1):** `HitAt`, `DestinationAt` und der Hover-Tooltip invertierten jeden Punkt, auch außerhalb von `RenderSize`; mit gefangener Maus kommen Punkte über Legende und Kopfzeile an. `DropAt` läuft nur mit einem Treffer, `DragGesture.Resolve`/`ResolveLegend` machen ohne Treffer `None`.
@@ -1767,11 +1767,12 @@ Reihenfolge innerhalb von K1 (Branch `feat/k1-ship-view`): K1.1 Zoom-Grenzen →
 - [x] Außerhalb der Fläche weder Treffer noch Ziel noch Tooltip; ein Drop dort bewegt nichts, die Vorschau zeigt keinen Geist und kein Ziel
 - [x] Innerhalb der Fläche, Ränder eingeschlossen, unverändert
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün
-- [ ] Gate (Martin): Hull C hineinzoomen, ein Rack aus dem Bild schieben, Kiste über die Legende an diese Stelle ziehen → kein Drop
+- [x] Gate (Martin, 25.10., abgenommen): Hull C hineinzoomen, ein Rack aus dem Bild schieben, Kiste über die Legende an diese Stelle ziehen → kein Drop
 - Commits b0b6fc7 (Naht, Tests rot), d3d9be8 (Prüfung), Doku-Commit.
 
 ### Abschluss der K1-Session (25.10.2026)
-- K1.1–K1.4 umgesetzt, Gates offen (Martin, Publish-Build); Merge `--no-ff` nach main erst nach Abnahme, Push durch Martin.
+- Alle vier Tasks von Martin abgenommen (25.10.2026, Publish-Build), Gates K1.1–K1.4 bestanden.
+- Merge `--no-ff` nach main, Push durch Martin.
 - Tests: Core 1.401 → 1.401, Import 141 → 141, App 1.182 → 1.235; Slow grün; Exhaustive nicht nötig (Core unberührt).
 - Keine Frame-Zeit-Messung (P9): gleiche Geometrie, nur andere Skala.
 
