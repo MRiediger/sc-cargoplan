@@ -128,6 +128,36 @@ public class ShipCameraTests
         viewModel.CanUndo.Should().BeFalse();
     }
 
+    // --- Reset view: the header's button and the resetView hotkey (K1.3) ---
+
+    [Fact]
+    public void Reset_view_fits_the_ship_again_and_forgets_its_camera()
+    {
+        OverlayViewModel viewModel = new(HullA, Catalog)
+        {
+            RecentShips = ["hull_a", "c2_hercules"],
+            Cameras = new Dictionary<string, ShipCamera> { ["hull_a"] = Framed, ["c2_hercules"] = Turned },
+        };
+
+        viewModel.ResetViewCommand.Execute(null);
+
+        viewModel.Camera.Should().BeNull();
+        viewModel.Cameras.Keys.Should().Equal("c2_hercules");
+    }
+
+    [Fact]
+    public void Reset_view_works_while_locked_and_without_a_plan()
+    {
+        // The hotkey fires in the game, where the overlay is locked (D11); the button is hidden then (its style).
+        OverlayViewModel viewModel = new(HullA, Catalog) { IsManuallyLocked = true };
+        viewModel.Camera = Framed;
+
+        viewModel.ResetViewCommand.CanExecute(null).Should().BeTrue();
+        viewModel.ResetViewCommand.Execute(null);
+
+        viewModel.Camera.Should().BeNull();
+    }
+
     // --- The camera is the view's navigation, written down ---
 
     private static readonly Size Viewport = new(800, 600);

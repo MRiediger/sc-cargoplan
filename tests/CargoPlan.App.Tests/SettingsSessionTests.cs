@@ -297,7 +297,18 @@ public sealed class SettingsSessionTests : IDisposable
 
         File.ReadAllText(SettingsPath).Should().Contain("\"toggleLock\": null").And.Contain("\"toggleOverlay\": null")
             .And.Contain("\"syncContractTracker\": null").And.Contain("\"replan\": null").And.Contain("\"discardPlan\": null")
-            .And.Contain("\"undo\": null").And.Contain("\"redo\": null");
+            .And.Contain("\"undo\": null").And.Contain("\"redo\": null").And.Contain("\"resetView\": null");
+    }
+
+    [Fact]
+    public void ChangeHotkey_for_the_reset_view_keeps_the_other_actions()
+    {
+        var session = Create(AppSettings.Default with { Hotkeys = new HotkeySettings("Ctrl+Alt+L", Undo: "Ctrl+Alt+Z") });
+
+        session.ChangeHotkey(HotkeyAction.ResetView, Key("Ctrl+Alt+V"));
+        session.Flush();
+
+        Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", Undo: "Ctrl+Alt+Z", ResetView: "Ctrl+Alt+V"));
     }
 
     [Fact]
