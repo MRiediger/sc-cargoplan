@@ -5,7 +5,7 @@
   "manufacturer": "TSTM",
   "fleetyardsSlug": "tstm-offset-ship",
   "source": "Fleetyards API (CIG ship matrix), export 2026-01-15",
-  "notes": "rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game",
+  "notes": "rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game; door limits from Fleetyards limits.max.capacity",
   "totalScu": 32,
   "racks": [
     {
@@ -22,7 +22,8 @@
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "position": { "side": "starboard", "level": "upper" },
       "origin": [0, -6, 3],
-      "stackAxis": "+z"
+      "stackAxis": "+z",
+      "maxCrateSize": 2
     }
   ]
 }

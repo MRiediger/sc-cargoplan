@@ -101,7 +101,35 @@ public class ImportFleetyardsScriptTests
         work.Snapshot().Should().Equal(before);
     }
 
-    // A door limit is hand work until Fleetyards names its field (D70): Fleetyards' maxContainerSize only repeats the grid.
+    // offset_ship's rack-1 (2x4x2 cells, takes a 16) has limits.max.capacity 2: the door comes from the export (D70).
+    [Fact]
+    public async Task Compare_reports_a_door_limit_missing_from_the_file()
+    {
+        using var work = new Workspace(withExpected: true);
+        work.Edit("offset_ship", t => Regex.Replace(t, @",\s*""maxCrateSize"": 2", ""));
+
+        var run = await work.Run();
+
+        run.ExitCode.Should().Be(Deviation, run.Output);
+        run.Output.Should().MatchRegex(@"different\s+offset_ship.*rack-1: maxCrateSize not in file, Fleetyards 2");
+    }
+
+    [Fact]
+    public async Task Force_adds_a_missing_door_limit_and_keeps_one_that_differs()
+    {
+        using var work = new Workspace(withExpected: true);
+        work.Edit("offset_ship", t => Regex.Replace(t, @",\s*""maxCrateSize"": 2", ""));
+        work.Edit("overlap_ship", t => t.Replace("\"stackAxis\": \"+z\"\n    }\n  ]", "\"stackAxis\": \"+z\",\n      \"maxCrateSize\": 4\n    }\n  ]"));
+
+        (await work.Run("-Force", "offset_ship")).ExitCode.Should().Be(0);
+        var compare = await work.Run();
+
+        ShipLoader.Load(work.Ships, "offset_ship").Racks.Select(r => r.MaxCrateSize).Should().Equal(null, CrateSize.Two);
+        compare.Output.Should().MatchRegex(@"same\s+offset_ship");
+        ShipLoader.Load(work.Ships, "overlap_ship").Racks[^1].MaxCrateSize.Should().Be(CrateSize.Four);
+    }
+
+    // A door limit Fleetyards doesn't name is the player's (a hand value), no deviation.
     [Fact]
     public async Task Compare_accepts_a_door_limit_set_by_hand()
     {
@@ -144,6 +172,7 @@ public class ImportFleetyardsScriptTests
     [Theory]
     [InlineData("duplicate_id.json", "twin")]
     [InlineData("uneven.json", "hardpoint_cargo_bad")]
+    [InlineData("bad_limit.json", "limits.max.capacity 3")]
     public async Task A_broken_export_stops_before_writing(string export, string named)
     {
         using var work = new Workspace(export);

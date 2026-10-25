@@ -4,8 +4,8 @@
 # Usage: ./tools/import-fleetyards.ps1 -Source <ships.json> [-ShipsFolder <folder>] [-Create] [-Force <id>]
 #   Default: compares the grid data of existing files with the export and writes nothing.
 #   -Create writes ships that have no file yet, never hull_a. -Force <id> rewrites one ship's grid data (grid, capacityScu,
-#   totalScu, source); origins, stack axes, positions, rack order, notes and door limits (maxCrateSize) are hand work and
-#   stay. A door limit from Fleetyards is written only where the file has none (D70).
+#   totalScu, source); origins, stack axes, positions, rack order and notes are hand work and stay. A door limit
+#   (maxCrateSize, from limits.max.capacity, D70) is added where the file has none, never overwritten.
 # Exit code: 0 in sync, 1 a deviation or a new ship not written, 2 an error (then nothing is written).
 # Runs under Windows PowerShell 5.1 and PowerShell 7. ASCII only: 5.1 reads a script without BOM as ANSI.
 param(
@@ -25,13 +25,12 @@ $SchemaVersion = 5
 $CellMeters = [decimal]1.25
 $FallbackShipId = 'hull_a'
 $CrateSizes = @(1, 2, 4, 8, 16, 24, 32)
+# Crate sizes with their shapes in cells (SCU, length, width, stack), fixed orientation, as CrateSize.Dimensions (D57).
+# A list, not an ordered hashtable: its [int] indexer would read a position, not a key.
+$CrateShapes = @(@(1, 1, 1, 1), @(2, 2, 1, 1), @(4, 2, 2, 1), @(8, 2, 2, 2), @(16, 4, 2, 2), @(24, 6, 2, 2), @(32, 8, 2, 2))
 # Racks that take nothing above 2 SCU are ladders and walkways: they go last in rack order, but stay, so the capacity
-# matches the game (Caterpillar 576). Read from maxContainerSize, which equals the largest crate the grid takes (D57) and
-# is therefore not written to the ship file.
+# matches the game (Caterpillar 576).
 $WalkwayMaxCrate = 2
-# The hold field that names a door smaller than the grid (Clipper: grid 8, door 2 SCU), written as maxCrateSize (D70).
-# Fleetyards adds it; its name is not known yet, so nothing is read until it is set here.
-$DoorLimitField = $null
 $IdPattern = '^[a-z0-9]+(_[a-z0-9]+)*$'
 
 # Fleetyards metres to cells; a value off the 1.25 m grid stops the import.
@@ -51,6 +50,19 @@ function Set-Field([object]$Target, [string]$Name, [object]$Value) {
     else {
         $Target | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
     }
+}
+
+# The largest crate a hold of these cells (x, y, z in Fleetyards axes) takes, as the ship file lays it: length the
+# longer horizontal side.
+function Get-GridCrate([int[]]$Size) {
+    $grid = @([math]::Max($Size[0], $Size[1]), [math]::Min($Size[0], $Size[1]), $Size[2])
+    $largest = 0
+    foreach ($shape in $CrateShapes) {
+        if ($shape[1] -le $grid[0] -and $shape[2] -le $grid[1] -and $shape[3] -le $grid[2]) {
+            $largest = $shape[0]
+        }
+    }
+    $largest
 }
 
 function Get-GridText([object]$Grid) {
@@ -91,20 +103,18 @@ function ConvertFrom-Hold([object]$Hold, [int]$Index, [string]$Slug) {
     if ($size[0] * $size[1] * $size[2] -ne $capacity) {
         throw "${where}: $($size -join 'x') cells hold $($size[0] * $size[1] * $size[2]) SCU, but capacity is $capacity."
     }
-    $max = $null
-    if ($null -ne $Hold.maxContainerSize) {
-        $max = [int]$Hold.maxContainerSize.size
-        if ($CrateSizes -notcontains $max) {
-            throw "${where}: maxContainerSize $max is not a crate size."
+    # The door limit is limits.max.capacity (D70); maxContainerSize isn't read. Values above the app's largest crate are
+    # clamped to 32. Only a door smaller than what the grid takes is written: one the grid enforces anyway says nothing.
+    $gridCrate = Get-GridCrate $size
+    $limit = $null
+    if ($null -ne $Hold.limits -and $null -ne $Hold.limits.max -and $null -ne $Hold.limits.max.capacity) {
+        $limit = [math]::Min([int]$Hold.limits.max.capacity, $CrateSizes[-1])
+        if ($CrateSizes -notcontains $limit) {
+            throw "${where}: limits.max.capacity $($Hold.limits.max.capacity) is not a crate size."
         }
     }
-    $door = $null
-    if ($DoorLimitField -and $null -ne $Hold.$DoorLimitField) {
-        $door = [int]$Hold.$DoorLimitField
-        if ($CrateSizes -notcontains $door) {
-            throw "${where}: $DoorLimitField $door is not a crate size."
-        }
-    }
+    $max = if ($null -ne $limit -and $limit -lt $gridCrate) { $limit } else { $gridCrate }
+    $door = if ($max -lt $gridCrate) { $max } else { $null }
     $offset = $null
     if ($null -ne $Hold.offset) {
         $offset = @(
@@ -138,8 +148,7 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
 
     $holds = @($Ship.cargoHolds)
     $racks = @(for ($i = 0; $i -lt $holds.Count; $i++) { ConvertFrom-Hold $holds[$i] $i $Ship.slug })
-    $ordered = @($racks | Where-Object { $null -eq $_.MaxCrate -or $_.MaxCrate -gt $WalkwayMaxCrate }) +
-        @($racks | Where-Object { $null -ne $_.MaxCrate -and $_.MaxCrate -le $WalkwayMaxCrate })
+    $ordered = @($racks | Where-Object { $_.MaxCrate -gt $WalkwayMaxCrate }) + @($racks | Where-Object { $_.MaxCrate -le $WalkwayMaxCrate })
 
     $withOffsets = @($racks | Where-Object { $null -eq $_.Offset }).Count -eq 0
     $boxes = @($racks | Where-Object { $null -ne $_.Offset } | ForEach-Object {
@@ -193,6 +202,9 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
     if ($turnedNumbers.Count) {
         $noun = if ($turnedNumbers.Count -eq 1) { 'rack' } else { 'racks' }
         $notes += "; $noun $($turnedNumbers -join ', ') turned so length is the longer side (crates don't turn)"
+    }
+    if (@($racks | Where-Object { $null -ne $_.Door }).Count) {
+        $notes += '; door limits from Fleetyards limits.max.capacity'
     }
 
     $fileRacks = @(foreach ($r in $ordered) {

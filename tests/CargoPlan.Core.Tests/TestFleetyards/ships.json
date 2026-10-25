@@ -8,14 +8,14 @@
       {
         "capacity": 16,
         "dimensions": { "x": 2.5, "y": 5.0, "z": 2.5 },
-        "maxContainerSize": { "size": 16, "dimensions": { "x": 5.0, "y": 2.5, "z": 2.5 } },
+        "limits": { "min": { "capacity": 1 }, "max": { "capacity": 16 } },
         "name": "hardpoint_cargo_left",
         "offset": { "x": 0.0, "y": 0.0, "z": 0.0 }
       },
       {
         "capacity": 16,
         "dimensions": { "x": 2.5, "y": 5.0, "z": 2.5 },
-        "maxContainerSize": { "size": 8, "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 } },
+        "limits": { "min": { "capacity": 1 }, "max": { "capacity": 2 } },
         "name": "hardpoint_cargo_right",
         "offset": { "x": 5.0, "y": 0.0, "z": 3.75 }
       }
@@ -30,19 +30,19 @@
       {
         "capacity": 2,
         "dimensions": { "x": 1.25, "y": 2.5, "z": 1.25 },
-        "maxContainerSize": { "size": 2, "dimensions": { "x": 2.5, "y": 1.25, "z": 1.25 } },
+        "limits": { "min": { "capacity": 1 }, "max": { "capacity": 2 } },
         "name": "hardpoint_cargo_ladder"
       },
       {
         "capacity": 16,
         "dimensions": { "x": 5.0, "y": 2.5, "z": 2.5 },
-        "maxContainerSize": { "size": 16, "dimensions": { "x": 5.0, "y": 2.5, "z": 2.5 } },
+        "limits": { "min": { "capacity": 1 }, "max": { "capacity": 96 } },
         "name": "hardpoint_cargo_wide"
       },
       {
         "capacity": 8,
         "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 },
-        "maxContainerSize": { "size": 8, "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 } },
+        "maxContainerSize": { "size": 1, "dimensions": { "x": 1.25, "y": 1.25, "z": 1.25 } },
         "name": "hardpoint_cargo_small"
       }
     ]
@@ -56,14 +56,14 @@
       {
         "capacity": 8,
         "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 },
-        "maxContainerSize": { "size": 8, "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 } },
+        "limits": { "min": { "capacity": 1 }, "max": { "capacity": 8 } },
         "name": "hardpoint_cargo_module_01",
         "offset": { "x": 0.0, "y": 0.0, "z": 0.0 }
       },
       {
         "capacity": 8,
         "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 },
-        "maxContainerSize": { "size": 8, "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 } },
+        "limits": { "min": { "capacity": 1 }, "max": { "capacity": 8 } },
         "name": "hardpoint_cargo_module_02",
         "offset": { "x": 0.0, "y": 0.0, "z": 0.0 }
       }

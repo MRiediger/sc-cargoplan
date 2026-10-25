@@ -1,0 +1,16 @@
+[
+  {
+    "slug": "tstm-bad-limit",
+    "name": "Bad Limit",
+    "manufacturer": "TSTM",
+    "cargo": 8.0,
+    "cargoHolds": [
+      {
+        "capacity": 8,
+        "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 },
+        "limits": { "min": { "capacity": 1 }, "max": { "capacity": 3 } },
+        "name": "hardpoint_cargo_odd"
+      }
+    ]
+  }
+]
