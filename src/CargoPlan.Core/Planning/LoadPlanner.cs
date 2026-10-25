@@ -578,6 +578,14 @@ public static class LoadPlanner
     }
 
     /// <summary>
+    /// The player's Discard plan (K2.3): no missions, no crates, no ticks, and the ContractTracker watermark back at 0, so
+    /// the next sync takes every contract in again (Martin's variant a: nothing remembers what was discarded). The fill
+    /// order stays, it is the player's way of loading (T4.5); the plan is for <paramref name="ship"/>.
+    /// </summary>
+    public static SavedPlan Discard(SavedPlan saved, Ship ship) =>
+        new([], new LoadPlan(ship.Id, [], [], saved.Plan.FillOrder), CrateCap.Of(ship));
+
+    /// <summary>
     /// Takes a mission out of the plan with its crates (D42): deleted in the editor, dropped in the legend, or gone from
     /// ContractTracker. Nothing else moves, ticks stay; a crate that rested on one of its crates floats and is marked
     /// (<see cref="Validate"/>). The original stays unchanged.
