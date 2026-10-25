@@ -13,40 +13,35 @@
       "capacityScu": 175,
       "grid": { "length": 7, "width": 5, "stack": 5 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 24
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 50,
       "grid": { "length": 5, "width": 2, "stack": 5 },
       "origin": [-6, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-2",
       "capacityScu": 8,
       "grid": { "length": 2, "width": 2, "stack": 2 },
       "origin": [-9, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 8
+      "stackAxis": "+z"
     },
     {
       "id": "rack-3",
       "capacityScu": 50,
       "grid": { "length": 5, "width": 2, "stack": 5 },
       "origin": [-15, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-4",
       "capacityScu": 8,
       "grid": { "length": 2, "width": 2, "stack": 2 },
       "origin": [-18, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 8
+      "stackAxis": "+z"
     }
   ]
 }

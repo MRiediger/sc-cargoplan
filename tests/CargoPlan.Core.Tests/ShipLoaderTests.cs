@@ -121,6 +121,18 @@ public class ShipLoaderTests
         ship.Id.Should().Be(shipId);
     }
 
+    // maxCrateSize is a door smaller than the grid (D70): a value the grid enforces anyway says nothing and is left out.
+    [Theory]
+    [MemberData(nameof(ShippedShipIds))]
+    public void A_shipped_max_crate_size_is_below_what_the_grid_takes(string shipId)
+    {
+        foreach (var rack in ShipLoader.Load(shipId).Racks.Where(r => r.MaxCrateSize is not null))
+        {
+            var gridTakes = (int)Enum.GetValues<CrateSize>().Where(rack.FitsGrid).Max();
+            gridTakes.Should().BeGreaterThan((int)rack.MaxCrateSize!.Value, $"rack {rack.Number} of {shipId} has maxCrateSize {(int)rack.MaxCrateSize}");
+        }
+    }
+
     [Fact]
     public void Load_unknown_id_throws_ShipNotFoundException_listing_available_ids()
     {

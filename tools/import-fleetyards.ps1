@@ -4,7 +4,8 @@
 # Usage: ./tools/import-fleetyards.ps1 -Source <ships.json> [-ShipsFolder <folder>] [-Create] [-Force <id>]
 #   Default: compares the grid data of existing files with the export and writes nothing.
 #   -Create writes ships that have no file yet, never hull_a. -Force <id> rewrites one ship's grid data (grid, capacityScu,
-#   maxCrateSize, totalScu, source); origins, stack axes, positions, rack order and notes are hand work and stay.
+#   totalScu, source); origins, stack axes, positions, rack order, notes and door limits (maxCrateSize) are hand work and
+#   stay. A door limit from Fleetyards is written only where the file has none (D70).
 # Exit code: 0 in sync, 1 a deviation or a new ship not written, 2 an error (then nothing is written).
 # Runs under Windows PowerShell 5.1 and PowerShell 7. ASCII only: 5.1 reads a script without BOM as ANSI.
 param(
@@ -25,8 +26,12 @@ $CellMeters = [decimal]1.25
 $FallbackShipId = 'hull_a'
 $CrateSizes = @(1, 2, 4, 8, 16, 24, 32)
 # Racks that take nothing above 2 SCU are ladders and walkways: they go last in rack order, but stay, so the capacity
-# matches the game (Caterpillar 576).
+# matches the game (Caterpillar 576). Read from maxContainerSize, which equals the largest crate the grid takes (D57) and
+# is therefore not written to the ship file.
 $WalkwayMaxCrate = 2
+# The hold field that names a door smaller than the grid (Clipper: grid 8, door 2 SCU), written as maxCrateSize (D70).
+# Fleetyards adds it; its name is not known yet, so nothing is read until it is set here.
+$DoorLimitField = $null
 $IdPattern = '^[a-z0-9]+(_[a-z0-9]+)*$'
 
 # Fleetyards metres to cells; a value off the 1.25 m grid stops the import.
@@ -93,6 +98,13 @@ function ConvertFrom-Hold([object]$Hold, [int]$Index, [string]$Slug) {
             throw "${where}: maxContainerSize $max is not a crate size."
         }
     }
+    $door = $null
+    if ($DoorLimitField -and $null -ne $Hold.$DoorLimitField) {
+        $door = [int]$Hold.$DoorLimitField
+        if ($CrateSizes -notcontains $door) {
+            throw "${where}: $DoorLimitField $door is not a crate size."
+        }
+    }
     $offset = $null
     if ($null -ne $Hold.offset) {
         $offset = @(
@@ -105,6 +117,7 @@ function ConvertFrom-Hold([object]$Hold, [int]$Index, [string]$Slug) {
         Size     = $size
         Capacity = $capacity
         MaxCrate = $max
+        Door     = $door
         Offset   = $offset
         # Crates don't turn (D9): length takes the longer horizontal side, so a rack wider than long still takes
         # the crates the game allows.
@@ -194,7 +207,7 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
             position     = $positions[$r.Id]
             origin       = $origins[$r.Id]
             stackAxis    = '+z'
-            maxCrateSize = $r.MaxCrate
+            maxCrateSize = $r.Door
         }
         $rack
     })
@@ -277,9 +290,12 @@ function Compare-Ship([object]$File, [object]$Draft) {
         if ([int]$f.capacityScu -ne $d.capacityScu) {
             $differences.Add("$($d.id): capacityScu file $($f.capacityScu), Fleetyards $($d.capacityScu)")
         }
-        # Left out on purpose (hull_a, ship-format.md) is no deviation; a different value is.
-        if ($null -ne $f.maxCrateSize -and [int]$f.maxCrateSize -ne $d.maxCrateSize) {
+        # A door limit is compared only where Fleetyards names one (D70): a hand value it doesn't know is no deviation.
+        if ($null -ne $d.maxCrateSize -and $null -ne $f.maxCrateSize -and [int]$f.maxCrateSize -ne $d.maxCrateSize) {
             $differences.Add("$($d.id): maxCrateSize file $($f.maxCrateSize), Fleetyards $($d.maxCrateSize)")
+        }
+        elseif ($null -ne $d.maxCrateSize -and $null -eq $f.maxCrateSize) {
+            $differences.Add("$($d.id): maxCrateSize not in file, Fleetyards $($d.maxCrateSize)")
         }
     }
     $draftIds = @($Draft.racks | ForEach-Object { $_.id })
@@ -367,7 +383,10 @@ try {
                     $d = @($draft.racks | Where-Object { $_.id -eq [string]$r.id })[0]
                     $r.grid = $d.grid
                     $r.capacityScu = $d.capacityScu
-                    Set-Field $r 'maxCrateSize' $d.maxCrateSize
+                    # A door limit set by hand stays, also against Fleetyards (D70).
+                    if ($null -eq $r.maxCrateSize -and $null -ne $d.maxCrateSize) {
+                        Set-Field $r 'maxCrateSize' $d.maxCrateSize
+                    }
                 }
                 $file.totalScu = $draft.totalScu
                 Set-Field $file 'source' $draft.source
@@ -379,11 +398,6 @@ try {
             }
             else {
                 $status = 'same'; $detail = Get-Summary $draft
-                $unstated = @($file.racks | Where-Object { $null -eq $_.maxCrateSize })
-                if ($unstated.Count) {
-                    $values = @($draft.racks | Where-Object { $null -ne $_.maxCrateSize } | ForEach-Object { $_.maxCrateSize } | Select-Object -Unique)
-                    $detail += " (maxCrateSize not in file, Fleetyards: $($values -join ', '))"
-                }
             }
         }
         $counts[$status]++

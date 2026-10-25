@@ -13,16 +13,14 @@
       "capacityScu": 360,
       "grid": { "length": 15, "width": 8, "stack": 3 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 162,
       "grid": { "length": 9, "width": 6, "stack": 3 },
       "origin": [-10, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     }
   ]
 }

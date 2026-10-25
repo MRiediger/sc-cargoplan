@@ -14,8 +14,7 @@
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "position": { "side": "port", "level": "lower" },
       "origin": [0, -2, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
@@ -23,8 +22,7 @@
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "position": { "side": "starboard", "level": "upper" },
       "origin": [0, -6, 3],
-      "stackAxis": "+z",
-      "maxCrateSize": 8
+      "stackAxis": "+z"
     }
   ]
 }

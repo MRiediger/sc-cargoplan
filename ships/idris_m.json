@@ -13,168 +13,147 @@
       "capacityScu": 144,
       "grid": { "length": 18, "width": 4, "stack": 2 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 140,
       "grid": { "length": 14, "width": 5, "stack": 2 },
       "origin": [-15, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     },
     {
       "id": "rack-5",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-20, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-6",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-25, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-7",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-30, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-8",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-35, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-9",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-40, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-10",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-45, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-11",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-50, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-12",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-55, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-13",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-60, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-14",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-65, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-15",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-70, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-16",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-75, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-17",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-80, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-18",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-85, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-19",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-90, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-20",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
       "origin": [-95, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 16
+      "stackAxis": "+z"
     },
     {
       "id": "rack-2",
       "capacityScu": 10,
       "grid": { "length": 5, "width": 1, "stack": 2 },
       "origin": [-101, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-3",
       "capacityScu": 4,
       "grid": { "length": 2, "width": 1, "stack": 2 },
       "origin": [-104, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-4",
       "capacityScu": 4,
       "grid": { "length": 2, "width": 1, "stack": 2 },
       "origin": [-107, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     }
   ]
 }

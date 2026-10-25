@@ -101,29 +101,28 @@ public class ImportFleetyardsScriptTests
         work.Snapshot().Should().Equal(before);
     }
 
-    // hull_a.json has no maxCrateSize on purpose (ship-format.md); a missing value is no deviation, a different one is.
+    // A door limit is hand work until Fleetyards names its field (D70): Fleetyards' maxContainerSize only repeats the grid.
     [Fact]
-    public async Task Compare_accepts_a_file_without_max_crate_size()
+    public async Task Compare_accepts_a_door_limit_set_by_hand()
     {
         using var work = new Workspace(withExpected: true);
-        work.Edit("offset_ship", t => Regex.Replace(t, @",\s*""maxCrateSize"": \d+", ""));
+        work.Edit("row_ship", WithDoorLimit);
 
         var run = await work.Run();
 
         run.ExitCode.Should().Be(0, run.Output);
-        run.Output.Should().MatchRegex(@"same\s+offset_ship");
+        run.Output.Should().MatchRegex(@"same\s+row_ship");
     }
 
     [Fact]
     public async Task Force_rewrites_the_grid_data_and_keeps_the_hand_work()
     {
         using var work = new Workspace(withExpected: true);
-        work.Edit("row_ship", t => t
+        work.Edit("row_ship", t => WithDoorLimit(t)
             .Replace("\"totalScu\": 26", "\"totalScu\": 30")
             .Replace("\"capacityScu\": 8,", "\"capacityScu\": 12,")
             .Replace("{ \"length\": 2, \"width\": 2, \"stack\": 2 }", "{ \"length\": 3, \"width\": 2, \"stack\": 2 }")
             .Replace("[-3, 0, 0]", "[-4, 0, 0]")
-            .Replace("\"maxCrateSize\": 8", "\"maxCrateSize\": 4")
             .Replace("rack arrangement generated", "checked by hand"));
 
         var run = await work.Run("-Force", "row_ship");
@@ -132,10 +131,15 @@ public class ImportFleetyardsScriptTests
         var ship = ShipLoader.Load(work.Ships, "row_ship");
         ship.TotalScu.Should().Be(26);
         var rack = ship.Racks.Single(r => r.Id == "rack-2");
-        (rack.Grid, rack.CapacityScu, rack.MaxCrateSize).Should().Be((new Dimensions(2, 2, 2), 8, CrateSize.Eight));
+        (rack.Grid, rack.CapacityScu, rack.MaxCrateSize).Should().Be((new Dimensions(2, 2, 2), 8, CrateSize.Four));
         rack.Origin.Should().Be(new ShipPoint(-4, 0, 0));
         ship.Notes.Should().StartWith("checked by hand");
+        ship.Racks.Where(r => r.Id != "rack-2").Should().OnlyContain(r => r.MaxCrateSize == null);
     }
+
+    /// <summary>row_ship's rack-2 (2×2×2, which takes an 8 by its grid) with a door that takes 4 SCU at most.</summary>
+    private static string WithDoorLimit(string text) => Regex.Replace(
+        text, @"(""origin"": \[-3, 0, 0\],\s*""stackAxis"": ""\+z"")", "$1,\n      \"maxCrateSize\": 4");
 
     [Theory]
     [InlineData("duplicate_id.json", "twin")]

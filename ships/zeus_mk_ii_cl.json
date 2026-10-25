@@ -13,24 +13,21 @@
       "capacityScu": 120,
       "grid": { "length": 8, "width": 5, "stack": 3 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 32
+      "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 4,
       "grid": { "length": 2, "width": 1, "stack": 2 },
       "origin": [-3, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     },
     {
       "id": "rack-2",
       "capacityScu": 4,
       "grid": { "length": 2, "width": 1, "stack": 2 },
       "origin": [-6, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 2
+      "stackAxis": "+z"
     }
   ]
 }

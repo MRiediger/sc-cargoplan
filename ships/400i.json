@@ -13,8 +13,7 @@
       "capacityScu": 42,
       "grid": { "length": 7, "width": 3, "stack": 2 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z",
-      "maxCrateSize": 24
+      "stackAxis": "+z"
     }
   ]
 }
