@@ -55,8 +55,9 @@ public partial class SettingsWindowXamlTests
         box.Attribute("SelectedItem")!.Value.Should().Be("{Binding SelectedPreset}");
         row.Attribute(XName.Get("DockPanel.Dock"))!.Value.Should().Be("Top");
         box.Ancestors().Should().NotContain(a => a.Name.LocalName == "ScrollViewer");
+        // Both docked right, so the markup's order is the reverse of the screen's: only which buttons, not in what order.
         row.Descendants().Where(e => e.Name.LocalName == "Button").Select(b => ((string?)b.Attribute("Content"), (string?)b.Attribute("Click")))
-            .Should().Equal(("Export…", "OnExportLook"), ("Import…", "OnImportLook"));
+            .Should().BeEquivalentTo([("Export…", "OnExportLook"), ("Import…", "OnImportLook")]);
     }
 
     [GeneratedRegex(@"\{x:Static (?<prefix>\w+):(?<type>\w+)\.(?<member>\w+)\}")]

@@ -5,6 +5,12 @@ public enum NoticeSource
 {
     Settings,
 
+    /// <summary>
+    /// A preset applied, a look file imported or exported, or why not (K4.3); its own line, because a settings save
+    /// rewrites <see cref="Settings"/>. Cleared by the next change in the settings window and when it closes.
+    /// </summary>
+    Look,
+
     /// <summary>ship-outlines.json or some of its entries didn't load (D62); set once at the start.</summary>
     Outlines,
 

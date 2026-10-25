@@ -27,6 +27,31 @@
             <TextBox Text="{x:Static vm:SettingsViewModel.VersionLine}" IsReadOnly="True" TextWrapping="Wrap"
                      BorderThickness="0" Background="Transparent" Padding="0" />
         </Border>
+        <!-- Looks (K4.3, D77): a preset applies at once (D30), Export and Import take a *.cargoplan-look.json through the
+             system dialogs. On top, outside the scroll, so they stay in reach like the footer. "Custom" shows only as the
+             selection: choosing it would change nothing. -->
+        <Border DockPanel.Dock="Top" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                Padding="8,6">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Import…" Click="OnImportLook" Margin="6,0,0,0" Padding="8,2"
+                        ToolTip="Load a look file; hotkeys, ContractTracker and window position stay" />
+                <Button DockPanel.Dock="Right" Content="Export…" Click="OnExportLook" Margin="6,0,0,0" Padding="8,2"
+                        ToolTip="Save this look to share it" />
+                <TextBlock Text="Preset" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <ComboBox ItemsSource="{Binding PresetChoices, Mode=OneTime}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Text"
+                          ToolTip="Applies at once; the sections' Reset to defaults is the way back">
+                    <ComboBox.ItemContainerStyle>
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Look}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ComboBox.ItemContainerStyle>
+                </ComboBox>
+            </DockPanel>
+        </Border>
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <!-- One level below the window, not in Window.Resources: there a style keyed {x:Type Slider} that looks up
                  {x:Type Slider} would skip the dictionary that holds Fluent and fall back to the system look (D36). Every

@@ -1,5 +1,7 @@
 using System.Globalization;
+using System.IO;
 using System.Reflection;
+using System.Text.Json;
 using CargoPlan.App.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -41,9 +43,13 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly Action<double> _changeHoloOpacity;
     private readonly Action<string, string> _changeHoloColors;
     private readonly Action<double> _changeMaxZoom;
+    private readonly Action<string?> _setLookNotice;
 
     // True while fields are loaded (constructor, reset): their change calls are one change, applied once at the end.
     private bool _loading = true;
+
+    // True while the preset box follows the look: setting its selection then applies nothing.
+    private bool _matching;
 
     /// <param name="windowsFontSize">The Windows message font size (WPF's SystemFonts, read by the window): the legend's size while "Use Windows text size" is ticked.</param>
     /// <param name="apply">
@@ -56,6 +62,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <param name="changeHoloOpacity">Gets the hologram's opacity as a share, 0.1 to 1 (D63), like <paramref name="changeShipOutline"/>.</param>
     /// <param name="changeHoloColors">Gets the hologram's hull and edge colours after either changes (D63), like <paramref name="changeShipOutline"/>.</param>
     /// <param name="changeMaxZoom">Gets the ship view's max zoom in pixels per cell (D76), like <paramref name="changeShipOutline"/>.</param>
+    /// <param name="setLookNotice">The overlay's line for presets, import and export (K4.3); null clears it.</param>
     public SettingsViewModel(
         AppearanceSettings appearance,
         LegendSettings legend,
@@ -73,7 +80,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         string holoEdgeColor,
         Action<string, string> changeHoloColors,
         double maxZoom,
-        Action<double> changeMaxZoom)
+        Action<double> changeMaxZoom,
+        Action<string?> setLookNotice)
     {
         _windowsFontSize = Math.Clamp(windowsFontSize, AppearanceRules.MinFontSize, AppearanceRules.MaxFontSize);
         _apply = apply;
@@ -83,6 +91,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _changeHoloOpacity = changeHoloOpacity;
         _changeHoloColors = changeHoloColors;
         _changeMaxZoom = changeMaxZoom;
+        _setLookNotice = setLookNotice;
         ToolWindowTheme = toolWindowTheme;
         MaxZoom = maxZoom;
         ShipOutline = shipOutline;
@@ -112,6 +121,86 @@ public sealed partial class SettingsViewModel : ObservableObject
         LoadHeader(appearance.Header);
         LoadButtons(appearance.Buttons);
         _loading = false;
+        RefreshPreset();
+    }
+
+    // Look presets, export and import (K4.3, D77): a row above the sections.
+
+    private static readonly PresetChoice CustomChoice = new("Custom", null);
+
+    private static readonly IReadOnlyList<PresetChoice> Presets = [.. LookPresets.All.Select(p => new PresetChoice(p.Name, p.Look)), CustomChoice];
+
+    /// <summary>The presets, then "Custom", which the box shows only as its selection.</summary>
+    public IReadOnlyList<PresetChoice> PresetChoices => Presets;
+
+    /// <summary>
+    /// The preset the look is, or "Custom"; follows every change. Choosing a preset applies it at once (D30), with a notice;
+    /// choosing "Custom" changes nothing.
+    /// </summary>
+    public PresetChoice SelectedPreset
+    {
+        get;
+        set
+        {
+            if (!SetProperty(ref field, value) || _matching || value.Look is not { } look)
+            {
+                return;
+            }
+
+            ApplyLook(look);
+            _setLookNotice($"Preset applied: {value.Text}.");
+        }
+    } = CustomChoice;
+
+    /// <summary>What the window shows as one look: the appearance, legend layout and the ship view's settings of its own.</summary>
+    public Look Look => new(
+        BuildAppearance(),
+        new LegendSettings(IsLegendVisible, LegendPosition),
+        ToolWindowThemes.ToName(ToolWindowTheme),
+        ShipOutlineModes.ToName(ShipOutline),
+        HoloOpacityPercent / 100.0,
+        HoloHullColour.Value,
+        HoloEdgeColour.Value,
+        MaxZoom);
+
+    /// <summary>
+    /// Reads a look file and applies it like a preset (D30, no undo: the reset per section is the way back, settings.json.bak
+    /// keeps the file before the first save of the run, D47). A file that can't be read changes nothing and says why.
+    /// </summary>
+    public void ImportLook(string path)
+    {
+        var name = Path.GetFileName(path);
+        try
+        {
+            Look look;
+            IReadOnlyList<string> problems;
+            using (var stream = File.OpenRead(path))
+            {
+                (look, problems) = LookFile.Read(stream, Look);
+            }
+
+            ApplyLook(look);
+            _setLookNotice(string.Join(Environment.NewLine, [$"Look imported: {name}", .. problems.Select(p => $"{name}: {p}")]));
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            _setLookNotice($"Look not imported: {ex.Message}");
+        }
+    }
+
+    /// <summary>Writes the look as the window shows it, every key, so the file read anywhere gives this look.</summary>
+    public void ExportLook(string path)
+    {
+        try
+        {
+            var look = Look;
+            AtomicFile.Write(path, stream => LookFile.Write(stream, look));
+            _setLookNotice($"Look exported: {Path.GetFileName(path)}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _setLookNotice($"Look not exported: {ex.Message}");
+        }
     }
 
     // Window
@@ -282,7 +371,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     public static double MaxMaxZoom => AppearanceRules.MaxMaxZoom;
 
-    /// <summary>How far the wheel zooms in, in pixels per cell (D76); a setting of its own in the file, not part of the look.</summary>
+    /// <summary>How far the wheel zooms in, in pixels per cell (D76); a setting of its own in the file, not part of the appearance (but of a Look, K4.3).</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(MaxZoomText))]
     public partial double MaxZoom { get; set; }
@@ -343,21 +432,24 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnButtonsCornerRadiusChanged(double value) => OnChanged();
 
-    // Not OnChanged: the mode is no part of the look. The constructor sets it while loading, which calls nothing.
+    // Not OnChanged: the mode is no part of the overlay's appearance (it is of a Look file, K4.3). The constructor sets it
+    // while loading, which calls nothing.
     partial void OnToolWindowThemeChanged(ToolWindowTheme value)
     {
         if (!_loading)
         {
             _changeToolWindowTheme(value);
+            Edited();
         }
     }
 
-    // Like the tool window mode: a setting of its own, not part of the look's record.
+    // Like the tool window mode: a setting of its own, not part of the appearance record (but of the Look, K4.3).
     partial void OnShipOutlineChanged(ShipOutlineMode value)
     {
         if (!_loading)
         {
             _changeShipOutline(value);
+            Edited();
         }
     }
 
@@ -376,6 +468,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!_loading)
         {
             _changeHoloOpacity(value / 100.0);
+            Edited();
         }
     }
 
@@ -385,6 +478,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!_loading)
         {
             _changeMaxZoom(value);
+            Edited();
         }
     }
 
@@ -396,6 +490,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!_loading)
         {
             _changeHoloColors(HoloHullColour.Value, HoloEdgeColour.Value);
+            Edited();
         }
     }
 
@@ -466,14 +561,93 @@ public sealed partial class SettingsViewModel : ObservableObject
             return;
         }
 
-        AppearanceSettings appearance = new(
-            new WindowAppearance(WindowBackground.Value, WindowBorderColor.Value, WindowBorderThickness),
-            new HeaderAppearance(HeaderForeground.Value, HeaderHalo.Value),
-            new LegendAppearance(
-                LegendForeground.Value, UseWindowsFontSize ? null : LegendFontSize, LegendHalo.Value, LegendCheckBox.Value, LegendCheckMark.Value),
-            new CrateAppearance(
-                CratesFillAlpha, CratesEdgeAlpha, CratesRackNumberColor.Value, CratesRackNumberFontSize, CratesHalo.Value, StopPaletteNames.ToName(StopPalette)),
-            new ButtonAppearance(ButtonsBackground.Value, ButtonsBorderColor.Value, ButtonsBorderThickness, ButtonsCornerRadius, ButtonsHalo.Value));
-        _apply(appearance, new LegendSettings(IsLegendVisible, LegendPosition));
+        _apply(BuildAppearance(), new LegendSettings(IsLegendVisible, LegendPosition));
+        Edited();
+    }
+
+    private AppearanceSettings BuildAppearance() => new(
+        new WindowAppearance(WindowBackground.Value, WindowBorderColor.Value, WindowBorderThickness),
+        new HeaderAppearance(HeaderForeground.Value, HeaderHalo.Value),
+        new LegendAppearance(
+            LegendForeground.Value, UseWindowsFontSize ? null : LegendFontSize, LegendHalo.Value, LegendCheckBox.Value, LegendCheckMark.Value),
+        new CrateAppearance(
+            CratesFillAlpha, CratesEdgeAlpha, CratesRackNumberColor.Value, CratesRackNumberFontSize, CratesHalo.Value, StopPaletteNames.ToName(StopPalette)),
+        new ButtonAppearance(ButtonsBackground.Value, ButtonsBorderColor.Value, ButtonsBorderThickness, ButtonsCornerRadius, ButtonsHalo.Value));
+
+    /// <summary>After any change of the look from the window: the last preset or import notice is out of date, the box follows.</summary>
+    private void Edited()
+    {
+        _setLookNotice(null);
+        RefreshPreset();
+    }
+
+    /// <summary>Selects the preset the look is, or "Custom", without applying it.</summary>
+    private void RefreshPreset()
+    {
+        var look = Look;
+        _matching = true;
+        SelectedPreset = Presets.FirstOrDefault(c => c.Look == look) ?? CustomChoice;
+        _matching = false;
+    }
+
+    /// <summary>
+    /// A whole look as one change (K4.3): the fields loaded at once, then the look applied once and each setting of its own
+    /// called only if it changed, so a preset that keeps the theme doesn't switch the tool windows. The download switch is
+    /// no part of a look (D63) and stays.
+    /// </summary>
+    private void ApplyLook(Look look)
+    {
+        var before = Look;
+        Batch(
+            () =>
+            {
+                LoadWindow(look.Appearance.Window);
+                LoadLegend(look.Appearance.Legend);
+                LoadLayout(look.Legend);
+                LoadCrates(look.Appearance.Crates);
+                LoadHeader(look.Appearance.Header);
+                LoadButtons(look.Appearance.Buttons);
+                ToolWindowTheme = ToolWindowThemes.Parse(look.ToolWindowTheme);
+                ShipOutline = ShipOutlineModes.Parse(look.ShipOutline);
+                HoloOpacityPercent = ToPercent(look.HoloOpacity);
+                HoloHullColour.Load(look.HoloHullColor);
+                HoloEdgeColour.Load(look.HoloEdgeColor);
+                MaxZoom = look.MaxZoomPxPerCell;
+            },
+            () =>
+            {
+                var after = Look;
+                if (after.Appearance != before.Appearance || after.Legend != before.Legend)
+                {
+                    _apply(after.Appearance, after.Legend);
+                }
+
+                if (after.ToolWindowTheme != before.ToolWindowTheme)
+                {
+                    _changeToolWindowTheme(ToolWindowTheme);
+                }
+
+                if (after.ShipOutline != before.ShipOutline)
+                {
+                    _changeShipOutline(ShipOutline);
+                }
+
+                if (after.HoloOpacity != before.HoloOpacity)
+                {
+                    _changeHoloOpacity(after.HoloOpacity);
+                }
+
+                if (after.HoloHullColor != before.HoloHullColor || after.HoloEdgeColor != before.HoloEdgeColor)
+                {
+                    _changeHoloColors(after.HoloHullColor, after.HoloEdgeColor);
+                }
+
+                if (after.MaxZoomPxPerCell != before.MaxZoomPxPerCell)
+                {
+                    _changeMaxZoom(after.MaxZoomPxPerCell);
+                }
+
+                RefreshPreset();
+            });
     }
 }

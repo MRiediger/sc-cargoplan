@@ -22,6 +22,9 @@ public partial class SettingsWindow : Window
 
     private const string DatabaseFilter = "ContractTracker database (contracts.db)|contracts.db|SQLite database (*.db)|*.db|All files (*.*)|*.*";
 
+    private const string LookFilter = $"SC-CargoPlan look (*{LookFile.Extension})|*{LookFile.Extension}|All files (*.*)|*.*";
+
+    private readonly SettingsViewModel _viewModel;
     private readonly HotkeysViewModel _hotkeys;
     private readonly ContractTrackerSectionViewModel _contractTracker;
     private readonly OverlayViewModel _overlay;
@@ -42,6 +45,7 @@ public partial class SettingsWindow : Window
         ToolWindowThemer.Apply(this, theme);
         InitializeComponent();
         DataContext = viewModel;
+        _viewModel = viewModel;
         _hotkeys = hotkeys;
         HotkeysSection.DataContext = hotkeys;
         _contractTracker = contractTracker;
@@ -143,6 +147,35 @@ public partial class SettingsWindow : Window
         if (dialog.ShowDialog(this) == true)
         {
             _contractTracker.SetPath(dialog.FileName);
+        }
+    }
+
+    // Look files (K4.3): the dialogs here, reading and writing in the view model, which tests run without a window.
+    // A name typed without an extension gets one taken from the filter first, DefaultExt only if the filter gives none;
+    // how the dialog reads the double extension from the filter isn't documented, so the gate checks it by hand.
+    // Source: https://learn.microsoft.com/dotnet/api/microsoft.win32.filedialog.defaultext (Remarks)
+    private void OnExportLook(object sender, RoutedEventArgs e)
+    {
+        SaveFileDialog dialog = new()
+        {
+            Title = "Export look",
+            Filter = LookFilter,
+            DefaultExt = LookFile.Extension,
+            AddExtension = true,
+            FileName = "my-look" + LookFile.Extension,
+        };
+        if (dialog.ShowDialog(this) == true)
+        {
+            _viewModel.ExportLook(dialog.FileName);
+        }
+    }
+
+    private void OnImportLook(object sender, RoutedEventArgs e)
+    {
+        OpenFileDialog dialog = new() { Title = "Import look", Filter = LookFilter };
+        if (dialog.ShowDialog(this) == true)
+        {
+            _viewModel.ImportLook(dialog.FileName);
         }
     }
 
