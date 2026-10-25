@@ -1690,6 +1690,29 @@ Reihenfolge innerhalb von K2 (Branch `feat/k2-plan-editor`): K2.1 Füllrichtung 
 - **Offen aus K3:** Antwort von Torlek zu `limits.max = 1` (K3.1) und damit die Liste der ungeprüften Türen (32 Racks in 16 Schiffen); Budget-Befund aus K3.2: D58 bleibt unberührt, keine offene Frage; Rad-Routing (D71): Star Citizen sieht das Rad während eines Drags mit, und es hängt an Windows' „scroll inactive windows“ – im Spiel nicht weiter geprüft.
 - **Offen aus K2:** eine Mission, deren Rest auf dem neuen Schiff wartet, verliert den Haken ihrer abgelieferten Lieferung (D75); der Resync nach Undo liest die Datenbank nicht, ein seit dem letzten Lesen in CT gelöschter Vertrag geht erst beim nächsten echten Sync (D74); Undo-Verlauf nicht persistiert.
 
+Reihenfolge innerhalb von K1 (Branch `feat/k1-ship-view`): K1.1 Zoom-Grenzen → K1.2 Kamera-Persistenz → K1.3 Reset-Symbol → K1.4 Hit-Test. K1.1 zuerst, weil K1.2 den Zoomwert speichert. Nur App, Core unberührt; Schemas bleiben (Schiff 5, Plan 6, Mission 3, settings 2 mit neuen optionalen Keys).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (für K1.1–K1.4):** P1 Einheit DIPs (WPF-Pixel), wie Raster und Nummern; P2 Untergrenze bleibt 0,5 × Fit, nur die Obergrenze wird absolut (die 4 px des Briefs entfallen); P3 Zoomzeile im Abschnitt Ship view, nicht Crates; P4 Kamera als absolute Rahmung (px/Zelle + Pan in Zellen), live und gespeichert dieselbe Darstellung; P5 `pxPerCell`/`panX`/`panY` optional, nur gedreht = nur die Kamera, beim Start wird gefittet; P6 Pan vom schiffsfesten Anker (projizierte Mitte von `Ship.Bounds`), nie vom Fit der Beladung (Korrektur bei der Freigabe); P7 Reset-Symbol direkt links vom Zahnrad, rechts von ↶ ↷; P8 Hit-Test-Naht erst ohne Prüfung (rot per Assert), dann mit; P9 keine Frame-Zeit-Messung (gleiche Geometrie, nur andere Skala; das volle Raster zeichnet die Hull C schon bei 4 × Fit).
+
+### [ ] K1.1 Zoom-Grenzen absolut in Pixel pro Zelle (D76) (25.10.2026)
+**Warum:** Auf großen Schiffen (C2, Hull C) reichte der maximale Zoom nicht, um einzelne Kisten zu treffen und zu lesen (Martin).
+
+**Ist-Zustand vor K1.1 (A1):** Zoom war ein Faktor 0,5–4 auf den Fit (`ViewNavigation.MinZoom`/`MaxZoom`), Pan in Pixeln um die Bildschirmecke; Hull C fittet bei 800 × 600 auf 8,0 px/Zelle (D61) → höchstens 32, mit Hologramm weniger; Hull A im Standard-Overlay ≈ 30 → 120. Der Radschritt war schon ein Faktor (1,2 pro Raste). Die Rastergrenze borgte die Mindest-Schriftgröße der Nummern (12).
+- App: `ViewBasis` (Fit, Mitte der Fit-Fläche, Anker), `ZoomLimits` (unten 0,5 × Fit, oben `shipView.maxZoomPxPerCell`, Fit immer erreichbar), `Framing` (px/Zelle, Pan in Zellen vom Anker, `OfFit`), `ViewNavigation(Camera, Framing?)` mit `On`, `ZoomAt`, `PanBy`, `Clamped`, `ZoomOn`; `ProjectedScene.Anchor`; `FreeCellGrid.MinCellSize = 12` als eigener Wert; `ShipViewControl.MaxPxPerCell` (kleinerer Wert schrumpft eine Rahmung sofort um ihre Mitte)
+- Settings: `ShipViewSettings` (`shipView.maxZoomPxPerCell`, Default 160, 40–240, geklemmt mit Notice), `SettingsSession.ChangeMaxZoom`/`MaxZoom`, `OverlayViewModel.MaxZoomPxPerCell`, `SettingsViewModel.MaxZoom` mit Slider „Max zoom per cell“ im Abschnitt Ship view, Reset dort
+- Tests: `ViewTransformTests` (Navigationsteil neu), `SceneProjectorTests` (Anker), Store-, Session- und SettingsViewModel-Tests
+
+**Akzeptanz:**
+- [x] Obergrenze absolut, gleich bei Fenster 400 × 300 und 1200 × 900; Untergrenze 0,5 × Fit; Fit über dem Maximum bleibt Obergrenze
+- [x] Punkt unter dem Cursor bleibt beim Zoomen; am Limit bewegt sich nichts; Zoomschritt pro Raste ein Faktor (1,2)
+- [x] Kleinere Preference schrumpft die Ansicht sofort um ihre Mitte
+- [x] Rahmung hängt am Anker, nicht am Fit-Extent (breiterer Extent → gleiches Bild); Anker unabhängig von der Beladung
+- [x] Rastergrenze 12 px/Zelle unverändert; Zoom beim Einzelkisten-Drag weiter aus (K3.2, unverändert)
+- [x] settings.json ohne `shipView` → 160 ohne Notice; Rundreise; 20 → 40 und 500 → 240 mit Notice
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.182 → 1.203)
+- [ ] Gate Publish-Build (Martin): Hull C hineinzoomen, bis eine 32er lesbar den Tooltip trifft; Hull A fühlt sich unverändert an; Preference ändern wirkt sofort
+- Commits 8dd6803 (Tests rot), bbb9314 (App), Doku-Commit.
+
 ---
 
 ## Phase 8 – nach dem Launch

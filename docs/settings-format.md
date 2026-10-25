@@ -9,7 +9,7 @@ the overlay again.
 ## Example with every default
 
 Without a file, or without `ship`, `recentShips`, `legend`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`,
-`holoHullColor`, `holoEdgeColor`, `toolWindowTheme`, `contractTracker` and `appearance`, the overlay uses exactly these
+`holoHullColor`, `holoEdgeColor`, `shipView`, `toolWindowTheme`, `contractTracker` and `appearance`, the overlay uses exactly these
 values.
 
 ```json
@@ -25,6 +25,7 @@ values.
   "holoOpacity": 0.4,
   "holoHullColor": "#FF9CB0C0",
   "holoEdgeColor": "#FFE6E6E6",
+  "shipView": { "maxZoomPxPerCell": 160 },
   "toolWindowTheme": "system",
   "contractTracker": { "path": null, "autoSync": true },
   "appearance": {
@@ -180,6 +181,14 @@ release `holo-v1` on GitHub when you pick a ship, one file per ship, and the lis
 else is sent. `false` means no network access at all; holograms already downloaded still show. They are kept in
 `%LocalAppData%\SC-CargoPlan\holo\holo-v1\` ([format](holo-format.md)).
 
+`shipView` holds the zoom. Missing or `null` means the defaults.
+
+| Key | What | Default | Range |
+|---|---|---|---|
+| `shipView.maxZoomPxPerCell` | How far the mouse wheel zooms in: pixels per cell (1 SCU, 1.25 m), the same on every ship, so a Hull C zooms in as far as a Hull A. Pixels as Windows scales them: at 150 % display scaling 160 are 240 screen pixels. Zooming out stops at half the size that fits the window. | `160` | 40–240 |
+
+A value outside the range is clamped, with a notice. The **Ship view** section's reset sets it back.
+
 ## Tool window theme
 
 `toolWindowTheme` sets light or dark for the settings window and the mission editor, colour picker included.
@@ -251,7 +260,7 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor` and `holoEdgeColor` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor` and `shipView` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a

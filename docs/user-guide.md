@@ -84,6 +84,9 @@ locked; in a narrow overlay the ship name gives way first. Each rack says the sa
 Hover over a crate to see what it is, e.g. `Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4)`, with its
 rack's load in a second line. Inside the view: **left drag** turns and tilts the ship, **right drag** next to the crates moves the view, the **mouse wheel**
 zooms (while you drag a single crate it turns the crate instead, see [Changing the plan](#changing-the-plan)), a **double-click** next to the cargo resets the view to the ship's starting view.
+The wheel zooms in as far on a Hull C as on a Hull A: up to 160 pixels per cell by default, so even on a long ship you
+can get close enough to hit a single crate. **Max zoom per cell** in the settings' **Ship view** section sets how far;
+zooming out stops at half the size that fits the window, as before.
 
 ## Entering missions
 
