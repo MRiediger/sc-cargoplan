@@ -89,15 +89,38 @@ public sealed record AppSettings(
     public ShipViewSettings ShipView { get; init; } = ShipView ?? ShipViewSettings.Default;
 }
 
-/// <summary>The ship view's zoom (D76). Optional, no schema bump (D31).</summary>
+/// <summary>The ship view's zoom and the player's camera per ship (D76). Optional, no schema bump (D31).</summary>
 /// <param name="MaxZoomPxPerCell">
 /// How far the wheel zooms in, in pixels per cell (DIPs), <see cref="AppearanceRules.MinMaxZoom"/> to
 /// <see cref="AppearanceRules.MaxMaxZoom"/>; checked by <see cref="AppearanceRules.Normalize(ShipViewSettings)"/>.
 /// </param>
-public sealed record ShipViewSettings(double MaxZoomPxPerCell = AppearanceRules.DefaultMaxZoom)
+/// <param name="Cameras">
+/// Catalog id → the view as the player left it on that ship (K1.2); only the recent ships and the current one
+/// (<c>OverlayViewModel.Cameras</c>). Missing or null = none: every ship fits from its own default camera.
+/// </param>
+// IReadOnlyDictionary<string, T> reads and writes as a JSON object.
+// Source: https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/supported-types
+public sealed record ShipViewSettings(double MaxZoomPxPerCell = AppearanceRules.DefaultMaxZoom, IReadOnlyDictionary<string, ShipCamera>? Cameras = null)
 {
     public static ShipViewSettings Default { get; } = new();
+
+    // Edited by hand, an entry without a camera or an id names nothing: dropped at the file boundary (A6), like a gap in
+    // recentShips. RespectNullableAnnotations doesn't reach dictionary values ("Limitations").
+    // Source: https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/nullable-annotations
+    public IReadOnlyDictionary<string, ShipCamera>? Cameras { get; init; } =
+        Cameras?.Where(c => !string.IsNullOrWhiteSpace(c.Key) && c.Value is not null).ToDictionary();
 }
+
+/// <summary>
+/// The ship view as the player left it on one ship (D76): the camera, and the framing if zoomed or panned. Written by the
+/// view, not by hand; read as the camera can be (the yaw wraps, the pitch and the zoom are clamped).
+/// </summary>
+/// <param name="Yaw">Degrees, like <c>IsoProjection.Yaw</c>.</param>
+/// <param name="Pitch">Degrees, like <c>IsoProjection.Pitch</c>.</param>
+/// <param name="PxPerCell">Pixels per cell; with <paramref name="PanX"/> and <paramref name="PanY"/> the framing, all three or none (none = fit).</param>
+/// <param name="PanX">The view's middle from the ship's centre, projected, in cells (ship-fixed, so the cargo doesn't move it).</param>
+/// <param name="PanY">Like <paramref name="PanX"/>, down the screen.</param>
+public sealed record ShipCamera(double Yaw, double Pitch, double? PxPerCell = null, double? PanX = null, double? PanY = null);
 
 /// <summary>
 /// The legend's layout (D33): top level, not in <c>appearance.legend</c>, because it is layout, not look, and the

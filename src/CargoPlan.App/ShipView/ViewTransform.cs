@@ -101,6 +101,14 @@ public sealed record ViewNavigation(IsoProjection Camera, Framing? Framing = nul
     /// <summary>The ship's own default camera (<see cref="IsoProjection.DefaultFor"/>), fitted.</summary>
     public static ViewNavigation DefaultFor(ShipBox bounds) => new(IsoProjection.DefaultFor(bounds));
 
+    /// <summary>The saved view (K1.2); a framing only with all three of its values, otherwise the fit.</summary>
+    public static ViewNavigation From(ShipCamera camera) => new(
+        new IsoProjection(camera.Yaw, camera.Pitch),
+        camera is { PxPerCell: { } pxPerCell, PanX: { } x, PanY: { } y } ? new Framing(pxPerCell, new Vector(x, y)) : null);
+
+    /// <summary>What settings.json keeps of this view (K1.2).</summary>
+    public ShipCamera ToCamera() => new(Camera.Yaw, Camera.Pitch, Framing?.PxPerCell, Framing?.Pan.X, Framing?.Pan.Y);
+
     public ViewTransform On(ViewBasis basis, ZoomLimits limits) =>
         Framing is { } framing ? framing.On(basis, limits.Clamp(framing.PxPerCell, basis.Fit)) : basis.Fit;
 

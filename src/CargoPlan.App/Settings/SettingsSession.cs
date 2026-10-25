@@ -201,6 +201,17 @@ public sealed class SettingsSession
         _timer.Start();
     }
 
+    /// <summary>
+    /// From the overlay (K1.2): the cameras per ship after the player turned, zoomed, panned or reset the view. Saved after
+    /// <see cref="Debounce"/> of rest, so a drag that changes them every frame writes once at its end (T3.4).
+    /// </summary>
+    public void ChangeCameras(IReadOnlyDictionary<string, ShipCamera> cameras)
+    {
+        Current = Current with { ShipView = Current.ShipView with { Cameras = cameras } };
+        _timer.Stop();
+        _timer.Start();
+    }
+
     /// <summary>From the settings window (D63): saved after <see cref="Debounce"/>; the loader follows via <see cref="ShipViewChanged"/>.</summary>
     public void ChangeDownloadShipHolograms(bool download)
     {

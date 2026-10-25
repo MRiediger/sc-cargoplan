@@ -131,6 +131,18 @@ public sealed class ShipViewControl : FrameworkElement
     /// </summary>
     public static readonly DependencyProperty ViewProperty = ViewPropertyKey.DependencyProperty;
 
+    /// <summary>
+    /// The view as the player left it on the scene's ship (K1.2), two-way like <see cref="Selection"/>: the view writes it on
+    /// every turn, zoom and pan, null on the reset; the view model brings another ship's with the ship. null = the ship's
+    /// default camera, fitted (D61).
+    /// </summary>
+    // Source: https://learn.microsoft.com/dotnet/api/system.windows.frameworkpropertymetadataoptions
+    public static readonly DependencyProperty CameraProperty = DependencyProperty.Register(
+        nameof(Camera),
+        typeof(ShipCamera),
+        typeof(ShipViewControl),
+        new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, (d, _) => ((ShipViewControl)d).OnCameraChanged()));
+
     /// <summary>How far the wheel zooms in, pixels per cell (D76); a lower value shrinks a framed view at once.</summary>
     public static readonly DependencyProperty MaxPxPerCellProperty = DependencyProperty.Register(
         nameof(MaxPxPerCell),
@@ -199,6 +211,12 @@ public sealed class ShipViewControl : FrameworkElement
     }
 
     public ShipViewState? View => (ShipViewState?)GetValue(ViewProperty);
+
+    public ShipCamera? Camera
+    {
+        get => (ShipCamera?)GetValue(CameraProperty);
+        set => SetValue(CameraProperty, value);
+    }
 
     public double MaxPxPerCell
     {
@@ -499,7 +517,7 @@ public sealed class ShipViewControl : FrameworkElement
         // Reset only off the cargo: there the second click of a double-click is a click of its own and ticks back.
         if (e.ClickCount == 2 && DestinationAt(e.GetPosition(this)) is null)
         {
-            Navigate(Scene is { } scene ? ViewNavigation.DefaultFor(scene.Bounds) : ViewNavigation.Default);
+            SetCurrentValue(CameraProperty, null);
             return;
         }
 
@@ -783,10 +801,11 @@ public sealed class ShipViewControl : FrameworkElement
         _projected = null;
         ShowToolTip(null);
 
-        // Another ship starts from its own default camera (D61); a tick or a new plan on the same ship keeps the view (D16).
+        // Another ship starts from its saved view or its own default camera (D61, K1.2); a tick or a new plan on the same
+        // ship keeps the view (D16).
         if (Scene is { } scene && old?.Ship.Id != scene.Ship.Id)
         {
-            _navigation = ViewNavigation.DefaultFor(scene.Bounds);
+            _navigation = NavigationOf(Camera, scene);
         }
 
         // A drag holds crates of the old plan; Core would not find them in the new one.
@@ -794,7 +813,19 @@ public sealed class ShipViewControl : FrameworkElement
         PublishView();
     }
 
+    /// <summary>A player's turn, zoom or pan: shown, and written to <see cref="Camera"/> for the settings (K1.2).</summary>
     private void Navigate(ViewNavigation navigation)
+    {
+        if (navigation == _navigation)
+        {
+            return;
+        }
+
+        Show(navigation);
+        SetCurrentValue(CameraProperty, navigation.ToCamera());
+    }
+
+    private void Show(ViewNavigation navigation)
     {
         if (navigation.Camera != _navigation.Camera)
         {
@@ -805,6 +836,19 @@ public sealed class ShipViewControl : FrameworkElement
         PublishView();
         InvalidateVisual();
     }
+
+    // The view's own write comes back here through the binding as the same value; anything else came from outside: the
+    // reset, the start, another ship.
+    private void OnCameraChanged()
+    {
+        if (Scene is { } scene && Camera != _navigation.ToCamera())
+        {
+            Show(NavigationOf(Camera, scene));
+        }
+    }
+
+    private static ViewNavigation NavigationOf(ShipCamera? camera, ShipScene scene) =>
+        camera is null ? ViewNavigation.DefaultFor(scene.Bounds) : ViewNavigation.From(camera);
 
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
     {

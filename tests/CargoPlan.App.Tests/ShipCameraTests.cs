@@ -71,7 +71,11 @@ public class ShipCameraTests
     public void No_camera_removes_the_ship_s_entry()
     {
         // The reset (double-click, K1.3's button): the ship fits again, also after a restart.
-        OverlayViewModel viewModel = new(HullA, Catalog) { Cameras = new Dictionary<string, ShipCamera> { ["hull_a"] = Framed, ["c2_hercules"] = Turned } };
+        OverlayViewModel viewModel = new(HullA, Catalog)
+        {
+            RecentShips = ["hull_a", "c2_hercules"],
+            Cameras = new Dictionary<string, ShipCamera> { ["hull_a"] = Framed, ["c2_hercules"] = Turned },
+        };
 
         viewModel.Camera = null;
 

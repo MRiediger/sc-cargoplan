@@ -71,6 +71,7 @@ public partial class App : Application
         {
             IsManuallyLocked = options.Locked,
             RecentShips = settings.RecentShips ?? [],
+            Cameras = settings.ShipView.Cameras ?? new Dictionary<string, ShipCamera>(),
             Outlines = outlines,
         };
         viewModel.SetNotice(NoticeSource.Settings, settingsProblem);
@@ -129,6 +130,10 @@ public partial class App : Application
             if (e.PropertyName == nameof(OverlayViewModel.Ship))
             {
                 session.ChangeShip(viewModel.Ship.Id, viewModel.RecentShips);
+            }
+            else if (e.PropertyName == nameof(OverlayViewModel.Cameras))
+            {
+                session.ChangeCameras(viewModel.Cameras);
             }
         };
 
