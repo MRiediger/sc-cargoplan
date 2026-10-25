@@ -84,6 +84,8 @@ locked; in a narrow overlay the ship name gives way first. Each rack says the sa
 Hover over a crate to see what it is, e.g. `Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4)`, with its
 rack's load in a second line. Inside the view: **left drag** turns and tilts the ship, **right drag** next to the crates moves the view, the **mouse wheel**
 zooms (while you drag a single crate it turns the crate instead, see [Changing the plan](#changing-the-plan)), a **double-click** next to the cargo resets the view to the ship's starting view.
+**Reset view** in the header, right next to the gear, does the same, and so does its hotkey (none by default, see
+[Hotkeys](#hotkeys)), which also works in the game while the overlay is locked.
 The wheel zooms in as far on a Hull C as on a Hull A: up to 160 pixels per cell by default, so even on a long ship you
 can get close enough to hit a single crate. **Max zoom per cell** in the settings' **Ship view** section sets how far;
 zooming out stops at half the size that fits the window, as before. The view stays as you leave it, per ship: after a
@@ -150,7 +152,7 @@ the overlay and brings it back (dogfight, landing), one takes new ContractTracke
 program, the game included, and any default could clash with one of your Star Citizen bindings.
 
 **Set them in the settings window** (the gear), section **Hotkeys**: click the button next to *Lock / unlock*,
-*Hide / show overlay*, *Sync from ContractTracker*, *Re-plan*, *Discard plan*, *Undo* or *Redo*, then press the keys. The hotkey works at once and is saved. **Esc**
+*Hide / show overlay*, *Sync from ContractTracker*, *Re-plan*, *Discard plan*, *Undo*, *Redo* or *Reset view*, then press the keys. The hotkey works at once and is saved. **Esc**
 cancels, **Clear** removes it.
 
 - **At least one of `Ctrl`, `Alt` or `Win` is required**, plus one key: `A`–`Z`, `0`–`9`, `F1`–`F24` (not `F12`,
@@ -169,7 +171,7 @@ cancels, **Clear** removes it.
 - Hidden, the overlay also leaves the taskbar; press the hotkey again to bring it back where it was.
 
 You can still write them into `%LocalAppData%\SC-CargoPlan\settings.json` by hand (overlay closed), e.g.
-`"hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": "Ctrl+Alt+J", "replan": "Ctrl+Alt+R", "discardPlan": null, "undo": null, "redo": null }`,
+`"hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": "Ctrl+Alt+J", "replan": "Ctrl+Alt+R", "discardPlan": null, "undo": null, "redo": null, "resetView": null }`,
 modifiers and key joined by `+` in any order and case; `null` or a missing entry means no hotkey. A hotkey that is
 invalid or taken shows as an amber line next to the legend and next to its button in the settings window; the other
 hotkeys still work. A typo in a name (e.g. `toggleLok`) makes the whole file unreadable: the overlay starts with
@@ -313,7 +315,7 @@ starts over as on the first start: the next **Sync from ContractTracker** takes 
 so delete the finished ones there first (× or F5). With auto-sync on that happens at the next capture by itself. Rows you
 are editing stay a draft; clean rows become one empty row.
 
-**Undo and redo** (↶ and ↷ in the header left of the gear, or their hotkeys) go back and forward through your changes
+**Undo and redo** (↶ and ↷ in the header left of the reset button, or their hotkeys) go back and forward through your changes
 to the plan: moves, legend drags, turning a crate, split and merge, Re-plan, **Plan** in the editor, deleting a mission
 and Discard plan. ↶ shows once there is something to undo, ↷ once you have undone something; a new change drops what
 you could redo. Ticks are not undone: they are where you are on the route, so a tick you set after a move stays when you

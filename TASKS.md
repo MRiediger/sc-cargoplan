@@ -1719,7 +1719,7 @@ Reihenfolge innerhalb von K1 (Branch `feat/k1-ship-view`): K1.1 Zoom-Grenzen →
 **Ist-Zustand vor K1.2 (A1):** Die Navigation lebte nur im Control (`_navigation`), der Schiffswechsel setzte sie dort zurück (`OnSceneChanged`). Die Recent-Liste hält höchstens 4 Ids (`ShipChoices.Remember`) und liefert die Obergrenze. Kein Muster „VM bittet das Control“; die Auswahl läuft zweiseitig per `SetCurrentValue`.
 - Settings: `ShipCamera(Yaw, Pitch, PxPerCell?, PanX?, PanY?)`, `ShipViewSettings.Cameras` (Einträge ohne Kamera oder Id fallen an der Dateigrenze weg), `SettingsSession.ChangeCameras` (500 ms Ruhe, `Flush` beim Beenden)
 - App: `ViewNavigation.From`/`ToCamera` (Rahmung nur mit allen drei Werten); `OverlayViewModel.Cameras` (Start aus settings.json) und `Camera` (des aktuellen Schiffs, nur Recent ∪ aktuelles Schiff behalten, Schiffswechsel meldet die Kamera vor der Szene, kein `Step`); `ShipViewControl.Camera` zweiseitig, jede Navigation schreibt, Doppelklick schreibt null, Navigation aus Kamera + Szene abgeleitet (Reihenfolge der Bindings egal); Composition Root leitet `Cameras` an die Session
-- Tests: `ShipCameraTests` (14, davon der Anker-Fall an der Caterpillar: Kamera speichern, Kiste in ein Rack weit achtern, Kamera laden → Rack 1 an derselben Bildschirmstelle), Store- und Session-Tests
+- Tests: `ShipCameraTests` (13 Methoden, davon der Anker-Fall an der Caterpillar: Kamera speichern, Kiste in ein Rack weit achtern, Kamera laden → Rack 1 an derselben Bildschirmstelle), Store- und Session-Tests
 
 **Akzeptanz:**
 - [x] Kamera pro Schiff: Start liest sie, Wechsel hin und zurück bringt jeweils die eigene, Reset entfernt den Eintrag
@@ -1730,6 +1730,22 @@ Reihenfolge innerhalb von K1 (Branch `feat/k1-ship-view`): K1.1 Zoom-Grenzen →
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.203 → 1.223)
 - [ ] Gate Publish-Build (Martin): Hull C drehen, zoomen, verschieben, beenden, starten → gleiche Ansicht; Schiff wechseln und zurück → gleich; Reset → Fit, Neustart → Fit
 - Commits a2c05dc (Tests rot), a6b059f (App), Doku-Commit.
+
+### [ ] K1.3 Reset-Symbol in der Kopfzeile + Hotkey `resetView` (D15-Addendum) (25.10.2026)
+**Warum:** Backlog: der Reset per Doppelklick ist versteckt.
+
+**Ist-Zustand vor K1.3 (A1):** Kopfzeile von rechts: Exit, Zahnrad, ↷, ↶ (nur mit Verlauf), Stift, Re-plan …; das Schloss ist ein eigenes Fenster. `HeaderButtonStyle` blendet gesperrt aus. Hotkey-Muster K2.3/K2.4 (`HotkeyAction`, `HotkeySettings`, `HotkeyService`, `SettingsSession`, `HotkeysViewModel`, `HotkeyEditor`, Settings-Zeile).
+- App: `OverlayViewModel.ResetViewCommand` (Kamera null, auch gesperrt); Button rechts neben dem Zahnrad, Tooltip „Reset view“, Glyph E9A6 FitPage (gegen die Segoe-Doku geprüft, am echten Element gewählt, Martin delegierte die Wahl); ↶ ↷ eine Stelle weiter links; Hotkey `resetView` ohne Default in allen sieben Bausteinen
+- Tests: Kopfzeilen-XAML (Position, Stil, kein Ausblenden außer gesperrt, Glyph; ↶ ↷ verschoben), `ShipCameraTests` (Reset, gesperrt), Hotkey- und Session-Tests
+
+**Akzeptanz:**
+- [x] Symbol rechts neben dem Zahnrad, immer da, gesperrt ausgeblendet (Stil); springt nicht, wenn ↶ ↷ kommen und gehen
+- [x] Reset entfernt die Kamera des Schiffs (Fit, auch nach Neustart); wirkt gesperrt; Doppelklick bleibt
+- [x] Hotkey `resetView`: kein Default, Kollision abgelehnt, von Session und Store geschrieben
+- [x] Screenshot Debug-Build: Symbol sichtbar zwischen Stift und Zahnrad (AppData vorher gesichert, danach hash-gleich)
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.223 → 1.229)
+- [ ] Gate (Martin): Symbol sichtbar, Klick fittet, im Lock-Modus weg; Hotkey nach Aufnahme wirkt im Spiel
+- Commits d0b1823 (Tests rot), d49c021 (App), Doku-Commit.
 
 ---
 
