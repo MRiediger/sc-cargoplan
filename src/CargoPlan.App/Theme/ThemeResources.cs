@@ -28,6 +28,8 @@ public static class ThemeResources
         public const string LegendForegroundBrush = nameof(LegendForegroundBrush);
         public const string LegendFontSize = nameof(LegendFontSize);
         public const string LegendHaloEffect = nameof(LegendHaloEffect);
+        public const string LegendCheckBoxBrush = nameof(LegendCheckBoxBrush);
+        public const string LegendCheckMarkBrush = nameof(LegendCheckMarkBrush);
         public const string CratesFillAlpha = nameof(CratesFillAlpha);
         public const string CratesEdgeBrush = nameof(CratesEdgeBrush);
         public const string CratesRackNumberBrush = nameof(CratesRackNumberBrush);
@@ -44,7 +46,7 @@ public static class ThemeResources
         [
             WindowBackgroundBrush, WindowOpaqueBackgroundBrush, WindowBorderBrush, WindowBorderThickness,
             HeaderForegroundBrush, HeaderHaloEffect,
-            LegendForegroundBrush, LegendFontSize, LegendHaloEffect,
+            LegendForegroundBrush, LegendFontSize, LegendHaloEffect, LegendCheckBoxBrush, LegendCheckMarkBrush,
             CratesFillAlpha, CratesEdgeBrush, CratesRackNumberBrush, CratesRackNumberFontSize, CratesHaloBrush, CratesHaloSize,
             ButtonsBackgroundBrush, ButtonsBorderBrush, ButtonsBorderThickness, ButtonsCornerRadius, ButtonsHaloEffect,
         ];
@@ -73,6 +75,8 @@ public static class ThemeResources
         // Source: https://learn.microsoft.com/dotnet/api/system.windows.systemfonts.messagefontsize
         resources[Keys.LegendFontSize] = legend.FontSize ?? SystemFonts.MessageFontSize;
         Set(resources, Keys.LegendHaloEffect, Glow(legend.Halo));
+        resources[Keys.LegendCheckBoxBrush] = Brush(legend.CheckBoxColor);
+        resources[Keys.LegendCheckMarkBrush] = Brush(legend.CheckMarkColor);
 
         var crates = appearance.Crates;
         resources[Keys.CratesFillAlpha] = (byte)crates.FillAlpha;

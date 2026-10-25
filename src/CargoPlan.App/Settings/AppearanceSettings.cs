@@ -50,7 +50,18 @@ public sealed record HeaderAppearance(string Foreground = "#FFE6E6E6", HaloSetti
 
 /// <summary>Stop lines, hints, violations and notices.</summary>
 /// <param name="FontSize">null = the Windows message font size, as before settings existed; a number overrides it.</param>
-public sealed record LegendAppearance(string Foreground = "#FFE6E6E6", double? FontSize = null, HaloSettings? Halo = null)
+/// <param name="CheckBoxColor">
+/// The frame of the legend's check boxes (D69, K4.1). The default grey is Martin's from B6's look gate (not the selection's
+/// magenta): lighter than the grey of a ticked line's text, which has no box anyway, darker than the legend's text.
+/// Alpha 0 is allowed, the box takes clicks anyway.
+/// </param>
+/// <param name="CheckMarkColor">What stands in the box: the tick for all selected, the bar for part of them.</param>
+public sealed record LegendAppearance(
+    string Foreground = "#FFE6E6E6",
+    double? FontSize = null,
+    HaloSettings? Halo = null,
+    string CheckBoxColor = "#FFB0B0B0",
+    string CheckMarkColor = "#FFB0B0B0")
 {
     public static LegendAppearance Default { get; } = new();
 

@@ -236,8 +236,16 @@
                                     Value="{Binding LegendFontSize}" Style="{StaticResource ValueSliderStyle}" />
                         </DockPanel>
                         <ContentControl Content="{Binding LegendHalo, Mode=OneTime}" />
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The frame of the boxes that select a line's crates">
+                            <TextBlock Text="Check box" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding LegendCheckBox, Mode=OneTime}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The tick (all selected) and the bar (part selected) in the box">
+                            <TextBlock Text="Check mark" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding LegendCheckMark, Mode=OneTime}" />
+                        </DockPanel>
                         <Button Command="{Binding ResetLegendCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}"
-                                ToolTip="Colour, size and halo; where the legend stands is reset below" />
+                                ToolTip="Colours, size and halo; where the legend stands is reset below" />
                     </StackPanel>
                 </GroupBox>
 

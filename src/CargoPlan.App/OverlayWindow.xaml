@@ -58,7 +58,8 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- A legend check box (B6, D69): selects crates, in grey (MissionPalette.CheckBoxBrush); a ticked line has no box.
+        <!-- A legend check box (B6, D69): selects crates; a ticked line has no box. Frame and mark (tick and bar) take their own
+             colours from the legend's look (K4.1), grey by default.
              Ticked = all selected, a bar = part of them. Three states only with IsThreeState
              (source: https://learn.microsoft.com/dotnet/api/system.windows.controls.primitives.togglebutton.isthreestate);
              the click's own next state doesn't matter, ToggleCratesCommand changes the selection and the binding shows it. -->
@@ -73,12 +74,12 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
-                        <Border BorderBrush="{x:Static sv:MissionPalette.CheckBoxBrush}" BorderThickness="1.5"
+                        <Border BorderBrush="{DynamicResource LegendCheckBoxBrush}" BorderThickness="1.5"
                                 Background="{StaticResource HitTestBackgroundBrush}">
                             <Grid>
-                                <Path x:Name="Mark" Data="M 1.5,4.5 L 3.8,7 L 7.5,1.5" Stroke="{x:Static sv:MissionPalette.CheckBoxBrush}"
+                                <Path x:Name="Mark" Data="M 1.5,4.5 L 3.8,7 L 7.5,1.5" Stroke="{DynamicResource LegendCheckMarkBrush}"
                                       StrokeThickness="1.5" Visibility="Hidden" />
-                                <Rectangle x:Name="Part" Width="5" Height="1.5" Fill="{x:Static sv:MissionPalette.CheckBoxBrush}" Visibility="Hidden" />
+                                <Rectangle x:Name="Part" Width="5" Height="1.5" Fill="{DynamicResource LegendCheckMarkBrush}" Visibility="Hidden" />
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>

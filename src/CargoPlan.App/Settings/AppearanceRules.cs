@@ -85,6 +85,8 @@ public static class AppearanceRules
                 // null is the Windows size and passes; only a number has a range (resolved in ThemeResources).
                 FontSize = legend.FontSize is { } size ? check.Range("legend.fontSize", size, MinFontSize, MaxFontSize) : null,
                 Halo = check.Halo("legend.halo", legend.Halo),
+                CheckBoxColor = check.Colour("legend.checkBoxColor", legend.CheckBoxColor, LegendAppearance.Default.CheckBoxColor),
+                CheckMarkColor = check.Colour("legend.checkMarkColor", legend.CheckMarkColor, LegendAppearance.Default.CheckMarkColor),
             },
             crates with
             {

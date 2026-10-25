@@ -95,6 +95,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         WindowBorderColor = new(appearance.Window.BorderColor, minAlpha: 0, OnChanged);
         LegendForeground = new(appearance.Legend.Foreground, minAlpha: 0, OnChanged);
         LegendHalo = new(appearance.Legend.Halo, LegendHaloLabel, OnChanged);
+        LegendCheckBox = new(appearance.Legend.CheckBoxColor, minAlpha: 0, OnChanged);
+        LegendCheckMark = new(appearance.Legend.CheckMarkColor, minAlpha: 0, OnChanged);
         CratesRackNumberColor = new(appearance.Crates.RackNumberColor, minAlpha: 0, OnChanged);
         CratesHalo = new(appearance.Crates.Halo, CratesHaloLabel, OnChanged);
         HeaderForeground = new(appearance.Header.Foreground, minAlpha: 0, OnChanged);
@@ -134,6 +136,12 @@ public sealed partial class SettingsViewModel : ObservableObject
     public partial double LegendFontSize { get; set; }
 
     public HaloEditor LegendHalo { get; }
+
+    /// <summary>The check boxes' frame (K4.1, D69); alpha 0 is allowed, the box keeps its own hit-test background.</summary>
+    public ColourField LegendCheckBox { get; }
+
+    /// <summary>The tick (all of a line's crates selected) and the bar (part of them) inside the box.</summary>
+    public ColourField LegendCheckMark { get; }
 
     // Legend layout (D33): a section of its own, so resetting the legend's look doesn't move it.
 
@@ -396,6 +404,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         LegendFontSize = legend.FontSize ?? _windowsFontSize;
         LegendForeground.Load(legend.Foreground);
         LegendHalo.Load(legend.Halo);
+        LegendCheckBox.Load(legend.CheckBoxColor);
+        LegendCheckMark.Load(legend.CheckMarkColor);
     }
 
     private void LoadLayout(LegendSettings legend)
@@ -449,7 +459,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         AppearanceSettings appearance = new(
             new WindowAppearance(WindowBackground.Value, WindowBorderColor.Value, WindowBorderThickness),
             new HeaderAppearance(HeaderForeground.Value, HeaderHalo.Value),
-            new LegendAppearance(LegendForeground.Value, UseWindowsFontSize ? null : LegendFontSize, LegendHalo.Value),
+            new LegendAppearance(
+                LegendForeground.Value, UseWindowsFontSize ? null : LegendFontSize, LegendHalo.Value, LegendCheckBox.Value, LegendCheckMark.Value),
             new CrateAppearance(CratesFillAlpha, CratesEdgeAlpha, CratesRackNumberColor.Value, CratesRackNumberFontSize, CratesHalo.Value),
             new ButtonAppearance(ButtonsBackground.Value, ButtonsBorderColor.Value, ButtonsBorderThickness, ButtonsCornerRadius, ButtonsHalo.Value));
         _apply(appearance, new LegendSettings(IsLegendVisible, LegendPosition));
