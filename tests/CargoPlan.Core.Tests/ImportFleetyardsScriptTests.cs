@@ -131,6 +131,32 @@ public class ImportFleetyardsScriptTests
         ShipLoader.Load(work.Ships, "overlap_ship").Racks[^1].MaxCrateSize.Should().Be(CrateSize.Four);
     }
 
+    // overlap_ship's rack-0 says limits.min.capacity 8 (K3.3); row_ship's wide hold says 0, which counts as none.
+    [Fact]
+    public async Task Compare_reports_a_minimum_missing_from_the_file()
+    {
+        using var work = new Workspace(withExpected: true);
+        work.Edit("overlap_ship", t => Regex.Replace(t, @",\s*""minCrateSize"": 8", ""));
+
+        var run = await work.Run();
+
+        run.ExitCode.Should().Be(Deviation, run.Output);
+        run.Output.Should().MatchRegex(@"different\s+overlap_ship.*rack-0: minCrateSize not in file, Fleetyards 8");
+    }
+
+    // A minimum above the app's largest crate is clamped to 32 like a door; a door of 32 says nothing on an 8x2x2 grid.
+    [Fact]
+    public async Task Create_clamps_a_minimum_above_32()
+    {
+        using var work = new Workspace("min_clamped.json");
+
+        var run = await work.Run("-Create");
+
+        run.ExitCode.Should().Be(0, run.Error);
+        var rack = ShipLoader.Load(work.Ships, "big_spindle").Racks.Single();
+        (rack.MinCrateSize, rack.MaxCrateSize).Should().Be((CrateSize.ThirtyTwo, (CrateSize?)null));
+    }
+
     // A door limit Fleetyards doesn't name is the player's (a hand value), no deviation.
     [Fact]
     public async Task Compare_accepts_a_door_limit_set_by_hand()

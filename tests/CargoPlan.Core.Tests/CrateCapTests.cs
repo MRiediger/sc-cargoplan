@@ -10,8 +10,8 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class CrateCapTests
 {
-    private static Rack Rack(int index, int length, int width, int stack, CrateSize? door = null) =>
-        new($"rack-{index}", index, length * width * stack, new Dimensions(length, width, stack), null, new ShipPoint(index * 10, 0, 0), StackAxis.PlusZ, door);
+    private static Rack Rack(int index, int length, int width, int stack, CrateSize? door = null, CrateSize? min = null) =>
+        new($"rack-{index}", index, length * width * stack, new Dimensions(length, width, stack), null, new ShipPoint(index * 10, 0, 0), StackAxis.PlusZ, door, min);
 
     private static CrateCap Of(params Rack[] racks) => CrateCap.Of(new Ship("test", "Test", racks.Sum(r => r.CapacityScu), racks));
 
@@ -76,5 +76,52 @@ public class CrateCapTests
         derived.CrateListUnder(CrateCap.None).Should().Equal(CrateSize.Eight);
         set.CrateListUnder(door).Should().Equal(CrateSize.Four, CrateSize.Four);
         (derived.CappedBy(door), derived.CappedBy(CrateCap.None), set.CappedBy(door)).Should().Be((true, false, false));
+    }
+
+    // --- Minimum (K3.3) ---
+
+    [Fact]
+    public void The_Hull_C_takes_32s_only()
+    {
+        var cap = CrateCap.Of(ShipLoader.Load("hull_c"));
+
+        (cap.Min, cap.Max).Should().Be((CrateSize.ThirtyTwo, CrateSize.ThirtyTwo));
+        Enum.GetValues<CrateSize>().Where(cap.Accepts).Should().Equal(CrateSize.ThirtyTwo);
+        cap.Should().NotBe(CrateCap.None, "record equality covers the minimum (K2)");
+        (cap.ShipText(CrateSize.Sixteen), cap.RackText(CrateSize.Sixteen)).Should().Be(("ship takes 32 SCU crates only", "takes 32 SCU crates only"));
+        cap.Refusal(CrateSize.Sixteen).Should().Be("ship takes 32 SCU crates only");
+    }
+
+    // Racks of 32 only next to racks of 2 at most: [Min, Max] = [1, 32] has a gap, an 8 fits nowhere (K1).
+    [Fact]
+    public void A_ship_with_a_gap_accepts_only_what_some_rack_takes()
+    {
+        var cap = Of(Rack(0, 8, 2, 2, min: CrateSize.ThirtyTwo), Rack(1, 2, 1, 1));
+
+        Enum.GetValues<CrateSize>().Where(cap.Accepts).Should().Equal(CrateSize.One, CrateSize.Two, CrateSize.ThirtyTwo);
+        (cap.Min, cap.Max).Should().Be((CrateSize.One, CrateSize.ThirtyTwo));
+        cap.Refusal(CrateSize.Eight).Should().Be("ship takes no 8 SCU crates");
+        new MissionItem("Titanium", 40, CrateSize.ThirtyTwo).CrateListUnder(cap)
+            .Should().Equal(CrateSize.ThirtyTwo, CrateSize.Two, CrateSize.Two, CrateSize.Two, CrateSize.Two);
+    }
+
+    [Fact]
+    public void A_door_refusal_names_the_crate_and_the_door()
+    {
+        var door = new CrateCap(CrateSize.Two, CapReason.Door);
+
+        (door.Refusal(CrateSize.Four), door.ShipText(CrateSize.Four), door.RackText(CrateSize.Four))
+            .Should().Be(("no rack accepts 4 SCU crates, door limit 2 SCU", "door limit 2 SCU", "door limit 2 SCU"));
+    }
+
+    [Fact]
+    public void A_minimum_above_the_contract_or_a_rest_below_it_leaves_no_valid_mix()
+    {
+        var hullC = CrateCap.Of(ShipLoader.Load("hull_c"));
+
+        // No valid mix: the list holds a crate no rack takes, so the planner finds no rack and the mission waits.
+        new MissionItem("Titanium", 16, CrateSize.Sixteen).CrateListUnder(hullC).Should().Contain(c => !hullC.Accepts(c));
+        new MissionItem("Titanium", 40, CrateSize.ThirtyTwo).CrateListUnder(hullC).Should().Contain(c => !hullC.Accepts(c));
+        new MissionItem("Titanium", 64, CrateSize.ThirtyTwo).CrateListUnder(hullC).Should().Equal(CrateSize.ThirtyTwo, CrateSize.ThirtyTwo);
     }
 }

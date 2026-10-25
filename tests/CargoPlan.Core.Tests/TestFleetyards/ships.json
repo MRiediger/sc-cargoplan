@@ -36,7 +36,7 @@
       {
         "capacity": 16,
         "dimensions": { "x": 5.0, "y": 2.5, "z": 2.5 },
-        "limits": { "min": { "capacity": 1 }, "max": { "capacity": 96 } },
+        "limits": { "min": { "capacity": 0 }, "max": { "capacity": 96 } },
         "name": "hardpoint_cargo_wide"
       },
       {
@@ -57,7 +57,7 @@
       {
         "capacity": 8,
         "dimensions": { "x": 2.5, "y": 2.5, "z": 2.5 },
-        "limits": { "min": { "capacity": 1 }, "max": { "capacity": 8 } },
+        "limits": { "min": { "capacity": 8 }, "max": { "capacity": 8 } },
         "name": "hardpoint_cargo_module_01",
         "offset": { "x": 0.0, "y": 0.0, "z": 0.0 }
       },

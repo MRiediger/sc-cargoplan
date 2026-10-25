@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 5,
+  "id": "min_crate_size",
+  "name": "Min crate size",
+  "totalScu": 16,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 16,
+      "grid": { "length": 4, "width": 2, "stack": 2 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "minCrateSize": 16
+    }
+  ]
+}

@@ -5,7 +5,7 @@
   "manufacturer": "TSTM",
   "fleetyardsSlug": "tstm-overlap-ship",
   "source": "Fleetyards API (CIG ship matrix), export 2026-01-15",
-  "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards",
+  "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards; crate minimums from Fleetyards limits.min.capacity",
   "totalScu": 16,
   "racks": [
     {
@@ -13,7 +13,8 @@
       "capacityScu": 8,
       "grid": { "length": 2, "width": 2, "stack": 2 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z"
+      "stackAxis": "+z",
+      "minCrateSize": 8
     },
     {
       "id": "rack-1",

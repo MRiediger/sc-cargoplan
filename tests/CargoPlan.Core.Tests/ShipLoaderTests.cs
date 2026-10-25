@@ -121,6 +121,34 @@ public class ShipLoaderTests
         ship.Id.Should().Be(shipId);
     }
 
+    // A rack's minimum (K3.3): the Hull C's spindle takes 32s only, the MPUV Tractor 16s, the CSV-SM 4s (Fleetyards limits.min).
+    [Fact]
+    public void Exactly_three_shipped_ships_have_a_minimum()
+    {
+        ShipLoader.LoadAll().Ships.Where(s => s.Racks.Any(r => r.MinCrateSize is not null)).Select(s => s.Id)
+            .Should().Equal("csv_sm", "hull_c", "mpuv_tractor");
+    }
+
+    [Theory]
+    [MemberData(nameof(ShippedShipIds))]
+    public void A_shipped_minimum_is_one_the_rack_takes(string shipId)
+    {
+        foreach (var rack in ShipLoader.Load(shipId).Racks.Where(r => r.MinCrateSize is not null))
+        {
+            rack.CanHold(rack.MinCrateSize!.Value).Should().BeTrue($"rack {rack.Number} of {shipId} has minCrateSize {(int)rack.MinCrateSize}");
+        }
+    }
+
+    [Fact]
+    public void Load_reads_the_minimum_and_without_one_every_size_counts()
+    {
+        var rack = TestShips.Load("min_crate_size").Racks.Single();
+
+        rack.MinCrateSize.Should().Be(CrateSize.Sixteen);
+        (rack.CanHold(CrateSize.Eight), rack.CanHold(CrateSize.Sixteen)).Should().Be((false, true));
+        TestShips.Load("max_crate_size").Racks.Should().OnlyContain(r => r.MinCrateSize == null && r.CanHold(CrateSize.One));
+    }
+
     // Schema 5 marks maxCrateSize as a door limit (D70); the shipped files say so, schema 4 stays readable.
     [Theory]
     [MemberData(nameof(ShippedShipIds))]
@@ -325,6 +353,8 @@ public class ShipLoaderTests
     [InlineData("unknown_side")]            // "side": "left"
     [InlineData("unknown_level")]           // "level": "middle"
     [InlineData("max_crate_size_invalid")]  // "maxCrateSize": 12
+    [InlineData("min_crate_size_above_max")]   // "minCrateSize": 16, "maxCrateSize": 8
+    [InlineData("min_crate_size_above_grid")]  // "minCrateSize": 16 on a 2x2x2 grid
     [InlineData("blank_manufacturer")]      // "manufacturer": " "
     public void Load_invalid_ship_throws_ShipFormatException_naming_the_file(string shipId)
     {
