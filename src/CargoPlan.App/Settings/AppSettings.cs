@@ -43,6 +43,10 @@ namespace CargoPlan.App.Settings;
 /// <see cref="AppearanceRules.DefaultHoloHullColor"/>; checked by <see cref="AppearanceRules.NormalizeHoloColor"/>.
 /// </param>
 /// <param name="HoloEdgeColor">The hologram's edges in the hidden-line look, like <paramref name="HoloHullColor"/>.</param>
+/// <param name="ShipView">
+/// Missing (before K1) or null = the defaults (D76). An object of its own, not flat like <paramref name="ShipOutline"/>:
+/// zoom and the cameras per ship (K1.2) belong together; the Ship view section resets the zoom only.
+/// </param>
 public sealed record AppSettings(
     int SchemaVersion,
     WindowBounds? Overlay = null,
@@ -57,7 +61,8 @@ public sealed record AppSettings(
     bool DownloadShipHolograms = true,
     double HoloOpacity = AppearanceRules.DefaultHoloOpacity,
     string? HoloHullColor = null,
-    string? HoloEdgeColor = null)
+    string? HoloEdgeColor = null,
+    ShipViewSettings? ShipView = null)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
 
@@ -80,6 +85,18 @@ public sealed record AppSettings(
     public string HoloEdgeColor { get; init; } = HoloEdgeColor ?? AppearanceRules.DefaultHoloEdgeColor;
 
     public ContractTrackerSettings ContractTracker { get; init; } = ContractTracker ?? ContractTrackerSettings.Default;
+
+    public ShipViewSettings ShipView { get; init; } = ShipView ?? ShipViewSettings.Default;
+}
+
+/// <summary>The ship view's zoom (D76). Optional, no schema bump (D31).</summary>
+/// <param name="MaxZoomPxPerCell">
+/// How far the wheel zooms in, in pixels per cell (DIPs), <see cref="AppearanceRules.MinMaxZoom"/> to
+/// <see cref="AppearanceRules.MaxMaxZoom"/>; checked by <see cref="AppearanceRules.Normalize(ShipViewSettings)"/>.
+/// </param>
+public sealed record ShipViewSettings(double MaxZoomPxPerCell = AppearanceRules.DefaultMaxZoom)
+{
+    public static ShipViewSettings Default { get; } = new();
 }
 
 /// <summary>

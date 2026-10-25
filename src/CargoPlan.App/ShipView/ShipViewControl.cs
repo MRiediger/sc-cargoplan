@@ -5,6 +5,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using CargoPlan.App.Settings;
 using CargoPlan.App.Win32;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
@@ -130,6 +131,13 @@ public sealed class ShipViewControl : FrameworkElement
     /// </summary>
     public static readonly DependencyProperty ViewProperty = ViewPropertyKey.DependencyProperty;
 
+    /// <summary>How far the wheel zooms in, pixels per cell (D76); a lower value shrinks a framed view at once.</summary>
+    public static readonly DependencyProperty MaxPxPerCellProperty = DependencyProperty.Register(
+        nameof(MaxPxPerCell),
+        typeof(double),
+        typeof(ShipViewControl),
+        new FrameworkPropertyMetadata(AppearanceRules.DefaultMaxZoom, (d, _) => ((ShipViewControl)d).OnMaxPxPerCellChanged()));
+
     // Opened by hand instead of ToolTipService: the text changes with the crate under the cursor.
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/controls/how-to-position-a-tooltip
     private readonly ToolTip _toolTip;
@@ -191,6 +199,14 @@ public sealed class ShipViewControl : FrameworkElement
     }
 
     public ShipViewState? View => (ShipViewState?)GetValue(ViewProperty);
+
+    public double MaxPxPerCell
+    {
+        get => (double)GetValue(MaxPxPerCellProperty);
+        set => SetValue(MaxPxPerCellProperty, value);
+    }
+
+    private ZoomLimits Limits => new(MaxPxPerCell);
 
     public byte CrateFillAlpha
     {
@@ -569,8 +585,8 @@ public sealed class ShipViewControl : FrameworkElement
             case Gesture.Orbit:
                 Navigate(_navigation.OrbitBy(-delta.X * OrbitDegreesPerPixel, delta.Y * OrbitDegreesPerPixel));
                 break;
-            case Gesture.Pan:
-                Navigate(_navigation.PanBy(delta));
+            case Gesture.Pan when Projected() is { } scene:
+                Navigate(_navigation.PanBy(delta, Basis(scene), Limits));
                 break;
 
             // Moving cargo: the ship stands still; redraw only when the fade starts or the target or its reason change.
@@ -684,11 +700,17 @@ public sealed class ShipViewControl : FrameworkElement
             return;
         }
 
-        // One notch (120) = one step; finer wheels send smaller deltas.
+        // One notch (120) = one step; finer wheels send smaller deltas. A factor per notch: the same feel at 10 and at
+        // 100 pixels per cell (D76).
         // Source: https://learn.microsoft.com/dotnet/api/system.windows.input.mouse.mousewheeldeltaforoneline
+        if (Projected() is not { } scene)
+        {
+            return;
+        }
+
         var factor = Math.Pow(WheelZoomStep, (double)e.Delta / Mouse.MouseWheelDeltaForOneLine);
         ShowToolTip(null);
-        Navigate(_navigation.ZoomAt(e.GetPosition(this), factor));
+        Navigate(_navigation.ZoomAt(e.GetPosition(this), factor, Basis(scene), Limits));
     }
 
     /// <summary>
@@ -737,13 +759,24 @@ public sealed class ShipViewControl : FrameworkElement
 
     private ProjectedScene? Projected() => Scene is { } scene ? _projected ??= SceneProjector.Project(scene, _navigation.Camera) : null;
 
+    private ViewTransform CurrentTransform(ProjectedScene scene) => _navigation.On(Basis(scene), Limits);
+
     // The fit follows the projected extent, so the ship stays in view while the camera turns; on a long ship it shows the
-    // loaded racks and keeps room on top for the numbers standing above them (D61).
-    private ViewTransform CurrentTransform(ProjectedScene scene) => _navigation.On(ViewTransform.Fit(
+    // loaded racks and keeps room on top for the numbers standing above them (D61). A framing hangs on the anchor (D76).
+    private ViewBasis Basis(ProjectedScene scene) => ViewBasis.Of(
         scene.FitExtent,
+        scene.Anchor,
         RenderSize,
         FitMargin,
-        scene.Racks.Any(r => r.LabelAbove) ? RackNumberFontSize + LabelGap + RackNumberHaloSize : 0));
+        scene.Racks.Any(r => r.LabelAbove) ? RackNumberFontSize + LabelGap + RackNumberHaloSize : 0);
+
+    private void OnMaxPxPerCellChanged()
+    {
+        if (Projected() is { } scene)
+        {
+            Navigate(_navigation.Clamped(Basis(scene), Limits));
+        }
+    }
 
     private void OnSceneChanged(ShipScene? old)
     {
@@ -784,7 +817,8 @@ public sealed class ShipViewControl : FrameworkElement
     {
         if (Projected() is { } scene && RenderSize is { Width: > 0, Height: > 0 })
         {
-            SetValue(ViewPropertyKey, new ShipViewState(_navigation.Camera, CurrentTransform(scene), _navigation.Zoom, RenderSize));
+            var basis = Basis(scene);
+            SetValue(ViewPropertyKey, new ShipViewState(_navigation.Camera, _navigation.On(basis, Limits), _navigation.ZoomOn(basis, Limits), RenderSize));
         }
     }
 

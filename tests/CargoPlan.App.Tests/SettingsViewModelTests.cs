@@ -671,7 +671,7 @@ public sealed class SettingsViewModelTests
         // A setting of its own in the file (shipView, D76), like the hologram's opacity.
         var viewModel = Create(maxZoom: 120);
         viewModel.MaxZoom.Should().Be(120);
-        viewModel.MaxZoomText.Should().Be("120 px per cell");
+        viewModel.MaxZoomText.Should().Be("120 px");
         _maxZooms.Should().BeEmpty();
 
         viewModel.MaxZoom = 200;

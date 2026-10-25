@@ -42,6 +42,7 @@ public sealed class SettingsSession
         _viewModel.HoloOpacity = Current.HoloOpacity;
         _viewModel.HoloHullColor = Current.HoloHullColor;
         _viewModel.HoloEdgeColor = Current.HoloEdgeColor;
+        _viewModel.MaxZoomPxPerCell = Current.ShipView.MaxZoomPxPerCell;
     }
 
     public AppSettings Current { get; private set; }
@@ -181,6 +182,21 @@ public sealed class SettingsSession
         _viewModel.HoloHullColor = hull;
         _viewModel.HoloEdgeColor = edge;
         Current = Current with { HoloHullColor = hull, HoloEdgeColor = edge };
+        _timer.Stop();
+        _timer.Start();
+    }
+
+    /// <summary>The max zoom of the ship view in pixels per cell (D76).</summary>
+    public double MaxZoom => Current.ShipView.MaxZoomPxPerCell;
+
+    /// <summary>
+    /// From the settings window's slider: the view follows at once (D30), a framing above the new limit shrinks; saved after
+    /// <see cref="Debounce"/>. Not checked again: the slider only hands over values in range (A6).
+    /// </summary>
+    public void ChangeMaxZoom(double pxPerCell)
+    {
+        _viewModel.MaxZoomPxPerCell = pxPerCell;
+        Current = Current with { ShipView = Current.ShipView with { MaxZoomPxPerCell = pxPerCell } };
         _timer.Stop();
         _timer.Start();
     }

@@ -653,6 +653,7 @@
                                     MoveCratesCommand="{Binding MoveCratesCommand, Mode=OneTime}"
                                     MoveLegendCommand="{Binding MoveLegendCommand, Mode=OneTime}"
                                     Selection="{Binding Selection}"
+                                    MaxPxPerCell="{Binding MaxZoomPxPerCell, Mode=OneWay}"
                                     CrateFillAlpha="{DynamicResource CratesFillAlpha}"
                                     CrateEdgeBrush="{DynamicResource CratesEdgeBrush}"
                                     RackNumberBrush="{DynamicResource CratesRackNumberBrush}"

@@ -131,13 +131,18 @@ public enum BoxFace
 /// What fit-to-view shows: on a long ship with cargo its loaded racks and the bow (the wedge, or the zone up to the outline's
 /// tip), otherwise <paramref name="Extent"/> (D61, D62).
 /// </param>
+/// <param name="Anchor">
+/// The centre of <c>Ship.Bounds</c>, projected: what the player's framing hangs on (D76). Fixed to the ship, so neither
+/// cargo nor a hologram that loads later moves a framed view.
+/// </param>
 public sealed record ProjectedScene(
     IReadOnlyList<ProjectedRack> Racks,
     IReadOnlyList<SceneLine> Frame,
     ProjectedWedge? BowWedge,
     IReadOnlyList<Point>? Outline,
     Rect Extent,
-    Rect FitExtent);
+    Rect FitExtent,
+    Point Anchor);
 
 /// <summary>One face of the bow wedge in ship coordinates (D52): <see cref="BoxFace.Bow"/> is its tip, Port and Starboard its flanks.</summary>
 /// <param name="Normal">Outward, unit length; the flanks' normals are not along an axis.</param>

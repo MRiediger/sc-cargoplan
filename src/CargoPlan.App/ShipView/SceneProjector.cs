@@ -40,13 +40,15 @@ public static class SceneProjector
         var frame = Frame(scene.Bounds, camera);
         Point[]? outline = scene.Marker is BowMarker.Outline o ? [.. o.Points.Select(p => camera.Project(p.X, p.Y, p.Z))] : null;
         var extent = Extent(scene.Bounds, outline ?? Bow(scene, camera), camera);
+        var (min, max) = (scene.Bounds.Min, scene.Bounds.Max);
         return new ProjectedScene(
             racks,
             frame,
             scene.Marker is BowMarker.Wedge ? ProjectWedge(scene.Bounds, camera) : null,
             outline,
             extent,
-            FitExtent(scene, isLong, extent, camera));
+            FitExtent(scene, isLong, extent, camera),
+            camera.Project((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0));
     }
 
     /// <summary>

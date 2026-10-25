@@ -180,6 +180,13 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         set => SetProperty(ref field, value);
     } = AppearanceRules.DefaultHoloEdgeColor;
 
+    /// <summary>How far the ship view zooms in, in pixels per cell (D76), from the settings; bound by the view, so the slider applies live.</summary>
+    public double MaxZoomPxPerCell
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = AppearanceRules.DefaultMaxZoom;
+
     // The last hologram the loader handed over; shown only while it fits (Holo).
     private PreparedHolo? _holo;
 
