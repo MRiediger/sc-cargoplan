@@ -178,7 +178,7 @@ public sealed class SettingsStoreTests : IDisposable
         var settings = AppSettings.Default with
         {
             ContractTracker = new ContractTrackerSettings(@"D:\Games\CT\contracts.db", AutoSync: false),
-            Hotkeys = new HotkeySettings(SyncContractTracker: "Ctrl+Alt+S", Replan: "Ctrl+Alt+R"),
+            Hotkeys = new HotkeySettings(SyncContractTracker: "Ctrl+Alt+S", Replan: "Ctrl+Alt+R", DiscardPlan: "Ctrl+Alt+D"),
         };
 
         SettingsStore.Save(SettingsPath, settings);
@@ -187,7 +187,8 @@ public sealed class SettingsStoreTests : IDisposable
         loaded.Should().Be(settings);
         problem.Should().BeNull();
         File.ReadAllText(SettingsPath).Should().Contain("\"contractTracker\"").And.Contain("\"autoSync\": false")
-            .And.Contain("\"syncContractTracker\": \"Ctrl+Alt+S\"").And.Contain("\"replan\": \"Ctrl+Alt+R\"");
+            .And.Contain("\"syncContractTracker\": \"Ctrl+Alt+S\"").And.Contain("\"replan\": \"Ctrl+Alt+R\"")
+            .And.Contain("\"discardPlan\": \"Ctrl+Alt+D\"");
     }
 
     [Theory]

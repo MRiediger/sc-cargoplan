@@ -296,7 +296,7 @@ public sealed class SettingsSessionTests : IDisposable
         session.Flush();
 
         File.ReadAllText(SettingsPath).Should().Contain("\"toggleLock\": null").And.Contain("\"toggleOverlay\": null")
-            .And.Contain("\"syncContractTracker\": null").And.Contain("\"replan\": null");
+            .And.Contain("\"syncContractTracker\": null").And.Contain("\"replan\": null").And.Contain("\"discardPlan\": null");
     }
 
     [Fact]
@@ -319,6 +319,17 @@ public sealed class SettingsSessionTests : IDisposable
         session.Flush();
 
         Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", "Ctrl+Alt+S", "Ctrl+Alt+R"));
+    }
+
+    [Fact]
+    public void ChangeHotkey_for_the_discard_keeps_the_other_actions()
+    {
+        var session = Create(AppSettings.Default with { Hotkeys = new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", "Ctrl+Alt+S", "Ctrl+Alt+R") });
+
+        session.ChangeHotkey(HotkeyAction.DiscardPlan, Key("Ctrl+Alt+D"));
+        session.Flush();
+
+        Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", "Ctrl+Alt+S", "Ctrl+Alt+R", "Ctrl+Alt+D"));
     }
 
     // ContractTracker (T5.5, D44)
