@@ -236,7 +236,20 @@ public sealed class HotkeysViewModelTests
         viewModel.Replan.Label.Should().Be("Re-plan");
         viewModel.Discard.Action.Should().Be(HotkeyAction.DiscardPlan);
         viewModel.Discard.Label.Should().Be("Discard plan");
-        viewModel.All.Should().Equal(viewModel.Lock, viewModel.Overlay, viewModel.Sync, viewModel.Replan, viewModel.Discard);
+        viewModel.Undo.Action.Should().Be(HotkeyAction.Undo);
+        viewModel.Undo.Label.Should().Be("Undo");
+        viewModel.Redo.Action.Should().Be(HotkeyAction.Redo);
+        viewModel.Redo.Label.Should().Be("Redo");
+        viewModel.All.Should().Equal(viewModel.Lock, viewModel.Overlay, viewModel.Sync, viewModel.Replan, viewModel.Discard, viewModel.Undo, viewModel.Redo);
+    }
+
+    [Fact]
+    public void The_undo_and_redo_hotkeys_are_not_set_by_default_and_come_from_the_file()
+    {
+        Create().Undo.Hotkey.Should().BeNull();
+        Create().Redo.Hotkey.Should().BeNull();
+        Create(new HotkeySettings(Undo: "Ctrl+Alt+Z", Redo: "Ctrl+Alt+Y")).Undo.Display.Should().Be("Ctrl+Alt+Z");
+        Create(new HotkeySettings(Undo: "Ctrl+Alt+Z", Redo: "Ctrl+Alt+Y")).Redo.Display.Should().Be("Ctrl+Alt+Y");
     }
 
     [Fact]
