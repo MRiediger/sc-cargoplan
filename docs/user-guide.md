@@ -86,7 +86,9 @@ rack's load in a second line. Inside the view: **left drag** turns and tilts the
 zooms (while you drag a single crate it turns the crate instead, see [Changing the plan](#changing-the-plan)), a **double-click** next to the cargo resets the view to the ship's starting view.
 The wheel zooms in as far on a Hull C as on a Hull A: up to 160 pixels per cell by default, so even on a long ship you
 can get close enough to hit a single crate. **Max zoom per cell** in the settings' **Ship view** section sets how far;
-zooming out stops at half the size that fits the window, as before.
+zooming out stops at half the size that fits the window, as before. The view stays as you leave it, per ship: after a
+restart, and when you switch to another ship and back, the ship is turned, zoomed and moved as before. The reset brings
+the starting view back, also for the next start.
 
 ## Entering missions
 

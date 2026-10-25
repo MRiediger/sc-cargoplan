@@ -1713,6 +1713,24 @@ Reihenfolge innerhalb von K1 (Branch `feat/k1-ship-view`): K1.1 Zoom-Grenzen →
 - [ ] Gate Publish-Build (Martin): Hull C hineinzoomen, bis eine 32er lesbar den Tooltip trifft; Hull A fühlt sich unverändert an; Preference ändern wirkt sofort
 - Commits 8dd6803 (Tests rot), bbb9314 (App), Doku-Commit.
 
+### [ ] K1.2 Kamera-Persistenz pro Schiff (D76) (25.10.2026)
+**Warum:** Backlog D15: Drehen, Zoom und Pan gingen bei jedem Neustart verloren, auf großen Schiffen nervt das mehr.
+
+**Ist-Zustand vor K1.2 (A1):** Die Navigation lebte nur im Control (`_navigation`), der Schiffswechsel setzte sie dort zurück (`OnSceneChanged`). Die Recent-Liste hält höchstens 4 Ids (`ShipChoices.Remember`) und liefert die Obergrenze. Kein Muster „VM bittet das Control“; die Auswahl läuft zweiseitig per `SetCurrentValue`.
+- Settings: `ShipCamera(Yaw, Pitch, PxPerCell?, PanX?, PanY?)`, `ShipViewSettings.Cameras` (Einträge ohne Kamera oder Id fallen an der Dateigrenze weg), `SettingsSession.ChangeCameras` (500 ms Ruhe, `Flush` beim Beenden)
+- App: `ViewNavigation.From`/`ToCamera` (Rahmung nur mit allen drei Werten); `OverlayViewModel.Cameras` (Start aus settings.json) und `Camera` (des aktuellen Schiffs, nur Recent ∪ aktuelles Schiff behalten, Schiffswechsel meldet die Kamera vor der Szene, kein `Step`); `ShipViewControl.Camera` zweiseitig, jede Navigation schreibt, Doppelklick schreibt null, Navigation aus Kamera + Szene abgeleitet (Reihenfolge der Bindings egal); Composition Root leitet `Cameras` an die Session
+- Tests: `ShipCameraTests` (14, davon der Anker-Fall an der Caterpillar: Kamera speichern, Kiste in ein Rack weit achtern, Kamera laden → Rack 1 an derselben Bildschirmstelle), Store- und Session-Tests
+
+**Akzeptanz:**
+- [x] Kamera pro Schiff: Start liest sie, Wechsel hin und zurück bringt jeweils die eigene, Reset entfernt den Eintrag
+- [x] Nur Recent ∪ aktuelles Schiff behalten Kameras; gleiche Kamera noch einmal meldet nichts; Kamera ist kein Schritt
+- [x] Nur gedreht = keine Rahmung = Fit beim nächsten Start; andere Fenstergröße: gleiche px/Zelle, derselbe Punkt in der Mitte (K1.1-Test)
+- [x] Gespeicherte Ansicht bleibt am selben Rack, wenn ein Sync ein Rack weiter außen belädt
+- [x] settings.json: Rundreise, `null`-Einträge und leere Ids fallen weg; `ChangeCameras` entprellt, Max-Zoom und Kameras überschreiben einander nicht
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.203 → 1.223)
+- [ ] Gate Publish-Build (Martin): Hull C drehen, zoomen, verschieben, beenden, starten → gleiche Ansicht; Schiff wechseln und zurück → gleich; Reset → Fit, Neustart → Fit
+- Commits a2c05dc (Tests rot), a6b059f (App), Doku-Commit.
+
 ---
 
 ## Phase 8 – nach dem Launch

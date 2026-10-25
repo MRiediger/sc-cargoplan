@@ -1,9 +1,9 @@
 # Settings file format
 
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
-the legend stands, the overlay's look, the tool windows' theme, where ContractTracker is, your ship and the ships you chose last. Position and size
+the legend stands, the overlay's look, the tool windows' theme, where ContractTracker is, your ship, the ships you chose last and the ship view as you left it on each. Position and size
 are saved whenever you move the overlay; the settings window (the gear in the header) sets and saves the look,
-the legend layout, the ship view (outline or hologram, its opacity and colours, hologram downloads), the tool window theme, the hotkeys and the ContractTracker settings; the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
+the legend layout, the ship view (outline or hologram, its opacity and colours, hologram downloads, how far it zooms), the tool window theme, the hotkeys and the ContractTracker settings; the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
 the overlay again.
 
 ## Example with every default
@@ -181,13 +181,22 @@ release `holo-v1` on GitHub when you pick a ship, one file per ship, and the lis
 else is sent. `false` means no network access at all; holograms already downloaded still show. They are kept in
 `%LocalAppData%\SC-CargoPlan\holo\holo-v1\` ([format](holo-format.md)).
 
-`shipView` holds the zoom. Missing or `null` means the defaults.
+`shipView` holds the zoom and the view per ship. Missing or `null` means the defaults.
 
 | Key | What | Default | Range |
 |---|---|---|---|
 | `shipView.maxZoomPxPerCell` | How far the mouse wheel zooms in: pixels per cell (1 SCU, 1.25 m), the same on every ship, so a Hull C zooms in as far as a Hull A. Pixels as Windows scales them: at 150 % display scaling 160 are 240 screen pixels. Zooming out stops at half the size that fits the window. | `160` | 40–240 |
+| `shipView.cameras` | The view as you left it, per ship id: `{ "hull_c": { "yaw": 70, "pitch": 35.26, "pxPerCell": 90, "panX": 1.5, "panY": -2.25 } }`. Written by the overlay whenever you turn, zoom or pan, half a second after you stop; you don't edit it. | `null` | – |
 
-A value outside the range is clamped, with a notice. The **Ship view** section's reset sets it back.
+A `maxZoomPxPerCell` outside the range is clamped, with a notice. The **Ship view** section's reset sets it back and
+leaves the cameras alone.
+
+In a camera, `yaw` and `pitch` are degrees (yaw wraps round, pitch stops at ±85). `pxPerCell`, `panX` and `panY` come
+together or not at all: without them the view fits the window at that camera, which is what you get after only turning
+the ship. `panX`/`panY` say where the middle of the view lies, measured in cells from the ship's centre, so the view
+stays on the same rack when a sync loads cargo elsewhere or the overlay has another size. Only the ships under "Recent"
+and the current one keep a camera; a double-click next to the cargo (or **Reset view**) removes the ship's entry. An
+entry that is `null` or has an empty id is dropped.
 
 ## Tool window theme
 
