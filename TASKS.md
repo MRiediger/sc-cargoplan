@@ -1868,7 +1868,7 @@ Ansicht und Legende holen ihre Pinsel aus einer Funktion; P9 `downloadShipHologr
 - [x] Gate (Martin, Publish-Build, 25.10., abgenommen): Preset wechseln → Overlay ändert sich sofort; Export → Datei (Name ohne Endung getippt: bekommt sie `.cargoplan-look.json`?); einen Wert ändern → „Custom“; Import der Datei → zurück; Import einer Datei mit `schemaVersion: 2` → Fehlermeldung, nichts geändert; Hotkeys und CT-Pfad nach Import unverändert
 - Commits 73910e3 (Tests Datei rot), 0c79ccb (Datei, Presets), 47636aa (Tests Fenster rot), 8df8135 (Fenster, Import, Export), Doku-Commit.
 
-### [ ] K4.4 Auswahlrand einstellbar: Farbe, Breite, Kontur (D25-Addendum) (25.10.2026)
+### [x] K4.4 Auswahlrand einstellbar: Farbe, Breite, Kontur (D25-Addendum) (25.10.2026)
 **Warum:** Martin beim Look-Gate K4.2: Farbe, Breite und Kontur der markierten Kisten sollen in den Preferences einstellbar sein.
 
 **Ist-Zustand vor K4.4 (A1):** `ShipViewControl.SelectionPen` fest (`MissionPalette.Selection` Magenta, 2,5 px), darunter der feste Unterstrich aus K4.2 (`EdgeUnderPen`, Schwarz `A0`, 4,5 px), gemeinsam mit Problem- und Geisterrand.
@@ -1886,11 +1886,12 @@ Ansicht und Legende holen ihre Pinsel aus einer Funktion; P9 `downloadShipHologr
 - [x] Farbe, Breite, Kontur einzeln einstellbar, Kontur abschaltbar; Werte außerhalb geklemmt, ungültige Farbe → Magenta mit Notice; Reset Crates stellt alle drei zurück
 - [x] Look-Dateien tragen die drei Keys; Drift-Schutz der Default-Datei grün
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.320 → 1.328)
-- [ ] Gate (Martin, Publish-Build): Kisten auswählen, Farbe, Breite und Kontur ändern → wirkt sofort; Kontur aus → nur der Rand; Reset Crates → Magenta über dunkler Kontur; Neustart behält die Werte
-- Commits 7b5e9d5 (Tests rot), 17b1d60 (App), Doku-Commit.
+- [x] Gate (Martin, Publish-Build, 25.10., abgenommen): Kisten auswählen, Farbe, Breite und Kontur ändern → wirkt sofort; Kontur aus → nur der Rand; Reset Crates → Magenta über dunkler Kontur; Neustart behält die Werte
+- Commits 7b5e9d5 (Tests rot), 17b1d60 (App), a14df49 (Doku).
 
-### Abschluss der K4-Session (offen bis zur Abnahme von K4.4)
-- K4.1–K4.3 von Martin abgenommen (25.10.2026, e2cdf9e); K4.4 committet, Gate offen. Merge `--no-ff` erst nach Abnahme, Push durch Martin.
+### Abschluss der K4-Session (25.10.2026)
+- Alle vier Tasks von Martin abgenommen (25.10.2026, Publish-Build): K4.1–K4.3 (e2cdf9e), K4.4 aus Martins Wunsch beim Look-Gate K4.2.
+- Merge `--no-ff` nach main, Push durch Martin.
 - Tests: Core 1.401 → 1.401, Import 141 → 141, App 1.235 → 1.328; Core unberührt, Exhaustive nicht nötig.
 
 **Übergabe für den K5-Startprompt:**
