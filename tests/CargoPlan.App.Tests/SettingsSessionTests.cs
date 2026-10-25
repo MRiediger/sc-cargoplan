@@ -524,6 +524,34 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void ChangeCameras_writes_on_flush_and_keeps_the_max_zoom()
+    {
+        // Debounced like a look change (D13, T3.4): an orbit drag writes once, after 500 ms of rest.
+        var session = Create(AppSettings.Default with { ShipView = new ShipViewSettings(MaxZoomPxPerCell: 90) });
+        Dictionary<string, ShipCamera> cameras = new() { ["hull_a"] = new ShipCamera(120, 20) };
+
+        session.ChangeCameras(cameras);
+
+        File.Exists(SettingsPath).Should().BeFalse();
+        session.Flush();
+        Saved().ShipView.MaxZoomPxPerCell.Should().Be(90);
+        Saved().ShipView.Cameras.Should().BeEquivalentTo(cameras);
+    }
+
+    [Fact]
+    public void ChangeMaxZoom_keeps_the_cameras()
+    {
+        // The Ship view section's reset sets the zoom, never the cameras.
+        Dictionary<string, ShipCamera> cameras = new() { ["hull_a"] = new ShipCamera(120, 20) };
+        var session = Create(AppSettings.Default with { ShipView = new ShipViewSettings(Cameras: cameras) });
+
+        session.ChangeMaxZoom(200);
+        session.Flush();
+
+        Saved().ShipView.Cameras.Should().BeEquivalentTo(cameras);
+    }
+
+    [Fact]
     public void ChangeShipOutline_tells_the_ship_view()
     {
         var session = Create(AppSettings.Default);

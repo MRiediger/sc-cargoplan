@@ -488,6 +488,45 @@ public sealed class SettingsStoreTests : IDisposable
         File.ReadAllText(SettingsPath).Should().Contain("\"maxZoomPxPerCell\": 90");
     }
 
+    [Fact]
+    public void Save_then_Load_keeps_the_cameras_per_ship()
+    {
+        // K1.2: turned only (no framing) and framed (pixels per cell, pan in cells).
+        Dictionary<string, ShipCamera> cameras = new()
+        {
+            ["hull_a"] = new ShipCamera(120, 20),
+            ["hull_c"] = new ShipCamera(70, 35.26, 90, 1.5, -2.25),
+        };
+        var settings = AppSettings.Default with { ShipView = new ShipViewSettings(Cameras: cameras) };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.ShipView.Cameras.Should().BeEquivalentTo(cameras);
+        File.ReadAllText(SettingsPath).Should().Contain("\"cameras\": {").And.Contain("\"hull_c\": {").And.Contain("\"pxPerCell\": 90");
+    }
+
+    [Fact]
+    public void A_camera_entry_without_a_camera_or_an_id_is_dropped()
+    {
+        // Edited by hand; RespectNullableAnnotations doesn't reach dictionary values, so the file boundary drops them (A6).
+        WriteFile("""{ "schemaVersion": 2, "shipView": { "cameras": { "hull_a": null, "": { "yaw": 1, "pitch": 2 }, "c2_hercules": { "yaw": 30, "pitch": 10 } } } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.ShipView.Cameras.Should().BeEquivalentTo(new Dictionary<string, ShipCamera> { ["c2_hercules"] = new(30, 10) });
+    }
+
+    [Fact]
+    public void A_file_without_cameras_has_none()
+    {
+        WriteFile("""{ "schemaVersion": 2, "shipView": { "maxZoomPxPerCell": 100 } }""");
+
+        SettingsStore.Load(SettingsPath).Settings.ShipView.Cameras.Should().BeNull();
+    }
+
     [Theory]
     [InlineData("20", 40)]
     [InlineData("500", 240)]
