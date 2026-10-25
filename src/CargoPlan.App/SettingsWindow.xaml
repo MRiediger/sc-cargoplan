@@ -27,6 +27,31 @@
             <TextBox Text="{x:Static vm:SettingsViewModel.VersionLine}" IsReadOnly="True" TextWrapping="Wrap"
                      BorderThickness="0" Background="Transparent" Padding="0" />
         </Border>
+        <!-- Looks (K4.3, D77): a preset applies at once (D30), Export and Import take a *.cargoplan-look.json through the
+             system dialogs. On top, outside the scroll, so they stay in reach like the footer. "Custom" shows only as the
+             selection: choosing it would change nothing. -->
+        <Border DockPanel.Dock="Top" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource DividerStrokeColorDefaultBrush}"
+                Padding="8,6">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Import…" Click="OnImportLook" Margin="6,0,0,0" Padding="8,2"
+                        ToolTip="Load a look file; hotkeys, ContractTracker and window position stay" />
+                <Button DockPanel.Dock="Right" Content="Export…" Click="OnExportLook" Margin="6,0,0,0" Padding="8,2"
+                        ToolTip="Save this look to share it" />
+                <TextBlock Text="Preset" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <ComboBox ItemsSource="{Binding PresetChoices, Mode=OneTime}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Text"
+                          ToolTip="Applies at once; the sections' Reset to defaults is the way back">
+                    <ComboBox.ItemContainerStyle>
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Look}" Value="{x:Null}">
+                                    <Setter Property="Visibility" Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ComboBox.ItemContainerStyle>
+                </ComboBox>
+            </DockPanel>
+        </Border>
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <!-- One level below the window, not in Window.Resources: there a style keyed {x:Type Slider} that looks up
                  {x:Type Slider} would skip the dictionary that holds Fluent and fall back to the system look (D36). Every
@@ -236,8 +261,16 @@
                                     Value="{Binding LegendFontSize}" Style="{StaticResource ValueSliderStyle}" />
                         </DockPanel>
                         <ContentControl Content="{Binding LegendHalo, Mode=OneTime}" />
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The frame of the boxes that select a line's crates">
+                            <TextBlock Text="Check box" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding LegendCheckBox, Mode=OneTime}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The tick (all selected) and the bar (part selected) in the box">
+                            <TextBlock Text="Check mark" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding LegendCheckMark, Mode=OneTime}" />
+                        </DockPanel>
                         <Button Command="{Binding ResetLegendCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}"
-                                ToolTip="Colour, size and halo; where the legend stands is reset below" />
+                                ToolTip="Colours, size and halo; where the legend stands is reset below" />
                     </StackPanel>
                 </GroupBox>
 
@@ -258,7 +291,14 @@
                      at the lift you want to see the real crates through the planned ones. Header and buttons are set once. -->
                 <GroupBox Header="Crates" Style="{StaticResource SectionStyle}">
                     <StackPanel>
-                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The crate colours are the destination colours and stay fixed">
+                        <!-- Only palettes checked for colour blindness (D29, K4.2); more stops than colours are hatched. -->
+                        <DockPanel Style="{StaticResource RowStyle}"
+                                   ToolTip="Destination colours, each set chosen to stay apart with colour blindness; more destinations than colours are hatched">
+                            <TextBlock Text="Stop colors" Style="{StaticResource LabelStyle}" />
+                            <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.StopPaletteChoices}" DisplayMemberPath="Text"
+                                      SelectedValuePath="Value" SelectedValue="{Binding StopPalette}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="How solid the crates are; their colours come from the stop colors above">
                             <TextBlock Text="Fill" Style="{StaticResource LabelStyle}" />
                             <TextBlock DockPanel.Dock="Right" Text="{Binding CratesFillPercent}" Style="{StaticResource ValueTextStyle}" />
                             <Slider Minimum="0" Maximum="{x:Static vm:ColourField.MaxAlpha}"
@@ -281,6 +321,18 @@
                                     Value="{Binding CratesRackNumberFontSize}" Style="{StaticResource ValueSliderStyle}" />
                         </DockPanel>
                         <ContentControl Content="{Binding CratesHalo, Mode=OneTime}" />
+                        <!-- The selected crates' edge (D25, K4.4): colour, width in half pixels (default 2.5), and its contour. -->
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The edge of crates you selected with a right click">
+                            <TextBlock Text="Selection" Style="{StaticResource LabelStyle}" />
+                            <ContentControl Content="{Binding CratesSelectionColor, Mode=OneTime}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}">
+                            <TextBlock Text="Selection width" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding CratesSelectionWidth}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="{x:Static vm:SettingsViewModel.MinSelectionWidth}" Maximum="{x:Static vm:SettingsViewModel.MaxSelectionWidth}"
+                                    Value="{Binding CratesSelectionWidth}" Style="{StaticResource ValueSliderStyle}" TickFrequency="0.5" />
+                        </DockPanel>
+                        <ContentControl Content="{Binding CratesSelectionOutline, Mode=OneTime}" />
                         <Button Command="{Binding ResetCratesCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
                     </StackPanel>
                 </GroupBox>

@@ -3,7 +3,7 @@
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
 the legend stands, the overlay's look, the tool windows' theme, where ContractTracker is, your ship, the ships you chose last and the ship view as you left it on each. Position and size
 are saved whenever you move the overlay; the settings window (the gear in the header) sets and saves the look,
-the legend layout, the ship view (outline or hologram, its opacity and colours, hologram downloads, how far it zooms), the tool window theme, the hotkeys and the ContractTracker settings; the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
+the legend layout, the ship view (outline or hologram, its opacity and colours, hologram downloads, how far it zooms), the tool window theme, the hotkeys and the ContractTracker settings, and loads or saves a look as a [look file](#look-files); the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
 the overlay again.
 
 ## Example with every default
@@ -41,6 +41,8 @@ values.
     "legend": {
       "foreground": "#FFE6E6E6",
       "fontSize": null,
+      "checkBoxColor": "#FFB0B0B0",
+      "checkMarkColor": "#FFB0B0B0",
       "halo": { "enabled": false, "color": "#E0141414", "size": 3 }
     },
     "crates": {
@@ -48,7 +50,11 @@ values.
       "edgeAlpha": 192,
       "rackNumberColor": "#FFFFFFFF",
       "rackNumberFontSize": 27,
-      "halo": { "enabled": true, "color": "#E0141414", "size": 3 }
+      "stopPalette": "okabeIto",
+      "selectionColor": "#FFFF00FF",
+      "selectionWidth": 2.5,
+      "halo": { "enabled": true, "color": "#E0141414", "size": 3 },
+      "selectionOutline": { "enabled": true, "color": "#A0000000", "size": 1 }
     },
     "buttons": {
       "background": "#01000000",
@@ -74,8 +80,9 @@ in `appearance` is optional: what you leave out keeps its default. `{ "schemaVer
 
 Colours are `"#AARRGGBB"` (alpha, red, green, blue) or `"#RRGGBB"` (fully opaque), hex digits in any case.
 **Transparency is the alpha of the colour:** `00` is invisible, `FF` is opaque, `80` is about half.
-The overlay's background `#A0141414` is a dark grey at 63 %. The crates' colours are the stop colours and
-can't be changed, so only their alpha is a number of its own: `0` (invisible) to `255` (opaque).
+The overlay's background `#A0141414` is a dark grey at 63 %. The crates' colours are the stop colours from
+`crates.stopPalette`, one of the checked sets below, never free colours; so their alpha is a number of its own: `0`
+(invisible) to `255` (opaque).
 
 ## Values
 
@@ -89,11 +96,17 @@ can't be changed, so only their alpha is a number of its own: `0` (invisible) to
 | `legend.foreground` | Stop lines; also the outline of "Open editor" | `#FFE6E6E6` | |
 | `legend.fontSize` | Font size of the legend, warnings and notices | `null` | 8–32 |
 | `legend.halo` | Halo around the legend's text | off | |
+| `legend.checkBoxColor` | Frame of the check boxes that select a line's crates | `#FFB0B0B0` | |
+| `legend.checkMarkColor` | Tick (all selected) and bar (part selected) inside the box | `#FFB0B0B0` | |
 | `crates.fillAlpha` | Opacity of the crates in the ship view | `208` | 0–255 |
 | `crates.edgeAlpha` | Opacity of the crates' edges | `192` | 0–255 |
 | `crates.rackNumberColor` | Colour of the rack numbers and the "Bow" label | `#FFFFFFFF` | |
 | `crates.rackNumberFontSize` | Size of the rack numbers and the "Bow" label in pixels, the same at every zoom | `27` | 8–48 |
 | `crates.halo` | Outline of the rack numbers and the "Bow" label | on | |
+| `crates.stopPalette` | The set of stop colours, see below | `"okabeIto"` | |
+| `crates.selectionColor` | Edge of the crates you selected with a right click | `#FFFF00FF` | |
+| `crates.selectionWidth` | Width of that edge in pixels | `2.5` | 1–8 |
+| `crates.selectionOutline` | Dark contour under that edge, a [halo](#halo) whose `size` is its width on each side | on, `#A0000000`, `1` | |
 | `buttons.background` | Background of the glyph buttons and "Open editor" | `#01000000` | alpha at least `01` |
 | `buttons.borderColor` | Frame of the glyph buttons | `#FFE6E6E6` | |
 | `buttons.borderThickness` | Width of that frame, `0` = none | `0` | 0–10 |
@@ -110,9 +123,23 @@ The "Bow" label lies flat on the floor of the bow wedge, its capitals as tall on
 numbers' digits, shrinking included; only where the floor has no room for that does it stay smaller. Only a ship without
 an outline has the wedge and the label (see [Ship view](#ship-view)).
 
+**`crates.stopPalette`:** each set is documented as safe with the common kinds of colour blindness by its source;
+colours that vanish on the dark overlay or look like delivered grey were left out.
+
+| Value | Colours |
+|---|---|
+| `"okabeIto"` | 8: Okabe & Ito's palette without black, with white. The default, the colours before this was a setting. |
+| `"tolBright"` | 6: Paul Tol's bright scheme without its grey |
+| `"tolMuted"` | 7: Paul Tol's muted scheme without indigo and wine |
+
+Exactly as written (camelCase). Missing means `"okabeIto"`; any other text means `"okabeIto"` too, with a notice. With
+more destinations than colours the colours repeat hatched "/", then hatched "\", then all of it again; every destination
+keeps its place in the order when you switch.
+
 **Alpha at least `01`:** the overlay passes clicks on fully transparent pixels to the window below. With a
 background of alpha `00`, you could no longer move the overlay or press a button, so the overlay uses `01`
-instead (still invisible) and says so.
+instead (still invisible) and says so. The legend's check boxes may go down to `00`: the box keeps an invisible
+background of its own that takes the click.
 
 ## Halo
 
@@ -120,12 +147,12 @@ A halo is a soft glow around text and glyphs, for reading over bright and dark s
 
 | Key | What | Default | Range |
 |---|---|---|---|
-| `enabled` | On or off; off keeps colour and size for later | `false` (crates: `true`) | |
+| `enabled` | On or off; off keeps colour and size for later | `false` (crates and selection outline: `true`) | |
 | `color` | Colour of the glow, alpha included | `#E0141414` | |
 | `size` | Blur radius in pixels; for the rack numbers the width of their outline | `3` | 1–20 |
 
 Inside a `halo`, missing keys take the defaults of this table, not those of the section: a crates halo
-written as `{ "size": 5 }` is off. Write `"enabled": true` with it.
+written as `{ "size": 5 }` is off. Write `"enabled": true` with it. The same holds for `crates.selectionOutline`.
 
 ## Legend layout
 
@@ -246,12 +273,49 @@ without the current ship, in the group "Recent" on top.
 | `null` or missing | No group "Recent" yet. The default. |
 | ids | Those ships under "Recent". An id whose ship doesn't load is skipped there and stays in the file; an empty entry (`null`, `""`) is dropped. |
 
+## Look files
+
+A look file (`*.cargoplan-look.json`) carries a look from one overlay to another: **Export…** in the settings window
+writes one, **Import…** reads one, and the presets in the **Preset** box are look files that ship with the app. It
+holds exactly these keys of settings.json, with the same names and shapes as above: `appearance` (all of it), `legend`,
+`toolWindowTheme`, `shipOutline`, `holoOpacity`, `holoHullColor`, `holoEdgeColor` and `shipView` with
+`maxZoomPxPerCell` only. Your hotkeys, the ContractTracker settings, the overlay's position and size, the cameras per
+ship, the ship and the hologram download switch are not in it: they belong to your machine or your run.
+
+```json
+{
+  "schemaVersion": 1,
+  "legend": { "visible": true, "position": "bottom-left" },
+  "shipOutline": "outline",
+  "holoOpacity": 0.4,
+  "holoHullColor": "#FF9CB0C0",
+  "holoEdgeColor": "#FFE6E6E6",
+  "shipView": { "maxZoomPxPerCell": 160 },
+  "toolWindowTheme": "system",
+  "appearance": { "window": { … }, "header": { … }, "legend": { … }, "crates": { … }, "buttons": { … } }
+}
+```
+
+- **`schemaVersion` is 1** and comes first. A file with another number is refused with
+  "schemaVersion 2 is not supported (expected 1).", whatever else it holds.
+- **What a file leaves out stays as it is:** a missing key above, or a missing section of `appearance`. Inside a section the
+  file has, a missing value takes its default, as in settings.json: `{ "schemaVersion": 1, "appearance": { "crates":
+  { "fillAlpha": 100 } } }` changes only the crates, and resets their other values.
+- **Anything else refuses the whole file** and changes nothing: an unknown key (`cameras`, `hotkeys`, a typo), a wrong
+  type, a file that isn't JSON. The overlay says why in an amber line ("Look not imported: …").
+- **Values are checked like settings.json's:** out of range is clamped, a colour that isn't one takes its default, each
+  with a line in the notice.
+- Export writes every key. Importing applies at once and is saved like any change; there is no undo, the sections'
+  **Reset to defaults** are the way back, and `settings.json.bak` holds the file as it was before the first change of this
+  run (see below).
+
 ## When something is wrong
 
 - **A value outside its range** is set to the nearest limit (`"fontSize": 0` → 8, `"fillAlpha": 300` → 255).
 - **A colour that isn't one** (`"red"`, `"#12345"`) takes its default.
 - **A legend position that isn't one** (`"up"`, `"Bottom-Left"`) takes `bottom-left`.
 - **A tool window theme that isn't one** (`"blue"`, `"Dark"`) takes `system`.
+- **A stop palette that isn't one** (`"ibm"`, `"OkabeIto"`) takes `okabeIto`.
 - **A ContractTracker path that isn't a full path** (`"contracts.db"`, `""`) is detected instead (`null`).
 - In all these cases everything else in the file applies, and an amber line in the overlay names the value. The
   file stays as it is until you move the overlay or change a setting; then it is saved with the corrected values.
@@ -269,7 +333,7 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor` and `shipView` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView`, `appearance.legend.checkBoxColor`, `appearance.legend.checkMarkColor`, `appearance.crates.stopPalette`, `appearance.crates.selectionColor`, `appearance.crates.selectionWidth` and `appearance.crates.selectionOutline` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a

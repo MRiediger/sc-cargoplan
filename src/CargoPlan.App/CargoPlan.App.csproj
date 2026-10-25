@@ -9,6 +9,12 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
 
+  <!-- The look presets (K4.3, D77), read by LookPresets.Open; a fixed name instead of the namespace-derived default.
+       Source: https://learn.microsoft.com/visualstudio/msbuild/common-msbuild-project-items#embeddedresource -->
+  <ItemGroup>
+    <EmbeddedResource Include="Looks\*.cargoplan-look.json" LogicalName="looks/%(Filename)%(Extension)" WithCulture="false" />
+  </ItemGroup>
+
   <!-- The theme sample (T4.7a) is a developer window: not in the Release build. -->
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
     <Page Remove="ThemeSampleWindow.xaml" />

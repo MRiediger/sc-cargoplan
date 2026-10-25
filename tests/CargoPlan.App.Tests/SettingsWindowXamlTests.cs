@@ -44,6 +44,22 @@ public partial class SettingsWindowXamlTests
         }
     }
 
+    [Fact]
+    public void Preset_export_and_import_stand_on_top_outside_the_scroll()
+    {
+        // K4.3: always in reach, like the version footer below; the sections scroll between them.
+        var root = Root();
+        var box = root.Descendants().Single(e => e.Name.LocalName == "ComboBox" && (string?)e.Attribute("ItemsSource") == "{Binding PresetChoices, Mode=OneTime}");
+        var row = box.Ancestors().First(a => a.Attribute(XName.Get("DockPanel.Dock")) is not null);
+
+        box.Attribute("SelectedItem")!.Value.Should().Be("{Binding SelectedPreset}");
+        row.Attribute(XName.Get("DockPanel.Dock"))!.Value.Should().Be("Top");
+        box.Ancestors().Should().NotContain(a => a.Name.LocalName == "ScrollViewer");
+        // Both docked right, so the markup's order is the reverse of the screen's: only which buttons, not in what order.
+        row.Descendants().Where(e => e.Name.LocalName == "Button").Select(b => ((string?)b.Attribute("Content"), (string?)b.Attribute("Click")))
+            .Should().BeEquivalentTo([("Export…", "OnExportLook"), ("Import…", "OnImportLook")]);
+    }
+
     [GeneratedRegex(@"\{x:Static (?<prefix>\w+):(?<type>\w+)\.(?<member>\w+)\}")]
     private static partial Regex StaticReference();
 }

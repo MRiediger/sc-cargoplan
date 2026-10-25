@@ -4,28 +4,12 @@ using CargoPlan.Core.Models;
 namespace CargoPlan.App.ShipView;
 
 /// <summary>
-/// The fixed colours of the ship view in one place: one colour per stop, plus delivered, free and rack edges. What a
-/// player can set (rack numbers, crate alpha) comes from settings.json through <c>ThemeResources</c> (D31).
+/// The fixed colours of the ship view in one place: delivered, free, rack edges and the state colours (problem,
+/// target, selection). The stop colours come from the chosen palette (<see cref="StopPalettes"/>, K4.2); what a player can
+/// set (rack numbers, crate alpha, palette) comes from settings.json (D31).
 /// </summary>
 public static class MissionPalette
 {
-    /// <summary>
-    /// Okabe-Ito, readable with the common colour vision deficiencies, without its black (invisible on the dark
-    /// overlay) and with white as eighth colour (D15).
-    /// Source: Okabe &amp; Ito (2008), Color Universal Design, https://jfly.uni-koeln.de/color/
-    /// </summary>
-    public static IReadOnlyList<Color> Colors { get; } =
-    [
-        Color.FromRgb(0xE6, 0x9F, 0x00), // orange
-        Color.FromRgb(0x56, 0xB4, 0xE9), // sky blue
-        Color.FromRgb(0x00, 0x9E, 0x73), // bluish green
-        Color.FromRgb(0xF0, 0xE4, 0x42), // yellow
-        Color.FromRgb(0x00, 0x72, 0xB2), // blue
-        Color.FromRgb(0xD5, 0x5E, 0x00), // vermillion
-        Color.FromRgb(0xCC, 0x79, 0xA7), // reddish purple
-        Color.FromRgb(0xFF, 0xFF, 0xFF), // white
-    ];
-
     /// <summary>Delivered cargo: dark, so it doesn't read as the white stop colour.</summary>
     public static Color Delivered { get; } = Color.FromRgb(0x5A, 0x5A, 0x5A);
 
@@ -41,11 +25,18 @@ public static class MissionPalette
     /// </summary>
     public static Color DragTarget { get; } = Color.FromRgb(0x00, 0xFF, 0xFF);
 
+    // The edge of a selected crate (D25) is a setting since K4.4: CrateAppearance.SelectionColor, magenta by default.
+
+    /// <summary>Width of the red and cyan edges in screen pixels (D24, D25).</summary>
+    public const double EdgeWidth = 2.5;
+
     /// <summary>
-    /// Edges of a selected crate (D25): magenta is in no stop colour (the palette's reddish purple is much paler) and is
-    /// neither the cyan of a target nor the red of a violation.
+    /// Under the red and cyan edges on crates and ghosts (K4.2, P6): a dark line wider than the edge, so the edge reads on
+    /// every stop colour of every palette. Accepted at K4.2's look gate; the selection's contour is a setting (K4.4).
     /// </summary>
-    public static Color Selection { get; } = Color.FromRgb(0xFF, 0x00, 0xFF);
+    public static Color EdgeUnderStroke { get; } = Color.FromArgb(0xA0, 0x00, 0x00, 0x00);
+
+    public const double EdgeUnderStrokeWidth = 4.5;
 
     /// <summary>
     /// Edges of every crate of a selected mission (T7.4d, D68), under the magenta of the selected crates themselves; white
@@ -80,25 +71,18 @@ public static class MissionPalette
     /// Opacity of the legend swatches: the game shows through a little, the colour still reads over bright clouds. The
     /// crates in the view take <c>crates.fillAlpha</c>, whose default is the same.
     /// </summary>
-    private const byte FillAlpha = 0xD0;
+    public const byte SwatchAlpha = 0xD0;
 
     private const byte GhostAlpha = 0x50;
 
     // Frozen brushes are read-only and can be shared without copying on every render.
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/advanced/freezable-objects-overview
-    private static readonly SolidColorBrush[] MissionBrushes = [.. Colors.Select(c => Frozen(c with { A = FillAlpha }))];
 
     /// <summary>The legend swatch of a delivered stop.</summary>
-    public static SolidColorBrush DeliveredBrush { get; } = Frozen(Delivered with { A = FillAlpha });
+    public static SolidColorBrush DeliveredBrush { get; } = Frozen(Delivered with { A = SwatchAlpha });
 
     /// <summary>Violation messages in the legend, the same red as the rack edges.</summary>
     public static SolidColorBrush ViolationBrush { get; } = Frozen(Violation);
-
-    /// <summary>
-    /// The legend's check boxes (B6, D69, Martin after the look gate: grey, not the selection's magenta): lighter than the
-    /// grey of a ticked line's text, which has no box anyway, darker than the legend's text.
-    /// </summary>
-    public static SolidColorBrush CheckBoxBrush { get; } = Frozen(Color.FromRgb(0xB0, 0xB0, 0xB0));
 
     /// <summary>
     /// Fill of the ghost a dragged crate shows at its target cell (D25): cyan where Core allows it, red where it refuses.
@@ -108,32 +92,24 @@ public static class MissionPalette
 
     public static SolidColorBrush RefusedDropBrush { get; } = Frozen(Violation with { A = GhostAlpha });
 
-    /// <summary>Legend line for <see cref="Repeats"/>.</summary>
-    public static string RepeatNotice { get; } = $"More than {Colors.Count} stops: colors repeat.";
-
-    /// <summary>The fill of a stop's colour index from <see cref="Assign"/>.</summary>
-    public static SolidColorBrush Brush(int index) => MissionBrushes[index];
-
     /// <summary>A frozen fill of <paramref name="color"/> with <paramref name="alpha"/>, for the crates' configurable alpha.</summary>
     public static SolidColorBrush Fill(Color color, byte alpha) => Frozen(color with { A = alpha });
 
     /// <summary>
-    /// Colour index per destination, in the order destinations first appear in the plan (as entered, D64), so a split
-    /// stop has the same colour in every rack. From stop 9 on, colours repeat (<see cref="Repeats"/>).
+    /// The ordinal per destination, in the order destinations first appear in the plan (as entered, D64), so a split stop
+    /// has the same colour in every rack. No wrap-around (K4.2): the palette turns the ordinal into colour and hatch
+    /// (<see cref="StopPalette.ColorOf"/>, <see cref="StopPalette.HatchOf"/>), so switching palettes keeps every stop's number.
     /// </summary>
     public static IReadOnlyDictionary<string, int> Assign(LoadPlan plan)
     {
-        Dictionary<string, int> indices = [];
+        Dictionary<string, int> ordinals = [];
         foreach (var destination in plan.Placements.Select(p => p.Destination))
         {
-            indices.TryAdd(destination, indices.Count % Colors.Count);
+            ordinals.TryAdd(destination, ordinals.Count);
         }
 
-        return indices;
+        return ordinals;
     }
-
-    /// <summary>True if the plan has more stops than colours.</summary>
-    public static bool Repeats(LoadPlan plan) => plan.Placements.Select(p => p.Destination).Distinct().Count() > Colors.Count;
 
     private static SolidColorBrush Frozen(Color color)
     {

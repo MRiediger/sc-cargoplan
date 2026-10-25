@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using CargoPlan.App.Hotkeys;
+using CargoPlan.App.ShipView;
 using CargoPlan.App.Theme;
 using CargoPlan.App.ViewModels;
 
@@ -250,12 +251,13 @@ public sealed class SettingsSession
         }
     }
 
-    /// <summary>The one way from settings to the overlay, at startup and on every change: theme resources and legend layout.</summary>
+    /// <summary>The one way from settings to the overlay, at startup and on every change: theme resources, legend layout and stop palette.</summary>
     private void ApplyLook()
     {
         ThemeResources.Apply(_resources, Current.Appearance);
         _viewModel.IsLegendVisible = Current.Legend.Visible;
         _viewModel.LegendPosition = LegendPosition.Parse(Current.Legend.Position);
+        _viewModel.StopPalette = StopPalettes.For(StopPaletteNames.Parse(Current.Appearance.Crates.StopPalette));
     }
 
     private void OnTick(object? sender, EventArgs e) => Save();

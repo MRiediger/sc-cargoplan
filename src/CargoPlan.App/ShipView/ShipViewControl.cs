@@ -56,16 +56,27 @@ public sealed class ShipViewControl : FrameworkElement
     // Its label lies on its floor; built at this size, then scaled to the floor, so only the proportions count.
     private const string BowLabel = "Bow";
     private const double BowLabelEmSize = 100;
-    private static readonly Pen ViolationPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Violation), 2.5));
-    private static readonly Pen DragTargetPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.DragTarget), 2.5));
-    private static readonly Pen SelectionPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Selection), 2.5));
+    private static readonly Pen ViolationPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Violation), MissionPalette.EdgeWidth));
+    private static readonly Pen DragTargetPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.DragTarget), MissionPalette.EdgeWidth));
+    // Under those two on crates and ghosts (K4.2, P6): round joins, so the wider dark line has no spikes at sharp corners.
+    // The selection's edge and contour are settings since K4.4 (SelectionPen, SelectionOutlinePen).
+    private static readonly Pen EdgeUnderPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.EdgeUnderStroke), MissionPalette.EdgeUnderStrokeWidth)
+    {
+        LineJoin = PenLineJoin.Round,
+    });
     private static readonly Pen MissionFramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.MissionFrame), 1.5));
 
     // Theme values (D31), set in OverlayWindow.xaml by DynamicResource: a new value redraws at once (live preview, T4.2).
     // The defaults draw opaque crates without edges or numbers, so a missing resource shows instead of crashing.
 
-    /// <summary>Alpha of the crate fills; their colours are the stop colours and stay fixed (D29).</summary>
+    /// <summary>Alpha of the crate fills; their colours are the stop colours of <see cref="StopPalette"/> (D29, K4.2).</summary>
     public static readonly DependencyProperty CrateFillAlphaProperty = ThemeProperty(nameof(CrateFillAlpha), typeof(byte), byte.MaxValue);
+
+    /// <summary>
+    /// The stop colours (K4.2), bound to the view model, not built into the scene: a new palette repaints at once and the
+    /// scene with its selection stays (D25).
+    /// </summary>
+    public static readonly DependencyProperty StopPaletteProperty = ThemeProperty(nameof(StopPalette), typeof(StopPalette), StopPalettes.OkabeIto);
 
     public static readonly DependencyProperty CrateEdgeBrushProperty = ThemeProperty(nameof(CrateEdgeBrush), typeof(Brush), null);
 
@@ -78,6 +89,12 @@ public sealed class ShipViewControl : FrameworkElement
     public static readonly DependencyProperty RackNumberHaloBrushProperty = ThemeProperty(nameof(RackNumberHaloBrush), typeof(Brush), null);
 
     public static readonly DependencyProperty RackNumberHaloSizeProperty = ThemeProperty(nameof(RackNumberHaloSize), typeof(double), 0.0);
+
+    /// <summary>The selected crates' edge (D25, K4.4); null = selected crates show no edge.</summary>
+    public static readonly DependencyProperty SelectionPenProperty = ThemeProperty(nameof(SelectionPen), typeof(Pen), null);
+
+    /// <summary>The dark contour under that edge (K4.2, K4.4); null = none.</summary>
+    public static readonly DependencyProperty SelectionOutlinePenProperty = ThemeProperty(nameof(SelectionOutlinePen), typeof(Pen), null);
 
     // AffectsRender: a new scene invalidates the drawing by itself.
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.frameworkpropertymetadataoptions
@@ -232,6 +249,12 @@ public sealed class ShipViewControl : FrameworkElement
         set => SetValue(CrateFillAlphaProperty, value);
     }
 
+    public StopPalette StopPalette
+    {
+        get => (StopPalette)GetValue(StopPaletteProperty);
+        set => SetValue(StopPaletteProperty, value);
+    }
+
     public Brush? CrateEdgeBrush
     {
         get => (Brush?)GetValue(CrateEdgeBrushProperty);
@@ -260,6 +283,18 @@ public sealed class ShipViewControl : FrameworkElement
     {
         get => (double)GetValue(RackNumberHaloSizeProperty);
         set => SetValue(RackNumberHaloSizeProperty, value);
+    }
+
+    public Pen? SelectionPen
+    {
+        get => (Pen?)GetValue(SelectionPenProperty);
+        set => SetValue(SelectionPenProperty, value);
+    }
+
+    public Pen? SelectionOutlinePen
+    {
+        get => (Pen?)GetValue(SelectionOutlinePenProperty);
+        set => SetValue(SelectionOutlinePenProperty, value);
     }
 
     /// <summary>
@@ -311,7 +346,7 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         var transform = CurrentTransform(scene);
-        var paint = _paint ??= Paint.From(CrateFillAlpha, CrateEdgeBrush, RackNumberHaloBrush, RackNumberHaloSize, RackNumberBrush);
+        var paint = _paint ??= Paint.From(StopPalette, CrateFillAlpha, CrateEdgeBrush, RackNumberHaloBrush, RackNumberHaloSize, RackNumberBrush);
 
         // Screen pixels like every pen here: points are transformed before drawing, nothing scales the drawing itself.
         // One size for the rack numbers and the bow label.
@@ -404,7 +439,7 @@ public sealed class ShipViewControl : FrameworkElement
         {
             foreach (var face in box.Faces)
             {
-                dc.DrawGeometry(null, ViolationPen, Polygon(face.Polygon, transform));
+                DrawEdged(dc, null, ViolationPen, Polygon(face.Polygon, transform));
             }
         }
 
@@ -422,11 +457,21 @@ public sealed class ShipViewControl : FrameworkElement
             }
         }
 
-        foreach (var box in scene.Racks.SelectMany(r => r.Boxes).Where(b => b.Box.Crate is { } crate && selected.Contains(crate)))
+        if (SelectionPen is { } selectionPen)
         {
-            foreach (var face in box.Faces)
+            var outlinePen = SelectionOutlinePen;
+            foreach (var box in scene.Racks.SelectMany(r => r.Boxes).Where(b => b.Box.Crate is { } crate && selected.Contains(crate)))
             {
-                dc.DrawGeometry(null, SelectionPen, Polygon(face.Polygon, transform));
+                foreach (var face in box.Faces)
+                {
+                    var geometry = Polygon(face.Polygon, transform);
+                    if (outlinePen is not null)
+                    {
+                        dc.DrawGeometry(null, outlinePen, geometry);
+                    }
+
+                    dc.DrawGeometry(null, selectionPen, geometry);
+                }
             }
         }
 
@@ -475,8 +520,15 @@ public sealed class ShipViewControl : FrameworkElement
         var rack = ship.Racks.Single(r => r.Id == crate.RackId);
         foreach (var face in SceneProjector.ProjectBox(rack.CellBox(crate), _navigation.Camera))
         {
-            dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
+            DrawEdged(dc, fill, pen, Polygon(face.Polygon, transform));
         }
+    }
+
+    /// <summary>A red, cyan or magenta edge over its dark under-stroke (K4.2, P6), so it reads on every stop colour.</summary>
+    private static void DrawEdged(DrawingContext dc, Brush? fill, Pen pen, Geometry geometry)
+    {
+        dc.DrawGeometry(fill, EdgeUnderPen, geometry);
+        dc.DrawGeometry(null, pen, geometry);
     }
 
     private static void Dimmed(DrawingContext dc, bool dimmed, Action draw)
@@ -1040,11 +1092,12 @@ public sealed class ShipViewControl : FrameworkElement
     /// <param name="LabelOutline">null = rack numbers without outline.</param>
     /// <param name="OutlineLine">The ship outline's line (D62) in the rack numbers' colour, toned down; null without that colour.</param>
     /// <param name="OutlineHalo">Under that line, as wide as the line plus the halo on both sides (D28); null with the halo off.</param>
+    /// <param name="Stops">One brush per ordinal up to where colour and hatch repeat (<see cref="StopPalette.Rounds"/>).</param>
     private sealed record Paint(
-        IReadOnlyList<SolidColorBrush> Stops, SolidColorBrush Delivered, Pen? CrateEdge, Pen? LabelOutline, Pen? OutlineLine, Pen? OutlineHalo)
+        IReadOnlyList<Brush> Stops, SolidColorBrush Delivered, Pen? CrateEdge, Pen? LabelOutline, Pen? OutlineLine, Pen? OutlineHalo)
     {
-        public static Paint From(byte fillAlpha, Brush? edge, Brush? halo, double haloSize, Brush? line) => new(
-            [.. MissionPalette.Colors.Select(c => MissionPalette.Fill(c, fillAlpha))],
+        public static Paint From(StopPalette palette, byte fillAlpha, Brush? edge, Brush? halo, double haloSize, Brush? line) => new(
+            [.. Enumerable.Range(0, palette.Colors.Count * StopPalette.Rounds).Select(i => StopBrushes.Fill(palette, i, fillAlpha))],
             MissionPalette.Fill(MissionPalette.Delivered, fillAlpha),
             edge is null ? null : Frozen(new Pen(edge, CrateEdgeWidth)),
             halo is null ? null : Frozen(new Pen(halo, haloSize) { LineJoin = PenLineJoin.Round }),
@@ -1059,7 +1112,7 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         /// <summary>Cargo only; free cells have no fill.</summary>
-        public Brush Fill(SceneBox box) => box.Fill == CellFill.Delivered ? Delivered : Stops[box.PaletteIndex!.Value];
+        public Brush Fill(SceneBox box) => box.Fill == CellFill.Delivered ? Delivered : Stops[box.PaletteIndex!.Value % Stops.Count];
     }
 
     /// <param name="Down">What lay under the cursor when the button went down; with the button it decides the gesture.</param>

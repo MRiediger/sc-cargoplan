@@ -322,7 +322,8 @@ public partial class OverlayWindow : Window
                     _settings.DownloadShipHolograms, _settings.ChangeDownloadShipHolograms,
                     _settings.HoloOpacity, _settings.ChangeHoloOpacity,
                     current.HoloHullColor, current.HoloEdgeColor, _settings.ChangeHoloColors,
-                    _settings.MaxZoom, _settings.ChangeMaxZoom),
+                    _settings.MaxZoom, _settings.ChangeMaxZoom,
+                    notice => _viewModel.SetNotice(NoticeSource.Look, notice)),
                 _createHotkeys(),
                 _createContractTracker(),
                 _viewModel,
@@ -339,7 +340,12 @@ public partial class OverlayWindow : Window
             _settingsWindow.Left = position.X;
             _settingsWindow.Top = position.Y;
 
-            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            // A preset or import notice belongs to the open window (K4.3): it goes with it.
+            _settingsWindow.Closed += (_, _) =>
+            {
+                _settingsWindow = null;
+                _viewModel.SetNotice(NoticeSource.Look, null);
+            };
             _settingsWindow.Show();
         }
 

@@ -1,3 +1,4 @@
+using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
@@ -10,13 +11,7 @@ public class MissionPaletteTests
         TestPlans.Of(ShipLoader.Load("hull_a"), [.. destinations.Select(d => new Placement(d, "rack-0", new CargoItem("Gold", 1, CrateSize.One)))]);
 
     [Fact]
-    public void Has_eight_colours()
-    {
-        MissionPalette.Colors.Should().HaveCount(8).And.OnlyHaveUniqueItems();
-    }
-
-    [Fact]
-    public void Stops_get_colours_in_the_order_they_first_appear_in_the_plan()
+    public void Stops_get_ordinals_in_the_order_they_first_appear_in_the_plan()
     {
         var indices = MissionPalette.Assign(PlanFor("Riker", "Shubin", "Riker", "Orison"));
 
@@ -24,7 +19,7 @@ public class MissionPaletteTests
     }
 
     [Fact]
-    public void The_same_plan_always_gets_the_same_colours()
+    public void The_same_plan_always_gets_the_same_ordinals()
     {
         var plan = PlanFor("Lorville", "Riker", "Shubin");
 
@@ -32,32 +27,29 @@ public class MissionPaletteTests
     }
 
     [Fact]
-    public void Stop_nine_repeats_the_first_colour_and_says_so()
+    public void Stop_nine_keeps_its_own_ordinal()
     {
+        // No wrap-around here (K4.2): the palette turns the ordinal into colour and hatch, so the round isn't lost.
         string[] stops = [.. Enumerable.Range(1, 9).Select(i => $"Stop {i}")];
-        var plan = PlanFor(stops);
 
-        MissionPalette.Assign(plan)["Stop 9"].Should().Be(0);
-        MissionPalette.Repeats(plan).Should().BeTrue();
+        MissionPalette.Assign(PlanFor(stops))["Stop 9"].Should().Be(8);
     }
 
     [Fact]
-    public void Eight_stops_do_not_repeat()
+    public void The_default_selection_differs_from_the_drop_target_and_the_problem_red()
     {
-        MissionPalette.Repeats(PlanFor([.. Enumerable.Range(1, 8).Select(i => $"Stop {i}")])).Should().BeFalse();
+        // A setting since K4.4; its default keeps D25's rule.
+        var selection = Argb.Parse(CrateAppearance.Default.SelectionColor);
+        var colour = System.Windows.Media.Color.FromArgb(selection.A, selection.R, selection.G, selection.B);
+
+        colour.Should().NotBe(MissionPalette.DragTarget).And.NotBe(MissionPalette.Violation);
     }
 
     [Fact]
-    public void Delivered_free_and_violation_colours_differ_from_every_stop_colour()
+    public void The_under_stroke_is_dark_and_wider_than_the_edges_it_lies_under()
     {
-        MissionPalette.Colors.Should().NotContain([MissionPalette.Delivered, MissionPalette.FreeEdge, MissionPalette.Violation, MissionPalette.Selection]);
-        MissionPalette.Selection.Should().NotBe(MissionPalette.DragTarget).And.NotBe(MissionPalette.Violation);
-    }
-
-    [Fact]
-    public void Brushes_are_frozen_so_rendering_never_copies_them()
-    {
-        MissionPalette.Brush(0).IsFrozen.Should().BeTrue();
-        MissionPalette.Brush(0).Should().BeSameAs(MissionPalette.Brush(0));
+        // P6: under the red and cyan edges, so they read on any stop colour (the selection's contour is a setting, K4.4).
+        MissionPalette.EdgeUnderStroke.Should().Match<System.Windows.Media.Color>(c => c.R == 0 && c.G == 0 && c.B == 0 && c.A > 0);
+        MissionPalette.EdgeUnderStrokeWidth.Should().BeGreaterThan(MissionPalette.EdgeWidth);
     }
 }

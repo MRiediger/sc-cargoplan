@@ -702,6 +702,16 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         set => SetProperty(ref field, value);
     } = LegendPosition.Default;
 
+    /// <summary>
+    /// The stop colours (K4.2), from the settings; bound by the ship view and the legend's swatches and notice. Not part of
+    /// <see cref="Scene"/>: a new scene empties the selection (D25), a new palette only repaints.
+    /// </summary>
+    public StopPalette StopPalette
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = StopPalettes.OkabeIto;
+
     // Generates ToggleLockCommand (IRelayCommand), bound by the lock window's button and run by the toggleLock hotkey.
     // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand
     [RelayCommand]

@@ -12,8 +12,11 @@ public sealed class AppearanceRulesTests
 
         appearance.Window.Should().Be(new WindowAppearance(Background: "#A0141414", BorderColor: "#FFE6E6E6", BorderThickness: 0));
         appearance.Header.Should().Be(new HeaderAppearance(Foreground: "#FFE6E6E6", Halo: new HaloSettings(false, "#E0141414", 3)));
-        appearance.Legend.Should().Be(new LegendAppearance(Foreground: "#FFE6E6E6", FontSize: null, Halo: new HaloSettings(false, "#E0141414", 3)));
-        appearance.Crates.Should().Be(new CrateAppearance(FillAlpha: 0xD0, EdgeAlpha: 0xC0, RackNumberColor: "#FFFFFFFF", RackNumberFontSize: 27, Halo: new HaloSettings(true, "#E0141414", 3)));
+        appearance.Legend.Should().Be(new LegendAppearance(
+            Foreground: "#FFE6E6E6", FontSize: null, Halo: new HaloSettings(false, "#E0141414", 3), CheckBoxColor: "#FFB0B0B0", CheckMarkColor: "#FFB0B0B0"));
+        appearance.Crates.Should().Be(new CrateAppearance(
+            FillAlpha: 0xD0, EdgeAlpha: 0xC0, RackNumberColor: "#FFFFFFFF", RackNumberFontSize: 27, Halo: new HaloSettings(true, "#E0141414", 3), StopPalette: "okabeIto",
+            SelectionColor: "#FFFF00FF", SelectionWidth: 2.5, SelectionOutline: new HaloSettings(true, "#A0000000", 1)));
         appearance.Buttons.Should().Be(new ButtonAppearance(
             Background: "#01000000", BorderColor: "#FFE6E6E6", BorderThickness: 0, CornerRadius: 3, Halo: new HaloSettings(false, "#E0141414", 3)));
     }
@@ -33,8 +36,8 @@ public sealed class AppearanceRulesTests
         AppearanceSettings custom = new(
             new WindowAppearance("#E0300000", "#FF00FF00", 10),
             new HeaderAppearance("#FFFFFF00", new HaloSettings(true, "#FF000000", 20)),
-            new LegendAppearance("#FF00FFFF", 32, new HaloSettings(true, "#80000000", 1)),
-            new CrateAppearance(0, 255, "#FFFF0000", 48, HaloSettings.Off),
+            new LegendAppearance("#FF00FFFF", 32, new HaloSettings(true, "#80000000", 1), "#40FF0000", "#FF00FF00"),
+            new CrateAppearance(0, 255, "#FFFF0000", 48, HaloSettings.Off, "tolMuted", "#8000FF00", 8, new HaloSettings(false, "#FFFFFFFF", 20)),
             new ButtonAppearance("#01FFFFFF", "#FFFFFFFF", 0, 13, HaloSettings.Off));
 
         var (appearance, problems) = AppearanceRules.Normalize(custom);
@@ -71,6 +74,9 @@ public sealed class AppearanceRulesTests
         { "crates.edgeAlpha", a => a with { Crates = a.Crates with { EdgeAlpha = 300 } }, a => a.Crates.EdgeAlpha, 255 },
         { "crates.rackNumberFontSize", a => a with { Crates = a.Crates with { RackNumberFontSize = 0 } }, a => a.Crates.RackNumberFontSize, 8 },
         { "crates.rackNumberFontSize", a => a with { Crates = a.Crates with { RackNumberFontSize = 100 } }, a => a.Crates.RackNumberFontSize, 48 },
+        { "crates.selectionWidth", a => a with { Crates = a.Crates with { SelectionWidth = 0 } }, a => a.Crates.SelectionWidth, 1 },
+        { "crates.selectionWidth", a => a with { Crates = a.Crates with { SelectionWidth = 12 } }, a => a.Crates.SelectionWidth, 8 },
+        { "crates.selectionOutline.size", a => a with { Crates = a.Crates with { SelectionOutline = a.Crates.SelectionOutline with { Size = 0 } } }, a => a.Crates.SelectionOutline.Size, 1 },
     };
 
     [Theory]
@@ -116,6 +122,50 @@ public sealed class AppearanceRulesTests
         problems.Should().ContainSingle().Which.Should().Contain("appearance.crates.rackNumberColor");
     }
 
+    [Theory]
+    [InlineData("checkBoxColor")]
+    [InlineData("checkMarkColor")]
+    public void Invalid_check_box_colour_takes_the_grey_with_a_problem(string key)
+    {
+        var legend = key == "checkBoxColor"
+            ? LegendAppearance.Default with { CheckBoxColor = "grey" }
+            : LegendAppearance.Default with { CheckMarkColor = "grey" };
+
+        var (appearance, problems) = AppearanceRules.Normalize(AppearanceSettings.Default with { Legend = legend });
+
+        appearance.Legend.Should().Be(LegendAppearance.Default);
+        problems.Should().ContainSingle().Which.Should().Contain($"appearance.legend.{key}").And.Contain("using #FFB0B0B0");
+    }
+
+    [Theory]
+    [InlineData("ibm")]
+    [InlineData("OkabeIto")]
+    [InlineData("tol-bright")]
+    [InlineData("")]
+    public void Unknown_stop_palette_takes_okabe_ito_with_a_problem(string name)
+    {
+        var (appearance, problems) = AppearanceRules.Normalize(AppearanceSettings.Default with
+        {
+            Crates = CrateAppearance.Default with { StopPalette = name },
+        });
+
+        appearance.Crates.StopPalette.Should().Be("okabeIto");
+        problems.Should().ContainSingle().Which.Should().Be(
+            $"appearance.crates.stopPalette \"{name}\" is not valid (okabeIto, tolBright or tolMuted), using okabeIto.");
+    }
+
+    [Fact]
+    public void Invalid_selection_colour_takes_the_magenta_with_a_problem()
+    {
+        var (appearance, problems) = AppearanceRules.Normalize(AppearanceSettings.Default with
+        {
+            Crates = CrateAppearance.Default with { SelectionColor = "pink" },
+        });
+
+        appearance.Crates.SelectionColor.Should().Be("#FFFF00FF");
+        problems.Should().ContainSingle().Which.Should().Contain("appearance.crates.selectionColor");
+    }
+
     [Fact]
     public void Invalid_halo_colour_takes_the_halo_default()
     {
@@ -150,11 +200,14 @@ public sealed class AppearanceRulesTests
         var (appearance, problems) = AppearanceRules.Normalize(AppearanceSettings.Default with
         {
             Window = WindowAppearance.Default with { BorderColor = "#00FFFFFF" },
-            Legend = LegendAppearance.Default with { Foreground = "#00FFFFFF" },
+            Legend = LegendAppearance.Default with { Foreground = "#00FFFFFF", CheckBoxColor = "#00B0B0B0", CheckMarkColor = "#00B0B0B0" },
         });
 
+        // The check box keeps its own hit-test background, so a see-through box still takes the click.
         appearance.Window.BorderColor.Should().Be("#00FFFFFF");
         appearance.Legend.Foreground.Should().Be("#00FFFFFF");
+        appearance.Legend.CheckBoxColor.Should().Be("#00B0B0B0");
+        appearance.Legend.CheckMarkColor.Should().Be("#00B0B0B0");
         problems.Should().BeEmpty();
     }
 

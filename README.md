@@ -151,8 +151,8 @@ More: [user guide – settings](docs/user-guide.md#settings-and-your-look),
   withdrawn on request – the app checks at most once a day. Turn downloads off under Settings → Ship view; holograms
   already downloaded stay. They come from [Fleetyards](https://fleetyards.net)' holo models of CIG's ships; the
   release's `NOTICE.md` has the details.
-- The stop colours are the [Okabe-Ito palette](https://jfly.uni-koeln.de/color/) (Color Universal Design), chosen to
-  stay apart with colour blindness.
+- The stop colours are the [Okabe-Ito palette](https://jfly.uni-koeln.de/color/) (Color Universal Design) or one of
+  [Paul Tol's](https://sronpersonalpages.nl/~pault/) bright and muted schemes, chosen to stay apart with colour blindness.
 
 ## Contributing
 

@@ -21,6 +21,14 @@ public static class AppearanceRules
     public const double MaxHaloSize = 20;
     public const double MaxBorderThickness = 10;
 
+    /// <summary>
+    /// The selected crates' edge (K4.4): from a hairline to a band that still leaves a 1 SCU crate's face visible at the
+    /// default zoom (about 30 px per cell on the Hull A, D32).
+    /// </summary>
+    public const double MinSelectionWidth = 1;
+
+    public const double MaxSelectionWidth = 8;
+
     /// <summary>Half the height of a header button (26 px): more would make it a pill that no longer fits.</summary>
     public const double MaxCornerRadius = 13;
 
@@ -85,6 +93,8 @@ public static class AppearanceRules
                 // null is the Windows size and passes; only a number has a range (resolved in ThemeResources).
                 FontSize = legend.FontSize is { } size ? check.Range("legend.fontSize", size, MinFontSize, MaxFontSize) : null,
                 Halo = check.Halo("legend.halo", legend.Halo),
+                CheckBoxColor = check.Colour("legend.checkBoxColor", legend.CheckBoxColor, LegendAppearance.Default.CheckBoxColor),
+                CheckMarkColor = check.Colour("legend.checkMarkColor", legend.CheckMarkColor, LegendAppearance.Default.CheckMarkColor),
             },
             crates with
             {
@@ -93,6 +103,10 @@ public static class AppearanceRules
                 RackNumberColor = check.Colour("crates.rackNumberColor", crates.RackNumberColor, CrateAppearance.Default.RackNumberColor),
                 RackNumberFontSize = check.Range("crates.rackNumberFontSize", crates.RackNumberFontSize, MinRackNumberFontSize, MaxRackNumberFontSize),
                 Halo = check.Halo("crates.halo", crates.Halo),
+                StopPalette = check.StopPalette("crates.stopPalette", crates.StopPalette),
+                SelectionColor = check.Colour("crates.selectionColor", crates.SelectionColor, CrateAppearance.Default.SelectionColor),
+                SelectionWidth = check.Range("crates.selectionWidth", crates.SelectionWidth, MinSelectionWidth, MaxSelectionWidth),
+                SelectionOutline = check.Halo("crates.selectionOutline", crates.SelectionOutline),
             },
             buttons with
             {
@@ -104,6 +118,26 @@ public static class AppearanceRules
             });
 
         return (normalized, check.Problems);
+    }
+
+    /// <summary>A whole look (K4.3): the same checks as settings.json's keys, so a look file reads like the settings file.</summary>
+    /// <returns>The checked look and one line per corrected value, empty if nothing was corrected.</returns>
+    public static (Look Look, IReadOnlyList<string> Problems) Normalize(Look look)
+    {
+        var (appearance, appearanceProblems) = Normalize(look.Appearance);
+        var (legend, legendProblems) = Normalize(look.Legend);
+        var (theme, themeProblems) = NormalizeToolWindowTheme(look.ToolWindowTheme);
+        var (shipOutline, shipOutlineProblems) = NormalizeShipOutline(look.ShipOutline);
+        var (holoOpacity, holoOpacityProblems) = NormalizeHoloOpacity(look.HoloOpacity);
+        var (holoHull, holoHullProblems) = NormalizeHoloColor("holoHullColor", look.HoloHullColor, DefaultHoloHullColor);
+        var (holoEdge, holoEdgeProblems) = NormalizeHoloColor("holoEdgeColor", look.HoloEdgeColor, DefaultHoloEdgeColor);
+        var (shipView, shipViewProblems) = Normalize(new ShipViewSettings(look.MaxZoomPxPerCell));
+        return (
+            new Look(appearance, legend, theme, shipOutline, holoOpacity, holoHull, holoEdge, shipView.MaxZoomPxPerCell),
+            [
+                .. legendProblems, .. appearanceProblems, .. themeProblems, .. shipOutlineProblems, .. holoOpacityProblems,
+                .. holoHullProblems, .. holoEdgeProblems, .. shipViewProblems,
+            ]);
     }
 
     /// <summary>Checks the legend's layout (D33): an unknown position takes the default, like a colour that isn't one.</summary>
@@ -249,6 +283,20 @@ public static class AppearanceRules
 
             var fallback = LegendPosition.Default.ToString();
             Problems.Add($"{key} \"{text}\" is not valid (edge-alignment, e.g. bottom-right), using {fallback}.");
+            return fallback;
+        }
+
+        /// <summary>An unknown palette takes the palette of before (K4.2), like a colour that isn't one; three names fit in the line.</summary>
+        public string StopPalette(string key, string text)
+        {
+            if (StopPaletteNames.TryParse(text, out _))
+            {
+                return text;
+            }
+
+            var fallback = StopPaletteNames.DefaultName;
+            var names = StopPaletteNames.Names;
+            Problems.Add($"appearance.{key} \"{text}\" is not valid ({string.Join(", ", names.Take(names.Count - 1))} or {names[^1]}), using {fallback}.");
             return fallback;
         }
 

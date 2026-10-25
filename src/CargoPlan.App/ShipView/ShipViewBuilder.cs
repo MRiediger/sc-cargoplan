@@ -68,7 +68,7 @@ public static class ShipViewBuilder
             ship.Bounds,
             legend,
             [.. violations.Select(v => v.Message)],
-            MissionPalette.Repeats(plan),
+            palette.Count,
             plan,
             ship,
             saved is null ? [] : [.. unplaced.Select(m => Unplaced(saved, ship, m, duplicates))],

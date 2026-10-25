@@ -67,6 +67,80 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void The_stop_palette_goes_to_the_view_model_at_start_and_on_change()
+    {
+        // K4.2: not a theme resource but a view model property, so the scene and with it the selection stay (D25).
+        _viewModel.StopPalette.Should().BeSameAs(ShipView.StopPalettes.OkabeIto);
+        var session = Create(AppSettings.Default with
+        {
+            Appearance = AppearanceSettings.Default with { Crates = CrateAppearance.Default with { StopPalette = "tolMuted" } },
+        });
+        _viewModel.StopPalette.Should().BeSameAs(ShipView.StopPalettes.TolMuted);
+        var scene = _viewModel.Scene;
+
+        session.ChangeLook(AppearanceSettings.Default with { Crates = CrateAppearance.Default with { StopPalette = "tolBright" } }, LegendSettings.Default);
+
+        _viewModel.StopPalette.Should().BeSameAs(ShipView.StopPalettes.TolBright);
+        _viewModel.Scene.Should().BeSameAs(scene);
+    }
+
+    [Fact]
+    public void An_imported_look_changes_the_look_and_nothing_else()
+    {
+        // K4.3 gate: hotkeys, ContractTracker, bounds, cameras, ship and the download switch stay; the window is wired to
+        // the session as the overlay wires it.
+        var before = AppSettings.Default with
+        {
+            Overlay = Bounds,
+            Hotkeys = new HotkeySettings(ToggleLock: "Ctrl+Alt+L", Undo: "Ctrl+Alt+Z"),
+            ContractTracker = new ContractTrackerSettings(@"C:\Data\contracts.db", AutoSync: false),
+            Ship = "c2_hercules",
+            RecentShips = ["c2_hercules", "hull_a"],
+            DownloadShipHolograms = false,
+            ShipView = new ShipViewSettings(100, new Dictionary<string, ShipCamera> { ["c2_hercules"] = new(30, 20, 50, 1, 2) }),
+        };
+        var session = Create(before);
+        SettingsViewModel window = new(
+            before.Appearance, before.Legend, 11, session.ChangeLook,
+            session.ToolWindowTheme, session.ChangeToolWindowTheme,
+            session.ShipOutline, session.ChangeShipOutline,
+            session.DownloadShipHolograms, session.ChangeDownloadShipHolograms,
+            session.HoloOpacity, session.ChangeHoloOpacity,
+            before.HoloHullColor, before.HoloEdgeColor, session.ChangeHoloColors,
+            session.MaxZoom, session.ChangeMaxZoom,
+            notice => _viewModel.SetNotice(NoticeSource.Look, notice));
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, "haul.cargoplan-look.json");
+        using (var file = File.Create(path))
+        {
+            LookFile.Write(file, LookFileTests.Custom);
+        }
+
+        window.ImportLook(path);
+        session.Flush();
+
+        var saved = Saved();
+        Look.Of(saved).Should().Be(LookFileTests.Custom);
+        saved.Should().Be(before with
+        {
+            Appearance = saved.Appearance,
+            Legend = saved.Legend,
+            ToolWindowTheme = saved.ToolWindowTheme,
+            ShipOutline = saved.ShipOutline,
+            HoloOpacity = saved.HoloOpacity,
+            HoloHullColor = saved.HoloHullColor,
+            HoloEdgeColor = saved.HoloEdgeColor,
+            // Lists and dictionaries compare by reference in a record: checked one by one below.
+            ShipView = saved.ShipView,
+            RecentShips = saved.RecentShips,
+        });
+        saved.ShipView.MaxZoomPxPerCell.Should().Be(LookFileTests.Custom.MaxZoomPxPerCell);
+        saved.ShipView.Cameras.Should().BeEquivalentTo(before.ShipView.Cameras);
+        saved.RecentShips.Should().Equal("c2_hercules", "hull_a");
+        _viewModel.Notices.Should().Contain("Look imported: haul.cargoplan-look.json");
+    }
+
+    [Fact]
     public void ChangeBounds_writes_at_once_with_a_pending_look()
     {
         var session = Create();

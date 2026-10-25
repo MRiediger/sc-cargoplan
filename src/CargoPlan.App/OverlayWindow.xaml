@@ -23,6 +23,7 @@
     <!-- MinWidth/MinHeight: header, a small ship view and the legend stay visible; restoring saved bounds uses them too. -->
     <Window.Resources>
         <sv:PaletteBrushConverter x:Key="PaletteBrushConverter" />
+        <sv:PaletteNoticeConverter x:Key="PaletteNoticeConverter" />
         <sv:LegendCheckedConverter x:Key="LegendCheckedConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <!-- Theme values are DynamicResources from settings.json (ThemeResources, D31), so the settings window can change
@@ -58,7 +59,8 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- A legend check box (B6, D69): selects crates, in grey (MissionPalette.CheckBoxBrush); a ticked line has no box.
+        <!-- A legend check box (B6, D69): selects crates; a ticked line has no box. Frame and mark (tick and bar) take their own
+             colours from the legend's look (K4.1), grey by default.
              Ticked = all selected, a bar = part of them. Three states only with IsThreeState
              (source: https://learn.microsoft.com/dotnet/api/system.windows.controls.primitives.togglebutton.isthreestate);
              the click's own next state doesn't matter, ToggleCratesCommand changes the selection and the binding shows it. -->
@@ -73,12 +75,12 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
-                        <Border BorderBrush="{x:Static sv:MissionPalette.CheckBoxBrush}" BorderThickness="1.5"
+                        <Border BorderBrush="{DynamicResource LegendCheckBoxBrush}" BorderThickness="1.5"
                                 Background="{StaticResource HitTestBackgroundBrush}">
                             <Grid>
-                                <Path x:Name="Mark" Data="M 1.5,4.5 L 3.8,7 L 7.5,1.5" Stroke="{x:Static sv:MissionPalette.CheckBoxBrush}"
+                                <Path x:Name="Mark" Data="M 1.5,4.5 L 3.8,7 L 7.5,1.5" Stroke="{DynamicResource LegendCheckMarkBrush}"
                                       StrokeThickness="1.5" Visibility="Hidden" />
-                                <Rectangle x:Name="Part" Width="5" Height="1.5" Fill="{x:Static sv:MissionPalette.CheckBoxBrush}" Visibility="Hidden" />
+                                <Rectangle x:Name="Part" Width="5" Height="1.5" Fill="{DynamicResource LegendCheckMarkBrush}" Visibility="Hidden" />
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
@@ -568,8 +570,16 @@
                                                 Style="{StaticResource LegendLineButtonStyle}"
                                                 MouseRightButtonDown="OnLegendRightButtonDown">
                                             <StackPanel Orientation="Horizontal">
-                                                <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0"
-                                                           Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
+                                                <!-- The stop's ordinal and the overlay's palette, the brush the view paints its
+                                                     crates with, hatch included (K4.2). -->
+                                                <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0">
+                                                    <Rectangle.Fill>
+                                                        <MultiBinding Converter="{StaticResource PaletteBrushConverter}" Mode="OneWay">
+                                                            <Binding Path="PaletteIndex" Mode="OneTime" />
+                                                            <Binding Path="DataContext.StopPalette" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                        </MultiBinding>
+                                                    </Rectangle.Fill>
+                                                </Rectangle>
                                                 <!-- The reserve (the label with nothing delivered) lies hidden under it: a tick that takes a
                                                      marking away keeps the line's width, so the block doesn't move (D16, D33). -->
                                                 <Grid>
@@ -628,9 +638,24 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <TextBlock Text="{x:Static sv:MissionPalette.RepeatNotice}"
-                               Style="{StaticResource LegendTextStyle}"
-                               Visibility="{Binding Scene.PaletteRepeats, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <!-- More stops than colours, from the stop count and the palette (K4.2): empty, and collapsed, while none repeat. -->
+                    <TextBlock x:Name="PaletteNotice">
+                        <TextBlock.Text>
+                            <MultiBinding Converter="{StaticResource PaletteNoticeConverter}" Mode="OneWay">
+                                <Binding Path="Scene.StopCount" Mode="OneWay" />
+                                <Binding Path="StopPalette" Mode="OneWay" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource LegendTextStyle}">
+                                <Style.Triggers>
+                                    <Trigger Property="Text" Value="">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </StackPanel>
             </DockPanel>
 
@@ -662,13 +687,16 @@
                                     MoveLegendCommand="{Binding MoveLegendCommand, Mode=OneTime}"
                                     Selection="{Binding Selection}"
                                     MaxPxPerCell="{Binding MaxZoomPxPerCell, Mode=OneWay}"
+                                    StopPalette="{Binding StopPalette, Mode=OneWay}"
                                     Camera="{Binding Camera}"
                                     CrateFillAlpha="{DynamicResource CratesFillAlpha}"
                                     CrateEdgeBrush="{DynamicResource CratesEdgeBrush}"
                                     RackNumberBrush="{DynamicResource CratesRackNumberBrush}"
                                     RackNumberFontSize="{DynamicResource CratesRackNumberFontSize}"
                                     RackNumberHaloBrush="{DynamicResource CratesHaloBrush}"
-                                    RackNumberHaloSize="{DynamicResource CratesHaloSize}" />
+                                    RackNumberHaloSize="{DynamicResource CratesHaloSize}"
+                                    SelectionPen="{DynamicResource CratesSelectionPen}"
+                                    SelectionOutlinePen="{DynamicResource CratesSelectionOutlinePen}" />
             </Grid>
         </DockPanel>
     </Border>

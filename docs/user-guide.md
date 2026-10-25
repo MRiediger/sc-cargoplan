@@ -70,7 +70,9 @@ says, after a restart and for everyone who loads the plan, until you drag them s
 [Changing the plan](#changing-the-plan)). Where the elevator really puts a crate is still up to the game. A crate always
 rests on the plate or on other crates.
 
-- **Color** = destination. Up to eight colors, from the ninth destination on they repeat (the legend says so).
+- **Color** = destination. Up to eight colors (six or seven with the other stop color sets, see
+  [Settings](#settings-and-your-look)); from then on the colors repeat **hatched** "/", after another round hatched
+  "\", the same in the view and on the legend's color square (the legend says so).
 - **Gray** = delivered.
 - **Outline only** = free cell. Far out, only the free cells in the layers that hold crates are drawn.
 - **Red** = a crate that can't lie like this, see [Stacking and red crates](#stacking-and-red-crates).
@@ -367,13 +369,34 @@ lights. The sections Window, Legend, Legend layout, Crates, Header, Buttons and 
 windows, Hotkeys and ContractTracker have none (their defaults are "follow Windows", "no hotkey" and
 **Detect automatically**).
 
+On top of the window, always in reach:
+
+- **Preset:** **Default** (the look the overlay starts with), **High contrast** (solid background, white text, strong
+  halos, solid crates) or **Minimal** (see-through, small text, faint crates). A preset applies at once, colours,
+  legend layout, tool window theme, backdrop and zoom limit included. Change any value afterwards and the box says
+  **Custom**; change it back and the preset shows again.
+- **Export…** saves the look as you see it to a file (`my-look.cargoplan-look.json`) to share or keep. **Import…**
+  loads one: it changes the look only, never your hotkeys, the ContractTracker settings, where the overlay stands, how
+  you left each ship's view or whether holograms may be downloaded. A file of another version or with keys it doesn't
+  know changes nothing, and the amber line says why. There is no undo for a preset or an import: the sections'
+  **Reset to defaults** take you back, and `settings.json.bak` next to `settings.json` holds the file as it was before the
+  first change of this run (see [Where your data lives](#where-your-data-lives)).
+
+The sections:
+
 - **Window:** background colour, and its slider is the overlay's transparency; frame colour and width.
-- **Legend:** text colour, text size (or the Windows text size), and a halo for reading over bright scenes.
+- **Legend:** text colour, text size (or the Windows text size), a halo for reading over bright scenes, and the colours
+  of the check boxes: **Check box** is the frame, **Check mark** the tick and the bar inside it, each with its own
+  transparency.
 - **Legend layout:** where the legend stands (top or bottom; left, centre or right) and whether it shows the
   destination lines at all. A section of its own, so resetting the legend's colours doesn't move it.
-- **Crates:** how solid the crates and their edges are (at the lift, turn the fill down to see the real crates through
+- **Crates:** **Stop colors**, the set of destination colors: Okabe-Ito (8 colors, the default), Tol Bright (6) or Tol
+  Muted (7), each chosen by its author to stay apart with the common kinds of colour blindness; switching recolours the
+  plan at once, every destination keeps its place in the order. Then how solid the crates and their edges are (at the lift, turn the fill down to see the real crates through
   the planned ones), the colour and size of the rack numbers and the "Bow" label on the bow wedge, and their outline.
-  The ship outline's line takes the rack numbers' colour, toned down.
+  The ship outline's line takes the rack numbers' colour, toned down. **Selection**, **Selection width** and **Contour
+  around the selection edge** set how crates you selected with a right click are framed (magenta over a dark contour by
+  default).
 - **Header:** the colour of the ship name and the glyphs (pencil, gear, split, merge, exit, padlock), and a halo around
   the ship name.
 - **Buttons:** background, frame and rounded corners of the glyph buttons, and a halo around the glyphs.
@@ -396,8 +419,8 @@ A colour is a hex code like `#141414` (the `#` is optional) plus a slider for it
 turns the field red and changes nothing. Or click the colour square next to it: a picker opens, where you drag across
 the square for how vivid and how bright, and along the rainbow bar for the hue. The overlay follows while you drag. Esc
 or a click elsewhere closes the picker. The settings window hides with the overlay, like the editor, and opens next to
-it. Every key, its default and its range: [settings file format](settings-format.md). The stop colours stay fixed: they
-are chosen to stay apart with colour blindness.
+it. Every key, its default and its range: [settings file format](settings-format.md). There are no free stop colours,
+only the three sets above: each is checked to stay apart with colour blindness, a hand-picked one might not be.
 
 The footer of the settings window shows the version, e.g. `SC-CargoPlan 0.1.0+<commit>`; you can select and copy it
 for a bug report.
@@ -416,11 +439,12 @@ If a file can't be read, the overlay starts without it and says so in an amber l
 colour that isn't one is corrected on its own, named in that line, and the rest of `settings.json` applies. It doesn't
 overwrite the file: `settings.json` stays until you move the overlay or change a setting, `plan.json` until you make a
 new plan. Before the first save after each start, the old `settings.json` is kept as `settings.json.bak`, so a hand edit
-is never lost to one click.
+or the look before an import is never lost to one click.
 
 ## Overlay unreadable?
 
 If you turned the text and frame invisible, the gear is still there and still takes clicks: move the mouse along the
 header from the padlock to the left. The first button is the X (tool tip "Exit", don't click it); the second one is the
-gear: wait until the tool tip "Settings" shows, and click. Or close the overlay and delete the `appearance` part from
+gear: wait until the tool tip "Settings" shows, and click. In the settings window, **Preset → Default** brings the whole
+look back at once. Or close the overlay and delete the `appearance` part from
 `settings.json`: the look goes back to the defaults, your position and hotkeys stay.

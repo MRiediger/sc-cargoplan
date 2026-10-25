@@ -50,7 +50,18 @@ public sealed record HeaderAppearance(string Foreground = "#FFE6E6E6", HaloSetti
 
 /// <summary>Stop lines, hints, violations and notices.</summary>
 /// <param name="FontSize">null = the Windows message font size, as before settings existed; a number overrides it.</param>
-public sealed record LegendAppearance(string Foreground = "#FFE6E6E6", double? FontSize = null, HaloSettings? Halo = null)
+/// <param name="CheckBoxColor">
+/// The frame of the legend's check boxes (D69, K4.1). The default grey is Martin's from B6's look gate (not the selection's
+/// magenta): lighter than the grey of a ticked line's text, which has no box anyway, darker than the legend's text.
+/// Alpha 0 is allowed, the box takes clicks anyway.
+/// </param>
+/// <param name="CheckMarkColor">What stands in the box: the tick for all selected, the bar for part of them.</param>
+public sealed record LegendAppearance(
+    string Foreground = "#FFE6E6E6",
+    double? FontSize = null,
+    HaloSettings? Halo = null,
+    string CheckBoxColor = "#FFB0B0B0",
+    string CheckMarkColor = "#FFB0B0B0")
 {
     public static LegendAppearance Default { get; } = new();
 
@@ -58,8 +69,8 @@ public sealed record LegendAppearance(string Foreground = "#FFE6E6E6", double? F
 }
 
 /// <summary>
-/// Crates in the ship view. Their colours are the stop colours and stay fixed (D29), so only their alpha is set here.
-/// The halo is the outline of the rack numbers (D28).
+/// Crates in the ship view. Their colours are the stop colours from one of the checked palettes (D29, K4.2), so their
+/// alpha and the palette's name are set here, never a colour. The halo is the outline of the rack numbers (D28).
 /// </summary>
 /// <param name="FillAlpha">0–255; int, not byte, so 300 in the file is clamped instead of breaking it.</param>
 /// <param name="EdgeAlpha">0–255, the edges of the crates.</param>
@@ -67,16 +78,29 @@ public sealed record LegendAppearance(string Foreground = "#FFE6E6E6", double? F
 /// Pixels, the same at every zoom; smaller only where the number would no longer fit its rack (D32). The default is the
 /// size at zoom 1 in the default overlay before it was a setting.
 /// </param>
+/// <param name="StopPalette">One of <see cref="StopPaletteNames.Names"/>; the default is the palette of before.</param>
+/// <param name="SelectionColor">The edge of a selected crate (D25, K4.4); the default magenta is in no stop colour.</param>
+/// <param name="SelectionWidth">That edge's width in screen pixels.</param>
+/// <param name="SelectionOutline">
+/// A dark contour under the edge, so it reads on every stop colour (K4.2); its size is the contour's width on each side
+/// of the edge. The default draws the edge as K4.2 did: 2.5 px over 4.5 px.
+/// </param>
 public sealed record CrateAppearance(
     int FillAlpha = 0xD0,
     int EdgeAlpha = 0xC0,
     string RackNumberColor = "#FFFFFFFF",
     double RackNumberFontSize = 27,
-    HaloSettings? Halo = null)
+    HaloSettings? Halo = null,
+    string StopPalette = "okabeIto",
+    string SelectionColor = "#FFFF00FF",
+    double SelectionWidth = 2.5,
+    HaloSettings? SelectionOutline = null)
 {
     public static CrateAppearance Default { get; } = new();
 
     public HaloSettings Halo { get; init; } = Halo ?? HaloSettings.On;
+
+    public HaloSettings SelectionOutline { get; init; } = SelectionOutline ?? new HaloSettings(true, "#A0000000", 1);
 }
 
 /// <summary>
