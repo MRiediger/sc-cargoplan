@@ -217,9 +217,9 @@ patch:
 4. **Commit:** run `dotnet test` (every file must load), then commit the changed files with the export date.
 
 What the import does: the id is the Fleetyards slug without the manufacturer code (`crus-c2-hercules` →
-`c2_hercules`), cells are metres divided by 1.25, `length` is the longer horizontal side (crates don't turn, a turned
-rack is named in `notes`). Fleetyards' rack offsets are used when every rack has one, none overlap and none is
-turned, with `position` derived from them; otherwise the racks get a generated row, Rack 1 at the bow and one cell
+`c2_hercules`), cells are metres divided by 1.25, `length` is Fleetyards' y (along the ship) and `width` its x: the
+rack lies as Fleetyards gives it, and crates turn to fit (D71). Fleetyards' rack offsets are used when every rack has
+one and none overlap, with `position` derived from them; otherwise the racks get a generated row, Rack 1 at the bow and one cell
 between racks, and no `position`. Racks that take nothing above 2 SCU (ladders, walkways) go last.
 The door limit comes from `limits.max.capacity` as described in [Max crate size](#max-crate-size); `maxContainerSize`
 isn't read. `-Create` writes it, the compare reports a door the file lacks or holds otherwise, and `-Force` adds a
@@ -228,7 +228,7 @@ after the ship's line ("limits.max 1 unverified: rack-0") without counting as a 
 
 ## Crate sizes
 
-Crates have a fixed shape in cells (length × width × stack) and are never turned:
+Crates have a shape in cells (length × width × stack). Turned 90° about the rack's stack axis, length and width swap (D71); a 1, 4 or 8 looks the same either way:
 
 | SCU | Shape |
 |---|---|
@@ -240,7 +240,7 @@ Crates have a fixed shape in cells (length × width × stack) and are never turn
 | 24 | 6×2×2 |
 | 32 | 8×2×2 |
 
-A crate fits a rack if each of its three sides fits the grid and it is no larger than the rack's
+A crate fits a rack if each of its three sides fits the grid, turned or not, and it is no larger than the rack's
 [`maxCrateSize`](#max-crate-size). A mix the planner derives is split up to the largest crate any rack takes (D70): a
 32 SCU contract on the Hull A becomes two 16 SCU crates, "crates capped to 16 SCU (largest rack)". The planner rejects
 a set mix with a crate that fits no rack of the ship. It does not pack crates in 3D: for the Hull A, any mix of crates up

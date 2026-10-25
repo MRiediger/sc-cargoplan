@@ -1522,8 +1522,41 @@ Vier Tests nutzten einen 32-SCU-Vertrag auf der Hull A als „passt nicht“; de
 - [ ] Gate Overlay (Martin, kein Spieltest): Hull C wählen, 16er-Vertrag per CT-Sync → Mission in der Legende wartend mit `doesn't fit (ship takes 32 SCU crates only)`
 - Commits 32b5dd2 (Tests rot), f1fb3ef (Core, Import), c32de68 (Daten), Doku-Commit.
 
-### [ ] K3.2 Kisten-Gier 90° (D71)
-Für den Plan vorgemerkt: der äußere Hull-C-Block als Beweis-Fixture neben dem 3×2×1-Rack (Nachtrag: ein 32er passt dort nur gedreht, genau 6 Stück; in `ships/hull_c.json` steht er schon als 8×4×6, also zuerst klären, in welcher Lage).
+### [ ] K3.2 Kisten-Gier 90° (D71) (25.10.2026)
+**Warum:** Spielfakt: Kisten drehen sich im Gitter um 90° um die Stapelachse, kippen nicht. Betroffen nur ungleiche Grundflächen (2, 16, 24, 32). Bisher gab es eine Form pro Größe (D9), T7.1b drehte dafür Racks.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** (1) „21 Racks“ sind 21 Schiffe mit 56 Racks (Liste aus den `notes`); (2) der Hull-C-Außenblock ist kein Beweis: bei Fleetyards x 5 × y 10 × z 7,5 m = length 8 × width 4 × stack 6, die Lage der Datei, ein 32er passt ungedreht („4×8×6“ war x×y×z gelesen); Beweis stattdessen Perseus Rack 1 und Freelancer Racks 2/3 (Martin: beide); (3) eine Kiste außerhalb des heutigen Racks wird neu geplant statt abgelehnt, unabhängig vom Schema, mit eigenem Grund `CapReason.RacksChanged` (K1); (4) Mausrad lässt sich nicht pollen, Spike vor der Geste (K2); (5) `CheckItems` verglich mit `SupportedSchemaVersion`. Dazu: ungedreht zuerst, gedreht nur wo ungedreht scheitert (Suche: zweiter Durchgang nur, wenn die erste ohne Lösung und ohne Aufgeben endet); Merge braucht einen Quader, nicht gleiche Lagen der Teile; `CrateMove.Turn` relativ (Standard: Lage behalten).
+- Daten/Import: `import-fleetyards.ps1` schreibt `length` = Fleetyards y, `width` = x, kein „turned“ mehr; mit Offsets an allen Racks ohne Überlappung jetzt Fleetyards-Positionen bei `-Create`. **Zurückgedreht** (Racks in Klammern, Nummern der Datei): 600i Executive Edition (1, 2, 5, 6, 7), 600i Explorer (1, 2, 5, 6, 7), 600i Touring (1, 2), Carrack (2, 5, 8), Caterpillar (5, 6, 8, 10, 12, 14), Cutter (1), F7C Hornet Mk II (1), Freelancer, DUR, MAX, MIS (je 2, 3), Idris M (1, 2), Idris P (1–6), Mustang Alpha (1), Perseus (1), Reclaimer (5, 7, 9, 10, 11, 12), Reliant Kore (1, 2), SRV (1), Starfarer, Starfarer Gemini (je 2, 4), Zeus Mk II CL (2, 3). Abgleich gegen den Index vom 25.10.: 94 same, abweichend nur Fortune, Moth, Salvation (K5).
+- Core: `CrateSize.Shape(rotated)`, `Turns`; `Crate.Rotated` (quadratisch + gedreht wirft, auch per `with`), `Crate.Shape`; `Pose`; `Rack.CellBox(Crate)`, `CellBox(position, shape)`; `FitsGrid` und Minimum in beiden Lagen; `RackSpace.Add`, `CrateLayout.Apart` (zweiter Durchgang), `Laying.Poses`, `RackLoad`, `MoveResolution.Intent.Rotated`, `Board.Put(Pose)`; Split/Merge (`CrateLayout.Block`); Plan-Schema 5 (`crates[].rotated` nur bei true, `UnrotatedSchemaVersion = 4`, `CheckRotated`); `PlanFileDto.Checked` liefert `RacksChanged`, `UnderCap(…, racksChanged)`, `CrateCap.Because`
+- App: Zeichnen über `rack.CellBox(crate)` (Kisten, Geister, `DropTarget`); Rad im Einzel-Drag dreht statt Zoom (`DragGesture.CanTurn`, `Resolve(…, turned)`, `Gesture.MoveCrates.Turn`, `CrateDrop.Moves`/`Outcome`/`Changed`, `ShipViewControl.Turn`), keine neue P/Invoke
+- Tests: `CrateRotationTests` (Core), `CrateTurnTests` und `A_turned_crate_is_drawn_as_it_lies_and_its_tooltip_stays` (App), `Schema_2_with_a_crate_outside_its_rack_reads_as_racks_changed`; `ReplanTimingTests.Search_counts_of_every_fixture`; geändert: `Place_never_lets_a_crate_float` (Schachbrett, ein gedrehter 2er passte quer), Schema-6-Beispiel, Layout-Tests lesen `Pose`
+
+**Spike K2** (Martin, Scratch-Probe, SC vorne, Probe nicht im Vordergrund): während eines Rechts-Captures `WM_MOUSEWHEEL` 38 / 37, Raw Input (`RIDEV_INPUTSINK`) ebenso 38 / 37 → Rad über `WM_MOUSEWHEEL`, kein Raw Input.
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nach Rückbau, ohne Drehung | Nachher |
+|---|---|---|---|
+| Tests (Core / Import / App) | 1.327 / 141 / 1.135 | – | 1.358 / 141 / 1.145 |
+| Golden-Files geändert | erwartet nur `schemaVersion` | – | Hull-A-Goldens nur `schemaVersion` |
+| 4 Fixtures × 96 Schiffe, geplant | 176 / 384 | 168 (53 Fälle geändert, alle auf den 21 Schiffen) | 176, dieselben Fälle; 42 Hashes anders als vorher, alle auf 16 Schiffen (Taurus `crate_mix`: Riker 6 SCU in 2ern allein im 3×2×1-Rack) |
+| Suchknoten / Layout-Schritte (Release) | – | Hull A Hurston 1.312 / 10, Stresslast 25 / 246, Freelancer keine Zuordnung | gleich; Freelancer 67 / 0 |
+| `ReplanTimingTests` Median (Release) | – | example 0,4 · split_and_shared 0,7 · split_required 0,4 · crate_mix 0,5 · Hull A acht Stopps 3,7 · Hurston 2,3 · Freelancer abgelehnt · Perseus 2,6 · Stresslast 79,6 ms | 0,6 · 0,9 · 0,4 · 0,5 · ~6,7 (dreimal gemessen: zweiter `FirstFit` bei jeder fehlschlagenden Passprobe) · 2,5 · 2,5 · 2,8 · 87–119 ms (Rauschen) |
+
+D58 bleibt unberührt (kein Budget-Problem, keine offene Frage). Rot nach dem Rückbau, vor der Drehung (erwartet): `OrderFreePlanTests` hull_a_eight_stops/freelancer, `A_shipped_max_crate_size_is_below_what_the_grid_takes` idris_p/idris_m, Slow `ReplanTests` Freelancer, Timing `MoveResolutionTimingTests.Eight_stops_on_the_Freelancer`.
+
+**Akzeptanz:**
+- [x] Rückbau der 56 Racks vor den roten Tests, Import ohne Drehung, Abgleich „same“
+- [x] 3×2×1-Rack nimmt drei 2er (einer gedreht); Perseus Rack 1 drei 32er gedreht; Freelancer 66 SCU in 2ern; Hull A dreht nie
+- [x] Drehung respektiert Tür und Minimum (`CanHold`)
+- [x] Plan-Schema 4 → 5: Schema 4 liest ungedreht, `rotated` in 4 kaputt, 6 abgelehnt; alter Leser (`0892454`) lehnt 5 ab: „schemaVersion 5 is not supported (expected 1 or 2 or 3 or 4)“
+- [x] Kiste außerhalb des heutigen Racks (Schema 2, 4, 5) → `RacksChanged`, neu geplant, ganz abgehakte Stopps behalten den Haken; Schema 5 innerhalb unverändert
+- [x] Split/Merge mit gedrehten Kisten; B2-Property-Test grün
+- [x] Rad dreht nur im Einzelkisten-Drag, Vorschau = Loslassen, Mehrfachauswahl und Legende behalten die Lagen
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün; Exhaustive grün (8 min 34 s)
+- [ ] Gates Publish-Build (Martin): Hull A 2er ziehen, drehen, loslassen, Neustart → Lage bleibt; im Spiel mit SC vorne dreht das Rad; Freelancer 2er-Vertrag → Racks 2/3 gedreht; Perseus 32er-Vertrag → drei gedrehte 32er; Mehrfachauswahl mit gedrehtem 2er → Lagen bleiben; alte Freelancer-`plan.json` → „Plan was made for other racks …“
+- [ ] Gate Traktorstrahl (Martin): 2er hochkant an eine Hull-A-Platte; geht das nicht, dreht `CanTurn` nur auf Racks mit senkrechter Stapelachse (Notice `can't turn crates on this rack`)
+- Commits 04669b3 (Rückbau), 3c8a52b (Core-Tests rot), 748a3ed (Core), 52f6475 (Zeichnen), c4af6ad (App-Tests rot), b34c8be (Rad), Doku-Commit.
 
 ---
 

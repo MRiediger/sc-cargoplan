@@ -81,7 +81,7 @@ locked; in a narrow overlay the ship name gives way first. Each rack says the sa
 
 Hover over a crate to see what it is, e.g. `Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4)`, with its
 rack's load in a second line. Inside the view: **left drag** turns and tilts the ship, **right drag** next to the crates moves the view, the **mouse wheel**
-zooms, a **double-click** next to the cargo resets the view to the ship's starting view.
+zooms (while you drag a single crate it turns the crate instead, see [Changing the plan](#changing-the-plan)), a **double-click** next to the cargo resets the view to the ship's starting view.
 
 ## Entering missions
 
@@ -245,7 +245,10 @@ crash or a restart between two stops keeps your plan and your ticks.
 When the elevator puts a crate somewhere else than planned, make the plan follow the plate. **Right drag a crate** onto
 the cell where it really lies, in the same rack or another one. Point at a crate to put it on top of that crate, or at a
 free cell to put it into that gap; it drops down to the next crate or the plate below, never hanging in the air. While
-you drag, the crate fades and a **cyan ghost** shows where it will go.
+you drag, the crate fades and a **cyan ghost** shows where it will go. **Turn the mouse wheel** while you drag to turn
+the crate by 90°, as it turns in the game; each notch turns it once more. Let go on the crate's own cell to turn it where
+it lies. Only crates of 2, 16, 24 and 32 SCU look different turned. A selection or a legend line keeps how its crates
+lie; the wheel zooms then. The app itself turns a crate only where it doesn't fit otherwise.
 
 If the crate can't lie at that cell, the app finds room instead of saying no, and the ghosts show it before you let go:
 first the nearest free place in that rack; then the rack laid out anew, so other crates in it may move; then other
