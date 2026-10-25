@@ -3,7 +3,7 @@
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
 the legend stands, the overlay's look, the tool windows' theme, where ContractTracker is, your ship, the ships you chose last and the ship view as you left it on each. Position and size
 are saved whenever you move the overlay; the settings window (the gear in the header) sets and saves the look,
-the legend layout, the ship view (outline or hologram, its opacity and colours, hologram downloads, how far it zooms), the tool window theme, the hotkeys and the ContractTracker settings; the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
+the legend layout, the ship view (outline or hologram, its opacity and colours, hologram downloads, how far it zooms), the tool window theme, the hotkeys and the ContractTracker settings, and loads or saves a look as a [look file](#look-files); the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
 the overlay again.
 
 ## Example with every default
@@ -41,17 +41,17 @@ values.
     "legend": {
       "foreground": "#FFE6E6E6",
       "fontSize": null,
-      "halo": { "enabled": false, "color": "#E0141414", "size": 3 },
       "checkBoxColor": "#FFB0B0B0",
-      "checkMarkColor": "#FFB0B0B0"
+      "checkMarkColor": "#FFB0B0B0",
+      "halo": { "enabled": false, "color": "#E0141414", "size": 3 }
     },
     "crates": {
       "fillAlpha": 208,
       "edgeAlpha": 192,
       "rackNumberColor": "#FFFFFFFF",
       "rackNumberFontSize": 27,
-      "halo": { "enabled": true, "color": "#E0141414", "size": 3 },
-      "stopPalette": "okabeIto"
+      "stopPalette": "okabeIto",
+      "halo": { "enabled": true, "color": "#E0141414", "size": 3 }
     },
     "buttons": {
       "background": "#01000000",
@@ -266,6 +266,42 @@ without the current ship, in the group "Recent" on top.
 |---|---|
 | `null` or missing | No group "Recent" yet. The default. |
 | ids | Those ships under "Recent". An id whose ship doesn't load is skipped there and stays in the file; an empty entry (`null`, `""`) is dropped. |
+
+## Look files
+
+A look file (`*.cargoplan-look.json`) carries a look from one overlay to another: **Export…** in the settings window
+writes one, **Import…** reads one, and the presets in the **Preset** box are look files that ship with the app. It
+holds exactly these keys of settings.json, with the same names and shapes as above: `appearance` (all of it), `legend`,
+`toolWindowTheme`, `shipOutline`, `holoOpacity`, `holoHullColor`, `holoEdgeColor` and `shipView` with
+`maxZoomPxPerCell` only. Your hotkeys, the ContractTracker settings, the overlay's position and size, the cameras per
+ship, the ship and the hologram download switch are not in it: they belong to your machine or your run.
+
+```json
+{
+  "schemaVersion": 1,
+  "legend": { "visible": true, "position": "bottom-left" },
+  "shipOutline": "outline",
+  "holoOpacity": 0.4,
+  "holoHullColor": "#FF9CB0C0",
+  "holoEdgeColor": "#FFE6E6E6",
+  "shipView": { "maxZoomPxPerCell": 160 },
+  "toolWindowTheme": "system",
+  "appearance": { "window": { … }, "header": { … }, "legend": { … }, "crates": { … }, "buttons": { … } }
+}
+```
+
+- **`schemaVersion` is 1** and comes first. A file with another number is refused with
+  "schemaVersion 2 is not supported (expected 1).", whatever else it holds.
+- **What a file leaves out stays as it is:** a missing key above, or a missing section of `appearance`. Inside a section the
+  file has, a missing value takes its default, as in settings.json: `{ "schemaVersion": 1, "appearance": { "crates":
+  { "fillAlpha": 100 } } }` changes only the crates, and resets their other values.
+- **Anything else refuses the whole file** and changes nothing: an unknown key (`cameras`, `hotkeys`, a typo), a wrong
+  type, a file that isn't JSON. The overlay says why in an amber line ("Look not imported: …").
+- **Values are checked like settings.json's:** out of range is clamped, a colour that isn't one takes its default, each
+  with a line in the notice.
+- Export writes every key. Importing applies at once and is saved like any change; there is no undo, the sections'
+  **Reset to defaults** are the way back, and `settings.json.bak` holds the file as it was before the first change of this
+  run (see below).
 
 ## When something is wrong
 

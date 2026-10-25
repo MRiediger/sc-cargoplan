@@ -1847,7 +1847,37 @@ Ansicht und Legende holen ihre Pinsel aus einer Funktion; P9 `downloadShipHologr
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.241 → 1.281)
 - [ ] Gate (Martin, Publish-Build): Hull A mit 8 Zielen, Palette wechseln → alle Kisten färben sofort um; C2 oder Hull C mit mehr Zielen als Farben → Schraffur sichtbar und in der Legende identisch; Problemkiste und Auswahl in jeder Palette erkennbar
 - [ ] Taste-Gate (Martin): Kachel 6 DIP, Strich 1,5 DIP, Unterstrich Schwarz `A0` 4,5 px
-- Commits 2ec27f9 (Tests rot), 0ea24d0 (App), Doku-Commit.
+- Commits 2ec27f9 (Tests rot), 0ea24d0 (App), 23a450a (Doku).
+
+### [ ] K4.3 Look-Presets und Export/Import (D77) (25.10.2026)
+**Warum:** Backlog A4: Hauler tauschen Looks, Martin lädt für die T7.5-Screenshots ein definiertes Preset.
+
+**Ist-Zustand vor K4.3 (A1):** Keine eingebetteten Ressourcen (Schiffe und Umrisse sind kopierte Dateien), keine Look-Gleichheit; `SettingsViewModel` konnte von außen nicht neu laden, `Batch` unterdrückt die eigenen Callbacks ganz; `SettingsSession.Save` überschreibt die Zeile `NoticeSource.Settings` nach jedem Speichern.
+- Settings: `Look` (Record nur aus Skalaren und Records, `Of`, `Default`), `LookFile` (`Read` mit Schema-Prüfung vor den Keys, „fehlend = unverändert“ pro Key und Abschnitt, `Write` mit allen Keys; DTOs im `SettingsJsonContext`), `AppearanceRules.Normalize(Look)`, `LookPresets` (`Looks/*.cargoplan-look.json` eingebettet, `LogicalName looks/<datei>`, `WithCulture=false`)
+- App: `SettingsViewModel.Look`, `SelectedPreset`, `PresetChoices`, `ImportLook`, `ExportLook`, `ApplyLook` (ein Batch, eigene Callbacks nur bei Änderung, Download-Schalter nie); `PresetChoice`; `NoticeSource.Look`; Kopfzeile im Settings-Fenster (Preset, Export…, Import…) außerhalb des Scrollbereichs, Dialoge im Code-Behind; Notice wird beim Schließen des Fensters gelöscht
+- Tests: `LookFileTests`, `LookPresetsTests` (Default = Code = Export, Vollständigkeit, eingebettete Bytes = Repo-Datei), `SettingsViewModelTests` (Preset-Box, Import, Export, Notice), `SettingsSessionTests` (Import ändert nur den Look), `SettingsWindowXamlTests` (Kopfzeile)
+
+**Akzeptanz:**
+- [x] Rot gesehen (Compile-Fehler, 73910e3 und 47636aa), dann grün
+- [x] Look-Grenze: Hotkeys, ContractTracker, Fensterposition, Kameras, Schiff, Recent und Download-Schalter bleiben beim Import unverändert (Session-Test)
+- [x] Look-Datei Schema 1, Rundreise byte-gleich; fehlende Keys/Abschnitte unverändert; `cameras`, `hotkeys`, Tippfehler, falscher Typ → abgelehnt, nichts geändert; Schema 2 → „schemaVersion 2 is not supported (expected 1).“
+- [x] Presets Default, High contrast, Minimal eingebettet; Default = Code-Defaults = Export
+- [x] Preset-Box folgt jeder Änderung („Custom“), Preset wirkt sofort mit Notice „Preset applied: …“, Import „Look imported: …“, Fehler „Look not imported: …“
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.281 → 1.320)
+- [ ] High contrast und Minimal: Martin stellt sie im Spiel ein und exportiert sie; die Exporte ersetzen die Entwürfe (eigener Commit), Screenshot-Abgleich je Preset
+- [ ] Gate (Martin, Publish-Build): Preset wechseln → Overlay ändert sich sofort; Export → Datei (Name ohne Endung getippt: bekommt sie `.cargoplan-look.json`?); einen Wert ändern → „Custom“; Import der Datei → zurück; Import einer Datei mit `schemaVersion: 2` → Fehlermeldung, nichts geändert; Hotkeys und CT-Pfad nach Import unverändert
+- Commits 73910e3 (Tests Datei rot), 0c79ccb (Datei, Presets), 47636aa (Tests Fenster rot), 8df8135 (Fenster, Import, Export), Doku-Commit.
+
+### Abschluss der K4-Session (offen bis zur Abnahme)
+- Code und Doku aller drei Tasks committet auf `feat/k4-look`; offen sind Martins Gates (K4.1–K4.3), das Look-Gate K4.2 und die Preset-Exporte K4.3. Merge `--no-ff` erst nach Abnahme, Push durch Martin.
+- Tests: Core 1.401 → 1.401, Import 141 → 141, App 1.235 → 1.320; Core unberührt, Exhaustive nicht nötig.
+
+**Übergabe für den K5-Startprompt:**
+- **Schema-Stand:** Schiff 5, Plan 6, Mission 3, settings.json 2. Neue optionale Keys (K4): `appearance.legend.checkBoxColor`, `appearance.legend.checkMarkColor`, `appearance.crates.stopPalette` (`okabeIto`, `tolBright`, `tolMuted`). Neu: Look-Datei `*.cargoplan-look.json` Schema 1 (D77).
+- **Look-Keys:** `appearance` komplett, `legend`, `toolWindowTheme`, `shipOutline`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView.maxZoomPxPerCell`. Nicht: Hotkeys, ContractTracker, Bounds, Kameras, Schiff, Recent, `downloadShipHolograms`.
+- **Preset-Namen (für T7.5-Screenshots):** „Default“, „High contrast“, „Minimal“ (Dateien `default`, `high-contrast`, `minimal`). Ein neuer Settings-Key mit Default zwingt `Looks/default.cargoplan-look.json` nachzuziehen (Test `The_default_file_is_what_export_writes_for_the_defaults`); neue Look-Keys müssen auch in `Look`, `LookFileContent` und `SettingsViewModel.ApplyLook`.
+- **Für K5 relevant:** Stop-Farben laufen über `OverlayViewModel.StopPalette`, nicht über die Szene; `MissionPalette.Assign` liefert Ordnungszahlen ohne Modulo.
+- **Offen:** Antwort von Torlek zu `limits.max = 1` und die `unverified`-Liste der Türen (32 Racks in 16 Schiffen); Fortune, Moth (Gitter geändert, neue Racks) und Salvation (neu) aus dem Index vom 25.10.; `offset`/`rotation` → `origin`/`stackAxis` im Import; Aurora-Frachtmodul; App-Icon; Befund `MissionFrame` weiß = Okabe-Weiß (Backlog).
 
 ---
 
