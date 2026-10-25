@@ -15,7 +15,7 @@ public enum HotkeyModifiers : uint
 
 /// <summary>
 /// What a hotkey does; the names in settings.json are toggleLock, toggleOverlay, syncContractTracker, replan,
-/// discardPlan, undo and redo (D17, D44, D66, K2.3, K2.4).
+/// discardPlan, undo, redo and resetView (D17, D44, D66, K2.3, K2.4, K1.3).
 /// </summary>
 public enum HotkeyAction
 {
@@ -39,6 +39,9 @@ public enum HotkeyAction
 
     /// <summary>Goes forward one undone step, like the header's ↷ (K2.4).</summary>
     Redo,
+
+    /// <summary>Fits the ship view from the ship's default camera, like the header's reset or a double-click (K1.3).</summary>
+    ResetView,
 }
 
 /// <summary>A key combination as RegisterHotKey takes it. Built by <see cref="HotkeyParser"/>.</summary>

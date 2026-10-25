@@ -275,6 +275,13 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     }
 
     /// <summary>
+    /// The header's reset next to the gear and the resetView hotkey (K1.3), like a double-click next to the cargo: the
+    /// ship's default camera, fitted, also at the next start. Always on, also while locked: the hotkey works in the game.
+    /// </summary>
+    [RelayCommand]
+    private void ResetView() => Camera = null;
+
+    /// <summary>
     /// The header's ship selection (T7.2b): the recent ships on top (T7.2c), then the catalog grouped by manufacturer,
     /// ships that didn't load last. Built anew by <see cref="ChangeShip"/>, since Recent changes with the ship.
     /// </summary>

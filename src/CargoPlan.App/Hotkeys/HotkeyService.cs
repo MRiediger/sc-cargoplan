@@ -45,6 +45,7 @@ public sealed class HotkeyService
             [HotkeyAction.DiscardPlan] = viewModel.DiscardPlanCommand,
             [HotkeyAction.Undo] = viewModel.UndoCommand,
             [HotkeyAction.Redo] = viewModel.RedoCommand,
+            [HotkeyAction.ResetView] = viewModel.ResetViewCommand,
         };
 
         (HotkeyAction, string?)[] texts =
@@ -56,6 +57,7 @@ public sealed class HotkeyService
             (HotkeyAction.DiscardPlan, settings?.DiscardPlan),
             (HotkeyAction.Undo, settings?.Undo),
             (HotkeyAction.Redo, settings?.Redo),
+            (HotkeyAction.ResetView, settings?.ResetView),
         ];
         foreach (var (action, text) in texts)
         {
@@ -242,6 +244,7 @@ public sealed class HotkeyService
         HotkeyAction.DiscardPlan => "discardPlan",
         HotkeyAction.Undo => "undo",
         HotkeyAction.Redo => "redo",
+        HotkeyAction.ResetView => "resetView",
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
     };
 

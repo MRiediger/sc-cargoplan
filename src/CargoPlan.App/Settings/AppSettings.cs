@@ -144,9 +144,10 @@ public sealed record LegendSettings(bool Visible = true, string Position = "bott
 /// <param name="DiscardPlan">Empties the plan, so the next sync starts over (K2.3).</param>
 /// <param name="Undo">Goes back one step (K2.4).</param>
 /// <param name="Redo">Goes forward one undone step (K2.4).</param>
+/// <param name="ResetView">Fits the ship view from the ship's default camera (K1.3).</param>
 public sealed record HotkeySettings(
     string? ToggleLock = null, string? ToggleOverlay = null, string? SyncContractTracker = null, string? Replan = null, string? DiscardPlan = null,
-    string? Undo = null, string? Redo = null);
+    string? Undo = null, string? Redo = null, string? ResetView = null);
 
 /// <summary>
 /// Where ContractTracker's database is and whether captures come into the plan by themselves (D44). Optional, no schema

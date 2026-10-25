@@ -24,6 +24,8 @@ public sealed partial class HotkeyEditor : ObservableObject
 
     public const string RedoLabel = "Redo";
 
+    public const string ResetViewLabel = "Reset view";
+
     public const string NotSetText = "Not set";
 
     public const string RecordingText = "Press the keys…";

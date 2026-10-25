@@ -385,6 +385,7 @@
                         <ContentControl Content="{Binding Discard, Mode=OneTime}" />
                         <ContentControl Content="{Binding Undo, Mode=OneTime}" />
                         <ContentControl Content="{Binding Redo, Mode=OneTime}" />
+                        <ContentControl Content="{Binding ResetView, Mode=OneTime}" />
                     </StackPanel>
                 </GroupBox>
 

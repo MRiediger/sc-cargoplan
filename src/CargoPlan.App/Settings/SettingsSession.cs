@@ -86,6 +86,7 @@ public sealed class SettingsSession
                 HotkeyAction.DiscardPlan => hotkeys with { DiscardPlan = text },
                 HotkeyAction.Undo => hotkeys with { Undo = text },
                 HotkeyAction.Redo => hotkeys with { Redo = text },
+                HotkeyAction.ResetView => hotkeys with { ResetView = text },
                 _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
             },
         };
