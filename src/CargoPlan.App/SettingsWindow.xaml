@@ -351,6 +351,13 @@
                             <TextBlock Text="Edge colour" Style="{StaticResource LabelStyle}" />
                             <ContentControl Content="{Binding HoloEdgeColour, Mode=OneTime}" />
                         </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}"
+                                   ToolTip="How far the wheel zooms in, in pixels per cell (1 SCU); a large ship zooms in as far as a small one">
+                            <TextBlock Text="Max zoom per cell" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding MaxZoomText}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="{x:Static vm:SettingsViewModel.MinMaxZoom}" Maximum="{x:Static vm:SettingsViewModel.MaxMaxZoom}"
+                                    Value="{Binding MaxZoom}" Style="{StaticResource ValueSliderStyle}" TickFrequency="10" />
+                        </DockPanel>
                         <CheckBox Content="Download ship holograms" IsChecked="{Binding DownloadShipHolograms}" Margin="0,8,0,0" />
                         <TextBlock Text="{x:Static vm:SettingsViewModel.DownloadShipHologramsHint}" TextWrapping="Wrap" Margin="0,2,0,0" />
                         <Button Command="{Binding ResetShipViewCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
@@ -378,6 +385,7 @@
                         <ContentControl Content="{Binding Discard, Mode=OneTime}" />
                         <ContentControl Content="{Binding Undo, Mode=OneTime}" />
                         <ContentControl Content="{Binding Redo, Mode=OneTime}" />
+                        <ContentControl Content="{Binding ResetView, Mode=OneTime}" />
                     </StackPanel>
                 </GroupBox>
 

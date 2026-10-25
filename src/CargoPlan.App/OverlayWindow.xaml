@@ -324,7 +324,15 @@
                     <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
                                Foreground="{DynamicResource HeaderForegroundBrush}" />
                 </Button>
-                <!-- Undo and redo (K2.4) left of the gear, ↶ ↷: each only while there is a step for it (the border collapses),
+                <!-- Reset view (K1.3) right next to the gear, like a double-click next to the cargo: a view control, so right of
+                     the plan's undo and redo (D34); they come and go further left, so it never jumps. Always there, hidden
+                     while locked like every header button. -->
+                <Button DockPanel.Dock="Right" Command="{Binding ResetViewCommand, Mode=OneTime}" ToolTip="Reset view" Style="{StaticResource HeaderButtonStyle}">
+                    <!-- E9A6 FitPage. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                    <TextBlock Text="&#xE9A6;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                               Foreground="{DynamicResource HeaderForegroundBrush}" />
+                </Button>
+                <!-- Undo and redo (K2.4) left of the reset, ↶ ↷: each only while there is a step for it (the border collapses),
                      hidden while locked like every header button (the button's style keeps that, a local Visibility on the
                      button would override its trigger). -->
                 <Border DockPanel.Dock="Right" Visibility="{Binding CanRedo, Converter={StaticResource BooleanToVisibilityConverter}}">
@@ -653,6 +661,8 @@
                                     MoveCratesCommand="{Binding MoveCratesCommand, Mode=OneTime}"
                                     MoveLegendCommand="{Binding MoveLegendCommand, Mode=OneTime}"
                                     Selection="{Binding Selection}"
+                                    MaxPxPerCell="{Binding MaxZoomPxPerCell, Mode=OneWay}"
+                                    Camera="{Binding Camera}"
                                     CrateFillAlpha="{DynamicResource CratesFillAlpha}"
                                     CrateEdgeBrush="{DynamicResource CratesEdgeBrush}"
                                     RackNumberBrush="{DynamicResource CratesRackNumberBrush}"

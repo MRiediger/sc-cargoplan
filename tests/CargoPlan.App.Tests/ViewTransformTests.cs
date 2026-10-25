@@ -83,56 +83,202 @@ public class ViewTransformTests
         back.Y.Should().BeApproximately(p.Y, 1e-9);
     }
 
+    // The player's view (D76): pixels per cell and a pan in cells from a ship-fixed anchor, not from the fit.
+
+    private static readonly Size Viewport = new(400, 300);
+
+    // Not the extent's centre: the anchor is the ship's, the extent is the fit's (the loaded racks on a long ship).
+    private static readonly Point Anchor = new(1, -2);
+
+    private static readonly ZoomLimits Limits = new(160);
+
+    private static ViewBasis Basis(Rect? extent = null, Size? viewport = null) =>
+        ViewBasis.Of(extent ?? Extent, Anchor, viewport ?? Viewport, Margin);
+
+    private static void ShouldBeClose(Point actual, Point expected)
+    {
+        actual.X.Should().BeApproximately(expected.X, 1e-9);
+        actual.Y.Should().BeApproximately(expected.Y, 1e-9);
+    }
+
+    private static void ShouldBeTheSame(ViewTransform actual, ViewTransform expected)
+    {
+        actual.Scale.Should().BeApproximately(expected.Scale, 1e-9);
+        actual.Offset.X.Should().BeApproximately(expected.Offset.X, 1e-9);
+        actual.Offset.Y.Should().BeApproximately(expected.Offset.Y, 1e-9);
+    }
+
+    /// <summary>Zoomed in twice from the fit and panned: a view the player framed.</summary>
+    private static ViewNavigation Framed(ViewBasis basis) =>
+        ViewNavigation.Default.ZoomAt(new Point(120, 80), 2, basis, Limits).PanBy(new Vector(30, -10), basis, Limits);
+
+    [Fact]
+    public void The_basis_centre_is_where_the_fit_puts_the_middle_of_its_extent()
+    {
+        ShouldBeClose(Basis().Centre, new Point(200, 150));
+        ShouldBeClose(ViewBasis.Of(Extent, Anchor, Viewport, Margin, top: 30).Centre, new Point(200, 165));
+    }
+
     [Fact]
     public void Default_navigation_is_the_fit_itself()
     {
-        var fit = ViewTransform.Fit(Extent, new Size(400, 300), Margin);
+        var basis = Basis();
 
-        ViewNavigation.Default.On(fit).Should().Be(fit);
+        ViewNavigation.Default.On(basis, Limits).Should().Be(basis.Fit);
+    }
+
+    [Fact]
+    public void The_fit_as_a_framing_draws_the_fit_again()
+    {
+        // The fit is a framing with a computed pan, not pan 0: the anchor need not be the extent's centre.
+        var basis = Basis();
+
+        var framing = Framing.OfFit(basis);
+
+        framing.PxPerCell.Should().BeApproximately(basis.Fit.Scale, 1e-9);
+        framing.Pan.Should().NotBe(new Vector(0, 0));
+        ShouldBeTheSame(new ViewNavigation(IsoProjection.Default, framing).On(basis, Limits), basis.Fit);
     }
 
     [Fact]
     public void Zooming_keeps_the_point_under_the_cursor_in_place()
     {
-        var fit = ViewTransform.Fit(Extent, new Size(400, 300), Margin);
-        var navigation = ViewNavigation.Default.PanBy(new Vector(30, -10));
+        var basis = Basis();
+        var navigation = ViewNavigation.Default.PanBy(new Vector(30, -10), basis, Limits);
         Point cursor = new(120, 80);
-        var shipPoint = navigation.On(fit).Invert(cursor);
+        var shipPoint = navigation.On(basis, Limits).Invert(cursor);
 
-        var zoomed = navigation.ZoomAt(cursor, 1.2);
+        var zoomed = navigation.ZoomAt(cursor, 1.2, basis, Limits);
 
-        var after = zoomed.On(fit).Apply(shipPoint);
-        after.X.Should().BeApproximately(cursor.X, 1e-9);
-        after.Y.Should().BeApproximately(cursor.Y, 1e-9);
-        zoomed.Zoom.Should().BeApproximately(1.2, 1e-9);
+        ShouldBeClose(zoomed.On(basis, Limits).Apply(shipPoint), cursor);
+        zoomed.Framing!.PxPerCell.Should().BeApproximately(basis.Fit.Scale * 1.2, 1e-9);
     }
 
     [Theory]
-    [InlineData(100, ViewNavigation.MaxZoom)]
-    [InlineData(0.01, ViewNavigation.MinZoom)]
-    public void Zoom_stays_within_its_limits(double factor, double expected)
+    [InlineData(400, 300)]
+    [InlineData(1200, 900)]
+    public void Zooming_in_stops_at_the_maximum_in_pixels_per_cell_whatever_the_fit(double width, double height)
     {
-        ViewNavigation.Default.ZoomAt(new Point(50, 50), factor).Zoom.Should().Be(expected);
+        // Absolute (D76): a large ship's small fit no longer caps how far the player gets in.
+        var basis = Basis(viewport: new Size(width, height));
+
+        ViewNavigation.Default.ZoomAt(new Point(50, 50), 1000, basis, Limits).Framing!.PxPerCell.Should().Be(160);
+    }
+
+    [Fact]
+    public void Zooming_out_stops_at_half_the_fit()
+    {
+        // Relative as before (Martin, K1.1): the Hull A zooms out as far as it did.
+        var basis = Basis();
+
+        ViewNavigation.Default.ZoomAt(new Point(50, 50), 0.01, basis, Limits).Framing!.PxPerCell
+            .Should().BeApproximately(basis.Fit.Scale * ZoomLimits.MinShareOfFit, 1e-9);
+    }
+
+    [Fact]
+    public void A_fit_above_the_maximum_stays_the_upper_limit()
+    {
+        // A small ship in a large overlay: the fit is always reachable, zooming in from it does nothing.
+        var basis = Basis(viewport: new Size(1600, 1200));
+        ZoomLimits limits = new(40);
+        basis.Fit.Scale.Should().BeGreaterThan(40);
+
+        limits.Upper(basis.Fit).Should().Be(basis.Fit.Scale);
+        ViewNavigation.Default.ZoomAt(new Point(50, 50), 2, basis, limits).Should().Be(ViewNavigation.Default);
+        ViewNavigation.Default.ZoomAt(new Point(50, 50), 0.5, basis, limits).Framing!.PxPerCell.Should().BeApproximately(basis.Fit.Scale / 2, 1e-9);
     }
 
     [Fact]
     public void Zooming_at_the_limit_does_not_move_the_view()
     {
-        var atMax = ViewNavigation.Default.ZoomAt(new Point(50, 50), 100);
+        var basis = Basis();
+        var atMax = ViewNavigation.Default.ZoomAt(new Point(50, 50), 1000, basis, Limits);
 
-        atMax.ZoomAt(new Point(300, 10), 2).Should().Be(atMax);
+        atMax.ZoomAt(new Point(300, 10), 2, basis, Limits).Should().Be(atMax);
+    }
+
+    [Fact]
+    public void A_lower_maximum_shrinks_a_framed_view_around_its_centre_at_once()
+    {
+        // The preference applies at once (D30): the transform clamps, Clamped writes it back.
+        var basis = Basis();
+        var navigation = Framed(basis);
+        var middle = navigation.On(basis, Limits).Invert(basis.Centre);
+        ZoomLimits lower = new(40);
+
+        navigation.On(basis, lower).Scale.Should().Be(40);
+        ShouldBeClose(navigation.On(basis, lower).Invert(basis.Centre), middle);
+        navigation.Clamped(basis, lower).Framing.Should().Be(navigation.Framing! with { PxPerCell = 40 });
+        navigation.Clamped(basis, Limits).Should().Be(navigation);
+    }
+
+    [Fact]
+    public void Panning_moves_the_picture_by_the_pixels_dragged()
+    {
+        var basis = Basis();
+        var navigation = Framed(basis);
+        Point shipPoint = new(0.5, 1.5);
+        var before = navigation.On(basis, Limits).Apply(shipPoint);
+
+        var after = navigation.PanBy(new Vector(25, 40), basis, Limits).On(basis, Limits).Apply(shipPoint);
+
+        ShouldBeClose(after, before + new Vector(25, 40));
     }
 
     [Fact]
     public void Panning_adds_up()
     {
-        ViewNavigation.Default.PanBy(new Vector(10, 5)).PanBy(new Vector(-3, 2)).Pan.Should().Be(new Vector(7, 7));
+        var basis = Basis();
+        var navigation = Framed(basis);
+
+        var twice = navigation.PanBy(new Vector(10, 5), basis, Limits).PanBy(new Vector(-3, 2), basis, Limits);
+        var once = navigation.PanBy(new Vector(7, 7), basis, Limits);
+
+        twice.Framing!.Pan.X.Should().BeApproximately(once.Framing!.Pan.X, 1e-9);
+        twice.Framing.Pan.Y.Should().BeApproximately(once.Framing.Pan.Y, 1e-9);
     }
 
     [Fact]
-    public void Default_navigation_looks_from_the_default_camera()
+    public void Pan_is_in_cells_so_another_window_size_keeps_the_same_point_in_the_middle()
+    {
+        // K1.2: a restart with another overlay size shows the same rack in the middle at the same size.
+        var navigation = Framed(Basis());
+        var small = Basis();
+        var large = Basis(viewport: new Size(800, 500));
+
+        var inSmall = navigation.On(small, Limits);
+        var inLarge = navigation.On(large, Limits);
+
+        inLarge.Scale.Should().Be(inSmall.Scale);
+        ShouldBeClose(inSmall.Invert(small.Centre), Anchor + navigation.Framing!.Pan);
+        ShouldBeClose(inLarge.Invert(large.Centre), Anchor + navigation.Framing.Pan);
+    }
+
+    [Fact]
+    public void A_framed_view_hangs_on_the_anchor_not_on_the_fit_extent()
+    {
+        // Martin at the approval: a sync that loads a rack further out changes the fit extent; the view must not move.
+        var navigation = Framed(Basis());
+        Rect wider = new(-6, -5, 30, 12);
+
+        ShouldBeTheSame(navigation.On(Basis(wider), Limits), navigation.On(Basis(), Limits));
+    }
+
+    [Fact]
+    public void The_zoom_on_top_of_the_fit_is_the_view_s_scale_over_the_fit_s()
+    {
+        // What the hologram's edge levels read (D63).
+        var basis = Basis();
+
+        ViewNavigation.Default.ZoomOn(basis, Limits).Should().Be(1);
+        Framed(basis).ZoomOn(basis, Limits).Should().BeApproximately(2, 1e-9);
+    }
+
+    [Fact]
+    public void Default_navigation_looks_from_the_default_camera_and_fits()
     {
         ViewNavigation.Default.Camera.Should().Be(IsoProjection.Default);
+        ViewNavigation.Default.Framing.Should().BeNull();
     }
 
     [Theory]
@@ -142,26 +288,32 @@ public class ViewTransformTests
     {
         var bounds = ShipLoader.Load(shipId).Bounds;
 
-        ViewNavigation.DefaultFor(bounds).Should().Be(ViewNavigation.Default with { Camera = IsoProjection.DefaultFor(bounds) });
+        ViewNavigation.DefaultFor(bounds).Should().Be(new ViewNavigation(IsoProjection.DefaultFor(bounds)));
     }
 
     [Fact]
-    public void Orbiting_turns_the_camera_and_keeps_zoom_and_pan()
+    public void Orbiting_turns_the_camera_and_keeps_the_framing()
     {
-        var navigation = ViewNavigation.Default.ZoomAt(new Point(50, 50), 2).PanBy(new Vector(10, 5));
+        var navigation = Framed(Basis());
 
         var orbited = navigation.OrbitBy(30, -10);
 
         orbited.Camera.Should().Be(navigation.Camera.OrbitBy(30, -10));
-        orbited.Zoom.Should().Be(navigation.Zoom);
-        orbited.Pan.Should().Be(navigation.Pan);
+        orbited.Framing.Should().Be(navigation.Framing);
+    }
+
+    [Fact]
+    public void Orbiting_the_fit_keeps_fitting()
+    {
+        ViewNavigation.Default.OrbitBy(30, -10).Framing.Should().BeNull();
     }
 
     [Fact]
     public void Zooming_and_panning_keep_the_camera()
     {
+        var basis = Basis();
         var orbited = ViewNavigation.Default.OrbitBy(30, -10);
 
-        orbited.ZoomAt(new Point(50, 50), 2).PanBy(new Vector(10, 5)).Camera.Should().Be(orbited.Camera);
+        orbited.ZoomAt(new Point(50, 50), 2, basis, Limits).PanBy(new Vector(10, 5), basis, Limits).Camera.Should().Be(orbited.Camera);
     }
 }

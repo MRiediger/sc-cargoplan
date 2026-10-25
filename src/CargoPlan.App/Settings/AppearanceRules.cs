@@ -44,6 +44,17 @@ public static class AppearanceRules
     /// <summary>The edges in the hidden-line look (D63), in the rack edges' grey.</summary>
     public const string DefaultHoloEdgeColor = "#FFE6E6E6";
 
+    /// <summary>
+    /// How far the wheel zooms in, in pixels per cell (D76): below 40 a 1 SCU crate is no longer an easy target, above 240
+    /// a 32 SCU crate (8 cells) is wider than any overlay.
+    /// </summary>
+    public const double MinMaxZoom = 40;
+
+    public const double MaxMaxZoom = 240;
+
+    /// <summary>A little more than the Hull A had in the default overlay (4 × its fit of about 30), the Hull C 160 instead of 32.</summary>
+    public const double DefaultMaxZoom = 160;
+
     /// <returns>The checked appearance and one line per corrected value, empty if nothing was corrected.</returns>
     public static (AppearanceSettings Appearance, IReadOnlyList<string> Problems) Normalize(AppearanceSettings appearance)
     {
@@ -139,6 +150,18 @@ public static class AppearanceRules
         return clamped == opacity
             ? (opacity, [])
             : (clamped, [string.Create(CultureInfo.InvariantCulture, $"holoOpacity {opacity} is outside {MinHoloOpacity}–{MaxHoloOpacity}, using {clamped}.")]);
+    }
+
+    /// <summary>Checks the ship view's settings (D76): a max zoom outside its range is clamped, like the hologram's opacity.</summary>
+    /// <returns>The checked settings and one line if a value was corrected, empty otherwise.</returns>
+    public static (ShipViewSettings ShipView, IReadOnlyList<string> Problems) Normalize(ShipViewSettings shipView)
+    {
+        var zoom = shipView.MaxZoomPxPerCell;
+        var clamped = Math.Clamp(zoom, MinMaxZoom, MaxMaxZoom);
+        return clamped == zoom
+            ? (shipView, [])
+            : (shipView with { MaxZoomPxPerCell = clamped },
+                [string.Create(CultureInfo.InvariantCulture, $"shipView.maxZoomPxPerCell {zoom} is outside {MinMaxZoom}–{MaxMaxZoom}, using {clamped}.")]);
     }
 
     /// <summary>

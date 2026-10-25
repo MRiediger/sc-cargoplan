@@ -240,7 +240,30 @@ public sealed class HotkeysViewModelTests
         viewModel.Undo.Label.Should().Be("Undo");
         viewModel.Redo.Action.Should().Be(HotkeyAction.Redo);
         viewModel.Redo.Label.Should().Be("Redo");
-        viewModel.All.Should().Equal(viewModel.Lock, viewModel.Overlay, viewModel.Sync, viewModel.Replan, viewModel.Discard, viewModel.Undo, viewModel.Redo);
+        viewModel.ResetView.Action.Should().Be(HotkeyAction.ResetView);
+        viewModel.ResetView.Label.Should().Be("Reset view");
+        viewModel.All.Should().Equal(
+            viewModel.Lock, viewModel.Overlay, viewModel.Sync, viewModel.Replan, viewModel.Discard, viewModel.Undo, viewModel.Redo, viewModel.ResetView);
+    }
+
+    [Fact]
+    public void The_reset_view_hotkey_is_not_set_by_default_and_comes_from_the_file()
+    {
+        // No defaults (D17), like undo and redo (K2.4).
+        Create().ResetView.Hotkey.Should().BeNull();
+        Create(new HotkeySettings(ResetView: "Ctrl+Alt+V")).ResetView.Display.Should().Be("Ctrl+Alt+V");
+    }
+
+    [Fact]
+    public void The_undo_combination_is_refused_for_the_reset_view()
+    {
+        var viewModel = Create(new HotkeySettings(Undo: "Ctrl+Alt+H"));
+
+        viewModel.ResetView.RecordCommand.Execute(null);
+        viewModel.ResetView.Capture(CtrlAlt, VK_H);
+
+        viewModel.ResetView.Problem.Should().Be($"Ctrl+Alt+H is already used for {HotkeyEditor.UndoLabel}.");
+        _set.Should().BeEmpty();
     }
 
     [Fact]

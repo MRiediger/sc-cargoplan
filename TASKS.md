@@ -1690,6 +1690,99 @@ Reihenfolge innerhalb von K2 (Branch `feat/k2-plan-editor`): K2.1 Füllrichtung 
 - **Offen aus K3:** Antwort von Torlek zu `limits.max = 1` (K3.1) und damit die Liste der ungeprüften Türen (32 Racks in 16 Schiffen); Budget-Befund aus K3.2: D58 bleibt unberührt, keine offene Frage; Rad-Routing (D71): Star Citizen sieht das Rad während eines Drags mit, und es hängt an Windows' „scroll inactive windows“ – im Spiel nicht weiter geprüft.
 - **Offen aus K2:** eine Mission, deren Rest auf dem neuen Schiff wartet, verliert den Haken ihrer abgelieferten Lieferung (D75); der Resync nach Undo liest die Datenbank nicht, ein seit dem letzten Lesen in CT gelöschter Vertrag geht erst beim nächsten echten Sync (D74); Undo-Verlauf nicht persistiert.
 
+Reihenfolge innerhalb von K1 (Branch `feat/k1-ship-view`): K1.1 Zoom-Grenzen → K1.2 Kamera-Persistenz → K1.3 Reset-Symbol → K1.4 Hit-Test. K1.1 zuerst, weil K1.2 den Zoomwert speichert. Nur App, Core unberührt; Schemas bleiben (Schiff 5, Plan 6, Mission 3, settings 2 mit neuen optionalen Keys).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (für K1.1–K1.4):** P1 Einheit DIPs (WPF-Pixel), wie Raster und Nummern; P2 Untergrenze bleibt 0,5 × Fit, nur die Obergrenze wird absolut (die 4 px des Briefs entfallen); P3 Zoomzeile im Abschnitt Ship view, nicht Crates; P4 Kamera als absolute Rahmung (px/Zelle + Pan in Zellen), live und gespeichert dieselbe Darstellung; P5 `pxPerCell`/`panX`/`panY` optional, nur gedreht = nur die Kamera, beim Start wird gefittet; P6 Pan vom schiffsfesten Anker (projizierte Mitte von `Ship.Bounds`), nie vom Fit der Beladung (Korrektur bei der Freigabe); P7 Reset-Symbol direkt links vom Zahnrad, rechts von ↶ ↷; P8 Hit-Test-Naht erst ohne Prüfung (rot per Assert), dann mit; P9 keine Frame-Zeit-Messung (gleiche Geometrie, nur andere Skala; das volle Raster zeichnet die Hull C schon bei 4 × Fit).
+
+### [x] K1.1 Zoom-Grenzen absolut in Pixel pro Zelle (D76) (25.10.2026)
+**Warum:** Auf großen Schiffen (C2, Hull C) reichte der maximale Zoom nicht, um einzelne Kisten zu treffen und zu lesen (Martin).
+
+**Ist-Zustand vor K1.1 (A1):** Zoom war ein Faktor 0,5–4 auf den Fit (`ViewNavigation.MinZoom`/`MaxZoom`), Pan in Pixeln um die Bildschirmecke; Hull C fittet bei 800 × 600 auf 8,0 px/Zelle (D61) → höchstens 32, mit Hologramm weniger; Hull A im Standard-Overlay ≈ 30 → 120. Der Radschritt war schon ein Faktor (1,2 pro Raste). Die Rastergrenze borgte die Mindest-Schriftgröße der Nummern (12).
+- App: `ViewBasis` (Fit, Mitte der Fit-Fläche, Anker), `ZoomLimits` (unten 0,5 × Fit, oben `shipView.maxZoomPxPerCell`, Fit immer erreichbar), `Framing` (px/Zelle, Pan in Zellen vom Anker, `OfFit`), `ViewNavigation(Camera, Framing?)` mit `On`, `ZoomAt`, `PanBy`, `Clamped`, `ZoomOn`; `ProjectedScene.Anchor`; `FreeCellGrid.MinCellSize = 12` als eigener Wert; `ShipViewControl.MaxPxPerCell` (kleinerer Wert schrumpft eine Rahmung sofort um ihre Mitte)
+- Settings: `ShipViewSettings` (`shipView.maxZoomPxPerCell`, Default 160, 40–240, geklemmt mit Notice), `SettingsSession.ChangeMaxZoom`/`MaxZoom`, `OverlayViewModel.MaxZoomPxPerCell`, `SettingsViewModel.MaxZoom` mit Slider „Max zoom per cell“ im Abschnitt Ship view, Reset dort
+- Tests: `ViewTransformTests` (Navigationsteil neu), `SceneProjectorTests` (Anker), Store-, Session- und SettingsViewModel-Tests
+
+**Akzeptanz:**
+- [x] Obergrenze absolut, gleich bei Fenster 400 × 300 und 1200 × 900; Untergrenze 0,5 × Fit; Fit über dem Maximum bleibt Obergrenze
+- [x] Punkt unter dem Cursor bleibt beim Zoomen; am Limit bewegt sich nichts; Zoomschritt pro Raste ein Faktor (1,2)
+- [x] Kleinere Preference schrumpft die Ansicht sofort um ihre Mitte
+- [x] Rahmung hängt am Anker, nicht am Fit-Extent (breiterer Extent → gleiches Bild); Anker unabhängig von der Beladung
+- [x] Rastergrenze 12 px/Zelle unverändert; Zoom beim Einzelkisten-Drag weiter aus (K3.2, unverändert)
+- [x] settings.json ohne `shipView` → 160 ohne Notice; Rundreise; 20 → 40 und 500 → 240 mit Notice
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.182 → 1.203)
+- [x] Gate Publish-Build (Martin, 25.10., abgenommen): Hull C hineinzoomen, bis eine 32er lesbar den Tooltip trifft; Hull A fühlt sich unverändert an; Preference ändern wirkt sofort
+- Commits 8dd6803 (Tests rot), bbb9314 (App), Doku-Commit.
+
+### [x] K1.2 Kamera-Persistenz pro Schiff (D76) (25.10.2026)
+**Warum:** Backlog D15: Drehen, Zoom und Pan gingen bei jedem Neustart verloren, auf großen Schiffen nervt das mehr.
+
+**Ist-Zustand vor K1.2 (A1):** Die Navigation lebte nur im Control (`_navigation`), der Schiffswechsel setzte sie dort zurück (`OnSceneChanged`). Die Recent-Liste hält höchstens 4 Ids (`ShipChoices.Remember`) und liefert die Obergrenze. Kein Muster „VM bittet das Control“; die Auswahl läuft zweiseitig per `SetCurrentValue`.
+- Settings: `ShipCamera(Yaw, Pitch, PxPerCell?, PanX?, PanY?)`, `ShipViewSettings.Cameras` (Einträge ohne Kamera oder Id fallen an der Dateigrenze weg), `SettingsSession.ChangeCameras` (500 ms Ruhe, `Flush` beim Beenden)
+- App: `ViewNavigation.From`/`ToCamera` (Rahmung nur mit allen drei Werten); `OverlayViewModel.Cameras` (Start aus settings.json) und `Camera` (des aktuellen Schiffs, nur Recent ∪ aktuelles Schiff behalten, Schiffswechsel meldet die Kamera vor der Szene, kein `Step`); `ShipViewControl.Camera` zweiseitig, jede Navigation schreibt, Doppelklick schreibt null, Navigation aus Kamera + Szene abgeleitet (Reihenfolge der Bindings egal); Composition Root leitet `Cameras` an die Session
+- Tests: `ShipCameraTests` (13 Methoden, davon der Anker-Fall an der Caterpillar: Kamera speichern, Kiste in ein Rack weit achtern, Kamera laden → Rack 1 an derselben Bildschirmstelle), Store- und Session-Tests
+
+**Akzeptanz:**
+- [x] Kamera pro Schiff: Start liest sie, Wechsel hin und zurück bringt jeweils die eigene, Reset entfernt den Eintrag
+- [x] Nur Recent ∪ aktuelles Schiff behalten Kameras; gleiche Kamera noch einmal meldet nichts; Kamera ist kein Schritt
+- [x] Nur gedreht = keine Rahmung = Fit beim nächsten Start; andere Fenstergröße: gleiche px/Zelle, derselbe Punkt in der Mitte (K1.1-Test)
+- [x] Gespeicherte Ansicht bleibt am selben Rack, wenn ein Sync ein Rack weiter außen belädt
+- [x] settings.json: Rundreise, `null`-Einträge und leere Ids fallen weg; `ChangeCameras` entprellt, Max-Zoom und Kameras überschreiben einander nicht
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.203 → 1.223)
+- [x] Gate Publish-Build (Martin, 25.10., abgenommen): Hull C drehen, zoomen, verschieben, beenden, starten → gleiche Ansicht; Schiff wechseln und zurück → gleich; Reset → Fit, Neustart → Fit
+- Commits a2c05dc (Tests rot), a6b059f (App), Doku-Commit.
+
+### [x] K1.3 Reset-Symbol in der Kopfzeile + Hotkey `resetView` (D15-Addendum) (25.10.2026)
+**Warum:** Backlog: der Reset per Doppelklick ist versteckt.
+
+**Ist-Zustand vor K1.3 (A1):** Kopfzeile von rechts: Exit, Zahnrad, ↷, ↶ (nur mit Verlauf), Stift, Re-plan …; das Schloss ist ein eigenes Fenster. `HeaderButtonStyle` blendet gesperrt aus. Hotkey-Muster K2.3/K2.4 (`HotkeyAction`, `HotkeySettings`, `HotkeyService`, `SettingsSession`, `HotkeysViewModel`, `HotkeyEditor`, Settings-Zeile).
+- App: `OverlayViewModel.ResetViewCommand` (Kamera null, auch gesperrt); Button rechts neben dem Zahnrad, Tooltip „Reset view“, Glyph E9A6 FitPage (gegen die Segoe-Doku geprüft, am echten Element gewählt, Martin delegierte die Wahl); ↶ ↷ eine Stelle weiter links; Hotkey `resetView` ohne Default in allen sieben Bausteinen
+- Tests: Kopfzeilen-XAML (Position, Stil, kein Ausblenden außer gesperrt, Glyph; ↶ ↷ verschoben), `ShipCameraTests` (Reset, gesperrt), Hotkey- und Session-Tests
+
+**Akzeptanz:**
+- [x] Symbol rechts neben dem Zahnrad, immer da, gesperrt ausgeblendet (Stil); springt nicht, wenn ↶ ↷ kommen und gehen
+- [x] Reset entfernt die Kamera des Schiffs (Fit, auch nach Neustart); wirkt gesperrt; Doppelklick bleibt
+- [x] Hotkey `resetView`: kein Default, Kollision abgelehnt, von Session und Store geschrieben
+- [x] Screenshot Debug-Build: Symbol sichtbar zwischen Stift und Zahnrad (AppData vorher gesichert, danach hash-gleich)
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.223 → 1.229)
+- [x] Gate (Martin, 25.10., abgenommen): Symbol sichtbar, Klick fittet, im Lock-Modus weg; Hotkey nach Aufnahme wirkt im Spiel
+- Commits d0b1823 (Tests rot), d49c021 (App), Doku-Commit.
+
+### [x] K1.4 Hit-Test auf die Ansichtsfläche begrenzen (D33-Addendum) (25.10.2026)
+**Warum:** Gezeichnet wurde mit `ClipToBounds`, getroffen nicht: ein Drop über der Legende konnte ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).
+
+**Ist-Zustand vor K1.4 (A1):** `HitAt`, `DestinationAt` und der Hover-Tooltip invertierten jeden Punkt, auch außerhalb von `RenderSize`; mit gefangener Maus kommen Punkte über Legende und Kopfzeile an. `DropAt` läuft nur mit einem Treffer, `DragGesture.Resolve`/`ResolveLegend` machen ohne Treffer `None`.
+- App: `SceneHitTest.HitAt`/`DestinationAt`/`ToolTipAt(scene, transform, viewport, screen)`, außerhalb des Rechtecks (Ränder eingeschlossen) kein Treffer; das Control nutzt nur noch diese (Hover, Rechtsklick, Drop-Ziel, Legenden-Drag, Doppelklick)
+- Tests: `SceneHitTestTests` (+6: Szene allein trifft das unsichtbare Rack, außerhalb kein Treffer, Legendenzeile über der Legende bewegt nichts, innerhalb wie die Szene an Mitte und beiden Ecken)
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Hull A, Rack 1 unter eine 400 × 300-Ansicht gezoomt, Punkt (200, 350) über der Legende | Treffer `rack-0`, Legendenzeile → `MoveLegend` | kein Treffer, `None` |
+| `SceneHitTestTests` mit der Naht ohne Prüfung (b0b6fc7) / mit Prüfung | 2 von 28 rot | 28 von 28 grün |
+| Tests (Core / Import / App) | 1.401 / 141 / 1.182 (vor K1) | 1.401 / 141 / 1.235 |
+
+**Akzeptanz:**
+- [x] Rot per Assert gesehen (Naht als reine Weiterleitung), dann grün
+- [x] Außerhalb der Fläche weder Treffer noch Ziel noch Tooltip; ein Drop dort bewegt nichts, die Vorschau zeigt keinen Geist und kein Ziel
+- [x] Innerhalb der Fläche, Ränder eingeschlossen, unverändert
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [x] Gate (Martin, 25.10., abgenommen): Hull C hineinzoomen, ein Rack aus dem Bild schieben, Kiste über die Legende an diese Stelle ziehen → kein Drop
+- Commits b0b6fc7 (Naht, Tests rot), d3d9be8 (Prüfung), Doku-Commit.
+
+### Abschluss der K1-Session (25.10.2026)
+- Alle vier Tasks von Martin abgenommen (25.10.2026, Publish-Build), Gates K1.1–K1.4 bestanden.
+- Merge `--no-ff` nach main, Push durch Martin.
+- Tests: Core 1.401 → 1.401, Import 141 → 141, App 1.182 → 1.235; Slow grün; Exhaustive nicht nötig (Core unberührt).
+- Keine Frame-Zeit-Messung (P9): gleiche Geometrie, nur andere Skala.
+
+**Übergabe für den K4-Startprompt:**
+- **Schema-Stand:** Schiff 5, Plan 6, Mission 3, settings.json 2. **Neue optionale Keys (K1):** `shipView.maxZoomPxPerCell` (Default 160, 40–240), `shipView.cameras` (Katalog-Id → `yaw`, `pitch`, `pxPerCell`, `panX`, `panY`), `hotkeys.resetView`. `shipView` ist ein Objekt, die älteren Ship-view-Keys (`shipOutline`, `holo*`) liegen flach; der Ship-view-Reset setzt den Zoom zurück, nie die Kameras.
+- **Hotkey-Liste:** `toggleLock`, `toggleOverlay`, `syncContractTracker`, `replan`, `discardPlan`, `undo`, `redo`, `resetView` – alle ohne Default (D17).
+- **Für K4 relevant:** Die Kopfzeile trägt jetzt rechts neben dem Zahnrad das Reset-Symbol (E9A6), ↶ ↷ links davon; Look-Presets dürfen `shipView.cameras` nicht mitnehmen (Zustand, nicht Look). Kamera-Änderungen sind kein `Step`.
+- **Für K5 relevant:** Gespeicherte Kameras sind schiffsfest (Anker = projizierte Mitte von `Ship.Bounds`); ändert K5 die Origins (`offset`/`rotation`), verschieben sich gespeicherte Ansichten – Datenupdate, kein Bug (D76).
+- **Offen:** Antwort von Torlek zu `limits.max = 1` und damit die `unverified`-Liste der Türen (32 Racks in 16 Schiffen, K3.1); Rastergrenze 12 px/Zelle bleibt, „höher, falls das volle C2-Raster im Spiel stört“ ist Beobachtung, kein Task.
+
 ---
 
 ## Phase 8 – nach dem Launch

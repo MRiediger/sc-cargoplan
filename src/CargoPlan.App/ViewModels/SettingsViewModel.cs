@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 using CargoPlan.App.Settings;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -39,6 +40,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     private readonly Action<bool> _changeDownloadShipHolograms;
     private readonly Action<double> _changeHoloOpacity;
     private readonly Action<string, string> _changeHoloColors;
+    private readonly Action<double> _changeMaxZoom;
 
     // True while fields are loaded (constructor, reset): their change calls are one change, applied once at the end.
     private bool _loading = true;
@@ -53,6 +55,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <param name="changeDownloadShipHolograms">Gets the switch "Download ship holograms" (D63), like <paramref name="changeShipOutline"/>.</param>
     /// <param name="changeHoloOpacity">Gets the hologram's opacity as a share, 0.1 to 1 (D63), like <paramref name="changeShipOutline"/>.</param>
     /// <param name="changeHoloColors">Gets the hologram's hull and edge colours after either changes (D63), like <paramref name="changeShipOutline"/>.</param>
+    /// <param name="changeMaxZoom">Gets the ship view's max zoom in pixels per cell (D76), like <paramref name="changeShipOutline"/>.</param>
     public SettingsViewModel(
         AppearanceSettings appearance,
         LegendSettings legend,
@@ -68,7 +71,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         Action<double> changeHoloOpacity,
         string holoHullColor,
         string holoEdgeColor,
-        Action<string, string> changeHoloColors)
+        Action<string, string> changeHoloColors,
+        double maxZoom,
+        Action<double> changeMaxZoom)
     {
         _windowsFontSize = Math.Clamp(windowsFontSize, AppearanceRules.MinFontSize, AppearanceRules.MaxFontSize);
         _apply = apply;
@@ -77,7 +82,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         _changeDownloadShipHolograms = changeDownloadShipHolograms;
         _changeHoloOpacity = changeHoloOpacity;
         _changeHoloColors = changeHoloColors;
+        _changeMaxZoom = changeMaxZoom;
         ToolWindowTheme = toolWindowTheme;
+        MaxZoom = maxZoom;
         ShipOutline = shipOutline;
         DownloadShipHolograms = downloadShipHolograms;
         HoloOpacityPercent = ToPercent(holoOpacity);
@@ -255,13 +262,26 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial bool DownloadShipHolograms { get; set; }
 
-    // Two settings of their own, each with its own callback: the reset changes each only if it differs.
+    /// <summary>The slider's bounds, the file's range; double for x:Static like the opacity's.</summary>
+    public static double MinMaxZoom => AppearanceRules.MinMaxZoom;
+
+    public static double MaxMaxZoom => AppearanceRules.MaxMaxZoom;
+
+    /// <summary>How far the wheel zooms in, in pixels per cell (D76); a setting of its own in the file, not part of the look.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MaxZoomText))]
+    public partial double MaxZoom { get; set; }
+
+    public string MaxZoomText => string.Create(CultureInfo.InvariantCulture, $"{MaxZoom:0} px");
+
+    // Settings of their own, each with its own callback: the reset changes each only if it differs.
     [RelayCommand]
     private void ResetShipView()
     {
         ShipOutline = Settings.ShipOutlineMode.Outline;
         DownloadShipHolograms = true;
         HoloOpacityPercent = ToPercent(AppearanceRules.DefaultHoloOpacity);
+        MaxZoom = AppearanceRules.DefaultMaxZoom;
         Batch(() =>
         {
             HoloHullColour.Load(AppearanceRules.DefaultHoloHullColor);
@@ -339,6 +359,15 @@ public sealed partial class SettingsViewModel : ObservableObject
         if (!_loading)
         {
             _changeHoloOpacity(value / 100.0);
+        }
+    }
+
+    // Like the ship outline mode: a setting of its own.
+    partial void OnMaxZoomChanged(double value)
+    {
+        if (!_loading)
+        {
+            _changeMaxZoom(value);
         }
     }
 

@@ -42,6 +42,7 @@ public sealed class SettingsSession
         _viewModel.HoloOpacity = Current.HoloOpacity;
         _viewModel.HoloHullColor = Current.HoloHullColor;
         _viewModel.HoloEdgeColor = Current.HoloEdgeColor;
+        _viewModel.MaxZoomPxPerCell = Current.ShipView.MaxZoomPxPerCell;
     }
 
     public AppSettings Current { get; private set; }
@@ -85,6 +86,7 @@ public sealed class SettingsSession
                 HotkeyAction.DiscardPlan => hotkeys with { DiscardPlan = text },
                 HotkeyAction.Undo => hotkeys with { Undo = text },
                 HotkeyAction.Redo => hotkeys with { Redo = text },
+                HotkeyAction.ResetView => hotkeys with { ResetView = text },
                 _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
             },
         };
@@ -181,6 +183,32 @@ public sealed class SettingsSession
         _viewModel.HoloHullColor = hull;
         _viewModel.HoloEdgeColor = edge;
         Current = Current with { HoloHullColor = hull, HoloEdgeColor = edge };
+        _timer.Stop();
+        _timer.Start();
+    }
+
+    /// <summary>The max zoom of the ship view in pixels per cell (D76).</summary>
+    public double MaxZoom => Current.ShipView.MaxZoomPxPerCell;
+
+    /// <summary>
+    /// From the settings window's slider: the view follows at once (D30), a framing above the new limit shrinks; saved after
+    /// <see cref="Debounce"/>. Not checked again: the slider only hands over values in range (A6).
+    /// </summary>
+    public void ChangeMaxZoom(double pxPerCell)
+    {
+        _viewModel.MaxZoomPxPerCell = pxPerCell;
+        Current = Current with { ShipView = Current.ShipView with { MaxZoomPxPerCell = pxPerCell } };
+        _timer.Stop();
+        _timer.Start();
+    }
+
+    /// <summary>
+    /// From the overlay (K1.2): the cameras per ship after the player turned, zoomed, panned or reset the view. Saved after
+    /// <see cref="Debounce"/> of rest, so a drag that changes them every frame writes once at its end (T3.4).
+    /// </summary>
+    public void ChangeCameras(IReadOnlyDictionary<string, ShipCamera> cameras)
+    {
+        Current = Current with { ShipView = Current.ShipView with { Cameras = cameras } };
         _timer.Stop();
         _timer.Start();
     }

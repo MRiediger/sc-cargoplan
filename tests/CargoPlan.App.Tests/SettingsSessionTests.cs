@@ -297,7 +297,18 @@ public sealed class SettingsSessionTests : IDisposable
 
         File.ReadAllText(SettingsPath).Should().Contain("\"toggleLock\": null").And.Contain("\"toggleOverlay\": null")
             .And.Contain("\"syncContractTracker\": null").And.Contain("\"replan\": null").And.Contain("\"discardPlan\": null")
-            .And.Contain("\"undo\": null").And.Contain("\"redo\": null");
+            .And.Contain("\"undo\": null").And.Contain("\"redo\": null").And.Contain("\"resetView\": null");
+    }
+
+    [Fact]
+    public void ChangeHotkey_for_the_reset_view_keeps_the_other_actions()
+    {
+        var session = Create(AppSettings.Default with { Hotkeys = new HotkeySettings("Ctrl+Alt+L", Undo: "Ctrl+Alt+Z") });
+
+        session.ChangeHotkey(HotkeyAction.ResetView, Key("Ctrl+Alt+V"));
+        session.Flush();
+
+        Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", Undo: "Ctrl+Alt+Z", ResetView: "Ctrl+Alt+V"));
     }
 
     [Fact]
@@ -500,6 +511,55 @@ public sealed class SettingsSessionTests : IDisposable
         File.Exists(SettingsPath).Should().BeFalse();
         session.Flush();
         Saved().Should().Be(AppSettings.Default with { ShipOutline = "holo-flat", HoloOpacity = 0.25 });
+    }
+
+    [Fact]
+    public void The_start_applies_the_max_zoom_to_the_overlay()
+    {
+        Create(AppSettings.Default with { ShipView = new ShipViewSettings(MaxZoomPxPerCell: 90) });
+
+        _viewModel.MaxZoomPxPerCell.Should().Be(90);
+    }
+
+    [Fact]
+    public void ChangeMaxZoom_applies_at_once_and_writes_on_flush()
+    {
+        var session = Create();
+
+        session.ChangeMaxZoom(200);
+
+        _viewModel.MaxZoomPxPerCell.Should().Be(200);
+        File.Exists(SettingsPath).Should().BeFalse();
+        session.Flush();
+        Saved().Should().Be(AppSettings.Default with { ShipView = new ShipViewSettings(MaxZoomPxPerCell: 200) });
+    }
+
+    [Fact]
+    public void ChangeCameras_writes_on_flush_and_keeps_the_max_zoom()
+    {
+        // Debounced like a look change (D13, T3.4): an orbit drag writes once, after 500 ms of rest.
+        var session = Create(AppSettings.Default with { ShipView = new ShipViewSettings(MaxZoomPxPerCell: 90) });
+        Dictionary<string, ShipCamera> cameras = new() { ["hull_a"] = new ShipCamera(120, 20) };
+
+        session.ChangeCameras(cameras);
+
+        File.Exists(SettingsPath).Should().BeFalse();
+        session.Flush();
+        Saved().ShipView.MaxZoomPxPerCell.Should().Be(90);
+        Saved().ShipView.Cameras.Should().BeEquivalentTo(cameras);
+    }
+
+    [Fact]
+    public void ChangeMaxZoom_keeps_the_cameras()
+    {
+        // The Ship view section's reset sets the zoom, never the cameras.
+        Dictionary<string, ShipCamera> cameras = new() { ["hull_a"] = new ShipCamera(120, 20) };
+        var session = Create(AppSettings.Default with { ShipView = new ShipViewSettings(Cameras: cameras) });
+
+        session.ChangeMaxZoom(200);
+        session.Flush();
+
+        Saved().ShipView.Cameras.Should().BeEquivalentTo(cameras);
     }
 
     [Fact]

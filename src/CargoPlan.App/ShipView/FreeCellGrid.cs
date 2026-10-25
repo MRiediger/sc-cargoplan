@@ -7,7 +7,11 @@ namespace CargoPlan.App.ShipView;
 /// </summary>
 public static class FreeCellGrid
 {
-    public const double MinCellSize = RackNumberSize.MinSize;
+    /// <summary>
+    /// Pixels per cell, the zoom's unit (D76); the value of the rack numbers' minimum (D32), not tied to it any more: a
+    /// font size and a cell size only happened to agree.
+    /// </summary>
+    public const double MinCellSize = 12;
 
     /// <param name="scale">Pixels per cell (<see cref="ViewTransform.Scale"/>), fit and zoom included.</param>
     public static bool Draws(SceneBox free, double scale) => scale >= MinCellSize || free.InLoadedLayer;

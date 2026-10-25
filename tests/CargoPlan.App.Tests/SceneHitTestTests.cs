@@ -227,4 +227,55 @@ public class SceneHitTestTests
         var move = gesture.Should().BeOfType<Gesture.MoveCrates>().Subject;
         (move.Anchor, move.RackId, move.Position).Should().Be((shubin, "rack-2", new GridPosition(0, 1, 1)));
     }
+
+    // --- Only the view's area is hit (K1.4, D33): drawn with ClipToBounds, so nothing beyond it can be seen ---
+
+    private static readonly Size View = new(400, 300);
+
+    /// <summary>Zoomed in so far that Rack 1 lies below the view, where the legend stands: its crate 3 at (200, 350).</summary>
+    private static readonly Point OverTheLegend = new(200, 350);
+
+    private static readonly ViewTransform Zoomed = Centred(OverTheLegend);
+
+    /// <summary>100 pixels per cell with Rack 1's crate 3 at <paramref name="screen"/>.</summary>
+    private static ViewTransform Centred(Point screen) => new(100, (Vector)screen - (Vector)Rack1Top * 100);
+
+    [Fact]
+    public void The_scene_alone_finds_the_rack_zoomed_out_of_sight()
+    {
+        // The number before K1.4: the hit test inverted every point, so a drop over the legend hit Rack 1 out of sight.
+        SceneHitTest.HitAt(Projected, Zoomed.Invert(OverTheLegend))!.RackId.Should().Be("rack-0");
+    }
+
+    [Fact]
+    public void Outside_the_view_nothing_is_hit()
+    {
+        SceneHitTest.HitAt(Projected, Zoomed, View, OverTheLegend).Should().BeNull();
+        SceneHitTest.DestinationAt(Projected, Zoomed, View, OverTheLegend).Should().BeNull();
+        SceneHitTest.ToolTipAt(Projected, Zoomed, View, OverTheLegend).Should().BeNull();
+    }
+
+    [Fact]
+    public void A_legend_line_released_over_the_legend_moves_nothing()
+    {
+        // The legend drag runs in the view with the mouse captured (D25): its release over the legend is no drop.
+        var crates = Scene.Plan.Crates.Where(c => c.Destination == "Shubin").ToList();
+
+        DragGesture.ResolveLegend(crates, moved: true, SceneHitTest.HitAt(Projected, Zoomed, View, OverTheLegend)).Should().BeOfType<Gesture.None>();
+    }
+
+    [Theory]
+    [InlineData(200, 150)]
+    [InlineData(0, 0)]
+    [InlineData(400, 300)]
+    public void Inside_the_view_the_hit_is_the_scene_s(double x, double y)
+    {
+        // Edges included: the view's last pixel row is still the view.
+        Point point = new(x, y);
+        var transform = Centred(point);
+
+        SceneHitTest.HitAt(Projected, transform, View, point).Should().Be(SceneHitTest.HitAt(Projected, Rack1Top));
+        SceneHitTest.DestinationAt(Projected, transform, View, point).Should().Be("Riker");
+        SceneHitTest.ToolTipAt(Projected, transform, View, point).Should().Be(SceneHitTest.ToolTipAt(Projected, Rack1Top));
+    }
 }

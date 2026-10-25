@@ -180,6 +180,13 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         set => SetProperty(ref field, value);
     } = AppearanceRules.DefaultHoloEdgeColor;
 
+    /// <summary>How far the ship view zooms in, in pixels per cell (D76), from the settings; bound by the view, so the slider applies live.</summary>
+    public double MaxZoomPxPerCell
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = AppearanceRules.DefaultMaxZoom;
+
     // The last hologram the loader handed over; shown only while it fits (Holo).
     private PreparedHolo? _holo;
 
@@ -232,6 +239,47 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         get => _recentShips;
         init => _recentShips = value;
     }
+
+    private IReadOnlyDictionary<string, ShipCamera> _cameras = new Dictionary<string, ShipCamera>();
+
+    /// <summary>
+    /// The view per ship as the player left it (K1.2, D76): from settings.json at the start, then kept by <see cref="Camera"/>,
+    /// for the recent ships and the current one only. Not a step (K2.4): undo never turns the camera.
+    /// </summary>
+    public IReadOnlyDictionary<string, ShipCamera> Cameras
+    {
+        get => _cameras;
+        init => _cameras = value;
+    }
+
+    /// <summary>
+    /// The ship view's camera on <see cref="Ship"/>, two-way with the view; null = the ship's default camera, fitted (the
+    /// reset). Changes with the ship; a change tells <see cref="Cameras"/> too, so the settings can save it.
+    /// </summary>
+    public ShipCamera? Camera
+    {
+        get => _cameras.GetValueOrDefault(Ship.Id);
+        set
+        {
+            if (Equals(value, Camera))
+            {
+                return;
+            }
+
+            // Written on every frame of a drag: only the ships Recent knows, so the file stays small (T7.2c: 4 ids).
+            var kept = _cameras.Where(c => c.Key != Ship.Id && _recentShips.Contains(c.Key));
+            _cameras = value is null ? kept.ToDictionary() : kept.Append(new(Ship.Id, value)).ToDictionary();
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(Cameras));
+        }
+    }
+
+    /// <summary>
+    /// The header's reset next to the gear and the resetView hotkey (K1.3), like a double-click next to the cargo: the
+    /// ship's default camera, fitted, also at the next start. Always on, also while locked: the hotkey works in the game.
+    /// </summary>
+    [RelayCommand]
+    private void ResetView() => Camera = null;
 
     /// <summary>
     /// The header's ship selection (T7.2b): the recent ships on top (T7.2c), then the catalog grouped by manufacturer,
@@ -453,6 +501,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         _recentShips = ShipChoices.Remember(_recentShips, Ship.Id, ship.Id);
         _shipSelection = null;
         Ship = ship;
+
+        // Before the scene: the view takes the new ship's camera, or its default camera fitted (D61, K1.2).
+        OnPropertyChanged(nameof(Camera));
         SetNotice(NoticeSource.Ship, null);
         SetNotice(NoticeSource.Replan, null);
 

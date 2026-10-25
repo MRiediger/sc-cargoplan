@@ -68,21 +68,39 @@ public class OverlayHeaderXamlTests
     }
 
     [Fact]
-    public void Undo_and_redo_stand_left_of_the_gear_show_only_with_a_step_and_hide_while_locked()
+    public void Undo_and_redo_stand_left_of_the_reset_show_only_with_a_step_and_hide_while_locked()
     {
-        // K2.4: in a DockPanel docked right, later in the markup is further left: gear, redo, undo reads ↶ ↷ ⚙.
+        // K2.4: in a DockPanel docked right, later in the markup is further left: gear, reset, redo, undo reads ↶ ↷ ⤢ ⚙.
         var buttons = Root().Descendants().Where(e => e.Name.LocalName == "Button").ToList();
         var gear = buttons.FindIndex(b => (string?)b.Attribute("ToolTip") == "Settings");
         var redo = buttons.FindIndex(b => (string?)b.Attribute("Command") == "{Binding RedoCommand, Mode=OneTime}");
         var undo = buttons.FindIndex(b => (string?)b.Attribute("Command") == "{Binding UndoCommand, Mode=OneTime}");
 
-        (gear, redo, undo).Should().Be((gear, gear + 1, gear + 2));
+        (gear, redo, undo).Should().Be((gear, gear + 2, gear + 3));
         foreach (var (index, flag) in new[] { (redo, "CanRedo"), (undo, "CanUndo") })
         {
             var button = buttons[index];
             button.Attribute("Style")!.Value.Should().Be("{StaticResource HeaderButtonStyle}", "hidden while locked like every header button");
             button.Parent!.Attribute("Visibility")!.Value.Should().Be($"{{Binding {flag}, Converter={{StaticResource BooleanToVisibilityConverter}}}}");
         }
+    }
+
+    [Fact]
+    public void Reset_view_stands_right_next_to_the_gear_always_there_and_hides_while_locked()
+    {
+        // K1.3: a view control, so right of the plan's undo and redo (D34: window right, plan left); undo and redo come
+        // and go further left, so the reset never jumps.
+        var buttons = Root().Descendants().Where(e => e.Name.LocalName == "Button").ToList();
+        var gear = buttons.FindIndex(b => (string?)b.Attribute("ToolTip") == "Settings");
+        var reset = buttons.FindIndex(b => (string?)b.Attribute("Command") == "{Binding ResetViewCommand, Mode=OneTime}");
+
+        reset.Should().Be(gear + 1);
+        var button = buttons[reset];
+        button.Attribute("ToolTip")!.Value.Should().Be("Reset view");
+        button.Attribute("Style")!.Value.Should().Be("{StaticResource HeaderButtonStyle}", "hidden while locked like the gear");
+        button.Attribute("Visibility").Should().BeNull();
+        button.Parent!.Name.LocalName.Should().Be("DockPanel", "no border that collapses: it is always there");
+        button.Descendants().Single(e => e.Name.LocalName == "TextBlock").Attribute("Text")!.Value.Should().Be("");
     }
 
     [Fact]

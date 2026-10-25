@@ -48,6 +48,26 @@ public static class SceneHitTest
     }
 
     /// <summary>
+    /// <see cref="HitAt(ProjectedScene, Point)"/> at a point of the view (<paramref name="screen"/>, pixels): what the
+    /// mouse is over, through <paramref name="transform"/>, and nothing outside a view of <paramref name="viewport"/>
+    /// (K1.4, D33). The view clips its drawing, so a rack zoomed beyond its edge can't be seen; with the mouse captured,
+    /// points over the legend or the header come here too, and must hit nothing.
+    /// </summary>
+    public static SceneHit? HitAt(ProjectedScene scene, ViewTransform transform, Size viewport, Point screen) =>
+        InView(viewport, screen) ? HitAt(scene, transform.Invert(screen)) : null;
+
+    /// <summary><see cref="DestinationAt(ProjectedScene, Point)"/> at a point of the view, like <see cref="HitAt(ProjectedScene, ViewTransform, Size, Point)"/>.</summary>
+    public static string? DestinationAt(ProjectedScene scene, ViewTransform transform, Size viewport, Point screen) =>
+        InView(viewport, screen) ? DestinationAt(scene, transform.Invert(screen)) : null;
+
+    /// <summary><see cref="ToolTipAt(ProjectedScene, Point)"/> at a point of the view, like <see cref="HitAt(ProjectedScene, ViewTransform, Size, Point)"/>.</summary>
+    public static string? ToolTipAt(ProjectedScene scene, ViewTransform transform, Size viewport, Point screen) =>
+        InView(viewport, screen) ? ToolTipAt(scene, transform.Invert(screen)) : null;
+
+    // Edges included: the view's last pixel row is still the view.
+    private static bool InView(Size viewport, Point screen) => new Rect(viewport).Contains(screen);
+
+    /// <summary>
     /// The cargo box on top at <paramref name="point"/> (projected units), delivered or not. The first rack hit
     /// decides, even on its free cells: it covers whatever lies behind it.
     /// </summary>

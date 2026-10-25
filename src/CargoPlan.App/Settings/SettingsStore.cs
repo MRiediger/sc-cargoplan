@@ -58,6 +58,7 @@ public static class SettingsStore
             var (holoOpacity, holoOpacityProblems) = AppearanceRules.NormalizeHoloOpacity(settings.HoloOpacity);
             var (holoHull, holoHullProblems) = AppearanceRules.NormalizeHoloColor("holoHullColor", settings.HoloHullColor, AppearanceRules.DefaultHoloHullColor);
             var (holoEdge, holoEdgeProblems) = AppearanceRules.NormalizeHoloColor("holoEdgeColor", settings.HoloEdgeColor, AppearanceRules.DefaultHoloEdgeColor);
+            var (shipView, shipViewProblems) = AppearanceRules.Normalize(settings.ShipView);
             return (
                 settings with
                 {
@@ -70,10 +71,11 @@ public static class SettingsStore
                     HoloOpacity = holoOpacity,
                     HoloHullColor = holoHull,
                     HoloEdgeColor = holoEdge,
+                    ShipView = shipView,
                 },
                 Corrections([
                     .. legendProblems, .. appearanceProblems, .. themeProblems, .. contractTrackerProblems, .. shipOutlineProblems,
-                    .. holoOpacityProblems, .. holoHullProblems, .. holoEdgeProblems]));
+                    .. holoOpacityProblems, .. holoHullProblems, .. holoEdgeProblems, .. shipViewProblems]));
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
