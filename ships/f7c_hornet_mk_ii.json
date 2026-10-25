@@ -5,13 +5,13 @@
   "manufacturer": "ANVL",
   "fleetyardsSlug": "anvl-f7c-hornet-mk-ii",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; rack 1 turned so length is the longer side (crates don't turn)",
+  "notes": "rack arrangement generated; grids from Fleetyards",
   "totalScu": 2,
   "racks": [
     {
       "id": "rack-0",
       "capacityScu": 2,
-      "grid": { "length": 2, "width": 1, "stack": 1 },
+      "grid": { "length": 1, "width": 2, "stack": 1 },
       "origin": [0, 0, 0],
       "stackAxis": "+z"
     }

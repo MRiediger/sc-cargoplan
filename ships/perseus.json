@@ -5,13 +5,13 @@
   "manufacturer": "RSI",
   "fleetyardsSlug": "rsi-perseus",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; rack 1 turned so length is the longer side (crates don't turn)",
+  "notes": "rack arrangement generated; grids from Fleetyards",
   "totalScu": 96,
   "racks": [
     {
       "id": "rack-0",
       "capacityScu": 96,
-      "grid": { "length": 8, "width": 6, "stack": 2 },
+      "grid": { "length": 6, "width": 8, "stack": 2 },
       "origin": [0, 0, 0],
       "stackAxis": "+z"
     }

@@ -5,7 +5,7 @@
   "manufacturer": "DRAK",
   "fleetyardsSlug": "drak-caterpillar",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards; racks 5, 6, 8, 10, 12, 14 turned so length is the longer side (crates don't turn)",
+  "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards",
   "totalScu": 576,
   "racks": [
     {
@@ -39,14 +39,14 @@
     {
       "id": "rack-12",
       "capacityScu": 60,
-      "grid": { "length": 5, "width": 4, "stack": 3 },
+      "grid": { "length": 4, "width": 5, "stack": 3 },
       "origin": [-27, 0, 0],
       "stackAxis": "+z"
     },
     {
       "id": "rack-13",
       "capacityScu": 20,
-      "grid": { "length": 5, "width": 2, "stack": 2 },
+      "grid": { "length": 2, "width": 5, "stack": 2 },
       "origin": [-33, 0, 0],
       "stackAxis": "+z"
     },
@@ -60,7 +60,7 @@
     {
       "id": "rack-2",
       "capacityScu": 8,
-      "grid": { "length": 4, "width": 1, "stack": 2 },
+      "grid": { "length": 1, "width": 4, "stack": 2 },
       "origin": [-44, 0, 0],
       "stackAxis": "+z"
     },
@@ -74,7 +74,7 @@
     {
       "id": "rack-5",
       "capacityScu": 8,
-      "grid": { "length": 4, "width": 1, "stack": 2 },
+      "grid": { "length": 1, "width": 4, "stack": 2 },
       "origin": [-55, 0, 0],
       "stackAxis": "+z"
     },
@@ -88,7 +88,7 @@
     {
       "id": "rack-8",
       "capacityScu": 8,
-      "grid": { "length": 4, "width": 1, "stack": 2 },
+      "grid": { "length": 1, "width": 4, "stack": 2 },
       "origin": [-66, 0, 0],
       "stackAxis": "+z"
     },
@@ -102,7 +102,7 @@
     {
       "id": "rack-11",
       "capacityScu": 8,
-      "grid": { "length": 4, "width": 1, "stack": 2 },
+      "grid": { "length": 1, "width": 4, "stack": 2 },
       "origin": [-77, 0, 0],
       "stackAxis": "+z"
     }

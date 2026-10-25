@@ -5,13 +5,13 @@
   "manufacturer": "AEGS",
   "fleetyardsSlug": "aegs-idris-p",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
-  "notes": "rack arrangement generated; grids from Fleetyards; racks 1, 2, 3, 4, 5, 6 turned so length is the longer side (crates don't turn); door limits from Fleetyards limits.max.capacity",
+  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
   "totalScu": 1374,
   "racks": [
     {
       "id": "rack-0",
       "capacityScu": 12,
-      "grid": { "length": 3, "width": 2, "stack": 2 },
+      "grid": { "length": 2, "width": 3, "stack": 2 },
       "origin": [0, 0, 0],
       "stackAxis": "+z",
       "maxCrateSize": 2
@@ -19,7 +19,7 @@
     {
       "id": "rack-1",
       "capacityScu": 12,
-      "grid": { "length": 3, "width": 2, "stack": 2 },
+      "grid": { "length": 2, "width": 3, "stack": 2 },
       "origin": [-4, 0, 0],
       "stackAxis": "+z",
       "maxCrateSize": 2
@@ -27,7 +27,7 @@
     {
       "id": "rack-2",
       "capacityScu": 12,
-      "grid": { "length": 3, "width": 2, "stack": 2 },
+      "grid": { "length": 2, "width": 3, "stack": 2 },
       "origin": [-8, 0, 0],
       "stackAxis": "+z",
       "maxCrateSize": 2
@@ -35,7 +35,7 @@
     {
       "id": "rack-3",
       "capacityScu": 12,
-      "grid": { "length": 3, "width": 2, "stack": 2 },
+      "grid": { "length": 2, "width": 3, "stack": 2 },
       "origin": [-12, 0, 0],
       "stackAxis": "+z",
       "maxCrateSize": 2
@@ -43,7 +43,7 @@
     {
       "id": "rack-4",
       "capacityScu": 144,
-      "grid": { "length": 18, "width": 4, "stack": 2 },
+      "grid": { "length": 4, "width": 18, "stack": 2 },
       "origin": [-31, 0, 0],
       "stackAxis": "+z",
       "maxCrateSize": 16
@@ -51,7 +51,7 @@
     {
       "id": "rack-5",
       "capacityScu": 140,
-      "grid": { "length": 14, "width": 5, "stack": 2 },
+      "grid": { "length": 5, "width": 14, "stack": 2 },
       "origin": [-46, 0, 0],
       "stackAxis": "+z",
       "maxCrateSize": 16

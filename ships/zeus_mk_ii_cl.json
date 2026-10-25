@@ -5,7 +5,7 @@
   "manufacturer": "RSI",
   "fleetyardsSlug": "rsi-zeus-mk-ii-cl",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; racks 2, 3 turned so length is the longer side (crates don't turn)",
+  "notes": "rack arrangement generated; grids from Fleetyards",
   "totalScu": 128,
   "racks": [
     {
@@ -18,14 +18,14 @@
     {
       "id": "rack-1",
       "capacityScu": 4,
-      "grid": { "length": 2, "width": 1, "stack": 2 },
+      "grid": { "length": 1, "width": 2, "stack": 2 },
       "origin": [-3, 0, 0],
       "stackAxis": "+z"
     },
     {
       "id": "rack-2",
       "capacityScu": 4,
-      "grid": { "length": 2, "width": 1, "stack": 2 },
+      "grid": { "length": 1, "width": 2, "stack": 2 },
       "origin": [-6, 0, 0],
       "stackAxis": "+z"
     }

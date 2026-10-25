@@ -5,13 +5,13 @@
   "manufacturer": "ARGO",
   "fleetyardsSlug": "argo-srv",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; rack 1 turned so length is the longer side (crates don't turn)",
+  "notes": "rack arrangement generated; grids from Fleetyards",
   "totalScu": 12,
   "racks": [
     {
       "id": "rack-0",
       "capacityScu": 12,
-      "grid": { "length": 4, "width": 3, "stack": 1 },
+      "grid": { "length": 3, "width": 4, "stack": 1 },
       "origin": [0, 0, 0],
       "stackAxis": "+z"
     }

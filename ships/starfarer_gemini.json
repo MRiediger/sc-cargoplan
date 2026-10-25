@@ -5,7 +5,7 @@
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-starfarer-gemini",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
-  "notes": "rack arrangement generated; grids from Fleetyards; racks 2, 4 turned so length is the longer side (crates don't turn); door limits from Fleetyards limits.max.capacity",
+  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
   "totalScu": 291,
   "racks": [
     {
@@ -19,7 +19,7 @@
     {
       "id": "rack-1",
       "capacityScu": 50,
-      "grid": { "length": 5, "width": 2, "stack": 5 },
+      "grid": { "length": 2, "width": 5, "stack": 5 },
       "origin": [-6, 0, 0],
       "stackAxis": "+z"
     },
@@ -33,7 +33,7 @@
     {
       "id": "rack-3",
       "capacityScu": 50,
-      "grid": { "length": 5, "width": 2, "stack": 5 },
+      "grid": { "length": 2, "width": 5, "stack": 5 },
       "origin": [-15, 0, 0],
       "stackAxis": "+z"
     },

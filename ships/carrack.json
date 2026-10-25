@@ -5,7 +5,7 @@
   "manufacturer": "ANVL",
   "fleetyardsSlug": "anvl-carrack",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards; racks 2, 5, 8 turned so length is the longer side (crates don't turn)",
+  "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards",
   "totalScu": 456,
   "racks": [
     {
@@ -18,7 +18,7 @@
     {
       "id": "rack-1",
       "capacityScu": 24,
-      "grid": { "length": 4, "width": 3, "stack": 2 },
+      "grid": { "length": 3, "width": 4, "stack": 2 },
       "origin": [-5, 0, 0],
       "stackAxis": "+z"
     },
@@ -39,7 +39,7 @@
     {
       "id": "rack-4",
       "capacityScu": 24,
-      "grid": { "length": 4, "width": 3, "stack": 2 },
+      "grid": { "length": 3, "width": 4, "stack": 2 },
       "origin": [-20, 0, 0],
       "stackAxis": "+z"
     },
@@ -60,7 +60,7 @@
     {
       "id": "rack-7",
       "capacityScu": 24,
-      "grid": { "length": 4, "width": 3, "stack": 2 },
+      "grid": { "length": 3, "width": 4, "stack": 2 },
       "origin": [-35, 0, 0],
       "stackAxis": "+z"
     },

@@ -5,13 +5,13 @@
   "manufacturer": "AEGS",
   "fleetyardsSlug": "aegs-idris-m",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
-  "notes": "rack arrangement generated; grids from Fleetyards; racks 1, 2 turned so length is the longer side (crates don't turn); door limits from Fleetyards limits.max.capacity",
+  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
   "totalScu": 1326,
   "racks": [
     {
       "id": "rack-0",
       "capacityScu": 144,
-      "grid": { "length": 18, "width": 4, "stack": 2 },
+      "grid": { "length": 4, "width": 18, "stack": 2 },
       "origin": [0, 0, 0],
       "stackAxis": "+z",
       "maxCrateSize": 16
@@ -19,7 +19,7 @@
     {
       "id": "rack-1",
       "capacityScu": 140,
-      "grid": { "length": 14, "width": 5, "stack": 2 },
+      "grid": { "length": 5, "width": 14, "stack": 2 },
       "origin": [-15, 0, 0],
       "stackAxis": "+z",
       "maxCrateSize": 16

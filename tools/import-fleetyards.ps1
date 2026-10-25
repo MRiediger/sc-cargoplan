@@ -53,8 +53,8 @@ function Set-Field([object]$Target, [string]$Name, [object]$Value) {
     }
 }
 
-# The largest crate a hold of these cells (x, y, z in Fleetyards axes) takes, as the ship file lays it: length the
-# longer horizontal side.
+# The largest crate a hold of these cells (x, y, z in Fleetyards axes) takes. Crates turn 90 degrees about the stack
+# axis (D71), so the longer horizontal side takes the crate's length, whichever axis it lies on.
 function Get-GridCrate([int[]]$Size) {
     $grid = @([math]::Max($Size[0], $Size[1]), [math]::Min($Size[0], $Size[1]), $Size[2])
     $largest = 0
@@ -148,9 +148,6 @@ function ConvertFrom-Hold([object]$Hold, [int]$Index, [string]$Slug) {
         Door     = $door
         Min      = $min
         Offset   = $offset
-        # Crates don't turn (D9): length takes the longer horizontal side, so a rack wider than long still takes
-        # the crates the game allows.
-        Turned   = $size[0] -gt $size[1]
         Unverified = $unverified
     }
 }
@@ -176,8 +173,7 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
         [pscustomobject]@{ Min = $o; Max = @(($o[0] + $s[0]), ($o[1] + $s[1]), ($o[2] + $s[2])) }
     })
     $overlap = $withOffsets -and (Test-Overlap $boxes)
-    $turned = @($racks | Where-Object { $_.Turned }).Count -gt 0
-    $arrangement = if ($withOffsets -and -not $overlap -and -not $turned) { 'fleetyards' }
+    $arrangement = if ($withOffsets -and -not $overlap) { 'fleetyards' }
         elseif ($overlap) { 'overlap' }
         else { 'generated' }
 
@@ -218,11 +214,6 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
         'overlap' { 'rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards' }
         default { 'rack arrangement generated; grids from Fleetyards' }
     }
-    $turnedNumbers = @(for ($i = 0; $i -lt $ordered.Count; $i++) { if ($ordered[$i].Turned) { $i + 1 } })
-    if ($turnedNumbers.Count) {
-        $noun = if ($turnedNumbers.Count -eq 1) { 'rack' } else { 'racks' }
-        $notes += "; $noun $($turnedNumbers -join ', ') turned so length is the longer side (crates don't turn)"
-    }
     if (@($racks | Where-Object { $null -ne $_.Door }).Count) {
         $notes += '; door limits from Fleetyards limits.max.capacity'
     }
@@ -234,9 +225,10 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
         $rack = [pscustomobject]@{
             id           = $r.Id
             capacityScu  = $r.Capacity
+            # Fleetyards' own orientation (D71): length along the ship (y), width across (x).
             grid         = [pscustomobject]@{
-                length = [math]::Max($r.Size[0], $r.Size[1])
-                width  = [math]::Min($r.Size[0], $r.Size[1])
+                length = $r.Size[1]
+                width  = $r.Size[0]
                 stack  = $r.Size[2]
             }
             position     = $positions[$r.Id]

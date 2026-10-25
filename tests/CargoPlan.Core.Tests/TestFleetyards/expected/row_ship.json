@@ -5,13 +5,13 @@
   "manufacturer": "TSTM",
   "fleetyardsSlug": "tstm-row-ship",
   "source": "Fleetyards API (CIG ship matrix), export 2026-01-15",
-  "notes": "rack arrangement generated; grids from Fleetyards; rack 1 turned so length is the longer side (crates don't turn)",
+  "notes": "rack arrangement generated; grids from Fleetyards",
   "totalScu": 26,
   "racks": [
     {
       "id": "rack-1",
       "capacityScu": 16,
-      "grid": { "length": 4, "width": 2, "stack": 2 },
+      "grid": { "length": 2, "width": 4, "stack": 2 },
       "origin": [0, 0, 0],
       "stackAxis": "+z"
     },
