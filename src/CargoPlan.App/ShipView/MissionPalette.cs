@@ -95,6 +95,12 @@ public static class MissionPalette
     public static SolidColorBrush ViolationBrush { get; } = Frozen(Violation);
 
     /// <summary>
+    /// The legend's check boxes (B6, D69, Martin after the look gate: grey, not the selection's magenta): lighter than the
+    /// grey of a ticked line's text, which has no box anyway, darker than the legend's text.
+    /// </summary>
+    public static SolidColorBrush CheckBoxBrush { get; } = Frozen(Color.FromRgb(0xB0, 0xB0, 0xB0));
+
+    /// <summary>
     /// Fill of the ghost a dragged crate shows at its target cell (D25): cyan where Core allows it, red where it refuses.
     /// Faint, so the cargo around the target still shows; the edges carry the colour.
     /// </summary>

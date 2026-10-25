@@ -72,7 +72,7 @@ public abstract record BowMarker
     public sealed record Holo(SceneProjector.Corner Min, SceneProjector.Corner Max) : BowMarker;
 }
 
-/// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MoveCrates</c>, <c>MoveStop</c>).</param>
+/// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MoveCrates</c>, <c>ResolveMoveToRack</c>).</param>
 /// <param name="Boxes">
 /// The rack's crates where the plan stores them (D24), by placement and in plan order, then its free cells. Overlapping
 /// crates of a plan file edited by hand are all there.
@@ -189,28 +189,35 @@ public sealed record SceneLine(Point From, Point To);
 /// One stop in the legend, in the order the stops were entered (D64). <paramref name="Delivered"/>: all its placements are delivered.
 /// <paramref name="Markings"/>: what is uncertain about its missions ("4 SCU? · ⚠ duplicate?"), empty if nothing;
 /// <paramref name="ReserveMarkings"/> the same with nothing delivered, so the line keeps its width when a tick takes a
-/// marking away (D16, D33). With pickups in the plan a stop has one line per pickup list (T7.4d, D68), the tick still
-/// the stop's.
+/// marking away (D16, D33). A line is one mission's cargo for one destination (B6, D69): a click ticks that line, a
+/// click on a crate in the ship view the whole stop.
 /// </summary>
 /// <param name="Header">
-/// The line over this one, on the first line of a pickup list: "From A, B"; "" for the items without pickup next to
-/// others; null on every other line and in a plan without pickups.
+/// The line over this one, on the first line of a mission once any mission in the plan has a pickup: "From A, B", or
+/// "From ?" without; null on every other line and in a plan without pickups.
 /// </param>
-/// <param name="PickupCrates">
-/// On a header with a pickup while more than one mission is on board: that pickup's crates still on board, which its
-/// check box selects (<see cref="SelectionFocus.Toggled"/>); null elsewhere, and no check box.
+/// <param name="Mission">The mission of the line's crates (<see cref="Crate.Mission"/>); 0 in a plan without missions.</param>
+/// <param name="Crates">The line's crates still on board: what its check box selects and its drag moves; empty once ticked.</param>
+/// <param name="MissionCrates">
+/// On a header line: every crate of its mission still on board, for the header's check box and drag; null elsewhere,
+/// and when none is left.
 /// </param>
+/// <param name="Grouped">The legend has headers: the line stands indented under its mission's.</param>
 public sealed record LegendEntry(
     int PaletteIndex, string Destination, int Scu, bool Delivered = false, string Markings = "", string ReserveMarkings = "", string? Header = null,
-    IReadOnlyList<Crate>? PickupCrates = null)
+    int Mission = 0, IReadOnlyList<Crate>? Crates = null, IReadOnlyList<Crate>? MissionCrates = null, bool Grouped = false)
 {
+    public const string ToText = "To ";
+
+    public IReadOnlyList<Crate> Crates { get; } = Crates ?? [];
+
     public string Label => WithMarkings(Markings);
 
     /// <summary>The widest the label gets: laid out hidden under it.</summary>
     public string ReserveLabel => WithMarkings(ReserveMarkings);
 
     private string WithMarkings(string markings) =>
-        markings.Length == 0 ? Invariant($"{Destination} · {Scu} SCU") : Invariant($"{Destination} · {Scu} SCU · {markings}");
+        markings.Length == 0 ? Invariant($"{ToText}{Destination} · {Scu} SCU") : Invariant($"{ToText}{Destination} · {Scu} SCU · {markings}");
 }
 
 /// <summary>A mission that didn't fit (D41): its line in the legend, and the id a tick drops it by.</summary>

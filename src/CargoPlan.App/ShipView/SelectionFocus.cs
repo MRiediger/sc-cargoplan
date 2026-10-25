@@ -17,8 +17,8 @@ public static class SelectionFocus
     private const string ToPrefix = "to ";
 
     /// <summary>
-    /// "from Lorville · Titanium · to Riker", or "Titanium · to Riker" without pickup, for exactly one selected crate; null
-    /// for none or several.
+    /// "from Lorville · Titanium · to Riker", or "from ? · Titanium · to Riker" without pickup (B6, like the legend's
+    /// "From ?"), for exactly one selected crate; null for none or several.
     /// </summary>
     public static string? InfoLine(SavedPlan? saved, IReadOnlySet<Crate> selected)
     {
@@ -29,16 +29,25 @@ public static class SelectionFocus
 
         var crate = selected.Single();
         var pickup = saved.Missions.FirstOrDefault(m => m.Id == crate.Mission)?.Items.ElementAtOrDefault(crate.Item).Item?.Pickup;
-        var destination = ToPrefix + crate.Destination;
-        string[] parts = pickup is null ? [crate.Commodity, destination] : [FromPrefix + Pickups.Text(pickup), crate.Commodity, destination];
-        return string.Join(Separator, parts);
+        var from = FromPrefix + (pickup is null ? ShipViewBuilder.UnknownPickupText : Pickups.Text(pickup));
+        return string.Join(Separator, from, crate.Commodity, ToPrefix + crate.Destination);
     }
 
-    /// <summary>Every one of <paramref name="crates"/> is selected, and there is one: the legend's pickup check box is ticked.</summary>
+    /// <summary>Every one of <paramref name="crates"/> is selected, and there is one.</summary>
     public static bool HasAll(IReadOnlySet<Crate> selected, IReadOnlyList<Crate> crates) => crates.Count > 0 && crates.All(selected.Contains);
 
     /// <summary>
-    /// The pickup check box clicked: <paramref name="crates"/> taken out of the selection if all of them are in it, else
+    /// A legend check box (B6, D69): true while all of <paramref name="crates"/> are selected, false while none is, null
+    /// (part) in between; a right click in the view shows in the boxes this way.
+    /// </summary>
+    public static bool? State(IReadOnlySet<Crate> selected, IReadOnlyList<Crate> crates)
+    {
+        var count = crates.Count(selected.Contains);
+        return count == 0 ? false : count == crates.Count ? true : null;
+    }
+
+    /// <summary>
+    /// A legend check box clicked: <paramref name="crates"/> taken out of the selection if all of them are in it, else
     /// added to it; the rest of the selection stays.
     /// </summary>
     public static CrateSelection Toggled(CrateSelection selection, ShipScene scene, IReadOnlyList<Crate> crates)

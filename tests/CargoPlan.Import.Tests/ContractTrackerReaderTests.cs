@@ -476,7 +476,7 @@ public class ContractTrackerReaderTests
         return database;
     }
 
-    // --- Pickup (D68): ContractTracker's pickup text, split at "/", noise kept ---
+    // --- Pickup (D68): ContractTracker's pickup text, split at "/", cut to the place's name (B6, D69) ---
 
     [Fact]
     public void The_pickup_of_a_capture_goes_to_its_items()
@@ -493,12 +493,18 @@ public class ContractTrackerReaderTests
 
     [Theory]
     [InlineData("HUR-L1 Green Glade Station / HUR-L2 Faithful Dream Station", "HUR-L1 Green Glade Station|HUR-L2 Faithful Dream Station")]
-    [InlineData("Everus Harbor DROP OFF LOCATIONS (ANY ORDER)", "Everus Harbor DROP OFF LOCATIONS (ANY ORDER)")]
-    [InlineData("Everus H - Freight elevator at High Course Station", "Everus H - Freight elevator at High Course Station")]
+    [InlineData("HUR-L4 Melodic Fields / HUR-L1 Green Glad", "HUR-L4 Melodic Fields|HUR-L1 Green Glad")]
+    [InlineData("Everus Harbor DROP OFF LOCATIONS (ANY ORDER)", "Everus Harbor")]
+    [InlineData("Everus H - Freight elevator at High Course Station", "Everus H")]
+    [InlineData("Everus Harbor. - Freight elevator at Green Glade Station at Hurston's L1 Lagrange point", "Everus Harbor")]
+    [InlineData("Everus Harbor above Hurston", "Everus Harbor")]
+    [InlineData("Everus Harbor.", "Everus Harbor")]
     [InlineData(" Everus Harbor /everus harbor/ ", "Everus Harbor")]
-    public void The_pickup_text_is_split_at_the_slash_and_otherwise_kept(string pickup, string expected)
+    [InlineData("Everus Harbor / Everus Harbor. - Freight elevator at Green Glade Station", "Everus Harbor")]
+    public void The_pickup_text_is_split_at_the_slash_and_cut_to_the_place_name(string pickup, string expected)
     {
-        // OCR noise stays as captured (D38): the player sees what ContractTracker read and corrects it in the editor.
+        // A name, never the contract's text (B6): ContractTracker's own pickup field holds the next list line (id 38).
+        // Spelling noise in the name itself stays as captured (D38); the player corrects it in the editor.
         using var database = new TempContractDatabase();
         database.AddContract(36, "Stims", null, (4, "Thundering Express Station"));
         database.SetPickup(36, pickup);

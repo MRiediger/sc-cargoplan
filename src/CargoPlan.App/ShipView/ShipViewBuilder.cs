@@ -16,8 +16,11 @@ public static class ShipViewBuilder
 
     public const string FitsNowText = "fits now, placed at the next sync";
 
-    /// <summary>The legend's header over a pickup list: "From A, B" (T7.4d, D68).</summary>
+    /// <summary>The legend's header over a mission: "From A, B" (T7.4d, D68; per mission since B6, D69).</summary>
     public const string FromText = "From ";
+
+    /// <summary>Where a mission's crates come from when no item names it: "From ?", in the info line "from ?" (B6).</summary>
+    public const string UnknownPickupText = "?";
 
     private const string Separator = " · ";
 
@@ -46,17 +49,19 @@ public static class ShipViewBuilder
         // The order of the crate list, as the player entered the stops: display only, no route (D64); the palette's too.
         var duplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(saved);
         var reserveDuplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(OnBoard(saved));
-        var placements = plan.Placements.ToLookup(p => p.Destination);
         Mission[] unplaced = saved is null ? [] : [.. saved.Missions.Where(m => m.Unplaced)];
         LegendEntry[] legend = [.. LegendLines(plan, saved).Select(line => new LegendEntry(
             palette[line.Destination],
             line.Destination,
-            line.Scu,
-            placements[line.Destination].All(p => p.Delivered),
-            Markings(saved, line.Destination, duplicates, line.Missions),
-            Markings(saved, line.Destination, reserveDuplicates, line.Missions),
+            line.Crates.Sum(c => (int)c.CrateSize),
+            line.Crates.All(c => c.Delivered),
+            Markings(saved, line.Destination, duplicates, line.Mission),
+            Markings(saved, line.Destination, reserveDuplicates, line.Mission),
             line.Header,
-            line.PickupCrates))];
+            line.Mission,
+            [.. line.Crates.Where(c => !c.Delivered)],
+            line.MissionCrates,
+            line.Grouped))];
 
         return new ShipScene(
             racks,
@@ -71,48 +76,49 @@ public static class ShipViewBuilder
     }
 
     /// <summary>
-    /// The legend's lines (T7.4d, D68): one per destination in the route without any pickup in the plan, as before;
-    /// otherwise one per pickup list and destination, lists in the order they first appear along the route, a list's
-    /// destinations in route order, the header on its first line. A list is a set of places, any case. With more than one
-    /// mission on board, a header with a pickup carries that pickup's crates on board for its check box.
+    /// The legend's lines (B6, D69): one per mission and destination, missions in the order they first appear along the
+    /// route (D64), on a tie in the plan's mission order, a mission's destinations in route order. Once any mission on
+    /// board has a pickup, the first line of each mission carries its header ("From A, B" from every item's pickup, or
+    /// "From ?") and the mission's crates on board for the header's check box; without any, no line has a header.
     /// </summary>
-    private static IEnumerable<(string? Header, string Destination, int Scu, IReadOnlySet<int>? Missions, IReadOnlyList<Crate>? PickupCrates)> LegendLines(
+    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped)> LegendLines(
         LoadPlan plan, SavedPlan? saved)
     {
-        var crates = plan.Route.SelectMany(d => plan.Crates.Where(c => c.Destination == d))
-            .Select(c => (Crate: c, Pickup: saved?.Missions.FirstOrDefault(m => m.Id == c.Mission)?.Items.ElementAtOrDefault(c.Item).Item?.Pickup))
+        var rank = plan.Route.Select((destination, index) => (destination, index)).ToDictionary(r => r.destination, r => r.index);
+        var listed = saved?.Missions.Select((mission, index) => (mission.Id, index)).ToDictionary(m => m.Id, m => m.index) ?? [];
+        var pickups = saved?.Missions.ToDictionary(m => m.Id, m => Pickups.Normalized(m.Items.SelectMany(i => i.Item.Pickup ?? []))) ?? [];
+        var missions = plan.Crates.GroupBy(c => c.Mission)
+            .OrderBy(m => m.Min(c => rank[c.Destination]))
+            .ThenBy(m => listed.GetValueOrDefault(m.Key))
             .ToArray();
-        if (crates.All(c => c.Pickup is null))
-        {
-            return plan.Route.Select(d => (
-                (string?)null, d, crates.Where(c => c.Crate.Destination == d).Sum(c => (int)c.Crate.CrateSize), (IReadOnlySet<int>?)null, (IReadOnlyList<Crate>?)null));
-        }
+        var headed = missions.Any(m => pickups.GetValueOrDefault(m.Key) is not null);
 
-        var checkable = plan.Crates.Where(c => !c.Delivered).Select(c => c.Mission).Distinct().Count() > 1;
-        return crates.GroupBy(c => c.Pickup is { } pickup ? string.Join('\n', pickup.Select(p => p.ToUpperInvariant()).Order(StringComparer.Ordinal)) : "")
-            .SelectMany(list => list.GroupBy(c => c.Crate.Destination).Select((stop, index) => (
-                index == 0 ? (list.First().Pickup is { } pickup ? FromText + string.Join(", ", pickup) : "") : null,
+        return missions.SelectMany(mission =>
+        {
+            Crate[] onBoard = [.. mission.Where(c => !c.Delivered)];
+            return mission.GroupBy(c => c.Destination).OrderBy(d => rank[d.Key]).Select((stop, index) => (
+                headed && index == 0 ? FromText + (pickups.GetValueOrDefault(mission.Key) is { } pickup ? string.Join(", ", pickup) : UnknownPickupText) : null,
+                mission.Key,
                 stop.Key,
-                stop.Sum(c => (int)c.Crate.CrateSize),
-                (IReadOnlySet<int>?)stop.Select(c => c.Crate.Mission).ToHashSet(),
-                index == 0 && checkable && list.First().Pickup is not null
-                    ? (IReadOnlyList<Crate>?)[.. list.Select(c => c.Crate).Where(c => !c.Delivered)]
-                    : null)));
+                (IReadOnlyList<Crate>)[.. stop],
+                headed && index == 0 && onBoard.Length > 0 ? (IReadOnlyList<Crate>?)onBoard : null,
+                headed));
+        });
     }
 
     /// <summary>
-    /// What is uncertain about the missions going to <paramref name="destination"/> (only those in <paramref name="only"/>,
-    /// if given), in a fixed order: the crate size first ("4 SCU?", it belongs to the quantity), then missing
+    /// What is uncertain about <paramref name="mission"/>'s cargo for <paramref name="destination"/> (every mission's in a
+    /// plan without missions), in a fixed order: the crate size first ("4 SCU?", it belongs to the quantity), then missing
     /// destinations, then a possible duplicate.
     /// </summary>
-    private static string Markings(SavedPlan? saved, string destination, IReadOnlySet<int> duplicates, IReadOnlySet<int>? only)
+    private static string Markings(SavedPlan? saved, string destination, IReadOnlySet<int> duplicates, int mission)
     {
         if (saved is null)
         {
             return "";
         }
 
-        Mission[] missions = [.. saved.Missions.Where(m => !m.Unplaced && m.Stops.Any(s => s.Destination == destination) && (only is null || only.Contains(m.Id)))];
+        Mission[] missions = [.. saved.Missions.Where(m => !m.Unplaced && m.Id == mission && m.Stops.Any(s => s.Destination == destination))];
         return Joined(
         [
             AssumedSizes(missions.Where(m => m.Contract?.CrateSizeAssumed == true).SelectMany(m => m.Stops.Where(s => s.Destination == destination))),

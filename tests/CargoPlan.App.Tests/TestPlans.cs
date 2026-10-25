@@ -25,6 +25,19 @@ internal static class TestPlans
 
     public static (Ship Ship, LoadPlan Plan) Load() => (ShipLoader.Load("hull_a"), SplitAndShared().Plan);
 
+    private const string HurstonPickupsName = "plans/hurston_2026-10-25.json";
+
+    /// <summary>
+    /// Martin's plan.json of 25 Oct (B6), as saved: missions 1–3 without pickup (mission 3 Waste to Everus Harbor),
+    /// mission 4 with ContractTracker's pickup text of id 38 uncleaned. The Import tests' fixture, linked.
+    /// </summary>
+    public static SavedPlan HurstonPickups()
+    {
+        using var stream = typeof(TestPlans).Assembly.GetManifestResourceStream(HurstonPickupsName)
+            ?? throw new InvalidOperationException($"Test resource '{HurstonPickupsName}' not found.");
+        return PlanFile.Read(stream, HurstonPickupsName, ShipLoader.Load("hull_a"));
+    }
+
     /// <summary>
     /// The split-and-shared plan with Shubin's 8 SCU crate in the full Rack 1, on top of Riker's crates: what a plan file
     /// edited by hand can hold. The planner and its moves never make it (D24); it loads and shows red.

@@ -18,8 +18,8 @@ namespace CargoPlan.App.ShipView;
 /// Mouse (rules in <see cref="DragGesture"/>): left drag turns and tilts the camera, a click on cargo ticks its stop off
 /// or back (D16), right click on a crate selects it or takes it out and on free space clears the selection, right drag
 /// on a crate puts it (and the selection it belongs to) on the cell under the cursor (D25), right drag elsewhere pans, wheel
-/// zooms around the cursor, double-click on free or empty space resets, hover shows the crate. A stop line of the legend
-/// starts its drag here too (<see cref="StartStopDrag"/>). Left clicks are handled here, so the window's DragMove only
+/// zooms around the cursor, double-click on free or empty space resets, hover shows the crate. A line or header of the
+/// legend starts its drag here too (<see cref="StartLegendDrag"/>). Left clicks are handled here, so the window's DragMove only
 /// works outside the view (D15). While the mouse is captured, a poll of the cursor drives the drag once per frame: with
 /// Star Citizen in front no mouse moves arrive (D45).
 /// </summary>
@@ -98,9 +98,9 @@ public sealed class ShipViewControl : FrameworkElement
         typeof(ICommand),
         typeof(ShipViewControl));
 
-    /// <summary>Runs with a <see cref="Gesture.MoveStop"/> when a legend line is dropped onto a rack.</summary>
-    public static readonly DependencyProperty MoveStopCommandProperty = DependencyProperty.Register(
-        nameof(MoveStopCommand),
+    /// <summary>Runs with a <see cref="Gesture.MoveLegend"/> when a legend line or a mission's header is dropped onto a rack.</summary>
+    public static readonly DependencyProperty MoveLegendCommandProperty = DependencyProperty.Register(
+        nameof(MoveLegendCommand),
         typeof(ICommand),
         typeof(ShipViewControl));
 
@@ -175,10 +175,10 @@ public sealed class ShipViewControl : FrameworkElement
         set => SetValue(MoveCratesCommandProperty, value);
     }
 
-    public ICommand? MoveStopCommand
+    public ICommand? MoveLegendCommand
     {
-        get => (ICommand?)GetValue(MoveStopCommandProperty);
-        set => SetValue(MoveStopCommandProperty, value);
+        get => (ICommand?)GetValue(MoveLegendCommandProperty);
+        set => SetValue(MoveLegendCommandProperty, value);
     }
 
     public CrateSelection Selection
@@ -247,21 +247,20 @@ public sealed class ShipViewControl : FrameworkElement
     } = true;
 
     /// <summary>
-    /// Starts the right drag of a legend line (D25): the window's legend calls it on a right press, the drag runs here
-    /// with the mouse captured, and a release over a rack runs <see cref="MoveStopCommand"/>. Ignored while locked or
-    /// while another drag runs.
+    /// Starts the right drag of a legend line or a mission's header (D25, B6): the window's legend calls it on a right
+    /// press with the crates on board it holds, the drag runs here with the mouse captured, and a release over a rack runs
+    /// <see cref="MoveLegendCommand"/>. Ignored without crates, while locked or while another drag runs.
     /// </summary>
-    public void StartStopDrag(string destination, MouseButtonEventArgs e)
+    public void StartLegendDrag(IReadOnlyList<Crate> crates, MouseButtonEventArgs e)
     {
-        if (!IsNavigationEnabled || _drag is not null || Scene is not { } scene)
+        if (!IsNavigationEnabled || _drag is not null || Scene is null || crates.Count == 0)
         {
             return;
         }
 
         e.Handled = true;
         ShowToolTip(null);
-        Crate[] onBoard = [.. scene.Plan.Crates.Where(c => c.Destination == destination && !c.Delivered)];
-        _drag = new Drag(MouseButton.Right, null, onBoard, destination, e.GetPosition(this), IsMoving: false, Gesture: null, Key: null, Outcome: null);
+        _drag = new Drag(MouseButton.Right, null, crates, IsLegend: true, e.GetPosition(this), IsMoving: false, Gesture: null, Key: null, Outcome: null);
         CaptureForDrag(MouseButton.Right);
     }
 
@@ -297,10 +296,10 @@ public sealed class ShipViewControl : FrameworkElement
         // Only once the drag has left the drag rectangle: a right click alone changes nothing on screen.
         var drag = _drag is { IsMoving: true } moving ? moving : (Drag?)null;
 
-        // The target rack's edge: always for a stop, for crates only while the preview leaves the layout to the drop (D65).
+        // The target rack's edge: always for a legend drag, for crates only while the preview leaves the layout to the drop (D65).
         var target = drag?.Gesture switch
         {
-            Gesture.MoveStop stop => stop.TargetRackId,
+            Gesture.MoveLegend legend => legend.TargetRackId,
             Gesture.MoveCrates crates when drag.Value.Outcome?.Stage == MoveStage.Pending => crates.RackId,
             _ => null,
         };
@@ -572,7 +571,7 @@ public sealed class ShipViewControl : FrameworkElement
                 break;
 
             // Moving cargo: the ship stands still; redraw only when the fade starts or the target or its reason change.
-            case Gesture.MoveCrates or Gesture.MoveStop or Gesture.None
+            case Gesture.MoveCrates or Gesture.MoveLegend or Gesture.None
                 when !drag.IsMoving || !Equals(TargetOf(gesture), TargetOf(drag.Gesture)) || outcome != drag.Outcome:
                 InvalidateVisual();
                 ShowToolTip(outcome is { } shown && TargetRack(gesture) is { } rack ? CrateDrop.Text(shown, rack) : null);
@@ -580,11 +579,14 @@ public sealed class ShipViewControl : FrameworkElement
         }
     }
 
-    /// <summary>What the preview of <paramref name="gesture"/> depends on: the crate drag's key, the stop and its rack; null for anything else.</summary>
+    /// <summary>
+    /// What the preview of <paramref name="gesture"/> depends on: the crate drag's key, the legend drag's crates and rack
+    /// (the drag's own list, so equal while it runs); null for anything else.
+    /// </summary>
     private object? PreviewKey(Gesture gesture) => gesture switch
     {
         Gesture.MoveCrates move when Scene is { } scene => CrateDrop.KeyOf(scene.Ship, move),
-        Gesture.MoveStop move => move,
+        Gesture.MoveLegend move => move,
         _ => null,
     };
 
@@ -592,12 +594,12 @@ public sealed class ShipViewControl : FrameworkElement
     private MoveOutcome? Preview(Gesture gesture) => (gesture, Scene) switch
     {
         (Gesture.MoveCrates move, { } scene) => CrateDrop.Outcome(scene.Plan, scene.Ship, move, CrateDrop.PreviewStage),
-        (Gesture.MoveStop move, { } scene) => CrateDrop.StopOutcome(scene.Plan, scene.Ship, move, CrateDrop.PreviewStage),
+        (Gesture.MoveLegend move, { } scene) => CrateDrop.LegendOutcome(scene.Plan, scene.Ship, move, CrateDrop.PreviewStage),
         _ => null,
     };
 
     private Rack? TargetRack(Gesture gesture) =>
-        Scene is { } scene && gesture switch { Gesture.MoveCrates move => move.RackId, Gesture.MoveStop move => move.TargetRackId, _ => null } is { } rackId
+        Scene is { } scene && gesture switch { Gesture.MoveCrates move => move.RackId, Gesture.MoveLegend move => move.TargetRackId, _ => null } is { } rackId
             ? scene.Ship.Racks.Single(r => r.Id == rackId)
             : null;
 
@@ -668,7 +670,7 @@ public sealed class ShipViewControl : FrameworkElement
     private static object? TargetOf(Gesture? gesture) => gesture switch
     {
         Gesture.MoveCrates move => (move.RackId, move.Position),
-        Gesture.MoveStop move => move.TargetRackId,
+        Gesture.MoveLegend move => move.TargetRackId,
         _ => null,
     };
 
@@ -682,8 +684,8 @@ public sealed class ShipViewControl : FrameworkElement
     private Gesture Resolve(Drag drag, Point position, bool moved)
     {
         var current = HitAt(position);
-        return drag.Stop is { } stop
-            ? DragGesture.ResolveStop(stop, moved, current)
+        return drag.IsLegend
+            ? DragGesture.ResolveLegend(drag.Dragged, moved, current)
             : DragGesture.Resolve(drag.Button, drag.Down, moved, current, drag.Dragged.Count > 0 ? DropAt(position, current, drag.Dragged) : null, Selection.In(Scene));
     }
 
@@ -764,7 +766,7 @@ public sealed class ShipViewControl : FrameworkElement
         ShowToolTip(null);
         var position = e.GetPosition(this);
         var down = HitAt(position);
-        _drag = new Drag(button, down, DragGesture.DraggedCrates(button, down, Selection.In(Scene)), Stop: null, position, IsMoving: false, Gesture: null, Key: null, Outcome: null);
+        _drag = new Drag(button, down, DragGesture.DraggedCrates(button, down, Selection.In(Scene)), IsLegend: false, position, IsMoving: false, Gesture: null, Key: null, Outcome: null);
         CaptureForDrag(button);
     }
 
@@ -809,8 +811,8 @@ public sealed class ShipViewControl : FrameworkElement
             case Gesture.MoveCrates move:
                 Run(MoveCratesCommand, move);
                 break;
-            case Gesture.MoveStop move:
-                Run(MoveStopCommand, move);
+            case Gesture.MoveLegend move:
+                Run(MoveLegendCommand, move);
                 break;
             case Gesture.ToggleSelect toggle when Scene is { } scene:
                 Pick(Selection.Toggle(scene, toggle.Crate));
@@ -950,9 +952,9 @@ public sealed class ShipViewControl : FrameworkElement
     /// <param name="Down">What lay under the cursor when the button went down; with the button it decides the gesture.</param>
     /// <param name="Dragged">
     /// The crates the drag holds, drawn faded: what a right press picked up (<see cref="DragGesture.DraggedCrates"/>),
-    /// or a stop's crates on board; empty for orbit and pan.
+    /// or a legend line's or header's crates on board; empty for orbit and pan.
     /// </param>
-    /// <param name="Stop">The destination of a legend line being dragged (<see cref="StartStopDrag"/>); null for a drag in the view.</param>
+    /// <param name="IsLegend">The drag came from the legend (<see cref="StartLegendDrag"/>), not from the view.</param>
     /// <param name="From">Where the button went down until the drag moves, then the last position.</param>
     /// <param name="IsMoving">Left the drag rectangle; until then, releasing the button is a click.</param>
     /// <param name="Gesture">What the drag means at the last position; drawn as ghost or cyan rack.</param>
@@ -962,7 +964,7 @@ public sealed class ShipViewControl : FrameworkElement
         MouseButton Button,
         SceneHit? Down,
         IReadOnlyList<Crate> Dragged,
-        string? Stop,
+        bool IsLegend,
         Point From,
         bool IsMoving,
         Gesture? Gesture,

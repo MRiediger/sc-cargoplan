@@ -7,7 +7,7 @@ using CargoPlan.Core.Ships;
 
 namespace CargoPlan.App.Tests;
 
-/// <summary>What a crate selection shows (T7.4d, D68): the info line for one crate, its missions framed, the rest dimmed.</summary>
+/// <summary>What a crate selection shows (T7.4d, D68, B6): the info line for one crate, its missions framed, the rest dimmed.</summary>
 public class SelectionFocusTests
 {
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
@@ -47,11 +47,12 @@ public class SelectionFocusTests
     }
 
     [Fact]
-    public void Without_pickup_the_line_names_commodity_and_destination()
+    public void Without_pickup_the_line_says_from_where_is_not_known()
     {
+        // B6 (D69): "from ?" like the legend's "From ?", so the line always reads the same way.
         var saved = TwoRikers();
 
-        SelectionFocus.InfoLine(saved, new HashSet<Crate> { CrateOf(saved, 3, "Gold") }).Should().Be("Gold · to Orison");
+        SelectionFocus.InfoLine(saved, new HashSet<Crate> { CrateOf(saved, 3, "Gold") }).Should().Be("from ? · Gold · to Orison");
     }
 
     [Fact]

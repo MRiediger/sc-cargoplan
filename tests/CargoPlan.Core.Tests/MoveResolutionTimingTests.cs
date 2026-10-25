@@ -74,7 +74,8 @@ public class MoveResolutionTimingTests(ITestOutputHelper output)
         var largest = plan.Crates.Where(c => !c.Delivered).GroupBy(c => c.Destination).MaxBy(g => g.Sum(c => (int)c.CrateSize))!.Key;
         foreach (var rack in racks)
         {
-            rows.Add(Timed($"legend {largest} → rack {rack.Number}", null, upTo => LoadPlanner.ResolveStopMove(plan, ship, largest, rack.Id, upTo)));
+            Crate[] line = [.. plan.Crates.Where(c => c.Destination == largest && !c.Delivered)];
+            rows.Add(Timed($"legend {largest} → rack {rack.Number}", null, upTo => LoadPlanner.ResolveMoveToRack(plan, ship, line, rack.Id, upTo)));
         }
 
         output.WriteLine($"| {name} | gesture | stage | full ms | preview ms |");

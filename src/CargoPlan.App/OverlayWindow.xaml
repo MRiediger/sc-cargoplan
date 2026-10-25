@@ -23,7 +23,7 @@
     <!-- MinWidth/MinHeight: header, a small ship view and the legend stay visible; restoring saved bounds uses them too. -->
     <Window.Resources>
         <sv:PaletteBrushConverter x:Key="PaletteBrushConverter" />
-        <sv:PickupCheckedConverter x:Key="PickupCheckedConverter" />
+        <sv:LegendCheckedConverter x:Key="LegendCheckedConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <!-- Theme values are DynamicResources from settings.json (ThemeResources, D31), so the settings window can change
              them while the overlay is open (T4.2). A halo that is off has no resource: Effect stays null. -->
@@ -54,6 +54,41 @@
                         <Border Background="{StaticResource HitTestBackgroundBrush}">
                             <ContentPresenter VerticalAlignment="Center" />
                         </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- A legend check box (B6, D69): selects crates, in grey (MissionPalette.CheckBoxBrush); a ticked line has no box.
+             Ticked = all selected, a bar = part of them. Three states only with IsThreeState
+             (source: https://learn.microsoft.com/dotnet/api/system.windows.controls.primitives.togglebutton.isthreestate);
+             the click's own next state doesn't matter, ToggleCratesCommand changes the selection and the binding shows it. -->
+        <Style x:Key="LegendCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="Width" Value="12" />
+            <Setter Property="Height" Value="12" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="IsThreeState" Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border BorderBrush="{x:Static sv:MissionPalette.CheckBoxBrush}" BorderThickness="1.5"
+                                Background="{StaticResource HitTestBackgroundBrush}">
+                            <Grid>
+                                <Path x:Name="Mark" Data="M 1.5,4.5 L 3.8,7 L 7.5,1.5" Stroke="{x:Static sv:MissionPalette.CheckBoxBrush}"
+                                      StrokeThickness="1.5" Visibility="Hidden" />
+                                <Rectangle x:Name="Part" Width="5" Height="1.5" Fill="{x:Static sv:MissionPalette.CheckBoxBrush}" Visibility="Hidden" />
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="{x:Null}">
+                                <Setter TargetName="Part" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -467,66 +502,74 @@
                         <ItemsControl.ItemTemplate>
                             <!-- The command replaces the plan, so the legend is rebuilt and the grey comes from the new entry. -->
                             <DataTemplate DataType="{x:Type sv:LegendEntry}">
-                                <!-- "From A, B" over the first line of a pickup list (T7.4d, D68): no tick of its own, it goes with
-                                     the stop lines when the legend is hidden (D33). "" keeps an empty line for items without pickup.
-                                     With more than one mission on board a check box in the swatch column selects the pickup's crates;
-                                     it shows ticked while all of them are selected (PickupCheckedConverter). -->
+                                <!-- "From A, B" or "From ?" over the first line of a mission once any mission has a pickup (B6,
+                                     D69): no tick of its own, it goes with the lines when the legend is hidden (D33). Its check box
+                                     selects the mission's crates on board, a right drag of the header moves them. Each line has a
+                                     check box of its own for its crates, outside the line's button: a click on the box selects, a
+                                     click on the line ticks, a right drag of the line moves its crates. A box shows ticked while all
+                                     its crates are selected, a bar for part (LegendCheckedConverter). -->
                                 <StackPanel>
-                                    <StackPanel x:Name="HeaderRow" Orientation="Horizontal">
-                                        <CheckBox x:Name="PickupCheck" Width="12" Height="12" Margin="0,0,6,0" VerticalAlignment="Center"
-                                                  Focusable="False" Cursor="Hand"
-                                                  Command="{Binding DataContext.TogglePickupCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                  CommandParameter="{Binding Mode=OneTime}">
+                                    <StackPanel x:Name="HeaderRow" Orientation="Horizontal" Background="{StaticResource HitTestBackgroundBrush}"
+                                                MouseRightButtonDown="OnLegendHeaderRightButtonDown">
+                                        <CheckBox x:Name="MissionCheck" Style="{StaticResource LegendCheckBoxStyle}"
+                                                  Command="{Binding DataContext.ToggleCratesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  CommandParameter="{Binding MissionCrates, Mode=OneTime}">
                                             <CheckBox.IsChecked>
-                                                <MultiBinding Converter="{StaticResource PickupCheckedConverter}" Mode="TwoWay">
-                                                    <Binding Mode="OneWay" />
+                                                <MultiBinding Converter="{StaticResource LegendCheckedConverter}" Mode="TwoWay">
+                                                    <Binding Path="MissionCrates" Mode="OneWay" />
                                                     <Binding Path="DataContext.Selection" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
                                                     <Binding Path="DataContext.Scene" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
                                                 </MultiBinding>
                                             </CheckBox.IsChecked>
-                                            <CheckBox.Template>
-                                                <ControlTemplate TargetType="CheckBox">
-                                                    <Border BorderBrush="{DynamicResource LegendForegroundBrush}" BorderThickness="1"
-                                                            Background="{StaticResource HitTestBackgroundBrush}">
-                                                        <Path x:Name="Mark" Data="M 1.5,5 L 4,7.5 L 8.5,2" Stroke="{DynamicResource LegendForegroundBrush}"
-                                                              StrokeThickness="1.5" Visibility="Hidden" />
-                                                    </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsChecked" Value="True">
-                                                            <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </CheckBox.Template>
                                         </CheckBox>
                                         <TextBlock Text="{Binding Header, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
                                     </StackPanel>
-                                    <Button Command="{Binding DataContext.ToggleDeliveredCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                            CommandParameter="{Binding Destination, Mode=OneTime}"
-                                            Style="{StaticResource LegendLineButtonStyle}"
-                                            MouseRightButtonDown="OnLegendRightButtonDown">
-                                        <StackPanel Orientation="Horizontal">
-                                            <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0"
-                                                       Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
-                                            <!-- The reserve (the label with nothing delivered) lies hidden under it: a tick that takes a
-                                                 marking away keeps the line's width, so the block doesn't move (D16, D33). -->
-                                            <Grid>
-                                                <TextBlock Text="{Binding ReserveLabel, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" Visibility="Hidden" />
-                                                <TextBlock x:Name="LabelText" Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
-                                            </Grid>
-                                        </StackPanel>
-                                    </Button>
+                                    <StackPanel x:Name="LineRow" Orientation="Horizontal">
+                                        <CheckBox x:Name="LineCheck" Style="{StaticResource LegendCheckBoxStyle}"
+                                                  Command="{Binding DataContext.ToggleCratesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                  CommandParameter="{Binding Crates, Mode=OneTime}">
+                                            <CheckBox.IsChecked>
+                                                <MultiBinding Converter="{StaticResource LegendCheckedConverter}" Mode="TwoWay">
+                                                    <Binding Path="Crates" Mode="OneWay" />
+                                                    <Binding Path="DataContext.Selection" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                    <Binding Path="DataContext.Scene" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                </MultiBinding>
+                                            </CheckBox.IsChecked>
+                                        </CheckBox>
+                                        <!-- A click ticks this line, one mission's crates for one destination (B6, D69); a click on a
+                                             crate in the ship view ticks the whole stop. -->
+                                        <Button Command="{Binding DataContext.ToggleLineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding Mode=OneTime}"
+                                                Style="{StaticResource LegendLineButtonStyle}"
+                                                MouseRightButtonDown="OnLegendRightButtonDown">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0"
+                                                           Fill="{Binding PaletteIndex, Converter={StaticResource PaletteBrushConverter}}" />
+                                                <!-- The reserve (the label with nothing delivered) lies hidden under it: a tick that takes a
+                                                     marking away keeps the line's width, so the block doesn't move (D16, D33). -->
+                                                <Grid>
+                                                    <TextBlock Text="{Binding ReserveLabel, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" Visibility="Hidden" />
+                                                    <TextBlock x:Name="LabelText" Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
                                 </StackPanel>
                                 <!-- Template triggers outrank values set in the template, so the grey wins over the bound colour.
+                                     Hidden, not collapsed, boxes keep their column, so swatches and headers stay aligned.
                                      Source: https://learn.microsoft.com/dotnet/desktop/wpf/properties/dependency-property-value-precedence -->
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding Header}" Value="{x:Null}">
                                         <Setter TargetName="HeaderRow" Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
-                                    <DataTrigger Binding="{Binding PickupCrates}" Value="{x:Null}">
-                                        <Setter TargetName="PickupCheck" Property="Visibility" Value="Collapsed" />
+                                    <DataTrigger Binding="{Binding MissionCrates}" Value="{x:Null}">
+                                        <Setter TargetName="MissionCheck" Property="Visibility" Value="Hidden" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Grouped}" Value="True">
+                                        <Setter TargetName="LineRow" Property="Margin" Value="18,0,0,0" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Delivered}" Value="True">
+                                        <Setter TargetName="LineCheck" Property="Visibility" Value="Hidden" />
                                         <Setter TargetName="Swatch" Property="Fill" Value="{x:Static sv:MissionPalette.DeliveredBrush}" />
                                         <Setter TargetName="LabelText" Property="Foreground" Value="{StaticResource DeliveredForegroundBrush}" />
                                         <Setter TargetName="LabelText" Property="TextDecorations" Value="Strikethrough" />
@@ -591,7 +634,7 @@
                                     Scene="{Binding Scene, Mode=OneWay}"
                                     ToggleStopCommand="{Binding ToggleDeliveredCommand, Mode=OneTime}"
                                     MoveCratesCommand="{Binding MoveCratesCommand, Mode=OneTime}"
-                                    MoveStopCommand="{Binding MoveStopCommand, Mode=OneTime}"
+                                    MoveLegendCommand="{Binding MoveLegendCommand, Mode=OneTime}"
                                     Selection="{Binding Selection}"
                                     CrateFillAlpha="{DynamicResource CratesFillAlpha}"
                                     CrateEdgeBrush="{DynamicResource CratesEdgeBrush}"

@@ -89,6 +89,15 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public static string? StopsMergedText(IReadOnlyList<(string From, string To)> merged) =>
         merged.Count == 0 ? null : StopsMergedPrefix + string.Join(", ", merged.Select(m => $"{m.From} → {m.To}"));
 
+    public const string PickupsCleanedPrefix = "Pickups cleaned: ";
+
+    /// <summary>
+    /// The notice for pickups cut to their names on loading (B6): the names they became, never the text cut off; null if
+    /// none was.
+    /// </summary>
+    public static string? PickupsCleanedText(IReadOnlyList<string> cleaned) =>
+        cleaned.Count == 0 ? null : PickupsCleanedPrefix + string.Join(", ", cleaned);
+
     /// <summary>What the overlay asks before a ship change with a plan (D59).</summary>
     public static string ReplanQuestionText(string ship) =>
         $"Replan for {ship}? Crate positions change and manual moves are lost; split crates keep their sizes.";
@@ -376,7 +385,10 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         // A plan from before B1 may hold two names of one place; the editor's plans never do.
         var unified = DestinationNames.Unify(saved, Ship, []);
         SetNotice(NoticeSource.Stops, StopsMergedText(unified.Merged));
-        Saved = unified.Saved;
+        // A plan from T7.4d may hold ContractTracker's pickup text as read; saved cleaned, so it says so once (B6).
+        var cleaned = PickupNames.Clean(unified.Saved);
+        SetNotice(NoticeSource.Pickups, PickupsCleanedText(cleaned.Cleaned));
+        Saved = cleaned.Saved;
         SetNotice(NoticeSource.Move, null);
         if (_contractTrackerPaused)
         {
@@ -396,8 +408,8 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             return null;
         }
 
-        // A stop under two pickup headers is one stop (D68).
-        var ticked = Scene.Legend.Where(l => l.Delivered).Select(l => l.Destination).Distinct().Count();
+        // A stop is ticked once every line of it is (B6): only those keep their tick on the other ship (D59).
+        var ticked = Scene.Legend.GroupBy(l => l.Destination).Count(stop => stop.All(l => l.Delivered));
         return ticked == 0
             ? ReplanQuestionText(ship.Name)
             : ReplanQuestionText(ship.Name) + Environment.NewLine + TicksStayText(ticked);
@@ -472,6 +484,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []));
         var unified = DestinationNames.Unify(current, Ship, [.. result.Candidates.Select(c => c.ToCapture())]);
         SetNotice(NoticeSource.Stops, StopsMergedText(unified.Merged));
+        SetNotice(NoticeSource.Pickups, null);
         var applied = ContractSync.Apply(unified.Saved, Ship, unified.Captures, result.Present, result.DatabaseLooksNew);
         if (!ReferenceEquals(applied, current))
         {
@@ -604,32 +617,54 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     [RelayCommand]
     private void ToggleOverlay() => IsOverlayHidden = !IsOverlayHidden;
 
-    /// <summary>The check box at a pickup header of the legend: selects that pickup's crates, or takes them out (T7.4d).</summary>
+    /// <summary>
+    /// A check box in the legend (B6, D69): selects a line's or a mission header's crates on board, or takes them out
+    /// once all are selected; the rest of the selection stays. The same selection as a right click in the view (D25), so
+    /// the same drag moves it.
+    /// </summary>
     [RelayCommand]
-    private void TogglePickup(LegendEntry entry)
+    private void ToggleCrates(IReadOnlyList<Crate>? crates)
     {
-        if (entry.PickupCrates is { } crates)
+        if (crates is { Count: > 0 })
         {
             Selection = SelectionFocus.Toggled(Selection, Scene, crates);
         }
     }
 
     /// <summary>
-    /// Ticks a stop off in the legend, or back after a misclick: the whole stop, split parts included (D16). Ticking back
+    /// Ticks a stop off, or back after a misclick: the whole stop, split parts and every mission included (D16); run by a
+    /// click on a crate in the ship view, where the station is the unit of unloading at the elevator (D69). Ticking back
     /// is refused once another crate took a cell of the stop (D24 addendum); the reason goes to the notice line, like a
-    /// refused move. A method parameter makes the generator write an <c>IRelayCommand&lt;string&gt;</c>; the legend passes
+    /// refused move. A method parameter makes the generator write an <c>IRelayCommand&lt;string&gt;</c>; the view passes
     /// the destination.
     /// </summary>
     // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand#command-parameters
     [RelayCommand]
     private void ToggleDelivered(string destination)
     {
-        // Unreachable without a plan: the legend has no lines then.
+        // Unreachable without a plan: the view has no cargo then.
         var plan = Plan ?? throw new InvalidOperationException(NoPlanText);
         var delivered = plan.PlacementsForStop(destination).All(p => p.Delivered);
+        Tick(() => LoadPlanner.SetDelivered(plan, Ship, destination, !delivered));
+    }
+
+    /// <summary>
+    /// Ticks a legend line off, or back: one mission's crates for one destination (B6, D69), the fine control next to the
+    /// view's whole stop. Refused like <see cref="ToggleDelivered"/>.
+    /// </summary>
+    [RelayCommand]
+    private void ToggleLine(LegendEntry line)
+    {
+        // Unreachable without a plan: the legend has no lines then.
+        var plan = Plan ?? throw new InvalidOperationException(NoPlanText);
+        Tick(() => LoadPlanner.SetDelivered(plan, Ship, line.Destination, line.Mission, !line.Delivered));
+    }
+
+    private void Tick(Func<LoadPlan> tick)
+    {
         try
         {
-            Saved = WithCrates(LoadPlanner.SetDelivered(plan, Ship, destination, !delivered));
+            Saved = WithCrates(tick());
             SetNotice(NoticeSource.Move, null);
         }
         catch (PlanException ex)
@@ -647,9 +682,12 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     [RelayCommand]
     private void MoveCrates(Gesture.MoveCrates move) => Apply(plan => CrateDrop.Outcome(plan, Ship, move));
 
-    /// <summary>Puts a whole stop into a rack, run by a right drag of its legend line into the ship view (D25); like <see cref="MoveCrates"/>.</summary>
+    /// <summary>
+    /// Puts a legend line's or a mission header's crates into a rack, run by a right drag from the legend into the ship view
+    /// (D25, B6); atomic like a selection, like <see cref="MoveCrates"/>.
+    /// </summary>
     [RelayCommand]
-    private void MoveStop(Gesture.MoveStop move) => Apply(plan => CrateDrop.StopOutcome(plan, Ship, move));
+    private void MoveLegend(Gesture.MoveLegend move) => Apply(plan => CrateDrop.LegendOutcome(plan, Ship, move));
 
     private void Apply(Func<LoadPlan, MoveOutcome> resolve)
     {

@@ -162,26 +162,31 @@ public class DragGestureTests
         DragGesture.DraggedCrates(MouseButton.Left, Cargo, BothSelected).Should().BeEmpty();
     }
 
-    // --- A stop line dragged from the legend (D25) ---
+    // --- A legend line or header dragged from the legend (D25, B6) ---
+
+    private static readonly Crate[] LineCrates = [new("Shubin", "Agricium", CrateSize.Four, "rack-1", new GridPosition(0, 0, 0), Mission: 2)];
 
     [Theory]
     [InlineData("cargo")]
     [InlineData("delivered")]
     [InlineData("free")]
-    public void A_stop_dropped_onto_a_rack_moves_there(string hit)
+    public void A_legend_line_dropped_onto_a_rack_moves_exactly_its_crates_there(string hit)
     {
-        DragGesture.ResolveStop("Shubin", moved: true, Hit(hit)).Should().Be(new Gesture.MoveStop("Shubin", Hit(hit)!.RackId));
+        var gesture = DragGesture.ResolveLegend(LineCrates, moved: true, Hit(hit)).Should().BeOfType<Gesture.MoveLegend>().Subject;
+
+        gesture.Crates.Should().BeSameAs(LineCrates);
+        gesture.TargetRackId.Should().Be(Hit(hit)!.RackId);
     }
 
     [Fact]
-    public void A_stop_dropped_off_the_racks_does_nothing()
+    public void A_legend_line_dropped_off_the_racks_does_nothing()
     {
-        DragGesture.ResolveStop("Shubin", moved: true, null).Should().Be(new Gesture.None());
+        DragGesture.ResolveLegend(LineCrates, moved: true, null).Should().Be(new Gesture.None());
     }
 
     [Fact]
-    public void A_stop_line_pressed_without_moving_does_nothing()
+    public void A_legend_line_pressed_without_moving_does_nothing()
     {
-        DragGesture.ResolveStop("Shubin", moved: false, OtherRack).Should().Be(new Gesture.None());
+        DragGesture.ResolveLegend(LineCrates, moved: false, OtherRack).Should().Be(new Gesture.None());
     }
 }

@@ -367,14 +367,23 @@ public partial class OverlayWindow : Window
     }
 
     /// <summary>
-    /// A right press on a stop line starts its drag into the ship view, which moves the whole stop (D25). The view runs
-    /// the drag; a delivered stop is off the ship and stays. Left on the line stays the tick (D16).
+    /// A right press on a legend line starts its drag into the ship view, which moves the line's crates on board (D25, B6).
+    /// The view runs the drag; a ticked line has none and stays. Left on the line stays the tick (D16).
     /// </summary>
     private void OnLegendRightButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (sender is FrameworkElement { DataContext: LegendEntry { Delivered: false } entry })
+        if (sender is FrameworkElement { DataContext: LegendEntry entry })
         {
-            ShipView.StartStopDrag(entry.Destination, e);
+            ShipView.StartLegendDrag(entry.Crates, e);
+        }
+    }
+
+    /// <summary>A right press on a mission's header starts the drag of all its crates on board (B6), like a line's.</summary>
+    private void OnLegendHeaderRightButtonDown(object sender, MouseButtonEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: LegendEntry { MissionCrates: { } crates } })
+        {
+            ShipView.StartLegendDrag(crates, e);
         }
     }
 

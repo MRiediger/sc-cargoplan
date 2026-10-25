@@ -114,7 +114,7 @@ public class ShipViewBuilderTests
     [Fact]
     public void Legend_label_reads_stop_and_SCU()
     {
-        new LegendEntry(0, "Riker", 20).Label.Should().Be("Riker · 20 SCU");
+        new LegendEntry(0, "Riker", 20).Label.Should().Be("To Riker · 20 SCU");
     }
 
     [Fact]
@@ -443,16 +443,26 @@ public class ShipViewBuilderTests
     {
         var saved = Captured(EmptySaved, new ContractSource([36], CrateSizeAssumed: true, ListedDestinations: 3), Stop("Riker"));
 
-        BuildSaved(saved).Legend.Single().Label.Should().Be("Riker · 4 SCU · 4 SCU? · ⚠ 1 of 3 destinations");
+        BuildSaved(saved).Legend.Single().Label.Should().Be("To Riker · 4 SCU · 4 SCU? · ⚠ 1 of 3 destinations");
     }
 
     [Fact]
-    public void Assumed_sizes_of_two_missions_at_one_stop_are_named_together()
+    public void Two_missions_at_one_stop_have_a_line_each_with_their_own_assumed_size()
     {
+        // B6 (D69): a line is mission + destination.
         var first = Captured(EmptySaved, new ContractSource([1], CrateSizeAssumed: true), Stop("Riker", "Stims", 4, CrateSize.Four));
         var saved = Captured(first, new ContractSource([2], CrateSizeAssumed: true), Stop("Riker", "Gold", 2, CrateSize.Two));
 
-        BuildSaved(saved).Legend.Single().Label.Should().Be("Riker · 6 SCU · 4/2 SCU?");
+        BuildSaved(saved).Legend.Select(e => e.Label).Should().Equal("To Riker · 4 SCU · 4 SCU?", "To Riker · 2 SCU · 2 SCU?");
+    }
+
+    [Fact]
+    public void Items_of_one_mission_with_two_max_sizes_are_named_together()
+    {
+        var saved = Captured(EmptySaved, new ContractSource([1], CrateSizeAssumed: true),
+            new MissionStop("Riker", 1, [new MissionItem("Stims", 4, CrateSize.Four), new MissionItem("Gold", 2, CrateSize.Two)]));
+
+        BuildSaved(saved).Legend.Single().Label.Should().Be("To Riker · 6 SCU · 4/2 SCU?");
     }
 
     [Fact]
@@ -460,7 +470,7 @@ public class ShipViewBuilderTests
     {
         var saved = Captured(EmptySaved, new ContractSource([36], ListedDestinations: 1), Stop("Riker"));
 
-        BuildSaved(saved).Legend.Single().Label.Should().Be("Riker · 4 SCU");
+        BuildSaved(saved).Legend.Single().Label.Should().Be("To Riker · 4 SCU");
     }
 
     [Fact]
@@ -468,11 +478,12 @@ public class ShipViewBuilderTests
     {
         var saved = Captured(Captured(EmptySaved, new ContractSource([1]), Stop("Riker"), Stop("Shubin")), new ContractSource([2]), Stop("Shubin"));
 
-        var shubin = BuildSaved(saved).Legend.Single(e => e.Destination == "Shubin");
-        var ticked = BuildSaved(Delivered(saved, "Riker")).Legend.Single(e => e.Destination == "Shubin");
+        // The marking stands on the line of the mission it concerns (D68), the later capture.
+        var shubin = BuildSaved(saved).Legend.Single(e => e is { Destination: "Shubin", Mission: 2 });
+        var ticked = BuildSaved(Delivered(saved, "Riker")).Legend.Single(e => e is { Destination: "Shubin", Mission: 2 });
 
-        shubin.Label.Should().Be("Shubin · 8 SCU · ⚠ duplicate?");
-        ticked.Label.Should().Be("Shubin · 8 SCU");
+        shubin.Label.Should().Be("To Shubin · 4 SCU · ⚠ duplicate?");
+        ticked.Label.Should().Be("To Shubin · 4 SCU");
         ticked.ReserveLabel.Should().Be(shubin.Label);
     }
 
@@ -505,15 +516,16 @@ public class ShipViewBuilderTests
     [Fact]
     public void The_legend_keeps_the_order_of_entry_and_a_stop_keeps_its_colour()
     {
-        // Riker delivered, a new Riker contract after Shubin: no route (D64), so Riker's line stays where it was.
+        // Riker delivered, a new Riker contract after Shubin: no route (D64), so Riker stays where it was; the new mission's
+        // line stands next to the delivered one, where Riker first appears (B6).
         var saved = Captured(Captured(EmptySaved, new ContractSource([1]), Stop("Riker")), new ContractSource([2]), Stop("Shubin"));
         var colour = BuildSaved(saved).Legend.Single(e => e.Destination == "Riker").PaletteIndex;
 
         var again = Captured(Delivered(saved, "Riker"), new ContractSource([3]), Stop("Riker", "Gold"));
 
         var legend = BuildSaved(again).Legend;
-        legend.Select(e => e.Destination).Should().Equal("Riker", "Shubin");
-        legend.Single(e => e.Destination == "Riker").PaletteIndex.Should().Be(colour);
+        legend.Select(e => (e.Destination, e.Mission, e.Delivered)).Should().Equal(("Riker", 1, true), ("Riker", 3, false), ("Shubin", 2, false));
+        legend.Where(e => e.Destination == "Riker").Should().OnlyContain(e => e.PaletteIndex == colour);
     }
 
     [Fact]

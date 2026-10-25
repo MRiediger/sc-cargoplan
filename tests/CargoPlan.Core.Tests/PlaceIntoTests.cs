@@ -178,7 +178,8 @@ public class PlaceIntoTests
         saved.Missions.Should().OnlyContain(m => !m.Unplaced);
         saved.Plan.Crates.Sum(c => (int)c.CrateSize).Should().Be(134);
         Uneven.Racks.Should().OnlyContain(r => saved.Plan.CratesForRack(r.Id).Count(c => c.CrateSize == CrateSize.ThirtyTwo) == 1);
-        LoadPlanner.Validate(saved.Plan, Uneven).Should().OnlyContain(w => w.Message.EndsWith("which is unloaded first"));
+        // No order findings since D64: Validate reports only what can't lie like this.
+        LoadPlanner.Validate(saved.Plan, Uneven).Should().BeEmpty();
     }
 
     [Fact]
