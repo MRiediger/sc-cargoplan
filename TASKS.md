@@ -1395,7 +1395,7 @@ Kleinstes Rack-Grid: fünf Schiffe mit 1 Zelle gleichauf, alle gemessen. Kopfzei
 **Präzisierung in der Planphase, ratifiziert durch Freigabe:** Überschriften nur, wenn irgendeine Mission einen Abholort hat (sonst flach, Zeilen trotzdem `To` und je Mission + Ziel); Kopf-Checkbox wählt die ganze Mission; zwei Abhak-Einheiten mit zwei Zwecken (Kistenklick in der Ansicht = ganzer Stop, Legendenzeile = Mission + Ziel); Abholort-Bereinigung beim Import und einmalig beim Laden (Notice `Pickups cleaned: …`, nur CT-Missionen); Regel „Herkunft nie als Ziel“ und Test „ct 4: kein Stop Everus Harbor“ entfallen (Befund 3); Missionen nach erstem Auftreten entlang der Route, bei Gleichstand Missionsreihenfolge; Legenden-Drag atomar wie eine Auswahl, die Teilverschiebung (D65/E1) fällt weg; D69 statt D68 (vergeben); Infozeile bleibt klein `from <Ort> · <Ware> · to <Ziel>`, ohne Abholort `from ?`; E1: Klick auf eine teilweise Checkbox wählt alles (`null → true → false`); E2: Stufe 3b bleibt im Gruppenlauf; Branch `fix/plan-rules` neu ab main (B1–B5 waren gemergt).
 - Core: `LoadPlanner.SetDelivered` mit Mission, `LoadPlanner.ResolveMoveToRack` (Kisten ohne Zelle durch `MoveResolution.Crates`); `MoveStop`, `ResolveStopMove`, `MoveResolution.Stop` entfernt
 - Import: `ContractText.NormalizePickup` (Listenstrich, Überschriften, dann `NormalizeDestination`), `PickupNames.Parse`/`Clean`
-- App: `ShipViewBuilder.LegendLines` je Mission + Ziel, `LegendEntry` mit `Mission`, `Crates`, `MissionCrates`, `Grouped`, Label `To …`; `ToggleLineCommand`, `ToggleCratesCommand`, `MoveLegendCommand`; `SelectionFocus.State`, `LegendCheckedConverter` (ersetzt `PickupCheckedConverter`), `MissionPalette.SelectionBrush`; `Gesture.MoveLegend`, `StartLegendDrag`; Notice-Quelle `Pickups`
+- App: `ShipViewBuilder.LegendLines` je Mission + Ziel, `LegendEntry` mit `Mission`, `Crates`, `MissionCrates`, `Grouped`, Label `To …`; `ToggleLineCommand`, `ToggleCratesCommand`, `MoveLegendCommand`; `SelectionFocus.State`, `LegendCheckedConverter` (ersetzt `PickupCheckedConverter`), `MissionPalette.CheckBoxBrush` (grau); `Gesture.MoveLegend`, `StartLegendDrag`; Notice-Quelle `Pickups`
 - Fixture: Martins plan.json vom 25.10. (`hurston_2026-10-25`, Import, in die App-Tests verlinkt)
 
 **Akzeptanz:**
@@ -1407,7 +1407,8 @@ Kleinstes Rack-Grid: fünf Schiffe mit 1 Zelle gleichauf, alle gemessen. Kopfzei
 - [x] Infozeile `from ? · …` ohne Abholort; Tooltip unverändert (`SceneHitTestTests` grün)
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 996, Import 141, App 1.130); Slow grün
 - Rot vor der Umsetzung: Commit 1 als Compile-Fehler in allen drei Testprojekten; in Commit 2 nur die umgezogenen Core-Tests, die App-Tests für Checkbox und Drag kamen nach dem Code (Lehre „erst rot sehen“ nicht ganz eingehalten).
-- [ ] Look Checkbox (Magenta) gegen Erledigt (grau), Einrückung der Zeilen (Taste-Gate Martin)
+- Nach dem ersten Blick (Martin): Checkboxen grau statt Magenta (`#B0B0B0`, Erledigt-Text `#8C8C8C`, abgehakte Zeilen ohne Kästchen). Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- [ ] Look der grauen Checkbox und Einrückung der Zeilen (Taste-Gate Martin)
 - Offen für Martin: Spieltest am Aufzug vor dem Merge (wie B1–B5).
 - Commits 1fec5d6 (Legende nach Mission, Bereinigung), d3422f9 (Checkbox, Drag), dieser (Doku).
 

@@ -95,10 +95,10 @@ public static class MissionPalette
     public static SolidColorBrush ViolationBrush { get; } = Frozen(Violation);
 
     /// <summary>
-    /// The legend's check boxes (B6, D69): the magenta of the selected crates, so a box reads as "selected", never as the
-    /// grey strike-through of a ticked line. A proposal for Martin's look gate.
+    /// The legend's check boxes (B6, D69, Martin after the look gate: grey, not the selection's magenta): lighter than the
+    /// grey of a ticked line's text, which has no box anyway, darker than the legend's text.
     /// </summary>
-    public static SolidColorBrush SelectionBrush { get; } = Frozen(Selection);
+    public static SolidColorBrush CheckBoxBrush { get; } = Frozen(Color.FromRgb(0xB0, 0xB0, 0xB0));
 
     /// <summary>
     /// Fill of the ghost a dragged crate shows at its target cell (D25): cyan where Core allows it, red where it refuses.

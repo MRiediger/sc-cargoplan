@@ -251,7 +251,7 @@ To move several crates at once, **right click** each of them first: a magenta ed
 crate of the same mission gets a white edge and all the rest is dimmed, so you see which crates came together; with one
 crate selected, a line top left says where it is collected, what it is and where it goes: `from Lorville · Titanium · to
 Riker`, or `from ? · …` where the mission doesn't say. Rows you type for one destination count as one mission, captures
-each as their own. The legend's **magenta check boxes** select too: the box in front of a line selects that line's
+each as their own. The legend's **check boxes** select too: the box in front of a line selects that line's
 crates on board, the box at a mission's header the whole mission's. Several boxes add up. A box is ticked while all its
 crates are selected and shows a bar while only some are, also when you selected them with right clicks; clicking a box
 with a bar selects the rest, clicking a ticked box takes its crates out. A click on the box never ticks the line off;

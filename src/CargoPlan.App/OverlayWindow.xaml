@@ -58,8 +58,8 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- A legend check box (B6, D69): selects crates, in the magenta of the selection, so it never reads as the grey
-             strike-through of a ticked line. Ticked = all selected, a bar = part of them. Three states only with IsThreeState
+        <!-- A legend check box (B6, D69): selects crates, in grey (MissionPalette.CheckBoxBrush); a ticked line has no box.
+             Ticked = all selected, a bar = part of them. Three states only with IsThreeState
              (source: https://learn.microsoft.com/dotnet/api/system.windows.controls.primitives.togglebutton.isthreestate);
              the click's own next state doesn't matter, ToggleCratesCommand changes the selection and the binding shows it. -->
         <Style x:Key="LegendCheckBoxStyle" TargetType="CheckBox">
@@ -73,12 +73,12 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="CheckBox">
-                        <Border BorderBrush="{x:Static sv:MissionPalette.SelectionBrush}" BorderThickness="1.5"
+                        <Border BorderBrush="{x:Static sv:MissionPalette.CheckBoxBrush}" BorderThickness="1.5"
                                 Background="{StaticResource HitTestBackgroundBrush}">
                             <Grid>
-                                <Path x:Name="Mark" Data="M 1.5,4.5 L 3.8,7 L 7.5,1.5" Stroke="{x:Static sv:MissionPalette.SelectionBrush}"
+                                <Path x:Name="Mark" Data="M 1.5,4.5 L 3.8,7 L 7.5,1.5" Stroke="{x:Static sv:MissionPalette.CheckBoxBrush}"
                                       StrokeThickness="1.5" Visibility="Hidden" />
-                                <Rectangle x:Name="Part" Width="5" Height="1.5" Fill="{x:Static sv:MissionPalette.SelectionBrush}" Visibility="Hidden" />
+                                <Rectangle x:Name="Part" Width="5" Height="1.5" Fill="{x:Static sv:MissionPalette.CheckBoxBrush}" Visibility="Hidden" />
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
