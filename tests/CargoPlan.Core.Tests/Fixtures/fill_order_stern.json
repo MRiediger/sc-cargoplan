@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 3,
+  "fillOrder": "sternFirst",
+  "stops": [
+    {
+      "destination": "Riker",
+      "items": [
+        {
+          "commodity": "Titanium",
+          "scu": 12,
+          "maxCrateSize": 4
+        }
+      ]
+    },
+    {
+      "destination": "Shubin",
+      "items": [
+        {
+          "commodity": "Quartz",
+          "scu": 6,
+          "maxCrateSize": 4,
+          "crates": [
+            2,
+            2,
+            2
+          ],
+          "pickup": [
+            "Lorville"
+          ]
+        }
+      ]
+    }
+  ]
+}
