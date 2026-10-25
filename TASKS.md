@@ -1494,8 +1494,33 @@ Vier Tests nutzten einen 32-SCU-Vertrag auf der Hull A als „passt nicht“; de
 - [ ] Gate Kiosk (Martin, K3): am Terminal bestätigen, dass der Kiosk bei einem Vertrag mit Maximum 8 auch 2er anbietet; widerlegt → Kappung nur bei Türlimit, P3 zurück (Folge-Commit), Ergebnis in D70
 - Commits f3c4e63 (Daten, Import), f815210 (Core-Tests rot), 69ee7da (Core), 538b6c9 (App-Tests rot), 72a6115 (App), 25ac668 (Import aus `limits.max.capacity`), 84b2cc3 (Türen aus dem Index vom 25.10.), Doku-Commit.
 
-### [ ] K3.3 Untergrenze `minCrateSize` pro Rack (D70-Addendum) – nach K3.1, vor K3.2
-`limits.min.capacity` > 1 nur bei Hull C (32), MPUV Tractor (16), CSV-SM (4); ihre Gitter nehmen die Mindestkiste ungedreht. Plan freigegeben mit Korrekturen K1 (`CrateCap.Accepts`) und K2 (Neuplanung vergleicht auch `Min`).
+### [ ] K3.3 Untergrenze `minCrateSize` pro Rack (D70-Addendum) (25.10.2026)
+**Warum:** Fleetyards gibt neben `limits.max` auch `limits.min.capacity`; > 1 nur bei Hull C (32, die Spindel nimmt nur 32er), MPUV Tractor (16), CSV-SM (4). Ihre Gitter nehmen die Mindestkiste ungedreht (8×4×6/8×8×6, 4×2×2, 2×2×1).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** `CrateCap.Min` = kleinste Kiste, die ein Rack nimmt (Martin); K1 `CrateCap.Accepts` statt Grenzen, gierige Zerlegung nur über angenommene Größen, Rest ohne angenommene Größe → Mission wartet, kein Hochkappen; K2 Neuplanung vergleicht die ganze Menge (Bitmaske, Record-Gleichheit). Ablehnung eines Moves mit Grund nicht gebaut (unerreichbar, wie bei der Tür); Split unter das Minimum wird abgelehnt. Texte `takes 32 SCU crates only` (mit „crates“, wie die übrigen Texte).
+- Core: `Rack.MinCrateSize`, `CanHold` mit Untergrenze, `LimitRefuses`; `CrateCap` als Größenmenge (`Accepts`, `Min`, `Max`, `RackText`, `ShipText`, `Refusal`); `CrateMix.Decompose(scu, max, cap)`; `RackAssignment`-Zwillinge mit gleichem Minimum; `PlanFileDto.UnderCap` verwirft eine Kappung, die eine Kiste an Bord nicht nimmt; `RackDto.MinCrateSize`
+- Import: `limits.min.capacity` > 1 (0 = keins, über 32 geklemmt, über dem Maximum Fehler), Abgleich und `-Force` wie bei der Tür; Hull C, MPUV Tractor, CSV-SM per `-Force` aus dem Index vom 25.10.
+- Tests: `MinCrateSizeTests`, `MinCrateSizeOverlayTests`, `CrateCapTests` (Hull C, Lückenschiff), Testschiffe `min_crate_size*`, `Exactly_three_shipped_ships_have_a_minimum`, `A_shipped_minimum_is_one_the_rack_takes`, Import-Tests für `limits.min`
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.213 / 141 / 1.134 | 1.327 / 141 / 1.135 |
+| Golden-Files und Fixtures geändert | erwartet 0 | 0 |
+| Dateien mit `minCrateSize` | erwartet `csv_sm`, `hull_c`, `mpuv_tractor` | genau diese drei |
+| 4 Fixtures × 96 Schiffe gegen 84b2cc3 | 384 | 372 gleich; 12 geändert, alle auf den drei Schiffen (Hull C lehnt alle vier Fixtures ab, keine besteht nur aus 32ern) |
+
+**Akzeptanz:**
+- [x] Hull C: 64 SCU max 32 plant zwei 32er; 16 max 16 wartet, `Plan` lehnt ab mit `(ship takes 32 SCU crates only)`, `PlaceProblem` = `doesn't fit (ship takes 32 SCU crates only)`; gesetzte `[16, 16]` und 40 max 32 warten genauso
+- [x] Lückenschiff (Racks 32–32 neben 1–2): eine 8 passt nirgends, 40 max 32 → 32 + 4 × 2 (K1)
+- [x] Schiffswechsel Hull A → Hull C → Hull A: 16er wartet, dann plant er wieder
+- [x] Split einer 32 auf der Hull C abgelehnt; Move auf ein Rack mit Minimum → Stufe 4 mit `Rack 1: takes 16 SCU crates only – placed in rack 2`
+- [x] Plan-Datei mit einer 16 auf der Hull C → neu geplant mit `Plan was made for other racks …`, Mission wartet (K2, Core und Overlay)
+- [x] Schiffsdatei ohne Feld = jede Größe; Minimum über Maximum oder Gitter lädt nicht
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün
+- [ ] Gate Overlay (Martin, kein Spieltest): Hull C wählen, 16er-Vertrag per CT-Sync → Mission in der Legende wartend mit `doesn't fit (ship takes 32 SCU crates only)`
+- Commits 32b5dd2 (Tests rot), f1fb3ef (Core, Import), c32de68 (Daten), Doku-Commit.
 
 ### [ ] K3.2 Kisten-Gier 90° (D71)
 Für den Plan vorgemerkt: der äußere Hull-C-Block als Beweis-Fixture neben dem 3×2×1-Rack (Nachtrag: ein 32er passt dort nur gedreht, genau 6 Stück; in `ships/hull_c.json` steht er schon als 8×4×6, also zuerst klären, in welcher Lage).

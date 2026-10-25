@@ -76,6 +76,7 @@ A rack is a separately loadable section of the cargo hold, usually one plate.
 | `origin` | array | Where the rack sits in ship coordinates: `[x, y, z]`, three whole numbers, see [Coordinates](#coordinates). Used to draw the ship, not for planning. Racks must not overlap. |
 | `stackAxis` | string | The ship direction crates stack in, away from the plate: `"+x"`, `"-x"`, `"+y"`, `"-y"`, `"+z"` or `"-z"`, see [Stack axis](#stack-axis). |
 | `maxCrateSize` | number | *Optional.* The door limit: the largest crate that gets through the rack's door, in SCU (`1`, `2`, `4`, `8`, `16`, `24` or `32`), where that is less than the grid takes. Left out, the grid alone decides. See [Max crate size](#max-crate-size). |
+| `minCrateSize` | number | *Optional.* The smallest crate the rack takes, in SCU, where that is more than 1 (the Hull C's spindle: `32`). Left out, any crate the grid and `maxCrateSize` allow. See [Min crate size](#min-crate-size). |
 
 ### Max crate size
 
@@ -95,6 +96,17 @@ confirms it (list in TASKS.md, K3.1). By hand, set it only from a source and nam
 
 Schema 4 called the same field "the game's limit on top of the grid" and read it the same way, so a schema 4 file loads
 unchanged; schema 5 marks the meaning.
+
+### Min crate size
+
+Some racks take only large crates: the Hull C's spindle takes 32 SCU crates only, the MPUV Tractor's rack 16s, the
+CSV-SM's 4s (Fleetyards' `limits.min.capacity`, index of 25 Oct 2026). `"minCrateSize": 32` says so; it must be a crate
+the rack takes (no larger than `maxCrateSize` and fitting the grid), else the file doesn't load. The planner never puts a
+smaller crate into the rack and never rounds a contract up: the kiosk delivers nothing above the contract's max. A
+contract whose crates the ship can't take waits with "doesn't fit (ship takes 32 SCU crates only)", also when only a rest
+is too small (40 SCU at max 32 is 32 + 8 on the Hull C). A move past such a rack says "Rack 1: takes 32 SCU crates
+only – placed in rack 2", and a split below the minimum is refused. The import writes values above 1 only; 0 counts as
+none, values above 32 as 32.
 
 ### Grid
 
@@ -256,7 +268,7 @@ use it automatically.
 - [ ] Racks don't overlap, and `origin` agrees with `position` if given (port = positive y, upper = higher z).
 - [ ] Each rack's `stackAxis` points away from its plate, as in the game.
 - [ ] Values measured in game (current patch named in the PR description), or their source named in `source`.
-- [ ] `maxCrateSize` only where the door takes less than the grid, with its source.
+- [ ] `maxCrateSize` only where the door takes less than the grid, `minCrateSize` only above 1, both with their source.
 - [ ] `dotnet test` passes. The test `Every_shipped_ship_loads` loads every ship file and reports the
       exact problem (file name, field, value) if something is wrong; `LoadAll_loads_every_shipped_file_without_problems`
       fails if any file in `ships/` would be skipped.

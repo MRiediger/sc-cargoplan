@@ -100,7 +100,8 @@ so it takes the focus while you type; afterwards click back into the game (or Al
 - **Your ship's racks set a limit too:** no crate larger than the largest one a rack of your ship takes. Some holds
   have a door smaller than the hold: the Clipper's takes crates up to 2 SCU, so an 8 SCU contract shows `2+2+2+2` and
   the overlay says `crates capped to 2 SCU (door limit)`. On a Hull A a 32 SCU contract becomes `16+16`, `crates capped
-  to 16 SCU (largest rack)`. Change the ship and the mix follows; crates typed by hand stay as typed.
+  to 16 SCU (largest rack)`. Change the ship and the mix follows; crates typed by hand stay as typed. Some racks take
+  only large crates: the Hull C's spindle takes 32 SCU crates only, so a contract with smaller crates waits (see below).
 - **The kiosk delivered something else?** Click the **Crates** cell and type what you got, e.g. `2+2+2`. Crates typed by
   hand show in *italics*; clear the cell to go back to the worked-out mix.
 - **Stop order:** the **Stop** column numbers the destinations in the order you entered them; the legend and the
@@ -191,6 +192,8 @@ itself, a few moments after you press F3. No editor, no click.
     **Sync from ContractTracker**.
   - `⚠ doesn't fit (no rack accepts 4 SCU crates, door limit 2 SCU)`: crates you typed by hand are larger than any
     rack's door takes. Clear the **Crates** cell in the editor, or type crates that get through.
+  - `⚠ doesn't fit (ship takes 32 SCU crates only)`: your ship's racks take only larger crates than this contract comes
+    in (Hull C). The app never makes crates larger than the contract allows; take the contract on another ship.
 - **Retry before you load.** A recapture (F4) is a new mission. Before your first tick it is marked `⚠ duplicate?`;
   after a tick it isn't, and you see the destination twice. Delete the wrong one in the editor.
 - **Deleted in ContractTracker:** a contract you have fully ticked (or that didn't fit) leaves the plan as soon as you
