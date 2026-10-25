@@ -300,14 +300,14 @@ public class CrateRotationTests
     }
 
     [Fact]
-    public void Schema_6_is_refused()
+    public void Schema_7_is_refused()
     {
         var node = JsonNode.Parse(Written(Planned(HullA, Item(8, CrateSize.Four))))!;
-        node["schemaVersion"] = 6;
+        node["schemaVersion"] = 7;
 
         var act = () => Read(node.ToJsonString(), HullA);
 
-        act.Should().Throw<PlanFormatException>().WithMessage("*schemaVersion 6 is not supported*");
+        act.Should().Throw<PlanFormatException>().WithMessage("*schemaVersion 7 is not supported*");
     }
 
     // --- Racks that changed since the file was written (K1): planned anew, whatever the schema ---

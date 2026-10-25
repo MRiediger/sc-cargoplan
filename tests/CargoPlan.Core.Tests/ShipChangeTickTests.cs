@@ -171,15 +171,16 @@ public class ShipChangeTickTests
     [Fact]
     public void Ticking_back_lays_the_cargo_into_free_cells_and_moves_nothing_else()
     {
+        // The C2 has room for Lorville's 16 next to the rest; the Freelancer's 24 free SCU hold no 4×2×2 gap.
         var first = EightStops().Plan.Route[0];
-        var there = LoadPlanner.Replan(Ticked(EightStops(), HullA, first), Freelancer);
+        var there = LoadPlanner.Replan(Ticked(EightStops(), HullA, first), C2);
 
-        var back = LoadPlanner.SetDelivered(there.Plan, Freelancer, first, false);
+        var back = LoadPlanner.SetDelivered(there.Plan, C2, first, false);
 
         back.Crates.Where(c => c.Destination == first).Should().NotBeEmpty().And.OnlyContain(c => !c.Delivered && !c.OffShip);
         Lying(back.Crates.Where(c => c.Destination != first)).Should().Equal(Lying(there.Plan.Crates.Where(c => c.Destination != first)));
         back.Route.Should().Equal(there.Plan.Route, "the legend and its colours keep their order");
-        LoadPlanner.Validate(back, Freelancer).Should().BeEmpty();
+        LoadPlanner.Validate(back, C2).Should().BeEmpty();
         new SavedPlan(there.Missions, back, there.CrateCap, there.Watermark).Plan.Should().BeSameAs(back);
     }
 

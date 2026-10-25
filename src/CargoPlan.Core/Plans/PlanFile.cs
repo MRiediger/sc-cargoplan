@@ -12,10 +12,14 @@ namespace CargoPlan.Core.Plans;
 public static class PlanFile
 {
     /// <summary>
-    /// The version the writer writes: missions with ids, crates with missions (D42), items (D68) and turned or not (D71),
-    /// the watermark. An app from before D71 refuses it, so it never drops a turned crate's orientation.
+    /// The version the writer writes: missions with ids, crates with missions (D42), items (D68), turned or not (D71) and
+    /// off the ship or not (K2.2), the watermark. An app from before K2.2 refuses it, so it never draws delivered cargo
+    /// into a rack it was never in.
     /// </summary>
-    public const int SupportedSchemaVersion = 5;
+    public const int SupportedSchemaVersion = 6;
+
+    /// <summary>Crates turned or not, every crate in a rack (D71); still read, never written.</summary>
+    public const int NoOffShipSchemaVersion = 5;
 
     /// <summary>Crates with items, none turned (D68); still read, every crate unturned, never written.</summary>
     public const int UnrotatedSchemaVersion = 4;
@@ -29,10 +33,10 @@ public static class PlanFile
     /// <summary>Crates with positions, no missions (D24); still read, one mission per stop, never written.</summary>
     public const int PreviousSchemaVersion = 2;
 
-    private static readonly int[] ReadableSchemaVersions = [LegacySchemaVersion, PreviousSchemaVersion, ItemlessSchemaVersion, UnrotatedSchemaVersion, SupportedSchemaVersion];
+    private static readonly int[] ReadableSchemaVersions = [LegacySchemaVersion, PreviousSchemaVersion, ItemlessSchemaVersion, UnrotatedSchemaVersion, NoOffShipSchemaVersion, SupportedSchemaVersion];
 
     /// <summary>
-    /// Reads a plan file for <paramref name="ship"/>, schema 1 to 5. The stream is left open. A schema 2 to 5 plan for
+    /// Reads a plan file for <paramref name="ship"/>, schema 1 to 6. The stream is left open. A schema 2 to 6 plan for
     /// another ship loads with its own ship id and without the grid checks; the caller plans it anew (D59). So does one
     /// with a crate outside today's rack, read under <see cref="CapReason.RacksChanged"/> (K3.2).
     /// </summary>

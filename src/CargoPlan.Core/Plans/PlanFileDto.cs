@@ -8,10 +8,11 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Plans;
 
 /// <summary>
-/// File format of a plan file (schema version 5, docs/plan-format.md): the missions with their stops and where they came
-/// from (D42), every crate with its mission and item (D68), rack, position (D24) and whether it is turned (D71), and the
-/// ContractTracker watermark (D39 addendum). Schema 4 is the same without turned crates; schema 3 also without items:
-/// read, each crate given an item of its mission on reading.
+/// File format of a plan file (schema version 6, docs/plan-format.md): the missions with their stops and where they came
+/// from (D42), every crate with its mission and item (D68), rack, position (D24), whether it is turned (D71) and whether
+/// it is off the ship (K2.2), and the ContractTracker watermark (D39 addendum). Schema 5 is the same with every crate in
+/// a rack; schema 4 also without turned crates; schema 3 also without items: read, each crate given an item of its
+/// mission on reading.
 /// </summary>
 internal sealed record PlanFileDto(
     int SchemaVersion,
@@ -28,6 +29,7 @@ internal sealed record PlanFileDto(
         Mission[] missions = [.. Missions.Select(m => m.ToMission())];
         CheckItems(Crates, SchemaVersion);
         CheckRotated(Crates, SchemaVersion);
+        CheckOffShip(Crates, SchemaVersion);
         Crate[] crates = [.. Crates.Select(c => c.ToCrate())];
         var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder)), ship);
 
@@ -103,8 +105,9 @@ internal sealed record PlanFileDto(
             return (plan, false);
         }
 
+        // An off-ship crate (K2.2) was never on this ship: no rack to name, no grid to fit.
         var racks = ship.Racks.ToDictionary(r => r.Id);
-        if (plan.Crates.FirstOrDefault(c => !racks.ContainsKey(c.RackId)) is { } stray)
+        if (plan.Crates.FirstOrDefault(c => !c.OffShip && !racks.ContainsKey(c.RackId)) is { } stray)
         {
             throw new ArgumentException(
                 $"Crate for {stray.Destination} is in rack '{stray.RackId}', which ship '{ship.Id}' doesn't have.", nameof(Crates));
@@ -117,7 +120,7 @@ internal sealed record PlanFileDto(
         }
 
         // A crate outside its rack can't be drawn or moved; its racks changed, so the overlay plans the missions anew.
-        if (plan.Crates.Any(c => !CrateLayout.Fits(racks[c.RackId], c)))
+        if (plan.Crates.Any(c => !c.OffShip && !CrateLayout.Fits(racks[c.RackId], c)))
         {
             return (plan, true);
         }
@@ -150,7 +153,18 @@ internal sealed record PlanFileDto(
         if (schemaVersion <= PlanFile.UnrotatedSchemaVersion && crates.FirstOrDefault(c => c.Rotated is not null) is { } turned)
         {
             throw new ArgumentException(Invariant(
-                $"A crate for '{turned.Destination}' says rotated, which is new in schema {PlanFile.SupportedSchemaVersion} (the file says {schemaVersion})."), nameof(Crates));
+                $"A crate for '{turned.Destination}' says rotated, which is new in schema {PlanFile.UnrotatedSchemaVersion + 1} (the file says {schemaVersion})."), nameof(Crates));
+        }
+    }
+
+    /// <summary>Before schema 6 every crate lies in a rack (K2.2); an <c>offShip</c> there is a file from elsewhere.</summary>
+    /// <exception cref="ArgumentException">A crate breaks that.</exception>
+    internal static void CheckOffShip(IReadOnlyList<CrateDto> crates, int schemaVersion)
+    {
+        if (schemaVersion <= PlanFile.NoOffShipSchemaVersion && crates.FirstOrDefault(c => c.OffShip is not null) is { } offShip)
+        {
+            throw new ArgumentException(Invariant(
+                $"A crate for '{offShip.Destination}' says offShip, which is new in schema {PlanFile.NoOffShipSchemaVersion + 1} (the file says {schemaVersion})."), nameof(Crates));
         }
     }
 

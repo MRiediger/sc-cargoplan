@@ -22,6 +22,19 @@ public sealed record Crate(
     // Checked in the initializer (constructor) and in init (`with`): a square crate has one way to lie, not two spellings.
     public bool Rotated { get; init => field = Turnable(CrateSize, value); } = Turnable(CrateSize, Rotated);
 
+    /// <summary>
+    /// The rack of a crate that was never on this ship: delivered before a ship change or before its racks changed (K2.2).
+    /// Code that works rack by rack (layout, drawing, checks) passes it by.
+    /// </summary>
+    public const string NoRack = "";
+
+    /// <summary>Delivered cargo that was never on this ship (<see cref="NoRack"/>): it has no place and takes no room.</summary>
+    public bool OffShip => RackId.Length == 0;
+
+    /// <summary>An off-ship crate: delivered, in no rack, at the origin, unturned.</summary>
+    public static Crate OffShipOf(string destination, string commodity, CrateSize size, int mission, int item) =>
+        new(destination, commodity, size, NoRack, new GridPosition(0, 0, 0), Delivered: true, Mission: mission, Item: item);
+
     /// <summary>The shape in the grid as it lies (<see cref="CrateSizeExtensions"/>, D71).</summary>
     public Dimensions Shape => CrateSize.Shape(Rotated);
 

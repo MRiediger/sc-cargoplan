@@ -203,7 +203,8 @@ public static class LoadPlanner
 
     private static LoadPlan SetDelivered(LoadPlan plan, Ship ship, string destination, Func<Crate, bool> ticked, bool delivered)
     {
-        var changed = plan with { Crates = [.. plan.Crates.Select(c => ticked(c) ? c with { Delivered = delivered } : c)] };
+        // Off-ship crates (K2.2) have no cells to go back to: ticked back, they are laid in (BackOnBoard).
+        var changed = plan with { Crates = [.. plan.Crates.Select(c => ticked(c) && !c.OffShip ? c with { Delivered = delivered } : c)] };
         if (!delivered)
         {
             HashSet<string> racks = [.. plan.Crates.Where(ticked).Select(c => c.RackId)];
@@ -215,9 +216,41 @@ public static class LoadPlanner
             {
                 throw new PlanException($"{destination} can't go back on board: {problem}");
             }
+
+            if (plan.Crates.Where(c => ticked(c) && c.OffShip).ToArray() is { Length: > 0 } offShip)
+            {
+                changed = BackOnBoard(changed, ship, destination, offShip);
+            }
         }
 
         return WithHints(changed, ship);
+    }
+
+    /// <summary>
+    /// Off-ship crates ticked back (K2.2): delivered on another ship, but still on board after all. They are laid into free
+    /// cells by the rule of <see cref="PlaceInto"/> (D41), nothing else moves, and each keeps its place in the list, so
+    /// legend and colours keep their order.
+    /// </summary>
+    /// <exception cref="PlanException">No room for one of them.</exception>
+    private static LoadPlan BackOnBoard(LoadPlan plan, Ship ship, string destination, Crate[] offShip)
+    {
+        Crate[] templates = [.. offShip.OrderByDescending(c => c.CrateSize).ThenBy(c => c.Commodity, StringComparer.Ordinal)];
+        Rack[] racks = [.. ship.Racks.OrderBy(r => r.Index)];
+        var (fresh, failed) = LayStop(
+            plan.Crates, racks, destination, [.. templates.Select(c => (c.CrateSize, c.Commodity))], 0, plan.FillOrder, new CrateLayout.StackingBudget(), []);
+        if (fresh is null)
+        {
+            throw new PlanException(Invariant($"{destination} can't go back on board: no room for {(int)failed!.Value} SCU crate"));
+        }
+
+        // LayStop keeps the order of the kinds, so each laid crate is its template's.
+        Dictionary<Crate, Crate> laid = new(ReferenceEqualityComparer.Instance);
+        foreach (var (template, crate) in templates.Zip(fresh))
+        {
+            laid[template] = template with { RackId = crate.RackId, Position = crate.Position, Rotated = crate.Rotated, Delivered = false };
+        }
+
+        return plan with { Crates = [.. plan.Crates.Select(c => laid.GetValueOrDefault(c, c))] };
     }
 
     /// <summary>
@@ -470,10 +503,13 @@ public static class LoadPlanner
             : WithHints(planned with { Crates = [.. route.SelectMany(d => delivered.Where(c => c.Destination == d).Concat(planned.Crates.Where(c => c.Destination == d)))] }, ship);
 
     /// <summary>
-    /// The plan on another ship (D59): its missions planned anew in the order the editor shows them
-    /// (<see cref="SavedPlan.Stops"/>), as the editor's Plan would; if that fails, mission by mission into the empty ship
-    /// in mission order (<see cref="RetryUnplaced"/>), the rest waits unplaced (D41). Every stop ticked as a whole gets its
-    /// tick back.
+    /// The plan on another ship (D59), or on racks that changed (D71): the cargo on board planned anew in the order the
+    /// editor shows it (<see cref="SavedPlan.Stops"/>), as the editor's Plan would; if that fails, mission by mission into
+    /// the empty ship in mission order (<see cref="RetryUnplaced"/>), the rest waits unplaced (D41). What is delivered stays
+    /// delivered (K2.2): a delivery, a mission's crates for one destination (the legend's line, D69), whose crates are all
+    /// ticked leaves its mission before planning, so it takes no room, and comes back off the ship
+    /// (<see cref="Crate.OffShip"/>) with the crates its items take under the new ship's cap. A mission that waits has no
+    /// crates, so a delivery of it loses its tick: the elevator hands out whole missions. Without ticks the editor's Plan.
     /// </summary>
     private static SavedPlan ReplanForShip(SavedPlan saved, Ship ship)
     {
@@ -484,24 +520,61 @@ public static class LoadPlanner
             return new SavedPlan([], new LoadPlan(ship.Id, [], [], fillOrder), cap, saved.Watermark);
         }
 
-        string[] ticked = [.. saved.Plan.Crates.GroupBy(c => c.Destination).Where(g => g.All(c => c.Delivered)).Select(g => g.Key)];
-        SavedPlan replanned;
+        HashSet<(int Mission, string Destination)> delivered =
+            [.. saved.Plan.Crates.GroupBy(c => (c.Mission, c.Destination)).Where(g => g.All(c => c.Delivered)).Select(g => g.Key)];
+        Mission[] onBoard = [.. saved.Missions.Select(m => Undelivered(m, delivered)).OfType<Mission>()];
+        string[] route = [.. saved.Stops.Select(s => s.Destination)];
+        var replanned = PlanOrPlace(ship, onBoard, route, fillOrder, saved.Watermark);
+        if (delivered.Count == 0)
+        {
+            return replanned;
+        }
+
+        // A mission wholly delivered isn't planned and isn't waiting; the others wait as their cargo on board does.
+        var waiting = replanned.Missions.ToDictionary(m => m.Id, m => m.Unplaced);
+        Mission[] missions = [.. saved.Missions.Select(m => m with { Unplaced = waiting.GetValueOrDefault(m.Id) })];
+        Crate[] offShip =
+        [
+            .. missions.Where(m => !m.Unplaced).SelectMany(m => m.Items
+                .Select((at, index) => (at.Stop, at.Item, Index: index))
+                .Where(at => delivered.Contains((m.Id, at.Stop.Destination)))
+                .SelectMany(at => at.Item.CrateListUnder(cap).Select(size => Crate.OffShipOf(at.Stop.Destination, at.Item.Commodity, size, m.Id, at.Index)))),
+        ];
+        return new SavedPlan(missions, ItemsOf(missions, Joined(replanned.Plan, offShip, route, ship), cap), cap, replanned.Watermark);
+    }
+
+    /// <summary>The editor's Plan of <paramref name="missions"/> on <paramref name="ship"/>, else mission by mission (D41).</summary>
+    private static SavedPlan PlanOrPlace(Ship ship, IReadOnlyList<Mission> missions, string[] route, FillOrder fillOrder, long watermark)
+    {
+        var cap = CrateCap.Of(ship);
+        if (missions.Count == 0)
+        {
+            return new SavedPlan([], new LoadPlan(ship.Id, [], [], fillOrder), cap, watermark);
+        }
+
+        HashSet<string> destinations = [.. missions.SelectMany(m => m.Stops).Select(s => s.Destination)];
         try
         {
-            replanned = Plan(ship, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], fillOrder, saved.Watermark);
+            return Plan(ship, missions, [.. route.Where(destinations.Contains)], fillOrder, watermark);
         }
         catch (PlanException)
         {
             // Too much for the ship, or no layout: what fits comes in mission by mission, as captures do (D41).
-            SavedPlan empty = new([.. saved.Missions.Select(m => m with { Unplaced = true })], new LoadPlan(ship.Id, [], [], fillOrder), cap, saved.Watermark);
-            replanned = RetryUnplaced(empty, ship);
+            SavedPlan empty = new([.. missions.Select(m => m with { Unplaced = true })], new LoadPlan(ship.Id, [], [], fillOrder), cap, watermark);
+            return RetryUnplaced(empty, ship);
+        }
+    }
+
+    /// <summary><paramref name="mission"/> without its delivered stops (K2.2); null if every stop is delivered.</summary>
+    private static Mission? Undelivered(Mission mission, IReadOnlySet<(int Mission, string Destination)> delivered)
+    {
+        if (!mission.Stops.Any(s => delivered.Contains((mission.Id, s.Destination))))
+        {
+            return mission;
         }
 
-        // Ticking never refuses (only ticking back can); a ticked stop whose mission waits has no crates to tick.
-        var plan = ticked
-            .Where(destination => replanned.Plan.Crates.Any(c => c.Destination == destination))
-            .Aggregate(replanned.Plan, (current, destination) => SetDelivered(current, ship, destination, true));
-        return new SavedPlan(replanned.Missions, plan, cap, replanned.Watermark);
+        MissionStop[] left = [.. mission.Stops.Where(s => !delivered.Contains((mission.Id, s.Destination)))];
+        return left.Length == 0 ? null : new Mission(mission.Id, [.. left.Select((s, index) => s with { Order = index + 1 })], mission.Contract, mission.Unplaced);
     }
 
     /// <summary>
@@ -620,58 +693,77 @@ public static class LoadPlanner
                 .. stop.Items.SelectMany(i => i.CrateListUnder(cap).Select(size => (size, i.Commodity)))
                     .OrderByDescending(k => k.size).ThenBy(k => k.Commodity, StringComparer.Ordinal),
             ];
-            Rack[] candidates =
-            [
-                .. racks.Where(r => crates.Any(c => c.RackId == r.Id && !c.Delivered && c.Destination == stop.Destination))
-                    .Concat(racks.Where(r => !crates.Any(c => c.RackId == r.Id && !c.Delivered)).Take(1))
-                    .Concat(racks)
-                    .Distinct(),
-            ];
-
-            List<Crate> fresh = [];
-            if (Best(candidates.Select(r => Laid(r, stop.Destination, kinds, []))) is { } whole)
+            var (fresh, failed) = LayStop(crates, racks, stop.Destination, kinds, mission.Id, plan.FillOrder, budget, stackingUnchecked);
+            if (fresh is null)
             {
-                Take(whole);
-            }
-            else
-            {
-                foreach (var kind in kinds)
-                {
-                    if (Best(racks.Select(r => Laid(r, stop.Destination, [kind], fresh))) is not { } one)
-                    {
-                        return (null, kind.Size, []);
-                    }
-
-                    Take(one);
-                }
+                return (null, failed, []);
             }
 
             Insert(crates, stop.Destination, fresh);
-
-            void Take((Crate[] Crates, Rack Rack, CrateLayout.Laying Laying) laid)
-            {
-                fresh.AddRange(laid.Crates);
-                if (laid.Laying.GaveUp && !stackingUnchecked.Contains(laid.Rack))
-                {
-                    stackingUnchecked.Add(laid.Rack);
-                }
-            }
         }
 
         return (crates, null, stackingUnchecked);
+    }
+
+    /// <summary>
+    /// One stop's crates of <paramref name="kinds"/> laid in around <paramref name="crates"/> by the rule of
+    /// <see cref="StopByStop"/>, in the order of <paramref name="kinds"/>; or, if one has no place, the size of the first
+    /// that hasn't. Racks whose stacking search gave up are added to <paramref name="stackingUnchecked"/>.
+    /// </summary>
+    private static (List<Crate>? Fresh, CrateSize? Failed) LayStop(
+        IReadOnlyList<Crate> crates, Rack[] racks, string destination, (CrateSize Size, string Commodity)[] kinds, int missionId, FillOrder fillOrder,
+        CrateLayout.StackingBudget budget, List<Rack> stackingUnchecked)
+    {
+        Rack[] candidates =
+        [
+            .. racks.Where(r => crates.Any(c => c.RackId == r.Id && !c.Delivered && c.Destination == destination))
+                .Concat(racks.Where(r => !crates.Any(c => c.RackId == r.Id && !c.Delivered)).Take(1))
+                .Concat(racks)
+                .Distinct(),
+        ];
+
+        List<Crate> fresh = [];
+        List<Rack> gaveUp = [];
+        if (Best(candidates.Select(r => Laid(r, kinds, []))) is { } whole)
+        {
+            Take(whole);
+        }
+        else
+        {
+            foreach (var kind in kinds)
+            {
+                if (Best(racks.Select(r => Laid(r, [kind], fresh))) is not { } one)
+                {
+                    return (null, kind.Size);
+                }
+
+                Take(one);
+            }
+        }
+
+        stackingUnchecked.AddRange(gaveUp.Where(r => !stackingUnchecked.Contains(r)));
+        return (fresh, null);
+
+        void Take((Crate[] Crates, Rack Rack, CrateLayout.Laying Laying) laid)
+        {
+            fresh.AddRange(laid.Crates);
+            if (laid.Laying.GaveUp && !gaveUp.Contains(laid.Rack))
+            {
+                gaveUp.Add(laid.Rack);
+            }
+        }
 
         // The kinds laid out in one rack around what lies there and the crates placed for this stop so far; null if they don't fit.
-        (Crate[] Crates, Rack Rack, CrateLayout.Laying Laying)? Laid(
-            Rack rack, string destination, (CrateSize Size, string Commodity)[] laying, IReadOnlyList<Crate> placedForStop)
+        (Crate[] Crates, Rack Rack, CrateLayout.Laying Laying)? Laid(Rack rack, (CrateSize Size, string Commodity)[] laying, IReadOnlyList<Crate> placedForStop)
         {
             Crate[] occupied = [.. crates.Concat(placedForStop).Where(c => c.RackId == rack.Id)];
-            if (CrateLayout.Lay(rack, occupied, [.. laying.Select(k => (k.Size, destination))], plan.FillOrder, budget.For(rack)) is not { } laid)
+            if (CrateLayout.Lay(rack, occupied, [.. laying.Select(k => (k.Size, destination))], fillOrder, budget.For(rack)) is not { } laid)
             {
                 return null;
             }
 
             budget.Spend(rack, laid);
-            return ([.. laying.Zip(laid.Poses).Select(p => new Crate(destination, p.First.Commodity, p.First.Size, rack.Id, p.Second.Position, Mission: mission.Id, Rotated: p.Second.Rotated))],
+            return ([.. laying.Zip(laid.Poses).Select(p => new Crate(destination, p.First.Commodity, p.First.Size, rack.Id, p.Second.Position, Mission: missionId, Rotated: p.Second.Rotated))],
                 rack, laid);
         }
     }
@@ -891,14 +983,14 @@ public static class LoadPlanner
     /// Why the plan can't be loaded as it is, per rack in rack order (<see cref="CrateLayout.Problems"/>): crates that
     /// overlap, stick out, don't fit the grid or have nothing below them. The planner and its moves never make these; only
     /// a plan file edited by hand gets there (D24). Delivered crates are off the ship and not checked; one that carried
-    /// another leaves it floating. A crate on another destination's cargo is no problem but a hint (D64): hints for the
-    /// player (shared racks, split stops, stacking) are in <see cref="LoadPlan.Warnings"/>.
+    /// another leaves it floating; an off-ship crate (K2.2) names no rack. A crate on another destination's cargo is no
+    /// problem but a hint (D64): hints for the player (shared racks, split stops, stacking) are in <see cref="LoadPlan.Warnings"/>.
     /// </summary>
     /// <exception cref="ArgumentException">The plan belongs to another ship or uses a rack the ship doesn't have.</exception>
     public static IReadOnlyList<PlanWarning> Validate(LoadPlan plan, Ship ship)
     {
         plan.EnsureBelongsTo(ship);
-        if (plan.Crates.FirstOrDefault(c => !ship.Racks.Any(r => r.Id == c.RackId)) is { } stray)
+        if (plan.Crates.FirstOrDefault(c => !c.OffShip && !ship.Racks.Any(r => r.Id == c.RackId)) is { } stray)
         {
             throw new ArgumentException(
                 $"Crate for {stray.Destination} is in rack '{stray.RackId}', which ship '{ship.Id}' doesn't have.", nameof(plan));
