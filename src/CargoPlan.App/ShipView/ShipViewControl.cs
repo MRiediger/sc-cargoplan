@@ -143,6 +143,9 @@ public sealed class ShipViewControl : FrameworkElement
     // The drag's button read as down at the start: only then does "not down" mean released rather than a failed call (D45).
     private bool _buttonArmed;
 
+    // Wheel delta of the running drag not yet a full notch: finer wheels send less than 120 per event.
+    private int _wheelRest;
+
     // Brushes and pens from the theme properties; null after a change until the next render.
     private Paint? _paint;
 
@@ -580,6 +583,21 @@ public sealed class ShipViewControl : FrameworkElement
     }
 
     /// <summary>
+    /// Turns the crate <paramref name="drag"/> holds and shows the preview at once, where the cursor is: the wheel needs no
+    /// mouse move. A turn counts as moving, so releasing on the crate's own cell turns it there.
+    /// </summary>
+    private void Turn(Drag drag)
+    {
+        var turned = drag with { Turned = !drag.Turned, IsMoving = true };
+        var gesture = Resolve(turned, drag.From, moved: true);
+        var key = PreviewKey(gesture);
+        var outcome = Equals(key, drag.Key) ? drag.Outcome : Preview(gesture);
+        _drag = turned with { Gesture = gesture, Key = key, Outcome = outcome };
+        InvalidateVisual();
+        ShowToolTip(outcome is { } shown && TargetRack(gesture) is { } rack ? CrateDrop.Text(shown, rack) : null);
+    }
+
+    /// <summary>
     /// What the preview of <paramref name="gesture"/> depends on: the crate drag's key, the legend drag's crates and rack
     /// (the drag's own list, so equal while it runs); null for anything else.
     /// </summary>
@@ -651,6 +669,21 @@ public sealed class ShipViewControl : FrameworkElement
             return;
         }
 
+        // A crate dragged alone: each notch turns it 90° (D71) instead of zooming. With Star Citizen in front the wheel
+        // still arrives while the mouse is captured (spike K2: 38 of 38 notches), unlike mouse moves (D45).
+        if (_drag is { } drag && DragGesture.CanTurn(drag.Dragged, drag.IsLegend))
+        {
+            _wheelRest += e.Delta;
+            var notches = _wheelRest / Mouse.MouseWheelDeltaForOneLine;
+            _wheelRest -= notches * Mouse.MouseWheelDeltaForOneLine;
+            if (notches % 2 != 0)
+            {
+                Turn(drag);
+            }
+
+            return;
+        }
+
         // One notch (120) = one step; finer wheels send smaller deltas.
         // Source: https://learn.microsoft.com/dotnet/api/system.windows.input.mouse.mousewheeldeltaforoneline
         var factor = Math.Pow(WheelZoomStep, (double)e.Delta / Mouse.MouseWheelDeltaForOneLine);
@@ -669,7 +702,7 @@ public sealed class ShipViewControl : FrameworkElement
     /// <summary>What a drag aims at, to redraw only when it changes; a new gesture record is made on every move.</summary>
     private static object? TargetOf(Gesture? gesture) => gesture switch
     {
-        Gesture.MoveCrates move => (move.RackId, move.Position),
+        Gesture.MoveCrates move => (move.RackId, move.Position, move.Turn),
         Gesture.MoveLegend move => move.TargetRackId,
         _ => null,
     };
@@ -686,7 +719,7 @@ public sealed class ShipViewControl : FrameworkElement
         var current = HitAt(position);
         return drag.IsLegend
             ? DragGesture.ResolveLegend(drag.Dragged, moved, current)
-            : DragGesture.Resolve(drag.Button, drag.Down, moved, current, drag.Dragged.Count > 0 ? DropAt(position, current, drag.Dragged) : null, Selection.In(Scene));
+            : DragGesture.Resolve(drag.Button, drag.Down, moved, current, drag.Dragged.Count > 0 ? DropAt(position, current, drag.Dragged) : null, Selection.In(Scene), drag.Turned);
     }
 
     /// <summary>The cell under the cursor for dragged crates (<see cref="DropTarget"/>); they are air, so a crate can go a cell further.</summary>
@@ -767,6 +800,7 @@ public sealed class ShipViewControl : FrameworkElement
         var position = e.GetPosition(this);
         var down = HitAt(position);
         _drag = new Drag(button, down, DragGesture.DraggedCrates(button, down, Selection.In(Scene)), IsLegend: false, position, IsMoving: false, Gesture: null, Key: null, Outcome: null);
+        _wheelRest = 0;
         CaptureForDrag(button);
     }
 
@@ -960,6 +994,7 @@ public sealed class ShipViewControl : FrameworkElement
     /// <param name="Gesture">What the drag means at the last position; drawn as ghost or cyan rack.</param>
     /// <param name="Key">What <see cref="Outcome"/> was resolved for (<see cref="PreviewKey"/>); the same key, the same outcome.</param>
     /// <param name="Outcome">Core's result of dropping at the last position (D65): its ghosts in cyan, a refusal red, its text as tool tip.</param>
+    /// <param name="Turned">The wheel turned the crate an odd number of notches (D71); only a crate dragged alone.</param>
     private readonly record struct Drag(
         MouseButton Button,
         SceneHit? Down,
@@ -969,5 +1004,6 @@ public sealed class ShipViewControl : FrameworkElement
         bool IsMoving,
         Gesture? Gesture,
         object? Key,
-        MoveOutcome? Outcome);
+        MoveOutcome? Outcome,
+        bool Turned = false);
 }

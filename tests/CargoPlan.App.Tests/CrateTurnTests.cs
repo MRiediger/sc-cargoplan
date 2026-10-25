@@ -54,7 +54,11 @@ public class CrateTurnTests
     [Fact]
     public void A_turned_crate_dropped_back_onto_its_own_cell_moves()
     {
-        Resolve(Two, OwnCell, turned: true).Should().Be(new Gesture.MoveCrates(Two, [Two], "rack-0", OwnCell.Position, Turn: true));
+        // Field by field: the crate list is compared by reference in record equality.
+        var move = Resolve(Two, OwnCell, turned: true).Should().BeOfType<Gesture.MoveCrates>().Subject;
+
+        (move.Anchor, move.RackId, move.Position, move.Turn).Should().Be((Two, "rack-0", OwnCell.Position, true));
+        move.Crates.Should().Equal(Two);
     }
 
     [Fact]

@@ -15,10 +15,11 @@ public abstract record Gesture
 
     /// <summary>
     /// Put <paramref name="Crates"/> on cells (D25): <paramref name="Anchor"/>, the crate the drag picked up, with its min
-    /// corner at <paramref name="Position"/> of <paramref name="RackId"/>. Also the parameter of <c>MoveCratesCommand</c>;
-    /// <see cref="CrateDrop"/> turns it into Core's moves.
+    /// corner at <paramref name="Position"/> of <paramref name="RackId"/>, turned 90° if <paramref name="Turn"/> (the wheel,
+    /// only a crate dragged alone, D71). Also the parameter of <c>MoveCratesCommand</c>; <see cref="CrateDrop"/> turns it
+    /// into Core's moves.
     /// </summary>
-    public sealed record MoveCrates(Crate Anchor, IReadOnlyList<Crate> Crates, string RackId, GridPosition Position) : Gesture;
+    public sealed record MoveCrates(Crate Anchor, IReadOnlyList<Crate> Crates, string RackId, GridPosition Position, bool Turn = false) : Gesture;
 
     /// <summary>
     /// Put <paramref name="Crates"/> into a rack without a cell (D25, B6): a legend line's or a mission header's crates on
@@ -39,8 +40,8 @@ public abstract record Gesture
 /// ticks its stop. Right: a click on a crate still on board selects it or takes it out, on free or empty space clears
 /// the selection; dragged from a crate still on board, it moves that crate (with the selection, if the crate is part of
 /// it) to the cell under the cursor (<see cref="DropTarget"/>); dragged from anywhere else, it pans. A line or header
-/// dragged from the legend moves its crates to the rack under the cursor. The control asks on every move (preview, or
-/// pan) and on release.
+/// dragged from the legend moves its crates to the rack under the cursor. The wheel turns a crate dragged alone (D71).
+/// The control asks on every move (preview, or pan) and on release.
 /// </summary>
 public static class DragGesture
 {
@@ -49,7 +50,8 @@ public static class DragGesture
     /// <param name="current">What lies under the cursor now, or on release.</param>
     /// <param name="drop">The cell under the cursor for the crate the drag picked up; null if there is none.</param>
     /// <param name="selection">The crates selected in the current scene (<see cref="CrateSelection"/>).</param>
-    public static Gesture Resolve(MouseButton button, SceneHit? down, bool moved, SceneHit? current, Drop? drop, IReadOnlySet<Crate> selection) =>
+    /// <param name="turned">The wheel turned the crate an odd number of notches (<see cref="CanTurn"/>); a square crate looks the same.</param>
+    public static Gesture Resolve(MouseButton button, SceneHit? down, bool moved, SceneHit? current, Drop? drop, IReadOnlySet<Crate> selection, bool turned = false) =>
         button switch
         {
             MouseButton.Left when moved => new Gesture.Orbit(),
@@ -62,10 +64,7 @@ public static class DragGesture
                 { Delivered: true } => new Gesture.None(),
                 null => new Gesture.ClearSelection(),
             },
-            MouseButton.Right when down?.Crate is { Delivered: false } anchor =>
-                drop is { } target && (target.RackId != anchor.RackId || target.Position != anchor.Position)
-                    ? new Gesture.MoveCrates(anchor, DraggedCrates(button, down, selection), target.RackId, target.Position)
-                    : new Gesture.None(),
+            MouseButton.Right when down?.Crate is { Delivered: false } anchor => MoveFrom(anchor, DraggedCrates(button, down, selection), drop, turned),
             MouseButton.Right => new Gesture.Pan(),
             _ => new Gesture.None(),
         };
@@ -79,6 +78,21 @@ public static class DragGesture
         button == MouseButton.Right && down?.Crate is { Delivered: false } crate
             ? selection.Contains(crate) ? [crate, .. selection.Where(c => c != crate)] : [crate]
             : [];
+
+    // Back onto its own cell is no move, unless the wheel turned an oblong crate dragged alone.
+    private static Gesture MoveFrom(Crate anchor, IReadOnlyList<Crate> crates, Drop? drop, bool turned)
+    {
+        var turn = turned && anchor.CrateSize.Turns && CanTurn(crates, isLegend: false);
+        return drop is { } target && (target.RackId != anchor.RackId || target.Position != anchor.Position || turn)
+            ? new Gesture.MoveCrates(anchor, crates, target.RackId, target.Position, turn)
+            : new Gesture.None();
+    }
+
+    /// <summary>
+    /// True if the wheel turns the drag's crate instead of zooming (D71): one crate picked up in the view. A selection
+    /// keeps how its crates lie (B3), a legend drag leaves it to the planner.
+    /// </summary>
+    public static bool CanTurn(IReadOnlyList<Crate> dragged, bool isLegend) => !isLegend && dragged.Count == 1;
 
     /// <summary>A legend line or header dragged: onto any face of a rack it moves its crates there; anywhere else, nothing.</summary>
     public static Gesture ResolveLegend(IReadOnlyList<Crate> crates, bool moved, SceneHit? current) =>
