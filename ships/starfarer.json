@@ -4,8 +4,8 @@
   "name": "MISC Starfarer",
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-starfarer",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; racks 2, 4 turned so length is the longer side (crates don't turn)",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
+  "notes": "rack arrangement generated; grids from Fleetyards; racks 2, 4 turned so length is the longer side (crates don't turn); door limits from Fleetyards limits.max.capacity",
   "totalScu": 291,
   "racks": [
     {
@@ -13,7 +13,8 @@
       "capacityScu": 175,
       "grid": { "length": 7, "width": 5, "stack": 5 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z"
+      "stackAxis": "+z",
+      "maxCrateSize": 16
     },
     {
       "id": "rack-1",

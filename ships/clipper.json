@@ -5,7 +5,7 @@
   "manufacturer": "DRAK",
   "fleetyardsSlug": "drak-clipper",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; door takes crates up to 2 SCU (Fleetyards operator, 23 Oct 2026)",
+  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
   "totalScu": 12,
   "racks": [
     {

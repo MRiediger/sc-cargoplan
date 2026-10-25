@@ -79,6 +79,8 @@ public class ImportFleetyardsScriptTests
             run.Output.Should().MatchRegex($@"same\s+{id}");
         }
 
+        // row_ship's rack-2 (2x2x2, takes an 8) says limits.max.capacity 1: maybe a default, so not written, only named.
+        run.Output.Should().MatchRegex(@"same\s+row_ship.*\(limits\.max 1 unverified: rack-2\)");
         work.Snapshot().Should().Equal(before);
     }
 

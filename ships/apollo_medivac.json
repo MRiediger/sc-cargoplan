@@ -4,8 +4,8 @@
   "name": "RSI Apollo Medivac",
   "manufacturer": "RSI",
   "fleetyardsSlug": "rsi-apollo-medivac",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
+  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
   "totalScu": 32,
   "racks": [
     {
@@ -13,14 +13,16 @@
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "origin": [0, 0, 0],
-      "stackAxis": "+z"
+      "stackAxis": "+z",
+      "maxCrateSize": 2
     },
     {
       "id": "rack-1",
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "origin": [-5, 0, 0],
-      "stackAxis": "+z"
+      "stackAxis": "+z",
+      "maxCrateSize": 2
     }
   ]
 }

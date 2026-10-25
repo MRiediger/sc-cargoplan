@@ -4,8 +4,8 @@
   "name": "AEGS Reclaimer",
   "manufacturer": "AEGS",
   "fleetyardsSlug": "aegs-reclaimer",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; racks 5, 7, 9, 10, 11, 12 turned so length is the longer side (crates don't turn)",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
+  "notes": "rack arrangement generated; grids from Fleetyards; racks 5, 7, 9, 10, 11, 12 turned so length is the longer side (crates don't turn); door limits from Fleetyards limits.max.capacity",
   "totalScu": 420,
   "racks": [
     {
@@ -41,28 +41,32 @@
       "capacityScu": 70,
       "grid": { "length": 7, "width": 5, "stack": 2 },
       "origin": [-20, 0, 0],
-      "stackAxis": "+z"
+      "stackAxis": "+z",
+      "maxCrateSize": 2
     },
     {
       "id": "rack-5",
       "capacityScu": 50,
       "grid": { "length": 5, "width": 5, "stack": 2 },
       "origin": [-26, 0, 0],
-      "stackAxis": "+z"
+      "stackAxis": "+z",
+      "maxCrateSize": 2
     },
     {
       "id": "rack-6",
       "capacityScu": 70,
       "grid": { "length": 7, "width": 5, "stack": 2 },
       "origin": [-34, 0, 0],
-      "stackAxis": "+z"
+      "stackAxis": "+z",
+      "maxCrateSize": 2
     },
     {
       "id": "rack-7",
       "capacityScu": 50,
       "grid": { "length": 5, "width": 5, "stack": 2 },
       "origin": [-40, 0, 0],
-      "stackAxis": "+z"
+      "stackAxis": "+z",
+      "maxCrateSize": 2
     },
     {
       "id": "rack-8",

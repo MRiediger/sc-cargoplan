@@ -113,6 +113,12 @@ function ConvertFrom-Hold([object]$Hold, [int]$Index, [string]$Slug) {
             throw "${where}: limits.max.capacity $($Hold.limits.max.capacity) is not a crate size."
         }
     }
+    # A 1 is the one value that can also be a default: on a grid that takes more it stays unverified and isn't written
+    # (Martin, K3.1). A missing limit costs a hauler one crate at the lift; a wrong one locks the whole rack.
+    $unverified = $limit -eq 1 -and $gridCrate -gt 1
+    if ($unverified) {
+        $limit = $null
+    }
     $max = if ($null -ne $limit -and $limit -lt $gridCrate) { $limit } else { $gridCrate }
     $door = if ($max -lt $gridCrate) { $max } else { $null }
     $offset = $null
@@ -132,6 +138,7 @@ function ConvertFrom-Hold([object]$Hold, [int]$Index, [string]$Slug) {
         # Crates don't turn (D9): length takes the longer horizontal side, so a rack wider than long still takes
         # the crates the game allows.
         Turned   = $size[0] -gt $size[1]
+        Unverified = $unverified
     }
 }
 
@@ -234,6 +241,7 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
         totalScu       = ($racks | Measure-Object -Property Capacity -Sum).Sum
         racks          = $fileRacks
         Arrangement    = $arrangement
+        Unverified     = @($racks | Where-Object { $_.Unverified } | ForEach-Object { $_.Id })
     }
 }
 
@@ -411,6 +419,9 @@ try {
             else {
                 $status = 'same'; $detail = Get-Summary $draft
             }
+        }
+        if ($draft.Unverified.Count) {
+            $detail += " (limits.max 1 unverified: $($draft.Unverified -join ', '))"
         }
         $counts[$status]++
         $report.Add(('{0,-10} {1,-30} {2}' -f $status, $id, $detail))
