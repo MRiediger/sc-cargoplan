@@ -2223,7 +2223,7 @@ nicht automatisiert (bräuchte echte Mausbewegung) → Gate.
 - [x] Gate (Martin, Publish-Build vom Branch, 26.10., bestanden): markieren, Lock → sichtbar; Unlock → noch da; Lock
   während eines Drags (Hotkey) → kein Move, Auswahl da
 - Commits cf04c63 (Tests rot), c7d2f4f (App), Doku-Commit.
-### [ ] K6.3 Editor sortierbar nach Mission und Ziel (D19-Addendum) (26.10.2026)
+### [x] K6.3 Editor sortierbar nach Mission und Ziel (D19-Addendum) (26.10.2026)
 **Warum:** Am Aufzug sucht man die Zeilen eines Vertrags oder einer Station; der Editor zeigte nur die Reihenfolge des
 ersten Auftretens.
 
@@ -2262,7 +2262,7 @@ Plan aus sortierter Ansicht → Legende zeilengleich mit Plan aus der Standard-R
 - [x] Spaltenköpfe Mission und Destination klickbar, auf/ab, nicht persistiert; Standard bleibt erstes Auftreten
 - [x] Sortierung ändert nichts am Plan und an der Legende; Entwurfszeilen sortieren mit, eine leere Zeile bleibt unten
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün
-- [ ] Gate (Martin): sortieren, Plan drücken → Plan unverändert zur unsortierten Eingabe
+- [x] Gate (Martin, 26.10., bestanden): sortieren, Plan drücken → Plan unverändert zur unsortierten Eingabe
 - Commits e23c056 (Tests rot), 5a78e83 (App), Doku-Commit.
 ### [ ] K6.4 Zustand „geladen“ (Plan-Schema 7) (26.10.2026)
 ### [ ] K6.5 CT-Missionen im Editor editierbar (26.10.2026)
