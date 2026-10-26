@@ -1489,9 +1489,9 @@ Vier Tests nutzten einen 32-SCU-Vertrag auf der Hull A als „passt nicht“; de
 - [x] Verdrängen (3b) landet nie hinter einer Tür, die die Kiste abweist (mit Gegenprobe ohne Tür)
 - [x] Migration Schiffs-Schema 4 → 5 ohne Feld und mit Feld; Schema 6 abgelehnt
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 1.213, Import 141, App 1.134); Slow grün; Exhaustive grün (13 min 10 s, anfangs parallel zu anderen Tests)
-- [ ] Antwort von Torlek zur 1 → Liste der ungeprüften Türen übernehmen oder streichen
-- [ ] Gate Spiel-Build (Martin): Clipper laden, CT-Sync mit einem Vertrag über 2 SCU Kistengröße, Notice und Legende prüfen
-- [ ] Gate Kiosk (Martin, K3): am Terminal bestätigen, dass der Kiosk bei einem Vertrag mit Maximum 8 auch 2er anbietet; widerlegt → Kappung nur bei Türlimit, P3 zurück (Folge-Commit), Ergebnis in D70
+- [ ] Antwort von Torlek zur 1 → Liste der ungeprüften Türen übernehmen oder streichen – bleibt offen (Martin, 26.10.), Known issue für T7.5; Stand nach K5: 36 Racks in 18 Schiffen
+- [x] Gate Spiel-Build (Martin, 26.10., bestanden): Clipper laden, CT-Sync mit einem Vertrag über 2 SCU Kistengröße, Notice und Legende prüfen
+- [x] ~~Gate Kiosk (Martin, K3): am Terminal bestätigen, dass der Kiosk bei einem Vertrag mit Maximum 8 auch 2er anbietet; widerlegt → Kappung nur bei Türlimit, P3 zurück (Folge-Commit), Ergebnis in D70~~ Entfällt (Martin, 26.10.): Der Frachtaufzug gibt aus, was er will, der Spieler wählt keine Kistengrößen; P3 bleibt, Notiz in D70
 - Commits f3c4e63 (Daten, Import), f815210 (Core-Tests rot), 69ee7da (Core), 538b6c9 (App-Tests rot), 72a6115 (App), 25ac668 (Import aus `limits.max.capacity`), 84b2cc3 (Türen aus dem Index vom 25.10.), Doku-Commit.
 
 ### [ ] K3.3 Untergrenze `minCrateSize` pro Rack (D70-Addendum) (25.10.2026)
@@ -1519,7 +1519,7 @@ Vier Tests nutzten einen 32-SCU-Vertrag auf der Hull A als „passt nicht“; de
 - [x] Plan-Datei mit einer 16 auf der Hull C → neu geplant mit `Plan was made for other racks …`, Mission wartet (K2, Core und Overlay)
 - [x] Schiffsdatei ohne Feld = jede Größe; Minimum über Maximum oder Gitter lädt nicht
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün
-- [ ] Gate Overlay (Martin, kein Spieltest): Hull C wählen, 16er-Vertrag per CT-Sync → Mission in der Legende wartend mit `doesn't fit (ship takes 32 SCU crates only)`
+- [ ] Gate Overlay (Martin, kein Spieltest): Hull C wählen, 16er-Vertrag per CT-Sync → Mission in der Legende wartend mit `doesn't fit (ship takes 32 SCU crates only)` – offen (Martin, 26.10.): ContractTracker liefert ihm keine Mission mit 16er-Kisten; der Fall ist durch `MinCrateSizeOverlayTests` abgedeckt
 - Commits 32b5dd2 (Tests rot), f1fb3ef (Core, Import), c32de68 (Daten), Doku-Commit.
 
 ### [x] K3.2 Kisten-Gier 90° (D71) (25.10.2026)
@@ -2057,7 +2057,7 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 | Messung | Vorher | Nachher |
 |---|---|---|
 | Tests (Core / Import / App) | 1.418 / 141 / 1.331 | 1.428 / 141 / 1.331; Slow grün |
-| Katalogeinträge | 98 | 99 (+ `aurora_mk_ii_ts_module`) |
+| Katalogeinträge | 97 | 98 (+ `aurora_mk_ii_ts_module`) |
 | Gleichheitslauf (gegen nach D3) | 388 | 388 gleich, 4 neue Zeilen für die Konfiguration (alle abgelehnt: Fixtures über 8 SCU oder gesetzte 4er gegen Tür 2) |
 
 **Akzeptanz:**
