@@ -61,7 +61,9 @@ public static class ShipViewBuilder
             line.Mission,
             [.. line.Crates.Where(c => !c.Delivered)],
             line.MissionCrates,
-            line.Grouped))];
+            line.Grouped,
+            LegendText.Goods(line.Crates),
+            line.ContractIds))];
 
         return new ShipScene(
             racks,
@@ -78,20 +80,22 @@ public static class ShipViewBuilder
     /// <summary>
     /// The legend's lines (B6, D69): one per mission and destination, missions in the order they first appear along the
     /// route (D64), on a tie in the plan's mission order, a mission's destinations in route order. Once any mission on
-    /// board has a pickup, the first line of each mission carries its header ("From A, B" from every item's pickup, or
-    /// "From ?") and the mission's crates on board for the header's check box; without any, no line has a header.
+    /// board has a pickup or comes from ContractTracker (K6.1), the first line of each mission carries its header ("From A, B"
+    /// from every item's pickup, or "From ?"), its ContractTracker id ("#47") and the mission's crates on board for the
+    /// header's check box; without any, no line has a header.
     /// </summary>
-    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped)> LegendLines(
+    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped, string? ContractIds)> LegendLines(
         LoadPlan plan, SavedPlan? saved)
     {
         var rank = plan.Route.Select((destination, index) => (destination, index)).ToDictionary(r => r.destination, r => r.index);
         var listed = saved?.Missions.Select((mission, index) => (mission.Id, index)).ToDictionary(m => m.Id, m => m.index) ?? [];
         var pickups = saved?.Missions.ToDictionary(m => m.Id, m => Pickups.Normalized(m.Items.SelectMany(i => i.Item.Pickup ?? []))) ?? [];
+        var contracts = saved?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Id, m => LegendText.ContractIds(m.Contract!.ContractIds)) ?? [];
         var missions = plan.Crates.GroupBy(c => c.Mission)
             .OrderBy(m => m.Min(c => rank[c.Destination]))
             .ThenBy(m => listed.GetValueOrDefault(m.Key))
             .ToArray();
-        var headed = missions.Any(m => pickups.GetValueOrDefault(m.Key) is not null);
+        var headed = missions.Any(m => pickups.GetValueOrDefault(m.Key) is not null || contracts.ContainsKey(m.Key));
 
         return missions.SelectMany(mission =>
         {
@@ -102,7 +106,8 @@ public static class ShipViewBuilder
                 stop.Key,
                 (IReadOnlyList<Crate>)[.. stop],
                 headed && index == 0 && onBoard.Length > 0 ? (IReadOnlyList<Crate>?)onBoard : null,
-                headed));
+                headed,
+                headed && index == 0 ? contracts.GetValueOrDefault(mission.Key) : null));
         });
     }
 
@@ -127,14 +132,17 @@ public static class ShipViewBuilder
         ]);
     }
 
-    /// <summary>"Hurston + 1 · 16 SCU · ⚠ doesn't fit (16 SCU, 8 free) – tick to drop", with the mission's own markings.</summary>
+    /// <summary>
+    /// "Hurston + 1 · 16 SCU (2×8) · Gold · ⚠ doesn't fit (16 SCU, 8 free) – tick to drop", with the mission's own markings;
+    /// the mix is the one its items would take on board (E1, K6.1).
+    /// </summary>
     private static UnplacedEntry Unplaced(SavedPlan saved, Ship ship, Mission mission, IReadOnlySet<int> duplicates)
     {
         var name = MissionText.Name(mission);
         var reason = LoadPlanner.PlaceProblem(saved, ship, mission.Id) ?? FitsNowText;
         return new UnplacedEntry(mission.Id, Joined(
         [
-            Invariant($"{name} · {mission.TotalScu} SCU"),
+            name + string.Concat(LegendText.Quantity(mission.TotalScu, LegendText.Goods(mission, saved.CrateCap)).Select(s => s.Text)),
             mission.Contract?.CrateSizeAssumed == true ? AssumedSizes(mission.Stops) : "",
             Incomplete(mission),
             duplicates.Contains(mission.Id) ? DuplicateText : "",

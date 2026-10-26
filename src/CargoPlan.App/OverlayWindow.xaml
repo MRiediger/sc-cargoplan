@@ -59,6 +59,26 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- A piece of a legend line or header (K6.1): grey and struck through once its line is delivered. The line's
+             ItemsControl carries Delivered in its Tag; the header's carries none, so a header is never struck through. -->
+        <Style x:Key="LegendSegmentTextStyle" TargetType="TextBlock" BasedOn="{StaticResource LegendTextStyle}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=ItemsControl}}" Value="True">
+                    <Setter Property="Foreground" Value="{StaticResource DeliveredForegroundBrush}" />
+                    <Setter Property="TextDecorations" Value="Strikethrough" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <!-- The reserve lies hidden under the text, so a tick that takes a marking away keeps the line's width (D16, D33).
+             Both end in an ellipsis when LegendRowPanel gives them less than they need. -->
+        <DataTemplate x:Key="LegendSegmentTemplate" DataType="{x:Type sv:LegendSegment}">
+            <Grid>
+                <TextBlock Text="{Binding ReserveText, Mode=OneTime}" Style="{StaticResource LegendSegmentTextStyle}" Visibility="Hidden"
+                           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                <TextBlock Text="{Binding Text, Mode=OneTime}" Style="{StaticResource LegendSegmentTextStyle}"
+                           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+            </Grid>
+        </DataTemplate>
         <!-- A legend check box (B6, D69): selects crates; a ticked line has no box. Frame and mark (tick and bar) take their own
              colours from the legend's look (K4.1), grey by default.
              Ticked = all selected, a bar = part of them. Three states only with IsThreeState
@@ -536,9 +556,11 @@
                                      click on the line ticks, a right drag of the line moves its crates. A box shows ticked while all
                                      its crates are selected, a bar for part (LegendCheckedConverter). -->
                                 <StackPanel>
-                                    <StackPanel x:Name="HeaderRow" Orientation="Horizontal" Background="{StaticResource HitTestBackgroundBrush}"
-                                                MouseRightButtonDown="OnLegendHeaderRightButtonDown">
-                                        <CheckBox x:Name="MissionCheck" Style="{StaticResource LegendCheckBoxStyle}"
+                                    <!-- Rows are DockPanels, not horizontal StackPanels: those measure their children at infinite
+                                         width, and the text could never shorten (K6.1). The tool tip holds the whole text. -->
+                                    <DockPanel x:Name="HeaderRow" Background="{StaticResource HitTestBackgroundBrush}"
+                                               MouseRightButtonDown="OnLegendHeaderRightButtonDown" ToolTip="{Binding HeaderLabel, Mode=OneTime}">
+                                        <CheckBox x:Name="MissionCheck" DockPanel.Dock="Left" Style="{StaticResource LegendCheckBoxStyle}"
                                                   Command="{Binding DataContext.ToggleCratesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                   CommandParameter="{Binding MissionCrates, Mode=OneTime}">
                                             <CheckBox.IsChecked>
@@ -549,10 +571,23 @@
                                                 </MultiBinding>
                                             </CheckBox.IsChecked>
                                         </CheckBox>
-                                        <TextBlock Text="{Binding Header, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
-                                    </StackPanel>
-                                    <StackPanel x:Name="LineRow" Orientation="Horizontal">
-                                        <CheckBox x:Name="LineCheck" Style="{StaticResource LegendCheckBoxStyle}"
+                                        <!-- "From Lorville" · " · #47": the pickups shorten, the ContractTracker id never (K6.1). -->
+                                        <ItemsControl x:Name="HeaderText" ItemsSource="{Binding HeaderSegments, Mode=OneTime}"
+                                                      ItemTemplate="{StaticResource LegendSegmentTemplate}" Focusable="False">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <sv:LegendRowPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemContainerStyle>
+                                                <Style TargetType="ContentPresenter">
+                                                    <Setter Property="sv:LegendRowPanel.Rank" Value="{Binding Rank, Mode=OneTime}" />
+                                                </Style>
+                                            </ItemsControl.ItemContainerStyle>
+                                        </ItemsControl>
+                                    </DockPanel>
+                                    <DockPanel x:Name="LineRow">
+                                        <CheckBox x:Name="LineCheck" DockPanel.Dock="Left" Style="{StaticResource LegendCheckBoxStyle}"
                                                   Command="{Binding DataContext.ToggleCratesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                   CommandParameter="{Binding Crates, Mode=OneTime}">
                                             <CheckBox.IsChecked>
@@ -565,14 +600,16 @@
                                         </CheckBox>
                                         <!-- A click ticks this line, one mission's crates for one destination (B6, D69); a click on a
                                              crate in the ship view ticks the whole stop. -->
-                                        <Button Command="{Binding DataContext.ToggleLineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        <Button x:Name="LineButton"
+                                                Command="{Binding DataContext.ToggleLineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                 CommandParameter="{Binding Mode=OneTime}"
                                                 Style="{StaticResource LegendLineButtonStyle}"
-                                                MouseRightButtonDown="OnLegendRightButtonDown">
-                                            <StackPanel Orientation="Horizontal">
+                                                MouseRightButtonDown="OnLegendRightButtonDown"
+                                                ToolTip="{Binding Label, Mode=OneTime}">
+                                            <DockPanel x:Name="LineContent">
                                                 <!-- The stop's ordinal and the overlay's palette, the brush the view paints its
                                                      crates with, hatch included (K4.2). -->
-                                                <Rectangle x:Name="Swatch" Width="12" Height="12" Margin="0,0,6,0">
+                                                <Rectangle x:Name="Swatch" DockPanel.Dock="Left" Width="12" Height="12" Margin="0,0,6,0">
                                                     <Rectangle.Fill>
                                                         <MultiBinding Converter="{StaticResource PaletteBrushConverter}" Mode="OneWay">
                                                             <Binding Path="PaletteIndex" Mode="OneTime" />
@@ -580,15 +617,26 @@
                                                         </MultiBinding>
                                                     </Rectangle.Fill>
                                                 </Rectangle>
-                                                <!-- The reserve (the label with nothing delivered) lies hidden under it: a tick that takes a
-                                                     marking away keeps the line's width, so the block doesn't move (D16, D33). -->
-                                                <Grid>
-                                                    <TextBlock Text="{Binding ReserveLabel, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" Visibility="Hidden" />
-                                                    <TextBlock x:Name="LabelText" Text="{Binding Label, Mode=OneTime}" Style="{StaticResource LegendTextStyle}" />
-                                                </Grid>
-                                            </StackPanel>
+                                                <!-- "To Green Glade Station" · " · 5 SCU (4+1)" · " · Pressurized Ice" · markings (K6.1):
+                                                     the commodity shortens first, then the destination; quantity, mix and markings never.
+                                                     The markings carry the reserve, so a tick keeps the line's width (D16, D33). The Tag
+                                                     tells the segments that the line is delivered (LegendSegmentTextStyle). -->
+                                                <ItemsControl x:Name="LineText" ItemsSource="{Binding Segments, Mode=OneTime}" Tag="{Binding Delivered, Mode=OneTime}"
+                                                              ItemTemplate="{StaticResource LegendSegmentTemplate}" Focusable="False">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <sv:LegendRowPanel />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemContainerStyle>
+                                                        <Style TargetType="ContentPresenter">
+                                                            <Setter Property="sv:LegendRowPanel.Rank" Value="{Binding Rank, Mode=OneTime}" />
+                                                        </Style>
+                                                    </ItemsControl.ItemContainerStyle>
+                                                </ItemsControl>
+                                            </DockPanel>
                                         </Button>
-                                    </StackPanel>
+                                    </DockPanel>
                                 </StackPanel>
                                 <!-- Template triggers outrank values set in the template, so the grey wins over the bound colour.
                                      Hidden, not collapsed, boxes keep their column, so swatches and headers stay aligned.
@@ -606,8 +654,6 @@
                                     <DataTrigger Binding="{Binding Delivered}" Value="True">
                                         <Setter TargetName="LineCheck" Property="Visibility" Value="Hidden" />
                                         <Setter TargetName="Swatch" Property="Fill" Value="{x:Static sv:MissionPalette.DeliveredBrush}" />
-                                        <Setter TargetName="LabelText" Property="Foreground" Value="{StaticResource DeliveredForegroundBrush}" />
-                                        <Setter TargetName="LabelText" Property="TextDecorations" Value="Strikethrough" />
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>

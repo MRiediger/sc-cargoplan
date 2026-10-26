@@ -1,6 +1,7 @@
 using System.Runtime.ExceptionServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using CargoPlan.App.ShipView;
 
 namespace CargoPlan.App.Tests;
@@ -97,7 +98,7 @@ public class LegendRowPanelTests
 
             Layout(panel, 20);
 
-            panel.DesiredSize.Width.Should().Be(50);
+            // The panel asks for 50; WPF clips its DesiredSize to the 20 offered (FrameworkElement.MeasureCore).
             (Slot(destination).Width, Slot(quantity).Width, Slot(commodity).Width).Should().Be((0, 50, 0));
         });
     }

@@ -209,21 +209,66 @@ public sealed record SceneLine(Point From, Point To);
 /// and when none is left.
 /// </param>
 /// <param name="Grouped">The legend has headers: the line stands indented under its mission's.</param>
+/// <param name="Goods">The line's commodities with their crates, delivered ones included (K6.1); empty in plans built without crates.</param>
+/// <param name="ContractIds">The header's ContractTracker id, "#47" or "#47–48" (K6.1); null for a typed mission and off the header.</param>
 public sealed record LegendEntry(
     int PaletteIndex, string Destination, int Scu, bool Delivered = false, string Markings = "", string ReserveMarkings = "", string? Header = null,
-    int Mission = 0, IReadOnlyList<Crate>? Crates = null, IReadOnlyList<Crate>? MissionCrates = null, bool Grouped = false)
+    int Mission = 0, IReadOnlyList<Crate>? Crates = null, IReadOnlyList<Crate>? MissionCrates = null, bool Grouped = false,
+    IReadOnlyList<LineGoods>? Goods = null, string? ContractIds = null)
 {
     public const string ToText = "To ";
 
     public IReadOnlyList<Crate> Crates { get; } = Crates ?? [];
 
-    public string Label => WithMarkings(Markings);
+    public IReadOnlyList<LineGoods> Goods { get; } = Goods ?? [];
+
+    /// <summary>
+    /// "To Green Glade Station" · " · 5 SCU (4+1)" · " · Pressurized Ice" · " · 4 SCU?" (K6.1): the destination shortens
+    /// second, the commodities first, quantity, mix and markings never. The markings carry the reserve (D16).
+    /// </summary>
+    public IReadOnlyList<LegendSegment> Segments =>
+    [
+        new(ToText + Destination, LegendSegment.TrimSecond),
+        .. LegendText.Quantity(Scu, Goods),
+        .. Markings.Length + ReserveMarkings.Length == 0
+            ? []
+            : (LegendSegment[])[new(LegendText.Appended(Markings), LegendSegment.Fixed, LegendText.Appended(ReserveMarkings))],
+    ];
+
+    /// <summary>The whole line, as the tool tip shows it.</summary>
+    public string Label => string.Concat(Segments.Select(s => s.Text));
 
     /// <summary>The widest the label gets: laid out hidden under it.</summary>
-    public string ReserveLabel => WithMarkings(ReserveMarkings);
+    public string ReserveLabel => string.Concat(Segments.Select(s => s.ReserveText));
 
-    private string WithMarkings(string markings) =>
-        markings.Length == 0 ? Invariant($"{ToText}{Destination} · {Scu} SCU") : Invariant($"{ToText}{Destination} · {Scu} SCU · {markings}");
+    /// <summary>"From Lorville" · " · #47": the pickups shorten, the id never; empty without a header.</summary>
+    public IReadOnlyList<LegendSegment> HeaderSegments =>
+        Header is null
+            ? []
+            : [new(Header, LegendSegment.TrimFirst), .. ContractIds is null ? [] : (LegendSegment[])[new(LegendText.Appended(ContractIds))]];
+
+    /// <summary>The whole header, as the tool tip shows it; null without one.</summary>
+    public string? HeaderLabel => Header is null ? null : string.Concat(HeaderSegments.Select(s => s.Text));
+}
+
+/// <summary>One commodity of a legend line and its crates, largest first: "(8+2) Titanium" (K6.1).</summary>
+public sealed record LineGoods(string Commodity, IReadOnlyList<CrateSize> Crates);
+
+/// <summary>
+/// A piece of a legend line or header, laid out by <see cref="LegendRowPanel"/> (K6.1). <paramref name="Rank"/> says what
+/// gives way when the overlay is too narrow: <see cref="TrimFirst"/>, then <see cref="TrimSecond"/>, <see cref="Fixed"/>
+/// never. A piece K6.4 adds (the "loaded" mark) is one more fixed segment.
+/// </summary>
+/// <param name="Reserve">The widest this piece gets, laid out hidden under it (D16); null for its own text.</param>
+public sealed record LegendSegment(string Text, int Rank = LegendSegment.Fixed, string? Reserve = null)
+{
+    public const int Fixed = 0;
+
+    public const int TrimFirst = 1;
+
+    public const int TrimSecond = 2;
+
+    public string ReserveText => Reserve ?? Text;
 }
 
 /// <summary>A mission that didn't fit (D41): its line in the legend, and the id a tick drops it by.</summary>
