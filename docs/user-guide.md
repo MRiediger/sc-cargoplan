@@ -239,7 +239,11 @@ itself, a few moments after you press F3. No editor, no click.
   deliver it to Everus Harbor, where the Stims of another contract are collected. The legend then shows
   `To Everus Harbor · 8 SCU` next to `From Everus Harbor`; both are right.
 - **In the editor**, the **Mission** column shows where a row came from (`#37–38` = ContractTracker's ids, as in the
-  legend's header; empty = typed). **Delete mission** takes the selected row's mission out of the plan at once, with its crates; nothing else
+  legend's header; empty = typed).
+- **ContractTracker missed a destination?** Select a row of that contract and click **Add to mission**: a new row
+  right below belongs to the same mission. Fill it in and press **Plan**; the destination then stands under the
+  contract's `#37–38` in the legend. Rows you add or change in a contract show `#37–38 ✎`. A sync leaves them alone; they
+  go with the contract once it is handed in (the amber line says so). **Add** stays a row of its own, a typed mission. **Delete mission** takes the selected row's mission out of the plan at once, with its crates; nothing else
   moves and you don't press **Plan** for it (typed rows of one destination count as one mission).
   **Sync from ContractTracker** takes in what came since the last sync, the same as a capture does.
 - The first time, everything that is in ContractTracker comes in. Delete old contracts there first (× or F5) if you

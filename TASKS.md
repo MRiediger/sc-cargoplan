@@ -2328,7 +2328,39 @@ Schere (D67-Regel verletzt); `▣` ist klein.
   Zustände da; Dreierzyklus ohne Nachdenken, Fehlklick per Undo zurück
 - Commits 6d27157, 24977c3 (Tests rot Core), cb7ab02 (Core), 1876e98 (Tests rot App), 5f420b7 (App), 36bf04e (Doku);
   Look-Gate: 2311b20 (Tests rot), 52c6960 (Kopfzeile), Doku-Commit. Tests App 1.396 → 1.397.
-### [ ] K6.5 CT-Missionen im Editor editierbar (26.10.2026)
+### [ ] K6.5 CT-Missionen im Editor editierbar (D44-Addendum) (26.10.2026)
+**Warum:** ContractTracker vergisst manchmal Ziele; als getippte Zeile nachgetragen wurden sie eine eigene Mission ohne CT-Id.
+
+**Ist-Zustand vor K6.5 (A1):** CT-Zeilen waren schon editierbar und blieben nach Plan in ihrer CT-Mission
+(`MissionRows.ToMissions`); der Sync liest eine Aufnahme nur einmal (Wasserstand), überschreibt also nie; es fehlte nur das
+Hinzufügen (Add = getippte Mission) und eine Markierung. `MissionItemDto` ist für Plan- und Missionsdateien dasselbe.
+„CT liefert später doch“ gibt es nur als Neuaufnahme (F4), die eine eigene Mission mit `⚠ duplicate?` wird.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 Button „Add to mission“ (Martin) fügt unter der
+ausgewählten CT-Zeile eine `manual`-Zeile in deren Mission ein, Add bleibt getippt; P2 eine geänderte CT-Zeile wird `manual`
+(im Zeilen-Handler, Laden markiert nichts); P3 Spalte „Mission“ zeigt `#37–38 ✎` (Martin), Legende unverändert; P4 Sync wie
+heute (Martin): Neuaufnahme bleibt eigene Mission mit Duplikat-Marke, die Regel „… now also in ContractTracker“ entfällt,
+B1 benennt auch `manual`-Stopps um, sie bleiben `manual`; P5 verschwindet die Mission, gehen alle Zeilen, Notice `Gone from
+ContractTracker: #37, with 1 row added by hand`; P6 `manual` im Plan-Schema 7 (kein zweiter Bump), nur bei `true`,
+Fehler in Schema 6 und in Missionsdateien, Export schreibt es nie (geprüft); P7 ein nachgetragenes Ziel an einer
+geladenen Mission ist deren ungeladener Rest (K6.4, E1).
+- Core: `MissionItem.Manual`, `MissionItemDto.Manual`, `FromMissionItem/FromMissionStop(…, withManual)`,
+  `MissionFileDto.ToMissionStops` lehnt `manual` ab, `PlanFileDto.CheckManual`
+- App: `MissionRow.Manual`/`MissionLabel`/`ManualMark`, `MissionRows` (Laden, `ToMissions` trägt `manual` in Captures),
+  `AddToMissionCommand`, Markieren in `OnRowChanged`, `OverlayViewModel.GoneWithManualText`, Spalte und Button im XAML
+- Tests: `ManualItemTests` (Core, 6), `ManualRowsTests` (App, 8), `MissionEditorXamlTests` (+1, Spaltenbindung)
+
+**Zahl vorher/nachher:** `ContractSync`- und Golden-Tests 37 grün → 37 grün (Goldens byte-gleich), Sync-/CT-Tests der
+App 58 grün → grün; Planer unberührt, Gleichheitslauf nach K6.4 392/392. Tests Core 1.460 → 1.466, App 1.397 → 1.406.
+
+**Akzeptanz:**
+- [x] CT-Zeilen editierbar, Ziel per „Add to mission“ in derselben Mission; hinzugefügte und geänderte Zeilen `manual`
+- [x] Sync: `manual`-Zeilen bleiben, Idempotenz, Umbenennen ohne Dublette; Mission weg → alle Zeilen weg mit Notice
+- [x] Format: `manual` in Schema 7, Missions-JSON trägt es nicht
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [ ] Gate (Martin): CT-Mission mit fehlendem Ziel → Ziel nachtragen → Plan → Legende unter derselben CT-Id → Sync → Ziel
+  bleibt → Vertrag in CT abgeben → Mission samt Handzeile weg
+- Commits a18b6ed (Tests rot Core), cd884e8 (Core), 61b66db (Tests rot App), 15e194a (App), Doku-Commit.
 
 ---
 

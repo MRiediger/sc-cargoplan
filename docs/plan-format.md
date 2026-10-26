@@ -68,7 +68,7 @@ fields are an error.
 |---|---|---|
 | `id` | number | 1 or more, unique in the file. Crates name their mission by it. |
 | `unplaced` | boolean | `true` if the mission didn't fit when it came; it then has no crates. The overlay places it as soon as it fits, at the next sync with ContractTracker. |
-| `stops` | array | Its stops as in a [mission file](mission-format.md): `destination` and `items` with `commodity`, `scu`, `maxCrateSize` and optionally `crates` and `pickup`. One stop per destination; the same destination in two missions has the same spelling. |
+| `stops` | array | Its stops as in a [mission file](mission-format.md): `destination` and `items` with `commodity`, `scu`, `maxCrateSize` and optionally `crates` and `pickup`, here also `manual` (schema 7, written only as `true`): the item was added to this ContractTracker mission or changed by hand in the editor and stays with it until ContractTracker no longer lists the mission. `manual` in a schema 6 file is an error. One stop per destination; the same destination in two missions has the same spelling. |
 | `contract` | object | Optional: the ContractTracker capture it came from. Missing for missions typed in the editor or read from a mission file. |
 
 Missions to the same destination share one stop at the cargo lift: one tick. The legend shows it once, or once per
@@ -120,8 +120,8 @@ red; the planner and the overlay's moves never make them.
 All older versions are read and saved as schema 7 right after loading; moves and ticks stay. An app from before
 schema 7 refuses a schema 7 file, so it never plans loaded cargo anew.
 
-- **Schema 6** (before cargo could be loaded) has no `loaded`: nothing is loaded. `loaded` in a schema 6 file is an
-  error.
+- **Schema 6** (before cargo could be loaded) has no `loaded` and no `manual`: nothing is loaded, no item was added by
+  hand. Either in a schema 6 file is an error.
 
 - **Schema 5** (before cargo could be off the ship) has no `offShip`: every crate lies in a rack. `offShip` in a
   schema 5 file is an error.
