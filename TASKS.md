@@ -1933,6 +1933,42 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Gate (Martin, 26.10.): `fetch.ps1` nativ ohne Ausnahme, Seitengrößen 100 / 100 / 48 / 0, Schlusszeile; Stichprobe im Index: Clipper `limits.max` 2, Hull C `limits.min`/`max` 32 / 32
 - Commits Pipeline `1af1c83`, `6be0795`, `ef83dda`, `52a5d3f`; Doku-Commit hier.
 
+### [ ] K5.2 Import: `offset`/`rotation` → `origin`/`stackAxis`, voller Abgleich (D78) (26.10.2026)
+**Warum:** Fleetyards gibt für 9 Schiffe Lage und Drehung der Laderäume; der Import nutzte sie nur halb, die Hull C stand als Reihe von 16 Racks statt als Kreuze um die Spindel, und Fortune, Moth und Salvation aus dem Index vom 25.10. fehlten.
+
+**Ist-Zustand vor K5.2 (A1):** `import-fleetyards.ps1` las `offset` seit K3.2 nur bei `-Create` (Min-Ecke, `origin = (Fy.y, −(Fy.x + Breite), Fy.z)`), ohne `rotation`; die Hull C überlappte so und bekam eine generierte Reihe. Der Abgleich verglich keine Lage, `-Force` verweigerte geänderte Rack-Sätze. Die Hull A war schematisch (1 Zelle zwischen den Platten, D14). Core plant ohne `Origin`/`StackAxis` (Planning-Namespace per Grep).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 die Hull A nimmt den Fleetyards-Spalt (3 Zellen), der Spalt ist kein Kalibrierkriterium; P2 Gate fürs Vorzeichen ist die Starlancer MAX (die Hull B ist vorne/hinten gleich und kann es nicht zeigen); P3 Hull C behält 8×8×6/8×4×6, die Stapelachse folgt der Box (waagerechte Arme z, senkrechte y); P4 Carrack und Caterpillar-Nase bleiben generiert; P5 Ironclad Assault hat kein `offset`, kein Gate; P6 eigene Entscheidung D78. Dazu: Gate L bestanden (Vorzeichen bleibt, Fy y+ = Bug); Kistenkante der Hull A unter 24 px akzeptiert (D62-Addendum); beim gleichen Rack-Satz bleibt die Zuordnung über die Id (wie bisher, `Force_rewrites_the_grid_data_and_keeps_the_hand_work`), Id **und** Gitter nur bei geändertem Satz; `-Force` nennt Türen und Minima aus dem Export in den `notes` wie `-Create` (Befund Moth); die Salvation hat noch keinen Umriss (Bug-Keil, `NotTracedYet`); die Hull C ist kein langes Schiff mehr (D61-Addendum).
+- Import: `rotation` 90/270 tauscht x- und z-Ausdehnung der Box (um Fy y), andere Werte → Abbruch; Box in Schiffszellen (Helfer statt Inline-Formel); Überlappung auf den gedrehten Boxen; Stapelachse per Port von `Rack.FrameOf` (`Get-Frame`, `Get-StackAxis`: die der Datei, sonst die erste passende); keine Position für Racks auf der Schiffsmitte; Abgleich der Lage bis auf eine gemeinsame Verschiebung (`Get-FileBox`, `Get-ArrangementText`), `hull_a` eingeschlossen; `-Force` legt Fleetyards-Schiffe (`Set-Arrangement`), geänderter Rack-Satz über `Update-Ship` (zugeordnete Racks behalten alles, neue hinter dem letzten großen, verschwundene gemeldet, nichts zuordenbar → neu); Generierte Reihe als `Get-RowOrigins`
+- Daten: D1 `hull_a.json` Steuerbord y −4..−2 (von Hand, `notes`); D2 `-Force hull_c` (zwei Kreuze, `notes` zur Stapelachse von Hand); D3 `-Force fortune`, `-Force moth`, `-Create` (Salvation)
+- Tests: `ImportFleetyardsScriptTests` (Drehung, `bad_rotation`, Lage gleich bei Verschiebung, Lage abweichend, `-Force` mit Achswahl, geänderter Rack-Satz, Neu-Erzeugung, Hull-A-Kalibrierung mit Gegenprobe, Tür-Hinweis), Fixtures `rotated.json`, `bad_rotation.json`, `with_hull_a.json` (vier echte Holds); `Hull_c_racks_form_two_crosses`; `A_ship_not_traced_yet_has_no_outline`; 13 Erwartungen an die Hull-A-Geometrie (3 Core, 10 App, `TestPlans.HullABeforeK52` für die zwei, die an der alten Geometrie gemessen wurden); `IsoProjectionTests` Hull C nicht lang
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.401 / 141 / 1.328 | 1.418 / 141 / 1.328 |
+| Gleichheitslauf 4 Fixtures × alle Schiffe (gegen `c75cd5f`) | 384 Fälle, 176 geplant, 96 Schiffe | nach D1 und D2 je 384/384 byte-gleich; nach D3 388 Fälle, 178 geplant, 97 Schiffe: 380 gleich, Fortune 3 weiter abgelehnt (Kapazität 4 → 16 im Grund), Moth 4 geändert (2 jetzt geplant, 2 auf den neuen Racks), Salvation 4 neu |
+| Import-Abgleich gegen den Index vom 26.10. | 94 same, Fortune/Moth different, Salvation new, Exit 1 | 97 same, Exit 0; Hull A same inkl. Lage |
+| Schiffe mit Fleetyards-Lage | 5 (C8, C8X, Hull B, Starlancer MAX/TAC) | 7 (+ Hull A von Hand, Hull C) |
+| Kistenkante Hull A, Default-Fit mit Umriss | 27,7 px (T7.4) | ~23,4 px (Skala × 0,844; 400×302: × 0,755), akzeptiert |
+| rote Tests durch Geometrie | – | nach D1 13 (alle Geometrie, Stopp-Regel 20 nicht erreicht), nach D2 1 (Hull C nicht mehr lang), nach D3 1 (Salvation ohne Umriss) |
+
+**Schiffe mit `offset`** (Index 26.10.): C8 Pisces, C8X, Carrack, Caterpillar, Hull A, Hull B, Hull C, Starlancer MAX, TAC; `rotation` 90 nur Hull C (8), 270 nur Carrack (9) und Caterpillar-Nase (2). **Geänderte Rack-Sätze:** Fortune 1 → 3 Racks (4 → 16 SCU), Moth 1 → 3 (32 → 224 SCU, neue Racks mit Tür 8); Salvation neu (6 SCU). **`unverified`-Stand:** 32 Racks in 16 Schiffen (K3.1) + Fortune rack-0 bis -2, Salvation rack-0 = 36 Racks in 18 Schiffen.
+
+**Release-Notes-Stoff (T7.5):** Gespeicherte Ansichten der Hull A und Hull C sitzen nach dem Update anders (neue Rack-Lage, Datenupdate, D76); die Hull C zeigt ihre zwei Kreuze, die Hull A den echten Spindelabstand.
+
+**Akzeptanz:**
+- [x] Kalibrierung: der Abgleich findet die ausgelieferte Hull A „same“ inkl. Lage; die Hull A von vorher (1 Zelle Spalt) meldet er als abweichend
+- [x] Drehung 90/270 nach der Tabelle, andere Werte brechen mit Wert im Text ab
+- [x] Hull C: zwei Kreuze, acht Arme je Kreuz, Gitter unverändert, Gleichheitslauf gleich
+- [x] `-Force` mit geändertem Rack-Satz behält, was zuordenbar ist (Fortune, Moth); Salvation per `-Create`
+- [x] Gleichheitslauf: Abweichungen nur auf Fortune, Moth, Salvation, jede benannt
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün; Exhaustive nicht nötig (Core-Code unberührt)
+- [x] Gate L (Martin, 26.10.): Starlancer MAX über dem Holo stimmt, Belly-Racks vorn, Bucht hinten
+- [ ] Gate (Martin, Publish-Build): Hull C zeigt zwei Kreuze mit je acht Armen über dem Holo; Hull A gleiche Seiten/Ebenen mit breiterem Spalt; Fortune und Moth planen mit den neuen Gittern; Salvation wählbar
+- Commits 48107db (D1), db183d3 (Tests rot), 215d3d9 (Import), a5f3e4f (D2), c704561 (Grenz-Hinweise), a05691d (D3), Doku-Commit.
+
 ### [ ] K5.4 App-Icon (D48-Addendum) (26.10.2026)
 **Warum:** Seit T6.2 im Backlog (D48): Exe, Taskleiste und Werkzeugfenster zeigten das Windows-Standardsymbol.
 
@@ -2019,3 +2055,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Abholort ändern ohne Re-plan (heute braucht jede Editor-Änderung „Plan“, D19). Auslöser: ein Hauler trägt Abholorte erst
   nach dem Beladen nach und verliert dabei Moves.
 - Mehrsprachigkeit, falls nicht-englische Hauler danach fragen. Beginnt beim Parser (deutsche CT-Captures als Fixtures), nicht bei `.resx` (D53).
+- Fleetyards-Lage für Modul-Laderäume (Carrack, Caterpillar-Module und -Nase): heute modul-lokale Offsets, die überlappen, also generierte Reihe (D78). Auslöser: Fleetyards liefert schiffsweite Offsets für Module.
+- Hull C: Stapelrichtung je Arm. Heute quer zum Arm, damit die Gitter 8×8×6/8×4×6 bleiben (D78); radial nach außen wie bei der Hull A hieße 8×6×8/8×6×4 mit Achse vom Kreuz weg. Auslöser: Beobachtung im Spiel oder in einem Beladungsvideo.
+- Hull C: innerer und äußerer Block eines Arms ein Gitter oder zwei. Heute zwei Racks wie bei Fleetyards, beide einzeln voll packbar (K3.2). Auslöser: ein Hauler meldet, dass ein 32er über die Blockgrenze liegt.
+- Umrisse und Holos neu erzeugen (Pipeline `sc-ship-outlines`): die Salvation hat keinen (neu seit 25.10., zeigt den Bug-Keil, `NotTracedYet`), 18 Schiffe haben im Index vom 26.10. neue Rumpfmaße (K5.1). Auslöser: ein Hauler meldet die Salvation oder Racks liegen sichtbar außerhalb des Rumpfs.
