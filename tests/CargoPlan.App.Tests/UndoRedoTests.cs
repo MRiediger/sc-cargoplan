@@ -11,8 +11,8 @@ namespace CargoPlan.App.Tests;
 
 /// <summary>
 /// Undo and redo of the player's actions on the plan (K2.4): moves, legend drags, turns, split, merge, re-plan, the
-/// editor's Plan, deleting a mission and discard are steps; ticks and syncs aren't, and carry over; a ship change clears
-/// the history. Snapshots of the whole plan, not saved: a restart starts without.
+/// editor's Plan, deleting a mission, discard and, since K6.4, every change of a delivery's state (a legend line or a crate
+/// clicked) are steps; syncs aren't, and carry over; a ship change clears the history. Snapshots of the whole plan, not saved: a restart starts without.
 /// </summary>
 public sealed class UndoRedoTests
 {
@@ -124,32 +124,34 @@ public sealed class UndoRedoTests
         overlay.HasPlan.Should().BeTrue();
     }
 
-    // --- What isn't a step carries over ---
+    // --- A tick is a step (K6.4); a sync isn't and carries over ---
 
     [Fact]
-    public void A_tick_after_a_move_stays_through_undo_and_redo()
+    public void A_tick_after_a_move_is_undone_first_and_the_move_second()
     {
         var overlay = Showing(TestPlans.SplitAndShared());
         Move(overlay);
+        var moved = overlay.Plan!;
         overlay.ToggleDeliveredCommand.Execute("Orison");
-        overlay.CanUndo.Should().BeTrue("the tick added no step");
 
         overlay.UndoCommand.Execute(null);
-        overlay.Plan!.Crates.Where(c => c.Destination == "Orison").Should().OnlyContain(c => c.Delivered);
+        overlay.Plan!.Crates.Should().Equal(moved.Crates, "the tick was the last step");
 
         overlay.RedoCommand.Execute(null);
         overlay.Plan!.Crates.Where(c => c.Destination == "Orison").Should().OnlyContain(c => c.Delivered);
     }
 
     [Fact]
-    public void Ticks_and_syncs_are_no_steps()
+    public void Syncs_are_no_steps_and_a_tick_is_one()
     {
         var overlay = new OverlayViewModel(HullA, Catalog);
         overlay.ApplyContractTracker(Read(Candidate(36, "Riker")));
         overlay.ApplyContractTracker(Read(Candidate(36, "Riker"), Candidate(37, "Shubin")));
+        overlay.CanUndo.Should().BeFalse();
+
         overlay.ToggleDeliveredCommand.Execute("Riker");
 
-        overlay.CanUndo.Should().BeFalse();
+        overlay.CanUndo.Should().BeTrue();
     }
 
     [Fact]

@@ -424,18 +424,17 @@ public sealed class MissionEditorViewModelTests : IDisposable
     }
 
     [Fact]
-    public void Delivered_stops_show_the_replan_warning_and_planning_clears_them()
+    public void Delivered_stops_stay_delivered_through_Plan()
     {
+        // K6.4 (D19 addendum): Plan keeps what is loaded and what is delivered; the old warning is gone.
         var overlay = OverlayWithPlan();
         var editor = new MissionEditorViewModel(overlay);
-        editor.ClearsDelivered.Should().BeFalse();
-
         overlay.ToggleDeliveredCommand.Execute("Riker");
 
-        editor.ClearsDelivered.Should().BeTrue();
         editor.PlanCommand.Execute(null);
-        overlay.Plan!.Placements.Should().OnlyContain(p => !p.Delivered);
-        editor.ClearsDelivered.Should().BeFalse();
+
+        overlay.Plan!.Crates.Where(c => c.Destination == "Riker").Should().NotBeEmpty().And.OnlyContain(c => c.Delivered);
+        overlay.Plan.Crates.Where(c => c.Destination != "Riker").Should().OnlyContain(c => !c.Delivered);
     }
 
     [Fact]

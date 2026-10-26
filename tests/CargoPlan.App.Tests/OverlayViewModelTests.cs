@@ -373,10 +373,10 @@ public class OverlayViewModelTests
     }
 
     [Fact]
-    public void ToggleDeliveredCommand_back_onto_cells_taken_again_is_refused_with_a_notice()
+    public void ToggleDeliveredCommand_back_onto_cells_taken_again_lays_the_stop_in_elsewhere()
     {
         // Shubin's 8 in Rack 1, Riker's 4 in Rack 2 (largest first, D64). Riker is ticked, Shubin's 8 goes where Riker's 4
-        // lay (D24 addendum): Riker can't come back on board.
+        // lay (D24 addendum): Riker comes back on board into free cells (K6.4, P7), no refusal.
         var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"));
         IReadOnlyList<MissionStop> missions =
         [
@@ -390,8 +390,9 @@ public class OverlayViewModelTests
 
         viewModel.ToggleDeliveredCommand.Execute("Riker");
 
-        viewModel.Plan.Should().BeSameAs(reused);
-        viewModel.Notices.Should().ContainSingle().Which.Should().StartWith(OverlayViewModel.TickRefusedPrefix + "Riker can't go back on board: ");
+        viewModel.Plan!.Crates.Where(c => c.Destination == "Riker").Should().OnlyContain(c => !c.Delivered);
+        viewModel.Plan.Crates.Where(c => c.Destination == "Shubin").Should().Equal(reused.Crates.Where(c => c.Destination == "Shubin"));
+        viewModel.Notices.Should().NotContain(n => n.StartsWith(OverlayViewModel.TickRefusedPrefix, StringComparison.Ordinal));
     }
 
     [Fact]
