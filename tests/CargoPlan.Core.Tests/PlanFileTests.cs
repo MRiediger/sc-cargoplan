@@ -146,7 +146,7 @@ public class PlanFileTests
     {
         var node = JsonNode.Parse(Written(Planned(MissionFixtures.LoadMissions("example_missions"))))!;
 
-        node["schemaVersion"]!.GetValue<int>().Should().Be(6);
+        node["schemaVersion"]!.GetValue<int>().Should().Be(7);
         node["shipId"]!.GetValue<string>().Should().Be("hull_a");
         node["fillOrder"]!.GetValue<string>().Should().Be("bowFirst");
         node["contractTrackerWatermark"]!.GetValue<long>().Should().Be(0);
@@ -444,7 +444,7 @@ public class PlanFileTests
     {
         { "not json", "*plan.json*" },
         { "null", "*schemaVersion*" },
-        { """{ "schemaVersion": 7 }""", "*schemaVersion 7*expected 1 or 2 or 3 or 4 or 5 or 6*" },
+        { """{ "schemaVersion": 8 }""", "*schemaVersion 8*expected 1 or 2 or 3 or 4 or 5 or 6 or 7*" },
         { """{ "shipId": "hull_a" }""", "*schemaVersion*" },
     };
 
