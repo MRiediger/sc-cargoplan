@@ -2264,7 +2264,7 @@ Plan aus sortierter Ansicht → Legende zeilengleich mit Plan aus der Standard-R
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün
 - [x] Gate (Martin, 26.10., bestanden): sortieren, Plan drücken → Plan unverändert zur unsortierten Eingabe
 - Commits e23c056 (Tests rot), 5a78e83 (App), Doku-Commit.
-### [ ] K6.4 Zustand „geladen“ (Plan-Schema 7, D79) (26.10.2026)
+### [x] K6.4 Zustand „geladen“ (Plan-Schema 7, D79) (26.10.2026)
 **Warum:** Martins Abschlusstest: Mission 1 annehmen → Sync → laden → Mission 2 annehmen → **Plan** legt Mission 1 um,
 obwohl sie an Bord ist. Ladeweise: alle Missionen laden, dann pro Mission abgeben (first-in last-out).
 
@@ -2321,11 +2321,13 @@ Schere (D67-Regel verletzt); `▣` ist klein.
 - [x] Editor-Plan und Re-plan halten Geladenes und Abgeliefertes; E1-Ablehnung, E2-Schutz
 - [x] Schiffswechsel löscht geladen mit Notice; Undo/Redo über Zustandswechsel; Schema 7 mit Migration und Ausschlüssen
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Zahl vorher/nachher
-- [ ] Look-Gate (Martin): Rahmen, Legendenzeichen, Kopfzeile (Platzproblem bei 420 px)
-- [ ] Gate (Martin, der Originalfall): Mission 1 → Sync → laden → „geladen“ → Mission 2 → **Plan** → Mission 1 liegt, Mission 2
+- [x] Look-Gate (Martin, 26.10.): Rahmen und `▣` passen; Kopfzeile kurz `· 10 ▣` statt `· 10 loaded`, Tooltip mit
+  Volltext (`CapacityToolTip`), danach bei 420 px mit ↶ vollständig vor der Schere (Name weicht, D67)
+- [x] Gate (Martin, der Originalfall, 26.10., bestanden): Mission 1 → Sync → laden → „geladen“ → Mission 2 → **Plan** → Mission 1 liegt, Mission 2
   drumherum; Re-plan gleich; geladene Kiste ziehen geht; Mission 1 abhaken → grau, Kisten darüber sinken; Neustart →
   Zustände da; Dreierzyklus ohne Nachdenken, Fehlklick per Undo zurück
-- Commits 6d27157, 24977c3 (Tests rot Core), cb7ab02 (Core), 1876e98 (Tests rot App), 5f420b7 (App), Doku-Commit.
+- Commits 6d27157, 24977c3 (Tests rot Core), cb7ab02 (Core), 1876e98 (Tests rot App), 5f420b7 (App), 36bf04e (Doku);
+  Look-Gate: 2311b20 (Tests rot), 52c6960 (Kopfzeile), Doku-Commit. Tests App 1.396 → 1.397.
 ### [ ] K6.5 CT-Missionen im Editor editierbar (26.10.2026)
 
 ---

@@ -89,7 +89,7 @@ rests on the plate or on other crates.
 - **Red** = a crate that can't lie like this, see [Stacking and red crates](#stacking-and-red-crates).
 
 **How full is the ship?** The header shows it next to the ship name: `56/64 · 8 free` is 56 SCU on board of 64, 8 free.
-Once you mark cargo loaded, `· 40 loaded` says how much of it is. While a mission waits for room, `· 16 waiting` follows with its SCU: that is the moment for
+Once you mark cargo loaded, `· 40 ▣` says how much of it is (hover for the numbers in words). While a mission waits for room, `· 16 waiting` follows with its SCU: that is the moment for
 [Re-plan](#changing-the-plan). Ticked crates are off the ship and don't count. The numbers stay while the overlay is
 locked; in a narrow overlay the ship name gives way first. Each rack says the same as a tool tip anywhere over it,
 `Rack 3 · 12 / 16 SCU`, empty racks included.
