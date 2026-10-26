@@ -2121,6 +2121,26 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - **Für die Screenshots:** nach K5 neu aufnehmen; Umriss in echter Größe und neuer Ausschnitt ändern das Bild aller Schiffe außer Hull A, Caterpillar, Syulen, Railen.
 - **Offen:** Antwort von Torlek (K3.1); Hull-C-Overlay-Gate (K3.3); Starbreaker für das zweite Modulschiff (Backlog).
 
+### Nachtrag nach dem K5-Merge (26.10.2026, Branch `fix/k5-followup`)
+- **CI:** Der K5-Merge (2922698) scheiterte auf `windows-latest` an `A_rack_of_1000_crates_projects_within_50_ms` (60 ms auf dem geteilten Runner, alles andere grün); der rote K4-Merge war ein .NET-Download-Ausfall (HTTP 409). Der Test misst jetzt fünfmal und prüft den schnellsten Lauf (Martin), 4f38666.
+
+### [x] K5.5 Maßstab beim Drehen festhalten (D76-Addendum) (26.10.2026)
+**Warum:** Martin: Beim Drehen mit Holo pumpt die Größe. Gemessen (Wegwerf-Test, Default-Overlay, Holo als Box in Fleetyards-Maßen): Fit-Skala über eine Runde schwankt bei Hull A 10 %, C2 25 %, Aurora Mk II 32 %, Hull C 39 %.
+
+**Ist-Zustand vor K5.5 (A1):** Ohne Rahmen passt die Ansicht bei jedem Winkel neu ein (D61, D76, `Orbiting_the_fit_keeps_fitting`); `PanBy` macht den Fit schon zum Rahmen, `OrbitBy` nicht.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Maßstab beim Drehen festhalten (Martin, statt drehfestem Fit oder Lassen), in allen Modi; danach folgt die Ansicht Fenster und Ladung nicht mehr von selbst bis zum Reset; der Rahmen wird pro Schiff gespeichert (K1.2).
+- App: `ViewNavigation.OrbitBy(yaw, pitch, basis)` macht aus dem Fit beim ersten Schritt den Rahmen (`Framing.OfFit`), `ShipViewControl` übergibt `Basis(scene)`
+- Tests: `Orbiting_the_fit_fixes_its_scale` (ersetzt `Orbiting_the_fit_keeps_fitting`), `The_first_orbit_step_draws_the_fit_it_starts_from`, `Further_orbit_steps_keep_the_scale_whatever_the_fit_would_be`
+
+**Zahl vorher/nachher:** Tests App 1.332 → 1.334, Core 1.433, Import 141.
+
+**Akzeptanz:**
+- [x] Drehen aus dem Fit hält den Maßstab, der erste Schritt springt nicht; ein gesetzter Rahmen bleibt
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [x] Gate (Martin, Publish-Build vom Branch, 26.10., bestanden; der erste Test lief auf der Publish-Version vom 25.10. ohne K5.5): Aurora Mk II und Hull C mit Holo drehen, ohne vorher zu zoomen → Größe bleibt ruhig; Reset bringt den Fit zurück
+- Commits d814e50 (Tests rot), 9a0eef6 (App), Doku-Commit.
+
 ---
 
 ## Phase 8 – nach dem Launch

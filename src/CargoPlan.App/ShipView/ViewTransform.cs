@@ -148,6 +148,14 @@ public sealed record ViewNavigation(IsoProjection Camera, Framing? Framing = nul
             ? this with { Framing = framing with { PxPerCell = scale } }
             : this;
 
-    /// <summary>Turns the camera by <paramref name="yaw"/> and tilts it by <paramref name="pitch"/>, in degrees.</summary>
-    public ViewNavigation OrbitBy(double yaw, double pitch) => this with { Camera = Camera.OrbitBy(yaw, pitch) };
+    /// <summary>
+    /// Turns the camera by <paramref name="yaw"/> and tilts it by <paramref name="pitch"/>, in degrees. From the fit, the
+    /// fit on <paramref name="basis"/> becomes the framing, as panning makes it: refitting at every angle made a
+    /// hologram's size pump while turning (Martin, K5.5). Without a basis the fit stays a fit.
+    /// </summary>
+    public ViewNavigation OrbitBy(double yaw, double pitch, ViewBasis? basis = null) => this with
+    {
+        Camera = Camera.OrbitBy(yaw, pitch),
+        Framing = Framing ?? (basis is null ? null : Framing.OfFit(basis)),
+    };
 }
