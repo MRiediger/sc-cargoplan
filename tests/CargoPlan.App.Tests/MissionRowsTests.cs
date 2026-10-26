@@ -325,7 +325,7 @@ public class MissionRowsTests
 
         var (missions, _) = MissionRows.ToMissions(rows, known);
 
-        missions.Select(m => (m.Id, MissionText.Source(m.Contract))).Should().Equal((4, "ct 36"), (5, ""));
+        missions.Select(m => (m.Id, MissionText.Source(m.Contract))).Should().Equal((4, "#36"), (5, ""));
         missions[0].Stops.Select(s => s.Destination).Should().Equal("Riker", "Shubin");
         missions[0].Contract!.CrateSizeAssumed.Should().BeTrue();
     }
@@ -338,7 +338,7 @@ public class MissionRowsTests
         var rows = MissionRows.FromMissions(known, ["Riker", "Shubin"]);
 
         rows.Select(r => (r.Destination, r.MissionId, r.Source, r.MaxCrateSizeAssumed)).Should().Equal(
-            ("Riker", 2, "", false), ("Shubin", 1, "ct 36", true));
+            ("Riker", 2, "", false), ("Shubin", 1, "#36", true));
     }
 
     [Fact]

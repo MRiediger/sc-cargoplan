@@ -868,7 +868,7 @@ public class OverlayViewModelTests
         viewModel.ApplyContractTracker(Read([]));
 
         viewModel.HasPlan.Should().BeTrue();
-        viewModel.Notices.Should().Equal(OverlayViewModel.DeletedContractsPrefix + "Riker (ct 36)" + OverlayViewModel.DeletedContractsSuffix);
+        viewModel.Notices.Should().Equal(OverlayViewModel.DeletedContractsPrefix + "Riker (#36)" + OverlayViewModel.DeletedContractsSuffix);
 
         viewModel.ToggleDeliveredCommand.Execute("Riker");
 

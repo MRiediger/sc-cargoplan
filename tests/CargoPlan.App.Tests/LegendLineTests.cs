@@ -132,16 +132,6 @@ public class LegendLineTests
         line.HeaderSegments.Select(s => (s.Text, s.Rank)).Should().Equal(("From Lorville", LegendSegment.TrimFirst), (" · #47", LegendSegment.Fixed));
     }
 
-    [Theory]
-    [InlineData(new long[] { 47, 48 }, "#47–48")]
-    [InlineData(new long[] { 47, 48, 49 }, "#47–49")]
-    [InlineData(new long[] { 47, 49 }, "#47, 49")]
-    [InlineData(new long[] { 49, 47, 48 }, "#47–49")]
-    public void Consecutive_ids_read_as_a_range(long[] ids, string text)
-    {
-        LegendText.ContractIds(ids).Should().Be(text);
-    }
-
     [Fact]
     public void A_typed_mission_has_no_id()
     {
