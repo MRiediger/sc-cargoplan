@@ -185,7 +185,7 @@ public class ImportFleetyardsScriptTests
     [Fact]
     public async Task Force_with_a_changed_rack_set_keeps_the_racks_it_can_map()
     {
-        using var work = new Workspace();
+        using var work = new Workspace(withExpected: true);
         File.WriteAllText(Path.Combine(work.Ships, "row_ship.json"), """
             {
               "schemaVersion": 5,
@@ -221,7 +221,7 @@ public class ImportFleetyardsScriptTests
     [Fact]
     public async Task Force_regenerates_a_file_none_of_whose_racks_map()
     {
-        using var work = new Workspace();
+        using var work = new Workspace(withExpected: true);
         File.WriteAllText(Path.Combine(work.Ships, "row_ship.json"), """
             {
               "schemaVersion": 5,

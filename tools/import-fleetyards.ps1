@@ -2,11 +2,15 @@
 # of the repo (D56, licence); only values derived from it go into ships/<id>.json. Steps: docs/ship-format.md,
 # "Importing from Fleetyards".
 # Usage: ./tools/import-fleetyards.ps1 -Source <ships.json> [-ShipsFolder <folder>] [-Create] [-Force <id>]
-#   Default: compares the grid data of existing files with the export and writes nothing.
+#   Default: compares the grid data of existing files with the export and, where Fleetyards lays the racks (offsets on
+#   every hold, no overlap), the boxes they take up to a shift of the whole ship (D78); writes nothing. hull_a is
+#   compared too, as the calibration of that mapping.
 #   -Create writes ships that have no file yet, never hull_a. -Force <id> rewrites one ship's grid data (grid, capacityScu,
-#   totalScu, source); origins, stack axes, positions, rack order and notes are hand work and stay. A door limit
-#   (maxCrateSize, from limits.max.capacity, D70) and a minimum (minCrateSize, limits.min.capacity, K3.3) are added
-#   where the file has none, never overwritten.
+#   totalScu, source); where Fleetyards lays the racks also origins, positions and a stack axis that fills each box. Rack
+#   order, a stack axis that fits, the rest of the notes, and the origins of a generated row are hand work and stay. A
+#   changed rack set keeps the racks whose id and grid still match, adds the new ones and drops the vanished (K5.2).
+#   A door limit (maxCrateSize, from limits.max.capacity, D70) and a minimum (minCrateSize, limits.min.capacity, K3.3)
+#   are added where the file has none, never overwritten.
 # Exit code: 0 in sync, 1 a deviation or a new ship not written, 2 an error (then nothing is written).
 # Runs under Windows PowerShell 5.1 and PowerShell 7. ASCII only: 5.1 reads a script without BOM as ANSI.
 param(
@@ -33,6 +37,15 @@ $CrateShapes = @(@(1, 1, 1, 1), @(2, 2, 1, 1), @(4, 2, 2, 1), @(8, 2, 2, 2), @(1
 # matches the game (Caterpillar 576).
 $WalkwayMaxCrate = 2
 $IdPattern = '^[a-z0-9]+(_[a-z0-9]+)*$'
+# Turns Fleetyards gives a hold (about its y, the axis along the ship); the index of 26 Oct 2026 has none other (K5.2).
+$Rotations = @(0, 90, 270)
+# Stack axes in the order a fitting one is looked for: the file's sign first, then z, y, x (D78).
+$StackAxes = @('+z', '+y', '+x', '-z', '-y', '-x')
+$ArrangementNotes = [ordered]@{
+    fleetyards = 'rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game'
+    overlap    = 'rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards'
+    generated  = 'rack arrangement generated; grids from Fleetyards'
+}
 
 # Fleetyards metres to cells; a value off the 1.25 m grid stops the import.
 function Get-Cells([object]$Meters, [string]$Where) {
@@ -68,6 +81,68 @@ function Get-GridCrate([int[]]$Size) {
 
 function Get-GridText([object]$Grid) {
     '{0}x{1}x{2}' -f $Grid.length, $Grid.width, $Grid.stack
+}
+
+# The ship axes (0 x, 1 y, 2 z) of a rack's length, width and stack for a stack axis: Rack.FrameOf in Core (D26). The
+# sign only mirrors the grid inside its box.
+function Get-Frame([string]$Axis) {
+    switch ($Axis.Substring(1)) {
+        'x' { @(2, 1, 0) }
+        'y' { @(0, 2, 1) }
+        'z' { @(0, 1, 2) }
+        default { throw "Unknown stack axis '$Axis'." }
+    }
+}
+
+# The stack axis that lays the grid in the box: the preferred one where it does, else the first that does, same sign
+# first (K5.2, D78). The Hull C keeps its 8x8x6 grids, so its level arms stack along z, its upright ones along y.
+function Get-StackAxis([object]$Box, [object]$Grid, [string]$Preferred, [string]$Where) {
+    $sign = $Preferred.Substring(0, 1)
+    $candidates = @($Preferred) + @($StackAxes | Where-Object { $_.StartsWith($sign) }) + @($StackAxes | Where-Object { -not $_.StartsWith($sign) })
+    $extent = @(($Box.Max[0] - $Box.Min[0]), ($Box.Max[1] - $Box.Min[1]), ($Box.Max[2] - $Box.Min[2]))
+    foreach ($axis in $candidates) {
+        $frame = Get-Frame $axis
+        if ($extent[$frame[0]] -eq $Grid.length -and $extent[$frame[1]] -eq $Grid.width -and $extent[$frame[2]] -eq $Grid.stack) {
+            return $axis
+        }
+    }
+    throw "${Where}: no stack axis lays grid $(Get-GridText $Grid) in Fleetyards' box of $($extent -join 'x') cells."
+}
+
+# The box a ship file's rack takes in ship cells: origin, then the grid along the axes of its stack axis.
+function Get-FileBox([object]$Rack) {
+    $frame = Get-Frame ([string]$Rack.stackAxis)
+    $grid = @([int]$Rack.grid.length, [int]$Rack.grid.width, [int]$Rack.grid.stack)
+    $min = @([int]$Rack.origin[0], [int]$Rack.origin[1], [int]$Rack.origin[2])
+    $max = @($min[0], $min[1], $min[2])
+    for ($i = 0; $i -lt 3; $i++) {
+        $max[$frame[$i]] += $grid[$i]
+    }
+    [pscustomobject]@{ Min = $min; Max = $max }
+}
+
+# Boxes as sorted text, shifted so the arrangement starts at 0 on every axis: holo and camera hang on the middle of the
+# ship's bounds (D63, D76), so a shift of the whole ship is no deviation.
+function Get-ArrangementText([object[]]$Boxes) {
+    $low = @(foreach ($axis in 0, 1, 2) { [int](@($Boxes | ForEach-Object { $_.Min[$axis] }) | Measure-Object -Minimum).Minimum })
+    @($Boxes | ForEach-Object {
+        '[{0},{1},{2}]-[{3},{4},{5}]' -f ($_.Min[0] - $low[0]), ($_.Min[1] - $low[1]), ($_.Min[2] - $low[2]),
+            ($_.Max[0] - $low[0]), ($_.Max[1] - $low[1]), ($_.Max[2] - $low[2])
+    } | Sort-Object)
+}
+
+# Generated row (no usable offsets): Rack 1 at the bow, each next rack aft of it with one cell gap, either way round.
+# Returned as one list: a single origin written to the pipeline would unroll into three numbers (Salvation, one rack).
+function Get-RowOrigins([object[]]$Grids) {
+    $origins = [System.Collections.Generic.List[object]]::new()
+    $x = 0
+    for ($i = 0; $i -lt $Grids.Count; $i++) {
+        if ($i -gt 0) {
+            $x = $x - 1 - [math]::Max([int]$Grids[$i].length, [int]$Grids[$i].width)
+        }
+        $origins.Add(@($x, 0, 0))
+    }
+    , $origins
 }
 
 # Two boxes overlap if they share volume on all three axes; touching is fine (as in the loader).
@@ -133,21 +208,37 @@ function ConvertFrom-Hold([object]$Hold, [int]$Index, [string]$Slug) {
             throw "${where}: limits.min.capacity $min is above what the hold takes ($max)."
         }
     }
-    $offset = $null
+    $rotation = 0
+    if ($null -ne $Hold.rotation) {
+        $turn = [decimal]$Hold.rotation
+        if ($turn -ne [decimal]::Truncate($turn) -or $Rotations -notcontains [int]$turn) {
+            throw "${where}: rotation $($Hold.rotation) is not supported ($($Rotations -join ', '))."
+        }
+        $rotation = [int]$turn
+    }
+    # Ship cells (D14, D78): x = Fleetyards y towards the bow (checked on the Starlancer MAX, K5.2), y = -(Fleetyards x)
+    # to port, z = z. A hold turned 90 or 270 degrees about Fleetyards y (the Hull C's upright arms) swaps its x and z
+    # extents; the offset is its min corner after the turn. The grid stays as the hold gives it.
+    $box = $null
     if ($null -ne $Hold.offset) {
         $offset = @(
             (Get-Cells $Hold.offset.x "$where offset x"),
             (Get-Cells $Hold.offset.y "$where offset y"),
             (Get-Cells $Hold.offset.z "$where offset z"))
+        $extent = if ($rotation -eq 0) { $size } else { @($size[2], $size[1], $size[0]) }
+        $low = @($offset[1], (-($offset[0] + $extent[0])), $offset[2])
+        $box = [pscustomobject]@{ Min = $low; Max = @(($low[0] + $extent[1]), ($low[1] + $extent[0]), ($low[2] + $extent[2])) }
     }
     [pscustomobject]@{
         Id       = "rack-$Index"
         Size     = $size
+        # Fleetyards' own orientation (D71): length along the ship (y), width across (x).
+        Grid     = [pscustomobject]@{ length = $size[1]; width = $size[0]; stack = $size[2] }
         Capacity = $capacity
         MaxCrate = $max
         Door     = $door
         Min      = $min
-        Offset   = $offset
+        Box      = $box
         Unverified = $unverified
     }
 }
@@ -167,53 +258,46 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
     $racks = @(for ($i = 0; $i -lt $holds.Count; $i++) { ConvertFrom-Hold $holds[$i] $i $Ship.slug })
     $ordered = @($racks | Where-Object { $_.MaxCrate -gt $WalkwayMaxCrate }) + @($racks | Where-Object { $_.MaxCrate -le $WalkwayMaxCrate })
 
-    $withOffsets = @($racks | Where-Object { $null -eq $_.Offset }).Count -eq 0
-    $boxes = @($racks | Where-Object { $null -ne $_.Offset } | ForEach-Object {
-        $o = $_.Offset; $s = $_.Size
-        [pscustomobject]@{ Min = $o; Max = @(($o[0] + $s[0]), ($o[1] + $s[1]), ($o[2] + $s[2])) }
-    })
-    $overlap = $withOffsets -and (Test-Overlap $boxes)
+    $withOffsets = @($racks | Where-Object { $null -eq $_.Box }).Count -eq 0
+    $overlap = $withOffsets -and (Test-Overlap @($racks | ForEach-Object { $_.Box }))
     $arrangement = if ($withOffsets -and -not $overlap) { 'fleetyards' }
         elseif ($overlap) { 'overlap' }
         else { 'generated' }
 
-    # Ship coordinates (D14, cells): x = Fleetyards y, y = -(Fleetyards x) to port, z = z.
     $origins = @{}
+    $axes = @{}
     $positions = @{}
     if ($arrangement -eq 'fleetyards') {
-        $spans = @{}
+        $all = @($racks | ForEach-Object { $_.Box })
+        $yBoth = (@($all | ForEach-Object { $_.Min[1] }) | Measure-Object -Minimum).Minimum + (@($all | ForEach-Object { $_.Max[1] }) | Measure-Object -Maximum).Maximum
+        $zBoth = (@($all | ForEach-Object { $_.Min[2] }) | Measure-Object -Minimum).Minimum + (@($all | ForEach-Object { $_.Max[2] }) | Measure-Object -Maximum).Maximum
+        $above = @($all | Where-Object { 2 * $_.Min[2] -ge $zBoth }).Count -gt 0
+        $below = @($all | Where-Object { 2 * $_.Max[2] -le $zBoth }).Count -gt 0
         foreach ($r in $racks) {
-            $origins[$r.Id] = @($r.Offset[1], (-($r.Offset[0] + $r.Size[0])), $r.Offset[2])
-            $spans[$r.Id] = @($origins[$r.Id][1], ($origins[$r.Id][1] + $r.Size[0]), $r.Offset[2], ($r.Offset[2] + $r.Size[2]))
-        }
-        $allSpans = @($spans.Values)
-        $yBoth = ($allSpans | ForEach-Object { $_[0] } | Measure-Object -Minimum).Minimum + ($allSpans | ForEach-Object { $_[1] } | Measure-Object -Maximum).Maximum
-        $zBoth = ($allSpans | ForEach-Object { $_[2] } | Measure-Object -Minimum).Minimum + ($allSpans | ForEach-Object { $_[3] } | Measure-Object -Maximum).Maximum
-        # Rack centre against ship centre, both doubled to stay in whole numbers.
-        foreach ($r in $racks) {
-            $s = $spans[$r.Id]
-            $positions[$r.Id] = [pscustomobject]@{
-                side  = if ($s[0] + $s[1] -ge $yBoth) { 'port' } else { 'starboard' }
-                level = if ($s[2] + $s[3] -gt $zBoth) { 'upper' } else { 'lower' }
-            }
+            $origins[$r.Id] = $r.Box.Min
+            $axes[$r.Id] = Get-StackAxis $r.Box $r.Grid '+z' "$($Ship.slug) $($r.Id)"
+            # Rack centre against ship centre, both doubled to stay in whole numbers. A rack on the middle can't be told
+            # port or starboard, nor upper or lower where racks lie wholly above and below it: no position (Hull C).
+            $y = $r.Box.Min[1] + $r.Box.Max[1]
+            $z = $r.Box.Min[2] + $r.Box.Max[2]
+            $positions[$r.Id] = if ($y -eq $yBoth -or ($z -eq $zBoth -and $above -and $below)) { $null }
+                else {
+                    [pscustomobject]@{
+                        side  = if ($y -ge $yBoth) { 'port' } else { 'starboard' }
+                        level = if ($z -gt $zBoth) { 'upper' } else { 'lower' }
+                    }
+                }
         }
     }
     else {
-        # Generated row: Rack 1 at the bow, each next rack aft of it with one cell gap.
-        $x = 0
+        $row = Get-RowOrigins @($ordered | ForEach-Object { $_.Grid })
         for ($i = 0; $i -lt $ordered.Count; $i++) {
-            if ($i -gt 0) {
-                $x = $x - 1 - [math]::Max($ordered[$i].Size[0], $ordered[$i].Size[1])
-            }
-            $origins[$ordered[$i].Id] = @($x, 0, 0)
+            $origins[$ordered[$i].Id] = $row[$i]
+            $axes[$ordered[$i].Id] = '+z'
         }
     }
 
-    $notes = switch ($arrangement) {
-        'fleetyards' { 'rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game' }
-        'overlap' { 'rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards' }
-        default { 'rack arrangement generated; grids from Fleetyards' }
-    }
+    $notes = $ArrangementNotes[$arrangement]
     if (@($racks | Where-Object { $null -ne $_.Door }).Count) {
         $notes += '; door limits from Fleetyards limits.max.capacity'
     }
@@ -222,22 +306,19 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
     }
 
     $fileRacks = @(foreach ($r in $ordered) {
-        $rack = [pscustomobject]@{
+        # Box and Walkway are for -Force and the compare; Format-Ship writes only the file's fields.
+        [pscustomobject]@{
             id           = $r.Id
             capacityScu  = $r.Capacity
-            # Fleetyards' own orientation (D71): length along the ship (y), width across (x).
-            grid         = [pscustomobject]@{
-                length = $r.Size[1]
-                width  = $r.Size[0]
-                stack  = $r.Size[2]
-            }
+            grid         = $r.Grid
             position     = $positions[$r.Id]
             origin       = $origins[$r.Id]
-            stackAxis    = '+z'
+            stackAxis    = $axes[$r.Id]
             maxCrateSize = $r.Door
             minCrateSize = $r.Min
+            Box          = $r.Box
+            Walkway      = $r.MaxCrate -le $WalkwayMaxCrate
         }
-        $rack
     })
 
     [pscustomobject]@{
@@ -299,7 +380,8 @@ function Format-Ship([object]$Ship) {
     ($lines -join "`n") + "`n"
 }
 
-# Grid data only: origin, stack axis, position, order and notes are hand work and never compared.
+# Grid data, and where Fleetyards lays the racks the boxes they take up to a shift of the whole ship (D78). A generated
+# row's origins, every stack axis that fills the same box, position, order and notes are hand work and not compared.
 function Compare-Ship([object]$File, [object]$Draft) {
     $differences = [System.Collections.Generic.List[string]]::new()
     if ([int]$File.totalScu -ne [int]$Draft.totalScu) {
@@ -337,7 +419,113 @@ function Compare-Ship([object]$File, [object]$Draft) {
             $differences.Add("${id}: not in Fleetyards")
         }
     }
+    if ($Draft.Arrangement -eq 'fleetyards') {
+        $inFile = @(Get-ArrangementText @(@($File.racks) | ForEach-Object { Get-FileBox $_ }))
+        $inExport = @(Get-ArrangementText @($Draft.racks | ForEach-Object { $_.Box }))
+        if (($inFile -join ' ') -ne ($inExport -join ' ')) {
+            $onlyFile = @($inFile | Where-Object { $inExport -notcontains $_ })
+            $onlyExport = @($inExport | Where-Object { $inFile -notcontains $_ })
+            $differences.Add(('arrangement: {0} of {1} racks lie elsewhere (file {2}; Fleetyards {3})' -f
+                $onlyFile.Count, $inFile.Count, (@($onlyFile | Select-Object -First 2) -join ' '), (@($onlyExport | Select-Object -First 2) -join ' ')))
+        }
+    }
     , $differences
+}
+
+# Where Fleetyards lays the racks, -Force lays them so: origin, position and a stack axis that fills the box, the file's
+# own where it does (D78). The arrangement part of the notes follows; the rest of the notes is hand work.
+function Set-Arrangement([object]$File, [object]$Racks, [object]$Draft) {
+    if ($Draft.Arrangement -ne 'fleetyards') {
+        return
+    }
+    foreach ($r in @($Racks)) {
+        $d = @($Draft.racks | Where-Object { $_.id -eq [string]$r.id })[0]
+        Set-Field $r 'origin' $d.origin
+        Set-Field $r 'stackAxis' (Get-StackAxis $d.Box $r.grid ([string]$r.stackAxis) "$($File.id) $($r.id)")
+        Set-Field $r 'position' $d.position
+    }
+    $notes = [string]$File.notes
+    foreach ($old in $ArrangementNotes.Values) {
+        if ($notes.StartsWith($old, [System.StringComparison]::Ordinal)) {
+            $notes = $ArrangementNotes['fleetyards'] + $notes.Substring($old.Length)
+            break
+        }
+    }
+    Set-Field $File 'notes' $(if ($notes) { $notes } else { $Draft.notes })
+}
+
+# A door or minimum set by hand stays, also against Fleetyards (D70); a missing one comes from the export.
+function Add-Limits([object]$Rack, [object]$DraftRack) {
+    foreach ($limit in 'maxCrateSize', 'minCrateSize') {
+        if ($null -eq $Rack.$limit -and $null -ne $DraftRack.$limit) {
+            Set-Field $Rack $limit $DraftRack.$limit
+        }
+    }
+}
+
+# -Force: the grid data from the export, the hand work kept where it still maps (K5.2, D78). The same rack set maps by id
+# and takes the export's grids. A changed set (Fortune, Moth) keeps a rack whose id and grid Fleetyards still has, with
+# all its hand work; new racks join behind the last kept one that takes more than 2 SCU, walkways last; vanished ones go.
+# Nothing kept: the draft. Returns the ship to write and what changed in the rack set.
+function Update-Ship([object]$File, [object]$Draft, [string]$ExportDate) {
+    $byId = @{}
+    foreach ($d in $Draft.racks) {
+        $byId[$d.id] = $d
+    }
+    $fileIds = @(@($File.racks) | ForEach-Object { [string]$_.id } | Sort-Object)
+    $draftIds = @($Draft.racks | ForEach-Object { $_.id } | Sort-Object)
+    $report = ''
+    if (($fileIds -join ',') -eq ($draftIds -join ',')) {
+        $racks = @($File.racks)
+        foreach ($r in $racks) {
+            $d = $byId[[string]$r.id]
+            $r.grid = $d.grid
+            $r.capacityScu = $d.capacityScu
+            Add-Limits $r $d
+        }
+    }
+    else {
+        $kept = @(@($File.racks) | Where-Object { $byId.ContainsKey([string]$_.id) -and (Get-GridText $_.grid) -eq (Get-GridText $byId[[string]$_.id].grid) })
+        if ($kept.Count -eq 0) {
+            $Draft.notes += "; regenerated from Fleetyards export $ExportDate (rack set changed)"
+            return [pscustomobject]@{ Ship = $Draft; Report = 'rack set changed, file regenerated' }
+        }
+        $keptIds = @($kept | ForEach-Object { [string]$_.id })
+        $added = @($Draft.racks | Where-Object { $keptIds -notcontains $_.id })
+        $dropped = @(@($File.racks) | ForEach-Object { [string]$_.id } | Where-Object { $keptIds -notcontains $_ })
+        foreach ($r in $kept) {
+            Add-Limits $r $byId[[string]$r.id]
+        }
+        $lastLarge = -1
+        for ($i = 0; $i -lt $kept.Count; $i++) {
+            if (-not $byId[[string]$kept[$i].id].Walkway) {
+                $lastLarge = $i
+            }
+        }
+        $racks = [System.Collections.Generic.List[object]]::new()
+        for ($i = 0; $i -le $lastLarge; $i++) { $racks.Add($kept[$i]) }
+        foreach ($d in @($added | Where-Object { -not $_.Walkway })) { $racks.Add($d) }
+        for ($i = $lastLarge + 1; $i -lt $kept.Count; $i++) { $racks.Add($kept[$i]) }
+        foreach ($d in @($added | Where-Object { $_.Walkway })) { $racks.Add($d) }
+        $racks = @($racks)
+        if ($Draft.Arrangement -ne 'fleetyards') {
+            $row = Get-RowOrigins @($racks | ForEach-Object { $_.grid })
+            for ($i = 0; $i -lt $racks.Count; $i++) {
+                Set-Field $racks[$i] 'origin' $row[$i]
+            }
+        }
+        $parts = @()
+        if ($added.Count) { $parts += "$(@($added | ForEach-Object { $_.id }) -join ', ') added" }
+        if ($dropped.Count) { $parts += "$($dropped -join ', ') dropped" }
+        $report = "racks $($parts -join ', ')"
+        $base = if ($File.notes) { [string]$File.notes } else { $Draft.notes }
+        Set-Field $File 'notes' "$base; $report (Fleetyards export $ExportDate)"
+        $File.racks = $racks
+    }
+    Set-Arrangement $File $racks $Draft
+    $File.totalScu = $Draft.totalScu
+    Set-Field $File 'source' $Draft.source
+    [pscustomobject]@{ Ship = $File; Report = $report }
 }
 
 function Get-Summary([object]$Ship) {
@@ -407,26 +595,12 @@ try {
             $file = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
             $differences = Compare-Ship $file $draft
             if ($id -eq $Force) {
-                $fileIds = @(@($file.racks) | ForEach-Object { [string]$_.id } | Sort-Object)
-                $draftIds = @($draft.racks | ForEach-Object { $_.id } | Sort-Object)
-                if (($fileIds -join ',') -ne ($draftIds -join ',')) {
-                    throw "-Force ${id}: the rack set changed ($($fileIds -join ', ') in the file, $($draftIds -join ', ') in the export) - delete the file and run -Create."
-                }
-                foreach ($r in @($file.racks)) {
-                    $d = @($draft.racks | Where-Object { $_.id -eq [string]$r.id })[0]
-                    $r.grid = $d.grid
-                    $r.capacityScu = $d.capacityScu
-                    # A door or minimum set by hand stays, also against Fleetyards (D70).
-                    foreach ($limit in 'maxCrateSize', 'minCrateSize') {
-                        if ($null -eq $r.$limit -and $null -ne $d.$limit) {
-                            Set-Field $r $limit $d.$limit
-                        }
-                    }
-                }
-                $file.totalScu = $draft.totalScu
-                Set-Field $file 'source' $draft.source
-                $writes[$path] = Format-Ship $file
+                $update = Update-Ship $file $draft $exportDate
+                $writes[$path] = Format-Ship $update.Ship
                 $status = 'updated'; $detail = if ($differences.Count) { $differences -join '; ' } else { 'grid data was in sync' }
+                if ($update.Report) {
+                    $detail += " ($($update.Report))"
+                }
             }
             elseif ($differences.Count) {
                 $status = 'different'; $detail = $differences -join '; '
