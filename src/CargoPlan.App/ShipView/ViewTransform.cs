@@ -45,20 +45,23 @@ public sealed record ShipViewState(IsoProjection Camera, ViewTransform Transform
 /// </summary>
 /// <param name="Centre">Where the fit puts the middle of its extent: the viewport's middle below the room on top.</param>
 /// <param name="Anchor"><see cref="ProjectedScene.Anchor"/>: the projected centre of the ship, whatever is loaded.</param>
-public sealed record ViewBasis(ViewTransform Fit, Point Centre, Point Anchor)
+/// <param name="WholeScale">The scale at which the whole scene fits (<see cref="ProjectedScene.Extent"/>): a true-size
+/// outline reaches far beyond the fit (K5.2c, K5.2d).</param>
+public sealed record ViewBasis(ViewTransform Fit, Point Centre, Point Anchor, double WholeScale)
 {
-    /// <summary>The basis of <see cref="ViewTransform.Fit"/> with these arguments.</summary>
-    public static ViewBasis Of(Rect extent, Point anchor, Size viewport, double margin, double top = 0)
+    /// <summary>The basis of <see cref="ViewTransform.Fit"/> with these arguments; without <paramref name="whole"/> the fit is the whole.</summary>
+    public static ViewBasis Of(Rect extent, Point anchor, Size viewport, double margin, double top = 0, Rect? whole = null)
     {
         var fit = ViewTransform.Fit(extent, viewport, margin, top);
-        return new ViewBasis(fit, fit.Apply(new Point(extent.X + extent.Width / 2, extent.Y + extent.Height / 2)), anchor);
+        var wholeScale = whole is { } scene ? ViewTransform.Fit(scene, viewport, margin, top).Scale : fit.Scale;
+        return new ViewBasis(fit, fit.Apply(new Point(extent.X + extent.Width / 2, extent.Y + extent.Height / 2)), anchor, wholeScale);
     }
 }
 
 /// <summary>
 /// How far the player can zoom (D76), in pixels per cell (<see cref="ViewTransform.Scale"/>, DIPs): out to half the fit
-/// as before, in to <paramref name="MaxPxPerCell"/> whatever the fit, so a large ship zooms in as far as a small one.
-/// The fit is always in range.
+/// as before, or further where the whole scene needs it (K5.2d), in to <paramref name="MaxPxPerCell"/> whatever the fit,
+/// so a large ship zooms in as far as a small one. The fit is always in range.
 /// </summary>
 /// <param name="MaxPxPerCell">The preference <c>shipView.maxZoomPxPerCell</c>.</param>
 public sealed record ZoomLimits(double MaxPxPerCell)
@@ -68,12 +71,13 @@ public sealed record ZoomLimits(double MaxPxPerCell)
 
     public static ZoomLimits Default { get; } = new(AppearanceRules.DefaultMaxZoom);
 
-    public double Lower(ViewTransform fit) => fit.Scale * MinShareOfFit;
+    /// <summary>Half the fit, or the whole scene where that is smaller: a true-size outline seen in full (Martin, K5.2d).</summary>
+    public double Lower(ViewBasis basis) => Math.Min(basis.Fit.Scale * MinShareOfFit, basis.WholeScale);
 
     /// <summary>The preference, or the fit where that is larger: a small ship in a large overlay.</summary>
-    public double Upper(ViewTransform fit) => Math.Max(MaxPxPerCell, fit.Scale);
+    public double Upper(ViewBasis basis) => Math.Max(MaxPxPerCell, basis.Fit.Scale);
 
-    public double Clamp(double pxPerCell, ViewTransform fit) => Math.Clamp(pxPerCell, Lower(fit), Upper(fit));
+    public double Clamp(double pxPerCell, ViewBasis basis) => Math.Clamp(pxPerCell, Lower(basis), Upper(basis));
 }
 
 /// <summary>
@@ -110,7 +114,7 @@ public sealed record ViewNavigation(IsoProjection Camera, Framing? Framing = nul
     public ShipCamera ToCamera() => new(Camera.Yaw, Camera.Pitch, Framing?.PxPerCell, Framing?.Pan.X, Framing?.Pan.Y);
 
     public ViewTransform On(ViewBasis basis, ZoomLimits limits) =>
-        Framing is { } framing ? framing.On(basis, limits.Clamp(framing.PxPerCell, basis.Fit)) : basis.Fit;
+        Framing is { } framing ? framing.On(basis, limits.Clamp(framing.PxPerCell, basis)) : basis.Fit;
 
     /// <summary>The zoom on top of the fit (D63, the hologram's edge levels): 1 at the fit.</summary>
     public double ZoomOn(ViewBasis basis, ZoomLimits limits) => On(basis, limits).Scale / basis.Fit.Scale;
@@ -119,7 +123,7 @@ public sealed record ViewNavigation(IsoProjection Camera, Framing? Framing = nul
     public ViewNavigation ZoomAt(Point cursor, double factor, ViewBasis basis, ZoomLimits limits)
     {
         var current = On(basis, limits);
-        var scale = limits.Clamp(current.Scale * factor, basis.Fit);
+        var scale = limits.Clamp(current.Scale * factor, basis);
         if (scale == current.Scale)
         {
             return this;
@@ -140,7 +144,7 @@ public sealed record ViewNavigation(IsoProjection Camera, Framing? Framing = nul
 
     /// <summary>The framing within <paramref name="limits"/>, around the view's middle: a lower preference applies at once.</summary>
     public ViewNavigation Clamped(ViewBasis basis, ZoomLimits limits) =>
-        Framing is { } framing && limits.Clamp(framing.PxPerCell, basis.Fit) is var scale && scale != framing.PxPerCell
+        Framing is { } framing && limits.Clamp(framing.PxPerCell, basis) is var scale && scale != framing.PxPerCell
             ? this with { Framing = framing with { PxPerCell = scale } }
             : this;
 

@@ -1489,9 +1489,9 @@ Vier Tests nutzten einen 32-SCU-Vertrag auf der Hull A als „passt nicht“; de
 - [x] Verdrängen (3b) landet nie hinter einer Tür, die die Kiste abweist (mit Gegenprobe ohne Tür)
 - [x] Migration Schiffs-Schema 4 → 5 ohne Feld und mit Feld; Schema 6 abgelehnt
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 1.213, Import 141, App 1.134); Slow grün; Exhaustive grün (13 min 10 s, anfangs parallel zu anderen Tests)
-- [ ] Antwort von Torlek zur 1 → Liste der ungeprüften Türen übernehmen oder streichen
-- [ ] Gate Spiel-Build (Martin): Clipper laden, CT-Sync mit einem Vertrag über 2 SCU Kistengröße, Notice und Legende prüfen
-- [ ] Gate Kiosk (Martin, K3): am Terminal bestätigen, dass der Kiosk bei einem Vertrag mit Maximum 8 auch 2er anbietet; widerlegt → Kappung nur bei Türlimit, P3 zurück (Folge-Commit), Ergebnis in D70
+- [ ] Antwort von Torlek zur 1 → Liste der ungeprüften Türen übernehmen oder streichen – bleibt offen (Martin, 26.10.), Known issue für T7.5; Stand nach K5: 36 Racks in 18 Schiffen
+- [x] Gate Spiel-Build (Martin, 26.10., bestanden): Clipper laden, CT-Sync mit einem Vertrag über 2 SCU Kistengröße, Notice und Legende prüfen
+- [x] ~~Gate Kiosk (Martin, K3): am Terminal bestätigen, dass der Kiosk bei einem Vertrag mit Maximum 8 auch 2er anbietet; widerlegt → Kappung nur bei Türlimit, P3 zurück (Folge-Commit), Ergebnis in D70~~ Entfällt (Martin, 26.10.): Der Frachtaufzug gibt aus, was er will, der Spieler wählt keine Kistengrößen; P3 bleibt, Notiz in D70
 - Commits f3c4e63 (Daten, Import), f815210 (Core-Tests rot), 69ee7da (Core), 538b6c9 (App-Tests rot), 72a6115 (App), 25ac668 (Import aus `limits.max.capacity`), 84b2cc3 (Türen aus dem Index vom 25.10.), Doku-Commit.
 
 ### [ ] K3.3 Untergrenze `minCrateSize` pro Rack (D70-Addendum) (25.10.2026)
@@ -1519,7 +1519,7 @@ Vier Tests nutzten einen 32-SCU-Vertrag auf der Hull A als „passt nicht“; de
 - [x] Plan-Datei mit einer 16 auf der Hull C → neu geplant mit `Plan was made for other racks …`, Mission wartet (K2, Core und Overlay)
 - [x] Schiffsdatei ohne Feld = jede Größe; Minimum über Maximum oder Gitter lädt nicht
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün
-- [ ] Gate Overlay (Martin, kein Spieltest): Hull C wählen, 16er-Vertrag per CT-Sync → Mission in der Legende wartend mit `doesn't fit (ship takes 32 SCU crates only)`
+- [ ] Gate Overlay (Martin, kein Spieltest): Hull C wählen, 16er-Vertrag per CT-Sync → Mission in der Legende wartend mit `doesn't fit (ship takes 32 SCU crates only)` – offen (Martin, 26.10.): ContractTracker liefert ihm keine Mission mit 16er-Kisten; der Fall ist durch `MinCrateSizeOverlayTests` abgedeckt
 - Commits 32b5dd2 (Tests rot), f1fb3ef (Core, Import), c32de68 (Daten), Doku-Commit.
 
 ### [x] K3.2 Kisten-Gier 90° (D71) (25.10.2026)
@@ -1901,6 +1901,226 @@ Ansicht und Legende holen ihre Pinsel aus einer Funktion; P9 `downloadShipHologr
 - **Für K5 relevant:** Stop-Farben laufen über `OverlayViewModel.StopPalette`, nicht über die Szene; `MissionPalette.Assign` liefert Ordnungszahlen ohne Modulo.
 - **Offen:** Antwort von Torlek zu `limits.max = 1` und die `unverified`-Liste der Türen (32 Racks in 16 Schiffen); Fortune, Moth (Gitter geändert, neue Racks) und Salvation (neu) aus dem Index vom 25.10.; `offset`/`rotation` → `origin`/`stackAxis` im Import; Aurora-Frachtmodul; App-Icon; Befund `MissionFrame` weiß = Okabe-Weiß (Backlog).
 
+Reihenfolge innerhalb von K5 (Branch `feat/k5-data` ab `fa8276d`): K5.1 `fetch.ps1` → K5.2 Import `offset`/`rotation` +
+voller Abgleich → K5.3 Aurora-Frachtmodul → K5.4 App-Icon (unabhängig, vorgezogen, sobald die Datei da war). Schemas
+bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
+
+### [x] K5.1 `fetch.ps1`: vollständiger Index, prüfbar (D53-Addendum) (26.10.2026)
+**Warum:** Befund 26.10.: Die Javelin steht auf der Fleetyards-Website, aber nicht in der App; Verdacht: `fetch.ps1` liest nur die erste Seite von `/v1/models`.
+
+**Ist-Zustand vor K5.1 (A1):** `fetch.ps1` (Pipeline-Repo `sc-ship-outlines`) las schon seitenweise (`perPage=100`, bis 20 Seiten, Abbruch bei leerer Seite). **Die Javelin stand im Index** (`cargo 5400`, `cargoHolds: []`) und fiel erst im Import als „no cargo grid“ heraus, wie 20 andere. Der Index vom 25.10. (118 / 97) war im Pipeline-Repo nicht committet; 117 / 96 ist der Index vom 22.10.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** K5.1 wird von „alle Seiten lesen“ zu „Vollständigkeit prüfbar machen“. `ships.json` bleibt ein JSON-Array ohne Kopf-Feld (drei Leser: `trace.py`, `bundle.py`, Import); Datum und Zählung stehen hier, das Exportdatum liest der Import weiter aus dem Datei-Zeitstempel. Filter `cargo > 0` bleibt (ohne Fracht kein Gitter), Filter Top-View bleibt (`trace.py` braucht `top.png`), wird aber gemeldet.
+- Pipeline: `1af1c83` Index vom 25.10. gesichert (Zahl vorher); `6be0795` Seitengrenze 50 → Abbruch statt still, doppelter Slug → Abbruch, Fracht ohne Top-View → Warnung, Seitengrößen und Schlusszeile; `ef83dda` Korrektur nach Martins erstem Lauf (Abbruch auf Seite 4 mit `slug` = null): eine leere Seite kam als Hülle mit leerem `items`, die Wahrheitsprüfung nahm die Hülle als Modell (das alte Skript schleppte solche Hüllen still bis Seite 20 mit); jetzt nach dem Feld `items` statt nach seinem Wahrheitswert, `$null`/`''` = leere Seite, Modell ohne `slug` → Abbruch; `52a5d3f` Index vom 26.10.
+
+**Zahl vorher/nachher:**
+
+| Messung | Index 25.10. (`1af1c83`) | Index 26.10. (`52a5d3f`) |
+|---|---|---|
+| Modelle bei Fleetyards | – (nicht gezählt) | 248 (Seiten 100 / 100 / 48, Seite 4 leer) |
+| mit Fracht + Top-View / mit Gitter | 118 / 97 | 118 / 97; 0 ohne Top-View verworfen |
+| Slugs hinzugekommen / verschwunden | – | keine / keine |
+| Schiffe mit geänderten `cargoHolds` | – | 0 (byte-gleich nach Normalisierung) |
+| Schiffe mit `offset` an allen Holds | 9 | 9: C8 Pisces, C8X, Carrack, Caterpillar, Hull A, Hull B, Hull C, Starlancer MAX, TAC |
+| Import-Abgleich (`import-fleetyards.ps1`, schreibt nichts) | 94 same, Fortune/Moth different, Salvation new | gleich; 21 ohne Gitter (u. a. Javelin, Hull D/E, Kraken, Odin), Exit 1 |
+
+**Befund Rumpfmaße:** `length`/`beam`/`height` änderten sich bei 18 Schiffen (Avenger Titan/Renegade, C8/C8X, MPUV Cargo, Mustang Alpha, Nomad, Hull A 30 → 23,42 m, 325a, 350r, sechs Aurora Mk I, Zeus Mk II CL/ES). `ship-outlines.json` und `holo-v1` sind gegen die Maße vom 22.10. erzeugt und bleiben, wie sie sind (Pipeline-Arbeit). Auslöser für eine Neuerzeugung: Das K5.2-Holo-Gate zeigt Racks außerhalb des Rumpfs.
+
+**Akzeptanz:**
+- [x] `fetch.ps1` liest alle Seiten und bricht bei unvollständigem Index ab, statt still weiterzulaufen
+- [x] Filter `cargo > 0` und Top-View im Kopfkommentar begründet, Verworfene werden gemeldet (0)
+- [x] Zahl vorher gesichert, alt/neu verglichen, keine Schiffe verschwunden (also nichts zu melden oder zu löschen)
+- [x] Gate (Martin, 26.10.): `fetch.ps1` nativ ohne Ausnahme, Seitengrößen 100 / 100 / 48 / 0, Schlusszeile; Stichprobe im Index: Clipper `limits.max` 2, Hull C `limits.min`/`max` 32 / 32
+- Commits Pipeline `1af1c83`, `6be0795`, `ef83dda`, `52a5d3f`; Doku-Commit hier.
+
+### [x] K5.2 Import: `offset`/`rotation` → `origin`/`stackAxis`, voller Abgleich (D78) (26.10.2026)
+**Warum:** Fleetyards gibt für 9 Schiffe Lage und Drehung der Laderäume; der Import nutzte sie nur halb, die Hull C stand als Reihe von 16 Racks statt als Kreuze um die Spindel, und Fortune, Moth und Salvation aus dem Index vom 25.10. fehlten.
+
+**Ist-Zustand vor K5.2 (A1):** `import-fleetyards.ps1` las `offset` seit K3.2 nur bei `-Create` (Min-Ecke, `origin = (Fy.y, −(Fy.x + Breite), Fy.z)`), ohne `rotation`; die Hull C überlappte so und bekam eine generierte Reihe. Der Abgleich verglich keine Lage, `-Force` verweigerte geänderte Rack-Sätze. Die Hull A war schematisch (1 Zelle zwischen den Platten, D14). Core plant ohne `Origin`/`StackAxis` (Planning-Namespace per Grep).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 die Hull A nimmt den Fleetyards-Spalt (3 Zellen), der Spalt ist kein Kalibrierkriterium; P2 Gate fürs Vorzeichen ist die Starlancer MAX (die Hull B ist vorne/hinten gleich und kann es nicht zeigen); P3 Hull C behält 8×8×6/8×4×6, die Stapelachse folgt der Box (waagerechte Arme z, senkrechte y); P4 Carrack und Caterpillar-Nase bleiben generiert; P5 Ironclad Assault hat kein `offset`, kein Gate; P6 eigene Entscheidung D78. Dazu: Gate L bestanden (Vorzeichen bleibt, Fy y+ = Bug); Kistenkante der Hull A unter 24 px akzeptiert (D62-Addendum); beim gleichen Rack-Satz bleibt die Zuordnung über die Id (wie bisher, `Force_rewrites_the_grid_data_and_keeps_the_hand_work`), Id **und** Gitter nur bei geändertem Satz; `-Force` nennt Türen und Minima aus dem Export in den `notes` wie `-Create` (Befund Moth); die Salvation hat noch keinen Umriss (Bug-Keil, `NotTracedYet`); die Hull C ist kein langes Schiff mehr (D61-Addendum).
+- Import: `rotation` 90/270 tauscht x- und z-Ausdehnung der Box (um Fy y), andere Werte → Abbruch; Box in Schiffszellen (Helfer statt Inline-Formel); Überlappung auf den gedrehten Boxen; Stapelachse per Port von `Rack.FrameOf` (`Get-Frame`, `Get-StackAxis`: die der Datei, sonst die erste passende); keine Position für Racks auf der Schiffsmitte; Abgleich der Lage bis auf eine gemeinsame Verschiebung (`Get-FileBox`, `Get-ArrangementText`), `hull_a` eingeschlossen; `-Force` legt Fleetyards-Schiffe (`Set-Arrangement`), geänderter Rack-Satz über `Update-Ship` (zugeordnete Racks behalten alles, neue hinter dem letzten großen, verschwundene gemeldet, nichts zuordenbar → neu); Generierte Reihe als `Get-RowOrigins`
+- Daten: D1 `hull_a.json` Steuerbord y −4..−2 (von Hand, `notes`); D2 `-Force hull_c` (zwei Kreuze, `notes` zur Stapelachse von Hand); D3 `-Force fortune`, `-Force moth`, `-Create` (Salvation)
+- Tests: `ImportFleetyardsScriptTests` (Drehung, `bad_rotation`, Lage gleich bei Verschiebung, Lage abweichend, `-Force` mit Achswahl, geänderter Rack-Satz, Neu-Erzeugung, Hull-A-Kalibrierung mit Gegenprobe, Tür-Hinweis), Fixtures `rotated.json`, `bad_rotation.json`, `with_hull_a.json` (vier echte Holds); `Hull_c_racks_form_two_crosses`; `A_ship_not_traced_yet_has_no_outline`; 13 Erwartungen an die Hull-A-Geometrie (3 Core, 10 App, `TestPlans.HullABeforeK52` für die zwei, die an der alten Geometrie gemessen wurden); `IsoProjectionTests` Hull C nicht lang
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.401 / 141 / 1.328 | 1.418 / 141 / 1.328 |
+| Gleichheitslauf 4 Fixtures × alle Schiffe (gegen `c75cd5f`) | 384 Fälle, 176 geplant, 96 Schiffe | nach D1 und D2 je 384/384 byte-gleich; nach D3 388 Fälle, 178 geplant, 97 Schiffe: 380 gleich, Fortune 3 weiter abgelehnt (Kapazität 4 → 16 im Grund), Moth 4 geändert (2 jetzt geplant, 2 auf den neuen Racks), Salvation 4 neu |
+| Import-Abgleich gegen den Index vom 26.10. | 94 same, Fortune/Moth different, Salvation new, Exit 1 | 97 same, Exit 0; Hull A same inkl. Lage |
+| Schiffe mit Fleetyards-Lage | 5 (C8, C8X, Hull B, Starlancer MAX/TAC) | 7 (+ Hull A von Hand, Hull C) |
+| Kistenkante Hull A, Default-Fit mit Umriss | 27,7 px (T7.4) | ~23,4 px (Skala × 0,844; 400×302: × 0,755), akzeptiert |
+| rote Tests durch Geometrie | – | nach D1 13 (alle Geometrie, Stopp-Regel 20 nicht erreicht), nach D2 1 (Hull C nicht mehr lang), nach D3 1 (Salvation ohne Umriss) |
+
+**Schiffe mit `offset`** (Index 26.10.): C8 Pisces, C8X, Carrack, Caterpillar, Hull A, Hull B, Hull C, Starlancer MAX, TAC; `rotation` 90 nur Hull C (8), 270 nur Carrack (9) und Caterpillar-Nase (2). **Geänderte Rack-Sätze:** Fortune 1 → 3 Racks (4 → 16 SCU), Moth 1 → 3 (32 → 224 SCU, neue Racks mit Tür 8); Salvation neu (6 SCU). **`unverified`-Stand:** 32 Racks in 16 Schiffen (K3.1) + Fortune rack-0 bis -2, Salvation rack-0 = 36 Racks in 18 Schiffen.
+
+**Release-Notes-Stoff (T7.5):** Gespeicherte Ansichten der Hull A und Hull C sitzen nach dem Update anders (neue Rack-Lage, Datenupdate, D76); die Hull C zeigt ihre zwei Kreuze, die Hull A den echten Spindelabstand. Known issue: Bei der Hull C liegen die Racks innerhalb der Frachtblöcke des Hologramms, nicht deckungsgleich; das Raster ist das logische des Spiels, das Hologramm zeigt Rahmen und Abstände (D78, Martin 26.10.: Fleetyards bleibt).
+
+**Befund beim Gate (26.10.):** Martin sah die Hull-C-Racks „zu eng und zu tief“ gegenüber dem Holo. Gemessen am Holo-Cache: Arm quer 10 m statt 7,5, radial 8,75 → 29 m statt 5 → 20, Blöcke längs ~12,5 m statt 10; das Holo ist auf Fleetyards' Länge 125 m skaliert (D63; die Rohmodelle haben keine einheitliche Einheit, ein Vergleich mit ihnen belegt nichts). Daneben: das **Hull-A-Holo ist 28 % zu groß** (`holo-v1` auf Fleetyards' alte Länge 30 m skaliert, Modell 23,4 m) → K5.2b.
+
+**Akzeptanz:**
+- [x] Kalibrierung: der Abgleich findet die ausgelieferte Hull A „same“ inkl. Lage; die Hull A von vorher (1 Zelle Spalt) meldet er als abweichend
+- [x] Drehung 90/270 nach der Tabelle, andere Werte brechen mit Wert im Text ab
+- [x] Hull C: zwei Kreuze, acht Arme je Kreuz, Gitter unverändert, Gleichheitslauf gleich
+- [x] `-Force` mit geändertem Rack-Satz behält, was zuordenbar ist (Fortune, Moth); Salvation per `-Create`
+- [x] Gleichheitslauf: Abweichungen nur auf Fortune, Moth, Salvation, jede benannt
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün; Exhaustive nicht nötig (Core-Code unberührt)
+- [x] Gate L (Martin, 26.10.): Starlancer MAX über dem Holo stimmt, Belly-Racks vorn, Bucht hinten
+- [x] Gate (Martin, Publish-Build, 26.10., bestanden): Hull C zeigt zwei Kreuze mit je acht Armen über dem Holo; Hull A gleiche Seiten/Ebenen mit breiterem Spalt; Fortune und Moth planen mit den neuen Gittern; Salvation wählbar
+- Commits 48107db (D1), db183d3 (Tests rot), 215d3d9 (Import), a5f3e4f (D2), c704561 (Grenz-Hinweise), a05691d (D3), Doku-Commit.
+
+### [x] K5.2b Holos und Umrisse aus dem Index vom 26.10. (D63-, D55-Addendum) (26.10.2026)
+**Warum:** Befund beim K5.2-Gate: Das Hull-A-Holo ist 28 % zu groß. `holo-v1` und die Umrisse sind auf die Längen vom 22.10. skaliert, Fleetyards hat seitdem 18 Längen geändert; die Salvation hat weder Holo noch Umriss.
+
+**Ist-Zustand vor K5.2b (A1):** Pipeline `sc-ship-outlines`: `trace.py` skaliert den Umriss mit Fleetyards' Länge, `holo_mesh.py flatten` liest die Länge aus `ship-outlines.json`; `trace.py`/`sheet.py` liefen mit nicht festgehaltenen cv2/numpy-Versionen (die Systemumgebung hat kein cv2). Die App lädt eine Holo-Datei neu, sobald ihr SHA256 vom Manifest abweicht, und holt das Manifest höchstens einmal am Tag.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Martin: jetzt, vor K5.3; Versionen für `trace.py` heute festschreiben statt nur benennen; Zahl je Umriss (Punkte, Fläche / Länge²). Assets im selben Tag `holo-v1` ersetzen (`--clobber`), kein `holo-v2`. Beim Lauf gefunden: `flatten` liest die Länge aus dem Bündel, also erst bündeln, dann Holos (die 325a lief vor dem neuen Bündel und wurde wiederholt); `TOOLS.md` nennt die Reihenfolge.
+- Pipeline: `b3da084` (19 Umrisse in `.venv` neu getraced, Bündel, `TOOLS.md`: Pins, Reihenfolge, Zahlen); Holos 18 × `-Redo flatten` + Salvation komplett; Release-Ordner neu (`generatedAt` 2026-10-26)
+- Repo: `outlines/ship-outlines.json` (byte-gleiche Kopie, SHA256 `C6ADEEC4…`), `NotTracedYet` leer, `Hull_a_outline_points_to_the_bow_and_is_in_metres` erwartet 23,42 × 9,38 m (vorher 30 × 12, × 0,781)
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Umrisse, Länge unverändert (99), in `.venv` neu getraced | – | 99 byte-gleich (Zeilenenden ausgenommen) |
+| Umrisse, Länge geändert (18) | – | 16 gleiche Punktzahl; Fläche / Länge² höchstens 0,13 % anders; C8 49 → 39, C8X 51 → 46 Punkte (Untergrenze 0,08 m in `trace.py`) |
+| Holos (18): Budget-Stufe / Dreiecke | holo-v1 | alle gleiche Stufe; Dreiecke höchstens 0,2 % anders (C8X 19.811 → 19.850); 325a/350r `slivers` wie in holo-v1 |
+| Salvation | weder Holo noch Umriss | Holo 20k (19.931 Dreiecke, alle Kriterien), Umriss 76 Punkte |
+| Release-Ordner | 117 | 118: 18 ersetzt, 1 neu, 99 byte-gleich, `verify` ohne Befund |
+| Tests (Core / Import / App) | 1.418 / 141 / 1.328 | gleich |
+
+**Akzeptanz:**
+- [x] Kontaktbögen: Holos (Pipeline-Bögen „clean“/„not clean“), Umrisse gegen Render mit Bugpunkt (Scratch-Bogen)
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [x] Gate (Martin, 26.10., bestanden): Kontaktbögen; Salvation-Bug-Richtung
+- [x] Upload (Martin, 26.10.; Manifest und Hull-A-Holo auf GitHub byte-gleich mit dem Release-Ordner): `upload-holo-v1.ps1` (Holos, dann Manifest); danach Hull A, Avenger Titan, C8, Salvation im Holo-Modus in richtiger Größe zu den Racks
+- Commits Pipeline 1af1c83..b3da084, hier Daten-/Doku-Commit.
+
+### [x] K5.2c Umriss mindestens maßstabsgetreu, Ausschnitt wie mit Keil (D62-Addendum) (26.10.2026)
+**Warum:** Martin beim Gate (Aurora, Salvation): „outline passt nicht“. Nach D62 schrumpft der Umriss auf ~1,2 × Rack-Größe; bei 93 von 97 Schiffen ist der Rumpf kleiner als echt (Redeemer 6 %).
+
+**Ist-Zustand vor K5.2c (A1):** `OutlinePlacement.Place` Faktor = 1,2 × max(Racks / Umriss) je Achse; `SceneProjector.FitExtent` kompakt mit Umriss = Racks + ganzer Umriss, lang = geladene Racks + Bugzone bis zur Umrissspitze (`OutlinePlacement.Tip`).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Umriss nie kleiner als das Schiff (Martin); Ausschnitt Racks + Bugzone (Martin), dann nach der Stopp-Regel kurze Bugzone = Keilnase (Martin); Schwelle: kein Hauler-Schiff (Hull A, Cutlass Black, Freelancer, C2, Hull C, RAFT) schlechter als heute und keins neu unter dem heutigen Hull-A-Wert im Default-Overlay; der heutige Wert ist 19,4 px, nicht 23,4 (das war die Hochrechnung auf 800 × 600); C2 und Hull C lagen schon vorher darunter → Backlog (Martin). Liste der Schiffe, die den D62-Zweig behalten (Martin): Hull A (echt), Caterpillar, Syulen, Railen (generiert; nur die Railen-Reihe ist länger als der Rumpf, 53 gegen 40 Zellen) → kein Befund für den Reihen-Generator.
+- App: `OutlinePlacement.Place` Faktor = max(1,2 × Racks/Umriss, 1); `FitExtent` mit Umriss wie mit Keil (`Bow` nimmt die Keilecken), `OutlinePlacement.Tip` entfällt
+- Tests: `OutlinePlacementTests` (kleine Racks → Maßstab, winziges Rack → Maßstab, Racks füllen den Rumpf → 1,2), `SceneProjectorTests` (Umriss-Fit = Keil-Fit, kompakt und lang); `The_tip_is_the_bowmost_point` entfällt
+
+**Zahl vorher/nachher** (Kistenkante entlang x, Default-Overlay 400 × 302, Default-Kamera, leerer Plan; Wegwerf-Test):
+
+| Schiff | vorher (D62) | Plan: Bugzone bis Spitze | nachher: kurze Bugzone |
+|---|---|---|---|
+| Hull A | 19,4 | 22,2 | 27,2 |
+| Cutlass Black | 31,9 | 19,9 | 35,4 |
+| Freelancer | 19,9 | 17,4 | 23,0 |
+| C2 | 12,1 | 7,6 | 13,2 |
+| Hull C | 4,4 | 4,2 | 5,1 |
+| RAFT | 20,7 | 15,9 | 22,2 |
+| Redeemer / Aurora MR / Salvation | 90,5 / 106,8 / 80,5 | 20,7 / 43,0 / 42,8 | 84,7 / 91,8 / 76,3 |
+| Tests App | 1.328 | – | 1.330 |
+
+**Akzeptanz:**
+- [x] Umriss nie kleiner als das Schiff; D62-Rand nur, wo die Racks den Rumpf füllen
+- [x] Mit Umriss passt die Ansicht wie mit Keil; kein Hauler-Schiff kleiner als vorher
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [x] Gate (Martin, Publish-Build, Look, 26.10., abgenommen): Aurora, Salvation, Redeemer, Cutlass Black, Hull A, C2 mit Umriss; Rumpf in echter Größe, Racks lesbar, Bug erkennbar
+- Commits bcb45fb (Tests rot), 1e157d9 (App), Doku-Commit.
+
+### [x] K5.2d Herauszoomen bis zum ganzen Umriss (D76-Addendum) (26.10.2026)
+**Warum:** Martin nach K5.2c (Constellation Mk IV Phoenix): immer so weit herauszoomen können, dass der ganze Umriss zu sehen ist, wie bei der Hull C.
+
+**Ist-Zustand vor K5.2d (A1):** `ZoomLimits.Lower(fit) = fit.Scale × 0,5` (D76); seit K5.2c zeigt der Fit nur Racks + kurze Bugzone, der maßstabsgetreue Umriss reicht weit darüber hinaus.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Untergrenze = min(halber Fit, Skala der ganzen Szene); `ViewBasis.WholeScale` aus `ProjectedScene.Extent` (gleicher Rand, gleicher Raum oben); `ZoomLimits` nimmt die Basis; kein automatisches Zentrieren (A4).
+- App: `ViewBasis.WholeScale`, `ViewBasis.Of(…, whole)`, `ZoomLimits.Lower/Upper/Clamp(ViewBasis)`, `ShipViewControl.Basis` übergibt `scene.Extent`
+- Tests: `Zooming_out_reaches_the_whole_scene_where_half_the_fit_would_not`, `A_whole_scene_within_half_the_fit_leaves_the_lower_limit_at_half_the_fit`; `A_fit_above_the_maximum_stays_the_upper_limit` ruft `Upper(basis)`
+
+**Akzeptanz:**
+- [x] Herauszoomen endet beim halben Fit oder, wo die Szene größer ist, dort, wo sie ganz passt
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.331: +2, der Wegwerf-Test aus K5.2c ist gelöscht)
+- [x] Gate (Martin, 26.10., bestanden): Phoenix, Redeemer, Aurora mit Umriss ganz herausgezoomt → ganzer Rumpf im Fenster (ggf. nach Verschieben); Hull A, Hull C wie bisher
+- Commits 46a7088 (Tests rot), 5e1e582 (App), Doku-Commit.
+
+### [x] K5.3 Aurora Mk II mit TS-Modul (D59-Addendum) (26.10.2026)
+**Warum:** D59 sieht Frachtmodule als zusätzliche Katalogeinträge vor; Fleetyards kennt keine Module. Erstes Modul: die TS-Modul-Plattform der Aurora Mk II.
+
+**Ist-Zustand vor K5.3 (A1):** `ShipLoader.LoadAll` liest nur `ships/*.json`, Unterordner ignoriert; Core kopiert nur `ships/*.json`; App und CLI arbeiten mit Katalog-Ids (D59); `aurora_mk_ii.json` = 2 × 1 SCU, generierte Reihe.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Daten von Martin (Spiel, 26.10.): Plattform 3 × 2 × 1 Zellen (Länge entlang x), Kisten bis 2 SCU, Stapelachse +z, am Heck hinter dem 2-SCU-Raum auf der Mittellinie, fährt nach unten aus; nur Aurora Mk II; 8 SCU gesamt; Name „TS module“. Eigene Moduldatei mit Modul-Schema 1, kein Schiffsschema-Bump; Lage schematisch (x −6..−3, y 0..2, z −1..0); `maxCrateSize: 2` als Tür.
+- Daten: `ships/modules/ts_module.json`
+- Core: `ModuleDto` (`Check`, `ConfigurationId`, `On`), `ShipJsonContext` + `ModuleDto`, `ShipLoader.ModulesFolderName`, `LoadAll` liest `modules/` (eine Konfiguration je Basis, Fehler als `ShipProblem`, sortiert), `LoadFile` → `ReadFile` + `ToShip`; csproj kopiert `ships/modules/*.json`; `publish.ps1` prüft `ships/modules/ts_module.json` im ZIP
+- Tests: `ShipLoaderTests` (Eintrag je Basis, fehlende Basis, kaputte Datei, Modul-Schema 2, Überlappung, kein Ordner; `LoadAll_loads_every_shipped_file_without_problems` nennt die Modul-Einträge), `ShipModuleTests` (ausgelieferte Konfiguration, Basis unverändert, 6 SCU in 2ern ohne Modul abgelehnt, mit Modul auf der Plattform)
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.418 / 141 / 1.331 | 1.428 / 141 / 1.331; Slow grün |
+| Katalogeinträge | 97 | 98 (+ `aurora_mk_ii_ts_module`) |
+| Gleichheitslauf (gegen nach D3) | 388 | 388 gleich, 4 neue Zeilen für die Konfiguration (alle abgelehnt: Fixtures über 8 SCU oder gesetzte 4er gegen Tür 2) |
+
+**Akzeptanz:**
+- [x] Konfiguration „RSI Aurora Mk II · TS module“ mit 8 SCU, Plattform als Rack 3 mit Tür 2; Basis unverändert
+- [x] Kaputtes Modul kostet nur seine Einträge; ohne `modules/` alles wie bisher
+- [x] Plan mit und ohne Modul (6 SCU in 2ern)
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün; Exhaustive nicht nötig (Planer unberührt)
+- [x] Gate (Martin, Publish-Build, 26.10., bestanden mit Korrektur): „RSI Aurora Mk II · TS module“ wählen → Kopfzeile 8 SCU; Plan über 2 SCU legt ins Modul; Modul passt. Korrektur: Rack 2 der Mk II liegt direkt über Rack 1, nicht dahinter (`aurora_mk_ii.json` Origin `[0, 0, 1]` statt `[-2, 0, 0]`, Handwert in `notes`); Modul unverändert, damit seine Lage zum Holo bleibt; Gleichheitslauf 392/392, Import-Abgleich `same`
+- [x] Zweite Korrektur (Martin, 26.10.): „2 direkt über der 1“ hieß in der Draufsicht daneben, nicht gestapelt. Rack 1 (`cargo_left`) `[0, 0, 0]` bleibt, Rack 2 (`cargo_right`) `[0, 0, 1]` → `[0, -1, 0]` (Steuerbord daneben); Modul `[-6, 0, -1]` → `[-6, -1, -1]` (y-Mitte = Mitte der beiden Plätze, x hinter dem Bay, z Rumpfunterseite bleiben); Rack 3 vorher geprüft: Modul 3 × 2 × 1, 6 SCU, Tür 2 (nicht 2 × 2 × 2), Rack 1/2 Index 1 × 1 × 1, limits 1–1; 8 SCU; Gleichheitslauf 392/392 (09dfbe9)
+- [x] Dritte Korrektur (Martin, 26.10.): Rack 1 und 2 eine Zelle tiefer, auf die Höhe des Moduls: `[0, 0, -1]`, `[0, -1, -1]` (z −1..0 wie Rack 3); Gleichheitslauf 392/392
+- [x] Gate (Martin, 26.10., bestanden nach K5.3b): Holo an, Plattform hinter dem Bay unter dem Heck, die zwei Mk-II-Plätze nebeneinander, Bug nach vorn
+- Commits 6a05575 (Tests rot), fb3e49c (Core, Daten), fd07438 (Doku), Korrektur-Commit.
+
+### [x] K5.3b `holoOffset` in der Schiffsdatei (D63-Addendum) (26.10.2026)
+**Warum:** Martin beim Holo-Gate der Aurora Mk II: Racks liegen eine Zelle zu hoch im Rumpf. Das Holo sitzt mittig auf den Racks (D63), Racks verschieben hilft nicht, das Holo wandert mit.
+
+**Ist-Zustand vor K5.3b (A1):** `HoloPlacement.Place(mesh, racks)` legt die Mitte des Holos auf die Mitte von `Ship.Bounds` in allen drei Achsen; kein Versatz in Daten oder Code.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** optionales Feld `holoOffset: [x, y, z]` in ganzen Zellen auf Schiffsebene, kein Schema-Bump (optional wie `position`, D56); Modul-Konfigurationen erben es; `-Force` schreibt es zurück, setzt es nie. Dazu Martin: `holoOffset` korrigiert die Mittellage des Holos gegenüber den Racks, keine Positionsangabe des Schiffs; wer einen Wert setzt, hat ihn am Holo-Gate gesehen, Quelle und Datum in `notes`; braucht ein Schiff einmal x/y, gilt das für Umriss und Holo gleichermaßen und das Feld wird erweitert, kein zweites; heute braucht das kein Schiff, kein Code dafür.
+- Core: `ShipDto.HoloOffset` (drei Werte) → `Ship.HoloOffset` (`ShipPoint?`)
+- App: `HoloPlacement.Place(mesh, racks, shift)`, `PreparedHolo` übergibt `ship.HoloOffset`
+- Import: `Format-Ship` schreibt `holoOffset`
+- Daten: `aurora_mk_ii.json` `"holoOffset": [0, 0, 1]`, Quelle und Datum in `notes`
+- Tests: `ShipLoaderTests` (Lesen, Modul erbt, ohne Feld keins, zwei Werte = Problem), `ShipModuleTests` (Aurora mit und ohne Modul), `HoloViewTests` (Versatz um ganze Zellen), `ImportFleetyardsScriptTests` (`-Force` behält es)
+
+**Zahl vorher/nachher:** Tests Core 1.428 → 1.433, App 1.331 → 1.332, Import 141; Gleichheitslauf 392/392 byte-gleich; Import-Abgleich 97 same.
+
+**Akzeptanz:**
+- [x] Holo der Aurora Mk II (mit und ohne Modul) eine Zelle höher, Racks und Planung unverändert
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [x] Gate (Martin, 26.10., abgenommen): Aurora Mk II und Aurora Mk II · TS module mit Holo, Racks tiefer im Rumpf; andere Schiffe unverändert
+- Commits e88229e (Tests rot), 54f0bed (Core, App, Import, Daten), Doku-Commit.
+
+### [x] K5.4 App-Icon (D48-Addendum) (26.10.2026)
+**Warum:** Seit T6.2 im Backlog (D48): Exe, Taskleiste und Werkzeugfenster zeigten das Windows-Standardsymbol.
+
+**Ist-Zustand vor K5.4 (A1):** kein `.ico`, kein `<ApplicationIcon>`, kein `Window.Icon` im App-Projekt; `docs/images/` leer.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Martin lieferte das Logo (Variante A „flat“, `.ico` mit 16/24/32/48/64/128/256 px als PNG-Frames, SVG-Quelle) und gab K5.4 ohne eigenen Plan frei („direkt einbauen“). Nur `<ApplicationIcon>`, kein `Window.Icon` je Fenster: ein Fenster ohne eigenes Icon nimmt das Assembly-Icon (Doku `Window.Icon`, Remarks). Das Logo ist Martins Eigenwerk ohne fremdes Material → MIT wie das Repo, kein `NOTICE.md`. Keine Prüfung in `publish.ps1`: das Icon ist eine Win32-Ressource der Exe, keine Datei im ZIP.
+- App: `src/CargoPlan.App/cargoplan.ico` (byte-gleich mit Martins Datei, SHA256 `3C13B3A1…`), `<ApplicationIcon>` im csproj
+- Doku: `docs/images/icon-256.png` (README, Nexus-Seite in T7.5), `docs/images/icon.svg` (Quelle, Kommentare übersetzt)
+
+**Akzeptanz:**
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 1.401, Import 141, App 1.328, unverändert)
+- [x] Icon aus der gebauten `CargoPlan.App.exe` zurückgelesen (`Icon.ExtractAssociatedIcon`): das Logo
+- [x] Gate (Martin, Publish-Build, 26.10., bestanden): Icon in Explorer, Taskleiste, Alt+Tab und den Titelleisten von Editor und Settings; ZIP entpackt → Exe zeigt es
+
+### Abschluss der K5-Session (26.10.2026)
+- Alle Tasks von Martin abgenommen (26.10.2026): K5.1, K5.2, K5.3, K5.4 aus dem Startprompt; K5.2b (Holos und Umrisse), K5.2c (Umriss maßstabsgetreu), K5.2d (Herauszoomen bis zum Rumpf) und K5.3b (`holoOffset`) aus Befunden an den Gates.
+- K3 nebenbei: Clipper-Gate bestanden, Kiosk-Gate entfällt (D70-Addendum); offen bleiben die Antwort von Torlek (K3.1) und das Hull-C-Overlay-Gate (K3.3, keine 16er-Mission verfügbar).
+- Merge `--no-ff` nach main, Push durch Martin. Pipeline-Repo `sc-ship-outlines`: 1af1c83..b3da084 (Push durch Martin); `holo-v1` am 26.10. neu hochgeladen (Martin, auf GitHub geprüft).
+- Tests: Core 1.401 → 1.433, Import 141 → 141, App 1.328 → 1.332; Slow grün; Exhaustive nicht nötig (Planer unberührt).
+- Entscheidungen: D78 neu; Addenda zu D14, D48, D53, D55, D59, D61, D62 (zwei), D63 (zwei), D70, D76.
+
+**Übergabe für T7.5:**
+- **Schema-Stand:** Schiff 5 (neu optional `holoOffset`), Plan 6, Mission 3, settings.json 2, Look 1; neu: Moduldatei `ships/modules/*.json` mit eigenem Schema 1 (D59).
+- **Schiffszahl:** 97 Schiffsdateien + 1 Modul-Konfiguration = 98 Einträge in der Auswahl. Index vom 26.10.: 248 Modelle bei Fleetyards, 118 mit Fracht, 97 mit Gitter; 21 mit Fracht, aber ohne Gitter (u. a. Javelin, Hull D/E, Kraken), fehlen bewusst.
+- **Preset-Namen (K4):** „Default“, „High contrast“, „Minimal“.
+- **Release-Notes-Stoff:** Hull C als zwei Kreuze, Hull A mit echtem Spindelabstand; Fortune und Moth mit neuen Racks, Salvation neu, Aurora Mk II · TS module neu (8 SCU); der Umriss hat echte Größe, die Ansicht öffnet auf Racks und Bug, Herauszoomen zeigt den ganzen Rumpf; Holos von 18 Schiffen neu skaliert (Hull A war 28 % zu groß), Salvation-Holo neu; gespeicherte Ansichten von Hull A, Hull C und Aurora Mk II sitzen nach dem Update anders (Datenupdate, D76); App-Icon.
+- **Known issues:** `limits.max = 1` ungeprüft, 36 Racks in 18 Schiffen ohne Türlimit (Torlek); bei der Hull C liegen die Racks innerhalb der Holo-Frachtblöcke (logisches Raster gegen Modell, D78); Kisten großer Schiffe im Default-Overlay klein (C2 13,2 px, Hull C 5,1 px); die Anordnung von 90 Schiffen ist generiert (D53), die Railen-Reihe ragt aus dem Rumpf; Backbord/Steuerbord stammen aus Fleetyards-Namen (D78).
+- **Für die Screenshots:** nach K5 neu aufnehmen; Umriss in echter Größe und neuer Ausschnitt ändern das Bild aller Schiffe außer Hull A, Caterpillar, Syulen, Railen.
+- **Offen:** Antwort von Torlek (K3.1); Hull-C-Overlay-Gate (K3.3); Starbreaker für das zweite Modulschiff (Backlog).
+
 ---
 
 ## Phase 8 – nach dem Launch
@@ -1973,3 +2193,9 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Abholort ändern ohne Re-plan (heute braucht jede Editor-Änderung „Plan“, D19). Auslöser: ein Hauler trägt Abholorte erst
   nach dem Beladen nach und verliert dabei Moves.
 - Mehrsprachigkeit, falls nicht-englische Hauler danach fragen. Beginnt beim Parser (deutsche CT-Captures als Fixtures), nicht bei `.resx` (D53).
+- Fleetyards-Lage für Modul-Laderäume (Carrack, Caterpillar-Module und -Nase): heute modul-lokale Offsets, die überlappen, also generierte Reihe (D78). Auslöser: Fleetyards liefert schiffsweite Offsets für Module.
+- Hull C: Stapelrichtung je Arm. Heute quer zum Arm, damit die Gitter 8×8×6/8×4×6 bleiben (D78); radial nach außen wie bei der Hull A hieße 8×6×8/8×6×4 mit Achse vom Kreuz weg. Auslöser: Beobachtung im Spiel oder in einem Beladungsvideo.
+- Hull C: innerer und äußerer Block eines Arms ein Gitter oder zwei. Heute zwei Racks wie bei Fleetyards, beide einzeln voll packbar (K3.2). Auslöser: ein Hauler meldet, dass ein 32er über die Blockgrenze liegt.
+- ~~Umrisse und Holos neu erzeugen (Pipeline `sc-ship-outlines`): die Salvation hat keinen (neu seit 25.10., zeigt den Bug-Keil, `NotTracedYet`), 18 Schiffe haben im Index vom 26.10. neue Rumpfmaße (K5.1). Auslöser: ein Hauler meldet die Salvation oder Racks liegen sichtbar außerhalb des Rumpfs.~~ → K5.2b
+- Kisten großer Schiffe im Default-Overlay klein: C2 13,2 px, Hull C 5,1 px pro Kistenkante (400 × 302, nach K5.2c), unter dem Hull-A-Wert 27,2 (Befund K5.2c, D62-Addendum). Auslöser: ein Hauler meldet zu kleine Kisten auf einem großen Schiff.
+- Railen: die generierte Reihe (53 Zellen) ist länger als der Rumpf (40 Zellen), ragt aus dem maßstabsgetreuen Umriss (K5.2c). Auslöser: Fleetyards-Offsets für die Railen oder eine Meldung aus dem Spiel.

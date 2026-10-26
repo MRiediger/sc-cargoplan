@@ -21,7 +21,7 @@ public sealed record PreparedHolo(
     /// <param name="look">One of the hologram looks (<see cref="ShipOutlineModes.IsHologram"/>).</param>
     public static PreparedHolo Prepare(Ship ship, HoloMesh mesh, ShipOutlineMode look)
     {
-        var placement = HoloPlacement.Place(mesh, ship.Bounds);
+        var placement = HoloPlacement.Place(mesh, ship.Bounds, ship.HoloOffset);
         var surface = look switch
         {
             ShipOutlineMode.HoloFlat => HoloSurface.Flat(mesh),

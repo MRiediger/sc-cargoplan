@@ -8,6 +8,10 @@ public class ShipOutlineLoaderTests
     // Slugs struck from outlines/ship-outlines.json because their trace was wrong (D55); those ships show the bow wedge.
     private static readonly string[] StruckSlugs = [];
 
+    // Ships newer than the outlines: they show the bow wedge (D62) until the pipeline traces them. Empty since K5.2b
+    // traced the Salvation (index of 26 Oct 2026).
+    private static readonly string[] NotTracedYet = [];
+
     private static string TestFile(string name) => Path.Combine(AppContext.BaseDirectory, "TestOutlines", name);
 
     private static Ship WithSlug(string? slug) =>
@@ -29,9 +33,21 @@ public class ShipOutlineLoaderTests
     {
         var outlines = ShipOutlineLoader.Load();
 
-        foreach (var ship in ShipLoader.LoadAll().Ships.Where(s => !StruckSlugs.Contains(s.FleetyardsSlug)))
+        foreach (var ship in ShipLoader.LoadAll().Ships.Where(s => !StruckSlugs.Contains(s.FleetyardsSlug) && !NotTracedYet.Contains(s.FleetyardsSlug)))
         {
             outlines.For(ship).Should().NotBeNull(because: $"{ship.Id} ({ship.FleetyardsSlug}) needs an outline or an entry in {nameof(StruckSlugs)}");
+        }
+    }
+
+    // An entry here must still be missing: once traced, it goes from the list.
+    [Fact]
+    public void A_ship_not_traced_yet_has_no_outline()
+    {
+        var outlines = ShipOutlineLoader.Load();
+
+        foreach (var ship in ShipLoader.LoadAll().Ships.Where(s => NotTracedYet.Contains(s.FleetyardsSlug)))
+        {
+            outlines.For(ship).Should().BeNull(because: $"{ship.FleetyardsSlug} has an outline now, take it from {nameof(NotTracedYet)}");
         }
     }
 
@@ -40,9 +56,10 @@ public class ShipOutlineLoaderTests
     {
         var outline = ShipOutlineLoader.Load().For(ShipLoader.Load("hull_a"))!;
 
-        // 30 m long as in the export; the traced silhouette is 12 m wide (the export's beam says 12.5).
-        (outline.Points.Max(p => p.X) - outline.Points.Min(p => p.X)).Should().BeApproximately(30, 0.1);
-        (outline.Points.Max(p => p.Y) - outline.Points.Min(p => p.Y)).Should().BeApproximately(12, 0.1);
+        // 23.42 m long as in the index of 26 Oct 2026 (30 before, K5.2b); the traced silhouette is 9.38 m wide (the index's
+        // beam says 9.35), 12 m scaled by the same 0.781.
+        (outline.Points.Max(p => p.X) - outline.Points.Min(p => p.X)).Should().BeApproximately(23.42, 0.1);
+        (outline.Points.Max(p => p.Y) - outline.Points.Min(p => p.Y)).Should().BeApproximately(9.38, 0.1);
     }
 
     // --- Matching ---

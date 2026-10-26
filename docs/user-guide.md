@@ -27,6 +27,8 @@ The ships you chose last stand on top under "Recent". To find a ship faster, jus
 field while the list is open, and every key narrows the list by name or manufacturer code ("hull c", "crus"). Enter
 picks the ship when only one is left, Esc empties the search, a second Esc closes the list. While the list is open your
 keys go to the search, not to the game; after picking, one click into the game gives it the keys back.
+A ship whose cargo module changes its hold has a line of its own, "RSI Aurora Mk II · TS module" next to
+"RSI Aurora Mk II": pick the one you fly, switching is a ship change like any other.
 With a plan the overlay asks first, then plans your missions anew for the new ship. Ticks stay, also a single legend line:
 cargo you have delivered was never on the new ship, so it takes no room there and isn't drawn, only its legend line
 stays struck through. Tick it back and it is laid into free cells. Like the header buttons
@@ -45,8 +47,9 @@ the red lines below the legend, if any, or the border.
 
 The overlay draws your ship's cargo racks as boxes, at first seen from the front, from the port side and from above:
 the bow points to the lower left, the port side faces you. Under the racks lies your ship's outline seen from above, so
-you can tell bow, sides and shape at a glance; it is a backdrop scaled to the racks, not a scale drawing, and doesn't
-say where a rack sits in the hull. A ship without an outline shows a wedge in front of the racks instead, with "Bow" on
+you can tell bow, sides and shape at a glance. It has the ship's real size (larger only where the racks would not fit
+in it), and the view opens on the racks and a little room towards the bow, so most of the hull lies outside until you
+zoom out; it doesn't say where a rack sits in the hull. A ship without an outline shows a wedge in front of the racks instead, with "Bow" on
 its floor. Instead of the outline the ship's 3D hologram can stand behind the racks, true to scale (**Ship view** in the
 [settings](#settings-and-your-look)). Turn and tilt the ship until it looks the way you see the hold, even from below for racks under the hull.
 Each rack shows its number on its largest visible face. Long ships (more than twice as long as wide, such as the C2,
@@ -90,7 +93,8 @@ zooms (while you drag a single crate it turns the crate instead, see [Changing t
 [Hotkeys](#hotkeys)), which also works in the game while the overlay is locked.
 The wheel zooms in as far on a Hull C as on a Hull A: up to 160 pixels per cell by default, so even on a long ship you
 can get close enough to hit a single crate. **Max zoom per cell** in the settings' **Ship view** section sets how far;
-zooming out stops at half the size that fits the window, as before. The view stays as you leave it, per ship: after a
+zooming out stops at half the size that fits the window, or further where the whole ship outline needs it, so you can
+always see the complete hull (move the view if it sits off-centre). The view stays as you leave it, per ship: after a
 restart, and when you switch to another ship and back, the ship is turned, zoomed and moved as before. The reset brings
 the starting view back, also for the next start.
 
@@ -402,7 +406,8 @@ The sections:
 - **Buttons:** background, frame and rounded corners of the glyph buttons, and a halo around the glyphs.
 - **Ship view:** **Backdrop** shows the ship's outline under the racks (the default), its hologram in one of three
   looks (shaded, flat, hidden line), or **None**: racks and frame only, without any mark of the bow. The hologram is
-  true to scale and the view fits all of it, so on a long ship the crates come out smaller than with the outline.
+  true to scale and the view fits all of it, so the crates come out smaller than with the outline, which the view
+  cuts to the racks and the bow.
   **Hologram opacity** (10–100 %, default 40 %) sets how strongly it shows, **Hull colour** the hull in the shaded and
   flat looks, **Edge colour** the edges in the hidden-line look. **Download ship holograms:** ship
   holograms are an optional download from this repository's releases; they derive from game models and may be

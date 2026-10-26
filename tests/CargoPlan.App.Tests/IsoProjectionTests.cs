@@ -182,7 +182,8 @@ public class IsoProjectionTests
     [InlineData("c2_hercules", true)]
     [InlineData("starfarer", true)]
     [InlineData("caterpillar", true)]
-    [InlineData("hull_c", true)]
+    // Long as a generated row of 16 racks (144 cells); two crosses since K5.2 (D78), 17 cells long and 32 wide.
+    [InlineData("hull_c", false)]
     public void A_ship_longer_than_twice_its_width_is_long(string shipId, bool isLong)
     {
         IsoProjection.IsLong(ShipLoader.Load(shipId).Bounds).Should().Be(isLong);

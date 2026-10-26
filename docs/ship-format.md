@@ -60,6 +60,7 @@ being ignored silently.
 | `fleetyardsSlug` | string | *Optional.* The ship's slug on Fleetyards, e.g. `"misc-hull-a"`. It picks the ship's outline from `outlines/ship-outlines.json` (traced from Fleetyards renders, not under the MIT licence, see `outlines/NOTICE.md`); without a match the ship view shows the bow wedge. Not empty if present. |
 | `source` | string | *Optional.* Where the values come from, e.g. `"in game"` (measured in the hangar) or `"Fleetyards"`. Not empty if present. |
 | `notes` | string | *Optional.* Anything a reviewer should know, e.g. what was checked and what wasn't. Not empty if present. |
+| `holoOffset` | array of 3 integers | *Optional.* `[x, y, z]` in cells: moves the hologram from its middle on the racks, e.g. `[0, 0, 1]` lifts it one cell so the racks sit lower in the hull (Aurora Mk II). It corrects the hologram's middle position against the racks; it is no position of the ship. Whoever sets a value has seen it at the holo gate – source and date go into `notes`, as for limits set by hand. Racks, plans and the outline don't move; a ship with a [cargo module](#cargo-modules) passes it on. The import writes it back on `-Force` and never sets it. |
 | `totalScu` | number | Cargo capacity of the ship. Must equal the sum of all `capacityScu`. |
 | `racks` | array | At least one rack. **Order matters:** the array order is the **rack order** (Rack 1, Rack 2, …). The planner fills racks in this order, puts the first stop into Rack 1 and lets only racks next to each other in this order share a stop. The rack order says nothing about where a rack sits; that is `position`. |
 
@@ -156,15 +157,15 @@ underside, outwards from a spindle. The other two grid axes follow from it, ther
 `length` lies along the ship (bow to stern) wherever it can. A minus axis counts from the rack's far side: the
 first layer lies at the plate, at the rack's largest coordinate on that axis.
 
-Hull A, drawn schematically (no measurement) with one cell of gap for the spindle and between the levels. The plates
-sit on the spindle, crates stack outwards:
+Hull A, laid as Fleetyards' offsets give it (D78): three cells of spindle between the plates, one between the levels.
+The plates sit on the spindle, crates stack outwards:
 
 | Rack | Position | `origin` | `stackAxis` | Fills x · y · z |
 |---|---|---|---|---|
 | 1 | port upper | `[0, 1, 3]` | `"+y"` | 0..4 · 1..3 · 3..5 |
 | 2 | port lower | `[0, 1, 0]` | `"+y"` | 0..4 · 1..3 · 0..2 |
-| 3 | starboard upper | `[0, -2, 3]` | `"-y"` | 0..4 · -2..0 · 3..5 |
-| 4 | starboard lower | `[0, -2, 0]` | `"-y"` | 0..4 · -2..0 · 0..2 |
+| 3 | starboard upper | `[0, -4, 3]` | `"-y"` | 0..4 · -4..-2 · 3..5 |
+| 4 | starboard lower | `[0, -4, 0]` | `"-y"` | 0..4 · -4..-2 · 0..2 |
 
 Two more examples for other kinds of holds:
 
@@ -211,20 +212,65 @@ patch:
    export and writes nothing. Each ship is listed as `same`, `new`, `different` (with the file's and Fleetyards' value)
    or `skipped` (no cargo grid). Exit code 0 means in sync, 1 a difference or a new ship, 2 an error.
 3. **Check the differences:** add new ships with `-Create`. For a changed ship, look at the patch notes or in game, then
-   take Fleetyards' values with `-Force <id>`. That rewrites the grid data only (grid, `capacityScu`, `totalScu`,
-   `source`); `origin`, `stackAxis`, `position`, rack order, `notes` and door limits (`maxCrateSize`) are hand work and
-   stay. `hull_a.json` is never written.
+   take Fleetyards' values with `-Force <id>`. That rewrites the grid data (grid, `capacityScu`, `totalScu`, `source`)
+   and, where Fleetyards lays the racks, `origin`, `position` and a `stackAxis` that fills each rack's box. Rack order,
+   a `stackAxis` that already fits, `notes` apart from their arrangement part, door limits (`maxCrateSize`) and the
+   origins of a generated row are hand work and stay. If the rack set changed, the racks whose id and grid Fleetyards
+   still has keep all their hand work, new racks join behind the last rack that takes more than 2 SCU (walkways last),
+   vanished racks are dropped and named, and `notes` record it; if no rack maps, the file is written anew.
+   `hull_a.json` is never written, but it is compared: it is the check of the mapping below.
 4. **Commit:** run `dotnet test` (every file must load), then commit the changed files with the export date.
 
 What the import does: the id is the Fleetyards slug without the manufacturer code (`crus-c2-hercules` →
 `c2_hercules`), cells are metres divided by 1.25, `length` is Fleetyards' y (along the ship) and `width` its x: the
 rack lies as Fleetyards gives it, and crates turn to fit (D71). Fleetyards' rack offsets are used when every rack has
-one and none overlap, with `position` derived from them; otherwise the racks get a generated row, Rack 1 at the bow and one cell
-between racks, and no `position`. Racks that take nothing above 2 SCU (ladders, walkways) go last.
+one and none overlap (D78): the offset is the hold's min corner, and in ship cells x = Fleetyards y (towards the bow,
+checked on the Starlancer MAX), y = −(Fleetyards x + width) (to port), z = Fleetyards z. A hold with `rotation` 90 or 270
+is turned about Fleetyards y (the Hull C's upright arms): its x and z extents swap, its offset is the min corner after
+the turn, its grid stays; any other rotation stops the import. `stackAxis` is `+z` where that lays the grid in the box,
+else the first axis that does. `position` comes from the rack's centre against the ship's, and is left out for a rack
+on the ship's middle (the Hull C's arms). Otherwise the racks get a generated row, Rack 1 at the bow and one cell between
+racks, and no `position`. Racks that take nothing above 2 SCU (ladders, walkways) go last. The compare checks where
+Fleetyards lays the racks up to a shift of the whole ship: the view hangs on the middle of the ship's bounds.
 The door limit comes from `limits.max.capacity` as described in [Max crate size](#max-crate-size); `maxContainerSize`
 isn't read. `-Create` writes it, the compare reports a door the file lacks or holds otherwise, and `-Force` adds a
 missing one but never overwrites one already in the file. Racks whose `limits.max.capacity` is an unverified 1 are named
 after the ship's line ("limits.max 1 unverified: rack-0") without counting as a difference.
+
+## Cargo modules
+
+Some ships change their hold with a module (the Aurora Mk II's TS module; later the Retaliator, the Caterpillar). A
+module is a file of its own in `ships/modules/<id>.json`, not a field in the ship file (D59): every ship it names gets
+one more entry in the ship list, its own racks first, the module's after them.
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "ts_module",
+  "name": "TS module",
+  "ships": ["aurora_mk_ii"],
+  "source": "in game (Martin, 2026-10-26)",
+  "notes": "platform at the stern …",
+  "racks": [
+    { "id": "ts-module", "capacityScu": 6, "grid": { "length": 3, "width": 2, "stack": 1 },
+      "origin": [-6, -1, -1], "stackAxis": "+z", "maxCrateSize": 2 }
+  ]
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `schemaVersion` | `1` (the module format's own version, not the ship file's) |
+| `id` | lowercase snake_case, equal to the file name |
+| `name` | shown after the ship's name: "RSI Aurora Mk II · TS module" |
+| `ships` | the ids of the ships that carry it; each becomes the entry `<ship>_<module>` (`aurora_mk_ii_ts_module`) |
+| `racks` | as in a ship file; their ids must differ from the ship's, their boxes must not overlap its racks |
+| `source`, `notes` | optional, appended to the ship's under the module's name |
+
+The entry's `totalScu` is the ship's plus the module's racks, its manufacturer and Fleetyards slug are the ship's, so it
+shows the ship's outline and hologram. It is checked like a ship file; a broken module, a ship it names that doesn't
+load, or a rack that doesn't fit is one line in the ship list's problems and costs only those entries. The import
+(`tools/import-fleetyards.ps1`) never touches `modules/`: Fleetyards has no module data, so a module is counted in game.
 
 ## Crate sizes
 

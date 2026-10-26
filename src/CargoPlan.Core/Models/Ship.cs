@@ -5,11 +5,13 @@ namespace CargoPlan.Core.Models;
 /// <summary>
 /// A ship layout. The rack capacities must add up to <see cref="TotalScu"/>. The optional data describes the ship, it
 /// doesn't change the plan (D56): <see cref="Manufacturer"/> code such as "MISC", <see cref="FleetyardsSlug"/> to match
-/// other Fleetyards data such as the outline, <see cref="Source"/> of the values, free <see cref="Notes"/>.
+/// other Fleetyards data such as the outline, <see cref="Source"/> of the values, free <see cref="Notes"/>, and
+/// <see cref="HoloOffset"/>, cells the hologram moves from its middle on the racks (K5.3b, D63; null = none).
 /// </summary>
 public sealed record Ship(
     string Id, string Name, int TotalScu, IReadOnlyList<Rack> Racks,
-    string? Manufacturer = null, string? FleetyardsSlug = null, string? Source = null, string? Notes = null)
+    string? Manufacturer = null, string? FleetyardsSlug = null, string? Source = null, string? Notes = null,
+    ShipPoint? HoloOffset = null)
 {
     public int TotalScu { get; } = TotalScu;
 

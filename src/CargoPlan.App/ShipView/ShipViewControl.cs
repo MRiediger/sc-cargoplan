@@ -834,12 +834,14 @@ public sealed class ShipViewControl : FrameworkElement
 
     // The fit follows the projected extent, so the ship stays in view while the camera turns; on a long ship it shows the
     // loaded racks and keeps room on top for the numbers standing above them (D61). A framing hangs on the anchor (D76).
+    // Zooming out reaches the whole scene, a true-size outline included (K5.2d).
     private ViewBasis Basis(ProjectedScene scene) => ViewBasis.Of(
         scene.FitExtent,
         scene.Anchor,
         RenderSize,
         FitMargin,
-        scene.Racks.Any(r => r.LabelAbove) ? RackNumberFontSize + LabelGap + RackNumberHaloSize : 0);
+        scene.Racks.Any(r => r.LabelAbove) ? RackNumberFontSize + LabelGap + RackNumberHaloSize : 0,
+        scene.Extent);
 
     private void OnMaxPxPerCellChanged()
     {

@@ -5,6 +5,7 @@
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-hull-a",
   "source": "in game",
+  "notes": "grids and rack order measured in game; rack positions from Fleetyards offsets (K5.2, D78): 3 cells between the plates",
   "totalScu": 64,
   "racks": [
     {
@@ -28,7 +29,7 @@
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "position": { "side": "starboard", "level": "upper" },
-      "origin": [0, -2, 3],
+      "origin": [0, -4, 3],
       "stackAxis": "-y"
     },
     {
@@ -36,7 +37,7 @@
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "position": { "side": "starboard", "level": "lower" },
-      "origin": [0, -2, 0],
+      "origin": [0, -4, 0],
       "stackAxis": "-y"
     }
   ]

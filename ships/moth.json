@@ -4,9 +4,9 @@
   "name": "ARGO MOTH",
   "manufacturer": "ARGO",
   "fleetyardsSlug": "argo-moth",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
-  "totalScu": 32,
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-26",
+  "notes": "rack arrangement generated; grids from Fleetyards; racks rack-1, rack-2 added (Fleetyards export 2026-10-26); door limits from Fleetyards limits.max.capacity",
+  "totalScu": 224,
   "racks": [
     {
       "id": "rack-0",
@@ -14,6 +14,22 @@
       "grid": { "length": 4, "width": 4, "stack": 2 },
       "origin": [0, 0, 0],
       "stackAxis": "+z"
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 96,
+      "grid": { "length": 6, "width": 4, "stack": 4 },
+      "origin": [-7, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
+    },
+    {
+      "id": "rack-2",
+      "capacityScu": 96,
+      "grid": { "length": 4, "width": 6, "stack": 4 },
+      "origin": [-14, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 8
     }
   ]
 }
