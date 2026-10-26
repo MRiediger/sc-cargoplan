@@ -5,7 +5,7 @@
   "manufacturer": "RSI",
   "fleetyardsSlug": "rsi-aurora-mk-ii",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; Rack 2 directly above Rack 1 (Martin, in game, 2026-10-26)",
+  "notes": "rack arrangement generated; grids from Fleetyards; Rack 2 (cargo_right) beside Rack 1 (cargo_left) to starboard (Martin, in game, 2026-10-26)",
   "totalScu": 2,
   "racks": [
     {
@@ -19,7 +19,7 @@
       "id": "rack-1",
       "capacityScu": 1,
       "grid": { "length": 1, "width": 1, "stack": 1 },
-      "origin": [0, 0, 1],
+      "origin": [0, -1, 0],
       "stackAxis": "+z"
     }
   ]

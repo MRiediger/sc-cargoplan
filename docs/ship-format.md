@@ -252,7 +252,7 @@ one more entry in the ship list, its own racks first, the module's after them.
   "notes": "platform at the stern …",
   "racks": [
     { "id": "ts-module", "capacityScu": 6, "grid": { "length": 3, "width": 2, "stack": 1 },
-      "origin": [-6, 0, -1], "stackAxis": "+z", "maxCrateSize": 2 }
+      "origin": [-6, -1, -1], "stackAxis": "+z", "maxCrateSize": 2 }
   ]
 }
 ```
