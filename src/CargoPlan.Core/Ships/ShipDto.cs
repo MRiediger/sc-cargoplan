@@ -9,7 +9,8 @@ namespace CargoPlan.Core.Ships;
 /// </summary>
 internal sealed record ShipDto(
     int SchemaVersion, string Id, string Name, int TotalScu, IReadOnlyList<RackDto> Racks,
-    string? Manufacturer = null, string? FleetyardsSlug = null, string? Source = null, string? Notes = null)
+    string? Manufacturer = null, string? FleetyardsSlug = null, string? Source = null, string? Notes = null,
+    IReadOnlyList<int>? HoloOffset = null)
 {
     /// <exception cref="ArgumentException">A value violates the domain rules.</exception>
     public Ship ToShip()
@@ -30,8 +31,16 @@ internal sealed record ShipDto(
         // Array order defines the index and the rack order: first rack = Rack 1.
         IReadOnlyList<Rack> racks = [.. Racks.Select((r, index) => r.ToRack(index))];
         ThrowOnOverlap(racks);
-        return new Ship(Id, Name, TotalScu, racks, Manufacturer, FleetyardsSlug, Source, Notes);
+        return new Ship(Id, Name, TotalScu, racks, Manufacturer, FleetyardsSlug, Source, Notes, ToHoloOffset());
     }
+
+    // Whole cells like an origin; STJ already rejects null entries and non-integers, only the length is left (K5.3b).
+    private ShipPoint? ToHoloOffset() => HoloOffset switch
+    {
+        null => null,
+        [var x, var y, var z] => new ShipPoint(x, y, z),
+        _ => throw new ArgumentException(Invariant($"Ship '{Id}': holoOffset needs 3 values [x, y, z], got {HoloOffset.Count}."), nameof(HoloOffset)),
+    };
 
     // An optional field is either left out or says something; "" would show as an empty label.
     private void ThrowIfBlank(string? value, string field)

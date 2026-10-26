@@ -5,7 +5,8 @@
   "manufacturer": "RSI",
   "fleetyardsSlug": "rsi-aurora-mk-ii",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; Rack 2 (cargo_right) beside Rack 1 (cargo_left) to starboard, both at the TS module's height (Martin, in game, 2026-10-26)",
+  "notes": "rack arrangement generated; grids from Fleetyards; Rack 2 (cargo_right) beside Rack 1 (cargo_left) to starboard, both at the TS module's height (Martin, in game, 2026-10-26); holoOffset [0, 0, 1]: hologram one cell up, racks lower in the hull (Martin, holo gate, 2026-10-26)",
+  "holoOffset": [0, 0, 1],
   "totalScu": 2,
   "racks": [
     {

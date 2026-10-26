@@ -353,6 +353,10 @@ function Format-Ship([object]$Ship) {
             $lines.Add("  ""$field"": $(Format-JsonString $Ship.$field),")
         }
     }
+    # Hand work from the holo gate (K5.3b): kept when -Force rewrites the file, never set by the import.
+    if ($null -ne $Ship.holoOffset) {
+        $lines.Add("  ""holoOffset"": [$(@($Ship.holoOffset) -join ', ')],")
+    }
     $lines.Add("  ""totalScu"": $($Ship.totalScu),")
     $lines.Add('  "racks": [')
     $racks = @($Ship.racks)
