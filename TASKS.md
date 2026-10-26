@@ -2193,7 +2193,7 @@ nach dem Umbau (XAML-Test + Offscreen-Hit-Test); E3 K6.4 hängt „geladen“ al
 - [x] Gate (Martin, Publish-Build vom Branch, im Lock am Aufzug, 26.10., bestanden): Zeile lesbar, Mischung = Kiosk, `#Id` = CT-Fenster
 - Commits cd54dfb (Tests rot), 0a75daf (App), Doku-Commit.
 
-### [ ] K6.2 Markierung überlebt den Lock (D25-Addendum) (26.10.2026)
+### [x] K6.2 Markierung überlebt den Lock (D25-Addendum) (26.10.2026)
 **Warum:** Am Aufzug ist der Lock der Normalzustand und die Markierung das, was man dort braucht; der Lock räumte sie.
 
 **Ist-Zustand vor K6.2 (A1):** Einzige Stelle `ShipViewControl.IsNavigationEnabled` → `Pick(CrateSelection.Empty)`,
@@ -2220,8 +2220,8 @@ nicht automatisiert (bräuchte echte Mausbewegung) → Gate.
 - [x] Lock räumt die Auswahl nicht; Auswahlfarbe und Legenden-Checkboxen im Lock sichtbar; Unlock übernimmt sie
 - [x] Laufender Drag beim Lock: kein Move, Auswahl bleibt
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün
-- [ ] Gate (Martin, Publish-Build vom Branch): markieren, Lock → sichtbar; Unlock → noch da; Lock während eines Drags
-  (Hotkey) → kein Move, Auswahl da
+- [x] Gate (Martin, Publish-Build vom Branch, 26.10., bestanden): markieren, Lock → sichtbar; Unlock → noch da; Lock
+  während eines Drags (Hotkey) → kein Move, Auswahl da
 - Commits cf04c63 (Tests rot), c7d2f4f (App), Doku-Commit.
 ### [ ] K6.3 Editor sortierbar nach Mission und Ziel (26.10.2026)
 ### [ ] K6.4 Zustand „geladen“ (Plan-Schema 7) (26.10.2026)
