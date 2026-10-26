@@ -1440,7 +1440,7 @@ Legende = Legenden-Drag seit B6 (Zeile auf ein Rack, atomar, `ResolveMoveToRack`
 
 ## Backlog-Session (vor dem Release)
 
-Fünf Sessions aus dem Backlog vor dem Tag, Reihenfolge **K3 → K2 → K1 → K4 → K5 → T7.5 → Tag v0.1.0**; K6 (Aufzug-Flow) eingeschoben vor T7.5. Je Session ein Branch ab
+Fünf Sessions aus dem Backlog vor dem Tag, Reihenfolge **K3 → K2 → K1 → K4 → K5 → T7.5 → Tag v0.1.0**; K6 (Aufzug-Flow) eingeschoben vor T7.5, abgeschlossen 26.10.2026. Je Session ein Branch ab
 main, Merge `--no-ff`. Die übernommenen Backlog-Zeilen sind unten durchgestrichen und verweisen hierher.
 
 | Session | Inhalt |
@@ -2328,7 +2328,7 @@ Schere (D67-Regel verletzt); `▣` ist klein.
   Zustände da; Dreierzyklus ohne Nachdenken, Fehlklick per Undo zurück
 - Commits 6d27157, 24977c3 (Tests rot Core), cb7ab02 (Core), 1876e98 (Tests rot App), 5f420b7 (App), 36bf04e (Doku);
   Look-Gate: 2311b20 (Tests rot), 52c6960 (Kopfzeile), Doku-Commit. Tests App 1.396 → 1.397.
-### [ ] K6.5 CT-Missionen im Editor editierbar (D44-Addendum) (26.10.2026)
+### [x] K6.5 CT-Missionen im Editor editierbar (D44-Addendum) (26.10.2026)
 **Warum:** ContractTracker vergisst manchmal Ziele; als getippte Zeile nachgetragen wurden sie eine eigene Mission ohne CT-Id.
 
 **Ist-Zustand vor K6.5 (A1):** CT-Zeilen waren schon editierbar und blieben nach Plan in ihrer CT-Mission
@@ -2358,9 +2358,34 @@ App 58 grün → grün; Planer unberührt, Gleichheitslauf nach K6.4 392/392. Te
 - [x] Sync: `manual`-Zeilen bleiben, Idempotenz, Umbenennen ohne Dublette; Mission weg → alle Zeilen weg mit Notice
 - [x] Format: `manual` in Schema 7, Missions-JSON trägt es nicht
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün
-- [ ] Gate (Martin): CT-Mission mit fehlendem Ziel → Ziel nachtragen → Plan → Legende unter derselben CT-Id → Sync → Ziel
-  bleibt → Vertrag in CT abgeben → Mission samt Handzeile weg
-- Commits a18b6ed (Tests rot Core), cd884e8 (Core), 61b66db (Tests rot App), 15e194a (App), Doku-Commit.
+- [x] Gate (Martin, 26.10., bestanden): CT-Mission mit fehlendem Ziel → Ziel nachtragen → Plan → Legende unter derselben
+  CT-Id → Sync → Ziel bleibt → Vertrag in CT abgeben → Mission samt Handzeile weg
+- Commits a18b6ed (Tests rot Core), cd884e8 (Core), 61b66db (Tests rot App), 15e194a (App), 1a8f2b9 (Doku).
+
+### Abschluss der K6-Session (26.10.2026)
+- Alle Tasks von Martin abgenommen (26.10.2026): K6.1 Legendenzeile, K6.2 Markierung im Lock, K6.3 Editor-Sortierung,
+  K6.4 Zustand „geladen“ (mit Look-Gate: Kopfzeile `· 10 ▣` und Tooltip), K6.5 CT-Missionen editierbar.
+- Merge `--no-ff` nach main, Push durch Martin.
+- Tests: Core 1.433 → 1.466, Import 141 → 141, App 1.334 → 1.406; Slow grün; Exhaustive grün (2/2, 8 min 14 s, auf
+  1a8f2b9); Gleichheitslauf 392/392 vor und nach K6.4.
+- Entscheidungen: D79 neu; Addenda zu D19 (K6.3, K6.4), D24, D25, D41, D44, D65, D67 (zwei), D69 (zwei), D74.
+- Pannen, behoben (alle vor dem Push): BOM in einer Commit-Message (K6.2, neu geschrieben); untracked
+  `ScratchEveryShipBaseline.cs` versehentlich im roten K6.4-Commit (per Amend entfernt); App ohne `CarryTicks` im Core-Commit
+  (per Amend nachgezogen); `LegendText.ContractIds` als Kopie von `MissionText.Source` (A1, in K6.3 zusammengeführt).
+
+**Übergabe für T7.5:**
+- **Schema-Stand:** Schiff 5, **Plan 7** (neu `crates[].loaded`, `missions[].stops[].items[].manual`; Schema 6 wird gelesen),
+  Mission 3 (lehnt `manual` ab), settings.json 2, Look 1, Moduldatei 1.
+- **Release-Notes-Stoff:** Legendenzeile mit Kistenmischung und Ware, Überschrift mit ContractTracker-`#Id`; Markierung
+  bleibt im Lock; Editor sortierbar nach Mission und Ziel, Spalte „Source“ heißt „Mission“; Zustand „geladen“ (Legende
+  geplant → geladen → abgeliefert, Plan und Re-plan halten Geladenes, Kisten sinken ab, Abgeliefertes überlebt den
+  Editor-Plan, jeder Klick ist per Undo zurücknehmbar); „Add to mission“ für vergessene Ziele.
+- **Known issues:** Schiffswechsel löscht „geladen“ (Zurückwechseln stellt es nicht her); das Raten am Aufzug, welche Kiste
+  zu welcher Mission gehört, bleibt spielseitig (die Legende reduziert es auf Ware + Größe + Ziel); die `#Id` ist die von
+  ContractTracker, nicht vom Spiel; eine teilweise geladene Mission ohne Platz für ihren Rest lässt Plan ablehnen (Backlog
+  „Warteeinheit Lieferung“); mit Geladenem legt der Planer nach D41 statt exakt (Backlog „RackAssignment mit Hindernissen“).
+- **Für die Screenshots:** Legende hat neue Zeilen und Überschriften; geladene Kisten mit weißem Rahmen.
+- **Offen:** Nebenbefund K6.3 (Crates-Spalte im Editor `1+1+…`, Legende `8×1`); aus K5 weiter Torlek (K3.1), Hull-C-Gate (K3.3).
 
 ---
 
