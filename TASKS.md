@@ -2042,7 +2042,7 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Gate (Martin, 26.10., bestanden): Phoenix, Redeemer, Aurora mit Umriss ganz herausgezoomt → ganzer Rumpf im Fenster (ggf. nach Verschieben); Hull A, Hull C wie bisher
 - Commits 46a7088 (Tests rot), 5e1e582 (App), Doku-Commit.
 
-### [ ] K5.3 Aurora Mk II mit TS-Modul (D59-Addendum) (26.10.2026)
+### [x] K5.3 Aurora Mk II mit TS-Modul (D59-Addendum) (26.10.2026)
 **Warum:** D59 sieht Frachtmodule als zusätzliche Katalogeinträge vor; Fleetyards kennt keine Module. Erstes Modul: die TS-Modul-Plattform der Aurora Mk II.
 
 **Ist-Zustand vor K5.3 (A1):** `ShipLoader.LoadAll` liest nur `ships/*.json`, Unterordner ignoriert; Core kopiert nur `ships/*.json`; App und CLI arbeiten mit Katalog-Ids (D59); `aurora_mk_ii.json` = 2 × 1 SCU, generierte Reihe.
@@ -2065,8 +2065,8 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Kaputtes Modul kostet nur seine Einträge; ohne `modules/` alles wie bisher
 - [x] Plan mit und ohne Modul (6 SCU in 2ern)
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün; Exhaustive nicht nötig (Planer unberührt)
-- [ ] Gate (Martin, Publish-Build): „RSI Aurora Mk II · TS module“ wählen → Kopfzeile 8 SCU; Plan über 2 SCU legt ins Modul; Modul hinter und unter der Basis
-- Commits 6a05575 (Tests rot), fb3e49c (Core, Daten), Doku-Commit.
+- [x] Gate (Martin, Publish-Build, 26.10., bestanden mit Korrektur): „RSI Aurora Mk II · TS module“ wählen → Kopfzeile 8 SCU; Plan über 2 SCU legt ins Modul; Modul passt. Korrektur: Rack 2 der Mk II liegt direkt über Rack 1, nicht dahinter (`aurora_mk_ii.json` Origin `[0, 0, 1]` statt `[-2, 0, 0]`, Handwert in `notes`); Modul unverändert, damit seine Lage zum Holo bleibt; Gleichheitslauf 392/392, Import-Abgleich `same`
+- Commits 6a05575 (Tests rot), fb3e49c (Core, Daten), fd07438 (Doku), Korrektur-Commit.
 
 ### [x] K5.4 App-Icon (D48-Addendum) (26.10.2026)
 **Warum:** Seit T6.2 im Backlog (D48): Exe, Taskleiste und Werkzeugfenster zeigten das Windows-Standardsymbol.
