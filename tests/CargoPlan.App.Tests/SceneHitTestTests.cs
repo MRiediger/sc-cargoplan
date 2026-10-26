@@ -20,8 +20,8 @@ public class SceneHitTestTests
     // Rack 1 (Riker Titanium, four 4 SCU crates flat against the plate), seen from above: crate 3, outer layer, bow end.
     private static readonly Point Rack1Top = Default.Project(2.5, 2.5, 5);
 
-    // Rack 3 (Orison 14/16), outer layer, upper row, aft end: free.
-    private static readonly Point Rack3Free = Default.Project(0.5, -1.5, 5);
+    // Rack 3 (Orison 14/16), outer layer, upper row, aft end: free. Starboard plates at y −4..−2 since K5.2 (D78).
+    private static readonly Point Rack3Free = Default.Project(0.5, -3.5, 5);
 
     private static ShipScene BuildSample()
     {
@@ -171,7 +171,7 @@ public class SceneHitTestTests
     public void Hit_on_a_gap_between_free_cells_still_names_the_rack()
     {
         // x = 1: the joint between the two free cells of Rack 3, nothing behind it.
-        SceneHitTest.HitAt(Projected, Default.Project(1, -1.5, 5)).Should().Be(new SceneHit("rack-2", null, null));
+        SceneHitTest.HitAt(Projected, Default.Project(1, -3.5, 5)).Should().Be(new SceneHit("rack-2", null, null));
     }
 
     [Fact]

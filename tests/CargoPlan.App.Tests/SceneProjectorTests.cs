@@ -101,7 +101,8 @@ public class SceneProjectorTests
     [Fact]
     public void Racks_come_back_to_front()
     {
-        SceneProjector.Project(Scene, IsoProjection.Default).Racks.Select(r => r.Number).Should().Equal(4, 2, 3, 1);
+        // 3 before 2 since K5.2's wider spindle gap (D78), as in DrawOrderTests.
+        SceneProjector.Project(Scene, IsoProjection.Default).Racks.Select(r => r.Number).Should().Equal(4, 3, 2, 1);
     }
 
     [Theory]

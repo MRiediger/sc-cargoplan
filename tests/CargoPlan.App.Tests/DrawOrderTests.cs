@@ -22,7 +22,8 @@ public class DrawOrderTests
     [Fact]
     public void Hull_A_draws_starboard_lower_first_and_port_upper_last()
     {
-        DrawOrder.BackToFront(Racks, IsoProjection.Default).Select(r => r.Number).Should().Equal(4, 2, 3, 1);
+        // 3 before 2 since K5.2's wider spindle gap (D78): they don't overlap on screen, the ray tests below hold.
+        DrawOrder.BackToFront(Racks, IsoProjection.Default).Select(r => r.Number).Should().Equal(4, 3, 2, 1);
     }
 
     [Fact]
@@ -54,8 +55,10 @@ public class DrawOrderTests
     [Fact]
     public void Equal_depth_falls_back_to_rack_order()
     {
-        // Racks 2 and 3 of the Hull A have the same depth; they don't overlap on screen, the order only has to be stable.
-        SceneRack[] reversed = [.. Racks.Reverse()];
+        // Racks 2 and 3 of the Hull A before K5.2 have the same depth; they don't overlap on screen, the order only has to
+        // be stable. K5.2's wider spindle gap (D78) took the tie away, so the old geometry keeps it.
+        var before = TestPlans.HullABeforeK52();
+        SceneRack[] reversed = [.. ShipViewBuilder.Build(new LoadPlan(before.Id, [], []), before, []).Racks.Reverse()];
 
         DrawOrder.BackToFront(reversed, IsoProjection.Default).Select(r => r.Number).Should().Equal(4, 2, 3, 1);
     }
@@ -63,7 +66,8 @@ public class DrawOrderTests
     [Fact]
     public void From_below_the_upper_racks_are_drawn_first()
     {
-        DrawOrder.BackToFront(Racks, FromBelow).Select(r => r.Number).Should().Equal(3, 1, 4, 2);
+        // Upper before lower on each side; since K5.2's wider gap (D78) the starboard pair comes first as a whole.
+        DrawOrder.BackToFront(Racks, FromBelow).Select(r => r.Number).Should().Equal(3, 4, 1, 2);
     }
 
     [Fact]

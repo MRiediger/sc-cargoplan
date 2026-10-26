@@ -26,6 +26,18 @@ internal static class TestPlans
 
     public static (Ship Ship, LoadPlan Plan) Load() => (ShipLoader.Load("hull_a"), SplitAndShared().Plan);
 
+    /// <summary>
+    /// The Hull A as it lay until K5.2: one cell between the plates instead of Fleetyards' three (D78). For tests whose
+    /// claim was measured on that geometry; the planner gives the same plans on both (origins only place the view).
+    /// </summary>
+    public static Ship HullABeforeK52()
+    {
+        var hullA = ShipLoader.Load("hull_a");
+        return new Ship(hullA.Id, hullA.Name, hullA.TotalScu,
+            [.. hullA.Racks.Select(r => r.Position?.Side == RackSide.Starboard ? r with { Origin = r.Origin with { Y = -2 } } : r)],
+            hullA.Manufacturer, hullA.FleetyardsSlug, hullA.Source, hullA.Notes);
+    }
+
     private const string HurstonPickupsName = "plans/hurston_2026-10-25.json";
 
     /// <summary>

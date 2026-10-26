@@ -47,11 +47,12 @@ public class ShipLoaderTests
     {
         var ship = ShipLoader.Load("hull_a");
 
+        // Three cells between the plates since K5.2, as Fleetyards gives it (D78); one before.
         ship.Racks.Select(r => r.Origin).Should().Equal(
             new ShipPoint(0, 1, 3),
             new ShipPoint(0, 1, 0),
-            new ShipPoint(0, -2, 3),
-            new ShipPoint(0, -2, 0));
+            new ShipPoint(0, -4, 3),
+            new ShipPoint(0, -4, 0));
     }
 
     // In the game the Hull A stacks from the spindle outwards (D26).
@@ -68,7 +69,7 @@ public class ShipLoaderTests
     {
         var ship = ShipLoader.Load("hull_a");
 
-        ship.Bounds.Should().Be(new ShipBox(new ShipPoint(0, -2, 0), new ShipPoint(4, 3, 5)));
+        ship.Bounds.Should().Be(new ShipBox(new ShipPoint(0, -4, 0), new ShipPoint(4, 3, 5)));
     }
 
     // Position and origin are kept separately (D14); for the Hull A they must tell the same story.

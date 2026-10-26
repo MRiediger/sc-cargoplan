@@ -110,8 +110,9 @@ public class RackGeometryTests
     {
         var rack3 = ShipLoader.Load("hull_a").Racks[2];
 
-        rack3.CellBox(new GridPosition(0, 0, 0), CrateSize.One).Should().Be(Box(0, -1, 3, 1, 0, 4));
-        rack3.CellBox(new GridPosition(0, 0, 1), CrateSize.One).Should().Be(Box(0, -2, 3, 1, -1, 4));
+        // Starboard plates at y −4..−2 since K5.2: three cells of spindle between the plates, as Fleetyards gives it (D78).
+        rack3.CellBox(new GridPosition(0, 0, 0), CrateSize.One).Should().Be(Box(0, -3, 3, 1, -2, 4));
+        rack3.CellBox(new GridPosition(0, 0, 1), CrateSize.One).Should().Be(Box(0, -4, 3, 1, -3, 4));
     }
 
     [Fact]
