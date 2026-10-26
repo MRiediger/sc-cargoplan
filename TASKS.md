@@ -1971,6 +1971,33 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [ ] Gate (Martin, Publish-Build): Hull C zeigt zwei Kreuze mit je acht Armen über dem Holo; Hull A gleiche Seiten/Ebenen mit breiterem Spalt; Fortune und Moth planen mit den neuen Gittern; Salvation wählbar
 - Commits 48107db (D1), db183d3 (Tests rot), 215d3d9 (Import), a5f3e4f (D2), c704561 (Grenz-Hinweise), a05691d (D3), Doku-Commit.
 
+### [ ] K5.2b Holos und Umrisse aus dem Index vom 26.10. (D63-, D55-Addendum) (26.10.2026)
+**Warum:** Befund beim K5.2-Gate: Das Hull-A-Holo ist 28 % zu groß. `holo-v1` und die Umrisse sind auf die Längen vom 22.10. skaliert, Fleetyards hat seitdem 18 Längen geändert; die Salvation hat weder Holo noch Umriss.
+
+**Ist-Zustand vor K5.2b (A1):** Pipeline `sc-ship-outlines`: `trace.py` skaliert den Umriss mit Fleetyards' Länge, `holo_mesh.py flatten` liest die Länge aus `ship-outlines.json`; `trace.py`/`sheet.py` liefen mit nicht festgehaltenen cv2/numpy-Versionen (die Systemumgebung hat kein cv2). Die App lädt eine Holo-Datei neu, sobald ihr SHA256 vom Manifest abweicht, und holt das Manifest höchstens einmal am Tag.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Martin: jetzt, vor K5.3; Versionen für `trace.py` heute festschreiben statt nur benennen; Zahl je Umriss (Punkte, Fläche / Länge²). Assets im selben Tag `holo-v1` ersetzen (`--clobber`), kein `holo-v2`. Beim Lauf gefunden: `flatten` liest die Länge aus dem Bündel, also erst bündeln, dann Holos (die 325a lief vor dem neuen Bündel und wurde wiederholt); `TOOLS.md` nennt die Reihenfolge.
+- Pipeline: `b3da084` (19 Umrisse in `.venv` neu getraced, Bündel, `TOOLS.md`: Pins, Reihenfolge, Zahlen); Holos 18 × `-Redo flatten` + Salvation komplett; Release-Ordner neu (`generatedAt` 2026-10-26)
+- Repo: `outlines/ship-outlines.json` (byte-gleiche Kopie, SHA256 `C6ADEEC4…`), `NotTracedYet` leer, `Hull_a_outline_points_to_the_bow_and_is_in_metres` erwartet 23,42 × 9,38 m (vorher 30 × 12, × 0,781)
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Umrisse, Länge unverändert (99), in `.venv` neu getraced | – | 99 byte-gleich (Zeilenenden ausgenommen) |
+| Umrisse, Länge geändert (18) | – | 16 gleiche Punktzahl; Fläche / Länge² höchstens 0,13 % anders; C8 49 → 39, C8X 51 → 46 Punkte (Untergrenze 0,08 m in `trace.py`) |
+| Holos (18): Budget-Stufe / Dreiecke | holo-v1 | alle gleiche Stufe; Dreiecke höchstens 0,2 % anders (C8X 19.811 → 19.850); 325a/350r `slivers` wie in holo-v1 |
+| Salvation | weder Holo noch Umriss | Holo 20k (19.931 Dreiecke, alle Kriterien), Umriss 76 Punkte |
+| Release-Ordner | 117 | 118: 18 ersetzt, 1 neu, 99 byte-gleich, `verify` ohne Befund |
+| Tests (Core / Import / App) | 1.418 / 141 / 1.328 | gleich |
+
+**Akzeptanz:**
+- [x] Kontaktbögen: Holos (Pipeline-Bögen „clean“/„not clean“), Umrisse gegen Render mit Bugpunkt (Scratch-Bogen)
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [ ] Gate (Martin): Kontaktbögen; Salvation-Bug-Richtung
+- [ ] Upload (Martin): `upload-holo-v1.ps1` (Holos, dann Manifest); danach Hull A, Avenger Titan, C8, Salvation im Holo-Modus in richtiger Größe zu den Racks
+- Commits Pipeline 1af1c83..b3da084, hier Daten-/Doku-Commit.
+
 ### [ ] K5.4 App-Icon (D48-Addendum) (26.10.2026)
 **Warum:** Seit T6.2 im Backlog (D48): Exe, Taskleiste und Werkzeugfenster zeigten das Windows-Standardsymbol.
 
@@ -2060,4 +2087,4 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Fleetyards-Lage für Modul-Laderäume (Carrack, Caterpillar-Module und -Nase): heute modul-lokale Offsets, die überlappen, also generierte Reihe (D78). Auslöser: Fleetyards liefert schiffsweite Offsets für Module.
 - Hull C: Stapelrichtung je Arm. Heute quer zum Arm, damit die Gitter 8×8×6/8×4×6 bleiben (D78); radial nach außen wie bei der Hull A hieße 8×6×8/8×6×4 mit Achse vom Kreuz weg. Auslöser: Beobachtung im Spiel oder in einem Beladungsvideo.
 - Hull C: innerer und äußerer Block eines Arms ein Gitter oder zwei. Heute zwei Racks wie bei Fleetyards, beide einzeln voll packbar (K3.2). Auslöser: ein Hauler meldet, dass ein 32er über die Blockgrenze liegt.
-- Umrisse und Holos neu erzeugen (Pipeline `sc-ship-outlines`): die Salvation hat keinen (neu seit 25.10., zeigt den Bug-Keil, `NotTracedYet`), 18 Schiffe haben im Index vom 26.10. neue Rumpfmaße (K5.1). Auslöser: ein Hauler meldet die Salvation oder Racks liegen sichtbar außerhalb des Rumpfs.
+- ~~Umrisse und Holos neu erzeugen (Pipeline `sc-ship-outlines`): die Salvation hat keinen (neu seit 25.10., zeigt den Bug-Keil, `NotTracedYet`), 18 Schiffe haben im Index vom 26.10. neue Rumpfmaße (K5.1). Auslöser: ein Hauler meldet die Salvation oder Racks liegen sichtbar außerhalb des Rumpfs.~~ → K5.2b
