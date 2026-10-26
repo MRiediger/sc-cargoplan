@@ -26,6 +26,7 @@ public class OverlayHeaderXamlTests
     public void The_capacity_shows_the_scenes_text()
     {
         Capacity().Attribute("Text")!.Value.Should().Be("{Binding Scene.CapacityText, Mode=OneWay}");
+        Capacity().Attribute("ToolTip")!.Value.Should().Be("{Binding Scene.CapacityToolTip, Mode=OneWay}");
     }
 
     [Fact]

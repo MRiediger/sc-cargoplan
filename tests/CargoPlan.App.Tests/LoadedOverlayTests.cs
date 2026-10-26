@@ -139,14 +139,26 @@ public class LoadedOverlayTests
     }
 
     [Fact]
-    public void The_header_counts_the_loaded_SCU()
+    public void The_header_counts_the_loaded_SCU_with_the_legends_mark()
     {
+        // Martin at the look gate: short, the legend's mark; at 420 px with ↶ shown "· 8 loaded" ran under the buttons (D67).
         var overlay = ThreeLines();
         overlay.Scene.CapacityText.Should().Be("16/64 · 48 free");
 
         Click(overlay, 1, "Riker");
 
-        overlay.Scene.CapacityText.Should().Be("16/64 · 48 free · 8 loaded");
+        overlay.Scene.CapacityText.Should().Be("16/64 · 48 free · 8 ▣");
+    }
+
+    [Fact]
+    public void The_capacitys_tool_tip_spells_it_out()
+    {
+        var overlay = ThreeLines();
+        overlay.Scene.CapacityToolTip.Should().Be("16 of 64 SCU on board · 48 free");
+
+        Click(overlay, 1, "Riker");
+
+        overlay.Scene.CapacityToolTip.Should().Be("16 of 64 SCU on board · 48 free · 8 loaded");
     }
 
     // --- Notices ---
