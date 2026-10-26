@@ -260,6 +260,32 @@ public sealed class AppearanceRulesTests
     }
 
     [Theory]
+    [InlineData(0.2)]
+    [InlineData(0.5)]
+    [InlineData(0.8)]
+    public void Legend_height_share_in_range_passes_unchanged(double share)
+    {
+        LegendSettings legend = new(MaxHeightShare: share);
+
+        var (normalized, problems) = AppearanceRules.Normalize(legend);
+
+        normalized.Should().Be(legend);
+        problems.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(0.1, 0.2, "legend.maxHeightShare 0.1 is outside 0.2–0.8, using 0.2.")]
+    [InlineData(0.95, 0.8, "legend.maxHeightShare 0.95 is outside 0.2–0.8, using 0.8.")]
+    public void Legend_height_share_outside_its_range_is_clamped_with_a_problem(double share, double expected, string problem)
+    {
+        // K7: clamped like holoOpacity, closer to what the player meant than the default; top level, no "appearance." in front.
+        var (legend, problems) = AppearanceRules.Normalize(new LegendSettings(Visible: false, MaxHeightShare: share));
+
+        legend.Should().Be(new LegendSettings(Visible: false, MaxHeightShare: expected));
+        problems.Should().ContainSingle().Which.Should().Be(problem);
+    }
+
+    [Theory]
     [InlineData("#A0141414", 0xA0, 0x14, 0x14, 0x14)]
     [InlineData("#00ff7F", 0xFF, 0x00, 0xFF, 0x7F)]
     public void Argb_parses_both_forms(string text, byte a, byte r, byte g, byte b)

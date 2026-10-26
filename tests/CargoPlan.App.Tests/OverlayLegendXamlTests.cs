@@ -139,6 +139,78 @@ public class OverlayLegendXamlTests
         IsInside(Named(root, "HeaderText"), Named(root, "HeaderRow")).Should().BeTrue();
     }
 
+    // --- K7: the stop lines scroll ---
+
+    private static XElement WithSource(XElement scope, string source) =>
+        scope.Descendants().Single(e => (string?)e.Attribute("ItemsSource") == source);
+
+    [Fact]
+    public void The_stop_lines_scroll_within_their_share_of_the_overlay()
+    {
+        var root = Root();
+        var scroll = Named(root, "StopLinesScroll");
+        var multi = scroll.Descendants().Single(e => e.Name.LocalName == "MultiBinding");
+
+        scroll.Name.LocalName.Should().Be("ScrollViewer");
+        IsInside(WithSource(root, "{Binding Scene.Legend, Mode=OneWay}"), scroll).Should().BeTrue();
+        multi.Parent!.Name.LocalName.Should().Be("ScrollViewer.MaxHeight");
+        multi.Attribute("Converter")!.Value.Should().Be("{StaticResource LegendMaxHeightConverter}");
+        Paths(multi).Should().Equal("ActualHeight", "LegendMaxHeightShare");
+        multi.Elements().First().Attribute("ElementName")!.Value.Should().Be("OverlayContent");
+        Named(root, "OverlayContent").Parent!.Name.LocalName.Should().Be("Border");
+    }
+
+    [Fact]
+    public void The_scroll_area_passes_its_width_on_and_never_takes_the_focus()
+    {
+        // A horizontal scroll range would measure the lines at infinite width, so K6.1 could never shorten them; a focus
+        // would activate the overlay over the game, and a focused ScrollViewer takes the left click DragMove needs.
+        var scroll = Named(Root(), "StopLinesScroll");
+
+        scroll.Attribute("HorizontalScrollBarVisibility")!.Value.Should().Be("Disabled");
+        scroll.Attribute("VerticalScrollBarVisibility")!.Value.Should().Be("Auto");
+        scroll.Attribute("Focusable")!.Value.Should().Be("False");
+    }
+
+    [Fact]
+    public void Hiding_the_stop_lines_hides_their_scroll_area()
+    {
+        var scroll = Named(Root(), "StopLinesScroll");
+        var trigger = scroll.Descendants().Single(e => e.Name.LocalName == "DataTrigger");
+
+        trigger.Attribute("Binding")!.Value.Should().Be("{Binding IsLegendVisible}");
+        trigger.Parent!.Parent!.Parent!.Name.LocalName.Should().Be("ScrollViewer.Style");
+    }
+
+    [Fact]
+    public void Missions_that_dont_fit_violations_and_the_palette_notice_stay_outside_the_scroll_area()
+    {
+        // They ask for something (D41, T5.4), so they never scroll out of sight.
+        var root = Root();
+        var scroll = Named(root, "StopLinesScroll");
+
+        IsInside(WithSource(root, "{Binding Scene.Unplaced, Mode=OneWay}"), scroll).Should().BeFalse();
+        IsInside(WithSource(root, "{Binding Scene.Violations, Mode=OneWay}"), scroll).Should().BeFalse();
+        IsInside(Named(root, "PaletteNotice"), scroll).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Ship_list_and_stop_lines_share_the_slim_scroll_bar()
+    {
+        // One template, coloured through Foreground: the header's colour in the ship list, the legend's in the legend.
+        var root = Root();
+        var bars = root.Descendants()
+            .Where(e => e.Name.LocalName == "Style" && (string?)e.Attribute("TargetType") == "ScrollBar" && e.Attribute(X + "Key") is null)
+            .ToArray();
+        var slim = root.Descendants().Single(e => (string?)e.Attribute(X + "Key") == "SlimScrollBarStyle");
+
+        bars.Should().HaveCount(2).And.OnlyContain(b => (string?)b.Attribute("BasedOn") == "{StaticResource SlimScrollBarStyle}");
+        IsInside(bars.Single(b => IsInside(b, Named(root, "StopLinesScroll"))), Named(root, "StopLinesScroll")).Should().BeTrue();
+        bars.Select(b => b.Elements().Single(s => (string?)s.Attribute("Property") == "Foreground").Attribute("Value")!.Value)
+            .Should().BeEquivalentTo("{DynamicResource HeaderForegroundBrush}", "{DynamicResource LegendForegroundBrush}");
+        Named(slim, "Grip").Attribute("Background")!.Value.Should().Be("{TemplateBinding Foreground}");
+    }
+
     [Fact]
     public void Tick_and_bar_take_the_check_mark_colour()
     {

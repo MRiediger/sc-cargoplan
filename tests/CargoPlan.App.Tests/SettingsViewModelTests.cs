@@ -287,6 +287,29 @@ public sealed class SettingsViewModelTests : IDisposable
     }
 
     [Fact]
+    public void The_height_share_slider_works_in_percent_and_applies_with_the_layout()
+    {
+        // K7: the file holds the share, the slider percent, like the hologram's opacity.
+        var viewModel = Create(Changed, new LegendSettings(false, "top-right", 0.65));
+        viewModel.LegendMaxHeightSharePercent.Should().Be(65);
+        viewModel.LegendMaxHeightShareText.Should().Be("65 %");
+
+        viewModel.LegendMaxHeightSharePercent = 30;
+
+        _applied.Should().ContainSingle();
+        Last.Legend.Should().Be(new LegendSettings(false, "top-right", 0.3));
+        Last.Appearance.Should().Be(Changed);
+        viewModel.Look.Legend.MaxHeightShare.Should().Be(0.3);
+    }
+
+    [Fact]
+    public void The_height_share_slider_spans_the_checked_range()
+    {
+        SettingsViewModel.MinLegendMaxHeightSharePercent.Should().Be(20);
+        SettingsViewModel.MaxLegendMaxHeightSharePercent.Should().Be(80);
+    }
+
+    [Fact]
     public void Positions_are_the_six_names()
     {
         Create().LegendPositions.Should().Equal(LegendPosition.Names);
@@ -309,13 +332,13 @@ public sealed class SettingsViewModelTests : IDisposable
     [Fact]
     public void Reset_legend_resets_its_look_but_not_its_position()
     {
-        var viewModel = Create(Changed, new LegendSettings(false, "top-center"));
+        var viewModel = Create(Changed, new LegendSettings(false, "top-center", 0.3));
 
         viewModel.ResetLegendCommand.Execute(null);
 
         _applied.Should().ContainSingle();
         Last.Appearance.Should().Be(Changed with { Legend = LegendAppearance.Default });
-        Last.Legend.Should().Be(new LegendSettings(false, "top-center"));
+        Last.Legend.Should().Be(new LegendSettings(false, "top-center", 0.3));
         viewModel.UseWindowsFontSize.Should().BeTrue();
         viewModel.LegendHalo.Enabled.Should().BeFalse();
         viewModel.LegendCheckBox.Value.Should().Be("#FFB0B0B0");
@@ -325,7 +348,7 @@ public sealed class SettingsViewModelTests : IDisposable
     [Fact]
     public void Reset_legend_layout_resets_only_the_layout()
     {
-        var viewModel = Create(Changed, new LegendSettings(false, "top-center"));
+        var viewModel = Create(Changed, new LegendSettings(false, "top-center", 0.3));
 
         viewModel.ResetLegendLayoutCommand.Execute(null);
 
@@ -334,6 +357,7 @@ public sealed class SettingsViewModelTests : IDisposable
         Last.Legend.Should().Be(LegendSettings.Default);
         viewModel.IsLegendVisible.Should().BeTrue();
         viewModel.LegendPosition.Should().Be("bottom-left");
+        viewModel.LegendMaxHeightSharePercent.Should().Be(50);
     }
 
     [Fact]

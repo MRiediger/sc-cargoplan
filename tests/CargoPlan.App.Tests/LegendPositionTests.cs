@@ -42,7 +42,7 @@ public sealed class LegendPositionTests
     public void Default_is_the_layout_before_it_was_a_setting()
     {
         LegendPosition.Default.Should().Be(new LegendPosition(LegendEdge.Bottom, LegendAlignment.Left));
-        LegendSettings.Default.Should().Be(new LegendSettings(Visible: true, Position: "bottom-left"));
+        LegendSettings.Default.Should().Be(new LegendSettings(Visible: true, Position: "bottom-left", MaxHeightShare: 0.5));
     }
 
     [Fact]

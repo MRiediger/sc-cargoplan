@@ -111,7 +111,7 @@ public sealed class SettingsStoreTests : IDisposable
         File.ReadAllText(SettingsPath).Should()
             .Contain("\"appearance\"").And.Contain("\"background\": \"#A0141414\"")
             .And.Contain("\"fontSize\": null").And.Contain("\"fillAlpha\": 208").And.Contain("\"cornerRadius\": 3")
-            .And.Contain("\"visible\": true").And.Contain("\"position\": \"bottom-left\"");
+            .And.Contain("\"visible\": true").And.Contain("\"position\": \"bottom-left\"").And.Contain("\"maxHeightShare\": 0.5");
     }
 
     [Fact]
@@ -139,6 +139,42 @@ public sealed class SettingsStoreTests : IDisposable
 
         problem.Should().BeNull();
         loaded.Legend.Should().Be(LegendSettings.Default);
+    }
+
+    [Fact]
+    public void Legend_without_a_height_share_takes_half_the_overlay()
+    {
+        // K7: optional, no schemaVersion bump (D31).
+        WriteFile("""{ "schemaVersion": 2, "legend": { "visible": true, "position": "top-left" } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Legend.MaxHeightShare.Should().Be(0.5);
+    }
+
+    [Fact]
+    public void Save_then_Load_keeps_the_legend_height_share()
+    {
+        var settings = AppSettings.Default with { Legend = new LegendSettings(MaxHeightShare: 0.3) };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+        File.ReadAllText(SettingsPath).Should().Contain("\"maxHeightShare\": 0.3");
+    }
+
+    [Fact]
+    public void Legend_height_share_outside_its_range_is_clamped_with_a_problem()
+    {
+        WriteFile("""{ "schemaVersion": 2, "legend": { "maxHeightShare": 1 } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Legend.MaxHeightShare.Should().Be(0.8);
+        problem.Should().Contain("legend.maxHeightShare 1 is outside 0.2–0.8, using 0.8.");
     }
 
     [Fact]
