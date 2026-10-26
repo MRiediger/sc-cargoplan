@@ -129,7 +129,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     public event EventHandler? Planned;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RemoveRowCommand), nameof(MoveUpCommand), nameof(MoveDownCommand), nameof(DeleteMissionCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveRowCommand), nameof(MoveUpCommand), nameof(MoveDownCommand), nameof(DeleteMissionCommand), nameof(AddToMissionCommand))]
     public partial MissionRow? SelectedRow { get; set; }
 
     /// <summary>
@@ -228,6 +228,21 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         Rows.Add(row);
         SelectedRow = row;
     }
+
+    /// <summary>
+    /// A destination ContractTracker missed (K6.5): a row in the selected row's ContractTracker mission, right below it,
+    /// manual from the start; with Plan it goes under the mission's #id. Add stays a typed row.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanAddToMission))]
+    private void AddToMission()
+    {
+        var row = SelectedRow ?? throw new InvalidOperationException("Add to mission needs a selected row.");
+        MissionRow added = new() { MissionId = row.MissionId, Source = row.Source, ContractId = row.ContractId, Manual = true };
+        Rows.Insert(Rows.IndexOf(row) + 1, added);
+        SelectedRow = added;
+    }
+
+    private bool CanAddToMission() => SelectedRow is { ContractId: not null, MissionId: not null };
 
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void RemoveRow()
@@ -412,6 +427,12 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         // StopNumber and Error are set by Evaluate; reacting to them would loop.
         if (MissionRow.IsInput(e.PropertyName))
         {
+            // A ContractTracker row changed by hand is the player's now (K6.5); loading a row sets nothing, it isn't attached yet.
+            if (sender is MissionRow { ContractId: not null } row)
+            {
+                row.Manual = true;
+            }
+
             Edited();
         }
     }

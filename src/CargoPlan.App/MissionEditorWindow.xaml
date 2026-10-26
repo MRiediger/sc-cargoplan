@@ -42,6 +42,9 @@
         <WrapPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
             <Button Content="Add" Command="{Binding AddRowCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Add a row (or type into the empty row at the bottom)" />
+            <!-- K6.5: a destination ContractTracker missed, into the selected row's ContractTracker mission. -->
+            <Button Content="Add to mission" Command="{Binding AddToMissionCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTip="Add a destination to the selected ContractTracker mission" ToolTipService.ShowOnDisabled="True" />
             <Button Content="Remove" Command="{Binding RemoveRowCommand}" Style="{StaticResource ToolbarButtonStyle}" />
             <Button Content="Delete mission" Command="{Binding DeleteMissionCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Take the selected row's mission out of the plan now, with its crates; nothing else moves, no need to press Plan. Typed rows of one stop are one mission." />
@@ -127,8 +130,9 @@
                 <DataGridTextColumn Header="Stop" Binding="{Binding StopNumber}" IsReadOnly="True" CanUserSort="False" Width="Auto" />
                 <!-- Where the crates are collected, "A / B" (D68); before Mission, so a row reads pickup → destination. -->
                 <DataGridTextColumn Header="Pickup" Binding="{Binding Pickup, UpdateSourceTrigger=PropertyChanged}" CanUserSort="False" Width="2*" />
-                <!-- The mission: ContractTracker's ids, "#37–38" as in the legend (K6.1), empty if typed (T5.4). -->
-                <DataGridTextColumn Header="Mission" Binding="{Binding Source, Mode=OneTime}" IsReadOnly="True" SortMemberPath="Mission" Width="Auto" />
+                <!-- The mission: ContractTracker's ids, "#37–38" as in the legend (K6.1), "#37–38 ✎" for a row added or changed by
+                     hand (K6.5), empty if typed (T5.4). -->
+                <DataGridTextColumn Header="Mission" Binding="{Binding MissionLabel, Mode=OneWay}" IsReadOnly="True" SortMemberPath="Mission" Width="Auto" />
                 <DataGridTextColumn Header="Destination" Binding="{Binding Destination, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="Destination" Width="2*" />
                 <DataGridTextColumn Header="Commodity" Binding="{Binding Commodity, UpdateSourceTrigger=PropertyChanged}" CanUserSort="False" Width="2*" />
                 <DataGridTextColumn Header="SCU" Binding="{Binding Scu, UpdateSourceTrigger=PropertyChanged}" CanUserSort="False" Width="*" />

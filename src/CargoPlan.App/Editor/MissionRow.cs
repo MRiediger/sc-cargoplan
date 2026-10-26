@@ -51,6 +51,20 @@ public sealed partial class MissionRow : ObservableObject
     public long? ContractId { get; init; }
 
     /// <summary>
+    /// Added to a ContractTracker mission or changed by hand (K6.5): stays with the mission until ContractTracker no
+    /// longer lists it. Set by the editor, never for a typed row.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MissionLabel))]
+    public partial bool Manual { get; set; }
+
+    /// <summary>The Mission column: "#37–38", "#37–38 ✎" for a row added or changed by hand (K6.5), empty if typed.</summary>
+    public string MissionLabel => Manual ? Source + ManualMark : Source;
+
+    /// <summary>What marks a manual row in the Mission column.</summary>
+    public const string ManualMark = " ✎";
+
+    /// <summary>
     /// The max crate size was assumed by the import (the contract named none); the legend shows "4 SCU?". Picking a size
     /// ends the assumption, so the "?" goes with the next Plan.
     /// </summary>

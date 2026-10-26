@@ -78,6 +78,21 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         return parts.Length == 0 ? null : string.Join(" · ", parts);
     }
 
+    /// <summary>
+    /// Missions ContractTracker no longer lists that took rows added by hand along (K6.5): "Gone from ContractTracker:
+    /// #37, with 1 row added by hand"; null if none.
+    /// </summary>
+    public static string? GoneWithManualText(IReadOnlyList<Mission> gone)
+    {
+        string[] parts =
+        [
+            .. gone.Select(m => (Source: MissionText.Source(m.Contract), Rows: m.Items.Count(at => at.Item.Manual)))
+                .Where(m => m.Rows > 0)
+                .Select(m => $"{m.Source}, with {m.Rows} {(m.Rows == 1 ? "row" : "rows")} added by hand"),
+        ];
+        return parts.Length == 0 ? null : "Gone from ContractTracker: " + string.Join("; ", parts);
+    }
+
     /// <summary>Loaded is this ship's state (K6.4): on other racks the crates are planned again.</summary>
     public static string LoadedClearedText(int crates, string ship) =>
         $"{crates} {(crates == 1 ? "crate was" : "crates were")} marked loaded – cleared for {ship}";
@@ -594,9 +609,15 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         if (!ReferenceEquals(applied, current))
         {
             Saved = applied;
-            if (SettledText(LoadPlanner.SettledCrates(current.Plan, applied.Plan)) is { } settled)
+            HashSet<int> left = [.. applied.Missions.Select(m => m.Id)];
+            string[] said =
+            [
+                .. new[] { GoneWithManualText([.. current.Missions.Where(m => !left.Contains(m.Id))]), SettledText(LoadPlanner.SettledCrates(current.Plan, applied.Plan)) }
+                    .OfType<string>(),
+            ];
+            if (said.Length > 0)
             {
-                SetNotice(NoticeSource.Move, settled);
+                SetNotice(NoticeSource.Move, string.Join(" · ", said));
             }
         }
 

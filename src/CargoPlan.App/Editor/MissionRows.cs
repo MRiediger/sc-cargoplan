@@ -149,7 +149,7 @@ public static class MissionRows
                 group = groups.Count - 1;
             }
 
-            groups[group].Items.Add((destination, item, row.MaxCrateSizeAssumed));
+            groups[group].Items.Add((destination, capture is null ? item : item with { Manual = row.Manual }, row.MaxCrateSizeAssumed));
         }
 
         Mission[] missions =
@@ -177,6 +177,7 @@ public static class MissionRows
         MissionId = mission?.Id,
         Source = MissionText.Source(mission?.Contract),
         ContractId = mission?.Contract?.ContractIds.Min(),
+        Manual = item.Manual,
 
         // After MaxCrateSize, whose change ends the assumption.
         MaxCrateSizeAssumed = mission?.Contract?.CrateSizeAssumed == true,

@@ -140,7 +140,7 @@ public class ManualRowsTests
 
         overlay.ApplyContractTracker(Read(Candidate(37, "Riker"), Candidate(38, "Melodic Fields Station")));
 
-        var mission = overlay.Missions.Single(m => m.Contract!.ContractIds.Contains(37));
+        var mission = overlay.Missions.Single(m => m.Contract?.ContractIds.Contains(37) == true);
         mission.Stops.Select(s => s.Destination).Should().Equal("Riker", "Melodic Fields Station");
         mission.Items[1].Item.Manual.Should().BeTrue();
     }
