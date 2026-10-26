@@ -56,10 +56,17 @@ Each rack shows its number on its largest visible face. Long ships (more than tw
 the Caterpillar or the Hull C) start seen from the port side with the length almost level, and the view shows the racks
 that hold cargo; the empty racks further aft are dimmed and come into view when you zoom out. Their numbers stand above
 the racks, so a full rack never hides its number. Each destination has its own color, and the legend (below the
-ship, unless you [move it](settings-format.md#legend-layout)) has a line per mission and destination, `To Riker · 12 SCU`;
-two missions to Riker give two lines in Riker's color. Once any mission names its pickup, the legend groups the lines
-by mission, each under a header with where its crates are collected: `From Lorville`, `From A, B, C`, or `From ?` where
-the mission doesn't say. Missions stand in the order their destinations first appear. A destination split over two racks
+ship, unless you [move it](settings-format.md#legend-layout)) has a line per mission and destination,
+`To Green Glade Station · 5 SCU (4+1) · Pressurized Ice`; two missions to Riker give two lines in Riker's color.
+The legend line shows crate sizes and commodity so you can match boxes at the elevator: `(4+1)` is one 4 SCU and one
+1 SCU crate, `(2×4+1)` two 4s and a 1, a single crate has no brackets, and a line with two commodities reads
+`12 SCU (8+2) Titanium, (2) Gold`. The sizes are the crates the plan holds, so after a split or merge they are the ones
+you have. Once any mission names its pickup or comes from ContractTracker, the legend groups the lines by mission, each
+under a header with where its crates are collected: `From Lorville`, `From A, B, C`, or `From ?` where the mission
+doesn't say, followed by ContractTracker's number for the contract (`From Lorville · #47`, `#47–48` for one capture of
+two commodities) – the number ContractTracker shows, not one from the game. When the overlay is too narrow for a line,
+the commodity shortens first, then the destination; sizes, number and markings always stay. Hover a line or header for
+its whole text. Missions stand in the order their destinations first appear. A destination split over two racks
 has the same color in both. A rack shared by two destinations shows both colors side by side, and a crate on another
 destination's cargo shows its color on top of theirs: the colors say what lies where, no text lines needed.
 

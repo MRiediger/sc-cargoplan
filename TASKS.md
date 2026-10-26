@@ -1440,7 +1440,7 @@ Legende = Legenden-Drag seit B6 (Zeile auf ein Rack, atomar, `ResolveMoveToRack`
 
 ## Backlog-Session (vor dem Release)
 
-Fünf Sessions aus dem Backlog vor dem Tag, Reihenfolge **K3 → K2 → K1 → K4 → K5 → T7.5 → Tag v0.1.0**. Je Session ein Branch ab
+Fünf Sessions aus dem Backlog vor dem Tag, Reihenfolge **K3 → K2 → K1 → K4 → K5 → T7.5 → Tag v0.1.0**; K6 (Aufzug-Flow) eingeschoben vor T7.5. Je Session ein Branch ab
 main, Merge `--no-ff`. Die übernommenen Backlog-Zeilen sind unten durchgestrichen und verweisen hierher.
 
 | Session | Inhalt |
@@ -2140,6 +2140,63 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün
 - [x] Gate (Martin, Publish-Build vom Branch, 26.10., bestanden; der erste Test lief auf der Publish-Version vom 25.10. ohne K5.5): Aurora Mk II und Hull C mit Holo drehen, ohne vorher zu zoomen → Größe bleibt ruhig; Reset bringt den Fit zurück
 - Commits d814e50 (Tests rot), 9a0eef6 (App), Doku-Commit.
+
+### K6 Aufzug-Flow (26.10.2026) – eingeschoben vor T7.5, Branch `feat/k6-elevator-flow`
+
+Auslöser: Martins Abschlusstest am Frachtaufzug. Mission 1 annehmen → Sync → laden → Mission 2 annehmen → **Plan** legt
+Mission 1 um, obwohl sie an Bord ist (korrekt nach D19, aber ohne Schutz für Geladenes); am Aufzug muss pro Kiste ohne
+Unlock ablesbar sein, was wohin gehört. Martins Ladeweise: alle Missionen laden, dann pro Mission entnehmen
+(first-in last-out). Reihenfolge K6.1 → K6.2 → K6.3 → K6.4 → K6.5; je Task ein Plan zur Freigabe. Plan-Schema 6 → 7
+in K6.4 (`loaded`), K6.5 legt `manual` ebenfalls in 7 ab.
+
+### [ ] K6.1 Legendenzeile vollständig (D69-Addendum) (26.10.2026)
+**Warum:** Am Aufzug wird eine Kiste über Ware + Größe + Ziel zugeordnet; die Zeile zeigte nur `To <Ziel> · <SCU> SCU`,
+die Überschrift keine Mission.
+
+**Ist-Zustand vor K6.1 (A1):** `ShipViewBuilder.LegendLines` → `LegendEntry.Label` (`To X · n SCU · <Markierungen>`),
+Überschrift nur bei Pickup; `HeaderRow`/`LineRow` waren horizontale StackPanels, also nie gekürzt, nur abgeschnitten;
+keine eigene Panel-Klasse. `ContractSync` trägt `ContractSource.ContractIds` = CTs `Contracts.Id` (AUTOINCREMENT, eine
+Aufnahme mit zwei Waren = zwei aufeinanderfolgende Ids); im Spieltext steht keine Id, der Aufzug zeigt sie nicht.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 `To Green Glade Station · 5 SCU (4+1) · Pressurized Ice`,
+Mischung aus den Kisten des Plans (abgelieferte zählen mit), eine einzelne Kiste ohne Klammer; Wiederholungen immer als
+`Anzahl×Größe` (`2×4+1`); P2 mehrere Waren je mit eigener Mischung: `12 SCU (8+2) Titanium, (2) Gold`; P3 Markierungen
+am Ende, nie gekürzt, die D16-Reserve nur noch dort; P4 Überschrift `From <Abholort> · #47` (CT `Contracts.Id`,
+Bereich `#47–48`, Lücken `#47, 49`), Editor-Mission ohne Id, CT-Missionen bekommen auch ohne Pickup eine Überschrift;
+P5 Kürzung: Ware zuerst, dann Ziel bzw. Abholort, nie SCU/Mischung/Id/Markierungen, Tooltip mit Volltext; E1 wartende
+Missionen (D41) zeigen die Mischung aus ihrer Kistenliste (`CrateListUnder(saved.CrateCap)`); E2 Nachweis der B6-Gesten
+nach dem Umbau (XAML-Test + Offscreen-Hit-Test); E3 K6.4 hängt „geladen“ als weiteres Rang-0-Segment an, ohne Panel-Umbau.
+- App: `LegendRowPanel` (Attached Property `Rank`, kürzt Rang 1 anteilig, dann Rang 2), `LegendSegment` (Text, Rang,
+  Reserve), `LineGoods`, `LegendText` (`Quantity`, `Mix`, `Goods`, `ContractIds`, `Appended`); `LegendEntry` mit
+  `Segments`, `HeaderSegments`, `HeaderLabel`, `Goods`, `ContractIds`; `ShipViewBuilder` setzt Waren, Id und die erweiterte
+  Überschriften-Regel, `Unplaced` die Mischung; XAML: Zeilen und Überschrift als DockPanel + ItemsControl über den Segmenten,
+  `LegendSegmentTemplate`/`LegendSegmentTextStyle` (Grau + Durchstreichen über den `Tag` der Zeile), Tooltips
+- Tests: `LegendLineTests` (19 Fälle), `LegendRowPanelTests` (7), `OverlayLegendXamlTests` (+6 Fälle, u. a.
+  `The_B6_gestures_stay_on_their_elements`); bestehende `Label`-Erwartungen auf das neue Format
+
+**Zahl vorher/nachher:** Tests App 1.334 → 1.366, Core 1.433, Import 141 (unverändert). UI-Task, keine Planer-Zahl.
+
+**Offscreen-Protokoll (echtes Overlay, Hurston-Plan vom 25.10., Default-Look; Harness im Scratchpad, nicht im Repo):**
+- 420 px: alle Zeilen vollständig, z. B. `From Everus Harbor · #37–38`, `To Everus Harbor · 8 SCU (8×1) · Waste`
+- 270 px: nur die Waren kürzen; 240 px: Waren weg, Zielnamen mit Ellipse; SCU, Mischung, Markierungen bleiben
+- Hit-Test (E2): Klick auf Zeilentext → `Button#LineButton` → Zeile abgehakt, Auswahl leer; Zeilen-Checkbox →
+  `CheckBox#LineCheck` (außerhalb des Buttons) → 2 von 2 Kisten ausgewählt, Haken 3 → 3; Kopf-Checkbox →
+  `CheckBox#MissionCheck` → Mission 4 (6 Kisten) zur Auswahl dazu
+- Nebenbefund, nicht K6.1: das Abhaken der unteren Mission lässt Kisten darüber schweben (rote Zeilen) – das Absinken
+  aus K6.4
+
+**Akzeptanz:**
+- [x] Zeile `To <Ziel> · <SCU> SCU (<Mischung>) · <Ware>`, Mischung aus dem Plan, nach Split der tatsächliche Stand
+- [x] Überschrift `From <Abholort> · #<CT-Id>`, ohne CT keine Id
+- [x] Kürzung Ware → Ziel, nie SCU/Mischung; Tooltip mit Volltext
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [ ] Gate (Martin, Publish-Build vom Branch, im Lock am Aufzug): Zeile lesbar, Mischung = Kiosk, `#Id` = CT-Fenster
+- Commits cd54dfb (Tests rot), 0a75daf (App), Doku-Commit.
+
+### [ ] K6.2 Markierung überlebt den Lock (26.10.2026)
+### [ ] K6.3 Editor sortierbar nach Mission und Ziel (26.10.2026)
+### [ ] K6.4 Zustand „geladen“ (Plan-Schema 7) (26.10.2026)
+### [ ] K6.5 CT-Missionen im Editor editierbar (26.10.2026)
 
 ---
 
