@@ -13,12 +13,12 @@ public static class PlanFile
 {
     /// <summary>
     /// The version the writer writes: missions with ids, crates with missions (D42), items (D68), turned or not (D71),
-    /// off the ship or not (K2.2) and loaded or not (K6.4), the watermark. An app from before K6.4 refuses it, so it never
-    /// plans loaded cargo anew.
+    /// off the ship or not (K2.2) and loaded or not (K6.4), items added by hand to a ContractTracker mission (K6.5), the
+    /// watermark. An app from before K6.4 refuses it, so it never plans loaded cargo anew.
     /// </summary>
     public const int SupportedSchemaVersion = 7;
 
-    /// <summary>Crates off the ship or not, none loaded (K2.2); still read, nothing loaded, never written.</summary>
+    /// <summary>Crates off the ship or not, none loaded, no item manual (K2.2); still read so, never written.</summary>
     public const int NotLoadedSchemaVersion = 6;
 
     /// <summary>Crates turned or not, every crate in a rack (D71); still read, never written.</summary>

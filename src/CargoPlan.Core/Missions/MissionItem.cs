@@ -9,8 +9,12 @@ namespace CargoPlan.Core.Missions;
 /// </summary>
 /// <param name="Crates">Override of the derived mix; null = <see cref="CrateMix.Decompose(int, CrateSize, CrateCap)"/> for the ship's cap.</param>
 /// <param name="Pickup">Where its crates are collected, without amounts (D68); null = not known. <see cref="Pickups.Normalized"/>.</param>
+/// <param name="Manual">
+/// Added or changed by hand in a ContractTracker mission (K6.5): stays with the mission until ContractTracker no longer
+/// lists it. Kept in plan files only; the planner doesn't look at it.
+/// </param>
 public sealed record MissionItem(
-    string Commodity, int Scu, CrateSize MaxCrateSize, IReadOnlyList<CrateSize>? Crates = null, IReadOnlyList<string>? Pickup = null)
+    string Commodity, int Scu, CrateSize MaxCrateSize, IReadOnlyList<CrateSize>? Crates = null, IReadOnlyList<string>? Pickup = null, bool Manual = false)
 {
     // Get-only (no init): a `with` expression skips the constructor and must not bypass validation.
     public int Scu { get; } = ValidatedScu(Scu);

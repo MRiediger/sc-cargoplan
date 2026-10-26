@@ -31,6 +31,7 @@ internal sealed record PlanFileDto(
         CheckRotated(Crates, SchemaVersion);
         CheckOffShip(Crates, SchemaVersion);
         CheckLoaded(Crates, SchemaVersion);
+        CheckManual(Missions, SchemaVersion);
         Crate[] crates = [.. Crates.Select(c => c.ToCrate())];
         var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder)), ship);
 
@@ -166,6 +167,18 @@ internal sealed record PlanFileDto(
         {
             throw new ArgumentException(Invariant(
                 $"A crate for '{offShip.Destination}' says offShip, which is new in schema {PlanFile.NoOffShipSchemaVersion + 1} (the file says {schemaVersion})."), nameof(Crates));
+        }
+    }
+
+    /// <summary>Before schema 7 no item is manual (K6.5); a <c>manual</c> there is a file from elsewhere.</summary>
+    /// <exception cref="ArgumentException">An item breaks that.</exception>
+    internal static void CheckManual(IReadOnlyList<MissionDto> missions, int schemaVersion)
+    {
+        if (schemaVersion <= PlanFile.NotLoadedSchemaVersion
+            && missions.SelectMany(m => m.Stops).SelectMany(s => s.Items.Select(i => (s.Destination, i))).FirstOrDefault(x => x.i.Manual is not null) is ({ } destination, { } manual))
+        {
+            throw new ArgumentException(Invariant(
+                $"Stop '{destination}', {manual.Commodity} says manual, which is new in schema {PlanFile.NotLoadedSchemaVersion + 1} (the file says {schemaVersion})."), nameof(Missions));
         }
     }
 
