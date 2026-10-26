@@ -190,7 +190,8 @@ public class LoadedOverlayTests
     [Fact]
     public void The_editors_Plan_keeps_loaded_crates_where_they_lie()
     {
-        var overlay = ThreeLines();
+        // Typed missions to one destination become one mission in the editor (D42), so the lines here go to two places.
+        var overlay = Showing(Placed(Stop("Riker", "Titanium", 8, CrateSize.Four), Stop("Shubin", "Quartz", 4, CrateSize.Four)));
         overlay.MoveLegendCommand.Execute(new Gesture.MoveLegend([.. Of(overlay, 1, "Riker")], "rack-3"));
         Click(overlay, 1, "Riker");
         var riker = Of(overlay, 1, "Riker").Select(c => (c.RackId, c.Position)).ToArray();

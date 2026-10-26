@@ -44,6 +44,8 @@ public sealed class ShipViewControl : FrameworkElement
 
     private static readonly Pen FramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Frame), 1) { DashStyle = DashStyles.Dash });
     private static readonly Pen FreeCellPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.FreeEdge), CrateEdgeWidth));
+
+    private static readonly Pen LoadedPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.LoadedEdge), MissionPalette.LoadedEdgeWidth));
     private static readonly Pen RackPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 1));
 
     // The bow wedge (D52): faces with a trace of fill and rack edges, dashed lines alone were hard to see in the game.
@@ -420,7 +422,12 @@ public sealed class ShipViewControl : FrameworkElement
                         dc.PushOpacity(DraggedOpacity);
                     }
 
-                    var (fill, pen) = box.Box.Fill == CellFill.Free ? (null, FreeCellPen) : (paint.Fill(box.Box), paint.CrateEdge);
+                    var (fill, pen) = box.Box.Fill switch
+                    {
+                        CellFill.Free => (null, FreeCellPen),
+                        CellFill.Loaded => (paint.Fill(box.Box), LoadedPen),
+                        _ => (paint.Fill(box.Box), paint.CrateEdge),
+                    };
                     Dimmed(dc, SelectionFocus.Dims(box.Box.Crate, focus), () =>
                     {
                         foreach (var face in box.Faces)

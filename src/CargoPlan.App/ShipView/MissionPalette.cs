@@ -13,6 +13,15 @@ public static class MissionPalette
     /// <summary>Delivered cargo: dark, so it doesn't read as the white stop colour.</summary>
     public static Color Delivered { get; } = Color.FromRgb(0x5A, 0x5A, 0x5A);
 
+    /// <summary>
+    /// Edges of a loaded crate (K6.4): a bright solid line instead of the faint crate edge, so loaded reads apart from
+    /// planned at a glance and from delivered grey. Look to be confirmed at Martin's look gate.
+    /// </summary>
+    public static Color LoadedEdge { get; } = Color.FromArgb(0xF0, 0xFF, 0xFF, 0xFF);
+
+    /// <summary>Width of the loaded edge in screen pixels: three times the crate edge, below the red and cyan edges.</summary>
+    public const double LoadedEdgeWidth = 1.5;
+
     /// <summary>Edges of a free cell: no fill, a faint outline, so the cargo behind it shows (D21).</summary>
     public static Color FreeEdge { get; } = Color.FromArgb(0x50, 0xE6, 0xE6, 0xE6);
 

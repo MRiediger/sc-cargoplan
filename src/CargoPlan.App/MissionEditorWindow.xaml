@@ -91,9 +91,6 @@
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
                 <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
-                <TextBlock Text="{x:Static vm:MissionEditorViewModel.ClearsDeliveredText}" TextWrapping="Wrap"
-                           Foreground="{DynamicResource SystemFillColorCautionBrush}"
-                           Visibility="{Binding ClearsDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </StackPanel>
         </DockPanel>
 

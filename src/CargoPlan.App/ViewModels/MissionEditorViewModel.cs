@@ -22,7 +22,6 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 {
     public const string TitleText = "Missions";
     public const string UnplannedTitleText = "Missions – unplanned changes";
-    public const string ClearsDeliveredText = "Planning again clears delivered marks.";
     public const string PlanText = "Plan the rows and show them in the overlay";
     public const string MissionDeletedText = "Mission deleted – plan updated, no need to press Plan.";
     public const string ChangedOutsideText =
@@ -162,7 +161,6 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     public bool HasPlan => _overlay.HasPlan;
 
     /// <summary>The current plan has ticked stops, and a new plan starts without ticks (D19).</summary>
-    public bool ClearsDelivered => _overlay.Plan?.Placements.Any(p => p.Delivered) == true;
 
     /// <summary>Stops listening to the overlay; the window calls it when it closes.</summary>
     public void Detach() => _overlay.PropertyChanged -= OnOverlayChanged;
@@ -260,8 +258,9 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     private void MoveDown() => Move(+1);
 
     /// <summary>
-    /// A new route is a new plan: ticks and moves of the old one are gone (D19). Captures keep their ids, the watermark
-    /// stays (T5.4). A problem keeps the editor open.
+    /// A new route is a new plan: moves of the old one are gone (D19), but what is loaded stays where it lies and what is
+    /// delivered stays delivered (K6.4, Core's <c>PlanKeeping</c>); a delivery changed here is planned again, and the
+    /// overlay's notice line names it. Captures keep their ids, the watermark stays (T5.4). A problem keeps the editor open.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanExport))]
     private void Plan()
@@ -269,8 +268,10 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         var (missions, route) = MissionRows.ToMissions(Rows, _overlay.Missions);
         try
         {
-            var saved = LoadPlanner.Plan(_overlay.Ship, missions, route, FillOrder, _overlay.Watermark);
+            var current = _overlay.Saved ?? new SavedPlan([], new LoadPlan(_overlay.Ship.Id, [], []), CrateCap.Of(_overlay.Ship));
+            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, _overlay.Watermark);
             ChangeOverlay(() => _overlay.ShowPlan(saved));
+            _overlay.SetNotice(NoticeSource.Move, cleared.Count == 0 ? null : string.Join(" · ", cleared));
             IsDirty = false;
             SetActionProblem(null);
             Planned?.Invoke(this, EventArgs.Empty);
@@ -432,7 +433,6 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(HasPlan));
-        OnPropertyChanged(nameof(ClearsDelivered));
         DeleteMissionCommand.NotifyCanExecuteChanged();
         ReplanCommand.NotifyCanExecuteChanged();
         DiscardPlanCommand.NotifyCanExecuteChanged();

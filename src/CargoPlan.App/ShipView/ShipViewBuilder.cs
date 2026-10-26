@@ -22,6 +22,9 @@ public static class ShipViewBuilder
     /// <summary>Where a mission's crates come from when no item names it: "From ?", in the info line "from ?" (B6).</summary>
     public const string UnknownPickupText = "?";
 
+    /// <summary>The end of a loaded crate's tool tip (K6.4).</summary>
+    public const string LoadedToolTipText = " (loaded)";
+
     private const string Separator = " · ";
 
     /// <summary>A plan without missions: no markings, no unplaced lines (plans built in tests and by the planner alone).</summary>
@@ -63,7 +66,8 @@ public static class ShipViewBuilder
             line.MissionCrates,
             line.Grouped,
             LegendText.Goods(line.Crates),
-            line.ContractIds))];
+            line.ContractIds,
+            line.Crates.All(c => c.Loaded)))];
 
         return new ShipScene(
             racks,
@@ -187,9 +191,9 @@ public static class ShipViewBuilder
             var fill = placement.Delivered ? CellFill.Delivered : CellFill.Mission;
             return own.Select((crate, i) => new SceneBox(
                 rack.CellBox(crate),
-                fill,
+                crate.Loaded ? CellFill.Loaded : fill,
                 palette[placement.Destination],
-                ToolTip(rack, placement, i + 1, own.Length),
+                crate.Loaded ? ToolTip(rack, placement, i + 1, own.Length) + LoadedToolTipText : ToolTip(rack, placement, i + 1, own.Length),
                 placement,
                 crate,
                 faulty.Contains(crate)));

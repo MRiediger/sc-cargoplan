@@ -32,15 +32,18 @@ public sealed record ShipScene(
     public bool AllDelivered => Legend.Count > 0 && Legend.All(e => e.Delivered);
 
     /// <summary>
-    /// The header's capacity (D67), one compact format: "56/64 · 8 free", with "· 16 waiting" while missions wait for room.
-    /// Max is every rack cell of the ship, loaded what is on board (delivered crates are off it, D24).
+    /// The header's capacity (D67), one compact format: "56/64 · 8 free", with "· 40 loaded" once cargo is marked loaded
+    /// (K6.4) and "· 16 waiting" while missions wait for room. Max is every rack cell of the ship, the first number what is
+    /// on board (delivered crates are off it, D24).
     /// </summary>
     public string CapacityText
     {
         get
         {
-            var loaded = Plan.ScuOnBoard();
-            var text = Invariant($"{loaded}/{Ship.TotalScu} · {Ship.TotalScu - loaded} free");
+            var onBoard = Plan.ScuOnBoard();
+            var loaded = Plan.Crates.Where(c => c.Loaded).Sum(c => (int)c.CrateSize);
+            var text = Invariant($"{onBoard}/{Ship.TotalScu} · {Ship.TotalScu - onBoard} free");
+            text = loaded > 0 ? Invariant($"{text} · {loaded} loaded") : text;
             return WaitingScu > 0 ? Invariant($"{text} · {WaitingScu} waiting") : text;
         }
     }
@@ -101,11 +104,13 @@ public sealed record RackLoad(int Number, int LoadedScu, int CapacityScu)
 public sealed record SceneBox(
     ShipBox Bounds, CellFill Fill, int? PaletteIndex, string? ToolTip, Placement? Placement, Crate? Crate, bool IsViolated, bool InLoadedLayer = false);
 
+/// <summary>How a box is painted: a planned crate in its stop's colour, a loaded one the same with the loaded edge (K6.4), a delivered one grey, a free cell as a grid.</summary>
 public enum CellFill
 {
     Mission,
     Delivered,
     Free,
+    Loaded,
 }
 
 /// <summary>The six faces of an axis-aligned box, named in ship words.</summary>
@@ -211,12 +216,16 @@ public sealed record SceneLine(Point From, Point To);
 /// <param name="Grouped">The legend has headers: the line stands indented under its mission's.</param>
 /// <param name="Goods">The line's commodities with their crates, delivered ones included (K6.1); empty in plans built without crates.</param>
 /// <param name="ContractIds">The header's ContractTracker id, "#47" or "#47–48" (K6.1); null for a typed mission and off the header.</param>
+/// <param name="Loaded">Every crate of the line is loaded (K6.4): the line ends in <see cref="LoadedMark"/>.</param>
 public sealed record LegendEntry(
     int PaletteIndex, string Destination, int Scu, bool Delivered = false, string Markings = "", string ReserveMarkings = "", string? Header = null,
     int Mission = 0, IReadOnlyList<Crate>? Crates = null, IReadOnlyList<Crate>? MissionCrates = null, bool Grouped = false,
-    IReadOnlyList<LineGoods>? Goods = null, string? ContractIds = null)
+    IReadOnlyList<LineGoods>? Goods = null, string? ContractIds = null, bool Loaded = false)
 {
     public const string ToText = "To ";
+
+    /// <summary>The end of a loaded line (K6.4): a fixed segment, so it never shortens.</summary>
+    public const string LoadedMark = " ▣";
 
     public IReadOnlyList<Crate> Crates { get; } = Crates ?? [];
 
@@ -233,6 +242,7 @@ public sealed record LegendEntry(
         .. Markings.Length + ReserveMarkings.Length == 0
             ? []
             : (LegendSegment[])[new(LegendText.Appended(Markings), LegendSegment.Fixed, LegendText.Appended(ReserveMarkings))],
+        .. Loaded ? (LegendSegment[])[new(LoadedMark)] : [],
     ];
 
     /// <summary>The whole line, as the tool tip shows it.</summary>
