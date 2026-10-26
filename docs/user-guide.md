@@ -45,8 +45,9 @@ the red lines below the legend, if any, or the border.
 
 The overlay draws your ship's cargo racks as boxes, at first seen from the front, from the port side and from above:
 the bow points to the lower left, the port side faces you. Under the racks lies your ship's outline seen from above, so
-you can tell bow, sides and shape at a glance; it is a backdrop scaled to the racks, not a scale drawing, and doesn't
-say where a rack sits in the hull. A ship without an outline shows a wedge in front of the racks instead, with "Bow" on
+you can tell bow, sides and shape at a glance. It has the ship's real size (larger only where the racks would not fit
+in it), and the view opens on the racks and a little room towards the bow, so most of the hull lies outside until you
+zoom out; it doesn't say where a rack sits in the hull. A ship without an outline shows a wedge in front of the racks instead, with "Bow" on
 its floor. Instead of the outline the ship's 3D hologram can stand behind the racks, true to scale (**Ship view** in the
 [settings](#settings-and-your-look)). Turn and tilt the ship until it looks the way you see the hold, even from below for racks under the hull.
 Each rack shows its number on its largest visible face. Long ships (more than twice as long as wide, such as the C2,
@@ -402,7 +403,8 @@ The sections:
 - **Buttons:** background, frame and rounded corners of the glyph buttons, and a halo around the glyphs.
 - **Ship view:** **Backdrop** shows the ship's outline under the racks (the default), its hologram in one of three
   looks (shaded, flat, hidden line), or **None**: racks and frame only, without any mark of the bow. The hologram is
-  true to scale and the view fits all of it, so on a long ship the crates come out smaller than with the outline.
+  true to scale and the view fits all of it, so the crates come out smaller than with the outline, which the view
+  cuts to the racks and the bow.
   **Hologram opacity** (10–100 %, default 40 %) sets how strongly it shows, **Hull colour** the hull in the shaded and
   flat looks, **Edge colour** the edges in the hidden-line look. **Download ship holograms:** ship
   holograms are an optional download from this repository's releases; they derive from game models and may be
