@@ -2105,6 +2105,22 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Icon aus der gebauten `CargoPlan.App.exe` zurückgelesen (`Icon.ExtractAssociatedIcon`): das Logo
 - [x] Gate (Martin, Publish-Build, 26.10., bestanden): Icon in Explorer, Taskleiste, Alt+Tab und den Titelleisten von Editor und Settings; ZIP entpackt → Exe zeigt es
 
+### Abschluss der K5-Session (26.10.2026)
+- Alle Tasks von Martin abgenommen (26.10.2026): K5.1, K5.2, K5.3, K5.4 aus dem Startprompt; K5.2b (Holos und Umrisse), K5.2c (Umriss maßstabsgetreu), K5.2d (Herauszoomen bis zum Rumpf) und K5.3b (`holoOffset`) aus Befunden an den Gates.
+- K3 nebenbei: Clipper-Gate bestanden, Kiosk-Gate entfällt (D70-Addendum); offen bleiben die Antwort von Torlek (K3.1) und das Hull-C-Overlay-Gate (K3.3, keine 16er-Mission verfügbar).
+- Merge `--no-ff` nach main, Push durch Martin. Pipeline-Repo `sc-ship-outlines`: 1af1c83..b3da084 (Push durch Martin); `holo-v1` am 26.10. neu hochgeladen (Martin, auf GitHub geprüft).
+- Tests: Core 1.401 → 1.433, Import 141 → 141, App 1.328 → 1.332; Slow grün; Exhaustive nicht nötig (Planer unberührt).
+- Entscheidungen: D78 neu; Addenda zu D14, D48, D53, D55, D59, D61, D62 (zwei), D63 (zwei), D70, D76.
+
+**Übergabe für T7.5:**
+- **Schema-Stand:** Schiff 5 (neu optional `holoOffset`), Plan 6, Mission 3, settings.json 2, Look 1; neu: Moduldatei `ships/modules/*.json` mit eigenem Schema 1 (D59).
+- **Schiffszahl:** 97 Schiffsdateien + 1 Modul-Konfiguration = 98 Einträge in der Auswahl. Index vom 26.10.: 248 Modelle bei Fleetyards, 118 mit Fracht, 97 mit Gitter; 21 mit Fracht, aber ohne Gitter (u. a. Javelin, Hull D/E, Kraken), fehlen bewusst.
+- **Preset-Namen (K4):** „Default“, „High contrast“, „Minimal“.
+- **Release-Notes-Stoff:** Hull C als zwei Kreuze, Hull A mit echtem Spindelabstand; Fortune und Moth mit neuen Racks, Salvation neu, Aurora Mk II · TS module neu (8 SCU); der Umriss hat echte Größe, die Ansicht öffnet auf Racks und Bug, Herauszoomen zeigt den ganzen Rumpf; Holos von 18 Schiffen neu skaliert (Hull A war 28 % zu groß), Salvation-Holo neu; gespeicherte Ansichten von Hull A, Hull C und Aurora Mk II sitzen nach dem Update anders (Datenupdate, D76); App-Icon.
+- **Known issues:** `limits.max = 1` ungeprüft, 36 Racks in 18 Schiffen ohne Türlimit (Torlek); bei der Hull C liegen die Racks innerhalb der Holo-Frachtblöcke (logisches Raster gegen Modell, D78); Kisten großer Schiffe im Default-Overlay klein (C2 13,2 px, Hull C 5,1 px); die Anordnung von 90 Schiffen ist generiert (D53), die Railen-Reihe ragt aus dem Rumpf; Backbord/Steuerbord stammen aus Fleetyards-Namen (D78).
+- **Für die Screenshots:** nach K5 neu aufnehmen; Umriss in echter Größe und neuer Ausschnitt ändern das Bild aller Schiffe außer Hull A, Caterpillar, Syulen, Railen.
+- **Offen:** Antwort von Torlek (K3.1); Hull-C-Overlay-Gate (K3.3); Starbreaker für das zweite Modulschiff (Backlog).
+
 ---
 
 ## Phase 8 – nach dem Launch
