@@ -40,11 +40,21 @@ public class MissionEditorXamlTests
     }
 
     [Fact]
+    public void Add_to_mission_runs_the_view_models_command()
+    {
+        // K6.5: next to Add, its own button; Add stays a typed row.
+        using var stream = typeof(MissionEditorXamlTests).Assembly.GetManifestResourceStream(ResourceName)!;
+        var button = XDocument.Load(stream).Root!.Descendants().Single(e => e.Name.LocalName == "Button" && (string?)e.Attribute("Content") == "Add to mission");
+
+        button.Attribute("Command")!.Value.Should().Be("{Binding AddToMissionCommand}");
+    }
+
+    [Fact]
     public void The_mission_column_shows_the_ContractTracker_ids()
     {
         var mission = Columns(Grid()).Single(c => (string?)c.Attribute("Header") == "Mission");
 
-        mission.Attribute("Binding")!.Value.Should().Be("{Binding Source, Mode=OneTime}");
+        mission.Attribute("Binding")!.Value.Should().Be("{Binding MissionLabel, Mode=OneWay}");
         Columns(Grid()).Should().NotContain(c => (string?)c.Attribute("Header") == "Source");
     }
 }
