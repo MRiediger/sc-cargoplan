@@ -1956,7 +1956,9 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 
 **Schiffe mit `offset`** (Index 26.10.): C8 Pisces, C8X, Carrack, Caterpillar, Hull A, Hull B, Hull C, Starlancer MAX, TAC; `rotation` 90 nur Hull C (8), 270 nur Carrack (9) und Caterpillar-Nase (2). **Geänderte Rack-Sätze:** Fortune 1 → 3 Racks (4 → 16 SCU), Moth 1 → 3 (32 → 224 SCU, neue Racks mit Tür 8); Salvation neu (6 SCU). **`unverified`-Stand:** 32 Racks in 16 Schiffen (K3.1) + Fortune rack-0 bis -2, Salvation rack-0 = 36 Racks in 18 Schiffen.
 
-**Release-Notes-Stoff (T7.5):** Gespeicherte Ansichten der Hull A und Hull C sitzen nach dem Update anders (neue Rack-Lage, Datenupdate, D76); die Hull C zeigt ihre zwei Kreuze, die Hull A den echten Spindelabstand.
+**Release-Notes-Stoff (T7.5):** Gespeicherte Ansichten der Hull A und Hull C sitzen nach dem Update anders (neue Rack-Lage, Datenupdate, D76); die Hull C zeigt ihre zwei Kreuze, die Hull A den echten Spindelabstand. Known issue: Bei der Hull C liegen die Racks innerhalb der Frachtblöcke des Hologramms, nicht deckungsgleich; das Raster ist das logische des Spiels, das Hologramm zeigt Rahmen und Abstände (D78, Martin 26.10.: Fleetyards bleibt).
+
+**Befund beim Gate (26.10.):** Martin sah die Hull-C-Racks „zu eng und zu tief“ gegenüber dem Holo. Gemessen am Holo-Cache: Arm quer 10 m statt 7,5, radial 8,75 → 29 m statt 5 → 20, Blöcke längs ~12,5 m statt 10; das Holo selbst ist maßstabsgerecht (Rohmodell in Metern × 0,98). Daneben: das **Hull-A-Holo ist 28 % zu groß** (`holo-v1` auf Fleetyards' alte Länge 30 m skaliert, Modell 23,4 m) → K5.2b.
 
 **Akzeptanz:**
 - [x] Kalibrierung: der Abgleich findet die ausgelieferte Hull A „same“ inkl. Lage; die Hull A von vorher (1 Zelle Spalt) meldet er als abweichend
