@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
+using System.Windows.Data;
 using CargoPlan.App.Editor;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
@@ -21,7 +22,6 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 {
     public const string TitleText = "Missions";
     public const string UnplannedTitleText = "Missions – unplanned changes";
-    public const string ClearsDeliveredText = "Planning again clears delivered marks.";
     public const string PlanText = "Plan the rows and show them in the overlay";
     public const string MissionDeletedText = "Mission deleted – plan updated, no need to press Plan.";
     public const string ChangedOutsideText =
@@ -67,13 +67,37 @@ public sealed partial class MissionEditorViewModel : ObservableObject
             Rows.Add(new MissionRow());
         }
 
+        RowsView = new ListCollectionView(Rows);
+
         AttachRows();
         Evaluate();
         Rows.CollectionChanged += OnRowsChanged;
         overlay.PropertyChanged += OnOverlayChanged;
     }
 
+    /// <summary>The rows in the order of first appearance: what Plan, Import and Export read, and what up and down move.</summary>
     public ObservableCollection<MissionRow> Rows { get; }
+
+    /// <summary>
+    /// What the grid shows: <see cref="Rows"/>, sorted by <see cref="Sort"/> (K6.3). Only the view is sorted, so the plan,
+    /// the stop numbers and the legend don't depend on it.
+    /// Source: https://learn.microsoft.com/dotnet/api/system.windows.data.listcollectionview.customsort
+    /// </summary>
+    public ListCollectionView RowsView { get; }
+
+    /// <summary>The view's sort, null for the order of first appearance; not saved (K6.3).</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(MoveUpCommand), nameof(MoveDownCommand))]
+    public partial EditorSort? Sort { get; private set; }
+
+    /// <summary>A header click: ascending, then descending, then the order of first appearance; another column starts ascending.</summary>
+    public void SortBy(EditorSortColumn column) =>
+        Sort = Sort?.Column != column ? new EditorSort(column, false)
+            : Sort.Descending ? null
+            : Sort with { Descending = true };
+
+    // Generated hook: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/observableproperty#running-code-upon-changes
+    partial void OnSortChanged(EditorSort? value) => RowsView.CustomSort = value is null ? null : new MissionRowOrder(Rows, value);
 
     public static IReadOnlyList<FillOrderChoice> FillOrders { get; } =
     [
@@ -105,7 +129,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     public event EventHandler? Planned;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RemoveRowCommand), nameof(MoveUpCommand), nameof(MoveDownCommand), nameof(DeleteMissionCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RemoveRowCommand), nameof(MoveUpCommand), nameof(MoveDownCommand), nameof(DeleteMissionCommand), nameof(AddToMissionCommand))]
     public partial MissionRow? SelectedRow { get; set; }
 
     /// <summary>
@@ -137,7 +161,6 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     public bool HasPlan => _overlay.HasPlan;
 
     /// <summary>The current plan has ticked stops, and a new plan starts without ticks (D19).</summary>
-    public bool ClearsDelivered => _overlay.Plan?.Placements.Any(p => p.Delivered) == true;
 
     /// <summary>Stops listening to the overlay; the window calls it when it closes.</summary>
     public void Detach() => _overlay.PropertyChanged -= OnOverlayChanged;
@@ -206,6 +229,21 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         SelectedRow = row;
     }
 
+    /// <summary>
+    /// A destination ContractTracker missed (K6.5): a row in the selected row's ContractTracker mission, right below it,
+    /// manual from the start; with Plan it goes under the mission's #id. Add stays a typed row.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanAddToMission))]
+    private void AddToMission()
+    {
+        var row = SelectedRow ?? throw new InvalidOperationException("Add to mission needs a selected row.");
+        MissionRow added = new() { MissionId = row.MissionId, Source = row.Source, ContractId = row.ContractId, Manual = true };
+        Rows.Insert(Rows.IndexOf(row) + 1, added);
+        SelectedRow = added;
+    }
+
+    private bool CanAddToMission() => SelectedRow is { ContractId: not null, MissionId: not null };
+
     [RelayCommand(CanExecute = nameof(HasSelection))]
     private void RemoveRow()
     {
@@ -235,8 +273,9 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     private void MoveDown() => Move(+1);
 
     /// <summary>
-    /// A new route is a new plan: ticks and moves of the old one are gone (D19). Captures keep their ids, the watermark
-    /// stays (T5.4). A problem keeps the editor open.
+    /// A new route is a new plan: moves of the old one are gone (D19), but what is loaded stays where it lies and what is
+    /// delivered stays delivered (K6.4, Core's <c>PlanKeeping</c>); a delivery changed here is planned again, and the
+    /// overlay's notice line names it. Captures keep their ids, the watermark stays (T5.4). A problem keeps the editor open.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanExport))]
     private void Plan()
@@ -244,8 +283,10 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         var (missions, route) = MissionRows.ToMissions(Rows, _overlay.Missions);
         try
         {
-            var saved = LoadPlanner.Plan(_overlay.Ship, missions, route, FillOrder, _overlay.Watermark);
+            var current = _overlay.Saved ?? new SavedPlan([], new LoadPlan(_overlay.Ship.Id, [], []), CrateCap.Of(_overlay.Ship));
+            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, _overlay.Watermark);
             ChangeOverlay(() => _overlay.ShowPlan(saved));
+            _overlay.SetNotice(NoticeSource.Move, cleared.Count == 0 ? null : string.Join(" · ", cleared));
             IsDirty = false;
             SetActionProblem(null);
             Planned?.Invoke(this, EventArgs.Empty);
@@ -338,9 +379,10 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
     private bool HasSelection() => SelectedRow is not null;
 
-    private bool CanMoveUp() => SelectedRow is { } row && Rows.IndexOf(row) > 0;
+    // Up and down move in the order of first appearance; in a sorted view they would seem to jump (K6.3).
+    private bool CanMoveUp() => Sort is null && SelectedRow is { } row && Rows.IndexOf(row) > 0;
 
-    private bool CanMoveDown() => SelectedRow is { } row && Rows.IndexOf(row) is var index && index >= 0 && index < Rows.Count - 1;
+    private bool CanMoveDown() => Sort is null && SelectedRow is { } row && Rows.IndexOf(row) is var index && index >= 0 && index < Rows.Count - 1;
 
     /// <summary>No-op at the edges, so a button pressed once too often does nothing.</summary>
     private void Move(int offset)
@@ -385,6 +427,12 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         // StopNumber and Error are set by Evaluate; reacting to them would loop.
         if (MissionRow.IsInput(e.PropertyName))
         {
+            // A ContractTracker row changed by hand is the player's now (K6.5); loading a row sets nothing, it isn't attached yet.
+            if (sender is MissionRow { ContractId: not null } row)
+            {
+                row.Manual = true;
+            }
+
             Edited();
         }
     }
@@ -406,7 +454,6 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         }
 
         OnPropertyChanged(nameof(HasPlan));
-        OnPropertyChanged(nameof(ClearsDelivered));
         DeleteMissionCommand.NotifyCanExecuteChanged();
         ReplanCommand.NotifyCanExecuteChanged();
         DiscardPlanCommand.NotifyCanExecuteChanged();

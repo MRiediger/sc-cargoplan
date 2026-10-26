@@ -497,26 +497,29 @@ public class LoadPlannerOverrideTests
     }
 
     [Fact]
-    public void SetDelivered_refuses_to_tick_back_when_its_cells_are_taken_again()
+    public void SetDelivered_lays_a_stop_ticked_back_into_free_cells_when_its_own_are_taken_again()
     {
+        // K6.4, P7: back to planned always; where its cells are taken it is laid in by the rule of PlaceInto (K2.2, D41).
         var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, GoldThenAgricium), HullA, "Lorville", true);
         var reused = ToRack(plan, "Shubin", "rack-1");
 
-        var act = () => LoadPlanner.SetDelivered(reused, HullA, "Lorville", false);
+        var back = LoadPlanner.SetDelivered(reused, HullA, "Lorville", false);
 
-        act.Should().Throw<PlanException>().WithMessage("Lorville can't go back on board: *overlap*");
+        back.Crates.Where(c => c.Destination == "Lorville").Should().NotBeEmpty().And.OnlyContain(c => !c.Delivered);
+        back.Crates.Where(c => c.Destination == "Shubin").Should().Equal(reused.Crates.Where(c => c.Destination == "Shubin"));
+        LoadPlanner.Validate(back, HullA).Should().BeEmpty();
     }
 
     [Fact]
-    public void SetDelivered_of_the_stop_below_leaves_the_crate_above_floating()
+    public void SetDelivered_of_the_stop_below_lets_the_crate_above_settle()
     {
-        // The later stop was unloaded first: the player restacked in the game, the plan shows it red, never refuses.
+        // The later stop was unloaded first: the crate on it drops straight down its column (K6.4, P6), nothing is red.
         LoadPlan plan = new(HullA.Id, [Box("Riker", CrateSize.Four, 0, 1), Box("Shubin", CrateSize.Four, 0, 0)], []);
 
         var delivered = LoadPlanner.SetDelivered(plan, HullA, "Shubin", true);
 
-        LoadPlanner.Validate(delivered, HullA).Should().Equal(
-            new PlanWarning("rack-0", "4 SCU crate of Titanium for Riker in rack 1 has nothing below it"));
+        delivered.Crates.Single(c => c.Destination == "Riker").Position.Stack.Should().Be(0);
+        LoadPlanner.Validate(delivered, HullA).Should().BeEmpty();
     }
 
 
@@ -607,7 +610,7 @@ public class LoadPlannerOverrideTests
     }
 
     [Fact]
-    public void SetDelivered_of_a_mission_refuses_to_tick_back_when_its_cells_are_taken_again()
+    public void SetDelivered_of_a_mission_lays_it_in_elsewhere_when_its_cells_are_taken_again()
     {
         LoadPlan plan = new(HullA.Id,
         [
@@ -615,9 +618,10 @@ public class LoadPlannerOverrideTests
             new Crate("Shubin", "Agricium", CrateSize.Four, "rack-0", new GridPosition(0, 0, 0), Mission: 1),
         ], []);
 
-        var act = () => LoadPlanner.SetDelivered(plan, HullA, "Riker", 2, false);
+        var back = LoadPlanner.SetDelivered(plan, HullA, "Riker", 2, false);
 
-        act.Should().Throw<PlanException>().WithMessage("Riker can't go back on board: *overlap*");
+        back.Crates.Single(c => c.Destination == "Riker").Should().Match<Crate>(c => !c.Delivered && c.Position != new GridPosition(0, 0, 0));
+        LoadPlanner.Validate(back, HullA).Should().BeEmpty();
     }
 
     [Fact]

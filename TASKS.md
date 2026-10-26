@@ -1440,7 +1440,7 @@ Legende = Legenden-Drag seit B6 (Zeile auf ein Rack, atomar, `ResolveMoveToRack`
 
 ## Backlog-Session (vor dem Release)
 
-Fünf Sessions aus dem Backlog vor dem Tag, Reihenfolge **K3 → K2 → K1 → K4 → K5 → T7.5 → Tag v0.1.0**. Je Session ein Branch ab
+Fünf Sessions aus dem Backlog vor dem Tag, Reihenfolge **K3 → K2 → K1 → K4 → K5 → T7.5 → Tag v0.1.0**; K6 (Aufzug-Flow) eingeschoben vor T7.5, abgeschlossen 26.10.2026. Je Session ein Branch ab
 main, Merge `--no-ff`. Die übernommenen Backlog-Zeilen sind unten durchgestrichen und verweisen hierher.
 
 | Session | Inhalt |
@@ -2141,6 +2141,252 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Gate (Martin, Publish-Build vom Branch, 26.10., bestanden; der erste Test lief auf der Publish-Version vom 25.10. ohne K5.5): Aurora Mk II und Hull C mit Holo drehen, ohne vorher zu zoomen → Größe bleibt ruhig; Reset bringt den Fit zurück
 - Commits d814e50 (Tests rot), 9a0eef6 (App), Doku-Commit.
 
+### K6 Aufzug-Flow (26.10.2026) – eingeschoben vor T7.5, Branch `feat/k6-elevator-flow`
+
+Auslöser: Martins Abschlusstest am Frachtaufzug. Mission 1 annehmen → Sync → laden → Mission 2 annehmen → **Plan** legt
+Mission 1 um, obwohl sie an Bord ist (korrekt nach D19, aber ohne Schutz für Geladenes); am Aufzug muss pro Kiste ohne
+Unlock ablesbar sein, was wohin gehört. Martins Ladeweise: alle Missionen laden, dann pro Mission entnehmen
+(first-in last-out). Reihenfolge K6.1 → K6.2 → K6.3 → K6.4 → K6.5; je Task ein Plan zur Freigabe. Plan-Schema 6 → 7
+in K6.4 (`loaded`), K6.5 legt `manual` ebenfalls in 7 ab.
+
+### [x] K6.1 Legendenzeile vollständig (D69-Addendum) (26.10.2026)
+**Warum:** Am Aufzug wird eine Kiste über Ware + Größe + Ziel zugeordnet; die Zeile zeigte nur `To <Ziel> · <SCU> SCU`,
+die Überschrift keine Mission.
+
+**Ist-Zustand vor K6.1 (A1):** `ShipViewBuilder.LegendLines` → `LegendEntry.Label` (`To X · n SCU · <Markierungen>`),
+Überschrift nur bei Pickup; `HeaderRow`/`LineRow` waren horizontale StackPanels, also nie gekürzt, nur abgeschnitten;
+keine eigene Panel-Klasse. `ContractSync` trägt `ContractSource.ContractIds` = CTs `Contracts.Id` (AUTOINCREMENT, eine
+Aufnahme mit zwei Waren = zwei aufeinanderfolgende Ids); im Spieltext steht keine Id, der Aufzug zeigt sie nicht.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 `To Green Glade Station · 5 SCU (4+1) · Pressurized Ice`,
+Mischung aus den Kisten des Plans (abgelieferte zählen mit), eine einzelne Kiste ohne Klammer; Wiederholungen immer als
+`Anzahl×Größe` (`2×4+1`); P2 mehrere Waren je mit eigener Mischung: `12 SCU (8+2) Titanium, (2) Gold`; P3 Markierungen
+am Ende, nie gekürzt, die D16-Reserve nur noch dort; P4 Überschrift `From <Abholort> · #47` (CT `Contracts.Id`,
+Bereich `#47–48`, Lücken `#47, 49`), Editor-Mission ohne Id, CT-Missionen bekommen auch ohne Pickup eine Überschrift;
+P5 Kürzung: Ware zuerst, dann Ziel bzw. Abholort, nie SCU/Mischung/Id/Markierungen, Tooltip mit Volltext; E1 wartende
+Missionen (D41) zeigen die Mischung aus ihrer Kistenliste (`CrateListUnder(saved.CrateCap)`); E2 Nachweis der B6-Gesten
+nach dem Umbau (XAML-Test + Offscreen-Hit-Test); E3 K6.4 hängt „geladen“ als weiteres Rang-0-Segment an, ohne Panel-Umbau.
+- App: `LegendRowPanel` (Attached Property `Rank`, kürzt Rang 1 anteilig, dann Rang 2), `LegendSegment` (Text, Rang,
+  Reserve), `LineGoods`, `LegendText` (`Quantity`, `Mix`, `Goods`, `ContractIds`, `Appended`); `LegendEntry` mit
+  `Segments`, `HeaderSegments`, `HeaderLabel`, `Goods`, `ContractIds`; `ShipViewBuilder` setzt Waren, Id und die erweiterte
+  Überschriften-Regel, `Unplaced` die Mischung; XAML: Zeilen und Überschrift als DockPanel + ItemsControl über den Segmenten,
+  `LegendSegmentTemplate`/`LegendSegmentTextStyle` (Grau + Durchstreichen über den `Tag` der Zeile), Tooltips
+- Tests: `LegendLineTests` (19 Fälle), `LegendRowPanelTests` (7), `OverlayLegendXamlTests` (+6 Fälle, u. a.
+  `The_B6_gestures_stay_on_their_elements`); bestehende `Label`-Erwartungen auf das neue Format
+
+**Zahl vorher/nachher:** Tests App 1.334 → 1.366, Core 1.433, Import 141 (unverändert). UI-Task, keine Planer-Zahl.
+
+**Offscreen-Protokoll (echtes Overlay, Hurston-Plan vom 25.10., Default-Look; Harness im Scratchpad, nicht im Repo):**
+- 420 px: alle Zeilen vollständig, z. B. `From Everus Harbor · #37–38`, `To Everus Harbor · 8 SCU (8×1) · Waste`
+- 270 px: nur die Waren kürzen; 240 px: Waren weg, Zielnamen mit Ellipse; SCU, Mischung, Markierungen bleiben
+- Hit-Test (E2): Klick auf Zeilentext → `Button#LineButton` → Zeile abgehakt, Auswahl leer; Zeilen-Checkbox →
+  `CheckBox#LineCheck` (außerhalb des Buttons) → 2 von 2 Kisten ausgewählt, Haken 3 → 3; Kopf-Checkbox →
+  `CheckBox#MissionCheck` → Mission 4 (6 Kisten) zur Auswahl dazu
+- Nebenbefund, nicht K6.1: das Abhaken der unteren Mission lässt Kisten darüber schweben (rote Zeilen) – das Absinken
+  aus K6.4
+
+**Akzeptanz:**
+- [x] Zeile `To <Ziel> · <SCU> SCU (<Mischung>) · <Ware>`, Mischung aus dem Plan, nach Split der tatsächliche Stand
+- [x] Überschrift `From <Abholort> · #<CT-Id>`, ohne CT keine Id
+- [x] Kürzung Ware → Ziel, nie SCU/Mischung; Tooltip mit Volltext
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [x] Gate (Martin, Publish-Build vom Branch, im Lock am Aufzug, 26.10., bestanden): Zeile lesbar, Mischung = Kiosk, `#Id` = CT-Fenster
+- Commits cd54dfb (Tests rot), 0a75daf (App), Doku-Commit.
+
+### [x] K6.2 Markierung überlebt den Lock (D25-Addendum) (26.10.2026)
+**Warum:** Am Aufzug ist der Lock der Normalzustand und die Markierung das, was man dort braucht; der Lock räumte sie.
+
+**Ist-Zustand vor K6.2 (A1):** Einzige Stelle `ShipViewControl.IsNavigationEnabled` → `Pick(CrateSelection.Empty)`,
+Grund im Code: „a selection left over must not move with the next drag“ (D25: „goes … with the lock“, User Guide).
+Kein Drag-Grund: ein laufender Drag endet beim Lock schon über `ReleaseMouseCapture` → `OnLostMouseCapture` → `_drag = null`,
+ohne `FinishDrag`. Lücke: ein Drag ohne Capture (`CaptureMouse` gescheitert) bekam kein Ende. Das XAML blendet im Lock
+nur Kopfzeilen-Buttons und Schiffsauswahl aus.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** `Pick(Empty)` entfällt; ein Drag ohne Capture wird im
+Lock verworfen (kein Move); `IsDragging` als öffentliche Abfrage für den Test statt Reflection; jede Planänderung
+(Sync, Haken, Undo) leert die Auswahl weiterhin (D25), eigener Punkt, falls es am Aufzug stört.
+- App: `ShipViewControl.IsNavigationEnabled` ohne Demarkieren, verwirft einen Drag ohne Capture; `IsDragging`
+- Tests: `ShipViewLockTests` (3): Lock und Unlock behalten die Auswahl, Lock beendet einen Drag ohne Move.
+  Erst nur `IsDragging` ergänzt und rot gesehen: Auswahl durch `Empty` ersetzt, `IsDragging` nach dem Lock `True`
+
+**Zahl vorher/nachher:** Tests App 1.366 → 1.369, Core 1.433, Import 141. UI-Task, keine Planer-Zahl.
+
+**Offscreen-Protokoll (echtes Overlay, Hurston-Plan; Harness im Scratchpad):** Zeilen-Checkbox Mission 1 und
+Kopf-Checkbox Mission 4 per Mauspfad → 9 Kisten ausgewählt; gesperrt: 9, dieselben Checkboxen gesetzt, Magenta-Rand
+und Dimmen sichtbar, Kopfzeilen-Buttons weg; wieder entsperrt: 9, unverändert. Lock während eines Drags mit Capture
+nicht automatisiert (bräuchte echte Mausbewegung) → Gate.
+
+**Akzeptanz:**
+- [x] Lock räumt die Auswahl nicht; Auswahlfarbe und Legenden-Checkboxen im Lock sichtbar; Unlock übernimmt sie
+- [x] Laufender Drag beim Lock: kein Move, Auswahl bleibt
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [x] Gate (Martin, Publish-Build vom Branch, 26.10., bestanden): markieren, Lock → sichtbar; Unlock → noch da; Lock
+  während eines Drags (Hotkey) → kein Move, Auswahl da
+- Commits cf04c63 (Tests rot), c7d2f4f (App), Doku-Commit.
+### [x] K6.3 Editor sortierbar nach Mission und Ziel (D19-Addendum) (26.10.2026)
+**Warum:** Am Aufzug sucht man die Zeilen eines Vertrags oder einer Station; der Editor zeigte nur die Reihenfolge des
+ersten Auftretens.
+
+**Ist-Zustand vor K6.3 (A1):** `CanUserSortColumns="False"` („it would reorder the view, not the route“); Plan liest
+`MissionEditorViewModel.Rows` (Route = erstes Auftreten, Missionsgruppen in `MissionRows.ToMissions`), nie die Ansicht;
+↑/↓ verschieben in `Rows`. Keine Spalte „Mission“, nur „Source“ (`ct 37–38`, `MissionText.Source`, auch in der Notice
+zu gelöschten Verträgen). A1-Befund aus K6.1: `LegendText.ContractIds` war eine zweite Kopie dieser Bereichsregel.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 „Source“ heißt „Mission“ und zeigt `#37–38` wie die
+Legende, eine Formatfunktion `MissionText.Source` für Editor, Legende und Notice (`Riker (#36)`), `LegendText.ContractIds`
+entfällt, Läufe überall (`#36–37, 40`); P2 Klick-Zyklus auf → ab → Standard, nicht persistiert, eine Spalte zugleich;
+P3 Mission: erste CT-Id numerisch, getippte Zeilen dahinter nach Ziel; E1 getippte Zeilen in **beiden** Richtungen hinter
+den CT-Zeilen, die Richtung dreht nur innerhalb der Blöcke; P4 Ziel ohne Groß-/Kleinschreibung; P5 Gleichstand in
+Standard-Reihenfolge; P6 Leerzeilen unten; P7 ↑/↓ gesperrt, solange sortiert ist (Tooltip); P8 eine im sortierten
+Zustand geänderte Zeile springt beim Bestätigen an ihren Platz.
+- App: `Editor/MissionRowOrder` (`IComparer`, `EditorSortColumn`, `EditorSort`), `MissionRow.ContractId`;
+  `MissionEditorViewModel.RowsView` (`ListCollectionView`), `Sort`, `SortBy`, `CanMoveUp/Down` mit `Sort is null`;
+  Fenster: `ItemsSource="{Binding RowsView}"`, `OnSorting` (bestätigt offene Bearbeitung, ruft `SortBy`, setzt den Pfeil),
+  nur Mission und Destination mit `SortMemberPath`; `MissionText.Source` mit `#` und Läufen, `ShipViewBuilder` nutzt es
+- Tests: `MissionRowOrderTests` (7 Fälle, u. a. `By_mission_descending_typed_rows_stay_behind_the_contracts`),
+  `MissionEditorViewModelTests` (+6, u. a. `Plan_from_a_sorted_view_is_the_plan_from_the_standard_order`),
+  `MissionEditorXamlTests` (3, neu; `MissionEditorWindow.xaml` als eingebettete Ressource), `MissionTextTests` (+3, die
+  Id-Fälle aus `LegendLineTests` zogen hierher); `ct …`-Erwartungen auf `#…`
+
+**Zahl vorher/nachher:** Tests App 1.369 → 1.384, Core 1.433, Import 141. UI-Task, keine Planer-Zahl; Planer-Invarianz
+über den Test „sortiert = unsortiert“.
+
+**Offscreen-Protokoll (echtes Editorfenster, Hurston-Plan, Dark; Harness im Scratchpad):** Klick auf „Mission“ →
+`#1, #2–3 …, #4, #37–38 …`, Pfeil auf; zweiter → `#37–38 … #4, #2–3 …, #1`, Pfeil ab; dritter → Standard, kein Pfeil;
+„Destination“ auf/ab alphabetisch; Klick während offener Zellbearbeitung → bestätigt, keine Ausnahme; ↑/↓ gesperrt;
+Plan aus sortierter Ansicht → Legende zeilengleich mit Plan aus der Standard-Reihenfolge.
+- Nebenbefund, nicht K6.3: die Crates-Spalte des Editors schreibt `1+1+1+1+1+1+1+1`, die Legende `8×1` (K6.1); die
+  Spalte ist zugleich das Eingabeformat (`2+2+2`).
+
+**Akzeptanz:**
+- [x] Spaltenköpfe Mission und Destination klickbar, auf/ab, nicht persistiert; Standard bleibt erstes Auftreten
+- [x] Sortierung ändert nichts am Plan und an der Legende; Entwurfszeilen sortieren mit, eine leere Zeile bleibt unten
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [x] Gate (Martin, 26.10., bestanden): sortieren, Plan drücken → Plan unverändert zur unsortierten Eingabe
+- Commits e23c056 (Tests rot), 5a78e83 (App), Doku-Commit.
+### [x] K6.4 Zustand „geladen“ (Plan-Schema 7, D79) (26.10.2026)
+**Warum:** Martins Abschlusstest: Mission 1 annehmen → Sync → laden → Mission 2 annehmen → **Plan** legt Mission 1 um,
+obwohl sie an Bord ist. Ladeweise: alle Missionen laden, dann pro Mission abgeben (first-in last-out).
+
+**Ist-Zustand vor K6.4 (A1, zwei Explore-Berichte):** kein Konzept „feste Kiste“, einziges Hindernis ist `occupied` von
+`CrateLayout.Lay`; `Plan` (`RackAssignment`) und `ReplanInPlace` legen alles Unabgehakte neu; Stufe 3 legt das Zielrack
+ganz neu, 3b verdrängt fremde Kisten; `Board.Settle` weicht seitlich aus oder legt neu; Haken, `RemoveMission` und Sync
+lassen Kisten darüber rot schweben (der Task-Text „wie bisher neu gelegt“ stimmte nicht); der Sync entfernt eine
+verschwundene Mission nur ohne Kisten an Bord; der Editor-Plan löscht alle Haken (D19) und nummeriert getippte Missionen
+neu; Undo trägt Haken per `CarryTicks` nach (D74); Plan-Schema 6.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 `Crate.Loaded`, nie zusammen mit abgeliefert; P2
+Schema 7 `crates[].loaded` nur bei `true`, 6 → 7, Ausschlüsse `delivered`/`offShip`, Goldens nur `schemaVersion`; P3
+Lieferung über erste CT-Id × Ziel bzw. bei getippten Missionen das Ziel, überlebt nur mit gleichen Kisten (Ware × Größe),
+sonst geplant mit Notice; P4 Editor-Plan und Re-plan halten Geladenes **und Abgeliefertes** (Martin, ändert D19), der
+Rest wird nach D41-Regel um das Geladene gelegt, ohne Geladenes der heutige Weg; P5 Moves: Stufe 3 um Geladenes herum,
+3b nie Geladenes, Spieler darf ziehen, Split/Merge erhalten den Zustand; P6 Absinken: nach jeder Abgabe sinkt alles
+Schwebende an Bord gerade, **geladen und geplant** (Martin), halb aufliegend bleibt es rot; P7 Zurückhaken immer nach
+geplant, an alter Stelle oder neu eingelegt; P8 Sync entfernt eine verschwundene Mission, wenn nichts von ihr geplant an
+Bord ist; P9 Schiffswechsel/`RacksChanged` löscht geladen mit Notice; P10 Zustandswechsel sind Undo-Schritte, Restore aus
+dem Snapshot, `CarryTicks` entfällt; P11 Legendenzyklus geplant → geladen → abgeliefert → geplant, Kistenklick bleibt B6;
+P12 Look: heller Rahmen, ` ▣` als festes Segment, Kopfzeile `· 40 loaded`. Ergänzungen bei der Freigabe: **E1** teilweise
+geladene Mission ohne Platz → Ablehnung als Fallback (Aufwand „Warteeinheit Lieferung“ ≈ 20 Stellen + Formatfeld, Backlog),
+ihr Rest zuerst gelegt; **E2** Re-plan mit Geladenem behält das Layout, wenn mehr warten würde („Re-plan found no better
+layout“), Backlog `RackAssignment` mit Hindernissen; **E3** Lieferung ohne Kisten an Bord ist nicht ladbar („not placed
+yet“); **E4** Tests Split → Editor-Plan bleibt geladen, Dreierstapel sinkt von unten.
+- Core: `Crate.Loaded`/`AsLoaded`/`AsDelivered`/`AsPlanned`; `CrateDto.Loaded`, `PlanFile.SupportedSchemaVersion = 7`,
+  `NotLoadedSchemaVersion`, `PlanFileDto.CheckLoaded`; `LoadPlanner.SetLoaded`, `Settled`, `SettledCrates`, `PlanKeeping`
+  (+ `KeptDeliveries`, `DeliveryKey`, `Without`), `SetDelivered` mit Absinken und Neueinlegen, `RemoveMission` mit Absinken,
+  `ReplanInPlace` mit E2, `Replan` löscht geladen für ein anderes Schiff, `CarryTicks` entfernt; `MoveResolution` (Stufe 3
+  um Geladenes, 3b ohne, `Settle` nur gerade für Geladenes); `ContractSync` (geplant an Bord statt an Bord)
+- App: `LegendEntry.Loaded`/`LoadedMark`, `CellFill.Loaded`, `MissionPalette.LoadedEdge`, Tooltip ` (loaded)`,
+  `CapacityText` mit `· N loaded`; `OverlayViewModel`: Zyklus in `ToggleLine`, `Tick` als `Step`, `Restored` nur noch
+  `Resync`, Notices `SettledText`, `LoadedClearedText`, `ReplanNoBetterText`; Editor-Plan über `PlanKeeping`,
+  `ClearsDelivered` entfernt
+- Tests: `LoadedStateTests` (Core, 32), `LoadedOverlayTests` (App, 12); umgestellt: Schema-Zahlen, zwei Zurückhak-Tests
+  (P7), schwebend → sinkt (P6), `RemoveMission` (P6), fünf `CarryTicks`-Tests entfernt, Undo „Haken ist ein Schritt“,
+  Editor „Abgeliefertes bleibt“, Legendentests klicken zweimal zum Abhaken
+- Übergang: Auf dem Core-Commit `cb7ab02` scheitern zwei alte App-Tests (Haken-Übertrag, Ablehnung beim Zurückhaken), bis
+  `1876e98` sie umstellt; gebaut hat jeder Commit.
+
+**Zahl vorher/nachher (Release, `8d17ed2` gegen K6.4):** Gleichheitslauf 392/392 Hashes gleich; Suchzähler gleich, gave up
+0; Replan-Mediane im Rauschen (Hull A acht 6,3 → 7,4 ms, Stresslast 76,6 → 87,0 ms); neu „erster Stop geladen“: 0,1–0,8 ms
+je Fixture, Stresslast 36,8 ms, nichts wartend, altes Layout nie behalten, gave up 0; Slow grün; Goldens nur
+`schemaVersion`. Tests Core 1.433 → 1.460, App 1.384 → 1.396, Import 141.
+
+**Offscreen-Protokoll (echtes Overlay, Hurston-Plan; Harness im Scratchpad):** Mission 4 geladen, Waste abgeliefert →
+geladene Kisten mit weißem Rahmen, Zeilen enden auf ` ▣`, Waste grau durchgestrichen; Kopfzeile `28/64 · 36 free · 10
+loaded`. **Befund fürs Gate:** bei 420 px mit sichtbarem ↶ verschwindet der Schiffsname und die Kapazität läuft unter die
+Schere (D67-Regel verletzt); `▣` ist klein.
+
+**Akzeptanz:**
+- [x] Geladene Kisten bewegt der Planer nie (Plan, Re-plan, Sync, 3b, fremder Legenden-Drag); Spieler-Drag, Split/Merge erhalten
+- [x] Absinken nach Sync, Abhaken, Löschen; Dreierstapel von unten; Notice
+- [x] Editor-Plan und Re-plan halten Geladenes und Abgeliefertes; E1-Ablehnung, E2-Schutz
+- [x] Schiffswechsel löscht geladen mit Notice; Undo/Redo über Zustandswechsel; Schema 7 mit Migration und Ausschlüssen
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Zahl vorher/nachher
+- [x] Look-Gate (Martin, 26.10.): Rahmen und `▣` passen; Kopfzeile kurz `· 10 ▣` statt `· 10 loaded`, Tooltip mit
+  Volltext (`CapacityToolTip`), danach bei 420 px mit ↶ vollständig vor der Schere (Name weicht, D67)
+- [x] Gate (Martin, der Originalfall, 26.10., bestanden): Mission 1 → Sync → laden → „geladen“ → Mission 2 → **Plan** → Mission 1 liegt, Mission 2
+  drumherum; Re-plan gleich; geladene Kiste ziehen geht; Mission 1 abhaken → grau, Kisten darüber sinken; Neustart →
+  Zustände da; Dreierzyklus ohne Nachdenken, Fehlklick per Undo zurück
+- Commits 6d27157, 24977c3 (Tests rot Core), cb7ab02 (Core), 1876e98 (Tests rot App), 5f420b7 (App), 36bf04e (Doku);
+  Look-Gate: 2311b20 (Tests rot), 52c6960 (Kopfzeile), Doku-Commit. Tests App 1.396 → 1.397.
+### [x] K6.5 CT-Missionen im Editor editierbar (D44-Addendum) (26.10.2026)
+**Warum:** ContractTracker vergisst manchmal Ziele; als getippte Zeile nachgetragen wurden sie eine eigene Mission ohne CT-Id.
+
+**Ist-Zustand vor K6.5 (A1):** CT-Zeilen waren schon editierbar und blieben nach Plan in ihrer CT-Mission
+(`MissionRows.ToMissions`); der Sync liest eine Aufnahme nur einmal (Wasserstand), überschreibt also nie; es fehlte nur das
+Hinzufügen (Add = getippte Mission) und eine Markierung. `MissionItemDto` ist für Plan- und Missionsdateien dasselbe.
+„CT liefert später doch“ gibt es nur als Neuaufnahme (F4), die eine eigene Mission mit `⚠ duplicate?` wird.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 Button „Add to mission“ (Martin) fügt unter der
+ausgewählten CT-Zeile eine `manual`-Zeile in deren Mission ein, Add bleibt getippt; P2 eine geänderte CT-Zeile wird `manual`
+(im Zeilen-Handler, Laden markiert nichts); P3 Spalte „Mission“ zeigt `#37–38 ✎` (Martin), Legende unverändert; P4 Sync wie
+heute (Martin): Neuaufnahme bleibt eigene Mission mit Duplikat-Marke, die Regel „… now also in ContractTracker“ entfällt,
+B1 benennt auch `manual`-Stopps um, sie bleiben `manual`; P5 verschwindet die Mission, gehen alle Zeilen, Notice `Gone from
+ContractTracker: #37, with 1 row added by hand`; P6 `manual` im Plan-Schema 7 (kein zweiter Bump), nur bei `true`,
+Fehler in Schema 6 und in Missionsdateien, Export schreibt es nie (geprüft); P7 ein nachgetragenes Ziel an einer
+geladenen Mission ist deren ungeladener Rest (K6.4, E1).
+- Core: `MissionItem.Manual`, `MissionItemDto.Manual`, `FromMissionItem/FromMissionStop(…, withManual)`,
+  `MissionFileDto.ToMissionStops` lehnt `manual` ab, `PlanFileDto.CheckManual`
+- App: `MissionRow.Manual`/`MissionLabel`/`ManualMark`, `MissionRows` (Laden, `ToMissions` trägt `manual` in Captures),
+  `AddToMissionCommand`, Markieren in `OnRowChanged`, `OverlayViewModel.GoneWithManualText`, Spalte und Button im XAML
+- Tests: `ManualItemTests` (Core, 6), `ManualRowsTests` (App, 8), `MissionEditorXamlTests` (+1, Spaltenbindung)
+
+**Zahl vorher/nachher:** `ContractSync`- und Golden-Tests 37 grün → 37 grün (Goldens byte-gleich), Sync-/CT-Tests der
+App 58 grün → grün; Planer unberührt, Gleichheitslauf nach K6.4 392/392. Tests Core 1.460 → 1.466, App 1.397 → 1.406.
+
+**Akzeptanz:**
+- [x] CT-Zeilen editierbar, Ziel per „Add to mission“ in derselben Mission; hinzugefügte und geänderte Zeilen `manual`
+- [x] Sync: `manual`-Zeilen bleiben, Idempotenz, Umbenennen ohne Dublette; Mission weg → alle Zeilen weg mit Notice
+- [x] Format: `manual` in Schema 7, Missions-JSON trägt es nicht
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [x] Gate (Martin, 26.10., bestanden): CT-Mission mit fehlendem Ziel → Ziel nachtragen → Plan → Legende unter derselben
+  CT-Id → Sync → Ziel bleibt → Vertrag in CT abgeben → Mission samt Handzeile weg
+- Commits a18b6ed (Tests rot Core), cd884e8 (Core), 61b66db (Tests rot App), 15e194a (App), 1a8f2b9 (Doku).
+
+### Abschluss der K6-Session (26.10.2026)
+- Alle Tasks von Martin abgenommen (26.10.2026): K6.1 Legendenzeile, K6.2 Markierung im Lock, K6.3 Editor-Sortierung,
+  K6.4 Zustand „geladen“ (mit Look-Gate: Kopfzeile `· 10 ▣` und Tooltip), K6.5 CT-Missionen editierbar.
+- Merge `--no-ff` nach main, Push durch Martin.
+- Tests: Core 1.433 → 1.466, Import 141 → 141, App 1.334 → 1.406; Slow grün; Exhaustive grün (2/2, 8 min 14 s, auf
+  1a8f2b9); Gleichheitslauf 392/392 vor und nach K6.4.
+- Entscheidungen: D79 neu; Addenda zu D19 (K6.3, K6.4), D24, D25, D41, D44, D65, D67 (zwei), D69 (zwei), D74.
+- Pannen, behoben (alle vor dem Push): BOM in einer Commit-Message (K6.2, neu geschrieben); untracked
+  `ScratchEveryShipBaseline.cs` versehentlich im roten K6.4-Commit (per Amend entfernt); App ohne `CarryTicks` im Core-Commit
+  (per Amend nachgezogen); `LegendText.ContractIds` als Kopie von `MissionText.Source` (A1, in K6.3 zusammengeführt).
+
+**Übergabe für T7.5:**
+- **Schema-Stand:** Schiff 5, **Plan 7** (neu `crates[].loaded`, `missions[].stops[].items[].manual`; Schema 6 wird gelesen),
+  Mission 3 (lehnt `manual` ab), settings.json 2, Look 1, Moduldatei 1.
+- **Release-Notes-Stoff:** Legendenzeile mit Kistenmischung und Ware, Überschrift mit ContractTracker-`#Id`; Markierung
+  bleibt im Lock; Editor sortierbar nach Mission und Ziel, Spalte „Source“ heißt „Mission“; Zustand „geladen“ (Legende
+  geplant → geladen → abgeliefert, Plan und Re-plan halten Geladenes, Kisten sinken ab, Abgeliefertes überlebt den
+  Editor-Plan, jeder Klick ist per Undo zurücknehmbar); „Add to mission“ für vergessene Ziele.
+- **Known issues:** Schiffswechsel löscht „geladen“ (Zurückwechseln stellt es nicht her); das Raten am Aufzug, welche Kiste
+  zu welcher Mission gehört, bleibt spielseitig (die Legende reduziert es auf Ware + Größe + Ziel); die `#Id` ist die von
+  ContractTracker, nicht vom Spiel; eine teilweise geladene Mission ohne Platz für ihren Rest lässt Plan ablehnen (Backlog
+  „Warteeinheit Lieferung“); mit Geladenem legt der Planer nach D41 statt exakt (Backlog „RackAssignment mit Hindernissen“).
+- **Für die Screenshots:** Legende hat neue Zeilen und Überschriften; geladene Kisten mit weißem Rahmen.
+- **Offen:** Nebenbefund K6.3 (Crates-Spalte im Editor `1+1+…`, Legende `8×1`); aus K5 weiter Torlek (K3.1), Hull-C-Gate (K3.3).
+
 ---
 
 ## Phase 8 – nach dem Launch
@@ -2164,6 +2410,11 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
+- Warteeinheit Lieferung statt Mission (K6.4, E1): eine teilweise geladene Mission, deren Rest keinen Platz findet, lässt
+  heute den Editor-Plan ablehnen. Auslöser: eine solche Ablehnung am Aufzug, vor allem nach K6.5 (Ziel an geladener
+  CT-Mission nachgetragen). Aufwand: ≈ 20 Stellen an `Mission.Unplaced`, Formatfeld `stops[].unplaced`, Wartezeilen pro Lieferung.
+- `RackAssignment` mit Hindernissen (K6.4, E2): mit geladenen Kisten legt der Planer nach der D41-Regel statt exakt (D64).
+  Auslöser: Hauler-Report „Fragmentierung bei geladenen Kisten“ bzw. „Re-plan found no better layout“ ohne erkennbaren Grund.
 - `CODE_OF_CONDUCT.md`, sobald es Contributors gibt; Community Standards mahnt es an, ein Solo-Repo braucht es vor dem ersten Hauler nicht (T6.4).
 - ~~App-Icon (`.ico` mit 16/32/48/256 px, `<ApplicationIcon>` im App-csproj), sobald ein Icon vorliegt; aus T6.2 (D48).~~ → K5
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).

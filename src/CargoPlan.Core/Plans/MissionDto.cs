@@ -15,6 +15,6 @@ internal sealed record MissionDto(int Id, bool Unplaced, IReadOnlyList<MissionSt
     public static MissionDto FromMission(Mission mission) => new(
         mission.Id,
         mission.Unplaced,
-        [.. mission.Stops.OrderBy(s => s.Order).Select(MissionStopDto.FromMissionStop)],
+        [.. mission.Stops.OrderBy(s => s.Order).Select(s => MissionStopDto.FromMissionStop(s, withManual: true))],
         mission.Contract is { } contract ? ContractSourceDto.FromContractSource(contract) : null);
 }

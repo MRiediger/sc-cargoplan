@@ -8,10 +8,10 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Plans;
 
 /// <summary>
-/// File format of a plan file (schema version 6, docs/plan-format.md): the missions with their stops and where they came
-/// from (D42), every crate with its mission and item (D68), rack, position (D24), whether it is turned (D71) and whether
-/// it is off the ship (K2.2), and the ContractTracker watermark (D39 addendum). Schema 5 is the same with every crate in
-/// a rack; schema 4 also without turned crates; schema 3 also without items: read, each crate given an item of its
+/// File format of a plan file (schema version 7, docs/plan-format.md): the missions with their stops and where they came
+/// from (D42), every crate with its mission and item (D68), rack, position (D24), whether it is turned (D71), whether it
+/// is off the ship (K2.2) and whether it is loaded (K6.4), and the ContractTracker watermark (D39 addendum). Schema 6 is
+/// the same with nothing loaded; schema 5 also with every crate in a rack; schema 4 also without turned crates; schema 3 also without items: read, each crate given an item of its
 /// mission on reading.
 /// </summary>
 internal sealed record PlanFileDto(
@@ -30,6 +30,8 @@ internal sealed record PlanFileDto(
         CheckItems(Crates, SchemaVersion);
         CheckRotated(Crates, SchemaVersion);
         CheckOffShip(Crates, SchemaVersion);
+        CheckLoaded(Crates, SchemaVersion);
+        CheckManual(Missions, SchemaVersion);
         Crate[] crates = [.. Crates.Select(c => c.ToCrate())];
         var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder)), ship);
 
@@ -165,6 +167,29 @@ internal sealed record PlanFileDto(
         {
             throw new ArgumentException(Invariant(
                 $"A crate for '{offShip.Destination}' says offShip, which is new in schema {PlanFile.NoOffShipSchemaVersion + 1} (the file says {schemaVersion})."), nameof(Crates));
+        }
+    }
+
+    /// <summary>Before schema 7 no item is manual (K6.5); a <c>manual</c> there is a file from elsewhere.</summary>
+    /// <exception cref="ArgumentException">An item breaks that.</exception>
+    internal static void CheckManual(IReadOnlyList<MissionDto> missions, int schemaVersion)
+    {
+        if (schemaVersion <= PlanFile.NotLoadedSchemaVersion
+            && missions.SelectMany(m => m.Stops).SelectMany(s => s.Items.Select(i => (s.Destination, i))).FirstOrDefault(x => x.i.Manual is not null) is ({ } destination, { } manual))
+        {
+            throw new ArgumentException(Invariant(
+                $"Stop '{destination}', {manual.Commodity} says manual, which is new in schema {PlanFile.NotLoadedSchemaVersion + 1} (the file says {schemaVersion})."), nameof(Missions));
+        }
+    }
+
+    /// <summary>Before schema 7 no crate is loaded (K6.4); a <c>loaded</c> there is a file from elsewhere.</summary>
+    /// <exception cref="ArgumentException">A crate breaks that.</exception>
+    internal static void CheckLoaded(IReadOnlyList<CrateDto> crates, int schemaVersion)
+    {
+        if (schemaVersion <= PlanFile.NotLoadedSchemaVersion && crates.FirstOrDefault(c => c.Loaded is not null) is { } loaded)
+        {
+            throw new ArgumentException(Invariant(
+                $"A crate for '{loaded.Destination}' says loaded, which is new in schema {PlanFile.NotLoadedSchemaVersion + 1} (the file says {schemaVersion})."), nameof(Crates));
         }
     }
 

@@ -61,6 +61,42 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     public const string NothingToReplanText = "Re-plan: no cargo on board";
 
+    /// <summary>Re-plan with loaded cargo kept the layout the player let grow: laid in anew, more would wait (K6.4, E2).</summary>
+    public const string ReplanNoBetterText = "Re-plan found no better layout";
+
+    /// <summary>
+    /// What fell into the room a delivery or a removed mission left (K6.4): "2 loaded crates settled", "· 1 planned crate
+    /// moved down"; null if nothing fell.
+    /// </summary>
+    public static string? SettledText((int Loaded, int Planned) settled)
+    {
+        string[] parts =
+        [
+            .. settled.Loaded > 0 ? [$"{settled.Loaded} loaded {(settled.Loaded == 1 ? "crate" : "crates")} settled"] : (string[])[],
+            .. settled.Planned > 0 ? [$"{settled.Planned} planned {(settled.Planned == 1 ? "crate" : "crates")} moved down"] : (string[])[],
+        ];
+        return parts.Length == 0 ? null : string.Join(" · ", parts);
+    }
+
+    /// <summary>
+    /// Missions ContractTracker no longer lists that took rows added by hand along (K6.5): "Gone from ContractTracker:
+    /// #37, with 1 row added by hand"; null if none.
+    /// </summary>
+    public static string? GoneWithManualText(IReadOnlyList<Mission> gone)
+    {
+        string[] parts =
+        [
+            .. gone.Select(m => (Source: MissionText.Source(m.Contract), Rows: m.Items.Count(at => at.Item.Manual)))
+                .Where(m => m.Rows > 0)
+                .Select(m => $"{m.Source}, with {m.Rows} {(m.Rows == 1 ? "row" : "rows")} added by hand"),
+        ];
+        return parts.Length == 0 ? null : "Gone from ContractTracker: " + string.Join("; ", parts);
+    }
+
+    /// <summary>Loaded is this ship's state (K6.4): on other racks the crates are planned again.</summary>
+    public static string LoadedClearedText(int crates, string ship) =>
+        $"{crates} {(crates == 1 ? "crate was" : "crates were")} marked loaded – cleared for {ship}";
+
     /// <summary>Why the header's ↶ and ↷ went away (K2.4): a ship change empties the history.</summary>
     public const string HistoryClearedByShipChangeText = "Undo history cleared by ship change";
 
@@ -436,14 +472,15 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// </summary>
     public void ShowPlan(SavedPlan saved)
     {
+        var loaded = saved.Plan.Crates.Count(c => c.Loaded);
         if (saved.Plan.ShipId != Ship.Id)
         {
-            SetNotice(NoticeSource.Replan, ReplannedText(Ships.Find(saved.Plan.ShipId)?.Name ?? saved.Plan.ShipId, Ship.Name));
+            SetNotice(NoticeSource.Replan, WithLoadedCleared(ReplannedText(Ships.Find(saved.Plan.ShipId)?.Name ?? saved.Plan.ShipId, Ship.Name), loaded));
             saved = LoadPlanner.Replan(saved, Ship);
         }
         else if (saved.CrateCap != CrateCap.Of(Ship))
         {
-            SetNotice(NoticeSource.Replan, RacksReplannedText(Ship.Name));
+            SetNotice(NoticeSource.Replan, WithLoadedCleared(RacksReplannedText(Ship.Name), loaded));
             saved = LoadPlanner.Replan(saved, Ship);
         }
         else
@@ -465,6 +502,8 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             SetNotice(NoticeSource.ContractTracker, null);
         }
     }
+
+    private string WithLoadedCleared(string text, int loaded) => loaded == 0 ? text : $"{text} {LoadedClearedText(loaded, Ship.Name)}.";
 
     /// <summary>
     /// The question before <see cref="ChangeShip"/> (D59), for the overlay's dialog; null = change at once (no mission in
@@ -498,13 +537,14 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
         // Planned before the switch: the scene is built once, for the new ship with its plan.
         var replanned = Saved is { } saved ? LoadPlanner.Replan(saved, ship) : null;
+        var loaded = Plan?.Crates.Count(c => c.Loaded) ?? 0;
         _recentShips = ShipChoices.Remember(_recentShips, Ship.Id, ship.Id);
         _shipSelection = null;
         Ship = ship;
 
         // Before the scene: the view takes the new ship's camera, or its default camera fitted (D61, K1.2).
         OnPropertyChanged(nameof(Camera));
-        SetNotice(NoticeSource.Ship, null);
+        SetNotice(NoticeSource.Ship, loaded == 0 ? null : LoadedClearedText(loaded, ship.Name));
         SetNotice(NoticeSource.Replan, null);
 
         // The snapshots are the old ship's layouts (K2.4, Martin): going back would have to turn the ship back too.
@@ -569,6 +609,16 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         if (!ReferenceEquals(applied, current))
         {
             Saved = applied;
+            HashSet<int> left = [.. applied.Missions.Select(m => m.Id)];
+            string[] said =
+            [
+                .. new[] { GoneWithManualText([.. current.Missions.Where(m => !left.Contains(m.Id))]), SettledText(LoadPlanner.SettledCrates(current.Plan, applied.Plan)) }
+                    .OfType<string>(),
+            ];
+            if (said.Length > 0)
+            {
+                SetNotice(NoticeSource.Move, string.Join(" · ", said));
+            }
         }
 
         UpdateDeletedContracts();
@@ -609,7 +659,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     {
         // Unreachable without a plan: the editor has no mission rows and the legend no lines then.
         var saved = Saved ?? throw new InvalidOperationException(NoPlanText);
-        Step(LoadPlanner.RemoveMission(saved, Ship, missionId));
+        var removed = LoadPlanner.RemoveMission(saved, Ship, missionId);
+        Step(removed);
+        SetNotice(NoticeSource.Move, SettledText(LoadPlanner.SettledCrates(saved.Plan, removed.Plan)));
     }
 
     /// <summary>
@@ -629,6 +681,13 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         }
 
         var replanned = LoadPlanner.Replan(saved, Ship);
+        if (ReferenceEquals(replanned, saved) && saved.Plan.Crates.Any(c => c.Loaded))
+        {
+            SetNotice(NoticeSource.Replan, null);
+            SetNotice(NoticeSource.Move, ReplanNoBetterText);
+            return;
+        }
+
         var moved = LoadPlanner.MovedCrates(saved.Plan, replanned.Plan);
         var changed = moved > 0 || replanned.Missions.Count(m => m.Unplaced) < saved.Missions.Count(m => m.Unplaced);
         if (changed)
@@ -737,10 +796,10 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>
     /// Ticks a stop off, or back after a misclick: the whole stop, split parts and every mission included (D16); run by a
-    /// click on a crate in the ship view, where the station is the unit of unloading at the elevator (D69). Ticking back
-    /// is refused once another crate took a cell of the stop (D24 addendum); the reason goes to the notice line, like a
-    /// refused move. A method parameter makes the generator write an <c>IRelayCommand&lt;string&gt;</c>; the view passes
-    /// the destination.
+    /// click on a crate in the ship view, where the station is the unit of unloading at the elevator (D69), loaded or not
+    /// (K6.4). Back, it is planned again, laid in elsewhere where its cells were taken; refused only without room, the
+    /// reason on the notice line. A step (K6.4). A method parameter makes the generator write an
+    /// <c>IRelayCommand&lt;string&gt;</c>; the view passes the destination.
     /// </summary>
     // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand#command-parameters
     [RelayCommand]
@@ -753,23 +812,29 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     }
 
     /// <summary>
-    /// Ticks a legend line off, or back: one mission's crates for one destination (B6, D69), the fine control next to the
-    /// view's whole stop. Refused like <see cref="ToggleDelivered"/>.
+    /// A legend line clicked: one mission's crates for one destination (B6, D69) go planned → loaded → delivered → planned
+    /// (K6.4, D79). Loaded is set here only: the crates are on board in the game. Back to planned like
+    /// <see cref="ToggleDelivered"/>. A step.
     /// </summary>
     [RelayCommand]
     private void ToggleLine(LegendEntry line)
     {
         // Unreachable without a plan: the legend has no lines then.
         var plan = Plan ?? throw new InvalidOperationException(NoPlanText);
-        Tick(() => LoadPlanner.SetDelivered(plan, Ship, line.Destination, line.Mission, !line.Delivered));
+        Tick(() => line.Delivered ? LoadPlanner.SetDelivered(plan, Ship, line.Destination, line.Mission, false)
+            : line.Loaded ? LoadPlanner.SetDelivered(plan, Ship, line.Destination, line.Mission, true)
+            : LoadPlanner.SetLoaded(plan, Ship, line.Destination, line.Mission, true));
     }
 
+    /// <summary>A change of state (K6.4): a step of the undo; what fell into the room left says so.</summary>
     private void Tick(Func<LoadPlan> tick)
     {
+        var before = Plan ?? throw new InvalidOperationException(NoPlanText);
         try
         {
-            Saved = WithCrates(tick());
-            SetNotice(NoticeSource.Move, null);
+            var after = tick();
+            Step(WithCrates(after));
+            SetNotice(NoticeSource.Move, SettledText(LoadPlanner.SettledCrates(before, after)));
         }
         catch (PlanException ex)
         {
@@ -809,8 +874,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>
     /// A player's action on the plan (K2.4): moves, legend drags and turns, split and merge, re-plan, the editor's Plan,
-    /// deleting a mission, discard. Shown and saved like every change, and recorded so it can be undone; a new step drops
-    /// what was undone. Ticks and syncs set <see cref="Saved"/> directly: they are no steps and carry over instead.
+    /// deleting a mission, discard, and every change of a delivery's state (K6.4). Shown and saved like every change, and
+    /// recorded so it can be undone; a new step drops what was undone. Syncs set <see cref="Saved"/> directly: they are no
+    /// steps and carry over instead.
     /// </summary>
     private void Step(SavedPlan next)
     {
@@ -831,8 +897,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>
     /// Goes back one step (K2.4): the header's ↶ and the undo hotkey. The plan before the step comes back, with what
-    /// happened since that is no step: contracts synced since come in again, ticks changed since carry over
-    /// (<see cref="Restored"/>).
+    /// happened since that is no step: contracts synced since come in again (<see cref="Restored"/>).
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo()
@@ -857,16 +922,14 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>
     /// The entry's plan with what happened since its reference that is no step (Martin: restore, then sync incrementally):
-    /// Core's <c>Resync</c> places the contracts synced since again, <c>CarryTicks</c> the ticks changed since; a tick back
-    /// without room goes to the notice line like a refused tick.
+    /// Core's <c>Resync</c> places the contracts synced since again. The state of every delivery is the snapshot's
+    /// (K6.4, D74 addendum): a change of state is a step of its own.
     /// </summary>
     private SavedPlan Restored(PlanHistory.Entry entry, SavedPlan current)
     {
-        var resynced = ContractSync.Resync(entry.Target, entry.Reference, current, Ship, _present);
-        var (restored, refused) = LoadPlanner.CarryTicks(resynced, entry.Reference, current, Ship);
         SetNotice(NoticeSource.Replan, null);
-        SetNotice(NoticeSource.Move, refused.Count == 0 ? null : TickRefusedPrefix + string.Join(" · ", refused));
-        return restored;
+        SetNotice(NoticeSource.Move, null);
+        return ContractSync.Resync(entry.Target, entry.Reference, current, Ship, _present);
     }
 
     private void HistoryChanged()

@@ -15,7 +15,7 @@ doesn't mind.
 
 ```json
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
   "contractTrackerWatermark": 37,
@@ -54,7 +54,7 @@ fields are an error.
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `6`. Files with `1` to `5` are still read, see [Older plan files](#older-plan-files). |
+| `schemaVersion` | number | `7`. Files with `1` to `6` are still read, see [Older plan files](#older-plan-files). |
 | `shipId` | string | The ship the plan is for, e.g. `"hull_a"` ([ship files](ship-format.md)). |
 | `fillOrder` | string | `"bowFirst"` or `"sternFirst"`: which end of a rack's length crates fill from, when planned and when laid out again, e.g. after a move. Chosen as **Fill order** in the editor. Part of the plan, so everyone loading it sees the same layout. |
 | `contractTrackerWatermark` | number | The highest ContractTracker id taken into the plan, `0` for none. Captures above it are new; it only rises. |
@@ -68,7 +68,7 @@ fields are an error.
 |---|---|---|
 | `id` | number | 1 or more, unique in the file. Crates name their mission by it. |
 | `unplaced` | boolean | `true` if the mission didn't fit when it came; it then has no crates. The overlay places it as soon as it fits, at the next sync with ContractTracker. |
-| `stops` | array | Its stops as in a [mission file](mission-format.md): `destination` and `items` with `commodity`, `scu`, `maxCrateSize` and optionally `crates` and `pickup`. One stop per destination; the same destination in two missions has the same spelling. |
+| `stops` | array | Its stops as in a [mission file](mission-format.md): `destination` and `items` with `commodity`, `scu`, `maxCrateSize` and optionally `crates` and `pickup`, here also `manual` (schema 7, written only as `true`): the item was added to this ContractTracker mission or changed by hand in the editor and stays with it until ContractTracker no longer lists the mission. `manual` in a schema 6 file is an error. One stop per destination; the same destination in two missions has the same spelling. |
 | `contract` | object | Optional: the ContractTracker capture it came from. Missing for missions typed in the editor or read from a mission file. |
 
 Missions to the same destination share one stop at the cargo lift: one tick. The legend shows it once, or once per
@@ -92,11 +92,12 @@ pickup list when items name their pickup.
 | `crateSize` | number | 1, 2, 4, 8, 16, 24 or 32 (SCU). Unturned: 1 = 1×1×1 cells, 2 = 2×1×1, 4 = 2×2×1, 8 = 2×2×2, 16 = 4×2×2, 24 = 6×2×2, 32 = 8×2×2 (length × width × stack). |
 | `rackId` | string | A rack `id` of the ship; `""` for a crate that is `offShip`. |
 | `position` | array | `[length, width, stack]`, the crate's corner cell counted from 0 at the rack's corner: length along the rack, width across it, stack away from the plate. The whole crate must lie inside the rack's `grid`. `[0, 0, 0]` and not checked for a crate that is `offShip`. |
-| `delivered` | boolean | `true` once its delivery is ticked off: a stop (every mission's crates for it) or one mission's crates for it (a legend line). A delivered crate is off the ship: its cells are free for new crates, and it carries nothing. Ticking back works until another crate takes one of its cells. |
+| `delivered` | boolean | `true` once its delivery is ticked off: a stop (every mission's crates for it) or one mission's crates for it (a legend line). A delivered crate is off the ship: its cells are free for new crates, and it carries nothing; what lay on it settles straight down. Ticked back, it goes back into its cells while they are free, else into free cells like new cargo, or is refused if there is no room. |
 | `mission` | number | The `id` of the mission the crate belongs to; not an `unplaced` one. |
 | `item` | number | Which item of its mission the crate belongs to, counted from 0 over the mission's stops and their items in file order. Its destination and commodity are the crate's. Two items of one kind (e.g. from two pickups) keep their own crates. |
 | `rotated` | boolean | Optional, written only as `true`: the crate is turned 90° about its rack's stack axis, so length and width swap (a turned 2 is 1×2×1, a turned 32 is 2×8×2). Only 2, 16, 24 and 32 turn; `true` on a 1, 4 or 8 is an error. Missing means unturned (D71). |
 | `offShip` | boolean | Optional, written only as `true`: the crate was delivered before the plan was planned anew for another ship or for racks that changed, so it was never on this ship. It lies in no rack (`rackId` `""`), takes no room and isn't drawn. Needs `delivered`. Ticked back, it is laid into free cells like new cargo, or refused if there is no room. |
+| `loaded` | boolean | Optional, written only as `true`: its delivery is marked loaded, on board in the game (K6.4). The planner never moves it (Plan, Re-plan, sync, making room); only the player does, and it settles straight down when the cargo below it goes. Never together with `delivered`, never `offShip`: both are errors. Planned anew for another ship or for racks that changed, it is no longer loaded. |
 
 ### Warning
 
@@ -116,8 +117,11 @@ red; the planner and the overlay's moves never make them.
 
 ## Older plan files
 
-All older versions are read and saved as schema 6 right after loading; moves and ticks stay. An app from before
-schema 6 refuses a schema 6 file, so it never draws delivered cargo into a rack it was never in.
+All older versions are read and saved as schema 7 right after loading; moves and ticks stay. An app from before
+schema 7 refuses a schema 7 file, so it never plans loaded cargo anew.
+
+- **Schema 6** (before cargo could be loaded) has no `loaded` and no `manual`: nothing is loaded, no item was added by
+  hand. Either in a schema 6 file is an error.
 
 - **Schema 5** (before cargo could be off the ship) has no `offShip`: every crate lies in a rack. `offShip` in a
   schema 5 file is an error.
@@ -140,7 +144,7 @@ schema 6 refuses a schema 6 file, so it never draws delivered cargo into a rack 
 
 A plan file whose `shipId` is not the overlay's ship loads anyway: its missions are planned anew for the
 overlay's ship, as a ship change in the overlay header does (D59). Missions, ContractTracker ids, the watermark, the fill
-order and the ticks stay; crate positions and manual moves don't. Each ticked delivery (a legend line) stays ticked
+order and the ticks stay; crate positions, manual moves and `loaded` don't. Each ticked delivery (a legend line) stays ticked
 and goes `offShip`: it takes no room on the new ship, so only the cargo still on board is planned. If the missions don't fit as a
 whole plan, they go in mission by mission and the rest waits as "doesn't fit" in the legend. An amber line says
 "Plan was made for CRUS C2 Hercules, replanned for MISC Hull A.", and the next save writes the plan for the new ship.

@@ -284,11 +284,14 @@ internal static class MoveResolution
 
     // --- Stage 3: the target rack laid out anew ---
 
-    /// <summary>The rack's cargo on board and the crates laid out together, in plan order (<see cref="CrateLayout.Lay"/>); null if they don't fit.</summary>
+    /// <summary>
+    /// The rack's cargo on board and the crates laid out together, in plan order (<see cref="CrateLayout.Lay"/>), around
+    /// the rack's loaded crates, which stay where they lie (K6.4); null if they don't fit.
+    /// </summary>
     private static Board? Relayout(Board board, Rack rack, IReadOnlyList<int> crates)
     {
-        int[] all = [.. board.IndicesIn(rack).Concat(crates).Order()];
-        var laid = board.Lay(rack, [], all);
+        int[] all = [.. board.IndicesIn(rack).Where(i => !board.Slots[i]!.Loaded).Concat(crates).Order()];
+        var laid = board.Lay(rack, board.Loaded(rack), all);
         return laid is null ? null : board.Put(rack, all.Zip(laid.Poses), laid.GaveUp);
     }
 
@@ -298,7 +301,8 @@ internal static class MoveResolution
     /// Room in the rack by taking other destinations' crates out: destinations with the fewest SCU there first (name on a
     /// tie), largest crates first; the shortest such list after which the rack lays out with the crates and every crate
     /// taken out finds a place in another rack around the cargo there (<see cref="PlaceOut"/>). One level: nothing taken
-    /// out displaces anything. Adds "Moved 2 crates for X to rack 1 to make room" per destination; null without such a list.
+    /// out displaces anything, and loaded crates are never taken out (K6.4). Adds "Moved 2 crates for X to rack 1 to make
+    /// room" per destination; null without such a list.
     /// </summary>
     private static Board? Displace(Board board, Rack rack, IReadOnlyList<int> crates, List<string> notices)
     {
@@ -306,7 +310,7 @@ internal static class MoveResolution
         int[] others =
         [
             .. board.IndicesIn(rack)
-                .Where(i => !moving.Contains(board.Slots[i]!.Destination))
+                .Where(i => !moving.Contains(board.Slots[i]!.Destination) && !board.Slots[i]!.Loaded)
                 .GroupBy(i => board.Slots[i]!.Destination)
                 .OrderBy(g => g.Sum(i => (int)board.Slots[i]!.CrateSize))
                 .ThenBy(g => g.Key, StringComparer.Ordinal)
@@ -515,6 +519,9 @@ internal static class MoveResolution
         /// <summary>The rack's crates still on board and not lifted; delivered cargo is off the ship (D24 addendum).</summary>
         public Crate[] OnBoard(Rack rack) => [.. IndicesIn(rack).Select(i => Slots[i]!)];
 
+        /// <summary>The rack's loaded crates not lifted: fixed for every layout of a move (K6.4).</summary>
+        public Crate[] Loaded(Rack rack) => [.. OnBoard(rack).Where(c => c.Loaded)];
+
         public bool[,,] Taken(Rack rack)
         {
             var grid = rack.Grid;
@@ -563,24 +570,31 @@ internal static class MoveResolution
                 stage, null, notices);
 
         /// <summary>
-        /// The lowest crate of the rack (plan order on a tie) with a bottom cell above nothing (D24); null if none floats.
-        /// A crate's own cells never lie below its bottom, so one grid of taken cells answers for every crate.
+        /// The lowest crate of the rack (plan order on a tie) with a bottom cell above nothing (D24), but none of
+        /// <paramref name="stuck"/>; null if none floats. A crate's own cells never lie below its bottom, so one grid of taken
+        /// cells answers for every crate.
         /// </summary>
-        private int? FirstFloating(Rack rack)
+        private int? FirstFloating(Rack rack, IReadOnlySet<int> stuck)
         {
             var taken = Taken(rack);
             return IndicesIn(rack)
+                .Where(i => !stuck.Contains(i))
                 .Where(i => Slots[i]!.Position.Stack > 0 && Slots[i]!.Bottom.Any(c => !Inside(rack, c) || !taken[c.Length, c.Width, c.Stack - 1]))
                 .OrderBy(i => Slots[i]!.Position.Stack).ThenBy(i => i)
                 .Select(i => (int?)i)
                 .FirstOrDefault();
         }
 
-        /// <summary>Every floating crate of the rack settled, lowest first, until none floats; null if one finds no place.</summary>
+        /// <summary>
+        /// Every floating crate of the rack settled, lowest first, until none floats; null if one finds no place. A loaded
+        /// crate only drops straight down (K6.4): where it touches cargo with part of its bottom it stays, marked by
+        /// <c>Validate</c>, and is passed by from then on.
+        /// </summary>
         private Board? Settle(Rack rack)
         {
             var board = this;
-            while (board.FirstFloating(rack) is { } index)
+            HashSet<int> stuck = [];
+            while (board.FirstFloating(rack, stuck) is { } index)
             {
                 var floating = board.Slots[index]!;
                 board.Slots[index] = null;
@@ -596,6 +610,11 @@ internal static class MoveResolution
                 if (fall > 0 && Rests(taken, [(floating.CrateSize, floating.Rotated, Below(floating.Position, fall))]))
                 {
                     board.Slots[index] = floating with { Position = Below(floating.Position, fall) };
+                }
+                else if (floating.Loaded)
+                {
+                    board.Slots[index] = floating with { Position = Below(floating.Position, fall) };
+                    stuck.Add(index);
                 }
                 else if ((FreeSpot(board.Copy(), self) ?? Relayout(board.Copy(), rack, [index])) is { } placed)
                 {

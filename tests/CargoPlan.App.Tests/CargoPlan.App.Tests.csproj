@@ -65,4 +65,10 @@
                       LogicalName="xaml/SettingsWindow.xaml" Link="Xaml\SettingsWindow.xaml" />
   </ItemGroup>
 
+  <!-- The editor's markup, read by MissionEditorXamlTests: which columns sort, and through whom (K6.3). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\CargoPlan.App\MissionEditorWindow.xaml"
+                      LogicalName="xaml/MissionEditorWindow.xaml" Link="Xaml\MissionEditorWindow.xaml" />
+  </ItemGroup>
+
 </Project>

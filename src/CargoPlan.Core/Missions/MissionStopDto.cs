@@ -21,6 +21,7 @@ internal sealed record MissionStopDto(string Destination, IReadOnlyList<MissionI
         return new MissionStop(Destination, order, [.. Items.Select(i => i.ToMissionItem(Destination))]);
     }
 
-    public static MissionStopDto FromMissionStop(MissionStop stop) =>
-        new(stop.Destination, [.. stop.Items.Select(MissionItemDto.FromMissionItem)]);
+    /// <param name="withManual">A plan file (K6.5); a mission file never says manual.</param>
+    public static MissionStopDto FromMissionStop(MissionStop stop, bool withManual) =>
+        new(stop.Destination, [.. stop.Items.Select(i => MissionItemDto.FromMissionItem(i, withManual))]);
 }

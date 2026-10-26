@@ -41,7 +41,8 @@ public class UndoTimingTests(ITestOutputHelper output)
 
     /// <summary>
     /// Undo and redo with everything they do (K2.4): after a move a sync brought a contract and a stop was ticked, so every
-    /// undo places the contract again (Resync) and carries the tick (CarryTicks), and sets the plan (validation, scene).
+    /// undo first takes the tick back (a step since K6.4), and an undo after a sync places the contract again (Resync) and
+    /// sets the plan (validation, scene).
     /// Martin's bound: under 16 ms, else a sync clears the history.
     /// </summary>
     [Fact]

@@ -44,8 +44,25 @@ public sealed partial class MissionRow : ObservableObject
     /// <summary>The mission the row belongs to in the overlay's plan (D42); null for a row not planned yet.</summary>
     public int? MissionId { get; init; }
 
-    /// <summary>Where the row came from: "ct 37–38" for a ContractTracker capture, empty if typed (T5.4).</summary>
+    /// <summary>Where the row came from: "#37–38" for a ContractTracker capture, empty if typed (T5.4); the Mission column.</summary>
     public string Source { get; init; } = "";
+
+    /// <summary>The capture's first ContractTracker id, the Mission column's sort key (K6.3); null if typed.</summary>
+    public long? ContractId { get; init; }
+
+    /// <summary>
+    /// Added to a ContractTracker mission or changed by hand (K6.5): stays with the mission until ContractTracker no
+    /// longer lists it. Set by the editor, never for a typed row.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MissionLabel))]
+    public partial bool Manual { get; set; }
+
+    /// <summary>The Mission column: "#37–38", "#37–38 ✎" for a row added or changed by hand (K6.5), empty if typed.</summary>
+    public string MissionLabel => Manual ? Source + ManualMark : Source;
+
+    /// <summary>What marks a manual row in the Mission column.</summary>
+    public const string ManualMark = " ✎";
 
     /// <summary>
     /// The max crate size was assumed by the import (the contract named none); the legend shows "4 SCU?". Picking a size

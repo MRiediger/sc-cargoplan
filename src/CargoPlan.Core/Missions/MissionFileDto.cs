@@ -34,14 +34,22 @@ internal sealed record MissionFileDto(
     }
 
     /// <exception cref="ArgumentException">A value violates the domain rules.</exception>
-    public IReadOnlyList<MissionStop> ToMissionStops() =>
-        CheckedRoute([.. Stops.Select((s, index) => s.ToMissionStop(index + 1))]);
+    /// <exception cref="ArgumentException">A stop or item is broken, or an item says manual, which only plan files do (K6.5).</exception>
+    public IReadOnlyList<MissionStop> ToMissionStops()
+    {
+        if (Stops.SelectMany(s => s.Items.Select(i => (s.Destination, i))).FirstOrDefault(x => x.i.Manual is not null) is ({ } destination, { } manual))
+        {
+            throw new ArgumentException($"Stop '{destination}', {manual.Commodity}: 'manual' belongs to a plan file, not to a mission file.", nameof(Stops));
+        }
+
+        return CheckedRoute([.. Stops.Select((s, index) => s.ToMissionStop(index + 1))]);
+    }
 
     /// <summary>Always with the fill order: an export says how its rows were meant to be loaded (D72).</summary>
     public static MissionFileDto FromMissionStops(IEnumerable<MissionStop> stops, Models.FillOrder fillOrder) =>
         new(
             MissionFileReader.CurrentSchemaVersion,
-            [.. stops.OrderBy(s => s.Order).Select(MissionStopDto.FromMissionStop)],
+            [.. stops.OrderBy(s => s.Order).Select(s => MissionStopDto.FromMissionStop(s, withManual: false))],
             FillOrderJson.Text(fillOrder));
 
     /// <summary>The route rules of both schema versions. Array order is the route: first stop = Order 1.</summary>

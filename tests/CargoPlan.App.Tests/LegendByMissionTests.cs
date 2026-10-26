@@ -10,7 +10,7 @@ namespace CargoPlan.App.Tests;
 
 /// <summary>
 /// The legend by mission (B6, D69): a header "From A, B" or "From ?" over each mission once any mission has a pickup,
-/// a line "To X · SCU" per mission and destination, coloured by destination (D29). A click on a line ticks that line;
+/// a line "To X · SCU (mix) · commodity" per mission and destination, coloured by destination (D29). A click on a line ticks that line;
 /// a click on a crate in the ship view still ticks the whole stop. Without any pickup the lines stand without headers.
 /// </summary>
 public class LegendByMissionTests
@@ -85,7 +85,7 @@ public class LegendByMissionTests
         // ct 4 (B6 finding): Waste is delivered to Everus Harbor, where the Stims are collected; the legend shows both.
         var waste = HurstonOverlay().Scene.Legend.Single(e => e.Mission == 3);
 
-        waste.Label.Should().Be("To Everus Harbor · 8 SCU");
+        waste.Label.Should().Be("To Everus Harbor · 8 SCU (8×1) · Waste");
         waste.Header.Should().Be("From ?");
     }
 
@@ -125,7 +125,8 @@ public class LegendByMissionTests
         var legend = Legend(TestPlans.SplitAndShared());
 
         legend.Should().OnlyContain(e => e.Header == null);
-        legend.Select(e => e.Label).Should().Equal("To Riker · 20 SCU", "To Shubin · 8 SCU", "To Orison · 14 SCU", "To Lorville · 12 SCU");
+        legend.Select(e => e.Label).Should().Equal(
+            "To Riker · 20 SCU (4×4) Titanium, (2×2) Quartz", "To Shubin · 8 SCU · Agricium", "To Orison · 14 SCU (3×4) Laranite, (2×1) Gold", "To Lorville · 12 SCU (6×2) · Tungsten");
     }
 
     // --- Lines ---
@@ -156,31 +157,40 @@ public class LegendByMissionTests
             new Mission(1, [new("Riker", 1, [Item("Titanium", 8, CrateSize.Eight, "Lorville")])], new ContractSource([1], CrateSizeAssumed: true)),
             new Mission(2, [new("Riker", 1, [Item("Quartz", 4, CrateSize.Four, "Lorville")])]));
 
-        Legend(saved).Select(e => e.Label).Should().Equal("To Riker · 8 SCU · 8 SCU?", "To Riker · 4 SCU");
+        Legend(saved).Select(e => e.Label).Should().Equal("To Riker · 8 SCU · Titanium · 8 SCU?", "To Riker · 4 SCU · Quartz");
     }
 
     // --- Ticks: the line is mission + destination, the ship view's click the stop (D69) ---
 
+    /// <summary>A line ticked off in the legend: two clicks since K6.4 (planned → loaded → delivered).</summary>
+    private static void TickLine(OverlayViewModel viewModel, int mission, string? destination = null)
+    {
+        for (var click = 0; click < 2; click++)
+        {
+            viewModel.ToggleLineCommand.Execute(viewModel.Scene.Legend.Single(e => e.Mission == mission && (destination is null || e.Destination == destination)));
+        }
+    }
+
     [Fact]
-    public void A_click_on_a_line_ticks_only_that_line()
+    public void Two_clicks_on_a_line_tick_only_that_line()
     {
         var viewModel = new OverlayViewModel(HullA, Catalog);
         viewModel.ShowPlan(TwoRikers());
 
-        viewModel.ToggleLineCommand.Execute(viewModel.Scene.Legend.Single(e => e.Mission == 2));
+        TickLine(viewModel, 2);
 
         viewModel.Scene.Legend.Select(e => (e.Mission, e.Delivered)).Should().Equal((1, false), (2, true));
         viewModel.Plan!.Crates.Where(c => c.Delivered).Should().OnlyContain(c => c.Mission == 2);
     }
 
     [Fact]
-    public void A_second_click_on_the_line_ticks_it_back()
+    public void A_third_click_on_the_line_brings_it_back_to_planned()
     {
         var viewModel = new OverlayViewModel(HullA, Catalog);
         viewModel.ShowPlan(TwoRikers());
         var before = viewModel.Plan!.Crates;
 
-        viewModel.ToggleLineCommand.Execute(viewModel.Scene.Legend.Single(e => e.Mission == 2));
+        TickLine(viewModel, 2);
         viewModel.ToggleLineCommand.Execute(viewModel.Scene.Legend.Single(e => e.Mission == 2));
 
         viewModel.Plan!.Crates.Should().Equal(before);
@@ -289,7 +299,7 @@ public class LegendByMissionTests
     public void Ticked_crates_are_never_in_a_box()
     {
         var viewModel = TwoPickupMissions();
-        viewModel.ToggleLineCommand.Execute(Line(viewModel, 1, "Shubin"));
+        TickLine(viewModel, 1, "Shubin");
 
         Line(viewModel, 1, "Shubin").Crates.Should().BeEmpty();
         Header(viewModel, 1).MissionCrates.Should().OnlyContain(c => !c.Delivered).And.OnlyContain(c => c.Destination == "Riker");
@@ -362,7 +372,7 @@ public class LegendByMissionTests
     {
         var viewModel = new OverlayViewModel(HullA, Catalog);
         viewModel.ShowPlan(TwoRikers());
-        viewModel.ToggleLineCommand.Execute(viewModel.Scene.Legend.Single(e => e.Mission == 2));
+        TickLine(viewModel, 2);
 
         viewModel.ShipChangeQuestion(Catalog.Get("c2_hercules")).Should().EndWith(Environment.NewLine + "1 delivery already ticked – ticks stay.");
     }
@@ -372,7 +382,7 @@ public class LegendByMissionTests
     {
         var viewModel = new OverlayViewModel(HullA, Catalog);
         viewModel.ShowPlan(TwoRikers());
-        viewModel.ToggleLineCommand.Execute(viewModel.Scene.Legend.Single(e => e.Mission == 2));
+        TickLine(viewModel, 2);
 
         viewModel.ChangeShip(Catalog.Get("c2_hercules"));
 

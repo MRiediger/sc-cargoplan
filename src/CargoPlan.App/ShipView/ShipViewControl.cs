@@ -44,6 +44,8 @@ public sealed class ShipViewControl : FrameworkElement
 
     private static readonly Pen FramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Frame), 1) { DashStyle = DashStyles.Dash });
     private static readonly Pen FreeCellPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.FreeEdge), CrateEdgeWidth));
+
+    private static readonly Pen LoadedPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.LoadedEdge), MissionPalette.LoadedEdgeWidth));
     private static readonly Pen RackPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 1));
 
     // The bow wedge (D52): faces with a trace of fill and rack edges, dashed lines alone were hard to see in the game.
@@ -299,7 +301,8 @@ public sealed class ShipViewControl : FrameworkElement
 
     /// <summary>
     /// False while the overlay is locked: wheel, drags and hover do nothing. Click-through alone isn't enough, the
-    /// wheel can go to the focused window instead of the one under the cursor (D15).
+    /// wheel can go to the focused window instead of the one under the cursor (D15). The selection stays: at the
+    /// elevator the lock is the normal state and the selection what is needed there (K6.2, D25 addendum).
     /// </summary>
     public bool IsNavigationEnabled
     {
@@ -310,13 +313,21 @@ public sealed class ShipViewControl : FrameworkElement
             if (!value)
             {
                 ShowToolTip(null);
-                ReleaseMouseCapture();
 
-                // Locked at the lift means loading, not planning: a selection left over must not move with the next drag.
-                Pick(CrateSelection.Empty);
+                // A running drag ends without a move: releasing the capture clears it (OnLostMouseCapture). A drag that
+                // never got the capture gets no LostMouseCapture, so it ends here, or a later button up would run it.
+                ReleaseMouseCapture();
+                if (_drag is not null)
+                {
+                    _drag = null;
+                    InvalidateVisual();
+                }
             }
         }
     } = true;
+
+    /// <summary>A drag (move, selection or legend line) runs; the lock ends it without a move (K6.2).</summary>
+    public bool IsDragging => _drag is not null;
 
     /// <summary>
     /// Starts the right drag of a legend line or a mission's header (D25, B6): the window's legend calls it on a right
@@ -411,7 +422,12 @@ public sealed class ShipViewControl : FrameworkElement
                         dc.PushOpacity(DraggedOpacity);
                     }
 
-                    var (fill, pen) = box.Box.Fill == CellFill.Free ? (null, FreeCellPen) : (paint.Fill(box.Box), paint.CrateEdge);
+                    var (fill, pen) = box.Box.Fill switch
+                    {
+                        CellFill.Free => (null, FreeCellPen),
+                        CellFill.Loaded => (paint.Fill(box.Box), LoadedPen),
+                        _ => (paint.Fill(box.Box), paint.CrateEdge),
+                    };
                     Dimmed(dc, SelectionFocus.Dims(box.Box.Crate, focus), () =>
                     {
                         foreach (var face in box.Faces)

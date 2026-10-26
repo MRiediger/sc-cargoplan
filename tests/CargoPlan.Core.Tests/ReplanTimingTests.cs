@@ -52,6 +52,46 @@ public class ReplanTimingTests(ITestOutputHelper output)
     }
 
     /// <summary>
+    /// What a re-plan costs with loaded cargo (K6.4, D79): every fixture with its first stop in the legend loaded, laid in
+    /// around it (<c>PlanKeeping</c>). Fewer crates to lay, but no exact assignment: the table says how much waits, whether
+    /// the old layout was kept (E2) and how many racks' stacking searches gave up (D58), which must stay 0.
+    /// </summary>
+    [Fact]
+    public void Every_fixture_with_its_first_stop_loaded()
+    {
+        output.WriteLine("| Case | first ms | median ms | waiting SCU | kept old layout | gave up |");
+        var gaveUp = 0;
+        foreach (var (name, ship, stops) in Cases())
+        {
+            SavedPlan plain;
+            try
+            {
+                plain = SavedPlan.FromStops(stops, LoadPlanner.Plan(ship, stops.ToStops()), CrateCap.Of(ship));
+            }
+            catch (PlanException)
+            {
+                continue;
+            }
+
+            var first = plain.Plan.Route[0];
+            var mission = plain.Plan.Crates.First(c => c.Destination == first).Mission;
+            var saved = new SavedPlan(plain.Missions, LoadPlanner.SetLoaded(plain.Plan, ship, first, mission, true), plain.CrateCap, plain.Watermark);
+
+            var watch = Stopwatch.StartNew();
+            var replanned = LoadPlanner.Replan(saved, ship);
+            var ms = watch.Elapsed.TotalMilliseconds;
+            var median = Median(() => LoadPlanner.Replan(saved, ship));
+            var (around, _) = LoadPlanner.PlanKeeping(saved, ship, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], saved.Plan.FillOrder);
+            var racks = around.Plan.Warnings.Count(w => w.Message.Contains("too many crates to rearrange", StringComparison.Ordinal));
+            gaveUp += racks;
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                $"| {name} | {ms:F1} | {median:F1} | {around.Missions.Where(m => m.Unplaced).Sum(m => m.TotalScu)} | {ReferenceEquals(replanned, saved)} | {racks} |"));
+        }
+
+        gaveUp.Should().Be(0);
+    }
+
+    /// <summary>
     /// What the searches count, machine-independent (K3.2, D71): the nodes of the rack assignment (D64) and, per loaded rack,
     /// the steps of its final layout search and whether it gave up (D58). Measured before and after crates turn.
     /// </summary>

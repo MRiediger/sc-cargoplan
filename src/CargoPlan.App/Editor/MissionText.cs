@@ -14,8 +14,8 @@ public static class MissionText
     }
 
     /// <summary>
-    /// "ct 36", "ct 37–38" for consecutive ids, "ct 36, 40" otherwise: where ContractTracker shows the capture. Empty for
-    /// a typed mission.
+    /// "#36", "#37–38" for consecutive ids, "#36–37, 40" otherwise: ContractTracker's <c>Contracts.Id</c>, as its window
+    /// shows the capture. The one spelling for editor, legend header and notices (K6.1, K6.3). Empty for a typed mission.
     /// </summary>
     public static string Source(ContractSource? source)
     {
@@ -24,8 +24,20 @@ public static class MissionText
             return "";
         }
 
-        long[] ids = [.. source.ContractIds.Order()];
-        var consecutive = ids.Length > 1 && ids.Zip(ids.Skip(1)).All(p => p.Second == p.First + 1);
-        return consecutive ? Invariant($"ct {ids[0]}–{ids[^1]}") : Invariant($"ct {string.Join(", ", ids)}");
+        long[] ids = [.. source.ContractIds.Distinct().Order()];
+        List<string> runs = [];
+        for (var start = 0; start < ids.Length;)
+        {
+            var end = start;
+            while (end + 1 < ids.Length && ids[end + 1] == ids[end] + 1)
+            {
+                end++;
+            }
+
+            runs.Add(end == start ? Invariant($"{ids[start]}") : Invariant($"{ids[start]}–{ids[end]}"));
+            start = end + 1;
+        }
+
+        return "#" + string.Join(", ", runs);
     }
 }

@@ -424,18 +424,17 @@ public sealed class MissionEditorViewModelTests : IDisposable
     }
 
     [Fact]
-    public void Delivered_stops_show_the_replan_warning_and_planning_clears_them()
+    public void Delivered_stops_stay_delivered_through_Plan()
     {
+        // K6.4 (D19 addendum): Plan keeps what is loaded and what is delivered; the old warning is gone.
         var overlay = OverlayWithPlan();
         var editor = new MissionEditorViewModel(overlay);
-        editor.ClearsDelivered.Should().BeFalse();
-
         overlay.ToggleDeliveredCommand.Execute("Riker");
 
-        editor.ClearsDelivered.Should().BeTrue();
         editor.PlanCommand.Execute(null);
-        overlay.Plan!.Placements.Should().OnlyContain(p => !p.Delivered);
-        editor.ClearsDelivered.Should().BeFalse();
+
+        overlay.Plan!.Crates.Where(c => c.Destination == "Riker").Should().NotBeEmpty().And.OnlyContain(c => c.Delivered);
+        overlay.Plan.Crates.Where(c => c.Destination != "Riker").Should().OnlyContain(c => !c.Delivered);
     }
 
     [Fact]
@@ -725,7 +724,100 @@ public sealed class MissionEditorViewModelTests : IDisposable
     {
         var editor = new MissionEditorViewModel(OverlayWithCaptures());
 
-        editor.Rows.Select(r => (r.Destination, r.Source)).Should().Equal(("Riker", ""), ("Shubin", "ct 36"), ("Orison", "ct 37"));
+        editor.Rows.Select(r => (r.Destination, r.Source, r.ContractId)).Should().Equal(("Riker", "", null), ("Shubin", "#36", 36), ("Orison", "#37", 37));
+    }
+
+    // --- Sorting the view by mission or destination (K6.3, D19 addendum) ---
+
+    private static string[] Shown(MissionEditorViewModel editor) => [.. editor.RowsView.Cast<MissionRow>().Select(r => r.Destination)];
+
+    [Fact]
+    public void A_header_click_sorts_up_then_down_then_back_to_the_standard_order()
+    {
+        var editor = new MissionEditorViewModel(OverlayWithCaptures());
+
+        editor.SortBy(EditorSortColumn.Destination);
+        (editor.Sort, Shown(editor)).Should().BeEquivalentTo((new EditorSort(EditorSortColumn.Destination, false), new[] { "Orison", "Riker", "Shubin" }));
+
+        editor.SortBy(EditorSortColumn.Destination);
+        (editor.Sort, Shown(editor)).Should().BeEquivalentTo((new EditorSort(EditorSortColumn.Destination, true), new[] { "Shubin", "Riker", "Orison" }));
+
+        editor.SortBy(EditorSortColumn.Destination);
+        editor.Sort.Should().BeNull();
+        Shown(editor).Should().Equal("Riker", "Shubin", "Orison");
+    }
+
+    [Fact]
+    public void Another_column_starts_ascending()
+    {
+        var editor = new MissionEditorViewModel(OverlayWithCaptures());
+
+        editor.SortBy(EditorSortColumn.Destination);
+        editor.SortBy(EditorSortColumn.Mission);
+
+        editor.Sort.Should().Be(new EditorSort(EditorSortColumn.Mission, false));
+        Shown(editor).Should().Equal("Shubin", "Orison", "Riker");
+    }
+
+    [Fact]
+    public void Sorting_leaves_the_rows_as_they_are()
+    {
+        var editor = new MissionEditorViewModel(OverlayWithCaptures());
+        MissionRow[] before = [.. editor.Rows];
+
+        editor.SortBy(EditorSortColumn.Destination);
+
+        editor.Rows.Should().Equal(before);
+        editor.IsDirty.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Plan_from_a_sorted_view_is_the_plan_from_the_standard_order()
+    {
+        // The goldens' rule: the same input gives the same plan. Sorting is the view's, the plan reads the rows.
+        var sorted = OverlayWithCaptures();
+        var editor = new MissionEditorViewModel(sorted);
+        editor.SortBy(EditorSortColumn.Destination);
+        editor.SortBy(EditorSortColumn.Destination);
+        editor.PlanCommand.Execute(null);
+
+        var standard = OverlayWithCaptures();
+        new MissionEditorViewModel(standard).PlanCommand.Execute(null);
+
+        sorted.Saved!.Stops.Select(s => s.Destination).Should().Equal(standard.Saved!.Stops.Select(s => s.Destination));
+        sorted.Missions.Should().BeEquivalentTo(standard.Missions, o => o.WithStrictOrdering());
+        sorted.Plan!.Crates.Should().BeEquivalentTo(standard.Plan!.Crates, o => o.WithStrictOrdering());
+        sorted.Scene.Legend.Select(e => e.Label).Should().Equal(standard.Scene.Legend.Select(e => e.Label));
+    }
+
+    [Fact]
+    public void Moving_rows_waits_until_the_sort_is_cleared()
+    {
+        // Up and down move in the standard order; in a sorted view they would jump elsewhere.
+        var editor = new MissionEditorViewModel(OverlayWithCaptures());
+        editor.SelectedRow = editor.Rows[1];
+        editor.MoveDownCommand.CanExecute(null).Should().BeTrue();
+
+        editor.SortBy(EditorSortColumn.Mission);
+        (editor.MoveUpCommand.CanExecute(null), editor.MoveDownCommand.CanExecute(null)).Should().Be((false, false));
+
+        editor.SortBy(EditorSortColumn.Mission);
+        editor.SortBy(EditorSortColumn.Mission);
+        (editor.MoveUpCommand.CanExecute(null), editor.MoveDownCommand.CanExecute(null)).Should().Be((true, true));
+    }
+
+    [Fact]
+    public void A_row_added_while_sorted_is_sorted_too_and_a_blank_one_stays_last()
+    {
+        var editor = new MissionEditorViewModel(OverlayWithCaptures());
+        editor.SortBy(EditorSortColumn.Destination);
+
+        editor.AddRowCommand.Execute(null);
+        Shown(editor)[^1].Should().BeEmpty();
+
+        Fill(editor.Rows[^1], "Area18", "Stims", "4", 4);
+        editor.RowsView.Refresh();
+        Shown(editor).Should().Equal("Area18", "Orison", "Riker", "Shubin");
     }
 
     [Fact]
@@ -737,7 +829,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
         editor.PlanCommand.Execute(null);
 
         overlay.Watermark.Should().Be(37);
-        overlay.Missions.Select(m => MissionText.Source(m.Contract)).Should().Equal("", "ct 36", "ct 37");
+        overlay.Missions.Select(m => MissionText.Source(m.Contract)).Should().Equal("", "#36", "#37");
     }
 
     [Fact]

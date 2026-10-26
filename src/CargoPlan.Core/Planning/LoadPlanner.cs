@@ -169,12 +169,13 @@ public static class LoadPlanner
     /// <summary>
     /// Marks every crate of a stop as delivered, or back. A stop is unloaded in one visit, split parts included,
     /// so the unit is the stop. The hints are derived anew without delivered cargo. Delivered crates keep their position
-    /// but free their cells (D24 addendum): ticking back gives the plan before unless another crate took one of those
-    /// cells since, then it is refused. A crate resting on the delivered stop floats and is marked, not refused: the
-    /// player unloaded out of order and restacked in the game. The original plan stays unchanged, crate order too.
+    /// but free their cells (D24 addendum), and loaded ones stop being loaded; every crate that rested on them settles
+    /// straight down its column (K6.4, <see cref="Settled"/>). Ticked back, the crates are planned again: in their cells
+    /// while those are free, else laid into free cells by the rule of <see cref="PlaceInto"/> (K2.2, D41). The original
+    /// plan stays unchanged, crate order too.
     /// </summary>
     /// <exception cref="ArgumentException">The plan belongs to another ship or has no stop <paramref name="destination"/>.</exception>
-    /// <exception cref="PlanException">Ticking back: a crate of the stop would break a rule (<see cref="CrateLayout.NewProblem"/>).</exception>
+    /// <exception cref="PlanException">Ticking back: no room for a crate of the stop.</exception>
     public static LoadPlan SetDelivered(LoadPlan plan, Ship ship, string destination, bool delivered)
     {
         plan.EnsureBelongsTo(ship);
@@ -184,12 +185,12 @@ public static class LoadPlanner
 
     /// <summary>
     /// Marks the crates of one mission for a stop as delivered, or back: the legend's line (B6, D69), for the player who
-    /// unloads one contract's crates at a time. Otherwise as the stop's overload, ticking back refused the same way.
+    /// unloads one contract's crates at a time. Otherwise as the stop's overload.
     /// </summary>
     /// <exception cref="ArgumentException">
     /// The plan belongs to another ship or has no crate of <paramref name="mission"/> for <paramref name="destination"/>.
     /// </exception>
-    /// <exception cref="PlanException">Ticking back: a crate would break a rule (<see cref="CrateLayout.NewProblem"/>).</exception>
+    /// <exception cref="PlanException">Ticking back: no room for a crate.</exception>
     public static LoadPlan SetDelivered(LoadPlan plan, Ship ship, string destination, int mission, bool delivered)
     {
         plan.EnsureBelongsTo(ship);
@@ -203,27 +204,127 @@ public static class LoadPlanner
 
     private static LoadPlan SetDelivered(LoadPlan plan, Ship ship, string destination, Func<Crate, bool> ticked, bool delivered)
     {
-        // Off-ship crates (K2.2) have no cells to go back to: ticked back, they are laid in (BackOnBoard).
-        var changed = plan with { Crates = [.. plan.Crates.Select(c => ticked(c) && !c.OffShip ? c with { Delivered = delivered } : c)] };
-        if (!delivered)
+        if (delivered)
         {
-            HashSet<string> racks = [.. plan.Crates.Where(ticked).Select(c => c.RackId)];
-            var problem = ship.Racks.OrderBy(r => r.Index)
-                .Where(r => racks.Contains(r.Id))
-                .Select(r => CrateLayout.NewProblem(r, plan.CratesForRack(r.Id), changed.CratesForRack(r.Id)))
-                .FirstOrDefault(p => p is not null);
-            if (problem is not null)
-            {
-                throw new PlanException($"{destination} can't go back on board: {problem}");
-            }
+            var ticking = plan with { Crates = [.. plan.Crates.Select(c => ticked(c) && !c.OffShip ? c.AsDelivered() : c)] };
+            return WithHints(Settled(ticking, ship), ship);
+        }
 
-            if (plan.Crates.Where(c => ticked(c) && c.OffShip).ToArray() is { Length: > 0 } offShip)
-            {
-                changed = BackOnBoard(changed, ship, destination, offShip);
-            }
+        // Off-ship crates (K2.2) have no cells to go back to: ticked back, they are laid in (BackOnBoard).
+        var changed = plan with { Crates = [.. plan.Crates.Select(c => ticked(c) && c.Delivered && !c.OffShip ? c.AsPlanned() : c)] };
+        HashSet<string> racks = [.. plan.Crates.Where(c => ticked(c) && !c.OffShip).Select(c => c.RackId)];
+        var inPlace = ship.Racks
+            .Where(r => racks.Contains(r.Id))
+            .All(r => CrateLayout.NewProblem(r, plan.CratesForRack(r.Id), changed.CratesForRack(r.Id)) is null);
+        if (!inPlace)
+        {
+            // Their cells were taken since (settling, a move): back to planned all the same, laid in where there is room (K6.4).
+            return WithHints(BackOnBoard(plan, ship, destination, [.. plan.Crates.Where(c => ticked(c) && c.Delivered)]), ship);
+        }
+
+        if (plan.Crates.Where(c => ticked(c) && c.OffShip).ToArray() is { Length: > 0 } offShip)
+        {
+            changed = BackOnBoard(changed, ship, destination, offShip);
         }
 
         return WithHints(changed, ship);
+    }
+
+    /// <summary>
+    /// Marks one mission's crates for a stop as loaded, or back to planned (K6.4, D79): the legend's line, once its crates
+    /// are on board in the game. Nothing moves. Loaded crates stay where they lie until the player moves them; the
+    /// planner lays everything else around them.
+    /// </summary>
+    /// <exception cref="ArgumentException">The plan belongs to another ship.</exception>
+    /// <exception cref="PlanException">The delivery has no crates on board: waiting (not placed yet) or delivered.</exception>
+    public static LoadPlan SetLoaded(LoadPlan plan, Ship ship, string destination, int mission, bool loaded)
+    {
+        plan.EnsureBelongsTo(ship);
+        bool Of(Crate c) => c.Destination == destination && c.Mission == mission;
+        if (!plan.Crates.Any(Of))
+        {
+            throw new PlanException($"{destination} is not placed yet.");
+        }
+
+        if (plan.Crates.Any(c => Of(c) && c.Delivered))
+        {
+            throw new PlanException($"{destination} is not on board: it is delivered.");
+        }
+
+        return plan with { Crates = [.. plan.Crates.Select(c => Of(c) ? (loaded ? c.AsLoaded() : c.AsPlanned()) : c)] };
+    }
+
+    /// <summary>
+    /// Every crate on board that rests on nothing, dropped straight down its column along the stack axis until it touches
+    /// cargo or the plate (K6.4, D79): same rack, same cell across, the lowest first, so a crate that falls makes room for
+    /// the one above it. Loaded and planned alike. A crate that touches cargo with part of its bottom stays there, marked
+    /// by <see cref="Validate"/>; nothing moves sideways. The plan itself if nothing falls.
+    /// </summary>
+    internal static LoadPlan Settled(LoadPlan plan, Ship ship)
+    {
+        Crate[] crates = [.. plan.Crates];
+        var fell = false;
+        foreach (var rack in ship.Racks)
+        {
+            int[] onBoard = [.. Enumerable.Range(0, crates.Length).Where(i => !crates[i].Delivered && crates[i].RackId == rack.Id).OrderBy(i => crates[i].Position.Stack)];
+            HashSet<GridPosition> taken = [.. onBoard.SelectMany(i => crates[i].Cells)];
+            foreach (var i in onBoard)
+            {
+                var crate = crates[i];
+                taken.ExceptWith(crate.Cells);
+                var fall = 0;
+                while (crate.Position.Stack - fall > 0 && crate.Bottom.All(c => !taken.Contains(new GridPosition(c.Length, c.Width, c.Stack - fall - 1))))
+                {
+                    fall++;
+                }
+
+                if (fall > 0)
+                {
+                    crate = crate with { Position = new GridPosition(crate.Position.Length, crate.Position.Width, crate.Position.Stack - fall) };
+                    crates[i] = crate;
+                    fell = true;
+                }
+
+                taken.UnionWith(crate.Cells);
+            }
+        }
+
+        return fell ? plan with { Crates = crates } : plan;
+    }
+
+    /// <summary>
+    /// How many crates on board lie lower in <paramref name="after"/> than in <paramref name="before"/>, in the same
+    /// column of the same rack (<see cref="Settled"/>), loaded and planned; for the notice "2 loaded crates settled".
+    /// Crates have no identity, so equal crates in one column pair up by height.
+    /// </summary>
+    public static (int Loaded, int Planned) SettledCrates(LoadPlan before, LoadPlan after)
+    {
+        var was = before.Crates.Where(c => !c.Delivered).GroupBy(Column).ToDictionary(g => g.Key, g => g.Select(c => c.Position.Stack).ToList());
+        var (loaded, planned) = (0, 0);
+        foreach (var group in after.Crates.Where(c => !c.Delivered).GroupBy(Column))
+        {
+            if (!was.TryGetValue(group.Key, out var stacks))
+            {
+                continue;
+            }
+
+            List<int> lower = [];
+            foreach (var stack in group.Select(c => c.Position.Stack))
+            {
+                if (!stacks.Remove(stack))
+                {
+                    lower.Add(stack);
+                }
+            }
+
+            var settled = Math.Min(lower.Count, stacks.Count);
+            (loaded, planned) = group.Key.Loaded ? (loaded + settled, planned) : (loaded, planned + settled);
+        }
+
+        return (loaded, planned);
+
+        static (string, string, CrateSize, string, int, int, bool, int, bool Loaded) Column(Crate c) =>
+            (c.Destination, c.Commodity, c.CrateSize, c.RackId, c.Position.Length, c.Position.Width, c.Rotated, c.Mission, c.Loaded);
     }
 
     /// <summary>
@@ -247,7 +348,7 @@ public static class LoadPlanner
         Dictionary<Crate, Crate> laid = new(ReferenceEqualityComparer.Instance);
         foreach (var (template, crate) in templates.Zip(fresh))
         {
-            laid[template] = template with { RackId = crate.RackId, Position = crate.Position, Rotated = crate.Rotated, Delivered = false };
+            laid[template] = template.AsPlanned() with { RackId = crate.RackId, Position = crate.Position, Rotated = crate.Rotated };
         }
 
         return plan with { Crates = [.. plan.Crates.Select(c => laid.GetValueOrDefault(c, c))] };
@@ -280,6 +381,139 @@ public static class LoadPlanner
         var cap = CrateCap.Of(ship);
         var plan = Plan(ship, [.. stopOrder.Select((destination, index) => new MissionStop(destination, index + 1, items[destination]).ToStop(cap))], fillOrder);
         return new SavedPlan(placed, plan with { Crates = Assigned(plan.Crates, placed, cap) }, cap, watermark);
+    }
+
+    /// <summary>
+    /// The editor's Plan with what is on board and what is delivered kept (K6.4, D19 addendum): a delivery (mission ×
+    /// destination) of <paramref name="current"/> that is loaded or delivered keeps its crates as they are, where the
+    /// edited <paramref name="missions"/> still hold it with the same crates (commodity and size; a split or merge is in
+    /// the mission, D27). It is known by its contract's first id and destination, a typed one by its destination alone
+    /// (typed rows of one destination are one mission, D42, and the editor numbers them anew). Changed, it is planned
+    /// again, and <c>Cleared</c> says so ("Riker: changed in the editor – no longer loaded"). Without anything kept, the
+    /// plan from scratch (<see cref="Plan(Ship, IReadOnlyList{Mission}, IReadOnlyList{string}, FillOrder, long)"/>);
+    /// with only delivered cargo kept, the rest planned like that and joined (as Re-plan does, D66); with loaded cargo,
+    /// the rest laid in around it by the rule of <see cref="PlaceInto"/> (D41): first the rest of missions loaded in part,
+    /// then missions by SCU (largest first), first destination and id, so the order of entry doesn't matter. A mission
+    /// without room waits (and a delivered delivery of it loses its tick, as on another ship, K2.2).
+    /// </summary>
+    /// <exception cref="ArgumentException">The order doesn't name every destination once.</exception>
+    /// <exception cref="PlanException">
+    /// The rest of a mission loaded in part finds no room: the elevator hands out whole missions, so it can't wait while
+    /// its loaded crates are on board (K6.4, E1). Or the plan from scratch has none (see the other overload).
+    /// </exception>
+    public static (SavedPlan Plan, IReadOnlyList<string> Cleared) PlanKeeping(
+        SavedPlan current, Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder = FillOrder.BowFirst, long watermark = 0)
+    {
+        var cap = CrateCap.Of(ship);
+        var states = current.Plan.ShipId == ship.Id ? KeptDeliveries(current) : [];
+        List<string> cleared = [];
+        List<Crate> kept = [];
+        HashSet<(int Mission, string Destination)> keptDeliveries = [];
+        foreach (var mission in missions)
+        {
+            foreach (var stop in mission.Stops)
+            {
+                var key = DeliveryKey(mission.Contract, stop.Destination);
+                if (!states.Remove(key, out var crates))
+                {
+                    continue;
+                }
+
+                if (Kinds(crates.Select(c => (c.Commodity, c.CrateSize))).SequenceEqual(Kinds(stop.Items.SelectMany(i => i.CrateListUnder(cap).Select(size => (i.Commodity, size))))))
+                {
+                    kept.AddRange(crates.Select(c => c with { Mission = mission.Id }));
+                    keptDeliveries.Add((mission.Id, stop.Destination));
+                }
+                else
+                {
+                    cleared.Add($"{stop.Destination}: changed in the editor – {(crates[0].Loaded ? "no longer loaded" : "tick cleared")}");
+                }
+            }
+        }
+
+        if (kept.Count == 0)
+        {
+            return (Plan(ship, missions, stopOrder, fillOrder, watermark), cleared);
+        }
+
+        Mission[] placed = [.. missions.Select(m => m with { Unplaced = false })];
+        Mission[] rest = [.. placed.Select(m => Without(m, keptDeliveries)).OfType<Mission>()];
+        if (!kept.Any(c => c.Loaded))
+        {
+            // Only delivered cargo kept: it takes no room, the rest is planned from scratch around nothing (D66).
+            var planned = Plan(ship, rest, [.. stopOrder.Where(d => rest.Any(m => m.Stops.Any(s => s.Destination == d)))], fillOrder, watermark).Plan;
+            return (new SavedPlan(placed, ItemsOf(placed, Joined(planned, [.. kept], [.. stopOrder], ship), cap), cap, watermark), cleared);
+        }
+
+        HashSet<int> partly = [.. kept.Where(c => c.Loaded).Select(c => c.Mission)];
+        var plan = new LoadPlan(ship.Id, [.. kept], [], fillOrder);
+        HashSet<int> waiting = [];
+        List<Rack> stackingUnchecked = [];
+        foreach (var mission in rest
+            .OrderByDescending(m => partly.Contains(m.Id))
+            .ThenByDescending(m => m.TotalScu)
+            .ThenBy(m => m.Stops.Min(s => s.Destination), StringComparer.Ordinal)
+            .ThenBy(m => m.Id))
+        {
+            if (TryPlace(plan, ship, mission, cap) is ({ } crates, _, var gaveUp))
+            {
+                plan = plan with { Crates = crates };
+                stackingUnchecked.AddRange(gaveUp.Where(r => !stackingUnchecked.Contains(r)));
+            }
+            else if (partly.Contains(mission.Id))
+            {
+                throw new PlanException(Invariant(
+                    $"{string.Join(", ", mission.Stops.Select(s => s.Destination))}: {mission.TotalScu} SCU not loaded yet find no room around the loaded cargo"));
+            }
+            else
+            {
+                waiting.Add(mission.Id);
+            }
+        }
+
+        // A waiting mission has no crates: what of it was delivered loses its tick (K2.2, D41).
+        Crate[] all = [.. plan.Crates.Where(c => !waiting.Contains(c.Mission))];
+        cleared.AddRange(placed.Where(m => waiting.Contains(m.Id))
+            .SelectMany(m => m.Stops.Where(s => keptDeliveries.Contains((m.Id, s.Destination))))
+            .Select(s => $"{s.Destination}: waits – tick cleared"));
+        Mission[] result = [.. placed.Select(m => waiting.Contains(m.Id) ? m with { Unplaced = true } : m)];
+        Crate[] ordered = [.. stopOrder.SelectMany(d => all.Where(c => c.Destination == d)), .. all.Where(c => !stopOrder.Contains(c.Destination))];
+        return (new SavedPlan(result, WithHints(new LoadPlan(ship.Id, SavedPlan.WithItems(result, ordered, _ => false, cap), [], fillOrder), ship, StackingUncheckedNotes(stackingUnchecked)), cap, watermark), cleared);
+
+        static IEnumerable<(string, CrateSize)> Kinds(IEnumerable<(string Commodity, CrateSize Size)> crates) =>
+            crates.OrderBy(k => k.Commodity, StringComparer.Ordinal).ThenBy(k => k.Size);
+    }
+
+    /// <summary>
+    /// The deliveries of <paramref name="saved"/> that are loaded or delivered as a whole, by <see cref="DeliveryKey"/>,
+    /// with their crates; of two with one key the first.
+    /// </summary>
+    private static Dictionary<(long Contract, string Destination), Crate[]> KeptDeliveries(SavedPlan saved)
+    {
+        var contracts = saved.Missions.ToDictionary(m => m.Id, m => m.Contract);
+        Dictionary<(long, string), Crate[]> kept = [];
+        foreach (var delivery in saved.Plan.Crates.GroupBy(c => (c.Mission, c.Destination)))
+        {
+            if (delivery.All(c => c.Loaded) || delivery.All(c => c.Delivered))
+            {
+                kept.TryAdd(DeliveryKey(contracts.GetValueOrDefault(delivery.Key.Mission), delivery.Key.Destination), [.. delivery]);
+            }
+        }
+
+        return kept;
+    }
+
+    /// <summary>A delivery across plans: its capture's first ContractTracker id, or 0 for a typed mission, and the destination.</summary>
+    private static (long Contract, string Destination) DeliveryKey(ContractSource? contract, string destination) =>
+        (contract?.ContractIds.Min() ?? 0, destination);
+
+    /// <summary><paramref name="mission"/> without the stops in <paramref name="kept"/>; null if none is left.</summary>
+    private static Mission? Without(Mission mission, IReadOnlySet<(int Mission, string Destination)> kept)
+    {
+        MissionStop[] left = [.. mission.Stops.Where(s => !kept.Contains((mission.Id, s.Destination)))];
+        return left.Length == 0 ? null
+            : left.Length == mission.Stops.Count ? mission
+            : new Mission(mission.Id, [.. left.Select((s, index) => s with { Order = index + 1 })], mission.Contract);
     }
 
     /// <summary>
@@ -362,10 +596,13 @@ public static class LoadPlanner
     /// The plan laid out anew: on another ship when the player switches (D59), on its own ship when the player asks for
     /// it (Re-plan, D66). Missions, sources, watermark and fill order stay; positions and moves go, split crates keep their
     /// sizes (they are in the missions, D27). The only method that takes a plan of another ship. A plan whose mixes were
-    /// derived under another cap (a file from before D70) is planned anew like one of another ship.
+    /// derived under another cap (a file from before D70) is planned anew like one of another ship. Loaded is this ship's
+    /// state (K6.4): planned anew for other racks, loaded cargo is planned cargo again; delivered stays delivered (K2.2).
     /// </summary>
     public static SavedPlan Replan(SavedPlan saved, Ship ship) =>
-        saved.Plan.ShipId == ship.Id && saved.CrateCap == CrateCap.Of(ship) ? ReplanInPlace(saved, ship) : ReplanForShip(saved, ship);
+        saved.Plan.ShipId == ship.Id && saved.CrateCap == CrateCap.Of(ship)
+            ? ReplanInPlace(saved, ship)
+            : ReplanForShip(new SavedPlan(saved.Missions, saved.Plan with { Crates = [.. saved.Plan.Crates.Select(c => c.Loaded ? c.AsPlanned() : c)] }, saved.CrateCap, saved.Watermark), ship);
 
     /// <summary>
     /// How many crates on board in <paramref name="before"/> lie elsewhere in <paramref name="after"/>: another rack or
@@ -401,10 +638,27 @@ public static class LoadPlanner
     /// in (D64). Ticked crates are off the ship: they stay where they lay, ticked, and take no room (D24), also when only
     /// part of a stop is ticked (D41). Never loses cargo: if the waiting missions don't fit, the cargo on board is laid
     /// out without them and they wait (<see cref="RetryUnplaced"/>); if even that finds no layout, the plan stays as it is.
-    /// The missions stay the same list unless one of them got placed.
+    /// The missions stay the same list unless one of them got placed. With loaded cargo (K6.4) it stays where it lies and
+    /// the rest is laid in around it (<see cref="PlanKeeping"/>); laid in that way, more can wait than in the layout the
+    /// player let grow, so a result with more SCU waiting is not taken, the plan stays as it is (E2).
     /// </summary>
     private static SavedPlan ReplanInPlace(SavedPlan saved, Ship ship)
     {
+        if (saved.Plan.Crates.Any(c => c.Loaded))
+        {
+            try
+            {
+                var (around, _) = PlanKeeping(saved, ship, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], saved.Plan.FillOrder, saved.Watermark);
+                return Waiting(around) > Waiting(saved) ? saved : around;
+            }
+            catch (PlanException)
+            {
+                return saved;
+            }
+
+            static int Waiting(SavedPlan plan) => plan.Missions.Where(m => m.Unplaced).Sum(m => m.TotalScu);
+        }
+
         var cap = saved.CrateCap;
         Crate[] delivered = [.. saved.Plan.Crates.Where(c => c.Delivered)];
         Mission[] onBoard = [.. saved.Missions.Select(m => m.Unplaced ? m : WithoutDelivered(m, delivered, cap)).OfType<Mission>()];
@@ -578,57 +832,6 @@ public static class LoadPlanner
     }
 
     /// <summary>
-    /// Ticks are route state, not on the undo stack (K2.4): the ticks that changed between <paramref name="reference"/>
-    /// (the plan the step left, or the undo restored) and <paramref name="current"/> carry over to <paramref name="target"/>,
-    /// the snapshot being restored, per delivery (a mission's crates for one destination, K2.2). Ticks the step itself
-    /// changed stay as the snapshot has them: undoing the editor's Plan, which clears every tick (D19), brings them back.
-    /// A delivery is known by its contract where it has one, so a capture placed again under another mission id keeps its
-    /// tick. Ticking back can find no room in the snapshot: that delivery stays ticked and the reason is returned.
-    /// <paramref name="target"/> itself when nothing changed.
-    /// </summary>
-    public static (SavedPlan Plan, IReadOnlyList<string> Refused) CarryTicks(SavedPlan target, SavedPlan reference, SavedPlan current, Ship ship)
-    {
-        var was = Deliveries(reference);
-        var now = Deliveries(current);
-        var plan = target.Plan;
-        List<string> refused = [];
-        foreach (var (delivery, (missionId, ticked)) in Deliveries(target))
-        {
-            if (!now.TryGetValue(delivery, out var tick)
-                || (was.TryGetValue(delivery, out var before) && before.Ticked == tick.Ticked)
-                || tick.Ticked == ticked)
-            {
-                continue;
-            }
-
-            try
-            {
-                plan = SetDelivered(plan, ship, delivery.Destination, missionId, tick.Ticked);
-            }
-            catch (PlanException ex)
-            {
-                refused.Add(ex.Message);
-            }
-        }
-
-        return (ReferenceEquals(plan, target.Plan) ? target : new SavedPlan(target.Missions, plan, target.CrateCap, target.Watermark), refused);
-    }
-
-    /// <summary>
-    /// Every delivery with crates on the plan, by its contract (the lowest id; a capture's ids are its own, D38) or, typed,
-    /// its mission id, with the mission id in this plan and whether all its crates are ticked.
-    /// </summary>
-    private static Dictionary<(long Contract, int Typed, string Destination), (int Mission, bool Ticked)> Deliveries(SavedPlan saved)
-    {
-        var contracts = saved.Missions.ToDictionary(m => m.Id, m => m.Contract?.ContractIds.Min());
-        return saved.Plan.Crates
-            .GroupBy(c => (c.Mission, c.Destination))
-            .ToDictionary(
-                g => contracts[g.Key.Mission] is { } contract ? (contract, 0, g.Key.Destination) : (0L, g.Key.Mission, g.Key.Destination),
-                g => (g.Key.Mission, g.All(c => c.Delivered)));
-    }
-
-    /// <summary>
     /// The player's Discard plan (K2.3): no missions, no crates, no ticks, and the ContractTracker watermark back at 0, so
     /// the next sync takes every contract in again (Martin's variant a: nothing remembers what was discarded). The fill
     /// order stays, it is the player's way of loading (T4.5); the plan is for <paramref name="ship"/>.
@@ -638,8 +841,8 @@ public static class LoadPlanner
 
     /// <summary>
     /// Takes a mission out of the plan with its crates (D42): deleted in the editor, dropped in the legend, or gone from
-    /// ContractTracker. Nothing else moves, ticks stay; a crate that rested on one of its crates floats and is marked
-    /// (<see cref="Validate"/>). The original stays unchanged.
+    /// ContractTracker. Ticks stay; a crate that rested on one of its crates settles straight down (K6.4,
+    /// <see cref="Settled"/>), nothing else moves. The original stays unchanged.
     /// </summary>
     /// <exception cref="ArgumentException">The plan belongs to another ship or has no such mission.</exception>
     public static SavedPlan RemoveMission(SavedPlan saved, Ship ship, int missionId)
@@ -648,7 +851,7 @@ public static class LoadPlanner
         var mission = saved.MissionOf(missionId);
         return new SavedPlan(
             [.. saved.Missions.Where(m => m != mission)],
-            WithHints(saved.Plan with { Crates = [.. saved.Plan.Crates.Where(c => c.Mission != missionId)] }, ship),
+            WithHints(Settled(saved.Plan with { Crates = [.. saved.Plan.Crates.Where(c => c.Mission != missionId)] }, ship), ship),
             saved.CrateCap,
             saved.Watermark);
     }
@@ -1129,7 +1332,7 @@ public static class LoadPlanner
         // The parts keep the crate's mission (D42) and item (D68), and turn where the footprint needs it (D71).
         Crate[] pieces = [.. parts.Zip(poses)
             .OrderByDescending(p => p.First)
-            .Select(p => new Crate(crate.Destination, crate.Commodity, p.First, crate.RackId, p.Second.Position, Mission: crate.Mission, Item: crate.Item, Rotated: p.Second.Rotated))];
+            .Select(p => new Crate(crate.Destination, crate.Commodity, p.First, crate.RackId, p.Second.Position, Mission: crate.Mission, Item: crate.Item, Rotated: p.Second.Rotated, Loaded: crate.Loaded))];
         List<Crate> crates = [.. plan.Crates];
         crates.RemoveAt(index);
         crates.InsertRange(index, pieces);
@@ -1209,7 +1412,8 @@ public static class LoadPlanner
         // The new crate takes the place of the first of them in the plan; the others go, from the back.
         GridPosition corner = new(crates.Min(c => c.Position.Length), crates.Min(c => c.Position.Width), crates.Min(c => c.Position.Stack));
         List<Crate> list = [.. plan.Crates];
-        list[indices.Min()] = new Crate(first.Destination, first.Commodity, merged, first.RackId, corner, Mission: first.Mission, Item: first.Item, Rotated: rotated);
+        // Loaded is per delivery (K6.4): the parts of one item share it; a mix of both is loaded only where all were.
+        list[indices.Min()] = new Crate(first.Destination, first.Commodity, merged, first.RackId, corner, Mission: first.Mission, Item: first.Item, Rotated: rotated, Loaded: crates.All(c => c.Loaded));
         foreach (var index in indices.Order().Skip(1).Reverse())
         {
             list.RemoveAt(index);

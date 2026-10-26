@@ -11,9 +11,13 @@ namespace CargoPlan.Core.Models;
 /// 0 in a plan without missions. Like the mission, checked against the missions by <c>SavedPlan</c>.
 /// </param>
 /// <param name="Rotated">Turned 90° about the rack's stack axis (D71): length and width swap. Only an oblong crate turns.</param>
+/// <param name="Loaded">
+/// Physically on board and fixed (K6.4, D79): the planner never moves it, only the player and settling do. Never
+/// delivered as well; a delivery goes planned → loaded → delivered.
+/// </param>
 public sealed record Crate(
     string Destination, string Commodity, CrateSize CrateSize, string RackId, GridPosition Position, bool Delivered = false, int Mission = 0, int Item = 0,
-    bool Rotated = false)
+    bool Rotated = false, bool Loaded = false)
 {
     // Get-only (no init): a `with` expression skips the constructor and must not bypass validation.
     public CrateSize CrateSize { get; } =
@@ -21,6 +25,20 @@ public sealed record Crate(
 
     // Checked in the initializer (constructor) and in init (`with`): a square crate has one way to lie, not two spellings.
     public bool Rotated { get; init => field = Turnable(CrateSize, value); } = Turnable(CrateSize, Rotated);
+
+    // Checked in the constructor; code that changes the state goes through AsPlanned, AsLoaded and AsDelivered, which set both.
+    public bool Loaded { get; init; } = !Loaded || !Delivered
+        ? Loaded
+        : throw new ArgumentException($"A crate for '{Destination}' can't be loaded and delivered at once.", nameof(Loaded));
+
+    /// <summary>On board and fixed (K6.4).</summary>
+    public Crate AsLoaded() => this with { Loaded = true, Delivered = false };
+
+    /// <summary>Delivered: off the ship's cells, no longer loaded (D24, K6.4).</summary>
+    public Crate AsDelivered() => this with { Delivered = true, Loaded = false };
+
+    /// <summary>Neither loaded nor delivered.</summary>
+    public Crate AsPlanned() => this with { Delivered = false, Loaded = false };
 
     /// <summary>
     /// The rack of a crate that was never on this ship: delivered before a ship change or before its racks changed (K2.2).

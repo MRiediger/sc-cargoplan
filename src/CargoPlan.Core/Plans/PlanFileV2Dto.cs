@@ -23,6 +23,7 @@ internal sealed record PlanFileV2Dto(
         PlanFileDto.CheckItems(Crates, SchemaVersion);
         PlanFileDto.CheckRotated(Crates, SchemaVersion);
         PlanFileDto.CheckOffShip(Crates, SchemaVersion);
+        PlanFileDto.CheckLoaded(Crates, SchemaVersion);
         Models.LoadPlan plan = new(
             ShipId, [.. Crates.Select(c => c.ToCrate())], [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder));
 

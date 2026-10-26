@@ -42,13 +42,17 @@
         <WrapPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
             <Button Content="Add" Command="{Binding AddRowCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Add a row (or type into the empty row at the bottom)" />
+            <!-- K6.5: a destination ContractTracker missed, into the selected row's ContractTracker mission. -->
+            <Button Content="Add to mission" Command="{Binding AddToMissionCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTip="Add a destination to the selected ContractTracker mission" ToolTipService.ShowOnDisabled="True" />
             <Button Content="Remove" Command="{Binding RemoveRowCommand}" Style="{StaticResource ToolbarButtonStyle}" />
             <Button Content="Delete mission" Command="{Binding DeleteMissionCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Take the selected row's mission out of the plan now, with its crates; nothing else moves, no need to press Plan. Typed rows of one stop are one mission." />
             <Button Content="↑" Command="{Binding MoveUpCommand}" Style="{StaticResource ToolbarButtonStyle}"
-                    ToolTip="Move up: stops follow the first row of each destination" />
+                    ToolTip="Move up: stops follow the first row of each destination. Clear the sort to move rows."
+                    ToolTipService.ShowOnDisabled="True" />
             <Button Content="↓" Command="{Binding MoveDownCommand}" Style="{StaticResource ToolbarButtonStyle}"
-                    ToolTip="Move down" />
+                    ToolTip="Move down. Clear the sort to move rows." ToolTipService.ShowOnDisabled="True" />
             <Button Content="Clear rows" Command="{Binding ClearRowsCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     Margin="12,0,4,4" ToolTip="Start the next route; the overlay keeps its plan until you plan again" />
             <Button Content="Import…" Click="OnImport" Style="{StaticResource ToolbarButtonStyle}" Margin="12,0,4,4"
@@ -90,25 +94,24 @@
             <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
                 <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
-                <TextBlock Text="{x:Static vm:MissionEditorViewModel.ClearsDeliveredText}" TextWrapping="Wrap"
-                           Foreground="{DynamicResource SystemFillColorCautionBrush}"
-                           Visibility="{Binding ClearsDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </StackPanel>
         </DockPanel>
 
         <!-- Bindings with UpdateSourceTrigger=PropertyChanged: the data grid would otherwise commit only at the end of the
              edit, and the stop column, the red row and the Plan button would lag behind the typing.
-             Sorting is off: it would reorder the view, not the route. Fluent's row and cell templates paint a fixed
+             Mission and Destination sort the view (RowsView), never the rows Plan reads (K6.3): a header click goes to the
+             view model, which cycles up, down and the order of first appearance. Fluent's row and cell templates paint a fixed
              transparent background, so an invalid row gets a frame instead of a tint: the row template binds BorderBrush.
              Rows and headers are keyed Fluent styles the grid sets, there is no implicit one to base on (D36).
              Source: dotnet/wpf, PresentationFramework.Fluent/Styles/DataGrid.xaml -->
         <DataGrid x:Name="Grid"
-                  ItemsSource="{Binding Rows}"
+                  ItemsSource="{Binding RowsView}"
                   SelectedItem="{Binding SelectedRow, Converter={StaticResource SelectedRowConverter}}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="True"
                   CanUserDeleteRows="True"
-                  CanUserSortColumns="False"
+                  CanUserSortColumns="True"
+                  Sorting="OnSorting"
                   CanUserReorderColumns="False"
                   SelectionMode="Single"
                   HeadersVisibility="Column">
@@ -124,15 +127,16 @@
                 </Style>
             </DataGrid.RowStyle>
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Stop" Binding="{Binding StopNumber}" IsReadOnly="True" Width="Auto" />
-                <!-- Where the crates are collected, "A / B" (D68); before Source, so a row reads pickup → destination. -->
-                <DataGridTextColumn Header="Pickup" Binding="{Binding Pickup, UpdateSourceTrigger=PropertyChanged}" Width="2*" />
-                <!-- Where the row came from: "ct 37–38" for a ContractTracker capture, empty if typed (T5.4). -->
-                <DataGridTextColumn Header="Source" Binding="{Binding Source, Mode=OneTime}" IsReadOnly="True" Width="Auto" />
-                <DataGridTextColumn Header="Destination" Binding="{Binding Destination, UpdateSourceTrigger=PropertyChanged}" Width="2*" />
-                <DataGridTextColumn Header="Commodity" Binding="{Binding Commodity, UpdateSourceTrigger=PropertyChanged}" Width="2*" />
-                <DataGridTextColumn Header="SCU" Binding="{Binding Scu, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                <DataGridComboBoxColumn Header="Max crate"
+                <DataGridTextColumn Header="Stop" Binding="{Binding StopNumber}" IsReadOnly="True" CanUserSort="False" Width="Auto" />
+                <!-- Where the crates are collected, "A / B" (D68); before Mission, so a row reads pickup → destination. -->
+                <DataGridTextColumn Header="Pickup" Binding="{Binding Pickup, UpdateSourceTrigger=PropertyChanged}" CanUserSort="False" Width="2*" />
+                <!-- The mission: ContractTracker's ids, "#37–38" as in the legend (K6.1), "#37–38 ✎" for a row added or changed by
+                     hand (K6.5), empty if typed (T5.4). -->
+                <DataGridTextColumn Header="Mission" Binding="{Binding MissionLabel, Mode=OneWay}" IsReadOnly="True" SortMemberPath="Mission" Width="Auto" />
+                <DataGridTextColumn Header="Destination" Binding="{Binding Destination, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="Destination" Width="2*" />
+                <DataGridTextColumn Header="Commodity" Binding="{Binding Commodity, UpdateSourceTrigger=PropertyChanged}" CanUserSort="False" Width="2*" />
+                <DataGridTextColumn Header="SCU" Binding="{Binding Scu, UpdateSourceTrigger=PropertyChanged}" CanUserSort="False" Width="*" />
+                <DataGridComboBoxColumn Header="Max crate" CanUserSort="False"
                                         ItemsSource="{x:Static ed:MissionRows.MaxCrateSizes}"
                                         SelectedItemBinding="{Binding MaxCrateSize, UpdateSourceTrigger=PropertyChanged}"
                                         Width="*" />
@@ -140,7 +144,7 @@
                      empty for a derived row, so clicking in and out never turns the derivation into an override;
                      an empty box means "derive again". FocusManager puts the caret into the box when editing starts.
                      Source: https://learn.microsoft.com/dotnet/api/system.windows.input.focusmanager.focusedelement -->
-                <DataGridTemplateColumn Header="Crates" Width="1.5*">
+                <DataGridTemplateColumn Header="Crates" CanUserSort="False" Width="1.5*">
                     <DataGridTemplateColumn.HeaderStyle>
                         <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource DefaultDataGridColumnHeaderStyle}">
                             <Setter Property="ToolTip" Value="{x:Static ed:MissionRows.CratesToolTipText}" />

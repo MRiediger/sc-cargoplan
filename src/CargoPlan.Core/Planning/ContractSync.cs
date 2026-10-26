@@ -11,7 +11,8 @@ namespace CargoPlan.Core.Planning;
 public static class ContractSync
 {
     /// <summary>
-    /// One sync: missions deleted in ContractTracker leave if nothing of them is on board (all ticked, or never placed);
+    /// One sync: missions deleted in ContractTracker leave if nothing of them is planned on board (all loaded or ticked, or
+    /// never placed): loaded cargo of a contract handed in was handed over in the game (K6.4), and what lay on it settles;
     /// waiting missions are placed where they fit now; new captures above the watermark are placed in id order
     /// (<see cref="LoadPlanner.PlaceInto"/>), and the watermark rises to the highest id taken. Without a change it
     /// returns <paramref name="saved"/> itself, so a file event without news changes nothing (D38: diff, don't react).
@@ -70,8 +71,8 @@ public static class ContractSync
     }
 
     /// <summary>
-    /// Ids of the missions deleted in ContractTracker that still have crates on board: the plan keeps them, the player
-    /// ticks them or deletes them in the editor (D39 addendum).
+    /// Ids of the missions deleted in ContractTracker that still have planned crates on board: the plan keeps them, the
+    /// player ticks them or deletes them in the editor (D39 addendum). Loaded crates were handed over (K6.4).
     /// </summary>
     public static IReadOnlyList<int> Conflicts(SavedPlan saved, IReadOnlySet<long> present) =>
         [.. Gone(saved, present).Where(m => OnBoard(saved, m.Id)).Select(m => m.Id)];
@@ -116,5 +117,5 @@ public static class ContractSync
     private static IEnumerable<Mission> Gone(SavedPlan saved, IReadOnlySet<long> present) =>
         saved.Missions.Where(m => m.Contract is { } contract && !contract.ContractIds.Any(present.Contains));
 
-    private static bool OnBoard(SavedPlan saved, int missionId) => saved.Plan.Crates.Any(c => c.Mission == missionId && !c.Delivered);
+    private static bool OnBoard(SavedPlan saved, int missionId) => saved.Plan.Crates.Any(c => c.Mission == missionId && !c.Delivered && !c.Loaded);
 }

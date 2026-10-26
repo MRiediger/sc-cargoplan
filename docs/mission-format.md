@@ -65,6 +65,9 @@ reported instead of being ignored silently. All fields are **required** except `
 | `crates` | array of numbers | Optional. The crates as the kiosk delivered them, e.g. `[2, 2, 2]`. Each one a crate size up to `maxCrateSize`, together exactly `scu`. Leave it out to let the tool work them out. |
 | `pickup` | array of strings | Optional. Where the crates are collected, e.g. `["Lorville"]`, or several places for a contract with several pickups, without amounts. Spaces around a name, empty names and a name repeated (in any case) are dropped. The overlay shows it when you select a crate and groups the legend by it. |
 
+`manual` (an item added by hand to a ContractTracker mission) belongs to [plan files](plan-format.md) only: a mission
+file says nothing about ContractTracker, so an item with `manual` is an error, and export never writes it.
+
 A crate that fits no rack of the ship is rejected by the planner.
 
 ## Schema 2 (still read)
