@@ -2149,7 +2149,7 @@ Unlock ablesbar sein, was wohin gehört. Martins Ladeweise: alle Missionen laden
 (first-in last-out). Reihenfolge K6.1 → K6.2 → K6.3 → K6.4 → K6.5; je Task ein Plan zur Freigabe. Plan-Schema 6 → 7
 in K6.4 (`loaded`), K6.5 legt `manual` ebenfalls in 7 ab.
 
-### [ ] K6.1 Legendenzeile vollständig (D69-Addendum) (26.10.2026)
+### [x] K6.1 Legendenzeile vollständig (D69-Addendum) (26.10.2026)
 **Warum:** Am Aufzug wird eine Kiste über Ware + Größe + Ziel zugeordnet; die Zeile zeigte nur `To <Ziel> · <SCU> SCU`,
 die Überschrift keine Mission.
 
@@ -2190,7 +2190,7 @@ nach dem Umbau (XAML-Test + Offscreen-Hit-Test); E3 K6.4 hängt „geladen“ al
 - [x] Überschrift `From <Abholort> · #<CT-Id>`, ohne CT keine Id
 - [x] Kürzung Ware → Ziel, nie SCU/Mischung; Tooltip mit Volltext
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün
-- [ ] Gate (Martin, Publish-Build vom Branch, im Lock am Aufzug): Zeile lesbar, Mischung = Kiosk, `#Id` = CT-Fenster
+- [x] Gate (Martin, Publish-Build vom Branch, im Lock am Aufzug, 26.10., bestanden): Zeile lesbar, Mischung = Kiosk, `#Id` = CT-Fenster
 - Commits cd54dfb (Tests rot), 0a75daf (App), Doku-Commit.
 
 ### [ ] K6.2 Markierung überlebt den Lock (26.10.2026)
