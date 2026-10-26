@@ -27,6 +27,8 @@ The ships you chose last stand on top under "Recent". To find a ship faster, jus
 field while the list is open, and every key narrows the list by name or manufacturer code ("hull c", "crus"). Enter
 picks the ship when only one is left, Esc empties the search, a second Esc closes the list. While the list is open your
 keys go to the search, not to the game; after picking, one click into the game gives it the keys back.
+A ship whose cargo module changes its hold has a line of its own, "RSI Aurora Mk II · TS module" next to
+"RSI Aurora Mk II": pick the one you fly, switching is a ship change like any other.
 With a plan the overlay asks first, then plans your missions anew for the new ship. Ticks stay, also a single legend line:
 cargo you have delivered was never on the new ship, so it takes no room there and isn't drawn, only its legend line
 stays struck through. Tick it back and it is laid into free cells. Like the header buttons

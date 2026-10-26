@@ -236,6 +236,41 @@ isn't read. `-Create` writes it, the compare reports a door the file lacks or ho
 missing one but never overwrites one already in the file. Racks whose `limits.max.capacity` is an unverified 1 are named
 after the ship's line ("limits.max 1 unverified: rack-0") without counting as a difference.
 
+## Cargo modules
+
+Some ships change their hold with a module (the Aurora Mk II's TS module; later the Retaliator, the Caterpillar). A
+module is a file of its own in `ships/modules/<id>.json`, not a field in the ship file (D59): every ship it names gets
+one more entry in the ship list, its own racks first, the module's after them.
+
+```json
+{
+  "schemaVersion": 1,
+  "id": "ts_module",
+  "name": "TS module",
+  "ships": ["aurora_mk_ii"],
+  "source": "in game (Martin, 2026-10-26)",
+  "notes": "platform at the stern …",
+  "racks": [
+    { "id": "ts-module", "capacityScu": 6, "grid": { "length": 3, "width": 2, "stack": 1 },
+      "origin": [-6, 0, -1], "stackAxis": "+z", "maxCrateSize": 2 }
+  ]
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `schemaVersion` | `1` (the module format's own version, not the ship file's) |
+| `id` | lowercase snake_case, equal to the file name |
+| `name` | shown after the ship's name: "RSI Aurora Mk II · TS module" |
+| `ships` | the ids of the ships that carry it; each becomes the entry `<ship>_<module>` (`aurora_mk_ii_ts_module`) |
+| `racks` | as in a ship file; their ids must differ from the ship's, their boxes must not overlap its racks |
+| `source`, `notes` | optional, appended to the ship's under the module's name |
+
+The entry's `totalScu` is the ship's plus the module's racks, its manufacturer and Fleetyards slug are the ship's, so it
+shows the ship's outline and hologram. It is checked like a ship file; a broken module, a ship it names that doesn't
+load, or a rack that doesn't fit is one line in the ship list's problems and costs only those entries. The import
+(`tools/import-fleetyards.ps1`) never touches `modules/`: Fleetyards has no module data, so a module is counted in game.
+
 ## Crate sizes
 
 Crates have a shape in cells (length × width × stack). Turned 90° about the rack's stack axis, length and width swap (D71); a 1, 4 or 8 looks the same either way:

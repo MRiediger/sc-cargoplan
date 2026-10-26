@@ -2042,6 +2042,32 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Gate (Martin, 26.10., bestanden): Phoenix, Redeemer, Aurora mit Umriss ganz herausgezoomt → ganzer Rumpf im Fenster (ggf. nach Verschieben); Hull A, Hull C wie bisher
 - Commits 46a7088 (Tests rot), 5e1e582 (App), Doku-Commit.
 
+### [ ] K5.3 Aurora Mk II mit TS-Modul (D59-Addendum) (26.10.2026)
+**Warum:** D59 sieht Frachtmodule als zusätzliche Katalogeinträge vor; Fleetyards kennt keine Module. Erstes Modul: die TS-Modul-Plattform der Aurora Mk II.
+
+**Ist-Zustand vor K5.3 (A1):** `ShipLoader.LoadAll` liest nur `ships/*.json`, Unterordner ignoriert; Core kopiert nur `ships/*.json`; App und CLI arbeiten mit Katalog-Ids (D59); `aurora_mk_ii.json` = 2 × 1 SCU, generierte Reihe.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Daten von Martin (Spiel, 26.10.): Plattform 3 × 2 × 1 Zellen (Länge entlang x), Kisten bis 2 SCU, Stapelachse +z, am Heck hinter dem 2-SCU-Raum auf der Mittellinie, fährt nach unten aus; nur Aurora Mk II; 8 SCU gesamt; Name „TS module“. Eigene Moduldatei mit Modul-Schema 1, kein Schiffsschema-Bump; Lage schematisch (x −6..−3, y 0..2, z −1..0); `maxCrateSize: 2` als Tür.
+- Daten: `ships/modules/ts_module.json`
+- Core: `ModuleDto` (`Check`, `ConfigurationId`, `On`), `ShipJsonContext` + `ModuleDto`, `ShipLoader.ModulesFolderName`, `LoadAll` liest `modules/` (eine Konfiguration je Basis, Fehler als `ShipProblem`, sortiert), `LoadFile` → `ReadFile` + `ToShip`; csproj kopiert `ships/modules/*.json`; `publish.ps1` prüft `ships/modules/ts_module.json` im ZIP
+- Tests: `ShipLoaderTests` (Eintrag je Basis, fehlende Basis, kaputte Datei, Modul-Schema 2, Überlappung, kein Ordner; `LoadAll_loads_every_shipped_file_without_problems` nennt die Modul-Einträge), `ShipModuleTests` (ausgelieferte Konfiguration, Basis unverändert, 6 SCU in 2ern ohne Modul abgelehnt, mit Modul auf der Plattform)
+
+**Zahl vorher/nachher:**
+
+| Messung | Vorher | Nachher |
+|---|---|---|
+| Tests (Core / Import / App) | 1.418 / 141 / 1.331 | 1.428 / 141 / 1.331; Slow grün |
+| Katalogeinträge | 98 | 99 (+ `aurora_mk_ii_ts_module`) |
+| Gleichheitslauf (gegen nach D3) | 388 | 388 gleich, 4 neue Zeilen für die Konfiguration (alle abgelehnt: Fixtures über 8 SCU oder gesetzte 4er gegen Tür 2) |
+
+**Akzeptanz:**
+- [x] Konfiguration „RSI Aurora Mk II · TS module“ mit 8 SCU, Plattform als Rack 3 mit Tür 2; Basis unverändert
+- [x] Kaputtes Modul kostet nur seine Einträge; ohne `modules/` alles wie bisher
+- [x] Plan mit und ohne Modul (6 SCU in 2ern)
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün; Exhaustive nicht nötig (Planer unberührt)
+- [ ] Gate (Martin, Publish-Build): „RSI Aurora Mk II · TS module“ wählen → Kopfzeile 8 SCU; Plan über 2 SCU legt ins Modul; Modul hinter und unter der Basis
+- Commits 6a05575 (Tests rot), fb3e49c (Core, Daten), Doku-Commit.
+
 ### [x] K5.4 App-Icon (D48-Addendum) (26.10.2026)
 **Warum:** Seit T6.2 im Backlog (D48): Exe, Taskleiste und Werkzeugfenster zeigten das Windows-Standardsymbol.
 
