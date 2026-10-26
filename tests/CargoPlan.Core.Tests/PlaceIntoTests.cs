@@ -250,15 +250,19 @@ public class PlaceIntoTests
     // --- RemoveMission ---
 
     [Fact]
-    public void RemoveMission_takes_out_its_crates_and_moves_nothing_else()
+    public void RemoveMission_takes_out_its_crates_and_only_what_lay_on_them_settles()
     {
+        // Riker's Gold lies on Riker's Titanium (mission 1): it drops straight down its column (K6.4), nothing else moves.
         var saved = Delivered(Placed(
             Stop("Riker", "Titanium", 8, CrateSize.Four), Stop("Shubin", "Quartz", 8, CrateSize.Four), Stop("Riker", "Gold", 4, CrateSize.Four)), "Shubin");
 
         var removed = LoadPlanner.RemoveMission(saved, HullA, 1);
 
         removed.Missions.Select(m => m.Id).Should().Equal(2, 3);
-        removed.Plan.Crates.Should().Equal(saved.Plan.Crates.Where(c => c.Mission != 1));
+        removed.Plan.Crates.Select(c => c with { Position = new GridPosition(c.Position.Length, c.Position.Width, 0) })
+            .Should().Equal(saved.Plan.Crates.Where(c => c.Mission != 1).Select(c => c with { Position = new GridPosition(c.Position.Length, c.Position.Width, 0) }));
+        removed.Plan.Crates.Single(c => c.Commodity == "Gold").Position.Stack.Should().Be(0);
+        LoadPlanner.Validate(removed.Plan, HullA).Should().BeEmpty();
     }
 
     [Fact]

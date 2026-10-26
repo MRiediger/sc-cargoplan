@@ -857,16 +857,14 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>
     /// The entry's plan with what happened since its reference that is no step (Martin: restore, then sync incrementally):
-    /// Core's <c>Resync</c> places the contracts synced since again, <c>CarryTicks</c> the ticks changed since; a tick back
-    /// without room goes to the notice line like a refused tick.
+    /// Core's <c>Resync</c> places the contracts synced since again. The state of every delivery is the snapshot's
+    /// (K6.4, D74 addendum): a change of state is a step of its own.
     /// </summary>
     private SavedPlan Restored(PlanHistory.Entry entry, SavedPlan current)
     {
-        var resynced = ContractSync.Resync(entry.Target, entry.Reference, current, Ship, _present);
-        var (restored, refused) = LoadPlanner.CarryTicks(resynced, entry.Reference, current, Ship);
         SetNotice(NoticeSource.Replan, null);
-        SetNotice(NoticeSource.Move, refused.Count == 0 ? null : TickRefusedPrefix + string.Join(" · ", refused));
-        return restored;
+        SetNotice(NoticeSource.Move, null);
+        return ContractSync.Resync(entry.Target, entry.Reference, current, Ship, _present);
     }
 
     private void HistoryChanged()
