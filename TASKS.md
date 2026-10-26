@@ -1958,7 +1958,7 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 
 **Release-Notes-Stoff (T7.5):** Gespeicherte Ansichten der Hull A und Hull C sitzen nach dem Update anders (neue Rack-Lage, Datenupdate, D76); die Hull C zeigt ihre zwei Kreuze, die Hull A den echten Spindelabstand. Known issue: Bei der Hull C liegen die Racks innerhalb der Frachtblöcke des Hologramms, nicht deckungsgleich; das Raster ist das logische des Spiels, das Hologramm zeigt Rahmen und Abstände (D78, Martin 26.10.: Fleetyards bleibt).
 
-**Befund beim Gate (26.10.):** Martin sah die Hull-C-Racks „zu eng und zu tief“ gegenüber dem Holo. Gemessen am Holo-Cache: Arm quer 10 m statt 7,5, radial 8,75 → 29 m statt 5 → 20, Blöcke längs ~12,5 m statt 10; das Holo selbst ist maßstabsgerecht (Rohmodell in Metern × 0,98). Daneben: das **Hull-A-Holo ist 28 % zu groß** (`holo-v1` auf Fleetyards' alte Länge 30 m skaliert, Modell 23,4 m) → K5.2b.
+**Befund beim Gate (26.10.):** Martin sah die Hull-C-Racks „zu eng und zu tief“ gegenüber dem Holo. Gemessen am Holo-Cache: Arm quer 10 m statt 7,5, radial 8,75 → 29 m statt 5 → 20, Blöcke längs ~12,5 m statt 10; das Holo ist auf Fleetyards' Länge 125 m skaliert (D63; die Rohmodelle haben keine einheitliche Einheit, ein Vergleich mit ihnen belegt nichts). Daneben: das **Hull-A-Holo ist 28 % zu groß** (`holo-v1` auf Fleetyards' alte Länge 30 m skaliert, Modell 23,4 m) → K5.2b.
 
 **Akzeptanz:**
 - [x] Kalibrierung: der Abgleich findet die ausgelieferte Hull A „same“ inkl. Lage; die Hull A von vorher (1 Zelle Spalt) meldet er als abweichend
