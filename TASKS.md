@@ -2071,6 +2071,26 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [ ] Gate (Martin): Holo an, Plattform hinter dem Bay unter dem Heck, die zwei Mk-II-Plätze nebeneinander, Bug nach vorn
 - Commits 6a05575 (Tests rot), fb3e49c (Core, Daten), fd07438 (Doku), Korrektur-Commit.
 
+### [ ] K5.3b `holoOffset` in der Schiffsdatei (D63-Addendum) (26.10.2026)
+**Warum:** Martin beim Holo-Gate der Aurora Mk II: Racks liegen eine Zelle zu hoch im Rumpf. Das Holo sitzt mittig auf den Racks (D63), Racks verschieben hilft nicht, das Holo wandert mit.
+
+**Ist-Zustand vor K5.3b (A1):** `HoloPlacement.Place(mesh, racks)` legt die Mitte des Holos auf die Mitte von `Ship.Bounds` in allen drei Achsen; kein Versatz in Daten oder Code.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** optionales Feld `holoOffset: [x, y, z]` in ganzen Zellen auf Schiffsebene, kein Schema-Bump (optional wie `position`, D56); Modul-Konfigurationen erben es; `-Force` schreibt es zurück, setzt es nie. Dazu Martin: `holoOffset` korrigiert die Mittellage des Holos gegenüber den Racks, keine Positionsangabe des Schiffs; wer einen Wert setzt, hat ihn am Holo-Gate gesehen, Quelle und Datum in `notes`; braucht ein Schiff einmal x/y, gilt das für Umriss und Holo gleichermaßen und das Feld wird erweitert, kein zweites; heute braucht das kein Schiff, kein Code dafür.
+- Core: `ShipDto.HoloOffset` (drei Werte) → `Ship.HoloOffset` (`ShipPoint?`)
+- App: `HoloPlacement.Place(mesh, racks, shift)`, `PreparedHolo` übergibt `ship.HoloOffset`
+- Import: `Format-Ship` schreibt `holoOffset`
+- Daten: `aurora_mk_ii.json` `"holoOffset": [0, 0, 1]`, Quelle und Datum in `notes`
+- Tests: `ShipLoaderTests` (Lesen, Modul erbt, ohne Feld keins, zwei Werte = Problem), `ShipModuleTests` (Aurora mit und ohne Modul), `HoloViewTests` (Versatz um ganze Zellen), `ImportFleetyardsScriptTests` (`-Force` behält es)
+
+**Zahl vorher/nachher:** Tests Core 1.428 → 1.433, App 1.331 → 1.332, Import 141; Gleichheitslauf 392/392 byte-gleich; Import-Abgleich 97 same.
+
+**Akzeptanz:**
+- [x] Holo der Aurora Mk II (mit und ohne Modul) eine Zelle höher, Racks und Planung unverändert
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [ ] Gate (Martin): Aurora Mk II und Aurora Mk II · TS module mit Holo, Racks tiefer im Rumpf; andere Schiffe unverändert
+- Commits e88229e (Tests rot), 54f0bed (Core, App, Import, Daten), Doku-Commit.
+
 ### [x] K5.4 App-Icon (D48-Addendum) (26.10.2026)
 **Warum:** Seit T6.2 im Backlog (D48): Exe, Taskleiste und Werkzeugfenster zeigten das Windows-Standardsymbol.
 
