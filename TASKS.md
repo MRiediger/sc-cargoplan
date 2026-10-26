@@ -1971,7 +1971,7 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Gate (Martin, Publish-Build, 26.10., bestanden): Hull C zeigt zwei Kreuze mit je acht Armen über dem Holo; Hull A gleiche Seiten/Ebenen mit breiterem Spalt; Fortune und Moth planen mit den neuen Gittern; Salvation wählbar
 - Commits 48107db (D1), db183d3 (Tests rot), 215d3d9 (Import), a5f3e4f (D2), c704561 (Grenz-Hinweise), a05691d (D3), Doku-Commit.
 
-### [ ] K5.2b Holos und Umrisse aus dem Index vom 26.10. (D63-, D55-Addendum) (26.10.2026)
+### [x] K5.2b Holos und Umrisse aus dem Index vom 26.10. (D63-, D55-Addendum) (26.10.2026)
 **Warum:** Befund beim K5.2-Gate: Das Hull-A-Holo ist 28 % zu groß. `holo-v1` und die Umrisse sind auf die Längen vom 22.10. skaliert, Fleetyards hat seitdem 18 Längen geändert; die Salvation hat weder Holo noch Umriss.
 
 **Ist-Zustand vor K5.2b (A1):** Pipeline `sc-ship-outlines`: `trace.py` skaliert den Umriss mit Fleetyards' Länge, `holo_mesh.py flatten` liest die Länge aus `ship-outlines.json`; `trace.py`/`sheet.py` liefen mit nicht festgehaltenen cv2/numpy-Versionen (die Systemumgebung hat kein cv2). Die App lädt eine Holo-Datei neu, sobald ihr SHA256 vom Manifest abweicht, und holt das Manifest höchstens einmal am Tag.
@@ -1994,8 +1994,8 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 **Akzeptanz:**
 - [x] Kontaktbögen: Holos (Pipeline-Bögen „clean“/„not clean“), Umrisse gegen Render mit Bugpunkt (Scratch-Bogen)
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün
-- [ ] Gate (Martin): Kontaktbögen; Salvation-Bug-Richtung
-- [ ] Upload (Martin): `upload-holo-v1.ps1` (Holos, dann Manifest); danach Hull A, Avenger Titan, C8, Salvation im Holo-Modus in richtiger Größe zu den Racks
+- [x] Gate (Martin, 26.10., bestanden): Kontaktbögen; Salvation-Bug-Richtung
+- [x] Upload (Martin, 26.10.; Manifest und Hull-A-Holo auf GitHub byte-gleich mit dem Release-Ordner): `upload-holo-v1.ps1` (Holos, dann Manifest); danach Hull A, Avenger Titan, C8, Salvation im Holo-Modus in richtiger Größe zu den Racks
 - Commits Pipeline 1af1c83..b3da084, hier Daten-/Doku-Commit.
 
 ### [x] K5.2c Umriss mindestens maßstabsgetreu, Ausschnitt wie mit Keil (D62-Addendum) (26.10.2026)
@@ -2042,7 +2042,7 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Gate (Martin, 26.10., bestanden): Phoenix, Redeemer, Aurora mit Umriss ganz herausgezoomt → ganzer Rumpf im Fenster (ggf. nach Verschieben); Hull A, Hull C wie bisher
 - Commits 46a7088 (Tests rot), 5e1e582 (App), Doku-Commit.
 
-### [x] K5.3 Aurora Mk II mit TS-Modul (D59-Addendum) (26.10.2026)
+### [ ] K5.3 Aurora Mk II mit TS-Modul (D59-Addendum) (26.10.2026)
 **Warum:** D59 sieht Frachtmodule als zusätzliche Katalogeinträge vor; Fleetyards kennt keine Module. Erstes Modul: die TS-Modul-Plattform der Aurora Mk II.
 
 **Ist-Zustand vor K5.3 (A1):** `ShipLoader.LoadAll` liest nur `ships/*.json`, Unterordner ignoriert; Core kopiert nur `ships/*.json`; App und CLI arbeiten mit Katalog-Ids (D59); `aurora_mk_ii.json` = 2 × 1 SCU, generierte Reihe.
@@ -2066,6 +2066,8 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Plan mit und ohne Modul (6 SCU in 2ern)
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün; Exhaustive nicht nötig (Planer unberührt)
 - [x] Gate (Martin, Publish-Build, 26.10., bestanden mit Korrektur): „RSI Aurora Mk II · TS module“ wählen → Kopfzeile 8 SCU; Plan über 2 SCU legt ins Modul; Modul passt. Korrektur: Rack 2 der Mk II liegt direkt über Rack 1, nicht dahinter (`aurora_mk_ii.json` Origin `[0, 0, 1]` statt `[-2, 0, 0]`, Handwert in `notes`); Modul unverändert, damit seine Lage zum Holo bleibt; Gleichheitslauf 392/392, Import-Abgleich `same`
+- [x] Zweite Korrektur (Martin, 26.10.): „2 direkt über der 1“ hieß in der Draufsicht daneben, nicht gestapelt. Rack 1 (`cargo_left`) `[0, 0, 0]` bleibt, Rack 2 (`cargo_right`) `[0, 0, 1]` → `[0, -1, 0]` (Steuerbord daneben); Modul `[-6, 0, -1]` → `[-6, -1, -1]` (y-Mitte = Mitte der beiden Plätze, x hinter dem Bay, z Rumpfunterseite bleiben); Rack 3 vorher geprüft: Modul 3 × 2 × 1, 6 SCU, Tür 2 (nicht 2 × 2 × 2), Rack 1/2 Index 1 × 1 × 1, limits 1–1; 8 SCU; Gleichheitslauf 392/392 (09dfbe9)
+- [ ] Gate (Martin): Holo an, Plattform hinter dem Bay unter dem Heck, die zwei Mk-II-Plätze nebeneinander, Bug nach vorn
 - Commits 6a05575 (Tests rot), fb3e49c (Core, Daten), fd07438 (Doku), Korrektur-Commit.
 
 ### [x] K5.4 App-Icon (D48-Addendum) (26.10.2026)
