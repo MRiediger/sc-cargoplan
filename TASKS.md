@@ -2042,7 +2042,7 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Gate (Martin, 26.10., bestanden): Phoenix, Redeemer, Aurora mit Umriss ganz herausgezoomt → ganzer Rumpf im Fenster (ggf. nach Verschieben); Hull A, Hull C wie bisher
 - Commits 46a7088 (Tests rot), 5e1e582 (App), Doku-Commit.
 
-### [ ] K5.3 Aurora Mk II mit TS-Modul (D59-Addendum) (26.10.2026)
+### [x] K5.3 Aurora Mk II mit TS-Modul (D59-Addendum) (26.10.2026)
 **Warum:** D59 sieht Frachtmodule als zusätzliche Katalogeinträge vor; Fleetyards kennt keine Module. Erstes Modul: die TS-Modul-Plattform der Aurora Mk II.
 
 **Ist-Zustand vor K5.3 (A1):** `ShipLoader.LoadAll` liest nur `ships/*.json`, Unterordner ignoriert; Core kopiert nur `ships/*.json`; App und CLI arbeiten mit Katalog-Ids (D59); `aurora_mk_ii.json` = 2 × 1 SCU, generierte Reihe.
@@ -2068,10 +2068,10 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Gate (Martin, Publish-Build, 26.10., bestanden mit Korrektur): „RSI Aurora Mk II · TS module“ wählen → Kopfzeile 8 SCU; Plan über 2 SCU legt ins Modul; Modul passt. Korrektur: Rack 2 der Mk II liegt direkt über Rack 1, nicht dahinter (`aurora_mk_ii.json` Origin `[0, 0, 1]` statt `[-2, 0, 0]`, Handwert in `notes`); Modul unverändert, damit seine Lage zum Holo bleibt; Gleichheitslauf 392/392, Import-Abgleich `same`
 - [x] Zweite Korrektur (Martin, 26.10.): „2 direkt über der 1“ hieß in der Draufsicht daneben, nicht gestapelt. Rack 1 (`cargo_left`) `[0, 0, 0]` bleibt, Rack 2 (`cargo_right`) `[0, 0, 1]` → `[0, -1, 0]` (Steuerbord daneben); Modul `[-6, 0, -1]` → `[-6, -1, -1]` (y-Mitte = Mitte der beiden Plätze, x hinter dem Bay, z Rumpfunterseite bleiben); Rack 3 vorher geprüft: Modul 3 × 2 × 1, 6 SCU, Tür 2 (nicht 2 × 2 × 2), Rack 1/2 Index 1 × 1 × 1, limits 1–1; 8 SCU; Gleichheitslauf 392/392 (09dfbe9)
 - [x] Dritte Korrektur (Martin, 26.10.): Rack 1 und 2 eine Zelle tiefer, auf die Höhe des Moduls: `[0, 0, -1]`, `[0, -1, -1]` (z −1..0 wie Rack 3); Gleichheitslauf 392/392
-- [ ] Gate (Martin): Holo an, Plattform hinter dem Bay unter dem Heck, die zwei Mk-II-Plätze nebeneinander, Bug nach vorn
+- [x] Gate (Martin, 26.10., bestanden nach K5.3b): Holo an, Plattform hinter dem Bay unter dem Heck, die zwei Mk-II-Plätze nebeneinander, Bug nach vorn
 - Commits 6a05575 (Tests rot), fb3e49c (Core, Daten), fd07438 (Doku), Korrektur-Commit.
 
-### [ ] K5.3b `holoOffset` in der Schiffsdatei (D63-Addendum) (26.10.2026)
+### [x] K5.3b `holoOffset` in der Schiffsdatei (D63-Addendum) (26.10.2026)
 **Warum:** Martin beim Holo-Gate der Aurora Mk II: Racks liegen eine Zelle zu hoch im Rumpf. Das Holo sitzt mittig auf den Racks (D63), Racks verschieben hilft nicht, das Holo wandert mit.
 
 **Ist-Zustand vor K5.3b (A1):** `HoloPlacement.Place(mesh, racks)` legt die Mitte des Holos auf die Mitte von `Ship.Bounds` in allen drei Achsen; kein Versatz in Daten oder Code.
@@ -2088,7 +2088,7 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 **Akzeptanz:**
 - [x] Holo der Aurora Mk II (mit und ohne Modul) eine Zelle höher, Racks und Planung unverändert
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün
-- [ ] Gate (Martin): Aurora Mk II und Aurora Mk II · TS module mit Holo, Racks tiefer im Rumpf; andere Schiffe unverändert
+- [x] Gate (Martin, 26.10., abgenommen): Aurora Mk II und Aurora Mk II · TS module mit Holo, Racks tiefer im Rumpf; andere Schiffe unverändert
 - Commits e88229e (Tests rot), 54f0bed (Core, App, Import, Daten), Doku-Commit.
 
 ### [x] K5.4 App-Icon (D48-Addendum) (26.10.2026)
