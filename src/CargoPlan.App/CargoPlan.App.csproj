@@ -28,6 +28,9 @@
     <!-- [LibraryImport] generates unsafe marshalling code.
          Source: https://learn.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke-source-generation -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Exe and Explorer icon; a window without its own Icon takes it too (title bar, taskbar, Alt+Tab). Source of the image:
+         docs/images/icon.svg (K5.4). Source: https://learn.microsoft.com/dotnet/api/system.windows.window.icon#remarks -->
+    <ApplicationIcon>cargoplan.ico</ApplicationIcon>
   </PropertyGroup>
 
 </Project>

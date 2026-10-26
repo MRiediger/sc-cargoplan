@@ -1901,6 +1901,24 @@ Ansicht und Legende holen ihre Pinsel aus einer Funktion; P9 `downloadShipHologr
 - **Für K5 relevant:** Stop-Farben laufen über `OverlayViewModel.StopPalette`, nicht über die Szene; `MissionPalette.Assign` liefert Ordnungszahlen ohne Modulo.
 - **Offen:** Antwort von Torlek zu `limits.max = 1` und die `unverified`-Liste der Türen (32 Racks in 16 Schiffen); Fortune, Moth (Gitter geändert, neue Racks) und Salvation (neu) aus dem Index vom 25.10.; `offset`/`rotation` → `origin`/`stackAxis` im Import; Aurora-Frachtmodul; App-Icon; Befund `MissionFrame` weiß = Okabe-Weiß (Backlog).
 
+Reihenfolge innerhalb von K5 (Branch `feat/k5-data` ab `fa8276d`): K5.1 `fetch.ps1` → K5.2 Import `offset`/`rotation` +
+voller Abgleich → K5.3 Aurora-Frachtmodul → K5.4 App-Icon (unabhängig, vorgezogen, sobald die Datei da war). Schemas
+bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
+
+### [ ] K5.4 App-Icon (D48-Addendum) (26.10.2026)
+**Warum:** Seit T6.2 im Backlog (D48): Exe, Taskleiste und Werkzeugfenster zeigten das Windows-Standardsymbol.
+
+**Ist-Zustand vor K5.4 (A1):** kein `.ico`, kein `<ApplicationIcon>`, kein `Window.Icon` im App-Projekt; `docs/images/` leer.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Martin lieferte das Logo (Variante A „flat“, `.ico` mit 16/24/32/48/64/128/256 px als PNG-Frames, SVG-Quelle) und gab K5.4 ohne eigenen Plan frei („direkt einbauen“). Nur `<ApplicationIcon>`, kein `Window.Icon` je Fenster: ein Fenster ohne eigenes Icon nimmt das Assembly-Icon (Doku `Window.Icon`, Remarks). Das Logo ist Martins Eigenwerk ohne fremdes Material → MIT wie das Repo, kein `NOTICE.md`. Keine Prüfung in `publish.ps1`: das Icon ist eine Win32-Ressource der Exe, keine Datei im ZIP.
+- App: `src/CargoPlan.App/cargoplan.ico` (byte-gleich mit Martins Datei, SHA256 `3C13B3A1…`), `<ApplicationIcon>` im csproj
+- Doku: `docs/images/icon-256.png` (README, Nexus-Seite in T7.5), `docs/images/icon.svg` (Quelle, Kommentare übersetzt)
+
+**Akzeptanz:**
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 1.401, Import 141, App 1.328, unverändert)
+- [x] Icon aus der gebauten `CargoPlan.App.exe` zurückgelesen (`Icon.ExtractAssociatedIcon`): das Logo
+- [ ] Gate (Martin, Publish-Build): Icon in Explorer, Taskleiste, Alt+Tab und den Titelleisten von Editor und Settings; ZIP entpackt → Exe zeigt es
+
 ---
 
 ## Phase 8 – nach dem Launch
