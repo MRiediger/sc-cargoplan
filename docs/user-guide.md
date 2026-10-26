@@ -83,12 +83,13 @@ rests on the plate or on other crates.
 - **Color** = destination. Up to eight colors (six or seven with the other stop color sets, see
   [Settings](#settings-and-your-look)); from then on the colors repeat **hatched** "/", after another round hatched
   "\", the same in the view and on the legend's color square (the legend says so).
+- **Bright white edge** = loaded: on board, marked in the legend (see [Loading](#loading)).
 - **Gray** = delivered.
 - **Outline only** = free cell. Far out, only the free cells in the layers that hold crates are drawn.
 - **Red** = a crate that can't lie like this, see [Stacking and red crates](#stacking-and-red-crates).
 
 **How full is the ship?** The header shows it next to the ship name: `56/64 · 8 free` is 56 SCU on board of 64, 8 free.
-While a mission waits for room, `· 16 waiting` follows with its SCU: that is the moment for
+Once you mark cargo loaded, `· 40 loaded` says how much of it is. While a mission waits for room, `· 16 waiting` follows with its SCU: that is the moment for
 [Re-plan](#changing-the-plan). Ticked crates are off the ship and don't count. The numbers stay while the overlay is
 locked; in a narrow overlay the ship name gives way first. Each rack says the same as a tool tip anywhere over it,
 `Rack 3 · 12 / 16 SCU`, empty racks included.
@@ -146,8 +147,10 @@ so it takes the focus while you type; afterwards click back into the game (or Al
   tool tip and below the grid; **Plan** stays off until every row is fixed, and hovering over it shows why. If the
   missions don't fit the ship, the reason shows in the same place.
 - **Plan** sends the rows to the overlay, saves them and closes the editor. If the missions don't fit, the editor stays
-  open with the reason. Planning again makes a new plan: ticks and moved cargo are cleared. The editor says so
-  beforehand if you have ticked a destination.
+  open with the reason. Planning again makes a new plan: moved cargo is laid out anew, but what you marked **loaded**
+  stays where it lies and the rest goes around it, and what you ticked stays ticked. A destination whose rows you
+  changed is planned again; the amber line names it (`Riker: changed in the editor – no longer loaded`). If the rest of a
+  contract you loaded in part finds no room around the loaded cargo, Plan says so and the editor stays open.
 - **Next route:** the editor opens with your current missions. **Clear rows** empties the rows for the next route; the
   overlay keeps the old plan until you press **Plan**. Closing the editor without **Plan** throws away your changes, not
   your plan.
@@ -225,9 +228,9 @@ itself, a few moments after you press F3. No editor, no click.
     in (Hull C). The app never makes crates larger than the contract allows; take the contract on another ship.
 - **Retry before you load.** A recapture (F4) is a new mission. Before your first tick it is marked `⚠ duplicate?`;
   after a tick it isn't, and you see the destination twice. Delete the wrong one in the editor.
-- **Deleted in ContractTracker:** a contract you have fully ticked (or that didn't fit) leaves the plan as soon as you
-  delete it there. One with crates still on board stays, and an amber line names it until you tick it or delete it in
-  the editor.
+- **Deleted in ContractTracker:** a contract you have fully ticked or loaded (or that didn't fit) leaves the plan as soon
+  as you hand it in or delete it there; cargo that lay on its crates settles down (`1 loaded crate settled`). One with
+  crates on board that aren't marked loaded stays, and an amber line names it until you tick it or delete it in the editor.
 - **Pickup** comes along from ContractTracker as the place's name: when ContractTracker's pickup field runs on into the
   contract's next line (`Everus Harbor. - Freight elevator at …`), only the name stays. Misreadings in the name itself
   stay; correct them in the editor's **Pickup** column if you want the legend tidy. A plan saved before that is cleaned
@@ -259,13 +262,31 @@ it, and never touches the game.
 
 ## At the cargo lift
 
+### Loading
+
+At the elevator: let Sync add contracts; mark a delivery **loaded** in the legend once it is on board. Plan and Re-plan
+only move what is not loaded. Discard clears everything.
+
+A click on a line in the legend goes **planned → loaded → delivered → planned**: loaded lines end in `▣` and their crates
+get a bright white edge, delivered ones are gray and struck through. Loaded crates stay where they lie: Plan, Re-plan, a
+sync and making room for other cargo go around them. You can still drag them yourself, and split or merge them; they
+stay loaded. Clicking a crate in the ship view still delivers the whole stop; loaded is set per delivery in the legend.
+A misclick? **Undo** (↶) takes every change of state back.
+
+When cargo leaves (you tick it, ContractTracker sees the contract handed in, you delete the mission), the crates that lay
+on it sink straight down their column until they rest again, loaded or not; the amber line says so (`1 loaded crate
+settled · 1 planned crate moved down`). A crate that comes to rest on cargo with only part of its bottom stays there and
+shows red; drag it where it really lies. **Loaded** belongs to this ship: changing the ship plans everything anew and
+the amber line says `2 crates were marked loaded – cleared for MISC Freelancer`; ticks stay.
+
 ### Unloading
 
 When a destination has taken its cargo, click any of its cargo in the view: every crate for that station turns gray,
 whichever mission it belongs to, and its legend lines are struck through, so the next cargo lift only shows what is still
 on board. To tick one mission's crates only, click its line in the legend instead (`To Riker` under that mission). The
 ship stays where it is. A destination split over two racks is ticked once, both racks turn gray. Clicked the wrong one?
-Click again. When every destination is ticked, the header says "All stops delivered."
+**Undo** (↶) takes it back, or click again: the stop goes back to planned, into its cells while they are free, else into
+free cells. When every destination is ticked, the header says "All stops delivered."
 Ticking doesn't take the focus from the game, so the terminal keeps working. Every tick is saved right away, so a game
 crash or a restart between two stops keeps your plan and your ticks.
 
@@ -313,11 +334,13 @@ fits nowhere, nothing moves. To take a move back, use **Undo** (below): dragging
 nothing else had to move for it.
 
 Delivered crates can't be dragged, they are off the ship: their cells count as free, so crates can go where they lay.
-Moves are saved like ticks; pressing **Plan** in the editor makes a new plan from the rows and drops them and your ticks
-(see [Entering missions](#entering-missions)); **Re-plan** drops the moves and keeps the ticks (below).
+Moves are saved like ticks; pressing **Plan** in the editor makes a new plan from the rows and drops them, keeping what
+is loaded and what is ticked (see [Entering missions](#entering-missions)); **Re-plan** does the same with the missions
+you have (below).
 
 **Re-plan** (↻ in the header next to the pencil, or in the editor next to *Import…*, or its hotkey) lays out everything on board anew, as a fresh plan of the same
-missions would. Use it when the plan has grown in pieces: two contracts are loaded and a third one says `⚠ doesn't fit
+missions would; with cargo marked loaded, it leaves that where it lies and lays the rest around it. If that would leave
+more waiting than your plan does now, it keeps your plan and says `Re-plan found no better layout`. Use it when the plan has grown in pieces: two contracts are loaded and a third one says `⚠ doesn't fit
 (no room for 16 SCU crates)` although there is room, only not in one piece. It is your call, because it costs work: crates
 change racks and cells, so **you restack the ship** at the cargo lift. What it drops: where every crate on board lies,
 and your moves. What it keeps: your ticks (ticked crates are off the ship and take no room), the crate sizes (split,
@@ -336,10 +359,9 @@ so delete the finished ones there first (× or F5). With auto-sync on that happe
 are editing stay a draft; clean rows become one empty row.
 
 **Undo and redo** (↶ and ↷ in the header left of the reset button, or their hotkeys) go back and forward through your changes
-to the plan: moves, legend drags, turning a crate, split and merge, Re-plan, **Plan** in the editor, deleting a mission
-and Discard plan. ↶ shows once there is something to undo, ↷ once you have undone something; a new change drops what
-you could redo. Ticks are not undone: they are where you are on the route, so a tick you set after a move stays when you
-undo the move. A sync isn't undone either: a contract that came in from ContractTracker after a move is still there
+to the plan: moves, legend drags, turning a crate, split and merge, Re-plan, **Plan** in the editor, deleting a mission,
+Discard plan, and every click that loads, ticks or unticks. ↶ shows once there is something to undo, ↷ once you have
+undone something; a new change drops what you could redo. A sync isn't undone: a contract that came in from ContractTracker after a move is still there
 when you undo the move. Changing the ship empties both (the amber line says `Undo history cleared by ship change`),
 and so does closing the overlay: undo is not saved. The last 100 changes can be undone.
 
@@ -363,7 +385,8 @@ another's has to come off before the cargo below can go. The planner avoids that
 (several destinations fill a rack), it makes the plan anyway.
 
 **Red** is for crates that can't lie like this: overlapping another, or with nothing below them. Only a plan file edited
-by hand gets those, or ticking a stop whose crates carried another one: the crate on top then floats until you drag it.
+by hand gets those, or a crate that settled onto cargo with part of its bottom (see [Loading](#loading)); drag it where
+it really lies.
 Red marks the crate (outline) and its rack (edges), with a red line below the legend.
 
 ## Click-through and padlock

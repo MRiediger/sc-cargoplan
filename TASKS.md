@@ -2264,7 +2264,68 @@ Plan aus sortierter Ansicht → Legende zeilengleich mit Plan aus der Standard-R
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün
 - [x] Gate (Martin, 26.10., bestanden): sortieren, Plan drücken → Plan unverändert zur unsortierten Eingabe
 - Commits e23c056 (Tests rot), 5a78e83 (App), Doku-Commit.
-### [ ] K6.4 Zustand „geladen“ (Plan-Schema 7) (26.10.2026)
+### [ ] K6.4 Zustand „geladen“ (Plan-Schema 7, D79) (26.10.2026)
+**Warum:** Martins Abschlusstest: Mission 1 annehmen → Sync → laden → Mission 2 annehmen → **Plan** legt Mission 1 um,
+obwohl sie an Bord ist. Ladeweise: alle Missionen laden, dann pro Mission abgeben (first-in last-out).
+
+**Ist-Zustand vor K6.4 (A1, zwei Explore-Berichte):** kein Konzept „feste Kiste“, einziges Hindernis ist `occupied` von
+`CrateLayout.Lay`; `Plan` (`RackAssignment`) und `ReplanInPlace` legen alles Unabgehakte neu; Stufe 3 legt das Zielrack
+ganz neu, 3b verdrängt fremde Kisten; `Board.Settle` weicht seitlich aus oder legt neu; Haken, `RemoveMission` und Sync
+lassen Kisten darüber rot schweben (der Task-Text „wie bisher neu gelegt“ stimmte nicht); der Sync entfernt eine
+verschwundene Mission nur ohne Kisten an Bord; der Editor-Plan löscht alle Haken (D19) und nummeriert getippte Missionen
+neu; Undo trägt Haken per `CarryTicks` nach (D74); Plan-Schema 6.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 `Crate.Loaded`, nie zusammen mit abgeliefert; P2
+Schema 7 `crates[].loaded` nur bei `true`, 6 → 7, Ausschlüsse `delivered`/`offShip`, Goldens nur `schemaVersion`; P3
+Lieferung über erste CT-Id × Ziel bzw. bei getippten Missionen das Ziel, überlebt nur mit gleichen Kisten (Ware × Größe),
+sonst geplant mit Notice; P4 Editor-Plan und Re-plan halten Geladenes **und Abgeliefertes** (Martin, ändert D19), der
+Rest wird nach D41-Regel um das Geladene gelegt, ohne Geladenes der heutige Weg; P5 Moves: Stufe 3 um Geladenes herum,
+3b nie Geladenes, Spieler darf ziehen, Split/Merge erhalten den Zustand; P6 Absinken: nach jeder Abgabe sinkt alles
+Schwebende an Bord gerade, **geladen und geplant** (Martin), halb aufliegend bleibt es rot; P7 Zurückhaken immer nach
+geplant, an alter Stelle oder neu eingelegt; P8 Sync entfernt eine verschwundene Mission, wenn nichts von ihr geplant an
+Bord ist; P9 Schiffswechsel/`RacksChanged` löscht geladen mit Notice; P10 Zustandswechsel sind Undo-Schritte, Restore aus
+dem Snapshot, `CarryTicks` entfällt; P11 Legendenzyklus geplant → geladen → abgeliefert → geplant, Kistenklick bleibt B6;
+P12 Look: heller Rahmen, ` ▣` als festes Segment, Kopfzeile `· 40 loaded`. Ergänzungen bei der Freigabe: **E1** teilweise
+geladene Mission ohne Platz → Ablehnung als Fallback (Aufwand „Warteeinheit Lieferung“ ≈ 20 Stellen + Formatfeld, Backlog),
+ihr Rest zuerst gelegt; **E2** Re-plan mit Geladenem behält das Layout, wenn mehr warten würde („Re-plan found no better
+layout“), Backlog `RackAssignment` mit Hindernissen; **E3** Lieferung ohne Kisten an Bord ist nicht ladbar („not placed
+yet“); **E4** Tests Split → Editor-Plan bleibt geladen, Dreierstapel sinkt von unten.
+- Core: `Crate.Loaded`/`AsLoaded`/`AsDelivered`/`AsPlanned`; `CrateDto.Loaded`, `PlanFile.SupportedSchemaVersion = 7`,
+  `NotLoadedSchemaVersion`, `PlanFileDto.CheckLoaded`; `LoadPlanner.SetLoaded`, `Settled`, `SettledCrates`, `PlanKeeping`
+  (+ `KeptDeliveries`, `DeliveryKey`, `Without`), `SetDelivered` mit Absinken und Neueinlegen, `RemoveMission` mit Absinken,
+  `ReplanInPlace` mit E2, `Replan` löscht geladen für ein anderes Schiff, `CarryTicks` entfernt; `MoveResolution` (Stufe 3
+  um Geladenes, 3b ohne, `Settle` nur gerade für Geladenes); `ContractSync` (geplant an Bord statt an Bord)
+- App: `LegendEntry.Loaded`/`LoadedMark`, `CellFill.Loaded`, `MissionPalette.LoadedEdge`, Tooltip ` (loaded)`,
+  `CapacityText` mit `· N loaded`; `OverlayViewModel`: Zyklus in `ToggleLine`, `Tick` als `Step`, `Restored` nur noch
+  `Resync`, Notices `SettledText`, `LoadedClearedText`, `ReplanNoBetterText`; Editor-Plan über `PlanKeeping`,
+  `ClearsDelivered` entfernt
+- Tests: `LoadedStateTests` (Core, 32), `LoadedOverlayTests` (App, 12); umgestellt: Schema-Zahlen, zwei Zurückhak-Tests
+  (P7), schwebend → sinkt (P6), `RemoveMission` (P6), fünf `CarryTicks`-Tests entfernt, Undo „Haken ist ein Schritt“,
+  Editor „Abgeliefertes bleibt“, Legendentests klicken zweimal zum Abhaken
+- Übergang: Auf dem Core-Commit `cb7ab02` scheitern zwei alte App-Tests (Haken-Übertrag, Ablehnung beim Zurückhaken), bis
+  `1876e98` sie umstellt; gebaut hat jeder Commit.
+
+**Zahl vorher/nachher (Release, `8d17ed2` gegen K6.4):** Gleichheitslauf 392/392 Hashes gleich; Suchzähler gleich, gave up
+0; Replan-Mediane im Rauschen (Hull A acht 6,3 → 7,4 ms, Stresslast 76,6 → 87,0 ms); neu „erster Stop geladen“: 0,1–0,8 ms
+je Fixture, Stresslast 36,8 ms, nichts wartend, altes Layout nie behalten, gave up 0; Slow grün; Goldens nur
+`schemaVersion`. Tests Core 1.433 → 1.460, App 1.384 → 1.396, Import 141.
+
+**Offscreen-Protokoll (echtes Overlay, Hurston-Plan; Harness im Scratchpad):** Mission 4 geladen, Waste abgeliefert →
+geladene Kisten mit weißem Rahmen, Zeilen enden auf ` ▣`, Waste grau durchgestrichen; Kopfzeile `28/64 · 36 free · 10
+loaded`. **Befund fürs Gate:** bei 420 px mit sichtbarem ↶ verschwindet der Schiffsname und die Kapazität läuft unter die
+Schere (D67-Regel verletzt); `▣` ist klein.
+
+**Akzeptanz:**
+- [x] Geladene Kisten bewegt der Planer nie (Plan, Re-plan, Sync, 3b, fremder Legenden-Drag); Spieler-Drag, Split/Merge erhalten
+- [x] Absinken nach Sync, Abhaken, Löschen; Dreierstapel von unten; Notice
+- [x] Editor-Plan und Re-plan halten Geladenes und Abgeliefertes; E1-Ablehnung, E2-Schutz
+- [x] Schiffswechsel löscht geladen mit Notice; Undo/Redo über Zustandswechsel; Schema 7 mit Migration und Ausschlüssen
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Zahl vorher/nachher
+- [ ] Look-Gate (Martin): Rahmen, Legendenzeichen, Kopfzeile (Platzproblem bei 420 px)
+- [ ] Gate (Martin, der Originalfall): Mission 1 → Sync → laden → „geladen“ → Mission 2 → **Plan** → Mission 1 liegt, Mission 2
+  drumherum; Re-plan gleich; geladene Kiste ziehen geht; Mission 1 abhaken → grau, Kisten darüber sinken; Neustart →
+  Zustände da; Dreierzyklus ohne Nachdenken, Fehlklick per Undo zurück
+- Commits 6d27157, 24977c3 (Tests rot Core), cb7ab02 (Core), 1876e98 (Tests rot App), 5f420b7 (App), Doku-Commit.
 ### [ ] K6.5 CT-Missionen im Editor editierbar (26.10.2026)
 
 ---
@@ -2290,6 +2351,11 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
+- Warteeinheit Lieferung statt Mission (K6.4, E1): eine teilweise geladene Mission, deren Rest keinen Platz findet, lässt
+  heute den Editor-Plan ablehnen. Auslöser: eine solche Ablehnung am Aufzug, vor allem nach K6.5 (Ziel an geladener
+  CT-Mission nachgetragen). Aufwand: ≈ 20 Stellen an `Mission.Unplaced`, Formatfeld `stops[].unplaced`, Wartezeilen pro Lieferung.
+- `RackAssignment` mit Hindernissen (K6.4, E2): mit geladenen Kisten legt der Planer nach der D41-Regel statt exakt (D64).
+  Auslöser: Hauler-Report „Fragmentierung bei geladenen Kisten“ bzw. „Re-plan found no better layout“ ohne erkennbaren Grund.
 - `CODE_OF_CONDUCT.md`, sobald es Contributors gibt; Community Standards mahnt es an, ein Solo-Repo braucht es vor dem ersten Hauler nicht (T6.4).
 - ~~App-Icon (`.ico` mit 16/32/48/256 px, `<ApplicationIcon>` im App-csproj), sobald ein Icon vorliegt; aus T6.2 (D48).~~ → K5
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
