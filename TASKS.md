@@ -2387,7 +2387,7 @@ App 58 grün → grün; Planer unberührt, Gleichheitslauf nach K6.4 392/392. Te
 - **Für die Screenshots:** Legende hat neue Zeilen und Überschriften; geladene Kisten mit weißem Rahmen.
 - **Offen:** Nebenbefund K6.3 (Crates-Spalte im Editor `1+1+…`, Legende `8×1`); aus K5 weiter Torlek (K3.1), Hull-C-Gate (K3.3).
 
-### [ ] K7 Scrollbare Legende (D80) (26.10.2026) – Branch `feat/scrollable-legend`
+### [x] K7 Scrollbare Legende (D80) (26.10.2026) – Branch `feat/scrollable-legend`
 **Warum:** Martins Screenshot: viele Aufträge sprengen den Legendenbereich; der angedockte Block bekommt nur die Resthöhe,
 der Rest wird abgeschnitten, ausgerechnet die „⚠ doesn't fit“-Zeile.
 
@@ -2419,8 +2419,8 @@ scrollen, „doesn't fit“, Verstöße und Paletten-Hinweis bleiben darunter; P
 - [x] „doesn't fit“, Verstöße und Paletten-Hinweis scrollen nie weg
 - [x] `legend.maxHeightShare` in settings.json, Look-Dateien und Settings-Fenster, geklemmt mit Problemzeile
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün
-- [ ] Gate (Martin, Look): Balkenfarbe und -breite, Default 50 %, Verhalten mit vielen Aufträgen im Spiel
-- Commits 49cfe18 (Tests rot), 3c4d39b (App), Doku-Commit.
+- [x] Gate (Martin, Look, 26.10., bestanden): Balkenfarbe und -breite, Default 50 %, Verhalten mit vielen Aufträgen im Spiel
+- Commits 49cfe18 (Tests rot), 3c4d39b (App), 813bc00 (Doku).
 
 ---
 
