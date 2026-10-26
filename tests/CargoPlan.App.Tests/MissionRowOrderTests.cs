@@ -14,7 +14,7 @@ public class MissionRowOrderTests
 
     private static readonly MissionRow Blank = new();
 
-    private static string[] Sorted(IReadOnlyList<MissionRow> rows, EditorSortColumn column, bool descending) =>
+    private static string[] Sorted(MissionRow[] rows, EditorSortColumn column, bool descending) =>
         [.. rows.Order(new MissionRowOrder(rows, new EditorSort(column, descending)))
             .Select(r => r.IsBlank ? "_" : r.ContractId is { } id ? $"{r.Destination} #{id}" : r.Destination)];
 

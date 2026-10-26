@@ -176,6 +176,7 @@ public static class MissionRows
         Pickup = Pickups.Text(item.Pickup),
         MissionId = mission?.Id,
         Source = MissionText.Source(mission?.Contract),
+        ContractId = mission?.Contract?.ContractIds.Min(),
 
         // After MaxCrateSize, whose change ends the assumption.
         MaxCrateSizeAssumed = mission?.Contract?.CrateSizeAssumed == true,

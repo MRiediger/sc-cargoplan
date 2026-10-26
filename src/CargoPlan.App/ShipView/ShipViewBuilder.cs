@@ -90,7 +90,7 @@ public static class ShipViewBuilder
         var rank = plan.Route.Select((destination, index) => (destination, index)).ToDictionary(r => r.destination, r => r.index);
         var listed = saved?.Missions.Select((mission, index) => (mission.Id, index)).ToDictionary(m => m.Id, m => m.index) ?? [];
         var pickups = saved?.Missions.ToDictionary(m => m.Id, m => Pickups.Normalized(m.Items.SelectMany(i => i.Item.Pickup ?? []))) ?? [];
-        var contracts = saved?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Id, m => LegendText.ContractIds(m.Contract!.ContractIds)) ?? [];
+        var contracts = saved?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Id, m => MissionText.Source(m.Contract)) ?? [];
         var missions = plan.Crates.GroupBy(c => c.Mission)
             .OrderBy(m => m.Min(c => rank[c.Destination]))
             .ThenBy(m => listed.GetValueOrDefault(m.Key))

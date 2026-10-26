@@ -44,8 +44,11 @@ public sealed partial class MissionRow : ObservableObject
     /// <summary>The mission the row belongs to in the overlay's plan (D42); null for a row not planned yet.</summary>
     public int? MissionId { get; init; }
 
-    /// <summary>Where the row came from: "ct 37–38" for a ContractTracker capture, empty if typed (T5.4).</summary>
+    /// <summary>Where the row came from: "#37–38" for a ContractTracker capture, empty if typed (T5.4); the Mission column.</summary>
     public string Source { get; init; } = "";
+
+    /// <summary>The capture's first ContractTracker id, the Mission column's sort key (K6.3); null if typed.</summary>
+    public long? ContractId { get; init; }
 
     /// <summary>
     /// The max crate size was assumed by the import (the contract named none); the legend shows "4 SCU?". Picking a size

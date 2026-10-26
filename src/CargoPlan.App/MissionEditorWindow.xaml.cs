@@ -1,6 +1,8 @@
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
+using CargoPlan.App.Editor;
 using CargoPlan.App.Settings;
 using CargoPlan.App.Theme;
 using CargoPlan.App.ViewModels;
@@ -44,6 +46,25 @@ public partial class MissionEditorWindow : Window
 
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.datagrid.commitedit
     private void OnAnyButtonClick(object sender, RoutedEventArgs e) => Grid.CommitEdit(DataGridEditingUnit.Row, exitEditingMode: true);
+
+    /// <summary>
+    /// A header click sorts the view, never the rows (K6.3): the view model cycles up, down and off, the grid shows the
+    /// arrow. Handled, so the grid doesn't sort by itself. An open edit is committed first: a ListCollectionView refuses a
+    /// new sort during an edit or a new row.
+    /// Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.datagrid.sorting
+    /// </summary>
+    private void OnSorting(object sender, DataGridSortingEventArgs e)
+    {
+        e.Handled = true;
+        Grid.CommitEdit(DataGridEditingUnit.Row, exitEditingMode: true);
+        _viewModel.SortBy(Enum.Parse<EditorSortColumn>(e.Column.SortMemberPath));
+        foreach (var column in Grid.Columns)
+        {
+            column.SortDirection = column == e.Column && _viewModel.Sort is { } sort
+                ? sort.Descending ? ListSortDirection.Descending : ListSortDirection.Ascending
+                : null;
+        }
+    }
 
     // Microsoft.Win32 dialogs ship with WPF, no package needed.
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/windows/how-to-open-common-system-dialog-box

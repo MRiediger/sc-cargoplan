@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
+using System.Windows.Data;
 using CargoPlan.App.Editor;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
@@ -67,13 +68,37 @@ public sealed partial class MissionEditorViewModel : ObservableObject
             Rows.Add(new MissionRow());
         }
 
+        RowsView = new ListCollectionView(Rows);
+
         AttachRows();
         Evaluate();
         Rows.CollectionChanged += OnRowsChanged;
         overlay.PropertyChanged += OnOverlayChanged;
     }
 
+    /// <summary>The rows in the order of first appearance: what Plan, Import and Export read, and what up and down move.</summary>
     public ObservableCollection<MissionRow> Rows { get; }
+
+    /// <summary>
+    /// What the grid shows: <see cref="Rows"/>, sorted by <see cref="Sort"/> (K6.3). Only the view is sorted, so the plan,
+    /// the stop numbers and the legend don't depend on it.
+    /// Source: https://learn.microsoft.com/dotnet/api/system.windows.data.listcollectionview.customsort
+    /// </summary>
+    public ListCollectionView RowsView { get; }
+
+    /// <summary>The view's sort, null for the order of first appearance; not saved (K6.3).</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(MoveUpCommand), nameof(MoveDownCommand))]
+    public partial EditorSort? Sort { get; private set; }
+
+    /// <summary>A header click: ascending, then descending, then the order of first appearance; another column starts ascending.</summary>
+    public void SortBy(EditorSortColumn column) =>
+        Sort = Sort?.Column != column ? new EditorSort(column, false)
+            : Sort.Descending ? null
+            : Sort with { Descending = true };
+
+    // Generated hook: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/observableproperty#running-code-upon-changes
+    partial void OnSortChanged(EditorSort? value) => RowsView.CustomSort = value is null ? null : new MissionRowOrder(Rows, value);
 
     public static IReadOnlyList<FillOrderChoice> FillOrders { get; } =
     [
@@ -338,9 +363,10 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
     private bool HasSelection() => SelectedRow is not null;
 
-    private bool CanMoveUp() => SelectedRow is { } row && Rows.IndexOf(row) > 0;
+    // Up and down move in the order of first appearance; in a sorted view they would seem to jump (K6.3).
+    private bool CanMoveUp() => Sort is null && SelectedRow is { } row && Rows.IndexOf(row) > 0;
 
-    private bool CanMoveDown() => SelectedRow is { } row && Rows.IndexOf(row) is var index && index >= 0 && index < Rows.Count - 1;
+    private bool CanMoveDown() => Sort is null && SelectedRow is { } row && Rows.IndexOf(row) is var index && index >= 0 && index < Rows.Count - 1;
 
     /// <summary>No-op at the edges, so a button pressed once too often does nothing.</summary>
     private void Move(int offset)

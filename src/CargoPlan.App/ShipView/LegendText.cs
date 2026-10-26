@@ -5,8 +5,8 @@ using static System.FormattableString;
 namespace CargoPlan.App.ShipView;
 
 /// <summary>
-/// How the legend writes quantities, crate mixes and ContractTracker ids (K6.1, D69 addendum), for the lines on board
-/// and the missions that wait (D41) alike.
+/// How the legend writes quantities and crate mixes (K6.1, D69 addendum), for the lines on board and the missions that
+/// wait (D41) alike. ContractTracker ids are <c>MissionText.Source</c>'s, as in the editor.
 /// </summary>
 public static class LegendText
 {
@@ -50,24 +50,4 @@ public static class LegendText
     public static IReadOnlyList<LineGoods> Goods(Mission mission, CrateCap cap) =>
         [.. mission.Items.Select(i => i.Item).GroupBy(i => i.Commodity)
             .Select(g => new LineGoods(g.Key, [.. g.SelectMany(i => i.CrateListUnder(cap)).OrderDescending()]))];
-
-    /// <summary>"#47", consecutive ids as a range "#47–48", others apart "#47, 49" (ContractTracker's <c>Contracts.Id</c>).</summary>
-    public static string ContractIds(IEnumerable<long> ids)
-    {
-        long[] sorted = [.. ids.Distinct().Order()];
-        List<string> runs = [];
-        for (var start = 0; start < sorted.Length;)
-        {
-            var end = start;
-            while (end + 1 < sorted.Length && sorted[end + 1] == sorted[end] + 1)
-            {
-                end++;
-            }
-
-            runs.Add(end == start ? Invariant($"{sorted[start]}") : Invariant($"{sorted[start]}–{sorted[end]}"));
-            start = end + 1;
-        }
-
-        return "#" + string.Join(", ", runs);
-    }
 }
