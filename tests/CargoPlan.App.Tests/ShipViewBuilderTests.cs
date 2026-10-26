@@ -460,7 +460,7 @@ public class ShipViewBuilderTests
     {
         var saved = Captured(EmptySaved, new ContractSource([36], CrateSizeAssumed: true, ListedDestinations: 3), Stop("Riker"));
 
-        BuildSaved(saved).Legend.Single().Label.Should().Be("To Riker · 4 SCU · 4 SCU? · ⚠ 1 of 3 destinations");
+        BuildSaved(saved).Legend.Single().Label.Should().Be("To Riker · 4 SCU · Stims · 4 SCU? · ⚠ 1 of 3 destinations");
     }
 
     [Fact]
@@ -470,7 +470,7 @@ public class ShipViewBuilderTests
         var first = Captured(EmptySaved, new ContractSource([1], CrateSizeAssumed: true), Stop("Riker", "Stims", 4, CrateSize.Four));
         var saved = Captured(first, new ContractSource([2], CrateSizeAssumed: true), Stop("Riker", "Gold", 2, CrateSize.Two));
 
-        BuildSaved(saved).Legend.Select(e => e.Label).Should().Equal("To Riker · 4 SCU · 4 SCU?", "To Riker · 2 SCU · 2 SCU?");
+        BuildSaved(saved).Legend.Select(e => e.Label).Should().Equal("To Riker · 4 SCU · Stims · 4 SCU?", "To Riker · 2 SCU · Gold · 2 SCU?");
     }
 
     [Fact]
@@ -479,7 +479,7 @@ public class ShipViewBuilderTests
         var saved = Captured(EmptySaved, new ContractSource([1], CrateSizeAssumed: true),
             new MissionStop("Riker", 1, [new MissionItem("Stims", 4, CrateSize.Four), new MissionItem("Gold", 2, CrateSize.Two)]));
 
-        BuildSaved(saved).Legend.Single().Label.Should().Be("To Riker · 6 SCU · 4/2 SCU?");
+        BuildSaved(saved).Legend.Single().Label.Should().Be("To Riker · 6 SCU (4) Stims, (2) Gold · 4/2 SCU?");
     }
 
     [Fact]
@@ -487,7 +487,7 @@ public class ShipViewBuilderTests
     {
         var saved = Captured(EmptySaved, new ContractSource([36], ListedDestinations: 1), Stop("Riker"));
 
-        BuildSaved(saved).Legend.Single().Label.Should().Be("To Riker · 4 SCU");
+        BuildSaved(saved).Legend.Single().Label.Should().Be("To Riker · 4 SCU · Stims");
     }
 
     [Fact]
@@ -499,8 +499,8 @@ public class ShipViewBuilderTests
         var shubin = BuildSaved(saved).Legend.Single(e => e is { Destination: "Shubin", Mission: 2 });
         var ticked = BuildSaved(Delivered(saved, "Riker")).Legend.Single(e => e is { Destination: "Shubin", Mission: 2 });
 
-        shubin.Label.Should().Be("To Shubin · 4 SCU · ⚠ duplicate?");
-        ticked.Label.Should().Be("To Shubin · 4 SCU");
+        shubin.Label.Should().Be("To Shubin · 4 SCU · Stims · ⚠ duplicate?");
+        ticked.Label.Should().Be("To Shubin · 4 SCU · Stims");
         ticked.ReserveLabel.Should().Be(shubin.Label);
     }
 
@@ -514,7 +514,7 @@ public class ShipViewBuilderTests
         var unplaced = BuildSaved(saved).Unplaced.Should().ContainSingle().Which;
 
         unplaced.MissionId.Should().Be(5);
-        unplaced.Label.Should().Be("Hurston + 1 · 16 SCU · ⚠ doesn't fit (16 SCU, 8 free) – tick to drop");
+        unplaced.Label.Should().Be("Hurston + 1 · 16 SCU (2×8) · Gold · ⚠ doesn't fit (16 SCU, 8 free) – tick to drop");
         BuildSaved(saved).Legend.Should().NotContain(e => e.Destination == "Hurston");
     }
 

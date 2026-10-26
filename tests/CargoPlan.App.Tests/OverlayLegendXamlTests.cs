@@ -68,6 +68,77 @@ public class OverlayLegendXamlTests
         border.Attribute("BorderBrush")!.Value.Should().Be("{DynamicResource LegendCheckBoxBrush}");
     }
 
+    // --- K6.1: the line in segments that shorten by rank ---
+
+    private const string ToggleLine = "{Binding DataContext.ToggleLineCommand, RelativeSource={RelativeSource AncestorType=Window}}";
+
+    private const string ToggleCrates = "{Binding DataContext.ToggleCratesCommand, RelativeSource={RelativeSource AncestorType=Window}}";
+
+    private static bool IsInside(XElement element, XElement ancestor) => element.Ancestors().Contains(ancestor);
+
+    [Theory]
+    [InlineData("LineText", "{Binding Segments, Mode=OneTime}")]
+    [InlineData("HeaderText", "{Binding HeaderSegments, Mode=OneTime}")]
+    public void Line_and_header_lie_in_the_row_that_shortens_by_rank(string name, string source)
+    {
+        var text = Named(Root(), name);
+
+        text.Attribute("ItemsSource")!.Value.Should().Be(source);
+        text.Descendants().Should().Contain(e => e.Name.LocalName == "LegendRowPanel");
+        text.Attribute("ItemTemplate")!.Value.Should().Be("{StaticResource LegendSegmentTemplate}");
+        text.Descendants().Single(e => e.Name.LocalName == "Setter").Attribute("Property")!.Value.Should().Be("sv:LegendRowPanel.Rank");
+    }
+
+    [Fact]
+    public void A_segment_ends_in_an_ellipsis_on_one_line()
+    {
+        var template = Root().Descendants().Single(e => (string?)e.Attribute(X + "Key") == "LegendSegmentTemplate");
+        var texts = template.Descendants().Where(e => e.Name.LocalName == "TextBlock").ToArray();
+
+        texts.Should().HaveCount(2).And.OnlyContain(t => (string?)t.Attribute("TextTrimming") == "CharacterEllipsis" && (string?)t.Attribute("TextWrapping") == "NoWrap");
+    }
+
+    [Fact]
+    public void Line_and_header_show_their_whole_text_as_a_tool_tip()
+    {
+        var root = Root();
+
+        Named(root, "LineButton").Attribute("ToolTip")!.Value.Should().Be("{Binding Label, Mode=OneTime}");
+        Named(root, "HeaderRow").Attribute("ToolTip")!.Value.Should().Be("{Binding HeaderLabel, Mode=OneTime}");
+    }
+
+    [Fact]
+    public void Rows_pass_their_width_on_so_the_text_can_shorten()
+    {
+        // A horizontal StackPanel measures its children at infinite width: nothing would ever shorten.
+        var root = Root();
+
+        foreach (var name in new[] { "HeaderRow", "LineRow", "LineContent" })
+        {
+            Named(root, name).Name.LocalName.Should().Be("DockPanel", name);
+        }
+    }
+
+    [Fact]
+    public void The_B6_gestures_stay_on_their_elements()
+    {
+        // E2 (K6.1): a click on the line ticks, its box selects the line, the header's box the mission; boxes lie outside
+        // the line's button, so a click on a box never ticks; right drags start at line and header.
+        var root = Root();
+        var button = Named(root, "LineButton");
+        var lineCheck = Named(root, "LineCheck");
+        var missionCheck = Named(root, "MissionCheck");
+
+        (button.Attribute("Command")!.Value, button.Attribute("CommandParameter")!.Value).Should().Be((ToggleLine, "{Binding Mode=OneTime}"));
+        button.Attribute("MouseRightButtonDown")!.Value.Should().Be("OnLegendRightButtonDown");
+        (lineCheck.Attribute("Command")!.Value, lineCheck.Attribute("CommandParameter")!.Value).Should().Be((ToggleCrates, "{Binding Crates, Mode=OneTime}"));
+        (missionCheck.Attribute("Command")!.Value, missionCheck.Attribute("CommandParameter")!.Value).Should().Be((ToggleCrates, "{Binding MissionCrates, Mode=OneTime}"));
+        Named(root, "HeaderRow").Attribute("MouseRightButtonDown")!.Value.Should().Be("OnLegendHeaderRightButtonDown");
+        IsInside(lineCheck, button).Should().BeFalse();
+        IsInside(Named(root, "LineText"), button).Should().BeTrue();
+        IsInside(Named(root, "HeaderText"), Named(root, "HeaderRow")).Should().BeTrue();
+    }
+
     [Fact]
     public void Tick_and_bar_take_the_check_mark_colour()
     {

@@ -10,7 +10,7 @@ namespace CargoPlan.App.Tests;
 
 /// <summary>
 /// The legend by mission (B6, D69): a header "From A, B" or "From ?" over each mission once any mission has a pickup,
-/// a line "To X · SCU" per mission and destination, coloured by destination (D29). A click on a line ticks that line;
+/// a line "To X · SCU (mix) · commodity" per mission and destination, coloured by destination (D29). A click on a line ticks that line;
 /// a click on a crate in the ship view still ticks the whole stop. Without any pickup the lines stand without headers.
 /// </summary>
 public class LegendByMissionTests
@@ -85,7 +85,7 @@ public class LegendByMissionTests
         // ct 4 (B6 finding): Waste is delivered to Everus Harbor, where the Stims are collected; the legend shows both.
         var waste = HurstonOverlay().Scene.Legend.Single(e => e.Mission == 3);
 
-        waste.Label.Should().Be("To Everus Harbor · 8 SCU");
+        waste.Label.Should().Be("To Everus Harbor · 8 SCU (8×1) · Waste");
         waste.Header.Should().Be("From ?");
     }
 
@@ -125,7 +125,8 @@ public class LegendByMissionTests
         var legend = Legend(TestPlans.SplitAndShared());
 
         legend.Should().OnlyContain(e => e.Header == null);
-        legend.Select(e => e.Label).Should().Equal("To Riker · 20 SCU", "To Shubin · 8 SCU", "To Orison · 14 SCU", "To Lorville · 12 SCU");
+        legend.Select(e => e.Label).Should().Equal(
+            "To Riker · 20 SCU (4×4) Titanium, (2×2) Quartz", "To Shubin · 8 SCU · Agricium", "To Orison · 14 SCU (3×4) Laranite, (2×1) Gold", "To Lorville · 12 SCU (6×2) · Tungsten");
     }
 
     // --- Lines ---
@@ -156,7 +157,7 @@ public class LegendByMissionTests
             new Mission(1, [new("Riker", 1, [Item("Titanium", 8, CrateSize.Eight, "Lorville")])], new ContractSource([1], CrateSizeAssumed: true)),
             new Mission(2, [new("Riker", 1, [Item("Quartz", 4, CrateSize.Four, "Lorville")])]));
 
-        Legend(saved).Select(e => e.Label).Should().Equal("To Riker · 8 SCU · 8 SCU?", "To Riker · 4 SCU");
+        Legend(saved).Select(e => e.Label).Should().Equal("To Riker · 8 SCU · Titanium · 8 SCU?", "To Riker · 4 SCU · Quartz");
     }
 
     // --- Ticks: the line is mission + destination, the ship view's click the stop (D69) ---

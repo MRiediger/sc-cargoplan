@@ -352,7 +352,7 @@ public class OverlayViewModelTests
         Changes(viewModel, () => viewModel.ShowPlan(newPlan)).Should().Contain(
             [nameof(OverlayViewModel.Saved), nameof(OverlayViewModel.Plan), nameof(OverlayViewModel.Scene), nameof(OverlayViewModel.HasPlan)]);
         // The entry holds its crates, a list compared by reference, so its values compare one by one.
-        viewModel.Scene.Legend.Select(e => (e.PaletteIndex, e.Label, e.Delivered, e.Header)).Should().Equal((0, "To Riker · 4 SCU", false, (string?)null));
+        viewModel.Scene.Legend.Select(e => (e.PaletteIndex, e.Label, e.Delivered, e.Header)).Should().Equal((0, "To Riker · 4 SCU · Titanium", false, (string?)null));
     }
 
     [Fact]
