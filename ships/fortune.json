@@ -4,15 +4,29 @@
   "name": "MISC Fortune",
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-fortune",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
-  "totalScu": 4,
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-26",
+  "notes": "rack arrangement generated; grids from Fleetyards; racks rack-1, rack-2 added (Fleetyards export 2026-10-26)",
+  "totalScu": 16,
   "racks": [
     {
       "id": "rack-0",
       "capacityScu": 4,
       "grid": { "length": 2, "width": 2, "stack": 1 },
       "origin": [0, 0, 0],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 6,
+      "grid": { "length": 3, "width": 2, "stack": 1 },
+      "origin": [-4, 0, 0],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-2",
+      "capacityScu": 6,
+      "grid": { "length": 3, "width": 2, "stack": 1 },
+      "origin": [-8, 0, 0],
       "stackAxis": "+z"
     }
   ]
