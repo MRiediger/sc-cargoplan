@@ -283,6 +283,15 @@
                             <TextBlock Text="Position" Style="{StaticResource LabelStyle}" />
                             <ComboBox ItemsSource="{Binding LegendPositions, Mode=OneTime}" SelectedItem="{Binding LegendPosition}" />
                         </DockPanel>
+                        <!-- K7, D80: the file holds the share, the slider percent, like the hologram's opacity. -->
+                        <DockPanel Style="{StaticResource RowStyle}"
+                                   ToolTip="The destination lines take at most this share of the overlay's height and scroll beyond it">
+                            <TextBlock Text="Max. height" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding LegendMaxHeightShareText}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="{x:Static vm:SettingsViewModel.MinLegendMaxHeightSharePercent}"
+                                    Maximum="{x:Static vm:SettingsViewModel.MaxLegendMaxHeightSharePercent}"
+                                    Value="{Binding LegendMaxHeightSharePercent}" Style="{StaticResource ValueSliderStyle}" TickFrequency="5" />
+                        </DockPanel>
                         <Button Command="{Binding ResetLegendLayoutCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
                     </StackPanel>
                 </GroupBox>

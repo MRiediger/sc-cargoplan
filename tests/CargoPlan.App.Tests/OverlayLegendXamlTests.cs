@@ -149,11 +149,11 @@ public class OverlayLegendXamlTests
     {
         var root = Root();
         var scroll = Named(root, "StopLinesScroll");
-        var multi = scroll.Descendants().Single(e => e.Name.LocalName == "MultiBinding");
+        var multi = scroll.Elements().Single(e => e.Name.LocalName == "ScrollViewer.MaxHeight").Elements().Single();
 
         scroll.Name.LocalName.Should().Be("ScrollViewer");
         IsInside(WithSource(root, "{Binding Scene.Legend, Mode=OneWay}"), scroll).Should().BeTrue();
-        multi.Parent!.Name.LocalName.Should().Be("ScrollViewer.MaxHeight");
+        multi.Name.LocalName.Should().Be("MultiBinding");
         multi.Attribute("Converter")!.Value.Should().Be("{StaticResource LegendMaxHeightConverter}");
         Paths(multi).Should().Equal("ActualHeight", "LegendMaxHeightShare");
         multi.Elements().First().Attribute("ElementName")!.Value.Should().Be("OverlayContent");
@@ -176,10 +176,11 @@ public class OverlayLegendXamlTests
     public void Hiding_the_stop_lines_hides_their_scroll_area()
     {
         var scroll = Named(Root(), "StopLinesScroll");
-        var trigger = scroll.Descendants().Single(e => e.Name.LocalName == "DataTrigger");
+        var style = scroll.Elements().Single(e => e.Name.LocalName == "ScrollViewer.Style");
+        var trigger = style.Descendants().Single(e => e.Name.LocalName == "DataTrigger");
 
         trigger.Attribute("Binding")!.Value.Should().Be("{Binding IsLegendVisible}");
-        trigger.Parent!.Parent!.Parent!.Name.LocalName.Should().Be("ScrollViewer.Style");
+        trigger.Elements().Single().Attribute("Property")!.Value.Should().Be("Visibility");
     }
 
     [Fact]

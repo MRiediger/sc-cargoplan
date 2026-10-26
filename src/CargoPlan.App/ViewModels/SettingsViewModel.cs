@@ -160,7 +160,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>What the window shows as one look: the appearance, legend layout and the ship view's settings of its own.</summary>
     public Look Look => new(
         BuildAppearance(),
-        new LegendSettings(IsLegendVisible, LegendPosition),
+        BuildLayout(),
         ToolWindowThemes.ToName(ToolWindowTheme),
         ShipOutlineModes.ToName(ShipOutline),
         HoloOpacityPercent / 100.0,
@@ -256,6 +256,18 @@ public sealed partial class SettingsViewModel : ObservableObject
     } = Settings.LegendPosition.Default.ToString();
 
     public IReadOnlyList<string> LegendPositions => Settings.LegendPosition.Names;
+
+    /// <summary>The slider's bounds in percent, like the file's 0.2 to 0.8; double for x:Static, see <see cref="MinHoloOpacityPercent"/>.</summary>
+    public static double MinLegendMaxHeightSharePercent => ToPercent(AppearanceRules.MinLegendMaxHeightShare);
+
+    public static double MaxLegendMaxHeightSharePercent => ToPercent(AppearanceRules.MaxLegendMaxHeightShare);
+
+    /// <summary>The stop lines' share of the overlay's height in whole percent (K7); the file and the overlay get the share.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(LegendMaxHeightShareText))]
+    public partial int LegendMaxHeightSharePercent { get; set; }
+
+    public string LegendMaxHeightShareText => $"{LegendMaxHeightSharePercent} %";
 
     // Crates: their colours are the stop colours of a checked palette (D29, K4.2), so the palette, fill and edge alpha
     // (0–255 like the file).
@@ -439,6 +451,8 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnIsLegendVisibleChanged(bool value) => OnChanged();
 
+    partial void OnLegendMaxHeightSharePercentChanged(int value) => OnChanged();
+
     partial void OnStopPaletteChanged(StopPaletteName value) => OnChanged();
 
     partial void OnCratesFillAlphaChanged(int value) => OnChanged();
@@ -537,6 +551,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         IsLegendVisible = legend.Visible;
         LegendPosition = legend.Position;
+        LegendMaxHeightSharePercent = ToPercent(legend.MaxHeightShare);
     }
 
     private void LoadCrates(CrateAppearance crates)
@@ -585,9 +600,11 @@ public sealed partial class SettingsViewModel : ObservableObject
             return;
         }
 
-        _apply(BuildAppearance(), new LegendSettings(IsLegendVisible, LegendPosition));
+        _apply(BuildAppearance(), BuildLayout());
         Edited();
     }
+
+    private LegendSettings BuildLayout() => new(IsLegendVisible, LegendPosition, LegendMaxHeightSharePercent / 100.0);
 
     private AppearanceSettings BuildAppearance() => new(
         new WindowAppearance(WindowBackground.Value, WindowBorderColor.Value, WindowBorderThickness),

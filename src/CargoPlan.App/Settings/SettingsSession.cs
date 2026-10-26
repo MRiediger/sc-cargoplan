@@ -257,6 +257,7 @@ public sealed class SettingsSession
         ThemeResources.Apply(_resources, Current.Appearance);
         _viewModel.IsLegendVisible = Current.Legend.Visible;
         _viewModel.LegendPosition = LegendPosition.Parse(Current.Legend.Position);
+        _viewModel.LegendMaxHeightShare = Current.Legend.MaxHeightShare;
         _viewModel.StopPalette = StopPalettes.For(StopPaletteNames.Parse(Current.Appearance.Crates.StopPalette));
     }
 

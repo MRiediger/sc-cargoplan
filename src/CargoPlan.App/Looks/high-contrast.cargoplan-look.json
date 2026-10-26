@@ -2,7 +2,8 @@
   "schemaVersion": 1,
   "legend": {
     "visible": true,
-    "position": "bottom-left"
+    "position": "bottom-left",
+    "maxHeightShare": 0.5
   },
   "shipOutline": "outline",
   "holoOpacity": 0.4,

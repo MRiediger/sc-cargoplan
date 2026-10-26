@@ -46,6 +46,17 @@ public static class AppearanceRules
     /// <summary>Martin's look gate in the game (T7.4c-2): a backdrop, the racks stay what the eye finds first.</summary>
     public const double DefaultHoloOpacity = 0.4;
 
+    /// <summary>
+    /// The stop lines' share of the overlay's height before they scroll (K7, D80): below a fifth the default overlay shows
+    /// two lines, above four fifths the ship view is a strip.
+    /// </summary>
+    public const double MinLegendMaxHeightShare = 0.2;
+
+    public const double MaxLegendMaxHeightShare = 0.8;
+
+    /// <summary>Half: the ship view keeps the other half, whatever the plan.</summary>
+    public const double DefaultLegendMaxHeightShare = 0.5;
+
     /// <summary>The hull in the shaded and flat looks (D63): a cool grey, apart from every stop colour.</summary>
     public const string DefaultHoloHullColor = "#FF9CB0C0";
 
@@ -140,12 +151,24 @@ public static class AppearanceRules
             ]);
     }
 
-    /// <summary>Checks the legend's layout (D33): an unknown position takes the default, like a colour that isn't one.</summary>
+    /// <summary>
+    /// Checks the legend's layout (D33): an unknown position takes the default, like a colour that isn't one; a height share
+    /// outside its range is clamped, like the hologram's opacity (K7).
+    /// </summary>
     /// <returns>The checked legend and one line per corrected value, empty if nothing was corrected.</returns>
     public static (LegendSettings Legend, IReadOnlyList<string> Problems) Normalize(LegendSettings legend)
     {
         Checker check = new();
-        return (legend with { Position = check.Position("legend.position", legend.Position) }, check.Problems);
+        var position = check.Position("legend.position", legend.Position);
+        var share = Math.Clamp(legend.MaxHeightShare, MinLegendMaxHeightShare, MaxLegendMaxHeightShare);
+        if (share != legend.MaxHeightShare)
+        {
+            // Top level like the position, so not Checker.Range: that one puts "appearance." in front.
+            check.Problems.Add(string.Create(CultureInfo.InvariantCulture,
+                $"legend.maxHeightShare {legend.MaxHeightShare} is outside {MinLegendMaxHeightShare}–{MaxLegendMaxHeightShare}, using {share}."));
+        }
+
+        return (legend with { Position = position, MaxHeightShare = share }, check.Problems);
     }
 
     /// <summary>Checks the tool windows' mode (D36): an unknown name follows Windows, like a colour that isn't one.</summary>

@@ -25,6 +25,7 @@
         <sv:PaletteBrushConverter x:Key="PaletteBrushConverter" />
         <sv:PaletteNoticeConverter x:Key="PaletteNoticeConverter" />
         <sv:LegendCheckedConverter x:Key="LegendCheckedConverter" />
+        <sv:LegendMaxHeightConverter x:Key="LegendMaxHeightConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <!-- Theme values are DynamicResources from settings.json (ThemeResources, D31), so the settings window can change
              them while the overlay is open (T4.2). A halo that is off has no resource: Effect stays null. -->
@@ -134,13 +135,53 @@
              the list and as high as one entry, outlined like the buttons, 2 px above the list.
              Parts: https://learn.microsoft.com/dotnet/desktop/wpf/controls/combobox (PART_Popup, ItemsPresenter in a
              ScrollViewer). Source: dotnet/wpf, PresentationFramework/System/Windows/Controls/ComboBox.cs (OnMouseWheel) -->
-        <!-- The ship list's scroll track left and right of the thumb: invisible, but it takes the click that pages. -->
-        <Style x:Key="ShipListPageButtonStyle" TargetType="RepeatButton">
+        <!-- The slim bar's track above and below the thumb: invisible, but it takes the click that pages. -->
+        <Style x:Key="SlimScrollPageButtonStyle" TargetType="RepeatButton">
             <Setter Property="Focusable" Value="False" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="RepeatButton">
                         <Border Background="Transparent" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- A slim bar instead of the system's light grey one, for the ship list and the legend's stop lines (K7): no arrows,
+             an invisible track that pages on click, a thumb in the Foreground that brightens under the mouse. Each user sets
+             Foreground: the header's colour in the list, the legend's in the legend. Vertical only, neither scrolls sideways.
+             Parts: https://learn.microsoft.com/dotnet/desktop/wpf/controls/scrollbar (PART_Track) -->
+        <Style x:Key="SlimScrollBarStyle" TargetType="ScrollBar">
+            <Setter Property="Width" Value="8" />
+            <Setter Property="MinWidth" Value="8" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <!-- Reversed: a vertical track counts upwards, a scroll bar downwards. -->
+                        <Track x:Name="PART_Track" IsDirectionReversed="True" Margin="2,2,2,2">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Style="{StaticResource SlimScrollPageButtonStyle}" />
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Style="{StaticResource SlimScrollPageButtonStyle}" />
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Foreground="{TemplateBinding Foreground}">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="Thumb">
+                                            <Border x:Name="Grip" CornerRadius="2" Opacity="0.35" Background="{TemplateBinding Foreground}" />
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Grip" Property="Opacity" Value="0.6" />
+                                                </Trigger>
+                                                <Trigger Property="IsDragging" Value="True">
+                                                    <Setter TargetName="Grip" Property="Opacity" Value="0.6" />
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
@@ -238,46 +279,9 @@
                                         CornerRadius="4" Padding="0,2">
                                     <ScrollViewer>
                                         <ScrollViewer.Resources>
-                                            <!-- A slim bar in the header's colour instead of the system's light grey one: no
-                                                 arrows, an invisible track that pages on click, a thumb that brightens under
-                                                 the mouse. Vertical only, the list doesn't scroll sideways.
-                                                 Parts: https://learn.microsoft.com/dotnet/desktop/wpf/controls/scrollbar (PART_Track) -->
-                                            <Style TargetType="ScrollBar">
-                                                <Setter Property="Width" Value="8" />
-                                                <Setter Property="MinWidth" Value="8" />
-                                                <Setter Property="Template">
-                                                    <Setter.Value>
-                                                        <ControlTemplate TargetType="ScrollBar">
-                                                            <!-- Reversed: a vertical track counts upwards, a scroll bar downwards. -->
-                                                            <Track x:Name="PART_Track" IsDirectionReversed="True" Margin="2,2,2,2">
-                                                                <Track.DecreaseRepeatButton>
-                                                                    <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Style="{StaticResource ShipListPageButtonStyle}" />
-                                                                </Track.DecreaseRepeatButton>
-                                                                <Track.IncreaseRepeatButton>
-                                                                    <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Style="{StaticResource ShipListPageButtonStyle}" />
-                                                                </Track.IncreaseRepeatButton>
-                                                                <Track.Thumb>
-                                                                    <Thumb>
-                                                                        <Thumb.Template>
-                                                                            <ControlTemplate TargetType="Thumb">
-                                                                                <Border x:Name="Grip" CornerRadius="2" Opacity="0.35"
-                                                                                        Background="{DynamicResource HeaderForegroundBrush}" />
-                                                                                <ControlTemplate.Triggers>
-                                                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                                                        <Setter TargetName="Grip" Property="Opacity" Value="0.6" />
-                                                                                    </Trigger>
-                                                                                    <Trigger Property="IsDragging" Value="True">
-                                                                                        <Setter TargetName="Grip" Property="Opacity" Value="0.6" />
-                                                                                    </Trigger>
-                                                                                </ControlTemplate.Triggers>
-                                                                            </ControlTemplate>
-                                                                        </Thumb.Template>
-                                                                    </Thumb>
-                                                                </Track.Thumb>
-                                                            </Track>
-                                                        </ControlTemplate>
-                                                    </Setter.Value>
-                                                </Setter>
+                                            <!-- The slim bar in the header's colour. -->
+                                            <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBarStyle}">
+                                                <Setter Property="Foreground" Value="{DynamicResource HeaderForegroundBrush}" />
                                             </Style>
                                         </ScrollViewer.Resources>
                                         <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
@@ -325,7 +329,8 @@
             BorderBrush="{DynamicResource WindowBorderBrush}"
             BorderThickness="{DynamicResource WindowBorderThickness}"
             CornerRadius="4" Padding="10">
-        <DockPanel>
+        <!-- Named for the stop lines' highest height (K7): a share of this height, which follows the window, not the legend. -->
+        <DockPanel x:Name="OverlayContent">
             <!-- Header: grip for moving the window (DragMove), later the tab bar (T3.7 notes).
                  Height and right margin keep clear of the lock window (36 px at 4 px inset, LockWindowPlacement). -->
             <!-- "All stops delivered." sits here, not in the legend: the header's fixed height keeps the ship view still (D16). -->
@@ -536,130 +541,149 @@
                                 Style="{StaticResource TextButtonStyle}" />
                     </StackPanel>
                     <!-- Hidden by legend.visible = false: only the stop lines go (D33). Warnings and the empty state stay,
-                         notices are at the bottom anyway; a stop is then ticked in the ship view and moved through the crate selection. -->
-                    <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}">
-                        <ItemsControl.Style>
-                            <Style TargetType="ItemsControl">
+                         notices are at the bottom anyway; a stop is then ticked in the ship view and moved through the crate selection.
+                         The lines scroll beyond their share of the overlay (K7, D80); what follows them never scrolls. No
+                         horizontal range: the lines get the width, so they shorten (K6.1). Not focusable: a focus would
+                         activate the overlay, and a ScrollViewer that takes the focus handles the left click DragMove needs.
+                         Source: dotnet/wpf, PresentationFramework/System/Windows/Controls/ScrollViewer.cs (OnMouseLeftButtonDown) -->
+                    <ScrollViewer x:Name="StopLinesScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                  Focusable="False">
+                        <ScrollViewer.MaxHeight>
+                            <MultiBinding Converter="{StaticResource LegendMaxHeightConverter}" Mode="OneWay">
+                                <Binding ElementName="OverlayContent" Path="ActualHeight" Mode="OneWay" />
+                                <Binding Path="LegendMaxHeightShare" Mode="OneWay" />
+                            </MultiBinding>
+                        </ScrollViewer.MaxHeight>
+                        <ScrollViewer.Style>
+                            <Style TargetType="ScrollViewer">
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding IsLegendVisible}" Value="False">
                                         <Setter Property="Visibility" Value="Collapsed" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </ItemsControl.Style>
-                        <ItemsControl.ItemTemplate>
-                            <!-- The command replaces the plan, so the legend is rebuilt and the grey comes from the new entry. -->
-                            <DataTemplate DataType="{x:Type sv:LegendEntry}">
-                                <!-- "From A, B" or "From ?" over the first line of a mission once any mission has a pickup (B6,
-                                     D69): no tick of its own, it goes with the lines when the legend is hidden (D33). Its check box
-                                     selects the mission's crates on board, a right drag of the header moves them. Each line has a
-                                     check box of its own for its crates, outside the line's button: a click on the box selects, a
-                                     click on the line ticks, a right drag of the line moves its crates. A box shows ticked while all
-                                     its crates are selected, a bar for part (LegendCheckedConverter). -->
-                                <StackPanel>
-                                    <!-- Rows are DockPanels, not horizontal StackPanels: those measure their children at infinite
-                                         width, and the text could never shorten (K6.1). The tool tip holds the whole text. -->
-                                    <DockPanel x:Name="HeaderRow" Background="{StaticResource HitTestBackgroundBrush}"
-                                               MouseRightButtonDown="OnLegendHeaderRightButtonDown" ToolTip="{Binding HeaderLabel, Mode=OneTime}">
-                                        <CheckBox x:Name="MissionCheck" DockPanel.Dock="Left" Style="{StaticResource LegendCheckBoxStyle}"
-                                                  Command="{Binding DataContext.ToggleCratesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                  CommandParameter="{Binding MissionCrates, Mode=OneTime}">
-                                            <CheckBox.IsChecked>
-                                                <MultiBinding Converter="{StaticResource LegendCheckedConverter}" Mode="TwoWay">
-                                                    <Binding Path="MissionCrates" Mode="OneWay" />
-                                                    <Binding Path="DataContext.Selection" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
-                                                    <Binding Path="DataContext.Scene" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
-                                                </MultiBinding>
-                                            </CheckBox.IsChecked>
-                                        </CheckBox>
-                                        <!-- "From Lorville" · " · #47": the pickups shorten, the ContractTracker id never (K6.1). -->
-                                        <ItemsControl x:Name="HeaderText" ItemsSource="{Binding HeaderSegments, Mode=OneTime}"
-                                                      ItemTemplate="{StaticResource LegendSegmentTemplate}" Focusable="False">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <sv:LegendRowPanel />
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemContainerStyle>
-                                                <Style TargetType="ContentPresenter">
-                                                    <Setter Property="sv:LegendRowPanel.Rank" Value="{Binding Rank, Mode=OneTime}" />
-                                                </Style>
-                                            </ItemsControl.ItemContainerStyle>
-                                        </ItemsControl>
-                                    </DockPanel>
-                                    <DockPanel x:Name="LineRow">
-                                        <CheckBox x:Name="LineCheck" DockPanel.Dock="Left" Style="{StaticResource LegendCheckBoxStyle}"
-                                                  Command="{Binding DataContext.ToggleCratesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                  CommandParameter="{Binding Crates, Mode=OneTime}">
-                                            <CheckBox.IsChecked>
-                                                <MultiBinding Converter="{StaticResource LegendCheckedConverter}" Mode="TwoWay">
-                                                    <Binding Path="Crates" Mode="OneWay" />
-                                                    <Binding Path="DataContext.Selection" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
-                                                    <Binding Path="DataContext.Scene" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
-                                                </MultiBinding>
-                                            </CheckBox.IsChecked>
-                                        </CheckBox>
-                                        <!-- A click ticks this line, one mission's crates for one destination (B6, D69); a click on a
-                                             crate in the ship view ticks the whole stop. -->
-                                        <Button x:Name="LineButton"
-                                                Command="{Binding DataContext.ToggleLineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                CommandParameter="{Binding Mode=OneTime}"
-                                                Style="{StaticResource LegendLineButtonStyle}"
-                                                MouseRightButtonDown="OnLegendRightButtonDown"
-                                                ToolTip="{Binding Label, Mode=OneTime}">
-                                            <DockPanel x:Name="LineContent">
-                                                <!-- The stop's ordinal and the overlay's palette, the brush the view paints its
-                                                     crates with, hatch included (K4.2). -->
-                                                <Rectangle x:Name="Swatch" DockPanel.Dock="Left" Width="12" Height="12" Margin="0,0,6,0">
-                                                    <Rectangle.Fill>
-                                                        <MultiBinding Converter="{StaticResource PaletteBrushConverter}" Mode="OneWay">
-                                                            <Binding Path="PaletteIndex" Mode="OneTime" />
-                                                            <Binding Path="DataContext.StopPalette" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
-                                                        </MultiBinding>
-                                                    </Rectangle.Fill>
-                                                </Rectangle>
-                                                <!-- "To Green Glade Station" · " · 5 SCU (4+1)" · " · Pressurized Ice" · markings (K6.1):
-                                                     the commodity shortens first, then the destination; quantity, mix and markings never.
-                                                     The markings carry the reserve, so a tick keeps the line's width (D16, D33). The Tag
-                                                     tells the segments that the line is delivered (LegendSegmentTextStyle). -->
-                                                <ItemsControl x:Name="LineText" ItemsSource="{Binding Segments, Mode=OneTime}" Tag="{Binding Delivered, Mode=OneTime}"
-                                                              ItemTemplate="{StaticResource LegendSegmentTemplate}" Focusable="False">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <sv:LegendRowPanel />
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemContainerStyle>
-                                                        <Style TargetType="ContentPresenter">
-                                                            <Setter Property="sv:LegendRowPanel.Rank" Value="{Binding Rank, Mode=OneTime}" />
-                                                        </Style>
-                                                    </ItemsControl.ItemContainerStyle>
-                                                </ItemsControl>
-                                            </DockPanel>
-                                        </Button>
-                                    </DockPanel>
-                                </StackPanel>
-                                <!-- Template triggers outrank values set in the template, so the grey wins over the bound colour.
-                                     Hidden, not collapsed, boxes keep their column, so swatches and headers stay aligned.
-                                     Source: https://learn.microsoft.com/dotnet/desktop/wpf/properties/dependency-property-value-precedence -->
-                                <DataTemplate.Triggers>
-                                    <DataTrigger Binding="{Binding Header}" Value="{x:Null}">
-                                        <Setter TargetName="HeaderRow" Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding MissionCrates}" Value="{x:Null}">
-                                        <Setter TargetName="MissionCheck" Property="Visibility" Value="Hidden" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Grouped}" Value="True">
-                                        <Setter TargetName="LineRow" Property="Margin" Value="18,0,0,0" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding Delivered}" Value="True">
-                                        <Setter TargetName="LineCheck" Property="Visibility" Value="Hidden" />
-                                        <Setter TargetName="Swatch" Property="Fill" Value="{x:Static sv:MissionPalette.DeliveredBrush}" />
-                                    </DataTrigger>
-                                </DataTemplate.Triggers>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                        </ScrollViewer.Style>
+                        <ScrollViewer.Resources>
+                            <!-- The slim bar in the legend's colour. -->
+                            <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBarStyle}">
+                                <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
+                            </Style>
+                        </ScrollViewer.Resources>
+                        <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}">
+                            <ItemsControl.ItemTemplate>
+                                <!-- The command replaces the plan, so the legend is rebuilt and the grey comes from the new entry. -->
+                                <DataTemplate DataType="{x:Type sv:LegendEntry}">
+                                    <!-- "From A, B" or "From ?" over the first line of a mission once any mission has a pickup (B6,
+                                         D69): no tick of its own, it goes with the lines when the legend is hidden (D33). Its check box
+                                         selects the mission's crates on board, a right drag of the header moves them. Each line has a
+                                         check box of its own for its crates, outside the line's button: a click on the box selects, a
+                                         click on the line ticks, a right drag of the line moves its crates. A box shows ticked while all
+                                         its crates are selected, a bar for part (LegendCheckedConverter). -->
+                                    <StackPanel>
+                                        <!-- Rows are DockPanels, not horizontal StackPanels: those measure their children at infinite
+                                             width, and the text could never shorten (K6.1). The tool tip holds the whole text. -->
+                                        <DockPanel x:Name="HeaderRow" Background="{StaticResource HitTestBackgroundBrush}"
+                                                   MouseRightButtonDown="OnLegendHeaderRightButtonDown" ToolTip="{Binding HeaderLabel, Mode=OneTime}">
+                                            <CheckBox x:Name="MissionCheck" DockPanel.Dock="Left" Style="{StaticResource LegendCheckBoxStyle}"
+                                                      Command="{Binding DataContext.ToggleCratesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      CommandParameter="{Binding MissionCrates, Mode=OneTime}">
+                                                <CheckBox.IsChecked>
+                                                    <MultiBinding Converter="{StaticResource LegendCheckedConverter}" Mode="TwoWay">
+                                                        <Binding Path="MissionCrates" Mode="OneWay" />
+                                                        <Binding Path="DataContext.Selection" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                        <Binding Path="DataContext.Scene" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                    </MultiBinding>
+                                                </CheckBox.IsChecked>
+                                            </CheckBox>
+                                            <!-- "From Lorville" · " · #47": the pickups shorten, the ContractTracker id never (K6.1). -->
+                                            <ItemsControl x:Name="HeaderText" ItemsSource="{Binding HeaderSegments, Mode=OneTime}"
+                                                          ItemTemplate="{StaticResource LegendSegmentTemplate}" Focusable="False">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <sv:LegendRowPanel />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemContainerStyle>
+                                                    <Style TargetType="ContentPresenter">
+                                                        <Setter Property="sv:LegendRowPanel.Rank" Value="{Binding Rank, Mode=OneTime}" />
+                                                    </Style>
+                                                </ItemsControl.ItemContainerStyle>
+                                            </ItemsControl>
+                                        </DockPanel>
+                                        <DockPanel x:Name="LineRow">
+                                            <CheckBox x:Name="LineCheck" DockPanel.Dock="Left" Style="{StaticResource LegendCheckBoxStyle}"
+                                                      Command="{Binding DataContext.ToggleCratesCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                      CommandParameter="{Binding Crates, Mode=OneTime}">
+                                                <CheckBox.IsChecked>
+                                                    <MultiBinding Converter="{StaticResource LegendCheckedConverter}" Mode="TwoWay">
+                                                        <Binding Path="Crates" Mode="OneWay" />
+                                                        <Binding Path="DataContext.Selection" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                        <Binding Path="DataContext.Scene" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                    </MultiBinding>
+                                                </CheckBox.IsChecked>
+                                            </CheckBox>
+                                            <!-- A click ticks this line, one mission's crates for one destination (B6, D69); a click on a
+                                                 crate in the ship view ticks the whole stop. -->
+                                            <Button x:Name="LineButton"
+                                                    Command="{Binding DataContext.ToggleLineCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding Mode=OneTime}"
+                                                    Style="{StaticResource LegendLineButtonStyle}"
+                                                    MouseRightButtonDown="OnLegendRightButtonDown"
+                                                    ToolTip="{Binding Label, Mode=OneTime}">
+                                                <DockPanel x:Name="LineContent">
+                                                    <!-- The stop's ordinal and the overlay's palette, the brush the view paints its
+                                                         crates with, hatch included (K4.2). -->
+                                                    <Rectangle x:Name="Swatch" DockPanel.Dock="Left" Width="12" Height="12" Margin="0,0,6,0">
+                                                        <Rectangle.Fill>
+                                                            <MultiBinding Converter="{StaticResource PaletteBrushConverter}" Mode="OneWay">
+                                                                <Binding Path="PaletteIndex" Mode="OneTime" />
+                                                                <Binding Path="DataContext.StopPalette" Mode="OneWay" RelativeSource="{RelativeSource AncestorType=Window}" />
+                                                            </MultiBinding>
+                                                        </Rectangle.Fill>
+                                                    </Rectangle>
+                                                    <!-- "To Green Glade Station" · " · 5 SCU (4+1)" · " · Pressurized Ice" · markings (K6.1):
+                                                         the commodity shortens first, then the destination; quantity, mix and markings never.
+                                                         The markings carry the reserve, so a tick keeps the line's width (D16, D33). The Tag
+                                                         tells the segments that the line is delivered (LegendSegmentTextStyle). -->
+                                                    <ItemsControl x:Name="LineText" ItemsSource="{Binding Segments, Mode=OneTime}" Tag="{Binding Delivered, Mode=OneTime}"
+                                                                  ItemTemplate="{StaticResource LegendSegmentTemplate}" Focusable="False">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <sv:LegendRowPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemContainerStyle>
+                                                            <Style TargetType="ContentPresenter">
+                                                                <Setter Property="sv:LegendRowPanel.Rank" Value="{Binding Rank, Mode=OneTime}" />
+                                                            </Style>
+                                                        </ItemsControl.ItemContainerStyle>
+                                                    </ItemsControl>
+                                                </DockPanel>
+                                            </Button>
+                                        </DockPanel>
+                                    </StackPanel>
+                                    <!-- Template triggers outrank values set in the template, so the grey wins over the bound colour.
+                                         Hidden, not collapsed, boxes keep their column, so swatches and headers stay aligned.
+                                         Source: https://learn.microsoft.com/dotnet/desktop/wpf/properties/dependency-property-value-precedence -->
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Header}" Value="{x:Null}">
+                                            <Setter TargetName="HeaderRow" Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding MissionCrates}" Value="{x:Null}">
+                                            <Setter TargetName="MissionCheck" Property="Visibility" Value="Hidden" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Grouped}" Value="True">
+                                            <Setter TargetName="LineRow" Property="Margin" Value="18,0,0,0" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Delivered}" Value="True">
+                                            <Setter TargetName="LineCheck" Property="Visibility" Value="Hidden" />
+                                            <Setter TargetName="Swatch" Property="Fill" Value="{x:Static sv:MissionPalette.DeliveredBrush}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                     <!-- Missions that didn't fit (D41): a hollow swatch, the reason, and a click drops the mission. Shown even
                          with legend.visible = false, like the warnings: they ask for something (T5.4). -->
                     <ItemsControl ItemsSource="{Binding Scene.Unplaced, Mode=OneWay}">
