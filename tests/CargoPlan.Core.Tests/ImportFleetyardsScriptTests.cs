@@ -259,13 +259,14 @@ public class ImportFleetyardsScriptTests
     public async Task Force_adds_a_missing_door_limit_and_keeps_one_that_differs()
     {
         using var work = new Workspace(withExpected: true);
-        work.Edit("offset_ship", t => Regex.Replace(t, @",\s*""maxCrateSize"": 2", ""));
+        work.Edit("offset_ship", t => Regex.Replace(t, @",\s*""maxCrateSize"": 2", "").Replace("; door limits from Fleetyards limits.max.capacity", ""));
         work.Edit("overlap_ship", t => t.Replace("\"stackAxis\": \"+z\"\n    }\n  ]", "\"stackAxis\": \"+z\",\n      \"maxCrateSize\": 4\n    }\n  ]"));
 
         (await work.Run("-Force", "offset_ship")).ExitCode.Should().Be(0);
         var compare = await work.Run();
 
         ShipLoader.Load(work.Ships, "offset_ship").Racks.Select(r => r.MaxCrateSize).Should().Equal(null, CrateSize.Two);
+        ShipLoader.Load(work.Ships, "offset_ship").Notes.Should().EndWith("; door limits from Fleetyards limits.max.capacity", "a door from the export says so, as -Create's notes do (K5.2)");
         compare.Output.Should().MatchRegex(@"same\s+offset_ship");
         ShipLoader.Load(work.Ships, "overlap_ship").Racks[^1].MaxCrateSize.Should().Be(CrateSize.Four);
     }

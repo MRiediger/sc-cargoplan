@@ -46,6 +46,7 @@ $ArrangementNotes = [ordered]@{
     overlap    = 'rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards'
     generated  = 'rack arrangement generated; grids from Fleetyards'
 }
+$LimitNotes = @('; door limits from Fleetyards limits.max.capacity', '; crate minimums from Fleetyards limits.min.capacity')
 
 # Fleetyards metres to cells; a value off the 1.25 m grid stops the import.
 function Get-Cells([object]$Meters, [string]$Where) {
@@ -299,10 +300,10 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
 
     $notes = $ArrangementNotes[$arrangement]
     if (@($racks | Where-Object { $null -ne $_.Door }).Count) {
-        $notes += '; door limits from Fleetyards limits.max.capacity'
+        $notes += $LimitNotes[0]
     }
     if (@($racks | Where-Object { $null -ne $_.Min }).Count) {
-        $notes += '; crate minimums from Fleetyards limits.min.capacity'
+        $notes += $LimitNotes[1]
     }
 
     $fileRacks = @(foreach ($r in $ordered) {
@@ -523,6 +524,12 @@ function Update-Ship([object]$File, [object]$Draft, [string]$ExportDate) {
         $File.racks = $racks
     }
     Set-Arrangement $File $racks $Draft
+    # A door or minimum taken from the export says where it came from, as -Create's notes do.
+    foreach ($part in $LimitNotes) {
+        if ($Draft.notes.Contains($part) -and -not ([string]$File.notes).Contains($part)) {
+            Set-Field $File 'notes' "$($File.notes)$part"
+        }
+    }
     $File.totalScu = $Draft.totalScu
     Set-Field $File 'source' $Draft.source
     [pscustomobject]@{ Ship = $File; Report = $report }
