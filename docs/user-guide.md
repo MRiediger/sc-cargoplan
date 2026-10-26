@@ -298,7 +298,8 @@ selected crate and the whole selection goes along, every crate keeping its place
 across racks. If the selection doesn't fit as it is, the app finds room as above, crate by crate, and may spread it over
 racks. A selection moves as a whole: if one crate fits nowhere, nothing moves, and the amber line names the crates
 without room. Right click a selected crate again to take it out, or right click free space to clear the selection; any
-change of the plan and locking the overlay clear it too.
+change of the plan clears it too. Locking the overlay keeps it: mark the crates you are looking for, lock, and the
+marks stay in view at the elevator. A drag you are in the middle of when the overlay locks ends without moving anything.
 
 To move a line's crates, **right drag the line in the legend** onto a rack; right drag a mission's header to move the
 whole mission. The crates fade, the rack gets a cyan edge and the ghosts show where they go. On release they are laid

@@ -2193,7 +2193,36 @@ nach dem Umbau (XAML-Test + Offscreen-Hit-Test); E3 K6.4 hängt „geladen“ al
 - [x] Gate (Martin, Publish-Build vom Branch, im Lock am Aufzug, 26.10., bestanden): Zeile lesbar, Mischung = Kiosk, `#Id` = CT-Fenster
 - Commits cd54dfb (Tests rot), 0a75daf (App), Doku-Commit.
 
-### [ ] K6.2 Markierung überlebt den Lock (26.10.2026)
+### [ ] K6.2 Markierung überlebt den Lock (D25-Addendum) (26.10.2026)
+**Warum:** Am Aufzug ist der Lock der Normalzustand und die Markierung das, was man dort braucht; der Lock räumte sie.
+
+**Ist-Zustand vor K6.2 (A1):** Einzige Stelle `ShipViewControl.IsNavigationEnabled` → `Pick(CrateSelection.Empty)`,
+Grund im Code: „a selection left over must not move with the next drag“ (D25: „goes … with the lock“, User Guide).
+Kein Drag-Grund: ein laufender Drag endet beim Lock schon über `ReleaseMouseCapture` → `OnLostMouseCapture` → `_drag = null`,
+ohne `FinishDrag`. Lücke: ein Drag ohne Capture (`CaptureMouse` gescheitert) bekam kein Ende. Das XAML blendet im Lock
+nur Kopfzeilen-Buttons und Schiffsauswahl aus.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** `Pick(Empty)` entfällt; ein Drag ohne Capture wird im
+Lock verworfen (kein Move); `IsDragging` als öffentliche Abfrage für den Test statt Reflection; jede Planänderung
+(Sync, Haken, Undo) leert die Auswahl weiterhin (D25), eigener Punkt, falls es am Aufzug stört.
+- App: `ShipViewControl.IsNavigationEnabled` ohne Demarkieren, verwirft einen Drag ohne Capture; `IsDragging`
+- Tests: `ShipViewLockTests` (3): Lock und Unlock behalten die Auswahl, Lock beendet einen Drag ohne Move.
+  Erst nur `IsDragging` ergänzt und rot gesehen: Auswahl durch `Empty` ersetzt, `IsDragging` nach dem Lock `True`
+
+**Zahl vorher/nachher:** Tests App 1.366 → 1.369, Core 1.433, Import 141. UI-Task, keine Planer-Zahl.
+
+**Offscreen-Protokoll (echtes Overlay, Hurston-Plan; Harness im Scratchpad):** Zeilen-Checkbox Mission 1 und
+Kopf-Checkbox Mission 4 per Mauspfad → 9 Kisten ausgewählt; gesperrt: 9, dieselben Checkboxen gesetzt, Magenta-Rand
+und Dimmen sichtbar, Kopfzeilen-Buttons weg; wieder entsperrt: 9, unverändert. Lock während eines Drags mit Capture
+nicht automatisiert (bräuchte echte Mausbewegung) → Gate.
+
+**Akzeptanz:**
+- [x] Lock räumt die Auswahl nicht; Auswahlfarbe und Legenden-Checkboxen im Lock sichtbar; Unlock übernimmt sie
+- [x] Laufender Drag beim Lock: kein Move, Auswahl bleibt
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [ ] Gate (Martin, Publish-Build vom Branch): markieren, Lock → sichtbar; Unlock → noch da; Lock während eines Drags
+  (Hotkey) → kein Move, Auswahl da
+- Commits cf04c63 (Tests rot), c7d2f4f (App), Doku-Commit.
 ### [ ] K6.3 Editor sortierbar nach Mission und Ziel (26.10.2026)
 ### [ ] K6.4 Zustand „geladen“ (Plan-Schema 7) (26.10.2026)
 ### [ ] K6.5 CT-Missionen im Editor editierbar (26.10.2026)
