@@ -94,7 +94,9 @@ zooms (while you drag a single crate it turns the crate instead, see [Changing t
 The wheel zooms in as far on a Hull C as on a Hull A: up to 160 pixels per cell by default, so even on a long ship you
 can get close enough to hit a single crate. **Max zoom per cell** in the settings' **Ship view** section sets how far;
 zooming out stops at half the size that fits the window, or further where the whole ship outline needs it, so you can
-always see the complete hull (move the view if it sits off-centre). The view stays as you leave it, per ship: after a
+always see the complete hull (move the view if it sits off-centre). Turning keeps the size the ship had when you
+started, so a hologram doesn't grow and shrink as it turns; from then on the view no longer fits itself to the window
+or to new cargo until you reset it. The view stays as you leave it, per ship: after a
 restart, and when you switch to another ship and back, the ship is turned, zoomed and moved as before. The reset brings
 the starting view back, also for the next start.
 
