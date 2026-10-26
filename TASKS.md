@@ -2223,7 +2223,47 @@ nicht automatisiert (bräuchte echte Mausbewegung) → Gate.
 - [x] Gate (Martin, Publish-Build vom Branch, 26.10., bestanden): markieren, Lock → sichtbar; Unlock → noch da; Lock
   während eines Drags (Hotkey) → kein Move, Auswahl da
 - Commits cf04c63 (Tests rot), c7d2f4f (App), Doku-Commit.
-### [ ] K6.3 Editor sortierbar nach Mission und Ziel (26.10.2026)
+### [ ] K6.3 Editor sortierbar nach Mission und Ziel (D19-Addendum) (26.10.2026)
+**Warum:** Am Aufzug sucht man die Zeilen eines Vertrags oder einer Station; der Editor zeigte nur die Reihenfolge des
+ersten Auftretens.
+
+**Ist-Zustand vor K6.3 (A1):** `CanUserSortColumns="False"` („it would reorder the view, not the route“); Plan liest
+`MissionEditorViewModel.Rows` (Route = erstes Auftreten, Missionsgruppen in `MissionRows.ToMissions`), nie die Ansicht;
+↑/↓ verschieben in `Rows`. Keine Spalte „Mission“, nur „Source“ (`ct 37–38`, `MissionText.Source`, auch in der Notice
+zu gelöschten Verträgen). A1-Befund aus K6.1: `LegendText.ContractIds` war eine zweite Kopie dieser Bereichsregel.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 „Source“ heißt „Mission“ und zeigt `#37–38` wie die
+Legende, eine Formatfunktion `MissionText.Source` für Editor, Legende und Notice (`Riker (#36)`), `LegendText.ContractIds`
+entfällt, Läufe überall (`#36–37, 40`); P2 Klick-Zyklus auf → ab → Standard, nicht persistiert, eine Spalte zugleich;
+P3 Mission: erste CT-Id numerisch, getippte Zeilen dahinter nach Ziel; E1 getippte Zeilen in **beiden** Richtungen hinter
+den CT-Zeilen, die Richtung dreht nur innerhalb der Blöcke; P4 Ziel ohne Groß-/Kleinschreibung; P5 Gleichstand in
+Standard-Reihenfolge; P6 Leerzeilen unten; P7 ↑/↓ gesperrt, solange sortiert ist (Tooltip); P8 eine im sortierten
+Zustand geänderte Zeile springt beim Bestätigen an ihren Platz.
+- App: `Editor/MissionRowOrder` (`IComparer`, `EditorSortColumn`, `EditorSort`), `MissionRow.ContractId`;
+  `MissionEditorViewModel.RowsView` (`ListCollectionView`), `Sort`, `SortBy`, `CanMoveUp/Down` mit `Sort is null`;
+  Fenster: `ItemsSource="{Binding RowsView}"`, `OnSorting` (bestätigt offene Bearbeitung, ruft `SortBy`, setzt den Pfeil),
+  nur Mission und Destination mit `SortMemberPath`; `MissionText.Source` mit `#` und Läufen, `ShipViewBuilder` nutzt es
+- Tests: `MissionRowOrderTests` (7 Fälle, u. a. `By_mission_descending_typed_rows_stay_behind_the_contracts`),
+  `MissionEditorViewModelTests` (+6, u. a. `Plan_from_a_sorted_view_is_the_plan_from_the_standard_order`),
+  `MissionEditorXamlTests` (3, neu; `MissionEditorWindow.xaml` als eingebettete Ressource), `MissionTextTests` (+3, die
+  Id-Fälle aus `LegendLineTests` zogen hierher); `ct …`-Erwartungen auf `#…`
+
+**Zahl vorher/nachher:** Tests App 1.369 → 1.384, Core 1.433, Import 141. UI-Task, keine Planer-Zahl; Planer-Invarianz
+über den Test „sortiert = unsortiert“.
+
+**Offscreen-Protokoll (echtes Editorfenster, Hurston-Plan, Dark; Harness im Scratchpad):** Klick auf „Mission“ →
+`#1, #2–3 …, #4, #37–38 …`, Pfeil auf; zweiter → `#37–38 … #4, #2–3 …, #1`, Pfeil ab; dritter → Standard, kein Pfeil;
+„Destination“ auf/ab alphabetisch; Klick während offener Zellbearbeitung → bestätigt, keine Ausnahme; ↑/↓ gesperrt;
+Plan aus sortierter Ansicht → Legende zeilengleich mit Plan aus der Standard-Reihenfolge.
+- Nebenbefund, nicht K6.3: die Crates-Spalte des Editors schreibt `1+1+1+1+1+1+1+1`, die Legende `8×1` (K6.1); die
+  Spalte ist zugleich das Eingabeformat (`2+2+2`).
+
+**Akzeptanz:**
+- [x] Spaltenköpfe Mission und Destination klickbar, auf/ab, nicht persistiert; Standard bleibt erstes Auftreten
+- [x] Sortierung ändert nichts am Plan und an der Legende; Entwurfszeilen sortieren mit, eine leere Zeile bleibt unten
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [ ] Gate (Martin): sortieren, Plan drücken → Plan unverändert zur unsortierten Eingabe
+- Commits e23c056 (Tests rot), 5a78e83 (App), Doku-Commit.
 ### [ ] K6.4 Zustand „geladen“ (Plan-Schema 7) (26.10.2026)
 ### [ ] K6.5 CT-Missionen im Editor editierbar (26.10.2026)
 

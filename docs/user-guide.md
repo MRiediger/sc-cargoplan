@@ -132,6 +132,10 @@ so it takes the focus while you type; afterwards click back into the game (or Al
   colors follow it. It doesn't decide the racks, and which stop you fly to first is up to you. Stops follow the first
   row of each destination, so `Riker, Shubin, Orison, Shubin` gives stops 1, 2, 3, 2. Use **↑**/**↓** to move rows;
   destinations match regardless of upper or lower case.
+- **Sorting:** click the **Mission** or **Destination** header to sort the rows, again to sort them the other way, a
+  third time for the order you entered them. Sorting only changes what you see: **Plan** gives the same plan, and stops,
+  legend and colors keep the order you entered. Sorted by mission, ContractTracker's contracts come first by number and
+  typed rows after them, either way round; empty rows stay at the bottom. **↑**/**↓** work once the sort is off.
 - **Pickup** (optional): where you collect the crates, e.g. `Lorville`, or `Area18 / Lorville` for a contract with
   several pickups (the contract names no amounts per pickup, so neither does the row). Two rows with the same commodity
   for the same destination from two pickups stay apart in the plan.
@@ -231,8 +235,8 @@ itself, a few moments after you press F3. No editor, no click.
 - **A pickup can be a destination too.** Waste contracts run the other way: you collect the waste at the stations and
   deliver it to Everus Harbor, where the Stims of another contract are collected. The legend then shows
   `To Everus Harbor · 8 SCU` next to `From Everus Harbor`; both are right.
-- **In the editor**, the **Source** column shows where a row came from (`ct 37–38` = ContractTracker's ids, empty =
-  typed). **Delete mission** takes the selected row's mission out of the plan at once, with its crates; nothing else
+- **In the editor**, the **Mission** column shows where a row came from (`#37–38` = ContractTracker's ids, as in the
+  legend's header; empty = typed). **Delete mission** takes the selected row's mission out of the plan at once, with its crates; nothing else
   moves and you don't press **Plan** for it (typed rows of one destination count as one mission).
   **Sync from ContractTracker** takes in what came since the last sync, the same as a capture does.
 - The first time, everything that is in ContractTracker comes in. Delete old contracts there first (× or F5) if you
