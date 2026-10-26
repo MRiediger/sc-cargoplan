@@ -652,8 +652,9 @@ public sealed class ShipViewControl : FrameworkElement
         switch (gesture)
         {
             // Like grabbing the ship: dragging right turns its near side right, dragging down tilts its top towards you.
+            // The scale holds while turning (K5.5): the fit becomes the framing at the first step.
             case Gesture.Orbit:
-                Navigate(_navigation.OrbitBy(-delta.X * OrbitDegreesPerPixel, delta.Y * OrbitDegreesPerPixel));
+                Navigate(_navigation.OrbitBy(-delta.X * OrbitDegreesPerPixel, delta.Y * OrbitDegreesPerPixel, Projected() is { } turned ? Basis(turned) : null));
                 break;
             case Gesture.Pan when Projected() is { } scene:
                 Navigate(_navigation.PanBy(delta, Basis(scene), Limits));
