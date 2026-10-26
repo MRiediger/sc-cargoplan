@@ -324,10 +324,40 @@ public class ViewTransformTests
         orbited.Framing.Should().Be(navigation.Framing);
     }
 
+    // Since K5.5 orbiting holds the scale: refitting at every angle made a hologram's size pump while turning (Hull C
+    // 39 % over a turn). The fit becomes the framing at the first step, as panning makes it.
     [Fact]
-    public void Orbiting_the_fit_keeps_fitting()
+    public void Orbiting_the_fit_fixes_its_scale()
     {
-        ViewNavigation.Default.OrbitBy(30, -10).Framing.Should().BeNull();
+        var basis = Basis();
+
+        var orbited = ViewNavigation.Default.OrbitBy(30, -10, basis);
+
+        orbited.Framing.Should().Be(Framing.OfFit(basis));
+        orbited.Camera.Should().Be(ViewNavigation.Default.Camera.OrbitBy(30, -10));
+    }
+
+    [Fact]
+    public void The_first_orbit_step_draws_the_fit_it_starts_from()
+    {
+        var basis = Basis();
+
+        var orbited = ViewNavigation.Default.OrbitBy(30, -10, basis);
+
+        ShouldBeTheSame(orbited.On(basis, Limits), basis.Fit);
+    }
+
+    [Fact]
+    public void Further_orbit_steps_keep_the_scale_whatever_the_fit_would_be()
+    {
+        // Another angle projects the ship wider: its fit is smaller, the framing stays.
+        var start = Basis();
+        var wider = Basis(new Rect(Extent.X, Extent.Y, 2 * Extent.Width, Extent.Height));
+
+        var orbited = ViewNavigation.Default.OrbitBy(10, 0, start).OrbitBy(10, 0, wider).OrbitBy(10, 0, wider);
+
+        orbited.Framing!.PxPerCell.Should().Be(start.Fit.Scale);
+        wider.Fit.Scale.Should().BeLessThan(start.Fit.Scale);
     }
 
     [Fact]
