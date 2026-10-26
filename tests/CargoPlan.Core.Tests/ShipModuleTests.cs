@@ -39,6 +39,14 @@ public sealed class ShipModuleTests
         (Base.Name, Base.TotalScu, Base.Racks.Count).Should().Be(("RSI Aurora Mk II", 2, 2));
     }
 
+    // Martin at the holo gate (K5.3b): the racks sat a cell too high in the hull; the hologram goes up one cell, for both.
+    [Fact]
+    public void The_aurora_mk_ii_lifts_its_hologram_one_cell_with_and_without_the_module()
+    {
+        Base.HoloOffset.Should().Be(new ShipPoint(0, 0, 1));
+        WithModule.HoloOffset.Should().Be(new ShipPoint(0, 0, 1));
+    }
+
     [Fact]
     public void Without_the_module_6_SCU_in_2s_is_refused()
     {

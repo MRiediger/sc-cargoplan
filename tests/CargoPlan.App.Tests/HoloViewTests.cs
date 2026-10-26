@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Media.Media3D;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Holo;
+using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
 using CargoPlan.Core.Tests;
 
@@ -35,6 +36,20 @@ public sealed class HoloViewTests
         ((placed.Min.X + placed.Max.X) / 2).Should().BeApproximately((bounds.Min.X + bounds.Max.X) / 2.0, 1e-6);
         ((placed.Min.Y + placed.Max.Y) / 2).Should().BeApproximately((bounds.Min.Y + bounds.Max.Y) / 2.0, 1e-6);
         ((placed.Min.Z + placed.Max.Z) / 2).Should().BeApproximately((bounds.Min.Z + bounds.Max.Z) / 2.0, 1e-6);
+    }
+
+    [Fact]
+    public void A_holo_offset_moves_the_hologram_by_whole_cells()
+    {
+        // The ship file's holoOffset (K5.3b): from the middle on the racks, here one cell up; the racks stay.
+        var bounds = ShipLoader.Load("hull_a").Bounds;
+        var centred = HoloPlacement.Place(Box(30, 12.5f, 10), bounds);
+
+        var lifted = HoloPlacement.Place(Box(30, 12.5f, 10), bounds, new ShipPoint(0, 0, 1));
+
+        lifted.Offset.Should().Be(centred.Offset + new Vector3D(0, 0, 1));
+        (lifted.Min.Z, lifted.Max.Z).Should().Be((centred.Min.Z + 1, centred.Max.Z + 1));
+        (lifted.Min.X, lifted.Max.Y).Should().Be((centred.Min.X, centred.Max.Y));
     }
 
     [Fact]

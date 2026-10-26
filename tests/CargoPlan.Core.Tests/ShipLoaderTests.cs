@@ -385,6 +385,43 @@ public class ShipLoaderTests
         problem.Message.Should().Contain("'test_module.json'");
     }
 
+    // --- holoOffset (K5.3b, D63): the hologram's shift from its middle on the racks, in cells; nothing else moves ---
+
+    private static string WithHoloOffset(string json, string offset) =>
+        json.Replace("\"totalScu\":", $"\"holoOffset\": {offset},\n  \"totalScu\":", StringComparison.Ordinal);
+
+    [Fact]
+    public void A_holo_offset_is_read_and_a_module_configuration_keeps_it()
+    {
+        using var folder = new ShipFolder();
+        folder.Write("hull_a", WithHoloOffset(File.ReadAllText(System.IO.Path.Combine(ShipLoader.DefaultFolder, "hull_a.json")), "[0, 0, 1]"));
+        folder.WriteModule("test_module", TestModule());
+
+        var catalog = ShipLoader.LoadAll(folder.Path);
+
+        catalog.Problems.Should().BeEmpty();
+        catalog.Get("hull_a").HoloOffset.Should().Be(new ShipPoint(0, 0, 1));
+        catalog.Get("hull_a_test_module").HoloOffset.Should().Be(new ShipPoint(0, 0, 1));
+    }
+
+    [Fact]
+    public void Without_a_holo_offset_there_is_none()
+    {
+        ShipLoader.Load("hull_a").HoloOffset.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_holo_offset_needs_three_values()
+    {
+        using var folder = new ShipFolder();
+        folder.AddShipped("hull_a");
+        folder.Write("b_ship", WithHoloOffset(File.ReadAllText(TestShips.PathOf("spike_uneven")).Replace("\"id\": \"spike_uneven\"", "\"id\": \"b_ship\""), "[0, 1]"));
+
+        var catalog = ShipLoader.LoadAll(folder.Path);
+
+        catalog.Problems.Should().ContainSingle().Which.Message.Should().Contain("holoOffset");
+    }
+
     [Fact]
     public void Without_a_modules_folder_the_catalog_holds_the_ship_files_only()
     {

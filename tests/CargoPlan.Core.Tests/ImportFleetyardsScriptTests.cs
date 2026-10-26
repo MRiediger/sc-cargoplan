@@ -333,6 +333,20 @@ public class ImportFleetyardsScriptTests
         ship.Racks.Where(r => r.Id != "rack-2").Should().OnlyContain(r => r.MaxCrateSize == null);
     }
 
+    // holoOffset is hand work set at the holo gate (K5.3b): -Force rewrites the file and must keep it.
+    [Fact]
+    public async Task Force_keeps_a_holo_offset()
+    {
+        using var work = new Workspace(withExpected: true);
+        work.Edit("row_ship", t => t.Replace("\"totalScu\": 26,", "\"holoOffset\": [0, 0, 1],\n  \"totalScu\": 26,"));
+
+        var run = await work.Run("-Force", "row_ship");
+
+        run.ExitCode.Should().Be(0, run.Error);
+        ShipLoader.Load(work.Ships, "row_ship").HoloOffset.Should().Be(new ShipPoint(0, 0, 1));
+        (await work.Run()).Output.Should().MatchRegex(@"same\s+row_ship");
+    }
+
     /// <summary>row_ship's rack-2 (2×2×2, which takes an 8 by its grid) with a door that takes 4 SCU at most.</summary>
     private static string WithDoorLimit(string text) => Regex.Replace(
         text, @"(""origin"": \[-3, 0, 0\],\s*""stackAxis"": ""\+z"")", "$1,\n      \"maxCrateSize\": 4");
