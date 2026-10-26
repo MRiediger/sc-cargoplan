@@ -176,6 +176,28 @@ public class ViewTransformTests
     }
 
     [Fact]
+    public void Zooming_out_reaches_the_whole_scene_where_half_the_fit_would_not()
+    {
+        // A true-size outline around a small hold (K5.2c): the fit shows the racks, zooming out shows the whole hull (K5.2d).
+        Rect whole = new(Extent.X - 2 * Extent.Width, Extent.Y - 2 * Extent.Height, 5 * Extent.Width, 5 * Extent.Height);
+        var basis = ViewBasis.Of(Extent, Anchor, Viewport, Margin, whole: whole);
+        var wholeScale = ViewTransform.Fit(whole, Viewport, Margin).Scale;
+        wholeScale.Should().BeLessThan(basis.Fit.Scale * ZoomLimits.MinShareOfFit);
+
+        ViewNavigation.Default.ZoomAt(new Point(50, 50), 0.01, basis, Limits).Framing!.PxPerCell
+            .Should().BeApproximately(wholeScale, 1e-9);
+    }
+
+    [Fact]
+    public void A_whole_scene_within_half_the_fit_leaves_the_lower_limit_at_half_the_fit()
+    {
+        // The Hull A, the Hull C, a hologram or the wedge: the scene is hardly larger than the fit (D76 as before).
+        var basis = ViewBasis.Of(Extent, Anchor, Viewport, Margin, whole: Extent);
+
+        Limits.Lower(basis).Should().BeApproximately(basis.Fit.Scale * ZoomLimits.MinShareOfFit, 1e-9);
+    }
+
+    [Fact]
     public void A_fit_above_the_maximum_stays_the_upper_limit()
     {
         // A small ship in a large overlay: the fit is always reachable, zooming in from it does nothing.
@@ -183,7 +205,7 @@ public class ViewTransformTests
         ZoomLimits limits = new(40);
         basis.Fit.Scale.Should().BeGreaterThan(40);
 
-        limits.Upper(basis.Fit).Should().Be(basis.Fit.Scale);
+        limits.Upper(basis).Should().Be(basis.Fit.Scale);
         ViewNavigation.Default.ZoomAt(new Point(50, 50), 2, basis, limits).Should().Be(ViewNavigation.Default);
         ViewNavigation.Default.ZoomAt(new Point(50, 50), 0.5, basis, limits).Framing!.PxPerCell.Should().BeApproximately(basis.Fit.Scale / 2, 1e-9);
     }
