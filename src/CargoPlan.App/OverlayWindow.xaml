@@ -415,6 +415,7 @@
                 <DockPanel HorizontalAlignment="Left" VerticalAlignment="Top">
                     <TextBlock x:Name="CapacityText" DockPanel.Dock="Right"
                                Text="{Binding Scene.CapacityText, Mode=OneWay}"
+                               ToolTip="{Binding Scene.CapacityToolTip, Mode=OneWay}"
                                TextWrapping="NoWrap"
                                Margin="8,0,0,0"
                                Style="{StaticResource HeaderTextStyle}" />

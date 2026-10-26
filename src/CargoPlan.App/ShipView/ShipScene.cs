@@ -32,20 +32,23 @@ public sealed record ShipScene(
     public bool AllDelivered => Legend.Count > 0 && Legend.All(e => e.Delivered);
 
     /// <summary>
-    /// The header's capacity (D67), one compact format: "56/64 · 8 free", with "· 40 loaded" once cargo is marked loaded
-    /// (K6.4) and "· 16 waiting" while missions wait for room. Max is every rack cell of the ship, the first number what is
-    /// on board (delivered crates are off it, D24).
+    /// The header's capacity (D67), one compact format: "56/64 · 8 free", with "· 40 ▣" once cargo is marked loaded, in
+    /// the legend's mark (K6.4, Martin at the look gate: "· 40 loaded" ran under the header buttons at 420 px), and
+    /// "· 16 waiting" while missions wait for room. Max is every rack cell of the ship, the first number what is on board
+    /// (delivered crates are off it, D24).
     /// </summary>
-    public string CapacityText
+    public string CapacityText => Capacity(Invariant($"{Plan.ScuOnBoard()}/{Ship.TotalScu}"), LegendEntry.LoadedMark.Trim());
+
+    /// <summary>The capacity spelt out for its tool tip: "56 of 64 SCU on board · 8 free · 40 loaded · 16 waiting" (K6.4).</summary>
+    public string CapacityToolTip => Capacity(Invariant($"{Plan.ScuOnBoard()} of {Ship.TotalScu} SCU on board"), "loaded");
+
+    private string Capacity(string onBoardText, string loadedWord)
     {
-        get
-        {
-            var onBoard = Plan.ScuOnBoard();
-            var loaded = Plan.Crates.Where(c => c.Loaded).Sum(c => (int)c.CrateSize);
-            var text = Invariant($"{onBoard}/{Ship.TotalScu} · {Ship.TotalScu - onBoard} free");
-            text = loaded > 0 ? Invariant($"{text} · {loaded} loaded") : text;
-            return WaitingScu > 0 ? Invariant($"{text} · {WaitingScu} waiting") : text;
-        }
+        var onBoard = Plan.ScuOnBoard();
+        var loaded = Plan.Crates.Where(c => c.Loaded).Sum(c => (int)c.CrateSize);
+        var text = Invariant($"{onBoardText} · {Ship.TotalScu - onBoard} free");
+        text = loaded > 0 ? Invariant($"{text} · {loaded} {loadedWord}") : text;
+        return WaitingScu > 0 ? Invariant($"{text} · {WaitingScu} waiting") : text;
     }
 
     /// <summary>What marks the bow (D62); set by the overlay from the setting and the ship's outline, the wedge otherwise.</summary>
