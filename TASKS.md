@@ -2387,6 +2387,41 @@ App 58 grün → grün; Planer unberührt, Gleichheitslauf nach K6.4 392/392. Te
 - **Für die Screenshots:** Legende hat neue Zeilen und Überschriften; geladene Kisten mit weißem Rahmen.
 - **Offen:** Nebenbefund K6.3 (Crates-Spalte im Editor `1+1+…`, Legende `8×1`); aus K5 weiter Torlek (K3.1), Hull-C-Gate (K3.3).
 
+### [ ] K7 Scrollbare Legende (D80) (26.10.2026) – Branch `feat/scrollable-legend`
+**Warum:** Martins Screenshot: viele Aufträge sprengen den Legendenbereich; der angedockte Block bekommt nur die Resthöhe,
+der Rest wird abgeschnitten, ausgerechnet die „⚠ doesn't fit“-Zeile.
+
+**Ist-Zustand vor K7 (A1):** Kein ScrollViewer in der Legende; einziger Scrollbalken im Overlay ist der schlanke der
+Schiffsliste (lokaler Style im ComboBox-Template); kein Multiplikations-Converter. Legenden-Layout = `LegendSettings`
+(top level, Teil der Look-Dateien, eigener Reset).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 Grenze als Setting `legend.maxHeightShare` (Anteil an der
+Overlay-Höhe, 0,2–0,8, Default 0,5, Slider in % unter „Legend layout“, Name nach Rückfrage); P2 nur die Zielzeilen
+scrollen, „doesn't fit“, Verstöße und Paletten-Hinweis bleiben darunter; P3 im Lock kein Scrollen, Hinweis im User Guide.
+- App: `LegendSettings.MaxHeightShare`, `AppearanceRules.Min/Max/DefaultLegendMaxHeightShare` + Klemmen mit Problemzeile,
+  `OverlayViewModel.LegendMaxHeightShare` (Session setzt ihn), `SettingsViewModel.LegendMaxHeightSharePercent` +
+  `BuildLayout()`, `LegendMaxHeightConverter`, XAML: `StopLinesScroll` (horizontal Disabled, nicht fokussierbar, MaxHeight
+  = `OverlayContent.ActualHeight` × Anteil), `SlimScrollBarStyle` für Schiffsliste und Legende; die drei Looks nennen den Schlüssel
+- Tests: `AppearanceRulesTests` (+5), `SettingsStoreTests` (+3), `SettingsViewModelTests` (+2), `SettingsSessionTests` (+1),
+  `LegendMaxHeightConverterTests` (2), `OverlayLegendXamlTests` (+5)
+
+**Zahl vorher/nachher:** Tests App 1.406 → 1.424, Core 1.466, Import 141 (unverändert). UI-Task, keine Planer-Zahl.
+
+**Offscreen-Protokoll (echtes Overlay, Wegwerf-Harness im Scratchpad, nicht im Repo):**
+- Martins Plan und Look (480 × 619, Schrift 9): 12 Zeilen, 180 px bei Grenze 299 px, kein Balken
+- 3 Zeilen, Default (420 × 460): 44 px, kein Balken; 20 Zeilen: 220 von 293 px, Balken, Schiffsansicht 169 px,
+  Paletten-Hinweis darunter; oben rechts mit 30 %: 132 px, Schiffsansicht 257 px; ausgeblendet: Schiffsansicht 389 px
+- 30 Zeilen + 2 wartende Missionen in Martins Look: 299 von 360 px, beide „doesn't fit“-Zeilen und Hinweis darunter sichtbar
+- Linksdruck auf den Scrollbereich erreicht DragMove; Treffer auf eine Zeile → `LineButton`
+
+**Akzeptanz:**
+- [x] Zielzeilen scrollen ab dem eingestellten Anteil, Schiffsansicht behält den Rest
+- [x] „doesn't fit“, Verstöße und Paletten-Hinweis scrollen nie weg
+- [x] `legend.maxHeightShare` in settings.json, Look-Dateien und Settings-Fenster, geklemmt mit Problemzeile
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [ ] Gate (Martin, Look): Balkenfarbe und -breite, Default 50 %, Verhalten mit vielen Aufträgen im Spiel
+- Commits 49cfe18 (Tests rot), 3c4d39b (App), Doku-Commit.
+
 ---
 
 ## Phase 8 – nach dem Launch

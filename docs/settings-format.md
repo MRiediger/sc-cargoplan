@@ -19,7 +19,7 @@ values.
   "recentShips": null,
   "overlay": { "left": 100, "top": 200, "width": 420, "height": 460 },
   "hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": null, "replan": null, "discardPlan": null, "undo": null, "redo": null, "resetView": null },
-  "legend": { "visible": true, "position": "bottom-left" },
+  "legend": { "visible": true, "position": "bottom-left", "maxHeightShare": 0.5 },
   "shipOutline": "outline",
   "downloadShipHolograms": true,
   "holoOpacity": 0.4,
@@ -164,6 +164,7 @@ the whole file unreadable.
 |---|---|---|
 | `legend.visible` | Show the stop lines | `true` |
 | `legend.position` | Where the legend stands | `"bottom-left"` |
+| `legend.maxHeightShare` | Share of the overlay's height the stop lines take at most before they scroll, 0.2–0.8 | `0.5` |
 
 **Positions:** `top-left`, `top-center`, `top-right`, `bottom-left`, `bottom-center`, `bottom-right`, in
 lower case. `top` puts the legend between the header and the ship, `bottom` below the ship. `left`,
@@ -177,6 +178,11 @@ where the legend is, amber notices at the bottom. You still tick a destination b
 right drag the selection.
 
 Ticking a destination off never moves the ship view, in any position.
+
+**Many missions: the stop lines scroll.** They take what they need, at most `maxHeightShare` of the overlay's height
+(0.5 = half); beyond that the mouse wheel over them scrolls, and a slim bar in the legend's colour shows where you are.
+The ship view keeps the rest. Missions that don't fit, red warnings and the colour hint stand below the lines and never
+scroll out of sight. While the overlay is locked it takes no mouse, so unlock it to scroll.
 
 ## Ship view
 
@@ -285,7 +291,7 @@ ship, the ship and the hologram download switch are not in it: they belong to yo
 ```json
 {
   "schemaVersion": 1,
-  "legend": { "visible": true, "position": "bottom-left" },
+  "legend": { "visible": true, "position": "bottom-left", "maxHeightShare": 0.5 },
   "shipOutline": "outline",
   "holoOpacity": 0.4,
   "holoHullColor": "#FF9CB0C0",
@@ -314,6 +320,7 @@ ship, the ship and the hologram download switch are not in it: they belong to yo
 - **A value outside its range** is set to the nearest limit (`"fontSize": 0` → 8, `"fillAlpha": 300` → 255).
 - **A colour that isn't one** (`"red"`, `"#12345"`) takes its default.
 - **A legend position that isn't one** (`"up"`, `"Bottom-Left"`) takes `bottom-left`.
+- **A legend height share outside 0.2–0.8** is set to the nearest limit (`"maxHeightShare": 1` → 0.8).
 - **A tool window theme that isn't one** (`"blue"`, `"Dark"`) takes `system`.
 - **A stop palette that isn't one** (`"ibm"`, `"OkabeIto"`) takes `okabeIto`.
 - **A ContractTracker path that isn't a full path** (`"contracts.db"`, `""`) is detected instead (`null`).
@@ -333,7 +340,7 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView`, `appearance.legend.checkBoxColor`, `appearance.legend.checkMarkColor`, `appearance.crates.stopPalette`, `appearance.crates.selectionColor`, `appearance.crates.selectionWidth` and `appearance.crates.selectionOutline` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView`, `appearance.legend.checkBoxColor`, `appearance.legend.checkMarkColor`, `appearance.crates.stopPalette`, `appearance.crates.selectionColor`, `appearance.crates.selectionWidth` `appearance.crates.selectionOutline` and `legend.maxHeightShare` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a
