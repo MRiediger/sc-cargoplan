@@ -11,4 +11,5 @@ namespace CargoPlan.Core.Ships;
     RespectNullableAnnotations = true,
     RespectRequiredConstructorParameters = true)]
 [JsonSerializable(typeof(ShipDto))]
+[JsonSerializable(typeof(ModuleDto))]
 internal sealed partial class ShipJsonContext : JsonSerializerContext;

@@ -102,9 +102,12 @@ public class ShipLoaderTests
     public void LoadAll_loads_every_shipped_file_without_problems()
     {
         var catalog = ShipLoader.LoadAll();
+        var files = ShipLoader.ListShips(ShipLoader.DefaultFolder);
 
         catalog.Problems.Should().BeEmpty();
-        catalog.Ships.Should().HaveCount(Directory.GetFiles(ShipLoader.DefaultFolder, "*.json").Length);
+        catalog.Ships.Select(s => s.Id).Should().Contain(files);
+        // Beyond the files only the ships with a module (K5.3): a new module shows up here.
+        catalog.Ships.Select(s => s.Id).Except(files).Should().Equal("aurora_mk_ii_ts_module");
     }
 
     public static TheoryData<string> ShippedShipIds => [.. ShipLoader.ListShips(ShipLoader.DefaultFolder)];

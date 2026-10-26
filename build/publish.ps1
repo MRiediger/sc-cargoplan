@@ -66,8 +66,10 @@ finally {
 
 # Without ships/ the overlay doesn't start (D56); without outlines/ it shows the bow wedge, and the outlines must not
 # ship without their licence note (D55). dotnet publish takes both folders from Core's items (measured in T7.1a), so
-# this checks the ZIP the haulers get, not a copy step of its own.
-$required = 'SC-CargoPlan/ships/hull_a.json', 'SC-CargoPlan/outlines/ship-outlines.json', 'SC-CargoPlan/outlines/NOTICE.md'
+# this checks the ZIP the haulers get, not a copy step of its own. Without ships/modules/ a module's ship is simply
+# missing from the list, so the subfolder is checked too (K5.3).
+$required = 'SC-CargoPlan/ships/hull_a.json', 'SC-CargoPlan/ships/modules/ts_module.json',
+    'SC-CargoPlan/outlines/ship-outlines.json', 'SC-CargoPlan/outlines/NOTICE.md'
 $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
 try {
     $missing = @($required | Where-Object { $null -eq $archive.GetEntry($_) })

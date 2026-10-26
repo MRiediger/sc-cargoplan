@@ -14,6 +14,8 @@
        Source: https://learn.microsoft.com/visualstudio/msbuild/common-msbuild-project-items -->
   <ItemGroup>
     <None Include="..\..\ships\*.json" Link="ships\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
+    <!-- Cargo modules (K5.3, D59): a subfolder, which the pattern above doesn't reach. -->
+    <None Include="..\..\ships\modules\*.json" Link="ships\modules\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
   <!-- Ship outlines (D55) the same way, with their licence note: not under the repo's MIT licence, so a folder of their own. -->

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "id": "ts_module",
+  "name": "TS module",
+  "ships": ["aurora_mk_ii"],
+  "source": "in game (Martin, 2026-10-26)",
+  "notes": "platform at the stern behind the 2 SCU hold, on the centre line, lowered below the hull between the landing gear; 3 x 2 x 1 cells, crates up to 2 SCU; position schematic like the ship's generated row",
+  "racks": [
+    {
+      "id": "ts-module",
+      "capacityScu": 6,
+      "grid": { "length": 3, "width": 2, "stack": 1 },
+      "origin": [-6, 0, -1],
+      "stackAxis": "+z",
+      "maxCrateSize": 2
+    }
+  ]
+}
