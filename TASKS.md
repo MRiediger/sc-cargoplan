@@ -2027,6 +2027,21 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [ ] Gate (Martin, Publish-Build, Look): Aurora, Salvation, Redeemer, Cutlass Black, Hull A, C2 mit Umriss; Rumpf in echter Größe, Racks lesbar, Bug erkennbar
 - Commits bcb45fb (Tests rot), 1e157d9 (App), Doku-Commit.
 
+### [ ] K5.2d Herauszoomen bis zum ganzen Umriss (D76-Addendum) (26.10.2026)
+**Warum:** Martin nach K5.2c (Constellation Mk IV Phoenix): immer so weit herauszoomen können, dass der ganze Umriss zu sehen ist, wie bei der Hull C.
+
+**Ist-Zustand vor K5.2d (A1):** `ZoomLimits.Lower(fit) = fit.Scale × 0,5` (D76); seit K5.2c zeigt der Fit nur Racks + kurze Bugzone, der maßstabsgetreue Umriss reicht weit darüber hinaus.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Untergrenze = min(halber Fit, Skala der ganzen Szene); `ViewBasis.WholeScale` aus `ProjectedScene.Extent` (gleicher Rand, gleicher Raum oben); `ZoomLimits` nimmt die Basis; kein automatisches Zentrieren (A4).
+- App: `ViewBasis.WholeScale`, `ViewBasis.Of(…, whole)`, `ZoomLimits.Lower/Upper/Clamp(ViewBasis)`, `ShipViewControl.Basis` übergibt `scene.Extent`
+- Tests: `Zooming_out_reaches_the_whole_scene_where_half_the_fit_would_not`, `A_whole_scene_within_half_the_fit_leaves_the_lower_limit_at_half_the_fit`; `A_fit_above_the_maximum_stays_the_upper_limit` ruft `Upper(basis)`
+
+**Akzeptanz:**
+- [x] Herauszoomen endet beim halben Fit oder, wo die Szene größer ist, dort, wo sie ganz passt
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.331: +2, der Wegwerf-Test aus K5.2c ist gelöscht)
+- [ ] Gate (Martin): Phoenix, Redeemer, Aurora mit Umriss ganz herausgezoomt → ganzer Rumpf im Fenster (ggf. nach Verschieben); Hull A, Hull C wie bisher
+- Commits 46a7088 (Tests rot), 5e1e582 (App), Doku-Commit.
+
 ### [ ] K5.4 App-Icon (D48-Addendum) (26.10.2026)
 **Warum:** Seit T6.2 im Backlog (D48): Exe, Taskleiste und Werkzeugfenster zeigten das Windows-Standardsymbol.
 
