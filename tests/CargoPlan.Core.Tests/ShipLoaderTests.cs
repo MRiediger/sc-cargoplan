@@ -307,6 +307,90 @@ public class ShipLoaderTests
         catalog.Problems.Should().BeEmpty();
     }
 
+    // --- Cargo modules (K5.3, D59): one catalog entry per base ship, checked like a ship file ---
+
+    // Behind the Hull A's plates (x 0..4), clear of them; the door takes 2 SCU, the grid would take a 4.
+    private static string TestModule(string ships = "\"hull_a\"", string origin = "[-4, 0, 0]", int schemaVersion = 1) => $$"""
+        {
+          "schemaVersion": {{schemaVersion}},
+          "id": "test_module",
+          "name": "test module",
+          "ships": [{{ships}}],
+          "source": "test",
+          "racks": [
+            { "id": "module-0", "capacityScu": 4, "grid": { "length": 2, "width": 2, "stack": 1 }, "origin": {{origin}}, "stackAxis": "+z", "maxCrateSize": 2 }
+          ]
+        }
+        """;
+
+    [Fact]
+    public void A_module_adds_one_entry_per_base_ship_after_its_racks()
+    {
+        using var folder = new ShipFolder();
+        folder.AddShipped("hull_a");
+        folder.WriteModule("test_module", TestModule());
+
+        var catalog = ShipLoader.LoadAll(folder.Path);
+
+        catalog.Problems.Should().BeEmpty();
+        catalog.Ships.Select(s => s.Id).Should().Equal("hull_a", "hull_a_test_module");
+        var hullA = catalog.Get("hull_a");
+        var withModule = catalog.Get("hull_a_test_module");
+        withModule.Name.Should().Be("MISC Hull A · test module");
+        withModule.TotalScu.Should().Be(68);
+        withModule.Racks.Select(r => r.Id).Should().Equal("rack-0", "rack-1", "rack-2", "rack-3", "module-0");
+        withModule.Racks[^1].MaxCrateSize.Should().Be(CrateSize.Two);
+        (withModule.Manufacturer, withModule.FleetyardsSlug).Should().Be((hullA.Manufacturer, hullA.FleetyardsSlug), "outline and hologram are the base ship's");
+        hullA.Racks.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public void A_module_for_a_ship_that_is_not_loaded_costs_only_that_entry()
+    {
+        using var folder = new ShipFolder();
+        folder.AddShipped("hull_a");
+        folder.WriteModule("test_module", TestModule(ships: "\"hull_a\", \"nope\""));
+
+        var catalog = ShipLoader.LoadAll(folder.Path);
+
+        catalog.Ships.Select(s => s.Id).Should().Equal("hull_a", "hull_a_test_module");
+        var problem = catalog.Problems.Should().ContainSingle().Which;
+        problem.ShipId.Should().Be("nope_test_module");
+        problem.Message.Should().Contain("'test_module.json'").And.Contain("'nope'");
+    }
+
+    [Theory]
+    [InlineData("{", "test_module")]                                     // not valid JSON: no entry can be named
+    [InlineData("schema 2", "test_module")]                              // a module schema this reader doesn't know
+    [InlineData("overlap", "hull_a_test_module")]                        // the module rack lies on a Hull A plate
+    public void A_broken_module_costs_its_entries_never_the_base_ship(string broken, string problemId)
+    {
+        using var folder = new ShipFolder();
+        folder.AddShipped("hull_a");
+        folder.WriteModule("test_module", broken switch
+        {
+            "{" => "{",
+            "schema 2" => TestModule(schemaVersion: 2),
+            _ => TestModule(origin: "[0, 1, 0]"),
+        });
+
+        var catalog = ShipLoader.LoadAll(folder.Path);
+
+        catalog.Ships.Select(s => s.Id).Should().Equal("hull_a");
+        var problem = catalog.Problems.Should().ContainSingle().Which;
+        problem.ShipId.Should().Be(problemId);
+        problem.Message.Should().Contain("'test_module.json'");
+    }
+
+    [Fact]
+    public void Without_a_modules_folder_the_catalog_holds_the_ship_files_only()
+    {
+        using var folder = new ShipFolder();
+        folder.AddShipped("hull_a");
+
+        ShipLoader.LoadAll(folder.Path).Ships.Select(s => s.Id).Should().Equal("hull_a");
+    }
+
     [Fact]
     public void Catalog_Get_of_a_skipped_ship_throws_ShipNotFoundException_listing_loaded_ids()
     {
@@ -334,6 +418,13 @@ public class ShipLoaderTests
             Write(newId, File.ReadAllText(TestShips.PathOf(shipId)).Replace($"\"id\": \"{shipId}\"", $"\"id\": \"{newId}\""));
 
         public void Write(string shipId, string json) => File.WriteAllText(FileOf(shipId), json);
+
+        /// <summary>A cargo module file in modules/ (K5.3).</summary>
+        public void WriteModule(string moduleId, string json)
+        {
+            var modules = Directory.CreateDirectory(System.IO.Path.Combine(Path, ShipLoader.ModulesFolderName)).FullName;
+            File.WriteAllText(System.IO.Path.Combine(modules, moduleId + ".json"), json);
+        }
 
         public void Dispose()
         {
