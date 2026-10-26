@@ -1905,6 +1905,34 @@ Reihenfolge innerhalb von K5 (Branch `feat/k5-data` ab `fa8276d`): K5.1 `fetch.p
 voller Abgleich → K5.3 Aurora-Frachtmodul → K5.4 App-Icon (unabhängig, vorgezogen, sobald die Datei da war). Schemas
 bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 
+### [x] K5.1 `fetch.ps1`: vollständiger Index, prüfbar (D53-Addendum) (26.10.2026)
+**Warum:** Befund 26.10.: Die Javelin steht auf der Fleetyards-Website, aber nicht in der App; Verdacht: `fetch.ps1` liest nur die erste Seite von `/v1/models`.
+
+**Ist-Zustand vor K5.1 (A1):** `fetch.ps1` (Pipeline-Repo `sc-ship-outlines`) las schon seitenweise (`perPage=100`, bis 20 Seiten, Abbruch bei leerer Seite). **Die Javelin stand im Index** (`cargo 5400`, `cargoHolds: []`) und fiel erst im Import als „no cargo grid“ heraus, wie 20 andere. Der Index vom 25.10. (118 / 97) war im Pipeline-Repo nicht committet; 117 / 96 ist der Index vom 22.10.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** K5.1 wird von „alle Seiten lesen“ zu „Vollständigkeit prüfbar machen“. `ships.json` bleibt ein JSON-Array ohne Kopf-Feld (drei Leser: `trace.py`, `bundle.py`, Import); Datum und Zählung stehen hier, das Exportdatum liest der Import weiter aus dem Datei-Zeitstempel. Filter `cargo > 0` bleibt (ohne Fracht kein Gitter), Filter Top-View bleibt (`trace.py` braucht `top.png`), wird aber gemeldet.
+- Pipeline: `1af1c83` Index vom 25.10. gesichert (Zahl vorher); `6be0795` Seitengrenze 50 → Abbruch statt still, doppelter Slug → Abbruch, Fracht ohne Top-View → Warnung, Seitengrößen und Schlusszeile; `ef83dda` Korrektur nach Martins erstem Lauf (Abbruch auf Seite 4 mit `slug` = null): eine leere Seite kam als Hülle mit leerem `items`, die Wahrheitsprüfung nahm die Hülle als Modell (das alte Skript schleppte solche Hüllen still bis Seite 20 mit); jetzt nach dem Feld `items` statt nach seinem Wahrheitswert, `$null`/`''` = leere Seite, Modell ohne `slug` → Abbruch; `52a5d3f` Index vom 26.10.
+
+**Zahl vorher/nachher:**
+
+| Messung | Index 25.10. (`1af1c83`) | Index 26.10. (`52a5d3f`) |
+|---|---|---|
+| Modelle bei Fleetyards | – (nicht gezählt) | 248 (Seiten 100 / 100 / 48, Seite 4 leer) |
+| mit Fracht + Top-View / mit Gitter | 118 / 97 | 118 / 97; 0 ohne Top-View verworfen |
+| Slugs hinzugekommen / verschwunden | – | keine / keine |
+| Schiffe mit geänderten `cargoHolds` | – | 0 (byte-gleich nach Normalisierung) |
+| Schiffe mit `offset` an allen Holds | 9 | 9: C8 Pisces, C8X, Carrack, Caterpillar, Hull A, Hull B, Hull C, Starlancer MAX, TAC |
+| Import-Abgleich (`import-fleetyards.ps1`, schreibt nichts) | 94 same, Fortune/Moth different, Salvation new | gleich; 21 ohne Gitter (u. a. Javelin, Hull D/E, Kraken, Odin), Exit 1 |
+
+**Befund Rumpfmaße:** `length`/`beam`/`height` änderten sich bei 18 Schiffen (Avenger Titan/Renegade, C8/C8X, MPUV Cargo, Mustang Alpha, Nomad, Hull A 30 → 23,42 m, 325a, 350r, sechs Aurora Mk I, Zeus Mk II CL/ES). `ship-outlines.json` und `holo-v1` sind gegen die Maße vom 22.10. erzeugt und bleiben, wie sie sind (Pipeline-Arbeit). Auslöser für eine Neuerzeugung: Das K5.2-Holo-Gate zeigt Racks außerhalb des Rumpfs.
+
+**Akzeptanz:**
+- [x] `fetch.ps1` liest alle Seiten und bricht bei unvollständigem Index ab, statt still weiterzulaufen
+- [x] Filter `cargo > 0` und Top-View im Kopfkommentar begründet, Verworfene werden gemeldet (0)
+- [x] Zahl vorher gesichert, alt/neu verglichen, keine Schiffe verschwunden (also nichts zu melden oder zu löschen)
+- [x] Gate (Martin, 26.10.): `fetch.ps1` nativ ohne Ausnahme, Seitengrößen 100 / 100 / 48 / 0, Schlusszeile; Stichprobe im Index: Clipper `limits.max` 2, Hull C `limits.min`/`max` 32 / 32
+- Commits Pipeline `1af1c83`, `6be0795`, `ef83dda`, `52a5d3f`; Doku-Commit hier.
+
 ### [ ] K5.4 App-Icon (D48-Addendum) (26.10.2026)
 **Warum:** Seit T6.2 im Backlog (D48): Exe, Taskleiste und Werkzeugfenster zeigten das Windows-Standardsymbol.
 
