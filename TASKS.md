@@ -1998,6 +1998,35 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [ ] Upload (Martin): `upload-holo-v1.ps1` (Holos, dann Manifest); danach Hull A, Avenger Titan, C8, Salvation im Holo-Modus in richtiger Größe zu den Racks
 - Commits Pipeline 1af1c83..b3da084, hier Daten-/Doku-Commit.
 
+### [ ] K5.2c Umriss mindestens maßstabsgetreu, Ausschnitt wie mit Keil (D62-Addendum) (26.10.2026)
+**Warum:** Martin beim Gate (Aurora, Salvation): „outline passt nicht“. Nach D62 schrumpft der Umriss auf ~1,2 × Rack-Größe; bei 93 von 97 Schiffen ist der Rumpf kleiner als echt (Redeemer 6 %).
+
+**Ist-Zustand vor K5.2c (A1):** `OutlinePlacement.Place` Faktor = 1,2 × max(Racks / Umriss) je Achse; `SceneProjector.FitExtent` kompakt mit Umriss = Racks + ganzer Umriss, lang = geladene Racks + Bugzone bis zur Umrissspitze (`OutlinePlacement.Tip`).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Umriss nie kleiner als das Schiff (Martin); Ausschnitt Racks + Bugzone (Martin), dann nach der Stopp-Regel kurze Bugzone = Keilnase (Martin); Schwelle: kein Hauler-Schiff (Hull A, Cutlass Black, Freelancer, C2, Hull C, RAFT) schlechter als heute und keins neu unter dem heutigen Hull-A-Wert im Default-Overlay; der heutige Wert ist 19,4 px, nicht 23,4 (das war die Hochrechnung auf 800 × 600); C2 und Hull C lagen schon vorher darunter → Backlog (Martin). Liste der Schiffe, die den D62-Zweig behalten (Martin): Hull A (echt), Caterpillar, Syulen, Railen (generiert; nur die Railen-Reihe ist länger als der Rumpf, 53 gegen 40 Zellen) → kein Befund für den Reihen-Generator.
+- App: `OutlinePlacement.Place` Faktor = max(1,2 × Racks/Umriss, 1); `FitExtent` mit Umriss wie mit Keil (`Bow` nimmt die Keilecken), `OutlinePlacement.Tip` entfällt
+- Tests: `OutlinePlacementTests` (kleine Racks → Maßstab, winziges Rack → Maßstab, Racks füllen den Rumpf → 1,2), `SceneProjectorTests` (Umriss-Fit = Keil-Fit, kompakt und lang); `The_tip_is_the_bowmost_point` entfällt
+
+**Zahl vorher/nachher** (Kistenkante entlang x, Default-Overlay 400 × 302, Default-Kamera, leerer Plan; Wegwerf-Test):
+
+| Schiff | vorher (D62) | Plan: Bugzone bis Spitze | nachher: kurze Bugzone |
+|---|---|---|---|
+| Hull A | 19,4 | 22,2 | 27,2 |
+| Cutlass Black | 31,9 | 19,9 | 35,4 |
+| Freelancer | 19,9 | 17,4 | 23,0 |
+| C2 | 12,1 | 7,6 | 13,2 |
+| Hull C | 4,4 | 4,2 | 5,1 |
+| RAFT | 20,7 | 15,9 | 22,2 |
+| Redeemer / Aurora MR / Salvation | 90,5 / 106,8 / 80,5 | 20,7 / 43,0 / 42,8 | 84,7 / 91,8 / 76,3 |
+| Tests App | 1.328 | – | 1.330 |
+
+**Akzeptanz:**
+- [x] Umriss nie kleiner als das Schiff; D62-Rand nur, wo die Racks den Rumpf füllen
+- [x] Mit Umriss passt die Ansicht wie mit Keil; kein Hauler-Schiff kleiner als vorher
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün
+- [ ] Gate (Martin, Publish-Build, Look): Aurora, Salvation, Redeemer, Cutlass Black, Hull A, C2 mit Umriss; Rumpf in echter Größe, Racks lesbar, Bug erkennbar
+- Commits bcb45fb (Tests rot), 1e157d9 (App), Doku-Commit.
+
 ### [ ] K5.4 App-Icon (D48-Addendum) (26.10.2026)
 **Warum:** Seit T6.2 im Backlog (D48): Exe, Taskleiste und Werkzeugfenster zeigten das Windows-Standardsymbol.
 
@@ -2088,3 +2117,5 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Hull C: Stapelrichtung je Arm. Heute quer zum Arm, damit die Gitter 8×8×6/8×4×6 bleiben (D78); radial nach außen wie bei der Hull A hieße 8×6×8/8×6×4 mit Achse vom Kreuz weg. Auslöser: Beobachtung im Spiel oder in einem Beladungsvideo.
 - Hull C: innerer und äußerer Block eines Arms ein Gitter oder zwei. Heute zwei Racks wie bei Fleetyards, beide einzeln voll packbar (K3.2). Auslöser: ein Hauler meldet, dass ein 32er über die Blockgrenze liegt.
 - ~~Umrisse und Holos neu erzeugen (Pipeline `sc-ship-outlines`): die Salvation hat keinen (neu seit 25.10., zeigt den Bug-Keil, `NotTracedYet`), 18 Schiffe haben im Index vom 26.10. neue Rumpfmaße (K5.1). Auslöser: ein Hauler meldet die Salvation oder Racks liegen sichtbar außerhalb des Rumpfs.~~ → K5.2b
+- Kisten großer Schiffe im Default-Overlay klein: C2 13,2 px, Hull C 5,1 px pro Kistenkante (400 × 302, nach K5.2c), unter dem Hull-A-Wert 27,2 (Befund K5.2c, D62-Addendum). Auslöser: ein Hauler meldet zu kleine Kisten auf einem großen Schiff.
+- Railen: die generierte Reihe (53 Zellen) ist länger als der Rumpf (40 Zellen), ragt aus dem maßstabsgetreuen Umriss (K5.2c). Auslöser: Fleetyards-Offsets für die Railen oder eine Meldung aus dem Spiel.
