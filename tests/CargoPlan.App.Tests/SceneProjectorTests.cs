@@ -499,60 +499,34 @@ public class SceneProjectorTests
         projected.Outline.Should().Equal(((BowMarker.Outline)scene.Marker).Points.Select(p => camera.Project(p.X, p.Y, p.Z)));
     }
 
-    // Since K5.2c the outline is at least true size, mostly far larger than the racks: a compact ship fits all its racks
-    // and the bow zone up to the outline's tip, like a long one its loaded racks (D62 addendum); the hull aft may be cut.
+    // Since K5.2c the outline is at least true size, mostly far larger than the racks: with it a ship fits as with the
+    // wedge, its racks and a short bow zone, a tenth of their length (D52, D62 addendum); the hull beyond may be cut.
     [Theory]
     [InlineData(45, 35.26)]
     [InlineData(0, 0)]
     [InlineData(270, 85)]
-    public void A_compact_ship_fits_its_racks_and_the_bow_up_to_the_outline_tip(double yaw, double pitch)
+    public void A_compact_ship_with_an_outline_fits_as_with_the_wedge(double yaw, double pitch)
     {
         var camera = new IsoProjection(yaw, pitch);
-        var scene = WithOutline(Scene);
-        var tip = OutlinePlacement.Tip(((BowMarker.Outline)scene.Marker).Points);
-        var bounds = Scene.Bounds;
-        Point[] wanted =
-        [
-            .. Corners(bounds, camera),
-            camera.Project(tip.X, tip.Y, bounds.Min.Z),
-            camera.Project(tip.X, tip.Y, bounds.Max.Z),
-        ];
-        var enclosing = wanted.Aggregate(new Rect(wanted[0], wanted[0]), (r, p) => Rect.Union(r, p));
 
-        var projected = SceneProjector.Project(scene, camera);
+        var projected = SceneProjector.Project(WithOutline(Scene), camera);
 
-        projected.FitExtent.Width.Should().BeApproximately(enclosing.Width, 1e-9);
-        projected.FitExtent.Height.Should().BeApproximately(enclosing.Height, 1e-9);
-        ShouldEnclose(projected.FitExtent, wanted);
+        projected.FitExtent.Should().Be(SceneProjector.Project(Scene, camera).FitExtent);
         ShouldEnclose(projected.Extent, projected.Outline!);
     }
 
     [Theory]
     [InlineData(70, 35.26)]
     [InlineData(225, -40)]
-    public void A_long_ship_fits_its_loaded_racks_and_the_bow_up_to_the_outline_tip_but_not_the_whole_outline(double yaw, double pitch)
+    public void A_long_ship_with_an_outline_fits_its_loaded_racks_as_with_the_wedge_but_not_the_whole_outline(double yaw, double pitch)
     {
-        // Racks 1 and 3 hold cargo (D61); the bow zone runs from the racks' bow face to the outline's tip.
+        // Racks 1 and 3 hold cargo (D61).
         var camera = new IsoProjection(yaw, pitch);
-        var scene = WithOutline(CaterpillarWith("rack-0", "rack-6"));
-        var tip = OutlinePlacement.Tip(((BowMarker.Outline)scene.Marker).Points);
-        var rack = Caterpillar.Racks.ToDictionary(r => r.Number, r => r.Bounds);
-        var bounds = Caterpillar.Bounds;
-        Point[] wanted =
-        [
-            .. Corners(rack[1], camera),
-            .. Corners(rack[3], camera),
-            .. Corners(new ShipBox(new ShipPoint(bounds.Max.X, bounds.Min.Y, bounds.Min.Z), bounds.Max), camera),
-            camera.Project(tip.X, tip.Y, bounds.Min.Z),
-            camera.Project(tip.X, tip.Y, bounds.Max.Z),
-        ];
-        var enclosing = wanted.Aggregate(new Rect(wanted[0], wanted[0]), (r, p) => Rect.Union(r, p));
+        var scene = CaterpillarWith("rack-0", "rack-6");
 
-        var projected = SceneProjector.Project(scene, camera);
+        var projected = SceneProjector.Project(WithOutline(scene), camera);
 
-        projected.FitExtent.Width.Should().BeApproximately(enclosing.Width, 1e-9);
-        projected.FitExtent.Height.Should().BeApproximately(enclosing.Height, 1e-9);
-        ShouldEnclose(projected.FitExtent, wanted);
+        projected.FitExtent.Should().Be(SceneProjector.Project(scene, camera).FitExtent);
         ShouldEnclose(projected.Extent, projected.Outline!);
         projected.FitExtent.Width.Should().BeLessThan(projected.Extent.Width);
     }

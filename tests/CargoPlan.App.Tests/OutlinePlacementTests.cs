@@ -90,15 +90,4 @@ public sealed class OutlinePlacementTests
     {
         OutlinePlacement.Place(Rectangle, HullA).Should().HaveCount(4);
     }
-
-    [Fact]
-    public void The_tip_is_the_bowmost_point()
-    {
-        OutlinePoint[] arrow = [new(-10, 4), new(10, 1), new(-10, -2)];
-
-        var tip = OutlinePlacement.Tip(OutlinePlacement.Place(new ShipOutline("arrow", arrow), HullA));
-
-        tip.X.Should().BeGreaterThan(HullA.Max.X);
-        tip.Should().Be(OutlinePlacement.Place(new ShipOutline("arrow", arrow), HullA)[1]);
-    }
 }
