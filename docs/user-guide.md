@@ -404,6 +404,8 @@ The small padlock in the overlay's top-right corner locks it by hand: the overla
 cursor showing, so every click goes to the game. Click the padlock again to unlock. A closed amber padlock means
 locked, an open white one unlocked. Clicking the padlock or the overlay doesn't take the focus from the game.
 
+Locked, the overlay takes no mouse wheel either: to scroll a long legend, unlock it or show the cursor.
+
 Start with `--locked` to begin with the padlock locked.
 
 ## Settings and your look
@@ -433,8 +435,10 @@ The sections:
 - **Legend:** text colour, text size (or the Windows text size), a halo for reading over bright scenes, and the colours
   of the check boxes: **Check box** is the frame, **Check mark** the tick and the bar inside it, each with its own
   transparency.
-- **Legend layout:** where the legend stands (top or bottom; left, centre or right) and whether it shows the
-  destination lines at all. A section of its own, so resetting the legend's colours doesn't move it.
+- **Legend layout:** where the legend stands (top or bottom; left, centre or right), whether it shows the
+  destination lines at all, and their **Max. height**: with many missions the lines take at most this share of the
+  overlay (50 % by default) and scroll with the mouse wheel; missions that don't fit and red warnings stay below
+  them. A section of its own, so resetting the legend's colours doesn't move it.
 - **Crates:** **Stop colors**, the set of destination colors: Okabe-Ito (8 colors, the default), Tol Bright (6) or Tol
   Muted (7), each chosen by its author to stay apart with the common kinds of colour blindness; switching recolours the
   plan at once, every destination keeps its place in the order. Then how solid the crates and their edges are (at the lift, turn the fill down to see the real crates through

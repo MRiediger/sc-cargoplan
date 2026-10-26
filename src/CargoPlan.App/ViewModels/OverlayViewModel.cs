@@ -761,6 +761,13 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         set => SetProperty(ref field, value);
     } = LegendPosition.Default;
 
+    /// <summary>The stop lines' share of the overlay's height before they scroll (K7); bound like <see cref="IsLegendVisible"/>.</summary>
+    public double LegendMaxHeightShare
+    {
+        get;
+        set => SetProperty(ref field, value);
+    } = AppearanceRules.DefaultLegendMaxHeightShare;
+
     /// <summary>
     /// The stop colours (K4.2), from the settings; bound by the ship view and the legend's swatches and notice. Not part of
     /// <see cref="Scene"/>: a new scene empties the selection (D25), a new palette only repaints.

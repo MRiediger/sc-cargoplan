@@ -128,7 +128,12 @@ public sealed record ShipCamera(double Yaw, double Pitch, double? PxPerCell = nu
 /// </summary>
 /// <param name="Visible">false hides the stop lines only; warnings and notices stay where the legend is.</param>
 /// <param name="Position">One of <see cref="LegendPosition.Names"/>; checked by <see cref="AppearanceRules"/>.</param>
-public sealed record LegendSettings(bool Visible = true, string Position = "bottom-left")
+/// <param name="MaxHeightShare">
+/// The stop lines take at most this share of the overlay's height and scroll beyond it (K7, D80);
+/// <see cref="AppearanceRules.MinLegendMaxHeightShare"/> to <see cref="AppearanceRules.MaxLegendMaxHeightShare"/>, missing (before K7)
+/// = <see cref="AppearanceRules.DefaultLegendMaxHeightShare"/>. Warnings below the lines don't count and never scroll.
+/// </param>
+public sealed record LegendSettings(bool Visible = true, string Position = "bottom-left", double MaxHeightShare = AppearanceRules.DefaultLegendMaxHeightShare)
 {
     public static LegendSettings Default { get; } = new();
 }

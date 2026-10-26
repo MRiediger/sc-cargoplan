@@ -67,6 +67,19 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void The_legend_height_share_goes_to_the_view_model_at_start_and_on_change()
+    {
+        // K7: bound by the legend's scroll area, like the legend's other layout values.
+        _viewModel.LegendMaxHeightShare.Should().Be(0.5);
+        var session = Create(AppSettings.Default with { Legend = new LegendSettings(MaxHeightShare: 0.7) });
+        _viewModel.LegendMaxHeightShare.Should().Be(0.7);
+
+        session.ChangeLook(AppearanceSettings.Default, new LegendSettings(MaxHeightShare: 0.25));
+
+        _viewModel.LegendMaxHeightShare.Should().Be(0.25);
+    }
+
+    [Fact]
     public void The_stop_palette_goes_to_the_view_model_at_start_and_on_change()
     {
         // K4.2: not a theme resource but a view model property, so the scene and with it the selection stay (D25).
