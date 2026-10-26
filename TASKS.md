@@ -1933,7 +1933,7 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Gate (Martin, 26.10.): `fetch.ps1` nativ ohne Ausnahme, Seitengrößen 100 / 100 / 48 / 0, Schlusszeile; Stichprobe im Index: Clipper `limits.max` 2, Hull C `limits.min`/`max` 32 / 32
 - Commits Pipeline `1af1c83`, `6be0795`, `ef83dda`, `52a5d3f`; Doku-Commit hier.
 
-### [ ] K5.2 Import: `offset`/`rotation` → `origin`/`stackAxis`, voller Abgleich (D78) (26.10.2026)
+### [x] K5.2 Import: `offset`/`rotation` → `origin`/`stackAxis`, voller Abgleich (D78) (26.10.2026)
 **Warum:** Fleetyards gibt für 9 Schiffe Lage und Drehung der Laderäume; der Import nutzte sie nur halb, die Hull C stand als Reihe von 16 Racks statt als Kreuze um die Spindel, und Fortune, Moth und Salvation aus dem Index vom 25.10. fehlten.
 
 **Ist-Zustand vor K5.2 (A1):** `import-fleetyards.ps1` las `offset` seit K3.2 nur bei `-Create` (Min-Ecke, `origin = (Fy.y, −(Fy.x + Breite), Fy.z)`), ohne `rotation`; die Hull C überlappte so und bekam eine generierte Reihe. Der Abgleich verglich keine Lage, `-Force` verweigerte geänderte Rack-Sätze. Die Hull A war schematisch (1 Zelle zwischen den Platten, D14). Core plant ohne `Origin`/`StackAxis` (Planning-Namespace per Grep).
@@ -1968,7 +1968,7 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Gleichheitslauf: Abweichungen nur auf Fortune, Moth, Salvation, jede benannt
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Slow grün; Exhaustive nicht nötig (Core-Code unberührt)
 - [x] Gate L (Martin, 26.10.): Starlancer MAX über dem Holo stimmt, Belly-Racks vorn, Bucht hinten
-- [ ] Gate (Martin, Publish-Build): Hull C zeigt zwei Kreuze mit je acht Armen über dem Holo; Hull A gleiche Seiten/Ebenen mit breiterem Spalt; Fortune und Moth planen mit den neuen Gittern; Salvation wählbar
+- [x] Gate (Martin, Publish-Build, 26.10., bestanden): Hull C zeigt zwei Kreuze mit je acht Armen über dem Holo; Hull A gleiche Seiten/Ebenen mit breiterem Spalt; Fortune und Moth planen mit den neuen Gittern; Salvation wählbar
 - Commits 48107db (D1), db183d3 (Tests rot), 215d3d9 (Import), a5f3e4f (D2), c704561 (Grenz-Hinweise), a05691d (D3), Doku-Commit.
 
 ### [ ] K5.2b Holos und Umrisse aus dem Index vom 26.10. (D63-, D55-Addendum) (26.10.2026)
@@ -1998,7 +1998,7 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [ ] Upload (Martin): `upload-holo-v1.ps1` (Holos, dann Manifest); danach Hull A, Avenger Titan, C8, Salvation im Holo-Modus in richtiger Größe zu den Racks
 - Commits Pipeline 1af1c83..b3da084, hier Daten-/Doku-Commit.
 
-### [ ] K5.2c Umriss mindestens maßstabsgetreu, Ausschnitt wie mit Keil (D62-Addendum) (26.10.2026)
+### [x] K5.2c Umriss mindestens maßstabsgetreu, Ausschnitt wie mit Keil (D62-Addendum) (26.10.2026)
 **Warum:** Martin beim Gate (Aurora, Salvation): „outline passt nicht“. Nach D62 schrumpft der Umriss auf ~1,2 × Rack-Größe; bei 93 von 97 Schiffen ist der Rumpf kleiner als echt (Redeemer 6 %).
 
 **Ist-Zustand vor K5.2c (A1):** `OutlinePlacement.Place` Faktor = 1,2 × max(Racks / Umriss) je Achse; `SceneProjector.FitExtent` kompakt mit Umriss = Racks + ganzer Umriss, lang = geladene Racks + Bugzone bis zur Umrissspitze (`OutlinePlacement.Tip`).
@@ -2024,10 +2024,10 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 - [x] Umriss nie kleiner als das Schiff; D62-Rand nur, wo die Racks den Rumpf füllen
 - [x] Mit Umriss passt die Ansicht wie mit Keil; kein Hauler-Schiff kleiner als vorher
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün
-- [ ] Gate (Martin, Publish-Build, Look): Aurora, Salvation, Redeemer, Cutlass Black, Hull A, C2 mit Umriss; Rumpf in echter Größe, Racks lesbar, Bug erkennbar
+- [x] Gate (Martin, Publish-Build, Look, 26.10., abgenommen): Aurora, Salvation, Redeemer, Cutlass Black, Hull A, C2 mit Umriss; Rumpf in echter Größe, Racks lesbar, Bug erkennbar
 - Commits bcb45fb (Tests rot), 1e157d9 (App), Doku-Commit.
 
-### [ ] K5.2d Herauszoomen bis zum ganzen Umriss (D76-Addendum) (26.10.2026)
+### [x] K5.2d Herauszoomen bis zum ganzen Umriss (D76-Addendum) (26.10.2026)
 **Warum:** Martin nach K5.2c (Constellation Mk IV Phoenix): immer so weit herauszoomen können, dass der ganze Umriss zu sehen ist, wie bei der Hull C.
 
 **Ist-Zustand vor K5.2d (A1):** `ZoomLimits.Lower(fit) = fit.Scale × 0,5` (D76); seit K5.2c zeigt der Fit nur Racks + kurze Bugzone, der maßstabsgetreue Umriss reicht weit darüber hinaus.
@@ -2039,10 +2039,10 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 **Akzeptanz:**
 - [x] Herauszoomen endet beim halben Fit oder, wo die Szene größer ist, dort, wo sie ganz passt
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.331: +2, der Wegwerf-Test aus K5.2c ist gelöscht)
-- [ ] Gate (Martin): Phoenix, Redeemer, Aurora mit Umriss ganz herausgezoomt → ganzer Rumpf im Fenster (ggf. nach Verschieben); Hull A, Hull C wie bisher
+- [x] Gate (Martin, 26.10., bestanden): Phoenix, Redeemer, Aurora mit Umriss ganz herausgezoomt → ganzer Rumpf im Fenster (ggf. nach Verschieben); Hull A, Hull C wie bisher
 - Commits 46a7088 (Tests rot), 5e1e582 (App), Doku-Commit.
 
-### [ ] K5.4 App-Icon (D48-Addendum) (26.10.2026)
+### [x] K5.4 App-Icon (D48-Addendum) (26.10.2026)
 **Warum:** Seit T6.2 im Backlog (D48): Exe, Taskleiste und Werkzeugfenster zeigten das Windows-Standardsymbol.
 
 **Ist-Zustand vor K5.4 (A1):** kein `.ico`, kein `<ApplicationIcon>`, kein `Window.Icon` im App-Projekt; `docs/images/` leer.
@@ -2054,7 +2054,7 @@ bleiben (Schiff 5, Plan 6, Mission 3, settings 2, Look 1).
 **Akzeptanz:**
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (Core 1.401, Import 141, App 1.328, unverändert)
 - [x] Icon aus der gebauten `CargoPlan.App.exe` zurückgelesen (`Icon.ExtractAssociatedIcon`): das Logo
-- [ ] Gate (Martin, Publish-Build): Icon in Explorer, Taskleiste, Alt+Tab und den Titelleisten von Editor und Settings; ZIP entpackt → Exe zeigt es
+- [x] Gate (Martin, Publish-Build, 26.10., bestanden): Icon in Explorer, Taskleiste, Alt+Tab und den Titelleisten von Editor und Settings; ZIP entpackt → Exe zeigt es
 
 ---
 
