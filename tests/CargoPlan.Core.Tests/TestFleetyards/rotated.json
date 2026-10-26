@@ -1,0 +1,25 @@
+[
+  {
+    "slug": "tstm-cross-ship",
+    "name": "Cross Ship",
+    "manufacturer": "TSTM",
+    "cargo": 8.0,
+    "cargoHolds": [
+      {
+        "capacity": 4,
+        "dimensions": { "x": 2.5, "y": 2.5, "z": 1.25 },
+        "limits": { "min": { "capacity": 1 }, "max": { "capacity": 4 } },
+        "name": "hardpoint_cargo_arm_level",
+        "offset": { "x": 3.75, "y": 0.0, "z": 0.0 }
+      },
+      {
+        "capacity": 4,
+        "dimensions": { "x": 2.5, "y": 2.5, "z": 1.25 },
+        "limits": { "min": { "capacity": 1 }, "max": { "capacity": 4 } },
+        "name": "hardpoint_cargo_arm_upright",
+        "offset": { "x": 2.5, "y": 0.0, "z": 0.0 },
+        "rotation": 90
+      }
+    ]
+  }
+]

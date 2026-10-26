@@ -1,0 +1,18 @@
+[
+  {
+    "slug": "tstm-slanted",
+    "name": "Slanted",
+    "manufacturer": "TSTM",
+    "cargo": 4.0,
+    "cargoHolds": [
+      {
+        "capacity": 4,
+        "dimensions": { "x": 2.5, "y": 2.5, "z": 1.25 },
+        "limits": { "min": { "capacity": 1 }, "max": { "capacity": 4 } },
+        "name": "hardpoint_cargo_slanted",
+        "offset": { "x": 0.0, "y": 0.0, "z": 0.0 },
+        "rotation": 45
+      }
+    ]
+  }
+]

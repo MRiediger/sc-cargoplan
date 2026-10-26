@@ -130,6 +130,24 @@ public class ShipLoaderTests
             .Should().Equal("csv_sm", "hull_c", "mpuv_tractor");
     }
 
+    // Fleetyards lays the Hull C's sixteen holds as two crosses along the spindle, each arm an inner block of 384 SCU and an
+    // outer one of 192; the upright arms are turned 90° about the spindle (K5.2, D78). Centres doubled to stay whole.
+    [Fact]
+    public void Hull_c_racks_form_two_crosses()
+    {
+        var crosses = ShipLoader.Load("hull_c").Racks.GroupBy(r => r.Bounds.Min.X).OrderBy(g => g.Key).ToList();
+
+        crosses.Should().HaveCount(2);
+        foreach (var cross in crosses)
+        {
+            var (y, z) = (cross.Min(r => r.Bounds.Min.Y) + cross.Max(r => r.Bounds.Max.Y), cross.Min(r => r.Bounds.Min.Z) + cross.Max(r => r.Bounds.Max.Z));
+            cross.Should().HaveCount(8);
+            cross.Count(r => r.CapacityScu == 384).Should().Be(4);
+            cross.Count(r => r.Bounds.Min.Y + r.Bounds.Max.Y == y).Should().Be(4, "two arms point up, two down");
+            cross.Count(r => r.Bounds.Min.Z + r.Bounds.Max.Z == z).Should().Be(4, "two arms point to port, two to starboard");
+        }
+    }
+
     [Theory]
     [MemberData(nameof(ShippedShipIds))]
     public void A_shipped_minimum_is_one_the_rack_takes(string shipId)
