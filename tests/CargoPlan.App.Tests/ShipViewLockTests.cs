@@ -1,4 +1,5 @@
 using System.Runtime.ExceptionServices;
+using System.Windows;
 using System.Windows.Input;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Planning;
@@ -66,7 +67,8 @@ public class ShipViewLockTests
             var view = SelectedView();
             var moves = 0;
             view.MoveLegendCommand = new CommunityToolkit.Mvvm.Input.RelayCommand<Gesture.MoveLegend>(_ => moves++);
-            view.StartLegendDrag(view.Scene!.Legend[0].Crates, new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Right));
+            var press = new MouseButtonEventArgs(Mouse.PrimaryDevice, 0, MouseButton.Right) { RoutedEvent = UIElement.MouseRightButtonDownEvent };
+            view.StartLegendDrag(view.Scene!.Legend[0].Crates, press);
             view.IsDragging.Should().BeTrue();
 
             view.IsNavigationEnabled = false;
