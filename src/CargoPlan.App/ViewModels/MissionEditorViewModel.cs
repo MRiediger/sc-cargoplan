@@ -97,7 +97,12 @@ public sealed partial class MissionEditorViewModel : ObservableObject
             : Sort with { Descending = true };
 
     // Generated hook: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/observableproperty#running-code-upon-changes
-    partial void OnSortChanged(EditorSort? value) => RowsView.CustomSort = value is null ? null : new MissionRowOrder(Rows, value);
+    partial void OnSortChanged(EditorSort? value)
+    {
+        RowsView.CustomSort = value is null ? null : new MissionRowOrder(Rows, value);
+        OnPropertyChanged(nameof(Problem));
+        OnPropertyChanged(nameof(PlanToolTip));
+    }
 
     public static IReadOnlyList<FillOrderChoice> FillOrders { get; } =
     [
@@ -147,7 +152,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     public string Title => IsDirty ? UnplannedTitleText : TitleText;
 
     /// <summary>The status line: the last action's problem, else the first invalid row; null = ready to plan.</summary>
-    public string? Problem => _actionProblem ?? _result.Problem;
+    public string? Problem => _actionProblem ?? RowsProblem;
 
     /// <summary>Every filled row is valid, so the rows make a route that can be planned and exported.</summary>
     public bool CanExport => _result.IsValid;
@@ -156,7 +161,21 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     /// The Plan button's tool tip: while the rows block it, why, like the overlay's split and merge buttons (D27); a
     /// disabled button is hard to tell from an enabled one in the dark theme.
     /// </summary>
-    public string PlanToolTip => _result.Problem ?? PlanText;
+    public string PlanToolTip => RowsProblem ?? PlanText;
+
+    /// <summary>
+    /// <see cref="MissionRowsResult.Problem"/> with "Row n" counted as the grid shows the rows (T7.5a2): sorted, the first
+    /// invalid row is the first one shown. <c>OfType</c>, since the grid adds its new-row placeholder to the view.
+    /// </summary>
+    private string? RowsProblem
+    {
+        get
+        {
+            List<MissionRow> shown = [.. RowsView.OfType<MissionRow>()];
+            var invalid = shown.FindIndex(r => r.Error is not null);
+            return invalid < 0 ? _result.Problem : MissionRows.RowProblem(invalid, shown[invalid].Error!);
+        }
+    }
 
     public bool HasPlan => _overlay.HasPlan;
 

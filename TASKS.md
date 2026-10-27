@@ -1262,6 +1262,27 @@ Header-Tooltip-Texte zitiert das Wiki in der Zielfassung von T7.5a2.
 - Verifikation: jeder Zieltext, den das Wiki zitiert, per Grep gegen `src/` wörtlich gleich; weicht ein String vom Plan
   ab, wird die Wiki-Stelle im selben Commit nachgezogen
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** `ThemeSampleWindow.xaml` (nur Debug) ebenfalls „color“;
+Bug 7 mit Regressionstest ohne Sortierung und einem mit getippter Zeile hinter den CT-Zeilen (Sortierung nach Mission);
+der Reset-Knopf in Ship view bekommt den Tooltip „Reset the view settings to defaults. Download ship holograms stays as it
+is.“ (fängt das Gegenargument des D63-Addendums in der UI auf); roter Commit und Fix werden gemeinsam gepusht.
+
+**Befund:**
+- Rot vor dem Fix: 14 von 1.435 App-Tests (Re-plan-Tooltip und -Frage, Editor-Tooltip per `x:Static`, „Re-plan for“ und
+  „re-planned for“, „color“ im Settings-Fenster, im Theme-Muster und in den Farb-Notices, Header-Tooltip, Ship-view-Reset
+  samt Tooltip, „Row n“ sortiert nach Ziel und nach Mission). Grün schon vorher: „Row n“ ohne Sortierung.
+- **Bug 7 bestätigt und behoben:** „Row n“ und die erste ungültige Zeile folgen der Grid-Reihenfolge (`RowsView`, ohne den
+  Platzhalter der neuen Zeile); `MissionRows.RowProblem` formatiert für beide Wege, ein Sortierwechsel meldet `Problem`
+  und `PlanToolTip` neu.
+- **Bug 8 nicht bestätigt, gestrichen:** Core-Test `Replan_lays_the_rest_of_a_partly_loaded_mission_around_the_loaded_cargo_without_giving_up`
+  (Rest 16 + 8 einer teilweise geladenen Mission, Schiff voll) war schon vor dem Fix grün, `PlanKeeping` wirft dort nicht.
+  Der `PlanException`-Zweig behält einen Plan, der schon alles an Bord hält; „Re-plan found no better layout“ stimmt dann.
+- Neu `VisibleTextXamlTests` (vier Fenster: kein „colour“, kein „replan“ in sichtbaren Texten). Im C#-Code bleibt
+  „colour“ nur in Bezeichnern und Kommentaren.
+- Doku: `settings-format.md` (Glyphenliste :94, Ship-view-Reset), `plan-format.md` („re-planned for“), D63-Addendum;
+  Wiki `Preferences` (Reset-Tooltip). Alle Zieltexte, die das Wiki zitiert, wörtlich in `src/`.
+- Tests: Core 1.466 → 1.467, Import 141, App 1.424 → 1.435; 0 Warnungen.
+
 #### [ ] T7.5b Aufnahmen nach Shotlist (Martin)
 - `docs/shots/SHOTLIST.md`, zuerst alle must-Shots
 
@@ -1270,8 +1291,8 @@ Header-Tooltip-Texte zitiert das Wiki in der Zielfassung von T7.5a2.
   Platzhalter- und SHOT-Zeile entfernen, Text bleibt
 - `docs/user-guide.md` löschen; Bruchstelle `docs/settings-format.md:70` (Link auf `user-guide.md#hotkeys`) aufs Wiki
   umstellen
-- Doku-Abweichungen aus T7.5a: `settings-format.md` („Example with every default“ mit Werten statt `null`,
-  Glyphenliste :94), `bug.yml` (DB-Kopie auf den Desktop statt in den Programmordner), `ship-format.md:7-8` und :63
+- Doku-Abweichungen aus T7.5a: `settings-format.md` („Example with every default“ mit Werten statt `null`; die
+  Glyphenliste :94 erledigt T7.5a2), `bug.yml` (DB-Kopie auf den Desktop statt in den Programmordner), `ship-format.md:7-8` und :63
 - Ship-Template: Korrektur-Template bzw. Umbenennung „Ship correction“, vor dem Tag; Wiki-Link auf `template=` nachziehen
 - **Reihenfolge:** erst Hauptrepo mergen (`--no-ff`) und pushen, damit `hero.gif` auf `main` liegt; dann Wiki pushen;
   dann Wiki-Editing auf Collaborators beschränken (Repo-Settings)

@@ -147,7 +147,7 @@ overlay's ship, as a ship change in the overlay header does (D59). Missions, Con
 order and the ticks stay; crate positions, manual moves and `loaded` don't. Each ticked delivery (a legend line) stays ticked
 and goes `offShip`: it takes no room on the new ship, so only the cargo still on board is planned. If the missions don't fit as a
 whole plan, they go in mission by mission and the rest waits as "doesn't fit" in the legend. An amber line says
-"Plan was made for CRUS C2 Hercules, replanned for MISC Hull A.", and the next save writes the plan for the new ship.
+"Plan was made for CRUS C2 Hercules, re-planned for MISC Hull A.", and the next save writes the plan for the new ship.
 Its crates are not checked against the old ship's racks; the crates against their missions still are.
 
 Without a `ship` in [settings.json](settings-format.md), the overlay takes the plan's ship instead, if it loads.
@@ -159,7 +159,7 @@ A schema 1 file for another ship is an error (below): laying out its cargo needs
 A crate that lies outside its rack in today's ship file means the racks changed since the file was written: a newer
 app version with updated ship data (for example, the racks of 21 ships went back to Fleetyards' orientation, D71).
 Such a file loads like a plan for another ship: its missions are planned anew, ticks stay (`offShip`), positions
-and moves don't, and the amber line says "Plan was made for other racks, replanned for MISC Freelancer.". This holds
+and moves don't, and the amber line says "Plan was made for other racks, re-planned for MISC Freelancer.". This holds
 for every schema version.
 
 ## Errors

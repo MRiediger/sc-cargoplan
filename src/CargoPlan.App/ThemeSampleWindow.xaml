@@ -73,7 +73,7 @@
                     </StackPanel>
                 </GroupBox>
 
-                <GroupBox Header="Sliders and colour" Margin="0,0,0,8" Padding="6">
+                <GroupBox Header="Sliders and color" Margin="0,0,0,8" Padding="6">
                     <StackPanel>
                         <DockPanel Margin="0,3">
                             <TextBlock Text="Border width" Width="110" VerticalAlignment="Center" />
@@ -86,9 +86,9 @@
                         </DockPanel>
                         <!-- The picker as in the settings window: swatch toggles a popup with pad and hue slider. -->
                         <DockPanel Margin="0,3" DataContext="{Binding Colour, RelativeSource={RelativeSource AncestorType=Window}}">
-                            <TextBlock Text="Colour" Width="110" VerticalAlignment="Center" />
+                            <TextBlock Text="Color" Width="110" VerticalAlignment="Center" />
                             <Grid DockPanel.Dock="Right" Margin="6,0,0,0">
-                                <ToggleButton x:Name="SwatchButton" Width="32" Height="22" Padding="1" ToolTip="Pick a colour"
+                                <ToggleButton x:Name="SwatchButton" Width="32" Height="22" Padding="1" ToolTip="Pick a color"
                                               HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                                     <Border Background="{StaticResource SwatchCheckerBrush}">
                                         <Rectangle Fill="{Binding Value}" />

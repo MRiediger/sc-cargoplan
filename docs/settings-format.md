@@ -91,7 +91,7 @@ The overlay's background `#A0141414` is a dark grey at 63 %. The crates' colours
 | `window.background` | Background of the overlay | `#A0141414` | alpha at least `01` |
 | `window.borderColor` | Frame around the overlay | `#FFE6E6E6` | |
 | `window.borderThickness` | Width of that frame in pixels, `0` = none | `0` | 0–10 |
-| `header.foreground` | Ship name and the glyphs (pencil, gear, split, merge, exit, padlock) | `#FFE6E6E6` | |
+| `header.foreground` | Ship name and the glyphs (split, merge, re-plan, pencil, undo, redo, reset view, gear, exit, padlock) | `#FFE6E6E6` | |
 | `header.halo` | Halo around ship name and "All stops delivered." | off | |
 | `legend.foreground` | Stop lines; also the outline of "Open editor" | `#FFE6E6E6` | |
 | `legend.fontSize` | Font size of the legend, warnings and notices | `null` | 8–32 |
@@ -188,7 +188,7 @@ scroll out of sight. While the overlay is locked it takes no mouse, so unlock it
 
 `shipOutline` sets what lies behind the racks in the ship view; `holoOpacity`, `holoHullColor`, `holoEdgeColor` and
 `downloadShipHolograms` go with it. All of them sit at the top level, so the crates' **Reset to defaults** never switches them; the settings window's
-**Ship view** section has a reset of its own.
+**Ship view** section has a reset of its own, which leaves `downloadShipHolograms` as it is.
 
 | `shipOutline` | What |
 |---|---|
