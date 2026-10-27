@@ -1244,6 +1244,11 @@ Header-Tooltip-Texte zitiert das Wiki in der Zielfassung von T7.5a2.
   Troubleshooting, FAQ; Medien als `![…](media/<datei>)` + `<!-- SHOT: <Id> -->`, Hero per Raw-URL aus `docs/images/`
 - `docs/shots/SHOTLIST.md` (31 Medien: 14 GIF, 17 PNG; 14 must) und `docs/shots/testplan.json` (Hull A, drei Missionen
   aus Lorville, Rack 4 frei; per `CargoPlan.Cli plan` geprüft)
+- Medien-Test (27.10., Testseite gepusht und wieder entfernt durch Martin): `![…](media/test.png)` rendert, GitHub leitet
+  `/wiki/media/…` per 302 auf `raw.githubusercontent.com/wiki/MRiediger/sc-cargoplan/media/…` (200 `image/png`); die
+  Raw-URL des Hauptrepos (`…/main/docs/images/…`) liefert 200, Seitenlink `[Home](Home)` geht. `curl` ohne
+  Browser-User-Agent bekommt statt der Seite eine Umleitung auf Home: Prüfungen mit `-A`.
+- Wiki lokal committet (`37be77f`), nicht gepusht; Hauptrepo `066cd89` (Branch von Martin gepusht, `main` unverändert)
 
 #### [ ] T7.5a2 Text-Fixes vor den Aufnahmen (Claude Code, eigener Plan)
 **Warum:** Sichtbare Texte, die sonst in den Aufnahmen von T7.5b einfrieren. Gleicher Branch, eigener Commit.
