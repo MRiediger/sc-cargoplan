@@ -34,7 +34,7 @@ public class ShipChangeTests
         viewModel.Plan!.ShipId.Should().Be("hull_a");
         viewModel.Missions.Should().BeEquivalentTo(onC2.Missions, o => o.WithStrictOrdering());
         viewModel.Scene.Ship.Should().BeSameAs(HullA);
-        viewModel.Notices.Should().Contain("Plan was made for CRUS C2 Hercules, replanned for MISC Hull A.");
+        viewModel.Notices.Should().Contain("Plan was made for CRUS C2 Hercules, re-planned for MISC Hull A.");
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public class ShipChangeTests
         viewModel.ShowPlan(unknown);
 
         viewModel.Plan!.ShipId.Should().Be("hull_a");
-        viewModel.Notices.Should().Contain("Plan was made for spike_gone, replanned for MISC Hull A.");
+        viewModel.Notices.Should().Contain("Plan was made for spike_gone, re-planned for MISC Hull A.");
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public class ShipChangeTests
         viewModel.ShowPlan(TestPlans.SplitAndShared());
 
         viewModel.ShipChangeQuestion(C2).Should().Be(
-            "Replan for CRUS C2 Hercules? Crate positions change and manual moves are lost; split crates keep their sizes.");
+            "Re-plan for CRUS C2 Hercules? Crate positions change and manual moves are lost; split crates keep their sizes.");
     }
 
     [Fact]
