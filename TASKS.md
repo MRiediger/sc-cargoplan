@@ -1230,7 +1230,7 @@ Branch `docs/release-v0.1.0`.
   Planungsdauer entfällt (geschlossen in B4, D66); Credit Erec entfällt (Abgleich mit dem Guide fiel weg, D53-Addendum
   T7.1b); Ship-Template „Ship correction“ → T7.5c. Präzisierung in der Planphase, ratifiziert durch Freigabe.
 
-#### [ ] T7.5a README und Wiki-Texte (Claude Code)
+#### [x] T7.5a README und Wiki-Texte (Claude Code) (27.10.2026, abgenommen 28.10.)
 **Präzisierung in der Planphase, ratifiziert durch Freigabe:** Wiki-Seiten Englisch nach dem Seitenplan (12 Seiten +
 `_Sidebar`, `_Footer`); Shotlist und Testplan bleiben dauerhaft im Hauptrepo unter `docs/shots/` (Nachdrehen bei jedem
 Release), nicht im Wiki; Shotlist mit Prio must/nice; FAQ mit der Frage zu Spiel und EAC, nur was die App technisch tut;
@@ -1250,7 +1250,7 @@ Header-Tooltip-Texte zitiert das Wiki in der Zielfassung von T7.5a2.
   Browser-User-Agent bekommt statt der Seite eine Umleitung auf Home: Prüfungen mit `-A`.
 - Wiki lokal committet (`37be77f`), nicht gepusht; Hauptrepo `066cd89` (Branch von Martin gepusht, `main` unverändert)
 
-#### [ ] T7.5a2 Text-Fixes vor den Aufnahmen (Claude Code, eigener Plan)
+#### [x] T7.5a2 Text-Fixes vor den Aufnahmen (Claude Code, eigener Plan) (27.10.2026, abgenommen 28.10.)
 **Warum:** Sichtbare Texte, die sonst in den Aufnahmen von T7.5b einfrieren. Gleicher Branch, eigener Commit.
 - Re-plan-Texte (Header- und Editor-Tooltip aus einer Quelle, Dialog, Schiffswechsel) nennen, dass geladene Fracht
   liegen bleibt; durchgehend „Re-plan“ statt „Replan“/„replanned“
@@ -1288,7 +1288,7 @@ is.“ (fängt das Gegenargument des D63-Addendums in der UI auf); roter Commit 
 - Ergebnis: alle 31 Shots plus `delete-mission.gif` (D12, nice); `prefs-color-picker` und `shipview-hologram` als GIF statt
   PNG; `legend-states.png` = `legend-ct-markings.png` mit Absicht (zeigt beide Zustände und eine `?`-Markierung).
 
-#### [ ] T7.5c Platzhalter ersetzen, Wiki pushen (Claude Code)
+#### [x] T7.5c Platzhalter ersetzen, Wiki pushen (Claude Code) (28.10.2026, abgenommen 28.10.; Push und Wiki-Sperre nach dem Merge)
 - Medien ins Wiki-Repo `media/`, `hero.gif` nach `docs/images/`; Größen (≤ 3 MB) und Links prüfen; fehlende nice-Shots:
   Platzhalter- und SHOT-Zeile entfernen, Text bleibt
 - `docs/user-guide.md` löschen; Bruchstelle `docs/settings-format.md:70` (Link auf `user-guide.md#hotkeys`) aufs Wiki
