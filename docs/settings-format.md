@@ -17,8 +17,8 @@ values.
   "schemaVersion": 2,
   "ship": null,
   "recentShips": null,
-  "overlay": { "left": 100, "top": 200, "width": 420, "height": 460 },
-  "hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": null, "replan": null, "discardPlan": null, "undo": null, "redo": null, "resetView": null },
+  "overlay": null,
+  "hotkeys": null,
   "legend": { "visible": true, "position": "bottom-left", "maxHeightShare": 0.5 },
   "shipOutline": "outline",
   "downloadShipHolograms": true,
@@ -67,7 +67,7 @@ values.
 }
 ```
 
-`overlay` and `hotkeys` are described in the [user guide](user-guide.md#hotkeys); `syncContractTracker` takes
+`overlay` and `hotkeys` are described in the wiki ([Overlay basics](https://github.com/MRiediger/sc-cargoplan/wiki/Overlay-basics#hotkeys)); `syncContractTracker` takes
 new ContractTracker captures into the plan like the editor's button, `replan` lays out the cargo on board anew like the
 editor's Re-plan, `discardPlan` empties the plan like the editor's Discard plan, `undo` and `redo` go back and forward like the header's
 ↶ and ↷, `resetView` fits the ship view like the header's reset next to the gear. In `hotkeys`, `null` and a

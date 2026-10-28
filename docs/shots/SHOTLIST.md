@@ -12,6 +12,18 @@ goes into the wiki repo's `media/` folder.
 - Tool: [ScreenToGif](https://www.screentogif.com/).
 - Look preset **Default** for every shot, except `prefs-presets.gif`.
 - GIF: at most 10 s, 15 fps, at most 3 MB per file. Record the overlay's area, not the whole screen.
+- **Exception, shots with the game behind the overlay** (E1, E2): the moving background defeats ScreenToGif's
+  "detect unchanged pixels", so they are shrunk with ffmpeg from the ScreenToGif export (source 2176 × 1241, 22 s).
+  Keep the stop colors: a palette over the whole frame or `stats_mode=diff` with 128 colors; 64 or 96 colors lose
+  green and blue.
+  - `quickstart-capture-sync.gif` (wiki, 10.1 MB, allowed up to about 10 MB): 10 s from 7.5 s, crop to the contract's
+    objectives and the overlay, 720 px, 8 fps, 128 colors, no dither:
+    `ffmpeg -ss 7.5 -t 10 -i <export>.gif -vf "crop=1360:1000:816:60,fps=8,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" quickstart-capture-sync.gif`
+  - `docs/images/hero.gif` (main repo, 6.2 MB; it stays in the git history, so as small as the colors allow): the same
+    clip cut to 8 s and 6 fps:
+    `ffmpeg -ss 1 -t 8 -i quickstart-capture-sync.gif -vf "fps=6,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" hero.gif`
+  - Overlay GIFs over 3 MB (`shipview-orbit-zoom.gif`, `shipview-hologram.gif`): `fps=8` (hologram 800 px wide and
+    `fps=7`), then the same palette and `paletteuse` as above.
 - Still states as PNG.
 - File names `<page>-<action>.<ext>`, lower case, hyphens.
 - No player or org names in the picture. The overlay sits outside ContractTracker's capture region.
@@ -41,7 +53,7 @@ Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays 
 
 | Id | Prio | File | Type | Page | What happens (start → end) | Max. | State |
 |---|---|---|---|---|---|---|---|
-| D1 | nice | `install-smartscreen.png` | PNG | Installation-and-first-start | SmartScreen dialog after **More info**, **Run anyway** visible | – | Exists: `docs/screenshots/first-start/smartscreen.png`, copy it |
+| D1 | nice | `install-smartscreen.png` | PNG | Installation-and-first-start | SmartScreen dialog after **More info**, **Run anyway** visible | – | Windows' own dialog; re-record only when it changes |
 | D2 | nice | `install-empty-overlay.png` | PNG | Installation-and-first-start | Overlay without a plan: empty Hull A, "No plan. Open the editor …", **Open editor** | – | No plan (Discard plan) |
 | D3 | must | `ct-settings-found.png` | PNG | ContractTracker-integration | Settings, section ContractTracker: path, "Found at ContractTracker's own place.", Auto-sync ticked | – | ContractTracker installed |
 | D4 | must | `ct-not-found.png` | PNG | ContractTracker-integration | Same section: "ContractTracker not found – set path or install" and the Nexus link | – | **Browse…** to a copy of `contracts.db`, delete the copy, reopen the settings; **Detect automatically** after |
@@ -49,9 +61,10 @@ Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays 
 | D6 | nice | `editor-import-plan.gif` | GIF | Plan-and-editor | **Import…** → pick `testplan.json` → rows appear → **Plan** → overlay shows three racks | 10 s | Empty rows (**Clear rows**) |
 | D7 | must | `prefs-window.png` | PNG | Preferences | Settings window from the top: Preset, Export…, Import…, first sections; footer with the version in a second shot or scrolled | – | Preset Default |
 | D8 | must | `prefs-presets.gif` | GIF | Preferences | Preset Default → High contrast → Minimal → Default, overlay visible next to the window | 8 s | Test plan |
-| D9 | nice | `prefs-color-picker.png` | PNG | Preferences | Color picker open on **Text color** of the Legend section | – | Test plan |
+| D9 | nice | `prefs-color-picker.gif` | GIF | Preferences | Color picker opens on **Text color** of the Legend section | – | Test plan |
 | D10 | nice | `prefs-hotkeys.png` | PNG | Preferences | Hotkeys section, one hotkey set (e.g. Lock / unlock `Ctrl+Alt+K`), the rest **Not set** | – | Clear the hotkey afterwards if you don't use it |
 | D11 | nice | `ct-autosync-off.png` | PNG | ContractTracker-integration | Overlay with the amber line "1 new contract in ContractTracker – take it in with …" | – | *CT live*, Auto-sync off, one capture |
+| D12 | nice | `delete-mission.gif` | GIF | Plan-and-editor | Select a row → **Delete mission** → the mission leaves the plan and the overlay at once | 10 s | Test plan |
 
 ## Hangar (in the game, ship on the pad)
 
@@ -68,7 +81,7 @@ Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays 
 | H9 | nice | `shipview-make-room.gif` | GIF | Ship-view | Drop a 4 SCU Agricium crate into rack 1 (15 of 16 SCU), other crates move out, amber line "Moved … to make room" | 8 s | Test plan |
 | H10 | nice | `shipview-split-merge.gif` | GIF | Ship-view | Select a 4 SCU Agricium crate → Split → 2+2 → select both → Merge → 4 | 10 s | Test plan |
 | H11 | nice | `shipview-outline.png` | PNG | Ship-view | Hull A with the outline backdrop | – | Test plan, Backdrop Outline |
-| H12 | nice | `shipview-hologram.png` | PNG | Ship-view | Hull A with **Hologram – shaded** | – | Test plan, Backdrop Hologram – shaded; set Outline back. While at it, look at the Hull C hologram: if its racks visibly sit off the cargo blocks, the known issue stays, else it goes |
+| H12 | nice | `shipview-hologram.gif` | GIF | Ship-view | Hull A with **Hologram – shaded** | 10 s | Test plan, Backdrop Hologram – shaded; set Outline back |
 | H13 | nice | `legend-overview.png` | PNG | Legend-and-delivery-states | Legend with "From Lorville" headers, check boxes, the Everus Harbor line with two commodities | – | Test plan |
 | H14 | nice | `legend-checkboxes.gif` | GIF | Legend-and-delivery-states | Tick the box of the HDMS-Edmond line → its crates selected → tick the header's box → whole mission | 8 s | Test plan |
 
@@ -76,11 +89,12 @@ Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays 
 
 | Id | Prio | File | Type | Page | What happens (start → end) | Max. | State |
 |---|---|---|---|---|---|---|---|
-| E1 | must | `docs/images/hero.gif` (main repo) | GIF | README, Home | Overlay next to the elevator: click a legend line → loaded `▣` → click a crate → stop gray | 10 s | Test plan, game visible behind the overlay |
+| E1 | must | `docs/images/hero.gif` (main repo) | GIF | README, Home | The same scene as E2, shorter: a contract in mobiGlas → captured → its crates appear in the overlay | 8 s | *CT live*, made from E2 (see Conventions) |
 | E2 | must | `quickstart-capture-sync.gif` | GIF | Quick-start-at-the-cargo-elevator | F3 at the terminal → a moment later a new mission with `#Id` header appears in the legend | 10 s | *CT live*, Auto-sync on |
 | E3 | must | `quickstart-mark-loaded.gif` | GIF | Quick-start-at-the-cargo-elevator | Click a legend line → `▣`, white crate edges, header `· N ▣` | 6 s | Test plan |
 | E4 | must | `quickstart-deliver.gif` | GIF | Quick-start-at-the-cargo-elevator | Click a crate of HDMS-Edmond → all its crates gray, lines struck through | 6 s | Test plan, HDMS-Edmond loaded |
 | E5 | must | `legend-states.png` | PNG | Legend-and-delivery-states | Legend with one planned, one loaded and one delivered line | – | Test plan: Everus Harbor planned, HDMS-Edmond loaded, HDMS-Thedus delivered |
 | E6 | nice | `legend-ct-markings.png` | PNG | Legend-and-delivery-states | A legend line with a mark such as `4 SCU?` or `⚠ 1 of 3 destinations` | – | *CT live*, whenever a capture shows one |
 
-**Total:** 31 shots, 14 GIF and 17 PNG; 14 must (8 GIF, 6 PNG), 17 nice. D1 exists already.
+**Total:** 32 shots, 17 GIF and 15 PNG; 14 must (8 GIF, 6 PNG), 18 nice. `legend-states.png` and
+`legend-ct-markings.png` are one picture on purpose: it shows both states and a `?` mark.

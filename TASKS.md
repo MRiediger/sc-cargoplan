@@ -1283,8 +1283,10 @@ is.“ (fängt das Gegenargument des D63-Addendums in der UI auf); roter Commit 
   Wiki `Preferences` (Reset-Tooltip). Alle Zieltexte, die das Wiki zitiert, wörtlich in `src/`.
 - Tests: Core 1.466 → 1.467, Import 141, App 1.424 → 1.435; 0 Warnungen.
 
-#### [ ] T7.5b Aufnahmen nach Shotlist (Martin)
+#### [x] T7.5b Aufnahmen nach Shotlist (Martin) (28.10.2026)
 - `docs/shots/SHOTLIST.md`, zuerst alle must-Shots
+- Ergebnis: alle 31 Shots plus `delete-mission.gif` (D12, nice); `prefs-color-picker` und `shipview-hologram` als GIF statt
+  PNG; `legend-states.png` = `legend-ct-markings.png` mit Absicht (zeigt beide Zustände und eine `?`-Markierung).
 
 #### [ ] T7.5c Platzhalter ersetzen, Wiki pushen (Claude Code)
 - Medien ins Wiki-Repo `media/`, `hero.gif` nach `docs/images/`; Größen (≤ 3 MB) und Links prüfen; fehlende nice-Shots:
@@ -1296,6 +1298,26 @@ is.“ (fängt das Gegenargument des D63-Addendums in der UI auf); roter Commit 
 - Ship-Template: Korrektur-Template bzw. Umbenennung „Ship correction“, vor dem Tag; Wiki-Link auf `template=` nachziehen
 - **Reihenfolge:** erst Hauptrepo mergen (`--no-ff`) und pushen, damit `hero.gif` auf `main` liegt; dann Wiki pushen;
   dann Wiki-Editing auf Collaborators beschränken (Repo-Settings)
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** `hero.gif` vor dem Merge auf ≤ 5 MB (bleibt dauerhaft in der
+Git-Historie), Ergebnis zur Sichtprüfung; eigenes Template `ship-correction.yml` („Ship correction“), „Ship request“ bleibt
+für fehlende Schiffe; Known issue Hull-C-Hologramm gestrichen; `docs/screenshots/` gelöscht, D1 verweist aufs Wiki; D12
+`delete-mission.gif` mit Prio nice; `bug.yml` folgt der Wiki-Anleitung (CT-DB in den Programmordner); die
+`<!-- SHOT: … -->`-Zeilen bleiben stehen (verbinden jedes Bild mit der Shotlist beim Nachdrehen).
+
+**Befund:**
+- Medien: ScreenToGif-Export mit Spielhintergrund 532 MB (2176 × 1241, 22 s): bewegter Hintergrund, „Unveränderte Pixel“
+  greift nicht. Mit ffmpeg (Ausschnitt Vertragsziele + Overlay, 720 px, 128 Farben, kein Dithering):
+  `quickstart-capture-sync.gif` 10 s / 8 fps = 10,1 MB (Ausnahme, nur Wiki), `hero.gif` 8 s / 6 fps = **6,2 MB**. ≤ 5 MB
+  ging ohne gifsicle (nicht per winget) nur mit 64 oder 96 Farben, dabei verschwinden Grün und Blau der Stopfarben;
+  Martin nimmt 6,2 MB in Kauf. Stopfarben pixelgleich zum 10-MB-Stand. `shipview-orbit-zoom.gif` 5,9 → 2,6 MB,
+  `shipview-hologram.gif` 10,4 → 2,9 MB; Parameter in den Konventionen der Shotlist.
+- Doku: `settings-format.md` (Default-Beispiel `overlay`/`hotkeys` `null`, Link aufs Wiki), `ship-format.md:7-8`, :63,
+  `bug.yml`, `ship.yml` (Hinweis auf Ship correction), neu `ship-correction.yml`; `docs/user-guide.md` und
+  `docs/screenshots/` gelöscht, kein Verweis mehr darauf.
+- Check-Skript (Scratchpad): Seiten- und Ankerlinks, jede eingebundene Datei vorhanden, jede Datei in `media/` eingebunden,
+  ≤ 3 MB außer den zwei Ausnahmen, Shotlist 1:1 mit Typ und Datei (32 Shots: 17 GIF, 15 PNG; 14 must); Negativtest
+  schlägt an. Tests Core 1.467, Import 141, App 1.435, 0 Warnungen.
 
 #### [ ] T7.5d Release (Martin + Claude Code)
 - Release-Notes `docs/release-notes/v0.1.0.md`, Tag `v0.1.0`, rc-Releases und -Tags löschen (D49)

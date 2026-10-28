@@ -5,7 +5,7 @@ copies the folder next to the exe, and the release ZIP carries it as `SC-CargoPl
 so adding a ship means adding one file. No C# and no `.csproj` change needed.
 
 The app reads every `*.json` in that folder at start. A file that is broken costs only its own ship; the reason is
-reported (the CLI prints it, the app will show it with the ship selection). Without the folder, or without a valid
+reported (the CLI prints it, the app lists the ship under **Not loaded** in the ship list, the reason as its tool tip). Without the folder, or without a valid
 `hull_a.json`, the app doesn't start and asks to unzip the release again: the Hull A is the fallback ship.
 
 ## Example
@@ -58,7 +58,7 @@ being ignored silently.
 | `name` | string | Display name, e.g. `"MISC Hull A"`. |
 | `manufacturer` | string | *Optional.* Manufacturer code as Fleetyards writes it, e.g. `"MISC"`, `"RSI"`; ships are grouped by it. Not empty if present. |
 | `fleetyardsSlug` | string | *Optional.* The ship's slug on Fleetyards, e.g. `"misc-hull-a"`. It picks the ship's outline from `outlines/ship-outlines.json` (traced from Fleetyards renders, not under the MIT licence, see `outlines/NOTICE.md`); without a match the ship view shows the bow wedge. Not empty if present. |
-| `source` | string | *Optional.* Where the values come from, e.g. `"in game"` (measured in the hangar) or `"Fleetyards"`. Not empty if present. |
+| `source` | string | *Optional.* Where the values come from, e.g. `"in game"` (measured in the hangar) or `"Fleetyards API (CIG ship matrix), export 2026-10-26"` (written by the import). Not empty if present. |
 | `notes` | string | *Optional.* Anything a reviewer should know, e.g. what was checked and what wasn't. Not empty if present. |
 | `holoOffset` | array of 3 integers | *Optional.* `[x, y, z]` in cells: moves the hologram from its middle on the racks, e.g. `[0, 0, 1]` lifts it one cell so the racks sit lower in the hull (Aurora Mk II). It corrects the hologram's middle position against the racks; it is no position of the ship. Whoever sets a value has seen it at the holo gate – source and date go into `notes`, as for limits set by hand. Racks, plans and the outline don't move; a ship with a [cargo module](#cargo-modules) passes it on. The import writes it back on `-Force` and never sets it. |
 | `totalScu` | number | Cargo capacity of the ship. Must equal the sum of all `capacityScu`. |

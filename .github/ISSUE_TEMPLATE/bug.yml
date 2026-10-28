@@ -54,9 +54,11 @@ body:
       label: ContractTracker contracts
       description: |
         **Required if missions or ContractTracker are involved.** It shows what the overlay read from ContractTracker.
-        1. Copy `%AppData%\SCContractTracker\contracts.db` (or your own path) to your desktop.
-        2. In the SC-CargoPlan folder, run: `.\CargoPlan.Cli.exe contracts "$env:USERPROFILE\Desktop\contracts.db" --raw`
-        3. Read it before you paste it: it holds the contract texts as ContractTracker captured them.
+        1. Close ContractTracker.
+        2. Open PowerShell in the SC-CargoPlan folder (the one with `CargoPlan.App.exe`) and copy the database there:
+           `Copy-Item "$env:APPDATA\SCContractTracker\contracts.db" .\contracts-copy.db` (or your own path)
+        3. Run the command-line tool on the copy: `.\CargoPlan.Cli.exe contracts .\contracts-copy.db --raw`
+        4. Read it before you paste it: it holds the contract texts as ContractTracker captured them.
       render: text
 
   - type: input
