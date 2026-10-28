@@ -457,7 +457,7 @@ public sealed class SettingsStoreTests : IDisposable
         loaded.HoloHullColor.Should().Be("#FF9CB0C0");
         loaded.HoloEdgeColor.Should().Be("#FFFFCC00");
         problem.Should().Be(
-            "settings.json: holoHullColor \"blue\" is not a colour (#RRGGBB), using #FF9CB0C0." + Environment.NewLine
+            "settings.json: holoHullColor \"blue\" is not a color (#RRGGBB), using #FF9CB0C0." + Environment.NewLine
             + "settings.json: holoEdgeColor alpha 128 is not used, holograms are opaque, using #FFFFCC00.");
     }
 

@@ -820,6 +820,49 @@ public sealed class MissionEditorViewModelTests : IDisposable
         Shown(editor).Should().Equal("Area18", "Orison", "Riker", "Shubin");
     }
 
+    // "Row n" counts the rows as the grid shows them (T7.5a2): sorted, the first invalid row is the first one shown.
+
+    [Fact]
+    public void Without_a_sort_the_problem_names_the_first_invalid_row_as_entered()
+    {
+        var editor = new MissionEditorViewModel(OverlayWithCaptures());
+
+        editor.Rows[0].Scu = "x";
+        editor.Rows[2].Commodity = "";
+
+        editor.Problem.Should().Be("Row 1: SCU must be a whole number above 0.");
+        editor.PlanToolTip.Should().Be("Row 1: SCU must be a whole number above 0.");
+    }
+
+    [Fact]
+    public void Sorted_the_problem_names_the_first_invalid_row_the_grid_shows()
+    {
+        var editor = new MissionEditorViewModel(OverlayWithCaptures());
+        editor.Rows[0].Scu = "x";
+        editor.Rows[2].Commodity = "";
+        var changed = new List<string?>();
+        editor.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        editor.SortBy(EditorSortColumn.Destination);
+
+        Shown(editor).Should().Equal("Orison", "Riker", "Shubin");
+        editor.Problem.Should().Be("Row 1: Commodity is empty.");
+        editor.PlanToolTip.Should().Be("Row 1: Commodity is empty.");
+        changed.Should().Contain([nameof(MissionEditorViewModel.Problem), nameof(MissionEditorViewModel.PlanToolTip)]);
+    }
+
+    [Fact]
+    public void Sorted_by_mission_a_typed_row_counts_after_the_captures()
+    {
+        var editor = new MissionEditorViewModel(OverlayWithCaptures());
+        editor.Rows[0].Scu = "x";
+
+        editor.SortBy(EditorSortColumn.Mission);
+
+        Shown(editor).Should().Equal("Shubin", "Orison", "Riker");
+        editor.Problem.Should().Be("Row 3: SCU must be a whole number above 0.");
+    }
+
     [Fact]
     public void Plan_keeps_the_watermark_and_the_captures()
     {

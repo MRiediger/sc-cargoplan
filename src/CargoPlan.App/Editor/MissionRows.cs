@@ -274,9 +274,12 @@ public static class MissionRows
         var invalid = Array.FindIndex(errors, e => e is not null);
         if (invalid >= 0)
         {
-            return Invariant($"Row {invalid + 1}: {errors[invalid]}");
+            return RowProblem(invalid, errors[invalid]!);
         }
 
         return rows.All(r => r.IsBlank) ? NoMissionsText : null;
     }
+
+    /// <summary>The status line for an invalid row, <paramref name="index"/> counted from 0.</summary>
+    public static string RowProblem(int index, string error) => Invariant($"Row {index + 1}: {error}");
 }

@@ -231,7 +231,7 @@ public static class AppearanceRules
     {
         if (!Argb.TryParse(colour, out var argb))
         {
-            return (fallback, [$"{key} \"{colour}\" is not a colour (#RRGGBB), using {fallback}."]);
+            return (fallback, [$"{key} \"{colour}\" is not a color (#RRGGBB), using {fallback}."]);
         }
 
         if (argb.A == byte.MaxValue)
@@ -280,7 +280,7 @@ public static class AppearanceRules
         {
             if (!Argb.TryParse(text, out var colour))
             {
-                Problems.Add($"appearance.{key} \"{text}\" is not a colour (#AARRGGBB or #RRGGBB), using {fallback}.");
+                Problems.Add($"appearance.{key} \"{text}\" is not a color (#AARRGGBB or #RRGGBB), using {fallback}.");
                 return fallback;
             }
 
@@ -357,7 +357,7 @@ public readonly record struct Argb(byte A, byte R, byte G, byte B)
 
     /// <exception cref="FormatException">Not a colour; after <see cref="AppearanceRules.Normalize"/> that is a bug.</exception>
     public static Argb Parse(string text) =>
-        TryParse(text, out var colour) ? colour : throw new FormatException($"\"{text}\" is not a colour (#AARRGGBB or #RRGGBB).");
+        TryParse(text, out var colour) ? colour : throw new FormatException($"\"{text}\" is not a color (#AARRGGBB or #RRGGBB).");
 
     public override string ToString() => $"#{A:X2}{R:X2}{G:X2}{B:X2}";
 }

@@ -50,14 +50,14 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public static string NewContractsText(int count) =>
         $"{count} new {(count == 1 ? "contract" : "contracts")} in ContractTracker – take {(count == 1 ? "it" : "them")} in with Sync from ContractTracker (editor or hotkey).";
 
-    public static string ReplannedText(string madeFor, string current) => $"Plan was made for {madeFor}, replanned for {current}.";
+    public static string ReplannedText(string madeFor, string current) => $"Plan was made for {madeFor}, re-planned for {current}.";
 
     /// <summary>A plan whose crate mixes were split for other racks (a file from before D70) was planned anew.</summary>
-    public static string RacksReplannedText(string current) => $"Plan was made for other racks, replanned for {current}.";
+    public static string RacksReplannedText(string current) => $"Plan was made for other racks, re-planned for {current}.";
 
     public const string PlanUnchangedText = "Plan unchanged";
 
-    public const string ReplanToolTipText = "Re-plan: lay out all cargo on board anew – ticks and crate sizes stay, you restack the ship";
+    public const string ReplanToolTipText = "Re-plan: lay out the cargo on board anew – loaded cargo stays where it lies; ticks, crate sizes and fill order stay. You restack the ship.";
 
     public const string NothingToReplanText = "Re-plan: no cargo on board";
 
@@ -105,7 +105,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>What the overlay asks before every re-plan (D66): no way past it, button or hotkey.</summary>
     public const string ReplanConfirmText =
-        "Re-plan? All cargo on board is laid out anew: crates change racks and cells, you restack the ship, and manual moves are lost. Ticks and crate sizes stay.";
+        "Re-plan? The cargo on board is laid out anew: crates change racks and cells, you restack the ship, and manual moves are lost. Loaded cargo stays where it lies; ticks and crate sizes stay.";
 
     /// <summary>
     /// Asks the player before a re-plan and says whether to go on; the overlay window shows a message box. The view model
@@ -145,7 +145,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>What the overlay asks before a ship change with a plan (D59).</summary>
     public static string ReplanQuestionText(string ship) =>
-        $"Replan for {ship}? Crate positions change and manual moves are lost; split crates keep their sizes.";
+        $"Re-plan for {ship}? Crate positions change and manual moves are lost; split crates keep their sizes.";
 
     /// <summary>A delivery is a legend line, a mission's cargo for one destination (D69); each keeps its tick (K2.2).</summary>
     public static string TicksStayText(int deliveries) =>

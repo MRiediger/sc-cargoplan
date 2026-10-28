@@ -65,6 +65,12 @@
                       LogicalName="xaml/SettingsWindow.xaml" Link="Xaml\SettingsWindow.xaml" />
   </ItemGroup>
 
+  <!-- The theme sample's markup, read by VisibleTextXamlTests with the windows above: spelling of what they show (T7.5a2). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\CargoPlan.App\ThemeSampleWindow.xaml"
+                      LogicalName="xaml/ThemeSampleWindow.xaml" Link="Xaml\ThemeSampleWindow.xaml" />
+  </ItemGroup>
+
   <!-- The editor's markup, read by MissionEditorXamlTests: which columns sort, and through whom (K6.3). -->
   <ItemGroup>
     <EmbeddedResource Include="..\..\src\CargoPlan.App\MissionEditorWindow.xaml"

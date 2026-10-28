@@ -545,6 +545,47 @@ public class LoadedStateTests
         LoadPlanner.Replan(current, HullA).Should().BeSameAs(current);
     }
 
+    /// <summary>
+    /// Mission 1: Riker (16) loaded in rack 1, its Shubin (24 = 16 + 8) planned in rack 2 and beside Orison's loaded 8 in
+    /// rack 3; Lorville (16) loaded in rack 4. The ship is full.
+    /// </summary>
+    private static SavedPlan PartlyLoadedAndFull()
+    {
+        Mission[] missions =
+        [
+            new(1, [Stop("Riker", "Titanium", 16, CrateSize.Sixteen), Stop("Shubin", "Gold", 24, CrateSize.Sixteen) with { Order = 2 }]),
+            new(2, [Stop("Orison", "Quartz", 8, CrateSize.Eight)]),
+            new(3, [Stop("Lorville", "Tin", 16, CrateSize.Sixteen)]),
+        ];
+        Crate[] crates =
+        [
+            new("Riker", "Titanium", CrateSize.Sixteen, "rack-0", new GridPosition(0, 0, 0), Mission: 1, Loaded: true),
+            new("Shubin", "Gold", CrateSize.Sixteen, "rack-1", new GridPosition(0, 0, 0), Mission: 1, Item: 1),
+            new("Shubin", "Gold", CrateSize.Eight, "rack-2", new GridPosition(0, 0, 0), Mission: 1, Item: 1),
+            new("Orison", "Quartz", CrateSize.Eight, "rack-2", new GridPosition(2, 0, 0), Mission: 2, Loaded: true),
+            new("Lorville", "Tin", CrateSize.Sixteen, "rack-3", new GridPosition(0, 0, 0), Mission: 3, Loaded: true),
+        ];
+        return new SavedPlan(missions, new LoadPlan(HullA.Id, crates, []), CrateCap.Of(HullA));
+    }
+
+    [Fact]
+    public void Replan_lays_the_rest_of_a_partly_loaded_mission_around_the_loaded_cargo_without_giving_up()
+    {
+        // T7.5a2, the check behind "Re-plan found no better layout": its PlanException branch keeps a plan that already
+        // holds everything; the rest of the mission is laid largest first into the cells the current plan proves free.
+        var current = PartlyLoadedAndFull();
+        LoadPlanner.Validate(current.Plan, HullA).Should().BeEmpty();
+
+        var keeping = () => LoadPlanner.PlanKeeping(current, HullA, current.Missions, [.. current.Stops.Select(s => s.Destination)], FillOrder.BowFirst, 0);
+        keeping.Should().NotThrow();
+
+        var replanned = LoadPlanner.Replan(current, HullA);
+        LoadPlanner.Validate(replanned.Plan, HullA).Should().BeEmpty();
+        replanned.Missions.Should().NotContain(m => m.Unplaced);
+        Of(replanned, 1, "Shubin").Select(c => c.CrateSize).Should().BeEquivalentTo([CrateSize.Sixteen, CrateSize.Eight]);
+        Lying(replanned.Plan.Crates.Where(c => c.Loaded)).Should().Equal(Lying(current.Plan.Crates.Where(c => c.Loaded)));
+    }
+
     // --- Another ship ---
 
     [Fact]

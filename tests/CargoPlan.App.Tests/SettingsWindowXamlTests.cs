@@ -60,6 +60,25 @@ public partial class SettingsWindowXamlTests
             .Should().BeEquivalentTo([("Export…", "OnExportLook"), ("Import…", "OnImportLook")]);
     }
 
+    [Fact]
+    public void The_header_color_names_every_glyph()
+    {
+        // T7.5a2: re-plan, undo, redo and reset view came after the list was written.
+        var row = Root().Descendants().Single(e => ((string?)e.Attribute("ToolTip"))?.StartsWith("Ship name and the glyphs", StringComparison.Ordinal) == true);
+
+        row.Attribute("ToolTip")!.Value.Should().Be(
+            "Ship name and the glyphs: split, merge, re-plan, pencil, undo, redo, reset view, gear, exit, padlock. Made invisible, the gear still shows its tooltip.");
+    }
+
+    [Fact]
+    public void The_ship_view_reset_says_that_the_download_switch_stays()
+    {
+        var button = Root().Descendants()
+            .Single(e => e.Name.LocalName == "Button" && (string?)e.Attribute("Command") == "{Binding ResetShipViewCommand, Mode=OneTime}");
+
+        button.Attribute("ToolTip")!.Value.Should().Be("Reset the view settings to defaults. Download ship holograms stays as it is.");
+    }
+
     [GeneratedRegex(@"\{x:Static (?<prefix>\w+):(?<type>\w+)\.(?<member>\w+)\}")]
     private static partial Regex StaticReference();
 }

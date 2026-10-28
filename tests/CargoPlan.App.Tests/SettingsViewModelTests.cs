@@ -682,16 +682,17 @@ public sealed class SettingsViewModelTests : IDisposable
     }
 
     [Fact]
-    public void Reset_of_the_ship_view_goes_back_to_the_outline_and_downloads_on()
+    public void Reset_of_the_ship_view_goes_back_to_the_outline_and_leaves_the_download_switch()
     {
+        // The switch is consent to network access, not part of the view (T7.5a2, D63 addendum): a reset doesn't renew it.
         var viewModel = Create(shipOutline: ShipOutlineMode.None, downloadShipHolograms: false);
 
         viewModel.ResetShipViewCommand.Execute(null);
 
         viewModel.ShipOutline.Should().Be(ShipOutlineMode.Outline);
-        viewModel.DownloadShipHolograms.Should().BeTrue();
+        viewModel.DownloadShipHolograms.Should().BeFalse();
         _outlines.Should().Equal(ShipOutlineMode.Outline);
-        _downloads.Should().Equal(true);
+        _downloads.Should().BeEmpty();
     }
 
     [Fact]
@@ -991,7 +992,7 @@ public sealed class SettingsViewModelTests : IDisposable
         viewModel.ImportLook(path);
 
         _lookNotices[^1].Should().StartWith("Look imported: bad.cargoplan-look.json")
-            .And.Contain("bad.cargoplan-look.json: appearance.window.background \"red\" is not a colour");
+            .And.Contain("bad.cargoplan-look.json: appearance.window.background \"red\" is not a color");
     }
 
     [Fact]

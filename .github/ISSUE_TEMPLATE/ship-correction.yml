@@ -1,0 +1,58 @@
+# Source: https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-githubs-form-schema
+name: Ship correction
+description: A ship SC-CargoPlan knows, but its racks don't match the game.
+labels: [bug, ship]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The cargo grids come from Fleetyards and are drafts: only the MISC Hull A was measured in the game. Tell us what differs in your hangar. Can write JSON? A pull request with the corrected file in `ships/` is even better ([ship-format.md](https://github.com/MRiediger/sc-cargoplan/blob/main/docs/ship-format.md)).
+
+  - type: input
+    id: ship
+    attributes:
+      label: Ship
+      description: As the ship list in the overlay names it.
+      placeholder: DRAK Cutlass Black
+    validations:
+      required: true
+
+  - type: input
+    id: racks
+    attributes:
+      label: Rack(s)
+      description: The rack number the overlay shows, or "missing" for a rack the overlay doesn't have.
+      placeholder: Rack 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: difference
+    attributes:
+      label: What differs
+      description: |
+        What the overlay shows and what the game does, e.g. the size in SCU cells (along the plate × across it × how many
+        crates stack), a door that takes smaller crates, or a crate that fits in the game but not in the plan.
+      placeholder: |
+        Overlay: Rack 2 is 4 × 2 × 2 = 16 SCU.
+        Game: the plate takes 3 × 2 × 2 = 12 SCU; the fourth row is blocked by the ramp.
+    validations:
+      required: true
+
+  - type: upload
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: The hold in the hangar, ideally with crates on it, and the overlay if you can. Optional, but it helps a lot.
+    validations:
+      required: false
+      accept: ".png,.jpg,.jpeg,.gif,.webp,.mp4,.webm"
+
+  - type: input
+    id: game-version
+    attributes:
+      label: Star Citizen version
+      description: The patch you checked it in.
+      placeholder: 4.10.1-LIVE
+    validations:
+      required: true

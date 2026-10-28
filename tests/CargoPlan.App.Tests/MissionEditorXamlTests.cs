@@ -31,6 +31,16 @@ public class MissionEditorXamlTests
     }
 
     [Fact]
+    public void Re_plan_shows_the_tool_tip_of_the_header_button()
+    {
+        // One text for both buttons (T7.5a2): the editor's had a wording of its own.
+        var button = Grid().Ancestors().Last().Descendants()
+            .Single(e => e.Name.LocalName == "Button" && (string?)e.Attribute("Content") == "Re-plan");
+
+        button.Attribute("ToolTip")!.Value.Should().Be("{x:Static vm:OverlayViewModel.ReplanToolTipText}");
+    }
+
+    [Fact]
     public void Only_mission_and_destination_sort_each_under_its_key()
     {
         var sortable = Columns(Grid()).Where(c => (string?)c.Attribute("CanUserSort") != "False").ToArray();

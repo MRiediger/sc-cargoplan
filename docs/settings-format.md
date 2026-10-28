@@ -17,8 +17,8 @@ values.
   "schemaVersion": 2,
   "ship": null,
   "recentShips": null,
-  "overlay": { "left": 100, "top": 200, "width": 420, "height": 460 },
-  "hotkeys": { "toggleLock": "Ctrl+Alt+K", "toggleOverlay": "Ctrl+Alt+H", "syncContractTracker": null, "replan": null, "discardPlan": null, "undo": null, "redo": null, "resetView": null },
+  "overlay": null,
+  "hotkeys": null,
   "legend": { "visible": true, "position": "bottom-left", "maxHeightShare": 0.5 },
   "shipOutline": "outline",
   "downloadShipHolograms": true,
@@ -67,7 +67,7 @@ values.
 }
 ```
 
-`overlay` and `hotkeys` are described in the [user guide](user-guide.md#hotkeys); `syncContractTracker` takes
+`overlay` and `hotkeys` are described in the wiki ([Overlay basics](https://github.com/MRiediger/sc-cargoplan/wiki/Overlay-basics#hotkeys)); `syncContractTracker` takes
 new ContractTracker captures into the plan like the editor's button, `replan` lays out the cargo on board anew like the
 editor's Re-plan, `discardPlan` empties the plan like the editor's Discard plan, `undo` and `redo` go back and forward like the header's
 ↶ and ↷, `resetView` fits the ship view like the header's reset next to the gear. In `hotkeys`, `null` and a
@@ -91,7 +91,7 @@ The overlay's background `#A0141414` is a dark grey at 63 %. The crates' colours
 | `window.background` | Background of the overlay | `#A0141414` | alpha at least `01` |
 | `window.borderColor` | Frame around the overlay | `#FFE6E6E6` | |
 | `window.borderThickness` | Width of that frame in pixels, `0` = none | `0` | 0–10 |
-| `header.foreground` | Ship name and the glyphs (pencil, gear, split, merge, exit, padlock) | `#FFE6E6E6` | |
+| `header.foreground` | Ship name and the glyphs (split, merge, re-plan, pencil, undo, redo, reset view, gear, exit, padlock) | `#FFE6E6E6` | |
 | `header.halo` | Halo around ship name and "All stops delivered." | off | |
 | `legend.foreground` | Stop lines; also the outline of "Open editor" | `#FFE6E6E6` | |
 | `legend.fontSize` | Font size of the legend, warnings and notices | `null` | 8–32 |
@@ -188,7 +188,7 @@ scroll out of sight. While the overlay is locked it takes no mouse, so unlock it
 
 `shipOutline` sets what lies behind the racks in the ship view; `holoOpacity`, `holoHullColor`, `holoEdgeColor` and
 `downloadShipHolograms` go with it. All of them sit at the top level, so the crates' **Reset to defaults** never switches them; the settings window's
-**Ship view** section has a reset of its own.
+**Ship view** section has a reset of its own, which leaves `downloadShipHolograms` as it is.
 
 | `shipOutline` | What |
 |---|---|

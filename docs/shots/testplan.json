@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 3,
+  "fillOrder": "bowFirst",
+  "stops": [
+    {
+      "destination": "Everus Harbor",
+      "items": [
+        { "commodity": "Titanium", "scu": 12, "maxCrateSize": 4, "pickup": ["Lorville"] },
+        { "commodity": "Stims", "scu": 3, "maxCrateSize": 2, "pickup": ["Lorville"] }
+      ]
+    },
+    {
+      "destination": "HDMS-Edmond",
+      "items": [
+        { "commodity": "Agricium", "scu": 8, "maxCrateSize": 4, "pickup": ["Lorville"] }
+      ]
+    },
+    {
+      "destination": "HDMS-Thedus",
+      "items": [
+        { "commodity": "Quartz", "scu": 6, "maxCrateSize": 4, "crates": [2, 2, 2], "pickup": ["Lorville"] }
+      ]
+    }
+  ]
+}

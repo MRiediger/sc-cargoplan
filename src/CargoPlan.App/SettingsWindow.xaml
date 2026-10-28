@@ -113,7 +113,7 @@
                              closes the popup (StaysOpen=False) would open it again at once. -->
                         <Grid DockPanel.Dock="Right" Margin="6,0,0,0">
                             <!-- Stretch: a button centres its content, and a swatch without a size of its own would shrink to 0 × 0. -->
-                            <ToggleButton x:Name="SwatchButton" Width="32" Height="22" Padding="1" ToolTip="Pick a colour"
+                            <ToggleButton x:Name="SwatchButton" Width="32" Height="22" Padding="1" ToolTip="Pick a color"
                                           HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
                                 <ToggleButton.Style>
                                     <Style TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
@@ -203,7 +203,7 @@
                         <CheckBox Content="{Binding Label, Mode=OneTime}" IsChecked="{Binding Enabled}" Margin="0,3" />
                         <StackPanel IsEnabled="{Binding Enabled}">
                             <DockPanel Style="{StaticResource RowStyle}">
-                                <TextBlock Text="Colour" Style="{StaticResource LabelStyle}" />
+                                <TextBlock Text="Color" Style="{StaticResource LabelStyle}" />
                                 <ContentControl Content="{Binding Colour, Mode=OneTime}" />
                             </DockPanel>
                             <DockPanel Style="{StaticResource RowStyle}">
@@ -225,7 +225,7 @@
                             <ContentControl Content="{Binding WindowBackground, Mode=OneTime}" />
                         </DockPanel>
                         <DockPanel Style="{StaticResource RowStyle}">
-                            <TextBlock Text="Border colour" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="Border color" Style="{StaticResource LabelStyle}" />
                             <ContentControl Content="{Binding WindowBorderColor, Mode=OneTime}" />
                         </DockPanel>
                         <DockPanel Style="{StaticResource RowStyle}">
@@ -241,7 +241,7 @@
                 <GroupBox Header="Legend" Style="{StaticResource SectionStyle}">
                     <StackPanel>
                         <DockPanel Style="{StaticResource RowStyle}">
-                            <TextBlock Text="Text colour" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="Text color" Style="{StaticResource LabelStyle}" />
                             <ContentControl Content="{Binding LegendForeground, Mode=OneTime}" />
                         </DockPanel>
                         <CheckBox Content="Use Windows text size" IsChecked="{Binding UseWindowsFontSize}" Margin="0,3" />
@@ -270,7 +270,7 @@
                             <ContentControl Content="{Binding LegendCheckMark, Mode=OneTime}" />
                         </DockPanel>
                         <Button Command="{Binding ResetLegendCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}"
-                                ToolTip="Colours, size and halo; where the legend stands is reset below" />
+                                ToolTip="Colors, size and halo; where the legend stands is reset below" />
                     </StackPanel>
                 </GroupBox>
 
@@ -302,12 +302,12 @@
                     <StackPanel>
                         <!-- Only palettes checked for colour blindness (D29, K4.2); more stops than colours are hatched. -->
                         <DockPanel Style="{StaticResource RowStyle}"
-                                   ToolTip="Destination colours, each set chosen to stay apart with colour blindness; more destinations than colours are hatched">
+                                   ToolTip="Destination colors, each set chosen to stay apart with color blindness; more destinations than colors are hatched">
                             <TextBlock Text="Stop colors" Style="{StaticResource LabelStyle}" />
                             <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.StopPaletteChoices}" DisplayMemberPath="Text"
                                       SelectedValuePath="Value" SelectedValue="{Binding StopPalette}" />
                         </DockPanel>
-                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="How solid the crates are; their colours come from the stop colors above">
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="How solid the crates are; their colors come from the stop colors above">
                             <TextBlock Text="Fill" Style="{StaticResource LabelStyle}" />
                             <TextBlock DockPanel.Dock="Right" Text="{Binding CratesFillPercent}" Style="{StaticResource ValueTextStyle}" />
                             <Slider Minimum="0" Maximum="{x:Static vm:ColourField.MaxAlpha}"
@@ -349,7 +349,7 @@
                 <GroupBox Header="Header" Style="{StaticResource SectionStyle}">
                     <StackPanel>
                         <DockPanel Style="{StaticResource RowStyle}"
-                                   ToolTip="Ship name and the glyphs: pencil, gear, split, merge, exit, padlock. Made invisible, the gear still shows its tool tip">
+                                   ToolTip="Ship name and the glyphs: split, merge, re-plan, pencil, undo, redo, reset view, gear, exit, padlock. Made invisible, the gear still shows its tooltip.">
                             <TextBlock Text="Text and glyphs" Style="{StaticResource LabelStyle}" />
                             <ContentControl Content="{Binding HeaderForeground, Mode=OneTime}" />
                         </DockPanel>
@@ -364,8 +364,8 @@
                             <TextBlock Text="Background" Style="{StaticResource LabelStyle}" />
                             <ContentControl Content="{Binding ButtonsBackground, Mode=OneTime}" />
                         </DockPanel>
-                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="Frame of the glyph buttons; Open editor keeps its outline in the legend colour">
-                            <TextBlock Text="Border colour" Style="{StaticResource LabelStyle}" />
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="Frame of the glyph buttons; Open editor keeps its outline in the legend color">
+                            <TextBlock Text="Border color" Style="{StaticResource LabelStyle}" />
                             <ContentControl Content="{Binding ButtonsBorderColor, Mode=OneTime}" />
                         </DockPanel>
                         <DockPanel Style="{StaticResource RowStyle}">
@@ -404,12 +404,12 @@
                         </DockPanel>
                         <DockPanel Style="{StaticResource RowStyle}" IsEnabled="{Binding ColoursHull}"
                                    ToolTip="The hologram's hull in the shaded and flat looks">
-                            <TextBlock Text="Hull colour" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="Hull color" Style="{StaticResource LabelStyle}" />
                             <ContentControl Content="{Binding HoloHullColour, Mode=OneTime}" />
                         </DockPanel>
                         <DockPanel Style="{StaticResource RowStyle}" IsEnabled="{Binding ColoursEdges}"
                                    ToolTip="The hologram's edges in the hidden-line look">
-                            <TextBlock Text="Edge colour" Style="{StaticResource LabelStyle}" />
+                            <TextBlock Text="Edge color" Style="{StaticResource LabelStyle}" />
                             <ContentControl Content="{Binding HoloEdgeColour, Mode=OneTime}" />
                         </DockPanel>
                         <DockPanel Style="{StaticResource RowStyle}"
@@ -421,7 +421,8 @@
                         </DockPanel>
                         <CheckBox Content="Download ship holograms" IsChecked="{Binding DownloadShipHolograms}" Margin="0,8,0,0" />
                         <TextBlock Text="{x:Static vm:SettingsViewModel.DownloadShipHologramsHint}" TextWrapping="Wrap" Margin="0,2,0,0" />
-                        <Button Command="{Binding ResetShipViewCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}" />
+                        <Button Command="{Binding ResetShipViewCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}"
+                                ToolTip="Reset the view settings to defaults. Download ship holograms stays as it is." />
                     </StackPanel>
                 </GroupBox>
 

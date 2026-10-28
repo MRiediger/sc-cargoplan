@@ -1219,11 +1219,110 @@ byte-gleich zu 924a6f1. Tests 2.236 grün (App 1.116). Commits 91af570 und diese
 
 **Ersetzt durch B6 (D69):** Legende nach Mission statt nach Abholort-Liste, Checkbox an jeder Zeile, Infozeile mit `from ?`.
 
-### [ ] T7.5 README/Guide/Screenshots – Schiffsliste, Known issue „Entwurf“, Credit Erec, Bild-Platzhalter (`<!-- image: … -->`) durch echte Bilder ersetzen, Ship-Template wird „Ship correction“
-- Known issue (aus T7.2, D59; T7.2b: Wechsel jetzt im Overlay): „On ships with large racks and many small crates, Plan or a ship change can take a few seconds. The overlay doesn’t respond meanwhile.“
-- Reihenfolge (23.10.2026): Umriss vor Doku, T7.4 und T7.5 getauscht (D55-Addendum). Die Screenshots zeigen den Endzustand, Doku zuletzt vermeidet einen dritten Tausch. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+### T7.5 README, Wiki, Medien – in fünf Schritten (27.10.2026)
+**Warum:** Release-Doku vor dem Tag `v0.1.0`. Die README wird eine Bildschirmseite, die Nutzerdoku zieht aus
+`docs/user-guide.md` ins GitHub-Wiki (`sc-cargoplan.wiki.git`, lokal neben dem Hauptrepo), gegliedert nach Nutzerfragen.
+Branch `docs/release-v0.1.0`.
+- Reihenfolge (23.10.2026): Umriss vor Doku, T7.4 und T7.5 getauscht (D55-Addendum). Die Screenshots zeigen den
+  Endzustand, Doku zuletzt vermeidet einen dritten Tausch. Präzisierung in der Planphase, ratifiziert durch Freigabe.
+- Alte Unterpunkte von T7.5: Schiffsliste → Seite `Ships-and-cargo-grids` ohne Liste aller Schiffe (Verweis auf die Auswahl
+  im Overlay und `ships/`); Known issue „Entwurf“ → `Troubleshooting`; Bild-Platzhalter → T7.5c; Known issue
+  Planungsdauer entfällt (geschlossen in B4, D66); Credit Erec entfällt (Abgleich mit dem Guide fiel weg, D53-Addendum
+  T7.1b); Ship-Template „Ship correction“ → T7.5c. Präzisierung in der Planphase, ratifiziert durch Freigabe.
 
-→ Tag `v0.1.0` → T6.6 Nexus
+#### [x] T7.5a README und Wiki-Texte (Claude Code) (27.10.2026, abgenommen 28.10.)
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Wiki-Seiten Englisch nach dem Seitenplan (12 Seiten +
+`_Sidebar`, `_Footer`); Shotlist und Testplan bleiben dauerhaft im Hauptrepo unter `docs/shots/` (Nachdrehen bei jedem
+Release), nicht im Wiki; Shotlist mit Prio must/nice; FAQ mit der Frage zu Spiel und EAC, nur was die App technisch tut;
+durchgehend „cargo elevator“; README „Windows 10/11 x64 (tested on Windows 11)“; die Re-plan-, Farb- und
+Header-Tooltip-Texte zitiert das Wiki in der Zielfassung von T7.5a2.
+- README: Satz, Hero-Platzhalter, 6 Features, Install in 3 Schritten + Borderless, Requirements, Documentation,
+  Credits & disclaimer (Fleetyards, ContractTracker, Paletten, „Not affiliated …“, MIT und die zwei NOTICE-Dateien).
+  Settings, Rettungsweg, Startschalter, Known issues und Bug-Meldung ziehen ins Wiki, Build bleibt in `CONTRIBUTING.md`.
+- Wiki: Home, Installation-and-first-start, Quick-start-at-the-cargo-elevator, Overlay-basics, Plan-and-editor,
+  Ship-view, Legend-and-delivery-states, Preferences, Ships-and-cargo-grids, ContractTracker-integration,
+  Troubleshooting, FAQ; Medien als `![…](media/<datei>)` + `<!-- SHOT: <Id> -->`, Hero per Raw-URL aus `docs/images/`
+- `docs/shots/SHOTLIST.md` (31 Medien: 14 GIF, 17 PNG; 14 must) und `docs/shots/testplan.json` (Hull A, drei Missionen
+  aus Lorville, Rack 4 frei; per `CargoPlan.Cli plan` geprüft)
+- Medien-Test (27.10., Testseite gepusht und wieder entfernt durch Martin): `![…](media/test.png)` rendert, GitHub leitet
+  `/wiki/media/…` per 302 auf `raw.githubusercontent.com/wiki/MRiediger/sc-cargoplan/media/…` (200 `image/png`); die
+  Raw-URL des Hauptrepos (`…/main/docs/images/…`) liefert 200, Seitenlink `[Home](Home)` geht. `curl` ohne
+  Browser-User-Agent bekommt statt der Seite eine Umleitung auf Home: Prüfungen mit `-A`.
+- Wiki lokal committet (`37be77f`), nicht gepusht; Hauptrepo `066cd89` (Branch von Martin gepusht, `main` unverändert)
+
+#### [x] T7.5a2 Text-Fixes vor den Aufnahmen (Claude Code, eigener Plan) (27.10.2026, abgenommen 28.10.)
+**Warum:** Sichtbare Texte, die sonst in den Aufnahmen von T7.5b einfrieren. Gleicher Branch, eigener Commit.
+- Re-plan-Texte (Header- und Editor-Tooltip aus einer Quelle, Dialog, Schiffswechsel) nennen, dass geladene Fracht
+  liegen bleibt; durchgehend „Re-plan“ statt „Replan“/„replanned“
+- UI-Texte durchgehend amerikanisch („color“), passend zu den Settings-Keys
+- Tooltip unter Settings › Header nennt alle Glyphen
+- **Reset to defaults** in Ship view lässt `downloadShipHolograms` unverändert
+- „Row {n}“ bei sortierter Ansicht und „Re-plan found no better layout“ bei `PlanException` zuerst nachstellen: bestätigt
+  → Fix, sonst Zeile streichen
+- Verifikation: jeder Zieltext, den das Wiki zitiert, per Grep gegen `src/` wörtlich gleich; weicht ein String vom Plan
+  ab, wird die Wiki-Stelle im selben Commit nachgezogen
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** `ThemeSampleWindow.xaml` (nur Debug) ebenfalls „color“;
+Bug 7 mit Regressionstest ohne Sortierung und einem mit getippter Zeile hinter den CT-Zeilen (Sortierung nach Mission);
+der Reset-Knopf in Ship view bekommt den Tooltip „Reset the view settings to defaults. Download ship holograms stays as it
+is.“ (fängt das Gegenargument des D63-Addendums in der UI auf); roter Commit und Fix werden gemeinsam gepusht.
+
+**Befund:**
+- Rot vor dem Fix: 14 von 1.435 App-Tests (Re-plan-Tooltip und -Frage, Editor-Tooltip per `x:Static`, „Re-plan for“ und
+  „re-planned for“, „color“ im Settings-Fenster, im Theme-Muster und in den Farb-Notices, Header-Tooltip, Ship-view-Reset
+  samt Tooltip, „Row n“ sortiert nach Ziel und nach Mission). Grün schon vorher: „Row n“ ohne Sortierung.
+- **Bug 7 bestätigt und behoben:** „Row n“ und die erste ungültige Zeile folgen der Grid-Reihenfolge (`RowsView`, ohne den
+  Platzhalter der neuen Zeile); `MissionRows.RowProblem` formatiert für beide Wege, ein Sortierwechsel meldet `Problem`
+  und `PlanToolTip` neu.
+- **Bug 8 nicht bestätigt, gestrichen:** Core-Test `Replan_lays_the_rest_of_a_partly_loaded_mission_around_the_loaded_cargo_without_giving_up`
+  (Rest 16 + 8 einer teilweise geladenen Mission, Schiff voll) war schon vor dem Fix grün, `PlanKeeping` wirft dort nicht.
+  Der `PlanException`-Zweig behält einen Plan, der schon alles an Bord hält; „Re-plan found no better layout“ stimmt dann.
+- Neu `VisibleTextXamlTests` (vier Fenster: kein „colour“, kein „replan“ in sichtbaren Texten). Im C#-Code bleibt
+  „colour“ nur in Bezeichnern und Kommentaren.
+- Doku: `settings-format.md` (Glyphenliste :94, Ship-view-Reset), `plan-format.md` („re-planned for“), D63-Addendum;
+  Wiki `Preferences` (Reset-Tooltip). Alle Zieltexte, die das Wiki zitiert, wörtlich in `src/`.
+- Tests: Core 1.466 → 1.467, Import 141, App 1.424 → 1.435; 0 Warnungen.
+
+#### [x] T7.5b Aufnahmen nach Shotlist (Martin) (28.10.2026)
+- `docs/shots/SHOTLIST.md`, zuerst alle must-Shots
+- Ergebnis: alle 31 Shots plus `delete-mission.gif` (D12, nice); `prefs-color-picker` und `shipview-hologram` als GIF statt
+  PNG; `legend-states.png` = `legend-ct-markings.png` mit Absicht (zeigt beide Zustände und eine `?`-Markierung).
+
+#### [x] T7.5c Platzhalter ersetzen, Wiki pushen (Claude Code) (28.10.2026, abgenommen 28.10.; Push und Wiki-Sperre nach dem Merge)
+- Medien ins Wiki-Repo `media/`, `hero.gif` nach `docs/images/`; Größen (≤ 3 MB) und Links prüfen; fehlende nice-Shots:
+  Platzhalter- und SHOT-Zeile entfernen, Text bleibt
+- `docs/user-guide.md` löschen; Bruchstelle `docs/settings-format.md:70` (Link auf `user-guide.md#hotkeys`) aufs Wiki
+  umstellen
+- Doku-Abweichungen aus T7.5a: `settings-format.md` („Example with every default“ mit Werten statt `null`; die
+  Glyphenliste :94 erledigt T7.5a2), `bug.yml` (DB-Kopie auf den Desktop statt in den Programmordner), `ship-format.md:7-8` und :63
+- Ship-Template: Korrektur-Template bzw. Umbenennung „Ship correction“, vor dem Tag; Wiki-Link auf `template=` nachziehen
+- **Reihenfolge:** erst Hauptrepo mergen (`--no-ff`) und pushen, damit `hero.gif` auf `main` liegt; dann Wiki pushen;
+  dann Wiki-Editing auf Collaborators beschränken (Repo-Settings)
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** `hero.gif` vor dem Merge auf ≤ 5 MB (bleibt dauerhaft in der
+Git-Historie), Ergebnis zur Sichtprüfung; eigenes Template `ship-correction.yml` („Ship correction“), „Ship request“ bleibt
+für fehlende Schiffe; Known issue Hull-C-Hologramm gestrichen; `docs/screenshots/` gelöscht, D1 verweist aufs Wiki; D12
+`delete-mission.gif` mit Prio nice; `bug.yml` folgt der Wiki-Anleitung (CT-DB in den Programmordner); die
+`<!-- SHOT: … -->`-Zeilen bleiben stehen (verbinden jedes Bild mit der Shotlist beim Nachdrehen).
+
+**Befund:**
+- Medien: ScreenToGif-Export mit Spielhintergrund 532 MB (2176 × 1241, 22 s): bewegter Hintergrund, „Unveränderte Pixel“
+  greift nicht. Mit ffmpeg (Ausschnitt Vertragsziele + Overlay, 720 px, 128 Farben, kein Dithering):
+  `quickstart-capture-sync.gif` 10 s / 8 fps = 10,1 MB (Ausnahme, nur Wiki), `hero.gif` 8 s / 6 fps = **6,2 MB**. ≤ 5 MB
+  ging ohne gifsicle (nicht per winget) nur mit 64 oder 96 Farben, dabei verschwinden Grün und Blau der Stopfarben;
+  Martin nimmt 6,2 MB in Kauf. Stopfarben pixelgleich zum 10-MB-Stand. `shipview-orbit-zoom.gif` 5,9 → 2,6 MB,
+  `shipview-hologram.gif` 10,4 → 2,9 MB; Parameter in den Konventionen der Shotlist.
+- Doku: `settings-format.md` (Default-Beispiel `overlay`/`hotkeys` `null`, Link aufs Wiki), `ship-format.md:7-8`, :63,
+  `bug.yml`, `ship.yml` (Hinweis auf Ship correction), neu `ship-correction.yml`; `docs/user-guide.md` und
+  `docs/screenshots/` gelöscht, kein Verweis mehr darauf.
+- Check-Skript (Scratchpad): Seiten- und Ankerlinks, jede eingebundene Datei vorhanden, jede Datei in `media/` eingebunden,
+  ≤ 3 MB außer den zwei Ausnahmen, Shotlist 1:1 mit Typ und Datei (32 Shots: 17 GIF, 15 PNG; 14 must); Negativtest
+  schlägt an. Tests Core 1.467, Import 141, App 1.435, 0 Warnungen.
+
+#### [ ] T7.5d Release (Martin + Claude Code)
+- Release-Notes `docs/release-notes/v0.1.0.md`, Tag `v0.1.0`, rc-Releases und -Tags löschen (D49)
+
+→ T6.6 Nexus und Fleetyards-Verlinkung
 
 ---
 
@@ -2505,3 +2604,9 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~Umrisse und Holos neu erzeugen (Pipeline `sc-ship-outlines`): die Salvation hat keinen (neu seit 25.10., zeigt den Bug-Keil, `NotTracedYet`), 18 Schiffe haben im Index vom 26.10. neue Rumpfmaße (K5.1). Auslöser: ein Hauler meldet die Salvation oder Racks liegen sichtbar außerhalb des Rumpfs.~~ → K5.2b
 - Kisten großer Schiffe im Default-Overlay klein: C2 13,2 px, Hull C 5,1 px pro Kistenkante (400 × 302, nach K5.2c), unter dem Hull-A-Wert 27,2 (Befund K5.2c, D62-Addendum). Auslöser: ein Hauler meldet zu kleine Kisten auf einem großen Schiff.
 - Railen: die generierte Reihe (53 Zellen) ist länger als der Rumpf (40 Zellen), ragt aus dem maßstabsgetreuen Umriss (K5.2c). Auslöser: Fleetyards-Offsets für die Railen oder eine Meldung aus dem Spiel.
+- Doku aus `docs/wiki/` im Hauptrepo per Action ins Wiki spiegeln – Auslöser: erster externer Doku-Beitrag.
+- UI-Text-Konsistenz (Befund T7.5a): Schiffswechsel-Dialog mit Yes als Default, Re-plan mit No; Export… und Remove ohne
+  Tooltip, gesperrte Knöpfe nennen ihren Grund nur teilweise (Plan, ↑/↓, Add to mission ja; Export…, Re-plan, Discard plan,
+  Delete mission nein); Hotkey-Notice „already in use“ nennt den JSON-Key statt des Fenster-Labels; Notices mal mit, mal
+  ohne Schlusspunkt, „crates capped …“ klein; Weiß dreifach belegt (Rand „loaded“, Missionsrahmen, Okabe-Weiß). Auslöser:
+  nach v0.1.0.

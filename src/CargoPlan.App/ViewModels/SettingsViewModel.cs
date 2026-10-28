@@ -314,7 +314,7 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     // Header
 
-    /// <summary>Also the glyphs: pencil, gear, split, merge, padlock. Invisible, the gear is found by its tool tip (D34).</summary>
+    /// <summary>Also the glyphs: split, merge, re-plan, pencil, undo, redo, reset view, gear, exit, padlock. Invisible, the gear is found by its tool tip (D34).</summary>
     public ColourField HeaderForeground { get; }
 
     public HaloEditor HeaderHalo { get; }
@@ -414,7 +414,6 @@ public sealed partial class SettingsViewModel : ObservableObject
     private void ResetShipView()
     {
         ShipOutline = Settings.ShipOutlineMode.Outline;
-        DownloadShipHolograms = true;
         HoloOpacityPercent = ToPercent(AppearanceRules.DefaultHoloOpacity);
         MaxZoom = AppearanceRules.DefaultMaxZoom;
         Batch(() =>

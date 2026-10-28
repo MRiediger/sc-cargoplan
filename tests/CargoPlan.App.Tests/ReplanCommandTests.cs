@@ -99,6 +99,16 @@ public sealed class ReplanCommandTests
     }
 
     [Fact]
+    public void The_tool_tip_and_the_question_say_that_loaded_cargo_stays()
+    {
+        // The wiki quotes both word for word (T7.5a2); the editor's button shows the same tool tip.
+        OverlayViewModel.ReplanToolTipText.Should().Be(
+            "Re-plan: lay out the cargo on board anew – loaded cargo stays where it lies; ticks, crate sizes and fill order stay. You restack the ship.");
+        OverlayViewModel.ReplanConfirmText.Should().Be(
+            "Re-plan? The cargo on board is laid out anew: crates change racks and cells, you restack the ship, and manual moves are lost. Loaded cargo stays where it lies; ticks and crate sizes stay.");
+    }
+
+    [Fact]
     public void The_header_buttons_tool_tip_says_what_it_does_or_why_it_cant()
     {
         var overlay = new OverlayViewModel(HullA);
