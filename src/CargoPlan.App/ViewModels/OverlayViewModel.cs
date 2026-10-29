@@ -722,7 +722,8 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// <summary>The notice for contracts deleted in ContractTracker with crates on board; derived again on every change.</summary>
     private void UpdateDeletedContracts()
     {
-        if (_present is null || Saved is not { } saved || ContractSync.Conflicts(saved, _present) is not [_, ..] conflicts)
+        if (_present is null || Saved is not { } saved
+            || saved.Missions.Where(m => m.Contract is { Gone: true } && saved.Plan.Crates.Any(c => c.Mission == m.Id && !c.Delivered && !c.Loaded)).Select(m => m.Id).ToArray() is not [_, ..] conflicts)
         {
             SetNotice(NoticeSource.DeletedContracts, null);
             return;

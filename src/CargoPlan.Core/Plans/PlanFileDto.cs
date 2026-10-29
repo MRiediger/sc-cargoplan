@@ -8,10 +8,10 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Plans;
 
 /// <summary>
-/// File format of a plan file (schema version 7, docs/plan-format.md): the missions with their stops and where they came
-/// from (D42), every crate with its mission and item (D68), rack, position (D24), whether it is turned (D71), whether it
-/// is off the ship (K2.2) and whether it is loaded (K6.4), and the ContractTracker watermark (D39 addendum). Schema 6 is
-/// the same with nothing loaded; schema 5 also with every crate in a rack; schema 4 also without turned crates; schema 3 also without items: read, each crate given an item of its
+/// File format of a plan file (schema version 8, docs/plan-format.md): the missions with their stops and where they came
+/// from (D42), whether that capture is gone from ContractTracker (D81), every crate with its mission and item (D68), rack,
+/// position (D24), whether it is turned (D71), whether it is off the ship (K2.2) and whether it is loaded (K6.4), and the
+/// ContractTracker watermark (D39 addendum). Schema 7 is the same with no capture gone; schema 6 also with nothing loaded; schema 5 also with every crate in a rack; schema 4 also without turned crates; schema 3 also without items: read, each crate given an item of its
 /// mission on reading.
 /// </summary>
 internal sealed record PlanFileDto(
@@ -26,6 +26,7 @@ internal sealed record PlanFileDto(
     /// <exception cref="ArgumentException">A value violates the domain rules, or the plan doesn't fit the ship or its missions.</exception>
     public SavedPlan ToSavedPlan(Ship ship)
     {
+        CheckGone(Missions, SchemaVersion);
         Mission[] missions = [.. Missions.Select(m => m.ToMission())];
         CheckItems(Crates, SchemaVersion);
         CheckRotated(Crates, SchemaVersion);
@@ -179,6 +180,25 @@ internal sealed record PlanFileDto(
         {
             throw new ArgumentException(Invariant(
                 $"Stop '{destination}', {manual.Commodity} says manual, which is new in schema {PlanFile.NotLoadedSchemaVersion + 1} (the file says {schemaVersion})."), nameof(Missions));
+        }
+    }
+
+    /// <summary>
+    /// Before schema 8 no capture is gone (D81); a <c>gone</c> there is a file from elsewhere. Detached without gone is no
+    /// state of the plan.
+    /// </summary>
+    /// <exception cref="ArgumentException">A mission breaks that.</exception>
+    internal static void CheckGone(IReadOnlyList<MissionDto> missions, int schemaVersion)
+    {
+        if (missions.FirstOrDefault(m => m.Contract is { Detached: not null, Gone: null }) is { } detached)
+        {
+            throw new ArgumentException(Invariant($"Mission {detached.Id} says detached without gone."), nameof(Missions));
+        }
+
+        if (schemaVersion <= PlanFile.NotGoneSchemaVersion && missions.FirstOrDefault(m => m.Contract is { Gone: not null }) is { } gone)
+        {
+            throw new ArgumentException(Invariant(
+                $"Mission {gone.Id} says gone, which is new in schema {PlanFile.NotGoneSchemaVersion + 1} (the file says {schemaVersion})."), nameof(Missions));
         }
     }
 

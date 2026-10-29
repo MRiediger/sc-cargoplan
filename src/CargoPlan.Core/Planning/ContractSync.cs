@@ -10,20 +10,30 @@ namespace CargoPlan.Core.Planning;
 /// </summary>
 public static class ContractSync
 {
-    /// <summary>
-    /// One sync: missions deleted in ContractTracker leave if nothing of them is planned on board (all loaded or ticked, or
-    /// never placed): loaded cargo of a contract handed in was handed over in the game (K6.4), and what lay on it settles;
-    /// waiting missions are placed where they fit now; new captures above the watermark are placed in id order
-    /// (<see cref="LoadPlanner.PlaceInto"/>), and the watermark rises to the highest id taken. Without a change it
-    /// returns <paramref name="saved"/> itself, so a file event without news changes nothing (D38: diff, don't react).
-    /// </summary>
-    /// <param name="present">The ids of the plan's captures still in ContractTracker; null if it wasn't read, then
-    /// nothing counts as deleted.</param>
-    /// <param name="databaseIsNew">ContractTracker's ids started again at 1 (a new file, D44): the watermark goes back to 0,
-    /// so the new file's captures come in.</param>
+    /// <summary>The plan after <see cref="Sync"/>, without what it did with gone contracts.</summary>
     /// <exception cref="ArgumentException">The plan belongs to another ship, or a capture makes no valid mission.</exception>
     public static SavedPlan Apply(
-        SavedPlan saved, Ship ship, IReadOnlyList<ContractCapture> captures, IReadOnlySet<long>? present, bool databaseIsNew = false)
+        SavedPlan saved, Ship ship, IReadOnlyList<ContractCapture> captures, IReadOnlySet<long>? present, bool databaseIsNew = false,
+        ContractGonePolicy onGone = ContractGonePolicy.Keep) =>
+        Sync(saved, ship, captures, present, databaseIsNew, onGone).Saved;
+
+    /// <summary>
+    /// One sync. A mission ContractTracker no longer lists is marked gone and stays as it is (D81); with
+    /// <see cref="ContractGonePolicy.Remove"/> its planned and delivered deliveries leave when it goes, its loaded ones
+    /// stay, and a mission gone before leaves once nothing of it is planned or loaded. Nothing leaves when every contract
+    /// goes in one read (at least two) or the database is new. A mission listed again loses its mark. Waiting missions
+    /// still listed are placed where they fit now; new captures above the watermark are placed in id order
+    /// (<see cref="LoadPlanner.PlaceInto"/>), and the watermark rises to the highest id taken. Without a change the result
+    /// holds <paramref name="saved"/> itself, so a file event without news changes nothing (D38: diff, don't react).
+    /// </summary>
+    /// <param name="present">The ids of the plan's captures still in ContractTracker; null if it wasn't read, then
+    /// nothing counts as gone or back.</param>
+    /// <param name="databaseIsNew">ContractTracker's ids started again at 1 (a new file, D44): the watermark goes back to 0,
+    /// so the new file's captures come in, and the plan's captures are detached, so none of the new ids matches them.</param>
+    /// <exception cref="ArgumentException">The plan belongs to another ship, or a capture makes no valid mission.</exception>
+    public static SyncResult Sync(
+        SavedPlan saved, Ship ship, IReadOnlyList<ContractCapture> captures, IReadOnlySet<long>? present, bool databaseIsNew = false,
+        ContractGonePolicy onGone = ContractGonePolicy.Keep)
     {
         if (databaseIsNew && saved.Watermark > 0)
         {
@@ -31,11 +41,37 @@ public static class ContractSync
         }
 
         var current = saved;
+        List<GoneReport> gone = [];
+        Mission[] back = [];
+        var allAtOnce = false;
         if (present is not null)
         {
-            foreach (var gone in Gone(saved, present).Where(m => !OnBoard(saved, m.Id)))
+            back = [.. saved.Missions.Where(m => m.Contract is { Gone: true, Detached: false } contract && contract.ContractIds.Any(present.Contains))];
+            Mission[] goneBefore = [.. saved.Missions.Where(m => m.Contract is { Gone: true } && !back.Contains(m))];
+            Mission[] listed = [.. saved.Missions.Where(m => m.Contract is { Gone: false })];
+            Mission[] going = [.. listed.Where(m => !m.Contract!.ContractIds.Any(present.Contains))];
+            allAtOnce = databaseIsNew || (going.Length >= 2 && going.Length == listed.Length + back.Length);
+            var removing = onGone == ContractGonePolicy.Remove && !allAtOnce;
+
+            current = Marked(current, back, gone: false);
+            foreach (var mission in going)
             {
-                current = LoadPlanner.RemoveMission(current, ship, gone.Id);
+                (current, var report) = removing ? Going(current, ship, mission) : (Marked(current, [mission], gone: true), new GoneReport(mission, 0, 0, 0, false));
+                gone.Add(report);
+            }
+
+            if (removing)
+            {
+                foreach (var mission in goneBefore.Where(m => !Aboard(current, m.Id)))
+                {
+                    gone.Add(new GoneReport(mission, 0, Deliveries(current, mission.Id).Count, 0, true));
+                    current = LoadPlanner.RemoveMission(current, ship, mission.Id);
+                }
+            }
+
+            if (databaseIsNew)
+            {
+                current = Detached(current);
             }
         }
 
@@ -46,36 +82,33 @@ public static class ContractSync
             current = new SavedPlan(placed.Missions, placed.Plan, placed.CrateCap, Math.Max(current.Watermark, capture.Source.ContractIds.Max()));
         }
 
-        return current;
+        var order = saved.Missions.Select((m, index) => (m.Id, index)).ToDictionary();
+        return new SyncResult(current, [.. gone.OrderBy(g => order[g.Mission.Id])], back, allAtOnce);
     }
 
     /// <summary>
     /// The sync that follows an undo or redo (K2.4, Martin: restore the snapshot, then sync incrementally): the captures
     /// <paramref name="current"/> holds that neither <paramref name="target"/> nor <paramref name="reference"/> (the plan
     /// the step left) knew came in by a sync since, and are placed into <paramref name="target"/> again by
-    /// <see cref="Apply"/>; with <paramref name="present"/> missions gone from ContractTracker leave as in a sync. The
-    /// database isn't read: what the plan knows is enough, and an undo never takes in a contract the player hasn't synced
-    /// yet. A capture the step itself removed or added is known to one of the two and stays as the snapshot has it.
+    /// <see cref="Apply"/>; with <paramref name="present"/> missions gone from ContractTracker are marked or leave as in a
+    /// sync (D81). The database isn't read: what the plan knows is enough, and an undo never takes in a contract the player
+    /// hasn't synced yet. A capture the step itself removed or added is known to one of the two and stays as the snapshot
+    /// has it. A detached capture never came in by a sync.
     /// </summary>
     /// <param name="present">The capture ids ContractTracker had at the last read; null if it wasn't read.</param>
-    public static SavedPlan Resync(SavedPlan target, SavedPlan reference, SavedPlan current, Ship ship, IReadOnlySet<long>? present)
+    public static SavedPlan Resync(
+        SavedPlan target, SavedPlan reference, SavedPlan current, Ship ship, IReadOnlySet<long>? present,
+        ContractGonePolicy onGone = ContractGonePolicy.Keep)
     {
         HashSet<long> known = [.. target.Missions.Concat(reference.Missions).SelectMany(m => m.Contract?.ContractIds ?? [])];
         ContractCapture[] since =
         [
             .. current.Missions
-                .Where(m => m.Contract is { } contract && !contract.ContractIds.Any(known.Contains))
+                .Where(m => m.Contract is { Detached: false } contract && !contract.ContractIds.Any(known.Contains))
                 .Select(m => new ContractCapture(m.Stops, m.Contract!)),
         ];
-        return Apply(target, ship, since, present);
+        return Apply(target, ship, since, present, onGone: onGone);
     }
-
-    /// <summary>
-    /// Ids of the missions deleted in ContractTracker that still have planned crates on board: the plan keeps them, the
-    /// player ticks them or deletes them in the editor (D39 addendum). Loaded crates were handed over (K6.4).
-    /// </summary>
-    public static IReadOnlyList<int> Conflicts(SavedPlan saved, IReadOnlySet<long> present) =>
-        [.. Gone(saved, present).Where(m => OnBoard(saved, m.Id)).Select(m => m.Id)];
 
     /// <summary>
     /// The missions that may be a second capture of another one (D39 addendum): of two missions without any ticked crate,
@@ -113,9 +146,57 @@ public static class ContractSync
         return duplicates;
     }
 
-    /// <summary>Captures every id of which is gone from ContractTracker; typed missions never are.</summary>
-    private static IEnumerable<Mission> Gone(SavedPlan saved, IReadOnlySet<long> present) =>
-        saved.Missions.Where(m => m.Contract is { } contract && !contract.ContractIds.Any(present.Contains));
+    /// <summary>
+    /// A mission whose contract goes now, with <see cref="ContractGonePolicy.Remove"/>: its deliveries with a loaded crate
+    /// stay and it is marked gone; the planned and the delivered ones leave, and with them the whole mission if nothing
+    /// is loaded (a waiting one too).
+    /// </summary>
+    private static (SavedPlan Saved, GoneReport Report) Going(SavedPlan saved, Ship ship, Mission mission)
+    {
+        var deliveries = Deliveries(saved, mission.Id);
+        HashSet<string> loaded = [.. deliveries.Where(d => d.Value.Any(c => c.Loaded)).Select(d => d.Key)];
+        var planned = deliveries.Count(d => !loaded.Contains(d.Key) && d.Value.Any(c => !c.Delivered));
+        var delivered = deliveries.Count - loaded.Count - planned;
+        if (loaded.Count == 0)
+        {
+            return (LoadPlanner.RemoveMission(saved, ship, mission.Id), new GoneReport(mission, planned, delivered, 0, true));
+        }
 
-    private static bool OnBoard(SavedPlan saved, int missionId) => saved.Plan.Crates.Any(c => c.Mission == missionId && !c.Delivered && !c.Loaded);
+        HashSet<string> leaving = [.. deliveries.Keys.Where(d => !loaded.Contains(d))];
+        var kept = leaving.Count == 0 ? saved : LoadPlanner.RemoveDeliveries(saved, ship, mission.Id, leaving);
+        return (Marked(kept, [mission], gone: true), new GoneReport(mission, planned, delivered, loaded.Count, false));
+    }
+
+    /// <summary>A mission's crates by destination: its deliveries that have crates (none while it waits).</summary>
+    private static Dictionary<string, Crate[]> Deliveries(SavedPlan saved, int missionId) =>
+        saved.Plan.Crates.Where(c => c.Mission == missionId).GroupBy(c => c.Destination).ToDictionary(g => g.Key, g => g.ToArray());
+
+    /// <summary>Something of the mission is on board, planned or loaded.</summary>
+    private static bool Aboard(SavedPlan saved, int missionId) => saved.Plan.Crates.Any(c => c.Mission == missionId && !c.Delivered);
+
+    /// <summary>The plan with these missions' captures marked gone or not; itself if there are none.</summary>
+    private static SavedPlan Marked(SavedPlan saved, IReadOnlyCollection<Mission> missions, bool gone)
+    {
+        if (missions.Count == 0)
+        {
+            return saved;
+        }
+
+        HashSet<int> ids = [.. missions.Select(m => m.Id)];
+        return new SavedPlan(
+            [.. saved.Missions.Select(m => ids.Contains(m.Id) ? m with { Contract = m.Contract! with { Gone = gone } } : m)],
+            saved.Plan,
+            saved.CrateCap,
+            saved.Watermark);
+    }
+
+    /// <summary>The plan with every gone capture detached (D81); itself if none is left to detach.</summary>
+    private static SavedPlan Detached(SavedPlan saved) =>
+        saved.Missions.Any(m => m.Contract is { Gone: true, Detached: false })
+            ? new SavedPlan(
+                [.. saved.Missions.Select(m => m.Contract is { Gone: true, Detached: false } contract ? m with { Contract = contract.AsDetached() } : m)],
+                saved.Plan,
+                saved.CrateCap,
+                saved.Watermark)
+            : saved;
 }

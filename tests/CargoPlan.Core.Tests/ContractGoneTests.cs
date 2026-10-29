@@ -38,10 +38,12 @@ public class ContractGoneTests
     private static SavedPlan Delivered(SavedPlan saved, string destination) =>
         With(saved, LoadPlanner.SetDelivered(saved.Plan, HullA, destination, true));
 
-    private static SavedPlan Keep(SavedPlan saved, params long[] present) => ContractSync.Apply(saved, HullA, [], [.. present]);
+    private static SavedPlan Keep(SavedPlan saved, params long[] present) => ContractSync.Apply(saved, HullA, [], Ids(present));
 
     private static SyncResult Remove(SavedPlan saved, params long[] present) =>
-        ContractSync.Sync(saved, HullA, [], [.. present], onGone: ContractGonePolicy.Remove);
+        ContractSync.Sync(saved, HullA, [], Ids(present), onGone: ContractGonePolicy.Remove);
+
+    private static HashSet<long> Ids(params long[] ids) => [.. ids];
 
     private static Mission? Of(SavedPlan saved, long id) => saved.Missions.SingleOrDefault(m => m.Contract!.ContractIds.Contains(id));
 
@@ -109,7 +111,7 @@ public class ContractGoneTests
     [Fact]
     public void Keep_reports_each_contract_kept()
     {
-        var result = ContractSync.Sync(FourStates(), HullA, [], [40]);
+        var result = ContractSync.Sync(FourStates(), HullA, [], Ids(40));
 
         result.Gone.Select(g => (g.Mission.Contract!.ContractIds[0], g.Planned, g.Delivered, g.Loaded, g.Left))
             .Should().Equal((36L, 0, 0, 0, false), (37L, 0, 0, 0, false), (38L, 0, 0, 0, false));
@@ -222,7 +224,7 @@ public class ContractGoneTests
     {
         var saved = Synced(Capture([36], Stop("Riker")));
 
-        var result = ContractSync.Sync(saved, HullA, [], [], databaseIsNew: true, onGone: ContractGonePolicy.Remove);
+        var result = ContractSync.Sync(saved, HullA, [], Ids(), databaseIsNew: true, onGone: ContractGonePolicy.Remove);
 
         result.AllAtOnce.Should().BeTrue();
         result.Saved.Missions.Single().Contract!.Gone.Should().BeTrue();
@@ -235,12 +237,12 @@ public class ContractGoneTests
     {
         var gone = Keep(FourStates(), 40);
 
-        var result = ContractSync.Sync(gone, HullA, [], [36, 37, 38, 40]);
+        var result = ContractSync.Sync(gone, HullA, [], Ids(36, 37, 38, 40));
 
         result.Saved.Missions.Should().OnlyContain(m => !m.Contract!.Gone);
         result.Back.Select(m => m.Contract!.ContractIds[0]).Should().Equal(36, 37, 38);
         Written(result.Saved).Should().Be(Written(FourStates()));
-        ContractSync.Apply(result.Saved, HullA, [], [36, 37, 38, 40]).Should().BeSameAs(result.Saved);
+        ContractSync.Apply(result.Saved, HullA, [], Ids(36, 37, 38, 40)).Should().BeSameAs(result.Saved);
     }
 
     // --- a new database (K2) ---
@@ -250,11 +252,11 @@ public class ContractGoneTests
     {
         var old = Synced(Capture([1], Stop("Riker")), Capture([2], Stop("Shubin")));
 
-        var reset = ContractSync.Apply(old, HullA, [Capture([1], Stop("Orison"))], [], databaseIsNew: true);
+        var reset = ContractSync.Apply(old, HullA, [Capture([1], Stop("Orison"))], Ids(), databaseIsNew: true);
 
         reset.Missions.Select(m => (m.Stops[0].Destination, m.Contract!.Gone, m.Contract.Detached))
             .Should().Equal(("Riker", true, true), ("Shubin", true, true), ("Orison", false, false));
-        ContractSync.Apply(reset, HullA, [], [1]).Should().BeSameAs(reset, "the old #1 is detached: the new #1 doesn't bring it back");
+        ContractSync.Apply(reset, HullA, [], Ids(1)).Should().BeSameAs(reset, "the old #1 is detached: the new #1 doesn't bring it back");
     }
 
     [Fact]
@@ -262,7 +264,7 @@ public class ContractGoneTests
     {
         var old = Loaded(Synced(Capture([1], Stop("Riker"))), "Riker");
         // The same crates: by id alone, the new #1 would take the old one's loaded cargo.
-        var reset = ContractSync.Apply(old, HullA, [Capture([1], Stop("Riker"))], [], databaseIsNew: true);
+        var reset = ContractSync.Apply(old, HullA, [Capture([1], Stop("Riker"))], Ids(), databaseIsNew: true);
         var (detached, fresh) = (reset.Missions[0], reset.Missions[1]);
 
         var (planned, _) = LoadPlanner.PlanKeeping(reset, HullA, [fresh, detached], ["Riker"]);
@@ -296,7 +298,7 @@ public class ContractGoneTests
     [Fact]
     public void Write_then_Read_keeps_gone_and_detached()
     {
-        var saved = ContractSync.Apply(Synced(Capture([1], Stop("Riker")), Capture([2], Stop("Shubin"))), HullA, [Capture([1], Stop("Orison"))], [], databaseIsNew: true);
+        var saved = ContractSync.Apply(Synced(Capture([1], Stop("Riker")), Capture([2], Stop("Shubin"))), HullA, [Capture([1], Stop("Orison"))], Ids(), databaseIsNew: true);
 
         Written(Read(Written(saved))).Should().Be(Written(saved));
         Read(Written(saved)).Missions.Select(m => (m.Contract!.Gone, m.Contract.Detached)).Should().Equal((true, true), (true, true), (false, false));
