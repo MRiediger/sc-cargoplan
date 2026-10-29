@@ -15,7 +15,7 @@ doesn't mind.
 
 ```json
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
   "contractTrackerWatermark": 37,
@@ -54,7 +54,7 @@ fields are an error.
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `7`. Files with `1` to `6` are still read, see [Older plan files](#older-plan-files). |
+| `schemaVersion` | number | `8`. Files with `1` to `7` are still read, see [Older plan files](#older-plan-files). |
 | `shipId` | string | The ship the plan is for, e.g. `"hull_a"` ([ship files](ship-format.md)). |
 | `fillOrder` | string | `"bowFirst"` or `"sternFirst"`: which end of a rack's length crates fill from, when planned and when laid out again, e.g. after a move. Chosen as **Fill order** in the editor. Part of the plan, so everyone loading it sees the same layout. |
 | `contractTrackerWatermark` | number | The highest ContractTracker id taken into the plan, `0` for none. Captures above it are new; it only rises. |
@@ -78,10 +78,12 @@ pickup list when items name their pickup.
 
 | Field | Type | Rules |
 |---|---|---|
-| `contractIds` | array | ContractTracker's ids of the capture's rows, at least one. Once all of them are deleted in ContractTracker and nothing of the mission is on board, the mission leaves the plan. |
+| `contractIds` | array | ContractTracker's ids of the capture's rows, at least one. Once all of them are gone from ContractTracker, the mission is marked `gone` and stays; with `contractTracker.onContractGone` set to `"remove"` ([settings](settings-format.md#contracttracker)) its planned and delivered deliveries leave instead, loaded ones never. |
 | `crateSizeAssumed` | boolean | The contract named no max crate size; the legend shows the size with a `?`. |
 | `listedDestinations` | number | Optional: how many destinations the contract's drop-off list names. More than the mission's stops: the legend warns that destinations are missing. |
 | `reward` | number | Optional: the contract's reward as read from the capture. Left out when unknown. Two captures with different rewards are never marked as duplicates. |
+| `gone` | boolean | Optional, written only as `true` (schema 8): ContractTracker no longer lists any of `contractIds`. The legend's header and the editor say "gone"; a waiting mission that is gone isn't placed. Back in ContractTracker with one of its ids, the mark goes. |
+| `detached` | boolean | Optional, written only as `true` (schema 8), only with `gone`: the ids are an earlier ContractTracker database's. They are shown but never compared again, so a new contract with the same id is another one and this mission never comes back. Without `gone` it is an error. |
 
 ### Crate
 
@@ -117,8 +119,11 @@ red; the planner and the overlay's moves never make them.
 
 ## Older plan files
 
-All older versions are read and saved as schema 7 right after loading; moves and ticks stay. An app from before
-schema 7 refuses a schema 7 file, so it never plans loaded cargo anew.
+All older versions are read and saved as schema 8 right after loading; moves and ticks stay. An app from before
+schema 8 refuses a schema 8 file, so it never takes a gone contract for one ContractTracker still lists.
+
+- **Schema 7** (before contracts gone from ContractTracker stayed in the plan) has no `gone` and no `detached`: every
+  capture counts as listed until the next sync says otherwise. `gone` in a schema 7 file is an error.
 
 - **Schema 6** (before cargo could be loaded) has no `loaded` and no `manual`: nothing is loaded, no item was added by
   hand. Either in a schema 6 file is an error.
