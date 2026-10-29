@@ -2523,7 +2523,7 @@ scrollen, „doesn't fit“, Verstöße und Paletten-Hinweis bleiben darunter; P
 
 ## Bugfix Sync-Gone (D81) (29.10.2026) – Branch `fix/sync-gone-keeps-plan`, Blocker für v0.1.0
 
-### [ ] S1 Verschwundene CT-Verträge bleiben im Plan (D81, Plan-Schema 8)
+### [x] S1 Verschwundene CT-Verträge bleiben im Plan (D81, Plan-Schema 8) (abgenommen 29.10.2026)
 **Warum (Brief von Claude.ai als Reviewer):** Der Sync behandelte einen in CT verschwundenen Vertrag als erledigt und nahm
 ihn aus dem Plan. CT verliert Verträge aus vielen Gründen (OCR, Neustart, Löschen in CT, im Spiel abgebrochen mit Fracht
 an Bord); Datenverlust im Plan darf nie die Folge eines fremden Tools sein.
@@ -2551,7 +2551,7 @@ kept 1 loaded`, `… – removed, it was waiting`, `Contract #47 back in Contrac
 ContractTracker at once – kept in plan`; P9 Reset im Abschnitt setzt Auto-sync und gone zurück, der Pfad behält „Detect
 automatically“; P10 Branch ab main f3f9996, `docs/t75c-followup` unberührt.
 
-**Beim Bauen hinzugekommen, zur Ratifizierung (nicht im freigegebenen Plan):** E1 eine neue CT-Datenbank leert die
+**Beim Bauen hinzugekommen, ratifiziert durch Abnahme (Martin, 29.10.2026):** E1 eine neue CT-Datenbank leert die
 Undo-Historie (`Undo history cleared by new ContractTracker database`): die Schnappschüsse tragen die alten Ids nicht
 abgehängt, ein Resync würde sie mit den neuen verwechseln (wie D74 beim Schiffswechsel); E2 `ContractSync.Quiet` ersetzt
 die frühe Rückkehr „alle bekannten Ids da“, die eine Rückkehr nicht erkannte; folglich geht eine gone-Mission, die man
@@ -2589,19 +2589,21 @@ schon gone 0,00, zwei zurück 0,73; weit unter 16 ms (K2.4). Goldens nur `schema
 - [x] remove: geplant und abgeliefert weg, geladen bleibt mit Flag, gemischte Mission nur das Ungeladene weg; später nur
   ganz und ohne Geplantes/Geladenes (K1); wartend weg
 - [x] Rückkehr entfernt das Flag, idempotent; alle auf einmal / neue Datenbank entfernen nichts, auch der zweite Sync nicht
-- [ ] Neue Datenbank: alte Ids abgehängt, neuer Vertrag #1 ist neu (K2); Undo-Historie geleert (E1, zur Ratifizierung)
+- [x] Neue Datenbank: alte Ids abgehängt, neuer Vertrag #1 ist neu (K2); Undo-Historie geleert (E1, ratifiziert)
 - [x] Schema 8 mit Migration 7 → 8 (Golden), `gone` in 7 und `detached` ohne `gone` abgelehnt
 - [x] Undo nach markierendem Sync: Flag wieder da; Sync bleibt kein Schritt
 - [x] Legende `· gone` fest nach der Id, Editor `#47 · gone`, Sortierung unverändert, Editor-Plan behält die Marke
 - [x] `contractTracker.onContractGone` in settings.json, Settings-Fenster und Reset; unbekannter Wert → keep mit Problemzeile
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün; Zahl vorher/nachher
-- [ ] Look-Gate (Martin): `· gone` in der Kopfzeile bei 420 px; Zeile und Reset im Abschnitt ContractTracker
-- [ ] Gate (Martin, im Spiel): Vertrag annehmen → Sync → laden → in CT löschen → bleibt mit `· gone`, Kisten unverändert;
+- [x] Look-Gate (Martin, 29.10.): `· gone` in der Kopfzeile bei 420 px; Zeile und Reset im Abschnitt ContractTracker
+- [x] Gate (Martin, mit ContractTracker, 29.10.; Absturz bei `remove` gefunden und behoben, s. u.): Vertrag annehmen → Sync → laden → in CT löschen → bleibt mit `· gone`, Kisten unverändert;
   mit remove: abgeben → abhaken → Sync → weg
 - Gate-Befund (Martin, 29.10.): `remove` mit geladenen Stopps 2 und 3 stürzte ab (Kisten behielten die Item-Indizes der
   gestrichenen Stopps, D68); `RemoveDeliveries` nummeriert sie neu, Regressionstest. Tests Core 1.491 → 1.492.
 - Commits 1e264df (Tests rot Core), 9eca83f (Core), a406540 (Tests rot App), 1469c81 (App), af83a2f (Label), 9acfc6b
-  (Doku), 8d64da5 (Test rot Absturz), Fix-Commit; Wiki d486ad5.
+  (Doku), 8d64da5 (Test rot Absturz), 2b24418 (Fix); Wiki d486ad5.
+- Offen (nicht Teil von S1): einmalige Notice bei teilweise gelöschten CT-Zeilen einer Aufnahme; Auffangnetz, damit ein
+  Fehler im Sync die App nicht beendet; Aufnahmen D3/D4 (Abschnitt ContractTracker) neu.
 
 ---
 
