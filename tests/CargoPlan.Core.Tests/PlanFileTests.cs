@@ -146,7 +146,7 @@ public class PlanFileTests
     {
         var node = JsonNode.Parse(Written(Planned(MissionFixtures.LoadMissions("example_missions"))))!;
 
-        node["schemaVersion"]!.GetValue<int>().Should().Be(7);
+        node["schemaVersion"]!.GetValue<int>().Should().Be(PlanFile.SupportedSchemaVersion);
         node["shipId"]!.GetValue<string>().Should().Be("hull_a");
         node["fillOrder"]!.GetValue<string>().Should().Be("bowFirst");
         node["contractTrackerWatermark"]!.GetValue<long>().Should().Be(0);

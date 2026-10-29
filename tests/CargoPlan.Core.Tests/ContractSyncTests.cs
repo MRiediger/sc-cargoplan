@@ -78,14 +78,15 @@ public class ContractSyncTests
     }
 
     [Fact]
-    public void Apply_of_a_new_database_removes_old_missions_that_are_delivered()
+    public void Apply_of_a_new_database_keeps_old_missions_gone_and_detached()
     {
-        // The old file's ids are gone with it: a delivered mission leaves, as if deleted in ContractTracker.
+        // The old file's ids are gone with it: the old mission stays, marked, its ids no longer compared (D81).
         var saved = Delivered(Applied(Empty, Capture([50], Stop("Riker"))), "Riker");
 
         var applied = ContractSync.Apply(saved, HullA, [Capture([1], Stop("Shubin"))], Present(), databaseIsNew: true);
 
-        applied.Missions.Select(m => m.Contract!.ContractIds.Single()).Should().Equal(1);
+        applied.Missions.Select(m => (m.Contract!.ContractIds.Single(), m.Contract.Gone, m.Contract.Detached))
+            .Should().Equal((50L, true, true), (1L, false, false));
         applied.Watermark.Should().Be(1);
     }
 
@@ -98,34 +99,37 @@ public class ContractSyncTests
     }
 
     [Fact]
-    public void Apply_removes_a_mission_deleted_in_ContractTracker_once_it_is_delivered()
+    public void Apply_keeps_a_mission_deleted_in_ContractTracker_and_marks_it_gone()
     {
+        // Keep is the default (D81): a delivered mission stays too, until the player deletes it.
         var saved = Delivered(Applied(Empty, Capture([36], Stop("Riker")), Capture([37], Stop("Shubin"))), "Riker");
 
         var synced = ContractSync.Apply(saved, HullA, [], Present(37));
 
-        synced.Missions.Select(m => m.Contract!.ContractIds[0]).Should().Equal(37);
-        synced.Plan.Crates.Should().OnlyContain(c => c.Destination == "Shubin");
+        synced.Missions.Select(m => (m.Contract!.ContractIds[0], m.Contract.Gone)).Should().Equal((36L, true), (37L, false));
+        synced.Plan.Crates.Should().Equal(saved.Plan.Crates);
     }
 
     [Fact]
-    public void Apply_keeps_a_deleted_mission_with_crates_on_board_and_names_it_a_conflict()
+    public void Apply_keeps_a_deleted_mission_with_crates_on_board_and_marks_it_gone()
     {
         var saved = Applied(Empty, Capture([36], Stop("Riker")));
 
         var synced = ContractSync.Apply(saved, HullA, [], Present());
 
-        synced.Should().BeSameAs(saved);
-        ContractSync.Conflicts(synced, Present()).Should().Equal(1);
+        synced.Missions.Single().Contract!.Gone.Should().BeTrue();
+        synced.Plan.Should().BeSameAs(saved.Plan);
     }
 
     [Fact]
-    public void Apply_removes_a_deleted_mission_that_didnt_fit()
+    public void Apply_keeps_a_deleted_mission_that_didnt_fit_waiting()
     {
         // More than the Hull A holds; a 32 SCU crate would be capped to two 16s and fit (D70).
         var saved = Applied(Empty, Capture([36], Stop("Riker", "Gold", 72, CrateSize.Eight)));
 
-        ContractSync.Apply(saved, HullA, [], Present()).Missions.Should().BeEmpty();
+        var synced = ContractSync.Apply(saved, HullA, [], Present());
+
+        synced.Missions.Single().Should().Match<Mission>(m => m.Unplaced && m.Contract!.Gone);
     }
 
     [Fact]
@@ -167,14 +171,6 @@ public class ContractSyncTests
 
         synced.MissionOf(5).Unplaced.Should().BeFalse();
         synced.MissionOf(6).Unplaced.Should().BeTrue();
-    }
-
-    [Fact]
-    public void Conflicts_ignore_missions_without_crates_on_board()
-    {
-        var saved = Delivered(Applied(Empty, Capture([36], Stop("Riker"))), "Riker");
-
-        ContractSync.Conflicts(saved, Present()).Should().BeEmpty();
     }
 
     // --- Duplicates ---

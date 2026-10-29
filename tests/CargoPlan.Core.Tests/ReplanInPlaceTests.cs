@@ -212,6 +212,6 @@ public class ReplanInPlaceTests
 
         again.Missions.Select(m => (m.Id, m.Contract)).Should().Equal(replanned.Missions.Select(m => (m.Id, m.Contract)));
         again.Plan.Crates.Should().Equal(replanned.Plan.Crates);
-        ContractSync.Conflicts(again, new HashSet<long>([36, 37, 38])).Should().BeEmpty();
+        again.Missions.Should().OnlyContain(m => !m.Contract!.Gone);
     }
 }
