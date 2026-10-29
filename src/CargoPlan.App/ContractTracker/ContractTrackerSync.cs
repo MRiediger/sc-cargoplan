@@ -23,10 +23,19 @@ public sealed class ContractTrackerSync : IDisposable
     public static string NotFoundText(string databasePath) =>
         $"ContractTracker not found at {databasePath} – set the path in the settings.";
 
+    public const string PausedText = "Sync paused – check ContractTracker file";
+
+    /// <summary>Failures in a row before a tick stops reading (D82).</summary>
+    public const int MaxFailures = 5;
+
+    public static string FailedText(Exception error) =>
+        $"ContractTracker sync failed: {error.GetType().Name}: {error.Message} – details in cargoplan.log";
+
     private readonly OverlayViewModel _viewModel;
     private string _databasePath;
     private bool _autoSync;
     private readonly Func<string, long, IReadOnlyCollection<long>, ContractTrackerReadResult> _read;
+    private readonly Action<string, Exception> _log;
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
     private readonly DispatcherTimer _timer = new() { Interval = Debounce };
     private FileSystemWatcher? _watcher;
@@ -39,16 +48,19 @@ public sealed class ContractTrackerSync : IDisposable
     /// <param name="read">The reader; <see cref="ContractTrackerReader.Read(string, long, IReadOnlyCollection{long})"/> by
     /// default, replaced in tests.</param>
     /// <param name="autoSync">false = the watcher only counts new captures (D44).</param>
+    /// <param name="log">Where a failed sync's exception goes; <see cref="AppLog.Write"/> by default, replaced in tests.</param>
     public ContractTrackerSync(
         OverlayViewModel viewModel,
         string databasePath,
         Func<string, long, IReadOnlyCollection<long>, ContractTrackerReadResult>? read = null,
-        bool autoSync = true)
+        bool autoSync = true,
+        Action<string, Exception>? log = null)
     {
         _viewModel = viewModel;
         _databasePath = databasePath;
         _autoSync = autoSync;
         _read = read ?? ContractTrackerReader.Read;
+        _log = log ?? AppLog.Write;
         _timer.Tick += OnTick;
     }
 
@@ -190,8 +202,9 @@ public sealed class ContractTrackerSync : IDisposable
         _timer.Start();
     }
 
-    // async void: an event handler (CLAUDE.md). SyncAsync handles the expected failure; anything else is a bug and surfaces.
-    private async void OnTick(object? sender, EventArgs e)
+    public Task RunSyncGuardedAsync(bool manual = false) => SyncAsync(manual);
+
+    public async Task TickAsync()
     {
         _timer.Stop();
         if (ContractTrackerFileState.Of(_databasePath) == _afterLastRead)
@@ -201,4 +214,7 @@ public sealed class ContractTrackerSync : IDisposable
 
         await SyncAsync();
     }
+
+    // async void: an event handler (CLAUDE.md). SyncAsync handles the expected failure; anything else is a bug and surfaces.
+    private async void OnTick(object? sender, EventArgs e) => await TickAsync();
 }

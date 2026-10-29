@@ -196,4 +196,146 @@ public sealed class ContractTrackerSyncTests : IDisposable
 
         reads.Should().Be(2, "one read at a time, and the requests made meanwhile need one more, not two");
     }
+
+    // --- Safety net (D82) ---
+
+    /// <summary>A reader that fails while <see cref="Fail"/> is set, counting its reads; the first success brings a mission.</summary>
+    private sealed class FlakyReader
+    {
+        public bool Fail { get; set; } = true;
+
+        public int Reads { get; private set; }
+
+        public List<Exception> Logged { get; } = [];
+
+        public ContractTrackerReadResult Read(string path, long watermark, IReadOnlyCollection<long> known)
+        {
+            Reads++;
+            return Fail
+                ? throw new InvalidOperationException("boom")
+                : new ContractTrackerReadResult([.. new[] { 36L }.Where(id => id > watermark).Select(id => Candidate(id, "Riker"))], null, new HashSet<long>());
+        }
+
+        public void Log(string context, Exception error) => Logged.Add(error);
+    }
+
+    private ContractTrackerSync Sync(OverlayViewModel overlay, FlakyReader reader) =>
+        new(overlay, DatabasePath, reader.Read, log: reader.Log);
+
+    // ContractTracker wrote: the files differ from the last read.
+    private void Write() => File.AppendAllText(DatabasePath, "x");
+
+    private async Task FailTicks(ContractTrackerSync sync, int count)
+    {
+        for (var i = 0; i < count; i++)
+        {
+            Write();
+            await sync.TickAsync();
+        }
+    }
+
+    [Fact]
+    public async Task A_tick_with_a_thrown_exception_keeps_the_plan_and_the_app()
+    {
+        var overlay = Overlay();
+        FlakyReader reader = new() { Fail = false };
+        using var sync = Sync(overlay, reader);
+        Write();
+        await sync.TickAsync();
+        var before = overlay.Saved;
+
+        reader.Fail = true;
+        Write();
+        var tick = () => sync.TickAsync();
+
+        await tick.Should().NotThrowAsync();
+        before.Should().NotBeNull();
+        overlay.Saved.Should().BeSameAs(before);
+        overlay.Notices.Should().Equal(ContractTrackerSync.FailedText(new InvalidOperationException("boom")));
+        overlay.Notices[0].Should().Be("ContractTracker sync failed: InvalidOperationException: boom – details in cargoplan.log");
+        reader.Logged.Should().ContainSingle().Which.StackTrace.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task The_same_failure_shows_its_notice_once_until_a_sync_succeeds()
+    {
+        var overlay = Overlay();
+        FlakyReader reader = new();
+        using var sync = Sync(overlay, reader);
+        await FailTicks(sync, 1);
+
+        overlay.ShowContractTrackerProblem("x");
+        await FailTicks(sync, 1);
+
+        overlay.Notices.Should().Equal("x");
+        reader.Logged.Should().HaveCount(2, "the log gets every failure");
+
+        reader.Fail = false;
+        await FailTicks(sync, 1);
+        reader.Fail = true;
+        await FailTicks(sync, 1);
+
+        overlay.Notices.Should().Equal(ContractTrackerSync.FailedText(new InvalidOperationException("boom")));
+    }
+
+    [Fact]
+    public async Task The_fifth_failure_in_a_row_pauses_the_sync()
+    {
+        var overlay = Overlay();
+        FlakyReader reader = new();
+        using var sync = Sync(overlay, reader);
+
+        await FailTicks(sync, ContractTrackerSync.MaxFailures);
+
+        overlay.Notices.Should().Equal(ContractTrackerSync.PausedText);
+        ContractTrackerSync.PausedText.Should().Be("Sync paused – check ContractTracker file");
+
+        await sync.TickAsync();
+        reader.Reads.Should().Be(ContractTrackerSync.MaxFailures, "paused: the files are as they were");
+
+        Write();
+        await sync.TickAsync();
+        reader.Reads.Should().Be(ContractTrackerSync.MaxFailures + 1, "ContractTracker wrote: the tick tries again");
+    }
+
+    [Fact]
+    public async Task A_success_resets_the_failure_count()
+    {
+        var overlay = Overlay();
+        FlakyReader reader = new();
+        using var sync = Sync(overlay, reader);
+        await FailTicks(sync, ContractTrackerSync.MaxFailures - 1);
+
+        reader.Fail = false;
+        await FailTicks(sync, 1);
+        reader.Fail = true;
+        await FailTicks(sync, ContractTrackerSync.MaxFailures - 1);
+
+        overlay.Notices.Should().Equal(ContractTrackerSync.FailedText(new InvalidOperationException("boom")));
+        reader.Reads.Should().Be(2 * ContractTrackerSync.MaxFailures - 1);
+    }
+
+    [Fact]
+    public async Task A_manual_sync_lifts_the_pause_only_when_it_succeeds()
+    {
+        var overlay = Overlay();
+        FlakyReader reader = new();
+        using var sync = Sync(overlay, reader);
+        await FailTicks(sync, ContractTrackerSync.MaxFailures);
+
+        var manual = () => sync.RunSyncGuardedAsync(manual: true);
+        await manual.Should().NotThrowAsync();
+        await sync.TickAsync();
+
+        reader.Reads.Should().Be(ContractTrackerSync.MaxFailures + 1, "the button read, the tick stayed paused");
+
+        reader.Fail = false;
+        await sync.RunSyncGuardedAsync(manual: true);
+        reader.Fail = true;
+        await FailTicks(sync, 1);
+        await sync.TickAsync();
+
+        overlay.Notices.Should().Equal(ContractTrackerSync.FailedText(new InvalidOperationException("boom")));
+        reader.Reads.Should().Be(ContractTrackerSync.MaxFailures + 4, "no pause after the success: the last tick read again");
+    }
 }
