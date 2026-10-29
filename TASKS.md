@@ -2579,7 +2579,7 @@ umgebrochen); E5 „Known issues“ gibt es nur im Wiki (Troubleshooting), dort 
 Watcher-Read ohne Neues 0,01 → 0,00 ms, Button ohne Neues 0,05 → 0,05, zwei weg 0,07 → 1,22 (jetzt markiert: neue
 Szene), zwei weg und alles abgeliefert 0,55 → 0,68; neu: remove 0,84, remove alles abgeliefert 0,54, Watcher-Read mit zwei
 schon gone 0,00, zwei zurück 0,73; weit unter 16 ms (K2.4). Goldens nur `schemaVersion`, Slow grün. Tests Core
-1.467 → 1.491, App 1.435 → 1.458, Import 141.
+1.467 → 1.492, App 1.435 → 1.458, Import 141.
 
 **Nebenbefund (nicht behoben):** `ContractTrackerSettings.DatabasePath` (berechnet) wird in settings.json mitgeschrieben
 (`"databasePath": …`), beim Lesen ignoriert; das neue `GonePolicy` trägt `[JsonIgnore]`.
@@ -2598,7 +2598,10 @@ schon gone 0,00, zwei zurück 0,73; weit unter 16 ms (K2.4). Goldens nur `schema
 - [ ] Look-Gate (Martin): `· gone` in der Kopfzeile bei 420 px; Zeile und Reset im Abschnitt ContractTracker
 - [ ] Gate (Martin, im Spiel): Vertrag annehmen → Sync → laden → in CT löschen → bleibt mit `· gone`, Kisten unverändert;
   mit remove: abgeben → abhaken → Sync → weg
-- Commits 1e264df (Tests rot Core), 9eca83f (Core), a406540 (Tests rot App), 1469c81 (App), Doku-Commit; Wiki eigener Commit.
+- Gate-Befund (Martin, 29.10.): `remove` mit geladenen Stopps 2 und 3 stürzte ab (Kisten behielten die Item-Indizes der
+  gestrichenen Stopps, D68); `RemoveDeliveries` nummeriert sie neu, Regressionstest. Tests Core 1.491 → 1.492.
+- Commits 1e264df (Tests rot Core), 9eca83f (Core), a406540 (Tests rot App), 1469c81 (App), af83a2f (Label), 9acfc6b
+  (Doku), 8d64da5 (Test rot Absturz), Fix-Commit; Wiki d486ad5.
 
 ---
 

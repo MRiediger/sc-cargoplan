@@ -863,14 +863,29 @@ public static class LoadPlanner
     /// <summary>
     /// Takes a mission's deliveries to <paramref name="destinations"/> out of the plan with their items and crates, the rest
     /// of it stays (D81: a contract gone from ContractTracker keeps its loaded deliveries). What rested on the crates settles
-    /// as in <see cref="RemoveMission"/>. At least one delivery stays; the original stays unchanged.
+    /// as in <see cref="RemoveMission"/>; the crates left name their items anew, counted over the stops left (D68). At least
+    /// one delivery stays; the original stays unchanged.
     /// </summary>
     internal static SavedPlan RemoveDeliveries(SavedPlan saved, Ship ship, int missionId, IReadOnlySet<string> destinations)
     {
         var mission = saved.MissionOf(missionId);
         var rest = Without(mission, destinations.Select(d => (missionId, d)).ToHashSet())
             ?? throw new ArgumentException($"Mission {missionId} would keep no delivery.", nameof(destinations));
-        var plan = saved.Plan with { Crates = [.. saved.Plan.Crates.Where(c => c.Mission != missionId || !destinations.Contains(c.Destination))] };
+
+        // Old item index → new one: Without keeps the stops left in their order (Mission.Items counts in it).
+        var items = mission.Items.Select((at, index) => (at.Stop.Destination, index))
+            .Where(at => !destinations.Contains(at.Destination))
+            .Select((at, index) => (Old: at.index, New: index))
+            .ToDictionary(at => at.Old, at => at.New);
+        var plan = saved.Plan with
+        {
+            Crates =
+            [
+                .. saved.Plan.Crates
+                    .Where(c => c.Mission != missionId || !destinations.Contains(c.Destination))
+                    .Select(c => c.Mission == missionId ? c with { Item = items[c.Item] } : c),
+            ],
+        };
         return new SavedPlan(
             [.. saved.Missions.Select(m => m == mission ? rest : m)],
             WithHints(Settled(plan, ship), ship),
