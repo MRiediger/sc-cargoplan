@@ -151,6 +151,21 @@ public class ContractGoneTests
     }
 
     [Fact]
+    public void Remove_of_a_mission_loaded_in_its_middle_stops_renumbers_their_crates_items()
+    {
+        // Martin's crash (29 Oct): stops 2 and 3 loaded, 1 and 4 planned; the loaded crates named items 1 and 2 of four.
+        var saved = Loaded(Loaded(Synced(Capture([36], Stop("Riker"), Stop("Shubin"), Stop("Orison"), Stop("Lorville")), Capture([40], Stop("Hurston"))), "Shubin"), "Orison");
+
+        var result = Remove(saved, 40);
+
+        var mission = Of(result.Saved, 36)!;
+        mission.Stops.Select(s => s.Destination).Should().Equal("Shubin", "Orison");
+        result.Saved.Plan.Crates.Where(c => c.Mission == mission.Id).Select(c => (c.Destination, c.Item)).Distinct()
+            .Should().BeEquivalentTo([("Shubin", 0), ("Orison", 1)]);
+        Written(Read(Written(result.Saved))).Should().Be(Written(result.Saved));
+    }
+
+    [Fact]
     public void Remove_takes_a_waiting_contract()
     {
         var result = Remove(Full(), 1, 2, 3, 4);
