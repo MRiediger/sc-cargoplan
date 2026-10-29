@@ -81,12 +81,25 @@ public class UndoRestoreTests
     }
 
     [Fact]
-    public void A_contract_gone_from_ContractTracker_leaves_the_restored_plan_unless_on_board()
+    public void A_contract_gone_from_ContractTracker_is_marked_gone_in_the_restored_plan()
+    {
+        // The snapshot is from before the sync that marked it; the resync marks it again (D81).
+        var before = Ticked(Synced(Empty, Capture(36, "Riker"), Capture(37, "Shubin")), "Riker");
+        var after = Moved(before, "Shubin");
+        var current = ContractSync.Apply(after, HullA, [], new HashSet<long> { 37 });
+
+        var restored = ContractSync.Resync(before, after, current, HullA, new HashSet<long> { 37 });
+
+        restored.Missions.Select(m => (m.Contract!.ContractIds.Single(), m.Contract.Gone)).Should().Equal((36L, true), (37L, false));
+    }
+
+    [Fact]
+    public void With_remove_a_delivered_contract_gone_since_leaves_the_restored_plan()
     {
         var before = Ticked(Synced(Empty, Capture(36, "Riker"), Capture(37, "Shubin")), "Riker");
         var after = Moved(before, "Shubin");
 
-        var restored = ContractSync.Resync(before, after, after, HullA, new HashSet<long> { 37 });
+        var restored = ContractSync.Resync(before, after, after, HullA, new HashSet<long> { 37 }, ContractGonePolicy.Remove);
 
         restored.Missions.Select(m => m.Contract!.ContractIds.Single()).Should().Equal(37);
     }

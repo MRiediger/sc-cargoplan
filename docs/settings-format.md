@@ -27,7 +27,7 @@ values.
   "holoEdgeColor": "#FFE6E6E6",
   "shipView": { "maxZoomPxPerCell": 160 },
   "toolWindowTheme": "system",
-  "contractTracker": { "path": null, "autoSync": true },
+  "contractTracker": { "path": null, "autoSync": true, "onContractGone": "keep" },
   "appearance": {
     "window": {
       "background": "#A0141414",
@@ -254,10 +254,13 @@ own place and takes every capture into the plan by itself.
 |---|---|---|
 | `contractTracker.path` | Full path of ContractTracker's `contracts.db`; `null` = `%AppData%\SCContractTracker\contracts.db` | `null` |
 | `contractTracker.autoSync` | `true`: captures come into the plan by themselves. `false`: an amber line says "N new contracts"; **Sync from ContractTracker** (editor or hotkey) takes them in | `true` |
+| `contractTracker.onContractGone` | What a sync does with a contract ContractTracker no longer lists. `"keep"`: it stays as it is, crates, positions and ticks included, its legend header and editor row say "gone"; you delete it in the editor or with **Discard plan**. `"remove"`: when it goes, its planned and delivered cargo leaves; loaded cargo never leaves by itself, the contract stays marked gone and leaves at a later sync once that cargo is delivered. Contracts listed again lose the mark. When every contract goes in one read, or the database is new, nothing leaves either way | `"keep"` |
 
-The settings window sets both (**Browse…**, **Detect automatically**, **Auto-sync**); a new path is watched at once,
-without a restart. A path whose file doesn't exist is kept: ContractTracker may come later. The settings window
-says "ContractTracker not found" and links to its page.
+The settings window sets all three (**Browse…**, **Detect automatically**, **Auto-sync**, **When a contract
+disappears from ContractTracker**); a new path is watched at once, without a restart, and a new choice holds from
+the next read. **Reset to defaults** in the section sets auto-sync and gone contracts back; the path keeps
+**Detect automatically**. A path whose file doesn't exist is kept: ContractTracker may come later. The settings
+window says "ContractTracker not found" and links to its page.
 
 ## Ship
 
@@ -324,6 +327,7 @@ ship, the ship and the hologram download switch are not in it: they belong to yo
 - **A tool window theme that isn't one** (`"blue"`, `"Dark"`) takes `system`.
 - **A stop palette that isn't one** (`"ibm"`, `"OkabeIto"`) takes `okabeIto`.
 - **A ContractTracker path that isn't a full path** (`"contracts.db"`, `""`) is detected instead (`null`).
+- **A choice for gone contracts that isn't one** (`"delete"`, `"Keep"`) takes `keep`.
 - In all these cases everything else in the file applies, and an amber line in the overlay names the value. The
   file stays as it is until you move the overlay or change a setting; then it is saved with the corrected values.
 - **A misspelt key** (`"fontsize"`), **a wrong type** (`"fontSize": "big"`), `null` for a colour or a file
@@ -340,7 +344,7 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView`, `appearance.legend.checkBoxColor`, `appearance.legend.checkMarkColor`, `appearance.crates.stopPalette`, `appearance.crates.selectionColor`, `appearance.crates.selectionWidth` `appearance.crates.selectionOutline` and `legend.maxHeightShare` came later as optional parts of version 2 |
+| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView`, `appearance.legend.checkBoxColor`, `appearance.legend.checkMarkColor`, `appearance.crates.stopPalette`, `appearance.crates.selectionColor`, `appearance.crates.selectionWidth` `appearance.crates.selectionOutline`, `legend.maxHeightShare` and `contractTracker.onContractGone` came later as optional parts of version 2 |
 
 A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
 version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a

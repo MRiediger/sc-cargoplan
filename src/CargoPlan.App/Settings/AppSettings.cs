@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using CargoPlan.Core.Planning;
 using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Settings;
@@ -161,10 +163,17 @@ public sealed record HotkeySettings(
 /// <param name="Path">null = detect it at ContractTracker's one place (D38); otherwise a full path, checked by
 /// <see cref="AppearanceRules.NormalizeContractTracker"/>.</param>
 /// <param name="AutoSync">false = a capture only gives the notice "N new contracts"; the editor's button or the hotkey takes them in.</param>
-public sealed record ContractTrackerSettings(string? Path = null, bool AutoSync = true)
+/// <param name="OnContractGone">What a sync does with a contract ContractTracker no longer lists (D81): "keep" or "remove",
+/// checked by <see cref="AppearanceRules.NormalizeContractTracker"/>; a new key without a schema bump.</param>
+public sealed record ContractTrackerSettings(string? Path = null, bool AutoSync = true, string OnContractGone = ContractGonePolicies.DefaultName)
 {
     public static ContractTrackerSettings Default { get; } = new();
 
     /// <summary>The file the sync reads: <see cref="Path"/>, or ContractTracker's own place.</summary>
     public string DatabasePath => Path ?? ContractTrackerReader.DefaultPath;
+
+    /// <summary><see cref="OnContractGone"/> parsed; not a key of its own in the file.</summary>
+    /// <exception cref="FormatException">Not normalized: a bug.</exception>
+    [JsonIgnore]
+    public ContractGonePolicy GonePolicy => ContractGonePolicies.Parse(OnContractGone);
 }

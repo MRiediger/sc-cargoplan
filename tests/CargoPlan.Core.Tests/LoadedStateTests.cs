@@ -98,7 +98,7 @@ public class LoadedStateTests
     {
         var node = JsonNode.Parse(Written(RikerLoaded()))!;
 
-        node["schemaVersion"]!.GetValue<int>().Should().Be(7);
+        node["schemaVersion"]!.GetValue<int>().Should().Be(PlanFile.SupportedSchemaVersion);
         var crates = node["crates"]!.AsArray().Select(c => c!.AsObject()).ToList();
         crates.Where(c => c.ContainsKey("loaded")).Select(c => (string)c["destination"]!).Should().Equal("Riker", "Riker");
         crates.Where(c => c.ContainsKey("loaded")).Should().OnlyContain(c => c["loaded"]!.GetValue<bool>());
@@ -343,31 +343,33 @@ public class LoadedStateTests
         LoadPlanner.Validate(delivered.Plan, ship).Should().BeEmpty();
     }
 
-    [Fact]
-    public void A_sync_takes_a_gone_mission_whose_crates_are_loaded_and_the_crates_above_settle()
+    [Theory]
+    [InlineData(ContractGonePolicy.Keep)]
+    [InlineData(ContractGonePolicy.Remove)]
+    public void A_gone_mission_whose_crates_are_loaded_stays(ContractGonePolicy onGone)
     {
+        // Loaded cargo is in the hold: no sync takes it out of the plan (D81).
         var column = Column(bLoaded: true, cLoaded: true);
         var ship = OneRack(1, 1, 3);
 
-        var synced = ContractSync.Apply(column, ship, [], present: new HashSet<long> { 2, 3 });
+        var synced = ContractSync.Apply(column, ship, [], new HashSet<long> { 2, 3 }, onGone: onGone);
 
-        synced.Missions.Select(m => m.Id).Should().Equal(2, 3);
-        (StackOf(synced, "B"), StackOf(synced, "C")).Should().Be((0, 1));
-        synced.Plan.Crates.Should().OnlyContain(c => c.Loaded);
+        synced.Missions.Select(m => (m.Id, m.Contract!.Gone)).Should().Equal((1, true), (2, false), (3, false));
+        synced.Plan.Should().BeSameAs(column.Plan);
     }
 
     [Fact]
-    public void A_gone_mission_with_planned_crates_on_board_stays()
+    public void A_gone_mission_with_planned_crates_leaves_with_remove_and_the_crates_above_settle()
     {
-        // Only loaded cargo was handed over in the game; planned cargo on board keeps the conflict notice (D39 addendum).
         var ship = OneRack(1, 1, 3);
         var column = Column(bLoaded: true, cLoaded: true);
         var planned = new SavedPlan(column.Missions, column.Plan with { Crates = [.. column.Plan.Crates.Select(c => c.Destination == "A" ? c with { Loaded = false } : c)] }, column.CrateCap);
 
-        var synced = ContractSync.Apply(planned, ship, [], present: new HashSet<long> { 2, 3 });
+        var synced = ContractSync.Apply(planned, ship, [], new HashSet<long> { 2, 3 }, onGone: ContractGonePolicy.Remove);
 
-        synced.Missions.Select(m => m.Id).Should().Equal(1, 2, 3);
-        ContractSync.Conflicts(synced, new HashSet<long> { 2, 3 }).Should().Equal(1);
+        synced.Missions.Select(m => m.Id).Should().Equal(2, 3);
+        (StackOf(synced, "B"), StackOf(synced, "C")).Should().Be((0, 1));
+        synced.Plan.Crates.Should().OnlyContain(c => c.Loaded);
     }
 
     [Fact]

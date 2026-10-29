@@ -1,4 +1,5 @@
 using System.Windows;
+using CargoPlan.App.Editor;
 using CargoPlan.Core.Models;
 using static System.FormattableString;
 
@@ -220,10 +221,11 @@ public sealed record SceneLine(Point From, Point To);
 /// <param name="Goods">The line's commodities with their crates, delivered ones included (K6.1); empty in plans built without crates.</param>
 /// <param name="ContractIds">The header's ContractTracker id, "#47" or "#47–48" (K6.1); null for a typed mission and off the header.</param>
 /// <param name="Loaded">Every crate of the line is loaded (K6.4): the line ends in <see cref="LoadedMark"/>.</param>
+/// <param name="Gone">The header's capture is gone from ContractTracker (D81): the header ends in " · gone"; false off the header.</param>
 public sealed record LegendEntry(
     int PaletteIndex, string Destination, int Scu, bool Delivered = false, string Markings = "", string ReserveMarkings = "", string? Header = null,
     int Mission = 0, IReadOnlyList<Crate>? Crates = null, IReadOnlyList<Crate>? MissionCrates = null, bool Grouped = false,
-    IReadOnlyList<LineGoods>? Goods = null, string? ContractIds = null, bool Loaded = false)
+    IReadOnlyList<LineGoods>? Goods = null, string? ContractIds = null, bool Loaded = false, bool Gone = false)
 {
     public const string ToText = "To ";
 
@@ -254,11 +256,16 @@ public sealed record LegendEntry(
     /// <summary>The widest the label gets: laid out hidden under it.</summary>
     public string ReserveLabel => string.Concat(Segments.Select(s => s.ReserveText));
 
-    /// <summary>"From Lorville" · " · #47": the pickups shorten, the id never; empty without a header.</summary>
+    /// <summary>"From Lorville" · " · #47" · " · gone": the pickups shorten, the id and the mark never; empty without a header.</summary>
     public IReadOnlyList<LegendSegment> HeaderSegments =>
         Header is null
             ? []
-            : [new(Header, LegendSegment.TrimFirst), .. ContractIds is null ? [] : (LegendSegment[])[new(LegendText.Appended(ContractIds))]];
+            :
+            [
+                new(Header, LegendSegment.TrimFirst),
+                .. ContractIds is null ? [] : (LegendSegment[])[new(LegendText.Appended(ContractIds))],
+                .. Gone ? (LegendSegment[])[new(LegendText.Appended(MissionText.GoneText))] : [],
+            ];
 
     /// <summary>The whole header, as the tool tip shows it; null without one.</summary>
     public string? HeaderLabel => Header is null ? null : string.Concat(HeaderSegments.Select(s => s.Text));

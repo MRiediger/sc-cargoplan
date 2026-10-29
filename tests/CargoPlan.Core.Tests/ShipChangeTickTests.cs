@@ -234,7 +234,7 @@ public class ShipChangeTickTests
         var json = Written(saved);
         var node = JsonNode.Parse(json)!;
 
-        node["schemaVersion"]!.GetValue<int>().Should().Be(7);
+        node["schemaVersion"]!.GetValue<int>().Should().Be(PlanFile.SupportedSchemaVersion);
         var crates = node["crates"]!.AsArray().Select(c => c!.AsObject()).ToList();
         crates.Count(c => c.ContainsKey("offShip")).Should().Be(saved.Plan.Crates.Count(c => c.OffShip));
         crates.Where(c => c.ContainsKey("offShip")).Should().OnlyContain(c => c["offShip"]!.GetValue<bool>() && c["rackId"]!.GetValue<string>() == "");

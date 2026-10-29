@@ -503,9 +503,12 @@ public static class LoadPlanner
         return kept;
     }
 
-    /// <summary>A delivery across plans: its capture's first ContractTracker id, or 0 for a typed mission, and the destination.</summary>
+    /// <summary>
+    /// A delivery across plans: its capture's first ContractTracker id, or 0 for a typed mission, and the destination. The
+    /// id of a detached capture is negated, so a new database's contract with that id is another delivery (D81).
+    /// </summary>
     private static (long Contract, string Destination) DeliveryKey(ContractSource? contract, string destination) =>
-        (contract?.ContractIds.Min() ?? 0, destination);
+        (contract is null ? 0 : contract.Detached ? -contract.ContractIds.Min() : contract.ContractIds.Min(), destination);
 
     /// <summary><paramref name="mission"/> without the stops in <paramref name="kept"/>; null if none is left.</summary>
     private static Mission? Without(Mission mission, IReadOnlySet<(int Mission, string Destination)> kept)
@@ -577,7 +580,8 @@ public static class LoadPlanner
     {
         saved.Plan.EnsureBelongsTo(ship);
         var current = saved;
-        foreach (var waiting in saved.Missions.Where(m => m.Unplaced))
+        // A contract gone from ContractTracker gets no room of its own (D81): it waits until it is back or deleted.
+        foreach (var waiting in saved.Missions.Where(m => m.Unplaced && m.Contract is not { Gone: true }))
         {
             if (TryPlace(current.Plan, ship, waiting, current.CrateCap) is ({ } crates, _, var stackingUnchecked))
             {
@@ -852,6 +856,39 @@ public static class LoadPlanner
         return new SavedPlan(
             [.. saved.Missions.Where(m => m != mission)],
             WithHints(Settled(saved.Plan with { Crates = [.. saved.Plan.Crates.Where(c => c.Mission != missionId)] }, ship), ship),
+            saved.CrateCap,
+            saved.Watermark);
+    }
+
+    /// <summary>
+    /// Takes a mission's deliveries to <paramref name="destinations"/> out of the plan with their items and crates, the rest
+    /// of it stays (D81: a contract gone from ContractTracker keeps its loaded deliveries). What rested on the crates settles
+    /// as in <see cref="RemoveMission"/>; the crates left name their items anew, counted over the stops left (D68). At least
+    /// one delivery stays; the original stays unchanged.
+    /// </summary>
+    internal static SavedPlan RemoveDeliveries(SavedPlan saved, Ship ship, int missionId, IReadOnlySet<string> destinations)
+    {
+        var mission = saved.MissionOf(missionId);
+        var rest = Without(mission, destinations.Select(d => (missionId, d)).ToHashSet())
+            ?? throw new ArgumentException($"Mission {missionId} would keep no delivery.", nameof(destinations));
+
+        // Old item index → new one: Without keeps the stops left in their order (Mission.Items counts in it).
+        var items = mission.Items.Select((at, index) => (at.Stop.Destination, index))
+            .Where(at => !destinations.Contains(at.Destination))
+            .Select((at, index) => (Old: at.index, New: index))
+            .ToDictionary(at => at.Old, at => at.New);
+        var plan = saved.Plan with
+        {
+            Crates =
+            [
+                .. saved.Plan.Crates
+                    .Where(c => c.Mission != missionId || !destinations.Contains(c.Destination))
+                    .Select(c => c.Mission == missionId ? c with { Item = items[c.Item] } : c),
+            ],
+        };
+        return new SavedPlan(
+            [.. saved.Missions.Select(m => m == mission ? rest : m)],
+            WithHints(Settled(plan, ship), ship),
             saved.CrateCap,
             saved.Watermark);
     }

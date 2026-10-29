@@ -13,10 +13,14 @@ public static class PlanFile
 {
     /// <summary>
     /// The version the writer writes: missions with ids, crates with missions (D42), items (D68), turned or not (D71),
-    /// off the ship or not (K2.2) and loaded or not (K6.4), items added by hand to a ContractTracker mission (K6.5), the
-    /// watermark. An app from before K6.4 refuses it, so it never plans loaded cargo anew.
+    /// off the ship or not (K2.2) and loaded or not (K6.4), items added by hand to a ContractTracker mission (K6.5),
+    /// captures gone from ContractTracker or detached (D81), the watermark. An app from before D81 refuses it, so it never
+    /// takes a gone contract for one ContractTracker still lists.
     /// </summary>
-    public const int SupportedSchemaVersion = 7;
+    public const int SupportedSchemaVersion = 8;
+
+    /// <summary>Crates loaded or not, items manual or not, no capture gone (K6.4, K6.5); still read so, never written.</summary>
+    public const int NotGoneSchemaVersion = 7;
 
     /// <summary>Crates off the ship or not, none loaded, no item manual (K2.2); still read so, never written.</summary>
     public const int NotLoadedSchemaVersion = 6;
@@ -36,10 +40,10 @@ public static class PlanFile
     /// <summary>Crates with positions, no missions (D24); still read, one mission per stop, never written.</summary>
     public const int PreviousSchemaVersion = 2;
 
-    private static readonly int[] ReadableSchemaVersions = [LegacySchemaVersion, PreviousSchemaVersion, ItemlessSchemaVersion, UnrotatedSchemaVersion, NoOffShipSchemaVersion, NotLoadedSchemaVersion, SupportedSchemaVersion];
+    private static readonly int[] ReadableSchemaVersions = [LegacySchemaVersion, PreviousSchemaVersion, ItemlessSchemaVersion, UnrotatedSchemaVersion, NoOffShipSchemaVersion, NotLoadedSchemaVersion, NotGoneSchemaVersion, SupportedSchemaVersion];
 
     /// <summary>
-    /// Reads a plan file for <paramref name="ship"/>, schema 1 to 7. The stream is left open. A schema 2 to 7 plan for
+    /// Reads a plan file for <paramref name="ship"/>, schema 1 to 8. The stream is left open. A schema 2 to 8 plan for
     /// another ship loads with its own ship id and without the grid checks; the caller plans it anew (D59). So does one
     /// with a crate outside today's rack, read under <see cref="CapReason.RacksChanged"/> (K3.2).
     /// </summary>

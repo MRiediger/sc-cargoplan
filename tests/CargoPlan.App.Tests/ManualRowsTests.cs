@@ -2,6 +2,7 @@ using CargoPlan.App.Editor;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Planning;
 using CargoPlan.Core.Ships;
 using CargoPlan.Import.ContractTracker;
 
@@ -148,17 +149,20 @@ public class ManualRowsTests
     [Fact]
     public void A_contract_handed_in_takes_its_rows_added_by_hand_along_and_says_so()
     {
-        // Loaded in the game, handed in at the terminal: nothing of it is planned on board any more (K6.4).
+        // Delivered and handed in, with remove (D81): every delivery leaves, the row added by hand with them.
         var overlay = WithAddedDestination();
+        overlay.OnContractGone = ContractGonePolicy.Remove;
         var id = overlay.Missions.Single(m => m.Contract is not null).Id;
         foreach (var destination in overlay.Scene.Legend.Where(e => e.Mission == id).Select(e => e.Destination).ToList())
         {
+            // Planned → loaded → delivered (K6.4).
+            overlay.ToggleLineCommand.Execute(overlay.Scene.Legend.Single(e => e.Mission == id && e.Destination == destination));
             overlay.ToggleLineCommand.Execute(overlay.Scene.Legend.Single(e => e.Mission == id && e.Destination == destination));
         }
 
         overlay.ApplyContractTracker(new ContractTrackerReadResult([], null, new HashSet<long>()));
 
         overlay.Missions.Should().OnlyContain(m => m.Contract == null);
-        overlay.Notices.Should().Contain("Gone from ContractTracker: #37, with 1 row added by hand");
+        overlay.Notices.Should().Contain("Contract #37 gone from ContractTracker – removed 2 delivered, with 1 row added by hand");
     }
 }

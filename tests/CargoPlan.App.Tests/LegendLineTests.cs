@@ -133,6 +133,19 @@ public class LegendLineTests
     }
 
     [Fact]
+    public void A_gone_contract_s_header_ends_in_gone_which_never_shortens()
+    {
+        // D81: the mark stays in reach of the eye however narrow the overlay; the pickups give way first.
+        var saved = Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight, "Lorville"), new ContractSource([47], Gone: true)));
+
+        var line = Legend(saved).Single();
+
+        line.HeaderLabel.Should().Be("From Lorville · #47 · gone");
+        line.HeaderSegments.Select(s => (s.Text, s.Rank)).Should().Equal(
+            ("From Lorville", LegendSegment.TrimFirst), (" · #47", LegendSegment.Fixed), (" · gone", LegendSegment.Fixed));
+    }
+
+    [Fact]
     public void A_typed_mission_has_no_id()
     {
         var saved = Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight, "Lorville")));

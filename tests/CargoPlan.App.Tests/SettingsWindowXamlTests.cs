@@ -71,6 +71,22 @@ public partial class SettingsWindowXamlTests
     }
 
     [Fact]
+    public void The_ContractTracker_section_picks_what_happens_to_a_gone_contract_and_resets_without_the_path()
+    {
+        // D81: a choice applied on change (D30) like the backdrop; the reset leaves the path to Detect automatically.
+        var section = Root().Descendants().Single(e => (string?)e.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) == "ContractTrackerSection");
+        var box = section.Descendants().Single(e => e.Name.LocalName == "ComboBox");
+        var row = box.Parent!;
+
+        box.Attribute("ItemsSource")!.Value.Should().Be("{x:Static vm:ContractTrackerSectionViewModel.GoneChoices}");
+        box.Attribute("SelectedValue")!.Value.Should().Be("{Binding OnContractGone}");
+        (box.Attribute("DisplayMemberPath")!.Value, box.Attribute("SelectedValuePath")!.Value).Should().Be(("Text", "Value"));
+        row.Elements().First(e => e.Name.LocalName == "TextBlock").Attribute("Text")!.Value.Should().Be("When a contract disappears from ContractTracker");
+        var reset = section.Descendants().Single(e => e.Name.LocalName == "Button" && (string?)e.Attribute("Command") == "{Binding ResetCommand, Mode=OneTime}");
+        reset.Attribute("ToolTip")!.Value.Should().Be("Reset auto-sync and gone contracts to defaults. The database path stays as it is.");
+    }
+
+    [Fact]
     public void The_ship_view_reset_says_that_the_download_switch_stays()
     {
         var button = Root().Descendants()
