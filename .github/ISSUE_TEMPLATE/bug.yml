@@ -35,7 +35,9 @@ body:
     id: observed
     attributes:
       label: Observed
-      description: What happened instead? Copy any amber line from the overlay word for word.
+      description: |
+        What happened instead? Copy any amber line from the overlay word for word.
+        If the overlay closed with an error or says "sync failed", attach `%LocalAppData%\SC-CargoPlan\cargoplan.log`.
     validations:
       required: true
 
