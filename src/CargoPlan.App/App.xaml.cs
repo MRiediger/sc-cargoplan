@@ -1,5 +1,6 @@
 using System.IO;
 using System.Windows;
+using System.Windows.Threading;
 using CargoPlan.App.ContractTracker;
 using CargoPlan.App.Editor;
 using CargoPlan.App.Holo;
@@ -41,9 +42,19 @@ public partial class App : Application
     // Source: https://learn.microsoft.com/dotnet/fundamentals/networking/http/httpclient-guidelines
     private HoloLoader? _holoLoader;
 
+    // What the dispatcher handler logged last: left unhandled, it reaches AppDomain.UnhandledException too, logged once.
+    private Exception? _crashLogged;
+
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // First, so nothing after goes unlogged (D82). The dispatcher's: log, say so, and end as before (Handled stays
+        // false). Other threads': the runtime ends the process anyway, so only the log.
+        // Source: https://learn.microsoft.com/dotnet/api/system.windows.application.dispatcherunhandledexception
+        // Source: https://learn.microsoft.com/dotnet/api/system.appdomain.unhandledexception
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
 
         // First: without the ships folder there is nothing to draw. One message, then the end, no crash dialog (D56).
         // The catalog's problems (skipped ship files) are shown in the header's ship selection (T7.2b).
@@ -94,7 +105,7 @@ public partial class App : Application
             session,
             () => CreateHotkeysViewModel(session),
             () => CreateContractTrackerSection(session, contractTracker, viewModel),
-            () => contractTracker.SyncAsync(manual: true));
+            () => contractTracker.RunSyncGuardedAsync(manual: true));
         if (settings.Overlay is { } saved)
         {
             RestoreBounds(overlay, saved);
@@ -105,10 +116,10 @@ public partial class App : Application
         overlay.Closed += (_, _) => session.Flush();
 
         // Before Show(): SourceInitialized, where the hotkeys get registered, is raised inside Show(). The sync hotkey runs
-        // the editor's button; AsyncRelayCommand rethrows on the UI thread what SyncAsync doesn't handle.
+        // the editor's button, guarded like the timer (D82); AsyncRelayCommand would rethrow on the UI thread what isn't.
         // Source: https://learn.microsoft.com/dotnet/api/communitytoolkit.mvvm.input.asyncrelaycommandoptions
         _hotkeys = new HotkeyService(
-            overlay, settings.Hotkeys, viewModel, new AsyncRelayCommand(() => contractTracker.SyncAsync(manual: true)));
+            overlay, settings.Hotkeys, viewModel, new AsyncRelayCommand(() => contractTracker.RunSyncGuardedAsync(manual: true)));
 
         // Before the start plan: a --plan file becomes plan.json this way, without a rule of its own.
         // A plan from plan.json is written back once, unchanged.
@@ -179,6 +190,26 @@ public partial class App : Application
     {
         _cursorMonitor?.Stop();
         base.OnExit(e);
+    }
+
+    /// <summary>The crash dialog's text: what went wrong and where the details are (D82).</summary>
+    public static string CrashText(Exception error) =>
+        $"SC-CargoPlan has to close: {error.GetType().Name}: {error.Message}{Environment.NewLine}{Environment.NewLine}Details: {AppLog.Path}";
+
+    private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    {
+        _crashLogged = e.Exception;
+        AppLog.Write("Unhandled", e.Exception);
+        MessageBox.Show(CrashText(e.Exception), "SC-CargoPlan", MessageBoxButton.OK, MessageBoxImage.Error);
+    }
+
+    private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
+    {
+        var error = e.ExceptionObject as Exception ?? new InvalidOperationException($"Unhandled non-exception: {e.ExceptionObject}");
+        if (!ReferenceEquals(error, _crashLogged))
+        {
+            AppLog.Write("Unhandled (other thread)", error);
+        }
     }
 
     /// <summary>

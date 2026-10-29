@@ -23,10 +23,19 @@ public sealed class ContractTrackerSync : IDisposable
     public static string NotFoundText(string databasePath) =>
         $"ContractTracker not found at {databasePath} – set the path in the settings.";
 
+    public const string PausedText = "Sync paused – check ContractTracker file";
+
+    /// <summary>Failures in a row before a tick stops reading (D82).</summary>
+    public const int MaxFailures = 5;
+
+    public static string FailedText(Exception error) =>
+        $"ContractTracker sync failed: {error.GetType().Name}: {error.Message} – details in cargoplan.log";
+
     private readonly OverlayViewModel _viewModel;
     private string _databasePath;
     private bool _autoSync;
     private readonly Func<string, long, IReadOnlyCollection<long>, ContractTrackerReadResult> _read;
+    private readonly Action<string, Exception> _log;
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
     private readonly DispatcherTimer _timer = new() { Interval = Debounce };
     private FileSystemWatcher? _watcher;
@@ -36,19 +45,31 @@ public sealed class ContractTrackerSync : IDisposable
     private bool _reading;
     private bool _pending;
 
+    // The safety net (D82): failures in a row, the last one shown (type and message), and while paused the file state a
+    // tick waits to change. The state before a tick's read stands in for the one after a failure: the reader opens the
+    // database read-only (D38), and the catch must not touch the file system, where the failure may come from.
+    private int _failures;
+    private (Type, string)? _lastFailure;
+    private bool _paused;
+    private ContractTrackerFileState? _pausedAt;
+    private ContractTrackerFileState? _beforeRead;
+
     /// <param name="read">The reader; <see cref="ContractTrackerReader.Read(string, long, IReadOnlyCollection{long})"/> by
     /// default, replaced in tests.</param>
     /// <param name="autoSync">false = the watcher only counts new captures (D44).</param>
+    /// <param name="log">Where a failed sync's exception goes; <see cref="AppLog.Write"/> by default, replaced in tests.</param>
     public ContractTrackerSync(
         OverlayViewModel viewModel,
         string databasePath,
         Func<string, long, IReadOnlyCollection<long>, ContractTrackerReadResult>? read = null,
-        bool autoSync = true)
+        bool autoSync = true,
+        Action<string, Exception>? log = null)
     {
         _viewModel = viewModel;
         _databasePath = databasePath;
         _autoSync = autoSync;
         _read = read ?? ContractTrackerReader.Read;
+        _log = log ?? AppLog.Write;
         _timer.Tick += OnTick;
     }
 
@@ -105,16 +126,18 @@ public sealed class ContractTrackerSync : IDisposable
     /// <summary>
     /// Reads above the watermark and hands the result to the overlay; one read at a time, a request during a read runs
     /// one more afterwards. Called on the UI thread; the reader runs on the thread pool, the result comes back here
-    /// (await resumes in WPF's synchronization context). A file that is no database gives a notice.
+    /// (await resumes in WPF's synchronization context). A file that is no database gives a notice; anything else throws,
+    /// <see cref="RunSyncGuardedAsync"/> catches it.
     /// </summary>
     /// <param name="manual">The editor's button or the hotkey: syncs even without news, which places waiting missions that
     /// fit now, and with auto-sync off too; a missing database gives a notice.</param>
-    public async Task SyncAsync(bool manual = false)
+    /// <returns>true = read; false = only queued behind a running read, which reads once more for it.</returns>
+    public async Task<bool> SyncAsync(bool manual = false)
     {
         if (_reading)
         {
             _pending = true;
-            return;
+            return false;
         }
 
         _reading = true;
@@ -160,6 +183,8 @@ public sealed class ContractTrackerSync : IDisposable
         {
             _reading = false;
         }
+
+        return true;
     }
 
     public void Dispose()
@@ -190,15 +215,67 @@ public sealed class ContractTrackerSync : IDisposable
         _timer.Start();
     }
 
-    // async void: an event handler (CLAUDE.md). SyncAsync handles the expected failure; anything else is a bug and surfaces.
-    private async void OnTick(object? sender, EventArgs e)
+    /// <summary>
+    /// The editor's button and the hotkey (D82): <see cref="SyncAsync"/> with the safety net. Reads while paused too, the
+    /// player asked; only a success lifts the pause.
+    /// </summary>
+    public Task RunSyncGuardedAsync(bool manual = false) => GuardedAsync(() => SyncAsync(manual));
+
+    /// <summary>
+    /// What the timer runs after the debounce, public for tests: reads if the files changed since the last read and, while
+    /// paused, since the pause. The file state is part of the guarded run: a path the settings hold may make it throw.
+    /// The timer stays stopped; the next file event starts it again (<see cref="Restart"/>).
+    /// </summary>
+    public Task TickAsync()
     {
         _timer.Stop();
-        if (ContractTrackerFileState.Of(_databasePath) == _afterLastRead)
+        return GuardedAsync(async () =>
         {
-            return;
-        }
+            var state = ContractTrackerFileState.Of(_databasePath);
+            if (state == _afterLastRead || (_paused && state == _pausedAt))
+            {
+                return false;
+            }
 
-        await SyncAsync();
+            _beforeRead = state;
+            return await SyncAsync();
+        });
     }
+
+    /// <summary>
+    /// The sync's one catch (D82): a failure leaves the plan as it was (the reader and Core throw before the plan changes,
+    /// and <see cref="OverlayViewModel.Saved"/> changes only once its scene is built), goes to the log whole and to the
+    /// notice line once per type and message. <see cref="MaxFailures"/> in a row pause the ticks; a success ends all of it.
+    /// </summary>
+    private async Task GuardedAsync(Func<Task<bool>> sync)
+    {
+        try
+        {
+            if (await sync())
+            {
+                _failures = 0;
+                _lastFailure = null;
+                _paused = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _log("ContractTracker sync", ex);
+            if (++_failures >= MaxFailures)
+            {
+                _paused = true;
+                _pausedAt = _beforeRead;
+                _lastFailure = null;
+                _viewModel.ShowContractTrackerProblem(PausedText);
+            }
+            else if (_lastFailure != (ex.GetType(), ex.Message))
+            {
+                _lastFailure = (ex.GetType(), ex.Message);
+                _viewModel.ShowContractTrackerProblem(FailedText(ex));
+            }
+        }
+    }
+
+    // async void: an event handler (CLAUDE.md); TickAsync catches what the sync throws (D82).
+    private async void OnTick(object? sender, EventArgs e) => await TickAsync();
 }
