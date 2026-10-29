@@ -87,12 +87,13 @@ public partial class App : Application
         // ContractTracker where the settings say, detected by default (D44).
         var contractTracker = new ContractTrackerSync(
             viewModel, settings.ContractTracker.DatabasePath, autoSync: settings.ContractTracker.AutoSync);
+        viewModel.OnContractGone = settings.ContractTracker.GonePolicy;
         _contractTracker = contractTracker;
         var overlay = new OverlayWindow(
             viewModel,
             session,
             () => CreateHotkeysViewModel(session),
-            () => CreateContractTrackerSection(session, contractTracker),
+            () => CreateContractTrackerSection(session, contractTracker, viewModel),
             () => contractTracker.SyncAsync(manual: true));
         if (settings.Overlay is { } saved)
         {
@@ -204,13 +205,14 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// The settings window's ContractTracker section (D44): saved through the session, applied to the sync at once, so a
-    /// new path is watched without a restart (D30).
+    /// The settings window's ContractTracker section (D44): saved through the session, applied to the sync and the overlay
+    /// at once, so a new path is watched and a policy for gone contracts (D81) holds from the next read without a restart (D30).
     /// </summary>
-    private static ContractTrackerSectionViewModel CreateContractTrackerSection(SettingsSession session, ContractTrackerSync sync) =>
+    private static ContractTrackerSectionViewModel CreateContractTrackerSection(SettingsSession session, ContractTrackerSync sync, OverlayViewModel overlay) =>
         new(session.Current.ContractTracker, File.Exists, settings =>
         {
             session.ChangeContractTracker(settings);
+            overlay.OnContractGone = settings.GonePolicy;
             sync.Configure(settings.DatabasePath, settings.AutoSync);
         });
 

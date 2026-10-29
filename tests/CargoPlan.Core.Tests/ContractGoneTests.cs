@@ -245,6 +245,17 @@ public class ContractGoneTests
         ContractSync.Apply(result.Saved, HullA, [], Ids(36, 37, 38, 40)).Should().BeSameAs(result.Saved);
     }
 
+    [Fact]
+    public void A_read_is_quiet_while_gone_contracts_stay_gone_and_listed_ones_stay_listed()
+    {
+        var gone = Keep(FourStates(), 40);
+
+        ContractSync.Quiet(gone, Ids(40)).Should().BeTrue();
+        ContractSync.Quiet(gone, Ids(36, 40)).Should().BeFalse("36 is back");
+        ContractSync.Quiet(gone, Ids()).Should().BeFalse("40 is gone");
+        ContractSync.Quiet(FourStates(), Ids(36, 37, 38, 40)).Should().BeTrue();
+    }
+
     // --- a new database (K2) ---
 
     [Fact]

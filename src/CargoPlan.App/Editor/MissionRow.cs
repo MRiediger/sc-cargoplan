@@ -58,11 +58,20 @@ public sealed partial class MissionRow : ObservableObject
     [NotifyPropertyChangedFor(nameof(MissionLabel))]
     public partial bool Manual { get; set; }
 
-    /// <summary>The Mission column: "#37–38", "#37–38 ✎" for a row added or changed by hand (K6.5), empty if typed.</summary>
-    public string MissionLabel => Manual ? Source + ManualMark : Source;
+    /// <summary>The row's capture is gone from ContractTracker (D81); never for a typed row.</summary>
+    public bool Gone { get; init; }
+
+    /// <summary>
+    /// The Mission column: "#37–38", "#37–38 ✎" for a row added or changed by hand (K6.5), "#37–38 · gone" for a capture
+    /// gone from ContractTracker (D81), empty if typed.
+    /// </summary>
+    public string MissionLabel => Source + (Manual ? ManualMark : "") + (Gone ? GoneMark : "");
 
     /// <summary>What marks a manual row in the Mission column.</summary>
     public const string ManualMark = " ✎";
+
+    /// <summary>What marks a gone capture's row in the Mission column.</summary>
+    public const string GoneMark = " · " + MissionText.GoneText;
 
     /// <summary>
     /// The max crate size was assumed by the import (the contract named none); the legend shows "4 SCU?". Picking a size

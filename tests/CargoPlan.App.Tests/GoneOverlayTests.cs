@@ -213,7 +213,7 @@ public class GoneOverlayTests
         overlay.ApplyContractTracker(new ContractTrackerReadResult([Candidate(1, "Orison")], null, new HashSet<long>(), DatabaseLooksNew: true));
 
         overlay.UndoCommand.CanExecute(null).Should().BeFalse();
-        overlay.Notices.Should().Contain(OverlayViewModel.HistoryClearedByDatabaseText);
+        overlay.Notices.Should().ContainMatch("* · " + OverlayViewModel.HistoryClearedByDatabaseText);
     }
 
     [Fact]

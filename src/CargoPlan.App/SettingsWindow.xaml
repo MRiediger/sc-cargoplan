@@ -451,8 +451,9 @@
                     </StackPanel>
                 </GroupBox>
 
-                <!-- Where ContractTracker's database is and whether captures come in by themselves (D44). Visible without
-                     ContractTracker too, with where to get it. No "Reset to defaults": that is "Detect automatically". -->
+                <!-- Where ContractTracker's database is, whether captures come in by themselves (D44) and what a sync does
+                     with a contract it no longer lists (D81). Visible without ContractTracker too, with where to get it.
+                     The reset leaves the path: its reset is "Detect automatically". -->
                 <GroupBox x:Name="ContractTrackerSection" Header="ContractTracker" Style="{StaticResource SectionStyle}"
                           d:DataContext="{d:DesignInstance vm:ContractTrackerSectionViewModel}">
                     <StackPanel>
@@ -478,6 +479,14 @@
                         </StackPanel>
                         <CheckBox Content="Auto-sync" IsChecked="{Binding AutoSync}" Margin="0,8,0,0"
                                   ToolTip="Off: a capture only shows &quot;N new contracts&quot;; Sync from ContractTracker in the editor or its hotkey takes them in" />
+                        <DockPanel Style="{StaticResource RowStyle}"
+                                   ToolTip="Keep: the contract stays as it is, marked gone, until you delete it. Remove: planned and delivered cargo leaves when it goes, loaded cargo never">
+                            <TextBlock Text="When a contract disappears from ContractTracker" TextWrapping="Wrap" Style="{StaticResource LabelStyle}" />
+                            <ComboBox ItemsSource="{x:Static vm:ContractTrackerSectionViewModel.GoneChoices}" DisplayMemberPath="Text"
+                                      SelectedValuePath="Value" SelectedValue="{Binding OnContractGone}" />
+                        </DockPanel>
+                        <Button Command="{Binding ResetCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}"
+                                ToolTip="Reset auto-sync and gone contracts to defaults. The database path stays as it is." />
                     </StackPanel>
                 </GroupBox>
             </StackPanel>

@@ -6,6 +6,9 @@ namespace CargoPlan.App.Editor;
 /// <summary>How the player sees a mission: its name in legend and notices, its source in the editor (T5.4).</summary>
 public static class MissionText
 {
+    /// <summary>What marks a contract ContractTracker no longer lists, in legend header and editor (D81).</summary>
+    public const string GoneText = "gone";
+
     /// <summary>"Riker", or "Hurston + 1" for a mission with more stops; the first in contract order.</summary>
     public static string Name(Mission mission)
     {

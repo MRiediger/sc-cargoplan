@@ -251,13 +251,24 @@ public static class AppearanceRules
     public static (ContractTrackerSettings ContractTracker, IReadOnlyList<string> Problems) NormalizeContractTracker(
         ContractTrackerSettings contractTracker)
     {
+        List<string> problems = [];
+
         // Source: https://learn.microsoft.com/dotnet/api/system.io.path.ispathfullyqualified
-        if (contractTracker.Path is not { } path || System.IO.Path.IsPathFullyQualified(path))
+        if (contractTracker.Path is { } path && !System.IO.Path.IsPathFullyQualified(path))
         {
-            return (contractTracker, []);
+            contractTracker = contractTracker with { Path = null };
+            problems.Add($"contractTracker.path \"{path}\" is not a full path, detecting ContractTracker instead.");
         }
 
-        return (contractTracker with { Path = null }, [$"contractTracker.path \"{path}\" is not a full path, detecting ContractTracker instead."]);
+        // D81: an unknown name keeps, the safe way, like an unknown backdrop draws the outline.
+        if (!ContractGonePolicies.TryParse(contractTracker.OnContractGone, out _))
+        {
+            var names = ContractGonePolicies.Names;
+            problems.Add($"contractTracker.onContractGone \"{contractTracker.OnContractGone}\" is not valid ({string.Join(", ", names.Take(names.Count - 1))} or {names[^1]}), using {ContractGonePolicies.DefaultName}.");
+            contractTracker = contractTracker with { OnContractGone = ContractGonePolicies.DefaultName };
+        }
+
+        return (contractTracker, problems);
     }
 
     /// <summary>Collects the problem lines while one appearance is checked.</summary>

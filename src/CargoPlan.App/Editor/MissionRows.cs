@@ -178,6 +178,7 @@ public static class MissionRows
         Source = MissionText.Source(mission?.Contract),
         ContractId = mission?.Contract?.ContractIds.Min(),
         Manual = item.Manual,
+        Gone = mission?.Contract?.Gone == true,
 
         // After MaxCrateSize, whose change ends the assumption.
         MaxCrateSizeAssumed = mission?.Contract?.CrateSizeAssumed == true,

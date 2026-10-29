@@ -67,7 +67,8 @@ public static class ShipViewBuilder
             line.Grouped,
             LegendText.Goods(line.Crates),
             line.ContractIds,
-            line.Crates.All(c => c.Loaded)))];
+            line.Crates.All(c => c.Loaded),
+            line.Gone))];
 
         return new ShipScene(
             racks,
@@ -88,13 +89,14 @@ public static class ShipViewBuilder
     /// from every item's pickup, or "From ?"), its ContractTracker id ("#47") and the mission's crates on board for the
     /// header's check box; without any, no line has a header.
     /// </summary>
-    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped, string? ContractIds)> LegendLines(
+    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped, string? ContractIds, bool Gone)> LegendLines(
         LoadPlan plan, SavedPlan? saved)
     {
         var rank = plan.Route.Select((destination, index) => (destination, index)).ToDictionary(r => r.destination, r => r.index);
         var listed = saved?.Missions.Select((mission, index) => (mission.Id, index)).ToDictionary(m => m.Id, m => m.index) ?? [];
         var pickups = saved?.Missions.ToDictionary(m => m.Id, m => Pickups.Normalized(m.Items.SelectMany(i => i.Item.Pickup ?? []))) ?? [];
         var contracts = saved?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Id, m => MissionText.Source(m.Contract)) ?? [];
+        HashSet<int> gone = [.. saved?.Missions.Where(m => m.Contract is { Gone: true }).Select(m => m.Id) ?? []];
         var missions = plan.Crates.GroupBy(c => c.Mission)
             .OrderBy(m => m.Min(c => rank[c.Destination]))
             .ThenBy(m => listed.GetValueOrDefault(m.Key))
@@ -111,7 +113,8 @@ public static class ShipViewBuilder
                 (IReadOnlyList<Crate>)[.. stop],
                 headed && index == 0 && onBoard.Length > 0 ? (IReadOnlyList<Crate>?)onBoard : null,
                 headed,
-                headed && index == 0 ? contracts.GetValueOrDefault(mission.Key) : null));
+                headed && index == 0 ? contracts.GetValueOrDefault(mission.Key) : null,
+                headed && index == 0 && gone.Contains(mission.Key)));
         });
     }
 
@@ -137,8 +140,9 @@ public static class ShipViewBuilder
     }
 
     /// <summary>
-    /// "Hurston + 1 · 16 SCU (2×8) · Gold · ⚠ doesn't fit (16 SCU, 8 free) – tick to drop", with the mission's own markings;
-    /// the mix is the one its items would take on board (E1, K6.1).
+    /// "Hurston + 1 · 16 SCU (2×8) · Gold · ⚠ doesn't fit (16 SCU, 8 free) – tick to drop", with the mission's own markings
+    /// and "gone" before the reason for a capture ContractTracker no longer lists (D81); the mix is the one its items would
+    /// take on board (E1, K6.1).
     /// </summary>
     private static UnplacedEntry Unplaced(SavedPlan saved, Ship ship, Mission mission, IReadOnlySet<int> duplicates)
     {
@@ -150,6 +154,7 @@ public static class ShipViewBuilder
             mission.Contract?.CrateSizeAssumed == true ? AssumedSizes(mission.Stops) : "",
             Incomplete(mission),
             duplicates.Contains(mission.Id) ? DuplicateText : "",
+            mission.Contract?.Gone == true ? MissionText.GoneText : "",
             $"⚠ {reason}{TickToDropText}",
         ]));
     }

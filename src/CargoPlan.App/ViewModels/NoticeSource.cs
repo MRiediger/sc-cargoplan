@@ -44,9 +44,6 @@ public enum NoticeSource
     /// <summary>Why ContractTracker can't be read, or that the sync is paused (T5.4).</summary>
     ContractTracker,
 
-    /// <summary>Contracts deleted in ContractTracker with crates still on board (D39 addendum).</summary>
-    DeletedContracts,
-
     /// <summary>What the last move or Re-plan did, or why a move was refused (D24, D65, D66); cleared by the next move, tick or plan.</summary>
     Move,
 }

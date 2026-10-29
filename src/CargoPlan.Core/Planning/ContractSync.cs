@@ -111,6 +111,13 @@ public static class ContractSync
     }
 
     /// <summary>
+    /// A read without new captures that is no news (D38, D43): every capture still listed is in <paramref name="present"/>,
+    /// and no gone one is back (D81). Such a read changes nothing, so a waiting mission waits for the button.
+    /// </summary>
+    public static bool Quiet(SavedPlan saved, IReadOnlySet<long> present) =>
+        saved.Missions.All(m => m.Contract is not { Detached: false } contract || contract.Gone != contract.ContractIds.Any(present.Contains));
+
+    /// <summary>
     /// The missions that may be a second capture of another one (D39 addendum): of two missions without any ticked crate,
     /// the later one, if the destinations and commodities it delivers are all delivered by the other, or the other way
     /// round. Overlapping alone is no duplicate: two real contracts can share destinations (36 and 37/38). Different
