@@ -359,12 +359,18 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         get;
         private set
         {
-            if (!SetProperty(ref field, value))
+            // The equality SetProperty used: no caller sets an equal plan to rebuild the scene (D82, checked at the approval).
+            if (EqualityComparer<SavedPlan?>.Default.Equals(field, value))
             {
                 return;
             }
 
-            Scene = Marked(value is null ? EmptyScene(Ship) : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value.Plan, Ship)));
+            // Scene first, then the plan (D82): a scene that fails to build leaves plan and scene as they were, and the
+            // plan saver never sees a plan whose scene isn't there.
+            var scene = Marked(value is null ? EmptyScene(Ship) : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value.Plan, Ship)));
+            field = value;
+            Scene = scene;
+            OnPropertyChanged(nameof(Saved));
             SetNotice(NoticeSource.CrateCap, value is { CratesCapped: true } ? value.CrateCap.Notice : null);
             OnPropertyChanged(nameof(Plan));
             OnPropertyChanged(nameof(Missions));
