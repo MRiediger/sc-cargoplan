@@ -262,6 +262,46 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Save_then_Load_keeps_what_happens_to_a_gone_contract()
+    {
+        var settings = AppSettings.Default with { ContractTracker = new ContractTrackerSettings(OnContractGone: "remove") };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        loaded.ContractTracker.GonePolicy.Should().Be(CargoPlan.Core.Planning.ContractGonePolicy.Remove);
+        problem.Should().BeNull();
+        File.ReadAllText(SettingsPath).Should().Contain("\"onContractGone\": \"remove\"");
+    }
+
+    [Fact]
+    public void A_file_without_onContractGone_keeps_gone_contracts()
+    {
+        // A new key in the section, no schema bump (D31, D81).
+        WriteFile("""{ "schemaVersion": 2, "contractTracker": { "autoSync": false } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.ContractTracker.Should().Be(new ContractTrackerSettings(null, AutoSync: false, OnContractGone: "keep"));
+        loaded.ContractTracker.GonePolicy.Should().Be(CargoPlan.Core.Planning.ContractGonePolicy.Keep);
+    }
+
+    [Fact]
+    public void An_unknown_onContractGone_keeps_with_a_problem_and_the_rest_applies()
+    {
+        var content = """{ "schemaVersion": 2, "contractTracker": { "autoSync": false, "onContractGone": "delete" } }""";
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.ContractTracker.Should().Be(new ContractTrackerSettings(null, AutoSync: false, OnContractGone: "keep"));
+        problem.Should().Be("settings.json: contractTracker.onContractGone \"delete\" is not valid (keep or remove), using keep.");
+        File.ReadAllText(SettingsPath).Should().Be(content);
+    }
+
+    [Fact]
     public void Unknown_key_in_the_ContractTracker_settings_makes_the_file_invalid()
     {
         WriteFile("""{ "schemaVersion": 2, "contractTracker": { "autosync": false } }""");

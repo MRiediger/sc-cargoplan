@@ -31,6 +31,29 @@ public sealed class ContractTrackerSectionViewModelTests
     }
 
     [Fact]
+    public void What_happens_to_a_gone_contract_applies_on_change()
+    {
+        var viewModel = Create();
+        viewModel.OnContractGone.Should().Be(CargoPlan.Core.Planning.ContractGonePolicy.Keep);
+        ContractTrackerSectionViewModel.GoneChoices.Select(c => c.Text).Should().Equal("Keep in plan", "Remove from plan");
+
+        viewModel.OnContractGone = CargoPlan.Core.Planning.ContractGonePolicy.Remove;
+
+        _changes.Should().Equal(ContractTrackerSettings.Default with { OnContractGone = "remove" });
+    }
+
+    [Fact]
+    public void Reset_keeps_gone_contracts_and_syncs_by_itself_but_keeps_the_path()
+    {
+        var viewModel = Create(new ContractTrackerSettings(Manual, AutoSync: false, OnContractGone: "remove"));
+
+        viewModel.ResetCommand.Execute(null);
+
+        _changes.Should().Equal(new ContractTrackerSettings(Manual, AutoSync: true, OnContractGone: "keep"));
+        (viewModel.AutoSync, viewModel.OnContractGone, viewModel.PathText).Should().Be((true, CargoPlan.Core.Planning.ContractGonePolicy.Keep, Manual));
+    }
+
+    [Fact]
     public void Missing_database_shows_the_hint_and_the_link()
     {
         var viewModel = Create();

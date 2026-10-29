@@ -861,23 +861,21 @@ public class OverlayViewModelTests
     }
 
     [Fact]
-    public void A_deleted_contract_with_crates_on_board_gives_a_notice_until_its_stop_is_ticked()
+    public void A_deleted_contract_with_crates_on_board_stays_marked_gone_with_one_notice()
     {
+        // D81: the legend's "· gone" replaces the notice derived on every change (D43).
         var viewModel = Empty();
         viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker")));
 
         viewModel.ApplyContractTracker(Read([]));
 
         viewModel.HasPlan.Should().BeTrue();
-        viewModel.Notices.Should().Equal(OverlayViewModel.DeletedContractsPrefix + "Riker (#36)" + OverlayViewModel.DeletedContractsSuffix);
-
-        viewModel.ToggleDeliveredCommand.Execute("Riker");
-
-        viewModel.Notices.Should().BeEmpty();
+        viewModel.Missions.Single().Contract!.Gone.Should().BeTrue();
+        viewModel.Notices.Should().Equal("Contract #36 gone from ContractTracker – kept in plan");
     }
 
     [Fact]
-    public void A_deleted_contract_that_is_ticked_leaves_the_plan_at_the_next_sync_without_a_notice()
+    public void A_deleted_contract_that_is_ticked_stays_until_the_player_deletes_it()
     {
         var viewModel = Empty();
         viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin")));
@@ -885,8 +883,21 @@ public class OverlayViewModelTests
 
         viewModel.ApplyContractTracker(Read([37]));
 
+        viewModel.Missions.Select(m => (m.Contract!.ContractIds[0], m.Contract.Gone)).Should().Equal((36L, true), (37L, false));
+    }
+
+    [Fact]
+    public void With_remove_a_deleted_contract_that_is_ticked_leaves_at_the_next_sync()
+    {
+        var viewModel = Empty();
+        viewModel.OnContractGone = ContractGonePolicy.Remove;
+        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin")));
+        viewModel.ToggleDeliveredCommand.Execute("Riker");
+
+        viewModel.ApplyContractTracker(Read([37]));
+
         viewModel.Missions.Should().ContainSingle().Which.Contract!.ContractIds.Should().Equal(37);
-        viewModel.Notices.Should().BeEmpty();
+        viewModel.Notices.Should().Equal("Contract #36 gone from ContractTracker – removed 1 delivered");
     }
 
     [Fact]

@@ -250,9 +250,9 @@ public class LoadedOverlayTests
     }
 
     [Fact]
-    public void A_sync_takes_a_handed_in_loaded_mission_and_says_what_settled()
+    public void A_sync_with_remove_takes_a_gone_mission_s_planned_cargo_and_says_what_settled()
     {
-        // Capture 36 to Riker lies on the plate, capture 37 to Shubin loaded on it; 36 is handed in in the game.
+        // Capture 36 to Riker planned on the plate, capture 37 to Shubin loaded on it; 36 is abandoned (D81).
         Mission[] missions =
         [
             new(1, [Stop("Riker", "Titanium", 4, CrateSize.Four)], new ContractSource([36])),
@@ -260,15 +260,30 @@ public class LoadedOverlayTests
         ];
         Crate[] crates =
         [
-            new("Riker", "Titanium", CrateSize.Four, "rack-0", new GridPosition(0, 0, 0), Mission: 1, Loaded: true),
+            new("Riker", "Titanium", CrateSize.Four, "rack-0", new GridPosition(0, 0, 0), Mission: 1),
             new("Shubin", "Quartz", CrateSize.Four, "rack-0", new GridPosition(0, 0, 1), Mission: 2, Loaded: true),
         ];
         var overlay = Showing(new SavedPlan(missions, new LoadPlan(HullA.Id, crates, []), CrateCap.Of(HullA), 37));
+        overlay.OnContractGone = ContractGonePolicy.Remove;
 
         overlay.ApplyContractTracker(new ContractTrackerReadResult([], null, new HashSet<long> { 37 }));
 
         overlay.Missions.Select(m => m.Id).Should().Equal(2);
         Of(overlay, 2, "Shubin").Single().Should().Match<Crate>(c => c.Position.Stack == 0 && c.Loaded);
-        overlay.Notices.Should().Contain("1 loaded crate settled");
+        overlay.Notices.Should().Contain("Contract #36 gone from ContractTracker – removed 1 planned · 1 loaded crate settled");
+    }
+
+    [Fact]
+    public void A_gone_mission_s_loaded_cargo_stays_whatever_the_policy()
+    {
+        Mission[] missions = [new(1, [Stop("Riker", "Titanium", 4, CrateSize.Four)], new ContractSource([36]))];
+        Crate[] crates = [new("Riker", "Titanium", CrateSize.Four, "rack-0", new GridPosition(0, 0, 0), Mission: 1, Loaded: true)];
+        var overlay = Showing(new SavedPlan(missions, new LoadPlan(HullA.Id, crates, []), CrateCap.Of(HullA), 36));
+        overlay.OnContractGone = ContractGonePolicy.Remove;
+
+        overlay.ApplyContractTracker(new ContractTrackerReadResult([], null, new HashSet<long>()));
+
+        Of(overlay, 1, "Riker").Single().Loaded.Should().BeTrue();
+        overlay.Notices.Should().Contain("Contract #36 gone from ContractTracker – kept 1 loaded");
     }
 }
