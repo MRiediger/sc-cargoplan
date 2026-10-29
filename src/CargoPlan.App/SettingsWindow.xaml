@@ -479,12 +479,13 @@
                         </StackPanel>
                         <CheckBox Content="Auto-sync" IsChecked="{Binding AutoSync}" Margin="0,8,0,0"
                                   ToolTip="Off: a capture only shows &quot;N new contracts&quot;; Sync from ContractTracker in the editor or its hotkey takes them in" />
-                        <DockPanel Style="{StaticResource RowStyle}"
-                                   ToolTip="Keep: the contract stays as it is, marked gone, until you delete it. Remove: planned and delivered cargo leaves when it goes, loaded cargo never">
-                            <TextBlock Text="When a contract disappears from ContractTracker" TextWrapping="Wrap" Style="{StaticResource LabelStyle}" />
+                        <!-- Label above the box like "Database": the row's 110 px label would wrap into four lines. -->
+                        <StackPanel Margin="0,8,0,0"
+                                    ToolTip="Keep: the contract stays as it is, marked gone, until you delete it. Remove: planned and delivered cargo leaves when it goes, loaded cargo never">
+                            <TextBlock Text="When a contract disappears from ContractTracker" TextWrapping="Wrap" />
                             <ComboBox ItemsSource="{x:Static vm:ContractTrackerSectionViewModel.GoneChoices}" DisplayMemberPath="Text"
-                                      SelectedValuePath="Value" SelectedValue="{Binding OnContractGone}" />
-                        </DockPanel>
+                                      SelectedValuePath="Value" SelectedValue="{Binding OnContractGone}" Margin="0,2,0,0" />
+                        </StackPanel>
                         <Button Command="{Binding ResetCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}"
                                 ToolTip="Reset auto-sync and gone contracts to defaults. The database path stays as it is." />
                     </StackPanel>
