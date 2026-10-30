@@ -3158,8 +3158,85 @@ eigener Datei, Tür-Fall auf der Moth (Clipper hat ein Rack, Cutlass nimmt nur K
 - Zoom-Grenzen als Distanz gibt es seit T8.1 (R3): hier nur Text und Tooltip des Reglers im Settings-Fenster (Zellgröße in
   der Zielebene, D76-/D83-Addendum)
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** R1 Core-Ausnahme: `ShipOutline.HeightM` liest das schon
+vorhandene `heightM` aus `ship-outlines.json` (nur ein Leser, Format unverändert), weil im Umriss-Modus kein Holo geladen
+ist und seine Unterkante sonst unbekannt wäre. R2 Boden nie über dem Rackboden (Klemme). R3 Bug-Marker im Umriss-Modus =
+der Umriss selbst, kein Keil, kein Label (wie `main`, D62). R4 Rahmen um `Ship.Bounds` behalten, Entscheidung am Bild.
+R5 Tooltip-Texte „Max zoom per cell“ und „Backdrop“ (Wortlaut im Commit). R6 Zoom-Bereich 40–240 bleibt. R7 Fläche unlit,
+Entscheidung am Bild. R8 Altpfad-Abhängigkeit des Bow-Labels → T8.6. E1 schiffsfeste Untergrenze `near = max(…, halbe
+Diagonale + 1)`, falls die Kamera bei Max-Zoom im Schiff steht (siehe Befund: Rückfrage). E2 Export → Import bitgleich,
+bei Flackern Toleranz mit Begründung. Dazu aus der Planung: Gate ab T8.5 = Anteil später Frames (Phasenkopf). Beim
+Bauen: kein `StartOptionsTests`-Fall, die Messziele stehen nur im `FrameMeasureWindow`.
+
+**Befund:**
+- Commits 1900013 (Nachtrag M3, Gate-Regel), 1036ee0 (`HeightM`), b21bc92 (Boden), 6f4f03e (`OutlineSurface`), af71038
+  (Fix Wicklung), 177ee66 (Umriss in der Szene, Messziel), fb3c8b6 (Tooltips), 629afc3 (`LookSceneTests`), fd156b4
+  (Material-Cache threadsicher), dieser (Doku).
+- Nebenbefund: der statische Kanten-Material-Cache in `ShipScene3D` (seit T8.2) war ein normales `Dictionary`; parallele
+  STA-Testthreads zerstörten ihn (21 rote Tests im ersten vollen Lauf mit `LookSceneTests`). Jetzt `ConcurrentDictionary`
+  wie `CrateMaterials`/`StopBrushes`; drei volle Läufe grün. Die App hat nur den UI-Thread, war also nicht betroffen.
+- **Fehler gefunden, seit T8.2:** `HoloLines.Strips` wickelte jeden Streifen mit der Vorderseite von der Kamera weg. Die
+  Holo-Kanten haben ein `BackMaterial` und waren sichtbar, die Szenen-Strips (Kisten-, Geladen-, Rack-, Raster-,
+  Rahmenkanten) haben keins und wurden weggeschnitten. Gefunden beim Rendern der Umrisslinie: im `RenderTargetBitmap` kein
+  einziger Strip, mit `BackMaterial` alle. Wächter `HoloViewTests.A_strip_shows_its_front_to_the_camera` (vorher rot);
+  Bild mit neuer Wicklung = Bild mit `BackMaterial` (Differenz 0 %). Die T8.2-Bilder entstanden auf diesem Stand.
+- Boden aus `heightM` gegen die gecachten Holos (24 Schiffe): meist ≤ 0,06 m; Avenger Titan +0,72, Freelancer −0,4 bis
+  −0,55, Fortune −1,02, Idris-P +0,79, Hull C −1,75, Zeus Mk II −1,91 m; Reliant Kore Holo 28 m gegen 4,5 m (Flügel
+  hochgeklappt, betrifft nur das Holo). Geklemmt (R2): Hull A (0,27 → 0), Hull B (1,19 → 0).
+- **Zoom-Bereich** (`d_min = W / (2 · px · tan 20°)`, `near = min(d_min, Referenz)`, Standardausrichtung, Fit-Ziel; „im
+  Schiff“ = Kamera in `Ship.Bounds`):
+
+  | Schiff (halbe Diagonale) | W | 40 px | 160 px | 240 px |
+  |---|---|---|---|---|
+  | Hull A (4,74) | 400 | 13,74 | 3,43 | 2,29 im Schiff |
+  | Hull A | 800 | 16,81 (Referenz) | 6,87 | 4,58 |
+  | Hull A | 1600 | 21,74 (Referenz) | 13,74 | 9,16 |
+  | Hull C (24,17) | 400 | 13,74 | 3,43 im Schiff | 2,29 im Schiff |
+  | Hull C | 800 | 27,47 | 6,87 im Schiff | 4,58 im Schiff |
+  | Hull C | 1600 | 54,95 | 13,74 | 9,16 im Schiff |
+  | UTV (0,87) | 400 | 3,96 (Referenz) | 3,43 | 2,29 |
+  | UTV | 800 / 1600 | Referenz 3,89 / 5,00 | Referenz | Referenz |
+
+  Anders als im Plan erwartet steht die Hull A bei 160 im Standard-Overlay **nicht** im Schiff (erst bei 240), die Hull C
+  dagegen schon. E1 wörtlich hieße für die Hull C `near ≥ 25,2` Zellen, also höchstens ≈ 22 px/Zelle bei 400 DIP statt
+  160: das nähme D76/K1.1 („eine Hull C kommt so nah wie eine Hull A“) zurück. Nicht gebaut, **Rückfrage**.
+- Bilder für R4/R7 (Hull A, Outline / Holo shaded / None, je mit und ohne Rahmen; Umriss von unten; Hull C an der
+  Fern-Grenze) liegen im Scratchpad der Session.
+- **Stichprobe** (`--measure-frames`, Release 629afc3, ohne SC, 30 s je Lauf, Median aus drei Läufen; spät / p95 / fps):
+
+  | Ziel | Läufe spät | Median |
+  |---|---|---|
+  | `hull_a_outline` (4 Kisten, Umriss) | 6,1 / 2,5 / 6,6 % | 6,1 % / 33,07 ms / 56,5 |
+  | `empty` | 2,5 / 11,9 / 10,4 % | 10,4 % / 33,07 ms / 54,2 |
+
+  Gate (spät ≤ `empty` + 2 pp) erfüllt: 6,1 ≤ 12,4. Hit p95 0,001 ms. Die Streuung des leeren Fensters (2,5–11,9 %) ist
+  größer als der Abstand der Ziele.
+- Tests in T8.5 (rot wurde kein bestehender Test):
+
+  | Test | Stand | Grund |
+  |---|---|---|
+  | Core `ShipOutlineLoaderTests` | + 5 | Höhe gelesen, fehlt, ungültig (0, negativ), alle ausgelieferten haben eine |
+  | `OutlinePlacementTests` | xy unverändert, + 5 | Boden aus Höhe, mit `holoOffset.z`, Klemme, ohne Höhe, `Place(outline, ship)` |
+  | **neu** `OutlineSurfaceTests` (5) | – | konvex, konkav, Umlaufsinn, kollinear, alle 118 Umrisse flächentreu |
+  | `ShipScene3DTests` | + 8 | Fläche, Keil nur bei Wedge, Linie/Halo je Look, Versatz Linie > Halo > Fläche, ohne Umriss keine Linien |
+  | `OverlayViewModelTests` | + 1 | Umriss auf dem Holo-Boden (Aurora Mk II, `holoOffset`) |
+  | `HoloViewTests` | + 1 | Strip zeigt der Kamera die Vorderseite |
+  | `SettingsWindowXamlTests` | + 2 | Tooltip-Texte |
+  | **neu** `LookSceneTests` (18, STA) | – | 14 Keys je ein Bild, Umriss nimmt Nummern-Farbe und Halo, Presets je eigenes Bild, Export → Import bitgleich |
+  | `SceneProjectorTests`, `CameraFitTests`, `LookPresetsTests`, `LookFileTests`, `SettingsViewModelTests` | grün, unverändert | Orakel; `Place(outline, bounds)` behält den Rackboden als Vorgabe |
+
+- Gegengeprüft (je rot): ungültige Höhe nicht verworfen; alter Aufruf ohne Boden im ViewModel; Ohr ohne Punktprüfung;
+  Linie so weit gehoben wie der Halo; Kantenfarbe und Umriss-Halo abgeklemmt (`LookSceneTests`). Tests App 1.607 →
+  1.647, Core 1.492 → 1.497, Import 141; 0 Warnungen.
+
 **Akzeptanz:**
 - [ ] drei Presets im Spiel (Martin)
+- [ ] Settings-Reset „Ship view“ und Handling gegen `main` (Settings-Zeilen 1–14 des Plans, Martin)
+- [x] Look-Export → Import → identisches Bild (`LookSceneTests`, bitgleich in drei Läufen); im Spiel (Martin) offen
+- [ ] Rahmen (R4) und Fläche unlit (R7) am Bild (Martin)
+- [ ] Zoom-Untergrenze (E1): Rückfrage
+- [x] Stichprobe `hull_a_outline` nach der Gate-Regel ab T8.5 (6,1 % ≤ 10,4 % + 2 pp)
+- [x] `dotnet build` ohne Warnungen, `dotnet test` grün
 
 ### [ ] T8.6 2D-Painter entfernen
 **Warum:** Es gibt nur noch eine Projektion; toter Code und doppelte Tests gehen.
@@ -3169,6 +3246,10 @@ eigener Datei, Tür-Fall auf der Moth (Clipper hat ein Rack, Cutlass nimmt nur K
   `ViewTransform`; mit ihnen `OrbitScaleTests`, der Rahmen-Teil von `ShipCameraTests`, `ViewTransformTests`, `HoloCamera` in
   `HoloViewTests` (Gegenstücke in `CameraNavigationTests`). `IsoProjection` bleibt als Orientierung (Yaw/Pitch, `DefaultFor`,
   `IsLong`) für `CameraMath`
+- Aus T8.5 (R8): **umziehen, nicht löschen** – `SceneProjector.BowWedge`/`FloorOf` und `ViewTransform` tragen noch das
+  Bow-Label (`ShipOverlay.DrawBowLabel` → `FloorLabel.Lay` mit Identitäts-`ViewTransform`), den 3D-Keil
+  (`ShipScene3D.Wedge`) und die Keilnase im Fit (`CameraFit.Bow`); `SceneProjector.Corner` ist der Punkttyp von
+  `OutlinePlacement` und `BowMarker`
 
 **Akzeptanz:**
 - [ ] `dotnet build` ohne Warnungen, alle Tests grün
