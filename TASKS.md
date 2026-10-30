@@ -3085,14 +3085,68 @@ als `AssemblyAttribute`-Item, weil das gleichnamige MSBuild-Item nicht in der MS
 - [x] Klickprobe am Branch-Build (Martin, 30.10.2026, Skalierung ≈ 110 %)
 - [x] `dotnet build` ohne Warnungen, `dotnet test` grün
 
-### [ ] T8.4 Drag & Drop
+### [x] T8.4 Drag & Drop (30.10.2026, abgenommen 30.10.)
 **Warum:** Das L der S8.0-Liste; Drag-Semantik bleibt, nur Ziel und Vorschau werden 3D.
 - Einzelkiste, Mehrfachauswahl atomar, Legenden-Drag, Drehgeste Mausrad (K3.2), Vorschau = Loslassen (Geisterquader an der
   Zielzelle, dieselbe Core-Prüfung), Verdrängen 3b; D45-Pfad (GetCursorPos pro Frame unter CaptureMouse) bleibt
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** R1 Geister, Ziel-Rack-Rand und Ablehnung obenauf in der
+2D-Überlagerung (wie T8.2 R1), Entscheidung am Bild. R2 Ausblenden von Füllung und Kanten mit 0,35, Kanten-Neubau nur bei
+neuer Menge. R3 Messziel Hull C halb gefüllt (volle Hull C hat kein Ziel). R4 Gate der Vorschau: p95 der Schlüsselwechsel
+≤ 16 ms (D65), beides gemessen. R5 Nähte `internal` (`MoveTo`, `Wheel`, `StartLegendDrag` an einem Punkt, `ShownPreview`,
+`PendingGesture`). E1 Handling-Zeile 23 (Strahl gegen die Stapelachse) nur als Test, Zeile 22 (SC im Vordergrund) → T8.7.
+Dazu aus der Planung: die Tür-Regel liegt in Core, nicht im `DropTarget` (Ziel bleibt Ziel, Core legt um und sagt es in der
+Notice); die Vorschau rechnet nicht in jedem Frame, sondern bei jedem Schlüsselwechsel (E2). Beim Bauen: Hull C nimmt nur
+32er-Kisten (Mindestgröße der Racks, D70), das Messziel also 72 × 32 SCU statt 8er; M3 bewegt den echten Cursor
+(`SetCursorPos`), weil der Poll (D45) einen simulierten Pfad überschriebe; der Sweep der Vorschau liegt auf dem Bildbereich der
+Racks (mit dem Holo-Fit treffen nur 23 von 600 Punkten); Handling-Pläne: Hull A = Fixture `split_and_shared.json` statt
+eigener Datei, Tür-Fall auf der Moth (Clipper hat ein Rack, Cutlass nimmt nur Kisten bis 2 SCU).
+
+**Befund:**
+- Commits 97e557d/76fc373 (Messziel `hull_c_drag`, `MoveTo`, `MoveCursor`, M3a), b88b73b (`DropTarget` auf dem Strahl),
+  a3ade8a (`DragPreview`, Überlagerung, `Fade`), 5ba6dfc (Control: `DropAt`, `ShowDrag`, Nähte, Drag-Ende), e0fa86f (Sweep
+  über den Racks), 02d9df1 (Moth-Plan), dieser (Doku).
+- **Fehler gefunden, auch in `main`:** Loslassen beendete einen Drag nur über `LostMouseCapture`. Ohne Capture (fehlgeschlagenes
+  `CaptureMouse`, Ansicht ohne Fenster) blieb er stehen, jeder weitere Druck galt als zweiter Drag und wurde verschluckt, das
+  nächste Loslassen beendete den ersten. Ein T8.3-Test („zweiter Rechtsklick nimmt sie wieder heraus“) war nur deshalb grün.
+  `FinishDrag` beendet den Drag jetzt selbst; mit Capture ändert sich nichts. Wächter
+  `ShipViewHitTests.Each_click_ends_its_own_drag_even_without_the_mouse_captured` (vorher rot).
+- Handling Zeile 9: in `split_and_shared` lehnt Core nirgends ab, sondern macht Platz (`Displace`); ein roter Geist ist dort
+  in keinem Build zu sehen. Die Soll-Zeile war zu optimistisch. Über dem vollen Rack 1 gibt es kein Ziel (Zeile 4).
+- Diagnose über einen nicht committeten Log-Build (`~/CargoPlan-t84-debug`, gelöscht): Vorschau und Commands liefen richtig;
+  die vermeintlichen Abweichungen 17/18 waren die linke statt der rechten Maustaste.
+- **M3a/M3b** (`--measure-frames`, Release, ohne SC, 30 s je Lauf, Median aus drei Läufen von Martin):
+
+  | Ziel | M3a vor T8.4 | M3b nach T8.4 |
+  |---|---|---|
+  | `hull_c_drag` Frames p95 / spät / fps | 33,90 ms / 13,7 % / 52,7 | 33,90 ms / 12,6 % / 52,4 |
+  | `empty` Frames p95 / spät | 33,08 ms / 15,5 % | 33,07 ms / 13,7 % |
+  | Vorschau (Schlüsselwechsel) n / p95 / max | – (kein Ziel vor T8.4) | 343 / 1,81 ms / 12,1 ms |
+
+  Gate Frames erfüllt (33,90 ≤ 33,07 + 2), kein Abbruch (M3b − M3a = 0 ms), Gate Vorschau erfüllt (1,81 ≤ 16 ms).
+- Tests in T8.4 (rot wurde kein bestehender Test außer `DropTargetTests` beim Umzug):
+
+  | Test | Stand | Grund |
+  |---|---|---|
+  | `DragGestureTests`, `CrateDropTests`, `CrateTurnTests`, Core (`ResolveMove`, B3, B6, Tür) | grün, unverändert | Orakel |
+  | `DropTargetTests` (10 → 14) | migriert, gleiche Erwartungen | Strahl statt `IsoProjection`; + Nahsicht, hinter der Kamera, streifender Blick, Rack mit `-z` von unten |
+  | `SceneHitTestTests` | Rechts-Zieh-Test per Strahl | – |
+  | `CrateMaterialsTests`, `ShipScene3DTests` | + 1 / + 1 | ausgeblendeter Anteil, `Fade` |
+  | `FrameStatisticsTests` | + 2 | Logzeile der Vorschau |
+  | `ShipViewHitTests` | + 1 | Drag-Ende ohne Capture |
+  | **neu** `DragPreviewTests` (7), `ShipViewDragTests` (9, STA) | – | erster Test, der im Control zieht |
+
+- Gegengeprüft (je rot): `Entry` statt `Ahead` im `DropTarget`; rote Geister bei jedem Ergebnis; ohne Drop-Ziel (vier
+  Live-Tests rot); Loslassen ohne Drehung. Bild selbst geprüft (Renderbild mitten im Drag). Tests App 1.582 → 1.607, Core
+  1.492, Import 141; 0 Warnungen.
+- **Handling gegen `main`** (Martin, `main`- und Branch-Build, Hull A `split_and_shared.json`, Moth `t84-moth.plan.json`):
+  Zeilen 1–21 gleich (Ist = Soll), Zeile 22 → T8.7, Zeile 23 nur Test.
+
 **Akzeptanz:**
-- [ ] B3-, B6-, K3.2-Tests grün
-- [ ] Gate am Aufzug (Martin)
+- [x] B3-, B6-, K3.2-Tests grün
+- [x] Handling gegen `main` (Martin, 30.10.2026: „9,10,11 → funktioniert, Abnahme“)
+- [ ] Gate am Aufzug (Martin) → T8.7 (Zeile 22 der Handling-Liste)
+- [x] `dotnet build` ohne Warnungen, `dotnet test` grün
 
 ### [ ] T8.5 Look und Settings
 **Warum:** Look-Presets und Settings müssen auf der neuen Ansicht gelten, ohne Formatbruch (D83).
@@ -3119,6 +3173,8 @@ als `AssemblyAttribute`-Item, weil das gleichnamige MSBuild-Item nicht in der MS
 ### [ ] T8.7 Gates im Spiel am Aufzug
 **Warum:** S8.0 hat ohne SC gemessen; die Abnahme der Phase passiert im Spiel.
 - UTV, Hull A, Hull C, Aurora Mk II mit Modul (`holoOffset`), ein Schiff mit Unterseiten-Racks; Frame-Zeit mit laufendem SC
+- Aus T8.4 (Handling-Zeile 22): Kiste und Legendenzeile ziehen mit SC im Vordergrund, der Drag folgt dem Cursor per Poll
+  (D45), Loslassen ohne Up-Nachricht wirkt; Gate am Aufzug
 
 **Akzeptanz:**
 - [ ] Martins Abnahme, dann `git merge --no-ff` nach `main`
