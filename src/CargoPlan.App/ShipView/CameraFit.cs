@@ -34,10 +34,13 @@ public static class CameraFit
     /// Exact, per point: a point <c>r</c> to the right, <c>u</c> up and <c>f</c> beyond the target lands
     /// <c>focal · r / (d + f)</c> from the middle, so <c>d ≥ focal · |r| / room − f</c>.
     /// </summary>
-    public static double Distance(IsoProjection orientation, Point3D target, IEnumerable<Point3D> points, Size viewport, double margin)
+    /// <param name="top">DIPs kept free above the margin: room for the numbers above a long ship's racks (D61). The target
+    /// stays in the view's middle, so the room comes off the upper half only.</param>
+    public static double Distance(IsoProjection orientation, Point3D target, IEnumerable<Point3D> points, Size viewport, double margin, double top = 0)
     {
         var edge = Math.Min(margin, Math.Min(viewport.Width, viewport.Height) / 4);
-        var (across, upwards) = (viewport.Width / 2 - edge, viewport.Height / 2 - edge);
+        var across = viewport.Width / 2 - edge;
+        var (upwards, downwards) = (Math.Max(viewport.Height / 2 - edge - top, MinRoom), viewport.Height / 2 - edge);
         var axes = new CameraMath(orientation, 0, target, viewport);
         var (right, up, look, focal) = (axes.RightDirection, axes.UpDirection, axes.LookDirection, axes.Focal);
 
@@ -46,13 +49,17 @@ public static class CameraFit
         {
             var v = point - target;
             var f = Vector3D.DotProduct(v, look);
+            var u = Vector3D.DotProduct(v, up);
             distance = Math.Max(distance, Math.Max(
-                Math.Max(focal * Math.Abs(Vector3D.DotProduct(v, right)) / across, focal * Math.Abs(Vector3D.DotProduct(v, up)) / upwards) - f,
+                Math.Max(focal * Math.Abs(Vector3D.DotProduct(v, right)) / across, focal * Math.Abs(u) / (u > 0 ? upwards : downwards)) - f,
                 2 * CameraMath.NearPlane - f));
         }
 
         return distance;
     }
+
+    // A view smaller than its room on top still shows the ship, in what is left.
+    private const double MinRoom = 1;
 
     private static IEnumerable<Point3D> FitPoints(ShipScene scene, bool isLong)
     {

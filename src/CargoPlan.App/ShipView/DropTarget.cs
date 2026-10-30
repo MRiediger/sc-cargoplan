@@ -12,9 +12,6 @@ public sealed record Drop(string RackId, GridPosition Position);
 /// </summary>
 public static class DropTarget
 {
-    // A line that only grazes an edge or a corner of a cell doesn't enter it.
-    private const double Graze = 1e-9;
-
     /// <summary>
     /// The cell under <paramref name="projected"/> (projected units) in <paramref name="rack"/>, seen as the hit test
     /// sees it (D21): a crate on the line of sight answers even behind free outlines, and the drop goes on top of it
@@ -75,33 +72,7 @@ public static class DropTarget
         return new Drop(rack.Id, new GridPosition(front.Length, front.Width, stack));
     }
 
-    /// <summary>
-    /// Where the line <paramref name="origin"/> + t·<paramref name="direction"/> enters the cell, as t (smaller lies
-    /// nearer the camera); null if it misses. The slab method: the line is inside the box where it is inside all three
-    /// pairs of planes. Source: Kay &amp; Kajiya (1986), Ray tracing complex scenes, SIGGRAPH '86.
-    /// </summary>
-    private static double? Entry(ShipBox cell, (double X, double Y, double Z) origin, (double X, double Y, double Z) direction)
-    {
-        var (enter, leave) = (double.NegativeInfinity, double.PositiveInfinity);
-        foreach (var (min, start, step) in (ReadOnlySpan<(double, double, double)>)
-            [(cell.Min.X, origin.X, direction.X), (cell.Min.Y, origin.Y, direction.Y), (cell.Min.Z, origin.Z, direction.Z)])
-        {
-            if (Math.Abs(step) < Graze)
-            {
-                // Parallel to this pair of planes: inside between them or nowhere.
-                if (start <= min || start >= min + 1)
-                {
-                    return null;
-                }
-
-                continue;
-            }
-
-            var (a, b) = ((min - start) / step, (min + 1 - start) / step);
-            enter = Math.Max(enter, Math.Min(a, b));
-            leave = Math.Min(leave, Math.Max(a, b));
-        }
-
-        return leave - enter > Graze ? enter : null;
-    }
+    /// <summary>Where the line <paramref name="origin"/> + t·<paramref name="direction"/> enters the cell, as t; null if it misses (<see cref="RayBox"/>).</summary>
+    private static double? Entry(ShipBox cell, (double X, double Y, double Z) origin, (double X, double Y, double Z) direction) =>
+        RayBox.Entry((cell.Min.X, cell.Min.Y, cell.Min.Z), (cell.Min.X + 1, cell.Min.Y + 1, cell.Min.Z + 1), origin, direction);
 }
