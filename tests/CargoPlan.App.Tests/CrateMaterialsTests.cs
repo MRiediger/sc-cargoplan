@@ -63,6 +63,19 @@ public class CrateMaterialsTests
     }
 
     [Fact]
+    public void A_crate_held_or_moved_by_a_drag_fades_and_a_dimmed_one_fades_further()
+    {
+        // The 2D view pushed one opacity into another (D68 dimming, the drag's fade, D25): the shares multiply (T8.4).
+        var faded = (SolidColorBrush)BrushOf(CrateMaterials.Fill(Palette, 3, Alpha, dimmed: false, tileCells: 1, faded: true));
+        var both = (SolidColorBrush)BrushOf(CrateMaterials.Fill(Palette, 3, Alpha, dimmed: true, tileCells: 1, faded: true));
+        var grey = (SolidColorBrush)BrushOf(CrateMaterials.Delivered(Alpha, dimmed: false, faded: true));
+
+        faded.Color.A.Should().Be((byte)Math.Round(Alpha * CrateMaterials.FadedShare));
+        both.Color.A.Should().Be((byte)Math.Round(Alpha * CrateMaterials.DimmedShare * CrateMaterials.FadedShare));
+        grey.Color.A.Should().Be((byte)Math.Round(Alpha * CrateMaterials.FadedShare));
+    }
+
+    [Fact]
     public void A_delivered_crate_is_grey_at_the_crates_alpha()
     {
         var brush = (SolidColorBrush)BrushOf(CrateMaterials.Delivered(Alpha, dimmed: false));

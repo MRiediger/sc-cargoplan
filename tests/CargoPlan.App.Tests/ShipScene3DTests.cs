@@ -131,6 +131,30 @@ public class ShipScene3DTests
         });
     }
 
+    [Fact]
+    public void A_drag_fades_only_its_crates_and_builds_no_model_anew()
+    {
+        // The crates held and those the outcome moves fade where they are (D25, T8.4): their materials change, nothing else.
+        Sta.Run(() =>
+        {
+            var (scene, crates) = HullA();
+            var scene3D = new ShipScene3D();
+            scene3D.Show(scene, Look(scene));
+            scene3D.Follow(Camera(scene));
+            GeometryModel3D[] models = [.. scene3D.Crates.Children.Cast<GeometryModel3D>()];
+            var before = models.ToDictionary(m => m, m => m.Material);
+
+            scene3D.Fade(new HashSet<Crate> { crates[2] });
+
+            scene3D.Crates.Children.Cast<GeometryModel3D>().ToHashSet().SetEquals(models).Should().BeTrue("the same models, none built anew");
+            var changed = models.Where(m => m.Material != before[m]).ToArray();
+            changed.Should().ContainSingle().Which.Material.Should().Be(CrateMaterials.Fill(StopPalettes.OkabeIto, 1, 0xD0, dimmed: false, tileCells: 1, faded: true));
+
+            scene3D.Fade(new HashSet<Crate>());
+            models.Should().OnlyContain(m => m.Material == before[m]);
+        });
+    }
+
     private static double Depth(GeometryModel3D model, CameraMath camera)
     {
         var bounds = model.Bounds;

@@ -14,9 +14,10 @@ public sealed record OverlayLook(
 
 /// <summary>
 /// What lies on top of the 3D scene whatever covers it, drawn in 2D through <see cref="CameraMath"/> (D83, T8.2, R1):
-/// violated crates and racks in red, the selected missions' frame and the selected crates' edges, then the rack numbers
-/// and the "Bow" label. The pens are the 2D view's, in screen pixels, so the settings keep their meaning (K4.4); a
-/// violation or the selection never hides behind cargo, as before. Numbers hide behind other racks (<see cref="RackLabels"/>).
+/// violated crates and racks in red, a drag's target rack in cyan, the selected missions' frame and the selected crates'
+/// edges, a drag's ghosts (T8.4, R1), then the rack numbers and the "Bow" label. The pens are the 2D view's, in screen
+/// pixels, so the settings keep their meaning (K4.4); a violation, the selection or the drop target never hides behind
+/// cargo, as before. Numbers hide behind other racks (<see cref="RackLabels"/>).
 /// </summary>
 public static class ShipOverlay
 {
@@ -40,11 +41,15 @@ public static class ShipOverlay
 
     private static readonly Pen MissionFramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.MissionFrame), 1.5));
 
+    // The drop target's rack edge and the cyan ghosts' edge (D25, D65).
+    private static readonly Pen DragTargetPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.DragTarget), MissionPalette.EdgeWidth));
+
     /// <summary>The room above a long ship's racks for their numbers (D61), for the fit; 0 on a compact ship.</summary>
     public static double RoomOnTop(ShipScene scene, OverlayLook look) =>
         IsoProjection.IsLong(scene.Bounds) ? look.NumberFontSize + LabelGap + look.HaloSize : 0;
 
-    public static void Draw(DrawingContext dc, ShipScene scene, CameraMath camera, CrateSelection selection, OverlayLook look)
+    /// <param name="drag">What a running drag shows (<see cref="DragPreview"/>); <see cref="DragPreview.None"/> without one.</param>
+    public static void Draw(DrawingContext dc, ShipScene scene, CameraMath camera, CrateSelection selection, OverlayLook look, DragPreview drag)
     {
         // A faulty crate gets its own red outline over a dark one, so the player sees which (D24).
         var boxes = scene.Racks.SelectMany(r => r.Boxes).ToArray();
@@ -57,11 +62,11 @@ public static class ShipOverlay
             }
         }
 
-        foreach (var rack in scene.Racks.Where(r => r.IsViolated))
+        foreach (var rack in scene.Racks.Where(r => r.IsViolated || r.RackId == drag.TargetRackId))
         {
             foreach (var face in Faces(rack.Bounds, 0, camera))
             {
-                dc.DrawGeometry(null, ViolationPen, face);
+                dc.DrawGeometry(null, rack.RackId == drag.TargetRackId ? DragTargetPen : ViolationPen, face);
             }
         }
 
@@ -88,6 +93,20 @@ public static class ShipOverlay
                     }
 
                     dc.DrawGeometry(null, selectionPen, face);
+                }
+            }
+        }
+
+        // The ghosts: cyan where Core puts every crate that changes place, red at the cells aimed at where Core refuses
+        // (D25, D65); the whole cells, as in the 2D view, filled and edged over the dark under-stroke (K4.2).
+        foreach (var (ghosts, fill, pen) in new[] { (drag.Ghosts, MissionPalette.DropBrush, DragTargetPen), (drag.Refused, MissionPalette.RefusedDropBrush, ViolationPen) })
+        {
+            foreach (var crate in ghosts)
+            {
+                foreach (var face in Faces(scene.Ship.Racks.Single(r => r.Id == crate.RackId).CellBox(crate), 0, camera, filled: true))
+                {
+                    dc.DrawGeometry(fill, EdgeUnderPen, face);
+                    dc.DrawGeometry(null, pen, face);
                 }
             }
         }
@@ -147,7 +166,7 @@ public static class ShipOverlay
     }
 
     /// <summary>The visible faces of a box, inset by <paramref name="inset"/>, as screen polygons; faces reaching behind the camera are left out.</summary>
-    private static IEnumerable<Geometry> Faces(ShipBox box, double inset, CameraMath camera)
+    private static IEnumerable<Geometry> Faces(ShipBox box, double inset, CameraMath camera, bool filled = false)
     {
         Point3D min = new(box.Min.X + inset, box.Min.Y + inset, box.Min.Z + inset);
         Point3D max = new(box.Max.X - inset, box.Max.Y - inset, box.Max.Z - inset);
@@ -162,7 +181,7 @@ public static class ShipOverlay
             StreamGeometry geometry = new();
             using (var context = geometry.Open())
             {
-                context.BeginFigure(points[0], isFilled: false, isClosed: true);
+                context.BeginFigure(points[0], isFilled: filled, isClosed: true);
                 context.PolyLineTo(points[1..], isStroked: true, isSmoothJoin: false);
             }
 

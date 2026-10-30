@@ -49,6 +49,7 @@ public sealed class ShipScene3D
 
     private ShipScene? _scene;
     private CrateLook? _look;
+    private IReadOnlySet<Crate> _faded = new HashSet<Crate>();
     private double _tile = 1;
     private (CameraMath Camera, double Zoom)? _followed;
 
@@ -159,6 +160,36 @@ public sealed class ShipScene3D
         ShowHoloLines(camera, zoom);
     }
 
+    /// <summary>
+    /// Fades <paramref name="crates"/> where they are, fill and edges (<see cref="CrateMaterials.FadedShare"/>): what a drag
+    /// holds or its outcome moves (D25, T8.4). Only materials and edge strips change, and only for another set.
+    /// </summary>
+    public void Fade(IReadOnlySet<Crate> crates)
+    {
+        if (_faded.SetEquals(crates))
+        {
+            return;
+        }
+
+        _faded = crates;
+        if (_look is null)
+        {
+            return;
+        }
+
+        foreach (var (box, model, _) in _crates)
+        {
+            model.Material = MaterialOf(box);
+        }
+
+        _stripsFor = null;
+        if (_followed is var (camera, _))
+        {
+            _stripsFor = (camera.Orientation, camera.PxPerCellAtTarget);
+            BuildStrips(camera);
+        }
+    }
+
     public void ShowHolo(PreparedHolo? holo, double opacity, Color hull, Color edge)
     {
         _holo = holo;
@@ -190,9 +221,10 @@ public sealed class ShipScene3D
     {
         var look = _look!;
         var dimmed = SelectionFocus.Dims(box.Crate, look.Focus);
+        var faded = IsFaded(box);
         return box.Fill == CellFill.Delivered
-            ? CrateMaterials.Delivered(look.FillAlpha, dimmed)
-            : CrateMaterials.Fill(look.Palette, box.PaletteIndex!.Value, look.FillAlpha, dimmed, _tile);
+            ? CrateMaterials.Delivered(look.FillAlpha, dimmed, faded)
+            : CrateMaterials.Fill(look.Palette, box.PaletteIndex!.Value, look.FillAlpha, dimmed, _tile, faded);
     }
 
     /// <summary>Re-adds the crates only when the order changes: turning a little mostly keeps it.</summary>
@@ -247,7 +279,7 @@ public sealed class ShipScene3D
                 : default;
             if (width > 0)
             {
-                Add(Faded(colour, dimmed), width, Inner(box.Bounds));
+                Add(colour with { A = CrateMaterials.Shown(colour.A, dimmed, IsFaded(box)) }, width, Inner(box.Bounds));
             }
         }
 
@@ -303,7 +335,9 @@ public sealed class ShipScene3D
 
     private static Point3D Point(ShipPoint point) => new(point.X, point.Y, point.Z);
 
-    private static Color Faded(Color colour, bool dimmed) => dimmed ? colour with { A = (byte)Math.Round(colour.A * CrateMaterials.DimmedShare) } : colour;
+    private static Color Faded(Color colour, bool dimmed) => colour with { A = CrateMaterials.Shown(colour.A, dimmed, faded: false) };
+
+    private bool IsFaded(SceneBox box) => box.Crate is { } crate && _faded.Contains(crate);
 
     /// <summary>One model for many edges, or null without any edge to show.</summary>
     private static GeometryModel3D? Strip(IReadOnlyList<BoxEdges.Edge> edges, Vector3D look, double halfWidth, Material material)

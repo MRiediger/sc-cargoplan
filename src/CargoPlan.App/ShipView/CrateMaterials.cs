@@ -20,13 +20,19 @@ public static class CrateMaterials
     /// </summary>
     public const double DimmedShare = 0.4;
 
+    /// <summary>
+    /// What a crate keeps of its alpha while a drag holds it or its outcome moves it: it stays where it is, faded, so the
+    /// rack shows what it holds without it (D20, D25); the 2D view's opacity. A dimmed crate fades further (T8.4).
+    /// </summary>
+    public const double FadedShare = 0.35;
+
     private static readonly ConcurrentDictionary<(StopPalette Palette, int Ordinal, byte Alpha, double Tile), Material> Fills = new();
     private static readonly ConcurrentDictionary<byte, Material> DeliveredFills = new();
 
     /// <summary>The fill of a stop's crates, <paramref name="ordinal"/> as <c>MissionPalette.Assign</c> gives it.</summary>
-    public static Material Fill(StopPalette palette, int ordinal, byte alpha, bool dimmed, double tileCells)
+    public static Material Fill(StopPalette palette, int ordinal, byte alpha, bool dimmed, double tileCells, bool faded = false)
     {
-        var shown = Dimmed(alpha, dimmed);
+        var shown = Shown(alpha, dimmed, faded);
 
         // A plain fill has no tile: one material for every zoom.
         var tile = palette.HatchOf(ordinal) == StopHatch.None ? 0 : tileCells;
@@ -37,8 +43,8 @@ public static class CrateMaterials
     }
 
     /// <summary>Delivered cargo: grey at the crates' alpha, as in the 2D view.</summary>
-    public static Material Delivered(byte alpha, bool dimmed) =>
-        DeliveredFills.GetOrAdd(Dimmed(alpha, dimmed), shown => Diffuse(MissionPalette.Fill(MissionPalette.Delivered, shown)));
+    public static Material Delivered(byte alpha, bool dimmed, bool faded = false) =>
+        DeliveredFills.GetOrAdd(Shown(alpha, dimmed, faded), shown => Diffuse(MissionPalette.Fill(MissionPalette.Delivered, shown)));
 
     /// <summary>
     /// The hatch tile's side in cells at <paramref name="pxPerCellAtTarget"/>: <see cref="StopBrushes.TileSize"/> DIPs
@@ -47,7 +53,9 @@ public static class CrateMaterials
     public static double TileCells(double pxPerCellAtTarget) =>
         Math.Pow(2, Math.Round(Math.Log2(StopBrushes.TileSize / pxPerCellAtTarget)));
 
-    private static byte Dimmed(byte alpha, bool dimmed) => dimmed ? (byte)Math.Round(alpha * DimmedShare) : alpha;
+    /// <summary><paramref name="alpha"/> times the shares that apply: dimmed, faded, or both.</summary>
+    public static byte Shown(byte alpha, bool dimmed, bool faded) =>
+        (byte)Math.Round(alpha * (dimmed ? DimmedShare : 1) * (faded ? FadedShare : 1));
 
     private static Material Diffuse(Brush brush) => Frozen(new DiffuseMaterial(brush));
 

@@ -764,7 +764,7 @@ public sealed class ShipViewControl : FrameworkElement
         camera.ApplyTo(_camera);
         _shown = camera;
         _scene3D.Follow(camera, basis.FitDistance / camera.Distance);
-        ShipOverlay.Draw(dc, scene, camera, Selection, OverlayLook());
+        ShipOverlay.Draw(dc, scene, camera, Selection, OverlayLook(), DragPreview.None);
     }
 
     private OverlayLook OverlayLook() => new(
