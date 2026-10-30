@@ -114,15 +114,30 @@ public sealed record ShipViewSettings(double MaxZoomPxPerCell = AppearanceRules.
 }
 
 /// <summary>
-/// The ship view as the player left it on one ship (D76): the camera, and the framing if zoomed or panned. Written by the
-/// view, not by hand; read as the camera can be (the yaw wraps, the pitch and the zoom are clamped).
+/// The ship view as the player left it on one ship (D76, D83): the orientation, and distance and target once zoomed,
+/// panned or turned. Written by the view, not by hand; read as the camera can be (the yaw wraps, the pitch and the
+/// distance are clamped). Null values are not written.
 /// </summary>
 /// <param name="Yaw">Degrees, like <c>IsoProjection.Yaw</c>.</param>
 /// <param name="Pitch">Degrees, like <c>IsoProjection.Pitch</c>.</param>
-/// <param name="PxPerCell">Pixels per cell; with <paramref name="PanX"/> and <paramref name="PanY"/> the framing, all three or none (none = fit).</param>
-/// <param name="PanX">The view's middle from the ship's centre, projected, in cells (ship-fixed, so the cargo doesn't move it).</param>
-/// <param name="PanY">Like <paramref name="PanX"/>, down the screen.</param>
-public sealed record ShipCamera(double Yaw, double Pitch, double? PxPerCell = null, double? PanX = null, double? PanY = null);
+/// <param name="PxPerCell">
+/// The orthographic view's framing before D83, with <paramref name="PanX"/> and <paramref name="PanY"/>: read only, so a
+/// file from before Phase 8 still loads (the strict options refuse unknown keys); an entry with any of the three is dropped
+/// (<see cref="ShipViewSettings.Cameras"/>). Goes with the next schema bump of settings.json (backlog).
+/// </param>
+/// <param name="Distance">Cells from the camera to <paramref name="Target"/>; with it the placement, both or none (none = fit).</param>
+/// <param name="Target">The point the camera looks at, in ship coordinates (cells): fixed to the ship, so cargo doesn't move it.</param>
+public sealed record ShipCamera(
+    double Yaw,
+    double Pitch,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? PxPerCell = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? PanX = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? PanY = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? Distance = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CameraTarget? Target = null);
+
+/// <summary>A point in ship coordinates, in cells (x bow, y port, z up); the camera's target (D83).</summary>
+public sealed record CameraTarget(double X, double Y, double Z);
 
 /// <summary>
 /// The legend's layout (D33): top level, not in <c>appearance.legend</c>, because it is layout, not look, and the
