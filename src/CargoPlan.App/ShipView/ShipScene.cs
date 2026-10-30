@@ -11,7 +11,7 @@ namespace CargoPlan.App.ShipView;
 /// A record, not a view model: nothing in it changes.
 /// </summary>
 /// <param name="Racks">In rack order; what covers what is the depth buffer's (D83).</param>
-/// <param name="Bounds"><c>Ship.Bounds</c>, drawn as the frame.</param>
+/// <param name="Bounds"><c>Ship.Bounds</c>, the racks' common box: the bow wedge stands at its bow end (D52); not drawn (D84).</param>
 /// <param name="Violations">From <c>LoadPlanner.Validate</c>; these racks are red (D24).</param>
 /// <param name="StopCount">Destinations in the plan: with the chosen palette, whether colours repeat (K4.2).</param>
 /// <param name="Plan">The plan drawn, empty without one: a drag asks Core with it where a crate may go (D25).</param>
@@ -73,7 +73,7 @@ public abstract record BowMarker
     public sealed record None : BowMarker;
 
     /// <summary>
-    /// The ship's hologram behind the racks (D63), drawn by the backdrop, not by the ship view; its box in cells
+    /// The ship's hologram around the racks (D63), drawn in the scene from the loaded mesh; its box in cells
     /// (<see cref="HoloPlacement"/>) is all the scene needs: the fit shows the whole hologram.
     /// </summary>
     public sealed record Holo(Point3D Min, Point3D Max) : BowMarker;

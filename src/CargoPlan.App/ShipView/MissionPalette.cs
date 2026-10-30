@@ -65,12 +65,6 @@ public static class MissionPalette
     /// <summary>The hidden-line look's hull: as dark as the window, so it only hides what lies behind it.</summary>
     public static Color HoloHiddenFill { get; } = Color.FromRgb(0x14, 0x14, 0x14);
 
-    /// <summary>Light from everywhere, so the faces turned away don't go black.</summary>
-    public static Color HoloAmbient { get; } = Color.FromRgb(0x50, 0x50, 0x50);
-
-    /// <summary>The light along the view, following the camera: the faces turned to the player are the brightest.</summary>
-    public static Color HoloLight { get; } = Color.FromRgb(0xB0, 0xB0, 0xB0);
-
     // The perspective scene's lights (D83): fixed to the ship, so a face keeps its shade while the camera turns. Start values
     // from S8.0; set on the real element (T8.1).
 

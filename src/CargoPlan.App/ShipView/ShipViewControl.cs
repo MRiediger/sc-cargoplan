@@ -791,7 +791,7 @@ public sealed class ShipViewControl : FrameworkElement
             var camera = _navigation.On(basis, Limits, RenderSize);
             camera.ApplyTo(_camera);
             _shown = camera;
-            _scene3D.Follow(camera, basis.FitDistance / camera.Distance);
+            _scene3D.Follow(camera, _navigation.ZoomOn(basis, Limits, RenderSize));
         }
 
         DrawOverlay();
