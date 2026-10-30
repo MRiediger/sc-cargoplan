@@ -10,7 +10,7 @@ public static class RackNumberSize
     public const double MinSize = 12;
 
     /// <param name="fontSize">The setting, in pixels; one below <see cref="MinSize"/> is kept as it is.</param>
-    /// <param name="scale">Pixels per cell (<see cref="ViewTransform.Scale"/>), fit and zoom included.</param>
+    /// <param name="scale">Pixels per cell at the target's plane (<see cref="CameraMath.PxPerCellAtTarget"/>), fit and zoom included.</param>
     public static double For(double fontSize, double scale, IReadOnlyList<SceneRack> racks) =>
         Math.Min(fontSize, Math.Max(MinSize, ShortestSide(racks) * scale));
 

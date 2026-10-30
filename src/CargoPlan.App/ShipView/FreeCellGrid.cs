@@ -13,6 +13,6 @@ public static class FreeCellGrid
     /// </summary>
     public const double MinCellSize = 12;
 
-    /// <param name="scale">Pixels per cell (<see cref="ViewTransform.Scale"/>), fit and zoom included.</param>
+    /// <param name="scale">Pixels per cell at the target's plane (<see cref="CameraMath.PxPerCellAtTarget"/>), fit and zoom included.</param>
     public static bool Draws(SceneBox free, double scale) => scale >= MinCellSize || free.InLoadedLayer;
 }

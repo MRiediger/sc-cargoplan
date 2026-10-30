@@ -79,24 +79,6 @@ public static class SceneHitTest
     /// </summary>
     public static SceneBox? BoxAt(ShipScene scene, Ray ray) => RackAt(scene, ray) is { } rack ? CargoBoxOf(rack, ray) : null;
 
-    /// <summary>Even-odd rule: a ray from the point crosses the outline an odd number of times if the point is inside.</summary>
-    /// <remarks>For the 2D painter's tests alone since T8.3; goes with it in T8.6.</remarks>
-    public static bool Contains(IReadOnlyList<Point> polygon, Point point)
-    {
-        var inside = false;
-        for (int i = 0, j = polygon.Count - 1; i < polygon.Count; j = i++)
-        {
-            var (a, b) = (polygon[i], polygon[j]);
-            if ((a.Y > point.Y) != (b.Y > point.Y)
-                && point.X < (b.X - a.X) * (point.Y - a.Y) / (b.Y - a.Y) + a.X)
-            {
-                inside = !inside;
-            }
-        }
-
-        return inside;
-    }
-
     private static SceneRack? RackAt(ShipScene scene, Ray ray) => First(scene.Racks, r => r.Bounds, ray);
 
     /// <summary>

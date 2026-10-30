@@ -205,13 +205,16 @@ public class IsoProjectionTests
     [Fact]
     public void A_long_ship_is_seen_from_port_above_with_its_length_flatter_than_by_default()
     {
-        var camera = IsoProjection.DefaultFor(ShipLoader.Load("caterpillar").Bounds);
-        var bow = camera.Project(1, 0, 0);
+        var bounds = ShipLoader.Load("caterpillar").Bounds;
+        var orientation = IsoProjection.DefaultFor(bounds);
+        var centre = ScreenPoints.Centre(bounds);
+        CameraMath camera = new(orientation, 200, centre, new Size(800, 600));
+        var bow = camera.Project(centre + new System.Windows.Media.Media3D.Vector3D(1, 0, 0)) - camera.Project(centre);
 
         // The bow still points left (D15), the length runs flatter than the default's 30° (D61).
-        camera.Pitch.Should().Be(IsoProjection.DefaultPitch);
+        orientation.Pitch.Should().Be(IsoProjection.DefaultPitch);
         bow.X.Should().BeNegative();
         Math.Abs(bow.Y / bow.X).Should().BeLessThan(Math.Tan(Math.PI / 6) - 1e-9);
-        SceneProjector.VisibleFaces(camera).Should().Contain([BoxFace.Top, BoxFace.Port]);
+        BoxFaces.Visible(bounds, camera).Select(f => f.Side).Should().Contain([BoxFace.Top, BoxFace.Port]);
     }
 }

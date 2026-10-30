@@ -102,7 +102,7 @@ public class ShipViewBuilderTests
     [Fact]
     public void Racks_come_in_rack_order()
     {
-        // The draw order depends on the camera; the projector sorts (DrawOrder).
+        // In rack order; what covers what is the depth buffer's (D83).
         Build(Sample.Plan).Racks.Select(r => r.Number).Should().Equal(1, 2, 3, 4);
     }
 

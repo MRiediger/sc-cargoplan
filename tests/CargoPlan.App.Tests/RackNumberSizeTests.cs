@@ -30,21 +30,6 @@ public sealed class RackNumberSizeTests
         return navigation.On(basis, DistanceLimits.Default, DefaultView).PxPerCellAtTarget;
     }
 
-    private static double FitScale(Ship ship)
-    {
-        var scene = ShipViewBuilder.Build(Sample.Plan, ship, LoadPlanner.Validate(Sample.Plan, ship));
-        var extent = SceneProjector.Project(scene, IsoProjection.Default).Extent;
-        return ViewTransform.Fit(extent, DefaultView, margin: 8).Scale;
-    }
-
-    [Fact]
-    public void Default_is_the_size_at_zoom_1_before_it_was_a_setting()
-    {
-        // Up to T4.5 the number was 0.9 × the scale: in the default view the setting must not change the look. Measured
-        // on the Hull A of that time; K5.2's wider spindle gap fits smaller and leaves the default as it was (D78).
-        Default.Should().Be(Math.Round(0.9 * FitScale(TestPlans.HullABeforeK52())));
-    }
-
     [Theory]
     [InlineData(0.5)]
     [InlineData(1)]

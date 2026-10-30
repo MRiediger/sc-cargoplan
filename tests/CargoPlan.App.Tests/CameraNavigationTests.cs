@@ -12,7 +12,7 @@ namespace CargoPlan.App.Tests;
 
 /// <summary>
 /// The perspective view's camera (D83): fit, zoom, pan and orbit as distance and target, the limits fixed to the ship.
-/// The four guards of the holo pump bugfix (<see cref="OrbitScaleTests"/>, on the orthographic view until T8.6) hold here
+/// The four guards of the holo pump bugfix (once OrbitScaleTests on the orthographic view, gone in T8.6) hold here
 /// too: only the player changes the distance; turning, a hologram arriving or a plan step never do, also at the limit.
 /// </summary>
 public sealed class CameraNavigationTests

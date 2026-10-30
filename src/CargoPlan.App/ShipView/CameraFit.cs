@@ -6,8 +6,7 @@ namespace CargoPlan.App.ShipView;
 
 /// <summary>
 /// What fit-to-view shows in the perspective view (D83), as points in ship coordinates, and the distance at which they
-/// fill the view. The rules of the orthographic fit (<c>SceneProjector.FitExtent</c>, D61, D62, D63): a hologram is fitted
-/// whole; a long ship with cargo fits its loaded racks and the bow; with an outline a ship fits its racks and the wedge's
+/// fill the view. The rules are the orthographic fit's (D61, D62, D63): a hologram is fitted whole; a long ship with cargo fits its loaded racks and the bow; with an outline a ship fits its racks and the wedge's
 /// bow zone; otherwise the racks and the marker.
 /// </summary>
 public static class CameraFit

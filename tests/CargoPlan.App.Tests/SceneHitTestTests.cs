@@ -49,16 +49,6 @@ public class SceneHitTestTests
     private static readonly Ray Empty = Far(Default).Unproject(new Point(10, 10));
 
     [Fact]
-    public void Polygon_contains_inner_points_only()
-    {
-        Point[] square = [new(0, 0), new(2, 0), new(2, 2), new(0, 2)];
-
-        SceneHitTest.Contains(square, new Point(1, 1)).Should().BeTrue();
-        SceneHitTest.Contains(square, new Point(3, 1)).Should().BeFalse();
-        SceneHitTest.Contains(square, new Point(1, -0.5)).Should().BeFalse();
-    }
-
-    [Fact]
     public void Tool_tip_names_stop_rack_position_and_crate_then_the_rack_load()
     {
         SceneHitTest.ToolTipAt(Scene, Sight(Rack1Top)).Should().Be("Riker · Rack 1 · port upper · 4 SCU Titanium crate (3 of 4)\nRack 1 · 16 / 16 SCU");
