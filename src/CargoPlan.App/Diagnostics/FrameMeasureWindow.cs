@@ -45,16 +45,16 @@ internal sealed class FrameMeasureWindow : Window
     // One crate size per ship fills every rack as in S8.0: the Hull C gives 144 crates. A target not listed is refused.
     // hull_c_states shows every crate state at once (T8.2): 24 stops (three colour rounds, so both hatches), every 5th stop
     // delivered, every 7th loaded, one overlapping crate (a violation), mission 1 selected.
-    // hull_c_drag (T8.4, M3) fills every rack half with 8 SCU crates, so a dragged crate finds free columns and crates to
-    // displace; a full ship has no target on top (Gesture.None) and would measure no preview. The camera stands still while
-    // the cursor drags a crate over the racks.
+    // hull_c_drag (T8.4, M3) fills every rack half (72 crates of 32 SCU, the least size its racks take, D70), so a dragged
+    // crate finds free columns and crates to displace; a full ship has no target on top (Gesture.None) and would measure no
+    // preview. The camera stands still while the cursor drags a crate over the racks.
     private static readonly Dictionary<string, (string Ship, CrateSize Size, bool States, bool Drag)> Targets = new()
     {
         ["utv"] = ("utv", CrateSize.One, false, false),
         ["hull_a"] = ("hull_a", CrateSize.Sixteen, false, false),
         ["hull_c"] = ("hull_c", CrateSize.ThirtyTwo, false, false),
         ["hull_c_states"] = ("hull_c", CrateSize.ThirtyTwo, true, false),
-        ["hull_c_drag"] = ("hull_c", CrateSize.Eight, false, true),
+        ["hull_c_drag"] = ("hull_c", CrateSize.ThirtyTwo, false, true),
     };
 
     // The cursor's path while dragging: a Lissajous figure over the middle of the view, slow enough to stop on cells.
@@ -134,7 +134,8 @@ internal sealed class FrameMeasureWindow : Window
     {
         var known = _target == Empty || _ship is not null;
         var intervals = known ? await MeasureFramesAsync() : [];
-        var drags = _drag ? " | drag " + DragSweep() : "";
+        // "held" says the drag still runs after the frames: a lost capture would end it, and the sweep would time tool tips.
+        var drags = _drag ? Inv($" | drag held {(_view.IsDragging ? "yes" : "NO")}, ") + DragSweep() : "";
         var hits = _ship is not null ? HitSweep() : null;
         var valid = known && FrameStatistics.IsValid(intervals);
 
