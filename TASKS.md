@@ -3151,7 +3151,7 @@ eigener Datei, Tür-Fall auf der Moth (Clipper hat ein Rack, Cutlass nimmt nur K
 - [ ] Gate am Aufzug (Martin) → T8.7 (Zeile 22 der Handling-Liste)
 - [x] `dotnet build` ohne Warnungen, `dotnet test` grün
 
-### [ ] T8.5 Look und Settings
+### [x] T8.5 Look und Settings (30.10.2026, abgenommen 30.10.)
 **Warum:** Look-Presets und Settings müssen auf der neuen Ansicht gelten, ohne Formatbruch (D83).
 - Halo-Texte im Overlay, Look-Presets und -Export unverändert gültig, Umriss als Fläche in der Holo-Bodenebene (inkl.
   `holoOffset`; bis dahin im Umriss-Modus kein Bug-Marker, T8.1 R7); Addendum D62
@@ -3227,14 +3227,20 @@ Bauen: kein `StartOptionsTests`-Fall, die Messziele stehen nur im `FrameMeasureW
 
 - Gegengeprüft (je rot): ungültige Höhe nicht verworfen; alter Aufruf ohne Boden im ViewModel; Ohr ohne Punktprüfung;
   Linie so weit gehoben wie der Halo; Kantenfarbe und Umriss-Halo abgeklemmt (`LookSceneTests`).
+- **Präzisierung bei der Abnahme, ratifiziert durch Freigabe:** Hologram opacity von 1 % bis 100 % in 1er-Schritten
+  (vorher 10 % in 5er-Schritten; `MinHoloOpacity` 0,01, `TickFrequency` 1; D63-Addendum, settings-format.md). Ältere
+  Builds klemmen Werte unter 0,1 mit Hinweis auf 0,1. Handling-Zeile 2 weicht damit gewollt von `main` ab. Tests:
+  `SettingsStoreTests` Klemme auf 0,005 → 0,01 umgestellt, + 2 (0,01 und 0,05 bleiben), `SettingsViewModelTests` + 1,
+  `SettingsWindowXamlTests` + 1 (alle vorher rot).
 - Rahmen um `Ship.Bounds` gestrichen nach Martins Bildentscheidung (D84): mit ihm `MissionPalette.Frame`,
   `BoxEdges.Dashed` und dessen zwei Tests; Wächter `ShipScene3DTests.An_empty_ship_shows_its_rack_edges_and_no_frame`
-  (vorher rot). Tests App 1.607 → 1.646, Core 1.492 → 1.497, Import 141; 0 Warnungen.
+  (vorher rot). Tests App 1.607 → 1.650 (mit Opacity), Core 1.492 → 1.497, Import 141; 0 Warnungen.
 
 **Akzeptanz:**
-- [ ] drei Presets im Spiel (Martin)
-- [ ] Settings-Reset „Ship view“ und Handling gegen `main` (Settings-Zeilen 1–14 des Plans, Martin)
-- [x] Look-Export → Import → identisches Bild (`LookSceneTests`, bitgleich in drei Läufen); im Spiel (Martin) offen
+- [x] drei Presets im Spiel (Martin, 30.10.2026: „ja passt“)
+- [x] Settings-Reset „Ship view“ und Handling gegen `main` (Settings-Zeilen 1–14, Martin: „alle Settings ausprobiert“);
+  daraus der Wunsch Hologram opacity 1–100 % in 1er-Schritten, umgesetzt (Befund)
+- [x] Look-Export → Import → identisches Bild (`LookSceneTests`, bitgleich in drei Läufen; Martin mit den Settings)
 - [x] Rahmen (R4) und Fläche unlit (R7) am Bild (Martin, 30.10.2026: „ohne Rahmen, Rest passt“): Rahmen gestrichen (D84),
   Fläche bleibt unlit
 - [x] Zoom-Untergrenze (E1): bleibt wie sie ist (Martin, 30.10.2026, nach der Tabelle oben); keine schiffsfeste
