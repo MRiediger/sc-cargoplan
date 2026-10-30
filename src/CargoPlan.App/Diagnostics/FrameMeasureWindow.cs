@@ -48,13 +48,15 @@ internal sealed class FrameMeasureWindow : Window
     // hull_c_drag (T8.4, M3) fills every rack half (72 crates of 32 SCU, the least size its racks take, D70), so a dragged
     // crate finds free columns and crates to displace; a full ship has no target on top (Gesture.None) and would measure no
     // preview. The camera stands still while the cursor drags a crate over the racks.
-    private static readonly Dictionary<string, (string Ship, CrateSize Size, bool States, bool Drag)> Targets = new()
+    // hull_a_outline (T8.5) shows the outline as a surface with its line and halo instead of the hologram.
+    private static readonly Dictionary<string, (string Ship, CrateSize Size, bool States, bool Drag, bool Outline)> Targets = new()
     {
-        ["utv"] = ("utv", CrateSize.One, false, false),
-        ["hull_a"] = ("hull_a", CrateSize.Sixteen, false, false),
-        ["hull_c"] = ("hull_c", CrateSize.ThirtyTwo, false, false),
-        ["hull_c_states"] = ("hull_c", CrateSize.ThirtyTwo, true, false),
-        ["hull_c_drag"] = ("hull_c", CrateSize.ThirtyTwo, false, true),
+        ["utv"] = ("utv", CrateSize.One, false, false, false),
+        ["hull_a"] = ("hull_a", CrateSize.Sixteen, false, false, false),
+        ["hull_a_outline"] = ("hull_a", CrateSize.Sixteen, false, false, true),
+        ["hull_c"] = ("hull_c", CrateSize.ThirtyTwo, false, false, false),
+        ["hull_c_states"] = ("hull_c", CrateSize.ThirtyTwo, true, false, false),
+        ["hull_c_drag"] = ("hull_c", CrateSize.ThirtyTwo, false, true, false),
     };
 
     // The cursor's path while dragging: a Lissajous figure over the middle of the view, slow enough to stop on cells.
@@ -114,11 +116,14 @@ internal sealed class FrameMeasureWindow : Window
             }
 
             _crates = plan.Crates.Count;
-            var path = ship.FleetyardsSlug is { } slug ? Path.Combine(HoloRelease.DefaultCacheFolder, slug + ".holo") : null;
+            var path = ship.FleetyardsSlug is { } slug && !spec.Outline ? Path.Combine(HoloRelease.DefaultCacheFolder, slug + ".holo") : null;
             _holo = path is not null && File.Exists(path) ? PreparedHolo.Prepare(ship, HoloReader.Read(File.ReadAllBytes(path)), Look) : null;
+            var outline = spec.Outline ? ShipOutlineLoader.Load().For(ship) : null;
             var scene = ShipViewBuilder.Build(plan, ship, spec.States ? LoadPlanner.Validate(plan, ship) : []) with
             {
-                Marker = _holo is { } h ? new BowMarker.Holo(h.Placement.Min, h.Placement.Max) : new BowMarker.Wedge(),
+                Marker = _holo is { } h ? new BowMarker.Holo(h.Placement.Min, h.Placement.Max)
+                    : outline is not null ? new BowMarker.Outline(OutlinePlacement.Place(outline, ship))
+                    : new BowMarker.Wedge(),
             };
             _view.Scene = scene;
             _view.Holo = _holo;
@@ -140,7 +145,7 @@ internal sealed class FrameMeasureWindow : Window
         var valid = known && FrameStatistics.IsValid(intervals);
 
         var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
-        var subject = _ship is null ? _target : Inv($"{_target} {_crates} crates, holo {(_holo is null ? "no" : "yes")}");
+        var subject = _ship is null ? _target : Inv($"{_target} {_crates} crates, holo {(_holo is null ? "no" : "yes")}, marker {_view.Scene?.Marker.GetType().Name}");
         var frames = known ? FrameStatistics.Summary(intervals, Duration) : "unknown target (empty, " + string.Join(", ", Targets.Keys) + ")";
         File.AppendAllText(_logPath, Inv($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {version} {subject}: frames {frames}{drags}{(hits is null ? "" : " | hits " + hits)}") + Environment.NewLine);
 

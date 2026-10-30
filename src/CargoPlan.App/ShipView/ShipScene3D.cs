@@ -11,7 +11,14 @@ namespace CargoPlan.App.ShipView;
 /// <summary>How the crates look (T8.2): the theme's palette, fill alpha and edge colour, and the selection's missions.</summary>
 /// <param name="Edge">The crates' edges (<c>crates.edgeAlpha</c>); null = crates without edges.</param>
 /// <param name="Focus">The missions of the selected crates (<see cref="SelectionFocus.Missions"/>): other missions dim (D68).</param>
-public sealed record CrateLook(StopPalette Palette, byte FillAlpha, Color? Edge, IReadOnlySet<int> Focus);
+/// <param name="Outline">The outline's line and halo (D62, T8.5); null = neither.</param>
+public sealed record CrateLook(StopPalette Palette, byte FillAlpha, Color? Edge, IReadOnlySet<int> Focus, OutlinePaint? Outline = null);
+
+/// <summary>The outline's line and halo as the 2D view drew them (D62): the line one pixel wide, the halo under it.</summary>
+/// <param name="Line">The rack numbers' colour, toned down; null = no line (no rack numbers).</param>
+/// <param name="Halo">The crates' halo colour (D28); null = halo off.</param>
+/// <param name="HaloSize">The halo's width on each side of the line, in pixels.</param>
+public sealed record OutlinePaint(Color? Line, Color? Halo, double HaloSize);
 
 /// <summary>
 /// The ship view's 3D scene (D83): lights fixed to the ship, one model per crate in its stop's material, the edges as
@@ -35,6 +42,15 @@ public sealed class ShipScene3D
     // The frame's dashes: WPF's Dash style is 2 on, 2 off, in pen widths (DashStyles.Dash).
     private const double FrameDash = 2;
 
+    // The outline's line, as in the 2D view (D62); its halo is the line plus the halo size on each side.
+    private const double OutlineWidth = 1;
+
+    // The outline's surface, halo and line lie in one plane, and WPF documents no depth test for a tie: the halo is moved
+    // this share of its distance towards the camera, the line twice that, each along its own sight line, so neither
+    // moves on the screen. WPF documents neither the tie nor the depth buffer's precision; the share is checked on the
+    // rendered picture at the farthest zoom of the largest ship (T8.5), and lifts no line visibly off the floor.
+    private const double OutlineLift = 1e-3;
+
     // Travelling from above and the bow, a little from port (S8.0); the under light from below and astern.
     private static readonly Vector3D MainLightDirection = new(-1, -0.3, -1);
     private static readonly Vector3D UnderLightDirection = new(0.3, 0, 1);
@@ -42,7 +58,6 @@ public sealed class ShipScene3D
     private static readonly Material WedgeMaterial = Frozen(new DiffuseMaterial(Frozen(new SolidColorBrush(MissionPalette.BowWedgeFill))));
 
     private readonly Model3DGroup _edges = new();
-    private readonly Model3DGroup _marker = new();
     private readonly GeometryModel3D _holoSurface = new();
     private readonly GeometryModel3D _holoLines = new();
     private readonly List<(SceneBox Box, GeometryModel3D Model, Point3D Centre)> _crates = [];
@@ -79,7 +94,8 @@ public sealed class ShipScene3D
             new ModelVisual3D { Content = Crates },
             new ModelVisual3D { Content = _edges },
             new ModelVisual3D { Content = FreeGrid },
-            new ModelVisual3D { Content = _marker },
+            new ModelVisual3D { Content = Marker },
+            new ModelVisual3D { Content = MarkerLines },
 
             // Last: transparent, drawn over what lies behind it (D83).
             HoloVisual,
@@ -95,6 +111,12 @@ public sealed class ShipScene3D
     /// <summary>The free cells' grid, one model per rack (D61: only where a cell is large enough or its layer holds cargo).</summary>
     public Model3DGroup FreeGrid { get; } = new();
 
+    /// <summary>What marks the bow (D62): the wedge, or the outline's surface; empty with a hologram or none.</summary>
+    public Model3DGroup Marker { get; } = new();
+
+    /// <summary>The outline's halo, then its line, after the surface (T8.5); rebuilt with the edges' strips.</summary>
+    public Model3DGroup MarkerLines { get; } = new();
+
     public ModelVisual3D HoloVisual { get; }
 
     /// <summary>Crates and marker anew: a new plan, a tick, another ship or marker, another look or selection.</summary>
@@ -103,12 +125,13 @@ public sealed class ShipScene3D
         (_scene, _look) = (scene, look);
         _crates.Clear();
         Crates.Children.Clear();
-        _marker.Children.Clear();
+        Marker.Children.Clear();
         _stripsFor = null;
         if (scene is null)
         {
             _edges.Children.Clear();
             FreeGrid.Children.Clear();
+            MarkerLines.Children.Clear();
             return;
         }
 
@@ -120,10 +143,15 @@ public sealed class ShipScene3D
             Crates.Children.Add(model);
         }
 
-        // Fallback hologram → outline → wedge (D62, D63): the outline as a surface comes with T8.5, until then nothing.
-        if (scene.Marker is BowMarker.Wedge)
+        // Fallback hologram → outline → wedge (D62, D63); the hologram is a model of its own (ShowHolo).
+        switch (scene.Marker)
         {
-            _marker.Children.Add(Frozen(new GeometryModel3D(Wedge(scene.Bounds), WedgeMaterial) { BackMaterial = WedgeMaterial }));
+            case BowMarker.Wedge:
+                Marker.Children.Add(Frozen(new GeometryModel3D(Wedge(scene.Bounds), WedgeMaterial) { BackMaterial = WedgeMaterial }));
+                break;
+            case BowMarker.Outline outline:
+                Marker.Children.Add(OutlineSurfaceModel(outline.Points));
+                break;
         }
 
         if (_followed is var (camera, zoom))
@@ -247,12 +275,14 @@ public sealed class ShipScene3D
     /// <summary>
     /// The edges as strips one pen wide at the target's plane (nearer a little wider, further narrower): crates in the
     /// theme's edge colour, loaded crates in the loaded edge (K6.4), dimmed with their crates; rack edges, a long ship's
-    /// empty racks dimmed (D61); the dashed frame around <c>Ship.Bounds</c>; the free grid one model per rack.
+    /// empty racks dimmed (D61); the dashed frame around <c>Ship.Bounds</c>; the free grid one model per rack; the
+    /// outline's halo and line (T8.5).
     /// </summary>
     private void BuildStrips(CameraMath camera)
     {
         _edges.Children.Clear();
         FreeGrid.Children.Clear();
+        MarkerLines.Children.Clear();
         if (_scene is not { } scene || _look is not { } look)
         {
             return;
@@ -304,6 +334,42 @@ public sealed class ShipScene3D
                 _edges.Children.Add(model);
             }
         }
+
+        if (scene.Marker is BowMarker.Outline outline && look.Outline is { } paint)
+        {
+            BuildOutlineLines(outline.Points, paint, camera);
+        }
+    }
+
+    /// <summary>
+    /// The outline's halo (line plus the halo size on each side) and line over it, both pixel widths at the target's plane
+    /// as the 2D view drew them (D62), each lifted towards the camera along its sight line (<see cref="OutlineLift"/>).
+    /// </summary>
+    private void BuildOutlineLines(IReadOnlyList<SceneProjector.Corner> points, OutlinePaint paint, CameraMath camera)
+    {
+        var (position, view, scale) = (camera.Position, camera.LookDirection, camera.PxPerCellAtTarget);
+        int[] segments = [.. Enumerable.Range(0, points.Count).SelectMany(i => (int[])[i, (i + 1) % points.Count])];
+        Point3D[] Lifted(double share) => [.. points.Select(Point).Select(p => p + share * (position - p))];
+
+        foreach (var (colour, width, lift) in new[] { (paint.Halo, OutlineWidth + 2 * paint.HaloSize, 1), (paint.Line, OutlineWidth, 2) })
+        {
+            if (colour is { } c && Lines(Lifted(lift * OutlineLift), segments, view, width / 2 / scale, EdgeMaterial(c)) is { } model)
+            {
+                MarkerLines.Children.Add(model);
+            }
+        }
+    }
+
+    /// <summary>The outline's surface on its floor, unlit like the 2D view's fill, seen from above and below (T8.5).</summary>
+    private static GeometryModel3D OutlineSurfaceModel(IReadOnlyList<SceneProjector.Corner> points)
+    {
+        MeshGeometry3D mesh = new()
+        {
+            Positions = new Point3DCollection(points.Select(Point)),
+            TriangleIndices = new Int32Collection(OutlineSurface.Triangles([.. points.Select(p => new Point(p.X, p.Y))])),
+        };
+        var material = EdgeMaterial(MissionPalette.BowWedgeFill);
+        return Frozen(new GeometryModel3D(Frozen(mesh), material) { BackMaterial = material });
     }
 
     /// <summary>The hidden-line look's edges, one pixel wide at the target's plane; the zoom picks the edge level (D63).</summary>
@@ -355,6 +421,12 @@ public sealed class ShipScene3D
             (segments[2 * i], segments[2 * i + 1]) = (2 * i, 2 * i + 1);
         }
 
+        return Lines(points, segments, look, halfWidth, material);
+    }
+
+    /// <summary>One model for the segments (pairs of indices into <paramref name="points"/>), or null if none shows.</summary>
+    private static GeometryModel3D? Lines(IReadOnlyList<Point3D> points, ReadOnlySpan<int> segments, Vector3D look, double halfWidth, Material material)
+    {
         var (positions, indices) = HoloLines.Strips(points, segments, look, halfWidth);
         return positions.Length == 0
             ? null

@@ -941,12 +941,21 @@ public sealed class ShipViewControl : FrameworkElement
         typeof(ShipViewControl),
         new PropertyMetadata(defaultValue, (d, _) => ((ShipViewControl)d).OnHoloChanged()));
 
-    /// <summary>The crates' look from the theme and the selection (T8.2).</summary>
+    /// <summary>The crates' look from the theme and the selection (T8.2), and the outline's line and halo (T8.5).</summary>
     private CrateLook Look() => new(
         StopPalette,
         CrateFillAlpha,
         (CrateEdgeBrush as SolidColorBrush)?.Color,
-        SelectionFocus.Missions(Selection.In(Scene)));
+        SelectionFocus.Missions(Selection.In(Scene)),
+        new OutlinePaint(ColourOf(RackNumberBrush, OutlineOpacity), ColourOf(RackNumberHaloBrush, 1), RackNumberHaloSize));
+
+    // The outline is a backdrop (D62): its line in the rack numbers' colour, toned down below the racks' edges.
+    private const double OutlineOpacity = 0.6;
+
+    // A theme brush as one colour, its opacity in the alpha; null without a brush.
+    private static Color? ColourOf(Brush? brush, double opacity) => brush is SolidColorBrush solid
+        ? solid.Color with { A = (byte)Math.Round(solid.Color.A * solid.Opacity * opacity) }
+        : null;
 
     private void OnLookChanged()
     {
