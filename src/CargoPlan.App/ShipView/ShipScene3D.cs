@@ -38,10 +38,6 @@ public sealed class ShipScene3D
     private const double CrateEdgeWidth = 0.5;
     private const double FreeEdgeWidth = 0.5;
     private const double RackEdgeWidth = 1;
-    private const double FrameWidth = 1;
-
-    // The frame's dashes: WPF's Dash style is 2 on, 2 off, in pen widths (DashStyles.Dash).
-    private const double FrameDash = 2;
 
     // The outline's line, as in the 2D view (D62); its halo is the line plus the halo size on each side.
     private const double OutlineWidth = 1;
@@ -58,7 +54,6 @@ public sealed class ShipScene3D
 
     private static readonly Material WedgeMaterial = Frozen(new DiffuseMaterial(Frozen(new SolidColorBrush(MissionPalette.BowWedgeFill))));
 
-    private readonly Model3DGroup _edges = new();
     private readonly GeometryModel3D _holoSurface = new();
     private readonly GeometryModel3D _holoLines = new();
     private readonly List<(SceneBox Box, GeometryModel3D Model, Point3D Centre)> _crates = [];
@@ -93,7 +88,7 @@ public sealed class ShipScene3D
                 },
             },
             new ModelVisual3D { Content = Crates },
-            new ModelVisual3D { Content = _edges },
+            new ModelVisual3D { Content = Edges },
             new ModelVisual3D { Content = FreeGrid },
             new ModelVisual3D { Content = Marker },
             new ModelVisual3D { Content = MarkerLines },
@@ -108,6 +103,9 @@ public sealed class ShipScene3D
 
     /// <summary>The crates, one model each, from the back to the front after <see cref="Follow"/>.</summary>
     public Model3DGroup Crates { get; } = new();
+
+    /// <summary>The crates' and racks' edges as strips, one model per colour and width (<see cref="Follow"/>).</summary>
+    public Model3DGroup Edges { get; } = new();
 
     /// <summary>The free cells' grid, one model per rack (D61: only where a cell is large enough or its layer holds cargo).</summary>
     public Model3DGroup FreeGrid { get; } = new();
@@ -130,7 +128,7 @@ public sealed class ShipScene3D
         _stripsFor = null;
         if (scene is null)
         {
-            _edges.Children.Clear();
+            Edges.Children.Clear();
             FreeGrid.Children.Clear();
             MarkerLines.Children.Clear();
             return;
@@ -276,12 +274,12 @@ public sealed class ShipScene3D
     /// <summary>
     /// The edges as strips one pen wide at the target's plane (nearer a little wider, further narrower): crates in the
     /// theme's edge colour, loaded crates in the loaded edge (K6.4), dimmed with their crates; rack edges, a long ship's
-    /// empty racks dimmed (D61); the dashed frame around <c>Ship.Bounds</c>; the free grid one model per rack; the
-    /// outline's halo and line (T8.5).
+    /// empty racks dimmed (D61); the free grid one model per rack; the outline's halo and line (T8.5). No frame around
+    /// <c>Ship.Bounds</c> (D84).
     /// </summary>
     private void BuildStrips(CameraMath camera)
     {
-        _edges.Children.Clear();
+        Edges.Children.Clear();
         FreeGrid.Children.Clear();
         MarkerLines.Children.Clear();
         if (_scene is not { } scene || _look is not { } look)
@@ -325,14 +323,11 @@ public sealed class ShipScene3D
             }
         }
 
-        var dash = FrameDash * FrameWidth / scale;
-        Add(MissionPalette.Frame, FrameWidth, BoxEdges.Of(Point(scene.Bounds.Min), Point(scene.Bounds.Max)).SelectMany(e => BoxEdges.Dashed(e.From, e.To, dash, dash)));
-
         foreach (var ((colour, width), edges) in strips)
         {
             if (Strip(edges, view, width / 2 / scale, EdgeMaterial(colour)) is { } model)
             {
-                _edges.Children.Add(model);
+                Edges.Children.Add(model);
             }
         }
 

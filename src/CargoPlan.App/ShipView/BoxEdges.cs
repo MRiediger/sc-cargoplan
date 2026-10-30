@@ -4,7 +4,7 @@ namespace CargoPlan.App.ShipView;
 
 /// <summary>
 /// The edges of axis-aligned boxes in ship coordinates (cells), as the 3D view draws them: crate edges, the free grid,
-/// rack edges and the dashed frame around <c>Ship.Bounds</c> (T8.2). Pure; the strips are built from these
+/// rack edges (T8.2; the frame around <c>Ship.Bounds</c> went with D84). Pure; the strips are built from these
 /// (<see cref="HoloLines.Strips"/>).
 /// </summary>
 public static class BoxEdges
@@ -19,20 +19,5 @@ public static class BoxEdges
                    from axis in (int[])[1, 2, 4]
                    where (i & axis) == 0
                    select new Edge(Corner(i), Corner(i | axis))];
-    }
-
-    /// <summary>The edge <paramref name="from"/> → <paramref name="to"/> as dashes of <paramref name="dash"/> with <paramref name="gap"/> between, from its start; the last dash ends at <paramref name="to"/>.</summary>
-    public static IReadOnlyList<Edge> Dashed(Point3D from, Point3D to, double dash, double gap)
-    {
-        var along = to - from;
-        var length = along.Length;
-        along /= length;
-        List<Edge> dashes = [];
-        for (var start = 0.0; start < length; start += dash + gap)
-        {
-            dashes.Add(new Edge(from + start * along, start + dash >= length ? to : from + (start + dash) * along));
-        }
-
-        return dashes;
     }
 }

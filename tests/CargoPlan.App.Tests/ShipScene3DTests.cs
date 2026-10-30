@@ -197,6 +197,23 @@ public class ShipScene3DTests
         });
     }
 
+    // D84: no frame around Ship.Bounds; far out the free grid is off (D61), so the racks' edges are all there is.
+    [Fact]
+    public void An_empty_ship_shows_its_rack_edges_and_no_frame()
+    {
+        Sta.Run(() =>
+        {
+            var ship = ShipLoader.Load("hull_a");
+            var scene = ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
+            var scene3D = new ShipScene3D();
+            scene3D.Show(scene, Look(scene));
+
+            scene3D.Follow(Camera(scene, distance: 400));
+
+            scene3D.Edges.Children.Should().ContainSingle("one model for the rack edges, all in one colour and width");
+        });
+    }
+
     [Fact]
     public void A_selection_dims_the_crates_of_other_missions()
     {

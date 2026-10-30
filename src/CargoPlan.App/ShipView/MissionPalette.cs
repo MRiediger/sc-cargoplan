@@ -58,9 +58,6 @@ public static class MissionPalette
     /// <summary>The bow wedge's faces (D52): a trace of fill, so it reads as a body without hiding the crates behind it.</summary>
     public static Color BowWedgeFill { get; } = Color.FromArgb(0x18, 0xE6, 0xE6, 0xE6);
 
-    /// <summary>The frame around all racks (<c>Ship.Bounds</c>), faint so it stays behind the cargo.</summary>
-    public static Color Frame { get; } = Color.FromArgb(0x60, 0xE6, 0xE6, 0xE6);
-
     // The hologram behind the racks (D63). Opaque colours: WPF 3D sorts no transparent triangles, so the whole backdrop
     // is faded instead (settings.json holoOpacity). Hull and edge colours are settings too (holoHullColor, holoEdgeColor);
     // what stays here was accepted in T7.4c-2's look gate.
