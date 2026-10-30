@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-30",
+  "ships": [
+    { "slug": "tall", "heightM": 6.25, "outline": [[10, 0], [-10, 5], [-10, -5]] },
+    { "slug": "no-height", "outline": [[10, 0], [-10, 5], [-10, -5]] },
+    { "slug": "zero-height", "heightM": 0, "outline": [[10, 0], [-10, 5], [-10, -5]] },
+    { "slug": "negative-height", "heightM": -2, "outline": [[10, 0], [-10, 5], [-10, -5]] }
+  ]
+}
