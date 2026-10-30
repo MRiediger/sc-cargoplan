@@ -86,9 +86,6 @@ public static class MissionPalette
     /// <summary>A weak light from below: racks under the hull, seen from below, don't stand flat grey.</summary>
     public static Color SceneUnderLight { get; } = Color.FromRgb(0x40, 0x40, 0x40);
 
-    /// <summary>Every crate in one colour until the stop colours come to the 3D view (T8.2): Okabe-Ito orange, as in S8.0.</summary>
-    public static Color SingleCrate { get; } = Color.FromRgb(0xE6, 0x9F, 0x00);
-
     // Rack numbers and their outline, the crates' fill and edge alpha are settings since T4.1 (CrateAppearance, D31).
 
     /// <summary>

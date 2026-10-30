@@ -98,7 +98,9 @@ public sealed class ShipViewControl : FrameworkElement
         typeof(CrateSelection),
         typeof(ShipViewControl),
         new FrameworkPropertyMetadata(
-            CrateSelection.Empty, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+            CrateSelection.Empty,
+            FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault,
+            (d, _) => ((ShipViewControl)d).OnLookChanged()));
 
     /// <summary>The ship's hologram (D63), part of the scene since D83; null = none, the marker shows instead.</summary>
     public static readonly DependencyProperty HoloProperty = HoloLookProperty(nameof(Holo), typeof(PreparedHolo), null);
@@ -654,7 +656,7 @@ public sealed class ShipViewControl : FrameworkElement
 
         // A drag holds crates of the old plan; Core would not find them in the new one.
         ReleaseMouseCapture();
-        _scene3D.Show(Scene);
+        _scene3D.Show(Scene, Look());
         ApplyCamera();
     }
 
@@ -711,7 +713,7 @@ public sealed class ShipViewControl : FrameworkElement
 
         var camera = _navigation.On(basis, Limits, RenderSize);
         camera.ApplyTo(_camera);
-        _scene3D.ShowHoloLines(camera, basis.FitDistance / camera.Distance);
+        _scene3D.Follow(camera, basis.FitDistance / camera.Distance);
     }
 
     private void StartDrag(MouseButtonEventArgs e, MouseButton button)
@@ -811,12 +813,13 @@ public sealed class ShipViewControl : FrameworkElement
         _toolTip.IsOpen = text is not null;
     }
 
-    // The theme's values reach the 3D crates from T8.2 on; until then a change only redraws the background.
+    // A new theme value restyles the crates and redraws the overlay at once (live preview, T4.2). The rack numbers' size and
+    // halo set the room above a long ship's racks, so the fit and with it the camera.
     private static DependencyProperty ThemeProperty(string name, Type type, object? defaultValue) => DependencyProperty.Register(
         name,
         type,
         typeof(ShipViewControl),
-        new FrameworkPropertyMetadata(defaultValue, FrameworkPropertyMetadataOptions.AffectsRender));
+        new FrameworkPropertyMetadata(defaultValue, FrameworkPropertyMetadataOptions.AffectsRender, (d, _) => ((ShipViewControl)d).OnLookChanged()));
 
     // The hologram and its look: a new value rebuilds its materials, the geometry stays (D63).
     private static DependencyProperty HoloLookProperty(string name, Type type, object? defaultValue) => DependencyProperty.Register(
@@ -824,6 +827,20 @@ public sealed class ShipViewControl : FrameworkElement
         type,
         typeof(ShipViewControl),
         new PropertyMetadata(defaultValue, (d, _) => ((ShipViewControl)d).OnHoloChanged()));
+
+    /// <summary>The crates' look from the theme and the selection (T8.2).</summary>
+    private CrateLook Look() => new(
+        StopPalette,
+        CrateFillAlpha,
+        (CrateEdgeBrush as SolidColorBrush)?.Color,
+        SelectionFocus.Missions(Selection.In(Scene)));
+
+    private void OnLookChanged()
+    {
+        _scene3D.Show(Scene, Look());
+        ApplyCamera();
+    }
+
     /// <param name="Down">What lay under the cursor when the button went down; with the button it decides the gesture.</param>
     /// <param name="Dragged">
     /// The crates the drag holds, drawn faded: what a right press picked up (<see cref="DragGesture.DraggedCrates"/>),
