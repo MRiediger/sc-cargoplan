@@ -3237,7 +3237,8 @@ Bauen: kein `StartOptionsTests`-Fall, die Messziele stehen nur im `FrameMeasureW
 - [x] Look-Export → Import → identisches Bild (`LookSceneTests`, bitgleich in drei Läufen); im Spiel (Martin) offen
 - [x] Rahmen (R4) und Fläche unlit (R7) am Bild (Martin, 30.10.2026: „ohne Rahmen, Rest passt“): Rahmen gestrichen (D84),
   Fläche bleibt unlit
-- [ ] Zoom-Untergrenze (E1): Rückfrage
+- [x] Zoom-Untergrenze (E1): bleibt wie sie ist (Martin, 30.10.2026, nach der Tabelle oben); keine schiffsfeste
+  Untergrenze, kein D76-Addendum
 - [x] Stichprobe `hull_a_outline` nach der Gate-Regel ab T8.5 (6,1 % ≤ 10,4 % + 2 pp)
 - [x] `dotnet build` ohne Warnungen, `dotnet test` grün
 
