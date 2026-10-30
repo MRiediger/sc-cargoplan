@@ -46,22 +46,45 @@ public sealed record ShipViewState(IsoProjection Camera, ViewTransform Transform
 /// <param name="Centre">Where the fit puts the middle of its extent: the viewport's middle below the room on top.</param>
 /// <param name="Anchor"><see cref="ProjectedScene.Anchor"/>: the projected centre of the ship, whatever is loaded.</param>
 /// <param name="WholeScale">The scale at which the whole scene fits (<see cref="ProjectedScene.Extent"/>): a true-size
-/// outline reaches far beyond the fit (K5.2c, K5.2d).</param>
-public sealed record ViewBasis(ViewTransform Fit, Point Centre, Point Anchor, double WholeScale)
+/// outline reaches far beyond the fit (K5.2c, K5.2d). In the ship view at the ship's default camera, like
+/// <paramref name="ReferenceScale"/>.</param>
+/// <param name="ReferenceScale">The fit the zoom limits are taken from: in the ship view the fit of the ship's racks and
+/// marker at its default camera (<see cref="ProjectedScene.ShipExtent"/>), so neither the angle nor the cargo moves the
+/// limits (holo pump bugfix, D76).</param>
+public sealed record ViewBasis(ViewTransform Fit, Point Centre, Point Anchor, double WholeScale, double ReferenceScale)
 {
-    /// <summary>The basis of <see cref="ViewTransform.Fit"/> with these arguments; without <paramref name="whole"/> the fit is the whole.</summary>
+    /// <summary>
+    /// The basis of <see cref="ViewTransform.Fit"/> with these arguments; without <paramref name="whole"/> the fit is the
+    /// whole. The limits are taken from this fit.
+    /// </summary>
     public static ViewBasis Of(Rect extent, Point anchor, Size viewport, double margin, double top = 0, Rect? whole = null)
     {
         var fit = ViewTransform.Fit(extent, viewport, margin, top);
         var wholeScale = whole is { } scene ? ViewTransform.Fit(scene, viewport, margin, top).Scale : fit.Scale;
-        return new ViewBasis(fit, fit.Apply(new Point(extent.X + extent.Width / 2, extent.Y + extent.Height / 2)), anchor, wholeScale);
+        return new ViewBasis(fit, fit.Apply(new Point(extent.X + extent.Width / 2, extent.Y + extent.Height / 2)), anchor, wholeScale, fit.Scale);
     }
+
+    /// <summary>
+    /// The ship view's basis for <paramref name="current"/>, the scene as its camera sees it: the fit of its fit extent and
+    /// its anchor. The limits come from <paramref name="reference"/>, the same ship at its default camera: half the fit
+    /// at the current angle let the scale pump while turning, where that fit was more than twice the framing (Hull A
+    /// +24 % from the bow), at the zoom-out limit at every angle.
+    /// </summary>
+    /// <param name="top">Pixels kept free above the margin for the rack numbers of a long ship (D61).</param>
+    public static ViewBasis For(ProjectedScene current, ProjectedScene reference, Size viewport, double margin, double top) =>
+        Of(current.FitExtent, current.Anchor, viewport, margin, top) with
+        {
+            WholeScale = ViewTransform.Fit(reference.Extent, viewport, margin, top).Scale,
+            ReferenceScale = ViewTransform.Fit(reference.ShipExtent, viewport, margin, top).Scale,
+        };
 }
 
 /// <summary>
 /// How far the player can zoom (D76), in pixels per cell (<see cref="ViewTransform.Scale"/>, DIPs): out to half the fit
 /// as before, or further where the whole scene needs it (K5.2d), in to <paramref name="MaxPxPerCell"/> whatever the fit,
-/// so a large ship zooms in as far as a small one. The fit is always in range.
+/// so a large ship zooms in as far as a small one. Both from <see cref="ViewBasis.ReferenceScale"/>, the fit at the ship's
+/// default camera, so only the player changes the scale; that fit is always in range, a fit at another angle is never
+/// clamped (<see cref="ViewNavigation.On"/>).
 /// </summary>
 /// <param name="MaxPxPerCell">The preference <c>shipView.maxZoomPxPerCell</c>.</param>
 public sealed record ZoomLimits(double MaxPxPerCell)
@@ -72,10 +95,10 @@ public sealed record ZoomLimits(double MaxPxPerCell)
     public static ZoomLimits Default { get; } = new(AppearanceRules.DefaultMaxZoom);
 
     /// <summary>Half the fit, or the whole scene where that is smaller: a true-size outline seen in full (Martin, K5.2d).</summary>
-    public double Lower(ViewBasis basis) => Math.Min(basis.Fit.Scale * MinShareOfFit, basis.WholeScale);
+    public double Lower(ViewBasis basis) => Math.Min(basis.ReferenceScale * MinShareOfFit, basis.WholeScale);
 
     /// <summary>The preference, or the fit where that is larger: a small ship in a large overlay.</summary>
-    public double Upper(ViewBasis basis) => Math.Max(MaxPxPerCell, basis.Fit.Scale);
+    public double Upper(ViewBasis basis) => Math.Max(MaxPxPerCell, basis.ReferenceScale);
 
     public double Clamp(double pxPerCell, ViewBasis basis) => Math.Clamp(pxPerCell, Lower(basis), Upper(basis));
 }
