@@ -31,10 +31,6 @@ public static class RayBox
         (min.X, min.Y, min.Z), (max.X, max.Y, max.Z), (ray.Origin.X, ray.Origin.Y, ray.Origin.Z), (ray.Direction.X, ray.Direction.Y, ray.Direction.Z));
 
     /// <summary>As t of <paramref name="origin"/> + t·<paramref name="direction"/> (smaller lies nearer the origin); null if it misses.</summary>
-    public static double? Entry(
-        (double X, double Y, double Z) min, (double X, double Y, double Z) max, (double X, double Y, double Z) origin, (double X, double Y, double Z) direction) =>
-        Span(min, max, origin, direction)?.Enter;
-
     private static (double Enter, double Leave)? Span(
         (double X, double Y, double Z) min, (double X, double Y, double Z) max, (double X, double Y, double Z) origin, (double X, double Y, double Z) direction)
     {

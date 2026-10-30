@@ -241,13 +241,12 @@ public class SceneHitTestTests
     public void Right_drag_from_a_crate_onto_a_free_cell_of_another_rack_moves_it_there()
     {
         // Shubin's crate in Rack 2 shows on the bow face. Rack 3's free cell at the aft end of the outer layer lies on
-        // Orison's Laranite, so the crate would go there (D25); whether it fits is Core's call. The drop target is still
-        // orthographic until T8.4.
+        // Orison's Laranite, so the crate would go there (D25); whether it fits is Core's call.
         var (ship, plan) = TestPlans.Load();
         var shubin = plan.Crates.Single(c => c.Destination == "Shubin");
         var down = SceneHitTest.HitAt(Scene, Sight(4, 1.5, 0.5));
         var current = SceneHitTest.HitAt(Scene, Sight(Rack3Free));
-        var drop = DropTarget.Resolve(ship.Racks.Single(r => r.Id == current!.RackId), plan.CratesForRack(current!.RackId), Default, Default.Project(Rack3Free.X, Rack3Free.Y, Rack3Free.Z));
+        var drop = DropTarget.Resolve(ship.Racks.Single(r => r.Id == current!.RackId), plan.CratesForRack(current!.RackId), Sight(Rack3Free));
 
         var gesture = DragGesture.Resolve(MouseButton.Right, down, moved: true, current, drop, new HashSet<Crate>());
 
