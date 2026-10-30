@@ -42,4 +42,37 @@ public class RayBoxTests
 
         entry.Should().BeApproximately(Math.Sqrt(2), 1e-12);
     }
+
+    [Fact]
+    public void The_span_runs_from_the_near_face_to_the_far_face()
+    {
+        RayBox.Span(new Ray(new Point3D(-3, 0.5, 0.5), new Vector3D(1, 0, 0)), Min, Max).Should().Be((3.0, 5.0));
+    }
+
+    // --- Ahead: where a hit lies in front of the camera (T8.3) ---
+
+    [Fact]
+    public void A_box_in_front_is_hit_where_the_ray_enters_it()
+    {
+        RayBox.Ahead(new Ray(new Point3D(-3, 0.5, 0.5), new Vector3D(1, 0, 0)), Min, Max).Should().Be(3);
+    }
+
+    [Fact]
+    public void A_box_around_the_origin_is_hit_at_once()
+    {
+        // The camera stands inside a large rack: the near plane cuts its walls, its cargo still answers.
+        RayBox.Ahead(new Ray(new Point3D(1, 0.5, 0.5), new Vector3D(1, 0, 0)), Min, Max).Should().Be(0);
+    }
+
+    [Fact]
+    public void A_box_behind_the_origin_is_not_hit()
+    {
+        RayBox.Ahead(new Ray(new Point3D(-3, 0.5, 0.5), new Vector3D(-1, 0, 0)), Min, Max).Should().BeNull();
+    }
+
+    [Fact]
+    public void A_box_beside_the_ray_is_not_hit()
+    {
+        RayBox.Ahead(new Ray(new Point3D(-3, 1.5, 0.5), new Vector3D(1, 0, 0)), Min, Max).Should().BeNull();
+    }
 }
