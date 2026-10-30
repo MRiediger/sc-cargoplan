@@ -34,12 +34,6 @@ public sealed record ViewTransform(double Scale, Vector Offset)
 }
 
 /// <summary>
-/// What the ship view shows right now (D63): its camera, the transform to pixels, the zoom on top of the fit and its
-/// size. <c>ShipViewControl.View</c> publishes it for the hologram backdrop, which draws the same picture in 3D.
-/// </summary>
-public sealed record ShipViewState(IsoProjection Camera, ViewTransform Transform, double Zoom, Size Size);
-
-/// <summary>
 /// What a <see cref="ViewNavigation"/> is applied on (D76): the fit, the screen point in the middle of the fit's area
 /// and the ship-fixed anchor, all for the current camera, size and scene.
 /// </summary>
