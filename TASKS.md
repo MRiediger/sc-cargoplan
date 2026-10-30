@@ -2738,6 +2738,97 @@ gedrehten Modells (Teil 5).
 ### [ ] T8.2 winget-Manifest – `winget install SC-CargoPlan`
 ### [ ] T8.3 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
 
+### [x] S8.0 Spike: Schiffsansicht als echtes 3D (Perspektive) (30.10.2026, kein Prod-Code)
+**Frage:** Liest sich der GRIN UTV in einem `Viewport3D` mit `PerspectiveCamera`, weltfestem Licht und Bodenplatte beim
+Drehen als Drehung statt als Pumpen (Anlass: Holo-Pump, Teil 5)? Was kostet der Umbau der 2D-Funktionen?
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Wegwerf-Code im Worktree `spike/s8-3d` (nie committet),
+Start per `--spike-3d`; ein Fenster mit `AllowsTransparency` wie das Overlay (Software-Rendering, D2), links die heutige
+`ShipViewControl` + `HoloBackdrop`, rechts zwei `Viewport3D` mit derselben Kamera (Holo und Boden hinten in der
+Holo-Deckkraft, Quader vorn); Diagnose-Schalter P (Perspektive/ortho), L (Licht weltfest/Headlight), F (Boden); E1:
+rechts dieselbe Kamera wie links, `Width` fest aus dem Maßstab (kein Fit pro Winkel), Start an der Default-Kamera des
+Schiffs, Perspektive mit gleicher Bildbreite am Drehpunkt (FOV 40°); E2: feste Gate-Reihenfolge Step 0–4, je UTV und
+Hull A, Maßstab fleetyards.net/ships/grin-utv; „600+ Quader“ als Hull C mit 4.608 Einzelzellen (schlimmster Fall) und
+144 Kisten (real), bei Rot eine Zeile „alle Zellen als ein Mesh“; Frame-Zeit ohne SC; Step 5 (deckend) nach den ersten
+zehn Urteilen; Look rechts wie Martins Setting (`holo-shaded`, Deckkraft 0,45), Quader einfarbig.
+
+**1 – Gate (Martin, Release-Build, 30.10.2026), UTV und Hull A gleich:**
+
+| Step | P | L | F | Holo | links (heute) | rechts |
+|---|---|---|---|---|---|---|
+| 0 | ortho | Headlight | aus | 0,45 | pumpt | pumpt |
+| 1 | ortho | weltfest | aus | 0,45 | pumpt | pumpt |
+| 2 | ortho | weltfest | an | 0,45 | pumpt | pumpt |
+| 3 | persp | weltfest | an | 0,45 | pumpt | pumpt nicht |
+| 4 | persp | Headlight | aus | 0,45 | pumpt | pumpt nicht |
+| 5 | persp | weltfest | an | deckend, Kisten im selben Tiefenpuffer | pumpt | pumpt nicht |
+
+- Martin trug die Urteile als links / rechts ein (Vorlage hatte Spalten UTV / Hull A); auf Nachfrage: „UTV und Hull A
+  gleich“. Ab Step 3 „pumpt da rechts nichts mehr“.
+
+- Step 0 reproduziert die App (rechts pumpt wie links); per Code geprüft: 96 Kameras je Schiff (Yaw 0–345°, vier Pitches),
+  Abweichung rechts gegen `HoloCamera.For` der linken Ansicht ≤ 2·10⁻¹³ Zellen, Maßstab links konstant.
+- Ein erster Durchgang (Ziffernblock 1/2/3 im Step 0) ist verworfen: der Spike kannte den Ziffernblock noch nicht, das
+  Schiff wechselte vermutlich nicht.
+
+**2 – Hit-Test** (`VisualTreeHelper.HitTest`, `PointHitTestParameters`, erster Treffer, 600 Punkte bei 60 Hz unter
+`CaptureMouse`, Hull C, ohne SC; Schwelle p95 ≤ 5 ms):
+
+| Inhalt | Median | p95 | max |
+|---|---|---|---|
+| 4.608 Zellen, je ein `GeometryModel3D`, persp | 0,004 ms | 0,22 ms | 0,71 ms |
+| 4.608 Zellen, je ein Modell, ortho | 0,004 ms | 0,19 ms | 0,56 ms |
+| 4.608 Zellen als ein Mesh (Treffer über Dreiecksindex), persp | 0,005 ms | 0,64 ms | 1,80 ms |
+| 144 Kisten, persp | 0,005 ms | 0,02 ms | 0,06 ms |
+
+**3 – 2D-Funktionen, die neu müssten:**
+
+| Funktion | heute | in 3D | Aufwand |
+|---|---|---|---|
+| Kisten-Painter | `ShipViewControl.OnRender`, `SceneProjector` | ein Mesh je Rack und Farbe (Einzelmodelle kosten 30 fps, Messung 4); Kanten als Streifen wie `HoloLines`, `Viewport3D` zeichnet keine Linien | M |
+| Trennachsen | `DrawOrder.cs` | entfällt (Tiefenpuffer); nur halbtransparente Kisten (`CrateFillAlpha`) brauchen wieder eine Reihenfolge | S |
+| Rack-Nummern fester Pixelgröße | `RackNumberSize`, `OnRender` | 2D-Ebene über dem `Viewport3D`, Ankerpunkte perspektivisch projiziert | M |
+| Tooltips | `SceneHitTest.ToolTipAt` | 3D-Treffer → Kiste, Texte aus `ShipViewBuilder` bleiben | S |
+| Hit-Test, Ziel-Zelle | `SceneHitTest`, `DropTarget` | Kiste per `HitTest`; Zelle unter dem Cursor per Strahl-Ebene-Schnitt statt Unproject | M |
+| Drag-Vorschau | `UpdateGesture`, `CrateDrop`, `DragGesture`, Geist | Geist als Modell, Ziel per Strahl; Core-Logik (`CrateDrop`) bleibt | L |
+| Legenden-Drag | `StartLegendDrag` | hängt am Drag-Code, Ziel-Rack per Treffer | S |
+| Umriss (D62) | `OutlinePlacement` | entfällt bei Holo; ohne Holo flaches Mesh auf dem Boden | S |
+| Keil-Fallback (D52) | `DrawBowWedge`, `FloorLabel` | Keil als Mesh, „Bow“ in der 2D-Ebene | S |
+| Auswahlrand | `SelectionFocus`, Pens | Kantenstreifen oder Emissive-Material | M |
+| Schraffur (D29) | `StopBrushes` | `DrawingBrush` als Material, Texturkoordinaten je Fläche | M |
+| Freies Zellraster | `FreeCellGrid` | Linien als Streifen | M |
+| Kamera, Zoom-Grenzen, Pan, Persistenz (D76) | `ViewNavigation`, `ZoomLimits` | Distanz statt Maßstab, px/Zelle nur am Drehpunkt definiert, Zoom zum Cursor perspektivisch | M |
+| Fit (D61) | `ViewTransform.Fit` | Fit über die projizierten Ecken bei Perspektive | S |
+
+**4 – Frame-Zeit** (Hull C, Orbit 12°/s, 30 s, Abstand der Frames über `CompositionTarget.Rendering`, ohne SC):
+
+| Inhalt | Frames | Median | p95 | fps |
+|---|---|---|---|---|
+| Basislinie (rechte Hälfte leer) | 1.771 | 16,67 ms | 16,68 ms | 59,0 |
+| heute, links 2D + Holo | 1.758 | 16,67 ms | 16,68 ms | 58,6 |
+| 144 Kisten + Holo, persp | 1.717 | 16,67 ms | 16,95 ms | 57,2 |
+| 4.608 Zellen, je ein Modell + Holo, persp | 921 | 33,35 ms | 33,35 ms | 30,7 |
+| 4.608 Zellen, je ein Modell + Holo, ortho | 923 | 33,35 ms | 33,35 ms | 30,8 |
+| 4.608 Zellen als ein Mesh + Holo, persp | 1.738 | 16,67 ms | 16,95 ms | 57,9 |
+| 4.608 Zellen als ein Mesh + Holo, ortho | 1.704 | 16,67 ms | 32,53 ms | 56,8 |
+
+Die vorab gesetzte Schwelle (Δ Median ≤ 1 ms, p95 ≤ 16 ms) stammt aus T7.4b, das die Renderzeit maß; der Abstand der
+Frames liegt bei 60 Hz schon leer bei p95 16,7 ms. Gewertet nach fps und Abstand zur Basislinie: Kisten und ein Mesh grün,
+Einzelmodelle rot. Mit SC nicht gemessen.
+
+**Was das für den Umbau heißt:**
+- Wirksam ist allein die **Perspektive**: UTV und Hull A ruhig ab Step 3, auch ohne weltfestes Licht und Boden (Step 4).
+  Licht, Bodenplatte und deckender Rumpf ändern am Pumpen nichts; ein Licht-Einzeiler in `HoloBackdrop` reicht also nicht,
+  die Kamera muss perspektivisch werden.
+- Damit ist die Spike-Frage für das Anlass-Schiff beantwortet: Der UTV liest sich in Perspektive als Drehung.
+- Leistung trägt: `Viewport3D` im Software-Rendering zeigt Hull C mit Holo bei 57–58 fps, sofern Quader zu wenigen Meshes
+  zusammengefasst sind; Hit-Test ist kein Thema.
+- Umfang bei Umbau: 14 Funktionen, davon 1 × L (Drag-Vorschau), 7 × M, 6 × S. Weil Licht und Boden nichts beitragen,
+  ist der kleinste wirksame Schritt die perspektivische Kamera; ob Kisten dafür in den `Viewport3D` wandern oder die 2D-
+  Ansicht perspektivisch projiziert, ist eine eigene Entscheidung (D-Eintrag) vor dem Umbau-Task.
+- Nebenbefund im deckenden Look (Step 5): die Kisten stecken im Rumpf (UTV im Fahrerhaus, Hull A durch die Flanken),
+  weil `HoloPlacement` die Holo-Mitte auf die Rack-Mitte legt (D63) – im transparenten Look heute unsichtbar, deckend nicht.
+
 ---
 
 ## Lehren
