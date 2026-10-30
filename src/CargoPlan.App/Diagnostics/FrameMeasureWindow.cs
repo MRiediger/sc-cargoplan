@@ -229,18 +229,21 @@ internal sealed class FrameMeasureWindow : Window
     }
 
     /// <summary>
-    /// The drag's steps outside the frames: the running drag moved over the hit grid, timed one by one; a step whose
-    /// preview key changed (<see cref="CrateDrop.KeyOf"/>) asked Core, the D65 budget (T8.4, M3).
+    /// The drag's steps outside the frames: the running drag moved over a grid on the racks' part of the view, timed one
+    /// by one; a step whose preview key changed (<see cref="CrateDrop.KeyOf"/>) asked Core, the D65 budget (T8.4, M3).
+    /// The racks fill little of the view with the hologram's fit (23 of 600 points of the whole view hit one), so the
+    /// grid lies on the rectangle around the points that hit a rack, found on a finer grid first.
     /// </summary>
     private string DragSweep()
     {
+        var area = RackArea();
         var moves = new List<double>(HitSamples);
         var previews = new List<double>();
         var rows = HitSamples / HitColumns;
         var key = KeyNow();
         for (var i = 0; i < HitSamples; i++)
         {
-            var point = new Point((i % HitColumns + 0.5) * _view.ActualWidth / HitColumns, (i / HitColumns + 0.5) * _view.ActualHeight / rows);
+            var point = new Point(area.X + (i % HitColumns + 0.5) * area.Width / HitColumns, area.Y + (i / HitColumns + 0.5) * area.Height / rows);
             var watch = Stopwatch.StartNew();
             _view.MoveTo(point);
             watch.Stop();
@@ -253,6 +256,26 @@ internal sealed class FrameMeasureWindow : Window
         }
 
         return FrameStatistics.DragSummary(moves, previews);
+    }
+
+    // The finer grid that finds the racks' part of the view: about 4 px apart in the 800 × 600 window.
+    private const int AreaColumns = 200;
+    private const int AreaRows = 150;
+
+    /// <summary>The rectangle around every point of a fine grid that hits a rack; the whole view if none does.</summary>
+    private Rect RackArea()
+    {
+        var area = Rect.Empty;
+        for (var i = 0; i < AreaColumns * AreaRows; i++)
+        {
+            var point = new Point((i % AreaColumns + 0.5) * _view.ActualWidth / AreaColumns, (i / AreaColumns + 0.5) * _view.ActualHeight / AreaRows);
+            if (_view.HitAt(point) is not null)
+            {
+                area.Union(point);
+            }
+        }
+
+        return area.IsEmpty ? new Rect(0, 0, _view.ActualWidth, _view.ActualHeight) : area;
     }
 
     private CrateDrop.Key? KeyNow() => _view.PendingGesture is Gesture.MoveCrates move ? CrateDrop.KeyOf(_ship!, move) : null;
