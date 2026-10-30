@@ -2683,6 +2683,36 @@ Fortune 99,0), alle unter 160 → nur ein Satz im Gegenargument.
 - [ ] Gate (Martin, Release-Build vom Branch): Hull C mit Holo, Reset, von vorn und von oben drehen → Größe ruhig; bis zum
   Anschlag herauszoomen und drehen → ruhig; Download an, Cache leer → Holo kommt, danach drehen → ruhig
 
+**Teil 2 – das Holo selbst gemessen (Wegwerf-Harness, 30.10.2026):** Martins Befund danach: Das Holo atmet beim Drehen,
+die Kisten nicht, beim GRIN UTV stärker als bei der Hull A. Gemessen über die echte WPF-Abbildung
+(`GeneralTransform3DTo2D`) und gerenderte Pixel, Pitch 0, Yaw 0–360° in 15°-Schritten, 456 × 497, `holo-shaded`:
+
+| Schiff | Kamera-Width | Holo-Höhe (WPF) | Würfel WPF = 2D | Dach − Würfel | gerenderte Höhe | gerenderte Breite |
+|---|---|---|---|---|---|---|
+| UTV | 3,884 konstant | 209,60 konstant | 117,40 = 117,40 | 46,10 konstant | 209 konstant | 246–397 |
+| Hull A | 19,216 konstant | 106,30 konstant | 23,73 = 23,73 | 17,56 konstant | 106 konstant | 178–444 |
+| Hull C | 107,438 konstant | 197,80 konstant | 4,24 = 4,24 | 107,39 konstant | 197 konstant | 198–424 |
+
+Mit nur Ambient-Licht und Deckkraft 1 sind die gerenderten Maße identisch: kein Clipping (Near-Plane 0, Abstand 2000),
+keine Fläche verschwindet; das Headlight ändert nur die mittlere Helligkeit um etwa ±8 %. Die Holo-Kamera hat keinen
+eigenen Maßstab, sichtbar ändert sich allein die Silhouette.
+
+**Teil 3 – Bisect mit Martin als Orakel (30.10.2026):** Release-Publishes je Stand auf `main`, Startskript mit gleichen
+Einstellungen (UTV, keine gespeicherte Kamera, ContractTracker aus, leerer Plan), Martins Dateien nach jedem Lauf zurück.
+
+| Build | Stand | Martin |
+|---|---|---|
+| 00 | 924a6f1 T7.4c-2 | Holo atmet, Kisten ruhig |
+| 05 | 91af570 T7.4d | Holo atmet, Kisten ruhig |
+| 10 | 3913bdf Merge K2 | Holo atmet, Kisten ruhig |
+| 13 | 2922698 Merge K5 (vor K5.5) | Holo atmet, Kisten ruhig |
+| 14 | 44353e2 Merge K5.5 | Holo atmet, Kisten ruhig |
+| 15 | d92ca48 Merge K6 | Holo atmet, Kisten ruhig |
+
+Ergebnis: keine Regression. Das Atmen des Holos ist die Silhouette des starr gedrehten Modells und seit T7.4c gleich,
+es fiel nur bisher nicht auf. Kein Fix für Teil 2/3. Die Frame-Probe (Kisten- gegen Holo-Kamera pro Frame) wurde
+gebaut, aber nach dem Bisect nicht mehr gebraucht und wieder entfernt.
+
 ---
 
 ## Phase 8 – nach dem Launch
