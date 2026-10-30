@@ -15,6 +15,14 @@
     <EmbeddedResource Include="Looks\*.cargoplan-look.json" LogicalName="looks/%(Filename)%(Extension)" WithCulture="false" />
   </ItemGroup>
 
+  <!-- The view tests click the live control through its internal press and release (T8.3, R4): no public API for tests.
+       Source: https://learn.microsoft.com/dotnet/standard/assembly/set-attributes-project-file#set-arbitrary-attributes -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>CargoPlan.App.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <!-- The theme sample (T4.7a) is a developer window: not in the Release build. -->
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
     <Page Remove="ThemeSampleWindow.xaml" />

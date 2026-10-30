@@ -23,9 +23,8 @@ namespace CargoPlan.App.ShipView;
 /// zooms around the cursor, double-click on free or empty space resets, hover shows the crate. A line or header of the
 /// legend starts its drag here too (<see cref="StartLegendDrag"/>). Left clicks are handled here, so the window's DragMove only
 /// works outside the view (D15). While the mouse is captured, a poll of the cursor drives the drag once per frame: with
-/// Star Citizen in front no mouse moves arrive (D45).
-/// Until T8.3 the view hits nothing (<see cref="HitAt"/>): the old hit test is orthographic, the picture is not, and a
-/// click must never change a real plan on a wrong guess (T8.1, R1).
+/// Star Citizen in front no mouse moves arrive (D45). What lies under the cursor is a ray from the camera the picture was
+/// drawn with against the scene's boxes (<see cref="SceneHitTest"/>, T8.3).
 /// </summary>
 public sealed class ShipViewControl : FrameworkElement
 {
@@ -149,6 +148,10 @@ public sealed class ShipViewControl : FrameworkElement
     private readonly DrawingVisual _overlay = new();
 
     private CameraNavigation _navigation = CameraNavigation.Default;
+
+    // The camera the picture on screen was drawn with (ApplyCamera): the hit test takes this one, never a second.
+    private CameraMath? _shown;
+
     private Drag? _drag;
 
     // The frame the poll last ran in: Rendering can come more than once per frame (D45).
@@ -354,8 +357,8 @@ public sealed class ShipViewControl : FrameworkElement
         dc.DrawRectangle((Brush)FindResource("HitTestBackgroundBrush"), null, new Rect(RenderSize));
     }
 
-    // One visual child (AddVisualChild in the constructor), laid out over the whole element; the layout overrides below
-    // measure and arrange it. Source: https://learn.microsoft.com/dotnet/api/system.windows.frameworkelement.visualchildrencount
+    // Two visual children (AddVisualChild in the constructor), laid out over the whole element; the layout overrides below
+    // measure and arrange the viewport. Source: https://learn.microsoft.com/dotnet/api/system.windows.frameworkelement.visualchildrencount
     protected override int VisualChildrenCount => 2;
 
     // The scene, then the overlay on top of it (T8.2): what must never hide behind cargo, and the text.
@@ -382,35 +385,55 @@ public sealed class ShipViewControl : FrameworkElement
     {
         // Handled marks the underlying MouseDown handled for the whole route, so the window's DragMove doesn't run.
         // Source: https://learn.microsoft.com/dotnet/api/system.windows.uielement.mouseleftbuttondown
+        // ClickCount: 2 for the second press of a double-click.
+        // Source: https://learn.microsoft.com/dotnet/api/system.windows.input.mousebuttoneventargs.clickcount
         e.Handled = true;
-        if (!IsNavigationEnabled)
-        {
-            return;
-        }
-
-        // Reset only off the cargo: there the second click of a double-click is a click of its own and ticks back.
-        if (e.ClickCount == 2 && DestinationAt(e.GetPosition(this)) is null)
-        {
-            SetCurrentValue(CameraProperty, null);
-            return;
-        }
-
-        StartDrag(e, MouseButton.Left);
+        Press(MouseButton.Left, e.GetPosition(this), e.ClickCount);
     }
 
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.uielement.onmouserightbuttondown
     protected override void OnMouseRightButtonDown(MouseButtonEventArgs e)
     {
         e.Handled = true;
-        if (IsNavigationEnabled)
-        {
-            StartDrag(e, MouseButton.Right);
-        }
+        Press(MouseButton.Right, e.GetPosition(this), e.ClickCount);
     }
 
-    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e) => EndDrag(e, MouseButton.Left);
+    protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e) => e.Handled |= Release(MouseButton.Left, e.GetPosition(this));
 
-    protected override void OnMouseRightButtonUp(MouseButtonEventArgs e) => EndDrag(e, MouseButton.Right);
+    protected override void OnMouseRightButtonUp(MouseButtonEventArgs e) => e.Handled |= Release(MouseButton.Right, e.GetPosition(this));
+
+    /// <summary>
+    /// A button pressed at <paramref name="position"/> (DIPs in the view); <paramref name="clicks"/> is 2 on a
+    /// double-click's second press. Internal for the view tests: the handlers only read the event (T8.3, R4).
+    /// </summary>
+    internal void Press(MouseButton button, Point position, int clicks)
+    {
+        if (!IsNavigationEnabled)
+        {
+            return;
+        }
+
+        // Reset only off the cargo: there the second click of a double-click is a click of its own and ticks back (D16).
+        if (button == MouseButton.Left && clicks == 2 && DestinationAt(position) is null)
+        {
+            SetCurrentValue(CameraProperty, null);
+            return;
+        }
+
+        StartDrag(position, button);
+    }
+
+    /// <summary>A button released at <paramref name="position"/>: ends the drag it started; false if it started none.</summary>
+    internal bool Release(MouseButton button, Point position)
+    {
+        if (_drag is not { } drag || drag.Button != button)
+        {
+            return false;
+        }
+
+        FinishDrag(drag, position);
+        return true;
+    }
 
     protected override void OnLostMouseCapture(MouseEventArgs e)
     {
@@ -442,8 +465,7 @@ public sealed class ShipViewControl : FrameworkElement
             return;
         }
 
-        // The crate's tool tip comes back with the hit test (T8.3); until then there is nothing under the cursor.
-        ShowToolTip(null);
+        ShowToolTip(ToolTipAt(position));
     }
 
     /// <summary>
@@ -623,12 +645,15 @@ public sealed class ShipViewControl : FrameworkElement
         _ => null,
     };
 
-    // Nothing until T8.3 (R1): the hit test on projected polygons is orthographic, the picture is perspective, and a
-    // click on a wrong guess would tick or move cargo in a real plan. The ray test on the rack data replaces both.
-    private string? DestinationAt(Point position) => null;
+    private string? DestinationAt(Point position) =>
+        Scene is { } scene && _shown is { } camera ? SceneHitTest.DestinationAt(scene, camera, position) : null;
 
-    // Internal for the frame measurement's hit-test sweep (Phase 8).
-    internal SceneHit? HitAt(Point position) => null;
+    // Internal for the frame measurement's hit-test sweep (Phase 8) and the view tests.
+    internal SceneHit? HitAt(Point position) =>
+        Scene is { } scene && _shown is { } camera ? SceneHitTest.HitAt(scene, camera, position) : null;
+
+    internal string? ToolTipAt(Point position) =>
+        Scene is { } scene && _shown is { } camera ? SceneHitTest.ToolTipAt(scene, camera, position) : null;
 
     /// <summary>The gesture of <paramref name="drag"/> with the cursor at <paramref name="position"/>.</summary>
     private Gesture Resolve(Drag drag, Point position, bool moved)
@@ -721,6 +746,7 @@ public sealed class ShipViewControl : FrameworkElement
     private void ApplyCamera()
     {
         using var dc = _overlay.RenderOpen();
+        _shown = null;
         if (Basis() is not { } basis || Scene is not { } scene)
         {
             return;
@@ -728,6 +754,7 @@ public sealed class ShipViewControl : FrameworkElement
 
         var camera = _navigation.On(basis, Limits, RenderSize);
         camera.ApplyTo(_camera);
+        _shown = camera;
         _scene3D.Follow(camera, basis.FitDistance / camera.Distance);
         ShipOverlay.Draw(dc, scene, camera, Selection, OverlayLook());
     }
@@ -742,7 +769,7 @@ public sealed class ShipViewControl : FrameworkElement
         new Typeface(TextElement.GetFontFamily(this), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
         VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
-    private void StartDrag(MouseButtonEventArgs e, MouseButton button)
+    private void StartDrag(Point position, MouseButton button)
     {
         // One drag at a time: the other button doesn't take over a running drag.
         if (_drag is not null)
@@ -751,7 +778,6 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         ShowToolTip(null);
-        var position = e.GetPosition(this);
         var down = HitAt(position);
         _drag = new Drag(button, down, DragGesture.DraggedCrates(button, down, Selection.In(Scene)), IsLegend: false, position, IsMoving: false, Gesture: null, Key: null, Outcome: null);
         _wheelRest = 0;
@@ -771,17 +797,6 @@ public sealed class ShipViewControl : FrameworkElement
         // -= first: never two handlers on the static event, which would keep the poll and this control alive.
         CompositionTarget.Rendering -= OnRendering;
         CompositionTarget.Rendering += OnRendering;
-    }
-
-    private void EndDrag(MouseButtonEventArgs e, MouseButton button)
-    {
-        if (_drag is not { } drag || drag.Button != button)
-        {
-            return;
-        }
-
-        e.Handled = true;
-        FinishDrag(drag, e.GetPosition(this));
     }
 
     /// <summary>Ends <paramref name="drag"/> at <paramref name="position"/>: on the button's up, or from the poll where the up didn't come (D45).</summary>

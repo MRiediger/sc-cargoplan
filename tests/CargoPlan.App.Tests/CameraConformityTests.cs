@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media.Media3D;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
@@ -53,13 +52,7 @@ public class CameraConformityTests
                     var camera = new CameraMath(orientation, distance, target, view);
                     var wpf = new PerspectiveCamera();
                     camera.ApplyTo(wpf);
-                    var visual = new ModelVisual3D();
-                    var viewport = new Viewport3D { Camera = wpf, Children = { visual } };
-                    viewport.Measure(view);
-                    viewport.Arrange(new Rect(view));
-
-                    var transform = visual.TransformToAncestor(viewport);
-                    transform.Should().NotBeNull();
+                    var transform = ScreenPoints.Wpf(wpf, view);
 
                     // Points behind or at the near plane don't project; WPF clips them, CameraMath has no picture of them.
                     foreach (var point in samples.Where(p => Vector3D.DotProduct(p - camera.Position, camera.LookDirection) > 2 * camera.Near))
