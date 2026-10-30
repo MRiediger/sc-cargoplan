@@ -2943,7 +2943,7 @@ K1 Altfelder `pxPerCell`/`panX`/`panY` nur befristet lesbar (Backlog). K2 Hit-Te
   Martin am Branch-Build: „Hull C: flüssig und ohne Pumpen“
 - [x] Spike-Worktree und Branch gelöscht, nachdem die Basislinie steht
 - [x] `dotnet build` ohne Warnungen, `dotnet test` grün
-### [ ] T8.2 Darstellung der Kisten
+### [x] T8.2 Darstellung der Kisten (30.10.2026, abgenommen 30.10.)
 **Warum:** Alle Zustände, die die 2D-Ansicht zeigt, müssen in 3D gleich lesbar sein.
 - Stop-Farben (`StopBrushes` als Material), Schraffur ab der zweiten Farbrunde, Erledigt-Grau, Geladen-Symbol (K6.4), offShip,
   Fugen (Inset, T3.11b), Problem- und Auswahlrand (Kanten-Material oder Rahmenquader, Entscheidung mit Bild am echten Element)
@@ -2954,10 +2954,63 @@ K1 Altfelder `pxPerCell`/`panX`/`panY` nur befristet lesbar (Backlog). K2 Hit-Te
   ohne); die Theme-DPs des Controls (`CrateFillAlpha`, `StopPalette`, Kanten, Auswahl) wieder anschließen; Breite der
   Holo-Kanten in Perspektive mit den Fugen prüfen
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** R1 Fehler-, Auswahl- und Missionsrahmen obenauf in einer
+2D-Überlagerung (`DrawingVisual` über dem `Viewport3D`) mit den alten px-Stiften, Kisten-, Geladen-, Rack-, Rahmen- und
+Rasterkanten als verdeckbare Streifen in der Szene; am Bild gegen `main` bestätigt. R2 nur Racks verdecken Nummern, das Holo
+nicht (seine Box enthält jedes Rack; D83-Addendum). R3 Schraffur in Bildschirmgröße, Kachel in Zweierpotenzen von Zellen
+gestuft. R4 Rahmen um `Ship.Bounds` als gestrichelte Streifen; Streichung ggf. eigene Entscheidung in T8.5. R5 Martin nimmt
+die Bilder auf, Plandateien `docs/shots/t82-hull-a.plan.json` und `t82-c2.plan.json` per `--plan` in beiden Builds. K1
+Messregime (Phasenkopf), Gate p95 `hull_c_states` (M1b) ≤ p95 `empty` + 2 ms, Abbruch bei M1b − M1a > 2 ms. Dazu beim Bauen:
+die Nummer eines kompakten Schiffs steht auf der größten unverdeckten sichtbaren Fläche (mindestens ein Viertel der größten),
+statt sich hinter einer verdeckten Oberseite auszublenden; wörtlich genommen blendete die D83-Regel in der Standardansicht die
+Hälfte der Hull-A-Nummern aus. „offShip“ gibt es in der Szene nicht (D75: nicht gezeichnet), „alle Zellen“ ist kein eigener
+Modus, sondern das freie Raster ab 12 px (D61).
+
+**Befund:**
+- Commits f15a9ba (Messziel `hull_c_states`, Anteil später Frames, M1a), 0477fe9 (`RackLabels`, `BoxFaces`, `BoxEdges`,
+  `RayBox`, Platz oben im Fit), a3fe64f (`CrateMaterials`, Texturkoordinaten), 38f7693 (Zustände, Sortierung, Streifen),
+  74f4de8 (`ShipOverlay`, M1b), 41cd34f (Plandateien für die Bilder), dieser (Doku).
+- Kachel mit `ViewportUnits.Absolute` wird in Texturkoordinaten gemessen, die Doku sagt dazu nichts: `HatchRenderTests` hält
+  es fest (2, 4, 8 Kacheln auf 4 Zellen bei Kachel 2, 1, 0,5).
+- Holo-Kanten waren seit T8.1 nur 0,82 px breit (`HoloLines.HalfWidthCells` teilt durch die Ortho-Streckung); jetzt 1 px in
+  der Zielebene.
+- Bekannte Grenze: Holo-Teile hinter einer halbtransparenten Kiste fallen weg (die Kiste schreibt die Tiefe zuerst); bei 0xD0
+  kaum sichtbar.
+- Schraffur im 3D-Pfad (`StopHatchTimingTests`, Release, C2 mit 16 Stopps): 48,0 ms ohne, 48,4 ms mit Schraffur je Bild.
+  Keine Vorher-Zahl: der Test misst seit T8.1 das Control, in T8.1 ohne Schraffur.
+- **M1a/M1b** (`--measure-frames`, Release, ohne SC, 30 s je Lauf, Median aus drei Läufen; p95 / spät / fps):
+
+  | Ziel | M1a vor T8.2 (e034a23) | M1b nach T8.2 |
+  |---|---|---|
+  | `hull_c_states` 145 Kisten, 24 Stopps, alle Zustände + Holo | 31,97 ms / 5,2 % / 57,0 | 16,95 ms / 4,2 % / 57,5 |
+  | `hull_c` 144 Kisten + Holo | 33,07 ms / 7,8 % / 55,4 | 16,68 ms / 1,9 % / 58,9 |
+  | `empty` | 33,07 ms / 9,6 % / 54,6 | 33,07 ms / 12,1 % / 53,3 |
+
+  Gate erfüllt (16,95 ≤ 33,07 + 2), kein Abbruch (M1b − M1a = −15 ms). Dass die volle Szene schneller wird als vorher und
+  als das leere Fenster, ist die Taktung des Fensters, kein Gewinn. M1b lief auf dem Arbeitsstand von Schritt 5 vor dessen
+  Commit (Log-Hash 38f7693, `ShipOverlay` in der DLL), also auf dem Code von 74f4de8.
+- Tests in T8.2 (rot wurde kein bestehender Test):
+
+  | Test | Stand | Grund |
+  |---|---|---|
+  | `RackNumberSizeTests`, `FreeCellGridTests` | grün, unverändert | Eingabe ist px/Zelle in der Zielebene; `Default_is_the_size_at_zoom_1` wird in T8.6 neu begründet oder gestrichen |
+  | `DropTargetTests` | grün, unverändert | Slab-Test nach `RayBox` herausgezogen |
+  | `SceneProjectorTests` | grün, unverändert, gestrichen in T8.6 | `FloorOf` aus `ProjectWedge` herausgezogen |
+  | `StopBrushesTests`, `OverlayLegendXamlTests`, `PaletteBrushConverterTests` | grün | 2D-API und Legenden-Marker unverändert; Legende und Kisten teilen `HatchTile` |
+  | `CameraNavigationTests` | grün | `top` mit Default 0 |
+  | `FrameStatisticsTests` | + 1 | Anteil später Frames |
+  | `StopHatchTimingTests` (nur von Hand) | unverändert | misst seit T8.2 den 3D-Pfad mit Schraffur |
+
+- Neu: `RayBoxTests` (5), `RackLabelsTests` (7), `BoxEdgesTests` (3), `CameraFitTests` (2), `CrateMaterialsTests` (12),
+  `HatchRenderTests` (3), `ShipScene3DTests` (8). Gegengeprüft: Sortierung umgedreht, eine gespiegelte Fläche → je rot.
+  Tests App 1.524 → 1.565, Core 1.492, Import 141; 0 Warnungen.
+
 **Akzeptanz:**
-- [ ] Screenshots gegen den `main`-Build, jeder Zustand einmal sichtbar
-- [ ] Blick von unten geprüft (Unterseiten-Racks, Gegenlicht, Nummern)
-- [ ] Frame-Zeit vorher/nachher
+- [x] Screenshots gegen den `main`-Build, jeder Zustand einmal sichtbar (Martin, beide Plandateien in beiden Builds,
+  30.10.2026: „passt, Freigabe“)
+- [x] Blick von unten geprüft (Unterseiten-Racks, Gegenlicht, Nummern; Bild 11 der Liste)
+- [x] Frame-Zeit vorher/nachher (M1a/M1b oben)
+- [x] `dotnet build` ohne Warnungen, `dotnet test` grün
 
 ### [ ] T8.3 Hit-Test und Auswahl
 **Warum:** Hit-Test und Drop-Regeln ziehen in Strahl-Logik um – die Stelle mit dem höchsten Regressionsrisiko, darum vor dem Drag.
@@ -3017,7 +3070,8 @@ Velopack/winget, Retaliator-Module, `holoOffset` für den GRIN UTV (Datenfall, B
 ### Risiken, vorab benannt
 - WPF-3D unter `AllowsTransparency` rendert in Software (D2); mit laufendem SC nicht gemessen → T8.7.
 - Transparente Modelle werden nicht tiefensortiert: Holo als letztes Kind, Kisten deckend; halbtransparente Kisten
-  (`crates.alpha`) über dem Holo können Artefakte zeigen → am echten Element prüfen, ggf. Alpha-Untergrenze.
+  (`crates.alpha`) über dem Holo können Artefakte zeigen → am echten Element prüfen, ggf. Alpha-Untergrenze. T8.2: Kisten
+  von hinten nach vorn sortiert, Grenze im D83-Addendum.
 - Text nur im 2D-Overlay sauber; Rack-Nummern werden bei jedem Kamerawechsel neu gesetzt und auf Verdeckung geprüft →
   Hysterese aus dem Backlog, falls sie flackern.
 - Hit-Test und Drop-Regeln ziehen um (höchstes Regressionsrisiko) → `CameraMath` als einzige Projektion, Konformitätstest,
@@ -3080,6 +3134,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).~~ → Phase 8 (D83)
 - `ShipCamera.PxPerCell`/`PanX`/`PanY` (Lesefelder für Kameras von vor D83, T8.1) entfernen. Auslöser: der nächste
   Schema-Bump von settings.json; nach v0.1.0 schreibt kein Build sie mehr.
+- Hysterese für Rack-Nummern: Fläche wechseln oder ausblenden erst nach einem Mindestabstand, damit eine Nummer beim Drehen
+  nicht hin- und herspringt (D83, T8.2). Auslöser: Flackern am Aufzug (T8.7) oder Hauler-Report.
 - ~~Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).~~ Übernommen als T7.4 (D55).
 - ~~Umriss in 3D wie im Maintenance Panel (Prisma aus Draufsicht + Höhe, grober Rumpf aus Drauf- und Seitenansicht, oder Holo-Modelle), falls der flache Umriss im Spiel nicht reicht (D62).~~ Holo-Modelle übernommen als T7.4b (Spike) und T7.4c.
 - ~~Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).~~ → K1
