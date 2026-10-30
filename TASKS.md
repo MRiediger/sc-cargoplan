@@ -2738,7 +2738,7 @@ gedrehten Modells (Teil 5).
 ### [ ] T8.2 winget-Manifest – `winget install SC-CargoPlan`
 ### [ ] T8.3 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
 
-### [x] S8.0 Spike: Schiffsansicht als echtes 3D (Perspektive) (30.10.2026, kein Prod-Code, Befund ohne UTV-Antwort)
+### [x] S8.0 Spike: Schiffsansicht als echtes 3D (Perspektive) (30.10.2026, kein Prod-Code)
 **Frage:** Liest sich der GRIN UTV in einem `Viewport3D` mit `PerspectiveCamera`, weltfestem Licht und Bodenplatte beim
 Drehen als Drehung statt als Pumpen (Anlass: Holo-Pump, Teil 5)? Was kostet der Umbau der 2D-Funktionen?
 
@@ -2752,9 +2752,9 @@ Hull A, Maßstab fleetyards.net/ships/grin-utv; „600+ Quader“ als Hull C mit
 144 Kisten (real), bei Rot eine Zeile „alle Zellen als ein Mesh“; Frame-Zeit ohne SC; Step 5 (deckend) nach den ersten
 zehn Urteilen; Look rechts wie Martins Setting (`holo-shaded`, Deckkraft 0,45), Quader einfarbig.
 
-**1 – Gate (Martin, Release-Build, 30.10.2026):**
+**1 – Gate (Martin, Release-Build, 30.10.2026), UTV und Hull A gleich:**
 
-| Step | P | L | F | Holo | UTV | Hull A |
+| Step | P | L | F | Holo | links (heute) | rechts |
 |---|---|---|---|---|---|---|
 | 0 | ortho | Headlight | aus | 0,45 | pumpt | pumpt |
 | 1 | ortho | weltfest | aus | 0,45 | pumpt | pumpt |
@@ -2762,6 +2762,9 @@ zehn Urteilen; Look rechts wie Martins Setting (`holo-shaded`, Deckkraft 0,45), 
 | 3 | persp | weltfest | an | 0,45 | pumpt | pumpt nicht |
 | 4 | persp | Headlight | aus | 0,45 | pumpt | pumpt nicht |
 | 5 | persp | weltfest | an | deckend, Kisten im selben Tiefenpuffer | pumpt | pumpt nicht |
+
+- Martin trug die Urteile als links / rechts ein (Vorlage hatte Spalten UTV / Hull A); auf Nachfrage: „UTV und Hull A
+  gleich“. Ab Step 3 „pumpt da rechts nichts mehr“.
 
 - Step 0 reproduziert die App (rechts pumpt wie links); per Code geprüft: 96 Kameras je Schiff (Yaw 0–345°, vier Pitches),
   Abweichung rechts gegen `HoloCamera.For` der linken Ansicht ≤ 2·10⁻¹³ Zellen, Maßstab links konstant.
@@ -2814,15 +2817,15 @@ Frames liegt bei 60 Hz schon leer bei p95 16,7 ms. Gewertet nach fps und Abstand
 Einzelmodelle rot. Mit SC nicht gemessen.
 
 **Was das für den Umbau heißt:**
-- Wirksam ist allein die **Perspektive**: bei der Hull A ruhig ab Step 3, auch ohne Licht und Boden (Step 4). Weltfestes
-  Licht, Bodenplatte und deckender Rumpf ändern nichts; ein Licht-Einzeiler in `HoloBackdrop` reicht also nicht.
-- Der **UTV pumpt in jedem Step**, auch deckend wie bei Fleetyards (Step 5). Die Spike-Frage ist für das Anlass-Schiff
-  nicht beantwortet. Offene Unterschiede zu Fleetyards, keiner gemessen: Bildausschnitt (der UTV füllt die Hälfte,
-  129,8 px/Zelle, Kamera entsprechend nah), Drehpunkt (Mitte von `Ship.Bounds` = 1-SCU-Würfel in der Fahrzeugmitte),
-  Blickwinkel (FOV 40°), Drehart (Hand statt Autorotation). Vor einem Umbau-Task braucht es dazu einen Folge-Spike.
+- Wirksam ist allein die **Perspektive**: UTV und Hull A ruhig ab Step 3, auch ohne weltfestes Licht und Boden (Step 4).
+  Licht, Bodenplatte und deckender Rumpf ändern am Pumpen nichts; ein Licht-Einzeiler in `HoloBackdrop` reicht also nicht,
+  die Kamera muss perspektivisch werden.
+- Damit ist die Spike-Frage für das Anlass-Schiff beantwortet: Der UTV liest sich in Perspektive als Drehung.
 - Leistung trägt: `Viewport3D` im Software-Rendering zeigt Hull C mit Holo bei 57–58 fps, sofern Quader zu wenigen Meshes
   zusammengefasst sind; Hit-Test ist kein Thema.
-- Umfang bei Umbau: 14 Funktionen, davon 1 × L (Drag-Vorschau), 7 × M, 6 × S.
+- Umfang bei Umbau: 14 Funktionen, davon 1 × L (Drag-Vorschau), 7 × M, 6 × S. Weil Licht und Boden nichts beitragen,
+  ist der kleinste wirksame Schritt die perspektivische Kamera; ob Kisten dafür in den `Viewport3D` wandern oder die 2D-
+  Ansicht perspektivisch projiziert, ist eine eigene Entscheidung (D-Eintrag) vor dem Umbau-Task.
 - Nebenbefund im deckenden Look (Step 5): die Kisten stecken im Rumpf (UTV im Fahrerhaus, Hull A durch die Flanken),
   weil `HoloPlacement` die Holo-Mitte auf die Rack-Mitte legt (D63) – im transparenten Look heute unsichtbar, deckend nicht.
 
