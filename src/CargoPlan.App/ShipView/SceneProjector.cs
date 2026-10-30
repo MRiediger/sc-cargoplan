@@ -48,7 +48,8 @@ public static class SceneProjector
             outline,
             extent,
             FitExtent(scene, isLong, extent, camera),
-            camera.Project((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0));
+            camera.Project((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0),
+            FitExtent(scene, isLong: false, extent, camera));
     }
 
     /// <summary>

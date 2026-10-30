@@ -145,6 +145,10 @@ public enum BoxFace
 /// The centre of <c>Ship.Bounds</c>, projected: what the player's framing hangs on (D76). Fixed to the ship, so neither
 /// cargo nor a hologram that loads later moves a framed view.
 /// </param>
+/// <param name="ShipExtent">
+/// <paramref name="FitExtent"/> with every rack, loaded or not: fixed to the ship and its marker, so the zoom limits taken
+/// from it never move with the cargo (holo pump bugfix, D76).
+/// </param>
 public sealed record ProjectedScene(
     IReadOnlyList<ProjectedRack> Racks,
     IReadOnlyList<SceneLine> Frame,
@@ -152,7 +156,8 @@ public sealed record ProjectedScene(
     IReadOnlyList<Point>? Outline,
     Rect Extent,
     Rect FitExtent,
-    Point Anchor);
+    Point Anchor,
+    Rect ShipExtent);
 
 /// <summary>One face of the bow wedge in ship coordinates (D52): <see cref="BoxFace.Bow"/> is its tip, Port and Starboard its flanks.</summary>
 /// <param name="Normal">Outward, unit length; the flanks' normals are not along an axis.</param>
