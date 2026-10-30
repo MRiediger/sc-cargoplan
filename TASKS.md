@@ -1319,10 +1319,10 @@ für fehlende Schiffe; Known issue Hull-C-Hologramm gestrichen; `docs/screenshot
   ≤ 3 MB außer den zwei Ausnahmen, Shotlist 1:1 mit Typ und Datei (32 Shots: 17 GIF, 15 PNG; 14 must); Negativtest
   schlägt an. Tests Core 1.467, Import 141, App 1.435, 0 Warnungen.
 
-#### [ ] T7.5d Release (Martin + Claude Code)
+#### [ ] T7.5d Release (Martin + Claude Code) → T9.2 (D83)
 - Release-Notes `docs/release-notes/v0.1.0.md`, Tag `v0.1.0`, rc-Releases und -Tags löschen (D49)
 
-→ T6.6 Nexus und Fleetyards-Verlinkung
+→ T6.6 Nexus und Fleetyards-Verlinkung, seit D83 in Phase 9 (T9.3, T9.4)
 
 ---
 
@@ -2732,11 +2732,29 @@ gedrehten Modells (Teil 5).
 
 ---
 
-## Phase 8 – nach dem Launch
+## Phase 8 – 3D-Schiffsansicht (D83) (30.10.2026) – Branch `feat/p8-3d-view`, vor Phase 9 (Release)
 
-### [ ] T8.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
-### [ ] T8.2 winget-Manifest – `winget install SC-CargoPlan`
-### [ ] T8.3 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
+**Warum:** Das Pumpen beim Drehen kommt von der orthografischen Projektion; mit einer `PerspectiveCamera` sind UTV und Hull A
+ruhig (S8.0). Martins Entscheidung (30.10.2026): **Variante (a)** – die ganze Schiffsansicht wandert in einen `Viewport3D`,
+Kisten, Holo, Marker und Hilfsgeometrie in einer Szene unter einer Kamera (D83). Der 2D-Painter (`SceneProjector`,
+`DrawOrder`, `IsoProjection` als Zeichenpfad) entfällt am Ende der Phase (T8.6). Scope ist die Liste „2D-Funktionen, die neu
+müssten“ unter S8.0.
+
+**Regeln der Phase** (zusätzlich zu CLAUDE.md):
+- Ein Task pro Session, Reihenfolge fest; jeder Task-Plan geht vor dem Code zur Freigabe (Martin/Claude.ai), Korrekturen
+  kommen als `korrektur.md`.
+- Core bleibt unverändert, alles in `CargoPlan.App`. Plan Schema 8, Schiff Schema 5, Mission Schema 3, Look Schema 1 bleiben.
+- **Rendering zählt als Laufzeit:** Frame-Zeit und Hit-Test-Zeit vor und nach jedem Task messen. Messart wie S8.0: Abstand der
+  Frames über `CompositionTarget.Rendering`, ≥ 300 Frames, Basislinie leeres Fenster. Messbefehl: kommt mit T8.1 (Dev-Schalter).
+- **Bestehende Tests der Schiffsansicht sind das Orakel:** jedes Verhalten, das ein Test heute festnagelt (Gesten B3/B6/K3.2/
+  T3.14b, Haken, Auswahl, Drop-Regeln, Fugen, Rack-Nummern), besteht nach dem Umbau denselben Test oder einen gleichwertigen.
+  Kein Verhalten wird nebenbei geändert.
+- **Kein paralleler 2D-Pfad**, kein `--legacy-2d`. Vergleichsstand für Screenshots und Verhalten ist ein Publish-Build von
+  `main` (`dotnet publish src/CargoPlan.App -c Release -o ~/CargoPlan-main`). Bis T8.6 bleibt der alte Code liegen, wird aber
+  nicht mehr aufgerufen.
+- Spike-Code nur für Fragen, deren Antwort das Design ändert. Optik wird am echten Element geprüft, nie am Spike.
+- Der Spike-Worktree `..\sc-cargoplan-s8` (Branch `spike/s8-3d`) bleibt bis zur T8.1-Basislinie: sein Frame-Zeit-Harness ist
+  Messwerkzeug, kein Spike-Code (Präzisierung in der Planphase, ratifiziert durch Freigabe).
 
 ### [x] S8.0 Spike: Schiffsansicht als echtes 3D (Perspektive) (30.10.2026, kein Prod-Code)
 **Frage:** Liest sich der GRIN UTV in einem `Viewport3D` mit `PerspectiveCamera`, weltfestem Licht und Bodenplatte beim
@@ -2829,6 +2847,139 @@ Einzelmodelle rot. Mit SC nicht gemessen.
 - Nebenbefund im deckenden Look (Step 5): die Kisten stecken im Rumpf (UTV im Fahrerhaus, Hull A durch die Flanken),
   weil `HoloPlacement` die Holo-Mitte auf die Rack-Mitte legt (D63) – im transparenten Look heute unsichtbar, deckend nicht.
 
+### [x] T8.0 D83, Phasen 8–10, Lehre (30.10.2026, abgenommen 30.10.)
+**Warum:** Vor dem Umbau stehen Entscheidung, Taskschnitt und Formatfolgen fest; T8.1 beginnt erst nach Freigabe von T8.0.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 S8.0 zuerst per `--no-ff` nach `main` (14f4889), dann
+`feat/p8-3d-view` ab dem neuen `main`; geprüft vorher, dass der Holo-Pump-Fix (ed03709) samt `OrbitScaleTests` in `main` liegt.
+P2 die alte „Phase 8 – nach dem Launch“ wird Phase 10 (T10.1–T10.3), D53-Addendum. P3 Phase 9 bekommt neue IDs T9.1–T9.4,
+T7.5a–c bleiben, T7.5d zeigt auf T9.2. P4 D83 (D81 und D82 vergeben). P5 Addenda jetzt nur D14, D15, D53, D76; D52, D62, D63,
+D32, D61 im umsetzenden Task. P6 Spike-Worktree bleibt bis zur T8.1-Basislinie, T8.1 portiert den Harness. K1 T9.1 umfasst auch
+die Textdurchsicht auf durch D83 geänderte Begriffe.
+
+**Akzeptanz:**
+- [x] D83 in `docs/decisions.md` mit (a)/(b), S8.0-Zahlen, Formatfolgen, Gegenargument; Addenda D14, D15, D53, D76
+- [x] Phase 8 mit T8.0–T8.7, Phase 9 (Release), Phase 10 (nach dem Launch) in TASKS.md; Backlog-Zeile Viewport3D geschlossen
+- [x] Lehre in TASKS.md (Lehren) und CLAUDE.md (A9, Zeile Schiffsansicht)
+- [x] `dotnet build` ohne Warnungen, `dotnet test` grün (Core 1.492, App 1.473, Import 141; nur Doku geändert)
+
+### [ ] T8.1 `CameraMath`, Szene und Kamera
+**Warum:** Die Projektion ist das Fundament: Bild, Overlay, Hit-Test und Gesten-Tests hängen an einer Kamera (D83).
+- `CameraMath` (WPF-frei: Yaw, Pitch ±85°, Distanz, Ziel, FOV 40°, Viewport-Größe; `Project`, `Unproject`), daraus die
+  `PerspectiveCamera`; Konformitätstest gegen `GeneralTransform3DTo2D` (Rack-Ecken, Kistenmitten, mehrere Kameras, 0,5 DIP,
+  STA, gemessener und arrangierter `Viewport3D`); testseitiger Projektionshelfer für Klickpunkte
+- `Viewport3D` in `ShipViewControl`: Kisten einfarbig, Holo als letztes Kind, Keil, drei weltfeste Lichter (Haupt, Ambient,
+  schwaches Gegenlicht von unten)
+- Orbit, Zoom (Distanz), Pan (Ziel); Reset, Doppelklick, Reset-Symbol, Hotkey `resetView` unverändert; Kamera-Persistenz
+  `yaw`/`pitch`/`distance`/`target`, Einträge mit `pxPerCell` verworfen (D83)
+- Frame-Zeit-Harness aus dem Spike als Dev-Schalter portieren (Arbeitsname `--measure-frames`, ≥ 300 Frames, p50/p95 auf
+  stderr), Befehl in den Phasenkopf; Basislinie damit messen, danach `git worktree remove --force ..\sc-cargoplan-s8` und
+  `git branch -D spike/s8-3d`
+- Addenda D52, D63 (Holo in der Szene, Keil in 3D)
+
+**Akzeptanz:**
+- [ ] Konformitätstest grün
+- [ ] UTV und Hull A: kein Pumpen (Martin)
+- [ ] Hull C mit Holo ≥ 55 fps (Messbefehl, vorher/nachher)
+- [ ] Spike-Worktree und Branch gelöscht, nachdem die Basislinie steht
+
+### [ ] T8.2 Darstellung der Kisten
+**Warum:** Alle Zustände, die die 2D-Ansicht zeigt, müssen in 3D gleich lesbar sein.
+- Stop-Farben (`StopBrushes` als Material), Schraffur ab der zweiten Farbrunde, Erledigt-Grau, Geladen-Symbol (K6.4), offShip,
+  Fugen (Inset, T3.11b), Problem- und Auswahlrand (Kanten-Material oder Rahmenquader, Entscheidung mit Bild am echten Element)
+- Freies Zellraster und „alle Zellen“ als ein Mesh pro Rack
+- Rack-Nummern im 2D-Overlay (`RackNumberSize`), ausgeblendet bei Verdeckung (Strahl Kamera → Anker trifft vorher ein anderes
+  Rack oder die Holo-Box); Addenda D32, D61 soweit betroffen
+
+**Akzeptanz:**
+- [ ] Screenshots gegen den `main`-Build, jeder Zustand einmal sichtbar
+- [ ] Blick von unten geprüft (Unterseiten-Racks, Gegenlicht, Nummern)
+- [ ] Frame-Zeit vorher/nachher
+
+### [ ] T8.3 Hit-Test und Auswahl
+**Warum:** Hit-Test und Drop-Regeln ziehen in Strahl-Logik um – die Stelle mit dem höchsten Regressionsrisiko, darum vor dem Drag.
+- Strahl gegen Quader auf den Rack-/Kistendaten (nicht `VisualTreeHelper.HitTest`), Tooltips (`SceneHitTest.ToolTipAt`),
+  Rechtsklick-Auswahl mit Versatz (T3.14b), Kistenklick hakt das Ziel ab (B6), K1.4-Grenze
+- Gesten-Tests auf den Projektionshelfer umstellen (hier, nicht erst in T8.6)
+
+**Akzeptanz:**
+- [ ] bestehende Gesten-Tests grün (oder gleichwertig ersetzt, je Test benannt)
+- [ ] Hit-Test-Zeit vorher/nachher
+
+### [ ] T8.4 Drag & Drop
+**Warum:** Das L der S8.0-Liste; Drag-Semantik bleibt, nur Ziel und Vorschau werden 3D.
+- Einzelkiste, Mehrfachauswahl atomar, Legenden-Drag, Drehgeste Mausrad (K3.2), Vorschau = Loslassen (Geisterquader an der
+  Zielzelle, dieselbe Core-Prüfung), Verdrängen 3b; D45-Pfad (GetCursorPos pro Frame unter CaptureMouse) bleibt
+
+**Akzeptanz:**
+- [ ] B3-, B6-, K3.2-Tests grün
+- [ ] Gate am Aufzug (Martin)
+
+### [ ] T8.5 Look und Settings
+**Warum:** Look-Presets und Settings müssen auf der neuen Ansicht gelten, ohne Formatbruch (D83).
+- Halo-Texte im Overlay, Zoom-Grenzen als Distanz (`maxZoomPxPerCell` → `d_min`, Untergrenze 2 × Fit-Distanz), Look-Presets und
+  -Export unverändert gültig, Umriss als Fläche in der Holo-Bodenebene (inkl. `holoOffset`); Addendum D62
+
+**Akzeptanz:**
+- [ ] drei Presets im Spiel (Martin)
+
+### [ ] T8.6 2D-Painter entfernen
+**Warum:** Es gibt nur noch eine Projektion; toter Code und doppelte Tests gehen.
+- `SceneProjector`, `DrawOrder`, `IsoProjection`-Zeichenpfad entfernen, verbliebene Tests migrieren, die 0,5-px-Abgleichtests
+  (Teil 2–4 der Holo-Pump-Reihe) streichen
+
+**Akzeptanz:**
+- [ ] `dotnet build` ohne Warnungen, alle Tests grün
+
+### [ ] T8.7 Gates im Spiel am Aufzug
+**Warum:** S8.0 hat ohne SC gemessen; die Abnahme der Phase passiert im Spiel.
+- UTV, Hull A, Hull C, Aurora Mk II mit Modul (`holoOffset`), ein Schiff mit Unterseiten-Racks; Frame-Zeit mit laufendem SC
+
+**Akzeptanz:**
+- [ ] Martins Abnahme, dann `git merge --no-ff` nach `main`
+
+### Nicht in Phase 8
+Schatten, Texturen, Auto-Rotation, konfigurierbares FOV, Bodengitter als Feature (S8.0: unnötig fürs Pumpen), Lokalisierung,
+Velopack/winget, Retaliator-Module, `holoOffset` für den GRIN UTV (Datenfall, Backlog).
+
+### Risiken, vorab benannt
+- WPF-3D unter `AllowsTransparency` rendert in Software (D2); mit laufendem SC nicht gemessen → T8.7.
+- Transparente Modelle werden nicht tiefensortiert: Holo als letztes Kind, Kisten deckend; halbtransparente Kisten
+  (`crates.alpha`) über dem Holo können Artefakte zeigen → am echten Element prüfen, ggf. Alpha-Untergrenze.
+- Text nur im 2D-Overlay sauber; Rack-Nummern werden bei jedem Kamerawechsel neu gesetzt und auf Verdeckung geprüft →
+  Hysterese aus dem Backlog, falls sie flackern.
+- Hit-Test und Drop-Regeln ziehen um (höchstes Regressionsrisiko) → `CameraMath` als einzige Projektion, Konformitätstest,
+  T8.3 vor T8.4, Tests als Orakel.
+- Pitch ±85° mit Up (0,0,1): am Pol wäre die Blickrichtung parallel zu Up; Grenze nicht lockern.
+
+---
+
+## Phase 9 – Release (nach Phase 8)
+
+**Warum:** T7.5a–c (README, Wiki, Medien) zeigen die 2D-Ansicht; nach D83 stimmen Begriffe und Bilder nicht mehr. Der
+Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Nummer.
+
+### [ ] T9.1 Texte und Medien auf der 3D-Ansicht
+- Textdurchsicht auf durch D83 geänderte Begriffe: README, Wiki-Seiten (v. a. Ship-view, Preferences, Overlay-basics),
+  `docs/settings-format.md`, Settings-Tooltips (Zoom-Grenzen = Zellgröße in der Zielebene, Kamera/Orbit/Pan, Reset, Abschnitt
+  „Ship view“)
+- Medien neu nach `docs/shots/SHOTLIST.md`: GIFs, Screenshots mit den drei Presets, Known issues
+
+### [ ] T9.2 Release (= T7.5d)
+- Release-Notes `docs/release-notes/v0.1.0.md`, Tag `v0.1.0`, rc-Releases und -Tags löschen (D49)
+
+### [ ] T9.3 Nexus → T6.6
+
+### [ ] T9.4 Fleetyards-Verlinkung
+
+---
+
+## Phase 10 – nach dem Launch
+
+### [ ] T10.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
+### [ ] T10.2 winget-Manifest – `winget install SC-CargoPlan`
+### [ ] T10.3 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
+
 ---
 
 ## Lehren
@@ -2837,6 +2988,7 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 
 - **Vor jedem Push `gh run list -L 3`.** Rote Läufe erst klären, dann pushen. Anlass T7.1d: Die CI war seit T7.0 rot (1-s-Zeit-Assert in `OrderSearchLimitTests`, 1.099 / 1.297 ms auf den Runnern), unbemerkt über mehrere Pushes.
 - **Tests vor der Implementierung heißt: erst rot sehen.** Neue Tests vor dem Code laufen lassen und das Scheitern (Compile- oder Assert-Fehler) festhalten, dann implementieren. Anlass T7.2: Die Core-Tests (Replan, PlanFile, Katalog) wurden vor dem Code geschrieben, aber erst danach ausgeführt; in der App lief es richtig.
+- **Neues Darstellungselement → Renderarchitektur neu entscheiden**, nicht das Element in die bestehende einpassen. Zwei Renderer für ein Bild sind ein Provisorium, kein Entwurf. Anlass Phase 8: das Holo kam in T7.4c als `Viewport3D`-Kulisse hinter den 2D-Painter; zwei Kameras mussten per Code gleich gehalten und gegeneinander gemessen werden (Holo-Pump Teil 2–5), und die Abhilfe gegen das Pumpen, die Perspektive (S8.0), hätte beide Zeichner getroffen. Umbau in Phase 8 (D83).
 
 ---
 
@@ -2853,7 +3005,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~App-Icon (`.ico` mit 16/32/48/256 px, `<ApplicationIcon>` im App-csproj), sobald ein Icon vorliegt; aus T6.2 (D48).~~ → K5
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
 - ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26); freie Rotation pro Rack erst, wenn ein Schiff sie braucht.
-- Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).
+- ~~Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).~~ → Phase 8 (D83)
 - ~~Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).~~ Übernommen als T7.4 (D55).
 - ~~Umriss in 3D wie im Maintenance Panel (Prisma aus Draufsicht + Höhe, grober Rumpf aus Drauf- und Seitenansicht, oder Holo-Modelle), falls der flache Umriss im Spiel nicht reicht (D62).~~ Holo-Modelle übernommen als T7.4b (Spike) und T7.4c.
 - ~~Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).~~ → K1
