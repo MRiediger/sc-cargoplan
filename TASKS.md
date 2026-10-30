@@ -3226,14 +3226,17 @@ Bauen: kein `StartOptionsTests`-Fall, die Messziele stehen nur im `FrameMeasureW
   | `SceneProjectorTests`, `CameraFitTests`, `LookPresetsTests`, `LookFileTests`, `SettingsViewModelTests` | grün, unverändert | Orakel; `Place(outline, bounds)` behält den Rackboden als Vorgabe |
 
 - Gegengeprüft (je rot): ungültige Höhe nicht verworfen; alter Aufruf ohne Boden im ViewModel; Ohr ohne Punktprüfung;
-  Linie so weit gehoben wie der Halo; Kantenfarbe und Umriss-Halo abgeklemmt (`LookSceneTests`). Tests App 1.607 →
-  1.647, Core 1.492 → 1.497, Import 141; 0 Warnungen.
+  Linie so weit gehoben wie der Halo; Kantenfarbe und Umriss-Halo abgeklemmt (`LookSceneTests`).
+- Rahmen um `Ship.Bounds` gestrichen nach Martins Bildentscheidung (D84): mit ihm `MissionPalette.Frame`,
+  `BoxEdges.Dashed` und dessen zwei Tests; Wächter `ShipScene3DTests.An_empty_ship_shows_its_rack_edges_and_no_frame`
+  (vorher rot). Tests App 1.607 → 1.646, Core 1.492 → 1.497, Import 141; 0 Warnungen.
 
 **Akzeptanz:**
 - [ ] drei Presets im Spiel (Martin)
 - [ ] Settings-Reset „Ship view“ und Handling gegen `main` (Settings-Zeilen 1–14 des Plans, Martin)
 - [x] Look-Export → Import → identisches Bild (`LookSceneTests`, bitgleich in drei Läufen); im Spiel (Martin) offen
-- [ ] Rahmen (R4) und Fläche unlit (R7) am Bild (Martin)
+- [x] Rahmen (R4) und Fläche unlit (R7) am Bild (Martin, 30.10.2026: „ohne Rahmen, Rest passt“): Rahmen gestrichen (D84),
+  Fläche bleibt unlit
 - [ ] Zoom-Untergrenze (E1): Rückfrage
 - [x] Stichprobe `hull_a_outline` nach der Gate-Regel ab T8.5 (6,1 % ≤ 10,4 % + 2 pp)
 - [x] `dotnet build` ohne Warnungen, `dotnet test` grün

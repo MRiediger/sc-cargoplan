@@ -970,3 +970,11 @@ Written as a D59 addendum in K2.2 and made an entry of its own at the acceptance
   - **Every look key that reaches the ship view acts in the scene**, shown by rendering the view through the overlay's own wiring (`LookSceneTests`): 14 keys each change the picture, rack-number colour and halo reach the outline, each preset has its own picture, a preset exported and imported gives the same picture bit for bit. Look schema 1 and the presets are unchanged; no key added.
   - **Settings window:** the max zoom's tool tip says the cell's size holds at the middle of the view and nearer cells look larger; the backdrop's says the outline lies on the floor. Range 40–240 and the section's reset unchanged.
   - **Frame gate from T8.5 on** (Martin at the M3b acceptance): the share of late frames ≤ the empty window's of the same build + 2 percentage points; p95 is information only, since it is quantised to the display's interval (33.9 ms = two frames).
+
+## D84 – No frame around `Ship.Bounds` in the ship view
+
+- **Context:** Since D14 the view drew a dashed frame around all racks (`Ship.Bounds`), in 3D since T8.2 as dashed strips (T8.2, R4: dropping it would be a decision of its own). With the outline on the floor (D62, T8.5), the hologram around the racks (D63) and perspective depth (D83) the box no longer carries information of its own; T8.5 showed pictures of the Hull A in the outline, shaded hologram and none looks, each with and without the frame.
+- **Options:** keep the frame; drop it; keep it only in the none look, where nothing else bounds the racks.
+- **Decision:** Dropped in every look (Martin, 30 Oct 2026, at the pictures). `MissionPalette.Frame` and `BoxEdges.Dashed` go with it (no other user, A4). The none look shows the racks alone (D62 said "racks and frame"). Precision in the planning phase, ratified by approval.
+- **Counter-argument:** In the none look nothing shows where the racks' common box ends, and the wedge's (D52) base was the frame's bow face, which is now open. The frame was faint (alpha 0x60) and dashed; after the T8.5 strip fix it would have been visible for the first time since T8.2, so the pictures were its only test in 3D.
+- **Consequence:** D52, D62 and D83 (T8.2's "frame strips") read against this entry; README and wiki are checked for "frame" in T9.1.
