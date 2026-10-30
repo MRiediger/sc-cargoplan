@@ -152,6 +152,9 @@ public sealed class ShipViewControl : FrameworkElement
     // The camera the picture on screen was drawn with (ApplyCamera): the hit test takes this one, never a second.
     private CameraMath? _shown;
 
+    // What the running drag shows: faded crates in the scene, target and ghosts in the overlay (T8.4).
+    private DragPreview _preview = DragPreview.None;
+
     private Drag? _drag;
 
     // The frame the poll last ran in: Rendering can come more than once per frame (D45).
@@ -323,7 +326,7 @@ public sealed class ShipViewControl : FrameworkElement
                 if (_drag is not null)
                 {
                     _drag = null;
-                    InvalidateVisual();
+                    ShowDrag();
                 }
             }
         }
@@ -337,17 +340,20 @@ public sealed class ShipViewControl : FrameworkElement
     /// press with the crates on board it holds, the drag runs here with the mouse captured, and a release over a rack runs
     /// <see cref="MoveLegendCommand"/>. Ignored without crates, while locked or while another drag runs.
     /// </summary>
-    public void StartLegendDrag(IReadOnlyList<Crate> crates, MouseButtonEventArgs e)
+    public void StartLegendDrag(IReadOnlyList<Crate> crates, MouseButtonEventArgs e) => e.Handled |= StartLegendDrag(crates, e.GetPosition(this));
+
+    /// <summary>The legend drag from <paramref name="position"/> (DIPs in the view); false if ignored. Internal for the view tests (T8.4, R5).</summary>
+    internal bool StartLegendDrag(IReadOnlyList<Crate> crates, Point position)
     {
         if (!IsNavigationEnabled || _drag is not null || Scene is null || crates.Count == 0)
         {
-            return;
+            return false;
         }
 
-        e.Handled = true;
         ShowToolTip(null);
-        _drag = new Drag(MouseButton.Right, null, crates, IsLegend: true, e.GetPosition(this), IsMoving: false, Gesture: null, Key: null, Outcome: null);
+        _drag = new Drag(MouseButton.Right, null, crates, IsLegend: true, position, IsMoving: false, Gesture: null, Key: null, Outcome: null);
         CaptureForDrag(MouseButton.Right);
+        return true;
     }
 
     protected override void OnRender(DrawingContext dc)
@@ -441,13 +447,14 @@ public sealed class ShipViewControl : FrameworkElement
         CompositionTarget.Rendering -= OnRendering;
 
         // Faded cargo, a highlighted target or a ghost and its reason must not stay on screen.
-        if (_drag is { IsMoving: true } drag && drag.Dragged.Count > 0)
+        var shown = _drag is { IsMoving: true } drag && drag.Dragged.Count > 0;
+        _drag = null;
+        if (shown)
         {
-            InvalidateVisual();
+            ShowDrag();
             ShowToolTip(null);
         }
 
-        _drag = null;
         base.OnLostMouseCapture(e);
     }
 
@@ -475,6 +482,9 @@ public sealed class ShipViewControl : FrameworkElement
 
     /// <summary>What releasing the running drag would do now, as its preview shows it; null without a drag that moved.</summary>
     internal Gesture? PendingGesture => _drag?.Gesture;
+
+    /// <summary>What the running drag shows now (faded, target, ghosts); <see cref="DragPreview.None"/> without one.</summary>
+    internal DragPreview ShownPreview => _preview;
 
     /// <summary>
     /// Moves the running drag to <paramref name="positionInControl"/>; returns at once where it hasn't moved. Called by
@@ -516,7 +526,7 @@ public sealed class ShipViewControl : FrameworkElement
             // Moving cargo: the ship stands still; redraw only when the fade starts or the target or its reason change.
             case Gesture.MoveCrates or Gesture.MoveLegend or Gesture.None
                 when !drag.IsMoving || !Equals(TargetOf(gesture), TargetOf(drag.Gesture)) || outcome != drag.Outcome:
-                InvalidateVisual();
+                ShowDrag();
                 ShowToolTip(outcome is { } shown && TargetRack(gesture) is { } rack ? CrateDrop.Text(shown, rack) : null);
                 break;
         }
@@ -533,7 +543,7 @@ public sealed class ShipViewControl : FrameworkElement
         var key = PreviewKey(gesture);
         var outcome = Equals(key, drag.Key) ? drag.Outcome : Preview(gesture);
         _drag = turned with { Gesture = gesture, Key = key, Outcome = outcome };
-        InvalidateVisual();
+        ShowDrag();
         ShowToolTip(outcome is { } shown && TargetRack(gesture) is { } rack ? CrateDrop.Text(shown, rack) : null);
     }
 
@@ -604,6 +614,12 @@ public sealed class ShipViewControl : FrameworkElement
     protected override void OnMouseWheel(MouseWheelEventArgs e)
     {
         e.Handled = true;
+        Wheel(e.Delta, e.GetPosition(this));
+    }
+
+    /// <summary>The wheel turned by <paramref name="delta"/> with the cursor at <paramref name="position"/>. Internal for the view tests (T8.4, R5).</summary>
+    internal void Wheel(int delta, Point position)
+    {
         if (!IsNavigationEnabled)
         {
             return;
@@ -613,7 +629,7 @@ public sealed class ShipViewControl : FrameworkElement
         // still arrives while the mouse is captured (spike K2: 38 of 38 notches), unlike mouse moves (D45).
         if (_drag is { } drag && DragGesture.CanTurn(drag.Dragged, drag.IsLegend))
         {
-            _wheelRest += e.Delta;
+            _wheelRest += delta;
             var notches = _wheelRest / Mouse.MouseWheelDeltaForOneLine;
             _wheelRest -= notches * Mouse.MouseWheelDeltaForOneLine;
             if (notches % 2 != 0)
@@ -632,9 +648,9 @@ public sealed class ShipViewControl : FrameworkElement
             return;
         }
 
-        var factor = Math.Pow(WheelZoomStep, (double)e.Delta / Mouse.MouseWheelDeltaForOneLine);
+        var factor = Math.Pow(WheelZoomStep, (double)delta / Mouse.MouseWheelDeltaForOneLine);
         ShowToolTip(null);
-        Navigate(_navigation.ZoomAt(e.GetPosition(this), factor, basis, Limits, RenderSize));
+        Navigate(_navigation.ZoomAt(position, factor, basis, Limits, RenderSize));
     }
 
     /// <summary>
@@ -669,7 +685,23 @@ public sealed class ShipViewControl : FrameworkElement
         var current = HitAt(position);
         return drag.IsLegend
             ? DragGesture.ResolveLegend(drag.Dragged, moved, current)
-            : DragGesture.Resolve(drag.Button, drag.Down, moved, current, null, Selection.In(Scene), drag.Turned);
+            : DragGesture.Resolve(drag.Button, drag.Down, moved, current, drag.Dragged.Count > 0 ? DropAt(position, current, drag.Dragged) : null, Selection.In(Scene), drag.Turned);
+    }
+
+    /// <summary>
+    /// The cell on the line of sight for dragged crates (<see cref="DropTarget"/>), in the rack the hit test names (the first
+    /// rack on the line, D21): the crates dragged are air there, so a crate can go a cell further.
+    /// </summary>
+    private Drop? DropAt(Point position, SceneHit? current, IReadOnlyList<Crate> dragged)
+    {
+        if (current is null || Scene is not { } scene || _shown is not { } camera)
+        {
+            return null;
+        }
+
+        var rack = scene.Ship.Racks.Single(r => r.Id == current.RackId);
+        Crate[] staying = [.. scene.Plan.CratesForRack(rack.Id).Where(c => !dragged.Contains(c))];
+        return DropTarget.Resolve(rack, staying, camera.Unproject(position));
     }
 
     // The fit follows the scene, so the ship stays in view while the camera turns; on a long ship it shows the loaded
@@ -753,18 +785,40 @@ public sealed class ShipViewControl : FrameworkElement
     /// </summary>
     private void ApplyCamera()
     {
-        using var dc = _overlay.RenderOpen();
         _shown = null;
-        if (Basis() is not { } basis || Scene is not { } scene)
+        if (Basis() is { } basis && Scene is not null)
         {
-            return;
+            var camera = _navigation.On(basis, Limits, RenderSize);
+            camera.ApplyTo(_camera);
+            _shown = camera;
+            _scene3D.Follow(camera, basis.FitDistance / camera.Distance);
         }
 
-        var camera = _navigation.On(basis, Limits, RenderSize);
-        camera.ApplyTo(_camera);
-        _shown = camera;
-        _scene3D.Follow(camera, basis.FitDistance / camera.Distance);
-        ShipOverlay.Draw(dc, scene, camera, Selection, OverlayLook(), DragPreview.None);
+        DrawOverlay();
+    }
+
+    /// <summary>The overlay for the camera on screen; empty without a scene or before the first layout.</summary>
+    private void DrawOverlay()
+    {
+        using var dc = _overlay.RenderOpen();
+        if (Scene is { } scene && _shown is { } camera)
+        {
+            ShipOverlay.Draw(dc, scene, camera, Selection, OverlayLook(), _preview);
+        }
+    }
+
+    /// <summary>
+    /// What the running drag shows, once it has left the drag rectangle (a right click alone changes nothing on screen):
+    /// its crates and those its outcome moves faded in the scene, target and ghosts in the overlay (<see cref="DragPreview"/>).
+    /// Without a drag both are cleared. The camera stays: the ship stands still while cargo moves.
+    /// </summary>
+    private void ShowDrag()
+    {
+        _preview = _drag is { IsMoving: true } drag && Scene is { } scene
+            ? DragPreview.Of(scene.Ship, scene.Plan, drag.Dragged, drag.Gesture, drag.Outcome)
+            : DragPreview.None;
+        _scene3D.Fade(_preview.Faded);
+        DrawOverlay();
     }
 
     private OverlayLook OverlayLook() => new(
@@ -814,6 +868,16 @@ public sealed class ShipViewControl : FrameworkElement
         // without the fade. A refused drop runs too: the view model shows the reason (D24).
         var gesture = Resolve(drag, position, drag.IsMoving);
         ReleaseMouseCapture();
+
+        // A drag that never got the capture gets no LostMouseCapture: it ends here, or every later press would be
+        // ignored as a second drag (T8.4).
+        if (_drag is not null)
+        {
+            _drag = null;
+            ShowDrag();
+            ShowToolTip(null);
+        }
+
         switch (gesture)
         {
             case Gesture.Click click:

@@ -63,6 +63,26 @@ public class ShipViewHitTests
     }
 
     [Fact]
+    public void Each_click_ends_its_own_drag_even_without_the_mouse_captured()
+    {
+        // Outside a window the view gets no capture, so no LostMouseCapture ends a drag: the release must (T8.4). Before,
+        // the second press was ignored and the second release finished the first drag, toggling the first crate again.
+        Sta.Run(() =>
+        {
+            var view = Shown();
+            var top = view.Scene!.Racks.Single(r => r.RackId == "rack-0");
+            SceneBox[] boxes = [.. top.Boxes.Where(b => b.Crate is not null && b.Bounds.Max.Z == top.Bounds.Max.Z).Take(2)];
+            Point At(SceneBox box) => ScreenPoints.InPicture(view, new Point3D((box.Bounds.Min.X + box.Bounds.Max.X) / 2.0, (box.Bounds.Min.Y + box.Bounds.Max.Y) / 2.0, box.Bounds.Max.Z));
+
+            Click(view, MouseButton.Right, At(boxes[0]));
+            Click(view, MouseButton.Right, At(boxes[1]));
+
+            view.IsDragging.Should().BeFalse();
+            view.Selection.In(view.Scene).Should().BeEquivalentTo([boxes[0].Crate, boxes[1].Crate]);
+        });
+    }
+
+    [Fact]
     public void Right_click_beside_the_racks_clears_the_selection()
     {
         Sta.Run(() =>
