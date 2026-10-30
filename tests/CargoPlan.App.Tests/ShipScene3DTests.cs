@@ -34,7 +34,7 @@ public class ShipScene3DTests
         new(StopPalettes.OkabeIto, 0xD0, Edge, SelectionFocus.Missions((selection ?? CrateSelection.Empty).In(scene)));
 
     private static CameraMath Camera(ShipScene scene, double distance = 20) =>
-        new(IsoProjection.Default, distance, ScreenPoints.Centre(scene.Bounds), View);
+        new(CameraOrientation.Default, distance, ScreenPoints.Centre(scene.Bounds), View);
 
     [Fact]
     public void Every_crate_on_board_is_one_model_and_cargo_off_the_ship_none()

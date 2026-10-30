@@ -15,7 +15,7 @@ namespace CargoPlan.App.Tests;
 /// </summary>
 public class SceneHitTestTests
 {
-    private static readonly IsoProjection Default = IsoProjection.Default;
+    private static readonly CameraOrientation Default = CameraOrientation.Default;
     private static readonly ShipScene Scene = BuildSample();
 
     // Rack 1 (Riker Titanium, four 4 SCU crates flat against the plate), seen from above: crate 3, outer layer, bow end.
@@ -34,10 +34,10 @@ public class SceneHitTestTests
         ShipViewBuilder.Build(plan, ship, LoadPlanner.Validate(plan, ship));
 
     /// <summary>A camera 200 cells out with <paramref name="orientation"/>, aimed at the ship's middle.</summary>
-    private static CameraMath Far(IsoProjection orientation) => new(orientation, 200, ScreenPoints.Centre(Scene.Bounds), View);
+    private static CameraMath Far(CameraOrientation orientation) => new(orientation, 200, ScreenPoints.Centre(Scene.Bounds), View);
 
     /// <summary>The line of sight to <paramref name="point"/> from <see cref="Far"/>.</summary>
-    private static Ray Sight(Point3D point, IsoProjection? orientation = null)
+    private static Ray Sight(Point3D point, CameraOrientation? orientation = null)
     {
         var camera = Far(orientation ?? Default);
         return camera.Unproject(camera.Project(point));
@@ -82,7 +82,7 @@ public class SceneHitTestTests
         var (ship, plan) = TestPlans.Load();
         var scene = ShipViewBuilder.Build(plan with { Crates = [.. plan.Crates.Where(c => c.RackId != "rack-0")] }, ship, []);
 
-        SceneHitTest.HitAt(scene, Sight(new Point3D(3, 2, 5), new IsoProjection(IsoProjection.DefaultYaw, 85))).Should().Be(new SceneHit("rack-0", null, null));
+        SceneHitTest.HitAt(scene, Sight(new Point3D(3, 2, 5), new CameraOrientation(CameraOrientation.DefaultYaw, 85))).Should().Be(new SceneHit("rack-0", null, null));
     }
 
     [Fact]
@@ -219,7 +219,7 @@ public class SceneHitTestTests
         // Rack 2 from below: Shubin's Agricium at the bow half, Riker's lower Quartz crate at the aft end next to the
         // spindle; the upper one shows its port face through the free outer cells. On that face x = 0.5, not 1: the
         // line of sight to x = 1 grazes the Agricium's edge at (2, 3), and in perspective it tips into it (T8.3).
-        var below = new IsoProjection(IsoProjection.DefaultYaw, -IsoProjection.DefaultPitch);
+        var below = new CameraOrientation(CameraOrientation.DefaultYaw, -CameraOrientation.DefaultPitch);
 
         const string rack2 = "\nRack 2 · 12 / 16 SCU";
         SceneHitTest.ToolTipAt(Scene, Sight(new Point3D(2.5, 2.5, 0), below)).Should().Be("Shubin · Rack 2 · port lower · 8 SCU Agricium crate (1 of 1)" + rack2);
@@ -270,8 +270,8 @@ public class SceneHitTestTests
         // Zoomed into Rack 3's free cell at the aft end, looking down: Orison's Laranite lies right below. The rack
         // around the camera counts from the camera on (RayBox.Ahead), else nothing would answer.
         Point3D inside = new(0.5, -3.5, 4.5);
-        var look = new CameraMath(new IsoProjection(IsoProjection.DefaultYaw, 85), 1, inside, View).LookDirection;
-        var camera = new CameraMath(new IsoProjection(IsoProjection.DefaultYaw, 85), 1, inside + look, View);
+        var look = new CameraMath(new CameraOrientation(CameraOrientation.DefaultYaw, 85), 1, inside, View).LookDirection;
+        var camera = new CameraMath(new CameraOrientation(CameraOrientation.DefaultYaw, 85), 1, inside + look, View);
 
         SceneHitTest.DestinationAt(Scene, camera, new Point(View.Width / 2, View.Height / 2)).Should().Be("Orison");
     }
@@ -281,7 +281,7 @@ public class SceneHitTestTests
     {
         // In the same free cell, looking up: the Laranite now lies behind the camera, its entry is negative.
         Point3D inside = new(0.5, -3.5, 4.5);
-        var up = new IsoProjection(IsoProjection.DefaultYaw, -85);
+        var up = new CameraOrientation(CameraOrientation.DefaultYaw, -85);
         var look = new CameraMath(up, 1, inside, View).LookDirection;
         var camera = new CameraMath(up, 1, inside + look, View);
 

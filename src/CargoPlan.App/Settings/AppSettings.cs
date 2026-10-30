@@ -119,8 +119,8 @@ public sealed record ShipViewSettings(double MaxZoomPxPerCell = AppearanceRules.
 /// panned or turned. Written by the view, not by hand; read as the camera can be (the yaw wraps, the pitch and the
 /// distance are clamped). Null values are not written.
 /// </summary>
-/// <param name="Yaw">Degrees, like <c>IsoProjection.Yaw</c>.</param>
-/// <param name="Pitch">Degrees, like <c>IsoProjection.Pitch</c>.</param>
+/// <param name="Yaw">Degrees, like <c>CameraOrientation.Yaw</c>.</param>
+/// <param name="Pitch">Degrees, like <c>CameraOrientation.Pitch</c>.</param>
 /// <param name="PxPerCell">
 /// The orthographic view's framing before D83, with <paramref name="PanX"/> and <paramref name="PanY"/>: read only, so a
 /// file from before Phase 8 still loads (the strict options refuse unknown keys); an entry with any of the three is dropped

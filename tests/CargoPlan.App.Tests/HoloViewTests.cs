@@ -72,8 +72,8 @@ public sealed class HoloViewTests
         // At the target's plane, where the strip's middle lies; the lift towards the camera widens it by d / (d − lift).
         Point3D target = new(2, 0, 0);
         Size view = new(800, 600);
-        var focal = new CameraMath(IsoProjection.Default, 1, target, view).Focal;
-        CameraMath camera = new(IsoProjection.Default, focal / (25 * zoom), target, view);
+        var focal = new CameraMath(CameraOrientation.Default, 1, target, view).Focal;
+        CameraMath camera = new(CameraOrientation.Default, focal / (25 * zoom), target, view);
         Point3D[] points = [new(0, 0, 0), new(4, 0, 0)];
 
         var (positions, indices) = HoloLines.Strips(points, [0, 1], camera.LookDirection, HoloLines.HalfWidthCells(camera.PxPerCellAtTarget));
@@ -88,7 +88,7 @@ public sealed class HoloViewTests
     [Fact]
     public void A_strip_lies_a_little_towards_the_camera_so_the_surface_under_it_doesnt_hide_it()
     {
-        var camera = IsoProjection.Default;
+        var camera = CameraOrientation.Default;
         var look = Look(camera);
 
         var (positions, _) = HoloLines.Strips([new(0, 0, 0), new(4, 0, 0)], [0, 1], look, 0.01);
@@ -101,7 +101,7 @@ public sealed class HoloViewTests
     [Fact]
     public void A_strip_shows_its_front_to_the_camera()
     {
-        var look = Look(IsoProjection.Default);
+        var look = Look(CameraOrientation.Default);
 
         var (positions, indices) = HoloLines.Strips([new(0, 0, 0), new(4, 0, 0)], [0, 1], look, 0.01);
 
@@ -123,5 +123,5 @@ public sealed class HoloViewTests
         indices.Should().BeEmpty();
     }
 
-    private static Vector3D Look(IsoProjection camera) => new(camera.ViewDirection.X, camera.ViewDirection.Y, camera.ViewDirection.Z);
+    private static Vector3D Look(CameraOrientation camera) => new(camera.ViewDirection.X, camera.ViewDirection.Y, camera.ViewDirection.Z);
 }

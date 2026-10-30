@@ -22,7 +22,7 @@ public class CameraFitTests
         var ship = ShipLoader.Load("c2_hercules");
         var scene = ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
         Point3D[] points = [.. CameraFit.FitPoints(scene)];
-        var orientation = IsoProjection.DefaultFor(scene.Bounds);
+        var orientation = CameraOrientation.DefaultFor(scene.Bounds);
         var target = CameraFit.Centre(points);
         const double top = 40;
 
@@ -42,8 +42,8 @@ public class CameraFitTests
         Point3D[] points = [.. CameraFit.FitPoints(scene)];
         var target = CameraFit.Centre(points);
 
-        CameraFit.Distance(IsoProjection.Default, target, points, View, Margin, top: 0)
-            .Should().Be(CameraFit.Distance(IsoProjection.Default, target, points, View, Margin));
+        CameraFit.Distance(CameraOrientation.Default, target, points, View, Margin, top: 0)
+            .Should().Be(CameraFit.Distance(CameraOrientation.Default, target, points, View, Margin));
     }
 
     // ---------- what the fit shows (D61, D62, D63) ----------

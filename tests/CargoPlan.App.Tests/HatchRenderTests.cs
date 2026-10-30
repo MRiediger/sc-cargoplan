@@ -55,7 +55,7 @@ public class HatchRenderTests
         };
 
         var view = new Size(Pixels, Pixels);
-        var camera = new CameraMath(new IsoProjection(0, 0), 2 * Side, new Point3D(0, Side / 2, Side / 2), view);
+        var camera = new CameraMath(new CameraOrientation(0, 0), 2 * Side, new Point3D(0, Side / 2, Side / 2), view);
         var wpf = new PerspectiveCamera();
         camera.ApplyTo(wpf);
         var viewport = new Viewport3D { Camera = wpf };

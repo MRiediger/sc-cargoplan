@@ -67,8 +67,8 @@ public sealed class ShipScene3D
     private PreparedHolo? _holo;
 
     // What the strips were built for: they change with the orientation and the scale, not with a pan.
-    private (IsoProjection Orientation, double PxPerCell)? _stripsFor;
-    private (IsoProjection Orientation, double PxPerCell, int Level)? _linesFor;
+    private (CameraOrientation Orientation, double PxPerCell)? _stripsFor;
+    private (CameraOrientation Orientation, double PxPerCell, int Level)? _linesFor;
 
     public ShipScene3D()
     {
@@ -288,7 +288,7 @@ public sealed class ShipScene3D
         }
 
         var (view, scale) = (camera.LookDirection, camera.PxPerCellAtTarget);
-        var isLong = IsoProjection.IsLong(scene.Bounds);
+        var isLong = CameraOrientation.IsLong(scene.Bounds);
         Dictionary<(Color Colour, double Width), List<BoxEdges.Edge>> strips = [];
         void Add(Color colour, double width, IEnumerable<BoxEdges.Edge> edges)
         {

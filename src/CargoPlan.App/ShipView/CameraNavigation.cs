@@ -14,12 +14,12 @@ namespace CargoPlan.App.ShipView;
 public sealed record CameraBasis(Point3D FitTarget, double FitDistance, double ReferenceDistance, double WholeDistance)
 {
     /// <param name="top">DIPs kept free above the margin for the numbers above a long ship's racks (D61).</param>
-    public static CameraBasis For(ShipScene scene, IsoProjection orientation, Size viewport, double margin, double top = 0)
+    public static CameraBasis For(ShipScene scene, CameraOrientation orientation, Size viewport, double margin, double top = 0)
     {
         Point3D[] fit = [.. CameraFit.FitPoints(scene)];
         Point3D[] ship = [.. CameraFit.ShipPoints(scene)];
         Point3D[] whole = [.. CameraFit.WholePoints(scene)];
-        var reference = IsoProjection.DefaultFor(scene.Bounds);
+        var reference = CameraOrientation.DefaultFor(scene.Bounds);
         var target = CameraFit.Centre(fit);
         return new CameraBasis(
             target,
@@ -59,16 +59,16 @@ public sealed record CameraPlacement(double Distance, Point3D Target);
 /// The player's camera in the perspective view (D83): the orientation, and a placement once zoomed, panned or turned; no
 /// placement is the fit, which follows window, cargo and hologram (D61, D76). Saved per ship (K1.2).
 /// </summary>
-public sealed record CameraNavigation(IsoProjection Orientation, CameraPlacement? Placement = null)
+public sealed record CameraNavigation(CameraOrientation Orientation, CameraPlacement? Placement = null)
 {
-    public static CameraNavigation Default { get; } = new(IsoProjection.Default);
+    public static CameraNavigation Default { get; } = new(CameraOrientation.Default);
 
-    /// <summary>The ship's own default orientation (<see cref="IsoProjection.DefaultFor"/>), fitted.</summary>
-    public static CameraNavigation DefaultFor(ShipBox bounds) => new(IsoProjection.DefaultFor(bounds));
+    /// <summary>The ship's own default orientation (<see cref="CameraOrientation.DefaultFor"/>), fitted.</summary>
+    public static CameraNavigation DefaultFor(ShipBox bounds) => new(CameraOrientation.DefaultFor(bounds));
 
     /// <summary>The saved view (K1.2); a placement only with both its values, otherwise the fit.</summary>
     public static CameraNavigation From(ShipCamera camera) => new(
-        new IsoProjection(camera.Yaw, camera.Pitch),
+        new CameraOrientation(camera.Yaw, camera.Pitch),
         camera is { Distance: { } distance, Target: { } target } ? new CameraPlacement(distance, new Point3D(target.X, target.Y, target.Z)) : null);
 
     /// <summary>What settings.json keeps of this view (K1.2).</summary>

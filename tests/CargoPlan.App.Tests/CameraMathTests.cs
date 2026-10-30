@@ -9,7 +9,7 @@ public class CameraMathTests
     private static readonly Size View = new(800, 600);
     private static readonly Point3D Target = new(4, 2, 1);
 
-    private static CameraMath At(double yaw, double pitch, double distance = 30) => new(new IsoProjection(yaw, pitch), distance, Target, View);
+    private static CameraMath At(double yaw, double pitch, double distance = 30) => new(new CameraOrientation(yaw, pitch), distance, Target, View);
 
     [Fact]
     public void The_target_lies_in_the_middle_of_the_view()
@@ -20,8 +20,8 @@ public class CameraMathTests
     [Fact]
     public void The_camera_looks_along_the_isometric_view_direction_from_its_distance()
     {
-        var camera = new CameraMath(IsoProjection.Default, 30, Target, View);
-        var (x, y, z) = IsoProjection.Default.ViewDirection;
+        var camera = new CameraMath(CameraOrientation.Default, 30, Target, View);
+        var (x, y, z) = CameraOrientation.Default.ViewDirection;
 
         camera.LookDirection.Should().Be(new Vector3D(x, y, z));
         (camera.Position - Target).Length.Should().BeApproximately(30, 1e-9);
@@ -31,7 +31,7 @@ public class CameraMathTests
     [Fact]
     public void In_the_default_view_the_bow_points_left_down_port_right_down_and_up_stays_up()
     {
-        var camera = At(IsoProjection.DefaultYaw, IsoProjection.DefaultPitch);
+        var camera = At(CameraOrientation.DefaultYaw, CameraOrientation.DefaultPitch);
         var middle = camera.Project(Target);
 
         var bow = camera.Project(Target + new Vector3D(1, 0, 0)) - middle;
@@ -66,7 +66,7 @@ public class CameraMathTests
     [Fact]
     public void Half_the_field_of_view_to_the_right_lands_on_the_right_edge_whatever_the_height()
     {
-        var camera = new CameraMath(IsoProjection.Default, 10, Target, new Size(800, 200));
+        var camera = new CameraMath(CameraOrientation.Default, 10, Target, new Size(800, 200));
         var right = Vector3D.CrossProduct(camera.LookDirection, camera.UpDirection);
         var edge = Target + 10 * Math.Tan(CameraMath.FieldOfView / 2 * Math.PI / 180) * right;
 
@@ -119,7 +119,7 @@ public class CameraMathTests
         var camera = At(400, 100);
 
         camera.Orientation.Yaw.Should().Be(40);
-        camera.Orientation.Pitch.Should().Be(IsoProjection.MaxPitch);
+        camera.Orientation.Pitch.Should().Be(CameraOrientation.MaxPitch);
     }
 
     [Fact]

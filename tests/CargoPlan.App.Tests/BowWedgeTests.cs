@@ -55,7 +55,7 @@ public sealed class BowWedgeTests
         // Which faces show and what covers what is the depth buffer's (D83); the wedge only has to lie at the bow.
         var (min, max) = (Scene.Bounds.Min, Scene.Bounds.Max);
         Point3D middle = new((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0);
-        CameraMath camera = new(new IsoProjection(yaw, IsoProjection.DefaultPitch), 30, middle, new Size(400, 400));
+        CameraMath camera = new(new CameraOrientation(yaw, CameraOrientation.DefaultPitch), 30, middle, new Size(400, 400));
         Point[] tip = [.. BowWedge.Faces(Scene.Bounds).Single(f => f.Face == BoxFace.Bow).Corners.Select(camera.Project)];
         var floor = BowWedge.Floor(Scene.Bounds, camera.Project);
 
@@ -63,7 +63,7 @@ public sealed class BowWedgeTests
         var bowwards = camera.Project(middle + new Vector3D(1, 0, 0)) - boxCentre;
         ((Centre(tip) - boxCentre) * bowwards).Should().BePositive();
         ((floor.Centre - boxCentre) * bowwards).Should().BePositive();
-        if (yaw == IsoProjection.DefaultYaw)
+        if (yaw == CameraOrientation.DefaultYaw)
         {
             // The bow stays on the left in the default view (D15), and so does its label.
             Centre(tip).X.Should().BeLessThan(boxCentre.X);

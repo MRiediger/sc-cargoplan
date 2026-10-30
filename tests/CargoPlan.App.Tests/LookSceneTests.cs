@@ -43,7 +43,7 @@ public sealed class LookSceneTests
     private static ShipCamera Near()
     {
         var b = HullA.Bounds;
-        return new ShipCamera(IsoProjection.DefaultYaw, IsoProjection.DefaultPitch, Distance: 0.5,
+        return new ShipCamera(CameraOrientation.DefaultYaw, CameraOrientation.DefaultPitch, Distance: 0.5,
             Target: new((b.Min.X + b.Max.X) / 2.0, (b.Min.Y + b.Max.Y) / 2.0, (b.Min.Z + b.Max.Z) / 2.0));
     }
 

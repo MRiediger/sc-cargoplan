@@ -15,16 +15,16 @@ namespace CargoPlan.App.Tests;
 public class DropTargetTests
 {
     private static readonly Rack Rack1 = ShipLoader.Load("hull_a").Racks[0];
-    private static readonly IsoProjection Default = IsoProjection.Default;
+    private static readonly CameraOrientation Default = CameraOrientation.Default;
     private static readonly Size View = new(400, 300);
 
     private static Crate At(CrateSize size, int length, int width, int stack) =>
         new("Riker", "Titanium", size, Rack1.Id, new GridPosition(length, width, stack));
 
-    private static CameraMath Far(IsoProjection orientation) => new(orientation, 200, ScreenPoints.Centre(Rack1.Bounds), View);
+    private static CameraMath Far(CameraOrientation orientation) => new(orientation, 200, ScreenPoints.Centre(Rack1.Bounds), View);
 
     /// <summary>The line of sight to (x, y, z) from <see cref="Far"/>.</summary>
-    private static Ray Sight(double x, double y, double z, IsoProjection? orientation = null)
+    private static Ray Sight(double x, double y, double z, CameraOrientation? orientation = null)
     {
         var camera = Far(orientation ?? Default);
         return camera.Unproject(camera.Project(new Point3D(x, y, z)));
@@ -99,7 +99,7 @@ public class DropTargetTests
     public void From_below_a_free_cell_still_drops_onto_the_plate()
     {
         // Seen from below, the first cell is in the lower row at the spindle; it lies on the plate already.
-        var below = new IsoProjection(IsoProjection.DefaultYaw, -IsoProjection.DefaultPitch);
+        var below = new CameraOrientation(CameraOrientation.DefaultYaw, -CameraOrientation.DefaultPitch);
 
         DropTarget.Resolve(Rack1, [], Sight(2.5, 1.5, 3, below)).Should().Be(new Drop("rack-0", new GridPosition(2, 0, 0)));
     }
@@ -123,7 +123,7 @@ public class DropTargetTests
         // length 0, would take the drop on top if it counted, and that column is full. The cell around the camera counts
         // from the camera on; it is free, so the drop falls down its own column onto the plate.
         Point3D inside = new(1.5, 2.5, 4.5);
-        var bowwards = new IsoProjection(180, 0);
+        var bowwards = new CameraOrientation(180, 0);
         var look = new CameraMath(bowwards, 1, inside, View).LookDirection;
         var camera = new CameraMath(bowwards, 1, inside + look, View);
 
@@ -136,7 +136,7 @@ public class DropTargetTests
     {
         // From the bow, barely above the plate's plane and a little to port: the line enters the bow face of the outer
         // upper cell at length 3 first; it is free, so the drop falls to the spindle.
-        DropTarget.Resolve(Rack1, [], Sight(4, 2.5, 4.5, new IsoProjection(3, 5))).Should().Be(new Drop("rack-0", new GridPosition(3, 1, 0)));
+        DropTarget.Resolve(Rack1, [], Sight(4, 2.5, 4.5, new CameraOrientation(3, 5))).Should().Be(new Drop("rack-0", new GridPosition(3, 1, 0)));
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public class DropTargetTests
         // below, the line of sight runs up, against the stack axis, and enters the lowest cell first; the drop rises to
         // the plate, or onto the crate there. No ship file has such a rack yet (T8.4, E1).
         Rack under = new("under", 0, 8, new Dimensions(2, 2, 2), null, new ShipPoint(0, 0, -2), StackAxis.MinusZ);
-        var below = new IsoProjection(IsoProjection.DefaultYaw, -60);
+        var below = new CameraOrientation(CameraOrientation.DefaultYaw, -60);
         var camera = new CameraMath(below, 200, ScreenPoints.Centre(under.Bounds), View);
         var sight = camera.Unproject(camera.Project(new Point3D(0.5, 0.5, -2)));
 

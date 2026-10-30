@@ -15,7 +15,7 @@ public readonly record struct Ray(Point3D Origin, Vector3D Direction);
 /// </summary>
 /// <param name="Orientation">Yaw and pitch, wrapped and clamped as in the orthographic view, so a reset shows the same angle.</param>
 /// <param name="Viewport">The view's size in DIPs; screen y points down.</param>
-public sealed record CameraMath(IsoProjection Orientation, double Distance, Point3D Target, Size Viewport)
+public sealed record CameraMath(CameraOrientation Orientation, double Distance, Point3D Target, Size Viewport)
 {
     // Degrees, horizontal like WPF's; a constant, not a setting (D83).
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.media.media3d.perspectivecamera.fieldofview

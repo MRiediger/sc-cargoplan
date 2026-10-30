@@ -33,7 +33,7 @@ public sealed class FloorLabelTests
         var bounds = Scene.Bounds;
         var tipX = BowWedge.Faces(bounds).Single(f => f.Face == BoxFace.Bow).Corners[0].X;
         Point3D middle = new((bounds.Max.X + tipX) / 2, (bounds.Min.Y + bounds.Max.Y) / 2.0, bounds.Min.Z);
-        return new CameraMath(new IsoProjection(yaw, IsoProjection.DefaultPitch), DistanceLimits.Default.DistanceFor(pxPerCell, View), middle, View);
+        return new CameraMath(new CameraOrientation(yaw, CameraOrientation.DefaultPitch), DistanceLimits.Default.DistanceFor(pxPerCell, View), middle, View);
     }
 
     /// <summary>One em of the label along its upright axis, in screen pixels.</summary>
@@ -86,7 +86,7 @@ public sealed class FloorLabelTests
     {
         // The default overlay's ship view, as in RackNumberSizeTests, at the fit and zoomed in.
         Size view = new(400, 302);
-        var basis = CameraBasis.For(Scene, IsoProjection.Default, view, margin: 8);
+        var basis = CameraBasis.For(Scene, CameraOrientation.Default, view, margin: 8);
         var fit = CameraNavigation.Default.On(basis, DistanceLimits.Default, view);
         var camera = fit with { Distance = fit.Distance / zoom };
         var numberSize = RackNumberSize.For(27, camera.PxPerCellAtTarget, Scene.Racks);
@@ -103,7 +103,7 @@ public sealed class FloorLabelTests
     public void Bow_label_keeps_to_a_floor_with_room_for_the_minimum()
     {
         // One cell across at 40 px: room for about 21 px, less than the setting, more than the minimum.
-        var floor = BowWedge.Floor(Scene.Bounds, AtFloor(IsoProjection.DefaultYaw).Project) with { Room = new Size(1, 0.7) };
+        var floor = BowWedge.Floor(Scene.Bounds, AtFloor(CameraOrientation.DefaultYaw).Project) with { Room = new Size(1, 0.7) };
         var ink = Glyphs("Bow").Bounds;
 
         var placement = FloorLabel.Placement(ink, LabelEmSize, floor, screenEmSize: 27);
@@ -117,7 +117,7 @@ public sealed class FloorLabelTests
     public void Bow_label_on_a_short_floor_shrinks_only_to_the_minimum_like_a_rack_number()
     {
         // A floor of a narrow ship: a tenth of a cell of room across, far less than a rack number needs (D32, D61).
-        var floor = BowWedge.Floor(Scene.Bounds, AtFloor(IsoProjection.DefaultYaw).Project) with { Room = new Size(0.1, 0.7) };
+        var floor = BowWedge.Floor(Scene.Bounds, AtFloor(CameraOrientation.DefaultYaw).Project) with { Room = new Size(0.1, 0.7) };
 
         var placement = FloorLabel.Placement(Glyphs("Bow").Bounds, LabelEmSize, floor, screenEmSize: 27);
 
@@ -127,7 +127,7 @@ public sealed class FloorLabelTests
     [Fact]
     public void Bow_label_keeps_a_setting_below_the_minimum()
     {
-        var floor = BowWedge.Floor(Scene.Bounds, AtFloor(IsoProjection.DefaultYaw).Project) with { Room = new Size(0.1, 0.7) };
+        var floor = BowWedge.Floor(Scene.Bounds, AtFloor(CameraOrientation.DefaultYaw).Project) with { Room = new Size(0.1, 0.7) };
 
         var placement = FloorLabel.Placement(Glyphs("Bow").Bounds, LabelEmSize, floor, screenEmSize: 8);
 

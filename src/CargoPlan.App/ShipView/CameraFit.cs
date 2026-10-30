@@ -12,7 +12,7 @@ namespace CargoPlan.App.ShipView;
 public static class CameraFit
 {
     /// <summary>What the fit shows at the current cargo.</summary>
-    public static IEnumerable<Point3D> FitPoints(ShipScene scene) => FitPoints(scene, IsoProjection.IsLong(scene.Bounds));
+    public static IEnumerable<Point3D> FitPoints(ShipScene scene) => FitPoints(scene, CameraOrientation.IsLong(scene.Bounds));
 
     /// <summary>The fit with every rack, loaded or not: fixed to the ship and its marker, for the zoom limits (D76).</summary>
     public static IEnumerable<Point3D> ShipPoints(ShipScene scene) => FitPoints(scene, isLong: false);
@@ -35,7 +35,7 @@ public static class CameraFit
     /// </summary>
     /// <param name="top">DIPs kept free above the margin: room for the numbers above a long ship's racks (D61). The target
     /// stays in the view's middle, so the room comes off the upper half only.</param>
-    public static double Distance(IsoProjection orientation, Point3D target, IEnumerable<Point3D> points, Size viewport, double margin, double top = 0)
+    public static double Distance(CameraOrientation orientation, Point3D target, IEnumerable<Point3D> points, Size viewport, double margin, double top = 0)
     {
         var edge = Math.Min(margin, Math.Min(viewport.Width, viewport.Height) / 4);
         var across = viewport.Width / 2 - edge;

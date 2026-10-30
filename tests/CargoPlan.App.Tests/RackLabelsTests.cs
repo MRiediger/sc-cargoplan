@@ -21,13 +21,13 @@ public class RackLabelsTests
     }
 
     private static CameraMath Camera(ShipScene scene, double yaw, double pitch, double distance = 60) =>
-        new(new IsoProjection(yaw, pitch), distance, ScreenPoints.Centre(scene.Bounds), View);
+        new(new CameraOrientation(yaw, pitch), distance, ScreenPoints.Centre(scene.Bounds), View);
 
     [Fact]
     public void Every_rack_of_a_compact_ship_gets_a_number_on_its_face_in_the_default_view()
     {
         var scene = Scene("hull_a");
-        var labels = RackLabels.Place(scene, Camera(scene, IsoProjection.DefaultYaw, IsoProjection.DefaultPitch));
+        var labels = RackLabels.Place(scene, Camera(scene, CameraOrientation.DefaultYaw, CameraOrientation.DefaultPitch));
 
         labels.Select(l => l.Number).Should().BeEquivalentTo(scene.Racks.Select(r => r.Number));
         labels.Should().OnlyContain(l => !l.Above && !l.Hidden);
@@ -37,7 +37,7 @@ public class RackLabelsTests
     public void Looking_almost_straight_down_puts_the_number_on_the_top_face()
     {
         var scene = Scene("hull_a");
-        var camera = Camera(scene, 30, IsoProjection.MaxPitch);
+        var camera = Camera(scene, 30, CameraOrientation.MaxPitch);
         var rack = scene.Racks[0];
         var (min, max) = (rack.Bounds.Min, rack.Bounds.Max);
 
@@ -68,8 +68,8 @@ public class RackLabelsTests
     public void On_a_long_ship_the_number_stands_above_its_rack()
     {
         var scene = Scene("c2_hercules");
-        IsoProjection.IsLong(scene.Bounds).Should().BeTrue();
-        var camera = Camera(scene, IsoProjection.LongShipYaw, IsoProjection.DefaultPitch, distance: 150);
+        CameraOrientation.IsLong(scene.Bounds).Should().BeTrue();
+        var camera = Camera(scene, CameraOrientation.LongShipYaw, CameraOrientation.DefaultPitch, distance: 150);
 
         foreach (var label in RackLabels.Place(scene, camera))
         {
@@ -87,7 +87,7 @@ public class RackLabelsTests
     {
         // Default view: a lower rack's top lies under the upper rack, its port side is about as large and free.
         var scene = Scene("hull_a");
-        var camera = Camera(scene, IsoProjection.DefaultYaw, IsoProjection.DefaultPitch);
+        var camera = Camera(scene, CameraOrientation.DefaultYaw, CameraOrientation.DefaultPitch);
         var lower = scene.Racks.Single(r => r.Number == 2);
         var port = BoxFaces.Visible(lower.Bounds, camera).Single(f => f.Side == BoxFace.Port);
 

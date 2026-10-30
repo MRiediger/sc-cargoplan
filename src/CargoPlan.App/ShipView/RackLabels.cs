@@ -25,7 +25,7 @@ public static class RackLabels
 
     public static IReadOnlyList<RackLabel> Place(ShipScene scene, CameraMath camera)
     {
-        var isLong = IsoProjection.IsLong(scene.Bounds);
+        var isLong = CameraOrientation.IsLong(scene.Bounds);
         return [.. scene.Racks.Select(rack =>
         {
             var faces = BoxFaces.Visible(rack.Bounds, camera);

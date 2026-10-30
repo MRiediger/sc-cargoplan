@@ -159,7 +159,7 @@ internal sealed class FrameMeasureWindow : Window
         var done = new TaskCompletionSource<List<double>>();
         var intervals = new List<double>();
         TimeSpan? start = null, last = null;
-        var camera = _ship is { } ship ? IsoProjection.DefaultFor(ship.Bounds) : IsoProjection.Default;
+        var camera = _ship is { } ship ? CameraOrientation.DefaultFor(ship.Bounds) : CameraOrientation.Default;
 
         void OnRendering(object? sender, EventArgs e)
         {

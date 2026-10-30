@@ -33,14 +33,14 @@ public class CameraConformityTests
         var span = Math.Max(bounds.Max.X - bounds.Min.X, Math.Max(bounds.Max.Y - bounds.Min.Y, bounds.Max.Z - bounds.Min.Z));
         Point3D[] samples = [.. ScreenPoints.Samples(scene)];
 
-        (IsoProjection Orientation, double Distance)[] cameras =
+        (CameraOrientation Orientation, double Distance)[] cameras =
         [
-            (IsoProjection.DefaultFor(bounds), 2 * span),
-            (new IsoProjection(0, 0), 2 * span),
-            (new IsoProjection(140, 80), 1.5 * span),
-            (new IsoProjection(250, -80), 1.5 * span),
-            (new IsoProjection(45, 35.26), span / 3),
-            (new IsoProjection(300, 10), 6 * span),
+            (CameraOrientation.DefaultFor(bounds), 2 * span),
+            (new CameraOrientation(0, 0), 2 * span),
+            (new CameraOrientation(140, 80), 1.5 * span),
+            (new CameraOrientation(250, -80), 1.5 * span),
+            (new CameraOrientation(45, 35.26), span / 3),
+            (new CameraOrientation(300, 10), 6 * span),
         ];
 
         Sta.Run(() =>

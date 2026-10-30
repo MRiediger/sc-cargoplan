@@ -7,7 +7,7 @@ namespace CargoPlan.App.ShipView;
 /// with it (D83). <see cref="Yaw"/> is the camera's bearing around z, from the bow (0°) towards port (90°);
 /// <see cref="Pitch"/> its height, positive from above, clamped to ±85° so up stays up on the screen (D15).
 /// </summary>
-public sealed record IsoProjection
+public sealed record CameraOrientation
 {
     public const double MinPitch = -85;
     public const double MaxPitch = 85;
@@ -17,7 +17,7 @@ public sealed record IsoProjection
     public static readonly double DefaultPitch = Degrees(Math.Atan(1 / Math.Sqrt(2)));
 
     /// <summary>Bow, port and above: the bow points left-down, port right-down, up stays up (D15).</summary>
-    public static IsoProjection Default { get; } = new(DefaultYaw, DefaultPitch);
+    public static CameraOrientation Default { get; } = new(DefaultYaw, DefaultPitch);
 
     /// <summary>A ship longer than this many times its width is long (D61).</summary>
     public const double LongShipRatio = 2;
@@ -32,7 +32,7 @@ public sealed record IsoProjection
     public static bool IsLong(ShipBox bounds) => bounds.Max.X - bounds.Min.X > LongShipRatio * (bounds.Max.Y - bounds.Min.Y);
 
     /// <summary>The camera a ship starts with: <see cref="Default"/>, or from the side for a long ship (D61).</summary>
-    public static IsoProjection DefaultFor(ShipBox bounds) => IsLong(bounds) ? new(LongShipYaw, DefaultPitch) : Default;
+    public static CameraOrientation DefaultFor(ShipBox bounds) => IsLong(bounds) ? new(LongShipYaw, DefaultPitch) : Default;
 
     private readonly double _sinYaw;
     private readonly double _cosYaw;
@@ -41,7 +41,7 @@ public sealed record IsoProjection
 
     /// <param name="yaw">Degrees; wrapped into [0, 360).</param>
     /// <param name="pitch">Degrees; clamped to [<see cref="MinPitch"/>, <see cref="MaxPitch"/>].</param>
-    public IsoProjection(double yaw, double pitch)
+    public CameraOrientation(double yaw, double pitch)
     {
         Yaw = (yaw % 360 + 360) % 360;
         Pitch = Math.Clamp(pitch, MinPitch, MaxPitch);
@@ -57,7 +57,7 @@ public sealed record IsoProjection
     /// <summary>From the camera into the scene, unit length.</summary>
     public (double X, double Y, double Z) ViewDirection => (-_cosPitch * _cosYaw, -_cosPitch * _sinYaw, -_sinPitch);
 
-    public IsoProjection OrbitBy(double yaw, double pitch) => new(Yaw + yaw, Pitch + pitch);
+    public CameraOrientation OrbitBy(double yaw, double pitch) => new(Yaw + yaw, Pitch + pitch);
 
     private static double Radians(double degrees) => degrees * Math.PI / 180;
 

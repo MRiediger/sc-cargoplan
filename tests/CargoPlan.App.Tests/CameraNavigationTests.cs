@@ -138,7 +138,7 @@ public sealed class CameraNavigationTests
     {
         // A long ship with the wedge fits its loaded racks (D61): a plan step that empties racks changes that fit.
         var ship = Catalog.Get("c2_hercules");
-        IsoProjection.IsLong(ship.Bounds).Should().BeTrue();
+        CameraOrientation.IsLong(ship.Bounds).Should().BeTrue();
         Crate[] everyRack = [.. ship.Racks.Select(r => new Crate("Riker", "Gold", CrateSize.One, r.Id, new GridPosition(0, 0, 0)))];
         var before = Scene(ship.Id, everyRack);
         var after = Scene(ship.Id, everyRack[0]);
@@ -365,7 +365,7 @@ public sealed class CameraNavigationTests
     [Fact]
     public void Default_navigation_looks_from_the_default_orientation_and_fits()
     {
-        CameraNavigation.Default.Orientation.Should().Be(IsoProjection.Default);
+        CameraNavigation.Default.Orientation.Should().Be(CameraOrientation.Default);
         CameraNavigation.Default.Placement.Should().BeNull();
     }
 
@@ -376,7 +376,7 @@ public sealed class CameraNavigationTests
     {
         var bounds = Catalog.Get(shipId).Bounds;
 
-        CameraNavigation.DefaultFor(bounds).Should().Be(new CameraNavigation(IsoProjection.DefaultFor(bounds)));
+        CameraNavigation.DefaultFor(bounds).Should().Be(new CameraNavigation(CameraOrientation.DefaultFor(bounds)));
     }
 
     // ---------- the saved camera (K1.2) ----------
@@ -384,7 +384,7 @@ public sealed class CameraNavigationTests
     [Fact]
     public void A_camera_comes_back_from_settings_as_it_was_saved()
     {
-        CameraNavigation navigation = new(new IsoProjection(200, -30), new CameraPlacement(42.5, new Point3D(1.5, -2.25, 3)));
+        CameraNavigation navigation = new(new CameraOrientation(200, -30), new CameraPlacement(42.5, new Point3D(1.5, -2.25, 3)));
 
         CameraNavigation.From(navigation.ToCamera()).Should().Be(navigation);
         navigation.ToCamera().Should().Be(new ShipCamera(200, -30, Distance: 42.5, Target: new CameraTarget(1.5, -2.25, 3)));
@@ -403,7 +403,7 @@ public sealed class CameraNavigationTests
     {
         var orientation = CameraNavigation.From(new ShipCamera(400, 100)).Orientation;
 
-        (orientation.Yaw, orientation.Pitch).Should().Be((40, IsoProjection.MaxPitch));
+        (orientation.Yaw, orientation.Pitch).Should().Be((40, CameraOrientation.MaxPitch));
     }
 
     [Fact]

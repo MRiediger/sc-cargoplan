@@ -46,7 +46,7 @@ public static class ShipOverlay
 
     /// <summary>The room above a long ship's racks for their numbers (D61), for the fit; 0 on a compact ship.</summary>
     public static double RoomOnTop(ShipScene scene, OverlayLook look) =>
-        IsoProjection.IsLong(scene.Bounds) ? look.NumberFontSize + LabelGap + look.HaloSize : 0;
+        CameraOrientation.IsLong(scene.Bounds) ? look.NumberFontSize + LabelGap + look.HaloSize : 0;
 
     /// <param name="drag">What a running drag shows (<see cref="DragPreview"/>); <see cref="DragPreview.None"/> without one.</param>
     public static void Draw(DrawingContext dc, ShipScene scene, CameraMath camera, CrateSelection selection, OverlayLook look, DragPreview drag)
