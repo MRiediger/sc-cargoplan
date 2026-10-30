@@ -451,14 +451,19 @@ public sealed class ShipViewControl : FrameworkElement
         base.OnLostMouseCapture(e);
     }
 
-    protected override void OnMouseMove(MouseEventArgs e)
+    protected override void OnMouseMove(MouseEventArgs e) => MoveTo(e.GetPosition(this));
+
+    /// <summary>
+    /// The mouse at <paramref name="position"/> (DIPs in the view): moves a running drag, else shows the tool tip there.
+    /// Internal for the view tests and the drag measurement (T8.4, R5).
+    /// </summary>
+    internal void MoveTo(Point position)
     {
         if (!IsNavigationEnabled || Scene is null)
         {
             return;
         }
 
-        var position = e.GetPosition(this);
         if (_drag is not null)
         {
             UpdateGesture(position);
@@ -467,6 +472,9 @@ public sealed class ShipViewControl : FrameworkElement
 
         ShowToolTip(ToolTipAt(position));
     }
+
+    /// <summary>What releasing the running drag would do now, as its preview shows it; null without a drag that moved.</summary>
+    internal Gesture? PendingGesture => _drag?.Gesture;
 
     /// <summary>
     /// Moves the running drag to <paramref name="positionInControl"/>; returns at once where it hasn't moved. Called by

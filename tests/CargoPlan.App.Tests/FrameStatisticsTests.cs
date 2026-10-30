@@ -48,4 +48,20 @@ public class FrameStatisticsTests
 
         FrameStatistics.LateShare(intervals).Should().Be(0.05);
     }
+
+    [Fact]
+    public void A_drag_sweep_names_all_moves_and_the_ones_that_resolved_a_preview_apart()
+    {
+        // The preview asks Core only when its key changes (E2); those moves are the D65 budget, the rest only aim (T8.4).
+        double[] moves = [0.1, 0.2, 0.3, 4.0, 6.0];
+        double[] previews = [4.0, 6.0];
+
+        FrameStatistics.DragSummary(moves, previews).Should().Be("n 5, median 0.300 ms, p95 6.000 ms | previews n 2, median 4.000 ms, p95 6.000 ms, max 6.000 ms");
+    }
+
+    [Fact]
+    public void A_drag_sweep_without_previews_says_so()
+    {
+        FrameStatistics.DragSummary([0.1, 0.2], []).Should().Be("n 2, median 0.100 ms, p95 0.200 ms | previews n 0");
+    }
 }

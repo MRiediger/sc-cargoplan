@@ -4,11 +4,13 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using CargoPlan.App.Holo;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.App.Theme;
+using CargoPlan.App.Win32;
 using CargoPlan.Core.Holo;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
@@ -43,13 +45,23 @@ internal sealed class FrameMeasureWindow : Window
     // One crate size per ship fills every rack as in S8.0: the Hull C gives 144 crates. A target not listed is refused.
     // hull_c_states shows every crate state at once (T8.2): 24 stops (three colour rounds, so both hatches), every 5th stop
     // delivered, every 7th loaded, one overlapping crate (a violation), mission 1 selected.
-    private static readonly Dictionary<string, (string Ship, CrateSize Size, bool States)> Targets = new()
+    // hull_c_drag (T8.4, M3) fills every rack half with 8 SCU crates, so a dragged crate finds free columns and crates to
+    // displace; a full ship has no target on top (Gesture.None) and would measure no preview. The camera stands still while
+    // the cursor drags a crate over the racks.
+    private static readonly Dictionary<string, (string Ship, CrateSize Size, bool States, bool Drag)> Targets = new()
     {
-        ["utv"] = ("utv", CrateSize.One, false),
-        ["hull_a"] = ("hull_a", CrateSize.Sixteen, false),
-        ["hull_c"] = ("hull_c", CrateSize.ThirtyTwo, false),
-        ["hull_c_states"] = ("hull_c", CrateSize.ThirtyTwo, true),
+        ["utv"] = ("utv", CrateSize.One, false, false),
+        ["hull_a"] = ("hull_a", CrateSize.Sixteen, false, false),
+        ["hull_c"] = ("hull_c", CrateSize.ThirtyTwo, false, false),
+        ["hull_c_states"] = ("hull_c", CrateSize.ThirtyTwo, true, false),
+        ["hull_c_drag"] = ("hull_c", CrateSize.Eight, false, true),
     };
+
+    // The cursor's path while dragging: a Lissajous figure over the middle of the view, slow enough to stop on cells.
+    private const double PathWidthShare = 0.4;
+    private const double PathHeightShare = 0.3;
+    private const double PathPeriodX = 7;
+    private const double PathPeriodY = 5;
 
     private const int StateStops = 24;
     private const int DeliveredEvery = 5;
@@ -61,6 +73,7 @@ internal sealed class FrameMeasureWindow : Window
     private readonly Ship? _ship;
     private readonly PreparedHolo? _holo;
     private readonly int _crates;
+    private readonly bool _drag;
 
     public FrameMeasureWindow(ShipCatalog catalog, string target)
     {
@@ -91,7 +104,9 @@ internal sealed class FrameMeasureWindow : Window
         if (target != Empty && Targets.TryGetValue(target, out var spec) && catalog.Find(spec.Ship) is { } ship)
         {
             _ship = ship;
-            Placement[] placements = [.. ship.Racks.Select(r => new Placement("Measure", r.Id, new CargoItem("Measure", r.CapacityScu, spec.Size)))];
+            _drag = spec.Drag;
+            var scu = spec.Drag ? (Func<Rack, int>)(r => r.CapacityScu / 2 / (int)spec.Size * (int)spec.Size) : r => r.CapacityScu;
+            Placement[] placements = [.. ship.Racks.Select(r => new Placement("Measure", r.Id, new CargoItem("Measure", scu(r), spec.Size)))];
             var plan = new LoadPlan(ship.Id, CrateLayout.LayOut(ship, placements, FillOrder.BowFirst), []);
             if (spec.States)
             {
@@ -119,13 +134,14 @@ internal sealed class FrameMeasureWindow : Window
     {
         var known = _target == Empty || _ship is not null;
         var intervals = known ? await MeasureFramesAsync() : [];
+        var drags = _drag ? " | drag " + DragSweep() : "";
         var hits = _ship is not null ? HitSweep() : null;
         var valid = known && FrameStatistics.IsValid(intervals);
 
         var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
         var subject = _ship is null ? _target : Inv($"{_target} {_crates} crates, holo {(_holo is null ? "no" : "yes")}");
         var frames = known ? FrameStatistics.Summary(intervals, Duration) : "unknown target (empty, " + string.Join(", ", Targets.Keys) + ")";
-        File.AppendAllText(_logPath, Inv($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {version} {subject}: frames {frames}{(hits is null ? "" : " | hits " + hits)}") + Environment.NewLine);
+        File.AppendAllText(_logPath, Inv($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {version} {subject}: frames {frames}{drags}{(hits is null ? "" : " | hits " + hits)}") + Environment.NewLine);
 
         Application.Current.Shutdown(valid ? 0 : 1);
     }
@@ -152,6 +168,21 @@ internal sealed class FrameMeasureWindow : Window
                 var dt = (args.RenderingTime - previous).TotalMilliseconds;
                 intervals.Add(dt);
 
+                // Dragging: the camera stands still, the cursor moves along the path and the view's poll follows it as
+                // in the game (D45).
+                if (_drag)
+                {
+                    NativeMethods.MoveCursor(_view.PointToScreen(PathAt((args.RenderingTime - start.Value).TotalSeconds)));
+                    last = args.RenderingTime;
+                    if (args.RenderingTime - start >= Duration)
+                    {
+                        CompositionTarget.Rendering -= OnRendering;
+                        done.SetResult(intervals);
+                    }
+
+                    return;
+                }
+
                 // Yaw and pitch only: the view fits, the same input before and after the 3D view (D83). The empty window
                 // redraws its bare view instead; unchanged it gets about 32 frames a second (M0, T8.1).
                 camera = camera.OrbitBy(OrbitDegreesPerSecond * dt / 1000, 0);
@@ -170,9 +201,60 @@ internal sealed class FrameMeasureWindow : Window
             }
         }
 
+        // Dragging starts with a right press on a crate still on board, as a player would.
+        if (_drag && FirstCrate() is { } press)
+        {
+            NativeMethods.MoveCursor(_view.PointToScreen(press));
+            _view.Press(MouseButton.Right, press, 1);
+        }
+
         CompositionTarget.Rendering += OnRendering;
         return done.Task;
     }
+
+    /// <summary>The cursor's place on the drag path <paramref name="seconds"/> into the run, in the view's DIPs.</summary>
+    private Point PathAt(double seconds) => new(
+        _view.ActualWidth * (0.5 + PathWidthShare * Math.Sin(2 * Math.PI * seconds / PathPeriodX)),
+        _view.ActualHeight * (0.5 + PathHeightShare * Math.Sin(2 * Math.PI * seconds / PathPeriodY)));
+
+    /// <summary>The first point of the hit grid on a crate still on board; null if there is none.</summary>
+    private Point? FirstCrate()
+    {
+        var rows = HitSamples / HitColumns;
+        return Enumerable.Range(0, HitSamples)
+            .Select(i => new Point((i % HitColumns + 0.5) * _view.ActualWidth / HitColumns, (i / HitColumns + 0.5) * _view.ActualHeight / rows))
+            .Select(p => (Point?)p)
+            .FirstOrDefault(p => _view.HitAt(p!.Value)?.Crate is { Delivered: false });
+    }
+
+    /// <summary>
+    /// The drag's steps outside the frames: the running drag moved over the hit grid, timed one by one; a step whose
+    /// preview key changed (<see cref="CrateDrop.KeyOf"/>) asked Core, the D65 budget (T8.4, M3).
+    /// </summary>
+    private string DragSweep()
+    {
+        var moves = new List<double>(HitSamples);
+        var previews = new List<double>();
+        var rows = HitSamples / HitColumns;
+        var key = KeyNow();
+        for (var i = 0; i < HitSamples; i++)
+        {
+            var point = new Point((i % HitColumns + 0.5) * _view.ActualWidth / HitColumns, (i / HitColumns + 0.5) * _view.ActualHeight / rows);
+            var watch = Stopwatch.StartNew();
+            _view.MoveTo(point);
+            watch.Stop();
+            moves.Add(watch.Elapsed.TotalMilliseconds);
+            if (KeyNow() is var now && !Equals(now, key))
+            {
+                previews.Add(watch.Elapsed.TotalMilliseconds);
+                key = now;
+            }
+        }
+
+        return FrameStatistics.DragSummary(moves, previews);
+    }
+
+    private CrateDrop.Key? KeyNow() => _view.PendingGesture is Gesture.MoveCrates move ? CrateDrop.KeyOf(_ship!, move) : null;
 
     /// <summary>The view's own hit test on a 30 × 20 grid of points, timed one by one: rays since T8.3 (M2).</summary>
     private string HitSweep()

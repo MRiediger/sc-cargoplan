@@ -41,5 +41,13 @@ public static class FrameStatistics
     public static string HitSummary(IReadOnlyCollection<double> times, int hits) => Inv(
         $"n {times.Count}, hit {hits}, median {Percentile(times, 0.5):0.000} ms, p95 {Percentile(times, 0.95):0.000} ms, max {times.Max():0.000} ms");
 
+    /// <summary>
+    /// A drag's steps (T8.4, M3): every move, then those that resolved a preview in Core, the ones the 16 ms rule of D65
+    /// is about (<c>CrateDrop.PreviewStage</c>).
+    /// </summary>
+    public static string DragSummary(IReadOnlyCollection<double> moves, IReadOnlyCollection<double> previews) => Inv(
+        $"n {moves.Count}, median {Percentile(moves, 0.5):0.000} ms, p95 {Percentile(moves, 0.95):0.000} ms | previews n {previews.Count}")
+        + (previews.Count == 0 ? "" : Inv($", median {Percentile(previews, 0.5):0.000} ms, p95 {Percentile(previews, 0.95):0.000} ms, max {previews.Max():0.000} ms"));
+
     private static string Inv(FormattableString text) => text.ToString(CultureInfo.InvariantCulture);
 }
