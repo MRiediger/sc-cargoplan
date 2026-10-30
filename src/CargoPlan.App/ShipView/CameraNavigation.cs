@@ -13,7 +13,8 @@ namespace CargoPlan.App.ShipView;
 /// <param name="WholeDistance">The whole scene at the default orientation (<see cref="CameraFit.WholePoints"/>, K5.2d).</param>
 public sealed record CameraBasis(Point3D FitTarget, double FitDistance, double ReferenceDistance, double WholeDistance)
 {
-    public static CameraBasis For(ShipScene scene, IsoProjection orientation, Size viewport, double margin)
+    /// <param name="top">DIPs kept free above the margin for the numbers above a long ship's racks (D61).</param>
+    public static CameraBasis For(ShipScene scene, IsoProjection orientation, Size viewport, double margin, double top = 0)
     {
         Point3D[] fit = [.. CameraFit.FitPoints(scene)];
         Point3D[] ship = [.. CameraFit.ShipPoints(scene)];
@@ -22,9 +23,9 @@ public sealed record CameraBasis(Point3D FitTarget, double FitDistance, double R
         var target = CameraFit.Centre(fit);
         return new CameraBasis(
             target,
-            CameraFit.Distance(orientation, target, fit, viewport, margin),
-            CameraFit.Distance(reference, CameraFit.Centre(ship), ship, viewport, margin),
-            CameraFit.Distance(reference, CameraFit.Centre(whole), whole, viewport, margin));
+            CameraFit.Distance(orientation, target, fit, viewport, margin, top),
+            CameraFit.Distance(reference, CameraFit.Centre(ship), ship, viewport, margin, top),
+            CameraFit.Distance(reference, CameraFit.Centre(whole), whole, viewport, margin, top));
     }
 }
 

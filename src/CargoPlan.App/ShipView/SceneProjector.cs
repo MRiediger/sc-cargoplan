@@ -221,18 +221,26 @@ public static class SceneProjector
                                     where face.Normal.X * d.X + face.Normal.Y * d.Y + face.Normal.Z * d.Z < -EdgeOn
                                     select new ProjectedFace(face.Face, [.. face.Corners.Select(c => camera.Project(c.X, c.Y, c.Z))])];
 
-        // The label's room: the middle of the floor's length and of the tip's width, the narrow end of the trapezoid.
-        var tip = wedge.Single(f => f.Face == BoxFace.Bow).Corners;
-        var (nose, tipWidth) = (tip[0].X - box.Max.X, tip.Max(c => c.Y) - tip.Min(c => c.Y));
-        var origin = camera.Project(0, 0, 0);
-        WedgeFloor floor = new(
-            camera.Project(box.Max.X + nose / 2, (box.Min.Y + box.Max.Y) / 2.0, box.Min.Z),
-            camera.Project(0, 1, 0) - origin,
-            camera.Project(1, 0, 0) - origin,
-            new Size(LabelRoomShare * tipWidth, LabelRoomShare * nose));
-
         // The camera looks against +x: the wedge, beyond every rack's bow end, is nearer.
-        return new ProjectedWedge(faces, InFront: d.X < 0, floor);
+        return new ProjectedWedge(faces, InFront: d.X < 0, FloorOf(box, camera.Project));
+    }
+
+    /// <summary>
+    /// The "Bow" label's floor on the wedge (D52), through <paramref name="project"/>: its middle, the screen vectors of one
+    /// cell across and bowwards there, and its room, the middle of the floor's length and of the tip's width, the narrow
+    /// end of the trapezoid. Orthographic the vectors hold everywhere; in perspective (T8.2) at the floor's middle.
+    /// </summary>
+    public static WedgeFloor FloorOf(ShipBox box, Func<double, double, double, Point> project)
+    {
+        var tip = BowWedge(box).Single(f => f.Face == BoxFace.Bow).Corners;
+        var (nose, tipWidth) = (tip[0].X - box.Max.X, tip.Max(c => c.Y) - tip.Min(c => c.Y));
+        var (x, y, z) = (box.Max.X + nose / 2, (box.Min.Y + box.Max.Y) / 2.0, (double)box.Min.Z);
+        var centre = project(x, y, z);
+        return new WedgeFloor(
+            centre,
+            project(x, y + 1, z) - centre,
+            project(x + 1, y, z) - centre,
+            new Size(LabelRoomShare * tipWidth, LabelRoomShare * nose));
     }
 
     /// <summary>The 12 edges of the box: every pair of corners that differ on exactly one axis.</summary>

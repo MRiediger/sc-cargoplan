@@ -61,8 +61,8 @@ public static class RackLabels
     // A face smaller than this share of the largest visible one is too thin for a number (T8.2).
     private const double MinFaceShare = 0.25;
 
-    /// <summary>Behind the camera, or another rack entered on the line of sight before it.</summary>
-    private static bool Covered(ShipScene scene, SceneRack own, Point3D target, CameraMath camera)
+    /// <summary>Behind the camera, or a rack other than <paramref name="own"/> entered on the line of sight before it.</summary>
+    public static bool Covered(ShipScene scene, SceneRack? own, Point3D target, CameraMath camera)
     {
         var sight = target - camera.Position;
         if (Vector3D.DotProduct(sight, camera.LookDirection) <= camera.Near)

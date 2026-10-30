@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
@@ -144,6 +145,9 @@ public sealed class ShipViewControl : FrameworkElement
     private readonly PerspectiveCamera _camera = new();
     private readonly ShipScene3D _scene3D = new();
 
+    // Over the scene: violations, the selection, the rack numbers and the "Bow" label (T8.2, D83).
+    private readonly DrawingVisual _overlay = new();
+
     private CameraNavigation _navigation = CameraNavigation.Default;
     private Drag? _drag;
 
@@ -170,6 +174,7 @@ public sealed class ShipViewControl : FrameworkElement
         }
 
         AddVisualChild(_viewport);
+        AddVisualChild(_overlay);
     }
 
     public ShipScene? Scene
@@ -351,9 +356,15 @@ public sealed class ShipViewControl : FrameworkElement
 
     // One visual child (AddVisualChild in the constructor), laid out over the whole element; the layout overrides below
     // measure and arrange it. Source: https://learn.microsoft.com/dotnet/api/system.windows.frameworkelement.visualchildrencount
-    protected override int VisualChildrenCount => 1;
+    protected override int VisualChildrenCount => 2;
 
-    protected override Visual GetVisualChild(int index) => index == 0 ? _viewport : throw new ArgumentOutOfRangeException(nameof(index));
+    // The scene, then the overlay on top of it (T8.2): what must never hide behind cargo, and the text.
+    protected override Visual GetVisualChild(int index) => index switch
+    {
+        0 => _viewport,
+        1 => _overlay,
+        _ => throw new ArgumentOutOfRangeException(nameof(index)),
+    };
 
     protected override Size MeasureOverride(Size availableSize)
     {
@@ -632,7 +643,7 @@ public sealed class ShipViewControl : FrameworkElement
     // racks (D61). A placement is fixed to the ship (D76, D83). The limits come from the ship at its default
     // orientation, so neither turning nor cargo changes the distance (holo pump bugfix). Null before the first layout.
     private CameraBasis? Basis() => Scene is { } scene && RenderSize is { Width: > 0, Height: > 0 }
-        ? CameraBasis.For(scene, _navigation.Orientation, RenderSize, FitMargin)
+        ? CameraBasis.For(scene, _navigation.Orientation, RenderSize, FitMargin, ShipOverlay.RoomOnTop(scene, OverlayLook()))
         : null;
 
     private void OnMaxPxPerCellChanged()
@@ -703,10 +714,14 @@ public sealed class ShipViewControl : FrameworkElement
         ApplyCamera();
     }
 
-    /// <summary>The scene's camera from the current navigation, size and scene (D83); nothing before the first layout.</summary>
+    /// <summary>
+    /// The scene's camera from the current navigation, size and scene (D83), and the overlay drawn for it (T8.2);
+    /// without a scene or before the first layout the overlay is empty.
+    /// </summary>
     private void ApplyCamera()
     {
-        if (Basis() is not { } basis)
+        using var dc = _overlay.RenderOpen();
+        if (Basis() is not { } basis || Scene is not { } scene)
         {
             return;
         }
@@ -714,7 +729,18 @@ public sealed class ShipViewControl : FrameworkElement
         var camera = _navigation.On(basis, Limits, RenderSize);
         camera.ApplyTo(_camera);
         _scene3D.Follow(camera, basis.FitDistance / camera.Distance);
+        ShipOverlay.Draw(dc, scene, camera, Selection, OverlayLook());
     }
+
+    private OverlayLook OverlayLook() => new(
+        RackNumberBrush,
+        RackNumberFontSize,
+        RackNumberHaloBrush,
+        RackNumberHaloSize,
+        SelectionPen,
+        SelectionOutlinePen,
+        new Typeface(TextElement.GetFontFamily(this), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal),
+        VisualTreeHelper.GetDpi(this).PixelsPerDip);
 
     private void StartDrag(MouseButtonEventArgs e, MouseButton button)
     {
