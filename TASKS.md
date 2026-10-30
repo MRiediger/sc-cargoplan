@@ -2934,7 +2934,8 @@ K1 Altfelder `pxPerCell`/`panX`/`panY` nur befristet lesbar (Backlog). K2 Hit-Te
 **Akzeptanz:**
 - [x] Konformitätstest grün
 - [x] UTV und Hull A: kein Pumpen (Martin, Release-Build vom Branch, 30.10.2026: „perfekt, kein Pumpen, Freigabe erteilt“)
-- [ ] Hull C mit Holo ≥ 55 fps: nicht erreicht (53,3 / 54,6 / 55,0); hingenommen mit der Freigabe, Messung mit SC in T8.7
+- [ ] Hull C mit Holo ≥ 55 fps: nicht erreicht (53,3 / 54,6 / 55,0); hingenommen mit der Freigabe, Messung mit SC in T8.7.
+  Martin am Branch-Build: „Hull C: flüssig und ohne Pumpen“
 - [x] Spike-Worktree und Branch gelöscht, nachdem die Basislinie steht
 - [x] `dotnet build` ohne Warnungen, `dotnet test` grün
 ### [ ] T8.2 Darstellung der Kisten
