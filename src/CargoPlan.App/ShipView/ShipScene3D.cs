@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
@@ -433,18 +434,13 @@ public sealed class ShipScene3D
             : Frozen(new GeometryModel3D(Frozen(new MeshGeometry3D { Positions = new Point3DCollection(positions), TriangleIndices = new Int32Collection(indices) }), material));
     }
 
-    private static readonly Dictionary<Color, Material> EdgeMaterials = [];
+    // Shared by every scene; concurrent, because each STA test thread builds scenes of its own (T8.5). The materials are
+    // frozen, so any thread may use them.
+    private static readonly ConcurrentDictionary<Color, Material> EdgeMaterials = new();
 
     // Unlit, so an edge keeps its colour on every face and from every side; its alpha is the material's opacity.
-    private static Material EdgeMaterial(Color colour)
-    {
-        if (!EdgeMaterials.TryGetValue(colour, out var material))
-        {
-            EdgeMaterials[colour] = material = Unlit(colour with { A = byte.MaxValue }, colour.A / 255.0);
-        }
-
-        return material;
-    }
+    private static Material EdgeMaterial(Color colour) =>
+        EdgeMaterials.GetOrAdd(colour, c => Unlit(c with { A = byte.MaxValue }, c.A / 255.0));
 
     /// <summary>The bow wedge's five faces (D52), from the same corners as the 2D view drew them.</summary>
     private static MeshGeometry3D Wedge(ShipBox bounds)
