@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Media.Media3D;
 using CargoPlan.App.Editor;
 using CargoPlan.Core.Models;
 using static System.FormattableString;
@@ -67,7 +68,7 @@ public abstract record BowMarker
     public sealed record Wedge : BowMarker;
 
     /// <summary>The ship's outline on the hologram's floor, in cells (<see cref="OutlinePlacement"/>); no wedge, no label.</summary>
-    public sealed record Outline(IReadOnlyList<SceneProjector.Corner> Points) : BowMarker;
+    public sealed record Outline(IReadOnlyList<Point3D> Points) : BowMarker;
 
     /// <summary>Racks and frame only.</summary>
     public sealed record None : BowMarker;
@@ -76,7 +77,7 @@ public abstract record BowMarker
     /// The ship's hologram behind the racks (D63), drawn by the backdrop, not by the ship view; its box in cells
     /// (<see cref="HoloPlacement"/>) is all the scene needs: the fit shows the whole hologram.
     /// </summary>
-    public sealed record Holo(SceneProjector.Corner Min, SceneProjector.Corner Max) : BowMarker;
+    public sealed record Holo(Point3D Min, Point3D Max) : BowMarker;
 }
 
 /// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MoveCrates</c>, <c>ResolveMoveToRack</c>).</param>
@@ -161,7 +162,7 @@ public sealed record ProjectedScene(
 
 /// <summary>One face of the bow wedge in ship coordinates (D52): <see cref="BoxFace.Bow"/> is its tip, Port and Starboard its flanks.</summary>
 /// <param name="Normal">Outward, unit length; the flanks' normals are not along an axis.</param>
-public sealed record BowWedgeFace(BoxFace Face, IReadOnlyList<SceneProjector.Corner> Corners, (double X, double Y, double Z) Normal);
+public sealed record BowWedgeFace(BoxFace Face, IReadOnlyList<Point3D> Corners, (double X, double Y, double Z) Normal);
 
 /// <param name="Faces">The faces turned towards the camera.</param>
 /// <param name="InFront">

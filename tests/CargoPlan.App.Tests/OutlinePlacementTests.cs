@@ -1,3 +1,4 @@
+using System.Windows.Media.Media3D;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
@@ -15,7 +16,7 @@ public sealed class OutlinePlacementTests
     // The Hull A's racks since K5.2 (D78): 7 cells wide, nearly the 8 of the rectangle.
     private static readonly ShipBox Wide = new(new ShipPoint(0, -4, 0), new ShipPoint(4, 3, 5));
 
-    private static (double MinX, double MaxX, double MinY, double MaxY) Box(IReadOnlyList<SceneProjector.Corner> points) =>
+    private static (double MinX, double MaxX, double MinY, double MaxY) Box(IReadOnlyList<Point3D> points) =>
         (points.Min(p => p.X), points.Max(p => p.X), points.Min(p => p.Y), points.Max(p => p.Y));
 
     [Fact]
@@ -70,7 +71,7 @@ public sealed class OutlinePlacementTests
         var placed = OutlinePlacement.Place(Rectangle, HullA);
 
         // (10 m, 5 m) is (8, 4) cells from the origin, at true size from the racks' middle (2, 0.5).
-        placed[0].Should().Be(new SceneProjector.Corner(2 + 8, 0.5 + 4, 0));
+        placed[0].Should().Be(new Point3D(2 + 8, 0.5 + 4, 0));
         placed.Should().OnlyContain(p => p.Z == HullA.Min.Z);
     }
 

@@ -20,7 +20,7 @@ public static class CameraFit
 
     /// <summary>The whole scene: the racks and the marker, a true-size outline included (K5.2d).</summary>
     public static IEnumerable<Point3D> WholePoints(ShipScene scene) =>
-        Corners(scene.Bounds).Concat(scene.Marker is BowMarker.Outline o ? o.Points.Select(p => new Point3D(p.X, p.Y, p.Z)) : Bow(scene));
+        Corners(scene.Bounds).Concat(scene.Marker is BowMarker.Outline o ? o.Points : Bow(scene));
 
     /// <summary>The middle of the points' box: where a fit looks.</summary>
     public static Point3D Centre(IReadOnlyCollection<Point3D> points) => new(
@@ -73,7 +73,7 @@ public static class CameraFit
     /// <summary>What marks the bow: the wedge's corners, with an outline too (its bow zone), or the hologram's box.</summary>
     private static IEnumerable<Point3D> Bow(ShipScene scene) => scene.Marker switch
     {
-        BowMarker.Wedge or BowMarker.Outline => SceneProjector.BowWedge(scene.Bounds).SelectMany(f => f.Corners).Select(c => new Point3D(c.X, c.Y, c.Z)),
+        BowMarker.Wedge or BowMarker.Outline => SceneProjector.BowWedge(scene.Bounds).SelectMany(f => f.Corners),
         BowMarker.Holo h => Corners(h.Min.X, h.Min.Y, h.Min.Z, h.Max.X, h.Max.Y, h.Max.Z),
         _ => [],
     };

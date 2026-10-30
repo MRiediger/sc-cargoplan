@@ -14,7 +14,7 @@ namespace CargoPlan.App.ShipView;
 /// <param name="Scale">Cells per metre.</param>
 /// <param name="Offset">Added after scaling, in cells.</param>
 /// <param name="Min">The hologram's box in cells, for the fit.</param>
-public sealed record HoloPlacement(double Scale, Vector3D Offset, SceneProjector.Corner Min, SceneProjector.Corner Max)
+public sealed record HoloPlacement(double Scale, Vector3D Offset, Point3D Min, Point3D Max)
 {
     // One cell is one SCU, 1.25 m on each side (D9).
     private const double MetresPerCell = 1.25;
@@ -32,8 +32,8 @@ public sealed record HoloPlacement(double Scale, Vector3D Offset, SceneProjector
         return new HoloPlacement(
             scale,
             offset,
-            new SceneProjector.Corner(offset.X + scale * min.X, offset.Y + scale * min.Y, offset.Z + scale * min.Z),
-            new SceneProjector.Corner(offset.X + scale * max.X, offset.Y + scale * max.Y, offset.Z + scale * max.Z));
+            new Point3D(offset.X + scale * min.X, offset.Y + scale * min.Y, offset.Z + scale * min.Z),
+            new Point3D(offset.X + scale * max.X, offset.Y + scale * max.Y, offset.Z + scale * max.Z));
     }
 
     /// <summary>A point of the mesh in cells.</summary>

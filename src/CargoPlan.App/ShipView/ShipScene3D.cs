@@ -341,11 +341,11 @@ public sealed class ShipScene3D
     /// The outline's halo (line plus the halo size on each side) and line over it, both pixel widths at the target's plane
     /// as the 2D view drew them (D62), each lifted towards the camera along its sight line (<see cref="OutlineLift"/>).
     /// </summary>
-    private void BuildOutlineLines(IReadOnlyList<SceneProjector.Corner> points, OutlinePaint paint, CameraMath camera)
+    private void BuildOutlineLines(IReadOnlyList<Point3D> points, OutlinePaint paint, CameraMath camera)
     {
         var (position, view, scale) = (camera.Position, camera.LookDirection, camera.PxPerCellAtTarget);
         int[] segments = [.. Enumerable.Range(0, points.Count).SelectMany(i => (int[])[i, (i + 1) % points.Count])];
-        Point3D[] Lifted(double share) => [.. points.Select(Point).Select(p => p + share * (position - p))];
+        Point3D[] Lifted(double share) => [.. points.Select(p => p + share * (position - p))];
 
         foreach (var (colour, width, lift) in new[] { (paint.Halo, OutlineWidth + 2 * paint.HaloSize, 1), (paint.Line, OutlineWidth, 2) })
         {
@@ -357,11 +357,11 @@ public sealed class ShipScene3D
     }
 
     /// <summary>The outline's surface on its floor, unlit like the 2D view's fill, seen from above and below (T8.5).</summary>
-    private static GeometryModel3D OutlineSurfaceModel(IReadOnlyList<SceneProjector.Corner> points)
+    private static GeometryModel3D OutlineSurfaceModel(IReadOnlyList<Point3D> points)
     {
         MeshGeometry3D mesh = new()
         {
-            Positions = new Point3DCollection(points.Select(Point)),
+            Positions = new Point3DCollection(points),
             TriangleIndices = new Int32Collection(OutlineSurface.Triangles([.. points.Select(p => new Point(p.X, p.Y))])),
         };
         var material = EdgeMaterial(MissionPalette.BowWedgeFill);
@@ -445,13 +445,12 @@ public sealed class ShipScene3D
         {
             var c = face.Corners;
             Vector3D normal = new(face.Normal.X, face.Normal.Y, face.Normal.Z);
-            Quad(mesh, Point(c[0]), Point(c[1]), Point(c[2]), Point(c[3]), normal);
+            Quad(mesh, c[0], c[1], c[2], c[3], normal);
         }
 
         return Frozen(mesh);
     }
 
-    private static Point3D Point(SceneProjector.Corner corner) => new(corner.X, corner.Y, corner.Z);
     /// <summary>
     /// A box inset on every side, six faces of two triangles, each with its own normals so edges stay sharp, and texture
     /// coordinates in cells for the hatch (T8.2): u to the right and v down as the face is seen from outside with up at

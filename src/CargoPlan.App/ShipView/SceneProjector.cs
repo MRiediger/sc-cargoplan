@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Media.Media3D;
 using CargoPlan.Core.Models;
 
 namespace CargoPlan.App.ShipView;
@@ -149,14 +150,14 @@ public static class SceneProjector
     }
 
     /// <summary>The box's corners, moved <paramref name="inset"/> cells inwards on every side.</summary>
-    private static (Corner Min, Corner Max) Corners(ShipBox box, double inset) => (
-        new Corner(box.Min.X + inset, box.Min.Y + inset, box.Min.Z + inset),
-        new Corner(box.Max.X - inset, box.Max.Y - inset, box.Max.Z - inset));
+    private static (Point3D Min, Point3D Max) Corners(ShipBox box, double inset) => (
+        new Point3D(box.Min.X + inset, box.Min.Y + inset, box.Min.Z + inset),
+        new Point3D(box.Max.X - inset, box.Max.Y - inset, box.Max.Z - inset));
 
-    private static ProjectedFace[] Faces((Corner Min, Corner Max) box, IReadOnlyList<BoxFace> visible, IsoProjection camera) =>
+    private static ProjectedFace[] Faces((Point3D Min, Point3D Max) box, IReadOnlyList<BoxFace> visible, IsoProjection camera) =>
         [.. visible.Select(f => new ProjectedFace(f, Polygon(f, box.Min, box.Max, camera)))];
 
-    private static Point[] Polygon(BoxFace face, Corner min, Corner max, IsoProjection camera)
+    private static Point[] Polygon(BoxFace face, Point3D min, Point3D max, IsoProjection camera)
     {
         var (aft, bow) = (min.X, max.X);
         return face switch
@@ -193,8 +194,8 @@ public static class SceneProjector
         var halfTip = NoseTipWidthShare * (max.Y - min.Y) / 2;
 
         // Round the bow face and the tip: starboard bottom, port bottom, port top, starboard top.
-        Corner[] bow = [new(max.X, min.Y, min.Z), new(max.X, max.Y, min.Z), new(max.X, max.Y, max.Z), new(max.X, min.Y, max.Z)];
-        Corner[] tip =
+        Point3D[] bow = [new(max.X, min.Y, min.Z), new(max.X, max.Y, min.Z), new(max.X, max.Y, max.Z), new(max.X, min.Y, max.Z)];
+        Point3D[] tip =
         [
             new(tipX, centreY - halfTip, min.Z), new(tipX, centreY + halfTip, min.Z),
             new(tipX, centreY + halfTip, max.Z), new(tipX, centreY - halfTip, max.Z),
@@ -263,7 +264,4 @@ public static class SceneProjector
         Point[] points = [.. Frame(box, camera).SelectMany(l => new[] { l.From, l.To }), .. marker];
         return points.Aggregate(new Rect(points[0], points[0]), (rect, p) => Rect.Union(rect, p));
     }
-
-    /// <summary>A point in cells; not a <see cref="ShipPoint"/>, a drawn box is smaller than its whole cells.</summary>
-    public readonly record struct Corner(double X, double Y, double Z);
 }

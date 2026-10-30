@@ -1,3 +1,4 @@
+using System.Windows.Media.Media3D;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
 
@@ -21,14 +22,14 @@ public static class OutlinePlacement
     private const double TrueSize = 1;
 
     /// <summary>The outline of <paramref name="ship"/> on its <see cref="Floor"/>.</summary>
-    public static SceneProjector.Corner[] Place(ShipOutline outline, Ship ship) => Place(outline, ship.Bounds, Floor(outline, ship));
+    public static Point3D[] Place(ShipOutline outline, Ship ship) => Place(outline, ship.Bounds, Floor(outline, ship));
 
     /// <summary>
     /// The outline scaled evenly to its true size, or so its box is <see cref="Margin"/> times the racks' in the binding
     /// axis where that is larger; its origin on the middle of <paramref name="bounds"/>; bow stays +x, port +y.
     /// </summary>
     /// <param name="floor">The plane it lies in, in cells; null = the racks' floor.</param>
-    public static SceneProjector.Corner[] Place(ShipOutline outline, ShipBox bounds, double? floor = null)
+    public static Point3D[] Place(ShipOutline outline, ShipBox bounds, double? floor = null)
     {
         var points = outline.Points;
         var length = (points.Max(p => p.X) - points.Min(p => p.X)) / MetresPerCell;
@@ -37,7 +38,7 @@ public static class OutlinePlacement
         var scale = Math.Max(fill, TrueSize) / MetresPerCell;
         var (centreX, centreY) = ((bounds.Min.X + bounds.Max.X) / 2.0, (bounds.Min.Y + bounds.Max.Y) / 2.0);
         var z = floor ?? bounds.Min.Z;
-        return [.. points.Select(p => new SceneProjector.Corner(centreX + scale * p.X, centreY + scale * p.Y, z))];
+        return [.. points.Select(p => new Point3D(centreX + scale * p.X, centreY + scale * p.Y, z))];
     }
 
     /// <summary>

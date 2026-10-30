@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
@@ -395,8 +396,8 @@ public class SceneProjectorTests
         // A box longer than the Caterpillar's racks: the hull may reach beyond them, and the fit shows all of it (D63).
         var camera = new IsoProjection(yaw, pitch);
         var bounds = Caterpillar.Bounds;
-        SceneProjector.Corner min = new(bounds.Min.X - 10, bounds.Min.Y - 3, bounds.Min.Z - 2);
-        SceneProjector.Corner max = new(bounds.Max.X + 12, bounds.Max.Y + 3, bounds.Max.Z + 4);
+        Point3D min = new(bounds.Min.X - 10, bounds.Min.Y - 3, bounds.Min.Z - 2);
+        Point3D max = new(bounds.Max.X + 12, bounds.Max.Y + 3, bounds.Max.Z + 4);
         var scene = CaterpillarWith("rack-0", "rack-6") with { Marker = new BowMarker.Holo(min, max) };
 
         var projected = SceneProjector.Project(scene, camera);
