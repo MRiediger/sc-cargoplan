@@ -14,8 +14,8 @@ public static class HoloLines
     /// <summary>In cells along the view: far less than the hull between a visible and a hidden edge.</summary>
     public const double LiftCells = 0.05;
 
-    /// <summary>Half of <see cref="WidthPixels"/> in cells at this transform's scale (pixels per projected unit).</summary>
-    public static double HalfWidthCells(double scale) => WidthPixels / 2 / (IsoProjection.Stretch * scale);
+    /// <summary>Half of <see cref="WidthPixels"/> in cells at the target's plane (<see cref="CameraMath.PxPerCellAtTarget"/>).</summary>
+    public static double HalfWidthCells(double pxPerCell) => WidthPixels / 2 / pxPerCell;
 
     /// <param name="points">The mesh's vertices in cells.</param>
     /// <param name="segments">Index pairs into <paramref name="points"/>.</param>

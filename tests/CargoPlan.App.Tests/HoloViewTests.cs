@@ -100,16 +100,20 @@ public sealed class HoloViewTests
     [InlineData(4)]
     public void A_strip_is_as_wide_on_screen_at_every_zoom(double zoom)
     {
-        var camera = IsoProjection.Default;
-        var scale = 25 * zoom;
+        // At the target's plane, where the strip's middle lies; the lift towards the camera widens it by d / (d − lift).
+        Point3D target = new(2, 0, 0);
+        Size view = new(800, 600);
+        var focal = new CameraMath(IsoProjection.Default, 1, target, view).Focal;
+        CameraMath camera = new(IsoProjection.Default, focal / (25 * zoom), target, view);
         Point3D[] points = [new(0, 0, 0), new(4, 0, 0)];
 
-        var (positions, indices) = HoloLines.Strips(points, [0, 1], Look(camera), HoloLines.HalfWidthCells(scale));
+        var (positions, indices) = HoloLines.Strips(points, [0, 1], camera.LookDirection, HoloLines.HalfWidthCells(camera.PxPerCellAtTarget));
 
         positions.Should().HaveCount(4);
         indices.Should().HaveCount(6);
-        var across = camera.Project(positions[1].X, positions[1].Y, positions[1].Z) - camera.Project(positions[0].X, positions[0].Y, positions[0].Z);
-        (across.Length * scale).Should().BeApproximately(HoloLines.WidthPixels, 1e-9);
+        Point3D Middle(Point3D a, Point3D b) => new((a.X + b.X) / 2, (a.Y + b.Y) / 2, (a.Z + b.Z) / 2);
+        var across = camera.Project(Middle(positions[1], positions[2])) - camera.Project(Middle(positions[0], positions[3]));
+        across.Length.Should().BeApproximately(HoloLines.WidthPixels * camera.Distance / (camera.Distance - HoloLines.LiftCells), 1e-9);
     }
 
     [Fact]

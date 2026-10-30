@@ -44,6 +44,14 @@ public class CameraMathTests
     }
 
     [Fact]
+    public void Up_stays_up_when_seen_from_below()
+    {
+        var camera = At(45, -60);
+
+        (camera.Project(Target + new Vector3D(0, 0, 1)) - camera.Project(Target)).Y.Should().BeNegative();
+    }
+
+    [Fact]
     public void A_cell_across_the_view_at_the_target_is_px_per_cell_wide_from_the_horizontal_field_of_view()
     {
         var camera = At(30, 20, distance: 25);

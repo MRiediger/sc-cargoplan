@@ -387,7 +387,7 @@ public sealed class ShipScene3D
         var look = camera.LookDirection;
         var contourEdges = contour.Visible(new System.Numerics.Vector3((float)look.X, (float)look.Y, (float)look.Z));
         int[] segments = [.. holo.Mesh.Edges.AsSpan(0, 2 * holo.Mesh.EdgeCountFor(level)), .. contourEdges];
-        var (positions, indices) = HoloLines.Strips(holo.Points, segments, look, HoloLines.WidthPixels / 2 / scale);
+        var (positions, indices) = HoloLines.Strips(holo.Points, segments, look, HoloLines.HalfWidthCells(scale));
         _holoLines.Geometry = Frozen(new MeshGeometry3D { Positions = new Point3DCollection(positions), TriangleIndices = new Int32Collection(indices) });
     }
 

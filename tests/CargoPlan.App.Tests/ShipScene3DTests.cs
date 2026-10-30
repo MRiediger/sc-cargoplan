@@ -273,6 +273,42 @@ public class ShipScene3DTests
         });
     }
 
+    [Fact]
+    public void A_crate_is_one_box_with_the_gap_of_a_cell_all_round()
+    {
+        // An 8 SCU crate over x 2..4, y 1..3, z 0..2 is drawn 0.05 smaller on every side, like a cell (T3.11b, D21).
+        var mesh = ShipScene3D.Cuboid(new ShipBox(new ShipPoint(2, 1, 0), new ShipPoint(4, 3, 2)));
+
+        var bounds = mesh.Bounds;
+        (bounds.X, bounds.Y, bounds.Z).Should().Be((2.05, 1.05, 0.05));
+        bounds.SizeX.Should().BeApproximately(1.9, 1e-9);
+        bounds.SizeY.Should().BeApproximately(1.9, 1e-9);
+        bounds.SizeZ.Should().BeApproximately(1.9, 1e-9);
+    }
+
+    [Fact]
+    public void Free_cells_are_drawn_smaller_than_one_cell_so_the_grid_shows()
+    {
+        Sta.Run(() =>
+        {
+            var ship = ShipLoader.Load("hull_a");
+            var scene = ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
+            var scene3D = new ShipScene3D();
+            scene3D.Show(scene, Look(scene));
+            var camera = Camera(scene, distance: 10);
+            scene3D.Follow(camera);
+
+            // The grid's edges run 0.05 inside each cell, lifted towards the camera, and half a strip (under a pixel) wide either side.
+            var halfWidth = 1 / camera.PxPerCellAtTarget;
+            var lift = -HoloLines.LiftCells * camera.LookDirection;
+            var rack = scene.Racks[0].Bounds;
+            var grid = scene3D.FreeGrid.Children[0].Bounds;
+            grid.X.Should().BeApproximately(rack.Min.X + 0.05 + lift.X, halfWidth);
+            grid.Y.Should().BeApproximately(rack.Min.Y + 0.05 + lift.Y, halfWidth);
+            (grid.X + grid.SizeX).Should().BeApproximately(rack.Max.X - 0.05 + lift.X, halfWidth);
+        });
+    }
+
     private static double Depth(GeometryModel3D model, CameraMath camera)
     {
         var bounds = model.Bounds;

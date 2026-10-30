@@ -179,7 +179,7 @@ public sealed class HoloBackdrop : FrameworkElement
         var look = camera.LookDirection;
         var contourEdges = contour.Visible(new System.Numerics.Vector3((float)look.X, (float)look.Y, (float)look.Z));
         int[] segments = [.. holo.Mesh.Edges.AsSpan(0, 2 * holo.Mesh.EdgeCountFor(level)), .. contourEdges];
-        var (positions, indices) = HoloLines.Strips(holo.Points, segments, look, HoloLines.HalfWidthCells(view.Transform.Scale));
+        var (positions, indices) = HoloLines.Strips(holo.Points, segments, look, HoloLines.HalfWidthCells(IsoProjection.Stretch * view.Transform.Scale));
         _lines.Geometry = Frozen(new MeshGeometry3D { Positions = new Point3DCollection(positions), TriangleIndices = new Int32Collection(indices) });
     }
 

@@ -21,7 +21,14 @@ public sealed class RackNumberSizeTests
     /// </summary>
     private static readonly Size DefaultView = new(400, 302);
 
-    private static double FitScale() => FitScale(Sample.Ship);
+    /// <summary>Pixels per cell at the target's plane when the sample plan fits the default view (D83).</summary>
+    private static double PxPerCellAtFit()
+    {
+        var scene = ShipViewBuilder.Build(Sample.Plan, Sample.Ship, LoadPlanner.Validate(Sample.Plan, Sample.Ship));
+        var navigation = CameraNavigation.DefaultFor(scene.Bounds);
+        var basis = CameraBasis.For(scene, navigation.Orientation, DefaultView, margin: 8);
+        return navigation.On(basis, DistanceLimits.Default, DefaultView).PxPerCellAtTarget;
+    }
 
     private static double FitScale(Ship ship)
     {
@@ -45,7 +52,7 @@ public sealed class RackNumberSizeTests
     [InlineData(4)]
     public void Size_stays_the_same_over_the_zoom_range_in_the_default_view(double zoom)
     {
-        RackNumberSize.For(Default, FitScale() * zoom, HullA).Should().Be(Default);
+        RackNumberSize.For(Default, PxPerCellAtFit() * zoom, HullA).Should().Be(Default);
     }
 
     [Fact]

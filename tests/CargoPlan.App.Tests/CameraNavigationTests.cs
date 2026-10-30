@@ -247,6 +247,138 @@ public sealed class CameraNavigationTests
         Limits.Near(basis, Viewport).Should().Be(Math.Min(basis.ReferenceDistance, Limits.DistanceFor(Limits.MaxPxPerCell, Viewport)));
     }
 
+    [Fact]
+    public void Zooming_out_reaches_the_whole_scene_where_twice_the_fit_would_not()
+    {
+        // A true-size outline around a small hold (K5.2c): the fit shows the racks, zooming out shows the whole hull (K5.2d).
+        var hold = Scene("hull_a");
+        var (min, max) = (hold.Bounds.Min, hold.Bounds.Max);
+        var (dx, dy) = (5.0 * (max.X - min.X), 5.0 * (max.Y - min.Y));
+        Point3D[] hull = [new(min.X - dx, min.Y - dy, 0), new(max.X + dx, min.Y - dy, 0), new(max.X + dx, max.Y + dy, 0), new(min.X - dx, max.Y + dy, 0)];
+        var scene = hold with { Marker = new BowMarker.Outline(hull) };
+        var basis = Basis(scene, CameraNavigation.DefaultFor(scene.Bounds));
+        basis.WholeDistance.Should().BeGreaterThan(DistanceLimits.FarShareOfFit * basis.ReferenceDistance);
+
+        var navigation = ZoomedOutToTheLimit(CameraNavigation.DefaultFor(scene.Bounds), scene);
+
+        Drawn(navigation, scene).Distance.Should().BeApproximately(basis.WholeDistance, 1e-9);
+    }
+
+    [Fact]
+    public void A_whole_scene_within_twice_the_fit_leaves_the_far_limit_at_twice_the_fit()
+    {
+        // The Hull A, the Hull C, a hologram or the wedge: the scene is hardly larger than the fit (D76 as before).
+        var scene = HoloScene("hull_a");
+        var basis = Basis(scene, CameraNavigation.DefaultFor(scene.Bounds));
+        basis.WholeDistance.Should().BeLessThanOrEqualTo(DistanceLimits.FarShareOfFit * basis.ReferenceDistance);
+
+        Limits.Far(basis).Should().Be(DistanceLimits.FarShareOfFit * basis.ReferenceDistance);
+    }
+
+    [Fact]
+    public void Zooming_at_the_limit_does_not_move_the_view()
+    {
+        var scene = HoloScene("hull_a");
+        var limit = ZoomedOutToTheLimit(CameraNavigation.DefaultFor(scene.Bounds), scene);
+
+        limit.ZoomAt(new Point(50, 50), 1 / 1.2, Basis(scene, limit), Limits, Viewport).Should().BeSameAs(limit);
+    }
+
+    [Fact]
+    public void A_lower_maximum_brings_a_closer_view_back_at_once_around_its_target()
+    {
+        // The preference applies at once (D30): drawing clamps, Clamped writes it back.
+        var scene = HoloScene("hull_c");
+        var navigation = CameraNavigation.DefaultFor(scene.Bounds);
+        for (var i = 0; i < 100; i++)
+        {
+            navigation = navigation.ZoomAt(Middle, 1.2, Basis(scene, navigation), Limits, Viewport);
+        }
+
+        DistanceLimits lower = new(40);
+        var basis = Basis(scene, navigation);
+
+        var clamped = navigation.Clamped(basis, lower, Viewport);
+
+        clamped.Placement!.Distance.Should().Be(lower.Near(basis, Viewport));
+        clamped.Placement.Distance.Should().BeGreaterThan(navigation.Placement!.Distance);
+        clamped.Placement.Target.Should().Be(navigation.Placement.Target);
+        navigation.On(basis, lower, Viewport).Distance.Should().Be(clamped.Placement.Distance);
+        clamped.Clamped(basis, lower, Viewport).Should().BeSameAs(clamped);
+    }
+
+    [Fact]
+    public void Panning_adds_up()
+    {
+        var scene = HoloScene("hull_a");
+        var navigation = CameraNavigation.DefaultFor(scene.Bounds);
+        var once = navigation.PanBy(new System.Windows.Vector(25, -40), Basis(scene, navigation), Limits, Viewport);
+        var twice = once.PanBy(new System.Windows.Vector(-10, 15), Basis(scene, once), Limits, Viewport);
+        var direct = navigation.PanBy(new System.Windows.Vector(15, -25), Basis(scene, navigation), Limits, Viewport);
+
+        (twice.Placement!.Target - direct.Placement!.Target).Length.Should().BeLessThan(1e-9);
+        twice.Placement.Distance.Should().Be(direct.Placement.Distance);
+    }
+
+    [Fact]
+    public void The_zoom_on_top_of_the_fit_is_the_fit_distance_over_the_view_s()
+    {
+        // What the hologram's edge levels read (D63): 1 at the fit, 2 at half its distance.
+        var scene = HoloScene("hull_a");
+        var fit = CameraNavigation.DefaultFor(scene.Bounds);
+        var basis = Basis(scene, fit);
+        var closer = fit with { Placement = new CameraPlacement(basis.FitDistance / 2, basis.FitTarget) };
+
+        fit.ZoomOn(basis, Limits, Viewport).Should().Be(1);
+        closer.ZoomOn(basis, Limits, Viewport).Should().BeApproximately(2, 1e-12);
+    }
+
+    [Fact]
+    public void Zooming_and_panning_keep_the_orientation()
+    {
+        var scene = HoloScene("hull_a");
+        var navigation = Orbit(CameraNavigation.DefaultFor(scene.Bounds), scene, 30, -20);
+
+        var zoomed = navigation.ZoomAt(new Point(300, 140), 1.2, Basis(scene, navigation), Limits, Viewport);
+        var panned = zoomed.PanBy(new System.Windows.Vector(25, -40), Basis(scene, zoomed), Limits, Viewport);
+
+        zoomed.Orientation.Should().Be(navigation.Orientation);
+        panned.Orientation.Should().Be(navigation.Orientation);
+    }
+
+    [Fact]
+    public void Another_window_size_keeps_a_placed_view_s_target_in_the_middle()
+    {
+        // K1.2: a restart with another overlay size shows the same point in the middle; distance and target are fixed to
+        // the ship (D83), so a cell's size follows the view's width.
+        var scene = HoloScene("hull_a");
+        var start = CameraNavigation.DefaultFor(scene.Bounds);
+        var navigation = start.PanBy(new System.Windows.Vector(25, -40), Basis(scene, start), Limits, Viewport);
+        Size other = new(800, 300);
+
+        var drawn = navigation.On(CameraBasis.For(scene, navigation.Orientation, other, Margin), Limits, other);
+
+        (drawn.Project(navigation.Placement!.Target) - new Point(400, 150)).Length.Should().BeLessThan(1e-9);
+        drawn.Distance.Should().Be(navigation.Placement.Distance);
+    }
+
+    [Fact]
+    public void Default_navigation_looks_from_the_default_orientation_and_fits()
+    {
+        CameraNavigation.Default.Orientation.Should().Be(IsoProjection.Default);
+        CameraNavigation.Default.Placement.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("hull_a")]
+    [InlineData("caterpillar")]
+    public void Default_navigation_for_a_ship_looks_from_its_default_orientation(string shipId)
+    {
+        var bounds = Catalog.Get(shipId).Bounds;
+
+        CameraNavigation.DefaultFor(bounds).Should().Be(new CameraNavigation(IsoProjection.DefaultFor(bounds)));
+    }
+
     // ---------- the saved camera (K1.2) ----------
 
     [Fact]
@@ -286,5 +418,21 @@ public sealed class CameraNavigationTests
         var saved = CameraNavigation.From(navigation.ToCamera());
 
         Drawn(saved, holo).Project(rack).Should().Be(Drawn(navigation, wedge).Project(rack));
+    }
+
+    [Fact]
+    public void A_saved_view_stays_on_the_same_rack_when_a_sync_loads_a_rack_further_aft()
+    {
+        // Martin at the K1.2 approval: save the camera, load a far rack, load the camera: the same middle on the same rack.
+        var ship = Catalog.Get("caterpillar");
+        Crate Gold(string rackId) => new("Riker", "Gold", CrateSize.One, rackId, new GridPosition(0, 0, 0));
+        var before = Scene(ship.Id, Gold("rack-0"));
+        var after = Scene(ship.Id, Gold("rack-0"), Gold("rack-13"));
+        var start = CameraNavigation.DefaultFor(ship.Bounds);
+        var navigation = start.ZoomAt(new Point(300, 250), 1.5, Basis(before, start), Limits, Viewport);
+        var rack = ScreenPoints.Centre(before.Racks[0].Bounds);
+
+        Basis(after, navigation).FitTarget.Should().NotBe(Basis(before, navigation).FitTarget, "the fit follows the cargo (D61)");
+        Drawn(CameraNavigation.From(navigation.ToCamera()), after).Project(rack).Should().Be(Drawn(navigation, before).Project(rack));
     }
 }

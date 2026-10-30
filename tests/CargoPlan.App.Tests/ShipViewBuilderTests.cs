@@ -84,6 +84,13 @@ public class ShipViewBuilderTests
     }
 
     [Fact]
+    public void A_scene_shows_the_bow_wedge_unless_told_otherwise()
+    {
+        // Ships without an outline, and every scene built in tests, keep the wedge with its label (D52).
+        Build(Sample.Plan).Marker.Should().BeOfType<BowMarker.Wedge>();
+    }
+
+    [Fact]
     public void Delivered_cargo_still_counts_as_cargo_in_its_rack()
     {
         // Ticking a stop off must not refit the view of a long ship (D16, D61).
