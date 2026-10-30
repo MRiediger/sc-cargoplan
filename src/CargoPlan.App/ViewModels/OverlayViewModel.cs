@@ -1054,7 +1054,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     {
         Marker = OutlineMode == ShipOutlineMode.None ? new BowMarker.None()
             : Holo is { } holo && holo.ShipId == scene.Ship.Id ? new BowMarker.Holo(holo.Placement.Min, holo.Placement.Max)
-            : Outlines.For(scene.Ship) is { } outline ? new BowMarker.Outline(OutlinePlacement.Place(outline, scene.Ship.Bounds))
+            : Outlines.For(scene.Ship) is { } outline ? new BowMarker.Outline(OutlinePlacement.Place(outline, scene.Ship))
             : new BowMarker.Wedge(),
     };
 }

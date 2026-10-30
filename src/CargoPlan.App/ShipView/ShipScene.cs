@@ -66,7 +66,7 @@ public abstract record BowMarker
     /// <summary>The bow wedge with its "Bow" label (D52).</summary>
     public sealed record Wedge : BowMarker;
 
-    /// <summary>The ship's outline on the racks' floor, in cells (<see cref="OutlinePlacement"/>); no wedge, no label.</summary>
+    /// <summary>The ship's outline on the hologram's floor, in cells (<see cref="OutlinePlacement"/>); no wedge, no label.</summary>
     public sealed record Outline(IReadOnlyList<SceneProjector.Corner> Points) : BowMarker;
 
     /// <summary>Racks and frame only.</summary>

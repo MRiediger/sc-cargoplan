@@ -1059,6 +1059,18 @@ public class OverlayViewModelTests
         viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>();
     }
 
+    // The Aurora Mk II: its hologram a cell higher (holoOffset, K5.3b), so the outline's floor too (D83, T8.5).
+    [Fact]
+    public void The_outline_lies_on_the_ships_hologram_floor()
+    {
+        var aurora = ShipLoader.Load("aurora_mk_ii");
+        var viewModel = new OverlayViewModel(aurora) { Outlines = Outlines };
+
+        var floor = OutlinePlacement.Floor(Outlines.For(aurora)!, aurora);
+        floor.Should().BeLessThan(aurora.Bounds.Min.Z);
+        viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>().Which.Points.Should().OnlyContain(p => p.Z == floor);
+    }
+
     [Fact]
     public void The_outline_stays_through_a_new_plan_and_a_ship_change()
     {
