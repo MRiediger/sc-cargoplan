@@ -2755,6 +2755,8 @@ müssten“ unter S8.0.
   `empty` desselben Builds und gegen dasselbe Ziel vor dem Task formuliert (z. B. T8.2: p95 `hull_c_states` ≤ p95 `empty`
   + 2 ms; Abbruch, wenn p95 `hull_c_states` nach − vor dem Task > 2 ms). Ziel `hull_c_states` (seit T8.2): alle Zustände
   auf einmal (24 Ziele, erledigt, geladen, ein Fehler, eine Auswahl).
+  **Gate ab T8.5** (Martin bei der M3b-Abnahme, 30.10.2026): **Anteil später Frames ≤ `empty` desselben Builds + 2
+  Prozentpunkte**; p95 bleibt Information, weil es auf den Bildtakt quantisiert ist (33,9 ms = 2 Takte).
 - **Bestehende Tests der Schiffsansicht sind das Orakel:** jedes Verhalten, das ein Test heute festnagelt (Gesten B3/B6/K3.2/
   T3.14b, Haken, Auswahl, Drop-Regeln, Fugen, Rack-Nummern), besteht nach dem Umbau denselben Test oder einen gleichwertigen.
   Kein Verhalten wird nebenbei geändert.
@@ -3117,13 +3119,14 @@ eigener Datei, Tür-Fall auf der Moth (Clipper hat ein Rack, Cutlass nimmt nur K
   die vermeintlichen Abweichungen 17/18 waren die linke statt der rechten Maustaste.
 - **M3a/M3b** (`--measure-frames`, Release, ohne SC, 30 s je Lauf, Median aus drei Läufen von Martin):
 
-  | Ziel | M3a vor T8.4 | M3b nach T8.4 |
+  | Ziel (spät / p95 / fps) | M3a vor T8.4 | M3b nach T8.4 |
   |---|---|---|
-  | `hull_c_drag` Frames p95 / spät / fps | 33,90 ms / 13,7 % / 52,7 | 33,90 ms / 12,6 % / 52,4 |
-  | `empty` Frames p95 / spät | 33,08 ms / 15,5 % | 33,07 ms / 13,7 % |
+  | `hull_c_drag` | 13,7 % / 33,90 ms / 52,7 | 12,6 % / 33,90 ms / 52,4 |
+  | `empty` | 15,5 % / 33,08 ms / – | 13,7 % / 33,07 ms / – |
   | Vorschau (Schlüsselwechsel) n / p95 / max | – (kein Ziel vor T8.4) | 343 / 1,81 ms / 12,1 ms |
 
-  Gate Frames erfüllt (33,90 ≤ 33,07 + 2), kein Abbruch (M3b − M3a = 0 ms), Gate Vorschau erfüllt (1,81 ≤ 16 ms).
+  Gate Frames erfüllt (33,90 ≤ 33,07 + 2), kein Abbruch (M3b − M3a = 0 ms), Gate Vorschau erfüllt (1,81 ≤ 16 ms). Nach der
+  Gate-Regel ab T8.5 (Phasenkopf, Information): spät 12,6 % ≤ 13,7 % + 2 pp. `empty`-fps nicht notiert (Martins Läufe).
 - Tests in T8.4 (rot wurde kein bestehender Test außer `DropTargetTests` beim Umzug):
 
   | Test | Stand | Grund |
@@ -3175,6 +3178,8 @@ eigener Datei, Tür-Fall auf der Moth (Clipper hat ein Rack, Cutlass nimmt nur K
 - UTV, Hull A, Hull C, Aurora Mk II mit Modul (`holoOffset`), ein Schiff mit Unterseiten-Racks; Frame-Zeit mit laufendem SC
 - Aus T8.4 (Handling-Zeile 22): Kiste und Legendenzeile ziehen mit SC im Vordergrund, der Drag folgt dem Cursor per Poll
   (D45), Loslassen ohne Up-Nachricht wirkt; Gate am Aufzug
+- Aus T8.4 (M3b): Maximum der Vorschau (Schlüsselwechsel) mit laufendem SC messen, Luft zum 16-ms-Budget (D65); ohne SC
+  max 12,1 ms
 
 **Akzeptanz:**
 - [ ] Martins Abnahme, dann `git merge --no-ff` nach `main`
