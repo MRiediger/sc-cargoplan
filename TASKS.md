@@ -2711,8 +2711,24 @@ Einstellungen (UTV, keine gespeicherte Kamera, ContractTracker aus, leerer Plan)
 | 15 | d92ca48 Merge K6 | Holo atmet, Kisten ruhig |
 
 Ergebnis: keine Regression. Das Atmen des Holos ist die Silhouette des starr gedrehten Modells und seit T7.4c gleich,
-es fiel nur bisher nicht auf. Kein Fix für Teil 2/3. Die Frame-Probe (Kisten- gegen Holo-Kamera pro Frame) wurde
-gebaut, aber nach dem Bisect nicht mehr gebraucht und wieder entfernt.
+es fiel nur bisher nicht auf. Kein Fix für Teil 2/3.
+
+**Teil 5 – Drehpunkt und Frame-Log in Martins App (30.10.2026):**
+- Drehpunkt (Wegwerf-Harness, 144 Frames, UTV, Hull A, Aurora Mk II, Pitch 0 und 35,26): Holo-Box-Mitte über WPF gegen
+  Rack-Mitte über `IsoProjection`, Änderung über Yaw 0,000 px. Die Holo-Kamera übernimmt die Abbildung der Kisten, eine
+  zweite Mitte gibt es nicht. Bei der Aurora ist `holoOffset` (0, 0, 1) ein fester senkrechter Versatz.
+- Frame-Log (temporärer Release-Build über `run.ps1`, UTV, Aufnahme nach dem Render-Pass jedes Frames, Bild jedes Frames
+  gespeichert): 119 Frames, ΔYaw, ΔPitch und ΔScale zwischen Kisten und Holo-Kamera in **jedem** Frame 0; Kisten konstant
+  95,94 px/Zelle. Bei |Pitch| < 2° (46 Frames, Yaw 78–145°): gerenderte Holo-Höhe 210–215 px (bei gleichem Pitch 1,30°:
+  213–214), Breite 368–398 px. Nach der vorab festgelegten Lesart: Lag 0, Höhe konstant, nur die Breite schwankt → die
+  Drehung selbst, kein Bug. Die Bilder zeigen außerdem den 1-SCU-Würfel des UTV in der Fahrzeugmitte, nicht auf der
+  Ladefläche (`HoloPlacement` legt die Holo-Mitte auf die Rack-Mitte, D63).
+
+**Teil 1–5 in vier Sätzen:** Die Zoom-Grenzen hingen am Winkel und hoben am Anschlag und von vorn den Maßstab der Kisten
+an; das ist behoben und mit vier Wächtern abgesichert (Teil 1). Die Holo-Kamera ist statisch korrekt: kein eigener
+Maßstab, kein Clipping, derselbe Drehpunkt wie die Kisten (Teil 2, 5). Der Bisect zeigt das Atmen des Holos unverändert
+seit T7.4c (Teil 3). In Martins App gibt es keinen Frame-Lag zwischen Kisten und Holo; was atmet, ist die Silhouette des
+gedrehten Modells (Teil 5).
 
 ---
 
