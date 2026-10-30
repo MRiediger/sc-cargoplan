@@ -2641,7 +2641,7 @@ Fehlschlag; P9 Bug-Vorlage fragt nach `cargoplan.log`; Test für einen werfenden
 
 ## Bugfix Holo-Pump (D76-Addendum) (30.10.2026) – Branch `fix/holo-pump-regression`
 
-### [ ] P1 Maßstab beim Drehen festhalten, Grenzen schiffsfest (D76-Addendum)
+### [x] P1 Maßstab beim Drehen festhalten, Grenzen schiffsfest (D76-Addendum)
 **Warum:** Martin: Das Pumpen beim Drehen ist wieder da, gleich nach Start/Reset, ohne Zoomen.
 
 **Befund (Schritt 2):** Kein Commit nach dem K5.5-Fix (9a0eef6) ruft im Drehpfad wieder den Fit auf. `OrbitBy`, `Navigate`,
@@ -2680,8 +2680,9 @@ Fortune 99,0), alle unter 160 → nur ein Satz im Gegenargument.
 - [x] Wächter `OrbitScaleTests`: Drehen aus dem Fit, Holo nach Framing, Drehen am Anschlag, Plan-Schritt am Anschlag; vor
   dem Fix rot außer „Holo nach Framing“ (seit K5.5 grün, bleibt als Wächter)
 - [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.466 → 1.473, Core 1.492, Import 141; Slow grün)
-- [ ] Gate (Martin, Release-Build vom Branch): Hull C mit Holo, Reset, von vorn und von oben drehen → Größe ruhig; bis zum
-  Anschlag herauszoomen und drehen → ruhig; Download an, Cache leer → Holo kommt, danach drehen → ruhig
+- [x] Gate (Martin, Release-Build vom Branch, 30.10.2026, bestanden: „Kisten bleiben gleich groß, bzw. in scale“): Hull C
+  mit Holo, Reset, von vorn und von oben drehen → Größe ruhig; bis zum Anschlag herauszoomen und drehen → ruhig
+- Nicht von Hand geprüft: Holo-Download mit leerem Cache und danach drehen (nur per Harness, Szenario d).
 
 **Teil 2 – das Holo selbst gemessen (Wegwerf-Harness, 30.10.2026):** Martins Befund danach: Das Holo atmet beim Drehen,
 die Kisten nicht, beim GRIN UTV stärker als bei der Hull A. Gemessen über die echte WPF-Abbildung
