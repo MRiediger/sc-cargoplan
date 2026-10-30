@@ -200,8 +200,8 @@ scroll out of sight. While the overlay is locked it takes no mouse, so unlock it
 
 Lower case only. Missing or `null` means `"outline"`; any other text means `"outline"` too, with a notice.
 
-`holoOpacity` is the hologram's opacity, from `0.1` to `1`; missing means `0.4`. A value outside is clamped, with a
-notice.
+`holoOpacity` is the hologram's opacity, from `0.01` to `1` (the settings window moves it in steps of 1 %); missing
+means `0.4`. A value outside is clamped, with a notice. Builds before T8.5 clamp a value under `0.1` to `0.1`.
 
 `holoHullColor` colours the hologram's hull in `"holo-shaded"` and `"holo-flat"` (default `"#FF9CB0C0"`),
 `holoEdgeColor` its edges in `"holo-hiddenline"` (default `"#FFE6E6E6"`); the hidden-line hull stays dark, it only hides

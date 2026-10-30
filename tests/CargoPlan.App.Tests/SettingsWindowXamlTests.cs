@@ -108,6 +108,15 @@ public partial class SettingsWindowXamlTests
         row.Attribute("ToolTip")!.Value.Should().Be(toolTip);
     }
 
+    [Fact]
+    public void The_hologram_opacity_moves_in_steps_of_one_percent()
+    {
+        var slider = Root().Descendants()
+            .Single(e => e.Name.LocalName == "Slider" && (string?)e.Attribute("Value") == "{Binding HoloOpacityPercent}");
+
+        slider.Attribute("TickFrequency")!.Value.Should().Be("1");
+    }
+
     [GeneratedRegex(@"\{x:Static (?<prefix>\w+):(?<type>\w+)\.(?<member>\w+)\}")]
     private static partial Regex StaticReference();
 }

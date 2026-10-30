@@ -527,7 +527,7 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Theory]
-    [InlineData("0.05", 0.1, "0.1")]
+    [InlineData("0.005", 0.01, "0.01")]
     [InlineData("1.5", 1, "1")]
     public void A_hologram_opacity_out_of_range_is_clamped_with_a_problem(string written, double used, string usedText)
     {
@@ -536,7 +536,21 @@ public sealed class SettingsStoreTests : IDisposable
         var (loaded, problem) = SettingsStore.Load(SettingsPath);
 
         loaded.HoloOpacity.Should().Be(used);
-        problem.Should().Be($"settings.json: holoOpacity {written} is outside 0.1–1, using {usedText}.");
+        problem.Should().Be($"settings.json: holoOpacity {written} is outside 0.01–1, using {usedText}.");
+    }
+
+    // Martin at the T8.5 acceptance: down to 1 %, before 10 %.
+    [Theory]
+    [InlineData("0.01")]
+    [InlineData("0.05")]
+    public void A_hologram_opacity_down_to_one_percent_is_kept(string written)
+    {
+        WriteFile($$"""{ "schemaVersion": 2, "holoOpacity": {{written}} }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.HoloOpacity.Should().Be(double.Parse(written, System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]

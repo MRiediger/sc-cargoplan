@@ -400,7 +400,7 @@
                             <TextBlock DockPanel.Dock="Right" Text="{Binding HoloOpacityText}" Style="{StaticResource ValueTextStyle}" />
                             <Slider Minimum="{x:Static vm:SettingsViewModel.MinHoloOpacityPercent}"
                                     Maximum="{x:Static vm:SettingsViewModel.MaxHoloOpacityPercent}"
-                                    Value="{Binding HoloOpacityPercent}" Style="{StaticResource ValueSliderStyle}" TickFrequency="5" />
+                                    Value="{Binding HoloOpacityPercent}" Style="{StaticResource ValueSliderStyle}" TickFrequency="1" />
                         </DockPanel>
                         <DockPanel Style="{StaticResource RowStyle}" IsEnabled="{Binding ColoursHull}"
                                    ToolTip="The hologram's hull in the shaded and flat looks">
