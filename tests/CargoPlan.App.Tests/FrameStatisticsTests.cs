@@ -37,6 +37,15 @@ public class FrameStatisticsTests
         double[] intervals = [.. Enumerable.Repeat(16.67, 1800)];
 
         FrameStatistics.Summary(intervals, TimeSpan.FromSeconds(30))
-            .Should().Be("n 1800, median 16.67 ms, p95 16.67 ms, max 16.7 ms, fps 60.0");
+            .Should().Be("n 1800, median 16.67 ms, p95 16.67 ms, max 16.7 ms, late 0.0 %, fps 60.0");
+    }
+
+    [Fact]
+    public void Late_counts_the_frames_longer_than_one_and_a_half_medians()
+    {
+        // On a 60 Hz display a frame takes 16.67 ms or a multiple: p95 jumps between steps, the share of late frames doesn't.
+        double[] intervals = [.. Enumerable.Repeat(16.67, 95), .. Enumerable.Repeat(33.33, 5)];
+
+        FrameStatistics.LateShare(intervals).Should().Be(0.05);
     }
 }

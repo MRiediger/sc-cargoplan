@@ -2750,6 +2750,11 @@ müssten“ unter S8.0.
   `dotnet publish src/CargoPlan.App -c Release -o ~/CargoPlan-measure` und dann
   `foreach ($t in 'empty','hull_c','utv','hull_a') { Start-Process ~/CargoPlan-measure/CargoPlan.App.exe -ArgumentList '--measure-frames', $t -Wait }`.
   Leichte Szenen (`empty`, `utv`) streuen um ±5 fps (M0, T8.1): Vergleiche mit mindestens zwei Läufen.
+  **Messregime ab T8.2** (Präzisierung in der Planphase, ratifiziert durch Freigabe): Frame-Zeit in ms, Median und p95,
+  **drei Läufe je Ziel, gewertet wird der Median der drei Läufe**; fps nur noch als Zusatzangabe. Gates werden gegen
+  `empty` desselben Builds und gegen dasselbe Ziel vor dem Task formuliert (z. B. T8.2: p95 `hull_c_states` ≤ p95 `empty`
+  + 2 ms; Abbruch, wenn p95 `hull_c_states` nach − vor dem Task > 2 ms). Ziel `hull_c_states` (seit T8.2): alle Zustände
+  auf einmal (24 Ziele, erledigt, geladen, ein Fehler, eine Auswahl).
 - **Bestehende Tests der Schiffsansicht sind das Orakel:** jedes Verhalten, das ein Test heute festnagelt (Gesten B3/B6/K3.2/
   T3.14b, Haken, Auswahl, Drop-Regeln, Fugen, Rack-Nummern), besteht nach dem Umbau denselben Test oder einen gleichwertigen.
   Kein Verhalten wird nebenbei geändert.

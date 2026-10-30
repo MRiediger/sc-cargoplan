@@ -40,13 +40,20 @@ internal sealed class FrameMeasureWindow : Window
 
     private static readonly TimeSpan Duration = TimeSpan.FromSeconds(30);
 
-    // One crate size per ship fills every rack as in S8.0: the Hull C gives 144 crates. A ship not listed is refused.
-    private static readonly Dictionary<string, CrateSize> CrateSizes = new()
+    // One crate size per ship fills every rack as in S8.0: the Hull C gives 144 crates. A target not listed is refused.
+    // hull_c_states shows every crate state at once (T8.2): 24 stops (three colour rounds, so both hatches), every 5th stop
+    // delivered, every 7th loaded, one overlapping crate (a violation), mission 1 selected.
+    private static readonly Dictionary<string, (string Ship, CrateSize Size, bool States)> Targets = new()
     {
-        ["utv"] = CrateSize.One,
-        ["hull_a"] = CrateSize.Sixteen,
-        ["hull_c"] = CrateSize.ThirtyTwo,
+        ["utv"] = ("utv", CrateSize.One, false),
+        ["hull_a"] = ("hull_a", CrateSize.Sixteen, false),
+        ["hull_c"] = ("hull_c", CrateSize.ThirtyTwo, false),
+        ["hull_c_states"] = ("hull_c", CrateSize.ThirtyTwo, true),
     };
+
+    private const int StateStops = 24;
+    private const int DeliveredEvery = 5;
+    private const int LoadedEvery = 7;
 
     private readonly string _target;
     private readonly ShipViewControl _view = new();
@@ -81,17 +88,29 @@ internal sealed class FrameMeasureWindow : Window
         cell.Children.Add(_view);
         Content = cell;
 
-        if (target != Empty && CrateSizes.TryGetValue(target, out var size) && catalog.Find(target) is { } ship)
+        if (target != Empty && Targets.TryGetValue(target, out var spec) && catalog.Find(spec.Ship) is { } ship)
         {
             _ship = ship;
-            Placement[] placements = [.. ship.Racks.Select(r => new Placement("Measure", r.Id, new CargoItem("Measure", r.CapacityScu, size)))];
+            Placement[] placements = [.. ship.Racks.Select(r => new Placement("Measure", r.Id, new CargoItem("Measure", r.CapacityScu, spec.Size)))];
             var plan = new LoadPlan(ship.Id, CrateLayout.LayOut(ship, placements, FillOrder.BowFirst), []);
+            if (spec.States)
+            {
+                plan = WithStates(plan);
+            }
+
             _crates = plan.Crates.Count;
             var path = ship.FleetyardsSlug is { } slug ? Path.Combine(HoloRelease.DefaultCacheFolder, slug + ".holo") : null;
             _holo = path is not null && File.Exists(path) ? PreparedHolo.Prepare(ship, HoloReader.Read(File.ReadAllBytes(path)), Look) : null;
-            var scene = ShipViewBuilder.Build(plan, ship, []);
-            _view.Scene = scene with { Marker = _holo is { } h ? new BowMarker.Holo(h.Placement.Min, h.Placement.Max) : new BowMarker.Wedge() };
+            var scene = ShipViewBuilder.Build(plan, ship, spec.States ? LoadPlanner.Validate(plan, ship) : []) with
+            {
+                Marker = _holo is { } h ? new BowMarker.Holo(h.Placement.Min, h.Placement.Max) : new BowMarker.Wedge(),
+            };
+            _view.Scene = scene;
             _view.Holo = _holo;
+            if (spec.States)
+            {
+                _view.Selection = CrateSelection.Of(scene, plan.Crates.Where(c => c.Mission == 1));
+            }
         }
         ContentRendered += OnContentRendered;
     }
@@ -106,7 +125,7 @@ internal sealed class FrameMeasureWindow : Window
 
         var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
         var subject = _ship is null ? _target : Inv($"{_target} {_crates} crates, holo {(_holo is null ? "no" : "yes")}");
-        var frames = known ? FrameStatistics.Summary(intervals, Duration) : "unknown target (empty, " + string.Join(", ", CrateSizes.Keys) + ")";
+        var frames = known ? FrameStatistics.Summary(intervals, Duration) : "unknown target (empty, " + string.Join(", ", Targets.Keys) + ")";
         File.AppendAllText(_logPath, Inv($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {version} {subject}: frames {frames}{(hits is null ? "" : " | hits " + hits)}") + Environment.NewLine);
 
         Application.Current.Shutdown(valid ? 0 : 1);
@@ -173,6 +192,26 @@ internal sealed class FrameMeasureWindow : Window
         }
 
         return FrameStatistics.HitSummary(times, hits);
+    }
+
+    /// <summary>
+    /// The full plan spread over <see cref="StateStops"/> stops, one mission each; whole stops delivered or loaded, as
+    /// the legend does it; one more crate on the first crate's cells, which <c>Validate</c> reports.
+    /// </summary>
+    private static LoadPlan WithStates(LoadPlan plan)
+    {
+        Crate[] crates =
+        [
+            .. plan.Crates.Select((crate, i) =>
+            {
+                var stop = i % StateStops;
+                var spread = crate with { Destination = Inv($"Stop {stop + 1:00}"), Mission = stop + 1 };
+                return stop % DeliveredEvery == DeliveredEvery - 1 ? spread.AsDelivered()
+                    : stop % LoadedEvery == LoadedEvery - 1 ? spread.AsLoaded()
+                    : spread;
+            }),
+        ];
+        return plan with { Crates = [.. crates, crates[0] with { Destination = "Overlap", Mission = StateStops + 1 }] };
     }
 
     private static string Inv(FormattableString text) => text.ToString(CultureInfo.InvariantCulture);
