@@ -441,7 +441,7 @@ public sealed class ShipScene3D
     private static MeshGeometry3D Wedge(ShipBox bounds)
     {
         MeshGeometry3D mesh = new();
-        foreach (var face in SceneProjector.BowWedge(bounds))
+        foreach (var face in BowWedge.Faces(bounds))
         {
             var c = face.Corners;
             Vector3D normal = new(face.Normal.X, face.Normal.Y, face.Normal.Z);

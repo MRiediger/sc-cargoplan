@@ -138,9 +138,9 @@ public static class ShipOverlay
     /// <summary>The label lies on the wedge's floor (D52), linearised at its middle; hidden where a rack covers that middle.</summary>
     private static void DrawBowLabel(DrawingContext dc, ShipScene scene, CameraMath camera, OverlayLook look, Brush brush, Pen? halo, double size)
     {
-        var floor = SceneProjector.FloorOf(scene.Bounds, (x, y, z) => camera.Project(new Point3D(x, y, z)));
+        var floor = BowWedge.Floor(scene.Bounds, camera.Project);
         var bounds = scene.Bounds;
-        var tip = SceneProjector.BowWedge(bounds).Single(f => f.Face == BoxFace.Bow).Corners[0].X;
+        var tip = BowWedge.Faces(bounds).Single(f => f.Face == BoxFace.Bow).Corners[0].X;
         Point3D middle = new((bounds.Max.X + tip) / 2, (bounds.Min.Y + bounds.Max.Y) / 2.0, bounds.Min.Z);
         if (RackLabels.Covered(scene, null, middle, camera))
         {
@@ -149,8 +149,7 @@ public static class ShipOverlay
 
         FormattedText text = new(BowLabel, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, look.Typeface, BowLabelEmSize, brush, look.PixelsPerDip);
 
-        // The floor is in screen DIPs already: an identity transform.
-        var glyphs = FloorLabel.Lay(text.BuildGeometry(new Point(0, 0)), BowLabelEmSize, floor, new ViewTransform(1, default), size);
+        var glyphs = FloorLabel.Lay(text.BuildGeometry(new Point(0, 0)), BowLabelEmSize, floor, size);
         DrawLabel(dc, glyphs, brush, halo);
     }
 

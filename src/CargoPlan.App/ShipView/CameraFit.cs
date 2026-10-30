@@ -73,7 +73,7 @@ public static class CameraFit
     /// <summary>What marks the bow: the wedge's corners, with an outline too (its bow zone), or the hologram's box.</summary>
     private static IEnumerable<Point3D> Bow(ShipScene scene) => scene.Marker switch
     {
-        BowMarker.Wedge or BowMarker.Outline => SceneProjector.BowWedge(scene.Bounds).SelectMany(f => f.Corners),
+        BowMarker.Wedge or BowMarker.Outline => BowWedge.Faces(scene.Bounds).SelectMany(f => f.Corners),
         BowMarker.Holo h => Corners(h.Min.X, h.Min.Y, h.Min.Z, h.Max.X, h.Max.Y, h.Max.Z),
         _ => [],
     };

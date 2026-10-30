@@ -20,15 +20,6 @@ public static class SceneProjector
     private const double CellSize = 0.9;
     private const double Inset = (1 - CellSize) / 2;
 
-    // The bow wedge (D52): a nose beyond the bow end of the frame, a tenth of the ship's length but at least one cell,
-    // narrowing to half the width at the full height. The racks reach the bow, so it can't taper within the frame.
-    private const double NoseMinLength = 1;
-    private const double NoseLengthShare = 0.1;
-    private const double NoseTipWidthShare = 0.5;
-
-    // The "Bow" label on the wedge's floor keeps this share of the nose's length and of the tip's width.
-    private const double LabelRoomShare = 0.7;
-
     // Also the preference on equal area: top or bottom first, then the sides, then the ends.
     private static readonly BoxFace[] AllFaces = [BoxFace.Top, BoxFace.Bottom, BoxFace.Port, BoxFace.Starboard, BoxFace.Bow, BoxFace.Aft];
 
@@ -79,7 +70,7 @@ public static class SceneProjector
         var bounds = scene.Bounds;
         return scene.Marker switch
         {
-            BowMarker.Wedge or BowMarker.Outline => BowWedge(bounds).SelectMany(f => f.Corners).Select(c => camera.Project(c.X, c.Y, c.Z)),
+            BowMarker.Wedge or BowMarker.Outline => BowWedge.Faces(bounds).SelectMany(f => f.Corners).Select(c => camera.Project(c.X, c.Y, c.Z)),
             BowMarker.Holo h =>
                 from x in new[] { h.Min.X, h.Max.X }
                 from y in new[] { h.Min.Y, h.Max.Y }
@@ -181,67 +172,15 @@ public static class SceneProjector
             [camera.Project(x, min.Y, min.Z), camera.Project(x, max.Y, min.Z), camera.Project(x, max.Y, max.Z), camera.Project(x, min.Y, max.Z)];
     }
 
-    /// <summary>
-    /// The 5 faces of the bow wedge in ship coordinates (D52): the tip, top, bottom and the two flanks; its base is the
-    /// box's bow face. Only a marker for the bow; the racks give no hull shape.
-    /// </summary>
-    public static IReadOnlyList<BowWedgeFace> BowWedge(ShipBox box)
-    {
-        var (min, max) = (box.Min, box.Max);
-        var nose = Math.Max(NoseMinLength, NoseLengthShare * (max.X - min.X));
-        var tipX = max.X + nose;
-        var centreY = (min.Y + max.Y) / 2.0;
-        var halfTip = NoseTipWidthShare * (max.Y - min.Y) / 2;
-
-        // Round the bow face and the tip: starboard bottom, port bottom, port top, starboard top.
-        Point3D[] bow = [new(max.X, min.Y, min.Z), new(max.X, max.Y, min.Z), new(max.X, max.Y, max.Z), new(max.X, min.Y, max.Z)];
-        Point3D[] tip =
-        [
-            new(tipX, centreY - halfTip, min.Z), new(tipX, centreY + halfTip, min.Z),
-            new(tipX, centreY + halfTip, max.Z), new(tipX, centreY - halfTip, max.Z),
-        ];
-
-        // A flank narrows by `inwards` over `nose`; its normal is at right angles to that, in the x-y plane.
-        var inwards = max.Y - (centreY + halfTip);
-        var length = Math.Sqrt(inwards * inwards + nose * nose);
-        return
-        [
-            new(BoxFace.Bow, tip, (1, 0, 0)),
-            new(BoxFace.Top, [bow[3], bow[2], tip[2], tip[3]], (0, 0, 1)),
-            new(BoxFace.Bottom, [bow[0], bow[1], tip[1], tip[0]], (0, 0, -1)),
-            new(BoxFace.Port, [bow[1], bow[2], tip[2], tip[1]], (inwards / length, nose / length, 0)),
-            new(BoxFace.Starboard, [bow[0], bow[3], tip[3], tip[0]], (inwards / length, -nose / length, 0)),
-        ];
-    }
-
     private static ProjectedWedge ProjectWedge(ShipBox box, IsoProjection camera)
     {
         var d = camera.ViewDirection;
-        var wedge = BowWedge(box);
-        ProjectedFace[] faces = [.. from face in wedge
+        ProjectedFace[] faces = [.. from face in BowWedge.Faces(box)
                                     where face.Normal.X * d.X + face.Normal.Y * d.Y + face.Normal.Z * d.Z < -EdgeOn
                                     select new ProjectedFace(face.Face, [.. face.Corners.Select(c => camera.Project(c.X, c.Y, c.Z))])];
 
         // The camera looks against +x: the wedge, beyond every rack's bow end, is nearer.
-        return new ProjectedWedge(faces, InFront: d.X < 0, FloorOf(box, camera.Project));
-    }
-
-    /// <summary>
-    /// The "Bow" label's floor on the wedge (D52), through <paramref name="project"/>: its middle, the screen vectors of one
-    /// cell across and bowwards there, and its room, the middle of the floor's length and of the tip's width, the narrow
-    /// end of the trapezoid. Orthographic the vectors hold everywhere; in perspective (T8.2) at the floor's middle.
-    /// </summary>
-    public static WedgeFloor FloorOf(ShipBox box, Func<double, double, double, Point> project)
-    {
-        var tip = BowWedge(box).Single(f => f.Face == BoxFace.Bow).Corners;
-        var (nose, tipWidth) = (tip[0].X - box.Max.X, tip.Max(c => c.Y) - tip.Min(c => c.Y));
-        var (x, y, z) = (box.Max.X + nose / 2, (box.Min.Y + box.Max.Y) / 2.0, (double)box.Min.Z);
-        var centre = project(x, y, z);
-        return new WedgeFloor(
-            centre,
-            project(x, y + 1, z) - centre,
-            project(x + 1, y, z) - centre,
-            new Size(LabelRoomShare * tipWidth, LabelRoomShare * nose));
+        return new ProjectedWedge(faces, InFront: d.X < 0, BowWedge.Floor(box, p => camera.Project(p.X, p.Y, p.Z)));
     }
 
     /// <summary>The 12 edges of the box: every pair of corners that differ on exactly one axis.</summary>

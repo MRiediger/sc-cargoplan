@@ -185,32 +185,6 @@ public class SceneProjectorTests
     }
 
     [Theory]
-    [InlineData(4, 1)] // Hull A: 10 % of the length is 0.4 cells, the nose keeps its minimum
-    [InlineData(20, 2)] // 10 % of the length
-    public void Bow_wedge_has_a_tip_top_bottom_and_two_flanks_beyond_the_bow(int length, double nose)
-    {
-        ShipBox bounds = new(new ShipPoint(0, -2, 0), new ShipPoint(length, 3, 5));
-
-        var wedge = SceneProjector.BowWedge(bounds);
-
-        wedge.Select(f => f.Face).Should().BeEquivalentTo([BoxFace.Bow, BoxFace.Top, BoxFace.Bottom, BoxFace.Port, BoxFace.Starboard]);
-        var corners = wedge.SelectMany(f => f.Corners).ToArray();
-        corners.Should().OnlyContain(p => p.X >= length && p.Z >= 0 && p.Z <= 5);
-
-        // The tip: half the width (5 cells around y = 0.5), the full height.
-        var tip = wedge.Single(f => f.Face == BoxFace.Bow).Corners;
-        tip.Should().OnlyContain(p => Math.Abs(p.X - (length + nose)) < 1e-9);
-        tip.Select(p => (p.Y, p.Z)).Should().BeEquivalentTo([(-0.75, 0.0), (1.75, 0.0), (-0.75, 5.0), (1.75, 5.0)]);
-
-        // Every normal points out of the wedge: away from its centre.
-        var (cx, cy, cz) = (corners.Average(p => p.X), corners.Average(p => p.Y), corners.Average(p => p.Z));
-        wedge.Should().OnlyContain(f =>
-            (f.Corners.Average(p => p.X) - cx) * f.Normal.X
-            + (f.Corners.Average(p => p.Y) - cy) * f.Normal.Y
-            + (f.Corners.Average(p => p.Z) - cz) * f.Normal.Z > 0);
-    }
-
-    [Theory]
     [InlineData(45)]
     [InlineData(135)]
     [InlineData(225)]
@@ -220,7 +194,7 @@ public class SceneProjectorTests
         var camera = new IsoProjection(yaw, DefaultPitch);
         var projected = SceneProjector.Project(Scene, camera);
         var (min, max) = (Scene.Bounds.Min, Scene.Bounds.Max);
-        Point[] tip = [.. SceneProjector.BowWedge(Scene.Bounds)
+        Point[] tip = [.. BowWedge.Faces(Scene.Bounds)
             .Single(f => f.Face == BoxFace.Bow).Corners
             .Select(p => camera.Project(p.X, p.Y, p.Z))];
 
@@ -240,93 +214,6 @@ public class SceneProjectorTests
             projected.BowWedge!.Floor.Centre.X.Should().BeLessThan(boxCentre.X);
         }
     }
-
-    [Theory]
-    [InlineData(45)]
-    [InlineData(135)]
-    [InlineData(225)]
-    [InlineData(315)]
-    public void Bow_label_lies_on_the_wedge_floor(double yaw)
-    {
-        var camera = new IsoProjection(yaw, DefaultPitch);
-        var projected = SceneProjector.Project(Scene, camera);
-        ViewTransform transform = new(40, new Vector(200, 200));
-        var label = FloorLabel.Lay(Glyphs("Bow"), LabelEmSize, projected.BowWedge!.Floor, transform, screenEmSize: 27);
-
-        // Flattened into screen pixels: no transform left that would skew a pen's outline.
-        (label.Transform?.Value ?? Matrix.Identity).IsIdentity.Should().BeTrue();
-        Point[] floor = [.. SceneProjector.BowWedge(Scene.Bounds).Single(f => f.Face == BoxFace.Bottom).Corners
-            .Select(c => transform.Apply(camera.Project(c.X, c.Y, c.Z)))];
-        Point[] points = [.. label.Figures.SelectMany(f => f.Segments
-            .SelectMany(s => s switch
-            {
-                PolyLineSegment poly => poly.Points,
-                LineSegment line => [line.Point],
-                _ => throw new InvalidOperationException($"Not flattened: {s.GetType().Name}"),
-            })
-            .Prepend(f.StartPoint))];
-        points.Should().NotBeEmpty().And.OnlyContain(p => SceneHitTest.Contains(floor, p));
-    }
-
-    [Theory]
-    [InlineData(1)]
-    [InlineData(2)]
-    public void Bow_label_B_is_as_tall_on_screen_as_a_rack_number_digit(double zoom)
-    {
-        // The default overlay's ship view, as in RackNumberSizeTests.
-        var projected = SceneProjector.Project(Scene, IsoProjection.Default);
-        var fit = ViewTransform.Fit(projected.Extent, new Size(400, 302), margin: 8);
-        ViewTransform transform = new(fit.Scale * zoom, fit.Offset * zoom);
-        var numberSize = RackNumberSize.For(27, transform.Scale, Scene.Racks);
-
-        // The B of "Bow" from its top to its baseline, through the label's matrix onto the screen.
-        var placement = FloorLabel.Placement(Glyphs("Bow").Bounds, LabelEmSize, projected.BowWedge!.Floor, transform, numberSize);
-        var b = Glyphs("B").Bounds;
-        var bOnScreen = (placement.Transform(b.TopLeft) - placement.Transform(b.BottomLeft)).Length;
-
-        bOnScreen.Should().BeApproximately(Glyphs("1", numberSize).Bounds.Height, 1);
-    }
-
-    [Fact]
-    public void Bow_label_keeps_to_a_floor_with_room_for_the_minimum()
-    {
-        // One cell across at 40 px: room for about 21 px, less than the setting, more than the minimum.
-        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge!.Floor with { Room = new Size(1, 0.7) };
-        ViewTransform transform = new(40, new Vector(200, 200));
-        var ink = Glyphs("Bow").Bounds;
-
-        var placement = FloorLabel.Placement(ink, LabelEmSize, floor, transform, screenEmSize: 27);
-
-        var acrossCells = (placement.Transform(ink.TopRight) - placement.Transform(ink.TopLeft)).Length / (floor.Across.Length * transform.Scale);
-        acrossCells.Should().BeApproximately(1, 1e-9);
-        ScreenEm(placement).Should().BeInRange(RackNumberSize.MinSize, 27);
-    }
-
-    [Fact]
-    public void Bow_label_on_a_short_floor_shrinks_only_to_the_minimum_like_a_rack_number()
-    {
-        // A floor of a narrow ship: a tenth of a cell of room across, far less than a rack number needs (D32, D61).
-        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge!.Floor with { Room = new Size(0.1, 0.7) };
-        ViewTransform transform = new(40, new Vector(200, 200));
-
-        var placement = FloorLabel.Placement(Glyphs("Bow").Bounds, LabelEmSize, floor, transform, screenEmSize: 27);
-
-        ScreenEm(placement).Should().BeApproximately(RackNumberSize.MinSize, 1e-9);
-    }
-
-    [Fact]
-    public void Bow_label_keeps_a_setting_below_the_minimum()
-    {
-        var floor = SceneProjector.Project(Scene, IsoProjection.Default).BowWedge!.Floor with { Room = new Size(0.1, 0.7) };
-        ViewTransform transform = new(40, new Vector(200, 200));
-
-        var placement = FloorLabel.Placement(Glyphs("Bow").Bounds, LabelEmSize, floor, transform, screenEmSize: 8);
-
-        ScreenEm(placement).Should().BeApproximately(8, 1e-9);
-    }
-
-    /// <summary>One em of the label along its upright axis, in screen pixels.</summary>
-    private static double ScreenEm(Matrix placement) => new Vector(placement.M21, placement.M22).Length * LabelEmSize;
 
     private static readonly Ship Caterpillar = ShipLoader.Load("caterpillar");
 
@@ -377,7 +264,7 @@ public class SceneProjectorTests
         [
             .. Corners(rack[1], camera),
             .. Corners(rack[3], camera),
-            .. SceneProjector.BowWedge(Caterpillar.Bounds).SelectMany(f => f.Corners).Select(c => camera.Project(c.X, c.Y, c.Z)),
+            .. BowWedge.Faces(Caterpillar.Bounds).SelectMany(f => f.Corners).Select(c => camera.Project(c.X, c.Y, c.Z)),
         ];
         var enclosing = wanted.Aggregate(new Rect(wanted[0], wanted[0]), (r, p) => Rect.Union(r, p));
 
@@ -457,13 +344,6 @@ public class SceneProjectorTests
     {
         SceneProjector.Project(Scene, IsoProjection.Default).Racks.Should().OnlyContain(r => !r.LabelAbove);
     }
-
-    // The label's text is built at this size and scaled onto the floor, like ShipViewControl's.
-    private const double LabelEmSize = 100;
-
-    private static Geometry Glyphs(string text, double emSize = LabelEmSize) =>
-        new FormattedText(text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal), emSize, Brushes.White, 1)
-            .BuildGeometry(new Point(0, 0));
 
     // --- Bow marker (D62): outline, none, or the wedge for ships without an outline ---
 
