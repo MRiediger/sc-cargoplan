@@ -3261,8 +3261,76 @@ Bauen: kein `StartOptionsTests`-Fall, die Messziele stehen nur im `FrameMeasureW
   (`ShipScene3D.Wedge`) und die Keilnase im Fit (`CameraFit.Bow`); `SceneProjector.Corner` ist der Punkttyp von
   `OutlinePlacement` und `BowMarker`
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** R1 `IsoProjection` heißt nach dem Rückbau
+`CameraOrientation` (eigener Commit, nur Umbenennung). R2 `SceneProjector.Corner` → `Point3D`. R3 die „0,5-px-Abgleichtests
+Teil 2–4“ gab es im Repo nie (Wegwerf-Harnesses); gemeint war der `HoloCamera`-Abgleich in `HoloViewTests`, Nachfolger
+`CameraConformityTests`. R4 Tests ohne 3D-Gegenstück gehen als „Verhalten entfällt (D83) + benannter Nachbartest“. R5 kein
+Unit-Zeitwächter; Deckung über M4, dazu einmal der größte Umriss (Hull D) auf dem `hull_a_outline`-Pfad. R6
+`RackNumberSizeTests.Default_is_the_size_at_zoom_1…` gestrichen, Herkunft der 27 ins D32-Addendum. R7 CC misst M4a/M4b.
+R8 `HoloLines.HalfWidthCells` in px/Zelle der Zielebene, `ShipScene3D` nutzt es. Dazu aus der Planung: Nachfolger vor dem
+Löschen und grün gegen den alten Code; Bildvergleich vorher/nachher am echten Control. Beim Bauen: `ShipCameraTests`' gerahmte
+Kamera trägt `distance`/`target` statt der Altfelder; `TestPlans.HullABeforeK52` verlor seinen letzten Aufrufer und ging;
+der Test „langes Schiff von Backbord“ (`CameraOrientationTests`) liest Flächen und Bug über `CameraMath`;
+`ShipViewControl` übergibt der Szene `CameraNavigation.ZoomOn` statt derselben Formel inline.
+
+**Befund:**
+- Commits 7f7bd15 (`Point3D`), 0e905ef (`BowWedge`, `FloorLabel`), a65d06b (Nachfolger), 5cd813c (Holo-Kulisse), 56b73d1
+  (Navigation und Painter), fadf0ac (`IsoProjection` nur Ausrichtung), fa6a28f (toter Code), e5419ca (Umbenennung), dieser
+  (Doku). Entfernt ≈ 960 Zeilen src.
+- **Lücken gefunden, vor dem Löschen geschlossen:** das „Bow“-Label war im 3D-Pfad ungetestet (alle fünf Tests liefen über
+  `ViewTransform`); mehrere Fit-Regeln (Holo ganz auf langem Schiff, Umriss wie Keil, ohne Marker, kompakt = alles) nur
+  ortho; in `CameraNavigation` fehlten `Clamped`, `ZoomOn`, Pan addiert, Zoom am Anschlag, Fern-Grenze „ganze Szene“,
+  Defaults, Ausrichtung bleibt, anderes Fenster; `BoxFaces.Visible` und die Fuge 0,05 hatten keinen direkten Test.
+  Gegengeprüft (je rot): Aufrechte des Labels quer, Boden hinter dem Bug, Fit ohne Holo-Zweig, Fern-Grenze ohne ganze
+  Szene, `Clamped` klemmt nie, freie Zellen ohne Fuge.
+- **Gleiches Bild:** acht Zustände über die Overlay-Verdrahtung (`ViewPictures`) gerendert, auf cf8716f (Worktree) und
+  e5419ca: Keil mit Label im Fit, gedreht und nah; Umriss; Holo shaded und hidden-line (nah); C2 mit Keil und ohne
+  Marker. Alle **byte-gleich**; Wegwerf-Test nicht committet, Bilder im Scratchpad der Session.
+- Tests in T8.6 (App; Core 1.497 und Import 141 unverändert):
+
+  | Gestrichen | Fälle | Nachfolger |
+  |---|---|---|
+  | `OrbitScaleTests` | 7 | `CameraNavigationTests`, die vier Wächter (seit T8.1) |
+  | `ViewTransformTests` | 33 | `CameraNavigationTests` (Fit, Zoom zum Cursor, Grenzen, Pan, Orbit, gespeicherte Ansicht) + 11 neu dort; `CameraFitTests` (Raum oben) |
+  | `ShipCameraTests` Navigationsteil | 7 | `CameraNavigationTests` (Kamera aus Settings, ohne Platzierung, außerhalb der Grenzen) + neu „Sync lädt Rack weiter achtern“ |
+  | `HoloViewTests` 3D-Kamera folgt der Ansicht | 4 | `CameraConformityTests` (R3) |
+  | `IsoProjectionTests` Projektionsteil | 25 | `CameraMathTests` (Mitte, Bug/Backbord/oben, Unproject) + neu „oben bleibt oben von unten“; ortho-Eigenschaften und `Depth`: entfällt (R4) |
+  | `DrawOrderTests` | 18 | entfällt (Tiefenpuffer); halbtransparente Kisten: `ShipScene3DTests.Crates_are_drawn_from_the_back_to_the_front` |
+  | `SceneProjectorTests` | 57 | neu `BoxFacesTests` (4), `CameraFitTests` (+8), `ShipScene3DTests` Fugen (+2), `ShipViewBuilderTests` Default-Marker (+1); `RackLabelsTests`, `ShipScene3DTests`, `DragPreviewTests` vorhanden; Reihenfolge, Anker, Zeitwächter: entfällt (R4, R5) |
+  | `SceneProjectorTests` Keil und Label | 11 | umgezogen: **neu** `BowWedgeTests` (6), `FloorLabelTests` (9) auf `CameraMath` |
+  | `SceneHitTestTests.Polygon_contains_inner_points_only` | 1 | entfällt mit `Contains`; Strahl: `RayBoxTests` |
+  | `RackNumberSizeTests.Default_is_the_size_at_zoom_1…` | 1 | gestrichen (R6); 27 festgenagelt in `ThemeResourcesTests`, `SettingsStoreTests` |
+  | in place migriert | – | `RackNumberSizeTests` Zoombereich (4) auf dem Perspektiv-Fit; `HoloViewTests` Streifenbreite (3) in der Zielebene |
+
+  Zählung App 1.650 → 1.654 (Keil/Label) → 1.682 (Nachfolger) → 1.678 → 1.554 → 1.529; 0 Warnungen nach jedem Commit.
+- **Toter Code** (IDE0051/IDE0052 über `dotnet format style --severity hidden`, vorher mit einer Probe-Methode geprüft;
+  dazu jeder `public`/`internal` Name der App als Wort über src, XAML und Tests): gelöscht `MissionPalette.HoloAmbient`,
+  `HoloLight`; `CameraNavigation.ZoomOn` hatte seit T8.1 nur Tests, das Control nutzt es jetzt. Behalten mit Grund: die
+  vier Besitz-Felder in `App.xaml.cs` (dort kommentiert), die Felder von `CURSORINFO` (Struct-Layout),
+  `LegendRowPanel.SetRank` (Attached Property), `ShipViewControl.ShownPreview` (Testnaht, T8.4 R5). **Vorbestand, älter als
+  T8.6, nur Testaufrufer:** `WindowBounds.FromRect` (T3.4), `LegendEntry.ReserveLabel` → Rückfrage.
+- **M4** (`--measure-frames`, Release, ohne SC, 30 s je Lauf, drei Runden über alle Ziele abwechselnd, Median der drei
+  Läufe; spät / p95 / fps):
+
+  | Ziel | M4a vor T8.6 (cf8716f) | M4b nach T8.6 (e5419ca) |
+  |---|---|---|
+  | `empty` | 12,9 % / 33,07 ms / 52,9 | 13,1 % / 33,07 ms / 53,0 |
+  | `hull_c` | 1,1 % / 16,68 ms / 59,3 | 2,0 % / 16,68 ms / 58,8 |
+  | `hull_c_states` | 4,6 % / 16,95 ms / 57,3 | 5,0 % / 32,80 ms / 57,1 |
+  | `hull_c_drag` | 13,1 % / 33,90 ms / 52,1 | 12,8 % / 33,90 ms / 52,4 |
+  | `hull_a_outline` | 5,5 % / 32,52 ms / 56,8 | 8,1 % / 33,07 ms / 55,4 |
+  | Vorschau `hull_c_drag` p95 / max | 2,24 / 12,3 ms | 1,79 / 11,6 ms |
+  | Hit-Test `hull_c` p95 | 0,001 ms | 0,001 ms |
+
+  Gate (spät ≤ `empty` + 2 pp = 15,1 %) überall erfüllt. **M4b ist die Vergleichsbasis für T8.7 mit SC.**
+  Einmalig (R5): Hull-D-Umriss (362 Punkte) auf der Hull A, Wegwerf-Build (eine Zeile in `FrameMeasureWindow`, nicht
+  committet; der Log-Hash e5419ca zeigt die lokale Änderung nicht): 8,4 % / 33,07 ms / 55,3 gegen `empty` 10,3 %.
+- Doku: Addenda D15, D21, D32, D63, D83. `CLAUDE.md` (Zeile Schiffsansicht, Dateiliste) und `docs/settings-format.md`
+  (Kameras, Altfelder) gegengelesen, stimmen. Backlog-Zeile `ShipCamera.PxPerCell`/`PanX`/`PanY` steht.
+
 **Akzeptanz:**
-- [ ] `dotnet build` ohne Warnungen, alle Tests grün
+- [x] `dotnet build` ohne Warnungen, alle Tests grün (App 1.529, Core 1.497, Import 141; Slow grün)
+- [ ] Martins Abnahme
 
 ### [ ] T8.7 Gates im Spiel am Aufzug
 **Warum:** S8.0 hat ohne SC gemessen; die Abnahme der Phase passiert im Spiel.
