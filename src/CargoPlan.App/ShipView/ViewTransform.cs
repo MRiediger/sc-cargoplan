@@ -56,6 +56,14 @@ public sealed record ViewBasis(ViewTransform Fit, Point Centre, Point Anchor, do
         var wholeScale = whole is { } scene ? ViewTransform.Fit(scene, viewport, margin, top).Scale : fit.Scale;
         return new ViewBasis(fit, fit.Apply(new Point(extent.X + extent.Width / 2, extent.Y + extent.Height / 2)), anchor, wholeScale);
     }
+
+    /// <summary>
+    /// The ship view's basis for <paramref name="current"/>, the scene as its camera sees it: the fit of its fit extent, the
+    /// whole scene and its anchor. <paramref name="reference"/> is the same ship at its default camera.
+    /// </summary>
+    /// <param name="top">Pixels kept free above the margin for the rack numbers of a long ship (D61).</param>
+    public static ViewBasis For(ProjectedScene current, ProjectedScene reference, Size viewport, double margin, double top) =>
+        Of(current.FitExtent, current.Anchor, viewport, margin, top, current.Extent);
 }
 
 /// <summary>
