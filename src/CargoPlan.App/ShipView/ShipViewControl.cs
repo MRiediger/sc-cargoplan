@@ -823,7 +823,8 @@ public sealed class ShipViewControl : FrameworkElement
     private string? DestinationAt(Point position) =>
         Projected() is { } scene ? SceneHitTest.DestinationAt(scene, CurrentTransform(scene), RenderSize, position) : null;
 
-    private SceneHit? HitAt(Point position) =>
+    // Internal for the frame measurement's hit-test sweep (Phase 8).
+    internal SceneHit? HitAt(Point position) =>
         Projected() is { } scene ? SceneHitTest.HitAt(scene, CurrentTransform(scene), RenderSize, position) : null;
 
     /// <summary>The gesture of <paramref name="drag"/> with the cursor at <paramref name="position"/>.</summary>

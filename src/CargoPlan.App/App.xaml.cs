@@ -74,6 +74,14 @@ public partial class App : Application
         var outlines = ShipOutlineLoader.Load();
 
         var options = StartOptions.Parse(e.Args);
+
+        // The measuring tool instead of the overlay (Phase 8): before settings and plan, so it touches neither.
+        if (options.MeasureFrames is { } measured)
+        {
+            new Diagnostics.FrameMeasureWindow(ships, measured).Show();
+            return;
+        }
+
         var (settings, settingsProblem) = SettingsStore.Load(SettingsStore.DefaultPath);
 
         // The settings' ship, else the start plan's, else the Hull A; one that doesn't load never stops the start (T7.2).

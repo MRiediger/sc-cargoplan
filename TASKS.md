@@ -2745,7 +2745,11 @@ müssten“ unter S8.0.
   kommen als `korrektur.md`.
 - Core bleibt unverändert, alles in `CargoPlan.App`. Plan Schema 8, Schiff Schema 5, Mission Schema 3, Look Schema 1 bleiben.
 - **Rendering zählt als Laufzeit:** Frame-Zeit und Hit-Test-Zeit vor und nach jedem Task messen. Messart wie S8.0: Abstand der
-  Frames über `CompositionTarget.Rendering`, ≥ 300 Frames, Basislinie leeres Fenster. Messbefehl: kommt mit T8.1 (Dev-Schalter).
+  Frames über `CompositionTarget.Rendering`, ≥ 300 Frames, Basislinie leeres Fenster. Messbefehl (seit T8.1), Release-Build,
+  ohne SC, je Ziel 30 s, eine Zeile je Lauf in `measure-frames.log` neben der Exe, Exit-Code 0 = gültig:
+  `dotnet publish src/CargoPlan.App -c Release -o ~/CargoPlan-measure` und dann
+  `foreach ($t in 'empty','hull_c','utv','hull_a') { Start-Process ~/CargoPlan-measure/CargoPlan.App.exe -ArgumentList '--measure-frames', $t -Wait }`.
+  Leichte Szenen (`empty`, `utv`) streuen um ±5 fps (M0, T8.1): Vergleiche mit mindestens zwei Läufen.
 - **Bestehende Tests der Schiffsansicht sind das Orakel:** jedes Verhalten, das ein Test heute festnagelt (Gesten B3/B6/K3.2/
   T3.14b, Haken, Auswahl, Drop-Regeln, Fugen, Rack-Nummern), besteht nach dem Umbau denselben Test oder einen gleichwertigen.
   Kein Verhalten wird nebenbei geändert.
