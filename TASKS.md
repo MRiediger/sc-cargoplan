@@ -2758,6 +2758,10 @@ müssten“ unter S8.0.
 - **Bestehende Tests der Schiffsansicht sind das Orakel:** jedes Verhalten, das ein Test heute festnagelt (Gesten B3/B6/K3.2/
   T3.14b, Haken, Auswahl, Drop-Regeln, Fugen, Rack-Nummern), besteht nach dem Umbau denselben Test oder einen gleichwertigen.
   Kein Verhalten wird nebenbei geändert.
+- **Handling gegen main (ab T8.4):** jeder Task-Plan enthält einen Abschnitt „Handling gegen main“, eine Liste der Gesten
+  und Reaktionen, die der Task berührt (Maustaste, Modifier, Ort, Ergebnis, Notice), mit Soll aus `main` und Ist nach dem
+  Task. Martin geht die Liste am Branch-Build und am `main`-Build mit derselben Plandatei durch, bevor das Gate zählt.
+  Abweichungen sind Rückfragen, keine Befunde (Martin, 30.10.2026, während T8.3).
 - **Kein paralleler 2D-Pfad**, kein `--legacy-2d`. Vergleichsstand für Screenshots und Verhalten ist ein Publish-Build von
   `main` (`dotnet publish src/CargoPlan.App -c Release -o ~/CargoPlan-main`). Bis T8.6 bleibt der alte Code liegen, wird aber
   nicht mehr aufgerufen.
@@ -3012,7 +3016,7 @@ Modus, sondern das freie Raster ab 12 px (D61).
 - [x] Frame-Zeit vorher/nachher (M1a/M1b oben)
 - [x] `dotnet build` ohne Warnungen, `dotnet test` grün
 
-### [ ] T8.3 Hit-Test und Auswahl
+### [x] T8.3 Hit-Test und Auswahl (30.10.2026, abgenommen 30.10.)
 **Warum:** Hit-Test und Drop-Regeln ziehen in Strahl-Logik um – die Stelle mit dem höchsten Regressionsrisiko, darum vor dem Drag.
 - Strahl gegen Quader auf den Rack-/Kistendaten (nicht `VisualTreeHelper.HitTest`), Tooltips (`SceneHitTest.ToolTipAt`),
   Rechtsklick-Auswahl mit Versatz (T3.14b), Kistenklick hakt das Ziel ab (B6), K1.4-Grenze
@@ -3021,9 +3025,65 @@ Modus, sondern das freie Raster ab 12 px (D61).
   `ScreenPoints` auf die echte Ansicht (bisher prüfte kein Test den Hit-Test des Controls gegen sein Bild); Hit-Sweep im
   `FrameMeasureWindow` wieder einschalten (M2 = 3D-Basislinie, Referenz M0 alter Pfad p95 ≤ 0,007 ms)
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** R1 Treffer-Regel wie `main` (D21): das erste Rack auf der
+Sichtlinie entscheidet, auch auf freien Zellen, darin die erste Kiste; E1 die andere Regel (nächste Kiste über alle Racks,
+Ablage behält „erstes Rack“) als Backlog-Zeile mit Auslöser. R2 Doppelklick wie `main` (D16): auf Fracht zweimal haken,
+Reset nur daneben. R3 Treffer auf den exakten Zellquadern der Daten, nicht den eingerückten gezeichneten. R4 Testnaht
+`InternalsVisibleTo` + `internal Press`/`Release`/`ToolTipAt`, keine öffentliche API für Tests. R5 Klickprobe durch Martin
+(DPI). Dazu aus der Planung: `CrateSelectionTests` und `SelectionFocusTests` haben keine Klickpunkte, es gab nichts
+umzustellen; „Versatz in Schiffskoordinaten“ (T3.14b) ist eine Drag-Regel und kommt mit dem Drop in T8.4 (bis dahin tut
+ein Rechts-Ziehen von einer Kiste nichts); „Hover-Zustand“ ist in `main` nur der Tooltip. Beim Bauen: `InternalsVisibleTo`
+als `AssemblyAttribute`-Item, weil das gleichnamige MSBuild-Item nicht in der MS-Doku steht.
+
+**Befund:**
+- Commits 408e721 (`RayBox.Span`/`Ahead`), 362ee61 (`SceneHitTest` auf Strahlen), 0b22b1d (Control live, Testnaht,
+  `ShipViewHitTests`), 55ef0e3 (Hit-Sweep, M2), dieser (Doku).
+- Der Hit-Test nimmt die Kamera, mit der das Bild gezeichnet wurde (`_shown` aus `ApplyCamera`), keine zweite. Holo, Umriss
+  und Keil sind keine Szenendaten: sie treffen nicht und verdecken nicht. Ein Quader hinter der Kamera zählt nicht, einer um
+  die Kamera ab der Kamera (`RayBox.Ahead`).
+- Zwei Lücken der alten Tests geschlossen: kein Test hielt R1 fest (im Fall „Rack vorn gewinnt“ hat das vordere Rack selbst
+  Fracht, Regel b gäbe dasselbe) → Wächter `An_empty_rack_in_front_covers_the_cargo_behind_it` (E1-Fall); die ersten
+  Live-Tests merkten eine falsche Hit-Kamera nicht (Rack 1 ist voll Riker, ein verschobener Klick trifft auch Riker) → jede
+  Kiste auf den oberen Racks wird einzeln geprüft, vor und nach einem Orbit.
+- Ein Testpunkt war entartet: von unten streift die Sichtlinie zu (1, 2, 1,5) genau die Kante des Agricium bei (2, 3) und
+  kippt in Perspektive hinein; jetzt x = 0,5 auf derselben Fläche, Erwartung unverändert.
+- Klickprobe Martin am Branch-Build mit voller Hull C und allen Zuständen (Plan aus dem Messziel `hull_c_states`),
+  Windows-Skalierung ≈ 110 % (106 DPI) auf 3440 × 1440: „kein Ruckeln“, abgenommen.
+- **M2** (`--measure-frames`, Release, ohne SC, 30 s je Lauf, Median aus drei Läufen; p95 / spät / fps):
+
+  | Ziel | M1b (T8.2) | M2 (T8.3) |
+  |---|---|---|
+  | `hull_c_states` | 16,95 ms / 4,2 % / 57,5 | 33,07 ms / 5,9 % / 56,4 |
+  | `hull_c` | 16,68 ms / 1,9 % / 58,9 | 16,68 ms / 2,2 % / 58,7 |
+  | `empty` | 33,07 ms / 12,1 % / 53,3 | 33,07 ms / 12,5 % / 53,1 |
+  | Hit-Test `hull_c` (600 Punkte) | aus seit T8.1 (M0 alter Pfad: p95 0,007 ms, 30 Treffer) | p95 0,002 ms, max 0,59 ms, 23 Treffer |
+
+  Gate Hit p95 ≤ 1 ms erfüllt; K1-Gate p95 `hull_c_states` ≤ p95 `empty` + 2 ms erfüllt. **Abbruchkriterium gerissen:**
+  `hull_c_states` gegen M1b +16,1 ms, p95 kippte in zwei von drei Läufen (16,95 / 33,07 / 33,07). Gestoppt mit Zahlen;
+  Martin hat nach eigener Probe trotzdem abgenommen („kein Ruckeln“). Am Zeichenpfad änderte T8.3 nur die Zuweisung von
+  `_shown` in `ApplyCamera`; dass es Streuung ist, ist vermutet, nicht belegt.
+- Tests in T8.3 (rot wurde kein bestehender Test außer `SceneHitTestTests` beim Umzug, die Datei kompilierte erst mit der
+  neuen API):
+
+  | Test | Stand | Grund |
+  |---|---|---|
+  | `SceneHitTestTests` (26 → 30) | migriert, gleiche Erwartungen | Kamera mit Standard-Ausrichtung 200 Zellen weit, Punkte über `CameraMath.Project`; K1.4 mit Viewport 400 × 300; Fugen-Test umbenannt (R3, weiter „Riker“); ein Punkt von unten verlegt (s. o.); der `DropTarget`-Teil des Rechts-Zieh-Tests bleibt orthografisch bis T8.4; + 4 neu (Nahsicht, Kamera im Rack, Fracht hinter der Kamera, leeres Rack vorn) |
+  | `DragGestureTests`, `CrateTurnTests`, `CrateSelectionTests`, `SelectionFocusTests`, `CrateDropTests` | grün, unverändert | rein, ohne Klickpunkte |
+  | `DropTargetTests`, `RackLabelsTests` | grün, unverändert | `Entry` aus derselben `Span` |
+  | `RayBoxTests` | + 5 | `Span`, `Ahead` (vor, um, hinter der Kamera, daneben) |
+  | `CameraConformityTests` | grün | WPF-Projektion nach `ScreenPoints.Wpf` herausgezogen |
+  | `ShipViewLockTests` | grün | – |
+  | `ShipViewHitTests` (neu, 8, STA) | – | erster Test, der das Control gegen sein eigenes Bild klickt; Klickpunkte aus WPFs Abbildung der Kamera des Controls, nicht aus `CameraMath` |
+
+- Gegengeprüft (je rot): Kamera im Quader ohne `Ahead`-Zweig; nächste Kiste über alle Racks; `Entry` statt `Ahead`
+  (erst mit dem Test „Fracht hinter der Kamera“); Hit-Kamera 20 % weiter weg; Doppelklick setzt immer zurück.
+  Tests App 1.565 → 1.582, Core 1.492, Import 141; 0 Warnungen.
+
 **Akzeptanz:**
-- [ ] bestehende Gesten-Tests grün (oder gleichwertig ersetzt, je Test benannt)
-- [ ] Hit-Test-Zeit vorher/nachher
+- [x] bestehende Gesten-Tests grün (oder gleichwertig ersetzt, je Test benannt; Tabelle oben)
+- [x] Hit-Test-Zeit vorher/nachher (M0 0,007 ms alter Pfad → M2 0,002 ms)
+- [x] Klickprobe am Branch-Build (Martin, 30.10.2026, Skalierung ≈ 110 %)
+- [x] `dotnet build` ohne Warnungen, `dotnet test` grün
 
 ### [ ] T8.4 Drag & Drop
 **Warum:** Das L der S8.0-Liste; Drag-Semantik bleibt, nur Ziel und Vorschau werden 3D.
@@ -3136,6 +3196,9 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   Schema-Bump von settings.json; nach v0.1.0 schreibt kein Build sie mehr.
 - Hysterese für Rack-Nummern: Fläche wechseln oder ausblenden erst nach einem Mindestabstand, damit eine Nummer beim Drehen
   nicht hin- und herspringt (D83, T8.2). Auslöser: Flackern am Aufzug (T8.7) oder Hauler-Report.
+- Kiste unter einem leeren vorderen Rack ist in der Ansicht nicht anklickbar (Regel D21 „erstes Rack entscheidet“);
+  Alternative (b) nächste Kiste über alle Racks, Ablage behält „erstes Rack“. Auslöser: Hauler-Report oder Martin am Aufzug
+  (Hull A von oben, Rack 1 leer). Wächter: `SceneHitTestTests.An_empty_rack_in_front_covers_the_cargo_behind_it` (T8.3, E1).
 - ~~Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).~~ Übernommen als T7.4 (D55).
 - ~~Umriss in 3D wie im Maintenance Panel (Prisma aus Draufsicht + Höhe, grober Rumpf aus Drauf- und Seitenansicht, oder Holo-Modelle), falls der flache Umriss im Spiel nicht reicht (D62).~~ Holo-Modelle übernommen als T7.4b (Spike) und T7.4c.
 - ~~Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).~~ → K1
