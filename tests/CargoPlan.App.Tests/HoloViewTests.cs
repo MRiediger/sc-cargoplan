@@ -123,6 +123,22 @@ public sealed class HoloViewTests
         positions.Should().OnlyContain(p => Vector3D.DotProduct((Vector3D)p, look) < 0);
     }
 
+    // WPF draws a triangle's front where its corners run counter-clockwise on screen; a model without BackMaterial shows
+    // nothing from behind. The scene's edges have none, so a strip turned away from the camera vanished (T8.2 → T8.5).
+    [Fact]
+    public void A_strip_shows_its_front_to_the_camera()
+    {
+        var look = Look(IsoProjection.Default);
+
+        var (positions, indices) = HoloLines.Strips([new(0, 0, 0), new(4, 0, 0)], [0, 1], look, 0.01);
+
+        for (var t = 0; t < indices.Length; t += 3)
+        {
+            var (a, b, c) = (positions[indices[t]], positions[indices[t + 1]], positions[indices[t + 2]]);
+            Vector3D.DotProduct(Vector3D.CrossProduct(b - a, c - a), look).Should().BeNegative($"triangle {t / 3}");
+        }
+    }
+
     [Fact]
     public void An_edge_seen_end_on_draws_nothing()
     {

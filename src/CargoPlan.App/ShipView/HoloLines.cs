@@ -38,7 +38,9 @@ public static class HoloLines
             side *= halfWidth / side.Length;
             var first = positions.Count;
             positions.AddRange([a - side, a + side, b + side, b - side]);
-            indices.AddRange([first, first + 1, first + 2, first, first + 2, first + 3]);
+
+            // Wound to show the front to the camera: a model without BackMaterial shows nothing from behind (T8.5).
+            indices.AddRange([first, first + 2, first + 1, first, first + 3, first + 2]);
         }
 
         return ([.. positions], [.. indices]);
