@@ -14,7 +14,7 @@ namespace CargoPlan.App.ShipView;
 /// crates inside the hull show through it, racks under the ship lie under it. The camera is set by the view
 /// (<see cref="CameraMath.ApplyTo"/>); this class only builds and rebuilds models.
 /// </summary>
-internal sealed class ShipScene3D
+public sealed class ShipScene3D
 {
     // Every crate this much smaller all round: the gap between crates shows each one (T3.11b), as in the 2D view.
     private const double Inset = 0.05;
@@ -137,20 +137,25 @@ internal sealed class ShipScene3D
         _holoLines.Geometry = Frozen(new MeshGeometry3D { Positions = new Point3DCollection(positions), TriangleIndices = new Int32Collection(indices) });
     }
 
-    /// <summary>A box inset on every side, six faces of two triangles, each with its own normals so edges stay sharp.</summary>
-    private static MeshGeometry3D Cuboid(ShipBox box)
+    /// <summary>
+    /// A box inset on every side, six faces of two triangles, each with its own normals so edges stay sharp, and texture
+    /// coordinates in cells for the hatch (T8.2): u to the right and v down as the face is seen from outside with up at
+    /// +z (the top and bottom with the bow up), so no face shows its hatch mirrored.
+    /// </summary>
+    public static MeshGeometry3D Cuboid(ShipBox box)
     {
         var (x0, y0, z0) = (box.Min.X + Inset, box.Min.Y + Inset, box.Min.Z + Inset);
         var (x1, y1, z1) = (box.Max.X - Inset, box.Max.Y - Inset, box.Max.Z - Inset);
         MeshGeometry3D mesh = new();
+        Vector3D x = new(1, 0, 0), y = new(0, 1, 0), z = new(0, 0, 1);
 
         // Counter-clockwise seen from outside, so the front faces point out.
-        Quad(mesh, new(x1, y0, z0), new(x1, y1, z0), new(x1, y1, z1), new(x1, y0, z1), new(1, 0, 0));
-        Quad(mesh, new(x0, y1, z0), new(x0, y0, z0), new(x0, y0, z1), new(x0, y1, z1), new(-1, 0, 0));
-        Quad(mesh, new(x1, y1, z0), new(x0, y1, z0), new(x0, y1, z1), new(x1, y1, z1), new(0, 1, 0));
-        Quad(mesh, new(x0, y0, z0), new(x1, y0, z0), new(x1, y0, z1), new(x0, y0, z1), new(0, -1, 0));
-        Quad(mesh, new(x0, y0, z1), new(x1, y0, z1), new(x1, y1, z1), new(x0, y1, z1), new(0, 0, 1));
-        Quad(mesh, new(x0, y1, z0), new(x1, y1, z0), new(x1, y0, z0), new(x0, y0, z0), new(0, 0, -1));
+        Quad(mesh, new(x1, y0, z0), new(x1, y1, z0), new(x1, y1, z1), new(x1, y0, z1), x, (y, -z));
+        Quad(mesh, new(x0, y1, z0), new(x0, y0, z0), new(x0, y0, z1), new(x0, y1, z1), -x, (-y, -z));
+        Quad(mesh, new(x1, y1, z0), new(x0, y1, z0), new(x0, y1, z1), new(x1, y1, z1), y, (-x, -z));
+        Quad(mesh, new(x0, y0, z0), new(x1, y0, z0), new(x1, y0, z1), new(x0, y0, z1), -y, (x, -z));
+        Quad(mesh, new(x0, y0, z1), new(x1, y0, z1), new(x1, y1, z1), new(x0, y1, z1), z, (-y, -x));
+        Quad(mesh, new(x0, y1, z0), new(x1, y1, z0), new(x1, y0, z0), new(x0, y0, z0), -z, (y, -x));
         return Frozen(mesh);
     }
 
@@ -170,13 +175,19 @@ internal sealed class ShipScene3D
 
     private static Point3D Point(SceneProjector.Corner corner) => new(corner.X, corner.Y, corner.Z);
 
-    private static void Quad(MeshGeometry3D mesh, Point3D a, Point3D b, Point3D c, Point3D d, Vector3D normal)
+    /// <param name="texture">The face's u and v axes in the ship; a point's texture coordinates are its position along them, in cells.</param>
+    private static void Quad(MeshGeometry3D mesh, Point3D a, Point3D b, Point3D c, Point3D d, Vector3D normal, (Vector3D U, Vector3D V)? texture = null)
     {
         var first = mesh.Positions.Count;
         foreach (var point in (Point3D[])[a, b, c, d])
         {
             mesh.Positions.Add(point);
             mesh.Normals.Add(normal);
+            if (texture is var (u, v))
+            {
+                var p = (Vector3D)point;
+                mesh.TextureCoordinates.Add(new Point(Vector3D.DotProduct(p, u), Vector3D.DotProduct(p, v)));
+            }
         }
 
         foreach (var index in (int[])[0, 1, 2, 0, 2, 3])
