@@ -2867,7 +2867,7 @@ die Textdurchsicht auf durch D83 geänderte Begriffe.
 - [x] Lehre in TASKS.md (Lehren) und CLAUDE.md (A9, Zeile Schiffsansicht)
 - [x] `dotnet build` ohne Warnungen, `dotnet test` grün (Core 1.492, App 1.473, Import 141; nur Doku geändert)
 
-### [ ] T8.1 `CameraMath`, Szene und Kamera
+### [x] T8.1 `CameraMath`, Szene und Kamera (30.10.2026, abgenommen 30.10.)
 **Warum:** Die Projektion ist das Fundament: Bild, Overlay, Hit-Test und Gesten-Tests hängen an einer Kamera (D83).
 - `CameraMath` (WPF-frei: Yaw, Pitch ±85°, Distanz, Ziel, FOV 40°, Viewport-Größe; `Project`, `Unproject`), daraus die
   `PerspectiveCamera`; Konformitätstest gegen `GeneralTransform3DTo2D` (Rack-Ecken, Kistenmitten, mehrere Kameras, 0,5 DIP,
@@ -2876,17 +2876,67 @@ die Textdurchsicht auf durch D83 geänderte Begriffe.
   schwaches Gegenlicht von unten)
 - Orbit, Zoom (Distanz), Pan (Ziel); Reset, Doppelklick, Reset-Symbol, Hotkey `resetView` unverändert; Kamera-Persistenz
   `yaw`/`pitch`/`distance`/`target`, Einträge mit `pxPerCell` verworfen (D83)
-- Frame-Zeit-Harness aus dem Spike als Dev-Schalter portieren (Arbeitsname `--measure-frames`, ≥ 300 Frames, p50/p95 auf
-  stderr), Befehl in den Phasenkopf; Basislinie damit messen, danach `git worktree remove --force ..\sc-cargoplan-s8` und
-  `git branch -D spike/s8-3d`
+- Frame-Zeit-Harness aus dem Spike als Dev-Schalter portieren, Befehl in den Phasenkopf; Basislinie damit messen, danach
+  Spike-Worktree und Branch löschen
 - Addenda D52, D63 (Holo in der Szene, Keil in 3D)
 
-**Akzeptanz:**
-- [ ] Konformitätstest grün
-- [ ] UTV und Hull A: kein Pumpen (Martin)
-- [ ] Hull C mit Holo ≥ 55 fps (Messbefehl, vorher/nachher)
-- [ ] Spike-Worktree und Branch gelöscht, nachdem die Basislinie steht
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** R1 Hit-Test bis T8.3 aus: Klicks auf die Ansicht treffen
+nichts (kein Haken, kein Move, keine Auswahl, kein Tooltip; Doppelklick setzt überall zurück, Rechtsklick leert die Auswahl).
+R2 FOV horizontal wie WPF, D83-Formel mit der Breite `W` (D83-Addendum). R3 Zoom-Grenzen schon in T8.1 (T8.5 behält Text und
+Presets). R4 Ergebnis in `measure-frames.log` neben der Exe, eine Zeile je Lauf, Exit-Code 0/1 (kein stderr: kein `Console`
+in der App). R5 Holo-Halbtransparenz: bei Artefakten Stopp, Versuche in fester Reihenfolge (nur Vorderseiten,
+Alpha-Untergrenze, Deckkraft 1); ein zweiter `Viewport3D` wäre eine D83-Revision. R6 `docs/settings-format.md` im
+Format-Commit. R7 im Umriss-Modus bis T8.5 kein Bug-Marker. R8 Downgrade hingenommen (D83-Addendum, Known issues in T9.1).
+K1 Altfelder `pxPerCell`/`panX`/`panY` nur befristet lesbar (Backlog). K2 Hit-Test-Basislinie siehe M0/M1. Dazu beim Bauen:
+`CameraMath.ApplyTo` setzt die WPF-Kamera (nicht das Control), damit der Konformitätstest genau diesen Weg prüft; der private
+2D-Zeichencode des Controls ist entfernt (hing an `IsoProjection`), die öffentlichen Painter-Klassen bleiben bis T8.6;
+`View`/`ShipViewState` entfallen (einziger Abnehmer war `HoloBackdrop`). Gate fps siehe unten.
 
+**Befund:**
+- Commits 60382f2 (Harness, M0), a0b96e1 (`CameraMath`, Konformitätstest), 36d8865 (Navigation, Fit, Grenzen), da83662
+  (Persistenz), e4ec2d9 (Szene, Control, XAML), dieser (Doku). Spike-Worktree und `spike/s8-3d` nach M0 gelöscht.
+- Konformität: UTV, Hull A, Hull C × 6 Kameras × 3 Fenstergrößen innerhalb 0,5 DIP. Gegenprobe: Fokus aus der Höhe
+  (vertikales FOV) → alle drei rot.
+- Die vier Holo-Pump-Wächter laufen als `CameraNavigationTests` auf der neuen Kamera; jeder einzeln gegengeprüft: Orbit, der
+  neu fittet (Wächter 1, 2), Grenzen vom aktuellen Winkel (3), Referenz, die der Ladung folgt (4).
+- Kein bestehender Test prüfte den Hit-Test des Controls gegen sein Bild: zwischen T8.1 und T8.3 ist der Live-Pfad ungedeckt.
+- Holo-Kanten (Hidden-Line) sind nur in der Zielebene genau 1 px breit, vorn etwas breiter, hinten schmaler; Prüfung in T8.2
+  mit den Fugen.
+- Tests in T8.1:
+
+  | Test | Stand | Grund |
+  |---|---|---|
+  | `SettingsStoreTests` Kamera-Round-Trip | umgeschrieben auf `distance`/`target`, + 3 neue | Altfeld-Einträge fallen beim Laden weg, Nullwerte werden nicht geschrieben |
+  | `SettingsSessionTests` (Look-Import behält Kameras) | auf neue Felder umgestellt | Sinn bleibt |
+  | `StartOptionsTests` | grün, + 5 Fälle `--measure-frames` | – |
+  | `OrbitScaleTests`, `ShipCameraTests` (Rahmen-Teil), `ViewTransformTests` | grün, migriert in T8.1, gestrichen in T8.6 | testen `ViewNavigation`/`ZoomLimits`, die das Control nicht mehr nutzt; Gegenstücke in `CameraNavigationTests` |
+  | `HoloViewTests` (`HoloCamera.For`), `SceneProjectorTests`, `DrawOrderTests`, `IsoProjectionTests` (Projektion), `RackNumberSizeTests`, `FreeCellGridTests` | grün, gestrichen bzw. migriert in T8.2/T8.6 | 2D-Painter und Holo-Kulisse, unbenutzt seit T8.1 |
+  | `SceneHitTestTests`, `DropTargetTests`, `DragGestureTests`, `CrateDropTests`, `CrateSelectionTests`, `CrateTurnTests`, `SelectionFocusTests` | grün, Orakel für T8.3/T8.4 | reine Klassen, unverändert |
+  | `ShipViewLockTests`, `OverlayLegendXamlTests` | grün | Sperre, Legenden-Drag-Start und Theme-DPs bleiben |
+  | `StopHatchTimingTests` (nur von Hand) | misst seit T8.1 nichts Sinnvolles | Schraffur kommt in T8.2 |
+
+- Neu: `CameraMathTests` (13), `CameraConformityTests` (3), `CameraNavigationTests` (20), `FrameStatisticsTests` (7). Tests App
+  1.473 → 1.524, Core 1.492, Import 141; 0 Warnungen.
+- **M0/M1** (`--measure-frames`, Release, ohne SC, 30 s je Lauf; fps, mehrere Läufe):
+
+  | Ziel | M0 2D (60382f2) | M1 3D (e4ec2d9) |
+  |---|---|---|
+  | `hull_c` 144 Kisten + Holo | 58,8 / 59,5 | 53,3 / 54,6 / 55,0 |
+  | `hull_a` 4 Kisten + Holo | 57,1 / 57,9 | 54,3 / 52,3 |
+  | `utv` 1 Kiste + Holo | 57,6 / 52,4 | 55,8 / 52,9 |
+  | `empty` | 52,2 / 53,2 | 53,1 / 51,2 |
+  | Hit-Test p95 | ≤ 0,007 ms (alter Pfad, Referenz) | entfällt (R1); 3D-Basislinie = M2 in T8.3 |
+
+  Median überall 16,67 ms, p95 33 ms in M1. Das leere Fenster ist in beiden Builds so langsam wie M1; ein Neuzeichnen pro
+  Frame änderte M1 nicht (52,5 / 52,1). Vermutet wird die Taktung des Layered Window, nicht die Szene; belegt ist es nicht.
+  Erster Versuch einer leeren Basislinie ohne Änderung pro Frame: 32 fps (WPF taktet ein unverändertes Fenster herunter).
+
+**Akzeptanz:**
+- [x] Konformitätstest grün
+- [x] UTV und Hull A: kein Pumpen (Martin, Release-Build vom Branch, 30.10.2026: „perfekt, kein Pumpen, Freigabe erteilt“)
+- [ ] Hull C mit Holo ≥ 55 fps: nicht erreicht (53,3 / 54,6 / 55,0); hingenommen mit der Freigabe, Messung mit SC in T8.7
+- [x] Spike-Worktree und Branch gelöscht, nachdem die Basislinie steht
+- [x] `dotnet build` ohne Warnungen, `dotnet test` grün
 ### [ ] T8.2 Darstellung der Kisten
 **Warum:** Alle Zustände, die die 2D-Ansicht zeigt, müssen in 3D gleich lesbar sein.
 - Stop-Farben (`StopBrushes` als Material), Schraffur ab der zweiten Farbrunde, Erledigt-Grau, Geladen-Symbol (K6.4), offShip,
@@ -2894,6 +2944,9 @@ die Textdurchsicht auf durch D83 geänderte Begriffe.
 - Freies Zellraster und „alle Zellen“ als ein Mesh pro Rack
 - Rack-Nummern im 2D-Overlay (`RackNumberSize`), ausgeblendet bei Verdeckung (Strahl Kamera → Anker trifft vorher ein anderes
   Rack oder die Holo-Box); Addenda D32, D61 soweit betroffen
+- Aus T8.1: „Bow“-Label des Keils im Overlay (D52-Addendum); Platz oben für die Nummern langer Schiffe im Fit (D61, in T8.1
+  ohne); die Theme-DPs des Controls (`CrateFillAlpha`, `StopPalette`, Kanten, Auswahl) wieder anschließen; Breite der
+  Holo-Kanten in Perspektive mit den Fugen prüfen
 
 **Akzeptanz:**
 - [ ] Screenshots gegen den `main`-Build, jeder Zustand einmal sichtbar
@@ -2905,6 +2958,9 @@ die Textdurchsicht auf durch D83 geänderte Begriffe.
 - Strahl gegen Quader auf den Rack-/Kistendaten (nicht `VisualTreeHelper.HitTest`), Tooltips (`SceneHitTest.ToolTipAt`),
   Rechtsklick-Auswahl mit Versatz (T3.14b), Kistenklick hakt das Ziel ab (B6), K1.4-Grenze
 - Gesten-Tests auf den Projektionshelfer umstellen (hier, nicht erst in T8.6)
+- Aus T8.1: `ShipViewControl.HitAt`/`DestinationAt` liefern seit T8.1 null (R1) – hier ersetzen; neue Tests klicken über
+  `ScreenPoints` auf die echte Ansicht (bisher prüfte kein Test den Hit-Test des Controls gegen sein Bild); Hit-Sweep im
+  `FrameMeasureWindow` wieder einschalten (M2 = 3D-Basislinie, Referenz M0 alter Pfad p95 ≤ 0,007 ms)
 
 **Akzeptanz:**
 - [ ] bestehende Gesten-Tests grün (oder gleichwertig ersetzt, je Test benannt)
@@ -2921,8 +2977,10 @@ die Textdurchsicht auf durch D83 geänderte Begriffe.
 
 ### [ ] T8.5 Look und Settings
 **Warum:** Look-Presets und Settings müssen auf der neuen Ansicht gelten, ohne Formatbruch (D83).
-- Halo-Texte im Overlay, Zoom-Grenzen als Distanz (`maxZoomPxPerCell` → `d_min`, Untergrenze 2 × Fit-Distanz), Look-Presets und
-  -Export unverändert gültig, Umriss als Fläche in der Holo-Bodenebene (inkl. `holoOffset`); Addendum D62
+- Halo-Texte im Overlay, Look-Presets und -Export unverändert gültig, Umriss als Fläche in der Holo-Bodenebene (inkl.
+  `holoOffset`; bis dahin im Umriss-Modus kein Bug-Marker, T8.1 R7); Addendum D62
+- Zoom-Grenzen als Distanz gibt es seit T8.1 (R3): hier nur Text und Tooltip des Reglers im Settings-Fenster (Zellgröße in
+  der Zielebene, D76-/D83-Addendum)
 
 **Akzeptanz:**
 - [ ] drei Presets im Spiel (Martin)
@@ -2931,6 +2989,10 @@ die Textdurchsicht auf durch D83 geänderte Begriffe.
 **Warum:** Es gibt nur noch eine Projektion; toter Code und doppelte Tests gehen.
 - `SceneProjector`, `DrawOrder`, `IsoProjection`-Zeichenpfad entfernen, verbliebene Tests migrieren, die 0,5-px-Abgleichtests
   (Teil 2–4 der Holo-Pump-Reihe) streichen
+- Aus T8.1 unbenutzt: `HoloBackdrop`, `HoloCamera`, `ShipViewState`, `ViewNavigation`, `Framing`, `ViewBasis`, `ZoomLimits`,
+  `ViewTransform`; mit ihnen `OrbitScaleTests`, der Rahmen-Teil von `ShipCameraTests`, `ViewTransformTests`, `HoloCamera` in
+  `HoloViewTests` (Gegenstücke in `CameraNavigationTests`). `IsoProjection` bleibt als Orientierung (Yaw/Pitch, `DefaultFor`,
+  `IsLong`) für `CameraMath`
 
 **Akzeptanz:**
 - [ ] `dotnet build` ohne Warnungen, alle Tests grün
