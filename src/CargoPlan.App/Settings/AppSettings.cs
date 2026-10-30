@@ -109,8 +109,9 @@ public sealed record ShipViewSettings(double MaxZoomPxPerCell = AppearanceRules.
     // Edited by hand, an entry without a camera or an id names nothing: dropped at the file boundary (A6), like a gap in
     // recentShips. RespectNullableAnnotations doesn't reach dictionary values ("Limitations").
     // Source: https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/nullable-annotations
+    // A framing from before the perspective view (D83) means nothing there: that ship starts at its default camera.
     public IReadOnlyDictionary<string, ShipCamera>? Cameras { get; init; } =
-        Cameras?.Where(c => !string.IsNullOrWhiteSpace(c.Key) && c.Value is not null).ToDictionary();
+        Cameras?.Where(c => !string.IsNullOrWhiteSpace(c.Key) && c.Value is { PxPerCell: null, PanX: null, PanY: null }).ToDictionary();
 }
 
 /// <summary>

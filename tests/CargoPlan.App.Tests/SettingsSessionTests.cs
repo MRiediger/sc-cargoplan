@@ -110,7 +110,7 @@ public sealed class SettingsSessionTests : IDisposable
             Ship = "c2_hercules",
             RecentShips = ["c2_hercules", "hull_a"],
             DownloadShipHolograms = false,
-            ShipView = new ShipViewSettings(100, new Dictionary<string, ShipCamera> { ["c2_hercules"] = new(30, 20, 50, 1, 2) }),
+            ShipView = new ShipViewSettings(100, new Dictionary<string, ShipCamera> { ["c2_hercules"] = new(30, 20, Distance: 50, Target: new CameraTarget(1, 2, 0)) }),
         };
         var session = Create(before);
         SettingsViewModel window = new(
