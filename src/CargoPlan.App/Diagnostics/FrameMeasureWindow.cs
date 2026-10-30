@@ -119,8 +119,7 @@ internal sealed class FrameMeasureWindow : Window
     {
         var known = _target == Empty || _ship is not null;
         var intervals = known ? await MeasureFramesAsync() : [];
-        // The view hits nothing until the ray test (T8.3, R1): no sweep, the line says so instead of "hit 0".
-        var hits = _ship is not null ? "off until T8.3" : null;
+        var hits = _ship is not null ? HitSweep() : null;
         var valid = known && FrameStatistics.IsValid(intervals);
 
         var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
@@ -175,7 +174,7 @@ internal sealed class FrameMeasureWindow : Window
         return done.Task;
     }
 
-    /// <summary>The view's own hit test on a 30 × 20 grid of points, timed one by one; called again from T8.3 (M2).</summary>
+    /// <summary>The view's own hit test on a 30 × 20 grid of points, timed one by one: rays since T8.3 (M2).</summary>
     private string HitSweep()
     {
         var times = new List<double>(HitSamples);
