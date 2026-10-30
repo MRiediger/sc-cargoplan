@@ -1,13 +1,11 @@
-using System.Windows;
 using CargoPlan.Core.Models;
 
 namespace CargoPlan.App.ShipView;
 
 /// <summary>
-/// Orthographic camera on ship coordinates (D14: x bow, y port, z up, in cells), projecting onto the screen (y down).
-/// <see cref="Yaw"/> is the camera's bearing around z, from the bow (0°) towards port (90°); <see cref="Pitch"/> its
-/// height, positive from above, clamped to ±85° so up stays up on the screen (D15). No perspective: parallel edges
-/// stay parallel.
+/// The camera's orientation on ship coordinates (D14: x bow, y port, z up, in cells); <see cref="CameraMath"/> projects
+/// with it (D83). <see cref="Yaw"/> is the camera's bearing around z, from the bow (0°) towards port (90°);
+/// <see cref="Pitch"/> its height, positive from above, clamped to ±85° so up stays up on the screen (D15).
 /// </summary>
 public sealed record IsoProjection
 {
@@ -36,13 +34,6 @@ public sealed record IsoProjection
     /// <summary>The camera a ship starts with: <see cref="Default"/>, or from the side for a long ship (D61).</summary>
     public static IsoProjection DefaultFor(ShipBox bounds) => IsLong(bounds) ? new(LongShipYaw, DefaultPitch) : Default;
 
-    /// <summary>
-    /// √(3/2) stretches the true projection so that in the default view one cell is 1 unit long on all three axes,
-    /// exactly the formula before T3.5c: u = (y − x)·cos 30°, v = (x + y)·sin 30° − z. A length at right angles to the
-    /// view is this many projected units per cell; the hologram's 3D camera needs it (D63).
-    /// </summary>
-    public static readonly double Stretch = Math.Sqrt(1.5);
-
     private readonly double _sinYaw;
     private readonly double _cosYaw;
     private readonly double _sinPitch;
@@ -67,34 +58,6 @@ public sealed record IsoProjection
     public (double X, double Y, double Z) ViewDirection => (-_cosPitch * _cosYaw, -_cosPitch * _sinYaw, -_sinPitch);
 
     public IsoProjection OrbitBy(double yaw, double pitch) => new(Yaw + yaw, Pitch + pitch);
-
-    public Point Project(double x, double y, double z) => new(
-        Stretch * (y * _cosYaw - x * _sinYaw),
-        Stretch * ((x * _cosYaw + y * _sinYaw) * _sinPitch - z * _cosPitch));
-
-    public Point Project(ShipPoint point) => Project(point.X, point.Y, point.Z);
-
-    /// <summary>
-    /// A point in ship coordinates that projects to <paramref name="projected"/>; every point of the line through it
-    /// along <see cref="ViewDirection"/> does too. The inverse of <see cref="Project(double, double, double)"/> on the
-    /// two screen axes, which are unit vectors in the ship: right (−sin yaw, cos yaw, 0) and down
-    /// (cos yaw·sin pitch, sin yaw·sin pitch, −cos pitch), both at right angles to the view direction.
-    /// </summary>
-    public (double X, double Y, double Z) Unproject(Point projected)
-    {
-        var (right, down) = (projected.X / Stretch, projected.Y / Stretch);
-        return (
-            -right * _sinYaw + down * _cosYaw * _sinPitch,
-            right * _cosYaw + down * _sinYaw * _sinPitch,
-            -down * _cosPitch);
-    }
-
-    /// <summary>Distance along <see cref="ViewDirection"/>, up to a constant: larger lies further back.</summary>
-    public double Depth(double x, double y, double z)
-    {
-        var d = ViewDirection;
-        return x * d.X + y * d.Y + z * d.Z;
-    }
 
     private static double Radians(double degrees) => degrees * Math.PI / 180;
 
