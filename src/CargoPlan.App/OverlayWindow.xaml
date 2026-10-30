@@ -732,11 +732,8 @@
 
             <!-- Last child fills the rest. Left drag here orbits, a click on cargo ticks its stop, right drag on a crate
                  puts it on the cell under the cursor, right drag elsewhere pans; DragMove works on header, warning lines and border.
-                 The hologram lies under the ship view in the same cell (D63): it never covers a crate and takes no click. -->
+                 The hologram is part of the ship view's 3D scene (D83): crates inside the hull show through it. -->
             <Grid>
-                <sv:HoloBackdrop Holo="{Binding Holo, Mode=OneWay}" View="{Binding View, ElementName=ShipView, Mode=OneWay}"
-                                 Opacity="{Binding HoloOpacity, Mode=OneWay}"
-                                 HullColor="{Binding HoloHullColor, Mode=OneWay}" EdgeColor="{Binding HoloEdgeColor, Mode=OneWay}" />
                 <!-- One selected crate: pickup · commodity · destination (T7.4d). Over the view, not above it: a line that came
                      and went with the selection would refit the ship under the cursor. Never hit, so the view keeps the mouse. -->
                 <TextBlock Text="{Binding SelectionInfo, Mode=OneWay}" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
@@ -760,6 +757,10 @@
                                     MaxPxPerCell="{Binding MaxZoomPxPerCell, Mode=OneWay}"
                                     StopPalette="{Binding StopPalette, Mode=OneWay}"
                                     Camera="{Binding Camera}"
+                                    Holo="{Binding Holo, Mode=OneWay}"
+                                    HoloOpacity="{Binding HoloOpacity, Mode=OneWay}"
+                                    HoloHullColor="{Binding HoloHullColor, Mode=OneWay}"
+                                    HoloEdgeColor="{Binding HoloEdgeColor, Mode=OneWay}"
                                     CrateFillAlpha="{DynamicResource CratesFillAlpha}"
                                     CrateEdgeBrush="{DynamicResource CratesEdgeBrush}"
                                     RackNumberBrush="{DynamicResource CratesRackNumberBrush}"

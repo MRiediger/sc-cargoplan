@@ -1,10 +1,10 @@
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
+using CargoPlan.App.Holo;
 using CargoPlan.App.Settings;
 using CargoPlan.App.Win32;
 using CargoPlan.Core.Models;
@@ -13,9 +13,9 @@ using CargoPlan.Core.Planning;
 namespace CargoPlan.App.ShipView;
 
 /// <summary>
-/// Paints a <see cref="ShipScene"/> as <see cref="SceneProjector"/> projects it for the current camera: frame, rack
-/// edges, the boxes of each rack back to front, red and cyan edges, the ghost of a dragged crate, rack numbers on top.
-/// Only redraws when the scene, the size, the camera, zoom, pan or a drag's target change; no timer, no animation (D14).
+/// Shows a <see cref="ShipScene"/> as one perspective 3D scene (D83): crates, bow wedge and hologram in a
+/// <see cref="Viewport3D"/> under one camera, set from <see cref="CameraMath"/>. Only changes when the scene, the size,
+/// the camera or the hologram change; no timer, no animation (D14).
 /// Mouse (rules in <see cref="DragGesture"/>): left drag turns and tilts the camera, a click on cargo ticks its stop off
 /// or back (D16), right click on a crate selects it or takes it out and on free space clears the selection, right drag
 /// on a crate puts it (and the selection it belongs to) on the cell under the cursor (D25), right drag elsewhere pans, wheel
@@ -23,6 +23,8 @@ namespace CargoPlan.App.ShipView;
 /// legend starts its drag here too (<see cref="StartLegendDrag"/>). Left clicks are handled here, so the window's DragMove only
 /// works outside the view (D15). While the mouse is captured, a poll of the cursor drives the drag once per frame: with
 /// Star Citizen in front no mouse moves arrive (D45).
+/// Until T8.3 the view hits nothing (<see cref="HitAt"/>): the old hit test is orthographic, the picture is not, and a
+/// click must never change a real plan on a wrong guess (T8.1, R1).
 /// </summary>
 public sealed class ShipViewControl : FrameworkElement
 {
@@ -30,46 +32,8 @@ public sealed class ShipViewControl : FrameworkElement
     private const double WheelZoomStep = 1.2;
     private const double OrbitDegreesPerPixel = 0.5;
 
-    // The dragged cargo stays in place, faded, so the rack shows what it holds without it (D20, D25).
-    private const double DraggedOpacity = 0.35;
-
-    private const double CrateEdgeWidth = 0.5;
-
-    // A long ship's empty racks stay visible behind the loaded ones the fit shows, but don't compete with them (D61).
-    // Crates of other missions while a crate is selected take the same value (T7.4d, D68).
-    private const double EmptyRackOpacity = 0.4;
-
-    // On a long ship the rack number stands this many pixels above its rack (D61).
-    private const double LabelGap = 4;
-
-    private static readonly Pen FramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Frame), 1) { DashStyle = DashStyles.Dash });
-    private static readonly Pen FreeCellPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.FreeEdge), CrateEdgeWidth));
-
-    private static readonly Pen LoadedPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.LoadedEdge), MissionPalette.LoadedEdgeWidth));
-    private static readonly Pen RackPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.RackEdge), 1));
-
-    // The bow wedge (D52): faces with a trace of fill and rack edges, dashed lines alone were hard to see in the game.
-    private static readonly Brush BowWedgeFill = Frozen(new SolidColorBrush(MissionPalette.BowWedgeFill));
-
-    // The ship outline (D62): a backdrop, so a thin line in the rack numbers' colour, toned down below the racks' edges.
-    private const double OutlineWidth = 1;
-    private const double OutlineOpacity = 0.6;
-
-    // Its label lies on its floor; built at this size, then scaled to the floor, so only the proportions count.
-    private const string BowLabel = "Bow";
-    private const double BowLabelEmSize = 100;
-    private static readonly Pen ViolationPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.Violation), MissionPalette.EdgeWidth));
-    private static readonly Pen DragTargetPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.DragTarget), MissionPalette.EdgeWidth));
-    // Under those two on crates and ghosts (K4.2, P6): round joins, so the wider dark line has no spikes at sharp corners.
-    // The selection's edge and contour are settings since K4.4 (SelectionPen, SelectionOutlinePen).
-    private static readonly Pen EdgeUnderPen = Frozen(new Pen(new SolidColorBrush(MissionPalette.EdgeUnderStroke), MissionPalette.EdgeUnderStrokeWidth)
-    {
-        LineJoin = PenLineJoin.Round,
-    });
-    private static readonly Pen MissionFramePen = Frozen(new Pen(new SolidColorBrush(MissionPalette.MissionFrame), 1.5));
-
-    // Theme values (D31), set in OverlayWindow.xaml by DynamicResource: a new value redraws at once (live preview, T4.2).
-    // The defaults draw opaque crates without edges or numbers, so a missing resource shows instead of crashing.
+    // Theme values (D31), set in OverlayWindow.xaml by DynamicResource. The 3D crates take them from T8.2 on (stop
+    // colours, edges, numbers, selection); until then they are kept, unused, so the bindings and the look stay in place.
 
     /// <summary>Alpha of the crate fills; their colours are the stop colours of <see cref="StopPalette"/> (D29, K4.2).</summary>
     public static readonly DependencyProperty CrateFillAlphaProperty = ThemeProperty(nameof(CrateFillAlpha), typeof(byte), byte.MaxValue);
@@ -136,19 +100,19 @@ public sealed class ShipViewControl : FrameworkElement
         new FrameworkPropertyMetadata(
             CrateSelection.Empty, FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
 
-    // Read-only: only this control knows camera, zoom and pan; the hologram backdrop binds to it (D63).
-    // Source: https://learn.microsoft.com/dotnet/desktop/wpf/properties/read-only-dependency-properties
-    private static readonly DependencyPropertyKey ViewPropertyKey = DependencyProperty.RegisterReadOnly(
-        nameof(View),
-        typeof(ShipViewState),
-        typeof(ShipViewControl),
-        new PropertyMetadata(null));
+    /// <summary>The ship's hologram (D63), part of the scene since D83; null = none, the marker shows instead.</summary>
+    public static readonly DependencyProperty HoloProperty = HoloLookProperty(nameof(Holo), typeof(PreparedHolo), null);
 
-    /// <summary>
-    /// What the view shows right now: camera, transform, zoom, size. Set whenever one of them changes, before the view
-    /// redraws, so the backdrop's 3D picture changes in the same frame as the racks (D63).
-    /// </summary>
-    public static readonly DependencyProperty ViewProperty = ViewPropertyKey.DependencyProperty;
+    /// <summary>The hologram's opacity (settings.json holoOpacity), on its material since D83.</summary>
+    public static readonly DependencyProperty HoloOpacityProperty = HoloLookProperty(nameof(HoloOpacity), typeof(double), AppearanceRules.DefaultHoloOpacity);
+
+    /// <summary>The hull in the shaded and flat looks; bound to the settings' holoHullColor.</summary>
+    public static readonly DependencyProperty HoloHullColorProperty = HoloLookProperty(
+        nameof(HoloHullColor), typeof(Color), (Color)ColorConverter.ConvertFromString(AppearanceRules.DefaultHoloHullColor));
+
+    /// <summary>The edges in the hidden-line look; bound to the settings' holoEdgeColor.</summary>
+    public static readonly DependencyProperty HoloEdgeColorProperty = HoloLookProperty(
+        nameof(HoloEdgeColor), typeof(Color), (Color)ColorConverter.ConvertFromString(AppearanceRules.DefaultHoloEdgeColor));
 
     /// <summary>
     /// The view as the player left it on the scene's ship (K1.2), two-way like <see cref="Selection"/>: the view writes it on
@@ -173,7 +137,12 @@ public sealed class ShipViewControl : FrameworkElement
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/controls/how-to-position-a-tooltip
     private readonly ToolTip _toolTip;
 
-    private ViewNavigation _navigation = ViewNavigation.Default;
+    // The scene's only visual child, never hit: the view takes every click and finds what lies under it itself (D83).
+    private readonly Viewport3D _viewport = new() { IsHitTestVisible = false };
+    private readonly PerspectiveCamera _camera = new();
+    private readonly ShipScene3D _scene3D = new();
+
+    private CameraNavigation _navigation = CameraNavigation.Default;
     private Drag? _drag;
 
     // The frame the poll last ran in: Rendering can come more than once per frame (D45).
@@ -185,21 +154,20 @@ public sealed class ShipViewControl : FrameworkElement
     // Wheel delta of the running drag not yet a full notch: finer wheels send less than 120 per event.
     private int _wheelRest;
 
-    // Brushes and pens from the theme properties; null after a change until the next render.
-    private Paint? _paint;
-
-    // The scene as the current camera sees it; null after a new scene or camera until the next use.
-    private ProjectedScene? _projected;
-
-    // The ship at its default camera, where the zoom limits come from; null after another ship or marker (SameReference).
-    private ProjectedScene? _reference;
-
     public ShipViewControl()
     {
         _toolTip = new ToolTip { PlacementTarget = this, Placement = PlacementMode.Mouse };
 
         // Zoomed or panned racks must not paint over the header or the legend.
         ClipToBounds = true;
+
+        _viewport.Camera = _camera;
+        foreach (var visual in _scene3D.Visuals)
+        {
+            _viewport.Children.Add(visual);
+        }
+
+        AddVisualChild(_viewport);
     }
 
     public ShipScene? Scene
@@ -232,7 +200,29 @@ public sealed class ShipViewControl : FrameworkElement
         set => SetValue(SelectionProperty, value);
     }
 
-    public ShipViewState? View => (ShipViewState?)GetValue(ViewProperty);
+    public PreparedHolo? Holo
+    {
+        get => (PreparedHolo?)GetValue(HoloProperty);
+        set => SetValue(HoloProperty, value);
+    }
+
+    public double HoloOpacity
+    {
+        get => (double)GetValue(HoloOpacityProperty);
+        set => SetValue(HoloOpacityProperty, value);
+    }
+
+    public Color HoloHullColor
+    {
+        get => (Color)GetValue(HoloHullColorProperty);
+        set => SetValue(HoloHullColorProperty, value);
+    }
+
+    public Color HoloEdgeColor
+    {
+        get => (Color)GetValue(HoloEdgeColorProperty);
+        set => SetValue(HoloEdgeColorProperty, value);
+    }
 
     public ShipCamera? Camera
     {
@@ -246,7 +236,7 @@ public sealed class ShipViewControl : FrameworkElement
         set => SetValue(MaxPxPerCellProperty, value);
     }
 
-    private ZoomLimits Limits => new(MaxPxPerCell);
+    private DistanceLimits Limits => new(MaxPxPerCell);
 
     public byte CrateFillAlpha
     {
@@ -352,227 +342,27 @@ public sealed class ShipViewControl : FrameworkElement
 
     protected override void OnRender(DrawingContext dc)
     {
-        // An almost transparent background: a layered window passes clicks on fully transparent pixels through.
+        // An almost transparent background: a layered window passes clicks on fully transparent pixels through. The scene
+        // lies above it in the Viewport3D.
         dc.DrawRectangle((Brush)FindResource("HitTestBackgroundBrush"), null, new Rect(RenderSize));
-        if (Projected() is not { } scene || Scene is not { } source)
-        {
-            return;
-        }
-
-        var transform = CurrentTransform(scene);
-        var paint = _paint ??= Paint.From(StopPalette, CrateFillAlpha, CrateEdgeBrush, RackNumberHaloBrush, RackNumberHaloSize, RackNumberBrush);
-
-        // Screen pixels like every pen here: points are transformed before drawing, nothing scales the drawing itself.
-        // One size for the rack numbers and the bow label.
-        var numberSize = RackNumberSize.For(RackNumberFontSize, transform.Scale, source.Racks);
-
-        // The outline is a backdrop (D62): under frame, racks and grid from every side, so it never needs a draw order.
-        if (scene.Outline is { } outline)
-        {
-            var geometry = Polygon(outline, transform);
-            dc.DrawGeometry(BowWedgeFill, paint.OutlineHalo, geometry);
-            dc.DrawGeometry(null, paint.OutlineLine, geometry);
-        }
-
-        foreach (var line in scene.Frame)
-        {
-            dc.DrawLine(FramePen, transform.Apply(line.From), transform.Apply(line.To));
-        }
-
-        // Only once the drag has left the drag rectangle: a right click alone changes nothing on screen.
-        var drag = _drag is { IsMoving: true } moving ? moving : (Drag?)null;
-
-        // The target rack's edge: always for a legend drag, for crates only while the preview leaves the layout to the drop (D65).
-        var target = drag?.Gesture switch
-        {
-            Gesture.MoveLegend legend => legend.TargetRackId,
-            Gesture.MoveCrates crates when drag.Value.Outcome?.Stage == MoveStage.Pending => crates.RackId,
-            _ => null,
-        };
-
-        // Every crate that changes place fades where it is; its ghost shows where it goes (D65).
-        var changed = drag?.Outcome is { } preview ? CrateDrop.Changed(source.Plan, preview) : [];
-        HashSet<Crate> fading = drag is { } held ? [.. held.Dragged, .. changed.Select(c => c.Before)] : [];
-
-        // A selection frames its missions and dims every other crate (T7.4d, D68).
-        var selected = Selection.In(source);
-        var focus = SelectionFocus.Missions(selected);
-
-        // The bow wedge lies beyond every rack: behind all of them seen from the stern, in front seen from the bow (D52).
-        if (scene.BowWedge is { InFront: false } behind)
-        {
-            DrawBowWedge(dc, behind, transform, paint, numberSize);
-        }
-
-        // Plain rack edges first: cargo in front covers them like any other part of the ship (D21).
-        var isLong = IsoProjection.IsLong(source.Bounds);
-        foreach (var rack in scene.Racks.Where(r => !IsHighlighted(r, target)))
-        {
-            Dimmed(dc, isLong && !rack.IsLoaded, () => DrawEdges(dc, rack, RackPen, transform));
-        }
-
-        // Rack by rack back to front, each rack's boxes back to front: the boxes in front cover the ones behind (D21).
-        // Free cells only as far as the screen size allows (D61).
-        foreach (var rack in scene.Racks)
-        {
-            Dimmed(dc, isLong && !rack.IsLoaded, () =>
-            {
-                foreach (var box in rack.Boxes.Where(b => b.Box.Fill != CellFill.Free || FreeCellGrid.Draws(b.Box, transform.Scale)))
-                {
-                    var fade = box.Box.Crate is { } crate && fading.Contains(crate);
-                    if (fade)
-                    {
-                        dc.PushOpacity(DraggedOpacity);
-                    }
-
-                    var (fill, pen) = box.Box.Fill switch
-                    {
-                        CellFill.Free => (null, FreeCellPen),
-                        CellFill.Loaded => (paint.Fill(box.Box), LoadedPen),
-                        _ => (paint.Fill(box.Box), paint.CrateEdge),
-                    };
-                    Dimmed(dc, SelectionFocus.Dims(box.Box.Crate, focus), () =>
-                    {
-                        foreach (var face in box.Faces)
-                        {
-                            dc.DrawGeometry(fill, pen, Polygon(face.Polygon, transform));
-                        }
-                    });
-
-                    if (fade)
-                    {
-                        dc.Pop();
-                    }
-                }
-            });
-        }
-
-        if (scene.BowWedge is { InFront: true } inFront)
-        {
-            DrawBowWedge(dc, inFront, transform, paint, numberSize);
-        }
-
-        // Red and cyan on top, like the numbers: a violation or the drop target must never hide behind cargo. A faulty
-        // crate (overlap, nothing below it) gets its own red outline, so the player sees which one (D24).
-        foreach (var box in scene.Racks.SelectMany(r => r.Boxes).Where(b => b.Box.IsViolated))
-        {
-            foreach (var face in box.Faces)
-            {
-                DrawEdged(dc, null, ViolationPen, Polygon(face.Polygon, transform));
-            }
-        }
-
-        foreach (var rack in scene.Racks.Where(r => IsHighlighted(r, target)))
-        {
-            DrawEdges(dc, rack, rack.RackId == target ? DragTargetPen : ViolationPen, transform);
-        }
-
-        // The selected missions' crates, then the selected crates on top: edges only, the fill stays the stop colour (D25).
-        foreach (var box in scene.Racks.SelectMany(r => r.Boxes).Where(b => SelectionFocus.Frames(b.Box.Crate, focus)))
-        {
-            foreach (var face in box.Faces)
-            {
-                dc.DrawGeometry(null, MissionFramePen, Polygon(face.Polygon, transform));
-            }
-        }
-
-        if (SelectionPen is { } selectionPen)
-        {
-            var outlinePen = SelectionOutlinePen;
-            foreach (var box in scene.Racks.SelectMany(r => r.Boxes).Where(b => b.Box.Crate is { } crate && selected.Contains(crate)))
-            {
-                foreach (var face in box.Faces)
-                {
-                    var geometry = Polygon(face.Polygon, transform);
-                    if (outlinePen is not null)
-                    {
-                        dc.DrawGeometry(null, outlinePen, geometry);
-                    }
-
-                    dc.DrawGeometry(null, selectionPen, geometry);
-                }
-            }
-        }
-
-        // The ghosts: cyan where Core puts every crate that changes place, dragged or moved to make room; red at the cells
-        // aimed at where Core refuses (D25, D65). A refused selection reaching past every rack shows the crate held only.
-        foreach (var after in changed.Select(c => c.After))
-        {
-            DrawGhost(dc, source.Ship, after, MissionPalette.DropBrush, DragTargetPen, transform);
-        }
-
-        if (drag?.Gesture is Gesture.MoveCrates move && drag.Value.Outcome?.Stage == MoveStage.Refused)
-        {
-            foreach (var crateMove in CrateDrop.Moves(source.Ship, move) ?? [new CrateMove(move.Anchor, move.RackId, move.Position)])
-            {
-                DrawGhost(dc, source.Ship, crateMove.Crate with { RackId = crateMove.RackId, Position = crateMove.Position, Rotated = crateMove.Rotated }, MissionPalette.RefusedDropBrush, ViolationPen, transform);
-            }
-        }
-
-        // Numbers last: always visible, even where a rack in front covers the labelled face.
-        if (RackNumberBrush is not { } labelBrush)
-        {
-            return;
-        }
-
-        var typeface = new Typeface(TextElement.GetFontFamily(this), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
-        var pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
-        foreach (var rack in scene.Racks)
-        {
-            FormattedText text = new(
-                rack.Number.ToString(CultureInfo.InvariantCulture),
-                CultureInfo.InvariantCulture,
-                FlowDirection.LeftToRight,
-                typeface,
-                numberSize,
-                labelBrush,
-                pixelsPerDip);
-            // Above its rack the number stands on its baseline (D61); on its face it is centred.
-            var centre = transform.Apply(rack.LabelCentre);
-            var top = rack.LabelAbove ? centre.Y - LabelGap - text.Baseline : centre.Y - text.Height / 2;
-            DrawLabel(dc, text.BuildGeometry(new Point(centre.X - text.Width / 2, top)), labelBrush, paint);
-        }
     }
 
-    private void DrawGhost(DrawingContext dc, Ship ship, Crate crate, Brush fill, Pen pen, ViewTransform transform)
+    // One visual child (AddVisualChild in the constructor), laid out over the whole element; the layout overrides below
+    // measure and arrange it. Source: https://learn.microsoft.com/dotnet/api/system.windows.frameworkelement.visualchildrencount
+    protected override int VisualChildrenCount => 1;
+
+    protected override Visual GetVisualChild(int index) => index == 0 ? _viewport : throw new ArgumentOutOfRangeException(nameof(index));
+
+    protected override Size MeasureOverride(Size availableSize)
     {
-        var rack = ship.Racks.Single(r => r.Id == crate.RackId);
-        foreach (var face in SceneProjector.ProjectBox(rack.CellBox(crate), _navigation.Camera))
-        {
-            DrawEdged(dc, fill, pen, Polygon(face.Polygon, transform));
-        }
+        _viewport.Measure(availableSize);
+        return default;
     }
 
-    /// <summary>A red, cyan or magenta edge over its dark under-stroke (K4.2, P6), so it reads on every stop colour.</summary>
-    private static void DrawEdged(DrawingContext dc, Brush? fill, Pen pen, Geometry geometry)
+    protected override Size ArrangeOverride(Size finalSize)
     {
-        dc.DrawGeometry(fill, EdgeUnderPen, geometry);
-        dc.DrawGeometry(null, pen, geometry);
-    }
-
-    private static void Dimmed(DrawingContext dc, bool dimmed, Action draw)
-    {
-        if (dimmed)
-        {
-            dc.PushOpacity(EmptyRackOpacity);
-        }
-
-        draw();
-        if (dimmed)
-        {
-            dc.Pop();
-        }
-    }
-
-    // Outline first, fill on top: the outline only shows outside the glyphs.
-    private static void DrawLabel(DrawingContext dc, Geometry glyphs, Brush brush, Paint paint)
-    {
-        if (paint.LabelOutline is { } outline)
-        {
-            dc.DrawGeometry(null, outline, glyphs);
-        }
-
-        dc.DrawGeometry(brush, null, glyphs);
+        _viewport.Arrange(new Rect(finalSize));
+        return finalSize;
     }
 
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
@@ -627,7 +417,7 @@ public sealed class ShipViewControl : FrameworkElement
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
-        if (!IsNavigationEnabled || Projected() is not { } scene)
+        if (!IsNavigationEnabled || Scene is null)
         {
             return;
         }
@@ -639,7 +429,8 @@ public sealed class ShipViewControl : FrameworkElement
             return;
         }
 
-        ShowToolTip(SceneHitTest.ToolTipAt(scene, CurrentTransform(scene), RenderSize, position));
+        // The crate's tool tip comes back with the hit test (T8.3); until then there is nothing under the cursor.
+        ShowToolTip(null);
     }
 
     /// <summary>
@@ -649,7 +440,7 @@ public sealed class ShipViewControl : FrameworkElement
     private void UpdateGesture(Point positionInControl)
     {
         // From is the press point until the drag moves, then the last position: every gesture below sets it.
-        if (!IsNavigationEnabled || Projected() is null || _drag is not { } drag || positionInControl == drag.From)
+        if (!IsNavigationEnabled || Scene is null || _drag is not { } drag || positionInControl == drag.From)
         {
             return;
         }
@@ -671,12 +462,12 @@ public sealed class ShipViewControl : FrameworkElement
         switch (gesture)
         {
             // Like grabbing the ship: dragging right turns its near side right, dragging down tilts its top towards you.
-            // The scale holds while turning (K5.5): the fit becomes the framing at the first step.
+            // The distance holds while turning (K5.5): the fit becomes the placement at the first step.
             case Gesture.Orbit:
-                Navigate(_navigation.OrbitBy(-delta.X * OrbitDegreesPerPixel, delta.Y * OrbitDegreesPerPixel, Projected() is { } turned ? Basis(turned) : null));
+                Navigate(_navigation.OrbitBy(-delta.X * OrbitDegreesPerPixel, delta.Y * OrbitDegreesPerPixel, Basis()));
                 break;
-            case Gesture.Pan when Projected() is { } scene:
-                Navigate(_navigation.PanBy(delta, Basis(scene), Limits));
+            case Gesture.Pan when Basis() is { } basis:
+                Navigate(_navigation.PanBy(delta, basis, Limits, RenderSize));
                 break;
 
             // Moving cargo: the ship stands still; redraw only when the fade starts or the target or its reason change.
@@ -793,14 +584,14 @@ public sealed class ShipViewControl : FrameworkElement
         // One notch (120) = one step; finer wheels send smaller deltas. A factor per notch: the same feel at 10 and at
         // 100 pixels per cell (D76).
         // Source: https://learn.microsoft.com/dotnet/api/system.windows.input.mouse.mousewheeldeltaforoneline
-        if (Projected() is not { } scene)
+        if (Basis() is not { } basis)
         {
             return;
         }
 
         var factor = Math.Pow(WheelZoomStep, (double)e.Delta / Mouse.MouseWheelDeltaForOneLine);
         ShowToolTip(null);
-        Navigate(_navigation.ZoomAt(e.GetPosition(this), factor, Basis(scene), Limits));
+        Navigate(_navigation.ZoomAt(e.GetPosition(this), factor, basis, Limits, RenderSize));
     }
 
     /// <summary>
@@ -819,13 +610,12 @@ public sealed class ShipViewControl : FrameworkElement
         _ => null,
     };
 
-    // Only within the view (K1.4, D33): drawn with ClipToBounds, so a rack beyond its edge is out of sight.
-    private string? DestinationAt(Point position) =>
-        Projected() is { } scene ? SceneHitTest.DestinationAt(scene, CurrentTransform(scene), RenderSize, position) : null;
+    // Nothing until T8.3 (R1): the hit test on projected polygons is orthographic, the picture is perspective, and a
+    // click on a wrong guess would tick or move cargo in a real plan. The ray test on the rack data replaces both.
+    private string? DestinationAt(Point position) => null;
 
     // Internal for the frame measurement's hit-test sweep (Phase 8).
-    internal SceneHit? HitAt(Point position) =>
-        Projected() is { } scene ? SceneHitTest.HitAt(scene, CurrentTransform(scene), RenderSize, position) : null;
+    internal SceneHit? HitAt(Point position) => null;
 
     /// <summary>The gesture of <paramref name="drag"/> with the cursor at <paramref name="position"/>.</summary>
     private Gesture Resolve(Drag drag, Point position, bool moved)
@@ -833,53 +623,26 @@ public sealed class ShipViewControl : FrameworkElement
         var current = HitAt(position);
         return drag.IsLegend
             ? DragGesture.ResolveLegend(drag.Dragged, moved, current)
-            : DragGesture.Resolve(drag.Button, drag.Down, moved, current, drag.Dragged.Count > 0 ? DropAt(position, current, drag.Dragged) : null, Selection.In(Scene), drag.Turned);
+            : DragGesture.Resolve(drag.Button, drag.Down, moved, current, null, Selection.In(Scene), drag.Turned);
     }
 
-    /// <summary>The cell under the cursor for dragged crates (<see cref="DropTarget"/>); they are air, so a crate can go a cell further.</summary>
-    private Drop? DropAt(Point position, SceneHit? current, IReadOnlyList<Crate> dragged)
-    {
-        if (current is null || Scene is not { } scene || Projected() is not { } projected)
-        {
-            return null;
-        }
-
-        var rack = scene.Ship.Racks.Single(r => r.Id == current.RackId);
-        Crate[] staying = [.. scene.Plan.CratesForRack(rack.Id).Where(c => !dragged.Contains(c))];
-        return DropTarget.Resolve(rack, staying, _navigation.Camera, CurrentTransform(projected).Invert(position));
-    }
-
-    private ProjectedScene? Projected() => Scene is { } scene ? _projected ??= SceneProjector.Project(scene, _navigation.Camera) : null;
-
-    private ViewTransform CurrentTransform(ProjectedScene scene) => _navigation.On(Basis(scene), Limits);
-
-    // The fit follows the projected extent, so the ship stays in view while the camera turns; on a long ship it shows the
-    // loaded racks and keeps room on top for the numbers standing above them (D61). A framing hangs on the anchor (D76).
-    // Zooming out reaches the whole scene, a true-size outline included (K5.2d). The limits come from the ship at its
-    // default camera, so neither turning nor cargo changes the scale (holo pump bugfix).
-    private ViewBasis Basis(ProjectedScene scene) => ViewBasis.For(
-        scene,
-        Scene is { } shown ? _reference ??= SceneProjector.Project(shown, IsoProjection.DefaultFor(shown.Bounds)) : scene,
-        RenderSize,
-        FitMargin,
-        scene.Racks.Any(r => r.LabelAbove) ? RackNumberFontSize + LabelGap + RackNumberHaloSize : 0);
+    // The fit follows the scene, so the ship stays in view while the camera turns; on a long ship it shows the loaded
+    // racks (D61). A placement is fixed to the ship (D76, D83). The limits come from the ship at its default
+    // orientation, so neither turning nor cargo changes the distance (holo pump bugfix). Null before the first layout.
+    private CameraBasis? Basis() => Scene is { } scene && RenderSize is { Width: > 0, Height: > 0 }
+        ? CameraBasis.For(scene, _navigation.Orientation, RenderSize, FitMargin)
+        : null;
 
     private void OnMaxPxPerCellChanged()
     {
-        if (Projected() is { } scene)
+        if (Basis() is { } basis)
         {
-            Navigate(_navigation.Clamped(Basis(scene), Limits));
+            Navigate(_navigation.Clamped(basis, Limits, RenderSize));
         }
     }
 
     private void OnSceneChanged(ShipScene? old)
     {
-        _projected = null;
-        if (Scene is not { } next || !SameReference(old, next))
-        {
-            _reference = null;
-        }
-
         ShowToolTip(null);
 
         // Another ship starts from its saved view or its own default camera (D61, K1.2); a tick or a new plan on the same
@@ -891,22 +654,18 @@ public sealed class ShipViewControl : FrameworkElement
 
         // A drag holds crates of the old plan; Core would not find them in the new one.
         ReleaseMouseCapture();
-        PublishView();
+        _scene3D.Show(Scene);
+        ApplyCamera();
     }
 
-    /// <summary>
-    /// The reference depends on the ship and its marker only: a plan step, a tick or a sync keep it, another ship, a
-    /// hologram that arrives or another marker don't. The overlay places the outline anew with every scene, so markers
-    /// are compared by kind, a hologram by its box.
-    /// </summary>
-    private static bool SameReference(ShipScene? old, ShipScene scene) =>
-        old is not null
-        && old.Ship.Id == scene.Ship.Id
-        && old.Marker.GetType() == scene.Marker.GetType()
-        && (scene.Marker is not BowMarker.Holo || old.Marker == scene.Marker);
+    private void OnHoloChanged()
+    {
+        _scene3D.ShowHolo(Holo, HoloOpacity, HoloHullColor, HoloEdgeColor);
+        ApplyCamera();
+    }
 
     /// <summary>A player's turn, zoom or pan: shown, and written to <see cref="Camera"/> for the settings (K1.2).</summary>
-    private void Navigate(ViewNavigation navigation)
+    private void Navigate(CameraNavigation navigation)
     {
         if (navigation == _navigation)
         {
@@ -917,16 +676,10 @@ public sealed class ShipViewControl : FrameworkElement
         SetCurrentValue(CameraProperty, navigation.ToCamera());
     }
 
-    private void Show(ViewNavigation navigation)
+    private void Show(CameraNavigation navigation)
     {
-        if (navigation.Camera != _navigation.Camera)
-        {
-            _projected = null;
-        }
-
         _navigation = navigation;
-        PublishView();
-        InvalidateVisual();
+        ApplyCamera();
     }
 
     // The view's own write comes back here through the binding as the same value; anything else came from outside: the
@@ -939,23 +692,26 @@ public sealed class ShipViewControl : FrameworkElement
         }
     }
 
-    private static ViewNavigation NavigationOf(ShipCamera? camera, ShipScene scene) =>
-        camera is null ? ViewNavigation.DefaultFor(scene.Bounds) : ViewNavigation.From(camera);
+    private static CameraNavigation NavigationOf(ShipCamera? camera, ShipScene scene) =>
+        camera is null ? CameraNavigation.DefaultFor(scene.Bounds) : CameraNavigation.From(camera);
 
     protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
     {
         base.OnRenderSizeChanged(sizeInfo);
-        PublishView();
+        ApplyCamera();
     }
 
-    /// <summary>Sets <see cref="View"/> from the current camera, scene and size; nothing before the first layout.</summary>
-    private void PublishView()
+    /// <summary>The scene's camera from the current navigation, size and scene (D83); nothing before the first layout.</summary>
+    private void ApplyCamera()
     {
-        if (Projected() is { } scene && RenderSize is { Width: > 0, Height: > 0 })
+        if (Basis() is not { } basis)
         {
-            var basis = Basis(scene);
-            SetValue(ViewPropertyKey, new ShipViewState(_navigation.Camera, _navigation.On(basis, Limits), _navigation.ZoomOn(basis, Limits), RenderSize));
+            return;
         }
+
+        var camera = _navigation.On(basis, Limits, RenderSize);
+        camera.ApplyTo(_camera);
+        _scene3D.ShowHoloLines(camera, basis.FitDistance / camera.Distance);
     }
 
     private void StartDrag(MouseButtonEventArgs e, MouseButton button)
@@ -1055,105 +811,19 @@ public sealed class ShipViewControl : FrameworkElement
         _toolTip.IsOpen = text is not null;
     }
 
-    private static bool IsHighlighted(ProjectedRack rack, string? target) => rack.RackId == target || rack.IsViolated;
-
-    private static void DrawEdges(DrawingContext dc, ProjectedRack rack, Pen pen, ViewTransform transform)
-    {
-        foreach (var face in rack.Faces)
-        {
-            dc.DrawGeometry(null, pen, Polygon(face.Polygon, transform));
-        }
-    }
-
-    // Convex: the faces turned towards the camera never cover each other, so they need no order. The label lies on the
-    // floor, so it is drawn with the faces, in their place in the draw order, in the rack numbers' colour and outline.
-    private void DrawBowWedge(DrawingContext dc, ProjectedWedge wedge, ViewTransform transform, Paint paint, double numberSize)
-    {
-        foreach (var face in wedge.Faces)
-        {
-            dc.DrawGeometry(BowWedgeFill, RackPen, Polygon(face.Polygon, transform));
-        }
-
-        if (RackNumberBrush is not { } brush)
-        {
-            return;
-        }
-
-        var typeface = new Typeface(TextElement.GetFontFamily(this), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
-        FormattedText text = new(
-            BowLabel,
-            CultureInfo.InvariantCulture,
-            FlowDirection.LeftToRight,
-            typeface,
-            BowLabelEmSize,
-            brush,
-            VisualTreeHelper.GetDpi(this).PixelsPerDip);
-        // As large on the screen as a rack number (D32, shrinking included), as far as the floor has room.
-        var glyphs = FloorLabel.Lay(text.BuildGeometry(new Point(0, 0)), BowLabelEmSize, wedge.Floor, transform, numberSize);
-        DrawLabel(dc, glyphs, brush, paint);
-    }
-
-    // The rack numbers' size and halo set the room above a long ship's racks, so the fit and with it the view.
+    // The theme's values reach the 3D crates from T8.2 on; until then a change only redraws the background.
     private static DependencyProperty ThemeProperty(string name, Type type, object? defaultValue) => DependencyProperty.Register(
         name,
         type,
         typeof(ShipViewControl),
-        new FrameworkPropertyMetadata(defaultValue, FrameworkPropertyMetadataOptions.AffectsRender, (d, _) =>
-        {
-            var view = (ShipViewControl)d;
-            view._paint = null;
-            view.PublishView();
-        }));
+        new FrameworkPropertyMetadata(defaultValue, FrameworkPropertyMetadataOptions.AffectsRender));
 
-    // StreamGeometry: the lightweight geometry for drawing only, frozen after filling.
-    // Source: https://learn.microsoft.com/dotnet/api/system.windows.media.streamgeometrycontext
-    private static StreamGeometry Polygon(IReadOnlyList<Point> points, ViewTransform transform)
-    {
-        StreamGeometry geometry = new();
-        using (var context = geometry.Open())
-        {
-            context.BeginFigure(transform.Apply(points[0]), isFilled: true, isClosed: true);
-            context.PolyLineTo([.. points.Skip(1).Select(transform.Apply)], isStroked: true, isSmoothJoin: false);
-        }
-
-        geometry.Freeze();
-        return geometry;
-    }
-
-    private static T Frozen<T>(T freezable) where T : Freezable
-    {
-        freezable.Freeze();
-        return freezable;
-    }
-
-    /// <summary>The theme's brushes and pens, built once per change instead of on every render.</summary>
-    /// <param name="CrateEdge">null = crates without edges.</param>
-    /// <param name="LabelOutline">null = rack numbers without outline.</param>
-    /// <param name="OutlineLine">The ship outline's line (D62) in the rack numbers' colour, toned down; null without that colour.</param>
-    /// <param name="OutlineHalo">Under that line, as wide as the line plus the halo on both sides (D28); null with the halo off.</param>
-    /// <param name="Stops">One brush per ordinal up to where colour and hatch repeat (<see cref="StopPalette.Rounds"/>).</param>
-    private sealed record Paint(
-        IReadOnlyList<Brush> Stops, SolidColorBrush Delivered, Pen? CrateEdge, Pen? LabelOutline, Pen? OutlineLine, Pen? OutlineHalo)
-    {
-        public static Paint From(StopPalette palette, byte fillAlpha, Brush? edge, Brush? halo, double haloSize, Brush? line) => new(
-            [.. Enumerable.Range(0, palette.Colors.Count * StopPalette.Rounds).Select(i => StopBrushes.Fill(palette, i, fillAlpha))],
-            MissionPalette.Fill(MissionPalette.Delivered, fillAlpha),
-            edge is null ? null : Frozen(new Pen(edge, CrateEdgeWidth)),
-            halo is null ? null : Frozen(new Pen(halo, haloSize) { LineJoin = PenLineJoin.Round }),
-            line is null ? null : Frozen(new Pen(Toned(line), OutlineWidth) { LineJoin = PenLineJoin.Round }),
-            halo is null ? null : Frozen(new Pen(halo, OutlineWidth + 2 * haloSize) { LineJoin = PenLineJoin.Round }));
-
-        private static Brush Toned(Brush brush)
-        {
-            var toned = brush.CloneCurrentValue();
-            toned.Opacity *= OutlineOpacity;
-            return toned;
-        }
-
-        /// <summary>Cargo only; free cells have no fill.</summary>
-        public Brush Fill(SceneBox box) => box.Fill == CellFill.Delivered ? Delivered : Stops[box.PaletteIndex!.Value % Stops.Count];
-    }
-
+    // The hologram and its look: a new value rebuilds its materials, the geometry stays (D63).
+    private static DependencyProperty HoloLookProperty(string name, Type type, object? defaultValue) => DependencyProperty.Register(
+        name,
+        type,
+        typeof(ShipViewControl),
+        new PropertyMetadata(defaultValue, (d, _) => ((ShipViewControl)d).OnHoloChanged()));
     /// <param name="Down">What lay under the cursor when the button went down; with the button it decides the gesture.</param>
     /// <param name="Dragged">
     /// The crates the drag holds, drawn faded: what a right press picked up (<see cref="DragGesture.DraggedCrates"/>),

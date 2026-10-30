@@ -4,7 +4,6 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Media;
 using CargoPlan.App.Holo;
 using CargoPlan.App.Settings;
@@ -51,7 +50,6 @@ internal sealed class FrameMeasureWindow : Window
 
     private readonly string _target;
     private readonly ShipViewControl _view = new();
-    private readonly HoloBackdrop _backdrop = new();
     private readonly string _logPath = Path.Combine(AppContext.BaseDirectory, LogFile);
     private readonly Ship? _ship;
     private readonly PreparedHolo? _holo;
@@ -69,7 +67,7 @@ internal sealed class FrameMeasureWindow : Window
         ThemeResources.Apply(Resources, AppSettings.Default.Appearance);
         SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
 
-        // The overlay's cell: the hologram under the ship view, wired like OverlayWindow.xaml.
+        // The overlay's cell, wired like OverlayWindow.xaml: the hologram is part of the view's scene (D83).
         _view.SetResourceReference(ShipViewControl.CrateFillAlphaProperty, "CratesFillAlpha");
         _view.SetResourceReference(ShipViewControl.CrateEdgeBrushProperty, "CratesEdgeBrush");
         _view.SetResourceReference(ShipViewControl.RackNumberBrushProperty, "CratesRackNumberBrush");
@@ -78,10 +76,8 @@ internal sealed class FrameMeasureWindow : Window
         _view.SetResourceReference(ShipViewControl.RackNumberHaloSizeProperty, "CratesHaloSize");
         _view.SetResourceReference(ShipViewControl.SelectionPenProperty, "CratesSelectionPen");
         _view.SetResourceReference(ShipViewControl.SelectionOutlinePenProperty, "CratesSelectionOutlinePen");
-        _backdrop.Opacity = HoloOpacity;
-        _backdrop.SetBinding(HoloBackdrop.ViewProperty, new Binding(nameof(ShipViewControl.View)) { Source = _view, Mode = BindingMode.OneWay });
+        _view.HoloOpacity = HoloOpacity;
         var cell = new Grid { ClipToBounds = true };
-        cell.Children.Add(_backdrop);
         cell.Children.Add(_view);
         Content = cell;
 
@@ -95,7 +91,7 @@ internal sealed class FrameMeasureWindow : Window
             _holo = path is not null && File.Exists(path) ? PreparedHolo.Prepare(ship, HoloReader.Read(File.ReadAllBytes(path)), Look) : null;
             var scene = ShipViewBuilder.Build(plan, ship, []);
             _view.Scene = scene with { Marker = _holo is { } h ? new BowMarker.Holo(h.Placement.Min, h.Placement.Max) : new BowMarker.Wedge() };
-            _backdrop.Holo = _holo;
+            _view.Holo = _holo;
         }
         ContentRendered += OnContentRendered;
     }
@@ -104,7 +100,8 @@ internal sealed class FrameMeasureWindow : Window
     {
         var known = _target == Empty || _ship is not null;
         var intervals = known ? await MeasureFramesAsync() : [];
-        var hits = _ship is not null ? HitSweep() : null;
+        // The view hits nothing until the ray test (T8.3, R1): no sweep, the line says so instead of "hit 0".
+        var hits = _ship is not null ? "off until T8.3" : null;
         var valid = known && FrameStatistics.IsValid(intervals);
 
         var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
@@ -159,7 +156,7 @@ internal sealed class FrameMeasureWindow : Window
         return done.Task;
     }
 
-    /// <summary>The view's own hit test on a 30 × 20 grid of points, timed one by one.</summary>
+    /// <summary>The view's own hit test on a 30 × 20 grid of points, timed one by one; called again from T8.3 (M2).</summary>
     private string HitSweep()
     {
         var times = new List<double>(HitSamples);

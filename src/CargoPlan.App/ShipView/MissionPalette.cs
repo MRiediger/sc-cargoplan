@@ -74,6 +74,21 @@ public static class MissionPalette
     /// <summary>The light along the view, following the camera: the faces turned to the player are the brightest.</summary>
     public static Color HoloLight { get; } = Color.FromRgb(0xB0, 0xB0, 0xB0);
 
+    // The perspective scene's lights (D83): fixed to the ship, so a face keeps its shade while the camera turns. Start values
+    // from S8.0; set on the real element (T8.1).
+
+    /// <summary>Light from everywhere, so faces turned away from both lights don't go black.</summary>
+    public static Color SceneAmbient { get; } = Color.FromRgb(0x50, 0x50, 0x50);
+
+    /// <summary>The main light, from above and the bow.</summary>
+    public static Color SceneLight { get; } = Color.FromRgb(0xB0, 0xB0, 0xB0);
+
+    /// <summary>A weak light from below: racks under the hull, seen from below, don't stand flat grey.</summary>
+    public static Color SceneUnderLight { get; } = Color.FromRgb(0x40, 0x40, 0x40);
+
+    /// <summary>Every crate in one colour until the stop colours come to the 3D view (T8.2): Okabe-Ito orange, as in S8.0.</summary>
+    public static Color SingleCrate { get; } = Color.FromRgb(0xE6, 0x9F, 0x00);
+
     // Rack numbers and their outline, the crates' fill and edge alpha are settings since T4.1 (CrateAppearance, D31).
 
     /// <summary>
