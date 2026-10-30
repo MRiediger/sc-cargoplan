@@ -2639,6 +2639,50 @@ Fehlschlag; P9 Bug-Vorlage fragt nach `cargoplan.log`; Test für einen werfenden
 - Nicht von Hand geprüft: Pause und ihr Aufheben am Overlay (nur per Test).
 - Commits cac558a (Doku), b91cc28 (Tests rot), 15be985 (Setter), 52f8514 (Netz, Log, Crash-Dialog).
 
+## Bugfix Holo-Pump (D76-Addendum) (30.10.2026) – Branch `fix/holo-pump-regression`
+
+### [ ] P1 Maßstab beim Drehen festhalten, Grenzen schiffsfest (D76-Addendum)
+**Warum:** Martin: Das Pumpen beim Drehen ist wieder da, gleich nach Start/Reset, ohne Zoomen.
+
+**Befund (Schritt 2):** Kein Commit nach dem K5.5-Fix (9a0eef6) ruft im Drehpfad wieder den Fit auf. `OrbitBy`, `Navigate`,
+`OnCameraChanged`, `HoloCamera`, `OverlayViewModel.Camera` und die XAML-Bindings sind unverändert; K5.2c und K5.3b liegen vor dem
+Fix. Ursache ist ein Pfad, den K5.5 nicht abdeckte: K1.1 (bbb9314) und K5.2d (5e1e582) klemmen in `ViewNavigation.On` das
+Framing bei jedem Zeichnen auf `ZoomLimits`, deren Untergrenze 0,5 × Fit(aktueller Winkel) war. Wo dieser Fit mehr als
+doppelt so groß ist wie das Framing (Blick genau von vorn), hebt der Clamp den Maßstab an. Also keine Regression durch
+einen neuen Commit, sondern eine Lücke im ersten Fix.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** P1 Ursache wie im Befund, nicht ein Regressions-Commit;
+P2 nur Drehen fixen, der Fit ohne Framing folgt weiter Fenster, Ladung und Holo (D76); P3 Grenzen aus dem Fit an der
+Default-Kamera des Schiffs (`IsoProjection.DefaultFor(Ship.Bounds)`), auch die Obergrenze; P4 schiffsfest, nicht
+szenenfest: `ProjectedScene.ShipExtent` = Fit-Extent mit allen Racks, beladen oder nicht (D61 nur für den Fit), Referenz
+neu nur bei anderem Schiff, Holo-Ankunft oder anderem Marker; P5 dritter Wächter am Zoom-Anschlag, vierter für einen
+Plan-Schritt am Anschlag; P6 Messung per Wegwerf-Harness mit der echten `ShipViewControl` (Reflection auf den
+Orbit-Pfad), 420 × 420, Holo aus dem echten Cache; der echte Download mit leerem Cache bleibt Martins Gate.
+
+**Messung `pxPerCell` (Schritt 1)**, Start an der Default-Kamera, je Ziel Yaw/Pitch ein Drehschritt vom selben Start:
+
+| Schiff | Szenario | vorher 0/0 | vorher übrige Ziele (45/0, 90/0, 0/−30, 45/−30, 90/−30) | Spanne vorher | nachher alle Ziele | Spanne nachher |
+|---|---|---|---|---|---|---|
+| Hull A | (a) Start, (b) Reset, (c) Schiffswechsel, (d) Holo nach Fit | 22,028 | 17,790 | 23,8 % | 17,790 | 0,0 % |
+| Hull A | (d2) Holo nach Drehen | 38,476 | 38,476 | 0,0 % | 38,476 | 0,0 % |
+| Hull A | (e) Anschlag herausgezoomt | 22,028 | 8,895 · 8,895 · 12,451 · 8,895 · 8,895 | 147,6 % | 8,895 | 0,0 % |
+| Hull C | (a)–(d) wie oben | 3,530 | 3,182 | 10,9 % | 3,182 | 0,0 % |
+| Hull C | (d2) Holo nach Drehen | 7,150 | 7,150 | 0,0 % | 7,150 | 0,0 % |
+| Hull C | (e) Anschlag herausgezoomt | 3,530 | 1,591 · 1,651 · 1,826 · 1,591 · 1,651 | 121,9 % | 1,591 | 0,0 % |
+
+Zusatzzahl Obergrenze (Martin): Hull C ist kein langes Schiff (D61 greift nicht), Reset-Fit mit einem beladenen Rack
+= leerer Plan = 7,15. Lange Schiffe, ein beladenes Rack, Keil: höchster Reset-Fit Syulen 147,9 (Aurora Mk II TS 137,9,
+Fortune 99,0), alle unter 160 → nur ein Satz im Gegenargument.
+
+**Akzeptanz:**
+- [x] Messung vorher/nachher: jede Zeile identisch (Tabelle)
+- [x] Ursache als Satz belegt (Befund)
+- [x] Wächter `OrbitScaleTests`: Drehen aus dem Fit, Holo nach Framing, Drehen am Anschlag, Plan-Schritt am Anschlag; vor
+  dem Fix rot außer „Holo nach Framing“ (seit K5.5 grün, bleibt als Wächter)
+- [x] `dotnet build` ohne Warnungen; `dotnet test` grün (App 1.466 → 1.473, Core 1.492, Import 141; Slow grün)
+- [ ] Gate (Martin, Release-Build vom Branch): Hull C mit Holo, Reset, von vorn und von oben drehen → Größe ruhig; bis zum
+  Anschlag herauszoomen und drehen → ruhig; Download an, Cache leer → Holo kommt, danach drehen → ruhig
+
 ---
 
 ## Phase 8 – nach dem Launch

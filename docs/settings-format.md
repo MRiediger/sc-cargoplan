@@ -218,7 +218,7 @@ else is sent. `false` means no network access at all; holograms already download
 
 | Key | What | Default | Range |
 |---|---|---|---|
-| `shipView.maxZoomPxPerCell` | How far the mouse wheel zooms in: pixels per cell (1 SCU, 1.25 m), the same on every ship, so a Hull C zooms in as far as a Hull A. Pixels as Windows scales them: at 150 % display scaling 160 are 240 screen pixels. Zooming out stops at half the size that fits the window. | `160` | 40–240 |
+| `shipView.maxZoomPxPerCell` | How far the mouse wheel zooms in: pixels per cell (1 SCU, 1.25 m), the same on every ship, so a Hull C zooms in as far as a Hull A. Pixels as Windows scales them: at 150 % display scaling 160 are 240 screen pixels. Zooming out stops at half the size that fits the window in the ship's starting view, at every angle, so turning never changes the size. | `160` | 40–240 |
 | `shipView.cameras` | The view as you left it, per ship id: `{ "hull_c": { "yaw": 70, "pitch": 35.26, "pxPerCell": 90, "panX": 1.5, "panY": -2.25 } }`. Written by the overlay whenever you turn, zoom or pan, half a second after you stop; you don't edit it. | `null` | – |
 
 A `maxZoomPxPerCell` outside the range is clamped, with a notice. The **Ship view** section's reset sets it back and
