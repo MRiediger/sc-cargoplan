@@ -186,17 +186,17 @@ scroll out of sight. While the overlay is locked it takes no mouse, so unlock it
 
 ## Ship view
 
-`shipOutline` sets what lies behind the racks in the ship view; `holoOpacity`, `holoHullColor`, `holoEdgeColor` and
+`shipOutline` sets what goes with the racks in the ship view; `holoOpacity`, `holoHullColor`, `holoEdgeColor` and
 `downloadShipHolograms` go with it. All of them sit at the top level, so the crates' **Reset to defaults** never switches them; the settings window's
 **Ship view** section has a reset of its own, which leaves `downloadShipHolograms` as it is.
 
 | `shipOutline` | What |
 |---|---|
 | `"outline"` | The ship's outline seen from above, under the racks: bow, sides and shape. A ship without an outline in `outlines/ship-outlines.json` shows the bow wedge with "Bow" on its floor. The default. |
-| `"holo-shaded"` | The ship's 3D hologram behind the racks, true to scale, softly lit from the camera. Until it is there, and for a ship without one, the outline. |
+| `"holo-shaded"` | The ship's 3D hologram around the racks, true to scale, softly lit from the camera. Until it is there, and for a ship without one, the outline. |
 | `"holo-flat"` | The same, every face in one shade. |
 | `"holo-hiddenline"` | The same as a dark hull with its visible edges as lines; zooming in shows more edges (from 1.5× and 3×). |
-| `"none"` | Racks and frame only, no outline, no wedge, no label. |
+| `"none"` | Racks only, no outline, no wedge, no label. |
 
 Lower case only. Missing or `null` means `"outline"`; any other text means `"outline"` too, with a notice.
 

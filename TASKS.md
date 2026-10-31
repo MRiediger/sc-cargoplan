@@ -3435,18 +3435,77 @@ Velopack/winget, Retaliator-Module, `holoOffset` für den GRIN UTV (Datenfall, B
 **Warum:** T7.5a–c (README, Wiki, Medien) zeigen die 2D-Ansicht; nach D83 stimmen Begriffe und Bilder nicht mehr. Der
 Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Nummer.
 
-### [ ] T9.1 Texte und Medien auf der 3D-Ansicht
-- Textdurchsicht auf durch D83 geänderte Begriffe: README, Wiki-Seiten (v. a. Ship-view, Preferences, Overlay-basics),
+### [x] T9.1 Textabgleich auf der 3D-Ansicht (31.10.2026, abgenommen 31.10.) – Branch `release/v0.1.0`
+- Textdurchsicht auf durch D83 **falsch** gewordene Stellen: README, Wiki-Seiten (v. a. Ship-view, Preferences, Overlay-basics),
   `docs/settings-format.md`, Settings-Tooltips (Zoom-Grenzen = Zellgröße in der Zielebene, Kamera/Orbit/Pan, Reset, Abschnitt
   „Ship view“)
-- Medien neu nach `docs/shots/SHOTLIST.md`: GIFs, Screenshots mit den drei Presets, Known issues
-- Known issues aus Phase 8 (T8.7): ältere Builds verweigern eine settings.json mit `distance`/`target` (Start mit
-  Defaults, `settings.json.bak` hält die Datei; D83-Addendum T8.1); Holo-Teile hinter einer halbtransparenten Kiste fallen
-  weg (D83-Addendum T8.2); eine Kiste unter einem leeren vorderen Rack ist nicht anklickbar (D21, Backlog); Near-Plane-
-  Clipping bei Max-Zoom auf sehr großen Schiffen (Hull C, T8.5 E1)
+- Medien bleiben (D85), Hinweis in `docs/shots/SHOTLIST.md`, Auslöser zum Nachdrehen nur in der Backlog-Zeile
+- Known issues aus Phase 8 (T8.7) ins Wiki (Troubleshooting) und in den Entwurf `docs/release-notes/v0.1.0.md`
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+- Medien inklusive Hero-GIF bleiben vom Stand vor D83 (D85, D83-Addendum); Auslöser-Wortlaut einmal im Backlog, SHOTLIST
+  und D85 verweisen darauf.
+- Neuer Branch `release/v0.1.0` ab `main`; `docs/release-v0.1.0` war vollständig in `main` und `origin/main` (9364ca0),
+  lokal gelöscht, remote löscht Martin. Kein Merge nach T9.1: `--no-ff` nach der Abnahme der Notes in T9.2, vor dem Tag.
+- Tooltip „Hologram opacity“ „behind the racks“ → „around the racks“ als eigener Commit (Text, kein Verhalten, kein Test
+  pinnt ihn).
+- Wiki `Ship-view`: der Satz zu langen Schiffen war schon vor D83 falsch („dimmed until you zoom out“): leere Racks langer
+  Schiffe (`IsLong`: mehr als doppelt so lang wie breit) sind immer gedimmt (`ShipScene3D.cs:317`), der Start zeigt die
+  beladenen Racks und den Bug (`CameraFit.cs:67`).
+- README bleibt: Ansicht, Settings und Known issues stehen seit T7.5a im Wiki; Grep belegt, dass dort nichts falsch ist.
+- Known issue „Planzeit bis ~4 s“ entfällt (B4, D66: Freelancer-Lastfall 2,3 ms). Retaliator: keine Datei in `ships/`,
+  also „fehlt“, nicht „ohne Gittermaße“.
+
+**Befund:**
+- Downgrade geprüft am Code: rc.1 (6bbc115), rc.2 (1bfd3ba, beide am Commit ihrer Notes; die Tags gibt es nicht mehr) und
+  rc.3 (Tag 01770ab) lesen Schema 2 mit `UnmappedMemberHandling.Disallow` und kennen weder `shipView` noch `shipOutline`.
+  0.1.0 schreibt beide immer: **jede** von 0.1.0 gespeicherte `settings.json` ist für rc-Builds unlesbar (Defaults und
+  Meldung, `.bak` erst beim nächsten Speichern), nicht erst eine mit `distance`/`target` (D83-Addendum T8.1).
+- Netz: einziger `HttpClient` in `HoloSource.cs`, Basis `HoloRelease.BaseUri` (Release `holo-v1` dieses Repos), kein
+  Aufruf von Fleetyards; sonst nur der Nexus-Link per Klick im Browser.
+- Schiffe: 97 Dateien in `ships/` und ein Modul, der Loader lädt 98 Einträge ohne „Skipped“; README und Wiki stimmen.
+- „New since rc.3“ aus `git log v0.1.0-rc.3..main` (318 Commits, 15 Merges): rc.3 war der Stand von T6.5 mit der Hull A
+  allein; seitdem T7.0–T7.5, B1–B6, K1–K7, Sync-Gone, Sync-Net, Holo-Pump, T8.0–T8.7.
+
+**Akzeptanz:**
+- [x] Wiki: Ship-view, Preferences, Ships-and-cargo-grids, Troubleshooting (Known issues) folgen D83/D84 (Wiki `4d1dba0`,
+  lokal; Push am Tag des Tags `v0.1.0`)
+- [x] `docs/settings-format.md` folgt D83/D84 (Enum-Wert `"none"` unverändert)
+- [x] Tooltip „Hologram opacity“ folgt D83
+- [x] SHOTLIST-Hinweis, D85 und D83-Addendum, Backlog-Zeile
+- [x] Entwurf `docs/release-notes/v0.1.0.md` mit Highlights, Known issues (je mit Fundort), Credits
+- [x] Grep-Prüfung (README, Wiki, `docs/*.md`, XAML ohne Treffer), Link-Prüfung (0 kaputt, Negativtest schlägt an),
+  `dotnet build` 0 Warnungen, `dotnet test` grün (Core 1.497, Import 141, App 1.533)
+- [x] Diff-Durchsicht durch Martin/Claude.ai (31.10.2026); `origin/docs/release-v0.1.0` von Martin gelöscht
+- Kein Merge nach T9.1: `--no-ff` nach `main` nach der Abnahme der Notes in T9.2, vor dem Tag
 
 ### [ ] T9.2 Release (= T7.5d)
 - Release-Notes `docs/release-notes/v0.1.0.md`, Tag `v0.1.0`, rc-Releases und -Tags löschen (D49)
+- Notiz aus T9.1: `gh` liegt nicht im PATH (`C:\Program Files\GitHub CLI\gh.exe`); das Holo-Asset ist ein eigenes Release
+  `holo-v1`, nicht am App-Release; Wiki-Push am Tag des Tags `v0.1.0`
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+- R1 Retaliator-Zeile bleibt ohne Grund (kein Beleg im Repo). R2 Schiffszahl bleibt 97: die Auswahl hat 98 Einträge,
+  der 98. ist die Aurora Mk II mit TS-Modul (`ModuleDto.cs:30-34`, Variante, kein eigenes Schiff); Notes, README und Wiki
+  sagen 97. Highlights bleiben wortgleich zur README; N1 Drop-Satz, N2 „if you choose“, N3 Link auf „Check the download“.
+- Kein Versions-Bump: `release.yml` nimmt die Version aus dem Tag, `0.0.0-dev` in `Directory.Build.props` bleibt
+  Platzhalter für Entwickler-Builds (D49).
+- M6 (self-contained statt framework-dependent wie M5) **vor dem Tag** mit dem lokalen ZIP aus `publish.ps1 -Version 0.1.0`
+  (gleiches Skript, gleiche Schalter wie CI); das veröffentlichte ZIP bekommt die Funktionsprüfung. Gate je Ziel: Median
+  spät ≤ M5-Median + 2 pp, Vorschau p95 ≤ 16 ms.
+- rc-Notes bleiben (D49-Addendum, keine neue D-Nummer). `release/v0.1.0` nach der Nachprüfung lokal und remote löschen.
+- Wiki-Push entfällt: `origin/master` steht schon auf `ef6b9f4`.
+
+**Befund (vor dem Tag):**
+- Version überall `AssemblyInformationalVersion`: Settings-Fußzeile, CLI `--version`, Holo-User-Agent (ohne `+…`),
+  Messlog-Kopf; kein Fenstertitel, kein Versionskopf in `cargoplan.log`.
+- Remote: Releases `v0.1.0-rc.3` und `holo-v1` (beide Pre-release), Tags dieselben; `releases/latest` → `/releases`.
+  README zeigt schon auf `releases/latest`.
+- `holo-v1`: 120 Assets = 118 `.holo` + `manifest.json` (listet 118) + `NOTICE.md`; URL = `HoloRelease.BaseUri`.
+- Daten liegen in `%LocalAppData%\SC-CargoPlan` (nicht `%AppData%`, dort nur die CT-DB).
+- Link-Check der Notes (`linkcheck.py` aus T9.1): 0 kaputt, Negativtest mit zwei falschen Ankern schlägt an; extern
+  200 außer Nexus (403 an curl, Bot-Schutz; Prüfung im Browser bei der Nachprüfung).
+- Reproduzierbarkeit: Hash lokal ≠ CI erwartet (D49); verglichen werden Eintragsliste und `--version`.
 
 ### [ ] T9.3 Nexus → T6.6
 
@@ -3553,6 +3612,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Kisten großer Schiffe im Default-Overlay klein: C2 13,2 px, Hull C 5,1 px pro Kistenkante (400 × 302, nach K5.2c), unter dem Hull-A-Wert 27,2 (Befund K5.2c, D62-Addendum). Auslöser: ein Hauler meldet zu kleine Kisten auf einem großen Schiff.
 - Railen: die generierte Reihe (53 Zellen) ist länger als der Rumpf (40 Zellen), ragt aus dem maßstabsgetreuen Umriss (K5.2c). Auslöser: Fleetyards-Offsets für die Railen oder eine Meldung aus dem Spiel.
 - Doku aus `docs/wiki/` im Hauptrepo per Action ins Wiki spiegeln – Auslöser: erster externer Doku-Beitrag.
+- Screenshots/GIFs auf Perspektive nachdrehen (alle Shots von `docs/shots/SHOTLIST.md`, Hero-GIF eingeschlossen; D85) –
+  Auslöser: nächstes Release mit sichtbarer Änderung der Ansicht oder erster Nutzer-Report „sieht bei mir anders aus“.
 - UI-Text-Konsistenz (Befund T7.5a): Schiffswechsel-Dialog mit Yes als Default, Re-plan mit No; Export… und Remove ohne
   Tooltip, gesperrte Knöpfe nennen ihren Grund nur teilweise (Plan, ↑/↓, Add to mission ja; Export…, Re-plan, Discard plan,
   Delete mission nein); Hotkey-Notice „already in use“ nennt den JSON-Key statt des Fenster-Labels; Notices mal mit, mal

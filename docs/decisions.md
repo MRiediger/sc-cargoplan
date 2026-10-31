@@ -539,6 +539,7 @@ A decision changes only through a new entry that supersedes the old one.
 - **Counter-argument:** A valid SemVer tag with build metadata is refused. The tested build isn't byte-equal to the shipped one: `publish` builds for `win-x64` again, from the same commit and version. `publish.ps1` now zips too, every local run writes ~60 MB more, and the App folder moved from `out/publish` to `out/publish/SC-CargoPlan`. A pinned action gets no fixes by itself. The regex lives only in the workflow; `publish.ps1 -Version 0.1` runs locally unchecked. A deleted rc tag lives on in clones that fetched it.
 - **Consequence:** `ci.yml` is unchanged (it never runs for tags). Release notes are a file per version in `docs/release-notes/`. The README's download section is T6.5.
 - **Addendum (T6.4):** "A pinned action gets no fixes by itself" is too strong: Dependabot's github-actions updater also scans `release.yml` (the grouped PR #17 bumped checkout and setup-dotnet there) and, according to community sources, proposes a new commit with the version comment for an action pinned to a SHA. Not yet observed here: v3.0.3 is still softprops' latest release. Changes to `release.yml` are not tested by CI; the next tag runs them first.
+- **Addendum (T9.2):** With `v0.1.0` the rc releases and tags go, as decided; the notes `docs/release-notes/v0.1.0-rc.*.md` stay. Once the tags are gone they are the only record of what each release candidate shipped, and the consequence above already keeps one notes file per version. Counter-argument: three notes files without a release to go with them. The version still comes from the tag only: `Directory.Build.props` keeps `0.0.0-dev` for developer builds, so no build after the release claims to be 0.1.0 unless the tag says so.
 
 ## D50 – English-only satellite resources
 
@@ -990,6 +991,7 @@ Written as a D59 addendum in K2.2 and made an entry of its own at the acceptance
   - **Measuring from now on:** frame time always over the game (`--over-game`); a baseline without it measures the compositor. Gates compare the same target before and after over the game, not against the empty window.
   - **Near limit (T8.5 E1):** none built. On the Hull A the camera enters `Ship.Bounds` only at 240 px per cell in the default overlay; on very large ships (Hull C) it can at the maximum zoom, and the near plane clips close parts. A limit of half the diagonal would keep a single rack from ever being seen close, so the clipping stays and goes into the known issues (T9.1) with the settings downgrade, hologram parts behind a half-transparent crate and a crate under an empty rack in front.
   - **Phase 8 in one line:** one scene, one camera, one projection (`CameraMath`) for picture, overlay and hit test; the 2D painter and the hologram backdrop are gone (T8.6), every behaviour the old tests held is held by a test of the new view.
+- **Addendum (D85):** "the media of T7.5b have to be taken again" (counter-argument) and "together with new media" (consequence) are superseded: the media stay for v0.1.0.
 
 ## D84 – No frame around `Ship.Bounds` in the ship view
 
@@ -998,3 +1000,11 @@ Written as a D59 addendum in K2.2 and made an entry of its own at the acceptance
 - **Decision:** Dropped in every look (Martin, 30 Oct 2026, at the pictures). `MissionPalette.Frame` and `BoxEdges.Dashed` go with it (no other user, A4). The none look shows the racks alone (D62 said "racks and frame"). Precision in the planning phase, ratified by approval.
 - **Counter-argument:** In the none look nothing shows where the racks' common box ends, and the wedge's (D52) base was the frame's bow face, which is now open. The frame was faint (alpha 0x60) and dashed; after the T8.5 strip fix it would have been visible for the first time since T8.2, so the pictures were its only test in 3D.
 - **Consequence:** D52, D62 and D83 (T8.2's "frame strips") read against this entry; README and wiki are checked for "frame" in T9.1.
+
+## D85 – The v0.1.0 media stay from before the perspective view
+
+- **Context:** D83 expected the screenshots and GIFs of T7.5b (28 Oct 2026, 32 shots plus the hero GIF) to be taken again before the release. They show the orthographic view; Phase 8 kept every behaviour (gestures, states, drag rules) and changed the projection only.
+- **Options:** re-record every shot before the tag; re-record only the hero GIF, which GitHub, the wiki's Home and Nexus show first; keep them all.
+- **Decision:** Keep them all, the hero GIF included (Martin, 31 Oct 2026): behaviour was Phase 8's invariant, so the pictures still show what the app does. When to re-record is one backlog line in TASKS.md, worded there only; `docs/shots/SHOTLIST.md` points to it. Precision in the planning phase, ratified by approval.
+- **Counter-argument:** The first impression on GitHub and Nexus is a view the app no longer draws; a hauler comparing the GIFs with the overlay sees perspective where the pictures are flat, and may take it for a different version.
+- **Consequence:** D83's media clause is superseded (D83 addendum). The wiki texts follow the perspective view (T9.1), the pictures don't until the backlog trigger fires.

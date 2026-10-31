@@ -3,6 +3,10 @@
 Every image and GIF in the README and the wiki, in the order they are best recorded. Kept for every release: when the UI
 changes, re-record the shots of the pages it touches.
 
+**State of the shots:** recorded on 28 Oct 2026, before the perspective ship view (D83). They show the same behavior and
+stay for v0.1.0 (D85); when to re-record them is the backlog line "Screenshots/GIFs auf Perspektive nachdrehen" in
+[`TASKS.md`](../../TASKS.md).
+
 Each place in the wiki that shows a shot carries `![…](media/<file>)` and, below it, `<!-- SHOT: <id> -->`. The hero GIF
 lives in this repo (`docs/images/hero.gif`); the wiki's Home page shows the same file by its raw URL. Every other file
 goes into the wiki repo's `media/` folder.
