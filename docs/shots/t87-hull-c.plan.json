@@ -1,0 +1,1478 @@
+{
+  "schemaVersion": 8,
+  "shipId": "hull_c",
+  "fillOrder": "bowFirst",
+  "contractTrackerWatermark": 0,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Riker Memorial",
+          "items": [
+            {
+              "commodity": "Titanium",
+              "scu": 288,
+              "maxCrateSize": 32,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Shubin SCD-1",
+          "items": [
+            {
+              "commodity": "Agricium",
+              "scu": 288,
+              "maxCrateSize": 32,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Orison",
+          "items": [
+            {
+              "commodity": "Titanium",
+              "scu": 288,
+              "maxCrateSize": 32,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Lorville",
+          "items": [
+            {
+              "commodity": "Agricium",
+              "scu": 288,
+              "maxCrateSize": 32,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Area18",
+          "items": [
+            {
+              "commodity": "Titanium",
+              "scu": 288,
+              "maxCrateSize": 32,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "New Babbage",
+          "items": [
+            {
+              "commodity": "Agricium",
+              "scu": 288,
+              "maxCrateSize": 32,
+              "pickup": [
+                "Area18"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Everus Harbor",
+          "items": [
+            {
+              "commodity": "Titanium",
+              "scu": 288,
+              "maxCrateSize": 32,
+              "pickup": [
+                "Area18"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Baijini Point",
+          "items": [
+            {
+              "commodity": "Agricium",
+              "scu": 288,
+              "maxCrateSize": 32,
+              "pickup": [
+                "Area18"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Port Tressler",
+          "items": [
+            {
+              "commodity": "Titanium",
+              "scu": 288,
+              "maxCrateSize": 32,
+              "pickup": [
+                "Area18"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Seraphim Station",
+          "items": [
+            {
+              "commodity": "Agricium",
+              "scu": 288,
+              "maxCrateSize": 32,
+              "pickup": [
+                "Area18"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-7",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-7",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-7",
+      "position": [
+        0,
+        4,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-7",
+      "position": [
+        0,
+        6,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-7",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-7",
+      "position": [
+        0,
+        2,
+        2
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-7",
+      "position": [
+        0,
+        4,
+        2
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-7",
+      "position": [
+        0,
+        6,
+        2
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-7",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-10",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-10",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-10",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-10",
+      "position": [
+        0,
+        2,
+        2
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-10",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-10",
+      "position": [
+        0,
+        2,
+        4
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-11",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-11",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-11",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-5",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-5",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-5",
+      "position": [
+        0,
+        4,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-5",
+      "position": [
+        0,
+        6,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-5",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-5",
+      "position": [
+        0,
+        2,
+        2
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-5",
+      "position": [
+        0,
+        4,
+        2
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-5",
+      "position": [
+        0,
+        6,
+        2
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-5",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        4,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        6,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        2,
+        2
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        4,
+        2
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        6,
+        2
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Area18",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 5,
+      "item": 0
+    },
+    {
+      "destination": "Area18",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 5,
+      "item": 0
+    },
+    {
+      "destination": "Area18",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        4,
+        0
+      ],
+      "delivered": false,
+      "mission": 5,
+      "item": 0
+    },
+    {
+      "destination": "Area18",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        6,
+        0
+      ],
+      "delivered": false,
+      "mission": 5,
+      "item": 0
+    },
+    {
+      "destination": "Area18",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "delivered": false,
+      "mission": 5,
+      "item": 0
+    },
+    {
+      "destination": "Area18",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        2,
+        2
+      ],
+      "delivered": false,
+      "mission": 5,
+      "item": 0
+    },
+    {
+      "destination": "Area18",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        4,
+        2
+      ],
+      "delivered": false,
+      "mission": 5,
+      "item": 0
+    },
+    {
+      "destination": "Area18",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        6,
+        2
+      ],
+      "delivered": false,
+      "mission": 5,
+      "item": 0
+    },
+    {
+      "destination": "Area18",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "delivered": false,
+      "mission": 5,
+      "item": 0
+    },
+    {
+      "destination": "New Babbage",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-4",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 6,
+      "item": 0
+    },
+    {
+      "destination": "New Babbage",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-4",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 6,
+      "item": 0
+    },
+    {
+      "destination": "New Babbage",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-4",
+      "position": [
+        0,
+        4,
+        0
+      ],
+      "delivered": false,
+      "mission": 6,
+      "item": 0
+    },
+    {
+      "destination": "New Babbage",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-4",
+      "position": [
+        0,
+        6,
+        0
+      ],
+      "delivered": false,
+      "mission": 6,
+      "item": 0
+    },
+    {
+      "destination": "New Babbage",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-4",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "delivered": false,
+      "mission": 6,
+      "item": 0
+    },
+    {
+      "destination": "New Babbage",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-4",
+      "position": [
+        0,
+        2,
+        2
+      ],
+      "delivered": false,
+      "mission": 6,
+      "item": 0
+    },
+    {
+      "destination": "New Babbage",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-4",
+      "position": [
+        0,
+        4,
+        2
+      ],
+      "delivered": false,
+      "mission": 6,
+      "item": 0
+    },
+    {
+      "destination": "New Babbage",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-4",
+      "position": [
+        0,
+        6,
+        2
+      ],
+      "delivered": false,
+      "mission": 6,
+      "item": 0
+    },
+    {
+      "destination": "New Babbage",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-4",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "delivered": false,
+      "mission": 6,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 7,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 7,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        4,
+        0
+      ],
+      "delivered": false,
+      "mission": 7,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        6,
+        0
+      ],
+      "delivered": false,
+      "mission": 7,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "delivered": false,
+      "mission": 7,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        2,
+        2
+      ],
+      "delivered": false,
+      "mission": 7,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        4,
+        2
+      ],
+      "delivered": false,
+      "mission": 7,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        6,
+        2
+      ],
+      "delivered": false,
+      "mission": 7,
+      "item": 0
+    },
+    {
+      "destination": "Everus Harbor",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "delivered": false,
+      "mission": 7,
+      "item": 0
+    },
+    {
+      "destination": "Baijini Point",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 8,
+      "item": 0
+    },
+    {
+      "destination": "Baijini Point",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 8,
+      "item": 0
+    },
+    {
+      "destination": "Baijini Point",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        4,
+        0
+      ],
+      "delivered": false,
+      "mission": 8,
+      "item": 0
+    },
+    {
+      "destination": "Baijini Point",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        6,
+        0
+      ],
+      "delivered": false,
+      "mission": 8,
+      "item": 0
+    },
+    {
+      "destination": "Baijini Point",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "delivered": false,
+      "mission": 8,
+      "item": 0
+    },
+    {
+      "destination": "Baijini Point",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        2,
+        2
+      ],
+      "delivered": false,
+      "mission": 8,
+      "item": 0
+    },
+    {
+      "destination": "Baijini Point",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        4,
+        2
+      ],
+      "delivered": false,
+      "mission": 8,
+      "item": 0
+    },
+    {
+      "destination": "Baijini Point",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        6,
+        2
+      ],
+      "delivered": false,
+      "mission": 8,
+      "item": 0
+    },
+    {
+      "destination": "Baijini Point",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "delivered": false,
+      "mission": 8,
+      "item": 0
+    },
+    {
+      "destination": "Port Tressler",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-6",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 9,
+      "item": 0
+    },
+    {
+      "destination": "Port Tressler",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-6",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 9,
+      "item": 0
+    },
+    {
+      "destination": "Port Tressler",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-6",
+      "position": [
+        0,
+        4,
+        0
+      ],
+      "delivered": false,
+      "mission": 9,
+      "item": 0
+    },
+    {
+      "destination": "Port Tressler",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-6",
+      "position": [
+        0,
+        6,
+        0
+      ],
+      "delivered": false,
+      "mission": 9,
+      "item": 0
+    },
+    {
+      "destination": "Port Tressler",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-6",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "delivered": false,
+      "mission": 9,
+      "item": 0
+    },
+    {
+      "destination": "Port Tressler",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-6",
+      "position": [
+        0,
+        2,
+        2
+      ],
+      "delivered": false,
+      "mission": 9,
+      "item": 0
+    },
+    {
+      "destination": "Port Tressler",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-6",
+      "position": [
+        0,
+        4,
+        2
+      ],
+      "delivered": false,
+      "mission": 9,
+      "item": 0
+    },
+    {
+      "destination": "Port Tressler",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-6",
+      "position": [
+        0,
+        6,
+        2
+      ],
+      "delivered": false,
+      "mission": 9,
+      "item": 0
+    },
+    {
+      "destination": "Port Tressler",
+      "commodity": "Titanium",
+      "crateSize": 32,
+      "rackId": "rack-6",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "delivered": false,
+      "mission": 9,
+      "item": 0
+    },
+    {
+      "destination": "Seraphim Station",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-8",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 10,
+      "item": 0
+    },
+    {
+      "destination": "Seraphim Station",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-8",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 10,
+      "item": 0
+    },
+    {
+      "destination": "Seraphim Station",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-8",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "delivered": false,
+      "mission": 10,
+      "item": 0
+    },
+    {
+      "destination": "Seraphim Station",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-8",
+      "position": [
+        0,
+        2,
+        2
+      ],
+      "delivered": false,
+      "mission": 10,
+      "item": 0
+    },
+    {
+      "destination": "Seraphim Station",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-8",
+      "position": [
+        0,
+        0,
+        4
+      ],
+      "delivered": false,
+      "mission": 10,
+      "item": 0
+    },
+    {
+      "destination": "Seraphim Station",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-8",
+      "position": [
+        0,
+        2,
+        4
+      ],
+      "delivered": false,
+      "mission": 10,
+      "item": 0
+    },
+    {
+      "destination": "Seraphim Station",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-9",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 10,
+      "item": 0
+    },
+    {
+      "destination": "Seraphim Station",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-9",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 10,
+      "item": 0
+    },
+    {
+      "destination": "Seraphim Station",
+      "commodity": "Agricium",
+      "crateSize": 32,
+      "rackId": "rack-9",
+      "position": [
+        0,
+        0,
+        2
+      ],
+      "delivered": false,
+      "mission": 10,
+      "item": 0
+    }
+  ],
+  "warnings": [
+    {
+      "rackId": "rack-8",
+      "message": "Seraphim Station spans racks 9\u002B10"
+    },
+    {
+      "rackId": "rack-9",
+      "message": "Seraphim Station spans racks 9\u002B10"
+    },
+    {
+      "rackId": "rack-10",
+      "message": "Shubin SCD-1 spans racks 11\u002B12"
+    },
+    {
+      "rackId": "rack-11",
+      "message": "Shubin SCD-1 spans racks 11\u002B12"
+    }
+  ]
+}

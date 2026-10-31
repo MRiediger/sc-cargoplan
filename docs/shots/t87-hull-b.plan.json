@@ -1,0 +1,884 @@
+{
+  "schemaVersion": 8,
+  "shipId": "hull_b",
+  "fillOrder": "bowFirst",
+  "contractTrackerWatermark": 0,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Riker Memorial",
+          "items": [
+            {
+              "commodity": "Titanium",
+              "scu": 160,
+              "maxCrateSize": 16,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Shubin SCD-1",
+          "items": [
+            {
+              "commodity": "Gold",
+              "scu": 96,
+              "maxCrateSize": 8,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Orison",
+          "items": [
+            {
+              "commodity": "Pressurized Ice",
+              "scu": 64,
+              "maxCrateSize": 4,
+              "pickup": [
+                "Area18"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Lorville",
+          "items": [
+            {
+              "commodity": "Tin",
+              "scu": 32,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Area18"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 16,
+      "rackId": "rack-0",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 16,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 16,
+      "rackId": "rack-1",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 16,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 16,
+      "rackId": "rack-2",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 16,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 16,
+      "rackId": "rack-3",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 16,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 16,
+      "rackId": "rack-4",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Riker Memorial",
+      "commodity": "Titanium",
+      "crateSize": 16,
+      "rackId": "rack-4",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-5",
+      "position": [
+        6,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-5",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-5",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-5",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-6",
+      "position": [
+        6,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-6",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-6",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-6",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-7",
+      "position": [
+        6,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-7",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-7",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Shubin SCD-1",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-7",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-8",
+      "position": [
+        6,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-8",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-8",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-8",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-8",
+      "position": [
+        6,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-8",
+      "position": [
+        4,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-8",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-8",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-9",
+      "position": [
+        6,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-9",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-9",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-9",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-9",
+      "position": [
+        6,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-9",
+      "position": [
+        4,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-9",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-9",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        6,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        6,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        4,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        2,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        6,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        4,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        6,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        4,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        2,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 2,
+      "rackId": "rack-10",
+      "position": [
+        0,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    }
+  ],
+  "warnings": [
+    {
+      "rackId": "rack-0",
+      "message": "Riker Memorial spans racks 1\u002B2\u002B3\u002B4\u002B5"
+    },
+    {
+      "rackId": "rack-1",
+      "message": "Riker Memorial spans racks 1\u002B2\u002B3\u002B4\u002B5"
+    },
+    {
+      "rackId": "rack-2",
+      "message": "Riker Memorial spans racks 1\u002B2\u002B3\u002B4\u002B5"
+    },
+    {
+      "rackId": "rack-3",
+      "message": "Riker Memorial spans racks 1\u002B2\u002B3\u002B4\u002B5"
+    },
+    {
+      "rackId": "rack-4",
+      "message": "Riker Memorial spans racks 1\u002B2\u002B3\u002B4\u002B5"
+    },
+    {
+      "rackId": "rack-5",
+      "message": "Shubin SCD-1 spans racks 6\u002B7\u002B8"
+    },
+    {
+      "rackId": "rack-6",
+      "message": "Shubin SCD-1 spans racks 6\u002B7\u002B8"
+    },
+    {
+      "rackId": "rack-7",
+      "message": "Shubin SCD-1 spans racks 6\u002B7\u002B8"
+    },
+    {
+      "rackId": "rack-8",
+      "message": "Orison spans racks 9\u002B10"
+    },
+    {
+      "rackId": "rack-9",
+      "message": "Orison spans racks 9\u002B10"
+    }
+  ]
+}
