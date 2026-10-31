@@ -1,4 +1,4 @@
-using System.Windows;
+using System.Windows.Media.Media3D;
 using CargoPlan.App.Editor;
 using CargoPlan.Core.Models;
 using static System.FormattableString;
@@ -7,11 +7,11 @@ namespace CargoPlan.App.ShipView;
 
 /// <summary>
 /// Everything the ship view shows, in ship coordinates, independent of the camera. Built once per plan by
-/// <see cref="ShipViewBuilder"/>; <see cref="SceneProjector"/> turns it into a <see cref="ProjectedScene"/> per camera.
+/// <see cref="ShipViewBuilder"/>; <see cref="ShipScene3D"/> shows it under the one camera (D83).
 /// A record, not a view model: nothing in it changes.
 /// </summary>
-/// <param name="Racks">In rack order; the draw order depends on the camera (<see cref="DrawOrder"/>).</param>
-/// <param name="Bounds"><c>Ship.Bounds</c>, drawn as the frame.</param>
+/// <param name="Racks">In rack order; what covers what is the depth buffer's (D83).</param>
+/// <param name="Bounds"><c>Ship.Bounds</c>, the racks' common box: the bow wedge stands at its bow end (D52); not drawn (D84).</param>
 /// <param name="Violations">From <c>LoadPlanner.Validate</c>; these racks are red (D24).</param>
 /// <param name="StopCount">Destinations in the plan: with the chosen palette, whether colours repeat (K4.2).</param>
 /// <param name="Plan">The plan drawn, empty without one: a drag asks Core with it where a crate may go (D25).</param>
@@ -66,17 +66,17 @@ public abstract record BowMarker
     /// <summary>The bow wedge with its "Bow" label (D52).</summary>
     public sealed record Wedge : BowMarker;
 
-    /// <summary>The ship's outline on the racks' floor, in cells (<see cref="OutlinePlacement"/>); no wedge, no label.</summary>
-    public sealed record Outline(IReadOnlyList<SceneProjector.Corner> Points) : BowMarker;
+    /// <summary>The ship's outline on the hologram's floor, in cells (<see cref="OutlinePlacement"/>); no wedge, no label.</summary>
+    public sealed record Outline(IReadOnlyList<Point3D> Points) : BowMarker;
 
     /// <summary>Racks and frame only.</summary>
     public sealed record None : BowMarker;
 
     /// <summary>
-    /// The ship's hologram behind the racks (D63), drawn by the backdrop, not by the ship view; its box in cells
+    /// The ship's hologram around the racks (D63), drawn in the scene from the loaded mesh; its box in cells
     /// (<see cref="HoloPlacement"/>) is all the scene needs: the fit shows the whole hologram.
     /// </summary>
-    public sealed record Holo(SceneProjector.Corner Min, SceneProjector.Corner Max) : BowMarker;
+    public sealed record Holo(Point3D Min, Point3D Max) : BowMarker;
 }
 
 /// <param name="RackId">The ship's rack id, the target of a drop (<c>LoadPlanner.MoveCrates</c>, <c>ResolveMoveToRack</c>).</param>
@@ -127,83 +127,6 @@ public enum BoxFace
     Bow,
     Aft,
 }
-
-/// <summary>
-/// A <see cref="ShipScene"/> seen from one camera, in projected units (not pixels); the control only transforms and
-/// paints it.
-/// </summary>
-/// <param name="Racks">Back to front (<see cref="DrawOrder.BackToFront"/>): the painter draws rack by rack.</param>
-/// <param name="Frame">The 12 edges of <c>Ship.Bounds</c>.</param>
-/// <param name="BowWedge">The nose that marks the bow (D52); null unless the scene's marker is the wedge.</param>
-/// <param name="Outline">The ship's outline on the floor (D62); null unless the scene's marker is an outline.</param>
-/// <param name="Extent">Encloses the frame and the marker: the bow wedge or the outline.</param>
-/// <param name="FitExtent">
-/// What fit-to-view shows: on a long ship with cargo its loaded racks and the bow (the wedge, or the zone up to the outline's
-/// tip), otherwise <paramref name="Extent"/> (D61, D62).
-/// </param>
-/// <param name="Anchor">
-/// The centre of <c>Ship.Bounds</c>, projected: what the player's framing hangs on (D76). Fixed to the ship, so neither
-/// cargo nor a hologram that loads later moves a framed view.
-/// </param>
-/// <param name="ShipExtent">
-/// <paramref name="FitExtent"/> with every rack, loaded or not: fixed to the ship and its marker, so the zoom limits taken
-/// from it never move with the cargo (holo pump bugfix, D76).
-/// </param>
-public sealed record ProjectedScene(
-    IReadOnlyList<ProjectedRack> Racks,
-    IReadOnlyList<SceneLine> Frame,
-    ProjectedWedge? BowWedge,
-    IReadOnlyList<Point>? Outline,
-    Rect Extent,
-    Rect FitExtent,
-    Point Anchor,
-    Rect ShipExtent);
-
-/// <summary>One face of the bow wedge in ship coordinates (D52): <see cref="BoxFace.Bow"/> is its tip, Port and Starboard its flanks.</summary>
-/// <param name="Normal">Outward, unit length; the flanks' normals are not along an axis.</param>
-public sealed record BowWedgeFace(BoxFace Face, IReadOnlyList<SceneProjector.Corner> Corners, (double X, double Y, double Z) Normal);
-
-/// <param name="Faces">The faces turned towards the camera.</param>
-/// <param name="InFront">
-/// The wedge lies beyond the bow end of every rack, so the x axis always separates them: seen from the bow side it is
-/// drawn after the racks, otherwise before them, without a place in <see cref="DrawOrder"/>.
-/// </param>
-/// <param name="Floor">Where the "Bow" label lies.</param>
-public sealed record ProjectedWedge(IReadOnlyList<ProjectedFace> Faces, bool InFront, WedgeFloor Floor);
-
-/// <summary>
-/// The bow wedge's floor as the camera sees it, for the label lying on it (D52): from <paramref name="Centre"/>, one cell
-/// across the ship (+y) and one cell towards the bow (+x), in projected units; <paramref name="Room"/> in cells, across
-/// by along.
-/// </summary>
-public sealed record WedgeFloor(Point Centre, Vector Across, Vector Bowwards, Size Room);
-
-/// <param name="Faces">The faces of the rack's box the camera sees: its edges and its area for the hit test.</param>
-/// <param name="Boxes">The rack's own boxes, back to front (<see cref="DrawOrder.BoxesBackToFront"/>).</param>
-/// <param name="LabelCentre">
-/// Where the rack number goes: the centre of the largest visible face, or with <paramref name="LabelAbove"/> the top
-/// middle of the rack's outline, the number standing on it.
-/// </param>
-/// <param name="LabelAbove">On a long ship the number stands above its rack, never over its crates (D61).</param>
-/// <param name="IsLoaded"><see cref="SceneRack.IsLoaded"/>; empty racks of a long ship are drawn dimmed (D61).</param>
-/// <param name="Load"><see cref="SceneRack.Load"/>.</param>
-public sealed record ProjectedRack(
-    string RackId,
-    int Number,
-    bool IsViolated,
-    IReadOnlyList<ProjectedFace> Faces,
-    IReadOnlyList<ProjectedBox> Boxes,
-    Point LabelCentre,
-    bool LabelAbove,
-    bool IsLoaded,
-    RackLoad Load);
-
-public sealed record ProjectedFace(BoxFace Face, IReadOnlyList<Point> Polygon);
-
-/// <summary>A <see cref="SceneBox"/> as the camera sees it, drawn slightly smaller all round so the gap between boxes shows.</summary>
-public sealed record ProjectedBox(SceneBox Box, IReadOnlyList<ProjectedFace> Faces);
-
-public sealed record SceneLine(Point From, Point To);
 
 /// <summary>
 /// One stop in the legend, in the order the stops were entered (D64). <paramref name="Delivered"/>: all its placements are delivered.

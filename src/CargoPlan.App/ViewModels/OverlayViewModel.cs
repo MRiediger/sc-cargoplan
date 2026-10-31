@@ -216,14 +216,14 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         }
     }
 
-    /// <summary>The hologram backdrop's opacity (D63), from the settings; bound by the backdrop, so the slider applies live.</summary>
+    /// <summary>The hologram's opacity (D63), from the settings; bound by the ship view, so the slider applies live.</summary>
     public double HoloOpacity
     {
         get;
         set => SetProperty(ref field, value);
     } = AppearanceRules.DefaultHoloOpacity;
 
-    /// <summary>The hologram's hull in the shaded and flat looks (D63), "#AARRGGBB" from the settings; bound by the backdrop.</summary>
+    /// <summary>The hologram's hull in the shaded and flat looks (D63), "#AARRGGBB" from the settings; bound by the ship view.</summary>
     public string HoloHullColor
     {
         get;
@@ -248,7 +248,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     private PreparedHolo? _holo;
 
     /// <summary>
-    /// The hologram the backdrop draws (D63): the one <see cref="HoloLoader"/> handed over, while a hologram look is chosen
+    /// The hologram the ship view draws in its scene (D63): the one <see cref="HoloLoader"/> handed over, while a hologram look is chosen
     /// and it belongs to <see cref="Ship"/>; null otherwise, so another ship or the outline hides it at once, before the
     /// loader answers. Not loaded here: the view model only shows.
     /// </summary>
@@ -257,7 +257,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// <summary>
     /// From <see cref="HoloLoader"/>: the hologram for the current ship and look, or null for the outline. The scene is
     /// built anew only when the hologram's box changes, since a new scene empties the selection (D25): another look of the
-    /// same ship only redraws the backdrop.
+    /// same ship only redraws the hologram.
     /// </summary>
     public void ShowHolo(PreparedHolo? holo)
     {
@@ -1054,7 +1054,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     {
         Marker = OutlineMode == ShipOutlineMode.None ? new BowMarker.None()
             : Holo is { } holo && holo.ShipId == scene.Ship.Id ? new BowMarker.Holo(holo.Placement.Min, holo.Placement.Max)
-            : Outlines.For(scene.Ship) is { } outline ? new BowMarker.Outline(OutlinePlacement.Place(outline, scene.Ship.Bounds))
+            : Outlines.For(scene.Ship) is { } outline ? new BowMarker.Outline(OutlinePlacement.Place(outline, scene.Ship))
             : new BowMarker.Wedge(),
     };
 }

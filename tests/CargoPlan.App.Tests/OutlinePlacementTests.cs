@@ -1,3 +1,4 @@
+using System.Windows.Media.Media3D;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
@@ -15,7 +16,7 @@ public sealed class OutlinePlacementTests
     // The Hull A's racks since K5.2 (D78): 7 cells wide, nearly the 8 of the rectangle.
     private static readonly ShipBox Wide = new(new ShipPoint(0, -4, 0), new ShipPoint(4, 3, 5));
 
-    private static (double MinX, double MaxX, double MinY, double MaxY) Box(IReadOnlyList<SceneProjector.Corner> points) =>
+    private static (double MinX, double MaxX, double MinY, double MaxY) Box(IReadOnlyList<Point3D> points) =>
         (points.Min(p => p.X), points.Max(p => p.X), points.Min(p => p.Y), points.Max(p => p.Y));
 
     [Fact]
@@ -70,7 +71,7 @@ public sealed class OutlinePlacementTests
         var placed = OutlinePlacement.Place(Rectangle, HullA);
 
         // (10 m, 5 m) is (8, 4) cells from the origin, at true size from the racks' middle (2, 0.5).
-        placed[0].Should().Be(new SceneProjector.Corner(2 + 8, 0.5 + 4, 0));
+        placed[0].Should().Be(new Point3D(2 + 8, 0.5 + 4, 0));
         placed.Should().OnlyContain(p => p.Z == HullA.Min.Z);
     }
 
@@ -89,5 +90,54 @@ public sealed class OutlinePlacementTests
     public void Every_point_is_kept_in_order()
     {
         OutlinePlacement.Place(Rectangle, HullA).Should().HaveCount(4);
+    }
+
+    // --- The floor: the hologram's bottom (D83), also where no hologram is loaded (T8.5) ---
+
+    // One rack 4 × 2 cells, 6 high: its middle at z = 3.
+    private static Ship Tall(ShipPoint? holoOffset = null) =>
+        new("tall", "Tall", 48, [new Rack("rack-0", 0, 48, new Dimensions(4, 2, 6), null, new ShipPoint(0, 0, 0))], HoloOffset: holoOffset);
+
+    private static ShipOutline WithHeight(double? metres) => Rectangle with { HeightM = metres };
+
+    [Fact]
+    public void The_floor_lies_half_the_hull_below_the_racks_middle_as_the_hologram_does()
+    {
+        var ship = Tall();
+        ship.Bounds.Should().Be(new ShipBox(new ShipPoint(0, 0, 0), new ShipPoint(4, 2, 6)));
+
+        // 10 m = 8 cells: the hologram's box from 3 − 4 to 3 + 4.
+        OutlinePlacement.Floor(WithHeight(10), ship).Should().BeApproximately(-1, 1e-9);
+    }
+
+    [Fact]
+    public void The_floor_moves_with_the_holo_offset()
+    {
+        // The Aurora Mk II's case: the hologram a cell higher (K5.3b), so its floor too.
+        OutlinePlacement.Floor(WithHeight(10), Tall(new ShipPoint(0, 0, 1))).Should().BeApproximately(0, 1e-9);
+    }
+
+    [Fact]
+    public void The_floor_never_lies_above_the_racks_floor()
+    {
+        // 5 m = 4 cells: 3 − 2 = 1 would cut through the rack.
+        OutlinePlacement.Floor(WithHeight(5), Tall()).Should().Be(0);
+    }
+
+    [Fact]
+    public void Without_a_height_the_floor_is_the_racks_floor()
+    {
+        OutlinePlacement.Floor(WithHeight(null), Tall()).Should().Be(0);
+    }
+
+    [Fact]
+    public void A_ship_lays_its_outline_on_its_floor()
+    {
+        var ship = Tall();
+
+        var placed = OutlinePlacement.Place(WithHeight(10), ship);
+
+        placed.Should().OnlyContain(p => p.Z == OutlinePlacement.Floor(WithHeight(10), ship));
+        placed.Select(p => (p.X, p.Y)).Should().Equal(OutlinePlacement.Place(Rectangle, ship.Bounds).Select(p => (p.X, p.Y)));
     }
 }

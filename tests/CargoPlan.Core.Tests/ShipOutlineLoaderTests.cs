@@ -62,6 +62,41 @@ public class ShipOutlineLoaderTests
         (outline.Points.Max(p => p.Y) - outline.Points.Min(p => p.Y)).Should().BeApproximately(9.38, 0.1);
     }
 
+    // The outline lies on the hologram's floor (D83), which needs the hull's height also where no hologram is loaded (T8.5).
+    [Fact]
+    public void Every_shipped_outline_has_its_height()
+    {
+        ShipOutlineLoader.Load().Outlines.Values.Should().AllSatisfy(o => o.HeightM.Should().BePositive(because: o.Slug));
+    }
+
+    // --- Height ---
+
+    [Fact]
+    public void The_height_is_read_in_metres()
+    {
+        ShipOutlineLoader.Load(TestFile("heights.json")).For(WithSlug("tall"))!.HeightM.Should().Be(6.25);
+    }
+
+    [Fact]
+    public void An_outline_without_a_height_loads_without_one()
+    {
+        var catalog = ShipOutlineLoader.Load(TestFile("heights.json"));
+
+        catalog.For(WithSlug("no-height"))!.HeightM.Should().BeNull();
+        catalog.Problems.Should().NotContainMatch("*'no-height'*");
+    }
+
+    [Theory]
+    [InlineData("zero-height")]
+    [InlineData("negative-height")]
+    public void A_height_that_is_not_positive_is_dropped_with_a_problem_and_the_outline_stays(string slug)
+    {
+        var catalog = ShipOutlineLoader.Load(TestFile("heights.json"));
+
+        catalog.For(WithSlug(slug))!.HeightM.Should().BeNull();
+        catalog.Problems.Should().ContainSingle(p => p.Contains($"'{slug}'")).Which.Should().Contain("heightM");
+    }
+
     // --- Matching ---
 
     [Fact]

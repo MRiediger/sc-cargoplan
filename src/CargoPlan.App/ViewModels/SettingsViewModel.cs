@@ -62,7 +62,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <param name="changeToolWindowTheme">Gets a new tool window mode; apart from <paramref name="apply"/>, because it is no part of the overlay's look (D36).</param>
     /// <param name="changeShipOutline">Gets a new bow marker mode (D62); apart from <paramref name="apply"/>, it is a setting of its own in the file.</param>
     /// <param name="changeDownloadShipHolograms">Gets the switch "Download ship holograms" (D63), like <paramref name="changeShipOutline"/>.</param>
-    /// <param name="changeHoloOpacity">Gets the hologram's opacity as a share, 0.1 to 1 (D63), like <paramref name="changeShipOutline"/>.</param>
+    /// <param name="changeHoloOpacity">Gets the hologram's opacity as a share, 0.01 to 1 (D63), like <paramref name="changeShipOutline"/>.</param>
     /// <param name="changeHoloColors">Gets the hologram's hull and edge colours after either changes (D63), like <paramref name="changeShipOutline"/>.</param>
     /// <param name="changeMaxZoom">Gets the ship view's max zoom in pixels per cell (D76), like <paramref name="changeShipOutline"/>.</param>
     /// <param name="setLookNotice">The overlay's line for presets, import and export (K4.3); null clears it.</param>
@@ -379,7 +379,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool IsHologramLook => ShipOutline.IsHologram();
 
     /// <summary>
-    /// The slider's bounds in percent, like the file's 0.1 to 1. double, not int: x:Static hands the value over as it is,
+    /// The slider's bounds in percent, like the file's 0.01 to 1. double, not int: x:Static hands the value over as it is,
     /// and an int on Slider.Minimum throws when the window opens.
     /// </summary>
     public static double MinHoloOpacityPercent => ToPercent(AppearanceRules.MinHoloOpacity);

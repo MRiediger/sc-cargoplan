@@ -389,7 +389,7 @@
                      the file, so the crates' reset doesn't touch them. -->
                 <GroupBox Header="Ship view" Style="{StaticResource SectionStyle}">
                     <StackPanel>
-                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The ship's outline or hologram behind the racks shows where the bow is">
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The ship's outline on its floor or its hologram around the racks shows where the bow is">
                             <TextBlock Text="Backdrop" Style="{StaticResource LabelStyle}" />
                             <ComboBox ItemsSource="{x:Static vm:SettingsViewModel.ShipOutlineChoices}" DisplayMemberPath="Text"
                                       SelectedValuePath="Value" SelectedValue="{Binding ShipOutline}" />
@@ -400,7 +400,7 @@
                             <TextBlock DockPanel.Dock="Right" Text="{Binding HoloOpacityText}" Style="{StaticResource ValueTextStyle}" />
                             <Slider Minimum="{x:Static vm:SettingsViewModel.MinHoloOpacityPercent}"
                                     Maximum="{x:Static vm:SettingsViewModel.MaxHoloOpacityPercent}"
-                                    Value="{Binding HoloOpacityPercent}" Style="{StaticResource ValueSliderStyle}" TickFrequency="5" />
+                                    Value="{Binding HoloOpacityPercent}" Style="{StaticResource ValueSliderStyle}" TickFrequency="1" />
                         </DockPanel>
                         <DockPanel Style="{StaticResource RowStyle}" IsEnabled="{Binding ColoursHull}"
                                    ToolTip="The hologram's hull in the shaded and flat looks">
@@ -413,7 +413,7 @@
                             <ContentControl Content="{Binding HoloEdgeColour, Mode=OneTime}" />
                         </DockPanel>
                         <DockPanel Style="{StaticResource RowStyle}"
-                                   ToolTip="How far the wheel zooms in, in pixels per cell (1 SCU); a large ship zooms in as far as a small one">
+                                   ToolTip="How far the wheel zooms in: the size of one cell (1 SCU) in pixels at the middle of the view; nearer cells look larger. A large ship zooms in as far as a small one">
                             <TextBlock Text="Max zoom per cell" Style="{StaticResource LabelStyle}" />
                             <TextBlock DockPanel.Dock="Right" Text="{Binding MaxZoomText}" Style="{StaticResource ValueTextStyle}" />
                             <Slider Minimum="{x:Static vm:SettingsViewModel.MinMaxZoom}" Maximum="{x:Static vm:SettingsViewModel.MaxMaxZoom}"

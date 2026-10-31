@@ -9,7 +9,7 @@ using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
-/// <summary>Where the hologram lies, how the 3D camera follows the ship view's, and the hidden-line strips (D63).</summary>
+/// <summary>Where the hologram lies and the hidden-line strips (D63). Its camera is the crates' (<see cref="CameraConformityTests"/>).</summary>
 public sealed class HoloViewTests
 {
     private static HoloMesh Box(float length, float width, float height)
@@ -61,37 +61,6 @@ public sealed class HoloViewTests
         placed.ToCells(-15, -6.25f, 0).Should().Be(new Point3D(placed.Min.X, placed.Min.Y, placed.Min.Z));
     }
 
-    // --- Camera ---
-
-    [Theory]
-    [InlineData(45, 35.26, 1, 0, 0)]
-    [InlineData(70, 35.26, 2.5, 40, -30)]
-    [InlineData(200, -60, 0.7, -10, 25)]
-    [InlineData(315, 85, 4, 3, 3)]
-    public void The_3d_camera_puts_every_point_where_the_ship_view_draws_it(double yaw, double pitch, double scale, double offsetX, double offsetY)
-    {
-        IsoProjection camera = new(yaw, pitch);
-        ViewTransform transform = new(scale * 20, new System.Windows.Vector(400 + offsetX, 300 + offsetY));
-        Size viewport = new(800, 600);
-
-        var view = HoloCamera.For(camera, transform, viewport);
-
-        // WPF's orthographic camera: right = look × up, the viewport's width spans Width world units.
-        var right = Vector3D.CrossProduct(view.LookDirection, view.UpDirection);
-        var pixelsPerUnit = viewport.Width / view.Width;
-        foreach (var (x, y, z) in new[] { (0.0, 0.0, 0.0), (4, 2, 2), (-7.5, 3.25, 9), (30, -12, -4) })
-        {
-            var p = new Point3D(x, y, z) - view.Position;
-            Point wpf = new(viewport.Width / 2 + Vector3D.DotProduct(p, right) * pixelsPerUnit, viewport.Height / 2 - Vector3D.DotProduct(p, view.UpDirection) * pixelsPerUnit);
-
-            var expected = transform.Apply(camera.Project(x, y, z));
-
-            wpf.X.Should().BeApproximately(expected.X, 1e-6);
-            wpf.Y.Should().BeApproximately(expected.Y, 1e-6);
-            Vector3D.DotProduct(p, view.LookDirection).Should().BeInRange(1, 2 * HoloCamera.Distance, because: "the point lies in front of the camera, inside its far plane");
-        }
-    }
-
     // --- Hidden-line strips ---
 
     [Theory]
@@ -100,27 +69,47 @@ public sealed class HoloViewTests
     [InlineData(4)]
     public void A_strip_is_as_wide_on_screen_at_every_zoom(double zoom)
     {
-        var camera = IsoProjection.Default;
-        var scale = 25 * zoom;
+        // At the target's plane, where the strip's middle lies; the lift towards the camera widens it by d / (d − lift).
+        Point3D target = new(2, 0, 0);
+        Size view = new(800, 600);
+        var focal = new CameraMath(CameraOrientation.Default, 1, target, view).Focal;
+        CameraMath camera = new(CameraOrientation.Default, focal / (25 * zoom), target, view);
         Point3D[] points = [new(0, 0, 0), new(4, 0, 0)];
 
-        var (positions, indices) = HoloLines.Strips(points, [0, 1], Look(camera), HoloLines.HalfWidthCells(scale));
+        var (positions, indices) = HoloLines.Strips(points, [0, 1], camera.LookDirection, HoloLines.HalfWidthCells(camera.PxPerCellAtTarget));
 
         positions.Should().HaveCount(4);
         indices.Should().HaveCount(6);
-        var across = camera.Project(positions[1].X, positions[1].Y, positions[1].Z) - camera.Project(positions[0].X, positions[0].Y, positions[0].Z);
-        (across.Length * scale).Should().BeApproximately(HoloLines.WidthPixels, 1e-9);
+        Point3D Middle(Point3D a, Point3D b) => new((a.X + b.X) / 2, (a.Y + b.Y) / 2, (a.Z + b.Z) / 2);
+        var across = camera.Project(Middle(positions[1], positions[2])) - camera.Project(Middle(positions[0], positions[3]));
+        across.Length.Should().BeApproximately(HoloLines.WidthPixels * camera.Distance / (camera.Distance - HoloLines.LiftCells), 1e-9);
     }
 
     [Fact]
     public void A_strip_lies_a_little_towards_the_camera_so_the_surface_under_it_doesnt_hide_it()
     {
-        var camera = IsoProjection.Default;
+        var camera = CameraOrientation.Default;
         var look = Look(camera);
 
         var (positions, _) = HoloLines.Strips([new(0, 0, 0), new(4, 0, 0)], [0, 1], look, 0.01);
 
         positions.Should().OnlyContain(p => Vector3D.DotProduct((Vector3D)p, look) < 0);
+    }
+
+    // WPF draws a triangle's front where its corners run counter-clockwise on screen; a model without BackMaterial shows
+    // nothing from behind. The scene's edges have none, so a strip turned away from the camera vanished (T8.2 → T8.5).
+    [Fact]
+    public void A_strip_shows_its_front_to_the_camera()
+    {
+        var look = Look(CameraOrientation.Default);
+
+        var (positions, indices) = HoloLines.Strips([new(0, 0, 0), new(4, 0, 0)], [0, 1], look, 0.01);
+
+        for (var t = 0; t < indices.Length; t += 3)
+        {
+            var (a, b, c) = (positions[indices[t]], positions[indices[t + 1]], positions[indices[t + 2]]);
+            Vector3D.DotProduct(Vector3D.CrossProduct(b - a, c - a), look).Should().BeNegative($"triangle {t / 3}");
+        }
     }
 
     [Fact]
@@ -134,5 +123,5 @@ public sealed class HoloViewTests
         indices.Should().BeEmpty();
     }
 
-    private static Vector3D Look(IsoProjection camera) => new(camera.ViewDirection.X, camera.ViewDirection.Y, camera.ViewDirection.Z);
+    private static Vector3D Look(CameraOrientation camera) => new(camera.ViewDirection.X, camera.ViewDirection.Y, camera.ViewDirection.Z);
 }

@@ -1,4 +1,5 @@
 using CargoPlan.App.Settings;
+using CargoPlan.App.ShipView;
 using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
@@ -526,7 +527,7 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Theory]
-    [InlineData("0.05", 0.1, "0.1")]
+    [InlineData("0.005", 0.01, "0.01")]
     [InlineData("1.5", 1, "1")]
     public void A_hologram_opacity_out_of_range_is_clamped_with_a_problem(string written, double used, string usedText)
     {
@@ -535,7 +536,21 @@ public sealed class SettingsStoreTests : IDisposable
         var (loaded, problem) = SettingsStore.Load(SettingsPath);
 
         loaded.HoloOpacity.Should().Be(used);
-        problem.Should().Be($"settings.json: holoOpacity {written} is outside 0.1–1, using {usedText}.");
+        problem.Should().Be($"settings.json: holoOpacity {written} is outside 0.01–1, using {usedText}.");
+    }
+
+    // Martin at the T8.5 acceptance: down to 1 %, before 10 %.
+    [Theory]
+    [InlineData("0.01")]
+    [InlineData("0.05")]
+    public void A_hologram_opacity_down_to_one_percent_is_kept(string written)
+    {
+        WriteFile($$"""{ "schemaVersion": 2, "holoOpacity": {{written}} }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.HoloOpacity.Should().Be(double.Parse(written, System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]
@@ -567,11 +582,11 @@ public sealed class SettingsStoreTests : IDisposable
     [Fact]
     public void Save_then_Load_keeps_the_cameras_per_ship()
     {
-        // K1.2: turned only (no framing) and framed (pixels per cell, pan in cells).
+        // K1.2 in perspective (D83): turned only (the fit), and placed (distance and target in cells).
         Dictionary<string, ShipCamera> cameras = new()
         {
             ["hull_a"] = new ShipCamera(120, 20),
-            ["hull_c"] = new ShipCamera(70, 35.26, 90, 1.5, -2.25),
+            ["hull_c"] = new ShipCamera(70, 35.26, Distance: 90, Target: new CameraTarget(1.5, -2.25, 3)),
         };
         var settings = AppSettings.Default with { ShipView = new ShipViewSettings(Cameras: cameras) };
 
@@ -580,7 +595,48 @@ public sealed class SettingsStoreTests : IDisposable
 
         problem.Should().BeNull();
         loaded.ShipView.Cameras.Should().BeEquivalentTo(cameras);
-        File.ReadAllText(SettingsPath).Should().Contain("\"cameras\": {").And.Contain("\"hull_c\": {").And.Contain("\"pxPerCell\": 90");
+        File.ReadAllText(SettingsPath).Should().Contain("\"cameras\": {").And.Contain("\"hull_c\": {")
+            .And.Contain("\"distance\": 90").And.Contain("\"target\": {").And.Contain("\"z\": 3");
+    }
+
+    [Fact]
+    public void A_camera_writes_no_null_values()
+    {
+        var settings = AppSettings.Default with { ShipView = new ShipViewSettings(Cameras: new Dictionary<string, ShipCamera> { ["hull_a"] = new(120, 20) }) };
+
+        SettingsStore.Save(SettingsPath, settings);
+
+        File.ReadAllText(SettingsPath).Should().NotContain("pxPerCell").And.NotContain("panX").And.NotContain("distance").And.NotContain("target");
+    }
+
+    [Fact]
+    public void A_camera_framed_before_the_perspective_view_is_dropped_and_the_file_loads()
+    {
+        // D83: the orthographic framing has no meaning in perspective; the ship starts at its default camera. The strict
+        // options would refuse the whole file for an unknown key, so the old keys stay readable (until the next schema bump).
+        WriteFile("""
+            { "schemaVersion": 2, "ship": "hull_c", "shipView": { "maxZoomPxPerCell": 100, "cameras": {
+              "hull_c": { "yaw": 70, "pitch": 35.26, "pxPerCell": 90, "panX": 1.5, "panY": -2.25 },
+              "hull_a": { "yaw": 120, "pitch": 20, "pxPerCell": null, "panX": null, "panY": null },
+              "c2_hercules": { "yaw": 30, "pitch": 10, "panX": 1 } } } }
+            """);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Ship.Should().Be("hull_c");
+        loaded.ShipView.MaxZoomPxPerCell.Should().Be(100);
+        loaded.ShipView.Cameras.Should().BeEquivalentTo(new Dictionary<string, ShipCamera> { ["hull_a"] = new(120, 20) });
+    }
+
+    [Fact]
+    public void A_camera_with_distance_but_no_target_loads_and_fits()
+    {
+        WriteFile("""{ "schemaVersion": 2, "shipView": { "cameras": { "hull_a": { "yaw": 120, "pitch": 20, "distance": 30 } } } }""");
+
+        var camera = SettingsStore.Load(SettingsPath).Settings.ShipView.Cameras!["hull_a"];
+
+        CameraNavigation.From(camera).Placement.Should().BeNull();
     }
 
     [Fact]

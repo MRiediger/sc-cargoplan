@@ -124,6 +124,19 @@ internal static partial class NativeMethods
     public static Point? GetCursorPosition() => GetCursorPos(out var point) ? new Point(point.x, point.y) : null;
 
     /// <summary>
+    /// Moves the cursor to <paramref name="screen"/> (screen pixels). For the drag measurement only (T8.4, M3): it drives
+    /// the drag through the cursor poll as in the game (D45), inside its own window's view.
+    /// </summary>
+    /// <exception cref="Win32Exception">The call failed (e.g. the input desktop isn't ours).</exception>
+    public static void MoveCursor(Point screen)
+    {
+        if (!SetCursorPos((int)Math.Round(screen.X), (int)Math.Round(screen.Y)))
+        {
+            throw new Win32Exception(Marshal.GetLastPInvokeError());
+        }
+    }
+
+    /// <summary>
     /// Whether the logical button, as WPF names it, is physically held down now, independent of our message queue (D45).
     /// Also false when the call fails (e.g. UIPI towards an elevated foreground window): trust false only after a true.
     /// </summary>
@@ -205,6 +218,11 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool GetCursorPos(out POINT lpPoint);
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setcursorpos
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool SetCursorPos(int X, int Y);
 
     // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getasynckeystate
     [LibraryImport("user32.dll")]

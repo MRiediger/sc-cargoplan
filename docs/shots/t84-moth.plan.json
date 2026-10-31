@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 8,
+  "shipId": "moth",
+  "fillOrder": "bowFirst",
+  "contractTrackerWatermark": 0,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Area18",
+          "items": [
+            {
+              "commodity": "Agricium",
+              "scu": 16,
+              "maxCrateSize": 16,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Orison",
+          "items": [
+            {
+              "commodity": "Gold",
+              "scu": 24,
+              "maxCrateSize": 8,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Lorville",
+          "items": [
+            {
+              "commodity": "Tin",
+              "scu": 8,
+              "maxCrateSize": 4,
+              "pickup": [
+                "Area18"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Area18",
+      "commodity": "Agricium",
+      "crateSize": 16,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-1",
+      "position": [
+        4,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Orison",
+      "commodity": "Gold",
+      "crateSize": 8,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 4,
+      "rackId": "rack-2",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Lorville",
+      "commodity": "Tin",
+      "crateSize": 4,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    }
+  ],
+  "warnings": []
+}

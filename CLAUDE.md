@@ -47,6 +47,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 |---|---|---|
 | Runtime | **.NET 10** (aktuelles LTS) | Support bis 2028. .NET 8 läuft Nov 2026 aus. |
 | UI | **WPF** | Rahmenlose transparente Fenster seit 15 Jahren stabil, Win32-Handle direkt greifbar. WinUI 3 kann Transparenz schlecht, Avalonia bringt Cross-Platform, das wir nicht brauchen. |
+| Schiffsansicht | **Ein `Viewport3D`**, `PerspectiveCamera` (FOV 40°), Text (Rack-Nummern, Tooltips) in einer 2D-Overlay-Ebene, `CameraMath` als einzige Projektion für Bild, Overlay und Hit-Test (D83, Phase 8) | Ortho pumpt beim Drehen (S8.0); eine Szene und eine Kamera statt zwei Zeichnern im Abgleich. |
 | MVVM | **CommunityToolkit.Mvvm** | Source-Generatoren sparen Boilerplate (`[ObservableProperty]`, `[RelayCommand]`). Einziges UI-Paket. |
 | JSON | `System.Text.Json` | Stdlib, kein Newtonsoft. |
 | SQLite | `Microsoft.Data.Sqlite` | Offizielles, schlankes Paket für den ContractTracker-Import. |
@@ -121,6 +122,7 @@ dotnet run --project src/CargoPlan.Cli -- --version
 | A6 | Defensiv nur an Grenzen | Grenzen: JSON-Laden, SQLite-Reader, Win32-Calls, Nutzereingaben. Innen (Core) sind Records validiert – kein Null-Check-Teppich. |
 | A7 | Plan-Mode-Stopp | Task berührt ≥ 3 Dateien ⇒ erst Plan vorlegen, dann auf wörtliche **„Freigabe“** warten. Ein Neustart des Plan Mode hebt eine ausstehende Freigabe nicht auf. |
 | A8 | Stille Annahmen | Fragen statt raten. |
+| A9 | **Renderer-Flicken** | Kommt ein neues Darstellungselement, wird die Renderarchitektur neu entschieden – nicht das Element in die bestehende eingepasst. Zwei Renderer für ein Bild sind ein Provisorium, kein Entwurf (Anlass: Holo-Kulisse hinter dem 2D-Painter, D83). |
 
 ## NIEMALS
 

@@ -59,6 +59,13 @@ public static class ShipOutlineLoader
             {
                 var dto = entry.Deserialize(ShipOutlineJsonContext.Default.ShipOutlineDto) ?? throw new JsonException("The entry is null.");
                 var outline = ToOutline(dto);
+
+                // A wrong height costs only the height: the outline then lies on the racks' floor.
+                if (dto.HeightM is <= 0)
+                {
+                    problems.Add(Invariant($"Outline {number}: '{dto.Slug}': \"heightM\" must be positive, the outline is kept without it."));
+                }
+
                 if (!outlines.TryAdd(outline.Slug, outline))
                 {
                     problems.Add(Invariant($"Outline {number}: '{outline.Slug}' is given more than once, the first one is kept."));
@@ -99,6 +106,6 @@ public static class ShipOutlineLoader
             throw new JsonException($"'{dto.Slug}' has no area, its points lie on one line.");
         }
 
-        return new ShipOutline(dto.Slug, points);
+        return new ShipOutline(dto.Slug, points, dto.HeightM is > 0 ? dto.HeightM : null);
     }
 }

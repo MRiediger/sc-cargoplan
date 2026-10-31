@@ -21,21 +21,13 @@ public sealed class RackNumberSizeTests
     /// </summary>
     private static readonly Size DefaultView = new(400, 302);
 
-    private static double FitScale() => FitScale(Sample.Ship);
-
-    private static double FitScale(Ship ship)
+    /// <summary>Pixels per cell at the target's plane when the sample plan fits the default view (D83).</summary>
+    private static double PxPerCellAtFit()
     {
-        var scene = ShipViewBuilder.Build(Sample.Plan, ship, LoadPlanner.Validate(Sample.Plan, ship));
-        var extent = SceneProjector.Project(scene, IsoProjection.Default).Extent;
-        return ViewTransform.Fit(extent, DefaultView, margin: 8).Scale;
-    }
-
-    [Fact]
-    public void Default_is_the_size_at_zoom_1_before_it_was_a_setting()
-    {
-        // Up to T4.5 the number was 0.9 × the scale: in the default view the setting must not change the look. Measured
-        // on the Hull A of that time; K5.2's wider spindle gap fits smaller and leaves the default as it was (D78).
-        Default.Should().Be(Math.Round(0.9 * FitScale(TestPlans.HullABeforeK52())));
+        var scene = ShipViewBuilder.Build(Sample.Plan, Sample.Ship, LoadPlanner.Validate(Sample.Plan, Sample.Ship));
+        var navigation = CameraNavigation.DefaultFor(scene.Bounds);
+        var basis = CameraBasis.For(scene, navigation.Orientation, DefaultView, margin: 8);
+        return navigation.On(basis, DistanceLimits.Default, DefaultView).PxPerCellAtTarget;
     }
 
     [Theory]
@@ -45,7 +37,7 @@ public sealed class RackNumberSizeTests
     [InlineData(4)]
     public void Size_stays_the_same_over_the_zoom_range_in_the_default_view(double zoom)
     {
-        RackNumberSize.For(Default, FitScale() * zoom, HullA).Should().Be(Default);
+        RackNumberSize.For(Default, PxPerCellAtFit() * zoom, HullA).Should().Be(Default);
     }
 
     [Fact]

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 8,
+  "shipId": "aurora_mk_ii",
+  "fillOrder": "bowFirst",
+  "contractTrackerWatermark": 0,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Orison",
+          "items": [
+            {
+              "commodity": "Agricium",
+              "scu": 1,
+              "maxCrateSize": 1,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Orison",
+      "commodity": "Agricium",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    }
+  ],
+  "warnings": []
+}

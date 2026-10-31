@@ -10,7 +10,7 @@ namespace CargoPlan.App.Holo;
 /// <summary>
 /// A hologram ready to draw for one ship and look (D63): placed in cells, its triangles as a frozen
 /// <see cref="MeshGeometry3D"/>. Made off the UI thread (<see cref="HoloLoader"/>); a frozen Freezable may be used by any
-/// thread, so the UI thread only hands it to the backdrop.
+/// thread, so the UI thread only hands it to the scene.
 /// Source: https://learn.microsoft.com/dotnet/desktop/wpf/advanced/freezable-objects-overview
 /// </summary>
 /// <param name="Points">The mesh's vertices in cells, for the hidden-line strips.</param>

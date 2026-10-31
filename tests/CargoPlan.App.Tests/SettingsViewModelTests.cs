@@ -722,6 +722,18 @@ public sealed class SettingsViewModelTests : IDisposable
         _applied.Should().BeEmpty();
     }
 
+    // Martin at the T8.5 acceptance: 1 % to 100 % in steps of 1 (the step is the slider's TickFrequency, SettingsWindowXamlTests).
+    [Fact]
+    public void The_opacity_slider_reaches_down_to_one_percent()
+    {
+        var viewModel = Create();
+
+        SettingsViewModel.MinHoloOpacityPercent.Should().Be(1);
+        viewModel.HoloOpacityPercent = 1;
+
+        _opacities.Should().Equal(0.01);
+    }
+
     [Fact]
     public void Reset_of_the_ship_view_sets_the_opacity_back_to_40_percent()
     {

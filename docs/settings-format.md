@@ -200,8 +200,8 @@ scroll out of sight. While the overlay is locked it takes no mouse, so unlock it
 
 Lower case only. Missing or `null` means `"outline"`; any other text means `"outline"` too, with a notice.
 
-`holoOpacity` is the hologram's opacity, from `0.1` to `1`; missing means `0.4`. A value outside is clamped, with a
-notice.
+`holoOpacity` is the hologram's opacity, from `0.01` to `1` (the settings window moves it in steps of 1 %); missing
+means `0.4`. A value outside is clamped, with a notice. Builds before T8.5 clamp a value under `0.1` to `0.1`.
 
 `holoHullColor` colours the hologram's hull in `"holo-shaded"` and `"holo-flat"` (default `"#FF9CB0C0"`),
 `holoEdgeColor` its edges in `"holo-hiddenline"` (default `"#FFE6E6E6"`); the hidden-line hull stays dark, it only hides
@@ -218,18 +218,22 @@ else is sent. `false` means no network access at all; holograms already download
 
 | Key | What | Default | Range |
 |---|---|---|---|
-| `shipView.maxZoomPxPerCell` | How far the mouse wheel zooms in: pixels per cell (1 SCU, 1.25 m), the same on every ship, so a Hull C zooms in as far as a Hull A. Pixels as Windows scales them: at 150 % display scaling 160 are 240 screen pixels. Zooming out stops at half the size that fits the window in the ship's starting view, at every angle, so turning never changes the size. | `160` | 40–240 |
-| `shipView.cameras` | The view as you left it, per ship id: `{ "hull_c": { "yaw": 70, "pitch": 35.26, "pxPerCell": 90, "panX": 1.5, "panY": -2.25 } }`. Written by the overlay whenever you turn, zoom or pan, half a second after you stop; you don't edit it. | `null` | – |
+| `shipView.maxZoomPxPerCell` | How far the mouse wheel zooms in: pixels per cell (1 SCU, 1.25 m) in the plane the view turns around, the same on every ship, so a Hull C zooms in as far as a Hull A. The view is in perspective, so cells nearer to you look larger, those further back smaller. Pixels as Windows scales them: at 150 % display scaling 160 are 240 screen pixels. Zooming out stops at twice the distance that fits the window in the ship's starting view (or further, to see the whole outline), at every angle, so turning never changes the size. | `160` | 40–240 |
+| `shipView.cameras` | The view as you left it, per ship id: `{ "hull_c": { "yaw": 70, "pitch": 35.26, "distance": 90, "target": { "x": 1.5, "y": -2.25, "z": 3 } } }`. Written by the overlay whenever you turn, zoom or pan, half a second after you stop; you don't edit it. | `null` | – |
 
 A `maxZoomPxPerCell` outside the range is clamped, with a notice. The **Ship view** section's reset sets it back and
 leaves the cameras alone.
 
-In a camera, `yaw` and `pitch` are degrees (yaw wraps round, pitch stops at ±85). `pxPerCell`, `panX` and `panY` come
-together or not at all: without them the view fits the window at that camera, which is what you get after only turning
-the ship. `panX`/`panY` say where the middle of the view lies, measured in cells from the ship's centre, so the view
-stays on the same rack when a sync loads cargo elsewhere or the overlay has another size. Only the ships under "Recent"
-and the current one keep a camera; a double-click next to the cargo (or **Reset view**) removes the ship's entry. An
-entry that is `null` or has an empty id is dropped.
+In a camera, `yaw` and `pitch` are degrees (yaw wraps round, pitch stops at ±85). `distance` and `target` come together
+or not at all: without them the view fits the window at that camera. `target` is the point the view turns around, in
+cells in the ship's coordinates (x towards the bow, y towards port, z up), and `distance` how far the camera stands
+from it, in cells; both are fixed to the ship, so the view stays on the same rack when a sync loads cargo elsewhere or
+the overlay has another size. Only the ships under "Recent" and the current one keep a camera; a double-click next to
+the cargo (or **Reset view**) removes the ship's entry. An entry that is `null` or has an empty id is dropped.
+
+Before the perspective view (D83) a camera held `pxPerCell`, `panX` and `panY` instead. Such an entry is still read,
+but dropped: that ship starts at its own view once. An older version of the overlay can't read a file with `distance`
+or `target`; it starts with the default settings and says so, and `settings.json.bak` keeps the file as it was.
 
 ## Tool window theme
 

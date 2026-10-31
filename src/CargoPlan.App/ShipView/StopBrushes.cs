@@ -22,6 +22,9 @@ public static class StopBrushes
     // Rounds repeat after StopPalette.Rounds, so an ordinal beyond that shares the brush of its round's first pass.
     private static readonly ConcurrentDictionary<(StopPalette Palette, int Ordinal, byte Alpha), Brush> Brushes = new();
 
+    // The hatched tiles, shared by the 2D brushes and the 3D view's materials (T8.2), so a hatch is one drawing in both.
+    private static readonly ConcurrentDictionary<(StopPalette Palette, int Ordinal, byte Alpha), Drawing> Tiles = new();
+
     private static readonly Geometry ForwardStripes = Lines(t => [(new(-t, t), new(t, -t)), (new(-t, 2 * t), new(2 * t, -t)), (new(0, 2 * t), new(2 * t, 0))]);
 
     private static readonly Geometry BackwardStripes = Lines(t => [(new(-t, -t), new(2 * t, 2 * t)), (new(0, -t), new(2 * t, t)), (new(-t, 0), new(t, 2 * t))]);
@@ -61,31 +64,47 @@ public static class StopBrushes
         return againstWhite > againstBlack ? Colors.White : Colors.Black;
     }
 
-    private static Brush Build(StopPalette palette, int ordinal, byte alpha)
-    {
-        var colour = palette.ColorOf(ordinal);
-        var hatch = palette.HatchOf(ordinal);
-        if (hatch == StopHatch.None)
-        {
-            return Frozen(new SolidColorBrush(colour with { A = alpha }));
-        }
+    /// <summary>
+    /// The hatched tile of <see cref="TileSize"/> for a later round: the fill with one hatch over it; null in the first
+    /// round, which is a plain colour. One frozen drawing per palette, ordinal and alpha.
+    /// </summary>
+    public static Drawing? HatchTile(StopPalette palette, int ordinal, byte alpha) =>
+        palette.HatchOf(ordinal) == StopHatch.None
+            ? null
+            : Tiles.GetOrAdd((palette, ordinal % (palette.Colors.Count * StopPalette.Rounds), alpha), key => BuildTile(key.Palette, key.Ordinal, key.Alpha));
 
-        // The tile is the fill with one hatch over it; the stripes take the crates' alpha too, so turning the fill down
-        // fades them alike. Viewbox = viewport = tile, stretched 1:1, in absolute units.
-        // Source: https://learn.microsoft.com/dotnet/desktop/wpf/graphics-multimedia/tilebrush-overview
-        Rect tile = new(0, 0, TileSize, TileSize);
-        DrawingGroup drawing = new();
-        drawing.Children.Add(new GeometryDrawing(new SolidColorBrush(colour with { A = alpha }), null, new RectangleGeometry(tile)));
-        drawing.Children.Add(new GeometryDrawing(null, new Pen(new SolidColorBrush(StripeColour(colour) with { A = alpha }), StripeWidth), Stripes(hatch)));
-        return Frozen(new DrawingBrush(drawing)
+    /// <summary>
+    /// A brush tiling <paramref name="tile"/> over squares of <paramref name="side"/>, in absolute units: DIPs on a 2D
+    /// polygon, texture coordinates on a 3D face (T8.2). Viewbox = tile, stretched to the viewport.
+    /// Source: https://learn.microsoft.com/dotnet/desktop/wpf/graphics-multimedia/tilebrush-overview
+    /// </summary>
+    public static DrawingBrush Tiled(Drawing tile, double side)
+    {
+        Rect box = new(0, 0, TileSize, TileSize);
+        return Frozen(new DrawingBrush(tile)
         {
             TileMode = TileMode.Tile,
-            Viewport = tile,
+            Viewport = new Rect(0, 0, side, side),
             ViewportUnits = BrushMappingMode.Absolute,
-            Viewbox = tile,
+            Viewbox = box,
             ViewboxUnits = BrushMappingMode.Absolute,
             Stretch = Stretch.Fill,
         });
+    }
+
+    private static Brush Build(StopPalette palette, int ordinal, byte alpha) =>
+        HatchTile(palette, ordinal, alpha) is { } tile
+            ? Tiled(tile, TileSize)
+            : Frozen(new SolidColorBrush(palette.ColorOf(ordinal) with { A = alpha }));
+
+    // The stripes take the crates' alpha too, so turning the fill down fades them alike.
+    private static Drawing BuildTile(StopPalette palette, int ordinal, byte alpha)
+    {
+        var colour = palette.ColorOf(ordinal);
+        DrawingGroup drawing = new();
+        drawing.Children.Add(new GeometryDrawing(new SolidColorBrush(colour with { A = alpha }), null, new RectangleGeometry(new Rect(0, 0, TileSize, TileSize))));
+        drawing.Children.Add(new GeometryDrawing(null, new Pen(new SolidColorBrush(StripeColour(colour) with { A = alpha }), StripeWidth), Stripes(palette.HatchOf(ordinal))));
+        return Frozen(drawing);
     }
 
     private static Geometry Lines(Func<double, (Point From, Point To)[]> segments)

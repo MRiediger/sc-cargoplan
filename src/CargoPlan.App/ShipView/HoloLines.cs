@@ -14,8 +14,8 @@ public static class HoloLines
     /// <summary>In cells along the view: far less than the hull between a visible and a hidden edge.</summary>
     public const double LiftCells = 0.05;
 
-    /// <summary>Half of <see cref="WidthPixels"/> in cells at this transform's scale (pixels per projected unit).</summary>
-    public static double HalfWidthCells(double scale) => WidthPixels / 2 / (IsoProjection.Stretch * scale);
+    /// <summary>Half of <see cref="WidthPixels"/> in cells at the target's plane (<see cref="CameraMath.PxPerCellAtTarget"/>).</summary>
+    public static double HalfWidthCells(double pxPerCell) => WidthPixels / 2 / pxPerCell;
 
     /// <param name="points">The mesh's vertices in cells.</param>
     /// <param name="segments">Index pairs into <paramref name="points"/>.</param>
@@ -38,7 +38,9 @@ public static class HoloLines
             side *= halfWidth / side.Length;
             var first = positions.Count;
             positions.AddRange([a - side, a + side, b + side, b - side]);
-            indices.AddRange([first, first + 1, first + 2, first, first + 2, first + 3]);
+
+            // Wound to show the front to the camera: a model without BackMaterial shows nothing from behind (T8.5).
+            indices.AddRange([first, first + 2, first + 1, first, first + 3, first + 2]);
         }
 
         return ([.. positions], [.. indices]);

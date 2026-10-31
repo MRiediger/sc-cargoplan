@@ -62,4 +62,53 @@ public class StartOptionsTests
         // Windows may pass extra arguments (e.g. a shortcut); they must not keep the overlay from starting.
         StartOptions.Parse(["--verbose", "x"]).Should().Be(new StartOptions(false, null, null));
     }
+
+    [Theory]
+    [InlineData("--measure-frames", "hull_c")]
+    [InlineData("--Measure-Frames", "hull_c")]
+    public void Measure_frames_switch_takes_the_next_argument_as_ship(params string[] args)
+    {
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null, MeasureFrames: "hull_c"));
+    }
+
+    [Theory]
+    [InlineData("--measure-frames")]
+    [InlineData("--measure-frames", "--locked")]
+    public void Measure_frames_switch_without_a_ship_is_a_problem(params string[] args)
+    {
+        var options = StartOptions.Parse(args);
+
+        options.MeasureFrames.Should().BeNull();
+        options.Problem.Should().Contain("--measure-frames");
+    }
+
+    [Fact]
+    public void Measure_frames_is_off_by_default()
+    {
+        StartOptions.Parse(["--locked"]).MeasureFrames.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("--measure-frames", "hull_c", "--over-game")]
+    [InlineData("--Over-Game", "--measure-frames", "hull_c")]
+    public void Over_game_lays_the_measuring_window_over_the_game(params string[] args)
+    {
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null, MeasureFrames: "hull_c", OverGame: true));
+    }
+
+    [Fact]
+    public void Over_game_without_a_measurement_is_a_problem()
+    {
+        // The overlay lies over the game anyway; the switch only changes the measuring window (T8.7).
+        var options = StartOptions.Parse(["--over-game"]);
+
+        options.OverGame.Should().BeFalse();
+        options.Problem.Should().Contain("--over-game");
+    }
+
+    [Fact]
+    public void Over_game_is_off_by_default()
+    {
+        StartOptions.Parse(["--measure-frames", "hull_c"]).OverGame.Should().BeFalse();
+    }
 }

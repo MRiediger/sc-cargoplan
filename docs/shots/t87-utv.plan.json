@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 8,
+  "shipId": "utv",
+  "fillOrder": "bowFirst",
+  "contractTrackerWatermark": 0,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Area18",
+          "items": [
+            {
+              "commodity": "Waste",
+              "scu": 1,
+              "maxCrateSize": 1,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Area18",
+      "commodity": "Waste",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    }
+  ],
+  "warnings": []
+}

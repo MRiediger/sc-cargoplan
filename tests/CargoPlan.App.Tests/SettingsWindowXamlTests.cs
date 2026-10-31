@@ -95,6 +95,28 @@ public partial class SettingsWindowXamlTests
         button.Attribute("ToolTip")!.Value.Should().Be("Reset the view settings to defaults. Download ship holograms stays as it is.");
     }
 
+    // D83: pixels per cell hold only in the plane the view turns around, and the outline lies on the floor (T8.5).
+    [Theory]
+    [InlineData("Max zoom per cell",
+        "How far the wheel zooms in: the size of one cell (1 SCU) in pixels at the middle of the view; nearer cells look larger. A large ship zooms in as far as a small one")]
+    [InlineData("Backdrop", "The ship's outline on its floor or its hologram around the racks shows where the bow is")]
+    public void The_ship_view_rows_say_what_the_perspective_view_does(string label, string toolTip)
+    {
+        var row = Root().Descendants()
+            .Single(e => e.Name.LocalName == "TextBlock" && (string?)e.Attribute("Text") == label).Parent!;
+
+        row.Attribute("ToolTip")!.Value.Should().Be(toolTip);
+    }
+
+    [Fact]
+    public void The_hologram_opacity_moves_in_steps_of_one_percent()
+    {
+        var slider = Root().Descendants()
+            .Single(e => e.Name.LocalName == "Slider" && (string?)e.Attribute("Value") == "{Binding HoloOpacityPercent}");
+
+        slider.Attribute("TickFrequency")!.Value.Should().Be("1");
+    }
+
     [GeneratedRegex(@"\{x:Static (?<prefix>\w+):(?<type>\w+)\.(?<member>\w+)\}")]
     private static partial Regex StaticReference();
 }

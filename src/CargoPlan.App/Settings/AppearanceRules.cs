@@ -38,8 +38,11 @@ public static class AppearanceRules
     /// </summary>
     public const byte MinClickableAlpha = 1;
 
-    /// <summary>The hologram's opacity (D63): below a tenth it can't be seen, and "None" is the way to have none.</summary>
-    public const double MinHoloOpacity = 0.1;
+    /// <summary>
+    /// The hologram's opacity (D63): down to 1 % (Martin, T8.5; a tenth before), above 0 because "None" is the way to have
+    /// none.
+    /// </summary>
+    public const double MinHoloOpacity = 0.01;
 
     public const double MaxHoloOpacity = 1;
 

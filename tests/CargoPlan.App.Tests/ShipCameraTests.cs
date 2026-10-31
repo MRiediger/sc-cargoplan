@@ -1,4 +1,3 @@
-using System.Windows;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.App.ViewModels;
@@ -15,7 +14,7 @@ public class ShipCameraTests
     private static readonly Ship C2 = Catalog.Get("c2_hercules");
 
     private static readonly ShipCamera Turned = new(120, 20);
-    private static readonly ShipCamera Framed = new(200, -30, 90, 1.5, -2.25);
+    private static readonly ShipCamera Framed = new(200, -30, Distance: 42.5, Target: new CameraTarget(1.5, -2.25, 3));
 
     private static List<string> Changes(OverlayViewModel viewModel)
     {
@@ -157,69 +156,4 @@ public class ShipCameraTests
 
         viewModel.Camera.Should().BeNull();
     }
-
-    // --- The camera is the view's navigation, written down ---
-
-    private static readonly Size Viewport = new(800, 600);
-    private static readonly ZoomLimits Limits = ZoomLimits.Default;
-
-    [Fact]
-    public void A_navigation_comes_back_from_its_camera()
-    {
-        var navigation = new ViewNavigation(new IsoProjection(200, -30), new Framing(90, new Vector(1.5, -2.25)));
-
-        navigation.ToCamera().Should().Be(Framed);
-        ViewNavigation.From(Framed).Should().Be(navigation);
-    }
-
-    [Fact]
-    public void A_camera_without_a_framing_fits()
-    {
-        // Only turned: the next start fits at that camera, whatever size the overlay has then.
-        ViewNavigation.From(Turned).Should().Be(new ViewNavigation(new IsoProjection(120, 20)));
-        new ViewNavigation(new IsoProjection(120, 20)).ToCamera().Should().Be(Turned);
-    }
-
-    [Theory]
-    [InlineData(90.0, null, 2.0)]
-    [InlineData(null, 1.0, 2.0)]
-    [InlineData(90.0, 1.0, null)]
-    public void A_camera_with_part_of_a_framing_fits(double? pxPerCell, double? panX, double? panY)
-    {
-        // Edited by hand: a framing needs all three.
-        ViewNavigation.From(new ShipCamera(120, 20, pxPerCell, panX, panY)).Framing.Should().BeNull();
-    }
-
-    [Fact]
-    public void A_camera_out_of_range_is_taken_as_the_camera_can_be()
-    {
-        // The file is edited by hand: the projection wraps the yaw and clamps the pitch, the drawing clamps the zoom.
-        var navigation = ViewNavigation.From(new ShipCamera(400, 100));
-
-        navigation.Camera.Should().Be(new IsoProjection(40, IsoProjection.MaxPitch));
-    }
-
-    [Fact]
-    public void A_saved_view_stays_on_the_same_rack_when_a_sync_loads_a_rack_further_aft()
-    {
-        // Martin at the approval: save the camera, load a far rack, load the camera: the same middle on the same rack.
-        var caterpillar = Catalog.Get("caterpillar");
-        var camera = IsoProjection.DefaultFor(caterpillar.Bounds);
-        var before = SceneProjector.Project(ShipViewBuilder.Build(OneCrateIn(caterpillar, "rack-0"), caterpillar, []), camera);
-        var after = SceneProjector.Project(ShipViewBuilder.Build(OneCrateIn(caterpillar, "rack-0", "rack-13"), caterpillar, []), camera);
-        var basisBefore = ViewBasis.Of(before.FitExtent, before.Anchor, Viewport, 8);
-        var basisAfter = ViewBasis.Of(after.FitExtent, after.Anchor, Viewport, 8);
-        var saved = new ViewNavigation(camera).ZoomAt(new Point(300, 250), 1.5, basisBefore, Limits).ToCamera();
-
-        var shown = ViewNavigation.From(saved);
-
-        after.FitExtent.Should().NotBe(before.FitExtent, "the far rack widens the fit");
-        var rack1Before = shown.On(basisBefore, Limits).Apply(before.Racks.Single(r => r.Number == 1).LabelCentre);
-        var rack1After = shown.On(basisAfter, Limits).Apply(after.Racks.Single(r => r.Number == 1).LabelCentre);
-        rack1After.X.Should().BeApproximately(rack1Before.X, 1e-9);
-        rack1After.Y.Should().BeApproximately(rack1Before.Y, 1e-9);
-    }
-
-    private static LoadPlan OneCrateIn(Ship ship, params string[] rackIds) =>
-        TestPlans.Of(ship, [.. rackIds.Select(id => new Placement("Riker", id, new CargoItem("Titanium", 1, CrateSize.One)))]);
 }

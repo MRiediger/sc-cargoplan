@@ -1,0 +1,910 @@
+{
+  "schemaVersion": 8,
+  "shipId": "hull_a",
+  "fillOrder": "bowFirst",
+  "contractTrackerWatermark": 0,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 01",
+          "items": [
+            {
+              "commodity": "Goods 01",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 02",
+          "items": [
+            {
+              "commodity": "Goods 02",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 03",
+          "items": [
+            {
+              "commodity": "Goods 03",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 04",
+          "items": [
+            {
+              "commodity": "Goods 04",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 05",
+          "items": [
+            {
+              "commodity": "Goods 05",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 06",
+          "items": [
+            {
+              "commodity": "Goods 06",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 07",
+          "items": [
+            {
+              "commodity": "Goods 07",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 08",
+          "items": [
+            {
+              "commodity": "Goods 08",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 09",
+          "items": [
+            {
+              "commodity": "Goods 09",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 10",
+          "items": [
+            {
+              "commodity": "Goods 10",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 11",
+          "items": [
+            {
+              "commodity": "Goods 11",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 12",
+          "items": [
+            {
+              "commodity": "Goods 12",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 13",
+          "items": [
+            {
+              "commodity": "Goods 13",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 14",
+          "items": [
+            {
+              "commodity": "Goods 14",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 15",
+          "items": [
+            {
+              "commodity": "Goods 15",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 16",
+          "items": [
+            {
+              "commodity": "Goods 16",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 17",
+          "items": [
+            {
+              "commodity": "Goods 17",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Stop 18",
+          "items": [
+            {
+              "commodity": "Goods 18",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Lorville"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Stop 01",
+      "commodity": "Goods 01",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Stop 01",
+      "commodity": "Goods 01",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        1,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Stop 02",
+      "commodity": "Goods 02",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Stop 02",
+      "commodity": "Goods 02",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        1,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Stop 03",
+      "commodity": "Goods 03",
+      "crateSize": 2,
+      "rackId": "rack-2",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Stop 03",
+      "commodity": "Goods 03",
+      "crateSize": 1,
+      "rackId": "rack-2",
+      "position": [
+        3,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Stop 04",
+      "commodity": "Goods 04",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        2,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Stop 04",
+      "commodity": "Goods 04",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        3,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Stop 05",
+      "commodity": "Goods 05",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": true,
+      "mission": 5,
+      "item": 0
+    },
+    {
+      "destination": "Stop 05",
+      "commodity": "Goods 05",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": true,
+      "mission": 5,
+      "item": 0
+    },
+    {
+      "destination": "Stop 06",
+      "commodity": "Goods 06",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 6,
+      "item": 0
+    },
+    {
+      "destination": "Stop 06",
+      "commodity": "Goods 06",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        3,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 6,
+      "item": 0
+    },
+    {
+      "destination": "Stop 07",
+      "commodity": "Goods 07",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 7,
+      "item": 0,
+      "loaded": true
+    },
+    {
+      "destination": "Stop 07",
+      "commodity": "Goods 07",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 7,
+      "item": 0,
+      "loaded": true
+    },
+    {
+      "destination": "Stop 08",
+      "commodity": "Goods 08",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 8,
+      "item": 0
+    },
+    {
+      "destination": "Stop 08",
+      "commodity": "Goods 08",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        1,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 8,
+      "item": 0
+    },
+    {
+      "destination": "Stop 09",
+      "commodity": "Goods 09",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 9,
+      "item": 0
+    },
+    {
+      "destination": "Stop 09",
+      "commodity": "Goods 09",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 9,
+      "item": 0
+    },
+    {
+      "destination": "Stop 10",
+      "commodity": "Goods 10",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        1,
+        0
+      ],
+      "delivered": true,
+      "mission": 10,
+      "item": 0
+    },
+    {
+      "destination": "Stop 10",
+      "commodity": "Goods 10",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        3,
+        1,
+        1
+      ],
+      "delivered": true,
+      "mission": 10,
+      "item": 0
+    },
+    {
+      "destination": "Stop 11",
+      "commodity": "Goods 11",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 11,
+      "item": 0
+    },
+    {
+      "destination": "Stop 11",
+      "commodity": "Goods 11",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 11,
+      "item": 0
+    },
+    {
+      "destination": "Stop 12",
+      "commodity": "Goods 12",
+      "crateSize": 2,
+      "rackId": "rack-1",
+      "position": [
+        2,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 12,
+      "item": 0
+    },
+    {
+      "destination": "Stop 12",
+      "commodity": "Goods 12",
+      "crateSize": 1,
+      "rackId": "rack-1",
+      "position": [
+        1,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 12,
+      "item": 0
+    },
+    {
+      "destination": "Stop 13",
+      "commodity": "Goods 13",
+      "crateSize": 2,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 13,
+      "item": 0
+    },
+    {
+      "destination": "Stop 13",
+      "commodity": "Goods 13",
+      "crateSize": 1,
+      "rackId": "rack-2",
+      "position": [
+        1,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 13,
+      "item": 0
+    },
+    {
+      "destination": "Stop 14",
+      "commodity": "Goods 14",
+      "crateSize": 2,
+      "rackId": "rack-2",
+      "position": [
+        2,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 14,
+      "item": 0,
+      "loaded": true
+    },
+    {
+      "destination": "Stop 14",
+      "commodity": "Goods 14",
+      "crateSize": 1,
+      "rackId": "rack-2",
+      "position": [
+        3,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 14,
+      "item": 0,
+      "loaded": true
+    },
+    {
+      "destination": "Stop 15",
+      "commodity": "Goods 15",
+      "crateSize": 2,
+      "rackId": "rack-2",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": true,
+      "mission": 15,
+      "item": 0
+    },
+    {
+      "destination": "Stop 15",
+      "commodity": "Goods 15",
+      "crateSize": 1,
+      "rackId": "rack-2",
+      "position": [
+        1,
+        1,
+        1
+      ],
+      "delivered": true,
+      "mission": 15,
+      "item": 0
+    },
+    {
+      "destination": "Stop 16",
+      "commodity": "Goods 16",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 16,
+      "item": 0
+    },
+    {
+      "destination": "Stop 16",
+      "commodity": "Goods 16",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        1,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 16,
+      "item": 0
+    },
+    {
+      "destination": "Stop 17",
+      "commodity": "Goods 17",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        2,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 17,
+      "item": 0
+    },
+    {
+      "destination": "Stop 17",
+      "commodity": "Goods 17",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        3,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 17,
+      "item": 0
+    },
+    {
+      "destination": "Stop 18",
+      "commodity": "Goods 18",
+      "crateSize": 2,
+      "rackId": "rack-3",
+      "position": [
+        0,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 18,
+      "item": 0
+    },
+    {
+      "destination": "Stop 18",
+      "commodity": "Goods 18",
+      "crateSize": 1,
+      "rackId": "rack-3",
+      "position": [
+        1,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 18,
+      "item": 0
+    }
+  ],
+  "warnings": [
+    {
+      "rackId": "rack-0",
+      "message": "Rack 1 shared by Stop 01, Stop 05, Stop 06, Stop 07, Stop 08 \u2013 identify crates by count"
+    },
+    {
+      "rackId": "rack-0",
+      "message": "Rack 1: crate for Stop 01 sits on cargo for Stop 05"
+    },
+    {
+      "rackId": "rack-0",
+      "message": "Rack 1: crate for Stop 07 sits on cargo for Stop 06"
+    },
+    {
+      "rackId": "rack-0",
+      "message": "Rack 1: crate for Stop 08 sits on cargo for Stop 01"
+    },
+    {
+      "rackId": "rack-0",
+      "message": "Rack 1: crate for Stop 08 sits on cargo for Stop 07"
+    },
+    {
+      "rackId": "rack-1",
+      "message": "Rack 2 shared by Stop 02, Stop 09, Stop 10, Stop 11, Stop 12 \u2013 identify crates by count"
+    },
+    {
+      "rackId": "rack-1",
+      "message": "Rack 2: crate for Stop 02 sits on cargo for Stop 09"
+    },
+    {
+      "rackId": "rack-1",
+      "message": "Rack 2: crate for Stop 11 sits on cargo for Stop 10"
+    },
+    {
+      "rackId": "rack-1",
+      "message": "Rack 2: crate for Stop 12 sits on cargo for Stop 02"
+    },
+    {
+      "rackId": "rack-1",
+      "message": "Rack 2: crate for Stop 12 sits on cargo for Stop 11"
+    },
+    {
+      "rackId": "rack-2",
+      "message": "Rack 3 shared by Stop 03, Stop 13, Stop 14, Stop 15 \u2013 identify crates by count"
+    },
+    {
+      "rackId": "rack-3",
+      "message": "Rack 4 shared by Stop 04, Stop 16, Stop 17, Stop 18 \u2013 identify crates by count"
+    }
+  ]
+}
