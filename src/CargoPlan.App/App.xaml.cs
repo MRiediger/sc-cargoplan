@@ -78,7 +78,7 @@ public partial class App : Application
         // The measuring tool instead of the overlay (Phase 8): before settings and plan, so it touches neither.
         if (options.MeasureFrames is { } measured)
         {
-            new Diagnostics.FrameMeasureWindow(ships, measured).Show();
+            new Diagnostics.FrameMeasureWindow(ships, measured, options.OverGame).Show();
             return;
         }
 

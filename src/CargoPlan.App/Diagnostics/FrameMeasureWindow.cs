@@ -42,6 +42,9 @@ internal sealed class FrameMeasureWindow : Window
 
     private static readonly TimeSpan Duration = TimeSpan.FromSeconds(30);
 
+    // Over the game (T8.7, M5): time to bring Star Citizen to the front before the run starts.
+    private static readonly TimeSpan Lead = TimeSpan.FromSeconds(10);
+
     // One crate size per ship fills every rack as in S8.0: the Hull C gives 144 crates. A target not listed is refused.
     // hull_c_states shows every crate state at once (T8.2): 24 stops (three colour rounds, so both hatches), every 5th stop
     // delivered, every 7th loaded, one overlapping crate (a violation), mission 1 selected.
@@ -76,13 +79,22 @@ internal sealed class FrameMeasureWindow : Window
     private readonly PreparedHolo? _holo;
     private readonly int _crates;
     private readonly bool _drag;
+    private readonly bool _overGame;
 
-    public FrameMeasureWindow(ShipCatalog catalog, string target)
+    // Key changes of the drag's preview while the cursor runs its path (T8.7): far fewer than without the game means
+    // Star Citizen held the cursor, even with the drag still held.
+    private int _pathKeys;
+
+    /// <param name="overGame">Lie over the game like the overlay: topmost, never the foreground window, after <see cref="Lead"/>.</param>
+    public FrameMeasureWindow(ShipCatalog catalog, string target, bool overGame = false)
     {
         _target = target;
+        _overGame = overGame;
         Title = "SC-CargoPlan frame measurement";
         WindowStyle = WindowStyle.None;
         AllowsTransparency = true;
+        Topmost = overGame;
+        ShowActivated = !overGame;
         Width = WindowWidth;
         Height = WindowHeight;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -135,17 +147,33 @@ internal sealed class FrameMeasureWindow : Window
         ContentRendered += OnContentRendered;
     }
 
+    // Like the overlay (OverlayWindow.OnSourceInitialized): the game keeps the foreground and its free cursor (D11).
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        if (_overGame)
+        {
+            NativeMethods.PreventActivation(new System.Windows.Interop.WindowInteropHelper(this).Handle, showInTaskbar: true);
+        }
+    }
+
     private async void OnContentRendered(object? sender, EventArgs e)
     {
         var known = _target == Empty || _ship is not null;
+        if (_overGame)
+        {
+            await Task.Delay(Lead);
+        }
+
         var intervals = known ? await MeasureFramesAsync() : [];
         // "held" says the drag still runs after the frames: a lost capture would end it, and the sweep would time tool tips.
-        var drags = _drag ? Inv($" | drag held {(_view.IsDragging ? "yes" : "NO")}, ") + DragSweep() : "";
+        var drags = _drag ? Inv($" | drag held {(_view.IsDragging ? "yes" : "NO")}, path keys {_pathKeys}, ") + DragSweep() : "";
         var hits = _ship is not null ? HitSweep() : null;
         var valid = known && FrameStatistics.IsValid(intervals);
 
         var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
-        var subject = _ship is null ? _target : Inv($"{_target} {_crates} crates, holo {(_holo is null ? "no" : "yes")}, marker {_view.Scene?.Marker.GetType().Name}");
+        var subject = (_ship is null ? _target : Inv($"{_target} {_crates} crates, holo {(_holo is null ? "no" : "yes")}, marker {_view.Scene?.Marker.GetType().Name}"))
+            + (_overGame ? " over game" : "");
         var frames = known ? FrameStatistics.Summary(intervals, Duration) : "unknown target (empty, " + string.Join(", ", Targets.Keys) + ")";
         File.AppendAllText(_logPath, Inv($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {version} {subject}: frames {frames}{drags}{(hits is null ? "" : " | hits " + hits)}") + Environment.NewLine);
 
@@ -160,6 +188,7 @@ internal sealed class FrameMeasureWindow : Window
         var intervals = new List<double>();
         TimeSpan? start = null, last = null;
         var camera = _ship is { } ship ? CameraOrientation.DefaultFor(ship.Bounds) : CameraOrientation.Default;
+        CrateDrop.Key? pathKey = null;
 
         void OnRendering(object? sender, EventArgs e)
         {
@@ -178,6 +207,11 @@ internal sealed class FrameMeasureWindow : Window
                 // in the game (D45).
                 if (_drag)
                 {
+                    if (KeyNow() is var now && !Equals(now, pathKey))
+                    {
+                        (_pathKeys, pathKey) = (_pathKeys + 1, now);
+                    }
+
                     NativeMethods.MoveCursor(_view.PointToScreen(PathAt((args.RenderingTime - start.Value).TotalSeconds)));
                     last = args.RenderingTime;
                     if (args.RenderingTime - start >= Duration)

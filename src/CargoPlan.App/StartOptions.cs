@@ -9,7 +9,11 @@ namespace CargoPlan.App;
 /// Measure the ship view's frame time for this ship id, or "empty" for the bare window, instead of starting the overlay
 /// (Phase 8, D83); a developer's tool, it reads and writes neither settings.json nor plan.json.
 /// </param>
-public sealed record StartOptions(bool Locked, string? PlanPath, string? Problem, bool ThemeSample = false, string? MeasureFrames = null)
+/// <param name="OverGame">
+/// The measuring window lies over the game like the overlay: topmost, never the foreground window, the run starting
+/// after a lead time (T8.7, M5). Only with <paramref name="MeasureFrames"/>.
+/// </param>
+public sealed record StartOptions(bool Locked, string? PlanPath, string? Problem, bool ThemeSample = false, string? MeasureFrames = null, bool OverGame = false)
 {
     public const string LockedSwitch = "--locked";
 
@@ -19,10 +23,13 @@ public sealed record StartOptions(bool Locked, string? PlanPath, string? Problem
 
     public const string MeasureFramesSwitch = "--measure-frames";
 
+    public const string OverGameSwitch = "--over-game";
+
     public static StartOptions Parse(IReadOnlyList<string> args)
     {
         var locked = false;
         var themeSample = false;
+        var overGame = false;
         string? planPath = null;
         string? measureFrames = null;
         string? problem = null;
@@ -36,6 +43,10 @@ public sealed record StartOptions(bool Locked, string? PlanPath, string? Problem
             else if (Is(args[i], ThemeSampleSwitch))
             {
                 themeSample = true;
+            }
+            else if (Is(args[i], OverGameSwitch))
+            {
+                overGame = true;
             }
             else if (Is(args[i], PlanSwitch))
             {
@@ -62,7 +73,12 @@ public sealed record StartOptions(bool Locked, string? PlanPath, string? Problem
             }
         }
 
-        return new StartOptions(locked, planPath, problem, themeSample, measureFrames);
+        if (overGame && measureFrames is null)
+        {
+            (overGame, problem) = (false, problem ?? $"{OverGameSwitch} only goes with {MeasureFramesSwitch}.");
+        }
+
+        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame);
     }
 
     private static bool Is(string arg, string name) => arg.Equals(name, StringComparison.OrdinalIgnoreCase);

@@ -87,4 +87,28 @@ public class StartOptionsTests
     {
         StartOptions.Parse(["--locked"]).MeasureFrames.Should().BeNull();
     }
+
+    [Theory]
+    [InlineData("--measure-frames", "hull_c", "--over-game")]
+    [InlineData("--Over-Game", "--measure-frames", "hull_c")]
+    public void Over_game_lays_the_measuring_window_over_the_game(params string[] args)
+    {
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null, MeasureFrames: "hull_c", OverGame: true));
+    }
+
+    [Fact]
+    public void Over_game_without_a_measurement_is_a_problem()
+    {
+        // The overlay lies over the game anyway; the switch only changes the measuring window (T8.7).
+        var options = StartOptions.Parse(["--over-game"]);
+
+        options.OverGame.Should().BeFalse();
+        options.Problem.Should().Contain("--over-game");
+    }
+
+    [Fact]
+    public void Over_game_is_off_by_default()
+    {
+        StartOptions.Parse(["--measure-frames", "hull_c"]).OverGame.Should().BeFalse();
+    }
 }
