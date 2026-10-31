@@ -2732,7 +2732,7 @@ gedrehten Modells (Teil 5).
 
 ---
 
-## Phase 8 – 3D-Schiffsansicht (D83) (30.10.2026) – Branch `feat/p8-3d-view`, vor Phase 9 (Release)
+## Phase 8 – 3D-Schiffsansicht (D83) (30.10.2026, abgeschlossen 31.10.) – Branch `feat/p8-3d-view`, vor Phase 9 (Release)
 
 **Warum:** Das Pumpen beim Drehen kommt von der orthografischen Projektion; mit einer `PerspectiveCamera` sind UTV und Hull A
 ruhig (S8.0). Martins Entscheidung (30.10.2026): **Variante (a)** – die ganze Schiffsansicht wandert in einen `Viewport3D`,
@@ -3336,7 +3336,7 @@ der Test „langes Schiff von Backbord“ (`CameraOrientationTests`) liest Fläc
 - [x] `dotnet build` ohne Warnungen, alle Tests grün (App 1.529, Core 1.497, Import 141; Slow grün)
 - [x] Martins Abnahme (31.10.2026)
 
-### [ ] T8.7 Gates im Spiel am Aufzug
+### [x] T8.7 Gates im Spiel am Aufzug (31.10.2026, abgenommen 31.10.)
 **Warum:** S8.0 hat ohne SC gemessen; die Abnahme der Phase passiert im Spiel.
 - UTV, Hull A, Hull C, Aurora Mk II mit Modul (`holoOffset`), ein Schiff mit Unterseiten-Racks; Frame-Zeit mit laufendem SC
 - Aus T8.4 (Handling-Zeile 22): Kiste und Legendenzeile ziehen mit SC im Vordergrund, der Drag folgt dem Cursor per Poll
@@ -3344,15 +3344,81 @@ der Test „langes Schiff von Backbord“ (`CameraOrientationTests`) liest Fläc
 - Aus T8.4 (M3b): Maximum der Vorschau (Schlüsselwechsel) mit laufendem SC messen, Luft zum 16-ms-Budget (D65); ohne SC
   max 12,1 ms
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** R1 Messung mit dem Messfenster über dem Spiel
+(`--measure-frames <Ziel> --over-game`), damit M5 mit M4b vergleichbar ist; ein Recorder im echten Overlay nur, falls M5
+auffällt. R2 fünftes Schiff Hull B (8 von 16 Racks unter anderen, geklemmter Holo-Boden aus T8.5 R2; kein Schiff in
+`ships/` hat Racks mit Stapelachse −z). R3 Plandateien committet in `docs/shots/`. R4 Martin pusht, CC merged lokal. R5 Mess-
+und Vergleichs-Builds nach dem Merge löschen. Dazu aus der Planung: Hull B und Hull C nur als Overlay-Prüfung, Zeile 22
+und echte Fracht nur mit spawnbaren Schiffen (Hull A, Aurora); das Log zählt die Schlüsselwechsel auf dem Cursorpfad
+(„path keys“), weil die 343 des Sweeps ohne echten Cursor entstehen. **Präzisierung bei der Abnahme, ratifiziert durch
+Freigabe:** das Frame-Gate „spät ≤ `empty` + 2 pp“ war für die Basislinie ohne SC (13 % spät) formuliert und ist mit SC
+(0,1 %) nicht anwendbar; Lesart für T8.7: gleiches Ziel M4b → M5. Gate der Vorschau ist p95 ≤ 16 ms (T8.4 R4), das
+Maximum Befund (D65-Addendum, Backlog-Zeile).
+
+**Befund:**
+- Commits c654338 (`--over-game`, „path keys“), be8e20c (Plandateien `t87-utv`, `t87-aurora`, `t87-hull-b`, `t87-hull-c`),
+  dieser (Doku). Gate-Build `~/CargoPlan-t87` mit `backup.ps1` und `m5.ps1`, nach dem Merge gelöscht.
+- Probelauf `--over-game` ohne SC (CC): Fenster nimmt keinen Fokus, Exit 0; `hull_c_drag` dreimal path keys 31 / 29 / 31,
+  Vorschau max 10,6–11,6 ms, Hit p95 ≤ 0,001 ms; `hull_c` spät 1,8 %. Referenz der path keys für M5.
+- **Checkliste** (Martin, 31.10.2026, mit laufendem SC; A = am Aufzug mit gespawntem Schiff, O = Overlay-Prüfung ohne
+  Schiff am Aufzug):
+
+  | # | Prüfpunkt | UTV (O) | Hull A (A) | Hull C (O) | Aurora (O, Zeile 22 A) | Hull B (O) |
+  |---|---|---|---|---|---|---|
+  | 1 | Drehen ohne Pumpen (das Gate) | ✓ | ✓ | ✓ | ✓ | ✓ |
+  | 2 | Blick von unten | ✓ | ✓ | ✓ | ✓ | ✓ (Unterseite) |
+  | 3 | Zoom bis zu beiden Anschlägen, am Anschlag drehen | ✓ | ✓ | ✓ | ✓ | ✓ |
+  | 4 | Reset: Doppelklick daneben, Symbol, Hotkey | ✓ | ✓ | ✓ | ✓ | ✓ |
+  | 5 | Kamera nach Neustart, Schiffswechsel hin und zurück | ✓ | ✓ | ✓ | ✓ | ✓ |
+  | 6 | Kistenklick hakt ab, Tooltip, Rechtsklick wählt aus | ✓ | ✓ | ✓ | ✓ | ✓ |
+  | 7 | Drag einer Kiste mit Vorschau, Mausrad dreht | ✓ | ✓ | ✓ | ✓ | ✓ |
+  | 8 | Legenden-Drag | ✓ | ✓ | ✓ | ✓ | ✓ |
+  | 9 | Lock/Unlock | ✓ | ✓ | – | – | – |
+  | 10 | Holo shaded und hidden-line, Deckkraft 1 % und 100 % | ✓ | ✓ | ✓ | ✓ (Versatz) | ✓ (Klemme) |
+  | 11 | Umriss-Modus (Fläche, Linie, Halo) | ✓ | ✓ | ✓ | ✓ | ✓ |
+  | 22 | Kiste und Legendenzeile ziehen, SC vorn, Loslassen wirkt (D45) | – | ✓ | – | ✓ | – |
+
+  Zeile 7 beim UTV prüfte Martin, obwohl der Plan sie als entfallend führte (ein Rack, eine Zelle).
+- **M5** (`m5.ps1`, Martin, 31.10.2026 09:06–09:17, SC vorn, Cursor frei; `--measure-frames <Ziel> --over-game`, Release
+  be8e20c, 30 s je Lauf, drei Runden, Median der drei Läufe; spät / p95 / fps):
+
+  | Ziel | M4b ohne SC (e5419ca) | M5 mit SC (be8e20c) | M5 Läufe spät |
+  |---|---|---|---|
+  | `empty` | 13,1 % / 33,07 ms / 53,0 | 0,1 % / 16,67 ms / 59,9 | 1,0* / 0,1 / 0,1 |
+  | `hull_c` | 2,0 % / 16,68 ms / 58,8 | 0,2 % / 16,67 ms / 59,9 | 0,2 / 0,2 / 0,3 |
+  | `hull_c_states` | 5,0 % / 32,80 ms / 57,1 | 2,9 % / 16,67 ms / 58,3 | 0,6 / 2,9 / 9,3 |
+  | `hull_c_drag` | 12,8 % / 33,90 ms / 52,4 | 11,8 % / 33,90 ms / 52,7 | 13,3 / 11,1 / 11,8 |
+  | `hull_a_outline` | 8,1 % / 33,07 ms / 55,4 | 0,2 % / 16,67 ms / 59,9 | 0,2 / 0,2 / 0,1 |
+  | Vorschau `hull_c_drag` p95 / max | 1,79 / 11,6 ms | 5,23 / 20,3 ms | max 14,6 / 24,6 / 20,3 |
+  | Hit-Test p95 | ≤ 0,002 ms | ≤ 0,002 ms | – |
+
+  \* Der erste `empty`-Lauf fiel in einen Build- und Testlauf von CC (09:06:50–09:07:20); der Median ist davon unberührt.
+- **Frame-Gate (Martin bei der Abnahme):** die Basislinie mit SC ist 0,1 % spät statt 13 % ohne SC; die 13 % waren der
+  Desktop-Compositor, nicht die App. Das Gate „≤ `empty` + 2 pp“ war für die 13-%-Basislinie formuliert und ist mit SC
+  nicht anwendbar. Lesart für T8.7: gleiches Ziel M4b → M5 (Tabelle): **kein Ziel wird mit SC schlechter**. Damit ist die
+  S8.0-Lücke geschlossen (D2: Software-Rendering unter `AllowsTransparency`, mit SC nie gemessen).
+- **Vorschau:** Gate p95 ≤ 16 ms (T8.4 R4) hält mit 5,2 ms. Das Maximum steigt mit SC auf 20–25 ms in Einzelfällen
+  (ohne SC 10,6–12,3 ms); die 16-ms-Regel (D65) ist der Rückfall für genau diesen Fall und fing ihn ab, am Aufzug nicht
+  spürbar (Martin, Zeilen 7 und 22) → D65-Addendum, Backlog-Zeile.
+- **Gültigkeit der Drag-Läufe:** path keys 25 / 33 / 28 gegen 29–31 ohne SC, „drag held yes“ in allen drei: SC hat den
+  Cursor nicht gefangen. (Die „previews n 343“ belegen das nicht: sie stammen aus dem Sweep nach der Frame-Phase über
+  `MoveTo`, ohne echten Cursor, und wären auch mit gefangenem Cursor 343.)
+- **E1 (aus T8.5) für die Hull A:** keine Untergrenze gebaut und keine nötig. Im Standard-Overlay (400 DIP breit) steht
+  die Kamera erst bei 240 px/Zelle in `Ship.Bounds`, beim Default 160 nicht; Zeile 3 grün. Bei der Hull C kann die Kamera
+  bei Max-Zoom im Schiff stehen und schneidet nahe Teile an der Near-Plane ab; so gelassen, eine Grenze „halbe Diagonale
+  + 1“ verhinderte, ein einzelnes Rack nah zu sehen → Known issue in T9.1.
+- Keine Fixes nötig, kein Bild, keine Rückfrage aus dem Gate.
+
 **Akzeptanz:**
-- [ ] Martins Abnahme, dann `git merge --no-ff` nach `main`
+- [x] Martins Abnahme (31.10.2026: „Alle tests erfolgreich bestanden!“), dann `git merge --no-ff` nach `main`
 
 ### Nicht in Phase 8
 Schatten, Texturen, Auto-Rotation, konfigurierbares FOV, Bodengitter als Feature (S8.0: unnötig fürs Pumpen), Lokalisierung,
 Velopack/winget, Retaliator-Module, `holoOffset` für den GRIN UTV (Datenfall, Backlog).
 
 ### Risiken, vorab benannt
-- WPF-3D unter `AllowsTransparency` rendert in Software (D2); mit laufendem SC nicht gemessen → T8.7.
+- WPF-3D unter `AllowsTransparency` rendert in Software (D2); mit laufendem SC nicht gemessen → T8.7. Gemessen in T8.7
+  (M5): kein Ziel wird mit SC schlechter.
 - Transparente Modelle werden nicht tiefensortiert: Holo als letztes Kind, Kisten deckend; halbtransparente Kisten
   (`crates.alpha`) über dem Holo können Artefakte zeigen → am echten Element prüfen, ggf. Alpha-Untergrenze. T8.2: Kisten
   von hinten nach vorn sortiert, Grenze im D83-Addendum.
@@ -3374,6 +3440,10 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
   `docs/settings-format.md`, Settings-Tooltips (Zoom-Grenzen = Zellgröße in der Zielebene, Kamera/Orbit/Pan, Reset, Abschnitt
   „Ship view“)
 - Medien neu nach `docs/shots/SHOTLIST.md`: GIFs, Screenshots mit den drei Presets, Known issues
+- Known issues aus Phase 8 (T8.7): ältere Builds verweigern eine settings.json mit `distance`/`target` (Start mit
+  Defaults, `settings.json.bak` hält die Datei; D83-Addendum T8.1); Holo-Teile hinter einer halbtransparenten Kiste fallen
+  weg (D83-Addendum T8.2); eine Kiste unter einem leeren vorderen Rack ist nicht anklickbar (D21, Backlog); Near-Plane-
+  Clipping bei Max-Zoom auf sehr großen Schiffen (Hull C, T8.5 E1)
 
 ### [ ] T9.2 Release (= T7.5d)
 - Release-Notes `docs/release-notes/v0.1.0.md`, Tag `v0.1.0`, rc-Releases und -Tags löschen (D49)
@@ -3398,7 +3468,11 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 
 - **Vor jedem Push `gh run list -L 3`.** Rote Läufe erst klären, dann pushen. Anlass T7.1d: Die CI war seit T7.0 rot (1-s-Zeit-Assert in `OrderSearchLimitTests`, 1.099 / 1.297 ms auf den Runnern), unbemerkt über mehrere Pushes.
 - **Tests vor der Implementierung heißt: erst rot sehen.** Neue Tests vor dem Code laufen lassen und das Scheitern (Compile- oder Assert-Fehler) festhalten, dann implementieren. Anlass T7.2: Die Core-Tests (Replan, PlanFile, Katalog) wurden vor dem Code geschrieben, aber erst danach ausgeführt; in der App lief es richtig.
-- **Neues Darstellungselement → Renderarchitektur neu entscheiden**, nicht das Element in die bestehende einpassen. Zwei Renderer für ein Bild sind ein Provisorium, kein Entwurf. Anlass Phase 8: das Holo kam in T7.4c als `Viewport3D`-Kulisse hinter den 2D-Painter; zwei Kameras mussten per Code gleich gehalten und gegeneinander gemessen werden (Holo-Pump Teil 2–5), und die Abhilfe gegen das Pumpen, die Perspektive (S8.0), hätte beide Zeichner getroffen. Umbau in Phase 8 (D83).
+- **Neues Darstellungselement → Renderarchitektur neu entscheiden**, nicht das Element in die bestehende einpassen. Zwei Renderer für ein Bild sind ein Provisorium, kein Entwurf. Anlass Phase 8: das Holo kam in T7.4c als `Viewport3D`-Kulisse hinter den 2D-Painter; zwei Kameras mussten per Code gleich gehalten und gegeneinander gemessen werden (Holo-Pump Teil 2–5), und die Abhilfe gegen das Pumpen, die Perspektive (S8.0), hätte beide Zeichner getroffen. Umbau in Phase 8 (D83). Ergebnis (T8.7): eine Szene, eine Kamera, ein Hit-Test auf derselben `CameraMath`; im Spiel kein Pumpen auf fünf Schiffen, ≈ 960 Zeilen Painter-Code gelöscht.
+- **Laufzeit messen wie Tests laufen lassen: fest geregelt, vorher und nachher.** Drei Läufe je Ziel, gewertet der Median; gegen das leere Fenster desselben Builds; der Anteil später Frames statt p95, weil p95 auf den Bildtakt quantisiert ist. Anlass Phase 8: einzelne Läufe streuten mehr als die Ziele sich unterschieden (`empty` 2,5–14,2 % spät), und ein p95 sprang zwischen 16,9 und 33,1 ms, ohne dass sich etwas geändert hatte. **Ab jetzt immer über dem Spiel messen** (`--over-game`, SC vorn): die Basislinie ohne SC misst den Desktop-Compositor (T8.7: `empty` 13,1 % spät ohne SC, 0,1 % mit SC). Gate-Regel für künftige Phasen: gleiches Ziel vorher/nachher über dem Spiel, nicht relativ zu `empty`.
+- **Bestehende Tests sind beim Umbau das Orakel, und jeder gestrichene Test braucht einen benannten Nachfolger.** Nachfolger zuerst schreiben, grün gegen den alten Code, dann löschen; jeden einmal per Mutation rot sehen. Anlass T8.6: die Nachfolger-Tabelle fand drei Pfade, die nur der alte Code getestet hatte (Bow-Label in 3D, Fit-Regeln, Teile der Navigation).
+- **Darstellung am gerenderten Bild prüfen, nicht an der Geometrie.** Anlass T8.2–T8.5: alle Kantenstreifen der Szene waren falsch gewickelt und unsichtbar; drei Tasks lang grün, weil die Tests nur Positionen prüften. Gefunden erst mit `RenderTargetBitmap` (`ViewPictures`); in T8.6 bewies ein Byte-Vergleich der Bilder vorher/nachher, dass der Rückbau nichts änderte.
+- **Mess- und Gate-Befehle selbst einmal laufen lassen, bevor Martin sie bekommt.** Anlass T8.5 (Messbefehl) und T8.7 (`--over-game`): erst der eigene Lauf zeigt, ob das Log das Richtige zählt; die 343 Vorschau-Wechsel des Sweeps hätten einen von SC gefangenen Cursor nicht verraten, daher „path keys“.
 
 ---
 
@@ -3416,6 +3490,9 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
 - ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26); freie Rotation pro Rack erst, wenn ein Schiff sie braucht.
 - ~~Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).~~ → Phase 8 (D83)
+- Vorschau-Maximum mit SC: einzelne Schlüsselwechsel kosten 20–25 ms (T8.7, M5; p95 5,2 ms, ohne SC max 12 ms); die
+  16-ms-Regel (D65) fängt sie ab. Erst klären, ob CPU-Konkurrenz mit dem Spiel oder eine GC die Spitzen macht, dann ggf.
+  der Recorder im echten Overlay (T8.7 R1). Auslöser: spürbares Nachziehen der Vorschau am Aufzug.
 - `WindowBounds.FromRect` (T3.4) und `LegendEntry.ReserveLabel` haben nur Testaufrufer (Scan in T8.6): löschen samt
   Tests oder wieder nutzen. Auslöser: Repo-Hygiene vor v0.1.0.
 - `ShipCamera.PxPerCell`/`PanX`/`PanY` (Lesefelder für Kameras von vor D83, T8.1) entfernen. Auslöser: der nächste
