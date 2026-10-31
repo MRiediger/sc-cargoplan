@@ -3435,7 +3435,7 @@ Velopack/winget, Retaliator-Module, `holoOffset` für den GRIN UTV (Datenfall, B
 **Warum:** T7.5a–c (README, Wiki, Medien) zeigen die 2D-Ansicht; nach D83 stimmen Begriffe und Bilder nicht mehr. Der
 Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Nummer.
 
-### [ ] T9.1 Textabgleich auf der 3D-Ansicht (31.10.2026) – Branch `release/v0.1.0`
+### [x] T9.1 Textabgleich auf der 3D-Ansicht (31.10.2026, abgenommen 31.10.) – Branch `release/v0.1.0`
 - Textdurchsicht auf durch D83 **falsch** gewordene Stellen: README, Wiki-Seiten (v. a. Ship-view, Preferences, Overlay-basics),
   `docs/settings-format.md`, Settings-Tooltips (Zoom-Grenzen = Zellgröße in der Zielebene, Kamera/Orbit/Pan, Reset, Abschnitt
   „Ship view“)
@@ -3468,13 +3468,16 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
   allein; seitdem T7.0–T7.5, B1–B6, K1–K7, Sync-Gone, Sync-Net, Holo-Pump, T8.0–T8.7.
 
 **Akzeptanz:**
-- [ ] Wiki: Ship-view, Preferences, Ships-and-cargo-grids, Troubleshooting (Known issues) folgen D83/D84
-- [ ] `docs/settings-format.md` folgt D83/D84 (Enum-Wert `"none"` unverändert)
-- [ ] Tooltip „Hologram opacity“ folgt D83
-- [ ] SHOTLIST-Hinweis, D85 und D83-Addendum, Backlog-Zeile
-- [ ] Entwurf `docs/release-notes/v0.1.0.md` mit Highlights, Known issues (je mit Fundort), Credits
-- [ ] Grep-Prüfung, Link-Prüfung, `dotnet build`/`dotnet test` grün
-- [ ] Diff-Durchsicht durch Martin/Claude.ai
+- [x] Wiki: Ship-view, Preferences, Ships-and-cargo-grids, Troubleshooting (Known issues) folgen D83/D84 (Wiki `4d1dba0`,
+  lokal; Push am Tag des Tags `v0.1.0`)
+- [x] `docs/settings-format.md` folgt D83/D84 (Enum-Wert `"none"` unverändert)
+- [x] Tooltip „Hologram opacity“ folgt D83
+- [x] SHOTLIST-Hinweis, D85 und D83-Addendum, Backlog-Zeile
+- [x] Entwurf `docs/release-notes/v0.1.0.md` mit Highlights, Known issues (je mit Fundort), Credits
+- [x] Grep-Prüfung (README, Wiki, `docs/*.md`, XAML ohne Treffer), Link-Prüfung (0 kaputt, Negativtest schlägt an),
+  `dotnet build` 0 Warnungen, `dotnet test` grün (Core 1.497, Import 141, App 1.533)
+- [x] Diff-Durchsicht durch Martin/Claude.ai (31.10.2026); `origin/docs/release-v0.1.0` von Martin gelöscht
+- Kein Merge nach T9.1: `--no-ff` nach `main` nach der Abnahme der Notes in T9.2, vor dem Tag
 
 ### [ ] T9.2 Release (= T7.5d)
 - Release-Notes `docs/release-notes/v0.1.0.md`, Tag `v0.1.0`, rc-Releases und -Tags löschen (D49)
