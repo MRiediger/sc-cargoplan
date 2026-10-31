@@ -3484,6 +3484,29 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
 - Notiz aus T9.1: `gh` liegt nicht im PATH (`C:\Program Files\GitHub CLI\gh.exe`); das Holo-Asset ist ein eigenes Release
   `holo-v1`, nicht am App-Release; Wiki-Push am Tag des Tags `v0.1.0`
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+- R1 Retaliator-Zeile bleibt ohne Grund (kein Beleg im Repo). R2 Schiffszahl bleibt 97: die Auswahl hat 98 Einträge,
+  der 98. ist die Aurora Mk II mit TS-Modul (`ModuleDto.cs:30-34`, Variante, kein eigenes Schiff); Notes, README und Wiki
+  sagen 97. Highlights bleiben wortgleich zur README; N1 Drop-Satz, N2 „if you choose“, N3 Link auf „Check the download“.
+- Kein Versions-Bump: `release.yml` nimmt die Version aus dem Tag, `0.0.0-dev` in `Directory.Build.props` bleibt
+  Platzhalter für Entwickler-Builds (D49).
+- M6 (self-contained statt framework-dependent wie M5) **vor dem Tag** mit dem lokalen ZIP aus `publish.ps1 -Version 0.1.0`
+  (gleiches Skript, gleiche Schalter wie CI); das veröffentlichte ZIP bekommt die Funktionsprüfung. Gate je Ziel: Median
+  spät ≤ M5-Median + 2 pp, Vorschau p95 ≤ 16 ms.
+- rc-Notes bleiben (D49-Addendum, keine neue D-Nummer). `release/v0.1.0` nach der Nachprüfung lokal und remote löschen.
+- Wiki-Push entfällt: `origin/master` steht schon auf `ef6b9f4`.
+
+**Befund (vor dem Tag):**
+- Version überall `AssemblyInformationalVersion`: Settings-Fußzeile, CLI `--version`, Holo-User-Agent (ohne `+…`),
+  Messlog-Kopf; kein Fenstertitel, kein Versionskopf in `cargoplan.log`.
+- Remote: Releases `v0.1.0-rc.3` und `holo-v1` (beide Pre-release), Tags dieselben; `releases/latest` → `/releases`.
+  README zeigt schon auf `releases/latest`.
+- `holo-v1`: 120 Assets = 118 `.holo` + `manifest.json` (listet 118) + `NOTICE.md`; URL = `HoloRelease.BaseUri`.
+- Daten liegen in `%LocalAppData%\SC-CargoPlan` (nicht `%AppData%`, dort nur die CT-DB).
+- Link-Check der Notes (`linkcheck.py` aus T9.1): 0 kaputt, Negativtest mit zwei falschen Ankern schlägt an; extern
+  200 außer Nexus (403 an curl, Bot-Schutz; Prüfung im Browser bei der Nachprüfung).
+- Reproduzierbarkeit: Hash lokal ≠ CI erwartet (D49); verglichen werden Eintragsliste und `--version`.
+
 ### [ ] T9.3 Nexus → T6.6
 
 ### [ ] T9.4 Fleetyards-Verlinkung
