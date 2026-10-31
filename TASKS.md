@@ -3248,7 +3248,7 @@ Bauen: kein `StartOptionsTests`-Fall, die Messziele stehen nur im `FrameMeasureW
 - [x] Stichprobe `hull_a_outline` nach der Gate-Regel ab T8.5 (6,1 % ≤ 10,4 % + 2 pp)
 - [x] `dotnet build` ohne Warnungen, `dotnet test` grün
 
-### [ ] T8.6 2D-Painter entfernen
+### [x] T8.6 2D-Painter entfernen (30.10.2026, abgenommen 31.10.)
 **Warum:** Es gibt nur noch eine Projektion; toter Code und doppelte Tests gehen.
 - `SceneProjector`, `DrawOrder`, `IsoProjection`-Zeichenpfad entfernen, verbliebene Tests migrieren, die 0,5-px-Abgleichtests
   (Teil 2–4 der Holo-Pump-Reihe) streichen
@@ -3308,7 +3308,8 @@ der Test „langes Schiff von Backbord“ (`CameraOrientationTests`) liest Fläc
   `HoloLight`; `CameraNavigation.ZoomOn` hatte seit T8.1 nur Tests, das Control nutzt es jetzt. Behalten mit Grund: die
   vier Besitz-Felder in `App.xaml.cs` (dort kommentiert), die Felder von `CURSORINFO` (Struct-Layout),
   `LegendRowPanel.SetRank` (Attached Property), `ShipViewControl.ShownPreview` (Testnaht, T8.4 R5). **Vorbestand, älter als
-  T8.6, nur Testaufrufer:** `WindowBounds.FromRect` (T3.4), `LegendEntry.ReserveLabel` → Rückfrage.
+  T8.6, nur Testaufrufer:** `WindowBounds.FromRect` (T3.4), `LegendEntry.ReserveLabel` → Backlog-Zeile mit Auslöser
+  „Repo-Hygiene vor v0.1.0“ (Martin bei der Abnahme).
 - **M4** (`--measure-frames`, Release, ohne SC, 30 s je Lauf, drei Runden über alle Ziele abwechselnd, Median der drei
   Läufe; spät / p95 / fps):
 
@@ -3323,6 +3324,9 @@ der Test „langes Schiff von Backbord“ (`CameraOrientationTests`) liest Fläc
   | Hit-Test `hull_c` p95 | 0,001 ms | 0,001 ms |
 
   Gate (spät ≤ `empty` + 2 pp = 15,1 %) überall erfüllt. **M4b ist die Vergleichsbasis für T8.7 mit SC.**
+  `hull_a_outline` ist mit +2,6 pp (5,5 → 8,1 %) die einzige Abweichung über der Streuung der übrigen Ziele (−0,3 bis
+  +0,9 pp): alle drei M4b-Läufe (7,5 / 8,1 / 10,5 %) liegen über den T8.5-Läufen (629afc3: 6,1 / 2,5 / 6,6 %), aber in der
+  M4a-Spanne (4,4–12,0 %); am Umriss-Pfad änderte T8.6 nur den Punkttyp (Bilder byte-gleich), in T8.7 mit SC beobachten.
   Einmalig (R5): Hull-D-Umriss (362 Punkte) auf der Hull A, Wegwerf-Build (eine Zeile in `FrameMeasureWindow`, nicht
   committet; der Log-Hash e5419ca zeigt die lokale Änderung nicht): 8,4 % / 33,07 ms / 55,3 gegen `empty` 10,3 %.
 - Doku: Addenda D15, D21, D32, D63, D83. `CLAUDE.md` (Zeile Schiffsansicht, Dateiliste) und `docs/settings-format.md`
@@ -3330,7 +3334,7 @@ der Test „langes Schiff von Backbord“ (`CameraOrientationTests`) liest Fläc
 
 **Akzeptanz:**
 - [x] `dotnet build` ohne Warnungen, alle Tests grün (App 1.529, Core 1.497, Import 141; Slow grün)
-- [ ] Martins Abnahme
+- [x] Martins Abnahme (31.10.2026)
 
 ### [ ] T8.7 Gates im Spiel am Aufzug
 **Warum:** S8.0 hat ohne SC gemessen; die Abnahme der Phase passiert im Spiel.
@@ -3412,6 +3416,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
 - ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26); freie Rotation pro Rack erst, wenn ein Schiff sie braucht.
 - ~~Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).~~ → Phase 8 (D83)
+- `WindowBounds.FromRect` (T3.4) und `LegendEntry.ReserveLabel` haben nur Testaufrufer (Scan in T8.6): löschen samt
+  Tests oder wieder nutzen. Auslöser: Repo-Hygiene vor v0.1.0.
 - `ShipCamera.PxPerCell`/`PanX`/`PanY` (Lesefelder für Kameras von vor D83, T8.1) entfernen. Auslöser: der nächste
   Schema-Bump von settings.json; nach v0.1.0 schreibt kein Build sie mehr.
 - Hysterese für Rack-Nummern: Fläche wechseln oder ausblenden erst nach einem Mindestabstand, damit eine Nummer beim Drehen
