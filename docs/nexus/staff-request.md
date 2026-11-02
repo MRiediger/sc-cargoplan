@@ -6,7 +6,10 @@ mod/utility" and ask authors of such tools to contact staff with their reasoning
 ([File Submission Guidelines](https://help.nexusmods.com/article/28-file-submission-guidelines), last updated
 27 Oct 2026). The code links point to commit `fd75313`, the state of v0.1.0's code, so the line numbers hold.
 
-Record the date sent, the date and wording of the answer in TASKS.md (T9.3).
+The request names November 16, 2026 as the publishing date: 14 days, not an open wait (D87). Without an answer by
+then, the page goes up with the disclosure of this request; a refusal stops T9.3.
+
+Record the date sent, the date and wording of the answer (or "no answer by November 16") in TASKS.md (T9.3).
 
 ---
 
@@ -16,6 +19,9 @@ Hello,
 
 I'd like to publish SC-CargoPlan on Nexus Mods (Star Citizen, category Miscellaneous) and ask first, because of the
 guidelines' rule on files that connect to the internet.
+
+Unless you tell me otherwise, I plan to publish the page on November 16, 2026, with the disclosure below. If you need
+more time, I will hold.
 
 **What it is:** a load-plan overlay for Star Citizen haulers: it decides which destination goes into which rack before
 you load, and shows it in a translucent window next to the game. A separate window: nothing is injected into the game.
@@ -53,11 +59,22 @@ all of this; the page would not link to the hologram release.
 
 **2. Ship silhouettes in the ZIP.** The folder `outlines/` holds 2D ship silhouettes, traced automatically from the
 top-view renders on fleetyards.net, which depict CIG's ships. They are not under MIT and are used for a non-commercial
-fan project; `outlines/NOTICE.md` in the ZIP says so. The description and the permissions would state it.
+fan project; `outlines/NOTICE.md` in the ZIP says so. The maintainer of fleetyards.net (Torlek) gave written consent
+on October 23, 2026; Cloud Imperium has neither approved nor objected. The description and the permissions would state
+it.
 
-**3. ContractTracker.** The app can read the database of ContractTracker (Nexus, Star Citizen mod 34), read-only, to
-take in captured contracts. It is optional: missions can be typed into the app's editor instead. ContractTracker is
-credited and linked.
+**3. ContractTracker.** The app can read the database of ContractTracker (Nexus, Star Citizen mod 34) to take in
+captured contracts.
+
+- Read-only, from the local SQLite file ContractTracker writes; no network access, nothing is written to it
+  ([ContractTrackerReader.cs#L108](https://github.com/MRiediger/sc-cargoplan/blob/fd7531389c279a4fe9486b193aa7379f33fff707/src/CargoPlan.Import/ContractTracker/ContractTrackerReader.cs#L108)).
+- Optional: the app runs without ContractTracker; missions can be typed into its editor instead.
+- I asked the author by direct message on October 20, 2026 whether SC-CargoPlan may read the database and document
+  the columns it reads. There has been no answer so far. The Discord invite on the ContractTracker page,
+  https://discord.gg/9RNUXAdVn, returns "Unknown Invite" (checked November 2, 2026).
+- If the author objects, I will remove the ContractTracker references from the Nexus page.
+
+ContractTracker is credited and linked.
 
 The project is a fan project: no donations, no Donation Points. Generative AI tags would be set as the guidelines ask.
 

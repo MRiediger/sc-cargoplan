@@ -3559,8 +3559,13 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
 
 **Präzisierung in der Planphase, ratifiziert durch Freigabe:**
 - Nexus-Regeln gelesen statt angenommen: Netzzugriff nur, wenn „crucial“, der Holo-Download ist optional → vor dem
-  ersten Upload Anfrage an den Nexus-Support (`staff-request.md`), Upload erst nach Zustimmung; eine Ablehnung stoppt
-  T9.3, kein Nexus-Sonder-Build.
+  ersten Upload Anfrage an den Nexus-Support (`staff-request.md`), Upload nach Zustimmung oder nach Fristablauf
+  16.11.2026 ohne Antwort (14 Tage statt offenes Warten, D87-Addendum); eine Ablehnung stoppt T9.3, kein
+  Nexus-Sonder-Build.
+- Anfrage, Abschnitt ContractTracker mit Belegen, ohne Wertung des Autors: Direktnachricht an den Autor am 20.10.2026,
+  keine Antwort; Discord-Link auf mods/34 ungültig; optional, read-only auf die lokale Datei, kein Netz; bei Einwand
+  des Autors gehen die CT-Bezüge von der Nexus-Seite. Silhouetten-Absatz nennt die schriftliche Zustimmung von
+  Fleetyards (Torlek, 23.10.2026).
 - Netzzugriff in der Anfrage genau wie im Code: Default-Look Outline, dann kein Request; erst ein Hologramm-Look lädt
   per GET aus `holo-v1`, danach je Start und Schiffswechsel das Manifest höchstens einmal pro Lauf und nicht, solange
   das gecachte jünger als 24 h ist; Schalter aus → kein Request. Code-Links auf `fd75313`.
@@ -3596,10 +3601,18 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
 - Quellentreue (Skript: jeder Satz wörtlich in README, Notes oder Wiki?): ohne Quelle nur die Überschriften, die
   D87-Sätze (Files tab, `.sha256` des GitHub-Release, Source code, Bugs auf GitHub, KI-Satz), der D63-Satz
   (`decisions.md:714`) und FAQ:11 ohne die Klammer „(see …)“. `summary.txt` = README:5-6, 167 Zeichen.
+- CT-Discord (02.11.2026): die Beschreibung von mods/34 (GraphQL-API, zuletzt geändert 02.06.2026) enthält zweimal
+  `discord.gg/9RNUXAdVn`; Martin im Browser „Ungültig oder abgelaufen“, Discord-API `invites/9RNUXAdVn` → 404
+  „Unknown Invite“ (Code 10006). Read-only belegt: `ContractTrackerReader.cs:108` (`SqliteOpenMode.ReadOnly`), Link
+  auf `fd75313`.
+- Quellen im Repo nennen es anders: `contracttracker-schema.md:7` „asked of the author in the Nexus Discord on
+  2026-10-20 09:26“ (Anfrage sagt neutral „by direct message“); Fleetyards-Zustimmung steht in T7.4b Gate 1 als
+  „Mail von Marten (Fleetyards)“, D63 zitiert Marten mit „Grauzone, keine offizielle Freigabe“.
 
 **Akzeptanz:**
 - [x] `docs/nexus/*`, D87, CONTRIBUTING, TASKS; Link-Check 0 kaputt, Negativtest schlägt an
-- [ ] Anfrage an den Nexus-Support gesendet und beantwortet (Datum, Wortlaut)
+- [ ] Anfrage an den Nexus-Support gesendet und beantwortet (Datum, Wortlaut) oder Frist 16.11.2026 ohne Antwort
+  abgelaufen
 - [ ] Nexus-Seite online mit dem ZIP des GitHub-Releases (gleicher SHA256 und gleiche Größe des Nexus-Downloads),
   Permissions passend zu MIT, CT-Credit sichtbar; URL und Datum
 - [ ] README: Nexus als zweite Quelle

@@ -9,8 +9,9 @@ Texts: [`summary.txt`](summary.txt), [`description.bbcode`](description.bbcode).
 
 ## 0. Before you start
 
-- **First upload only:** Nexus staff have answered [`staff-request.md`](staff-request.md) and agreed. Date and wording
-  go into TASKS.md. If they refuse, stop: no upload.
+- **First upload only:** Nexus staff have answered [`staff-request.md`](staff-request.md) and agreed, **or**
+  November 16, 2026, the date the request names, has passed without an answer. Date and wording (or "no answer") go
+  into TASKS.md. If they refuse, stop: no upload.
 - The GitHub release of the version is out and marked Latest.
 
 ## 1. The ZIP, checked against the release
