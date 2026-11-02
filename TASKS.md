@@ -3534,8 +3534,9 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
   gleichem SDK-Stand. Self-contained mit 10.0.14 ist nicht über dem Spiel gemessen; M5 (10.0.14, framework-dependent)
   und M6 (self-contained, 10.0.13) sind beide grün. Martin bei der Abnahme: kein weiterer M6-Lauf, das veröffentlichte
   ZIP ist heruntergeladen und läuft.
-- Nachprüfung (Martin, 02.11.2026): „heruntergeladen und das funktioniert“; die Einzelpunkte der Checkliste
-  (Holo-Download aus frischem Profil, Abschalten) sind nicht einzeln gemeldet.
+- Nachprüfung (Martin, 02.11.2026): alle Punkte der Checkliste grün – Release-Seite (Titel, Latest, Notes, Assets,
+  Nexus-Link im Browser), Hash, Start nach Wiki „Installation and first start“ mit frischem Profil, Version in der
+  Fußzeile, Holo-Download aus `holo-v1`, Abschalten.
 
 **Akzeptanz:**
 - [x] Notes-Endfassung (R1, R2 unverändert; N1–N3), Link-Check 0 kaputt, Negativtest schlägt an
