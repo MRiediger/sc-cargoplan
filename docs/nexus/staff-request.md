@@ -13,7 +13,7 @@ Record the date sent, the date and wording of the answer (or "no answer by Novem
 
 ---
 
-**Subject:** Pre-upload question: Star Citizen overlay with an optional, user-requested download
+**Subject:** Pre-upload question: Star Citizen utility with optional network access
 
 Hello,
 
@@ -28,7 +28,7 @@ you load, and shows it in a translucent window next to the game. A separate wind
 Open source under MIT: https://github.com/MRiediger/sc-cargoplan. The upload would be exactly the ZIP of the GitHub
 release (same SHA256).
 
-**1. Network access: a feature the user requests, not a program that phones home.**
+**1. Network access: only after the user turns a feature on.**
 
 - The default look of the ship view is a flat outline. With the outline (or no backdrop), the app makes no request at
   all, neither at the start nor while it runs
@@ -41,8 +41,8 @@ release (same SHA256).
   ([HoloRelease.cs#L19](https://github.com/MRiediger/sc-cargoplan/blob/fd7531389c279a4fe9486b193aa7379f33fff707/src/CargoPlan.App/Holo/HoloRelease.cs#L19)).
   No login, no token, no API; nothing is uploaded. The User-Agent is `SC-CargoPlan/<version>`; 5 s timeout, at most
   4 MB per response.
-- Once a hologram look is chosen, the app checks again at each start and ship change: a small manifest at most once per
-  run, and not at all while the cached one is younger than 24 hours; a ship file only if it isn't cached or its SHA256
+- After that, the app checks for updates only when a hologram is needed (start, ship change): the small manifest at
+  most once per run and only if the cached copy is older than 24 hours; a ship file only if it is missing or its SHA256
   differs
   ([HoloSource.cs#L28-L35](https://github.com/MRiediger/sc-cargoplan/blob/fd7531389c279a4fe9486b193aa7379f33fff707/src/CargoPlan.App/Holo/HoloSource.cs#L28-L35),
   [HoloRelease.cs#L25](https://github.com/MRiediger/sc-cargoplan/blob/fd7531389c279a4fe9486b193aa7379f33fff707/src/CargoPlan.App/Holo/HoloRelease.cs#L25)).
@@ -71,14 +71,18 @@ captured contracts.
 - Optional: the app runs without ContractTracker; missions can be typed into its editor instead.
 - I asked the author by direct message on October 20, 2026 whether SC-CargoPlan may read the database and document
   the columns it reads. There has been no answer so far. The Discord invite on the ContractTracker page,
-  https://discord.gg/9RNUXAdVn, returns "Unknown Invite" (checked November 2, 2026).
+  https://discord.gg/9RNUXAdVn, returns "Unknown Invite" (checked November 2, 2026). The page lists no other contact.
 - If the author objects, I will remove the ContractTracker references from the Nexus page.
 
 ContractTracker is credited and linked.
 
-The project is a fan project: no donations, no Donation Points. Generative AI tags would be set as the guidelines ask.
+The project is a fan project: no donations, no Donation Points. The code and the page texts were written with an AI
+coding assistant, designed and tested in the game by me; the page would carry the tags "AI-Generated Content" and
+"AI Media".
 
-Is this acceptable for upload as it stands? If something needs to change, I'd rather know before publishing.
+Is this acceptable for upload as it stands? If something needs to change, I'd rather know before publishing. If
+network access of this kind needs a particular tag or wording on the page, please tell me which.
 
 Thank you,
 Martin Riediger
+Nexus account: Plintonium
