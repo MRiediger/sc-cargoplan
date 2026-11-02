@@ -3607,7 +3607,9 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
   auf `fd75313`.
 - Quellen im Repo nennen es anders: `contracttracker-schema.md:7` „asked of the author in the Nexus Discord on
   2026-10-20 09:26“ (Anfrage sagt neutral „by direct message“); Fleetyards-Zustimmung steht in T7.4b Gate 1 als
-  „Mail von Marten (Fleetyards)“, D63 zitiert Marten mit „Grauzone, keine offizielle Freigabe“.
+  „Mail von Marten (Fleetyards)“, D63 zitiert Marten mit „Grauzone, keine offizielle Freigabe“. Martin, 02.11.2026:
+  Torlek ist Marten; die Zustimmung gilt der Nutzung aller Inhalte der Fleetyards-API, also auch den Silhouetten
+  (aus den Renders der API, `outlines/NOTICE.md`).
 
 **Akzeptanz:**
 - [x] `docs/nexus/*`, D87, CONTRIBUTING, TASKS; Link-Check 0 kaputt, Negativtest schlägt an

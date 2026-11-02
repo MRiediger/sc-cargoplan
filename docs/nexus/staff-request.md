@@ -60,7 +60,8 @@ all of this; the page would not link to the hologram release.
 **2. Ship silhouettes in the ZIP.** The folder `outlines/` holds 2D ship silhouettes, traced automatically from the
 top-view renders on fleetyards.net, which depict CIG's ships. They are not under MIT and are used for a non-commercial
 fan project; `outlines/NOTICE.md` in the ZIP says so. The maintainer of fleetyards.net (Torlek) gave written consent
-on October 23, 2026; Cloud Imperium has neither approved nor objected. The description and the permissions would state
+on October 23, 2026 to the use of all content from the fleetyards.net API; Cloud Imperium has neither approved nor
+objected. The description and the permissions would state
 it.
 
 **3. ContractTracker.** The app can read the database of ContractTracker (Nexus, Star Citizen mod 34) to take in
