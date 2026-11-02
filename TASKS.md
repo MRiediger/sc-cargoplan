@@ -3560,7 +3560,7 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
 `setup-dotnet` `10.0.x`), M6 maß das lokale ZIP mit 10.0.13 (SDK 10.0.402). Self-contained heißt, die Runtime des SDK
 liegt im ZIP; ohne gepinntes SDK ist lokal ≠ CI. Kein Verhalten, Core unverändert.
 
-### [ ] B7 SDK pinnen
+### [x] B7 SDK pinnen (02.11.2026, abgenommen 02.11.)
 - `global.json`: SDK 10.0.403, `"rollForward": "disable"`
 - `ci.yml`, `release.yml`: `setup-dotnet` mit `global-json-file: global.json` statt `dotnet-version: 10.0.x`
 - `dependabot.yml`: Ökosystem `dotnet-sdk`, damit Runtime-Patches als PR kommen
@@ -3597,8 +3597,9 @@ liegt im ZIP; ohne gepinntes SDK ist lokal ≠ CI. Kein Verhalten, Core unverän
 - [x] `dotnet --version` im Repo = `10.0.403` = `global.json`; Negativtest mit fehlender Version schlägt an
 - [x] `dotnet build` 0 Warnungen, `dotnet test` grün, Zahlen wie `main`
 - [x] Lokales `publish.ps1 -Version 0.0.0-dev`: Runtime 10.0.14 im Ordner, Eintragsliste = CI-ZIP v0.1.0
-- [ ] CI auf dem PR grün (Windows und Ubuntu) mit SDK 10.0.403
-- [ ] Martins Abnahme, dann `git merge --no-ff` nach `main`
+- [x] CI auf dem PR grün (Windows und Ubuntu) mit SDK 10.0.403 (PR #20, Run 41389845142; Windows installiert 10.0.403,
+  auf Ubuntu war 10.0.403 vorinstalliert und wurde mit `--version 10.0.403` angefordert)
+- [x] Martins Abnahme (02.11.2026: „grün“), dann `git merge --no-ff` nach `main`
 
 ---
 
