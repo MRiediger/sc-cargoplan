@@ -1319,7 +1319,7 @@ für fehlende Schiffe; Known issue Hull-C-Hologramm gestrichen; `docs/screenshot
   ≤ 3 MB außer den zwei Ausnahmen, Shotlist 1:1 mit Typ und Datei (32 Shots: 17 GIF, 15 PNG; 14 must); Negativtest
   schlägt an. Tests Core 1.467, Import 141, App 1.435, 0 Warnungen.
 
-#### [ ] T7.5d Release (Martin + Claude Code) → T9.2 (D83)
+#### [x] T7.5d Release (Martin + Claude Code) → T9.2 (D83), erledigt mit T9.2
 - Release-Notes `docs/release-notes/v0.1.0.md`, Tag `v0.1.0`, rc-Releases und -Tags löschen (D49)
 
 → T6.6 Nexus und Fleetyards-Verlinkung, seit D83 in Phase 9 (T9.3, T9.4)
@@ -3479,7 +3479,7 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
 - [x] Diff-Durchsicht durch Martin/Claude.ai (31.10.2026); `origin/docs/release-v0.1.0` von Martin gelöscht
 - Kein Merge nach T9.1: `--no-ff` nach `main` nach der Abnahme der Notes in T9.2, vor dem Tag
 
-### [ ] T9.2 Release (= T7.5d)
+### [x] T9.2 Release (= T7.5d) (31.10.2026, abgenommen 02.11.)
 - Release-Notes `docs/release-notes/v0.1.0.md`, Tag `v0.1.0`, rc-Releases und -Tags löschen (D49)
 - Notiz aus T9.1: `gh` liegt nicht im PATH (`C:\Program Files\GitHub CLI\gh.exe`); das Holo-Asset ist ein eigenes Release
   `holo-v1`, nicht am App-Release; Wiki-Push am Tag des Tags `v0.1.0`
@@ -3506,6 +3506,43 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
 - Link-Check der Notes (`linkcheck.py` aus T9.1): 0 kaputt, Negativtest mit zwei falschen Ankern schlägt an; extern
   200 außer Nexus (403 an curl, Bot-Schutz; Prüfung im Browser bei der Nachprüfung).
 - Reproduzierbarkeit: Hash lokal ≠ CI erwartet (D49); verglichen werden Eintragsliste und `--version`.
+- Merge `--no-ff` 6ae6444; Tests auf dem Merge-Commit = `main` vorher (Core 1.497, Import 141, App 1.533), Debug und
+  Release 0 Warnungen. `publish.ps1 -Version 0.1.0`: ZIP 62,1 MB, 360 Dateien (die 358 aus T7.4 plus
+  `ships/salvation.json` und `ships/modules/ts_module.json`), `CargoPlan.Cli --version` = `0.1.0+6ae6444…`.
+- **M6** (`m6.ps1`, Martin, 31.10.2026 16:54–17:04, SC vorn, Cursor frei; lokales ZIP, self-contained, Runtime 10.0.13;
+  `--measure-frames <Ziel> --over-game`, 30 s je Lauf, drei Runden, Median der drei Läufe). Ein erster Durchgang um
+  16:47 lief ohne SC (`empty` 14 % spät) und ist verworfen.
+
+  | Ziel | M5 (T8.7) spät | M6 Läufe spät | M6 Median | Gate ≤ M5 + 2 pp |
+  |---|---|---|---|---|
+  | `empty` | 0,1 % | 1,0 / 0,3 / 0,3 | 0,3 % | ✓ |
+  | `hull_c` | 0,2 % | 0,2 / 0,1 / 0,2 | 0,2 % | ✓ |
+  | `hull_c_states` | 2,9 % | 0,4 / 0,7 / 0,4 | 0,4 % | ✓ |
+  | `hull_c_drag` | 11,8 % | 11,9 / 11,5 / 12,1 | 11,9 % | ✓ |
+  | `hull_a_outline` | 0,2 % | 0,2 / 0,2 / 0,1 | 0,2 % | ✓ |
+  | Vorschau `hull_c_drag` p95 / max | 5,23 / 20,3 ms | p95 1,80 / 1,92 / 1,83, max 13,4 / 13,7 / 10,8 ms | 1,83 ms | ≤ 16 ms ✓ |
+
+  path keys 25 / 27 / 26, „drag held yes“ in allen drei; Hit p95 ≤ 0,002 ms. Danach Tag `v0.1.0` (annotiert) auf 6ae6444.
+
+**Befund (nach dem Push):**
+- Release-Workflow grün (2 min 41 s), CI auf `main` grün; Release `v0.1.0` kein Pre-release, „Latest“,
+  `releases/latest` → `tag/v0.1.0`; Assets ZIP 64,2 MB und `.sha256`; Download gegen `.sha256` OK, `--version` =
+  `0.1.0+6ae6444…`, 360 Einträge, alle mit `/`.
+- **Eintragsliste weicht in einem Namen ab:** das CI-ZIP bringt die Runtime **10.0.14** mit, das lokale (M6) 10.0.13
+  (`mscordaccore_…`, `coreclr.dll`, `wpfgfx_cor3.dll`, `runtimeconfig.json`). Der Runner holt per `setup-dotnet 10.0.x`
+  das neueste SDK, lokal SDK 10.0.402. Damit hält D49 „a local run gives the released artifact's content“ nur bei
+  gleichem SDK-Stand. Self-contained mit 10.0.14 ist nicht über dem Spiel gemessen; M5 (10.0.14, framework-dependent)
+  und M6 (self-contained, 10.0.13) sind beide grün. Martin bei der Abnahme: kein weiterer M6-Lauf, das veröffentlichte
+  ZIP ist heruntergeladen und läuft.
+- Nachprüfung (Martin, 02.11.2026): „heruntergeladen und das funktioniert“; die Einzelpunkte der Checkliste
+  (Holo-Download aus frischem Profil, Abschalten) sind nicht einzeln gemeldet.
+
+**Akzeptanz:**
+- [x] Notes-Endfassung (R1, R2 unverändert; N1–N3), Link-Check 0 kaputt, Negativtest schlägt an
+- [x] `dotnet build` 0 Warnungen, `dotnet test` grün, Zahlen = `main`
+- [x] M6 über dem Spiel grün gegen M5
+- [x] `git merge --no-ff` nach `main` (6ae6444), Tag `v0.1.0`, Release über `release.yml` grün, veröffentlichtes ZIP läuft
+- [ ] rc.3-Release und -Tag löschen, `release/v0.1.0` löschen (Martin, Befehle im Abschluss der Session)
 
 ### [ ] T9.3 Nexus → T6.6
 
