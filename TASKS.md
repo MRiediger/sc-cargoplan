@@ -3543,7 +3543,9 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
 - [x] `dotnet build` 0 Warnungen, `dotnet test` grün, Zahlen = `main`
 - [x] M6 über dem Spiel grün gegen M5
 - [x] `git merge --no-ff` nach `main` (6ae6444), Tag `v0.1.0`, Release über `release.yml` grün, veröffentlichtes ZIP läuft
-- [ ] rc.3-Release und -Tag löschen, `release/v0.1.0` löschen (Martin, Befehle im Abschluss der Session)
+- [x] rc.3-Release und -Tag gelöscht (remote und lokal), `release/v0.1.0` gelöscht, dazu die gemergten Remote-Branches
+  `feat/k2-plan-editor`, `feat/k3-planner-rules`, `feat/k5-data`, `feat/k6-elevator-flow`, `spike/s8-3d-finding`
+  (Martin, 02.11.2026); remote bleiben die Releases `v0.1.0` (Latest) und `holo-v1`
 
 ### [ ] T9.3 Nexus → T6.6
 
