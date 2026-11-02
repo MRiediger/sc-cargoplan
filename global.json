@@ -1,0 +1,7 @@
+{
+  "sdk": {
+    "version": "10.0.403",
+    "rollForward": "disable",
+    "errorMessage": "SC-CargoPlan builds with exactly the .NET SDK version in global.json (D86). Install that version; see CONTRIBUTING.md."
+  }
+}

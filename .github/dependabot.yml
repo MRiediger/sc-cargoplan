@@ -21,3 +21,16 @@ updates:
     groups:
       github-actions:
         patterns: ["*"]
+
+  # The SDK pinned in global.json (D86). The release is self-contained, so the SDK's runtime ships in the ZIP: without
+  # this, the pin would freeze its security fixes. Weekly, not monthly: .NET patches on Patch Tuesday, one PR per patch.
+  # A new major (.NET 11) is a stack change and a decision of its own, not a Dependabot merge.
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "chore(deps)"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]

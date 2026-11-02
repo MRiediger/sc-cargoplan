@@ -45,7 +45,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 
 | Was | Entscheidung | Warum |
 |---|---|---|
-| Runtime | **.NET 10** (aktuelles LTS) | Support bis 2028. .NET 8 läuft Nov 2026 aus. |
+| Runtime | **.NET 10** (aktuelles LTS), SDK exakt gepinnt per `global.json` (`rollForward: disable`), Updates per Dependabot `dotnet-sdk` (D86) | Support bis 2028. .NET 8 läuft Nov 2026 aus. Self-contained: die Runtime des SDK liegt im ZIP, lokal = CI nur mit demselben SDK. |
 | UI | **WPF** | Rahmenlose transparente Fenster seit 15 Jahren stabil, Win32-Handle direkt greifbar. WinUI 3 kann Transparenz schlecht, Avalonia bringt Cross-Platform, das wir nicht brauchen. |
 | Schiffsansicht | **Ein `Viewport3D`**, `PerspectiveCamera` (FOV 40°), Text (Rack-Nummern, Tooltips) in einer 2D-Overlay-Ebene, `CameraMath` als einzige Projektion für Bild, Overlay und Hit-Test (D83, Phase 8) | Ortho pumpt beim Drehen (S8.0); eine Szene und eine Kamera statt zwei Zeichnern im Abgleich. |
 | MVVM | **CommunityToolkit.Mvvm** | Source-Generatoren sparen Boilerplate (`[ObservableProperty]`, `[RelayCommand]`). Einziges UI-Paket. |
