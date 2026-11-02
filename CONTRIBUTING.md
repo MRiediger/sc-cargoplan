@@ -4,7 +4,8 @@ Thanks for helping haulers. Questions and ideas go to [Discussions](https://gith
 
 ## Build and test
 
-Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download). The same steps as CI:
+Requires exactly the [.NET SDK](https://dotnet.microsoft.com/download/dotnet/10.0) version named in `global.json`;
+with any other version, `dotnet` stops with a message in the repository folder (D86). The same steps as CI:
 
 ```powershell
 dotnet restore

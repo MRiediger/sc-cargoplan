@@ -41,9 +41,11 @@ jobs:
           "VERSION=$version" >> $env:GITHUB_ENV
           "PRERELEASE=$($version.Contains('-').ToString().ToLowerInvariant())" >> $env:GITHUB_ENV
 
+      # The SDK pinned in global.json (D86): its runtime is the one the self-contained ZIP ships, as in a local publish.
+      # Source: https://github.com/actions/setup-dotnet/blob/v6/action.yml (input global-json-file)
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          global-json-file: global.json
 
       - name: Restore
         run: dotnet restore

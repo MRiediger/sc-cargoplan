@@ -34,9 +34,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The SDK pinned in global.json (D86), the same one a local build uses.
+      # Source: https://github.com/actions/setup-dotnet/blob/v6/action.yml (input global-json-file)
       - uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.x
+          global-json-file: global.json
 
       - name: Restore
         run: dotnet restore
