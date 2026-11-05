@@ -3738,7 +3738,7 @@ D89 mit Addenda zu D41, D64, D66. Korrigierte Vorgaben aus der Spec:
 
 - Core: `PlanGrouping`, `RackSections`, `SectionNotes`, `LoadPlan.LegendMissions`, Durchgang in Plan, Editor-Plan, Re-plan, Schiffswechsel; `LayStop` für den Sync
 - Formate: `grouping` in Plan-Schema 9 und Missions-Schema 4, `GroupingJson`, Goldens eine Zeile mehr
-- App: ComboBox **Grouping**, Editor breiter (760, Mindestbreite 560), weiße Zeile `NoticeSource.Sections`
+- App: ComboBox **Grouping**, weiße Zeile `NoticeSource.Sections`
 - Tests: `RackSectionsTests`, `RackSectionsSyncTests`, `LegendOrderTests`, `FillRowsFormatTests`, `MissionEditorViewModelTests`
 
 **Messung** (Release, Median aus 3, ms; Knoten und Suchschritte in allen Zeilen wie K9.1, kein „gave up“):
@@ -3761,8 +3761,36 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 - [x] Hull A: zwei Sektionen entlang der Länge in beiden `fillRows`
 - [x] `none`: alle Goldens und Property-Tests aus B2 grün
 - [x] `Category=Slow` 2/2, `Category=Exhaustive` 2/2 in 8 min 14 s (nachgeholt aus K9.1)
-- [ ] Martin: Gate am Aufzug
-- [ ] Martin: Editor mit drei Boxen ansehen (Breite nur geschätzt, nicht im laufenden Programm geprüft)
+- [ ] Martin: Gate am Aufzug, zusammen mit K9.2b
+
+### [ ] K9.2b Section gap (D89-Addendum, D71-Addendum)
+
+**Warum:** Zwischen bündigen Sektionen lässt sich schlecht greifen. `sectionGap` hält 0, 1 oder 2 leere Reihen frei, Default 0.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Rückfallstufen ungedreht mit Lücken → drehen → Lücken 2 → 1 → 0, Drehungen bleiben → teilen → Rack wie vom Planer; keine Notice beim Streichen. Eine Reihe mit geladener Kiste hinter einer Sektion zählt als Lücke. Neues Ziel im Sync: freier Rest mit Abstand, dann enger, dann frühere leere Reihen, je Stufe ungedreht vor gedreht; „Ende zuerst“ auch bei gap 0. Freigewordene Reihen vorne bleiben bis zum Re-plan leer. Kein eigenes Schema. Eigene Zeile „Layout“ im Editor statt breiterem Fenster, Entscheidung am Gate.
+
+- Core: `LoadPlan.SectionGap`, `RackSections` (Stufe, `RowsFor` in Stufen), `LayStop`; Wert überlebt `grouping = none`, Schiffswechsel und Discard
+- Formate: `sectionGap` in Plan-Schema 9 und Missions-Schema 4; Goldens eine Zeile mehr, Lage unverändert
+- App: ComboBox **Section gap**, nur aktiv bei „By destination“, `SectionGapChoice`; Zeile „Layout“ als `WrapPanel`, Fenster zurück auf 660 × 420, Mindestbreite 480
+- Tests: `SectionGapTests`, `RackSectionsSyncTests`, `FillRowsFormatTests`, `MissionEditorViewModelTests`
+
+**Messung** (Release, Median aus 3, ohne Tiered JIT, `bowFirst`, ms; Knoten und Suchschritte wie K9.1, kein „gave up“):
+
+| Fall | `none` | gap 0 | gap 1 | gap 2 |
+|---|---|---|---|---|
+| RAFT-Fixture | 3,3 | 7,2 | 12,7–12,9 | 17,3–18,0 |
+| RAFT, 8 Ziele | 2,0–2,1 | 18,3–23,7 | 19,5–28,1 | 22,1–32,6 |
+| Hull C, 8 Ziele | 44,8–56,6 | 73,1–83,4 | 77,7–85,0 | 83,8–84,8 |
+
+**Abnahme:**
+- [x] Goldens RAFT gap 1: `crosswise` 12 von 12 mit gedrehten 2ern, `lengthwise` wie ohne Lücken; 3 Ziele mit gap 2
+- [x] Jede Stufe einzeln, Lücken stufenweise, Drehung bleibt erhalten
+- [x] Racks und Warteschlange wie `none` für gap 1 und 2, Plan und Re-plan
+- [x] Geladene Kiste zählt als Lücke; Hull A nur mit Lücke, wenn sie passt
+- [x] Sync: Rest mit Abstand, enger, Lücke zuletzt, gedreht vor Lücke, Wachsen in die Lücke, Ende zuerst auch bei gap 0
+- [x] Formate und Editor: Roundtrip, alte Schemas, ungültige Werte, Box inaktiv ohne Grouping
+- [ ] Martin: Gate am Aufzug, zusammen mit K9.2 (Lücken im RAFT, gedrehte Kisten, Sync in einen Plan mit Lücken)
+- [ ] Martin: Editor-Zeile „Layout“ ansehen und entscheiden (nur als Build geprüft, nicht im laufenden Programm)
 
 ### [ ] K9.3 Doku und Merge
 
