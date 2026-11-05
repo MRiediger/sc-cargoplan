@@ -28,6 +28,32 @@ public sealed record LoadPlan(
     /// </summary>
     public IReadOnlyList<string> Route => [.. Crates.GroupBy(c => c.Destination).Select(g => g.Key)];
 
+    /// <summary>
+    /// The legend's order (B6, D69): missions in the order they first appear along <see cref="Route"/>, on a tie in
+    /// <paramref name="missionOrder"/>, a mission's destinations in route order.
+    /// </summary>
+    /// <param name="missionOrder">The ids of the plan's missions as listed; empty for a plan without missions.</param>
+    public IReadOnlyList<LegendMission> LegendMissions(IReadOnlyList<int> missionOrder)
+    {
+        var rank = Route.Select((destination, index) => (destination, index)).ToDictionary(r => r.destination, r => r.index);
+        var listed = missionOrder.Select((id, index) => (id, index)).ToDictionary(m => m.id, m => m.index);
+        return
+        [
+            .. Crates.GroupBy(c => c.Mission)
+                .OrderBy(m => m.Min(c => rank[c.Destination]))
+                .ThenBy(m => listed.GetValueOrDefault(m.Key))
+                .Select(m => new LegendMission(m.Key, [.. m], [.. m.GroupBy(c => c.Destination).OrderBy(d => rank[d.Key]).Select(d => new LegendLine(d.Key, [.. d]))])),
+        ];
+    }
+
+    /// <summary>
+    /// The destinations as the legend shows them, top to bottom, each at its first line: the order the player sees at the
+    /// elevator, which is not always <see cref="Route"/>: a mission brings all its destinations along.
+    /// </summary>
+    /// <param name="missionOrder">See <see cref="LegendMissions"/>.</param>
+    public IReadOnlyList<string> LegendDestinations(IReadOnlyList<int> missionOrder) =>
+        [.. LegendMissions(missionOrder).SelectMany(m => m.Lines).Select(l => l.Destination).Distinct()];
+
     public IReadOnlyList<Crate> CratesForRack(string rackId) =>
         [.. Crates.Where(c => c.RackId == rackId)];
 
