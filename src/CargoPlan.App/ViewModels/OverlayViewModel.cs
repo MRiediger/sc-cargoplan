@@ -372,6 +372,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             Scene = scene;
             OnPropertyChanged(nameof(Saved));
             SetNotice(NoticeSource.CrateCap, value is { CratesCapped: true } ? value.CrateCap.Notice : null);
+            SetNotice(NoticeSource.Sections, value?.Plan.Warnings.Where(SectionNotes.IsNote).Select(w => w.Message).ToArray() is { Length: > 0 } notes ? string.Join(" · ", notes) : null);
             OnPropertyChanged(nameof(Plan));
             OnPropertyChanged(nameof(Missions));
             OnPropertyChanged(nameof(Watermark));

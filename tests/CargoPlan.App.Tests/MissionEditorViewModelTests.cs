@@ -749,6 +749,132 @@ public sealed class MissionEditorViewModelTests : IDisposable
             new FillRowsChoice(FillRows.Crosswise, "Crosswise"));
     }
 
+    // --- Grouping (D89): the fill order's rules ---
+
+    private string MissionFileWith(PlanGrouping grouping)
+    {
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, $"{grouping}.json");
+        using var stream = File.Create(path);
+        MissionFileWriter.Write(stream, TestPlans.SplitAndShared().Stops, FillOrder.BowFirst, FillRows.Lengthwise, grouping);
+        return path;
+    }
+
+    [Fact]
+    public void Without_a_plan_there_is_no_grouping()
+    {
+        new MissionEditorViewModel(EmptyOverlay()).Grouping.Should().Be(PlanGrouping.None);
+    }
+
+    [Fact]
+    public void The_editor_starts_with_the_grouping_of_the_current_plan()
+    {
+        var overlay = EmptyOverlay();
+        var planned = TestPlans.SplitAndShared();
+        overlay.ShowPlan(SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(overlay.Ship, planned.Stops.ToStops(), FillOrder.BowFirst, FillRows.Lengthwise, PlanGrouping.ByDestination), CrateCap.Of(overlay.Ship)));
+
+        new MissionEditorViewModel(overlay).Grouping.Should().Be(PlanGrouping.ByDestination);
+    }
+
+    [Fact]
+    public void Plan_uses_the_chosen_grouping()
+    {
+        var overlay = EmptyOverlay();
+        var editor = FourRows(overlay);
+
+        editor.Grouping = PlanGrouping.ByDestination;
+        editor.PlanCommand.Execute(null);
+
+        overlay.Plan!.Grouping.Should().Be(PlanGrouping.ByDestination);
+    }
+
+    [Fact]
+    public void Changing_the_grouping_marks_unplanned_changes_and_leaves_the_overlay_plan_until_Plan()
+    {
+        var overlay = OverlayWithPlan();
+        var plan = overlay.Plan;
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.Grouping = PlanGrouping.ByDestination;
+
+        editor.IsDirty.Should().BeTrue();
+        editor.Title.Should().Be(MissionEditorViewModel.UnplannedTitleText);
+        overlay.Plan.Should().BeSameAs(plan);
+    }
+
+    [Fact]
+    public void Clear_rows_keeps_the_grouping()
+    {
+        var editor = FourRows(EmptyOverlay());
+        editor.Grouping = PlanGrouping.ByDestination;
+
+        editor.ClearRowsCommand.Execute(null);
+
+        editor.Grouping.Should().Be(PlanGrouping.ByDestination);
+    }
+
+    [Fact]
+    public void Import_of_a_file_with_a_grouping_sets_it_and_one_without_keeps_the_editors()
+    {
+        var editor = FourRows(EmptyOverlay());
+
+        editor.Import(MissionFileWith(PlanGrouping.ByDestination));
+        editor.Grouping.Should().Be(PlanGrouping.ByDestination);
+
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, "schema3.json");
+        File.WriteAllText(path, """
+            { "schemaVersion": 3, "fillOrder": "bowFirst", "stops": [ { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 4, "maxCrateSize": 4 } ] } ] }
+            """);
+        editor.Import(path);
+
+        editor.Problem.Should().BeNull();
+        editor.Grouping.Should().Be(PlanGrouping.ByDestination);
+    }
+
+    [Theory]
+    [InlineData(PlanGrouping.None, "none")]
+    [InlineData(PlanGrouping.ByDestination, "byDestination")]
+    public void Export_writes_the_grouping_of_the_draft(PlanGrouping grouping, string expected)
+    {
+        var path = Path.Combine(_folder, "missions.json");
+        var editor = FourRows(OverlayWithPlan());
+        editor.Grouping = grouping;
+
+        editor.Export(path);
+
+        MissionFileReader.Read(path).Grouping.Should().Be(grouping);
+        File.ReadAllText(path).Should().Contain($"\"grouping\": \"{expected}\"");
+    }
+
+    [Fact]
+    public void The_grouping_choices_are_none_and_by_destination()
+    {
+        MissionEditorViewModel.GroupingChoices.Should().Equal(
+            new GroupingChoice(PlanGrouping.None, "None"),
+            new GroupingChoice(PlanGrouping.ByDestination, "By destination"));
+    }
+
+    /// <summary>Seventeen destinations on the Hull A's four racks: one rack takes five, one more than its four rows.</summary>
+    private static SavedPlan Sharing(OverlayViewModel overlay)
+    {
+        MissionStop[] stops = [.. Enumerable.Range(1, 17).Select(i => new MissionStop($"Stop {i}", i, [new MissionItem("Titanium", 1, CrateSize.One)]))];
+        return SavedPlan.FromStops(stops, LoadPlanner.Plan(overlay.Ship, stops.ToStops(), FillOrder.BowFirst, FillRows.Lengthwise, PlanGrouping.ByDestination), CrateCap.Of(overlay.Ship));
+    }
+
+    [Fact]
+    public void A_shared_section_shows_as_a_notice_and_goes_with_the_plan()
+    {
+        var overlay = EmptyOverlay();
+
+        overlay.ShowPlan(Sharing(overlay));
+        overlay.Notices.Should().Contain(n => n.Contains(" shares a section with ", StringComparison.Ordinal));
+
+        var planned = TestPlans.SplitAndShared();
+        overlay.ShowPlan(SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(overlay.Ship, planned.Stops.ToStops()), CrateCap.Of(overlay.Ship)));
+        overlay.Notices.Should().NotContain(n => n.Contains(" shares a section with ", StringComparison.Ordinal));
+    }
+
     // --- Import, export, text ---
 
     [Fact]

@@ -40,6 +40,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     // A field of its own, not the property's: the constructor sets the start value without marking a change.
     private FillOrder _fillOrder;
     private FillRows _fillRows;
+    private PlanGrouping _grouping;
 
     // "Sync from ContractTracker": the overlay's sync, the same read the watcher runs (T5.4); null without one.
     private readonly Func<Task>? _syncFromContractTracker;
@@ -61,6 +62,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         _syncFromContractTracker = syncFromContractTracker;
         _fillOrder = overlay.Plan?.FillOrder ?? FillOrder.BowFirst;
         _fillRows = overlay.Plan?.FillRows ?? FillRows.Lengthwise;
+        _grouping = overlay.Plan?.Grouping ?? PlanGrouping.None;
         _missions = overlay.Missions;
         _shipId = overlay.Ship.Id;
         Rows = [.. RowsOf(overlay)];
@@ -142,6 +144,25 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         set
         {
             if (SetProperty(ref _fillRows, value))
+            {
+                Edited();
+            }
+        }
+    }
+
+    public static IReadOnlyList<GroupingChoice> GroupingChoices { get; } =
+    [
+        new(PlanGrouping.None, "None"),
+        new(PlanGrouping.ByDestination, "By destination"),
+    ];
+
+    /// <summary>Whether Plan keeps each destination as a block in a rack it shares (D89), for the next <see cref="PlanCommand"/>; a draft by the rules of <see cref="FillOrder"/>.</summary>
+    public PlanGrouping Grouping
+    {
+        get => _grouping;
+        set
+        {
+            if (SetProperty(ref _grouping, value))
             {
                 Edited();
             }
@@ -236,6 +257,11 @@ public sealed partial class MissionEditorViewModel : ObservableObject
             {
                 FillRows = fillRows;
             }
+
+            if (file.Grouping is { } grouping)
+            {
+                Grouping = grouping;
+            }
         }
         catch (MissionFormatException ex)
         {
@@ -257,7 +283,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
         try
         {
-            AtomicFile.Write(path, stream => MissionFileWriter.Write(stream, _result.Stops, FillOrder, FillRows));
+            AtomicFile.Write(path, stream => MissionFileWriter.Write(stream, _result.Stops, FillOrder, FillRows, Grouping));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -329,7 +355,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         try
         {
             var current = _overlay.Saved ?? new SavedPlan([], new LoadPlan(_overlay.Ship.Id, [], []), CrateCap.Of(_overlay.Ship));
-            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, _overlay.Watermark, FillRows);
+            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, _overlay.Watermark, FillRows, Grouping);
             ChangeOverlay(() => _overlay.ShowPlan(saved));
             _overlay.SetNotice(NoticeSource.Move, cleared.Count == 0 ? null : string.Join(" · ", cleared));
             IsDirty = false;
