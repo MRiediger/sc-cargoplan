@@ -2,11 +2,22 @@ namespace CargoPlan.Core.Models;
 
 /// <summary>
 /// The result of planning: every crate with its rack and position (D24), the planner's hints, the fill order and row axis
-/// (D88) that lay out crates moved later, and whether Plan and Re-plan keep destinations in sections (D89).
+/// (D88) that lay out crates moved later, and whether Plan and Re-plan keep destinations in sections, with how many empty
+/// rows between them (D89).
 /// </summary>
 public sealed record LoadPlan(
-    string ShipId, IReadOnlyList<Crate> Crates, IReadOnlyList<PlanWarning> Warnings, FillOrder FillOrder = FillOrder.BowFirst, FillRows FillRows = FillRows.Lengthwise, PlanGrouping Grouping = PlanGrouping.None)
+    string ShipId, IReadOnlyList<Crate> Crates, IReadOnlyList<PlanWarning> Warnings, FillOrder FillOrder = FillOrder.BowFirst, FillRows FillRows = FillRows.Lengthwise, PlanGrouping Grouping = PlanGrouping.None, int SectionGap = 0)
 {
+    /// <summary>The most empty rows a plan asks for between sections (D89).</summary>
+    public const int MaxSectionGap = 2;
+
+    // Checked in the initializer (constructor) and in init (`with`), as Crate.Rotated.
+    public int SectionGap { get; init => field = CheckedGap(value); } = CheckedGap(SectionGap);
+
+    /// <exception cref="ArgumentException">Not 0, 1 or 2.</exception>
+    public static int CheckedGap(int gap) =>
+        gap is >= 0 and <= MaxSectionGap ? gap : throw new ArgumentException(FormattableString.Invariant($"sectionGap {gap} is unknown, use 0, 1 or 2."), nameof(SectionGap));
+
     /// <summary>
     /// The crates grouped by rack, destination, commodity, crate size and delivered state, in order of first appearance:
     /// what hints, legend and text renderer work on (D24). Derived on every read, not stored: a <c>with</c> on

@@ -20,29 +20,32 @@ public class FillOrderTimingTests(ITestOutputHelper output)
     [Fact]
     public void Plan_of_each_case_in_each_order()
     {
-        output.WriteLine("| Case | order | rows | grouping | first ms | median ms | nodes | layout steps | gave up |");
+        output.WriteLine("| Case | order | rows | grouping | gap | first ms | median ms | nodes | layout steps | gave up |");
         foreach (var (name, ship, missions, route) in Cases())
         {
-            foreach (var grouping in Enum.GetValues<PlanGrouping>())
+            foreach (var (grouping, gap) in Settings)
             {
                 foreach (var rows in Enum.GetValues<FillRows>())
                 {
                     foreach (var order in Enum.GetValues<FillOrder>())
                     {
                         var watch = Stopwatch.StartNew();
-                        var plan = LoadPlanner.Plan(ship, missions, route, order, 0, rows, grouping).Plan;
+                        var plan = LoadPlanner.Plan(ship, missions, route, order, 0, rows, grouping, gap).Plan;
                         var first = watch.Elapsed.TotalMilliseconds;
-                        var median = Median(() => LoadPlanner.Plan(ship, missions, route, order, 0, rows, grouping));
+                        var median = Median(() => LoadPlanner.Plan(ship, missions, route, order, 0, rows, grouping, gap));
 
                         var (nodes, steps, gaveUp) = Counts(ship, missions, route, order, rows);
                         var unchecked_ = plan.Warnings.Count(w => w.Message.Contains("too many crates to rearrange", StringComparison.Ordinal));
                         output.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                            $"| {name} | {order} | {rows} | {grouping} | {first:F1} | {median:F1} | {nodes} | {steps} | {gaveUp + unchecked_} |"));
+                            $"| {name} | {order} | {rows} | {grouping} | {gap} | {first:F1} | {median:F1} | {nodes} | {steps} | {gaveUp + unchecked_} |"));
                     }
                 }
             }
         }
     }
+
+    private static readonly (PlanGrouping Grouping, int Gap)[] Settings =
+        [(PlanGrouping.None, 0), (PlanGrouping.ByDestination, 0), (PlanGrouping.ByDestination, 1), (PlanGrouping.ByDestination, 2)];
 
     /// <summary>Martin's RAFT plan in every cell order as cells, for the eye: width 7 on top, length 0 on the left, the bow to the right.</summary>
     [Fact]
@@ -50,14 +53,14 @@ public class FillOrderTimingTests(ITestOutputHelper output)
     {
         var (_, ship, missions, route) = Cases()[0];
         var rack = ship.Racks[0];
-        foreach (var grouping in Enum.GetValues<PlanGrouping>())
+        foreach (var (grouping, gap) in Settings)
         {
             foreach (var rows in Enum.GetValues<FillRows>())
             {
                 foreach (var order in Enum.GetValues<FillOrder>())
                 {
-                    var plan = LoadPlanner.Plan(ship, missions, route, order, 0, rows, grouping).Plan;
-                    output.WriteLine($"{order}, {rows}, {grouping}");
+                    var plan = LoadPlanner.Plan(ship, missions, route, order, 0, rows, grouping, gap).Plan;
+                    output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{order}, {rows}, {grouping}, gap {gap}"));
                     for (var stack = 0; stack < rack.Grid.Stack; stack++)
                     {
                         output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  layer {stack}"));

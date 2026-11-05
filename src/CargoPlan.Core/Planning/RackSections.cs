@@ -5,7 +5,7 @@ namespace CargoPlan.Core.Planning;
 
 /// <summary>
 /// The planner's sections (D89): in a rack holding more than one destination, each destination's crates as a block of
-/// whole rows, in the legend's order. Runs after the planner has decided who waits and which crate goes into which rack,
+/// whole rows, in the legend's order, with the plan's empty rows between them where they fit. Runs after the planner has decided who waits and which crate goes into which rack,
 /// so it never changes either: capacity comes first. It moves planned crates only, within their rack; loaded crates are
 /// obstacles, delivered and off-ship crates take no room and stay as they are (D24, K2.2). A section is
 /// <see cref="CrateLayout.Lay"/> with every cell outside its rows taken: no packer of its own.
@@ -155,19 +155,27 @@ internal static class RackSections
         public (IReadOnlyList<(int Index, Pose Pose)>? Poses, IReadOnlyList<PlanWarning> Notes, bool GaveUp) Run(List<Section> sections)
         {
             List<PlanWarning> notes = [];
+            var gap = plan.SectionGap;
 
             // D71: a crate lies unturned where it can, so turned only what no row of this rack takes otherwise.
             _turned.UnionWith(sections.Where(s => Laid(s, _axis.Rows, loaded, turn: false) is null).SelectMany(s => s.Destinations));
             var alone = sections.Count == 1;
             while (true)
             {
-                if (Attempt(sections) is { } done)
+                if (Attempt(sections, gap) is { } done)
                 {
                     return (done.Poses, notes, done.GaveUp);
                 }
 
                 if (TurnOneMore(sections))
                 {
+                    continue;
+                }
+
+                // Gaps go before anyone shares and after turning (Martin: grip before handle); the turns stay. No note: the picture says it.
+                if (gap > 0)
+                {
+                    gap--;
                     continue;
                 }
 
@@ -186,8 +194,12 @@ internal static class RackSections
             }
         }
 
-        /// <summary>Every section at its smallest size from the first free row on; null if one finds no room.</summary>
-        private (IReadOnlyList<(int Index, Pose Pose)> Poses, bool GaveUp)? Attempt(IReadOnlyList<Section> sections)
+        /// <summary>
+        /// Every section at its smallest size from the first free row on, <paramref name="gap"/> rows on from the last; null if
+        /// one finds no room. A row with loaded cargo behind a section counts as its gap like any other (Martin): no row on
+        /// top of it, or a loaded crate would push the sections behind it back.
+        /// </summary>
+        private (IReadOnlyList<(int Index, Pose Pose)> Poses, bool GaveUp)? Attempt(IReadOnlyList<Section> sections, int gap)
         {
             List<Crate> occupied = [.. loaded];
             List<(int, Pose)> poses = [];
@@ -200,7 +212,7 @@ internal static class RackSections
                     return null;
                 }
 
-                cursor += found.Count;
+                cursor += found.Count + gap;
                 gaveUp |= found.Laying.GaveUp;
                 poses.AddRange(section.Crates.Zip(found.Laying.Poses));
                 occupied.AddRange(section.Crates.Zip(found.Laying.Poses).Select(p => crates[p.First] with { Position = p.Second.Position, Rotated = p.Second.Rotated }));
