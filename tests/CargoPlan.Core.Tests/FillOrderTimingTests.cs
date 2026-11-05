@@ -20,34 +20,37 @@ public class FillOrderTimingTests(ITestOutputHelper output)
     [Fact]
     public void Plan_of_each_case_in_each_order()
     {
-        output.WriteLine("| Case | order | first ms | median ms | nodes | layout steps | gave up |");
+        output.WriteLine("| Case | order | rows | first ms | median ms | nodes | layout steps | gave up |");
         foreach (var (name, ship, missions, route) in Cases())
         {
-            foreach (var order in new[] { FillOrder.BowFirst, FillOrder.SternFirst })
+            foreach (var rows in Enum.GetValues<FillRows>())
             {
-                var watch = Stopwatch.StartNew();
-                LoadPlanner.Plan(ship, missions, route, order);
-                var first = watch.Elapsed.TotalMilliseconds;
-                var median = Median(() => LoadPlanner.Plan(ship, missions, route, order));
+                foreach (var order in Enum.GetValues<FillOrder>())
+                {
+                    var watch = Stopwatch.StartNew();
+                    LoadPlanner.Plan(ship, missions, route, order, fillRows: rows);
+                    var first = watch.Elapsed.TotalMilliseconds;
+                    var median = Median(() => LoadPlanner.Plan(ship, missions, route, order, fillRows: rows));
 
-                var (nodes, steps, gaveUp) = Counts(ship, missions, route, order);
-                output.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                    $"| {name} | {order} | {first:F1} | {median:F1} | {nodes} | {steps} | {gaveUp} |"));
+                    var (nodes, steps, gaveUp) = Counts(ship, missions, route, order, rows);
+                    output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                        $"| {name} | {order} | {rows} | {first:F1} | {median:F1} | {nodes} | {steps} | {gaveUp} |"));
+                }
             }
         }
     }
 
-    private static (long Nodes, long Steps, int GaveUp) Counts(Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> route, FillOrder order)
+    private static (long Nodes, long Steps, int GaveUp) Counts(Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> route, FillOrder order, FillRows rows)
     {
         var cap = CrateCap.Of(ship);
         var items = missions.SelectMany(m => m.Stops).GroupBy(s => s.Destination).ToDictionary(g => g.Key, g => g.SelectMany(s => s.Items).ToArray());
         Stop[] stops = [.. route.Select((destination, index) => new MissionStop(destination, index + 1, items[destination]).ToStop(cap))];
-        var result = RackAssignment.Assign([.. ship.Racks.OrderBy(r => r.Index)], stops, order);
+        var result = RackAssignment.Assign([.. ship.Racks.OrderBy(r => r.Index)], stops, order, rows);
         long steps = 0;
         var gaveUp = 0;
         foreach (var load in result?.Racks ?? [])
         {
-            var laying = CrateLayout.Lay(load.Rack, [], [.. load.Crates.Select(c => (c.Piece.Size, stops[c.Piece.Stop].Destination))], order)!;
+            var laying = CrateLayout.Lay(load.Rack, [], [.. load.Crates.Select(c => (c.Piece.Size, stops[c.Piece.Stop].Destination))], order, rows)!;
             steps += laying.Steps;
             gaveUp += laying.GaveUp ? 1 : 0;
         }

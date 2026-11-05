@@ -103,12 +103,12 @@ public class ReplanTimingTests(ITestOutputHelper output)
         {
             Rack[] racks = [.. ship.Racks.OrderBy(r => r.Index)];
             Stop[] input = [.. stops.ToStops(CrateCap.Of(ship)).OrderBy(s => s.Order)];
-            var result = RackAssignment.Assign(racks, input, FillOrder.BowFirst);
+            var result = RackAssignment.Assign(racks, input, FillOrder.BowFirst, FillRows.Lengthwise);
             long steps = 0;
             var gaveUp = 0;
             foreach (var load in result?.Racks ?? [])
             {
-                var laying = CrateLayout.Lay(load.Rack, [], [.. load.Crates.Select(c => (c.Piece.Size, input[c.Piece.Stop].Destination))], FillOrder.BowFirst)!;
+                var laying = CrateLayout.Lay(load.Rack, [], [.. load.Crates.Select(c => (c.Piece.Size, input[c.Piece.Stop].Destination))], FillOrder.BowFirst, FillRows.Lengthwise)!;
                 steps += laying.Steps;
                 gaveUp += laying.GaveUp ? 1 : 0;
             }

@@ -534,12 +534,12 @@ internal static class MoveResolution
             return taken;
         }
 
-        public int[,,] Ranks(Rack rack) => _ranks.TryGetValue(rack, out var rank) ? rank : _ranks[rack] = CrateLayout.Ranks(rack, _plan.FillOrder);
+        public int[,,] Ranks(Rack rack) => _ranks.TryGetValue(rack, out var rank) ? rank : _ranks[rack] = CrateLayout.Ranks(rack, _plan.FillOrder, _plan.FillRows);
 
         /// <summary><see cref="CrateLayout.Lay"/> of the crates at <paramref name="crates"/> around <paramref name="occupied"/>, on the move's budget.</summary>
         public CrateLayout.Laying? Lay(Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<int> crates)
         {
-            var laid = CrateLayout.Lay(rack, occupied, [.. crates.Select(i => (Original(i).CrateSize, Original(i).Destination))], _plan.FillOrder, _budget.For(rack));
+            var laid = CrateLayout.Lay(rack, occupied, [.. crates.Select(i => (Original(i).CrateSize, Original(i).Destination))], _plan.FillOrder, _plan.FillRows, _budget.For(rack));
             if (laid is not null)
             {
                 _budget.Spend(rack, laid);

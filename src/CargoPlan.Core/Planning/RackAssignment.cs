@@ -34,7 +34,7 @@ internal static class RackAssignment
 
     /// <summary>The assignment, or null if no assignment lays out (or none was found within <see cref="MaxSearchNodes"/>).</summary>
     /// <param name="racks">In rack order.</param>
-    internal static Result? Assign(Rack[] racks, IReadOnlyList<Stop> stops, FillOrder order) => new Search(racks, stops, order).Run();
+    internal static Result? Assign(Rack[] racks, IReadOnlyList<Stop> stops, FillOrder order, FillRows rows) => new Search(racks, stops, order, rows).Run();
 
     private sealed record Group(CrateSize Size, int Count, (int Item, int Count)[] Items);
 
@@ -62,6 +62,7 @@ internal static class RackAssignment
         private readonly Rack[] _racks;
         private readonly IReadOnlyList<Stop> _stops;
         private readonly FillOrder _order;
+        private readonly FillRows _rows;
         private readonly Dest[] _dests;
         private readonly int[] _scuFrom;
         private readonly int[][] _twinsBefore;
@@ -95,9 +96,9 @@ internal static class RackAssignment
         private readonly Dictionary<string, bool> _fits = [];
         private readonly Dictionary<string, CrateLayout.Laying> _layings = [];
 
-        public Search(Rack[] racks, IReadOnlyList<Stop> stops, FillOrder order)
+        public Search(Rack[] racks, IReadOnlyList<Stop> stops, FillOrder order, FillRows rows)
         {
-            (_racks, _stops, _order) = (racks, stops, order);
+            (_racks, _stops, _order, _rows) = (racks, stops, order, rows);
             var global = 0;
             _dests =
             [
@@ -117,6 +118,8 @@ internal static class RackAssignment
                 .. racks.Select((rack, r) => racks.Take(r)
                     .Select((other, o) => (other, o))
                     .Where(p => p.other.Grid == rack.Grid && p.other.MaxCrateSize == rack.MaxCrateSize && p.other.MinCrateSize == rack.MinCrateSize && p.other.CapacityScu == rack.CapacityScu)
+                    // Crosswise a rack stacking along y keeps its rows (D88), so it isn't alike one that doesn't.
+                    .Where(p => rows == FillRows.Lengthwise || p.other.StacksSideways == rack.StacksSideways)
                     .Select(p => p.o)
                     .ToArray()),
             ];
@@ -509,7 +512,7 @@ internal static class RackAssignment
             var key = $"{_twinsBefore[r].DefaultIfEmpty(r).Min()}:{string.Join(",", sizes.Select(s => (int)s))}";
             if (!_fits.TryGetValue(key, out var fits))
             {
-                var space = CrateLayout.RackSpace.Around(_racks[r], [], _order);
+                var space = CrateLayout.RackSpace.Around(_racks[r], [], _order, _rows);
                 fits = sizes.All(s => space.Add(s) is not null);
                 _fits[key] = fits;
             }
@@ -534,7 +537,7 @@ internal static class RackAssignment
             if (!_layings.TryGetValue(key, out var laying))
             {
                 // The search checked that the crates fit, and Lay lays them the same way first.
-                laying = CrateLayout.Lay(_racks[r], [], [.. ordered.Select(p => (p.Size, _dests[p.Entry.Dest].Name))], _order, _budget.For(_racks[r]))!;
+                laying = CrateLayout.Lay(_racks[r], [], [.. ordered.Select(p => (p.Size, _dests[p.Entry.Dest].Name))], _order, _rows, _budget.For(_racks[r]))!;
                 _budget.Spend(_racks[r], laying);
                 _layings[key] = laying;
             }

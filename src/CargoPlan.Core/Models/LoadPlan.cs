@@ -1,11 +1,11 @@
 namespace CargoPlan.Core.Models;
 
 /// <summary>
-/// The result of planning: every crate with its rack and position (D24), the planner's hints, and the fill order that
-/// lays out crates moved later.
+/// The result of planning: every crate with its rack and position (D24), the planner's hints, and the fill order and row
+/// axis (D88) that lay out crates moved later.
 /// </summary>
 public sealed record LoadPlan(
-    string ShipId, IReadOnlyList<Crate> Crates, IReadOnlyList<PlanWarning> Warnings, FillOrder FillOrder = FillOrder.BowFirst)
+    string ShipId, IReadOnlyList<Crate> Crates, IReadOnlyList<PlanWarning> Warnings, FillOrder FillOrder = FillOrder.BowFirst, FillRows FillRows = FillRows.Lengthwise)
 {
     /// <summary>
     /// The crates grouped by rack, destination, commodity, crate size and delivered state, in order of first appearance:
