@@ -181,7 +181,6 @@ internal static class RackSections
 
             // D71: a crate lies unturned where it can, so turned only what no row of this rack takes otherwise.
             _turned.UnionWith(sections.Where(s => Laid(s, _axis.Rows, loaded, turn: false) is null).SelectMany(s => s.Destinations));
-            var alone = sections.Count == 1;
             while (true)
             {
                 if (Attempt(sections, gap) is { } done)
@@ -201,17 +200,16 @@ internal static class RackSections
                     continue;
                 }
 
+                // All in one section is no section: the rack as the planner laid it, and nobody shares anything then.
                 if (sections.Count == 1)
                 {
-                    return (null, notes, false);
+                    return (null, [SectionNotes.NoSections(rack)], false);
                 }
 
                 notes.Add(Merge(sections));
-
-                // All in one section is no section: the rack as the planner laid it.
-                if (sections.Count == 1 && !alone)
+                if (sections.Count == 1)
                 {
-                    return (null, notes, false);
+                    return (null, [SectionNotes.NoSections(rack)], false);
                 }
             }
         }
@@ -338,6 +336,7 @@ public static class SectionNotes
     private const string SharesText = " shares a section with ";
     private const string OutsideText = " placed outside sections (capacity)";
     private const string NoFreeText = ": no free section – Re-plan";
+    private const string NoSectionsText = "sections don't fit – laid as with None";
 
     internal static PlanWarning Shares(Rack rack, string destination, string other) => new(rack.Id, Prefix(rack) + destination + SharesText + other);
 
@@ -345,10 +344,13 @@ public static class SectionNotes
 
     internal static PlanWarning NoFreeSection(Rack rack, string destination) => new(rack.Id, Prefix(rack) + destination + NoFreeText);
 
+    /// <summary>A rack that got no sections (D89, Martin: whoever turned them on should read why they aren't there).</summary>
+    internal static PlanWarning NoSections(Rack rack) => new(rack.Id, Prefix(rack) + NoSectionsText);
+
     /// <summary>True if <paramref name="warning"/> is one of these notes, for the overlay's line.</summary>
     public static bool IsNote(PlanWarning warning) => Names(warning) is not null;
 
-    /// <summary>The destinations a note names; null if it is none of these notes.</summary>
+    /// <summary>The destinations a note names, none for a rack's own; null if it is none of these notes.</summary>
     internal static IReadOnlyList<string>? Names(PlanWarning warning)
     {
         var start = warning.Message.IndexOf(": ", StringComparison.Ordinal);
@@ -358,6 +360,11 @@ public static class SectionNotes
         }
 
         var text = warning.Message[(start + 2)..];
+        if (text == NoSectionsText)
+        {
+            return [];
+        }
+
         if (text.EndsWith(OutsideText, StringComparison.Ordinal))
         {
             return [text[..^OutsideText.Length]];

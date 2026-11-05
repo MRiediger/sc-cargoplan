@@ -227,7 +227,7 @@ public class RackSectionsTests
     }
 
     [Fact]
-    public void All_in_one_section_is_the_rack_as_planned_with_the_note()
+    public void All_in_one_section_is_the_rack_as_planned_and_says_so()
     {
         // Two 4s on a 2 × 2 × 2 rack: one has to lie on the other, there are no sections to speak of.
         var ship = OneRack(2, 2, 2);
@@ -236,7 +236,57 @@ public class RackSectionsTests
         var plan = LoadPlanner.Plan(ship, stops, FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination);
 
         plan.Crates.Select(c => c.Position).Should().Equal(LoadPlanner.Plan(ship, stops, FillOrder.BowFirst, FillRows.Crosswise).Crates.Select(c => c.Position));
-        Notes(plan).Should().Equal("Rack 1: B shares a section with A");
+        Notes(plan).Should().Equal("Rack 1: sections don't fit – laid as with None");
+    }
+
+    [Fact]
+    public void Several_rounds_of_sharing_that_end_in_one_section_leave_only_that_note()
+    {
+        // Three 4s on a 2 × 2 × 3 rack: each takes both rows, whoever shares.
+        Rack rack = new("rack-0", 0, 12, new Dimensions(2, 2, 3), null, new ShipPoint(0, 0, 0));
+        Ship ship = new("flat", "Flat", 12, [rack]);
+
+        var plan = LoadPlanner.Plan(ship, [StopOf("A", 1, ("Ice", 4, CrateSize.Four)), StopOf("B", 2, ("Food", 4, CrateSize.Four)), StopOf("C", 3, ("Gold", 4, CrateSize.Four))],
+            FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination);
+
+        Notes(plan).Should().Equal("Rack 1: sections don't fit – laid as with None");
+    }
+
+    [Fact]
+    public void One_destination_around_loaded_cargo_lies_in_the_rows_left_without_a_note()
+    {
+        var ship = OneRack(2, 2, 1);
+        Mission[] missions =
+        [
+            new(1, [new MissionStop("A", 1, [new MissionItem("Ice", 2, CrateSize.Two)])]),
+            new(2, [new MissionStop("B", 1, [new MissionItem("Food", 2, CrateSize.Two)])]),
+        ];
+        var plain = LoadPlanner.Plan(ship, missions, ["A", "B"], FillOrder.BowFirst, 0, FillRows.Crosswise);
+        var mission = plain.Plan.Crates.First(c => c.Destination == "A").Mission;
+        SavedPlan loaded = new(plain.Missions, LoadPlanner.SetLoaded(plain.Plan, ship, "A", mission, true) with { Grouping = PlanGrouping.ByDestination }, plain.CrateCap);
+
+        var replanned = LoadPlanner.Replan(loaded, ship);
+
+        replanned.Plan.Crates.Where(c => c.Loaded).Should().BeEquivalentTo(loaded.Plan.Crates.Where(c => c.Loaded));
+        CrateLayout.Problems(ship.Racks[0], replanned.Plan.Crates).Should().BeEmpty();
+        Notes(replanned.Plan).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void The_note_about_no_sections_goes_with_the_next_plan()
+    {
+        var ship = OneRack(2, 2, 2);
+        Mission[] missions =
+        [
+            new(1, [new MissionStop("A", 1, [new MissionItem("Ice", 4, CrateSize.Four)])]),
+            new(2, [new MissionStop("B", 1, [new MissionItem("Food", 4, CrateSize.Four)])]),
+        ];
+        var saved = LoadPlanner.Plan(ship, missions, ["A", "B"], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination);
+        Notes(saved.Plan).Should().ContainSingle();
+
+        var planned = LoadPlanner.Plan(ship, [missions[0]], ["A"], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination);
+
+        Notes(planned.Plan).Should().BeEmpty();
     }
 
     [Fact]

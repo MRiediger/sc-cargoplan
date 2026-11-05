@@ -177,7 +177,7 @@ public class SectionGapTests
         var plan = Crosswise(ship, 1, stops);
 
         plan.Crates.Select(c => c.Position).Should().Equal(LoadPlanner.Plan(ship, stops, FillOrder.BowFirst, FillRows.Crosswise).Crates.Select(c => c.Position));
-        Notes(plan).Should().Equal("Rack 1: B shares a section with A");
+        Notes(plan).Should().Equal("Rack 1: sections don't fit – laid as with None");
     }
 
     // --- Around it ---

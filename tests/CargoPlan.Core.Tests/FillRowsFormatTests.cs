@@ -183,6 +183,21 @@ public class FillRowsFormatTests
         read.Plan.Warnings.Where(SectionNotes.IsNote).Select(w => w.Message).Should().Equal("Rack 1: C shares a section with B");
     }
 
+    [Fact]
+    public void The_note_about_no_sections_survives_the_file()
+    {
+        Rack rack = new("rack-0", 0, 8, new Dimensions(2, 2, 2), null, new ShipPoint(0, 0, 0));
+        Ship ship = new("flat", "Flat", 8, [rack]);
+        Mission[] missions =
+        [
+            new(1, [new MissionStop("A", 1, [new MissionItem("Ice", 4, CrateSize.Four)])]),
+            new(2, [new MissionStop("B", 1, [new MissionItem("Food", 4, CrateSize.Four)])]),
+        ];
+        var saved = LoadPlanner.Plan(ship, missions, ["A", "B"], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination);
+
+        Read(Written(saved), ship).Plan.Warnings.Where(SectionNotes.IsNote).Select(w => w.Message).Should().Equal("Rack 1: sections don't fit – laid as with None");
+    }
+
     [Theory]
     [InlineData(PlanGrouping.None, "none")]
     [InlineData(PlanGrouping.ByDestination, "byDestination")]
