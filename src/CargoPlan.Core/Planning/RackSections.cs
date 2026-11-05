@@ -79,6 +79,54 @@ internal static class RackSections
         return LoadPlanner.WithHints(plan with { Crates = crates, Warnings = [.. plan.Warnings.Where(w => !sectioned.Contains(w.RackId))] }, ship, notes);
     }
 
+    /// <summary>
+    /// The rows a captured stop may take in a rack it shares (D41, D89), each try wider than the last where that makes sense.
+    /// A destination on board: its rows, then those and the empty rows next to them, one at a time, towards the fill end
+    /// first. A new destination: from the first empty row on, as many as the run of empty rows holds, then the next run.
+    /// </summary>
+    /// <param name="onBoard">The crates on board in this rack.</param>
+    internal static IEnumerable<IReadOnlyList<int>> RowsFor(Rack rack, IReadOnlyList<Crate> onBoard, string destination, FillOrder order, FillRows rows)
+    {
+        var axis = RowAxis.Of(rack, order, rows);
+        HashSet<int> taken = [.. onBoard.SelectMany(c => c.Cells).Select(axis.RowOf)];
+        HashSet<int> own = [.. onBoard.Where(c => c.Destination == destination).SelectMany(c => c.Cells).Select(axis.RowOf)];
+        if (own.Count > 0)
+        {
+            int[] places = [.. Enumerable.Range(0, axis.Rows.Count).Where(i => own.Contains(axis.Rows[i]))];
+            var (low, high) = (places[0], places[^1]);
+            yield return [.. axis.Rows.Skip(low).Take(high - low + 1)];
+            while (true)
+            {
+                if (high + 1 < axis.Rows.Count && !taken.Contains(axis.Rows[high + 1]))
+                {
+                    high++;
+                }
+                else if (low > 0 && !taken.Contains(axis.Rows[low - 1]))
+                {
+                    low--;
+                }
+                else
+                {
+                    yield break;
+                }
+
+                yield return [.. axis.Rows.Skip(low).Take(high - low + 1)];
+            }
+        }
+
+        for (var start = 0; start < axis.Rows.Count; start++)
+        {
+            var run = 0;
+            while (start + run < axis.Rows.Count && !taken.Contains(axis.Rows[start + run]))
+            {
+                run++;
+                yield return [.. axis.Rows.Skip(start).Take(run)];
+            }
+
+            start += run;
+        }
+    }
+
     /// <summary>The cells outside <paramref name="free"/>, as crates, for <see cref="CrateLayout.Lay"/> to lay around.</summary>
     internal static IEnumerable<Crate> Outside(Rack rack, RowAxis axis, IReadOnlySet<int> free)
     {
