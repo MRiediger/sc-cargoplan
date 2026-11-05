@@ -716,6 +716,8 @@ PNG, kein Spielername/Org im Bild, Overlay außerhalb des CT-Capture-Bereichs.
 
 **Akzeptanz:** Nexus-Seite online mit dem ZIP des GitHub-Releases (gleiche SHA256), Permissions passend zu MIT, CT-Credit sichtbar.
 
+→ Umgesetzt als T9.3 (Phase 9, D87).
+
 ---
 
 ## Phase 7 – Schiffe vor Nexus (D53)
@@ -3548,7 +3550,75 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
   `feat/k2-plan-editor`, `feat/k3-planner-rules`, `feat/k5-data`, `feat/k6-elevator-flow`, `spike/s8-3d-finding`
   (Martin, 02.11.2026); remote bleiben die Releases `v0.1.0` (Latest) und `holo-v1`
 
-### [ ] T9.3 Nexus → T6.6
+### [ ] T9.3 Nexus-Mods-Seite (= T6.6) – Branch `docs/nexus`
+- Texte und Checkliste versioniert in `docs/nexus/`: `summary.txt`, `description.bbcode`, `checklist.md`,
+  `staff-request.md`; die Beschreibung aus README, `docs/release-notes/v0.1.0.md` und Wiki abgeleitet
+- Upload = exakt das GitHub-Asset `SC-CargoPlan-v0.1.0-win-x64.zip` (gleicher SHA256), Version `0.1.0`
+- D87, `CONTRIBUTING.md` Abschnitt „Release“, README-Link nach dem Launch
+- Martin legt die Seite an (Account, Upload, Klicks); CC trägt URL und Datum nach
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+- Nexus-Regeln gelesen statt angenommen: Netzzugriff nur, wenn „crucial“, der Holo-Download ist optional → vor dem
+  ersten Upload Anfrage an den Nexus-Support (`staff-request.md`), Upload nach Zustimmung oder nach Fristablauf
+  16.11.2026 ohne Antwort (14 Tage statt offenes Warten, D87-Addendum); eine Ablehnung stoppt T9.3, kein
+  Nexus-Sonder-Build.
+- Anfrage, Abschnitt ContractTracker mit Belegen, ohne Wertung des Autors: Direktnachricht an den Autor am 20.10.2026,
+  keine Antwort; Discord-Link auf mods/34 ungültig; optional, read-only auf die lokale Datei, kein Netz; bei Einwand
+  des Autors gehen die CT-Bezüge von der Nexus-Seite. Silhouetten-Absatz nennt die schriftliche Zustimmung von
+  Fleetyards (Torlek, 23.10.2026).
+- Netzzugriff in der Anfrage genau wie im Code: Default-Look Outline, dann kein Request; erst ein Hologramm-Look lädt
+  per GET aus `holo-v1`, danach je Start und Schiffswechsel das Manifest höchstens einmal pro Lauf und nicht, solange
+  das gecachte jünger als 24 h ist; Schalter aus → kein Request. Code-Links auf `fd75313`.
+- `outlines/` im ZIP (aus Renders von CIG-Schiffen, nicht MIT, D55), Befund außerhalb des Auftrags: offengelegt in
+  Anfrage, Beschreibung und Permissions; Asset use „ask/credit“, Martin entscheidet an der Maske.
+- Der CT-Autor wird nicht erneut gefragt; die Beschreibung sagt „only reads its database“.
+- KI-Tags „AI-Generated Content“ und „AI Media“, dazu ein Satz unter Shout outs.
+- Keine Donation Points, kein Text dazu. CT nicht im Requirements-Feld (Nexus kennt kein „optional“).
+- Kategorie Miscellaneous (die einzige für Star Citizen), Tags Utilities for Players, Quality of Life, User Interface.
+- Maske nach Martins Screenshots: fünf Schritte General → Media → Files → Requirements → Permissions, Summary
+  350 Zeichen, Beschreibung als BBCode über den [ ]-Button; `description.bbcode` in den fünf Vorlagen-Blöcken
+  (Description, Installation instructions, Main features, Requirements, Shout outs), kein `[font]`.
+- Checkliste versionsneutral (`$version`), Hash in den Befund statt in die Checkliste; Größenvergleich in Byte, MB und
+  MiB; nach Publish Hash und Größe des Nexus-Downloads.
+- `holo-v1` in der Beschreibung nur als Name, kein Link (Regel gegen Links auf nicht hostbare Dateien).
+- Hero-GIF als Bild 1; abgelehnt oder ohne Bewegung → Einzelbild per ffmpeg nach `docs/nexus/hero.png`.
+- README nach dem Launch: Nexus als Klammerzusatz in Install Schritt 1, GitHub bleibt erste Quelle.
+
+**Befund:**
+- File Submission Guidelines gelesen 02.11.2026 (Stand 27.10.2026). Nexus-Seiten (Wiki, News, Mod-Seiten) antworten
+  Skripten mit 403; Kategorien, Tags und Requirements aus der öffentlichen GraphQL-API (`api.nexusmods.com/v2/graphql`,
+  Star Citizen = Spiel 2246): 34 Mods, alle Miscellaneous; `ModRequirement` hat `notes`, kein Optional-Flag; CT
+  (Mod 34): Autor Yuiki, Uploader uctv. Ein SC-Mod mit KI-Übersetzung trägt bereits „AI-Generated Content“.
+- BBCode-Syntax nur aus einer Sekundärquelle (BUTR/Converter.MarkdownToBBCodeNM); die Vorschau im Editor ist
+  Checklist-Schritt.
+- Asset `SC-CargoPlan-v0.1.0-win-x64.zip`: 64.164.865 Byte (64,2 MB / 61,2 MiB), SHA256
+  `ad8330f9a579a935fb3bba43d3c8291e908b4f882ff71e687560c352f8786a97`. Die „63,6 MB“ aus der Freigabe passen zu keiner
+  der beiden Einheiten.
+- Netzcode: einziger `HttpClient` in `HoloSource.cs:67` (Grep über `src`).
+- Link-Check `description.bbcode` (Skript nach `linkcheck.py`, T9.1, um `[url=…]` erweitert): 13 Links, 0 kaputt,
+  Wiki-Anker gegen die lokale Wiki-Kopie, Nexus-Link im Browser; Negativtest (falscher Anker, tote URL) meldet 2.
+  Code-Links der Anfrage (7) und Guidelines: 200.
+- Quellentreue (Skript: jeder Satz wörtlich in README, Notes oder Wiki?): ohne Quelle nur die Überschriften, die
+  D87-Sätze (Files tab, `.sha256` des GitHub-Release, Source code, Bugs auf GitHub, KI-Satz), der D63-Satz
+  (`decisions.md:714`) und FAQ:11 ohne die Klammer „(see …)“. `summary.txt` = README:5-6, 167 Zeichen.
+- CT-Discord (02.11.2026): die Beschreibung von mods/34 (GraphQL-API, zuletzt geändert 02.06.2026) enthält zweimal
+  `discord.gg/9RNUXAdVn`; Martin im Browser „Ungültig oder abgelaufen“, Discord-API `invites/9RNUXAdVn` → 404
+  „Unknown Invite“ (Code 10006). Read-only belegt: `ContractTrackerReader.cs:108` (`SqliteOpenMode.ReadOnly`), Link
+  auf `fd75313`.
+- Quellen im Repo nennen es anders: `contracttracker-schema.md:7` „asked of the author in the Nexus Discord on
+  2026-10-20 09:26“ (Anfrage sagt neutral „by direct message“); Fleetyards-Zustimmung steht in T7.4b Gate 1 als
+  „Mail von Marten (Fleetyards)“, D63 zitiert Marten mit „Grauzone, keine offizielle Freigabe“. Martin, 02.11.2026:
+  Torlek ist Marten; die Zustimmung gilt der Nutzung aller Inhalte der Fleetyards-API, also auch den Silhouetten
+  (aus den Renders der API, `outlines/NOTICE.md`).
+
+**Akzeptanz:**
+- [x] `docs/nexus/*`, D87, CONTRIBUTING, TASKS; Link-Check 0 kaputt, Negativtest schlägt an
+- [ ] Anfrage an den Nexus-Support gesendet und beantwortet (Datum, Wortlaut) oder Frist 16.11.2026 ohne Antwort
+  abgelaufen
+- [ ] Nexus-Seite online mit dem ZIP des GitHub-Releases (gleicher SHA256 und gleiche Größe des Nexus-Downloads),
+  Permissions passend zu MIT, CT-Credit sichtbar; URL und Datum
+- [ ] README: Nexus als zweite Quelle
+- [ ] `git merge --no-ff` nach `main`
 
 ### [ ] T9.4 Fleetyards-Verlinkung
 

@@ -1,0 +1,1 @@
+A load-plan overlay for Star Citizen haulers: it decides which destination goes into which rack before you load, and shows it in a translucent window next to the game.

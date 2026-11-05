@@ -40,6 +40,10 @@ Run `contracts` against a copy of ContractTracker's `contracts.db`, not the live
 
 It publishes the CLI and then the overlay into `out/publish/SC-CargoPlan/` and zips it, the same way the release workflow does. Don't publish by hand into that folder: both projects write `WindowsBase.dll`, and if the CLI's goes in last, the overlay doesn't start ([D48](docs/decisions.md)).
 
+## Release
+
+For the maintainer: commit `docs/release-notes/v<version>.md`, then push the tag `v<version>`; the release workflow builds, tests and publishes the ZIP with its `.sha256` ([D49](docs/decisions.md)). After that, the same ZIP goes on Nexus Mods by [docs/nexus/checklist.md](docs/nexus/checklist.md) ([D87](docs/decisions.md)).
+
 ## Contribute a ship
 
 A ship is one JSON file, no C#. [docs/ship-format.md](docs/ship-format.md) has the format, how to measure a ship in the hangar and a checklist for the pull request. In short:

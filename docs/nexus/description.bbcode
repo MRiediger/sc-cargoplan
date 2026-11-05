@@ -1,0 +1,72 @@
+[size=5]Description[/size]
+
+A load-plan overlay for Star Citizen haulers: it decides which destination goes into which rack before you load, and shows it in a translucent window next to the game.
+
+How it works: the [url=https://github.com/MRiediger/sc-cargoplan/wiki]wiki[/url]. Source code: [url=https://github.com/MRiediger/sc-cargoplan]GitHub[/url].
+
+[b]What it reads and downloads[/b]
+[list]
+[*]The only other program data it reads is ContractTracker's database, read-only.
+[*]Its only network access is the optional download of ship holograms from github.com, which you can turn off.
+[*]Ship holograms are made from CIG's ship models and are not under MIT. They live in a release of their own, holo-v1, with its own NOTICE, not in this ZIP. The app downloads them only from there, one file per ship when you pick a hologram look, and never fetches anything from Fleetyards; [b]Download ship holograms[/b] in the settings switches it off.
+[*]Ship holograms are an optional download; they derive from game models and may be withdrawn on request.
+[/list]
+
+[b]Known issues[/b]
+[list]
+[*][b]Unsigned, no auto-update:[/b] Windows warns at the first start of every version; check the releases for new ones.
+[*][b]Ship data are drafts:[/b] every grid except the MISC Hull A's comes from Fleetyards and isn't checked in the game; for some racks the data name no door limit, although the game may have one.
+[*][b]The Retaliator is not included.[/b]
+[*][b]A crate under an empty rack[/b] in front of it can't be clicked in the ship view. Turn the view, or use its line in the legend.
+[*][b]Very large ships zoomed in all the way[/b] (such as the Hull C): the camera can stand among the racks, and parts close to it are cut off. Zoom out a little.
+[/list]
+More, with workarounds: [url=https://github.com/MRiediger/sc-cargoplan/wiki/Troubleshooting#known-issues]Troubleshooting › Known issues[/url].
+
+[b]Bugs and questions[/b]
+Please report bugs on GitHub, not in the Nexus comments, so they can be tracked.
+[list]
+[*]Bugs, wrong cargo grids, ideas: [url=https://github.com/MRiediger/sc-cargoplan/issues/new/choose]Issues[/url] · questions: [url=https://github.com/MRiediger/sc-cargoplan/discussions]Discussions[/url]
+[*]Copy the version from the footer of the settings window (e.g. [b]SC-CargoPlan 0.1.0+…[/b]).
+[*]Open a [url=https://github.com/MRiediger/sc-cargoplan/issues/new?template=bug.yml]bug report[/url] (needs a GitHub account) and fill in the form.
+[/list]
+
+[size=5]Installation instructions[/size]
+
+[list=1]
+[*]Download [b]SC-CargoPlan-v<version>-win-x64.zip[/b] from the Files tab, or from the [url=https://github.com/MRiediger/sc-cargoplan/releases/latest]latest release[/url] on GitHub.
+[*]Right-click it → [b]Extract All[/b].
+[*]Start [b]SC-CargoPlan\CargoPlan.App.exe[/b]. Windows warns that the app is unsigned: [b]More info → Run anyway[/b].
+[/list]
+Check the download against the [b].sha256[/b] file of the GitHub release ([url=https://github.com/MRiediger/sc-cargoplan/wiki/Installation-and-first-start#check-the-download-optional]how[/url]).
+
+Run Star Citizen in [b]Borderless[/b] window mode; exclusive fullscreen covers the overlay.
+
+[size=5]Main features[/size]
+
+[list]
+[*]One color per destination, one rack per destination where the ship allows it, every crate named in the legend.
+[*]Contracts captured with ContractTracker come in by themselves; or type them in the editor.
+[*]Drag, turn, split and merge crates to match what the cargo elevator really did.
+[*]Mark each delivery loaded, then delivered at its stop; undo any step.
+[*]Click-through while the game has the mouse. A separate window: nothing is injected into the game.
+[*]97 ships, with cargo grids from Fleetyards, plus the Aurora Mk II with its TS module.
+[/list]
+
+[size=5]Requirements[/size]
+
+[list]
+[*]Windows 10/11 x64 (tested on Windows 11). Nothing else to install: .NET comes with it.
+[*]Optional: [url=https://www.nexusmods.com/starcitizen/mods/34]ContractTracker[/url] V2 to capture contracts.
+[/list]
+
+[size=5]Shout outs[/size]
+
+[list]
+[*]Cargo grid data from [url=https://fleetyards.net]fleetyards.net[/url].
+[*][url=https://www.nexusmods.com/starcitizen/mods/34]ContractTracker[/url] by Yuiki captures the contracts; SC-CargoPlan only reads its database.
+[*]Stop colors: the [url=https://jfly.uni-koeln.de/color/]Okabe-Ito palette[/url] and [url=https://sronpersonalpages.nl/~pault/]Paul Tol's[/url] schemes.
+[*]Not affiliated with Fleetyards, ContractTracker or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
+[/list]
+Designed and tested in the game by the author; code and texts written with an AI coding assistant.
+
+MIT licensed. Not under MIT: the ship silhouettes ([b]outlines/NOTICE.md[/b]) and the ship holograms (NOTICE of the holo-v1 release).
