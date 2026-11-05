@@ -3714,6 +3714,7 @@ Hull C erreicht schon vor K9.1 das Knotenlimit der Rack-Zuordnung (D64): Ist-Sta
 - [x] Spiegeltest 1er/4er/8er, Kapazitäts-Eigenschaft mit länglichen Kisten, Ordnungsinvarianz in allen Zellordnungen
 - [x] Schema 9 und 4 mit Migration, Fehlermeldungen für alte Schemas und unbekannte Wörter
 - [x] Re-plan, Laden, Schiffswechsel, Sync, Discard, Split und Verschieben behalten den Wert
+- [x] Standardlauf Core 1.592, App 1.544, Import 141, `Category=Slow` 2/2 grün; `Category=Exhaustive` auf Martins Wunsch abgebrochen, nicht durchgelaufen: er prüft nur Hull A `lengthwise`, das Goldens und Suchzähler belegen. Nach K9.2 laufen lassen
 - [ ] Martin: ComboBox **Rows** ansehen, RAFT crosswise planen
 
 ### [ ] K9.2 Sektionen pro Ziel
