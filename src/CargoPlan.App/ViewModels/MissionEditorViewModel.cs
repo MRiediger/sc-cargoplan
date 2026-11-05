@@ -39,6 +39,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
     // A field of its own, not the property's: the constructor sets the start value without marking a change.
     private FillOrder _fillOrder;
+    private FillRows _fillRows;
 
     // "Sync from ContractTracker": the overlay's sync, the same read the watcher runs (T5.4); null without one.
     private readonly Func<Task>? _syncFromContractTracker;
@@ -59,6 +60,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         _overlay = overlay;
         _syncFromContractTracker = syncFromContractTracker;
         _fillOrder = overlay.Plan?.FillOrder ?? FillOrder.BowFirst;
+        _fillRows = overlay.Plan?.FillRows ?? FillRows.Lengthwise;
         _missions = overlay.Missions;
         _shipId = overlay.Ship.Id;
         Rows = [.. RowsOf(overlay)];
@@ -121,6 +123,25 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         set
         {
             if (SetProperty(ref _fillOrder, value))
+            {
+                Edited();
+            }
+        }
+    }
+
+    public static IReadOnlyList<FillRowsChoice> FillRowsChoices { get; } =
+    [
+        new(FillRows.Lengthwise, "Lengthwise"),
+        new(FillRows.Crosswise, "Crosswise"),
+    ];
+
+    /// <summary>Which way the rows of a rack's layout run (D88), for the next <see cref="PlanCommand"/>; a draft by the rules of <see cref="FillOrder"/>.</summary>
+    public FillRows FillRows
+    {
+        get => _fillRows;
+        set
+        {
+            if (SetProperty(ref _fillRows, value))
             {
                 Edited();
             }
@@ -210,6 +231,11 @@ public sealed partial class MissionEditorViewModel : ObservableObject
             {
                 FillOrder = fillOrder;
             }
+
+            if (file.FillRows is { } fillRows)
+            {
+                FillRows = fillRows;
+            }
         }
         catch (MissionFormatException ex)
         {
@@ -231,7 +257,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
         try
         {
-            AtomicFile.Write(path, stream => MissionFileWriter.Write(stream, _result.Stops, FillOrder));
+            AtomicFile.Write(path, stream => MissionFileWriter.Write(stream, _result.Stops, FillOrder, FillRows));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -303,7 +329,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         try
         {
             var current = _overlay.Saved ?? new SavedPlan([], new LoadPlan(_overlay.Ship.Id, [], []), CrateCap.Of(_overlay.Ship));
-            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, _overlay.Watermark);
+            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, _overlay.Watermark, FillRows);
             ChangeOverlay(() => _overlay.ShowPlan(saved));
             _overlay.SetNotice(NoticeSource.Move, cleared.Count == 0 ? null : string.Join(" · ", cleared));
             IsDirty = false;

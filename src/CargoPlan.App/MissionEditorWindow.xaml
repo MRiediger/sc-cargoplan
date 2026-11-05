@@ -76,6 +76,19 @@
                  Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.tooltipservice.showondisabled -->
             <Button DockPanel.Dock="Right" Content="Plan" Command="{Binding PlanCommand}" Padding="16,4"
                     VerticalAlignment="Bottom" ToolTip="{Binding PlanToolTip}" ToolTipService.ShowOnDisabled="True" />
+            <!-- Beside the fill order: together they are the cell order (D88), and they take effect the same way. -->
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="0,0,8,0"
+                        ToolTip="Which way the rows of crates run in a rack: along its length or across its width. Racks stacking sideways, like the Hull A's plates, ignore it. Takes effect when you press Plan.">
+                <TextBlock Text="Rows:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.FillRowsChoices}" DisplayMemberPath="Text"
+                          SelectedValuePath="Value" SelectedValue="{Binding FillRows}" MinWidth="90">
+                    <ComboBox.ItemContainerStyle>
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
+                        </Style>
+                    </ComboBox.ItemContainerStyle>
+                </ComboBox>
+            </StackPanel>
             <!-- Next to Plan, because it takes effect there (D24, T4.5). "Fill order" as the key in plan.json, so the word
                  is found again in the file. -->
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="8,0,8,0"

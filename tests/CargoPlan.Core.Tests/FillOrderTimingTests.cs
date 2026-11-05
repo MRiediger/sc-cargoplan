@@ -40,6 +40,32 @@ public class FillOrderTimingTests(ITestOutputHelper output)
         }
     }
 
+    /// <summary>Martin's RAFT plan in every cell order as cells, for the eye: width 7 on top, length 0 on the left, the bow to the right.</summary>
+    [Fact]
+    public void Layout_of_the_RAFT_fixture_in_each_order()
+    {
+        var (_, ship, missions, route) = Cases()[0];
+        var rack = ship.Racks[0];
+        foreach (var rows in Enum.GetValues<FillRows>())
+        {
+            foreach (var order in Enum.GetValues<FillOrder>())
+            {
+                var plan = LoadPlanner.Plan(ship, missions, route, order, fillRows: rows).Plan;
+                output.WriteLine($"{order}, {rows}");
+                for (var stack = 0; stack < rack.Grid.Stack; stack++)
+                {
+                    output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  layer {stack}"));
+                    for (var width = rack.Grid.Width - 1; width >= 0; width--)
+                    {
+                        var cells = Enumerable.Range(0, rack.Grid.Length).Select(length =>
+                            plan.Crates.FirstOrDefault(c => c.Cells.Contains(new GridPosition(length, width, stack)))?.Destination[0] ?? '.');
+                        output.WriteLine($"    {string.Join(' ', cells)}");
+                    }
+                }
+            }
+        }
+    }
+
     private static (long Nodes, long Steps, int GaveUp) Counts(Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> route, FillOrder order, FillRows rows)
     {
         var cap = CrateCap.Of(ship);

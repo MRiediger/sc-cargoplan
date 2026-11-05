@@ -526,7 +526,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
     // --- Fill order in mission files (D72) ---
 
-    /// <summary>The split-and-shared missions as a schema 3 file with <paramref name="fillOrder"/>, written by Core's writer.</summary>
+    /// <summary>The split-and-shared missions as a mission file with <paramref name="fillOrder"/>, written by Core's writer.</summary>
     private string MissionFileWith(FillOrder fillOrder)
     {
         Directory.CreateDirectory(_folder);
@@ -616,6 +616,137 @@ public sealed class MissionEditorViewModelTests : IDisposable
         MissionEditorViewModel.FillOrders.Should().Equal(
             new FillOrderChoice(FillOrder.BowFirst, "Bow first"),
             new FillOrderChoice(FillOrder.SternFirst, "Stern first"));
+    }
+
+    // --- Rows (D88): the fill order's rules ---
+
+    private string MissionFileWith(FillRows fillRows)
+    {
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, $"{fillRows}.json");
+        using var stream = File.Create(path);
+        MissionFileWriter.Write(stream, TestPlans.SplitAndShared().Stops, FillOrder.BowFirst, fillRows);
+        return path;
+    }
+
+    [Fact]
+    public void Without_a_plan_the_rows_are_lengthwise()
+    {
+        new MissionEditorViewModel(EmptyOverlay()).FillRows.Should().Be(FillRows.Lengthwise);
+    }
+
+    [Fact]
+    public void The_editor_starts_with_the_rows_of_the_current_plan()
+    {
+        var overlay = EmptyOverlay();
+        var planned = TestPlans.SplitAndShared();
+        overlay.ShowPlan(SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(overlay.Ship, planned.Stops.ToStops(), FillOrder.BowFirst, FillRows.Crosswise), CrateCap.Of(overlay.Ship)));
+
+        new MissionEditorViewModel(overlay).FillRows.Should().Be(FillRows.Crosswise);
+    }
+
+    [Fact]
+    public void Plan_uses_the_chosen_rows()
+    {
+        var overlay = EmptyOverlay();
+        var editor = FourRows(overlay);
+
+        editor.FillRows = FillRows.Crosswise;
+        editor.PlanCommand.Execute(null);
+
+        overlay.Plan!.FillRows.Should().Be(FillRows.Crosswise);
+    }
+
+    [Fact]
+    public void Changing_the_rows_marks_unplanned_changes_and_leaves_the_overlay_plan_until_Plan()
+    {
+        var overlay = OverlayWithPlan();
+        var plan = overlay.Plan;
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.FillRows = FillRows.Crosswise;
+
+        editor.IsDirty.Should().BeTrue();
+        editor.Title.Should().Be(MissionEditorViewModel.UnplannedTitleText);
+        overlay.Plan.Should().BeSameAs(plan);
+    }
+
+    [Fact]
+    public void Clear_rows_keeps_the_row_axis()
+    {
+        var editor = FourRows(EmptyOverlay());
+        editor.FillRows = FillRows.Crosswise;
+
+        editor.ClearRowsCommand.Execute(null);
+
+        editor.FillRows.Should().Be(FillRows.Crosswise);
+    }
+
+    [Fact]
+    public void Import_of_a_file_with_rows_sets_them_as_an_unplanned_change()
+    {
+        var overlay = OverlayWithPlan();
+        var plan = overlay.Plan;
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.Import(MissionFileWith(FillRows.Crosswise));
+
+        editor.FillRows.Should().Be(FillRows.Crosswise);
+        editor.IsDirty.Should().BeTrue();
+        overlay.Plan.Should().BeSameAs(plan, "like every edit it waits for Plan");
+    }
+
+    [Fact]
+    public void Import_of_a_file_without_rows_keeps_the_editors()
+    {
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, "schema3.json");
+        File.WriteAllText(path, """
+            { "schemaVersion": 3, "fillOrder": "bowFirst", "stops": [ { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 4, "maxCrateSize": 4 } ] } ] }
+            """);
+        var editor = FourRows(EmptyOverlay());
+        editor.FillRows = FillRows.Crosswise;
+
+        editor.Import(path);
+
+        editor.Problem.Should().BeNull();
+        editor.FillRows.Should().Be(FillRows.Crosswise);
+    }
+
+    [Theory]
+    [InlineData(FillRows.Lengthwise, "lengthwise")]
+    [InlineData(FillRows.Crosswise, "crosswise")]
+    public void Export_writes_the_rows_of_the_draft(FillRows fillRows, string expected)
+    {
+        var path = Path.Combine(_folder, "missions.json");
+        var editor = FourRows(OverlayWithPlan());
+        editor.FillRows = fillRows;
+
+        editor.Export(path);
+
+        MissionFileReader.Read(path).FillRows.Should().Be(fillRows);
+        File.ReadAllText(path).Should().Contain($"\"fillRows\": \"{expected}\"");
+    }
+
+    [Fact]
+    public void Import_then_Export_keeps_the_rows_byte_for_byte()
+    {
+        var source = MissionFileWith(FillRows.Crosswise);
+        var target = Path.Combine(_folder, "exported.json");
+        var editor = new MissionEditorViewModel(EmptyOverlay());
+
+        editor.Import(source);
+        editor.Export(target);
+
+        File.ReadAllBytes(target).Should().Equal(File.ReadAllBytes(source));
+    }
+
+    [Fact]
+    public void The_row_choices_are_lengthwise_and_crosswise()
+    {
+        MissionEditorViewModel.FillRowsChoices.Should().Equal(
+            new FillRowsChoice(FillRows.Lengthwise, "Lengthwise"),
+            new FillRowsChoice(FillRows.Crosswise, "Crosswise"));
     }
 
     // --- Import, export, text ---
