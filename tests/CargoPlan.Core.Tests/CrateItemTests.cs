@@ -230,6 +230,7 @@ public class CrateItemTests
         node["schemaVersion"] = 3;
         node.AsObject().Remove("fillRows");
         node.AsObject().Remove("grouping");
+        node.AsObject().Remove("sectionGap");
         foreach (var crate in node["crates"]!.AsArray())
         {
             crate!.AsObject().Remove("item");
@@ -249,6 +250,7 @@ public class CrateItemTests
         node["schemaVersion"] = 3;
         node.AsObject().Remove("fillRows");
         node.AsObject().Remove("grouping");
+        node.AsObject().Remove("sectionGap");
 
         var act = () => Read(node.ToJsonString());
 

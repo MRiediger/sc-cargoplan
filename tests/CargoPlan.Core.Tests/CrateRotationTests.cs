@@ -272,6 +272,7 @@ public class CrateRotationTests
         node["schemaVersion"] = 4;
         node.AsObject().Remove("fillRows");
         node.AsObject().Remove("grouping");
+        node.AsObject().Remove("sectionGap");
 
         var saved = Read(node.ToJsonString(), HullA);
 
@@ -286,6 +287,7 @@ public class CrateRotationTests
         node["schemaVersion"] = 4;
         node.AsObject().Remove("fillRows");
         node.AsObject().Remove("grouping");
+        node.AsObject().Remove("sectionGap");
 
         var act = () => Read(node.ToJsonString(), Perseus);
 
@@ -328,6 +330,7 @@ public class CrateRotationTests
         node["schemaVersion"] = schemaVersion;
         node.AsObject().Remove("fillRows");
         node.AsObject().Remove("grouping");
+        node.AsObject().Remove("sectionGap");
         foreach (var crate in node["crates"]!.AsArray())
         {
             crate!.AsObject().Remove("rotated");

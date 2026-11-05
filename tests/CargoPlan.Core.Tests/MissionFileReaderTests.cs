@@ -251,7 +251,7 @@ public class MissionFileReaderTests
         var original = MissionFixtures.LoadMissions(fixture);
 
         var json = JsonSerializer.SerializeToUtf8Bytes(
-            MissionFileDto.FromMissionStops(original, FillOrder.BowFirst, FillRows.Lengthwise, PlanGrouping.None), MissionJsonContext.Default.MissionFileDto);
+            MissionFileDto.FromMissionStops(original, FillOrder.BowFirst, FillRows.Lengthwise, PlanGrouping.None, 0), MissionJsonContext.Default.MissionFileDto);
         using var stream = new MemoryStream(json);
         var roundTripped = MissionFileReader.Read(stream, "roundtrip.json").Stops;
 
@@ -267,7 +267,7 @@ public class MissionFileReaderTests
             new("Riker", 1, [new MissionItem("Titanium", 12, CrateSize.Four)]),
         ];
 
-        var dto = MissionFileDto.FromMissionStops(stops, FillOrder.SternFirst, FillRows.Lengthwise, PlanGrouping.None);
+        var dto = MissionFileDto.FromMissionStops(stops, FillOrder.SternFirst, FillRows.Lengthwise, PlanGrouping.None, 0);
 
         dto.SchemaVersion.Should().Be(MissionFileReader.CurrentSchemaVersion);
         dto.FillOrder.Should().Be("sternFirst");

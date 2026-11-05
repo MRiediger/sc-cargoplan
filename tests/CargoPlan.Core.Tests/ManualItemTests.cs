@@ -62,6 +62,7 @@ public class ManualItemTests
         node["schemaVersion"] = 6;
         node.AsObject().Remove("fillRows");
         node.AsObject().Remove("grouping");
+        node.AsObject().Remove("sectionGap");
 
         var act = () => Read(node.ToJsonString());
 

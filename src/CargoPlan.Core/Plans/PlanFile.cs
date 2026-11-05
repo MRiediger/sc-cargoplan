@@ -14,7 +14,7 @@ public static class PlanFile
     /// <summary>
     /// The version the writer writes: missions with ids, crates with missions (D42), items (D68), turned or not (D71),
     /// off the ship or not (K2.2) and loaded or not (K6.4), items added by hand to a ContractTracker mission (K6.5),
-    /// captures gone from ContractTracker or detached (D81), the row axis (D88), the grouping (D89), the watermark. An app from before D88
+    /// captures gone from ContractTracker or detached (D81), the row axis (D88), the grouping and section gap (D89), the watermark. An app from before D88
     /// refuses it, so it never lays a crosswise plan out lengthwise.
     /// </summary>
     public const int SupportedSchemaVersion = 9;

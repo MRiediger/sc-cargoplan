@@ -41,7 +41,7 @@ public class FillRowsFormatTests
 
     /// <summary>The golden as it would have been before schema 9: no fillRows, the older number.</summary>
     private static string OlderGolden(int schema) => GoldenBow()
-        .Replace("  \"fillRows\": \"lengthwise\",\n  \"grouping\": \"none\",\n", "", StringComparison.Ordinal)
+        .Replace("  \"fillRows\": \"lengthwise\",\n  \"grouping\": \"none\",\n  \"sectionGap\": 0,\n", "", StringComparison.Ordinal)
         .Replace("\"schemaVersion\": 9", $"\"schemaVersion\": {schema}", StringComparison.Ordinal);
 
     // --- Plan file ---
@@ -62,7 +62,7 @@ public class FillRowsFormatTests
     {
         var json = Written(Planned(FillRows.Crosswise)).ReplaceLineEndings("\n");
 
-        json.Should().Contain("\"fillOrder\": \"sternFirst\",\n  \"fillRows\": \"crosswise\",\n  \"grouping\": \"none\",\n  \"contractTrackerWatermark\"");
+        json.Should().Contain("\"fillOrder\": \"sternFirst\",\n  \"fillRows\": \"crosswise\",\n  \"grouping\": \"none\",\n  \"sectionGap\": 0,\n  \"contractTrackerWatermark\"");
     }
 
     [Fact]
@@ -216,6 +216,87 @@ public class FillRowsFormatTests
         var act = () => ReadMissions($$"""{ "schemaVersion": 4, "grouping": "byStop", {{StopsJson}} }""");
 
         act.Should().Throw<MissionFormatException>().WithMessage("*grouping 'byStop' is unknown*none*byDestination*");
+    }
+
+    // --- Section gap (K9.2b): schema 9 and 4 carry it, optional on reading ---
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void A_plan_file_always_writes_the_gap_and_reads_it_back(int gap)
+    {
+        Mission[] missions = [new(1, [new MissionStop("Riker", 1, [new MissionItem("Titanium", 8, CrateSize.Four)])])];
+        var json = Written(LoadPlanner.Plan(Raft, missions, ["Riker"], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination, gap));
+
+        json.Should().Contain($"\"sectionGap\": {gap}");
+        Read(json, Raft).Plan.SectionGap.Should().Be(gap);
+    }
+
+    [Fact]
+    public void A_schema_9_file_without_a_gap_means_none()
+    {
+        var node = JsonNode.Parse(GoldenBow())!;
+        node.AsObject().Remove("sectionGap");
+
+        Read(node.ToJsonString(), HullA).Plan.SectionGap.Should().Be(0);
+    }
+
+    [Fact]
+    public void A_gap_in_a_schema_8_file_is_an_error()
+    {
+        var node = JsonNode.Parse(OlderGolden(8))!;
+        node["sectionGap"] = 1;
+
+        var act = () => Read(node.ToJsonString(), HullA);
+
+        act.Should().Throw<PlanFormatException>().WithMessage("*sectionGap*new in schema 9*the file says 8*");
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(-1)]
+    public void A_gap_out_of_range_in_a_plan_file_is_an_error(int gap)
+    {
+        var node = JsonNode.Parse(GoldenBow())!;
+        node["sectionGap"] = gap;
+
+        var act = () => Read(node.ToJsonString(), HullA);
+
+        act.Should().Throw<PlanFormatException>().WithMessage("*sectionGap*0, 1 or 2*");
+    }
+
+    [Fact]
+    public void Export_always_writes_the_gap_and_import_reads_it()
+    {
+        using var stream = new MemoryStream();
+        MissionFileWriter.Write(stream, Stops, FillOrder.SternFirst, FillRows.Crosswise, PlanGrouping.ByDestination, 2);
+        var json = Encoding.UTF8.GetString(stream.ToArray());
+
+        json.Should().Contain("\"sectionGap\": 2");
+        ReadMissions(json).SectionGap.Should().Be(2);
+    }
+
+    [Fact]
+    public void A_mission_file_without_the_field_names_no_gap()
+    {
+        ReadMissions($$"""{ "schemaVersion": 4, {{StopsJson}} }""").SectionGap.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_gap_in_a_schema_3_mission_file_is_an_error()
+    {
+        var act = () => ReadMissions($$"""{ "schemaVersion": 3, "sectionGap": 1, {{StopsJson}} }""");
+
+        act.Should().Throw<MissionFormatException>().WithMessage("*sectionGap*new in schema 4*the file says 3*");
+    }
+
+    [Fact]
+    public void A_gap_out_of_range_in_a_mission_file_is_an_error()
+    {
+        var act = () => ReadMissions($$"""{ "schemaVersion": 4, "sectionGap": 3, {{StopsJson}} }""");
+
+        act.Should().Throw<MissionFormatException>().WithMessage("*sectionGap*0, 1 or 2*");
     }
 
     // --- Mission file ---

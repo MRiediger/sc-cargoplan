@@ -5,13 +5,13 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Missions;
 
 /// <summary>
-/// File format of a mission JSON (schema version 4, D88, D89: schema 3 with an optional row axis and grouping). Read via
+/// File format of a mission JSON (schema version 4, D88, D89: schema 3 with an optional row axis, grouping and section gap). Read via
 /// <see cref="ToMissionFile"/>, written via <see cref="FromMissionStops"/>, so import and export share one format.
-/// Version 3 is the same without <see cref="FillRows"/> and <see cref="Grouping"/>, version 2 also without <see cref="FillOrder"/> (D72); version 1
+/// Version 3 is the same without <see cref="FillRows"/>, <see cref="Grouping"/> and <see cref="SectionGap"/>, version 2 also without <see cref="FillOrder"/> (D72); version 1
 /// (<see cref="MissionFileV1Dto"/>) is still read, none of them is written.
 /// </summary>
 /// <remarks>
-/// <see cref="FillOrder"/>, <see cref="FillRows"/> and <see cref="Grouping"/> are optional, so they have a default and stand last; <c>JsonPropertyOrder</c> on
+/// <see cref="FillOrder"/>, <see cref="FillRows"/>, <see cref="Grouping"/> and <see cref="SectionGap"/> are optional, so they have a default and stand last; <c>JsonPropertyOrder</c> on
 /// <see cref="Stops"/> writes them before the stops, where they are read at a glance. Source:
 /// https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/customize-properties#configure-the-order-of-serialized-properties
 /// </remarks>
@@ -20,7 +20,8 @@ internal sealed record MissionFileDto(
     [property: JsonPropertyOrder(1)] IReadOnlyList<MissionStopDto> Stops,
     string? FillOrder = null,
     string? FillRows = null,
-    string? Grouping = null)
+    string? Grouping = null,
+    int? SectionGap = null)
 {
     /// <exception cref="ArgumentException">A value violates the domain rules, or a file names a fill order or row axis older than its schema.</exception>
     public MissionFile ToMissionFile()
@@ -45,11 +46,18 @@ internal sealed record MissionFileDto(
                 Invariant($"grouping is new in schema {withFillRows} (the file says {SchemaVersion})."), nameof(Grouping));
         }
 
+        if (SectionGap is not null && SchemaVersion < withFillRows)
+        {
+            throw new ArgumentException(
+                Invariant($"sectionGap is new in schema {withFillRows} (the file says {SchemaVersion})."), nameof(SectionGap));
+        }
+
         return new(
             ToMissionStops(),
             FillOrder is null ? null : FillOrderJson.Parse(FillOrder),
             FillRows is null ? null : FillRowsJson.Parse(FillRows),
-            Grouping is null ? null : GroupingJson.Parse(Grouping));
+            Grouping is null ? null : GroupingJson.Parse(Grouping),
+            SectionGap is { } gap ? Models.LoadPlan.CheckedGap(gap) : null);
     }
 
     /// <exception cref="ArgumentException">A value violates the domain rules.</exception>
@@ -64,14 +72,15 @@ internal sealed record MissionFileDto(
         return CheckedRoute([.. Stops.Select((s, index) => s.ToMissionStop(index + 1))]);
     }
 
-    /// <summary>Always with the fill order, row axis and grouping: an export says how its rows were meant to be loaded (D72, D88, D89).</summary>
-    public static MissionFileDto FromMissionStops(IEnumerable<MissionStop> stops, Models.FillOrder fillOrder, Models.FillRows fillRows, Models.PlanGrouping grouping) =>
+    /// <summary>Always with the fill order, row axis, grouping and section gap: an export says how its rows were meant to be loaded (D72, D88, D89).</summary>
+    public static MissionFileDto FromMissionStops(IEnumerable<MissionStop> stops, Models.FillOrder fillOrder, Models.FillRows fillRows, Models.PlanGrouping grouping, int sectionGap) =>
         new(
             MissionFileReader.CurrentSchemaVersion,
             [.. stops.OrderBy(s => s.Order).Select(s => MissionStopDto.FromMissionStop(s, withManual: false))],
             FillOrderJson.Text(fillOrder),
             FillRowsJson.Text(fillRows),
-            GroupingJson.Text(grouping));
+            GroupingJson.Text(grouping),
+            sectionGap);
 
     /// <summary>The route rules of both schema versions. Array order is the route: first stop = Order 1.</summary>
     /// <exception cref="ArgumentException">No stop, or a destination twice.</exception>

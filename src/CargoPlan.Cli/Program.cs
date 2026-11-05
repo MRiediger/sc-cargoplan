@@ -62,7 +62,7 @@ int Plan(PlanCommand plan)
     // The file's fill order, so a shared route shows here as in the overlay (D72); without one bow first, as before.
     var file = MissionFileReader.Read(plan.MissionsPath);
     var stops = file.Stops.ToStops(CrateCap.Of(ship));
-    Console.WriteLine(PlanTextRenderer.Render(LoadPlanner.Plan(ship, stops, file.FillOrder ?? FillOrder.BowFirst, file.FillRows ?? FillRows.Lengthwise, file.Grouping ?? PlanGrouping.None), ship));
+    Console.WriteLine(PlanTextRenderer.Render(LoadPlanner.Plan(ship, stops, file.FillOrder ?? FillOrder.BowFirst, file.FillRows ?? FillRows.Lengthwise, file.Grouping ?? PlanGrouping.None, file.SectionGap ?? 0), ship));
     return ExitSuccess;
 }
 

@@ -3,6 +3,7 @@
   "fillOrder": "sternFirst",
   "fillRows": "crosswise",
   "grouping": "byDestination",
+  "sectionGap": 1,
   "stops": [
     {
       "destination": "Riker",

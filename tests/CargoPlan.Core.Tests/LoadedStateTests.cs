@@ -119,6 +119,7 @@ public class LoadedStateTests
         node["schemaVersion"] = 6;
         node.AsObject().Remove("fillRows");
         node.AsObject().Remove("grouping");
+        node.AsObject().Remove("sectionGap");
 
         Read(node.ToJsonString(), HullA).Plan.Crates.Should().NotBeEmpty().And.OnlyContain(c => !c.Loaded);
     }
@@ -130,6 +131,7 @@ public class LoadedStateTests
         node["schemaVersion"] = 6;
         node.AsObject().Remove("fillRows");
         node.AsObject().Remove("grouping");
+        node.AsObject().Remove("sectionGap");
 
         var act = () => Read(node.ToJsonString(), HullA);
 

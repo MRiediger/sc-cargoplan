@@ -4,6 +4,7 @@
   "fillOrder": "bowFirst",
   "fillRows": "lengthwise",
   "grouping": "none",
+  "sectionGap": 0,
   "contractTrackerWatermark": 0,
   "missions": [
     {

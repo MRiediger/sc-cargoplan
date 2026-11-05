@@ -14,6 +14,7 @@ Based on [`tests/CargoPlan.Core.Tests/Fixtures/crate_mix.json`](../tests/CargoPl
   "fillOrder": "sternFirst",
   "fillRows": "crosswise",
   "grouping": "byDestination",
+  "sectionGap": 1,
   "stops": [
     {
       "destination": "Green Glade",
@@ -40,7 +41,7 @@ often as it fits, the rest in smaller ones. 6 SCU at max 4 are a 4 and a 2; 15 S
 ## Fields
 
 Names are camelCase and **case-sensitive**. Unknown fields are an error, so a typo like `"SCU"` is
-reported instead of being ignored silently. All fields are **required** except `fillOrder`, `fillRows`, `grouping`, `crates` and `pickup`.
+reported instead of being ignored silently. All fields are **required** except `fillOrder`, `fillRows`, `grouping`, `sectionGap`, `crates` and `pickup`.
 
 ### File
 
@@ -50,6 +51,7 @@ reported instead of being ignored silently. All fields are **required** except `
 | `fillOrder` | string | Optional. Which end of each rack the crates start from: `"bowFirst"` or `"sternFirst"`, as in the [plan file](plan-format.md). Importing a file with it sets the editor's **Fill order**; without it the editor keeps its own. Export always writes it. |
 | `fillRows` | string | Optional. Which way the rows of a layout run: `"lengthwise"` or `"crosswise"`, as in the [plan file](plan-format.md). Importing a file with it sets the editor's **Rows**; without it the editor keeps its own. Export always writes it. |
 | `grouping` | string | Optional. `"none"` or `"byDestination"`: whether each destination is kept as a block of its own in a rack it shares, as in the [plan file](plan-format.md). Importing a file with it sets the editor's **Grouping**; without it the editor keeps its own. Export always writes it. |
+| `sectionGap` | number | Optional. `0`, `1` or `2`: empty rows between blocks, as in the [plan file](plan-format.md). Importing a file with it sets the editor's **Section gap**; without it the editor keeps its own. Export always writes it. |
 | `stops` | array | At least one stop. **Order matters:** list the stops in the order you fly to them. The planner puts the first stop into Rack 1. |
 
 ### Stop
@@ -76,8 +78,8 @@ A crate that fits no rack of the ship is rejected by the planner.
 
 ## Schema 3 (still read)
 
-Files written before version 4 are the same without `fillRows` and `grouping`; importing one keeps the editor's. Either
-in a version 3 file is an error: change `schemaVersion` to `4` together with it.
+Files written before version 4 are the same without `fillRows`, `grouping` and `sectionGap`; importing one keeps the
+editor's. Any of them in a version 3 file is an error: change `schemaVersion` to `4` together with it.
 
 ## Schema 2 (still read)
 
