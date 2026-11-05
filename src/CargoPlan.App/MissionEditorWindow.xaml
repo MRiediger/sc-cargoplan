@@ -8,8 +8,8 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:MissionEditorViewModel}"
         Title="{Binding Title}"
-        Width="760" Height="420"
-        MinWidth="560" MinHeight="260"
+        Width="660" Height="420"
+        MinWidth="480" MinHeight="260"
         Topmost="True"
         ShowInTaskbar="True"
         ShowActivated="False"
@@ -76,12 +76,22 @@
                  Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.tooltipservice.showondisabled -->
             <Button DockPanel.Dock="Right" Content="Plan" Command="{Binding PlanCommand}" Padding="16,4"
                     VerticalAlignment="Bottom" ToolTip="{Binding PlanToolTip}" ToolTipService.ShowOnDisabled="True" />
-            <!-- Beside fill order and rows, which say which way its blocks run (D89); the word of the grouping key. -->
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="0,0,8,0"
-                        ToolTip="Whether each destination gets a block of its own in a rack it shares. Rows decide which way the blocks run. Takes effect when you press Plan.">
-                <TextBlock Text="Grouping:" VerticalAlignment="Center" Margin="0,0,4,0" />
-                <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.GroupingChoices}" DisplayMemberPath="Text"
-                          SelectedValuePath="Value" SelectedValue="{Binding Grouping}" MinWidth="110">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
+                <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- How Plan lays the crates: they take effect there (D24, T4.5), each named as its key in plan.json, so the word is found
+             again in the file. A line of its own that wraps: the editor lies beside overlay and ContractTracker in the game, where
+             width is scarcer than height (D89). Without a name a screen reader reads a record's ToString(), as for the ship list (T7.2). -->
+        <WrapPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+            <TextBlock Text="Layout" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,4" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,12,4"
+                        ToolTip="Which end of each rack the crates fill from. Takes effect when you press Plan.">
+                <TextBlock Text="Fill order:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.FillOrders}" DisplayMemberPath="Text"
+                          SelectedValuePath="Value" SelectedValue="{Binding FillOrder}" MinWidth="90">
                     <ComboBox.ItemContainerStyle>
                         <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
                             <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
@@ -89,8 +99,7 @@
                     </ComboBox.ItemContainerStyle>
                 </ComboBox>
             </StackPanel>
-            <!-- Beside the fill order: together they are the cell order (D88), and they take effect the same way. -->
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="0,0,8,0"
+            <StackPanel Orientation="Horizontal" Margin="0,0,12,4"
                         ToolTip="Which way the rows of crates run in a rack: along its length or across its width. Racks stacking sideways, like the Hull A's plates, ignore it. Takes effect when you press Plan.">
                 <TextBlock Text="Rows:" VerticalAlignment="Center" Margin="0,0,4,0" />
                 <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.FillRowsChoices}" DisplayMemberPath="Text"
@@ -102,14 +111,11 @@
                     </ComboBox.ItemContainerStyle>
                 </ComboBox>
             </StackPanel>
-            <!-- Next to Plan, because it takes effect there (D24, T4.5). "Fill order" as the key in plan.json, so the word
-                 is found again in the file. -->
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="8,0,8,0"
-                        ToolTip="Which end of each rack the crates fill from. Takes effect when you press Plan.">
-                <TextBlock Text="Fill order:" VerticalAlignment="Center" Margin="0,0,4,0" />
-                <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.FillOrders}" DisplayMemberPath="Text"
-                          SelectedValuePath="Value" SelectedValue="{Binding FillOrder}" MinWidth="90">
-                    <!-- Without a name a screen reader reads the record's ToString(), as for the ship list (T7.2). -->
+            <StackPanel Orientation="Horizontal" Margin="0,0,12,4"
+                        ToolTip="Whether each destination gets a block of its own in a rack it shares. Rows decide which way the blocks run. Takes effect when you press Plan.">
+                <TextBlock Text="Grouping:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.GroupingChoices}" DisplayMemberPath="Text"
+                          SelectedValuePath="Value" SelectedValue="{Binding Grouping}" MinWidth="110">
                     <ComboBox.ItemContainerStyle>
                         <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
                             <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
@@ -117,11 +123,19 @@
                     </ComboBox.ItemContainerStyle>
                 </ComboBox>
             </StackPanel>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
-                <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,4"
+                        ToolTip="Empty rows between blocks, to grip the crates. If they don't fit, crates turn where that saves rows, then the gaps shrink. Takes effect when you press Plan.">
+                <TextBlock Text="Section gap:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.SectionGapChoices}" DisplayMemberPath="Text"
+                          SelectedValuePath="Value" SelectedValue="{Binding SectionGap}" MinWidth="80" IsEnabled="{Binding IsSectionGapEnabled}">
+                    <ComboBox.ItemContainerStyle>
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
+                        </Style>
+                    </ComboBox.ItemContainerStyle>
+                </ComboBox>
             </StackPanel>
-        </DockPanel>
+        </WrapPanel>
 
         <!-- Bindings with UpdateSourceTrigger=PropertyChanged: the data grid would otherwise commit only at the end of the
              edit, and the stop column, the red row and the Plan button would lag behind the typing.

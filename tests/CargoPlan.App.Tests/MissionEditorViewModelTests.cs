@@ -875,6 +875,85 @@ public sealed class MissionEditorViewModelTests : IDisposable
         overlay.Notices.Should().NotContain(n => n.Contains(" shares a section with ", StringComparison.Ordinal));
     }
 
+    // --- Section gap (K9.2b): the fill order's rules ---
+
+    [Fact]
+    public void Without_a_plan_there_is_no_gap()
+    {
+        new MissionEditorViewModel(EmptyOverlay()).SectionGap.Should().Be(0);
+    }
+
+    [Fact]
+    public void Plan_uses_the_chosen_gap_and_the_next_editor_starts_with_it()
+    {
+        var overlay = EmptyOverlay();
+        var editor = FourRows(overlay);
+
+        editor.Grouping = PlanGrouping.ByDestination;
+        editor.SectionGap = 2;
+        editor.PlanCommand.Execute(null);
+
+        overlay.Plan!.SectionGap.Should().Be(2);
+        new MissionEditorViewModel(overlay).SectionGap.Should().Be(2);
+    }
+
+    [Fact]
+    public void The_gap_box_works_only_with_grouping_and_the_gap_survives_without()
+    {
+        var overlay = EmptyOverlay();
+        var editor = FourRows(overlay);
+        List<string?> changed = [];
+        editor.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+        editor.IsSectionGapEnabled.Should().BeFalse();
+
+        editor.Grouping = PlanGrouping.ByDestination;
+        editor.IsSectionGapEnabled.Should().BeTrue();
+        changed.Should().Contain(nameof(MissionEditorViewModel.IsSectionGapEnabled));
+        editor.SectionGap = 1;
+
+        editor.Grouping = PlanGrouping.None;
+        editor.PlanCommand.Execute(null);
+
+        overlay.Plan!.SectionGap.Should().Be(1);
+        new MissionEditorViewModel(overlay).SectionGap.Should().Be(1);
+    }
+
+    [Fact]
+    public void Changing_the_gap_marks_unplanned_changes_and_Clear_rows_keeps_it()
+    {
+        var overlay = OverlayWithPlan();
+        var plan = overlay.Plan;
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.SectionGap = 1;
+
+        editor.IsDirty.Should().BeTrue();
+        overlay.Plan.Should().BeSameAs(plan);
+        editor.ClearRowsCommand.Execute(null);
+        editor.SectionGap.Should().Be(1);
+    }
+
+    [Fact]
+    public void Export_and_Import_carry_the_gap()
+    {
+        var path = Path.Combine(_folder, "missions.json");
+        var editor = FourRows(OverlayWithPlan());
+        editor.SectionGap = 2;
+
+        editor.Export(path);
+        File.ReadAllText(path).Should().Contain("\"sectionGap\": 2");
+
+        var other = new MissionEditorViewModel(EmptyOverlay());
+        other.Import(path);
+        other.SectionGap.Should().Be(2);
+    }
+
+    [Fact]
+    public void The_gap_choices_are_none_one_and_two_rows()
+    {
+        MissionEditorViewModel.SectionGapChoices.Should().Equal(new SectionGapChoice(0, "None"), new SectionGapChoice(1, "1 row"), new SectionGapChoice(2, "2 rows"));
+    }
+
     // --- Import, export, text ---
 
     [Fact]

@@ -41,6 +41,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     private FillOrder _fillOrder;
     private FillRows _fillRows;
     private PlanGrouping _grouping;
+    private int _sectionGap;
 
     // "Sync from ContractTracker": the overlay's sync, the same read the watcher runs (T5.4); null without one.
     private readonly Func<Task>? _syncFromContractTracker;
@@ -63,6 +64,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         _fillOrder = overlay.Plan?.FillOrder ?? FillOrder.BowFirst;
         _fillRows = overlay.Plan?.FillRows ?? FillRows.Lengthwise;
         _grouping = overlay.Plan?.Grouping ?? PlanGrouping.None;
+        _sectionGap = overlay.Plan?.SectionGap ?? 0;
         _missions = overlay.Missions;
         _shipId = overlay.Ship.Id;
         Rows = [.. RowsOf(overlay)];
@@ -164,10 +166,34 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         {
             if (SetProperty(ref _grouping, value))
             {
+                OnPropertyChanged(nameof(IsSectionGapEnabled));
                 Edited();
             }
         }
     }
+
+    public static IReadOnlyList<SectionGapChoice> SectionGapChoices { get; } =
+    [
+        new(0, "None"),
+        new(1, "1 row"),
+        new(2, "2 rows"),
+    ];
+
+    /// <summary>Empty rows between sections (D89), for the next <see cref="PlanCommand"/>; a draft by the rules of <see cref="FillOrder"/>.</summary>
+    public int SectionGap
+    {
+        get => _sectionGap;
+        set
+        {
+            if (SetProperty(ref _sectionGap, value))
+            {
+                Edited();
+            }
+        }
+    }
+
+    /// <summary>A gap is one between sections: without them it stays as chosen and does nothing, so the box rests.</summary>
+    public bool IsSectionGapEnabled => Grouping == PlanGrouping.ByDestination;
 
     /// <summary>The ship the rows are planned for; changed in the overlay header, not here (T7.2b).</summary>
     public string ShipName => _overlay.Ship.Name;
@@ -262,6 +288,11 @@ public sealed partial class MissionEditorViewModel : ObservableObject
             {
                 Grouping = grouping;
             }
+
+            if (file.SectionGap is { } sectionGap)
+            {
+                SectionGap = sectionGap;
+            }
         }
         catch (MissionFormatException ex)
         {
@@ -283,7 +314,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
         try
         {
-            AtomicFile.Write(path, stream => MissionFileWriter.Write(stream, _result.Stops, FillOrder, FillRows, Grouping));
+            AtomicFile.Write(path, stream => MissionFileWriter.Write(stream, _result.Stops, FillOrder, FillRows, Grouping, SectionGap));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -355,7 +386,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         try
         {
             var current = _overlay.Saved ?? new SavedPlan([], new LoadPlan(_overlay.Ship.Id, [], []), CrateCap.Of(_overlay.Ship));
-            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, _overlay.Watermark, FillRows, Grouping);
+            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, _overlay.Watermark, FillRows, Grouping, SectionGap);
             ChangeOverlay(() => _overlay.ShowPlan(saved));
             _overlay.SetNotice(NoticeSource.Move, cleared.Count == 0 ? null : string.Join(" · ", cleared));
             IsDirty = false;
