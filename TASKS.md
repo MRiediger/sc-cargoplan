@@ -3792,9 +3792,13 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 - [x] Martin: Gate am Aufzug, zusammen mit K9.2 (Lücken im RAFT, gedrehte Kisten, Sync in einen Plan mit Lücken; bestanden 05.11.)
 - [x] Martin: Editor-Zeile „Layout“ ansehen und entscheiden (abgenommen 05.11.)
 
-### [ ] K9.3 Doku und Merge
+### [x] K9.3 Doku und Merge (05.11.2026, abgenommen 05.11.)
 
-- Wiki-Seite Editor, README-Satz; Merge `--no-ff` nach `main`, Martin pusht
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Stufe „Rack wie vom Planer“ bekommt eine eigene Notice (`Rack 1: sections don't fit – laid as with None`) statt der „shares“-Hinweise; „Rows“ bleibt als Label, das Wiki schreibt „rows of crates“; das Wiki beschreibt nur Plan und Re-plan als sektionstreu.
+
+- Core: `SectionNotes.NoSections`, D89-Addendum
+- Wiki `Plan-and-editor` (Abschnitt „Layout“, Schema 4), `Ship-view`; README-Punkt; `CLAUDE.md`
+- Merge `--no-ff` nach `main`, Martin pusht `main`; das Wiki empfohlen erst mit dem Tag, weil v0.1.0 keine Sektionen hat
 
 ## Phase 10 – nach dem Launch
 
@@ -3823,7 +3827,8 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
 - Sektionsreihenfolge per Legenden-Drag (Spielerreihenfolge). Auslöser: Hauler-Report, dass die Legendenreihenfolge nicht reicht.
-- `defaultFillOrder`/Default pro Schiff in der Schiffs-JSON. Auslöser: zweites Schiff braucht einen anderen Default.
+- `defaultFillOrder`, `fillRows`/`grouping`-Default pro Schiff in der Schiffs-JSON. Auslöser: zweites Schiff braucht einen anderen Default.
+- Neubewertung „Sync-Mission wartet trotz freier Zellen“ (D89, Entscheidung 2). Auslöser: Live-Test, in dem eine Sync-Mission wartet, die mit `none` Platz hätte.
 - Zweiseitige Sektionen (Backbord-/Steuerbord-Hälfte). Auslöser: ein Schiff braucht es.
 - Sektionsgrenzen in der Schiffsansicht zeichnen. Auslöser: Hauler-Report, die Farben zeigen es heute.
 

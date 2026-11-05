@@ -62,7 +62,7 @@
                     ToolTip="{x:Static vm:OverlayViewModel.ReplanToolTipText}" />
             <!-- Empties the plan, not the rows; the next sync starts over (K2.3, Martin's variant a). -->
             <Button Content="Discard plan" Command="{Binding DiscardPlanCommand}" Style="{StaticResource ToolbarButtonStyle}"
-                    ToolTip="Empty the plan and start over; the next Sync from ContractTracker brings every contract back. Fill order stays." />
+                    ToolTip="Empty the plan and start over; the next Sync from ContractTracker brings every contract back. The layout stays." />
             <!-- "Sync", not "Load": Import… next to it replaces the rows, this adds new captures to the plan (T5.4). -->
             <Button Content="Sync from ContractTracker" Command="{Binding SyncCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Add contracts captured in ContractTracker to the plan, and place waiting missions that fit now" />
