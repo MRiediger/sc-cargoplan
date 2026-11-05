@@ -3804,7 +3804,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 
 **Warum:** K9 soll vor der Nexus-Seite raus (Martin), die dauert noch: Der erste Upload ist damit gleich die aktuelle Version.
 
-### [ ] R1 Release v0.2.0
+### [x] R1 Release v0.2.0 (05.11.2026, abgenommen 05.11.)
 
 - Release-Notes `docs/release-notes/v0.2.0.md`; Nexus-Checkliste auf 0.2.0; Wiki „Applies to v0.2.0“
 - Kein Versions-Bump: `release.yml` nimmt die Version aus dem Tag (D49)
@@ -3819,8 +3819,8 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 
 **Abnahme:**
 - [x] Notes-Text von Martin korrigiert und freigegeben
-- [ ] Martin: `main` gepusht, CI grün, Tag `v0.2.0` gepusht, Wiki gepusht
-- [ ] Release-Workflow grün, kein Pre-release, „Latest“; ZIP gegen `.sha256`, `--version` `0.2.0+…`
+- [x] Martin: `main` gepusht, CI grün auf 8c6aedc, Tag `v0.2.0` auf 8c6aedc gepusht, Wiki gepusht (Anker `#layout` antwortet)
+- [x] Release-Workflow grün, kein Pre-release, „Latest“; ZIP 64.2 MB gegen `.sha256` OK, 360 Dateien, `--version` `0.2.0+8c6aedc…`, RAFT `-z`
 
 ## Phase 10 – nach dem Launch
 
