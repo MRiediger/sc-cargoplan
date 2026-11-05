@@ -3673,6 +3673,68 @@ liegt im ZIP; ohne gepinntes SDK ist lokal ≠ CI. Kein Verhalten, Core unverän
 
 ---
 
+## K9 Sektionen pro Ziel (05.11.2026) – Branch `feat/k9-sections`
+
+**Warum:** Der Planer legt auf flachen, breiten Gittern (ARGO RAFT 12 × 8 × 2) größte Kisten zuerst über alle Ziele hinweg. Martin schiebt sie heute von Hand zu Blöcken pro Ziel. Das soll der Planer übernehmen, konfigurierbar, weil je nach Beladung beide Bilder richtig sind.
+
+**Modell (Martin, Rückfragen zum Plan):** Richtung und Reihenachse sind orthogonal. Zellreihenfolge = Stapel > Fortschrittsachse > Reihenachse; `fillRows` wählt die Reihenachse, `fillOrder` die Richtung entlang der Länge.
+
+| `fillRows` | Ordnung | mit `grouping = byDestination` (K9.2) |
+|---|---|---|
+| `lengthwise` (Default, wie heute) | Stapel > Breite > Länge | Streifen Bug↔Heck, nebeneinander über die Breite |
+| `crosswise` | Stapel > Länge > Breite | Blöcke über die volle Breite, nebeneinander entlang der Länge (Martins Handbild) |
+
+**Fixture:** `tests/CargoPlan.Core.Tests/Fixtures/Plans/raft_hand_2026-11-05.json`, Martins `plan.json` (RAFT, 4 CT-Missionen, Schema 8). Green Glade 27 SCU, High Course 9, Thundering Express 22, Faithful Dream 6, Melodic Fields 2, Summe 66. Die Lücken darin sind Handarbeit, kein Planer-Soll.
+
+### [ ] K9.1 Reihenachse wählbar (D88)
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** eigenes Feld `fillRows` statt der Task-Werte `portToStarboard`/`starboardToPort`; Stapel bleibt äußerst statt „immer innerst“; Breite läuft fest Steuerbord→Backbord; `grouping = none` bleibt größte zuerst über die Ziele hinweg (D64), der Satz „liefert schon ein Ziel nach dem anderen“ ist gestrichen; die Exhaustive-Begrenzung aus dem Plan entfällt, weil `FillOrder` zwei Werte behält.
+
+- Core: `FillRows`, `Rack.StacksSideways`, `CrateLayout.Ranks` als einzige Stelle mit den Achsen, durchgereicht durch Layout, Suche, `RackAssignment`, `LoadPlanner`, `MoveResolution`
+- `RackAssignment`: gleiche Racks gelten bei `crosswise` nur als Zwillinge, wenn `StacksSideways` übereinstimmt (Befund aus der Umsetzung, nicht im Plan)
+- Formate: plan.json Schema 9, Missions-JSON Schema 4, `FillRowsJson`, `docs/plan-format.md`, `docs/mission-format.md`
+- App: ComboBox **Rows** neben **Fill order**, `FillRowsChoice`; CLI liest das Feld
+- Tests: `FillRowsTests`, `FillRowsFormatTests`, `OrderFreePlanTests` in allen Zellordnungen, `HullAGoldenTests` crosswise; Messung `FillOrderTimingTests`
+
+**Messung** (Release, Median aus 3, ms; Knoten und Suchschritte identisch):
+
+| Fall | Richtung | vorher | `lengthwise` | `crosswise` | Knoten | Schritte | gave up |
+|---|---|---|---|---|---|---|---|
+| RAFT-Fixture | bow | 10,6 | 10,2 | 8,4 | 30 | 0 | 0 |
+| RAFT-Fixture | stern | 8,6 | 8,6 | 8,3 | 30 | 0 | 0 |
+| Hull C, 8 Ziele | bow | 62,5 | 53,3 | 39,6 | 1.000.001 | 104 | 0 |
+| Hull C, 8 Ziele | stern | 56,1 | 48,4 | 35,9 | 1.000.001 | 104 | 0 |
+
+Hull C erreicht schon vor K9.1 das Knotenlimit der Rack-Zuordnung (D64): Ist-Stand, keine Änderung.
+
+**Abnahme:**
+- [x] `lengthwise` unverändert: Goldens nur `schemaVersion` plus `fillRows`-Zeile, Zeiten in der Streuung, Zähler identisch
+- [x] `crosswise` nach den Rangtabellen, Ebene 0 voll vor Ebene 1
+- [x] Racks mit Stapelachse ±y ignorieren `fillRows`, Hull A byteidentisch bis auf das Wort
+- [x] Spiegeltest 1er/4er/8er, Kapazitäts-Eigenschaft mit länglichen Kisten, Ordnungsinvarianz in allen Zellordnungen
+- [x] Schema 9 und 4 mit Migration, Fehlermeldungen für alte Schemas und unbekannte Wörter
+- [x] Re-plan, Laden, Schiffswechsel, Sync, Discard, Split und Verschieben behalten den Wert
+- [ ] Martin: ComboBox **Rows** ansehen, RAFT crosswise planen
+
+### [ ] K9.2 Sektionen pro Ziel
+
+Plan folgt, eigener D-Eintrag (Addenda D41, D64, D66). Korrigierte Vorgaben aus der Spec:
+
+- **Ziel:** Pro Rack mit mehr als einem Ziel bekommt jedes Ziel einen zusammenhängenden Reihenblock entlang der Fortschrittsachse; Grenzen liegen auf Zellkanten, Sektionen liegen bündig aneinander, Löcher innerhalb einer Sektion bleiben frei.
+- **Reihenfolge (E1):** Wie die Legende sie zeigt: Gruppen in Legendenordnung (B6), darin die Zeilen von oben nach unten, ein Ziel zählt beim ersten Auftreten. Fixture: Green Glade, High Course, Thundering Express, Faithful Dream, Melodic Fields.
+- **Sektionsmaß (E3):** kleinste Reihenzahl, in die alle Kisten des Ziels passen, D71 unverändert: erst ungedreht, gedreht nur, wo ungedreht scheitert.
+- **Passt die Summe nicht:** die kleinsten Ziele teilen sich eine Sektion, weißer Hinweis `shares a section with <Ziel>`.
+- **Kapazität vor Sektionen (Martin, vorläufig):** Keine Lieferung wartet, die ohne Sektionen Platz hätte; sonst Hinweis `placed outside sections (capacity)`. Invariante als Test: wartende Lieferungen mit `byDestination` == mit `none`.
+- **Key:** plan.json `grouping`: `none` | `byDestination`, Default `none`, Missions-JSON optional, Export schreibt immer. ComboBox „Group by destination“ im Editor, pro Rack, kein Hotkey, keine gezeichneten Grenzen.
+- **Geladen/Abgeliefert (D79):** geladene Kisten sind Hindernisse. **Sync (D41):** vorhandenes Ziel in seine Sektion, sonst um eine Reihe wachsen, wenn die Nachbarreihe leer ist; neues Ziel in den freien Rest, sonst Hinweis `no free section – Re-plan`. **Verschieben, Undo:** unverändert.
+- **Goldens (E2):** aus dem Fixture gerechnet, nicht aus der Spec: `crosswise` + Sektionen ist das Handbild ohne Lücken, dazu ein zweites Golden `lengthwise`. Die Zahl „2+1+2+1+2“ ist gestrichen.
+- **Gate am Aufzug (Martin):** RAFT mit den 4 Missionen; fünfte Mission per CT (vorhandenes und neues Ziel); Mission auf „geladen“, dann Re-plan; Hull A mit 5 Zielen.
+- **Nicht Teil:** Sektionsreihenfolge per Legenden-Drag, Default pro Schiff, zweiseitige Sektionen.
+
+### [ ] K9.3 Doku und Merge
+
+- Wiki-Seite Editor, README-Satz; Merge `--no-ff` nach `main`, Martin pusht
+
 ## Phase 10 – nach dem Launch
 
 ### [ ] T10.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
