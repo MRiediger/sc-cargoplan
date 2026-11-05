@@ -94,6 +94,55 @@ public class OrderFreePlanTests
         }
     }
 
+    /// <summary>Every case and Martin's RAFT plan in every cell order but the default, which the test above has (D88).</summary>
+    public static TheoryData<string, string, FillOrder, FillRows> CellOrderCases
+    {
+        get
+        {
+            TheoryData<string, string, FillOrder, FillRows> cases = [];
+            (string Fixture, string Ship)[] all = [.. Cases.Select(c => ((string)c[0], (string)c[1])), (RaftPlan, "raft")];
+            foreach (var (fixture, ship) in all)
+            {
+                cases.Add(fixture, ship, FillOrder.SternFirst, FillRows.Lengthwise);
+                cases.Add(fixture, ship, FillOrder.BowFirst, FillRows.Crosswise);
+                cases.Add(fixture, ship, FillOrder.SternFirst, FillRows.Crosswise);
+            }
+
+            cases.Add(RaftPlan, "raft", FillOrder.BowFirst, FillRows.Lengthwise);
+            return cases;
+        }
+    }
+
+    private const string RaftPlan = "raft_hand_2026-11-05";
+
+    private static IReadOnlyList<Stop> StopsOf(string fixture, Ship ship)
+    {
+        if (fixture != RaftPlan)
+        {
+            return MissionFixtures.Load(fixture);
+        }
+
+        using var stream = MissionFixtures.Open($"plans/{fixture}.json");
+        return PlanFile.Read(stream, fixture, ship).Stops.ToStops(CrateCap.Of(ship));
+    }
+
+    [Theory]
+    [MemberData(nameof(CellOrderCases))]
+    public void Plan_gives_the_same_layout_in_any_input_order_in_every_cell_order(string fixture, string shipId, FillOrder fillOrder, FillRows fillRows)
+    {
+        var ship = ShipOf(shipId);
+        var stops = StopsOf(fixture, ship);
+        var first = LoadPlanner.Plan(ship, stops, fillOrder, fillRows);
+
+        foreach (var order in Permutations(stops.Count))
+        {
+            var plan = LoadPlanner.Plan(ship, Shuffled(stops, order), fillOrder, fillRows);
+
+            Layout(plan).Should().Equal(Layout(first), "order {0} lays out like the input order", string.Join(",", order));
+            Stacking(plan, ship).Should().Equal(Stacking(first, ship), "order {0} stacks like the input order", string.Join(",", order));
+        }
+    }
+
     [Fact]
     public void Plan_keeps_the_input_order_in_the_crate_list_for_legend_and_colours()
     {

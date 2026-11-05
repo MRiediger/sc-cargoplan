@@ -1,0 +1,637 @@
+{
+  "schemaVersion": 8,
+  "shipId": "raft",
+  "fillOrder": "bowFirst",
+  "contractTrackerWatermark": 241,
+  "missions": [
+    {
+      "id": 1,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Thundering Express Station",
+          "items": [
+            {
+              "commodity": "Pressurized Ice",
+              "scu": 6,
+              "maxCrateSize": 4,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            }
+          ]
+        },
+        {
+          "destination": "Green Glade Station",
+          "items": [
+            {
+              "commodity": "Processed Food",
+              "scu": 7,
+              "maxCrateSize": 4,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            }
+          ]
+        },
+        {
+          "destination": "Faithful Dream Station",
+          "items": [
+            {
+              "commodity": "Pressurized Ice",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            }
+          ]
+        },
+        {
+          "destination": "High Course Station",
+          "items": [
+            {
+              "commodity": "Processed Food",
+              "scu": 7,
+              "maxCrateSize": 4,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            }
+          ]
+        }
+      ],
+      "contract": {
+        "contractIds": [
+          233,
+          234,
+          235
+        ],
+        "crateSizeAssumed": true,
+        "listedDestinations": 4,
+        "gone": true
+      }
+    },
+    {
+      "id": 2,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Green Glade Station",
+          "items": [
+            {
+              "commodity": "Pressurized Ice",
+              "scu": 5,
+              "maxCrateSize": 4,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            },
+            {
+              "commodity": "Processed Food",
+              "scu": 6,
+              "maxCrateSize": 4,
+              "pickup": [
+                "larbor"
+              ]
+            }
+          ]
+        },
+        {
+          "destination": "Thundering Express Station",
+          "items": [
+            {
+              "commodity": "Processed Food",
+              "scu": 7,
+              "maxCrateSize": 4,
+              "pickup": [
+                "larbor"
+              ]
+            }
+          ]
+        }
+      ],
+      "contract": {
+        "contractIds": [
+          236,
+          237,
+          238
+        ],
+        "crateSizeAssumed": true,
+        "listedDestinations": 3,
+        "gone": true
+      }
+    },
+    {
+      "id": 3,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "High Course Station",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 2,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            }
+          ]
+        },
+        {
+          "destination": "Thundering Express Station",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 2,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            }
+          ]
+        },
+        {
+          "destination": "Faithful Dream Station",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 3,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            }
+          ]
+        },
+        {
+          "destination": "Melodic Fields Station",
+          "items": [
+            {
+              "commodity": "Stims",
+              "scu": 2,
+              "maxCrateSize": 2,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            }
+          ]
+        }
+      ],
+      "contract": {
+        "contractIds": [
+          239,
+          240
+        ],
+        "crateSizeAssumed": true,
+        "gone": true
+      }
+    },
+    {
+      "id": 4,
+      "unplaced": false,
+      "stops": [
+        {
+          "destination": "Green Glade Station",
+          "items": [
+            {
+              "commodity": "Pressurized Ice",
+              "scu": 4,
+              "maxCrateSize": 4,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            },
+            {
+              "commodity": "Processed Food",
+              "scu": 5,
+              "maxCrateSize": 4
+            }
+          ]
+        },
+        {
+          "destination": "Thundering Express Station",
+          "items": [
+            {
+              "commodity": "Pressurized Ice",
+              "scu": 7,
+              "maxCrateSize": 4,
+              "pickup": [
+                "Everus Harbor"
+              ]
+            }
+          ]
+        }
+      ],
+      "contract": {
+        "contractIds": [
+          241
+        ],
+        "crateSizeAssumed": true,
+        "listedDestinations": 2,
+        "gone": true
+      }
+    }
+  ],
+  "crates": [
+    {
+      "destination": "Green Glade Station",
+      "commodity": "Processed Food",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        10,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 1
+    },
+    {
+      "destination": "Green Glade Station",
+      "commodity": "Processed Food",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        10,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 1
+    },
+    {
+      "destination": "Green Glade Station",
+      "commodity": "Processed Food",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        11,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 1
+    },
+    {
+      "destination": "Green Glade Station",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        10,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Green Glade Station",
+      "commodity": "Processed Food",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        10,
+        2,
+        1
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 1
+    },
+    {
+      "destination": "Green Glade Station",
+      "commodity": "Processed Food",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        10,
+        4,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 1
+    },
+    {
+      "destination": "Green Glade Station",
+      "commodity": "Pressurized Ice",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        11,
+        4,
+        1
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 0
+    },
+    {
+      "destination": "Green Glade Station",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        10,
+        5,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 0
+    },
+    {
+      "destination": "Green Glade Station",
+      "commodity": "Processed Food",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        10,
+        5,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 1
+    },
+    {
+      "destination": "Green Glade Station",
+      "commodity": "Processed Food",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        10,
+        4,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 1
+    },
+    {
+      "destination": "High Course Station",
+      "commodity": "Processed Food",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        3,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 3
+    },
+    {
+      "destination": "High Course Station",
+      "commodity": "Processed Food",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        3,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 3
+    },
+    {
+      "destination": "High Course Station",
+      "commodity": "Processed Food",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        3,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 3
+    },
+    {
+      "destination": "High Course Station",
+      "commodity": "Stims",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        3,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 0
+    },
+    {
+      "destination": "Thundering Express Station",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Thundering Express Station",
+      "commodity": "Pressurized Ice",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 0
+    },
+    {
+      "destination": "Thundering Express Station",
+      "commodity": "Processed Food",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        2,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 2
+    },
+    {
+      "destination": "Thundering Express Station",
+      "commodity": "Processed Food",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        1,
+        1
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 2
+    },
+    {
+      "destination": "Thundering Express Station",
+      "commodity": "Processed Food",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        5,
+        0
+      ],
+      "delivered": false,
+      "mission": 2,
+      "item": 2
+    },
+    {
+      "destination": "Thundering Express Station",
+      "commodity": "Stims",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        2,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 1
+    },
+    {
+      "destination": "Thundering Express Station",
+      "commodity": "Pressurized Ice",
+      "crateSize": 4,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        3,
+        1
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 2
+    },
+    {
+      "destination": "Thundering Express Station",
+      "commodity": "Pressurized Ice",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        4,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 2
+    },
+    {
+      "destination": "Thundering Express Station",
+      "commodity": "Pressurized Ice",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        1,
+        5,
+        0
+      ],
+      "delivered": false,
+      "mission": 4,
+      "item": 2
+    },
+    {
+      "destination": "Faithful Dream Station",
+      "commodity": "Pressurized Ice",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        6,
+        0,
+        0
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 2
+    },
+    {
+      "destination": "Faithful Dream Station",
+      "commodity": "Pressurized Ice",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        7,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 1,
+      "item": 2
+    },
+    {
+      "destination": "Faithful Dream Station",
+      "commodity": "Stims",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        6,
+        1,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 2
+    },
+    {
+      "destination": "Faithful Dream Station",
+      "commodity": "Stims",
+      "crateSize": 1,
+      "rackId": "rack-0",
+      "position": [
+        6,
+        0,
+        1
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 2
+    },
+    {
+      "destination": "Melodic Fields Station",
+      "commodity": "Stims",
+      "crateSize": 2,
+      "rackId": "rack-0",
+      "position": [
+        0,
+        7,
+        0
+      ],
+      "delivered": false,
+      "mission": 3,
+      "item": 3
+    }
+  ],
+  "warnings": [
+    {
+      "rackId": "rack-0",
+      "message": "Rack 1 shared by Green Glade Station, High Course Station, Thundering Express Station, Faithful Dream Station, Melodic Fields Station \u2013 identify crates by count"
+    }
+  ]
+}

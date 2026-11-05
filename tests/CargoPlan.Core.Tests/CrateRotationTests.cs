@@ -270,6 +270,9 @@ public class CrateRotationTests
     {
         var node = JsonNode.Parse(Written(Planned(HullA, Item(8, CrateSize.Four))))!;
         node["schemaVersion"] = 4;
+        node.AsObject().Remove("fillRows");
+        node.AsObject().Remove("grouping");
+        node.AsObject().Remove("sectionGap");
 
         var saved = Read(node.ToJsonString(), HullA);
 
@@ -282,6 +285,9 @@ public class CrateRotationTests
     {
         var node = JsonNode.Parse(Written(Planned(Perseus, Item(96, CrateSize.ThirtyTwo))))!;
         node["schemaVersion"] = 4;
+        node.AsObject().Remove("fillRows");
+        node.AsObject().Remove("grouping");
+        node.AsObject().Remove("sectionGap");
 
         var act = () => Read(node.ToJsonString(), Perseus);
 
@@ -300,14 +306,14 @@ public class CrateRotationTests
     }
 
     [Fact]
-    public void Schema_9_is_refused()
+    public void Schema_10_is_refused()
     {
         var node = JsonNode.Parse(Written(Planned(HullA, Item(8, CrateSize.Four))))!;
-        node["schemaVersion"] = 9;
+        node["schemaVersion"] = 10;
 
         var act = () => Read(node.ToJsonString(), HullA);
 
-        act.Should().Throw<PlanFormatException>().WithMessage("*schemaVersion 9 is not supported*");
+        act.Should().Throw<PlanFormatException>().WithMessage("*schemaVersion 10 is not supported*");
     }
 
     // --- Racks that changed since the file was written (K1): planned anew, whatever the schema ---
@@ -322,6 +328,9 @@ public class CrateRotationTests
         var node = JsonNode.Parse(Written(WithCrates(saved,
             Riker(CrateSize.Two, 0, 0, 0, rackId: "rack-2"), Riker(CrateSize.Two, 2, 0, 0, rackId: "rack-2"), Riker(CrateSize.Two, 0, 0, 0, rackId: "rack-0"))))!;
         node["schemaVersion"] = schemaVersion;
+        node.AsObject().Remove("fillRows");
+        node.AsObject().Remove("grouping");
+        node.AsObject().Remove("sectionGap");
         foreach (var crate in node["crates"]!.AsArray())
         {
             crate!.AsObject().Remove("rotated");

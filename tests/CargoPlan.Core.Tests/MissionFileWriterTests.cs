@@ -34,7 +34,7 @@ public class MissionFileWriterTests
     [InlineData("fill_order_stern")]
     public void Write_then_Read_gives_the_same_stops(string fixture)
     {
-        // Schema 1 fixtures come back as schema 3 with their explicit crates, schema 2 and 3 as they were (D23).
+        // Schema 1 fixtures come back as the current schema with their explicit crates, schema 2 and 3 as they were (D23).
         var stops = MissionFixtures.LoadMissions(fixture);
 
         // MissionStop holds its items in a list, which compares by reference; equivalence compares the content.
@@ -51,7 +51,7 @@ public class MissionFileWriterTests
     }
 
     [Fact]
-    public void Write_writes_schema_version_3_even_for_a_v1_file_and_leaves_the_stream_open()
+    public void Write_writes_schema_version_4_even_for_a_v1_file_and_leaves_the_stream_open()
     {
         using var stream = new MemoryStream();
 
@@ -59,8 +59,8 @@ public class MissionFileWriterTests
 
         stream.CanRead.Should().BeTrue();
         using var document = JsonDocument.Parse(Encoding.UTF8.GetString(stream.ToArray()));
-        document.RootElement.GetProperty("schemaVersion").GetInt32().Should().Be(3);
-        MissionFileReader.CurrentSchemaVersion.Should().Be(3);
+        document.RootElement.GetProperty("schemaVersion").GetInt32().Should().Be(4);
+        MissionFileReader.CurrentSchemaVersion.Should().Be(4);
     }
 
     // --- Fill order (D72) ---
@@ -72,7 +72,7 @@ public class MissionFileWriterTests
     {
         using var document = Written(MissionFixtures.CrateMixMissions, fillOrder);
 
-        document.RootElement.EnumerateObject().Select(p => p.Name).Should().Equal("schemaVersion", "fillOrder", "stops");
+        document.RootElement.EnumerateObject().Select(p => p.Name).Should().Equal("schemaVersion", "fillOrder", "fillRows", "grouping", "sectionGap", "stops");
         document.RootElement.GetProperty("fillOrder").GetString().Should().Be(expected);
     }
 
@@ -85,13 +85,14 @@ public class MissionFileWriterTests
     }
 
     [Fact]
-    public void Read_then_Write_gives_a_schema_3_file_back_byte_for_byte()
+    public void Read_then_Write_gives_a_schema_4_file_back_byte_for_byte()
     {
-        var file = MissionFixtures.LoadFile("fill_order_stern");
+        var file = MissionFixtures.LoadFile("fill_rows_crosswise");
+        using var stream = new MemoryStream();
 
-        var written = WrittenText(file.Stops, file.FillOrder!.Value);
+        MissionFileWriter.Write(stream, file.Stops, file.FillOrder!.Value, file.FillRows!.Value, file.Grouping!.Value, file.SectionGap!.Value);
 
-        written.ReplaceLineEndings("\n").Should().Be(MissionFixtures.Text("fill_order_stern"));
+        Encoding.UTF8.GetString(stream.ToArray()).ReplaceLineEndings("\n").Should().Be(MissionFixtures.Text("fill_rows_crosswise"));
     }
 
     // --- Crates and broken input ---

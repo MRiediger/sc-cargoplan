@@ -62,7 +62,7 @@
                     ToolTip="{x:Static vm:OverlayViewModel.ReplanToolTipText}" />
             <!-- Empties the plan, not the rows; the next sync starts over (K2.3, Martin's variant a). -->
             <Button Content="Discard plan" Command="{Binding DiscardPlanCommand}" Style="{StaticResource ToolbarButtonStyle}"
-                    ToolTip="Empty the plan and start over; the next Sync from ContractTracker brings every contract back. Fill order stays." />
+                    ToolTip="Empty the plan and start over; the next Sync from ContractTracker brings every contract back. The layout stays." />
             <!-- "Sync", not "Load": Import… next to it replaces the rows, this adds new captures to the plan (T5.4). -->
             <Button Content="Sync from ContractTracker" Command="{Binding SyncCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Add contracts captured in ContractTracker to the plan, and place waiting missions that fit now" />
@@ -76,14 +76,22 @@
                  Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.tooltipservice.showondisabled -->
             <Button DockPanel.Dock="Right" Content="Plan" Command="{Binding PlanCommand}" Padding="16,4"
                     VerticalAlignment="Bottom" ToolTip="{Binding PlanToolTip}" ToolTipService.ShowOnDisabled="True" />
-            <!-- Next to Plan, because it takes effect there (D24, T4.5). "Fill order" as the key in plan.json, so the word
-                 is found again in the file. -->
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="8,0,8,0"
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
+                <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- How Plan lays the crates: they take effect there (D24, T4.5), each named as its key in plan.json, so the word is found
+             again in the file. A line of its own that wraps: the editor lies beside overlay and ContractTracker in the game, where
+             width is scarcer than height (D89). Without a name a screen reader reads a record's ToString(), as for the ship list (T7.2). -->
+        <WrapPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+            <TextBlock Text="Layout" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,4" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,12,4"
                         ToolTip="Which end of each rack the crates fill from. Takes effect when you press Plan.">
                 <TextBlock Text="Fill order:" VerticalAlignment="Center" Margin="0,0,4,0" />
                 <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.FillOrders}" DisplayMemberPath="Text"
                           SelectedValuePath="Value" SelectedValue="{Binding FillOrder}" MinWidth="90">
-                    <!-- Without a name a screen reader reads the record's ToString(), as for the ship list (T7.2). -->
                     <ComboBox.ItemContainerStyle>
                         <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
                             <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
@@ -91,11 +99,43 @@
                     </ComboBox.ItemContainerStyle>
                 </ComboBox>
             </StackPanel>
-            <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" Foreground="{DynamicResource SystemFillColorCriticalBrush}" />
-                <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" Margin="0,0,12,4"
+                        ToolTip="Which way the rows of crates run in a rack: along its length or across its width. Racks stacking sideways, like the Hull A's plates, ignore it. Takes effect when you press Plan.">
+                <TextBlock Text="Rows:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.FillRowsChoices}" DisplayMemberPath="Text"
+                          SelectedValuePath="Value" SelectedValue="{Binding FillRows}" MinWidth="90">
+                    <ComboBox.ItemContainerStyle>
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
+                        </Style>
+                    </ComboBox.ItemContainerStyle>
+                </ComboBox>
             </StackPanel>
-        </DockPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,12,4"
+                        ToolTip="Whether each destination gets a block of its own in a rack it shares. Rows decide which way the blocks run. Takes effect when you press Plan.">
+                <TextBlock Text="Grouping:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.GroupingChoices}" DisplayMemberPath="Text"
+                          SelectedValuePath="Value" SelectedValue="{Binding Grouping}" MinWidth="110">
+                    <ComboBox.ItemContainerStyle>
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
+                        </Style>
+                    </ComboBox.ItemContainerStyle>
+                </ComboBox>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,4"
+                        ToolTip="Empty rows between blocks, to grip the crates. If they don't fit, crates turn where that saves rows, then the gaps shrink. Takes effect when you press Plan.">
+                <TextBlock Text="Section gap:" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.SectionGapChoices}" DisplayMemberPath="Text"
+                          SelectedValuePath="Value" SelectedValue="{Binding SectionGap}" MinWidth="80" IsEnabled="{Binding IsSectionGapEnabled}">
+                    <ComboBox.ItemContainerStyle>
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                            <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
+                        </Style>
+                    </ComboBox.ItemContainerStyle>
+                </ComboBox>
+            </StackPanel>
+        </WrapPanel>
 
         <!-- Bindings with UpdateSourceTrigger=PropertyChanged: the data grid would otherwise commit only at the end of the
              edit, and the stop column, the red row and the Plan button would lag behind the typing.

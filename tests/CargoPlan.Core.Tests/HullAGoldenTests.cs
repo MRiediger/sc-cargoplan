@@ -13,7 +13,7 @@ namespace CargoPlan.Core.Tests;
 /// regenerated to make this pass, only with a decision that changes the planner's objective on purpose: D64 (no route
 /// order) regenerated crate_mix and hull_a_eight_stops and left the other three byte-identical. D68 (plan schema 4)
 /// regenerated all ten for the format alone: apart from <c>schemaVersion</c> and each crate's <c>item</c> they are the
-/// files before, racks and positions unchanged.
+/// files before, racks and positions unchanged. D88 (plan schema 9) too: <c>schemaVersion</c> and a <c>fillRows</c> line.
 /// </summary>
 public class HullAGoldenTests
 {
@@ -42,6 +42,20 @@ public class HullAGoldenTests
         // Mission ids and the watermark come from the route, nothing from time or chance: two runs, one file.
         written.Should().Be(Written(fixture, fillOrder));
         written.Should().Be(Golden(fixture, fillOrder));
+    }
+
+    /// <summary>The Hull A's racks stack along y and ignore the row axis (D88): the same file but for that one word.</summary>
+    [Theory]
+    [MemberData(nameof(Cases))]
+    public void Plan_crosswise_writes_the_golden_plan_file_but_for_the_row_axis(string fixture, FillOrder fillOrder)
+    {
+        var missions = MissionFixtures.LoadMissions(fixture);
+        var saved = SavedPlan.FromStops(missions, LoadPlanner.Plan(HullA, missions.ToStops(), fillOrder, FillRows.Crosswise), CrateCap.Of(HullA));
+        using var stream = new MemoryStream();
+        PlanFile.Write(stream, saved);
+
+        Encoding.UTF8.GetString(stream.ToArray()).ReplaceLineEndings("\n")
+            .Should().Be(Golden(fixture, fillOrder).Replace("\"fillRows\": \"lengthwise\"", "\"fillRows\": \"crosswise\"", StringComparison.Ordinal));
     }
 
     [Fact]

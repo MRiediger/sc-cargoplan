@@ -26,6 +26,9 @@ public enum NoticeSource
     /// <summary>A plan made for another ship was planned anew (D59); cleared by the next plan or ship change.</summary>
     Replan,
 
+    /// <summary>How the plan's sections came out (D89); follows the plan, which carries it.</summary>
+    Sections,
+
     /// <summary>A derived crate mix on board is split into smaller crates than its contract allows (D70); follows the plan.</summary>
     CrateCap,
 

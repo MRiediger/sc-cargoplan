@@ -408,7 +408,7 @@ public class CrateLayoutTests
         // Largest first in input order puts A's 4 at the bow and B's second 4 on top of it; the search stacks B on B.
         var crates = Of((CrateSize.Four, "A"), (CrateSize.Four, "B"), (CrateSize.Four, "B"));
 
-        var laid = CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst)!;
+        var laid = CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst, FillRows.Lengthwise)!;
 
         laid.StackingFree.Should().BeTrue();
         CrateLayout.StackedOn(Rack1, AsCrates(Rack1, crates, laid.Poses)).Should().BeEmpty();
@@ -431,7 +431,7 @@ public class CrateLayoutTests
         // 8 and 4 take the whole plate, and the 1 has no column of its own: proven by the columns, no search.
         var crates = Of((CrateSize.Eight, "A"), (CrateSize.Four, "B"), (CrateSize.One, "C"));
 
-        var laid = CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst, maxStackingSearchSteps: 0)!;
+        var laid = CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst, FillRows.Lengthwise, maxStackingSearchSteps: 0)!;
 
         (laid.StackingFree, laid.GaveUp, laid.Steps).Should().Be((false, false, 0L));
         CrateLayout.StackedOn(Rack1, AsCrates(Rack1, crates, laid.Poses)).Should().NotBeEmpty();
@@ -442,10 +442,10 @@ public class CrateLayoutTests
     {
         var crates = Of((CrateSize.Four, "A"), (CrateSize.Four, "B"), (CrateSize.Four, "B"));
 
-        var laid = CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst, maxStackingSearchSteps: 1)!;
+        var laid = CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst, FillRows.Lengthwise, maxStackingSearchSteps: 1)!;
 
         (laid.StackingFree, laid.GaveUp).Should().Be((false, true));
-        laid.Poses.Should().Equal(CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst, maxStackingSearchSteps: 0)!.Poses);
+        laid.Poses.Should().Equal(CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst, FillRows.Lengthwise, maxStackingSearchSteps: 0)!.Poses);
     }
 
     [Fact]
@@ -458,7 +458,7 @@ public class CrateLayoutTests
             (CrateSize.Two, "C"), (CrateSize.One, "C"));
 
         CrateLayout.MustStack(Rack1, [], crates).Should().BeFalse();
-        var laid = CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst)!;
+        var laid = CrateLayout.Lay(Rack1, [], crates, FillOrder.BowFirst, FillRows.Lengthwise)!;
 
         (laid.StackingFree, laid.GaveUp).Should().Be((false, false));
         laid.Steps.Should().BePositive();

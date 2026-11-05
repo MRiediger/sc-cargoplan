@@ -11,6 +11,7 @@ shows it in a translucent window next to the game.
 ## Features
 
 - One color per destination, one rack per destination where the ship allows it, every crate named in the legend.
+- Optionally a block per destination in a shared rack, with a gap to get at the crates.
 - Contracts captured with ContractTracker come in by themselves; or type them in the editor.
 - Drag, turn, split and merge crates to match what the cargo elevator really did.
 - Mark each delivery loaded, then delivered at its stop; undo any step.

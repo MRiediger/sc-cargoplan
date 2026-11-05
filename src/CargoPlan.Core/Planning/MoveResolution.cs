@@ -534,12 +534,12 @@ internal static class MoveResolution
             return taken;
         }
 
-        public int[,,] Ranks(Rack rack) => _ranks.TryGetValue(rack, out var rank) ? rank : _ranks[rack] = CrateLayout.Ranks(rack, _plan.FillOrder);
+        public int[,,] Ranks(Rack rack) => _ranks.TryGetValue(rack, out var rank) ? rank : _ranks[rack] = CrateLayout.Ranks(rack, _plan.FillOrder, _plan.FillRows);
 
         /// <summary><see cref="CrateLayout.Lay"/> of the crates at <paramref name="crates"/> around <paramref name="occupied"/>, on the move's budget.</summary>
         public CrateLayout.Laying? Lay(Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<int> crates)
         {
-            var laid = CrateLayout.Lay(rack, occupied, [.. crates.Select(i => (Original(i).CrateSize, Original(i).Destination))], _plan.FillOrder, _budget.For(rack));
+            var laid = CrateLayout.Lay(rack, occupied, [.. crates.Select(i => (Original(i).CrateSize, Original(i).Destination))], _plan.FillOrder, _plan.FillRows, _budget.For(rack));
             if (laid is not null)
             {
                 _budget.Spend(rack, laid);
@@ -566,8 +566,15 @@ internal static class MoveResolution
 
         /// <summary>The plan of this board with its hints derived anew and a note for every rack whose search gave up (D54).</summary>
         public MoveOutcome Outcome(LoadPlan plan, Ship ship, MoveStage stage, IReadOnlyList<string> notices) =>
-            new(LoadPlanner.WithHints(plan with { Crates = [.. Slots.Select(c => c!)] }, ship, LoadPlanner.StackingUncheckedNotes(_gaveUp.OrderBy(r => r.Index))),
+            new(LoadPlanner.WithHints(WithoutNotesOfMoved(plan, [.. Slots.Select(c => c!)]), ship, LoadPlanner.StackingUncheckedNotes(_gaveUp.OrderBy(r => r.Index))),
                 stage, null, notices);
+
+        /// <summary>The plan with these crates; what sections said about a destination whose crate moved goes with the move (D89).</summary>
+        private static LoadPlan WithoutNotesOfMoved(LoadPlan plan, Crate[] crates)
+        {
+            HashSet<string> moved = [.. plan.Crates.Zip(crates).Where(p => p.First != p.Second).Select(p => p.First.Destination)];
+            return plan with { Crates = crates, Warnings = [.. plan.Warnings.Where(w => SectionNotes.Names(w) is not { } names || !names.Any(moved.Contains))] };
+        }
 
         /// <summary>
         /// The lowest crate of the rack (plan order on a tie) with a bottom cell above nothing (D24), but none of

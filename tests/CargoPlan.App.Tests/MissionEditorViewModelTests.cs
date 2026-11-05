@@ -526,7 +526,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
     // --- Fill order in mission files (D72) ---
 
-    /// <summary>The split-and-shared missions as a schema 3 file with <paramref name="fillOrder"/>, written by Core's writer.</summary>
+    /// <summary>The split-and-shared missions as a mission file with <paramref name="fillOrder"/>, written by Core's writer.</summary>
     private string MissionFileWith(FillOrder fillOrder)
     {
         Directory.CreateDirectory(_folder);
@@ -616,6 +616,342 @@ public sealed class MissionEditorViewModelTests : IDisposable
         MissionEditorViewModel.FillOrders.Should().Equal(
             new FillOrderChoice(FillOrder.BowFirst, "Bow first"),
             new FillOrderChoice(FillOrder.SternFirst, "Stern first"));
+    }
+
+    // --- Rows (D88): the fill order's rules ---
+
+    private string MissionFileWith(FillRows fillRows)
+    {
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, $"{fillRows}.json");
+        using var stream = File.Create(path);
+        MissionFileWriter.Write(stream, TestPlans.SplitAndShared().Stops, FillOrder.BowFirst, fillRows);
+        return path;
+    }
+
+    [Fact]
+    public void Without_a_plan_the_rows_are_lengthwise()
+    {
+        new MissionEditorViewModel(EmptyOverlay()).FillRows.Should().Be(FillRows.Lengthwise);
+    }
+
+    [Fact]
+    public void The_editor_starts_with_the_rows_of_the_current_plan()
+    {
+        var overlay = EmptyOverlay();
+        var planned = TestPlans.SplitAndShared();
+        overlay.ShowPlan(SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(overlay.Ship, planned.Stops.ToStops(), FillOrder.BowFirst, FillRows.Crosswise), CrateCap.Of(overlay.Ship)));
+
+        new MissionEditorViewModel(overlay).FillRows.Should().Be(FillRows.Crosswise);
+    }
+
+    [Fact]
+    public void Plan_uses_the_chosen_rows()
+    {
+        var overlay = EmptyOverlay();
+        var editor = FourRows(overlay);
+
+        editor.FillRows = FillRows.Crosswise;
+        editor.PlanCommand.Execute(null);
+
+        overlay.Plan!.FillRows.Should().Be(FillRows.Crosswise);
+    }
+
+    [Fact]
+    public void Changing_the_rows_marks_unplanned_changes_and_leaves_the_overlay_plan_until_Plan()
+    {
+        var overlay = OverlayWithPlan();
+        var plan = overlay.Plan;
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.FillRows = FillRows.Crosswise;
+
+        editor.IsDirty.Should().BeTrue();
+        editor.Title.Should().Be(MissionEditorViewModel.UnplannedTitleText);
+        overlay.Plan.Should().BeSameAs(plan);
+    }
+
+    [Fact]
+    public void Clear_rows_keeps_the_row_axis()
+    {
+        var editor = FourRows(EmptyOverlay());
+        editor.FillRows = FillRows.Crosswise;
+
+        editor.ClearRowsCommand.Execute(null);
+
+        editor.FillRows.Should().Be(FillRows.Crosswise);
+    }
+
+    [Fact]
+    public void Import_of_a_file_with_rows_sets_them_as_an_unplanned_change()
+    {
+        var overlay = OverlayWithPlan();
+        var plan = overlay.Plan;
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.Import(MissionFileWith(FillRows.Crosswise));
+
+        editor.FillRows.Should().Be(FillRows.Crosswise);
+        editor.IsDirty.Should().BeTrue();
+        overlay.Plan.Should().BeSameAs(plan, "like every edit it waits for Plan");
+    }
+
+    [Fact]
+    public void Import_of_a_file_without_rows_keeps_the_editors()
+    {
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, "schema3.json");
+        File.WriteAllText(path, """
+            { "schemaVersion": 3, "fillOrder": "bowFirst", "stops": [ { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 4, "maxCrateSize": 4 } ] } ] }
+            """);
+        var editor = FourRows(EmptyOverlay());
+        editor.FillRows = FillRows.Crosswise;
+
+        editor.Import(path);
+
+        editor.Problem.Should().BeNull();
+        editor.FillRows.Should().Be(FillRows.Crosswise);
+    }
+
+    [Theory]
+    [InlineData(FillRows.Lengthwise, "lengthwise")]
+    [InlineData(FillRows.Crosswise, "crosswise")]
+    public void Export_writes_the_rows_of_the_draft(FillRows fillRows, string expected)
+    {
+        var path = Path.Combine(_folder, "missions.json");
+        var editor = FourRows(OverlayWithPlan());
+        editor.FillRows = fillRows;
+
+        editor.Export(path);
+
+        MissionFileReader.Read(path).FillRows.Should().Be(fillRows);
+        File.ReadAllText(path).Should().Contain($"\"fillRows\": \"{expected}\"");
+    }
+
+    [Fact]
+    public void Import_then_Export_keeps_the_rows_byte_for_byte()
+    {
+        var source = MissionFileWith(FillRows.Crosswise);
+        var target = Path.Combine(_folder, "exported.json");
+        var editor = new MissionEditorViewModel(EmptyOverlay());
+
+        editor.Import(source);
+        editor.Export(target);
+
+        File.ReadAllBytes(target).Should().Equal(File.ReadAllBytes(source));
+    }
+
+    [Fact]
+    public void The_row_choices_are_lengthwise_and_crosswise()
+    {
+        MissionEditorViewModel.FillRowsChoices.Should().Equal(
+            new FillRowsChoice(FillRows.Lengthwise, "Lengthwise"),
+            new FillRowsChoice(FillRows.Crosswise, "Crosswise"));
+    }
+
+    // --- Grouping (D89): the fill order's rules ---
+
+    private string MissionFileWith(PlanGrouping grouping)
+    {
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, $"{grouping}.json");
+        using var stream = File.Create(path);
+        MissionFileWriter.Write(stream, TestPlans.SplitAndShared().Stops, FillOrder.BowFirst, FillRows.Lengthwise, grouping);
+        return path;
+    }
+
+    [Fact]
+    public void Without_a_plan_there_is_no_grouping()
+    {
+        new MissionEditorViewModel(EmptyOverlay()).Grouping.Should().Be(PlanGrouping.None);
+    }
+
+    [Fact]
+    public void The_editor_starts_with_the_grouping_of_the_current_plan()
+    {
+        var overlay = EmptyOverlay();
+        var planned = TestPlans.SplitAndShared();
+        overlay.ShowPlan(SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(overlay.Ship, planned.Stops.ToStops(), FillOrder.BowFirst, FillRows.Lengthwise, PlanGrouping.ByDestination), CrateCap.Of(overlay.Ship)));
+
+        new MissionEditorViewModel(overlay).Grouping.Should().Be(PlanGrouping.ByDestination);
+    }
+
+    [Fact]
+    public void Plan_uses_the_chosen_grouping()
+    {
+        var overlay = EmptyOverlay();
+        var editor = FourRows(overlay);
+
+        editor.Grouping = PlanGrouping.ByDestination;
+        editor.PlanCommand.Execute(null);
+
+        overlay.Plan!.Grouping.Should().Be(PlanGrouping.ByDestination);
+    }
+
+    [Fact]
+    public void Changing_the_grouping_marks_unplanned_changes_and_leaves_the_overlay_plan_until_Plan()
+    {
+        var overlay = OverlayWithPlan();
+        var plan = overlay.Plan;
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.Grouping = PlanGrouping.ByDestination;
+
+        editor.IsDirty.Should().BeTrue();
+        editor.Title.Should().Be(MissionEditorViewModel.UnplannedTitleText);
+        overlay.Plan.Should().BeSameAs(plan);
+    }
+
+    [Fact]
+    public void Clear_rows_keeps_the_grouping()
+    {
+        var editor = FourRows(EmptyOverlay());
+        editor.Grouping = PlanGrouping.ByDestination;
+
+        editor.ClearRowsCommand.Execute(null);
+
+        editor.Grouping.Should().Be(PlanGrouping.ByDestination);
+    }
+
+    [Fact]
+    public void Import_of_a_file_with_a_grouping_sets_it_and_one_without_keeps_the_editors()
+    {
+        var editor = FourRows(EmptyOverlay());
+
+        editor.Import(MissionFileWith(PlanGrouping.ByDestination));
+        editor.Grouping.Should().Be(PlanGrouping.ByDestination);
+
+        Directory.CreateDirectory(_folder);
+        var path = Path.Combine(_folder, "schema3.json");
+        File.WriteAllText(path, """
+            { "schemaVersion": 3, "fillOrder": "bowFirst", "stops": [ { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 4, "maxCrateSize": 4 } ] } ] }
+            """);
+        editor.Import(path);
+
+        editor.Problem.Should().BeNull();
+        editor.Grouping.Should().Be(PlanGrouping.ByDestination);
+    }
+
+    [Theory]
+    [InlineData(PlanGrouping.None, "none")]
+    [InlineData(PlanGrouping.ByDestination, "byDestination")]
+    public void Export_writes_the_grouping_of_the_draft(PlanGrouping grouping, string expected)
+    {
+        var path = Path.Combine(_folder, "missions.json");
+        var editor = FourRows(OverlayWithPlan());
+        editor.Grouping = grouping;
+
+        editor.Export(path);
+
+        MissionFileReader.Read(path).Grouping.Should().Be(grouping);
+        File.ReadAllText(path).Should().Contain($"\"grouping\": \"{expected}\"");
+    }
+
+    [Fact]
+    public void The_grouping_choices_are_none_and_by_destination()
+    {
+        MissionEditorViewModel.GroupingChoices.Should().Equal(
+            new GroupingChoice(PlanGrouping.None, "None"),
+            new GroupingChoice(PlanGrouping.ByDestination, "By destination"));
+    }
+
+    /// <summary>Seventeen destinations on the Hull A's four racks: one rack takes five, one more than its four rows.</summary>
+    private static SavedPlan Sharing(OverlayViewModel overlay)
+    {
+        MissionStop[] stops = [.. Enumerable.Range(1, 17).Select(i => new MissionStop($"Stop {i}", i, [new MissionItem("Titanium", 1, CrateSize.One)]))];
+        return SavedPlan.FromStops(stops, LoadPlanner.Plan(overlay.Ship, stops.ToStops(), FillOrder.BowFirst, FillRows.Lengthwise, PlanGrouping.ByDestination), CrateCap.Of(overlay.Ship));
+    }
+
+    [Fact]
+    public void A_shared_section_shows_as_a_notice_and_goes_with_the_plan()
+    {
+        var overlay = EmptyOverlay();
+
+        overlay.ShowPlan(Sharing(overlay));
+        overlay.Notices.Should().Contain(n => n.Contains(" shares a section with ", StringComparison.Ordinal));
+
+        var planned = TestPlans.SplitAndShared();
+        overlay.ShowPlan(SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(overlay.Ship, planned.Stops.ToStops()), CrateCap.Of(overlay.Ship)));
+        overlay.Notices.Should().NotContain(n => n.Contains(" shares a section with ", StringComparison.Ordinal));
+    }
+
+    // --- Section gap (K9.2b): the fill order's rules ---
+
+    [Fact]
+    public void Without_a_plan_there_is_no_gap()
+    {
+        new MissionEditorViewModel(EmptyOverlay()).SectionGap.Should().Be(0);
+    }
+
+    [Fact]
+    public void Plan_uses_the_chosen_gap_and_the_next_editor_starts_with_it()
+    {
+        var overlay = EmptyOverlay();
+        var editor = FourRows(overlay);
+
+        editor.Grouping = PlanGrouping.ByDestination;
+        editor.SectionGap = 2;
+        editor.PlanCommand.Execute(null);
+
+        overlay.Plan!.SectionGap.Should().Be(2);
+        new MissionEditorViewModel(overlay).SectionGap.Should().Be(2);
+    }
+
+    [Fact]
+    public void The_gap_box_works_only_with_grouping_and_the_gap_survives_without()
+    {
+        var overlay = EmptyOverlay();
+        var editor = FourRows(overlay);
+        List<string?> changed = [];
+        editor.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+        editor.IsSectionGapEnabled.Should().BeFalse();
+
+        editor.Grouping = PlanGrouping.ByDestination;
+        editor.IsSectionGapEnabled.Should().BeTrue();
+        changed.Should().Contain(nameof(MissionEditorViewModel.IsSectionGapEnabled));
+        editor.SectionGap = 1;
+
+        editor.Grouping = PlanGrouping.None;
+        editor.PlanCommand.Execute(null);
+
+        overlay.Plan!.SectionGap.Should().Be(1);
+        new MissionEditorViewModel(overlay).SectionGap.Should().Be(1);
+    }
+
+    [Fact]
+    public void Changing_the_gap_marks_unplanned_changes_and_Clear_rows_keeps_it()
+    {
+        var overlay = OverlayWithPlan();
+        var plan = overlay.Plan;
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.SectionGap = 1;
+
+        editor.IsDirty.Should().BeTrue();
+        overlay.Plan.Should().BeSameAs(plan);
+        editor.ClearRowsCommand.Execute(null);
+        editor.SectionGap.Should().Be(1);
+    }
+
+    [Fact]
+    public void Export_and_Import_carry_the_gap()
+    {
+        var path = Path.Combine(_folder, "missions.json");
+        var editor = FourRows(OverlayWithPlan());
+        editor.SectionGap = 2;
+
+        editor.Export(path);
+        File.ReadAllText(path).Should().Contain("\"sectionGap\": 2");
+
+        var other = new MissionEditorViewModel(EmptyOverlay());
+        other.Import(path);
+        other.SectionGap.Should().Be(2);
+    }
+
+    [Fact]
+    public void The_gap_choices_are_none_one_and_two_rows()
+    {
+        MissionEditorViewModel.SectionGapChoices.Should().Equal(new SectionGapChoice(0, "None"), new SectionGapChoice(1, "1 row"), new SectionGapChoice(2, "2 rows"));
     }
 
     // --- Import, export, text ---

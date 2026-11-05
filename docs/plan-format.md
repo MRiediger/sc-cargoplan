@@ -15,9 +15,12 @@ doesn't mind.
 
 ```json
 {
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
+  "fillRows": "lengthwise",
+  "grouping": "none",
+  "sectionGap": 0,
   "contractTrackerWatermark": 37,
   "missions": [
     {
@@ -54,9 +57,12 @@ fields are an error.
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `8`. Files with `1` to `7` are still read, see [Older plan files](#older-plan-files). |
+| `schemaVersion` | number | `9`. Files with `1` to `8` are still read, see [Older plan files](#older-plan-files). |
 | `shipId` | string | The ship the plan is for, e.g. `"hull_a"` ([ship files](ship-format.md)). |
 | `fillOrder` | string | `"bowFirst"` or `"sternFirst"`: which end of a rack's length crates fill from, when planned and when laid out again, e.g. after a move. Chosen as **Fill order** in the editor. Part of the plan, so everyone loading it sees the same layout. |
+| `fillRows` | string | `"lengthwise"` or `"crosswise"`: which way the rows of a layout run. Lengthwise rows run along the rack's length and step across its width; crosswise rows run across the width and step along the length, from the end `fillOrder` names. Width counts from starboard to port either way. Chosen as **Rows** in the editor. A rack that stacks along `+y` or `-y`, like the Hull A's plates, ignores it. |
+| `grouping` | string | `"none"` or `"byDestination"`: whether Plan and Re-plan keep each destination as a block of its own in a rack it shares. Blocks run across the width with `crosswise` and along the length with `lengthwise`; a rack that stacks along `+y` or `-y` runs them along its length either way. Chosen as **Grouping** in the editor. Optional; without it, `"none"`. |
+| `sectionGap` | number | `0`, `1` or `2`: empty rows between neighbouring blocks with `"byDestination"`, to grip the crates. If they don't fit, crates turn where that saves rows, then the gaps shrink; the overlay doesn't mention it. Chosen as **Section gap** in the editor. Optional; without it, `0`. |
 | `contractTrackerWatermark` | number | The highest ContractTracker id taken into the plan, `0` for none. Captures above it are new; it only rises. |
 | `missions` | array | Every mission: what you typed or ContractTracker captured, one contract each. May be empty. |
 | `crates` | array | Every crate: what, for whom, for which mission, which rack, which cell. Their order is the route: a stop is unloaded in the order of its first crate still on board. |
@@ -119,8 +125,11 @@ red; the planner and the overlay's moves never make them.
 
 ## Older plan files
 
-All older versions are read and saved as schema 8 right after loading; moves and ticks stay. An app from before
-schema 8 refuses a schema 8 file, so it never takes a gone contract for one ContractTracker still lists.
+All older versions are read and saved as schema 9 right after loading; moves and ticks stay. An app from before
+schema 9 refuses a schema 9 file, so it never lays a crosswise plan out lengthwise.
+
+- **Schema 8** (before the row axis) has no `fillRows`, `grouping` or `sectionGap`: every plan is lengthwise and
+  ungrouped. Any of them in a schema 8 file is an error, and a schema 9 file without `fillRows` is one too.
 
 - **Schema 7** (before contracts gone from ContractTracker stayed in the plan) has no `gone` and no `detached`: every
   capture counts as listed until the next sync says otherwise. `gone` in a schema 7 file is an error.

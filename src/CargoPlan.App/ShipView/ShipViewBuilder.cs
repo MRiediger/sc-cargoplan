@@ -83,38 +83,32 @@ public static class ShipViewBuilder
     }
 
     /// <summary>
-    /// The legend's lines (B6, D69): one per mission and destination, missions in the order they first appear along the
-    /// route (D64), on a tie in the plan's mission order, a mission's destinations in route order. Once any mission on
-    /// board has a pickup or comes from ContractTracker (K6.1), the first line of each mission carries its header ("From A, B"
+    /// The legend's lines (B6, D69): one per mission and destination, in the order of <see cref="LoadPlan.LegendMissions"/>.
+    /// Once any mission on board has a pickup or comes from ContractTracker (K6.1), the first line of each mission carries its header ("From A, B"
     /// from every item's pickup, or "From ?"), its ContractTracker id ("#47") and the mission's crates on board for the
     /// header's check box; without any, no line has a header.
     /// </summary>
     private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped, string? ContractIds, bool Gone)> LegendLines(
         LoadPlan plan, SavedPlan? saved)
     {
-        var rank = plan.Route.Select((destination, index) => (destination, index)).ToDictionary(r => r.destination, r => r.index);
-        var listed = saved?.Missions.Select((mission, index) => (mission.Id, index)).ToDictionary(m => m.Id, m => m.index) ?? [];
         var pickups = saved?.Missions.ToDictionary(m => m.Id, m => Pickups.Normalized(m.Items.SelectMany(i => i.Item.Pickup ?? []))) ?? [];
         var contracts = saved?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Id, m => MissionText.Source(m.Contract)) ?? [];
         HashSet<int> gone = [.. saved?.Missions.Where(m => m.Contract is { Gone: true }).Select(m => m.Id) ?? []];
-        var missions = plan.Crates.GroupBy(c => c.Mission)
-            .OrderBy(m => m.Min(c => rank[c.Destination]))
-            .ThenBy(m => listed.GetValueOrDefault(m.Key))
-            .ToArray();
-        var headed = missions.Any(m => pickups.GetValueOrDefault(m.Key) is not null || contracts.ContainsKey(m.Key));
+        var missions = plan.LegendMissions([.. saved?.Missions.Select(m => m.Id) ?? []]);
+        var headed = missions.Any(m => pickups.GetValueOrDefault(m.Mission) is not null || contracts.ContainsKey(m.Mission));
 
         return missions.SelectMany(mission =>
         {
-            Crate[] onBoard = [.. mission.Where(c => !c.Delivered)];
-            return mission.GroupBy(c => c.Destination).OrderBy(d => rank[d.Key]).Select((stop, index) => (
-                headed && index == 0 ? FromText + (pickups.GetValueOrDefault(mission.Key) is { } pickup ? string.Join(", ", pickup) : UnknownPickupText) : null,
-                mission.Key,
-                stop.Key,
-                (IReadOnlyList<Crate>)[.. stop],
+            Crate[] onBoard = [.. mission.Crates.Where(c => !c.Delivered)];
+            return mission.Lines.Select((line, index) => (
+                headed && index == 0 ? FromText + (pickups.GetValueOrDefault(mission.Mission) is { } pickup ? string.Join(", ", pickup) : UnknownPickupText) : null,
+                mission.Mission,
+                line.Destination,
+                line.Crates,
                 headed && index == 0 && onBoard.Length > 0 ? (IReadOnlyList<Crate>?)onBoard : null,
                 headed,
-                headed && index == 0 ? contracts.GetValueOrDefault(mission.Key) : null,
-                headed && index == 0 && gone.Contains(mission.Key)));
+                headed && index == 0 ? contracts.GetValueOrDefault(mission.Mission) : null,
+                headed && index == 0 && gone.Contains(mission.Mission)));
         });
     }
 

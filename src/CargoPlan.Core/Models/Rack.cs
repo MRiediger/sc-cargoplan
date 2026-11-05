@@ -28,6 +28,12 @@ public sealed record Rack(
     /// <summary>Player-facing rack number: racks count from 1, <see cref="Index"/> stays 0-based (D6).</summary>
     public int Number => Index + 1;
 
+    /// <summary>
+    /// True if crates stack along ship y, away from an upright plate: the grid's width then stands upright too
+    /// (<see cref="FrameOf"/>), so there is no row across the ship to fill (D88).
+    /// </summary>
+    public bool StacksSideways => StackAxis is StackAxis.PlusY or StackAxis.MinusY;
+
     /// <summary>The space the rack takes in the ship, from <see cref="Origin"/>, its min corner, along the axes of <see cref="StackAxis"/>.</summary>
     public ShipBox Bounds => Box(new GridPosition(0, 0, 0), Grid);
 
