@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using CargoPlan.Core.Json;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
@@ -8,24 +9,28 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Plans;
 
 /// <summary>
-/// File format of a plan file (schema version 8, docs/plan-format.md): the missions with their stops and where they came
-/// from (D42), whether that capture is gone from ContractTracker (D81), every crate with its mission and item (D68), rack,
-/// position (D24), whether it is turned (D71), whether it is off the ship (K2.2) and whether it is loaded (K6.4), and the
-/// ContractTracker watermark (D39 addendum). Schema 7 is the same with no capture gone; schema 6 also with nothing loaded; schema 5 also with every crate in a rack; schema 4 also without turned crates; schema 3 also without items: read, each crate given an item of its
+/// File format of a plan file (schema version 9, docs/plan-format.md): the fill order and row axis (D88), the missions with
+/// their stops and where they came from (D42), whether that capture is gone from ContractTracker (D81), every crate with its
+/// mission and item (D68), rack, position (D24), whether it is turned (D71), whether it is off the ship (K2.2) and whether it
+/// is loaded (K6.4), and the ContractTracker watermark (D39 addendum). Schema 8 is the same without a row axis, every plan
+/// lengthwise; schema 7 also with no capture gone; schema 6 also with nothing loaded; schema 5 also with every crate in a rack; schema 4 also without turned crates; schema 3 also without items: read, each crate given an item of its
 /// mission on reading.
 /// </summary>
+/// <remarks><see cref="FillRows"/> is optional for the older schemas, so it stands last; the order attributes write it behind the fill order, as <see cref="Missions.MissionFileDto"/> does.</remarks>
 internal sealed record PlanFileDto(
     int SchemaVersion,
     string ShipId,
     string FillOrder,
-    long ContractTrackerWatermark,
-    IReadOnlyList<MissionDto> Missions,
-    IReadOnlyList<CrateDto> Crates,
-    IReadOnlyList<PlanWarningDto> Warnings)
+    [property: JsonPropertyOrder(1)] long ContractTrackerWatermark,
+    [property: JsonPropertyOrder(1)] IReadOnlyList<MissionDto> Missions,
+    [property: JsonPropertyOrder(1)] IReadOnlyList<CrateDto> Crates,
+    [property: JsonPropertyOrder(1)] IReadOnlyList<PlanWarningDto> Warnings,
+    string? FillRows = null)
 {
     /// <exception cref="ArgumentException">A value violates the domain rules, or the plan doesn't fit the ship or its missions.</exception>
     public SavedPlan ToSavedPlan(Ship ship)
     {
+        CheckFillRows(FillRows, SchemaVersion);
         CheckGone(Missions, SchemaVersion);
         Mission[] missions = [.. Missions.Select(m => m.ToMission())];
         CheckItems(Crates, SchemaVersion);
@@ -34,7 +39,7 @@ internal sealed record PlanFileDto(
         CheckLoaded(Crates, SchemaVersion);
         CheckManual(Missions, SchemaVersion);
         Crate[] crates = [.. Crates.Select(c => c.ToCrate())];
-        var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder)), ship);
+        var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder), FillRows is null ? Models.FillRows.Lengthwise : FillRowsJson.Parse(FillRows)), ship);
 
         return UnderCap(ship, cap => new SavedPlan(
             missions,
@@ -89,7 +94,8 @@ internal sealed record PlanFileDto(
         saved.Watermark,
         [.. saved.Missions.Select(MissionDto.FromMission)],
         [.. saved.Plan.Crates.Select(CrateDto.FromCrate)],
-        [.. saved.Plan.Warnings.Select(PlanWarningDto.FromPlanWarning)]);
+        [.. saved.Plan.Warnings.Select(PlanWarningDto.FromPlanWarning)],
+        FillRowsJson.Text(saved.Plan.FillRows));
 
     /// <summary>
     /// The checks every schema version shares: racks (D24). Overlap and crates without support load;
@@ -130,6 +136,22 @@ internal sealed record PlanFileDto(
 
         // Hints are derived anew: a plan from before D64 loses its route notes and shows what sits on what.
         return (LoadPlanner.WithHints(plan, ship), false);
+    }
+
+    /// <summary>From schema 9 on the file names its row axis; before it every plan is lengthwise and none does (D88).</summary>
+    /// <exception cref="ArgumentException">The file breaks that.</exception>
+    internal static void CheckFillRows(string? fillRows, int schemaVersion)
+    {
+        const int withFillRows = PlanFile.NoFillRowsSchemaVersion + 1;
+        if (schemaVersion < withFillRows && fillRows is not null)
+        {
+            throw new ArgumentException(Invariant($"fillRows is new in schema {withFillRows} (the file says {schemaVersion})."), nameof(FillRows));
+        }
+
+        if (schemaVersion >= withFillRows && fillRows is null)
+        {
+            throw new ArgumentException(Invariant($"The file has no fillRows, which schema {schemaVersion} requires."), nameof(FillRows));
+        }
     }
 
     /// <summary>Every crate from schema 4 on names its item; before schema 4 none does (D68).</summary>

@@ -60,6 +60,7 @@ public class ManualItemTests
     {
         var node = JsonNode.Parse(Written(WithManualStop()))!;
         node["schemaVersion"] = 6;
+        node.AsObject().Remove("fillRows");
 
         var act = () => Read(node.ToJsonString());
 

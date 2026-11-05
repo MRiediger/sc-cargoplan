@@ -5,22 +5,23 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Missions;
 
 /// <summary>
-/// File format of a mission JSON (schema version 3, D72: schema 2 with an optional fill order). Read via
+/// File format of a mission JSON (schema version 4, D88: schema 3 with an optional row axis). Read via
 /// <see cref="ToMissionFile"/>, written via <see cref="FromMissionStops"/>, so import and export share one format.
-/// Version 2 is the same without <see cref="FillOrder"/>; version 1 (<see cref="MissionFileV1Dto"/>) is still read,
-/// neither is written.
+/// Version 3 is the same without <see cref="FillRows"/>, version 2 also without <see cref="FillOrder"/> (D72); version 1
+/// (<see cref="MissionFileV1Dto"/>) is still read, none of them is written.
 /// </summary>
 /// <remarks>
-/// <see cref="FillOrder"/> is optional, so it has a default and stands last; <c>JsonPropertyOrder</c> on
-/// <see cref="Stops"/> writes it before the stops, where it is read at a glance. Source:
+/// <see cref="FillOrder"/> and <see cref="FillRows"/> are optional, so they have a default and stand last; <c>JsonPropertyOrder</c> on
+/// <see cref="Stops"/> writes them before the stops, where they are read at a glance. Source:
 /// https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/customize-properties#configure-the-order-of-serialized-properties
 /// </remarks>
 internal sealed record MissionFileDto(
     int SchemaVersion,
     [property: JsonPropertyOrder(1)] IReadOnlyList<MissionStopDto> Stops,
-    string? FillOrder = null)
+    string? FillOrder = null,
+    string? FillRows = null)
 {
-    /// <exception cref="ArgumentException">A value violates the domain rules, or a schema 2 file names a fill order.</exception>
+    /// <exception cref="ArgumentException">A value violates the domain rules, or a file names a fill order or row axis older than its schema.</exception>
     public MissionFile ToMissionFile()
     {
         const int withFillOrder = MissionFileReader.NoFillOrderSchemaVersion + 1;
@@ -30,7 +31,14 @@ internal sealed record MissionFileDto(
                 Invariant($"fillOrder is new in schema {withFillOrder} (the file says {SchemaVersion})."), nameof(FillOrder));
         }
 
-        return new(ToMissionStops(), FillOrder is null ? null : FillOrderJson.Parse(FillOrder));
+        const int withFillRows = MissionFileReader.NoFillRowsSchemaVersion + 1;
+        if (FillRows is not null && SchemaVersion < withFillRows)
+        {
+            throw new ArgumentException(
+                Invariant($"fillRows is new in schema {withFillRows} (the file says {SchemaVersion})."), nameof(FillRows));
+        }
+
+        return new(ToMissionStops(), FillOrder is null ? null : FillOrderJson.Parse(FillOrder), FillRows is null ? null : FillRowsJson.Parse(FillRows));
     }
 
     /// <exception cref="ArgumentException">A value violates the domain rules.</exception>
@@ -45,12 +53,13 @@ internal sealed record MissionFileDto(
         return CheckedRoute([.. Stops.Select((s, index) => s.ToMissionStop(index + 1))]);
     }
 
-    /// <summary>Always with the fill order: an export says how its rows were meant to be loaded (D72).</summary>
-    public static MissionFileDto FromMissionStops(IEnumerable<MissionStop> stops, Models.FillOrder fillOrder) =>
+    /// <summary>Always with the fill order and row axis: an export says how its rows were meant to be loaded (D72, D88).</summary>
+    public static MissionFileDto FromMissionStops(IEnumerable<MissionStop> stops, Models.FillOrder fillOrder, Models.FillRows fillRows) =>
         new(
             MissionFileReader.CurrentSchemaVersion,
             [.. stops.OrderBy(s => s.Order).Select(s => MissionStopDto.FromMissionStop(s, withManual: false))],
-            FillOrderJson.Text(fillOrder));
+            FillOrderJson.Text(fillOrder),
+            FillRowsJson.Text(fillRows));
 
     /// <summary>The route rules of both schema versions. Array order is the route: first stop = Order 1.</summary>
     /// <exception cref="ArgumentException">No stop, or a destination twice.</exception>

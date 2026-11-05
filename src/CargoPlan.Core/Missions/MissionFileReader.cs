@@ -6,13 +6,16 @@ namespace CargoPlan.Core.Missions;
 /// <summary>
 /// Reads mission files (see docs/mission-format.md). The stream overload is the core:
 /// CLI reads files, tests read embedded resources, the editor imports files, all through one code path.
-/// Returns the missions as entered and the file's fill order, if any (D72); <see cref="MissionStopExtensions.ToStops"/>
+/// Returns the missions as entered and the file's fill order and row axis, if any (D72, D88); <see cref="MissionStopExtensions.ToStops"/>
 /// expands the missions for the planner (D23).
 /// </summary>
 public static class MissionFileReader
 {
     /// <summary>The version the writer writes.</summary>
-    public const int CurrentSchemaVersion = 3;
+    public const int CurrentSchemaVersion = 4;
+
+    /// <summary>A fill order, but no row axis (D72); still read, never written.</summary>
+    public const int NoFillRowsSchemaVersion = 3;
 
     /// <summary>Derived crate mixes, but no fill order (D23); still read, never written.</summary>
     public const int NoFillOrderSchemaVersion = 2;
@@ -20,7 +23,7 @@ public static class MissionFileReader
     /// <summary>One crate size per item; still read, never written.</summary>
     public const int LegacySchemaVersion = 1;
 
-    private static readonly int[] SupportedSchemaVersions = [LegacySchemaVersion, NoFillOrderSchemaVersion, CurrentSchemaVersion];
+    private static readonly int[] SupportedSchemaVersions = [LegacySchemaVersion, NoFillOrderSchemaVersion, NoFillRowsSchemaVersion, CurrentSchemaVersion];
 
     /// <summary>
     /// The mission file inside a plan file of schema 1 and 2: those were written before schema 3, and a plan has one fill

@@ -228,6 +228,7 @@ public class CrateItemTests
         // A schema 3 file is what this app wrote before D68: no "item", crates of one kind per mission in plan order.
         var node = JsonNode.Parse(Written(Planned(TwoPickups(), new Mission(2, [new("Riker", 1, [Item("Titanium", 4, CrateSize.Four), Item("Quartz", 2, CrateSize.Two)])]))))!;
         node["schemaVersion"] = 3;
+        node.AsObject().Remove("fillRows");
         foreach (var crate in node["crates"]!.AsArray())
         {
             crate!.AsObject().Remove("item");
@@ -245,6 +246,7 @@ public class CrateItemTests
     {
         var node = JsonNode.Parse(Written(Planned(TwoPickups())))!;
         node["schemaVersion"] = 3;
+        node.AsObject().Remove("fillRows");
 
         var act = () => Read(node.ToJsonString());
 

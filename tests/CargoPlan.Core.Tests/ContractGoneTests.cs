@@ -314,7 +314,7 @@ public class ContractGoneTests
     {
         var node = JsonNode.Parse(Written(Keep(FourStates(), 40)))!;
 
-        node["schemaVersion"]!.GetValue<int>().Should().Be(8);
+        node["schemaVersion"]!.GetValue<int>().Should().Be(PlanFile.SupportedSchemaVersion);
         var contracts = node["missions"]!.AsArray().Select(m => m!["contract"]!.AsObject()).ToList();
         contracts.Select(c => c.ContainsKey("gone")).Should().Equal(true, true, true, false);
         contracts.Where(c => c.ContainsKey("gone")).Should().OnlyContain(c => c["gone"]!.GetValue<bool>());
@@ -335,6 +335,7 @@ public class ContractGoneTests
     {
         var node = JsonNode.Parse(Written(Keep(FourStates(), 40)))!;
         node["schemaVersion"] = 7;
+        node.AsObject().Remove("fillRows");
 
         var act = () => Read(node.ToJsonString());
 
@@ -353,7 +354,7 @@ public class ContractGoneTests
     }
 
     [Fact]
-    public void A_schema_7_file_reads_without_gone_and_writes_back_as_schema_8()
+    public void A_schema_7_file_reads_without_gone_and_writes_back_as_the_current_schema()
     {
         string golden;
         using (var reader = new StreamReader(MissionFixtures.Open("plans/golden_example_missions_bow.json")))
@@ -361,7 +362,9 @@ public class ContractGoneTests
             golden = reader.ReadToEnd().ReplaceLineEndings("\n");
         }
 
-        var schema7 = golden.Replace("\"schemaVersion\": 8", "\"schemaVersion\": 7", StringComparison.Ordinal);
+        var schema7 = golden
+            .Replace("\"schemaVersion\": 9", "\"schemaVersion\": 7", StringComparison.Ordinal)
+            .Replace("  \"fillRows\": \"lengthwise\",\n", "", StringComparison.Ordinal);
         schema7.Should().NotBe(golden);
 
         var saved = Read(schema7);

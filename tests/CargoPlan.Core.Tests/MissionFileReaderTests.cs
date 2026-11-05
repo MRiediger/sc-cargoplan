@@ -137,7 +137,7 @@ public class MissionFileReaderTests
     [InlineData("blank_commodity")]             // "commodity": ""
     [InlineData("missing_property")]            // no "crateSize"
     [InlineData("missing_schema")]              // no "schemaVersion"
-    [InlineData("unsupported_schema")]          // "schemaVersion": 4
+    [InlineData("unsupported_schema")]          // "schemaVersion": 5
     [InlineData("malformed")]                   // not valid JSON
     [InlineData("crates_sum_mismatch")]         // v2: 6 SCU as 2+2
     [InlineData("crate_above_max")]             // v2: an 8 SCU crate at max 4
@@ -162,7 +162,7 @@ public class MissionFileReaderTests
     [InlineData("unknown_property", "*SCU*")]
     [InlineData("duplicate_destination", "*riker*more than once*")]
     [InlineData("scu_not_multiple_of_crate", "*Riker*Titanium*20 SCU*8 SCU crates*")]
-    [InlineData("unsupported_schema", "*schemaVersion 4*expected 1 or 2 or 3*")]
+    [InlineData("unsupported_schema", "*schemaVersion 5*expected 1 or 2 or 3 or 4*")]
     [InlineData("crates_sum_mismatch", "*Riker*Titanium*add up to 4 SCU, not 6*")]
     [InlineData("crate_above_max", "*Riker*Titanium*8 SCU crates are larger than the max crate size of 4 SCU*")]
     [InlineData("crate_unknown_size", "*Riker*Titanium*3 SCU is not a crate size*")]
@@ -251,7 +251,7 @@ public class MissionFileReaderTests
         var original = MissionFixtures.LoadMissions(fixture);
 
         var json = JsonSerializer.SerializeToUtf8Bytes(
-            MissionFileDto.FromMissionStops(original, FillOrder.BowFirst), MissionJsonContext.Default.MissionFileDto);
+            MissionFileDto.FromMissionStops(original, FillOrder.BowFirst, FillRows.Lengthwise), MissionJsonContext.Default.MissionFileDto);
         using var stream = new MemoryStream(json);
         var roundTripped = MissionFileReader.Read(stream, "roundtrip.json").Stops;
 
@@ -267,7 +267,7 @@ public class MissionFileReaderTests
             new("Riker", 1, [new MissionItem("Titanium", 12, CrateSize.Four)]),
         ];
 
-        var dto = MissionFileDto.FromMissionStops(stops, FillOrder.SternFirst);
+        var dto = MissionFileDto.FromMissionStops(stops, FillOrder.SternFirst, FillRows.Lengthwise);
 
         dto.SchemaVersion.Should().Be(MissionFileReader.CurrentSchemaVersion);
         dto.FillOrder.Should().Be("sternFirst");
