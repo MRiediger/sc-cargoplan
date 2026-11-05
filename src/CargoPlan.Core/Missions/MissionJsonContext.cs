@@ -5,7 +5,7 @@ namespace CargoPlan.Core.Missions;
 // Same strict options as ShipJsonContext: mission files are written by hand, a typo must fail loudly.
 // WriteIndented only affects writing (export), so exported files stay readable and editable.
 // WhenWritingNull leaves out "crates" of an item without override instead of writing null (D23); only version 4 is
-// ever written, always with "fillOrder" and "fillRows" (D72, D88). Source: https://learn.microsoft.com/dotnet/api/system.text.json.serialization.jsonsourcegenerationoptionsattribute.defaultignorecondition
+// ever written, always with "fillOrder", "fillRows" and "grouping" (D72, D88, D89). Source: https://learn.microsoft.com/dotnet/api/system.text.json.serialization.jsonsourcegenerationoptionsattribute.defaultignorecondition
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     PropertyNameCaseInsensitive = false,

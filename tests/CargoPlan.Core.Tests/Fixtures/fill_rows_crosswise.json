@@ -2,6 +2,7 @@
   "schemaVersion": 4,
   "fillOrder": "sternFirst",
   "fillRows": "crosswise",
+  "grouping": "byDestination",
   "stops": [
     {
       "destination": "Riker",

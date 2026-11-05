@@ -41,7 +41,7 @@ public class FillRowsFormatTests
 
     /// <summary>The golden as it would have been before schema 9: no fillRows, the older number.</summary>
     private static string OlderGolden(int schema) => GoldenBow()
-        .Replace("  \"fillRows\": \"lengthwise\",\n", "", StringComparison.Ordinal)
+        .Replace("  \"fillRows\": \"lengthwise\",\n  \"grouping\": \"none\",\n", "", StringComparison.Ordinal)
         .Replace("\"schemaVersion\": 9", $"\"schemaVersion\": {schema}", StringComparison.Ordinal);
 
     // --- Plan file ---
@@ -62,7 +62,7 @@ public class FillRowsFormatTests
     {
         var json = Written(Planned(FillRows.Crosswise)).ReplaceLineEndings("\n");
 
-        json.Should().Contain("\"fillOrder\": \"sternFirst\",\n  \"fillRows\": \"crosswise\",\n  \"contractTrackerWatermark\"");
+        json.Should().Contain("\"fillOrder\": \"sternFirst\",\n  \"fillRows\": \"crosswise\",\n  \"grouping\": \"none\",\n  \"contractTrackerWatermark\"");
     }
 
     [Fact]
@@ -118,6 +118,104 @@ public class FillRowsFormatTests
         var act = () => Read(node.ToJsonString(), HullA);
 
         act.Should().Throw<PlanFormatException>().WithMessage("*fillRows 'diagonal' is unknown*lengthwise*crosswise*");
+    }
+
+    // --- Grouping (D89): schema 9 and 4 carry it, optional on reading ---
+
+    [Theory]
+    [InlineData(PlanGrouping.None, "none")]
+    [InlineData(PlanGrouping.ByDestination, "byDestination")]
+    public void A_plan_file_always_writes_the_grouping_and_reads_it_back(PlanGrouping grouping, string word)
+    {
+        Mission[] missions = [new(1, [new MissionStop("Riker", 1, [new MissionItem("Titanium", 8, CrateSize.Four)])])];
+        var json = Written(LoadPlanner.Plan(Raft, missions, ["Riker"], FillOrder.BowFirst, 0, FillRows.Crosswise, grouping));
+
+        json.Should().Contain($"\"grouping\": \"{word}\"");
+        Read(json, Raft).Plan.Grouping.Should().Be(grouping);
+    }
+
+    [Fact]
+    public void A_schema_9_file_without_grouping_means_none()
+    {
+        var node = JsonNode.Parse(GoldenBow())!;
+        node.AsObject().Remove("grouping");
+
+        Read(node.ToJsonString(), HullA).Plan.Grouping.Should().Be(PlanGrouping.None);
+    }
+
+    [Fact]
+    public void A_grouping_in_a_schema_8_file_is_an_error()
+    {
+        var node = JsonNode.Parse(OlderGolden(8))!;
+        node["grouping"] = "byDestination";
+
+        var act = () => Read(node.ToJsonString(), HullA);
+
+        act.Should().Throw<PlanFormatException>().WithMessage("*grouping*new in schema 9*the file says 8*");
+    }
+
+    [Fact]
+    public void An_unknown_grouping_in_a_plan_file_is_an_error()
+    {
+        var node = JsonNode.Parse(GoldenBow())!;
+        node["grouping"] = "byStop";
+
+        var act = () => Read(node.ToJsonString(), HullA);
+
+        act.Should().Throw<PlanFormatException>().WithMessage("*grouping 'byStop' is unknown*none*byDestination*");
+    }
+
+    [Fact]
+    public void Section_notes_survive_the_file()
+    {
+        Rack rack = new("rack-0", 0, 4, new Dimensions(2, 2, 1), null, new ShipPoint(0, 0, 0));
+        Ship ship = new("flat", "Flat", 4, [rack]);
+        Mission[] missions =
+        [
+            new(1, [new MissionStop("A", 1, [new MissionItem("Ice", 1, CrateSize.One)])]),
+            new(2, [new MissionStop("B", 1, [new MissionItem("Food", 1, CrateSize.One)])]),
+            new(3, [new MissionStop("C", 1, [new MissionItem("Gold", 1, CrateSize.One)])]),
+        ];
+        var saved = LoadPlanner.Plan(ship, missions, ["A", "B", "C"], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination);
+
+        var read = Read(Written(saved), ship);
+
+        read.Plan.Warnings.Where(SectionNotes.IsNote).Select(w => w.Message).Should().Equal("Rack 1: C shares a section with B");
+    }
+
+    [Theory]
+    [InlineData(PlanGrouping.None, "none")]
+    [InlineData(PlanGrouping.ByDestination, "byDestination")]
+    public void Export_always_writes_the_grouping_and_import_reads_it(PlanGrouping grouping, string word)
+    {
+        using var stream = new MemoryStream();
+        MissionFileWriter.Write(stream, Stops, FillOrder.SternFirst, FillRows.Crosswise, grouping);
+        var json = Encoding.UTF8.GetString(stream.ToArray());
+
+        json.Should().Contain($"\"grouping\": \"{word}\"");
+        ReadMissions(json).Grouping.Should().Be(grouping);
+    }
+
+    [Fact]
+    public void A_mission_file_without_the_field_names_no_grouping()
+    {
+        ReadMissions($$"""{ "schemaVersion": 4, {{StopsJson}} }""").Grouping.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_grouping_in_a_schema_3_mission_file_is_an_error()
+    {
+        var act = () => ReadMissions($$"""{ "schemaVersion": 3, "grouping": "byDestination", {{StopsJson}} }""");
+
+        act.Should().Throw<MissionFormatException>().WithMessage("*grouping*new in schema 4*the file says 3*");
+    }
+
+    [Fact]
+    public void An_unknown_grouping_in_a_mission_file_is_an_error()
+    {
+        var act = () => ReadMissions($$"""{ "schemaVersion": 4, "grouping": "byStop", {{StopsJson}} }""");
+
+        act.Should().Throw<MissionFormatException>().WithMessage("*grouping 'byStop' is unknown*none*byDestination*");
     }
 
     // --- Mission file ---

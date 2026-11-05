@@ -269,6 +269,7 @@ public class ShipChangeTickTests
             case "schema_5":
                 node["schemaVersion"] = 5;
                 node.AsObject().Remove("fillRows");
+                node.AsObject().Remove("grouping");
                 break;
             case "not_delivered":
                 offShip["delivered"] = false;

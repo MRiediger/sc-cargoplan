@@ -3,6 +3,7 @@
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
   "fillRows": "lengthwise",
+  "grouping": "none",
   "contractTrackerWatermark": 0,
   "missions": [
     {

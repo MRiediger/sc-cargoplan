@@ -72,7 +72,7 @@ public class MissionFileWriterTests
     {
         using var document = Written(MissionFixtures.CrateMixMissions, fillOrder);
 
-        document.RootElement.EnumerateObject().Select(p => p.Name).Should().Equal("schemaVersion", "fillOrder", "fillRows", "stops");
+        document.RootElement.EnumerateObject().Select(p => p.Name).Should().Equal("schemaVersion", "fillOrder", "fillRows", "grouping", "stops");
         document.RootElement.GetProperty("fillOrder").GetString().Should().Be(expected);
     }
 
@@ -90,7 +90,7 @@ public class MissionFileWriterTests
         var file = MissionFixtures.LoadFile("fill_rows_crosswise");
         using var stream = new MemoryStream();
 
-        MissionFileWriter.Write(stream, file.Stops, file.FillOrder!.Value, file.FillRows!.Value);
+        MissionFileWriter.Write(stream, file.Stops, file.FillOrder!.Value, file.FillRows!.Value, file.Grouping!.Value);
 
         Encoding.UTF8.GetString(stream.ToArray()).ReplaceLineEndings("\n").Should().Be(MissionFixtures.Text("fill_rows_crosswise"));
     }

@@ -118,6 +118,7 @@ public class LoadedStateTests
         var node = JsonNode.Parse(Written(Placed(HullA, [Stop("Riker", "Titanium", 8, CrateSize.Four)])))!;
         node["schemaVersion"] = 6;
         node.AsObject().Remove("fillRows");
+        node.AsObject().Remove("grouping");
 
         Read(node.ToJsonString(), HullA).Plan.Crates.Should().NotBeEmpty().And.OnlyContain(c => !c.Loaded);
     }
@@ -128,6 +129,7 @@ public class LoadedStateTests
         var node = JsonNode.Parse(Written(RikerLoaded()))!;
         node["schemaVersion"] = 6;
         node.AsObject().Remove("fillRows");
+        node.AsObject().Remove("grouping");
 
         var act = () => Read(node.ToJsonString(), HullA);
 

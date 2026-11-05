@@ -271,6 +271,7 @@ public class CrateRotationTests
         var node = JsonNode.Parse(Written(Planned(HullA, Item(8, CrateSize.Four))))!;
         node["schemaVersion"] = 4;
         node.AsObject().Remove("fillRows");
+        node.AsObject().Remove("grouping");
 
         var saved = Read(node.ToJsonString(), HullA);
 
@@ -284,6 +285,7 @@ public class CrateRotationTests
         var node = JsonNode.Parse(Written(Planned(Perseus, Item(96, CrateSize.ThirtyTwo))))!;
         node["schemaVersion"] = 4;
         node.AsObject().Remove("fillRows");
+        node.AsObject().Remove("grouping");
 
         var act = () => Read(node.ToJsonString(), Perseus);
 
@@ -325,6 +327,7 @@ public class CrateRotationTests
             Riker(CrateSize.Two, 0, 0, 0, rackId: "rack-2"), Riker(CrateSize.Two, 2, 0, 0, rackId: "rack-2"), Riker(CrateSize.Two, 0, 0, 0, rackId: "rack-0"))))!;
         node["schemaVersion"] = schemaVersion;
         node.AsObject().Remove("fillRows");
+        node.AsObject().Remove("grouping");
         foreach (var crate in node["crates"]!.AsArray())
         {
             crate!.AsObject().Remove("rotated");

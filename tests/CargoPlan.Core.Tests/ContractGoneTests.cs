@@ -336,6 +336,7 @@ public class ContractGoneTests
         var node = JsonNode.Parse(Written(Keep(FourStates(), 40)))!;
         node["schemaVersion"] = 7;
         node.AsObject().Remove("fillRows");
+        node.AsObject().Remove("grouping");
 
         var act = () => Read(node.ToJsonString());
 
@@ -364,7 +365,7 @@ public class ContractGoneTests
 
         var schema7 = golden
             .Replace("\"schemaVersion\": 9", "\"schemaVersion\": 7", StringComparison.Ordinal)
-            .Replace("  \"fillRows\": \"lengthwise\",\n", "", StringComparison.Ordinal);
+            .Replace("  \"fillRows\": \"lengthwise\",\n  \"grouping\": \"none\",\n", "", StringComparison.Ordinal);
         schema7.Should().NotBe(golden);
 
         var saved = Read(schema7);

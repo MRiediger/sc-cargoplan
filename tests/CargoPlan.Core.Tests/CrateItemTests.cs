@@ -229,6 +229,7 @@ public class CrateItemTests
         var node = JsonNode.Parse(Written(Planned(TwoPickups(), new Mission(2, [new("Riker", 1, [Item("Titanium", 4, CrateSize.Four), Item("Quartz", 2, CrateSize.Two)])]))))!;
         node["schemaVersion"] = 3;
         node.AsObject().Remove("fillRows");
+        node.AsObject().Remove("grouping");
         foreach (var crate in node["crates"]!.AsArray())
         {
             crate!.AsObject().Remove("item");
@@ -247,6 +248,7 @@ public class CrateItemTests
         var node = JsonNode.Parse(Written(Planned(TwoPickups())))!;
         node["schemaVersion"] = 3;
         node.AsObject().Remove("fillRows");
+        node.AsObject().Remove("grouping");
 
         var act = () => Read(node.ToJsonString());
 
