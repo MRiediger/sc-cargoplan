@@ -3717,7 +3717,7 @@ Hull C erreicht schon vor K9.1 das Knotenlimit der Rack-Zuordnung (D64): Ist-Sta
 - [x] Standardlauf Core 1.592, App 1.544, Import 141, `Category=Slow` 2/2 grün; `Category=Exhaustive` auf Martins Wunsch abgebrochen, nicht durchgelaufen: er prüft nur Hull A `lengthwise`, das Goldens und Suchzähler belegen. Nach K9.2 laufen lassen
 - [x] Martin: ComboBox **Rows** ansehen, RAFT crosswise planen (abgenommen 05.11.)
 
-### [ ] K9.2 Sektionen pro Ziel
+### [x] K9.2 Sektionen pro Ziel (D89) (05.11.2026, abgenommen 05.11.)
 
 D89 mit Addenda zu D41, D64, D66. Korrigierte Vorgaben aus der Spec:
 
@@ -3761,9 +3761,9 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 - [x] Hull A: zwei Sektionen entlang der Länge in beiden `fillRows`
 - [x] `none`: alle Goldens und Property-Tests aus B2 grün
 - [x] `Category=Slow` 2/2, `Category=Exhaustive` 2/2 in 8 min 14 s (nachgeholt aus K9.1)
-- [ ] Martin: Gate am Aufzug, zusammen mit K9.2b
+- [x] Martin: Gate am Aufzug, zusammen mit K9.2b (bestanden 05.11.)
 
-### [ ] K9.2b Section gap (D89-Addendum, D71-Addendum)
+### [x] K9.2b Section gap (D89-Addendum, D71-Addendum) (05.11.2026, abgenommen 05.11.)
 
 **Warum:** Zwischen bündigen Sektionen lässt sich schlecht greifen. `sectionGap` hält 0, 1 oder 2 leere Reihen frei, Default 0.
 
@@ -3789,8 +3789,8 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 - [x] Geladene Kiste zählt als Lücke; Hull A nur mit Lücke, wenn sie passt
 - [x] Sync: Rest mit Abstand, enger, Lücke zuletzt, gedreht vor Lücke, Wachsen in die Lücke, Ende zuerst auch bei gap 0
 - [x] Formate und Editor: Roundtrip, alte Schemas, ungültige Werte, Box inaktiv ohne Grouping
-- [ ] Martin: Gate am Aufzug, zusammen mit K9.2 (Lücken im RAFT, gedrehte Kisten, Sync in einen Plan mit Lücken)
-- [ ] Martin: Editor-Zeile „Layout“ ansehen und entscheiden (nur als Build geprüft, nicht im laufenden Programm)
+- [x] Martin: Gate am Aufzug, zusammen mit K9.2 (Lücken im RAFT, gedrehte Kisten, Sync in einen Plan mit Lücken; bestanden 05.11.)
+- [x] Martin: Editor-Zeile „Layout“ ansehen und entscheiden (abgenommen 05.11.)
 
 ### [ ] K9.3 Doku und Merge
 
