@@ -3800,6 +3800,28 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 - Wiki `Plan-and-editor` (Abschnitt „Layout“, Schema 4), `Ship-view`; README-Punkt; `CLAUDE.md`
 - Merge `--no-ff` nach `main`, Martin pusht `main`; das Wiki empfohlen erst mit dem Tag, weil v0.1.0 keine Sektionen hat
 
+## Release v0.2.0 (05.11.2026) – Branch `release/v0.2.0`
+
+**Warum:** K9 soll vor der Nexus-Seite raus (Martin), die dauert noch: Der erste Upload ist damit gleich die aktuelle Version.
+
+### [ ] R1 Release v0.2.0
+
+- Release-Notes `docs/release-notes/v0.2.0.md`; Nexus-Checkliste auf 0.2.0; Wiki „Applies to v0.2.0“
+- Kein Versions-Bump: `release.yml` nimmt die Version aus dem Tag (D49)
+
+**Befund (vor dem Tag):**
+- Vollständigkeit `git log v0.1.0..main`, 37 Commits: K9 und der RAFT-Fix (7112a35) stehen unter „New since v0.1.0“, die Schema-Sprünge unter „Before you update“, Microsoft.Data.Sqlite 10.0.13 → 10.0.14 als „Under the hood“. Nicht in den Notes, weil ohne Wirkung aufs ZIP: SDK-Pin B7 (Runtime weiter 10.0.14 wie v0.1.0 aus der CI), Nexus-Texte T9.3, T9.2-Nachträge.
+- K7 (3c4d39b) liegt vor dem Tag und steht schon in den v0.1.0-Notes. `src/CargoPlan.App/Settings` seit dem Tag unverändert: `settings.json` bleibt für 0.1.0 lesbar, keine Zeile nötig.
+- „0.1.0 says so“ am v0.1.0-Stand im Code belegt: `PlanFile` liest bis Schema 8, `PlanStore.Load` meldet `Plan not loaded (…). The file stays until you make a new plan.`. Nur gelesen, nicht mit 0.1.0 ausgeführt.
+- Holo- und Netzcode seit v0.1.0 unverändert; die Code-Links der Staff-Anfrage auf `fd75313` stimmen weiter.
+- Keine Frame-Messung wie M6: K9 ändert am Rendern nichts.
+- `publish.ps1 -Version 0.2.0` lokal: ZIP 62,1 MB, Runtime 10.0.14, `--version` `0.2.0+da54632…`. CI auf da54632 grün.
+
+**Abnahme:**
+- [x] Notes-Text von Martin korrigiert und freigegeben
+- [ ] Martin: `main` gepusht, CI grün, Tag `v0.2.0` gepusht, Wiki gepusht
+- [ ] Release-Workflow grün, kein Pre-release, „Latest“; ZIP gegen `.sha256`, `--version` `0.2.0+…`
+
 ## Phase 10 – nach dem Launch
 
 ### [ ] T10.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)

@@ -19,7 +19,7 @@ Texts: [`summary.txt`](summary.txt), [`description.bbcode`](description.bbcode).
 In PowerShell, into an empty folder:
 
 ```powershell
-$version = '0.1.0'
+$version = '0.2.0'
 $dir = New-Item -ItemType Directory "$env:TEMP\nexus-$version"
 & "C:\Program Files\GitHub CLI\gh.exe" release download "v$version" -R MRiediger/sc-cargoplan -p "SC-CargoPlan-v$version-win-x64.zip*" -D $dir
 $zip = Get-Item "$dir\SC-CargoPlan-v$version-win-x64.zip"; (Get-FileHash $zip).Hash -eq (Get-Content "$zip.sha256").Split(' ')[0]
@@ -37,7 +37,7 @@ $zip = Get-Item "$dir\SC-CargoPlan-v$version-win-x64.zip"; (Get-FileHash $zip).H
 | Summary (350 characters) | [`summary.txt`](summary.txt) |
 | Full description | [`description.bbcode`](description.bbcode): open the BBCode source with the **[ ]** button, replace the template's text with the file's, switch back and check the five blocks (Description, Installation instructions, Main features, Requirements, Shout outs), the links and the lists |
 | Category | Miscellaneous (the only one for Star Citizen) |
-| Mod version | `$version` (e.g. `0.1.0`), without "v" |
+| Mod version | `$version` (e.g. `0.2.0`), without "v" |
 | Author | Martin Riediger |
 | Language | English |
 | Tags (where the editor offers them) | Utilities for Players, Quality of Life, User Interface |
