@@ -21,7 +21,14 @@ public static class LoadPlanner
     /// <exception cref="PlanException">
     /// A crate's shape fits no rack, the stops exceed the ship, or a crate finds no gap of its shape in any rack.
     /// </exception>
-    public static LoadPlan Plan(Ship ship, IReadOnlyList<Stop> stops, FillOrder fillOrder = FillOrder.BowFirst, FillRows fillRows = FillRows.Lengthwise)
+    public static LoadPlan Plan(
+        Ship ship, IReadOnlyList<Stop> stops, FillOrder fillOrder = FillOrder.BowFirst, FillRows fillRows = FillRows.Lengthwise, PlanGrouping grouping = PlanGrouping.None)
+    {
+        var plan = PlanStops(ship, stops, fillOrder, fillRows);
+        return grouping == PlanGrouping.None ? plan : RackSections.Lay(plan with { Grouping = grouping }, ship, plan.Route);
+    }
+
+    private static LoadPlan PlanStops(Ship ship, IReadOnlyList<Stop> stops, FillOrder fillOrder, FillRows fillRows)
     {
         EnsureUnique(stops);
 
@@ -71,6 +78,16 @@ public static class LoadPlanner
         return WithHints(new LoadPlan(ship.Id, Crates(input, loads), [], fillOrder, fillRows), ship,
             StackingUncheckedNotes(loads.Where(l => l.StackingUnchecked).Select(l => l.Rack)));
     }
+
+    /// <summary><paramref name="saved"/> with its shared racks in sections, in the legend's order (D89); as it is without grouping.</summary>
+    private static SavedPlan Sectioned(SavedPlan saved, Ship ship, PlanGrouping grouping) =>
+        grouping == PlanGrouping.None
+            ? saved
+            : new SavedPlan(
+                saved.Missions,
+                RackSections.Lay(saved.Plan with { Grouping = grouping }, ship, saved.Plan.LegendDestinations([.. saved.Missions.Select(m => m.Id)])),
+                saved.CrateCap,
+                saved.Watermark);
 
     /// <summary>
     /// The crates of <paramref name="loads"/> in the order of <paramref name="stops"/> and their items, which the legend
@@ -356,7 +373,7 @@ public static class LoadPlanner
 
     /// <summary>
     /// Plans missions from scratch, as the editor's Plan does (D19): their stops merged per destination in
-    /// <paramref name="stopOrder"/> go through <see cref="Plan(Ship, IReadOnlyList{Stop}, FillOrder, FillRows)"/>, then every crate
+    /// <paramref name="stopOrder"/> go through <see cref="Plan(Ship, IReadOnlyList{Stop}, FillOrder, FillRows, PlanGrouping)"/>, then every crate
     /// gets a mission that holds its kind. Equal crates of two missions can't be told apart in the game (D38), so which of
     /// them goes to which is no choice. Every mission is placed afterwards; ids, sources and the watermark stay.
     /// </summary>
@@ -367,7 +384,12 @@ public static class LoadPlanner
     /// <exception cref="ArgumentException">The order doesn't name every destination once, or see the other overload.</exception>
     /// <exception cref="PlanException">See the other overload.</exception>
     public static SavedPlan Plan(
-        Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder = FillOrder.BowFirst, long watermark = 0, FillRows fillRows = FillRows.Lengthwise)
+        Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder = FillOrder.BowFirst, long watermark = 0,
+        FillRows fillRows = FillRows.Lengthwise, PlanGrouping grouping = PlanGrouping.None) =>
+        Sectioned(PlanMissions(ship, missions, stopOrder, fillOrder, fillRows, watermark), ship, grouping);
+
+    private static SavedPlan PlanMissions(
+        Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder, FillRows fillRows, long watermark)
     {
         Mission[] placed = [.. missions.Select(m => m with { Unplaced = false })];
         var items = placed.SelectMany(m => m.Stops)
@@ -379,7 +401,7 @@ public static class LoadPlanner
         }
 
         var cap = CrateCap.Of(ship);
-        var plan = Plan(ship, [.. stopOrder.Select((destination, index) => new MissionStop(destination, index + 1, items[destination]).ToStop(cap))], fillOrder, fillRows);
+        var plan = PlanStops(ship, [.. stopOrder.Select((destination, index) => new MissionStop(destination, index + 1, items[destination]).ToStop(cap))], fillOrder, fillRows);
         return new SavedPlan(placed, plan with { Crates = Assigned(plan.Crates, placed, cap) }, cap, watermark);
     }
 
@@ -390,7 +412,7 @@ public static class LoadPlanner
     /// the mission, D27). It is known by its contract's first id and destination, a typed one by its destination alone
     /// (typed rows of one destination are one mission, D42, and the editor numbers them anew). Changed, it is planned
     /// again, and <c>Cleared</c> says so ("Riker: changed in the editor – no longer loaded"). Without anything kept, the
-    /// plan from scratch (<see cref="Plan(Ship, IReadOnlyList{Mission}, IReadOnlyList{string}, FillOrder, long, FillRows)"/>);
+    /// plan from scratch (<see cref="Plan(Ship, IReadOnlyList{Mission}, IReadOnlyList{string}, FillOrder, long, FillRows, PlanGrouping)"/>);
     /// with only delivered cargo kept, the rest planned like that and joined (as Re-plan does, D66); with loaded cargo,
     /// the rest laid in around it by the rule of <see cref="PlaceInto"/> (D41): first the rest of missions loaded in part,
     /// then missions by SCU (largest first), first destination and id, so the order of entry doesn't matter. A mission
@@ -402,7 +424,15 @@ public static class LoadPlanner
     /// its loaded crates are on board (K6.4, E1). Or the plan from scratch has none (see the other overload).
     /// </exception>
     public static (SavedPlan Plan, IReadOnlyList<string> Cleared) PlanKeeping(
-        SavedPlan current, Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder = FillOrder.BowFirst, long watermark = 0, FillRows fillRows = FillRows.Lengthwise)
+        SavedPlan current, Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder = FillOrder.BowFirst, long watermark = 0,
+        FillRows fillRows = FillRows.Lengthwise, PlanGrouping grouping = PlanGrouping.None)
+    {
+        var (plan, cleared) = Keeping(current, ship, missions, stopOrder, fillOrder, fillRows, watermark);
+        return (Sectioned(plan, ship, grouping), cleared);
+    }
+
+    private static (SavedPlan Plan, IReadOnlyList<string> Cleared) Keeping(
+        SavedPlan current, Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder, FillRows fillRows, long watermark)
     {
         var cap = CrateCap.Of(ship);
         var states = current.Plan.ShipId == ship.Id ? KeptDeliveries(current) : [];
@@ -433,7 +463,7 @@ public static class LoadPlanner
 
         if (kept.Count == 0)
         {
-            return (Plan(ship, missions, stopOrder, fillOrder, watermark, fillRows), cleared);
+            return (PlanMissions(ship, missions, stopOrder, fillOrder, fillRows, watermark), cleared);
         }
 
         Mission[] placed = [.. missions.Select(m => m with { Unplaced = false })];
@@ -441,7 +471,7 @@ public static class LoadPlanner
         if (!kept.Any(c => c.Loaded))
         {
             // Only delivered cargo kept: it takes no room, the rest is planned from scratch around nothing (D66).
-            var planned = Plan(ship, rest, [.. stopOrder.Where(d => rest.Any(m => m.Stops.Any(s => s.Destination == d)))], fillOrder, watermark, fillRows).Plan;
+            var planned = PlanMissions(ship, rest, [.. stopOrder.Where(d => rest.Any(m => m.Stops.Any(s => s.Destination == d)))], fillOrder, fillRows, watermark).Plan;
             return (new SavedPlan(placed, ItemsOf(placed, Joined(planned, [.. kept], [.. stopOrder], ship), cap), cap, watermark), cleared);
         }
 
@@ -603,7 +633,21 @@ public static class LoadPlanner
     /// derived under another cap (a file from before D70) is planned anew like one of another ship. Loaded is this ship's
     /// state (K6.4): planned anew for other racks, loaded cargo is planned cargo again; delivered stays delivered (K2.2).
     /// </summary>
-    public static SavedPlan Replan(SavedPlan saved, Ship ship) =>
+    public static SavedPlan Replan(SavedPlan saved, Ship ship)
+    {
+        if (saved.Plan.Grouping == PlanGrouping.None)
+        {
+            return ReplanPlain(saved, ship);
+        }
+
+        // Capacity first (D89): laid out and tried as without sections, so the same missions wait. The same plan back says
+        // nothing changed (E2), and stays as it is.
+        SavedPlan plain = new(saved.Missions, saved.Plan with { Grouping = PlanGrouping.None }, saved.CrateCap, saved.Watermark);
+        var replanned = ReplanPlain(plain, ship);
+        return ReferenceEquals(replanned, plain) ? saved : Sectioned(replanned, ship, saved.Plan.Grouping);
+    }
+
+    private static SavedPlan ReplanPlain(SavedPlan saved, Ship ship) =>
         saved.Plan.ShipId == ship.Id && saved.CrateCap == CrateCap.Of(ship)
             ? ReplanInPlace(saved, ship)
             : ReplanForShip(new SavedPlan(saved.Missions, saved.Plan with { Crates = [.. saved.Plan.Crates.Select(c => c.Loaded ? c.AsPlanned() : c)] }, saved.CrateCap, saved.Watermark), ship);
@@ -637,7 +681,7 @@ public static class LoadPlanner
         (crate.Destination, crate.Commodity, crate.CrateSize, crate.RackId, crate.Position, crate.Rotated);
 
     /// <summary>
-    /// The player's Re-plan (D66): the cargo on board laid out as a fresh <see cref="Plan(Ship, IReadOnlyList{Mission}, IReadOnlyList{string}, FillOrder, long, FillRows)"/>
+    /// The player's Re-plan (D66): the cargo on board laid out as a fresh <see cref="Plan(Ship, IReadOnlyList{Mission}, IReadOnlyList{string}, FillOrder, long, FillRows, PlanGrouping)"/>
     /// of the same missions would lay it, waiting missions included, so the result doesn't depend on the order things came
     /// in (D64). Ticked crates are off the ship: they stay where they lay, ticked, and take no room (D24), also when only
     /// part of a stop is ticked (D41). Never loses cargo: if the waiting missions don't fit, the cargo on board is laid
@@ -652,7 +696,7 @@ public static class LoadPlanner
         {
             try
             {
-                var (around, _) = PlanKeeping(saved, ship, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], saved.Plan.FillOrder, saved.Watermark, saved.Plan.FillRows);
+                var (around, _) = Keeping(saved, ship, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], saved.Plan.FillOrder, saved.Plan.FillRows, saved.Watermark);
                 return Waiting(around) > Waiting(saved) ? saved : around;
             }
             catch (PlanException)
@@ -743,7 +787,7 @@ public static class LoadPlanner
         HashSet<string> destinations = [.. missions.SelectMany(m => m.Stops).Select(s => s.Destination)];
         try
         {
-            return Plan(ship, missions, [.. route.Where(destinations.Contains)], fillOrder, fillRows: fillRows).Plan;
+            return PlanMissions(ship, missions, [.. route.Where(destinations.Contains)], fillOrder, fillRows, 0).Plan;
         }
         catch (PlanException)
         {
@@ -813,7 +857,7 @@ public static class LoadPlanner
         HashSet<string> destinations = [.. missions.SelectMany(m => m.Stops).Select(s => s.Destination)];
         try
         {
-            return Plan(ship, missions, [.. route.Where(destinations.Contains)], fillOrder, watermark, fillRows);
+            return PlanMissions(ship, missions, [.. route.Where(destinations.Contains)], fillOrder, fillRows, watermark);
         }
         catch (PlanException)
         {
@@ -841,7 +885,7 @@ public static class LoadPlanner
     /// order stays, it is the player's way of loading (T4.5); the plan is for <paramref name="ship"/>.
     /// </summary>
     public static SavedPlan Discard(SavedPlan saved, Ship ship) =>
-        new([], new LoadPlan(ship.Id, [], [], saved.Plan.FillOrder, saved.Plan.FillRows), CrateCap.Of(ship));
+        new([], new LoadPlan(ship.Id, [], [], saved.Plan.FillOrder, saved.Plan.FillRows, saved.Plan.Grouping), CrateCap.Of(ship));
 
     /// <summary>
     /// Takes a mission out of the plan with its crates (D42): deleted in the editor, dropped in the legend, or gone from
@@ -1513,13 +1557,19 @@ public static class LoadPlanner
     /// <summary>
     /// The planner's notes, in rack order, each once: those <paramref name="plan"/> carries and <paramref name="added"/>. A
     /// note says what the crates can't: that the search for a layout without foreign stacking gave up in a rack
-    /// (<see cref="CrateLayout.Lay"/>). So it is carried, not derived, until the next Plan starts without it (D54). Notes
+    /// (<see cref="CrateLayout.Lay"/>), or how sections came out (<see cref="SectionNotes"/>, while the destinations it names
+    /// are on board). So it is carried, not derived, until the next Plan starts without it (D54). Notes
     /// of older plans (D54's "Racks not in route order", the old wording of this one) aren't known any more and drop (D64).
     /// </summary>
     private static IEnumerable<PlanWarning> Notes(LoadPlan plan, Rack[] racks, IEnumerable<PlanWarning> added)
     {
         HashSet<PlanWarning> present = [.. added, .. plan.Warnings];
-        return racks.Select(r => new PlanWarning(r.Id, StackingUncheckedNote(r))).Where(present.Contains);
+        HashSet<string> onBoard = [.. plan.Crates.Where(c => !c.Delivered).Select(c => c.Destination)];
+        return racks.SelectMany(r => (PlanWarning[])
+        [
+            .. present.Where(w => w.RackId == r.Id && w.Message == StackingUncheckedNote(r)),
+            .. present.Where(w => w.RackId == r.Id && SectionNotes.Names(w) is { } names && names.All(onBoard.Contains)),
+        ]);
     }
 
     internal static IEnumerable<PlanWarning> StackingUncheckedNotes(IEnumerable<Rack> racks) =>

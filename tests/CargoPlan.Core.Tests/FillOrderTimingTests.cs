@@ -20,21 +20,25 @@ public class FillOrderTimingTests(ITestOutputHelper output)
     [Fact]
     public void Plan_of_each_case_in_each_order()
     {
-        output.WriteLine("| Case | order | rows | first ms | median ms | nodes | layout steps | gave up |");
+        output.WriteLine("| Case | order | rows | grouping | first ms | median ms | nodes | layout steps | gave up |");
         foreach (var (name, ship, missions, route) in Cases())
         {
-            foreach (var rows in Enum.GetValues<FillRows>())
+            foreach (var grouping in Enum.GetValues<PlanGrouping>())
             {
-                foreach (var order in Enum.GetValues<FillOrder>())
+                foreach (var rows in Enum.GetValues<FillRows>())
                 {
-                    var watch = Stopwatch.StartNew();
-                    LoadPlanner.Plan(ship, missions, route, order, fillRows: rows);
-                    var first = watch.Elapsed.TotalMilliseconds;
-                    var median = Median(() => LoadPlanner.Plan(ship, missions, route, order, fillRows: rows));
+                    foreach (var order in Enum.GetValues<FillOrder>())
+                    {
+                        var watch = Stopwatch.StartNew();
+                        var plan = LoadPlanner.Plan(ship, missions, route, order, 0, rows, grouping).Plan;
+                        var first = watch.Elapsed.TotalMilliseconds;
+                        var median = Median(() => LoadPlanner.Plan(ship, missions, route, order, 0, rows, grouping));
 
-                    var (nodes, steps, gaveUp) = Counts(ship, missions, route, order, rows);
-                    output.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                        $"| {name} | {order} | {rows} | {first:F1} | {median:F1} | {nodes} | {steps} | {gaveUp} |"));
+                        var (nodes, steps, gaveUp) = Counts(ship, missions, route, order, rows);
+                        var unchecked_ = plan.Warnings.Count(w => w.Message.Contains("too many crates to rearrange", StringComparison.Ordinal));
+                        output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                            $"| {name} | {order} | {rows} | {grouping} | {first:F1} | {median:F1} | {nodes} | {steps} | {gaveUp + unchecked_} |"));
+                    }
                 }
             }
         }
@@ -46,20 +50,23 @@ public class FillOrderTimingTests(ITestOutputHelper output)
     {
         var (_, ship, missions, route) = Cases()[0];
         var rack = ship.Racks[0];
-        foreach (var rows in Enum.GetValues<FillRows>())
+        foreach (var grouping in Enum.GetValues<PlanGrouping>())
         {
-            foreach (var order in Enum.GetValues<FillOrder>())
+            foreach (var rows in Enum.GetValues<FillRows>())
             {
-                var plan = LoadPlanner.Plan(ship, missions, route, order, fillRows: rows).Plan;
-                output.WriteLine($"{order}, {rows}");
-                for (var stack = 0; stack < rack.Grid.Stack; stack++)
+                foreach (var order in Enum.GetValues<FillOrder>())
                 {
-                    output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  layer {stack}"));
-                    for (var width = rack.Grid.Width - 1; width >= 0; width--)
+                    var plan = LoadPlanner.Plan(ship, missions, route, order, 0, rows, grouping).Plan;
+                    output.WriteLine($"{order}, {rows}, {grouping}");
+                    for (var stack = 0; stack < rack.Grid.Stack; stack++)
                     {
-                        var cells = Enumerable.Range(0, rack.Grid.Length).Select(length =>
-                            plan.Crates.FirstOrDefault(c => c.Cells.Contains(new GridPosition(length, width, stack)))?.Destination[0] ?? '.');
-                        output.WriteLine($"    {string.Join(' ', cells)}");
+                        output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  layer {stack}"));
+                        for (var width = rack.Grid.Width - 1; width >= 0; width--)
+                        {
+                            var cells = Enumerable.Range(0, rack.Grid.Length).Select(length =>
+                                plan.Crates.FirstOrDefault(c => c.Cells.Contains(new GridPosition(length, width, stack)))?.Destination[0] ?? '.');
+                            output.WriteLine($"    {string.Join(' ', cells)}");
+                        }
                     }
                 }
             }
@@ -84,7 +91,10 @@ public class FillOrderTimingTests(ITestOutputHelper output)
         return (result?.Nodes ?? -1, steps, gaveUp);
     }
 
-    /// <summary>Martin's RAFT plan (66 SCU, five destinations) and eight destinations of 32s on the Hull C, about three quarters full.</summary>
+    /// <summary>
+    /// Martin's RAFT plan (66 SCU, five destinations), eight destinations of 32s on the Hull C, about three quarters full,
+    /// which keep to one rack each, and the eight stops on the RAFT, which share its one rack: a real load for sections (D89).
+    /// </summary>
     private static (string Name, Ship Ship, IReadOnlyList<Mission> Missions, IReadOnlyList<string> Route)[] Cases()
     {
         var raft = ShipLoader.Load("raft");
@@ -95,10 +105,14 @@ public class FillOrderTimingTests(ITestOutputHelper output)
         Mission[] hullC = [.. destinations.Select((destination, index) =>
             new Mission(index + 1, [new MissionStop(destination, 1, [new MissionItem("Titanium", 448, CrateSize.ThirtyTwo)])]))];
 
+        var eight = MissionFixtures.LoadMissions("hull_a_eight_stops");
+        Mission[] raftEight = [.. eight.Select((s, index) => new Mission(index + 1, [s with { Order = 1 }]))];
+
         return
         [
             ("RAFT fixture", raft, saved.Missions, [.. saved.Stops.Select(s => s.Destination)]),
             ("Hull C eight stops", ShipLoader.Load("hull_c"), hullC, destinations),
+            ("RAFT eight stops", raft, raftEight, [.. eight.Select(s => s.Destination)]),
         ];
     }
 

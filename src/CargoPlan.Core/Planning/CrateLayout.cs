@@ -56,14 +56,14 @@ public static class CrateLayout
     /// <see cref="Place"/> with what the caller weighs and tells the player (<see cref="Laying"/>): whether no new crate
     /// sits on another destination's cargo, whether the search for such a layout gave up at
     /// <paramref name="maxStackingSearchSteps"/> (default: <see cref="MaxStackingSearchSteps"/> of the rack), and the steps
-    /// it took. Null if a crate doesn't fit.
+    /// it took. Null if a crate doesn't fit. Without <paramref name="turn"/> no crate turns (D71 measured by the sections, D89).
     /// </summary>
     internal static Laying? Lay(
         Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, FillOrder order, FillRows rows,
-        int? maxStackingSearchSteps = null)
+        int? maxStackingSearchSteps = null, bool turn = true)
     {
         occupied = [.. occupied.Where(c => !c.Delivered)];
-        if (Place(RackSpace.Around(rack, occupied, order, rows), [.. crates.Select(c => c.Size)]) is not { } poses)
+        if (Place(RackSpace.Around(rack, occupied, order, rows), [.. crates.Select(c => c.Size)], turn) is not { } poses)
         {
             return null;
         }
@@ -85,7 +85,7 @@ public static class CrateLayout
         // not of steps, with the steps it left.
         var maxSteps = maxStackingSearchSteps ?? MaxStackingSearchSteps(rack.Grid.Volume);
         var (apart, gaveUp, steps) = Apart(rack, occupied, crates, order, rows, maxSteps, turn: false);
-        if (apart is null && !gaveUp && crates.Any(c => c.Size.Turns))
+        if (apart is null && !gaveUp && turn && crates.Any(c => c.Size.Turns))
         {
             var (turned, turnedGaveUp, turnedSteps) = Apart(rack, occupied, crates, order, rows, (int)(maxSteps - steps), turn: true);
             (apart, gaveUp, steps) = (turned, turnedGaveUp, steps + turnedSteps);
@@ -193,14 +193,14 @@ public static class CrateLayout
     }
 
     /// <summary>The lay-out of <see cref="Place"/> into the free cells of <paramref name="space"/>, which it fills.</summary>
-    private static Pose[]? Place(RackSpace space, IReadOnlyList<CrateSize> sizes)
+    private static Pose[]? Place(RackSpace space, IReadOnlyList<CrateSize> sizes, bool turn = true)
     {
         var poses = new Pose[sizes.Count];
 
         // OrderByDescending is stable: crates of one size keep input order.
         foreach (var i in Enumerable.Range(0, sizes.Count).OrderByDescending(i => sizes[i]))
         {
-            if (space.Add(sizes[i]) is not { } pose)
+            if (space.Add(sizes[i], turn) is not { } pose)
             {
                 return null;
             }
@@ -240,9 +240,9 @@ public static class CrateLayout
 
         /// <summary>
         /// Takes the first fit for a crate of <paramref name="size"/> and returns it; null, and nothing taken, if there is
-        /// none. Unturned if it fits so anywhere, else turned (D71).
+        /// none. Unturned if it fits so anywhere, else turned (D71), if <paramref name="turn"/> allows it.
         /// </summary>
-        public Pose? Add(CrateSize size)
+        public Pose? Add(CrateSize size, bool turn = true)
         {
             if (!_rack.CanHold(size))
             {
@@ -250,7 +250,7 @@ public static class CrateLayout
             }
 
             Pose? pose = FirstFit(size.Shape(false), _rank, _taken) is { } flat ? new Pose(flat, false)
-                : size.Turns && FirstFit(size.Shape(true), _rank, _taken) is { } turned ? new Pose(turned, true)
+                : turn && size.Turns && FirstFit(size.Shape(true), _rank, _taken) is { } turned ? new Pose(turned, true)
                 : null;
             if (pose is not { } taken)
             {
