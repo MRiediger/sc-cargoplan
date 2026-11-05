@@ -3686,7 +3686,7 @@ liegt im ZIP; ohne gepinntes SDK ist lokal ≠ CI. Kein Verhalten, Core unverän
 
 **Fixture:** `tests/CargoPlan.Core.Tests/Fixtures/Plans/raft_hand_2026-11-05.json`, Martins `plan.json` (RAFT, 4 CT-Missionen, Schema 8). Green Glade 27 SCU, High Course 9, Thundering Express 22, Faithful Dream 6, Melodic Fields 2, Summe 66. Die Lücken darin sind Handarbeit, kein Planer-Soll.
 
-### [ ] K9.1 Reihenachse wählbar (D88)
+### [x] K9.1 Reihenachse wählbar (D88) (05.11.2026, abgenommen 05.11.)
 
 **Präzisierung in der Planphase, ratifiziert durch Freigabe:** eigenes Feld `fillRows` statt der Task-Werte `portToStarboard`/`starboardToPort`; Stapel bleibt äußerst statt „immer innerst“; Breite läuft fest Steuerbord→Backbord; `grouping = none` bleibt größte zuerst über die Ziele hinweg (D64), der Satz „liefert schon ein Ziel nach dem anderen“ ist gestrichen; die Exhaustive-Begrenzung aus dem Plan entfällt, weil `FillOrder` zwei Werte behält.
 
@@ -3715,7 +3715,7 @@ Hull C erreicht schon vor K9.1 das Knotenlimit der Rack-Zuordnung (D64): Ist-Sta
 - [x] Schema 9 und 4 mit Migration, Fehlermeldungen für alte Schemas und unbekannte Wörter
 - [x] Re-plan, Laden, Schiffswechsel, Sync, Discard, Split und Verschieben behalten den Wert
 - [x] Standardlauf Core 1.592, App 1.544, Import 141, `Category=Slow` 2/2 grün; `Category=Exhaustive` auf Martins Wunsch abgebrochen, nicht durchgelaufen: er prüft nur Hull A `lengthwise`, das Goldens und Suchzähler belegen. Nach K9.2 laufen lassen
-- [ ] Martin: ComboBox **Rows** ansehen, RAFT crosswise planen
+- [x] Martin: ComboBox **Rows** ansehen, RAFT crosswise planen (abgenommen 05.11.)
 
 ### [ ] K9.2 Sektionen pro Ziel
 
