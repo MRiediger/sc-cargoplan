@@ -3719,7 +3719,7 @@ Hull C erreicht schon vor K9.1 das Knotenlimit der Rack-Zuordnung (D64): Ist-Sta
 
 ### [ ] K9.2 Sektionen pro Ziel
 
-Plan folgt, eigener D-Eintrag (Addenda D41, D64, D66). Korrigierte Vorgaben aus der Spec:
+D89 mit Addenda zu D41, D64, D66. Korrigierte Vorgaben aus der Spec:
 
 - **Ziel:** Pro Rack mit mehr als einem Ziel bekommt jedes Ziel einen zusammenhängenden Reihenblock entlang der Fortschrittsachse; Grenzen liegen auf Zellkanten, Sektionen liegen bündig aneinander, Löcher innerhalb einer Sektion bleiben frei.
 - **Reihenfolge (E1):** Wie die Legende sie zeigt: Gruppen in Legendenordnung (B6), darin die Zeilen von oben nach unten, ein Ziel zählt beim ersten Auftreten. Fixture: Green Glade, High Course, Thundering Express, Faithful Dream, Melodic Fields.
@@ -3731,6 +3731,38 @@ Plan folgt, eigener D-Eintrag (Addenda D41, D64, D66). Korrigierte Vorgaben aus 
 - **Goldens (E2):** aus dem Fixture gerechnet, nicht aus der Spec: `crosswise` + Sektionen ist das Handbild ohne Lücken, dazu ein zweites Golden `lengthwise`. Die Zahl „2+1+2+1+2“ ist gestrichen.
 - **Gate am Aufzug (Martin):** RAFT mit den 4 Missionen; fünfte Mission per CT (vorhandenes und neues Ziel); Mission auf „geladen“, dann Re-plan; Hull A mit 5 Zielen.
 - **Nicht Teil:** Sektionsreihenfolge per Legenden-Drag, Default pro Schiff, zweiseitige Sektionen.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:** Racks mit Stapelachse ±y führen Sektionen entlang der Länge, egal was `fillRows` sagt; Invariante für Plan und Re-plan, nicht für jeden Sync-Schritt; Ordnungsinvarianz mit `byDestination` nur für die Racks; Hinweise als getragene Notizen mit eigener weißer Zeile, weil Plan-Warnungen seit D64 das Overlay nicht erreichen; kein eigenes Schema; Editor „Grouping:“ mit „None“/„By destination“; Legendenreihenfolge in Core; Drehen vor Teilen; geteilte Sektion an der Position des früheren Ziels; Verschieben einer Kiste löscht den Hinweis ihres Ziels.
+
+**Neubewertung:** sobald im Live-Test eine Sync-Mission wartet, die mit `none` Platz hätte.
+
+- Core: `PlanGrouping`, `RackSections`, `SectionNotes`, `LoadPlan.LegendMissions`, Durchgang in Plan, Editor-Plan, Re-plan, Schiffswechsel; `LayStop` für den Sync
+- Formate: `grouping` in Plan-Schema 9 und Missions-Schema 4, `GroupingJson`, Goldens eine Zeile mehr
+- App: ComboBox **Grouping**, Editor breiter (760, Mindestbreite 560), weiße Zeile `NoticeSource.Sections`
+- Tests: `RackSectionsTests`, `RackSectionsSyncTests`, `LegendOrderTests`, `FillRowsFormatTests`, `MissionEditorViewModelTests`
+
+**Messung** (Release, Median aus 3, ms; Knoten und Suchschritte in allen Zeilen wie K9.1, kein „gave up“):
+
+| Fall | `none` | `byDestination` | ohne Tiered JIT `none` / `byDestination` |
+|---|---|---|---|
+| RAFT-Fixture | 8–10 | 11–24 | 3,0–4,7 / 6,5–7,1 |
+| Hull C, 8 Ziele | 34–57, erste Zeile 148 | 48–50 | 44 / 68 |
+| RAFT, 8 Ziele | 1,2–1,5 | 11–16 | nicht gemessen |
+
+Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe Zeile bei 44 ms.
+
+**Abnahme:**
+- [x] Goldens RAFT `crosswise` und `lengthwise`, aus den Kisten gerechnet
+- [x] Invariante: gleiche Racks, gleiche Warteschlange wie `none` bei Plan und Re-plan
+- [x] Sektionen zusammenhängend und bündig; geteilte Sektion im gemeinsamen Bereich, Hinweis nennt das richtige Ziel
+- [x] Drehen vor Teilen, Position des früheren Ziels
+- [x] Geladenes bleibt, Abgeliefertes und `offShip` unberührt
+- [x] Sync: eigener Bereich, Wachsen, neue Sektion, beide Hinweise, nichts bewegt sich
+- [x] Hull A: zwei Sektionen entlang der Länge in beiden `fillRows`
+- [x] `none`: alle Goldens und Property-Tests aus B2 grün
+- [x] `Category=Slow` 2/2, `Category=Exhaustive` 2/2 in 8 min 14 s (nachgeholt aus K9.1)
+- [ ] Martin: Gate am Aufzug
+- [ ] Martin: Editor mit drei Boxen ansehen (Breite nur geschätzt, nicht im laufenden Programm geprüft)
 
 ### [ ] K9.3 Doku und Merge
 
@@ -3761,6 +3793,11 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- Sektionsreihenfolge per Legenden-Drag (Spielerreihenfolge). Auslöser: Hauler-Report, dass die Legendenreihenfolge nicht reicht.
+- `defaultFillOrder`/Default pro Schiff in der Schiffs-JSON. Auslöser: zweites Schiff braucht einen anderen Default.
+- Zweiseitige Sektionen (Backbord-/Steuerbord-Hälfte). Auslöser: ein Schiff braucht es.
+- Sektionsgrenzen in der Schiffsansicht zeichnen. Auslöser: Hauler-Report, die Farben zeigen es heute.
 
 - Warteeinheit Lieferung statt Mission (K6.4, E1): eine teilweise geladene Mission, deren Rest keinen Platz findet, lässt
   heute den Editor-Plan ablehnen. Auslöser: eine solche Ablehnung am Aufzug, vor allem nach K6.5 (Ziel an geladener

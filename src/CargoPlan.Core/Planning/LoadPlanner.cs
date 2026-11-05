@@ -15,7 +15,8 @@ public static class LoadPlanner
     /// (<see cref="RackAssignment"/>); each rack's crates are laid out in <paramref name="fillOrder"/>, stored with the
     /// plan. Every shared rack, every rack holding part of a destination that spans racks and every crate on another
     /// destination's cargo gets a hint. If the search finds no assignment that lays out, every crate goes largest first
-    /// into the first rack that takes it (<see cref="FirstFitDecreasing"/>, D54).
+    /// into the first rack that takes it (<see cref="FirstFitDecreasing"/>, D54). With <paramref name="grouping"/> the shared
+    /// racks are laid in sections afterwards (<see cref="RackSections"/>, D89), in the order of the stops.
     /// </summary>
     /// <exception cref="ArgumentException">Two stops share an order or a destination.</exception>
     /// <exception cref="PlanException">
@@ -375,7 +376,8 @@ public static class LoadPlanner
     /// Plans missions from scratch, as the editor's Plan does (D19): their stops merged per destination in
     /// <paramref name="stopOrder"/> go through <see cref="Plan(Ship, IReadOnlyList{Stop}, FillOrder, FillRows, PlanGrouping)"/>, then every crate
     /// gets a mission that holds its kind. Equal crates of two missions can't be told apart in the game (D38), so which of
-    /// them goes to which is no choice. Every mission is placed afterwards; ids, sources and the watermark stay.
+    /// them goes to which is no choice. Every mission is placed afterwards; ids, sources and the watermark stay. With
+    /// <paramref name="grouping"/> the shared racks are laid in sections afterwards, in the legend's order (D89).
     /// </summary>
     /// <param name="stopOrder">
     /// Every destination of the missions once, in the order the player entered them: the order of legend and colours,
@@ -557,7 +559,8 @@ public static class LoadPlanner
     /// <see cref="CrateLayout.Place"/>, so delivered cells are free. A destination's new crates go right behind its crates
     /// in the list, others to the end. If a crate finds no place, the mission comes in without crates (<see cref="Mission.Unplaced"/>):
     /// the elevator hands out whole missions, so there is no partial placement. A destination spelt otherwise than one in
-    /// the plan takes the plan's spelling. The original stays unchanged.
+    /// the plan takes the plan's spelling. In a plan with grouping a shared rack takes the stop in rows of its own where it
+    /// can (<see cref="LayStop"/>, D89). The original stays unchanged.
     /// </summary>
     /// <param name="stops">The mission's stops in contract order.</param>
     /// <exception cref="ArgumentException">The plan belongs to another ship, or the stops make no valid mission.</exception>
