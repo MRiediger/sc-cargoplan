@@ -365,7 +365,7 @@ public static class LoadPlanner
         Crate[] templates = [.. offShip.OrderByDescending(c => c.CrateSize).ThenBy(c => c.Commodity, StringComparer.Ordinal)];
         Rack[] racks = [.. ship.Racks.OrderBy(r => r.Index)];
         var (fresh, failed) = LayStop(
-            plan.Crates, racks, destination, [.. templates.Select(c => (c.CrateSize, c.Commodity))], 0, plan.FillOrder, plan.FillRows, plan.Grouping, new CrateLayout.StackingBudget(), [], []);
+            plan.Crates, racks, destination, [.. templates.Select(c => (c.CrateSize, c.Commodity))], 0, plan.FillOrder, plan.FillRows, plan.Grouping, plan.SectionGap, new CrateLayout.StackingBudget(), [], []);
         if (fresh is null)
         {
             throw new PlanException(Invariant($"{destination} can't go back on board: no room for {(int)failed!.Value} SCU crate"));
@@ -1050,7 +1050,7 @@ public static class LoadPlanner
                 .. stop.Items.SelectMany(i => i.CrateListUnder(cap).Select(size => (size, i.Commodity)))
                     .OrderByDescending(k => k.size).ThenBy(k => k.Commodity, StringComparer.Ordinal),
             ];
-            var (fresh, failed) = LayStop(crates, racks, stop.Destination, kinds, mission.Id, plan.FillOrder, plan.FillRows, plan.Grouping, budget, stackingUnchecked, notes);
+            var (fresh, failed) = LayStop(crates, racks, stop.Destination, kinds, mission.Id, plan.FillOrder, plan.FillRows, plan.Grouping, plan.SectionGap, budget, stackingUnchecked, notes);
             if (fresh is null)
             {
                 return (null, failed, [], []);
@@ -1066,12 +1066,12 @@ public static class LoadPlanner
     /// One stop's crates of <paramref name="kinds"/> laid in around <paramref name="crates"/> by the rule of
     /// <see cref="StopByStop"/>, in the order of <paramref name="kinds"/>; or, if one has no place, the size of the first
     /// that hasn't. Racks whose stacking search gave up are added to <paramref name="stackingUnchecked"/>. With grouping, a
-    /// rack shared with other destinations takes the stop in its rows (<see cref="RackSections.RowsFor"/>, unturned if it
-    /// can, D71); if none does, the stop goes in as without grouping and <paramref name="notes"/> say so (D89).
+    /// rack shared with other destinations takes the stop in its rows (<see cref="RackSections.RowsFor"/>, stage by stage,
+    /// unturned if it can, D71); if none does, the stop goes in as without grouping and <paramref name="notes"/> say so (D89).
     /// </summary>
     private static (List<Crate>? Fresh, CrateSize? Failed) LayStop(
         IReadOnlyList<Crate> crates, Rack[] racks, string destination, (CrateSize Size, string Commodity)[] kinds, int missionId, FillOrder fillOrder, FillRows fillRows,
-        PlanGrouping grouping, CrateLayout.StackingBudget budget, List<Rack> stackingUnchecked, List<PlanWarning> notes)
+        PlanGrouping grouping, int sectionGap, CrateLayout.StackingBudget budget, List<Rack> stackingUnchecked, List<PlanWarning> notes)
     {
         Rack[] candidates =
         [
@@ -1143,14 +1143,16 @@ public static class LoadPlanner
                 }
 
                 var axis = RackSections.RowAxis.Of(rack, fillOrder, fillRows);
-                IReadOnlyList<int>[] tries = [.. RackSections.RowsFor(rack, OnBoardIn(rack), destination, fillOrder, fillRows)];
-                foreach (var turn in kinds.Any(k => k.Size.Turns) ? (bool[])[false, true] : [false])
+                foreach (var stage in RackSections.RowsFor(rack, OnBoardIn(rack), destination, fillOrder, fillRows, sectionGap))
                 {
-                    foreach (var rows in tries)
+                    foreach (var turn in kinds.Any(k => k.Size.Turns) ? (bool[])[false, true] : [false])
                     {
-                        if (Laid(rack, kinds, [.. RackSections.Outside(rack, axis, rows.ToHashSet())], turn) is { Laying.StackingFree: true } inRows)
+                        foreach (var rows in stage)
                         {
-                            return inRows;
+                            if (Laid(rack, kinds, [.. RackSections.Outside(rack, axis, rows.ToHashSet())], turn) is { Laying.StackingFree: true } inRows)
+                            {
+                                return inRows;
+                            }
                         }
                     }
                 }

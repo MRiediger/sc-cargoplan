@@ -152,6 +152,105 @@ public class RackSectionsSyncTests
         Lengths(replanned, "A").Should().Equal(5, 4, 3);
     }
 
+    // --- With gaps (K9.2b): gap rows are free rows, the last to be taken ---
+
+    private static SavedPlan WithGap(Ship ship, int gap, params MissionStop[] stops) =>
+        LoadPlanner.Plan(ship, [.. stops.Select((s, i) => new Mission(i + 1, [s]))], [.. stops.Select(s => s.Destination)], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination, gap);
+
+    [Fact]
+    public void A_new_destination_keeps_the_gap_in_the_free_rest()
+    {
+        // A 7-6, gap 5, B 4-3, free 2-0: C leaves 2 empty.
+        var ship = OneRack(8, 2, 1);
+        var saved = WithGap(ship, 1, StopOf("A", 4, CrateSize.Four), StopOf("B", 4, CrateSize.Four));
+
+        var placed = LoadPlanner.PlaceInto(saved, ship, [StopOf("C", 4, CrateSize.Four)]);
+
+        NothingMoved(saved, placed);
+        Lengths(placed, "C").Should().Equal(1, 0);
+        Notes(placed).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_new_destination_moves_closer_if_the_gap_leaves_too_little()
+    {
+        // A 6-5, gap 4, B 3-2, free 1-0: a 4 needs both, so no gap to B.
+        var ship = OneRack(7, 2, 1);
+        var saved = WithGap(ship, 1, StopOf("A", 4, CrateSize.Four), StopOf("B", 4, CrateSize.Four));
+
+        var placed = LoadPlanner.PlaceInto(saved, ship, [StopOf("C", 4, CrateSize.Four)]);
+
+        Lengths(placed, "C").Should().Equal(1, 0);
+        Notes(placed).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_new_destination_takes_a_gap_row_only_when_the_rest_is_gone()
+    {
+        // A 4-3, gap 2, B 1-0, nothing behind: the gap is the only empty row.
+        var ship = OneRack(5, 2, 1);
+        var saved = WithGap(ship, 1, StopOf("A", 4, CrateSize.Four), StopOf("B", 4, CrateSize.Four));
+
+        var placed = LoadPlanner.PlaceInto(saved, ship, [StopOf("C", 1, CrateSize.One)]);
+
+        NothingMoved(saved, placed);
+        Lengths(placed, "C").Should().Equal(2);
+        Notes(placed).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_turned_crate_at_the_end_comes_before_an_unturned_one_in_the_gap()
+    {
+        // A 5-4, gap 3, B 2-1, free 0: a 2 lies unturned nowhere there but across the row; the gap stays empty.
+        var ship = OneRack(6, 2, 1);
+        var saved = WithGap(ship, 1, StopOf("A", 4, CrateSize.Four), StopOf("B", 4, CrateSize.Four));
+
+        var placed = LoadPlanner.PlaceInto(saved, ship, [StopOf("C", 2, CrateSize.Two)]);
+
+        Lengths(placed, "C").Should().Equal(0);
+        placed.Plan.Crates.Single(c => c.Destination == "C").Rotated.Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_destination_on_board_grows_into_its_gap()
+    {
+        var ship = OneRack(8, 2, 1);
+        var saved = WithGap(ship, 1, StopOf("A", 4, CrateSize.Four), StopOf("B", 4, CrateSize.Four));
+
+        var placed = LoadPlanner.PlaceInto(saved, ship, [StopOf("A", 2, CrateSize.One)]);
+
+        NothingMoved(saved, placed);
+        Lengths(placed, "A").Should().Equal(7, 6, 5);
+        Notes(placed).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Without_a_gap_a_new_destination_also_goes_last()
+    {
+        // Martin: as a Plan would lay it. A delivered freed 7-6 in front, 1-0 are free at the end: the end first, the rows in
+        // front stay empty until a Re-plan.
+        var ship = OneRack(8, 2, 1);
+        var saved = Sectioned(ship, StopOf("A", 4, CrateSize.Four), StopOf("B", 4, CrateSize.Four), StopOf("C", 4, CrateSize.Four));
+        SavedPlan ticked = new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, ship, "A", true), saved.CrateCap);
+
+        var placed = LoadPlanner.PlaceInto(ticked, ship, [StopOf("D", 1, CrateSize.One)]);
+
+        Lengths(placed, "D").Should().Equal(1);
+    }
+
+    [Fact]
+    public void Without_a_gap_the_rows_in_front_are_taken_once_the_end_is_full()
+    {
+        var ship = OneRack(6, 2, 1);
+        var saved = Sectioned(ship, StopOf("A", 4, CrateSize.Four), StopOf("B", 4, CrateSize.Four), StopOf("C", 4, CrateSize.Four));
+        SavedPlan ticked = new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, ship, "A", true), saved.CrateCap);
+
+        var placed = LoadPlanner.PlaceInto(ticked, ship, [StopOf("D", 1, CrateSize.One)]);
+
+        Lengths(placed, "D").Should().Equal(5);
+        Notes(placed).Should().BeEmpty();
+    }
+
     // --- Notes follow the crates ---
 
     /// <summary>Three destinations in two rows of two: C shares with B.</summary>
