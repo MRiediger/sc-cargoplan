@@ -166,6 +166,16 @@ public sealed class ShipAnchorTests
         written.Should().Be("{\n  \"schemaVersion\": 5,\n  \"id\": \"x\",\n  \"holoOrigin\": [1.9994354248046875, -0.5, 0.26019287109375],\n  \"outlineOrigin\": [2, -0.5, 0],\n  \"outlineScale\": 1.12,\n  \"totalScu\": 2,\n  \"racks\": []\n}\n");
         ShipAnchorValues.WriteInto(written, anchors with { OutlineScale = null }, "totalScu").Should().NotContain("outlineScale");
     }
+
+    // A Windows checkout has CRLF files (.gitattributes text=auto).
+    [Fact]
+    public void Writing_keeps_the_files_line_ends()
+    {
+        const string File = "{\r\n  \"holoOrigin\": [0, 0, 0],\r\n  \"totalScu\": 2\r\n}\r\n";
+        ShipAnchors anchors = new(new ShipCoordinates(1, 2, 3), new ShipCoordinates(4, 5, 6), null);
+
+        ShipAnchorValues.WriteInto(File, anchors, "totalScu").Should().Be("{\r\n  \"holoOrigin\": [1, 2, 3],\r\n  \"outlineOrigin\": [4, 5, 6],\r\n  \"totalScu\": 2\r\n}\r\n");
+    }
 }
 
 /// <summary>

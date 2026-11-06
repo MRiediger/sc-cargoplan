@@ -48,10 +48,12 @@ internal static class ShipAnchorValues
     /// <summary>A ship or module file's text with these anchors in place of any it had, before <paramref name="before"/>; nothing else changes.</summary>
     public static string WriteInto(string text, ShipAnchors anchors, string before)
     {
-        var scale = anchors.OutlineScale is { } s ? $"  \"outlineScale\": {Exact(s)},\n" : "";
-        var fields = $"  \"holoOrigin\": {Exact(anchors.HoloOrigin)},\n  \"outlineOrigin\": {Exact(anchors.OutlineOrigin)},\n{scale}";
-        var at = FieldLine.Replace(text, "").IndexOf($"  \"{before}\":", StringComparison.Ordinal);
-        return FieldLine.Replace(text, "").Insert(at, fields);
+        // The file's own line ends: a Windows checkout has CRLF.
+        var end = text.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+        var scale = anchors.OutlineScale is { } s ? $"  \"outlineScale\": {Exact(s)},{end}" : "";
+        var fields = $"  \"holoOrigin\": {Exact(anchors.HoloOrigin)},{end}  \"outlineOrigin\": {Exact(anchors.OutlineOrigin)},{end}{scale}";
+        var rest = FieldLine.Replace(text, "");
+        return rest.Insert(rest.IndexOf($"  \"{before}\":", StringComparison.Ordinal), fields);
     }
 
     private static string Exact(ShipCoordinates c) => $"[{Exact(c.X)}, {Exact(c.Y)}, {Exact(c.Z)}]";
