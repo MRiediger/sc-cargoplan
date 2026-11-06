@@ -347,6 +347,67 @@ public class ImportFleetyardsScriptTests
         (await work.Run()).Output.Should().MatchRegex(@"same\s+row_ship");
     }
 
+    // Where hologram and outline lie (D90): set outside the import, and no number may lose a digit on the way, or the
+    // picture changes. The values have more digits than PowerShell 5.1 prints.
+    private const string Places = """
+          "holoOrigin": [1.9994277954101562, -0.5005714416503906, 0.2602119445800781],
+          "outlineOrigin": [0.5, 0, -0.3800000000000001],
+          "outlineScale": 1.1199999999999999,
+
+        """;
+
+    [Fact]
+    public async Task Force_keeps_the_places_to_the_digit()
+    {
+        using var work = new Workspace(withExpected: true);
+        work.Edit("row_ship", t => t.Replace("  \"totalScu\": 26,", $"{Places}  \"totalScu\": 26,", StringComparison.Ordinal));
+        var before = work.Read("row_ship");
+
+        var run = await work.Run("-Force", "row_ship");
+
+        run.ExitCode.Should().Be(0, run.Error);
+        work.Read("row_ship").Should().Be(before);
+    }
+
+    [Fact]
+    public async Task Force_keeps_the_places_when_it_writes_the_file_anew()
+    {
+        using var work = new Workspace(withExpected: true);
+        File.WriteAllText(Path.Combine(work.Ships, "row_ship.json"), """
+            {
+              "schemaVersion": 5,
+              "id": "row_ship",
+              "name": "TSTM Row Ship",
+              "holoOrigin": [1.9994277954101562, -0.5005714416503906, 0.2602119445800781],
+              "outlineOrigin": [0.5, 0, -0.3800000000000001],
+              "outlineScale": 1.1199999999999999,
+              "totalScu": 2,
+              "racks": [
+                { "id": "rack-7", "capacityScu": 2, "grid": { "length": 2, "width": 1, "stack": 1 }, "origin": [0, 0, 0], "stackAxis": "+z" }
+              ]
+            }
+            """);
+
+        var run = await work.Run("-Force", "row_ship");
+
+        run.ExitCode.Should().Be(0, run.Error);
+        work.Read("row_ship").Should().Contain(Places.ReplaceLineEndings("\n"));
+    }
+
+    // Corrected racks in a file are hand work for the ship's place; the compare and the import's rack list don't care.
+    [Fact]
+    public async Task The_compare_ignores_the_places_and_create_sets_none()
+    {
+        using var work = new Workspace();
+
+        var run = await work.Run("-Create");
+
+        run.ExitCode.Should().Be(0, run.Error);
+        work.ShipIds().Should().OnlyContain(id => !work.Read(id).Contains("Origin", StringComparison.Ordinal));
+        work.Edit("row_ship", t => t.Replace("  \"totalScu\": 26,", $"{Places}  \"totalScu\": 26,", StringComparison.Ordinal));
+        (await work.Run()).Output.Should().MatchRegex(@"same\s+row_ship");
+    }
+
     /// <summary>row_ship's rack-2 (2×2×2, which takes an 8 by its grid) with a door that takes 4 SCU at most.</summary>
     private static string WithDoorLimit(string text) => Regex.Replace(
         text, @"(""origin"": \[-3, 0, 0\],\s*""stackAxis"": ""\+z"")", "$1,\n      \"maxCrateSize\": 4");
