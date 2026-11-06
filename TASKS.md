@@ -3828,7 +3828,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 
 1. [x] F2 + F1 Schiffsauswahl – `fix/ship-picker` (abgenommen 06.11.)
 2. [x] F7 Holo und Racks schiffsfest verankern – `feat/f7-ship-anchor` (abgenommen 06.11.)
-3. [ ] F3 freier Drehwinkel pro Rack, Schiffs-JSON 5→6 – `feat/f3-rack-rotation`. **Vorgabe (Martin, 06.11.):** volle 3D-Rotation pro Rack, nicht Yaw. Eine Datenquelle mit Grid-Transformen im Schiffsraum existiert (Motherlode, 97 Schiffe, 3×4-Matrix in Metern, nur 5 Schiffe mit Drehung, Railen gekippt).
+3. [x] F3 freier Drehwinkel pro Rack, Schiffs-JSON 5→6 – `feat/f3-rack-rotation` (abgenommen 06.11.). **Vorgabe (Martin, 06.11.):** volle 3D-Rotation pro Rack, nicht Yaw. Eine Datenquelle mit Grid-Transformen im Schiffsraum existiert (Motherlode, 97 Schiffe, 3×4-Matrix in Metern, nur 5 Schiffe mit Drehung, Railen gekippt).
 4. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
 5. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
 
@@ -3906,6 +3906,79 @@ Holo-Offset und Umriss-Punkte bitgleich auf 98 von 98. Gegenprobe `main` gegen `
 - **Neue Holo-Version:** `holoOrigin` gilt für holo-v1. `ShipAnchorValueTests` mit `CARGOPLAN_HOLO_PREVIOUS`, danach `ShipPictureTests`. Sonst wandert die Hülle um bis zu 0,6 Zellen (D90).
 - **Erste Datenkorrektur durch einen Nutzer:** Origins auf 4 Stellen runden, Bildvergleich dann mit Toleranz statt bitgleich (`ShipPictureTests` kann das noch nicht).
 
+### [x] F3 Freier Drehwinkel pro Rack (06.11.2026, abgenommen 06.11.)
+
+**Warum:** Reddit (Ryekal): Hull B und Railen brauchen gedrehte Racks, sonst passen sie nie zum Holo. Vorgabe Martin: volle 3D-Rotation pro Rack, weil die Railen gekippt ist. Das Format kommt hier, die Werte in einer eigenen Daten-Session.
+
+**Befund:**
+- Alles Achsparallele hängt an `Rack` (`Box`, `FrameOf`) und `ShipBox`, ganzzahlig. Ein gedrehtes Rack lässt sich nicht als `ShipBox` ausdrücken, wohl aber als ein Schritt obendrauf: **Grid → gerade → Schiff.** Die Reihenfolge ist zwingend, 19 von 293 Racks haben ein linkshändiges `FrameOf` (`+y`, `-z`).
+- **Fleetyards liefert nichts für die Hull B.** Lokaler Export 26.10.: `rotation` nur 90/270 auf 19 Holds (Hull C, Carrack, Caterpillar), bei Hull B, Railen, Prowler Utility, 890 Jump, Syulen kein Schlüssel. Die Hull C drückt es schon über `stackAxis` aus; zusätzlich geschrieben würde sie doppelt gedreht. Keine Werte in dieser Session.
+- Die Mehrfach-Auswahl über Racks (`CrateMove.InShip`) ist auf geraden Boxen sauber, solange sie sich nicht überlappen. Tun sie es, können zwei Kisten auf einer Zelle landen: `MoveResolution` prüft nur gegen `taken`, und die Rückfallstufe griff nicht, weil `ResolveMove` `Shift` erneut ruft. Gefunden von einem Gegenprüf-Agent, im Code bestätigt.
+- M2 misst fast nur Fehltreffer (23 von 600 Punkten), und `ShipPictureTests` zeichnete keine Kisten.
+
+**Entscheidungen Martin:**
+- Drehpunkt = Rack-Mitte, `origin` bleibt die Min-Ecke der ungedrehten Box.
+- `origin` bleibt ganzzahlig. Das spätere Feld ist festgelegt, siehe unten.
+- Kollisions-Schutz in Core.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+- Mehrfach-Auswahl: Versatz in geraden Koordinaten statt im Zielrack-Raum, ganzzahlig und exakt.
+- Kollisions-Schutz sitzt in `CrateMove.InShip`: `Shift` liefert `null`, `CrateDrop` und `LoadPlanner` nehmen ohne eigenen Zweig die vorhandene Rückfallstufe (D65). `CrateDrop.cs` bleibt unverändert.
+- Gate-Punkt Hull B entfällt mangels Werten, dafür Probedatei.
+- Der Import schreibt kein `rotation`. `-Force` behält den Rohtext pro Rack-`id`; ein Schiff mit gedrehtem Rack wird in der Lage nicht verglichen und nicht neu gelegt. Das gilt auch für das Neulegen generierter Reihen bei geändertem Rack-Satz (`Update-Ship`), sonst träfe es die Railen.
+- Module tragen kein `rotation`, Fehler beim Laden.
+- Rack-Nummer auf langen Schiffen bleibt über dem Rack (D61), die größte Fläche gilt auf kompakten.
+- `Rack` bekommt ein Datenfeld ohne Logik. Kein Spike. Zusätzlicher `Category=Timing`-Test für Treffer.
+- `ShipPictureTests` bekommt 196 Bilder mit Ladung und einer ausgewählten Kiste, statt der 990 sind es jetzt 1186.
+
+**Bildvergleich** (Baseline aus einem `main`-Worktree auf `00e0019`, Testdatei dorthin kopiert):
+
+| Look | Bilder | Identisch | Abweichend |
+|---|---|---|---|
+| Umriss, 400×302 und 800×600 | 196 | 196 | 0 |
+| None, 400×302 und 800×600 | 196 | 196 | 0 |
+| Holo shaded, 400×302 und 800×600 | 196 | 196 | 0 |
+| Holo flat, 400×302 und 800×600 | 196 | 196 | 0 |
+| Holo hidden line, 400×302 und 800×600 | 196 | 196 | 0 |
+| Gespeicherte Kamera (Umriss, Holo shaded), 800×600 | 10 | 10 | 0 |
+| **Mit Ladung und Auswahl** (Umriss, Holo shaded), 800×600 | 196 | 196 | 0 |
+| **Summe** | **1186** | **1186** | **0** |
+
+Platzierungszahlen bitgleich auf 98 von 98. Gegenprobe `main` gegen `main`: 1186 identisch. Probe: Hull A, Rack 1 Pitch 40°, Rack 3 Yaw 30° (nur `bin`-Kopie) ergibt 14 abweichende Bilder, alle Hull A, keine Zahl verändert; im Bild kippt Rack 1 mit dem Bugende nach unten, Kisten, Kanten, Auswahlrahmen und Nummern folgen.
+
+**Messung** (Publish-Release, `--measure-frames`, je 3 Läufe, Median, **ohne Spiel**; gedreht = jedes Rack der Hull C `[30, 20, 10]`, nur im Scratch):
+
+| Ziel | `main` | Branch | Gedreht | Gate |
+|---|---|---|---|---|
+| Hit-Test M2 p95 (23 von 600 Treffer) | 0,001 ms | 0,002 ms | 0,002 ms | ≤ 1 ms |
+| Hit-Test M2 max | 0,142 ms | 0,195 ms | 0,208 ms | |
+| Vorschau `hull_c_drag` p95 | 1,87 ms | 1,98 ms | 1,91 ms | ≤ 16 ms |
+| Vorschau max | 11,1 ms | 11,6 ms | 11,7 ms | |
+| Späte Frames `hull_c` | 0,4 % | 0,5 % | 0,9 % | über dem Spiel am Gate |
+| Späte Frames `hull_c_drag` | 12,8 % | 11,8 % | 12,4 % | über dem Spiel am Gate |
+
+`TurnedRackTimingTests` (Strahlen auf Kisten, alle Treffer, 3.600 Strahlen): p95 0,026 ms gerade, 0,030 ms gedreht.
+
+**Abnahme:**
+- [x] Format: lesen, Default, `[0,0,0]`, falsche Länge, Schema 4/5 mit und ohne Feld, Schema 7 abgelehnt, Überlappung, Modul (`ShipLoaderTests`), erst rot gesehen
+- [x] Planer weiß nichts: gleiche Boxen, gleiches Layout, gleicher `Shift` mit und ohne `rotation` (`RackRotationTests`)
+- [x] Nie zwei Kisten auf einer Zelle; Vorschau und Drop gleich (`RackRotationTests`, `TurnedRackViewTests`)
+- [x] Ecken eines um 45° gedrehten Racks auf den berechneten Punkten, je ein Vorzeichentest Yaw, Pitch, Roll, Reihenfolge (`RackTransformTests`)
+- [x] Hit-Test über `CameraMath`: Treffer außerhalb der geraden Box, Fehltreffer innerhalb, erstes Rack auf dem Strahl über gerade und gedreht (`TurnedRackViewTests`)
+- [x] Drop-Ziel im gedrehten Rack, Säule entlang der lokalen Stapelachse (`TurnedRackViewTests`)
+- [x] Bounds und Fit mit gedrehten Ecken, Kistenmodell und Kanten liegen im gedrehten Rack (`TurnedRackViewTests`)
+- [x] Alle 97 Schiffsdateien je eine Zeile `5`→`6`, Zeilenenden byte-genau; Abgleich gegen den echten Export: 97 same
+- [x] `-Force` behält `rotation` ziffergenau; der Import schreibt keines (`ImportFleetyardsScriptTests`)
+- [x] 1186 Bilder bitgleich, Hit-Test p95 ≤ 1 ms, Vorschau p95 ≤ 16 ms, auch gedreht
+- [x] Martin: Handling gegen `main` auf ungedrehten Racks (Orbit, Zoom, Pan, Reset, Drag, Mehrfach-Auswahl, Legenden-Drag, Mausrad, Auswahl, Abhaken, Tooltip, Schiffswechsel, gespeicherte Kamera, Backdrop-Look)
+- [x] Martin: Gate über Star Citizen: Hull A, RAFT, Hull C, Bild wie vorher, Drag und Abhaken wie gewohnt
+- [x] Martin: Probedatei im `ships/`-Ordner des Builds: Racks liegen wie gewollt, Kisten lassen sich auf gedrehte Racks ziehen, Säule entlang der lokalen Achse, Mausrad dreht im Rack, Tooltip trifft die richtige Kiste, Rack-Nummer auf der größten Fläche
+
+**Nächste Schritte mit Auslöser:**
+- **Erlaubnis Motherlode oder Nutzer-Issue mit Winkeln:** Daten-Session für 890 Jump, Hull B, Prowler Utility, Railen, Syulen. Achsparallele 90/180/270-Drehungen aus externen Daten beim Import normalisieren (Maße tauschen, `origin` versetzen, `stackAxis`), nicht als `rotation` schreiben; `rotation` nur für echte Schrägwinkel. Die Quelle gegen Fleetyards prüfen: sie nennt andere Schiffe.
+- **Daten-Session misst mehr als ±0,5 Zellen:** optionales Rack-Feld `shift` `[x, y, z]` in Zellen mit Kommastellen, nur in `RackTransform` nach der Drehung angewandt, Core bleibt ganzzahlig (Muster `holoOrigin`). Ohne Schema-Sprung möglich, wie die F7-Felder.
+- **Ein Schiff kippt durch seine Rotation über die 2:1-Grenze** (`IsLong`): Kamera und Label-Stil prüfen.
+
 ## Phase 10 – nach dem Launch
 
 ### [ ] T10.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
@@ -3946,7 +4019,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - `CODE_OF_CONDUCT.md`, sobald es Contributors gibt; Community Standards mahnt es an, ein Solo-Repo braucht es vor dem ersten Hauler nicht (T6.4).
 - ~~App-Icon (`.ico` mit 16/32/48/256 px, `<ApplicationIcon>` im App-csproj), sobald ein Icon vorliegt; aus T6.2 (D48).~~ → K5
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
-- ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26); freie Rotation pro Rack erst, wenn ein Schiff sie braucht.
+- ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26), freie Rotation pro Rack in F3 (D91).
 - ~~Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).~~ → Phase 8 (D83)
 - Vorschau-Maximum mit SC: einzelne Schlüsselwechsel kosten 20–25 ms (T8.7, M5; p95 5,2 ms, ohne SC max 12 ms); die
   16-ms-Regel (D65) fängt sie ab. Erst klären, ob CPU-Konkurrenz mit dem Spiel oder eine GC die Spitzen macht, dann ggf.

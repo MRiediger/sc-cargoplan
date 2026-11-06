@@ -144,7 +144,7 @@ public class DropTargetTests
     {
         // A rack hanging under the hull stacks downwards (−z, D26): its plate is the hull's underside at z = 0. Seen from
         // below, the line of sight runs up, against the stack axis, and enters the lowest cell first; the drop rises to
-        // the plate, or onto the crate there. No ship file has such a rack yet (T8.4, E1).
+        // the plate, or onto the crate there. Built here (T8.4, E1); the RAFT has such a rack too.
         Rack under = new("under", 0, 8, new Dimensions(2, 2, 2), null, new ShipPoint(0, 0, -2), StackAxis.MinusZ);
         var below = new CameraOrientation(CameraOrientation.DefaultYaw, -60);
         var camera = new CameraMath(below, 200, ScreenPoints.Centre(under.Bounds), View);

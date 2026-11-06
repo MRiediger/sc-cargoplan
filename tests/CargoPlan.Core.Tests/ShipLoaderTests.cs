@@ -171,12 +171,12 @@ public class ShipLoaderTests
         TestShips.Load("max_crate_size").Racks.Should().OnlyContain(r => r.MinCrateSize == null && r.CanHold(CrateSize.One));
     }
 
-    // Schema 5 marks maxCrateSize as a door limit (D70); the shipped files say so, schema 4 stays readable.
+    // Schema 6 adds a rack's rotation (D91); the shipped files say so, schemas 4 and 5 stay readable.
     [Theory]
     [MemberData(nameof(ShippedShipIds))]
-    public void A_shipped_file_is_schema_5(string shipId)
+    public void A_shipped_file_is_schema_6(string shipId)
     {
-        File.ReadAllText(System.IO.Path.Combine(ShipLoader.DefaultFolder, shipId + ".json")).Should().Contain("\"schemaVersion\": 5,");
+        File.ReadAllText(System.IO.Path.Combine(ShipLoader.DefaultFolder, shipId + ".json")).Should().Contain("\"schemaVersion\": 6,");
     }
 
     // maxCrateSize is a door smaller than the grid (D70): a value the grid enforces anyway says nothing and is left out.
@@ -408,6 +408,105 @@ public class ShipLoaderTests
         catalog.Get("b_ship_test_module").HoloOffset.Should().Be(new ShipPoint(0, 0, 1));
     }
 
+    // --- rotation (F3, D91): a rack turned about its middle; Core only reads and checks it ---
+
+    // The first rack gets the field, the second stays straight; schema as the case needs it.
+    private static string WithRotation(string rotation, int schema = 6) => PlainShip()
+        .Replace("\"schemaVersion\": 4", $"\"schemaVersion\": {schema}", StringComparison.Ordinal)
+        .Replace("\"origin\": [0, 0, 0],", $"\"origin\": [0, 0, 0],\n      \"rotation\": {rotation},", StringComparison.Ordinal);
+
+    [Fact]
+    public void A_rotation_is_read_in_degrees_as_yaw_pitch_roll()
+    {
+        var racks = Catalog(WithRotation("[12.5, -40, 0.25]")).Get("b_ship").Racks;
+
+        racks[0].Rotation.Should().Be(new RackRotation(12.5, -40, 0.25));
+        racks[1].Rotation.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_rotation_of_nothing_is_no_rotation()
+    {
+        Catalog(WithRotation("[0, 0, 0]")).Get("b_ship").Racks[0].Rotation.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("[1, 2]", "*Rack 1*rack-0*rotation*3 values*")]
+    [InlineData("[1, 2, 3, 4]", "*Rack 1*rack-0*rotation*3 values*")]
+    [InlineData("[\"a\", 2, 3]", "*")]
+    [InlineData("[null, 2, 3]", "*")]
+    [InlineData("45", "*")]
+    public void A_bad_rotation_names_the_problem(string rotation, string message)
+    {
+        var problem = Catalog(WithRotation(rotation)).Problems.Should().ContainSingle().Which;
+
+        problem.Message.Should().Match(message);
+        problem.Message.Should().Contain("b_ship");
+    }
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void A_rotation_before_schema_6_is_an_error(int schema)
+    {
+        Catalog(WithRotation("[10, 0, 0]", schema)).Problems.Should().ContainSingle()
+            .Which.Message.Should().Match(FormattableString.Invariant($"*rotation is new in schema 6 (the file says {schema})*"));
+    }
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(5)]
+    public void An_older_file_without_a_rotation_loads_with_every_rack_straight(int schema)
+    {
+        var ship = PlainShip().Replace("\"schemaVersion\": 4", $"\"schemaVersion\": {schema}", StringComparison.Ordinal);
+
+        Catalog(ship).Get("b_ship").Racks.Should().OnlyContain(r => r.Rotation == null);
+    }
+
+    // The second rack moves onto the first; a rotation is what makes that a question for the picture, not for the loader.
+    private static string OnTheFirstRack(string json) => json.Replace("\"origin\": [5, 0, 0]", "\"origin\": [0, 0, 0]", StringComparison.Ordinal);
+
+    [Fact]
+    public void Racks_that_overlap_only_before_a_rotation_load()
+    {
+        var catalog = Catalog(OnTheFirstRack(WithRotation("[90, 0, 0]")));
+
+        catalog.Problems.Should().BeEmpty();
+        catalog.Get("b_ship").Racks.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void Straight_racks_still_may_not_overlap()
+    {
+        var ship = OnTheFirstRack(PlainShip()).Replace("\"schemaVersion\": 4", "\"schemaVersion\": 6", StringComparison.Ordinal);
+
+        Catalog(ship).Problems.Should().ContainSingle().Which.Message.Should().Contain("overlap");
+    }
+
+    [Fact]
+    public void A_straight_rack_next_to_a_turned_pair_is_still_checked()
+    {
+        // On the straight second rack; the first rack, turned, is not what this overlap is about.
+        const string third = """{ "id": "rack-2", "capacityScu": 75, "grid": { "length": 5, "width": 5, "stack": 3 }, "origin": [5, 0, 0], "stackAxis": "+z" },""";
+        var ship = WithRotation("[90, 0, 0]")
+            .Replace("\"racks\": [", $"\"racks\": [ {third}", StringComparison.Ordinal)
+            .Replace("\"totalScu\": 150", "\"totalScu\": 225", StringComparison.Ordinal);
+
+        Catalog(ship).Problems.Should().ContainSingle().Which.Message.Should().Contain("overlap");
+    }
+
+    [Fact]
+    public void A_module_rack_takes_no_rotation()
+    {
+        using var folder = new ShipFolder();
+        folder.AddShipped("hull_a");
+        folder.WriteModule("test_module", TestModule().Replace("\"maxCrateSize\": 2", "\"maxCrateSize\": 2, \"rotation\": [10, 0, 0]", StringComparison.Ordinal));
+
+        var catalog = ShipLoader.LoadAll(folder.Path);
+
+        catalog.Problems.Should().ContainSingle().Which.Message.Should().Match("*test_module*rotation*");
+    }
+
     // --- holoOrigin, outlineOrigin, outlineScale (D90): hologram and outline placed in ship coordinates, not on the racks ---
 
     private static string WithField(string json, string name, string value) =>
@@ -620,7 +719,7 @@ public class ShipLoaderTests
     [InlineData("missing_property")]        // no "name"
     [InlineData("null_name")]               // "name": null
     [InlineData("id_mismatch")]             // "id" differs from file name
-    [InlineData("unsupported_schema")]      // "schemaVersion": 6
+    [InlineData("unsupported_schema")]      // "schemaVersion": 7
     [InlineData("previous_schema")]         // "schemaVersion": 3, no "stackAxis"
     [InlineData("old_schema")]              // "schemaVersion": 2, no "origin"
     [InlineData("missing_schema")]          // no "schemaVersion"
@@ -663,12 +762,12 @@ public class ShipLoaderTests
     {
         var act = () => TestShips.Load("unsupported_schema");
 
-        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 6*expected 4 or 5*");
+        act.Should().Throw<ShipFormatException>().WithMessage("*schemaVersion 7*expected 4 or 5 or 6*");
     }
 
     [Theory]
-    [InlineData("previous_schema", "*schemaVersion 3*expected 4 or 5*")]
-    [InlineData("old_schema", "*schemaVersion 2*expected 4 or 5*")]
+    [InlineData("previous_schema", "*schemaVersion 3*expected 4 or 5 or 6*")]
+    [InlineData("old_schema", "*schemaVersion 2*expected 4 or 5 or 6*")]
     public void Load_old_schema_names_version_and_expected_version(string shipId, string expectedMessage)
     {
         var act = () => TestShips.Load(shipId);

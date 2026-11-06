@@ -28,6 +28,11 @@ internal sealed record ShipDto(
         }
 
         RackDto.ThrowOnDuplicateIds(Racks.Select(r => r.Id), $"ship '{Id}'");
+        if (SchemaVersion <= ShipLoader.NoRotationSchemaVersion && Racks.FirstOrDefault(r => r.Rotation is not null) is { } turned)
+        {
+            throw new ArgumentException(
+                Invariant($"Ship '{Id}': rack '{turned.Id}': rotation is new in schema {ShipLoader.NoRotationSchemaVersion + 1} (the file says {SchemaVersion})."), nameof(Racks));
+        }
 
         // Array order defines the index and the rack order: first rack = Rack 1.
         IReadOnlyList<Rack> racks = [.. Racks.Select((r, index) => r.ToRack(index))];
@@ -86,7 +91,8 @@ internal sealed record ShipDto(
         }
     }
 
-    // Checked here, not in Ship: geometry matters for drawing, and ships built in tests may ignore it (D14).
+    // Checked here, not in Ship: geometry matters for drawing, and ships built in tests may ignore it (D14). A turned rack
+    // doesn't lie in its box, so racks that turn past each other may share one; only the picture can tell (D91).
     private void ThrowOnOverlap(IReadOnlyList<Rack> racks)
     {
         for (var i = 0; i < racks.Count; i++)
@@ -94,7 +100,7 @@ internal sealed record ShipDto(
             for (var j = i + 1; j < racks.Count; j++)
             {
                 var (a, b) = (racks[i], racks[j]);
-                if (a.Bounds.Overlaps(b.Bounds))
+                if (a.Rotation is null && b.Rotation is null && a.Bounds.Overlaps(b.Bounds))
                 {
                     throw new ArgumentException(Invariant(
                         $"Ship '{Id}': Rack {a.Number} ('{a.Id}') at {a.Origin} and Rack {b.Number} ('{b.Id}') at {b.Origin} overlap."),

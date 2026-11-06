@@ -27,6 +27,8 @@ public static class DropTarget
     /// <returns>Null if the line of sight misses the rack.</returns>
     public static Drop? Resolve(Rack rack, IReadOnlyList<Crate> crates, Ray ray)
     {
+        // The cells are axis-aligned where the rack lies straight (D91); from here on it's the grid.
+        var straight = RackTransform.Of(rack).ToStraight(ray);
         Dictionary<GridPosition, Crate> taken = [];
         foreach (var crate in crates.Where(c => !c.Delivered))
         {
@@ -44,7 +46,7 @@ public static class DropTarget
                from w in Enumerable.Range(0, grid.Width)
                from s in Enumerable.Range(0, grid.Stack)
                let cell = new GridPosition(l, w, s)
-               let entry = Ahead(rack.CellBox(cell, CrateSize.One), ray)
+               let entry = Ahead(rack.CellBox(cell, CrateSize.One), straight)
                where entry is not null
                orderby entry
                select cell,

@@ -55,7 +55,7 @@ public static class ShipOverlay
         var boxes = scene.Racks.SelectMany(r => r.Boxes).ToArray();
         foreach (var box in boxes.Where(b => b.IsViolated))
         {
-            foreach (var face in Faces(box.Bounds, Inset, camera))
+            foreach (var face in Faces(box.Bounds, box.Transform, Inset, camera))
             {
                 dc.DrawGeometry(null, EdgeUnderPen, face);
                 dc.DrawGeometry(null, ViolationPen, face);
@@ -64,7 +64,7 @@ public static class ShipOverlay
 
         foreach (var rack in scene.Racks.Where(r => r.IsViolated || r.RackId == drag.TargetRackId))
         {
-            foreach (var face in Faces(rack.Bounds, 0, camera))
+            foreach (var face in Faces(rack.Bounds, rack.Transform, 0, camera))
             {
                 dc.DrawGeometry(null, rack.RackId == drag.TargetRackId ? DragTargetPen : ViolationPen, face);
             }
@@ -75,7 +75,7 @@ public static class ShipOverlay
         var focus = SelectionFocus.Missions(selected);
         foreach (var box in boxes.Where(b => SelectionFocus.Frames(b.Crate, focus)))
         {
-            foreach (var face in Faces(box.Bounds, Inset, camera))
+            foreach (var face in Faces(box.Bounds, box.Transform, Inset, camera))
             {
                 dc.DrawGeometry(null, MissionFramePen, face);
             }
@@ -85,7 +85,7 @@ public static class ShipOverlay
         {
             foreach (var box in boxes.Where(b => b.Crate is { } crate && selected.Contains(crate)))
             {
-                foreach (var face in Faces(box.Bounds, Inset, camera))
+                foreach (var face in Faces(box.Bounds, box.Transform, Inset, camera))
                 {
                     if (look.SelectionOutlinePen is { } outline)
                     {
@@ -103,7 +103,8 @@ public static class ShipOverlay
         {
             foreach (var crate in ghosts)
             {
-                foreach (var face in Faces(scene.Ship.Racks.Single(r => r.Id == crate.RackId).CellBox(crate), 0, camera, filled: true))
+                var rack = scene.Ship.Racks.Single(r => r.Id == crate.RackId);
+                foreach (var face in Faces(rack.CellBox(crate), RackTransform.Of(rack), 0, camera, filled: true))
                 {
                     dc.DrawGeometry(fill, EdgeUnderPen, face);
                     dc.DrawGeometry(null, pen, face);
@@ -164,12 +165,12 @@ public static class ShipOverlay
         dc.DrawGeometry(brush, null, glyphs);
     }
 
-    /// <summary>The visible faces of a box, inset by <paramref name="inset"/>, as screen polygons; faces reaching behind the camera are left out.</summary>
-    private static IEnumerable<Geometry> Faces(ShipBox box, double inset, CameraMath camera, bool filled = false)
+    /// <summary>The visible faces of a box, inset by <paramref name="inset"/>, turned with its rack (D91), as screen polygons; faces reaching behind the camera are left out.</summary>
+    private static IEnumerable<Geometry> Faces(ShipBox box, RackTransform transform, double inset, CameraMath camera, bool filled = false)
     {
         Point3D min = new(box.Min.X + inset, box.Min.Y + inset, box.Min.Z + inset);
         Point3D max = new(box.Max.X - inset, box.Max.Y - inset, box.Max.Z - inset);
-        foreach (var face in BoxFaces.Visible(min, max, camera))
+        foreach (var face in BoxFaces.Visible(min, max, camera, transform))
         {
             if (face.Corners.Any(c => Vector3D.DotProduct(c - camera.Position, camera.LookDirection) <= camera.Near))
             {

@@ -72,7 +72,7 @@ public static class ShipViewBuilder
 
         return new ShipScene(
             racks,
-            ship.Bounds,
+            racks.Select(r => r.Transform.Around(r.Bounds)).Aggregate((a, b) => a.Union(b)),
             legend,
             [.. violations.Select(v => v.Message)],
             palette.Count,
@@ -179,6 +179,7 @@ public static class ShipViewBuilder
     private static SceneRack BuildRack(Rack rack, LoadPlan plan, IReadOnlyDictionary<string, int> palette, bool isViolated)
     {
         var crates = plan.CratesForRack(rack.Id);
+        var transform = RackTransform.Of(rack);
 
         // Only a red rack can hold a faulty crate; valid plans skip the check of every pair.
         IReadOnlySet<Crate> faulty = isViolated ? CrateLayout.Faulty(rack, crates) : new HashSet<Crate>();
@@ -195,7 +196,8 @@ public static class ShipViewBuilder
                 crate.Loaded ? ToolTip(rack, placement, i + 1, own.Length) + LoadedToolTipText : ToolTip(rack, placement, i + 1, own.Length),
                 placement,
                 crate,
-                faulty.Contains(crate)));
+                faulty.Contains(crate))
+            { Transform = transform });
         })];
 
         HashSet<GridPosition> taken = [.. drawn.SelectMany(c => c.Cells)];
@@ -208,10 +210,13 @@ public static class ShipViewBuilder
                from s in Enumerable.Range(0, grid.Stack)
                let cell = new GridPosition(l, w, s)
                where !taken.Contains(cell)
-               select new SceneBox(rack.CellBox(cell, CrateSize.One), CellFill.Free, null, null, null, null, IsViolated: false, loadedLayers.Contains(s)),
+               select new SceneBox(rack.CellBox(cell, CrateSize.One), CellFill.Free, null, null, null, null, IsViolated: false, loadedLayers.Contains(s)) { Transform = transform },
         ];
 
-        return new SceneRack(rack.Id, rack.Number, isViolated, rack.Bounds, [.. cargo, .. free], new RackLoad(rack.Number, plan.ScuOnBoard(rack.Id), rack.CapacityScu));
+        return new SceneRack(rack.Id, rack.Number, isViolated, rack.Bounds, [.. cargo, .. free], new RackLoad(rack.Number, plan.ScuOnBoard(rack.Id), rack.CapacityScu))
+        {
+            Transform = transform,
+        };
     }
 
     /// <summary>
