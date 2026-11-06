@@ -350,8 +350,25 @@ function Get-HandFields([string]$Text) {
         ForEach-Object { "  ""$($_.Groups[1].Value)"": $($_.Groups[2].Value)," })
 }
 
+# A rack's rotation (D91) as the file writes it, by rack id: hand work too, and through a number it would lose digits just
+# the same. The file's rotations come in the order of its racks, whichever field of a rack comes first.
+function Get-RackRotations([string]$Text, [object]$File) {
+    $written = @([regex]::Matches($Text, '"rotation"\s*:\s*(\[[^\]]*\])') | ForEach-Object { $_.Groups[1].Value })
+    $turned = @(@($File.racks) | Where-Object { $null -ne $_.rotation })
+    $rotations = @{}
+    for ($i = 0; $i -lt $turned.Count; $i++) {
+        $rotations[[string]$turned[$i].id] = $written[$i]
+    }
+    $rotations
+}
+
+# A turned rack lies where the file says, by hand and not by Fleetyards: laid anew, its origin would part from its rotation (D91).
+function Test-Turned([object]$File) {
+    @(@($File.racks) | Where-Object { $null -ne $_.rotation }).Count -gt 0
+}
+
 # The layout of ships/hull_a.json: two spaces, grid, position and origin on one line, LF, final newline.
-function Format-Ship([object]$Ship, [string[]]$HandFields = @()) {
+function Format-Ship([object]$Ship, [string[]]$HandFields = @(), [hashtable]$Rotations = @{}) {
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add('{')
     $lines.Add("  ""schemaVersion"": $SchemaVersion,")
@@ -378,6 +395,9 @@ function Format-Ship([object]$Ship, [string[]]$HandFields = @()) {
         }
         $fields.Add("""origin"": [$(@($r.origin) -join ', ')]")
         $fields.Add("""stackAxis"": $(Format-JsonString $r.stackAxis)")
+        if ($Rotations.ContainsKey([string]$r.id)) {
+            $fields.Add("""rotation"": $($Rotations[[string]$r.id])")
+        }
         foreach ($limit in 'maxCrateSize', 'minCrateSize') {
             if ($null -ne $r.$limit) {
                 $fields.Add("""${limit}"": $($r.$limit)")
@@ -431,7 +451,7 @@ function Compare-Ship([object]$File, [object]$Draft) {
             $differences.Add("${id}: not in Fleetyards")
         }
     }
-    if ($Draft.Arrangement -eq 'fleetyards') {
+    if ($Draft.Arrangement -eq 'fleetyards' -and -not (Test-Turned $File)) {
         $inFile = @(Get-ArrangementText @(@($File.racks) | ForEach-Object { Get-FileBox $_ }))
         $inExport = @(Get-ArrangementText @($Draft.racks | ForEach-Object { $_.Box }))
         if (($inFile -join ' ') -ne ($inExport -join ' ')) {
@@ -447,7 +467,7 @@ function Compare-Ship([object]$File, [object]$Draft) {
 # Where Fleetyards lays the racks, -Force lays them so: origin, position and a stack axis that fills the box, the file's
 # own where it does (D78). The arrangement part of the notes follows; the rest of the notes is hand work.
 function Set-Arrangement([object]$File, [object]$Racks, [object]$Draft) {
-    if ($Draft.Arrangement -ne 'fleetyards') {
+    if ($Draft.Arrangement -ne 'fleetyards' -or (Test-Turned $File)) {
         return
     }
     foreach ($r in @($Racks)) {
@@ -520,7 +540,7 @@ function Update-Ship([object]$File, [object]$Draft, [string]$ExportDate) {
         for ($i = $lastLarge + 1; $i -lt $kept.Count; $i++) { $racks.Add($kept[$i]) }
         foreach ($d in @($added | Where-Object { $_.Walkway })) { $racks.Add($d) }
         $racks = @($racks)
-        if ($Draft.Arrangement -ne 'fleetyards') {
+        if ($Draft.Arrangement -ne 'fleetyards' -and -not (Test-Turned $File)) {
             $row = Get-RowOrigins @($racks | ForEach-Object { $_.grid })
             for ($i = 0; $i -lt $racks.Count; $i++) {
                 Set-Field $racks[$i] 'origin' $row[$i]
@@ -615,7 +635,9 @@ try {
             $differences = Compare-Ship $file $draft
             if ($id -eq $Force) {
                 $update = Update-Ship $file $draft $exportDate
-                $writes[$path] = Format-Ship $update.Ship (Get-HandFields $text)
+                # A file written anew from the draft has none of its racks left, so no rotation either.
+                $rotations = if ([object]::ReferenceEquals($update.Ship, $draft)) { @{} } else { Get-RackRotations $text ($text | ConvertFrom-Json) }
+                $writes[$path] = Format-Ship $update.Ship (Get-HandFields $text) $rotations
                 $status = 'updated'; $detail = if ($differences.Count) { $differences -join '; ' } else { 'grid data was in sync' }
                 if ($update.Report) {
                     $detail += " ($($update.Report))"

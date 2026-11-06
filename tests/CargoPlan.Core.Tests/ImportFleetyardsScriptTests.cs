@@ -408,6 +408,108 @@ public class ImportFleetyardsScriptTests
         (await work.Run()).Output.Should().MatchRegex(@"same\s+row_ship");
     }
 
+    // A rack's rotation (D91) is hand work like the places: the import never sets one, -Force keeps it to the digit by rack
+    // id, and a turned ship's racks stay where the file lays them, or -Force would part origin and rotation.
+    private const string Rotation = "\"rotation\": [12.345678901234567, -0.1000000000000001, 1e-05]";
+
+    private static string WithRotation(string text, string origin) => Regex.Replace(
+        text, $@"(""origin"": \[{Regex.Escape(origin)}\],\s*""stackAxis"": ""[^""]+"")", $"$1,\n      {Rotation}");
+
+    [Fact]
+    public async Task Force_keeps_a_rotation_to_the_digit()
+    {
+        using var work = new Workspace(withExpected: true);
+        work.Edit("row_ship", t => WithRotation(t, "-3, 0, 0"));
+        var before = work.Read("row_ship");
+        before.Should().Contain(Rotation);
+
+        var run = await work.Run("-Force", "row_ship");
+
+        run.ExitCode.Should().Be(0, run.Error);
+        work.Read("row_ship").Should().Be(before);
+        ShipLoader.Load(work.Ships, "row_ship").Racks.Where(r => r.Rotation is not null).Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task A_turned_rack_stays_where_the_file_lays_it()
+    {
+        using var work = new Workspace(withExpected: true);
+        var origin = OriginsOf(work.Read("offset_ship"))[1];
+        var moved = $"{origin[0] + 50}, {origin[1]}, {origin[2]}";
+        work.Edit("offset_ship", t => WithRotation(t, string.Join(", ", origin)).Replace($"\"origin\": [{string.Join(", ", origin)}]", $"\"origin\": [{moved}]", StringComparison.Ordinal));
+        var before = work.Read("offset_ship");
+
+        (await work.Run()).Output.Should().MatchRegex(@"same\s+offset_ship");
+        var run = await work.Run("-Force", "offset_ship");
+
+        run.ExitCode.Should().Be(0, run.Error);
+        work.Read("offset_ship").Should().Be(before);
+    }
+
+    [Fact]
+    public async Task A_changed_rack_set_doesnt_lay_a_turned_row_anew()
+    {
+        using var work = new Workspace(withExpected: true);
+        File.WriteAllText(Path.Combine(work.Ships, "row_ship.json"), """
+            {
+              "schemaVersion": 6,
+              "id": "row_ship",
+              "name": "TSTM Row Ship",
+              "notes": "rack arrangement generated; grids from Fleetyards",
+              "totalScu": 18,
+              "racks": [
+                { "id": "rack-0", "capacityScu": 2, "grid": { "length": 2, "width": 1, "stack": 1 }, "origin": [7, 0, 0], "stackAxis": "+z", "rotation": [10, 20, 30] },
+                { "id": "rack-1", "capacityScu": 16, "grid": { "length": 2, "width": 4, "stack": 2 }, "origin": [-30, 0, 0], "stackAxis": "+z" }
+              ]
+            }
+            """);
+
+        var run = await work.Run("-Force", "row_ship");
+
+        run.ExitCode.Should().Be(0, run.Error);
+        var racks = ShipLoader.Load(work.Ships, "row_ship").Racks;
+        racks.Single(r => r.Id == "rack-0").Origin.Should().Be(new ShipPoint(7, 0, 0));
+        racks.Single(r => r.Id == "rack-0").Rotation.Should().Be(new RackRotation(10, 20, 30));
+        racks.Single(r => r.Id == "rack-1").Origin.Should().Be(new ShipPoint(-30, 0, 0));
+    }
+
+    [Fact]
+    public async Task A_regenerated_file_doesnt_keep_a_rotation()
+    {
+        using var work = new Workspace(withExpected: true);
+        File.WriteAllText(Path.Combine(work.Ships, "row_ship.json"), """
+            {
+              "schemaVersion": 6,
+              "id": "row_ship",
+              "name": "TSTM Row Ship",
+              "totalScu": 4,
+              "racks": [
+                { "id": "rack-0", "capacityScu": 4, "grid": { "length": 4, "width": 1, "stack": 1 }, "origin": [0, 0, 0], "stackAxis": "+z", "rotation": [10, 20, 30] }
+              ]
+            }
+            """);
+
+        var run = await work.Run("-Force", "row_ship");
+
+        run.ExitCode.Should().Be(0, run.Error);
+        run.Output.Should().Contain("file regenerated");
+        work.Read("row_ship").Should().NotContain("rotation");
+    }
+
+    [Fact]
+    public async Task The_import_never_writes_a_rotation()
+    {
+        using var work = new Workspace();
+
+        var run = await work.Run("-Create");
+
+        run.ExitCode.Should().Be(0, run.Error);
+        work.ShipIds().Should().OnlyContain(id => !work.Read(id).Contains("rotation", StringComparison.Ordinal));
+    }
+
+    private static int[][] OriginsOf(string text) =>
+        [.. Regex.Matches(text, @"""origin"": \[(-?\d+), (-?\d+), (-?\d+)\]").Select(m => new[] { int.Parse(m.Groups[1].Value), int.Parse(m.Groups[2].Value), int.Parse(m.Groups[3].Value) })];
+
     /// <summary>row_ship's rack-2 (2×2×2, which takes an 8 by its grid) with a door that takes 4 SCU at most.</summary>
     private static string WithDoorLimit(string text) => Regex.Replace(
         text, @"(""origin"": \[-3, 0, 0\],\s*""stackAxis"": ""\+z"")", "$1,\n      \"maxCrateSize\": 4");

@@ -14,7 +14,7 @@ reported (the CLI prints it, the app lists the ship under **Not loaded** in the 
 
 ```json
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "id": "hull_a",
   "name": "MISC Hull A",
   "manufacturer": "MISC",
@@ -56,7 +56,7 @@ being ignored silently.
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | Must be `5`; `4` is still read, the same way. Bumped when the format changes incompatibly or a field changes its meaning (5: `maxCrateSize` is the door limit, D70); older files are rejected with the version they have and the ones expected. |
+| `schemaVersion` | number | Must be `6`; `4` and `5` are still read, every rack straight. Bumped when the format changes incompatibly or a field changes its meaning (5: `maxCrateSize` is the door limit, D70; 6: a rack may have a `rotation`, D91); older files are rejected with the version they have and the ones expected. |
 | `id` | string | Must equal the file name without `.json` (`hull_a.json` → `"hull_a"`). Use lowercase `snake_case`: Linux file systems are case-sensitive. |
 | `name` | string | Display name, e.g. `"MISC Hull A"`. |
 | `manufacturer` | string | *Optional.* Manufacturer code as Fleetyards writes it, e.g. `"MISC"`, `"RSI"`; ships are grouped by it. Not empty if present. |
@@ -80,10 +80,11 @@ A rack is a separately loadable section of the cargo hold, usually one plate.
 | `capacityScu` | number | Greater than 0. Must equal `length × width × stack` of the grid. |
 | `grid` | object | The rack's cell grid, see below. |
 | `position` | object | *Optional.* Where the rack sits in player words ("port upper"), see below. Shown in the crate tooltip, not used for planning. Leave it out where it isn't known: a ship draft with a generated rack arrangement has none, and the tooltip then skips it. |
-| `origin` | array | Where the rack sits in ship coordinates: `[x, y, z]`, three whole numbers, see [Coordinates](#coordinates). Used to draw the ship, not for planning. Racks must not overlap. |
+| `origin` | array | Where the rack sits in ship coordinates: `[x, y, z]`, three whole numbers, see [Coordinates](#coordinates). Used to draw the ship, not for planning. Straight racks must not overlap. |
 | `stackAxis` | string | The ship direction crates stack in, away from the plate: `"+x"`, `"-x"`, `"+y"`, `"-y"`, `"+z"` or `"-z"`, see [Stack axis](#stack-axis). |
 | `maxCrateSize` | number | *Optional.* The door limit: the largest crate that gets through the rack's door, in SCU (`1`, `2`, `4`, `8`, `16`, `24` or `32`), where that is less than the grid takes. Left out, the grid alone decides. See [Max crate size](#max-crate-size). |
 | `minCrateSize` | number | *Optional.* The smallest crate the rack takes, in SCU, where that is more than 1 (the Hull C's spindle: `32`). Left out, any crate the grid and `maxCrateSize` allow. See [Min crate size](#min-crate-size). |
+| `rotation` | array of 3 numbers | *Optional, from schema 6, not in a cargo module.* `[yaw, pitch, roll]` in degrees: how the rack is turned about its middle, for a rack that lies at an angle in the hull. Left out, or `[0, 0, 0]`, the rack lies straight. See [Turning a rack](#turning-a-rack). |
 
 ### Max crate size
 
@@ -147,13 +148,14 @@ Racks, hologram and outline of a ship share one coordinate system (see [D14](dec
   fills `origin` to `origin` plus its grid laid along the axes of its [stack axis](#stack-axis).
 - The zero point is the file's own: pick one when you start a ship and keep it. Racks, hologram and outline each
   count from it, none from another. Saved cameras count from it too.
-  Racks may touch but must not overlap. The loader names both racks if they do.
+  Straight racks may touch but must not overlap. The loader names both racks if they do.
 
 ### Stack axis
 
 `stackAxis` says which way crates stack, away from the plate (see [D26](decisions.md)). Crates always lie flat
 against their plate, so it is the direction a second layer goes: up from a floor, down from a ceiling or a hull
-underside, outwards from a spindle. The other two grid axes follow from it, there is no free rotation:
+underside, outwards from a spindle. The other two grid axes follow from it; a rack at an angle stays on one of these
+axes and adds a [`rotation`](#turning-a-rack) on top:
 
 | `stackAxis` | `length` along | `width` along | `stack` along |
 |---|---|---|---|
@@ -190,6 +192,44 @@ An interior floor (`"+z"`): crates go up from z 0, the rack fills x 0..4 · y 0.
 
 A rack under the hull (`"-z"`): the plate is the hull at z −1, crates hang down from it, the rack fills
 x 0..2 · y −2..0 · z −3..−1, and the first layer is z −2..−1.
+
+### Turning a rack
+
+Most racks lie along the ship's axes. For one that lies at an angle in the hull, `rotation` turns it (D91):
+
+```json
+{ "id": "rack-0", "capacityScu": 16, "grid": { "length": 4, "width": 2, "stack": 2 },
+  "origin": [0, 1, 3], "stackAxis": "+y", "rotation": [0, 40, 0] }
+```
+
+First lay the rack as if it were straight, with `origin` and `stackAxis` as above. Then `rotation` turns the whole rack
+about **its middle**, so changing an angle leaves the rack in place and `origin` keeps meaning the corner of the straight
+box. Everything inside the rack turns with it and means what it did: cells, the stack axis, the crates and how they lie.
+
+| Value | Turns about | Positive means |
+|---|---|---|
+| `yaw` | the ship's z | the bow end turns to port |
+| `pitch` | the ship's y | the bow end turns down |
+| `roll` | the ship's x | the port side turns up |
+
+Right-handed about the ship's axes, applied in the order roll, pitch, yaw (R = Rz(yaw) · Ry(pitch) · Rx(roll)).
+
+**Change the angle, check the picture.** That is the whole method. Start from what you see in the hull, change one value,
+and look at the rack against the hologram from two sides. Then, in the app, drag a crate onto it and hover over a crate.
+
+Where it stops:
+
+- **Overlap isn't checked** between a turned rack and any other: its box isn't where it lies. Only the picture shows it.
+- **`origin` stays whole cells.** A rack's middle can only lie on half or whole cells, so a place from outside fits to
+  half a cell at most (0.625 m).
+- **The rack's own directions stay its own.** "Bow first" fills along the rack's length: a rack yawed past 90° fills
+  towards the stern. Keep such a rack's angle below 90° if you can, with its length lying the way you'd load it.
+- **A straight angle is no rotation.** Use `stackAxis` and swap the grid's axes for 90°, 180° and 270°; `rotation` is for
+  real angles.
+- **A selection across racks** keeps its offset where the racks lie straight, so between racks turned differently it isn't
+  the offset you see. The preview shows where the crates go; if two would share a cell, all go into the rack of the crate
+  held, without cells.
+- **Cargo modules** can't say a `rotation` yet.
 
 ### Hologram and outline
 
@@ -263,7 +303,9 @@ patch:
    still has keep all their hand work, new racks join behind the last rack that takes more than 2 SCU (walkways last),
    vanished racks are dropped and named, and `notes` record it; if no rack maps, the file is written anew.
    `holoOrigin`, `outlineOrigin` and `outlineScale` stay to the digit in every case, so origins that change move the
-   racks against the hull: look at the ship afterwards. `-Create` sets none of them.
+   racks against the hull: look at the ship afterwards. `-Create` sets none of them. A rack's `rotation` stays to the digit
+   by rack id too, unless the file is written anew, and a ship with a turned rack keeps its racks where the file lays them
+   (D91): neither `-Force` nor the compare goes by Fleetyards' arrangement there.
    `hull_a.json` is never written, but it is compared: it is the check of the mapping below.
 4. **Commit:** run `dotnet test` (every file must load), then commit the changed files with the export date.
 
@@ -273,7 +315,8 @@ rack lies as Fleetyards gives it, and crates turn to fit (D71). Fleetyards' rack
 one and none overlap (D78): the offset is the hold's min corner, and in ship cells x = Fleetyards y (towards the bow,
 checked on the Starlancer MAX), y = −(Fleetyards x + width) (to port), z = Fleetyards z. A hold with `rotation` 90 or 270
 is turned about Fleetyards y (the Hull C's upright arms): its x and z extents swap, its offset is the min corner after
-the turn, its grid stays; any other rotation stops the import. `stackAxis` is `+z` where that lays the grid in the box,
+the turn, its grid stays; any other rotation stops the import. That only says how the box lies, which `stackAxis` already
+says, so the import never writes a rack's `rotation`. `stackAxis` is `+z` where that lays the grid in the box,
 else the first axis that does. `position` comes from the rack's centre against the ship's, and is left out for a rack
 on the ship's middle (the Hull C's arms). Otherwise the racks get a generated row, Rack 1 at the bow and one cell between
 racks, and no `position`. Racks that take nothing above 2 SCU (ladders, walkways) go last. The compare checks where
@@ -356,12 +399,13 @@ use it automatically.
 ## Checklist for a new ship PR
 
 - [ ] File is `ships/<id>.json`, lowercase `snake_case`, and `id` inside matches.
-- [ ] `schemaVersion` is `5`.
+- [ ] `schemaVersion` is `6`.
 - [ ] Rack capacities add up to `totalScu`, and each rack's `length × width × stack` equals its `capacityScu`.
 - [ ] Racks are listed **in rack order** (the order to fill them), each with its `origin` and, where known, its `position`.
 - [ ] Racks don't overlap, and `origin` agrees with `position` if given (port = positive y, upper = higher z).
 - [ ] `holoOrigin` and `outlineOrigin` are set, see [Hologram and outline](#hologram-and-outline).
 - [ ] Each rack's `stackAxis` points away from its plate, as in the game.
+- [ ] A `rotation` only for a real angle, checked in the picture from two sides, with its source named.
 - [ ] Values measured in game (current patch named in the PR description), or their source named in `source`.
 - [ ] `maxCrateSize` only where the door takes less than the grid, `minCrateSize` only above 1, both with their source.
 - [ ] `dotnet test` passes. The test `Every_shipped_ship_loads` loads every ship file and reports the
