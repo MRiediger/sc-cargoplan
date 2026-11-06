@@ -277,7 +277,13 @@
                                         Background="{DynamicResource WindowOpaqueBackgroundBrush}"
                                         BorderBrush="{DynamicResource ButtonsBorderBrush}" BorderThickness="1"
                                         CornerRadius="4" Padding="0,2">
-                                    <ScrollViewer>
+                                    <!-- By pixels (F2): the theme sets content scrolling on the ComboBox and this viewer takes it over,
+                                         which makes the list's StackPanel scroll by its children, the groups: a notch skipped three of
+                                         them and the end of a group taller than the list was out of reach. The theme's own template turns
+                                         it off when grouping; a template of our own has to as well. All rows exist either way.
+                                         Source: dotnet/wpf, Themes/XAML/ComboBox.xaml (MultiTrigger on IsGrouping) and
+                                         PresentationFramework/System/Windows/Controls/ScrollViewer.cs (OnPreApplyTemplate) -->
+                                    <ScrollViewer CanContentScroll="False">
                                         <ScrollViewer.Resources>
                                             <!-- The slim bar in the header's colour. -->
                                             <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBarStyle}">

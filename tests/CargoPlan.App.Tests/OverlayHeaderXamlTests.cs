@@ -105,6 +105,17 @@ public class OverlayHeaderXamlTests
     }
 
     [Fact]
+    public void The_ship_list_scrolls_by_pixels_not_by_groups()
+    {
+        // F2: with content scrolling, the list's StackPanel counts a group as one item: a wheel notch skipped three groups and
+        // the end of a group taller than the list was out of reach. The theme's own template turns it off when grouping.
+        var style = Root().Descendants().Single(e => (string?)e.Attribute(X + "Key") == "ShipBoxStyle");
+        var scroller = style.Descendants().Single(e => e.Name.LocalName == "ScrollViewer");
+
+        ((string?)scroller.Attribute("CanContentScroll")).Should().Be("False");
+    }
+
+    [Fact]
     public void The_ship_name_trims_on_one_line_instead_of_wrapping()
     {
         // The header's text style wraps and the 30 px header holds two lines: without NoWrap the name broke in two
