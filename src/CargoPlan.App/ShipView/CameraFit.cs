@@ -62,7 +62,7 @@ public static class CameraFit
 
     private static IEnumerable<Point3D> FitPoints(ShipScene scene, bool isLong)
     {
-        ShipBox[] loaded = [.. scene.Racks.Where(r => r.IsLoaded).Select(r => r.Bounds)];
+        ShipBox[] loaded = [.. scene.Racks.Where(r => r.IsLoaded).Select(r => r.Transform.Around(r.Bounds))];
         return scene.Marker is BowMarker.Holo ? WholePoints(scene)
             : isLong && loaded.Length > 0 ? Corners(loaded.Aggregate((a, b) => a.Union(b))).Concat(Bow(scene))
             : scene.Marker is BowMarker.Outline ? Corners(scene.Bounds).Concat(Bow(scene))

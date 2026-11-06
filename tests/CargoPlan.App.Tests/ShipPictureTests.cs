@@ -8,6 +8,7 @@ using CargoPlan.App.ShipView;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Holo;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Planning;
 using CargoPlan.Core.Ships;
 using Xunit.Abstractions;
 
@@ -15,7 +16,8 @@ namespace CargoPlan.App.Tests;
 
 /// <summary>
 /// The picture of every catalog entry, bit for bit, against a run of another build (F7, D90): each look and size at the
-/// default camera without cargo, and the gate's ships at a saved camera. Run by hand, see CLAUDE.md, Befehle. It uses only
+/// default camera without cargo, two looks with cargo and a crate selected (F3, D91), and the gate's ships at a saved camera.
+/// Run by hand, see CLAUDE.md, Befehle. It uses only
 /// what <c>main</c> has, so the file can be copied into a worktree of an older commit for the baseline.
 /// Set <c>CARGOPLAN_PICTURES_OUT</c> (a new folder outside the repo) and <c>CARGOPLAN_HOLO_FOLDER</c> (the
 /// <c>&lt;slug&gt;.holo</c> files); <c>CARGOPLAN_PICTURES_BASELINE</c> (an earlier run's folder) compares;
@@ -84,13 +86,18 @@ public sealed class ShipPictureTests(ITestOutputHelper output)
                 }
             }
 
+            foreach (var look in SavedCameraLooks)
+            {
+                Take(ship, mesh, outlines, look, Sizes[1], camera: null, "cargo", LoadPlanner.Replan(TestPlans.SplitAndShared(), ship));
+            }
+
             GC.Collect();
             GC.WaitForPendingFinalizers();
         }
 
-        void Take(Ship ship, HoloMesh mesh, ShipOutlineCatalog outlineData, string look, Size size, ShipCamera? camera, string cameraName)
+        void Take(Ship ship, HoloMesh mesh, ShipOutlineCatalog outlineData, string look, Size size, ShipCamera? camera, string cameraName, Core.Plans.SavedPlan? cargo = null)
         {
-            var root = Wired(ship, mesh, outlineData, look, size, camera);
+            var root = Wired(ship, mesh, outlineData, look, size, camera, cargo);
             var key = $"{ship.Id};{look};{size.Width}x{size.Height};{cameraName}";
             var hash = Convert.ToHexString(SHA256.HashData(ViewPictures.Pixels(root)));
             pictures.Add($"{key};{hash}");
@@ -102,13 +109,24 @@ public sealed class ShipPictureTests(ITestOutputHelper output)
         }
     }
 
-    private static FrameworkElement Wired(Ship ship, HoloMesh mesh, ShipOutlineCatalog outlines, string look, Size size, ShipCamera? camera)
+    private static FrameworkElement Wired(Ship ship, HoloMesh mesh, ShipOutlineCatalog outlines, string look, Size size, ShipCamera? camera, Core.Plans.SavedPlan? cargo)
     {
         var viewModel = new OverlayViewModel(ship) { Outlines = outlines };
+        if (cargo is not null)
+        {
+            viewModel.ShowPlan(cargo);
+        }
+
         var (_, root) = ViewPictures.Wire(viewModel, AppSettings.Default with { ShipOutline = look }, size);
         if (ShipOutlineModes.Parse(look) is var mode && mode.IsHologram())
         {
             viewModel.ShowHolo(Holo.PreparedHolo.Prepare(ship, mesh, mode));
+        }
+
+        // Last: a new scene forgets the selection. One crate shows its own frame and its mission's.
+        if (cargo is not null && viewModel.Scene is { } scene)
+        {
+            viewModel.Selection = CrateSelection.Of(scene, scene.Racks.SelectMany(r => r.Boxes).Where(b => b.Crate is not null).Select(b => b.Crate!).Take(1));
         }
 
         viewModel.Camera = camera;

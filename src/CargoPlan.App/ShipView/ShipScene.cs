@@ -11,7 +11,7 @@ namespace CargoPlan.App.ShipView;
 /// A record, not a view model: nothing in it changes.
 /// </summary>
 /// <param name="Racks">In rack order; what covers what is the depth buffer's (D83).</param>
-/// <param name="Bounds"><c>Ship.Bounds</c>, the racks' common box: the bow wedge stands at its bow end (D52); not drawn (D84).</param>
+/// <param name="Bounds">The racks' common box, turned racks by their corners (D91), else <c>Ship.Bounds</c>: the bow wedge stands at its bow end (D52); not drawn (D84).</param>
 /// <param name="Violations">From <c>LoadPlanner.Validate</c>; these racks are red (D24).</param>
 /// <param name="StopCount">Destinations in the plan: with the chosen palette, whether colours repeat (K4.2).</param>
 /// <param name="Plan">The plan drawn, empty without one: a drag asks Core with it where a crate may go (D25).</param>
@@ -88,6 +88,9 @@ public abstract record BowMarker
 /// <param name="Load">What the rack holds on board, for its tool tip (D67).</param>
 public sealed record SceneRack(string RackId, int Number, bool IsViolated, ShipBox Bounds, IReadOnlyList<SceneBox> Boxes, RackLoad Load)
 {
+    /// <summary>From <see cref="Bounds"/> and its boxes, where the rack lies before its rotation, to the ship (D91).</summary>
+    public RackTransform Transform { get; init; } = RackTransform.Identity;
+
     /// <summary>Holds a crate, delivered ones included, so ticking a stop off changes nothing that depends on it (D16, D61).</summary>
     public bool IsLoaded => Boxes.Any(b => b.Fill != CellFill.Free);
 }
@@ -107,7 +110,11 @@ public sealed record RackLoad(int Number, int LoadedScu, int CapacityScu)
 /// <paramref name="InLoadedLayer"/>: a free cell in a stack layer that holds a crate (<see cref="FreeCellGrid"/>, D61).
 /// </summary>
 public sealed record SceneBox(
-    ShipBox Bounds, CellFill Fill, int? PaletteIndex, string? ToolTip, Placement? Placement, Crate? Crate, bool IsViolated, bool InLoadedLayer = false);
+    ShipBox Bounds, CellFill Fill, int? PaletteIndex, string? ToolTip, Placement? Placement, Crate? Crate, bool IsViolated, bool InLoadedLayer = false)
+{
+    /// <summary>Its rack's (<see cref="SceneRack.Transform"/>), so what flattens the boxes of all racks still draws them where they lie.</summary>
+    public RackTransform Transform { get; init; } = RackTransform.Identity;
+}
 
 /// <summary>How a box is painted: a planned crate in its stop's colour, a loaded one the same with the loaded edge (K6.4), a delivered one grey, a free cell as a grid.</summary>
 public enum CellFill

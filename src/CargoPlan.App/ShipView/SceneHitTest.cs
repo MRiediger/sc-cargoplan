@@ -79,16 +79,21 @@ public static class SceneHitTest
     /// </summary>
     public static SceneBox? BoxAt(ShipScene scene, Ray ray) => RackAt(scene, ray) is { } rack ? CargoBoxOf(rack, ray) : null;
 
-    private static SceneRack? RackAt(ShipScene scene, Ray ray) => First(scene.Racks, r => r.Bounds, ray);
+    // Each rack sees the ray where its boxes are axis-aligned (D91); a rigid step keeps the distances comparable.
+    private static SceneRack? RackAt(ShipScene scene, Ray ray) => First(scene.Racks, r => r.Bounds, r => r.Transform.ToStraight(ray));
 
     /// <summary>
     /// The rack's first box with cargo on the ray. Free cells are drawn as outlines only, so the cargo of the same rack
     /// behind them answers (D21). The boxes are the cells, not the inset boxes drawn: a joint belongs to its crates (R3).
     /// </summary>
-    private static SceneBox? CargoBoxOf(SceneRack rack, Ray ray) => First(rack.Boxes.Where(b => b.Fill != CellFill.Free), b => b.Bounds, ray);
+    private static SceneBox? CargoBoxOf(SceneRack rack, Ray ray)
+    {
+        var straight = rack.Transform.ToStraight(ray);
+        return First(rack.Boxes.Where(b => b.Fill != CellFill.Free), b => b.Bounds, _ => straight);
+    }
 
-    /// <summary>The item whose box the ray reaches first in front of its origin; on a tie the earlier one.</summary>
-    private static T? First<T>(IEnumerable<T> items, Func<T, ShipBox> boxOf, Ray ray)
+    /// <summary>The item whose box its ray reaches first in front of the ray's origin; on a tie the earlier one.</summary>
+    private static T? First<T>(IEnumerable<T> items, Func<T, ShipBox> boxOf, Func<T, Ray> rayOf)
         where T : class
     {
         T? first = null;
@@ -96,7 +101,7 @@ public static class SceneHitTest
         foreach (var item in items)
         {
             var box = boxOf(item);
-            if (RayBox.Ahead(ray, new Point3D(box.Min.X, box.Min.Y, box.Min.Z), new Point3D(box.Max.X, box.Max.Y, box.Max.Z)) is { } t && t < nearest)
+            if (RayBox.Ahead(rayOf(item), new Point3D(box.Min.X, box.Min.Y, box.Min.Z), new Point3D(box.Max.X, box.Max.Y, box.Max.Z)) is { } t && t < nearest)
             {
                 (first, nearest) = (item, t);
             }

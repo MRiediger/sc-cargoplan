@@ -24,6 +24,24 @@ public static class BoxFaces
     public static IReadOnlyList<Face> Visible(Point3D min, Point3D max, CameraMath camera) =>
         [.. All(min, max).Where(f => Vector3D.DotProduct(f.Centre - camera.Position, f.Normal) < -EdgeOn)];
 
+    /// <summary>The faces of a box of a turned rack (D91): seen from the camera where the box lies straight, answered in the ship. <see cref="Face.Side"/> stays the rack's word.</summary>
+    public static IReadOnlyList<Face> Visible(ShipBox box, CameraMath camera, RackTransform transform) =>
+        Visible(new Point3D(box.Min.X, box.Min.Y, box.Min.Z), new Point3D(box.Max.X, box.Max.Y, box.Max.Z), camera, transform);
+
+    /// <inheritdoc cref="Visible(ShipBox, CameraMath, RackTransform)"/>
+    public static IReadOnlyList<Face> Visible(Point3D min, Point3D max, CameraMath camera, RackTransform transform)
+    {
+        if (transform.IsIdentity)
+        {
+            return Visible(min, max, camera);
+        }
+
+        var position = transform.ToStraight(camera.Position);
+        return [.. All(min, max)
+            .Where(f => Vector3D.DotProduct(f.Centre - position, f.Normal) < -EdgeOn)
+            .Select(f => new Face(f.Side, [.. f.Corners.Select(transform.ToShip)], transform.ToShip(f.Centre), transform.ToShip(f.Normal)))];
+    }
+
     public static IReadOnlyList<Face> All(Point3D min, Point3D max)
     {
         var (aft, bow) = (min.X, max.X);

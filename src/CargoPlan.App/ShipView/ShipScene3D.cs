@@ -138,7 +138,14 @@ public sealed class ShipScene3D
         {
             var (min, max) = (box.Bounds.Min, box.Bounds.Max);
             GeometryModel3D model = new(Cuboid(box.Bounds), MaterialOf(box));
-            _crates.Add((box, model, new Point3D((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0)));
+
+            // Built straight and turned as a whole, so normals and hatch stay the box's (D91); a straight rack wears nothing.
+            if (!box.Transform.IsIdentity)
+            {
+                model.Transform = box.Transform.Model;
+            }
+
+            _crates.Add((box, model, box.Transform.ToShip(new Point3D((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0))));
             Crates.Children.Add(model);
         }
 
@@ -308,15 +315,15 @@ public sealed class ShipScene3D
                 : default;
             if (width > 0)
             {
-                Add(colour with { A = CrateMaterials.Shown(colour.A, dimmed, IsFaded(box)) }, width, Inner(box.Bounds));
+                Add(colour with { A = CrateMaterials.Shown(colour.A, dimmed, IsFaded(box)) }, width, box.Transform.ToShip(Inner(box.Bounds)));
             }
         }
 
         foreach (var rack in scene.Racks)
         {
             var dimmed = isLong && !rack.IsLoaded;
-            Add(Faded(MissionPalette.RackEdge, dimmed), RackEdgeWidth, BoxEdges.Of(Point(rack.Bounds.Min), Point(rack.Bounds.Max)));
-            BoxEdges.Edge[] free = [.. rack.Boxes.Where(b => b.Fill == CellFill.Free && FreeCellGrid.Draws(b, scale)).SelectMany(b => Inner(b.Bounds))];
+            Add(Faded(MissionPalette.RackEdge, dimmed), RackEdgeWidth, rack.Transform.ToShip(BoxEdges.Of(Point(rack.Bounds.Min), Point(rack.Bounds.Max))));
+            BoxEdges.Edge[] free = [.. rack.Boxes.Where(b => b.Fill == CellFill.Free && FreeCellGrid.Draws(b, scale)).SelectMany(b => rack.Transform.ToShip(Inner(b.Bounds)))];
             if (Strip(free, view, FreeEdgeWidth / 2 / scale, EdgeMaterial(Faded(MissionPalette.FreeEdge, dimmed))) is { } grid)
             {
                 FreeGrid.Children.Add(grid);

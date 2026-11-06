@@ -28,9 +28,9 @@ public static class RackLabels
         var isLong = CameraOrientation.IsLong(scene.Bounds);
         return [.. scene.Racks.Select(rack =>
         {
-            var faces = BoxFaces.Visible(rack.Bounds, camera);
+            var faces = BoxFaces.Visible(rack.Bounds, camera, rack.Transform);
             var (min, max) = (rack.Bounds.Min, rack.Bounds.Max);
-            Point3D top = new((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, max.Z);
+            var top = rack.Transform.ToShip(new Point3D((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, max.Z));
             if (faces.Count == 0)
             {
                 return new RackLabel(rack.RackId, rack.Number, camera.Project(top), isLong, Hidden: true);
@@ -74,7 +74,7 @@ public static class RackLabels
         sight.Normalize();
         Ray ray = new(camera.Position, sight);
         return scene.Racks.Where(r => r != own).Any(r =>
-            RayBox.Entry(ray, new Point3D(r.Bounds.Min.X, r.Bounds.Min.Y, r.Bounds.Min.Z), new Point3D(r.Bounds.Max.X, r.Bounds.Max.Y, r.Bounds.Max.Z))
+            RayBox.Entry(r.Transform.ToStraight(ray), new Point3D(r.Bounds.Min.X, r.Bounds.Min.Y, r.Bounds.Min.Z), new Point3D(r.Bounds.Max.X, r.Bounds.Max.Y, r.Bounds.Max.Z))
                 is { } entry && entry > 0 && entry < distance - CoverMargin);
     }
 
