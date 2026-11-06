@@ -10,10 +10,11 @@ namespace CargoPlan.Core.Models;
 /// default is the old drawing convention, so racks built in code stack up. <see cref="MaxCrateSize"/> is the door: the
 /// game's limit on top of the grid (D56, D70); null means the grid alone decides. <see cref="MinCrateSize"/> is the
 /// smallest crate the rack takes (the Hull C's spindle: 32s only, K3.3); null means any.
+/// <see cref="Rotation"/> turns the rack in the picture (D91); everything here says where it lies before that.
 /// </summary>
 public sealed record Rack(
     string Id, int Index, int CapacityScu, Dimensions Grid, RackPosition? Position, ShipPoint Origin, StackAxis StackAxis = StackAxis.PlusZ,
-    CrateSize? MaxCrateSize = null, CrateSize? MinCrateSize = null)
+    CrateSize? MaxCrateSize = null, CrateSize? MinCrateSize = null, RackRotation? Rotation = null)
 {
     private const int X = 0, Y = 1, Z = 2;
 

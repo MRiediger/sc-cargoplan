@@ -12,8 +12,8 @@ public sealed record CrateMove(Crate Crate, string RackId, GridPosition Position
     /// <paramref name="rackId"/> and keep every other crate where it was relative to it (D25, D26): crates from one rack
     /// keep their grid offset, so a stack stays a stack even between racks stacking in opposite directions; crates from
     /// several racks keep their offset in ship coordinates, so they land in the racks at the same offset. Every crate keeps
-    /// how it lies (D71). Null if a crate's
-    /// min corner lands in no rack; where the crates end up is <c>LoadPlanner.ResolveMove</c>'s call (D65). Order as in <paramref name="crates"/>.
+    /// how it lies (D71). Ship coordinates are where the racks lie before a rotation (D91). Null if a crate's
+    /// min corner lands in no rack, or two crates on one cell; where the crates end up is <c>LoadPlanner.ResolveMove</c>'s call (D65). Order as in <paramref name="crates"/>.
     /// </summary>
     /// <exception cref="ArgumentException">The ship has no rack of a crate or no rack <paramref name="rackId"/>.</exception>
     public static IReadOnlyList<CrateMove>? Shift(Ship ship, IReadOnlyList<Crate> crates, Crate anchor, string rackId, GridPosition position)
@@ -77,7 +77,14 @@ public sealed record CrateMove(Crate Crate, string RackId, GridPosition Position
             moves.Add(new CrateMove(crate, landing.Rack.Id, landing.Position));
         }
 
-        return moves;
+        // The boxes of turned racks may overlap (D91), so two crates could land on one cell. Racks that can't overlap skip this.
+        return ship.Racks.Any(r => r.Rotation is not null) && ShareACell(moves) ? null : moves;
+    }
+
+    private static bool ShareACell(List<CrateMove> moves)
+    {
+        HashSet<(string Rack, GridPosition Cell)> taken = [];
+        return moves.SelectMany(m => (m.Crate with { Position = m.Position }).Cells.Select(cell => (m.RackId, cell))).Any(cell => !taken.Add(cell));
     }
 
     private static Rack RackOf(Ship ship, string rackId) =>

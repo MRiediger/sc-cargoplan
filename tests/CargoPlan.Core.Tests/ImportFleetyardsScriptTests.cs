@@ -188,7 +188,7 @@ public class ImportFleetyardsScriptTests
         using var work = new Workspace(withExpected: true);
         File.WriteAllText(Path.Combine(work.Ships, "row_ship.json"), """
             {
-              "schemaVersion": 5,
+              "schemaVersion": 6,
               "id": "row_ship",
               "name": "TSTM Row Ship",
               "manufacturer": "TSTM",
@@ -224,7 +224,7 @@ public class ImportFleetyardsScriptTests
         using var work = new Workspace(withExpected: true);
         File.WriteAllText(Path.Combine(work.Ships, "row_ship.json"), """
             {
-              "schemaVersion": 5,
+              "schemaVersion": 6,
               "id": "row_ship",
               "name": "TSTM Row Ship",
               "totalScu": 2,
@@ -375,7 +375,7 @@ public class ImportFleetyardsScriptTests
         using var work = new Workspace(withExpected: true);
         File.WriteAllText(Path.Combine(work.Ships, "row_ship.json"), """
             {
-              "schemaVersion": 5,
+              "schemaVersion": 6,
               "id": "row_ship",
               "name": "TSTM Row Ship",
               "holoOrigin": [1.9994277954101562, -0.5005714416503906, 0.2602119445800781],

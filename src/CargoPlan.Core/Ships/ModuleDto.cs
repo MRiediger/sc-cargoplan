@@ -32,6 +32,12 @@ internal sealed record ModuleDto(
         {
             throw new ArgumentException(Invariant($"Module '{Id}': outlineScale needs outlineOrigin."), nameof(OutlineScale));
         }
+
+        // A module's schema is its own; a rotation there would slip past the ship's schema check (D91).
+        if (Racks.FirstOrDefault(r => r.Rotation is not null) is { } turned)
+        {
+            throw new ArgumentException(Invariant($"Module '{Id}': rack '{turned.Id}' has a rotation, which a module can't say yet."), nameof(Racks));
+        }
     }
 
     /// <summary>The catalog id of <paramref name="shipId"/> with this module: "aurora_mk_ii" and "ts_module" give "aurora_mk_ii_ts_module".</summary>

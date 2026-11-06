@@ -7,12 +7,15 @@ namespace CargoPlan.Core.Ships;
 /// <summary>Loads ship layouts from "&lt;id&gt;.json" files in the ships folder next to the exe (D56).</summary>
 public static class ShipLoader
 {
-    /// <summary>Schema 5 marks <c>maxCrateSize</c> as the door limit (D70); the field reads the same in schema 4, which stays readable.</summary>
-    public const int SupportedSchemaVersion = 5;
+    /// <summary>Schema 6 adds a rack's <c>rotation</c> (D91). Schema 5 marks <c>maxCrateSize</c> as the door limit (D70); the field reads the same in schema 4. Both stay readable.</summary>
+    public const int SupportedSchemaVersion = 6;
 
-    private const int PreviousSchemaVersion = 4;
+    /// <summary>The last schema without a rack's <c>rotation</c>: every rack lies straight.</summary>
+    internal const int NoRotationSchemaVersion = 5;
 
-    private static readonly int[] ReadableSchemaVersions = [PreviousSchemaVersion, SupportedSchemaVersion];
+    private const int NoDoorLimitSchemaVersion = 4;
+
+    private static readonly int[] ReadableSchemaVersions = [NoDoorLimitSchemaVersion, NoRotationSchemaVersion, SupportedSchemaVersion];
 
     /// <summary>The folder's name next to the exe, and in the repo root.</summary>
     public const string FolderName = "ships";

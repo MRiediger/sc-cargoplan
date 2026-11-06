@@ -6,13 +6,13 @@ namespace CargoPlan.Core.Ships;
 
 /// <summary>
 /// File format of a rack. The index is not stored; it comes from the position in the array. <see cref="MaxCrateSize"/>,
-/// <see cref="Position"/> and <see cref="MinCrateSize"/> (K3.3) are optional (D56): a parameter with a default is not required, even with
+/// <see cref="Position"/>, <see cref="MinCrateSize"/> (K3.3) and <see cref="Rotation"/> (D91) are optional (D56): a parameter with a default is not required, even with
 /// RespectRequiredConstructorParameters. JSON binds by name, so their place at the end doesn't change the file.
 /// Source: https://learn.microsoft.com/dotnet/api/system.text.json.jsonserializeroptions.respectrequiredconstructorparameters
 /// </summary>
 internal sealed record RackDto(
     string Id, int CapacityScu, GridDto Grid, IReadOnlyList<int> Origin, string StackAxis, int? MaxCrateSize = null,
-    PositionDto? Position = null, int? MinCrateSize = null)
+    PositionDto? Position = null, int? MinCrateSize = null, IReadOnlyList<double>? Rotation = null)
 {
     private const int OriginAxes = 3;
 
@@ -28,8 +28,18 @@ internal sealed record RackDto(
         }
 
         return new Rack(Id, index, CapacityScu, Grid.ToDimensions(Id), Position?.ToPosition(Id), ToOrigin(), ToStackAxis(index),
-            ToCrateSize(MaxCrateSize, "maxCrateSize", index), ToCrateSize(MinCrateSize, "minCrateSize", index));
+            ToCrateSize(MaxCrateSize, "maxCrateSize", index), ToCrateSize(MinCrateSize, "minCrateSize", index), ToRotation(index));
     }
+
+    // STJ already rejects null entries, strings and what isn't a finite number; only the length is left. No turn at all
+    // is no rotation, so the view has one way to tell a straight rack.
+    private RackRotation? ToRotation(int index) => Rotation switch
+    {
+        null or [0, 0, 0] => null,
+        [var yaw, var pitch, var roll] => new RackRotation(yaw, pitch, roll),
+        _ => throw new ArgumentException(
+            Invariant($"Rack {index + 1} ('{Id}'): rotation needs 3 values [yaw, pitch, roll], got {Rotation.Count}."), nameof(Rotation)),
+    };
 
     private CrateSize? ToCrateSize(int? value, string field, int index) =>
         value is not { } size || Enum.IsDefined((CrateSize)size)
