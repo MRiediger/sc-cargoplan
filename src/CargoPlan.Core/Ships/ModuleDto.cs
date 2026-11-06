@@ -26,6 +26,12 @@ internal sealed record ModuleDto(
         {
             throw new ArgumentException(Invariant($"Module '{Id}' has no racks."), nameof(Racks));
         }
+
+        // The ship's outlineOrigin wouldn't do: a factor belongs to the place it was set for.
+        if (OutlineScale is not null && OutlineOrigin is null)
+        {
+            throw new ArgumentException(Invariant($"Module '{Id}': outlineScale needs outlineOrigin."), nameof(OutlineScale));
+        }
     }
 
     /// <summary>The catalog id of <paramref name="shipId"/> with this module: "aurora_mk_ii" and "ts_module" give "aurora_mk_ii_ts_module".</summary>
@@ -33,7 +39,8 @@ internal sealed record ModuleDto(
 
     /// <summary>
     /// <paramref name="ship"/> with this module, as its ship file would say it: name "RSI Aurora Mk II · TS module", the
-    /// racks added up, the ship's manufacturer and Fleetyards slug, so outline and hologram stay the ship's.
+    /// racks added up, the ship's manufacturer and Fleetyards slug, so outline and hologram stay the ship's. They lie where
+    /// the ship says unless the module says its own places (D90); a module adds racks, it doesn't move the hull.
     /// </summary>
     public ShipDto On(ShipDto ship) => ship with
     {
@@ -43,6 +50,9 @@ internal sealed record ModuleDto(
         Racks = [.. ship.Racks, .. Racks],
         Source = Joined(ship.Source, Source),
         Notes = Joined(ship.Notes, Notes),
+        HoloOrigin = HoloOrigin ?? ship.HoloOrigin,
+        OutlineOrigin = OutlineOrigin ?? ship.OutlineOrigin,
+        OutlineScale = OutlineOrigin is null ? ship.OutlineScale : OutlineScale,
     };
 
     // The ship's text, then the module's under its name: "Fleetyards API …; TS module: in game (Martin, …)".

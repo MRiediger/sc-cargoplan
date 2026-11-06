@@ -32,8 +32,42 @@ internal sealed record ShipDto(
         // Array order defines the index and the rack order: first rack = Rack 1.
         IReadOnlyList<Rack> racks = [.. Racks.Select((r, index) => r.ToRack(index))];
         ThrowOnOverlap(racks);
-        return new Ship(Id, Name, TotalScu, racks, Manufacturer, FleetyardsSlug, Source, Notes, ToHoloOffset());
+        if (HoloOffset is not null && HoloOrigin is not null)
+        {
+            throw new ArgumentException($"Ship '{Id}': holoOffset and holoOrigin exclude each other; holoOrigin says where the hologram lies (D90).", nameof(HoloOffset));
+        }
+
+        ThrowOnBadOutlineScale();
+        return new Ship(
+            Id, Name, TotalScu, racks, Manufacturer, FleetyardsSlug, Source, Notes, ToHoloOffset(),
+            ToCoordinates(HoloOrigin, "holoOrigin"), ToCoordinates(OutlineOrigin, "outlineOrigin"), OutlineScale);
     }
+
+    private void ThrowOnBadOutlineScale()
+    {
+        if (OutlineScale is not { } scale)
+        {
+            return;
+        }
+
+        if (OutlineOrigin is null)
+        {
+            throw new ArgumentException($"Ship '{Id}': outlineScale needs outlineOrigin.", nameof(OutlineScale));
+        }
+
+        if (scale <= 0)
+        {
+            throw new ArgumentException(Invariant($"Ship '{Id}': outlineScale must be greater than 0, got {scale}."), nameof(OutlineScale));
+        }
+    }
+
+    // STJ already rejects null entries, strings and what isn't a finite number; only the length is left.
+    private ShipCoordinates? ToCoordinates(IReadOnlyList<double>? values, string field) => values switch
+    {
+        null => null,
+        [var x, var y, var z] => new ShipCoordinates(x, y, z),
+        _ => throw new ArgumentException(Invariant($"Ship '{Id}': {field} needs 3 values [x, y, z], got {values.Count}."), field),
+    };
 
     // Whole cells like an origin; STJ already rejects null entries and non-integers, only the length is left (K5.3b).
     private ShipPoint? ToHoloOffset() => HoloOffset switch
