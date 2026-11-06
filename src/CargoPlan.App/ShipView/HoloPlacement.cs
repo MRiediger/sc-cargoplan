@@ -19,6 +19,8 @@ public sealed record HoloPlacement(double Scale, Vector3D Offset, Point3D Min, P
     // One cell is one SCU, 1.25 m on each side (D9).
     private const double MetresPerCell = 1.25;
 
+    public static HoloPlacement Place(HoloMesh mesh, Ship ship) => Place(mesh, ship.Bounds, ship.HoloOffset);
+
     /// <param name="shift">The ship's <c>holoOffset</c> in cells; null = the middle on the racks.</param>
     public static HoloPlacement Place(HoloMesh mesh, ShipBox racks, ShipPoint? shift = null)
     {

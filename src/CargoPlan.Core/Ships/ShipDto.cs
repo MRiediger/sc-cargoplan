@@ -10,7 +10,8 @@ namespace CargoPlan.Core.Ships;
 internal sealed record ShipDto(
     int SchemaVersion, string Id, string Name, int TotalScu, IReadOnlyList<RackDto> Racks,
     string? Manufacturer = null, string? FleetyardsSlug = null, string? Source = null, string? Notes = null,
-    IReadOnlyList<int>? HoloOffset = null)
+    IReadOnlyList<int>? HoloOffset = null,
+    IReadOnlyList<double>? HoloOrigin = null, IReadOnlyList<double>? OutlineOrigin = null, double? OutlineScale = null)
 {
     /// <exception cref="ArgumentException">A value violates the domain rules.</exception>
     public Ship ToShip()

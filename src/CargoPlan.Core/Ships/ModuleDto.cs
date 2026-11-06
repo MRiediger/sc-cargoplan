@@ -9,7 +9,8 @@ namespace CargoPlan.Core.Ships;
 /// </summary>
 internal sealed record ModuleDto(
     int SchemaVersion, string Id, string Name, IReadOnlyList<string> Ships, IReadOnlyList<RackDto> Racks,
-    string? Source = null, string? Notes = null)
+    string? Source = null, string? Notes = null,
+    IReadOnlyList<double>? HoloOrigin = null, IReadOnlyList<double>? OutlineOrigin = null, double? OutlineScale = null)
 {
     /// <exception cref="ArgumentException">The module names no ship or has no racks.</exception>
     public void Check()

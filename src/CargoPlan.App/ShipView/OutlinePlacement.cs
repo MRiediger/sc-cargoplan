@@ -32,13 +32,20 @@ public static class OutlinePlacement
     public static Point3D[] Place(ShipOutline outline, ShipBox bounds, double? floor = null)
     {
         var points = outline.Points;
-        var length = (points.Max(p => p.X) - points.Min(p => p.X)) / MetresPerCell;
-        var width = (points.Max(p => p.Y) - points.Min(p => p.Y)) / MetresPerCell;
-        var fill = Margin * Math.Max((bounds.Max.X - bounds.Min.X) / length, (bounds.Max.Y - bounds.Min.Y) / width);
-        var scale = Math.Max(fill, TrueSize) / MetresPerCell;
+        var scale = FitScale(outline, bounds) / MetresPerCell;
         var (centreX, centreY) = ((bounds.Min.X + bounds.Max.X) / 2.0, (bounds.Min.Y + bounds.Max.Y) / 2.0);
         var z = floor ?? bounds.Min.Z;
         return [.. points.Select(p => new Point3D(centreX + scale * p.X, centreY + scale * p.Y, z))];
+    }
+
+    /// <summary>The factor on the outline's true size that the older rule takes from the racks; at least 1.</summary>
+    public static double FitScale(ShipOutline outline, ShipBox bounds)
+    {
+        var points = outline.Points;
+        var length = (points.Max(p => p.X) - points.Min(p => p.X)) / MetresPerCell;
+        var width = (points.Max(p => p.Y) - points.Min(p => p.Y)) / MetresPerCell;
+        var fill = Margin * Math.Max((bounds.Max.X - bounds.Min.X) / length, (bounds.Max.Y - bounds.Min.Y) / width);
+        return Math.Max(fill, TrueSize);
     }
 
     /// <summary>

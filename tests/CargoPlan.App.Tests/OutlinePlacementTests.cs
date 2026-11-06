@@ -130,6 +130,41 @@ public sealed class OutlinePlacementTests
         OutlinePlacement.Floor(WithHeight(null), Tall()).Should().Be(0);
     }
 
+    // --- D90: the file says where the outline's origin lies and how large; the racks have no say ---
+
+    private static Ship Placed(ShipPoint rack, double? scale = null) => new(
+        "placed", "Placed", 48, [new Rack("rack-0", 0, 48, new Dimensions(4, 2, 6), null, rack)],
+        OutlineOrigin: new ShipCoordinates(1.5, -0.5, -2.25), OutlineScale: scale);
+
+    [Fact]
+    public void An_outline_origin_puts_the_outline_there_at_true_size()
+    {
+        var placed = OutlinePlacement.Place(WithHeight(10), Placed(new ShipPoint(0, 0, 0)));
+
+        // (10 m, 5 m) is (8, 4) cells from the origin.
+        placed[0].Should().Be(new Point3D(1.5 + 8, -0.5 + 4, -2.25));
+        placed.Should().OnlyContain(p => p.Z == -2.25);
+        OutlinePlacement.Floor(WithHeight(10), Placed(new ShipPoint(0, 0, 0))).Should().Be(-2.25);
+    }
+
+    [Fact]
+    public void An_outline_scale_is_a_factor_on_the_true_size()
+    {
+        var (minX, maxX, minY, maxY) = Box(OutlinePlacement.Place(Rectangle, Placed(new ShipPoint(0, 0, 0), scale: 1.5)));
+
+        (maxX - minX).Should().BeApproximately(16 * 1.5, 1e-9);
+        (maxY - minY).Should().BeApproximately(8 * 1.5, 1e-9);
+    }
+
+    [Fact]
+    public void With_an_outline_origin_the_racks_dont_move_or_scale_the_outline()
+    {
+        // Racks of 40 cells would scale the outline by 3 under the older rule.
+        Ship far = new("placed", "Placed", 40 * 2 * 2, [new Rack("rack-0", 0, 160, new Dimensions(40, 2, 2), null, new ShipPoint(-30, 9, 9))], OutlineOrigin: new ShipCoordinates(1.5, -0.5, -2.25));
+
+        OutlinePlacement.Place(WithHeight(10), far).Should().Equal(OutlinePlacement.Place(WithHeight(10), Placed(new ShipPoint(0, 0, 0))));
+    }
+
     [Fact]
     public void A_ship_lays_its_outline_on_its_floor()
     {
