@@ -3828,7 +3828,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 
 1. [x] F2 + F1 Schiffsauswahl – `fix/ship-picker` (abgenommen 06.11.)
 2. [ ] F7 Holo und Racks schiffsfest verankern – `feat/f7-ship-anchor`
-3. [ ] F3 freier Drehwinkel pro Rack, Schiffs-JSON 5→6 – `feat/f3-rack-rotation`
+3. [ ] F3 freier Drehwinkel pro Rack, Schiffs-JSON 5→6 – `feat/f3-rack-rotation`. **Vorgabe (Martin, 06.11.):** volle 3D-Rotation pro Rack, nicht Yaw. Eine Datenquelle mit Grid-Transformen im Schiffsraum existiert (Motherlode, 97 Schiffe, 3×4-Matrix in Metern, nur 5 Schiffe mit Drehung, Railen gekippt).
 4. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
 5. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
 
@@ -3855,6 +3855,56 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 - [x] Suche findet weder `64` noch `scu`; Eintrag „Not loaded“ ohne Zahl
 - [x] Name kürzt zuerst, die Kapazität nie (Probedatei mit überlangem Namen, nur in `bin/`)
 - [x] Martin: Gate über Star Citizen: Kapazität hinter jedem Namen, Modul zeigt eigene Zahl, Suche unverändert
+
+### [ ] F7 Holo und Racks schiffsfest verankern (06.11.2026, wartet auf Martins Gate)
+
+**Warum:** Reddit (Ryekal): Das Holo hängt an der Mitte aller Racks. Ein korrigierter Rack-`origin` verschiebt alles gegeneinander, deshalb lassen sich Schiffsdaten nicht von Hand korrigieren. Bei der Hull A fällt es wegen der Symmetrie nicht auf.
+
+**Befund:**
+- Holo: [HoloPlacement.cs](src/CargoPlan.App/ShipView/HoloPlacement.cs), Rack-Mitte − Mesh-Box-Mitte + `holoOffset`. Umriss: [OutlinePlacement.cs](src/CargoPlan.App/ShipView/OutlinePlacement.cs), Mitte, Boden **und Maßstab** hingen an den Racks (Maßstab bei Railen 1,594, Hull A 1,12, Caterpillar 1,116, Syulen 1,032). Core liefert nur die Box `Ship.Bounds`.
+- `holoOffset` hatte nur die Aurora Mk II, der UTV keinen. Einen Umriss-Offset gab es nicht, `ShipExtent` seit T8.6 auch nicht mehr.
+- **Fleetyards-Offsets liegen nicht im Modellraum:** Bei 8 von 9 Schiffen beginnen sie in x, y, z bei 0 (lokal im Frachtraum). Der Mesh-Ursprung ist die Mitte der xy-Box und der Kiel, nicht der Modellursprung; das rohe glTF hat keinen gemeinsamen Maßstab (0,139–1,364).
+- Echte Fleetyards-Lagen 7 (Hull A, B, C, C8 Pisces, C8X, Starlancer MAX, TAC), generiert 90 (88 ohne Offsets, Carrack und Caterpillar überlappend). Die Hull-A-Datei liegt +3 Zellen in y gegen Fleetyards.
+- Kamera: Das Fit-Ziel bleibt rack-bezogen, gespeicherte Kameras bleiben gültig, weil kein `origin` sich ändert.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+- Schiffsursprung = Nullpunkt der Datei, nicht der Mesh-Ursprung; D90 heißt deshalb „Hologram, outline and racks lie independently in ship coordinates“.
+- Neue Felder `holoOrigin`, `outlineOrigin`, `outlineScale` statt neuer Bedeutung für `holoOffset`; Schema bleibt 5, 5→6 bleibt für F3. Migration beim Laden ginge nicht, z braucht die Mesh-Box.
+- Alle 98 Einträge bekommen Werte, Formel mit Mesh-Box-Mitte statt „alter Wert + Rack-Mitte“. Round-Trip-Doubles statt gerundet.
+- Ohne Felder gilt die alte Regel, `holoOffset` bleibt nur dafür lesbar.
+- TS-Modul trägt eigene Werte, Bild wie `main`; die Hülle liegt dort weiter 3 Zellen hinter der des Schiffs.
+- Core ändert sich nur beim Format (`ShipDto`, `ModuleDto`, `Ship`, neu `ShipCoordinates`), Planer und `Rack` nicht.
+- Das Fit-Ziel wandert nur ohne Holo mit dem korrigierten Rack; mit Holo bleibt es stehen, weil die Holo-Box das Rack enthält.
+- Bildvergleich über `ShipPictureTests` auf Release-Builds statt Publish-Build, der ohne Fenster nicht rendert. Publish-Builds prüft Martin am Gate.
+- Harness committet, `Category=Slow`, in der App-`default.runsettings` ausgeschlossen. `ShipAnchorValues` hat `Freeze` und zusätzlich `Carry`, damit eine neue Holo-Version keine Handkorrekturen zurücksetzt. Das Eintragen ist Teil des Harness (`ShipAnchorValueTests`), kein Wegwerf-Code.
+
+**Bildvergleich** (98 Einträge × 5 Looks × 2 Größen, Default-Kamera, ohne Ladung, dazu 5 Gate-Schiffe × 2 Looks mit gespeicherter Kamera):
+
+| Look | Bilder | Identisch | Abweichend |
+|---|---|---|---|
+| Umriss, 400×302 und 800×600 | 196 | 196 | 0 |
+| None, 400×302 und 800×600 | 196 | 196 | 0 |
+| Holo shaded, 400×302 und 800×600 | 196 | 196 | 0 |
+| Holo flat, 400×302 und 800×600 | 196 | 196 | 0 |
+| Holo hidden line, 400×302 und 800×600 | 196 | 196 | 0 |
+| Gespeicherte Kamera (Umriss, Holo shaded), 800×600 | 10 | 10 | 0 |
+| **Summe** | **990** | **990** | **0** |
+
+Holo-Offset und Umriss-Punkte bitgleich auf 98 von 98. Gegenprobe `main` gegen `main`: 990 identisch. Probe: Rack 1 der Hull A um +1 in x (nur `bin`-Kopie) ergibt 12 abweichende Bilder, alle Hull A, keine Zahl verändert; im Holo-Look 3.166 von 480.000 Pixeln, nur im Bereich des Racks.
+
+**Abnahme:**
+- [x] Korrektur-Nachweis: nur das Rack bewegt sich, Racks 2–4, Holo und Umriss samt Maßstab bleiben bitgleich (`ShipAnchorTests`)
+- [x] Fit-Ziel: Umriss-Look +0,5 Zellen in x, Holo-Look unverändert
+- [x] Jedes ausgelieferte Schiff trägt die Felder, keines mehr `holoOffset`
+- [x] `-Force` behält die Felder ziffergenau, auch beim Neuschreiben; `-Create` setzt keine (rot gegen das alte Skript unter PS 5.1)
+- [x] Dateien ohne Felder zeichnen wie bisher, eigene Dateien von Nutzern laufen weiter
+- [ ] Martin: Handling gegen `main` (Orbit, Zoom, Pan, Reset, Drag, Auswahl, Abhaken, Schiffswechsel, gespeicherte Kamera)
+- [ ] Martin: Gate über Star Citizen: Hull A, Aurora Mk II · TS module, GRIN UTV, Hull C, Carrack, Bild wie vorher, gespeicherte Kamera stimmt
+- [ ] Martin: Korrektur-Probe: Kopie einer Schiffsdatei mit verschobenem Rack, nur dieses Rack bewegt sich
+
+**Nächste Schritte mit Auslöser:**
+- **Neue Holo-Version:** `holoOrigin` gilt für holo-v1. `ShipAnchorValueTests` mit `CARGOPLAN_HOLO_PREVIOUS`, danach `ShipPictureTests`. Sonst wandert die Hülle um bis zu 0,6 Zellen (D90).
+- **Erste Datenkorrektur durch einen Nutzer:** Origins auf 4 Stellen runden, Bildvergleich dann mit Toleranz statt bitgleich (`ShipPictureTests` kann das noch nicht).
 
 ## Phase 10 – nach dem Launch
 

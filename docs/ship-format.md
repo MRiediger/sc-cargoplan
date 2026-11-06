@@ -20,6 +20,9 @@ reported (the CLI prints it, the app lists the ship under **Not loaded** in the 
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-hull-a",
   "source": "in game",
+  "holoOrigin": [1.9994277954101562, -0.5005714416503906, 0.2602119445800781],
+  "outlineOrigin": [2, -0.5, 0],
+  "outlineScale": 1.1199999999999999,
   "totalScu": 64,
   "racks": [
     {
@@ -60,7 +63,10 @@ being ignored silently.
 | `fleetyardsSlug` | string | *Optional.* The ship's slug on Fleetyards, e.g. `"misc-hull-a"`. It picks the ship's outline from `outlines/ship-outlines.json` (traced from Fleetyards renders, not under the MIT licence, see `outlines/NOTICE.md`); without a match the ship view shows the bow wedge. Not empty if present. |
 | `source` | string | *Optional.* Where the values come from, e.g. `"in game"` (measured in the hangar) or `"Fleetyards API (CIG ship matrix), export 2026-10-26"` (written by the import). Not empty if present. |
 | `notes` | string | *Optional.* Anything a reviewer should know, e.g. what was checked and what wasn't. Not empty if present. |
-| `holoOffset` | array of 3 integers | *Optional.* `[x, y, z]` in cells: moves the hologram from its middle on the racks, e.g. `[0, 0, 1]` lifts it one cell so the racks sit lower in the hull (Aurora Mk II). It corrects the hologram's middle position against the racks; it is no position of the ship. Whoever sets a value has seen it at the holo gate – source and date go into `notes`, as for limits set by hand. Racks, plans and the outline don't move; a ship with a [cargo module](#cargo-modules) passes it on. The import writes it back on `-Force` and never sets it. |
+| `holoOrigin` | array of 3 numbers | *Optional, every shipped ship has it.* `[x, y, z]` in cells, fractions allowed: where the hologram's origin lies in ship coordinates, see [Hologram and outline](#hologram-and-outline). A [cargo module](#cargo-modules) passes it on unless it says its own. The import keeps it to the digit and never sets it. |
+| `outlineOrigin` | array of 3 numbers | *Optional, every shipped ship has it.* `[x, y, z]` in cells, fractions allowed: where the outline's origin lies; z is the plane it lies in. Passed on and kept like `holoOrigin`. |
+| `outlineScale` | number | *Optional, only with `outlineOrigin`.* Greater than 0. The factor on the outline's true size, left out for 1. Shipped only where the racks would not fit a true-size hull (Hull A, Caterpillar, Syulen, Railen). |
+| `holoOffset` | array of 3 integers | *Optional, not with `holoOrigin`, for older files.* `[x, y, z]` in cells: moves the hologram from its middle on the racks. Only a file without `holoOrigin` uses that rule; no shipped ship does any more. The import keeps it and never sets it. |
 | `totalScu` | number | Cargo capacity of the ship. Must equal the sum of all `capacityScu`. |
 | `racks` | array | At least one rack. **Order matters:** the array order is the **rack order** (Rack 1, Rack 2, …). The planner fills racks in this order, puts the first stop into Rack 1 and lets only racks next to each other in this order share a stop. The rack order says nothing about where a rack sits; that is `position`. |
 
@@ -133,13 +139,14 @@ what players say, `origin` is geometry. Keep them consistent (a port rack has a 
 
 ## Coordinates
 
-All racks of a ship share one coordinate system (see [D14](decisions.md)):
+Racks, hologram and outline of a ship share one coordinate system (see [D14](decisions.md), [D90](decisions.md)):
 
 - **Right-handed:** x points to the **bow**, y to **port**, z **up**.
-- **Unit:** 1 = one cell = the edge of a 1 SCU crate (1.25 m). Only whole numbers.
+- **Unit:** 1 = one cell = the edge of a 1 SCU crate (1.25 m). Rack origins are whole numbers.
 - `origin` is the rack's **minimum corner** (smallest x, y and z), whichever way the rack stacks. The rack
   fills `origin` to `origin` plus its grid laid along the axes of its [stack axis](#stack-axis).
-- Where the zero point lies is up to you; only the positions of the racks relative to each other matter.
+- The zero point is the file's own: pick one when you start a ship and keep it. Racks, hologram and outline each
+  count from it, none from another. Saved cameras count from it too.
   Racks may touch but must not overlap. The loader names both racks if they do.
 
 ### Stack axis
@@ -184,6 +191,43 @@ An interior floor (`"+z"`): crates go up from z 0, the rack fills x 0..4 · y 0.
 A rack under the hull (`"-z"`): the plate is the hull at z −1, crates hang down from it, the rack fills
 x 0..2 · y −2..0 · z −3..−1, and the first layer is z −2..−1.
 
+### Hologram and outline
+
+Three things lie in ship coordinates, each on its own (D90):
+
+| What | Field | Its origin, the point the field places |
+|---|---|---|
+| A rack | `origin` | the rack's minimum corner |
+| The hologram | `holoOrigin` | the mesh's origin: the middle of its top view, its keel (see [holo-format.md](holo-format.md)) |
+| The outline | `outlineOrigin`, `outlineScale` | the middle of its top view; it lies flat at z |
+
+The values in the shipped files look long because they keep the place the ship had before this rule to the pixel, so
+`1.9994277954101562` is no measurement. Change them freely; three decimals are plenty for a correction.
+
+**A new ship** gets them by hand or from the test `ShipAnchorValueTests` (see `CLAUDE.md`). By hand, with the racks'
+common box and the hull's height from `outlines/ship-outlines.json`: x and y are the box's middle, z is the box's middle
+minus half the height in cells, for both fields. A file without the fields still works: hologram and outline hang on the
+racks' middle as they used to, so one corrected rack moves them too. A test holds every shipped ship to having them.
+
+**`holoOrigin` belongs to a hologram release**, today `holo-v1`. The mesh's box may lie differently against its origin in
+a new release, up to 0.6 cells in holo-v1, so run `ShipAnchorValueTests` with `CARGOPLAN_HOLO_PREVIOUS` set to the old
+files when a new one comes: it carries each value over and keeps the middle of the hull where it was, corrected racks
+included. Without that, the hull wanders against the racks.
+
+### Correcting a rack
+
+Rack 1 of the Hull A sits one cell too far aft, say. Change that rack's `origin` and nothing else:
+
+```diff
+-      "origin": [0, 1, 3],
++      "origin": [1, 1, 3],
+```
+
+Only that rack moves in the picture. Racks 2–4, the hologram and the outline stay, at their size. With a hologram look
+the default view stays too, as the hull's box holds the rack; with the outline it looks half a cell further to the bow,
+since a fit shows the racks. A camera the player left stays where it is. To move the hull against all racks instead,
+change `holoOrigin`, or `outlineOrigin` for the outline.
+
 ## Measuring a ship
 
 In the hangar, load the empty hold with 1 SCU crates. For each plate, count the cells along it
@@ -218,6 +262,8 @@ patch:
    origins of a generated row are hand work and stay. If the rack set changed, the racks whose id and grid Fleetyards
    still has keep all their hand work, new racks join behind the last rack that takes more than 2 SCU (walkways last),
    vanished racks are dropped and named, and `notes` record it; if no rack maps, the file is written anew.
+   `holoOrigin`, `outlineOrigin` and `outlineScale` stay to the digit in every case, so origins that change move the
+   racks against the hull: look at the ship afterwards. `-Create` sets none of them.
    `hull_a.json` is never written, but it is compared: it is the check of the mapping below.
 4. **Commit:** run `dotnet test` (every file must load), then commit the changed files with the export date.
 
@@ -231,7 +277,8 @@ the turn, its grid stays; any other rotation stops the import. `stackAxis` is `+
 else the first axis that does. `position` comes from the rack's centre against the ship's, and is left out for a rack
 on the ship's middle (the Hull C's arms). Otherwise the racks get a generated row, Rack 1 at the bow and one cell between
 racks, and no `position`. Racks that take nothing above 2 SCU (ladders, walkways) go last. The compare checks where
-Fleetyards lays the racks up to a shift of the whole ship: the view hangs on the middle of the ship's bounds.
+Fleetyards lays the racks up to a shift of the whole ship: Fleetyards' offsets are local to the hold, they start at 0, and
+the file's zero point is the file's (D90).
 The door limit comes from `limits.max.capacity` as described in [Max crate size](#max-crate-size); `maxContainerSize`
 isn't read. `-Create` writes it, the compare reports a door the file lacks or holds otherwise, and `-Force` adds a
 missing one but never overwrites one already in the file. Racks whose `limits.max.capacity` is an unverified 1 are named
@@ -266,6 +313,7 @@ one more entry in the ship list, its own racks first, the module's after them.
 | `ships` | the ids of the ships that carry it; each becomes the entry `<ship>_<module>` (`aurora_mk_ii_ts_module`) |
 | `racks` | as in a ship file; their ids must differ from the ship's, their boxes must not overlap its racks |
 | `source`, `notes` | optional, appended to the ship's under the module's name |
+| `holoOrigin`, `outlineOrigin`, `outlineScale` | optional, as in a ship file: a module adds racks and doesn't move the hull, so they are left out and the ship's hold. The TS module has its own, three cells aft of the ship's, to keep the picture it had before D90; delete them and its hull lies where the ship's does |
 
 The entry's `totalScu` is the ship's plus the module's racks, its manufacturer and Fleetyards slug are the ship's, so it
 shows the ship's outline and hologram. It is checked like a ship file; a broken module, a ship it names that doesn't
@@ -312,6 +360,7 @@ use it automatically.
 - [ ] Rack capacities add up to `totalScu`, and each rack's `length × width × stack` equals its `capacityScu`.
 - [ ] Racks are listed **in rack order** (the order to fill them), each with its `origin` and, where known, its `position`.
 - [ ] Racks don't overlap, and `origin` agrees with `position` if given (port = positive y, upper = higher z).
+- [ ] `holoOrigin` and `outlineOrigin` are set, see [Hologram and outline](#hologram-and-outline).
 - [ ] Each rack's `stackAxis` points away from its plate, as in the game.
 - [ ] Values measured in game (current patch named in the PR description), or their source named in `source`.
 - [ ] `maxCrateSize` only where the door takes less than the grid, `minCrateSize` only above 1, both with their source.

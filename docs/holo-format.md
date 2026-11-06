@@ -32,7 +32,8 @@ Little endian, no compression, no padding. Offsets follow from the header.
   not `level1Count ≤ level2Count ≤ edgeCount`.
 - **Axes:** the ship's, as in [ship-format.md](ship-format.md): x towards the bow, y towards port, z up, right-handed.
   Units are metres, not cells (1 cell = 1.25 m). Origin: the middle of the vertices' x/y box, z = 0 at the lowest
-  vertex (keel).
+  vertex (keel), set before faces hidden from outside are dropped, so the shipped box can lie a little off it (holo-v1:
+  up to 0.75 m in x, 0.57 m in z). It is not the origin of the source model, and Fleetyards' cargo offsets don't share it (D90).
 - **Triangles** are wound counter-clockwise seen from outside. The mesh is welded (vertices shared between
   triangles) and carries no normals: a reader that wants flat shading splits vertices per triangle, smooth shading
   splits them along the feature edges.
@@ -106,5 +107,7 @@ How the overlay gets and uses the files (D63). The overlay's only network access
 - **Downloads off** (`downloadShipHolograms: false`): no request at all; cached files still show.
 - **Reading:** every rule of [File](#file) is checked (`HoloReader`); a file that breaks one shows the outline.
 - **Failures** end in the outline; the first of a run names its reason in the overlay's notice line.
-- **Drawing:** metres ÷ 1.25 = cells, the middle of the bounds on the middle of the racks in x, y and z; the looks
+- **Drawing:** metres ÷ 1.25 = cells, the mesh's origin at the ship file's `holoOrigin`, whatever its racks do (D90; a
+  file without it: the middle of the bounds on the middle of the racks in x, y and z). A new release needs the values
+  carried over, see [ship-format.md](ship-format.md#hologram-and-outline). The looks
   and the hidden-line levels by zoom (level 1 below 1.5×, 2 below 3×, 3 from 3×) are described in D63.
