@@ -3828,7 +3828,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 
 1. [x] F2 + F1 Schiffsauswahl – `fix/ship-picker` (abgenommen 06.11.)
 2. [x] F7 Holo und Racks schiffsfest verankern – `feat/f7-ship-anchor` (abgenommen 06.11.)
-3. [ ] F3 freier Drehwinkel pro Rack, Schiffs-JSON 5→6 – `feat/f3-rack-rotation`. **Vorgabe (Martin, 06.11.):** volle 3D-Rotation pro Rack, nicht Yaw. Eine Datenquelle mit Grid-Transformen im Schiffsraum existiert (Motherlode, 97 Schiffe, 3×4-Matrix in Metern, nur 5 Schiffe mit Drehung, Railen gekippt).
+3. [x] F3 freier Drehwinkel pro Rack, Schiffs-JSON 5→6 – `feat/f3-rack-rotation` (abgenommen 06.11.). **Vorgabe (Martin, 06.11.):** volle 3D-Rotation pro Rack, nicht Yaw. Eine Datenquelle mit Grid-Transformen im Schiffsraum existiert (Motherlode, 97 Schiffe, 3×4-Matrix in Metern, nur 5 Schiffe mit Drehung, Railen gekippt).
 4. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
 5. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
 
@@ -3906,7 +3906,7 @@ Holo-Offset und Umriss-Punkte bitgleich auf 98 von 98. Gegenprobe `main` gegen `
 - **Neue Holo-Version:** `holoOrigin` gilt für holo-v1. `ShipAnchorValueTests` mit `CARGOPLAN_HOLO_PREVIOUS`, danach `ShipPictureTests`. Sonst wandert die Hülle um bis zu 0,6 Zellen (D90).
 - **Erste Datenkorrektur durch einen Nutzer:** Origins auf 4 Stellen runden, Bildvergleich dann mit Toleranz statt bitgleich (`ShipPictureTests` kann das noch nicht).
 
-### [ ] F3 Freier Drehwinkel pro Rack (06.11.2026)
+### [x] F3 Freier Drehwinkel pro Rack (06.11.2026, abgenommen 06.11.)
 
 **Warum:** Reddit (Ryekal): Hull B und Railen brauchen gedrehte Racks, sonst passen sie nie zum Holo. Vorgabe Martin: volle 3D-Rotation pro Rack, weil die Railen gekippt ist. Das Format kommt hier, die Werte in einer eigenen Daten-Session.
 
@@ -3970,9 +3970,9 @@ Platzierungszahlen bitgleich auf 98 von 98. Gegenprobe `main` gegen `main`: 1186
 - [x] Alle 97 Schiffsdateien je eine Zeile `5`→`6`, Zeilenenden byte-genau; Abgleich gegen den echten Export: 97 same
 - [x] `-Force` behält `rotation` ziffergenau; der Import schreibt keines (`ImportFleetyardsScriptTests`)
 - [x] 1186 Bilder bitgleich, Hit-Test p95 ≤ 1 ms, Vorschau p95 ≤ 16 ms, auch gedreht
-- [ ] Martin: Handling gegen `main` auf ungedrehten Racks (Orbit, Zoom, Pan, Reset, Drag, Mehrfach-Auswahl, Legenden-Drag, Mausrad, Auswahl, Abhaken, Tooltip, Schiffswechsel, gespeicherte Kamera, Backdrop-Look)
-- [ ] Martin: Gate über Star Citizen: Hull A, RAFT, Hull C, Bild wie vorher, Drag und Abhaken wie gewohnt
-- [ ] Martin: Probedatei im `ships/`-Ordner des Builds: Racks liegen wie gewollt, Kisten lassen sich auf gedrehte Racks ziehen, Säule entlang der lokalen Achse, Mausrad dreht im Rack, Tooltip trifft die richtige Kiste, Rack-Nummer auf der größten Fläche
+- [x] Martin: Handling gegen `main` auf ungedrehten Racks (Orbit, Zoom, Pan, Reset, Drag, Mehrfach-Auswahl, Legenden-Drag, Mausrad, Auswahl, Abhaken, Tooltip, Schiffswechsel, gespeicherte Kamera, Backdrop-Look)
+- [x] Martin: Gate über Star Citizen: Hull A, RAFT, Hull C, Bild wie vorher, Drag und Abhaken wie gewohnt
+- [x] Martin: Probedatei im `ships/`-Ordner des Builds: Racks liegen wie gewollt, Kisten lassen sich auf gedrehte Racks ziehen, Säule entlang der lokalen Achse, Mausrad dreht im Rack, Tooltip trifft die richtige Kiste, Rack-Nummer auf der größten Fläche
 
 **Nächste Schritte mit Auslöser:**
 - **Erlaubnis Motherlode oder Nutzer-Issue mit Winkeln:** Daten-Session für 890 Jump, Hull B, Prowler Utility, Railen, Syulen. Achsparallele 90/180/270-Drehungen aus externen Daten beim Import normalisieren (Maße tauschen, `origin` versetzen, `stackAxis`), nicht als `rotation` schreiben; `rotation` nur für echte Schrägwinkel. Die Quelle gegen Fleetyards prüfen: sie nennt andere Schiffe.
