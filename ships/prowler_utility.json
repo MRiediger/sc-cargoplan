@@ -6,6 +6,8 @@
   "fleetyardsSlug": "espr-prowler-utility",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [-0.4975090026855469, 0.9941898345947265, -4.459757232666016],
+  "outlineOrigin": [-0.5, 1, -5],
   "totalScu": 32,
   "racks": [
     {

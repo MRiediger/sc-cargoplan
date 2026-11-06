@@ -6,6 +6,8 @@
   "fleetyardsSlug": "rsi-constellation-mk-v-centaurus",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [5.135903930664062, 3, -5.2010032653808596],
+  "outlineOrigin": [5, 3, -5.208],
   "totalScu": 240,
   "racks": [
     {

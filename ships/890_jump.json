@@ -6,6 +6,8 @@
   "fleetyardsSlug": "orig-890-jump",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [-12.005126953125, 3.0051284790039063, -13.176705932617189],
+  "outlineOrigin": [-12, 3, -16],
   "totalScu": 388,
   "racks": [
     {

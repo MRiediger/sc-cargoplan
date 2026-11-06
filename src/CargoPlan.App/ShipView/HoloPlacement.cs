@@ -6,10 +6,10 @@ namespace CargoPlan.App.ShipView;
 
 /// <summary>
 /// Puts a hologram (metres, D63) behind the racks (cells) at true scale, unlike the outline (D62): one cell is 1.25 m.
-/// The middle of its box lies on the middle of <c>Ship.Bounds</c> in all three axes. In z that is a choice (T7.4c-2):
+/// The ship file says where the mesh's origin lies (<c>holoOrigin</c>, D90), and no rack moves it. A file without it keeps
+/// the older rule: the middle of its box on the middle of <c>Ship.Bounds</c> in all three axes, in z a choice (T7.4c-2):
 /// cargo decks sit about mid-height in most hulls, while the keel on the racks' floor would push them through a rounded
-/// bottom. A ship's <c>holoOffset</c> moves it from there by whole cells where that is wrong (Aurora Mk II, K5.3b).
-/// Bow stays +x, port +y.
+/// bottom; its <c>holoOffset</c> moves it from there by whole cells (K5.3b). Bow stays +x, port +y.
 /// </summary>
 /// <param name="Scale">Cells per metre.</param>
 /// <param name="Offset">Added after scaling, in cells.</param>
@@ -19,16 +19,28 @@ public sealed record HoloPlacement(double Scale, Vector3D Offset, Point3D Min, P
     // One cell is one SCU, 1.25 m on each side (D9).
     private const double MetresPerCell = 1.25;
 
+    private const double CellsPerMetre = 1 / MetresPerCell;
+
+    /// <summary>Where the ship's file puts the hologram; without <c>holoOrigin</c> the older rule on its racks.</summary>
+    public static HoloPlacement Place(HoloMesh mesh, Ship ship) => ship.HoloOrigin is { } origin
+        ? At(mesh, new Vector3D(origin.X, origin.Y, origin.Z))
+        : Place(mesh, ship.Bounds, ship.HoloOffset);
+
     /// <param name="shift">The ship's <c>holoOffset</c> in cells; null = the middle on the racks.</param>
     public static HoloPlacement Place(HoloMesh mesh, ShipBox racks, ShipPoint? shift = null)
     {
-        const double scale = 1 / MetresPerCell;
         var (min, max) = (mesh.Bounds.Min, mesh.Bounds.Max);
         var (dx, dy, dz) = shift is { } s ? (s.X, s.Y, s.Z) : (0, 0, 0);
-        Vector3D offset = new(
-            (racks.Min.X + racks.Max.X) / 2.0 - scale * (min.X + max.X) / 2 + dx,
-            (racks.Min.Y + racks.Max.Y) / 2.0 - scale * (min.Y + max.Y) / 2 + dy,
-            (racks.Min.Z + racks.Max.Z) / 2.0 - scale * (min.Z + max.Z) / 2 + dz);
+        return At(mesh, new Vector3D(
+            (racks.Min.X + racks.Max.X) / 2.0 - CellsPerMetre * (min.X + max.X) / 2 + dx,
+            (racks.Min.Y + racks.Max.Y) / 2.0 - CellsPerMetre * (min.Y + max.Y) / 2 + dy,
+            (racks.Min.Z + racks.Max.Z) / 2.0 - CellsPerMetre * (min.Z + max.Z) / 2 + dz));
+    }
+
+    private static HoloPlacement At(HoloMesh mesh, Vector3D offset)
+    {
+        const double scale = CellsPerMetre;
+        var (min, max) = (mesh.Bounds.Min, mesh.Bounds.Max);
         return new HoloPlacement(
             scale,
             offset,

@@ -6,6 +6,8 @@
   "fleetyardsSlug": "orig-600i-executive-edition",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [-9.491073608398438, 1.9977813720703126, -5.647258758544922],
+  "outlineOrigin": [-9.5, 2, -5.644],
   "totalScu": 44,
   "racks": [
     {

@@ -6,6 +6,8 @@
   "fleetyardsSlug": "misc-freelancer-dur",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [-1.007422637939453, 0.9999996185302734, -2.0970458984375],
+  "outlineOrigin": [-1, 1, -2.3],
   "totalScu": 36,
   "racks": [
     {

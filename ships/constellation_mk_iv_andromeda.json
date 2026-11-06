@@ -6,6 +6,8 @@
   "fleetyardsSlug": "rsi-constellation-mk-iv-andromeda",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [3.9790359497070313, 2.007487487792969, -4.190142059326172],
+  "outlineOrigin": [4, 2, -4.204],
   "totalScu": 96,
   "racks": [
     {

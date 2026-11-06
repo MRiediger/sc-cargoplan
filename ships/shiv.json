@@ -6,6 +6,8 @@
   "fleetyardsSlug": "grey-shiv",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
   "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "holoOrigin": [3.99736328125, 1.0105472564697267, -3.3666721343994146],
+  "outlineOrigin": [4, 1, -4.6],
   "totalScu": 32,
   "racks": [
     {

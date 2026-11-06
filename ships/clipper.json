@@ -6,6 +6,8 @@
   "fleetyardsSlug": "drak-clipper",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "holoOrigin": [1.5012081146240235, 1, -4.209528732299805],
+  "outlineOrigin": [1.5, 1, -4.208],
   "totalScu": 12,
   "racks": [
     {

@@ -6,6 +6,8 @@
   "fleetyardsSlug": "rsi-salvation",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-26",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [1.49645938873291, 1.0000001907348632, -1.1320577621459962],
+  "outlineOrigin": [1.5, 1, -1.1],
   "totalScu": 6,
   "racks": [
     {

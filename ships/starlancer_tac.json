@@ -6,6 +6,8 @@
   "fleetyardsSlug": "misc-starlancer-tac",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game",
+  "holoOrigin": [4.016307067871094, -3.0020378112792967, -4.584057617187501],
+  "outlineOrigin": [4, -3, -4.5920000000000005],
   "totalScu": 96,
   "racks": [
     {

@@ -6,6 +6,8 @@
   "fleetyardsSlug": "aegs-idris-p",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
   "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "holoOrigin": [-68.60355224609376, 9.005857849121094, -16.317524719238282],
+  "outlineOrigin": [-68, 9, -16],
   "totalScu": 1374,
   "racks": [
     {

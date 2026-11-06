@@ -39,12 +39,16 @@ public sealed class ShipModuleTests
         (Base.Name, Base.TotalScu, Base.Racks.Count).Should().Be(("RSI Aurora Mk II", 2, 2));
     }
 
-    // Martin at the holo gate (K5.3b): the racks sat a cell too high in the hull; the hologram goes up one cell, for both.
+    // The picture as before D90: the module's file says its own places, three cells aft of the ship's, same height.
     [Fact]
-    public void The_aurora_mk_ii_lifts_its_hologram_one_cell_with_and_without_the_module()
+    public void The_ts_module_keeps_its_hull_three_cells_aft_of_the_ships()
     {
-        Base.HoloOffset.Should().Be(new ShipPoint(0, 0, 1));
-        WithModule.HoloOffset.Should().Be(new ShipPoint(0, 0, 1));
+        var (ship, module) = (Base.HoloOrigin!, WithModule.HoloOrigin!);
+
+        module.X.Should().Be(ship.X - 3);
+        (module.Y, module.Z).Should().Be((ship.Y, ship.Z));
+        WithModule.OutlineOrigin!.X.Should().Be(Base.OutlineOrigin!.X - 3);
+        (WithModule.OutlineOrigin.Y, WithModule.OutlineOrigin.Z).Should().Be((Base.OutlineOrigin.Y, Base.OutlineOrigin.Z));
     }
 
     [Fact]

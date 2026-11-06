@@ -52,6 +52,41 @@ public sealed class HoloViewTests
         (lifted.Min.X, lifted.Max.Y).Should().Be((centred.Min.X, centred.Max.Y));
     }
 
+    // --- D90: the file says where the mesh's origin lies; the racks have no say ---
+
+    private static Ship OneRack(ShipPoint origin, ShipCoordinates? holoOrigin = null) =>
+        new("one", "One", 8, [new Rack("rack-0", 0, 8, new Dimensions(2, 2, 2), null, origin)], HoloOrigin: holoOrigin);
+
+    [Fact]
+    public void A_holo_origin_puts_the_meshs_origin_there()
+    {
+        ShipCoordinates origin = new(1.5, -0.25, -3.125);
+
+        var placed = HoloPlacement.Place(Box(30, 12.5f, 10), OneRack(new ShipPoint(0, 0, 0), origin));
+
+        placed.Offset.Should().Be(new Vector3D(1.5, -0.25, -3.125));
+        placed.ToCells(0, 0, 0).Should().Be(new Point3D(1.5, -0.25, -3.125));
+        (placed.Max.X - placed.Min.X).Should().BeApproximately(24, 1e-6);
+    }
+
+    [Fact]
+    public void With_a_holo_origin_the_racks_dont_move_the_hologram()
+    {
+        ShipCoordinates origin = new(1.5, -0.25, -3.125);
+        var mesh = Box(30, 12.5f, 10);
+
+        HoloPlacement.Place(mesh, OneRack(new ShipPoint(7, -4, 9), origin)).Should().Be(HoloPlacement.Place(mesh, OneRack(new ShipPoint(0, 0, 0), origin)));
+    }
+
+    [Fact]
+    public void Without_a_holo_origin_the_hologram_keeps_its_middle_on_the_racks()
+    {
+        var mesh = Box(30, 12.5f, 10);
+        var ship = OneRack(new ShipPoint(7, -4, 9));
+
+        HoloPlacement.Place(mesh, ship).Should().Be(HoloPlacement.Place(mesh, ship.Bounds));
+    }
+
     [Fact]
     public void A_vertex_goes_to_cells_the_way_the_box_does()
     {

@@ -3,14 +3,14 @@
 # "Importing from Fleetyards".
 # Usage: ./tools/import-fleetyards.ps1 -Source <ships.json> [-ShipsFolder <folder>] [-Create] [-Force <id>]
 #   Default: compares the grid data of existing files with the export and, where Fleetyards lays the racks (offsets on
-#   every hold, no overlap), the boxes they take up to a shift of the whole ship (D78); writes nothing. hull_a is
+#   every hold, no overlap), the boxes they take up to a shift of the whole ship (D78, D90); writes nothing. hull_a is
 #   compared too, as the calibration of that mapping.
 #   -Create writes ships that have no file yet, never hull_a. -Force <id> rewrites one ship's grid data (grid, capacityScu,
 #   totalScu, source); where Fleetyards lays the racks also origins, positions and a stack axis that fills each box. Rack
 #   order, a stack axis that fits, the rest of the notes, and the origins of a generated row are hand work and stay. A
 #   changed rack set keeps the racks whose id and grid still match, adds the new ones and drops the vanished (K5.2).
 #   A door limit (maxCrateSize, from limits.max.capacity, D70) and a minimum (minCrateSize, limits.min.capacity, K3.3)
-#   are added where the file has none, never overwritten.
+#   are added where the file has none, never overwritten. holoOrigin, outlineOrigin and outlineScale (D90) stay as written.
 # Exit code: 0 in sync, 1 a deviation or a new ship not written, 2 an error (then nothing is written).
 # Runs under Windows PowerShell 5.1 and PowerShell 7. ASCII only: 5.1 reads a script without BOM as ANSI.
 param(
@@ -122,8 +122,8 @@ function Get-FileBox([object]$Rack) {
     [pscustomobject]@{ Min = $min; Max = $max }
 }
 
-# Boxes as sorted text, shifted so the arrangement starts at 0 on every axis: holo and camera hang on the middle of the
-# ship's bounds (D63, D76), so a shift of the whole ship is no deviation.
+# Boxes as sorted text, shifted so the arrangement starts at 0 on every axis: Fleetyards' offsets are local to the hold
+# and the file's zero point is the file's (D90), so a shift of the whole arrangement is no deviation.
 function Get-ArrangementText([object[]]$Boxes) {
     $low = @(foreach ($axis in 0, 1, 2) { [int](@($Boxes | ForEach-Object { $_.Min[$axis] }) | Measure-Object -Minimum).Minimum })
     @($Boxes | ForEach-Object {
@@ -343,8 +343,15 @@ function Format-JsonString([string]$Value) {
     '"' + $Value.Replace('\', '\\').Replace('"', '\"') + '"'
 }
 
+# The fields set outside the import (K5.3b, D90), as the file writes them: through a number, Windows PowerShell 5.1
+# would drop digits and the picture would change.
+function Get-HandFields([string]$Text) {
+    @([regex]::Matches($Text, '(?m)^\s*"(holoOffset|holoOrigin|outlineOrigin|outlineScale)"\s*:\s*(\[[^\]]*\]|[^,\s}]+)') |
+        ForEach-Object { "  ""$($_.Groups[1].Value)"": $($_.Groups[2].Value)," })
+}
+
 # The layout of ships/hull_a.json: two spaces, grid, position and origin on one line, LF, final newline.
-function Format-Ship([object]$Ship) {
+function Format-Ship([object]$Ship, [string[]]$HandFields = @()) {
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add('{')
     $lines.Add("  ""schemaVersion"": $SchemaVersion,")
@@ -353,9 +360,9 @@ function Format-Ship([object]$Ship) {
             $lines.Add("  ""$field"": $(Format-JsonString $Ship.$field),")
         }
     }
-    # Hand work from the holo gate (K5.3b): kept when -Force rewrites the file, never set by the import.
-    if ($null -ne $Ship.holoOffset) {
-        $lines.Add("  ""holoOffset"": [$(@($Ship.holoOffset) -join ', ')],")
+    # Kept when -Force rewrites the file, also a file written anew: racks don't move the hull (D90). Never set by the import.
+    foreach ($line in $HandFields) {
+        $lines.Add($line)
     }
     $lines.Add("  ""totalScu"": $($Ship.totalScu),")
     $lines.Add('  "racks": [')
@@ -603,11 +610,12 @@ try {
             }
         }
         else {
-            $file = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
+            $text = Get-Content -LiteralPath $path -Raw -Encoding UTF8
+            $file = $text | ConvertFrom-Json
             $differences = Compare-Ship $file $draft
             if ($id -eq $Force) {
                 $update = Update-Ship $file $draft $exportDate
-                $writes[$path] = Format-Ship $update.Ship
+                $writes[$path] = Format-Ship $update.Ship (Get-HandFields $text)
                 $status = 'updated'; $detail = if ($differences.Count) { $differences -join '; ' } else { 'grid data was in sync' }
                 if ($update.Report) {
                     $detail += " ($($update.Report))"

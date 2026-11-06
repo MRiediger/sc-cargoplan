@@ -6,6 +6,8 @@
   "fleetyardsSlug": "argo-mpuv-cargo",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [1, 0.5, -1.201655387878418],
+  "outlineOrigin": [1, 0.5, -0.8320000000000001],
   "totalScu": 2,
   "racks": [
     {

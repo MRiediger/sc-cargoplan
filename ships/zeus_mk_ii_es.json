@@ -6,6 +6,8 @@
   "fleetyardsSlug": "rsi-zeus-mk-ii-es",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [2, 2, -1.7959537506103516],
+  "outlineOrigin": [2, 2, -2.564],
   "totalScu": 32,
   "racks": [
     {

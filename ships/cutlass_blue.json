@@ -6,6 +6,8 @@
   "fleetyardsSlug": "drak-cutlass-blue",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [-0.49825439453125, 0.5026180267333984, -3.093422317504883],
+  "outlineOrigin": [-0.5, 0.5, -3.0920000000000005],
   "totalScu": 12,
   "racks": [
     {

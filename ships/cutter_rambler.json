@@ -6,6 +6,8 @@
   "fleetyardsSlug": "drak-cutter-rambler",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [0.4848625183105469, 0.501953125, -1.80046443939209],
+  "outlineOrigin": [0.5, 0.5, -1.4],
   "totalScu": 2,
   "racks": [
     {

@@ -390,18 +390,151 @@ public class ShipLoaderTests
     private static string WithHoloOffset(string json, string offset) =>
         json.Replace("\"totalScu\":", $"\"holoOffset\": {offset},\n  \"totalScu\":", StringComparison.Ordinal);
 
+    // A ship without the fields of D90, so it can take them; the fallback ship is there since LoadAll asks for it.
+    private static string PlainShip() => File.ReadAllText(TestShips.PathOf("spike_uneven")).Replace("\"id\": \"spike_uneven\"", "\"id\": \"b_ship\"", StringComparison.Ordinal);
+
     [Fact]
     public void A_holo_offset_is_read_and_a_module_configuration_keeps_it()
     {
         using var folder = new ShipFolder();
-        folder.Write("hull_a", WithHoloOffset(File.ReadAllText(System.IO.Path.Combine(ShipLoader.DefaultFolder, "hull_a.json")), "[0, 0, 1]"));
-        folder.WriteModule("test_module", TestModule());
+        folder.AddShipped("hull_a");
+        folder.Write("b_ship", WithHoloOffset(PlainShip(), "[0, 0, 1]"));
+        folder.WriteModule("test_module", TestModule(ships: "\"b_ship\""));
 
         var catalog = ShipLoader.LoadAll(folder.Path);
 
         catalog.Problems.Should().BeEmpty();
-        catalog.Get("hull_a").HoloOffset.Should().Be(new ShipPoint(0, 0, 1));
-        catalog.Get("hull_a_test_module").HoloOffset.Should().Be(new ShipPoint(0, 0, 1));
+        catalog.Get("b_ship").HoloOffset.Should().Be(new ShipPoint(0, 0, 1));
+        catalog.Get("b_ship_test_module").HoloOffset.Should().Be(new ShipPoint(0, 0, 1));
+    }
+
+    // --- holoOrigin, outlineOrigin, outlineScale (D90): hologram and outline placed in ship coordinates, not on the racks ---
+
+    private static string WithField(string json, string name, string value) =>
+        json.Replace("\"totalScu\":", $"\"{name}\": {value},\n  \"totalScu\":", StringComparison.Ordinal);
+
+    private static ShipCatalog Catalog(string ship, string? module = null)
+    {
+        using var folder = new ShipFolder();
+        folder.AddShipped("hull_a");
+        folder.Write("b_ship", ship);
+        if (module is not null)
+        {
+            folder.WriteModule("test_module", module);
+        }
+
+        return ShipLoader.LoadAll(folder.Path);
+    }
+
+    [Fact]
+    public void Hologram_and_outline_places_are_read_in_cells()
+    {
+        var json = WithField(WithField(WithField(PlainShip(), "holoOrigin", "[1.9994354248046875, -0.25, 0.125]"), "outlineOrigin", "[2, -0.5, -1.5]"), "outlineScale", "1.12");
+
+        var ship = Catalog(json).Get("b_ship");
+
+        ship.HoloOrigin.Should().Be(new ShipCoordinates(1.9994354248046875, -0.25, 0.125));
+        ship.OutlineOrigin.Should().Be(new ShipCoordinates(2, -0.5, -1.5));
+        ship.OutlineScale.Should().Be(1.12);
+    }
+
+    [Fact]
+    public void Without_the_places_a_ship_keeps_the_rule_on_its_racks()
+    {
+        var ship = Catalog(PlainShip()).Get("b_ship");
+
+        (ship.HoloOrigin, ship.OutlineOrigin, ship.OutlineScale).Should().Be(((ShipCoordinates?)null, (ShipCoordinates?)null, (double?)null));
+    }
+
+    [Theory]
+    [InlineData("holoOrigin", "[0, 1]", "holoOrigin needs 3 values")]
+    [InlineData("outlineOrigin", "[0, 1, 2, 3]", "outlineOrigin needs 3 values")]
+    public void A_place_needs_three_values(string field, string value, string message)
+    {
+        var catalog = Catalog(WithField(PlainShip(), field, value));
+
+        catalog.Problems.Should().ContainSingle().Which.Message.Should().Contain(message);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-1.5")]
+    public void An_outline_scale_must_be_positive(string scale)
+    {
+        var catalog = Catalog(WithField(WithField(PlainShip(), "outlineOrigin", "[0, 0, 0]"), "outlineScale", scale));
+
+        catalog.Problems.Should().ContainSingle().Which.Message.Should().Contain("outlineScale must be greater than 0");
+    }
+
+    [Fact]
+    public void An_outline_scale_needs_an_outline_origin()
+    {
+        var catalog = Catalog(WithField(PlainShip(), "outlineScale", "1.2"));
+
+        catalog.Problems.Should().ContainSingle().Which.Message.Should().Contain("outlineScale needs outlineOrigin");
+    }
+
+    [Fact]
+    public void Holo_offset_and_holo_origin_exclude_each_other()
+    {
+        var catalog = Catalog(WithField(WithHoloOffset(PlainShip(), "[0, 0, 1]"), "holoOrigin", "[0, 0, 0]"));
+
+        catalog.Problems.Should().ContainSingle().Which.Message.Should().Contain("holoOffset and holoOrigin");
+    }
+
+    private static string AnchoredShip() => WithField(WithField(WithField(PlainShip(), "holoOrigin", "[1, 2, 3]"), "outlineOrigin", "[4, 5, 6]"), "outlineScale", "1.5");
+
+    // A module adds racks, it doesn't move the ship: what the ship says holds for the configuration too.
+    [Fact]
+    public void A_module_configuration_takes_the_ships_places()
+    {
+        var catalog = Catalog(AnchoredShip(), TestModule(ships: "\"b_ship\""));
+
+        var entry = catalog.Get("b_ship_test_module");
+        (entry.HoloOrigin, entry.OutlineOrigin, entry.OutlineScale).Should().Be((new ShipCoordinates(1, 2, 3), new ShipCoordinates(4, 5, 6), 1.5));
+    }
+
+    private static string ModuleWith(string fields) =>
+        TestModule(ships: "\"b_ship\"").Replace("\"racks\":", $"{fields},\n  \"racks\":", StringComparison.Ordinal);
+
+    [Fact]
+    public void A_module_can_say_its_own_places_and_the_ship_stays()
+    {
+        var catalog = Catalog(AnchoredShip(), ModuleWith("\"holoOrigin\": [7, 8, 9],\n  \"outlineOrigin\": [10, 11, 12],\n  \"outlineScale\": 2"));
+
+        var entry = catalog.Get("b_ship_test_module");
+        (entry.HoloOrigin, entry.OutlineOrigin, entry.OutlineScale).Should().Be((new ShipCoordinates(7, 8, 9), new ShipCoordinates(10, 11, 12), 2.0));
+        catalog.Get("b_ship").HoloOrigin.Should().Be(new ShipCoordinates(1, 2, 3));
+    }
+
+    // Origin and scale belong together: the ship's factor is for the ship's place.
+    [Fact]
+    public void A_modules_outline_origin_without_a_scale_is_true_size()
+    {
+        var catalog = Catalog(AnchoredShip(), ModuleWith("\"outlineOrigin\": [10, 11, 12]"));
+
+        catalog.Get("b_ship_test_module").OutlineScale.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_modules_outline_scale_needs_its_own_origin()
+    {
+        var catalog = Catalog(AnchoredShip(), ModuleWith("\"outlineScale\": 2"));
+
+        catalog.Problems.Should().ContainSingle().Which.Message.Should().Contain("outlineScale needs outlineOrigin");
+    }
+
+    [Fact]
+    public void Every_shipped_entry_says_where_hologram_and_outline_lie()
+    {
+        var catalog = ShipLoader.LoadAll();
+
+        string[] missing = [.. catalog.Ships.Where(s => s.HoloOrigin is null || s.OutlineOrigin is null).Select(s => s.Id)];
+
+        missing.Should().BeEmpty(
+            "a shipped ship holds still when a rack is corrected (D90). For a new ship write them with ShipAnchorValueTests, " +
+            "or by hand as docs/ship-format.md says: x, y = the racks' middle, z = the racks' middle minus half the hull's height");
+        catalog.Ships.Should().OnlyContain(s => s.HoloOffset == null);
     }
 
     [Fact]
@@ -415,7 +548,7 @@ public class ShipLoaderTests
     {
         using var folder = new ShipFolder();
         folder.AddShipped("hull_a");
-        folder.Write("b_ship", WithHoloOffset(File.ReadAllText(TestShips.PathOf("spike_uneven")).Replace("\"id\": \"spike_uneven\"", "\"id\": \"b_ship\""), "[0, 1]"));
+        folder.Write("b_ship", WithHoloOffset(PlainShip(), "[0, 1]"));
 
         var catalog = ShipLoader.LoadAll(folder.Path);
 

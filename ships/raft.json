@@ -6,6 +6,8 @@
   "fleetyardsSlug": "argo-raft",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [6, 4, -3.663908004760742],
+  "outlineOrigin": [6, 4, -3.8],
   "totalScu": 192,
   "racks": [
     {

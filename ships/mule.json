@@ -6,6 +6,8 @@
   "fleetyardsSlug": "drak-mule",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [0.5, 0.5, -0.9876399040222168],
+  "outlineOrigin": [0.5, 0.5, -0.8999999999999999],
   "totalScu": 1,
   "racks": [
     {

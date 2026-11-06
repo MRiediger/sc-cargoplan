@@ -6,6 +6,8 @@
   "fleetyardsSlug": "rsi-polaris",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [-0.4826568603515625, 3.016180419921875, -17.06892547607422],
+  "outlineOrigin": [-0.5, 3, -17.06],
   "totalScu": 576,
   "racks": [
     {
