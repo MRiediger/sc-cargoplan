@@ -38,18 +38,19 @@ public sealed record ShipScene(
     /// "· 16 waiting" while missions wait for room. Max is every rack cell of the ship, the first number what is on board
     /// (delivered crates are off it, D24).
     /// </summary>
-    public string CapacityText => Capacity(Invariant($"{Plan.ScuOnBoard()}/{Ship.TotalScu}"), LegendEntry.LoadedMark.Trim());
+    public string CapacityText => Capacity(Invariant($"{Plan.ScuOnBoard():N0}/{Ship.TotalScu:N0}"), LegendEntry.LoadedMark.Trim());
 
     /// <summary>The capacity spelt out for its tool tip: "56 of 64 SCU on board · 8 free · 40 loaded · 16 waiting" (K6.4).</summary>
-    public string CapacityToolTip => Capacity(Invariant($"{Plan.ScuOnBoard()} of {Ship.TotalScu} SCU on board"), "loaded");
+    public string CapacityToolTip => Capacity(Invariant($"{Plan.ScuOnBoard():N0} of {Ship.TotalScu:N0} SCU on board"), "loaded");
 
+    // N0: "4,608", the format of the ship selection (D67 addendum, F1).
     private string Capacity(string onBoardText, string loadedWord)
     {
         var onBoard = Plan.ScuOnBoard();
         var loaded = Plan.Crates.Where(c => c.Loaded).Sum(c => (int)c.CrateSize);
-        var text = Invariant($"{onBoardText} · {Ship.TotalScu - onBoard} free");
-        text = loaded > 0 ? Invariant($"{text} · {loaded} {loadedWord}") : text;
-        return WaitingScu > 0 ? Invariant($"{text} · {WaitingScu} waiting") : text;
+        var text = Invariant($"{onBoardText} · {Ship.TotalScu - onBoard:N0} free");
+        text = loaded > 0 ? Invariant($"{text} · {loaded:N0} {loadedWord}") : text;
+        return WaitingScu > 0 ? Invariant($"{text} · {WaitingScu:N0} waiting") : text;
     }
 
     /// <summary>What marks the bow (D62); set by the overlay from the setting and the ship's outline, the wedge otherwise.</summary>

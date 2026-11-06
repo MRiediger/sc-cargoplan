@@ -1,5 +1,6 @@
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
+using static System.FormattableString;
 
 namespace CargoPlan.App.Editor;
 
@@ -11,6 +12,9 @@ namespace CargoPlan.App.Editor;
 public sealed record ShipChoice(string Id, string Group, string Text, Ship? Ship, string? Problem = null)
 {
     public bool IsSelectable => Ship is not null;
+
+    /// <summary>"(4,608 SCU)" behind the name (F1), the number format of the header (D67); null for one that didn't load. Not searched.</summary>
+    public string? CapacityText => Ship is { } ship ? Invariant($"({ship.TotalScu:N0} SCU)") : null;
 }
 
 /// <summary>
