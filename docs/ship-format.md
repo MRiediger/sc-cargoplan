@@ -136,7 +136,8 @@ Where these three axes lie in the ship is the rack's `stackAxis`.
 | `level` | string | `"upper"` or `"lower"`. |
 
 `position` and `origin` describe the same rack in two ways and are not derived from each other: `position` is
-what players say, `origin` is geometry. Keep them consistent (a port rack has a positive y, see below).
+what players say, `origin` is geometry. Keep them consistent: a port rack lies at a larger y than the ship's middle, see
+below. Its y itself may be negative, as the zero point is the file's (the Hull B's port racks lie at y −4 and −2).
 
 ## Coordinates
 
@@ -402,7 +403,7 @@ use it automatically.
 - [ ] `schemaVersion` is `6`.
 - [ ] Rack capacities add up to `totalScu`, and each rack's `length × width × stack` equals its `capacityScu`.
 - [ ] Racks are listed **in rack order** (the order to fill them), each with its `origin` and, where known, its `position`.
-- [ ] Racks don't overlap, and `origin` agrees with `position` if given (port = positive y, upper = higher z).
+- [ ] Racks don't overlap, and `origin` agrees with `position` if given (port = larger y than the ship's middle, upper = higher z).
 - [ ] `holoOrigin` and `outlineOrigin` are set, see [Hologram and outline](#hologram-and-outline).
 - [ ] Each rack's `stackAxis` points away from its plate, as in the game.
 - [ ] A `rotation` only for a real angle, checked in the picture from two sides, with its source named.
