@@ -6,6 +6,8 @@
   "fleetyardsSlug": "anvl-f7c-hornet-mk-ii",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [0.5010841369628907, 0.9994579315185547, -1.4946537017822266],
+  "outlineOrigin": [0.5, 1, -1.5],
   "totalScu": 2,
   "racks": [
     {

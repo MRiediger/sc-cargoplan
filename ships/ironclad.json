@@ -6,6 +6,8 @@
   "fleetyardsSlug": "drak-ironclad",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [-18.955694580078124, 2.9448081970214846, -5.688548278808595],
+  "outlineOrigin": [-19, 3, -5.724],
   "totalScu": 2200,
   "racks": [
     {

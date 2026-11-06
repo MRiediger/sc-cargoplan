@@ -6,6 +6,8 @@
   "fleetyardsSlug": "rsi-constellation-mk-iv-taurus",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [4.976472473144531, 1.9966392517089844, -4.2087348937988285],
+  "outlineOrigin": [5, 2, -4.212],
   "totalScu": 174,
   "racks": [
     {

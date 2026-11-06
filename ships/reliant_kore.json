@@ -6,6 +6,8 @@
   "fleetyardsSlug": "misc-reliant-kore",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [-1.5, 1.4958934783935547, -10.709998321533204],
+  "outlineOrigin": [-1.5, 1.5, -1.3],
   "totalScu": 6,
   "racks": [
     {

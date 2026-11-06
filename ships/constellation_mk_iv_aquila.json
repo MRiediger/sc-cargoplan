@@ -6,6 +6,8 @@
   "fleetyardsSlug": "rsi-constellation-mk-iv-aquila",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [4.0041038513183596, 2.032396697998047, -4.222445678710938],
+  "outlineOrigin": [4, 2, -4.228],
   "totalScu": 96,
   "racks": [
     {

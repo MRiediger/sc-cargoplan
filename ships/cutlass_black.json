@@ -6,6 +6,8 @@
   "fleetyardsSlug": "drak-cutlass-black",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
   "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "holoOrigin": [0.4973846435546875, 1.9843013763427735, -3.092876052856446],
+  "outlineOrigin": [0.5, 2, -3.0920000000000005],
   "totalScu": 46,
   "racks": [
     {

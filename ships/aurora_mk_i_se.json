@@ -6,6 +6,8 @@
   "fleetyardsSlug": "rsi-aurora-mk-i-se",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [3.000453567504883, 0.5, -1.0647993087768555],
+  "outlineOrigin": [3, 0.5, -1.068],
   "totalScu": 6,
   "racks": [
     {

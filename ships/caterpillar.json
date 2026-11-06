@@ -6,6 +6,9 @@
   "fleetyardsSlug": "drak-caterpillar",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards",
+  "holoOrigin": [-35.5, 2.5108963012695313, -4.692974090576172],
+  "outlineOrigin": [-35.5, 2.5, -4.4719999999999995],
+  "outlineScale": 1.116181493800486,
   "totalScu": 576,
   "racks": [
     {

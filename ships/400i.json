@@ -6,6 +6,8 @@
   "fleetyardsSlug": "orig-400i",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
   "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "holoOrigin": [3.495897674560547, 1.4986324310302734, -3.0813034057617186],
+  "outlineOrigin": [3.5, 1.5, -4],
   "totalScu": 42,
   "racks": [
     {

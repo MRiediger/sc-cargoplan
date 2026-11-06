@@ -6,6 +6,8 @@
   "fleetyardsSlug": "aegs-hammerhead",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [4.0369384765625, 2, -5.634860229492188],
+  "outlineOrigin": [4, 2, -5.640000000000001],
   "totalScu": 64,
   "racks": [
     {

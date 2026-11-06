@@ -6,6 +6,8 @@
   "fleetyardsSlug": "rsi-apollo-triage",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
   "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "holoOrigin": [-0.47859039306640627, 1.0031570434570312, -4.697995376586914],
+  "outlineOrigin": [-0.5, 1, -4.708],
   "totalScu": 32,
   "racks": [
     {

@@ -6,6 +6,8 @@
   "fleetyardsSlug": "rsi-perseus",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [2.990184020996094, 3.9141006469726562, -7.7101387023925785],
+  "outlineOrigin": [3, 4, -7.696],
   "totalScu": 96,
   "racks": [
     {

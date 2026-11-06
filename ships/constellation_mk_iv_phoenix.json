@@ -6,6 +6,8 @@
   "fleetyardsSlug": "rsi-constellation-mk-iv-phoenix",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [3.9934722900390627, 2.519580841064453, -4.753343963623047],
+  "outlineOrigin": [4, 2.5, -4.752000000000001],
   "totalScu": 80,
   "racks": [
     {

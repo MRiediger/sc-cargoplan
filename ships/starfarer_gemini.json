@@ -6,6 +6,8 @@
   "fleetyardsSlug": "misc-starfarer-gemini",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
   "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "holoOrigin": [-5.514814758300782, 2.500000762939453, -6.3346000671386715],
+  "outlineOrigin": [-5.5, 2.5, -6.364000000000001],
   "totalScu": 291,
   "racks": [
     {

@@ -6,6 +6,9 @@
   "fleetyardsSlug": "misc-hull-a",
   "source": "in game",
   "notes": "grids and rack order measured in game; rack positions from Fleetyards offsets (K5.2, D78): 3 cells between the plates",
+  "holoOrigin": [1.9994277954101562, -0.5005714416503906, 0.2602119445800781],
+  "outlineOrigin": [2, -0.5, 0],
+  "outlineScale": 1.1199999999999999,
   "totalScu": 64,
   "racks": [
     {

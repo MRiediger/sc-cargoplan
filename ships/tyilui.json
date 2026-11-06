@@ -6,6 +6,8 @@
   "fleetyardsSlug": "gama-tyilui",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [-0.48851699829101564, 2.0344444274902345, -25.85731201171875],
+  "outlineOrigin": [-0.5, 2, -25.872000000000003],
   "totalScu": 96,
   "racks": [
     {

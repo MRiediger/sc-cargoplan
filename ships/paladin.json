@@ -6,6 +6,8 @@
   "fleetyardsSlug": "anvl-paladin",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [1.9507064819335938, 0.6089653015136719, -5.044225692749023],
+  "outlineOrigin": [2, 0.5, -5.048],
   "totalScu": 4,
   "racks": [
     {

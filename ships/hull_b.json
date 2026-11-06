@@ -6,6 +6,8 @@
   "fleetyardsSlug": "misc-hull-b",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game; stackAxis set by hand after the Hull A's spindle pattern, not from Fleetyards",
+  "holoOrigin": [8.517113494873048, -4.526241683959961, 1.1844318389892576],
+  "outlineOrigin": [8.5, -4.5, 0],
   "totalScu": 512,
   "racks": [
     {

@@ -6,6 +6,8 @@
   "fleetyardsSlug": "aegs-avenger-titan",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [1.992795181274414, 1, -2.2263185501098635],
+  "outlineOrigin": [2, 1, -1.932],
   "totalScu": 8,
   "racks": [
     {

@@ -6,6 +6,8 @@
   "fleetyardsSlug": "argo-csv-sm",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
   "notes": "rack arrangement generated; grids from Fleetyards; crate minimums from Fleetyards limits.min.capacity",
+  "holoOrigin": [1.001582145690918, 1, -0.5290425300598145],
+  "outlineOrigin": [1, 1, -0.6199999999999999],
   "totalScu": 4,
   "racks": [
     {

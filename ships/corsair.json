@@ -6,6 +6,8 @@
   "fleetyardsSlug": "drak-corsair",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [4.49084243774414, 1.9984725952148437, -9.946272277832032],
+  "outlineOrigin": [4.5, 2, -9.943999999999999],
   "totalScu": 72,
   "racks": [
     {

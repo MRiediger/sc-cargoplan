@@ -6,6 +6,8 @@
   "fleetyardsSlug": "argo-mpuv-tractor",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
   "notes": "rack arrangement generated; grids from Fleetyards; crate minimums from Fleetyards limits.min.capacity",
+  "holoOrigin": [1.9993408203125, 1, -0.6170667648315431],
+  "outlineOrigin": [2, 1, -0.6000000000000001],
   "totalScu": 16,
   "racks": [
     {

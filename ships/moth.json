@@ -6,6 +6,8 @@
   "fleetyardsSlug": "argo-moth",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-26",
   "notes": "rack arrangement generated; grids from Fleetyards; racks rack-1, rack-2 added (Fleetyards export 2026-10-26); door limits from Fleetyards limits.max.capacity",
+  "holoOrigin": [-4.998900604248047, 2.9978012084960937, -3.331147766113282],
+  "outlineOrigin": [-5, 3, -3.332],
   "totalScu": 224,
   "racks": [
     {
