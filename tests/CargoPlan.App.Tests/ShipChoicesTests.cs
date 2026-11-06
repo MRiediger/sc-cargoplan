@@ -102,6 +102,39 @@ public class ShipChoicesTests
         shipped.Should().Equal("A2 Hercules", "C1 Spirit", "C2 Hercules", "Intrepid", "M2 Hercules", "Mercury Star Runner");
     }
 
+    // --- Capacity (F1) ---
+
+    [Theory]
+    [InlineData("hull_a", "(64 SCU)")]
+    [InlineData("aurora_mk_ii_ts_module", "(8 SCU)")]
+    [InlineData("hull_c", "(4,608 SCU)")]
+    [InlineData("utv", "(1 SCU)")]
+    public void An_entry_shows_its_ships_capacity_with_a_thousands_comma(string id, string expected)
+    {
+        ShipChoices.Of(ShipLoader.LoadAll()).Single(c => c.Id == id).CapacityText.Should().Be(expected);
+    }
+
+    [Fact]
+    public void A_recent_entry_shows_the_capacity_too()
+    {
+        ShipChoices.Of(Five, ["hull_c"], "hull_a").First().CapacityText.Should().Be("(4,608 SCU)");
+    }
+
+    [Fact]
+    public void An_entry_that_didnt_load_has_no_capacity()
+    {
+        ShipChoices.Of(Catalog).Last().CapacityText.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("64")]
+    [InlineData("scu")]
+    [InlineData("(64 SCU)")]
+    public void Matches_ignores_the_capacity(string query)
+    {
+        ShipChoices.Matches(ShipChoices.Of(Catalog).Single(c => c.Id == "hull_a"), query).Should().BeFalse();
+    }
+
     // --- Recent (T7.2c) ---
 
     private static readonly Ship HullC = ShipLoader.Load("hull_c");

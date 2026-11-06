@@ -192,8 +192,15 @@
             <Setter Property="ItemTemplate">
                 <Setter.Value>
                     <DataTemplate>
-                        <TextBlock Text="{Binding Text, Mode=OneTime}" MaxWidth="420" TextTrimming="CharacterEllipsis"
-                                   Foreground="{DynamicResource HeaderForegroundBrush}" />
+                        <!-- The capacity in a right-aligned column (F1, Martin's choice over directly behind the name). The header's
+                             rule (D67): docked right, and the name as the last child takes what is left and trims. The name gives
+                             way, the capacity never. -->
+                        <DockPanel MaxWidth="420">
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding CapacityText, Mode=OneTime}" TextWrapping="NoWrap" Margin="8,0,0,0"
+                                       Foreground="{DynamicResource HeaderForegroundBrush}" />
+                            <TextBlock Text="{Binding Text, Mode=OneTime}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                       Foreground="{DynamicResource HeaderForegroundBrush}" />
+                        </DockPanel>
                     </DataTemplate>
                 </Setter.Value>
             </Setter>

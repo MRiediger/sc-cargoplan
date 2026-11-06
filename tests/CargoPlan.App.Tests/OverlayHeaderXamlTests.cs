@@ -116,6 +116,26 @@ public class OverlayHeaderXamlTests
     }
 
     [Fact]
+    public void In_the_ship_list_the_name_gives_way_and_the_capacity_never_wraps()
+    {
+        // F1, the rule of the header (D67): docked right, and the name as the last child takes what is left and trims.
+        var style = Root().Descendants().Single(e => (string?)e.Attribute(X + "Key") == "ShipBoxStyle");
+        var template = style.Elements().Single(e => (string?)e.Attribute("Property") == "ItemTemplate");
+        var row = template.Descendants().Single(e => e.Name.LocalName == "DockPanel");
+        XElement[] texts = [.. row.Elements()];
+
+        row.Attribute("MaxWidth")!.Value.Should().Be("420");
+        row.Attribute("HorizontalAlignment").Should().BeNull("the row stretches, so the capacities stand in a right-aligned column");
+        texts.Should().HaveCount(2);
+        texts[0].Attribute("Text")!.Value.Should().Be("{Binding CapacityText, Mode=OneTime}");
+        texts[0].Attribute("DockPanel.Dock")!.Value.Should().Be("Right");
+        texts[0].Attribute("TextWrapping")!.Value.Should().Be("NoWrap");
+        texts[1].Attribute("Text")!.Value.Should().Be("{Binding Text, Mode=OneTime}");
+        texts[1].Attribute("TextTrimming")!.Value.Should().Be("CharacterEllipsis");
+        texts[1].Attribute("TextWrapping")!.Value.Should().Be("NoWrap");
+    }
+
+    [Fact]
     public void The_ship_name_trims_on_one_line_instead_of_wrapping()
     {
         // The header's text style wraps and the 30 px header holds two lines: without NoWrap the name broke in two
