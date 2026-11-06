@@ -3826,13 +3826,13 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 
 **Warum:** Das erste Reddit-Feedback zu v0.2.0 geht als ein Release raus, in fünf Sessions, jede per `--no-ff` nach `main`. Der Tag kommt erst in Session 5.
 
-1. [ ] F2 + F1 Schiffsauswahl – `fix/ship-picker`
+1. [x] F2 + F1 Schiffsauswahl – `fix/ship-picker` (abgenommen 06.11.)
 2. [ ] F7 Holo und Racks schiffsfest verankern – `feat/f7-ship-anchor`
 3. [ ] F3 freier Drehwinkel pro Rack, Schiffs-JSON 5→6 – `feat/f3-rack-rotation`
 4. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
 5. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
 
-### [ ] F2 Mausrad scrollt gruppenweise (Bug)
+### [x] F2 Mausrad scrollt gruppenweise (Bug) (06.11.2026, abgenommen 06.11.)
 
 **Ursache:** Das Theme setzt `CanContentScroll` auf der ComboBox, unser `ScrollViewer` übernimmt es, und der Trigger des Standard-Templates, der es bei Gruppierung abschaltet, fehlte im eigenen Template. Damit scrollte das `StackPanel` in Gruppen.
 
@@ -3842,19 +3842,19 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 - [x] 38 Rasten bis zum Ende, keine der 101 Zeilen übersprungen, `Zeus Mk II ES` vollständig sichtbar
 - [x] Suche, Esc und Enter unverändert; Pfeile und Bild auf/ab bleiben verschluckt (T7.2c), eine Pfeil-Navigation gibt es nicht
 - [x] Beim Öffnen steht das Schiff statt seiner Gruppe oben, angenommen
-- [ ] Martin: Gate über Star Citizen: wenige Schiffe pro Raste, kein Sprung, Zeus sichtbar, Liste endet sauber
-- [ ] Martin: Sind 38 Rasten bis zum Listenende zu zäh?
+- [x] Martin: Gate über Star Citizen: wenige Schiffe pro Raste, kein Sprung, Zeus sichtbar, Liste endet sauber
+- [x] Martin: 38 Rasten bis zum Listenende, im Gate abgenommen
 
-**Rückfall, nicht gebaut:** Falls das Gate „zu zäh“ ergibt: `PreviewMouseWheel` am `ScrollViewer`, Schritt = `SystemParameters.WheelScrollLines` × Zeilenhöhe (respektiert die Windows-Einstellung).
+**Rückfall, nicht gebaut und im Gate nicht nötig:** Falls Spieler es später „zu zäh“ finden: `PreviewMouseWheel` am `ScrollViewer`, Schritt = `SystemParameters.WheelScrollLines` × Zeilenhöhe (respektiert die Windows-Einstellung).
 
-### [ ] F1 SCU-Kapazität in der Schiffsauswahl
+### [x] F1 SCU-Kapazität in der Schiffsauswahl (06.11.2026, abgenommen 06.11.)
 
 **Präzisierung in der Planphase, ratifiziert durch Freigabe:** Die Kopfzeile hatte keine Tausendertrennung, sie übernimmt das Komma der Liste (`56/4,608 · 4,552 free`, D67-Addendum). Die Quelle der Zahl ist die Eigenschaft `Ship.TotalScu`, keine eigene Funktion. Rechtsbündige Spalte statt inline, Wahl am echten Element.
 
 - [x] Hull A `(64 SCU)`, Aurora Mk II · TS module `(8 SCU)`, Hull C `(4,608 SCU)`, kleinstes Schiff UTV `(1 SCU)`
 - [x] Suche findet weder `64` noch `scu`; Eintrag „Not loaded“ ohne Zahl
 - [x] Name kürzt zuerst, die Kapazität nie (Probedatei mit überlangem Namen, nur in `bin/`)
-- [ ] Martin: Gate über Star Citizen: Kapazität hinter jedem Namen, Modul zeigt eigene Zahl, Suche unverändert
+- [x] Martin: Gate über Star Citizen: Kapazität hinter jedem Namen, Modul zeigt eigene Zahl, Suche unverändert
 
 ## Phase 10 – nach dem Launch
 
