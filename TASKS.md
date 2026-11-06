@@ -3827,7 +3827,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 **Warum:** Das erste Reddit-Feedback zu v0.2.0 geht als ein Release raus, in fünf Sessions, jede per `--no-ff` nach `main`. Der Tag kommt erst in Session 5.
 
 1. [x] F2 + F1 Schiffsauswahl – `fix/ship-picker` (abgenommen 06.11.)
-2. [ ] F7 Holo und Racks schiffsfest verankern – `feat/f7-ship-anchor`
+2. [x] F7 Holo und Racks schiffsfest verankern – `feat/f7-ship-anchor` (abgenommen 06.11.)
 3. [ ] F3 freier Drehwinkel pro Rack, Schiffs-JSON 5→6 – `feat/f3-rack-rotation`. **Vorgabe (Martin, 06.11.):** volle 3D-Rotation pro Rack, nicht Yaw. Eine Datenquelle mit Grid-Transformen im Schiffsraum existiert (Motherlode, 97 Schiffe, 3×4-Matrix in Metern, nur 5 Schiffe mit Drehung, Railen gekippt).
 4. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
 5. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
@@ -3856,7 +3856,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 - [x] Name kürzt zuerst, die Kapazität nie (Probedatei mit überlangem Namen, nur in `bin/`)
 - [x] Martin: Gate über Star Citizen: Kapazität hinter jedem Namen, Modul zeigt eigene Zahl, Suche unverändert
 
-### [ ] F7 Holo und Racks schiffsfest verankern (06.11.2026, wartet auf Martins Gate)
+### [x] F7 Holo und Racks schiffsfest verankern (06.11.2026, abgenommen 06.11.)
 
 **Warum:** Reddit (Ryekal): Das Holo hängt an der Mitte aller Racks. Ein korrigierter Rack-`origin` verschiebt alles gegeneinander, deshalb lassen sich Schiffsdaten nicht von Hand korrigieren. Bei der Hull A fällt es wegen der Symmetrie nicht auf.
 
@@ -3898,9 +3898,9 @@ Holo-Offset und Umriss-Punkte bitgleich auf 98 von 98. Gegenprobe `main` gegen `
 - [x] Jedes ausgelieferte Schiff trägt die Felder, keines mehr `holoOffset`
 - [x] `-Force` behält die Felder ziffergenau, auch beim Neuschreiben; `-Create` setzt keine (rot gegen das alte Skript unter PS 5.1)
 - [x] Dateien ohne Felder zeichnen wie bisher, eigene Dateien von Nutzern laufen weiter
-- [ ] Martin: Handling gegen `main` (Orbit, Zoom, Pan, Reset, Drag, Auswahl, Abhaken, Schiffswechsel, gespeicherte Kamera)
-- [ ] Martin: Gate über Star Citizen: Hull A, Aurora Mk II · TS module, GRIN UTV, Hull C, Carrack, Bild wie vorher, gespeicherte Kamera stimmt
-- [ ] Martin: Korrektur-Probe: Kopie einer Schiffsdatei mit verschobenem Rack, nur dieses Rack bewegt sich
+- [x] Martin: Handling gegen `main` (Orbit, Zoom, Pan, Reset, Drag, Auswahl, Abhaken, Schiffswechsel, gespeicherte Kamera)
+- [x] Martin: Gate über Star Citizen: Hull A, Aurora Mk II · TS module, GRIN UTV, Hull C, Carrack, Bild wie vorher, gespeicherte Kamera stimmt
+- [x] Martin: Korrektur-Probe: Kopie einer Schiffsdatei mit verschobenem Rack, nur dieses Rack bewegt sich
 
 **Nächste Schritte mit Auslöser:**
 - **Neue Holo-Version:** `holoOrigin` gilt für holo-v1. `ShipAnchorValueTests` mit `CARGOPLAN_HOLO_PREVIOUS`, danach `ShipPictureTests`. Sonst wandert die Hülle um bis zu 0,6 Zellen (D90).
