@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 6,
+  "id": "starfarer",
+  "name": "MISC Starfarer",
+  "manufacturer": "MISC",
+  "fleetyardsSlug": "misc-starfarer",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
+  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "holoOrigin": [-5.514814758300782, 2.500000762939453, -6.33953857421875],
+  "outlineOrigin": [-5.5, 2.5, -6.364000000000001],
+  "totalScu": 291,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 175,
+      "grid": { "length": 7, "width": 5, "stack": 5 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 16
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 50,
+      "grid": { "length": 2, "width": 5, "stack": 5 },
+      "origin": [-6, 0, 0],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-2",
+      "capacityScu": 8,
+      "grid": { "length": 2, "width": 2, "stack": 2 },
+      "origin": [-9, 0, 0],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-3",
+      "capacityScu": 50,
+      "grid": { "length": 2, "width": 5, "stack": 5 },
+      "origin": [-15, 0, 0],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-4",
+      "capacityScu": 8,
+      "grid": { "length": 2, "width": 2, "stack": 2 },
+      "origin": [-18, 0, 0],
+      "stackAxis": "+z"
+    }
+  ]
+}

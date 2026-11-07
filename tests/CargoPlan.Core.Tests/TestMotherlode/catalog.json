@@ -1,0 +1,126 @@
+{
+  "gameBuild": "4.10.2-LIVE.12913470",
+  "updatedAt": "2026-11-07",
+  "ships": [
+    {
+      "id": 1,
+      "className": "TEST_Hull_A",
+      "name": "Hull A",
+      "manufacturer": "MISC",
+      "cargoScu": 64,
+      "containerSizes": [1, 2, 4, 8, 16],
+      "grids": [
+        { "name": "test_grid_starboard_lower", "scu": 16, "size": [2, 4, 2], "containerSizes": [1, 2, 4, 8, 16], "maxContainerScu": 16, "external": true,
+          "transform": [0, 0, 1, 3.0, 0, 1, 0, -9.0, -1, 0, 0, -1.25] },
+        { "name": "test_grid_port_upper", "scu": 16, "size": [2, 4, 2], "containerSizes": [1, 2, 4, 8, 16], "maxContainerScu": 16, "external": true,
+          "transform": [0.0087265, 0, -0.9999619, -3.0, 0, 1, 0, -9.0, 0.9999619, 0, 0.0087265, 2.15] },
+        { "name": "test_grid_starboard_upper", "scu": 16, "size": [2, 4, 2], "containerSizes": [1, 2, 4, 8, 16], "maxContainerScu": 16, "external": true,
+          "transform": [0, 0, 1, 3.0, 0, -1, 0, -9.0, 1, 0, 0, 2.15] },
+        { "name": "test_grid_port_lower", "scu": 16, "size": [2, 4, 2], "containerSizes": [1, 2, 4, 8, 16], "maxContainerScu": 16, "external": true,
+          "transform": [0, 0, -1, -3.0, 0, -1, 0, -9.0, -1, 0, 0, -1.25] }
+      ]
+    },
+    {
+      "id": 2,
+      "className": "TEST_RAFT",
+      "name": "RAFT",
+      "manufacturer": "ARGO",
+      "cargoScu": 192,
+      "containerSizes": [1, 2, 4, 8, 16, 24, 32],
+      "grids": [
+        { "name": "test_grid_raft", "scu": 192, "size": [8, 12, 2], "containerSizes": [1, 2, 4, 8, 16, 24, 32], "maxContainerScu": 32, "external": true,
+          "transform": [-1, 0, 0, 0, 0, 1, 0, -8.5, 0, 0, -1, -0.5] }
+      ]
+    },
+    {
+      "id": 3,
+      "className": "TEST_Prowler",
+      "name": "Prowler Utility",
+      "manufacturer": "ESPR",
+      "cargoScu": 32,
+      "containerSizes": [1, 2, 4, 8, 16],
+      "grids": [
+        { "name": "test_grid_prowler_port", "scu": 16, "size": [2, 4, 2], "containerSizes": [1, 2, 4, 8, 16], "maxContainerScu": 16, "external": true,
+          "transform": [-0.9702957, 0, -0.2419219, -2.5, 0, 1, 0, -1.2, 0.2419219, 0, -0.9702957, -2.0] },
+        { "name": "test_grid_prowler_starboard", "scu": 16, "size": [2, 4, 2], "containerSizes": [1, 2, 4, 8, 16], "maxContainerScu": 16, "external": true,
+          "transform": [-0.9702957, 0, 0.2419219, 2.5, 0, 1, 0, -1.2, -0.2419219, 0, -0.9702957, -2.0] }
+      ]
+    },
+    {
+      "id": 4,
+      "className": "TEST_Turned",
+      "name": "Turned Ship",
+      "manufacturer": "TEST",
+      "cargoScu": 28,
+      "containerSizes": [1, 2, 4],
+      "grids": [
+        { "name": "test_grid_turned", "scu": 24, "size": [2, 6, 2], "containerSizes": [1, 2, 4], "maxContainerScu": 4, "external": false,
+          "transform": [0, -1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0] },
+        { "name": "test_grid_small", "scu": 4, "size": [2, 2, 1], "containerSizes": [1, 2, 4], "maxContainerScu": 4, "external": false,
+          "transform": [1, 0, 0, 0, 0, 1, 0, 5, 0, 0, 1, 0] }
+      ]
+    },
+    {
+      "id": 5,
+      "className": null,
+      "name": "135c",
+      "manufacturer": "ORIG",
+      "cargoScu": 6,
+      "containerSizes": [1, 2],
+      "grids": [
+        { "name": "test_grid_front", "scu": 4, "size": [1, 4, 1], "containerSizes": [1, 2], "maxContainerScu": 2, "external": false, "transform": null },
+        { "name": "test_grid_rear", "scu": 2, "size": [1, 2, 1], "containerSizes": [1, 2], "maxContainerScu": 2, "external": false, "transform": null }
+      ]
+    },
+    {
+      "id": 6,
+      "className": "TEST_Mustang",
+      "name": "Mustang Alpha",
+      "manufacturer": "CNOU",
+      "cargoScu": 4,
+      "containerSizes": [1, 2],
+      "grids": [
+        { "name": "test_grid_mustang", "scu": 4, "size": [1, 4, 1], "containerSizes": [1, 2], "maxContainerScu": 2, "external": false,
+          "transform": [1, 0, 0, 0, 0, 1, 0, -2.0, 0, 0, 1, -0.5] }
+      ]
+    },
+    {
+      "id": 7,
+      "className": "TEST_Mustang",
+      "name": "Mustang Alpha Vindicator",
+      "manufacturer": "CNOU",
+      "cargoScu": 4,
+      "containerSizes": [1, 2],
+      "grids": [
+        { "name": "test_grid_mustang", "scu": 4, "size": [1, 4, 1], "containerSizes": [1, 2], "maxContainerScu": 2, "external": false,
+          "transform": [1, 0, 0, 0, 0, 1, 0, -2.0, 0, 0, 1, -0.5] }
+      ]
+    },
+    {
+      "id": 8,
+      "className": "TEST_Aurora",
+      "name": "Aurora Mk II",
+      "manufacturer": "RSI",
+      "cargoScu": 2,
+      "containerSizes": [1],
+      "grids": [
+        { "name": "test_grid_aurora", "scu": 1, "size": [1, 1, 1], "containerSizes": [1], "maxContainerScu": 1, "external": true,
+          "transform": [1, 0, 0, 0.65, 0, 1, 0, -1.2, 0, 0, 1, -1.15] },
+        { "name": "test_grid_aurora", "scu": 1, "size": [1, 1, 1], "containerSizes": [1], "maxContainerScu": 1, "external": true,
+          "transform": [1, 0, 0, -0.65, 0, 1, 0, -1.2, 0, 0, 1, -1.15] }
+      ]
+    },
+    {
+      "id": 9,
+      "className": "TEST_Buggy",
+      "name": "Test Buggy",
+      "manufacturer": "TEST",
+      "cargoScu": 1,
+      "containerSizes": [1],
+      "grids": [
+        { "name": "test_grid_buggy", "scu": 1, "size": [1, 1, 1], "containerSizes": [1], "maxContainerScu": 1, "external": true,
+          "transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0] }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "gameBuild": "4.10.2-LIVE.12913470",
+  "updatedAt": "2026-11-07",
+  "ships": [
+    {
+      "id": 2,
+      "className": "TEST_RAFT",
+      "name": "RAFT",
+      "manufacturer": "ARGO",
+      "cargoScu": 192,
+      "containerSizes": [1, 2, 4, 8, 16, 24, 32],
+      "grids": [
+        { "name": "test_grid_raft", "scu": 192, "size": [8, 12, 2], "containerSizes": [1, 2, 4, 8, 16, 24, 32], "maxContainerScu": 32, "external": true,
+          "transform": [-1, 0, 0, 0, 0, 1, 0, -8.5, 0, 0, -1] }
+      ]
+    }
+  ]
+}

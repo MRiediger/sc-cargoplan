@@ -30,6 +30,12 @@
     <None Update="TestShips/*.json" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
+  <!-- Shipped ships frozen before the game-file racks (D92): mechanics tests load these, never ships/, so a data import
+       moves no test. Data tests check ships/ itself. -->
+  <ItemGroup>
+    <None Update="FrozenShips/**/*.json" CopyToOutputDirectory="IfDifferent" />
+  </ItemGroup>
+
   <!-- Broken and synthetic outline files for the outline loader (D55). -->
   <ItemGroup>
     <None Update="TestOutlines/*.json" CopyToOutputDirectory="IfDifferent" />
@@ -39,7 +45,15 @@
        a synthetic export and the ship files it must produce. -->
   <ItemGroup>
     <None Include="..\..\tools\import-fleetyards.ps1" Link="tools\import-fleetyards.ps1" CopyToOutputDirectory="IfDifferent" />
+    <None Include="..\..\tools\ShipJson.ps1" Link="tools\ShipJson.ps1" CopyToOutputDirectory="IfDifferent" />
     <None Update="TestFleetyards/**/*.json" CopyToOutputDirectory="IfDifferent" />
+  </ItemGroup>
+
+  <!-- Motherlode import (session 4a, D92): the script and a synthetic grid catalog in the field names of Motherlode's API,
+       made-up numbers; nothing from the real catalog enters the repo. -->
+  <ItemGroup>
+    <None Include="..\..\tools\import-motherlode.ps1" Link="tools\import-motherlode.ps1" CopyToOutputDirectory="IfDifferent" />
+    <None Update="TestMotherlode/**/*.json" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
   <!-- Mission files for tests, read via MissionFixtures. The files stay on disk as well,

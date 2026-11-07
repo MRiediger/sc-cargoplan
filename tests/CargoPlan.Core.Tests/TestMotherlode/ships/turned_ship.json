@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 6,
+  "id": "turned_ship",
+  "name": "TEST Turned Ship",
+  "manufacturer": "TEST",
+  "fleetyardsSlug": "test-turned-ship",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-01-15",
+  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "holoOrigin": [1.5000000000000002, 0.25, -0.5],
+  "outlineOrigin": [1.5, 0.25, -0.75],
+  "outlineScale": 1.1199999999999999,
+  "totalScu": 28,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 24,
+      "grid": { "length": 6, "width": 2, "stack": 2 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z",
+      "minCrateSize": 2
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 4,
+      "grid": { "length": 2, "width": 2, "stack": 1 },
+      "origin": [-7, 0, 0],
+      "stackAxis": "+z",
+      "maxCrateSize": 2
+    }
+  ]
+}
