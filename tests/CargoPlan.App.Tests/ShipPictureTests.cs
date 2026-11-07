@@ -68,9 +68,11 @@ public sealed class ShipPictureTests(ITestOutputHelper output)
         var outlines = ShipOutlineLoader.Load();
         foreach (var ship in ShipLoader.LoadAll().Ships.OrderBy(s => s.Id, StringComparer.Ordinal))
         {
-            var mesh = HoloReader.Read(File.ReadAllBytes(Path.Combine(holograms, $"{ship.FleetyardsSlug}.holo")));
-            values.Add(Values(ship, mesh, outlines));
-            foreach (var look in Looks)
+            // A ship without a hologram (no Fleetyards slug, the Cyclone, D92) has the looks without one.
+            var holoFile = Path.Combine(holograms, $"{ship.FleetyardsSlug}.holo");
+            var mesh = ship.FleetyardsSlug is not null && File.Exists(holoFile) ? HoloReader.Read(File.ReadAllBytes(holoFile)) : null;
+            values.Add(mesh is null ? $"{ship.Id};no hologram;-" : Values(ship, mesh, outlines));
+            foreach (var look in Looks.Where(l => mesh is not null || !ShipOutlineModes.Parse(l).IsHologram()))
             {
                 foreach (var size in Sizes)
                 {
@@ -78,15 +80,19 @@ public sealed class ShipPictureTests(ITestOutputHelper output)
                 }
             }
 
+            // The contact sheet's second view (D92): from above, as steep as the camera goes, hull and racks in the picture.
+            Take(ship, mesh, outlines, mesh is null ? "outline" : "holo-shaded", Sizes[1], Above(ship, mesh), "above");
+
+            var cameraLooks = SavedCameraLooks.Where(l => mesh is not null || !ShipOutlineModes.Parse(l).IsHologram()).ToArray();
             if (GateShips.Contains(ship.Id))
             {
-                foreach (var look in SavedCameraLooks)
+                foreach (var look in cameraLooks)
                 {
                     Take(ship, mesh, outlines, look, Sizes[1], Saved(ship), "saved");
                 }
             }
 
-            foreach (var look in SavedCameraLooks)
+            foreach (var look in cameraLooks)
             {
                 Take(ship, mesh, outlines, look, Sizes[1], camera: null, "cargo", LoadPlanner.Replan(TestPlans.SplitAndShared(), ship));
             }
@@ -95,7 +101,7 @@ public sealed class ShipPictureTests(ITestOutputHelper output)
             GC.WaitForPendingFinalizers();
         }
 
-        void Take(Ship ship, HoloMesh mesh, ShipOutlineCatalog outlineData, string look, Size size, ShipCamera? camera, string cameraName, Core.Plans.SavedPlan? cargo = null)
+        void Take(Ship ship, HoloMesh? mesh, ShipOutlineCatalog outlineData, string look, Size size, ShipCamera? camera, string cameraName, Core.Plans.SavedPlan? cargo = null)
         {
             var root = Wired(ship, mesh, outlineData, look, size, camera, cargo);
             var key = $"{ship.Id};{look};{size.Width}x{size.Height};{cameraName}";
@@ -109,7 +115,7 @@ public sealed class ShipPictureTests(ITestOutputHelper output)
         }
     }
 
-    private static FrameworkElement Wired(Ship ship, HoloMesh mesh, ShipOutlineCatalog outlines, string look, Size size, ShipCamera? camera, Core.Plans.SavedPlan? cargo)
+    private static FrameworkElement Wired(Ship ship, HoloMesh? mesh, ShipOutlineCatalog outlines, string look, Size size, ShipCamera? camera, Core.Plans.SavedPlan? cargo)
     {
         var viewModel = new OverlayViewModel(ship) { Outlines = outlines };
         if (cargo is not null)
@@ -118,7 +124,7 @@ public sealed class ShipPictureTests(ITestOutputHelper output)
         }
 
         var (_, root) = ViewPictures.Wire(viewModel, AppSettings.Default with { ShipOutline = look }, size);
-        if (ShipOutlineModes.Parse(look) is var mode && mode.IsHologram())
+        if (mesh is not null && ShipOutlineModes.Parse(look) is var mode && mode.IsHologram())
         {
             viewModel.ShowHolo(Holo.PreparedHolo.Prepare(ship, mesh, mode));
         }
@@ -140,6 +146,16 @@ public sealed class ShipPictureTests(ITestOutputHelper output)
         var (min, max) = (ship.Bounds.Min, ship.Bounds.Max);
         var diagonal = Math.Sqrt(Math.Pow(max.X - min.X, 2) + Math.Pow(max.Y - min.Y, 2) + Math.Pow(max.Z - min.Z, 2));
         return new ShipCamera(35, 20, Distance: 3 * diagonal, Target: new((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0));
+    }
+
+    // From above (the steepest pitch the camera takes) at the racks' middle, far enough for the larger of racks and hull.
+    private static ShipCamera Above(Ship ship, HoloMesh? mesh)
+    {
+        var (min, max) = (ship.Bounds.Min, ship.Bounds.Max);
+        var diagonal = Math.Sqrt(Math.Pow(max.X - min.X, 2) + Math.Pow(max.Y - min.Y, 2) + Math.Pow(max.Z - min.Z, 2));
+        var hull = mesh is null ? 0 : mesh.LengthM / 1.25;
+        return new ShipCamera(0, CameraOrientation.MaxPitch, Distance: 1.6 * Math.Max(diagonal, hull),
+            Target: new((min.X + max.X) / 2.0, (min.Y + max.Y) / 2.0, (min.Z + max.Z) / 2.0));
     }
 
     // The placement's numbers, exact: a deviation here names the cause of a picture's.
