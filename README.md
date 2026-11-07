@@ -16,7 +16,7 @@ shows it in a translucent window next to the game.
 - Drag, turn, split and merge crates to match what the cargo elevator really did.
 - Mark each delivery loaded, then delivered at its stop; undo any step.
 - Click-through while the game has the mouse. A separate window: nothing is injected into the game.
-- 97 ships, with cargo grids from Fleetyards.
+- 105 ships, with rack layouts from the game files.
 
 ## Install
 
@@ -42,11 +42,13 @@ Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the 
 
 ## Credits & disclaimer
 
-- Cargo grid data from [fleetyards.net](https://fleetyards.net).
+- Cargo grid data from [cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo), extracted from the game files and
+  used with its operators' permission.
+- Ship outlines and holograms, and the grids of three ships, from [fleetyards.net](https://fleetyards.net).
 - [ContractTracker](https://www.nexusmods.com/starcitizen/mods/34) by Yuiki captures the contracts; SC-CargoPlan only
   reads its database.
 - Stop colors: the [Okabe-Ito palette](https://jfly.uni-koeln.de/color/) and [Paul Tol's](https://sronpersonalpages.nl/~pault/) schemes.
-- Not affiliated with Fleetyards, ContractTracker or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
+- Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
 
 [MIT](LICENSE). Not under MIT: the ship silhouettes ([`outlines/NOTICE.md`](outlines/NOTICE.md)) and the ship
 holograms (`NOTICE.md` of the [`holo-v1` release](https://github.com/MRiediger/sc-cargoplan/releases/tag/holo-v1)).
