@@ -53,7 +53,7 @@ internal sealed class FrameMeasureWindow : Window
     // preview. The camera stands still while the cursor drags a crate over the racks.
     // hull_a_outline (T8.5) shows the outline as a surface with its line and halo instead of the hologram.
     // reclaimer (session 4b) is the longest hull of the hologram set: its racks of 18, 27, 50 and 70 cells (some with a
-    // door of 2) are all filled only by 1 SCU crates, 330 of them.
+    // door of 2) are all filled only by 1 SCU crates, 420 of them.
     private static readonly Dictionary<string, (string Ship, CrateSize Size, bool States, bool Drag, bool Outline)> Targets = new()
     {
         ["utv"] = ("utv", CrateSize.One, false, false, false),
