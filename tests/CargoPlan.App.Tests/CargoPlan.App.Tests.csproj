@@ -77,4 +77,10 @@
                       LogicalName="xaml/MissionEditorWindow.xaml" Link="Xaml\MissionEditorWindow.xaml" />
   </ItemGroup>
 
+  <!-- Frozen ship fixtures, shared with the Core tests (D92): mechanics tests run on these, never on ships/, so a data
+       import moves no test. -->
+  <ItemGroup>
+    <None Include="..\CargoPlan.Core.Tests\FrozenShips\*.json" Link="FrozenShips\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
+  </ItemGroup>
+
 </Project>

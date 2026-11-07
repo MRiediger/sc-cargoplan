@@ -4,8 +4,8 @@
   "name": "MISC Hull C",
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-hull-c",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-26",
-  "notes": "rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game; stackAxis fills Fleetyards' box with the grid kept (K5.2, D78): level arms z, upright arms y; radial or along the arm not checked in game; crate minimums from Fleetyards limits.min.capacity",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode); crate minimums from Fleetyards limits.min.capacity",
   "holoOrigin": [8.554934692382812, -15.9908447265625, -7.423667907714844],
   "outlineOrigin": [8.5, -16, -8],
   "totalScu": 4608,
@@ -14,128 +14,128 @@
       "id": "rack-0",
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
-      "origin": [0, -12, 13],
-      "stackAxis": "+z",
+      "origin": [6, 8, -4],
+      "stackAxis": "+x",
       "minCrateSize": 32
     },
     {
       "id": "rack-1",
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
-      "origin": [0, -28, 13],
-      "stackAxis": "+z",
+      "origin": [6, -4, 8],
+      "stackAxis": "+x",
       "minCrateSize": 32
     },
     {
       "id": "rack-2",
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
-      "origin": [0, -19, 20],
-      "stackAxis": "+y",
+      "origin": [6, -4, -15],
+      "stackAxis": "+x",
       "minCrateSize": 32
     },
     {
       "id": "rack-3",
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
-      "origin": [0, -19, 4],
-      "stackAxis": "+y",
+      "origin": [6, -15, -4],
+      "stackAxis": "+x",
       "minCrateSize": 32
     },
     {
       "id": "rack-4",
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
-      "origin": [9, -12, 13],
-      "stackAxis": "+z",
+      "origin": [-10, 8, -4],
+      "stackAxis": "-x",
       "minCrateSize": 32
     },
     {
       "id": "rack-5",
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
-      "origin": [9, -28, 13],
-      "stackAxis": "+z",
+      "origin": [-10, -4, 8],
+      "stackAxis": "-x",
       "minCrateSize": 32
     },
     {
       "id": "rack-6",
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
-      "origin": [9, -19, 20],
-      "stackAxis": "+y",
+      "origin": [-10, -4, -15],
+      "stackAxis": "-x",
       "minCrateSize": 32
     },
     {
       "id": "rack-7",
       "capacityScu": 384,
       "grid": { "length": 8, "width": 8, "stack": 6 },
-      "origin": [9, -19, 4],
-      "stackAxis": "+y",
+      "origin": [-10, -15, -4],
+      "stackAxis": "-x",
       "minCrateSize": 32
     },
     {
       "id": "rack-8",
       "capacityScu": 192,
       "grid": { "length": 8, "width": 4, "stack": 6 },
-      "origin": [0, -4, 13],
-      "stackAxis": "+z",
+      "origin": [6, 16, -4],
+      "stackAxis": "+x",
       "minCrateSize": 32
     },
     {
       "id": "rack-9",
       "capacityScu": 192,
-      "grid": { "length": 8, "width": 4, "stack": 6 },
-      "origin": [0, -32, 13],
-      "stackAxis": "+z",
+      "grid": { "length": 4, "width": 8, "stack": 6 },
+      "origin": [6, -4, 16],
+      "stackAxis": "+x",
       "minCrateSize": 32
     },
     {
       "id": "rack-10",
       "capacityScu": 192,
-      "grid": { "length": 8, "width": 4, "stack": 6 },
-      "origin": [0, -19, 28],
-      "stackAxis": "+y",
+      "grid": { "length": 4, "width": 8, "stack": 6 },
+      "origin": [6, -4, -19],
+      "stackAxis": "+x",
       "minCrateSize": 32
     },
     {
       "id": "rack-11",
       "capacityScu": 192,
       "grid": { "length": 8, "width": 4, "stack": 6 },
-      "origin": [0, -19, 0],
-      "stackAxis": "+y",
+      "origin": [6, -19, -4],
+      "stackAxis": "+x",
       "minCrateSize": 32
     },
     {
       "id": "rack-12",
       "capacityScu": 192,
       "grid": { "length": 8, "width": 4, "stack": 6 },
-      "origin": [9, -4, 13],
-      "stackAxis": "+z",
+      "origin": [-10, 16, -4],
+      "stackAxis": "-x",
       "minCrateSize": 32
     },
     {
       "id": "rack-13",
       "capacityScu": 192,
-      "grid": { "length": 8, "width": 4, "stack": 6 },
-      "origin": [9, -32, 13],
-      "stackAxis": "+z",
+      "grid": { "length": 4, "width": 8, "stack": 6 },
+      "origin": [-10, -4, 16],
+      "stackAxis": "-x",
       "minCrateSize": 32
     },
     {
       "id": "rack-14",
       "capacityScu": 192,
-      "grid": { "length": 8, "width": 4, "stack": 6 },
-      "origin": [9, -19, 28],
-      "stackAxis": "+y",
+      "grid": { "length": 4, "width": 8, "stack": 6 },
+      "origin": [-10, -4, -19],
+      "stackAxis": "-x",
       "minCrateSize": 32
     },
     {
       "id": "rack-15",
       "capacityScu": 192,
       "grid": { "length": 8, "width": 4, "stack": 6 },
-      "origin": [9, -19, 0],
-      "stackAxis": "+y",
+      "origin": [-10, -19, -4],
+      "stackAxis": "-x",
       "minCrateSize": 32
     }
   ]

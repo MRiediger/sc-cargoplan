@@ -4,8 +4,8 @@
   "name": "CRUS A2 Hercules",
   "manufacturer": "CRUS",
   "fleetyardsSlug": "crus-a2-hercules",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [9, 3.0046005249023438, -8.809870147705078],
   "outlineOrigin": [9, 3, -8.831999999999999],
   "totalScu": 216,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 216,
       "grid": { "length": 18, "width": 6, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-8, -3, -7],
       "stackAxis": "+z"
     }
   ]

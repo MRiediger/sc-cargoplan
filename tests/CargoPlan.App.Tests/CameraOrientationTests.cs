@@ -57,7 +57,7 @@ public class CameraOrientationTests
     [InlineData("hull_c", false)]
     public void A_ship_longer_than_twice_its_width_is_long(string shipId, bool isLong)
     {
-        CameraOrientation.IsLong(ShipLoader.Load(shipId).Bounds).Should().Be(isLong);
+        CameraOrientation.IsLong(ShipLoader.Load(TestPlans.TestShipsFolder, shipId).Bounds).Should().Be(isLong);
     }
 
     [Fact]
@@ -70,13 +70,13 @@ public class CameraOrientationTests
     [Fact]
     public void A_compact_ship_keeps_the_default_camera()
     {
-        CameraOrientation.DefaultFor(ShipLoader.Load("hull_a").Bounds).Should().BeSameAs(Default);
+        CameraOrientation.DefaultFor(TestPlans.HullA().Bounds).Should().BeSameAs(Default);
     }
 
     [Fact]
     public void A_long_ship_is_seen_from_port_above_with_its_length_flatter_than_by_default()
     {
-        var bounds = ShipLoader.Load("caterpillar").Bounds;
+        var bounds = ShipLoader.Load(TestPlans.TestShipsFolder, "caterpillar").Bounds;
         var orientation = CameraOrientation.DefaultFor(bounds);
         var centre = ScreenPoints.Centre(bounds);
         CameraMath camera = new(orientation, 200, centre, new Size(800, 600));

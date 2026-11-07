@@ -1,0 +1,20 @@
+{
+  "gameBuild": "4.10.2-LIVE.12913470",
+  "updatedAt": "2026-11-07",
+  "ships": [
+    {
+      "id": 10,
+      "className": "TEST_Overlap",
+      "name": "Overlap Ship",
+      "manufacturer": "TEST",
+      "cargoScu": 8,
+      "containerSizes": [1, 2, 4],
+      "grids": [
+        { "name": "test_grid_a", "scu": 4, "size": [2, 2, 1], "containerSizes": [1, 2, 4], "maxContainerScu": 4, "external": false,
+          "transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0] },
+        { "name": "test_grid_b", "scu": 4, "size": [2, 2, 1], "containerSizes": [1, 2, 4], "maxContainerScu": 4, "external": false,
+          "transform": [1, 0, 0, 0.5, 0, 1, 0, 0, 0, 0, 1, 0] }
+      ]
+    }
+  ]
+}

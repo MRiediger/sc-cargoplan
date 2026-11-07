@@ -4,8 +4,8 @@
   "name": "ANVL Valkyrie",
   "manufacturer": "ANVL",
   "fleetyardsSlug": "anvl-valkyrie",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [3.003346252441406, 2.486615753173828, -2.766032028198242],
   "outlineOrigin": [3, 2.5, -2.7640000000000002],
   "totalScu": 90,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 90,
       "grid": { "length": 6, "width": 5, "stack": 3 },
-      "origin": [0, 0, 0],
+      "origin": [-9, -2, 0],
       "stackAxis": "+z"
     }
   ]

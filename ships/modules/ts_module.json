@@ -12,7 +12,7 @@
       "id": "ts-module",
       "capacityScu": 6,
       "grid": { "length": 3, "width": 2, "stack": 1 },
-      "origin": [-6, -1, -1],
+      "origin": [-7, -1, 0],
       "stackAxis": "+z",
       "maxCrateSize": 2
     }

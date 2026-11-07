@@ -4,8 +4,8 @@
   "name": "MISC Freelancer MIS",
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-freelancer-mis",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [-0.991650390625, 1.0102058410644532, -2.079417419433594],
   "outlineOrigin": [-1, 1, -2.3],
   "totalScu": 36,
@@ -14,21 +14,21 @@
       "id": "rack-2",
       "capacityScu": 24,
       "grid": { "length": 4, "width": 2, "stack": 3 },
-      "origin": [0, 0, 0],
+      "origin": [-12, 0, -1],
       "stackAxis": "+z"
     },
     {
       "id": "rack-0",
       "capacityScu": 6,
-      "grid": { "length": 1, "width": 2, "stack": 3 },
-      "origin": [-3, 0, 0],
+      "grid": { "length": 2, "width": 1, "stack": 3 },
+      "origin": [-1, 1, -1],
       "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 6,
-      "grid": { "length": 1, "width": 2, "stack": 3 },
-      "origin": [-6, 0, 0],
+      "grid": { "length": 2, "width": 1, "stack": 3 },
+      "origin": [-1, -1, -1],
       "stackAxis": "+z"
     }
   ]

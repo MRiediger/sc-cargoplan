@@ -4,8 +4,8 @@
   "name": "DRAK Cutter",
   "manufacturer": "DRAK",
   "fleetyardsSlug": "drak-cutter",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.4995113372802734, 1.0009767532348632, -1.149545669555664],
   "outlineOrigin": [0.5, 1, -1.4],
   "totalScu": 4,
@@ -13,8 +13,8 @@
     {
       "id": "rack-0",
       "capacityScu": 4,
-      "grid": { "length": 1, "width": 2, "stack": 2 },
-      "origin": [0, 0, 0],
+      "grid": { "length": 2, "width": 1, "stack": 2 },
+      "origin": [-3, 1, -1],
       "stackAxis": "+z"
     }
   ]

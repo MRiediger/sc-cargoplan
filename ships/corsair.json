@@ -4,8 +4,8 @@
   "name": "DRAK Corsair",
   "manufacturer": "DRAK",
   "fleetyardsSlug": "drak-corsair",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode); door limits from game files (Motherlode)",
   "holoOrigin": [4.49084243774414, 1.9984725952148437, -9.946272277832032],
   "outlineOrigin": [4.5, 2, -9.943999999999999],
   "totalScu": 72,
@@ -14,8 +14,9 @@
       "id": "rack-0",
       "capacityScu": 72,
       "grid": { "length": 9, "width": 4, "stack": 2 },
-      "origin": [0, 0, 0],
-      "stackAxis": "+z"
+      "origin": [-16, -1, -1],
+      "stackAxis": "+z",
+      "maxCrateSize": 24
     }
   ]
 }

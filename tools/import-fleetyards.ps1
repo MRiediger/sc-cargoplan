@@ -11,6 +11,8 @@
 #   changed rack set keeps the racks whose id and grid still match, adds the new ones and drops the vanished (K5.2).
 #   A door limit (maxCrateSize, from limits.max.capacity, D70) and a minimum (minCrateSize, limits.min.capacity, K3.3)
 #   are added where the file has none, never overwritten. holoOrigin, outlineOrigin and outlineScale (D90) stay as written.
+#   A ship whose source names Motherlode has its racks from the game files (D92): reported, never compared or written;
+#   -Force on it is an error. Session 4c retires this script.
 # Exit code: 0 in sync, 1 a deviation or a new ship not written, 2 an error (then nothing is written).
 # Runs under Windows PowerShell 5.1 and PowerShell 7. ASCII only: 5.1 reads a script without BOM as ANSI.
 param(
@@ -25,14 +27,13 @@ $ErrorActionPreference = 'Stop'
 if (-not $ShipsFolder) {
     $ShipsFolder = Join-Path (Split-Path $PSScriptRoot -Parent) 'ships'
 }
+# Format-Ship, Get-Frame, crate shapes and the other pieces of the ship file format, shared with import-motherlode.ps1.
+. (Join-Path $PSScriptRoot 'ShipJson.ps1')
 
-$SchemaVersion = 6
 $CellMeters = [decimal]1.25
 $FallbackShipId = 'hull_a'
-$CrateSizes = @(1, 2, 4, 8, 16, 24, 32)
-# Crate sizes with their shapes in cells (SCU, length, width, stack), fixed orientation, as CrateSize.Dimensions (D57).
-# A list, not an ordered hashtable: its [int] indexer would read a position, not a key.
-$CrateShapes = @(@(1, 1, 1, 1), @(2, 2, 1, 1), @(4, 2, 2, 1), @(8, 2, 2, 2), @(16, 4, 2, 2), @(24, 6, 2, 2), @(32, 8, 2, 2))
+# A ship whose racks come from the game files (D92) keeps them: this import neither compares nor writes it.
+$MotherlodeSource = 'cryon.rocks (Motherlode)'
 # Racks that take nothing above 2 SCU are ladders and walkways: they go last in rack order, but stay, so the capacity
 # matches the game (Caterpillar 576).
 $WalkwayMaxCrate = 2
@@ -57,44 +58,6 @@ function Get-Cells([object]$Meters, [string]$Where) {
     [int]$cells
 }
 
-# Adds or replaces a property: ConvertFrom-Json objects only have the fields the file has.
-function Set-Field([object]$Target, [string]$Name, [object]$Value) {
-    if ($Target.PSObject.Properties[$Name]) {
-        $Target.$Name = $Value
-    }
-    else {
-        $Target | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
-    }
-}
-
-# The largest crate a hold of these cells (x, y, z in Fleetyards axes) takes. Crates turn 90 degrees about the stack
-# axis (D71), so the longer horizontal side takes the crate's length, whichever axis it lies on.
-function Get-GridCrate([int[]]$Size) {
-    $grid = @([math]::Max($Size[0], $Size[1]), [math]::Min($Size[0], $Size[1]), $Size[2])
-    $largest = 0
-    foreach ($shape in $CrateShapes) {
-        if ($shape[1] -le $grid[0] -and $shape[2] -le $grid[1] -and $shape[3] -le $grid[2]) {
-            $largest = $shape[0]
-        }
-    }
-    $largest
-}
-
-function Get-GridText([object]$Grid) {
-    '{0}x{1}x{2}' -f $Grid.length, $Grid.width, $Grid.stack
-}
-
-# The ship axes (0 x, 1 y, 2 z) of a rack's length, width and stack for a stack axis: Rack.FrameOf in Core (D26). The
-# sign only mirrors the grid inside its box.
-function Get-Frame([string]$Axis) {
-    switch ($Axis.Substring(1)) {
-        'x' { @(2, 1, 0) }
-        'y' { @(0, 2, 1) }
-        'z' { @(0, 1, 2) }
-        default { throw "Unknown stack axis '$Axis'." }
-    }
-}
-
 # The stack axis that lays the grid in the box: the preferred one where it does, else the first that does, same sign
 # first (K5.2, D78). The Hull C keeps its 8x8x6 grids, so its level arms stack along z, its upright ones along y.
 function Get-StackAxis([object]$Box, [object]$Grid, [string]$Preferred, [string]$Where) {
@@ -108,18 +71,6 @@ function Get-StackAxis([object]$Box, [object]$Grid, [string]$Preferred, [string]
         }
     }
     throw "${Where}: no stack axis lays grid $(Get-GridText $Grid) in Fleetyards' box of $($extent -join 'x') cells."
-}
-
-# The box a ship file's rack takes in ship cells: origin, then the grid along the axes of its stack axis.
-function Get-FileBox([object]$Rack) {
-    $frame = Get-Frame ([string]$Rack.stackAxis)
-    $grid = @([int]$Rack.grid.length, [int]$Rack.grid.width, [int]$Rack.grid.stack)
-    $min = @([int]$Rack.origin[0], [int]$Rack.origin[1], [int]$Rack.origin[2])
-    $max = @($min[0], $min[1], $min[2])
-    for ($i = 0; $i -lt 3; $i++) {
-        $max[$frame[$i]] += $grid[$i]
-    }
-    [pscustomobject]@{ Min = $min; Max = $max }
 }
 
 # Boxes as sorted text, shifted so the arrangement starts at 0 on every axis: Fleetyards' offsets are local to the hold
@@ -144,25 +95,6 @@ function Get-RowOrigins([object[]]$Grids) {
         $origins.Add(@($x, 0, 0))
     }
     , $origins
-}
-
-# Two boxes overlap if they share volume on all three axes; touching is fine (as in the loader).
-function Test-Overlap([object[]]$Racks) {
-    for ($i = 0; $i -lt $Racks.Count; $i++) {
-        for ($k = $i + 1; $k -lt $Racks.Count; $k++) {
-            $a = $Racks[$i]; $b = $Racks[$k]
-            $apart = $false
-            for ($axis = 0; $axis -lt 3; $axis++) {
-                if ($a.Min[$axis] -ge $b.Max[$axis] -or $b.Min[$axis] -ge $a.Max[$axis]) {
-                    $apart = $true
-                }
-            }
-            if (-not $apart) {
-                return $true
-            }
-        }
-    }
-    $false
 }
 
 # One Fleetyards cargo hold, checked and in cells. Fleetyards axes: x across (to starboard, see D53 addendum), y along
@@ -336,80 +268,9 @@ function ConvertTo-Draft([object]$Ship, [string]$ExportDate) {
     }
 }
 
-function Format-JsonString([string]$Value) {
-    if ($Value -match '[\x00-\x1f]') {
-        throw "Control character in '$Value'."
-    }
-    '"' + $Value.Replace('\', '\\').Replace('"', '\"') + '"'
-}
-
-# The fields set outside the import (K5.3b, D90), as the file writes them: through a number, Windows PowerShell 5.1
-# would drop digits and the picture would change.
-function Get-HandFields([string]$Text) {
-    @([regex]::Matches($Text, '(?m)^\s*"(holoOffset|holoOrigin|outlineOrigin|outlineScale)"\s*:\s*(\[[^\]]*\]|[^,\s}]+)') |
-        ForEach-Object { "  ""$($_.Groups[1].Value)"": $($_.Groups[2].Value)," })
-}
-
-# A rack's rotation (D91) as the file writes it, by rack id: hand work too, and through a number it would lose digits just
-# the same. The file's rotations come in the order of its racks, whichever field of a rack comes first.
-function Get-RackRotations([string]$Text, [object]$File) {
-    $written = @([regex]::Matches($Text, '"rotation"\s*:\s*(\[[^\]]*\])') | ForEach-Object { $_.Groups[1].Value })
-    $turned = @(@($File.racks) | Where-Object { $null -ne $_.rotation })
-    $rotations = @{}
-    for ($i = 0; $i -lt $turned.Count; $i++) {
-        $rotations[[string]$turned[$i].id] = $written[$i]
-    }
-    $rotations
-}
-
 # A turned rack lies where the file says, by hand and not by Fleetyards: laid anew, its origin would part from its rotation (D91).
 function Test-Turned([object]$File) {
     @(@($File.racks) | Where-Object { $null -ne $_.rotation }).Count -gt 0
-}
-
-# The layout of ships/hull_a.json: two spaces, grid, position and origin on one line, LF, final newline.
-function Format-Ship([object]$Ship, [string[]]$HandFields = @(), [hashtable]$Rotations = @{}) {
-    $lines = [System.Collections.Generic.List[string]]::new()
-    $lines.Add('{')
-    $lines.Add("  ""schemaVersion"": $SchemaVersion,")
-    foreach ($field in 'id', 'name', 'manufacturer', 'fleetyardsSlug', 'source', 'notes') {
-        if ($null -ne $Ship.$field) {
-            $lines.Add("  ""$field"": $(Format-JsonString $Ship.$field),")
-        }
-    }
-    # Kept when -Force rewrites the file, also a file written anew: racks don't move the hull (D90). Never set by the import.
-    foreach ($line in $HandFields) {
-        $lines.Add($line)
-    }
-    $lines.Add("  ""totalScu"": $($Ship.totalScu),")
-    $lines.Add('  "racks": [')
-    $racks = @($Ship.racks)
-    for ($i = 0; $i -lt $racks.Count; $i++) {
-        $r = $racks[$i]
-        $fields = [System.Collections.Generic.List[string]]::new()
-        $fields.Add("""id"": $(Format-JsonString $r.id)")
-        $fields.Add("""capacityScu"": $($r.capacityScu)")
-        $fields.Add("""grid"": { ""length"": $($r.grid.length), ""width"": $($r.grid.width), ""stack"": $($r.grid.stack) }")
-        if ($null -ne $r.position) {
-            $fields.Add("""position"": { ""side"": $(Format-JsonString $r.position.side), ""level"": $(Format-JsonString $r.position.level) }")
-        }
-        $fields.Add("""origin"": [$(@($r.origin) -join ', ')]")
-        $fields.Add("""stackAxis"": $(Format-JsonString $r.stackAxis)")
-        if ($Rotations.ContainsKey([string]$r.id)) {
-            $fields.Add("""rotation"": $($Rotations[[string]$r.id])")
-        }
-        foreach ($limit in 'maxCrateSize', 'minCrateSize') {
-            if ($null -ne $r.$limit) {
-                $fields.Add("""${limit}"": $($r.$limit)")
-            }
-        }
-        $lines.Add('    {')
-        $lines.Add('      ' + ($fields -join ",`n      "))
-        $lines.Add('    }' + $(if ($i -lt $racks.Count - 1) { ',' } else { '' }))
-    }
-    $lines.Add('  ]')
-    $lines.Add('}')
-    ($lines -join "`n") + "`n"
 }
 
 # Grid data, and where Fleetyards lays the racks the boxes they take up to a shift of the whole ship (D78). A generated
@@ -612,7 +473,7 @@ try {
     [Array]::Sort($ids, [StringComparer]::Ordinal)
     $report = [System.Collections.Generic.List[string]]::new()
     $writes = [ordered]@{}
-    $counts = [ordered]@{ same = 0; new = 0; created = 0; updated = 0; different = 0; skipped = $skipped.Count }
+    $counts = [ordered]@{ same = 0; new = 0; created = 0; updated = 0; different = 0; motherlode = 0; skipped = $skipped.Count }
     foreach ($id in $ids) {
         $draft = $drafts[$id]
         $path = Join-Path $ShipsFolder "$id.json"
@@ -632,8 +493,15 @@ try {
         else {
             $text = Get-Content -LiteralPath $path -Raw -Encoding UTF8
             $file = $text | ConvertFrom-Json
-            $differences = Compare-Ship $file $draft
-            if ($id -eq $Force) {
+            $fromGame = ([string]$file.source).StartsWith($MotherlodeSource, [System.StringComparison]::Ordinal)
+            if ($fromGame -and $id -eq $Force) {
+                throw "-Force ${id}: its racks come from the game files (D92); tools/import-motherlode.ps1 writes them."
+            }
+            $differences = if ($fromGame) { $null } else { Compare-Ship $file $draft }
+            if ($fromGame) {
+                $status = 'motherlode'; $detail = 'racks from the game files (D92), not compared'
+            }
+            elseif ($id -eq $Force) {
                 $update = Update-Ship $file $draft $exportDate
                 # A file written anew from the draft has none of its racks left, so no rotation either.
                 $rotations = if ([object]::ReferenceEquals($update.Ship, $draft)) { @{} } else { Get-RackRotations $text ($text | ConvertFrom-Json) }

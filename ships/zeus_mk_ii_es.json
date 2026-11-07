@@ -4,8 +4,8 @@
   "name": "RSI Zeus Mk II ES",
   "manufacturer": "RSI",
   "fleetyardsSlug": "rsi-zeus-mk-ii-es",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [2, 2, -1.7959537506103516],
   "outlineOrigin": [2, 2, -2.564],
   "totalScu": 32,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 32,
       "grid": { "length": 4, "width": 4, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-6, -2, -2],
       "stackAxis": "+z"
     }
   ]

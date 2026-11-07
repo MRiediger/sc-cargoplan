@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 6,
+  "id": "utv",
+  "name": "GRIN UTV",
+  "manufacturer": "GRIN",
+  "fleetyardsSlug": "grin-utv",
+  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
+  "notes": "rack arrangement generated; grids from Fleetyards",
+  "holoOrigin": [0.5007812023162842, 0.5, -0.3953673362731934],
+  "outlineOrigin": [0.5, 0.5, -0.3800000000000001],
+  "totalScu": 1,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 1,
+      "grid": { "length": 1, "width": 1, "stack": 1 },
+      "origin": [0, 0, 0],
+      "stackAxis": "+z"
+    }
+  ]
+}

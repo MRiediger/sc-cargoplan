@@ -4,8 +4,8 @@
   "name": "GAMA Railen",
   "manufacturer": "GAMA",
   "fleetyardsSlug": "gama-railen",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [-18.467198181152344, 1.9688385009765625, -24.858255004882814],
   "outlineOrigin": [-18.5, 2, -24.872000000000003],
   "outlineScale": 1.5936015394792231,
@@ -15,43 +15,47 @@
       "id": "rack-0",
       "capacityScu": 128,
       "grid": { "length": 8, "width": 4, "stack": 4 },
-      "origin": [0, 0, 0],
-      "stackAxis": "+z"
+      "origin": [-15, 1, -8],
+      "stackAxis": "-z"
     },
     {
       "id": "rack-1",
       "capacityScu": 64,
       "grid": { "length": 8, "width": 4, "stack": 2 },
-      "origin": [-9, 0, 0],
-      "stackAxis": "+z"
+      "origin": [-19, 5, -2],
+      "stackAxis": "+y",
+      "rotation": [3.84, 40.22, -2.94]
     },
     {
       "id": "rack-2",
       "capacityScu": 128,
       "grid": { "length": 8, "width": 4, "stack": 4 },
-      "origin": [-18, 0, 0],
-      "stackAxis": "+z"
+      "origin": [-15, -5, -8],
+      "stackAxis": "-z"
     },
     {
       "id": "rack-3",
       "capacityScu": 128,
       "grid": { "length": 8, "width": 4, "stack": 4 },
-      "origin": [-27, 0, 0],
-      "stackAxis": "+z"
+      "origin": [-23, 0, -4],
+      "stackAxis": "-z",
+      "rotation": [0, 40, 0]
     },
     {
       "id": "rack-4",
       "capacityScu": 64,
       "grid": { "length": 8, "width": 4, "stack": 2 },
-      "origin": [-36, 0, 0],
-      "stackAxis": "+z"
+      "origin": [-19, -7, -2],
+      "stackAxis": "-y",
+      "rotation": [-3.84, 40.22, 2.84]
     },
     {
       "id": "rack-5",
       "capacityScu": 128,
       "grid": { "length": 8, "width": 4, "stack": 4 },
-      "origin": [-45, 0, 0],
-      "stackAxis": "+z"
+      "origin": [-23, -4, -4],
+      "stackAxis": "-z",
+      "rotation": [0, 40, 0]
     }
   ]
 }

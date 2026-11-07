@@ -543,13 +543,13 @@ public class ImportFleetyardsScriptTests
         run.Output.Should().MatchRegex(@"skipped\s+hull_a\s+.*never written");
     }
 
-    // The calibration (K5.2, D78): the Hull A's four Fleetyards holds, laid by the import's mapping, give the shipped
-    // hull_a.json up to a shift of the whole ship. Compared, never written.
+    // The calibration (K5.2, D78): the Hull A's four Fleetyards holds, laid by the import's mapping, give the Hull A of
+    // before the game files (the frozen copy, D92) up to a shift of the whole ship. Compared, never written.
     [Fact]
-    public async Task Compare_finds_the_shipped_hull_a_where_Fleetyards_lays_it()
+    public async Task Compare_finds_the_frozen_hull_a_where_Fleetyards_lays_it()
     {
         using var work = new Workspace("with_hull_a.json");
-        work.CopyShipped("hull_a");
+        work.CopyFrozen("hull_a");
         var before = work.Snapshot();
 
         var run = await work.Run();
@@ -563,7 +563,7 @@ public class ImportFleetyardsScriptTests
     public async Task Compare_reports_the_Hull_A_of_before_K52_as_laid_elsewhere()
     {
         using var work = new Workspace("with_hull_a.json");
-        work.CopyShipped("hull_a");
+        work.CopyFrozen("hull_a");
         work.Edit("hull_a", t => t.Replace("[0, -4, 3]", "[0, -2, 3]").Replace("[0, -4, 0]", "[0, -2, 0]"));
 
         var run = await work.Run();
@@ -580,6 +580,35 @@ public class ImportFleetyardsScriptTests
 
         run.ExitCode.Should().Be(Failure);
         run.Error.Should().Contain("hull_a");
+    }
+
+    // D92: a ship whose racks come from the game files is left to import-motherlode.ps1, even where Fleetyards differs.
+    [Fact]
+    public async Task A_ship_from_the_game_files_is_neither_compared_nor_written()
+    {
+        using var work = new Workspace(withExpected: true);
+        work.Edit("offset_ship", t => t
+            .Replace("\"source\": \"Fleetyards API (CIG ship matrix), export 2026-01-15\"", "\"source\": \"cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07\"")
+            .Replace("\"capacityScu\": 16", "\"capacityScu\": 17"));
+        var before = work.Snapshot();
+
+        var run = await work.Run();
+
+        run.ExitCode.Should().Be(0, run.Error);
+        run.Output.Should().MatchRegex(@"motherlode\s+offset_ship");
+        work.Snapshot().Should().Equal(before);
+    }
+
+    [Fact]
+    public async Task Force_refuses_a_ship_from_the_game_files()
+    {
+        using var work = new Workspace(withExpected: true);
+        work.Edit("offset_ship", t => t.Replace("\"source\": \"Fleetyards API (CIG ship matrix), export 2026-01-15\"", "\"source\": \"cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07\""));
+
+        var run = await work.Run("-Force", "offset_ship");
+
+        run.ExitCode.Should().Be(Failure);
+        run.Error.Should().Contain("D92");
     }
 
     private static string ExpectedText(string id) => File.ReadAllText(Path.Combine(Expected, id + ".json")).ReplaceLineEndings("\n");
@@ -618,6 +647,9 @@ public class ImportFleetyardsScriptTests
         /// <summary>The shipped file of this ship (ships/ next to the test assembly) into the ships folder.</summary>
         public void CopyShipped(string id) =>
             File.Copy(Path.Combine(ShipLoader.DefaultFolder, id + ".json"), Path.Combine(Ships, id + ".json"));
+
+        /// <summary>The frozen copy of this ship (FrozenShips/, D92) into the ships folder.</summary>
+        public void CopyFrozen(string id) => File.Copy(FrozenShips.PathOf(id), Path.Combine(Ships, id + ".json"));
 
         public void Edit(string id, Func<string, string> change)
         {

@@ -4,8 +4,8 @@
   "name": "ORIG 400i",
   "manufacturer": "ORIG",
   "fleetyardsSlug": "orig-400i",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
-  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [3.495897674560547, 1.4986324310302734, -3.0813034057617186],
   "outlineOrigin": [3.5, 1.5, -4],
   "totalScu": 42,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 42,
       "grid": { "length": 7, "width": 3, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-15, -1, -2],
       "stackAxis": "+z",
       "maxCrateSize": 16
     }

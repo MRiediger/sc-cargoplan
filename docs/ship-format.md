@@ -286,9 +286,51 @@ If you take grid sizes measured by others, such as a community catalogue, check 
 values into a ship file, name the source in your PR and in `source`. Only values derived from it go into the repo,
 not the catalogue's raw data (D56).
 
+## Where the data comes from
+
+The racks of almost every ship come from the game files (D92): the cargo grid catalog of
+[cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo), extracted from the game and used with its operators'
+permission. `source` names the catalog's game build and date, e.g.
+`"cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07"`. Three ships stay Fleetyards drafts for now: the 135c
+(its grids have no place in the catalog), the 600i Executive Edition and the F7C Hornet Mk II (not in the catalog).
+Hologram and outline still come from Fleetyards; session 4b lays them from the same models. Only values derived from
+the catalog go into the repo, never the catalog itself (D56).
+
+### Importing from the game files
+
+After a patch, or when Motherlode publishes a new catalog:
+
+1. **Fetch:** run `fetch-motherlode.ps1 -GameBuild <build>` of the `sc-ship-outlines` pipeline. It writes
+   `motherlode/catalog-<date>.json` with its SHA-256 and the game's models; both stay outside this repo.
+2. **Import:** `./tools/import-motherlode.ps1 -Catalog <path>/catalog-<date>.json -Previous <path>/catalog-<older date>.json`.
+   It writes every ship whose racks changed and reports each as `same`, `updated`, `created` (with `-Create`), `new`
+   (without `-Create`), `kept` (a grid without place), `handcheck` or `order`, then per rack its rounding, stack axis,
+   grid, crate limits and rotation. Exit code 0 means done, 1 something to look at, 2 an error (then nothing is written).
+3. **Look at what it didn't write:** `handcheck` means overlapping grids, a rack set or position that doesn't match the
+   file, or a total that differs from the catalog's; `order` means the catalog lists the same grids in another order
+   than the previous one, so the script can't tell which rack is which. Correct those by hand or ask on GitHub.
+4. **Commit:** run `dotnet test` (every file must load), then commit the changed files with the catalog's build and date.
+
+What the import does: game axes (x starboard, y bow, z up, metres) become ship cells as x = game y, y = −game x,
+z = game z, divided by 1.25. A grid's `size[0]` and `size[1]` lie centred on its translation, `size[2]` goes from there
+along the third column of its 3×4 matrix: that axis becomes `stackAxis`. A grid whose axes are all less than 1° off the
+ship's axes lies straight (the grid's sizes swap as needed); any other gets a `rotation` (D91). The zero point is the game
+model's origin plus a fraction of a cell per axis that rounds the racks best; the report names it and every rack's
+rounding. Rack ids, order and `position` stay, so saved plans keep their racks; `holoOrigin`, `outlineOrigin`,
+`outlineScale` and hand-written `notes` stay too. `maxCrateSize` is the smaller of the catalog's `maxContainerScu` and
+the file's value (or what the grid takes): the catalog can tighten a door, never loosen one. A `minCrateSize` the
+catalog doesn't name stays. A cargo module moves with its ship's Rack 1. A new ship from `-Create` that is a variant of
+another (Carrack w/C8X, MOLE editions) takes its base ship's hologram and outline.
+
+The catalog's form, in the field names of Motherlode's API: `{ gameBuild, updatedAt, ships: [ { id, className, name,
+manufacturer, cargoScu, containerSizes, grids: [ { name, scu, size, containerSizes, maxContainerScu, external,
+transform, reportedMaxSize? } ], modelUrl? } ] }`. A grid with `transform: null` has no place; its ship is kept.
+
 ## Importing from Fleetyards
 
-Most ship files are drafts converted from Fleetyards' ship data (D53 addendum). To bring them up to date after a
+Most ship files were drafts converted from Fleetyards' ship data (D53 addendum); the racks now come from the game
+files (above), and the Fleetyards import leaves a ship whose `source` names Motherlode alone: it is neither compared nor
+written, and `-Force` on it is an error. Session 4c retires the script. For the three Fleetyards ships, after a
 patch:
 
 1. **Fetch:** run `fetch.ps1` of the `sc-ship-outlines` pipeline. It writes `ships.json`, Fleetyards' raw export,
@@ -307,7 +349,8 @@ patch:
    racks against the hull: look at the ship afterwards. `-Create` sets none of them. A rack's `rotation` stays to the digit
    by rack id too, unless the file is written anew, and a ship with a turned rack keeps its racks where the file lays them
    (D91): neither `-Force` nor the compare goes by Fleetyards' arrangement there.
-   `hull_a.json` is never written, but it is compared: it is the check of the mapping below.
+   `hull_a.json` is never written. Its racks come from the game files now; the mapping below is checked against the
+   Hull A of before (a frozen copy in the tests).
 4. **Commit:** run `dotnet test` (every file must load), then commit the changed files with the export date.
 
 What the import does: the id is the Fleetyards slug without the manufacturer code (`crus-c2-hercules` →

@@ -4,8 +4,8 @@
   "name": "ARGO MPUV Tractor",
   "manufacturer": "ARGO",
   "fleetyardsSlug": "argo-mpuv-tractor",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
-  "notes": "rack arrangement generated; grids from Fleetyards; crate minimums from Fleetyards limits.min.capacity",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode); crate minimums from Fleetyards limits.min.capacity",
   "holoOrigin": [1.9993408203125, 1, -0.6170667648315431],
   "outlineOrigin": [2, 1, -0.6000000000000001],
   "totalScu": 16,
@@ -14,8 +14,8 @@
       "id": "rack-0",
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
-      "origin": [0, 0, 0],
-      "stackAxis": "+z",
+      "origin": [-1, -1, -1],
+      "stackAxis": "-z",
       "minCrateSize": 16
     }
   ]

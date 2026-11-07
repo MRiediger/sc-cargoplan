@@ -33,7 +33,8 @@ public class ShipOutlineLoaderTests
     {
         var outlines = ShipOutlineLoader.Load();
 
-        foreach (var ship in ShipLoader.LoadAll().Ships.Where(s => !StruckSlugs.Contains(s.FleetyardsSlug) && !NotTracedYet.Contains(s.FleetyardsSlug)))
+        // A ship without a Fleetyards slug has no outline to look up and shows the bow wedge (D62): the Cyclone (D92).
+        foreach (var ship in ShipLoader.LoadAll().Ships.Where(s => s.FleetyardsSlug is not null && !StruckSlugs.Contains(s.FleetyardsSlug) && !NotTracedYet.Contains(s.FleetyardsSlug)))
         {
             outlines.For(ship).Should().NotBeNull(because: $"{ship.Id} ({ship.FleetyardsSlug}) needs an outline or an entry in {nameof(StruckSlugs)}");
         }

@@ -4,8 +4,8 @@
   "name": "ORIG 325a",
   "manufacturer": "ORIG",
   "fleetyardsSlug": "orig-325a",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [1, 1, -1.950458335876465],
   "outlineOrigin": [1, 1, -2.004],
   "totalScu": 4,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 4,
       "grid": { "length": 2, "width": 2, "stack": 1 },
-      "origin": [0, 0, 0],
+      "origin": [-4, -1, 0],
       "stackAxis": "+z"
     }
   ]

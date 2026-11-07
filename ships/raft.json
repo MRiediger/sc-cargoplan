@@ -4,8 +4,8 @@
   "name": "ARGO RAFT",
   "manufacturer": "ARGO",
   "fleetyardsSlug": "argo-raft",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [6, 4, -3.663908004760742],
   "outlineOrigin": [6, 4, -3.8],
   "totalScu": 192,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 192,
       "grid": { "length": 12, "width": 8, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-13, -4, -2],
       "stackAxis": "-z"
     }
   ]

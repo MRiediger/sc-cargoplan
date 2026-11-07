@@ -48,7 +48,7 @@ public class ShipViewBuilderTests
     public void Free_cells_follow_the_stack_axis_upwards_too()
     {
         // The Caterpillar's rack 1 stacks up (+z): a 2 SCU crate is one layer high.
-        var ship = Core.Ships.ShipLoader.Load("caterpillar");
+        var ship = Core.Ships.ShipLoader.Load(TestPlans.TestShipsFolder, "caterpillar");
         var plan = TestPlans.Of(ship, new Placement("Riker", "rack-0", new CargoItem("Titanium", 2, CrateSize.Two)));
 
         var rack = ShipViewBuilder.Build(plan, ship, []).Racks.Single(r => r.Number == 1);
@@ -60,7 +60,7 @@ public class ShipViewBuilderTests
     [Fact]
     public void A_turned_crate_is_drawn_as_it_lies_and_its_tooltip_stays()
     {
-        var ship = Core.Ships.ShipLoader.Load("freelancer");
+        var ship = Core.Ships.ShipLoader.Load(TestPlans.TestShipsFolder, "freelancer");
         Crate turned = new("Riker", "Titanium", CrateSize.Two, "rack-0", new GridPosition(0, 0, 0), Rotated: true);
         LoadPlan plan = new(ship.Id, [turned], []);
 

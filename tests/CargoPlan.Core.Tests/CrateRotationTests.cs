@@ -16,7 +16,7 @@ namespace CargoPlan.Core.Tests;
 public class CrateRotationTests
 {
     private static readonly Ship HullA = ShipLoader.Load("hull_a");
-    private static readonly Ship Freelancer = ShipLoader.Load("freelancer");
+    private static readonly Ship Freelancer = FrozenShips.Load("freelancer");   // frozen (D92): turned 2s, not the shipped racks
     private static readonly Ship Perseus = ShipLoader.Load("perseus");
 
     /// <summary>One rack of these cells, stacking up.</summary>

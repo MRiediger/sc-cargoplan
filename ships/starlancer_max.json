@@ -4,8 +4,8 @@
   "name": "MISC Starlancer MAX",
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-starlancer-max",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [12.520382690429688, -3, -4.594248580932618],
   "outlineOrigin": [12.5, -3, -4.5920000000000005],
   "totalScu": 224,
@@ -15,7 +15,7 @@
       "capacityScu": 64,
       "grid": { "length": 16, "width": 2, "stack": 2 },
       "position": { "side": "port", "level": "lower" },
-      "origin": [9, -2, 0],
+      "origin": [-6, 1, -4],
       "stackAxis": "+z"
     },
     {
@@ -23,7 +23,7 @@
       "capacityScu": 64,
       "grid": { "length": 16, "width": 2, "stack": 2 },
       "position": { "side": "starboard", "level": "lower" },
-      "origin": [9, -6, 0],
+      "origin": [-6, -2, -4],
       "stackAxis": "+z"
     },
     {
@@ -31,7 +31,7 @@
       "capacityScu": 48,
       "grid": { "length": 8, "width": 2, "stack": 3 },
       "position": { "side": "port", "level": "lower" },
-      "origin": [0, -2, 0],
+      "origin": [-18, 3, -4],
       "stackAxis": "+z"
     },
     {
@@ -39,7 +39,7 @@
       "capacityScu": 48,
       "grid": { "length": 8, "width": 2, "stack": 3 },
       "position": { "side": "starboard", "level": "lower" },
-      "origin": [0, -6, 0],
+      "origin": [-18, -4, -4],
       "stackAxis": "+z"
     }
   ]

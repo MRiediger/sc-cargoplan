@@ -4,8 +4,8 @@
   "name": "RSI Aurora Mk II",
   "manufacturer": "RSI",
   "fleetyardsSlug": "rsi-aurora-mk-ii",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; Rack 2 (cargo_right) beside Rack 1 (cargo_left) to starboard, both at the TS module's height (Martin, in game, 2026-10-26); holoOrigin and outlineOrigin lie one cell above the middle on the racks, so the racks sit lower in the hull (Martin, holo gate, 2026-10-26)",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode); Rack 2 (cargo_right) beside Rack 1 (cargo_left) to starboard, both at the TS module's height (Martin, in game, 2026-10-26); holoOrigin and outlineOrigin lie one cell above the middle on the racks, so the racks sit lower in the hull (Martin, holo gate, 2026-10-26)",
   "holoOrigin": [0.4966327667236328, -0.003367996215820313, -2.408682250976563],
   "outlineOrigin": [0.5, 0, -2.404],
   "totalScu": 2,
@@ -14,14 +14,14 @@
       "id": "rack-0",
       "capacityScu": 1,
       "grid": { "length": 1, "width": 1, "stack": 1 },
-      "origin": [0, 0, -1],
+      "origin": [-1, 0, 0],
       "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 1,
       "grid": { "length": 1, "width": 1, "stack": 1 },
-      "origin": [0, -1, -1],
+      "origin": [-1, -1, 0],
       "stackAxis": "+z"
     }
   ]

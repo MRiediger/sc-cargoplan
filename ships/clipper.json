@@ -4,8 +4,8 @@
   "name": "DRAK Clipper",
   "manufacturer": "DRAK",
   "fleetyardsSlug": "drak-clipper",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [1.5012081146240235, 1, -4.209528732299805],
   "outlineOrigin": [1.5, 1, -4.208],
   "totalScu": 12,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 12,
       "grid": { "length": 3, "width": 2, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-4, -1, -3],
       "stackAxis": "+z",
       "maxCrateSize": 2
     }

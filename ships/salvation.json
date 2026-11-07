@@ -4,8 +4,8 @@
   "name": "RSI Salvation",
   "manufacturer": "RSI",
   "fleetyardsSlug": "rsi-salvation",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-26",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [1.49645938873291, 1.0000001907348632, -1.1320577621459962],
   "outlineOrigin": [1.5, 1, -1.1],
   "totalScu": 6,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 6,
       "grid": { "length": 3, "width": 2, "stack": 1 },
-      "origin": [0, 0, 0],
+      "origin": [-3, -1, 0],
       "stackAxis": "+z"
     }
   ]

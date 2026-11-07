@@ -4,8 +4,8 @@
   "name": "DRAK Cutlass Blue",
   "manufacturer": "DRAK",
   "fleetyardsSlug": "drak-cutlass-blue",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [-0.49825439453125, 0.5026180267333984, -3.093422317504883],
   "outlineOrigin": [-0.5, 0.5, -3.0920000000000005],
   "totalScu": 12,
@@ -14,14 +14,14 @@
       "id": "rack-0",
       "capacityScu": 6,
       "grid": { "length": 3, "width": 1, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-9, 1, -2],
       "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 6,
       "grid": { "length": 3, "width": 1, "stack": 2 },
-      "origin": [-4, 0, 0],
+      "origin": [-9, -1, -2],
       "stackAxis": "+z"
     }
   ]

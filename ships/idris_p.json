@@ -4,8 +4,8 @@
   "name": "AEGS Idris-P",
   "manufacturer": "AEGS",
   "fleetyardsSlug": "aegs-idris-p",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
-  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [-68.60355224609376, 9.005857849121094, -16.317524719238282],
   "outlineOrigin": [-68, 9, -16],
   "totalScu": 1374,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 12,
       "grid": { "length": 2, "width": 3, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [58, 1, 5],
       "stackAxis": "+z",
       "maxCrateSize": 2
     },
@@ -22,7 +22,7 @@
       "id": "rack-1",
       "capacityScu": 12,
       "grid": { "length": 2, "width": 3, "stack": 2 },
-      "origin": [-4, 0, 0],
+      "origin": [58, -3, 5],
       "stackAxis": "+z",
       "maxCrateSize": 2
     },
@@ -30,7 +30,7 @@
       "id": "rack-2",
       "capacityScu": 12,
       "grid": { "length": 2, "width": 3, "stack": 2 },
-      "origin": [-8, 0, 0],
+      "origin": [56, 1, 5],
       "stackAxis": "+z",
       "maxCrateSize": 2
     },
@@ -38,7 +38,7 @@
       "id": "rack-3",
       "capacityScu": 12,
       "grid": { "length": 2, "width": 3, "stack": 2 },
-      "origin": [-12, 0, 0],
+      "origin": [56, -3, 5],
       "stackAxis": "+z",
       "maxCrateSize": 2
     },
@@ -46,7 +46,7 @@
       "id": "rack-4",
       "capacityScu": 144,
       "grid": { "length": 4, "width": 18, "stack": 2 },
-      "origin": [-31, 0, 0],
+      "origin": [-21, -9, 5],
       "stackAxis": "+z",
       "maxCrateSize": 16
     },
@@ -54,7 +54,7 @@
       "id": "rack-5",
       "capacityScu": 140,
       "grid": { "length": 5, "width": 14, "stack": 2 },
-      "origin": [-46, 0, 0],
+      "origin": [-15, -7, 5],
       "stackAxis": "+z",
       "maxCrateSize": 16
     },
@@ -62,133 +62,133 @@
       "id": "rack-9",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-51, 0, 0],
+      "origin": [54, 12, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-10",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-56, 0, 0],
+      "origin": [54, -15, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-11",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-61, 0, 0],
+      "origin": [47, 12, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-12",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-66, 0, 0],
+      "origin": [47, -15, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-13",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-71, 0, 0],
+      "origin": [41, 12, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-14",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-76, 0, 0],
+      "origin": [41, -15, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-15",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-81, 0, 0],
+      "origin": [28, 12, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-16",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-86, 0, 0],
+      "origin": [28, -15, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-17",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-91, 0, 0],
+      "origin": [23, 12, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-18",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-96, 0, 0],
+      "origin": [23, -15, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-19",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-101, 0, 0],
+      "origin": [10, 12, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-20",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-106, 0, 0],
+      "origin": [10, -15, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-21",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-111, 0, 0],
+      "origin": [4, 12, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-22",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-116, 0, 0],
+      "origin": [4, -15, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-23",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-121, 0, 0],
+      "origin": [-20, 12, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-24",
       "capacityScu": 64,
       "grid": { "length": 4, "width": 4, "stack": 4 },
-      "origin": [-126, 0, 0],
+      "origin": [-20, -15, -6],
       "stackAxis": "+z"
     },
     {
       "id": "rack-6",
       "capacityScu": 10,
-      "grid": { "length": 5, "width": 1, "stack": 2 },
-      "origin": [-132, 0, 0],
+      "grid": { "length": 1, "width": 5, "stack": 2 },
+      "origin": [-10, -2, 5],
       "stackAxis": "+z"
     },
     {
       "id": "rack-7",
       "capacityScu": 4,
-      "grid": { "length": 2, "width": 1, "stack": 2 },
-      "origin": [-135, 0, 0],
+      "grid": { "length": 1, "width": 2, "stack": 2 },
+      "origin": [-10, 5, 5],
       "stackAxis": "+z"
     },
     {
       "id": "rack-8",
       "capacityScu": 4,
-      "grid": { "length": 2, "width": 1, "stack": 2 },
-      "origin": [-138, 0, 0],
+      "grid": { "length": 1, "width": 2, "stack": 2 },
+      "origin": [-10, -7, 5],
       "stackAxis": "+z"
     }
   ]

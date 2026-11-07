@@ -72,7 +72,9 @@ sc-cargoplan/
 │   └── publish.ps1                # Release-Ordner + ZIP nach out/publish (D48, D49), prüft ships/ und outlines/ im ZIP (D56, D55)
 ├── ships/                         # Schiffsdateien <id>.json, neben die Exe kopiert (D56); hull_a ist Pflicht
 ├── outlines/                      # ship-outlines.json + NOTICE.md (nicht MIT), neben die Exe kopiert, Zuordnung per fleetyardsSlug (D55, D62)
-├── tools/import-fleetyards.ps1    # Fleetyards-Export → ships/ (Abgleich, -Create, -Force <id>), Export bleibt außerhalb (T7.1b)
+├── tools/import-motherlode.ps1    # Grid-Katalog der Spieldateien (Motherlode) → Racks in ships/, Katalog bleibt außerhalb (D92)
+├── tools/import-fleetyards.ps1    # Fleetyards-Export → ships/ (Abgleich, -Create, -Force <id>); lässt Motherlode-Schiffe in Ruhe, geht in 4c (T7.1b, D92)
+├── tools/ShipJson.ps1             # Schiffsdatei-Format für beide Importskripte (dot-sourced)
 ├── src/
 │   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader (liest ships/ und outlines/ neben der Exe), Holo-Leser SCH2 (D63)
 │   ├── CargoPlan.Import/          # net10.0 – ContractTracker SQLite-Reader
@@ -101,13 +103,14 @@ dotnet test tests/CargoPlan.Core.Tests -p:RunSettingsFilePath= --filter Category
 dotnet test tests/CargoPlan.Core.Tests -p:RunSettingsFilePath= --filter Category=Slow         # große Pläne (Stresslast, Freelancer; < 1 s seit D64), nicht im Standardlauf, CI eigener Schritt
 dotnet test tests/CargoPlan.Core.Tests -c Release -p:RunSettingsFilePath= --filter Category=Timing --logger "console;verbosity=detailed"   # Kosten je Verschiebe-Stufe als Tabelle (D65), nur von Hand
 dotnet test tests/CargoPlan.App.Tests -c Release -p:RunSettingsFilePath= --filter Category=Timing --logger "console;verbosity=detailed"    # Speicher je Schnappschuss, Undo/Redo-Dauer (D74), Renderzeit Schraffur (D29), Hit-Test auf gedrehten Racks (D91), nur von Hand
-dotnet test tests/CargoPlan.App.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~ShipPictureTests     # jedes Schiff pixelweise gegen eine Baseline, auch mit Ladung (~3 min, 1186 Bilder, D90, D91), nur von Hand; Env: CARGOPLAN_PICTURES_OUT, CARGOPLAN_HOLO_FOLDER, optional CARGOPLAN_PICTURES_BASELINE, CARGOPLAN_PICTURES_EXPECTED
+dotnet test tests/CargoPlan.App.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~ShipPictureTests     # jedes Schiff pixelweise gegen eine Baseline, auch mit Ladung (~3,5 min, 1381 Bilder inkl. Draufsicht für den Kontaktabzug, D90, D91, D92), nur von Hand; Env: CARGOPLAN_PICTURES_OUT, CARGOPLAN_HOLO_FOLDER, optional CARGOPLAN_PICTURES_BASELINE, CARGOPLAN_PICTURES_EXPECTED
 dotnet test tests/CargoPlan.App.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~ShipAnchorValueTests # holoOrigin & Co. in die Schiffsdateien schreiben (D90), nur von Hand; Env: CARGOPLAN_SHIPS_WRITE, CARGOPLAN_HOLO_FOLDER, CARGOPLAN_HOLO_PREVIOUS bei neuer Holo-Version
 dotnet run --project src/CargoPlan.App         # Overlay starten
 dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json
 dotnet run --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/example_missions.json
 dotnet run --project src/CargoPlan.Cli -- contracts <copy-of-contracts.db> [--since <id>] [--raw]   # nur gegen eine Kopie (D38)
-./tools/import-fleetyards.ps1 -Source <ships.json> [-Create] [-Force <id>]   # Schiffe gegen Fleetyards abgleichen, Exit 1 = Abweichung (T7.1b)
+./tools/import-motherlode.ps1 -Catalog <catalog-<datum>.json> [-Previous <älterer Katalog>] [-Create]   # Racks aus den Spieldateien, Exit 1 = ansehen (Handprüfung, Reihenfolge, neues Schiff) (D92)
+./tools/import-fleetyards.ps1 -Source <ships.json> [-Create] [-Force <id>]   # nur noch 135c, 600i EE, F7C Mk II; Exit 1 = Abweichung (T7.1b)
 ./build/publish.ps1 [-Version 0.1.0]           # App + Cli nach out/publish/SC-CargoPlan + ZIP + SHA256 (D48, D49), Reihenfolge im Skript nicht ändern
 dotnet run --project src/CargoPlan.Cli -- --version
 ```
@@ -125,6 +128,7 @@ dotnet run --project src/CargoPlan.Cli -- --version
 | A7 | Plan-Mode-Stopp | Task berührt ≥ 3 Dateien ⇒ erst Plan vorlegen, dann auf wörtliche **„Freigabe“** warten. Ein Neustart des Plan Mode hebt eine ausstehende Freigabe nicht auf. |
 | A8 | Stille Annahmen | Fragen statt raten. |
 | A9 | **Renderer-Flicken** | Kommt ein neues Darstellungselement, wird die Renderarchitektur neu entschieden – nicht das Element in die bestehende eingepasst. Zwei Renderer für ein Bild sind ein Provisorium, kein Entwurf (Anlass: Holo-Kulisse hinter dem 2D-Painter, D83). |
+| A10 | **Fixture-Kopplung** | Mechanik-Tests (Treffertest, Drag, Szene, Kamera, Planer, Importskripte) laden Schiffe aus dem Test-Ordner (`tests/CargoPlan.Core.Tests/FrozenShips`, `TestPlans.HullA()`, `FrozenShips.Load`), **nie aus `ships/`**. Datentests prüfen `ships/` selbst. Sonst bricht der nächste Datenimport UI-Tests, ohne dass die App einen Fehler hat (Anlass: D92, 70 Tests). |
 
 ## NIEMALS
 

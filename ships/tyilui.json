@@ -4,8 +4,8 @@
   "name": "GAMA Tyilui",
   "manufacturer": "GAMA",
   "fleetyardsSlug": "gama-tyilui",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [-0.48851699829101564, 2.0344444274902345, -25.85731201171875],
   "outlineOrigin": [-0.5, 2, -25.872000000000003],
   "totalScu": 96,
@@ -14,14 +14,14 @@
       "id": "rack-0",
       "capacityScu": 48,
       "grid": { "length": 6, "width": 4, "stack": 2 },
-      "origin": [0, 0, 0],
-      "stackAxis": "+z"
+      "origin": [-27, -2, 2],
+      "stackAxis": "-z"
     },
     {
       "id": "rack-1",
       "capacityScu": 48,
       "grid": { "length": 6, "width": 4, "stack": 2 },
-      "origin": [-7, 0, 0],
+      "origin": [-27, -2, -5],
       "stackAxis": "+z"
     }
   ]
