@@ -3983,84 +3983,84 @@ Platzierungszahlen bitgleich auf 98 von 98. Gegenprobe `main` gegen `main`: 1186
 - **Daten-Session misst mehr als ±0,5 Zellen:** optionales Rack-Feld `shift` `[x, y, z]` in Zellen mit Kommastellen, nur in `RackTransform` nach der Drehung angewandt, Core bleibt ganzzahlig (Muster `holoOrigin`). Ohne Schema-Sprung möglich, wie die F7-Felder.
 - **Ein Schiff kippt durch seine Rotation über die 2:1-Grenze** (`IsLong`): Kamera und Label-Stil prüfen.
 
-### [ ] Session 4a â€“ Racks aus den Spieldateien (07.11.2026, wartet auf Abnahme)
+### [ ] Session 4a – Racks aus den Spieldateien (07.11.2026, wartet auf Abnahme)
 
-**Branch:** `feat/ship-data-game`. **Ziel (Martin):** SCU und Rack-Anordnung stimmen fÃ¼r alle Schiffe (Ryekals Kritik: Fleetyards hat Lagen fÃ¼r 7 Schiffe, 88 hatten generierte Reihen). Quelle ist der Cargo-Katalog von cryon.rocks (Motherlode), aus den Spieldateien, mit Erlaubnis der Betreiber. Session 4 ist dreigeteilt: 4a Racks (hier), 4b HÃ¼lle und Umriss, 4c Stilllegung Fleetyards (D92).
+**Branch:** `feat/ship-data-game`. **Ziel (Martin):** SCU und Rack-Anordnung stimmen für alle Schiffe (Ryekals Kritik: Fleetyards hat Lagen für 7 Schiffe, 88 hatten generierte Reihen). Quelle ist der Cargo-Katalog von cryon.rocks (Motherlode), aus den Spieldateien, mit Erlaubnis der Betreiber. Session 4 ist dreigeteilt: 4a Racks (hier), 4b Hülle und Umriss, 4c Stilllegung Fleetyards (D92).
 
-**PrÃ¤zisierungen in der Planphase, ratifiziert durch Freigabe:**
+**Präzisierungen in der Planphase, ratifiziert durch Freigabe:**
 - Der Outline-Ordner ist `Documents\Coding\Dotnet\sc-ship-outlines`, nicht `~/source`.
-- `transform` ist eine 3Ã—4-Matrix zeilenweise `[R|t]`, nicht 3Ã—3 plus Translation. Die BodenflÃ¤chen-Annahme ist im Viewer-Code belegt (`CargoScene`).
-- **Hull A:** Es gilt die Spielgeometrie, nicht â€žexakt die heutigen Origins bis auf Verschiebungâ€œ.
-  - Gleich bleiben Seite, Ebene, Reihenfolge, `stackAxis`, MaÃŸe und LÃ¤ngslage.
-  - Der Plattenabstand ist 5 statt 3 Zellen. Das Modell trÃ¤gt `cargoPose`, der Fleetyards-Wert war nie gemessen.
-- **`rotation`:** 7 Bestandsschiffe statt 5, Schwelle 1Â°.
-- **TÃ¼rlimit:** `maxCrateSize = min(maxContainerScu, Handwert)`.
+- `transform` ist eine 3×4-Matrix zeilenweise `[R|t]`, nicht 3×3 plus Translation. Die Bodenflächen-Annahme ist im Viewer-Code belegt (`CargoScene`).
+- **Hull A:** Es gilt die Spielgeometrie, nicht „exakt die heutigen Origins bis auf Verschiebung“.
+  - Gleich bleiben Seite, Ebene, Reihenfolge, `stackAxis`, Maße und Längslage.
+  - Der Plattenabstand ist 5 statt 3 Zellen. Das Modell trägt `cargoPose`, der Fleetyards-Wert war nie gemessen.
+- **`rotation`:** 7 Bestandsschiffe statt 5, Schwelle 1°.
+- **Türlimit:** `maxCrateSize = min(maxContainerScu, Handwert)`.
   - `reportedMaxSize` wird nicht gelesen, die API liefert es nicht.
   - `minCrateSize` bleibt, wenn der Katalog keine nennt.
-- **Holo und Umriss** nicht in 4a, die Anker bleiben auf den F7-Werten. Box-Regel und Korrelationsskript entfallen; 4b baut die HÃ¼lle aus den Motherlode-Modellen.
-- **Nullpunkt:** Modellursprung plus Bruchteil s pro Schiff und Achse (grÃ¶ÃŸte Rundung minimal). 4b setzt `holoOrigin = s`. `ts_module` wandert mit Rack 1 der Aurora Mk II.
+- **Holo und Umriss** nicht in 4a, die Anker bleiben auf den F7-Werten. Box-Regel und Korrelationsskript entfallen; 4b baut die Hülle aus den Motherlode-Modellen.
+- **Nullpunkt:** Modellursprung plus Bruchteil s pro Schiff und Achse (größte Rundung minimal). 4b setzt `holoOrigin = s`. `ts_module` wandert mit Rack 1 der Aurora Mk II.
 - **Schiffsliste:**
   - Die 8 neuen Schiffe kommen dazu. Die Varianten tragen `fleetyardsSlug` und Anker des Basisschiffs, die Cyclone bekommt den Keil.
   - 135c, 600i EE und F7C Mk II bleiben Fleetyards.
 - **Eingabeformat:** die Feldnamen der Motherlode-API.
   - `fetch-motherlode.ps1 -GameBuild` liefert den Build, `className` kommt aus dem Modell-Dateinamen.
   - Neuer Parameter `-Previous`: gleiche Grids in anderer Reihenfolge werden nicht geschrieben.
-- **K1:** Ãœberlappung fÃ¼hrt zur HandprÃ¼fung. **E1:** Tabelle der Stapelachsen. **E2:** Material fÃ¼r die Release-Notes.
-- **Exit-Codes:** 0 nach dem Schreiben, wie `import-fleetyards.ps1`; 1 nur bei â€žansehenâ€œ.
+- **K1:** Überlappung führt zur Handprüfung. **E1:** Tabelle der Stapelachsen. **E2:** Material für die Release-Notes.
+- **Exit-Codes:** 0 nach dem Schreiben, wie `import-fleetyards.ps1`; 1 nur bei „ansehen“.
 - **Tests:** Mechanik-Tests laufen auf eingefrorenen Kopien (`tests/CargoPlan.Core.Tests/FrozenShips`), Datentests auf `ships/`.
-  - 70 Tests hingen an den ausgelieferten Schiffen; Testcode stand nicht im Umfang, Martin hat die Kopien gewÃ¤hlt.
+  - 70 Tests hingen an den ausgelieferten Schiffen; Testcode stand nicht im Umfang, Martin hat die Kopien gewählt.
   - Lehre als A10 in CLAUDE.md.
 - **Fixtures:** Die Konverter-Tests nutzen einen synthetischen Katalog. Nichts aus dem echten Katalog liegt im Repo.
-- **`ShipPictureTests`:** neue Draufsicht (â€žaboveâ€œ, 85Â°) fÃ¼r den Kontaktabzug; Schiffe ohne Holo werden nur ohne Holo-Looks gerendert.
+- **`ShipPictureTests`:** neue Draufsicht („above“, 85°) für den Kontaktabzug; Schiffe ohne Holo werden nur ohne Holo-Looks gerendert.
 - **Hull-A-Notiz:** einmal von Hand angepasst.
 - **Nexus-Texte** bleiben beim 0.2.0-Upload (T9.3); der Motherlode-Credit kommt mit dem 0.3.0-Upload.
 
-**Befund** (Katalog 2026-11-07, Build `4.10.2-LIVE.12913470`, SHA-256 `9f902a16â€¦`, im Outline-Ordner unter `motherlode/`):
-- **Katalog:** 103 EintrÃ¤ge, davon 6 Verweise:
-  - MOLE und Mole Talus â†’ Mole Carbon
-  - Carrack w/C8X â†’ Carrack
-  - Carrack Expedition w/C8X â†’ Carrack Expedition
-  - Mustang Alpha Vindicator â†’ Mustang Alpha
-  - Valkyrie Liberator â†’ Valkyrie
+**Befund** (Katalog 2026-11-07, Build `4.10.2-LIVE.12913470`, SHA-256 `9f902a16…`, im Outline-Ordner unter `motherlode/`):
+- **Katalog:** 103 Einträge, davon 6 Verweise:
+  - MOLE und Mole Talus → Mole Carbon
+  - Carrack w/C8X → Carrack
+  - Carrack Expedition w/C8X → Carrack Expedition
+  - Mustang Alpha Vindicator → Mustang Alpha
+  - Valkyrie Liberator → Valkyrie
 - **Modelle:** 96 `.glb` (47,5 MB), nur vermessen, nie ausgeliefert.
 - **Abgleich mit `ships/`**, 95 gemeinsame Schiffe:
 
-| gleich (SCU, Grid-MaÃŸe) | nur Lage anders | MaÃŸe oder SCU anders |
+| gleich (SCU, Grid-Maße) | nur Lage anders | Maße oder SCU anders |
 |---|---|---|
-| 95 | 95 (alle, vorher generierte Reihen oder Fleetyards-Offsets) | 0 â€“ die Spielstand-Frage entfÃ¤llt fÃ¼r die MaÃŸe |
+| 95 | 95 (alle, vorher generierte Reihen oder Fleetyards-Offsets) | 0 – die Spielstand-Frage entfällt für die Maße |
 
 - **Abgleich mit Fleetyards:**
   - Nur im Katalog: Mole Carbon/Talus, Carrack Expedition, Carrack Expedition w/C8X, Carrack w/C8X, Cyclone, Mustang Alpha Vindicator, Valkyrie Liberator. Keines hat ein eigenes Holo.
   - Nur in `ships/`: 600i Executive Edition, F7C Hornet Mk II.
-- **FÃ¼r 4b:** Die Box der Motherlode-Modelle passt bei 32 von 94 Schiffen auf â‰¤ 0,5 m zum Pipeline-Mesh (â‰¤ 0,25 m: 20, â‰¤ 1 m: 51, â‰¤ 2 m: 68).
-  - AusreiÃŸer: Corsair (B âˆ’31 m), Hull B (L +25 m, `cargoPose`), Reliant (FlÃ¼gel), Aurora Mk II (B âˆ’16,9 m), Hull C (B/H âˆ’8,7 m), Hull A (L +6 m, `cargoPose`).
-  - Fahrwerk: H oft 1,5â€“4 m anders.
+- **Für 4b:** Die Box der Motherlode-Modelle passt bei 32 von 94 Schiffen auf ≤ 0,5 m zum Pipeline-Mesh (≤ 0,25 m: 20, ≤ 1 m: 51, ≤ 2 m: 68).
+  - Ausreißer: Corsair (B −31 m), Hull B (L +25 m, `cargoPose`), Reliant (Flügel), Aurora Mk II (B −16,9 m), Hull C (B/H −8,7 m), Hull A (L +6 m, `cargoPose`).
+  - Fahrwerk: H oft 1,5–4 m anders.
 
 **Hull-A-Kalibrierung** (echter Katalog, s = [0,188, 0,505, 0,136]):
 
-| Rack | Lage | `origin` vorher â†’ nachher | `stackAxis` | Rundung je Achse (Zellen) | Summe |
+| Rack | Lage | `origin` vorher → nachher | `stackAxis` | Rundung je Achse (Zellen) | Summe |
 |---|---|---|---|---|---|
-| rack-0 | Backbord oben | [0, 1, 3] â†’ [âˆ’9, 3, 1] | +y | [âˆ’0,01, âˆ’0,15, âˆ’0,13] | 0,29 (0,36 m) |
-| rack-1 | Backbord unten | [0, 1, 0] â†’ [âˆ’9, 3, âˆ’2] | +y | [âˆ’0,01, âˆ’0,15, 0,14] | 0,29 (0,37 m) |
-| rack-2 | Steuerbord oben | [0, âˆ’4, 3] â†’ [âˆ’9, âˆ’4, 1] | âˆ’y | [0,01, 0,15, âˆ’0,14] | 0,29 (0,37 m) |
-| rack-3 | Steuerbord unten | [0, âˆ’4, 0] â†’ [âˆ’9, âˆ’4, âˆ’2] | âˆ’y | [0,00, 0,15, 0,13] | 0,28 (0,36 m) |
+| rack-0 | Backbord oben | [0, 1, 3] → [−9, 3, 1] | +y | [−0,01, −0,15, −0,13] | 0,29 (0,36 m) |
+| rack-1 | Backbord unten | [0, 1, 0] → [−9, 3, −2] | +y | [−0,01, −0,15, 0,14] | 0,29 (0,37 m) |
+| rack-2 | Steuerbord oben | [0, −4, 3] → [−9, −4, 1] | −y | [0,01, 0,15, −0,14] | 0,29 (0,37 m) |
+| rack-3 | Steuerbord unten | [0, −4, 0] → [−9, −4, −2] | −y | [0,00, 0,15, 0,13] | 0,28 (0,36 m) |
 
 - Plattenabstand: im Spiel 5,88 m = 4,71 Zellen, gerundet 5 (Datei vorher 3, Fleetyards).
-- HÃ¶henabstand: 0,71 Zellen, gerundet 1 wie vorher.
-- Grid 4Ã—2Ã—2, LÃ¤ngsachse und Reihenfolge gleich.
+- Höhenabstand: 0,71 Zellen, gerundet 1 wie vorher.
+- Grid 4×2×2, Längsachse und Reihenfolge gleich.
 
 **Konverter-Lauf:**
 - 94 Schiffe aktualisiert, 8 neu.
 - 135c bleibt (Grids ohne `transform`). 600i EE und F7C Mk II bleiben (nicht im Katalog).
-- 0 HandprÃ¼fungen (K1-Tabelle leer, auch der Reclaimer Ã¼berlappt gerundet nicht), 0 Reihenfolge-Warnungen.
-- RAFT ergibt âˆ’z. âœ“
+- 0 Handprüfungen (K1-Tabelle leer, auch der Reclaimer überlappt gerundet nicht), 0 Reihenfolge-Warnungen.
+- RAFT ergibt −z. ✓
 - Zweiter Lauf: 102 `same`, alle Dateien byte-gleich.
-- Gesamt-SCU = Katalog `cargoScu` bei allen 102 Schiffen; der Konverter prÃ¼ft das vor dem Schreiben.
-- **Kisten:** nur die Corsair Ã¤ndert sich (`maxCrateSize` 32 â†’ 24).
+- Gesamt-SCU = Katalog `cargoScu` bei allen 102 Schiffen; der Konverter prüft das vor dem Schreiben.
+- **Kisten:** nur die Corsair ändert sich (`maxCrateSize` 32 → 24).
 
-**E1 â€“ Stapelachse aus dem Spiel, 16 Schiffe** (nicht 17: meine ZÃ¤hlung im Befund war falsch, Hull A, Hull B und RAFT stimmten schon).
-- Herleitung: Spalte 2 von R, abgebildet mit (y, âˆ’x, z), Vorzeichen der grÃ¶ÃŸten Komponente.
-- Re-plan ausdrÃ¼cklich empfehlen (E2).
+**E1 – Stapelachse aus dem Spiel, 16 Schiffe** (nicht 17: meine Zählung im Befund war falsch, Hull A, Hull B und RAFT stimmten schon).
+- Herleitung: Spalte 2 von R, abgebildet mit (y, −x, z), Vorzeichen der größten Komponente.
+- Re-plan ausdrücklich empfehlen (E2).
 
 | Schiff | Rack: alt → neu | Auffällig |
 |---|---|---|
@@ -4297,31 +4297,31 @@ one bleibt bei einigen kleinen Schiffen gleich, weil die Kamera auf die Racks pa
 **Kontaktabzug** (Martins Sichtprüfung): Documents\Coding\Dotnet\sc-ship-outlines\preview\motherlode\_sheet1.png … _sheet9.png, 106 Einträge, je Ansicht Standard (schräg) und von oben (85°), Holo schattiert mit Racks (motherlode_sheet.py). In 4a liegen die Hüllen noch mit F7-Ankern, Fehllagen der Hülle sind also erwartet (Hull A: Racks hinter dem Rumpf, Ladezustand der Spindel).
 
 **Abnahme:**
-- [x] Holen: `fetch-motherlode.ps1` schreibt Katalog und SHA-256 stabil (zwei LÃ¤ufe, gleicher Hash), 6 Verweise aufgelÃ¶st, 96 Modelle mit Hashliste
-- [x] Konverter-Tests erst rot (17), dann grÃ¼n; Fleetyards-Tests nach dem Umzug nach `ShipJson.ps1` unverÃ¤ndert grÃ¼n, dazu 2 Tests fÃ¼r den Guard
-- [x] Hull A: Seite, Ebene, Reihenfolge, `stackAxis` Â±y, MaÃŸe, Plattenabstand 5 (Test und echter Lauf)
-- [x] `rotation` genau bei den 7 Bestandsschiffen (dazu Vindicator und Cyclone neu), RAFT âˆ’z
-- [x] Gesamt-SCU = Katalog bei allen Schiffen, keine Ãœberlappung, zweiter Lauf Ã¤ndert nichts
-- [x] `dotnet build` ohne Warnung, `dotnet test` grÃ¼n (Import 141, App 1621, Core 1811), `Category=Slow` grÃ¼n
-- [ ] Martin: Kontaktabzug â€“ kein Rack auÃŸerhalb der HÃ¼lle *im Rahmen des Erwartbaren* (die Holos liegen in 4a noch mit F7-Ankern, Fehllagen der HÃ¼lle sind erwartet), keine offensichtlich falsche Seite; auffÃ¤llige Schiffe als Liste
-- [ ] Martin: Hull B, Railen, 890 Jump als Einzelbilder neben die Motherlode-Screenshots
-- [ ] Martin am Aufzug: Hull A, RAFT, Aurora Mk II + TS module â€“ Lage und Stapelrichtung wie im Spiel
+- [x] Holen: `fetch-motherlode.ps1` schreibt Katalog und SHA-256 stabil (zwei Läufe, gleicher Hash), 6 Verweise aufgelöst, 96 Modelle mit Hashliste
+- [x] Konverter-Tests erst rot (17), dann grün; Fleetyards-Tests nach dem Umzug nach `ShipJson.ps1` unverändert grün, dazu 2 Tests für den Guard
+- [x] Hull A: Seite, Ebene, Reihenfolge, `stackAxis` ±y, Maße, Plattenabstand 5 (Test und echter Lauf)
+- [x] `rotation` genau bei den 7 Bestandsschiffen (dazu Vindicator und Cyclone neu), RAFT −z
+- [x] Gesamt-SCU = Katalog bei allen Schiffen, keine Überlappung, zweiter Lauf ändert nichts
+- [x] `dotnet build` ohne Warnung, `dotnet test` grün (Import 141, App 1621, Core 1811), `Category=Slow` grün
+- [x] Martin (07.11.): Kontaktabzug passt – kein Rack außerhalb der Hülle *im Rahmen des Erwartbaren* (die Holos liegen in 4a noch mit F7-Ankern, Fehllagen der Hülle sind erwartet), keine offensichtlich falsche Seite; keine auffälligen Schiffe gemeldet
+- [x] Martin (07.11.): Hull B, Railen, 890 Jump – alle Racks zueinander plausibel
+- [ ] Martin am Aufzug: Hull A, RAFT, Aurora Mk II + TS module – Lage und Stapelrichtung wie im Spiel
 
 **Offen:**
-- **4b HÃ¼lle und Umriss:** Plan nach Martins Vorgabe (Pipeline liest Motherlode-`.glb`, ohne Neu-Zentrierung und Skalierung, holo-v2 mit eigener NOTICE). Dort gilt `holoOrigin` = s aus der Tabelle oben, nicht 0. Der Plan nennt vorab: glTF-Format, Dreieckszahlen an Hull A, Hull C und Reclaimer, Asset-GrÃ¶ÃŸe, Aufwand.
+- **4b Hülle und Umriss:** Plan nach Martins Vorgabe (Pipeline liest Motherlode-`.glb`, ohne Neu-Zentrierung und Skalierung, holo-v2 mit eigener NOTICE). Dort gilt `holoOrigin` = s aus der Tabelle oben, nicht 0. Der Plan nennt vorab: glTF-Format, Dreieckszahlen an Hull A, Hull C und Reclaimer, Asset-Größe, Aufwand.
 - **4c Stilllegung:** wie vorgegeben. Der Konverter ist schon quellenneutral, die Katalogarchivierung mit Datum und SHA-256 macht `fetch-motherlode.ps1` bereits.
-- **A2-RÃ¼ck-Sweep (eigener Mini-Task):** Die Ã¼brigen Tests, die noch aus `ships/` laden, stellen auf `FrozenShips` um. Etwa 60 Stellen in App.Tests (`ShipLoader.Load("hull_a")` u. a.) und die Planer-Tests in Core.Tests; heute grÃ¼n, weil sie an keiner Koordinate hÃ¤ngen.
-- **Spielstand:** Der Katalog nennt `4.10.2-LIVE.12913470`; spÃ¤tere Kataloge per `-GameBuild`, bis die API ihn liefert.
-- **Rundung:** 171 Racks in 27 Schiffen Ã¼ber 0,25 Zellen (Summe), pro Achse hÃ¶chstens 0,40.
-  - Der `shift`-AuslÃ¶ser aus D91 (Â±0,5) greift damit nicht.
-  - Neuer AuslÃ¶ser: Ein Spieler meldet, dass ein Rack sichtbar daneben liegt. Dann kommt `shift` (Feld ist entschieden).
+- **A2-Rück-Sweep (eigener Mini-Task):** Die übrigen Tests, die noch aus `ships/` laden, stellen auf `FrozenShips` um. Etwa 60 Stellen in App.Tests (`ShipLoader.Load("hull_a")` u. a.) und die Planer-Tests in Core.Tests; heute grün, weil sie an keiner Koordinate hängen.
+- **Spielstand:** Der Katalog nennt `4.10.2-LIVE.12913470`; spätere Kataloge per `-GameBuild`, bis die API ihn liefert. Katalog und Modell-Hashes liegen im privaten Outline-Repo (Martin, 07.11.: committen), `motherlode/` byte-genau (`-text`), damit der SHA-256 auf jedem Checkout gilt.
+- **Rundung:** 171 Racks in 27 Schiffen über 0,25 Zellen (Summe), pro Achse höchstens 0,40.
+  - Der `shift`-Auslöser aus D91 (±0,5) greift damit nicht.
+  - Neuer Auslöser: Ein Spieler meldet, dass ein Rack sichtbar daneben liegt. Dann kommt `shift` (Feld ist entschieden).
 - **Hull-Pose:** Die Grids von Hull A, B und C liegen im Ladezustand der Spindel, die Fleetyards-Holos im Flugzustand. Das passt erst in 4b.
-- **Nexus-Texte beim 0.3.0-Upload:** Credit â€žcargo grid data from cryon.rocks (Motherlode)â€œ, 105 Schiffe, der Satz â€žShip data are draftsâ€œ neu (`docs/nexus/description.bbcode` Zeilen 18, 52, 65, 68).
-- **RÃ¼ckmeldung an Sciirof (K1):** Die Tabelle â€žHandprÃ¼fung nÃ¶tigâ€œ ist leer, nach dem Runden Ã¼berlappt kein Schiff, auch der Reclaimer nicht.
+- **Nexus-Texte beim 0.3.0-Upload:** Credit „cargo grid data from cryon.rocks (Motherlode)“, 105 Schiffe, der Satz „Ship data are drafts“ neu (`docs/nexus/description.bbcode` Zeilen 18, 52, 65, 68).
+- **Rückmeldung an Sciirof (K1):** Die Tabelle „Handprüfung nötig“ ist leer, nach dem Runden überlappt kein Schiff, auch der Reclaimer nicht.
 
-**Material fÃ¼r Release-Notes v0.3.0 und die Antwort an Ryekal:**
+**Material für Release-Notes v0.3.0 und die Antwort an Ryekal:**
 - Rack layouts for all ships now come from the game files (cargo grid data from cryon.rocks (Motherlode)).
-- Rack positions changed for most ships â€“ your saved plan still loads; re-plan once if crate placement looks different. Re-plan for sure on: Aurora Mk I (all six), Fortune, Golem OX, Hull C, M80, MOTH, MPUV Tractor, Prowler Utility, Railen, Syulen, Tyilui â€“ their racks now stack the way the game does.
+- Rack positions changed for most ships – your saved plan still loads; re-plan once if crate placement looks different. Re-plan for sure on: Aurora Mk I (all six), Fortune, Golem OX, Hull C, M80, MOTH, MPUV Tractor, Prowler Utility, Railen, Syulen, Tyilui – their racks now stack the way the game does.
 - New ships: Carrack Expedition, Carrack (Expedition) w/C8X, MOLE Carbon/Talus Edition, Mustang Alpha Vindicator, Valkyrie Liberator Edition, Cyclone.
 - Turned racks where the game turns them: Hull B, Railen, Prowler Utility, 890 Jump hangar, Syulen, M80, Mustang Alpha.
 
