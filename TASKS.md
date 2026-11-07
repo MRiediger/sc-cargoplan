@@ -3830,7 +3830,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 2. [x] F7 Holo und Racks schiffsfest verankern – `feat/f7-ship-anchor` (abgenommen 06.11.)
 3. [x] F3 freier Drehwinkel pro Rack, Schiffs-JSON 5→6 – `feat/f3-rack-rotation` (abgenommen 06.11.). **Vorgabe (Martin, 06.11.):** volle 3D-Rotation pro Rack, nicht Yaw. Eine Datenquelle mit Grid-Transformen im Schiffsraum existiert (Motherlode, 97 Schiffe, 3×4-Matrix in Metern, nur 5 Schiffe mit Drehung, Railen gekippt).
 4. Schiffsdaten aus den Spieldateien (Motherlode, D92), drei Merges. **Ziel (Martin):** für alle Schiffe stimmen SCU und Rack-Anordnung.
-   - [ ] 4a Racks – `feat/ship-data-game` (wartet auf Abnahme)
+   - [x] 4a Racks – `feat/ship-data-game` (abgenommen 07.11.)
    - [ ] 4b Hülle und Umriss aus denselben Modellen – eigener Plan zur Freigabe
    - [ ] 4c Stilllegung Fleetyards – eigener Plan zur Freigabe
 5. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
@@ -3983,7 +3983,7 @@ Platzierungszahlen bitgleich auf 98 von 98. Gegenprobe `main` gegen `main`: 1186
 - **Daten-Session misst mehr als ±0,5 Zellen:** optionales Rack-Feld `shift` `[x, y, z]` in Zellen mit Kommastellen, nur in `RackTransform` nach der Drehung angewandt, Core bleibt ganzzahlig (Muster `holoOrigin`). Ohne Schema-Sprung möglich, wie die F7-Felder.
 - **Ein Schiff kippt durch seine Rotation über die 2:1-Grenze** (`IsLong`): Kamera und Label-Stil prüfen.
 
-### [ ] Session 4a – Racks aus den Spieldateien (07.11.2026, wartet auf Abnahme)
+### [x] Session 4a – Racks aus den Spieldateien (07.11.2026, abgenommen 07.11.)
 
 **Branch:** `feat/ship-data-game`. **Ziel (Martin):** SCU und Rack-Anordnung stimmen für alle Schiffe (Ryekals Kritik: Fleetyards hat Lagen für 7 Schiffe, 88 hatten generierte Reihen). Quelle ist der Cargo-Katalog von cryon.rocks (Motherlode), aus den Spieldateien, mit Erlaubnis der Betreiber. Session 4 ist dreigeteilt: 4a Racks (hier), 4b Hülle und Umriss, 4c Stilllegung Fleetyards (D92).
 
@@ -4305,7 +4305,7 @@ one bleibt bei einigen kleinen Schiffen gleich, weil die Kamera auf die Racks pa
 - [x] `dotnet build` ohne Warnung, `dotnet test` grün (Import 141, App 1621, Core 1811), `Category=Slow` grün
 - [x] Martin (07.11.): Kontaktabzug passt – kein Rack außerhalb der Hülle *im Rahmen des Erwartbaren* (die Holos liegen in 4a noch mit F7-Ankern, Fehllagen der Hülle sind erwartet), keine offensichtlich falsche Seite; keine auffälligen Schiffe gemeldet
 - [x] Martin (07.11.): Hull B, Railen, 890 Jump – alle Racks zueinander plausibel
-- [ ] Martin am Aufzug: Hull A, RAFT, Aurora Mk II + TS module – Lage und Stapelrichtung wie im Spiel
+- [x] Martin am Aufzug (07.11.): Hull A, RAFT, Aurora Mk II + TS module – Lage und Stapelrichtung wie im Spiel
 
 **Offen:**
 - **4b Hülle und Umriss:** Plan nach Martins Vorgabe (Pipeline liest Motherlode-`.glb`, ohne Neu-Zentrierung und Skalierung, holo-v2 mit eigener NOTICE). Dort gilt `holoOrigin` = s aus der Tabelle oben, nicht 0. Der Plan nennt vorab: glTF-Format, Dreieckszahlen an Hull A, Hull C und Reclaimer, Asset-Größe, Aufwand.
