@@ -93,12 +93,12 @@ public class RackGeometryTests
         rack.ToGrid(rack.CellBox(new GridPosition(3, 0, 0), CrateSize.Two)).Should().Be(new GridPosition(3, 0, 0));
     }
 
-    // --- Hull A: stacks from the spindle outwards (D26) ---
+    // --- Hull A: stacks from the spindle outwards (D26); the frozen copy's cells (D92) ---
 
     [Fact]
     public void Hull_A_port_racks_stack_towards_port()
     {
-        var rack1 = ShipLoader.Load("hull_a").Racks[0];
+        var rack1 = FrozenShips.Load("hull_a").Racks[0];
 
         rack1.CellBox(new GridPosition(0, 0, 0), CrateSize.One).Should().Be(Box(0, 1, 3, 1, 2, 4));
         rack1.CellBox(new GridPosition(0, 0, 1), CrateSize.One).Should().Be(Box(0, 2, 3, 1, 3, 4));
@@ -108,7 +108,7 @@ public class RackGeometryTests
     [Fact]
     public void Hull_A_starboard_racks_stack_towards_starboard()
     {
-        var rack3 = ShipLoader.Load("hull_a").Racks[2];
+        var rack3 = FrozenShips.Load("hull_a").Racks[2];
 
         // Starboard plates at y −4..−2 since K5.2: three cells of spindle between the plates, as Fleetyards gives it (D78).
         rack3.CellBox(new GridPosition(0, 0, 0), CrateSize.One).Should().Be(Box(0, -3, 3, 1, -2, 4));
@@ -118,7 +118,7 @@ public class RackGeometryTests
     [Fact]
     public void Hull_A_8_SCU_crate_takes_both_stack_layers()
     {
-        var rack1 = ShipLoader.Load("hull_a").Racks[0];
+        var rack1 = FrozenShips.Load("hull_a").Racks[0];
 
         rack1.CellBox(new GridPosition(2, 0, 0), CrateSize.Eight).Should().Be(Box(2, 1, 3, 4, 3, 5));
     }

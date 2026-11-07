@@ -14,17 +14,26 @@ internal static class TestPlans
 {
     private const string ResourceName = "missions/split_and_shared.json";
 
+    /// <summary>FrozenShips/ next to the test assembly (linked from the Core tests): ships that stay put when ships/ changes (D92).</summary>
+    public static string TestShipsFolder { get; } = Path.Combine(AppContext.BaseDirectory, "FrozenShips");
+
+    /// <summary>
+    /// The Hull A as it was before the game-file racks (D92, session 4a), frozen: hit tests, drags and the scene check fixed
+    /// cells and pixels, which a data import must not move. The shipped files are checked by the data tests.
+    /// </summary>
+    public static Ship HullA() => ShipLoader.Load(TestShipsFolder, "hull_a");
+
     public static SavedPlan SplitAndShared()
     {
         using var stream = typeof(TestPlans).Assembly.GetManifestResourceStream(ResourceName)
             ?? throw new InvalidOperationException($"Test resource '{ResourceName}' not found.");
 
         var missions = MissionFileReader.Read(stream, ResourceName).Stops;
-        var hullA = ShipLoader.Load("hull_a");
+        var hullA = HullA();
         return SavedPlan.FromStops(missions, LoadPlanner.Plan(hullA, missions.ToStops()), CrateCap.Of(hullA));
     }
 
-    public static (Ship Ship, LoadPlan Plan) Load() => (ShipLoader.Load("hull_a"), SplitAndShared().Plan);
+    public static (Ship Ship, LoadPlan Plan) Load() => (HullA(), SplitAndShared().Plan);
 
     private const string HurstonPickupsName = "plans/hurston_2026-10-25.json";
 
@@ -36,7 +45,7 @@ internal static class TestPlans
     {
         using var stream = typeof(TestPlans).Assembly.GetManifestResourceStream(HurstonPickupsName)
             ?? throw new InvalidOperationException($"Test resource '{HurstonPickupsName}' not found.");
-        return PlanFile.Read(stream, HurstonPickupsName, ShipLoader.Load("hull_a"));
+        return PlanFile.Read(stream, HurstonPickupsName, HullA());
     }
 
     /// <summary>

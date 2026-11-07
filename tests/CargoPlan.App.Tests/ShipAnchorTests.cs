@@ -12,13 +12,13 @@ using CargoPlan.Core.Tests;
 namespace CargoPlan.App.Tests;
 
 /// <summary>
-/// The point of F7 (D90): a corrected rack moves that rack and nothing else. A copy of the real Hull A with Rack 1 one cell
-/// further to the bow, and the calculation of the values in the ship files.
+/// The point of F7 (D90): a corrected rack moves that rack and nothing else. A copy of the Hull A (the frozen test copy,
+/// D92) with Rack 1 one cell further to the bow, and the calculation of the values in the ship files.
 /// </summary>
 public sealed class ShipAnchorTests
 {
     private static readonly ShipOutlineCatalog Outlines = ShipOutlineLoader.Load();
-    private static readonly Ship Before = ShipLoader.Load("hull_a");
+    private static readonly Ship Before = TestPlans.HullA();
     private static readonly Ship After = Corrected();
 
     private static Ship Corrected()
@@ -26,7 +26,7 @@ public sealed class ShipAnchorTests
         var folder = Directory.CreateTempSubdirectory("cargoplan-anchor-").FullName;
         try
         {
-            var text = File.ReadAllText(Path.Combine(ShipLoader.DefaultFolder, "hull_a.json"));
+            var text = File.ReadAllText(Path.Combine(TestPlans.TestShipsFolder, "hull_a.json"));
             File.WriteAllText(Path.Combine(folder, "hull_a.json"), text.Replace("\"origin\": [0, 1, 3]", "\"origin\": [1, 1, 3]", StringComparison.Ordinal));
             return ShipLoader.Load(folder, "hull_a");
         }

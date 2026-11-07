@@ -14,7 +14,7 @@ namespace CargoPlan.App.Tests;
 /// </summary>
 public class DropTargetTests
 {
-    private static readonly Rack Rack1 = ShipLoader.Load("hull_a").Racks[0];
+    private static readonly Rack Rack1 = TestPlans.HullA().Racks[0];
     private static readonly CameraOrientation Default = CameraOrientation.Default;
     private static readonly Size View = new(400, 300);
 

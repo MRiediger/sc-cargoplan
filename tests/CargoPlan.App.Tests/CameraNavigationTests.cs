@@ -17,7 +17,8 @@ namespace CargoPlan.App.Tests;
 /// </summary>
 public sealed class CameraNavigationTests
 {
-    private static readonly ShipCatalog Catalog = ShipLoader.LoadAll();
+    // Frozen copies (TestShips/, D92): the camera's mechanics, not the shipped racks.
+    private static readonly ShipCatalog Catalog = ShipLoader.LoadAll(TestPlans.TestShipsFolder);
 
     // The default overlay's width; the ship view is about as high.
     private static readonly Size Viewport = new(420, 420);
