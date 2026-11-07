@@ -3831,7 +3831,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 3. [x] F3 freier Drehwinkel pro Rack, Schiffs-JSON 5→6 – `feat/f3-rack-rotation` (abgenommen 06.11.). **Vorgabe (Martin, 06.11.):** volle 3D-Rotation pro Rack, nicht Yaw. Eine Datenquelle mit Grid-Transformen im Schiffsraum existiert (Motherlode, 97 Schiffe, 3×4-Matrix in Metern, nur 5 Schiffe mit Drehung, Railen gekippt).
 4. Schiffsdaten aus den Spieldateien (Motherlode, D92), drei Merges. **Ziel (Martin):** für alle Schiffe stimmen SCU und Rack-Anordnung.
    - [x] 4a Racks – `feat/ship-data-game` (abgenommen 07.11.)
-   - [ ] 4b Hülle und Umriss aus denselben Modellen – eigener Plan zur Freigabe
+   - [ ] 4b Hülle und Umriss aus denselben Modellen – `feat/holo-v2` (in Arbeit 07.11., Plan freigegeben)
    - [ ] 4c Stilllegung Fleetyards – eigener Plan zur Freigabe
 5. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
 6. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
@@ -4324,6 +4324,31 @@ one bleibt bei einigen kleinen Schiffen gleich, weil die Kamera auf die Racks pa
 - Rack positions changed for most ships – your saved plan still loads; re-plan once if crate placement looks different. Re-plan for sure on: Aurora Mk I (all six), Fortune, Golem OX, Hull C, M80, MOTH, MPUV Tractor, Prowler Utility, Railen, Syulen, Tyilui – their racks now stack the way the game does.
 - New ships: Carrack Expedition, Carrack (Expedition) w/C8X, MOLE Carbon/Talus Edition, Mustang Alpha Vindicator, Valkyrie Liberator Edition, Cyclone.
 - Turned racks where the game turns them: Hull B, Railen, Prowler Utility, 890 Jump hangar, Syulen, M80, Mustang Alpha.
+
+### [ ] Session 4b – Hülle und Umriss aus den Motherlode-Modellen (07.11.2026)
+
+**Branch:** `feat/holo-v2` (App-Repo), `holo-v2` (Outline-Repo). **Ziel (Martin):** Hülle, Umriss und Racks kommen aus demselben Modell, die Anker sind danach überall `s`. Ergebnis ist das Release-Asset `holo-v2` mit eigener NOTICE, `holo-v1` bleibt für v0.2.0 (D93).
+
+**Präzisierungen in der Planphase, ratifiziert durch Freigabe:**
+- **R1:** `outlineOrigin = [s.x, s.y, s.z + floorM/1,25]`, der Umriss liegt auf dem Boden der Modell-Box (T8.5), kein `outlineScale`.
+- **R2:** Der Umriss aus dem Modell (2D-Polygon) liegt wie bisher in `outlines/` im Repo, mit neuer NOTICE. Meshes und `.glb` nie.
+- **R3:** Die Cyclone bekommt `fleetyardsSlug: "tmbl-cyclone"` und damit Holo und Umriss aus ihrem Modell.
+- **R4:** Neues Messziel `reclaimer` in `FrameMeasureWindow` (eigener Commit). Der `main`-Vergleichs-Build bekommt dieselbe Zeile in einem Scratch-Worktree.
+- Die Anker schreibt der Konverter, immer an, ohne Schalter (`-Outlines`, `-ModelMap`).
+- A2 umfasst auch eingefrorene Umrisse (`FrozenOutlines`) und war mit 145 Stellen in 82 Dateien größer als „≈ 60“. `ShipOutlineLoader.Load(path)` gab es schon, die Core-Testnaht entfiel.
+- Der verwaiste Cache `holo\holo-v1\` bleibt, Aufräumen in 4c.
+- Pipeline pro Modell (`className`), Slug erst beim Release. Ein Slug mit zwei Modellen nimmt das der kleinsten id: nur `anvl-carrack` (Carrack vs. Expedition, 24 Byte Unterschied).
+- **Umriss mit adaptivem Schließen:** 0,1 → 1,6 m, bis die größte Kontur ≥ 99 % der Draufsicht hält. Anlass Hull A: Bug und Heck hängen in der Draufsicht nur am Spindelgitter, bei 0,1 m fehlte das Heck (Anteil 0,753).
+
+**E1 – Schwellen des `fit`-Gates, festgelegt vor dem Lauf über alle 102** (Referenz: Hull A, RAFT, Aurora Mk II, am Aufzug geprüft; Holo und Umriss aus dem Modell, Racks aus `ships/` mit s aus der Map):
+
+| Kennzahl | Hull A | RAFT | Aurora Mk II | Schwelle → Liste |
+|---|---|---|---|---|
+| (a) Rack-Ecken in der Modell-Box | 0,375 (Racks außen an der Spindel) | 1,000 | 1,000 | < 1,000 |
+| (b) Eindringen: Hüllfläche in der Rack-Box (je Seite um min(0,5 m; 20 %) verkleinert) ÷ Box-Oberfläche, schlimmstes Rack | 0,0000 | 0,0000 | 0,0000 | > 0,05 (Regel: max(0,05; 2 × Referenzmaximum)) |
+| (c) IoU Umriss ↔ Holo-Draufsicht | 0,9636 | 0,9212 | 0,9539 | < 0,90 (Regel: Referenzminimum − 0,02) |
+
+Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (c) liegt die RAFT am niedrigsten, weil ihr Gitterrahmen im Holo durchbrochen, im Umriss geschlossen ist. (a) < 1 ist bei Schiffen mit Außenfracht erwartet (Hull A) und kein Fehler, nur ein Grund zum Hinsehen.
 
 ## Phase 10 – nach dem Launch
 
