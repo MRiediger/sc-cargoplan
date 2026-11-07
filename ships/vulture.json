@@ -4,8 +4,8 @@
   "name": "DRAK Vulture",
   "manufacturer": "DRAK",
   "fleetyardsSlug": "drak-vulture",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [1.4613258361816406, 0.9975828170776367, -2.054459381103516],
   "outlineOrigin": [1.5, 1, -2.6],
   "totalScu": 12,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 12,
       "grid": { "length": 3, "width": 2, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-11, 0, -2],
       "stackAxis": "+z"
     }
   ]

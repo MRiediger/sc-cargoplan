@@ -4,8 +4,8 @@
   "name": "CRUS Mercury Star Runner",
   "manufacturer": "CRUS",
   "fleetyardsSlug": "crus-mercury-star-runner",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [1.015167236328125, 2.9999099731445313, -5.292584991455079],
   "outlineOrigin": [1, 3, -5.292],
   "totalScu": 114,
@@ -14,14 +14,14 @@
       "id": "rack-0",
       "capacityScu": 108,
       "grid": { "length": 6, "width": 6, "stack": 3 },
-      "origin": [0, 0, 0],
+      "origin": [-13, -3, -3],
       "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 6,
       "grid": { "length": 3, "width": 1, "stack": 2 },
-      "origin": [-4, 0, 0],
+      "origin": [-13, -9, -3],
       "stackAxis": "+z"
     }
   ]

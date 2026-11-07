@@ -4,8 +4,8 @@
   "name": "GREY Shiv",
   "manufacturer": "GREY",
   "fleetyardsSlug": "grey-shiv",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
-  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [3.99736328125, 1.0105472564697267, -3.3666721343994146],
   "outlineOrigin": [4, 1, -4.6],
   "totalScu": 32,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 32,
       "grid": { "length": 8, "width": 2, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-8, -1, -2],
       "stackAxis": "+z",
       "maxCrateSize": 2
     }

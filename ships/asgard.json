@@ -4,8 +4,8 @@
   "name": "ANVL Asgard",
   "manufacturer": "ANVL",
   "fleetyardsSlug": "anvl-asgard",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [4.501186370849609, 2.501189422607422, -3.6848903656005865],
   "outlineOrigin": [4.5, 2.5, -3.6639999999999997],
   "totalScu": 180,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 180,
       "grid": { "length": 9, "width": 5, "stack": 4 },
-      "origin": [0, 0, 0],
+      "origin": [-11, -2, 0],
       "stackAxis": "+z"
     }
   ]

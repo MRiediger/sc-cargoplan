@@ -4,8 +4,8 @@
   "name": "AEGS Avenger Titan",
   "manufacturer": "AEGS",
   "fleetyardsSlug": "aegs-avenger-titan",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [1.992795181274414, 1, -2.2263185501098635],
   "outlineOrigin": [2, 1, -1.932],
   "totalScu": 8,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 8,
       "grid": { "length": 4, "width": 2, "stack": 1 },
-      "origin": [0, 0, 0],
+      "origin": [-6, -1, -1],
       "stackAxis": "+z"
     }
   ]

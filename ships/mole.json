@@ -4,8 +4,8 @@
   "name": "ARGO MOLE",
   "manufacturer": "ARGO",
   "fleetyardsSlug": "argo-mole",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [2.0302337646484374, 2.001042938232422, -4.327400207519531],
   "outlineOrigin": [2, 2, -4.332],
   "totalScu": 32,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 32,
       "grid": { "length": 4, "width": 4, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-9, -2, -4],
       "stackAxis": "+z"
     }
   ]

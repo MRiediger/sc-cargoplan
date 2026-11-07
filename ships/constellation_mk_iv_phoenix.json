@@ -4,8 +4,8 @@
   "name": "RSI Constellation Mk IV Phoenix",
   "manufacturer": "RSI",
   "fleetyardsSlug": "rsi-constellation-mk-iv-phoenix",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [3.9934722900390627, 2.519580841064453, -4.753343963623047],
   "outlineOrigin": [4, 2.5, -4.752000000000001],
   "totalScu": 80,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 80,
       "grid": { "length": 8, "width": 5, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-7, -2, 0],
       "stackAxis": "+z"
     }
   ]

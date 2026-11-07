@@ -4,8 +4,8 @@
   "name": "CNOU Mustang Alpha",
   "manufacturer": "CNOU",
   "fleetyardsSlug": "cnou-mustang-alpha",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.5, 2, -1.6434358596801757],
   "outlineOrigin": [0.5, 2, -1.6559999999999997],
   "totalScu": 4,
@@ -13,9 +13,10 @@
     {
       "id": "rack-0",
       "capacityScu": 4,
-      "grid": { "length": 1, "width": 4, "stack": 1 },
-      "origin": [0, 0, 0],
-      "stackAxis": "+z"
+      "grid": { "length": 4, "width": 1, "stack": 1 },
+      "origin": [-4, 0, 0],
+      "stackAxis": "+z",
+      "rotation": [0, 16.38, 0]
     }
   ]
 }

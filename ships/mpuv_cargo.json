@@ -4,8 +4,8 @@
   "name": "ARGO MPUV Cargo",
   "manufacturer": "ARGO",
   "fleetyardsSlug": "argo-mpuv-cargo",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [1, 0.5, -1.201655387878418],
   "outlineOrigin": [1, 0.5, -0.8320000000000001],
   "totalScu": 2,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 2,
       "grid": { "length": 2, "width": 1, "stack": 1 },
-      "origin": [0, 0, 0],
+      "origin": [-1, 0, -1],
       "stackAxis": "+z"
     }
   ]

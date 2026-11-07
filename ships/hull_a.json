@@ -4,8 +4,8 @@
   "name": "MISC Hull A",
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-hull-a",
-  "source": "in game",
-  "notes": "grids and rack order measured in game; rack positions from Fleetyards offsets (K5.2, D78): 3 cells between the plates",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "grids, rack order and stacking checked in game; rack positions from game files (Motherlode, D92): 5 cells between the plates (spindle in cargo pose)",
   "holoOrigin": [1.9994277954101562, -0.5005714416503906, 0.2602119445800781],
   "outlineOrigin": [2, -0.5, 0],
   "outlineScale": 1.1199999999999999,
@@ -16,7 +16,7 @@
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "position": { "side": "port", "level": "upper" },
-      "origin": [0, 1, 3],
+      "origin": [-9, 3, 1],
       "stackAxis": "+y"
     },
     {
@@ -24,7 +24,7 @@
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "position": { "side": "port", "level": "lower" },
-      "origin": [0, 1, 0],
+      "origin": [-9, 3, -2],
       "stackAxis": "+y"
     },
     {
@@ -32,7 +32,7 @@
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "position": { "side": "starboard", "level": "upper" },
-      "origin": [0, -4, 3],
+      "origin": [-9, -4, 1],
       "stackAxis": "-y"
     },
     {
@@ -40,7 +40,7 @@
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "position": { "side": "starboard", "level": "lower" },
-      "origin": [0, -4, 0],
+      "origin": [-9, -4, -2],
       "stackAxis": "-y"
     }
   ]

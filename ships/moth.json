@@ -4,8 +4,8 @@
   "name": "ARGO MOTH",
   "manufacturer": "ARGO",
   "fleetyardsSlug": "argo-moth",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-26",
-  "notes": "rack arrangement generated; grids from Fleetyards; racks rack-1, rack-2 added (Fleetyards export 2026-10-26); door limits from Fleetyards limits.max.capacity",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode); racks rack-1, rack-2 added (Fleetyards export 2026-10-26); door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [-4.998900604248047, 2.9978012084960937, -3.331147766113282],
   "outlineOrigin": [-5, 3, -3.332],
   "totalScu": 224,
@@ -14,23 +14,23 @@
       "id": "rack-0",
       "capacityScu": 32,
       "grid": { "length": 4, "width": 4, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-9, -1, -4],
       "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 96,
       "grid": { "length": 6, "width": 4, "stack": 4 },
-      "origin": [-7, 0, 0],
-      "stackAxis": "+z",
+      "origin": [2, 2, -5],
+      "stackAxis": "+y",
       "maxCrateSize": 8
     },
     {
       "id": "rack-2",
       "capacityScu": 96,
-      "grid": { "length": 4, "width": 6, "stack": 4 },
-      "origin": [-14, 0, 0],
-      "stackAxis": "+z",
+      "grid": { "length": 6, "width": 4, "stack": 4 },
+      "origin": [2, -5, -5],
+      "stackAxis": "-y",
       "maxCrateSize": 8
     }
   ]

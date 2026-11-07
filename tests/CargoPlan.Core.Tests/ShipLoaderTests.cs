@@ -47,12 +47,13 @@ public class ShipLoaderTests
     {
         var ship = ShipLoader.Load("hull_a");
 
-        // Three cells between the plates since K5.2, as Fleetyards gives it (D78); one before.
+        // From the game files (D92): five cells between the plates, the spindle in its cargo pose; three from Fleetyards
+        // (K5.2, D78), one before. Zero point = the game model's origin plus a fraction per axis.
         ship.Racks.Select(r => r.Origin).Should().Equal(
-            new ShipPoint(0, 1, 3),
-            new ShipPoint(0, 1, 0),
-            new ShipPoint(0, -4, 3),
-            new ShipPoint(0, -4, 0));
+            new ShipPoint(-9, 3, 1),
+            new ShipPoint(-9, 3, -2),
+            new ShipPoint(-9, -4, 1),
+            new ShipPoint(-9, -4, -2));
     }
 
     // In the game the Hull A stacks from the spindle outwards (D26).
@@ -69,7 +70,7 @@ public class ShipLoaderTests
     {
         var ship = ShipLoader.Load("hull_a");
 
-        ship.Bounds.Should().Be(new ShipBox(new ShipPoint(0, -4, 0), new ShipPoint(4, 3, 5)));
+        ship.Bounds.Should().Be(new ShipBox(new ShipPoint(-9, -4, -2), new ShipPoint(-5, 5, 3)));
     }
 
     // Position and origin are kept separately (D14); for the Hull A they must tell the same story.
@@ -110,6 +111,18 @@ public class ShipLoaderTests
         catalog.Ships.Select(s => s.Id).Except(files).Should().Equal("aurora_mk_ii_ts_module");
     }
 
+    // D92: every ship's racks come from the game files, except the three the catalog can't place (135c: grids without
+    // transform; 600i Executive Edition, F7C Hornet Mk II: not in the catalog). A ship falling back shows up here.
+    // That totalScu matches the catalog is checked by tools/import-motherlode.ps1, which holds the catalog (D56).
+    [Fact]
+    public void Every_ship_but_three_has_its_racks_from_the_game_files()
+    {
+        var ships = ShipLoader.ListShips(ShipLoader.DefaultFolder).Select(id => ShipLoader.Load(id)).ToList();
+
+        ships.Where(s => s.Source?.StartsWith("cryon.rocks (Motherlode) ", StringComparison.Ordinal) != true).Select(s => s.Id)
+            .Should().BeEquivalentTo("135c", "600i_executive_edition", "f7c_hornet_mk_ii");
+    }
+
     public static TheoryData<string> ShippedShipIds => [.. ShipLoader.ListShips(ShipLoader.DefaultFolder)];
 
     // Gate for community PRs: every ship file in ships/ must load; one case per file names the broken one.
@@ -133,8 +146,9 @@ public class ShipLoaderTests
             .Should().Equal("csv_sm", "hull_c", "mpuv_tractor");
     }
 
-    // Fleetyards lays the Hull C's sixteen holds as two crosses along the spindle, each arm an inner block of 384 SCU and an
-    // outer one of 192; the upright arms are turned 90° about the spindle (K5.2, D78). Centres doubled to stay whole.
+    // The game files lay the Hull C's sixteen grids as two crosses along the spindle, each arm an inner block of 384 SCU and
+    // an outer one of 192, every grid stacking along the spindle away from the ship's middle (D92). Rounding to whole cells
+    // leaves a cross up to half a cell off its middle. Centres doubled to stay whole.
     [Fact]
     public void Hull_c_racks_form_two_crosses()
     {
@@ -146,9 +160,12 @@ public class ShipLoaderTests
             var (y, z) = (cross.Min(r => r.Bounds.Min.Y) + cross.Max(r => r.Bounds.Max.Y), cross.Min(r => r.Bounds.Min.Z) + cross.Max(r => r.Bounds.Max.Z));
             cross.Should().HaveCount(8);
             cross.Count(r => r.CapacityScu == 384).Should().Be(4);
-            cross.Count(r => r.Bounds.Min.Y + r.Bounds.Max.Y == y).Should().Be(4, "two arms point up, two down");
-            cross.Count(r => r.Bounds.Min.Z + r.Bounds.Max.Z == z).Should().Be(4, "two arms point to port, two to starboard");
+            cross.Count(r => Math.Abs(r.Bounds.Min.Y + r.Bounds.Max.Y - y) <= 1).Should().Be(4, "two arms point up, two down");
+            cross.Count(r => Math.Abs(r.Bounds.Min.Z + r.Bounds.Max.Z - z) <= 1).Should().Be(4, "two arms point to port, two to starboard");
         }
+
+        crosses[0].Should().OnlyContain(r => r.StackAxis == StackAxis.MinusX, "the aft cross stacks aft");
+        crosses[1].Should().OnlyContain(r => r.StackAxis == StackAxis.PlusX, "the forward cross stacks forward");
     }
 
     [Theory]
@@ -365,11 +382,11 @@ public class ShipLoaderTests
     [Theory]
     [InlineData("{", "test_module")]                                     // not valid JSON: no entry can be named
     [InlineData("schema 2", "test_module")]                              // a module schema this reader doesn't know
-    [InlineData("overlap", "hull_a_test_module")]                        // the module rack lies on a Hull A plate
+    [InlineData("overlap", "hull_a_test_module")]                        // the module rack lies on a Hull A plate (frozen copy, D92)
     public void A_broken_module_costs_its_entries_never_the_base_ship(string broken, string problemId)
     {
         using var folder = new ShipFolder();
-        folder.AddShipped("hull_a");
+        folder.AddFrozen("hull_a");
         folder.WriteModule("test_module", broken switch
         {
             "{" => "{",
@@ -685,6 +702,8 @@ public class ShipLoaderTests
 
         public void AddTestShip(string shipId) => File.Copy(TestShips.PathOf(shipId), FileOf(shipId));
 
+        public void AddFrozen(string shipId) => File.Copy(FrozenShips.PathOf(shipId), FileOf(shipId));
+
         // A copy of a test ship under another id; the id inside must match the file name.
         public void AddRenamed(string shipId, string newId) =>
             Write(newId, File.ReadAllText(TestShips.PathOf(shipId)).Replace($"\"id\": \"{shipId}\"", $"\"id\": \"{newId}\""));
@@ -887,7 +906,8 @@ public class ShipLoaderTests
     {
         var ship = ShipLoader.Load("hull_a");
 
-        (ship.Manufacturer, ship.FleetyardsSlug, ship.Source).Should().Be(("MISC", "misc-hull-a", "in game"));
+        (ship.Manufacturer, ship.FleetyardsSlug).Should().Be(("MISC", "misc-hull-a"));
+        ship.Source.Should().StartWith("cryon.rocks (Motherlode) ", "the racks come from the game files (D92)");
         ship.Racks.Should().OnlyContain(r => r.MaxCrateSize == null);
     }
 

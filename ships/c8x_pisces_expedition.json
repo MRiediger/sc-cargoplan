@@ -4,8 +4,8 @@
   "name": "ANVL C8X Pisces Expedition",
   "manufacturer": "ANVL",
   "fleetyardsSlug": "anvl-c8x-pisces-expedition",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [1, -1.5, -0.7432338714599611],
   "outlineOrigin": [1, -1.5, -0.7],
   "totalScu": 4,
@@ -15,7 +15,7 @@
       "capacityScu": 2,
       "grid": { "length": 2, "width": 1, "stack": 1 },
       "position": { "side": "starboard", "level": "lower" },
-      "origin": [0, -3, 0],
+      "origin": [-1, -1, 0],
       "stackAxis": "+z"
     },
     {
@@ -23,7 +23,7 @@
       "capacityScu": 2,
       "grid": { "length": 2, "width": 1, "stack": 1 },
       "position": { "side": "port", "level": "lower" },
-      "origin": [0, -1, 0],
+      "origin": [-1, 1, 0],
       "stackAxis": "+z"
     }
   ]

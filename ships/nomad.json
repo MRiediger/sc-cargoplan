@@ -4,8 +4,8 @@
   "name": "CNOU Nomad",
   "manufacturer": "CNOU",
   "fleetyardsSlug": "cnou-nomad",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
-  "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [2, 1.4968414306640625, -2.1215171813964844],
   "outlineOrigin": [2, 1.5, -2.176],
   "totalScu": 24,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 24,
       "grid": { "length": 4, "width": 3, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-9, -1, 0],
       "stackAxis": "+z",
       "maxCrateSize": 8
     }

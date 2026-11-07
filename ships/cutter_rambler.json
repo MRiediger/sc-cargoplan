@@ -4,8 +4,8 @@
   "name": "DRAK Cutter Rambler",
   "manufacturer": "DRAK",
   "fleetyardsSlug": "drak-cutter-rambler",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.4848625183105469, 0.501953125, -1.80046443939209],
   "outlineOrigin": [0.5, 0.5, -1.4],
   "totalScu": 2,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 2,
       "grid": { "length": 1, "width": 1, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-3, 1, -1],
       "stackAxis": "+z"
     }
   ]

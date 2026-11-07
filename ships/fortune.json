@@ -4,8 +4,8 @@
   "name": "MISC Fortune",
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-fortune",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-26",
-  "notes": "rack arrangement generated; grids from Fleetyards; racks rack-1, rack-2 added (Fleetyards export 2026-10-26)",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode); racks rack-1, rack-2 added (Fleetyards export 2026-10-26)",
   "holoOrigin": [-2.9873046875, 0.9866693496704102, -1.9065433502197267],
   "outlineOrigin": [-3, 1, -2.3],
   "totalScu": 16,
@@ -14,22 +14,22 @@
       "id": "rack-0",
       "capacityScu": 4,
       "grid": { "length": 2, "width": 2, "stack": 1 },
-      "origin": [0, 0, 0],
+      "origin": [-7, 0, 0],
       "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 6,
       "grid": { "length": 3, "width": 2, "stack": 1 },
-      "origin": [-4, 0, 0],
-      "stackAxis": "+z"
+      "origin": [-1, 2, 0],
+      "stackAxis": "+y"
     },
     {
       "id": "rack-2",
       "capacityScu": 6,
       "grid": { "length": 3, "width": 2, "stack": 1 },
-      "origin": [-8, 0, 0],
-      "stackAxis": "+z"
+      "origin": [-1, -2, 0],
+      "stackAxis": "-y"
     }
   ]
 }

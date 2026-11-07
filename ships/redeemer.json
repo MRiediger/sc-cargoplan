@@ -4,8 +4,8 @@
   "name": "AEGS Redeemer",
   "manufacturer": "AEGS",
   "fleetyardsSlug": "aegs-redeemer",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.4925834655761719, 0.5000003814697266, -5.257439041137696],
   "outlineOrigin": [0.5, 0.5, -5.256],
   "totalScu": 2,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 2,
       "grid": { "length": 1, "width": 1, "stack": 2 },
-      "origin": [0, 0, 0],
+      "origin": [-1, 2, -2],
       "stackAxis": "+z"
     }
   ]

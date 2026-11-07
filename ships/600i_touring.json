@@ -4,8 +4,8 @@
   "name": "ORIG 600i Touring",
   "manufacturer": "ORIG",
   "fleetyardsSlug": "orig-600i-touring",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [-4.004437255859375, 1.9977813720703126, -6.147258758544922],
   "outlineOrigin": [-4, 2, -6.144],
   "totalScu": 20,
@@ -13,29 +13,29 @@
     {
       "id": "rack-0",
       "capacityScu": 8,
-      "grid": { "length": 1, "width": 4, "stack": 2 },
-      "origin": [0, 0, 0],
+      "grid": { "length": 4, "width": 1, "stack": 2 },
+      "origin": [-4, 10, -3],
       "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 8,
-      "grid": { "length": 1, "width": 4, "stack": 2 },
-      "origin": [-5, 0, 0],
+      "grid": { "length": 4, "width": 1, "stack": 2 },
+      "origin": [-4, -10, -3],
       "stackAxis": "+z"
     },
     {
       "id": "rack-2",
       "capacityScu": 2,
       "grid": { "length": 1, "width": 1, "stack": 2 },
-      "origin": [-7, 0, 0],
+      "origin": [1, 8, -3],
       "stackAxis": "+z"
     },
     {
       "id": "rack-3",
       "capacityScu": 2,
       "grid": { "length": 1, "width": 1, "stack": 2 },
-      "origin": [-9, 0, 0],
+      "origin": [1, -8, -3],
       "stackAxis": "+z"
     }
   ]

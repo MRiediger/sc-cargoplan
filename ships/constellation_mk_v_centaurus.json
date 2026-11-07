@@ -4,8 +4,8 @@
   "name": "RSI Constellation Mk V Centaurus",
   "manufacturer": "RSI",
   "fleetyardsSlug": "rsi-constellation-mk-v-centaurus",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [5.135903930664062, 3, -5.2010032653808596],
   "outlineOrigin": [5, 3, -5.208],
   "totalScu": 240,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 240,
       "grid": { "length": 10, "width": 6, "stack": 4 },
-      "origin": [0, 0, 0],
+      "origin": [-8, -2, -3],
       "stackAxis": "+z"
     }
   ]

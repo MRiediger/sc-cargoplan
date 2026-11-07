@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 6,
+  "id": "valkyrie_liberator_edition",
+  "name": "ANVL Valkyrie Liberator Edition",
+  "manufacturer": "ANVL",
+  "fleetyardsSlug": "anvl-valkyrie",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode); hologram and outline of the ANVL Valkyrie",
+  "holoOrigin": [3.003346252441406, 2.486615753173828, -2.766032028198242],
+  "outlineOrigin": [3, 2.5, -2.7640000000000002],
+  "totalScu": 90,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 90,
+      "grid": { "length": 6, "width": 5, "stack": 3 },
+      "origin": [-9, -2, 0],
+      "stackAxis": "+z"
+    }
+  ]
+}

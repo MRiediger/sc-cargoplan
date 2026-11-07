@@ -4,8 +4,8 @@
   "name": "RSI Polaris",
   "manufacturer": "RSI",
   "fleetyardsSlug": "rsi-polaris",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [-0.4826568603515625, 3.016180419921875, -17.06892547607422],
   "outlineOrigin": [-0.5, 3, -17.06],
   "totalScu": 576,
@@ -14,14 +14,14 @@
       "id": "rack-0",
       "capacityScu": 288,
       "grid": { "length": 12, "width": 6, "stack": 4 },
-      "origin": [0, 0, 0],
+      "origin": [-1, 1, -5],
       "stackAxis": "+z"
     },
     {
       "id": "rack-1",
       "capacityScu": 288,
       "grid": { "length": 12, "width": 6, "stack": 4 },
-      "origin": [-13, 0, 0],
+      "origin": [-1, -7, -5],
       "stackAxis": "+z"
     }
   ]

@@ -4,8 +4,8 @@
   "name": "RSI Constellation Mk IV Aquila",
   "manufacturer": "RSI",
   "fleetyardsSlug": "rsi-constellation-mk-iv-aquila",
-  "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
-  "notes": "rack arrangement generated; grids from Fleetyards",
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [4.0041038513183596, 2.032396697998047, -4.222445678710938],
   "outlineOrigin": [4, 2, -4.228],
   "totalScu": 96,
@@ -14,7 +14,7 @@
       "id": "rack-0",
       "capacityScu": 96,
       "grid": { "length": 8, "width": 4, "stack": 3 },
-      "origin": [0, 0, 0],
+      "origin": [-7, -2, 0],
       "stackAxis": "+z"
     }
   ]
