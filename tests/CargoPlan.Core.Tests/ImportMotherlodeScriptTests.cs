@@ -114,10 +114,9 @@ public class ImportMotherlodeScriptTests
     }
 
     [Fact]
-    public async Task Source_names_the_build_notes_keep_the_hand_text_and_anchors_stay()
+    public async Task Source_names_the_build_and_notes_keep_the_hand_text()
     {
         using var work = new Workspace();
-        var before = work.Read("turned_ship");
 
         await work.Run();
 
@@ -125,14 +124,64 @@ public class ImportMotherlodeScriptTests
         ship["source"]!.GetValue<string>().Should().Be(Source);
         ship["notes"]!.GetValue<string>().Should().Be(
             "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity; door limits from game files (Motherlode)");
+        work.Ship("raft")["notes"]!.GetValue<string>().Should().StartWith("rack positions from game files (Motherlode)");
+    }
+
+    // Session 4b (D93): hologram and outline come from the same model as the racks, so the model's origin lies at the
+    // fraction s in the file's cells. The outline lies on the model's floor (floorM of ship-outlines.json, T8.5), at true size.
+    [Fact]
+    public async Task A_ship_with_a_model_gets_its_fraction_as_anchors()
+    {
+        using var work = new Workspace();
+
+        var run = await work.Run();
+
+        var s = Shift(run.Output, "hull_a");
+        var ship = work.Ship("hull_a");
+        Numbers(ship["holoOrigin"]!).Should().Equal(s, (a, b) => Math.Abs(a - b) <= 0.0005);
+        Numbers(ship["outlineOrigin"]!).Should().Equal([s[0], s[1], s[2] - 2.5 / Cell], (a, b) => Math.Abs(a - b) <= 0.0005);
+        ship["outlineScale"].Should().BeNull("the outline comes from the model at its true size");
+        Line(work.Read("hull_a"), "holoOrigin").Should().MatchRegex(@"^""holoOrigin"": \[-?\d+(\.\d{1,4})?, -?\d+(\.\d{1,4})?, -?\d+(\.\d{1,4})?\],$");
+        Numbers(work.Ship("raft")["outlineOrigin"]!)[2].Should().BeApproximately(Shift(run.Output, "raft")[2] - 4, 0.0005);
+    }
+
+    // An outline without floorM is one the model didn't make (an older Fleetyards trace): the anchors stay, a person looks.
+    [Fact]
+    public async Task Without_a_floor_in_the_outlines_the_anchors_stay_and_ask_for_a_look()
+    {
+        using var work = new Workspace();
+        var before = work.Read("turned_ship");
+
+        var run = await work.Run();
+
+        run.ExitCode.Should().Be(Deviation);
+        run.Output.Should().MatchRegex(@"(?m)^anchors\s+turned_ship\s+kept: no floorM for test-turned-ship");
         var after = work.Read("turned_ship");
         foreach (var field in (string[])["\"holoOrigin\": [1.5000000000000002, 0.25, -0.5],", "\"outlineOrigin\": [1.5, 0.25, -0.75],", "\"outlineScale\": 1.1199999999999999,"])
         {
             before.Should().Contain(field);
-            after.Should().Contain(field, "anchors wait for session 4b, digit for digit");
+            after.Should().Contain(field, "digit for digit");
         }
+    }
 
-        work.Ship("raft")["notes"]!.GetValue<string>().Should().StartWith("rack positions from game files (Motherlode)");
+    // The pipeline (sc-ship-outlines) builds holograms and outlines per model; the map tells it which file shows which.
+    [Fact]
+    public async Task ModelMap_lists_every_ship_with_a_model_its_slug_and_fraction()
+    {
+        using var work = new Workspace();
+        var map = Path.Combine(work.Ships, "..", "model-map.csv");
+
+        var run = await work.Run("-Create", "-ModelMap", map);
+
+        var lines = File.ReadAllLines(map);
+        lines[0].Should().Be("id,className,fleetyardsSlug,sx,sy,sz");
+        lines.Skip(1).Select(l => l.Split(',')[0]).Should().BeInAscendingOrder(StringComparer.Ordinal).And.NotContain("135c");
+        var s = Shift(run.Output, "hull_a");
+        lines.Should().Contain(l => l.StartsWith("hull_a,TEST_Hull_A,misc-hull-a,", StringComparison.Ordinal)
+            && l.Split(',').Skip(3).Select(v => double.Parse(v, System.Globalization.CultureInfo.InvariantCulture)).Zip(s).All(p => Math.Abs(p.First - p.Second) <= 0.0005));
+        lines.Should().Contain(l => l.StartsWith("mustang_alpha_vindicator,TEST_Mustang,cnou-mustang-alpha,", StringComparison.Ordinal));
+        lines.Should().Contain(l => l.StartsWith("test_buggy,TEST_Buggy,,", StringComparison.Ordinal));
+        File.ReadAllBytes(map).Should().NotContain((byte)'\r');
     }
 
     [Fact]
@@ -174,7 +223,8 @@ public class ImportMotherlodeScriptTests
         work.ShipIds().Should().NotContain("mustang_alpha_vindicator");
     }
 
-    // A variant takes its base ship's hologram and outline: slug and anchors, digit for digit, and its racks.
+    // A variant takes its base ship's hologram and outline (the slug) and its own fraction as anchors; with the same
+    // grids that is the base ship's, digit for digit.
     [Fact]
     public async Task Create_writes_a_variant_with_its_base_ships_hologram()
     {
@@ -182,7 +232,8 @@ public class ImportMotherlodeScriptTests
 
         var run = await work.Run("-Create");
 
-        run.ExitCode.Should().Be(0, run.Error + run.Output);
+        run.ExitCode.Should().Be(Deviation, "turned_ship's outline has no floor: " + run.Error + run.Output);
+        Numbers(work.Ship("mustang_alpha_vindicator")["holoOrigin"]!).Should().Equal(Shift(run.Output, "mustang_alpha_vindicator"), (a, b) => Math.Abs(a - b) <= 0.0005);
         var variant = work.Ship("mustang_alpha_vindicator");
         variant["name"]!.GetValue<string>().Should().Be("CNOU Mustang Alpha Vindicator");
         variant["fleetyardsSlug"]!.GetValue<string>().Should().Be("cnou-mustang-alpha");
@@ -198,7 +249,8 @@ public class ImportMotherlodeScriptTests
         ShipLoader.Load(work.Ships, "mustang_alpha_vindicator").TotalScu.Should().Be(4);
     }
 
-    // A new ship without a base has no hologram: the anchors go to the racks' middle, as docs/ship-format.md says by hand.
+    // A new ship without a base has no slug, so no hologram or outline to place: the anchors go to the racks' middle, as
+    // docs/ship-format.md says by hand.
     [Fact]
     public async Task Create_writes_a_ship_without_base_with_anchors_at_the_racks_middle()
     {
@@ -236,12 +288,12 @@ public class ImportMotherlodeScriptTests
     public async Task A_second_run_changes_nothing()
     {
         using var work = new Workspace();
-        (await work.Run("-Create")).ExitCode.Should().Be(0);
+        (await work.Run("-Create")).ExitCode.Should().Be(Deviation, "turned_ship's outline has no floor");
         var after = work.Snapshot();
 
         var run = await work.Run("-Create");
 
-        run.ExitCode.Should().Be(0, run.Output);
+        run.ExitCode.Should().Be(Deviation, run.Output);
         work.Snapshot().Should().Equal(after);
         run.Output.Should().NotMatchRegex(@"(?m)^(updated|created)\s");
     }
@@ -310,6 +362,16 @@ public class ImportMotherlodeScriptTests
     }
 
     private static int[] Origin(JsonNode rack) => [.. rack["origin"]!.AsArray().Select(v => v!.GetValue<int>())];
+
+    private static double[] Numbers(JsonNode array) => [.. array.AsArray().Select(v => v!.GetValue<double>())];
+
+    /// <summary>The ship's fraction s from the report line "shift &lt;id&gt; s=[x, y, z] cells".</summary>
+    private static double[] Shift(string output, string id)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(output, $@"(?m)^shift\s+{id}\s+s=\[([^\]]*)\]");
+        match.Success.Should().BeTrue($"the report names {id}'s shift");
+        return [.. match.Groups[1].Value.Split(',').Select(v => double.Parse(v, System.Globalization.CultureInfo.InvariantCulture))];
+    }
 
     private static string? Line(string text, string field) =>
         text.Split('\n').FirstOrDefault(l => l.TrimStart().StartsWith($"\"{field}\"", StringComparison.Ordinal))?.Trim();
@@ -431,7 +493,7 @@ public class ImportMotherlodeScriptTests
                 UseShellExecute = false,
             };
             foreach (var argument in (string[])["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", Script,
-                         "-Catalog", Catalog, "-ShipsFolder", Ships, .. arguments])
+                         "-Catalog", Catalog, "-ShipsFolder", Ships, "-Outlines", Path.Combine(Fixtures, "ship-outlines.json"), .. arguments])
             {
                 start.ArgumentList.Add(argument);
             }
