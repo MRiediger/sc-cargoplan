@@ -28,14 +28,14 @@ public class MoveResolutionTimingTests(ITestOutputHelper output)
     [Fact]
     public void Eight_stops_on_the_Freelancer()
     {
-        var ship = ShipLoader.Load("freelancer");
+        var ship = FrozenShips.Load("freelancer");
         Measure("Freelancer 8 stops", ship, LoadPlanner.Plan(ship, MissionFixtures.Load("hull_a_eight_stops")), Cells);
     }
 
     [Fact]
     public void Hurston_on_the_Hull_A()
     {
-        var ship = ShipLoader.Load("hull_a");
+        var ship = FrozenShips.Load("hull_a");
         Measure("Hull A Hurston", ship, LoadPlanner.Plan(ship, MissionFixtures.Load("hull_a_hurston_2026-10-24")), Cells);
     }
 

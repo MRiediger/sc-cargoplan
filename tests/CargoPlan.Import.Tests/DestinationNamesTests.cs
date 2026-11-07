@@ -4,6 +4,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.Import.Tests;
@@ -14,7 +15,7 @@ public class DestinationNamesTests
     private const string Short = "Thundering Express";
     private const string Full = "Thundering Express Station";
 
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     // --- Key, Comparer, Preferred ---
 

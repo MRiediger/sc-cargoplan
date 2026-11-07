@@ -4,6 +4,7 @@ using System.Windows.Input;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
@@ -13,7 +14,7 @@ namespace CargoPlan.App.Tests;
 /// </summary>
 public class ShipViewLockTests
 {
-    private static readonly ShipCatalog Catalog = ShipLoader.LoadAll();
+    private static readonly ShipCatalog Catalog = FrozenShips.LoadAll();
 
     /// <summary>The ship view of Martin's Hurston plan, two crates of the first line selected.</summary>
     private static ShipViewControl SelectedView()

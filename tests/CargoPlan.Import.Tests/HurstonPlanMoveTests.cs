@@ -3,13 +3,14 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.Import.Tests;
 
 /// <summary>Martin's plan of 23 Oct (B1 fixture) moved by hand: moves are accepted whenever the cargo fits (B3, D65).</summary>
 public class HurstonPlanMoveTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     [Fact]
     public void Pulling_Everus_Harbor_crate_from_under_its_2_lets_the_2_settle()

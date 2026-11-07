@@ -8,7 +8,7 @@ namespace CargoPlan.Core.Tests;
 
 public class LoadPlannerOverrideTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     /// <summary>Rack 1 holds 16 SCU (4×2×2), Rack 2 only 8 SCU (2×2×2): a 16 SCU crate fits Rack 1 alone.</summary>
     private static readonly Ship SmallRackShip = new("small_rack", "Small rack test ship", 24,

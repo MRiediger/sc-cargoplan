@@ -34,6 +34,7 @@
        moves no test. Data tests check ships/ itself. -->
   <ItemGroup>
     <None Update="FrozenShips/**/*.json" CopyToOutputDirectory="IfDifferent" />
+    <None Update="FrozenOutlines/ship-outlines.json" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
   <!-- Broken and synthetic outline files for the outline loader (D55). -->

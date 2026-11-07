@@ -15,10 +15,10 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class ShipChangeTickTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
-    private static readonly Ship Freelancer = ShipLoader.Load("freelancer");
-    private static readonly Ship C2 = ShipLoader.Load("c2_hercules");
-    private static readonly Ship Clipper = ShipLoader.Load("clipper");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
+    private static readonly Ship Freelancer = FrozenShips.Load("freelancer");
+    private static readonly Ship C2 = FrozenShips.Load("c2_hercules");
+    private static readonly Ship Clipper = FrozenShips.Load("clipper");
 
     private static MissionStop Stop(string destination, string commodity, int scu, CrateSize max, IReadOnlyList<CrateSize>? crates = null) =>
         new(destination, 1, [new MissionItem(commodity, scu, max, crates)]);

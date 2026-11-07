@@ -5,6 +5,7 @@ using System.Windows.Data;
 using CargoPlan.App.Editor;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
@@ -17,7 +18,7 @@ public class SelectedRowConverterTests
         // SelectedItems; with a UI Automation client listening, DataGrid then builds a peer for SelectedItem = null.
         OnSta(() =>
         {
-            var editor = new MissionEditorViewModel(new OverlayViewModel(ShipLoader.Load("hull_a")));
+            var editor = new MissionEditorViewModel(new OverlayViewModel(FrozenShips.Load("hull_a")));
             var grid = Grid(editor);
             grid.SelectedItem = editor.Rows[0];
 
@@ -34,7 +35,7 @@ public class SelectedRowConverterTests
     {
         OnSta(() =>
         {
-            var editor = new MissionEditorViewModel(new OverlayViewModel(ShipLoader.Load("hull_a")));
+            var editor = new MissionEditorViewModel(new OverlayViewModel(FrozenShips.Load("hull_a")));
             var grid = Grid(editor);
             editor.AddRowCommand.Execute(null);
 
@@ -48,7 +49,7 @@ public class SelectedRowConverterTests
         // The view model's null is not written into the grid; the grid drops the removed row's selection itself.
         OnSta(() =>
         {
-            var editor = new MissionEditorViewModel(new OverlayViewModel(ShipLoader.Load("hull_a")));
+            var editor = new MissionEditorViewModel(new OverlayViewModel(FrozenShips.Load("hull_a")));
             var grid = Grid(editor);
             var removed = editor.Rows[0];
             grid.SelectedItem = removed;

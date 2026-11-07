@@ -5,6 +5,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
@@ -16,7 +17,7 @@ namespace CargoPlan.App.Tests;
 /// </summary>
 public sealed class UndoRedoTests
 {
-    private static readonly ShipCatalog Catalog = ShipLoader.LoadAll();
+    private static readonly ShipCatalog Catalog = FrozenShips.LoadAll();
     private static readonly Ship HullA = Catalog.Get("hull_a");
 
     private static OverlayViewModel Showing(SavedPlan saved)

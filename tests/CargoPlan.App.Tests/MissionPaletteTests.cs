@@ -2,13 +2,14 @@ using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
 public class MissionPaletteTests
 {
     private static LoadPlan PlanFor(params string[] destinations) =>
-        TestPlans.Of(ShipLoader.Load("hull_a"), [.. destinations.Select(d => new Placement(d, "rack-0", new CargoItem("Gold", 1, CrateSize.One)))]);
+        TestPlans.Of(FrozenShips.Load("hull_a"), [.. destinations.Select(d => new Placement(d, "rack-0", new CargoItem("Gold", 1, CrateSize.One)))]);
 
     [Fact]
     public void Stops_get_ordinals_in_the_order_they_first_appear_in_the_plan()

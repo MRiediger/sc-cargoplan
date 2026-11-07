@@ -3,6 +3,7 @@ using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
@@ -13,7 +14,7 @@ namespace CargoPlan.App.Tests;
 /// </summary>
 public sealed class DiscardPlanCommandTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static ContractTrackerCandidate Candidate(long id, string destination) =>
         new([id], null, [new MissionStop(destination, 1, [new MissionItem("Stims", 4, CrateSize.Four)])], false, false, null, null, null);

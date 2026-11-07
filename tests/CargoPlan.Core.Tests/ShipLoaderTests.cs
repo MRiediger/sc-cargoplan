@@ -261,7 +261,7 @@ public class ShipLoaderTests
     public void LoadAll_skips_a_broken_file_and_names_it(string shipId)
     {
         using var folder = new ShipFolder();
-        folder.AddShipped("hull_a");
+        folder.AddFrozen("hull_a");
         folder.AddTestShip(shipId);
 
         var catalog = ShipLoader.LoadAll(folder.Path);
@@ -303,7 +303,7 @@ public class ShipLoaderTests
     public void LoadAll_sorts_ships_by_id_ordinal()
     {
         using var folder = new ShipFolder();
-        folder.AddShipped("hull_a");
+        folder.AddFrozen("hull_a");
         folder.AddRenamed("spike_uneven", "b_ship");
         folder.AddRenamed("spike_uneven", "a_ship");
         folder.AddRenamed("spike_uneven", "hull2");
@@ -317,7 +317,7 @@ public class ShipLoaderTests
     public void LoadAll_ignores_files_that_are_not_json()
     {
         using var folder = new ShipFolder();
-        folder.AddShipped("hull_a");
+        folder.AddFrozen("hull_a");
         File.WriteAllText(Path.Combine(folder.Path, "README.txt"), "not a ship");
         File.WriteAllText(Path.Combine(folder.Path, "hull_a.json.bak"), "{");
 
@@ -347,7 +347,7 @@ public class ShipLoaderTests
     public void A_module_adds_one_entry_per_base_ship_after_its_racks()
     {
         using var folder = new ShipFolder();
-        folder.AddShipped("hull_a");
+        folder.AddFrozen("hull_a");
         folder.WriteModule("test_module", TestModule());
 
         var catalog = ShipLoader.LoadAll(folder.Path);
@@ -368,7 +368,7 @@ public class ShipLoaderTests
     public void A_module_for_a_ship_that_is_not_loaded_costs_only_that_entry()
     {
         using var folder = new ShipFolder();
-        folder.AddShipped("hull_a");
+        folder.AddFrozen("hull_a");
         folder.WriteModule("test_module", TestModule(ships: "\"hull_a\", \"nope\""));
 
         var catalog = ShipLoader.LoadAll(folder.Path);
@@ -414,7 +414,7 @@ public class ShipLoaderTests
     public void A_holo_offset_is_read_and_a_module_configuration_keeps_it()
     {
         using var folder = new ShipFolder();
-        folder.AddShipped("hull_a");
+        folder.AddFrozen("hull_a");
         folder.Write("b_ship", WithHoloOffset(PlainShip(), "[0, 0, 1]"));
         folder.WriteModule("test_module", TestModule(ships: "\"b_ship\""));
 
@@ -516,7 +516,7 @@ public class ShipLoaderTests
     public void A_module_rack_takes_no_rotation()
     {
         using var folder = new ShipFolder();
-        folder.AddShipped("hull_a");
+        folder.AddFrozen("hull_a");
         folder.WriteModule("test_module", TestModule().Replace("\"maxCrateSize\": 2", "\"maxCrateSize\": 2, \"rotation\": [10, 0, 0]", StringComparison.Ordinal));
 
         var catalog = ShipLoader.LoadAll(folder.Path);
@@ -532,7 +532,7 @@ public class ShipLoaderTests
     private static ShipCatalog Catalog(string ship, string? module = null)
     {
         using var folder = new ShipFolder();
-        folder.AddShipped("hull_a");
+        folder.AddFrozen("hull_a");
         folder.Write("b_ship", ship);
         if (module is not null)
         {
@@ -663,7 +663,7 @@ public class ShipLoaderTests
     public void A_holo_offset_needs_three_values()
     {
         using var folder = new ShipFolder();
-        folder.AddShipped("hull_a");
+        folder.AddFrozen("hull_a");
         folder.Write("b_ship", WithHoloOffset(PlainShip(), "[0, 1]"));
 
         var catalog = ShipLoader.LoadAll(folder.Path);
@@ -675,7 +675,7 @@ public class ShipLoaderTests
     public void Without_a_modules_folder_the_catalog_holds_the_ship_files_only()
     {
         using var folder = new ShipFolder();
-        folder.AddShipped("hull_a");
+        folder.AddFrozen("hull_a");
 
         ShipLoader.LoadAll(folder.Path).Ships.Select(s => s.Id).Should().Equal("hull_a");
     }
@@ -684,7 +684,7 @@ public class ShipLoaderTests
     public void Catalog_Get_of_a_skipped_ship_throws_ShipNotFoundException_listing_loaded_ids()
     {
         using var folder = new ShipFolder();
-        folder.AddShipped("hull_a");
+        folder.AddFrozen("hull_a");
         folder.AddTestShip("malformed");
 
         var act = () => ShipLoader.LoadAll(folder.Path).Get("malformed");
@@ -696,9 +696,6 @@ public class ShipLoaderTests
     private sealed class ShipFolder : IDisposable
     {
         public string Path { get; } = Directory.CreateTempSubdirectory("cargoplan-ships-").FullName;
-
-        public void AddShipped(string shipId) =>
-            File.Copy(System.IO.Path.Combine(ShipLoader.DefaultFolder, shipId + ".json"), FileOf(shipId));
 
         public void AddTestShip(string shipId) => File.Copy(TestShips.PathOf(shipId), FileOf(shipId));
 

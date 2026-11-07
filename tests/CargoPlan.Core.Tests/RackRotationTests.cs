@@ -11,7 +11,7 @@ namespace CargoPlan.Core.Tests;
 public class RackRotationTests
 {
     private static readonly RackRotation Tilted = new(30, 40, 10);
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static Ship Turned(Ship ship) =>
         new(ship.Id, ship.Name, ship.TotalScu, [.. ship.Racks.Select(r => r with { Rotation = Tilted })]);

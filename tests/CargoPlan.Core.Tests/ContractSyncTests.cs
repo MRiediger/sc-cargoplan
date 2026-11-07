@@ -9,7 +9,7 @@ namespace CargoPlan.Core.Tests;
 /// <summary>Taking ContractTracker captures into the plan (D39 addendum, D41) and the duplicate rule.</summary>
 public class ContractSyncTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static SavedPlan Empty => new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA));
 

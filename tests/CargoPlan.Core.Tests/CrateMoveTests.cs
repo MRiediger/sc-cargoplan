@@ -9,7 +9,7 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class CrateMoveTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static Crate At(string rackId, int length, int width, int stack, CrateSize size = CrateSize.Two) =>
         new("Riker", "Titanium", size, rackId, new GridPosition(length, width, stack));

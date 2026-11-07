@@ -12,8 +12,8 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class MinCrateSizeTests
 {
-    private static readonly Ship HullC = ShipLoader.Load("hull_c");
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullC = FrozenShips.Load("hull_c");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
     private const string Only32 = "doesn't fit (ship takes 32 SCU crates only)";
 
     private static MissionStop Riker(int scu, CrateSize max, params CrateSize[] set) =>

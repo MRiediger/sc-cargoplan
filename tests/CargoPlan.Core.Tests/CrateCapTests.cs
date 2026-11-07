@@ -51,8 +51,8 @@ public class CrateCapTests
     [Fact]
     public void The_shipped_ships_Hull_A_and_Clipper()
     {
-        CrateCap.Of(ShipLoader.Load("hull_a")).Should().Be(new CrateCap(CrateSize.Sixteen, CapReason.LargestRack));
-        CrateCap.Of(ShipLoader.Load("clipper")).Should().Be(new CrateCap(CrateSize.Two, CapReason.Door));
+        CrateCap.Of(FrozenShips.Load("hull_a")).Should().Be(new CrateCap(CrateSize.Sixteen, CapReason.LargestRack));
+        CrateCap.Of(FrozenShips.Load("clipper")).Should().Be(new CrateCap(CrateSize.Two, CapReason.Door));
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public class CrateCapTests
     [Fact]
     public void The_Hull_C_takes_32s_only()
     {
-        var cap = CrateCap.Of(ShipLoader.Load("hull_c"));
+        var cap = CrateCap.Of(FrozenShips.Load("hull_c"));
 
         (cap.Min, cap.Max).Should().Be((CrateSize.ThirtyTwo, CrateSize.ThirtyTwo));
         Enum.GetValues<CrateSize>().Where(cap.Accepts).Should().Equal(CrateSize.ThirtyTwo);
@@ -117,7 +117,7 @@ public class CrateCapTests
     [Fact]
     public void A_minimum_above_the_contract_or_a_rest_below_it_leaves_no_valid_mix()
     {
-        var hullC = CrateCap.Of(ShipLoader.Load("hull_c"));
+        var hullC = CrateCap.Of(FrozenShips.Load("hull_c"));
 
         // No valid mix: the list holds a crate no rack takes, so the planner finds no rack and the mission waits.
         new MissionItem("Titanium", 16, CrateSize.Sixteen).CrateListUnder(hullC).Should().Contain(c => !hullC.Accepts(c));

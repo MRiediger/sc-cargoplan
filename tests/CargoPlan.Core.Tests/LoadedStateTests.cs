@@ -16,8 +16,8 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class LoadedStateTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
-    private static readonly Ship Freelancer = ShipLoader.Load("freelancer");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
+    private static readonly Ship Freelancer = FrozenShips.Load("freelancer");
 
     // --- Helpers ---
 

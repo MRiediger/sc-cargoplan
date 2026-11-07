@@ -3,6 +3,7 @@ using System.Globalization;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using Xunit.Abstractions;
 
 namespace CargoPlan.App.Tests;
@@ -51,7 +52,7 @@ public class SyncTimingTests(ITestOutputHelper output)
 
     private void Row(string name, Action<OverlayViewModel> read, Action<OverlayViewModel>? before = null)
     {
-        var hullA = ShipLoader.Load("hull_a");
+        var hullA = FrozenShips.Load("hull_a");
         var saved = TestPlans.HurstonPickups();
         List<double> runs = [];
         for (var i = 0; i < 6; i++)

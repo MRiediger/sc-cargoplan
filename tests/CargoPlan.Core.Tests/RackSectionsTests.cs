@@ -15,8 +15,8 @@ public class RackSectionsTests
     private const string Faithful = "Faithful Dream Station";
     private const string Melodic = "Melodic Fields Station";
 
-    private static readonly Ship Raft = ShipLoader.Load("raft");
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship Raft = FrozenShips.Load("raft");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static SavedPlan Fixture()
     {
@@ -131,7 +131,7 @@ public class RackSectionsTests
     [MemberData(nameof(Fixtures))]
     public void Sections_change_neither_the_racks_nor_who_waits_in_a_plan_or_re_plan(string fixture, string shipId)
     {
-        var ship = ShipLoader.Load(shipId);
+        var ship = FrozenShips.Load(shipId);
         var stops = MissionFixtures.LoadMissions(fixture);
         Mission[] missions = [.. stops.Select((s, i) => new Mission(i + 1, [s with { Order = 1 }]))];
         string[] route = [.. stops.Select(s => s.Destination)];
@@ -374,7 +374,7 @@ public class RackSectionsTests
         var saved = Planned(FillRows.Crosswise);
         var ticked = WithLine(saved, p => LoadPlanner.SetDelivered(p, Raft, Melodic, true));
 
-        var there = LoadPlanner.Replan(ticked, ShipLoader.Load("freelancer"));
+        var there = LoadPlanner.Replan(ticked, FrozenShips.Load("freelancer"));
 
         there.Plan.Grouping.Should().Be(PlanGrouping.ByDestination);
         there.Plan.Crates.Where(c => c.Destination == Melodic).Should().OnlyContain(c => c.OffShip);

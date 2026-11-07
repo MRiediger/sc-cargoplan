@@ -11,6 +11,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using Xunit.Abstractions;
 
 namespace CargoPlan.App.Tests;
@@ -52,7 +53,7 @@ public class StopHatchTimingTests(ITestOutputHelper output)
 
     private static IEnumerable<string> Measure()
     {
-        var c2 = ShipLoader.Load("c2_hercules");
+        var c2 = FrozenShips.Load("c2_hercules");
         MissionStop[] stops = [.. Enumerable.Range(1, 16).Select(i => new MissionStop($"Stop {i}", i, [new MissionItem("Gold", 8, CrateSize.Two)]))];
         var cap = CrateCap.Of(c2);
         var saved = SavedPlan.FromStops(stops, LoadPlanner.Plan(c2, stops.ToStops(cap)), cap);

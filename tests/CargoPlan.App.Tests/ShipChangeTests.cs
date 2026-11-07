@@ -5,6 +5,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
@@ -12,7 +13,7 @@ namespace CargoPlan.App.Tests;
 /// <summary>The overlay on another ship (D59): a plan made for one is planned anew, never thrown away or refused.</summary>
 public class ShipChangeTests
 {
-    private static readonly ShipCatalog Catalog = ShipLoader.LoadAll();
+    private static readonly ShipCatalog Catalog = FrozenShips.LoadAll();
     private static readonly Ship HullA = Catalog.Get("hull_a");
     private static readonly Ship C2 = Catalog.Get("c2_hercules");
 

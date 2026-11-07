@@ -24,7 +24,7 @@ public sealed class HoloViewTests
     [Fact]
     public void The_hologram_is_true_to_scale_centred_on_the_racks_with_its_middle_at_their_middle()
     {
-        var hullA = ShipLoader.Load("hull_a");
+        var hullA = FrozenShips.Load("hull_a");
         var bounds = hullA.Bounds;
 
         // 30 m × 12.5 m × 10 m: 24 × 10 × 8 cells.
@@ -42,7 +42,7 @@ public sealed class HoloViewTests
     public void A_holo_offset_moves_the_hologram_by_whole_cells()
     {
         // The ship file's holoOffset (K5.3b): from the middle on the racks, here one cell up; the racks stay.
-        var bounds = ShipLoader.Load("hull_a").Bounds;
+        var bounds = FrozenShips.Load("hull_a").Bounds;
         var centred = HoloPlacement.Place(Box(30, 12.5f, 10), bounds);
 
         var lifted = HoloPlacement.Place(Box(30, 12.5f, 10), bounds, new ShipPoint(0, 0, 1));
@@ -90,7 +90,7 @@ public sealed class HoloViewTests
     [Fact]
     public void A_vertex_goes_to_cells_the_way_the_box_does()
     {
-        var placed = HoloPlacement.Place(Box(30, 12.5f, 10), ShipLoader.Load("hull_a").Bounds);
+        var placed = HoloPlacement.Place(Box(30, 12.5f, 10), FrozenShips.Load("hull_a").Bounds);
 
         placed.ToCells(15, 6.25f, 10).Should().Be(new Point3D(placed.Max.X, placed.Max.Y, placed.Max.Z));
         placed.ToCells(-15, -6.25f, 0).Should().Be(new Point3D(placed.Min.X, placed.Min.Y, placed.Min.Z));

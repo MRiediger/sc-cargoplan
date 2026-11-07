@@ -1,14 +1,15 @@
 using CargoPlan.App.Editor;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
 /// <summary>Which ship the overlay starts with (T7.2), and the entries of the header's ship selection (T7.2b).</summary>
 public class ShipChoicesTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
-    private static readonly Ship C2 = ShipLoader.Load("c2_hercules");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
+    private static readonly Ship C2 = FrozenShips.Load("c2_hercules");
 
     private static readonly ShipCatalog Catalog = new(
         [C2, HullA], [new ShipProblem("broken", "Ship file 'broken.json' is invalid: no racks.")]);
@@ -137,9 +138,9 @@ public class ShipChoicesTests
 
     // --- Recent (T7.2c) ---
 
-    private static readonly Ship HullC = ShipLoader.Load("hull_c");
-    private static readonly Ship Freelancer = ShipLoader.Load("freelancer");
-    private static readonly Ship Starfarer = ShipLoader.Load("starfarer");
+    private static readonly Ship HullC = FrozenShips.Load("hull_c");
+    private static readonly Ship Freelancer = FrozenShips.Load("freelancer");
+    private static readonly Ship Starfarer = FrozenShips.Load("starfarer");
 
     private static readonly ShipCatalog Five = new([C2, HullA, HullC, Freelancer, Starfarer], [new ShipProblem("broken", "no racks")]);
 

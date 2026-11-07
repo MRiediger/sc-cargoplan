@@ -7,6 +7,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using Xunit.Abstractions;
 
 namespace CargoPlan.App.Tests;
@@ -100,8 +101,8 @@ public class UndoTimingTests(ITestOutputHelper output)
 
     private static (string Name, Ship Ship, SavedPlan Saved)[] Cases()
     {
-        var hullA = ShipLoader.Load("hull_a");
-        var c2 = ShipLoader.Load("c2_hercules");
+        var hullA = FrozenShips.Load("hull_a");
+        var c2 = FrozenShips.Load("c2_hercules");
         var stops = EightStops();
         return
         [

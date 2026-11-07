@@ -6,6 +6,7 @@ using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Rendering;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
@@ -22,7 +23,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
         }
     }
 
-    private static OverlayViewModel EmptyOverlay() => new(ShipLoader.Load("hull_a"));
+    private static OverlayViewModel EmptyOverlay() => new(FrozenShips.Load("hull_a"));
 
     private static OverlayViewModel OverlayWithPlan()
     {
@@ -33,7 +34,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
     // --- The ship, changed in the overlay header (T7.2b) ---
 
-    private static readonly ShipCatalog Catalog = ShipLoader.LoadAll();
+    private static readonly ShipCatalog Catalog = FrozenShips.LoadAll();
 
     private static OverlayViewModel OverlayOfCatalog()
     {

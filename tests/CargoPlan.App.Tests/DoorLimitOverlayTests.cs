@@ -4,6 +4,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
@@ -13,7 +14,7 @@ namespace CargoPlan.App.Tests;
 /// </summary>
 public class DoorLimitOverlayTests
 {
-    private static readonly ShipCatalog Catalog = ShipLoader.LoadAll();
+    private static readonly ShipCatalog Catalog = FrozenShips.LoadAll();
     private static readonly Ship HullA = Catalog.Get("hull_a");
     private static readonly Ship Clipper = Catalog.Get("clipper");
     private const string DoorNotice = "crates capped to 2 SCU (door limit)";

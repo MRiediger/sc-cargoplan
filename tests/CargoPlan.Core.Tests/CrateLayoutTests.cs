@@ -6,7 +6,7 @@ namespace CargoPlan.Core.Tests;
 
 public class CrateLayoutTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     // Port upper (stacks to +y) and starboard upper (stacks to −y), mirror images across the spindle (D26).
     private static readonly Rack Rack1 = HullA.Racks[0];

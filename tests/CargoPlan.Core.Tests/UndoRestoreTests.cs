@@ -13,7 +13,7 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class UndoRestoreTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static ContractCapture Capture(long id, string destination) =>
         new([new MissionStop(destination, 1, [new MissionItem("Stims", 4, CrateSize.Four)])], new ContractSource([id]));

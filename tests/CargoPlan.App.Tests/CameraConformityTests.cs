@@ -4,6 +4,7 @@ using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
@@ -69,7 +70,7 @@ public class CameraConformityTests
 
     private static ShipScene FullScene(string shipId, CrateSize size)
     {
-        var ship = ShipLoader.Load(shipId);
+        var ship = FrozenShips.Load(shipId);
         Placement[] placements = [.. ship.Racks.Select(r => new Placement("Sample", r.Id, new CargoItem("Sample", r.CapacityScu, size)))];
         return ShipViewBuilder.Build(new LoadPlan(ship.Id, CrateLayout.LayOut(ship, placements, FillOrder.BowFirst), []), ship, []);
     }

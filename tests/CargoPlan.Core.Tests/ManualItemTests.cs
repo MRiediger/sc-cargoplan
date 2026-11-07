@@ -15,7 +15,7 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class ManualItemTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     /// <summary>Capture 37 to Riker, and Melodic Fields added by hand to the same mission.</summary>
     private static SavedPlan WithManualStop()

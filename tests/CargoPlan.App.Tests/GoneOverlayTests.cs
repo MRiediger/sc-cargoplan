@@ -4,6 +4,7 @@ using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
@@ -15,7 +16,7 @@ namespace CargoPlan.App.Tests;
 /// </summary>
 public class GoneOverlayTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static ContractTrackerCandidate Candidate(long id, string destination, int scu = 4, CrateSize max = CrateSize.Four) =>
         new([id], null, [new MissionStop(destination, 1, [new MissionItem("Stims", scu, max)])], false, false, null, null, null);

@@ -9,8 +9,8 @@ namespace CargoPlan.Core.Tests;
 /// <summary>A plan moved to another ship (D59): planned anew from its missions, ticks per stop kept.</summary>
 public class ReplanTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
-    private static readonly Ship C2 = ShipLoader.Load("c2_hercules");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
+    private static readonly Ship C2 = FrozenShips.Load("c2_hercules");
 
     private static MissionStop Stop(string destination, string commodity, int scu, CrateSize max) =>
         new(destination, 1, [new MissionItem(commodity, scu, max)]);
@@ -159,7 +159,7 @@ public class ReplanTests
     [Trait("Category", "Slow")]
     public void Replan_of_the_load_case_onto_the_Freelancer_places_every_mission()
     {
-        var after = LoadPlanner.Replan(EightStops(HullA), ShipLoader.Load("freelancer"));
+        var after = LoadPlanner.Replan(EightStops(HullA), FrozenShips.Load("freelancer"));
 
         after.Missions.Should().OnlyContain(m => !m.Unplaced);
     }

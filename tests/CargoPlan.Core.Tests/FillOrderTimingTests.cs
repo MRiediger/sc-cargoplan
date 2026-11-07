@@ -100,7 +100,7 @@ public class FillOrderTimingTests(ITestOutputHelper output)
     /// </summary>
     private static (string Name, Ship Ship, IReadOnlyList<Mission> Missions, IReadOnlyList<string> Route)[] Cases()
     {
-        var raft = ShipLoader.Load("raft");
+        var raft = FrozenShips.Load("raft");
         using var stream = MissionFixtures.Open("plans/raft_hand_2026-11-05.json");
         var saved = PlanFile.Read(stream, "raft_hand_2026-11-05.json", raft);
 
@@ -114,7 +114,7 @@ public class FillOrderTimingTests(ITestOutputHelper output)
         return
         [
             ("RAFT fixture", raft, saved.Missions, [.. saved.Stops.Select(s => s.Destination)]),
-            ("Hull C eight stops", ShipLoader.Load("hull_c"), hullC, destinations),
+            ("Hull C eight stops", FrozenShips.Load("hull_c"), hullC, destinations),
             ("RAFT eight stops", raft, raftEight, [.. eight.Select(s => s.Destination)]),
         ];
     }

@@ -14,7 +14,7 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class CrateItemTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static MissionItem Item(string commodity, int scu, CrateSize max, string[]? pickup = null, CrateSize[]? crates = null) =>
         new(commodity, scu, max, crates, pickup);

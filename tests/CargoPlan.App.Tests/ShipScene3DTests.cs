@@ -4,6 +4,7 @@ using System.Windows.Media.Media3D;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
@@ -17,7 +18,7 @@ public class ShipScene3DTests
     // Hull A, three stops: Riker in rack 1 (two crates), Shubin in rack 2 (one), Orison delivered in rack 3, one crate off the ship.
     private static (ShipScene Scene, Crate[] Crates) HullA()
     {
-        var ship = ShipLoader.Load("hull_a");
+        var ship = FrozenShips.Load("hull_a");
         var racks = ship.Racks;
         Crate[] crates =
         [
@@ -102,7 +103,7 @@ public class ShipScene3DTests
     private static readonly Color HaloColour = Color.FromArgb(0x80, 0, 0, 0);
 
     private static ShipScene WithOutline(ShipScene scene) =>
-        scene with { Marker = new BowMarker.Outline(OutlinePlacement.Place(ShipOutlineLoader.Load().For(scene.Ship)!, scene.Ship)) };
+        scene with { Marker = new BowMarker.Outline(OutlinePlacement.Place(FrozenOutlines.Load().For(scene.Ship)!, scene.Ship)) };
 
     private static CrateLook Look(ShipScene scene, OutlinePaint outline) => Look(scene) with { Outline = outline };
 
@@ -203,7 +204,7 @@ public class ShipScene3DTests
     {
         Sta.Run(() =>
         {
-            var ship = ShipLoader.Load("hull_a");
+            var ship = FrozenShips.Load("hull_a");
             var scene = ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
             var scene3D = new ShipScene3D();
             scene3D.Show(scene, Look(scene));
@@ -236,7 +237,7 @@ public class ShipScene3DTests
     {
         Sta.Run(() =>
         {
-            var ship = ShipLoader.Load("hull_a");
+            var ship = FrozenShips.Load("hull_a");
             var scene = ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
             var scene3D = new ShipScene3D();
             scene3D.Show(scene, Look(scene));
@@ -291,7 +292,7 @@ public class ShipScene3DTests
     {
         Sta.Run(() =>
         {
-            var ship = ShipLoader.Load("hull_a");
+            var ship = FrozenShips.Load("hull_a");
             var scene = ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
             var scene3D = new ShipScene3D();
             scene3D.Show(scene, Look(scene));

@@ -18,8 +18,8 @@ public class SectionGapTests
     private const string Faithful = "Faithful Dream Station";
     private const string Melodic = "Melodic Fields Station";
 
-    private static readonly Ship Raft = ShipLoader.Load("raft");
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship Raft = FrozenShips.Load("raft");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static SavedPlan Fixture()
     {
@@ -210,7 +210,7 @@ public class SectionGapTests
     [MemberData(nameof(Fixtures))]
     public void Gaps_change_neither_the_racks_nor_who_waits(string fixture, string shipId, int gap)
     {
-        var ship = ShipLoader.Load(shipId);
+        var ship = FrozenShips.Load(shipId);
         var stops = MissionFixtures.LoadMissions(fixture);
         Mission[] missions = [.. stops.Select((s, i) => new Mission(i + 1, [s with { Order = 1 }]))];
         string[] route = [.. stops.Select(s => s.Destination)];
@@ -286,7 +286,7 @@ public class SectionGapTests
         var saved = Planned(FillRows.Crosswise, 2);
 
         LoadPlanner.Discard(saved, Raft).Plan.SectionGap.Should().Be(2);
-        LoadPlanner.Replan(saved, ShipLoader.Load("freelancer")).Plan.SectionGap.Should().Be(2);
+        LoadPlanner.Replan(saved, FrozenShips.Load("freelancer")).Plan.SectionGap.Should().Be(2);
     }
 
     [Fact]
