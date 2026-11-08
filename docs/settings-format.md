@@ -210,9 +210,9 @@ opacity is `holoOpacity`, so an alpha below `FF` is set to `FF` with a notice. N
 default, with a notice for one that isn't a colour.
 
 `downloadShipHolograms`: `true` (the default) lets a hologram look download the ship's file from this repository's
-release `holo-v1` on GitHub when you pick a ship, one file per ship, and the list of files at most once a day. Nothing
+release `holo-v2` on GitHub when you pick a ship, one file per ship, and the list of files at most once a day. Nothing
 else is sent. `false` means no network access at all; holograms already downloaded still show. They are kept in
-`%LocalAppData%\SC-CargoPlan\holo\holo-v1\` ([format](holo-format.md)).
+`%LocalAppData%\SC-CargoPlan\holo\holo-v2\` ([format](holo-format.md)); v0.1 and v0.2 used `holo-v1`.
 
 `shipView` holds the zoom and the view per ship. Missing or `null` means the defaults.
 

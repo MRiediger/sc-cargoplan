@@ -4350,6 +4350,181 @@ one bleibt bei einigen kleinen Schiffen gleich, weil die Kamera auf die Racks pa
 
 Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (c) liegt die RAFT am niedrigsten, weil ihr Gitterrahmen im Holo durchbrochen, im Umriss geschlossen ist. (a) < 1 ist bei Schiffen mit Außenfracht erwartet (Hull A) und kein Fehler, nur ein Grund zum Hinsehen.
 
+**Befund** (Katalog 2026-11-07, 96 Modelle, 49,8 MB):
+- **Format:** roh (kein Draco/meshopt), je 1 Node ohne Transform, 1 Mesh, nur POSITION, Meter. glTF = (Spiel x, Spiel z, −Spiel y), Bug −z, oben +y, Steuerbord +x. Schiff = (−glTF z, −glTF x, glTF y), det +1: keine Spiegelung (eindeutig an der Reliant Tana, deren einziges Grid außermittig sitzt). Ursprung = Spielmodell, quer mittig, längs nicht (Hull A 11 m hinter dem Bug).
+- **Hull A, B, C** tragen `cargoPose`: Spindel ausgefahren, Hull A 29,4 m (Fleetyards im Flug 23,42 m).
+- **Entfallen** in der Pipeline: Bugachse per IoU gegen den Fleetyards-Umriss, Skalierung auf die Fleetyards-Länge, Neu-Zentrierung, Draco-Decode (`holo_mesh.py flatten`). **Bleiben:** Streu-Filter, Weld, Cull, Leiter, `judge`, SCH2.
+- **Hull-A-Probe** (`preview/holo-v2/hull_a_probe.png`): Racks am Spindelabschnitt, Platten in den Boxen, Spindel ausgefahren. Die Racks ragen seitlich bis 5,6 m über die Achse, der Bugteil ist ±4,66 m breit: Kisten hängen außen an der Spindel. Kein Stopp.
+
+**Dreiecke und Größe:**
+
+| | holo-v1 | holo-v2 |
+|---|---|---|
+| Dateien | 118 (65,1 MB) | 98 (31,4 MB): 95 Modelle, 3 aus holo-v1 byte-gleich |
+| Dreiecke min / Median / max | 19 646 / 39 249 / 50 782 | 2 249 / 19 787 / 39 997 |
+| Stufen 20k / 30k / 40k | 37 / 21 / 59 | 59 / 10 / 29 |
+| `judge` bestanden | 69 von 117 | 77 von 98 |
+| Hull A / Hull C / Reclaimer | 19 896 / 39 949 / 39 884 | 13 085 / 29 304 / 19 947 |
+| Override nötig | Centaurus (50 782) | keiner (Centaurus 39 374) |
+
+- Roh: 2 284 (UTV) bis 134 444 (Ironclad Assault), Median 37 773. Streu-Dreiecke: 0 bei allen 96.
+- Nicht bestanden (alle auf 40k, wie in holo-v1 Sache des Kontaktabzugs): Hammerhead, Idris M/P, Tiburon, RAFT, SRV, Corsair, Ironclad, Ironclad Assault, Starfarer, Starfarer Gemini, Starlancer MAX/TAC, Apollo Medivac/Triage, Constellation Aquila/Phoenix, Centaurus, Hermes, Perseus, Polaris.
+- Umrisse: 98 Einträge, 8 573 Punkte, 149 KB, alle eine Kontur. Größeres Schließen bei MOLE (0,8 m), MOTH (1,6), Ironclad und Ironclad Assault (0,8).
+
+<details><summary>Dreiecke pro Slug, holo-v1 → holo-v2</summary>
+
+| Slug | Modell | roh | Streu | v1 Stufe | v1 Dreiecke | v2 Stufe | v2 Dreiecke | v2 judge | v1 Bytes | v2 Bytes |
+|---|---|---|---|---|---|---|---|---|---|---|
+| aegs-avenger-titan | AEGS_Avenger_Titan | 7644 | 0 | 30000 | 29712 | 20000 | 6732 | True | 501740 | 105664 |
+| aegs-avenger-titan-renegade | AEGS_Avenger_Titan_Renegade | 6931 | 0 | 30000 | 29725 | 20000 | 6060 | True | 501990 | 97408 |
+| aegs-hammerhead | AEGS_Hammerhead_GS | 91543 | 0 | 40000 | 39947 | 40000 | 39353 | False | 657078 | 535478 |
+| aegs-idris-m | AEGS_Idris_M | 90548 | 0 | 40000 | 39895 | 40000 | 39888 | False | 642734 | 565616 |
+| aegs-idris-p | AEGS_Idris_P | 90680 | 0 | 40000 | 39895 | 40000 | 39840 | False | 642734 | 561848 |
+| aegs-reclaimer | AEGS_Reclaimer | 69515 | 0 | 40000 | 39884 | 20000 | 19947 | True | 608016 | 337734 |
+| aegs-redeemer | AEGS_Redeemer | 39434 | 0 | 20000 | 19782 | 20000 | 19716 | True | 361656 | 283752 |
+| aegs-tiburon | AEGS_Tiburon | 94471 | 0 | 30000 | 29516 | 40000 | 39361 | False | 525936 | 521910 |
+| anvl-asgard | ANVL_Asgard | 53350 | 0 | 30000 | 29654 | 40000 | 39997 | True | 540680 | 555550 |
+| anvl-c8-pisces | ANVL_C8_Pisces | 3525 | 0 | 20000 | 19934 | 20000 | 3368 | True | 350448 | 56644 |
+| anvl-c8x-pisces-expedition | ANVL_C8X_Pisces_Expedition | 3528 | 0 | 20000 | 19850 | 20000 | 3416 | True | 355944 | 57484 |
+| anvl-carrack | ANVL_Carrack | 72464 | 0 | 40000 | 39620 | 20000 | 19741 | True | 642360 | 323358 |
+| anvl-f7c-hornet-mk-ii | fleetyards (holo-v1) |  |  | 20000 | 19799 | 20000 | 19799 | True | 403390 | 403390 |
+| anvl-paladin | ANVL_Paladin | 75101 | 0 | 40000 | 39600 | 30000 | 29328 | True | 668892 | 395916 |
+| anvl-valkyrie | ANVL_Valkyrie | 40865 | 0 | 30000 | 29663 | 30000 | 29958 | True | 528494 | 454028 |
+| argo-csv-sm | ARGO_CSV_Cargo | 5364 | 0 | 30000 | 29818 | 20000 | 5263 | True | 550872 | 68654 |
+| argo-mole | ARGO_MOLE | 39399 | 0 | 40000 | 39896 | 30000 | 29999 | True | 717504 | 435594 |
+| argo-moth | ARGO_MOTH | 48741 | 0 | 40000 | 39795 | 30000 | 29987 | True | 697650 | 417178 |
+| argo-mpuv-cargo | ARGO_MPUV | 3779 | 0 | 20000 | 19988 | 20000 | 3457 | True | 396924 | 53190 |
+| argo-mpuv-tractor | ARGO_MPUV_1T | 4935 | 0 | 40000 | 39914 | 20000 | 4482 | True | 713268 | 62620 |
+| argo-raft | ARGO_RAFT | 45645 | 0 | 40000 | 39283 | 40000 | 39972 | False | 695750 | 558432 |
+| argo-srv | ARGO_SRV | 48578 | 0 | 40000 | 39681 | 40000 | 39930 | False | 704722 | 512328 |
+| cnou-mustang-alpha | CNOU_Mustang_Alpha | 12250 | 0 | 20000 | 19858 | 20000 | 11212 | True | 365880 | 172568 |
+| cnou-nomad | CNOU_Nomad | 8541 | 0 | 20000 | 19793 | 20000 | 6379 | True | 348762 | 107874 |
+| crus-a2-hercules | CRUS_Starlifter_A2 | 55135 | 0 | 30000 | 29847 | 20000 | 19998 | True | 506670 | 297000 |
+| crus-c1-spirit | CRUS_Spirit_C1 | 20113 | 0 | 30000 | 29656 | 20000 | 15002 | True | 577416 | 222392 |
+| crus-c2-hercules | CRUS_Starlifter_C2 | 45932 | 0 | 20000 | 19885 | 20000 | 19900 | True | 361206 | 304980 |
+| crus-intrepid | CRUS_Intrepid | 32731 | 0 | 20000 | 19865 | 30000 | 23819 | True | 363054 | 308758 |
+| crus-m2-hercules | CRUS_Starlifter_M2 | 47872 | 0 | 20000 | 19981 | 20000 | 19814 | True | 362550 | 302016 |
+| crus-mercury-star-runner | CRUS_Star_Runner | 26996 | 0 | 20000 | 19773 | 20000 | 16513 | True | 363918 | 285822 |
+| drak-caterpillar | DRAK_Caterpillar | 96024 | 0 | 40000 | 39746 | 30000 | 29407 | True | 678000 | 406986 |
+| drak-clipper | DRAK_Clipper | 65370 | 0 | 40000 | 39613 | 40000 | 39918 | True | 662058 | 503292 |
+| drak-corsair | DRAK_Corsair | 85953 | 0 | 40000 | 39825 | 40000 | 39923 | False | 659142 | 531266 |
+| drak-cutlass-black | DRAK_Cutlass_Black | 26617 | 0 | 30000 | 29550 | 30000 | 20572 | True | 536648 | 328272 |
+| drak-cutlass-blue | DRAK_Cutlass_Blue | 26600 | 0 | 30000 | 29934 | 20000 | 20000 | True | 547092 | 322784 |
+| drak-cutlass-red | DRAK_Cutlass_Red | 23282 | 0 | 30000 | 29606 | 20000 | 19996 | True | 544956 | 323292 |
+| drak-cutter | DRAK_Cutter | 18348 | 0 | 40000 | 39539 | 20000 | 15718 | True | 748182 | 234960 |
+| drak-cutter-rambler | DRAK_Cutter_Rambler | 21704 | 0 | 40000 | 39651 | 20000 | 18623 | True | 752370 | 269010 |
+| drak-cutter-scout | DRAK_Cutter_Scout | 20427 | 0 | 40000 | 39310 | 20000 | 17708 | True | 697556 | 261240 |
+| drak-golem-ox | DRAK_Golem_OX | 21413 | 0 | 40000 | 39607 | 20000 | 17245 | True | 717798 | 238698 |
+| drak-ironclad | DRAK_Ironclad | 125207 | 0 | 40000 | 39927 | 40000 | 39758 | False | 702098 | 488100 |
+| drak-ironclad-assault | DRAK_Ironclad_Assault | 134444 | 0 | 40000 | 40025 | 40000 | 38716 | False | 689022 | 466608 |
+| drak-mule | DRAK_Mule | 3559 | 0 | 30000 | 29952 | 20000 | 3283 | True | 560904 | 41718 |
+| drak-vulture | DRAK_Vulture | 36696 | 0 | 40000 | 39768 | 20000 | 19596 | True | 719808 | 282584 |
+| espr-prowler-utility | ESPR_Prowler_Utility | 46270 | 0 | 30000 | 29754 | 40000 | 35436 | True | 511904 | 454188 |
+| gama-railen | GAMA_Railen | 53320 | 0 | 40000 | 39949 | 40000 | 39475 | True | 643546 | 492910 |
+| gama-syulen | GAMA_Syulen | 19131 | 0 | 40000 | 39900 | 20000 | 17235 | True | 743412 | 270606 |
+| gama-tyilui | GAMA_Tyilui | 64290 | 0 | 40000 | 39934 | 40000 | 39255 | True | 627204 | 469938 |
+| grey-shiv | GLSN_Shiv | 50193 | 0 | 40000 | 39249 | 20000 | 19530 | True | 750002 | 283812 |
+| grin-utv | GRIN_UTV | 2284 | 0 | 30000 | 29625 | 20000 | 2249 | True | 545886 | 28422 |
+| misc-fortune | MISC_Fortune | 37546 | 0 | 20000 | 19927 | 30000 | 29974 | True | 372306 | 385304 |
+| misc-freelancer | MISC_Freelancer | 15894 | 0 | 20000 | 19740 | 20000 | 10712 | True | 379704 | 158920 |
+| misc-freelancer-dur | MISC_Freelancer_DUR | 18878 | 0 | 20000 | 19982 | 20000 | 13651 | True | 374784 | 219278 |
+| misc-freelancer-max | MISC_Freelancer_MAX | 21907 | 0 | 20000 | 19940 | 20000 | 16761 | True | 380484 | 250602 |
+| misc-freelancer-mis | MISC_Freelancer_MIS | 20772 | 0 | 20000 | 19958 | 20000 | 12399 | True | 379020 | 188362 |
+| misc-hull-a | MISC_Hull_A | 14575 | 0 | 20000 | 19896 | 20000 | 13085 | True | 395196 | 185882 |
+| misc-hull-b | MISC_Hull_B | 113235 | 0 | 20000 | 19646 | 20000 | 19702 | True | 368028 | 264756 |
+| misc-hull-c | MISC_Hull_C | 88074 | 0 | 40000 | 39949 | 30000 | 29304 | True | 708138 | 435248 |
+| misc-reliant-kore | MISC_Reliant | 13304 | 0 | 40000 | 39598 | 20000 | 11000 | True | 733900 | 177288 |
+| misc-reliant-tana | MISC_Reliant_Tana | 14108 | 0 | 40000 | 39658 | 20000 | 11037 | True | 741564 | 177810 |
+| misc-starfarer | MISC_Starfarer | 70283 | 0 | 40000 | 39775 | 40000 | 39330 | False | 688806 | 533940 |
+| misc-starfarer-gemini | MISC_Starfarer_Gemini | 71121 | 0 | 40000 | 39775 | 40000 | 39277 | False | 692030 | 533246 |
+| misc-starlancer-max | MISC_Starlancer_Max | 110375 | 0 | 30000 | 29902 | 40000 | 38577 | False | 512052 | 477534 |
+| misc-starlancer-tac | MISC_Starlancer_TAC | 121909 | 0 | 40000 | 39958 | 40000 | 39098 | False | 652200 | 505704 |
+| orig-100i | ORIG_100i | 8057 | 0 | 40000 | 39992 | 20000 | 6699 | True | 659212 | 93794 |
+| orig-125a | ORIG_125a | 8992 | 0 | 40000 | 39895 | 20000 | 7208 | True | 662046 | 101228 |
+| orig-135c | fleetyards (holo-v1) |  |  | 40000 | 39947 | 40000 | 39947 | True | 661206 | 661206 |
+| orig-300i | ORIG_300i | 7772 | 0 | 20000 | 19855 | 20000 | 6507 | True | 396066 | 100214 |
+| orig-315p | ORIG_315p | 8352 | 0 | 20000 | 19866 | 20000 | 6838 | True | 397164 | 104864 |
+| orig-325a | ORIG_325a | 8667 | 0 | 40000 | 39977 | 20000 | 7079 | True | 600942 | 108230 |
+| orig-350r | ORIG_350r | 7878 | 0 | 40000 | 39973 | 20000 | 6355 | True | 604758 | 100722 |
+| orig-400i | ORIG_400i | 23741 | 0 | 30000 | 29643 | 20000 | 18508 | True | 523470 | 287576 |
+| orig-600i-executive-edition | fleetyards (holo-v1) |  |  | 20000 | 19888 | 20000 | 19888 | True | 369420 | 369420 |
+| orig-600i-explorer | ORIG_600i | 72150 | 0 | 20000 | 19888 | 20000 | 19803 | True | 369420 | 315402 |
+| orig-600i-touring | ORIG_600i_Touring | 68205 | 0 | 20000 | 19883 | 20000 | 19818 | True | 370206 | 314316 |
+| orig-890-jump | ORIG_890Jump | 64419 | 0 | 40000 | 39963 | 20000 | 19774 | True | 678894 | 334668 |
+| orig-m80 | ORIG_m80 | 43469 | 0 | 40000 | 39842 | 20000 | 19669 | True | 681048 | 275526 |
+| rsi-apollo-medivac | RSI_Apollo_Medivac | 88542 | 0 | 40000 | 39869 | 40000 | 39707 | False | 684810 | 567026 |
+| rsi-apollo-triage | RSI_Apollo_Triage | 88824 | 0 | 40000 | 39804 | 40000 | 39694 | False | 683880 | 563520 |
+| rsi-aurora-mk-i-cl | RSI_Aurora_GS_CL | 19941 | 0 | 20000 | 19916 | 20000 | 15463 | True | 356820 | 220002 |
+| rsi-aurora-mk-i-es | RSI_Aurora_GS_ES | 19572 | 0 | 20000 | 19916 | 20000 | 15242 | True | 356820 | 217368 |
+| rsi-aurora-mk-i-ln | RSI_Aurora_GS_LN | 20318 | 0 | 20000 | 19916 | 20000 | 15826 | True | 356820 | 223836 |
+| rsi-aurora-mk-i-lx | RSI_Aurora_GS_LX | 19553 | 0 | 20000 | 19916 | 20000 | 15248 | True | 356820 | 217392 |
+| rsi-aurora-mk-i-mr | RSI_Aurora_GS_MR | 19637 | 0 | 20000 | 19916 | 20000 | 15228 | True | 356820 | 217320 |
+| rsi-aurora-mk-i-se | RSI_Aurora_GS_SE | 20438 | 0 | 20000 | 19836 | 20000 | 15970 | True | 379644 | 225768 |
+| rsi-aurora-mk-ii | RSI_Aurora_Mk2 | 38000 | 0 | 40000 | 39952 | 30000 | 29312 | True | 731724 | 350732 |
+| rsi-constellation-mk-iv-andromeda | RSI_Constellation_Andromeda_GS | 70768 | 0 | 40000 | 39924 | 40000 | 39462 | True | 719496 | 525168 |
+| rsi-constellation-mk-iv-aquila | RSI_Constellation_Aquila_GS | 68091 | 0 | 40000 | 39854 | 40000 | 39676 | False | 727584 | 533388 |
+| rsi-constellation-mk-iv-phoenix | RSI_Constellation_Phoenix_GS | 67773 | 0 | 40000 | 39904 | 40000 | 39517 | False | 712008 | 526794 |
+| rsi-constellation-mk-iv-taurus | RSI_Constellation_Taurus_GS | 68614 | 0 | 40000 | 39600 | 40000 | 39525 | True | 732108 | 523398 |
+| rsi-constellation-mk-v-centaurus | RSI_Constellation_Mk5_Centaurus | 94447 | 0 | 40000 | 50782 | 40000 | 39374 | False | 799308 | 516132 |
+| rsi-hermes | RSI_Hermes | 85645 | 0 | 40000 | 39721 | 40000 | 39554 | False | 697442 | 559340 |
+| rsi-perseus | RSI_Perseus | 108406 | 0 | 40000 | 39816 | 40000 | 38663 | False | 656460 | 404822 |
+| rsi-polaris | RSI_Polaris | 119291 | 0 | 40000 | 39756 | 40000 | 39414 | False | 613560 | 485316 |
+| rsi-salvation | RSI_Salvation | 19228 | 0 | 20000 | 19931 | 20000 | 14074 | True | 410550 | 206172 |
+| rsi-zeus-mk-ii-cl | RSI_Zeus_CL | 29815 | 0 | 20000 | 19981 | 20000 | 19350 | True | 357630 | 300456 |
+| rsi-zeus-mk-ii-es | RSI_Zeus_ES | 26957 | 0 | 20000 | 19981 | 20000 | 17439 | True | 357630 | 278010 |
+| tmbl-cyclone | TMBL_Cyclone | 4660 | 0 |  |  | 20000 | 4585 | True |  | 60286 |
+
+</details>
+
+**`fit` über alle 102** (Schwellen E1, vor dem Lauf festgelegt):
+- (b) > 0,05: nur **Fortune Rack 2** (rack-1, Backbord-Seitenbucht, senkrecht), 0,456. Rack 3 auf der anderen Seite liegt darunter. Seite und Lage stimmen, die Hülle schneidet in die Box. Vermutlich Rundung (rack-1 in 4a [0,12; 0,31; −0,11] Zellen) oder eine geschlossene Bucht im Modell. **Auffällig für Martins Blick.**
+- (a) < 1: csv_sm 0,50, hull_a 0,375, hull_b 0,875, mpuv_tractor 0,50, utv 0,50. Außenfracht oder offene Ladefläche (Probe-Bilder Hull B, MPUV Tractor angesehen: Spindel ±42°, Frachtbucht unter dem Rumpf).
+- (c) < 0,90: keins. Niedrigste: MOTH 0,919, RAFT 0,921, Hull C 0,941.
+
+**Daten (C4):** Konverterlauf 102 updated, 0 „anchors kept“; zweiter Lauf 102 same. Diffs nur in Ankerzeilen. `outlineScale` fällt bei Hull A, Caterpillar, Syulen und Railen weg. Cyclone mit Slug `tmbl-cyclone`. TS-Modul ohne eigene Anker: Es zeigt die Hülle der Aurora, vorher drei Zellen achtern, nur um das Bild zu halten (D90). Aurora-Mk-II-Notiz ohne den veralteten Satz zur Holo-Höhe. Zwei Datentests bekamen Nachfolger (Hull-A-Umriss aus dem Modell, TS-Modul zeigt die Schiffshülle).
+
+**Bildvergleich** (`ShipPictureTests` gegen `main` 05feead mit holo-v1, Branch mit holo-v2):
+
+| Look | gleich | anders |
+|---|---|---|
+| none (400×302, 800×600) | **106 / 106** | 0 |
+| outline, holo-* (fit, cargo, above) | 3 (die drei Fleetyards-Schiffe) | 103 |
+| saved (5 Gate-Schiffe) | 0 | 5 |
+
+1 Bild fehlt: `cyclone;outline;above`. Die Cyclone hat jetzt ein Holo, die Draufsicht zeigt es statt des Umrisses.
+
+**Tests:** Core 1814, App 1621, Import 141 grün; `Category=Slow` 2/2; Pipeline 53 + 5 Tests (Outline-Repo).
+
+**Kontaktabzug nachher** (Martins Sichtprüfung): `Documents\Coding\Dotnet\sc-ship-outlines\preview\holo-v2\sheet\_sheet1.png` … `_sheet9.png`, je schräg und von oben, Holo schattiert mit Racks. Die drei Fleetyards-Schiffe zeigen „no picture“: Sie sind bitgleich zu 4a, der Harness speichert mit Baseline nur abweichende Bilder (4a-Kontaktabzug). Probe-Bilder der Auffälligen: `preview\holo-v2\*_probe.png`.
+
+**Frame-Zeit über dem Spiel** (Martin, SC läuft hier nicht): `main`-Build mit dem Reclaimer-Ziel liegt im Scratch-Worktree, Probelauf ohne Spiel ok (`reclaimer 420 crates, holo yes`, 59,6 fps, spät 0,6 %). Gate: gleiches Ziel vorher/nachher, Anteil später Frames ≤ +2 pp; Ziele `hull_c`, `hull_c_drag`, `reclaimer`, je drei Läufe, Median.
+
+**Abnahme:**
+- [x] A2 als eigener Commit vor jedem Anker, Testzahlen unverändert
+- [x] Hull-A-Probe: Rack im Holo, Platten in der Spindel, Spindel ausgefahren
+- [x] Alle Modelle, Dreieckstabelle, Asset-Größe (31,4 MB)
+- [x] Anker für 102 Dateien, Look `none` bitgleich bei 106 von 106
+- [x] Konverter schreibt die Anker (Tests erst rot), zweiter Lauf ändert nichts
+- [ ] Frame-Zeit `--over-game` `hull_c`, `hull_c_drag`, `reclaimer`, `main` gegen Branch (Martin)
+- [ ] Martin: Kontaktabzug – Racks in der Hülle, keine Fehlseiten, Umriss passt; Liste zurück
+- [ ] Rückfrage, dann Upload `holo-v2` (Pre-Release, NOTICE)
+- [ ] Martin über dem Spiel (Publish-Build): Hull A (Spindel), RAFT, Aurora Mk II · TS module, Hull C, GRIN UTV – Holo-Download, Bild flüssig, Racks sitzen; Holo-Halbtransparenz und Rack-Nummern-Verdeckung am neuen Mesh
+- [ ] Merge `--no-ff`, Martin pusht, kein Tag
+
+**Offen für 4c:**
+- `fleetyardsSlug` → `modelKey` mit Lade-Migration (E2).
+- Den verwaisten Cache `holo\holo-v1\` beim Start entfernen (App-Code, E2).
+- Die drei Fleetyards-Schiffe (135c, 600i EE, F7C Mk II), `import-fleetyards.ps1`, Fleetyards-Credits.
+- Erster echter Abruf über die Motherlode-API (`fetch-motherlode.ps1`, umgestellt in dieser Session, Martin 07.11.). Danach Konverter, Pipeline nur bei geänderten Modellen.
+- Fortune Rack 2: hängt am Kontaktabzug. Bei Bedarf `shift` (D91) oder ein Spielerbericht als Auslöser.
+- Nexus-Texte zum 0.3.0-Upload: `holo-v1` → `holo-v2` (`docs/nexus/checklist.md:100`, `staff-request.md:39`), Credit „cargo grid data and ship models from cryon.rocks (Motherlode)“.
+
+**Material für Release-Notes v0.3.0:**
+- Hull holograms now come from the same game data as the racks – ships finally line up.
+- Hull A, B and C appear in the overlay with the spindle extended (cargo pose), as at the elevator.
+- Outlines are the game models' top views at true size; the Cyclone now has a hologram too.
+- Holograms download from the new release `holo-v2` (31 MB for all ships instead of 65); v0.2 keeps using `holo-v1`.
+
 ## Phase 10 – nach dem Launch
 
 ### [ ] T10.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)

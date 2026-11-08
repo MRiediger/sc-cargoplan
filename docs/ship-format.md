@@ -19,10 +19,9 @@ reported (the CLI prints it, the app lists the ship under **Not loaded** in the 
   "name": "MISC Hull A",
   "manufacturer": "MISC",
   "fleetyardsSlug": "misc-hull-a",
-  "source": "in game",
-  "holoOrigin": [1.9994277954101562, -0.5005714416503906, 0.2602119445800781],
-  "outlineOrigin": [2, -0.5, 0],
-  "outlineScale": 1.1199999999999999,
+  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "holoOrigin": [0.1877, 0.505, 0.1355],
+  "outlineOrigin": [0.1877, 0.505, -2.1253],
   "totalScu": 64,
   "racks": [
     {
@@ -30,7 +29,7 @@ reported (the CLI prints it, the app lists the ship under **Not loaded** in the 
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "position": { "side": "port", "level": "upper" },
-      "origin": [0, 1, 3],
+      "origin": [-9, 3, 1],
       "stackAxis": "+y"
     },
     {
@@ -38,7 +37,7 @@ reported (the CLI prints it, the app lists the ship under **Not loaded** in the 
       "capacityScu": 16,
       "grid": { "length": 4, "width": 2, "stack": 2 },
       "position": { "side": "port", "level": "lower" },
-      "origin": [0, 1, 0],
+      "origin": [-9, 3, -2],
       "stackAxis": "+y"
     }
   ]
@@ -63,9 +62,9 @@ being ignored silently.
 | `fleetyardsSlug` | string | *Optional.* The ship's slug on Fleetyards, e.g. `"misc-hull-a"`. It picks the ship's outline from `outlines/ship-outlines.json` (traced from Fleetyards renders, not under the MIT licence, see `outlines/NOTICE.md`); without a match the ship view shows the bow wedge. Not empty if present. |
 | `source` | string | *Optional.* Where the values come from, e.g. `"in game"` (measured in the hangar) or `"Fleetyards API (CIG ship matrix), export 2026-10-26"` (written by the import). Not empty if present. |
 | `notes` | string | *Optional.* Anything a reviewer should know, e.g. what was checked and what wasn't. Not empty if present. |
-| `holoOrigin` | array of 3 numbers | *Optional, every shipped ship has it.* `[x, y, z]` in cells, fractions allowed: where the hologram's origin lies in ship coordinates, see [Hologram and outline](#hologram-and-outline). A [cargo module](#cargo-modules) passes it on unless it says its own. The import keeps it to the digit and never sets it. |
-| `outlineOrigin` | array of 3 numbers | *Optional, every shipped ship has it.* `[x, y, z]` in cells, fractions allowed: where the outline's origin lies; z is the plane it lies in. Passed on and kept like `holoOrigin`. |
-| `outlineScale` | number | *Optional, only with `outlineOrigin`.* Greater than 0. The factor on the outline's true size, left out for 1. Shipped only where the racks would not fit a true-size hull (Hull A, Caterpillar, Syulen, Railen). |
+| `holoOrigin` | array of 3 numbers | *Optional, every shipped ship has it.* `[x, y, z]` in cells, fractions allowed: where the hologram's origin lies in ship coordinates, see [Hologram and outline](#hologram-and-outline). A [cargo module](#cargo-modules) passes it on unless it says its own. For a ship with a game model the import writes it (the ship's fraction s, D93); otherwise it keeps it to the digit. |
+| `outlineOrigin` | array of 3 numbers | *Optional, every shipped ship has it.* `[x, y, z]` in cells, fractions allowed: where the outline's origin lies; z is the plane it lies in. Passed on, written and kept like `holoOrigin`. |
+| `outlineScale` | number | *Optional, only with `outlineOrigin`.* Greater than 0. The factor on the outline's true size, left out for 1. No shipped ship has it since D93: outlines from the game model are at true size. |
 | `holoOffset` | array of 3 integers | *Optional, not with `holoOrigin`, for older files.* `[x, y, z]` in cells: moves the hologram from its middle on the racks. Only a file without `holoOrigin` uses that rule; no shipped ship does any more. The import keeps it and never sets it. |
 | `totalScu` | number | Cargo capacity of the ship. Must equal the sum of all `capacityScu`. |
 | `racks` | array | At least one rack. **Order matters:** the array order is the **rack order** (Rack 1, Rack 2, …). The planner fills racks in this order, puts the first stop into Rack 1 and lets only racks next to each other in this order share a stop. The rack order says nothing about where a rack sits; that is `position`. |
@@ -239,21 +238,29 @@ Three things lie in ship coordinates, each on its own (D90):
 | What | Field | Its origin, the point the field places |
 |---|---|---|
 | A rack | `origin` | the rack's minimum corner |
-| The hologram | `holoOrigin` | the mesh's origin: the middle of its top view, its keel (see [holo-format.md](holo-format.md)) |
-| The outline | `outlineOrigin`, `outlineScale` | the middle of its top view; it lies flat at z |
+| The hologram | `holoOrigin` | the mesh's origin: the game model's origin (holo-v2, see [holo-format.md](holo-format.md)) |
+| The outline | `outlineOrigin`, `outlineScale` | the game model's origin too; it lies flat at z |
 
-The values in the shipped files look long because they keep the place the ship had before this rule to the pixel, so
-`1.9994277954101562` is no measurement. Change them freely; three decimals are plenty for a correction.
+**Ships with a game model (D93):** racks, hologram and outline come from the same Motherlode model, and the file's zero
+point is that model's origin plus the ship's fraction s (D92). So the anchors follow from s, and the import writes them:
 
-**A new ship** gets them by hand or from the test `ShipAnchorValueTests` (see `CLAUDE.md`). By hand, with the racks'
-common box and the hull's height from `outlines/ship-outlines.json`: x and y are the box's middle, z is the box's middle
-minus half the height in cells, for both fields. A file without the fields still works: hologram and outline hang on the
-racks' middle as they used to, so one corrected rack moves them too. A test holds every shipped ship to having them.
+- `holoOrigin` = s, 4 decimals;
+- `outlineOrigin` = s with z moved to the model's floor: s.z + `floorM` ÷ 1.25, `floorM` from
+  `outlines/ship-outlines.json` (the model's lowest point below its origin, metres), so no rack reaches through it;
+- no `outlineScale`: the outline is the model's top view at true size.
 
-**`holoOrigin` belongs to a hologram release**, today `holo-v1`. The mesh's box may lie differently against its origin in
-a new release, up to 0.6 cells in holo-v1, so run `ShipAnchorValueTests` with `CARGOPLAN_HOLO_PREVIOUS` set to the old
-files when a new one comes: it carries each value over and keeps the middle of the hull where it was, corrected racks
-included. Without that, the hull wanders against the racks.
+An outline without `floorM` (a Fleetyards trace) leaves the anchors as they are and the import lists the ship. Don't
+correct these values by hand; correct a rack instead (below), and the next import writes them again.
+
+**Ships without a game model** (135c, 600i Executive Edition, F7C Hornet Mk II) keep the values D90 froze from the
+older rule; they look long because they keep the place the ship had to the pixel, so `-9.491073608398438` is no
+measurement. Their hologram is holo-v1's file, so nothing moves. A new ship of that kind gets them by hand or from the
+test `ShipAnchorValueTests` (see `CLAUDE.md`): x and y the racks' common box middle, z the box's middle minus half the
+hull's height in cells, for both fields. A file without the fields still works: hologram and outline hang on the racks'
+middle as they used to, so one corrected rack moves them too. A test holds every shipped ship to having them.
+
+**`holoOrigin` belongs to a hologram release**, today `holo-v2`. A release that kept the game model's origin needs
+nothing; one that moved it would need its own rule in the import.
 
 ### Correcting a rack
 
@@ -293,31 +300,40 @@ The racks of almost every ship come from the game files (D92): the cargo grid ca
 permission. `source` names the catalog's game build and date, e.g.
 `"cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07"`. Three ships stay Fleetyards drafts for now: the 135c
 (its grids have no place in the catalog), the 600i Executive Edition and the F7C Hornet Mk II (not in the catalog).
-Hologram and outline still come from Fleetyards; session 4b lays them from the same models. Only values derived from
-the catalog go into the repo, never the catalog itself (D56).
+Hologram and outline come from the same models (D93): the hologram release `holo-v2` and `outlines/ship-outlines.json`
+(the three Fleetyards ships keep their Fleetyards hologram and outline). Only values derived from the catalog and the
+models go into the repo, never the catalog or a model itself (D56).
 
 ### Importing from the game files
 
 After a patch, or when Motherlode publishes a new catalog:
 
-1. **Fetch:** run `fetch-motherlode.ps1 -GameBuild <build>` of the `sc-ship-outlines` pipeline. It writes
-   `motherlode/catalog-<date>.json` with its SHA-256 and the game's models; both stay outside this repo.
-2. **Import:** `./tools/import-motherlode.ps1 -Catalog <path>/catalog-<date>.json -Previous <path>/catalog-<older date>.json`.
+1. **Fetch:** run `fetch-motherlode.ps1` of the `sc-ship-outlines` pipeline. It takes the grids and the game build from
+   Motherlode's API (one request per run, a key from `MOTHERLODE_API_KEY` or `motherlode/api-key.txt`, never committed)
+   and the model URLs from its page, and archives both with the joined `motherlode/catalog-<date>.json`, each with its
+   SHA-256, plus the game's models; all of it stays outside this repo. The build lands in the ships' `source`.
+2. **Import:** `./tools/import-motherlode.ps1 -Catalog <path>/catalog-<date>.json -Previous <path>/catalog-<older date>.json -ModelMap <path>/model-map.csv`.
    It writes every ship whose racks changed and reports each as `same`, `updated`, `created` (with `-Create`), `new`
    (without `-Create`), `kept` (a grid without place), `handcheck` or `order`, then per rack its rounding, stack axis,
    grid, crate limits and rotation. Exit code 0 means done, 1 something to look at, 2 an error (then nothing is written).
-3. **Look at what it didn't write:** `handcheck` means overlapping grids, a rack set or position that doesn't match the
+3. **Holograms and outlines** (only when the models changed): the pipeline builds them per model from the map
+   ([holo-format.md](holo-format.md#pipeline-holo-v2)) and writes `outlines/ship-outlines.json`; run the import once
+   more, and it writes the anchors from the new outlines' `floorM`. A new hologram release needs a new tag and the app
+   constant `HoloRelease.Tag`.
+4. **Look at what it didn't write:** `handcheck` means overlapping grids, a rack set or position that doesn't match the
    file, or a total that differs from the catalog's; `order` means the catalog lists the same grids in another order
-   than the previous one, so the script can't tell which rack is which. Correct those by hand or ask on GitHub.
-4. **Commit:** run `dotnet test` (every file must load), then commit the changed files with the catalog's build and date.
+   than the previous one, so the script can't tell which rack is which; `anchors ... kept` means the ship's outline has
+   no `floorM`. Correct those by hand or ask on GitHub.
+5. **Commit:** run `dotnet test` (every file must load), then commit the changed files with the catalog's build and date.
 
 What the import does: game axes (x starboard, y bow, z up, metres) become ship cells as x = game y, y = −game x,
 z = game z, divided by 1.25. A grid's `size[0]` and `size[1]` lie centred on its translation, `size[2]` goes from there
 along the third column of its 3×4 matrix: that axis becomes `stackAxis`. A grid whose axes are all less than 1° off the
 ship's axes lies straight (the grid's sizes swap as needed); any other gets a `rotation` (D91). The zero point is the game
 model's origin plus a fraction of a cell per axis that rounds the racks best; the report names it and every rack's
-rounding. Rack ids, order and `position` stay, so saved plans keep their racks; `holoOrigin`, `outlineOrigin`,
-`outlineScale` and hand-written `notes` stay too. `maxCrateSize` is the smaller of the catalog's `maxContainerScu` and
+rounding. Rack ids, order and `position` stay, so saved plans keep their racks; hand-written `notes` stay too. The
+anchors follow s for a ship with a model and a slug ([Hologram and outline](#hologram-and-outline)); a ship without
+either keeps `holoOrigin`, `outlineOrigin` and `outlineScale` to the digit. `maxCrateSize` is the smaller of the catalog's `maxContainerScu` and
 the file's value (or what the grid takes): the catalog can tighten a door, never loosen one. A `minCrateSize` the
 catalog doesn't name stays. A cargo module moves with its ship's Rack 1. A new ship from `-Create` that is a variant of
 another (Carrack w/C8X, MOLE editions) takes its base ship's hologram and outline.
