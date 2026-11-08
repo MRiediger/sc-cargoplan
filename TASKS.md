@@ -4708,7 +4708,7 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 13. K2: Wiki `Plan-and-editor` mit Kistenformat (Anzahl × Größe, beide Eingabeformen, Summenfehler) und Max size per Dropdown/Tastatur; Editor-Screenshot D5 als dritte Aufnahme in R3.
 14. Wiki-Zeile „A hologram look takes about 40–50 MB more memory“ gestrichen: Messung mit Martins echter `settings.json` > 10 min.
 
-### [ ] R1 Textabgleich (08.11.2026)
+### [x] R1 Textabgleich (08.11.2026)
 
 - README (Feature-Zeile mit Datenherkunft), `docs/ship-format.md`, `docs/settings-format.md` (D95-Regel), `CONTRIBUTING.md` („Correct ship data“), `ship-correction.yml`, `docs/nexus/description.bbcode` und `checklist.md`, `docs/shots/SHOTLIST.md`
 - Wiki: Home, `_Footer`, Ships-and-cargo-grids, FAQ, Troubleshooting, Installation-and-first-start, Overlay-basics, Plan-and-editor, Ship-view, Legend-and-delivery-states, Quick-start
@@ -4724,18 +4724,18 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - Bildvergleich `ShipPictureTests` gegen `main` (754921c, eigener Worktree): **1388 identisch, 0 verschieden, 0 fehlend**, Placement-Zahlen auf 0 von 106 verschieden. `git diff main -- src tests ships outlines build` leer.
 - `dotnet build -c Release` 0 Warnungen; `dotnet test` im sauberen `main`-Worktree (Code gleich dem Branch): **Core 1818, App 1671, Import 164**, Summe 3653; `Category=Slow` 2 grün. (4d nannte Core 1819 aus der Arbeitskopie mit der ausgeschlossenen Scratch-Datei.)
 
-### [ ] R2 Release-Notes (08.11.2026)
+### [x] R2 Release-Notes (08.11.2026)
 
 - `docs/release-notes/v0.3.0.md` aus der Stoffsammlung, gegliedert: Highlights, Ship data, Changes, Before you update, Known issues, Credits
 
 **Befund:**
 - Vollständigkeit `git log v0.2.0..main --no-merges`: F2/F1, F7, F3, 4a, 4b, 4c, 4d kommen vor. Stoffsammlung ergänzt um 4a (TASKS 4a, „Material“), 4b (Hüllen, Cargo-Pose, Cyclone) und 4d; die F3-Zeile „No shipped ship uses it yet“ war seit 4a falsch. Nicht in den Notes, weil ohne Wirkung aufs ZIP: Testkopien, Bildharness, Reclaimer-Frame-Ziel, Doku- und TASKS-Commits.
-- Gespeicherter Corsair-Plan mit 32er-Kisten: `PlanFileDto.UnderCap` gibt ihm die Kappe `Saved`, die Overlay plant ihn beim Laden neu und meldet „Plan was made for other racks, re-planned for …“ (am Code gelesen, nicht ausgeführt).
+- Gespeicherter Corsair-Plan mit 32er-Kisten: `PlanFileDto.UnderCap` gibt ihm die Kappe `Saved`, die Overlay plant ihn beim Laden neu und meldet „Plan was made for other racks, re-planned for …“. **Beobachtet** (Scratch-Test, nicht committet, nach dem Muster `DoorLimitOverlayTests.A_plan_file_split_under_another_cap_is_planned_anew_and_says_so`): Plan auf `git show v0.2.0:ships/corsair.json` (Riker 64 SCU, max 32 → `32+32`), `PlanFile.Write`, `PlanFile.Read` mit der heutigen `ships/corsair.json` → Kappe `Saved` 32; `OverlayViewModel.ShowPlan` → `24+24+16`, Notices „Plan was made for other racks, re-planned for DRAK Corsair.“ und „crates capped to 24 SCU (door limit)“.
 - Downgrade auf 0.2.0: Plan-Schema 9, Settings-Schema 2 und Missions-Schema 4 seit v0.2.0 unverändert (`git diff v0.2.0..main` leer in `Core/Plans`, `App/Settings`, `Core/Missions`); 0.2.0 lädt `holo-v1` neu, weil 0.3.0 den Ordner löscht. Eigene Schiffsdateien mit `rotation` oder `modelKey` lehnt 0.2.0 ab.
 - Keine Paket- oder SDK-Änderung seit v0.2.0.
 
 **Abnahme:**
-- [ ] Notes-Entwurf von Claude.ai freigegeben (Martin)
+- [x] Notes-Entwurf von Claude.ai freigegeben (Martin, 08.11.) mit zwei Textänderungen: „DRAK Corsair“ → „Corsair“, „thanks Reikal“ nur bei #22
 
 ### [x] R3 Medien (Martin) (08.11.2026)
 
