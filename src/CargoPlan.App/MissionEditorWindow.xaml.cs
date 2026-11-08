@@ -45,7 +45,21 @@ public partial class MissionEditorWindow : Window
     private void OnPlanned(object? sender, EventArgs e) => Close();
 
     // Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.datagrid.commitedit
-    private void OnAnyButtonClick(object sender, RoutedEventArgs e) => Grid.CommitEdit(DataGridEditingUnit.Row, exitEditingMode: true);
+    private void OnAnyButtonClick(object sender, RoutedEventArgs e)
+    {
+        if (EndsRowEdit(Grid, e.OriginalSource))
+        {
+            Grid.CommitEdit(DataGridEditingUnit.Row, exitEditingMode: true);
+        }
+    }
+
+    /// <summary>
+    /// Whether a button click ends the grid's edit before the button acts: only buttons outside the grid. Inside it, the
+    /// max crate combo box's drop-down arrow is a ToggleButton; ending the edit there threw the open combo box away before
+    /// the pick reached the row (B8, issue #22). The grid's own header buttons commit in <see cref="OnSorting"/>.
+    /// Source: https://learn.microsoft.com/dotnet/api/system.windows.media.visual.isancestorof
+    /// </summary>
+    public static bool EndsRowEdit(DataGrid grid, object? source) => source is not DependencyObject element || !grid.IsAncestorOf(element);
 
     /// <summary>
     /// A header click sorts the view, never the rows (K6.3): the view model cycles up, down and off, the grid shows the

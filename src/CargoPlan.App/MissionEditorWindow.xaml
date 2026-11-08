@@ -18,8 +18,9 @@
          Topmost comes with the topmost overlay as owner anyway. ShowActivated=False is for showing it again after the
          auto-lock (D19); opening it calls Activate() explicitly. Fluent light or dark, like the settings window (D36). -->
 
-    <!-- ButtonBase.Click bubbles before the button runs its command: every button first ends the cell edit,
-         because moving or removing rows during an edit transaction throws.
+    <!-- ButtonBase.Click bubbles before the button runs its command: every button outside the grid first ends the cell
+         edit, because moving or removing rows during an edit transaction throws. Not the grid's own buttons: the max
+         crate combo box's arrow is one (B8).
          Source: ButtonBase.OnClick raises Click, then executes the command (dotnet/wpf, ButtonBase.cs). -->
     <DockPanel Margin="8" ButtonBase.Click="OnAnyButtonClick">
         <!-- One level below the window, so BasedOn finds Fluent's styles (D36). -->

@@ -31,6 +31,19 @@ public class MissionEditorXamlTests
     }
 
     [Fact]
+    public void The_max_crate_column_and_the_button_click_handler_are_what_MaxCrateDropdownTests_rebuilds()
+    {
+        // B8: MaxCrateDropdownTests builds this column and this handler in code; if the markup changes, they test the past.
+        var grid = Grid();
+        var column = Columns(grid).Single(c => (string?)c.Attribute("Header") == "Max crate");
+
+        column.Name.LocalName.Should().Be("DataGridComboBoxColumn");
+        column.Attribute("ItemsSource")!.Value.Should().Be("{x:Static ed:MissionRows.MaxCrateSizes}");
+        column.Attribute("SelectedItemBinding")!.Value.Should().Be("{Binding MaxCrateSize, UpdateSourceTrigger=PropertyChanged}");
+        grid.Parent!.Attribute("ButtonBase.Click")!.Value.Should().Be("OnAnyButtonClick");
+    }
+
+    [Fact]
     public void Re_plan_shows_the_tool_tip_of_the_header_button()
     {
         // One text for both buttons (T7.5a2): the editor's had a wording of its own.

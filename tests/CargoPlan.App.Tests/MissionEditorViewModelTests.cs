@@ -1225,6 +1225,22 @@ public sealed class MissionEditorViewModelTests : IDisposable
     }
 
     [Fact]
+    public void A_picked_max_crate_size_derives_the_crates_again_and_counts_as_a_change()
+    {
+        // B8: what the drop-down sets reaches the crates column at once, like typing does.
+        var editor = new MissionEditorViewModel(OverlayWithCaptures());
+        var orison = editor.Rows.Single(r => r.Destination == "Orison");
+        orison.Scu = "6";
+        editor.IsDirty = false;
+
+        orison.MaxCrateSize = 2;
+
+        orison.CratesText.Should().Be("2+2+2");
+        orison.MaxCrateSizeAssumed.Should().BeFalse();
+        editor.IsDirty.Should().BeTrue();
+    }
+
+    [Fact]
     public void An_untouched_assumed_size_stays_assumed()
     {
         var overlay = OverlayWithCaptures();
