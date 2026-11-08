@@ -16,7 +16,7 @@ shows it in a translucent window next to the game.
 - Drag, turn, split and merge crates to match what the cargo elevator really did.
 - Mark each delivery loaded, then delivered at its stop; undo any step.
 - Click-through while the game has the mouse. A separate window: nothing is injected into the game.
-- 105 ships, with rack layouts from the game files.
+- 105 ships. Racks, hull and outline of 102 of them come from the game files; three still use Fleetyards data.
 
 ## Install
 

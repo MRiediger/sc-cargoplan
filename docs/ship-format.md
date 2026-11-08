@@ -62,7 +62,7 @@ being ignored silently.
 | `modelKey` | string | *Optional.* Names the ship's hologram (`<modelKey>.holo` in the release) and its outline in `outlines/ship-outlines.json` (not under the MIT licence, see `outlines/NOTICE.md`), e.g. `"misc-hull-a"`; variants share their base ship's. Without a match the ship view shows the bow wedge. Not empty if present. The values are the slugs Fleetyards gave the ships, kept so no hologram or outline file had to be renamed (D94). **`fleetyardsSlug`**, the field's name before v0.3.0, is still read in its place for files written by hand; a file with both is an error. |
 | `source` | string | *Optional.* Where the values come from, e.g. `"in game"` (measured in the hangar) or `"cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07"` (written by the import; the three Fleetyards ships keep `"Fleetyards API (CIG ship matrix), export 2026-10-22"`). Not empty if present. |
 | `notes` | string | *Optional.* Anything a reviewer should know, e.g. what was checked and what wasn't. Not empty if present. |
-| `holoOrigin` | array of 3 numbers | *Optional, every shipped ship has it.* `[x, y, z]` in cells, fractions allowed: where the hologram's origin lies in ship coordinates, see [Hologram and outline](#hologram-and-outline). A [cargo module](#cargo-modules) passes it on unless it says its own. For a ship with a game model the import writes it (the ship's fraction s, D93); otherwise it keeps it to the digit. |
+| `holoOrigin` | array of 3 numbers | *Optional, every shipped ship has it.* `[x, y, z]` in cells, fractions allowed: where the hologram's origin lies in ship coordinates, see [Hologram and outline](#hologram-and-outline). A [cargo module](#cargo-modules) passes it on unless it says its own. For a ship with a game model the import writes it (the ship's fraction s, see [Hologram and outline](#hologram-and-outline), D93); otherwise it keeps it to the digit. |
 | `outlineOrigin` | array of 3 numbers | *Optional, every shipped ship has it.* `[x, y, z]` in cells, fractions allowed: where the outline's origin lies; z is the plane it lies in. Passed on, written and kept like `holoOrigin`. |
 | `outlineScale` | number | *Optional, only with `outlineOrigin`.* Greater than 0. The factor on the outline's true size, left out for 1. No shipped ship has it since D93: outlines from the game model are at true size. |
 | `holoOffset` | array of 3 integers | *Optional, not with `holoOrigin`, for older files.* `[x, y, z]` in cells: moves the hologram from its middle on the racks. Only a file without `holoOrigin` uses that rule; no shipped ship does any more. The import keeps it and never sets it. |
@@ -75,10 +75,10 @@ A rack is a separately loadable section of the cargo hold, usually one plate.
 
 | Field | Type | Rules |
 |---|---|---|
-| `id` | string | Unique within the ship. Convention: `rack-0`, `rack-1`, … in rack order. Players see "Rack 1", "Rack 2", … Ships imported from Fleetyards use the hold's index there instead (`rack-<index>`), so the import finds the rack again after hand reordering; their ids need not run in order. |
+| `id` | string | Unique within the ship. Convention: `rack-0`, `rack-1`, … in rack order. Players see "Rack 1", "Rack 2", … Ships first imported from Fleetyards kept the hold's index there (`rack-<index>`), and the import from the game files keeps every id as it finds it, so saved plans keep their racks; their ids need not run in order. |
 | `capacityScu` | number | Greater than 0. Must equal `length × width × stack` of the grid. |
 | `grid` | object | The rack's cell grid, see below. |
-| `position` | object | *Optional.* Where the rack sits in player words ("port upper"), see below. Shown in the crate tooltip, not used for planning. Leave it out where it isn't known: a ship draft with a generated rack arrangement has none, and the tooltip then skips it. |
+| `position` | object | *Optional.* Where the rack sits in player words ("port upper"), see below. Shown in the crate tooltip, not used for planning. Leave it out where it isn't known: the game files name no side or level, so most ships have none, and the tooltip then skips it. |
 | `origin` | array | Where the rack sits in ship coordinates: `[x, y, z]`, three whole numbers, see [Coordinates](#coordinates). Used to draw the ship, not for planning. Straight racks must not overlap. |
 | `stackAxis` | string | The ship direction crates stack in, away from the plate: `"+x"`, `"-x"`, `"+y"`, `"-y"`, `"+z"` or `"-z"`, see [Stack axis](#stack-axis). |
 | `maxCrateSize` | number | *Optional.* The door limit: the largest crate that gets through the rack's door, in SCU (`1`, `2`, `4`, `8`, `16`, `24` or `32`), where that is less than the grid takes. Left out, the grid alone decides. See [Max crate size](#max-crate-size). |
@@ -95,11 +95,12 @@ takes, so on the Clipper an 8 SCU contract becomes four 2 SCU crates, and the ov
 waits with "no rack accepts 4 SCU crates, door limit 2 SCU". A move puts a crate the door refuses into another rack,
 saying "Rack 1: door limit 2 SCU – placed in rack 2", and a merge that would make one is refused.
 
-The value comes from Fleetyards' `cargoHolds[].limits.max.capacity` (index of 25 Oct 2026). It is written only where the
+The values came from Fleetyards' `cargoHolds[].limits.max.capacity` (index of 25 Oct 2026). The game files describe the
+grid, not the door, so the import from them can tighten a value, never loosen one (Corsair 32 → 24, D70). It is written only where the
 door takes less than the grid; a test checks that every shipped value limits something, and a value the grid enforces
 anyway is left out (`hull_a.json` has none). Values above 32, the largest crate the app knows, count as 32. A 1 on a grid
-that takes more is not written: it is the one value that can also be a default, so it stays unverified until Fleetyards
-confirms it (list in TASKS.md, K3.1). By hand, set it only from a source and name it in `notes`.
+that takes more is not written: it is the one value that can also be a default, so it stays unverified (list in TASKS.md,
+K3.1). By hand, set it only from a source and name it in `notes`.
 
 Schema 4 called the same field "the game's limit on top of the grid" and read it the same way, so a schema 4 file loads
 unchanged; schema 5 marks the meaning.
@@ -107,7 +108,7 @@ unchanged; schema 5 marks the meaning.
 ### Min crate size
 
 Some racks take only large crates: the Hull C's spindle takes 32 SCU crates only, the MPUV Tractor's rack 16s, the
-CSV-SM's 4s (Fleetyards' `limits.min.capacity`, index of 25 Oct 2026). `"minCrateSize": 32` says so; it must be a crate
+CSV-SM's 4s (from Fleetyards' `limits.min.capacity`, index of 25 Oct 2026; the game catalog names none, so they stay). `"minCrateSize": 32` says so; it must be a crate
 the rack takes (no larger than `maxCrateSize` and fitting the grid), else the file doesn't load. The planner never puts a
 smaller crate into the rack and never rounds a contract up: the kiosk delivers nothing above the contract's max. A
 contract whose crates the ship can't take waits with "doesn't fit (ship takes 32 SCU crates only)", also when only a rest
@@ -136,7 +137,7 @@ Where these three axes lie in the ship is the rack's `stackAxis`.
 
 `position` and `origin` describe the same rack in two ways and are not derived from each other: `position` is
 what players say, `origin` is geometry. Keep them consistent: a port rack lies at a larger y than the ship's middle, see
-below. Its y itself may be negative, as the zero point is the file's (the Hull B's port racks lie at y −4 and −2).
+below. Its y itself may be negative, as the zero point is the file's.
 
 ## Coordinates
 
@@ -166,15 +167,15 @@ axes and adds a [`rotation`](#turning-a-rack) on top:
 `length` lies along the ship (bow to stern) wherever it can. A minus axis counts from the rack's far side: the
 first layer lies at the plate, at the rack's largest coordinate on that axis.
 
-Hull A, laid as Fleetyards' offsets give it (D78): three cells of spindle between the plates, one between the levels.
-The plates sit on the spindle, crates stack outwards:
+Hull A, laid as the game files give it (D92): five cells of spindle between the plates (its cargo pose, as at the
+elevator), one between the levels. The plates sit on the spindle, crates stack outwards:
 
 | Rack | Position | `origin` | `stackAxis` | Fills x · y · z |
 |---|---|---|---|---|
-| 1 | port upper | `[0, 1, 3]` | `"+y"` | 0..4 · 1..3 · 3..5 |
-| 2 | port lower | `[0, 1, 0]` | `"+y"` | 0..4 · 1..3 · 0..2 |
-| 3 | starboard upper | `[0, -4, 3]` | `"-y"` | 0..4 · -4..-2 · 3..5 |
-| 4 | starboard lower | `[0, -4, 0]` | `"-y"` | 0..4 · -4..-2 · 0..2 |
+| 1 | port upper | `[-9, 3, 1]` | `"+y"` | -9..-5 · 3..5 · 1..3 |
+| 2 | port lower | `[-9, 3, -2]` | `"+y"` | -9..-5 · 3..5 · -2..0 |
+| 3 | starboard upper | `[-9, -4, 1]` | `"-y"` | -9..-5 · -4..-2 · 1..3 |
+| 4 | starboard lower | `[-9, -4, -2]` | `"-y"` | -9..-5 · -4..-2 · -2..0 |
 
 Two more examples for other kinds of holds:
 
@@ -267,8 +268,8 @@ nothing; one that moved it would need its own rule in the import.
 Rack 1 of the Hull A sits one cell too far aft, say. Change that rack's `origin` and nothing else:
 
 ```diff
--      "origin": [0, 1, 3],
-+      "origin": [1, 1, 3],
+-      "origin": [-9, 3, 1],
++      "origin": [-8, 3, 1],
 ```
 
 Only that rack moves in the picture. Racks 2–4, the hologram and the outline stay, at their size. With a hologram look
