@@ -3832,9 +3832,9 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 4. Schiffsdaten aus den Spieldateien (Motherlode, D92), drei Merges. **Ziel (Martin):** für alle Schiffe stimmen SCU und Rack-Anordnung.
    - [x] 4a Racks – `feat/ship-data-game` (abgenommen 07.11.)
    - [x] 4b Hülle und Umriss aus denselben Modellen – `feat/holo-v2` (abgenommen 08.11., `holo-v2` veröffentlicht)
-   - [ ] 4c Stilllegung Fleetyards – eigener Plan zur Freigabe
+   - [ ] 4c Stilllegung Fleetyards, Holo-Übergang, Credits – `chore/retire-fleetyards` (umgesetzt 08.11., D94, D95; Gate und Abnahme offen)
 5. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
-6. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
+6. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Aus 4c (D94):** Wiki (`FAQ.md`, `Ships-and-cargo-grids.md`, `Troubleshooting.md`, `_Footer.md` mit „Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG“), Nexus-`description.bbcode` (Credits) und `.github/ISSUE_TEMPLATE/ship-correction.yml` (Gitter kommen aus den Spieldateien) nachziehen; sie beschreiben bis zum Tag v0.2.0. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
 
 ### [x] F2 Mausrad scrollt gruppenweise (Bug) (06.11.2026, abgenommen 06.11.)
 
@@ -4522,9 +4522,9 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - [x] Merge `--no-ff` nach Martins Freigabe „für alles“ (08.11.), Martin pusht, kein Tag
 
 **Offen für 4c:**
-- `fleetyardsSlug` → `modelKey` mit Lade-Migration (E2).
-- Den verwaisten Cache `holo\holo-v1\` beim Start entfernen (App-Code, E2).
-- Die drei Fleetyards-Schiffe (135c, 600i EE, F7C Mk II), `import-fleetyards.ps1`, Fleetyards-Credits.
+- ~~`fleetyardsSlug` → `modelKey` mit Lade-Migration (E2).~~ Erledigt in 4c: stiller Alias statt Migration (D94).
+- ~~Den verwaisten Cache `holo\holo-v1\` beim Start entfernen (App-Code, E2).~~ Erledigt in 4c (D95).
+- ~~Die drei Fleetyards-Schiffe (135c, 600i EE, F7C Mk II), `import-fleetyards.ps1`, Fleetyards-Credits.~~ Erledigt in 4c (D94).
 - Erster echter Abruf über die Motherlode-API (`fetch-motherlode.ps1`, umgestellt in dieser Session, Martin 07.11.). Danach Konverter, Pipeline nur bei geänderten Modellen.
 - Fortune Rack 2: hängt am Kontaktabzug. Bei Bedarf `shift` (D91) oder ein Spielerbericht als Auslöser.
 - Nexus-Texte zum 0.3.0-Upload: `holo-v1` → `holo-v2` (`docs/nexus/checklist.md:100`, `staff-request.md:39`), Credit „cargo grid data and ship models from cryon.rocks (Motherlode)“.
@@ -4533,7 +4533,83 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - Hull holograms now come from the same game data as the racks – ships finally line up.
 - Hull A, B and C appear in the overlay with the spindle extended (cargo pose), as at the elevator.
 - Outlines are the game models' top views at true size; the Cyclone now has a hologram too.
-- Holograms download from the new release `holo-v2` (31 MB for all ships instead of 65); v0.2 keeps using `holo-v1`.
+- Holograms download from the new release `holo-v2`: each ship's hologram re-downloads once when first shown (about 0.3 MB per ship); v0.2 keeps using `holo-v1`. (Korrigiert in 4c, Martin: keine Gesamtgröße, niemand lädt alle Schiffe.)
+
+### [ ] Session 4c – Fleetyards stilllegen, Holo-Übergang, Credits (08.11.2026)
+
+**Branch:** `chore/retire-fleetyards` (App-Repo und Outline-Repo). **Ziel:** den Fleetyards-Import stilllegen, `fleetyardsSlug` → `modelKey`, Übergang holo-v1 → holo-v2 für Nutzer von v0.2.0, Credits und Entscheidungen (D94, D95). Kein Bild ändert sich, kein Tag.
+
+**Festlegungen von Martin:**
+- `import-fleetyards.ps1` und seine Tests fliegen raus, `ShipJson.ps1` bleibt. Im Outline-Repo kommen Fetch, Index und Rohdaten nach `legacy/`.
+- `modelKey` mit stillem Alias `fleetyardsSlug`, Schema 6 bleibt, alle 105 Dateien werden umgeschrieben.
+- D95: fremde Tag-Ordner nach erfolgreicher Manifest-Prüfung löschen, sofort bei Schalter aus. Bei Fehlschlag bleibt alles. Einmalige Notice nur bei Tag-Wechsel.
+- Credits-Wortlaut, D94/D95.
+
+**Präzisierungen in der Planphase, ratifiziert durch Freigabe:**
+1. Notice ohne Größe: „Ship holograms updated to match the new rack data – each ship re-downloads when first shown“. Release-Notes: „about 0.3 MB per ship“.
+2. Kein Holo-Look beim Start (Umriss/None) gilt wie Schalter aus: sofort löschen, kein Netz, keine Notice.
+3. Auslöser ist die erfolgreiche Manifest-Prüfung. Scheitert danach eine Schiffsdatei, sind die alten Ordner trotzdem weg.
+4. CSV-Spalte `-ModelMap` → `modelKey` in beiden Repos, `holo_mesh.py` liest beide Namen.
+5. Die C#-Eigenschaft heißt `Ship.ModelKey`.
+6. `HoloSource` bekommt die Wurzel `holo\` statt des Tag-Ordners (`HoloRelease.DefaultCacheRoot`).
+7. Gelöscht werden nur Ordner `holo-v<Ziffern>` ≠ `HoloRelease.Tag` direkt unter der Wurzel.
+8. **K1 (Korrektur bei der Freigabe):** `NoticeSource.HoloUpdate` lebt wie die Holo-Notice und verschwindet mit dem ersten Hologramm. Nur bei einem Löschfehler bleibt sie mit Grund bis Programmende und kommt beim nächsten Start wieder.
+9. Wiki, Nexus-Beschreibung und das Issue-Template `ship-correction.yml` bleiben bis zur Release-Session, weil sie bis zum Tag v0.2.0 beschreiben.
+10. Outline-Repo `legacy/` nur mit Pfadänderungen.
+- In der Umsetzung kam dazu: Die Stilllegung wird vor dem Alias committet, Alias und 105 Dateien in einem Commit. So ist jeder Commit für sich grün (getrennt wäre der Alias-Commit am Datentest rot gewesen).
+- In der Umsetzung kam auch dazu: Das Event `TagChanged` kommt nach der Manifest-Prüfung und vor dem ersten Download. Sonst hätte die Notice nach K1 im selben Aufruf, in dem das erste Hologramm kommt, schon wieder verschwinden müssen.
+
+**Befund:**
+- `ShipJsonContext` hat `UnmappedMemberHandling.Disallow`, also ist ohne Alias jede Nutzerdatei kaputt.
+- `HoloSource` lief nur mit Holo-Look und bekam den Tag-Ordner. Die Tests lagen unter einem geteilten `%TEMP%\CargoPlan.Tests`.
+- `NoticeSource.Holo` wird mit jedem Hologramm gelöscht, deshalb gibt es eine eigene Zeile.
+- `tests/test_fetch.py` im Outline-Repo testet `fetch-motherlode.ps1` und bleibt. Das korrigiert den Befund des Plans.
+
+**Ergebnis:**
+- **App-Repo:**
+  - `7b211fb` Stilllegung
+  - `35905db` `modelKey` + 105 Dateien
+  - `b0f9dd0` D95
+  - `e4afa39` Doku, Credits, D94/D95
+  - dazu dieser TASKS-Commit
+- **Outline-Repo:** `5285556`.
+- **Gegenprobe:** `import-motherlode.ps1` gegen `catalog-2026-11-07` ergibt Exit 0, 102 same, 0 updated. Die Model-Map unterscheidet sich nur im Kopf.
+- **105 Dateien:** je eine Zeile `"fleetyardsSlug":` → `"modelKey":`, CRLF und kein BOM geprüft.
+- **Bildvergleich** `ShipPictureTests` gegen `main`: **1388 identisch, 0 verschieden, 0 fehlend**, alle Looks (`none`, `outline`, `holo-flat`, `holo-hiddenline`, `holo-shaded` inkl. above/cargo/saved). Placement-Zahlen auf 0 von 106 verschieden.
+- **Von den Tests gefunden:** `TagChanged?.Invoke(new HoloTagChange(RetireOtherTags()))` wertet ohne Abonnenten das Argument nicht aus, der Ordner blieb. Das Löschen steht jetzt davor.
+- **Testzahlen**, sauberer Checkout (die lokal per `.git/info/exclude` ausgeschlossene `ScratchEveryShipBaseline.cs` zählt in der Arbeitskopie einen Core-Test mehr):
+
+  | Projekt | `main` | nach Stilllegung | nach `modelKey` | nach D95 |
+  |---|---|---|---|---|
+  | Core | 1813 | 1776 (−37) | 1783 (+7) | 1783 |
+  | App | 1621 | 1621 | 1621 | 1644 (+23) |
+  | Import | 141 | 141 | 141 | 141 |
+  | **Summe** | **3575** | 3538 | 3545 | **3568** |
+
+  `Category=Slow` Core: 2 → 2 grün. Outline-Repo: 58 → 59 grün.
+
+**Abnahme:**
+- [x] Tests zuerst rot: Alias 7, Holo 15, Outline-Repo 2
+- [x] 105 Schiffsdateien byte-genau umgeschrieben, Konverter schreibt `modelKey`
+- [x] Fleetyards-Import, Tests und Fixtures entfernt, Testzahlen vorher/nachher
+- [x] Doku, Credits, D94, D95
+- [x] Bildvergleich bitgleich, `dotnet build` ohne Warnung, `dotnet test` und `Slow` grün
+- [ ] Gate Martin (Publish-Build):
+  - Erstinstall: v2 lädt, keine Notice
+  - Upgrade: Notice einmal, `holo-v1` weg, zweiter Start ohne Notice
+  - Schalter aus: Ordner weg, kein Download
+  - Offline: Umriss/Keil, `holo-v1` bleibt, mit Netz wird aufgeräumt
+  - Umriss-Look: Ordner weg, keine Notice
+  - eigene Schiffsdatei mit `fleetyardsSlug` lädt
+- [ ] Merge `--no-ff` nach Abnahme, Martin pusht beide Repos, kein Tag
+
+**Offen nach 4c:**
+- `holo-v1`-Release auf GitHub entfernen. Auslöser: v0.3.0 vier Wochen stabil.
+- Modelle bei Sciirof anfragen (135c: className null; 600i EE, F7C Mk II: nicht im Katalog), nach dem Launch, mit Ergebnis als Gegenleistung.
+- Release-Session: Wiki, Nexus-Beschreibung, `ship-correction.yml` (siehe v0.3.0-Liste, Punkt 6).
+- Outline-Repo: `decimate.ps1` und `run-all.ps1` haben weiter `-Source 'Fleetyards'` als Default. Umstellen auf Motherlode erst bei Bedarf.
+- Aus 4b weiter offen: erster echter Abruf über die Motherlode-API, Fortune Rack 2, Nexus-Texte `holo-v2`.
+- Nachricht an Torlek (Fleetyards): Martin schickt sie nach dem Merge, kein Repo-Inhalt. Das Verlinkungsangebot ist T9.4.
 
 ## Phase 10 – nach dem Launch
 
@@ -4619,7 +4695,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~Frachtmodule (Aurora-Heckmodul, Retaliator, Caterpillar `module_01–04`) als zusätzliche Katalogeinträge aus einer Datei, ohne Änderung an Plan-Schema oder Auswahl (D59). Auslöser: erstes Schiff in `ships/` mit im Spiel wechselbarem Frachtmodul.~~ → K5
 - Starbreaker (Fleetyards-Extractor, Rust) als Quelle für die Gitter von Frachtmodulen. Auslöser: zweites Schiff mit Frachtmodul.
 - ~~Haken eines Altbesuchs beim Schiffswechsel erhalten: ein abgehakter Stopp, der danach neue Fracht bekam (D41), kommt nach `Replan` auf einem anderen Schiff unabgehakt zurück und belegt Platz (D59); auf dem eigenen Schiff erledigt in B4 (D66). Auslöser: Meldung eines Haulers.~~ → K2
-- Sync Ships in der App (Fleetyards-API), falls sich Frachtgitter häufiger ändern als Releases erscheinen oder Hauler zwischen Releases fehlende Schiffe melden. Voraussetzungen: D-Eintrag Netzwerkzugriff des Overlays, Lizenzfrage für Laufzeitabrufe, Merge-Logik aus import-fleetyards.ps1 nach C# (T7.1b).
+- Sync Ships in der App (Fleetyards-API), falls sich Frachtgitter häufiger ändern als Releases erscheinen oder Hauler zwischen Releases fehlende Schiffe melden. Voraussetzungen: D-Eintrag Netzwerkzugriff des Overlays, Lizenzfrage für Laufzeitabrufe, Merge-Logik aus import-fleetyards.ps1 nach C# (T7.1b; das Skript liegt seit 4c nur noch in der Git-Historie, `7b211fb^`, D94). Seit D92/D94 wäre die Quelle Motherlode, nicht Fleetyards.
 - Abholorte von Waste-Verträgen aus den Zeilen „Collect Waste from …“ des Rohtexts lesen (die Stationen), statt nur aus ContractTrackers `PickupLocation`, das einen davon zerrissen nennt (B6, D69). Auslöser: Hauler will Waste-Missionen nach Abholort unterscheiden.
 - ~~Kisten horizontal drehbar (Gier 90°) im Planer, statt Racks beim Import zu drehen (T7.1b: `length` = längere Seite, Rack in `notes` genannt). Auslöser: ein Schiff, dessen Rack nur mit gedrehten Kisten so voll wird wie im Spiel, oder ein Hauler-Report über abgelehnte Kisten, die im Spiel passen.~~ → K3.2
 - `CrateLayout.InOrder` beschleunigen (`StartingAt` ohne LINQ, Pruning), Auslöser: ein echter Plan mit der Notiz „too many crates to rearrange“ (D54). Erwartet bei Racks ab ~80 Zellen mit vielen 1-SCU-Kisten (T7.1c: 9×3×3, 32 + 40 × 1).
