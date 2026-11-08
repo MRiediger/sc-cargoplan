@@ -56,8 +56,8 @@ public sealed class HoloSourceTests : IDisposable
 
         result.Should().BeOfType<HoloFetch.Found>().Which.Data.Should().Equal(File1);
         _handler.Requests.Select(r => r.Uri).Should().Equal(
-            "https://github.com/MRiediger/sc-cargoplan/releases/download/holo-v1/manifest.json",
-            "https://github.com/MRiediger/sc-cargoplan/releases/download/holo-v1/misc-hull-a.holo");
+            "https://github.com/MRiediger/sc-cargoplan/releases/download/holo-v2/manifest.json",
+            "https://github.com/MRiediger/sc-cargoplan/releases/download/holo-v2/misc-hull-a.holo");
         _handler.Requests.Should().OnlyContain(r => r.UserAgent == "SC-CargoPlan/1.2.3" && r.Method == "GET");
         File.ReadAllBytes(CachedFile(Slug)).Should().Equal(File1);
         File.Exists(CachedManifest).Should().BeTrue();
@@ -237,7 +237,8 @@ public sealed class HoloSourceTests : IDisposable
     [Fact]
     public async Task An_invalid_manifest_fails_with_a_reason()
     {
-        Serve("manifest.json", Encoding.UTF8.GetBytes("{ \"dataVersion\": \"holo-v2\", \"formatVersion\": 2, \"ships\": [] }"));
+        // holo-v1's manifest is valid for v0.1 and v0.2, but not for this app (D93).
+        Serve("manifest.json", Encoding.UTF8.GetBytes("{ \"dataVersion\": \"holo-v1\", \"formatVersion\": 2, \"ships\": [] }"));
 
         var result = await Source().GetAsync(Slug, true, CancellationToken.None);
 

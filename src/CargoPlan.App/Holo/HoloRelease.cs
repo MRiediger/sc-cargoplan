@@ -10,8 +10,11 @@ namespace CargoPlan.App.Holo;
 /// </summary>
 public static class HoloRelease
 {
-    /// <summary>The data release this app reads; a new format or a new pipeline run gets a new tag and a new app.</summary>
-    public const string Tag = "holo-v1";
+    /// <summary>
+    /// The data release this app reads; a new format or a new pipeline run gets a new tag and a new app. holo-v2 (D93):
+    /// meshes from the game models, at their origin; holo-v1 stays for v0.1 and v0.2.
+    /// </summary>
+    public const string Tag = "holo-v2";
 
     public const string ManifestFile = "manifest.json";
 
@@ -24,7 +27,7 @@ public static class HoloRelease
     /// <summary>A cached manifest younger than this is used without asking (Martin, T7.4c-2): at most one request a day.</summary>
     public static readonly TimeSpan ManifestMaxAge = TimeSpan.FromHours(24);
 
-    /// <summary>%LocalAppData%\SC-CargoPlan\holo\holo-v1, next to settings.json; one folder per tag.</summary>
+    /// <summary>%LocalAppData%\SC-CargoPlan\holo\holo-v2, next to settings.json; one folder per tag.</summary>
     public static string DefaultCacheFolder { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SC-CargoPlan", "holo", Tag);
 

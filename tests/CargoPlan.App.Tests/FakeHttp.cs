@@ -7,9 +7,9 @@ namespace CargoPlan.App.Tests;
 /// <summary>The network and the clock of the hologram tests (D63): nothing leaves the machine.</summary>
 internal static class FakeHttp
 {
-    /// <summary>A manifest.json of holo-v1 listing these files, with their real length and hash.</summary>
+    /// <summary>A manifest.json of holo-v2 listing these files, with their real length and hash.</summary>
     public static byte[] Manifest(params (string Slug, byte[] Data)[] ships) => Encoding.UTF8.GetBytes($$"""
-        { "dataVersion": "holo-v1", "formatVersion": 2, "ships": [ {{string.Join(", ", ships.Select(s =>
+        { "dataVersion": "holo-v2", "formatVersion": 2, "ships": [ {{string.Join(", ", ships.Select(s =>
             $$"""{ "slug": "{{s.Slug}}", "file": "{{s.Slug}}.holo", "bytes": {{s.Data.Length}}, "sha256": "{{Convert.ToHexStringLower(SHA256.HashData(s.Data))}}", "budget": 20000 }"""))}} ] }
         """);
 
