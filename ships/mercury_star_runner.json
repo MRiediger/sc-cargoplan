@@ -6,8 +6,8 @@
   "fleetyardsSlug": "crus-mercury-star-runner",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [1.015167236328125, 2.9999099731445313, -5.292584991455079],
-  "outlineOrigin": [1, 3, -5.292],
+  "holoOrigin": [0.1, 0.0756, 0.2],
+  "outlineOrigin": [0.1, 0.0756, -6.5184],
   "totalScu": 114,
   "racks": [
     {

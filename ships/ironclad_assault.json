@@ -6,8 +6,8 @@
   "fleetyardsSlug": "drak-ironclad-assault",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [-0.38888397216796877, 2.9448081970214846, -5.691453552246093],
-  "outlineOrigin": [-0.5, 3, -5.776],
+  "holoOrigin": [0.3, 0, 0.86],
+  "outlineOrigin": [0.3, 0, -7.6592],
   "totalScu": 1440,
   "racks": [
     {

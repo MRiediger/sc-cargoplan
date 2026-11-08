@@ -39,16 +39,14 @@ public sealed class ShipModuleTests
         (Base.Name, Base.TotalScu, Base.Racks.Count).Should().Be(("RSI Aurora Mk II", 2, 2));
     }
 
-    // The picture as before D90: the module's file says its own places, three cells aft of the ship's, same height.
+    // The module adds racks, not a hull: with hologram and outline from the game model (D93) its hull lies where the
+    // ship's does. Its own places (three cells aft, the picture before D90) are gone.
     [Fact]
-    public void The_ts_module_keeps_its_hull_three_cells_aft_of_the_ships()
+    public void The_ts_module_shows_its_ships_hull_where_the_ship_does()
     {
-        var (ship, module) = (Base.HoloOrigin!, WithModule.HoloOrigin!);
-
-        module.X.Should().Be(ship.X - 3);
-        (module.Y, module.Z).Should().Be((ship.Y, ship.Z));
-        WithModule.OutlineOrigin!.X.Should().Be(Base.OutlineOrigin!.X - 3);
-        (WithModule.OutlineOrigin.Y, WithModule.OutlineOrigin.Z).Should().Be((Base.OutlineOrigin.Y, Base.OutlineOrigin.Z));
+        WithModule.HoloOrigin.Should().Be(Base.HoloOrigin);
+        WithModule.OutlineOrigin.Should().Be(Base.OutlineOrigin);
+        WithModule.OutlineScale.Should().Be(Base.OutlineScale);
     }
 
     [Fact]

@@ -6,8 +6,8 @@
   "fleetyardsSlug": "misc-hull-b",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [8.517113494873048, -4.526241683959961, 1.1844318389892576],
-  "outlineOrigin": [8.5, -4.5, 0],
+  "holoOrigin": [0.412, 0.5001, 0.9834],
+  "outlineOrigin": [0.412, 0.5001, -3.0958],
   "totalScu": 512,
   "racks": [
     {

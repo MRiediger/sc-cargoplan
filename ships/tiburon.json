@@ -6,8 +6,8 @@
   "fleetyardsSlug": "aegs-tiburon",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [4.011805725097656, 2.0000015258789063, -6.193634796142579],
-  "outlineOrigin": [4, 2, -6.188],
+  "holoOrigin": [0.5752, 0.4128, 0.6236],
+  "outlineOrigin": [0.5752, 0.4128, -4.442],
   "totalScu": 64,
   "racks": [
     {

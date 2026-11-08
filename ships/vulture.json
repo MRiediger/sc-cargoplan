@@ -6,8 +6,8 @@
   "fleetyardsSlug": "drak-vulture",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [1.4613258361816406, 0.9975828170776367, -2.054459381103516],
-  "outlineOrigin": [1.5, 1, -2.6],
+  "holoOrigin": [0.6244, 0.476, 0.116],
+  "outlineOrigin": [0.6244, 0.476, -2.8712],
   "totalScu": 12,
   "racks": [
     {

@@ -6,8 +6,8 @@
   "fleetyardsSlug": "misc-starfarer-gemini",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
-  "holoOrigin": [-5.514814758300782, 2.500000762939453, -6.3346000671386715],
-  "outlineOrigin": [-5.5, 2.5, -6.364000000000001],
+  "holoOrigin": [0.5177, 0.2497, 0.2948],
+  "outlineOrigin": [0.5177, 0.2497, -9.4228],
   "totalScu": 291,
   "racks": [
     {

@@ -6,8 +6,8 @@
   "fleetyardsSlug": "grey-shiv",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
-  "holoOrigin": [3.99736328125, 1.0105472564697267, -3.3666721343994146],
-  "outlineOrigin": [4, 1, -4.6],
+  "holoOrigin": [0.969, 0.5418, 0.6294],
+  "outlineOrigin": [0.969, 0.5418, -3.1434],
   "totalScu": 32,
   "racks": [
     {

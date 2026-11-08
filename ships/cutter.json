@@ -6,8 +6,8 @@
   "fleetyardsSlug": "drak-cutter",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [0.4995113372802734, 1.0009767532348632, -1.149545669555664],
-  "outlineOrigin": [0.5, 1, -1.4],
+  "holoOrigin": [0.8496, 0.7, 0.2],
+  "outlineOrigin": [0.8496, 0.7, -2.484],
   "totalScu": 4,
   "racks": [
     {

@@ -6,8 +6,8 @@
   "fleetyardsSlug": "rsi-apollo-medivac",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
-  "holoOrigin": [-0.47859039306640627, 1.0031570434570312, -4.697995376586914],
-  "outlineOrigin": [-0.5, 1, -4.708],
+  "holoOrigin": [0.412, 0.4944, 0.08],
+  "outlineOrigin": [0.412, 0.4944, -5.9656],
   "totalScu": 32,
   "racks": [
     {

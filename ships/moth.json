@@ -6,8 +6,8 @@
   "fleetyardsSlug": "argo-moth",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); racks rack-1, rack-2 added (Fleetyards export 2026-10-26); door limits from Fleetyards limits.max.capacity",
-  "holoOrigin": [-4.998900604248047, 2.9978012084960937, -3.331147766113282],
-  "outlineOrigin": [-5, 3, -3.332],
+  "holoOrigin": [0.9467, 0.7132, 0.4583],
+  "outlineOrigin": [0.9467, 0.7132, -5.5769],
   "totalScu": 224,
   "racks": [
     {

@@ -6,8 +6,8 @@
   "fleetyardsSlug": "anvl-paladin",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [1.9507064819335938, 0.6089653015136719, -5.044225692749023],
-  "outlineOrigin": [2, 0.5, -5.048],
+  "holoOrigin": [0.4, 0.98, 0.36],
+  "outlineOrigin": [0.4, 0.98, -4.284],
   "totalScu": 4,
   "racks": [
     {

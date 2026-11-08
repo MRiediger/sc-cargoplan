@@ -6,8 +6,8 @@
   "fleetyardsSlug": "aegs-avenger-titan",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [1.992795181274414, 1, -2.2263185501098635],
-  "outlineOrigin": [2, 1, -1.932],
+  "holoOrigin": [0.08, 0, 0.7713],
+  "outlineOrigin": [0.08, 0, -2.7647],
   "totalScu": 8,
   "racks": [
     {

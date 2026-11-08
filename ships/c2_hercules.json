@@ -6,8 +6,8 @@
   "fleetyardsSlug": "crus-c2-hercules",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [2.50460205078125, 4.011506652832031, -7.232276916503906],
-  "outlineOrigin": [2.5, 4, -7.251999999999999],
+  "holoOrigin": [0.4, 0, 0.0748],
+  "outlineOrigin": [0.4, 0, -11.4628],
   "totalScu": 696,
   "racks": [
     {

@@ -6,8 +6,8 @@
   "fleetyardsSlug": "crus-intrepid",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [-0.4960346221923828, 0.5016994476318359, -1.6813636779785157],
-  "outlineOrigin": [-0.5, 0.5, -1.98],
+  "holoOrigin": [0.0575, 0, 0.8953],
+  "outlineOrigin": [0.0575, 0, -0.6503],
   "totalScu": 8,
   "racks": [
     {

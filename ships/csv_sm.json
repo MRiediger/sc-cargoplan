@@ -6,8 +6,8 @@
   "fleetyardsSlug": "argo-csv-sm",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); crate minimums from Fleetyards limits.min.capacity",
-  "holoOrigin": [1.001582145690918, 1, -0.5290425300598145],
-  "outlineOrigin": [1, 1, -0.6199999999999999],
+  "holoOrigin": [0.3843, 0.0024, 0.79],
+  "outlineOrigin": [0.3843, 0.0024, -0.3316],
   "totalScu": 4,
   "racks": [
     {

@@ -3,10 +3,11 @@
   "id": "cyclone",
   "name": "TMBL Cyclone",
   "manufacturer": "TMBL",
+  "fleetyardsSlug": "tmbl-cyclone",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [-0.5, 0.5, 0.5],
-  "outlineOrigin": [-0.5, 0.5, 0.5],
+  "holoOrigin": [0.4565, 0.5002, 0.1782],
+  "outlineOrigin": [0.4565, 0.5002, -0.7226],
   "totalScu": 1,
   "racks": [
     {

@@ -6,8 +6,8 @@
   "fleetyardsSlug": "rsi-polaris",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [-0.4826568603515625, 3.016180419921875, -17.06892547607422],
-  "outlineOrigin": [-0.5, 3, -17.06],
+  "holoOrigin": [0.4005, 0, 0.8006],
+  "outlineOrigin": [0.4005, 0, -18.2298],
   "totalScu": 576,
   "racks": [
     {

@@ -6,8 +6,8 @@
   "fleetyardsSlug": "gama-tyilui",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [-0.48851699829101564, 2.0344444274902345, -25.85731201171875],
-  "outlineOrigin": [-0.5, 2, -25.872000000000003],
+  "holoOrigin": [0, 0, 0.5],
+  "outlineOrigin": [0, 0, -28.0712],
   "totalScu": 96,
   "racks": [
     {
