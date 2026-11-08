@@ -1,5 +1,5 @@
-# Shared by the ship importers (tools/import-fleetyards.ps1, tools/import-motherlode.ps1): the ship file format as the
-# importers read and write it. Dot-sourced: . (Join-Path $PSScriptRoot 'ShipJson.ps1')
+# The ship file format as tools/import-motherlode.ps1 reads and writes it; kept apart from the import since the retired
+# Fleetyards import shared it (D94, in Git history). Dot-sourced: . (Join-Path $PSScriptRoot 'ShipJson.ps1')
 # Runs under Windows PowerShell 5.1 and PowerShell 7. ASCII only: 5.1 reads a script without BOM as ANSI.
 
 $ShipSchemaVersion = 6
@@ -7,16 +7,6 @@ $CrateSizes = @(1, 2, 4, 8, 16, 24, 32)
 # Crate sizes with their shapes in cells (SCU, length, width, stack), fixed orientation, as CrateSize.Dimensions (D57).
 # A list, not an ordered hashtable: its [int] indexer would read a position, not a key.
 $CrateShapes = @(@(1, 1, 1, 1), @(2, 2, 1, 1), @(4, 2, 2, 1), @(8, 2, 2, 2), @(16, 4, 2, 2), @(24, 6, 2, 2), @(32, 8, 2, 2))
-
-# Adds or replaces a property: ConvertFrom-Json objects only have the fields the file has.
-function Set-Field([object]$Target, [string]$Name, [object]$Value) {
-    if ($Target.PSObject.Properties[$Name]) {
-        $Target.$Name = $Value
-    }
-    else {
-        $Target | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
-    }
-}
 
 # The largest crate a grid takes: two horizontal sides and the stack. Crates turn 90 degrees about the stack axis (D71),
 # so the longer horizontal side takes the crate's length, whichever axis it lies on.
@@ -46,18 +36,6 @@ function Get-Frame([string]$Axis) {
     }
 }
 
-# The box a ship file's rack takes in ship cells: origin, then the grid along the axes of its stack axis.
-function Get-FileBox([object]$Rack) {
-    $frame = Get-Frame ([string]$Rack.stackAxis)
-    $grid = @([int]$Rack.grid.length, [int]$Rack.grid.width, [int]$Rack.grid.stack)
-    $min = @([int]$Rack.origin[0], [int]$Rack.origin[1], [int]$Rack.origin[2])
-    $max = @($min[0], $min[1], $min[2])
-    for ($i = 0; $i -lt 3; $i++) {
-        $max[$frame[$i]] += $grid[$i]
-    }
-    [pscustomobject]@{ Min = $min; Max = $max }
-}
-
 # The pairs of boxes that share volume on all three axes, as "i/k"; touching is fine (as in the loader).
 function Get-Overlaps([object[]]$Boxes) {
     $pairs = [System.Collections.Generic.List[string]]::new()
@@ -78,10 +56,6 @@ function Get-Overlaps([object[]]$Boxes) {
     , $pairs
 }
 
-function Test-Overlap([object[]]$Racks) {
-    (Get-Overlaps $Racks).Count -gt 0
-}
-
 function Format-JsonString([string]$Value) {
     if ($Value -match '[\x00-\x1f]') {
         throw "Control character in '$Value'."
@@ -94,18 +68,6 @@ function Format-JsonString([string]$Value) {
 function Get-HandFields([string]$Text) {
     @([regex]::Matches($Text, '(?m)^\s*"(holoOffset|holoOrigin|outlineOrigin|outlineScale)"\s*:\s*(\[[^\]]*\]|[^,\s}]+)') |
         ForEach-Object { "  ""$($_.Groups[1].Value)"": $($_.Groups[2].Value)," })
-}
-
-# A rack's rotation (D91) as the file writes it, by rack id: hand work too, and through a number it would lose digits just
-# the same. The file's rotations come in the order of its racks, whichever field of a rack comes first.
-function Get-RackRotations([string]$Text, [object]$File) {
-    $written = @([regex]::Matches($Text, '"rotation"\s*:\s*(\[[^\]]*\])') | ForEach-Object { $_.Groups[1].Value })
-    $turned = @(@($File.racks) | Where-Object { $null -ne $_.rotation })
-    $rotations = @{}
-    for ($i = 0; $i -lt $turned.Count; $i++) {
-        $rotations[[string]$turned[$i].id] = $written[$i]
-    }
-    $rotations
 }
 
 # The layout of ships/hull_a.json: two spaces, grid, position and origin on one line, LF, final newline.

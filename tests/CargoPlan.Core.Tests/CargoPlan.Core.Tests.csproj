@@ -42,18 +42,12 @@
     <None Update="TestOutlines/*.json" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
-  <!-- Fleetyards import (T7.1b): the script under test, linked from tools/ so the test needn't search the repo root,
-       a synthetic export and the ship files it must produce. -->
-  <ItemGroup>
-    <None Include="..\..\tools\import-fleetyards.ps1" Link="tools\import-fleetyards.ps1" CopyToOutputDirectory="IfDifferent" />
-    <None Include="..\..\tools\ShipJson.ps1" Link="tools\ShipJson.ps1" CopyToOutputDirectory="IfDifferent" />
-    <None Update="TestFleetyards/**/*.json" CopyToOutputDirectory="IfDifferent" />
-  </ItemGroup>
-
-  <!-- Motherlode import (session 4a, D92): the script and a synthetic grid catalog in the field names of Motherlode's API,
-       made-up numbers; nothing from the real catalog enters the repo. -->
+  <!-- Motherlode import (session 4a, D92): the script and the file format it dot-sources, linked from tools/ so the test
+       needn't search the repo root, and a synthetic grid catalog in the field names of Motherlode's API, made-up numbers;
+       nothing from the real catalog enters the repo. -->
   <ItemGroup>
     <None Include="..\..\tools\import-motherlode.ps1" Link="tools\import-motherlode.ps1" CopyToOutputDirectory="IfDifferent" />
+    <None Include="..\..\tools\ShipJson.ps1" Link="tools\ShipJson.ps1" CopyToOutputDirectory="IfDifferent" />
     <None Update="TestMotherlode/**/*.json" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
