@@ -27,9 +27,9 @@ public sealed class HoloLoaderTests : IDisposable
     public HoloLoaderTests()
     {
         _loader = new HoloLoader(_viewModel, new HoloSource(_handler, _folder, new FakeHttp.FixedClock(DateTimeOffset.UtcNow), TimeSpan.FromSeconds(5), "1.0"));
-        _handler.Serve("manifest.json", FakeHttp.Manifest((HullA.FleetyardsSlug!, HullAFile), (C2.FleetyardsSlug!, C2File)));
-        _handler.Serve(HullA.FleetyardsSlug + ".holo", HullAFile);
-        _handler.Serve(C2.FleetyardsSlug + ".holo", C2File);
+        _handler.Serve("manifest.json", FakeHttp.Manifest((HullA.ModelKey!, HullAFile), (C2.ModelKey!, C2File)));
+        _handler.Serve(HullA.ModelKey + ".holo", HullAFile);
+        _handler.Serve(C2.ModelKey + ".holo", C2File);
     }
 
     public void Dispose()
@@ -47,7 +47,7 @@ public sealed class HoloLoaderTests : IDisposable
         return HoloFixtures.Write(hull, triangles, HoloFixtures.CubeEdges(), 4, 8, length);
     }
 
-    private string CachedFile(Ship ship) => Path.Combine(_folder, ship.FleetyardsSlug + ".holo");
+    private string CachedFile(Ship ship) => Path.Combine(_folder, ship.ModelKey + ".holo");
 
     private void Cache(Ship ship, byte[] data)
     {
@@ -71,10 +71,10 @@ public sealed class HoloLoaderTests : IDisposable
     [Fact]
     public async Task A_ship_change_cancels_the_running_download_and_shows_the_new_ship_only()
     {
-        _handler.Hang(HullA.FleetyardsSlug + ".holo");
+        _handler.Hang(HullA.ModelKey + ".holo");
 
         var first = _loader.RequestAsync(HullA, ShipOutlineMode.HoloShaded, true);
-        await WaitFor(() => _handler.Requests.Any(r => r.Uri.EndsWith(HullA.FleetyardsSlug + ".holo")));
+        await WaitFor(() => _handler.Requests.Any(r => r.Uri.EndsWith(HullA.ModelKey + ".holo")));
         _viewModel.ChangeShip(C2);
         var second = _loader.RequestAsync(C2, ShipOutlineMode.HoloShaded, true);
         await Task.WhenAll(first, second);
@@ -150,7 +150,7 @@ public sealed class HoloLoaderTests : IDisposable
     [Fact]
     public async Task A_withdrawal_deletes_the_cached_file_and_shows_the_outline_without_a_notice()
     {
-        _handler.Serve("manifest.json", FakeHttp.Manifest((C2.FleetyardsSlug!, C2File)));
+        _handler.Serve("manifest.json", FakeHttp.Manifest((C2.ModelKey!, C2File)));
         Cache(HullA, HullAFile);
 
         await _loader.RequestAsync(HullA, ShipOutlineMode.HoloHiddenline, true);
@@ -163,7 +163,7 @@ public sealed class HoloLoaderTests : IDisposable
     [Fact]
     public async Task The_first_failure_of_a_run_gives_one_notice_a_hologram_clears_it_and_it_never_comes_back()
     {
-        _handler.Answer(HullA.FleetyardsSlug + ".holo", () => new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
+        _handler.Answer(HullA.ModelKey + ".holo", () => new HttpResponseMessage(System.Net.HttpStatusCode.NotFound));
 
         await _loader.RequestAsync(HullA, ShipOutlineMode.HoloHiddenline, true);
         _viewModel.Notices.Should().Equal(OverlayViewModel.HoloNoticeText("github.com answered 404 for misc-hull-a.holo"));
@@ -179,9 +179,9 @@ public sealed class HoloLoaderTests : IDisposable
     }
 
     [Fact]
-    public async Task A_ship_without_a_fleetyards_slug_shows_the_outline_without_a_request()
+    public async Task A_ship_without_a_model_key_shows_the_outline_without_a_request()
     {
-        await _loader.RequestAsync(HullA with { FleetyardsSlug = null }, ShipOutlineMode.HoloHiddenline, true);
+        await _loader.RequestAsync(HullA with { ModelKey = null }, ShipOutlineMode.HoloHiddenline, true);
 
         _handler.Requests.Should().BeEmpty();
         _viewModel.Holo.Should().BeNull();

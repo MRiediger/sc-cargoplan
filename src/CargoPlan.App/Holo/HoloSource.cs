@@ -80,7 +80,7 @@ public sealed class HoloSource : IDisposable
     public static HoloSource CreateDefault() =>
         new(new SocketsHttpHandler(), HoloRelease.DefaultCacheFolder, TimeProvider.System, HoloRelease.Timeout, HoloRelease.UserAgentVersion);
 
-    /// <param name="slug">The ship's <c>fleetyardsSlug</c>.</param>
+    /// <param name="slug">The ship's <c>modelKey</c>.</param>
     /// <param name="download">false = the switch is off: only a cached file, no request at all (Martin, T7.4c-2).</param>
     /// <exception cref="OperationCanceledException"><paramref name="cancel"/> was cancelled: another ship was chosen.</exception>
     public async Task<HoloFetch> GetAsync(string slug, bool download, CancellationToken cancel)

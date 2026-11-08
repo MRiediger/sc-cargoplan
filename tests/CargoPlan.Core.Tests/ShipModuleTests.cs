@@ -29,7 +29,7 @@ public sealed class ShipModuleTests
         WithModule.Racks.Should().HaveCount(3);
         var platform = WithModule.Racks[^1];
         (platform.Grid, platform.MaxCrateSize).Should().Be((new Dimensions(3, 2, 1), (CrateSize?)CrateSize.Two));
-        WithModule.FleetyardsSlug.Should().Be(Base.FleetyardsSlug);
+        WithModule.ModelKey.Should().Be(Base.ModelKey);
         Catalog.Problems.Should().NotContain(p => p.ShipId.Contains("ts_module", StringComparison.Ordinal));
     }
 

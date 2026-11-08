@@ -3,7 +3,7 @@
   "id": "mpuv_cargo",
   "name": "ARGO MPUV Cargo",
   "manufacturer": "ARGO",
-  "fleetyardsSlug": "argo-mpuv-cargo",
+  "modelKey": "argo-mpuv-cargo",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0, 0.5, 0.408],

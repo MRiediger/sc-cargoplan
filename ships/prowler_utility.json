@@ -3,7 +3,7 @@
   "id": "prowler_utility",
   "name": "ESPR Prowler Utility",
   "manufacturer": "ESPR",
-  "fleetyardsSlug": "espr-prowler-utility",
+  "modelKey": "espr-prowler-utility",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.9559, 0.5, 0.5583],

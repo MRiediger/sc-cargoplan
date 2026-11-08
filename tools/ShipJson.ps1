@@ -63,6 +63,11 @@ function Format-JsonString([string]$Value) {
     '"' + $Value.Replace('\', '\\').Replace('"', '\"') + '"'
 }
 
+# A parsed ship file's model key: modelKey, or fleetyardsSlug, its name before v0.3.0 (D94). The writer writes modelKey.
+function Get-ModelKey([object]$File) {
+    if ($null -ne $File.modelKey) { $File.modelKey } else { $File.fleetyardsSlug }
+}
+
 # The fields set outside the import (K5.3b, D90), as the file writes them: through a number, Windows PowerShell 5.1
 # would drop digits and the picture would change.
 function Get-HandFields([string]$Text) {
@@ -75,7 +80,7 @@ function Format-Ship([object]$Ship, [string[]]$HandFields = @(), [hashtable]$Rot
     $lines = [System.Collections.Generic.List[string]]::new()
     $lines.Add('{')
     $lines.Add("  ""schemaVersion"": $ShipSchemaVersion,")
-    foreach ($field in 'id', 'name', 'manufacturer', 'fleetyardsSlug', 'source', 'notes') {
+    foreach ($field in 'id', 'name', 'manufacturer', 'modelKey', 'source', 'notes') {
         if ($null -ne $Ship.$field) {
             $lines.Add("  ""$field"": $(Format-JsonString $Ship.$field),")
         }

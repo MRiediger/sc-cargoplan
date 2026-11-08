@@ -184,7 +184,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public static string HoloNoticeText(string reason) => $"Ship hologram not available: {reason} – showing the outline";
 
     /// <summary>
-    /// The outlines loaded at the start (D55), matched to a ship by its Fleetyards slug. Set once by the composition root;
+    /// The outlines loaded at the start (D55), matched to a ship by its model key. Set once by the composition root;
     /// the scene built before it gets its marker here.
     /// </summary>
     public ShipOutlineCatalog Outlines

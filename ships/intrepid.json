@@ -3,7 +3,7 @@
   "id": "intrepid",
   "name": "CRUS Intrepid",
   "manufacturer": "CRUS",
-  "fleetyardsSlug": "crus-intrepid",
+  "modelKey": "crus-intrepid",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.0575, 0, 0.8953],

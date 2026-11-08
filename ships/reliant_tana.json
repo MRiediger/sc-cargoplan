@@ -3,7 +3,7 @@
   "id": "reliant_tana",
   "name": "MISC Reliant Tana",
   "manufacturer": "MISC",
-  "fleetyardsSlug": "misc-reliant-tana",
+  "modelKey": "misc-reliant-tana",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.2402, 0.6835, 0.8266],

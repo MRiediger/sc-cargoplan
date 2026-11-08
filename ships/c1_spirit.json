@@ -3,7 +3,7 @@
   "id": "c1_spirit",
   "name": "CRUS C1 Spirit",
   "manufacturer": "CRUS",
-  "fleetyardsSlug": "crus-c1-spirit",
+  "modelKey": "crus-c1-spirit",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.3717, 0, 0.4],

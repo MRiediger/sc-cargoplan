@@ -174,7 +174,7 @@ public class ImportMotherlodeScriptTests
         var run = await work.Run("-Create", "-ModelMap", map);
 
         var lines = File.ReadAllLines(map);
-        lines[0].Should().Be("id,className,fleetyardsSlug,sx,sy,sz");
+        lines[0].Should().Be("id,className,modelKey,sx,sy,sz");
         lines.Skip(1).Select(l => l.Split(',')[0]).Should().BeInAscendingOrder(StringComparer.Ordinal).And.NotContain("135c");
         var s = Shift(run.Output, "hull_a");
         lines.Should().Contain(l => l.StartsWith("hull_a,TEST_Hull_A,misc-hull-a,", StringComparison.Ordinal)
@@ -236,7 +236,7 @@ public class ImportMotherlodeScriptTests
         Numbers(work.Ship("mustang_alpha_vindicator")["holoOrigin"]!).Should().Equal(Shift(run.Output, "mustang_alpha_vindicator"), (a, b) => Math.Abs(a - b) <= 0.0005);
         var variant = work.Ship("mustang_alpha_vindicator");
         variant["name"]!.GetValue<string>().Should().Be("CNOU Mustang Alpha Vindicator");
-        variant["fleetyardsSlug"]!.GetValue<string>().Should().Be("cnou-mustang-alpha");
+        variant["modelKey"]!.GetValue<string>().Should().Be("cnou-mustang-alpha");
         variant["source"]!.GetValue<string>().Should().Be(Source);
         var baseText = work.Read("mustang_alpha");
         var variantText = work.Read("mustang_alpha_vindicator");
@@ -249,6 +249,20 @@ public class ImportMotherlodeScriptTests
         ShipLoader.Load(work.Ships, "mustang_alpha_vindicator").TotalScu.Should().Be(4);
     }
 
+    // D94: a file with the field's old name (written by hand) is read and written back as modelKey; its variant takes the key.
+    [Fact]
+    public async Task A_file_with_the_old_field_name_is_written_with_modelKey()
+    {
+        using var work = new Workspace();
+        work.Replace("mustang_alpha", "\"modelKey\":", "\"fleetyardsSlug\":");
+
+        await work.Run("-Create");
+
+        work.Ship("mustang_alpha")["modelKey"]!.GetValue<string>().Should().Be("cnou-mustang-alpha");
+        work.Read("mustang_alpha").Should().NotContain("fleetyardsSlug");
+        work.Ship("mustang_alpha_vindicator")["modelKey"]!.GetValue<string>().Should().Be("cnou-mustang-alpha");
+    }
+
     // A new ship without a base has no slug, so no hologram or outline to place: the anchors go to the racks' middle, as
     // docs/ship-format.md says by hand.
     [Fact]
@@ -259,7 +273,7 @@ public class ImportMotherlodeScriptTests
         await work.Run("-Create");
 
         var ship = work.Ship("test_buggy");
-        ship["fleetyardsSlug"].Should().BeNull();
+        ship["modelKey"].Should().BeNull();
         ship["name"]!.GetValue<string>().Should().Be("TEST Test Buggy");
         work.Racks("test_buggy").Select(Text).Should().Equal("rack-0 - [0,0,0] +z 1x1x1");
         foreach (var field in (string[])["holoOrigin", "outlineOrigin"])
@@ -465,6 +479,13 @@ public class ImportMotherlodeScriptTests
 
         public void AddFixtureShip(string id) =>
             File.Copy(Path.Combine(Fixtures, "ships", id + ".json"), Path.Combine(Ships, id + ".json"));
+
+        /// <summary>Replaces text in a ship file of the workspace, e.g. a field's name.</summary>
+        public void Replace(string id, string oldText, string newText)
+        {
+            var path = Path.Combine(Ships, id + ".json");
+            File.WriteAllText(path, File.ReadAllText(path).Replace(oldText, newText, StringComparison.Ordinal));
+        }
 
         public IReadOnlyList<string> ShipIds() =>
             [.. Directory.EnumerateFiles(Ships, "*.json").Select(Path.GetFileNameWithoutExtension).OfType<string>().Order(StringComparer.Ordinal)];

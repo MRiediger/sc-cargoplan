@@ -6,7 +6,7 @@
 #   Writes every ship whose file differs from what the catalog gives; a ship already in sync stays byte for byte.
 #   Per rack: origin, grid, stackAxis, rotation (only real angles, D91), maxCrateSize = min(maxContainerScu, the file's
 #   value or what the grid takes); a minimum the catalog doesn't name stays. Rack ids, order and position stay (saved plans
-#   name racks by id). Hand-written notes stay; the arrangement phrases of the Fleetyards import become "rack positions
+#   name racks by id). Hand-written notes stay; the arrangement phrases of the retired Fleetyards import become "rack positions
 #   from game files (Motherlode)".
 #   Zero point: the game model's origin plus a fraction s < 1 cell per ship and axis that rounds the racks best; s and
 #   every rack's rounding are reported.
@@ -14,7 +14,7 @@
 #   outline come from that model: holoOrigin = s, outlineOrigin = s with z on the model's floor (floorM of -Outlines, default
 #   outlines/ship-outlines.json), no outlineScale. Without a floorM for the slug the anchors stay as written and the ship is
 #   listed. A ship without model or slug keeps its anchors.
-#   -ModelMap writes id,className,fleetyardsSlug,sx,sy,sz for every ship with a model and a file: the hologram pipeline
+#   -ModelMap writes id,className,modelKey,sx,sy,sz for every ship with a model and a file: the hologram pipeline
 #   (sc-ship-outlines) builds per model and names the files by slug.
 #   Not written, for a person to look at: grids that overlap (K1), a rack set or position that doesn't match the file,
 #   grids in another order than in -Previous. A ship with a grid without transform stays as it is (Fleetyards).
@@ -54,7 +54,7 @@ $Invariant = [Globalization.CultureInfo]::InvariantCulture
 $SourcePrefix = 'cryon.rocks (Motherlode)'
 $GameNote = 'rack positions from game files (Motherlode)'
 $GameDoorNote = '; door limits from game files (Motherlode)'
-# Phrases of the Fleetyards import that the game files make wrong, replaced word for word; any other text is hand work.
+# Phrases of the retired Fleetyards import (D94) that the game files make wrong, replaced word for word; any other text is hand work.
 $NoteReplacements = [ordered]@{
     'rack positions from Fleetyards overlap; arrangement generated; grids from Fleetyards'                = $GameNote
     'rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game'          = $GameNote
@@ -73,7 +73,7 @@ $NameOverrides = @{
     'mole_carbon_edition' = 'ARGO MOLE Carbon Edition'
     'mole_talus_edition'  = 'ARGO MOLE Talus Edition'
 }
-# Variants without a hologram of their own: they show their base ship's (fleetyardsSlug, holoOrigin, outlineOrigin).
+# Variants without a hologram of their own: they show their base ship's (modelKey, holoOrigin, outlineOrigin).
 $Variants = @{
     'mole_carbon_edition'        = 'mole'
     'mole_talus_edition'         = 'mole'
@@ -179,7 +179,7 @@ function Get-Shift([double[]]$Values) {
 }
 
 # Port/starboard and upper/lower of each placed box, by its middle against the middle of all boxes, doubled to stay whole
-# (as the Fleetyards import, D78). A box on the middle has no side, none a level where boxes lie wholly above and below it.
+# (as the retired Fleetyards import did, D78). A box on the middle has no side, none a level where boxes lie wholly above and below it.
 function Get-Positions([object[]]$Boxes) {
     $yBoth = (@($Boxes | ForEach-Object { $_.Min[1] }) | Measure-Object -Minimum).Minimum + (@($Boxes | ForEach-Object { $_.Max[1] }) | Measure-Object -Maximum).Maximum
     $zBoth = (@($Boxes | ForEach-Object { $_.Min[2] }) | Measure-Object -Minimum).Minimum + (@($Boxes | ForEach-Object { $_.Max[2] }) | Measure-Object -Maximum).Maximum
@@ -361,13 +361,13 @@ function Convert-Ship([object]$Entry, [string]$Id, [object]$Context) {
     if ($file) {
         $notes = Convert-Notes ([string]$file.notes)
         $hand = Get-HandFields $text
-        $name = $file.name; $manufacturer = $file.manufacturer; $slug = $file.fleetyardsSlug
+        $name = $file.name; $manufacturer = $file.manufacturer; $slug = Get-ModelKey $file
     }
     elseif ($base) {
         $notes = "$GameNote; hologram and outline of the $($base.name)"
         $hand = Get-HandFields $baseText
         $name = if ($NameOverrides.ContainsKey($Id)) { $NameOverrides[$Id] } else { "$($Entry.manufacturer) $($Entry.name)" }
-        $manufacturer = $Entry.manufacturer; $slug = $base.fleetyardsSlug
+        $manufacturer = $Entry.manufacturer; $slug = Get-ModelKey $base
     }
     else {
         # No hologram: the anchors at the racks' middle, as docs/ship-format.md says for a ship set up by hand.
@@ -394,7 +394,7 @@ function Convert-Ship([object]$Entry, [string]$Id, [object]$Context) {
     if ($doorFromGame -and -not $notes.Contains($GameDoorNote)) { $notes += $GameDoorNote }
 
     $ship = [pscustomobject]@{
-        id = $Id; name = $name; manufacturer = $manufacturer; fleetyardsSlug = $slug
+        id = $Id; name = $name; manufacturer = $manufacturer; modelKey = $slug
         source = "$SourcePrefix $($Context.GameBuild), $($Context.UpdatedAt)"; notes = $notes
         totalScu = $total; racks = $racks
     }
@@ -520,7 +520,7 @@ try {
     }
     if ($ModelMap) {
         # $ids is sorted ordinally, so the map is too; LF, no BOM, for the pipeline on any checkout.
-        [System.IO.File]::WriteAllText($ModelMap, ((@('id,className,fleetyardsSlug,sx,sy,sz') + $mapLines) -join "`n") + "`n", $utf8)
+        [System.IO.File]::WriteAllText($ModelMap, ((@('id,className,modelKey,sx,sy,sz') + $mapLines) -join "`n") + "`n", $utf8)
     }
 
     '{0} {1}, {2}: {3} ships' -f $SourcePrefix, $context.GameBuild, $context.UpdatedAt, $entries.Count

@@ -3,7 +3,7 @@
   "id": "turned_ship",
   "name": "TEST Turned Ship",
   "manufacturer": "TEST",
-  "fleetyardsSlug": "test-turned-ship",
+  "modelKey": "test-turned-ship",
   "source": "Fleetyards API (CIG ship matrix), export 2026-01-15",
   "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [1.5000000000000002, 0.25, -0.5],

@@ -194,7 +194,7 @@ public sealed class ShipAnchorValueTests
         var previous = Environment.GetEnvironmentVariable("CARGOPLAN_HOLO_PREVIOUS");
         var catalog = ShipLoader.LoadAll(ships);
         var outlines = ShipOutlineLoader.Load();
-        HoloMesh Mesh(string folder, Ship ship) => HoloReader.Read(File.ReadAllBytes(Path.Combine(folder, $"{ship.FleetyardsSlug}.holo")));
+        HoloMesh Mesh(string folder, Ship ship) => HoloReader.Read(File.ReadAllBytes(Path.Combine(folder, $"{ship.ModelKey}.holo")));
 
         ShipAnchors Values(Ship ship)
         {

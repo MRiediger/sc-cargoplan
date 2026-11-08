@@ -3,7 +3,7 @@
   "id": "400i",
   "name": "ORIG 400i",
   "manufacturer": "ORIG",
-  "fleetyardsSlug": "orig-400i",
+  "modelKey": "orig-400i",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [0.3498, 0.5, 0],

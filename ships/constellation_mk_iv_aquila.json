@@ -3,7 +3,7 @@
   "id": "constellation_mk_iv_aquila",
   "name": "RSI Constellation Mk IV Aquila",
   "manufacturer": "RSI",
-  "fleetyardsSlug": "rsi-constellation-mk-iv-aquila",
+  "modelKey": "rsi-constellation-mk-iv-aquila",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.9937, 0, 0.56],

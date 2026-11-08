@@ -3,7 +3,7 @@
   "id": "constellation_mk_iv_taurus",
   "name": "RSI Constellation Mk IV Taurus",
   "manufacturer": "RSI",
-  "fleetyardsSlug": "rsi-constellation-mk-iv-taurus",
+  "modelKey": "rsi-constellation-mk-iv-taurus",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.75, 0, 0.3615],

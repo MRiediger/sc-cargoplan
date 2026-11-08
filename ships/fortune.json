@@ -3,7 +3,7 @@
   "id": "fortune",
   "name": "MISC Fortune",
   "manufacturer": "MISC",
-  "fleetyardsSlug": "misc-fortune",
+  "modelKey": "misc-fortune",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); racks rack-1, rack-2 added (Fleetyards export 2026-10-26)",
   "holoOrigin": [0.8962, 0.6936, 0.7538],

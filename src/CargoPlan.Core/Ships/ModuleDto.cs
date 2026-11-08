@@ -45,7 +45,7 @@ internal sealed record ModuleDto(
 
     /// <summary>
     /// <paramref name="ship"/> with this module, as its ship file would say it: name "RSI Aurora Mk II · TS module", the
-    /// racks added up, the ship's manufacturer and Fleetyards slug, so outline and hologram stay the ship's. They lie where
+    /// racks added up, the ship's manufacturer and model key, so outline and hologram stay the ship's. They lie where
     /// the ship says unless the module says its own places (D90); a module adds racks, it doesn't move the hull.
     /// </summary>
     public ShipDto On(ShipDto ship) => ship with

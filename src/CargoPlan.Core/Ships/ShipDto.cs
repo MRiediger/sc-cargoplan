@@ -5,13 +5,15 @@ namespace CargoPlan.Core.Ships;
 
 /// <summary>
 /// File format of a ship JSON (docs/ship-format.md). Mapped to <see cref="Ship"/> via <see cref="ToShip"/>. The fields
-/// after <see cref="Racks"/> are optional (D56), see <see cref="RackDto"/>.
+/// after <see cref="Racks"/> are optional (D56), see <see cref="RackDto"/>. <see cref="FleetyardsSlug"/> is
+/// <see cref="ModelKey"/>'s name before v0.3.0, still read for files written by hand (D94); never both.
 /// </summary>
 internal sealed record ShipDto(
     int SchemaVersion, string Id, string Name, int TotalScu, IReadOnlyList<RackDto> Racks,
-    string? Manufacturer = null, string? FleetyardsSlug = null, string? Source = null, string? Notes = null,
+    string? Manufacturer = null, string? ModelKey = null, string? Source = null, string? Notes = null,
     IReadOnlyList<int>? HoloOffset = null,
-    IReadOnlyList<double>? HoloOrigin = null, IReadOnlyList<double>? OutlineOrigin = null, double? OutlineScale = null)
+    IReadOnlyList<double>? HoloOrigin = null, IReadOnlyList<double>? OutlineOrigin = null, double? OutlineScale = null,
+    string? FleetyardsSlug = null)
 {
     /// <exception cref="ArgumentException">A value violates the domain rules.</exception>
     public Ship ToShip()
@@ -19,7 +21,13 @@ internal sealed record ShipDto(
         ArgumentException.ThrowIfNullOrWhiteSpace(Id, nameof(Id));
         ArgumentException.ThrowIfNullOrWhiteSpace(Name, nameof(Name));
         ThrowIfBlank(Manufacturer, "manufacturer");
+        ThrowIfBlank(ModelKey, "modelKey");
         ThrowIfBlank(FleetyardsSlug, "fleetyardsSlug");
+        if (ModelKey is not null && FleetyardsSlug is not null)
+        {
+            throw new ArgumentException($"Ship '{Id}': modelKey and fleetyardsSlug exclude each other; fleetyardsSlug is modelKey's old name, keep modelKey (D94).", nameof(FleetyardsSlug));
+        }
+
         ThrowIfBlank(Source, "source");
         ThrowIfBlank(Notes, "notes");
         if (Racks.Count == 0)
@@ -44,7 +52,7 @@ internal sealed record ShipDto(
 
         ThrowOnBadOutlineScale();
         return new Ship(
-            Id, Name, TotalScu, racks, Manufacturer, FleetyardsSlug, Source, Notes, ToHoloOffset(),
+            Id, Name, TotalScu, racks, Manufacturer, ModelKey ?? FleetyardsSlug, Source, Notes, ToHoloOffset(),
             ToCoordinates(HoloOrigin, "holoOrigin"), ToCoordinates(OutlineOrigin, "outlineOrigin"), OutlineScale);
     }
 

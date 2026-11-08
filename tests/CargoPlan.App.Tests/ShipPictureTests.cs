@@ -68,9 +68,9 @@ public sealed class ShipPictureTests(ITestOutputHelper output)
         var outlines = ShipOutlineLoader.Load();
         foreach (var ship in ShipLoader.LoadAll().Ships.OrderBy(s => s.Id, StringComparer.Ordinal))
         {
-            // A ship without a hologram (no Fleetyards slug, the Cyclone, D92) has the looks without one.
-            var holoFile = Path.Combine(holograms, $"{ship.FleetyardsSlug}.holo");
-            var mesh = ship.FleetyardsSlug is not null && File.Exists(holoFile) ? HoloReader.Read(File.ReadAllBytes(holoFile)) : null;
+            // A ship without a hologram (no model key, the Cyclone, D92) has the looks without one.
+            var holoFile = Path.Combine(holograms, $"{ship.ModelKey}.holo");
+            var mesh = ship.ModelKey is not null && File.Exists(holoFile) ? HoloReader.Read(File.ReadAllBytes(holoFile)) : null;
             values.Add(mesh is null ? $"{ship.Id};no hologram;-" : Values(ship, mesh, outlines));
             foreach (var look in Looks.Where(l => mesh is not null || !ShipOutlineModes.Parse(l).IsHologram()))
             {

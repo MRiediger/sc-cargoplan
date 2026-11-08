@@ -3,7 +3,7 @@
   "id": "zeus_mk_ii_cl",
   "name": "RSI Zeus Mk II CL",
   "manufacturer": "RSI",
-  "fleetyardsSlug": "rsi-zeus-mk-ii-cl",
+  "modelKey": "rsi-zeus-mk-ii-cl",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.65, 0.5, 0],

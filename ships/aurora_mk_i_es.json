@@ -3,7 +3,7 @@
   "id": "aurora_mk_i_es",
   "name": "RSI Aurora Mk I ES",
   "manufacturer": "RSI",
-  "fleetyardsSlug": "rsi-aurora-mk-i-es",
+  "modelKey": "rsi-aurora-mk-i-es",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.7998, 0.5, 0.4584],

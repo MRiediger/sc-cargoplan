@@ -26,7 +26,7 @@ public sealed class HoloLoader(OverlayViewModel viewModel, HoloSource source)
         _running?.Cancel();
         var running = _running = new CancellationTokenSource();
         var cancel = running.Token;
-        if (!look.IsHologram() || ship.FleetyardsSlug is not { } slug)
+        if (!look.IsHologram() || ship.ModelKey is not { } slug)
         {
             viewModel.ShowHolo(null);
             viewModel.SetNotice(NoticeSource.Holo, null);

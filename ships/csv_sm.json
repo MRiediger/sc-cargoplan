@@ -3,7 +3,7 @@
   "id": "csv_sm",
   "name": "ARGO CSV-SM",
   "manufacturer": "ARGO",
-  "fleetyardsSlug": "argo-csv-sm",
+  "modelKey": "argo-csv-sm",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); crate minimums from Fleetyards limits.min.capacity",
   "holoOrigin": [0.3843, 0.0024, 0.79],

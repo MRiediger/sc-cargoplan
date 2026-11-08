@@ -3,7 +3,7 @@
   "id": "mole_carbon_edition",
   "name": "ARGO MOLE Carbon Edition",
   "manufacturer": "ARGO",
-  "fleetyardsSlug": "argo-mole",
+  "modelKey": "argo-mole",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); hologram and outline of the ARGO MOLE",
   "holoOrigin": [0.975, 0, 0.223],

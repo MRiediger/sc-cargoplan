@@ -3,7 +3,7 @@
   "id": "315p",
   "name": "ORIG 315p",
   "manufacturer": "ORIG",
-  "fleetyardsSlug": "orig-315p",
+  "modelKey": "orig-315p",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [0.5451, 0, 0.332],

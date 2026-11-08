@@ -3,7 +3,7 @@
   "id": "starlancer_max",
   "name": "MISC Starlancer MAX",
   "manufacturer": "MISC",
-  "fleetyardsSlug": "misc-starlancer-max",
+  "modelKey": "misc-starlancer-max",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.2873, 0.5, 0.1703],

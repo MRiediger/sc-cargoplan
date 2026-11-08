@@ -3,7 +3,7 @@
   "id": "reliant_kore",
   "name": "MISC Reliant Kore",
   "manufacturer": "MISC",
-  "fleetyardsSlug": "misc-reliant-kore",
+  "modelKey": "misc-reliant-kore",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.251, 0.5, 0.81],

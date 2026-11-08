@@ -131,7 +131,7 @@ internal sealed class FrameMeasureWindow : Window
             }
 
             _crates = plan.Crates.Count;
-            var path = ship.FleetyardsSlug is { } slug && !spec.Outline ? Path.Combine(HoloRelease.DefaultCacheFolder, slug + ".holo") : null;
+            var path = ship.ModelKey is { } slug && !spec.Outline ? Path.Combine(HoloRelease.DefaultCacheFolder, slug + ".holo") : null;
             _holo = path is not null && File.Exists(path) ? PreparedHolo.Prepare(ship, HoloReader.Read(File.ReadAllBytes(path)), Look) : null;
             var outline = spec.Outline ? ShipOutlineLoader.Load().For(ship) : null;
             var scene = ShipViewBuilder.Build(plan, ship, spec.States ? LoadPlanner.Validate(plan, ship) : []) with

@@ -3,7 +3,7 @@
   "id": "railen",
   "name": "GAMA Railen",
   "manufacturer": "GAMA",
-  "fleetyardsSlug": "gama-railen",
+  "modelKey": "gama-railen",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.8449, 0.0137, 0.8798],

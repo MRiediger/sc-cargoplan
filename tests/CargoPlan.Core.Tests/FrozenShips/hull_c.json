@@ -3,7 +3,7 @@
   "id": "hull_c",
   "name": "MISC Hull C",
   "manufacturer": "MISC",
-  "fleetyardsSlug": "misc-hull-c",
+  "modelKey": "misc-hull-c",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-26",
   "notes": "rack positions from Fleetyards; port/starboard from Fleetyards x sign, not checked in game; stackAxis fills Fleetyards' box with the grid kept (K5.2, D78): level arms z, upright arms y; radial or along the arm not checked in game; crate minimums from Fleetyards limits.min.capacity",
   "holoOrigin": [8.554934692382812, -15.9908447265625, -7.423667907714844],

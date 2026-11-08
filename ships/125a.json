@@ -3,7 +3,7 @@
   "id": "125a",
   "name": "ORIG 125a",
   "manufacturer": "ORIG",
-  "fleetyardsSlug": "orig-125a",
+  "modelKey": "orig-125a",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.264, 0.5, 0.7976],

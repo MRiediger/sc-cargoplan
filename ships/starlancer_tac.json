@@ -3,7 +3,7 @@
   "id": "starlancer_tac",
   "name": "MISC Starlancer TAC",
   "manufacturer": "MISC",
-  "fleetyardsSlug": "misc-starlancer-tac",
+  "modelKey": "misc-starlancer-tac",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.4, 0.5, 0.0072],

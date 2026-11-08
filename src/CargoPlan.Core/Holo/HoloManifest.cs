@@ -10,7 +10,7 @@ namespace CargoPlan.Core.Holo;
 /// </summary>
 public sealed record HoloManifest(string DataVersion, int FormatVersion, IReadOnlyList<HoloManifestEntry> Ships)
 {
-    /// <summary>The entry of <paramref name="slug"/> (a ship's <c>fleetyardsSlug</c>, case-sensitive), or null.</summary>
+    /// <summary>The entry of <paramref name="slug"/> (a ship's <c>modelKey</c>, case-sensitive), or null.</summary>
     public HoloManifestEntry? Find(string slug) => Ships.FirstOrDefault(s => s.Slug == slug);
 }
 
