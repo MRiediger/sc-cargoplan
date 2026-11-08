@@ -4497,7 +4497,16 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 
 **Kontaktabzug nachher** (Martins Sichtprüfung): `Documents\Coding\Dotnet\sc-ship-outlines\preview\holo-v2\sheet\_sheet1.png` … `_sheet9.png`, je schräg und von oben, Holo schattiert mit Racks. Die drei Fleetyards-Schiffe zeigen „no picture“: Sie sind bitgleich zu 4a, der Harness speichert mit Baseline nur abweichende Bilder (4a-Kontaktabzug). Probe-Bilder der Auffälligen: `preview\holo-v2\*_probe.png`.
 
-**Frame-Zeit über dem Spiel** (Martin, SC läuft hier nicht): `main`-Build mit dem Reclaimer-Ziel liegt im Scratch-Worktree, Probelauf ohne Spiel ok (`reclaimer 420 crates, holo yes`, 59,6 fps, spät 0,6 %). Gate: gleiches Ziel vorher/nachher, Anteil später Frames ≤ +2 pp; Ziele `hull_c`, `hull_c_drag`, `reclaimer`, je drei Läufe, Median.
+**Frame-Zeit über dem Spiel** (Martin, 08.11., `--measure-frames <Ziel> --over-game`, SC vorn, je drei Läufe, Median). `main` 05feead mit holo-v1 und derselben Reclaimer-Zeile im Scratch-Worktree gegen den Branch d1b09aa mit holo-v2. Gate: gleiches Ziel, Anteil später Frames ≤ +2 pp.
+
+| Ziel | `main` (holo-v1) Läufe → Median | Branch (holo-v2) Läufe → Median | Δ |
+|---|---|---|---|
+| hull_c (144 Kisten) | 0,2 / 0,2 / 0,3 → 0,2 % | 0,2 / 0,1 / 0,1 → 0,1 % | −0,1 pp ✓ |
+| hull_c_drag (72) | 11,8 / 11,9 / 12,2 → 11,9 % | 11,6 / 11,1 / 14,5 → 11,6 % | −0,3 pp ✓ |
+| reclaimer (420) | 5,1 / 3,7 / 1,5 → 3,7 % | 3,3 / 0,8 / 8,6 → 3,3 % | −0,4 pp ✓ |
+
+- **Drag:** path keys 31–34 auf `main`, 78–82 auf dem Branch. SC hielt den Cursor in diesen Läufen weniger fest, der Pfad traf mehr Zellen. Hit-Test und Drag sind unverändert, das Holo ist nie getroffen. Damit passt: Vorschau-Median 1,9–2,1 → 2,6–3,1 ms, p95 5,7–6,2 → 7,8–8,5 ms, unter der Grenze von 16 ms (T8.4 R4).
+- **Reclaimer:** streut in beiden Builds stark (1,5–8,6 %), der Median liegt gleich.
 
 **Abnahme:**
 - [x] A2 als eigener Commit vor jedem Anker, Testzahlen unverändert
@@ -4505,7 +4514,7 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - [x] Alle Modelle, Dreieckstabelle, Asset-Größe (31,4 MB)
 - [x] Anker für 102 Dateien, Look `none` bitgleich bei 106 von 106
 - [x] Konverter schreibt die Anker (Tests erst rot), zweiter Lauf ändert nichts
-- [ ] Frame-Zeit `--over-game` `hull_c`, `hull_c_drag`, `reclaimer`, `main` gegen Branch (Martin)
+- [x] Frame-Zeit `--over-game` `hull_c`, `hull_c_drag`, `reclaimer`, `main` gegen Branch (Martin, 08.11.): kein Ziel schlechter, Gate ≤ +2 pp überall erfüllt
 - [ ] Martin: Kontaktabzug – Racks in der Hülle, keine Fehlseiten, Umriss passt; Liste zurück
 - [ ] Rückfrage, dann Upload `holo-v2` (Pre-Release, NOTICE)
 - [ ] Martin über dem Spiel (Publish-Build): Hull A (Spindel), RAFT, Aurora Mk II · TS module, Hull C, GRIN UTV – Holo-Download, Bild flüssig, Racks sitzen; Holo-Halbtransparenz und Rack-Nummern-Verdeckung am neuen Mesh
