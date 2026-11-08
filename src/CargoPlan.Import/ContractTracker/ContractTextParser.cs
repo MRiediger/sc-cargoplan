@@ -163,8 +163,13 @@ internal static partial class ContractTextParser
     /// "Max size will be 1 SCU." / "none of the containers are bigger than 4 SCU." (D38 addendum), line breaks allowed.
     /// Tolerant (T5.3b): up to two words of any spelling after "Max size" ("willb"), only "bigger than" of the second
     /// phrase, and digits OCR may read as letters (<see cref="OcrDigits"/>).
+    /// Third wording (B9, issue #22): "8 SCU or smaller", the number first; not after a digit or "/" on its line, so a
+    /// delivery's "0/8" or "0/124" never counts. In brackets "(8 SCU or" is enough: OCR lost "smaller)" on the next line
+    /// in two of three captures; "or more", "or larger", "or bigger" are no max.
     /// </summary>
-    [GeneratedRegex(@"(?:max\s*size\s+(?:\S{1,8}\s+){0,2}|bigger\s*than\s*)(?<size>[\dOIL|]{1,3})\s*SCU",
+    [GeneratedRegex(@"(?:max\s*size\s+(?:\S{1,8}\s+){0,2}|bigger\s*than\s*)(?<size>[\dOIL|]{1,3})\s*SCU"
+        + @"|(?<![\d/][ \t]*)(?<size>[\dOIL|]{1,3})\s*SCU\s*or\s*smaller"
+        + @"|\(\s*(?<size>[\dOIL|]{1,3})\s*SCU\s*or\b(?!\s*(?:more|larger|bigger))",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SizePhrase { get; }
 

@@ -61,6 +61,21 @@ internal static class ImportFixtures
     public const string HurstonAnyOrder = "hurston_any_order";
 
     /// <summary>
+    /// Issue #22 (Reikal, Pyro, 6.11.2026), contracts 1/2: Waste 124 to Endgame, Waste 82 to Orbituary, "bunch of 8 SCU or
+    /// smaller waste containers"; ends in UNTRACK/ABANDON, lines of the prose interleaved with the objectives.
+    /// </summary>
+    public const string WasteOrSmaller = "waste_or_smaller";
+
+    /// <summary>
+    /// Issue #22, contract 3: Potassium 215 to Ruin Station from three pickups, "They got cargo (8 SCU or" and the line
+    /// with "smaller)" lost in the OCR; another contract's header read into the capture.
+    /// </summary>
+    public const string PotassiumOrCut = "potassium_or_cut";
+
+    /// <summary>Issue #22, contract 4: Carbon 200 to Ruin Station, "(8 SCU or" as in contract 3, "smaller)" lost.</summary>
+    public const string CarbonOrCut = "carbon_or_cut";
+
+    /// <summary>
     /// Martin's plan.json after the route of ids 9–12 (B1), every crate ticked: stops "Melodic Fieids", "Faithful Dream
     /// Station", "Thundering Express", "Melodic Fields Station" (mission 1) and Everus Harbor (17, 18); watermark 18.
     /// </summary>
