@@ -3835,7 +3835,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
    - [x] 4c Stilllegung Fleetyards, Holo-Übergang, Credits – `chore/retire-fleetyards` (abgenommen 08.11., D94, D95)
    - [x] 4d Editor-Fixes aus Issue #22/#21 (Reikal): B8 Dropdown, B9 „N SCU or smaller“, F9 Kistenliste gruppiert – `fix/editor-crates` (D96, abgenommen 08.11., Merge 754921c)
 5. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`. **Zurückgestellt** (Release-Session 5): nicht in v0.3.0.
-6. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `release/v0.3.0` (siehe „Release v0.3.0“ unten). **Aus 4c (D94):** Wiki (`FAQ.md`, `Ships-and-cargo-grids.md`, `Troubleshooting.md`, `_Footer.md` mit „Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG“), Nexus-`description.bbcode` (Credits) und `.github/ISSUE_TEMPLATE/ship-correction.yml` (Gitter kommen aus den Spieldateien) nachziehen; sie beschreiben bis zum Tag v0.2.0. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
+6. [x] Release-Notes, Wiki, Tag `v0.3.0` – `release/v0.3.0` (siehe „Release v0.3.0“ unten; veröffentlicht 08.11.2026). **Aus 4c (D94):** Wiki (`FAQ.md`, `Ships-and-cargo-grids.md`, `Troubleshooting.md`, `_Footer.md` mit „Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG“), Nexus-`description.bbcode` (Credits) und `.github/ISSUE_TEMPLATE/ship-correction.yml` (Gitter kommen aus den Spieldateien) nachziehen; sie beschreiben bis zum Tag v0.2.0. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
 
 ### [x] F2 Mausrad scrollt gruppenweise (Bug) (06.11.2026, abgenommen 06.11.)
 
@@ -4750,16 +4750,36 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - README: Hull-B-Bild unter den Features; Nexus-Bildliste 11 Bilder (Hull B und Editor auf 2 und 3). Link-Check intern 0 kaputt.
 - Commits `1f0c9bc` (App), Wiki `2b1dbb8`.
 
-### [ ] R4 Merge, Tag, Nachmessung
+### [x] R4 Merge, Tag, Nachmessung (08.11.2026)
 
 - Vor dem Merge: Build, Tests, Bildvergleich, `publish.ps1 -Version 0.3.0`, `gh run list -L 3`, externe Links
 - `publish.ps1 -Version 0.3.0` lokal (vor den Branch-Commits): ZIP 62.121.133 Byte (62,1 MB), 368 Einträge (v0.2.0: 360, plus 8 neue Schiffe), `ships/` 106 JSON = 105 + `modules/ts_module.json`, Runtime 10.0.14, `CargoPlan.Cli --version` `0.3.0+754921c…`
 - Martin: Abnahme → `--no-ff` nach `main`, Martin pusht `main` und Tag `v0.3.0`
 - Veröffentlichtes ZIP nachmessen (Tabelle): SHA256, Größe, Runtime, Einträge, `ships/` 105 + 1 Modul, `--version`, Settings-Fußzeile
 
+**Befund (nach dem Push):**
+- Merge `--no-ff` 23b2644 (CC, nach Martins Abnahme), Inhalt gleich `release/v0.3.0`. Martin: `main` gepusht, CI grün (2 min 25 s), Tag `v0.3.0` annotiert auf 23b2644, Release-Workflow grün (2 min 39 s); Wiki gepusht.
+- Release `v0.3.0`: kein Pre-release, kein Draft, `releases/latest` → `v0.3.0`, veröffentlicht 08.11.2026 13:36 UTC.
+
+| Prüfung | Soll | Veröffentlichtes ZIP | |
+|---|---|---|---|
+| SHA256 gegen `.sha256` | gleich | `47271f8f…84f83`, gleich | ✓ |
+| Größe | ca. 64 MB | 64.201.672 Byte (64,2 MB / 61,2 MiB) | ✓ |
+| Runtime | 10.0.14 (SDK aus `global.json`) | `Microsoft.NETCore.App` und `WindowsDesktop.App` 10.0.14 | ✓ |
+| Einträge | wie lokal | 368, alle mit `/`; Eintragsliste gleich dem lokalen `publish.ps1 -Version 0.3.0` | ✓ |
+| `ships/` | 105 + 1 Modul | 106 JSON, davon `modules/ts_module.json` | ✓ |
+| `outlines/` | Katalog und NOTICE | `ship-outlines.json`, `NOTICE.md` | ✓ |
+| `CargoPlan.Cli --version` | `0.3.0+23b2644…` | `0.3.0+23b264432f2a94e4c6b71c59a03f3b2a2258492c` | ✓ |
+| Settings-Fußzeile | `SC-CargoPlan 0.3.0+…` | Martin | offen |
+
+- Wiki live: Anker `Ships-and-cargo-grids#ship-data`, `#ship-holograms`, `#wrong-grid-how-to-report-it`, `#door-limits`, `Troubleshooting#known-issues`, `Plan-and-editor#layout`, `#the-crate-mix` vorhanden; Fußzeile „Applies to SC-CargoPlan v0.3.0 · Not affiliated with Motherlode, …“; `hero.gif` und `ships-hull-b.png` per Raw-URL 200 in voller Größe.
+- Lokales ZIP vor den Branch-Commits: 62.121.133 Byte; das CI-ZIP ist 2,1 MB größer mit gleicher Eintragsliste (Kompression; v0.2.0: lokal 62,1, CI 64,2 MB, ebenso).
+- `release/v0.3.0` lokal gelöscht (nie gepusht).
+
 ### [ ] R5 Nachlauf
 
-- Wiki-Push nach dem Release (Martin), Anker-Check gegen das Live-Wiki
+- [x] Wiki-Push nach dem Release (Martin, 08.11.), Anker-Check gegen das Live-Wiki (R4-Befund)
+- [ ] Martin: Settings-Fußzeile 0.3.0, Release-Seite im Browser (Notes, Assets, Nexus-Link)
 - Nexus-Upload am 16.11. mit 0.3.0 nach `docs/nexus/checklist.md` (T9.3)
 - Ankündigungen (Entwürfe Claude.ai, Martin verschickt): Ryekal (Reddit), Sciirof, Torlek, Spectrum-Post
 - Backlog-Zeilen „holo-v1-Release entfernen“ (Auslöser: v0.3.0 vier Wochen stabil) und „Modelle bei Sciirof anfragen“ mit Datum; nächster Chat „Feedback II“
@@ -4790,6 +4810,11 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- `holo-v1`-Release auf GitHub entfernen (v0.1/v0.2 laden ihre Hologramme dann nicht mehr). Auslöser: v0.3.0 vier Wochen
+  stabil, frühestens 06.12.2026 (Release 08.11.2026), ohne Meldung, die einen Rückweg auf 0.2.0 braucht (Session 4c).
+- Modelle für 135c, 600i Executive Edition und F7C Hornet Mk II bei Sciirof (Motherlode) anfragen, mit Rückmeldung zur
+  Handprüfung als Gegenleistung (Session 4a/4c). Auslöser: nach dem Launch, mit der Nachricht zu v0.3.0 (R5).
 
 - Sektionsreihenfolge per Legenden-Drag (Spielerreihenfolge). Auslöser: Hauler-Report, dass die Legendenreihenfolge nicht reicht.
 - `defaultFillOrder`, `fillRows`/`grouping`-Default pro Schiff in der Schiffs-JSON. Auslöser: zweites Schiff braucht einen anderen Default.
