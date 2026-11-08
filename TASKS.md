@@ -3832,7 +3832,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 4. Schiffsdaten aus den Spieldateien (Motherlode, D92), drei Merges. **Ziel (Martin):** für alle Schiffe stimmen SCU und Rack-Anordnung.
    - [x] 4a Racks – `feat/ship-data-game` (abgenommen 07.11.)
    - [x] 4b Hülle und Umriss aus denselben Modellen – `feat/holo-v2` (abgenommen 08.11., `holo-v2` veröffentlicht)
-   - [ ] 4c Stilllegung Fleetyards, Holo-Übergang, Credits – `chore/retire-fleetyards` (umgesetzt 08.11., D94, D95; Gate und Abnahme offen)
+   - [x] 4c Stilllegung Fleetyards, Holo-Übergang, Credits – `chore/retire-fleetyards` (abgenommen 08.11., D94, D95)
 5. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
 6. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Aus 4c (D94):** Wiki (`FAQ.md`, `Ships-and-cargo-grids.md`, `Troubleshooting.md`, `_Footer.md` mit „Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG“), Nexus-`description.bbcode` (Credits) und `.github/ISSUE_TEMPLATE/ship-correction.yml` (Gitter kommen aus den Spieldateien) nachziehen; sie beschreiben bis zum Tag v0.2.0. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
 
@@ -4535,7 +4535,7 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - Outlines are the game models' top views at true size; the Cyclone now has a hologram too.
 - Holograms download from the new release `holo-v2`: each ship's hologram re-downloads once when first shown (about 0.3 MB per ship); v0.2 keeps using `holo-v1`. (Korrigiert in 4c, Martin: keine Gesamtgröße, niemand lädt alle Schiffe.)
 
-### [ ] Session 4c – Fleetyards stilllegen, Holo-Übergang, Credits (08.11.2026)
+### [x] Session 4c – Fleetyards stilllegen, Holo-Übergang, Credits (08.11.2026, abgenommen 08.11.)
 
 **Branch:** `chore/retire-fleetyards` (App-Repo und Outline-Repo). **Ziel:** den Fleetyards-Import stilllegen, `fleetyardsSlug` → `modelKey`, Übergang holo-v1 → holo-v2 für Nutzer von v0.2.0, Credits und Entscheidungen (D94, D95). Kein Bild ändert sich, kein Tag.
 
@@ -4594,14 +4594,14 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - [x] Fleetyards-Import, Tests und Fixtures entfernt, Testzahlen vorher/nachher
 - [x] Doku, Credits, D94, D95
 - [x] Bildvergleich bitgleich, `dotnet build` ohne Warnung, `dotnet test` und `Slow` grün
-- [ ] Gate Martin (Publish-Build):
+- [x] Gate Martin (Publish-Build, 08.11.: „funktioniert alles“):
   - Erstinstall: v2 lädt, keine Notice
   - Upgrade: Notice einmal, `holo-v1` weg, zweiter Start ohne Notice
   - Schalter aus: Ordner weg, kein Download
   - Offline: Umriss/Keil, `holo-v1` bleibt, mit Netz wird aufgeräumt
   - Umriss-Look: Ordner weg, keine Notice
   - eigene Schiffsdatei mit `fleetyardsSlug` lädt
-- [ ] Merge `--no-ff` nach Abnahme, Martin pusht beide Repos, kein Tag
+- [x] Merge `--no-ff` nach Martins Freigabe (08.11.), beide Repos; Martin pusht, kein Tag
 
 **Offen nach 4c:**
 - `holo-v1`-Release auf GitHub entfernen. Auslöser: v0.3.0 vier Wochen stabil.
