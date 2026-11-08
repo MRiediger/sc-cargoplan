@@ -4720,7 +4720,7 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - Known issue „Racks outside the hull“ (Railen, Caterpillar) gestrichen: am Bildvergleich (Draufsicht, `holo-shaded above`) liegen beide im Rumpf.
 - Editor-Screenshots: `editor-rows.png` zeigt die alte cyanfarbene Markierung, den abgeschnittenen Kopf „Max“ und keine Layout-Zeile → D5 neu (R3). `delete-mission.gif`, `editor-import-plan.gif` zeigen vor allem das Overlay mit der alten Hülle, bleiben wie alle übrigen.
 - Grep über README, `docs/` (ohne decisions), Nexus, Templates, SHOTLIST und Wiki nach `holo-v1`, `drafts`, `97 ships`, `0.2.0`, `fleetyardsSlug`, `Max crate`, `from Fleetyards`: jeder Rest ist Historie, betrifft die drei Fleetyards-Schiffe oder ist der Begriff „max crate size“.
-- Link-Check (neues `linkcheck.py`, Markdown und `[url=…]`, Anker gegen Repo und Wiki-Kopie): 23 Dateien, interne Links 0 kaputt; Negativtest (falscher Anker, fehlende Datei) meldet 2. Extern: GitHub antwortete während des Laufs wechselnd 000/502/504; `holo-v2` (100 Assets), Repo und Discussions per `gh` bestätigt, Nexus 403 wie immer (Bot-Schutz). Externe Links noch einmal vor dem Merge.
+- Link-Check (neues `linkcheck.py`, Markdown und `[url=…]`, Anker gegen Repo und Wiki-Kopie): 23 Dateien, interne Links 0 kaputt; Negativtest (falscher Anker, fehlende Datei) meldet 2. Extern: GitHub antwortete während des Laufs wechselnd 000/502/504; `holo-v2` (100 Assets), Repo und Discussions per `gh` bestätigt, Nexus 403 wie immer (Bot-Schutz). Zweiter Lauf nach R3, einzeln: alle 13 GitHub- und Fremd-URLs 200 (Nexus 403, im Browser zu prüfen).
 - Bildvergleich `ShipPictureTests` gegen `main` (754921c, eigener Worktree): **1388 identisch, 0 verschieden, 0 fehlend**, Placement-Zahlen auf 0 von 106 verschieden. `git diff main -- src tests ships outlines build` leer.
 - `dotnet build -c Release` 0 Warnungen; `dotnet test` im sauberen `main`-Worktree (Code gleich dem Branch): **Core 1818, App 1671, Import 164**, Summe 3653; `Category=Slow` 2 grün. (4d nannte Core 1819 aus der Arbeitskopie mit der ausgeschlossenen Scratch-Datei.)
 
@@ -4737,10 +4737,18 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 **Abnahme:**
 - [ ] Notes-Entwurf von Claude.ai freigegeben (Martin)
 
-### [ ] R3 Medien (Martin)
+### [x] R3 Medien (Martin) (08.11.2026)
 
 - E1 Hero-GIF neu (Hull A am Aufzug: Plan → Laden → Abhaken), H15 `docs/images/ships-hull-b.png` (Hull B im Holo, gedrehte Racks), D5 `editor-rows.png` (Editor nach 4d); SHOTLIST beschreibt alle drei
 - Danach CC: README- und Wiki-Verweise, Nexus-Bildliste, Größenregeln
+
+**Befund:**
+- Hero: Hull A in der Hülle aus dem Spielmodell, Ablauf CT-Capture → Kisten erscheinen → Abhaken; 21 s, 640 × 312, 8 fps, 4.794.582 Byte (alt 6.198.644). Länger als die 8 s der SHOTLIST und mit der Amber-Zeile „Plan discarded – …“ im Bild; Martin: bleibt so. SHOTLIST folgt der Aufnahme.
+- H15: erste Datei zeigte die Hull A (Kopfzeile `MISC Hull A · 29/64`), von Martin ersetzt; jetzt `MISC Hull B · 9/512`, Holo schattiert, schräge Racks beidseits der Spindel, CT-Plan statt Testplan.
+- D5: Max size, `3×4`/`2×4`/`3×2` kursiv, Layout-Zeile, dunkle Markierung mit Teal-Balken.
+- Doppelte Dateien gelöscht (Martin): `docs/images/editor-rows.png`, Wiki `media/hero.gif`, Wiki `media/ships-hull-b.png` (alte Hull-A-Datei). Das Wiki zeigt Hero und Hull B per Raw-URL wie bisher den Hero.
+- README: Hull-B-Bild unter den Features; Nexus-Bildliste 11 Bilder (Hull B und Editor auf 2 und 3). Link-Check intern 0 kaputt.
+- Commits `1f0c9bc` (App), Wiki `2b1dbb8`.
 
 ### [ ] R4 Merge, Tag, Nachmessung
 
