@@ -46,7 +46,7 @@ $zip = Get-Item "$dir\SC-CargoPlan-v$version-win-x64.zip"; (Get-FileHash $zip).H
 
 ## 3. Media
 
-The hero GIF and the Hull B picture are from v0.3.0; the other pictures show the app before the perspective view (D85)
+The hero GIF, the Hull B picture and the editor are from v0.3.0; the other pictures show the app before the perspective view (D85)
 and with the old hull. That trade-off is accepted until the backlog line "Screenshots/GIFs auf Perspektive nachdrehen"
 fires.
 
@@ -55,17 +55,18 @@ Files from this repository (`docs/images/`) and the wiki repository (`media/`), 
 | # | File | Caption |
 |---|---|---|
 | 1 | `docs/images/hero.gif` | SC-CargoPlan next to the cargo elevator |
-| 2 | wiki `media/legend-overview.png` | The legend with mission headers and lines |
-| 3 | wiki `media/shipview-move-crate.gif` | Dragging a crate into another rack |
-| 4 | wiki `media/quickstart-mark-loaded.gif` | Clicking a legend line marks it loaded |
-| 5 | wiki `media/quickstart-deliver.gif` | Clicking a crate delivers the whole stop |
-| 6 | wiki `media/ships-select.gif` | Picking a ship by typing into the ship list |
-| 7 | wiki `media/editor-rows.png` | The mission editor with the test plan |
-| 8 | wiki `media/ct-settings-found.png` | The ContractTracker section with the database found |
-| 9 | wiki `media/prefs-presets.gif` | Switching between the three presets |
-| 10 | wiki `media/shipview-hologram.gif` | The ship view with the shaded hologram, an optional download |
+| 2 | `docs/images/ships-hull-b.png` | The MISC Hull B with its tilted racks, as in the game files |
+| 3 | wiki `media/editor-rows.png` | The mission editor with the test plan |
+| 4 | wiki `media/legend-overview.png` | The legend with mission headers and lines |
+| 5 | wiki `media/shipview-move-crate.gif` | Dragging a crate into another rack |
+| 6 | wiki `media/quickstart-mark-loaded.gif` | Clicking a legend line marks it loaded |
+| 7 | wiki `media/quickstart-deliver.gif` | Clicking a crate delivers the whole stop |
+| 8 | wiki `media/ships-select.gif` | Picking a ship by typing into the ship list |
+| 9 | wiki `media/ct-settings-found.png` | The ContractTracker section with the database found |
+| 10 | wiki `media/prefs-presets.gif` | Switching between the three presets |
+| 11 | wiki `media/shipview-hologram.gif` | The ship view with the shaded hologram, an optional download |
 
-If Nexus refuses `hero.gif` (6.2 MB) or shows it without motion, take one frame from it instead of recording anew:
+If Nexus refuses `hero.gif` (4.8 MB) or shows it without motion, take one frame from it instead of recording anew:
 
 ```powershell
 ffmpeg -ss 4 -i docs/images/hero.gif -frames:v 1 docs/nexus/hero.png

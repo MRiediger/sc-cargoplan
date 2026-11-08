@@ -25,8 +25,8 @@ goes into the wiki repo's `media/` folder.
     objectives and the overlay, 720 px, 8 fps, 128 colors, no dither:
     `ffmpeg -ss 7.5 -t 10 -i <export>.gif -vf "crop=1360:1000:816:60,fps=8,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" quickstart-capture-sync.gif`
   - `docs/images/hero.gif` (main repo; it stays in the git history, so as small as the colors allow, at most about
-    6 MB): from its own ScreenToGif export since v0.3.0, cut to the 8 s that show plan, loading and ticking off, 720 px,
-    6 fps, 128 colors, no dither (`<start>` is picked from the export):
+    6 MB): its own recording since v0.3.0, 21 s, 640 × 312 px, 8 fps, 4.8 MB. To cut a shorter one from an export, with
+    the palette as above (`<start>` picked from the export):
     `ffmpeg -ss <start> -t 8 -i <export>.gif -vf "fps=6,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" hero.gif`
   - Overlay GIFs over 3 MB (`shipview-orbit-zoom.gif`, `shipview-hologram.gif`): `fps=8` (hologram 800 px wide and
     `fps=7`), then the same palette and `paletteuse` as above.
@@ -90,13 +90,13 @@ Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays 
 | H12 | nice | `shipview-hologram.gif` | GIF | Ship-view | Hull A with **Hologram – shaded** | 10 s | Test plan, Backdrop Hologram – shaded; set Outline back |
 | H13 | nice | `legend-overview.png` | PNG | Legend-and-delivery-states | Legend with "From Lorville" headers, check boxes, the Everus Harbor line with two commodities | – | Test plan |
 | H14 | nice | `legend-checkboxes.gif` | GIF | Legend-and-delivery-states | Tick the box of the HDMS-Edmond line → its crates selected → tick the header's box → whole mission | 8 s | Test plan |
-| H15 | must | `docs/images/ships-hull-b.png` (main repo) | PNG | README, Ships-and-cargo-grids | MISC Hull B with **Hologram – shaded**, turned so the tilted racks on both sides of the spindle show, crates in them | – | Pick MISC Hull B, import the test plan, **Plan**; set Outline back |
+| H15 | must | `docs/images/ships-hull-b.png` (main repo; the wiki shows it by its raw URL) | PNG | README, Ships-and-cargo-grids | MISC Hull B with **Hologram – shaded**, turned so the tilted racks on both sides of the spindle show, crates in them | – | MISC Hull B with any plan (v0.3.0: *CT live*); set Outline back |
 
 ## Cargo elevator (in the game, at the freight elevator)
 
 | Id | Prio | File | Type | Page | What happens (start → end) | Max. | State |
 |---|---|---|---|---|---|---|---|
-| E1 | must | `docs/images/hero.gif` (main repo) | GIF | README, Home | MISC Hull A at the cargo elevator: **Plan** → the crates come up and are loaded → a legend line ticked loaded | 8 s | Test plan in the editor, before **Plan**; own export (see Conventions) |
+| E1 | must | `docs/images/hero.gif` (main repo) | GIF | README, Home | MISC Hull A next to the contract in mobiGlas: empty racks → the captured contract's crates appear → legend lines ticked off | 21 s | *CT live*, own recording (see Conventions) |
 | E2 | must | `quickstart-capture-sync.gif` | GIF | Quick-start-at-the-cargo-elevator | F3 at the terminal → a moment later a new mission with `#Id` header appears in the legend | 10 s | *CT live*, Auto-sync on |
 | E3 | must | `quickstart-mark-loaded.gif` | GIF | Quick-start-at-the-cargo-elevator | Click a legend line → `▣`, white crate edges, header `· N ▣` | 6 s | Test plan |
 | E4 | must | `quickstart-deliver.gif` | GIF | Quick-start-at-the-cargo-elevator | Click a crate of HDMS-Edmond → all its crates gray, lines struck through | 6 s | Test plan, HDMS-Edmond loaded |

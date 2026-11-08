@@ -18,6 +18,9 @@ shows it in a translucent window next to the game.
 - Click-through while the game has the mouse. A separate window: nothing is injected into the game.
 - 105 ships. Racks, hull and outline of 102 of them come from the game files; three still use Fleetyards data.
 
+![The MISC Hull B with its tilted racks in the ship's hologram](docs/images/ships-hull-b.png)
+<!-- SHOT: H15 -->
+
 ## Install
 
 1. Download `SC-CargoPlan-v<version>-win-x64.zip` from the [latest release](https://github.com/MRiediger/sc-cargoplan/releases/latest).
