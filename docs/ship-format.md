@@ -18,7 +18,7 @@ reported (the CLI prints it, the app lists the ship under **Not loaded** in the 
   "id": "hull_a",
   "name": "MISC Hull A",
   "manufacturer": "MISC",
-  "fleetyardsSlug": "misc-hull-a",
+  "modelKey": "misc-hull-a",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "holoOrigin": [0.1877, 0.505, 0.1355],
   "outlineOrigin": [0.1877, 0.505, -2.1253],
@@ -58,9 +58,9 @@ being ignored silently.
 | `schemaVersion` | number | Must be `6`; `4` and `5` are still read, every rack straight. Bumped when the format changes incompatibly or a field changes its meaning (5: `maxCrateSize` is the door limit, D70; 6: a rack may have a `rotation`, D91); older files are rejected with the version they have and the ones expected. |
 | `id` | string | Must equal the file name without `.json` (`hull_a.json` → `"hull_a"`). Use lowercase `snake_case`: Linux file systems are case-sensitive. |
 | `name` | string | Display name, e.g. `"MISC Hull A"`. |
-| `manufacturer` | string | *Optional.* Manufacturer code as Fleetyards writes it, e.g. `"MISC"`, `"RSI"`; ships are grouped by it. Not empty if present. |
-| `fleetyardsSlug` | string | *Optional.* The ship's slug on Fleetyards, e.g. `"misc-hull-a"`. It picks the ship's outline from `outlines/ship-outlines.json` (traced from Fleetyards renders, not under the MIT licence, see `outlines/NOTICE.md`); without a match the ship view shows the bow wedge. Not empty if present. |
-| `source` | string | *Optional.* Where the values come from, e.g. `"in game"` (measured in the hangar) or `"Fleetyards API (CIG ship matrix), export 2026-10-26"` (written by the import). Not empty if present. |
+| `manufacturer` | string | *Optional.* Manufacturer code, e.g. `"MISC"`, `"RSI"`; ships are grouped by it. Not empty if present. |
+| `modelKey` | string | *Optional.* Names the ship's hologram (`<modelKey>.holo` in the release) and its outline in `outlines/ship-outlines.json` (not under the MIT licence, see `outlines/NOTICE.md`), e.g. `"misc-hull-a"`; variants share their base ship's. Without a match the ship view shows the bow wedge. Not empty if present. The values are the slugs Fleetyards gave the ships, kept so no hologram or outline file had to be renamed (D94). **`fleetyardsSlug`**, the field's name before v0.3.0, is still read in its place for files written by hand; a file with both is an error. |
+| `source` | string | *Optional.* Where the values come from, e.g. `"in game"` (measured in the hangar) or `"cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07"` (written by the import; the three Fleetyards ships keep `"Fleetyards API (CIG ship matrix), export 2026-10-22"`). Not empty if present. |
 | `notes` | string | *Optional.* Anything a reviewer should know, e.g. what was checked and what wasn't. Not empty if present. |
 | `holoOrigin` | array of 3 numbers | *Optional, every shipped ship has it.* `[x, y, z]` in cells, fractions allowed: where the hologram's origin lies in ship coordinates, see [Hologram and outline](#hologram-and-outline). A [cargo module](#cargo-modules) passes it on unless it says its own. For a ship with a game model the import writes it (the ship's fraction s, D93); otherwise it keeps it to the digit. |
 | `outlineOrigin` | array of 3 numbers | *Optional, every shipped ship has it.* `[x, y, z]` in cells, fractions allowed: where the outline's origin lies; z is the plane it lies in. Passed on, written and kept like `holoOrigin`. |
@@ -295,14 +295,13 @@ not the catalogue's raw data (D56).
 
 ## Where the data comes from
 
-The racks of almost every ship come from the game files (D92): the cargo grid catalog of
-[cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo), extracted from the game and used with its operators'
-permission. `source` names the catalog's game build and date, e.g.
-`"cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07"`. Three ships stay Fleetyards drafts for now: the 135c
-(its grids have no place in the catalog), the 600i Executive Edition and the F7C Hornet Mk II (not in the catalog).
-Hologram and outline come from the same models (D93): the hologram release `holo-v2` and `outlines/ship-outlines.json`
-(the three Fleetyards ships keep their Fleetyards hologram and outline). Only values derived from the catalog and the
-models go into the repo, never the catalog or a model itself (D56).
+The racks of almost every ship come from the game files (D92): cargo grid data and ship models from
+[cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo), extracted from the Star Citizen game files and used with its
+operators' permission. `source` names the catalog's game build and date, e.g.
+`"cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07"`. Hologram and outline come from the same models (D93):
+the hologram release `holo-v2` and `outlines/ship-outlines.json`. Three ships still use hull data from
+[fleetyards.net](https://fleetyards.net), see [The three Fleetyards ships](#the-three-fleetyards-ships). Only values
+derived from the catalog and the models go into the repo, never the catalog or a model itself (D56).
 
 ### Importing from the game files
 
@@ -342,50 +341,14 @@ The catalog's form, in the field names of Motherlode's API: `{ gameBuild, update
 manufacturer, cargoScu, containerSizes, grids: [ { name, scu, size, containerSizes, maxContainerScu, external,
 transform, reportedMaxSize? } ], modelUrl? } ] }`. A grid with `transform: null` has no place; its ship is kept.
 
-## Importing from Fleetyards
+## The three Fleetyards ships
 
-Most ship files were drafts converted from Fleetyards' ship data (D53 addendum); the racks now come from the game
-files (above), and the Fleetyards import leaves a ship whose `source` names Motherlode alone: it is neither compared nor
-written, and `-Force` on it is an error. Session 4c retires the script. For the three Fleetyards ships, after a
-patch:
-
-1. **Fetch:** run `fetch.ps1` of the `sc-ship-outlines` pipeline. It writes `ships.json`, Fleetyards' raw export,
-   which stays outside this repo.
-2. **Compare:** `./tools/import-fleetyards.ps1 -Source <path>/ships.json`. It compares every file in `ships/` with the
-   export and writes nothing. Each ship is listed as `same`, `new`, `different` (with the file's and Fleetyards' value)
-   or `skipped` (no cargo grid). Exit code 0 means in sync, 1 a difference or a new ship, 2 an error.
-3. **Check the differences:** add new ships with `-Create`. For a changed ship, look at the patch notes or in game, then
-   take Fleetyards' values with `-Force <id>`. That rewrites the grid data (grid, `capacityScu`, `totalScu`, `source`)
-   and, where Fleetyards lays the racks, `origin`, `position` and a `stackAxis` that fills each rack's box. Rack order,
-   a `stackAxis` that already fits, `notes` apart from their arrangement part, door limits (`maxCrateSize`) and the
-   origins of a generated row are hand work and stay. If the rack set changed, the racks whose id and grid Fleetyards
-   still has keep all their hand work, new racks join behind the last rack that takes more than 2 SCU (walkways last),
-   vanished racks are dropped and named, and `notes` record it; if no rack maps, the file is written anew.
-   `holoOrigin`, `outlineOrigin` and `outlineScale` stay to the digit in every case, so origins that change move the
-   racks against the hull: look at the ship afterwards. `-Create` sets none of them. A rack's `rotation` stays to the digit
-   by rack id too, unless the file is written anew, and a ship with a turned rack keeps its racks where the file lays them
-   (D91): neither `-Force` nor the compare goes by Fleetyards' arrangement there.
-   `hull_a.json` is never written. Its racks come from the game files now; the mapping below is checked against the
-   Hull A of before (a frozen copy in the tests).
-4. **Commit:** run `dotnet test` (every file must load), then commit the changed files with the export date.
-
-What the import does: the id is the Fleetyards slug without the manufacturer code (`crus-c2-hercules` →
-`c2_hercules`), cells are metres divided by 1.25, `length` is Fleetyards' y (along the ship) and `width` its x: the
-rack lies as Fleetyards gives it, and crates turn to fit (D71). Fleetyards' rack offsets are used when every rack has
-one and none overlap (D78): the offset is the hold's min corner, and in ship cells x = Fleetyards y (towards the bow,
-checked on the Starlancer MAX), y = −(Fleetyards x + width) (to port), z = Fleetyards z. A hold with `rotation` 90 or 270
-is turned about Fleetyards y (the Hull C's upright arms): its x and z extents swap, its offset is the min corner after
-the turn, its grid stays; any other rotation stops the import. That only says how the box lies, which `stackAxis` already
-says, so the import never writes a rack's `rotation`. `stackAxis` is `+z` where that lays the grid in the box,
-else the first axis that does. `position` comes from the rack's centre against the ship's, and is left out for a rack
-on the ship's middle (the Hull C's arms). Otherwise the racks get a generated row, Rack 1 at the bow and one cell between
-racks, and no `position`. Racks that take nothing above 2 SCU (ladders, walkways) go last. The compare checks where
-Fleetyards lays the racks up to a shift of the whole ship: Fleetyards' offsets are local to the hold, they start at 0, and
-the file's zero point is the file's (D90).
-The door limit comes from `limits.max.capacity` as described in [Max crate size](#max-crate-size); `maxContainerSize`
-isn't read. `-Create` writes it, the compare reports a door the file lacks or holds otherwise, and `-Force` adds a
-missing one but never overwrites one already in the file. Racks whose `limits.max.capacity` is an unverified 1 are named
-after the ship's line ("limits.max 1 unverified: rack-0") without counting as a difference.
+The 135c (its grids have no place in the catalog), the 600i Executive Edition and the F7C Hornet Mk II (not in the
+catalog) still use hull data from [fleetyards.net](https://fleetyards.net): grids, hologram (their holo-v1 file, carried
+into holo-v2) and outline (a trace without `floorM`). Their files stay as the Fleetyards import last wrote them. The
+import is retired since v0.3.0 (D94) and lives on in the Git history (`git show 7b211fb^:tools/import-fleetyards.ps1`);
+its fetch script and Fleetyards' raw export are archived in the pipeline's `legacy/`. A change to one of the three is
+hand work, checked in game. Once Motherlode has their models, they move to the game files like every other ship.
 
 ## Cargo modules
 
@@ -418,10 +381,10 @@ one more entry in the ship list, its own racks first, the module's after them.
 | `source`, `notes` | optional, appended to the ship's under the module's name |
 | `holoOrigin`, `outlineOrigin`, `outlineScale` | optional, as in a ship file: a module adds racks and doesn't move the hull, so they are left out and the ship's hold. The TS module has its own, three cells aft of the ship's, to keep the picture it had before D90; delete them and its hull lies where the ship's does |
 
-The entry's `totalScu` is the ship's plus the module's racks, its manufacturer and Fleetyards slug are the ship's, so it
+The entry's `totalScu` is the ship's plus the module's racks, its manufacturer and model key are the ship's, so it
 shows the ship's outline and hologram. It is checked like a ship file; a broken module, a ship it names that doesn't
 load, or a rack that doesn't fit is one line in the ship list's problems and costs only those entries. The import
-(`tools/import-fleetyards.ps1`) never touches `modules/`: Fleetyards has no module data, so a module is counted in game.
+(`tools/import-motherlode.ps1`) only moves a module by what its ship's Rack 1 moved: the catalog has no module data, so a module is counted in game.
 
 ## Crate sizes
 

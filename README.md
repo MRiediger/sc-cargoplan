@@ -43,10 +43,12 @@ Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the 
 ## Credits & disclaimer
 
 - Cargo grid data and ship models from [cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo), extracted from the
-  game files and used with its operators' permission: the racks, the hull holograms and the outlines come from the same
-  game data.
-- The grids, hologram and outline of three ships (135c, 600i Executive Edition, F7C Hornet Mk II) from
-  [fleetyards.net](https://fleetyards.net).
+  Star Citizen game files and used with its operators' permission: the racks, the hull holograms and the outlines come
+  from the same game data.
+- Three ships (135c, 600i Executive Edition, F7C Hornet Mk II) still use hull data from
+  [fleetyards.net](https://fleetyards.net): their grids, hologram and outline. Fleetyards' data made the first ship list
+  possible.
+- Thanks to both for letting this project use their data.
 - [ContractTracker](https://www.nexusmods.com/starcitizen/mods/34) by Yuiki captures the contracts; SC-CargoPlan only
   reads its database.
 - Stop colors: the [Okabe-Ito palette](https://jfly.uni-koeln.de/color/) and [Paul Tol's](https://sronpersonalpages.nl/~pault/) schemes.

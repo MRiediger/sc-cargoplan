@@ -54,7 +54,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 | Tests | **xUnit** + `AwesomeAssertions` | Standard im .NET-Ökosystem. AwesomeAssertions ist der Apache-2.0-Fork von FluentAssertions (ab v8 kommerziell lizenziert). |
 | Click-through | Win32 `SetWindowLongPtrW` schaltet `WS_EX_TRANSPARENT` via `[LibraryImport]`, HWND aus `WindowInteropHelper`; `WS_EX_LAYERED` setzt WPF selbst (D11) | Keine Lib nötig. |
 | Hotkeys | Win32 `RegisterHotKey` + `HwndSource.AddHook` für `WM_HOTKEY` | Global, auch wenn das Spiel den Fokus hat, keine Lib. |
-| Netz | **Einziger Netzzugriff:** `HoloSource` (App) lädt Schiffs-Hologramme per BCL-`HttpClient`, nur GET auf die Release-Assets `releases/download/holo-v2/` (Meshes aus den Motherlode-Modellen, D93), Manifest höchstens einmal am Tag, Schalter `downloadShipHolograms` (D63) | Hologramme stammen aus CIG-Modellen und müssen zurückziehbar sein: eigenes Daten-Release statt ZIP oder Repo. Jeder weitere Netzzugriff braucht einen eigenen D-Eintrag. |
+| Netz | **Einziger Netzzugriff:** `HoloSource` (App) lädt Schiffs-Hologramme per BCL-`HttpClient`, nur GET auf die Release-Assets `releases/download/holo-v2/` (Meshes aus den Motherlode-Modellen, D93), Manifest höchstens einmal am Tag, Schalter `downloadShipHolograms` (D63); der Cache `holo\` behält nur den aktuellen Tag (D95) | Hologramme stammen aus CIG-Modellen und müssen zurückziehbar sein: eigenes Daten-Release statt ZIP oder Repo. Jeder weitere Netzzugriff braucht einen eigenen D-Eintrag. |
 | Distribution | `build/publish.ps1` → App + Cli self-contained `win-x64` in **einem Ordner** (`out/publish/SC-CargoPlan`, 136 MB, 360 Dateien inkl. `ships/` und `outlines/`), **ein ZIP (~64 MB)** mit SHA256; kein Single-File, kein pubxml, Satellites nur `en` (D46, D48, D49, D50) | Nutzer sollen nichts installieren müssen; Hauler haben .NET 8, nicht 10. WPF kann nicht getrimmt werden. |
 | CI/CD | GitHub Actions, `windows-latest`, Release bei Git-Tag | Niemand baut von Hand. |
 | Lizenz | **MIT** | Maximale Verbreitung. |
@@ -71,10 +71,9 @@ sc-cargoplan/
 ├── build/
 │   └── publish.ps1                # Release-Ordner + ZIP nach out/publish (D48, D49), prüft ships/ und outlines/ im ZIP (D56, D55)
 ├── ships/                         # Schiffsdateien <id>.json, neben die Exe kopiert (D56); hull_a ist Pflicht
-├── outlines/                      # ship-outlines.json + NOTICE.md (nicht MIT), neben die Exe kopiert, Zuordnung per fleetyardsSlug (D55, D62)
+├── outlines/                      # ship-outlines.json + NOTICE.md (nicht MIT), neben die Exe kopiert, Zuordnung per modelKey (D55, D62, D94)
 ├── tools/import-motherlode.ps1    # Grid-Katalog der Spieldateien (Motherlode) → Racks in ships/, Katalog bleibt außerhalb (D92)
-├── tools/import-fleetyards.ps1    # Fleetyards-Export → ships/ (Abgleich, -Create, -Force <id>); lässt Motherlode-Schiffe in Ruhe, geht in 4c (T7.1b, D92)
-├── tools/ShipJson.ps1             # Schiffsdatei-Format für beide Importskripte (dot-sourced)
+├── tools/ShipJson.ps1             # Schiffsdatei-Format für import-motherlode.ps1 (dot-sourced); Fleetyards-Import stillgelegt, in der Git-Historie (D94)
 ├── src/
 │   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader (liest ships/ und outlines/ neben der Exe), Holo-Leser SCH2 (D63)
 │   ├── CargoPlan.Import/          # net10.0 – ContractTracker SQLite-Reader
@@ -110,7 +109,6 @@ dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixt
 dotnet run --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/example_missions.json
 dotnet run --project src/CargoPlan.Cli -- contracts <copy-of-contracts.db> [--since <id>] [--raw]   # nur gegen eine Kopie (D38)
 ./tools/import-motherlode.ps1 -Catalog <catalog-<datum>.json> [-Previous <älterer Katalog>] [-Create]   # Racks aus den Spieldateien, Exit 1 = ansehen (Handprüfung, Reihenfolge, neues Schiff) (D92)
-./tools/import-fleetyards.ps1 -Source <ships.json> [-Create] [-Force <id>]   # nur noch 135c, 600i EE, F7C Mk II; Exit 1 = Abweichung (T7.1b)
 ./build/publish.ps1 [-Version 0.1.0]           # App + Cli nach out/publish/SC-CargoPlan + ZIP + SHA256 (D48, D49), Reihenfolge im Skript nicht ändern
 dotnet run --project src/CargoPlan.Cli -- --version
 ```
