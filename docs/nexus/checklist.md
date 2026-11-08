@@ -19,7 +19,7 @@ Texts: [`summary.txt`](summary.txt), [`description.bbcode`](description.bbcode).
 In PowerShell, into an empty folder:
 
 ```powershell
-$version = '0.2.0'
+$version = '0.3.0'
 $dir = New-Item -ItemType Directory "$env:TEMP\nexus-$version"
 & "C:\Program Files\GitHub CLI\gh.exe" release download "v$version" -R MRiediger/sc-cargoplan -p "SC-CargoPlan-v$version-win-x64.zip*" -D $dir
 $zip = Get-Item "$dir\SC-CargoPlan-v$version-win-x64.zip"; (Get-FileHash $zip).Hash -eq (Get-Content "$zip.sha256").Split(' ')[0]
@@ -37,7 +37,7 @@ $zip = Get-Item "$dir\SC-CargoPlan-v$version-win-x64.zip"; (Get-FileHash $zip).H
 | Summary (350 characters) | [`summary.txt`](summary.txt) |
 | Full description | [`description.bbcode`](description.bbcode): open the BBCode source with the **[ ]** button, replace the template's text with the file's, switch back and check the five blocks (Description, Installation instructions, Main features, Requirements, Shout outs), the links and the lists |
 | Category | Miscellaneous (the only one for Star Citizen) |
-| Mod version | `$version` (e.g. `0.2.0`), without "v" |
+| Mod version | `$version` (e.g. `0.3.0`), without "v" |
 | Author | Martin Riediger |
 | Language | English |
 | Tags (where the editor offers them) | Utilities for Players, Quality of Life, User Interface |
@@ -46,8 +46,9 @@ $zip = Get-Item "$dir\SC-CargoPlan-v$version-win-x64.zip"; (Get-FileHash $zip).H
 
 ## 3. Media
 
-The pictures show the app before the perspective view (D85): the first impression on Nexus is a view the app no longer
-draws. That trade-off is accepted until the backlog line "Screenshots/GIFs auf Perspektive nachdrehen" fires.
+The hero GIF and the Hull B picture are from v0.3.0; the other pictures show the app before the perspective view (D85)
+and with the old hull. That trade-off is accepted until the backlog line "Screenshots/GIFs auf Perspektive nachdrehen"
+fires.
 
 Files from this repository (`docs/images/`) and the wiki repository (`media/`), in this order:
 
@@ -97,7 +98,7 @@ The app is MIT, but the switches apply to the whole file, and `outlines/` in the
 | Upload, modification, conversion | allowed, with credit and the MIT license notice kept |
 | Asset use | ask the author / credit the author (the ship silhouettes aren't MIT) |
 | Donation Points | never opt in; the description says nothing about donations |
-| Permission notes | `The app is under the MIT license (LICENSE in the ZIP). Not under MIT: the ship silhouettes (outlines/NOTICE.md, in this ZIP) and the ship holograms (not in this ZIP; their own NOTICE in the holo-v1 release on GitHub).` |
+| Permission notes | `The app is under the MIT license (LICENSE in the ZIP). Not under MIT: the ship silhouettes (outlines/NOTICE.md, in this ZIP) and the ship holograms (not in this ZIP; their own NOTICE in the holo-v2 release on GitHub).` |
 | Credits | the Shout outs block of [`description.bbcode`](description.bbcode), without the license line |
 
 ## 7. Publish and check
