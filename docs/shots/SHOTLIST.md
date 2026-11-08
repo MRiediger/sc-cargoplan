@@ -3,9 +3,10 @@
 Every image and GIF in the README and the wiki, in the order they are best recorded. Kept for every release: when the UI
 changes, re-record the shots of the pages it touches.
 
-**State of the shots:** recorded on 28 Oct 2026, before the perspective ship view (D83). They show the same behavior and
-stay for v0.1.0 (D85); when to re-record them is the backlog line "Screenshots/GIFs auf Perspektive nachdrehen" in
-[`TASKS.md`](../../TASKS.md).
+**State of the shots:** most were recorded on 28 Oct 2026, before the perspective ship view (D83) and before hull and
+racks came from the game files (D93): their ship view shows the old hull, with the Hull A's racks beside it. They show
+the same behavior and stay (D85). For v0.3.0 three were recorded anew: E1 (hero), H15 (Hull B) and D5 (editor). When to
+re-record the rest is the backlog line "Screenshots/GIFs auf Perspektive nachdrehen" in [`TASKS.md`](../../TASKS.md).
 
 Each place in the wiki that shows a shot carries `![…](media/<file>)` and, below it, `<!-- SHOT: <id> -->`. The hero GIF
 lives in this repo (`docs/images/hero.gif`); the wiki's Home page shows the same file by its raw URL. Every other file
@@ -23,9 +24,10 @@ goes into the wiki repo's `media/` folder.
   - `quickstart-capture-sync.gif` (wiki, 10.1 MB, allowed up to about 10 MB): 10 s from 7.5 s, crop to the contract's
     objectives and the overlay, 720 px, 8 fps, 128 colors, no dither:
     `ffmpeg -ss 7.5 -t 10 -i <export>.gif -vf "crop=1360:1000:816:60,fps=8,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" quickstart-capture-sync.gif`
-  - `docs/images/hero.gif` (main repo, 6.2 MB; it stays in the git history, so as small as the colors allow): the same
-    clip cut to 8 s and 6 fps:
-    `ffmpeg -ss 1 -t 8 -i quickstart-capture-sync.gif -vf "fps=6,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" hero.gif`
+  - `docs/images/hero.gif` (main repo; it stays in the git history, so as small as the colors allow, at most about
+    6 MB): from its own ScreenToGif export since v0.3.0, cut to the 8 s that show plan, loading and ticking off, 720 px,
+    6 fps, 128 colors, no dither (`<start>` is picked from the export):
+    `ffmpeg -ss <start> -t 8 -i <export>.gif -vf "fps=6,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle" hero.gif`
   - Overlay GIFs over 3 MB (`shipview-orbit-zoom.gif`, `shipview-hologram.gif`): `fps=8` (hologram 800 px wide and
     `fps=7`), then the same palette and `paletteuse` as above.
 - Still states as PNG.
@@ -61,7 +63,7 @@ Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays 
 | D2 | nice | `install-empty-overlay.png` | PNG | Installation-and-first-start | Overlay without a plan: empty Hull A, "No plan. Open the editor …", **Open editor** | – | No plan (Discard plan) |
 | D3 | must | `ct-settings-found.png` | PNG | ContractTracker-integration | Settings, section ContractTracker: path, "Found at ContractTracker's own place.", Auto-sync ticked | – | ContractTracker installed |
 | D4 | must | `ct-not-found.png` | PNG | ContractTracker-integration | Same section: "ContractTracker not found – set path or install" and the Nexus link | – | **Browse…** to a copy of `contracts.db`, delete the copy, reopen the settings; **Detect automatically** after |
-| D5 | nice | `editor-rows.png` | PNG | Plan-and-editor | Editor with the four test plan rows, Quartz crates in italics, **Fill order:** and **Plan** visible | – | Test plan imported, before **Plan** |
+| D5 | must | `editor-rows.png` | PNG | Plan-and-editor | Editor with the four test plan rows: header **Max size** whole, crates grouped (`3×4`), Quartz `3×2` in italics, the **Layout** line and **Plan** visible; dark theme, one row selected (calm fill, teal bar); re-recorded for v0.3.0 | – | Test plan imported, before **Plan** |
 | D6 | nice | `editor-import-plan.gif` | GIF | Plan-and-editor | **Import…** → pick `testplan.json` → rows appear → **Plan** → overlay shows three racks | 10 s | Empty rows (**Clear rows**) |
 | D7 | must | `prefs-window.png` | PNG | Preferences | Settings window from the top: Preset, Export…, Import…, first sections; footer with the version in a second shot or scrolled | – | Preset Default |
 | D8 | must | `prefs-presets.gif` | GIF | Preferences | Preset Default → High contrast → Minimal → Default, overlay visible next to the window | 8 s | Test plan |
@@ -88,17 +90,18 @@ Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays 
 | H12 | nice | `shipview-hologram.gif` | GIF | Ship-view | Hull A with **Hologram – shaded** | 10 s | Test plan, Backdrop Hologram – shaded; set Outline back |
 | H13 | nice | `legend-overview.png` | PNG | Legend-and-delivery-states | Legend with "From Lorville" headers, check boxes, the Everus Harbor line with two commodities | – | Test plan |
 | H14 | nice | `legend-checkboxes.gif` | GIF | Legend-and-delivery-states | Tick the box of the HDMS-Edmond line → its crates selected → tick the header's box → whole mission | 8 s | Test plan |
+| H15 | must | `docs/images/ships-hull-b.png` (main repo) | PNG | README, Ships-and-cargo-grids | MISC Hull B with **Hologram – shaded**, turned so the tilted racks on both sides of the spindle show, crates in them | – | Pick MISC Hull B, import the test plan, **Plan**; set Outline back |
 
 ## Cargo elevator (in the game, at the freight elevator)
 
 | Id | Prio | File | Type | Page | What happens (start → end) | Max. | State |
 |---|---|---|---|---|---|---|---|
-| E1 | must | `docs/images/hero.gif` (main repo) | GIF | README, Home | The same scene as E2, shorter: a contract in mobiGlas → captured → its crates appear in the overlay | 8 s | *CT live*, made from E2 (see Conventions) |
+| E1 | must | `docs/images/hero.gif` (main repo) | GIF | README, Home | MISC Hull A at the cargo elevator: **Plan** → the crates come up and are loaded → a legend line ticked loaded | 8 s | Test plan in the editor, before **Plan**; own export (see Conventions) |
 | E2 | must | `quickstart-capture-sync.gif` | GIF | Quick-start-at-the-cargo-elevator | F3 at the terminal → a moment later a new mission with `#Id` header appears in the legend | 10 s | *CT live*, Auto-sync on |
 | E3 | must | `quickstart-mark-loaded.gif` | GIF | Quick-start-at-the-cargo-elevator | Click a legend line → `▣`, white crate edges, header `· N ▣` | 6 s | Test plan |
 | E4 | must | `quickstart-deliver.gif` | GIF | Quick-start-at-the-cargo-elevator | Click a crate of HDMS-Edmond → all its crates gray, lines struck through | 6 s | Test plan, HDMS-Edmond loaded |
 | E5 | must | `legend-states.png` | PNG | Legend-and-delivery-states | Legend with one planned, one loaded and one delivered line | – | Test plan: Everus Harbor planned, HDMS-Edmond loaded, HDMS-Thedus delivered |
 | E6 | nice | `legend-ct-markings.png` | PNG | Legend-and-delivery-states | A legend line with a mark such as `4 SCU?` or `⚠ 1 of 3 destinations` | – | *CT live*, whenever a capture shows one |
 
-**Total:** 32 shots, 17 GIF and 15 PNG; 14 must (8 GIF, 6 PNG), 18 nice. `legend-states.png` and
+**Total:** 33 shots, 17 GIF and 16 PNG; 16 must (8 GIF, 8 PNG), 17 nice. `legend-states.png` and
 `legend-ct-markings.png` are one picture on purpose: it shows both states and a `?` mark.
