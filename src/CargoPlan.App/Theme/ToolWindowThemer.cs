@@ -1,4 +1,5 @@
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using CargoPlan.App.Settings;
 using Microsoft.Win32;
@@ -48,6 +49,61 @@ public static class ToolWindowThemer
 
     private static bool _watchingWindows;
 
+    /// <summary>Every tool window's combo box (session 4d, D36 addendum): Fluent's, with <see cref="ComboBoxItemStyleKey"/>.</summary>
+    public const string ComboBoxStyleKey = "ToolComboBoxStyle";
+
+    /// <summary>Every tool window's combo box entry: Fluent's, with a filled picked entry (ToolComboBox.xaml).</summary>
+    public const string ComboBoxItemStyleKey = "ToolComboBoxItemStyle";
+
+    private static readonly Uri ComboBoxTemplatesUri = new("pack://application:,,,/CargoPlan.App;component/Theme/ToolComboBox.xaml", UriKind.Absolute);
+
+    /// <summary>
+    /// The selection in dark mode (4d, variant C): a neutral tone, opaque, for the grid's selected row and the picked entry;
+    /// the accent stays for controls and marks the selection only as a 3 px bar. Chosen by Martin at the picture.
+    /// </summary>
+    public static readonly Color SelectionFillDark = Color.FromRgb(0x3A, 0x4A, 0x55);
+
+    /// <summary>The named tone in the dark dictionary, as <see cref="SelectionFillDark"/>.</summary>
+    public const string SelectionFillDarkKey = "SelectionFillDark";
+
+    /// <summary>The picked entry's fill: the tone in dark, none in light (Fluent's).</summary>
+    public const string SelectionFillKey = "ToolSelectionFill";
+
+    /// <summary>The picked entry under the mouse: still the full tone in dark, Fluent's highlight in light.</summary>
+    public const string SelectionHighlightFillKey = "ToolSelectionHighlightFill";
+
+    /// <summary>The selected row's text colour, for the grid's editing combo box: grey in dark, Fluent's white in light.</summary>
+    public const string SelectedRowTextColorKey = "ToolSelectedRowTextColor";
+
+    /// <summary>The selected row's bar: 3 px in dark, none in light.</summary>
+    public const string RowBarThicknessKey = "ToolRowBarThickness";
+
+    // Hover one step below the selection: the tone at 60 %.
+    private const byte SelectionHoverAlpha = 0x99;
+
+    // Fluent's own light values, read from its file rather than written down again.
+    // Source: https://github.com/dotnet/wpf/blob/main/src/Microsoft.DotNet.Wpf/src/Themes/PresentationFramework.Fluent/Resources/Theme/Light.xaml
+    private const string FluentLightColorsUri = "pack://application:,,,/PresentationFramework.Fluent;component/Resources/Theme/Light.xaml";
+
+    /// <summary>
+    /// The entry states with a background of their own, as resource keys: background, and text unless it is the normal
+    /// text colour; the grid's selected row too. Read by the contrast test (WCAG ≥ 4.5:1).
+    /// </summary>
+    public static IReadOnlyList<(string Name, string Background, string? Foreground)> ComboBoxItemStates { get; } =
+    [
+        ("plain", "ComboBoxDropDownBackground", null),
+        ("picked", SelectionFillKey, null),
+        ("picked under the mouse", SelectionHighlightFillKey, null),
+        ("hovered", "ComboBoxItemBackgroundSelected", null),
+        ("selected row", "DataGridRowSelectedBackgroundThemeBrush", "DataGridRowSelectedForegroundThemeBrush"),
+    ];
+
+    /// <summary>Dark selection (variant C): the neutral tone for rows and entries, the light text kept, a 3 px bar.</summary>
+    public static ResourceDictionary SelectionDark => field ??= CreateSelectionDark();
+
+    /// <summary>Light selection: Fluent's, untouched; only our own keys get Fluent's values.</summary>
+    public static ResourceDictionary SelectionLight => field ??= CreateSelectionLight();
+
     /// <summary>Grey for each of Fluent's white text brushes; one frozen set, merged into every dark tool window.</summary>
     public static ResourceDictionary DarkText => field ??= CreateDarkText();
 
@@ -74,6 +130,57 @@ public static class ToolWindowThemer
         {
             merged.Add(DarkText);
         }
+    }
+
+    /// <summary>
+    /// Merges exactly one of <see cref="SelectionLight"/> and <see cref="SelectionDark"/> after Fluent's dictionary, like
+    /// <see cref="ApplyText"/>; a mode switch swaps them.
+    /// </summary>
+    public static void ApplySelection(ResourceDictionary resources, bool dark)
+    {
+        var merged = resources.MergedDictionaries;
+        merged.Remove(dark ? SelectionLight : SelectionDark);
+        var wanted = dark ? SelectionDark : SelectionLight;
+        if (!merged.Contains(wanted))
+        {
+            merged.Add(wanted);
+        }
+    }
+
+    private static ResourceDictionary CreateSelectionDark()
+    {
+        var fill = Frozen(SelectionFillDark);
+        return new()
+        {
+            [SelectionFillDarkKey] = SelectionFillDark,
+            [SelectionFillKey] = fill,
+            [SelectionHighlightFillKey] = fill,
+            [SelectedRowTextColorKey] = DarkTextColor,
+            [RowBarThicknessKey] = new Thickness(3, 0, 0, 0),
+            // Fluent's keys: the selected row and the hovered entry.
+            ["DataGridRowSelectedBackgroundThemeBrush"] = fill,
+            ["DataGridRowSelectedForegroundThemeBrush"] = Frozen(DarkTextColor),
+            ["ComboBoxItemBackgroundSelected"] = Frozen(Color.FromArgb(SelectionHoverAlpha, SelectionFillDark.R, SelectionFillDark.G, SelectionFillDark.B)),
+        };
+    }
+
+    private static ResourceDictionary CreateSelectionLight()
+    {
+        ResourceDictionary fluent = new() { Source = new Uri(FluentLightColorsUri, UriKind.Absolute) };
+        return new()
+        {
+            [SelectionFillKey] = Frozen(Colors.Transparent),
+            [SelectionHighlightFillKey] = Frozen(((SolidColorBrush)fluent["ComboBoxItemBackgroundSelected"]).Color),
+            [SelectedRowTextColorKey] = (Color)fluent["TextOnAccentFillColorPrimary"],
+            [RowBarThicknessKey] = new Thickness(0),
+        };
+    }
+
+    private static SolidColorBrush Frozen(Color color)
+    {
+        SolidColorBrush brush = new(color);
+        brush.Freeze();
+        return brush;
     }
 
     private static ResourceDictionary CreateDarkText()
@@ -123,19 +230,49 @@ public static class ToolWindowThemer
         window.ThemeMode = ThemeModeOf(theme);
         ApplyAccent(window.Resources);
         ApplyText(window.Resources, UsesDarkText(theme));
+        ApplySelection(window.Resources, UsesDarkText(theme));
+        ApplyComboBoxes(window.Resources);
         WatchWindows();
+    }
+
+    /// <summary>
+    /// ToolComboBoxStyle and ToolComboBoxItemStyle, based on Fluent's, by key and implicit, so every combo box of the
+    /// window wears them and the grid's editing combo box can build on them. In code, not in a shared XAML file: Fluent
+    /// lives in each window, where a separate dictionary's StaticResource can't see it. Ours from an earlier call go
+    /// first, so a mode switch bases the new ones on Fluent's again, never on themselves.
+    /// </summary>
+    private static void ApplyComboBoxes(ResourceDictionary resources)
+    {
+        resources.Remove(typeof(ComboBox));
+        resources.Remove(typeof(ComboBoxItem));
+
+        // Loaded per window, not cached: a template belongs to the thread that loaded it.
+        ResourceDictionary templates = new() { Source = ComboBoxTemplatesUri };
+        Style item = new(typeof(ComboBoxItem), (Style)resources[typeof(ComboBoxItem)]);
+        item.Setters.Add(new Setter(Control.TemplateProperty, templates["ToolComboBoxItemTemplate"]));
+        // Fluent's is ComboBoxForeground, which the grid's editing combo box turns to the selected row's text colour.
+        item.Setters.Add(new Setter(Control.ForegroundProperty, new DynamicResourceExtension("TextFillColorPrimaryBrush")));
+        Style combo = new(typeof(ComboBox), (Style)resources[typeof(ComboBox)]);
+        combo.Setters.Add(new Setter(ItemsControl.ItemContainerStyleProperty, item));
+
+        resources[ComboBoxItemStyleKey] = item;
+        resources[ComboBoxStyleKey] = combo;
+        resources[typeof(ComboBoxItem)] = item;
+        resources[typeof(ComboBox)] = combo;
     }
 
     /// <summary>
     /// Fluent switches a System window by itself and tells nobody, so the grey text listens to the same Windows message
     /// (WM_SETTINGCHANGE "ImmersiveColorSet" arrives as category General; high contrast comes this way too). Once, from
     /// the UI thread: the handler runs on the subscriber's synchronization context. Static and never detached: it holds
-    /// no window, and it lives as long as the app.
+    /// no window, and it lives as long as the app. Without an Application there are no windows to walk and no UI thread
+    /// that outlives the call (the tests' STA threads end after each test), so nothing is watched (4d: a full test run
+    /// hung once and once reported 67 tests too few after the tests first called Apply).
     /// Source: https://github.com/dotnet/runtime/blob/main/src/libraries/Microsoft.Win32.SystemEvents/src/Microsoft/Win32/SystemEvents.cs (SystemEventInvokeInfo)
     /// </summary>
     private static void WatchWindows()
     {
-        if (_watchingWindows)
+        if (_watchingWindows || Application.Current is null)
         {
             return;
         }
@@ -152,6 +289,7 @@ public static class ToolWindowThemer
             if (ThemeOf(window.ThemeMode) is { } theme)
             {
                 ApplyText(window.Resources, UsesDarkText(theme));
+                ApplySelection(window.Resources, UsesDarkText(theme));
             }
         }
     }

@@ -4663,12 +4663,28 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
   - Variante B, von Martin am Bild gewählt (light und dark, vorher, Variante A, Variante B). Variante A (beide Styles Fluent) schnitt jede geschlossene Zelle ab, weil Fluent 38 px für den Pfeil freihält. *Präzisierung in der Planphase, ratifiziert durch Freigabe.*
   - Tests zuerst rot (6 Wächter in `MissionEditorXamlTests`); Theme-Beispiel, B8-Testnachbau und `docs/shots/SHOTLIST.md` mitgezogen.
   - **Kein eigener `ToolComboBoxStyle` (A4).** Auslöser, ihn auszuziehen: der erste eigene Setter an den Layout-Dropdowns.
+- [x] **Nachtrag 2, zweite und dritte Runde am Bild** (D36-Nachtrag „Markierung neutral, Akzent nur für Bedienelemente“):
+  - Befund: Die Anzeige-Zelle erbte richtig. Grau auf Cyan zeigte die **Editier-Combo**, die nach der Auswahl in der Zelle bleibt. Die Popup-Auswahl hatte nur Fluents 3-px-Balken.
+  - Der Auslöser ist erreicht: `ToolComboBoxStyle` und `ToolComboBoxItemStyle` baut `ToolWindowThemer` im Code auf Fluents Styles, implizit und per Schlüssel in jedem Werkzeugfenster. Die Layout-Combos und die Settings-Preset-Combo bauen auf dem Item-Style auf, die Grid-Combo auf dem Combo-Style.
+  - **Variante C (Martin am Bild, gegen a und b):**
+    - dark: markierte Zeile und Popup-Auswahl `SelectionFillDark` #3A4A55 deckend, 3 px Teal-Balken, normaler heller Text; Hover der Ton mit 60 %, ohne Balken.
+    - light: unverändert Fluent.
+    - Ein Auswahl-Dictionary pro Modus, getauscht wie der graue Dark-Text.
+  - Die Editier-Combo im Grid übernimmt die Textfarbe der markierten Zeile, ohne eigene Füllung oder Rahmen.
+  - Kontrast dark: Auswahl und Zeile 5,9:1, Hover 7,1:1; der Test hält alle Zustände in beiden Modi ≥ 4,5:1.
+  - Tests zuerst rot (Styles im Fenster, gleicher Style für Layout und Grid am echten Editor, Auswahl-Dictionaries, Kontrast, Wächter). Unterwegs gefangen:
+    - Ein `DynamicResource`-Alias im Dictionary ist in kompilierter XAML verboten, das Editorfenster wäre beim Öffnen abgestürzt.
+    - Ein Brush mit dynamischer Farbe in Style-Ressourcen bleibt durchsichtig.
+  - `WatchWindows` meldet sich ohne `Application` nicht bei `SystemEvents` an. Seit Tests `Apply` aufrufen, hing ein voller Lauf einmal und meldete einmal 67 Tests zu wenig; danach fünf Läufe stabil. Der Zusammenhang ist plausibel, nicht bewiesen.
+  - **E1 nicht umgesetzt** (passt nicht in eine Zeile): Nach der Auswahl die Zellbearbeitung beenden. `DropDownClosed` ist kein Routed Event, also kein `EventSetter`; es bräuchte einen `PreparingCellForEdit`-Handler mit An- und Abmelden. Offen, bei Bedarf eigener Task.
+  - **Rückfrage Martin:** Grid-Zeilen haben in Fluent keinen Hover. Soll dark einen Zeilen-Hover bekommen? Das braucht ein eigenes Zelltemplate, ist also eher ein eigener Task.
 - [ ] Dank an Reikal in #22 und #21 (Martin postet, Text liegt im Chat)
 - [ ] Merge `--no-ff` nach Martins Abnahme, Martin pusht. Danach Release-Session fortsetzen: Notes um 4d ergänzen, R1-Diff und Wiki (Editor-Seite: Kistenformat und beide Eingabeformen) nachziehen.
 
 **Material für Release-Notes v0.3.0:**
 - The max crate size drop-down in the mission editor works again and matches the light or dark theme; the column is now called "Max size" (#22, thanks Reikal).
 - Long column headers and crate lists wrap in the mission editor instead of being cut off.
+- Clearer selection in the dark tool windows: the selected row and the picked list entry get a calm fill with a teal bar.
 - Contracts that say "N SCU or smaller" are parsed: their max crate size is read, no more "max 32 SCU?" (#22).
 - Crate lists show grouped, e.g. 6×32+16+4+2+1 instead of every crate (#21, thanks Reikal). You can type either form into the Crates column: 2x32+16 or 32+32+16.
 

@@ -154,7 +154,7 @@
                             <DataGridComboBoxColumn Header="Max size" ItemsSource="{x:Static ed:MissionRows.MaxCrateSizes}"
                                                     SelectedItemBinding="{Binding MaxCrate}" Width="*" MinWidth="72">
                                 <DataGridComboBoxColumn.EditingElementStyle>
-                                    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                    <Style TargetType="ComboBox" BasedOn="{StaticResource ToolComboBoxStyle}">
                                         <Setter Property="IsSynchronizedWithCurrentItem" Value="False" />
                                     </Style>
                                 </DataGridComboBoxColumn.EditingElementStyle>

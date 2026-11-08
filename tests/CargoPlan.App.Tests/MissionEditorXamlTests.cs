@@ -53,10 +53,50 @@ public class MissionEditorXamlTests
         var style = column.Elements().Single(e => e.Name.LocalName == "DataGridComboBoxColumn.EditingElementStyle").Elements().Single();
 
         style.Attribute("TargetType")!.Value.Should().Be("ComboBox");
-        style.Attribute("BasedOn")!.Value.Should().Be("{StaticResource {x:Type ComboBox}}");
+        style.Attribute("BasedOn")!.Value.Should().Be("{StaticResource ToolComboBoxStyle}");
         Setter(style, "IsSynchronizedWithCurrentItem").Should().Be("False", "the column's default style sets it");
         column.Elements().Should().NotContain(e => e.Name.LocalName == "DataGridComboBoxColumn.ElementStyle");
         column.Attribute("MinWidth")!.Value.Should().Be("72", "the open combo box shows 32 next to its arrow");
+    }
+
+    [Fact]
+    public void The_closed_editing_combo_box_takes_the_selected_rows_colours()
+    {
+        // Second round at the picture (4d): after a pick the cell stays in edit mode; Fluent's own text and background
+        // colours read grey on cyan. An edited cell lies in the selected row, so its colours are the selected row's.
+        // In the grid's resources, not the style's: a brush's DynamicResource colour resolves only in the element tree.
+        var resources = Grid().Elements().Single(e => e.Name.LocalName == "DataGrid.Resources").Elements().ToList();
+        string? Brush(string key) => (string?)resources.SingleOrDefault(e => (string?)e.Attribute(X + "Key") == key)?.Attribute("Color");
+
+        string[] text = ["ComboBoxForeground", "ComboBoxForegroundPointerOver", "ComboBoxForegroundPressed", "ComboBoxForegroundFocused",
+            "ComboBoxForegroundFocusedPressed", "ComboBoxDropDownGlyphForeground", "ComboBoxDropDownGlyphForegroundFocused",
+            "ComboBoxDropDownGlyphForegroundFocusedPressed"];
+        string[] clear = ["ComboBoxBackground", "ComboBoxBackgroundPointerOver", "ComboBoxBackgroundPressed",
+            "ComboBoxBorderBrush", "ComboBoxBorderBrushPointerOver", "ComboBoxBorderBrushPressed"];
+        text.Select(Brush).Should().AllBe("{DynamicResource ToolSelectedRowTextColor}", "the selected row's text in either mode");
+        clear.Select(Brush).Should().AllBe("Transparent");
+    }
+
+    [Fact]
+    public void A_selected_row_shows_the_bar_in_the_pill_colour_where_the_mode_gives_it_a_width()
+    {
+        // Variant C (4d): dark gives the bar 3 px, light 0 px, so light stays Fluent's.
+        var rowStyle = Grid().Elements().Single(e => e.Name.LocalName == "DataGrid.RowStyle").Elements().Single();
+        var selected = rowStyle.Descendants().Single(e => e.Name.LocalName == "Trigger" && (string?)e.Attribute("Property") == "IsSelected");
+
+        Setter(rowStyle, "BorderThickness").Should().Be("{DynamicResource ToolRowBarThickness}");
+        Setter(selected, "BorderBrush").Should().Be("{DynamicResource ComboBoxItemPillFillBrush}");
+    }
+
+    [Fact]
+    public void The_layout_drop_downs_items_build_on_the_tool_windows_item_style()
+    {
+        var root = Grid().Ancestors().Last();
+        var itemStyles = root.Descendants().Where(e => e.Name.LocalName == "ComboBox.ItemContainerStyle").Select(e => e.Elements().Single()).ToList();
+
+        itemStyles.Should().HaveCount(4);
+        itemStyles.Should().OnlyContain(s => (string?)s.Attribute("BasedOn") == "{StaticResource ToolComboBoxItemStyle}");
+        root.Descendants().Where(e => e.Name.LocalName == "ComboBox").Should().OnlyContain(c => c.Attribute("Style") == null, "the style is the window's implicit one");
     }
 
     [Fact]

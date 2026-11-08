@@ -1,0 +1,52 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- The tool windows' combo box entry (session 4d, D36 addendum): Fluent's template, the picked entry filled as well.
+         Fluent fills only the highlighted entry and marks the picked one with a 3 px pill, hard to see on dark. The fills
+         come from ToolWindowThemer's selection dictionaries: in dark the neutral tone (picked, also under the mouse) and the
+         tone at 60 % (hover, Fluent's own key); in light Fluent's values, so light looks as Fluent draws it. DynamicResource
+         only: this dictionary loads apart from the window, where those resources are.
+         Source: dotnet/wpf, PresentationFramework.Fluent/Styles/ComboBox.xaml (DefaultComboBoxItemStyle) -->
+    <ControlTemplate x:Key="ToolComboBoxItemTemplate" TargetType="ComboBoxItem">
+        <Grid>
+            <Border Name="ContentBorder"
+                    Margin="{TemplateBinding Margin}"
+                    Padding="0"
+                    VerticalAlignment="Stretch"
+                    CornerRadius="{TemplateBinding Border.CornerRadius}"
+                    SnapsToDevicePixels="True">
+                <Grid>
+                    <ContentPresenter x:Name="PART_ContentPresenter" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" />
+                    <Rectangle x:Name="ActiveRectangle"
+                               Width="3"
+                               Height="16"
+                               Margin="0"
+                               HorizontalAlignment="Left"
+                               VerticalAlignment="Center"
+                               Fill="{DynamicResource ComboBoxItemPillFillBrush}"
+                               RadiusX="2"
+                               RadiusY="2"
+                               Visibility="Collapsed" />
+                </Grid>
+            </Border>
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsHighlighted" Value="True">
+                <Setter TargetName="ContentBorder" Property="Background" Value="{DynamicResource ComboBoxItemBackgroundSelected}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="ContentBorder" Property="Background" Value="{DynamicResource ToolSelectionFill}" />
+                <Setter TargetName="ActiveRectangle" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsSelected" Value="True" />
+                    <Condition Property="IsHighlighted" Value="True" />
+                </MultiTrigger.Conditions>
+                <Setter TargetName="ContentBorder" Property="Background" Value="{DynamicResource ToolSelectionHighlightFill}" />
+            </MultiTrigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource ComboBoxForegroundDisabled}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+</ResourceDictionary>
