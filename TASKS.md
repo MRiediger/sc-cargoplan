@@ -3831,7 +3831,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
 3. [x] F3 freier Drehwinkel pro Rack, Schiffs-JSON 5→6 – `feat/f3-rack-rotation` (abgenommen 06.11.). **Vorgabe (Martin, 06.11.):** volle 3D-Rotation pro Rack, nicht Yaw. Eine Datenquelle mit Grid-Transformen im Schiffsraum existiert (Motherlode, 97 Schiffe, 3×4-Matrix in Metern, nur 5 Schiffe mit Drehung, Railen gekippt).
 4. Schiffsdaten aus den Spieldateien (Motherlode, D92), drei Merges. **Ziel (Martin):** für alle Schiffe stimmen SCU und Rack-Anordnung.
    - [x] 4a Racks – `feat/ship-data-game` (abgenommen 07.11.)
-   - [ ] 4b Hülle und Umriss aus denselben Modellen – `feat/holo-v2` (in Arbeit 07.11., Plan freigegeben)
+   - [x] 4b Hülle und Umriss aus denselben Modellen – `feat/holo-v2` (abgenommen 08.11., `holo-v2` veröffentlicht)
    - [ ] 4c Stilllegung Fleetyards – eigener Plan zur Freigabe
 5. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
 6. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
@@ -4325,7 +4325,7 @@ one bleibt bei einigen kleinen Schiffen gleich, weil die Kamera auf die Racks pa
 - New ships: Carrack Expedition, Carrack (Expedition) w/C8X, MOLE Carbon/Talus Edition, Mustang Alpha Vindicator, Valkyrie Liberator Edition, Cyclone.
 - Turned racks where the game turns them: Hull B, Railen, Prowler Utility, 890 Jump hangar, Syulen, M80, Mustang Alpha.
 
-### [ ] Session 4b – Hülle und Umriss aus den Motherlode-Modellen (07.11.2026)
+### [x] Session 4b – Hülle und Umriss aus den Motherlode-Modellen (07.11.2026, abgenommen 08.11.)
 
 **Branch:** `feat/holo-v2` (App-Repo), `holo-v2` (Outline-Repo). **Ziel (Martin):** Hülle, Umriss und Racks kommen aus demselben Modell, die Anker sind danach überall `s`. Ergebnis ist das Release-Asset `holo-v2` mit eigener NOTICE, `holo-v1` bleibt für v0.2.0 (D93).
 
@@ -4515,10 +4515,11 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - [x] Anker für 102 Dateien, Look `none` bitgleich bei 106 von 106
 - [x] Konverter schreibt die Anker (Tests erst rot), zweiter Lauf ändert nichts
 - [x] Frame-Zeit `--over-game` `hull_c`, `hull_c_drag`, `reclaimer`, `main` gegen Branch (Martin, 08.11.): kein Ziel schlechter, Gate ≤ +2 pp überall erfüllt
-- [ ] Martin: Kontaktabzug – Racks in der Hülle, keine Fehlseiten, Umriss passt; Liste zurück
-- [ ] Rückfrage, dann Upload `holo-v2` (Pre-Release, NOTICE)
-- [ ] Martin über dem Spiel (Publish-Build): Hull A (Spindel), RAFT, Aurora Mk II · TS module, Hull C, GRIN UTV – Holo-Download, Bild flüssig, Racks sitzen; Holo-Halbtransparenz und Rack-Nummern-Verdeckung am neuen Mesh
-- [ ] Merge `--no-ff`, Martin pusht, kein Tag
+- [x] Martin (08.11.): Kontaktabzug abgenommen, „passt perfekt“, keine Liste. Hull A: 5 Zellen zwischen den Platten, Anordnung im Holo stimmt.
+- [x] Upload `holo-v2` nach Martins Freigabe (08.11.): Pre-Release „Ship holograms v2“, nicht Latest, 100 Assets (98 `.holo`, NOTICE, Manifest zuletzt). Größen gleich, Manifest byte-gleich, Hull A, 135c und Cyclone über die App-URL mit passendem SHA.
+- [x] Publish-Build `out/publish/SC-CargoPlan` (ZIP 62,1 MB) mit den neuen Umrissen und Schiffsdateien
+- [ ] Martin über dem Spiel (Publish-Build): Hull A (Spindel), RAFT, Aurora Mk II · TS module, Hull C, GRIN UTV – Holo-Download, Bild flüssig, Racks sitzen; Holo-Halbtransparenz und Rack-Nummern-Verdeckung am neuen Mesh – vor dem Push
+- [x] Merge `--no-ff` nach Martins Freigabe „für alles“ (08.11.), Martin pusht, kein Tag
 
 **Offen für 4c:**
 - `fleetyardsSlug` → `modelKey` mit Lade-Migration (E2).
