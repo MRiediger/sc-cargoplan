@@ -3833,9 +3833,9 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
    - [x] 4a Racks – `feat/ship-data-game` (abgenommen 07.11.)
    - [x] 4b Hülle und Umriss aus denselben Modellen – `feat/holo-v2` (abgenommen 08.11., `holo-v2` veröffentlicht)
    - [x] 4c Stilllegung Fleetyards, Holo-Übergang, Credits – `chore/retire-fleetyards` (abgenommen 08.11., D94, D95)
-   - [ ] 4d Editor-Fixes aus Issue #22/#21 (Reikal): B8 Dropdown, B9 „N SCU or smaller“, F9 Kistenliste gruppiert – `fix/editor-crates` (D96). Unterbricht die Release-Session; `release/v0.3.0` wartet, bis 4d auf `main` ist.
-5. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
-6. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Aus 4c (D94):** Wiki (`FAQ.md`, `Ships-and-cargo-grids.md`, `Troubleshooting.md`, `_Footer.md` mit „Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG“), Nexus-`description.bbcode` (Credits) und `.github/ISSUE_TEMPLATE/ship-correction.yml` (Gitter kommen aus den Spieldateien) nachziehen; sie beschreiben bis zum Tag v0.2.0. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
+   - [x] 4d Editor-Fixes aus Issue #22/#21 (Reikal): B8 Dropdown, B9 „N SCU or smaller“, F9 Kistenliste gruppiert – `fix/editor-crates` (D96, abgenommen 08.11., Merge 754921c)
+5. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`. **Zurückgestellt** (Release-Session 5): nicht in v0.3.0.
+6. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `release/v0.3.0` (siehe „Release v0.3.0“ unten). **Aus 4c (D94):** Wiki (`FAQ.md`, `Ships-and-cargo-grids.md`, `Troubleshooting.md`, `_Footer.md` mit „Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG“), Nexus-`description.bbcode` (Credits) und `.github/ISSUE_TEMPLATE/ship-correction.yml` (Gitter kommen aus den Spieldateien) nachziehen; sie beschreiben bis zum Tag v0.2.0. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
 
 ### [x] F2 Mausrad scrollt gruppenweise (Bug) (06.11.2026, abgenommen 06.11.)
 
@@ -4519,7 +4519,7 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - [x] Martin (08.11.): Kontaktabzug abgenommen, „passt perfekt“, keine Liste. Hull A: 5 Zellen zwischen den Platten, Anordnung im Holo stimmt.
 - [x] Upload `holo-v2` nach Martins Freigabe (08.11.): Pre-Release „Ship holograms v2“, nicht Latest, 100 Assets (98 `.holo`, NOTICE, Manifest zuletzt). Größen gleich, Manifest byte-gleich, Hull A, 135c und Cyclone über die App-URL mit passendem SHA.
 - [x] Publish-Build `out/publish/SC-CargoPlan` (ZIP 62,1 MB) mit den neuen Umrissen und Schiffsdateien
-- [ ] Martin über dem Spiel (Publish-Build): Hull A (Spindel), RAFT, Aurora Mk II · TS module, Hull C, GRIN UTV – Holo-Download, Bild flüssig, Racks sitzen; Holo-Halbtransparenz und Rack-Nummern-Verdeckung am neuen Mesh – vor dem Push
+- [x] Martin über dem Spiel (Publish-Build): Hull A (Spindel), RAFT, Aurora Mk II · TS module, Hull C, GRIN UTV – Holo-Download, Bild flüssig, Racks sitzen; Holo-Halbtransparenz und Rack-Nummern-Verdeckung am neuen Mesh – vor dem Push. Abgehakt in der Release-Session (08.11.): Hauling-Abend auf `main` ohne Befund, keine Rack-Nummern-Verdeckung (Martin).
 - [x] Merge `--no-ff` nach Martins Freigabe „für alles“ (08.11.), Martin pusht, kein Tag
 
 **Offen für 4c:**
@@ -4612,7 +4612,7 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - Aus 4b weiter offen: erster echter Abruf über die Motherlode-API, Fortune Rack 2, Nexus-Texte `holo-v2`.
 - Nachricht an Torlek (Fleetyards): Martin schickt sie nach dem Merge, kein Repo-Inhalt. Das Verlinkungsangebot ist T9.4.
 
-### [ ] Session 4d – Editor-Fixes aus Issue #22 und #21 (08.11.2026)
+### [x] Session 4d – Editor-Fixes aus Issue #22 und #21 (08.11.2026, abgenommen 08.11.)
 
 **Branch:** `fix/editor-crates` ab `main`. **Anlass:** Issues von **Reikal** (GitHub-Login) auf v0.2.0: #22 „Max Crate selection non-functional“ (mit Rohtext von vier Pyro-Verträgen), #21 „Re-work crate counter“. B8 und B9 blockieren das Release.
 
@@ -4648,7 +4648,7 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
   - Legende unverändert
   - D96, Nachträge D23 und D69
 - [x] `dotnet build` ohne Warnung, `dotnet test` (App 1655, Import 164, Core 1819; nach dem Nachtrag App 1659) und `Slow` grün
-- [ ] Gate Martin (Publish-Build):
+- [x] Gate Martin (Publish-Build), abgenommen (Martin, Freigabe der Release-Session 08.11.):
   - Pfad 1 und 2 aus #22: Das Dropdown ändert den Wert, die Kistenliste rechnet neu.
   - Sync mit einem „8 SCU or smaller“-Vertrag ergibt max 8 ohne „?“.
   - Die Kistenliste ist gruppiert in Editor und Legende.
@@ -4679,7 +4679,7 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
   - **E1 nicht umgesetzt** (passt nicht in eine Zeile): Nach der Auswahl die Zellbearbeitung beenden. `DropDownClosed` ist kein Routed Event, also kein `EventSetter`; es bräuchte einen `PreparingCellForEdit`-Handler mit An- und Abmelden. Offen, bei Bedarf eigener Task.
   - **Rückfrage Martin:** Grid-Zeilen haben in Fluent keinen Hover. Soll dark einen Zeilen-Hover bekommen? Das braucht ein eigenes Zelltemplate, ist also eher ein eigener Task.
 - [ ] Dank an Reikal in #22 und #21 (Martin postet, Text liegt im Chat)
-- [ ] Merge `--no-ff` nach Martins Abnahme, Martin pusht. Danach Release-Session fortsetzen: Notes um 4d ergänzen, R1-Diff und Wiki (Editor-Seite: Kistenformat und beide Eingabeformen) nachziehen.
+- [x] Merge `--no-ff` nach Martins Abnahme (754921c, Martin, gepusht 08.11.). Notes, R1-Diff und Wiki (Editor-Seite: Kistenformat und beide Eingabeformen) in der Release-Session nachgezogen.
 
 **Material für Release-Notes v0.3.0:**
 - The max crate size drop-down in the mission editor works again and matches the light or dark theme; the column is now called "Max size" (#22, thanks Reikal).
@@ -4687,6 +4687,82 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - Clearer selection in the dark tool windows: the selected row and the picked list entry get a calm fill with a teal bar.
 - Contracts that say "N SCU or smaller" are parsed: their max crate size is read, no more "max 32 SCU?" (#22).
 - Crate lists show grouped, e.g. 6×32+16+4+2+1 instead of every crate (#21, thanks Reikal). You can type either form into the Crates column: 2x32+16 or 32+32+16.
+
+## Release v0.3.0 (08.11.2026) – Branch `release/v0.3.0`
+
+**Warum:** F1–F3, F7, 4a–4d gehen als ein Release raus; F8 ist zurückgestellt. Kein Release Candidate: Martin hat `main` an einem echten Hauling-Abend durchgespielt (CT-Sync, Plan, Laden, Abliefern, Schiffswechsel, Neustart mit gespeichertem Plan), ohne Befund; die 4d-Editoränderungen sind am Gate abgenommen. Ablauf R1 Texte → R2 Notes (Freigabe Claude.ai) → R3 Medien (Martin) → R4 Tag → R5 Nachlauf. Keine Funktionsänderung; ein Fehler wird ein Bugfix-Branch ab `main`.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. Branch `release/v0.3.0` statt `docs/release-v0.3.0`.
+2. Wiki: keine neue Seite „Ship data“; in `Ships-and-cargo-grids` heißt der Abschnitt „Where the grids come from“ jetzt „Ship data“, alle anderen Anker bleiben. Einen „User Guide“ gibt es im Wiki nicht, der Stoff steht auf den Seiten mit dieser Rolle.
+3. Kapazität (Hull B 512, Railen 640) nicht als Änderung in den Notes: seit v0.2.0 hat sich bei keinem Schiff `totalScu` geändert.
+4. Keine Known-issue-Zeile zur Rack-Nummern-Verdeckung (Martin: nichts gesehen); 4b-Gate-Zeile abgehakt.
+5. Ryekal nicht in den Credits; der Melder von #21/#22 heißt Reikal (GitHub).
+6. Schema 6 braucht nur `rotation`; `modelKey` und die Anker kamen ohne Schema-Sprung (D94, D90).
+7. Die drei Fleetyards-Schiffe haben auch ihre Gitter von Fleetyards, nicht nur die Hülle.
+8. „Wie am Aufzug“ ist nur an der Hull A belegt; Hull B/C: Cargo-Pose des Spielmodells.
+9. Rundung ≤ 0,4 Zellen gilt pro Achse; in den Notes in Nutzersprache („up to about half a meter“).
+10. `ships/` im ZIP = 105 Schiffsdateien + `modules/ts_module.json`.
+11. `staff-request.md` bleibt (Brief verschickt); nur `description.bbcode` und `checklist.md` auf 0.3.0.
+12. K1: Notes um 4d (Changes, Fix „N SCU or smaller“), D96 und Nachträge D23/D36/D40/D69 in der Vollständigkeit, Testzahlen neu.
+13. K2: Wiki `Plan-and-editor` mit Kistenformat (Anzahl × Größe, beide Eingabeformen, Summenfehler) und Max size per Dropdown/Tastatur; Editor-Screenshot D5 als dritte Aufnahme in R3.
+14. Wiki-Zeile „A hologram look takes about 40–50 MB more memory“ gestrichen: Messung mit Martins echter `settings.json` > 10 min.
+
+### [x] R1 Textabgleich (08.11.2026)
+
+- README (Feature-Zeile mit Datenherkunft), `docs/ship-format.md`, `docs/settings-format.md` (D95-Regel), `CONTRIBUTING.md` („Correct ship data“), `ship-correction.yml`, `docs/nexus/description.bbcode` und `checklist.md`, `docs/shots/SHOTLIST.md`
+- Wiki: Home, `_Footer`, Ships-and-cargo-grids, FAQ, Troubleshooting, Installation-and-first-start, Overlay-basics, Plan-and-editor, Ship-view, Legend-and-delivery-states, Quick-start
+
+**Befund:**
+- `docs/ship-format.md`: Hull-A-Beispiel und Korrektur-Diff hatten die Fleetyards-Origins (`[0, 1, 3]`), die Datei hat `[-9, 3, 1]`, 5 Zellen Spindel; Hull-B-Beispiel (y −4/−2) passte nicht mehr; „ship draft … has none“ für `position` gilt jetzt für fast alle Schiffe (99 von 105 ohne `position`, die Spieldateien nennen keine Seite); 8 Schiffe mit Rack-IDs außer der Reihe. Schema 6, `rotation`, `modelKey` + Alias, s und Refresh-Weg (`MOTHERLODE_API_KEY` oder `motherlode/api-key.txt`, gitignored, nie committet) standen schon da.
+- Türlimits im Wiki um Corsair 24 ergänzt; alle anderen Zeilen stimmen mit `ships/` überein.
+- Wiki „Rows: Lengthwise, bow to stern“ war für gedrehte Racks falsch; jetzt die Achsen des Racks wie der App-Tooltip.
+- Known issue „Racks outside the hull“ (Railen, Caterpillar) gestrichen: am Bildvergleich (Draufsicht, `holo-shaded above`) liegen beide im Rumpf.
+- Editor-Screenshots: `editor-rows.png` zeigt die alte cyanfarbene Markierung, den abgeschnittenen Kopf „Max“ und keine Layout-Zeile → D5 neu (R3). `delete-mission.gif`, `editor-import-plan.gif` zeigen vor allem das Overlay mit der alten Hülle, bleiben wie alle übrigen.
+- Grep über README, `docs/` (ohne decisions), Nexus, Templates, SHOTLIST und Wiki nach `holo-v1`, `drafts`, `97 ships`, `0.2.0`, `fleetyardsSlug`, `Max crate`, `from Fleetyards`: jeder Rest ist Historie, betrifft die drei Fleetyards-Schiffe oder ist der Begriff „max crate size“.
+- Link-Check (neues `linkcheck.py`, Markdown und `[url=…]`, Anker gegen Repo und Wiki-Kopie): 23 Dateien, interne Links 0 kaputt; Negativtest (falscher Anker, fehlende Datei) meldet 2. Extern: GitHub antwortete während des Laufs wechselnd 000/502/504; `holo-v2` (100 Assets), Repo und Discussions per `gh` bestätigt, Nexus 403 wie immer (Bot-Schutz). Zweiter Lauf nach R3, einzeln: alle 13 GitHub- und Fremd-URLs 200 (Nexus 403, im Browser zu prüfen).
+- Bildvergleich `ShipPictureTests` gegen `main` (754921c, eigener Worktree): **1388 identisch, 0 verschieden, 0 fehlend**, Placement-Zahlen auf 0 von 106 verschieden. `git diff main -- src tests ships outlines build` leer.
+- `dotnet build -c Release` 0 Warnungen; `dotnet test` im sauberen `main`-Worktree (Code gleich dem Branch): **Core 1818, App 1671, Import 164**, Summe 3653; `Category=Slow` 2 grün. (4d nannte Core 1819 aus der Arbeitskopie mit der ausgeschlossenen Scratch-Datei.)
+
+### [x] R2 Release-Notes (08.11.2026)
+
+- `docs/release-notes/v0.3.0.md` aus der Stoffsammlung, gegliedert: Highlights, Ship data, Changes, Before you update, Known issues, Credits
+
+**Befund:**
+- Vollständigkeit `git log v0.2.0..main --no-merges`: F2/F1, F7, F3, 4a, 4b, 4c, 4d kommen vor. Stoffsammlung ergänzt um 4a (TASKS 4a, „Material“), 4b (Hüllen, Cargo-Pose, Cyclone) und 4d; die F3-Zeile „No shipped ship uses it yet“ war seit 4a falsch. Nicht in den Notes, weil ohne Wirkung aufs ZIP: Testkopien, Bildharness, Reclaimer-Frame-Ziel, Doku- und TASKS-Commits.
+- Gespeicherter Corsair-Plan mit 32er-Kisten: `PlanFileDto.UnderCap` gibt ihm die Kappe `Saved`, die Overlay plant ihn beim Laden neu und meldet „Plan was made for other racks, re-planned for …“. **Beobachtet** (Scratch-Test, nicht committet, nach dem Muster `DoorLimitOverlayTests.A_plan_file_split_under_another_cap_is_planned_anew_and_says_so`): Plan auf `git show v0.2.0:ships/corsair.json` (Riker 64 SCU, max 32 → `32+32`), `PlanFile.Write`, `PlanFile.Read` mit der heutigen `ships/corsair.json` → Kappe `Saved` 32; `OverlayViewModel.ShowPlan` → `24+24+16`, Notices „Plan was made for other racks, re-planned for DRAK Corsair.“ und „crates capped to 24 SCU (door limit)“.
+- Downgrade auf 0.2.0: Plan-Schema 9, Settings-Schema 2 und Missions-Schema 4 seit v0.2.0 unverändert (`git diff v0.2.0..main` leer in `Core/Plans`, `App/Settings`, `Core/Missions`); 0.2.0 lädt `holo-v1` neu, weil 0.3.0 den Ordner löscht. Eigene Schiffsdateien mit `rotation` oder `modelKey` lehnt 0.2.0 ab.
+- Keine Paket- oder SDK-Änderung seit v0.2.0.
+
+**Abnahme:**
+- [x] Notes-Entwurf von Claude.ai freigegeben (Martin, 08.11.) mit zwei Textänderungen: „DRAK Corsair“ → „Corsair“, „thanks Reikal“ nur bei #22
+
+### [x] R3 Medien (Martin) (08.11.2026)
+
+- E1 Hero-GIF neu (Hull A am Aufzug: Plan → Laden → Abhaken), H15 `docs/images/ships-hull-b.png` (Hull B im Holo, gedrehte Racks), D5 `editor-rows.png` (Editor nach 4d); SHOTLIST beschreibt alle drei
+- Danach CC: README- und Wiki-Verweise, Nexus-Bildliste, Größenregeln
+
+**Befund:**
+- Hero: Hull A in der Hülle aus dem Spielmodell, Ablauf CT-Capture → Kisten erscheinen → Abhaken; 21 s, 640 × 312, 8 fps, 4.794.582 Byte (alt 6.198.644). Länger als die 8 s der SHOTLIST und mit der Amber-Zeile „Plan discarded – …“ im Bild; Martin: bleibt so. SHOTLIST folgt der Aufnahme.
+- H15: erste Datei zeigte die Hull A (Kopfzeile `MISC Hull A · 29/64`), von Martin ersetzt; jetzt `MISC Hull B · 9/512`, Holo schattiert, schräge Racks beidseits der Spindel, CT-Plan statt Testplan.
+- D5: Max size, `3×4`/`2×4`/`3×2` kursiv, Layout-Zeile, dunkle Markierung mit Teal-Balken.
+- Doppelte Dateien gelöscht (Martin): `docs/images/editor-rows.png`, Wiki `media/hero.gif`, Wiki `media/ships-hull-b.png` (alte Hull-A-Datei). Das Wiki zeigt Hero und Hull B per Raw-URL wie bisher den Hero.
+- README: Hull-B-Bild unter den Features; Nexus-Bildliste 11 Bilder (Hull B und Editor auf 2 und 3). Link-Check intern 0 kaputt.
+- Commits `1f0c9bc` (App), Wiki `2b1dbb8`.
+
+### [ ] R4 Merge, Tag, Nachmessung
+
+- Vor dem Merge: Build, Tests, Bildvergleich, `publish.ps1 -Version 0.3.0`, `gh run list -L 3`, externe Links
+- `publish.ps1 -Version 0.3.0` lokal (vor den Branch-Commits): ZIP 62.121.133 Byte (62,1 MB), 368 Einträge (v0.2.0: 360, plus 8 neue Schiffe), `ships/` 106 JSON = 105 + `modules/ts_module.json`, Runtime 10.0.14, `CargoPlan.Cli --version` `0.3.0+754921c…`
+- Martin: Abnahme → `--no-ff` nach `main`, Martin pusht `main` und Tag `v0.3.0`
+- Veröffentlichtes ZIP nachmessen (Tabelle): SHA256, Größe, Runtime, Einträge, `ships/` 105 + 1 Modul, `--version`, Settings-Fußzeile
+
+### [ ] R5 Nachlauf
+
+- Wiki-Push nach dem Release (Martin), Anker-Check gegen das Live-Wiki
+- Nexus-Upload am 16.11. mit 0.3.0 nach `docs/nexus/checklist.md` (T9.3)
+- Ankündigungen (Entwürfe Claude.ai, Martin verschickt): Ryekal (Reddit), Sciirof, Torlek, Spectrum-Post
+- Backlog-Zeilen „holo-v1-Release entfernen“ (Auslöser: v0.3.0 vier Wochen stabil) und „Modelle bei Sciirof anfragen“ mit Datum; nächster Chat „Feedback II“
 
 ## Phase 10 – nach dem Launch
 

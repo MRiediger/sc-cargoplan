@@ -212,7 +212,10 @@ default, with a notice for one that isn't a colour.
 `downloadShipHolograms`: `true` (the default) lets a hologram look download the ship's file from this repository's
 release `holo-v2` on GitHub when you pick a ship, one file per ship, and the list of files at most once a day. Nothing
 else is sent. `false` means no network access at all; holograms already downloaded still show. They are kept in
-`%LocalAppData%\SC-CargoPlan\holo\holo-v2\` ([format](holo-format.md)); v0.1 and v0.2 used `holo-v1`, which v0.3.0 deletes (D95).
+`%LocalAppData%\SC-CargoPlan\holo\holo-v2\` ([format](holo-format.md)). Only the current release's folder stays (D95):
+another `holo-v<n>` folder, such as `holo-v1` of v0.1 and v0.2, goes once the current list of files is checked, and the
+overlay says once that the holograms download again; with downloads off or a look without hologram it goes at once and
+nothing is said. If the list can't be had, the old folder stays.
 
 `shipView` holds the zoom and the view per ship. Missing or `null` means the defaults.
 

@@ -6,13 +6,13 @@ body:
   - type: markdown
     attributes:
       value: |
-        The cargo grids come from Fleetyards and are drafts: only the MISC Hull A was measured in the game. Tell us what differs in your hangar. Can write JSON? A pull request with the corrected file in `ships/` is even better ([ship-format.md](https://github.com/MRiediger/sc-cargoplan/blob/main/docs/ship-format.md)).
+        The racks of 102 ships come from the game files, by way of cryon.rocks (Motherlode); three ships (135c, 600i Executive Edition, F7C Hornet Mk II) still use Fleetyards data. A rack in the wrong place or with the wrong size is usually in the game data itself: we pass it on to Motherlode, and the next import fixes it for everyone. Door limits are ours, since the game files don't describe doors. Can write JSON? A pull request with the corrected file in `ships/` is even better ([ship-format.md](https://github.com/MRiediger/sc-cargoplan/blob/main/docs/ship-format.md#correcting-a-rack)).
 
   - type: input
     id: ship
     attributes:
       label: Ship
-      description: As the ship list in the overlay names it.
+      description: As the ship list in the overlay names it. If you looked into the ship file, its name in `ships/` or its `modelKey` helps too.
       placeholder: DRAK Cutlass Black
     validations:
       required: true
@@ -20,9 +20,23 @@ body:
   - type: input
     id: racks
     attributes:
-      label: Rack(s)
+      label: Rack number
       description: The rack number the overlay shows, or "missing" for a rack the overlay doesn't have.
       placeholder: Rack 2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What is wrong
+      description: Pick all that apply.
+      multiple: true
+      options:
+        - Position (the rack lies elsewhere in the ship)
+        - Size (more or fewer cells than in the game)
+        - Stack direction (crates stack the other way)
+        - Door limit (the game takes smaller or larger crates)
     validations:
       required: true
 
@@ -40,10 +54,19 @@ body:
       required: true
 
   - type: upload
-    id: screenshot
+    id: screenshot-game
     attributes:
-      label: Screenshot
-      description: The hold in the hangar, ideally with crates on it, and the overlay if you can. Optional, but it helps a lot.
+      label: Screenshot in the game
+      description: The hold in the hangar, ideally with crates on it. Optional, but it helps a lot.
+    validations:
+      required: false
+      accept: ".png,.jpg,.jpeg,.gif,.webp,.mp4,.webm"
+
+  - type: upload
+    id: screenshot-overlay
+    attributes:
+      label: Screenshot of the overlay
+      description: The same ship in the overlay, turned so the rack shows. Optional.
     validations:
       required: false
       accept: ".png,.jpg,.jpeg,.gif,.webp,.mp4,.webm"
@@ -53,6 +76,6 @@ body:
     attributes:
       label: Star Citizen version
       description: The patch you checked it in.
-      placeholder: 4.10.1-LIVE
+      placeholder: 4.10.2-LIVE
     validations:
       required: true

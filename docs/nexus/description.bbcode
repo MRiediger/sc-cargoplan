@@ -8,14 +8,14 @@ How it works: the [url=https://github.com/MRiediger/sc-cargoplan/wiki]wiki[/url]
 [list]
 [*]The only other program data it reads is ContractTracker's database, read-only.
 [*]Its only network access is the optional download of ship holograms from github.com, which you can turn off.
-[*]Ship holograms are made from CIG's ship models and are not under MIT. They live in a release of their own, holo-v1, with its own NOTICE, not in this ZIP. The app downloads them only from there, one file per ship when you pick a hologram look, and never fetches anything from Fleetyards; [b]Download ship holograms[/b] in the settings switches it off.
+[*]Ship holograms are made from CIG's ship models and are not under MIT. They live in a release of their own, holo-v2, with its own NOTICE, not in this ZIP. The app downloads them only from there, one file per ship when you pick a hologram look, and never fetches anything from Fleetyards; [b]Download ship holograms[/b] in the settings switches it off.
 [*]Ship holograms are an optional download; they derive from game models and may be withdrawn on request.
 [/list]
 
 [b]Known issues[/b]
 [list]
 [*][b]Unsigned, no auto-update:[/b] Windows warns at the first start of every version; check the releases for new ones.
-[*][b]Ship data are drafts:[/b] every grid except the MISC Hull A's comes from Fleetyards and isn't checked in the game; for some racks the data name no door limit, although the game may have one.
+[*][b]Ship data:[/b] the racks of 102 ships come from the game files, each placed to the nearest whole cell; the 135c, 600i Executive Edition and F7C Hornet Mk II are still drafts from Fleetyards. The game files describe no doors, so some racks may have a door limit the app doesn't know.
 [*][b]The Retaliator is not included.[/b]
 [*][b]A crate under an empty rack[/b] in front of it can't be clicked in the ship view. Turn the view, or use its line in the legend.
 [*][b]Very large ships zoomed in all the way[/b] (such as the Hull C): the camera can stand among the racks, and parts close to it are cut off. Zoom out a little.
@@ -26,7 +26,7 @@ More, with workarounds: [url=https://github.com/MRiediger/sc-cargoplan/wiki/Trou
 Please report bugs on GitHub, not in the Nexus comments, so they can be tracked.
 [list]
 [*]Bugs, wrong cargo grids, ideas: [url=https://github.com/MRiediger/sc-cargoplan/issues/new/choose]Issues[/url] · questions: [url=https://github.com/MRiediger/sc-cargoplan/discussions]Discussions[/url]
-[*]Copy the version from the footer of the settings window (e.g. [b]SC-CargoPlan 0.1.0+…[/b]).
+[*]Copy the version from the footer of the settings window (e.g. [b]SC-CargoPlan 0.3.0+…[/b]).
 [*]Open a [url=https://github.com/MRiediger/sc-cargoplan/issues/new?template=bug.yml]bug report[/url] (needs a GitHub account) and fill in the form.
 [/list]
 
@@ -45,11 +45,12 @@ Run Star Citizen in [b]Borderless[/b] window mode; exclusive fullscreen covers t
 
 [list]
 [*]One color per destination, one rack per destination where the ship allows it, every crate named in the legend.
+[*]Optionally a block per destination in a shared rack, with a gap to get at the crates.
 [*]Contracts captured with ContractTracker come in by themselves; or type them in the editor.
 [*]Drag, turn, split and merge crates to match what the cargo elevator really did.
 [*]Mark each delivery loaded, then delivered at its stop; undo any step.
 [*]Click-through while the game has the mouse. A separate window: nothing is injected into the game.
-[*]97 ships, with cargo grids from Fleetyards, plus the Aurora Mk II with its TS module.
+[*]105 ships. Racks, hull and outline of 102 of them come from the game files; three still use Fleetyards data.
 [/list]
 
 [size=5]Requirements[/size]
@@ -62,11 +63,13 @@ Run Star Citizen in [b]Borderless[/b] window mode; exclusive fullscreen covers t
 [size=5]Shout outs[/size]
 
 [list]
-[*]Cargo grid data from [url=https://fleetyards.net]fleetyards.net[/url].
+[*]Cargo grid data and ship models from [url=https://cryon.rocks/ops/cargo]cryon.rocks (Motherlode)[/url], extracted from the Star Citizen game files and used with its operators' permission: the racks, the hull holograms and the outlines come from the same game data.
+[*]Three ships (135c, 600i Executive Edition, F7C Hornet Mk II) still use hull data from [url=https://fleetyards.net]fleetyards.net[/url]: their grids, hologram and outline. Fleetyards' data made the first ship list possible.
+[*]Thanks to both for letting this project use their data.
 [*][url=https://www.nexusmods.com/starcitizen/mods/34]ContractTracker[/url] by Yuiki captures the contracts; SC-CargoPlan only reads its database.
 [*]Stop colors: the [url=https://jfly.uni-koeln.de/color/]Okabe-Ito palette[/url] and [url=https://sronpersonalpages.nl/~pault/]Paul Tol's[/url] schemes.
-[*]Not affiliated with Fleetyards, ContractTracker or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
+[*]Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
 [/list]
 Designed and tested in the game by the author; code and texts written with an AI coding assistant.
 
-MIT licensed. Not under MIT: the ship silhouettes ([b]outlines/NOTICE.md[/b]) and the ship holograms (NOTICE of the holo-v1 release).
+MIT licensed. Not under MIT: the ship silhouettes ([b]outlines/NOTICE.md[/b]) and the ship holograms (NOTICE of the holo-v2 release).
