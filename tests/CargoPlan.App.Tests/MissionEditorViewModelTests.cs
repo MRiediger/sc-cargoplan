@@ -206,7 +206,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
         editor.Rows[0].Crates = "2+2+2";
 
-        editor.Rows[0].CratesText.Should().Be("2+2+2");
+        editor.Rows[0].CratesText.Should().Be("3×2");
         editor.Rows[0].IsCrateOverride.Should().BeTrue();
         editor.Problem.Should().BeNull();
     }
@@ -984,7 +984,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
         editor.Import(path);
 
         File.ReadAllText(path).Split("\"crates\"").Should().HaveCount(2, "one row has an override");
-        editor.Rows.Select(r => r.Crates).Should().Equal("2+2+4", "", "", "");
+        editor.Rows.Select(r => r.Crates).Should().Equal("4+2×2", "", "", "");   // back in the one spelling (D96)
         editor.Rows.Select(r => r.IsCrateOverride).Should().Equal(true, false, false, false);
     }
 
@@ -1222,6 +1222,22 @@ public sealed class MissionEditorViewModelTests : IDisposable
         editor.PlanCommand.Execute(null);
 
         overlay.Missions.Single(m => m.Contract?.ContractIds[0] == 37).Contract!.CrateSizeAssumed.Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_picked_max_crate_size_derives_the_crates_again_and_counts_as_a_change()
+    {
+        // B8: what the drop-down sets reaches the crates column at once, like typing does.
+        var editor = new MissionEditorViewModel(OverlayWithCaptures());
+        var orison = editor.Rows.Single(r => r.Destination == "Orison");
+        orison.Scu = "6";
+        editor.IsDirty = false;
+
+        orison.MaxCrateSize = 2;
+
+        orison.CratesText.Should().Be("3×2");
+        orison.MaxCrateSizeAssumed.Should().BeFalse();
+        editor.IsDirty.Should().BeTrue();
     }
 
     [Fact]

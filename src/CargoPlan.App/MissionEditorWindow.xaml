@@ -18,8 +18,9 @@
          Topmost comes with the topmost overlay as owner anyway. ShowActivated=False is for showing it again after the
          auto-lock (D19); opening it calls Activate() explicitly. Fluent light or dark, like the settings window (D36). -->
 
-    <!-- ButtonBase.Click bubbles before the button runs its command: every button first ends the cell edit,
-         because moving or removing rows during an edit transaction throws.
+    <!-- ButtonBase.Click bubbles before the button runs its command: every button outside the grid first ends the cell
+         edit, because moving or removing rows during an edit transaction throws. Not the grid's own buttons: the max
+         crate combo box's arrow is one (B8).
          Source: ButtonBase.OnClick raises Click, then executes the command (dotnet/wpf, ButtonBase.cs). -->
     <DockPanel Margin="8" ButtonBase.Click="OnAnyButtonClick">
         <!-- One level below the window, so BasedOn finds Fluent's styles (D36). -->
@@ -30,6 +31,16 @@
                 <!-- 4 below: rows keep apart when the toolbar wraps; the panel's own margin is 4 less. -->
                 <Setter Property="Margin" Value="0,0,4,4" />
                 <Setter Property="Padding" Value="8,2" />
+            </Style>
+            <!-- A header too long for its column breaks onto a second line instead of being cut; the header row grows (4d). -->
+            <Style x:Key="EditorColumnHeaderStyle" TargetType="DataGridColumnHeader" BasedOn="{StaticResource DefaultDataGridColumnHeaderStyle}">
+                <Setter Property="ContentTemplate">
+                    <Setter.Value>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </Setter.Value>
+                </Setter>
             </Style>
         </DockPanel.Resources>
         <!-- Only shown: the ship is changed where its name is, in the overlay header (T7.2b, D59). -->
@@ -93,7 +104,7 @@
                 <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.FillOrders}" DisplayMemberPath="Text"
                           SelectedValuePath="Value" SelectedValue="{Binding FillOrder}" MinWidth="90">
                     <ComboBox.ItemContainerStyle>
-                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource ToolComboBoxItemStyle}">
                             <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
                         </Style>
                     </ComboBox.ItemContainerStyle>
@@ -105,7 +116,7 @@
                 <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.FillRowsChoices}" DisplayMemberPath="Text"
                           SelectedValuePath="Value" SelectedValue="{Binding FillRows}" MinWidth="90">
                     <ComboBox.ItemContainerStyle>
-                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource ToolComboBoxItemStyle}">
                             <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
                         </Style>
                     </ComboBox.ItemContainerStyle>
@@ -117,7 +128,7 @@
                 <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.GroupingChoices}" DisplayMemberPath="Text"
                           SelectedValuePath="Value" SelectedValue="{Binding Grouping}" MinWidth="110">
                     <ComboBox.ItemContainerStyle>
-                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource ToolComboBoxItemStyle}">
                             <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
                         </Style>
                     </ComboBox.ItemContainerStyle>
@@ -129,7 +140,7 @@
                 <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.SectionGapChoices}" DisplayMemberPath="Text"
                           SelectedValuePath="Value" SelectedValue="{Binding SectionGap}" MinWidth="80" IsEnabled="{Binding IsSectionGapEnabled}">
                     <ComboBox.ItemContainerStyle>
-                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource ToolComboBoxItemStyle}">
                             <Setter Property="AutomationProperties.Name" Value="{Binding Text, Mode=OneTime}" />
                         </Style>
                     </ComboBox.ItemContainerStyle>
@@ -154,10 +165,40 @@
                   Sorting="OnSorting"
                   CanUserReorderColumns="False"
                   SelectionMode="Single"
-                  HeadersVisibility="Column">
+                  HeadersVisibility="Column"
+                  ColumnHeaderStyle="{StaticResource EditorColumnHeaderStyle}">
+            <!-- For the max size combo box, the grid's only one: after a pick the cell stays in edit mode, and an edited cell
+                 lies in the selected row, so the closed box takes that row's text colour and no background or frame of its
+                 own, like a text cell (second round at the picture, 4d). Fluent's template reads these keys per state. Here,
+                 not in the style's resources: a brush's DynamicResource colour resolves only in the element tree. The
+                 selected row's text colour comes from ToolWindowThemer's selection dictionaries (grey in dark, Fluent's
+                 white in light). The entries take TextFillColorPrimaryBrush (ToolComboBoxItemStyle), so the list keeps its
+                 colours. Source: dotnet/wpf, PresentationFramework.Fluent/Styles/ComboBox.xaml (DefaultComboBoxTemplate) -->
+            <DataGrid.Resources>
+                <SolidColorBrush x:Key="ComboBoxForeground" Color="{DynamicResource ToolSelectedRowTextColor}" />
+                <SolidColorBrush x:Key="ComboBoxForegroundPointerOver" Color="{DynamicResource ToolSelectedRowTextColor}" />
+                <SolidColorBrush x:Key="ComboBoxForegroundPressed" Color="{DynamicResource ToolSelectedRowTextColor}" />
+                <SolidColorBrush x:Key="ComboBoxForegroundFocused" Color="{DynamicResource ToolSelectedRowTextColor}" />
+                <SolidColorBrush x:Key="ComboBoxForegroundFocusedPressed" Color="{DynamicResource ToolSelectedRowTextColor}" />
+                <SolidColorBrush x:Key="ComboBoxDropDownGlyphForeground" Color="{DynamicResource ToolSelectedRowTextColor}" />
+                <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocused" Color="{DynamicResource ToolSelectedRowTextColor}" />
+                <SolidColorBrush x:Key="ComboBoxDropDownGlyphForegroundFocusedPressed" Color="{DynamicResource ToolSelectedRowTextColor}" />
+                <SolidColorBrush x:Key="ComboBoxBackground" Color="Transparent" />
+                <SolidColorBrush x:Key="ComboBoxBackgroundPointerOver" Color="Transparent" />
+                <SolidColorBrush x:Key="ComboBoxBackgroundPressed" Color="Transparent" />
+                <SolidColorBrush x:Key="ComboBoxBorderBrush" Color="Transparent" />
+                <SolidColorBrush x:Key="ComboBoxBorderBrushPointerOver" Color="Transparent" />
+                <SolidColorBrush x:Key="ComboBoxBorderBrushPressed" Color="Transparent" />
+            </DataGrid.Resources>
             <DataGrid.RowStyle>
+                <!-- The selected row's bar (4d, variant C): its width comes from the mode, 3 px in dark, none in light, where
+                     Fluent's marking stays; always there, so a selection moves no cell. Before the error frame, which wins. -->
                 <Style TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
+                    <Setter Property="BorderThickness" Value="{DynamicResource ToolRowBarThickness}" />
                     <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="BorderBrush" Value="{DynamicResource ComboBoxItemPillFillBrush}" />
+                        </Trigger>
                         <DataTrigger Binding="{Binding HasError}" Value="True">
                             <Setter Property="BorderBrush" Value="{DynamicResource SystemFillColorCriticalBrush}" />
                             <Setter Property="BorderThickness" Value="1" />
@@ -176,23 +217,43 @@
                 <DataGridTextColumn Header="Destination" Binding="{Binding Destination, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="Destination" Width="2*" />
                 <DataGridTextColumn Header="Commodity" Binding="{Binding Commodity, UpdateSourceTrigger=PropertyChanged}" CanUserSort="False" Width="2*" />
                 <DataGridTextColumn Header="SCU" Binding="{Binding Scu, UpdateSourceTrigger=PropertyChanged}" CanUserSort="False" Width="*" />
-                <DataGridComboBoxColumn Header="Max crate" CanUserSort="False"
+                <!-- "Max size", the whole term in the tool tip: "Max crate" was cut at the default width (4d).
+                     The column's default styles are plain Style(ComboBox) without BasedOn and pushed Fluent's implicit
+                     style aside, so the drop-down looked like WPF's default. The editing one is based on the implicit
+                     style, as the layout drop-downs below use it, with the default's one setter kept; no style of our
+                     own (A4). The closed cell keeps the default: text in the cell's colour. Fluent's combo box keeps
+                     38 px for its arrow, hence MinWidth, so the open box still shows "32".
+                     Source: dotnet/wpf, DataGridComboBoxColumn.cs (DefaultElementStyle, DefaultEditingElementStyle);
+                     PresentationFramework.Fluent/Styles/ComboBox.xaml (arrow column) -->
+                <DataGridComboBoxColumn Header="Max size" CanUserSort="False"
                                         ItemsSource="{x:Static ed:MissionRows.MaxCrateSizes}"
                                         SelectedItemBinding="{Binding MaxCrateSize, UpdateSourceTrigger=PropertyChanged}"
-                                        Width="*" />
+                                        Width="*" MinWidth="72">
+                    <DataGridComboBoxColumn.HeaderStyle>
+                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource EditorColumnHeaderStyle}">
+                            <Setter Property="ToolTip" Value="{x:Static ed:MissionRows.MaxCrateSizeToolTipText}" />
+                        </Style>
+                    </DataGridComboBoxColumn.HeaderStyle>
+                    <DataGridComboBoxColumn.EditingElementStyle>
+                        <Style TargetType="ComboBox" BasedOn="{StaticResource ToolComboBoxStyle}">
+                            <Setter Property="IsSynchronizedWithCurrentItem" Value="False" />
+                        </Style>
+                    </DataGridComboBoxColumn.EditingElementStyle>
+                </DataGridComboBoxColumn>
                 <!-- Shows the crates derived from SCU and max (D23), or the ones typed by hand in italics. Editing starts
                      empty for a derived row, so clicking in and out never turns the derivation into an override;
                      an empty box means "derive again". FocusManager puts the caret into the box when editing starts.
                      Source: https://learn.microsoft.com/dotnet/api/system.windows.input.focusmanager.focusedelement -->
                 <DataGridTemplateColumn Header="Crates" CanUserSort="False" Width="1.5*">
                     <DataGridTemplateColumn.HeaderStyle>
-                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource DefaultDataGridColumnHeaderStyle}">
+                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource EditorColumnHeaderStyle}">
                             <Setter Property="ToolTip" Value="{x:Static ed:MissionRows.CratesToolTipText}" />
                         </Style>
                     </DataGridTemplateColumn.HeaderStyle>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate DataType="ed:MissionRow">
-                            <TextBlock Text="{Binding CratesText}" ToolTip="{x:Static ed:MissionRows.CratesToolTipText}">
+                            <!-- Wraps a long mix: WPF breaks before a "+", never inside a number (4d). -->
+                            <TextBlock Text="{Binding CratesText}" ToolTip="{x:Static ed:MissionRows.CratesToolTipText}" TextWrapping="Wrap">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Style.Triggers>

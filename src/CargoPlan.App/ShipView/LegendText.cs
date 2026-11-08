@@ -25,15 +25,10 @@ public static class LegendText
         return goods switch
         {
             [] => [new(total)],
-            [var one] => [new(one.Crates.Count > 1 ? Invariant($"{total} ({Mix(one.Crates)})") : total), new(Separator + one.Commodity, LegendSegment.TrimFirst)],
-            _ => [new(total), .. goods.SelectMany((g, i) => (LegendSegment[])[new($"{(i == 0 ? " " : ", ")}({Mix(g.Crates)}) "), new(g.Commodity, LegendSegment.TrimFirst)])],
+            [var one] => [new(one.Crates.Count > 1 ? Invariant($"{total} ({CrateMix.Format(one.Crates)})") : total), new(Separator + one.Commodity, LegendSegment.TrimFirst)],
+            _ => [new(total), .. goods.SelectMany((g, i) => (LegendSegment[])[new($"{(i == 0 ? " " : ", ")}({CrateMix.Format(g.Crates)}) "), new(g.Commodity, LegendSegment.TrimFirst)])],
         };
     }
-
-    /// <summary>"2×4+1": sizes largest first, a size that repeats as count×size.</summary>
-    public static string Mix(IEnumerable<CrateSize> crates) =>
-        string.Join("+", crates.Select(c => (int)c).GroupBy(size => size).OrderByDescending(g => g.Key)
-            .Select(g => g.Count() == 1 ? Invariant($"{g.Key}") : Invariant($"{g.Count()}×{g.Key}")));
 
     /// <summary>
     /// The commodities of <paramref name="crates"/> in the order of their items (<see cref="Crate.Item"/>), each with its

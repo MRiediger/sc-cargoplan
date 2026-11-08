@@ -199,6 +199,36 @@ public class ContractTrackerReaderTests
     }
 
     [Theory]
+    [InlineData(ImportFixtures.WasteOrSmaller, "Waste", 124, 82)]
+    [InlineData(ImportFixtures.PotassiumOrCut, "Potassium", 215)]
+    [InlineData(ImportFixtures.CarbonOrCut, "Carbon", 200)]
+    public void Or_smaller_contracts_of_issue_22_plan_with_8s_not_assumed_32s(string fixture, string commodity, params int[] scus)
+    {
+        // B9 golden: before, each was "max 32 SCU?" (Endgame 3×32+24+4, Orbituary 2×32+16+2, Potassium 6×32+16+4+2+1,
+        // Carbon 6×32+8); the kiosk delivers 8s.
+        using var database = new TempContractDatabase();
+        database.AddContract(60, commodity, ImportFixtures.RawText(fixture), [.. scus.Select(s => (s, "Ruin Station"))]);
+
+        var candidate = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Should().ContainSingle().Subject;
+
+        candidate.CrateSizeAssumed.Should().BeFalse();
+        var items = candidate.Stops.SelectMany(s => s.Items).ToList();
+        items.Select(i => i.MaxCrateSize).Should().AllBeEquivalentTo(CrateSize.Eight);
+        items.Select(i => Groups(CrateMix.Decompose(i.Scu, i.MaxCrateSize))).Should().Equal(scus.Select(s => s switch
+        {
+            124 => "15×8+1×4",
+            82 => "10×8+1×2",
+            215 => "26×8+1×4+1×2+1×1",
+            200 => "25×8",
+            _ => throw new ArgumentOutOfRangeException(nameof(scus)),
+        }));
+    }
+
+    /// <summary>Count×size per size, largest first: the golden's own spelling, independent of the app's format.</summary>
+    private static string Groups(IEnumerable<CrateSize> crates) =>
+        string.Join("+", crates.GroupBy(c => (int)c).OrderByDescending(g => g.Key).Select(g => $"{g.Count()}×{g.Key}"));
+
+    [Theory]
     [InlineData("Covalex Independent Contractor\nDETAILS\nPRIMARY OBJECTIVES\nACCEPT OFFER")]
     [InlineData(null)]
     public void No_destination_in_the_text_falls_back_to_the_child_rows(string? raw)

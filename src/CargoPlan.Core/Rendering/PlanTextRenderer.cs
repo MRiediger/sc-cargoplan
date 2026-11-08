@@ -56,13 +56,16 @@ public static class PlanTextRenderer
         return string.Join('\n', lines);
     }
 
-    /// <summary>"Riker  12 SCU Titanium (3×4)": crate count × crate size; "(delivered)" behind, as in the ship view's tool tip.</summary>
+    /// <summary>
+    /// "Riker  12 SCU Titanium (3×4)": the crates in the one spelling of a mix (D96), a single crate as its size;
+    /// "(delivered)" behind, as in the ship view's tool tip.
+    /// </summary>
     private static string PlacementLine(Placement placement, int destinationWidth, int scuWidth)
     {
         var item = placement.Item;
-        var crateScu = (int)item.CrateSize;
+        var crates = CrateMix.Format(Enumerable.Repeat(item.CrateSize, item.Scu / (int)item.CrateSize));
         var line = Invariant(
-            $"{placement.Destination.PadRight(destinationWidth)}{ColumnGap}{Pad(item.Scu, scuWidth)} SCU {item.Commodity} ({item.Scu / crateScu}×{crateScu})");
+            $"{placement.Destination.PadRight(destinationWidth)}{ColumnGap}{Pad(item.Scu, scuWidth)} SCU {item.Commodity} ({crates})");
         return placement.Delivered ? line + DeliveredSuffix : line;
     }
 

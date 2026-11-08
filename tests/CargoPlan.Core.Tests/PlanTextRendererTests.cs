@@ -23,7 +23,7 @@ public class PlanTextRendererTests
         PlanTextRenderer.Render(plan, HullA).Should().Be(Lines("""
             [Rack 1 · 12/16]  Riker   12 SCU Titanium (3×4)
             [Rack 2 · 10/16]  Shubin  10 SCU Quartz (5×2)
-            [Rack 3 ·  8/16]  Orison   8 SCU Agricium (1×8)
+            [Rack 3 ·  8/16]  Orison   8 SCU Agricium (8)
             [Rack 4 ·  0/16]  -
             """));
     }
@@ -36,7 +36,7 @@ public class PlanTextRendererTests
         PlanTextRenderer.Render(plan, HullA).Should().Be(Lines("""
             [Rack 1 · 16/16]  Riker  16 SCU Titanium (4×4)
                               ! Riker spans racks 1+2
-            [Rack 2 ·  4/16]  Riker   4 SCU Titanium (1×4)
+            [Rack 2 ·  4/16]  Riker   4 SCU Titanium (4)
                               ! Riker spans racks 1+2
             [Rack 3 ·  0/16]  -
             [Rack 4 ·  0/16]  -
@@ -80,7 +80,7 @@ public class PlanTextRendererTests
 
         PlanTextRenderer.Render(plan, HullA).Should().Be(Lines("""
             [Rack 1 · 16/16]  Riker  16 SCU Titanium (4×4) (delivered)
-            [Rack 2 ·  4/16]  Riker   4 SCU Titanium (1×4) (delivered)
+            [Rack 2 ·  4/16]  Riker   4 SCU Titanium (4) (delivered)
             [Rack 3 ·  0/16]  -
             [Rack 4 ·  0/16]  -
             """));

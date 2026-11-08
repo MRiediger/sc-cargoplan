@@ -73,7 +73,7 @@ public class DoorLimitOverlayTests
         var row = editor.Rows[0];
         (row.Destination, row.Commodity, row.Scu, row.MaxCrateSize) = ("Riker", "Titanium", "8", 8);
 
-        row.CratesText.Should().Be("2+2+2+2");
+        row.CratesText.Should().Be("4×2");
 
         overlay.ChangeShip(HullA);
 

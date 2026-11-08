@@ -296,6 +296,51 @@ public class ContractTextParserTests
         parsed.MaxCrateSize.Should().Be(expected);
     }
 
+    [Theory]
+    [InlineData(ImportFixtures.WasteOrSmaller)]
+    [InlineData(ImportFixtures.PotassiumOrCut)]
+    [InlineData(ImportFixtures.CarbonOrCut)]
+    public void Or_smaller_phrase_of_issue_22_is_read(string fixture)
+    {
+        // B9: "bunch of 8 SCU or smaller", and "(8 SCU or" whose "smaller)" OCR lost.
+        ContractTextParser.Parse(ImportFixtures.RawText(fixture)).MaxCrateSize.Should().Be(CrateSize.Eight);
+    }
+
+    [Theory]
+    [InlineData("bunch of 8 SCU or smaller waste containers", CrateSize.Eight)]
+    [InlineData("bunch of 8 SCU or\nsmaller waste containers", CrateSize.Eight)]
+    [InlineData("bunch of 8\nSCU or smaller", CrateSize.Eight)]
+    [InlineData("They got cargo (4 SCU or smaller) to move.", CrateSize.Four)]
+    [InlineData("They got cargo (16 SCU or", CrateSize.Sixteen)]
+    [InlineData("They got cargo ( 2 SCU or\nFROM RUIN STATION", CrateSize.Two)]
+    [InlineData("bunch of 8SCU orsmaller", CrateSize.Eight)]
+    [InlineData("bunch of O8 SCU or smaller", CrateSize.Eight)]
+    [InlineData("They got cargo (l SCU or", CrateSize.One)]
+    [InlineData("bunch of8 SCU or smaller", CrateSize.Eight)]
+    public void Or_smaller_phrase_tolerates_breaks_spacing_and_digits(string phrase, CrateSize expected)
+    {
+        var parsed = ContractTextParser.Parse($"DETAILS\nDeliver 0/9 SCU of Waste to Everus Harbor above\n{phrase}\nACCEPT OFFER");
+
+        parsed.MaxCrateSize.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("They got cargo (8 SCU or more) to move.")]
+    [InlineData("They got cargo (8 SCU or\nlarger)")]
+    [InlineData("They got cargo 8 SCU or")]
+    [InlineData("Deliver 0/8 SCU or smaller")]
+    [InlineData("Deliver 0/ 8 SCU or smaller")]
+    [InlineData("Deliver 0/124 SCU or smaller")]
+    [InlineData("bunch of 3 SCU or smaller")]
+    public void Or_phrase_that_names_no_max_counts_as_missing(string phrase)
+    {
+        // Not a max: "or more/larger"; "N SCU or" without its bracket and without "smaller"; the amount of a delivery
+        // ("0/8", also its tail "24" of "0/124"); no crate size.
+        var parsed = ContractTextParser.Parse($"DETAILS\nDeliver 0/9 SCU of Waste to Everus Harbor above\n{phrase}\nACCEPT OFFER");
+
+        parsed.MaxCrateSize.Should().BeNull();
+    }
+
     [Fact]
     public void Corrected_size_that_is_no_crate_size_counts_as_missing()
     {

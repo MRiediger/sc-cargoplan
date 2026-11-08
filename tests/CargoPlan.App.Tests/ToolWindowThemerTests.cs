@@ -94,6 +94,54 @@ public sealed class ToolWindowThemerTests
         resources.MergedDictionaries.Should().BeEmpty();
     }
 
+    // Selection (4d, variant C): dark marks with a neutral tone and a teal bar; the accent stays for controls.
+
+    [Fact]
+    public void Dark_selection_fills_rows_and_entries_with_the_neutral_tone_and_keeps_the_light_text()
+    {
+        var dark = ToolWindowThemer.SelectionDark;
+        Color Of(string key) => ((SolidColorBrush)dark[key]).Color;
+
+        ToolWindowThemer.SelectionFillDark.Should().Be(Color.FromRgb(0x3A, 0x4A, 0x55));
+        dark[ToolWindowThemer.SelectionFillDarkKey].Should().Be(ToolWindowThemer.SelectionFillDark);
+        Of("DataGridRowSelectedBackgroundThemeBrush").Should().Be(ToolWindowThemer.SelectionFillDark);
+        Of("DataGridRowSelectedForegroundThemeBrush").Should().Be(ToolWindowThemer.DarkTextColor);
+        Of(ToolWindowThemer.SelectionFillKey).Should().Be(ToolWindowThemer.SelectionFillDark);
+        Of(ToolWindowThemer.SelectionHighlightFillKey).Should().Be(ToolWindowThemer.SelectionFillDark, "the picked entry stays full under the mouse");
+        Of("ComboBoxItemBackgroundSelected").Should().Be(Color.FromArgb(0x99, 0x3A, 0x4A, 0x55), "hover is the tone at 60 %");
+        dark[ToolWindowThemer.SelectedRowTextColorKey].Should().Be(ToolWindowThemer.DarkTextColor);
+        dark[ToolWindowThemer.RowBarThicknessKey].Should().Be(new Thickness(3, 0, 0, 0));
+    }
+
+    [Fact]
+    public void Light_selection_leaves_Fluents_marking_as_it_is()
+    {
+        var light = ToolWindowThemer.SelectionLight;
+
+        light.Contains("DataGridRowSelectedBackgroundThemeBrush").Should().BeFalse();
+        light.Contains("DataGridRowSelectedForegroundThemeBrush").Should().BeFalse();
+        light.Contains("ComboBoxItemBackgroundSelected").Should().BeFalse();
+        ((SolidColorBrush)light[ToolWindowThemer.SelectionFillKey]).Color.A.Should().Be(0, "Fluent fills no picked entry");
+        ((SolidColorBrush)light[ToolWindowThemer.SelectionHighlightFillKey]).Color.Should().Be(Color.FromArgb(0x09, 0, 0, 0), "Fluent's own highlight");
+        light[ToolWindowThemer.SelectedRowTextColorKey].Should().Be(Colors.White, "Fluent's selected row text in light");
+        light[ToolWindowThemer.RowBarThicknessKey].Should().Be(new Thickness(0));
+    }
+
+    [Fact]
+    public void The_selection_dictionary_is_swapped_never_doubled()
+    {
+        ResourceDictionary resources = new();
+
+        ToolWindowThemer.ApplySelection(resources, dark: true);
+        ToolWindowThemer.ApplySelection(resources, dark: true);
+
+        resources.MergedDictionaries.Should().ContainSingle().Which.Should().BeSameAs(ToolWindowThemer.SelectionDark);
+
+        ToolWindowThemer.ApplySelection(resources, dark: false);
+
+        resources.MergedDictionaries.Should().ContainSingle().Which.Should().BeSameAs(ToolWindowThemer.SelectionLight);
+    }
+
     [Fact]
     public void The_accent_is_teal_not_the_Windows_accent()
     {

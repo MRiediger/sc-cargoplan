@@ -41,7 +41,7 @@
                 <ComboBox ItemsSource="{Binding PresetChoices, Mode=OneTime}" SelectedItem="{Binding SelectedPreset}" DisplayMemberPath="Text"
                           ToolTip="Applies at once; the sections' Reset to defaults is the way back">
                     <ComboBox.ItemContainerStyle>
-                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource ToolComboBoxItemStyle}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Look}" Value="{x:Null}">
                                     <Setter Property="Visibility" Value="Collapsed" />

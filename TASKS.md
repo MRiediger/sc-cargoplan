@@ -3833,6 +3833,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
    - [x] 4a Racks – `feat/ship-data-game` (abgenommen 07.11.)
    - [x] 4b Hülle und Umriss aus denselben Modellen – `feat/holo-v2` (abgenommen 08.11., `holo-v2` veröffentlicht)
    - [x] 4c Stilllegung Fleetyards, Holo-Übergang, Credits – `chore/retire-fleetyards` (abgenommen 08.11., D94, D95)
+   - [ ] 4d Editor-Fixes aus Issue #22/#21 (Reikal): B8 Dropdown, B9 „N SCU or smaller“, F9 Kistenliste gruppiert – `fix/editor-crates` (D96). Unterbricht die Release-Session; `release/v0.3.0` wartet, bis 4d auf `main` ist.
 5. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
 6. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Aus 4c (D94):** Wiki (`FAQ.md`, `Ships-and-cargo-grids.md`, `Troubleshooting.md`, `_Footer.md` mit „Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG“), Nexus-`description.bbcode` (Credits) und `.github/ISSUE_TEMPLATE/ship-correction.yml` (Gitter kommen aus den Spieldateien) nachziehen; sie beschreiben bis zum Tag v0.2.0. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
 
@@ -4610,6 +4611,82 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - Outline-Repo: `decimate.ps1` und `run-all.ps1` haben weiter `-Source 'Fleetyards'` als Default. Umstellen auf Motherlode erst bei Bedarf.
 - Aus 4b weiter offen: erster echter Abruf über die Motherlode-API, Fortune Rack 2, Nexus-Texte `holo-v2`.
 - Nachricht an Torlek (Fleetyards): Martin schickt sie nach dem Merge, kein Repo-Inhalt. Das Verlinkungsangebot ist T9.4.
+
+### [ ] Session 4d – Editor-Fixes aus Issue #22 und #21 (08.11.2026)
+
+**Branch:** `fix/editor-crates` ab `main`. **Anlass:** Issues von **Reikal** (GitHub-Login) auf v0.2.0: #22 „Max Crate selection non-functional“ (mit Rohtext von vier Pyro-Verträgen), #21 „Re-work crate counter“. B8 und B9 blockieren das Release.
+
+**Befund:**
+- **B8:** Das Binding der Max-crate-Spalte war in Ordnung (`UpdateSourceTrigger=PropertyChanged` stand schon). Ursache: Der `ButtonBase.Click`-Handler auf dem DockPanel des Editors beendet jede Zellbearbeitung. Der Pfeil der ComboBox ist ein `ToggleButton` und löst ihn ebenfalls aus. Die Editier-Combo wird verworfen, bevor die Auswahl ankommt. Das gibt es seit T3.8b. Die Tastaturauswahl löst keinen Klick aus und funktioniert deshalb. Dass eine neue Zeile die Größe der Zeile darüber übernimmt, ist gewollt (D23).
+- **B9:** Der Parser kannte nur „Max size … N“ und „bigger than N“. Die Red-Wind-Verträge sagen „8 SCU or smaller“. In zwei von drei Captures hat die OCR „smaller)“ verloren, übrig bleibt „(8 SCU or“. Martins CT-DB ist leer (0 Verträge, auch die `.bak`), weitere Formulierungen gibt es dort nicht.
+- **F9:** Die Legende gruppiert seit K6.1 (`LegendText.Mix`). Nur die Editor-Spalte, die Planer-Notices und die Cli schrieben eigene Formate.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+- B8: kein Undo-Schritt für die Auswahl, wie beim Tippen (der Editor hat keins, D19).
+- B8: erstes Test-Fenster im Repo erlaubt, falls `BeginEdit` realisierte Zellen braucht. Nicht nötig geworden, Layout offscreen reicht.
+- B8 E1: ein Test sichert den ursprünglichen Zweck des Handlers (Toolbar-Knopf committet die offene Zelle).
+- B9: Die Klammerform „(N SCU or“ zählt ohne „smaller“, außer bei „or more/larger/bigger“.
+- B9: Der Default für eine unbekannte Größe bleibt die größte Kiste, die in die SCU passt, mit „?“. Grund: Kleine Kisten füllen den Platz großer lückenlos (D57).
+- F9: Die Zelle zeigt keine eigene Summe, der Fehler nennt sie.
+- F9: Notices und Cli folgen der einen Schreibweise; „(1×4)“ wird „(4)“.
+- F9: Ein lesbarer Override erscheint normiert und sortiert. Der getippte Text bleibt zum Bearbeiten.
+
+**Abnahme:**
+- [x] B8 (e30d65c), Tests zuerst rot (3 von 4, die Zelle war nach dem Pfeilklick wieder im Anzeigemodus):
+  - STA-Test für die Auswahl über `ButtonBase.OnClick`
+  - Issue-Pfad 1 und 2
+  - E1
+  - VM-Test
+  - Markup-Wächter
+- [x] B9 (e57b1d2), Tests zuerst rot (16):
+  - drei Fixtures wörtlich aus #22
+  - Toleranz- und Negativfälle
+  - Golden der Kistenliste: Endgame 124 `3×32+24+4` → `15×8+4`, Orbituary 82 → `10×8+2`, Potassium 215 `6×32+16+4+2+1` → `26×8+4+2+1`, Carbon 200 `6×32+8` → `25×8`
+  - D40-Nachtrag, `contracttracker-schema.md`
+- [x] F9 (4543c43), Tests zuerst rot (34 in Core gegen Stubs, danach 20 umgestellte Erwartungen):
+  - `CrateMix.Format`/`Parse` in Core, Round-Trip
+  - Legende unverändert
+  - D96, Nachträge D23 und D69
+- [x] `dotnet build` ohne Warnung, `dotnet test` (App 1655, Import 164, Core 1819; nach dem Nachtrag App 1659) und `Slow` grün
+- [ ] Gate Martin (Publish-Build):
+  - Pfad 1 und 2 aus #22: Das Dropdown ändert den Wert, die Kistenliste rechnet neu.
+  - Sync mit einem „8 SCU or smaller“-Vertrag ergibt max 8 ohne „?“.
+  - Die Kistenliste ist gruppiert in Editor und Legende.
+  - `2x32+16` (SCU 80) eingetippt wird akzeptiert und erscheint als `2×32+16`.
+  - **Spaltenbreite:** `6×32+16+4+2+1` braucht 108 px (Segoe UI 14), das alte Format 214 px. Erledigt durch den Nachtrag: Die Zelle bricht um, eine `MinWidth` für Crates ist nicht nötig.
+  - Befund am Gate (08.11.): drei UI-Anpassungen, siehe Nachtrag.
+- [x] **Nachtrag nach dem Gate** (UI, kein Verhalten; D36-Nachtrag):
+  - Spaltenköpfe brechen um statt abgeschnitten zu werden (`EditorColumnHeaderStyle`), auch der eigene Kopf-Style der Crates-Spalte.
+  - „Max crate“ heißt **„Max size“** (Kurzform von Martin), der Tooltip nennt den ganzen Begriff. Mit `MinWidth="72"` passt der Kopf auf eine Zeile.
+  - Die Crates-Zelle bricht um, WPF trennt vor dem `+`: `6×32+16+4+2` / `+1`. Bearbeitet wird einzeilig.
+  - Max-size-Dropdown: Die offene Combo und ihre Liste nutzen den impliziten Fluent-Style wie die Layout-Dropdowns, die geschlossene Zelle bleibt Text in der Zellfarbe. Ursache: `DataGridComboBoxColumn` setzt Styles ohne `BasedOn`.
+  - Variante B, von Martin am Bild gewählt (light und dark, vorher, Variante A, Variante B). Variante A (beide Styles Fluent) schnitt jede geschlossene Zelle ab, weil Fluent 38 px für den Pfeil freihält. *Präzisierung in der Planphase, ratifiziert durch Freigabe.*
+  - Tests zuerst rot (6 Wächter in `MissionEditorXamlTests`); Theme-Beispiel, B8-Testnachbau und `docs/shots/SHOTLIST.md` mitgezogen.
+  - **Kein eigener `ToolComboBoxStyle` (A4).** Auslöser, ihn auszuziehen: der erste eigene Setter an den Layout-Dropdowns.
+- [x] **Nachtrag 2, zweite und dritte Runde am Bild** (D36-Nachtrag „Markierung neutral, Akzent nur für Bedienelemente“):
+  - Befund: Die Anzeige-Zelle erbte richtig. Grau auf Cyan zeigte die **Editier-Combo**, die nach der Auswahl in der Zelle bleibt. Die Popup-Auswahl hatte nur Fluents 3-px-Balken.
+  - Der Auslöser ist erreicht: `ToolComboBoxStyle` und `ToolComboBoxItemStyle` baut `ToolWindowThemer` im Code auf Fluents Styles, implizit und per Schlüssel in jedem Werkzeugfenster. Die Layout-Combos und die Settings-Preset-Combo bauen auf dem Item-Style auf, die Grid-Combo auf dem Combo-Style.
+  - **Variante C (Martin am Bild, gegen a und b):**
+    - dark: markierte Zeile und Popup-Auswahl `SelectionFillDark` #3A4A55 deckend, 3 px Teal-Balken, normaler heller Text; Hover der Ton mit 60 %, ohne Balken.
+    - light: unverändert Fluent.
+    - Ein Auswahl-Dictionary pro Modus, getauscht wie der graue Dark-Text.
+  - Die Editier-Combo im Grid übernimmt die Textfarbe der markierten Zeile, ohne eigene Füllung oder Rahmen.
+  - Kontrast dark: Auswahl und Zeile 5,9:1, Hover 7,1:1; der Test hält alle Zustände in beiden Modi ≥ 4,5:1.
+  - Tests zuerst rot (Styles im Fenster, gleicher Style für Layout und Grid am echten Editor, Auswahl-Dictionaries, Kontrast, Wächter). Unterwegs gefangen:
+    - Ein `DynamicResource`-Alias im Dictionary ist in kompilierter XAML verboten, das Editorfenster wäre beim Öffnen abgestürzt.
+    - Ein Brush mit dynamischer Farbe in Style-Ressourcen bleibt durchsichtig.
+  - `WatchWindows` meldet sich ohne `Application` nicht bei `SystemEvents` an. Seit Tests `Apply` aufrufen, hing ein voller Lauf einmal und meldete einmal 67 Tests zu wenig; danach fünf Läufe stabil. Der Zusammenhang ist plausibel, nicht bewiesen.
+  - **E1 nicht umgesetzt** (passt nicht in eine Zeile): Nach der Auswahl die Zellbearbeitung beenden. `DropDownClosed` ist kein Routed Event, also kein `EventSetter`; es bräuchte einen `PreparingCellForEdit`-Handler mit An- und Abmelden. Offen, bei Bedarf eigener Task.
+  - **Rückfrage Martin:** Grid-Zeilen haben in Fluent keinen Hover. Soll dark einen Zeilen-Hover bekommen? Das braucht ein eigenes Zelltemplate, ist also eher ein eigener Task.
+- [ ] Dank an Reikal in #22 und #21 (Martin postet, Text liegt im Chat)
+- [ ] Merge `--no-ff` nach Martins Abnahme, Martin pusht. Danach Release-Session fortsetzen: Notes um 4d ergänzen, R1-Diff und Wiki (Editor-Seite: Kistenformat und beide Eingabeformen) nachziehen.
+
+**Material für Release-Notes v0.3.0:**
+- The max crate size drop-down in the mission editor works again and matches the light or dark theme; the column is now called "Max size" (#22, thanks Reikal).
+- Long column headers and crate lists wrap in the mission editor instead of being cut off.
+- Clearer selection in the dark tool windows: the selected row and the picked list entry get a calm fill with a teal bar.
+- Contracts that say "N SCU or smaller" are parsed: their max crate size is read, no more "max 32 SCU?" (#22).
+- Crate lists show grouped, e.g. 6×32+16+4+2+1 instead of every crate (#21, thanks Reikal). You can type either form into the Crates column: 2x32+16 or 32+32+16.
 
 ## Phase 10 – nach dem Launch
 

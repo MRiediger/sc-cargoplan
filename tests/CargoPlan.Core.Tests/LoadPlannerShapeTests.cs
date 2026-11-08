@@ -89,7 +89,7 @@ public class LoadPlannerShapeTests
         var act = () => LoadPlanner.Plan(Uneven, MissionFixtures.Load("spike_uneven_run3"));
 
         act.Should().Throw<PlanException>().Which.Message.Should().Be(
-            "Dest2 doesn't fit: no room for 2 × 32 SCU crates of Titanium – 52 SCU free, but no gap of that shape. Leave a stop out or take a ship with bigger racks.");
+            "Dest2 doesn't fit: no room for 2×32 SCU crates of Titanium – 52 SCU free, but no gap of that shape. Leave a stop out or take a ship with bigger racks.");
     }
 
     // One 32 per rack, the third finds none: 180 − 96 = 84 SCU free.
@@ -106,7 +106,7 @@ public class LoadPlannerShapeTests
         var act = () => LoadPlanner.Plan(Uneven, route);
 
         act.Should().Throw<PlanException>().Which.Message.Should().Be(
-            "Seraphim doesn't fit: no room for 1 × 32 SCU crate of Titanium – 84 SCU free, but no gap of that shape. Leave a stop out or take a ship with bigger racks.");
+            "Seraphim doesn't fit: no room for 32 SCU crate of Titanium – 84 SCU free, but no gap of that shape. Leave a stop out or take a ship with bigger racks.");
     }
 
     [Fact]

@@ -135,7 +135,8 @@ public class SplitMergeTests
     }
 
     [Theory]
-    [InlineData(new[] { 2, 1 }, "2 + 1 SCU don't add up to 4 SCU.")]
+    [InlineData(new[] { 2, 1 }, "2+1 SCU don't add up to 4 SCU.")]
+    [InlineData(new[] { 1, 1, 1 }, "3×1 SCU don't add up to 4 SCU.")]                // one spelling of a mix (D96)
     [InlineData(new[] { 4 }, "A 4 SCU crate splits into two or more crates.")]
     [InlineData(new[] { 3, 1 }, "3 SCU is not a crate size.")]
     public void Split_refuses_parts_that_are_no_split_of_the_crate(int[] parts, string reason)
@@ -385,7 +386,7 @@ public class SplitMergeTests
     {
         var saved = Riker(HullA, Item("Agricium", 10, CrateSize.Eight));
 
-        LoadPlanner.MergeProblem(saved, HullA, saved.Plan.Crates).Should().Be("8 + 2 is not a crate size.");
+        LoadPlanner.MergeProblem(saved, HullA, saved.Plan.Crates).Should().Be("8+2 is not a crate size.");
     }
 
     [Fact]
