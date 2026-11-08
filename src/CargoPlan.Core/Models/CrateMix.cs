@@ -1,3 +1,4 @@
+using System.Globalization;
 using static System.FormattableString;
 
 namespace CargoPlan.Core.Models;
@@ -85,6 +86,56 @@ public static class CrateMix
         CrateSize.ThirtyTwo => [CrateSize.Sixteen, CrateSize.Sixteen],
         _ => throw new ArgumentOutOfRangeException(nameof(size), size, "Unknown crate size."),
     };
+
+    private const char Plus = '+';
+
+    /// <summary>The sign between count and size; typed also as x or X, because nobody types × (D96).</summary>
+    private const char Times = '×';
+
+    /// <summary>The most crates one part of a typed list may count: a bound at the input, no ship holds this many.</summary>
+    private const int MaxCount = 9999;
+
+    /// <summary>
+    /// One spelling of a crate mix everywhere (D96): sizes largest first, a size that repeats as count×size, "+" between:
+    /// "6×32+16+4+2+1". Plain numbers, so a typed 3 shows as typed and <see cref="Problem"/> names it.
+    /// </summary>
+    public static string Format(IEnumerable<int> crates) =>
+        string.Join(Plus, crates.GroupBy(size => size).OrderByDescending(g => g.Key)
+            .Select(g => g.Count() == 1 ? Invariant($"{g.Key}") : Invariant($"{g.Count()}{Times}{g.Key}")));
+
+    /// <inheritdoc cref="Format(IEnumerable{int})"/>
+    public static string Format(IEnumerable<CrateSize> crates) => Format(crates.Select(c => (int)c));
+
+    /// <summary>
+    /// A typed crate list (D96): parts joined by "+", each a number or count×size ("2x32+16"), spaces allowed, count
+    /// first. Null if a part is neither, or counts 0 or more than <see cref="MaxCount"/>. Numbers only: whether they are
+    /// crate sizes and add up is <see cref="Problem"/>'s check.
+    /// </summary>
+    public static List<int>? Parse(string text)
+    {
+        List<int> crates = [];
+        foreach (var part in text.Split(Plus))
+        {
+            var factors = part.Split([Times, 'x', 'X']);
+            switch (factors)
+            {
+                case [var size] when Number(size) is { } crate:
+                    crates.Add(crate);
+                    break;
+                case [var count, var size] when Number(count) is >= 1 and <= MaxCount and var n && Number(size) is { } crate:
+                    crates.AddRange(Enumerable.Repeat(crate, n));
+                    break;
+                default:
+                    return null;
+            }
+        }
+
+        return crates;
+    }
+
+    // NumberStyles.None: digits only, no sign, no decimal point, no thousands separator.
+    private static int? Number(string text) =>
+        int.TryParse(text.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var number) ? number : null;
 
     /// <summary>
     /// What is wrong with a given list of crates for an item; null = they fit. Plain numbers, so an unknown size like 3

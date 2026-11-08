@@ -99,4 +99,83 @@ public class CrateMixTests
     {
         CrateMix.DefaultSplit(CrateSize.One).Should().BeEmpty();
     }
+
+    // --- Format and Parse (F9, D96) ---
+
+    [Theory]
+    [InlineData("6×32+16+4+2+1", 32, 32, 32, 32, 32, 32, 16, 4, 2, 1)]   // issue #21's example
+    [InlineData("8", 8)]
+    [InlineData("8×1", 1, 1, 1, 1, 1, 1, 1, 1)]
+    [InlineData("4+2×2+1", 2, 4, 1, 2)]                                   // any order in, largest first out
+    [InlineData("2×3", 3, 3)]                                             // no crate size: shown as typed, Problem names it
+    [InlineData("")]
+    public void Format_groups_each_size_largest_first_as_count_times_size(string expected, params int[] crates)
+    {
+        CrateMix.Format(crates).Should().Be(expected);
+    }
+
+    [Fact]
+    public void Format_takes_crate_sizes_too()
+    {
+        CrateMix.Format(CrateMix.Decompose(215, CrateSize.ThirtyTwo)).Should().Be("6×32+16+4+2+1");
+    }
+
+    [Theory]
+    [InlineData("2+2+2", 2, 2, 2)]
+    [InlineData(" 2 + 2+2 ", 2, 2, 2)]
+    [InlineData("3×2", 2, 2, 2)]
+    [InlineData("3x2", 2, 2, 2)]
+    [InlineData("3 X 2", 2, 2, 2)]
+    [InlineData("2x32+16", 32, 32, 16)]
+    [InlineData("16 + 2 × 32", 16, 32, 32)]
+    [InlineData("1×8", 8)]
+    [InlineData("2+3", 2, 3)]                                             // numbers only; sizes are Problem's check
+    public void Parse_reads_sums_and_count_times_size(string text, params int[] expected)
+    {
+        CrateMix.Parse(text).Should().Equal(expected);
+    }
+
+    [Fact]
+    public void Parse_reads_count_then_size_strictly()
+    {
+        // "32×2" is 32 crates of 2 SCU, legal; the sum check against the SCU shows a mix-up (D96).
+        CrateMix.Parse("32×2").Should().Equal(Enumerable.Repeat(2, 32));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("2++4")]
+    [InlineData("2,2,2")]
+    [InlineData("-2")]
+    [InlineData("0×4")]
+    [InlineData("×4")]
+    [InlineData("2×")]
+    [InlineData("2×3×4")]
+    [InlineData("2*4")]
+    [InlineData("10000×1")]                                               // a bound at the input, not a ship's limit
+    public void Parse_gives_null_for_text_that_is_no_crate_list(string text)
+    {
+        CrateMix.Parse(text).Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("32+32+32+16")]
+    [InlineData("3x32+16")]
+    [InlineData(" 1 + 2X2 + 4 ")]
+    [InlineData("32×2")]
+    public void Formatting_what_was_parsed_is_stable(string text)
+    {
+        var once = CrateMix.Format(CrateMix.Parse(text)!);
+
+        CrateMix.Format(CrateMix.Parse(once)!).Should().Be(once);
+    }
+
+    [Theory]
+    [InlineData(32, 32, 32, 32, 32, 32, 16, 4, 2, 1)]
+    [InlineData(1)]
+    [InlineData(8, 2, 8, 2, 1)]
+    public void Parsing_what_was_formatted_gives_the_same_crates(params int[] crates)
+    {
+        CrateMix.Parse(CrateMix.Format(crates)).Should().BeEquivalentTo(crates);
+    }
 }

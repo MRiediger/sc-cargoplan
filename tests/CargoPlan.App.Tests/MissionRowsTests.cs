@@ -126,12 +126,37 @@ public class MissionRowsTests
     [Theory]
     [InlineData("2+2+2")]
     [InlineData(" 2 + 2+2 ")]
+    [InlineData("3x2")]
+    [InlineData("3 × 2")]
     public void An_override_becomes_the_items_crates_and_shows_normalised(string crates)
     {
         var result = MissionRows.ToStops([Row("Green Glade", "Stims", "6", 4, crates)], CrateCap.None);
 
         result.Stops[0].Items[0].Crates.Should().Equal(CrateSize.Two, CrateSize.Two, CrateSize.Two);
-        result.CrateTexts.Should().Equal("2+2+2");
+        result.CrateTexts.Should().Equal("3×2");
+    }
+
+    [Fact]
+    public void A_typed_mix_in_both_forms_is_accepted()
+    {
+        // Martin's gate (F9): "2x32+16" for 80 SCU.
+        var result = MissionRows.ToStops([Row("Riker", "Titanium", "80", 32, "2x32+16")], CrateCap.None);
+
+        result.Errors.Should().Equal([null]);
+        result.Stops[0].Items[0].Crates.Should().Equal(CrateSize.ThirtyTwo, CrateSize.ThirtyTwo, CrateSize.Sixteen);
+        result.CrateTexts.Should().Equal("2×32+16");
+    }
+
+    [Fact]
+    public void Count_and_size_swapped_shows_through_the_sum()
+    {
+        // "32×2" is 32 crates of 2 SCU: legal, so the sum check is what tells a mix-up (D96).
+        var result = MissionRows.ToStops([Row("Riker", "Titanium", "64", 32, "32×2")], CrateCap.None);
+        var swapped = MissionRows.ToStops([Row("Riker", "Titanium", "70", 32, "32×2")], CrateCap.None);
+
+        result.Errors.Should().Equal([null]);
+        result.CrateTexts.Should().Equal("32×2");
+        swapped.Errors.Should().Equal("The crates add up to 64 SCU, not 70.");
     }
 
     [Fact]
@@ -151,9 +176,16 @@ public class MissionRowsTests
     }
 
     [Fact]
-    public void An_invalid_override_shows_as_typed()
+    public void An_override_with_an_unknown_size_shows_in_the_one_spelling_too()
     {
-        MissionRows.ToStops([Row("Green Glade", "Stims", "6", 4, "2+2+3")], CrateCap.None).CrateTexts.Should().Equal("2+2+3");
+        // Numbers it can read, so grouped like any mix; the row's error names the 3 (D96).
+        MissionRows.ToStops([Row("Green Glade", "Stims", "6", 4, "2+2+3")], CrateCap.None).CrateTexts.Should().Equal("3+2×2");
+    }
+
+    [Fact]
+    public void An_override_it_cant_read_shows_as_typed()
+    {
+        MissionRows.ToStops([Row("Green Glade", "Stims", "6", 4, " 2+two ")], CrateCap.None).CrateTexts.Should().Equal("2+two");
     }
 
     // --- Validation ---
@@ -270,7 +302,7 @@ public class MissionRowsTests
         // Riker 16 Titanium in 4 SCU crates (schema 1): exactly those crates, not a derivation (D23).
         var rows = MissionRows.FromStops(TestPlans.SplitAndShared().Stops);
 
-        rows[0].Crates.Should().Be("4+4+4+4");
+        rows[0].Crates.Should().Be("4×4");
         rows[0].IsCrateOverride.Should().BeTrue();
     }
 

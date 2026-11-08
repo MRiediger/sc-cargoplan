@@ -206,7 +206,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
         editor.Rows[0].Crates = "2+2+2";
 
-        editor.Rows[0].CratesText.Should().Be("2+2+2");
+        editor.Rows[0].CratesText.Should().Be("3×2");
         editor.Rows[0].IsCrateOverride.Should().BeTrue();
         editor.Problem.Should().BeNull();
     }
@@ -984,7 +984,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
         editor.Import(path);
 
         File.ReadAllText(path).Split("\"crates\"").Should().HaveCount(2, "one row has an override");
-        editor.Rows.Select(r => r.Crates).Should().Equal("2+2+4", "", "", "");
+        editor.Rows.Select(r => r.Crates).Should().Equal("4+2×2", "", "", "");   // back in the one spelling (D96)
         editor.Rows.Select(r => r.IsCrateOverride).Should().Equal(true, false, false, false);
     }
 
@@ -1235,7 +1235,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
         orison.MaxCrateSize = 2;
 
-        orison.CratesText.Should().Be("2+2+2");
+        orison.CratesText.Should().Be("3×2");
         orison.MaxCrateSizeAssumed.Should().BeFalse();
         editor.IsDirty.Should().BeTrue();
     }

@@ -1311,7 +1311,7 @@ public static class LoadPlanner
         var left = Enumerable.Range(0, all.Length).Count(i => all[i].Stop == crate.Stop && all[i].Item == crate.Item && rackOf[i] < 0);
         var free = ship.TotalScu - stops.Sum(s => s.TotalScu);
         return new PlanException(Invariant(
-            $"{stop.Destination} doesn't fit: no room for {left} × {(int)crate.Size} SCU crate{(left == 1 ? "" : "s")} of {stop.Items[crate.Item].Commodity} – {free} SCU free, but no gap of that shape. Leave a stop out or take a ship with bigger racks."));
+            $"{stop.Destination} doesn't fit: no room for {CrateMix.Format(Enumerable.Repeat(crate.Size, left))} SCU crate{(left == 1 ? "" : "s")} of {stop.Items[crate.Item].Commodity} – {free} SCU free, but no gap of that shape. Leave a stop out or take a ship with bigger racks."));
     }
 
     /// <summary>
@@ -1439,7 +1439,7 @@ public static class LoadPlanner
         plan.EnsureBelongsTo(ship);
         var index = IndexOnBoard(plan, crate, [], "is named", nameof(crate));
         var size = (int)crate.CrateSize;
-        var sum = string.Join(" + ", parts.Select(p => (int)p));
+        var sum = CrateMix.Format(parts);
 
         if (crate.CrateSize == CrateSize.One)
         {
@@ -1526,7 +1526,7 @@ public static class LoadPlanner
         var merged = (CrateSize)crates.Sum(c => (int)c.CrateSize);
         if (!Enum.IsDefined(merged))
         {
-            return Edit.Refused(Invariant($"{string.Join(" + ", crates.Select(c => (int)c.CrateSize).OrderDescending())} is not a crate size."));
+            return Edit.Refused($"{CrateMix.Format(crates.Select(c => c.CrateSize))} is not a crate size.");
         }
 
         // One item: its SCU is contract data and must not move to another item, not even one of the same kind (D68).
