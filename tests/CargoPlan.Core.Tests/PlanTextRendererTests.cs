@@ -7,7 +7,7 @@ namespace CargoPlan.Core.Tests;
 
 public class PlanTextRendererTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     /// <summary>The renderer always uses "\n"; this keeps the expected text independent of the checkout's line endings.</summary>
     private static string Lines(string text) => text.ReplaceLineEndings("\n");

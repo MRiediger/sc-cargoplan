@@ -15,7 +15,7 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class StackingSearchLimitTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private const string Note = "Rack 1: too many crates to rearrange – a layout without crates on other cargo may exist.";
 

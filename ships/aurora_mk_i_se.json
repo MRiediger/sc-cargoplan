@@ -6,8 +6,8 @@
   "fleetyardsSlug": "rsi-aurora-mk-i-se",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [3.000453567504883, 0.5, -1.0647993087768555],
-  "outlineOrigin": [3, 0.5, -1.068],
+  "holoOrigin": [0.7998, 0.5, 0.4584],
+  "outlineOrigin": [0.7998, 0.5, -1.5848],
   "totalScu": 6,
   "racks": [
     {

@@ -11,7 +11,7 @@ namespace CargoPlan.Core.Tests;
 
 public class PlanFileTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     // Schema 1: placements without positions, as saved before D24. Kept as the migration's input.
     private const string V1FixtureName = "plans/split_and_shared.json";

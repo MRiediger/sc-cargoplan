@@ -6,6 +6,7 @@ using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using Xunit.Abstractions;
 
 namespace CargoPlan.App.Tests;
@@ -26,7 +27,7 @@ public class TurnedRackTimingTests(ITestOutputHelper output)
     [Fact]
     public void Hit_test_on_straight_and_turned_racks()
     {
-        var straight = ShipLoader.Load("hull_c");
+        var straight = FrozenShips.Load("hull_c");
         Ship turned = new(straight.Id, straight.Name, straight.TotalScu, [.. straight.Racks.Select(r => r with { Rotation = Rotation })]);
 
         // Twice over: the first pass warms up what the second measures, in whichever order.

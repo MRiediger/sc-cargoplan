@@ -15,7 +15,7 @@ public class RenameStopTests
     private const string Short = "Thundering Express";
     private const string Full = "Thundering Express Station";
 
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static SavedPlan Empty => new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA));
 

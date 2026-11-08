@@ -2,8 +2,13 @@
 
 Ship holograms are an optional download for the ship view (see [D63](decisions.md)). They are not part of the
 repository or the app ZIP: each ship is one file `<fleetyardsSlug>.holo` in a GitHub release of its own (tag
-`holo-v1`), next to a `manifest.json`. The files derive from game models (CIG) through Fleetyards and are not under
-the repository's MIT licence; the release's `NOTICE.md` says so. A pipeline outside this repository writes them.
+`holo-v2` since v0.3.0; `holo-v1` stays for v0.1 and v0.2), next to a `manifest.json`. The files derive from game
+models (CIG) and are not under the repository's MIT licence; the release's `NOTICE.md` says so. A pipeline outside
+this repository writes them ([Pipeline](#pipeline-holo-v2)).
+
+**Source (D93):** holo-v2 takes every ship's model from cryon.rocks (Motherlode), extracted from the game files, the
+same models the racks come from (D92). The three ships without a model there (135c, 600i Executive Edition, F7C
+Hornet Mk II) keep their holo-v1 file, derived from Fleetyards' hologram models, byte for byte.
 
 ## File
 
@@ -20,7 +25,7 @@ Little endian, no compression, no padding. Offsets follow from the header.
 | 20 | uint32 | `edgeCount` | feature edges, all levels |
 | 24 | uint32 | `level1Count` | edges in level 1 |
 | 28 | uint32 | `level2Count` | edges in level 2, level 1 included |
-| 32 | float32 | `lengthM` | the ship's length in metres (Fleetyards), the mesh is scaled to it |
+| 32 | float32 | `lengthM` | the model's extent along x in metres (holo-v2: the game model's, nothing scaled; holo-v1: Fleetyards' length, the mesh scaled to it) |
 | 36 | float32 × 6 | `bounds` | min x, y, z, max x, y, z of the vertices, metres |
 | 60 | float32 × 3 × `vertexCount` | vertices | x, y, z in metres |
 | … | index × 3 × `triangleCount` | triangles | |
@@ -31,9 +36,15 @@ Little endian, no compression, no padding. Offsets follow from the header.
   reader rejects any other length, an unknown `magic` or `formatVersion`, an index ≥ `vertexCount`, or levels that are
   not `level1Count ≤ level2Count ≤ edgeCount`.
 - **Axes:** the ship's, as in [ship-format.md](ship-format.md): x towards the bow, y towards port, z up, right-handed.
-  Units are metres, not cells (1 cell = 1.25 m). Origin: the middle of the vertices' x/y box, z = 0 at the lowest
-  vertex (keel), set before faces hidden from outside are dropped, so the shipped box can lie a little off it (holo-v1:
-  up to 0.75 m in x, 0.57 m in z). It is not the origin of the source model, and Fleetyards' cargo offsets don't share it (D90).
+  Units are metres, not cells (1 cell = 1.25 m).
+- **Origin, holo-v2 (D93):** the game model's own origin. **No centring, no scaling, no mirroring:** the model is only
+  turned into ship axes. Motherlode's `.glb` lie in three.js space, glTF = (game x, game z, −game y) with game x
+  starboard, y bow, z up, so ship = (−glTF z, −glTF x, glTF y), a rotation (determinant +1) and the same mapping
+  `tools/import-motherlode.ps1` applies to the cargo grids. The ship file puts this origin at `holoOrigin` = the ship's
+  fraction s (D92). The Hull A, B and C models carry the spindle in its cargo pose, as at the elevator.
+- **Origin, holo-v1** (and the three Fleetyards files in holo-v2): the middle of the vertices' x/y box, z = 0 at the
+  lowest vertex (keel), set before faces hidden from outside are dropped, so the shipped box can lie a little off it
+  (up to 0.75 m in x, 0.57 m in z). It is not the origin of the source model (D90).
 - **Triangles** are wound counter-clockwise seen from outside. The mesh is welded (vertices shared between
   triangles) and carries no normals: a reader that wants flat shading splits vertices per triangle, smooth shading
   splits them along the feature edges.
@@ -60,15 +71,15 @@ outline (D62).
 
 ```json
 {
-  "dataVersion": "holo-v1",
+  "dataVersion": "holo-v2",
   "formatVersion": 2,
-  "generatedAt": "2026-10-24",
-  "pipelineCommit": "2959336",
-  "tools": { "meshoptimizer": "1.3.0", "gltf-transform": "4.5.1", "node": "24.16.0", "python": "3.14.5", "numpy": "2.5.3" },
+  "generatedAt": "2026-11-07",
+  "pipelineCommit": "…",
+  "tools": { "meshoptimizer": "1.3.0", "node": "24.16.0", "python": "3.14.5", "numpy": "2.5.3" },
   "ships": [
-    { "slug": "misc-hull-a", "file": "misc-hull-a.holo", "bytes": 396120, "sha256": "…", "rawSha256": "…",
-      "budget": 20000, "triangles": 19878, "edges": [2472, 6140, 15000], "passed": true,
-      "metrics": { "errorM": 0.0507, "topIou": 0.9969, "…": "…" } }
+    { "slug": "misc-hull-a", "file": "misc-hull-a.holo", "bytes": 185882, "sha256": "…", "model": "MISC_Hull_A",
+      "rawSha256": "…", "budget": 20000, "triangles": 13085, "edges": [1445, 3411, 9620], "passed": true,
+      "metrics": { "errorM": 0.0, "topIou": 1.0, "…": "…" } }
   ]
 }
 ```
@@ -79,6 +90,7 @@ outline (D62).
 | `formatVersion` | the files' `formatVersion`; an app that doesn't know it uses none of them |
 | `pipelineCommit` | the pipeline's commit the files came from |
 | `ships[].sha256` | hash of the file; a cached file with another hash is stale |
+| `ships[].model` | holo-v2: the Motherlode model (`className`) the file comes from, or `fleetyards (holo-v1)` |
 | `ships[].rawSha256` | hash of the source model, for the pipeline |
 | `ships[].budget`, `triangles`, `edges` | the budget step the ship came out at (20 k / 30 k / 40 k), its triangles, its edge counts per level |
 | `ships[].passed`, `metrics` | whether the ship met every criterion of the pipeline, and the measurements; published either way once approved (D63) |
@@ -95,10 +107,12 @@ nothing: the app keeps its cache.
 
 How the overlay gets and uses the files (D63). The overlay's only network access.
 
-- **Requests:** plain HTTPS GETs of `https://github.com/MRiediger/sc-cargoplan/releases/download/holo-v1/<file>`
+- **Requests:** plain HTTPS GETs of `https://github.com/MRiediger/sc-cargoplan/releases/download/holo-v2/<file>`
   (GitHub redirects to its asset host), User-Agent `SC-CargoPlan/<version>`, 5 s per request. Any 2xx answer is
   taken; a file is kept only if its length and SHA256 match the manifest. Nothing else is sent, no API, no token.
-- **Cache:** `%LocalAppData%\SC-CargoPlan\holo\holo-v1\`, one `<slug>.holo` per ship and the last `manifest.json`.
+- **Cache:** `%LocalAppData%\SC-CargoPlan\holo\holo-v2\`, one `<slug>.holo` per ship and the last `manifest.json`.
+  The tag names the folder, so a new release starts an empty one; the old folder stays on disk (cleaning it up is
+  open for session 4c).
 - **Manifest:** a cached copy younger than 24 hours is used without a request; otherwise the app asks once per run,
   when it first needs a hologram. A manifest fetched now or within those 24 hours withdraws ships it doesn't list; an
   older one only stands in while the release can't be reached.
@@ -108,6 +122,22 @@ How the overlay gets and uses the files (D63). The overlay's only network access
 - **Reading:** every rule of [File](#file) is checked (`HoloReader`); a file that breaks one shows the outline.
 - **Failures** end in the outline; the first of a run names its reason in the overlay's notice line.
 - **Drawing:** metres ÷ 1.25 = cells, the mesh's origin at the ship file's `holoOrigin`, whatever its racks do (D90; a
-  file without it: the middle of the bounds on the middle of the racks in x, y and z). A new release needs the values
-  carried over, see [ship-format.md](ship-format.md#hologram-and-outline). The looks
-  and the hidden-line levels by zoom (level 1 below 1.5×, 2 below 3×, 3 from 3×) are described in D63.
+  file without it: the middle of the bounds on the middle of the racks in x, y and z). For a ship with a Motherlode
+  model `holoOrigin` is its fraction s, written by the import (D93); see
+  [ship-format.md](ship-format.md#hologram-and-outline). The looks and the hidden-line levels by zoom (level 1 below
+  1.5×, 2 below 3×, 3 from 3×) are described in D63.
+
+## Pipeline (holo-v2)
+
+In the private repository `sc-ship-outlines` (versions in its `TOOLS.md`). Per model, files in `holo-work-ml/<className>/`:
+
+1. `fetch-motherlode.ps1`: the dated catalog and the models with their SHA-256 list (`motherlode/`).
+2. `tools/import-motherlode.ps1 -Catalog <catalog> -ModelMap <model-map.csv>` (this repository): racks, and the map
+   id → className, slug, s.
+3. `run-all.ps1 -Source Motherlode`: per model `holo_mesh.py flatten-model` (turned into ship axes, stray specks out,
+   welded; origin and size kept), `cull`, meshoptimizer on the ladder 20 k / 30 k / 40 k, `export` with `judge`, as for
+   holo-v1.
+4. `holo_mesh.py outline <className>` per model: the outline (see [ship-format.md](ship-format.md#hologram-and-outline)).
+5. `holo_mesh.py outlines-v2` → `outlines/ship-outlines.json` here; `release-v2` → the release folder; `verify`.
+6. `tools/import-motherlode.ps1` again: with the new outlines' `floorM` it writes the anchors.
+7. `holo_mesh.py fit` (racks in the hull, outline on the hull) and the contact sheet before the upload.

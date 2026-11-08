@@ -12,7 +12,7 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class DiscardTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static MissionStop Stop(string destination) => new(destination, 1, [new MissionItem("Stims", 4, CrateSize.Four)]);
 

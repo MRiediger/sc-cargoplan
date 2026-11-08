@@ -6,9 +6,8 @@
   "fleetyardsSlug": "misc-hull-a",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "grids, rack order and stacking checked in game; rack positions from game files (Motherlode, D92): 5 cells between the plates (spindle in cargo pose)",
-  "holoOrigin": [1.9994277954101562, -0.5005714416503906, 0.2602119445800781],
-  "outlineOrigin": [2, -0.5, 0],
-  "outlineScale": 1.1199999999999999,
+  "holoOrigin": [0.1877, 0.505, 0.1355],
+  "outlineOrigin": [0.1877, 0.505, -2.1253],
   "totalScu": 64,
   "racks": [
     {

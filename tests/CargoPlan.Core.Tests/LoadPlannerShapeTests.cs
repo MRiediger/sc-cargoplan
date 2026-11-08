@@ -14,7 +14,7 @@ namespace CargoPlan.Core.Tests;
 public class LoadPlannerShapeTests
 {
     private static readonly Ship Uneven = TestShips.Load("uneven_long");
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static Stop StopOf(string destination, int order, string commodity, int scu, CrateSize size) =>
         new(destination, order, [new CargoItem(commodity, scu, size)]);

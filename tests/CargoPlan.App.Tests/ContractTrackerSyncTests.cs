@@ -4,6 +4,7 @@ using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using CargoPlan.Import.ContractTracker;
 using Microsoft.Data.Sqlite;
 
@@ -22,7 +23,7 @@ public sealed class ContractTrackerSyncTests : IDisposable
     private static ContractTrackerCandidate Candidate(long id, string destination) =>
         new([id], null, [new MissionStop(destination, 1, [new MissionItem("Stims", 4, CrateSize.Four)])], false, false, null, null, null);
 
-    private static OverlayViewModel Overlay() => new(ShipLoader.Load("hull_a"));
+    private static OverlayViewModel Overlay() => new(FrozenShips.Load("hull_a"));
 
     // --- File state ---
 

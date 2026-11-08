@@ -6,8 +6,8 @@
   "fleetyardsSlug": "anvl-valkyrie",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); hologram and outline of the ANVL Valkyrie",
-  "holoOrigin": [3.003346252441406, 2.486615753173828, -2.766032028198242],
-  "outlineOrigin": [3, 2.5, -2.7640000000000002],
+  "holoOrigin": [0.1246, 0.5, 0.0109],
+  "outlineOrigin": [0.1246, 0.5, -2.1123],
   "totalScu": 90,
   "racks": [
     {

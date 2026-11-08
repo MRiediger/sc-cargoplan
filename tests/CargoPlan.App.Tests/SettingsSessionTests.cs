@@ -4,6 +4,7 @@ using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using Keys = CargoPlan.App.Theme.ThemeResources.Keys;
 
 namespace CargoPlan.App.Tests;
@@ -13,7 +14,7 @@ public sealed class SettingsSessionTests : IDisposable
 {
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"));
     private readonly ResourceDictionary _resources = new();
-    private readonly OverlayViewModel _viewModel = new(ShipLoader.Load("hull_a"));
+    private readonly OverlayViewModel _viewModel = new(FrozenShips.Load("hull_a"));
 
     private string SettingsPath => Path.Combine(_folder, "settings.json");
 

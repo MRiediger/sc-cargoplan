@@ -6,8 +6,8 @@
   "fleetyardsSlug": "rsi-constellation-mk-iv-aquila",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [4.0041038513183596, 2.032396697998047, -4.222445678710938],
-  "outlineOrigin": [4, 2, -4.228],
+  "holoOrigin": [0.9937, 0, 0.56],
+  "outlineOrigin": [0.9937, 0, -4.2256],
   "totalScu": 96,
   "racks": [
     {

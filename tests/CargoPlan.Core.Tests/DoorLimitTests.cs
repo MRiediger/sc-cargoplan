@@ -12,8 +12,8 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class DoorLimitTests
 {
-    private static readonly Ship Clipper = ShipLoader.Load("clipper");
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship Clipper = FrozenShips.Load("clipper");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
     private static readonly CrateCap Door = new(CrateSize.Two, CapReason.Door);
 
     private static MissionStop Riker(params CrateSize[] set) =>

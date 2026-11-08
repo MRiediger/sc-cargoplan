@@ -4,6 +4,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
@@ -425,7 +426,7 @@ public class ShipViewBuilderTests
     public void Capacity_of_a_big_ship_has_a_thousands_comma_like_the_ship_list()
     {
         // D67 addendum (F1): one format for the same number, in the header, its tool tip and the ship selection.
-        var hullC = ShipLoader.Load("hull_c");
+        var hullC = FrozenShips.Load("hull_c");
 
         var scene = ShipViewBuilder.Build(new LoadPlan(hullC.Id, [], []), hullC, []) with { WaitingScu = 1200 };
 

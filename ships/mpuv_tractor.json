@@ -6,8 +6,8 @@
   "fleetyardsSlug": "argo-mpuv-tractor",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); crate minimums from Fleetyards limits.min.capacity",
-  "holoOrigin": [1.9993408203125, 1, -0.6170667648315431],
-  "outlineOrigin": [2, 1, -0.6000000000000001],
+  "holoOrigin": [0.7011, 0.0024, 0.741],
+  "outlineOrigin": [0.7011, 0.0024, -0.6926],
   "totalScu": 16,
   "racks": [
     {

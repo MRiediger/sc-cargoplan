@@ -13,7 +13,7 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class OrderFreePlanTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     /// <summary>Every fixture with the ship it is planned on.</summary>
     public static TheoryData<string, string> Cases => new()
@@ -28,7 +28,7 @@ public class OrderFreePlanTests
         { "spike_uneven_run4", "uneven_long" },
     };
 
-    private static Ship ShipOf(string id) => id == "uneven_long" ? TestShips.Load(id) : ShipLoader.Load(id);
+    private static Ship ShipOf(string id) => id == "uneven_long" ? TestShips.Load(id) : FrozenShips.Load(id);
 
     private static Stop StopOf(string destination, int order, string commodity, int scu, CrateSize size) =>
         new(destination, order, [new CargoItem(commodity, scu, size)]);

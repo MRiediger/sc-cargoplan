@@ -13,7 +13,7 @@ public class LegendOrderTests
     [Fact]
     public void Martins_RAFT_plan_reads_in_the_order_of_his_legend()
     {
-        var raft = ShipLoader.Load("raft");
+        var raft = FrozenShips.Load("raft");
         using var stream = MissionFixtures.Open("plans/raft_hand_2026-11-05.json");
         var saved = PlanFile.Read(stream, "raft", raft);
 

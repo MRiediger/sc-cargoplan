@@ -6,8 +6,8 @@
   "fleetyardsSlug": "aegs-idris-m",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
-  "holoOrigin": [-52.10355224609375, 9.005857849121094, -16.317524719238282],
-  "outlineOrigin": [-51.5, 9, -16],
+  "holoOrigin": [0.7, 0.26, 0.3],
+  "outlineOrigin": [0.7, 0.26, -13.5512],
   "totalScu": 1326,
   "racks": [
     {

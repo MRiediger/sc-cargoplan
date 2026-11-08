@@ -53,14 +53,16 @@ public class ShipOutlineLoaderTests
     }
 
     [Fact]
-    public void Hull_a_outline_points_to_the_bow_and_is_in_metres()
+    public void Hull_a_outline_is_the_game_models_top_view_in_metres_around_its_origin()
     {
         var outline = ShipOutlineLoader.Load().For(ShipLoader.Load("hull_a"))!;
 
-        // 23.42 m long as in the index of 26 Oct 2026 (30 before, K5.2b); the traced silhouette is 9.38 m wide (the index's
-        // beam says 9.35), 12 m scaled by the same 0.781.
-        (outline.Points.Max(p => p.X) - outline.Points.Min(p => p.X)).Should().BeApproximately(23.42, 0.1);
-        (outline.Points.Max(p => p.Y) - outline.Points.Min(p => p.Y)).Should().BeApproximately(9.38, 0.1);
+        // The Motherlode model in the spindle's cargo pose (D93): 29.41 m long (Fleetyards' flight pose: 23.42), 9.32 m
+        // wide; its origin stays the model's, 11.06 m behind the bow and 18.35 m ahead of the stern.
+        (outline.Points.Max(p => p.X) - outline.Points.Min(p => p.X)).Should().BeApproximately(29.41, 0.1);
+        (outline.Points.Max(p => p.Y) - outline.Points.Min(p => p.Y)).Should().BeApproximately(9.32, 0.1);
+        outline.Points.Max(p => p.X).Should().BeApproximately(11.06, 0.1);
+        outline.Points.Min(p => p.X).Should().BeApproximately(-18.35, 0.1);
     }
 
     // The outline lies on the hologram's floor (D83), which needs the hull's height also where no hologram is loaded (T8.5).

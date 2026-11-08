@@ -6,8 +6,8 @@
   "fleetyardsSlug": "rsi-constellation-mk-iv-andromeda",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [3.9790359497070313, 2.007487487792969, -4.190142059326172],
-  "outlineOrigin": [4, 2, -4.204],
+  "holoOrigin": [0.9937, 0, 0.56],
+  "outlineOrigin": [0.9937, 0, -4.2256],
   "totalScu": 96,
   "racks": [
     {

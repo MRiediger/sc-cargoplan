@@ -6,8 +6,8 @@
   "fleetyardsSlug": "aegs-reclaimer",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
-  "holoOrigin": [-25.980438232421875, 3.5000030517578127, -18.69654541015625],
-  "outlineOrigin": [-26.5, 3.5, -20.5],
+  "holoOrigin": [0.37, 0, 0.94],
+  "outlineOrigin": [0.37, 0, -16.0616],
   "totalScu": 420,
   "racks": [
     {

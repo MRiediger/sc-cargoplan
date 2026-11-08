@@ -6,8 +6,8 @@
   "fleetyardsSlug": "anvl-asgard",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [4.501186370849609, 2.501189422607422, -3.6848903656005865],
-  "outlineOrigin": [4.5, 2.5, -3.6639999999999997],
+  "holoOrigin": [0.0496, 0.5004, 0.0004],
+  "outlineOrigin": [0.0496, 0.5004, -2.1228],
   "totalScu": 180,
   "racks": [
     {

@@ -18,8 +18,8 @@ namespace CargoPlan.App.Tests;
 public sealed class LookSceneTests
 {
     private static readonly Size Size = new(600, 450);
-    private static readonly ShipOutlineCatalog Outlines = ShipOutlineLoader.Load();
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly ShipOutlineCatalog Outlines = FrozenOutlines.Load();
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static AppSettings With(Look look) => AppSettings.Default with
     {

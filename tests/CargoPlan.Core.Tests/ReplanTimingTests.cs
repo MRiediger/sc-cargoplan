@@ -125,8 +125,8 @@ public class ReplanTimingTests(ITestOutputHelper output)
     [Fact]
     public void Ship_change_with_and_without_ticks()
     {
-        var hullA = ShipLoader.Load("hull_a");
-        var freelancer = ShipLoader.Load("freelancer");
+        var hullA = FrozenShips.Load("hull_a");
+        var freelancer = FrozenShips.Load("freelancer");
         var stops = MissionFixtures.LoadMissions("hull_a_eight_stops");
         var plain = SavedPlan.FromStops(stops, LoadPlanner.Plan(hullA, stops.ToStops()), CrateCap.Of(hullA));
         var ticked = plain.Plan.Route.Take(2).Aggregate(plain, (saved, destination) =>
@@ -148,7 +148,7 @@ public class ReplanTimingTests(ITestOutputHelper output)
 
     private static (string Name, Ship Ship, IReadOnlyList<MissionStop> Stops)[] Cases()
     {
-        var hullA = ShipLoader.Load("hull_a");
+        var hullA = FrozenShips.Load("hull_a");
         return
         [
             ("example_missions", hullA, MissionFixtures.LoadMissions("example_missions")),
@@ -157,8 +157,8 @@ public class ReplanTimingTests(ITestOutputHelper output)
             ("crate_mix", hullA, MissionFixtures.LoadMissions("crate_mix")),
             ("Hull A eight stops", hullA, MissionFixtures.LoadMissions("hull_a_eight_stops")),
             ("Hull A Hurston 24 Oct", hullA, MissionFixtures.LoadMissions("hull_a_hurston_2026-10-24")),
-            ("Freelancer eight stops", ShipLoader.Load("freelancer"), MissionFixtures.LoadMissions("hull_a_eight_stops")),
-            ("Perseus eight stops", ShipLoader.Load("perseus"), MissionFixtures.LoadMissions("hull_a_eight_stops")),
+            ("Freelancer eight stops", FrozenShips.Load("freelancer"), MissionFixtures.LoadMissions("hull_a_eight_stops")),
+            ("Perseus eight stops", FrozenShips.Load("perseus"), MissionFixtures.LoadMissions("hull_a_eight_stops")),
             ("Stress load (not a ship)", StackingSearchLimitTests.Huge,
                 [.. StackingSearchLimitTests.Stress.Select(s => new MissionStop(s.Destination, s.Order, [.. s.Items.Select(i => new MissionItem(i.Commodity, i.Scu, i.CrateSize))]))]),
         ];

@@ -4,13 +4,14 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
 /// <summary>A rack's minimum (K3.3) in the overlay: a Hull C plan saved before it, with a 16 on board, is planned anew.</summary>
 public class MinCrateSizeOverlayTests
 {
-    private static readonly ShipCatalog Catalog = ShipLoader.LoadAll();
+    private static readonly ShipCatalog Catalog = FrozenShips.LoadAll();
     private static readonly Ship HullC = Catalog.Get("hull_c");
 
     [Fact]

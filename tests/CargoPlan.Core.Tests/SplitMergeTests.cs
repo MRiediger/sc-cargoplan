@@ -12,7 +12,7 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class SplitMergeTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     /// <summary>One 8×3×2 rack (48 SCU): room for the 24 and 32 SCU crates (6×2×2, 8×2×2, D57) no Hull A rack holds.</summary>
     private static readonly Ship BigRackShip = new("big_rack", "Big rack test ship", 48,

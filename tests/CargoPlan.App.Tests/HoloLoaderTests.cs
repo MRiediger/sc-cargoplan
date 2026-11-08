@@ -14,14 +14,14 @@ namespace CargoPlan.App.Tests;
 /// </summary>
 public sealed class HoloLoaderTests : IDisposable
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
-    private static readonly Ship C2 = ShipLoader.Load("c2_hercules");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
+    private static readonly Ship C2 = FrozenShips.Load("c2_hercules");
     private static readonly byte[] HullAFile = Cube(30);
     private static readonly byte[] C2File = Cube(29);
 
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"));
     private readonly FakeHttp.FakeHandler _handler = new();
-    private readonly OverlayViewModel _viewModel = new(HullA, ShipLoader.LoadAll()) { OutlineMode = ShipOutlineMode.HoloHiddenline };
+    private readonly OverlayViewModel _viewModel = new(HullA, FrozenShips.LoadAll()) { OutlineMode = ShipOutlineMode.HoloHiddenline };
     private readonly HoloLoader _loader;
 
     public HoloLoaderTests()

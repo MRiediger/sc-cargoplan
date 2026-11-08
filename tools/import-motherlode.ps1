@@ -1,19 +1,27 @@
 # Lays every ship's racks as the game files do (v0.3.0 session 4a, D92): reads a grid catalog (sc-ship-outlines/
 # fetch-motherlode.ps1, field names of Motherlode's API) and writes ships/<id>.json. The catalog stays out of the repo;
 # only values derived from it go in. Steps: docs/ship-format.md, "Where the data comes from".
-# Usage: ./tools/import-motherlode.ps1 -Catalog <catalog.json> [-Previous <older catalog.json>] [-ShipsFolder <folder>] [-Create]
+# Usage: ./tools/import-motherlode.ps1 -Catalog <catalog.json> [-Previous <older catalog.json>] [-ShipsFolder <folder>]
+#        [-Outlines <ship-outlines.json>] [-ModelMap <model-map.csv>] [-Create]
 #   Writes every ship whose file differs from what the catalog gives; a ship already in sync stays byte for byte.
 #   Per rack: origin, grid, stackAxis, rotation (only real angles, D91), maxCrateSize = min(maxContainerScu, the file's
 #   value or what the grid takes); a minimum the catalog doesn't name stays. Rack ids, order and position stay (saved plans
-#   name racks by id). holoOrigin, outlineOrigin, outlineScale stay as written (session 4b). Hand-written notes stay;
-#   the arrangement phrases of the Fleetyards import become "rack positions from game files (Motherlode)".
+#   name racks by id). Hand-written notes stay; the arrangement phrases of the Fleetyards import become "rack positions
+#   from game files (Motherlode)".
 #   Zero point: the game model's origin plus a fraction s < 1 cell per ship and axis that rounds the racks best; s and
-#   every rack's rounding are reported (input for session 4b: holoOrigin = s).
+#   every rack's rounding are reported.
+#   Anchors (session 4b, D93): a ship with a model (className) and a slug lies where its model lies, since hologram and
+#   outline come from that model: holoOrigin = s, outlineOrigin = s with z on the model's floor (floorM of -Outlines, default
+#   outlines/ship-outlines.json), no outlineScale. Without a floorM for the slug the anchors stay as written and the ship is
+#   listed. A ship without model or slug keeps its anchors.
+#   -ModelMap writes id,className,fleetyardsSlug,sx,sy,sz for every ship with a model and a file: the hologram pipeline
+#   (sc-ship-outlines) builds per model and names the files by slug.
 #   Not written, for a person to look at: grids that overlap (K1), a rack set or position that doesn't match the file,
 #   grids in another order than in -Previous. A ship with a grid without transform stays as it is (Fleetyards).
 #   -Create writes ships that have no file yet: a variant takes its base ship's hologram and outline.
 #   A module (ships/modules) moves by what its ship's Rack 1 moved.
-# Exit code: 0 done, 1 something to look at (new ship not written, hand check, order), 2 an error (then nothing is written).
+# Exit code: 0 done, 1 something to look at (new ship not written, hand check, order, anchors kept), 2 an error (then
+# nothing is written).
 # Runs under Windows PowerShell 5.1 and PowerShell 7. ASCII only: 5.1 reads a script without BOM as ANSI.
 param(
     [Parameter(Mandatory = $true)]
@@ -21,11 +29,17 @@ param(
     [string]$Previous,
     # Default ships/ next to tools/, set below: Windows PowerShell 5.1 leaves $PSScriptRoot empty in parameter defaults.
     [string]$ShipsFolder,
+    # Default outlines/ship-outlines.json next to tools/, for the same reason.
+    [string]$Outlines,
+    [string]$ModelMap,
     [switch]$Create
 )
 $ErrorActionPreference = 'Stop'
 if (-not $ShipsFolder) {
     $ShipsFolder = Join-Path (Split-Path $PSScriptRoot -Parent) 'ships'
+}
+if (-not $Outlines) {
+    $Outlines = Join-Path (Split-Path $PSScriptRoot -Parent) 'outlines\ship-outlines.json'
 }
 . (Join-Path $PSScriptRoot 'ShipJson.ps1')
 
@@ -211,6 +225,21 @@ function Get-Assignment([object[]]$Racks, [object[]]$Grids, [object[]]$Boxes, [s
     , $assignment
 }
 
+# An anchor in cells with 4 decimals (at most 0.06 mm off), never "-0".
+function Format-Anchor([double]$Value) {
+    $r = [math]::Round($Value, 4)
+    if ($r -eq 0) { $r = 0.0 }
+    $r.ToString('0.####', $Invariant)
+}
+
+# Where hologram and outline lie when both come from the ship's model (D93): the model's origin at s, the outline on the
+# model's floor, at true size.
+function Get-AnchorFields([double[]]$Shift, [double]$FloorM) {
+    $holo = @($Shift | ForEach-Object { Format-Anchor $_ }) -join ', '
+    $outline = @((Format-Anchor $Shift[0]), (Format-Anchor $Shift[1]), (Format-Anchor ($Shift[2] + $FloorM / $Cell))) -join ', '
+    @("  ""holoOrigin"": [$holo],", "  ""outlineOrigin"": [$outline],")
+}
+
 function Convert-Notes([string]$Notes) {
     foreach ($old in $NoteReplacements.Keys) {
         $Notes = $Notes.Replace($old, $NoteReplacements[$old])
@@ -221,7 +250,8 @@ function Convert-Notes([string]$Notes) {
 # One ship: the file to write (or why not) and the lines for the report.
 function Convert-Ship([object]$Entry, [string]$Id, [object]$Context) {
     $grids = @(for ($g = 0; $g -lt @($Entry.grids).Count; $g++) { ConvertFrom-Grid @($Entry.grids)[$g] "$($Entry.name) grid $($g + 1) ($(@($Entry.grids)[$g].name))" })
-    $out = [pscustomobject]@{ Id = $Id; Status = ''; Detail = ''; Text = $null; Lines = [System.Collections.Generic.List[string]]::new(); Module = $null }
+    $out = [pscustomobject]@{ Id = $Id; Status = ''; Detail = ''; Text = $null; Lines = [System.Collections.Generic.List[string]]::new(); Module = $null
+        ClassName = [string]$Entry.className; Slug = $null; Shift = $null; AnchorsKept = $false }
     $path = Join-Path $ShipsFolder "$Id.json"
     $exists = Test-Path -LiteralPath $path -PathType Leaf
     if (@($grids | Where-Object { -not $_.Placed }).Count) {
@@ -235,6 +265,7 @@ function Convert-Ship([object]$Entry, [string]$Id, [object]$Context) {
 
     # Zero point: model origin plus s per axis.
     $shift = @(foreach ($a in 0, 1, 2) { Get-Shift ([double[]]@($grids | ForEach-Object { $_.Min[$a] })) })
+    $out.Shift = $shift
     $boxes = @(foreach ($g in $grids) {
         $origin = @(foreach ($a in 0, 1, 2) { [int][math]::Floor($g.Min[$a] + $shift[$a] + 0.5) })
         [pscustomobject]@{ Min = $origin; Max = @(foreach ($a in 0, 1, 2) { $origin[$a] + $g.Extent[$a] }); Error = @(foreach ($a in 0, 1, 2) { $g.Min[$a] + $shift[$a] - $origin[$a] }) }
@@ -350,6 +381,16 @@ function Convert-Ship([object]$Entry, [string]$Id, [object]$Context) {
         $name = if ($NameOverrides.ContainsKey($Id)) { $NameOverrides[$Id] } else { "$($Entry.manufacturer) $($Entry.name)" }
         $manufacturer = $Entry.manufacturer; $slug = $null
     }
+    $out.Slug = $slug
+    if ($out.ClassName -and $slug) {
+        if ($Floors.ContainsKey($slug)) {
+            $hand = Get-AnchorFields $shift $Floors[$slug]
+        }
+        else {
+            $out.AnchorsKept = $true
+            $out.Lines.Add(('anchors  {0,-28} kept: no floorM for {1} in {2}, the outline is not from the model' -f $Id, $slug, (Split-Path $Outlines -Leaf)))
+        }
+    }
     if ($doorFromGame -and -not $notes.Contains($GameDoorNote)) { $notes += $GameDoorNote }
 
     $ship = [pscustomobject]@{
@@ -421,6 +462,12 @@ try {
         if ($entries.Contains($id)) { throw "Ship id '$id' comes from both '$($entries[$id].name)' and '$($entry.name)'." }
         $entries[$id] = $entry
     }
+    # The model's floor per slug, in metres below its origin: only outlines made from the model carry it (D93).
+    if (-not (Test-Path -LiteralPath $Outlines -PathType Leaf)) { throw "Outlines not found: $Outlines" }
+    $Floors = @{}
+    foreach ($o in @((Get-Content -LiteralPath $Outlines -Raw -Encoding UTF8 | ConvertFrom-Json).ships)) {
+        if ($null -ne $o.floorM) { $Floors[[string]$o.slug] = [double]$o.floorM }
+    }
     $previousOrder = @{}
     if ($Previous) {
         foreach ($entry in @((Read-Catalog $Previous).ships)) {
@@ -434,6 +481,8 @@ try {
     $detailLines = [System.Collections.Generic.List[string]]::new()
     $writes = @{}
     $counts = [ordered]@{ same = 0; updated = 0; created = 0; new = 0; kept = 0; handcheck = 0; order = 0 }
+    $anchorsKept = 0
+    $mapLines = [System.Collections.Generic.List[string]]::new()
     foreach ($id in $ids) {
         $result = Convert-Ship $entries[$id] $id $context
         if ($previousOrder.ContainsKey($id) -and $result.Status -in 'updated', 'created', 'same') {
@@ -451,6 +500,12 @@ try {
         $counts[$result.Status]++
         $statusLines.Add(('{0,-10} {1,-30} {2}' -f $result.Status, $id, $result.Detail))
         foreach ($line in $result.Lines) { $detailLines.Add($line) }
+        if ($result.Status -in 'updated', 'created', 'same') {
+            if ($result.AnchorsKept) { $anchorsKept++ }
+            if ($result.ClassName) {
+                $mapLines.Add((@($id, $result.ClassName, [string]$result.Slug) + @($result.Shift | ForEach-Object { $_.ToString('0.#########', $Invariant) })) -join ',')
+            }
+        }
     }
     foreach ($path in @(Get-ChildItem -LiteralPath $ShipsFolder -Filter '*.json' | Sort-Object Name)) {
         if (-not $entries.Contains($path.BaseName)) {
@@ -463,16 +518,20 @@ try {
     foreach ($path in $writes.Keys) {
         [System.IO.File]::WriteAllText($path, $writes[$path], $utf8)
     }
+    if ($ModelMap) {
+        # $ids is sorted ordinally, so the map is too; LF, no BOM, for the pipeline on any checkout.
+        [System.IO.File]::WriteAllText($ModelMap, ((@('id,className,fleetyardsSlug,sx,sy,sz') + $mapLines) -join "`n") + "`n", $utf8)
+    }
 
     '{0} {1}, {2}: {3} ships' -f $SourcePrefix, $context.GameBuild, $context.UpdatedAt, $entries.Count
     $statusLines
     ''
     $detailLines
     ''
-    ($counts.Keys | ForEach-Object { "$($counts[$_]) $_" }) -join ', '
+    (@($counts.Keys | ForEach-Object { "$($counts[$_]) $_" }) + "$anchorsKept anchors kept") -join ', '
     if (-not $Previous) { 'no previous catalog given: grid order not compared' }
 
-    if ($counts.new -gt 0 -or $counts.handcheck -gt 0 -or $counts.order -gt 0) {
+    if ($counts.new -gt 0 -or $counts.handcheck -gt 0 -or $counts.order -gt 0 -or $anchorsKept -gt 0) {
         exit 1
     }
     exit 0

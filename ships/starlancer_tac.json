@@ -6,8 +6,8 @@
   "fleetyardsSlug": "misc-starlancer-tac",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [4.016307067871094, -3.0020378112792967, -4.584057617187501],
-  "outlineOrigin": [4, -3, -4.5920000000000005],
+  "holoOrigin": [0.4, 0.5, 0.0072],
+  "outlineOrigin": [0.4, 0.5, -5.5224],
   "totalScu": 96,
   "racks": [
     {

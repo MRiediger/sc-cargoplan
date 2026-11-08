@@ -4,13 +4,14 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
 /// <summary>The player's Re-plan (B4, D66): in the overlay for the hotkey, as a button in the editor.</summary>
 public sealed class ReplanCommandTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static MissionStop Stop(string destination, string commodity, int scu, CrateSize max, int order = 1) =>
         new(destination, order, [new MissionItem(commodity, scu, max)]);

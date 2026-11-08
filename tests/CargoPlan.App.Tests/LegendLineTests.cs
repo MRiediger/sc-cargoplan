@@ -4,6 +4,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
@@ -14,7 +15,7 @@ namespace CargoPlan.App.Tests;
 /// </summary>
 public class LegendLineTests
 {
-    private static readonly ShipCatalog Catalog = ShipLoader.LoadAll();
+    private static readonly ShipCatalog Catalog = FrozenShips.LoadAll();
     private static readonly Ship HullA = Catalog.Get("hull_a");
 
     private static MissionItem Item(string commodity, int scu, CrateSize max, params string[] pickup) =>

@@ -9,7 +9,7 @@ namespace CargoPlan.Core.Tests;
 /// <summary>Incremental placement (D41) and the mission operations around it (D42).</summary>
 public class PlaceIntoTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static SavedPlan Empty => new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA));
 

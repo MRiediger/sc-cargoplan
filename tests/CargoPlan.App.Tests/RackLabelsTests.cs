@@ -2,6 +2,7 @@ using System.Windows;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
@@ -11,7 +12,7 @@ namespace CargoPlan.App.Tests;
 /// </summary>
 public class RackLabelsTests
 {
-    private static readonly ShipCatalog Catalog = ShipLoader.LoadAll();
+    private static readonly ShipCatalog Catalog = FrozenShips.LoadAll();
     private static readonly Size View = new(800, 600);
 
     private static ShipScene Scene(string shipId)

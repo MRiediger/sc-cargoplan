@@ -6,8 +6,8 @@
   "fleetyardsSlug": "misc-hull-c",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); crate minimums from Fleetyards limits.min.capacity",
-  "holoOrigin": [8.554934692382812, -15.9908447265625, -7.423667907714844],
-  "outlineOrigin": [8.5, -16, -8],
+  "holoOrigin": [0.6423, 0.333, 0.9482],
+  "outlineOrigin": [0.6423, 0.333, -19.5326],
   "totalScu": 4608,
   "racks": [
     {

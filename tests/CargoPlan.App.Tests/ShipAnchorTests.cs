@@ -17,7 +17,7 @@ namespace CargoPlan.App.Tests;
 /// </summary>
 public sealed class ShipAnchorTests
 {
-    private static readonly ShipOutlineCatalog Outlines = ShipOutlineLoader.Load();
+    private static readonly ShipOutlineCatalog Outlines = FrozenOutlines.Load();
     private static readonly Ship Before = TestPlans.HullA();
     private static readonly Ship After = Corrected();
 

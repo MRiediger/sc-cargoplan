@@ -6,7 +6,7 @@ namespace CargoPlan.Core.Tests;
 
 public class LoadPlannerTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static readonly string[] Destinations =
         ["Riker", "Shubin", "Orison", "Lorville", "Area18", "Everus", "Baijini", "Tressler"];

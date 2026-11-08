@@ -3,13 +3,14 @@ using CargoPlan.App.ShipView;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
 /// <summary>The camera per ship in settings.json (K1.2, D76): turned, zoomed and panned, the view comes back after a restart and a ship change.</summary>
 public class ShipCameraTests
 {
-    private static readonly ShipCatalog Catalog = ShipLoader.LoadAll();
+    private static readonly ShipCatalog Catalog = FrozenShips.LoadAll();
     private static readonly Ship HullA = Catalog.Get("hull_a");
     private static readonly Ship C2 = Catalog.Get("c2_hercules");
 

@@ -42,13 +42,15 @@ Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the 
 
 ## Credits & disclaimer
 
-- Cargo grid data from [cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo), extracted from the game files and
-  used with its operators' permission.
-- Ship outlines and holograms, and the grids of three ships, from [fleetyards.net](https://fleetyards.net).
+- Cargo grid data and ship models from [cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo), extracted from the
+  game files and used with its operators' permission: the racks, the hull holograms and the outlines come from the same
+  game data.
+- The grids, hologram and outline of three ships (135c, 600i Executive Edition, F7C Hornet Mk II) from
+  [fleetyards.net](https://fleetyards.net).
 - [ContractTracker](https://www.nexusmods.com/starcitizen/mods/34) by Yuiki captures the contracts; SC-CargoPlan only
   reads its database.
 - Stop colors: the [Okabe-Ito palette](https://jfly.uni-koeln.de/color/) and [Paul Tol's](https://sronpersonalpages.nl/~pault/) schemes.
 - Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
 
 [MIT](LICENSE). Not under MIT: the ship silhouettes ([`outlines/NOTICE.md`](outlines/NOTICE.md)) and the ship
-holograms (`NOTICE.md` of the [`holo-v1` release](https://github.com/MRiediger/sc-cargoplan/releases/tag/holo-v1)).
+holograms (`NOTICE.md` of the [`holo-v2` release](https://github.com/MRiediger/sc-cargoplan/releases/tag/holo-v2)).

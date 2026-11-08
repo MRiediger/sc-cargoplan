@@ -6,9 +6,8 @@
   "fleetyardsSlug": "drak-caterpillar",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [-35.5, 2.5108963012695313, -4.692974090576172],
-  "outlineOrigin": [-35.5, 2.5, -4.4719999999999995],
-  "outlineScale": 1.116181493800486,
+  "holoOrigin": [0.9578, 0.4934, 0.17],
+  "outlineOrigin": [0.9578, 0.4934, -4.8844],
   "totalScu": 576,
   "racks": [
     {

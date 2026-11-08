@@ -29,4 +29,11 @@
     <EmbeddedResource Include="Fixtures/Plans/*.json" LogicalName="plans/%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!-- Frozen ship fixtures of the Core tests (D92): the planning tests here run on these, never on ships/, so a data
+       import moves no test. -->
+  <ItemGroup>
+    <None Include="..\CargoPlan.Core.Tests\FrozenShips\*.json" Link="FrozenShips\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
+    <Compile Include="..\CargoPlan.Core.Tests\FrozenShips.cs" Link="FrozenShips.cs" />
+  </ItemGroup>
+
 </Project>

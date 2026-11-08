@@ -12,7 +12,7 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class ReplanInPlaceTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static MissionStop Stop(string destination, string commodity, int scu, CrateSize max) =>
         new(destination, 1, [new MissionItem(commodity, scu, max)]);

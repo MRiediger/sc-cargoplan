@@ -11,8 +11,8 @@ namespace CargoPlan.Core.Tests;
 /// <summary>The row axis in plan files (schema 9) and mission files (schema 4, D88), the rules of the fill order (D72).</summary>
 public class FillRowsFormatTests
 {
-    private static readonly Ship Raft = ShipLoader.Load("raft");
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship Raft = FrozenShips.Load("raft");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     private static SavedPlan Planned(FillRows rows)
     {

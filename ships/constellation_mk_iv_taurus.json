@@ -6,8 +6,8 @@
   "fleetyardsSlug": "rsi-constellation-mk-iv-taurus",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [4.976472473144531, 1.9966392517089844, -4.2087348937988285],
-  "outlineOrigin": [5, 2, -4.212],
+  "holoOrigin": [0.75, 0, 0.3615],
+  "outlineOrigin": [0.75, 0, -4.4241],
   "totalScu": 174,
   "racks": [
     {

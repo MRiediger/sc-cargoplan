@@ -4,6 +4,7 @@ using CargoPlan.App.ShipView;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
@@ -19,7 +20,7 @@ public class CameraFitTests
     [Fact]
     public void Room_on_top_keeps_every_fit_point_below_it_and_one_touches_it()
     {
-        var ship = ShipLoader.Load("c2_hercules");
+        var ship = FrozenShips.Load("c2_hercules");
         var scene = ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
         Point3D[] points = [.. CameraFit.FitPoints(scene)];
         var orientation = CameraOrientation.DefaultFor(scene.Bounds);
@@ -37,7 +38,7 @@ public class CameraFitTests
     [Fact]
     public void Without_room_on_top_the_fit_is_as_before()
     {
-        var ship = ShipLoader.Load("hull_a");
+        var ship = FrozenShips.Load("hull_a");
         var scene = ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
         Point3D[] points = [.. CameraFit.FitPoints(scene)];
         var target = CameraFit.Centre(points);
@@ -48,7 +49,7 @@ public class CameraFitTests
 
     // ---------- what the fit shows (D61, D62, D63) ----------
 
-    private static readonly Ship Caterpillar = ShipLoader.Load("caterpillar");
+    private static readonly Ship Caterpillar = FrozenShips.Load("caterpillar");
 
     // An arrow 20 m long, 8 m wide, pointing to the bow, placed on the scene's racks as the overlay does.
     private static readonly ShipOutline Arrow = new("arrow", [new(10, 0), new(-10, 4), new(-10, -4)]);

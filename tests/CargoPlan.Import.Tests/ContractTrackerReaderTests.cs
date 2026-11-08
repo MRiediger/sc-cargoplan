@@ -3,6 +3,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 using CargoPlan.Import.ContractTracker;
 using Microsoft.Data.Sqlite;
 
@@ -402,7 +403,7 @@ public class ContractTrackerReaderTests
         database.AddContract(48, "Waste", ImportFixtures.RawText(ImportFixtures.WasteTornAbov), (9, "Everus Harbor abov"));
         database.AddContract(49, "Waste", ImportFixtures.RawText(ImportFixtures.WasteTornAboy), (9, "Everus Harbor aboy"));
         var captures = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Select(c => c.ToCapture()).ToList();
-        var ship = ShipLoader.Load("hull_a");
+        var ship = FrozenShips.Load("hull_a");
 
         var saved = ContractSync.Apply(new SavedPlan([], new LoadPlan(ship.Id, [], []), CrateCap.Of(ship)), ship, captures, null);
 
@@ -568,7 +569,7 @@ public class ContractTrackerReaderTests
         database.SetPickup(47, "HUR-L4 Melodic Fields / HUR-L1 Green Glad");
         database.SetPickup(49, "HUR-L4 Melodic Fiel");
         var captures = ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Select(c => c.ToCapture()).ToList();
-        var ship = ShipLoader.Load("hull_a");
+        var ship = FrozenShips.Load("hull_a");
 
         var saved = ContractSync.Apply(new SavedPlan([], new LoadPlan(ship.Id, [], []), CrateCap.Of(ship)), ship, captures, null);
 

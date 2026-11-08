@@ -4,13 +4,14 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
 /// <summary>What a crate selection shows (T7.4d, D68, B6): the info line for one crate, its missions framed, the rest dimmed.</summary>
 public class SelectionFocusTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     /// <summary>Martin's case: two missions to Riker, the same commodity and crate size, from Lorville and from Everus Harbor.</summary>
     private static SavedPlan TwoRikers()

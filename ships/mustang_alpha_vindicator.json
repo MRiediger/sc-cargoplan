@@ -6,8 +6,8 @@
   "fleetyardsSlug": "cnou-mustang-alpha",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); hologram and outline of the CNOU Mustang Alpha",
-  "holoOrigin": [0.5, 2, -1.6434358596801757],
-  "outlineOrigin": [0.5, 2, -1.6559999999999997],
+  "holoOrigin": [0.5344, 0.5001, 0.4741],
+  "outlineOrigin": [0.5344, 0.5001, -1.5411],
   "totalScu": 4,
   "racks": [
     {

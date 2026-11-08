@@ -1,0 +1,8 @@
+{"schemaVersion":1,"generatedAt":"2026-11-07","coordinateSystem":"synthetic test outlines: only floorM matters here","source":"made up","ships":[
+{"slug":"misc-hull-a","lengthM":29.4,"beamM":9.3,"heightM":6.1,"floorM":-2.5,"outline":[[-18,-4],[11,-4],[11,4],[-18,4]]},
+{"slug":"argo-raft","lengthM":30,"beamM":10,"heightM":8,"floorM":-5,"outline":[[-15,-5],[15,-5],[15,5],[-15,5]]},
+{"slug":"espr-prowler-utility","lengthM":30,"beamM":20,"heightM":7,"floorM":-3.75,"outline":[[-15,-10],[15,-10],[15,10],[-15,10]]},
+{"slug":"cnou-mustang-alpha","lengthM":12,"beamM":10,"heightM":3,"floorM":-1.25,"outline":[[-6,-5],[6,-5],[6,5],[-6,5]]},
+{"slug":"rsi-aurora-mk-ii","lengthM":20,"beamM":12,"heightM":4,"floorM":-1.875,"outline":[[-10,-6],[10,-6],[10,6],[-10,6]]},
+{"slug":"test-turned-ship","lengthM":10,"beamM":10,"heightM":3,"outline":[[-5,-5],[5,-5],[5,5],[-5,5]]}
+]}

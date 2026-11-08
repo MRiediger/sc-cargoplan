@@ -17,7 +17,7 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class HullAGoldenTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     public static TheoryData<string, FillOrder> Cases => new()
     {

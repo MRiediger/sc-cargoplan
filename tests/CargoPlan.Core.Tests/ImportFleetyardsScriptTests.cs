@@ -644,10 +644,6 @@ public class ImportFleetyardsScriptTests
 
         public string Read(string id) => File.ReadAllText(Path.Combine(Ships, id + ".json")).ReplaceLineEndings("\n");
 
-        /// <summary>The shipped file of this ship (ships/ next to the test assembly) into the ships folder.</summary>
-        public void CopyShipped(string id) =>
-            File.Copy(Path.Combine(ShipLoader.DefaultFolder, id + ".json"), Path.Combine(Ships, id + ".json"));
-
         /// <summary>The frozen copy of this ship (FrozenShips/, D92) into the ships folder.</summary>
         public void CopyFrozen(string id) => File.Copy(FrozenShips.PathOf(id), Path.Combine(Ships, id + ".json"));
 

@@ -18,7 +18,7 @@ public class OverlayViewModelTests
 {
     private static OverlayViewModel WithPlan()
     {
-        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"));
+        var viewModel = new OverlayViewModel(FrozenShips.Load("hull_a"));
         viewModel.ShowPlan(TestPlans.SplitAndShared());
         return viewModel;
     }
@@ -240,7 +240,7 @@ public class OverlayViewModelTests
     [Fact]
     public void ShowPlan_sets_missions_and_plan_together()
     {
-        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"));
+        var viewModel = new OverlayViewModel(FrozenShips.Load("hull_a"));
         var saved = TestPlans.SplitAndShared();
 
         var changes = Changes(viewModel, () => viewModel.ShowPlan(saved));
@@ -377,7 +377,7 @@ public class OverlayViewModelTests
     {
         // Shubin's 8 in Rack 1, Riker's 4 in Rack 2 (largest first, D64). Riker is ticked, Shubin's 8 goes where Riker's 4
         // lay (D24 addendum): Riker comes back on board into free cells (K6.4, P7), no refusal.
-        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"));
+        var viewModel = new OverlayViewModel(FrozenShips.Load("hull_a"));
         IReadOnlyList<MissionStop> missions =
         [
             new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]),
@@ -441,7 +441,7 @@ public class OverlayViewModelTests
     /// </summary>
     private static (OverlayViewModel ViewModel, Gesture.MoveCrates Refused) Full()
     {
-        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"));
+        var viewModel = new OverlayViewModel(FrozenShips.Load("hull_a"));
         Crate[] crates =
         [
             new("Riker", "Titanium", CrateSize.Eight, "rack-0", new GridPosition(0, 0, 0)),
@@ -609,7 +609,7 @@ public class OverlayViewModelTests
     public void MoveLegendCommand_with_room_moves_every_crate_of_the_line()
     {
         // Riker's one 4 SCU crate leaves room for Shubin's 8 in Rack 2 (Shubin, the larger, is in Rack 1, D64).
-        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"));
+        var viewModel = new OverlayViewModel(FrozenShips.Load("hull_a"));
         IReadOnlyList<MissionStop> missions =
         [
             new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]),
@@ -756,7 +756,7 @@ public class OverlayViewModelTests
     private static ContractTrackerReadResult Read(long[]? present, params ContractTrackerCandidate[] candidates) =>
         new(candidates, null, present is null ? null : new HashSet<long>(present));
 
-    private static OverlayViewModel Empty() => new(ShipLoader.Load("hull_a"));
+    private static OverlayViewModel Empty() => new(FrozenShips.Load("hull_a"));
 
     // --- One stop per place (B1) ---
 
@@ -765,7 +765,7 @@ public class OverlayViewModelTests
     /// <summary>A plan as before B1: the fragment and the full name of one place as two stops.</summary>
     private static SavedPlan TwoNamesOfOnePlace()
     {
-        var ship = ShipLoader.Load("hull_a");
+        var ship = FrozenShips.Load("hull_a");
         var empty = new SavedPlan([], new LoadPlan(ship.Id, [], []), CrateCap.Of(ship));
         var first = LoadPlanner.PlaceInto(empty, ship, [new MissionStop("Thundering Express", 1, [new MissionItem("Ice", 4, CrateSize.Four)])]);
         return LoadPlanner.PlaceInto(first, ship, [new MissionStop("Thundering Express Station", 1, [new MissionItem("Stims", 4, CrateSize.Four)])]);
@@ -1049,12 +1049,12 @@ public class OverlayViewModelTests
 
     // --- Bow marker (D62) ---
 
-    private static readonly ShipOutlineCatalog Outlines = ShipOutlineLoader.Load();
+    private static readonly ShipOutlineCatalog Outlines = FrozenOutlines.Load();
 
     [Fact]
     public void A_ship_with_an_outline_shows_it_instead_of_the_wedge()
     {
-        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a")) { Outlines = Outlines };
+        var viewModel = new OverlayViewModel(FrozenShips.Load("hull_a")) { Outlines = Outlines };
 
         viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>();
     }
@@ -1063,7 +1063,7 @@ public class OverlayViewModelTests
     [Fact]
     public void The_outline_lies_on_the_ships_hologram_floor()
     {
-        var aurora = ShipLoader.Load("aurora_mk_ii");
+        var aurora = FrozenShips.Load("aurora_mk_ii");
         var viewModel = new OverlayViewModel(aurora) { Outlines = Outlines };
 
         var floor = OutlinePlacement.Floor(Outlines.For(aurora)!, aurora);
@@ -1074,19 +1074,19 @@ public class OverlayViewModelTests
     [Fact]
     public void The_outline_stays_through_a_new_plan_and_a_ship_change()
     {
-        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a"), ShipLoader.LoadAll()) { Outlines = Outlines };
+        var viewModel = new OverlayViewModel(FrozenShips.Load("hull_a"), FrozenShips.LoadAll()) { Outlines = Outlines };
 
         viewModel.ShowPlan(TestPlans.SplitAndShared());
         viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>();
 
-        viewModel.ChangeShip(ShipLoader.Load("c2_hercules"));
+        viewModel.ChangeShip(FrozenShips.Load("c2_hercules"));
         viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>();
     }
 
     [Fact]
     public void A_ship_without_an_outline_keeps_the_wedge()
     {
-        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a")) { Outlines = ShipOutlineCatalog.Empty };
+        var viewModel = new OverlayViewModel(FrozenShips.Load("hull_a")) { Outlines = ShipOutlineCatalog.Empty };
 
         viewModel.Scene.Marker.Should().BeOfType<BowMarker.Wedge>();
     }
@@ -1094,7 +1094,7 @@ public class OverlayViewModelTests
     [Fact]
     public void Mode_none_takes_every_marker_away_and_redraws_keeping_the_plan()
     {
-        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a")) { Outlines = Outlines };
+        var viewModel = new OverlayViewModel(FrozenShips.Load("hull_a")) { Outlines = Outlines };
         viewModel.ShowPlan(TestPlans.SplitAndShared());
         var plan = viewModel.Plan;
 
@@ -1108,7 +1108,7 @@ public class OverlayViewModelTests
     [Fact]
     public void Setting_the_same_mode_again_keeps_the_scene()
     {
-        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a")) { Outlines = Outlines };
+        var viewModel = new OverlayViewModel(FrozenShips.Load("hull_a")) { Outlines = Outlines };
         var scene = viewModel.Scene;
 
         viewModel.OutlineMode = ShipOutlineMode.Outline;
@@ -1138,7 +1138,7 @@ public class OverlayViewModelTests
     [Fact]
     public void A_hologram_of_the_ship_replaces_the_outline_in_a_hologram_look()
     {
-        var hullA = ShipLoader.Load("hull_a");
+        var hullA = FrozenShips.Load("hull_a");
         var viewModel = new OverlayViewModel(hullA) { Outlines = Outlines, OutlineMode = ShipOutlineMode.HoloShaded };
         var holo = HoloFor(hullA);
 
@@ -1152,7 +1152,7 @@ public class OverlayViewModelTests
     [Fact]
     public void Until_the_hologram_is_there_a_hologram_look_shows_the_outline()
     {
-        var viewModel = new OverlayViewModel(ShipLoader.Load("hull_a")) { Outlines = Outlines, OutlineMode = ShipOutlineMode.HoloHiddenline };
+        var viewModel = new OverlayViewModel(FrozenShips.Load("hull_a")) { Outlines = Outlines, OutlineMode = ShipOutlineMode.HoloHiddenline };
 
         viewModel.Holo.Should().BeNull();
         viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>();
@@ -1161,11 +1161,11 @@ public class OverlayViewModelTests
     [Fact]
     public void Another_ship_hides_the_old_ships_hologram_at_once()
     {
-        var hullA = ShipLoader.Load("hull_a");
-        var viewModel = new OverlayViewModel(hullA, ShipLoader.LoadAll()) { Outlines = Outlines, OutlineMode = ShipOutlineMode.HoloFlat };
+        var hullA = FrozenShips.Load("hull_a");
+        var viewModel = new OverlayViewModel(hullA, FrozenShips.LoadAll()) { Outlines = Outlines, OutlineMode = ShipOutlineMode.HoloFlat };
         viewModel.ShowHolo(HoloFor(hullA, ShipOutlineMode.HoloFlat));
 
-        var changes = Changes(viewModel, () => viewModel.ChangeShip(ShipLoader.Load("c2_hercules")));
+        var changes = Changes(viewModel, () => viewModel.ChangeShip(FrozenShips.Load("c2_hercules")));
 
         viewModel.Holo.Should().BeNull();
         viewModel.Scene.Marker.Should().BeOfType<BowMarker.Outline>();
@@ -1175,7 +1175,7 @@ public class OverlayViewModelTests
     [Fact]
     public void The_outline_look_hides_the_hologram()
     {
-        var hullA = ShipLoader.Load("hull_a");
+        var hullA = FrozenShips.Load("hull_a");
         var viewModel = new OverlayViewModel(hullA) { Outlines = Outlines, OutlineMode = ShipOutlineMode.HoloShaded };
         viewModel.ShowHolo(HoloFor(hullA));
 
@@ -1189,7 +1189,7 @@ public class OverlayViewModelTests
     [Fact]
     public void Showing_the_same_hologram_again_keeps_the_scene_and_its_selection()
     {
-        var hullA = ShipLoader.Load("hull_a");
+        var hullA = FrozenShips.Load("hull_a");
         var viewModel = new OverlayViewModel(hullA) { Outlines = Outlines, OutlineMode = ShipOutlineMode.HoloShaded };
         var holo = HoloFor(hullA);
         viewModel.ShowHolo(holo);

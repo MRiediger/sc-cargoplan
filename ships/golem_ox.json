@@ -6,8 +6,8 @@
   "fleetyardsSlug": "drak-golem-ox",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [4.000378608703613, 2.0003786087036133, -0.755965805053711],
-  "outlineOrigin": [4, 2, -1],
+  "holoOrigin": [0.152, 0, 0.744],
+  "outlineOrigin": [0.152, 0, -1.0016],
   "totalScu": 64,
   "racks": [
     {

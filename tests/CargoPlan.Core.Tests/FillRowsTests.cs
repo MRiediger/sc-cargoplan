@@ -13,9 +13,9 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public class FillRowsTests
 {
-    private static readonly Ship Raft = ShipLoader.Load("raft");
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
-    private static readonly Ship HullC = ShipLoader.Load("hull_c");
+    private static readonly Ship Raft = FrozenShips.Load("raft");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
+    private static readonly Ship HullC = FrozenShips.Load("hull_c");
 
     private static Rack Flat(int length, int width, int stack, StackAxis axis = StackAxis.PlusZ, string id = "flat", int index = 0) =>
         new(id, index, length * width * stack, new Dimensions(length, width, stack), null, new ShipPoint(0, 0, 0), axis);
@@ -201,7 +201,7 @@ public class FillRowsTests
     [InlineData("freelancer", FillOrder.SternFirst)]
     public void What_lays_out_lengthwise_also_lays_out_crosswise(string shipId, FillOrder order)
     {
-        var rack = ShipLoader.Load(shipId).Racks[0];
+        var rack = FrozenShips.Load(shipId).Racks[0];
         CrateSize[] sizes = [.. Enum.GetValues<CrateSize>().Where(rack.CanHold)];
         var random = new Random(89);
         List<string> failed = [];
@@ -356,7 +356,7 @@ public class FillRowsTests
     [Fact]
     public void A_new_ship_keeps_crosswise()
     {
-        var freelancer = ShipLoader.Load("freelancer");
+        var freelancer = FrozenShips.Load("freelancer");
 
         var replanned = LoadPlanner.Replan(Crosswise(), freelancer);
 

@@ -6,8 +6,8 @@
   "fleetyardsSlug": "argo-mpuv-cargo",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [1, 0.5, -1.201655387878418],
-  "outlineOrigin": [1, 0.5, -0.8320000000000001],
+  "holoOrigin": [0, 0.5, 0.408],
+  "outlineOrigin": [0, 0.5, -1.1952],
   "totalScu": 2,
   "racks": [
     {

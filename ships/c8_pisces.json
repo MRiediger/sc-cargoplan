@@ -6,8 +6,8 @@
   "fleetyardsSlug": "anvl-c8-pisces",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [1, -1.5, -0.7432338714599611],
-  "outlineOrigin": [1, -1.5, -0.7],
+  "holoOrigin": [0.5496, 0.5, 0.6],
+  "outlineOrigin": [0.5496, 0.5, -0.2528],
   "totalScu": 4,
   "racks": [
     {

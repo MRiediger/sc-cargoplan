@@ -6,8 +6,8 @@
   "fleetyardsSlug": "aegs-hammerhead",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [4.0369384765625, 2, -5.634860229492188],
-  "outlineOrigin": [4, 2, -5.640000000000001],
+  "holoOrigin": [0.5752, 0.4128, 0.6236],
+  "outlineOrigin": [0.5752, 0.4128, -4.442],
   "totalScu": 64,
   "racks": [
     {

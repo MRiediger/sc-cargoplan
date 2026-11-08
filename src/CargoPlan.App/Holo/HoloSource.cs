@@ -35,7 +35,7 @@ public abstract record HoloFetch
 /// </summary>
 public sealed class HoloSource : IDisposable
 {
-    // The largest file of holo-v1 is 799 KB, the manifest about 60 KB: more is not a hologram.
+    // The largest file of holo-v1 is 799 KB (holo-v2 is smaller), the manifest about 60 KB: more is not a hologram.
     private const long MaxResponseBytes = 4 * 1024 * 1024;
 
     private readonly HttpClient _client;

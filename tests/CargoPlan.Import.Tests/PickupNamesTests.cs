@@ -3,13 +3,14 @@ using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.Import.Tests;
 
 /// <summary>A pickup is a place's name, never the contract's text (B6, D69): read from ContractTracker and in old plans.</summary>
 public class PickupNamesTests
 {
-    private static readonly Ship HullA = ShipLoader.Load("hull_a");
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     // --- Parse ---
 
