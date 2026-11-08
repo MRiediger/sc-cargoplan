@@ -3833,6 +3833,7 @@ Die 148 ms sind JIT-Aufwärmen: Mit `DOTNET_TieredCompilation=0` liegt dieselbe 
    - [x] 4a Racks – `feat/ship-data-game` (abgenommen 07.11.)
    - [x] 4b Hülle und Umriss aus denselben Modellen – `feat/holo-v2` (abgenommen 08.11., `holo-v2` veröffentlicht)
    - [x] 4c Stilllegung Fleetyards, Holo-Übergang, Credits – `chore/retire-fleetyards` (abgenommen 08.11., D94, D95)
+   - [ ] 4d Editor-Fixes aus Issue #22/#21 (Reikal): B8 Dropdown, B9 „N SCU or smaller“, F9 Kistenliste gruppiert – `fix/editor-crates` (D96). Unterbricht die Release-Session; `release/v0.3.0` wartet, bis 4d auf `main` ist.
 5. [ ] F8 flache 2D-Rasteransicht als zweiter Modus – `feat/f8-flat-view`
 6. [ ] Release-Notes, Wiki, Tag `v0.3.0` – `docs/release-v0.3.0`. **Aus 4c (D94):** Wiki (`FAQ.md`, `Ships-and-cargo-grids.md`, `Troubleshooting.md`, `_Footer.md` mit „Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG“), Nexus-`description.bbcode` (Credits) und `.github/ISSUE_TEMPLATE/ship-correction.yml` (Gitter kommen aus den Spieldateien) nachziehen; sie beschreiben bis zum Tag v0.2.0. **Vor dem Tag `docs/release-notes/v0.3.0.md` fertig schreiben:** `release.yml` prüft nur, ob die Datei existiert, und veröffentlicht sie wörtlich.
 
@@ -4610,6 +4611,56 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - Outline-Repo: `decimate.ps1` und `run-all.ps1` haben weiter `-Source 'Fleetyards'` als Default. Umstellen auf Motherlode erst bei Bedarf.
 - Aus 4b weiter offen: erster echter Abruf über die Motherlode-API, Fortune Rack 2, Nexus-Texte `holo-v2`.
 - Nachricht an Torlek (Fleetyards): Martin schickt sie nach dem Merge, kein Repo-Inhalt. Das Verlinkungsangebot ist T9.4.
+
+### [ ] Session 4d – Editor-Fixes aus Issue #22 und #21 (08.11.2026)
+
+**Branch:** `fix/editor-crates` ab `main`. **Anlass:** Issues von **Reikal** (GitHub-Login) auf v0.2.0: #22 „Max Crate selection non-functional“ (mit Rohtext von vier Pyro-Verträgen), #21 „Re-work crate counter“. B8 und B9 blockieren das Release.
+
+**Befund:**
+- **B8:** Das Binding der Max-crate-Spalte war in Ordnung (`UpdateSourceTrigger=PropertyChanged` stand schon). Ursache: Der `ButtonBase.Click`-Handler auf dem DockPanel des Editors beendet jede Zellbearbeitung. Der Pfeil der ComboBox ist ein `ToggleButton` und löst ihn ebenfalls aus. Die Editier-Combo wird verworfen, bevor die Auswahl ankommt. Das gibt es seit T3.8b. Die Tastaturauswahl löst keinen Klick aus und funktioniert deshalb. Dass eine neue Zeile die Größe der Zeile darüber übernimmt, ist gewollt (D23).
+- **B9:** Der Parser kannte nur „Max size … N“ und „bigger than N“. Die Red-Wind-Verträge sagen „8 SCU or smaller“. In zwei von drei Captures hat die OCR „smaller)“ verloren, übrig bleibt „(8 SCU or“. Martins CT-DB ist leer (0 Verträge, auch die `.bak`), weitere Formulierungen gibt es dort nicht.
+- **F9:** Die Legende gruppiert seit K6.1 (`LegendText.Mix`). Nur die Editor-Spalte, die Planer-Notices und die Cli schrieben eigene Formate.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+- B8: kein Undo-Schritt für die Auswahl, wie beim Tippen (der Editor hat keins, D19).
+- B8: erstes Test-Fenster im Repo erlaubt, falls `BeginEdit` realisierte Zellen braucht. Nicht nötig geworden, Layout offscreen reicht.
+- B8 E1: ein Test sichert den ursprünglichen Zweck des Handlers (Toolbar-Knopf committet die offene Zelle).
+- B9: Die Klammerform „(N SCU or“ zählt ohne „smaller“, außer bei „or more/larger/bigger“.
+- B9: Der Default für eine unbekannte Größe bleibt die größte Kiste, die in die SCU passt, mit „?“. Grund: Kleine Kisten füllen den Platz großer lückenlos (D57).
+- F9: Die Zelle zeigt keine eigene Summe, der Fehler nennt sie.
+- F9: Notices und Cli folgen der einen Schreibweise; „(1×4)“ wird „(4)“.
+- F9: Ein lesbarer Override erscheint normiert und sortiert. Der getippte Text bleibt zum Bearbeiten.
+
+**Abnahme:**
+- [x] B8 (e30d65c), Tests zuerst rot (3 von 4, die Zelle war nach dem Pfeilklick wieder im Anzeigemodus):
+  - STA-Test für die Auswahl über `ButtonBase.OnClick`
+  - Issue-Pfad 1 und 2
+  - E1
+  - VM-Test
+  - Markup-Wächter
+- [x] B9 (e57b1d2), Tests zuerst rot (16):
+  - drei Fixtures wörtlich aus #22
+  - Toleranz- und Negativfälle
+  - Golden der Kistenliste: Endgame 124 `3×32+24+4` → `15×8+4`, Orbituary 82 → `10×8+2`, Potassium 215 `6×32+16+4+2+1` → `26×8+4+2+1`, Carbon 200 `6×32+8` → `25×8`
+  - D40-Nachtrag, `contracttracker-schema.md`
+- [x] F9 (4543c43), Tests zuerst rot (34 in Core gegen Stubs, danach 20 umgestellte Erwartungen):
+  - `CrateMix.Format`/`Parse` in Core, Round-Trip
+  - Legende unverändert
+  - D96, Nachträge D23 und D69
+- [x] `dotnet build` ohne Warnung, `dotnet test` (App 1655, Import 164, Core 1819) und `Slow` grün
+- [ ] Gate Martin (Publish-Build):
+  - Pfad 1 und 2 aus #22: Das Dropdown ändert den Wert, die Kistenliste rechnet neu.
+  - Sync mit einem „8 SCU or smaller“-Vertrag ergibt max 8 ohne „?“.
+  - Die Kistenliste ist gruppiert in Editor und Legende.
+  - `2x32+16` (SCU 80) eingetippt wird akzeptiert und erscheint als `2×32+16`.
+  - **Spaltenbreite:** `6×32+16+4+2+1` braucht 108 px (Segoe UI 14), das alte Format 214 px. Die Crates-Spalte ist bei 660 px Fensterbreite geschätzt um 80 px breit. Wird es abgeschnitten, kommt eine `MinWidth` in Frage. Das entscheidet Martin.
+- [ ] Dank an Reikal in #22 und #21 (Martin postet, Text liegt im Chat)
+- [ ] Merge `--no-ff` nach Martins Abnahme, Martin pusht. Danach Release-Session fortsetzen: Notes um 4d ergänzen, R1-Diff und Wiki (Editor-Seite: Kistenformat und beide Eingabeformen) nachziehen.
+
+**Material für Release-Notes v0.3.0:**
+- Max crate drop-down in the mission editor works again (#22, thanks Reikal).
+- Contracts that say "N SCU or smaller" are parsed: their max crate size is read, no more "max 32 SCU?" (#22).
+- Crate lists show grouped, e.g. 6×32+16+4+2+1 instead of every crate (#21, thanks Reikal). You can type either form into the Crates column: 2x32+16 or 32+32+16.
 
 ## Phase 10 – nach dem Launch
 
