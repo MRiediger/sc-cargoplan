@@ -346,7 +346,7 @@ transform, reportedMaxSize? } ], modelUrl? } ] }`. A grid with `transform: null`
 The 135c (its grids have no place in the catalog), the 600i Executive Edition and the F7C Hornet Mk II (not in the
 catalog) still use hull data from [fleetyards.net](https://fleetyards.net): grids, hologram (their holo-v1 file, carried
 into holo-v2) and outline (a trace without `floorM`). Their files stay as the Fleetyards import last wrote them. The
-import is retired since v0.3.0 (D94) and lives on in the Git history (`git show 7b211fb^:tools/import-fleetyards.ps1`);
+import is retired since v0.3.0 (D94) and lives on in the Git history (`git show a3430b9^:tools/import-fleetyards.ps1`);
 its fetch script and Fleetyards' raw export are archived in the pipeline's `legacy/`. A change to one of the three is
 hand work, checked in game. Once Motherlode has their models, they move to the game files like every other ship.
 
