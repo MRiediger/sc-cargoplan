@@ -27,9 +27,12 @@ public static class HoloRelease
     /// <summary>A cached manifest younger than this is used without asking (Martin, T7.4c-2): at most one request a day.</summary>
     public static readonly TimeSpan ManifestMaxAge = TimeSpan.FromHours(24);
 
-    /// <summary>%LocalAppData%\SC-CargoPlan\holo\holo-v2, next to settings.json; one folder per tag.</summary>
-    public static string DefaultCacheFolder { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SC-CargoPlan", "holo", Tag);
+    /// <summary>%LocalAppData%\SC-CargoPlan\holo, next to settings.json: one folder per tag, only this app's stays (D95).</summary>
+    public static string DefaultCacheRoot { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SC-CargoPlan", "holo");
+
+    /// <summary>%LocalAppData%\SC-CargoPlan\holo\holo-v2, the cache of <see cref="Tag"/>.</summary>
+    public static string DefaultCacheFolder { get; } = Path.Combine(DefaultCacheRoot, Tag);
 
     /// <summary>
     /// The version for the User-Agent, without the commit hash the SDK appends after "+": the request names the app and

@@ -16,28 +16,40 @@ public sealed class HoloSourceTests : IDisposable
     private static readonly byte[] File2 = [9, 9, 9];
     private static readonly DateTimeOffset Now = new(2026, 10, 25, 12, 0, 0, TimeSpan.Zero);
 
-    private readonly string _folder = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"));
+    // The cache root of this test alone: retiring other tags looks at the root's folders (D95).
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"));
     private readonly FakeHttp.FakeHandler _handler = new();
 
     public void Dispose()
     {
-        if (Directory.Exists(_folder))
+        if (Directory.Exists(_root))
         {
-            Directory.Delete(_folder, recursive: true);
+            Directory.Delete(_root, recursive: true);
         }
     }
 
-    private string CachedFile(string slug) => Path.Combine(_folder, slug + ".holo");
+    private string TagFolder => Path.Combine(_root, HoloRelease.Tag);
 
-    private string CachedManifest => Path.Combine(_folder, "manifest.json");
+    private string OldTag => Path.Combine(_root, "holo-v1");
 
-    private HoloSource Source(TimeSpan? timeout = null) => new(_handler, _folder, new FakeHttp.FixedClock(Now), timeout ?? TimeSpan.FromSeconds(5), "1.2.3");
+    private string CachedFile(string slug) => Path.Combine(TagFolder, slug + ".holo");
+
+    private string CachedManifest => Path.Combine(TagFolder, "manifest.json");
+
+    private HoloSource Source(TimeSpan? timeout = null) => new(_handler, _root, new FakeHttp.FixedClock(Now), timeout ?? TimeSpan.FromSeconds(5), "1.2.3");
+
+    /// <summary>The cache of v0.2.0: holo\holo-v1 with a file in it.</summary>
+    private void OldCache()
+    {
+        Directory.CreateDirectory(OldTag);
+        File.WriteAllBytes(Path.Combine(OldTag, Slug + ".holo"), File1);
+    }
 
     private static byte[] Manifest(params (string Slug, byte[] Data)[] ships) => FakeHttp.Manifest(ships);
 
     private void Cache(string path, byte[] data, TimeSpan age)
     {
-        Directory.CreateDirectory(_folder);
+        Directory.CreateDirectory(TagFolder);
         File.WriteAllBytes(path, data);
         File.SetLastWriteTimeUtc(path, (Now - age).UtcDateTime);
     }
@@ -296,5 +308,183 @@ public sealed class HoloSourceTests : IDisposable
         Serve("manifest.json", Manifest((Slug, File1)));
         Serve(Slug + ".holo", File1);
         (await source.GetAsync(Slug, true, CancellationToken.None)).Should().BeOfType<HoloFetch.Found>();
+    }
+
+    // --- Tag change (D95): other tags' folders go once the current tag's manifest is checked, never the current one ---
+
+    [Fact]
+    public async Task Another_tag_goes_once_the_manifest_is_fetched_and_the_current_folder_stays()
+    {
+        OldCache();
+        Cache(CachedFile(OtherSlug), File2, TimeSpan.FromDays(3));
+        Serve("manifest.json", Manifest((Slug, File1), (OtherSlug, File2)));
+        Serve(Slug + ".holo", File1);
+        var source = Source();
+        var changes = new List<HoloTagChange>();
+        source.TagChanged += changes.Add;
+
+        var result = await source.GetAsync(Slug, true, CancellationToken.None);
+
+        result.Should().BeOfType<HoloFetch.Found>();
+        Directory.Exists(OldTag).Should().BeFalse();
+        changes.Should().Equal(new HoloTagChange(null));
+        File.Exists(CachedFile(OtherSlug)).Should().BeTrue("the current tag's folder is never touched");
+        File.Exists(CachedManifest).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task A_cached_manifest_younger_than_24_hours_counts_as_checked()
+    {
+        OldCache();
+        Cache(CachedManifest, Manifest((Slug, File1)), TimeSpan.FromHours(1));
+        Serve(Slug + ".holo", File1);
+
+        await Source().GetAsync(Slug, true, CancellationToken.None);
+
+        Directory.Exists(OldTag).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task An_unreachable_manifest_keeps_the_other_tag()
+    {
+        OldCache();
+        _handler.Fail("manifest.json");
+        var source = Source();
+        var changes = new List<HoloTagChange>();
+        source.TagChanged += changes.Add;
+
+        await source.GetAsync(Slug, true, CancellationToken.None);
+
+        Directory.Exists(OldTag).Should().BeTrue();
+        changes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task An_invalid_manifest_keeps_the_other_tag()
+    {
+        OldCache();
+        Serve("manifest.json", Encoding.UTF8.GetBytes("{ \"dataVersion\": \"holo-v1\", \"formatVersion\": 2, \"ships\": [] }"));
+
+        await Source().GetAsync(Slug, true, CancellationToken.None);
+
+        Directory.Exists(OldTag).Should().BeTrue();
+    }
+
+    // Martin: a checked manifest is enough; a file that fails after it is tried again on the next start.
+    [Fact]
+    public async Task A_damaged_file_after_a_checked_manifest_still_retires_the_other_tag()
+    {
+        OldCache();
+        Serve("manifest.json", Manifest((Slug, File1)));
+        Serve(Slug + ".holo", [8, 7, 6, 5, 4, 3, 2, 1]);
+
+        var result = await Source().GetAsync(Slug, true, CancellationToken.None);
+
+        result.Should().BeOfType<HoloFetch.Failed>();
+        Directory.Exists(OldTag).Should().BeFalse();
+    }
+
+    // The notice must stand while the first file downloads, so the event comes before that request.
+    [Fact]
+    public async Task The_tag_change_is_told_once_per_run_before_the_first_download()
+    {
+        OldCache();
+        Serve("manifest.json", Manifest((Slug, File1), (OtherSlug, File2)));
+        Serve(Slug + ".holo", File1);
+        Serve(OtherSlug + ".holo", File2);
+        var source = Source();
+        var requestsAtChange = new List<int>();
+        source.TagChanged += _ => requestsAtChange.Add(_handler.Requests.Count);
+
+        await source.GetAsync(Slug, true, CancellationToken.None);
+        await source.GetAsync(OtherSlug, true, CancellationToken.None);
+
+        requestsAtChange.Should().Equal(1);
+    }
+
+    [Fact]
+    public async Task Without_another_tag_at_the_start_nothing_is_told()
+    {
+        Serve("manifest.json", Manifest((Slug, File1)));
+        Serve(Slug + ".holo", File1);
+        var source = Source();
+        var changes = new List<HoloTagChange>();
+        source.TagChanged += changes.Add;
+
+        await source.GetAsync(Slug, true, CancellationToken.None);
+
+        changes.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Downloads_off_tells_no_tag_change()
+    {
+        OldCache();
+        var source = Source();
+        var changes = new List<HoloTagChange>();
+        source.TagChanged += changes.Add;
+
+        await source.GetAsync(Slug, download: false, CancellationToken.None);
+
+        changes.Should().BeEmpty();
+        Directory.Exists(OldTag).Should().BeTrue("only RetireOtherTags or a checked manifest deletes");
+    }
+
+    [Fact]
+    public void RetireOtherTags_deletes_at_once_without_a_request()
+    {
+        OldCache();
+
+        var problem = Source().RetireOtherTags();
+
+        problem.Should().BeNull();
+        Directory.Exists(OldTag).Should().BeFalse();
+        _handler.Requests.Should().BeEmpty();
+    }
+
+    // Retired at the start (switch off or no hologram look), the tag change is still told at the first checked manifest.
+    [Fact]
+    public async Task Retired_at_the_start_the_change_is_still_told_at_the_first_checked_manifest()
+    {
+        OldCache();
+        Serve("manifest.json", Manifest((Slug, File1)));
+        Serve(Slug + ".holo", File1);
+        var source = Source();
+        var changes = new List<HoloTagChange>();
+        source.TagChanged += changes.Add;
+        source.RetireOtherTags();
+
+        await source.GetAsync(Slug, true, CancellationToken.None);
+
+        changes.Should().Equal(new HoloTagChange(null));
+    }
+
+    [Fact]
+    public void Only_folders_named_like_a_tag_are_deleted()
+    {
+        OldCache();
+        Cache(CachedFile(Slug), File1, TimeSpan.FromDays(1));
+        string[] kept = [Path.Combine(_root, "notes"), Path.Combine(_root, "holo-v2-backup"), Path.Combine(_root, "holo-vx")];
+        foreach (var folder in kept)
+        {
+            Directory.CreateDirectory(folder);
+        }
+
+        Source().RetireOtherTags();
+
+        Directory.Exists(OldTag).Should().BeFalse();
+        kept.Should().OnlyContain(f => Directory.Exists(f));
+        File.Exists(CachedFile(Slug)).Should().BeTrue();
+    }
+
+    [Fact]
+    public void A_locked_file_gives_a_reason_instead_of_an_exception()
+    {
+        OldCache();
+        using var locked = File.Open(Path.Combine(OldTag, Slug + ".holo"), FileMode.Open, FileAccess.Read, FileShare.None);
+
+        var problem = Source().RetireOtherTags();
+
+        problem.Should().Contain("the old cache can't be removed");
     }
 }

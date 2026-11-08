@@ -160,6 +160,10 @@ public partial class App : Application
         // The hologram of the ship and look (D63): once the overlay is up, on a ship change, on a new look or switch.
         // Every request cancels the one before; the outline shows until the hologram is there.
         var holoLoader = _holoLoader = new HoloLoader(viewModel, HoloSource.CreateDefault());
+
+        // Another tag's cache (holo-v1 of v0.2.0) goes at once when holograms aren't wanted now; else after the current
+        // tag's manifest is checked (D95).
+        holoLoader.RetireUnneeded(session.ShipOutline, session.DownloadShipHolograms);
         overlay.Loaded += async (_, _) => await RequestHologram();
         session.ShipViewChanged += async (_, _) => await RequestHologram();
         viewModel.PropertyChanged += async (_, e) =>

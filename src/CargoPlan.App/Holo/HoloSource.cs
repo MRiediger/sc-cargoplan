@@ -25,20 +25,30 @@ public abstract record HoloFetch
     public sealed record Failed(string Reason) : HoloFetch;
 }
 
+/// <summary>The cache held another tag at the start and the current tag's manifest is checked (D95).</summary>
+/// <param name="Problem">Why the other tag's folder couldn't be deleted; null when it is gone.</param>
+public sealed record HoloTagChange(string? Problem);
+
 /// <summary>
 /// Gets a ship's hologram from the cache or the release (D63, docs/holo-format.md). The manifest is asked for at most
 /// once per run, and not at all while the cached one is younger than <see cref="HoloRelease.ManifestMaxAge"/>; a
 /// manifest fetched now, or within that age, withdraws a ship it doesn't list (the cached file is deleted), an older one
 /// only stands in while the release can't be reached. A file is downloaded when the cache lacks it or its hash differs,
 /// and kept only if length and SHA256 match. The network and file boundary: HTTP and IO errors end here, as a reason.
-/// One request at a time; a cancelled call throws <see cref="OperationCanceledException"/>.
+/// One request at a time; a cancelled call throws <see cref="OperationCanceledException"/>. Only this tag's cache stays
+/// (D95): another tag's folder found at the start goes once the current manifest is checked, before the first download,
+/// and <see cref="TagChanged"/> tells it; a manifest that can't be had leaves it, so the older app still finds it.
 /// </summary>
 public sealed class HoloSource : IDisposable
 {
     // The largest file of holo-v1 is 799 KB (holo-v2 is smaller), the manifest about 60 KB: more is not a hologram.
     private const long MaxResponseBytes = 4 * 1024 * 1024;
 
+    // The cache folders of the release tags are named "holo-v<n>" (D63); only those are another tag's (D95).
+    private const string TagPrefix = "holo-v";
+
     private readonly HttpClient _client;
+    private readonly string _root;
     private readonly string _folder;
     private readonly TimeProvider _clock;
     private readonly TimeSpan _timeout;
@@ -58,10 +68,13 @@ public sealed class HoloSource : IDisposable
     // The manifest couldn't be cached; handed on with the next hologram found.
     private string? _writeProblem;
 
+    // Another tag's folder lay in the root at the start; the first checked manifest retires it and tells so (D95).
+    private bool _tagChangePending;
+
     /// <param name="handler">Sends the requests; a fake in the tests. Disposed with this source.</param>
-    /// <param name="cacheFolder">Holds manifest.json and the &lt;slug&gt;.holo files.</param>
+    /// <param name="cacheRoot">Holds a folder per tag; this tag's holds manifest.json and the &lt;slug&gt;.holo files.</param>
     /// <param name="version">For the User-Agent, "SC-CargoPlan/&lt;version&gt;".</param>
-    public HoloSource(HttpMessageHandler handler, string cacheFolder, TimeProvider clock, TimeSpan timeout, string version)
+    public HoloSource(HttpMessageHandler handler, string cacheRoot, TimeProvider clock, TimeSpan timeout, string version)
     {
         // Source: https://learn.microsoft.com/dotnet/api/system.net.http.httpclient.maxresponsecontentbuffersize
         _client = new HttpClient(handler, disposeHandler: true)
@@ -71,14 +84,75 @@ public sealed class HoloSource : IDisposable
             Timeout = System.Threading.Timeout.InfiniteTimeSpan,
         };
         _client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SC-CargoPlan", version));
-        _folder = cacheFolder;
+        _root = cacheRoot;
+        _folder = Path.Combine(cacheRoot, HoloRelease.Tag);
         _clock = clock;
         _timeout = timeout;
+        _tagChangePending = HasOtherTags();
     }
+
+    /// <summary>Raised once per run, on the caller's thread, when the current tag's manifest is checked (D95).</summary>
+    public event Action<HoloTagChange>? TagChanged;
 
     /// <summary>The app's source: the system's proxy settings, redirects followed (github.com sends the asset host).</summary>
     public static HoloSource CreateDefault() =>
-        new(new SocketsHttpHandler(), HoloRelease.DefaultCacheFolder, TimeProvider.System, HoloRelease.Timeout, HoloRelease.UserAgentVersion);
+        new(new SocketsHttpHandler(), HoloRelease.DefaultCacheRoot, TimeProvider.System, HoloRelease.Timeout, HoloRelease.UserAgentVersion);
+
+    /// <summary>
+    /// Deletes the cache folders of other tags (D95): only folders directly in the root named like a tag
+    /// ("holo-v" and digits), never this tag's. The reason if one can't be deleted, null otherwise.
+    /// </summary>
+    public string? RetireOtherTags()
+    {
+        try
+        {
+            foreach (var folder in OtherTags())
+            {
+                Directory.Delete(folder, recursive: true);
+            }
+
+            return null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return $"the old cache can't be removed ({ex.Message})";
+        }
+    }
+
+    /// <summary>"holo-v" and digits, not <see cref="HoloRelease.Tag"/>; Windows names ignore case.</summary>
+    private static bool IsOtherTag(string name) =>
+        name.Length > TagPrefix.Length && name.StartsWith(TagPrefix, StringComparison.OrdinalIgnoreCase)
+        && name[TagPrefix.Length..].All(char.IsAsciiDigit) && !string.Equals(name, HoloRelease.Tag, StringComparison.OrdinalIgnoreCase);
+
+    private IReadOnlyList<string> OtherTags() =>
+        Directory.Exists(_root) ? [.. Directory.EnumerateDirectories(_root).Where(d => IsOtherTag(Path.GetFileName(d)))] : [];
+
+    /// <summary>Whether another tag's folder lies in the root at the start.</summary>
+    private bool HasOtherTags()
+    {
+        try
+        {
+            return OtherTags().Count > 0;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // An unreadable root holds nothing to retire after the manifest; RetireOtherTags at the start names it.
+            return false;
+        }
+    }
+
+    /// <summary>The current tag's manifest is checked: another tag found at the start goes now, and the loader is told once.</summary>
+    private void RetireAfterCheck()
+    {
+        if (_tagChangePending)
+        {
+            _tagChangePending = false;
+
+            // First, not inside ?.Invoke(...): without a subscriber that would skip its argument, and the folder would stay.
+            var problem = RetireOtherTags();
+            TagChanged?.Invoke(new HoloTagChange(problem));
+        }
+    }
 
     /// <param name="slug">The ship's <c>modelKey</c>.</param>
     /// <param name="download">false = the switch is off: only a cached file, no request at all (Martin, T7.4c-2).</param>
@@ -155,6 +229,7 @@ public sealed class HoloSource : IDisposable
             if (File.Exists(path) && _clock.GetUtcNow() - File.GetLastWriteTimeUtc(path) < HoloRelease.ManifestMaxAge && ParseCached(path) is { } young)
             {
                 (_manifest, _manifestIsCurrent) = (young, true);
+                RetireAfterCheck();
                 return young;
             }
 
@@ -166,6 +241,7 @@ public sealed class HoloSource : IDisposable
                 {
                     (_manifest, _manifestIsCurrent) = (HoloManifestReader.Read(data, HoloRelease.Tag), true);
                     _writeProblem = Write(HoloRelease.ManifestFile, data);
+                    RetireAfterCheck();
                     return _manifest;
                 }
                 catch (HoloFormatException ex)
