@@ -3,7 +3,7 @@
   "id": "hull_a",
   "name": "MISC Hull A",
   "manufacturer": "MISC",
-  "fleetyardsSlug": "misc-hull-a",
+  "modelKey": "misc-hull-a",
   "source": "in game",
   "notes": "frozen test copy of ships/hull_a.json before D92 (session 4a): UI tests run on fixed cells and pixels, not on shipped data; rack positions from Fleetyards offsets (K5.2, D78): 3 cells between the plates",
   "holoOrigin": [1.9994277954101562, -0.5005714416503906, 0.2602119445800781],

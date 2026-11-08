@@ -3,7 +3,7 @@
   "id": "mustang_alpha",
   "name": "CNOU Mustang Alpha",
   "manufacturer": "CNOU",
-  "fleetyardsSlug": "cnou-mustang-alpha",
+  "modelKey": "cnou-mustang-alpha",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
   "holoOrigin": [0.5, 2, -1.6434358596801757],

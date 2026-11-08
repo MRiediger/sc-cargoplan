@@ -3,7 +3,7 @@
   "id": "freelancer",
   "name": "MISC Freelancer",
   "manufacturer": "MISC",
-  "fleetyardsSlug": "misc-freelancer",
+  "modelKey": "misc-freelancer",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.3117, 0.6884, 0.18],

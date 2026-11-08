@@ -17,6 +17,12 @@ public enum NoticeSource
     /// <summary>The first hologram that couldn't be shown in this run, and why (D63); cleared when one shows or the look is no hologram.</summary>
     Holo,
 
+    /// <summary>
+    /// The holograms changed tag since the last start and download again (D95); cleared like <see cref="Holo"/>, but kept
+    /// for the run when it names an old cache that couldn't be deleted.
+    /// </summary>
+    HoloUpdate,
+
     Hotkeys,
     Plan,
 

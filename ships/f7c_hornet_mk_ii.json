@@ -3,7 +3,7 @@
   "id": "f7c_hornet_mk_ii",
   "name": "ANVL F7C Hornet Mk II",
   "manufacturer": "ANVL",
-  "fleetyardsSlug": "anvl-f7c-hornet-mk-ii",
+  "modelKey": "anvl-f7c-hornet-mk-ii",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
   "holoOrigin": [0.5010841369628907, 0.9994579315185547, -1.4946537017822266],

@@ -3,7 +3,7 @@
   "id": "redeemer",
   "name": "AEGS Redeemer",
   "manufacturer": "AEGS",
-  "fleetyardsSlug": "aegs-redeemer",
+  "modelKey": "aegs-redeemer",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.2, 0.66, 0.96],

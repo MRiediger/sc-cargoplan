@@ -3,7 +3,7 @@
   "id": "constellation_mk_v_centaurus",
   "name": "RSI Constellation Mk V Centaurus",
   "manufacturer": "RSI",
-  "fleetyardsSlug": "rsi-constellation-mk-v-centaurus",
+  "modelKey": "rsi-constellation-mk-v-centaurus",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.79, 0.9947, 0.7587],

@@ -3,7 +3,7 @@
   "id": "raft",
   "name": "ARGO RAFT",
   "manufacturer": "ARGO",
-  "fleetyardsSlug": "argo-raft",
+  "modelKey": "argo-raft",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
   "holoOrigin": [6, 4, -3.663908004760742],

@@ -3,7 +3,7 @@
   "id": "hull_c",
   "name": "MISC Hull C",
   "manufacturer": "MISC",
-  "fleetyardsSlug": "misc-hull-c",
+  "modelKey": "misc-hull-c",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); crate minimums from Fleetyards limits.min.capacity",
   "holoOrigin": [0.6423, 0.333, 0.9482],

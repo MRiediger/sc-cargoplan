@@ -3,7 +3,7 @@
   "id": "hull_b",
   "name": "MISC Hull B",
   "manufacturer": "MISC",
-  "fleetyardsSlug": "misc-hull-b",
+  "modelKey": "misc-hull-b",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.412, 0.5001, 0.9834],

@@ -3,7 +3,7 @@
   "id": "starfarer",
   "name": "MISC Starfarer",
   "manufacturer": "MISC",
-  "fleetyardsSlug": "misc-starfarer",
+  "modelKey": "misc-starfarer",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-25",
   "notes": "rack arrangement generated; grids from Fleetyards; door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [-5.514814758300782, 2.500000762939453, -6.33953857421875],

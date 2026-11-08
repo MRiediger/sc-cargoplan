@@ -3,7 +3,7 @@
   "id": "aurora_mk_ii",
   "name": "RSI Aurora Mk II",
   "manufacturer": "RSI",
-  "fleetyardsSlug": "rsi-aurora-mk-ii",
+  "modelKey": "rsi-aurora-mk-ii",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); Rack 2 (cargo_right) beside Rack 1 (cargo_left) to starboard, both at the TS module's height (Martin, in game, 2026-10-26)",
   "holoOrigin": [0.4552, 0, 0.9145],

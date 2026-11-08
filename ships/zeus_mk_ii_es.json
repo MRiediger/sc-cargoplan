@@ -3,7 +3,7 @@
   "id": "zeus_mk_ii_es",
   "name": "RSI Zeus Mk II ES",
   "manufacturer": "RSI",
-  "fleetyardsSlug": "rsi-zeus-mk-ii-es",
+  "modelKey": "rsi-zeus-mk-ii-es",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0, 0, 0],

@@ -3,7 +3,7 @@
   "id": "avenger_titan_renegade",
   "name": "AEGS Avenger Titan Renegade",
   "manufacturer": "AEGS",
-  "fleetyardsSlug": "aegs-avenger-titan-renegade",
+  "modelKey": "aegs-avenger-titan-renegade",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.08, 0, 0.7713],

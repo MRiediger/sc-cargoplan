@@ -3,7 +3,7 @@
   "id": "mpuv_tractor",
   "name": "ARGO MPUV Tractor",
   "manufacturer": "ARGO",
-  "fleetyardsSlug": "argo-mpuv-tractor",
+  "modelKey": "argo-mpuv-tractor",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); crate minimums from Fleetyards limits.min.capacity",
   "holoOrigin": [0.7011, 0.0024, 0.741],

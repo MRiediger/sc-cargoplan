@@ -3,7 +3,7 @@
   "id": "m2_hercules",
   "name": "CRUS M2 Hercules",
   "manufacturer": "CRUS",
-  "fleetyardsSlug": "crus-m2-hercules",
+  "modelKey": "crus-m2-hercules",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.4, 0, 0.0748],

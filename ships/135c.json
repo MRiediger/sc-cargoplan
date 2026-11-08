@@ -3,7 +3,7 @@
   "id": "135c",
   "name": "ORIG 135c",
   "manufacturer": "ORIG",
-  "fleetyardsSlug": "orig-135c",
+  "modelKey": "orig-135c",
   "source": "Fleetyards API (CIG ship matrix), export 2026-10-22",
   "notes": "rack arrangement generated; grids from Fleetyards",
   "holoOrigin": [-1.502783203125, 0.5, -0.7242199897766115],

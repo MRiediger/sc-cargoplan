@@ -3,7 +3,7 @@
   "id": "vulture",
   "name": "DRAK Vulture",
   "manufacturer": "DRAK",
-  "fleetyardsSlug": "drak-vulture",
+  "modelKey": "drak-vulture",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.6244, 0.476, 0.116],

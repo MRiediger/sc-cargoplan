@@ -183,8 +183,12 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// <summary>The notice line when a hologram can't be shown (D63); one per run, from <see cref="HoloLoader"/>.</summary>
     public static string HoloNoticeText(string reason) => $"Ship hologram not available: {reason} – showing the outline";
 
+    /// <summary>The notice line after a hologram tag change (D95), with the reason if the old cache stays.</summary>
+    public static string HoloUpdateNoticeText(string? problem) =>
+        $"Ship holograms updated to match the new rack data – {problem ?? "each ship re-downloads when first shown"}";
+
     /// <summary>
-    /// The outlines loaded at the start (D55), matched to a ship by its Fleetyards slug. Set once by the composition root;
+    /// The outlines loaded at the start (D55), matched to a ship by its model key. Set once by the composition root;
     /// the scene built before it gets its marker here.
     /// </summary>
     public ShipOutlineCatalog Outlines

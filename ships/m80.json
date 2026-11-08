@@ -3,7 +3,7 @@
   "id": "m80",
   "name": "ORIG M80",
   "manufacturer": "ORIG",
-  "fleetyardsSlug": "orig-m80",
+  "modelKey": "orig-m80",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.7698, 0.5, 0.8072],

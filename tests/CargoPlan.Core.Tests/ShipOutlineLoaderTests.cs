@@ -15,7 +15,7 @@ public class ShipOutlineLoaderTests
     private static string TestFile(string name) => Path.Combine(AppContext.BaseDirectory, "TestOutlines", name);
 
     private static Ship WithSlug(string? slug) =>
-        new("test", "Test", 16, [new Rack("rack-0", 0, 16, new Dimensions(4, 2, 2), null, new ShipPoint(0, 0, 0))], FleetyardsSlug: slug);
+        new("test", "Test", 16, [new Rack("rack-0", 0, 16, new Dimensions(4, 2, 2), null, new ShipPoint(0, 0, 0))], ModelKey: slug);
 
     // --- The shipped file (outlines/ next to the test assembly) ---
 
@@ -33,10 +33,10 @@ public class ShipOutlineLoaderTests
     {
         var outlines = ShipOutlineLoader.Load();
 
-        // A ship without a Fleetyards slug has no outline to look up and shows the bow wedge (D62): the Cyclone (D92).
-        foreach (var ship in ShipLoader.LoadAll().Ships.Where(s => s.FleetyardsSlug is not null && !StruckSlugs.Contains(s.FleetyardsSlug) && !NotTracedYet.Contains(s.FleetyardsSlug)))
+        // A ship without a model key has no outline to look up and shows the bow wedge (D62): the Cyclone (D92).
+        foreach (var ship in ShipLoader.LoadAll().Ships.Where(s => s.ModelKey is not null && !StruckSlugs.Contains(s.ModelKey) && !NotTracedYet.Contains(s.ModelKey)))
         {
-            outlines.For(ship).Should().NotBeNull(because: $"{ship.Id} ({ship.FleetyardsSlug}) needs an outline or an entry in {nameof(StruckSlugs)}");
+            outlines.For(ship).Should().NotBeNull(because: $"{ship.Id} ({ship.ModelKey}) needs an outline or an entry in {nameof(StruckSlugs)}");
         }
     }
 
@@ -46,9 +46,9 @@ public class ShipOutlineLoaderTests
     {
         var outlines = ShipOutlineLoader.Load();
 
-        foreach (var ship in ShipLoader.LoadAll().Ships.Where(s => NotTracedYet.Contains(s.FleetyardsSlug)))
+        foreach (var ship in ShipLoader.LoadAll().Ships.Where(s => NotTracedYet.Contains(s.ModelKey)))
         {
-            outlines.For(ship).Should().BeNull(because: $"{ship.FleetyardsSlug} has an outline now, take it from {nameof(NotTracedYet)}");
+            outlines.For(ship).Should().BeNull(because: $"{ship.ModelKey} has an outline now, take it from {nameof(NotTracedYet)}");
         }
     }
 
@@ -103,7 +103,7 @@ public class ShipOutlineLoaderTests
     // --- Matching ---
 
     [Fact]
-    public void For_matches_by_fleetyards_slug()
+    public void For_matches_by_model_key()
     {
         var catalog = ShipOutlineLoader.Load(TestFile("mixed.json"));
 

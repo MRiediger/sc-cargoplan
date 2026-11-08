@@ -3,7 +3,7 @@
   "id": "cutter_scout",
   "name": "DRAK Cutter Scout",
   "manufacturer": "DRAK",
-  "fleetyardsSlug": "drak-cutter-scout",
+  "modelKey": "drak-cutter-scout",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.78, 0.22, 0.2],

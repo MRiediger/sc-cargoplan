@@ -1,14 +1,15 @@
 # Ship hologram format (SCH2)
 
 Ship holograms are an optional download for the ship view (see [D63](decisions.md)). They are not part of the
-repository or the app ZIP: each ship is one file `<fleetyardsSlug>.holo` in a GitHub release of its own (tag
+repository or the app ZIP: each ship is one file `<modelKey>.holo` in a GitHub release of its own (tag
 `holo-v2` since v0.3.0; `holo-v1` stays for v0.1 and v0.2), next to a `manifest.json`. The files derive from game
 models (CIG) and are not under the repository's MIT licence; the release's `NOTICE.md` says so. A pipeline outside
 this repository writes them ([Pipeline](#pipeline-holo-v2)).
 
-**Source (D93):** holo-v2 takes every ship's model from cryon.rocks (Motherlode), extracted from the game files, the
-same models the racks come from (D92). The three ships without a model there (135c, 600i Executive Edition, F7C
-Hornet Mk II) keep their holo-v1 file, derived from Fleetyards' hologram models, byte for byte.
+**Source (D93):** holo-v2 takes every ship's model from cryon.rocks (Motherlode): cargo grid data and ship models
+extracted from the Star Citizen game files, the same models the racks come from (D92). The three ships without a model
+there (135c, 600i Executive Edition, F7C Hornet Mk II) still use hull data from fleetyards.net: their holo-v1 file,
+derived from Fleetyards' hologram models, byte for byte (D94).
 
 ## File
 
@@ -111,8 +112,11 @@ How the overlay gets and uses the files (D63). The overlay's only network access
   (GitHub redirects to its asset host), User-Agent `SC-CargoPlan/<version>`, 5 s per request. Any 2xx answer is
   taken; a file is kept only if its length and SHA256 match the manifest. Nothing else is sent, no API, no token.
 - **Cache:** `%LocalAppData%\SC-CargoPlan\holo\holo-v2\`, one `<slug>.holo` per ship and the last `manifest.json`.
-  The tag names the folder, so a new release starts an empty one; the old folder stays on disk (cleaning it up is
-  open for session 4c).
+  The tag names the folder, so a new release starts an empty one. Only the current tag's folder stays (D95): another
+  `holo-v<n>` folder found at the start goes once the current manifest is checked (fetched, or cached and younger than
+  24 hours), before the first file downloads, and the overlay says once that the holograms download again; at once
+  when downloads are off or the look is no hologram. A manifest that can't be had leaves it, so the older app still
+  finds its cache. A folder that can't be deleted is named in the notice and tried again on the next start.
 - **Manifest:** a cached copy younger than 24 hours is used without a request; otherwise the app asks once per run,
   when it first needs a hologram. A manifest fetched now or within those 24 hours withdraws ships it doesn't list; an
   older one only stands in while the release can't be reached.

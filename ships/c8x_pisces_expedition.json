@@ -3,7 +3,7 @@
   "id": "c8x_pisces_expedition",
   "name": "ANVL C8X Pisces Expedition",
   "manufacturer": "ANVL",
-  "fleetyardsSlug": "anvl-c8x-pisces-expedition",
+  "modelKey": "anvl-c8x-pisces-expedition",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.5496, 0.5, 0.6],

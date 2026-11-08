@@ -360,7 +360,7 @@ public class ShipLoaderTests
         withModule.TotalScu.Should().Be(68);
         withModule.Racks.Select(r => r.Id).Should().Equal("rack-0", "rack-1", "rack-2", "rack-3", "module-0");
         withModule.Racks[^1].MaxCrateSize.Should().Be(CrateSize.Two);
-        (withModule.Manufacturer, withModule.FleetyardsSlug).Should().Be((hullA.Manufacturer, hullA.FleetyardsSlug), "outline and hologram are the base ship's");
+        (withModule.Manufacturer, withModule.ModelKey).Should().Be((hullA.Manufacturer, hullA.ModelKey), "outline and hologram are the base ship's");
         hullA.Racks.Should().HaveCount(4);
     }
 
@@ -861,7 +861,7 @@ public class ShipLoaderTests
         var ship = TestShips.Load("max_crate_size");
 
         ship.Racks.Select(r => r.MaxCrateSize).Should().Equal(CrateSize.Sixteen, null);
-        (ship.Manufacturer, ship.FleetyardsSlug, ship.Source, ship.Notes)
+        (ship.Manufacturer, ship.ModelKey, ship.Source, ship.Notes)
             .Should().Be(("RSI", "test-ship", "Fleetyards", "Rack 1 takes crates up to 16 SCU."));
     }
 
@@ -894,7 +894,54 @@ public class ShipLoaderTests
         var ship = TestShips.Load("spike_uneven");
 
         ship.Racks.Should().OnlyContain(r => r.MaxCrateSize == null);
-        new[] { ship.Manufacturer, ship.FleetyardsSlug, ship.Source, ship.Notes }.Should().OnlyContain(v => v == null);
+        new[] { ship.Manufacturer, ship.ModelKey, ship.Source, ship.Notes }.Should().OnlyContain(v => v == null);
+    }
+
+    // --- modelKey (D94): fleetyardsSlug, its name before v0.3.0, stays readable for files written by hand ---
+
+    [Fact]
+    public void Load_reads_the_model_key()
+    {
+        var catalog = Catalog(WithField(PlainShip(), "modelKey", "\"test-model\""));
+
+        catalog.Problems.Should().BeEmpty();
+        catalog.Get("b_ship").ModelKey.Should().Be("test-model");
+    }
+
+    // max_crate_size.json (schema 4) keeps the old name on purpose: Load_reads_max_crate_size_and_ship_metadata reads it too.
+    [Fact]
+    public void Load_reads_fleetyards_slug_as_the_model_key()
+    {
+        var catalog = Catalog(WithField(PlainShip(), "fleetyardsSlug", "\"test-model\""));
+
+        catalog.Problems.Should().BeEmpty();
+        catalog.Get("b_ship").ModelKey.Should().Be("test-model");
+    }
+
+    [Fact]
+    public void Model_key_and_fleetyards_slug_exclude_each_other()
+    {
+        var catalog = Catalog(WithField(WithField(PlainShip(), "modelKey", "\"test-model\""), "fleetyardsSlug", "\"test-model\""));
+
+        catalog.Problems.Should().ContainSingle().Which.Message.Should().Contain("modelKey and fleetyardsSlug");
+    }
+
+    [Theory]
+    [InlineData("modelKey")]
+    [InlineData("fleetyardsSlug")]
+    public void A_blank_model_key_names_its_field(string field)
+    {
+        var catalog = Catalog(WithField(PlainShip(), field, "\" \""));
+
+        catalog.Problems.Should().ContainSingle().Which.Message.Should().Contain($"{field} is empty");
+    }
+
+    [Fact]
+    public void No_shipped_file_uses_the_old_field_name()
+    {
+        ShipLoader.ListShips(ShipLoader.DefaultFolder)
+            .Where(id => File.ReadAllText(System.IO.Path.Combine(ShipLoader.DefaultFolder, id + ".json")).Contains("\"fleetyardsSlug\"", StringComparison.Ordinal))
+            .Should().BeEmpty();
     }
 
     // The 4×2×2 grid takes no crate above 16 SCU anyway; a limit would only repeat it (ship-format.md).
@@ -903,7 +950,7 @@ public class ShipLoaderTests
     {
         var ship = ShipLoader.Load("hull_a");
 
-        (ship.Manufacturer, ship.FleetyardsSlug).Should().Be(("MISC", "misc-hull-a"));
+        (ship.Manufacturer, ship.ModelKey).Should().Be(("MISC", "misc-hull-a"));
         ship.Source.Should().StartWith("cryon.rocks (Motherlode) ", "the racks come from the game files (D92)");
         ship.Racks.Should().OnlyContain(r => r.MaxCrateSize == null);
     }

@@ -3,7 +3,7 @@
   "id": "mercury_star_runner",
   "name": "CRUS Mercury Star Runner",
   "manufacturer": "CRUS",
-  "fleetyardsSlug": "crus-mercury-star-runner",
+  "modelKey": "crus-mercury-star-runner",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.1, 0.0756, 0.2],

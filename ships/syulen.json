@@ -3,7 +3,7 @@
   "id": "syulen",
   "name": "GAMA Syulen",
   "manufacturer": "GAMA",
-  "fleetyardsSlug": "gama-syulen",
+  "modelKey": "gama-syulen",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.0547, 0.5024, 0.9971],

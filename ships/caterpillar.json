@@ -3,7 +3,7 @@
   "id": "caterpillar",
   "name": "DRAK Caterpillar",
   "manufacturer": "DRAK",
-  "fleetyardsSlug": "drak-caterpillar",
+  "modelKey": "drak-caterpillar",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.9578, 0.4934, 0.17],

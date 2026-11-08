@@ -3,7 +3,7 @@
   "id": "carrack_expedition_w_c8x",
   "name": "ANVL Carrack Expedition w/C8X",
   "manufacturer": "ANVL",
-  "fleetyardsSlug": "anvl-carrack",
+  "modelKey": "anvl-carrack",
   "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
   "notes": "rack positions from game files (Motherlode); hologram and outline of the ANVL Carrack",
   "holoOrigin": [0.5982, 0, 0],
