@@ -125,7 +125,7 @@ public class MaxCrateDropdownTests
             Scu = new DataGridTextColumn { Header = "SCU", Binding = new Binding(nameof(MissionRow.Scu)) };
             _maxCrate = new DataGridComboBoxColumn
             {
-                Header = "Max crate",
+                Header = "Max size",
                 ItemsSource = MissionRows.MaxCrateSizes,
                 SelectedItemBinding = new Binding(nameof(MissionRow.MaxCrateSize)) { UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged },
             };

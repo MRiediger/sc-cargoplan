@@ -40,6 +40,10 @@ public static class MissionRows
     public const string CratesToolTipText =
         "Crates as the kiosk delivers them, e.g. 3x32+16 (count x size) or 32+32+32+16. Leave empty to derive them from SCU and max crate size.";
 
+    /// <summary>The header "Max size" is short for this (session 4d): the whole term where there is room.</summary>
+    public const string MaxCrateSizeToolTipText =
+        "Max crate size: the largest crate the contract allows (\"8 SCU or smaller\"). A new row takes the size of the row above.";
+
     /// <summary>The first row's max crate size: "4 SCU or smaller" is the most common entry-level contract (D23).</summary>
     public const int DefaultMaxCrateSize = 4;
 

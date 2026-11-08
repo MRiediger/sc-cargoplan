@@ -150,8 +150,15 @@
                             <DataGridTextColumn Header="Destination" Binding="{Binding Destination}" Width="2*" />
                             <DataGridTextColumn Header="Commodity" Binding="{Binding Commodity}" Width="2*" />
                             <DataGridTextColumn Header="SCU" Binding="{Binding Scu}" Width="*" />
-                            <DataGridComboBoxColumn Header="Max crate" ItemsSource="{x:Static ed:MissionRows.MaxCrateSizes}"
-                                                    SelectedItemBinding="{Binding MaxCrate}" Width="*" />
+                            <!-- As in the mission editor (4d): Fluent while editing, text when closed. -->
+                            <DataGridComboBoxColumn Header="Max size" ItemsSource="{x:Static ed:MissionRows.MaxCrateSizes}"
+                                                    SelectedItemBinding="{Binding MaxCrate}" Width="*" MinWidth="72">
+                                <DataGridComboBoxColumn.EditingElementStyle>
+                                    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                        <Setter Property="IsSynchronizedWithCurrentItem" Value="False" />
+                                    </Style>
+                                </DataGridComboBoxColumn.EditingElementStyle>
+                            </DataGridComboBoxColumn>
                             <DataGridTemplateColumn Header="Crates" Width="1.5*">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>

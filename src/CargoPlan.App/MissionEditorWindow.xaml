@@ -32,6 +32,16 @@
                 <Setter Property="Margin" Value="0,0,4,4" />
                 <Setter Property="Padding" Value="8,2" />
             </Style>
+            <!-- A header too long for its column breaks onto a second line instead of being cut; the header row grows (4d). -->
+            <Style x:Key="EditorColumnHeaderStyle" TargetType="DataGridColumnHeader" BasedOn="{StaticResource DefaultDataGridColumnHeaderStyle}">
+                <Setter Property="ContentTemplate">
+                    <Setter.Value>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" />
+                        </DataTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
         </DockPanel.Resources>
         <!-- Only shown: the ship is changed where its name is, in the overlay header (T7.2b, D59). -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8"
@@ -155,7 +165,8 @@
                   Sorting="OnSorting"
                   CanUserReorderColumns="False"
                   SelectionMode="Single"
-                  HeadersVisibility="Column">
+                  HeadersVisibility="Column"
+                  ColumnHeaderStyle="{StaticResource EditorColumnHeaderStyle}">
             <DataGrid.RowStyle>
                 <Style TargetType="DataGridRow" BasedOn="{StaticResource DefaultDataGridRowStyle}">
                     <Style.Triggers>
@@ -177,23 +188,43 @@
                 <DataGridTextColumn Header="Destination" Binding="{Binding Destination, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="Destination" Width="2*" />
                 <DataGridTextColumn Header="Commodity" Binding="{Binding Commodity, UpdateSourceTrigger=PropertyChanged}" CanUserSort="False" Width="2*" />
                 <DataGridTextColumn Header="SCU" Binding="{Binding Scu, UpdateSourceTrigger=PropertyChanged}" CanUserSort="False" Width="*" />
-                <DataGridComboBoxColumn Header="Max crate" CanUserSort="False"
+                <!-- "Max size", the whole term in the tool tip: "Max crate" was cut at the default width (4d).
+                     The column's default styles are plain Style(ComboBox) without BasedOn and pushed Fluent's implicit
+                     style aside, so the drop-down looked like WPF's default. The editing one is based on the implicit
+                     style, as the layout drop-downs below use it, with the default's one setter kept; no style of our
+                     own (A4). The closed cell keeps the default: text in the cell's colour. Fluent's combo box keeps
+                     38 px for its arrow, hence MinWidth, so the open box still shows "32".
+                     Source: dotnet/wpf, DataGridComboBoxColumn.cs (DefaultElementStyle, DefaultEditingElementStyle);
+                     PresentationFramework.Fluent/Styles/ComboBox.xaml (arrow column) -->
+                <DataGridComboBoxColumn Header="Max size" CanUserSort="False"
                                         ItemsSource="{x:Static ed:MissionRows.MaxCrateSizes}"
                                         SelectedItemBinding="{Binding MaxCrateSize, UpdateSourceTrigger=PropertyChanged}"
-                                        Width="*" />
+                                        Width="*" MinWidth="72">
+                    <DataGridComboBoxColumn.HeaderStyle>
+                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource EditorColumnHeaderStyle}">
+                            <Setter Property="ToolTip" Value="{x:Static ed:MissionRows.MaxCrateSizeToolTipText}" />
+                        </Style>
+                    </DataGridComboBoxColumn.HeaderStyle>
+                    <DataGridComboBoxColumn.EditingElementStyle>
+                        <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                            <Setter Property="IsSynchronizedWithCurrentItem" Value="False" />
+                        </Style>
+                    </DataGridComboBoxColumn.EditingElementStyle>
+                </DataGridComboBoxColumn>
                 <!-- Shows the crates derived from SCU and max (D23), or the ones typed by hand in italics. Editing starts
                      empty for a derived row, so clicking in and out never turns the derivation into an override;
                      an empty box means "derive again". FocusManager puts the caret into the box when editing starts.
                      Source: https://learn.microsoft.com/dotnet/api/system.windows.input.focusmanager.focusedelement -->
                 <DataGridTemplateColumn Header="Crates" CanUserSort="False" Width="1.5*">
                     <DataGridTemplateColumn.HeaderStyle>
-                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource DefaultDataGridColumnHeaderStyle}">
+                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource EditorColumnHeaderStyle}">
                             <Setter Property="ToolTip" Value="{x:Static ed:MissionRows.CratesToolTipText}" />
                         </Style>
                     </DataGridTemplateColumn.HeaderStyle>
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate DataType="ed:MissionRow">
-                            <TextBlock Text="{Binding CratesText}" ToolTip="{x:Static ed:MissionRows.CratesToolTipText}">
+                            <!-- Wraps a long mix: WPF breaks before a "+", never inside a number (4d). -->
+                            <TextBlock Text="{Binding CratesText}" ToolTip="{x:Static ed:MissionRows.CratesToolTipText}" TextWrapping="Wrap">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Style.Triggers>

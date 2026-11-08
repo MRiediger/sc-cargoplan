@@ -44,12 +44,12 @@ Preferences · `ships` Ships-and-cargo-grids · `ct` ContractTracker-integration
 
 ## The test plan
 
-| Stop | Destination | Commodity | SCU | Max crate | Crates | Rack |
+| Stop | Destination | Commodity | SCU | Max size | Crates | Rack |
 |---|---|---|---|---|---|---|
-| 1 | Everus Harbor | Titanium | 12 | 4 | 4+4+4 | 1 |
+| 1 | Everus Harbor | Titanium | 12 | 4 | 3×4 | 1 |
 | 1 | Everus Harbor | Stims | 3 | 2 | 2+1 | 1 |
-| 2 | HDMS-Edmond | Agricium | 8 | 4 | 4+4 | 2 |
-| 3 | HDMS-Thedus | Quartz | 6 | 4 | 2+2+2 (typed, italic) | 3 |
+| 2 | HDMS-Edmond | Agricium | 8 | 4 | 2×4 | 2 |
+| 3 | HDMS-Thedus | Quartz | 6 | 4 | 3×2 (typed as 2+2+2, italic) | 3 |
 
 Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays empty for drags.
 

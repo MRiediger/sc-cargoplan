@@ -4647,18 +4647,28 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
   - `CrateMix.Format`/`Parse` in Core, Round-Trip
   - Legende unverändert
   - D96, Nachträge D23 und D69
-- [x] `dotnet build` ohne Warnung, `dotnet test` (App 1655, Import 164, Core 1819) und `Slow` grün
+- [x] `dotnet build` ohne Warnung, `dotnet test` (App 1655, Import 164, Core 1819; nach dem Nachtrag App 1659) und `Slow` grün
 - [ ] Gate Martin (Publish-Build):
   - Pfad 1 und 2 aus #22: Das Dropdown ändert den Wert, die Kistenliste rechnet neu.
   - Sync mit einem „8 SCU or smaller“-Vertrag ergibt max 8 ohne „?“.
   - Die Kistenliste ist gruppiert in Editor und Legende.
   - `2x32+16` (SCU 80) eingetippt wird akzeptiert und erscheint als `2×32+16`.
-  - **Spaltenbreite:** `6×32+16+4+2+1` braucht 108 px (Segoe UI 14), das alte Format 214 px. Die Crates-Spalte ist bei 660 px Fensterbreite geschätzt um 80 px breit. Wird es abgeschnitten, kommt eine `MinWidth` in Frage. Das entscheidet Martin.
+  - **Spaltenbreite:** `6×32+16+4+2+1` braucht 108 px (Segoe UI 14), das alte Format 214 px. Erledigt durch den Nachtrag: Die Zelle bricht um, eine `MinWidth` für Crates ist nicht nötig.
+  - Befund am Gate (08.11.): drei UI-Anpassungen, siehe Nachtrag.
+- [x] **Nachtrag nach dem Gate** (UI, kein Verhalten; D36-Nachtrag):
+  - Spaltenköpfe brechen um statt abgeschnitten zu werden (`EditorColumnHeaderStyle`), auch der eigene Kopf-Style der Crates-Spalte.
+  - „Max crate“ heißt **„Max size“** (Kurzform von Martin), der Tooltip nennt den ganzen Begriff. Mit `MinWidth="72"` passt der Kopf auf eine Zeile.
+  - Die Crates-Zelle bricht um, WPF trennt vor dem `+`: `6×32+16+4+2` / `+1`. Bearbeitet wird einzeilig.
+  - Max-size-Dropdown: Die offene Combo und ihre Liste nutzen den impliziten Fluent-Style wie die Layout-Dropdowns, die geschlossene Zelle bleibt Text in der Zellfarbe. Ursache: `DataGridComboBoxColumn` setzt Styles ohne `BasedOn`.
+  - Variante B, von Martin am Bild gewählt (light und dark, vorher, Variante A, Variante B). Variante A (beide Styles Fluent) schnitt jede geschlossene Zelle ab, weil Fluent 38 px für den Pfeil freihält. *Präzisierung in der Planphase, ratifiziert durch Freigabe.*
+  - Tests zuerst rot (6 Wächter in `MissionEditorXamlTests`); Theme-Beispiel, B8-Testnachbau und `docs/shots/SHOTLIST.md` mitgezogen.
+  - **Kein eigener `ToolComboBoxStyle` (A4).** Auslöser, ihn auszuziehen: der erste eigene Setter an den Layout-Dropdowns.
 - [ ] Dank an Reikal in #22 und #21 (Martin postet, Text liegt im Chat)
 - [ ] Merge `--no-ff` nach Martins Abnahme, Martin pusht. Danach Release-Session fortsetzen: Notes um 4d ergänzen, R1-Diff und Wiki (Editor-Seite: Kistenformat und beide Eingabeformen) nachziehen.
 
 **Material für Release-Notes v0.3.0:**
-- Max crate drop-down in the mission editor works again (#22, thanks Reikal).
+- The max crate size drop-down in the mission editor works again and matches the light or dark theme; the column is now called "Max size" (#22, thanks Reikal).
+- Long column headers and crate lists wrap in the mission editor instead of being cut off.
 - Contracts that say "N SCU or smaller" are parsed: their max crate size is read, no more "max 32 SCU?" (#22).
 - Crate lists show grouped, e.g. 6×32+16+4+2+1 instead of every crate (#21, thanks Reikal). You can type either form into the Crates column: 2x32+16 or 32+32+16.
 
