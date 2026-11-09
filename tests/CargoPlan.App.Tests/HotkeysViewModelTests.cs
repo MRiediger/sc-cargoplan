@@ -352,9 +352,11 @@ public sealed class HotkeysViewModelTests
     }
 
     [Fact]
-    public void The_hint_warns_about_windows_combinations()
+    public void The_hint_says_when_hotkeys_work_and_that_the_keys_reach_the_game_and_windows()
     {
-        HotkeysViewModel.Hint.Should().Contain("Ctrl, Alt or Win required").And.Contain("Win combinations may be taken by Windows itself");
+        HotkeysViewModel.Hint.Should().Contain("Ctrl, Alt or Win required")
+            .And.Contain("Star Citizen or CargoPlan is in front")
+            .And.Contain("reach the game and Windows too");
     }
 
     [Fact]

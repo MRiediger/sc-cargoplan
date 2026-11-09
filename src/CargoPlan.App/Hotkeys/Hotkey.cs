@@ -1,6 +1,9 @@
 namespace CargoPlan.App.Hotkeys;
 
-/// <summary>The fsModifiers values of RegisterHotKey, so a parsed hotkey goes to Win32 unchanged.</summary>
+/// <summary>
+/// Modifiers of a hotkey. The values are RegisterHotKey's fsModifiers from before D97; settings.json stores the text
+/// ("Ctrl+Alt+L"), so they never leave the process.
+/// </summary>
 // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey
 [Flags]
 public enum HotkeyModifiers : uint
@@ -10,7 +13,7 @@ public enum HotkeyModifiers : uint
     Control = 0x0002,  // MOD_CONTROL
     Shift = 0x0004,    // MOD_SHIFT
     Win = 0x0008,      // MOD_WIN
-    NoRepeat = 0x4000, // MOD_NOREPEAT: holding the keys fires once, not once per auto-repeat
+    NoRepeat = 0x4000, // MOD_NOREPEAT; no effect since D97, the poller fires on the press only. Kept so parsed hotkeys stay equal.
 }
 
 /// <summary>
@@ -44,7 +47,7 @@ public enum HotkeyAction
     ResetView,
 }
 
-/// <summary>A key combination as RegisterHotKey takes it. Built by <see cref="HotkeyParser"/>.</summary>
+/// <summary>A key combination: modifiers plus one key. Built by <see cref="HotkeyParser"/>, polled by <see cref="HotkeyPoller"/>.</summary>
 /// <param name="VirtualKey">Win32 virtual-key code.</param>
 public sealed record Hotkey(HotkeyModifiers Modifiers, uint VirtualKey)
 {

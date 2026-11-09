@@ -5,19 +5,18 @@ namespace CargoPlan.App.ViewModels;
 
 /// <summary>
 /// The Hotkeys section of the settings window (T4.4, D35): every action, so one can refuse another's combination by
-/// name before Windows would. Still no defaults (D17); the sync came with T5.5 (D44), the re-plan with B4 (D66), the
-/// discard with K2.3.
+/// name. Still no defaults (D17); the sync came with T5.5 (D44), the re-plan with B4 (D66), the discard with K2.3.
 /// </summary>
 public sealed class HotkeysViewModel
 {
-    public const string Hint = "Ctrl, Alt or Win required. Win combinations may be taken by Windows itself. Pick keys Star Citizen doesn't use.";
+    public const string Hint = "Ctrl, Alt or Win required. Hotkeys work while Star Citizen or CargoPlan is in front. The keys reach the game and Windows too, so pick ones neither uses.";
 
     private readonly Func<HotkeyAction, Hotkey?, string?> _set;
 
     /// <param name="settings">As the session holds them; null = none set.</param>
-    /// <param name="set">Registers the hotkey and saves it, or returns why not (another program has it); null clears.</param>
-    /// <param name="suspend">Frees our registered hotkeys while a combination is recorded.</param>
-    /// <param name="resume">Registers them again.</param>
+    /// <param name="set">Sets the hotkey and saves it, or returns why not; null clears.</param>
+    /// <param name="suspend">Stops our hotkeys while a combination is recorded.</param>
+    /// <param name="resume">Lets them fire again.</param>
     public HotkeysViewModel(HotkeySettings? settings, Func<HotkeyAction, Hotkey?, string?> set, Action suspend, Action resume)
     {
         _set = set;

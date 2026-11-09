@@ -38,6 +38,15 @@ public sealed class AppLogTests : IDisposable
     }
 
     [Fact]
+    public void A_text_entry_is_one_line_with_the_context()
+    {
+        AppLog.WriteTo(LogPath, "Hotkey", "Ctrl+Alt+L → toggleLock");
+
+        var lines = File.ReadAllLines(LogPath);
+        lines.Should().ContainSingle().Which.Should().EndWith(" Hotkey: Ctrl+Alt+L → toggleLock");
+    }
+
+    [Fact]
     public void A_full_log_moves_to_the_older_file()
     {
         File.WriteAllText(LogPath, new string('x', (int)AppLog.MaxBytes));

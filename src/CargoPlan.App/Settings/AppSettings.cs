@@ -157,8 +157,8 @@ public sealed record LegendSettings(bool Visible = true, string Position = "bott
 }
 
 /// <summary>
-/// Global hotkeys as text, e.g. "Ctrl+Alt+L" (<see cref="Hotkeys.HotkeyParser"/>). No defaults: a registered hotkey
-/// takes its keys from every program, Star Citizen included, so only the player picks them (D17).
+/// Global hotkeys as text, e.g. "Ctrl+Alt+L" (<see cref="Hotkeys.HotkeyParser"/>). No defaults: a polled hotkey's keys
+/// reach Star Citizen too, so only the player picks them, knowing their own bindings (D17, D97).
 /// </summary>
 /// <param name="ToggleLock">Switches the manual lock, like the padlock.</param>
 /// <param name="ToggleOverlay">Hides the overlay and shows it again.</param>
