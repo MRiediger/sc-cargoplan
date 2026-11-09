@@ -4958,10 +4958,12 @@ und Review F24 auf D99 umgestellt.
 
 Rohdaten, Stacks und Dumps lokal unter `out/b11/` (nicht im Repo).
 
-**Nebenbefund (nicht B11):** 2 der 20 Nachher-Läufe mit je einem roten Log-Test
-(`PlanStoreTests`/`SettingsStoreTests.Broken_file_writes_its_notice_to_the_log`): `TestLog.Text()` liest mit
-`File.ReadAllText` außerhalb des `lock` von `AppLog`; ein paralleler Schreiber lässt das Lesen werfen (`IOException`) oder
-verliert seine Zeile (`AppLog` schluckt bewusst). Seit K10-F9, Backlog.
+**Nebenbefund, auf Martins Wunsch im selben Branch behoben:** 2 der 20 Nachher-Läufe mit je einem roten Log-Test
+(`PlanStoreTests`/`SettingsStoreTests.Broken_file_writes_its_notice_to_the_log`): `TestLog.Text()` las mit
+`File.ReadAllText` (`FileShare.Read`) außerhalb des `lock` von `AppLog`; ein paralleler Schreiber ließ das Lesen werfen
+(`IOException`) oder verlor seine Zeile (`AppLog` schluckt bewusst). Seit K10-F9. Jetzt liest `TestLog.Text()` mit
+`FileShare.ReadWrite` (die Rotation bei 1 MB bliebe blockiert, ein Testlauf schreibt höchstens 23 KB): **20 von 20 Läufen
+grün**, App-Dauer 3,58 s (TRX-Median).
 
 ## Phase 10 – OCR (v0.4.0)
 
@@ -5317,9 +5319,6 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   die CI-Laufzeit stört.
 - `HoloLoaderTests.WaitFor` (Review F21): Polling 200 × 10 ms (2 s Deckel), einziger zeitabhängiger Test im Default-Run.
   Auslöser: der erste rote Lauf auf einem Runner (Lehre T7.1d).
-- `TestLog.Text()` gegen parallele `AppLog`-Schreiber (B11-Nebenbefund): 2 von 20 lokalen App-Läufen rot
-  (`*.Broken_file_writes_its_notice_to_the_log`), Lesen außerhalb des `AppLog`-Locks. Kandidat: lesen mit
-  `FileShare.ReadWrite` (nur Testcode). Auslöser: der erste rote Lauf in CI oder ein weiterer Log-Test in Phase 10.
 - Lange Methoden im Planer (Review F22): `CrateLayout.Apart` (192 Z.), `LoadPlanner.LayStop` (106 Z.); `App.OnStartup`
   schneidet T10.1. Auslöser: die nächste inhaltliche Änderung an einer der beiden.
 - Schiffs-Schema 4 nicht mehr lesen (Review F6): v0.1.0 lieferte 5, Community-Dateien sind 5 oder 6. 23 `TestShips` und

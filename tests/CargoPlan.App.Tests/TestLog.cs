@@ -19,6 +19,21 @@ internal static class TestLog
     internal static void Redirect() => AppLog.Path = Path;
 #pragma warning restore CA2255
 
-    /// <summary>The log's text so far; empty before the first entry.</summary>
-    public static string Text() => File.Exists(Path) ? File.ReadAllText(Path) : "";
+    /// <summary>
+    /// The log's text so far; empty before the first entry. Read with FileShare.ReadWrite (B11): a parallel test may be
+    /// appending under AppLog's lock, and File.ReadAllText (FileShare.Read) made either the read or that write fail.
+    /// AppLog's move at MaxBytes would still fail during a read; a test run writes about 25 KB.
+    /// Source: https://learn.microsoft.com/dotnet/api/system.io.fileshare
+    /// </summary>
+    public static string Text()
+    {
+        if (!File.Exists(Path))
+        {
+            return "";
+        }
+
+        using FileStream stream = new(Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using StreamReader reader = new(stream);
+        return reader.ReadToEnd();
+    }
 }
