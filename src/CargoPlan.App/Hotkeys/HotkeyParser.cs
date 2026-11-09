@@ -19,8 +19,8 @@ public static class HotkeyParser
         ("Win", HotkeyModifiers.Win),
     ];
 
-    // Ctrl, Alt or Win must be part of it: a bare key or Shift+key (a capital letter) would be taken from every
-    // program, including Star Citizen's chat.
+    // Ctrl, Alt or Win must be part of it: a polled key reaches the game too (D97), so a bare key or Shift+key (a capital
+    // letter) would fire while typing in Star Citizen's chat.
     private const HotkeyModifiers RequiredModifiers = HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.Win;
 
     // Source: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
@@ -39,11 +39,17 @@ public static class HotkeyParser
     private const uint VK_SCROLL = 0x91;
     private const int FunctionKeyCount = 24;
 
-    // "The F12 key is reserved for use by the debugger at all times, so it should not be registered as a hot key."
-    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey (Remarks)
-    private const string ReservedKey = "F12";
-
-    private const string ReservedReason = $"{ReservedKey} is reserved for debuggers by Windows";
+    /// <summary>
+    /// Keys refused with a reason of their own, typed or pressed. F12: "The F12 key is reserved for use by the debugger at
+    /// all times" (source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey, Remarks).
+    /// Space (D35 addendum, D97): a core Star Citizen key the polled hotkey can't take from the game, and Alt+Space opens
+    /// the window menu. Esc needs no entry: it cancels the recording and isn't in the key table.
+    /// </summary>
+    private static readonly Dictionary<uint, (string Name, string Reason)> ReservedKeys = new()
+    {
+        [VK_F12] = ("F12", "F12 is reserved for debuggers by Windows"),
+        [VK_SPACE] = ("Space", "Space is reserved: it is a core Star Citizen key, and Alt+Space opens the window menu"),
+    };
 
     /// <summary>Canonical key name → virtual-key code; lookup ignores case.</summary>
     private static readonly Dictionary<string, uint> Keys = BuildKeys();
@@ -69,12 +75,12 @@ public static class HotkeyParser
 
     /// <summary>
     /// Keys pressed in the settings window (T4.4): the same checks as <see cref="TryParse"/>, in the same order, with the
-    /// same reasons, so Shift+L and F12 are refused alike whether typed or pressed.
+    /// same reasons, so Shift+L, F12 and Space are refused alike whether typed or pressed.
     /// </summary>
     /// <param name="modifiers">NoRepeat is ignored; every hotkey gets it.</param>
     public static bool TryCreate(HotkeyModifiers modifiers, uint virtualKey, [NotNullWhen(true)] out Hotkey? hotkey, [NotNullWhen(false)] out string? error)
     {
-        var (reason, created) = virtualKey == VK_F12 ? (ReservedReason, null)
+        var (reason, created) = ReservedKeys.TryGetValue(virtualKey, out var reserved) ? (reserved.Reason, null)
             : !KeyNames.ContainsKey(virtualKey) ? (UnknownKeyReason(null), null)
             : Check(modifiers & ~HotkeyModifiers.NoRepeat, virtualKey);
         if (created is not null)
@@ -127,9 +133,9 @@ public static class HotkeyParser
             return ("there is no key after the modifiers", null);
         }
 
-        if (key.Equals(ReservedKey, StringComparison.OrdinalIgnoreCase))
+        if (ReservedKeys.Values.FirstOrDefault(r => key.Equals(r.Name, StringComparison.OrdinalIgnoreCase)).Reason is { } reservedReason)
         {
-            return (ReservedReason, null);
+            return (reservedReason, null);
         }
 
         if (!Keys.TryGetValue(key, out var virtualKey))
@@ -142,7 +148,7 @@ public static class HotkeyParser
 
     /// <param name="key">As typed; null for a pressed key, which has no name of ours.</param>
     private static string UnknownKeyReason(string? key) =>
-        $"unknown key{(key is null ? "" : $" \"{key}\"")} (use A-Z, 0-9, F1-F24, Space, Pause, ScrollLock, Insert, Delete, Home, End, PageUp, PageDown)";
+        $"unknown key{(key is null ? "" : $" \"{key}\"")} (use A-Z, 0-9, F1-F11, F13-F24, Pause, ScrollLock, Insert, Delete, Home, End, PageUp, PageDown)";
 
     /// <summary>The rule both ways share once the key is known: Ctrl, Alt or Win must be part of it.</summary>
     private static (string? Error, Hotkey? Hotkey) Check(HotkeyModifiers modifiers, uint virtualKey) =>
@@ -193,7 +199,11 @@ public static class HotkeyParser
             keys[$"F{i + 1}"] = VK_F1 + i;
         }
 
-        keys.Remove(ReservedKey);
+        foreach (var (name, _) in ReservedKeys.Values)
+        {
+            keys.Remove(name);
+        }
+
         return keys;
     }
 }

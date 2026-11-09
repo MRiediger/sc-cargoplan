@@ -5,8 +5,9 @@ using System.IO;
 namespace CargoPlan.App;
 
 /// <summary>
-/// The overlay's log of failures it survived or died of (D82): cargoplan.log next to settings.json, for a bug report.
-/// Append only; a full log moves to cargoplan.log.1, one older file is enough to see what led up to a crash.
+/// The overlay's log of failures it survived or died of (D82), and of every hotkey that fired (D97): cargoplan.log next
+/// to settings.json, for a bug report. Append only; a full log moves to cargoplan.log.1, one older file is enough to see
+/// what led up to a crash.
 /// </summary>
 public static class AppLog
 {
@@ -23,9 +24,19 @@ public static class AppLog
     /// One entry: UTC time, context and the whole exception (type, message, inner exceptions, stack traces). Never throws:
     /// it runs in the sync's catch and in the crash handler, where a failing log would take the overlay down with it.
     /// </summary>
-    public static void WriteTo(string path, string context, Exception error)
+    public static void WriteTo(string path, string context, Exception error) => Append(
+        path, $"{Now()} {context}{Environment.NewLine}{error}{Environment.NewLine}{Environment.NewLine}");
+
+    public static void Write(string context, string message) => WriteTo(Path, context, message);
+
+    /// <summary>One line: UTC time, context and message, e.g. a hotkey that fired. Never throws, like an exception entry.</summary>
+    public static void WriteTo(string path, string context, string message) => Append(
+        path, $"{Now()} {context}: {message}{Environment.NewLine}");
+
+    private static string Now() => DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture);
+
+    private static void Append(string path, string entry)
     {
-        var entry = $"{DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture)} {context}{Environment.NewLine}{error}{Environment.NewLine}{Environment.NewLine}";
         try
         {
             Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);

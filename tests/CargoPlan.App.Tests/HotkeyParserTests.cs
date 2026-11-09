@@ -38,7 +38,7 @@ public class HotkeyParserTests
     [Theory]
     [InlineData("alt+ctrl+l", "Ctrl+Alt+L")]
     [InlineData("win+shift+f5", "Shift+Win+F5")]
-    [InlineData("ctrl+space", "Ctrl+Space")]
+    [InlineData("ctrl+insert", "Ctrl+Insert")]
     [InlineData("alt+scrolllock", "Alt+ScrollLock")]
     [InlineData("Ctrl+Alt+Shift+Win+7", "Ctrl+Alt+Shift+Win+7")]
     public void ToString_is_canonical_without_NoRepeat(string text, string expected)
@@ -67,7 +67,6 @@ public class HotkeyParserTests
     [InlineData("Ctrl+F11", 0x7Au)]
     [InlineData("Ctrl+F13", 0x7Cu)]
     [InlineData("Ctrl+F24", 0x87u)]
-    [InlineData("Ctrl+Space", 0x20u)]
     [InlineData("Ctrl+Pause", 0x13u)]
     [InlineData("Ctrl+ScrollLock", 0x91u)]
     [InlineData("Ctrl+Insert", 0x2Du)]
@@ -94,6 +93,8 @@ public class HotkeyParserTests
     [InlineData("Ctrl+L+K", "one key")]
     [InlineData("Ctrl++L", "empty part")]
     [InlineData("Ctrl+F12", "reserved")]
+    [InlineData("Ctrl+Space", "reserved")]
+    [InlineData("alt+space", "reserved")]
     public void Rejects_invalid_text_with_a_reason(string text, string reasonPart)
     {
         HotkeyParser.TryParse(text, out var hotkey, out var error).Should().BeFalse();
@@ -107,6 +108,7 @@ public class HotkeyParserTests
     private const uint VK_L = 0x4C;
     private const uint VK_F5 = 0x74;
     private const uint VK_F12 = 0x7B;
+    private const uint VK_SPACE = 0x20;
     private const uint VK_OEM_COMMA = 0xBC;
     private const uint VK_CONTROL = 0x11;
 
@@ -123,6 +125,7 @@ public class HotkeyParserTests
     [InlineData(HotkeyModifiers.Shift, VK_L, "needs Ctrl, Alt or Win")]
     [InlineData(HotkeyModifiers.None, VK_F5, "needs Ctrl, Alt or Win")]
     [InlineData(HotkeyModifiers.Control, VK_F12, "reserved")]
+    [InlineData(HotkeyModifiers.Control, VK_SPACE, "reserved")]
     [InlineData(HotkeyModifiers.Control, VK_OEM_COMMA, "unknown key")]
     [InlineData(HotkeyModifiers.Control, VK_CONTROL, "unknown key")]
     public void Rejects_recorded_keys_with_the_reasons_of_typed_text(HotkeyModifiers modifiers, uint virtualKey, string reasonPart)
@@ -138,6 +141,15 @@ public class HotkeyParserTests
     {
         HotkeyParser.TryParse("Shift+L", out _, out var typed);
         HotkeyParser.TryCreate(HotkeyModifiers.Shift, VK_L, out _, out var recorded);
+
+        recorded.Should().Be(typed);
+    }
+
+    [Fact]
+    public void Space_is_rejected_with_the_same_reason_typed_and_recorded()
+    {
+        HotkeyParser.TryParse("Ctrl+Space", out _, out var typed);
+        HotkeyParser.TryCreate(HotkeyModifiers.Control, VK_SPACE, out _, out var recorded);
 
         recorded.Should().Be(typed);
     }
