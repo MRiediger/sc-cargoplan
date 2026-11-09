@@ -3,6 +3,9 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <IsPackable>false</IsPackable>
+    <!-- Keeps the hand run over the real OCR captures (Slow) out of the default run and CI (T10.1a).
+         https://learn.microsoft.com/visualstudio/test/configure-unit-tests-by-using-a-dot-runsettings-file#set-a-build-property -->
+    <RunSettingsFilePath>$(MSBuildProjectDirectory)\default.runsettings</RunSettingsFilePath>
   </PropertyGroup>
 
   <ItemGroup>
@@ -20,6 +23,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CargoPlan.Import\CargoPlan.Import.csproj" />
+    <!-- OcrSampleTests: real captures → OCR → the (internal) parser, by hand only. -->
+    <ProjectReference Include="..\..\src\CargoPlan.Ocr\CargoPlan.Ocr.csproj" />
   </ItemGroup>
 
   <!-- Raw OCR texts of real captures (D38 addendum), the fingerprint schema and real plan files, read via ImportFixtures. -->

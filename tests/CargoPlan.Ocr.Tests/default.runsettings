@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default run of the OCR tests: "Timing" reads one real capture 100 times and logs the memory per read (T10.1a, an early
+  signal for the T10.1b plateau gate); "Slow" reads the real captures. Both need the samples outside the repo
+  (CARGOPLAN_OCR_SAMPLES, CIG material, not MIT) and run by hand only, see CLAUDE.md, Befehle.
+  RunConfiguration/TestCaseFilter: https://learn.microsoft.com/visualstudio/test/configure-unit-tests-by-using-a-dot-runsettings-file
+-->
+<RunSettings>
+  <RunConfiguration>
+    <TestCaseFilter>Category!=Timing&amp;Category!=Slow</TestCaseFilter>
+  </RunConfiguration>
+</RunSettings>

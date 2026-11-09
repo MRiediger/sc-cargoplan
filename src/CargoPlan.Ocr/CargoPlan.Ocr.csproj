@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Pure image processing: region, preprocessing, OCR, reading order (T10.1a, D99). No Windows API here: capturing the
+       game window is Win32 and lives in the App (App/Win32), so this project stays net10.0 and the Cli can read a PNG. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <!-- RapidOcrNet (Apache-2.0) runs PP-OCRv5 on ONNX Runtime and SkiaSharp. ONNX Runtime is referenced explicitly because
+       S10.0 measured 1.31.1 (RapidOcrNet asks for >= 1.29.0). SkiaSharp stays transitive: RapidOcrNet is built against
+       3.x, a direct reference would let Dependabot move it to 4.x underneath. -->
+  <ItemGroup>
+    <PackageReference Include="RapidOcrNet" Version="4.2.0" GeneratePathProperty="true" ExcludeAssets="build" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.31.1" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <!-- The models ship inside the RapidOcrNet package. Its own copy target (build/RapidOcrNet.targets) is not
+       buildTransitive and reaches only this project's output, so it is excluded above and the models are copied as None
+       items instead: these flow to every exe and test that references this project and into the publish folder, like
+       ships/ (D56). The licence note goes next to them (not MIT, like outlines/NOTICE.md).
+       GeneratePathProperty: https://learn.microsoft.com/nuget/consume-packages/package-references-in-project-files#generatepathproperty -->
+  <ItemGroup>
+    <None Include="$(PkgRapidOcrNet)\models\v5\*" Link="models\v5\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
+    <None Include="NOTICE.md" Link="models\NOTICE.md" CopyToOutputDirectory="IfDifferent" />
+    <None Include="$(PkgMicrosoft_ML_OnnxRuntime)\ThirdPartyNotices.txt" Link="models\onnxruntime-ThirdPartyNotices.txt" CopyToOutputDirectory="IfDifferent" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="CargoPlan.Ocr.Tests" />
+  </ItemGroup>
+
+</Project>

@@ -5118,12 +5118,33 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
 - `ScreenCapture` per GDI `BitBlt` (S10.0 G1).
 - Relatives 16:9-Center-ROI für alle Seitenverhältnisse (S10.0, Anker entfallen).
 - RapidOcrNet mit Vorverarbeitung **up2-gray** als Konstante, ONNX-Session einmal pro Prozess vorgewärmt.
-- `IContractSource` mit einer Implementierung `ScanContractSource`.
+- `ScanContractSource` als Klasse, Tests direkt gegen sie – kein Interface mit einer Implementierung (A4, Review 2026-11-pre-p10 6.1 Frage 3).
+- **F22 (Review):** `App.OnStartup` (152 Zeilen) vor der OCR-Verdrahtung in `Compose*`-Methoden schneiden – reine Umstellung ohne Verhaltensänderung, eigener Commit, damit der Diff lesbar bleibt.
 - **Gates:**
   - p95 Hotkey → geparster Vertrag ≤ 1500 ms **über dem Spiel** mit up2-gray und Parallelität 8 (im Spike nur offline gemessen)
   - **100 Scans, das Working Set muss ein Plateau erreichen** (Spike: Working Set 407 → 684 MB, Private Bytes bis 802 MB in 20 Scans ohne Plateau = Leak)
   - Frame-Zeit über dem Spiel unverändert
 - Hier entstehen die NOTICE-Datei (RapidOcrNet, PP-OCRv5-Modelle, ONNX Runtime, SkiaSharp, Clipper2) und D99 „Contracts are read by CargoPlan's own OCR; the ContractTracker import is removed“.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. **Teilung:** T10.1a = reine Bildverarbeitung, offline testbar (Gate 4). T10.1b = alles, was SC laufen haben muss (F22, Capture, Verdrahtung, `--scan-probe`, Gates 1–3), eigener Branch `feat/t10-1b-capture`. a wird nach Abnahme sofort `--no-ff` nach `main` gemergt; T10.2 kann nach a starten, T10.3 braucht b.
+2. **Trennlinie:** `CargoPlan.Ocr` ist `net10.0` ohne Windows-API (ROI, Vorverarbeitung, OCR, Zeilenbildung, `ScanContractSource.Read(SKBitmap)`). `ScreenCapture` und die Fenstersuche liegen in `src/CargoPlan.App/Win32/` neben der bestehenden `NativeMethods`. Die Cli bleibt `net10.0`.
+3. Ocr ohne Core-Referenz (A4), bis T10.2 sie braucht.
+4. Modelle aus dem RapidOcrNet-Paket als `None`-Items (`ExcludeAssets="build"`, das Paket-Target greift nicht transitiv) nach `models/v5/` neben der Exe; NOTICE als `models/NOTICE.md`.
+5. ONNX Runtime 1.31.1 explizit referenziert (Spike-Stand), SkiaSharp nur transitiv (3.119.1; RapidOcrNet ist gegen 3.x gebaut).
+6. Zeilenbildung: Blöcke einer Bildschirmzeile werden je Spalte links → rechts mit Leerzeichen zu einer Textzeile verbunden (`DeliveryLine` ist auf eine Zeile verankert).
+7. `CargoPlan.Import.Tests` bekommt `default.runsettings` (`Category!=Slow&Category!=Timing`); der Hand-Test mit dem Parser liegt dort.
+8. Dieser Textfix kam nach dem Plan statt davor (Plan Mode).
+
+- [x] **T10.1a** Ocr-Projekt, ROI, up2-gray, OCR, Zeilenbildung, CLI `scan <png>`, NOTICE, D99 – Gate 4 (Build 0 Warnungen, Tests grün, `dotnet format` 0, `publish.ps1` mit neuer ZIP-Größe)
+  - **Befund (09.11.2026, Branch `feat/t10-1-ocr`):**
+    - **Gate 4:** Build 0 Warnungen; Tests Core 1 817 · Import 164 · App 1 701 · Ocr 32 grün (Hand-Tests gefiltert); `dotnet format --verify-no-changes` 0. `publish.ps1`: ZIP **86 399 140 Byte** (v0.3.1: 62 121 374, **+24,3 MB, +39 %**), 386 Einträge (v0.3.1: 368), Ordner 178 MB. Die Zahl geht in die Release-Notes von v0.4.0.
+    - **Hand-Test über die S10.0-Aufnahmen** (bestehender Parser, Release, SC lief im Hintergrund): 3440×1440 **138/138** Lieferfelder, 1080p **135/138** (nur c06, Textanimation). Offline Median 1 171 / 1 240 ms, p95 1 257 / 1 303 ms (S10.0 offline up2-gray p8: p95 1 374 / 1 299 ms).
+    - **Speicher offline** (`OcrMemoryTests`, 100 Lesevorgänge): 154 MB nach Laden und Vorwärmen, 554 MB nach dem 2. Lesevorgang, langsam bis 669 MB bei etwa 60, dann flach (650–669 MB, Private Bytes 778–798 MB). Sieht nach der Arena von ONNX Runtime aus; Gate 2 über dem Spiel ist T10.1b.
+    - **Ziel-Symbol** (Fund im Hand-Test): Mit K2 hing „0“/„L“ vor „Deliver“, und der Parser verlor in 4 von 20 Verträgen je Satz eine Lieferung. Entscheidung Martin: Ein erster Block mit höchstens 2 Zeichen in einer etwa quadratischen Box (≤ 1,3 × Höhe; gemessen 1,02–1,20) bleibt eine eigene Zeile. Die Zwei-Boxen-Lieferung, die K2 vorbeugen soll, wurde in den 40 Aufnahmen **nicht beobachtet**; K2 bleibt vorsorglich.
+    - Das Gray8-Bild liest RapidOcrNet direkt (`OcrUtils.SubtractMeanNormalize`).
+    - Eine Lesung hat Grundkosten fast unabhängig von der Bildgröße (fast leerer Rahmen ≈ 0,9 s). Die Scan-Tests nutzen deshalb 960×540 und bleiben unter der Regel von 1,3 s.
+- [ ] **T10.1b** F22, `ScreenCapture`, Fenstersuche, Engine-Vorwärmen beim Start, `--scan-probe` – Gates 1–3
 
 ### [ ] T10.2 Parser-Anbindung, Identität, plan.json 10
 
@@ -5135,6 +5156,11 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   - `source: scan`; `scanNo` ersetzt die CT-Id in Legende und Editor
   - kein Rohtext in der Datei; Rohtext und Ergebnis ins rollierende `%LocalAppData%\SC-CargoPlan\scans.log` (letzte 50)
 - Ein Scan ist ein Undo-Schritt (K2.4-Addendum).
+- **Rohtext aus T10.1a, was der Parser können muss** (Hand-Test `OcrSampleTests`, 40 Aufnahmen):
+  - **Ziel-Symbol:** Vor jedem Ziel zeichnet das mobiGlas ein Symbol, das die OCR als eigenen Block „0“ oder „L“ liest. `ReadingOrder` gibt es als eigene Zeile aus (wie der CT-Rohtext). Das ist ein bekanntes OCR-Artefakt, kein Fehler: **Parser-Fixtures sollen eine solche Symbolzeile enthalten.**
+  - **Reward:** In Spaltenreihenfolge steht „Reward 81,250“ in einer Zeile in der DETAILS-Spalte nach der Prosa. Der Parser sucht ihn nur am Textanfang (CT-Form) und las ihn in 0 von 40 Aufnahmen.
+  - **Max-Größe:** Die zweite Formulierung („At most the containers will be 8 SCU in size.“, `+max2`) fehlt noch.
+  - Lieferzeilen brechen wie im CT-Rohtext um („… to High Course Station“ / „at Hurston's L5 Lagrange point.“); das liest der Parser heute schon.
 
 ### [ ] T10.3 Hotkey, Editor, Notices
 

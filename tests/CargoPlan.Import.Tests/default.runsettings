@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Default run of the Import tests: "Slow" reads the real OCR captures through the parser (OcrSampleTests, T10.1a) and
+  needs the samples outside the repo (CARGOPLAN_OCR_SAMPLES, CIG material, not MIT); it runs by hand only, see CLAUDE.md,
+  Befehle. "Timing" is kept out for the same rule as the other test projects.
+  RunConfiguration/TestCaseFilter: https://learn.microsoft.com/visualstudio/test/configure-unit-tests-by-using-a-dot-runsettings-file
+-->
+<RunSettings>
+  <RunConfiguration>
+    <TestCaseFilter>Category!=Timing&amp;Category!=Slow</TestCaseFilter>
+  </RunConfiguration>
+</RunSettings>
