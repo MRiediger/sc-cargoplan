@@ -4788,7 +4788,7 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 
 Eingeschoben vor Phase 10: T10.3 baut auf dem gepollten Hotkey auf.
 
-### [ ] B10 Hotkeys im Spiel (Branch `fix/hotkeys-in-game`, D97)
+### [x] B10 Hotkeys im Spiel (Branch `fix/hotkeys-in-game`, D97)
 
 - **Anlass:** `RegisterHotKey`-Hotkeys feuern in v0.3.0 nicht, solange Star Citizen im Vordergrund ist (S10.0-Befund; die gepollte Taste F8 funktionierte).
 - **Schritt 1, Ursache klären:** das v0.1.0-Release-ZIP neben dem aktuellen SC testen. Feuert es nicht, hat sich das Spiel geändert; feuert es, ist es eine Regression der App (Bisect).
@@ -4810,13 +4810,14 @@ Eingeschoben vor Phase 10: T10.3 baut auf dem gepollten Hotkey auf.
 
 - [x] Tests vor Implementierung: `HotkeyPollerTests` (Flanke, Halten, Modifier exakt, Win links/rechts, unscharf, `Set` bei gehaltener Taste, K2), Parser Space reserviert, AppLog-Textzeile
 - [x] `dotnet build` ohne Warnungen, `dotnet test` grün
-- [ ] Gate Martin im Spiel: jeder Hotkey genau einmal pro Druck mit SC vorne (Lock, Overlay, Sync, Re-plan, Discard, Undo, Redo, Reset view)
-- [ ] Gate: Taste gehalten → kein Mehrfachauslösen
-- [ ] Gate: Hotkey im Editor-Textfeld getippt → kein Auslösen
-- [ ] Gate: SC minimiert, Browser vorne → kein Auslösen
-- [ ] Gate: Aufnahme funktioniert, Clear schreibt `null`
-- [ ] Gate: Frame-Zeit `--over-game` gegen `main` (Messregel Phase 8)
-- [ ] Merge `--no-ff` nach Abnahme; Release v0.3.1 (Notes mit Known issue E1, ZIP, Wiki „Overlay basics#hotkeys“, Tag, Issue)
+- [x] Gate Martin im Spiel (09.11., abgenommen): jeder gesetzte Hotkey genau einmal pro Druck mit SC vorne; `cargoplan.log` zeigt toggleLock, toggleOverlay, syncContractTracker, replan, undo, redo, resetView je Druck eine Zeile (undo/redo vor dem ersten Schritt „not available now“), drei Drücke in 0,6 s einzeln erkannt; discardPlan war nicht belegt
+- [x] Gate: Taste gehalten → kein Mehrfachauslösen
+- [x] Gate: Hotkey im Editor-Textfeld getippt → kein Auslösen
+- [x] Gate: SC minimiert, Browser vorne → kein Auslösen
+- [x] Gate: Aufnahme funktioniert, Clear schreibt `null`
+- [x] Gate: Frame-Zeit `--over-game` gegen `main` unverändert (Martin)
+- [x] Merge `--no-ff` nach Abnahme
+- [ ] Release v0.3.1 (Notes mit Known issue E1, ZIP, Wiki „Overlay basics#hotkeys“, Tag, Issue)
 
 ## Phase 10 – OCR (v0.4.0)
 
