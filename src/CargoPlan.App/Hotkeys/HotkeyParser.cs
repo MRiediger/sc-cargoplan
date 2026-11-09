@@ -153,7 +153,7 @@ public static class HotkeyParser
     /// <summary>The rule both ways share once the key is known: Ctrl, Alt or Win must be part of it.</summary>
     private static (string? Error, Hotkey? Hotkey) Check(HotkeyModifiers modifiers, uint virtualKey) =>
         (modifiers & RequiredModifiers) == HotkeyModifiers.None
-            ? ("it needs Ctrl, Alt or Win, or it would take the key from every program", null)
+            ? ("it needs Ctrl, Alt or Win, since the key reaches the game too", null)
             : (null, new Hotkey(modifiers | HotkeyModifiers.NoRepeat, virtualKey));
 
     private static HotkeyModifiers? FindModifier(string name)
