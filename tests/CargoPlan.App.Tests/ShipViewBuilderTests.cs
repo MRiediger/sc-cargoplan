@@ -210,7 +210,7 @@ public class ShipViewBuilderTests
     [Fact]
     public void Crates_of_4_4_and_8_are_three_boxes_in_their_shape()
     {
-        Placement Crates(string destination, int scu, CrateSize size) => new(destination, "rack-0", new CargoItem("Titanium", scu, size));
+        static Placement Crates(string destination, int scu, CrateSize size) => new(destination, "rack-0", new CargoItem("Titanium", scu, size));
         var plan = TestPlans.Of(Sample.Ship, Crates("Riker", 4, CrateSize.Four), Crates("Shubin", 4, CrateSize.Four), Crates("Orison", 8, CrateSize.Eight));
 
         var rack1 = RackNumber(Build(plan), 1);

@@ -21,7 +21,7 @@ public class RackRotationTests
     // Racks a and b take the same box before their rotation, c lies ten cells to the bow. Built in code: the loader allows it only with a rotation.
     private static Ship Overlapping(RackRotation? rotation)
     {
-        Rack RackAt(string id, int index, int x, RackRotation? turned) =>
+        static Rack RackAt(string id, int index, int x, RackRotation? turned) =>
             new(id, index, 16, new Dimensions(4, 2, 2), null, new ShipPoint(x, 0, 0), Rotation: turned);
 
         return new Ship("overlapping", "Overlapping", 48, [RackAt("a", 0, 0, rotation), RackAt("b", 1, 0, rotation), RackAt("c", 2, 10, null)]);

@@ -115,7 +115,7 @@ public sealed class HoloViewTests
 
         positions.Should().HaveCount(4);
         indices.Should().HaveCount(6);
-        Point3D Middle(Point3D a, Point3D b) => new((a.X + b.X) / 2, (a.Y + b.Y) / 2, (a.Z + b.Z) / 2);
+        static Point3D Middle(Point3D a, Point3D b) => new((a.X + b.X) / 2, (a.Y + b.Y) / 2, (a.Z + b.Z) / 2);
         var across = camera.Project(Middle(positions[1], positions[2])) - camera.Project(Middle(positions[0], positions[3]));
         across.Length.Should().BeApproximately(HoloLines.WidthPixels * camera.Distance / (camera.Distance - HoloLines.LiftCells), 1e-9);
     }

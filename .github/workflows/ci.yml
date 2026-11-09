@@ -46,6 +46,13 @@ jobs:
       - name: Build
         run: dotnet build -c Release --no-restore
 
+      # The code as .editorconfig describes it (K10, F25); fails on any file format would change. Windows only: the
+      # workspace loads the WPF projects, which Ubuntu only compiles against reference packs.
+      # Source: https://learn.microsoft.com/dotnet/core/tools/dotnet-format (--verify-no-changes, --no-restore)
+      - name: Format
+        if: runner.os == 'Windows'
+        run: dotnet format SC-CargoPlan.sln --verify-no-changes --no-restore
+
       - name: Test
         run: dotnet test -c Release --no-build
 

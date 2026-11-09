@@ -366,7 +366,7 @@ public class PlanFileTests
     public void SavedPlan_checks_the_crates_against_the_expanded_items()
     {
         Mission[] missions = [new(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 15, CrateSize.Four)])])];
-        Crate Stims(CrateSize size, int length, int width, int stack) => new("Riker", "Stims", size, "rack-0", new GridPosition(length, width, stack), Mission: 1);
+        static Crate Stims(CrateSize size, int length, int width, int stack) => new("Riker", "Stims", size, "rack-0", new GridPosition(length, width, stack), Mission: 1);
         Crate[] crates =
         [
             Stims(CrateSize.Four, 2, 0, 0), Stims(CrateSize.Four, 0, 0, 0), Stims(CrateSize.Four, 2, 0, 1),
@@ -423,7 +423,7 @@ public class PlanFileTests
     [Fact]
     public void SavedPlan_rejects_one_destination_spelt_two_ways()
     {
-        MissionStop Stop(string destination) => new(destination, 1, [new MissionItem("Gold", 4, CrateSize.Four)]);
+        static MissionStop Stop(string destination) => new(destination, 1, [new MissionItem("Gold", 4, CrateSize.Four)]);
 
         var act = () => new SavedPlan([new Mission(1, [Stop("Riker")]), new Mission(2, [Stop("riker")], Unplaced: true)], new LoadPlan("hull_a", [], []), CrateCap.Of(HullA));
 
