@@ -5136,7 +5136,14 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
 7. `CargoPlan.Import.Tests` bekommt `default.runsettings` (`Category!=Slow&Category!=Timing`); der Hand-Test mit dem Parser liegt dort.
 8. Dieser Textfix kam nach dem Plan statt davor (Plan Mode).
 
-- [ ] **T10.1a** Ocr-Projekt, ROI, up2-gray, OCR, Zeilenbildung, CLI `scan <png>`, NOTICE, D99 – Gate 4 (Build 0 Warnungen, Tests grün, `dotnet format` 0, `publish.ps1` mit neuer ZIP-Größe)
+- [x] **T10.1a** Ocr-Projekt, ROI, up2-gray, OCR, Zeilenbildung, CLI `scan <png>`, NOTICE, D99 – Gate 4 (Build 0 Warnungen, Tests grün, `dotnet format` 0, `publish.ps1` mit neuer ZIP-Größe)
+  - **Befund (09.11.2026, Branch `feat/t10-1-ocr`):**
+    - **Gate 4:** Build 0 Warnungen; Tests Core 1 817 · Import 164 · App 1 701 · Ocr 32 grün (Hand-Tests gefiltert); `dotnet format --verify-no-changes` 0. `publish.ps1`: ZIP **86 399 140 Byte** (v0.3.1: 62 121 374, **+24,3 MB, +39 %**), 386 Einträge (v0.3.1: 368), Ordner 178 MB. Die Zahl geht in die Release-Notes von v0.4.0.
+    - **Hand-Test über die S10.0-Aufnahmen** (bestehender Parser, Release, SC lief im Hintergrund): 3440×1440 **138/138** Lieferfelder, 1080p **135/138** (nur c06, Textanimation). Offline Median 1 171 / 1 240 ms, p95 1 257 / 1 303 ms (S10.0 offline up2-gray p8: p95 1 374 / 1 299 ms).
+    - **Speicher offline** (`OcrMemoryTests`, 100 Lesevorgänge): 154 MB nach Laden und Vorwärmen, 554 MB nach dem 2. Lesevorgang, langsam bis 669 MB bei etwa 60, dann flach (650–669 MB, Private Bytes 778–798 MB). Sieht nach der Arena von ONNX Runtime aus; Gate 2 über dem Spiel ist T10.1b.
+    - **Ziel-Symbol** (Fund im Hand-Test): Mit K2 hing „0“/„L“ vor „Deliver“, und der Parser verlor in 4 von 20 Verträgen je Satz eine Lieferung. Entscheidung Martin: Ein erster Block mit höchstens 2 Zeichen in einer etwa quadratischen Box (≤ 1,3 × Höhe; gemessen 1,02–1,20) bleibt eine eigene Zeile. Die Zwei-Boxen-Lieferung, die K2 vorbeugen soll, wurde in den 40 Aufnahmen **nicht beobachtet**; K2 bleibt vorsorglich.
+    - Das Gray8-Bild liest RapidOcrNet direkt (`OcrUtils.SubtractMeanNormalize`).
+    - Eine Lesung hat Grundkosten fast unabhängig von der Bildgröße (fast leerer Rahmen ≈ 0,9 s). Die Scan-Tests nutzen deshalb 960×540 und bleiben unter der Regel von 1,3 s.
 - [ ] **T10.1b** F22, `ScreenCapture`, Fenstersuche, Engine-Vorwärmen beim Start, `--scan-probe` – Gates 1–3
 
 ### [ ] T10.2 Parser-Anbindung, Identität, plan.json 10
@@ -5149,6 +5156,11 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   - `source: scan`; `scanNo` ersetzt die CT-Id in Legende und Editor
   - kein Rohtext in der Datei; Rohtext und Ergebnis ins rollierende `%LocalAppData%\SC-CargoPlan\scans.log` (letzte 50)
 - Ein Scan ist ein Undo-Schritt (K2.4-Addendum).
+- **Rohtext aus T10.1a, was der Parser können muss** (Hand-Test `OcrSampleTests`, 40 Aufnahmen):
+  - **Ziel-Symbol:** Vor jedem Ziel zeichnet das mobiGlas ein Symbol, das die OCR als eigenen Block „0“ oder „L“ liest. `ReadingOrder` gibt es als eigene Zeile aus (wie der CT-Rohtext). Das ist ein bekanntes OCR-Artefakt, kein Fehler: **Parser-Fixtures sollen eine solche Symbolzeile enthalten.**
+  - **Reward:** In Spaltenreihenfolge steht „Reward 81,250“ in einer Zeile in der DETAILS-Spalte nach der Prosa. Der Parser sucht ihn nur am Textanfang (CT-Form) und las ihn in 0 von 40 Aufnahmen.
+  - **Max-Größe:** Die zweite Formulierung („At most the containers will be 8 SCU in size.“, `+max2`) fehlt noch.
+  - Lieferzeilen brechen wie im CT-Rohtext um („… to High Course Station“ / „at Hurston's L5 Lagrange point.“); das liest der Parser heute schon.
 
 ### [ ] T10.3 Hotkey, Editor, Notices
 
