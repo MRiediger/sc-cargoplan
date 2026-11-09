@@ -1,6 +1,8 @@
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
-using System.Windows.Interop;
+using System.Windows.Threading;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ViewModels;
 using CargoPlan.App.Win32;
@@ -8,28 +10,35 @@ using CargoPlan.App.Win32;
 namespace CargoPlan.App.Hotkeys;
 
 /// <summary>
-/// Global hotkeys on the overlay's window: work while Star Citizen has the focus and hides the cursor (D17).
-/// RegisterHotKey is a plain Windows service, no keyboard hook, nothing in the game process (EAC).
-/// Registered once the HWND exists, freed when the overlay closes; hiding the overlay keeps the HWND and the hotkeys.
-/// The settings window changes them while the app runs (T4.4, D35).
+/// Global hotkeys that work while Star Citizen has the focus and hides the cursor (D17), polled from the key state (D97):
+/// RegisterHotKey's WM_HOTKEY never arrives with the game in front. No hook, nothing in the game process (EAC).
+/// Fires only with the game or one of our windows in front; the key reaches the game too, so the player picks one the game
+/// doesn't use. Polls from construction until the overlay closes; hiding the overlay keeps it polling.
+/// The settings window changes the hotkeys while the app runs (T4.4, D35).
 /// </summary>
 public sealed class HotkeyService
 {
+    /// <summary>30 Hz: a press of 50 ms or more is seen for sure; presses typically last 80–150 ms.</summary>
+    public static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(33);
+
     private readonly Window _window;
     private readonly OverlayViewModel _viewModel;
     private readonly Dictionary<HotkeyAction, ICommand> _commands;
+    private readonly HotkeyPoller _poller = new(NativeMethods.IsKeyDown);
+    private readonly DispatcherTimer _timer = new() { Interval = PollInterval };
 
-    // What should be registered, what is, and what went wrong, per action. Wanted and registered differ while suspended
-    // or when another program has the combination.
-    private readonly Dictionary<HotkeyAction, Hotkey> _wanted = [];
-    private readonly HashSet<HotkeyAction> _registered = [];
+    // The hotkeys set, for the log line, and the settings.json entries that were invalid, for the notice line.
+    private readonly Dictionary<HotkeyAction, Hotkey> _hotkeys = [];
     private readonly Dictionary<HotkeyAction, string> _problems = [];
 
-    private HwndSource? _source;
-    private nint _hwnd;
+    // GetForegroundWindow is cheap, resolving the process is not: only on a window change, as in CursorStateMonitor.
+    private nint _lastWindow;
+    private bool _ownProcessInFront;
+    private string? _lastProcessName;
+
     private bool _suspended;
 
-    /// <param name="window">Not shown yet: registers on its SourceInitialized.</param>
+    /// <param name="window">The overlay: polling stops when it closes.</param>
     /// <param name="settings">null or a null entry = that hotkey is not set (no defaults, D17).</param>
     /// <param name="syncContractTracker">The editor's "Sync from ContractTracker", which lives in the composition root, not in the view model (D44).</param>
     public HotkeyService(Window window, HotkeySettings? settings, OverlayViewModel viewModel, ICommand syncContractTracker)
@@ -68,7 +77,8 @@ public sealed class HotkeyService
 
             if (HotkeyParser.TryParse(text, out var hotkey, out var error))
             {
-                _wanted[action] = hotkey;
+                _hotkeys[action] = hotkey;
+                _poller.Set(action, hotkey);
             }
             else
             {
@@ -76,163 +86,76 @@ public sealed class HotkeyService
             }
         }
 
-        window.SourceInitialized += OnSourceInitialized;
+        UpdateNotice();
+        _timer.Tick += OnTick;
+        _timer.Start();
         window.Closed += OnClosed;
     }
 
-    /// <summary>
-    /// From the settings window: the old hotkey of <paramref name="action"/> goes, the new one is registered; null clears.
-    /// </summary>
-    /// <returns>null = registered (or cleared); otherwise why not, and the old hotkey stays registered (D35).</returns>
-    public string? TrySet(HotkeyAction action, Hotkey? hotkey)
+    /// <summary>From the settings window: <paramref name="action"/> gets <paramref name="hotkey"/>; null clears.</summary>
+    public void Set(HotkeyAction action, Hotkey? hotkey)
     {
-        var old = _wanted.GetValueOrDefault(action);
-        Unregister(action);
-
-        if (hotkey is not null && IsActive && !Register(action, hotkey))
-        {
-            if (old is not null && !Register(action, old))
-            {
-                _problems[action] = InUse(action, old);
-                UpdateNotice();
-            }
-
-            return $"{hotkey} is in use by another program; pick another one.";
-        }
-
         if (hotkey is null)
         {
-            _wanted.Remove(action);
+            _hotkeys.Remove(action);
         }
         else
         {
-            _wanted[action] = hotkey;
+            _hotkeys[action] = hotkey;
         }
 
+        _poller.Set(action, hotkey);
         _problems.Remove(action);
         UpdateNotice();
-        return null;
     }
 
     /// <summary>
-    /// Frees our hotkeys while the settings window records a combination: Windows turns a registered combination into
-    /// WM_HOTKEY, so its keys would never reach the window, and pressing the lock's keys would switch the lock instead.
+    /// No hotkey fires while the settings window records a combination: it is our own window in front, and pressing the
+    /// lock's keys there would switch the lock instead of recording them.
     /// </summary>
-    public void Suspend()
-    {
-        if (_suspended)
-        {
-            return;
-        }
+    public void Suspend() => _suspended = true;
 
-        _suspended = true;
-        foreach (var action in _registered.ToList())
-        {
-            Unregister(action);
-        }
-    }
-
-    /// <summary>Registers again what is wanted; a combination taken meanwhile shows in the notice line.</summary>
-    public void Resume()
-    {
-        if (!_suspended)
-        {
-            return;
-        }
-
-        _suspended = false;
-        RegisterWanted();
-    }
-
-    // Registering needs the HWND; while suspended nothing is registered.
-    private bool IsActive => _hwnd != 0 && !_suspended;
-
-    // RegisterHotKey needs the window handle, which exists from SourceInitialized on.
-    private void OnSourceInitialized(object? sender, EventArgs e)
-    {
-        _window.SourceInitialized -= OnSourceInitialized;
-        _hwnd = new WindowInteropHelper(_window).Handle;
-
-        // Always hooked: the settings window can add a hotkey later.
-        // Source: https://learn.microsoft.com/dotnet/api/system.windows.interop.hwndsource.addhook
-        _source = HwndSource.FromHwnd(_hwnd);
-        _source.AddHook(WndProc);
-        RegisterWanted();
-    }
-
-    private void RegisterWanted()
-    {
-        foreach (var (action, hotkey) in _wanted)
-        {
-            if (Register(action, hotkey))
-            {
-                _problems.Remove(action);
-            }
-            else
-            {
-                _problems[action] = InUse(action, hotkey);
-            }
-        }
-
-        UpdateNotice();
-    }
-
-    private bool Register(HotkeyAction action, Hotkey hotkey)
-    {
-        if (!NativeMethods.TryRegisterHotKey(_hwnd, Id(action), hotkey))
-        {
-            return false;
-        }
-
-        _registered.Add(action);
-        return true;
-    }
-
-    private void Unregister(HotkeyAction action)
-    {
-        if (_registered.Remove(action))
-        {
-            NativeMethods.UnregisterHotKey(_hwnd, Id(action));
-        }
-    }
+    public void Resume() => _suspended = false;
 
     private void UpdateNotice() => _viewModel.SetNotice(
         NoticeSource.Hotkeys,
         _problems.Count == 0 ? null : string.Join(Environment.NewLine, _problems.OrderBy(p => p.Key).Select(p => p.Value)));
 
-    private nint WndProc(nint hwnd, int msg, nint wParam, nint lParam, ref bool handled)
+    private void OnTick(object? sender, EventArgs e)
     {
-        if (msg == NativeMethods.WM_HOTKEY && _commands.FirstOrDefault(c => Id(c.Key) == (int)wParam).Value is { } command)
+        var window = NativeMethods.GetForegroundWindow();
+        if (window != _lastWindow)
+        {
+            _lastWindow = window;
+            _ownProcessInFront = NativeMethods.GetWindowProcessId(window) == Environment.ProcessId;
+            _lastProcessName = _ownProcessInFront ? null : CursorStateMonitor.ProcessNameOf(window);
+        }
+
+        // Keyboard.FocusedElement is the focus in this thread's active window; editor cells edit in a TextBox too.
+        // Source: https://learn.microsoft.com/dotnet/api/system.windows.input.keyboard.focusedelement
+        var textInputFocused = Keyboard.FocusedElement is TextBoxBase or PasswordBox;
+        var armed = HotkeyPoller.IsArmed(_suspended, textInputFocused, _ownProcessInFront, _lastProcessName);
+        foreach (var action in _poller.Poll(armed))
         {
             // The toolkit's commands don't check CanExecute in Execute; a button's binding does, a hotkey has to: a
             // re-plan without cargo on board does nothing, a second sync doesn't start while one runs.
             // Source: https://github.com/CommunityToolkit/dotnet/blob/main/src/CommunityToolkit.Mvvm/Input/RelayCommand.cs (Execute)
-            if (command.CanExecute(null))
+            var command = _commands[action];
+            var canExecute = command.CanExecute(null);
+            AppLog.Write("Hotkey", $"{_hotkeys[action]} → {Name(action)}{(canExecute ? "" : " (not available now)")}");
+            if (canExecute)
             {
                 command.Execute(null);
             }
-
-            handled = true;
         }
-
-        return 0;
     }
 
     private void OnClosed(object? sender, EventArgs e)
     {
-        _window.SourceInitialized -= OnSourceInitialized;
         _window.Closed -= OnClosed;
-        _source?.RemoveHook(WndProc);
-
-        foreach (var action in _registered.ToList())
-        {
-            Unregister(action);
-        }
+        _timer.Stop();
+        _timer.Tick -= OnTick;
     }
-
-    // Any id in 0x0000..0xBFFF is fine for an application; Windows sends it back as WM_HOTKEY's wParam. 0 stays unused.
-    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey (Remarks)
-    private static int Id(HotkeyAction action) => (int)action + 1;
 
     // Names as in settings.json, so the notice points at the line to fix.
     private static string Name(HotkeyAction action) => action switch
@@ -247,7 +170,4 @@ public sealed class HotkeyService
         HotkeyAction.ResetView => "resetView",
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
     };
-
-    private static string InUse(HotkeyAction action, Hotkey hotkey) =>
-        $"Hotkey {hotkey} ({Name(action)}) is already in use; pick another one in the settings window.";
 }

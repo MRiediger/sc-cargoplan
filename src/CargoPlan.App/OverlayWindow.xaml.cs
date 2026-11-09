@@ -230,7 +230,7 @@ public partial class OverlayWindow : Window
     }
 
     /// <summary>
-    /// Hide keeps the window and its HWND (hotkeys stay registered), Show brings it back where it was; ShowActivated=False
+    /// Hide keeps the window and its HWND (hotkeys keep polling), Show brings it back where it was; ShowActivated=False
     /// and WS_EX_NOACTIVATE keep the game in front. Code instead of a Visibility binding: Show() and Hide() set Visibility
     /// themselves, and the lock window needs the same call (D17).
     /// Source: https://learn.microsoft.com/dotnet/api/system.windows.window.hide

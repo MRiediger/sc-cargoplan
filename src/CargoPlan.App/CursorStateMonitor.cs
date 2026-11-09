@@ -46,8 +46,11 @@ public sealed class CursorStateMonitor
         _viewModel.IsAutoLocked = AutoLockRule.ShouldLock(_lastProcessName, NativeMethods.IsCursorShowing());
     }
 
-    /// <summary>null if there is no window or its process is gone by now: that is "not the game", not an error.</summary>
-    private static string? ProcessNameOf(nint window)
+    /// <summary>
+    /// null if there is no window or its process is gone by now: that is "not the game", not an error.
+    /// Also used by the polled hotkeys (D97), which fire only with the game in front.
+    /// </summary>
+    internal static string? ProcessNameOf(nint window)
     {
         if (NativeMethods.GetWindowProcessId(window) is not { } processId)
         {

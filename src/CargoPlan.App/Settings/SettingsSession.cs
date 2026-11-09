@@ -69,7 +69,7 @@ public sealed class SettingsSession
     }
 
     /// <summary>
-    /// From the settings window, after the hotkey was registered (D35): saved after <see cref="Debounce"/> as canonical
+    /// From the settings window, once the hotkey is set (D35): saved after <see cref="Debounce"/> as canonical
     /// text. null clears the action and is written as null, so the key stays visible in the file; missing reads the same.
     /// </summary>
     public void ChangeHotkey(HotkeyAction action, Hotkey? hotkey)

@@ -123,8 +123,8 @@ public partial class App : Application
         _boundsSaver = new OverlayBoundsSaver(overlay, session);
         overlay.Closed += (_, _) => session.Flush();
 
-        // Before Show(): SourceInitialized, where the hotkeys get registered, is raised inside Show(). The sync hotkey runs
-        // the editor's button, guarded like the timer (D82); AsyncRelayCommand would rethrow on the UI thread what isn't.
+        // Polled from here on (D97), before the settings window can ask for them. The sync hotkey runs the editor's button,
+        // guarded like the timer (D82); AsyncRelayCommand would rethrow on the UI thread what isn't.
         // Source: https://learn.microsoft.com/dotnet/api/communitytoolkit.mvvm.input.asyncrelaycommandoptions
         _hotkeys = new HotkeyService(
             overlay, settings.Hotkeys, viewModel, new AsyncRelayCommand(() => contractTracker.RunSyncGuardedAsync(manual: true)));
@@ -225,8 +225,8 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// The settings window's hotkeys (D35): registered first, saved only if Windows took them, so settings.json never holds
-    /// a combination that doesn't work.
+    /// The settings window's hotkeys (D35): set and saved at once. Polled hotkeys can't be taken by another program (D97),
+    /// so only the rules and the other action's combination refuse one, both in the view model.
     /// </summary>
     private HotkeysViewModel CreateHotkeysViewModel(SettingsSession session)
     {
@@ -235,13 +235,9 @@ public partial class App : Application
             session.Current.Hotkeys,
             (action, hotkey) =>
             {
-                var problem = hotkeys.TrySet(action, hotkey);
-                if (problem is null)
-                {
-                    session.ChangeHotkey(action, hotkey);
-                }
-
-                return problem;
+                hotkeys.Set(action, hotkey);
+                session.ChangeHotkey(action, hotkey);
+                return null;
             },
             hotkeys.Suspend,
             hotkeys.Resume);

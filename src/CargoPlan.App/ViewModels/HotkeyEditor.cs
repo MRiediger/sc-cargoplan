@@ -30,17 +30,17 @@ public sealed partial class HotkeyEditor : ObservableObject
 
     public const string RecordingText = "Press the keys…";
 
-    /// <summary>Shown while recording: a combination another program or Windows has registered never reaches this window.</summary>
-    public const string RecordingHint = "Esc cancels. Nothing happens? Another program or Windows uses that combination.";
+    /// <summary>Shown while recording: a polled hotkey's keys reach the game too (D97).</summary>
+    public const string RecordingHint = "Esc cancels. Keys also reach the game – pick one Star Citizen doesn't use.";
 
     private readonly Func<HotkeyEditor, Hotkey?, string?> _commit;
     private readonly Action _suspend;
     private readonly Action _resume;
 
     /// <param name="text">From settings.json; null = not set (D17), invalid = not set with the reason shown.</param>
-    /// <param name="commit">Registers and saves, or returns why not (<see cref="HotkeysViewModel"/>).</param>
-    /// <param name="suspend">Frees our registered hotkeys while recording, or their keys would never reach the window.</param>
-    /// <param name="resume">Registers them again.</param>
+    /// <param name="commit">Sets and saves, or returns why not (<see cref="HotkeysViewModel"/>).</param>
+    /// <param name="suspend">Stops our hotkeys while recording, or recording the lock's keys would switch the lock.</param>
+    /// <param name="resume">Lets them fire again.</param>
     public HotkeyEditor(HotkeyAction action, string label, string? text, Func<HotkeyEditor, Hotkey?, string?> commit, Action suspend, Action resume)
     {
         Action = action;
@@ -135,7 +135,7 @@ public sealed partial class HotkeyEditor : ObservableObject
         Commit(null);
     }
 
-    // Resumed before committing: the commit registers the new hotkey next to the other action's.
+    // Resumed before committing; the new hotkey fires only on its next press, the keys just recorded are still down (D97).
     private void Stop()
     {
         IsRecording = false;
