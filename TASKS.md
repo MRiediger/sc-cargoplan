@@ -4802,6 +4802,22 @@ Eingeschoben vor Phase 10: T10.3 baut auf dem gepollten Hotkey auf.
   - Frame-Zeit unverändert
 - Kein F3-Default, kein Scan-Hotkey (beides Phase 10).
 
+**Befund (09.11.):** Hotkeys über SC sind in keinem Release-Build nachweislich angekommen: das v0.1.0-ZIP feuert im Spiel auch nicht (Martin), die isolierte Probe aus S10.0 bestätigt, dass `RegisterHotKey` mit SC vorne nicht zugestellt wird. `Hotkeys/`, `Win32/`, Overlay zwischen v0.1.0 und v0.3.0 unverändert, also keine Regression zwischen Releases → Polling (Schritt 2b). Vermutete Ursache (nicht prüfbar): SC registriert Raw Input mit `RIDEV_NOHOTKEYS`.
+
+**Präzisiert in der Planung:** Testnaht als Delegate `Func<uint, bool>` statt `IKeyState` (A4); Ctrl/Alt/Win bleibt Pflicht, **Space reserviert** neben F12; Log pro Auslöser in `AppLog` (es gibt kein separates Debug-Log); Modifier exakt wie gespeichert; `TrySet` → `Set`. Review Claude.ai: K1 Befund ohne „25.10. wirkte noch“ (D17-Addendum „never verified in game“); K2 Textfokus zählt nur mit eigenem Prozess vorne; E1 Known issue „SC als Admin → CargoPlan als Admin“ in Release-Notes und Wiki; E2 UI-Thread-Stall als D97-Gegenargument, mit aktuellen Zahlen (Plan-Lauf ≤ 3,2 ms je Fixture, Stresslast 80 ms seit B2/D66; die ~4 s Freelancer stammen aus T7.2 vor B2). Präzisierung in der Planphase, ratifiziert durch Freigabe.
+
+**Umsetzung (Branch `fix/hotkeys-in-game`):** `HotkeyPoller` (Flanke, exakte Modifier, `IsArmed`), `HotkeyService` pollt alle 33 ms, `RegisterHotKey`-Pfad entfernt, Hinweise im Settings-Fenster, D97 + Addenda D17/D35, CLAUDE.md, settings-format.md. Poll-Last gemessen: **4,7 µs pro Tick** (Release, `HotkeyPollTimingTests`; Prozessname bei Fensterwechsel 14 µs).
+
+- [x] Tests vor Implementierung: `HotkeyPollerTests` (Flanke, Halten, Modifier exakt, Win links/rechts, unscharf, `Set` bei gehaltener Taste, K2), Parser Space reserviert, AppLog-Textzeile
+- [x] `dotnet build` ohne Warnungen, `dotnet test` grün
+- [ ] Gate Martin im Spiel: jeder Hotkey genau einmal pro Druck mit SC vorne (Lock, Overlay, Sync, Re-plan, Discard, Undo, Redo, Reset view)
+- [ ] Gate: Taste gehalten → kein Mehrfachauslösen
+- [ ] Gate: Hotkey im Editor-Textfeld getippt → kein Auslösen
+- [ ] Gate: SC minimiert, Browser vorne → kein Auslösen
+- [ ] Gate: Aufnahme funktioniert, Clear schreibt `null`
+- [ ] Gate: Frame-Zeit `--over-game` gegen `main` (Messregel Phase 8)
+- [ ] Merge `--no-ff` nach Abnahme; Release v0.3.1 (Notes mit Known issue E1, ZIP, Wiki „Overlay basics#hotkeys“, Tag, Issue)
+
 ## Phase 10 – OCR (v0.4.0)
 
 CargoPlan liest Verträge selbst (Hotkey, ein Scan = ein Vertrag), der ContractTracker-Import entfällt. Grundlage ist der Befund S10.0 unten. Die Reihenfolge ist fest: T10.4 kommt nicht vor T10.3.

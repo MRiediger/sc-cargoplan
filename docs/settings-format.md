@@ -72,7 +72,8 @@ new ContractTracker captures into the plan like the editor's button, `replan` la
 editor's Re-plan, `discardPlan` empties the plan like the editor's Discard plan, `undo` and `redo` go back and forward like the header's
 ↶ and ↷, `resetView` fits the ship view like the header's reset next to the gear. In `hotkeys`, `null` and a
 missing entry both mean "no hotkey"; the settings window writes `null` when you clear one, so you see the
-entry exists. Every section and every value
+entry exists. A hotkey needs Ctrl, Alt or Win; F12 and Space are reserved. Hotkeys work while Star Citizen or CargoPlan
+is in front, and the keys reach the game too, so pick a combination Star Citizen doesn't use (D97). Every section and every value
 in `appearance` is optional: what you leave out keeps its default. `{ "schemaVersion": 2, "appearance":
 { "legend": { "fontSize": 14 } } }` changes only the legend's font size.
 
