@@ -4784,16 +4784,32 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - Ankündigungen (Entwürfe Claude.ai, Martin verschickt): Ryekal (Reddit), Sciirof, Torlek, Spectrum-Post
 - Backlog-Zeilen „holo-v1-Release entfernen“ (Auslöser: v0.3.0 vier Wochen stabil) und „Modelle bei Sciirof anfragen“ mit Datum; nächster Chat „Feedback II“
 
-## Phase 10 – nach dem Launch
+## Bugfix B10 – Hotkeys im Spiel (Patch v0.3.1)
 
-### [ ] T10.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
-### [ ] T10.2 winget-Manifest – `winget install SC-CargoPlan`
-### [ ] T10.3 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
+Eingeschoben vor Phase 10: T10.3 baut auf dem gepollten Hotkey auf.
+
+### [ ] B10 Hotkeys im Spiel (Branch `fix/hotkeys-in-game`, D97)
+
+- **Anlass:** `RegisterHotKey`-Hotkeys feuern in v0.3.0 nicht, solange Star Citizen im Vordergrund ist (S10.0-Befund; die gepollte Taste F8 funktionierte).
+- **Schritt 1, Ursache klären:** das v0.1.0-Release-ZIP neben dem aktuellen SC testen. Feuert es nicht, hat sich das Spiel geändert; feuert es, ist es eine Regression der App (Bisect).
+- **Bei geändertem Spiel:**
+  - ein Pfad: `GetAsyncKeyState`-Polling auf einem `DispatcherTimer` (30 Hz, Konstante) mit Flankenerkennung, Modifier wie gespeichert
+  - aktiv nur, wenn SC oder CargoPlan vorne ist; ausgesetzt bei Fokus in einem Textfeld und während der Aufnahme
+  - D35-Addendum: keine OS-Prüfung „belegt“ mehr, nur reservierte Tasten (Space, F12, Esc), Hinweis „keys also reach the game“
+- **Gate im Spiel:**
+  - jeder Hotkey genau einmal pro Druck, kein Auto-Repeat
+  - kein Auslösen im Editor-Textfeld oder mit dem Browser vorne
+  - Frame-Zeit unverändert
+- Kein F3-Default, kein Scan-Hotkey (beides Phase 10).
+
+## Phase 10 – OCR (v0.4.0)
+
+CargoPlan liest Verträge selbst (Hotkey, ein Scan = ein Vertrag), der ContractTracker-Import entfällt. Grundlage ist der Befund S10.0 unten. Die Reihenfolge ist fest: T10.4 kommt nicht vor T10.3.
 
 ### [x] S10.0 Spike „Eigenes OCR“ (09.11.2026, abgenommen 09.11.)
 
 **Branches:** Werkzeug auf `spike/s10-ocr` (Worktree `..\sc-cargoplan-s10`, `tools/OcrProbe`, nicht in der `.sln`, wird nach der Abnahme gelöscht), dieser Befund auf `spike/s10-ocr-finding`. Samples außerhalb des Repos (`~/source/sc-ocr-samples`, CIG-Material, nicht MIT).
-**Frage:** Kann v0.4.0 Verträge mit eigener OCR lesen (Hotkey, ein Scan = ein Vertrag) und den ContractTracker-Import ersetzen? Kandidat: **RapidOcrNet 4.2.0** (Apache 2.0) mit PP-OCRv5 Latin, ONNX Runtime 1.31.1, SkiaSharp. Die Zeile T10.3 oben (Windows.Media.Ocr) bleibt bis zum Doku-Commit nach diesem Befund stehen.
+**Frage:** Kann v0.4.0 Verträge mit eigener OCR lesen (Hotkey, ein Scan = ein Vertrag) und den ContractTracker-Import ersetzen? Kandidat: **RapidOcrNet 4.2.0** (Apache 2.0) mit PP-OCRv5 Latin, ONNX Runtime 1.31.1, SkiaSharp. Die frühere Zeile T10.3 (Windows.Media.Ocr) ist mit dem Doku-Commit nach diesem Befund entfallen; Phase 10 ist jetzt OCR, Velopack und winget sind Phase 11.
 
 **Präzisierung in der Planphase, ratifiziert durch Freigabe:**
 1. „Terminal“ = mobiGlas OFFERS, „Manager“ = mobiGlas ACCEPTED. Probe-Tasten F8/F9 statt F3 (CT hält F3).
@@ -4933,6 +4949,79 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
 - **Abdeckung:** nur Hurston, nur Covalex, zwei Waste-Verträge, keine Pyro-/Red-Wind-Formulierungen im Satz. Weitere Formulierungen kommen wie bei B9 über Meldungen.
 - Ein FPS-Overlay schreibt Text oben rechts; mit ROI irrelevant.
 
+### [ ] T10.1 Capture + OCR (`CargoPlan.Ocr`)
+
+- Neues Projekt neben `CargoPlan.Import`.
+- `ScreenCapture` per GDI `BitBlt` (S10.0 G1).
+- Relatives 16:9-Center-ROI für alle Seitenverhältnisse (S10.0, Anker entfallen).
+- RapidOcrNet mit Vorverarbeitung **up2-gray** als Konstante, ONNX-Session einmal pro Prozess vorgewärmt.
+- `IContractSource` mit einer Implementierung `ScanContractSource`.
+- **Gates:**
+  - p95 Hotkey → geparster Vertrag ≤ 1500 ms **über dem Spiel** mit up2-gray und Parallelität 8 (im Spike nur offline gemessen)
+  - **100 Scans, das Working Set muss ein Plateau erreichen** (Spike: Working Set 407 → 684 MB, Private Bytes bis 802 MB in 20 Scans ohne Plateau = Leak)
+  - Frame-Zeit über dem Spiel unverändert
+- Hier entstehen die NOTICE-Datei (RapidOcrNet, PP-OCRv5-Modelle, ONNX Runtime, SkiaSharp, Clipper2) und D98 „Contracts are read by CargoPlan's own OCR; the ContractTracker import is removed“.
+
+### [ ] T10.2 Parser-Anbindung, Identität, plan.json 10
+
+- Rohtext durch den bestehenden Parser (B1, B9, D96). **Neu: Abholort-Parsing** („Collect … from <Ort>“, bisher CT-Spalte).
+- **Inhaltsschlüssel ohne SCU, mit Reward** (S10.0 G5; das Spiel würfelt beim Annehmen neu, 6 von 10 Paaren).
+  - Ein Re-Scan desselben Schlüssels **aktualisiert** Mengen und Kistenliste, statt zu duplizieren; Notice `Updated #n · quantities changed`.
+- Ein Scan gilt erst, wenn zwei Lesungen im Abstand von etwa 300 ms denselben Block liefern, sonst Notice „Contract text still loading – scan again“ (Spike-Fall c06).
+- `plan.json` 9 → 10:
+  - `source: scan`; `scanNo` ersetzt die CT-Id in Legende und Editor
+  - kein Rohtext in der Datei; Rohtext und Ergebnis ins rollierende `%LocalAppData%\SC-CargoPlan\scans.log` (letzte 50)
+- Ein Scan ist ein Undo-Schritt (K2.4-Addendum).
+
+### [ ] T10.3 Hotkey, Editor, Notices
+
+- Hotkey `scanContracts`, Default **F3** (Ausnahme zu D35), gepollt nach B10/D97, aktiv nur bei SC- oder CargoPlan-Vordergrund.
+- Editor-Button „Scan“ ersetzt „Sync from ContractTracker“.
+- Notices unten links: `Scanned #3 · From … · n SCU to …`, `Updated #3 · quantities changed`, `Already in plan (#2)`, `No contract in frame`, `Star Citizen window not found`.
+- Ein Vorschau-Scan vor der Annahme ist eine normale Mission, Notice „Rescan after accepting“; nicht genommen → Undo.
+- Handling gegen `main`.
+
+### [ ] T10.4a ContractTracker entfernen – Import, App, Doku
+
+- Checkliste = CT-Inventur aus dem S10.0-Befund.
+- CT-Reader, `ContractTrackerSync`, FileSystemWatcher, Fingerabdruck und Reset-Schutz raus.
+- `settings.json` 2 → 3 mit Migration:
+  - `contractTracker` raus, `scan` { `hotkey`, `notifyOnScan` } rein
+  - `syncFromContractTracker` → `scanContracts`
+  - Altfelder `pxPerCell`/`panX`/`panY` raus
+- D81 `onContractGone` entfällt ersatzlos: kein „gone“ mehr, einen Plan verlässt man nur über Abhaken, Löschen oder Discard.
+- CLI `contracts --raw` → `scan <png>`.
+- Doku: README, Wiki, `docs/settings-format.md`, `docs/nexus/*`, Issue-Templates (Feld „ContractTracker-Version“ → „Screenshot des Vertrags“).
+
+### [ ] T10.4b ContractTracker entfernen – Core, Planer
+
+- `LoadPlanner` (35× Watermark), Identität D39/D42/D44 auf den Inhaltsschlüssel umstellen, Folgen fürs Plan-Schema.
+- Eigener Plan **mit Zahlen** (Golden-Files, Planer-Laufzeit).
+- Addenda: D37–D44 (superseded), D38/D42 (identity = content key), D81 (removed), K6.1 (`#scanNo`).
+
+### [ ] T10.5 Settings „Scan“ und CLI-Abschluss
+
+- Settings-Abschnitt „Scan“: Hotkey, `notifyOnScan`, Hinweis „Open the contract and press F3“, Reset wie D30.
+- `--keep-scans`: PNG nach `scans\`, höchstens 20.
+- Known issues:
+  - ROI bei 32:9 und 16:10 ungeprüft, 4K ungeprüft
+  - Verträge über eine Bildschirmseite
+  - F3 von laufendem CT belegt (Notice mit Verweis auf die Settings)
+
+### [ ] T10.6 Release v0.4.0
+
+- Branch `release/v0.4.0`, Textabgleich.
+- Release-Notes, Freigabe durch Claude.ai:
+  - „ContractTracker is no longer needed – press F3 on an open contract“
+  - Migrationshinweis settings 3 / plan 10, kein Downgrade
+- Hero-GIF neu (Scan am Terminal; der D85-Auslöser ist erfüllt).
+- Tag mit Nachmessung des ZIPs, Wiki, Nexus, Ankündigungen.
+
+## Phase 11 – nach dem Launch
+
+### [ ] T11.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
+### [ ] T11.2 winget-Manifest – `winget install SC-CargoPlan`
+
 ---
 
 ## Lehren
@@ -4953,6 +5042,15 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- Rechteck-Picker für das Scan-ROI (der Nutzer zieht den Vertragsbereich einmal auf), für Seitenverhältnisse, bei denen
+  das relative 16:9-Center-ROI nicht trifft (32:9, 16:10, geänderte HUD-Skalierung; S10.0 nur 21:9 und 16:9 geprüft).
+  Auslöser: Nutzer-Report „ROI trifft nicht“.
+- Vertragsliste in einem Scan statt eines Scans pro Vertrag (S10.0: ein Scan = ein Vertrag). Auslöser: Nutzer-Report.
+- Mehrseitige Verträge (Text länger als eine Bildschirmseite, scrollen und zusammensetzen). Auslöser: Nutzer-Report
+  oder ein Vertrag, dessen Lieferungen im Scan fehlen.
+- **Kiosk-Manifest als autoritative Quelle** für die Mengen. Auslöser: Der Aufzug liefert eine andere SCU-Summe als der
+  ACCEPTED-Text. Martins Antwort steht aus; IC STARC-175359/223408 deuten darauf hin.
 
 - `holo-v1`-Release auf GitHub entfernen (v0.1/v0.2 laden ihre Hologramme dann nicht mehr). Auslöser: v0.3.0 vier Wochen
   stabil, frühestens 06.12.2026 (Release 08.11.2026), ohne Meldung, die einen Rückweg auf 0.2.0 braucht (Session 4c).
@@ -5017,7 +5115,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Starbreaker (Fleetyards-Extractor, Rust) als Quelle für die Gitter von Frachtmodulen. Auslöser: zweites Schiff mit Frachtmodul.
 - ~~Haken eines Altbesuchs beim Schiffswechsel erhalten: ein abgehakter Stopp, der danach neue Fracht bekam (D41), kommt nach `Replan` auf einem anderen Schiff unabgehakt zurück und belegt Platz (D59); auf dem eigenen Schiff erledigt in B4 (D66). Auslöser: Meldung eines Haulers.~~ → K2
 - Sync Ships in der App (Fleetyards-API), falls sich Frachtgitter häufiger ändern als Releases erscheinen oder Hauler zwischen Releases fehlende Schiffe melden. Voraussetzungen: D-Eintrag Netzwerkzugriff des Overlays, Lizenzfrage für Laufzeitabrufe, Merge-Logik aus import-fleetyards.ps1 nach C# (T7.1b; das Skript liegt seit 4c nur noch in der Git-Historie, `a3430b9^`, D94). Seit D92/D94 wäre die Quelle Motherlode, nicht Fleetyards.
-- Abholorte von Waste-Verträgen aus den Zeilen „Collect Waste from …“ des Rohtexts lesen (die Stationen), statt nur aus ContractTrackers `PickupLocation`, das einen davon zerrissen nennt (B6, D69). Auslöser: Hauler will Waste-Missionen nach Abholort unterscheiden.
+- ~~Abholorte von Waste-Verträgen aus den Zeilen „Collect Waste from …“ des Rohtexts lesen (die Stationen), statt nur aus ContractTrackers `PickupLocation`, das einen davon zerrissen nennt (B6, D69). Auslöser: Hauler will Waste-Missionen nach Abholort unterscheiden.~~ → T10.2 (Abholort-Parsing)
 - ~~Kisten horizontal drehbar (Gier 90°) im Planer, statt Racks beim Import zu drehen (T7.1b: `length` = längere Seite, Rack in `notes` genannt). Auslöser: ein Schiff, dessen Rack nur mit gedrehten Kisten so voll wird wie im Spiel, oder ein Hauler-Report über abgelehnte Kisten, die im Spiel passen.~~ → K3.2
 - `CrateLayout.InOrder` beschleunigen (`StartingAt` ohne LINQ, Pruning), Auslöser: ein echter Plan mit der Notiz „too many crates to rearrange“ (D54). Erwartet bei Racks ab ~80 Zellen mit vielen 1-SCU-Kisten (T7.1c: 9×3×3, 32 + 40 × 1).
 - ~~Planen in `Task.Run` statt im UI-Thread (`MissionEditorViewModel.Plan`, CT-Sync, Schiffswechsel), Auslöser: ein gemeldetes Einfrieren (D54) oder der erste Hauler-Report zur Planungsdauer. Messwert T7.2: 8-Stopp-Lastfall auf der Freelancer ~4 s Release (Suchlimit, D58), beim Editor-Plan wie beim Wechsel (`ReplanTests`, `Slow`). Ein UI-Task (Knopf gesperrt, „Planning…“), kein Planer-Task; kann als erster nach dem Launch kommen. Bis dahin Known issue (T7.5).~~ Geschlossen in B4 (D66): seit B2 plant jedes Fixture im Prozess in höchstens 3,2 ms (Median, erster Lauf 7 ms, Freelancer-Lastfall 2,3 ms, `ReplanTimingTests`); nur die Stresslast (kein Schiff) braucht 80 ms. Wiederöffnen bei einem gemeldeten Einfrieren.
