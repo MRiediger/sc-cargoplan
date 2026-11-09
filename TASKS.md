@@ -5118,12 +5118,26 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
 - `ScreenCapture` per GDI `BitBlt` (S10.0 G1).
 - Relatives 16:9-Center-ROI für alle Seitenverhältnisse (S10.0, Anker entfallen).
 - RapidOcrNet mit Vorverarbeitung **up2-gray** als Konstante, ONNX-Session einmal pro Prozess vorgewärmt.
-- `IContractSource` mit einer Implementierung `ScanContractSource`.
+- `ScanContractSource` als Klasse, Tests direkt gegen sie – kein Interface mit einer Implementierung (A4, Review 2026-11-pre-p10 6.1 Frage 3).
+- **F22 (Review):** `App.OnStartup` (152 Zeilen) vor der OCR-Verdrahtung in `Compose*`-Methoden schneiden – reine Umstellung ohne Verhaltensänderung, eigener Commit, damit der Diff lesbar bleibt.
 - **Gates:**
   - p95 Hotkey → geparster Vertrag ≤ 1500 ms **über dem Spiel** mit up2-gray und Parallelität 8 (im Spike nur offline gemessen)
   - **100 Scans, das Working Set muss ein Plateau erreichen** (Spike: Working Set 407 → 684 MB, Private Bytes bis 802 MB in 20 Scans ohne Plateau = Leak)
   - Frame-Zeit über dem Spiel unverändert
 - Hier entstehen die NOTICE-Datei (RapidOcrNet, PP-OCRv5-Modelle, ONNX Runtime, SkiaSharp, Clipper2) und D99 „Contracts are read by CargoPlan's own OCR; the ContractTracker import is removed“.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. **Teilung:** T10.1a = reine Bildverarbeitung, offline testbar (Gate 4). T10.1b = alles, was SC laufen haben muss (F22, Capture, Verdrahtung, `--scan-probe`, Gates 1–3), eigener Branch `feat/t10-1b-capture`. a wird nach Abnahme sofort `--no-ff` nach `main` gemergt; T10.2 kann nach a starten, T10.3 braucht b.
+2. **Trennlinie:** `CargoPlan.Ocr` ist `net10.0` ohne Windows-API (ROI, Vorverarbeitung, OCR, Zeilenbildung, `ScanContractSource.Read(SKBitmap)`). `ScreenCapture` und die Fenstersuche liegen in `src/CargoPlan.App/Win32/` neben der bestehenden `NativeMethods`. Die Cli bleibt `net10.0`.
+3. Ocr ohne Core-Referenz (A4), bis T10.2 sie braucht.
+4. Modelle aus dem RapidOcrNet-Paket als `None`-Items (`ExcludeAssets="build"`, das Paket-Target greift nicht transitiv) nach `models/v5/` neben der Exe; NOTICE als `models/NOTICE.md`.
+5. ONNX Runtime 1.31.1 explizit referenziert (Spike-Stand), SkiaSharp nur transitiv (3.119.1; RapidOcrNet ist gegen 3.x gebaut).
+6. Zeilenbildung: Blöcke einer Bildschirmzeile werden je Spalte links → rechts mit Leerzeichen zu einer Textzeile verbunden (`DeliveryLine` ist auf eine Zeile verankert).
+7. `CargoPlan.Import.Tests` bekommt `default.runsettings` (`Category!=Slow&Category!=Timing`); der Hand-Test mit dem Parser liegt dort.
+8. Dieser Textfix kam nach dem Plan statt davor (Plan Mode).
+
+- [ ] **T10.1a** Ocr-Projekt, ROI, up2-gray, OCR, Zeilenbildung, CLI `scan <png>`, NOTICE, D99 – Gate 4 (Build 0 Warnungen, Tests grün, `dotnet format` 0, `publish.ps1` mit neuer ZIP-Größe)
+- [ ] **T10.1b** F22, `ScreenCapture`, Fenstersuche, Engine-Vorwärmen beim Start, `--scan-probe` – Gates 1–3
 
 ### [ ] T10.2 Parser-Anbindung, Identität, plan.json 10
 
