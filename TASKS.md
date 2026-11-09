@@ -573,7 +573,7 @@ Präzisierung in der Planphase, ratifiziert durch Freigabe (D24/D39/D41/D42-Adde
 
 **Akzeptanz:** Tests grün (inkrementell ohne Bewegung liegender Kisten, Haken bleiben, Wasserstand steigt bei Übernahme, Dateievent ohne neue Zeilen → nichts; Duplikat-Markierung nur ohne Haken; Entfernen bewegt keine anderen Kisten; Entfernen nach CT-Löschung nur bei vollständig abgehakt); im Spiel: zweiten Auftrag erfassen → ohne Klick im Overlay, Kisten und Haken des ersten unverändert; Capture ohne Größenphrase → `?` in der Legende; F4 vor dem ersten Haken → zweite Mission mit `⚠ duplicate?`, erste unverändert, keine Notice; F4 nach dem ersten Haken → beide im Plan, keine Markierung; falsche Mission im Editor löschen → weg, übrige Kisten und Haken unverändert; in CT löschen bei vollständig abgehakt → Mission weg; bei offenen Kisten → Notice, Plan bleibt.
 
-### [ ] T5.5 Settings-Abschnitt „ContractTracker“
+### [x] T5.5 Settings-Abschnitt „ContractTracker“ (erledigt, Häkchen nachgetragen in K10; Commits b67aa54, b2b33e2)
 **Warum:** Nicht jede Installation liegt am Standardpfad, nicht jeder will Erfassungen ohne Zutun im Plan, und wer CT nicht hat, soll erfahren, woher.
 **Präzisiert in der Planung:** Schalter wieder „Auto-sync“ an/aus (D39-Addendum: Übernahme ohne Pflichtschritt im Editor); der Hotkey übernimmt direkt, statt den Editor zu öffnen; Abschnitt auch ohne CT sichtbar. Präzisierung in der Planphase, ratifiziert durch Freigabe.
 **Präzisiert in der Planung (Umsetzung):** Schema bleibt 2 (optionaler Abschnitt `contractTracker` mit `path`/`autoSync`, `hotkeys.syncContractTracker`); Pfad, der kein voller Pfad ist → Autodetektion + Notice, fehlende Datei bleibt stehen. Pfad nur als Anzeige mit „Browse…“ und „Detect automatically“; Status beim Öffnen und bei Änderung geprüft, nicht live. Auto-sync aus ändert den Plan nie (auch nicht nach CT-Löschung), die Notice zählt Erfassungen; wieder an → Sync nach dem Debounce. Fehlende DB → Notice nur bei Knopf/Hotkey, der Watcher bleibt stumm. Hotkey-Doppelprüfung über alle drei Aktionen. **Neue DB** (Neuinstallation, Update legt die Datei neu an, anderer Pfad): höchste je vergebene Id (`sqlite_sequence`) < Wasserstand → ab 0 lesen, Wasserstand zurück, Notice „ContractTracker database looks new – all contracts imported“; nicht `MAX(Id)`, das beim Löschen des neuesten Vertrags sinkt und alle älteren doppelt importieren würde. Präzisierung in der Planphase, ratifiziert durch Freigabe (D44).
@@ -680,7 +680,7 @@ PNG, kein Spielername/Org im Bild, Overlay außerhalb des CT-Capture-Bereichs.
 
 **Befund (Größe):** `FloorLabel.Placement` liefert die Matrix (Lay flacht damit ab), `numberSize` einmal pro Frame für Nummern und Label. Tests: Yaw 45, Default-Zoom und 2×: B auf dem Bildschirm = Ziffer 1 bei `RackNumberSize` ±1 px (die Obergrenze greift dort also nicht); Boden mit 0,1 Zellen Platz quer → Label genau 0,1 Zellen breit. Anteil-Test entfällt. Tests 564/805/93, 0 Warnungen.
 
-### [ ] T6.5 README final
+### [x] T6.5 README final (erledigt, Häkchen nachgetragen in K10; Commits 1bfd3ba…c0aa7da, Bilder und Tag mit T7.5/T9.2)
 **Warum:** Das README ist die Download-Seite. Was dort steht, muss der Build tun.
 - Vorbedingung: Screenshots aus der T6.4-Liste liegen in `docs/screenshots/`
 - Abschnitte: Was · Download · Erstes Mal · CT-Anbindung · Hotkeys · Known issues · Bug melden · Credits · Lizenz
@@ -708,7 +708,7 @@ PNG, kein Spielername/Org im Bild, Overlay außerhalb des CT-Capture-Bereichs.
 
 **Offen:** Checkliste Martin am rc.3-ZIP (Run anyway und zweiter Start ohne Dialog; Plan-Tooltip; roter Stapelbefund mit Zeile unter der Legende; Drag einer Kiste auf die Stelle einer abgehakten); Bilder einsetzen; Notes `v0.1.0.md`, Tag `v0.1.0`, dann rc.3 löschen – nach dem Backlog.
 
-### [ ] T6.6 Nexus Mods
+### ~~[ ] T6.6 Nexus Mods~~ → T9.3 (dort weitergeführt, „= T6.6“; gestrichen in K10)
 **Warum:** Viele Hauler finden Tools auf Nexus, dort liegt auch ContractTracker.
 - Nach dem GitHub-Tag, gleiches ZIP wie im GitHub-Release
 - Permissions aus der MIT-Lizenz abgeleitet
@@ -1173,7 +1173,7 @@ hidden line), je ein Farbfeld ohne Alpha-Regler unter dem Deckkraft-Regler, imme
   offscreen geöffnet.
 - Commits ab4acbb, de96e92, 31541bf, 8c7a123 und dieser; Pipeline a406e95. Martin pusht.
 
-### [ ] T7.4d Mission und Abholort sichtbar machen (D68) – vor T7.5
+### [x] T7.4d Mission und Abholort sichtbar machen (D68) – vor T7.5 (erledigt, Häkchen nachgetragen in K10; Commits 6012d2a…91af570)
 - Problem aus dem Spiel: Kisten kommen pro Mission und Abholort hoch, das Overlay färbt pro Ziel; zwei Missionen zum selben
   Ziel oder eine Mission mit drei Abholorten sind nicht zu unterscheiden.
 - Modell: `pickup` optional am Item, jede Kiste kennt ihr Item; Merge nur bei gleichem Item, Split erbt.
@@ -1556,7 +1556,7 @@ Reihenfolge innerhalb von K3: K3.1 → K3.3 → K3.2 (Nachtrag 25.10.: `limits.m
 
 Aus dem Index vom 25.10. für K5 festgehalten: `cargoHolds[].offset`/`rotation` liegen für Hull A, Hull C, Ironclad Assault u. a. vor (Hull C: zwei Kreuze bei `y ∈ {0, 11.25}`, je vier Arme aus innen 10×10×7,5 m = 8×8×6 Zellen = 384 SCU und außen 5×10×7,5 m = 4×8×6 = 192 SCU; die vertikalen Arme tragen `rotation: 90`).
 
-### [ ] K3.1 Türlimit pro Rack (D70) (25.10.2026)
+### [x] K3.1 Türlimit pro Rack (D70) (25.10.2026) (erledigt, Häkchen nachgetragen in K10; Commits 69ee7da…2839b27)
 **Warum:** Spielfakt (Fleetyards-Betreiber, 23.10.): Manche Laderäume haben eine Tür, die kleiner ist als das Gitter. Clipper: Gitter 3×2×2 nimmt eine 8, durch die Tür passen nur Kisten bis 2 SCU.
 
 **Ist-Zustand vor K3.1 (A1):** `maxCrateSize` pro Rack gab es seit D56 (`Rack.CanHold` in Layout, Moves, Merge, `PlaceInto`), aus Fleetyards `maxContainerSize`, in 284/284 Racks gleich dem Gitter (D57), also wirkungslos. Plan-Schema war schon 4 (D68), K3.2 hebt es auf 5. `Partition` heißt seit B2 `RackAssignment`.
@@ -1595,7 +1595,7 @@ Vier Tests nutzten einen 32-SCU-Vertrag auf der Hull A als „passt nicht“; de
 - [x] ~~Gate Kiosk (Martin, K3): am Terminal bestätigen, dass der Kiosk bei einem Vertrag mit Maximum 8 auch 2er anbietet; widerlegt → Kappung nur bei Türlimit, P3 zurück (Folge-Commit), Ergebnis in D70~~ Entfällt (Martin, 26.10.): Der Frachtaufzug gibt aus, was er will, der Spieler wählt keine Kistengrößen; P3 bleibt, Notiz in D70
 - Commits f3c4e63 (Daten, Import), f815210 (Core-Tests rot), 69ee7da (Core), 538b6c9 (App-Tests rot), 72a6115 (App), 25ac668 (Import aus `limits.max.capacity`), 84b2cc3 (Türen aus dem Index vom 25.10.), Doku-Commit.
 
-### [ ] K3.3 Untergrenze `minCrateSize` pro Rack (D70-Addendum) (25.10.2026)
+### [x] K3.3 Untergrenze `minCrateSize` pro Rack (D70-Addendum) (25.10.2026) (erledigt, Häkchen nachgetragen in K10; Commits 32b5dd2…0892454)
 **Warum:** Fleetyards gibt neben `limits.max` auch `limits.min.capacity`; > 1 nur bei Hull C (32, die Spindel nimmt nur 32er), MPUV Tractor (16), CSV-SM (4). Ihre Gitter nehmen die Mindestkiste ungedreht (8×4×6/8×8×6, 4×2×2, 2×2×1).
 
 **Präzisierung in der Planphase, ratifiziert durch Freigabe:** `CrateCap.Min` = kleinste Kiste, die ein Rack nimmt (Martin); K1 `CrateCap.Accepts` statt Grenzen, gierige Zerlegung nur über angenommene Größen, Rest ohne angenommene Größe → Mission wartet, kein Hochkappen; K2 Neuplanung vergleicht die ganze Menge (Bitmaske, Record-Gleichheit). Ablehnung eines Moves mit Grund nicht gebaut (unerreichbar, wie bei der Tür); Split unter das Minimum wird abgelehnt. Texte `takes 32 SCU crates only` (mit „crates“, wie die übrigen Texte).
@@ -3620,7 +3620,7 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
 - [ ] README: Nexus als zweite Quelle
 - [ ] `git merge --no-ff` nach `main`
 
-### [ ] T9.4 Fleetyards-Verlinkung
+### ~~[ ] T9.4 Fleetyards-Verlinkung~~ gegenstandslos seit D94 (gestrichen in K10)
 
 ---
 
@@ -4873,6 +4873,27 @@ Eingeschoben vor Phase 10: T10.3 baut auf dem gepollten Hotkey auf.
 - Grep Wiki nach `has the focus|every program|registered|hotkey service|swallow|\`Space\`|RegisterHotKey|WM_HOTKEY`: 0 Treffer. `docs/`: nur `decisions.md` (D17 + Addendum, D35, D60, D71, D97) – Entscheidungshistorie.
 - Offen (Martin): Wiki-Push, GitHub-Issue anlegen und als fixed in v0.3.1 schließen, Settings-Fußzeile 0.3.1. Nexus-Upload am 16.11. mit **0.3.1** nach `docs/nexus/checklist.md` (ersetzt „mit 0.3.0“ in R5).
 
+## K10 Repo-Hygiene (09.11.2026) – Branch `chore/k10-repo-hygiene`
+
+Befunde aus `docs/review/2026-11-pre-p10.md` (Abschnitt 6.2, K10 vor Phase 10). Ein Commit je Befund, Prefix `K10-Fn`.
+Nichts, was Phase 10 ändert: kein ContractTracker-Code, kein Plan- oder Settings-Schema.
+
+**Präzisierungen in der Planphase, ratifiziert durch Freigabe:** F6 → Backlog (Schema 4 steckt in 23 `TestShips`, Umbau
+größer als der Nutzen); F9 mit Testumleitung des Logs (`AppLog.Path` internal setzbar, `TestLog` per Modul-Initialisierer)
+und ohne die bewusst schluckenden catches (`PlanStore.PeekShipId`, `HoloSource` 3×), 19 Stellen; F13 löscht
+`LoadPlanner.MoveCrate` trotz „kein LoadPlanner“ (reine Löschung); T6.6 als Duplikat von T9.3 gestrichen; Backlog auch
+für F22 und F6; F25 glättet zusätzlich `AssemblyInfo.cs` (9 Format-Treffer der WPF-Vorlage); F26 nimmt 15,0 s statt < 8 s
+Wandzeit hin (Takt jetzt `ImportMotherlodeScriptTests`, Backlog).
+
+- [x] F25 `.editorconfig` an den Code, Format-Gate in CI
+- [x] F26 FillRows 4 × 6 × 3 als `Slow`
+- [x] F12 `ShipChoicesTests` ohne `ships/` (A10)
+- [x] F13 `FromRect`, `ReserveLabel`, `MoveCrate` raus
+- [x] F9 jede Notice auch ins Log
+- [x] F18 TASKS-Häkchen, Backlog F6 F10 F16 F20 F21 F22
+- [ ] F19 `.gitignore` → `.git/info/exclude`
+- [ ] Abschluss: Messtabelle, Review 6.2
+
 ## Phase 10 – OCR (v0.4.0)
 
 CargoPlan liest Verträge selbst (Hotkey, ein Scan = ein Vertrag), der ContractTracker-Import entfällt. Grundlage ist der Befund S10.0 unten. Die Reihenfolge ist fest: T10.4 kommt nicht vor T10.3.
@@ -5215,3 +5236,23 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   Delete mission nein); Hotkey-Notice „already in use“ nennt den JSON-Key statt des Fenster-Labels; Notices mal mit, mal
   ohne Schlusspunkt, „crates capped …“ klein; Weiß dreifach belegt (Rand „loaded“, Missionsrahmen, Okabe-Weiß). Auslöser:
   nach v0.1.0.
+- Auffangnetz je `DispatcherTimer` (Review F10): das D82-Netz (`GuardedAsync`, Pause nach 5 Fehlern) deckt nur den
+  Sync-Tick; `PlanSaver`, `OverlayBoundsSaver`, `CursorStateMonitor`, `HotkeyService`, `SettingsSession` laufen in
+  `DispatcherUnhandledException` (Log + Dialog, App endet). Bewusst so, die Ticks fangen selbst. Auslöser: ein Crash-Report
+  aus einem dieser Ticks.
+- Virtual-Key-Codes an einem Ort (Review F16): `NativeMethods.cs` (Maustasten), `HotkeyPoller.cs` (Modifier),
+  `HotkeyParser.cs` (Tasten), kein Wert doppelt. Eine `VirtualKeys`-Datei. Auslöser: T10.3 braucht den Scan-Default als VK
+  oder ein vierter Ort.
+- Ubuntu-CI ohne WPF (Review F20): Ubuntu kompiliert alle Projekte inkl. WPF (`EnableWindowsTargeting`), testet aber nur
+  Core und Import. Auf `Core`, `Import`, `Cli` und ihre Tests beschränken spart die Referenzpack-Kompilierung. Auslöser:
+  die CI-Laufzeit stört.
+- `HoloLoaderTests.WaitFor` (Review F21): Polling 200 × 10 ms (2 s Deckel), einziger zeitabhängiger Test im Default-Run.
+  Auslöser: der erste rote Lauf auf einem Runner (Lehre T7.1d).
+- Lange Methoden im Planer (Review F22): `CrateLayout.Apart` (192 Z.), `LoadPlanner.LayStop` (106 Z.); `App.OnStartup`
+  schneidet T10.1. Auslöser: die nächste inhaltliche Änderung an einer der beiden.
+- Schiffs-Schema 4 nicht mehr lesen (Review F6): v0.1.0 lieferte 5, Community-Dateien sind 5 oder 6. 23 `TestShips` und
+  `PlainShip()` in `ShipLoaderTests` stehen auf 4, zwei Theories prüfen 4 ausdrücklich (K10: Umbau größer als der Nutzen).
+  Auslöser: der nächste Schiffs-Schema-Sprung (7), im selben Zug.
+- `ImportMotherlodeScriptTests` aufteilen (K10, F26): 13,4 s in einer Klasse, jeder Test startet PowerShell; xUnit führt
+  eine Klasse nacheinander aus, sie bestimmt die Core-Wandzeit (15,0 s). Zwei bis drei Klassen laufen parallel. Auslöser:
+  der Core-Testlauf stört.
