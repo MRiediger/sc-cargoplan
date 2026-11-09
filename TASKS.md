@@ -4801,18 +4801,19 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 3. `InternalsVisibleTo OcrProbe` und Vortice (D3D11 für WGC/DDA) nur auf dem Spike-Branch.
 4. Zeilen: zuerst ein Block = eine Zeile nach Oberkante (wie der CT-Rohtext). Der zweite Lauf mit Spaltentrennung war nötig (`+cols`, s. u.).
 5. Erkennungsauflösung: Das Vollbild braucht die volle Seitenlänge (`@max`). Mit der Paketvorgabe 1024 px wurden 0 von 13 Feldern gelesen. Der ROI-Ausschnitt braucht das nicht.
-6. Sample-Satz nur **3440×1440** (Martins Monitor): 42 Aufnahmen, davon **20 Verträge = 10 Paare** OFFERS → ACCEPTED mit Wahrheit von Hand. **1080p und 4K ungeprüft.** Vier Tippfehler in der Wahrheit am Bild korrigiert (c02, c11, c18, c20).
+6. Haupt-Satz **3440×1440** (Martins Monitor): 42 Aufnahmen, davon **20 Verträge = 10 Paare** OFFERS → ACCEPTED mit Wahrheit von Hand (Martin). Vier Tippfehler in der Wahrheit am Bild korrigiert (c02, c11, c18, c20). **4K ungeprüft** (kein Monitor dafür).
 7. Live-Lauf mit 10 statt 20 Auslösungen je Ansicht.
 8. Zwei Max-Größen-Formulierungen, die der Parser nicht kennt, als Spike-Code gemessen (`+max2`), getrennt ausgewiesen.
 9. `RecMaxDegreeOfParallelism` = 8 angefasst, weil raw/ROI schon offline das p95-Ziel verfehlte (1652 ms).
+10. **1080p-Nachmessung ohne Tipparbeit für Martin:** SC im Fenster auf 1920 × 1080. SC rendert intern 1080p und skaliert das Bild auf 2560 × 1440 mittig ins 3440er-Fenster. Der 16:9-Bereich wird per Lanczos auf 1920 × 1080 zurückskaliert, das ist eher unschärfer als nativ, also konservativ. 10 neue Paare (`set-1080s`). **Die Wahrheit hat Claude an vergrößerten Ausschnitten der Originale abgelesen**, unabhängig von der OCR.
 
 **Gates (Martin hakt):**
 - [ ] **G1 Capture:** Alle vier Wege liefern 3440×1440 mit SC vorn, borderless und „Vollbild“, kein schwarzes Bild. GDI BitBlt ist am schnellsten (33–41 ms). Vorbehalt: Das SC-Vollbild ist vermutlich fullscreen-optimiert, also faktisch borderless.
-- [ ] **G2 ≥ 95 % Felder:** **100 % (158/158)** mit raw + ROI + Spaltenreihenfolge + `+max2`; Pickup 28/28, Reward 20/20. Der bestehende Parser allein erreicht 95,6 % (ROI + Spalten) bzw. 90,5 % (Vollbild, Oberkante). **Nur 3440×1440.**
-- [ ] **G3 p95 ≤ 1500 ms über dem Spiel:** **1184 ms** (ACCEPTED) / **1188 ms** (OFFERS), Median 1059 / 1112 ms, n = 10 + 10, Taste bis geparster Vertrag. Der erste Scan nach dem Start brauchte 1311 ms.
-- [ ] **G4 Terminal = Manager:** Der Lesepfad ist gleich (ein ROI für beide Ansichten, ein Parser, beide 100 %). **Der Inhalt nicht:** In 10 von 10 Paaren hat das Spiel beim Annehmen die SCU neu gewürfelt (Tabelle unten). Martins Einschätzung: Spielbug.
+- [ ] **G2 ≥ 95 % Felder:** **100 % (158/158)** mit raw + ROI + Spaltenreihenfolge + `+max2`; Pickup 28/28, Reward 20/20. Der bestehende Parser allein erreicht 95,6 % (ROI + Spalten) bzw. 90,5 % (Vollbild, Oberkante). **1080p: 98,1 % (155/158) mit up2-gray + ROI.** Die 3 fehlenden Felder stammen aus einer Aufnahme während der Textanimation (c06); ohne sie sind es 100 %. raw allein erreicht bei 1080p nur 94,9 %. **Empfohlen für beide Auflösungen: up2-gray + ROI.** Bei 3440×1440 ebenfalls 100 %.
+- [ ] **G3 p95 ≤ 1500 ms über dem Spiel:** **1184 ms** (ACCEPTED) / **1188 ms** (OFFERS), Median 1059 / 1112 ms, n = 10 + 10, Taste bis geparster Vertrag. Der erste Scan nach dem Start brauchte 1311 ms. Gemessen mit raw. Die empfohlene Variante up2-gray mit Parallelität 8 ist offline gleich schnell (p95 1374 ms bei 3440×1440, 1299 ms bei 1080p; raw: 1332 ms); live nicht gemessen.
+- [ ] **G4 Terminal = Manager:** Der Lesepfad ist gleich (ein ROI für beide Ansichten, ein Parser, beide 100 %). **Der Inhalt nicht:** Im Haupt-Satz hat das Spiel beim Annehmen in 10 von 10 Paaren die SCU neu gewürfelt (Tabelle unten), im 1080p-Satz in 6 von 10. Unverändert blieben dort vier Verträge mit nur einer Lieferung (Quartz, Silicon, zweimal Waste). Martins Einschätzung: Spielbug.
 - [ ] **G5 Schlüssel eindeutig:** Alle 20 Schlüssel aus der OCR sind gleich der Wahrheit, ohne Kollision. Ein Schlüssel **ohne SCU** (Pickup + Ziele + Waren + Max [+ Reward]) verbindet 10 von 10 Paaren, ebenfalls ohne Kollision.
-- [ ] **G6 Anker ≥ 95 %:** **nicht erreicht.** Ankerausschnitt raw + `+cols+max2`: 90,5 % der Felder (ACCEPTED 97,5 %, OFFERS 83,5 %). Ausschnitt aus dem `@max`-Vollbild bei OFFERS: nur 3 von 10 so gut wie das Vollbild. Bei 3440×1440 sind Anker unnötig, weil ein festes ROI beide Ansichten abdeckt. Für andere Auflösungen ist das offen.
+- [ ] **G6 Anker ≥ 95 %:** **nicht erreicht.** Ankerausschnitt raw + `+cols+max2`: 90,5 % der Felder (ACCEPTED 97,5 %, OFFERS 83,5 %). Ausschnitt aus dem `@max`-Vollbild bei OFFERS: nur 3 von 10 so gut wie das Vollbild. 1080p: 91,8 % (up2-gray). Anker sind unnötig: Das mobiGlas liegt bei 21:9 und 16:9 im zentrierten 16:9-Bereich, also passt **ein ROI relativ zu diesem Bereich** für beide Auflösungen und beide Ansichten (s. u.).
 
 **Capture (F1)**, je ein Bild pro Weg × Modus × Ansicht, SC vorn:
 
@@ -4842,6 +4843,22 @@ Sample-Satz mit BitBlt: 42 von 42 Bildern, Median 33–34 ms. **GDI reicht, die 
 - **Parser-Lücken (`+max2`), nur Direct-Hauls:** „At most the containers will be 8 SCU in size.“ und „… their ship couldn't handle 16 SCU containers …“.
 - **Vorverarbeitung bringt nichts:** Mit ROI liefern alle vier Varianten dasselbe. raw ist am schnellsten.
 - Ein ROI deckt beide Ansichten ab (mobiGlas-Panel an derselben Stelle): `3440x1440: [1300, 210, 1560, 1000]`.
+
+**1080p-Nachmessung**, 20 Verträge (10 Paare), 158 Felder, Spalten + `max2`:
+
+| Lesart | Region | Felder | Pickup | Reward | offline Median / p95 |
+|---|---|---|---|---|---|
+| raw | ROI | 94,9 % | 96,4 % | 100 % | 1345 / 1467 ms |
+| raw `@max` | ROI | 97,5 % | 96,4 % | 100 % | 1457 / 1556 ms |
+| **up2-gray, Parallelität 8** | **ROI** | **98,1 %** | 96,4 % | 100 % | **1231 / 1299 ms** |
+| up2-gray-inv | ROI | 96,8 % | 96,4 % | 100 % | 1439 / 1544 ms |
+| raw `@max` | Vollbild | 97,5 % | 96,4 % | 100 % | 1947 / 2109 ms |
+| up2-gray | Ankerausschnitt | 91,8 % | 96,4 % | 100 % | – |
+
+- Der einzige Fehler mit up2-gray ist **c06**: Die Aufnahme kam, während das Spiel die Ziele noch einblendete („Deliver 0/9 SCU of Silicon“, ohne Ziel und ohne Abholort). Bei 3440×1440 war c01 ebenso angeschnitten („Station at H“), aber das Ziel war schon lesbar. Das ist kein OCR-Fehler, der Produktpfad muss aber damit umgehen (offene Frage).
+- raw verliert bei 1080p kleine Schrift: zwei Max-Größen (c02, c05) und eine Lieferung (c07). up2-gray liest sie.
+- ROI `1920x1080: [645, 157, 1170, 750]` = das 3440er-ROI, umgerechnet über den zentrierten 16:9-Bereich (x 440 … 3000 bei 3440×1440). Dass es ohne Nachjustieren trifft, belegt die Lage relativ zu diesem Bereich.
+- Modelle laden: 182 ms.
 
 **Zeit und Speicher (F3):**
 
@@ -4899,17 +4916,19 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
    - Parser-Erweiterung um die zwei Max-Formulierungen, Pickup-Parser (neu), Reward aus Label und Betrag in einer Zeile
    - Fixtures als OCR-Text, nicht als Bild
 3. **Capture + OCR in der App:**
-   - GDI BitBlt auf das Client-Rechteck, ROI pro Auflösung
-   - RapidOcrNet raw ohne Vorverarbeitung, Parallelität 8, Modelle beim Start laden
+   - GDI BitBlt auf das Client-Rechteck, ROI relativ zum zentrierten 16:9-Bereich
+   - RapidOcrNet mit up2-gray (2× hoch, Graustufen), Parallelität 8, Modelle beim Start laden
+   - Textanimation abwarten: erneut aufnehmen, bis zwei Scans gleich sind, oder eine Lieferzeile ohne Ziel als „noch nicht fertig“ werten
    - Speicher im Langlauf messen
 4. **Identität und Plan-Schema:** Inhaltsschlüssel ohne SCU, mit Reward, ersetzt CT-Id und Watermark. Der Manager-Scan überschreibt die Mengen der Vorschau. Schema-Sprung, CT-Ausbau in Core, App und Doku.
-5. **Messung 1080p / 4K** (G2, ROI-Lage, G6) vor dem Release, mit dem Werkzeug aus diesem Spike oder mit dem Produktpfad.
+5. **Messung 4K und mit anderer UI-Skalierung** vor dem Release, sobald jemand mit diesem Setup testet. Dafür reicht der Produktpfad mit Logausgabe.
 
 **Offene Fragen:**
 - **T10.3, F3 belegt (K2):** Wer CT nach v0.4.0 weiterlaufen lässt, hält F3. Mit Polling gibt es kein „belegt“ mehr, beide Programme reagieren auf F3. Möglichkeiten: Notice beim Start, wenn CT läuft, oder eine andere Default-Taste. Kein Spike-Code.
 - **Vortice vs. eigenes D3D11-Interop (P3):** entfällt, GDI reicht (G1).
 - **Re-roll beim Annehmen:** Haben die CT-basierten Pläne (CT las OFFERS) am Aufzug andere Mengen gezeigt als geliefert wurden? (Martin). Behebt CIG den Bug, wird die Vorschau exakt. Der Entwurf oben funktioniert in beiden Fällen.
-- **ROI für andere Auflösungen, Seitenverhältnisse und UI-Skalierung:** ungeprüft. Entweder eine ROI-Tabelle (relativ zur Bildhöhe?) oder die Anker überarbeiten (G6 verfehlt).
+- **ROI bei 4K, 32:9, 16:10 und anderer UI-Skalierung:** ungeprüft. Bei 21:9 und 16:9 trifft dasselbe ROI relativ zum zentrierten 16:9-Bereich. Ob 16:10 (Bereich durch die Breite begrenzt) und eine geänderte HUD-Skalierung mitspielen, ist offen. Die Anker bleiben der Rückfall (G6 verfehlt).
+- **Textanimation:** Ein Scan direkt nach dem Klick auf einen Vertrag kann halb eingeblendeten Text lesen (c06). Wie lange dauert die Animation, und reicht ein zweiter Scan nach ≈ 300 ms?
 - **Speicher:** Wächst das Working Set weiter (nach dem ersten Scan ≈ 7 MB pro Scan) oder pendelt es sich ein? Dispose von Bitmaps und Frames prüfen.
 - **Abdeckung:** nur Hurston, nur Covalex, zwei Waste-Verträge, keine Pyro-/Red-Wind-Formulierungen im Satz. Weitere Formulierungen kommen wie bei B9 über Meldungen.
 - Ein FPS-Overlay schreibt Text oben rechts; mit ROI irrelevant.
