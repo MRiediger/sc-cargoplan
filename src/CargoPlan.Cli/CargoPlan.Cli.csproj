@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CargoPlan.Core\CargoPlan.Core.csproj" />
     <ProjectReference Include="..\CargoPlan.Import\CargoPlan.Import.csproj" />
+    <ProjectReference Include="..\CargoPlan.Ocr\CargoPlan.Ocr.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
