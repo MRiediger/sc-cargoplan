@@ -4790,6 +4790,149 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 ### [ ] T10.2 winget-Manifest – `winget install SC-CargoPlan`
 ### [ ] T10.3 Eigenes OCR – **Windows.Media.Ocr** (in Windows eingebaut, kein Paket, keine 100 MB Modelle). Machbarkeitsstudie als eigener Task.
 
+### [x] S10.0 Spike „Eigenes OCR“ (09.11.2026, abgenommen 09.11.)
+
+**Branches:** Werkzeug auf `spike/s10-ocr` (Worktree `..\sc-cargoplan-s10`, `tools/OcrProbe`, nicht in der `.sln`, wird nach der Abnahme gelöscht), dieser Befund auf `spike/s10-ocr-finding`. Samples außerhalb des Repos (`~/source/sc-ocr-samples`, CIG-Material, nicht MIT).
+**Frage:** Kann v0.4.0 Verträge mit eigener OCR lesen (Hotkey, ein Scan = ein Vertrag) und den ContractTracker-Import ersetzen? Kandidat: **RapidOcrNet 4.2.0** (Apache 2.0) mit PP-OCRv5 Latin, ONNX Runtime 1.31.1, SkiaSharp. Die Zeile T10.3 oben (Windows.Media.Ocr) bleibt bis zum Doku-Commit nach diesem Befund stehen.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. „Terminal“ = mobiGlas OFFERS, „Manager“ = mobiGlas ACCEPTED. Probe-Tasten F8/F9 statt F3 (CT hält F3).
+2. Der bestehende Parser liest keinen Abholort: Pickup und Reward kommen aus Spike-Code und werden getrennt ausgewiesen.
+3. `InternalsVisibleTo OcrProbe` und Vortice (D3D11 für WGC/DDA) nur auf dem Spike-Branch.
+4. Zeilen: zuerst ein Block = eine Zeile nach Oberkante (wie der CT-Rohtext). Der zweite Lauf mit Spaltentrennung war nötig (`+cols`, s. u.).
+5. Erkennungsauflösung: Das Vollbild braucht die volle Seitenlänge (`@max`). Mit der Paketvorgabe 1024 px wurden 0 von 13 Feldern gelesen. Der ROI-Ausschnitt braucht das nicht.
+6. Haupt-Satz **3440×1440** (Martins Monitor): 42 Aufnahmen, davon **20 Verträge = 10 Paare** OFFERS → ACCEPTED mit Wahrheit von Hand (Martin). Vier Tippfehler in der Wahrheit am Bild korrigiert (c02, c11, c18, c20). **4K ungeprüft** (kein Monitor dafür).
+7. Live-Lauf mit 10 statt 20 Auslösungen je Ansicht.
+8. Zwei Max-Größen-Formulierungen, die der Parser nicht kennt, als Spike-Code gemessen (`+max2`), getrennt ausgewiesen.
+9. `RecMaxDegreeOfParallelism` = 8 angefasst, weil raw/ROI schon offline das p95-Ziel verfehlte (1652 ms).
+10. **1080p-Nachmessung ohne Tipparbeit für Martin:** SC im Fenster auf 1920 × 1080. SC rendert intern 1080p und skaliert das Bild auf 2560 × 1440 mittig ins 3440er-Fenster. Der 16:9-Bereich wird per Lanczos auf 1920 × 1080 zurückskaliert, das ist eher unschärfer als nativ, also konservativ. 10 neue Paare (`set-1080s`). **Die Wahrheit hat Claude an vergrößerten Ausschnitten der Originale abgelesen**, unabhängig von der OCR.
+
+**Gates (Martin hakt):**
+- [x] **G1 Capture:** Alle vier Wege liefern 3440×1440 mit SC vorn, borderless und „Vollbild“, kein schwarzes Bild. GDI BitBlt ist am schnellsten (33–41 ms). Vorbehalt: Das SC-Vollbild ist vermutlich fullscreen-optimiert, also faktisch borderless.
+- [x] **G2 ≥ 95 % Felder:** **100 % (158/158)** mit raw + ROI + Spaltenreihenfolge + `+max2`; Pickup 28/28, Reward 20/20. Der bestehende Parser allein erreicht 95,6 % (ROI + Spalten) bzw. 90,5 % (Vollbild, Oberkante). **1080p: 98,1 % (155/158) mit up2-gray + ROI.** Die 3 fehlenden Felder stammen aus einer Aufnahme während der Textanimation (c06); ohne sie sind es 100 %. raw allein erreicht bei 1080p nur 94,9 %. **Empfohlen für beide Auflösungen: up2-gray + ROI.** Bei 3440×1440 ebenfalls 100 %.
+- [x] **G3 p95 ≤ 1500 ms über dem Spiel:** **1184 ms** (ACCEPTED) / **1188 ms** (OFFERS), Median 1059 / 1112 ms, n = 10 + 10, Taste bis geparster Vertrag. Der erste Scan nach dem Start brauchte 1311 ms. Gemessen mit raw. Die empfohlene Variante up2-gray mit Parallelität 8 ist offline gleich schnell (p95 1374 ms bei 3440×1440, 1299 ms bei 1080p; raw: 1332 ms); live nicht gemessen.
+- [ ] **G4 Terminal = Manager:** Der Lesepfad ist gleich (ein ROI für beide Ansichten, ein Parser, beide 100 %). **Der Inhalt nicht:** Im Haupt-Satz hat das Spiel beim Annehmen in 10 von 10 Paaren die SCU neu gewürfelt (Tabelle unten), im 1080p-Satz in 6 von 10. Unverändert blieben dort vier Verträge mit nur einer Lieferung (Quartz, Silicon, zweimal Waste). Martins Einschätzung: Spielbug.
+- [x] **G5 Schlüssel eindeutig:** Alle 20 Schlüssel aus der OCR sind gleich der Wahrheit, ohne Kollision. Ein Schlüssel **ohne SCU** (Pickup + Ziele + Waren + Max [+ Reward]) verbindet 10 von 10 Paaren, ebenfalls ohne Kollision.
+- [ ] **G6 Anker ≥ 95 %:** **nicht erreicht.** Ankerausschnitt raw + `+cols+max2`: 90,5 % der Felder (ACCEPTED 97,5 %, OFFERS 83,5 %). Ausschnitt aus dem `@max`-Vollbild bei OFFERS: nur 3 von 10 so gut wie das Vollbild. 1080p: 91,8 % (up2-gray). Anker sind unnötig: Das mobiGlas liegt bei 21:9 und 16:9 im zentrierten 16:9-Bereich, also passt **ein ROI relativ zu diesem Bereich** für beide Auflösungen und beide Ansichten (s. u.).
+
+**Capture (F1)**, je ein Bild pro Weg × Modus × Ansicht, SC vorn:
+
+| Weg | borderless ms (ACCEPTED / OFFERS) | „Vollbild“ ms (ACCEPTED / OFFERS) | Befund |
+|---|---|---|---|
+| GDI `BitBlt` (Bildschirm-DC, Client-Rechteck) | 36 / 41 | 37 / 41 | Bild |
+| GDI `PrintWindow(PW_RENDERFULLCONTENT)` | 42 / 43 | 41 / 46 | Bild |
+| DXGI Desktop Duplication | 48 / 53 | 49 / 54 | Bild |
+| Windows.Graphics.Capture (`IsBorderRequired=false`, Zugriff „Allowed“) | 96 / 149 | 79 / 151 | Bild, langsamer |
+
+Sample-Satz mit BitBlt: 42 von 42 Bildern, Median 33–34 ms. **GDI reicht, die Frage Vortice vs. eigenes D3D11-Interop entfällt.**
+
+**Genauigkeit (F2)**, 20 Verträge, 158 Felder (je Lieferung Ziel, Ware, SCU; je Vertrag Max-Größe), 3440×1440:
+
+| Lesart | Region | Felder | Pickup | Reward |
+|---|---|---|---|---|
+| raw, Oberkante | Vollbild (1024) | 18,9 % | 27,8 % | 30 % |
+| raw `@max`, Oberkante | Vollbild | 90,5 % | 100 % | 100 % |
+| raw `@max` + Spalten + `max2` | Vollbild | 97,5 % | 100 % | 100 % |
+| raw + Spalten | ROI | 95,6 % | 100 % | 100 % |
+| **raw + Spalten + `max2`** | **ROI** | **100 %** | **100 %** | **100 %** |
+| up2 / up2-gray / up2-gray-inv + Spalten + `max2` | ROI | 100 % | 100 % | 100 % |
+| raw + Spalten + `max2` | Ankerausschnitt | 90,5 % | 93,1 % | 40 % |
+
+- **Die Erkennung selbst war nie der Engpass.** Ziel, Ware und SCU wurden in allen 20 Bildern richtig gelesen, auch unter einem Lichtstreifen quer über dem Text (c17/c18). Die Fehler stammten aus der Zeilenreihenfolge und aus dem Parser.
+- **Zeilenreihenfolge:** Sortiert man nach Oberkante, verschränken sich Prosa (links) und Ziele (rechts). „4“ und „SCU or smaller“ liegen dann nicht mehr nebeneinander, und der Reward-Betrag landet vor „Reward“. Die Spaltenreihenfolge (`+cols`) trennt die Spalten an den linken Kanten von „DETAILS“ und „PRIMARY OBJECTIVES“ und liest innerhalb einer Spalte zeilenweise von links nach rechts.
+- **Parser-Lücken (`+max2`), nur Direct-Hauls:** „At most the containers will be 8 SCU in size.“ und „… their ship couldn't handle 16 SCU containers …“.
+- **Vorverarbeitung bringt nichts:** Mit ROI liefern alle vier Varianten dasselbe. raw ist am schnellsten.
+- Ein ROI deckt beide Ansichten ab (mobiGlas-Panel an derselben Stelle): `3440x1440: [1300, 210, 1560, 1000]`.
+
+**1080p-Nachmessung**, 20 Verträge (10 Paare), 158 Felder, Spalten + `max2`:
+
+| Lesart | Region | Felder | Pickup | Reward | offline Median / p95 |
+|---|---|---|---|---|---|
+| raw | ROI | 94,9 % | 96,4 % | 100 % | 1345 / 1467 ms |
+| raw `@max` | ROI | 97,5 % | 96,4 % | 100 % | 1457 / 1556 ms |
+| **up2-gray, Parallelität 8** | **ROI** | **98,1 %** | 96,4 % | 100 % | **1231 / 1299 ms** |
+| up2-gray-inv | ROI | 96,8 % | 96,4 % | 100 % | 1439 / 1544 ms |
+| raw `@max` | Vollbild | 97,5 % | 96,4 % | 100 % | 1947 / 2109 ms |
+| up2-gray | Ankerausschnitt | 91,8 % | 96,4 % | 100 % | – |
+
+- Der einzige Fehler mit up2-gray ist **c06**: Die Aufnahme kam, während das Spiel die Ziele noch einblendete („Deliver 0/9 SCU of Silicon“, ohne Ziel und ohne Abholort). Bei 3440×1440 war c01 ebenso angeschnitten („Station at H“), aber das Ziel war schon lesbar. Das ist kein OCR-Fehler, der Produktpfad muss aber damit umgehen (offene Frage).
+- raw verliert bei 1080p kleine Schrift: zwei Max-Größen (c02, c05) und eine Lieferung (c07). up2-gray liest sie.
+- ROI `1920x1080: [645, 157, 1170, 750]` = das 3440er-ROI, umgerechnet über den zentrierten 16:9-Bereich (x 440 … 3000 bei 3440×1440). Dass es ohne Nachjustieren trifft, belegt die Lage relativ zu diesem Bereich.
+- Modelle laden: 182 ms.
+
+**Zeit und Speicher (F3):**
+
+| Messung | Median | p95 |
+|---|---|---|
+| Offline raw/ROI, `RecMaxDegreeOfParallelism` 1 | 1380–1425 ms | 1652–1658 ms |
+| Offline raw/ROI, Parallelität 2 / 4 / 8 | 1260 / 1273 / 1272 ms | 1424 / 1395 / 1332 ms |
+| Offline raw `@max` Vollbild | 2200 ms | 2412 ms |
+| **Über dem Spiel raw/ROI p8**, Taste → Vertrag (Capture 42 ms, OCR ≈ 1000 ms, Parse < 1 ms) | **1059–1112 ms** | **1184–1188 ms** |
+
+- Modelle laden: 225 ms Median (bis 420 ms), einmal beim Start.
+- **Speicher über dem Spiel:** Das Working Set wuchs in 20 Scans von 407 auf 684 MB, die Private Bytes am Ende auf 802 MB, ohne Plateau.
+- Platte: Modelle 14 MB, `onnxruntime.dll` 17 MB, `libSkiaSharp.dll` 11 MB, verwaltete DLLs etwa 1 MB, zusammen ≈ 43 MB unkomprimiert.
+
+**OFFERS → ACCEPTED (F4)**, Wahrheit gegen Wahrheit:
+
+| Paar | Beim Annehmen geändert |
+|---|---|
+| c01 → c02 | Faithful Dream Processed Food 7→6, Thundering Express Pressurized Ice 3→4, High Course Processed Food 3→5 |
+| c03 → c04 | Quartz (Raw) 104→110 |
+| c05 → c06 | Quantum Fuel 124→86, Hydrogen Fuel 105→141, Ship Ammunition 141→90 (Summe 370→317) |
+| c07 → c08 | Silicon 10→9 |
+| c09 → c10 | Waste 11→8 |
+| c11 → c12 | Iron (Ore) 101→105 |
+| c13 → c14 | Pressurized Ice 4→6 und 3→6, Processed Food 4→6 |
+| c15 → c16 | Stims 4→3, 2→3 |
+| c17 → c18 | Waste 9→7 |
+| c19 → c20 | Pressurized Ice 7→6, 7→6, Processed Food 6→7, 6→4 |
+
+Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Größe. Bei der ersten Durchsicht ohne Wahrheit zeigten auch die übrigen 11 Paare des Satzes andere Mengen. **Folge:** Der Vorschau-Scan ist eine Schätzung. Die Mengen gelten erst nach dem Scan im Manager, der Schlüssel ohne SCU ordnet ihn der Vorschau zu.
+
+**Inhaltsschlüssel (F5):** Pickup + sortierte (Ziel, SCU) + Waren + Max-Größe in B1-Schlüsselform: 20 von 20 stabil, keine Kollision, mit und ohne Reward. Ohne SCU: 10 Gruppen = 10 Paare. Vorbehalt: 10 Verträge aus Hurston/Covalex sind statistisch dünn. c03 und c11 unterscheiden sich nur in der Ware, und laut D39-Addendum gibt es Waste-Verträge, die sich nur im Reward unterscheiden. Der Reward gehört also in den Schlüssel.
+
+**Hotkeys (Befund unterwegs):** Mit SC im Vordergrund kommt **kein** `RegisterHotKey`-Hotkey an. Das gilt thread- und fenstergebunden, mit offenem und geschlossenem mobiGlas, auch für Ctrl+Alt+K; auf dem Desktop kommt er an. Damit funktionieren auch **CargoPlans eigene Hotkeys (D17) im Spiel nicht**, ein v0.3.0-Bug. `GetAsyncKeyState`-Polling (10 ms, kein Hook, Präzedenz D45) sieht jede Taste, die Taste erreicht dann aber auch das Spiel. Fn+F8 sendet auf Martins Tastatur keinen VK.
+
+**Inventur CT-Abhängigkeiten (Schritt 6)**, `git grep` nach `ContractTracker|Watermark|Gone|Detached|contracts.db`, ohne Änderung:
+
+| Bereich | Dateien | Zeilen |
+|---|---|---|
+| `src/CargoPlan.App` | 37 | 279 |
+| `src/CargoPlan.Core` | 14 | 145 |
+| `src/CargoPlan.Import` | 9 | 53 |
+| `src/CargoPlan.Cli` | 2 | 8 |
+| `tests/CargoPlan.App.Tests` | 32 | 341 |
+| `tests/CargoPlan.Core.Tests` | 33 | 149 |
+| `tests/CargoPlan.Import.Tests` (dazu 18 Fixtures) | 9 | 73 |
+| `docs/` (19), README, CLAUDE, CONTRIBUTING, TASKS, `.github`, `.gitignore`, `outlines` | 26 | 341 |
+
+**Der Planer selbst trägt die CT-Identität:** `LoadPlanner.cs` hat 50 Treffer, davon 35 `Watermark` (Lieferidentität D81). Dazu kommen `ContractSync`, `ContractSource` und `PlanFileDto`. Der Ausbau betrifft also auch Core und das Plan-Dateiformat, nicht nur `CargoPlan.Import`.
+
+**Empfehlung für den Phase-10-Schnitt** (Martin entscheidet):
+1. **Bugfix Hotkeys vorab:** D17-Hotkeys per Polling statt `RegisterHotKey`, mit D-Eintrag, eigener Branch. Das wirkt sofort für v0.3.x und ist die Grundlage für den Scan-Hotkey.
+2. **Lesepfad in `CargoPlan.Import`, Tests zuerst:**
+   - Zeilenbildung aus OCR-Blöcken (Spalten, Bildschirmzeilen)
+   - Parser-Erweiterung um die zwei Max-Formulierungen, Pickup-Parser (neu), Reward aus Label und Betrag in einer Zeile
+   - Fixtures als OCR-Text, nicht als Bild
+3. **Capture + OCR in der App:**
+   - GDI BitBlt auf das Client-Rechteck, ROI relativ zum zentrierten 16:9-Bereich
+   - RapidOcrNet mit up2-gray (2× hoch, Graustufen), Parallelität 8, Modelle beim Start laden
+   - Textanimation abwarten: erneut aufnehmen, bis zwei Scans gleich sind, oder eine Lieferzeile ohne Ziel als „noch nicht fertig“ werten
+   - Speicher im Langlauf messen
+4. **Identität und Plan-Schema:** Inhaltsschlüssel ohne SCU, mit Reward, ersetzt CT-Id und Watermark. Der Manager-Scan überschreibt die Mengen der Vorschau. Schema-Sprung, CT-Ausbau in Core, App und Doku.
+5. **Messung 4K und mit anderer UI-Skalierung** vor dem Release, sobald jemand mit diesem Setup testet. Dafür reicht der Produktpfad mit Logausgabe.
+
+**Offene Fragen:**
+- **T10.3, F3 belegt (K2):** Wer CT nach v0.4.0 weiterlaufen lässt, hält F3. Mit Polling gibt es kein „belegt“ mehr, beide Programme reagieren auf F3. Möglichkeiten: Notice beim Start, wenn CT läuft, oder eine andere Default-Taste. Kein Spike-Code.
+- **Vortice vs. eigenes D3D11-Interop (P3):** entfällt, GDI reicht (G1).
+- **Re-roll beim Annehmen:** Haben die CT-basierten Pläne (CT las OFFERS) am Aufzug andere Mengen gezeigt als geliefert wurden? (Martin). Behebt CIG den Bug, wird die Vorschau exakt. Der Entwurf oben funktioniert in beiden Fällen.
+- **ROI bei 4K, 32:9, 16:10 und anderer UI-Skalierung:** ungeprüft. Bei 21:9 und 16:9 trifft dasselbe ROI relativ zum zentrierten 16:9-Bereich. Ob 16:10 (Bereich durch die Breite begrenzt) und eine geänderte HUD-Skalierung mitspielen, ist offen. Die Anker bleiben der Rückfall (G6 verfehlt).
+- **Textanimation:** Ein Scan direkt nach dem Klick auf einen Vertrag kann halb eingeblendeten Text lesen (c06). Wie lange dauert die Animation, und reicht ein zweiter Scan nach ≈ 300 ms?
+- **Speicher:** Wächst das Working Set weiter (nach dem ersten Scan ≈ 7 MB pro Scan) oder pendelt es sich ein? Dispose von Bitmaps und Frames prüfen.
+- **Abdeckung:** nur Hurston, nur Covalex, zwei Waste-Verträge, keine Pyro-/Red-Wind-Formulierungen im Satz. Weitere Formulierungen kommen wie bei B9 über Meldungen.
+- Ein FPS-Overlay schreibt Text oben rechts; mit ROI irrelevant.
+
 ---
 
 ## Lehren
