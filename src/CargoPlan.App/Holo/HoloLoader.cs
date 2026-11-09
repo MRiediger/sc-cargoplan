@@ -102,6 +102,7 @@ public sealed class HoloLoader
                 }
                 catch (HoloFormatException ex)
                 {
+                    AppLog.Write("Holo", $"{ex.Message} [{ex.GetType().Name}]");
                     Notice(ex.Message);
                     return null;
                 }

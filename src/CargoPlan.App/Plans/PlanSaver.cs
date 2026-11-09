@@ -77,7 +77,9 @@ public sealed class PlanSaver
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _viewModel.SetNotice(NoticeSource.Plan, $"Plan not saved ({ex.Message}).");
+            var problem = $"Plan not saved ({ex.Message}).";
+            AppLog.Write("Plan", $"{problem} [{ex.GetType().Name}]");
+            _viewModel.SetNotice(NoticeSource.Plan, problem);
         }
     }
 }

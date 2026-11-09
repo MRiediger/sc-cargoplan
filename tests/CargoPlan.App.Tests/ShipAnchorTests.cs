@@ -149,7 +149,7 @@ public sealed class ShipAnchorTests
 
         var carried = ShipAnchorValues.Carry(origin, previous.Bounds, next.Bounds);
 
-        Point3D Middle(HoloPlacement p) => new((p.Min.X + p.Max.X) / 2, (p.Min.Y + p.Max.Y) / 2, (p.Min.Z + p.Max.Z) / 2);
+        static Point3D Middle(HoloPlacement p) => new((p.Min.X + p.Max.X) / 2, (p.Min.Y + p.Max.Y) / 2, (p.Min.Z + p.Max.Z) / 2);
         var before = Middle(HoloPlacement.Place(previous, Unanchored() with { HoloOffset = null, HoloOrigin = origin }));
         var after = Middle(HoloPlacement.Place(next, Unanchored() with { HoloOffset = null, HoloOrigin = carried }));
         (after - before).Length.Should().BeLessThan(1e-5);

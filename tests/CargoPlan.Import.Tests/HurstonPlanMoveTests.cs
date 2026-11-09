@@ -20,7 +20,7 @@ public class HurstonPlanMoveTests
         var lower = plan.Crates.Single(c => c.Destination == "Everus Harbor" && c.RackId == "rack-0" && c.Position == new GridPosition(2, 0, 0));
         var upper = plan.Crates.Single(c => c.Destination == "Everus Harbor" && c.RackId == "rack-0" && c.CrateSize == CrateSize.Two);
 
-        var moved = LoadPlanner.MoveCrate(plan, HullA, lower, "rack-2", new GridPosition(0, 0, 0));
+        var moved = PlannerMoves.MoveCrate(plan, HullA, lower, "rack-2", new GridPosition(0, 0, 0));
 
         moved.Crates.Single(c => c.RackId == "rack-2").Position.Should().Be(new GridPosition(0, 0, 0));
         moved.Crates[plan.Crates.ToList().IndexOf(upper)].Position.Should().Be(new GridPosition(2, 0, 0));

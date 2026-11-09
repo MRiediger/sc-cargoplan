@@ -98,9 +98,16 @@ public class ShipChoicesTests
     [Fact]
     public void Of_sorts_within_a_group_by_shown_name()
     {
-        var shipped = ShipChoices.Of(ShipLoader.LoadAll()).Where(c => c.Group == "CRUS").Select(c => c.Text);
+        // Built from the frozen C2, not from ships/: the next import may add a CRUS ship (A10).
+        var catalog = new ShipCatalog(
+        [
+            C2 with { Id = "msr", Name = "CRUS Mercury Star Runner" },
+            C2,
+            C2 with { Id = "intrepid", Name = "CRUS intrepid" },
+            C2 with { Id = "a2", Name = "CRUS A2 Hercules" },
+        ], []);
 
-        shipped.Should().Equal("A2 Hercules", "C1 Spirit", "C2 Hercules", "Intrepid", "M2 Hercules", "Mercury Star Runner");
+        ShipChoices.Of(catalog).Select(c => c.Text).Should().Equal("A2 Hercules", "C2 Hercules", "intrepid", "Mercury Star Runner");
     }
 
     // --- Capacity (F1) ---
@@ -112,7 +119,7 @@ public class ShipChoicesTests
     [InlineData("utv", "(1 SCU)")]
     public void An_entry_shows_its_ships_capacity_with_a_thousands_comma(string id, string expected)
     {
-        ShipChoices.Of(ShipLoader.LoadAll()).Single(c => c.Id == id).CapacityText.Should().Be(expected);
+        ShipChoices.Of(FrozenShips.LoadAll()).Single(c => c.Id == id).CapacityText.Should().Be(expected);
     }
 
     [Fact]

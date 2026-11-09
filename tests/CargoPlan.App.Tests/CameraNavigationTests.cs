@@ -426,7 +426,7 @@ public sealed class CameraNavigationTests
     {
         // Martin at the K1.2 approval: save the camera, load a far rack, load the camera: the same middle on the same rack.
         var ship = Catalog.Get("caterpillar");
-        Crate Gold(string rackId) => new("Riker", "Gold", CrateSize.One, rackId, new GridPosition(0, 0, 0));
+        static Crate Gold(string rackId) => new("Riker", "Gold", CrateSize.One, rackId, new GridPosition(0, 0, 0));
         var before = Scene(ship.Id, Gold("rack-0"));
         var after = Scene(ship.Id, Gold("rack-0"), Gold("rack-13"));
         var start = CameraNavigation.DefaultFor(ship.Bounds);

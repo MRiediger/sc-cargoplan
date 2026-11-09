@@ -9,6 +9,4 @@ namespace CargoPlan.App.Settings;
 public sealed record WindowBounds(double Left, double Top, double Width, double Height)
 {
     public Rect ToRect() => new(Left, Top, Width, Height);
-
-    public static WindowBounds FromRect(Rect rect) => new(rect.Left, rect.Top, rect.Width, rect.Height);
 }

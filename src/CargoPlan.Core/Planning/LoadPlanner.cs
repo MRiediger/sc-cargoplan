@@ -111,14 +111,6 @@ public static class LoadPlanner
     ];
 
     /// <summary>
-    /// Puts one crate at a cell of a rack, as the player sees it at the cargo lift (D24): <see cref="MoveCrates"/> with one move.
-    /// </summary>
-    /// <exception cref="ArgumentException">See <see cref="MoveCrates"/>.</exception>
-    /// <exception cref="PlanException">See <see cref="MoveCrates"/>.</exception>
-    public static LoadPlan MoveCrate(LoadPlan plan, Ship ship, Crate crate, string targetRackId, GridPosition targetPosition) =>
-        MoveCrates(plan, ship, [new CrateMove(crate, targetRackId, targetPosition)]);
-
-    /// <summary>
     /// Puts crates at cells of racks, all at once (D25), and finds room where a cell doesn't hold them (D65): the plan of
     /// <see cref="ResolveMove(LoadPlan, Ship, IReadOnlyList{CrateMove}, MoveStage)"/>, its notices dropped. Crates keep
     /// their index, so placements keep their order; hints are derived anew. The original plan stays unchanged.

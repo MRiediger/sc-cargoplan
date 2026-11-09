@@ -79,7 +79,9 @@ public static class SettingsStore
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
-            return (AppSettings.Default, Problem(path, ex.Message));
+            var problem = Problem(path, ex.Message);
+            AppLog.Write("Settings", $"{problem} [{ex.GetType().Name}]");
+            return (AppSettings.Default, problem);
         }
     }
 

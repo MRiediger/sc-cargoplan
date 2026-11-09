@@ -50,7 +50,7 @@ public class MoveResolutionTests
         var riker = C("Riker", CrateSize.Four, "rack-0", 0, 0, 0);
         var plan = PlanOf(riker, C("Shubin", CrateSize.Two, "rack-0", 0, 0, 1));
 
-        var moved = LoadPlanner.MoveCrate(plan, HullA, riker, "rack-3", new GridPosition(0, 0, 0));
+        var moved = PlannerMoves.MoveCrate(plan, HullA, riker, "rack-3", new GridPosition(0, 0, 0));
 
         moved.Crates[1].Position.Should().Be(new GridPosition(0, 0, 0));
         ShouldBeValid(moved, HullA);
@@ -62,7 +62,7 @@ public class MoveResolutionTests
         var riker = C("Riker", CrateSize.One, "rack-0", 0, 0, 0);
         var plan = PlanOf(riker, C("Riker", CrateSize.Four, "rack-0", 2, 0, 0));
 
-        var moved = LoadPlanner.MoveCrate(plan, HullA, riker, "rack-3", new GridPosition(1, 1, 1));
+        var moved = PlannerMoves.MoveCrate(plan, HullA, riker, "rack-3", new GridPosition(1, 1, 1));
 
         moved.Crates[0].Position.Should().Be(new GridPosition(1, 1, 0));
         moved.Crates[1].Should().Be(plan.Crates[1]);
@@ -252,7 +252,7 @@ public class MoveResolutionTests
         outcome.Stage.Should().Be(MoveStage.Refused);
         outcome.Plan.Should().BeNull();
         outcome.Refusal.Should().Be("no room for 4 SCU crate");
-        var act = () => LoadPlanner.MoveCrate(plan, Tiny, plan.Crates[0], "rack-1", new GridPosition(0, 0, 0));
+        var act = () => PlannerMoves.MoveCrate(plan, Tiny, plan.Crates[0], "rack-1", new GridPosition(0, 0, 0));
         act.Should().Throw<PlanException>().WithMessage("no room for 4 SCU crate");
     }
 

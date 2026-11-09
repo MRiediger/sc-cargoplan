@@ -115,7 +115,9 @@ public sealed class HoloSource : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return $"the old cache can't be removed ({ex.Message})";
+            var problem = $"the old cache can't be removed ({ex.Message})";
+            AppLog.Write("Holo", $"{problem} [{ex.GetType().Name}]");
+            return problem;
         }
     }
 
@@ -247,6 +249,7 @@ public sealed class HoloSource : IDisposable
                 catch (HoloFormatException ex)
                 {
                     problem = $"the manifest is invalid ({ex.Message})";
+                    AppLog.Write("Holo", $"{problem} [{ex.GetType().Name}]");
                 }
             }
 
@@ -273,13 +276,17 @@ public sealed class HoloSource : IDisposable
 
             return (await response.Content.ReadAsByteArrayAsync(timeout.Token), null);
         }
-        catch (OperationCanceledException) when (!cancel.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (!cancel.IsCancellationRequested)
         {
-            return (null, $"no answer from github.com within {_timeout.TotalSeconds:0.#} s");
+            var problem = $"no answer from github.com within {_timeout.TotalSeconds:0.#} s";
+            AppLog.Write("Holo", $"{problem} [{ex.GetType().Name}]");
+            return (null, problem);
         }
         catch (HttpRequestException ex)
         {
-            return (null, $"no connection to github.com ({ex.Message})");
+            var problem = $"no connection to github.com ({ex.Message})";
+            AppLog.Write("Holo", $"{problem} [{ex.GetType().Name}]");
+            return (null, problem);
         }
     }
 
@@ -320,7 +327,9 @@ public sealed class HoloSource : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return $"the cached file can't be deleted ({ex.Message})";
+            var problem = $"the cached file can't be deleted ({ex.Message})";
+            AppLog.Write("Holo", $"{problem} [{ex.GetType().Name}]");
+            return problem;
         }
     }
 
@@ -334,7 +343,9 @@ public sealed class HoloSource : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return $"the cache can't be written ({ex.Message})";
+            var problem = $"the cache can't be written ({ex.Message})";
+            AppLog.Write("Holo", $"{problem} [{ex.GetType().Name}]");
+            return problem;
         }
     }
 

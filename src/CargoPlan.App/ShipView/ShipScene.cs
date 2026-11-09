@@ -189,9 +189,6 @@ public sealed record LegendEntry(
     /// <summary>The whole line, as the tool tip shows it.</summary>
     public string Label => string.Concat(Segments.Select(s => s.Text));
 
-    /// <summary>The widest the label gets: laid out hidden under it.</summary>
-    public string ReserveLabel => string.Concat(Segments.Select(s => s.ReserveText));
-
     /// <summary>"From Lorville" · " · #47" · " · gone": the pickups shorten, the id and the mark never; empty without a header.</summary>
     public IReadOnlyList<LegendSegment> HeaderSegments =>
         Header is null

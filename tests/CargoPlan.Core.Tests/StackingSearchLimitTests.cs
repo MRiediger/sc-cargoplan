@@ -75,7 +75,7 @@ public class StackingSearchLimitTests
         var plan = Noted();
 
         var ticked = LoadPlanner.SetDelivered(plan, HullA, "Riker", true);
-        var moved = LoadPlanner.MoveCrate(plan, HullA, plan.Crates[0], "rack-0", new GridPosition(2, 0, 0));
+        var moved = PlannerMoves.MoveCrate(plan, HullA, plan.Crates[0], "rack-0", new GridPosition(2, 0, 0));
         var read = ReadBack(SavedPlan.FromStops([new MissionStop("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)])], plan, CrateCap.Of(HullA)));
 
         ticked.Warnings.Should().Contain(new PlanWarning("rack-0", Note));

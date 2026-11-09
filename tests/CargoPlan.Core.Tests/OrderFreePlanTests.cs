@@ -222,7 +222,7 @@ public class OrderFreePlanTests
         var shubin = plan.Crates.Single(c => c.Destination == "Shubin");
         var riker = plan.Crates.Single(c => c.Destination == "Riker");
 
-        var moved = LoadPlanner.MoveCrate(plan, HullA, shubin, riker.RackId, new GridPosition(riker.Position.Length, riker.Position.Width, 1));
+        var moved = PlannerMoves.MoveCrate(plan, HullA, shubin, riker.RackId, new GridPosition(riker.Position.Length, riker.Position.Width, 1));
 
         moved.Warnings.Should().Contain(new PlanWarning(riker.RackId, "Rack 1: crate for Shubin sits on cargo for Riker"));
         LoadPlanner.Validate(moved, HullA).Should().BeEmpty();

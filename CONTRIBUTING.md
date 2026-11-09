@@ -10,10 +10,11 @@ with any other version, `dotnet` stops with a message in the repository folder (
 ```powershell
 dotnet restore
 dotnet build -c Release --no-restore
+dotnet format SC-CargoPlan.sln --verify-no-changes --no-restore
 dotnet test -c Release --no-build
 ```
 
-CI runs them on Windows and Ubuntu. Ubuntu compiles the WPF projects (with `EnableWindowsTargeting=true`) but can't run them, so `CargoPlan.App.Tests` only runs on Windows. Warnings are errors.
+CI runs them on Windows and Ubuntu; the format check runs on Windows only and fails if `dotnet format` would change a file (`.editorconfig` has the rules). Ubuntu compiles the WPF projects (with `EnableWindowsTargeting=true`) but can't run them, so `CargoPlan.App.Tests` only runs on Windows. Warnings are errors.
 
 A slow test over every crate layout is left out of the normal run (about a minute):
 

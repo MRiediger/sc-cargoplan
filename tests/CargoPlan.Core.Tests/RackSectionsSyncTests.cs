@@ -269,7 +269,7 @@ public class RackSectionsSyncTests
 
         var free = new[] { new GridPosition(0, 0, 0), new GridPosition(0, 1, 0), new GridPosition(1, 0, 0), new GridPosition(1, 1, 0) }
             .First(p => !saved.Plan.Crates.Any(c => c.Position == p));
-        var moved = LoadPlanner.MoveCrate(saved.Plan, ship, crate, crate.RackId, free);
+        var moved = PlannerMoves.MoveCrate(saved.Plan, ship, crate, crate.RackId, free);
 
         moved.Warnings.Where(SectionNotes.IsNote).Should().BeEmpty();
     }
@@ -282,7 +282,7 @@ public class RackSectionsSyncTests
 
         var free = new[] { new GridPosition(0, 0, 0), new GridPosition(0, 1, 0), new GridPosition(1, 0, 0), new GridPosition(1, 1, 0) }
             .First(p => !saved.Plan.Crates.Any(c => c.Position == p));
-        var moved = LoadPlanner.MoveCrate(saved.Plan, ship, crate, crate.RackId, free);
+        var moved = PlannerMoves.MoveCrate(saved.Plan, ship, crate, crate.RackId, free);
 
         moved.Warnings.Where(SectionNotes.IsNote).Select(w => w.Message).Should().Equal("Rack 1: C shares a section with B");
     }

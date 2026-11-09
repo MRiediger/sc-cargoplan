@@ -84,6 +84,7 @@
     <None Include="..\CargoPlan.Core.Tests\FrozenShips\modules\*.json" Link="FrozenShips\modules\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
     <None Include="..\CargoPlan.Core.Tests\FrozenOutlines\ship-outlines.json" Link="FrozenOutlines\ship-outlines.json" CopyToOutputDirectory="IfDifferent" />
     <Compile Include="..\CargoPlan.Core.Tests\FrozenShips.cs" Link="FrozenShips.cs" />
+    <Compile Include="..\CargoPlan.Core.Tests\PlannerMoves.cs" Link="PlannerMoves.cs" />
   </ItemGroup>
 
 </Project>

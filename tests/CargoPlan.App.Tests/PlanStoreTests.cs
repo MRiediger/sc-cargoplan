@@ -93,6 +93,17 @@ public sealed class PlanStoreTests : IDisposable
     }
 
     [Fact]
+    public void Broken_file_writes_its_notice_to_the_log()
+    {
+        WriteFile("this is not json");
+
+        var (_, problem) = PlanStore.Load(PlanPath, HullA);
+
+        // The path holds this test's own folder, so parallel tests writing the same log don't matter (K10, F9).
+        TestLog.Text().Should().Contain($" Plan: {problem} [PlanFormatException]");
+    }
+
+    [Fact]
     public void Plan_for_another_ship_loads_with_its_ship_and_stays_untouched()
     {
         // The overlay plans it anew for its ship (D59); the file changes only when the replanned plan is saved.

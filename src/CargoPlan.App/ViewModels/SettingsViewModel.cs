@@ -189,7 +189,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
         {
-            _setLookNotice($"Look not imported: {ex.Message}");
+            var problem = $"Look not imported: {ex.Message}";
+            AppLog.Write("Look", $"{problem} [{ex.GetType().Name}]");
+            _setLookNotice(problem);
         }
     }
 
@@ -204,7 +206,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _setLookNotice($"Look not exported: {ex.Message}");
+            var problem = $"Look not exported: {ex.Message}";
+            AppLog.Write("Look", $"{problem} [{ex.GetType().Name}]");
+            _setLookNotice(problem);
         }
     }
 
