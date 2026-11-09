@@ -44,8 +44,58 @@ public sealed class ReadingOrderTests
             "Deliver 0/4 SCU of Stims to Thundering Express Station");
     }
 
+    // Each objective has a marker in front that the OCR reads as "0" or "L"; joined, "0 Deliver …" no longer starts its
+    // line and the parser loses the delivery (hand run over the S10.0 captures: one delivery in 4 of 20 contracts per
+    // set). A first block of at most two characters stays its own line, as in ContractTracker's raw text.
+    [Theory]
+    [InlineData("0")]
+    [InlineData("L")]
+    public void An_objective_marker_stays_its_own_line(string marker)
+    {
+        TextBox[] blocks =
+        [
+            Box("PRIMARY OBJECTIVES", 600, 100),
+            Box("Deliver O/101 SCU of Iron (Ore) to Faithful Dream Station", 625, 140),
+            Box(marker, 600, 142),
+        ];
+
+        ReadingOrder.Lines(blocks).Should().Equal(
+            "PRIMARY OBJECTIVES",
+            marker,
+            "Deliver O/101 SCU of Iron (Ore) to Faithful Dream Station");
+    }
+
+    // The shape decides, not only the length: the marker's box is about square (measured 1.02–1.20 wide per high in the
+    // S10.0 captures), a short word in front of the rest of its row is wider.
     [Fact]
-    public void A_size_and_its_unit_are_one_line()
+    public void A_square_short_first_block_is_its_own_line()
+    {
+        TextBox[] blocks =
+        [
+            Box("PRIMARY OBJECTIVES", 600, 100),
+            new("0", 600, 140, 620, 160),
+            Box("Deliver 0/101 SCU of Iron to X", 630, 140),
+        ];
+
+        ReadingOrder.Lines(blocks).Should().Equal("PRIMARY OBJECTIVES", "0", "Deliver 0/101 SCU of Iron to X");
+    }
+
+    [Fact]
+    public void A_wide_short_first_block_joins_its_row()
+    {
+        TextBox[] blocks =
+        [
+            Box("PRIMARY OBJECTIVES", 600, 100),
+            new("to", 600, 140, 640, 160),
+            Box("Thundering Express Station", 648, 140),
+        ];
+
+        ReadingOrder.Lines(blocks).Should().Equal("PRIMARY OBJECTIVES", "to Thundering Express Station");
+    }
+
+    // The same rule splits a size from its unit; the parser reads "4\nSCU or smaller" (\s* across the break).
+    [Fact]
+    public void A_size_before_its_unit_is_a_short_first_block_too()
     {
         TextBox[] blocks =
         [
@@ -55,7 +105,15 @@ public sealed class ReadingOrderTests
             Box("Reward", 100, 180),
         ];
 
-        ReadingOrder.Lines(blocks).Should().Equal("DETAILS", "4 SCU or smaller", "Reward");
+        ReadingOrder.Lines(blocks).Should().Equal("DETAILS", "4", "SCU or smaller", "Reward");
+    }
+
+    [Fact]
+    public void A_marker_alone_on_its_row_is_just_a_line()
+    {
+        TextBox[] blocks = [Box("PRIMARY OBJECTIVES", 600, 100), Box("0", 600, 140)];
+
+        ReadingOrder.Lines(blocks).Should().Equal("PRIMARY OBJECTIVES", "0");
     }
 
     // OCR boxes jitter by a few pixels: the left edge of a line under a heading and the top of boxes in one row.

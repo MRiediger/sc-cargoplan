@@ -10,6 +10,11 @@ public static class ReadingOrder
 {
     private static readonly string[] Headings = ["DETAILS", "PRIMARY OBJECTIVES"];
 
+    // An objective marker: at most two characters in an about square box (measured 1.02–1.20 wide per high in the
+    // S10.0 captures; "N/A" 1.45–1.75).
+    private const int MarkerMaxLength = 2;
+    private const float MarkerMaxAspect = 1.3f;
+
     /// <summary>The lines, or none if neither heading is there: then the region shows no contract.</summary>
     public static string[] Lines(IReadOnlyList<TextBox> blocks)
     {
@@ -49,6 +54,23 @@ public static class ReadingOrder
             }
         }
 
-        return rows.Select(row => string.Join(' ', row.OrderBy(b => b.Left).Select(b => b.Text.Trim())));
+        return rows.SelectMany(row => Line(row.OrderBy(b => b.Left).ToList()));
     }
+
+    // The objective marker in front of each "Deliver …" reads as "0" or "L"; joined, the delivery no longer starts its
+    // line and the parser (anchored to ^Deliver) loses it. So a first block that looks like a marker stays its own line,
+    // as in ContractTracker's raw text.
+    private static IEnumerable<string> Line(List<TextBox> row)
+    {
+        if (row.Count > 1 && IsMarker(row[0]))
+        {
+            yield return row[0].Text.Trim();
+            row = row[1..];
+        }
+
+        yield return string.Join(' ', row.Select(b => b.Text.Trim()));
+    }
+
+    private static bool IsMarker(TextBox block) =>
+        block.Text.Trim().Length <= MarkerMaxLength && block.Right - block.Left <= MarkerMaxAspect * block.Height;
 }
