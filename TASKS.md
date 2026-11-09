@@ -4891,8 +4891,31 @@ Wandzeit hin (Takt jetzt `ImportMotherlodeScriptTests`, Backlog).
 - [x] F13 `FromRect`, `ReserveLabel`, `MoveCrate` raus
 - [x] F9 jede Notice auch ins Log
 - [x] F18 TASKS-Häkchen, Backlog F6 F10 F16 F20 F21 F22
-- [ ] F19 `.gitignore` → `.git/info/exclude`
-- [ ] Abschluss: Messtabelle, Review 6.2
+- [x] F19 `.gitignore` → `.git/info/exclude` (die Dateien im Root räumt Martin)
+- [x] Abschluss: Messtabelle, Review 6.2
+
+| Befund | Commit | Ergebnis |
+|---|---|---|
+| F25 | `8ac30e9` | `dotnet format --verify-no-changes` 614 → **0**; CI-Schritt `Format` (Windows) |
+| F26 | `b67d0d3` | 4 × 6 × 3 in `Slow` (4 statt 2); Ursache: einziges Grid mit Stapelhöhe 3 |
+| F12 | `58a857c` | `ShipLoader.LoadAll()` ohne Ordner nur noch in `ShipPictureTests` (Handlauf) |
+| F13 | `9141f7a` | `FromRect`, `ReserveLabel`, `LoadPlanner.MoveCrate` raus; Test-Helfer `PlannerMoves` |
+| F9 | `3564698` | 19 neue Logzeilen; Tests schreiben nach `%TEMP%`, das echte Log blieb byte-gleich |
+| F18 | `2660944` | offene `### [ ]` nur noch T9.3, R5, T10.x, T11.x; 7 Backlog-Zeilen |
+| F19 | `f8c2017` | 10 Zeilen aus `.gitignore` nach `.git/info/exclude` |
+
+| Messung (lokal, Release) | vorher | nachher |
+|---|---:|---:|
+| Tests Core / Import / App | 1 819 / 164 / 1 698 | 1 817 / 164 / 1 701 |
+| davon CI (ohne lokalen Scratch-Test) | 1 818 / 164 / 1 698 | 1 816 / 164 / 1 701 |
+| `Category=Slow` (Core) | 2 | 4 |
+| Core-Wandzeit Default-Run | 17,6 s | 15,1 s |
+| `AppLog.Write`-Stellen in `src/` (Zählung Review) | 4 | 23 |
+| Build-Warnungen | 0 | 0 |
+
+**Nebenbefund (nicht K10):** `CargoPlan.App.Tests` hängt lokal ab und zu (`--blame-hang-timeout 60s`: 4 von 10 Läufen auf
+`main` `da9c49e`, also vor K10). Aktiv beim Hänger u. a. `LookSceneTests.Each_ship_view_key_changes_the_picture`,
+`MaxCrateDropdownTests`, `ToolComboBoxStyleTests`. CI war bisher grün. Eigener Task, Entscheidung Martin.
 
 ## Phase 10 – OCR (v0.4.0)
 
