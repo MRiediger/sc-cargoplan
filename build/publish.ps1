@@ -68,8 +68,13 @@ finally {
 # ship without their licence note (D55). dotnet publish takes both folders from Core's items (measured in T7.1a), so
 # this checks the ZIP the haulers get, not a copy step of its own. Without ships/modules/ a module's ship is simply
 # missing from the list, so the subfolder is checked too (K5.3).
+# The contract OCR (T10.1a, D99) needs its four model files, the two native libraries and its licence note (not MIT);
+# the models come from Ocr's items like ships/ from Core's.
 $required = 'SC-CargoPlan/ships/hull_a.json', 'SC-CargoPlan/ships/modules/ts_module.json',
-    'SC-CargoPlan/outlines/ship-outlines.json', 'SC-CargoPlan/outlines/NOTICE.md'
+    'SC-CargoPlan/outlines/ship-outlines.json', 'SC-CargoPlan/outlines/NOTICE.md',
+    'SC-CargoPlan/models/v5/ch_PP-OCRv5_mobile_det.onnx', 'SC-CargoPlan/models/v5/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx',
+    'SC-CargoPlan/models/v5/latin_PP-OCRv5_rec_mobile_infer.onnx', 'SC-CargoPlan/models/v5/ppocrv5_latin_dict.txt',
+    'SC-CargoPlan/models/NOTICE.md', 'SC-CargoPlan/onnxruntime.dll', 'SC-CargoPlan/libSkiaSharp.dll'
 $archive = [System.IO.Compression.ZipFile]::OpenRead($zip)
 try {
     $missing = @($required | Where-Object { $null -eq $archive.GetEntry($_) })
@@ -78,7 +83,7 @@ finally {
     $archive.Dispose()
 }
 if ($missing.Count -gt 0) {
-    throw "$zipName has no $($missing -join ', ') - the ships or outlines folder didn't reach the publish folder."
+    throw "$zipName has no $($missing -join ', ') - the ships, outlines or OCR files didn't reach the publish folder."
 }
 
 # sha256sum format ("<hash>  <name>"), so `sha256sum -c` checks it; Get-FileHash compares case-insensitively.
