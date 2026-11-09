@@ -117,11 +117,11 @@ public class FillRowsTests
 
     // --- The mirror: square footprints only, an oblong crate lies along the grid's length unturned ---
 
+    // 4 × 6 × 3 takes about 5 s per mirror and runs as Slow below (K10, F26).
     public static TheoryData<int, int, int> Grids => new()
     {
         { 12, 8, 2 },
         { 5, 3, 2 },
-        { 4, 6, 3 },
         { 7, 7, 2 },
     };
 
@@ -154,7 +154,15 @@ public class FillRowsTests
     /// </summary>
     [Theory]
     [MemberData(nameof(Grids))]
-    public void Stern_first_crosswise_is_the_transposition_of_lengthwise(int length, int width, int stack)
+    public void Stern_first_crosswise_is_the_transposition_of_lengthwise(int length, int width, int stack) =>
+        SternFirstIsTransposed(length, width, stack);
+
+    [Fact]
+    [Trait("Category", "Slow")]
+    public void Stern_first_crosswise_is_the_transposition_of_lengthwise_on_a_grid_three_high() =>
+        SternFirstIsTransposed(4, 6, 3);
+
+    private static void SternFirstIsTransposed(int length, int width, int stack)
     {
         foreach (var mix in SquareMixes(length * width * stack))
         {
@@ -172,7 +180,15 @@ public class FillRowsTests
     /// </summary>
     [Theory]
     [MemberData(nameof(Grids))]
-    public void Bow_first_crosswise_is_the_reflected_transposition_of_lengthwise(int length, int width, int stack)
+    public void Bow_first_crosswise_is_the_reflected_transposition_of_lengthwise(int length, int width, int stack) =>
+        BowFirstIsReflectedTransposed(length, width, stack);
+
+    [Fact]
+    [Trait("Category", "Slow")]
+    public void Bow_first_crosswise_is_the_reflected_transposition_of_lengthwise_on_a_grid_three_high() =>
+        BowFirstIsReflectedTransposed(4, 6, 3);
+
+    private static void BowFirstIsReflectedTransposed(int length, int width, int stack)
     {
         foreach (var mix in SquareMixes(length * width * stack))
         {
