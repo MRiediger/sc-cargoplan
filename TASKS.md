@@ -4819,6 +4819,36 @@ Eingeschoben vor Phase 10: T10.3 baut auf dem gepollten Hotkey auf.
 - [x] Merge `--no-ff` nach Abnahme
 - [ ] Release v0.3.1 (Notes mit Known issue E1, ZIP, Wiki „Overlay basics#hotkeys“, Tag, Issue)
 
+## Release v0.3.1 (09.11.2026) – Branch `release/v0.3.1`
+
+**Warum:** B10 (D97) als Patch, damit der Nexus-Start am 16.11. mit funktionierenden Hotkeys rausgeht. Ablauf wie v0.3.0: Notes → Build nachmessen → Tag → Wiki → Abschluss. Notes-Texte von Claude.ai freigegeben; Martin pusht und legt das GitHub-Issue an.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. Branch `release/v0.3.1` (wie `release/v0.3.0`), `--no-ff` nach Martins Abnahme; Tag auf dem Merge-Commit.
+2. Notes im Rahmen von v0.3.0: keine H1 (GitHub zeigt den Tag als Titel), Einleitung + Download-Absatz + MIT-Zeile; die freigegebenen Sätze wörtlich, nur „(D97)“ gestrichen (Nutzer können D-Nummern nicht nachschlagen) und „Known issues from v0.3.0“ auf `Troubleshooting#known-issues` verlinkt.
+3. Veralteter UI-Grund in `HotkeyParser` („or it would take the key from every program“) in v0.3.1 korrigiert: die gepollte Taste erreicht das Spiel (D97).
+4. Wiki über „Overlay basics“ hinaus: Troubleshooting-Abschnitt Hotkeys, FAQ-Antwort zum Anti-Cheat, `Space` aus der Tastenliste, Fußzeile v0.3.1.
+
+### [ ] V1 Notes, Code-Grund, Nexus-Version
+
+- `docs/release-notes/v0.3.1.md`; `HotkeyParser`-Grund mit Test vorab; `docs/nexus/checklist.md` und `description.bbcode` auf 0.3.1
+
+**Befund:**
+- Vollständigkeit `git log v0.3.0..main`: B10 (4 Commits + Merge `4326513`), S10.0-Befund, `d93bed6` (Doku), `7010eff` (REL-Messung). Nur B10 berührt `src/`/`tests/`; `global.json` und Pakete unverändert.
+- „Ein gespeicherter `…+Space`-Hotkey wird mit Hinweis ignoriert“ belegt durch `HotkeyService` (Zeile „Hotkey … ignored: …“), Esc bricht die Aufnahme ab (`SettingsWindow`).
+
+### [ ] V2 Build, Merge, Tag, Nachmessung
+
+- `publish.ps1 -Version 0.3.1` lokal: ZIP-Größe gegen v0.3.0 lokal (62.121.133 Byte), Einträge, Runtime, `--version`; > 1 MB Abweichung = Stopp
+- Martin: Abnahme → `--no-ff` nach `main`, Tag `v0.3.1`, Martin pusht `main` und Tag
+- Veröffentlichtes ZIP nachmessen, Notes-Text im Release = Datei
+
+### [ ] V3 Wiki und Abschluss
+
+- Wiki nach dem Tag: Overlay-basics `#hotkeys`, Troubleshooting `#a-hotkey-does-nothing` + Known issues, FAQ, `_Footer`
+- B10 abhaken, Memory, Grep `RegisterHotKey|WM_HOTKEY` in `docs/` und Wiki
+- Martin: GitHub-Issue „Hotkeys do not fire while Star Citizen is in the foreground (v0.1.0–v0.3.0)“, als fixed in v0.3.1 schließen
+
 ## Phase 10 – OCR (v0.4.0)
 
 CargoPlan liest Verträge selbst (Hotkey, ein Scan = ein Vertrag), der ContractTracker-Import entfällt. Grundlage ist der Befund S10.0 unten. Die Reihenfolge ist fest: T10.4 kommt nicht vor T10.3.
