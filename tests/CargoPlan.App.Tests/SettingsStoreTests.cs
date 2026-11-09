@@ -892,6 +892,17 @@ public sealed class SettingsStoreTests : IDisposable
         problem.Should().Contain($"The next save overwrites {SettingsPath}, keeping the old file as settings.json.bak.");
     }
 
+    [Fact]
+    public void Broken_file_writes_its_notice_to_the_log()
+    {
+        WriteFile("{ broken");
+
+        var (_, problem) = SettingsStore.Load(SettingsPath);
+
+        // The path holds this test's own folder, so parallel tests writing the same log don't matter (K10, F9).
+        TestLog.Text().Should().Contain($" Settings: {problem} [JsonException]");
+    }
+
     // Backup (T6.1)
 
     [Fact]

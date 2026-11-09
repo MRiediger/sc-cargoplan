@@ -68,4 +68,12 @@ public sealed class AppLogTests : IDisposable
 
         write.Should().NotThrow();
     }
+
+    [Fact]
+    public void Tests_never_write_the_players_log()
+    {
+        var players = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SC-CargoPlan");
+
+        AppLog.Path.Should().Be(TestLog.Path).And.NotStartWith(players);
+    }
 }

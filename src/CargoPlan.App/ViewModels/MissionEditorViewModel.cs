@@ -296,11 +296,14 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         }
         catch (MissionFormatException ex)
         {
+            AppLog.Write("Editor", $"{ex.Message} [{ex.GetType().Name}]");
             SetActionProblem(ex.Message);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            SetActionProblem($"Import failed ({ex.Message}).");
+            var problem = $"Import failed ({ex.Message}).";
+            AppLog.Write("Editor", $"{problem} [{ex.GetType().Name}]");
+            SetActionProblem(problem);
         }
     }
 
@@ -318,7 +321,9 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            SetActionProblem($"Export failed ({ex.Message}).");
+            var problem = $"Export failed ({ex.Message}).";
+            AppLog.Write("Editor", $"{problem} [{ex.GetType().Name}]");
+            SetActionProblem(problem);
         }
     }
 
@@ -395,6 +400,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         }
         catch (PlanException ex)
         {
+            AppLog.Write("Editor", $"{ex.Message} [{ex.GetType().Name}]");
             SetActionProblem(ex.Message);
         }
     }

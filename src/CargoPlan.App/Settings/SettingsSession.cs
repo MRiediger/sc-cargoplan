@@ -282,7 +282,9 @@ public sealed class SettingsSession
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             // Saves only happen on changes, and an unchanged text raises no PropertyChanged: no spam.
-            _viewModel.SetNotice(NoticeSource.Settings, $"Settings not saved ({ex.Message}).");
+            var problem = $"Settings not saved ({ex.Message}).";
+            AppLog.Write("Settings", $"{problem} [{ex.GetType().Name}]");
+            _viewModel.SetNotice(NoticeSource.Settings, problem);
         }
     }
 }

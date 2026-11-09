@@ -192,7 +192,9 @@ public partial class SettingsWindow : Window
         }
         catch (Win32Exception ex)
         {
-            _overlay.SetNotice(NoticeSource.Settings, $"Could not open {ContractTrackerSectionViewModel.NexusUrl} ({ex.Message}).");
+            var problem = $"Could not open {ContractTrackerSectionViewModel.NexusUrl} ({ex.Message}).";
+            AppLog.Write("Settings", $"{problem} [{ex.GetType().Name}]");
+            _overlay.SetNotice(NoticeSource.Settings, problem);
         }
     }
 

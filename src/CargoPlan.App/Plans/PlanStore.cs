@@ -33,7 +33,9 @@ public static class PlanStore
         }
         catch (Exception ex) when (ex is PlanFormatException or IOException or UnauthorizedAccessException)
         {
-            return (null, $"Plan not loaded ({ex.Message}). The file stays until you make a new plan.");
+            var problem = $"Plan not loaded ({ex.Message}). The file stays until you make a new plan.";
+            AppLog.Write("Plan", $"{problem} [{ex.GetType().Name}]");
+            return (null, problem);
         }
     }
 

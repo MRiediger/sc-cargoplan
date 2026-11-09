@@ -11,9 +11,16 @@ namespace CargoPlan.App;
 /// </summary>
 public static class AppLog
 {
-    /// <summary>%LocalAppData%\SC-CargoPlan\cargoplan.log, where settings.json and plan.json are (D13).</summary>
-    public static string Path { get; } = System.IO.Path.Combine(
+    /// <summary>
+    /// %LocalAppData%\SC-CargoPlan\cargoplan.log, where settings.json and plan.json are (D13). The App tests point it at
+    /// a temp file once at load, so no test writes the player's log (K10, F9).
+    /// </summary>
+    public static string Path { get; internal set; } = System.IO.Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SC-CargoPlan", "cargoplan.log");
+
+    /// <summary>One writer at a time: the UI thread, a crash on another thread, parallel tests.</summary>
+    // Source: https://learn.microsoft.com/dotnet/api/system.threading.lock (lock statement on a Lock, .NET 9+)
+    private static readonly Lock Gate = new();
 
     /// <summary>The size at which the log moves to the older file before the next entry.</summary>
     public const long MaxBytes = 1024 * 1024;
@@ -39,13 +46,16 @@ public static class AppLog
     {
         try
         {
-            Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
-            if (new FileInfo(path) is { Exists: true, Length: >= MaxBytes })
+            lock (Gate)
             {
-                File.Move(path, path + ".1", overwrite: true);
-            }
+                Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+                if (new FileInfo(path) is { Exists: true, Length: >= MaxBytes })
+                {
+                    File.Move(path, path + ".1", overwrite: true);
+                }
 
-            File.AppendAllText(path, entry);
+                File.AppendAllText(path, entry);
+            }
         }
         catch (Exception logFailure)
         {

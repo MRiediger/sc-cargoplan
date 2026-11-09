@@ -125,7 +125,9 @@ public partial class MissionEditorWindow : Window
         }
         catch (ExternalException ex)
         {
-            _viewModel.ShowProblem($"Copy failed ({ex.Message}).");
+            var problem = $"Copy failed ({ex.Message}).";
+            AppLog.Write("Editor", $"{problem} [{ex.GetType().Name}]");
+            _viewModel.ShowProblem(problem);
         }
     }
 }
