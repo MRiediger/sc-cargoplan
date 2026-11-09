@@ -193,14 +193,14 @@ public class LoadPlannerOverrideTests
         LoadPlanner.ResolveMove(plan, HullA, [new CrateMove(plan.Crates[2], "rack-3", new GridPosition(0, 0, 0))]).Stage.Should().Be(MoveStage.Gravity);
     }
 
-    // --- MoveCrate: one crate, the wrapper of MoveCrates ---
+    // --- MoveCrates with one crate (PlannerMoves.MoveCrate) ---
 
     [Fact]
     public void MoveCrate_puts_a_crate_at_a_free_supported_cell_of_another_rack()
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
-        var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
+        var moved = PlannerMoves.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
 
         CrateAt(moved, "rack-3", 0, 0, 0).Destination.Should().Be("Riker");
         moved.PlacementsForStop("Riker").Select(p => (p.RackId, p.Item.Scu)).Should().Equal(("rack-0", 8), ("rack-3", 4));
@@ -215,7 +215,7 @@ public class LoadPlannerOverrideTests
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
-        var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-0", new GridPosition(0, 0, 1));
+        var moved = PlannerMoves.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-0", new GridPosition(0, 0, 1));
 
         CrateAt(moved, "rack-0", 0, 0, 1).Destination.Should().Be("Riker");
         moved.Placements.Should().Equal(plan.Placements);
@@ -228,7 +228,7 @@ public class LoadPlannerOverrideTests
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
         Crate[] before = [.. plan.Crates];
 
-        LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
+        PlannerMoves.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
 
         plan.Crates.Should().Equal(before);
     }
@@ -250,7 +250,7 @@ public class LoadPlannerOverrideTests
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
-        var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(3, 0, 0));
+        var moved = PlannerMoves.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(3, 0, 0));
 
         CrateAt(moved, "rack-3", 2, 0, 0).Destination.Should().Be("Riker");
         ShouldBeValid(moved, HullA);
@@ -286,7 +286,7 @@ public class LoadPlannerOverrideTests
         // The crate on top would float: it settles onto the plate where the moved one lay (D65).
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
-        var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 0), "rack-3", new GridPosition(0, 0, 0));
+        var moved = PlannerMoves.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 0), "rack-3", new GridPosition(0, 0, 0));
 
         moved.CratesForRack("rack-0").Select(c => c.Position).Should().BeEquivalentTo([new GridPosition(0, 0, 0), new GridPosition(2, 0, 0)]);
         ShouldBeValid(moved, HullA);
@@ -298,7 +298,7 @@ public class LoadPlannerOverrideTests
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
         Crate foreign = new("Lorville", "Gold", CrateSize.One, "rack-3", new GridPosition(0, 0, 0));
 
-        var act = () => LoadPlanner.MoveCrate(plan, HullA, foreign, "rack-3", new GridPosition(1, 0, 0));
+        var act = () => PlannerMoves.MoveCrate(plan, HullA, foreign, "rack-3", new GridPosition(1, 0, 0));
 
         act.Should().Throw<ArgumentException>().WithParameterName("moves");
     }
@@ -308,7 +308,7 @@ public class LoadPlannerOverrideTests
     {
         var plan = LoadPlanner.SetDelivered(LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions), HullA, "Riker", true);
 
-        var act = () => LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
+        var act = () => PlannerMoves.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
 
         act.Should().Throw<ArgumentException>().WithParameterName("moves").WithMessage("*delivered*");
     }
@@ -318,7 +318,7 @@ public class LoadPlannerOverrideTests
     {
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
-        var act = () => LoadPlanner.MoveCrate(plan, HullA, plan.Crates[0], "rack-9", new GridPosition(0, 0, 0));
+        var act = () => PlannerMoves.MoveCrate(plan, HullA, plan.Crates[0], "rack-9", new GridPosition(0, 0, 0));
 
         act.Should().Throw<ArgumentException>().WithParameterName("moves");
     }
@@ -330,7 +330,7 @@ public class LoadPlannerOverrideTests
         var missions = MissionFixtures.LoadMissions("example_missions");
         var plan = LoadPlanner.Plan(HullA, missions.ToStops());
 
-        var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
+        var moved = PlannerMoves.MoveCrate(plan, HullA, CrateAt(plan, "rack-0", 2, 0, 1), "rack-3", new GridPosition(0, 0, 0));
 
         var act = () => SavedPlan.FromStops(missions, moved, CrateCap.Of(HullA));
         act.Should().NotThrow();
@@ -344,7 +344,7 @@ public class LoadPlannerOverrideTests
         // Shubin's top 2 from Rack 2 onto Riker's free top in Rack 1: possible, only tedious at the elevator (D64).
         var plan = LoadPlanner.Plan(HullA, MissionFixtures.ExampleMissions);
 
-        var moved = LoadPlanner.MoveCrate(plan, HullA, CrateAt(plan, "rack-1", 2, 0, 1), "rack-0", new GridPosition(0, 0, 1));
+        var moved = PlannerMoves.MoveCrate(plan, HullA, CrateAt(plan, "rack-1", 2, 0, 1), "rack-0", new GridPosition(0, 0, 1));
 
         moved.Warnings.Should().Contain(new PlanWarning("rack-0", "Rack 1: crate for Shubin sits on cargo for Riker"));
         LoadPlanner.Validate(moved, HullA).Should().BeEmpty();

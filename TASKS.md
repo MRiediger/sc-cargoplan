@@ -5147,8 +5147,9 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Vorschau-Maximum mit SC: einzelne Schlüsselwechsel kosten 20–25 ms (T8.7, M5; p95 5,2 ms, ohne SC max 12 ms); die
   16-ms-Regel (D65) fängt sie ab. Erst klären, ob CPU-Konkurrenz mit dem Spiel oder eine GC die Spitzen macht, dann ggf.
   der Recorder im echten Overlay (T8.7 R1). Auslöser: spürbares Nachziehen der Vorschau am Aufzug.
-- `WindowBounds.FromRect` (T3.4) und `LegendEntry.ReserveLabel` haben nur Testaufrufer (Scan in T8.6): löschen samt
-  Tests oder wieder nutzen. Auslöser: Repo-Hygiene vor v0.1.0.
+- ~~`WindowBounds.FromRect` (T3.4) und `LegendEntry.ReserveLabel` haben nur Testaufrufer (Scan in T8.6): löschen samt
+  Tests oder wieder nutzen. Auslöser: Repo-Hygiene vor v0.1.0.~~ Erledigt in K10 (F13): beide gelöscht, dazu
+  `LoadPlanner.MoveCrate` (nur Tests) → Test-Helfer `PlannerMoves`.
 - `ShipCamera.PxPerCell`/`PanX`/`PanY` (Lesefelder für Kameras von vor D83, T8.1) entfernen. Auslöser: der nächste
   Schema-Bump von settings.json; nach v0.1.0 schreibt kein Build sie mehr.
 - Hysterese für Rack-Nummern: Fläche wechseln oder ausblenden erst nach einem Mindestabstand, damit eine Nummer beim Drehen

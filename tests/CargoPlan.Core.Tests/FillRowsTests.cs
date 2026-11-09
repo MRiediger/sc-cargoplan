@@ -408,7 +408,7 @@ public class FillRowsTests
 
         LoadPlanner.SetDelivered(saved.Plan, Raft, "Green", true).FillRows.Should().Be(FillRows.Crosswise);
         LoadPlanner.SplitCrate(saved, Raft, crate).Plan.FillRows.Should().Be(FillRows.Crosswise);
-        LoadPlanner.MoveCrate(saved.Plan, Raft, crate, crate.RackId, new GridPosition(0, 7, 0)).FillRows.Should().Be(FillRows.Crosswise);
+        PlannerMoves.MoveCrate(saved.Plan, Raft, crate, crate.RackId, new GridPosition(0, 7, 0)).FillRows.Should().Be(FillRows.Crosswise);
     }
 
     [Fact]

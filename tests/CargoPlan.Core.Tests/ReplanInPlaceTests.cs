@@ -178,7 +178,7 @@ public class ReplanInPlaceTests
     {
         var saved = Grown(Stop("Riker", "Titanium", 4, CrateSize.One), Stop("Shubin", "Quartz", 2, CrateSize.Two));
         var crate = saved.Plan.Crates.First(c => c.Destination == "Riker");
-        var moved = LoadPlanner.MoveCrate(saved.Plan, HullA, crate, "rack-3", new GridPosition(3, 1, 0));
+        var moved = PlannerMoves.MoveCrate(saved.Plan, HullA, crate, "rack-3", new GridPosition(3, 1, 0));
 
         LoadPlanner.MovedCrates(saved.Plan, moved).Should().Be(1);
         LoadPlanner.MovedCrates(saved.Plan, saved.Plan).Should().Be(0);

@@ -278,7 +278,7 @@ public class ShipViewBuilderTests
     {
         // One of Orison's Gold crates onto Riker's Quartz in Rack 2 (D25): Core puts it there, the view reads the result.
         var gold = Sample.Plan.Crates.First(c => c.Commodity == "Gold");
-        var moved = LoadPlanner.MoveCrate(Sample.Plan, Sample.Ship, gold, "rack-1", new GridPosition(0, 0, 1));
+        var moved = PlannerMoves.MoveCrate(Sample.Plan, Sample.Ship, gold, "rack-1", new GridPosition(0, 0, 1));
 
         var rack2 = RackNumber(Build(moved), 2);
 
@@ -522,7 +522,8 @@ public class ShipViewBuilderTests
 
         shubin.Label.Should().Be("To Shubin · 4 SCU · Stims · ⚠ duplicate?");
         ticked.Label.Should().Be("To Shubin · 4 SCU · Stims");
-        ticked.ReserveLabel.Should().Be(shubin.Label);
+        // The widest the line gets, laid out hidden under it (LegendRowPanel reads each segment's ReserveText).
+        string.Concat(ticked.Segments.Select(s => s.ReserveText)).Should().Be(shubin.Label);
     }
 
     [Fact]

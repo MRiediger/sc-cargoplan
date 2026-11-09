@@ -34,6 +34,7 @@
   <ItemGroup>
     <None Include="..\CargoPlan.Core.Tests\FrozenShips\*.json" Link="FrozenShips\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
     <Compile Include="..\CargoPlan.Core.Tests\FrozenShips.cs" Link="FrozenShips.cs" />
+    <Compile Include="..\CargoPlan.Core.Tests\PlannerMoves.cs" Link="PlannerMoves.cs" />
   </ItemGroup>
 
 </Project>
