@@ -128,6 +128,7 @@ dotnet run --project src/CargoPlan.Cli -- --version
 | A9 | **Renderer-Flicken** | Kommt ein neues Darstellungselement, wird die Renderarchitektur neu entschieden – nicht das Element in die bestehende eingepasst. Zwei Renderer für ein Bild sind ein Provisorium, kein Entwurf (Anlass: Holo-Kulisse hinter dem 2D-Painter, D83). |
 | A10 | **Fixture-Kopplung** | Mechanik-Tests (Treffertest, Drag, Szene, Kamera, Planer, Importskripte) laden Schiffe aus dem Test-Ordner (`tests/CargoPlan.Core.Tests/FrozenShips`, `TestPlans.HullA()`, `FrozenShips.Load`), **nie aus `ships/`**. Datentests prüfen `ships/` selbst. Sonst bricht der nächste Datenimport UI-Tests, ohne dass die App einen Fehler hat (Anlass: D92, 70 Tests). |
 | A11 | **Fremdquelle mit Exit-Plan** | Eine fremde Datenquelle ohne Lizenz und ohne Ansprechpartner kommt nur mit Exit-Plan ins Projekt (Anlass: ContractTracker, closed source, Autor nicht erreichbar; Ausbau quer durch Planer und Plan-Schema, S10.0). |
+| A12 | **WPF in Tests** | WPF-Elemente in Tests nur über `Sta.Run`. Der Testprozess rendert nur in Software (`Sta.RenderInSoftware`, D98), kein Test schaltet das zurück oder setzt `RenderMode` pro Fenster. Eine GPU macht lokal sonst andere Tests als CI (Anlass: B11, Deadlock in `d3d9` in 5 von 10 Läufen). |
 
 ## NIEMALS
 
