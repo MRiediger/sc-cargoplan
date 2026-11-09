@@ -145,6 +145,15 @@ public class HotkeyParserTests
         recorded.Should().Be(typed);
     }
 
+    // D97: a polled key isn't taken from other programs, it reaches the game too; the reason must say so.
+    [Fact]
+    public void A_key_without_Ctrl_Alt_or_Win_is_refused_because_it_reaches_the_game()
+    {
+        HotkeyParser.TryParse("Shift+L", out _, out var error);
+
+        error.Should().Contain("reaches the game").And.NotContain("every program");
+    }
+
     [Fact]
     public void Space_is_rejected_with_the_same_reason_typed_and_recorded()
     {
