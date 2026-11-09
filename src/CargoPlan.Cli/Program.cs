@@ -9,7 +9,9 @@ using CargoPlan.Core.Planning;
 using CargoPlan.Core.Rendering;
 using CargoPlan.Core.Ships;
 using CargoPlan.Import.ContractTracker;
+using CargoPlan.Ocr;
 using Microsoft.Data.Sqlite;
+using SkiaSharp;
 
 const int ExitSuccess = 0;
 const int ExitFailed = 1;
@@ -30,6 +32,7 @@ try
         null => Usage(),
         PlanCommand plan => Plan(plan),
         ContractsCommand contracts => Contracts(contracts),
+        ScanCommand scan => Scan(scan),
         VersionCommand => Version(),
         _ => throw new UnreachableException($"Unknown command {command}."),
     };
@@ -51,6 +54,7 @@ int Usage()
 {
     Console.Error.WriteLine("Usage: CargoPlan.Cli plan <missions.json> [--ship <id>]");
     Console.Error.WriteLine("       CargoPlan.Cli contracts <contracts.db> [--since <id>] [--raw]");
+    Console.Error.WriteLine("       CargoPlan.Cli scan <screenshot.png>");
     Console.Error.WriteLine("       CargoPlan.Cli --version");
     Console.Error.WriteLine($"Ships: {string.Join(", ", LoadShips().Ships.Select(s => s.Id))} (default: {Command.DefaultShipId})");
     return ExitUsage;
@@ -109,6 +113,39 @@ int Contracts(ContractsCommand contracts)
     return ExitSuccess;
 }
 
+// The offline path of the scan (T10.1a): a screenshot of the game window's client area instead of the screen, the same
+// region and OCR as in the overlay. The raw text goes to stdout for tests and bug reports, the stage times to stderr.
+int Scan(ScanCommand scan)
+{
+    if (!File.Exists(scan.PicturePath))
+    {
+        Console.Error.WriteLine($"File not found: {scan.PicturePath}");
+        return ExitFailed;
+    }
+
+    // Decode returns null for a file it can't read. Source: https://learn.microsoft.com/dotnet/api/skiasharp.skbitmap.decode
+    using var picture = SKBitmap.Decode(scan.PicturePath);
+    if (picture is null)
+    {
+        Console.Error.WriteLine($"Not a picture: {scan.PicturePath}");
+        return ExitFailed;
+    }
+
+    using var engine = OcrEngine.Load();
+    var result = new ScanContractSource(engine).Read(picture);
+    var t = result.Timings;
+    Console.Error.WriteLine(string.Create(CultureInfo.InvariantCulture,
+        $"{picture.Width}x{picture.Height}: {t.Total.TotalMilliseconds:0} ms (region {t.Region.TotalMilliseconds:0}, up2-gray {t.Preprocess.TotalMilliseconds:0}, OCR {t.Ocr.TotalMilliseconds:0}, lines {t.Lines.TotalMilliseconds:0})"));
+    if (result.Outcome == ScanOutcome.NoContractInFrame)
+    {
+        Console.Error.WriteLine("No contract in frame.");
+        return ExitFailed;
+    }
+
+    Console.WriteLine(result.RawText);
+    return ExitSuccess;
+}
+
 // Only the version, like `dotnet --version`: the same string as in the settings window's footer, for bug reports.
 // The commit hash after "+" stays: it names the exact build.
 // Source: https://learn.microsoft.com/en-us/dotnet/core/compatibility/sdk/8.0/source-link
@@ -130,6 +167,7 @@ internal abstract record Command
         ["plan", var path] when !IsOption(path) => new PlanCommand(path, DefaultShipId),
         ["plan", var path, "--ship", var shipId] when !IsOption(path) && !IsOption(shipId) => new PlanCommand(path, shipId),
         ["contracts", var path, .. var options] when !IsOption(path) => ContractsCommand.Parse(path, options),
+        ["scan", var path] when !IsOption(path) => new ScanCommand(path),
         ["--version"] => new VersionCommand(),
         _ => null,
     };
@@ -139,6 +177,9 @@ internal abstract record Command
 
 /// <summary>plan &lt;missions.json&gt; [--ship &lt;id&gt;]</summary>
 internal sealed record PlanCommand(string MissionsPath, string ShipId) : Command;
+
+/// <summary>scan &lt;screenshot.png&gt;</summary>
+internal sealed record ScanCommand(string PicturePath) : Command;
 
 /// <summary>--version</summary>
 internal sealed record VersionCommand : Command;
