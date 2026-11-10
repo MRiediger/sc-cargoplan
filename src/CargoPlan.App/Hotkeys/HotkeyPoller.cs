@@ -1,26 +1,8 @@
 namespace CargoPlan.App.Hotkeys;
 
-/// <summary>
-/// Hotkeys read from the key state instead of registered (D97): RegisterHotKey's WM_HOTKEY never arrives while Star Citizen
-/// is in front, a key state query does (precedent D45). Pure: the key state comes in as a delegate, the timer, the
-/// foreground window and the focus are <see cref="HotkeyService"/>'s job.
-/// A hotkey fires on its key's press (up → down) while exactly its modifiers are down; holding fires nothing more.
-/// </summary>
-/// <param name="isKeyDown">Whether the virtual key is down now; GetAsyncKeyState in the app, a set of keys in tests.</param>
-public sealed class HotkeyPoller(Func<uint, bool> isKeyDown)
+/// <summary>When polled hotkeys may fire (D97); the polling itself is <see cref="HotkeyPoller{TAction}"/>.</summary>
+public static class HotkeyPoller
 {
-    // Source: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
-    private const uint VK_SHIFT = 0x10;   // either Shift
-    private const uint VK_CONTROL = 0x11; // either Ctrl
-    private const uint VK_MENU = 0x12;    // either Alt
-    private const uint VK_LWIN = 0x5B;    // the Windows keys have no shared code
-    private const uint VK_RWIN = 0x5C;
-
-    private readonly Dictionary<HotkeyAction, Hotkey> _hotkeys = [];
-
-    // Actions whose key was down at the last poll, armed or not: a key held while switching to the game is no press.
-    private readonly HashSet<HotkeyAction> _keyDown = [];
-
     /// <summary>
     /// Star Citizen or one of our windows in front, not recording, no text box of ours with the focus. Another program in
     /// front never: a polled key can't be taken from it, so "Ctrl+Alt+L" in Excel would switch the lock too.
@@ -31,12 +13,37 @@ public sealed class HotkeyPoller(Func<uint, bool> isKeyDown)
         !suspended && (ownProcessInFront
             ? !textInputFocused
             : string.Equals(foregroundProcessName, AutoLockRule.GameProcessName, StringComparison.OrdinalIgnoreCase));
+}
+
+/// <summary>
+/// Hotkeys read from the key state instead of registered (D97): RegisterHotKey's WM_HOTKEY never arrives while Star Citizen
+/// is in front, a key state query does (precedent D45). Pure: the key state comes in as a delegate, the timer, the
+/// foreground window and the focus are <see cref="HotkeyService"/>'s job.
+/// A hotkey fires on its key's press (up → down) while exactly its modifiers are down; holding fires nothing more.
+/// Generic in what a hotkey triggers: <see cref="HotkeyAction"/> for the settings' hotkeys, the scan probe's own keys
+/// for the probe (T10.1b), which must not become settings.
+/// </summary>
+/// <param name="isKeyDown">Whether the virtual key is down now; GetAsyncKeyState in the app, a set of keys in tests.</param>
+public sealed class HotkeyPoller<TAction>(Func<uint, bool> isKeyDown)
+    where TAction : notnull
+{
+    // Source: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+    private const uint VK_SHIFT = 0x10;   // either Shift
+    private const uint VK_CONTROL = 0x11; // either Ctrl
+    private const uint VK_MENU = 0x12;    // either Alt
+    private const uint VK_LWIN = 0x5B;    // the Windows keys have no shared code
+    private const uint VK_RWIN = 0x5C;
+
+    private readonly Dictionary<TAction, Hotkey> _hotkeys = [];
+
+    // Actions whose key was down at the last poll, armed or not: a key held while switching to the game is no press.
+    private readonly HashSet<TAction> _keyDown = [];
 
     /// <summary>
     /// The hotkey of <paramref name="action"/>; null removes it. A key held now fires only on its next press: at the end of a
     /// recording the keys just recorded are still down.
     /// </summary>
-    public void Set(HotkeyAction action, Hotkey? hotkey)
+    public void Set(TAction action, Hotkey? hotkey)
     {
         if (hotkey is null)
         {
@@ -57,9 +64,9 @@ public sealed class HotkeyPoller(Func<uint, bool> isKeyDown)
     }
 
     /// <summary>Reads the keys once; returns what fires now, nothing while not <paramref name="armed"/>.</summary>
-    public IReadOnlyList<HotkeyAction> Poll(bool armed)
+    public IReadOnlyList<TAction> Poll(bool armed)
     {
-        List<HotkeyAction> fired = [];
+        List<TAction> fired = [];
         if (_hotkeys.Count == 0)
         {
             return fired;
