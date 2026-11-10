@@ -44,6 +44,22 @@ public class ContractScannerTests
         LastNotice().Should().Contain("test-wait models gone", "it ended with the warm-up, not with the limit");
     }
 
+    // A scan can come before the first frame (the frame measurement's loop, a hotkey in T10.3): it waits as for a warm-up.
+    [Fact]
+    public async Task A_scan_before_the_warm_up_started_waits_for_it()
+    {
+        var scanner = Scanner(() => throw new FileNotFoundException("test-early models gone"));
+
+        var scan = scanner.ScanAsync();
+        await Task.Delay(50);
+        scan.IsCompleted.Should().BeFalse();
+        scanner.StartWarmup();
+        var attempt = await scan;
+
+        attempt.Outcome.Should().Be(ScanAttemptOutcome.Unavailable);
+        LastNotice().Should().Contain("test-early models gone");
+    }
+
     [Fact]
     public async Task A_warm_up_that_never_ends_stops_the_wait_at_the_limit_and_frees_the_next_scan()
     {

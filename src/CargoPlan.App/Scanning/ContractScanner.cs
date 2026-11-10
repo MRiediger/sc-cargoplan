@@ -30,22 +30,26 @@ internal sealed class ContractScanner(
     private readonly Func<GameWindow?> _find = find ?? GameWindow.Find;
     private readonly TimeSpan _limit = warmupLimit ?? WarmupLimit;
 
-    private Task<ScanContractSource?>? _warmup;
+    // Completed by the warm-up, which never throws: a scan before StartWarmup (a key before the first frame) waits on it
+    // like one during the warm-up. Continuations off the completing thread, so a waiting scan never runs on the warm-up's.
+    // Source: https://learn.microsoft.com/dotnet/api/system.threading.tasks.taskcreationoptions#fields (RunContinuationsAsynchronously)
+    private readonly TaskCompletionSource<ScanContractSource?> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private string? _unavailable;
+    private int _started;
     private int _busy;
 
     /// <summary>Whether the engine is loaded and warm; false while warming and after a failed load.</summary>
-    public bool IsReady => _warmup is { IsCompletedSuccessfully: true, Result: not null };
+    public bool IsReady => _ready.Task is { IsCompletedSuccessfully: true, Result: not null };
 
     /// <summary>Loads and warms the engine on a pool thread; call once, after the overlay's first frame (plan decision 2).</summary>
     public void StartWarmup()
     {
-        if (_warmup is not null)
+        if (Interlocked.Exchange(ref _started, 1) == 1)
         {
             throw new InvalidOperationException("The OCR warm-up has already started.");
         }
 
-        _warmup = Task.Run(Warm);
+        _ = Task.Run(() => _ready.SetResult(Warm()));
     }
 
     /// <summary>
@@ -54,7 +58,7 @@ internal sealed class ContractScanner(
     /// </summary>
     public async Task<ScanAttempt> ScanAsync(Action<SKBitmap>? inspect = null)
     {
-        var warmup = _warmup ?? throw new InvalidOperationException("Start the OCR warm-up before the first scan.");
+        var warmup = _ready.Task;
         if (Interlocked.Exchange(ref _busy, 1) == 1)
         {
             AppLog.Write("Scan", "ignored: another scan is running");
