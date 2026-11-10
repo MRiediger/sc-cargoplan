@@ -53,6 +53,9 @@ public enum NoticeSource
     /// <summary>Why ContractTracker can't be read, or that the sync is paused (T5.4).</summary>
     ContractTracker,
 
+    /// <summary>The contract scan (T10.1b): the OCR still warming up, or unavailable and why; cleared when the engine is ready.</summary>
+    Scan,
+
     /// <summary>What the last move or Re-plan did, or why a move was refused (D24, D65, D66); cleared by the next move, tick or plan.</summary>
     Move,
 }

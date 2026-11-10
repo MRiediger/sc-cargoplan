@@ -6,11 +6,13 @@ using CargoPlan.App.Editor;
 using CargoPlan.App.Holo;
 using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Plans;
+using CargoPlan.App.Scanning;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
+using CargoPlan.Ocr;
 using CommunityToolkit.Mvvm.Input;
 
 namespace CargoPlan.App;
@@ -41,6 +43,9 @@ public partial class App : Application
     // overlay closes: a fetch still running would then hit a disposed client; the process ends right after.
     // Source: https://learn.microsoft.com/dotnet/fundamentals/networking/http/httpclient-guidelines
     private HoloLoader? _holoLoader;
+
+    // The contract scanner (T10.1b): its engine lives for the whole run, like the hologram loader's client.
+    private ContractScanner? _scanner;
 
     // What the dispatcher handler logged last: left unhandled, it reaches AppDomain.UnhandledException too, logged once.
     private Exception? _crashLogged;
@@ -78,6 +83,7 @@ public partial class App : Application
         ComposeStartPlan(parts, options);
         ComposeSettingsFollowers(parts);
         ComposeHolograms(parts);
+        ComposeOcr(parts.Overlay, parts.ViewModel);
         ShowWindows(parts, options);
     }
 
@@ -234,6 +240,28 @@ public partial class App : Application
         // Handlers are async void (CLAUDE.md: event handlers only); the loader ends every expected failure in the
         // outline and a notice, anything else is a bug and surfaces.
         Task RequestHologram() => holoLoader.RequestAsync(viewModel.Ship, session.ShipOutline, session.DownloadShipHolograms);
+    }
+
+    /// <summary>
+    /// The contract scanner (T10.1b, D99): the OCR engine loads and warms on a pool thread once <paramref name="window"/> has
+    /// drawn its first frame, so the start is not a frame later than before (plan decision 2). Missing models end in a notice,
+    /// never in a failed start (plan decision 3).
+    /// </summary>
+    private ContractScanner ComposeOcr(Window window, OverlayViewModel viewModel)
+    {
+        // The scanner's notices come from pool threads; the notice line lives on the UI thread.
+        var scanner = _scanner = new ContractScanner(
+            OcrEngine.Load, text => Dispatcher.InvokeAsync(() => viewModel.SetNotice(NoticeSource.Scan, text)));
+
+        // Once: ContentRendered follows the first frame. Source: https://learn.microsoft.com/dotnet/api/system.windows.window.contentrendered
+        void Start(object? sender, EventArgs e)
+        {
+            window.ContentRendered -= Start;
+            scanner.StartWarmup();
+        }
+
+        window.ContentRendered += Start;
+        return scanner;
     }
 
     /// <summary>The overlay first: the lock window's Owner must be a window that has been shown. The sync starts last.</summary>
