@@ -169,6 +169,25 @@ internal static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GdiFlush();
 
+    // PrintWindow flags, winuser.h (PW_RENDERFULLCONTENT since Windows 8.1, not on the function's page).
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-printwindow
+    public const uint PW_CLIENTONLY = 0x00000001;
+    public const uint PW_RENDERFULLCONTENT = 0x00000002;
+
+    /// <summary>
+    /// The overlay measurement's variant V1 (T10.1b, D100). Synchronous, and the window's own process renders the picture
+    /// (it receives WM_PRINT): with the game, a call into Star Citizen's message loop, not only a read.
+    /// </summary>
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-printwindow (Remarks)
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool PrintWindow(nint hwnd, nint hdcBlt, uint nFlags);
+
+    /// <summary>Waits until DWM has presented this process's queued changes (variant V2: our window hidden on screen).</summary>
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/nf-dwmapi-dwmflush
+    [LibraryImport("dwmapi.dll")]
+    public static partial int DwmFlush();
+
     /// <summary>
     /// A 32-bit top-down DIB section of <paramref name="width"/> × <paramref name="height"/>: BGRA bytes, rows from the top,
     /// so SkiaSharp's Bgra8888 reads it as it is. The system allocates the bits; DeleteObject frees them.
