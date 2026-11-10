@@ -98,6 +98,36 @@ internal static partial class NativeMethods
     public static (int X, int Y, int Width, int Height)? GetWindowBounds(nint hwnd) =>
         GetWindowRect(hwnd, out var r) ? (r.left, r.top, r.right - r.left, r.bottom - r.top) : null;
 
+    /// <summary>
+    /// The calling thread's DPI awareness as the probe logs it: "unaware", "system", "per-monitor" (the probe's header shows
+    /// what WPF runs in and what the capture thread switches to).
+    /// </summary>
+    public static string ThreadDpiAwareness() => GetAwarenessFromDpiAwarenessContext(GetThreadDpiAwarenessContext()) switch
+    {
+        DPI_AWARENESS_UNAWARE => "unaware",
+        DPI_AWARENESS_SYSTEM_AWARE => "system",
+        DPI_AWARENESS_PER_MONITOR_AWARE => "per-monitor",
+        var other => $"invalid ({other})",
+    };
+
+    /// <summary>The window's DPI as its own awareness sees it: the monitor's for a per-monitor-aware window; 0 if it is gone.</summary>
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getdpiforwindow
+    [LibraryImport("user32.dll")]
+    public static partial uint GetDpiForWindow(nint hwnd);
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/windef/ne-windef-dpi_awareness
+    private const int DPI_AWARENESS_UNAWARE = 0;
+    private const int DPI_AWARENESS_SYSTEM_AWARE = 1;
+    private const int DPI_AWARENESS_PER_MONITOR_AWARE = 2;
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getthreaddpiawarenesscontext
+    [LibraryImport("user32.dll")]
+    private static partial nint GetThreadDpiAwarenessContext();
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getawarenessfromdpiawarenesscontext
+    [LibraryImport("user32.dll")]
+    private static partial int GetAwarenessFromDpiAwarenessContext(nint value);
+
     /// <summary>How many GDI objects this process holds now: the leak check of the capture.</summary>
     public static uint GdiObjectCount() => GetGuiResources(CurrentProcess, GR_GDIOBJECTS);
 

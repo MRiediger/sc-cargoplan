@@ -111,4 +111,53 @@ public class StartOptionsTests
     {
         StartOptions.Parse(["--measure-frames", "hull_c"]).OverGame.Should().BeFalse();
     }
+
+    // T10.1b: F8 = one scan, F9 = a series; the number is the series' length.
+    [Theory]
+    [InlineData(100, "--scan-probe")]
+    [InlineData(100, "--Scan-Probe", "--locked")]
+    [InlineData(20, "--scan-probe", "20")]
+    public void Scan_probe_arms_the_probe_keys_with_the_series_length(int series, params string[] args)
+    {
+        var options = StartOptions.Parse(args);
+
+        options.ScanProbe.Should().Be(series);
+        options.Problem.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("--scan-probe", "0")]
+    [InlineData("--scan-probe", "-5")]
+    [InlineData("--scan-probe", "many")]
+    public void Scan_probe_with_a_series_that_is_no_positive_number_is_a_problem_and_keeps_the_default(params string[] args)
+    {
+        var options = StartOptions.Parse(args);
+
+        options.ScanProbe.Should().Be(StartOptions.ScanProbeSeries);
+        options.Problem.Should().Contain("--scan-probe");
+    }
+
+    [Fact]
+    public void Scan_probe_is_off_by_default()
+    {
+        var options = StartOptions.Parse(["--locked"]);
+
+        options.ScanProbe.Should().BeNull();
+        options.ScanProbeImages.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Scan_probe_images_keep_every_region_as_a_picture()
+    {
+        StartOptions.Parse(["--scan-probe", "--scan-probe-images"]).ScanProbeImages.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Scan_probe_images_without_the_probe_are_a_problem()
+    {
+        var options = StartOptions.Parse(["--scan-probe-images"]);
+
+        options.ScanProbeImages.Should().BeFalse();
+        options.Problem.Should().Contain("--scan-probe-images");
+    }
 }

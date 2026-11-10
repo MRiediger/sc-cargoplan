@@ -9,6 +9,7 @@ using CargoPlan.App.Plans;
 using CargoPlan.App.Scanning;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ViewModels;
+using CargoPlan.App.Win32;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
@@ -47,6 +48,9 @@ public partial class App : Application
     // The contract scanner (T10.1b): its engine lives for the whole run, like the hologram loader's client.
     private ContractScanner? _scanner;
 
+    // Only with --scan-probe; its timer keeps it alive, the field shows who owns it.
+    private Diagnostics.ScanProbe? _scanProbe;
+
     // What the dispatcher handler logged last: left unhandled, it reaches AppDomain.UnhandledException too, logged once.
     private Exception? _crashLogged;
 
@@ -83,7 +87,13 @@ public partial class App : Application
         ComposeStartPlan(parts, options);
         ComposeSettingsFollowers(parts);
         ComposeHolograms(parts);
-        ComposeOcr(parts.Overlay, parts.ViewModel);
+        var scanner = ComposeOcr(parts.Overlay, parts.ViewModel, options.ScanProbe is null ? null : ProbeTarget());
+        if (options.ScanProbe is { } series)
+        {
+            // Next to the overlay, not instead of it: Gate 1 measures the scan as the player will have it (T10.1b).
+            _scanProbe = new Diagnostics.ScanProbe(scanner, parts.Overlay, series, options.ScanProbeImages);
+        }
+
         ShowWindows(parts, options);
     }
 
@@ -247,11 +257,12 @@ public partial class App : Application
     /// drawn its first frame, so the start is not a frame later than before (plan decision 2). Missing models end in a notice,
     /// never in a failed start (plan decision 3).
     /// </summary>
-    private ContractScanner ComposeOcr(Window window, OverlayViewModel viewModel)
+    /// <param name="find">Another window than the game's, for a probe's dry run; null = Star Citizen.</param>
+    private ContractScanner ComposeOcr(Window window, OverlayViewModel viewModel, Func<GameWindow?>? find = null)
     {
         // The scanner's notices come from pool threads; the notice line lives on the UI thread.
         var scanner = _scanner = new ContractScanner(
-            OcrEngine.Load, text => Dispatcher.InvokeAsync(() => viewModel.SetNotice(NoticeSource.Scan, text)));
+            OcrEngine.Load, text => Dispatcher.InvokeAsync(() => viewModel.SetNotice(NoticeSource.Scan, text)), find);
 
         // Once: ContentRendered follows the first frame. Source: https://learn.microsoft.com/dotnet/api/system.windows.window.contentrendered
         void Start(object? sender, EventArgs e)
@@ -263,6 +274,13 @@ public partial class App : Application
         window.ContentRendered += Start;
         return scanner;
     }
+
+    /// <summary>
+    /// The probe reads another process's window when CARGOPLAN_SC_CAPTURE_PROCESS names one (e.g. "Code"): a dry run of the
+    /// whole path without the game, as in OverlayCaptureTests. Only with --scan-probe; the hotkey always reads the game.
+    /// </summary>
+    private static Func<GameWindow?>? ProbeTarget() =>
+        Environment.GetEnvironmentVariable("CARGOPLAN_SC_CAPTURE_PROCESS") is { Length: > 0 } process ? () => GameWindow.Find(process) : null;
 
     /// <summary>The overlay first: the lock window's Owner must be a window that has been shown. The sync starts last.</summary>
     private void ShowWindows(OverlayParts parts, StartOptions options)
