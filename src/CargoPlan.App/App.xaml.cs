@@ -77,7 +77,10 @@ public partial class App : Application
         // The measuring tool instead of the overlay (Phase 8): before settings and plan, so it touches neither.
         if (options.MeasureFrames is { } measured)
         {
-            new Diagnostics.FrameMeasureWindow(ships, measured, options.OverGame).Show();
+            // With the engine warming from the first frame like the overlay's (Gate 3); its notices go to the log only.
+            var measuring = new Diagnostics.FrameMeasureWindow(ships, measured, options.OverGame) { ScanLoad = options.ScanLoad };
+            measuring.Scanner = ComposeOcr(measuring, notice: _ => { }, options.ScanLoad ? ProbeTarget() : null);
+            measuring.Show();
             return;
         }
 
@@ -87,7 +90,12 @@ public partial class App : Application
         ComposeStartPlan(parts, options);
         ComposeSettingsFollowers(parts);
         ComposeHolograms(parts);
-        var scanner = ComposeOcr(parts.Overlay, parts.ViewModel, options.ScanProbe is null ? null : ProbeTarget());
+        // The scanner's notices come from pool threads; the notice line lives on the UI thread.
+        var viewModel = parts.ViewModel;
+        var scanner = ComposeOcr(
+            parts.Overlay,
+            text => Dispatcher.InvokeAsync(() => viewModel.SetNotice(NoticeSource.Scan, text)),
+            options.ScanProbe is null ? null : ProbeTarget());
         if (options.ScanProbe is { } series)
         {
             // Next to the overlay, not instead of it: Gate 1 measures the scan as the player will have it (T10.1b).
@@ -257,12 +265,11 @@ public partial class App : Application
     /// drawn its first frame, so the start is not a frame later than before (plan decision 2). Missing models end in a notice,
     /// never in a failed start (plan decision 3).
     /// </summary>
+    /// <param name="notice">The scan's notice line; called from pool threads.</param>
     /// <param name="find">Another window than the game's, for a probe's dry run; null = Star Citizen.</param>
-    private ContractScanner ComposeOcr(Window window, OverlayViewModel viewModel, Func<GameWindow?>? find = null)
+    private ContractScanner ComposeOcr(Window window, Action<string?> notice, Func<GameWindow?>? find = null)
     {
-        // The scanner's notices come from pool threads; the notice line lives on the UI thread.
-        var scanner = _scanner = new ContractScanner(
-            OcrEngine.Load, text => Dispatcher.InvokeAsync(() => viewModel.SetNotice(NoticeSource.Scan, text)), find);
+        var scanner = _scanner = new ContractScanner(OcrEngine.Load, notice, find);
 
         // Once: ContentRendered follows the first frame. Source: https://learn.microsoft.com/dotnet/api/system.windows.window.contentrendered
         void Start(object? sender, EventArgs e)
@@ -277,7 +284,8 @@ public partial class App : Application
 
     /// <summary>
     /// The probe reads another process's window when CARGOPLAN_SC_CAPTURE_PROCESS names one (e.g. "Code"): a dry run of the
-    /// whole path without the game, as in OverlayCaptureTests. Only with --scan-probe; the hotkey always reads the game.
+    /// whole path without the game, as in OverlayCaptureTests. Only with --scan-probe or --scan-load; the hotkey always reads
+    /// the game.
     /// </summary>
     private static Func<GameWindow?>? ProbeTarget() =>
         Environment.GetEnvironmentVariable("CARGOPLAN_SC_CAPTURE_PROCESS") is { Length: > 0 } process ? () => GameWindow.Find(process) : null;

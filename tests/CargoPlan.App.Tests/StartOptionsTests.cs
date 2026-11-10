@@ -152,6 +152,33 @@ public class StartOptionsTests
         StartOptions.Parse(["--scan-probe", "--scan-probe-images"]).ScanProbeImages.Should().BeTrue();
     }
 
+    // K3: the frame measurement under scans has its own switch; --scan-probe always means the probe keys.
+    [Theory]
+    [InlineData("--measure-frames", "hull_c", "--over-game", "--scan-load")]
+    [InlineData("--Scan-Load", "--measure-frames", "hull_c", "--over-game")]
+    public void Scan_load_scans_during_a_frame_measurement(params string[] args)
+    {
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null, MeasureFrames: "hull_c", OverGame: true, ScanLoad: true));
+    }
+
+    [Fact]
+    public void Scan_load_without_a_measurement_is_a_problem()
+    {
+        var options = StartOptions.Parse(["--scan-load"]);
+
+        options.ScanLoad.Should().BeFalse();
+        options.Problem.Should().Contain("--scan-load");
+    }
+
+    [Fact]
+    public void Scan_probe_next_to_a_measurement_does_not_load_it()
+    {
+        var options = StartOptions.Parse(["--measure-frames", "hull_c", "--scan-probe"]);
+
+        options.ScanLoad.Should().BeFalse();
+        options.ScanProbe.Should().Be(StartOptions.ScanProbeSeries);
+    }
+
     [Fact]
     public void Scan_probe_images_without_the_probe_are_a_problem()
     {
