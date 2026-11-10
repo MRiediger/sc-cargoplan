@@ -45,28 +45,18 @@ public partial class App : Application
     // What the dispatcher handler logged last: left unhandled, it reaches AppDomain.UnhandledException too, logged once.
     private Exception? _crashLogged;
 
+    /// <summary>
+    /// The start in its steps, in this order (F22): each Compose method wires one part; their order is the order of the
+    /// side effects and must not change (bounds before Show, the plan saver before the start plan, the overlay before the
+    /// lock window, the contract tracker's start last).
+    /// </summary>
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        ComposeCrashLogging();
 
-        // First, so nothing after goes unlogged (D82). The dispatcher's: log, say so, and end as before (Handled stays
-        // false). Other threads': the runtime ends the process anyway, so only the log.
-        // Source: https://learn.microsoft.com/dotnet/api/system.windows.application.dispatcherunhandledexception
-        // Source: https://learn.microsoft.com/dotnet/api/system.appdomain.unhandledexception
-        DispatcherUnhandledException += OnDispatcherUnhandledException;
-        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
-
-        // First: without the ships folder there is nothing to draw. One message, then the end, no crash dialog (D56).
-        // The catalog's problems (skipped ship files) are shown in the header's ship selection (T7.2b).
-        ShipCatalog ships;
-        try
+        if (LoadShipsOrExit() is not { } ships)
         {
-            ships = ShipLoader.LoadAll();
-        }
-        catch (ShipFolderException ex)
-        {
-            MessageBox.Show(ex.Message, "SC-CargoPlan", MessageBoxButton.OK, MessageBoxImage.Error);
-            Shutdown(ExitShipsFolderBroken);
             return;
         }
 
@@ -83,7 +73,51 @@ public partial class App : Application
         }
 
         var (settings, settingsProblem) = SettingsStore.Load(SettingsStore.DefaultPath);
+        var parts = ComposeOverlay(ships, outlines, options, settings, settingsProblem);
+        ComposeHotkeys(parts, settings);
+        ComposeStartPlan(parts, options);
+        ComposeSettingsFollowers(parts);
+        ComposeHolograms(parts);
+        ShowWindows(parts, options);
+    }
 
+    /// <summary>First, so nothing after goes unlogged (D82).</summary>
+    private void ComposeCrashLogging()
+    {
+        // The dispatcher's: log, say so, and end as before (Handled stays false). Other threads': the runtime ends the
+        // process anyway, so only the log.
+        // Source: https://learn.microsoft.com/dotnet/api/system.windows.application.dispatcherunhandledexception
+        // Source: https://learn.microsoft.com/dotnet/api/system.appdomain.unhandledexception
+        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
+    }
+
+    /// <summary>
+    /// Without the ships folder there is nothing to draw: one message, then the end, no crash dialog (D56); null then.
+    /// The catalog's problems (skipped ship files) are shown in the header's ship selection (T7.2b).
+    /// </summary>
+    private ShipCatalog? LoadShipsOrExit()
+    {
+        try
+        {
+            return ShipLoader.LoadAll();
+        }
+        catch (ShipFolderException ex)
+        {
+            MessageBox.Show(ex.Message, "SC-CargoPlan", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(ExitShipsFolderBroken);
+            return null;
+        }
+    }
+
+    /// <summary>What the later steps of the start wire together.</summary>
+    private sealed record OverlayParts(
+        Ship Ship, OverlayViewModel ViewModel, SettingsSession Session, ContractTrackerSync ContractTracker, OverlayWindow Overlay);
+
+    /// <summary>The view model, the settings session, the ContractTracker sync and the overlay window, placed but not shown.</summary>
+    private OverlayParts ComposeOverlay(
+        ShipCatalog ships, ShipOutlineCatalog outlines, StartOptions options, AppSettings settings, string? settingsProblem)
+    {
         // The settings' ship, else the start plan's, else the Hull A; one that doesn't load never stops the start (T7.2).
         var (ship, shipNotice) = ShipChoices.Resolve(ships, settings.Ship, PlanStore.PeekShipId(options.PlanPath ?? PlanStore.DefaultPath));
         var viewModel = new OverlayViewModel(ship, ships)
@@ -122,17 +156,30 @@ public partial class App : Application
         // The saver's Closed handler goes first and hands over pending bounds; Flush then writes a pending look change.
         _boundsSaver = new OverlayBoundsSaver(overlay, session);
         overlay.Closed += (_, _) => session.Flush();
+        return new OverlayParts(ship, viewModel, session, contractTracker, overlay);
+    }
 
-        // Polled from here on (D97), before the settings window can ask for them. The sync hotkey runs the editor's button,
-        // guarded like the timer (D82); AsyncRelayCommand would rethrow on the UI thread what isn't.
-        // Source: https://learn.microsoft.com/dotnet/api/communitytoolkit.mvvm.input.asyncrelaycommandoptions
+    /// <summary>
+    /// Polled from here on (D97), before the settings window can ask for them. The sync hotkey runs the editor's button,
+    /// guarded like the timer (D82); AsyncRelayCommand would rethrow on the UI thread what isn't.
+    /// </summary>
+    // Source: https://learn.microsoft.com/dotnet/api/communitytoolkit.mvvm.input.asyncrelaycommandoptions
+    private void ComposeHotkeys(OverlayParts parts, AppSettings settings)
+    {
+        var contractTracker = parts.ContractTracker;
         _hotkeys = new HotkeyService(
-            overlay, settings.Hotkeys, viewModel, new AsyncRelayCommand(() => contractTracker.RunSyncGuardedAsync(manual: true)));
+            parts.Overlay, settings.Hotkeys, parts.ViewModel, new AsyncRelayCommand(() => contractTracker.RunSyncGuardedAsync(manual: true)));
+    }
 
-        // Before the start plan: a --plan file becomes plan.json this way, without a rule of its own.
-        // A plan from plan.json is written back once, unchanged.
-        _planSaver = new PlanSaver(overlay, viewModel, PlanStore.DefaultPath);
-        var (plan, planProblem) = LoadStartPlan(options, ship);
+    /// <summary>
+    /// The plan saver before the start plan: a --plan file becomes plan.json this way, without a rule of its own.
+    /// A plan from plan.json is written back once, unchanged.
+    /// </summary>
+    private void ComposeStartPlan(OverlayParts parts, StartOptions options)
+    {
+        var viewModel = parts.ViewModel;
+        _planSaver = new PlanSaver(parts.Overlay, viewModel, PlanStore.DefaultPath);
+        var (plan, planProblem) = LoadStartPlan(options, parts.Ship);
         viewModel.SetNotice(NoticeSource.Plan, options.Problem ?? planProblem);
         if (plan is not null)
         {
@@ -143,8 +190,12 @@ public partial class App : Application
             // The file stays until the player makes a new plan; a capture must not overwrite it (T5.4).
             viewModel.PauseContractTracker();
         }
+    }
 
-        // After the start: the fallback or the plan's ship isn't a choice and stays out of settings.json (T7.2).
+    /// <summary>After the start: the fallback or the plan's ship isn't a choice and stays out of settings.json (T7.2).</summary>
+    private static void ComposeSettingsFollowers(OverlayParts parts)
+    {
+        var (viewModel, session) = (parts.ViewModel, parts.Session);
         viewModel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(OverlayViewModel.Ship))
@@ -156,9 +207,15 @@ public partial class App : Application
                 session.ChangeCameras(viewModel.Cameras);
             }
         };
+    }
 
-        // The hologram of the ship and look (D63): once the overlay is up, on a ship change, on a new look or switch.
-        // Every request cancels the one before; the outline shows until the hologram is there.
+    /// <summary>
+    /// The hologram of the ship and look (D63): once the overlay is up, on a ship change, on a new look or switch.
+    /// Every request cancels the one before; the outline shows until the hologram is there.
+    /// </summary>
+    private void ComposeHolograms(OverlayParts parts)
+    {
+        var (viewModel, session, overlay) = (parts.ViewModel, parts.Session, parts.Overlay);
         var holoLoader = _holoLoader = new HoloLoader(viewModel, HoloSource.CreateDefault());
 
         // Another tag's cache (holo-v1 of v0.2.0) goes at once when holograms aren't wanted now; else after the current
@@ -177,8 +234,12 @@ public partial class App : Application
         // Handlers are async void (CLAUDE.md: event handlers only); the loader ends every expected failure in the
         // outline and a notice, anything else is a bug and surfaces.
         Task RequestHologram() => holoLoader.RequestAsync(viewModel.Ship, session.ShipOutline, session.DownloadShipHolograms);
+    }
 
-        // Overlay first: the lock window's Owner must be a window that has been shown.
+    /// <summary>The overlay first: the lock window's Owner must be a window that has been shown. The sync starts last.</summary>
+    private void ShowWindows(OverlayParts parts, StartOptions options)
+    {
+        var (viewModel, contractTracker, overlay) = (parts.ViewModel, parts.ContractTracker, parts.Overlay);
         overlay.Show();
         new LockWindow(viewModel, overlay).Show();
 
