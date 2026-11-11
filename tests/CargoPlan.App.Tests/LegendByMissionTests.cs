@@ -54,17 +54,6 @@ public class LegendByMissionTests
     }
 
     [Fact]
-    public void Loading_Martins_plan_says_once_that_pickups_were_cleaned()
-    {
-        var viewModel = HurstonOverlay();
-
-        viewModel.Notices.Should().Contain(OverlayViewModel.PickupsCleanedPrefix + "Everus Harbor");
-
-        viewModel.ShowPlan(viewModel.Saved!);
-        viewModel.Notices.Should().NotContain(n => n.StartsWith(OverlayViewModel.PickupsCleanedPrefix, StringComparison.Ordinal));
-    }
-
-    [Fact]
     public void Lines_are_per_mission_and_destination_in_order_of_first_appearance()
     {
         HurstonOverlay().Scene.Legend.Select(e => (e.Mission, e.Destination, e.Scu)).Should().Equal(

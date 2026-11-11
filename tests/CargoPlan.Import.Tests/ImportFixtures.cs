@@ -3,7 +3,7 @@ using System.Reflection;
 namespace CargoPlan.Import.Tests;
 
 /// <summary>
-/// Raw OCR texts of real ContractTracker captures (Fixtures/RawText, D38 addendum) and two of Martin's plans, embedded
+/// Raw OCR texts of real ContractTracker captures (Fixtures/RawText, D38 addendum) and Martin's plan of 23 Oct, embedded
 /// in this test assembly. Contract ids in the comments are the ones in Martin's database.
 /// </summary>
 internal static class ImportFixtures
@@ -114,13 +114,6 @@ internal static class ImportFixtures
     /// Station", "Thundering Express", "Melodic Fields Station" (mission 1) and Everus Harbor (17, 18); watermark 18.
     /// </summary>
     public const string HurstonPlan = "hurston_2026-10-23";
-
-    /// <summary>
-    /// Martin's plan.json of 25 Oct (B6): missions 1–3 (ids 1–4) without pickup, read before T7.4d, mission 3 Waste 8 SCU to
-    /// Everus Harbor; mission 4 (ids 37/38) with ContractTracker's pickup text of id 38 as read: "Everus Harbor. - Freight
-    /// elevator at Green Glade Station at Hurston's L1 Lagrange point".
-    /// </summary>
-    public const string HurstonPickups = "hurston_2026-10-25";
 
     public static string RawText(string name) => ReadResource($"rawtext/{name}.txt");
 

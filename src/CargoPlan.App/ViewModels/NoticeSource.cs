@@ -45,11 +45,6 @@ public enum NoticeSource
     Stops,
 
     /// <summary>
-    /// ContractTracker pickups of a loaded plan cut to their names (B6); cleared by the next plan.
-    /// </summary>
-    Pickups,
-
-    /// <summary>
     /// The contract scanner's state (T10.1b): the OCR still warming up, or unavailable and why; cleared when the engine is
     /// ready. A scan's result goes to <see cref="Move"/> (T10.3).
     /// </summary>

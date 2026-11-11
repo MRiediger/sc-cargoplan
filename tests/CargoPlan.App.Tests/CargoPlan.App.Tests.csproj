@@ -41,10 +41,9 @@
                       LogicalName="missions/hull_a_eight_stops.json" Link="Fixtures\hull_a_eight_stops.json" />
   </ItemGroup>
 
-  <!-- Martin's plan of 25 Oct with ContractTracker's raw pickup text (B6), the Import tests' fixture linked like the one above. -->
+  <!-- Martin's plan of 25 Oct (B6), its pickups stored cleaned (T10.4a, F23). -->
   <ItemGroup>
-    <EmbeddedResource Include="..\CargoPlan.Import.Tests\Fixtures\Plans\hurston_2026-10-25.json"
-                      LogicalName="plans/hurston_2026-10-25.json" Link="Fixtures\hurston_2026-10-25.json" />
+    <EmbeddedResource Include="Fixtures\Plans\hurston_2026-10-25.json" LogicalName="plans/hurston_2026-10-25.json" />
   </ItemGroup>
 
   <!-- settings.json as released (T10.4a, F1): each old form, and what the code before the migration read from it. -->

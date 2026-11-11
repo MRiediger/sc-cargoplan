@@ -108,15 +108,6 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public static string? StopsMergedText(IReadOnlyList<(string From, string To)> merged) =>
         merged.Count == 0 ? null : StopsMergedPrefix + string.Join(", ", merged.Select(m => $"{m.From} → {m.To}"));
 
-    public const string PickupsCleanedPrefix = "Pickups cleaned: ";
-
-    /// <summary>
-    /// The notice for pickups cut to their names on loading (B6): the names they became, never the text cut off; null if
-    /// none was.
-    /// </summary>
-    public static string? PickupsCleanedText(IReadOnlyList<string> cleaned) =>
-        cleaned.Count == 0 ? null : PickupsCleanedPrefix + string.Join(", ", cleaned);
-
     /// <summary>What the overlay asks before a ship change with a plan (D59).</summary>
     public static string ReplanQuestionText(string ship) =>
         $"Re-plan for {ship}? Crate positions change and manual moves are lost; split crates keep their sizes.";
@@ -471,10 +462,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         // A plan from before B1 may hold two names of one place; the editor's plans never do.
         var unified = DestinationNames.Unify(saved, Ship, []);
         SetNotice(NoticeSource.Stops, StopsMergedText(unified.Merged));
-        // A plan from T7.4d may hold ContractTracker's pickup text as read; saved cleaned, so it says so once (B6).
-        var cleaned = PickupNames.Clean(unified.Saved);
-        SetNotice(NoticeSource.Pickups, PickupsCleanedText(cleaned.Cleaned));
-        Step(cleaned.Saved);
+        Step(unified.Saved);
         SetNotice(NoticeSource.Move, null);
     }
 
