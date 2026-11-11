@@ -1,4 +1,5 @@
 using CargoPlan.App.Scanning;
+using CargoPlan.App.Win32;
 using CargoPlan.Ocr;
 
 namespace CargoPlan.App.Tests;
@@ -112,6 +113,30 @@ public class ContractScannerTests
         attempt.Outcome.Should().Be(ScanAttemptOutcome.GameNotFound);
         TestLog.Text().Should().MatchRegex(@"OCR ready: .*load \d+ ms, warm-up read \d+ ms, total \d+ ms.*working set \d+ → \d+ MB");
         LastNotice().Should().BeNull("a ready engine clears the scan's notice line");
+    }
+
+    // D100, Martin's condition: a capture that throws must not leave our windows invisible.
+    [Fact]
+    public async Task A_capture_that_throws_still_restores_the_cleared_windows()
+    {
+        var restored = false;
+        var scanner = new ContractScanner(
+            OcrEngine.Load,
+            _ => { },
+            find: () => new GameWindow(0, new PixelRect(0, 0, 1920, 1080)),
+            clear: _ => new Restore(() => restored = true),
+            capture: (PixelRect _, out int error) => throw new InvalidOperationException("test-capture-throws"));
+        scanner.StartWarmup();
+
+        var scan = () => scanner.ScanAsync();
+
+        await scan.Should().ThrowAsync<InvalidOperationException>().WithMessage("test-capture-throws");
+        restored.Should().BeTrue();
+    }
+
+    private sealed class Restore(Action restore) : IDisposable
+    {
+        public void Dispose() => restore();
     }
 
     private ContractScanner Scanner(Func<OcrEngine> load, TimeSpan? limit = null) =>

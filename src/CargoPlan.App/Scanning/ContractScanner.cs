@@ -17,8 +17,15 @@ namespace CargoPlan.App.Scanning;
 /// <param name="notice">The scan's notice line; null clears it. Called from any thread: the caller marshals.</param>
 /// <param name="find">Finds the game window; <see cref="GameWindow.Find()"/> in the app.</param>
 /// <param name="warmupLimit">How long a scan waits for the warm-up; <see cref="WarmupLimit"/> in the app.</param>
+/// <param name="clear">Takes our windows off the region for the capture (D100); disposed even when the capture throws.</param>
+/// <param name="capture">Copies the region; <see cref="ScreenCapture.Region"/> in the app.</param>
 internal sealed class ContractScanner(
-    Func<OcrEngine> load, Action<string?> notice, Func<GameWindow?>? find = null, TimeSpan? warmupLimit = null)
+    Func<OcrEngine> load,
+    Action<string?> notice,
+    Func<GameWindow?>? find = null,
+    TimeSpan? warmupLimit = null,
+    Func<PixelRect, IDisposable?>? clear = null,
+    CaptureRegion? capture = null)
 {
     /// <summary>Ten times the expected 1–2 s (K2): a warm-up that takes longer hangs, a scan mustn't wait for ever.</summary>
     public static readonly TimeSpan WarmupLimit = TimeSpan.FromSeconds(15);
@@ -29,6 +36,7 @@ internal sealed class ContractScanner(
 
     private readonly Func<GameWindow?> _find = find ?? GameWindow.Find;
     private readonly TimeSpan _limit = warmupLimit ?? WarmupLimit;
+    private readonly CaptureRegion _capture = capture ?? ((PixelRect region, out int error) => ScreenCapture.Region(region, out error));
 
     // Completed by the warm-up, which never throws: a scan before StartWarmup (a key before the first frame) waits on it
     // like one during the warm-up. Continuations off the completing thread, so a waiting scan never runs on the warm-up's.
@@ -106,7 +114,15 @@ internal sealed class ContractScanner(
             return new ScanAttempt(ScanAttemptOutcome.GameNotFound, "", wait, captureClock.Elapsed, null, clock.Elapsed);
         }
 
-        using var captured = ScreenCapture.Region(game.ScanRegionOnScreen, out var error);
+        // Our windows over the region go away for the copy and come back in Dispose, also when the copy throws (D100).
+        CapturedRegion? copied;
+        int error;
+        using (clear?.Invoke(game.ScanRegionOnScreen))
+        {
+            copied = _capture(game.ScanRegionOnScreen, out error);
+        }
+
+        using var captured = copied;
         var capture = captureClock.Elapsed;
         if (captured is null)
         {

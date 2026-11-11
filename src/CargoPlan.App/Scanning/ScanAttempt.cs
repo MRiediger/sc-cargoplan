@@ -25,6 +25,9 @@ internal enum ScanAttemptOutcome
     Busy,
 }
 
+/// <summary>Copies a region of the screen (physical pixels); null with the Win32 error when GDI refuses.</summary>
+internal delegate CapturedRegion? CaptureRegion(PixelRect screen, out int error);
+
 /// <summary>
 /// One scan from the trigger to the raw text, with the time of each stage (Gate 1): waiting for the warm-up, finding the
 /// window and capturing the region, then the OCR's own stages. <paramref name="Game"/> is the window that was read, for the

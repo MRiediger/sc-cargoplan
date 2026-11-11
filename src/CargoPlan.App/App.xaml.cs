@@ -269,7 +269,9 @@ public partial class App : Application
     /// <param name="find">Another window than the game's, for a probe's dry run; null = Star Citizen.</param>
     private ContractScanner ComposeOcr(Window window, Action<string?> notice, Func<GameWindow?>? find = null)
     {
-        var scanner = _scanner = new ContractScanner(OcrEngine.Load, notice, find);
+        // Our windows over the contract leave the picture for the capture (D100).
+        var clearance = new RegionClearance(Dispatcher, () => Windows.Cast<Window>());
+        var scanner = _scanner = new ContractScanner(OcrEngine.Load, notice, find, clear: clearance.Clear);
 
         // Once: ContentRendered follows the first frame. Source: https://learn.microsoft.com/dotnet/api/system.windows.window.contentrendered
         void Start(object? sender, EventArgs e)
