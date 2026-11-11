@@ -372,12 +372,16 @@ public class ContractTextParserTests
     public void Reward_is_read_from_its_line_after_the_prose(string fixture, long expected) =>
         ContractTextParser.Parse(ImportFixtures.RawText(fixture)).Reward.Should().Be(expected);
 
+    // The sign before the amount is aUEC's, read as "±" at 1080p (S10.0 set-1080s c17, T10.2a hand test).
     [Theory]
     [InlineData("Reward 81,250", 81_250L)]
     [InlineData("Reward 81.250", 81_250L)]
     [InlineData("  Reward   81,250  ", 81_250L)]
     [InlineData("Reward 1,081,250", 1_081_250L)]
     [InlineData("Reward 750", 750L)]
+    [InlineData("Reward ± 51,000", 51_000L)]
+    [InlineData("Reward ¤ 51,000", 51_000L)]
+    [InlineData("Reward ¤51,000", 51_000L)]
     public void Reward_line_anywhere_in_the_text_is_read(string line, long expected) =>
         ContractTextParser.Parse(InColumns(line)).Reward.Should().Be(expected);
 
@@ -387,6 +391,9 @@ public class ContractTextParserTests
     [InlineData("Reward")]
     [InlineData("The Reward 81,250")]
     [InlineData("Reward 81,250 aUEC")]
+    [InlineData("Reward 8 51,000")]
+    [InlineData("Reward ±± 51,000")]
+    [InlineData("Reward x 51,000")]
     public void Unreadable_reward_line_is_unknown(string line) =>
         ContractTextParser.Parse(InColumns(line)).Reward.Should().BeNull();
 

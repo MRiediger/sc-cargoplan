@@ -96,7 +96,8 @@ public class ScannedContractTests
     [Fact]
     public void Key_does_not_depend_on_the_order_of_the_deliveries_or_their_amounts()
     {
-        // scan-probe.log, reward 72,500: four Stims deliveries, other order and other SCU after accepting.
+        // scan-probe.log, reward 72,500, four Stims deliveries each: an offer to High Course and an accepted contract to
+        // Thundering Express instead, two routes. The same route in another order and with other SCU keeps its key.
         var offer = ScannedContract.Read(Contract("72,500", "They will be packaged up in containers 4 SCU or smaller.",
             Stims(3, "Green Glade Station"), Stims(3, "High Course Station"), "L", Stims(3, "Melodic Fields Station"), "L", Stims(2, "Faithful Dream Station")));
         var accepted = ScannedContract.Read(Contract("72,500", "They will be packaged up in containers 4 SCU or smaller.",

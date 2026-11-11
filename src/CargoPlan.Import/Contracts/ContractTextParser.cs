@@ -268,7 +268,11 @@ internal static partial class ContractTextParser
     [GeneratedRegex(@"\A\s*Reward\s*" + Amount + @"[ \t]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
     private static partial Regex RewardAtStart { get; }
 
-    /// <summary>CargoPlan's form: "Reward 81,250" as one whole line anywhere in the text; the label never joins another line.</summary>
-    [GeneratedRegex(@"^[ \t]*Reward[ \t]+" + Amount + @"[ \t]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
+    /// <summary>
+    /// CargoPlan's form: "Reward 81,250" as one whole line anywhere in the text; the label never joins another line. One
+    /// sign may stand before the amount: the aUEC sign, read as "±" at 1080p (S10.0 set-1080s c17). Not a letter or a
+    /// digit, which would be part of a wrong amount.
+    /// </summary>
+    [GeneratedRegex(@"^[ \t]*Reward[ \t]+(?:[^\w\s][ \t]*)?" + Amount + @"[ \t]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
     private static partial Regex RewardLine { get; }
 }
