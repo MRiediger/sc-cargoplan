@@ -1,5 +1,5 @@
-{ "schemaVersion": 1, "stops": [
-{ "destination": "Dest1", "items": [ { "commodity": "Titanium", "scu": 64, "crateSize": 32 } ] }
+{ "schemaVersion": 4, "stops": [
+{ "destination": "Dest1", "items": [ { "commodity": "Titanium", "scu": 64, "maxCrateSize": 32, "crates": [32, 32] } ] }
 ,
-{ "destination": "Dest2", "items": [ { "commodity": "Titanium", "scu": 64, "crateSize": 32 } ] }
+{ "destination": "Dest2", "items": [ { "commodity": "Titanium", "scu": 64, "maxCrateSize": 32, "crates": [32, 32] } ] }
 ] }

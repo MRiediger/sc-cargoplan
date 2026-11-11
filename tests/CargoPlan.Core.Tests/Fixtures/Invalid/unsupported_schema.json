@@ -4,7 +4,7 @@
     {
       "destination": "Riker",
       "items": [
-        { "commodity": "Titanium", "scu": 12, "crateSize": 4 }
+        { "commodity": "Titanium", "scu": 12, "maxCrateSize": 4, "crates": [4, 4, 4] }
       ]
     }
   ]

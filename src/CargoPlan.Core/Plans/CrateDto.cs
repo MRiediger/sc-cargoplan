@@ -23,7 +23,7 @@ internal sealed record CrateDto(
             throw new ArgumentException($"A crate for '{Destination}' has no commodity.", nameof(Commodity));
         }
 
-        // Plain int in the DTO, because STJ would accept any number for an enum (e.g. 3), as in CargoItemDto.
+        // Plain int in the DTO, because STJ would accept any number for an enum (e.g. 3), as in MissionItemDto.
         // "Models." because the property CrateSize hides the enum type here.
         if (!Enum.IsDefined((Models.CrateSize)CrateSize))
         {

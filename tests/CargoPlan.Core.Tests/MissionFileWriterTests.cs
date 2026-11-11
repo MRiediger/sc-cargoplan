@@ -34,7 +34,7 @@ public class MissionFileWriterTests
     [InlineData("fill_order_stern")]
     public void Write_then_Read_gives_the_same_stops(string fixture)
     {
-        // Schema 1 fixtures come back as the current schema with their explicit crates, schema 2 and 3 as they were (D23).
+        // Explicit crates come back explicit, derived ones derived (D23); a schema 3 file as the current schema.
         var stops = MissionFixtures.LoadMissions(fixture);
 
         // MissionStop holds its items in a list, which compares by reference; equivalence compares the content.
@@ -51,11 +51,11 @@ public class MissionFileWriterTests
     }
 
     [Fact]
-    public void Write_writes_schema_version_4_even_for_a_v1_file_and_leaves_the_stream_open()
+    public void Write_writes_schema_version_4_even_for_a_v3_file_and_leaves_the_stream_open()
     {
         using var stream = new MemoryStream();
 
-        MissionFileWriter.Write(stream, MissionFixtures.LoadMissions("example_missions"), FillOrder.BowFirst);
+        MissionFileWriter.Write(stream, MissionFixtures.LoadMissions("schema3_without_fill_order"), FillOrder.BowFirst);
 
         stream.CanRead.Should().BeTrue();
         using var document = JsonDocument.Parse(Encoding.UTF8.GetString(stream.ToArray()));

@@ -554,9 +554,9 @@ public sealed class MissionEditorViewModelTests : IDisposable
     public void Import_of_a_file_without_a_fill_order_keeps_the_editors()
     {
         Directory.CreateDirectory(_folder);
-        var path = Path.Combine(_folder, "schema2.json");
+        var path = Path.Combine(_folder, "no-fill-order.json");
         File.WriteAllText(path, """
-            { "schemaVersion": 2, "stops": [ { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 4, "maxCrateSize": 4 } ] } ] }
+            { "schemaVersion": 4, "stops": [ { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 4, "maxCrateSize": 4 } ] } ] }
             """);
         var editor = FourRows(EmptyOverlay());
         editor.FillOrder = FillOrder.SternFirst;

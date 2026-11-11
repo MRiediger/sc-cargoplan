@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 4,
   "stops": [
     { "destination": "Lorville", "items": [ { "commodity": "Gold", "scu": 16, "maxCrateSize": 16 } ] },
     { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 12, "maxCrateSize": 4 } ] },

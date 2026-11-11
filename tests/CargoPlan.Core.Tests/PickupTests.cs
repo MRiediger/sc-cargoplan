@@ -147,7 +147,7 @@ public class PickupTests
     public void Read_normalizes_the_pickup_list()
     {
         var stops = Read("""
-            { "schemaVersion": 2, "stops": [ { "destination": "Riker", "items": [
+            { "schemaVersion": 4, "stops": [ { "destination": "Riker", "items": [
               { "commodity": "Titanium", "scu": 4, "maxCrateSize": 4, "pickup": [" Lorville ", "", "lorville", "Area18"] } ] } ] }
             """);
 
@@ -158,7 +158,7 @@ public class PickupTests
     public void Read_of_an_empty_pickup_list_is_no_pickup()
     {
         var stops = Read("""
-            { "schemaVersion": 2, "stops": [ { "destination": "Riker", "items": [
+            { "schemaVersion": 4, "stops": [ { "destination": "Riker", "items": [
               { "commodity": "Titanium", "scu": 4, "maxCrateSize": 4, "pickup": [] } ] } ] }
             """);
 

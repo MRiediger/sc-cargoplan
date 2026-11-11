@@ -14,16 +14,13 @@ public static class MissionFileReader
     /// <summary>The version the writer writes.</summary>
     public const int CurrentSchemaVersion = 4;
 
-    /// <summary>A fill order, but no row axis (D72); still read, never written.</summary>
+    /// <summary>
+    /// A fill order, but no row axis (D72); still read, never written. The oldest readable: v0.1.0 wrote it, schema 1 and 2
+    /// were development history (T10.4a, review F5).
+    /// </summary>
     public const int NoFillRowsSchemaVersion = 3;
 
-    /// <summary>Derived crate mixes, but no fill order (D23); still read, never written.</summary>
-    public const int NoFillOrderSchemaVersion = 2;
-
-    /// <summary>One crate size per item; still read, never written.</summary>
-    public const int LegacySchemaVersion = 1;
-
-    private static readonly int[] SupportedSchemaVersions = [LegacySchemaVersion, NoFillOrderSchemaVersion, NoFillRowsSchemaVersion, CurrentSchemaVersion];
+    private static readonly int[] SupportedSchemaVersions = [NoFillRowsSchemaVersion, CurrentSchemaVersion];
 
     /// <summary>Reads a mission file from disk.</summary>
     /// <exception cref="FileNotFoundException">The file does not exist.</exception>
@@ -55,13 +52,12 @@ public static class MissionFileReader
         }
     }
 
-    /// <summary>The schema versions in <paramref name="versions"/>; also used for the missions inside a plan file.</summary>
+    /// <summary>The schema versions in <paramref name="versions"/>.</summary>
     /// <exception cref="JsonException">Not the expected format.</exception>
     /// <exception cref="ArgumentException">A value violates the domain rules.</exception>
-    internal static MissionFile Parse(JsonElement root, IReadOnlyList<int> versions) =>
-        SchemaVersion.Check(root, versions) == LegacySchemaVersion
-            ? new((root.Deserialize(MissionJsonContext.Default.MissionFileV1Dto) ?? throw new JsonException("The file contains null."))
-                .ToMissionStops(), null)
-            : (root.Deserialize(MissionJsonContext.Default.MissionFileDto) ?? throw new JsonException("The file contains null."))
-                .ToMissionFile();
+    private static MissionFile Parse(JsonElement root, IReadOnlyList<int> versions)
+    {
+        SchemaVersion.Check(root, versions);
+        return (root.Deserialize(MissionJsonContext.Default.MissionFileDto) ?? throw new JsonException("The file contains null.")).ToMissionFile();
+    }
 }

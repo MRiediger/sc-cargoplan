@@ -1,10 +1,10 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 4,
   "stops": [
     {
       "destination": "Riker",
       "items": [
-        { "commodity": "Titanium", "scu": 20, "crateSize": 4 }
+        { "commodity": "Titanium", "scu": 20, "maxCrateSize": 4, "crates": [4, 4, 4, 4, 4] }
       ]
     }
   ]
