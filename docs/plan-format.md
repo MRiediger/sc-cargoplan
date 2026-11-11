@@ -1,6 +1,6 @@
 # Plan file format
 
-A plan file holds one hauling run: the missions you entered or ContractTracker captured, the plan made
+A plan file holds one hauling run: the missions you entered or scanned, the plan made
 from them, with your moves and ticks. The overlay saves the current plan to
 `%LocalAppData%\SC-CargoPlan\plan.json` on every change, so it survives a restart and a crash. You don't
 need to write it by hand; this page explains what is in it.
@@ -8,7 +8,7 @@ need to write it by hand; this page explains what is in it.
 ## Example
 
 Three missions. Mission 1 was typed in the editor: Riker, 8 SCU Titanium (max crate 4) collected at Lorville,
-two 4 SCU crates on the plate of Rack 1. Mission 2 came from ContractTracker (capture ids 36 and 37): Shubin, 4 SCU Quartz; the
+two 4 SCU crates on the plate of Rack 1. Mission 2 is a capture imported before v0.4.0 (ids 36 and 37): Shubin, 4 SCU Quartz; the
 contract named no max crate size, so the largest one that fits was assumed, and its drop-off list named
 three destinations of which one was read. Mission 3 was scanned by CargoPlan itself, scan #3 of the plan, from the offers
 view: Orison, 2 SCU Stims, its amount an estimate until the accepted contract is scanned. Saved files write each position
@@ -79,8 +79,8 @@ fields are an error.
 | `grouping` | string | `"none"` or `"byDestination"`: whether Plan and Re-plan keep each destination as a block of its own in a rack it shares. Blocks run across the width with `crosswise` and along the length with `lengthwise`; a rack that stacks along `+y` or `-y` runs them along its length either way. Chosen as **Grouping** in the editor. Optional; without it, `"none"`. |
 | `sectionGap` | number | `0`, `1` or `2`: empty rows between neighbouring blocks with `"byDestination"`, to grip the crates. If they don't fit, crates turn where that saves rows, then the gaps shrink; the overlay doesn't mention it. Chosen as **Section gap** in the editor. Optional; without it, `0`. |
 | `lastScanNo` | number | Optional (schema 10): the last scan number given, at least the highest `scan.no` in the file; left out while no contract was scanned. A number is given once in a session, also after an undo; **Discard plan** starts the count again. |
-| `contractTrackerWatermark` | number | The highest ContractTracker id taken into the plan, `0` for none. Captures above it are new; it only rises. |
-| `missions` | array | Every mission: what you typed or ContractTracker captured, one contract each. May be empty. |
+| `contractTrackerWatermark` | number | Before v0.4.0 the highest capture id taken into the plan, `0` for none. Read and kept as it is; nothing raises it since v0.4.0. |
+| `missions` | array | Every mission: what you typed or scanned (or imported before v0.4.0), one contract each. May be empty. |
 | `crates` | array | Every crate: what, for whom, for which mission, which rack, which cell. Their order is the route: a stop is unloaded in the order of its first crate still on board. |
 | `warnings` | array | The planner's hints, word for word as the overlay shows them. Stored; on loading they are derived anew from the crates, so notes an older version wrote (e.g. "Racks not in route order") drop and positions and ticks stay. |
 
@@ -89,27 +89,27 @@ fields are an error.
 | Field | Type | Rules |
 |---|---|---|
 | `id` | number | 1 or more, unique in the file. Crates name their mission by it. |
-| `unplaced` | boolean | `true` if the mission didn't fit when it came; it then has no crates. The overlay places it as soon as it fits, at the next sync with ContractTracker. |
-| `stops` | array | Its stops as in a [mission file](mission-format.md): `destination` and `items` with `commodity`, `scu`, `maxCrateSize` and optionally `crates` and `pickup`, here also `manual` (written only as `true`): the item was added to this ContractTracker mission or changed by hand in the editor and stays with it until ContractTracker no longer lists the mission. One stop per destination; the same destination in two missions has the same spelling. |
-| `contract` | object | Optional: the ContractTracker capture or the scan it came from. Missing for missions typed in the editor or read from a mission file. |
+| `unplaced` | boolean | `true` if the mission didn't fit when it came; it then has no crates. Once it fits, Re-plan, the editor's Plan or an undo places it. |
+| `stops` | array | Its stops as in a [mission file](mission-format.md): `destination` and `items` with `commodity`, `scu`, `maxCrateSize` and optionally `crates` and `pickup`, here also `manual` (written only as `true`): the item was added to this scanned or captured mission or changed by hand in the editor and stays with it. One stop per destination; the same destination in two missions has the same spelling. |
+| `contract` | object | Optional: the scan it came from, or a capture imported before v0.4.0. Missing for missions typed in the editor or read from a mission file. |
 
 Missions to the same destination share one stop at the cargo lift: one tick. The legend shows it once, or once per
 pickup list when items name their pickup.
 
 ### Capture
 
-A contract has either `contractIds` (a ContractTracker capture) or `scan` (read by CargoPlan itself), exactly one of the
+A contract has either `contractIds` (a capture imported before v0.4.0, D39) or `scan` (read by CargoPlan itself), exactly one of the
 two.
 
 | Field | Type | Rules |
 |---|---|---|
-| `contractIds` | array | ContractTracker's ids of the capture's rows, at least one. Once all of them are gone from ContractTracker, the mission is marked `gone` and stays; with `contractTracker.onContractGone` set to `"remove"` ([settings](settings-format.md#contracttracker)) its planned and delivered deliveries leave instead, loaded ones never. Left out for a scan. |
+| `contractIds` | array | The capture's ids, at least one, as the legend and the editor show them ("#36–37"). Read and kept as they are; since v0.4.0 nothing compares them with a list. Left out for a scan. |
 | `scan` | object | Schema 10, instead of `contractIds`: `no` (1 or more, once in the file, shown as `#3`), `key` (what the contract is: pickups, destinations with their commodities, max crate size and reward, no SCU; two scans with one key are one contract) and `estimated` (read from the offers view: the game rolls the amounts again when the contract is accepted). A scan is never `gone`. In a schema 8 or 9 file it is an error. |
 | `crateSizeAssumed` | boolean | The contract named no max crate size; the legend shows the size with a `?`. |
 | `listedDestinations` | number | Optional: how many destinations the contract's drop-off list names. More than the mission's stops: the legend warns that destinations are missing. |
 | `reward` | number | Optional: the contract's reward as read from the capture. Left out when unknown. Two captures with different rewards are never marked as duplicates. |
-| `gone` | boolean | Optional, written only as `true` (schema 8): ContractTracker no longer lists any of `contractIds`. The legend's header and the editor say "gone"; a waiting mission that is gone isn't placed. Back in ContractTracker with one of its ids, the mark goes. |
-| `detached` | boolean | Optional, written only as `true` (schema 8), only with `gone`: the ids are an earlier ContractTracker database's. They are shown but never compared again, so a new contract with the same id is another one and this mission never comes back. Without `gone` it is an error. |
+| `gone` | boolean | Optional, written only as `true` (schema 8): before v0.4.0 the capture had left the list it came from (D81). Read and kept, not shown since v0.4.0 (D105); a waiting mission with it isn't placed. |
+| `detached` | boolean | Optional, written only as `true` (schema 8), only with `gone`: the ids were an earlier database's (D81). Read and kept. Without `gone` it is an error. |
 
 ### Crate
 
@@ -148,8 +148,8 @@ red; the planner and the overlay's moves never make them.
 Schema 8 and 9 are read and saved as schema 10 right after loading; moves and ticks stay. An app from before schema 10
 refuses a schema 10 file; until v0.4.0 schema 10 may still change without a new number, no release has written it.
 
-- **Schema 9** (v0.2.0 to v0.3.1, before scans) has no `scan` and no `lastScanNo`: every contract is a ContractTracker
-  capture. Either in a schema 9 file is an error.
+- **Schema 9** (v0.2.0 to v0.3.1, before scans) has no `scan` and no `lastScanNo`: every contract is a capture
+  (`contractIds`). Either in a schema 9 file is an error.
 - **Schema 8** (v0.1.0, before the row axis) has no `fillRows`, `grouping` or `sectionGap` either: every plan is
   lengthwise and ungrouped. Any of them in a schema 8 file is an error, and a schema 9 or 10 file without `fillRows` is
   one too.
@@ -160,7 +160,7 @@ version wrote them, v0.1.0 already wrote schema 8.
 ## A plan for another ship
 
 A plan file whose `shipId` is not the overlay's ship loads anyway: its missions are planned anew for the
-overlay's ship, as a ship change in the overlay header does (D59). Missions, ContractTracker ids, the watermark, the fill
+overlay's ship, as a ship change in the overlay header does (D59). Missions, capture ids, the watermark, the fill
 order and the ticks stay; crate positions, manual moves and `loaded` don't. Each ticked delivery (a legend line) stays ticked
 and goes `offShip`: it takes no room on the new ship, so only the cargo still on board is planned. If the missions don't fit as a
 whole plan, they go in mission by mission and the rest waits as "doesn't fit" in the legend. An amber line says

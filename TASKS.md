@@ -5340,13 +5340,13 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     - Martin: „funktioniert einwandfrei, schneller als CT, erkennt zuverlässig ob Vertrag, Offer, Accepted, korrigiert“.
 
 
-### [ ] T10.4a ContractTracker entfernen – Import, App, Doku
+### [x] T10.4a ContractTracker entfernen – Import, App, Doku
 
 - Checkliste = CT-Inventur aus dem S10.0-Befund.
 - CT-Reader, `ContractTrackerSync`, FileSystemWatcher, Fingerabdruck und Reset-Schutz raus.
 - `settings.json` 2 → 3 mit Migration:
-  - `contractTracker` raus, `scan` { `hotkey`, `notifyOnScan` } rein
-  - `syncFromContractTracker` → `scanContracts`
+  - `contractTracker` raus
+  - `syncContractTracker` raus (siehe Präzisierung 2)
   - Altfelder `pxPerCell`/`panX`/`panY` raus
 - D81 `onContractGone` entfällt ersatzlos: kein „gone“ mehr, einen Plan verlässt man nur über Abhaken, Löschen oder Discard.
 - CLI `contracts --raw` → `scan <png>`.
@@ -5355,6 +5355,69 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   `NoFillOrderSchemaVersion`) raus; v0.1.0 schrieb Mission-Schema 3. Die Mission-Fixtures der Schemas 1/2 (≈ 9 Dateien, u. a.
   `example_missions`, `split_and_shared` des Cli-Befehls `plan`) als aktuelles Schema neu speichern, Nachfolger-Regel wie bei F4
   (T10.2b1). Kam von K10 über T10.2 hierher, weil T10.2b1 nur die Plan-Leser abbaut.
+- **Präzisierung in der Planphase, ratifiziert durch Freigabe** (Branch `feat/t10-4a-ct-removal`, D105):
+  1. Kein Abschnitt `scan` in Schema 3: der Hotkey liegt in `hotkeys.scanContracts` (D104), `notifyOnScan` kommt in T10.5.
+  2. `syncContractTracker` (F2: so heißt der Key) wird **gelöscht, nicht umbenannt**; ein gesetzter Wert gibt einmal eine
+     Notice, die Datei wird dann gleich als 3 geschrieben (`.bak` = Original). Jede andere Migration schreibt nach D31 nichts.
+  3. Migration als `JsonNode`-Umschreibung vor dem typisierten Lesen; eine Kamera mit gesetztem `pxPerCell`/`panX`/`panY`
+     fällt ganz weg (so las sie der Code vorher), `Disallow` bleibt.
+  4. Fixtures: das Doku-Beispiel (in v0.1.0–v0.3.1 byte-gleich), eine Datei mit jedem Key von v0.3.1, eine T10.3-Datei;
+     Martins Kopie nur im Scratchpad.
+  5. D81 ersatzlos auch in der Darstellung; `PickupNames` ganz weg (`Parse` hatte nach dem Reader keinen Aufrufer).
+  6. Nutzer-Doku (README, `outlines/NOTICE.md`-Zeile, `docs/nexus/description.bbcode` + `checklist.md`, `bug.yml`) auf
+     Branch `docs/v0.4.0-user-docs`, Wiki auf lokalem Branch `v0.4.0`; beide werden in T10.6 gemergt.
+  7. Teilung a1 (Code, Commits 0–5) und a2 (F5, Doku); B1/B2 der Freigabe: `--data-dir` (eigener Commit),
+     Beleg-Test für `Resync(present: null)`.
+- **Befund (11.11.2026):**
+  - **a1** gemergt `--no-ff` bei `0f4a314`: `--data-dir` (552c052), B2-Beleg (a1229b8), Sync raus (9f7deae), Settings 3
+    (1317252), Gone-Darstellung (a7d6b77), Reader/SQLite/Cli `contracts` (de087a8), `PickupNames` (9961c26).
+    **a2:** F5 (ad67e01), Doku.
+  - **Gate 1 – Migration:** alle Formen laden ohne Problem-Notice und sind gleich dem, was der Code vorher las, minus der
+    entfernten Keys:
+
+    | Datei | Keys vorher → nachher | Problem | = Erwartung |
+    |---|---|---|---|
+    | Doku-Beispiel v0.1.0–v0.3.1 | 66 → 71 | nein | ja |
+    | v0.3.1 mit jedem Key | 100 → 86 | nein | ja |
+    | T10.3 mit `scanContracts` | 89 → 83 | nein | ja |
+    | Martins Kopie | 105 → 99 | nein | ja |
+
+    Echte Dateien enthalten auch `contractTracker.databasePath` (die berechnete Property wurde mitgeschrieben). Start von
+    Hand mit `--data-dir` auf Martins Kopie: Notice kam (Martin), Datei als 3 zurückgeschrieben, `.bak` = Original.
+  - **Gefunden per Test (A3):** ein Key doppelt in einem Objekt ließ `JsonObject` eine `ArgumentException` werfen, die
+    `Load` nicht fing – Absturz beim Start. Jetzt „Settings not loaded“ wie ein Tippfehler (D105).
+  - **Gate 3:** der Scan-Pfad ist unverändert; Martins Lauf fand einen Fehler aus T10.3/D100 (Editor-Titelleiste im
+    OCR-Text) → **B12**. a1 trotzdem abgenommen (Martin).
+  - **ZIP:** 86 426 805 → 85 227 035 Bytes, 386 → 381 Dateien (SQLite weg).
+  - **Tests** (ohne lokale Scratch-Tests): main Core 1 827 · Import 321 · App 1 826 · Ocr 34 → Core 1 820 · Import 279 ·
+    App 1 776 · Ocr 34. Gestrichene Tests mit Nachfolger je Commit im Commit-Body.
+  - **Gate 2 – Ausnahmeliste** (Treffer von `git grep -iE 'contracttracker|contracts\.db|ct_copy'`, die bleiben):
+    (a) `ScanKeyCheck` + Tests + `HotkeyService`/`App.xaml.cs` (D104: CT auf F3); (b) Herkunft des Parser-/OCR-Korpus
+    (`Import/Contracts`, `Ocr/ReadingOrder.cs`, `ScanResult.cs`, Parser-/Scan-/ReadingOrder-Tests, `ImportFixtures`);
+    (c) Plan-Schema-Felder bis T10.4b (`contractTrackerWatermark` in Plan-Fixtures, `plan-format.md`, `docs/shots/*.plan.json`);
+    (d) Geschichte: TASKS.md (S10.0–T10.4a), `decisions.md`, `release-notes/`, `review/`, `docs/nexus/staff-request.md`,
+    CLAUDE.md (A11, OCR-Begründung); (e) die Migration nennt die alten Keys (`SettingsStore`, Settings-Fixtures und
+    -Tests, `settings-format.md` „Older files“). Nutzer-Doku auf `docs/v0.4.0-user-docs` bis T10.6.
+  - **Core-Restliste für T10.4b: 36 Dateien, 82 Zeilen** – `Missions/` ContractCapture, ContractSource, Mission, MissionItem,
+    Pickups; `Planning/` ContractGonePolicy, ContractSync, LoadPlanner, SyncResult; `Plans/` ContractSourceDto, PlanFile,
+    PlanFileDto, SavedPlan; Tests ContractGone, ContractSync, Discard, FillRowsFormat, LoadedState, ManualItem, Pickup,
+    PlanFile, ScanIdentity, UndoRestore; 14 Plan-Fixtures (Goldens, `before_b2_eight_stops`, `raft_hand`, `split_and_shared`).
+    Tot nach a, für b: `ContractSync.Apply/Sync/Quiet`, `SyncResult`, `ContractGonePolicy`; der Gone-Filter in
+    `LoadPlanner.RetryUnplaced` lässt eine wartende Mission mit Gone-Markierung nie platzieren.
+
+### [ ] B13 Eine nicht lesbare plan.json überschreibt der erste Scan
+
+- Gefunden in T10.4a: Der Pause-Schutz (T5.4, „plan.json couldn't be read: the sync must not overwrite it“) galt nur dem
+  CT-Sync. Seit T10.3 legt der erste Scan in einen leeren Plan und `PlanSaver` überschreibt die kaputte Datei, ohne Backup.
+- Wichtiger als B12 (Martin). Eigener Plan; Vorschlag dort: `.bak` wie bei settings.json und/oder Scan-Pause mit Notice.
+
+### [ ] B12 Fenster mit Titelleiste bleiben bei der Aufnahme im Bild (D100)
+
+- Gate 3 von T10.4a: Scan per Editor-Button mit dem Editor über dem Vertrag → OCR liest den Fenstertitel „Missions“ in die
+  Zielzeile („… to Melodic Fields Missions“) → anderer Schlüssel → `Added #2` statt `Updated #1` (`scans.log` 11.11.,
+  15:50:01/:08/:24). `Opacity = 0` wirkt nur bei Fenstern mit `AllowsTransparency` (Overlay, Lock).
+- Entscheidung (Martin): **DWM-Cloak** (`DWMWA_CLOAK`) für alle unsere Fenster statt Opacity, vorher über dem Spiel messen
+  wie D100 (`OverlayCaptureTests` um ein Fenster mit Titelleiste erweitern); Addendum D100.
 
 ### [ ] T10.4b ContractTracker entfernen – Core, Planer
 
@@ -5380,6 +5443,10 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   - Speicher: mit OCR ≈ 824 MB Working Set statt ≈ 400 MB (T10.1b, Gate 2), ZIP ≈ 86 statt 62 MB (D99)
 - Hero-GIF neu (Scan am Terminal; der D85-Auslöser ist erfüllt).
 - Tag mit Nachmessung des ZIPs, Wiki, Nexus, Ankündigungen.
+- **Aus T10.4a:** Branch `docs/v0.4.0-user-docs` (README, NOTICE-Zeile, Nexus-Beschreibung und -Checkliste, `bug.yml`) und
+  den Wiki-Branch `v0.4.0` (Seite „Scanning contracts“ statt „ContractTracker integration“) mergen; Release-Notes:
+  „settings.json 3: hotkey for ContractTracker sync removed; going back to v0.3.x needs `settings.json.bak`“, ZIP −1,2 MB
+  (SQLite weg), Mission-Dateien Schema 1/2 werden abgelehnt.
 
 ## Phase 11 – nach dem Launch
 
@@ -5407,15 +5474,13 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
-- `CrateLayoutTests.Place_proves_stacking_in_under_100_ms` fiel in T10.2b1 und T10.2b2 je einmal im Lauf aller vier
+- **Auslöser erreicht (T10.4a, 11.11.: drittes lokales Auftreten, 172 ms auf main):** mit T10.4b (Core) erledigen.
+  `CrateLayoutTests.Place_proves_stacking_in_under_100_ms` fiel in T10.2b1 und T10.2b2 je einmal im Lauf aller vier
   Testprojekte (142 ms), allein immer grün (65 ms). Lehre T7.1d (1-s-Assert auf CI-Runnern): Zeit-Asserts im
   Standardlauf unter Parallel-Last. Auslöser: der erste rote CI-Lauf damit oder ein drittes lokales Auftreten → in
   `Category=Timing` verschieben oder die Schwelle mit Messung begründen.
 
-- Eigener Datenordner für Diagnose-Schalter (`--data-dir` oder Env, z. B. für `--scan-probe`, `--measure-frames`):
-  Probeläufe in T10.1b schrieben ins echte Profil: `plan.json` (der CT-Sync markierte Verträge als `gone`) und
-  `cargoplan.log` mussten aus Sicherungen zurück, `settings.json` blieb laut Hash unverändert. Auslöser: der nächste Diagnose-Lauf, der eine Spieler-Datei
-  verändert, oder ein neuer Diagnose-Schalter.
+- ~~Eigener Datenordner für Diagnose-Schalter~~ – erledigt in T10.4a (`--data-dir`, 552c052).
 
 - Rechteck-Picker für das Scan-ROI (der Nutzer zieht den Vertragsbereich einmal auf), für Seitenverhältnisse, bei denen
   das relative 16:9-Center-ROI nicht trifft (32:9, 16:10, geänderte HUD-Skalierung; S10.0 nur 21:9 und 16:9 geprüft).

@@ -32,17 +32,17 @@ goes into the wiki repo's `media/` folder.
     `fps=7`), then the same palette and `paletteuse` as above.
 - Still states as PNG.
 - File names `<page>-<action>.<ext>`, lower case, hyphens.
-- No player or org names in the picture. The overlay sits outside ContractTracker's capture region.
+- No player or org names in the picture. The overlay may lie over the contract: a scan hides it for the capture (D100).
 - **Test plan:** [`testplan.json`](testplan.json) (MISC Hull A, three missions from Lorville). Load it in the editor with
-  **Import…** and press **Plan**, so every shot shows the same destinations and colors. Shots marked *CT live* need real
-  ContractTracker captures, since a mission file carries no ContractTracker ids; they show whatever contracts the
+  **Import…** and press **Plan**, so every shot shows the same destinations and colors. Shots marked *Scan live* need a
+  real contract scanned with F3, since a mission file carries no scan numbers; they show whatever contracts the
   terminal offers.
 - **Prio:** `must` shots go in before the release. A missing `nice` shot is not waited for: its placeholder line and its
   `SHOT` comment are removed, the text stays.
 
 Page prefixes: `install` Installation-and-first-start · `quickstart` Quick-start-at-the-cargo-elevator · `overlay`
 Overlay-basics · `editor` Plan-and-editor · `shipview` Ship-view · `legend` Legend-and-delivery-states · `prefs`
-Preferences · `ships` Ships-and-cargo-grids · `ct` ContractTracker-integration.
+Preferences · `ships` Ships-and-cargo-grids · `scan` Scanning-contracts (from v0.4.0).
 
 ## The test plan
 
@@ -61,15 +61,12 @@ Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays 
 |---|---|---|---|---|---|---|---|
 | D1 | nice | `install-smartscreen.png` | PNG | Installation-and-first-start | SmartScreen dialog after **More info**, **Run anyway** visible | – | Windows' own dialog; re-record only when it changes |
 | D2 | nice | `install-empty-overlay.png` | PNG | Installation-and-first-start | Overlay without a plan: empty Hull A, "No plan. Open the editor …", **Open editor** | – | No plan (Discard plan) |
-| D3 | must | `ct-settings-found.png` | PNG | ContractTracker-integration | Settings, section ContractTracker: path, "Found at ContractTracker's own place.", Auto-sync ticked | – | ContractTracker installed |
-| D4 | must | `ct-not-found.png` | PNG | ContractTracker-integration | Same section: "ContractTracker not found – set path or install" and the Nexus link | – | **Browse…** to a copy of `contracts.db`, delete the copy, reopen the settings; **Detect automatically** after |
 | D5 | must | `editor-rows.png` | PNG | Plan-and-editor | Editor with the four test plan rows: header **Max size** whole, crates grouped (`3×4`), Quartz `3×2` in italics, the **Layout** line and **Plan** visible; dark theme, one row selected (calm fill, teal bar); re-recorded for v0.3.0 | – | Test plan imported, before **Plan** |
 | D6 | nice | `editor-import-plan.gif` | GIF | Plan-and-editor | **Import…** → pick `testplan.json` → rows appear → **Plan** → overlay shows three racks | 10 s | Empty rows (**Clear rows**) |
 | D7 | must | `prefs-window.png` | PNG | Preferences | Settings window from the top: Preset, Export…, Import…, first sections; footer with the version in a second shot or scrolled | – | Preset Default |
 | D8 | must | `prefs-presets.gif` | GIF | Preferences | Preset Default → High contrast → Minimal → Default, overlay visible next to the window | 8 s | Test plan |
 | D9 | nice | `prefs-color-picker.gif` | GIF | Preferences | Color picker opens on **Text color** of the Legend section | – | Test plan |
 | D10 | nice | `prefs-hotkeys.png` | PNG | Preferences | Hotkeys section, one hotkey set (e.g. Lock / unlock `Ctrl+Alt+K`), the rest **Not set** | – | Clear the hotkey afterwards if you don't use it |
-| D11 | nice | `ct-autosync-off.png` | PNG | ContractTracker-integration | Overlay with the amber line "1 new contract in ContractTracker – take it in with …" | – | *CT live*, Auto-sync off, one capture |
 | D12 | nice | `delete-mission.gif` | GIF | Plan-and-editor | Select a row → **Delete mission** → the mission leaves the plan and the overlay at once | 10 s | Test plan |
 
 ## Hangar (in the game, ship on the pad)
@@ -96,12 +93,13 @@ Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays 
 
 | Id | Prio | File | Type | Page | What happens (start → end) | Max. | State |
 |---|---|---|---|---|---|---|---|
-| E1 | must | `docs/images/hero.gif` (main repo) | GIF | README, Home | MISC Hull A next to the contract in mobiGlas: empty racks → the captured contract's crates appear → legend lines ticked off | 21 s | *CT live*, own recording (see Conventions) |
-| E2 | must | `quickstart-capture-sync.gif` | GIF | Quick-start-at-the-cargo-elevator | F3 at the terminal → a moment later a new mission with `#Id` header appears in the legend | 10 s | *CT live*, Auto-sync on |
+| E1 | must | `docs/images/hero.gif` (main repo) | GIF | README, Home | MISC Hull A next to the contract in mobiGlas: empty racks → the captured contract's crates appear → legend lines ticked off | 21 s | *Scan live*, own recording (see Conventions); new for v0.4.0 (T10.6) |
+| E2 | must | `quickstart-capture-sync.gif` | GIF | Quick-start-at-the-cargo-elevator | F3 at the terminal → a moment later a new mission with `#n` header appears in the legend | 10 s | *Scan live*; shot again for v0.4.0 (the old one shows the import) |
 | E3 | must | `quickstart-mark-loaded.gif` | GIF | Quick-start-at-the-cargo-elevator | Click a legend line → `▣`, white crate edges, header `· N ▣` | 6 s | Test plan |
 | E4 | must | `quickstart-deliver.gif` | GIF | Quick-start-at-the-cargo-elevator | Click a crate of HDMS-Edmond → all its crates gray, lines struck through | 6 s | Test plan, HDMS-Edmond loaded |
 | E5 | must | `legend-states.png` | PNG | Legend-and-delivery-states | Legend with one planned, one loaded and one delivered line | – | Test plan: Everus Harbor planned, HDMS-Edmond loaded, HDMS-Thedus delivered |
-| E6 | nice | `legend-ct-markings.png` | PNG | Legend-and-delivery-states | A legend line with a mark such as `4 SCU?` or `⚠ 1 of 3 destinations` | – | *CT live*, whenever a capture shows one |
+| E6 | nice | `legend-markings.png` | PNG | Legend-and-delivery-states | A legend line with a mark such as `4 SCU?` or `⚠ 1 of 3 destinations` | – | *Scan live*, whenever a scan shows one |
 
-**Total:** 33 shots, 17 GIF and 16 PNG; 16 must (8 GIF, 8 PNG), 17 nice. `legend-states.png` and
-`legend-ct-markings.png` are one picture on purpose: it shows both states and a `?` mark.
+**Total:** 30 shots, 17 GIF and 13 PNG; 14 must (8 GIF, 6 PNG), 16 nice. `legend-states.png` and
+`legend-markings.png` are one picture on purpose: it shows both states and a `?` mark. D3, D4 and D11 showed the
+settings section of the import that went in T10.4a.
