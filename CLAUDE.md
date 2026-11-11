@@ -51,7 +51,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 | MVVM | **CommunityToolkit.Mvvm** | Source-Generatoren sparen Boilerplate (`[ObservableProperty]`, `[RelayCommand]`). Einziges UI-Paket. |
 | JSON | `System.Text.Json` | Stdlib, kein Newtonsoft. |
 | SQLite | `Microsoft.Data.Sqlite` | Offizielles, schlankes Paket für den ContractTracker-Import. |
-| OCR | **RapidOcrNet** (PP-OCRv5 latin) auf ONNX Runtime 1.31.1 (explizit), SkiaSharp transitiv 3.x, in `CargoPlan.Ocr` (`net10.0`, ohne Windows-API); Modelle aus dem Paket als `None`-Items nach `models/v5/` neben der Exe, Lizenzen in `models/NOTICE.md` (D99) | Eigenes Lesen statt ContractTracker (A11-Exit, S10.0): 100 % der Lieferfelder bei 21:9, offline ≈ 1,2 s je Vertrag. Kein Download, kein Netz. |
+| OCR | **RapidOcrNet** (PP-OCRv5 latin) auf ONNX Runtime 1.31.1 (explizit), SkiaSharp transitiv 3.x, in `CargoPlan.Ocr` (`net10.0`, ohne Windows-API); Modelle aus dem Paket als `None`-Items nach `models/v5/` neben der Exe, Lizenzen in `models/NOTICE.md` (D99) | Eigenes Lesen statt ContractTracker (A11-Exit, S10.0): 100 % der Lieferfelder bei 21:9, offline ≈ 1,2 s je Vertrag. Kein Download, kein Netz. Aufnahme: GDI `BitBlt` nur aufs ROI unter Per-Monitor-DPI im Capture-Thread, eigene Fenster über dem ROI für die Aufnahme auf `Opacity 0` (D100); Engine wärmt nach dem ersten Frame vor (`ContractScanner`). |
 | Tests | **xUnit** + `AwesomeAssertions` | Standard im .NET-Ökosystem. AwesomeAssertions ist der Apache-2.0-Fork von FluentAssertions (ab v8 kommerziell lizenziert). |
 | Click-through | Win32 `SetWindowLongPtrW` schaltet `WS_EX_TRANSPARENT` via `[LibraryImport]`, HWND aus `WindowInteropHelper`; `WS_EX_LAYERED` setzt WPF selbst (D11) | Keine Lib nötig. |
 | Hotkeys | **Gepollt:** `GetAsyncKeyState` auf einem `DispatcherTimer` (33 ms), Flanke + exakte Modifier (`HotkeyPoller`), scharf nur mit SC oder CargoPlan vorne (D97) | `RegisterHotKey` kommt mit SC vorne nie an; kein Hook (EAC), keine Lib. Die Taste erreicht auch das Spiel. |
@@ -80,7 +80,7 @@ sc-cargoplan/
 │   ├── CargoPlan.Import/          # net10.0 – ContractTracker SQLite-Reader
 │   ├── CargoPlan.Ocr/             # net10.0 – Vertrag aus einem Bild lesen: ROI, up2-gray, RapidOcrNet, Lesereihenfolge (D99); keine Windows-API; NOTICE.md → models/NOTICE.md
 │   ├── CargoPlan.Cli/             # net10.0 – Plan im Terminal ausgeben (Debugging ohne UI), `scan <png>`
-│   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Win32-Interop, Holo-Download und -Cache (einziger Netzzugriff, D63)
+│   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Win32-Interop (inkl. Fenstersuche und Bildschirmaufnahme), Scan (`Scanning/`, D100), Holo-Download und -Cache (einziger Netzzugriff, D63)
 ├── tests/
 │   ├── CargoPlan.Core.Tests/
 │   ├── CargoPlan.Import.Tests/
@@ -114,6 +114,9 @@ dotnet run --project src/CargoPlan.Cli -- contracts <copy-of-contracts.db> [--si
 dotnet run --project src/CargoPlan.Cli -- scan <screenshot.png>   # Vertrag aus einem Fenster-Screenshot lesen, Rohtext nach stdout, Stufenzeiten nach stderr (D99)
 dotnet test tests/CargoPlan.Import.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OcrSampleTests   # echte Aufnahmen aus S10.0 durch OCR und Parser gegen truth.json (~1 min), nur von Hand; Env: CARGOPLAN_OCR_SAMPLES (sc-ocr-samples, CIG-Material, nie ins Repo), CARGOPLAN_OCR_OUT
 dotnet test tests/CargoPlan.Ocr.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OcrMemoryTests --logger "console;verbosity=detailed"   # Speicher über 100 Lesevorgänge, nur von Hand; Env: CARGOPLAN_OCR_SAMPLES
+dotnet run --project src/CargoPlan.App -c Release -- --scan-probe [N] [--scan-probe-images]   # Overlay + Scan-Probe: F8 = 1 Scan, F9 = N Scans (Default 100); scan-probe.log + scan-probe\*.png neben cargoplan.log (CIG-Material, nie ins Repo); Env optional CARGOPLAN_SC_CAPTURE_PROCESS = anderes Fenster für einen Probelauf ohne SC
+dotnet run --project src/CargoPlan.App -c Release -- --measure-frames <ziel> --over-game [--scan-load]   # Frame-Zeit über dem Spiel (D83) mit vorgewärmter Engine; --scan-load scannt während der 30 s in Schleife; measure-frames.log neben der Exe
+dotnet test tests/CargoPlan.App.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OverlayCaptureTests   # eigenes Fenster über dem ROI je Capture-Variante (D100), SC muss laufen, nur von Hand; Env: CARGOPLAN_SC_CAPTURE (Ausgabeordner außerhalb des Repos), optional CARGOPLAN_SC_CAPTURE_PROCESS
 ./tools/import-motherlode.ps1 -Catalog <catalog-<datum>.json> [-Previous <älterer Katalog>] [-Create]   # Racks aus den Spieldateien, Exit 1 = ansehen (Handprüfung, Reihenfolge, neues Schiff) (D92)
 ./build/publish.ps1 [-Version 0.1.0]           # App + Cli nach out/publish/SC-CargoPlan + ZIP + SHA256 (D48, D49), Reihenfolge im Skript nicht ändern
 dotnet run --project src/CargoPlan.Cli -- --version
