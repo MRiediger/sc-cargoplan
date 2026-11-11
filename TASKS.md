@@ -5144,7 +5144,8 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     - **Ziel-Symbol** (Fund im Hand-Test): Mit K2 hing „0“/„L“ vor „Deliver“, und der Parser verlor in 4 von 20 Verträgen je Satz eine Lieferung. Entscheidung Martin: Ein erster Block mit höchstens 2 Zeichen in einer etwa quadratischen Box (≤ 1,3 × Höhe; gemessen 1,02–1,20) bleibt eine eigene Zeile. Die Zwei-Boxen-Lieferung, die K2 vorbeugen soll, wurde in den 40 Aufnahmen **nicht beobachtet**; K2 bleibt vorsorglich.
     - Das Gray8-Bild liest RapidOcrNet direkt (`OcrUtils.SubtractMeanNormalize`).
     - Eine Lesung hat Grundkosten fast unabhängig von der Bildgröße (fast leerer Rahmen ≈ 0,9 s). Die Scan-Tests nutzen deshalb 960×540 und bleiben unter der Regel von 1,3 s.
-- [ ] **T10.1b** F22, `ScreenCapture`, Fenstersuche, Engine-Vorwärmen beim Start, `--scan-probe` – Gates 1–3
+- [x] **T10.1b** F22, `ScreenCapture`, Fenstersuche, Engine-Vorwärmen beim Start, `--scan-probe` – Gates 1–3
+  - **Abnahme (Martin, 11.11.2026):** Gate-1-Schwelle **1 500 ms p95** bleibt und gilt verbindlich für T10.3, gleiche Methode (Taste → Rohtext, SC läuft, je Ansicht), dort **n ≥ 20 je Ansicht** (bei n = 10 ist p95 praktisch das Maximum). Reserve unangetastet: ORT-Threads, Priorität. Bestätigt vor dem Merge: B1 Test für den Fund f7adca0 (`A_scan_before_the_warm_up_started_waits_for_it`, im Fix-Commit, vorher rot); B2 ROI-PNG des 125-%-Laufs gesehen und richtig. D100-Blinken live mit dem echten Overlay beurteilt (Gate-1-Lauf).
   - **Präzisierung in der Planphase, ratifiziert durch Freigabe:** `--scan-probe [N]` = F8 ein Scan, F9 N Scans (Default 100) in einer Instanz; Testmatrix drei Fenstermodi plus 125 %; `HotkeyPoller<TAction>` statt eigener Flanke in der Probe; Client-Rechteck per `GetClientRect` + `ClientToScreen`, DWM-Bounds nur als Logspalte; K1 `Load(folder)` ohne geteilten Zustand, K2 Warten auf das Warmup höchstens 15 s, K3 eigener Schalter `--scan-load`.
   - **Befund (10./11.11.2026, Branch `feat/t10-1b-capture`, Release, SC 3440×1440 borderless, Monitor 110 %):**
     - **Gate 1** (Taste → Rohtext, `scan-probe.log`), alle Scans gelesen:
@@ -5197,6 +5198,9 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   - Der Scan läuft über `ContractScanner.ScanAsync` (ein Scan gleichzeitig, Warten aufs Warmup höchstens 15 s). Ein zweiter Druck während eines Scans (1,3 s) wird verworfen: In der Probe drückte Martin im Abstand von 0,5–0,8 s, 5 von 12 Drücken fielen weg. Entscheiden, ob das so bleibt oder eine Notice bekommt.
   - Das Blinken eigener Fenster über dem Vertrag (D100) ist die Scan-Rückmeldung; keine eigene Anzeige nötig.
   - Frame-Zeit unter Scans neu messen, mit dem Messfenster **neben** dem ROI (`--scan-load`): die T10.1b-Zahl ist durch das D100-Blinken des Messfensters verfälscht.
+  - **Gate:** p95 Taste → Rohtext ≤ 1 500 ms über dem Spiel, n ≥ 20 je Ansicht (OFFERS, ACCEPTED). Vergleich T10.1b: 1 304 / 1 391 ms bei n = 10.
+  - **Speicher-Vergleichszahl:** T10.1b +0,03 MB pro Scan über Scan 71–210 (≈ 3 MB je 100 Scans), Band 773–892 MB.
+  - Mit T10.5 entscheiden, ob „Scan aus“ auch das Warmup spart: die Engine kostet ≈ 400 MB Working Set (≈ 824 statt ≈ 400 MB vor OCR).
 
 
 ### [ ] T10.4a ContractTracker entfernen – Import, App, Doku
@@ -5232,6 +5236,7 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
 - Release-Notes, Freigabe durch Claude.ai:
   - „ContractTracker is no longer needed – press F3 on an open contract“
   - Migrationshinweis settings 3 / plan 10, kein Downgrade
+  - Speicher: mit OCR ≈ 824 MB Working Set statt ≈ 400 MB (T10.1b, Gate 2), ZIP ≈ 86 statt 62 MB (D99)
 - Hero-GIF neu (Scan am Terminal; der D85-Auslöser ist erfüllt).
 - Tag mit Nachmessung des ZIPs, Wiki, Nexus, Ankündigungen.
 
@@ -5260,6 +5265,11 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- Eigener Datenordner für Diagnose-Schalter (`--data-dir` oder Env, z. B. für `--scan-probe`, `--measure-frames`):
+  Probeläufe in T10.1b schrieben ins echte Profil: `plan.json` (der CT-Sync markierte Verträge als `gone`) und
+  `cargoplan.log` mussten aus Sicherungen zurück, `settings.json` blieb laut Hash unverändert. Auslöser: der nächste Diagnose-Lauf, der eine Spieler-Datei
+  verändert, oder ein neuer Diagnose-Schalter.
 
 - Rechteck-Picker für das Scan-ROI (der Nutzer zieht den Vertragsbereich einmal auf), für Seitenverhältnisse, bei denen
   das relative 16:9-Center-ROI nicht trifft (32:9, 16:10, geänderte HUD-Skalierung; S10.0 nur 21:9 und 16:9 geprüft).
