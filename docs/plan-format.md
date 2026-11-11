@@ -7,20 +7,22 @@ need to write it by hand; this page explains what is in it.
 
 ## Example
 
-Two missions. Mission 1 was typed in the editor: Riker, 8 SCU Titanium (max crate 4) collected at Lorville,
+Three missions. Mission 1 was typed in the editor: Riker, 8 SCU Titanium (max crate 4) collected at Lorville,
 two 4 SCU crates on the plate of Rack 1. Mission 2 came from ContractTracker (capture ids 36 and 37): Shubin, 4 SCU Quartz; the
 contract named no max crate size, so the largest one that fits was assumed, and its drop-off list named
-three destinations of which one was read. Saved files write each position over several lines; the reader
-doesn't mind.
+three destinations of which one was read. Mission 3 was scanned by CargoPlan itself, scan #3 of the plan, from the offers
+view: Orison, 2 SCU Stims, its amount an estimate until the accepted contract is scanned. Saved files write each position
+over several lines; the reader doesn't mind.
 
 ```json
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
   "fillRows": "lengthwise",
   "grouping": "none",
   "sectionGap": 0,
+  "lastScanNo": 3,
   "contractTrackerWatermark": 37,
   "missions": [
     {
@@ -37,12 +39,25 @@ doesn't mind.
         { "destination": "Shubin", "items": [ { "commodity": "Quartz", "scu": 4, "maxCrateSize": 4 } ] }
       ],
       "contract": { "contractIds": [36, 37], "crateSizeAssumed": true, "listedDestinations": 3, "reward": 50250 }
+    },
+    {
+      "id": 3,
+      "unplaced": false,
+      "stops": [
+        { "destination": "Orison", "items": [ { "commodity": "Stims", "scu": 2, "maxCrateSize": 2, "pickup": ["Everus Harbor"] } ] }
+      ],
+      "contract": {
+        "crateSizeAssumed": false,
+        "reward": 35500,
+        "scan": { "no": 3, "key": "EVERUSHARBOR | ORISON:STIMS | 2 | 35500", "estimated": true }
+      }
     }
   ],
   "crates": [
     { "destination": "Riker", "commodity": "Titanium", "crateSize": 4, "rackId": "rack-0", "position": [2, 0, 0], "delivered": false, "mission": 1, "item": 0 },
     { "destination": "Riker", "commodity": "Titanium", "crateSize": 4, "rackId": "rack-0", "position": [0, 0, 0], "delivered": false, "mission": 1, "item": 0 },
-    { "destination": "Shubin", "commodity": "Quartz", "crateSize": 4, "rackId": "rack-1", "position": [2, 0, 0], "delivered": false, "mission": 2, "item": 0 }
+    { "destination": "Shubin", "commodity": "Quartz", "crateSize": 4, "rackId": "rack-1", "position": [2, 0, 0], "delivered": false, "mission": 2, "item": 0 },
+    { "destination": "Orison", "commodity": "Stims", "crateSize": 2, "rackId": "rack-2", "position": [0, 0, 0], "delivered": false, "mission": 3, "item": 0 }
   ],
   "warnings": []
 }
@@ -57,12 +72,13 @@ fields are an error.
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `9`. Files with `8` are still read, see [Older plan files](#older-plan-files). |
+| `schemaVersion` | number | `10`. Files with `8` and `9` are still read, see [Older plan files](#older-plan-files). |
 | `shipId` | string | The ship the plan is for, e.g. `"hull_a"` ([ship files](ship-format.md)). |
 | `fillOrder` | string | `"bowFirst"` or `"sternFirst"`: which end of a rack's length crates fill from, when planned and when laid out again, e.g. after a move. Chosen as **Fill order** in the editor. Part of the plan, so everyone loading it sees the same layout. |
 | `fillRows` | string | `"lengthwise"` or `"crosswise"`: which way the rows of a layout run. Lengthwise rows run along the rack's length and step across its width; crosswise rows run across the width and step along the length, from the end `fillOrder` names. Width counts from starboard to port either way. Chosen as **Rows** in the editor. A rack that stacks along `+y` or `-y`, like the Hull A's plates, ignores it. |
 | `grouping` | string | `"none"` or `"byDestination"`: whether Plan and Re-plan keep each destination as a block of its own in a rack it shares. Blocks run across the width with `crosswise` and along the length with `lengthwise`; a rack that stacks along `+y` or `-y` runs them along its length either way. Chosen as **Grouping** in the editor. Optional; without it, `"none"`. |
 | `sectionGap` | number | `0`, `1` or `2`: empty rows between neighbouring blocks with `"byDestination"`, to grip the crates. If they don't fit, crates turn where that saves rows, then the gaps shrink; the overlay doesn't mention it. Chosen as **Section gap** in the editor. Optional; without it, `0`. |
+| `lastScanNo` | number | Optional (schema 10): the last scan number given, at least the highest `scan.no` in the file; left out while no contract was scanned. A number is given once in a session, also after an undo; **Discard plan** starts the count again. |
 | `contractTrackerWatermark` | number | The highest ContractTracker id taken into the plan, `0` for none. Captures above it are new; it only rises. |
 | `missions` | array | Every mission: what you typed or ContractTracker captured, one contract each. May be empty. |
 | `crates` | array | Every crate: what, for whom, for which mission, which rack, which cell. Their order is the route: a stop is unloaded in the order of its first crate still on board. |
@@ -74,17 +90,21 @@ fields are an error.
 |---|---|---|
 | `id` | number | 1 or more, unique in the file. Crates name their mission by it. |
 | `unplaced` | boolean | `true` if the mission didn't fit when it came; it then has no crates. The overlay places it as soon as it fits, at the next sync with ContractTracker. |
-| `stops` | array | Its stops as in a [mission file](mission-format.md): `destination` and `items` with `commodity`, `scu`, `maxCrateSize` and optionally `crates` and `pickup`, here also `manual` (schema 7, written only as `true`): the item was added to this ContractTracker mission or changed by hand in the editor and stays with it until ContractTracker no longer lists the mission. `manual` in a schema 6 file is an error. One stop per destination; the same destination in two missions has the same spelling. |
-| `contract` | object | Optional: the ContractTracker capture it came from. Missing for missions typed in the editor or read from a mission file. |
+| `stops` | array | Its stops as in a [mission file](mission-format.md): `destination` and `items` with `commodity`, `scu`, `maxCrateSize` and optionally `crates` and `pickup`, here also `manual` (written only as `true`): the item was added to this ContractTracker mission or changed by hand in the editor and stays with it until ContractTracker no longer lists the mission. One stop per destination; the same destination in two missions has the same spelling. |
+| `contract` | object | Optional: the ContractTracker capture or the scan it came from. Missing for missions typed in the editor or read from a mission file. |
 
 Missions to the same destination share one stop at the cargo lift: one tick. The legend shows it once, or once per
 pickup list when items name their pickup.
 
 ### Capture
 
+A contract has either `contractIds` (a ContractTracker capture) or `scan` (read by CargoPlan itself), exactly one of the
+two.
+
 | Field | Type | Rules |
 |---|---|---|
-| `contractIds` | array | ContractTracker's ids of the capture's rows, at least one. Once all of them are gone from ContractTracker, the mission is marked `gone` and stays; with `contractTracker.onContractGone` set to `"remove"` ([settings](settings-format.md#contracttracker)) its planned and delivered deliveries leave instead, loaded ones never. |
+| `contractIds` | array | ContractTracker's ids of the capture's rows, at least one. Once all of them are gone from ContractTracker, the mission is marked `gone` and stays; with `contractTracker.onContractGone` set to `"remove"` ([settings](settings-format.md#contracttracker)) its planned and delivered deliveries leave instead, loaded ones never. Left out for a scan. |
+| `scan` | object | Schema 10, instead of `contractIds`: `no` (1 or more, once in the file, shown as `#3`), `key` (what the contract is: pickups, destinations with their commodities, max crate size and reward, no SCU; two scans with one key are one contract) and `estimated` (read from the offers view: the game rolls the amounts again when the contract is accepted). A scan is never `gone`. In a schema 8 or 9 file it is an error. |
 | `crateSizeAssumed` | boolean | The contract named no max crate size; the legend shows the size with a `?`. |
 | `listedDestinations` | number | Optional: how many destinations the contract's drop-off list names. More than the mission's stops: the legend warns that destinations are missing. |
 | `reward` | number | Optional: the contract's reward as read from the capture. Left out when unknown. Two captures with different rewards are never marked as duplicates. |
@@ -125,13 +145,16 @@ red; the planner and the overlay's moves never make them.
 
 ## Older plan files
 
-Schema 8 is read and saved as schema 9 right after loading; moves and ticks stay. An app from before schema 9 refuses a
-schema 9 file, so it never lays a crosswise plan out lengthwise.
+Schema 8 and 9 are read and saved as schema 10 right after loading; moves and ticks stay. An app from before schema 10
+refuses a schema 10 file; until v0.4.0 schema 10 may still change without a new number, no release has written it.
 
-- **Schema 8** (v0.1.0, before the row axis) has no `fillRows`, `grouping` or `sectionGap`: every plan is lengthwise and
-  ungrouped. Any of them in a schema 8 file is an error, and a schema 9 file without `fillRows` is one too.
+- **Schema 9** (v0.2.0 to v0.3.1, before scans) has no `scan` and no `lastScanNo`: every contract is a ContractTracker
+  capture. Either in a schema 9 file is an error.
+- **Schema 8** (v0.1.0, before the row axis) has no `fillRows`, `grouping` or `sectionGap` either: every plan is
+  lengthwise and ungrouped. Any of them in a schema 8 file is an error, and a schema 9 or 10 file without `fillRows` is
+  one too.
 
-Schema 1 to 7 are refused with the error below ("schemaVersion 7 is not supported (expected 8 or 9)"): no released
+Schema 1 to 7 are refused with the error below ("schemaVersion 7 is not supported (expected 8 or 9 or 10)"): no released
 version wrote them, v0.1.0 already wrote schema 8.
 
 ## A plan for another ship

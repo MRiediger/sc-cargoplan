@@ -225,6 +225,14 @@ public class PlanFileTests
         static JsonObject Hint(string rackId, string message) => new() { ["rackId"] = rackId, ["message"] = message };
     }
 
+    [Fact]
+    public void The_plan_switch_file_loads_as_the_plan_of_its_missions()
+    {
+        // CLAUDE.md's --plan command shows plans/split_and_shared.json: schema 1 until F4, saved again as schema 9 (T10.2b1)
+        // with the crates a fresh plan lays, as reading schema 1 did.
+        ShouldMatch(Read(FixtureText("plans/split_and_shared.json")), Planned(MissionFixtures.SplitAndSharedMissions));
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]

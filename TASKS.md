@@ -5211,7 +5211,42 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     - **Pickup-Wächter (H2):** Zwei OCR-Fragmente im CT-Rohtext („Thundg“, „Green Gle“) stehen als bekannte Fragmente im Test. Mit einer Fortsetzungsregel, die jede Zeile nimmt, wird er auf 3 Fixtures rot.
     - **Offen für T10.3:** Würfelt das Spiel beim Annehmen auch die Ziele neu? Im Probe-Log ist nur ein Paar sicher (191,500). OFFERS und ACCEPTED mit gleichem Reward (100,500; 72,500; 60,750; 50,500; 50,250) haben andere Ziele, vermutlich andere Verträge. Gate-Lauf T10.3 mit echten Paaren: Vertrag ansehen, annehmen, beide scannen.
     - **Gate:** Build 0 Warnungen; Tests Core 1 817 · Import 287 (vorher 164) · App 1 731 · Ocr 34 grün (Hand-Tests gefiltert); `dotnet format --verify-no-changes` 0.
-- [ ] **T10.2b** plan.json 10 (F4, F24), Scan-Identität in `ContractSource`, „Scan in den Plan“ als ein Undo-Schritt, Re-roll-Markierung, Vollständigkeit, `AppFolders`/F14, `scans.log` – eigener Plan
+- **T10.2b, Präzisierung in der Planphase, ratifiziert durch Freigabe:** Teilung in b1 (Dateiformat, eigenes Gate) und b2
+  (Scan → Plan). Schema 10 bleibt bis v0.4.0 offen, T10.4 ändert es ohne neue Nummer. Ein Re-Scan mit anderen Mengen bei
+  geladenen/abgehakten Kisten der Mission geht wie der Editor-Plan (`PlanKeeping`), sonst wird nur die Mission neu gelegt.
+  Der `scanNo`-Zähler liegt neben dem Plan (Datei `lastScanNo`, im ViewModel außerhalb der Undo-Schritte), nicht im
+  `SavedPlan`. „Plan verwerfen“ setzt ihn auf 0. `Unknown` zählt als geschätzt (D102). F5 nach T10.4a. Die
+  Nachfolger-Tabelle von F4 stand vor dem Abbau im Plan (P1).
+- [x] **T10.2b1** `AppFolders` (F14), Plan-Schema 1–7 raus (F4), Schema 10 mit Scan-Identität, Goldens (F24), D102
+  - **Befund (11./12.11.2026, Branch `feat/t10-2b1-format`):**
+    - **F4:** Lesbar 8, 9, 10; 1–7 abgelehnt mit „expected 8 or 9 or 10“. Weg: `PlanFileV1Dto`, `PlanFileV2Dto`,
+      `PlacementDto`, `ParseMissions`, `EmbeddedSchemaVersions`, vier `Check*`, zwei Alt-Zweige. 38 Core-Tests gestrichen,
+      17 neu. **Nachfolger (Regel P1):** Verhalten → Nachfolger mit aktueller Datei, je grün gegen den alten Code und per
+      Mutation rot (Hinweise neu abgeleitet; Racks geändert; ganzer Stopp abgehakt; 7 Validierungsfälle aus Schema 2 nach
+      `V3Changes`), oder ein bestehender Test namentlich (Round-Trips für Haken, Positionen, `manual`, `loaded`, Item
+      Pflicht, fremdes Schiff, Zurückschreiben); nur Alt-Format → Theory „Schema 1–7 wird abgelehnt“. Tabelle im
+      Commit-Body von `5abaf6d`.
+    - **Alt-Fixtures als Schema 9:** `before_b2_eight_stops`, `hurston_2026-10-23`, `hurston_2026-10-25` (19/17/23 Kisten,
+      Rack, Position, Haken vorher/nachher identisch), `split_and_shared` (Schema 1: SCU je Rack/Ziel/Ware identisch; neuer
+      Wächter für den `--plan`-Befehl). `split_and_shared_v2` gelöscht.
+    - **Goldens:** Diff je Datei nur die `schemaVersion`-Zeile.
+    - **Scan-Identität:** vier Weichen in `ContractSync`/`LoadPlanner`, jede vorher rot (Scan wäre gone geworden, nach
+      Undo doppelt gekommen, `Quiet` nie ruhig, `DeliveryKey` warf).
+    - **Martins plan.json** (Kopie, Schema 9, RAFT, 5 Missionen, 36 Kisten, Watermark 290): liest, schreibt als 10,
+      Kisten byte-identisch.
+    - **Gate:** Build 0 Warnungen; Tests Core 1 817 · Import 287 · App 1 737 · Ocr 34 grün; `dotnet format` 0.
+      `CrateLayoutTests.Place_proves_stacking_in_under_100_ms` fiel einmal unter Last aller vier Testprojekte, allein 65 ms
+      und in zwei weiteren Läufen grün.
+    - Den `--plan`-Befehl habe ich nicht selbst gestartet: die App schreibt beim Speichern in Martins echte plan.json
+      (Lehre T10.1b); der neue Wächtertest prüft die Datei.
+- [ ] **T10.2b2** Scan → Plan: Abgleich per Schlüssel (`Added`/`Updated`/`AlreadyInPlan`), ein Undo-Schritt,
+  Re-roll-Markierung, Vollständigkeit mit zweiter Lesung nur bei Verdacht, `ScanIntake`, `scans.log` – eigener Plan
+  - Vorgemerkt (Martin): Test „neue Menge kleiner als bereits geladen“ durch `PlanKeeping`; die zweite Lesung hält den
+    Ein-Scan-Riegel des `ContractScanner` nicht über die Wartezeit (zwei getrennte `ScanAsync`), sonst blockiert sie den
+    Hotkey in T10.3 für ≈ 2,6 s.
+  - Die nächste Nummer ist `max(LastScanNo, SavedPlan.HighestScanNo) + 1`.
+  - Gefunden: `PickupNames.Clean` (`PickupNames.cs:44`) baut ein Item ohne `Manual` neu; ein Handeintrag einer
+    CT-Mission verliert beim Bereinigen seine Markierung. `Clean` geht mit F23 in T10.4a.
 
 ### [ ] T10.3 Hotkey, Editor, Notices
 
