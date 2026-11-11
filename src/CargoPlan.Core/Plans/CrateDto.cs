@@ -4,11 +4,10 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Plans;
 
 /// <summary>
-/// File format of a crate (plan schema 2 to 7, D24): what, for whom, which rack, which cell; from schema 3 which mission
-/// (D42), from schema 4 which item of it (D68), from schema 5 whether it is turned (D71), from schema 6 whether it is
-/// off the ship (K2.2: delivered, never on this ship, <c>rackId</c> empty, position [0, 0, 0]), from schema 7 whether it
-/// is loaded (K6.4: on board and fixed, never delivered); the last three written only where true. Schema 2 has no mission: 0, assigned by destination on reading; schema 2 and 3 have no item, assigned on
-/// reading (<c>SavedPlan.WithItems</c>).
+/// File format of a crate (D24): what, for whom, which rack, which cell, which mission (D42) and which item of it (D68),
+/// whether it is turned (D71), off the ship (K2.2: delivered, never on this ship, <c>rackId</c> empty, position [0, 0, 0])
+/// or loaded (K6.4: on board and fixed, never delivered); the last three written only where true. A file without mission
+/// or item is refused with the reason (mission 0 belongs to no mission, <c>PlanFileDto.CheckItems</c>).
 /// </summary>
 internal sealed record CrateDto(
     string Destination, string Commodity, int CrateSize, string RackId, IReadOnlyList<int> Position, bool Delivered, int Mission = 0, int? Item = null,

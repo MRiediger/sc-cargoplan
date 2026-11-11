@@ -57,7 +57,7 @@ fields are an error.
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `9`. Files with `1` to `8` are still read, see [Older plan files](#older-plan-files). |
+| `schemaVersion` | number | `9`. Files with `8` are still read, see [Older plan files](#older-plan-files). |
 | `shipId` | string | The ship the plan is for, e.g. `"hull_a"` ([ship files](ship-format.md)). |
 | `fillOrder` | string | `"bowFirst"` or `"sternFirst"`: which end of a rack's length crates fill from, when planned and when laid out again, e.g. after a move. Chosen as **Fill order** in the editor. Part of the plan, so everyone loading it sees the same layout. |
 | `fillRows` | string | `"lengthwise"` or `"crosswise"`: which way the rows of a layout run. Lengthwise rows run along the rack's length and step across its width; crosswise rows run across the width and step along the length, from the end `fillOrder` names. Width counts from starboard to port either way. Chosen as **Rows** in the editor. A rack that stacks along `+y` or `-y`, like the Hull A's plates, ignores it. |
@@ -125,34 +125,14 @@ red; the planner and the overlay's moves never make them.
 
 ## Older plan files
 
-All older versions are read and saved as schema 9 right after loading; moves and ticks stay. An app from before
-schema 9 refuses a schema 9 file, so it never lays a crosswise plan out lengthwise.
+Schema 8 is read and saved as schema 9 right after loading; moves and ticks stay. An app from before schema 9 refuses a
+schema 9 file, so it never lays a crosswise plan out lengthwise.
 
-- **Schema 8** (before the row axis) has no `fillRows`, `grouping` or `sectionGap`: every plan is lengthwise and
+- **Schema 8** (v0.1.0, before the row axis) has no `fillRows`, `grouping` or `sectionGap`: every plan is lengthwise and
   ungrouped. Any of them in a schema 8 file is an error, and a schema 9 file without `fillRows` is one too.
 
-- **Schema 7** (before contracts gone from ContractTracker stayed in the plan) has no `gone` and no `detached`: every
-  capture counts as listed until the next sync says otherwise. `gone` in a schema 7 file is an error.
-
-- **Schema 6** (before cargo could be loaded) has no `loaded` and no `manual`: nothing is loaded, no item was added by
-  hand. Either in a schema 6 file is an error.
-
-- **Schema 5** (before cargo could be off the ship) has no `offShip`: every crate lies in a rack. `offShip` in a
-  schema 5 file is an error.
-
-- **Schema 4** (before crates turned) has no `rotated`: every crate lies unturned. `rotated` in a schema 4 file is an
-  error.
-
-- **Schema 3** (before crates named their item) has crates without `item`. Each mission's crates of one kind
-  take its items of that kind in order.
-
-- **Schema 2** (before missions had ids) has `missions` as one embedded [mission file](mission-format.md)
-  and crates without `mission`. Each stop becomes a mission of its own, its crates belong to it, and the
-  watermark is 0.
-- **Schema 1** (before crate positions) has a `placements` array (cargo per rack, no cells) instead of
-  `fillOrder` and `crates`. Each rack's cargo is laid out the way a new plan would be, ticks included, then
-  read as schema 2. One exception: version 1 allowed more cargo in a rack than it holds (after a manual
-  move); such a plan can't be laid out and shows the error below.
+Schema 1 to 7 are refused with the error below ("schemaVersion 7 is not supported (expected 8 or 9)"): no released
+version wrote them, v0.1.0 already wrote schema 8.
 
 ## A plan for another ship
 
@@ -165,8 +145,6 @@ whole plan, they go in mission by mission and the rest waits as "doesn't fit" in
 Its crates are not checked against the old ship's racks; the crates against their missions still are.
 
 Without a `ship` in [settings.json](settings-format.md), the overlay takes the plan's ship instead, if it loads.
-
-A schema 1 file for another ship is an error (below): laying out its cargo needs that ship's grid.
 
 ## Racks that changed
 

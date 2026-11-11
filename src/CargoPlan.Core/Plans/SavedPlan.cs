@@ -50,8 +50,7 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, C
 
     /// <summary>
     /// A plan with one mission per stop, its crates assigned by destination and then to the items holding their kind
-    /// (<see cref="WithItems"/>): the missions of a plan made before missions existed (plan schema 1 and 2, D42), and of a
-    /// plan made from a route alone.
+    /// (<see cref="WithItems"/>): the missions of a plan made from a route alone.
     /// </summary>
     /// <exception cref="ArgumentException">The plan doesn't fit the stops (see the constructor).</exception>
     public static SavedPlan FromStops(IReadOnlyList<MissionStop> stops, LoadPlan plan, CrateCap cap, long watermark = 0)

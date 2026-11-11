@@ -266,35 +266,6 @@ public class CrateRotationTests
     }
 
     [Fact]
-    public void Schema_4_reads_with_every_crate_unturned()
-    {
-        var node = JsonNode.Parse(Written(Planned(HullA, Item(8, CrateSize.Four))))!;
-        node["schemaVersion"] = 4;
-        node.AsObject().Remove("fillRows");
-        node.AsObject().Remove("grouping");
-        node.AsObject().Remove("sectionGap");
-
-        var saved = Read(node.ToJsonString(), HullA);
-
-        saved.Plan.Crates.Should().OnlyContain(c => !c.Rotated);
-        saved.CrateCap.Should().Be(CrateCap.Of(HullA));
-    }
-
-    [Fact]
-    public void Schema_4_with_rotated_is_broken()
-    {
-        var node = JsonNode.Parse(Written(Planned(Perseus, Item(96, CrateSize.ThirtyTwo))))!;
-        node["schemaVersion"] = 4;
-        node.AsObject().Remove("fillRows");
-        node.AsObject().Remove("grouping");
-        node.AsObject().Remove("sectionGap");
-
-        var act = () => Read(node.ToJsonString(), Perseus);
-
-        act.Should().Throw<PlanFormatException>().WithMessage("*rotated*schema 5*");
-    }
-
-    [Fact]
     public void A_turned_square_crate_in_the_file_is_broken()
     {
         var node = JsonNode.Parse(Written(Planned(HullA, Item(8, CrateSize.Four))))!;
@@ -320,17 +291,14 @@ public class CrateRotationTests
 
     /// <summary>
     /// A Freelancer plan as written before its side racks went back to Fleetyards' orientation (K3.2): a 2 at [0, 0, 0]
-    /// of rack-0 lay along the length, which is 1 cell now.
+    /// of rack-0 lay along the length, which is 1 cell now. In today's schema since F4 (T10.2b1): such a file reads as
+    /// schema 8 or 9, the schemas before are refused.
     /// </summary>
-    private static JsonNode OldFreelancerFile(int schemaVersion)
+    private static JsonNode FreelancerFileWithOldOrientation()
     {
         var saved = Planned(Freelancer, Item(6, CrateSize.Two));
         var node = JsonNode.Parse(Written(WithCrates(saved,
             Riker(CrateSize.Two, 0, 0, 0, rackId: "rack-2"), Riker(CrateSize.Two, 2, 0, 0, rackId: "rack-2"), Riker(CrateSize.Two, 0, 0, 0, rackId: "rack-0"))))!;
-        node["schemaVersion"] = schemaVersion;
-        node.AsObject().Remove("fillRows");
-        node.AsObject().Remove("grouping");
-        node.AsObject().Remove("sectionGap");
         foreach (var crate in node["crates"]!.AsArray())
         {
             crate!.AsObject().Remove("rotated");
@@ -339,12 +307,10 @@ public class CrateRotationTests
         return node;
     }
 
-    [Theory]
-    [InlineData(4)]
-    [InlineData(5)]
-    public void A_crate_outside_todays_rack_reads_as_racks_changed_and_is_planned_anew(int schemaVersion)
+    [Fact]
+    public void A_crate_outside_todays_rack_in_a_current_file_reads_as_racks_changed_and_is_planned_anew()
     {
-        var saved = Read(OldFreelancerFile(schemaVersion).ToJsonString(), Freelancer);
+        var saved = Read(FreelancerFileWithOldOrientation().ToJsonString(), Freelancer);
 
         saved.CrateCap.Reason.Should().Be(CapReason.RacksChanged);
         saved.CrateCap.Should().NotBe(CrateCap.Of(Freelancer));
@@ -357,9 +323,9 @@ public class CrateRotationTests
     }
 
     [Fact]
-    public void A_stop_ticked_as_a_whole_keeps_its_tick_when_the_racks_changed()
+    public void A_stop_ticked_as_a_whole_in_a_current_file_keeps_its_tick_when_the_racks_changed()
     {
-        var node = OldFreelancerFile(5);
+        var node = FreelancerFileWithOldOrientation();
         foreach (var crate in node["crates"]!.AsArray())
         {
             crate!["delivered"] = true;

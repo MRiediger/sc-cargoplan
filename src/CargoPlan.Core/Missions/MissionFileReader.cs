@@ -25,12 +25,6 @@ public static class MissionFileReader
 
     private static readonly int[] SupportedSchemaVersions = [LegacySchemaVersion, NoFillOrderSchemaVersion, NoFillRowsSchemaVersion, CurrentSchemaVersion];
 
-    /// <summary>
-    /// The mission file inside a plan file of schema 1 and 2: those were written before schema 3, and a plan has one fill
-    /// order, its own.
-    /// </summary>
-    internal static readonly int[] EmbeddedSchemaVersions = [LegacySchemaVersion, NoFillOrderSchemaVersion];
-
     /// <summary>Reads a mission file from disk.</summary>
     /// <exception cref="FileNotFoundException">The file does not exist.</exception>
     /// <exception cref="MissionFormatException">The file is broken.</exception>

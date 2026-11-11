@@ -15,6 +15,4 @@ namespace CargoPlan.Core.Plans;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     WriteIndented = true)]
 [JsonSerializable(typeof(PlanFileDto))]
-[JsonSerializable(typeof(PlanFileV2Dto))]
-[JsonSerializable(typeof(PlanFileV1Dto))]
 internal sealed partial class PlanJsonContext : JsonSerializerContext;

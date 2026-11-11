@@ -331,20 +331,6 @@ public class ContractGoneTests
     }
 
     [Fact]
-    public void Schema_7_with_gone_is_broken()
-    {
-        var node = JsonNode.Parse(Written(Keep(FourStates(), 40)))!;
-        node["schemaVersion"] = 7;
-        node.AsObject().Remove("fillRows");
-        node.AsObject().Remove("grouping");
-        node.AsObject().Remove("sectionGap");
-
-        var act = () => Read(node.ToJsonString());
-
-        act.Should().Throw<PlanFormatException>().WithMessage("*gone*schema 8*");
-    }
-
-    [Fact]
     public void Detached_without_gone_in_the_file_is_broken()
     {
         var node = JsonNode.Parse(Written(FourStates()))!;
@@ -353,25 +339,5 @@ public class ContractGoneTests
         var act = () => Read(node.ToJsonString());
 
         act.Should().Throw<PlanFormatException>().WithMessage("*detached*gone*");
-    }
-
-    [Fact]
-    public void A_schema_7_file_reads_without_gone_and_writes_back_as_the_current_schema()
-    {
-        string golden;
-        using (var reader = new StreamReader(MissionFixtures.Open("plans/golden_example_missions_bow.json")))
-        {
-            golden = reader.ReadToEnd().ReplaceLineEndings("\n");
-        }
-
-        var schema7 = golden
-            .Replace("\"schemaVersion\": 9", "\"schemaVersion\": 7", StringComparison.Ordinal)
-            .Replace("  \"fillRows\": \"lengthwise\",\n  \"grouping\": \"none\",\n  \"sectionGap\": 0,\n", "", StringComparison.Ordinal);
-        schema7.Should().NotBe(golden);
-
-        var saved = Read(schema7);
-
-        saved.Missions.Should().OnlyContain(m => m.Contract == null || !m.Contract.Gone);
-        Written(saved).ReplaceLineEndings("\n").Should().Be(golden);
     }
 }

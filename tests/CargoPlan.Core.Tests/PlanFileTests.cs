@@ -13,12 +13,6 @@ public class PlanFileTests
 {
     private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
-    // Schema 1: placements without positions, as saved before D24. Kept as the migration's input.
-    private const string V1FixtureName = "plans/split_and_shared.json";
-
-    // Schema 2: crates with positions, missions as an embedded mission file, as saved before D42.
-    private const string V2FixtureName = "plans/split_and_shared_v2.json";
-
     private static SavedPlan Planned(IReadOnlyList<MissionStop> missions, FillOrder fillOrder = FillOrder.BowFirst) =>
         SavedPlan.FromStops(missions, LoadPlanner.Plan(HullA, missions.ToStops(), fillOrder), CrateCap.Of(HullA));
 
@@ -27,11 +21,6 @@ public class PlanFileTests
         using var reader = new StreamReader(MissionFixtures.Open(name));
         return reader.ReadToEnd();
     }
-
-    private static string V1FixtureText() => FixtureText(V1FixtureName);
-
-    /// <summary>The split-and-shared plan as schema 2 wrote it.</summary>
-    private static string V2Text() => FixtureText(V2FixtureName);
 
     /// <summary>The split-and-shared plan as schema 4 writes it.</summary>
     private static string V4Text() => Written(Planned(MissionFixtures.SplitAndSharedMissions));
@@ -207,133 +196,53 @@ public class PlanFileTests
         stream.CanWrite.Should().BeTrue();
     }
 
-    // --- A plan from before D64 ---
+    // --- Hints derived anew (D64), old schemas refused (F4) ---
 
     [Fact]
-    public void A_plan_from_before_D64_loads_as_saved_with_its_hints_derived_anew()
+    public void A_plan_file_with_outdated_hints_loads_with_its_hints_derived_anew()
     {
-        // The eight-stop plan as the route-order planner wrote it: four stops in rack 4, with both of its route notes.
-        var text = FixtureText("plans/before_b2_eight_stops.json");
-        using var document = JsonDocument.Parse(text);
-        var saved = Read(text);
+        // Successor of the D64 test on the schema 3 file (F4, T10.2b1): hints in a file are never taken as they stand. The
+        // eight-stop plan with the four hints the route-order planner wrote; its crates lie as then.
+        var node = JsonNode.Parse(FixtureText("plans/before_b2_eight_stops.json"))!;
+        node["warnings"] = new JsonArray(
+            Hint("rack-2", "Rack 3 shared by Shubin, Orison – identify crates by count"),
+            Hint("rack-3", "Rack 4 shared by Everus Harbor, Area18, Port Tressler, Seraphim – identify crates by count"),
+            Hint("rack-3", "Racks not in route order – crates placed where they fit"),
+            Hint("rack-3", "Rack 4: too many crates to rearrange – red crates lie on cargo that unloads earlier. Check the unload order by hand."));
+
+        var saved = Read(node.ToJsonString());
 
         saved.Plan.Crates.Select(c => (c.Destination, c.RackId, c.Position, c.Delivered)).Should().Equal(
-            document.RootElement.GetProperty("crates").EnumerateArray().Select(c => (
-                c.GetProperty("destination").GetString()!,
-                c.GetProperty("rackId").GetString()!,
-                new GridPosition(c.GetProperty("position")[0].GetInt32(), c.GetProperty("position")[1].GetInt32(), c.GetProperty("position")[2].GetInt32()),
-                c.GetProperty("delivered").GetBoolean())));
+            node["crates"]!.AsArray().Select(c => (
+                c!["destination"]!.GetValue<string>(),
+                c["rackId"]!.GetValue<string>(),
+                new GridPosition(c["position"]![0]!.GetValue<int>(), c["position"]![1]!.GetValue<int>(), c["position"]![2]!.GetValue<int>()),
+                c["delivered"]!.GetValue<bool>())));
         saved.Plan.Warnings.Select(w => w.Message).Should().NotContain(m => m.Contains("route order") || m.Contains("unloads earlier"));
         saved.Plan.Warnings.Should().Contain(new PlanWarning("rack-3", "Rack 4: crate for Everus Harbor sits on cargo for Area18"));
         LoadPlanner.Validate(saved.Plan, HullA).Should().BeEmpty();
-    }
 
-    // --- Schema 1 migration (D24) ---
-
-    [Fact]
-    public void Schema_1_fixture_loads_with_the_crates_of_a_fresh_plan()
-    {
-        // An upgrade keeps the plan of a running route: the placements are laid out exactly as the planner lays them out.
-        using var stream = MissionFixtures.Open(V1FixtureName);
-
-        var saved = PlanFile.Read(stream, V1FixtureName, HullA);
-
-        ShouldMatch(saved, Planned(MissionFixtures.SplitAndSharedMissions));
-    }
-
-    [Fact]
-    public void Schema_1_keeps_the_ticks()
-    {
-        var node = JsonNode.Parse(V1FixtureText())!;
-        node["placements"]![0]!["delivered"] = true;
-        node["placements"]![1]!["delivered"] = true;
-
-        var saved = Read(node.ToJsonString());
-
-        saved.Plan.Crates.Where(c => c.Destination == "Riker").Should().OnlyContain(c => c.Delivered);
-        saved.Plan.Crates.Where(c => c.Destination != "Riker").Should().OnlyContain(c => !c.Delivered);
-    }
-
-    [Fact]
-    public void Schema_1_is_written_back_as_schema_5()
-    {
-        var saved = Read(V1FixtureText());
-
-        var node = JsonNode.Parse(Written(saved))!;
-
-        node["schemaVersion"]!.GetValue<int>().Should().Be(PlanFile.SupportedSchemaVersion);
-        ShouldMatch(Read(node.ToJsonString()), saved);
-    }
-
-    [Fact]
-    public void Schema_1_with_an_overloaded_rack_is_refused()
-    {
-        // Allowed in schema 1 (D10), but 20 SCU have no layout in a 16 SCU grid. The file stays for the player.
-        var node = JsonNode.Parse(V1FixtureText())!;
-        node["placements"]![1]!["rackId"] = "rack-0";
-
-        var act = () => Read(node.ToJsonString(), "old.json");
-
-        act.Should().Throw<PlanFormatException>().WithMessage("*old.json*rack 1*20/16 SCU*");
+        static JsonObject Hint(string rackId, string message) => new() { ["rackId"] = rackId, ["message"] = message };
     }
 
     [Theory]
-    [InlineData("unknown_rack", "*rack-9*")]
-    [InlineData("scu_mismatch", "*Riker, Titanium: 3 of 4 crates of 4 SCU placed*")]
-    [InlineData("foreign_ship", "*'cutlass_black'*'hull_a'*")]
-    public void Schema_1_invalid_plan_throws_PlanFormatException(string change, string expectedMessage)
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(6)]
+    [InlineData(7)]
+    public void Schema_1_to_7_is_refused_naming_the_readable_versions(int schemaVersion)
     {
-        var node = JsonNode.Parse(V1FixtureText())!;
-        Action<JsonNode> apply = change switch
-        {
-            "unknown_rack" => n => n["placements"]![0]!["rackId"] = "rack-9",
-            "scu_mismatch" => n => n["placements"]![0]!["item"]!["scu"] = 12,
-            _ => n => n["shipId"] = "cutlass_black",
-        };
-        apply(node);
+        // F4 (T10.2b1): v0.1.0 wrote schema 8; files before it were this project's own history, never a player's.
+        var node = JsonNode.Parse(V4Text())!;
+        node["schemaVersion"] = schemaVersion;
 
-        var act = () => Read(node.ToJsonString());
+        var act = () => Read(node.ToJsonString(), "old.json");
 
-        act.Should().Throw<PlanFormatException>().WithMessage(expectedMessage);
-    }
-
-    // --- Schema 2 migration (D42) ---
-
-    [Fact]
-    public void Schema_2_loads_one_mission_per_stop_with_its_crates()
-    {
-        var saved = Read(V2Text());
-
-        ShouldMatch(saved, Planned(MissionFixtures.SplitAndSharedMissions));
-        saved.Missions.Select(m => m.Stops.Single().Destination).Should().Equal(MissionFixtures.SplitAndSharedMissions.Select(s => s.Destination));
-        saved.Plan.Crates.Should().OnlyContain(c => saved.MissionOf(c.Mission).Stops[0].Destination == c.Destination);
-        saved.Watermark.Should().Be(0);
-    }
-
-    [Fact]
-    public void Schema_2_keeps_ticks_and_positions()
-    {
-        var node = JsonNode.Parse(V2Text())!;
-        foreach (var crate in node["crates"]!.AsArray().Where(c => c!["destination"]!.GetValue<string>() == "Riker"))
-        {
-            crate!["delivered"] = true;
-        }
-
-        var saved = Read(node.ToJsonString());
-
-        saved.Plan.Crates.Where(c => c.Destination == "Riker").Should().OnlyContain(c => c.Delivered);
-        saved.Plan.Crates.Select(c => (c.RackId, c.Position)).Should().Equal(Read(V2Text()).Plan.Crates.Select(c => (c.RackId, c.Position)));
-    }
-
-    [Fact]
-    public void Schema_2_is_written_back_as_schema_5()
-    {
-        var saved = Read(V2Text());
-
-        var node = JsonNode.Parse(Written(saved))!;
-
-        node["schemaVersion"]!.GetValue<int>().Should().Be(PlanFile.SupportedSchemaVersion);
-        ShouldMatch(Read(node.ToJsonString()), saved);
+        act.Should().Throw<PlanFormatException>()
+            .WithMessage($"*old.json*schemaVersion {schemaVersion} is not supported (expected 8 or 9)*");
     }
 
     // --- Red, not refused (D24) ---
@@ -444,7 +353,7 @@ public class PlanFileTests
     {
         { "not json", "*plan.json*" },
         { "null", "*schemaVersion*" },
-        { """{ "schemaVersion": 10 }""", "*schemaVersion 10*expected 1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9*" },
+        { """{ "schemaVersion": 10 }""", "*schemaVersion 10*expected 8 or 9*" },
         { """{ "shipId": "hull_a" }""", "*schemaVersion*" },
     };
 
@@ -456,58 +365,6 @@ public class PlanFileTests
 
         var ex = act.Should().Throw<PlanFormatException>().WithMessage(expectedMessage).Which;
         ex.SourceName.Should().Be("plan.json");
-    }
-
-    /// <summary>One change to the schema 2 file each; the rest stays valid, so the change is what fails.</summary>
-    private static readonly Dictionary<string, Action<JsonNode>> Changes = new()
-    {
-        ["inner_schema"] = n => n["missions"]!["schemaVersion"] = 3,
-        ["unknown_property"] = n => n["opacity"] = 0.5,
-        ["missing_delivered"] = n => n["crates"]![0]!.AsObject().Remove("delivered"),
-        ["unknown_rack"] = n => n["crates"]![0]!["rackId"] = "rack-9",
-        ["unknown_warning_rack"] = n => n["warnings"]![0]!["rackId"] = "rack-9",
-        ["missing_crate"] = n => n["crates"]!.AsArray().RemoveAt(0),
-        ["foreign_destination"] = n => n["crates"]![0]!["destination"] = "Area18",
-        ["invalid_crate_size"] = n => n["crates"]![0]!["crateSize"] = 3,
-        ["no_stops"] = n => n["missions"]!["stops"] = new JsonArray(),
-        ["short_position"] = n => n["crates"]![0]!["position"] = new JsonArray(0, 0),
-        ["negative_position"] = n => n["crates"]![0]!["position"] = new JsonArray(0, -1, 0),
-        ["unknown_fill_order"] = n => n["fillOrder"] = "diagonal",
-    };
-
-    [Theory]
-    [InlineData("inner_schema", "*missions: schemaVersion 3*expected 1 or 2*")]
-    [InlineData("unknown_property", "*opacity*")]
-    [InlineData("missing_delivered", "*delivered*")]
-    [InlineData("unknown_rack", "*rack-9*")]
-    [InlineData("unknown_warning_rack", "*rack-9*")]
-    [InlineData("missing_crate", "*Riker, Titanium: 3 of 4 crates of 4 SCU placed*")]
-    [InlineData("foreign_destination", "*Area18*")]
-    [InlineData("invalid_crate_size", "*3 SCU is not a crate size*")]
-    [InlineData("no_stops", "*no stops*")]
-    [InlineData("short_position", "*position needs 3 values*")]
-    [InlineData("negative_position", "*position needs 3 values*")]
-    [InlineData("unknown_fill_order", "*fillOrder 'diagonal'*")]
-    public void Read_invalid_schema_2_plan_throws_PlanFormatException_naming_the_source_and_reason(string change, string expectedMessage)
-    {
-        var node = JsonNode.Parse(V2Text())!;
-        Changes[change](node);
-
-        var act = () => Read(node.ToJsonString(), "broken.json");
-
-        var ex = act.Should().Throw<PlanFormatException>().WithMessage(expectedMessage).Which;
-        ex.SourceName.Should().Be("broken.json");
-        ex.Message.Should().Contain("broken.json");
-    }
-
-    // A crate outside its rack is no broken file but racks that changed since (K3.2, K1): read, then planned anew.
-    [Fact]
-    public void Schema_2_with_a_crate_outside_its_rack_reads_as_racks_changed()
-    {
-        var node = JsonNode.Parse(V2Text())!;
-        node["crates"]![0]!["position"] = new JsonArray(3, 0, 0);
-
-        Read(node.ToJsonString()).CrateCap.Reason.Should().Be(CapReason.RacksChanged);
     }
 
     /// <summary>One change to the schema 4 file each; the rest stays valid, so the change is what fails.</summary>
@@ -524,6 +381,15 @@ public class PlanFileTests
         ["missing_crate"] = n => n["crates"]!.AsArray().RemoveAt(0),
         ["contract_without_ids"] = n => n["missions"]![0]!["contract"] = new JsonObject { ["contractIds"] = new JsonArray(), ["crateSizeAssumed"] = false },
         ["unknown_rack"] = n => n["crates"]![0]!["rackId"] = "rack-9",
+
+        // From the schema 2 cases (F4, T10.2b1): the checks hold for today's file too.
+        ["missing_delivered"] = n => n["crates"]![0]!.AsObject().Remove("delivered"),
+        ["unknown_warning_rack"] = n => n["warnings"]!.AsArray().Add(new JsonObject { ["rackId"] = "rack-9", ["message"] = "Rack 10 shared" }),
+        ["foreign_destination"] = n => n["crates"]![0]!["destination"] = "Area18",
+        ["invalid_crate_size"] = n => n["crates"]![0]!["crateSize"] = 3,
+        ["short_position"] = n => n["crates"]![0]!["position"] = new JsonArray(0, 0),
+        ["negative_position"] = n => n["crates"]![0]!["position"] = new JsonArray(0, -1, 0),
+        ["unknown_fill_order"] = n => n["fillOrder"] = "diagonal",
     };
 
     [Theory]
@@ -538,6 +404,13 @@ public class PlanFileTests
     [InlineData("missing_crate", "*Riker, Titanium: 3 of 4 crates of 4 SCU placed*")]
     [InlineData("contract_without_ids", "*at least one ContractTracker id*")]
     [InlineData("unknown_rack", "*rack-9*")]
+    [InlineData("missing_delivered", "*delivered*")]
+    [InlineData("unknown_warning_rack", "*rack-9*")]
+    [InlineData("foreign_destination", "*Area18*")]
+    [InlineData("invalid_crate_size", "*3 SCU is not a crate size*")]
+    [InlineData("short_position", "*position needs 3 values*")]
+    [InlineData("negative_position", "*position needs 3 values*")]
+    [InlineData("unknown_fill_order", "*fillOrder 'diagonal'*")]
     public void Read_invalid_schema_4_plan_throws_PlanFormatException(string change, string expectedMessage)
     {
         var node = JsonNode.Parse(V4Text())!;
@@ -561,18 +434,6 @@ public class PlanFileTests
 
         saved.Plan.ShipId.Should().Be("c2_hercules");
         saved.Missions.Should().BeEquivalentTo(Planned(MissionFixtures.SplitAndSharedMissions).Missions, o => o.WithStrictOrdering());
-    }
-
-    [Fact]
-    public void Schema_2_for_another_ship_loads_one_mission_per_stop()
-    {
-        var node = JsonNode.Parse(V2Text())!;
-        node["shipId"] = "cutlass_black";
-
-        var saved = Read(node.ToJsonString());
-
-        saved.Plan.ShipId.Should().Be("cutlass_black");
-        saved.Missions.Should().HaveCount(4);
     }
 
     [Fact]

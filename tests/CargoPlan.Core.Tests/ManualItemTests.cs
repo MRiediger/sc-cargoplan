@@ -56,20 +56,6 @@ public class ManualItemTests
     }
 
     [Fact]
-    public void Schema_6_with_manual_is_broken()
-    {
-        var node = JsonNode.Parse(Written(WithManualStop()))!;
-        node["schemaVersion"] = 6;
-        node.AsObject().Remove("fillRows");
-        node.AsObject().Remove("grouping");
-        node.AsObject().Remove("sectionGap");
-
-        var act = () => Read(node.ToJsonString());
-
-        act.Should().Throw<PlanFormatException>().WithMessage("*manual*schema 7*");
-    }
-
-    [Fact]
     public void A_mission_file_refuses_manual()
     {
         const string json = """

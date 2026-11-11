@@ -253,7 +253,6 @@ public class ShipChangeTickTests
 
     public static TheoryData<string, string> BrokenOffShip => new()
     {
-        { "schema_5", "*offShip*new in schema 6*the file says 5*" },
         { "not_delivered", "*off the ship*delivered*" },
         { "with_a_rack", "*off the ship*rack*" },
     };
@@ -266,12 +265,6 @@ public class ShipChangeTickTests
         var offShip = node["crates"]!.AsArray().Select(c => c!.AsObject()).First(c => c.ContainsKey("offShip"));
         switch (change)
         {
-            case "schema_5":
-                node["schemaVersion"] = 5;
-                node.AsObject().Remove("fillRows");
-                node.AsObject().Remove("grouping");
-                node.AsObject().Remove("sectionGap");
-                break;
             case "not_delivered":
                 offShip["delivered"] = false;
                 break;
