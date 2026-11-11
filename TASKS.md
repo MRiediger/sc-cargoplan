@@ -5240,6 +5240,10 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
 - D81 `onContractGone` entfällt ersatzlos: kein „gone“ mehr, einen Plan verlässt man nur über Abhaken, Löschen oder Discard.
 - CLI `contracts --raw` → `scan <png>`.
 - Doku: README, Wiki, `docs/settings-format.md`, `docs/nexus/*`, Issue-Templates (Feld „ContractTracker-Version“ → „Screenshot des Vertrags“).
+- **F5 (Review 2026-11-pre-p10):** Mission-Schema-Leser 1 und 2 (`MissionFileReader.cs:18-32`, `LegacySchemaVersion`,
+  `NoFillOrderSchemaVersion`) raus; v0.1.0 schrieb Mission-Schema 3. Die Mission-Fixtures der Schemas 1/2 (≈ 9 Dateien, u. a.
+  `example_missions`, `split_and_shared` des Cli-Befehls `plan`) als aktuelles Schema neu speichern, Nachfolger-Regel wie bei F4
+  (T10.2b1). Kam von K10 über T10.2 hierher, weil T10.2b1 nur die Plan-Leser abbaut.
 
 ### [ ] T10.4b ContractTracker entfernen – Core, Planer
 
