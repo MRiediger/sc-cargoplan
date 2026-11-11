@@ -18,18 +18,45 @@ internal static partial class ContractTextParser
     private const string PickUpHeading = "PICK UP LOCATIONS";
     private const string CollectVerb = "Collect";
 
-    /// <summary>
-    /// The last line of a contract: the offers view's button, or the accepted view's "SHARE TRACK" / "SHARE UNTRACK"
-    /// (T10.2a, read by CargoPlan's own OCR; ContractTracker's text has "TRACK" alone, which ends nothing).
-    /// </summary>
-    private static readonly string[] EndHeadings = ["ACCEPT OFFER", "SHARE TRACK", "SHARE UNTRACK"];
+    // The buttons of the two views (T10.2a). ContractTracker's text has "TRACK" / "UNTRACK" alone, without "SHARE".
+    private const string AcceptOffer = "ACCEPT OFFER";
+    private const string ShareTrack = "SHARE TRACK";
+    private const string ShareUntrack = "SHARE UNTRACK";
+
+    /// <summary>The last line of a contract: the offers view's button or the accepted view's share line (T10.2a).</summary>
+    private static readonly string[] EndHeadings = [AcceptOffer, ShareTrack, ShareUntrack];
+
+    /// <summary>Whole lines and line starts that only the offers view shows.</summary>
+    private static readonly (string[] Lines, string[] Starts) OfferSignals = ([AcceptOffer], ["Contract Availability"]);
+
+    /// <summary>Whole lines and line starts that only the accepted view shows.</summary>
+    private static readonly (string[] Lines, string[] Starts) AcceptedSignals =
+        (["ABANDON", ShareTrack, ShareUntrack, "TRACK", "UNTRACK"], ["Contract Deadline"]);
 
     public static ParsedContract Parse(string rawText)
     {
         var text = rawText.ReplaceLineEndings("\n");
-        var lines = Block(text.Split('\n'));
-        return new(Deliveries(lines), MaxCrateSize(string.Join('\n', lines)), ListedDestinationCount(lines), Reward(text), Pickups(lines));
+        var all = text.Split('\n');
+        var lines = Block(all);
+        return new(Deliveries(lines), MaxCrateSize(string.Join('\n', lines)), ListedDestinationCount(lines), Reward(text), Pickups(lines),
+            View(all));
     }
+
+    /// <summary>
+    /// The view from the whole text, buttons and title stand outside the block: one side's signals only, else unknown. In
+    /// the anchor form, so "ACCEPT 0FFER" and "Contract DeadIine" count.
+    /// </summary>
+    private static ContractView View(string[] lines) =>
+        (lines.Any(l => Shows(l, OfferSignals)), lines.Any(l => Shows(l, AcceptedSignals))) switch
+        {
+            (true, false) => ContractView.Offer,
+            (false, true) => ContractView.Accepted,
+            _ => ContractView.Unknown,
+        };
+
+    private static bool Shows(string line, (string[] Lines, string[] Starts) signals) =>
+        signals.Lines.Any(heading => IsHeading(line, heading))
+        || signals.Starts.Any(start => ContractText.AnchorForm(line).StartsWith(ContractText.AnchorForm(start), StringComparison.Ordinal));
 
     /// <summary>
     /// "Collect Stims from Everus Harbor." (T10.2a): one line per pickup, its verb as OCR may read it ("CoIlect"). A place

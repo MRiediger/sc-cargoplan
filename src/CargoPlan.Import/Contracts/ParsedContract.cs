@@ -9,9 +9,11 @@ namespace CargoPlan.Import.Contracts;
 /// <param name="Reward">"Reward" with its amount at the start of the text or on a line of its own; null if missing or not
 /// readable as a number.</param>
 /// <param name="Pickups">The Collect lines in the order of the text, a place named again kept (T10.2a); empty without any.</param>
+/// <param name="View">Offers or accepted, from the buttons and the availability or deadline line (T10.2a).</param>
 internal sealed record ParsedContract(
     IReadOnlyList<ParsedDelivery> Deliveries,
     CrateSize? MaxCrateSize,
     int? ListedDestinationCount,
     long? Reward,
-    IReadOnlyList<ParsedPickup> Pickups);
+    IReadOnlyList<ParsedPickup> Pickups,
+    ContractView View);

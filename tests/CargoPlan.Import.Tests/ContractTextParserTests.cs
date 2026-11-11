@@ -554,6 +554,40 @@ public class ContractTextParserTests
         parsed.Pickups.Should().Equal(new ParsedPickup("Processed Food", "Everus Harbor"));
     }
 
+    [Theory]
+    [InlineData(ImportFixtures.FuelOffer, ContractView.Offer)]
+    [InlineData(ImportFixtures.IronCouldntHandle, ContractView.Offer)]
+    [InlineData(ImportFixtures.WasteCollectWrapped, ContractView.Offer)]
+    [InlineData(ImportFixtures.StimsSplit, ContractView.Offer)]
+    [InlineData(ImportFixtures.SiliconOverlayText, ContractView.Offer)]
+    [InlineData(ImportFixtures.FuelAccepted, ContractView.Accepted)]
+    [InlineData(ImportFixtures.SiliconAtMost, ContractView.Accepted)]
+    [InlineData(ImportFixtures.StimsAcceptedTab, ContractView.Accepted)]
+    [InlineData(ImportFixtures.WasteOrSmaller, ContractView.Accepted)]
+    public void View_is_read_from_the_buttons_and_the_deadline_line(string fixture, ContractView expected) =>
+        ContractTextParser.Parse(ImportFixtures.RawText(fixture)).View.Should().Be(expected);
+
+    [Theory]
+    [InlineData("ACCEPT 0FFER", ContractView.Offer)]
+    [InlineData("Contract AvaiIability 2h 1m", ContractView.Offer)]
+    [InlineData("ABAND0N", ContractView.Accepted)]
+    [InlineData("Contract DeadIine N/A", ContractView.Accepted)]
+    [InlineData("SHARE UNTRACK", ContractView.Accepted)]
+    [InlineData("UNTRACK", ContractView.Accepted)]
+    [InlineData("TRACK", ContractView.Accepted)]
+    [InlineData("ACCEPT OFFER\nABANDON", ContractView.Unknown)]
+    [InlineData("Contract Availability 2h 1m\nContract Deadline N/A", ContractView.Unknown)]
+    [InlineData("Covalex Shipping", ContractView.Unknown)]
+    [InlineData("Accept the offer by tomorrow.", ContractView.Unknown)]
+    public void View_tolerates_misread_signals_and_is_unknown_without_one_side(string lines, ContractView expected)
+    {
+        // Offers: the ACCEPT OFFER button, "Contract Availability". Accepted: ABANDON, SHARE (UN)TRACK (ContractTracker's text
+        // has "TRACK" alone), "Contract Deadline". Both sides or neither: unknown, never a guess (T10.2a).
+        var parsed = ContractTextParser.Parse($"Rookie Rank - Direct Small Cargo Haul\nDETAILS\nDeliver 0/7 SCU of Stims to Riker\n{lines}");
+
+        parsed.View.Should().Be(expected);
+    }
+
     /// <summary>
     /// Every place a fixture's Collect lines name (H2, T10.2a): ContractTracker's text puts prose or a list right after a
     /// Collect line, and an ending wrongly taken from it would give a place that is none of these.
