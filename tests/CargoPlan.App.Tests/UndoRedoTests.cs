@@ -170,6 +170,33 @@ public sealed class UndoRedoTests
         overlay.CanRedo.Should().BeTrue();
     }
 
+    // T10.4a, B2: without the sync nobody has read ContractTracker; Restored's Resync gets present = null, "not read", which
+    // must never mean "lists nothing" (ContractSync.Sync, D81) – and still places a waiting mission that fits.
+    [Fact]
+    public void Undo_and_redo_keep_captures_never_gone_and_place_a_waiting_mission_that_fits()
+    {
+        Mission[] captured =
+        [
+            new(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 16, CrateSize.Sixteen)])], new ContractSource([36])),
+            new(2, [new MissionStop("Shubin", 1, [new MissionItem("Stims", 16, CrateSize.Sixteen)])], new ContractSource([37, 38])),
+        ];
+        var planned = LoadPlanner.Plan(HullA, captured, ["Riker", "Shubin"]);
+        var waiting = new Mission(3, [new MissionStop("Orison", 1, [new MissionItem("Waste", 8, CrateSize.Eight)])], Unplaced: true);
+        var overlay = Showing(new SavedPlan([.. planned.Missions, waiting], planned.Plan, planned.CrateCap));
+        Move(overlay);
+
+        overlay.UndoCommand.Execute(null);
+        var afterUndo = overlay.Missions;
+        overlay.RedoCommand.Execute(null);
+
+        foreach (var missions in new[] { afterUndo, overlay.Missions })
+        {
+            missions.Where(m => m.Contract is not null).Select(m => (m.Contract!.ContractIds, m.Contract.Gone, m.Contract.Detached))
+                .Should().BeEquivalentTo([((IReadOnlyList<long>)[36L], false, false), ([37L, 38L], false, false)]);
+            missions.Single(m => m.Id == 3).Unplaced.Should().BeFalse();
+        }
+    }
+
     // --- Every player action on the plan is a step ---
 
     [Fact]
