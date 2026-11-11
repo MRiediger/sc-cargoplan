@@ -28,10 +28,10 @@ public static class HoloRelease
     public static readonly TimeSpan ManifestMaxAge = TimeSpan.FromHours(24);
 
     /// <summary>%LocalAppData%\SC-CargoPlan\holo, next to settings.json: one folder per tag, only this app's stays (D95).</summary>
-    public static string DefaultCacheRoot { get; } = Path.Combine(AppFolders.LocalRoot, "holo");
+    public static string DefaultCacheRoot => Path.Combine(AppFolders.LocalRoot, "holo");
 
     /// <summary>%LocalAppData%\SC-CargoPlan\holo\holo-v2, the cache of <see cref="Tag"/>.</summary>
-    public static string DefaultCacheFolder { get; } = Path.Combine(DefaultCacheRoot, Tag);
+    public static string DefaultCacheFolder => Path.Combine(DefaultCacheRoot, Tag);
 
     /// <summary>
     /// The version for the User-Agent, without the commit hash the SDK appends after "+": the request names the app and

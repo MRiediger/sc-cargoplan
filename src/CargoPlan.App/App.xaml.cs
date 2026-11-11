@@ -26,6 +26,8 @@ public partial class App : Application
 {
     private const int ExitShipsFolderBroken = 1;
 
+    private const int ExitDataFolderUnusable = 2;
+
     private CursorStateMonitor? _cursorMonitor;
 
     // Kept so the composition root visibly owns it; the window's events would keep it alive anyway.
@@ -62,6 +64,14 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Before anything reads a path, the crash log included: --data-dir moves every file of the run (T10.4a, B1).
+        var options = StartOptions.Parse(e.Args);
+        if (!UseDataFolderOrExit(options))
+        {
+            return;
+        }
+
         ComposeCrashLogging();
 
         if (LoadShipsOrExit() is not { } ships)
@@ -71,8 +81,6 @@ public partial class App : Application
 
         // Once per start, not per ship change (200 KB). A broken file costs the outlines, never the start (D62).
         var outlines = ShipOutlineLoader.Load();
-
-        var options = StartOptions.Parse(e.Args);
 
         // The measuring tool instead of the overlay (Phase 8): before settings and plan, so it touches neither.
         if (options.MeasureFrames is { } measured)
@@ -101,7 +109,36 @@ public partial class App : Application
         ShowWindows(parts, options);
     }
 
-    /// <summary>First, so nothing after goes unlogged (D82).</summary>
+    /// <summary>
+    /// <c>--data-dir</c>: its folder for every file of the run. A refused or unusable folder ends the app with one message,
+    /// never the player's profile instead (T10.1b); false then. Without the switch nothing happens.
+    /// </summary>
+    private bool UseDataFolderOrExit(StartOptions options)
+    {
+        string? problem = options.DataDirRefused ? options.Problem : null;
+        if (options.DataDir is { } folder)
+        {
+            try
+            {
+                AppFolders.Use(folder);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                problem = $"{StartOptions.DataDirSwitch} {folder}: {ex.Message}";
+            }
+        }
+
+        if (problem is null)
+        {
+            return true;
+        }
+
+        MessageBox.Show(problem, "SC-CargoPlan", MessageBoxButton.OK, MessageBoxImage.Error);
+        Shutdown(ExitDataFolderUnusable);
+        return false;
+    }
+
+    /// <summary>First after the data folder, so nothing after goes unlogged (D82).</summary>
     private void ComposeCrashLogging()
     {
         // The dispatcher's: log, say so, and end as before (Handled stays false). Other threads': the runtime ends the

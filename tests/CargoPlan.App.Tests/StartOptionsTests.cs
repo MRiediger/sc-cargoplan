@@ -187,4 +187,34 @@ public class StartOptionsTests
         options.ScanProbeImages.Should().BeFalse();
         options.Problem.Should().Contain("--scan-probe-images");
     }
+
+    // T10.4a, B1: a test run with its own files, never the player's profile.
+    [Theory]
+    [InlineData("--data-dir", @"D:\cargoplan-gate")]
+    [InlineData("--Data-Dir", @"D:\cargoplan-gate")]
+    public void Data_dir_takes_the_next_argument_as_folder(params string[] args)
+    {
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null, DataDir: @"D:\cargoplan-gate"));
+    }
+
+    [Theory]
+    [InlineData("--data-dir")]
+    [InlineData("--data-dir", "--locked")]
+    [InlineData("--data-dir", "gate")]
+    [InlineData("--data-dir", @"..\gate")]
+    public void Data_dir_without_a_full_path_refuses_the_start(params string[] args)
+    {
+        // Falling back to the profile is what the switch is there to prevent (T10.1b): the app ends instead.
+        var options = StartOptions.Parse(args);
+
+        options.DataDir.Should().BeNull();
+        options.DataDirRefused.Should().BeTrue();
+        options.Problem.Should().Be("--data-dir needs the full path of a folder.");
+    }
+
+    [Fact]
+    public void Without_data_dir_nothing_is_refused()
+    {
+        StartOptions.Parse(["--locked"]).DataDirRefused.Should().BeFalse();
+    }
 }
