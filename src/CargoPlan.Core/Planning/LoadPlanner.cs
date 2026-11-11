@@ -414,13 +414,14 @@ public static class LoadPlanner
     /// edited <paramref name="missions"/> still hold it with the same crates (commodity and size; a split or merge is in
     /// the mission, D27). It is known by its contract's first id and destination, a typed one by its destination alone
     /// (typed rows of one destination are one mission, D42, and the editor numbers them anew). Changed, it is planned
-    /// again, and <c>Cleared</c> says so ("Riker: changed in the editor – no longer loaded"). Without anything kept, the
+    /// again, and <c>Cleared</c> says so ("Riker: changed in the editor – no longer loaded", or by whatever <c>change</c> says). Without anything kept, the
     /// plan from scratch (<see cref="Plan(Ship, IReadOnlyList{Mission}, IReadOnlyList{string}, FillOrder, long, FillRows, PlanGrouping, int)"/>);
     /// with only delivered cargo kept, the rest planned like that and joined (as Re-plan does, D66); with loaded cargo,
     /// the rest laid in around it by the rule of <see cref="PlaceInto"/> (D41): first the rest of missions loaded in part,
     /// then missions by SCU (largest first), first destination and id, so the order of entry doesn't matter. A mission
     /// without room waits (and a delivered delivery of it loses its tick, as on another ship, K2.2).
     /// </summary>
+    /// <param name="change">What changed a delivery, as <c>Cleared</c> names it: the editor by default, a scan (T10.3).</param>
     /// <exception cref="ArgumentException">The order doesn't name every destination once.</exception>
     /// <exception cref="PlanException">
     /// The rest of a mission loaded in part finds no room: the elevator hands out whole missions, so it can't wait while
@@ -428,14 +429,18 @@ public static class LoadPlanner
     /// </exception>
     public static (SavedPlan Plan, IReadOnlyList<string> Cleared) PlanKeeping(
         SavedPlan current, Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder = FillOrder.BowFirst, long watermark = 0,
-        FillRows fillRows = FillRows.Lengthwise, PlanGrouping grouping = PlanGrouping.None, int sectionGap = 0)
+        FillRows fillRows = FillRows.Lengthwise, PlanGrouping grouping = PlanGrouping.None, int sectionGap = 0, string change = ChangedInEditor)
     {
-        var (plan, cleared) = Keeping(current, ship, missions, stopOrder, fillOrder, fillRows, watermark);
+        var (plan, cleared) = Keeping(current, ship, missions, stopOrder, fillOrder, fillRows, watermark, change);
         return (Sectioned(plan, ship, grouping, sectionGap), cleared);
     }
 
+    /// <summary>The editor's words for a delivery its Plan changed (K6.4).</summary>
+    public const string ChangedInEditor = "changed in the editor";
+
     private static (SavedPlan Plan, IReadOnlyList<string> Cleared) Keeping(
-        SavedPlan current, Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder, FillRows fillRows, long watermark)
+        SavedPlan current, Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder, FillRows fillRows, long watermark,
+        string change = ChangedInEditor)
     {
         var cap = CrateCap.Of(ship);
         var states = current.Plan.ShipId == ship.Id ? KeptDeliveries(current) : [];
@@ -459,7 +464,7 @@ public static class LoadPlanner
                 }
                 else
                 {
-                    cleared.Add($"{stop.Destination}: changed in the editor – {(crates[0].Loaded ? "no longer loaded" : "tick cleared")}");
+                    cleared.Add($"{stop.Destination}: {change} – {(crates[0].Loaded ? "no longer loaded" : "tick cleared")}");
                 }
             }
         }
