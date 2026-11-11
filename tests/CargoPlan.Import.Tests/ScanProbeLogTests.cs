@@ -40,6 +40,12 @@ public sealed partial class ScanProbeLogTests(ITestOutputHelper output)
             {
                 problems.Add($"scan {scan.No}: view unknown");
             }
+
+            // No second read for a text all there (T10.2b2, D103): a hard doubt over the game would cost Gate 1.
+            if (scan.Contract.InHardDoubt)
+            {
+                problems.Add($"scan {scan.No}: hard doubt ({string.Join(", ", scan.Contract.Doubts)})");
+            }
         }
 
         // A route: its destination–commodity pairs and reward, as the truth of a pair would name it. Pickups and max size
@@ -53,6 +59,8 @@ public sealed partial class ScanProbeLogTests(ITestOutputHelper output)
         var report = new StringBuilder();
         report.AppendLine(CultureInfo.InvariantCulture, $"{scans.Count} scans: {string.Join(", ", scans.GroupBy(s => s.Contract.View).Select(g => $"{g.Key} {g.Count()}"))}");
         report.AppendLine(CultureInfo.InvariantCulture, $"{routes.Count} routes, {scans.Select(s => s.Contract.Key).Distinct().Count()} keys");
+        report.AppendLine(CultureInfo.InvariantCulture,
+            $"doubts: {string.Join(", ", scans.SelectMany(s => s.Contract.Doubts).GroupBy(d => d).Select(g => $"{g.Key} {g.Count()}").DefaultIfEmpty("none"))}");
         foreach (var key in scans.GroupBy(s => s.Contract.Key).OrderByDescending(g => g.Count()))
         {
             report.AppendLine(CultureInfo.InvariantCulture, $"  {key.Count(),4} × ({string.Join(", ", key.GroupBy(s => s.Contract.View).Select(g => $"{g.Key} {g.Count()}"))})  {key.Key}");

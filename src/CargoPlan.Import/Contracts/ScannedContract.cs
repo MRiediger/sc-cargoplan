@@ -17,6 +17,7 @@ namespace CargoPlan.Import.Contracts;
 /// <param name="ListedDestinationCount">Entries of the contract's drop-off list; null if it has none.</param>
 /// <param name="Reward">The reward in aUEC; null if the text had none or it wasn't readable.</param>
 /// <param name="Key">The content key (D101): pickups, destination–commodity pairs, max size, reward; no SCU.</param>
+/// <param name="Doubts">Why the text may still have been typing in (D103); empty for a text all there.</param>
 public sealed record ScannedContract(
     ContractView View,
     IReadOnlyList<MissionStop> Stops,
@@ -24,8 +25,20 @@ public sealed record ScannedContract(
     bool CrateSizeAssumed,
     int? ListedDestinationCount,
     long? Reward,
-    string Key)
+    string Key,
+    IReadOnlyList<ContractDoubt> Doubts)
 {
+    /// <summary>A doubt a second read must clear, or the scan is "still loading" (D103).</summary>
+    public bool InHardDoubt => Doubts.Any(d => d is ContractDoubt.NoDeliveryRead or ContractDoubt.ObjectiveLineUnread);
+
+    /// <summary>
+    /// The contract as Core takes it into the plan (D102): its stops, and a scan identity with <paramref name="scanNo"/>,
+    /// estimated unless read from the accepted view (a view not told apart counts as estimated, D102).
+    /// </summary>
+    public ContractCapture ToCapture(int scanNo) => new(
+        Stops,
+        ContractSource.Scanned(new ScanIdentity(scanNo, Key, View != ContractView.Accepted), CrateSizeAssumed, ListedDestinationCount, Reward));
+
     /// <summary>A max size or reward that wasn't readable, in the key: equal only to itself, never to a number (D101).</summary>
     internal const string Unreadable = "?";
 
@@ -43,14 +56,57 @@ public sealed record ScannedContract(
             .GroupBy(p => p.Commodity, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => Core.Missions.Pickups.Normalized(g.Select(p => p.Place)), StringComparer.OrdinalIgnoreCase);
 
+        var stops = ContractStops.Of(parsed.Deliveries, parsed.MaxCrateSize, pickupsByCommodity);
         return new(
             parsed.View,
-            ContractStops.Of(parsed.Deliveries, parsed.MaxCrateSize, pickupsByCommodity),
+            stops,
             Core.Missions.Pickups.Normalized(parsed.Pickups.Select(p => p.Place)) ?? [],
             CrateSizeAssumed: parsed.MaxCrateSize is null,
             parsed.ListedDestinationCount,
             parsed.Reward,
-            KeyOf(parsed));
+            KeyOf(parsed),
+            DoubtsOf(parsed, stops.Count));
+    }
+
+    /// <summary>
+    /// Hard: the objectives without a delivery, or an objective line read as nothing. Soft, only with objectives: no
+    /// reward; a delivered commodity without a Collect line though others have one; fewer destinations than listed (E1).
+    /// </summary>
+    private static IReadOnlyList<ContractDoubt> DoubtsOf(ParsedContract parsed, int stops)
+    {
+        if (!parsed.HasObjectives && parsed.Deliveries.Count == 0)
+        {
+            return [];
+        }
+
+        HashSet<string> collected = new(parsed.Pickups.Select(p => p.Commodity), StringComparer.OrdinalIgnoreCase);
+        List<ContractDoubt> doubts = [];
+        if (parsed.Deliveries.Count == 0)
+        {
+            doubts.Add(ContractDoubt.NoDeliveryRead);
+        }
+
+        if (parsed.Unread is [_, ..])
+        {
+            doubts.Add(ContractDoubt.ObjectiveLineUnread);
+        }
+
+        if (parsed.Reward is null)
+        {
+            doubts.Add(ContractDoubt.NoReward);
+        }
+
+        if (collected.Count > 0 && parsed.Deliveries.Any(d => !collected.Contains(d.Commodity)))
+        {
+            doubts.Add(ContractDoubt.CommodityWithoutPickup);
+        }
+
+        if (parsed.ListedDestinationCount > stops)
+        {
+            doubts.Add(ContractDoubt.FewerDestinationsThanListed);
+        }
+
+        return doubts;
     }
 
     /// <summary>
