@@ -474,7 +474,9 @@ public class CrateLayoutTests
         CrateLayout.MustStack(Rack1, riker, Of((CrateSize.Four, "Riker"), (CrateSize.Four, "Shubin"))).Should().BeFalse();
     }
 
+    // Time asserts fail under the load of all four test projects (T10.2b1, T10.2b2, T10.4a): by hand only, like T7.1d.
     [Fact]
+    [Trait("Category", "Timing")]
     public void Place_lays_out_16_crates_of_three_destinations_apart_in_under_100_ms()
     {
         (CrateSize Size, string Destination)[] crates =
@@ -490,6 +492,7 @@ public class CrateLayoutTests
     }
 
     [Fact]
+    [Trait("Category", "Timing")]
     public void Place_proves_stacking_in_under_100_ms()
     {
         var crates = Of(
