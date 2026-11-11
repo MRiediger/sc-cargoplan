@@ -25,7 +25,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     public const string PlanText = "Plan the rows and show them in the overlay";
     public const string MissionDeletedText = "Mission deleted – plan updated, no need to press Plan.";
     public const string ChangedOutsideText =
-        "The plan changed outside the editor (a scan, ContractTracker or the legend): new missions were added below. Plan replaces the plan with these rows.";
+        "The plan changed outside the editor (a scan or the legend): new missions were added below. Plan replaces the plan with these rows.";
 
     private readonly OverlayViewModel _overlay;
 
@@ -43,13 +43,10 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     private PlanGrouping _grouping;
     private int _sectionGap;
 
-    // "Sync from ContractTracker": the overlay's sync, the same read the watcher runs (T5.4); null without one.
-    private readonly Func<Task>? _syncFromContractTracker;
-
     // "Scan": the overlay's scan runner, the same path as the hotkey (T10.3); null without one.
     private readonly Action? _scanContract;
 
-    // The overlay's missions the rows were made from: a tick keeps the list, a sync or a deletion makes a new one.
+    // The overlay's missions the rows were made from: a tick keeps the list, a scan or a deletion makes a new one.
     private IReadOnlyList<Mission> _missions;
 
     // Set while the editor itself changes the overlay's plan, which then needs no reaction.
@@ -59,12 +56,10 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     private string _shipId;
 
     /// <summary>Starts with the missions of the overlay's plan, or one blank row without a plan.</summary>
-    /// <param name="syncFromContractTracker">Runs a ContractTracker sync; the Sync button is off without it.</param>
     /// <param name="scanContract">Starts a scan and returns at once; the Scan button is off without it and while one runs.</param>
-    public MissionEditorViewModel(OverlayViewModel overlay, Func<Task>? syncFromContractTracker = null, Action? scanContract = null)
+    public MissionEditorViewModel(OverlayViewModel overlay, Action? scanContract = null)
     {
         _overlay = overlay;
-        _syncFromContractTracker = syncFromContractTracker;
         _scanContract = scanContract;
         _fillOrder = overlay.Plan?.FillOrder ?? FillOrder.BowFirst;
         _fillRows = overlay.Plan?.FillRows ?? FillRows.Lengthwise;
@@ -342,8 +337,8 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     }
 
     /// <summary>
-    /// A destination ContractTracker missed (K6.5): a row in the selected row's ContractTracker mission, right below it,
-    /// manual from the start; with Plan it goes under the mission's #id. Add stays a typed row.
+    /// A destination the contract's text missed (K6.5): a row in the selected row's scanned or captured mission, right below
+    /// it, manual from the start; with Plan it goes under the mission's #id. Add stays a typed row.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanAddToMission))]
     private void AddToMission()
@@ -396,7 +391,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         try
         {
             var current = _overlay.Saved ?? new SavedPlan([], new LoadPlan(_overlay.Ship.Id, [], []), CrateCap.Of(_overlay.Ship));
-            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, _overlay.Watermark, FillRows, Grouping, SectionGap);
+            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, current.Watermark, FillRows, Grouping, SectionGap);
             ChangeOverlay(() => _overlay.ShowPlan(saved));
             _overlay.SetNotice(NoticeSource.Move, cleared.Count == 0 ? null : string.Join(" · ", cleared));
             IsDirty = false;
@@ -440,14 +435,6 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         IsDirty = wasDirty;
         Status = MissionDeletedText;
     }
-
-    /// <summary>Runs the overlay's ContractTracker sync, like a capture would (T5.4); new missions come in as rows.</summary>
-    // A method returning Task gives an AsyncRelayCommand (IAsyncRelayCommand).
-    // Source: https://learn.microsoft.com/dotnet/communitytoolkit/mvvm/generators/relaycommand#asynchronous-commands
-    [RelayCommand(CanExecute = nameof(CanSync))]
-    private Task Sync() => _syncFromContractTracker?.Invoke() ?? Task.CompletedTask;
-
-    private bool CanSync() => _syncFromContractTracker is not null;
 
     /// <summary>
     /// Reads the contract open in Star Citizen into the plan, like the scan hotkey (T10.3, D104). The scanner finds the game
@@ -549,7 +536,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         // StopNumber and Error are set by Evaluate; reacting to them would loop.
         if (MissionRow.IsInput(e.PropertyName))
         {
-            // A ContractTracker row changed by hand is the player's now (K6.5); loading a row sets nothing, it isn't attached yet.
+            // A contract's row changed by hand is the player's now (K6.5); loading a row sets nothing, it isn't attached yet.
             if (sender is MissionRow { ContractId: not null } row)
             {
                 row.Manual = true;
@@ -604,7 +591,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         _missions = _overlay.Missions;
         if (IsDirty)
         {
-            // The edits stay; new missions come in as rows, or Plan would drop a capture the watermark has passed.
+            // The edits stay; new missions come in as rows, or Plan would drop a scan the player just took in.
             HashSet<int> shown = [.. Rows.Select(r => r.MissionId).OfType<int>()];
             foreach (var row in RowsOf(_overlay).Where(r => r.MissionId is { } id && !shown.Contains(id)))
             {

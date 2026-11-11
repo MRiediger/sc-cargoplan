@@ -16,8 +16,8 @@ public enum HotkeyModifiers : uint
 }
 
 /// <summary>
-/// What a hotkey does; the names in settings.json are toggleLock, toggleOverlay, syncContractTracker, replan,
-/// discardPlan, undo, redo, resetView and scanContracts (D17, D44, D66, K2.3, K2.4, K1.3, D104).
+/// What a hotkey does; the names in settings.json are toggleLock, toggleOverlay, replan, discardPlan, undo, redo,
+/// resetView and scanContracts (D17, D66, K2.3, K2.4, K1.3, D104).
 /// </summary>
 public enum HotkeyAction
 {
@@ -27,13 +27,10 @@ public enum HotkeyAction
     /// <summary>Hides the overlay and shows it again.</summary>
     ToggleOverlay,
 
-    /// <summary>Takes new ContractTracker captures into the plan, like the editor's button, without opening the editor.</summary>
-    SyncContractTracker,
-
     /// <summary>Lays out the cargo on board anew, like the editor's Re-plan button (D66).</summary>
     Replan,
 
-    /// <summary>Empties the plan, so the next sync starts over, like the editor's Discard plan button (K2.3).</summary>
+    /// <summary>Empties the plan, so the next scan starts a new one, like the editor's Discard plan button (K2.3).</summary>
     DiscardPlan,
 
     /// <summary>Goes back one step, like the header's ↶ (K2.4).</summary>

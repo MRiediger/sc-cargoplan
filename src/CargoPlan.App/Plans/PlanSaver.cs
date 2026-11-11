@@ -10,7 +10,7 @@ namespace CargoPlan.App.Plans;
 /// <summary>
 /// Saves the plan whenever it changes, debounced: a Star Citizen crash between two stops must not lose the ticks (D18).
 /// Listens to <see cref="OverlayViewModel.Saved"/> itself, so every way of changing the plan saves it: tick, editor,
-/// drag and drop, and the ContractTracker sync, also when it only adds a mission that didn't fit (T5.4).
+/// drag and drop, and a scan, also when it only adds a mission that didn't fit (T5.4).
 /// </summary>
 public sealed class PlanSaver
 {

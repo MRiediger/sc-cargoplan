@@ -43,11 +43,10 @@ public sealed class HotkeyService
 
     /// <param name="window">The overlay: polling stops when it closes.</param>
     /// <param name="settings">A null entry = that hotkey is not set; null = <see cref="HotkeySettings.Default"/>, the scan's F3 only (D17, D104).</param>
-    /// <param name="syncContractTracker">The editor's "Sync from ContractTracker", which lives in the composition root, not in the view model (D44).</param>
     /// <param name="scanContracts">The scan (T10.3); a plain command that always runs, so a second press reaches the scanner and says "Scan running".</param>
     /// <param name="scanKeyCheck">Looks for ContractTracker on F3 at the start, on each scan press and when the scan key changes.</param>
     public HotkeyService(
-        Window window, HotkeySettings? settings, OverlayViewModel viewModel, ICommand syncContractTracker, ICommand scanContracts, ScanKeyCheck scanKeyCheck)
+        Window window, HotkeySettings? settings, OverlayViewModel viewModel, ICommand scanContracts, ScanKeyCheck scanKeyCheck)
     {
         _window = window;
         _viewModel = viewModel;
@@ -56,7 +55,6 @@ public sealed class HotkeyService
         {
             [HotkeyAction.ToggleLock] = viewModel.ToggleLockCommand,
             [HotkeyAction.ToggleOverlay] = viewModel.ToggleOverlayCommand,
-            [HotkeyAction.SyncContractTracker] = syncContractTracker,
             [HotkeyAction.Replan] = viewModel.ReplanCommand,
             [HotkeyAction.DiscardPlan] = viewModel.DiscardPlanCommand,
             [HotkeyAction.Undo] = viewModel.UndoCommand,
@@ -70,7 +68,6 @@ public sealed class HotkeyService
         [
             (HotkeyAction.ToggleLock, settings.ToggleLock),
             (HotkeyAction.ToggleOverlay, settings.ToggleOverlay),
-            (HotkeyAction.SyncContractTracker, settings.SyncContractTracker),
             (HotkeyAction.Replan, settings.Replan),
             (HotkeyAction.DiscardPlan, settings.DiscardPlan),
             (HotkeyAction.Undo, settings.Undo),
@@ -152,7 +149,7 @@ public sealed class HotkeyService
         foreach (var action in _poller.Poll(armed))
         {
             // The toolkit's commands don't check CanExecute in Execute; a button's binding does, a hotkey has to: a
-            // re-plan without cargo on board does nothing, a second sync doesn't start while one runs.
+            // re-plan without cargo on board does nothing.
             // Source: https://github.com/CommunityToolkit/dotnet/blob/main/src/CommunityToolkit.Mvvm/Input/RelayCommand.cs (Execute)
             var command = _commands[action];
             var canExecute = command.CanExecute(null);
@@ -182,7 +179,6 @@ public sealed class HotkeyService
     {
         HotkeyAction.ToggleLock => "toggleLock",
         HotkeyAction.ToggleOverlay => "toggleOverlay",
-        HotkeyAction.SyncContractTracker => "syncContractTracker",
         HotkeyAction.Replan => "replan",
         HotkeyAction.DiscardPlan => "discardPlan",
         HotkeyAction.Undo => "undo",

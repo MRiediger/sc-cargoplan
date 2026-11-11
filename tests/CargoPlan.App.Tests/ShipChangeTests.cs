@@ -6,7 +6,6 @@ using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
 using CargoPlan.Core.Tests;
-using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
 
@@ -151,7 +150,7 @@ public class ShipChangeTests
 
         viewModel.Plan!.ShipId.Should().Be("c2_hercules");
         viewModel.Missions.Should().BeEquivalentTo(before.Missions, o => o.WithStrictOrdering());
-        viewModel.Watermark.Should().Be(before.Watermark);
+        viewModel.Saved!.Watermark.Should().Be(before.Watermark);
         viewModel.Scene.Ship.Should().BeSameAs(C2);
     }
 
@@ -260,18 +259,18 @@ public class ShipChangeTests
     }
 
     [Fact]
-    public void ContractTracker_sync_after_a_change_places_on_the_new_ship()
+    public void A_scan_after_a_change_places_on_the_new_ship()
     {
         var viewModel = Overlay(HullA);
         viewModel.ShowPlan(TestPlans.SplitAndShared());
         viewModel.ChangeShip(C2);
-        ContractTrackerCandidate capture = new([36], null, [new MissionStop("Area18", 1, [new MissionItem("Stims", 4, CrateSize.Four)])], false, false, null, null, null);
 
-        viewModel.ApplyContractTracker(new ContractTrackerReadResult([capture], null, null));
+        viewModel.ApplyScan(Import.Contracts.ScannedContract.Read(
+            "ABANDON\nDETAILS\nReward 50,250\nContract Deadline N/A\nPRIMARY OBJECTIVES\n"
+            + "Deliver 0/4 SCU of Stims to Area18.\nCollect Stims from Everus Harbor.\nSHARE UNTRACK"));
 
         viewModel.Plan!.ShipId.Should().Be("c2_hercules");
-        viewModel.Missions.Should().Contain(m => m.Contract != null && m.Contract.ContractIds.Contains(36) && !m.Unplaced);
-        viewModel.Watermark.Should().Be(36);
+        viewModel.Missions.Should().Contain(m => m.Contract != null && m.Contract.Scan != null && !m.Unplaced);
     }
 
     private static List<string?> Changes(OverlayViewModel source, Action act)

@@ -10,7 +10,6 @@ using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
 using CargoPlan.Core.Tests;
-using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
 
@@ -747,15 +746,6 @@ public class OverlayViewModelTests
         viewModel.Notices.Should().Equal(OverlayViewModel.SplitRefusedPrefix + "1 SCU crates can't be split.");
     }
 
-    // --- ContractTracker (T5.4) ---
-
-    private static ContractTrackerCandidate Candidate(long id, string destination, int scu = 4, CrateSize max = CrateSize.Four, bool sizeAssumed = false) =>
-        new([id], null, [new MissionStop(destination, 1, [new MissionItem("Stims", scu, max)])], sizeAssumed, false, null, null, null);
-
-    /// <param name="present">The known ids still in ContractTracker; null = not read.</param>
-    private static ContractTrackerReadResult Read(long[]? present, params ContractTrackerCandidate[] candidates) =>
-        new(candidates, null, present is null ? null : new HashSet<long>(present));
-
     private static OverlayViewModel Empty() => new(FrozenShips.Load("hull_a"));
 
     // --- One stop per place (B1) ---
@@ -788,167 +778,13 @@ public class OverlayViewModelTests
     }
 
     [Fact]
-    public void ApplyContractTracker_with_the_longer_name_renames_the_stop_and_says_so()
-    {
-        // K1: the sync renames a stop of the plan, so the player sees it like a merge on loading.
-        var viewModel = Empty();
-        viewModel.ApplyContractTracker(Read([], Candidate(36, "Thundering Express")));
-
-        viewModel.ApplyContractTracker(Read([36], Candidate(37, "Thundering Express Station")));
-
-        viewModel.Scene.Legend.Select(l => l.Destination).Distinct().Should().Equal("Thundering Express Station");
-        viewModel.Notices.Should().Equal(MergedText);
-    }
-
-    [Fact]
-    public void Merge_notice_stays_through_a_read_without_news_and_goes_with_the_next_sync()
-    {
-        // The start reads ContractTracker once after the debounce; that read must not take the loading notice away.
-        var viewModel = Empty();
-        viewModel.ShowPlan(TwoNamesOfOnePlace());
-
-        viewModel.ApplyContractTracker(Read([]));
-        viewModel.Notices.Should().Equal(MergedText);
-
-        viewModel.ApplyContractTracker(Read([], Candidate(40, "Riker")));
-        viewModel.Notices.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void ApplyContractTracker_without_a_plan_starts_one_with_the_capture()
-    {
-        var viewModel = Empty();
-
-        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker")));
-
-        viewModel.HasPlan.Should().BeTrue();
-        viewModel.Missions.Should().ContainSingle().Which.Contract!.ContractIds.Should().Equal(36);
-        viewModel.Watermark.Should().Be(36);
-        viewModel.Scene.Legend.Single().Destination.Should().Be("Riker");
-    }
-
-    [Fact]
-    public void ApplyContractTracker_keeps_crates_and_ticks_of_the_plan()
-    {
-        var viewModel = WithPlan();
-        viewModel.ToggleDeliveredCommand.Execute("Riker");
-        var before = viewModel.Plan!.Crates;
-
-        viewModel.ApplyContractTracker(Read(null, Candidate(40, "Area18", 1, CrateSize.One)));
-
-        viewModel.Plan!.Crates.Take(before.Count).Should().Equal(before);
-    }
-
-    [Fact]
-    public void ApplyContractTracker_without_news_changes_nothing()
-    {
-        // A checkpoint or our own read: no PropertyChanged, so no new scene (a drag goes on) and no save (D38).
-        var viewModel = Empty();
-        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker")));
-
-        Changes(viewModel, () => viewModel.ApplyContractTracker(Read([36]))).Should().BeEmpty();
-    }
-
-    [Fact]
-    public void ApplyContractTracker_of_a_mission_that_doesnt_fit_raises_PropertyChanged_for_Saved()
-    {
-        // The plan's crates stay the same; PlanSaver listens to Saved, so the new mission and watermark are saved.
-        var viewModel = Empty();
-
-        Changes(viewModel, () => viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker", 72, CrateSize.Eight))))
-            .Should().Contain(nameof(OverlayViewModel.Saved));
-        viewModel.Scene.Unplaced.Should().ContainSingle();
-    }
-
-    [Fact]
-    public void A_deleted_contract_with_crates_on_board_stays_marked_gone_with_one_notice()
-    {
-        // D81: the legend's "· gone" replaces the notice derived on every change (D43).
-        var viewModel = Empty();
-        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker")));
-
-        viewModel.ApplyContractTracker(Read([]));
-
-        viewModel.HasPlan.Should().BeTrue();
-        viewModel.Missions.Single().Contract!.Gone.Should().BeTrue();
-        viewModel.Notices.Should().Equal("Contract #36 gone from ContractTracker – kept in plan");
-    }
-
-    [Fact]
-    public void A_deleted_contract_that_is_ticked_stays_until_the_player_deletes_it()
-    {
-        var viewModel = Empty();
-        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin")));
-        viewModel.ToggleDeliveredCommand.Execute("Riker");
-
-        viewModel.ApplyContractTracker(Read([37]));
-
-        viewModel.Missions.Select(m => (m.Contract!.ContractIds[0], m.Contract.Gone)).Should().Equal((36L, true), (37L, false));
-    }
-
-    [Fact]
-    public void With_remove_a_deleted_contract_that_is_ticked_leaves_at_the_next_sync()
-    {
-        var viewModel = Empty();
-        viewModel.OnContractGone = ContractGonePolicy.Remove;
-        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin")));
-        viewModel.ToggleDeliveredCommand.Execute("Riker");
-
-        viewModel.ApplyContractTracker(Read([37]));
-
-        viewModel.Missions.Should().ContainSingle().Which.Contract!.ContractIds.Should().Equal(37);
-        viewModel.Notices.Should().Equal("Contract #36 gone from ContractTracker – removed 1 delivered");
-    }
-
-    [Fact]
-    public void ApplyContractTracker_shows_the_readers_notice()
-    {
-        var viewModel = Empty();
-
-        viewModel.ApplyContractTracker(new ContractTrackerReadResult([], ContractTrackerReader.SchemaNotSupportedNotice));
-
-        viewModel.Notices.Should().Equal(ContractTrackerReader.SchemaNotSupportedNotice);
-    }
-
-    [Fact]
-    public void A_paused_sync_takes_nothing_until_a_new_plan()
-    {
-        // plan.json couldn't be read: the sync must not overwrite it (T5.4 planning).
-        var viewModel = Empty();
-        viewModel.PauseContractTracker();
-
-        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker")));
-
-        viewModel.HasPlan.Should().BeFalse();
-        viewModel.Notices.Should().Equal(OverlayViewModel.SyncPausedText);
-
-        viewModel.ShowPlan(TestPlans.SplitAndShared());
-        viewModel.ApplyContractTracker(Read(null, Candidate(36, "Area18", 1, CrateSize.One)));
-
-        viewModel.Notices.Should().BeEmpty();
-        viewModel.Watermark.Should().Be(36);
-    }
-
-    [Fact]
-    public void A_read_without_news_doesnt_place_a_waiting_mission_but_the_button_does()
-    {
-        // Retry at the sync (T5.4 planning); a file event without new rows or missing ids stays a no-op (D38).
-        var viewModel = Empty();
-        viewModel.ApplyContractTracker(Read([], [.. Enumerable.Range(1, 5).Select(i => Candidate(i, $"Stop {i}", 16, CrateSize.Sixteen))]));
-        viewModel.ToggleDeliveredCommand.Execute("Stop 1");
-
-        viewModel.ApplyContractTracker(Read([1, 2, 3, 4, 5]));
-        viewModel.Missions[^1].Unplaced.Should().BeTrue();
-
-        viewModel.ApplyContractTracker(Read([1, 2, 3, 4, 5]), manual: true);
-        viewModel.Missions[^1].Unplaced.Should().BeFalse();
-    }
-
-    [Fact]
     public void DropMissionCommand_takes_the_mission_out()
     {
         var viewModel = Empty();
-        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin", 72, CrateSize.Eight)));
+        Mission riker = new(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 4, CrateSize.Four)])], new ContractSource([36]));
+        Mission shubin = new(2, [new MissionStop("Shubin", 1, [new MissionItem("Stims", 72, CrateSize.Eight)])], new ContractSource([37]), Unplaced: true);
+        var planned = LoadPlanner.Plan(viewModel.Ship, [riker], ["Riker"]);
+        viewModel.ShowPlan(new SavedPlan([.. planned.Missions, shubin], planned.Plan, planned.CrateCap));
         var crates = viewModel.Plan!.Crates;
 
         viewModel.DropMissionCommand.Execute(2);
@@ -956,95 +792,6 @@ public class OverlayViewModelTests
         viewModel.Missions.Select(m => m.Id).Should().Equal(1);
         viewModel.Plan!.Crates.Should().Equal(crates);
         viewModel.Scene.Unplaced.Should().BeEmpty();
-    }
-
-    // --- ContractTracker settings (T5.5, D44) ---
-
-    [Fact]
-    public void A_new_database_takes_its_captures_below_the_old_watermark_and_says_so()
-    {
-        var viewModel = Empty();
-        viewModel.ApplyContractTracker(Read([], Candidate(57, "Riker")));
-
-        viewModel.ApplyContractTracker(new ContractTrackerReadResult([Candidate(1, "Shubin")], null, new HashSet<long>(), DatabaseLooksNew: true));
-
-        viewModel.Watermark.Should().Be(1);
-        viewModel.Missions.Select(m => m.Contract!.ContractIds.Single()).Should().Equal(57, 1);
-        viewModel.Notices.Should().Contain(OverlayViewModel.DatabaseLooksNewText);
-    }
-
-    [Fact]
-    public void An_empty_new_database_sets_the_watermark_back_and_is_saved()
-    {
-        var viewModel = Empty();
-        viewModel.ApplyContractTracker(Read([], Candidate(57, "Riker")));
-        viewModel.ToggleDeliveredCommand.Execute("Riker");
-
-        var changes = Changes(viewModel, () => viewModel.ApplyContractTracker(new ContractTrackerReadResult([], null, new HashSet<long>(), DatabaseLooksNew: true)));
-
-        changes.Should().Contain(nameof(OverlayViewModel.Saved));
-        viewModel.Watermark.Should().Be(0);
-    }
-
-    [Fact]
-    public void ShowNewContracts_counts_the_captures_and_leaves_the_plan_alone()
-    {
-        var viewModel = Empty();
-
-        viewModel.ShowNewContracts(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin")));
-
-        viewModel.HasPlan.Should().BeFalse();
-        viewModel.Notices.Should().Equal(OverlayViewModel.NewContractsText(2));
-        OverlayViewModel.NewContractsText(2).Should().StartWith("2 new contracts in ContractTracker");
-        OverlayViewModel.NewContractsText(1).Should().StartWith("1 new contract in ContractTracker");
-    }
-
-    [Fact]
-    public void ShowNewContracts_without_captures_says_nothing_and_the_readers_notice_wins()
-    {
-        var viewModel = Empty();
-        viewModel.ShowNewContracts(Read([], Candidate(36, "Riker")));
-
-        viewModel.ShowNewContracts(Read([]));
-        viewModel.Notices.Should().BeEmpty();
-
-        viewModel.ShowNewContracts(new ContractTrackerReadResult([], ContractTrackerReader.SchemaNotSupportedNotice));
-        viewModel.Notices.Should().Equal(ContractTrackerReader.SchemaNotSupportedNotice);
-    }
-
-    [Fact]
-    public void ShowNewContracts_keeps_a_paused_sync_paused()
-    {
-        var viewModel = Empty();
-        viewModel.PauseContractTracker();
-
-        viewModel.ShowNewContracts(Read([], Candidate(36, "Riker")));
-
-        viewModel.Notices.Should().Equal(OverlayViewModel.SyncPausedText);
-    }
-
-    [Fact]
-    public void Taking_the_new_contracts_in_clears_their_notice()
-    {
-        var viewModel = Empty();
-        viewModel.ShowNewContracts(Read([], Candidate(36, "Riker")));
-
-        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker")), manual: true);
-
-        viewModel.Notices.Should().BeEmpty();
-        viewModel.Missions.Should().ContainSingle();
-    }
-
-    [Fact]
-    public void ContractTrackerQuery_names_the_watermark_and_the_plans_capture_ids()
-    {
-        var viewModel = Empty();
-        viewModel.ApplyContractTracker(Read([], Candidate(36, "Riker"), Candidate(37, "Shubin")));
-
-        var (watermark, known) = viewModel.ContractTrackerQuery();
-
-        watermark.Should().Be(37);
-        known.Should().BeEquivalentTo([36L, 37L]);
     }
 
     // --- Bow marker (D62) ---

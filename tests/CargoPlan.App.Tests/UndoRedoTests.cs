@@ -6,14 +6,13 @@ using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
 using CargoPlan.Core.Tests;
-using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
 
 /// <summary>
 /// Undo and redo of the player's actions on the plan (K2.4): moves, legend drags, turns, split, merge, re-plan, the
 /// editor's Plan, deleting a mission, discard and, since K6.4, every change of a delivery's state (a legend line or a crate
-/// clicked) are steps; syncs aren't, and carry over; a ship change clears the history. Snapshots of the whole plan, not saved: a restart starts without.
+/// clicked) are steps; a scan is one too (D103); a ship change clears the history. Snapshots of the whole plan, not saved: a restart starts without.
 /// </summary>
 public sealed class UndoRedoTests
 {
@@ -47,11 +46,14 @@ public sealed class UndoRedoTests
         throw new InvalidOperationException("No move changes the plan.");
     }
 
-    private static ContractTrackerCandidate Candidate(long id, string destination) =>
-        new([id], null, [new MissionStop(destination, 1, [new MissionItem("Stims", 2, CrateSize.Two)])], false, false, null, null, null);
-
-    private static ContractTrackerReadResult Read(params ContractTrackerCandidate[] candidates) =>
-        new(candidates, null, new HashSet<long>(candidates.SelectMany(c => c.ContractIds)));
+    /// <summary>Captures 36 to Riker and 37 to Shubin, planned.</summary>
+    private static SavedPlan TwoCaptures() => LoadPlanner.Plan(
+        HullA,
+        [
+            new Mission(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 2, CrateSize.Two)])], new ContractSource([36])),
+            new Mission(2, [new MissionStop("Shubin", 1, [new MissionItem("Stims", 2, CrateSize.Two)])], new ContractSource([37])),
+        ],
+        ["Riker", "Shubin"]);
 
     // --- Start ---
 
@@ -114,8 +116,7 @@ public sealed class UndoRedoTests
     [Fact]
     public void Undo_of_a_discard_brings_the_plan_back()
     {
-        var overlay = new OverlayViewModel(HullA, Catalog);
-        overlay.ApplyContractTracker(Read(Candidate(36, "Riker"), Candidate(37, "Shubin")));
+        var overlay = Showing(TwoCaptures());
         var before = overlay.Saved!;
 
         overlay.DiscardPlanCommand.Execute(null);
@@ -142,36 +143,6 @@ public sealed class UndoRedoTests
         overlay.Plan!.Crates.Where(c => c.Destination == "Orison").Should().OnlyContain(c => c.Delivered);
     }
 
-    [Fact]
-    public void Syncs_are_no_steps_and_a_tick_is_one()
-    {
-        var overlay = new OverlayViewModel(HullA, Catalog);
-        overlay.ApplyContractTracker(Read(Candidate(36, "Riker")));
-        overlay.ApplyContractTracker(Read(Candidate(36, "Riker"), Candidate(37, "Shubin")));
-        overlay.CanUndo.Should().BeFalse();
-
-        overlay.ToggleDeliveredCommand.Execute("Riker");
-
-        overlay.CanUndo.Should().BeTrue();
-    }
-
-    [Fact]
-    public void A_contract_synced_after_a_move_stays_through_the_undo()
-    {
-        var overlay = new OverlayViewModel(HullA, Catalog);
-        overlay.ApplyContractTracker(Read(Candidate(36, "Riker")));
-        Move(overlay);
-        overlay.ApplyContractTracker(Read(Candidate(36, "Riker"), Candidate(37, "Shubin")));
-
-        overlay.UndoCommand.Execute(null);
-
-        overlay.Missions.Select(m => m.Contract!.ContractIds.Single()).Should().Equal(36, 37);
-        overlay.Watermark.Should().Be(37);
-        overlay.CanRedo.Should().BeTrue();
-    }
-
-    // T10.4a, B2: without the sync nobody has read ContractTracker; Restored's Resync gets present = null, "not read", which
-    // must never mean "lists nothing" (ContractSync.Sync, D81) – and still places a waiting mission that fits.
     [Fact]
     public void Undo_and_redo_keep_captures_never_gone_and_place_a_waiting_mission_that_fits()
     {

@@ -233,8 +233,6 @@ public sealed class HotkeysViewModelTests
         viewModel.Overlay.Label.Should().Be(HotkeyEditor.OverlayLabel);
         viewModel.Scan.Action.Should().Be(HotkeyAction.ScanContracts);
         viewModel.Scan.Label.Should().Be("Scan contract");
-        viewModel.Sync.Action.Should().Be(HotkeyAction.SyncContractTracker);
-        viewModel.Sync.Label.Should().Be("Sync from ContractTracker");
         viewModel.Replan.Action.Should().Be(HotkeyAction.Replan);
         viewModel.Replan.Label.Should().Be("Re-plan");
         viewModel.Discard.Action.Should().Be(HotkeyAction.DiscardPlan);
@@ -246,8 +244,7 @@ public sealed class HotkeysViewModelTests
         viewModel.ResetView.Action.Should().Be(HotkeyAction.ResetView);
         viewModel.ResetView.Label.Should().Be("Reset view");
         viewModel.All.Should().Equal(
-            viewModel.Lock, viewModel.Overlay, viewModel.Scan, viewModel.Sync, viewModel.Replan, viewModel.Discard, viewModel.Undo, viewModel.Redo,
-            viewModel.ResetView);
+            viewModel.Lock, viewModel.Overlay, viewModel.Scan, viewModel.Replan, viewModel.Discard, viewModel.Undo, viewModel.Redo, viewModel.ResetView);
     }
 
     [Fact]
@@ -340,49 +337,6 @@ public sealed class HotkeysViewModelTests
 
         _set.Should().Equal((HotkeyAction.Replan, Key("Ctrl+Alt+L")), (HotkeyAction.Replan, (Hotkey?)null));
         viewModel.Replan.Hotkey.Should().BeNull();
-    }
-
-    [Fact]
-    public void The_sync_combination_is_refused_for_the_replan()
-    {
-        var viewModel = Create(new HotkeySettings(SyncContractTracker: "Ctrl+Alt+H"));
-
-        viewModel.Replan.RecordCommand.Execute(null);
-        viewModel.Replan.Capture(CtrlAlt, VK_H);
-
-        viewModel.Replan.Problem.Should().Be($"Ctrl+Alt+H is already used for {HotkeyEditor.SyncLabel}.");
-        _set.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void The_sync_hotkey_is_not_set_by_default_and_comes_from_the_file()
-    {
-        // No defaults (D17): without an entry there is no hotkey.
-        Create().Sync.Hotkey.Should().BeNull();
-        Create(new HotkeySettings(SyncContractTracker: "Ctrl+Alt+S")).Sync.Display.Should().Be("Ctrl+Alt+S");
-    }
-
-    [Fact]
-    public void The_lock_combination_is_refused_for_the_sync_and_the_other_way_round()
-    {
-        var viewModel = Create(new HotkeySettings("Ctrl+Alt+L", null, "Ctrl+Alt+H"));
-
-        viewModel.Sync.RecordCommand.Execute(null);
-        viewModel.Sync.Capture(CtrlAlt, VK_L);
-        viewModel.Overlay.RecordCommand.Execute(null);
-        viewModel.Overlay.Capture(CtrlAlt, VK_H);
-
-        viewModel.Sync.Problem.Should().Be($"Ctrl+Alt+L is already used for {HotkeyEditor.LockLabel}.");
-        viewModel.Overlay.Problem.Should().Be($"Ctrl+Alt+H is already used for {HotkeyEditor.SyncLabel}.");
-        _set.Should().BeEmpty();
-    }
-
-    [Fact]
-    public void The_hint_says_when_hotkeys_work_and_that_the_keys_reach_the_game_and_windows()
-    {
-        HotkeysViewModel.Hint.Should().Contain("Ctrl, Alt or Win required, except for F keys")
-            .And.Contain("Star Citizen or CargoPlan is in front")
-            .And.Contain("reach the game and Windows too");
     }
 
     [Fact]

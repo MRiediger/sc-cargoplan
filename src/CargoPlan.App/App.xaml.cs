@@ -1,7 +1,6 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
-using CargoPlan.App.ContractTracker;
 using CargoPlan.App.Editor;
 using CargoPlan.App.Holo;
 using CargoPlan.App.Hotkeys;
@@ -39,9 +38,6 @@ public partial class App : Application
     // Same here: the view model's and the overlay's events keep it alive.
     private PlanSaver? _planSaver;
 
-    // Same here: its timer and watcher keep it alive until the overlay closes.
-    private ContractTrackerSync? _contractTracker;
-
     // The holograms (D63): the overlay's only network access. One HttpClient for the whole run, not disposed when the
     // overlay closes: a fetch still running would then hit a disposed client; the process ends right after.
     // Source: https://learn.microsoft.com/dotnet/fundamentals/networking/http/httpclient-guidelines
@@ -59,7 +55,7 @@ public partial class App : Application
     /// <summary>
     /// The start in its steps, in this order (F22): each Compose method wires one part; their order is the order of the
     /// side effects and must not change (bounds before Show, the plan saver before the start plan, the overlay before the
-    /// lock window, the contract tracker's start last).
+    /// lock window).
     /// </summary>
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -169,13 +165,12 @@ public partial class App : Application
 
     /// <summary>What the later steps of the start wire together.</summary>
     private sealed record OverlayParts(
-        Ship Ship, OverlayViewModel ViewModel, SettingsSession Session, ContractTrackerSync ContractTracker, OverlayWindow Overlay,
-        ContractScanner Scanner, ScanRunner Scan);
+        Ship Ship, OverlayViewModel ViewModel, SettingsSession Session, OverlayWindow Overlay, ContractScanner Scanner, ScanRunner Scan);
 
     /// <summary>
-    /// The view model, the settings session, the ContractTracker sync, the scanner with its runner and the overlay window,
-    /// placed but not shown. The scanner comes before the window like the sync: the editor's buttons need both (T10.3); it
-    /// has no side effect before the warm-up, which waits for the first frame.
+    /// The view model, the settings session, the scanner with its runner and the overlay window, placed but not shown. The
+    /// scanner comes before the window: the editor's Scan button needs it (T10.3); it has no side effect before the
+    /// warm-up, which waits for the first frame.
     /// </summary>
     private OverlayParts ComposeOverlay(
         ShipCatalog ships, ShipOutlineCatalog outlines, StartOptions options, AppSettings settings, string? settingsProblem)
@@ -199,11 +194,6 @@ public partial class App : Application
 
         // Bounds before Show(), so the window appears in place instead of jumping there. The hotkeys' view model is made
         // when the settings window opens; by then _hotkeys exists (it needs the overlay, so it comes after it).
-        // ContractTracker where the settings say, detected by default (D44).
-        var contractTracker = new ContractTrackerSync(
-            viewModel, settings.ContractTracker.DatabasePath, autoSync: settings.ContractTracker.AutoSync);
-        viewModel.OnContractGone = settings.ContractTracker.GonePolicy;
-        _contractTracker = contractTracker;
 
         // The scanner's notices and the scan's changes of the plan come from pool threads; the overlay lives on the UI
         // thread. Source: https://learn.microsoft.com/dotnet/api/system.windows.threading.dispatcheroperation.task
@@ -215,8 +205,6 @@ public partial class App : Application
             viewModel,
             session,
             () => CreateHotkeysViewModel(session),
-            () => CreateContractTrackerSection(session, contractTracker, viewModel),
-            () => contractTracker.RunSyncGuardedAsync(manual: true),
             scan.Start);
         if (settings.Overlay is { } saved)
         {
@@ -226,23 +214,19 @@ public partial class App : Application
         // The saver's Closed handler goes first and hands over pending bounds; Flush then writes a pending look change.
         _boundsSaver = new OverlayBoundsSaver(overlay, session);
         overlay.Closed += (_, _) => session.Flush();
-        return new OverlayParts(ship, viewModel, session, contractTracker, overlay, scanner, scan);
+        return new OverlayParts(ship, viewModel, session, overlay, scanner, scan);
     }
 
     /// <summary>
-    /// Polled from here on (D97), before the settings window can ask for them. The sync hotkey runs the editor's button,
-    /// guarded like the timer (D82); AsyncRelayCommand would rethrow on the UI thread what isn't. The scan's is a plain
-    /// command: the runner guards itself, and a press during a scan must reach the scanner to say "Scan running" (D104).
+    /// Polled from here on (D97), before the settings window can ask for them. The scan's is a plain command: the runner
+    /// guards itself, and a press during a scan must reach the scanner to say "Scan running" (D104).
     /// </summary>
-    // Source: https://learn.microsoft.com/dotnet/api/communitytoolkit.mvvm.input.asyncrelaycommandoptions
     private void ComposeHotkeys(OverlayParts parts, AppSettings settings)
     {
-        var contractTracker = parts.ContractTracker;
         _hotkeys = new HotkeyService(
             parts.Overlay,
             settings.Hotkeys,
             parts.ViewModel,
-            new AsyncRelayCommand(() => contractTracker.RunSyncGuardedAsync(manual: true)),
             new RelayCommand(parts.Scan.Start),
             new ScanKeyCheck(ScanKeyCheck.IsContractTrackerRunning));
     }
@@ -261,11 +245,6 @@ public partial class App : Application
         {
             viewModel.LastScanNo = lastScanNo;
             viewModel.ShowPlan(plan);
-        }
-        else if (planProblem is not null)
-        {
-            // The file stays until the player makes a new plan; a capture must not overwrite it (T5.4).
-            viewModel.PauseContractTracker();
         }
     }
 
@@ -351,10 +330,10 @@ public partial class App : Application
     private static Func<GameWindow?>? ProbeTarget() =>
         Environment.GetEnvironmentVariable("CARGOPLAN_SC_CAPTURE_PROCESS") is { Length: > 0 } process ? () => GameWindow.Find(process) : null;
 
-    /// <summary>The overlay first: the lock window's Owner must be a window that has been shown. The sync starts last.</summary>
+    /// <summary>The overlay first: the lock window's Owner must be a window that has been shown.</summary>
     private void ShowWindows(OverlayParts parts, StartOptions options)
     {
-        var (viewModel, contractTracker, overlay) = (parts.ViewModel, parts.ContractTracker, parts.Overlay);
+        var (viewModel, overlay) = (parts.ViewModel, parts.Overlay);
         overlay.Show();
         new LockWindow(viewModel, overlay).Show();
 
@@ -368,10 +347,6 @@ public partial class App : Application
 
         _cursorMonitor = new CursorStateMonitor(viewModel);
         _cursorMonitor.Start();
-
-        // After the start plan, so the first read knows its watermark; it comes after the debounce, with the overlay up.
-        contractTracker.Start();
-        overlay.Closed += (_, _) => contractTracker.Dispose();
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -418,18 +393,6 @@ public partial class App : Application
             hotkeys.Suspend,
             hotkeys.Resume);
     }
-
-    /// <summary>
-    /// The settings window's ContractTracker section (D44): saved through the session, applied to the sync and the overlay
-    /// at once, so a new path is watched and a policy for gone contracts (D81) holds from the next read without a restart (D30).
-    /// </summary>
-    private static ContractTrackerSectionViewModel CreateContractTrackerSection(SettingsSession session, ContractTrackerSync sync, OverlayViewModel overlay) =>
-        new(session.Current.ContractTracker, File.Exists, settings =>
-        {
-            session.ChangeContractTracker(settings);
-            overlay.OnContractGone = settings.GonePolicy;
-            sync.Configure(settings.DatabasePath, settings.AutoSync);
-        });
 
     /// <summary>--plan wins over plan.json; a missing --plan file is a problem, a missing plan.json is the empty start.</summary>
     private static (SavedPlan? Plan, string? Problem, int LastScanNo) LoadStartPlan(StartOptions options, Ship ship)

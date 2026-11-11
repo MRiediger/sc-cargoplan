@@ -10,7 +10,6 @@ using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
 using CargoPlan.Import;
 using CargoPlan.Import.Contracts;
-using CargoPlan.Import.ContractTracker;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -40,17 +39,6 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     public const string SelectCratesText = "Select two or more crates to merge.";
 
-    public const string SyncPausedText = "ContractTracker sync paused: plan file not loaded. Plan in the editor to start it again.";
-
-    /// <summary>Every contract went in one read, or the database is new (D81): nothing left the plan, whatever the setting.</summary>
-    public const string AllGoneAtOnceText = "All contracts gone from ContractTracker at once – kept in plan";
-
-    public const string DatabaseLooksNewText = "ContractTracker database looks new – all contracts imported.";
-
-    /// <summary>Auto-sync off (D44): what a capture says instead of coming into the plan.</summary>
-    public static string NewContractsText(int count) =>
-        $"{count} new {(count == 1 ? "contract" : "contracts")} in ContractTracker – take {(count == 1 ? "it" : "them")} in with Sync from ContractTracker (editor or hotkey).";
-
     public static string ReplannedText(string madeFor, string current) => $"Plan was made for {madeFor}, re-planned for {current}.";
 
     /// <summary>A plan whose crate mixes were split for other racks (a file from before D70) was planned anew.</summary>
@@ -79,40 +67,6 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         return parts.Length == 0 ? null : string.Join(" · ", parts);
     }
 
-    /// <summary>
-    /// What a sync did with contracts gone from ContractTracker and back (D81), once, at the sync: "Contract #36 gone from
-    /// ContractTracker – kept in plan", "… – removed 2 planned, 1 delivered, kept 1 loaded", "… – removed, it was waiting",
-    /// with the rows added by hand a mission took along (K6.5), and "Contract #36 back in ContractTracker"; one line for
-    /// all at once. Null if there was nothing of that.
-    /// </summary>
-    public static string? GoneText(SyncResult result)
-    {
-        string[] parts =
-        [
-            .. result.AllAtOnce && result.Gone.Count > 0 ? [AllGoneAtOnceText] : result.Gone.Select(GoneLine),
-            .. result.Back.Select(m => $"Contract {MissionText.Source(m.Contract)} back in ContractTracker"),
-        ];
-        return parts.Length == 0 ? null : string.Join("; ", parts);
-
-        static string GoneLine(GoneReport gone)
-        {
-            string[] removed =
-            [
-                .. gone.Planned > 0 ? [$"{gone.Planned} planned"] : (string[])[],
-                .. gone.Delivered > 0 ? [$"{gone.Delivered} delivered"] : (string[])[],
-            ];
-            var what = (removed.Length, gone.Loaded, gone.Left) switch
-            {
-                (0, 0, false) => "kept in plan",
-                (0, 0, true) => "removed, it was waiting",
-                _ => string.Join(", ", [.. removed.Length > 0 ? ["removed " + string.Join(", ", removed)] : (string[])[], .. gone.Loaded > 0 ? [$"kept {gone.Loaded} loaded"] : (string[])[]]),
-            };
-            var rows = gone.Left ? gone.Mission.Items.Count(at => at.Item.Manual) : 0;
-            return $"Contract {MissionText.Source(gone.Mission.Contract)} gone from ContractTracker – {what}"
-                + (rows > 0 ? $", with {rows} {(rows == 1 ? "row" : "rows")} added by hand" : "");
-        }
-    }
-
     /// <summary>Loaded is this ship's state (K6.4): on other racks the crates are planned again.</summary>
     public static string LoadedClearedText(int crates, string ship) =>
         $"{crates} {(crates == 1 ? "crate was" : "crates were")} marked loaded – cleared for {ship}";
@@ -120,11 +74,8 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// <summary>Why the header's ↶ and ↷ went away (K2.4): a ship change empties the history.</summary>
     public const string HistoryClearedByShipChangeText = "Undo history cleared by ship change";
 
-    /// <summary>The snapshots hold the old database's ids, not detached (D81): a resync would take them for the new ones.</summary>
-    public const string HistoryClearedByDatabaseText = "Undo history cleared by new ContractTracker database";
-
     /// <summary>What Discard plan did (K2.3): a notice, no question (D66).</summary>
-    public const string DiscardedText = "Plan discarded – the next sync brings every ContractTracker contract back.";
+    public const string DiscardedText = "Plan discarded – scan your contracts to plan them again.";
 
     /// <summary>What the overlay asks before every re-plan (D66): no way past it, button or hotkey.</summary>
     public const string ReplanConfirmText =
@@ -354,9 +305,8 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public ShipChoice CurrentShipChoice => ShipSelection.First(c => c.Id == Ship.Id);
 
     /// <summary>
-    /// The plan with its missions and the ContractTracker watermark: the one state every change goes through and
-    /// <c>PlanSaver</c> saves (D18, T5.4). Set by <see cref="ShowPlan"/>, ticks, moves, split and merge, the sync and
-    /// removing a mission. Written by hand like <see cref="Selection"/>: the scene is built before PropertyChanged, so
+    /// The plan with its missions: the one state every change goes through and <c>PlanSaver</c> saves (D18, T5.4). Set by
+    /// <see cref="ShowPlan"/>, ticks, moves, split and merge, a scan and removing a mission. Written by hand like <see cref="Selection"/>: the scene is built before PropertyChanged, so
     /// bindings read the new one. A new plan builds a new scene, which empties the selection (D25): buttons and tool tips
     /// follow.
     /// </summary>
@@ -381,7 +331,6 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             SetNotice(NoticeSource.Sections, value?.Plan.Warnings.Where(SectionNotes.IsNote).Select(w => w.Message).ToArray() is { Length: > 0 } notes ? string.Join(" · ", notes) : null);
             OnPropertyChanged(nameof(Plan));
             OnPropertyChanged(nameof(Missions));
-            OnPropertyChanged(nameof(Watermark));
             OnPropertyChanged(nameof(Scene));
             OnPropertyChanged(nameof(SelectionInfo));
             OnPropertyChanged(nameof(HasPlan));
@@ -486,12 +435,6 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// <summary>The missions of <see cref="Saved"/>, as entered or captured (D23, D42); empty without a plan.</summary>
     public IReadOnlyList<Mission> Missions => Saved?.Missions ?? [];
 
-    /// <summary>The ContractTracker watermark of <see cref="Saved"/> (D39 addendum); 0 without a plan.</summary>
-    public long Watermark => Saved?.Watermark ?? 0;
-
-    // The ids ContractTracker still had at the last read; null before one. Kept for the sync after an undo (K2.4).
-    private IReadOnlySet<long>? _present;
-
     /// <summary>
     /// The last scan number given (D102), beside the plan and outside its undo steps, so an undo never gives a number
     /// twice; saved with the plan. Discard plan starts it again; the next number goes above the plan's highest too
@@ -499,17 +442,11 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// </summary>
     public int LastScanNo { get; set; }
 
-    /// <summary>What a sync does with a contract ContractTracker no longer lists (D81); the settings set it.</summary>
-    public ContractGonePolicy OnContractGone { get; set; }
-
     // Undo and redo of the player's steps (K2.4); not saved, so a restart starts without.
     private readonly PlanHistory _history = new();
 
-    // plan.json couldn't be read: the sync must not overwrite it with a plan of its own (T5.4 planning).
-    private bool _contractTrackerPaused;
-
     /// <summary>
-    /// Shows a plan made in the editor or loaded; ends a sync pause. A plan for another ship (plan.json) is planned anew
+    /// Shows a plan made in the editor or loaded. A plan for another ship (plan.json) is planned anew
     /// for this one and says so (D59), and so is one whose crate mixes were split for other racks (D70): every other way
     /// into <see cref="Saved"/> goes through Core with <see cref="Ship"/>, so the ship view never gets a plan of another ship.
     /// </summary>
@@ -539,11 +476,6 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         SetNotice(NoticeSource.Pickups, PickupsCleanedText(cleaned.Cleaned));
         Step(cleaned.Saved);
         SetNotice(NoticeSource.Move, null);
-        if (_contractTrackerPaused)
-        {
-            _contractTrackerPaused = false;
-            SetNotice(NoticeSource.ContractTracker, null);
-        }
     }
 
     private string WithLoadedCleared(string text, int loaded) => loaded == 0 ? text : $"{text} {LoadedClearedText(loaded, Ship.Name)}.";
@@ -568,8 +500,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>
     /// Puts the overlay on another ship (D59): the plan is planned anew for it (<see cref="LoadPlanner.Replan"/>), the
-    /// missions, ticks (off the ship, K2.2) and the watermark stay, so the ContractTracker sync goes on as before. Without a plan only the ship
-    /// view changes. Clears the start's ship and replan notices: the player chose.
+    /// missions and ticks (off the ship, K2.2) stay. Without a plan only the ship view changes. Clears the start's ship and replan notices: the player chose.
     /// </summary>
     public void ChangeShip(Ship ship)
     {
@@ -612,14 +543,6 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         OnPropertyChanged(nameof(Holo));
     }
 
-    /// <summary>
-    /// The one way a ContractTracker read reaches the plan (T5.4), on the UI thread: Core takes the captures in and marks
-    /// or takes out contracts gone from it (<see cref="ContractSync.Sync"/>, D81). A read Core changes nothing with changes
-    /// nothing here (D38: diff, don't react), so no new scene, no save and no notice taken away; the button
-    /// (<paramref name="manual"/>) always syncs, which also places waiting missions that fit now. Without a plan, a capture
-    /// starts one. A new database (D44) always changes the plan: its watermark goes back, also when the file is still
-    /// empty, and the undo history goes, since its snapshots hold the old ids undetached.
-    /// </summary>
     /// <summary>
     /// A scanned contract into the plan (T10.2b2, D103): one undo step, also the first into no plan; nothing for a text still
     /// typing in or without a delivery. One name per place first (B1), as for a capture; Core matches the key
@@ -680,87 +603,6 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         }
     }
 
-    public void ApplyContractTracker(ContractTrackerReadResult result, bool manual = false)
-    {
-        if (_contractTrackerPaused)
-        {
-            return;
-        }
-
-        SetNotice(NoticeSource.ContractTracker, result.Notice ?? (result.DatabaseLooksNew ? DatabaseLooksNewText : null));
-        // The plan didn't know the new captures' ids when asking; they are there, of course.
-        if (result.Present is { } present)
-        {
-            _present = new HashSet<long>([.. present, .. result.Candidates.SelectMany(c => c.ContractIds)]);
-        }
-
-        if (!manual && !result.DatabaseLooksNew && result.Candidates.Count == 0
-            && (result.Present is not { } read || Saved is not { } saved || ContractSync.Quiet(saved, read)))
-        {
-            return;
-        }
-
-        // One name per place before Core sees the captures (B1), so new crates join the rack of their place (D41).
-        var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []), CrateCap.Of(Ship));
-        var unified = DestinationNames.Unify(current, Ship, [.. result.Candidates.Select(c => c.ToCapture())]);
-        var synced = ContractSync.Sync(unified.Saved, Ship, unified.Captures, result.Present, result.DatabaseLooksNew, OnContractGone);
-        if (!manual && ReferenceEquals(synced.Saved, current))
-        {
-            // Nothing new, nothing gone or back: the notice of loading stays until something comes in.
-            return;
-        }
-
-        SetNotice(NoticeSource.Stops, StopsMergedText(unified.Merged));
-        SetNotice(NoticeSource.Pickups, null);
-        if (!ReferenceEquals(synced.Saved, current))
-        {
-            var cleared = result.DatabaseLooksNew && ClearHistory();
-            Saved = synced.Saved;
-            string[] said =
-            [
-                .. new[] { GoneText(synced), SettledText(LoadPlanner.SettledCrates(current.Plan, synced.Saved.Plan)), cleared ? HistoryClearedByDatabaseText : null }
-                    .OfType<string>(),
-            ];
-            if (said.Length > 0)
-            {
-                SetNotice(NoticeSource.Move, string.Join(" · ", said));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Auto-sync off (D44): a read only counts the captures above the watermark; the plan stays as it is, deleted contracts
-    /// included. The reader's notice wins; the count goes once the button or hotkey takes them in.
-    /// </summary>
-    public void ShowNewContracts(ContractTrackerReadResult result)
-    {
-        if (_contractTrackerPaused)
-        {
-            return;
-        }
-
-        SetNotice(
-            NoticeSource.ContractTracker,
-            result.Notice ?? (result.Candidates.Count > 0 ? NewContractsText(result.Candidates.Count) : null));
-    }
-
-    /// <summary>A read that failed for a reason the player has to fix, e.g. a file that is no database.</summary>
-    public void ShowContractTrackerProblem(string text) => SetNotice(NoticeSource.ContractTracker, text);
-
-    /// <summary>Stops the sync until the next <see cref="ShowPlan"/>; plan.json couldn't be read and stays as it is.</summary>
-    public void PauseContractTracker()
-    {
-        _contractTrackerPaused = true;
-        SetNotice(NoticeSource.ContractTracker, SyncPausedText);
-    }
-
-    /// <summary>
-    /// What the next read needs: the watermark and the capture ids of the plan, whose deletion and return it reports; not
-    /// the ids of a detached capture, an earlier database's (D81).
-    /// </summary>
-    public (long Watermark, IReadOnlyCollection<long> KnownIds) ContractTrackerQuery() =>
-        (Watermark, [.. Missions.Where(m => m.Contract is not { Detached: true }).SelectMany(m => m.Contract?.ContractIds ?? [])]);
-
     /// <summary>Takes a mission out with its crates (D42), from the editor's Delete mission; nothing else moves.</summary>
     public void RemoveMission(int missionId)
     {
@@ -809,9 +651,8 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     private bool CanReplan() => Plan?.Crates.Any(c => !c.Delivered) == true;
 
     /// <summary>
-    /// Empties the plan and the sync's baseline (K2.3, Martin's variant a): the editor's Discard plan button and the
-    /// discardPlan hotkey. Ticks go with the plan, fill order and ship stay; the next ContractTracker sync takes every
-    /// contract in again, a running auto-sync at its next signal. A notice, no question (D66).
+    /// Empties the plan (K2.3, Martin's variant a): the editor's Discard plan button and the discardPlan hotkey. Ticks go
+    /// with the plan, fill order and ship stay; the scan numbers start again. A notice, no question (D66).
     /// </summary>
     [RelayCommand(CanExecute = nameof(HasPlan))]
     private void DiscardPlan()
@@ -1003,7 +844,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>
     /// Goes back one step (K2.4): the header's ↶ and the undo hotkey. The plan before the step comes back, with what
-    /// happened since that is no step: contracts synced since come in again (<see cref="Restored"/>).
+    /// happened since that is no step (<see cref="Restored"/>).
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo()
@@ -1028,14 +869,15 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
     /// <summary>
     /// The entry's plan with what happened since its reference that is no step (Martin: restore, then sync incrementally):
-    /// Core's <c>Resync</c> places the contracts synced since again. The state of every delivery is the snapshot's
-    /// (K6.4, D74 addendum): a change of state is a step of its own.
+    /// Core's <c>Resync</c> places waiting missions that fit now. No capture is read since T10.4a, so it gets no
+    /// ids: null is "not read", never "lists nothing" (B2); Core keeps the parameter until T10.4b. The state of every
+    /// delivery is the snapshot's (K6.4, D74 addendum): a change of state is a step of its own.
     /// </summary>
     private SavedPlan Restored(PlanHistory.Entry entry, SavedPlan current)
     {
         SetNotice(NoticeSource.Replan, null);
         SetNotice(NoticeSource.Move, null);
-        return ContractSync.Resync(entry.Target, entry.Reference, current, Ship, _present, OnContractGone);
+        return ContractSync.Resync(entry.Target, entry.Reference, current, Ship, present: null);
     }
 
     /// <summary>Empties both stacks (K2.4); false if there was nothing to empty.</summary>
@@ -1119,8 +961,8 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// </summary>
     public ShipScene Scene { get; private set; } = EmptyScene(ship);
 
-    /// <summary>The plan with new crates (a tick, a move); missions and watermark stay.</summary>
-    private SavedPlan WithCrates(LoadPlan plan) => new(Missions, plan, Saved?.CrateCap ?? CrateCap.Of(Ship), Watermark);
+    /// <summary>The plan with new crates (a tick, a move); missions and the watermark of an older plan stay (T10.4b).</summary>
+    private SavedPlan WithCrates(LoadPlan plan) => new(Missions, plan, Saved?.CrateCap ?? CrateCap.Of(Ship), Saved?.Watermark ?? 0);
 
     private static ShipScene EmptyScene(Ship ship) => ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
 

@@ -5,7 +5,6 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Ships;
 using CargoPlan.Core.Tests;
-using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
 
@@ -19,17 +18,12 @@ public class ManualRowsTests
     private static readonly ShipCatalog Catalog = FrozenShips.LoadAll();
     private static readonly Ship HullA = Catalog.Get("hull_a");
 
-    private static ContractTrackerCandidate Candidate(long id, params string[] destinations) =>
-        new([id], null, [.. destinations.Select((d, i) => new MissionStop(d, i + 1, [new MissionItem("Stims", 2, CrateSize.Two)]))], false, false, null, null, null);
-
-    private static ContractTrackerReadResult Read(params ContractTrackerCandidate[] candidates) =>
-        new(candidates, null, new HashSet<long>(candidates.SelectMany(c => c.ContractIds)));
-
     /// <summary>Capture 37 to Riker, and a typed mission to Shubin.</summary>
     private static OverlayViewModel Overlay()
     {
         var overlay = new OverlayViewModel(HullA, Catalog);
-        overlay.ApplyContractTracker(Read(Candidate(37, "Riker")));
+        overlay.ShowPlan(LoadPlanner.Plan(
+            HullA, [new Mission(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 2, CrateSize.Two)])], new ContractSource([37]))], ["Riker"]));
         var editor = new MissionEditorViewModel(overlay);
         editor.AddRowCommand.Execute(null);
         (editor.Rows[^1].Destination, editor.Rows[^1].Commodity, editor.Rows[^1].Scu) = ("Shubin", "Gold", "4");
@@ -120,50 +114,19 @@ public class ManualRowsTests
         (typed.Manual, typed.MissionLabel).Should().Be((false, ""));
     }
 
-    // --- The sync as before ---
-
     [Fact]
-    public void Two_syncs_without_a_change_change_nothing()
+    public void A_scan_with_the_longer_name_renames_the_manual_stop_and_it_stays_manual()
     {
-        var overlay = WithAddedDestination();
-        var before = overlay.Saved;
-
-        overlay.ApplyContractTracker(Read(Candidate(37, "Riker")));
-        overlay.ApplyContractTracker(Read(Candidate(37, "Riker")));
-
-        overlay.Saved.Should().BeSameAs(before);
-    }
-
-    [Fact]
-    public void A_capture_with_the_longer_name_renames_the_manual_stop_and_it_stays_manual()
-    {
-        // B1: "Melodic Fields" and "Melodic Fields Station" are one place; the plan takes the longer name, no second stop.
+        // B1: "Melodic Fields" and "Melodic Fields Station" are one place, whichever way the other contract came in.
         var overlay = WithAddedDestination("Melodic Fields");
 
-        overlay.ApplyContractTracker(Read(Candidate(37, "Riker"), Candidate(38, "Melodic Fields Station")));
+        overlay.ApplyScan(Import.Contracts.ScannedContract.Read(
+            "ABANDON\nDETAILS\nReward 50,250\nContract Deadline N/A\nPRIMARY OBJECTIVES\n"
+            + "Deliver 0/2 SCU of Stims to Melodic Fields Station.\nCollect Stims from Everus Harbor.\nSHARE UNTRACK"));
 
         var mission = overlay.Missions.Single(m => m.Contract?.ContractIds.Contains(37) == true);
         mission.Stops.Select(s => s.Destination).Should().Equal("Riker", "Melodic Fields Station");
         mission.Items[1].Item.Manual.Should().BeTrue();
     }
 
-    [Fact]
-    public void A_contract_handed_in_takes_its_rows_added_by_hand_along_and_says_so()
-    {
-        // Delivered and handed in, with remove (D81): every delivery leaves, the row added by hand with them.
-        var overlay = WithAddedDestination();
-        overlay.OnContractGone = ContractGonePolicy.Remove;
-        var id = overlay.Missions.Single(m => m.Contract is not null).Id;
-        foreach (var destination in overlay.Scene.Legend.Where(e => e.Mission == id).Select(e => e.Destination).ToList())
-        {
-            // Planned → loaded → delivered (K6.4).
-            overlay.ToggleLineCommand.Execute(overlay.Scene.Legend.Single(e => e.Mission == id && e.Destination == destination));
-            overlay.ToggleLineCommand.Execute(overlay.Scene.Legend.Single(e => e.Mission == id && e.Destination == destination));
-        }
-
-        overlay.ApplyContractTracker(new ContractTrackerReadResult([], null, new HashSet<long>()));
-
-        overlay.Missions.Should().OnlyContain(m => m.Contract == null);
-        overlay.Notices.Should().Contain("Contract #37 gone from ContractTracker – removed 2 delivered, with 1 row added by hand");
-    }
 }

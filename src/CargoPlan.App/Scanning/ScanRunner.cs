@@ -5,7 +5,7 @@ namespace CargoPlan.App.Scanning;
 /// <summary>
 /// Starts a scan for the scan hotkey and the editor's button (T10.3, D104): <see cref="ScanIntake"/> on the pool, every
 /// change of the overlay through <c>ui</c> on the UI thread. Never throws: a failure goes to cargoplan.log and the notice
-/// line, the plan and the app stay (D82, as ContractTrackerSync's guard). A second start while one runs is no queue: the
+/// line, the plan and the app stay (D82). A second start while one runs is no queue: the
 /// scanner answers Busy, the notice says "Scan running".
 /// No interface: one implementation; the delegates are there for the tests (A4).
 /// </summary>

@@ -430,17 +430,6 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
-    public void ChangeHotkey_for_the_sync_keeps_the_other_actions()
-    {
-        var session = Create(AppSettings.Default with { Hotkeys = new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H") });
-
-        session.ChangeHotkey(HotkeyAction.SyncContractTracker, Key("Ctrl+Alt+S"));
-        session.Flush();
-
-        Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", "Ctrl+Alt+S"));
-    }
-
-    [Fact]
     public void ChangeHotkey_for_the_replan_keeps_the_other_actions()
     {
         var session = Create(AppSettings.Default with { Hotkeys = new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", "Ctrl+Alt+S") });
@@ -475,25 +464,6 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     // ContractTracker (T5.5, D44)
-
-    [Fact]
-    public void ChangeContractTracker_writes_on_flush_and_keeps_the_rest()
-    {
-        var hotkeys = new HotkeySettings("Ctrl+Alt+L", null);
-        var session = Create(AppSettings.Default with { Overlay = Bounds, Appearance = Thick, Hotkeys = hotkeys });
-        var changed = new ContractTrackerSettings(@"D:\CT\contracts.db", AutoSync: false);
-
-        session.ChangeContractTracker(changed);
-
-        session.Current.ContractTracker.Should().Be(changed);
-        File.Exists(SettingsPath).Should().BeFalse();
-
-        session.Flush();
-
-        Saved().Should().Be(AppSettings.Default with { Overlay = Bounds, Appearance = Thick, Hotkeys = hotkeys, ContractTracker = changed });
-    }
-
-    // Ship (T7.2)
 
     [Fact]
     public void ChangeShip_writes_on_flush_and_keeps_the_rest()
