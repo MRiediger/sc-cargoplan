@@ -435,13 +435,15 @@
                     </DockPanel>
                 </GroupBox>
 
-                <!-- Set once, like header and buttons. No "Reset to defaults": the default is no hotkey (D17), which is Clear. -->
+                <!-- Set once, like header and buttons. No "Reset to defaults": the default is no hotkey (D17), which is Clear;
+                     only the scan has one, F3 (D104), and typing F3 sets it again. -->
                 <GroupBox x:Name="HotkeysSection" Header="Hotkeys" Style="{StaticResource SectionStyle}"
                           d:DataContext="{d:DesignInstance vm:HotkeysViewModel}">
                     <StackPanel>
                         <TextBlock Text="{x:Static vm:HotkeysViewModel.Hint}" TextWrapping="Wrap" Margin="0,0,0,4" />
                         <ContentControl Content="{Binding Lock, Mode=OneTime}" />
                         <ContentControl Content="{Binding Overlay, Mode=OneTime}" />
+                        <ContentControl Content="{Binding Scan, Mode=OneTime}" />
                         <ContentControl Content="{Binding Sync, Mode=OneTime}" />
                         <ContentControl Content="{Binding Replan, Mode=OneTime}" />
                         <ContentControl Content="{Binding Discard, Mode=OneTime}" />

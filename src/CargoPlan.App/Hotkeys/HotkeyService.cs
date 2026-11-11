@@ -38,13 +38,20 @@ public sealed class HotkeyService
 
     private bool _suspended;
 
+    // ContractTracker on the scan's F3 (D104), shown below the hotkey problems.
+    private readonly ScanKeyCheck _scanKeyCheck;
+
     /// <param name="window">The overlay: polling stops when it closes.</param>
-    /// <param name="settings">null or a null entry = that hotkey is not set (no defaults, D17).</param>
+    /// <param name="settings">A null entry = that hotkey is not set; null = <see cref="HotkeySettings.Default"/>, the scan's F3 only (D17, D104).</param>
     /// <param name="syncContractTracker">The editor's "Sync from ContractTracker", which lives in the composition root, not in the view model (D44).</param>
-    public HotkeyService(Window window, HotkeySettings? settings, OverlayViewModel viewModel, ICommand syncContractTracker)
+    /// <param name="scanContracts">The scan (T10.3); a plain command that always runs, so a second press reaches the scanner and says "Scan running".</param>
+    /// <param name="scanKeyCheck">Looks for ContractTracker on F3 at the start, on each scan press and when the scan key changes.</param>
+    public HotkeyService(
+        Window window, HotkeySettings? settings, OverlayViewModel viewModel, ICommand syncContractTracker, ICommand scanContracts, ScanKeyCheck scanKeyCheck)
     {
         _window = window;
         _viewModel = viewModel;
+        _scanKeyCheck = scanKeyCheck;
         _commands = new()
         {
             [HotkeyAction.ToggleLock] = viewModel.ToggleLockCommand,
@@ -55,18 +62,21 @@ public sealed class HotkeyService
             [HotkeyAction.Undo] = viewModel.UndoCommand,
             [HotkeyAction.Redo] = viewModel.RedoCommand,
             [HotkeyAction.ResetView] = viewModel.ResetViewCommand,
+            [HotkeyAction.ScanContracts] = scanContracts,
         };
 
+        settings ??= HotkeySettings.Default;
         (HotkeyAction, string?)[] texts =
         [
-            (HotkeyAction.ToggleLock, settings?.ToggleLock),
-            (HotkeyAction.ToggleOverlay, settings?.ToggleOverlay),
-            (HotkeyAction.SyncContractTracker, settings?.SyncContractTracker),
-            (HotkeyAction.Replan, settings?.Replan),
-            (HotkeyAction.DiscardPlan, settings?.DiscardPlan),
-            (HotkeyAction.Undo, settings?.Undo),
-            (HotkeyAction.Redo, settings?.Redo),
-            (HotkeyAction.ResetView, settings?.ResetView),
+            (HotkeyAction.ToggleLock, settings.ToggleLock),
+            (HotkeyAction.ToggleOverlay, settings.ToggleOverlay),
+            (HotkeyAction.SyncContractTracker, settings.SyncContractTracker),
+            (HotkeyAction.Replan, settings.Replan),
+            (HotkeyAction.DiscardPlan, settings.DiscardPlan),
+            (HotkeyAction.Undo, settings.Undo),
+            (HotkeyAction.Redo, settings.Redo),
+            (HotkeyAction.ResetView, settings.ResetView),
+            (HotkeyAction.ScanContracts, settings.ScanContracts),
         ];
         foreach (var (action, text) in texts)
         {
@@ -86,7 +96,7 @@ public sealed class HotkeyService
             }
         }
 
-        UpdateNotice();
+        CheckScanKey();
         _timer.Tick += OnTick;
         _timer.Start();
         window.Closed += OnClosed;
@@ -106,7 +116,7 @@ public sealed class HotkeyService
 
         _poller.Set(action, hotkey);
         _problems.Remove(action);
-        UpdateNotice();
+        CheckScanKey();
     }
 
     /// <summary>
@@ -117,9 +127,13 @@ public sealed class HotkeyService
 
     public void Resume() => _suspended = false;
 
-    private void UpdateNotice() => _viewModel.SetNotice(
-        NoticeSource.Hotkeys,
-        _problems.Count == 0 ? null : string.Join(Environment.NewLine, _problems.OrderBy(p => p.Key).Select(p => p.Value)));
+    /// <summary>The hotkey problems, then ContractTracker on the scan key; one line each.</summary>
+    private void CheckScanKey()
+    {
+        var shared = _scanKeyCheck.Check(_hotkeys.GetValueOrDefault(HotkeyAction.ScanContracts));
+        string[] lines = [.. _problems.OrderBy(p => p.Key).Select(p => p.Value), .. shared is null ? Array.Empty<string>() : [shared]];
+        _viewModel.SetNotice(NoticeSource.Hotkeys, lines.Length == 0 ? null : string.Join(Environment.NewLine, lines));
+    }
 
     private void OnTick(object? sender, EventArgs e)
     {
@@ -143,6 +157,12 @@ public sealed class HotkeyService
             var command = _commands[action];
             var canExecute = command.CanExecute(null);
             AppLog.Write("Hotkey", $"{_hotkeys[action]} → {Name(action)}{(canExecute ? "" : " (not available now)")}");
+            if (action == HotkeyAction.ScanContracts)
+            {
+                // ContractTracker may have started or closed since (D104).
+                CheckScanKey();
+            }
+
             if (canExecute)
             {
                 command.Execute(null);
@@ -168,6 +188,7 @@ public sealed class HotkeyService
         HotkeyAction.Undo => "undo",
         HotkeyAction.Redo => "redo",
         HotkeyAction.ResetView => "resetView",
+        HotkeyAction.ScanContracts => "scanContracts",
         _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
     };
 }

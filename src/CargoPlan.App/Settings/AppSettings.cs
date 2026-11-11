@@ -9,7 +9,7 @@ namespace CargoPlan.App.Settings;
 /// New settings get a default value, so files written by an older version stay readable.
 /// </summary>
 /// <param name="Overlay">null = never saved: the window keeps its XAML size and Windows picks the position.</param>
-/// <param name="Hotkeys">null = no hotkeys; set by hand in the file (D17).</param>
+/// <param name="Hotkeys">Missing or null = <see cref="HotkeySettings.Default"/>: no hotkeys but the scan's F3 (D17, D104).</param>
 /// <param name="Appearance">Missing (schema 1) or null = the default look (D31).</param>
 /// <param name="Legend">Missing (before T4.3) or null = the legend at the bottom left with its stop lines (D33).</param>
 /// <param name="ToolWindowTheme">
@@ -75,6 +75,9 @@ public sealed record AppSettings(
 
     // Not a constant, so not a default parameter value; see AppearanceSettings.
     public AppearanceSettings Appearance { get; init; } = Appearance ?? AppearanceSettings.Default;
+
+    // A file without hotkeys gets the scan's default too (D104).
+    public HotkeySettings Hotkeys { get; init; } = Hotkeys ?? HotkeySettings.Default;
 
     public LegendSettings Legend { get; init; } = Legend ?? LegendSettings.Default;
 
@@ -157,8 +160,9 @@ public sealed record LegendSettings(bool Visible = true, string Position = "bott
 }
 
 /// <summary>
-/// Global hotkeys as text, e.g. "Ctrl+Alt+L" (<see cref="Hotkeys.HotkeyParser"/>). No defaults: a polled hotkey's keys
-/// reach Star Citizen too, so only the player picks them, knowing their own bindings (D17, D97).
+/// Global hotkeys as text, e.g. "Ctrl+Alt+L" (<see cref="Hotkeys.HotkeyParser"/>). No defaults but the scan's: a polled
+/// hotkey's keys reach Star Citizen too, so the player picks them, knowing their own bindings (D17, D97). The scan is the
+/// app's main way in and needs a key from the first start (D104). null and missing read the same, except for the scan.
 /// </summary>
 /// <param name="ToggleLock">Switches the manual lock, like the padlock.</param>
 /// <param name="ToggleOverlay">Hides the overlay and shows it again.</param>
@@ -168,9 +172,21 @@ public sealed record LegendSettings(bool Visible = true, string Position = "bott
 /// <param name="Undo">Goes back one step (K2.4).</param>
 /// <param name="Redo">Goes forward one undone step (K2.4).</param>
 /// <param name="ResetView">Fits the ship view from the ship's default camera (K1.3).</param>
+/// <param name="ScanContracts">
+/// Reads the open contract (T10.3, D104). Missing = <see cref="DefaultScanKey"/>; null = off, the player cleared it. The
+/// distinction holds on disk because nulls are written (no ignore condition in SettingsJsonContext or on this property).
+/// The last parameter, so positional calls keep their meaning.
+/// </param>
 public sealed record HotkeySettings(
     string? ToggleLock = null, string? ToggleOverlay = null, string? SyncContractTracker = null, string? Replan = null, string? DiscardPlan = null,
-    string? Undo = null, string? Redo = null, string? ResetView = null);
+    string? Undo = null, string? Redo = null, string? ResetView = null, string? ScanContracts = HotkeySettings.DefaultScanKey)
+{
+    /// <summary>F3: next to the game's own panel keys (F1 mobiGlas, F2 starmap), and ContractTracker's (S10.0).</summary>
+    public const string DefaultScanKey = "F3";
+
+    /// <summary>No hotkey but the scan's.</summary>
+    public static HotkeySettings Default { get; } = new();
+}
 
 /// <summary>
 /// Where ContractTracker's database is and whether captures come into the plan by themselves (D44). Optional, no schema

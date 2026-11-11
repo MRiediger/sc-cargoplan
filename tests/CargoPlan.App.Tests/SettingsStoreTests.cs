@@ -55,15 +55,45 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
-    public void File_without_hotkeys_gives_no_hotkeys()
+    public void File_without_hotkeys_gives_only_the_scan_default()
     {
-        // Written by T3.4–T3.6: still readable, no schemaVersion bump for an optional field (D13).
+        // Written by T3.4–T3.6: still readable, no schemaVersion bump for an optional field (D13). The scan is the one
+        // hotkey with a default (D104).
         WriteFile("""{ "schemaVersion": 1, "overlay": { "left": 1, "top": 2, "width": 300, "height": 400 } }""");
 
         var (loaded, problem) = SettingsStore.Load(SettingsPath);
 
-        loaded.Hotkeys.Should().BeNull();
+        loaded.Hotkeys.Should().Be(HotkeySettings.Default);
+        loaded.Hotkeys.ScanContracts.Should().Be("F3");
+        loaded.Hotkeys.ToggleLock.Should().BeNull();
         problem.Should().BeNull();
+    }
+
+    [Fact]
+    public void Hotkeys_null_give_the_scan_default_too()
+    {
+        WriteFile("""{ "schemaVersion": 2, "hotkeys": null }""");
+
+        SettingsStore.Load(SettingsPath).Settings.Hotkeys.ScanContracts.Should().Be("F3");
+    }
+
+    [Fact]
+    public void Hotkeys_written_before_the_scan_get_F3()
+    {
+        // v0.3.x wrote every key but scanContracts: missing is the default (D104).
+        WriteFile("""{ "schemaVersion": 2, "hotkeys": { "toggleLock": "Ctrl+Alt+L", "syncContractTracker": null } }""");
+
+        SettingsStore.Load(SettingsPath).Settings.Hotkeys.Should().Be(new HotkeySettings(ToggleLock: "Ctrl+Alt+L"));
+        SettingsStore.Load(SettingsPath).Settings.Hotkeys.ScanContracts.Should().Be("F3");
+    }
+
+    [Fact]
+    public void A_scan_hotkey_written_as_null_stays_off()
+    {
+        // null is the player's Clear (D104): unlike a missing key it doesn't bring F3 back.
+        WriteFile("""{ "schemaVersion": 2, "hotkeys": { "scanContracts": null } }""");
+
+        SettingsStore.Load(SettingsPath).Settings.Hotkeys.ScanContracts.Should().BeNull();
     }
 
     [Fact]

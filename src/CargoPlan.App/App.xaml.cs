@@ -79,7 +79,8 @@ public partial class App : Application
         {
             // With the engine warming from the first frame like the overlay's (Gate 3); its notices go to the log only.
             var measuring = new Diagnostics.FrameMeasureWindow(ships, measured, options.OverGame) { ScanLoad = options.ScanLoad };
-            measuring.Scanner = ComposeOcr(measuring, notice: _ => { }, options.ScanLoad ? ProbeTarget() : null);
+            var scanner = measuring.Scanner = CreateScanner(notice: _ => { }, options.ScanLoad ? ProbeTarget() : null);
+            WarmAfterFirstFrame(measuring, scanner);
             measuring.Show();
             return;
         }
@@ -90,16 +91,11 @@ public partial class App : Application
         ComposeStartPlan(parts, options);
         ComposeSettingsFollowers(parts);
         ComposeHolograms(parts);
-        // The scanner's notices come from pool threads; the notice line lives on the UI thread.
-        var viewModel = parts.ViewModel;
-        var scanner = ComposeOcr(
-            parts.Overlay,
-            text => Dispatcher.InvokeAsync(() => viewModel.SetNotice(NoticeSource.Scan, text)),
-            options.ScanProbe is null ? null : ProbeTarget());
+        WarmAfterFirstFrame(parts.Overlay, parts.Scanner);
         if (options.ScanProbe is { } series)
         {
             // Next to the overlay, not instead of it: Gate 1 measures the scan as the player will have it (T10.1b).
-            _scanProbe = new Diagnostics.ScanProbe(scanner, parts.Overlay, series, options.ScanProbeImages);
+            _scanProbe = new Diagnostics.ScanProbe(parts.Scanner, parts.Overlay, series, options.ScanProbeImages);
         }
 
         ShowWindows(parts, options);
@@ -136,9 +132,14 @@ public partial class App : Application
 
     /// <summary>What the later steps of the start wire together.</summary>
     private sealed record OverlayParts(
-        Ship Ship, OverlayViewModel ViewModel, SettingsSession Session, ContractTrackerSync ContractTracker, OverlayWindow Overlay);
+        Ship Ship, OverlayViewModel ViewModel, SettingsSession Session, ContractTrackerSync ContractTracker, OverlayWindow Overlay,
+        ContractScanner Scanner, ScanRunner Scan);
 
-    /// <summary>The view model, the settings session, the ContractTracker sync and the overlay window, placed but not shown.</summary>
+    /// <summary>
+    /// The view model, the settings session, the ContractTracker sync, the scanner with its runner and the overlay window,
+    /// placed but not shown. The scanner comes before the window like the sync: the editor's buttons need both (T10.3); it
+    /// has no side effect before the warm-up, which waits for the first frame.
+    /// </summary>
     private OverlayParts ComposeOverlay(
         ShipCatalog ships, ShipOutlineCatalog outlines, StartOptions options, AppSettings settings, string? settingsProblem)
     {
@@ -166,6 +167,13 @@ public partial class App : Application
             viewModel, settings.ContractTracker.DatabasePath, autoSync: settings.ContractTracker.AutoSync);
         viewModel.OnContractGone = settings.ContractTracker.GonePolicy;
         _contractTracker = contractTracker;
+
+        // The scanner's notices and the scan's changes of the plan come from pool threads; the overlay lives on the UI
+        // thread. Source: https://learn.microsoft.com/dotnet/api/system.windows.threading.dispatcheroperation.task
+        var scanner = CreateScanner(
+            text => Dispatcher.InvokeAsync(() => viewModel.SetNotice(NoticeSource.Scan, text)),
+            options.ScanProbe is null ? null : ProbeTarget());
+        var scan = new ScanRunner(() => scanner.ScanAsync(), viewModel, new ScanLog(ScanLog.DefaultPath), action => Dispatcher.InvokeAsync(action).Task);
         var overlay = new OverlayWindow(
             viewModel,
             session,
@@ -180,19 +188,25 @@ public partial class App : Application
         // The saver's Closed handler goes first and hands over pending bounds; Flush then writes a pending look change.
         _boundsSaver = new OverlayBoundsSaver(overlay, session);
         overlay.Closed += (_, _) => session.Flush();
-        return new OverlayParts(ship, viewModel, session, contractTracker, overlay);
+        return new OverlayParts(ship, viewModel, session, contractTracker, overlay, scanner, scan);
     }
 
     /// <summary>
     /// Polled from here on (D97), before the settings window can ask for them. The sync hotkey runs the editor's button,
-    /// guarded like the timer (D82); AsyncRelayCommand would rethrow on the UI thread what isn't.
+    /// guarded like the timer (D82); AsyncRelayCommand would rethrow on the UI thread what isn't. The scan's is a plain
+    /// command: the runner guards itself, and a press during a scan must reach the scanner to say "Scan running" (D104).
     /// </summary>
     // Source: https://learn.microsoft.com/dotnet/api/communitytoolkit.mvvm.input.asyncrelaycommandoptions
     private void ComposeHotkeys(OverlayParts parts, AppSettings settings)
     {
         var contractTracker = parts.ContractTracker;
         _hotkeys = new HotkeyService(
-            parts.Overlay, settings.Hotkeys, parts.ViewModel, new AsyncRelayCommand(() => contractTracker.RunSyncGuardedAsync(manual: true)));
+            parts.Overlay,
+            settings.Hotkeys,
+            parts.ViewModel,
+            new AsyncRelayCommand(() => contractTracker.RunSyncGuardedAsync(manual: true)),
+            new RelayCommand(parts.Scan.Start),
+            new ScanKeyCheck(ScanKeyCheck.IsContractTrackerRunning));
     }
 
     /// <summary>
@@ -262,18 +276,25 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// The contract scanner (T10.1b, D99): the OCR engine loads and warms on a pool thread once <paramref name="window"/> has
-    /// drawn its first frame, so the start is not a frame later than before (plan decision 2). Missing models end in a notice,
-    /// never in a failed start (plan decision 3).
+    /// The contract scanner (T10.1b, D99), not yet warm: <see cref="WarmAfterFirstFrame"/> starts that. Missing models end in
+    /// a notice, never in a failed start (plan decision 3).
     /// </summary>
     /// <param name="notice">The scan's notice line; called from pool threads.</param>
     /// <param name="find">Another window than the game's, for a probe's dry run; null = Star Citizen.</param>
-    private ContractScanner ComposeOcr(Window window, Action<string?> notice, Func<GameWindow?>? find = null)
+    private ContractScanner CreateScanner(Action<string?> notice, Func<GameWindow?>? find = null)
     {
-        // Our windows over the contract leave the picture for the capture (D100).
+        // Our windows over the contract leave the picture for the capture (D100). The window list is read at each capture,
+        // so windows made after the scanner count too.
         var clearance = new RegionClearance(Dispatcher, () => Windows.Cast<Window>());
-        var scanner = _scanner = new ContractScanner(OcrEngine.Load, notice, find, clear: clearance.Clear);
+        return _scanner = new ContractScanner(OcrEngine.Load, notice, find, clear: clearance.Clear);
+    }
 
+    /// <summary>
+    /// The OCR engine loads and warms on a pool thread once <paramref name="window"/> has drawn its first frame, so the start
+    /// is not a frame later than before (T10.1b plan decision 2).
+    /// </summary>
+    private static void WarmAfterFirstFrame(Window window, ContractScanner scanner)
+    {
         // Once: ContentRendered follows the first frame. Source: https://learn.microsoft.com/dotnet/api/system.windows.window.contentrendered
         void Start(object? sender, EventArgs e)
         {
@@ -282,7 +303,6 @@ public partial class App : Application
         }
 
         window.ContentRendered += Start;
-        return scanner;
     }
 
     /// <summary>
