@@ -28,10 +28,12 @@ dotnet test tests/CargoPlan.Core.Tests -p:RunSettingsFilePath= --filter Category
 dotnet run --project src/CargoPlan.App
 dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json
 dotnet run --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/example_missions.json
-dotnet run --project src/CargoPlan.Cli -- contracts <copy-of-contracts.db> [--since <id>] [--raw]
+dotnet run --project src/CargoPlan.Cli -- scan <screenshot.png>
+dotnet run --project src/CargoPlan.App -- --data-dir <full path of a folder>
 ```
 
-Run `contracts` against a copy of ContractTracker's `contracts.db`, not the live file.
+`scan` reads a contract from a screenshot of the game window, as the overlay's scan does. `--data-dir` keeps a test
+run's settings, plan and logs in that folder instead of your profile.
 
 ## Publish
 

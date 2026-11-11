@@ -45,21 +45,27 @@ public class MissionFileReaderTests
         stop.Items.Should().AllSatisfy(i => i.CrateSize.Should().Be(CrateSize.Four));
     }
 
-    // --- Schema 1 (still read, D23) ---
+    // --- Schema 1 and 2 are refused (T10.4a, F5): v0.1.0 wrote schema 3 ---
 
-    [Fact]
-    public void Read_v1_item_has_its_crate_size_as_max_and_its_crates_as_explicit_list()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void A_file_older_than_v0_1_0_is_refused(int version)
     {
-        var titanium = MissionFixtures.LoadMissions("example_missions")[0].Items.Should().ContainSingle().Which;
+        var json = $$"""
+            { "schemaVersion": {{version}}, "stops": [ { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 4, "maxCrateSize": 4 } ] } ] }
+            """;
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
 
-        titanium.MaxCrateSize.Should().Be(CrateSize.Four);
-        titanium.Crates.Should().Equal(CrateSize.Four, CrateSize.Four, CrateSize.Four);
+        var act = () => MissionFileReader.Read(stream, "old.json");
+
+        act.Should().Throw<MissionFormatException>().WithMessage($"*schemaVersion {version}*expected 3 or 4*");
     }
 
-    // --- Schema 2 (D23) ---
+    // --- Derived mixes and overrides (D23) ---
 
     [Fact]
-    public void Read_v2_item_without_crates_derives_its_mix()
+    public void Read_item_without_crates_derives_its_mix()
     {
         var greenGlade = MissionFixtures.CrateMixMissions[0];
 
@@ -69,7 +75,7 @@ public class MissionFileReaderTests
     }
 
     [Fact]
-    public void Read_v2_item_with_crates_keeps_the_override()
+    public void Read_item_with_crates_keeps_the_override()
     {
         var titanium = MissionFixtures.CrateMixMissions[1].Items.Should().ContainSingle().Which;
 
@@ -77,7 +83,7 @@ public class MissionFileReaderTests
     }
 
     [Fact]
-    public void Read_v2_file_expands_into_one_cargo_item_per_crate_size()
+    public void Read_file_expands_into_one_cargo_item_per_crate_size()
     {
         var stops = MissionFixtures.Load("crate_mix");
 
@@ -110,14 +116,6 @@ public class MissionFileReaderTests
         file.Stops.Should().BeEquivalentTo(MissionFixtures.LoadFile("fill_order_stern").Stops, o => o.WithStrictOrdering());
     }
 
-    [Theory]
-    [InlineData("example_missions")]   // schema 1
-    [InlineData("crate_mix")]          // schema 2
-    public void Read_v1_and_v2_files_give_no_fill_order(string fixture)
-    {
-        MissionFixtures.LoadFile(fixture).FillOrder.Should().BeNull();
-    }
-
     [Fact]
     public void Read_assigns_order_from_array_position_starting_at_1()
     {
@@ -132,18 +130,15 @@ public class MissionFileReaderTests
     [InlineData("unknown_property")]            // typo "SCU"
     [InlineData("blank_destination")]           // "destination": "  "
     [InlineData("duplicate_destination")]       // "Riker" and "riker"
-    [InlineData("invalid_crate_size")]          // crate size 3
-    [InlineData("scu_not_multiple_of_crate")]   // 20 SCU in 8 SCU crates
+    [InlineData("invalid_crate_size")]          // max crate size 3
     [InlineData("blank_commodity")]             // "commodity": ""
-    [InlineData("missing_property")]            // no "crateSize"
+    [InlineData("missing_property")]            // no "maxCrateSize"
     [InlineData("missing_schema")]              // no "schemaVersion"
     [InlineData("unsupported_schema")]          // "schemaVersion": 5
     [InlineData("malformed")]                   // not valid JSON
-    [InlineData("crates_sum_mismatch")]         // v2: 6 SCU as 2+2
-    [InlineData("crate_above_max")]             // v2: an 8 SCU crate at max 4
-    [InlineData("crate_unknown_size")]          // v2: 3 SCU crates
-    [InlineData("crate_size_in_v2")]            // v2 with the v1 field "crateSize"
-    [InlineData("fill_order_in_v2")]            // v2 with the v3 field "fillOrder"
+    [InlineData("crates_sum_mismatch")]         // 6 SCU as 2+2
+    [InlineData("crate_above_max")]             // an 8 SCU crate at max 4
+    [InlineData("crate_unknown_size")]          // 3 SCU crates
     [InlineData("unknown_fill_order")]          // v3: "fillOrder": "portFirst"
     public void Read_invalid_file_throws_MissionFormatException_naming_the_source(string name)
     {
@@ -161,13 +156,10 @@ public class MissionFileReaderTests
     [InlineData("stop_without_items", "*Riker*no items*")]
     [InlineData("unknown_property", "*SCU*")]
     [InlineData("duplicate_destination", "*riker*more than once*")]
-    [InlineData("scu_not_multiple_of_crate", "*Riker*Titanium*20 SCU*8 SCU crates*")]
-    [InlineData("unsupported_schema", "*schemaVersion 5*expected 1 or 2 or 3 or 4*")]
+    [InlineData("unsupported_schema", "*schemaVersion 5*expected 3 or 4*")]
     [InlineData("crates_sum_mismatch", "*Riker*Titanium*add up to 4 SCU, not 6*")]
     [InlineData("crate_above_max", "*Riker*Titanium*8 SCU crates are larger than the max crate size of 4 SCU*")]
     [InlineData("crate_unknown_size", "*Riker*Titanium*3 SCU is not a crate size*")]
-    [InlineData("crate_size_in_v2", "*crateSize*")]
-    [InlineData("fill_order_in_v2", "*fillOrder*new in schema 3*the file says 2*")]
     [InlineData("unknown_fill_order", "*fillOrder 'portFirst' is unknown*bowFirst*sternFirst*")]
     public void Read_invalid_file_explains_the_problem(string name, string expectedMessage)
     {
@@ -185,7 +177,7 @@ public class MissionFileReaderTests
     public void Read_accepts_utf8_byte_order_mark()
     {
         // Notepad and Windows PowerShell 5.1 (Set-Content -Encoding UTF8) write a BOM.
-        const string json = """{ "schemaVersion": 1, "stops": [ { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 4, "crateSize": 4 } ] } ] }""";
+        const string json = """{ "schemaVersion": 4, "stops": [ { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 4, "maxCrateSize": 4 } ] } ] }""";
         using var stream = new MemoryStream([.. Encoding.UTF8.GetPreamble(), .. Encoding.UTF8.GetBytes(json)]);
 
         var stops = MissionFileReader.Read(stream, "bom.json").Stops;
@@ -221,7 +213,7 @@ public class MissionFileReaderTests
         var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.json");
         try
         {
-            File.WriteAllText(path, """{ "schemaVersion": 1, "stops": [] }""");
+            File.WriteAllText(path, """{ "schemaVersion": 4, "stops": [] }""");
 
             var act = () => MissionFileReader.Read(path);
 

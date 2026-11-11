@@ -7,8 +7,8 @@ namespace CargoPlan.Core.Missions;
 /// <summary>
 /// File format of a mission JSON (schema version 4, D88, D89: schema 3 with an optional row axis, grouping and section gap). Read via
 /// <see cref="ToMissionFile"/>, written via <see cref="FromMissionStops"/>, so import and export share one format.
-/// Version 3 is the same without <see cref="FillRows"/>, <see cref="Grouping"/> and <see cref="SectionGap"/>, version 2 also without <see cref="FillOrder"/> (D72); version 1
-/// (<see cref="MissionFileV1Dto"/>) is still read, none of them is written.
+/// Version 3 is the same without <see cref="FillRows"/>, <see cref="Grouping"/> and <see cref="SectionGap"/> (D72), still read, never
+/// written; versions 1 and 2 are refused since T10.4a (review F5).
 /// </summary>
 /// <remarks>
 /// <see cref="FillOrder"/>, <see cref="FillRows"/>, <see cref="Grouping"/> and <see cref="SectionGap"/> are optional, so they have a default and stand last; <c>JsonPropertyOrder</c> on
@@ -23,16 +23,9 @@ internal sealed record MissionFileDto(
     string? Grouping = null,
     int? SectionGap = null)
 {
-    /// <exception cref="ArgumentException">A value violates the domain rules, or a file names a fill order or row axis older than its schema.</exception>
+    /// <exception cref="ArgumentException">A value violates the domain rules, or a file names a row axis older than its schema.</exception>
     public MissionFile ToMissionFile()
     {
-        const int withFillOrder = MissionFileReader.NoFillOrderSchemaVersion + 1;
-        if (FillOrder is not null && SchemaVersion < withFillOrder)
-        {
-            throw new ArgumentException(
-                Invariant($"fillOrder is new in schema {withFillOrder} (the file says {SchemaVersion})."), nameof(FillOrder));
-        }
-
         const int withFillRows = MissionFileReader.NoFillRowsSchemaVersion + 1;
         if (FillRows is not null && SchemaVersion < withFillRows)
         {

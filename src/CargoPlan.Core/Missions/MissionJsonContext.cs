@@ -15,5 +15,4 @@ namespace CargoPlan.Core.Missions;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     WriteIndented = true)]
 [JsonSerializable(typeof(MissionFileDto))]
-[JsonSerializable(typeof(MissionFileV1Dto))]
 internal sealed partial class MissionJsonContext : JsonSerializerContext;

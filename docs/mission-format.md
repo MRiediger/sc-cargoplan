@@ -47,7 +47,7 @@ reported instead of being ignored silently. All fields are **required** except `
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `4`. Files with `1`, `2` or `3` are still read (see below); export always writes `4`. |
+| `schemaVersion` | number | `4`. Files with `3` are still read (see below); export always writes `4`. |
 | `fillOrder` | string | Optional. Which end of each rack the crates start from: `"bowFirst"` or `"sternFirst"`, as in the [plan file](plan-format.md). Importing a file with it sets the editor's **Fill order**; without it the editor keeps its own. Export always writes it. |
 | `fillRows` | string | Optional. Which way the rows of a layout run: `"lengthwise"` or `"crosswise"`, as in the [plan file](plan-format.md). Importing a file with it sets the editor's **Rows**; without it the editor keeps its own. Export always writes it. |
 | `grouping` | string | Optional. `"none"` or `"byDestination"`: whether each destination is kept as a block of its own in a rack it shares, as in the [plan file](plan-format.md). Importing a file with it sets the editor's **Grouping**; without it the editor keeps its own. Export always writes it. |
@@ -71,8 +71,8 @@ reported instead of being ignored silently. All fields are **required** except `
 | `crates` | array of numbers | Optional. The crates as the kiosk delivered them, e.g. `[2, 2, 2]`. Each one a crate size up to `maxCrateSize`, together exactly `scu`. Leave it out to let the tool work them out. |
 | `pickup` | array of strings | Optional. Where the crates are collected, e.g. `["Lorville"]`, or several places for a contract with several pickups, without amounts. Spaces around a name, empty names and a name repeated (in any case) are dropped. The overlay shows it when you select a crate and groups the legend by it. |
 
-`manual` (an item added by hand to a ContractTracker mission) belongs to [plan files](plan-format.md) only: a mission
-file says nothing about ContractTracker, so an item with `manual` is an error, and export never writes it.
+`manual` (an item added by hand to a scanned mission) belongs to [plan files](plan-format.md) only: a mission
+file says nothing about scans, so an item with `manual` is an error, and export never writes it.
 
 A crate that fits no rack of the ship is rejected by the planner.
 
@@ -81,33 +81,12 @@ A crate that fits no rack of the ship is rejected by the planner.
 Files written before version 4 are the same without `fillRows`, `grouping` and `sectionGap`; importing one keeps the
 editor's. Any of them in a version 3 file is an error: change `schemaVersion` to `4` together with it.
 
-## Schema 2 (still read)
+## Schema 1 and 2 (refused)
 
-Files written before version 3 are the same without `fillOrder`; importing one keeps the editor's fill order. A
-`fillOrder` in a version 2 file is an error: change `schemaVersion` to `3` together with it.
-
-## Schema 1 (still read)
-
-Files written before version 2 have one crate size per item and no maximum:
-
-```json
-{
-  "schemaVersion": 1,
-  "stops": [
-    {
-      "destination": "Riker",
-      "items": [
-        { "commodity": "Titanium", "scu": 12, "crateSize": 4 }
-      ]
-    }
-  ]
-}
-```
-
-`scu` must be a multiple of `crateSize`. Such an item is read as exactly those crates: `maxCrateSize` is
-the `crateSize`, and `crates` lists them (`[4, 4, 4]`), so the editor shows them as entered by hand.
-A stop with two crate sizes of the same commodity used two items. Versions 2 and 3 don't know `crateSize`:
-change `schemaVersion` only together with the items.
+Versions 1 and 2 were written only before v0.1.0, which wrote 3. Since v0.4.0 a file with either is an error
+("schemaVersion 1 is not supported, expected 3 or 4"). In version 1 an item had one `crateSize` instead of
+`maxCrateSize`: such an item is `"maxCrateSize": N, "crates": [N, N, …]` (SCU / N crates of N), then
+`schemaVersion` `4`. A version 2 file only needs `schemaVersion` `4`.
 
 ## Errors
 

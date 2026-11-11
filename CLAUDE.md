@@ -50,14 +50,13 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 | Schiffsansicht | **Ein `Viewport3D`**, `PerspectiveCamera` (FOV 40°), Text (Rack-Nummern, Tooltips) in einer 2D-Overlay-Ebene, `CameraMath` als einzige Projektion für Bild, Overlay und Hit-Test (D83, Phase 8) | Ortho pumpt beim Drehen (S8.0); eine Szene und eine Kamera statt zwei Zeichnern im Abgleich. |
 | MVVM | **CommunityToolkit.Mvvm** | Source-Generatoren sparen Boilerplate (`[ObservableProperty]`, `[RelayCommand]`). Einziges UI-Paket. |
 | JSON | `System.Text.Json` | Stdlib, kein Newtonsoft. |
-| SQLite | `Microsoft.Data.Sqlite` | Offizielles, schlankes Paket für den ContractTracker-Import. |
 | OCR | **RapidOcrNet** (PP-OCRv5 latin) auf ONNX Runtime 1.31.1 (explizit), SkiaSharp transitiv 3.x, in `CargoPlan.Ocr` (`net10.0`, ohne Windows-API); Modelle aus dem Paket als `None`-Items nach `models/v5/` neben der Exe, Lizenzen in `models/NOTICE.md` (D99) | Eigenes Lesen statt ContractTracker (A11-Exit, S10.0): 100 % der Lieferfelder bei 21:9, offline ≈ 1,2 s je Vertrag. Kein Download, kein Netz. Aufnahme: GDI `BitBlt` nur aufs ROI unter Per-Monitor-DPI im Capture-Thread, eigene Fenster über dem ROI für die Aufnahme auf `Opacity 0` (D100); Engine wärmt nach dem ersten Frame vor (`ContractScanner`). |
 | Tests | **xUnit** + `AwesomeAssertions` | Standard im .NET-Ökosystem. AwesomeAssertions ist der Apache-2.0-Fork von FluentAssertions (ab v8 kommerziell lizenziert). |
 | Click-through | Win32 `SetWindowLongPtrW` schaltet `WS_EX_TRANSPARENT` via `[LibraryImport]`, HWND aus `WindowInteropHelper`; `WS_EX_LAYERED` setzt WPF selbst (D11) | Keine Lib nötig. |
 | Hotkeys | **Gepollt:** `GetAsyncKeyState` auf einem `DispatcherTimer` (33 ms), Flanke + exakte Modifier (`HotkeyPoller`), scharf nur mit SC oder CargoPlan vorne (D97); Ctrl/Alt/Win Pflicht außer bei F-Tasten, einziger Default Scan = F3 (D104) | `RegisterHotKey` kommt mit SC vorne nie an; kein Hook (EAC), keine Lib. Die Taste erreicht auch das Spiel. |
 | Netz | **Einziger Netzzugriff:** `HoloSource` (App) lädt Schiffs-Hologramme per BCL-`HttpClient`, nur GET auf die Release-Assets `releases/download/holo-v2/` (Meshes aus den Motherlode-Modellen, D93), Manifest höchstens einmal am Tag, Schalter `downloadShipHolograms` (D63); der Cache `holo\` behält nur den aktuellen Tag (D95) | Hologramme stammen aus CIG-Modellen und müssen zurückziehbar sein: eigenes Daten-Release statt ZIP oder Repo. Jeder weitere Netzzugriff braucht einen eigenen D-Eintrag. |
-| Distribution | `build/publish.ps1` → App + Cli self-contained `win-x64` in **einem Ordner** (`out/publish/SC-CargoPlan`, 178 MB, 386 Dateien inkl. `ships/`, `outlines/` und `models/`), **ein ZIP (~86 MB, seit T10.1a; v0.3.1: 62 MB)** mit SHA256; kein Single-File, kein pubxml, Satellites nur `en` (D46, D48, D49, D50, D99) | Nutzer sollen nichts installieren müssen; Hauler haben .NET 8, nicht 10. WPF kann nicht getrimmt werden. |
-| CI/CD | GitHub Actions, `windows-latest`, Release bei Git-Tag | Niemand baut von Hand. |
+| Distribution | `build/publish.ps1` → App + Cli self-contained `win-x64` in **einem Ordner** (`out/publish/SC-CargoPlan`, 176 MB, 381 Dateien inkl. `ships/`, `outlines/` und `models/`), **ein ZIP (~85 MB seit T10.4a; v0.3.1: 62 MB)** mit SHA256; kein Single-File, kein pubxml, Satellites nur `en` (D46, D48, D49, D50, D99) | Nutzer sollen nichts installieren müssen; Hauler haben .NET 8, nicht 10. WPF kann nicht getrimmt werden. |
+| CI/CD | GitHub Actions, Matrix `ubuntu-latest` + `windows-latest` (App-Tests und `dotnet format` nur unter Windows, D12), Release bei Git-Tag | Niemand baut von Hand; Ubuntu deckt Pfadtrenner und Kultur für Core, Import, Cli ab. |
 | Lizenz | **MIT** | Maximale Verbreitung. |
 
 **Kernregel:** `CargoPlan.Core` referenziert **nichts** aus WPF oder Windows-APIs. UI und Import referenzieren Core, nie umgekehrt. Warum: Planer bleibt testbar und tauschbar. Ebenso enthält `CargoPlan.Ocr` keine Windows-API: Bildschirmaufnahme und Fenstersuche (Win32) gehören in die App (`App/Win32`), Ocr bekommt nur das Bild (D99).
@@ -77,16 +76,23 @@ sc-cargoplan/
 ├── tools/ShipJson.ps1             # Schiffsdatei-Format für import-motherlode.ps1 (dot-sourced); Fleetyards-Import stillgelegt, in der Git-Historie (D94)
 ├── src/
 │   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader (liest ships/ und outlines/ neben der Exe), Holo-Leser SCH2 (D63)
-│   ├── CargoPlan.Import/          # net10.0 – Contracts/: Vertragstext → `ScannedContract` mit Inhaltsschlüssel (D101); ContractTracker/: SQLite-Reader (bis T10.4a)
+│   ├── CargoPlan.Import/          # net10.0 – Contracts/: Vertragstext → `ScannedContract` mit Inhaltsschlüssel (D101); `DestinationNames` (B1)
 │   ├── CargoPlan.Ocr/             # net10.0 – Vertrag aus einem Bild lesen: ROI, up2-gray, RapidOcrNet, Lesereihenfolge (D99); keine Windows-API; NOTICE.md → models/NOTICE.md
 │   ├── CargoPlan.Cli/             # net10.0 – Plan im Terminal ausgeben (Debugging ohne UI), `scan <png>`
-│   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Win32-Interop (inkl. Fenstersuche und Bildschirmaufnahme), Scan (`Scanning/`: Aufnahme D100, `ScanIntake` mit zweiter Lesung bei Verdacht und `scans.log` D103, `ScanRunner` für Hotkey und Editor-Button mit Notice je Ergebnis D104), Holo-Download und -Cache (einziger Netzzugriff, D63)
+│   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Settings (Schema 3, Migration D105), Win32-Interop (inkl. Fenstersuche und Bildschirmaufnahme), Scan (`Scanning/`: Aufnahme D100, `ScanIntake` mit zweiter Lesung bei Verdacht und `scans.log` D103, `ScanRunner` für Hotkey und Editor-Button mit Notice je Ergebnis D104), Holo-Download und -Cache (einziger Netzzugriff, D63)
 ├── tests/
-│   ├── CargoPlan.Core.Tests/
-│   ├── CargoPlan.Import.Tests/
+│   ├── CargoPlan.Core.Tests/      # Fixtures/, FrozenShips/ (A10)
+│   ├── CargoPlan.Import.Tests/    # Fixtures/RawText: echte Vertragstexte (CIG-Material nur als Text)
+│   ├── CargoPlan.App.Tests/       # läuft nur unter Windows (D12), WPF nur über Sta.Run (A12)
 │   └── CargoPlan.Ocr.Tests/       # läuft nur unter Windows (D12-Muster, Schrift der Testbilder)
 ├── docs/
-│   └── contracttracker-schema.md
+│   ├── decisions.md               # D1…, nummeriert, mit Addenda
+│   ├── mission-format.md · plan-format.md · settings-format.md · ship-format.md · holo-format.md
+│   ├── release-notes/             # je Release, Geschichte: nie nachträglich ändern
+│   ├── review/                    # Repo-Durchsichten (2026-11-pre-p10)
+│   ├── nexus/                     # Nexus-Seite, Checkliste, Staff-Anfrage
+│   ├── shots/                     # SHOTLIST.md + Pläne für Screenshots
+│   └── images/
 └── .github/
     ├── dependabot.yml             # nuget + github-actions, je eine Gruppe, monatlich (D51)
     ├── PULL_REQUEST_TEMPLATE.md
@@ -110,7 +116,7 @@ dotnet test tests/CargoPlan.App.Tests -c Release -p:RunSettingsFilePath= --filte
 dotnet run --project src/CargoPlan.App         # Overlay starten
 dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json
 dotnet run --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/example_missions.json
-dotnet run --project src/CargoPlan.Cli -- contracts <copy-of-contracts.db> [--since <id>] [--raw]   # nur gegen eine Kopie (D38)
+dotnet run --project src/CargoPlan.App -- --data-dir <voller Pfad>   # alle Dateien des Laufs (Settings, Plan, Logs, Holo-Cache) in diesem Ordner statt im Profil; für Gate- und Testläufe (T10.4a)
 dotnet run --project src/CargoPlan.Cli -- scan <screenshot.png>   # Vertrag aus einem Fenster-Screenshot lesen: Rohtext, dann geparster Vertrag mit Inhaltsschlüssel nach stdout, Stufenzeiten nach stderr (D99, D101)
 dotnet test tests/CargoPlan.Import.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OcrSampleTests   # echte Aufnahmen aus S10.0 durch OCR und Parser gegen truth.json: Lieferungen, Pickup, Max, Reward, Ansicht, Schlüssel je Paar (~1 min), nur von Hand; Env: CARGOPLAN_OCR_SAMPLES (sc-ocr-samples, CIG-Material, nie ins Repo), CARGOPLAN_OCR_OUT
 dotnet test tests/CargoPlan.Import.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~ScanProbeLogTests --logger "console;verbosity=detailed"   # jeden Rohtext eines scan-probe.log durch den Parser, strukturelle Asserts, Zahlen je Schlüssel im Output (T10.2a), nur von Hand; Env: CARGOPLAN_SCAN_PROBE_LOG (CIG-Material, nie ins Repo)

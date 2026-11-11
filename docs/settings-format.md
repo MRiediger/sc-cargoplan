@@ -1,20 +1,20 @@
 # Settings file format
 
 `%LocalAppData%\SC-CargoPlan\settings.json` holds the overlay's position and size, your hotkeys, where
-the legend stands, the overlay's look, the tool windows' theme, where ContractTracker is, your ship, the ships you chose last and the ship view as you left it on each. Position and size
+the legend stands, the overlay's look, the tool windows' theme, your ship, the ships you chose last and the ship view as you left it on each. Position and size
 are saved whenever you move the overlay; the settings window (the gear in the header) sets and saves the look,
-the legend layout, the ship view (outline or hologram, its opacity and colours, hologram downloads, how far it zooms), the tool window theme, the hotkeys and the ContractTracker settings, and loads or saves a look as a [look file](#look-files); the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
+the legend layout, the ship view (outline or hologram, its opacity and colours, hologram downloads, how far it zooms), the tool window theme and the hotkeys, and loads or saves a look as a [look file](#look-files); the ship name in the overlay header sets the ship and the recent ships. You can still edit the file by hand: close the overlay, edit the file, start
 the overlay again.
 
 ## Example with every default
 
 Without a file, or without `ship`, `recentShips`, `legend`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`,
-`holoHullColor`, `holoEdgeColor`, `shipView`, `toolWindowTheme`, `contractTracker` and `appearance`, the overlay uses exactly these
+`holoHullColor`, `holoEdgeColor`, `shipView`, `toolWindowTheme` and `appearance`, the overlay uses exactly these
 values.
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "ship": null,
   "recentShips": null,
   "overlay": null,
@@ -27,7 +27,6 @@ values.
   "holoEdgeColor": "#FFE6E6E6",
   "shipView": { "maxZoomPxPerCell": 160 },
   "toolWindowTheme": "system",
-  "contractTracker": { "path": null, "autoSync": true, "onContractGone": "keep" },
   "appearance": {
     "window": {
       "background": "#A0141414",
@@ -67,8 +66,7 @@ values.
 }
 ```
 
-`overlay` and `hotkeys` are described in the wiki ([Overlay basics](https://github.com/MRiediger/sc-cargoplan/wiki/Overlay-basics#hotkeys)); `syncContractTracker` takes
-new ContractTracker captures into the plan like the editor's button, `replan` lays out the cargo on board anew like the
+`overlay` and `hotkeys` are described in the wiki ([Overlay basics](https://github.com/MRiediger/sc-cargoplan/wiki/Overlay-basics#hotkeys)); `replan` lays out the cargo on board anew like the
 editor's Re-plan, `discardPlan` empties the plan like the editor's Discard plan, `undo` and `redo` go back and forward like the header's
 ↶ and ↷, `resetView` fits the ship view like the header's reset next to the gear, `scanContracts` reads the contract
 open in the mobiGlas into the plan like the editor's Scan button. In `hotkeys`, `null` and a missing entry both mean
@@ -76,7 +74,7 @@ open in the mobiGlas into the plan like the editor's Scan button. In `hotkeys`, 
 `scanContracts`: missing means **F3**, `null` means off (D104). A hotkey needs Ctrl, Alt or Win unless it is an F key
 (F1–F11, F13–F24); F12 and Space are reserved. Hotkeys work while Star Citizen or CargoPlan is in front, and the keys
 reach the game too, so pick a combination Star Citizen doesn't use (D97). Every section and every value
-in `appearance` is optional: what you leave out keeps its default. `{ "schemaVersion": 2, "appearance":
+in `appearance` is optional: what you leave out keeps its default. `{ "schemaVersion": 3, "appearance":
 { "legend": { "fontSize": 14 } } }` changes only the legend's font size.
 
 ## Colours and transparency
@@ -255,23 +253,6 @@ It doesn't change the overlay: that is `appearance`. It sits at the top level, n
 
 Lower case only. Missing or `null` means `"system"`. File dialogs and message boxes keep the Windows look.
 
-## ContractTracker
-
-`contractTracker` sits at the top level. Without it, or with `null`, the overlay finds ContractTracker at its
-own place and takes every capture into the plan by itself.
-
-| Key | What | Default |
-|---|---|---|
-| `contractTracker.path` | Full path of ContractTracker's `contracts.db`; `null` = `%AppData%\SCContractTracker\contracts.db` | `null` |
-| `contractTracker.autoSync` | `true`: captures come into the plan by themselves. `false`: an amber line says "N new contracts"; **Sync from ContractTracker** (editor or hotkey) takes them in | `true` |
-| `contractTracker.onContractGone` | What a sync does with a contract ContractTracker no longer lists. `"keep"`: it stays as it is, crates, positions and ticks included, its legend header and editor row say "gone"; you delete it in the editor or with **Discard plan**. `"remove"`: when it goes, its planned and delivered cargo leaves; loaded cargo never leaves by itself, the contract stays marked gone and leaves at a later sync once that cargo is delivered. Contracts listed again lose the mark. When every contract goes in one read, or the database is new, nothing leaves either way | `"keep"` |
-
-The settings window sets all three (**Browse…**, **Detect automatically**, **Auto-sync**, **When a contract
-disappears from ContractTracker**); a new path is watched at once, without a restart, and a new choice holds from
-the next read. **Reset to defaults** in the section sets auto-sync and gone contracts back; the path keeps
-**Detect automatically**. A path whose file doesn't exist is kept: ContractTracker may come later. The settings
-window says "ContractTracker not found" and links to its page.
-
 ## Ship
 
 `ship` is the id of the ship you haul with, the name of its file in `ships/` without `.json` (`"c2_hercules"`).
@@ -298,7 +279,7 @@ A look file (`*.cargoplan-look.json`) carries a look from one overlay to another
 writes one, **Import…** reads one, and the presets in the **Preset** box are look files that ship with the app. It
 holds exactly these keys of settings.json, with the same names and shapes as above: `appearance` (all of it), `legend`,
 `toolWindowTheme`, `shipOutline`, `holoOpacity`, `holoHullColor`, `holoEdgeColor` and `shipView` with
-`maxZoomPxPerCell` only. Your hotkeys, the ContractTracker settings, the overlay's position and size, the cameras per
+`maxZoomPxPerCell` only. Your hotkeys, the overlay's position and size, the cameras per
 ship, the ship and the hologram download switch are not in it: they belong to your machine or your run.
 
 ```json
@@ -336,8 +317,6 @@ ship, the ship and the hologram download switch are not in it: they belong to yo
 - **A legend height share outside 0.2–0.8** is set to the nearest limit (`"maxHeightShare": 1` → 0.8).
 - **A tool window theme that isn't one** (`"blue"`, `"Dark"`) takes `system`.
 - **A stop palette that isn't one** (`"ibm"`, `"OkabeIto"`) takes `okabeIto`.
-- **A ContractTracker path that isn't a full path** (`"contracts.db"`, `""`) is detected instead (`null`).
-- **A choice for gone contracts that isn't one** (`"delete"`, `"Keep"`) takes `keep`.
 - In all these cases everything else in the file applies, and an amber line in the overlay names the value. The
   file stays as it is until you move the overlay or change a setting; then it is saved with the corrected values.
 - **A misspelt key** (`"fontsize"`), **a wrong type** (`"fontSize": "big"`), `null` for a colour or a file
@@ -354,8 +333,21 @@ away if you want to keep it longer.
 | `schemaVersion` | Written by | Content |
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
-| 2 | this version | plus `appearance`; `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView`, `appearance.legend.checkBoxColor`, `appearance.legend.checkMarkColor`, `appearance.crates.stopPalette`, `appearance.crates.selectionColor`, `appearance.crates.selectionWidth` `appearance.crates.selectionOutline`, `legend.maxHeightShare` and `contractTracker.onContractGone` came later as optional parts of version 2 |
+| 2 | v0.1.0 to v0.3.1 | plus `appearance`, `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView` and the newer `appearance` values, each optional within version 2 |
+| 3 | v0.4.0 and later | without `contractTracker`, `hotkeys.syncContractTracker` and a camera's `pxPerCell`, `panX`, `panY`; plus `hotkeys.scanContracts` (optional) |
 
-A version 1 file is read as it is, with the default look. The next save (moving the overlay, changing a setting) writes
-version 2 with every `appearance` value, so you see what there is to set. An older overlay can't read a
-version 2 file and starts with defaults.
+### Older files
+
+A version 1 or 2 file is migrated when it is read, nothing else in it changes:
+
+- `contractTracker` goes (the import from ContractTracker is gone since v0.4.0; contracts come in by the scan).
+- `hotkeys.syncContractTracker` goes. If you had set one, an amber line says which key is free again, and the file is
+  written as version 3 right away, so you see the line once; the old file stays as `settings.json.bak`.
+- A camera in `shipView.cameras` that still has `pxPerCell`, `panX` or `panY` set (the flat view before v0.1.0) goes;
+  that ship starts at its default camera, as it did before. Those three keys set to `null` just go.
+- A version 1 file also gets the default look.
+
+Apart from the sync hotkey, nothing is written until you move the overlay or change a setting; then the file becomes
+version 3. Everything else follows the rules above: a misspelt key still makes the whole file unreadable. An overlay older than v0.4.0 can't
+read a version 3 file and starts with defaults; to go back, rename `settings.json.bak` to `settings.json` before its
+first save.
