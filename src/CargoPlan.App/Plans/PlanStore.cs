@@ -12,30 +12,31 @@ public static class PlanStore
     /// %LocalAppData%\SC-CargoPlan\plan.json, next to settings.json but a file of its own: deleting the settings
     /// to reset the window must not throw away the plan, and the other way round.
     /// </summary>
-    public static string DefaultPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SC-CargoPlan", "plan.json");
+    public static string DefaultPath { get; } = Path.Combine(AppFolders.LocalRoot, "plan.json");
 
     /// <summary>
     /// Missing file = no plan, no problem. Broken file, another ship or a plan that doesn't fit its missions = no plan
     /// plus a problem text for the overlay; the file is left as it is until the player makes a new plan.
     /// </summary>
-    public static (SavedPlan? Plan, string? Problem) Load(string path, Ship ship)
+    /// <returns>The plan or a problem, and the last scan number given (D102, 0 without a plan).</returns>
+    public static (SavedPlan? Plan, string? Problem, int LastScanNo) Load(string path, Ship ship)
     {
         if (!File.Exists(path))
         {
-            return (null, null);
+            return (null, null, 0);
         }
 
         try
         {
             using var stream = File.OpenRead(path);
-            return (PlanFile.Read(stream, path, ship), null);
+            var (plan, lastScanNo) = PlanFile.ReadContent(stream, path, ship);
+            return (plan, null, lastScanNo);
         }
         catch (Exception ex) when (ex is PlanFormatException or IOException or UnauthorizedAccessException)
         {
             var problem = $"Plan not loaded ({ex.Message}). The file stays until you make a new plan.";
             AppLog.Write("Plan", $"{problem} [{ex.GetType().Name}]");
-            return (null, problem);
+            return (null, problem, 0);
         }
     }
 
@@ -65,5 +66,7 @@ public static class PlanStore
     /// <summary>Replaces the file in one step (<see cref="AtomicFile"/>).</summary>
     /// <exception cref="IOException">The file can't be written.</exception>
     /// <exception cref="UnauthorizedAccessException">No permission for the folder or the file.</exception>
-    public static void Save(string path, SavedPlan plan) => AtomicFile.Write(path, stream => PlanFile.Write(stream, plan));
+    /// <param name="lastScanNo">The last scan number given (D102), kept beside the plan.</param>
+    public static void Save(string path, SavedPlan plan, int lastScanNo = 0) =>
+        AtomicFile.Write(path, stream => PlanFile.Write(stream, plan, lastScanNo));
 }

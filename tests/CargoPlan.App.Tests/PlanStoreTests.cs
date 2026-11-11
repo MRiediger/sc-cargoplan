@@ -38,12 +38,21 @@ public sealed class PlanStoreTests : IDisposable
     }
 
     [Fact]
+    public void Save_then_Load_keeps_the_last_scan_number()
+    {
+        // D102: kept beside the plan, outside the undo steps; a plan without scans has 0.
+        PlanStore.Save(PlanPath, RikerDelivered(), lastScanNo: 4);
+
+        PlanStore.Load(PlanPath, HullA).LastScanNo.Should().Be(4);
+    }
+
+    [Fact]
     public void Save_then_Load_keeps_the_plan_with_its_ticks()
     {
         var saved = RikerDelivered();
 
         PlanStore.Save(PlanPath, saved);
-        var (loaded, problem) = PlanStore.Load(PlanPath, HullA);
+        var (loaded, problem, _) = PlanStore.Load(PlanPath, HullA);
 
         problem.Should().BeNull();
         loaded!.Plan.Placements.Should().Equal(saved.Plan.Placements);
@@ -60,7 +69,7 @@ public sealed class PlanStoreTests : IDisposable
         var saved = SavedPlan.FromStops(planned.Stops, LoadPlanner.Plan(HullA, planned.Stops.ToStops(), FillOrder.SternFirst), CrateCap.Of(HullA));
 
         PlanStore.Save(PlanPath, saved);
-        var (loaded, problem) = PlanStore.Load(PlanPath, HullA);
+        var (loaded, problem, _) = PlanStore.Load(PlanPath, HullA);
 
         problem.Should().BeNull();
         loaded!.Plan.FillOrder.Should().Be(FillOrder.SternFirst);
@@ -71,7 +80,7 @@ public sealed class PlanStoreTests : IDisposable
     [Fact]
     public void Missing_file_gives_no_plan_without_a_problem()
     {
-        var (loaded, problem) = PlanStore.Load(PlanPath, HullA);
+        var (loaded, problem, _) = PlanStore.Load(PlanPath, HullA);
 
         loaded.Should().BeNull();
         problem.Should().BeNull();
@@ -85,7 +94,7 @@ public sealed class PlanStoreTests : IDisposable
     {
         WriteFile(content);
 
-        var (loaded, problem) = PlanStore.Load(PlanPath, HullA);
+        var (loaded, problem, _) = PlanStore.Load(PlanPath, HullA);
 
         loaded.Should().BeNull();
         problem.Should().StartWith("Plan not loaded").And.Contain(PlanPath);
@@ -97,7 +106,7 @@ public sealed class PlanStoreTests : IDisposable
     {
         WriteFile("this is not json");
 
-        var (_, problem) = PlanStore.Load(PlanPath, HullA);
+        var (_, problem, _) = PlanStore.Load(PlanPath, HullA);
 
         // The path holds this test's own folder, so parallel tests writing the same log don't matter (K10, F9).
         TestLog.Text().Should().Contain($" Plan: {problem} [PlanFormatException]");
@@ -111,7 +120,7 @@ public sealed class PlanStoreTests : IDisposable
         var content = File.ReadAllText(PlanPath).Replace("\"shipId\": \"hull_a\"", "\"shipId\": \"cutlass_black\"");
         File.WriteAllText(PlanPath, content);
 
-        var (loaded, problem) = PlanStore.Load(PlanPath, HullA);
+        var (loaded, problem, _) = PlanStore.Load(PlanPath, HullA);
 
         problem.Should().BeNull();
         loaded!.Plan.ShipId.Should().Be("cutlass_black");

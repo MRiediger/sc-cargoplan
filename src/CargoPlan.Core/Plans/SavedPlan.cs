@@ -41,6 +41,9 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, C
     /// <summary>True if a derived mix is split into smaller crates than its contract allows, for the overlay's notice (D70).</summary>
     public bool CratesCapped => Missions.SelectMany(m => m.Items).Any(at => at.Item.CappedBy(CrateCap));
 
+    /// <summary>The highest scan number of the plan's missions (D102); 0 without a scanned contract.</summary>
+    public int HighestScanNo => Missions.Select(m => m.Contract?.Scan?.No ?? 0).DefaultIfEmpty().Max();
+
     /// <summary>The id the next mission gets: one above the highest, so an id is never reused within a plan.</summary>
     public int NextMissionId => Missions.Count == 0 ? 1 : Missions.Max(m => m.Id) + 1;
 
@@ -50,8 +53,7 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, C
 
     /// <summary>
     /// A plan with one mission per stop, its crates assigned by destination and then to the items holding their kind
-    /// (<see cref="WithItems"/>): the missions of a plan made before missions existed (plan schema 1 and 2, D42), and of a
-    /// plan made from a route alone.
+    /// (<see cref="WithItems"/>): the missions of a plan made from a route alone.
     /// </summary>
     /// <exception cref="ArgumentException">The plan doesn't fit the stops (see the constructor).</exception>
     public static SavedPlan FromStops(IReadOnlyList<MissionStop> stops, LoadPlan plan, CrateCap cap, long watermark = 0)
@@ -97,6 +99,12 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, C
         if (missions.GroupBy(m => m.Id).FirstOrDefault(g => g.Count() > 1) is { } twice)
         {
             throw new ArgumentException(Invariant($"Mission id {twice.Key} is used more than once."), nameof(Missions));
+        }
+
+        // "#3" names one scanned contract (D102).
+        if (missions.Where(m => m.Contract?.Scan is not null).GroupBy(m => m.Contract!.Scan!.No).FirstOrDefault(g => g.Count() > 1) is { } scannedTwice)
+        {
+            throw new ArgumentException(Invariant($"Missions {string.Join(" and ", scannedTwice.Select(m => m.Id))} are both scan #{scannedTwice.Key}."), nameof(Missions));
         }
 
         // One stop per destination at the elevator, so one spelling: "Riker" and "riker" would be two legend lines.

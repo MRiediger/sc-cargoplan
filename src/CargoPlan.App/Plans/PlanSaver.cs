@@ -72,7 +72,7 @@ public sealed class PlanSaver
 
         try
         {
-            PlanStore.Save(_path, saved);
+            PlanStore.Save(_path, saved, _viewModel.LastScanNo);
             _viewModel.SetNotice(NoticeSource.Plan, null); // A load or save problem is solved once the file is written.
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)

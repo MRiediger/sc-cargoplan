@@ -113,32 +113,6 @@ public class LoadedStateTests
     }
 
     [Fact]
-    public void Schema_6_reads_with_nothing_loaded()
-    {
-        var node = JsonNode.Parse(Written(Placed(HullA, [Stop("Riker", "Titanium", 8, CrateSize.Four)])))!;
-        node["schemaVersion"] = 6;
-        node.AsObject().Remove("fillRows");
-        node.AsObject().Remove("grouping");
-        node.AsObject().Remove("sectionGap");
-
-        Read(node.ToJsonString(), HullA).Plan.Crates.Should().NotBeEmpty().And.OnlyContain(c => !c.Loaded);
-    }
-
-    [Fact]
-    public void Schema_6_with_loaded_is_broken()
-    {
-        var node = JsonNode.Parse(Written(RikerLoaded()))!;
-        node["schemaVersion"] = 6;
-        node.AsObject().Remove("fillRows");
-        node.AsObject().Remove("grouping");
-        node.AsObject().Remove("sectionGap");
-
-        var act = () => Read(node.ToJsonString(), HullA);
-
-        act.Should().Throw<PlanFormatException>().WithMessage("*loaded*schema 7*");
-    }
-
-    [Fact]
     public void Loaded_and_delivered_in_the_file_is_broken()
     {
         var node = JsonNode.Parse(Written(RikerLoaded()))!;

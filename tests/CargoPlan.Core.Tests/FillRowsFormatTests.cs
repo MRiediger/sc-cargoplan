@@ -39,10 +39,24 @@ public class FillRowsFormatTests
         return reader.ReadToEnd().ReplaceLineEndings("\n");
     }
 
+    /// <summary>
+    /// The golden with another schema number. Checked, so the replacement can't fall silent when the goldens move to the
+    /// next schema (T10.2b1: they went from 9 to 10).
+    /// </summary>
+    private static string GoldenAs(int schema)
+    {
+        var golden = GoldenBow().Replace($"\"schemaVersion\": {PlanFile.SupportedSchemaVersion}", $"\"schemaVersion\": {schema}", StringComparison.Ordinal);
+        golden.Should().Contain($"\"schemaVersion\": {schema},", "the golden is written in the current schema");
+        return golden;
+    }
+
     /// <summary>The golden as it would have been before schema 9: no fillRows, the older number.</summary>
-    private static string OlderGolden(int schema) => GoldenBow()
-        .Replace("  \"fillRows\": \"lengthwise\",\n  \"grouping\": \"none\",\n  \"sectionGap\": 0,\n", "", StringComparison.Ordinal)
-        .Replace("\"schemaVersion\": 9", $"\"schemaVersion\": {schema}", StringComparison.Ordinal);
+    private static string OlderGolden(int schema)
+    {
+        var older = GoldenAs(schema).Replace("  \"fillRows\": \"lengthwise\",\n  \"grouping\": \"none\",\n  \"sectionGap\": 0,\n", "", StringComparison.Ordinal);
+        older.Should().NotContain("fillRows");
+        return older;
+    }
 
     // --- Plan file ---
 
@@ -66,11 +80,22 @@ public class FillRowsFormatTests
     }
 
     [Fact]
-    public void A_schema_8_file_reads_lengthwise_and_writes_back_as_schema_9()
+    public void A_schema_8_file_reads_lengthwise_and_writes_back_as_the_current_schema()
     {
         var saved = Read(OlderGolden(8), HullA);
 
         saved.Plan.FillRows.Should().Be(FillRows.Lengthwise);
+        Written(saved).ReplaceLineEndings("\n").Should().Be(GoldenBow());
+    }
+
+    [Fact]
+    public void A_schema_9_file_reads_and_writes_back_as_the_current_schema()
+    {
+        // Schema 10 (T10.2b1) adds what a scan needs; a plan from v0.2.0 to v0.3.1 reads as it is.
+        PlanFile.SupportedSchemaVersion.Should().BeGreaterThan(9);
+
+        var saved = Read(GoldenAs(9), HullA);
+
         Written(saved).ReplaceLineEndings("\n").Should().Be(GoldenBow());
     }
 
@@ -101,7 +126,7 @@ public class FillRowsFormatTests
     [Fact]
     public void A_schema_9_file_without_fillRows_is_an_error()
     {
-        var node = JsonNode.Parse(GoldenBow())!;
+        var node = JsonNode.Parse(GoldenAs(9))!;
         node.AsObject().Remove("fillRows");
 
         var act = () => Read(node.ToJsonString(), HullA);

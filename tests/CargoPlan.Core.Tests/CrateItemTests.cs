@@ -223,41 +223,6 @@ public class CrateItemTests
     }
 
     [Fact]
-    public void Read_of_schema_3_gives_each_mission_its_items_in_order()
-    {
-        // A schema 3 file is what this app wrote before D68: no "item", crates of one kind per mission in plan order.
-        var node = JsonNode.Parse(Written(Planned(TwoPickups(), new Mission(2, [new("Riker", 1, [Item("Titanium", 4, CrateSize.Four), Item("Quartz", 2, CrateSize.Two)])]))))!;
-        node["schemaVersion"] = 3;
-        node.AsObject().Remove("fillRows");
-        node.AsObject().Remove("grouping");
-        node.AsObject().Remove("sectionGap");
-        foreach (var crate in node["crates"]!.AsArray())
-        {
-            crate!.AsObject().Remove("item");
-        }
-
-        var loaded = Read(node.ToJsonString());
-
-        loaded.Plan.Crates.Where(c => c.Mission == 1).Select(c => c.Item).Should().Equal(0, 1);
-        loaded.Plan.Crates.Single(c => c.Commodity == "Quartz").Item.Should().Be(1);
-        ShouldNameTheirItems(loaded);
-    }
-
-    [Fact]
-    public void Read_of_schema_3_with_an_item_is_broken()
-    {
-        var node = JsonNode.Parse(Written(Planned(TwoPickups())))!;
-        node["schemaVersion"] = 3;
-        node.AsObject().Remove("fillRows");
-        node.AsObject().Remove("grouping");
-        node.AsObject().Remove("sectionGap");
-
-        var act = () => Read(node.ToJsonString());
-
-        act.Should().Throw<PlanFormatException>().WithMessage("*item*schema 4*");
-    }
-
-    [Fact]
     public void Read_of_schema_4_without_an_item_is_broken()
     {
         var node = JsonNode.Parse(Written(Planned(TwoPickups())))!;

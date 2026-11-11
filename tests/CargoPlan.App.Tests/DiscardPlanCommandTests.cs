@@ -47,6 +47,19 @@ public sealed class DiscardPlanCommandTests
     }
 
     [Fact]
+    public void Discard_starts_the_scan_numbers_again()
+    {
+        // A fresh plan counts its scans from #1 (D102, Martin); an undo of the discard brings its scans back, and the next
+        // number then goes above them (T10.2b2 counts from the plan's highest too).
+        var overlay = new OverlayViewModel(HullA) { LastScanNo = 5 };
+        overlay.ShowPlan(TestPlans.SplitAndShared());
+
+        overlay.DiscardPlanCommand.Execute(null);
+
+        overlay.LastScanNo.Should().Be(0);
+    }
+
+    [Fact]
     public void Discard_shows_the_empty_state_and_says_so_and_keeps_ship_and_fill_order()
     {
         var overlay = SternFirstWithATick();

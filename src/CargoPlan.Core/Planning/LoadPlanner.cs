@@ -521,10 +521,10 @@ public static class LoadPlanner
     /// The deliveries of <paramref name="saved"/> that are loaded or delivered as a whole, by <see cref="DeliveryKey"/>,
     /// with their crates; of two with one key the first.
     /// </summary>
-    private static Dictionary<(long Contract, string Destination), Crate[]> KeptDeliveries(SavedPlan saved)
+    private static Dictionary<(ContractKind Kind, long Contract, string Destination), Crate[]> KeptDeliveries(SavedPlan saved)
     {
         var contracts = saved.Missions.ToDictionary(m => m.Id, m => m.Contract);
-        Dictionary<(long, string), Crate[]> kept = [];
+        Dictionary<(ContractKind, long, string), Crate[]> kept = [];
         foreach (var delivery in saved.Plan.Crates.GroupBy(c => (c.Mission, c.Destination)))
         {
             if (delivery.All(c => c.Loaded) || delivery.All(c => c.Delivered))
@@ -537,11 +537,24 @@ public static class LoadPlanner
     }
 
     /// <summary>
-    /// A delivery across plans: its capture's first ContractTracker id, or 0 for a typed mission, and the destination. The
-    /// id of a detached capture is negated, so a new database's contract with that id is another delivery (D81).
+    /// A delivery across plans: what kind of contract, its capture's first ContractTracker id or its scan number (0 for a
+    /// typed mission), and the destination. The kind keeps capture #3 and scan #3 apart (D102). The id of a detached
+    /// capture is negated, so a new database's contract with that id is another delivery (D81).
     /// </summary>
-    private static (long Contract, string Destination) DeliveryKey(ContractSource? contract, string destination) =>
-        (contract is null ? 0 : contract.Detached ? -contract.ContractIds.Min() : contract.ContractIds.Min(), destination);
+    private static (ContractKind Kind, long Contract, string Destination) DeliveryKey(ContractSource? contract, string destination) => contract switch
+    {
+        null => (ContractKind.Typed, 0, destination),
+        { Scan: { } scan } => (ContractKind.Scan, scan.No, destination),
+        { Detached: true } => (ContractKind.Capture, -contract.ContractIds.Min(), destination),
+        _ => (ContractKind.Capture, contract.ContractIds.Min(), destination),
+    };
+
+    private enum ContractKind
+    {
+        Typed,
+        Capture,
+        Scan,
+    }
 
     /// <summary><paramref name="mission"/> without the stops in <paramref name="kept"/>; null if none is left.</summary>
     private static Mission? Without(Mission mission, IReadOnlySet<(int Mission, string Destination)> kept)

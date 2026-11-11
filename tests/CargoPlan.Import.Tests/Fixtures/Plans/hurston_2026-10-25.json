@@ -1,7 +1,10 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 9,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
+  "fillRows": "lengthwise",
+  "grouping": "none",
+  "sectionGap": 0,
   "contractTrackerWatermark": 38,
   "missions": [
     {

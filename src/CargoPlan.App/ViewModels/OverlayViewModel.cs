@@ -490,6 +490,13 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     // The ids ContractTracker still had at the last read; null before one. Kept for the sync after an undo (K2.4).
     private IReadOnlySet<long>? _present;
 
+    /// <summary>
+    /// The last scan number given (D102), beside the plan and outside its undo steps, so an undo never gives a number
+    /// twice; saved with the plan. Discard plan starts it again; the next number goes above the plan's highest too
+    /// (<see cref="SavedPlan.HighestScanNo"/>), so a discard undone continues above its scans.
+    /// </summary>
+    public int LastScanNo { get; set; }
+
     /// <summary>What a sync does with a contract ContractTracker no longer lists (D81); the settings set it.</summary>
     public ContractGonePolicy OnContractGone { get; set; }
 
@@ -748,6 +755,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     private void DiscardPlan()
     {
         var saved = Saved ?? throw new InvalidOperationException(NoPlanText);
+        LastScanNo = 0;
         Step(LoadPlanner.Discard(saved, Ship));
         SetNotice(NoticeSource.Replan, null);
         SetNotice(NoticeSource.Move, DiscardedText);

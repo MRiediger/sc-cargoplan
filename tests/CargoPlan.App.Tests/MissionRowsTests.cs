@@ -374,6 +374,19 @@ public class MissionRowsTests
     }
 
     [Fact]
+    public void A_row_of_a_scanned_contract_carries_its_scan_number()
+    {
+        // D102: no ContractTracker id; the scan number sorts and names the row as an id did.
+        Mission scanned = new(1, [Stop("Shubin", "Stims")], ContractSource.Scanned(new ScanIdentity(3, "EVERUSHARBOR | SHUBIN:STIMS | 4 | ?", false)));
+
+        var row = MissionRows.FromMissions([scanned], ["Shubin"]).Single();
+
+        row.ContractId.Should().Be(3);
+        row.Source.Should().Be("#3");
+        MissionRows.ToMissions([row], [scanned]).Missions.Single().Contract.Should().Be(scanned.Contract);
+    }
+
+    [Fact]
     public void Changing_the_max_crate_size_ends_the_assumption()
     {
         var row = MissionRows.FromMissions([Captured(1, 36, Stop("Shubin", "Stims"))], ["Shubin"]).Single();

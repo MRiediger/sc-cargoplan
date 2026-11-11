@@ -14,48 +14,41 @@ public static class PlanFile
     /// <summary>
     /// The version the writer writes: missions with ids, crates with missions (D42), items (D68), turned or not (D71),
     /// off the ship or not (K2.2) and loaded or not (K6.4), items added by hand to a ContractTracker mission (K6.5),
-    /// captures gone from ContractTracker or detached (D81), the row axis (D88), the grouping and section gap (D89), the watermark. An app from before D88
-    /// refuses it, so it never lays a crosswise plan out lengthwise.
+    /// captures gone from ContractTracker or detached (D81), the row axis (D88), the grouping and section gap (D89), the watermark,
+    /// contracts read by CargoPlan's own scan (D102). Open until v0.4.0: T10.4 changes it without a new number, no release
+    /// wrote it before (D102).
     /// </summary>
-    public const int SupportedSchemaVersion = 9;
+    public const int SupportedSchemaVersion = 10;
 
-    /// <summary>Captures gone or not, no row axis: every plan lengthwise (D81); still read so, never written.</summary>
-    public const int NoFillRowsSchemaVersion = 8;
-
-    /// <summary>Crates loaded or not, items manual or not, no capture gone (K6.4, K6.5); still read so, never written.</summary>
-    public const int NotGoneSchemaVersion = 7;
-
-    /// <summary>Crates off the ship or not, none loaded, no item manual (K2.2); still read so, never written.</summary>
-    public const int NotLoadedSchemaVersion = 6;
-
-    /// <summary>Crates turned or not, every crate in a rack (D71); still read, never written.</summary>
-    public const int NoOffShipSchemaVersion = 5;
-
-    /// <summary>Crates with items, none turned (D68); still read, every crate unturned, never written.</summary>
-    public const int UnrotatedSchemaVersion = 4;
-
-    /// <summary>Crates with missions but without items (D42); still read, items assigned on reading (D68), never written.</summary>
-    public const int ItemlessSchemaVersion = 3;
-
-    /// <summary>Placements without positions; still read and laid out on reading, never written.</summary>
-    public const int LegacySchemaVersion = 1;
-
-    /// <summary>Crates with positions, no missions (D24); still read, one mission per stop, never written.</summary>
-    public const int PreviousSchemaVersion = 2;
-
-    private static readonly int[] ReadableSchemaVersions = [LegacySchemaVersion, PreviousSchemaVersion, ItemlessSchemaVersion, UnrotatedSchemaVersion, NoOffShipSchemaVersion, NotLoadedSchemaVersion, NotGoneSchemaVersion, NoFillRowsSchemaVersion, SupportedSchemaVersion];
+    /// <summary>The row axis, grouping and section gap, no scanned contract (D88, D89; v0.2.0 to v0.3.1); still read, never written.</summary>
+    public const int NoScanSchemaVersion = 9;
 
     /// <summary>
-    /// Reads a plan file for <paramref name="ship"/>, schema 1 to 9. The stream is left open. A schema 2 to 9 plan for
-    /// another ship loads with its own ship id and without the grid checks; the caller plans it anew (D59). So does one
-    /// with a crate outside today's rack, read under <see cref="CapReason.RacksChanged"/> (K3.2).
+    /// Captures gone or not, no row axis: every plan lengthwise (D81); still read so, never written. The oldest version
+    /// read: v0.1.0 wrote it, the versions before were this project's own history, never a player's (F4, T10.2b1).
+    /// </summary>
+    public const int NoFillRowsSchemaVersion = 8;
+
+    private static readonly int[] ReadableSchemaVersions = [NoFillRowsSchemaVersion, NoScanSchemaVersion, SupportedSchemaVersion];
+
+    /// <summary>
+    /// Reads a plan file for <paramref name="ship"/>, schema 8 to 10. The stream is left open. A plan for another ship
+    /// loads with its own ship id and without the grid checks; the caller plans it anew (D59). So does one with a crate
+    /// outside today's rack, read under <see cref="CapReason.RacksChanged"/> (K3.2).
     /// </summary>
     /// <param name="sourceName">Shown in error messages, e.g. the file path.</param>
     /// <exception cref="PlanFormatException">
-    /// The content is broken, uses racks the ship doesn't have, doesn't match its missions, or is a schema 1 plan for
-    /// another ship (laying it out needs its grid) or with more cargo in a rack than its grid holds.
+    /// The content is broken, of another schema version, uses racks the ship doesn't have, or doesn't match its missions.
     /// </exception>
-    public static SavedPlan Read(Stream stream, string sourceName, Ship ship)
+    public static SavedPlan Read(Stream stream, string sourceName, Ship ship) => ReadContent(stream, sourceName, ship).Plan;
+
+    /// <summary>
+    /// <see cref="Read"/>, and the last scan number given in the plan (D102): the file's, at least the highest scan in the
+    /// plan, 0 without either. The overlay keeps it beside the plan, outside its undo steps.
+    /// </summary>
+    /// <param name="sourceName">Shown in error messages, e.g. the file path.</param>
+    /// <exception cref="PlanFormatException">See <see cref="Read"/>.</exception>
+    public static (SavedPlan Plan, int LastScanNo) ReadContent(Stream stream, string sourceName, Ship ship)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceName);
@@ -65,12 +58,10 @@ public static class PlanFile
             using var document = JsonDocument.Parse(stream);
             var root = document.RootElement;
 
-            return SchemaVersion.Check(root, ReadableSchemaVersions) switch
-            {
-                LegacySchemaVersion => (root.Deserialize(PlanJsonContext.Default.PlanFileV1Dto) ?? throw Null()).ToSavedPlan(ship),
-                PreviousSchemaVersion => (root.Deserialize(PlanJsonContext.Default.PlanFileV2Dto) ?? throw Null()).ToSavedPlan(ship),
-                _ => (root.Deserialize(PlanJsonContext.Default.PlanFileDto) ?? throw Null()).ToSavedPlan(ship),
-            };
+            SchemaVersion.Check(root, ReadableSchemaVersions);
+            var file = root.Deserialize(PlanJsonContext.Default.PlanFileDto) ?? throw Null();
+            var saved = file.ToSavedPlan(ship);
+            return (saved, Math.Max(file.LastScanNo ?? 0, saved.HighestScanNo));
         }
         catch (Exception ex) when (ex is JsonException or ArgumentException or PlanException)
         {
@@ -105,10 +96,11 @@ public static class PlanFile
     private static JsonException Null() => new("The file contains null.");
 
     /// <summary>Writes the plan as indented JSON. The stream is left open.</summary>
-    public static void Write(Stream stream, SavedPlan saved)
+    /// <param name="lastScanNo">The last scan number given (D102), kept beside the plan; written as at least the plan's highest.</param>
+    public static void Write(Stream stream, SavedPlan saved, int lastScanNo = 0)
     {
         ArgumentNullException.ThrowIfNull(stream);
 
-        JsonSerializer.Serialize(stream, PlanFileDto.FromSavedPlan(saved), PlanJsonContext.Default.PlanFileDto);
+        JsonSerializer.Serialize(stream, PlanFileDto.FromSavedPlan(saved, lastScanNo), PlanJsonContext.Default.PlanFileDto);
     }
 }
