@@ -59,16 +59,13 @@ public class UndoTimingTests(ITestOutputHelper output)
                 var overlay = new ViewModels.OverlayViewModel(ship);
                 overlay.ShowPlan(saved);
                 Move(overlay, ship);
-                var stop = new MissionStop("Area18", 1, [new MissionItem("Stims", 2, CrateSize.Two)]);
-                overlay.ApplyContractTracker(new(
-                    [new([overlay.Watermark + 100], null, [stop], false, false, null, null, null)], null, null));
                 overlay.ToggleDeliveredCommand.Execute(overlay.Plan!.Route[0]);
                 var missions = overlay.Missions.Count;
 
                 var watch = Stopwatch.StartNew();
                 overlay.UndoCommand.Execute(null);
                 undo.Add(watch.Elapsed.TotalMilliseconds);
-                overlay.Missions.Should().HaveCount(missions, "the undo places the synced contract again");
+                overlay.Missions.Should().HaveCount(missions, "an undo of a tick keeps the missions");
                 watch.Restart();
                 overlay.RedoCommand.Execute(null);
                 redo.Add(watch.Elapsed.TotalMilliseconds);

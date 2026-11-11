@@ -9,8 +9,8 @@ using CargoPlan.App.Editor;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Plans;
 using CargoPlan.Core.Tests;
-using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
 
@@ -42,9 +42,10 @@ public class MaxCrateDropdownTests
         Sta.Run(() =>
         {
             var overlay = new OverlayViewModel(FrozenShips.Load("hull_a"));
-            overlay.ApplyContractTracker(new ContractTrackerReadResult(
-                [new([1], null, [new MissionStop("Endgame", 1, [new MissionItem("Waste", 124, CrateSize.ThirtyTwo)])], true, false, null, null, null)],
-                null, new HashSet<long>()));
+            // Too big for the Hull A: it waits, as the capture did.
+            Mission endgame = new(1, [new MissionStop("Endgame", 1, [new MissionItem("Waste", 124, CrateSize.ThirtyTwo)])],
+                new ContractSource([1], CrateSizeAssumed: true), Unplaced: true);
+            overlay.ShowPlan(new SavedPlan([endgame], new LoadPlan(overlay.Ship.Id, [], []), CrateCap.Of(overlay.Ship)));
             var editor = new MissionEditorViewModel(overlay);
             var view = new EditorGrid(editor);
             var synced = editor.Rows.Single(r => r.Destination == "Endgame");

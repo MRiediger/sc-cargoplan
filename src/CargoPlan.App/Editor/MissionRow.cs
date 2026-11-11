@@ -44,34 +44,27 @@ public sealed partial class MissionRow : ObservableObject
     /// <summary>The mission the row belongs to in the overlay's plan (D42); null for a row not planned yet.</summary>
     public int? MissionId { get; init; }
 
-    /// <summary>Where the row came from: "#37–38" for a ContractTracker capture, empty if typed (T5.4); the Mission column.</summary>
+    /// <summary>Where the row came from: "#3" for a scan, "#37–38" for a capture imported before v0.4.0, empty if typed (T5.4); the Mission column.</summary>
     public string Source { get; init; } = "";
 
-    /// <summary>The capture's first ContractTracker id, the Mission column's sort key (K6.3); null if typed.</summary>
+    /// <summary>The scan's number or the capture's first id, the Mission column's sort key (K6.3); null if typed.</summary>
     public long? ContractId { get; init; }
 
     /// <summary>
-    /// Added to a ContractTracker mission or changed by hand (K6.5): stays with the mission until ContractTracker no
-    /// longer lists it. Set by the editor, never for a typed row.
+    /// Added to a contract's mission or changed by hand (K6.5): stays with the mission. Set by the editor, never for a
+    /// typed row.
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(MissionLabel))]
     public partial bool Manual { get; set; }
 
-    /// <summary>The row's capture is gone from ContractTracker (D81); never for a typed row.</summary>
-    public bool Gone { get; init; }
-
     /// <summary>
-    /// The Mission column: "#37–38", "#37–38 ✎" for a row added or changed by hand (K6.5), "#37–38 · gone" for a capture
-    /// gone from ContractTracker (D81), empty if typed.
+    /// The Mission column: "#3", "#3 ✎" for a row added or changed by hand (K6.5), empty if typed.
     /// </summary>
-    public string MissionLabel => Source + (Manual ? ManualMark : "") + (Gone ? GoneMark : "");
+    public string MissionLabel => Source + (Manual ? ManualMark : "");
 
     /// <summary>What marks a manual row in the Mission column.</summary>
     public const string ManualMark = " ✎";
-
-    /// <summary>What marks a gone capture's row in the Mission column.</summary>
-    public const string GoneMark = " · " + MissionText.GoneText;
 
     /// <summary>
     /// The max crate size was assumed by the import (the contract named none); the legend shows "4 SCU?". Picking a size

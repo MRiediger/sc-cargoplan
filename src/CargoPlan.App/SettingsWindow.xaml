@@ -34,7 +34,7 @@
                 Padding="8,6">
             <DockPanel>
                 <Button DockPanel.Dock="Right" Content="Import…" Click="OnImportLook" Margin="6,0,0,0" Padding="8,2"
-                        ToolTip="Load a look file; hotkeys, ContractTracker and window position stay" />
+                        ToolTip="Load a look file; hotkeys and window position stay" />
                 <Button DockPanel.Dock="Right" Content="Export…" Click="OnExportLook" Margin="6,0,0,0" Padding="8,2"
                         ToolTip="Save this look to share it" />
                 <TextBlock Text="Preset" VerticalAlignment="Center" Margin="0,0,8,0" />
@@ -170,8 +170,8 @@
                 <!-- One hotkey (D35): the button records, Clear removes it. While recording the window's key events go to it. -->
                 <DataTemplate DataType="{x:Type vm:HotkeyEditor}">
                     <StackPanel Margin="0,3">
-                        <!-- Both buttons flush right, the label takes the rest: "Sync from ContractTracker" is wider than
-                             the label column of the other sections. A narrow window wraps it rather than cutting it. -->
+                        <!-- Both buttons flush right, the label takes the rest: "Hide / show overlay" is wider than the
+                             label column of the other sections. A narrow window wraps it rather than cutting it. -->
                         <DockPanel>
                             <Button DockPanel.Dock="Right" Content="Clear" Command="{Binding ClearCommand, Mode=OneTime}"
                                     Margin="6,0,0,0" Padding="8,2" ToolTip="No hotkey for this" />
@@ -444,52 +444,11 @@
                         <ContentControl Content="{Binding Lock, Mode=OneTime}" />
                         <ContentControl Content="{Binding Overlay, Mode=OneTime}" />
                         <ContentControl Content="{Binding Scan, Mode=OneTime}" />
-                        <ContentControl Content="{Binding Sync, Mode=OneTime}" />
                         <ContentControl Content="{Binding Replan, Mode=OneTime}" />
                         <ContentControl Content="{Binding Discard, Mode=OneTime}" />
                         <ContentControl Content="{Binding Undo, Mode=OneTime}" />
                         <ContentControl Content="{Binding Redo, Mode=OneTime}" />
                         <ContentControl Content="{Binding ResetView, Mode=OneTime}" />
-                    </StackPanel>
-                </GroupBox>
-
-                <!-- Where ContractTracker's database is, whether captures come in by themselves (D44) and what a sync does
-                     with a contract it no longer lists (D81). Visible without ContractTracker too, with where to get it.
-                     The reset leaves the path: its reset is "Detect automatically". -->
-                <GroupBox x:Name="ContractTrackerSection" Header="ContractTracker" Style="{StaticResource SectionStyle}"
-                          d:DataContext="{d:DesignInstance vm:ContractTrackerSectionViewModel}">
-                    <StackPanel>
-                        <TextBlock Text="Database" />
-                        <TextBox Text="{Binding PathText, Mode=OneWay}" IsReadOnly="True" TextWrapping="Wrap" Margin="0,2,0,0" />
-                        <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,4,0,0" />
-                        <TextBlock Margin="0,2,0,0">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsFound}" Value="True">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                            <Hyperlink Click="OnOpenNexus" ToolTip="{x:Static vm:ContractTrackerSectionViewModel.NexusUrl}">Get ContractTracker on Nexus Mods</Hyperlink>
-                        </TextBlock>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
-                            <Button Content="Detect automatically" Command="{Binding DetectAutomaticallyCommand, Mode=OneTime}"
-                                    Padding="8,2" Margin="0,0,6,0" ToolTip="Use ContractTracker's own place (%AppData%\SCContractTracker)" />
-                            <Button Content="Browse…" Click="OnBrowseContractTracker" Padding="8,2" ToolTip="Pick contracts.db yourself" />
-                        </StackPanel>
-                        <CheckBox Content="Auto-sync" IsChecked="{Binding AutoSync}" Margin="0,8,0,0"
-                                  ToolTip="Off: a capture only shows &quot;N new contracts&quot;; Sync from ContractTracker in the editor or its hotkey takes them in" />
-                        <!-- Label above the box like "Database": the row's 110 px label would wrap into four lines. -->
-                        <StackPanel Margin="0,8,0,0"
-                                    ToolTip="Keep: the contract stays as it is, marked gone, until you delete it. Remove: planned and delivered cargo leaves when it goes, loaded cargo never">
-                            <TextBlock Text="When a contract disappears from ContractTracker" TextWrapping="Wrap" />
-                            <ComboBox ItemsSource="{x:Static vm:ContractTrackerSectionViewModel.GoneChoices}" DisplayMemberPath="Text"
-                                      SelectedValuePath="Value" SelectedValue="{Binding OnContractGone}" Margin="0,2,0,0" />
-                        </StackPanel>
-                        <Button Command="{Binding ResetCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}"
-                                ToolTip="Reset auto-sync and gone contracts to defaults. The database path stays as it is." />
                     </StackPanel>
                 </GroupBox>
             </StackPanel>

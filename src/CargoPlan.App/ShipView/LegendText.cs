@@ -6,7 +6,7 @@ namespace CargoPlan.App.ShipView;
 
 /// <summary>
 /// How the legend writes quantities and crate mixes (K6.1, D69 addendum), for the lines on board and the missions that
-/// wait (D41) alike. ContractTracker ids are <c>MissionText.Source</c>'s, as in the editor.
+/// wait (D41) alike. A contract's number is <c>MissionText.Source</c>'s, as in the editor.
 /// </summary>
 public static class LegendText
 {

@@ -13,8 +13,8 @@ public enum EditorSortColumn
 public sealed record EditorSort(EditorSortColumn Column, bool Descending);
 
 /// <summary>
-/// The order of the editor's view (K6.3, D19 addendum). By mission: ContractTracker captures by their first id, as a
-/// number; typed rows behind them in both directions, by destination (typed rows of one destination are one mission,
+/// The order of the editor's view (K6.3, D19 addendum). By mission: contracts by their number (a capture by its first
+/// id); typed rows behind them in both directions, by destination (typed rows of one destination are one mission,
 /// D42), since a block without ids that jumped to the top would read like a second list (E1). By destination: the name
 /// without case. The direction turns only the order inside those blocks. Blank rows stay last, and equal keys keep the
 /// order of <paramref name="rows"/>, the order Plan reads. A non-generic comparer, as <c>ListCollectionView.CustomSort</c>

@@ -22,9 +22,9 @@ if (Test-Path $publish) {
     Remove-Item $publish -Recurse -Force
 }
 
-# The App goes last, keep the order. Two of the files both publish differ (checked in T6.2), and the App's must win:
+# The App goes last, keep the order. A file both publish differs (checked in T6.2), and the App's must win:
 # WindowsBase.dll is WPF's in the App and a 16 KB facade in the CLI's runtime, so the overlay wouldn't start with the
-# CLI's; SQLitePCLRaw.provider.e_sqlite3.dll is the same version built for net6.0-windows, which the CLI runs with too.
+# CLI's.
 foreach ($project in 'CargoPlan.Cli', 'CargoPlan.App') {
     dotnet publish (Join-Path $root "src\$project") @common
     # A failing native command doesn't throw in PowerShell, not even with ErrorActionPreference = Stop.

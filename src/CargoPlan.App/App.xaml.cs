@@ -1,7 +1,6 @@
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
-using CargoPlan.App.ContractTracker;
 using CargoPlan.App.Editor;
 using CargoPlan.App.Holo;
 using CargoPlan.App.Hotkeys;
@@ -26,6 +25,8 @@ public partial class App : Application
 {
     private const int ExitShipsFolderBroken = 1;
 
+    private const int ExitDataFolderUnusable = 2;
+
     private CursorStateMonitor? _cursorMonitor;
 
     // Kept so the composition root visibly owns it; the window's events would keep it alive anyway.
@@ -36,9 +37,6 @@ public partial class App : Application
 
     // Same here: the view model's and the overlay's events keep it alive.
     private PlanSaver? _planSaver;
-
-    // Same here: its timer and watcher keep it alive until the overlay closes.
-    private ContractTrackerSync? _contractTracker;
 
     // The holograms (D63): the overlay's only network access. One HttpClient for the whole run, not disposed when the
     // overlay closes: a fetch still running would then hit a disposed client; the process ends right after.
@@ -57,11 +55,19 @@ public partial class App : Application
     /// <summary>
     /// The start in its steps, in this order (F22): each Compose method wires one part; their order is the order of the
     /// side effects and must not change (bounds before Show, the plan saver before the start plan, the overlay before the
-    /// lock window, the contract tracker's start last).
+    /// lock window).
     /// </summary>
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Before anything reads a path, the crash log included: --data-dir moves every file of the run (T10.4a, B1).
+        var options = StartOptions.Parse(e.Args);
+        if (!UseDataFolderOrExit(options))
+        {
+            return;
+        }
+
         ComposeCrashLogging();
 
         if (LoadShipsOrExit() is not { } ships)
@@ -71,8 +77,6 @@ public partial class App : Application
 
         // Once per start, not per ship change (200 KB). A broken file costs the outlines, never the start (D62).
         var outlines = ShipOutlineLoader.Load();
-
-        var options = StartOptions.Parse(e.Args);
 
         // The measuring tool instead of the overlay (Phase 8): before settings and plan, so it touches neither.
         if (options.MeasureFrames is { } measured)
@@ -85,8 +89,9 @@ public partial class App : Application
             return;
         }
 
-        var (settings, settingsProblem) = SettingsStore.Load(SettingsStore.DefaultPath);
-        var parts = ComposeOverlay(ships, outlines, options, settings, settingsProblem);
+        var loaded = SettingsStore.Load(SettingsStore.DefaultPath);
+        var settings = loaded.Settings;
+        var parts = ComposeOverlay(ships, outlines, options, loaded);
         ComposeHotkeys(parts, settings);
         ComposeStartPlan(parts, options);
         ComposeSettingsFollowers(parts);
@@ -101,7 +106,36 @@ public partial class App : Application
         ShowWindows(parts, options);
     }
 
-    /// <summary>First, so nothing after goes unlogged (D82).</summary>
+    /// <summary>
+    /// <c>--data-dir</c>: its folder for every file of the run. A refused or unusable folder ends the app with one message,
+    /// never the player's profile instead (T10.1b); false then. Without the switch nothing happens.
+    /// </summary>
+    private bool UseDataFolderOrExit(StartOptions options)
+    {
+        string? problem = options.DataDirRefused ? options.Problem : null;
+        if (options.DataDir is { } folder)
+        {
+            try
+            {
+                AppFolders.Use(folder);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                problem = $"{StartOptions.DataDirSwitch} {folder}: {ex.Message}";
+            }
+        }
+
+        if (problem is null)
+        {
+            return true;
+        }
+
+        MessageBox.Show(problem, "SC-CargoPlan", MessageBoxButton.OK, MessageBoxImage.Error);
+        Shutdown(ExitDataFolderUnusable);
+        return false;
+    }
+
+    /// <summary>First after the data folder, so nothing after goes unlogged (D82).</summary>
     private void ComposeCrashLogging()
     {
         // The dispatcher's: log, say so, and end as before (Handled stays false). Other threads': the runtime ends the
@@ -132,17 +166,17 @@ public partial class App : Application
 
     /// <summary>What the later steps of the start wire together.</summary>
     private sealed record OverlayParts(
-        Ship Ship, OverlayViewModel ViewModel, SettingsSession Session, ContractTrackerSync ContractTracker, OverlayWindow Overlay,
-        ContractScanner Scanner, ScanRunner Scan);
+        Ship Ship, OverlayViewModel ViewModel, SettingsSession Session, OverlayWindow Overlay, ContractScanner Scanner, ScanRunner Scan);
 
     /// <summary>
-    /// The view model, the settings session, the ContractTracker sync, the scanner with its runner and the overlay window,
-    /// placed but not shown. The scanner comes before the window like the sync: the editor's buttons need both (T10.3); it
-    /// has no side effect before the warm-up, which waits for the first frame.
+    /// The view model, the settings session, the scanner with its runner and the overlay window, placed but not shown. The
+    /// scanner comes before the window: the editor's Scan button needs it (T10.3); it has no side effect before the
+    /// warm-up, which waits for the first frame.
     /// </summary>
     private OverlayParts ComposeOverlay(
-        ShipCatalog ships, ShipOutlineCatalog outlines, StartOptions options, AppSettings settings, string? settingsProblem)
+        ShipCatalog ships, ShipOutlineCatalog outlines, StartOptions options, SettingsLoad loaded)
     {
+        var settings = loaded.Settings;
         // The settings' ship, else the start plan's, else the Hull A; one that doesn't load never stops the start (T7.2).
         var (ship, shipNotice) = ShipChoices.Resolve(ships, settings.Ship, PlanStore.PeekShipId(options.PlanPath ?? PlanStore.DefaultPath));
         var viewModel = new OverlayViewModel(ship, ships)
@@ -152,7 +186,7 @@ public partial class App : Application
             Cameras = settings.ShipView.Cameras ?? new Dictionary<string, ShipCamera>(),
             Outlines = outlines,
         };
-        viewModel.SetNotice(NoticeSource.Settings, settingsProblem);
+        viewModel.SetNotice(NoticeSource.Settings, loaded.Problem);
         viewModel.SetNotice(NoticeSource.Outlines, OverlayViewModel.OutlinesNoticeText(outlines.Problems));
         viewModel.SetNotice(NoticeSource.Ship, shipNotice);
 
@@ -160,13 +194,15 @@ public partial class App : Application
         // changes the look through the same session (D34).
         var session = new SettingsSession(Resources, viewModel, SettingsStore.DefaultPath, settings);
 
+        // A hotkey the migration to schema 3 took is said once (T10.4a): the file is written now, the old one stays as the
+        // backup. Every other load writes nothing until a change (D31).
+        if (loaded.Removed is { } removed)
+        {
+            session.WriteBack(loaded.Problem is { } problem ? problem + Environment.NewLine + removed : removed);
+        }
+
         // Bounds before Show(), so the window appears in place instead of jumping there. The hotkeys' view model is made
         // when the settings window opens; by then _hotkeys exists (it needs the overlay, so it comes after it).
-        // ContractTracker where the settings say, detected by default (D44).
-        var contractTracker = new ContractTrackerSync(
-            viewModel, settings.ContractTracker.DatabasePath, autoSync: settings.ContractTracker.AutoSync);
-        viewModel.OnContractGone = settings.ContractTracker.GonePolicy;
-        _contractTracker = contractTracker;
 
         // The scanner's notices and the scan's changes of the plan come from pool threads; the overlay lives on the UI
         // thread. Source: https://learn.microsoft.com/dotnet/api/system.windows.threading.dispatcheroperation.task
@@ -178,8 +214,6 @@ public partial class App : Application
             viewModel,
             session,
             () => CreateHotkeysViewModel(session),
-            () => CreateContractTrackerSection(session, contractTracker, viewModel),
-            () => contractTracker.RunSyncGuardedAsync(manual: true),
             scan.Start);
         if (settings.Overlay is { } saved)
         {
@@ -189,23 +223,19 @@ public partial class App : Application
         // The saver's Closed handler goes first and hands over pending bounds; Flush then writes a pending look change.
         _boundsSaver = new OverlayBoundsSaver(overlay, session);
         overlay.Closed += (_, _) => session.Flush();
-        return new OverlayParts(ship, viewModel, session, contractTracker, overlay, scanner, scan);
+        return new OverlayParts(ship, viewModel, session, overlay, scanner, scan);
     }
 
     /// <summary>
-    /// Polled from here on (D97), before the settings window can ask for them. The sync hotkey runs the editor's button,
-    /// guarded like the timer (D82); AsyncRelayCommand would rethrow on the UI thread what isn't. The scan's is a plain
-    /// command: the runner guards itself, and a press during a scan must reach the scanner to say "Scan running" (D104).
+    /// Polled from here on (D97), before the settings window can ask for them. The scan's is a plain command: the runner
+    /// guards itself, and a press during a scan must reach the scanner to say "Scan running" (D104).
     /// </summary>
-    // Source: https://learn.microsoft.com/dotnet/api/communitytoolkit.mvvm.input.asyncrelaycommandoptions
     private void ComposeHotkeys(OverlayParts parts, AppSettings settings)
     {
-        var contractTracker = parts.ContractTracker;
         _hotkeys = new HotkeyService(
             parts.Overlay,
             settings.Hotkeys,
             parts.ViewModel,
-            new AsyncRelayCommand(() => contractTracker.RunSyncGuardedAsync(manual: true)),
             new RelayCommand(parts.Scan.Start),
             new ScanKeyCheck(ScanKeyCheck.IsContractTrackerRunning));
     }
@@ -224,11 +254,6 @@ public partial class App : Application
         {
             viewModel.LastScanNo = lastScanNo;
             viewModel.ShowPlan(plan);
-        }
-        else if (planProblem is not null)
-        {
-            // The file stays until the player makes a new plan; a capture must not overwrite it (T5.4).
-            viewModel.PauseContractTracker();
         }
     }
 
@@ -314,10 +339,10 @@ public partial class App : Application
     private static Func<GameWindow?>? ProbeTarget() =>
         Environment.GetEnvironmentVariable("CARGOPLAN_SC_CAPTURE_PROCESS") is { Length: > 0 } process ? () => GameWindow.Find(process) : null;
 
-    /// <summary>The overlay first: the lock window's Owner must be a window that has been shown. The sync starts last.</summary>
+    /// <summary>The overlay first: the lock window's Owner must be a window that has been shown.</summary>
     private void ShowWindows(OverlayParts parts, StartOptions options)
     {
-        var (viewModel, contractTracker, overlay) = (parts.ViewModel, parts.ContractTracker, parts.Overlay);
+        var (viewModel, overlay) = (parts.ViewModel, parts.Overlay);
         overlay.Show();
         new LockWindow(viewModel, overlay).Show();
 
@@ -331,10 +356,6 @@ public partial class App : Application
 
         _cursorMonitor = new CursorStateMonitor(viewModel);
         _cursorMonitor.Start();
-
-        // After the start plan, so the first read knows its watermark; it comes after the debounce, with the overlay up.
-        contractTracker.Start();
-        overlay.Closed += (_, _) => contractTracker.Dispose();
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -381,18 +402,6 @@ public partial class App : Application
             hotkeys.Suspend,
             hotkeys.Resume);
     }
-
-    /// <summary>
-    /// The settings window's ContractTracker section (D44): saved through the session, applied to the sync and the overlay
-    /// at once, so a new path is watched and a policy for gone contracts (D81) holds from the next read without a restart (D30).
-    /// </summary>
-    private static ContractTrackerSectionViewModel CreateContractTrackerSection(SettingsSession session, ContractTrackerSync sync, OverlayViewModel overlay) =>
-        new(session.Current.ContractTracker, File.Exists, settings =>
-        {
-            session.ChangeContractTracker(settings);
-            overlay.OnContractGone = settings.GonePolicy;
-            sync.Configure(settings.DatabasePath, settings.AutoSync);
-        });
 
     /// <summary>--plan wins over plan.json; a missing --plan file is a problem, a missing plan.json is the empty start.</summary>
     private static (SavedPlan? Plan, string? Problem, int LastScanNo) LoadStartPlan(StartOptions options, Ship ship)

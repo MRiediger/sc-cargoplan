@@ -6,8 +6,8 @@ using CargoPlan.Core.Models;
 namespace CargoPlan.App.Holo;
 
 /// <summary>
-/// Brings the hologram of the current ship and look to the overlay (D63), like <c>ContractTrackerSync</c> brings the
-/// captures: called on the UI thread, fetch, reading and preparing run off it, the result comes back here (await resumes
+/// Brings the hologram of the current ship and look to the overlay (D63), like the scan runner brings a contract:
+/// called on the UI thread, fetch, reading and preparing run off it, the result comes back here (await resumes
 /// in WPF's synchronization context) and goes to <see cref="OverlayViewModel.ShowHolo"/>. A new request cancels the one
 /// running, so a quick ship change never shows the ship before. The mesh read last is kept: another look of the same
 /// ship needs neither network nor disk. Every failure ends in the outline; the first of a run gives one notice. After a

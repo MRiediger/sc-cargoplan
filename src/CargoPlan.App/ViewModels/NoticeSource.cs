@@ -39,19 +39,10 @@ public enum NoticeSource
     CrateCap,
 
     /// <summary>
-    /// Stops of the plan renamed to another name of the same place (B1), on loading or by a sync; cleared by the next plan
-    /// and by the next sync that takes something in without a merge.
+    /// Stops of the plan renamed to another name of the same place (B1), on loading or by a scan; cleared by the next plan
+    /// and by the next scan that changes the plan without a merge.
     /// </summary>
     Stops,
-
-    /// <summary>
-    /// ContractTracker pickups of a loaded plan cut to their names (B6); cleared by the next plan and by the next sync that
-    /// takes something in.
-    /// </summary>
-    Pickups,
-
-    /// <summary>Why ContractTracker can't be read, or that the sync is paused (T5.4).</summary>
-    ContractTracker,
 
     /// <summary>
     /// The contract scanner's state (T10.1b): the OCR still warming up, or unavailable and why; cleared when the engine is

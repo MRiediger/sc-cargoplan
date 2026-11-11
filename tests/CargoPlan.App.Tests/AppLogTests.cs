@@ -29,11 +29,11 @@ public sealed class AppLogTests : IDisposable
     {
         var error = Thrown();
 
-        AppLog.WriteTo(LogPath, "ContractTracker sync", error);
+        AppLog.WriteTo(LogPath, "Scan runner", error);
         AppLog.WriteTo(LogPath, "Unhandled", error);
 
         var text = File.ReadAllText(LogPath);
-        text.Should().Contain("ContractTracker sync").And.Contain("Unhandled");
+        text.Should().Contain("Scan runner").And.Contain("Unhandled");
         text.Should().Contain(error.ToString(), "type, message, inner exception and stack trace");
     }
 

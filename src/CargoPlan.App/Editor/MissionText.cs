@@ -6,9 +6,6 @@ namespace CargoPlan.App.Editor;
 /// <summary>How the player sees a mission: its name in legend and notices, its source in the editor (T5.4).</summary>
 public static class MissionText
 {
-    /// <summary>What marks a contract ContractTracker no longer lists, in legend header and editor (D81).</summary>
-    public const string GoneText = "gone";
-
     /// <summary>"Riker", or "Hurston + 1" for a mission with more stops; the first in contract order.</summary>
     public static string Name(Mission mission)
     {
@@ -17,8 +14,8 @@ public static class MissionText
     }
 
     /// <summary>
-    /// "#36", "#37–38" for consecutive ids, "#36–37, 40" otherwise: ContractTracker's <c>Contracts.Id</c>, as its window
-    /// shows the capture. A scanned contract's number, "#3" (D102). The one spelling for editor, legend header and notices
+    /// A scanned contract's number, "#3" (D102). A capture imported before v0.4.0 (D39): "#36", "#37–38" for consecutive
+    /// ids, "#36–37, 40" otherwise, its ids as the plan keeps them until T10.4b. The one spelling for editor, legend header and notices
     /// (K6.1, K6.3). Empty for a typed mission.
     /// </summary>
     public static string Source(ContractSource? source)

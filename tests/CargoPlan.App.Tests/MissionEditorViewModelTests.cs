@@ -7,7 +7,6 @@ using CargoPlan.Core.Plans;
 using CargoPlan.Core.Rendering;
 using CargoPlan.Core.Ships;
 using CargoPlan.Core.Tests;
-using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
 
@@ -1041,18 +1040,18 @@ public sealed class MissionEditorViewModelTests : IDisposable
         editor.Problem.Should().Be("Clipboard is in use.");
     }
 
-    // --- Missions and ContractTracker (T5.4) ---
+    // --- Missions and captures (T5.4; a plan from before T10.4a) ---
 
-    private static ContractTrackerCandidate Candidate(long id, string destination, string commodity = "Stims", bool sizeAssumed = false) =>
-        new([id], null, [new MissionStop(destination, 1, [new MissionItem(commodity, 4, CrateSize.Four)])], sizeAssumed, false, null, null, null);
+    private static Mission Capture(int id, long contractId, string destination, bool sizeAssumed = false) =>
+        new(id, [new MissionStop(destination, 1, [new MissionItem("Stims", 4, CrateSize.Four)])], new ContractSource([contractId], sizeAssumed));
 
-    /// <summary>Riker typed, then captures 36 (Shubin) and 37 (Orison, crate size assumed).</summary>
+    /// <summary>Riker typed, then captures 36 (Shubin) and 37 (Orison, crate size assumed), as a plan saved with watermark 37.</summary>
     private static OverlayViewModel OverlayWithCaptures()
     {
         var overlay = EmptyOverlay();
-        MissionStop riker = new("Riker", 1, [new MissionItem("Titanium", 8, CrateSize.Four)]);
-        overlay.ShowPlan(SavedPlan.FromStops([riker], LoadPlanner.Plan(overlay.Ship, [riker.ToStop()]), CrateCap.Of(overlay.Ship)));
-        overlay.ApplyContractTracker(new ContractTrackerReadResult([Candidate(36, "Shubin"), Candidate(37, "Orison", sizeAssumed: true)], null, new HashSet<long>()));
+        Mission riker = new(1, [new MissionStop("Riker", 1, [new MissionItem("Titanium", 8, CrateSize.Four)])]);
+        var planned = LoadPlanner.Plan(overlay.Ship, [riker, Capture(2, 36, "Shubin"), Capture(3, 37, "Orison", sizeAssumed: true)], ["Riker", "Shubin", "Orison"]);
+        overlay.ShowPlan(new SavedPlan(planned.Missions, planned.Plan, planned.CrateCap, Watermark: 37));
         return overlay;
     }
 
@@ -1208,7 +1207,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
         editor.PlanCommand.Execute(null);
 
-        overlay.Watermark.Should().Be(37);
+        overlay.Saved!.Watermark.Should().Be(37);
         overlay.Missions.Select(m => MissionText.Source(m.Contract)).Should().Equal("", "#36", "#37");
     }
 
@@ -1291,21 +1290,6 @@ public sealed class MissionEditorViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task Sync_runs_the_overlays_sync()
-    {
-        var synced = 0;
-        var editor = new MissionEditorViewModel(EmptyOverlay(), () =>
-        {
-            synced++;
-            return Task.CompletedTask;
-        });
-
-        await editor.SyncCommand.ExecuteAsync(null);
-
-        synced.Should().Be(1);
-    }
-
-    [Fact]
     public void Scan_runs_the_overlays_scan()
     {
         var scanned = 0;
@@ -1357,33 +1341,17 @@ public sealed class MissionEditorViewModelTests : IDisposable
     }
 
     [Fact]
-    public void A_capture_while_the_editor_is_open_shows_up_in_a_clean_draft()
+    public void A_scan_while_the_editor_is_open_shows_up_in_a_clean_draft()
     {
         var overlay = OverlayWithCaptures();
         var editor = new MissionEditorViewModel(overlay);
 
-        overlay.ApplyContractTracker(new ContractTrackerReadResult([Candidate(38, "Lorville")], null, new HashSet<long>([36, 37])));
+        overlay.ApplyScan(Import.Contracts.ScannedContract.Read(
+            "ABANDON\nDETAILS\nReward 50,250\nContract Deadline N/A\nPRIMARY OBJECTIVES\n"
+            + "Deliver 0/8 SCU of Stims to Lorville.\nCollect Stims from Everus Harbor.\nSHARE UNTRACK"));
 
         editor.Rows.Select(r => r.Destination).Should().Equal("Riker", "Shubin", "Orison", "Lorville");
         editor.IsDirty.Should().BeFalse();
     }
 
-    [Fact]
-    public void A_capture_while_the_draft_is_changed_keeps_the_edits_adds_its_rows_and_says_so()
-    {
-        // The capture is above the watermark now: if Plan dropped it, it would never come back (T5.4).
-        var overlay = OverlayWithCaptures();
-        var editor = new MissionEditorViewModel(overlay);
-        editor.Rows[0].Scu = "12";
-
-        overlay.ApplyContractTracker(new ContractTrackerReadResult([Candidate(38, "Lorville")], null, new HashSet<long>([36, 37])));
-
-        editor.Rows.Select(r => (r.Destination, r.Scu)).Should().Equal(("Riker", "12"), ("Shubin", "4"), ("Orison", "4"), ("Lorville", "4"));
-        editor.IsDirty.Should().BeTrue();
-        editor.Status.Should().Be(MissionEditorViewModel.ChangedOutsideText);
-
-        editor.PlanCommand.Execute(null);
-
-        overlay.Missions.Should().Contain(m => m.Contract != null && m.Contract.ContractIds[0] == 38);
-    }
 }

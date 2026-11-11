@@ -3,7 +3,7 @@ using CargoPlan.App.Editor;
 namespace CargoPlan.App.Tests;
 
 /// <summary>
-/// The editor's sort (K6.3, D19 addendum): only the view is sorted, by mission (ContractTracker's first id, numeric; typed
+/// The editor's sort (K6.3, D19 addendum): only the view is sorted, by mission (the contract's number or a capture's first id, numeric; typed
 /// rows after, by destination) or by destination. Rows without an id and blank rows keep their place behind the others in
 /// both directions; equal keys keep the order of first appearance.
 /// </summary>

@@ -16,8 +16,6 @@ public sealed partial class HotkeyEditor : ObservableObject
 
     public const string ScanLabel = "Scan contract";
 
-    public const string SyncLabel = "Sync from ContractTracker";
-
     public const string ReplanLabel = "Re-plan";
 
     public const string DiscardLabel = "Discard plan";

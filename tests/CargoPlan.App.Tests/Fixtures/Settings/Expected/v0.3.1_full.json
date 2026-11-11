@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 3,
+  "overlay": {
+    "left": 2572.5,
+    "top": 380.25,
+    "width": 535.75,
+    "height": 511.5
+  },
+  "ship": "hull_b",
+  "downloadShipHolograms": false,
+  "holoOpacity": 0.55,
+  "recentShips": [
+    "hull_b",
+    "raft",
+    "hull_c"
+  ],
+  "appearance": {
+    "window": {
+      "background": "#80101010",
+      "borderColor": "#FFE6E6E6",
+      "borderThickness": 1
+    },
+    "header": {
+      "foreground": "#FFE6E6E6",
+      "halo": {
+        "enabled": true,
+        "color": "#E0141414",
+        "size": 2
+      }
+    },
+    "legend": {
+      "foreground": "#FFE6E6E6",
+      "fontSize": 14,
+      "checkBoxColor": "#FFB0B0B0",
+      "checkMarkColor": "#FFB0B0B0",
+      "halo": {
+        "enabled": false,
+        "color": "#E0141414",
+        "size": 3
+      }
+    },
+    "crates": {
+      "fillAlpha": 180,
+      "edgeAlpha": 192,
+      "rackNumberColor": "#FFFFFFFF",
+      "rackNumberFontSize": 24,
+      "stopPalette": "okabeIto",
+      "selectionColor": "#FFFF00FF",
+      "selectionWidth": 2.5,
+      "halo": {
+        "enabled": true,
+        "color": "#E0141414",
+        "size": 3
+      },
+      "selectionOutline": {
+        "enabled": true,
+        "color": "#A0000000",
+        "size": 1
+      }
+    },
+    "buttons": {
+      "background": "#01000000",
+      "borderColor": "#FFE6E6E6",
+      "borderThickness": 0,
+      "cornerRadius": 3,
+      "halo": {
+        "enabled": false,
+        "color": "#E0141414",
+        "size": 3
+      }
+    }
+  },
+  "hotkeys": {
+    "toggleLock": "Ctrl+Alt+K",
+    "toggleOverlay": "Ctrl+Alt+I",
+    "replan": "Ctrl+Alt+P",
+    "discardPlan": "Ctrl+Alt+L",
+    "undo": "Ctrl+Alt+Z",
+    "redo": "Ctrl+Alt+R",
+    "resetView": "Ctrl+Alt+T",
+    "scanContracts": "F3"
+  },
+  "legend": {
+    "visible": true,
+    "position": "top-right",
+    "maxHeightShare": 0.4
+  },
+  "toolWindowTheme": "dark",
+  "shipOutline": "holo-shaded",
+  "holoHullColor": "#FF8090A0",
+  "holoEdgeColor": "#FFE0E0E0",
+  "shipView": {
+    "maxZoomPxPerCell": 120,
+    "cameras": {
+      "hull_b": {
+        "yaw": 26.5,
+        "pitch": 8.25,
+        "distance": 50.5,
+        "target": {
+          "x": 0.75,
+          "y": -0.5,
+          "z": 0.25
+        }
+      },
+      "raft": {
+        "yaw": 78,
+        "pitch": 62.5
+      }
+    }
+  }
+}

@@ -1,3 +1,6 @@
+// WPF projects leave System.IO out of the implicit usings (Path clashes with System.Windows.Shapes.Path).
+using System.IO;
+
 namespace CargoPlan.App;
 
 /// <summary>Start switches of the overlay. Unknown arguments are ignored, so nothing keeps the overlay from starting.</summary>
@@ -22,6 +25,14 @@ namespace CargoPlan.App;
 /// Scan the game in a loop while the frames are measured (T10.1b, K3): the frame time under scans, for T10.3. Only with
 /// <paramref name="MeasureFrames"/>; without it the measurement runs with the engine warm and idle.
 /// </param>
+/// <param name="DataDir">
+/// Every file of the run in this folder instead of the profile: settings, plan, logs, hologram cache (T10.4a, B1). For test
+/// and gate runs, so they never touch the player's files; null = the profile.
+/// </param>
+/// <param name="DataDirRefused">
+/// <c>--data-dir</c> without a usable folder: the app ends instead of falling back to the profile, which the switch is
+/// there to keep out of the run.
+/// </param>
 public sealed record StartOptions(
     bool Locked,
     string? PlanPath,
@@ -31,7 +42,9 @@ public sealed record StartOptions(
     bool OverGame = false,
     int? ScanProbe = null,
     bool ScanProbeImages = false,
-    bool ScanLoad = false)
+    bool ScanLoad = false,
+    string? DataDir = null,
+    bool DataDirRefused = false)
 {
     public const string LockedSwitch = "--locked";
 
@@ -49,6 +62,8 @@ public sealed record StartOptions(
 
     public const string ScanLoadSwitch = "--scan-load";
 
+    public const string DataDirSwitch = "--data-dir";
+
     /// <summary>F9's series without a number: Gate 2's 100 scans.</summary>
     public const int ScanProbeSeries = 100;
 
@@ -62,6 +77,8 @@ public sealed record StartOptions(
         string? planPath = null;
         string? measureFrames = null;
         int? scanProbe = null;
+        string? dataDir = null;
+        var dataDirRefused = false;
         string? problem = null;
 
         for (var i = 0; i < args.Count; i++)
@@ -99,6 +116,19 @@ public sealed record StartOptions(
                 else
                 {
                     problem = $"{MeasureFramesSwitch} needs a ship id or \"empty\".";
+                }
+            }
+            else if (Is(args[i], DataDirSwitch))
+            {
+                // A relative path would depend on where the app was started from.
+                // Source: https://learn.microsoft.com/dotnet/api/system.io.path.ispathfullyqualified
+                if (i + 1 < args.Count && !args[i + 1].StartsWith("--", StringComparison.Ordinal) && Path.IsPathFullyQualified(args[i + 1]))
+                {
+                    dataDir = args[++i];
+                }
+                else
+                {
+                    (dataDirRefused, problem) = (true, $"{DataDirSwitch} needs the full path of a folder.");
                 }
             }
             else if (Is(args[i], ScanProbeImagesSwitch))
@@ -143,7 +173,7 @@ public sealed record StartOptions(
             (scanLoad, problem) = (false, problem ?? $"{ScanLoadSwitch} only goes with {MeasureFramesSwitch}.");
         }
 
-        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad);
+        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused);
     }
 
     private static bool Is(string arg, string name) => arg.Equals(name, StringComparison.OrdinalIgnoreCase);

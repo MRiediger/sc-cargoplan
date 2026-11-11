@@ -13,7 +13,7 @@ internal static class ScannedContractTextRenderer
         var text = new StringBuilder();
         text.AppendLine(CultureInfo.InvariantCulture, $"View: {contract.View}");
         text.AppendLine(contract.Pickups.Count == 0 ? "Pickups: none read" : $"Pickups: {Pickups.Text(contract.Pickups)}");
-        AppendStops(text, contract.Stops, contract.CrateSizeAssumed, contract.ListedDestinationCount, withPickups: true);
+        AppendStops(text, contract.Stops, contract.CrateSizeAssumed, contract.ListedDestinationCount);
         text.AppendLine(contract.Reward is { } reward
             ? string.Create(CultureInfo.InvariantCulture, $"Reward: {reward:N0}")
             : "Reward: unreadable");
@@ -23,15 +23,15 @@ internal static class ScannedContractTextRenderer
 
     /// <summary>
     /// One line per stop with its items, "?" after an assumed size as the legend shows it (T5.4), and a warning when no
-    /// destination or fewer than the drop-off list names were read. Shared with <see cref="CandidateTextRenderer"/>.
+    /// destination or fewer than the drop-off list names were read.
     /// </summary>
-    internal static void AppendStops(StringBuilder text, IReadOnlyList<MissionStop> stops, bool crateSizeAssumed, int? listedDestinations, bool withPickups)
+    private static void AppendStops(StringBuilder text, IReadOnlyList<MissionStop> stops, bool crateSizeAssumed, int? listedDestinations)
     {
         var assumed = crateSizeAssumed ? "?" : "";
         foreach (var stop in stops)
         {
             var items = stop.Items.Select(i => string.Create(CultureInfo.InvariantCulture,
-                $"{i.Commodity} {i.Scu} SCU (max {(int)i.MaxCrateSize} SCU{assumed}){(withPickups && i.Pickup is { } pickup ? $" from {Pickups.Text(pickup)}" : "")}"));
+                $"{i.Commodity} {i.Scu} SCU (max {(int)i.MaxCrateSize} SCU{assumed}){(i.Pickup is { } pickup ? $" from {Pickups.Text(pickup)}" : "")}"));
             text.AppendLine(CultureInfo.InvariantCulture, $"  {stop.Order}. {stop.Destination}: {string.Join(", ", items)}");
         }
 

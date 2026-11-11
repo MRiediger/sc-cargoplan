@@ -5,8 +5,8 @@ namespace CargoPlan.App.ViewModels;
 
 /// <summary>
 /// The Hotkeys section of the settings window (T4.4, D35): every action, so one can refuse another's combination by
-/// name. No defaults but the scan's F3 (D17, D104); the sync came with T5.5 (D44), the re-plan with B4 (D66), the discard
-/// with K2.3, the scan with T10.3.
+/// name. No defaults but the scan's F3 (D17, D104); the re-plan came with B4 (D66), the discard with K2.3, the scan with
+/// T10.3.
 /// </summary>
 public sealed class HotkeysViewModel
 {
@@ -25,7 +25,6 @@ public sealed class HotkeysViewModel
         Lock = new(HotkeyAction.ToggleLock, HotkeyEditor.LockLabel, settings.ToggleLock, Commit, suspend, resume);
         Overlay = new(HotkeyAction.ToggleOverlay, HotkeyEditor.OverlayLabel, settings.ToggleOverlay, Commit, suspend, resume);
         Scan = new(HotkeyAction.ScanContracts, HotkeyEditor.ScanLabel, settings.ScanContracts, Commit, suspend, resume);
-        Sync = new(HotkeyAction.SyncContractTracker, HotkeyEditor.SyncLabel, settings.SyncContractTracker, Commit, suspend, resume);
         Replan = new(HotkeyAction.Replan, HotkeyEditor.ReplanLabel, settings.Replan, Commit, suspend, resume);
         Discard = new(HotkeyAction.DiscardPlan, HotkeyEditor.DiscardLabel, settings.DiscardPlan, Commit, suspend, resume);
         Undo = new(HotkeyAction.Undo, HotkeyEditor.UndoLabel, settings.Undo, Commit, suspend, resume);
@@ -39,8 +38,6 @@ public sealed class HotkeysViewModel
 
     public HotkeyEditor Scan { get; }
 
-    public HotkeyEditor Sync { get; }
-
     public HotkeyEditor Replan { get; }
 
     public HotkeyEditor Discard { get; }
@@ -52,7 +49,7 @@ public sealed class HotkeysViewModel
     public HotkeyEditor ResetView { get; }
 
     /// <summary>Every editor, in the window's order; the window cancels their recordings.</summary>
-    public IEnumerable<HotkeyEditor> All => [Lock, Overlay, Scan, Sync, Replan, Discard, Undo, Redo, ResetView];
+    public IEnumerable<HotkeyEditor> All => [Lock, Overlay, Scan, Replan, Discard, Undo, Redo, ResetView];
 
     private string? Commit(HotkeyEditor editor, Hotkey? hotkey) =>
         hotkey is not null && All.FirstOrDefault(other => !ReferenceEquals(other, editor) && other.Hotkey == hotkey) is { } taken

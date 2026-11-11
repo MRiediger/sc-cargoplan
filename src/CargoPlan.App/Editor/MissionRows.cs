@@ -116,7 +116,7 @@ public static class MissionRows
     ];
 
     /// <summary>
-    /// Valid rows as missions for <c>LoadPlanner.Plan</c> (D42), with the route: rows of a ContractTracker capture of
+    /// Valid rows as missions for <c>LoadPlanner.Plan</c> (D42), with the route: rows of a scanned or captured contract of
     /// <paramref name="known"/> stay that mission with its ids (its size stays assumed while one of its rows does); typed
     /// rows of one destination are one mission, numbered above the known ids. Destinations take the spelling of their stop.
     /// </summary>
@@ -181,7 +181,6 @@ public static class MissionRows
         // A scan's number stands where a capture's first id does (D102): it sorts and names the row.
         ContractId = mission?.Contract is { } contract ? contract.Scan?.No ?? contract.ContractIds.Min() : null,
         Manual = item.Manual,
-        Gone = mission?.Contract?.Gone == true,
 
         // After MaxCrateSize, whose change ends the assumption.
         MaxCrateSizeAssumed = mission?.Contract?.CrateSizeAssumed == true,

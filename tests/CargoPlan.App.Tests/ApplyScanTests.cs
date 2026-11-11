@@ -140,4 +140,49 @@ public class ApplyScanTests
 
         overlay.Scene.Legend.Should().HaveCount(2).And.OnlyContain(l => !l.Label.Contains("destinations"));
     }
+
+    // --- What the sync's tests held for a contract coming in (T10.4a successors) ---
+
+    private static string[] To(string destination, int scu = 4) =>
+        [$"Deliver 0/{scu} SCU of Stims to {destination}.", "Collect Stims from Everus Harbor."];
+
+    [Fact]
+    public void A_scan_with_the_longer_name_renames_the_stop_and_says_so()
+    {
+        // B1, K1: one stop per place; the player sees the rename like a merge on loading.
+        var overlay = new OverlayViewModel(HullA);
+        overlay.ApplyScan(Scanned(accepted: true, objectives: To("Thundering Express")));
+
+        overlay.ApplyScan(Scanned(accepted: true, reward: "60,000", objectives: To("Thundering Express Station")));
+
+        overlay.Scene.Legend.Select(l => l.Destination).Distinct().Should().Equal("Thundering Express Station");
+        overlay.Notices.Should().Contain(OverlayViewModel.StopsMergedPrefix + "Thundering Express → Thundering Express Station");
+    }
+
+    [Fact]
+    public void A_scan_keeps_crates_and_ticks_of_the_plan()
+    {
+        var overlay = new OverlayViewModel(HullA);
+        overlay.ShowPlan(TestPlans.SplitAndShared());
+        overlay.ToggleDeliveredCommand.Execute("Riker");
+        var before = overlay.Plan!.Crates;
+
+        overlay.ApplyScan(Scanned(accepted: true, objectives: To("Area18", 1)));
+
+        overlay.Plan!.Crates.Take(before.Count).Should().Equal(before);
+    }
+
+    [Fact]
+    public void A_scan_that_doesnt_fit_raises_PropertyChanged_for_Saved()
+    {
+        // PlanSaver listens to Saved: the waiting mission is saved although no crate changed.
+        var overlay = new OverlayViewModel(HullA);
+        List<string?> changed = [];
+        overlay.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        overlay.ApplyScan(Scanned(accepted: true, objectives: To("Riker", 72)));
+
+        changed.Should().Contain(nameof(OverlayViewModel.Saved));
+        overlay.Scene.Unplaced.Should().ContainSingle();
+    }
 }

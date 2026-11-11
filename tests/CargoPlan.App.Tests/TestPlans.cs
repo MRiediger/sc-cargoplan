@@ -38,8 +38,8 @@ internal static class TestPlans
     private const string HurstonPickupsName = "plans/hurston_2026-10-25.json";
 
     /// <summary>
-    /// Martin's plan.json of 25 Oct (B6), as saved: missions 1–3 without pickup (mission 3 Waste to Everus Harbor),
-    /// mission 4 with ContractTracker's pickup text of id 38 uncleaned. The Import tests' fixture, linked.
+    /// Martin's plan.json of 25 Oct (B6): missions 1–3 without pickup (mission 3 Waste to Everus Harbor), mission 4 with
+    /// the pickup of ids 37/38, stored cleaned since loading no longer cleans it (T10.4a, review F23).
     /// </summary>
     public static SavedPlan HurstonPickups()
     {

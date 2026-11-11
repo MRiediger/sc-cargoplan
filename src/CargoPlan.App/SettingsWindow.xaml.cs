@@ -1,5 +1,3 @@
-using System.ComponentModel;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
@@ -20,23 +18,17 @@ public partial class SettingsWindow : Window
     // The colour picker that is open, if any: only one, a click elsewhere closes it (StaysOpen=False).
     private Popup? _openPicker;
 
-    private const string DatabaseFilter = "ContractTracker database (contracts.db)|contracts.db|SQLite database (*.db)|*.db|All files (*.*)|*.*";
-
     private const string LookFilter = $"SC-CargoPlan look (*{LookFile.Extension})|*{LookFile.Extension}|All files (*.*)|*.*";
 
     private readonly SettingsViewModel _viewModel;
     private readonly HotkeysViewModel _hotkeys;
-    private readonly ContractTrackerSectionViewModel _contractTracker;
-    private readonly OverlayViewModel _overlay;
 
     /// <param name="hotkeys">The Hotkeys section's own data context: hotkeys are no part of the look (D35).</param>
-    /// <param name="contractTracker">The ContractTracker section's own data context (D44).</param>
     /// <param name="theme">The tool windows' mode (D36); the overlay switches it later through <see cref="ToolWindowThemer"/>.</param>
     /// <param name="owner">Must already be shown: Owner rejects a window that was never shown.</param>
     public SettingsWindow(
         SettingsViewModel viewModel,
         HotkeysViewModel hotkeys,
-        ContractTrackerSectionViewModel contractTracker,
         OverlayViewModel overlay,
         ToolWindowTheme theme,
         Window owner)
@@ -48,9 +40,6 @@ public partial class SettingsWindow : Window
         _viewModel = viewModel;
         _hotkeys = hotkeys;
         HotkeysSection.DataContext = hotkeys;
-        _contractTracker = contractTracker;
-        ContractTrackerSection.DataContext = contractTracker;
-        _overlay = overlay;
         Owner = owner;
         OverlayWindow.HideWithOverlay(this, overlay);
 
@@ -136,20 +125,6 @@ public partial class SettingsWindow : Window
 
     // Microsoft.Win32 dialogs ship with WPF, like the editor's Import.
     // Source: https://learn.microsoft.com/dotnet/desktop/wpf/windows/how-to-open-common-system-dialog-box
-    private void OnBrowseContractTracker(object sender, RoutedEventArgs e)
-    {
-        OpenFileDialog dialog = new() { Title = "ContractTracker database", Filter = DatabaseFilter };
-        if (System.IO.Path.GetDirectoryName(_contractTracker.PathText) is { } folder && System.IO.Directory.Exists(folder))
-        {
-            dialog.InitialDirectory = folder;
-        }
-
-        if (dialog.ShowDialog(this) == true)
-        {
-            _contractTracker.SetPath(dialog.FileName);
-        }
-    }
-
     // Look files (K4.3): the dialogs here, reading and writing in the view model, which tests run without a window.
     // A name typed without an extension gets one taken from the filter first, DefaultExt only if the filter gives none;
     // how the dialog reads the double extension from the filter isn't documented, so the gate checks it by hand.
@@ -176,25 +151,6 @@ public partial class SettingsWindow : Window
         if (dialog.ShowDialog(this) == true)
         {
             _viewModel.ImportLook(dialog.FileName);
-        }
-    }
-
-    /// <summary>
-    /// The browser opens the Nexus page; .NET starts no URL without the shell. A Win32 boundary: no browser set up is
-    /// a notice, not a crash.
-    /// Source: https://learn.microsoft.com/dotnet/api/system.diagnostics.processstartinfo.useshellexecute
-    /// </summary>
-    private void OnOpenNexus(object sender, RoutedEventArgs e)
-    {
-        try
-        {
-            Process.Start(new ProcessStartInfo(ContractTrackerSectionViewModel.NexusUrl) { UseShellExecute = true })?.Dispose();
-        }
-        catch (Win32Exception ex)
-        {
-            var problem = $"Could not open {ContractTrackerSectionViewModel.NexusUrl} ({ex.Message}).";
-            AppLog.Write("Settings", $"{problem} [{ex.GetType().Name}]");
-            _overlay.SetNotice(NoticeSource.Settings, problem);
         }
     }
 

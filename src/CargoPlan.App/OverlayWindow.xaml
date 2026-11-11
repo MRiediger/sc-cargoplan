@@ -608,7 +608,7 @@
                                                     </MultiBinding>
                                                 </CheckBox.IsChecked>
                                             </CheckBox>
-                                            <!-- "From Lorville" · " · #47": the pickups shorten, the ContractTracker id never (K6.1). -->
+                                            <!-- "From Lorville" · " · #47": the pickups shorten, the contract's number never (K6.1). -->
                                             <ItemsControl x:Name="HeaderText" ItemsSource="{Binding HeaderSegments, Mode=OneTime}"
                                                           ItemTemplate="{StaticResource LegendSegmentTemplate}" Focusable="False">
                                                 <ItemsControl.ItemsPanel>

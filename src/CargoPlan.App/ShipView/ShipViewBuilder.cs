@@ -14,7 +14,8 @@ public static class ShipViewBuilder
 
     public const string TickToDropText = " – tick to drop";
 
-    public const string FitsNowText = "fits now, placed at the next sync";
+    /// <summary>A waiting mission that would fit: Re-plan, the editor's Plan or an undo places it (T10.4a).</summary>
+    public const string FitsNowText = "fits now – Re-plan places it";
 
     /// <summary>The legend's header over a mission: "From A, B" (T7.4d, D68; per mission since B6, D69).</summary>
     public const string FromText = "From ";
@@ -67,8 +68,7 @@ public static class ShipViewBuilder
             line.Grouped,
             LegendText.Goods(line.Crates),
             line.ContractIds,
-            line.Crates.All(c => c.Loaded),
-            line.Gone))];
+            line.Crates.All(c => c.Loaded)))];
 
         return new ShipScene(
             racks,
@@ -84,16 +84,15 @@ public static class ShipViewBuilder
 
     /// <summary>
     /// The legend's lines (B6, D69): one per mission and destination, in the order of <see cref="LoadPlan.LegendMissions"/>.
-    /// Once any mission on board has a pickup or comes from ContractTracker (K6.1), the first line of each mission carries its header ("From A, B"
-    /// from every item's pickup, or "From ?"), its ContractTracker id ("#47") and the mission's crates on board for the
+    /// Once any mission on board has a pickup or a contract (K6.1), the first line of each mission carries its header ("From A, B"
+    /// from every item's pickup, or "From ?"), its contract's number ("#47") and the mission's crates on board for the
     /// header's check box; without any, no line has a header.
     /// </summary>
-    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped, string? ContractIds, bool Gone)> LegendLines(
+    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped, string? ContractIds)> LegendLines(
         LoadPlan plan, SavedPlan? saved)
     {
         var pickups = saved?.Missions.ToDictionary(m => m.Id, m => Pickups.Normalized(m.Items.SelectMany(i => i.Item.Pickup ?? []))) ?? [];
         var contracts = saved?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Id, m => MissionText.Source(m.Contract)) ?? [];
-        HashSet<int> gone = [.. saved?.Missions.Where(m => m.Contract is { Gone: true }).Select(m => m.Id) ?? []];
         var missions = plan.LegendMissions([.. saved?.Missions.Select(m => m.Id) ?? []]);
         var headed = missions.Any(m => pickups.GetValueOrDefault(m.Mission) is not null || contracts.ContainsKey(m.Mission));
 
@@ -107,8 +106,7 @@ public static class ShipViewBuilder
                 line.Crates,
                 headed && index == 0 && onBoard.Length > 0 ? (IReadOnlyList<Crate>?)onBoard : null,
                 headed,
-                headed && index == 0 ? contracts.GetValueOrDefault(mission.Mission) : null,
-                headed && index == 0 && gone.Contains(mission.Mission)));
+                headed && index == 0 ? contracts.GetValueOrDefault(mission.Mission) : null));
         });
     }
 
@@ -135,8 +133,7 @@ public static class ShipViewBuilder
 
     /// <summary>
     /// "Hurston + 1 · 16 SCU (2×8) · Gold · ⚠ doesn't fit (16 SCU, 8 free) – tick to drop", with the mission's own markings
-    /// and "gone" before the reason for a capture ContractTracker no longer lists (D81); the mix is the one its items would
-    /// take on board (E1, K6.1).
+    /// before the reason; the mix is the one its items would take on board (E1, K6.1).
     /// </summary>
     private static UnplacedEntry Unplaced(SavedPlan saved, Ship ship, Mission mission, IReadOnlySet<int> duplicates)
     {
@@ -148,7 +145,6 @@ public static class ShipViewBuilder
             mission.Contract?.CrateSizeAssumed == true ? AssumedSizes(mission.Stops) : "",
             Incomplete(mission),
             duplicates.Contains(mission.Id) ? DuplicateText : "",
-            mission.Contract?.Gone == true ? MissionText.GoneText : "",
             $"⚠ {reason}{TickToDropText}",
         ]));
     }

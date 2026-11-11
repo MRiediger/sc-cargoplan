@@ -19,7 +19,7 @@ internal sealed class ScanLog(string path)
     /// <summary>One writer at a time: a scan on the pool, a test in parallel.</summary>
     private static readonly Lock Gate = new();
 
-    public static string DefaultPath { get; } = Path.Combine(AppFolders.LocalRoot, "scans.log");
+    public static string DefaultPath => Path.Combine(AppFolders.LocalRoot, "scans.log");
 
     /// <summary>Appends an entry and drops the oldest beyond <see cref="MaxEntries"/>; the file replaced in one step.</summary>
     public void Write(string rawText, string result)

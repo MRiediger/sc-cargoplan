@@ -53,9 +53,9 @@
         <WrapPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
             <Button Content="Add" Command="{Binding AddRowCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Add a row (or type into the empty row at the bottom)" />
-            <!-- K6.5: a destination ContractTracker missed, into the selected row's ContractTracker mission. -->
+            <!-- K6.5: a destination the contract's text missed, into the selected row's scanned mission. -->
             <Button Content="Add to mission" Command="{Binding AddToMissionCommand}" Style="{StaticResource ToolbarButtonStyle}"
-                    ToolTip="Add a destination to the selected ContractTracker mission" ToolTipService.ShowOnDisabled="True" />
+                    ToolTip="Add a destination to the selected scanned mission" ToolTipService.ShowOnDisabled="True" />
             <Button Content="Remove" Command="{Binding RemoveRowCommand}" Style="{StaticResource ToolbarButtonStyle}" />
             <Button Content="Delete mission" Command="{Binding DeleteMissionCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Take the selected row's mission out of the plan now, with its crates; nothing else moves, no need to press Plan. Typed rows of one stop are one mission." />
@@ -68,18 +68,15 @@
                     Margin="12,0,4,4" ToolTip="Start the next route; the overlay keeps its plan until you plan again" />
             <Button Content="Import…" Click="OnImport" Style="{StaticResource ToolbarButtonStyle}" Margin="12,0,4,4"
                     ToolTip="Replace the rows with a mission file" />
-            <!-- Lays out the plan, not the rows: a deliberate action next to Import and Sync (D66), with the header button's tool tip (T7.5a2). -->
+            <!-- Lays out the plan, not the rows: a deliberate action next to Import and Scan (D66), with the header button's tool tip (T7.5a2). -->
             <Button Content="Re-plan" Command="{Binding ReplanCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="{x:Static vm:OverlayViewModel.ReplanToolTipText}" />
-            <!-- Empties the plan, not the rows; the next sync starts over (K2.3, Martin's variant a). -->
+            <!-- Empties the plan, not the rows; the next scan starts a new one (K2.3, Martin's variant a). -->
             <Button Content="Discard plan" Command="{Binding DiscardPlanCommand}" Style="{StaticResource ToolbarButtonStyle}"
-                    ToolTip="Empty the plan and start over; the next Sync from ContractTracker brings every contract back. The layout stays." />
-            <!-- The scan hotkey's way with a mouse (T10.3, D104); off while a scan runs. Sync stays until T10.4a. -->
+                    ToolTip="Empty the plan and start over; scan your contracts to plan them again. The layout stays." />
+            <!-- The scan hotkey's way with a mouse (T10.3, D104); off while a scan runs. -->
             <Button Content="Scan" Command="{Binding ScanCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Read the contract open in Star Citizen's mobiGlas into the plan, like the scan hotkey (default F3)" />
-            <!-- "Sync", not "Load": Import… next to it replaces the rows, this adds new captures to the plan (T5.4). -->
-            <Button Content="Sync from ContractTracker" Command="{Binding SyncCommand}" Style="{StaticResource ToolbarButtonStyle}"
-                    ToolTip="Add contracts captured in ContractTracker to the plan, and place waiting missions that fit now" />
             <Button Content="Export…" Click="OnExport" IsEnabled="{Binding CanExport}" Style="{StaticResource ToolbarButtonStyle}" />
             <Button Content="Copy as text" Click="OnCopyText" IsEnabled="{Binding HasPlan}" Style="{StaticResource ToolbarButtonStyle}"
                     Margin="12,0,0,4" ToolTip="Copy the current plan for Discord or org chat" />
@@ -97,7 +94,7 @@
         </DockPanel>
 
         <!-- How Plan lays the crates: they take effect there (D24, T4.5), each named as its key in plan.json, so the word is found
-             again in the file. A line of its own that wraps: the editor lies beside overlay and ContractTracker in the game, where
+             again in the file. A line of its own that wraps: the editor lies beside the overlay in the game, where
              width is scarcer than height (D89). Without a name a screen reader reads a record's ToString(), as for the ship list (T7.2). -->
         <WrapPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
             <TextBlock Text="Layout" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,12,4" />
@@ -214,7 +211,7 @@
                 <DataGridTextColumn Header="Stop" Binding="{Binding StopNumber}" IsReadOnly="True" CanUserSort="False" Width="Auto" />
                 <!-- Where the crates are collected, "A / B" (D68); before Mission, so a row reads pickup → destination. -->
                 <DataGridTextColumn Header="Pickup" Binding="{Binding Pickup, UpdateSourceTrigger=PropertyChanged}" CanUserSort="False" Width="2*" />
-                <!-- The mission: ContractTracker's ids, "#37–38" as in the legend (K6.1), "#37–38 ✎" for a row added or changed by
+                <!-- The mission: the contract's number, "#37–38" as in the legend (K6.1), "#37–38 ✎" for a row added or changed by
                      hand (K6.5), empty if typed (T5.4). -->
                 <DataGridTextColumn Header="Mission" Binding="{Binding MissionLabel, Mode=OneWay}" IsReadOnly="True" SortMemberPath="Mission" Width="Auto" />
                 <DataGridTextColumn Header="Destination" Binding="{Binding Destination, UpdateSourceTrigger=PropertyChanged}" SortMemberPath="Destination" Width="2*" />
