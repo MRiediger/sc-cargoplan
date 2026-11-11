@@ -74,6 +74,9 @@
             <!-- Empties the plan, not the rows; the next sync starts over (K2.3, Martin's variant a). -->
             <Button Content="Discard plan" Command="{Binding DiscardPlanCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Empty the plan and start over; the next Sync from ContractTracker brings every contract back. The layout stays." />
+            <!-- The scan hotkey's way with a mouse (T10.3, D104); off while a scan runs. Sync stays until T10.4a. -->
+            <Button Content="Scan" Command="{Binding ScanCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTip="Read the contract open in Star Citizen's mobiGlas into the plan, like the scan hotkey (default F3)" />
             <!-- "Sync", not "Load": Import… next to it replaces the rows, this adds new captures to the plan (T5.4). -->
             <Button Content="Sync from ContractTracker" Command="{Binding SyncCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Add contracts captured in ContractTracker to the plan, and place waiting missions that fit now" />

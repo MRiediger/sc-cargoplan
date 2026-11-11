@@ -113,7 +113,8 @@ public class ScanSyncTests
 
         merge.Change.Should().Be(ScanChange.Updated);
         merge.QuantitiesChanged.Should().BeTrue();
-        merge.Cleared.Should().ContainSingle().Which.Should().StartWith("Riker");
+        // T10.3: the scan, not the editor, changed it.
+        merge.Cleared.Should().Equal("Riker: changed by scan – no longer loaded");
         CratesOf(merge.Saved, Riker(merge.Saved)).Sum(c => (int)c.CrateSize).Should().Be(4);
         LoadPlanner.Validate(merge.Saved.Plan, HullA).Should().BeEmpty();
     }

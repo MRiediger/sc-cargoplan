@@ -9,6 +9,7 @@ public sealed class HotkeysViewModelTests
     private const uint VK_L = 0x4C;
     private const uint VK_H = 0x48;
     private const uint VK_F12 = 0x7B;
+    private const uint VK_F3 = 0x72;
     private const HotkeyModifiers CtrlAlt = HotkeyModifiers.Control | HotkeyModifiers.Alt;
 
     private readonly List<string> _calls = [];
@@ -230,6 +231,8 @@ public sealed class HotkeysViewModelTests
         viewModel.Lock.Label.Should().Be(HotkeyEditor.LockLabel);
         viewModel.Overlay.Action.Should().Be(HotkeyAction.ToggleOverlay);
         viewModel.Overlay.Label.Should().Be(HotkeyEditor.OverlayLabel);
+        viewModel.Scan.Action.Should().Be(HotkeyAction.ScanContracts);
+        viewModel.Scan.Label.Should().Be("Scan contract");
         viewModel.Sync.Action.Should().Be(HotkeyAction.SyncContractTracker);
         viewModel.Sync.Label.Should().Be("Sync from ContractTracker");
         viewModel.Replan.Action.Should().Be(HotkeyAction.Replan);
@@ -243,7 +246,30 @@ public sealed class HotkeysViewModelTests
         viewModel.ResetView.Action.Should().Be(HotkeyAction.ResetView);
         viewModel.ResetView.Label.Should().Be("Reset view");
         viewModel.All.Should().Equal(
-            viewModel.Lock, viewModel.Overlay, viewModel.Sync, viewModel.Replan, viewModel.Discard, viewModel.Undo, viewModel.Redo, viewModel.ResetView);
+            viewModel.Lock, viewModel.Overlay, viewModel.Scan, viewModel.Sync, viewModel.Replan, viewModel.Discard, viewModel.Undo, viewModel.Redo,
+            viewModel.ResetView);
+    }
+
+    [Fact]
+    public void The_scan_hotkey_is_F3_by_default_and_null_turns_it_off()
+    {
+        // The one default (D104); null in the file is the player's Clear.
+        Create().Scan.Display.Should().Be("F3");
+        Create(new HotkeySettings()).Scan.Display.Should().Be("F3");
+        Create(new HotkeySettings(ScanContracts: null)).Scan.Hotkey.Should().BeNull();
+        Create(new HotkeySettings(ScanContracts: "Ctrl+Alt+S")).Scan.Display.Should().Be("Ctrl+Alt+S");
+    }
+
+    [Fact]
+    public void F3_is_refused_for_another_action_while_the_scan_has_it()
+    {
+        var viewModel = Create();
+
+        viewModel.Lock.RecordCommand.Execute(null);
+        viewModel.Lock.Capture(HotkeyModifiers.None, VK_F3);
+
+        viewModel.Lock.Problem.Should().Be($"F3 is already used for {HotkeyEditor.ScanLabel}.");
+        _set.Should().BeEmpty();
     }
 
     [Fact]
@@ -354,7 +380,7 @@ public sealed class HotkeysViewModelTests
     [Fact]
     public void The_hint_says_when_hotkeys_work_and_that_the_keys_reach_the_game_and_windows()
     {
-        HotkeysViewModel.Hint.Should().Contain("Ctrl, Alt or Win required")
+        HotkeysViewModel.Hint.Should().Contain("Ctrl, Alt or Win required, except for F keys")
             .And.Contain("Star Citizen or CargoPlan is in front")
             .And.Contain("reach the game and Windows too");
     }

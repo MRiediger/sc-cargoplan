@@ -385,7 +385,37 @@ public sealed class SettingsSessionTests : IDisposable
 
         File.ReadAllText(SettingsPath).Should().Contain("\"toggleLock\": null").And.Contain("\"toggleOverlay\": null")
             .And.Contain("\"syncContractTracker\": null").And.Contain("\"replan\": null").And.Contain("\"discardPlan\": null")
-            .And.Contain("\"undo\": null").And.Contain("\"redo\": null").And.Contain("\"resetView\": null");
+            .And.Contain("\"undo\": null").And.Contain("\"redo\": null").And.Contain("\"resetView\": null")
+            .And.Contain("\"scanContracts\": \"F3\"");
+    }
+
+    /// <summary>
+    /// B1 (T10.3): a missing scanContracts means F3, null means off; so a cleared scan hotkey must reach the file as null and
+    /// come back off after the next start, or F3 fires again in a game that binds it.
+    /// </summary>
+    [Fact]
+    public void A_cleared_scan_hotkey_stays_off_after_saving_and_loading()
+    {
+        var session = Create();
+
+        session.ChangeHotkey(HotkeyAction.ScanContracts, null);
+        session.Flush();
+
+        File.ReadAllText(SettingsPath).Should().Contain("\"scanContracts\": null");
+        var loaded = Saved().Hotkeys;
+        loaded.ScanContracts.Should().BeNull();
+        new HotkeysViewModel(loaded, (_, _) => null, () => { }, () => { }).Scan.Display.Should().Be(HotkeyEditor.NotSetText);
+    }
+
+    [Fact]
+    public void A_recorded_scan_hotkey_is_saved()
+    {
+        var session = Create();
+
+        session.ChangeHotkey(HotkeyAction.ScanContracts, Key("F5"));
+        session.Flush();
+
+        Saved().Hotkeys.ScanContracts.Should().Be("F5");
     }
 
     [Fact]

@@ -11,6 +11,9 @@ namespace CargoPlan.Core.Planning;
 /// </summary>
 public static class ScanSync
 {
+    /// <summary>How <see cref="ScanMerge.Cleared"/> names a delivery the scan changed (T10.3; the editor's are "changed in the editor").</summary>
+    public const string ChangedByScan = "changed by scan";
+
     /// <param name="capture">The scan as the import hands it over; its number is ignored for a contract already in the plan.</param>
     /// <param name="nextNo">The number a new mission gets (the caller counts above every number given, D102).</param>
     /// <exception cref="ArgumentException">The capture is no scan, or the plan belongs to another ship.</exception>
@@ -56,7 +59,7 @@ public static class ScanSync
         try
         {
             var (planned, cleared) = LoadPlanner.PlanKeeping(
-                saved, ship, missions, order, saved.Plan.FillOrder, saved.Watermark, saved.Plan.FillRows, saved.Plan.Grouping, saved.Plan.SectionGap);
+                saved, ship, missions, order, saved.Plan.FillOrder, saved.Watermark, saved.Plan.FillRows, saved.Plan.Grouping, saved.Plan.SectionGap, ChangedByScan);
             return new(planned, ScanChange.Updated, mine.No, QuantitiesChanged: true, cleared);
         }
         catch (PlanException ex)

@@ -13,12 +13,11 @@ public enum HotkeyModifiers : uint
     Control = 0x0002,  // MOD_CONTROL
     Shift = 0x0004,    // MOD_SHIFT
     Win = 0x0008,      // MOD_WIN
-    NoRepeat = 0x4000, // MOD_NOREPEAT; no effect since D97, the poller fires on the press only. Kept so parsed hotkeys stay equal.
 }
 
 /// <summary>
 /// What a hotkey does; the names in settings.json are toggleLock, toggleOverlay, syncContractTracker, replan,
-/// discardPlan, undo, redo and resetView (D17, D44, D66, K2.3, K2.4, K1.3).
+/// discardPlan, undo, redo, resetView and scanContracts (D17, D44, D66, K2.3, K2.4, K1.3, D104).
 /// </summary>
 public enum HotkeyAction
 {
@@ -45,13 +44,16 @@ public enum HotkeyAction
 
     /// <summary>Fits the ship view from the ship's default camera, like the header's reset or a double-click (K1.3).</summary>
     ResetView,
+
+    /// <summary>Reads the contract open in the mobiGlas into the plan, like the editor's Scan button (T10.3, D104).</summary>
+    ScanContracts,
 }
 
 /// <summary>A key combination: modifiers plus one key. Built by <see cref="HotkeyParser"/>, polled by <see cref="HotkeyPoller{TAction}"/>.</summary>
 /// <param name="VirtualKey">Win32 virtual-key code.</param>
 public sealed record Hotkey(HotkeyModifiers Modifiers, uint VirtualKey)
 {
-    /// <summary>Canonical text, e.g. "Ctrl+Alt+L": modifiers in a fixed order, NoRepeat left out. Parses back.</summary>
+    /// <summary>Canonical text, e.g. "Ctrl+Alt+L" or "F3": modifiers in a fixed order. Parses back.</summary>
     public override string ToString() => string.Join('+', [
         .. HotkeyParser.ModifierNames.Where(m => Modifiers.HasFlag(m.Flag)).Select(m => m.Name),
         HotkeyParser.KeyName(VirtualKey),

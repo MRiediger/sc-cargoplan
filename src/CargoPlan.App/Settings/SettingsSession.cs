@@ -70,11 +70,12 @@ public sealed class SettingsSession
 
     /// <summary>
     /// From the settings window, once the hotkey is set (D35): saved after <see cref="Debounce"/> as canonical
-    /// text. null clears the action and is written as null, so the key stays visible in the file; missing reads the same.
+    /// text. null clears the action and is written as null, so the key stays visible in the file; missing reads the same,
+    /// except for the scan, whose missing key is F3 (D104): there the written null is what keeps it off.
     /// </summary>
     public void ChangeHotkey(HotkeyAction action, Hotkey? hotkey)
     {
-        var hotkeys = Current.Hotkeys ?? new HotkeySettings();
+        var hotkeys = Current.Hotkeys;
         var text = hotkey?.ToString();
         Current = Current with
         {
@@ -88,6 +89,7 @@ public sealed class SettingsSession
                 HotkeyAction.Undo => hotkeys with { Undo = text },
                 HotkeyAction.Redo => hotkeys with { Redo = text },
                 HotkeyAction.ResetView => hotkeys with { ResetView = text },
+                HotkeyAction.ScanContracts => hotkeys with { ScanContracts = text },
                 _ => throw new ArgumentOutOfRangeException(nameof(action), action, null),
             },
         };

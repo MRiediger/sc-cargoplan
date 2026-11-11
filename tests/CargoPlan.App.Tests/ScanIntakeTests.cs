@@ -60,8 +60,19 @@ public sealed class ScanIntakeTests : IDisposable
         }
     }
 
-    private ScanIntake Intake(Func<Task<ScanAttempt>> scan, OverlayViewModel overlay, Func<TimeSpan, Task>? delay = null) =>
-        new(scan, overlay.ApplyScan, new ScanLog(LogPath), delay ?? (_ => Task.CompletedTask));
+    // What the intake handed to the notice line, in order (T10.3).
+    private readonly List<ScanReport> _shown = [];
+
+    private ScanIntake Intake(Func<Task<ScanAttempt>> scan, OverlayViewModel overlay, Func<TimeSpan, Task>? delay = null) => new(
+        scan,
+        contract => Task.FromResult(overlay.ApplyScan(contract)),
+        report =>
+        {
+            _shown.Add(report);
+            return Task.CompletedTask;
+        },
+        new ScanLog(LogPath),
+        delay ?? (_ => Task.CompletedTask));
 
     [Fact]
     public async Task A_text_all_there_is_read_once()
@@ -170,5 +181,47 @@ public sealed class ScanIntakeTests : IDisposable
         var log = File.ReadAllText(LogPath);
         log.Should().Contain("Collect Stims from\n").And.Contain("Collect Stims from Everus Harbor.");
         log.Should().Contain("second read").And.Contain("Added #1");
+    }
+
+    [Fact]
+    public async Task The_result_goes_to_the_notice_line_once()
+    {
+        var report = await Intake(new FakeScanner(TypingIn, Complete).Scan, new OverlayViewModel(HullA)).RunAsync();
+
+        _shown.Should().Equal(report);
+    }
+
+    [Fact]
+    public async Task What_the_scanner_couldnt_read_goes_to_the_notice_line_too()
+    {
+        await Intake(() => Task.FromResult(Attempt(ScanAttemptOutcome.GameNotFound)), new OverlayViewModel(HullA)).RunAsync();
+
+        _shown.Should().Equal(new ScanReport(ScanReportKind.GameNotFound));
+    }
+
+    [Fact]
+    public async Task A_failed_capture_carries_its_win32_error()
+    {
+        ScanAttempt failed = new(ScanAttemptOutcome.CaptureFailed, "", TimeSpan.Zero, TimeSpan.Zero, null, TimeSpan.Zero, CaptureError: 5);
+
+        var report = await Intake(() => Task.FromResult(failed), new OverlayViewModel(HullA)).RunAsync();
+
+        report.Should().Be(new ScanReport(ScanReportKind.CaptureFailed, Reason: "Win32 error 5"));
+    }
+
+    [Fact]
+    public async Task The_result_line_carries_the_times_from_the_key_for_gate_1()
+    {
+        // T10.3 Gate 1 is measured from the real path: key → raw text and key → notice, with the scanner's stages.
+        ScanAttempt read = new(ScanAttemptOutcome.Read, Complete, TimeSpan.FromMilliseconds(3), TimeSpan.FromMilliseconds(22),
+            new Ocr.ScanTimings(TimeSpan.FromMilliseconds(1), TimeSpan.FromMilliseconds(41), TimeSpan.FromMilliseconds(1185), TimeSpan.Zero),
+            TimeSpan.FromMilliseconds(1260));
+
+        await Intake(() => Task.FromResult(read), new OverlayViewModel(HullA)).RunAsync();
+
+        var result = File.ReadAllText(LogPath).Split('\n')[0];
+        result.Should().Contain("Added #1").And.Contain("keyToTextMs=").And.Contain("keyToNoticeMs=")
+            .And.Contain("waitMs=3").And.Contain("captureMs=22").And.Contain("preprocessMs=41").And.Contain("ocrMs=1185");
+        TestLog.Text().Should().Contain("Scan: Added #1");
     }
 }
