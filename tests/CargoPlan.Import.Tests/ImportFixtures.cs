@@ -104,6 +104,12 @@ internal static class ImportFixtures
     public const string WasteCollectWrapped = "waste_collect_wrapped";
 
     /// <summary>
+    /// S10.0 set-1080s c06 through today's OCR (T10.2b2), captured while the game was still typing the objectives in:
+    /// "Deliver 0/9 SCU of Silicon" ended up in a prose line, the objectives hold only "Collect Silicon from".
+    /// </summary>
+    public const string SiliconTypingIn = "silicon_typing_in";
+
+    /// <summary>
     /// Martin's plan.json after the route of ids 9–12 (B1), every crate ticked: stops "Melodic Fieids", "Faithful Dream
     /// Station", "Thundering Express", "Melodic Fields Station" (mission 1) and Everus Harbor (17, 18); watermark 18.
     /// </summary>

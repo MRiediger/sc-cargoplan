@@ -155,6 +155,111 @@ public class ScannedContractTests
         scanned.Key.Should().Be("EVERUSHARBOR | RIKER:SIIICON | ? | ?");
     }
 
+    // --- Doubts: a second read when the text may still be typing in (T10.2b2, D103) ---
+
+    [Fact]
+    public void A_contract_typed_in_while_captured_is_in_hard_doubt()
+    {
+        var scanned = ScannedContract.Read(ImportFixtures.RawText(ImportFixtures.SiliconTypingIn));
+
+        scanned.Doubts.Should().BeEquivalentTo([ContractDoubt.NoDeliveryRead, ContractDoubt.ObjectiveLineUnread]);
+        scanned.InHardDoubt.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("Deliver 0/9 SCU of Silicon", ContractDoubt.ObjectiveLineUnread)]
+    [InlineData("Deliver O/9 SCU of Silicon to", ContractDoubt.ObjectiveLineUnread)]
+    [InlineData("Collect Silicon from", ContractDoubt.ObjectiveLineUnread)]
+    [InlineData("CoIlect Silicon from", ContractDoubt.ObjectiveLineUnread)]
+    public void An_objective_line_that_reads_as_nothing_is_a_hard_doubt(string line, ContractDoubt expected)
+    {
+        var scanned = ScannedContract.Read(Contract("50,250", "", "Deliver 0/6 SCU of Stims to Riker.", "Collect Stims from Everus Harbor.", line));
+
+        scanned.Doubts.Should().Equal(expected);
+        scanned.InHardDoubt.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Objectives_without_any_delivery_are_a_hard_doubt()
+    {
+        ScannedContract.Read(Contract("50,250", "")).Doubts.Should().Equal(ContractDoubt.NoDeliveryRead);
+    }
+
+    [Fact]
+    public void A_text_without_objectives_is_no_doubt_but_no_contract()
+    {
+        // "No contract in frame" is the scanner's (no DETAILS / PRIMARY OBJECTIVES); this text has neither a delivery nor
+        // an objectives heading: nothing typing in.
+        var scanned = ScannedContract.Read("Covalex Independent Contractor\nDETAILS\nSome prose.");
+
+        scanned.Stops.Should().BeEmpty();
+        scanned.Doubts.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_missing_reward_is_a_soft_doubt()
+    {
+        var scanned = ScannedContract.Read(Contract("5O,250", "", "Deliver 0/6 SCU of Stims to Riker.", "Collect Stims from Everus Harbor."));
+
+        scanned.Doubts.Should().Equal(ContractDoubt.NoReward);
+        scanned.InHardDoubt.Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_commodity_without_its_collect_line_is_a_soft_doubt()
+    {
+        var scanned = ScannedContract.Read(Contract("50,250", "",
+            "Deliver 0/6 SCU of Stims to Riker.", "Collect Stims from Everus Harbor.", "Deliver 0/4 SCU of Gold to Orison."));
+
+        scanned.Doubts.Should().Equal(ContractDoubt.CommodityWithoutPickup);
+        scanned.InHardDoubt.Should().BeFalse();
+    }
+
+    [Fact]
+    public void A_contract_without_any_collect_line_doubts_no_pickup()
+    {
+        // ContractTracker's own texts and some contracts have none; only a missing one among others is a doubt.
+        ScannedContract.Read(Contract("50,250", "", "Deliver 0/6 SCU of Stims to Riker.")).Doubts.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Fewer_deliveries_than_listed_is_a_soft_doubt()
+    {
+        // E1 (Martin): taken in with its listed count, the legend warns "1 of 2 destinations" as for a capture.
+        var text = Contract("60,750", "", "Deliver 0/3 SCU of Stims to Green Glade Station.", "Collect Stims from Everus Harbor.")
+            .Replace("DETAILS\n", "DETAILS\nDROP OFF LOCATIONS (ANY ORDER)\n- Freight elevator at Green Glade Station at Hurston's L1\n- Freight elevator at High Course Station at Hurston's L5\n", StringComparison.Ordinal);
+
+        var scanned = ScannedContract.Read(text);
+
+        scanned.Doubts.Should().Equal(ContractDoubt.FewerDestinationsThanListed);
+        scanned.InHardDoubt.Should().BeFalse();
+    }
+
+    public static TheoryData<string> AllRawTextFixtures() => ContractTextParserTests.AllRawTextFixtures();
+
+    [Theory]
+    [MemberData(nameof(AllRawTextFixtures))]
+    public void No_complete_capture_is_in_hard_doubt(string fixture)
+    {
+        // Every fixture but the one typed in: no second read for a text that is all there (Gate 1, T10.1b).
+        var scanned = ScannedContract.Read(ImportFixtures.RawText(fixture));
+
+        scanned.InHardDoubt.Should().Be(fixture == ImportFixtures.SiliconTypingIn, "{0}: {1}", fixture, string.Join(", ", scanned.Doubts));
+    }
+
+    [Fact]
+    public void To_capture_names_the_scan_and_marks_an_offer_estimated()
+    {
+        var offer = ScannedContract.Read(ImportFixtures.RawText(ImportFixtures.FuelOffer)).ToCapture(4);
+        var accepted = ScannedContract.Read(ImportFixtures.RawText(ImportFixtures.FuelAccepted)).ToCapture(4);
+
+        offer.Source.Scan.Should().Be(new ScanIdentity(4, accepted.Source.Scan!.Key, true));
+        accepted.Source.Scan!.QuantitiesEstimated.Should().BeFalse();
+        accepted.Source.Reward.Should().Be(191_500);
+        accepted.Source.ListedDestinations.Should().Be(2);
+        accepted.Stops.Should().HaveCount(2);
+    }
+
     /// <summary>A contract in the reading order of CargoPlan's own OCR (D99), accepted view.</summary>
     private static string Contract(string reward, string maxPhrase, params string[] objectives) =>
         $"ABANDON\nDETAILS\n{maxPhrase}\nReward {reward}\nContract Deadline N/A\nPRIMARY OBJECTIVES\n{string.Join('\n', objectives)}\nSHARE UNTRACK";

@@ -17,6 +17,7 @@ internal static partial class ContractTextParser
     private const string DropOffHeading = "DROP OFF LOCATIONS";
     private const string PickUpHeading = "PICK UP LOCATIONS";
     private const string CollectVerb = "Collect";
+    private const string ObjectivesHeading = "PRIMARY OBJECTIVES";
 
     // The buttons of the two views (T10.2a). ContractTracker's text has "TRACK" / "UNTRACK" alone, without "SHARE".
     private const string AcceptOffer = "ACCEPT OFFER";
@@ -39,8 +40,19 @@ internal static partial class ContractTextParser
         var all = text.Split('\n');
         var lines = Block(all);
         return new(Deliveries(lines), MaxCrateSize(string.Join('\n', lines)), ListedDestinationCount(lines), Reward(text), Pickups(lines),
-            View(all));
+            View(all), all.Any(l => IsHeading(l, ObjectivesHeading)), Unread(lines));
     }
+
+    /// <summary>
+    /// Objective lines that read as nothing (T10.2b2): "Deliver 0/9 SCU of Silicon" without " to …", "Collect Silicon from"
+    /// without its place. What the game shows while it is still typing the objectives in.
+    /// </summary>
+    private static IReadOnlyList<string> Unread(string[] lines) =>
+    [
+        .. lines.Select(l => l.Trim()).Where(l =>
+            (DeliveryLike.IsMatch(l) && !DeliveryLine.IsMatch(l))
+            || (CollectStub.Match(l) is { Success: true } stub && ContractText.AnchorForm(stub.Groups["verb"].Value) == ContractText.AnchorForm(CollectVerb))),
+    ];
 
     /// <summary>
     /// The view from the whole text, buttons and title stand outside the block: one side's signals only, else unknown. In
@@ -211,6 +223,14 @@ internal static partial class ContractTextParser
     /// <summary>"Collect Waste from HUR-L1 Green Glade Station.": the verb is checked in its anchor form by the caller.</summary>
     [GeneratedRegex(@"^(?<verb>\S+)\s+(?<commodity>.+?)\s+from\s+(?<place>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex CollectLine { get; }
+
+    /// <summary>"Collect Silicon from" with nothing after "from": a Collect line cut off (T10.2b2).</summary>
+    [GeneratedRegex(@"^(?<verb>\S+)\s+.+?\s+from\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex CollectStub { get; }
+
+    /// <summary>A delivery's count, "Deliver O/9 SCU of", whatever follows: what <see cref="DeliveryLine"/> should read.</summary>
+    [GeneratedRegex(@"^\S+\s+\S*/\s*\d{1,5}\s+SCU\s+of\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex DeliveryLike { get; }
 
     /// <summary>
     /// The rest of a place broken across lines: one to three words of letters and a full stop at the start of the line
