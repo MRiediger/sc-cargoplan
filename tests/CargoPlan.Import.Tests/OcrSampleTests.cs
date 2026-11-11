@@ -37,7 +37,7 @@ public sealed class OcrSampleTests
         var source = new ScanContractSource(engine);
 
         var report = new StringBuilder(
-            "| Set | Contract | View | Delivery fields | Pickup | Max size | Reward | Key | ms |\n|---|---|---|---|---|---|---|---|---|\n");
+            "| Set | Contract | View | Delivery fields | Pickup | Max size | Reward | Doubts | Key | ms |\n|---|---|---|---|---|---|---|---|---|---|\n");
         var missed = new List<string>();
         foreach (var set in Sets)
         {
@@ -62,6 +62,12 @@ public sealed class OcrSampleTests
                     keys[sample.Contract] = scanned.Key;
                 }
 
+                // A second read only for the capture typing in (T10.2b2, D103); a soft doubt is reported, not asserted.
+                if (scanned.InHardDoubt != typingIn)
+                {
+                    missed.Add($"{set}/{sample.Contract}: hard doubt {scanned.InHardDoubt} ({string.Join(", ", scanned.Doubts)})");
+                }
+
                 var hits = DeliveryFields(expected.Deliveries, parsed.Deliveries);
                 var fields = 3 * expected.Deliveries.Length;
                 Check check = new(
@@ -77,14 +83,14 @@ public sealed class OcrSampleTests
                 }
 
                 report.Append(CultureInfo.InvariantCulture,
-                    $"| {set} | {sample.Contract} | {sample.View} → {scanned.View} | {hits}/{fields} | {Mark(check.Pickup, Places(scanned.Pickups), Places(expected.Pickup))} | {Mark((int?)parsed.MaxCrateSize, expected.MaxCrateSize)} | {Mark(scanned.Reward, expected.Reward)} | `{scanned.Key}` | {result.Timings.Total.TotalMilliseconds:0} |\n");
+                    $"| {set} | {sample.Contract} | {sample.View} → {scanned.View} | {hits}/{fields} | {Mark(check.Pickup, Places(scanned.Pickups), Places(expected.Pickup))} | {Mark((int?)parsed.MaxCrateSize, expected.MaxCrateSize)} | {Mark(scanned.Reward, expected.Reward)} | {(scanned.Doubts.Count == 0 ? "–" : string.Join(", ", scanned.Doubts))} | `{scanned.Key}` | {result.Timings.Total.TotalMilliseconds:0} |\n");
             }
 
             var keyProblems = KeyProblems(contracts.Values, keys);
             missed.AddRange(keyProblems.Select(p => $"{set}: {p}"));
             times.Sort();
             report.Append(CultureInfo.InvariantCulture,
-                $"| **{set}** | {times.Count} pictures | {totals.Views} views | **{totals.Read}/{totals.Fields} = {100.0 * totals.Read / totals.Fields:0.0} %** | {totals.Pickups} | {totals.Max} | {totals.Rewards} | {keys.Values.Distinct().Count()} keys, {keyProblems.Count} problems | median {times[times.Count / 2]:0}, p95 {times[(int)Math.Ceiling(0.95 * times.Count) - 1]:0} |\n");
+                $"| **{set}** | {times.Count} pictures | {totals.Views} views | **{totals.Read}/{totals.Fields} = {100.0 * totals.Read / totals.Fields:0.0} %** | {totals.Pickups} | {totals.Max} | {totals.Rewards} | | {keys.Values.Distinct().Count()} keys, {keyProblems.Count} problems | median {times[times.Count / 2]:0}, p95 {times[(int)Math.Ceiling(0.95 * times.Count) - 1]:0} |\n");
         }
 
         File.WriteAllText(Path.Combine(output, "ocr-samples.md"), report.ToString());
