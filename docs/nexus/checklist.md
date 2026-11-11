@@ -62,7 +62,7 @@ Files from this repository (`docs/images/`) and the wiki repository (`media/`), 
 | 6 | wiki `media/quickstart-mark-loaded.gif` | Clicking a legend line marks it loaded |
 | 7 | wiki `media/quickstart-deliver.gif` | Clicking a crate delivers the whole stop |
 | 8 | wiki `media/ships-select.gif` | Picking a ship by typing into the ship list |
-| 9 | wiki `media/ct-settings-found.png` | The ContractTracker section with the database found |
+| 9 | wiki `media/quickstart-capture-sync.gif` | F3 on an open contract, the mission appears in the legend (shot for v0.4.0) |
 | 10 | wiki `media/prefs-presets.gif` | Switching between the three presets |
 | 11 | wiki `media/shipview-hologram.gif` | The ship view with the shaded hologram, an optional download |
 
@@ -87,8 +87,7 @@ Commit `docs/nexus/hero.png` and use it as picture 1.
 
 ## 5. Requirements
 
-None. ContractTracker is optional (the editor works without it) and Nexus has no "optional" mark, so it stays in the
-description's Requirements block only. .NET comes with the ZIP.
+None. .NET and the OCR models come with the ZIP.
 
 ## 6. Permissions
 

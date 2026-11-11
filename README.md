@@ -12,7 +12,7 @@ shows it in a translucent window next to the game.
 
 - One color per destination, one rack per destination where the ship allows it, every crate named in the legend.
 - Optionally a block per destination in a shared rack, with a gap to get at the crates.
-- Contracts captured with ContractTracker come in by themselves; or type them in the editor.
+- Press F3 on an open contract: CargoPlan reads it itself and adds it to the plan; or type it in the editor.
 - Drag, turn, split and merge crates to match what the cargo elevator really did.
 - Mark each delivery loaded, then delivered at its stop; undo any step.
 - Click-through while the game has the mouse. A separate window: nothing is injected into the game.
@@ -32,7 +32,6 @@ Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the 
 ## Requirements
 
 - Windows 10/11 x64 (tested on Windows 11). Nothing else to install: .NET comes with it.
-- Optional: [ContractTracker](https://www.nexusmods.com/starcitizen/mods/34) V2 to capture contracts.
 
 ## Documentation
 
@@ -52,10 +51,8 @@ Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the 
   [fleetyards.net](https://fleetyards.net): their grids, hologram and outline. Fleetyards' data made the first ship list
   possible.
 - Thanks to both for letting this project use their data.
-- [ContractTracker](https://www.nexusmods.com/starcitizen/mods/34) by Yuiki captures the contracts; SC-CargoPlan only
-  reads its database.
 - Stop colors: the [Okabe-Ito palette](https://jfly.uni-koeln.de/color/) and [Paul Tol's](https://sronpersonalpages.nl/~pault/) schemes.
-- Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
+- Not affiliated with Motherlode, Fleetyards or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
 
 [MIT](LICENSE). Not under MIT: the ship silhouettes ([`outlines/NOTICE.md`](outlines/NOTICE.md)) and the ship
 holograms (`NOTICE.md` of the [`holo-v2` release](https://github.com/MRiediger/sc-cargoplan/releases/tag/holo-v2)).
