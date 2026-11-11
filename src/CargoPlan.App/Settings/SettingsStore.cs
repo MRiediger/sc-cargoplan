@@ -21,8 +21,7 @@ public static class SettingsStore
     /// %LocalAppData%\SC-CargoPlan\settings.json. Not next to the EXE (Program Files needs admin rights),
     /// not in the roaming %AppData%: window bounds belong to this machine's monitor layout.
     /// </summary>
-    public static string DefaultPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SC-CargoPlan", "settings.json");
+    public static string DefaultPath { get; } = Path.Combine(AppFolders.LocalRoot, "settings.json");
 
     /// <summary>
     /// Missing file = defaults, no problem. Broken file or unknown schema version = defaults plus a problem

@@ -28,8 +28,7 @@ public static class HoloRelease
     public static readonly TimeSpan ManifestMaxAge = TimeSpan.FromHours(24);
 
     /// <summary>%LocalAppData%\SC-CargoPlan\holo, next to settings.json: one folder per tag, only this app's stays (D95).</summary>
-    public static string DefaultCacheRoot { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SC-CargoPlan", "holo");
+    public static string DefaultCacheRoot { get; } = Path.Combine(AppFolders.LocalRoot, "holo");
 
     /// <summary>%LocalAppData%\SC-CargoPlan\holo\holo-v2, the cache of <see cref="Tag"/>.</summary>
     public static string DefaultCacheFolder { get; } = Path.Combine(DefaultCacheRoot, Tag);

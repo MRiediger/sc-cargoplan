@@ -12,8 +12,7 @@ public static class PlanStore
     /// %LocalAppData%\SC-CargoPlan\plan.json, next to settings.json but a file of its own: deleting the settings
     /// to reset the window must not throw away the plan, and the other way round.
     /// </summary>
-    public static string DefaultPath { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SC-CargoPlan", "plan.json");
+    public static string DefaultPath { get; } = Path.Combine(AppFolders.LocalRoot, "plan.json");
 
     /// <summary>
     /// Missing file = no plan, no problem. Broken file, another ship or a plan that doesn't fit its missions = no plan

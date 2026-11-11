@@ -15,8 +15,7 @@ public static class AppLog
     /// %LocalAppData%\SC-CargoPlan\cargoplan.log, where settings.json and plan.json are (D13). The App tests point it at
     /// a temp file once at load, so no test writes the player's log (K10, F9).
     /// </summary>
-    public static string Path { get; internal set; } = System.IO.Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SC-CargoPlan", "cargoplan.log");
+    public static string Path { get; internal set; } = System.IO.Path.Combine(AppFolders.LocalRoot, "cargoplan.log");
 
     /// <summary>One writer at a time: the UI thread, a crash on another thread, parallel tests.</summary>
     // Source: https://learn.microsoft.com/dotnet/api/system.threading.lock (lock statement on a Lock, .NET 9+)
