@@ -16,6 +16,7 @@ internal static partial class ContractTextParser
     private const string StartHeading = "DETAILS";
     private const string DropOffHeading = "DROP OFF LOCATIONS";
     private const string PickUpHeading = "PICK UP LOCATIONS";
+    private const string CollectVerb = "Collect";
 
     /// <summary>
     /// The last line of a contract: the offers view's button, or the accepted view's "SHARE TRACK" / "SHARE UNTRACK"
@@ -27,7 +28,40 @@ internal static partial class ContractTextParser
     {
         var text = rawText.ReplaceLineEndings("\n");
         var lines = Block(text.Split('\n'));
-        return new(Deliveries(lines), MaxCrateSize(string.Join('\n', lines)), ListedDestinationCount(lines), Reward(text));
+        return new(Deliveries(lines), MaxCrateSize(string.Join('\n', lines)), ListedDestinationCount(lines), Reward(text), Pickups(lines));
+    }
+
+    /// <summary>
+    /// "Collect Stims from Everus Harbor." (T10.2a): one line per pickup, its verb as OCR may read it ("CoIlect"). A place
+    /// without a sentence end may go on in the next line, but only by a few words ending one (<see cref="PlaceEnding"/>,
+    /// "Station."): ContractTracker's text puts prose, a list or a heading there, our OCR the next delivery or its marker.
+    /// </summary>
+    private static IReadOnlyList<ParsedPickup> Pickups(string[] lines)
+    {
+        List<ParsedPickup> pickups = [];
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (CollectLine.Match(lines[i].Trim()) is not { Success: true } match
+                || ContractText.AnchorForm(match.Groups["verb"].Value) != ContractText.AnchorForm(CollectVerb))
+            {
+                continue;
+            }
+
+            var place = match.Groups["place"].Value.Trim();
+            if (!place.EndsWith('.') && i + 1 < lines.Length && PlaceEnding.Match(lines[i + 1].Trim()) is { Success: true } ending)
+            {
+                place = $"{place} {ending.Value}";
+            }
+
+            var commodity = ContractText.NormalizeCommodity(match.Groups["commodity"].Value);
+            var name = ContractText.NormalizePickup(place);
+            if (commodity.Length > 0 && name.Length > 0)
+            {
+                pickups.Add(new(commodity, name));
+            }
+        }
+
+        return pickups;
     }
 
     /// <summary>
@@ -146,6 +180,17 @@ internal static partial class ContractTextParser
     [GeneratedRegex(@"^\S+\s+\S*/\s*(?<scu>\d{1,5})\s+SCU\s+of\s+(?<commodity>.+?)\s+to\s+(?<destination>.+)$",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex DeliveryLine { get; }
+
+    /// <summary>"Collect Waste from HUR-L1 Green Glade Station.": the verb is checked in its anchor form by the caller.</summary>
+    [GeneratedRegex(@"^(?<verb>\S+)\s+(?<commodity>.+?)\s+from\s+(?<place>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex CollectLine { get; }
+
+    /// <summary>
+    /// The rest of a place broken across lines: one to three words of letters and a full stop at the start of the line
+    /// ("Station.", "Express Station."). Not a list number ("1. Pick up"), no prose sentence, no marker ("L"), no heading.
+    /// </summary>
+    [GeneratedRegex(@"^\p{L}[\p{L}'’&-]*(?:\s+\p{L}[\p{L}'’&-]*){0,2}\.", RegexOptions.CultureInvariant)]
+    private static partial Regex PlaceEnding { get; }
 
     /// <summary>
     /// "freight elevator at Faithful Dream Station at Hurston's L2": a full name, in lists and prose. The first letter of
