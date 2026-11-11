@@ -1,6 +1,6 @@
 namespace CargoPlan.App.Scanning;
 
-/// <summary>What a scan came to (T10.2b2, D103); T10.3 turns each into its notice.</summary>
+/// <summary>What a scan came to (T10.2b2, D103); <see cref="ScanNotices"/> turns each into its notice (T10.3).</summary>
 public enum ScanReportKind
 {
     /// <summary>A new mission, <see cref="ScanReport.ScanNo"/> its number.</summary>
@@ -39,16 +39,16 @@ public enum ScanReportKind
 
 /// <param name="ScanNo">The mission's scan number for Added, Updated, AlreadyInPlan and Refused.</param>
 /// <param name="Cleared">Deliveries no longer loaded or ticked after an update.</param>
-/// <param name="Refusal">Why an update was refused.</param>
+/// <param name="Reason">Why an update was refused, or why the capture failed ("Win32 error 5", T10.3).</param>
 public sealed record ScanReport(
-    ScanReportKind Kind, int? ScanNo = null, bool QuantitiesChanged = false, IReadOnlyList<string>? Cleared = null, string? Refusal = null)
+    ScanReportKind Kind, int? ScanNo = null, bool QuantitiesChanged = false, IReadOnlyList<string>? Cleared = null, string? Reason = null)
 {
     public IReadOnlyList<string> Cleared { get; } = Cleared ?? [];
 
     // Records compare lists by reference; a report is equal by its parts.
     public bool Equals(ScanReport? other) =>
-        other is not null && (Kind, ScanNo, QuantitiesChanged, Refusal) == (other.Kind, other.ScanNo, other.QuantitiesChanged, other.Refusal)
+        other is not null && (Kind, ScanNo, QuantitiesChanged, Reason) == (other.Kind, other.ScanNo, other.QuantitiesChanged, other.Reason)
         && Cleared.SequenceEqual(other.Cleared);
 
-    public override int GetHashCode() => HashCode.Combine(Kind, ScanNo, QuantitiesChanged, Refusal, Cleared.Count);
+    public override int GetHashCode() => HashCode.Combine(Kind, ScanNo, QuantitiesChanged, Reason, Cleared.Count);
 }

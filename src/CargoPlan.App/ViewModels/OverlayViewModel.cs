@@ -624,7 +624,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// A scanned contract into the plan (T10.2b2, D103): one undo step, also the first into no plan; nothing for a text still
     /// typing in or without a delivery. One name per place first (B1), as for a capture; Core matches the key
     /// (<see cref="ScanSync"/>). The next number goes above every number given and every scan in the plan (D102). The
-    /// notices for the player come with T10.3.
+    /// notice comes from <see cref="ShowScanReport"/> (T10.3).
     /// </summary>
     public ScanReport ApplyScan(ScannedContract scanned)
     {
@@ -661,6 +661,23 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             _ => ScanReportKind.Refused,
         };
         return new(kind, merge.ScanNo, merge.QuantitiesChanged, merge.Cleared, merge.Refusal);
+    }
+
+    /// <summary>A scan runs (T10.3): the editor's Scan button is off meanwhile. Set by the scan runner on the UI thread.</summary>
+    [ObservableProperty]
+    public partial bool IsScanning { get; set; }
+
+    /// <summary>
+    /// A scan's result in the last notice line, where a move or a re-plan says what it did (T10.3, Martin): the next step or
+    /// an undo clears it. The scanner's own state (warming up, unavailable) keeps its line.
+    /// </summary>
+    public void ShowScanReport(ScanReport report)
+    {
+        var mission = report.ScanNo is { } no ? Missions.FirstOrDefault(m => m.Contract?.Scan?.No == no) : null;
+        if (ScanNotices.Text(report, mission) is { } text)
+        {
+            SetNotice(NoticeSource.Move, text);
+        }
     }
 
     public void ApplyContractTracker(ContractTrackerReadResult result, bool manual = false)
