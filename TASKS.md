@@ -5474,7 +5474,9 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
-- **Auslöser erreicht (T10.4a, 11.11.: drittes lokales Auftreten, 172 ms auf main):** mit T10.4b (Core) erledigen.
+- **Auslöser erreicht (T10.4a, 11.11.: drittes lokales Auftreten, 172 ms auf main; im a2-Gesamtlauf fiel auch
+  `Place_lays_out_16_crates_of_three_destinations_apart_in_under_100_ms`, Core allein 2× grün):** mit T10.4b (Core)
+  erledigen, beide Tests.
   `CrateLayoutTests.Place_proves_stacking_in_under_100_ms` fiel in T10.2b1 und T10.2b2 je einmal im Lauf aller vier
   Testprojekte (142 ms), allein immer grün (65 ms). Lehre T7.1d (1-s-Assert auf CI-Runnern): Zeit-Asserts im
   Standardlauf unter Parallel-Last. Auslöser: der erste rote CI-Lauf damit oder ein drittes lokales Auftreten → in
