@@ -5405,11 +5405,29 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     Tot nach a, für b: `ContractSync.Apply/Sync/Quiet`, `SyncResult`, `ContractGonePolicy`; der Gone-Filter in
     `LoadPlanner.RetryUnplaced` lässt eine wartende Mission mit Gone-Markierung nie platzieren.
 
-### [ ] B13 Eine nicht lesbare plan.json überschreibt der erste Scan
+### [x] B13 Eine nicht lesbare plan.json überschreibt der erste Scan
 
 - Gefunden in T10.4a: Der Pause-Schutz (T5.4, „plan.json couldn't be read: the sync must not overwrite it“) galt nur dem
   CT-Sync. Seit T10.3 legt der erste Scan in einen leeren Plan und `PlanSaver` überschreibt die kaputte Datei, ohne Backup.
 - Wichtiger als B12 (Martin). Eigener Plan; Vorschlag dort: `.bak` wie bei settings.json und/oder Scan-Pause mit Notice.
+- **Erledigt (D106), Branch `fix/b13-plan-keep-unreadable`:** Beiseitelegen im einzigen Schreiber statt Blockieren. Der
+  erste Save des Laufs verschiebt die unlesbare Datei nach `plan.json.unreadable-yyyyMMdd-HHmmss` und schreibt dann; die
+  Plan-Notice nennt die Datei bis zum Schließen. Scheitert das Verschieben, wird nichts geschrieben.
+  - Befund: `--plan` las `plan.json` gar nicht; jetzt ein zweiter Load nur für das Flag (`PlanStore.LoadStart`, vorher
+    `App.LoadStartPlan`). `plan-format.md` versprach „never overwrites a plan file it can't read“ schon – jetzt stimmt es.
+  - Präzisierung in der Planphase, ratifiziert durch Freigabe: Beiseitelegen statt Blockieren; Fehlertext mit voller
+    Exception-Message statt „is locked“; Datei inzwischen weg = kein Fehler; Kept-Notice bleibt für den Lauf (wie
+    `HoloUpdate`); `PlanSaver.Flush` für Tests; Hand-Test „gesperrt“ statt „schreibgeschützt“ (Read-only lässt Umbenennen
+    zu); Zeit-Asserts als erster Commit aus dem Standardlauf (Backlog).
+  - Downgrade: Schutz nur ab dieser Version. v0.3.x liest Plan-Schema ≤ 9 ohne Beiseitelegen und überschreibt eine
+    Schema-10-Datei beim ersten Ändern → Release-Note v0.4.0 (T10.6): plan.json vorher kopieren.
+  - **Gate:** Build 0 Warnungen; Tests (sauberer Worktree) Core 1 818 (−2 nach Timing) · Import 279 · App 1 791 (+15) ·
+    Ocr 34 grün; neue Tests vorher rot gegen Stubs (14 von 15); `dotnet format` Exit 0.
+  - **Hand-Test ohne SC** (`--data-dir` im Scratchpad): (1) abgeschnittene `plan.json` + `--plan split_and_shared.json` →
+    `plan.json` 7 325 B neu, `plan.json.unreadable-20261111-173239` 200 B, Notice im Overlay, Logzeile. (2) dieselbe Datei
+    von einem PowerShell-Prozess mit `FileShare.None` gesperrt → nichts geschrieben, Notice „Plan not saved: plan.json
+    couldn't be moved aside (The process cannot access the file …)“, Datei nach Programmende byte-gleich. „Sperre lösen,
+    Plan ändern“ nur per Test (`A_locked_file_is_not_overwritten_and_kept_aside_once_it_is_free`).
 
 ### [ ] B12 Fenster mit Titelleiste bleiben bei der Aufnahme im Bild (D100)
 

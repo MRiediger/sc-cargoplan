@@ -183,11 +183,29 @@ The overlay never overwrites a plan file it can't read. It starts with the empty
 an amber line, for example:
 
 ```
-Plan not loaded (Plan file 'C:\Users\you\AppData\Local\SC-CargoPlan\plan.json' is invalid: Crate for Riker is in rack 'rack-9', which ship 'hull_a' doesn't have.). The file stays until you make a new plan.
+Plan not loaded (Plan file 'C:\Users\you\AppData\Local\SC-CargoPlan\plan.json' is invalid: Crate for Riker is in rack 'rack-9', which ship 'hull_a' doesn't have.). The next save keeps the file aside, it is never overwritten.
 ```
 
-A rack the ship doesn't have, a crate of a mission the file doesn't have, or crates that don't match their
-missions are such errors. The file stays as it is until a new plan is saved.
+A rack the ship doesn't have, a crate of a mission the file doesn't have, crates that don't match their
+missions, or a schema newer than the app reads are such errors; so is a file another program keeps locked.
+
+## Unreadable files
+
+The first save after such a start (a scan, the editor, a tick, a `--plan` file) moves the old file aside before it
+writes, once per run (D106):
+
+```
+plan.json                                  the new plan
+plan.json.unreadable-20261111-173239       the file that couldn't be read, byte for byte
+```
+
+The amber line then says "Previous plan.json couldn't be read; kept as plan.json.unreadable-20261111-173239." until
+the overlay closes, and `cargoplan.log` has the same line. Two in the same second get `-2`, `-3` …; old ones are never
+deleted. To get the plan back, fix the file (or install the version that wrote it), then rename it to `plan.json`
+while the overlay is closed.
+
+If the file can't be moved (locked, or no permission), nothing is written: "Plan not saved: plan.json couldn't be
+moved aside (…)". The next change tries again.
 
 ## Loading a plan file at start
 
