@@ -10,7 +10,7 @@ namespace CargoPlan.App.Tests;
 
 /// <summary>
 /// The legend line at the elevator (K6.1, D69 addendum): "To X · 5 SCU (4+1) · Pressurized Ice", the mix as the plan
-/// holds it, repeats as count×size; the header names the ContractTracker id ("From Lorville · #47"). The commodity
+/// holds it, repeats as count×size; the header names the contract's number ("From Lorville · #47"). The commodity
 /// shortens first, then the name; SCU, mix, id and markings never.
 /// </summary>
 public class LegendLineTests
@@ -123,7 +123,7 @@ public class LegendLineTests
     // --- The header ---
 
     [Fact]
-    public void A_contract_header_names_its_ContractTracker_id()
+    public void A_contract_header_names_its_number()
     {
         var saved = Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight, "Lorville"), new ContractSource([47])));
 
@@ -131,19 +131,6 @@ public class LegendLineTests
 
         line.HeaderLabel.Should().Be("From Lorville · #47");
         line.HeaderSegments.Select(s => (s.Text, s.Rank)).Should().Equal(("From Lorville", LegendSegment.TrimFirst), (" · #47", LegendSegment.Fixed));
-    }
-
-    [Fact]
-    public void A_gone_contract_s_header_ends_in_gone_which_never_shortens()
-    {
-        // D81: the mark stays in reach of the eye however narrow the overlay; the pickups give way first.
-        var saved = Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight, "Lorville"), new ContractSource([47], Gone: true)));
-
-        var line = Legend(saved).Single();
-
-        line.HeaderLabel.Should().Be("From Lorville · #47 · gone");
-        line.HeaderSegments.Select(s => (s.Text, s.Rank)).Should().Equal(
-            ("From Lorville", LegendSegment.TrimFirst), (" · #47", LegendSegment.Fixed), (" · gone", LegendSegment.Fixed));
     }
 
     [Fact]

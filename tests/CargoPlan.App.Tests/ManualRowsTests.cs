@@ -9,9 +9,9 @@ using CargoPlan.Core.Tests;
 namespace CargoPlan.App.Tests;
 
 /// <summary>
-/// ContractTracker sometimes misses a destination (K6.5, D44 addendum): the player adds it in the editor to the same
+/// A contract's text sometimes misses a destination (K6.5, D44 addendum): the player adds it in the editor to the same
 /// mission ("Add to mission"), so it stands under the mission's #id in the legend. Rows added or changed by hand are
-/// manual and stay until ContractTracker no longer lists the mission; the sync works as before.
+/// manual and stay with the mission. The fixture is a capture from before v0.4.0; a scan works the same (ApplyScanTests).
 /// </summary>
 public class ManualRowsTests
 {
@@ -45,7 +45,7 @@ public class ManualRowsTests
         return overlay;
     }
 
-    // --- Adding a destination to a ContractTracker mission ---
+    // --- Adding a destination to a contract's mission ---
 
     [Fact]
     public void Add_to_mission_puts_a_manual_row_into_the_selected_rows_mission_below_it()
@@ -63,7 +63,7 @@ public class ManualRowsTests
     }
 
     [Fact]
-    public void Add_to_mission_needs_a_ContractTracker_row_selected()
+    public void Add_to_mission_needs_a_contract_row_selected()
     {
         var editor = new MissionEditorViewModel(Overlay());
 
@@ -89,10 +89,10 @@ public class ManualRowsTests
         overlay.Scene.Legend.First(e => e.Mission == mission.Id).HeaderLabel.Should().EndWith("· #37");
     }
 
-    // --- Changing a ContractTracker row ---
+    // --- Changing a contract's row ---
 
     [Fact]
-    public void Changing_a_ContractTracker_row_makes_it_manual_and_loading_it_doesnt()
+    public void Changing_a_contract_row_makes_it_manual_and_loading_it_doesnt()
     {
         var editor = new MissionEditorViewModel(Overlay());
         editor.Rows.Should().OnlyContain(r => !r.Manual);

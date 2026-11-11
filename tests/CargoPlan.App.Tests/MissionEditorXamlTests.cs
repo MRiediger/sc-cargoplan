@@ -168,7 +168,7 @@ public class MissionEditorXamlTests
     }
 
     [Fact]
-    public void The_mission_column_shows_the_ContractTracker_ids()
+    public void The_mission_column_shows_the_contract_numbers()
     {
         var mission = Columns(Grid()).Single(c => (string?)c.Attribute("Header") == "Mission");
 

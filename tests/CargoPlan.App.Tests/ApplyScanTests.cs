@@ -141,7 +141,7 @@ public class ApplyScanTests
         overlay.Scene.Legend.Should().HaveCount(2).And.OnlyContain(l => !l.Label.Contains("destinations"));
     }
 
-    // --- What the ContractTracker sync's tests held for a contract coming in (T10.4a successors) ---
+    // --- What the sync's tests held for a contract coming in (T10.4a successors) ---
 
     private static string[] To(string destination, int scu = 4) =>
         [$"Deliver 0/{scu} SCU of Stims to {destination}.", "Collect Stims from Everus Harbor."];

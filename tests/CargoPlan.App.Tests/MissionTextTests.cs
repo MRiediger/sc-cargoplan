@@ -15,7 +15,7 @@ public class MissionTextTests
     [InlineData(new long[] { 47, 48, 49 }, "#47–49")]
     [InlineData(new long[] { 49, 47, 48 }, "#47–49")]
     [InlineData(new long[] { 36, 37, 40 }, "#36–37, 40")]
-    public void Source_names_the_ids_as_ContractTracker_shows_them(long[] ids, string expected)
+    public void Source_names_a_captures_ids_as_they_were_shown(long[] ids, string expected)
     {
         MissionText.Source(new ContractSource(ids)).Should().Be(expected);
     }

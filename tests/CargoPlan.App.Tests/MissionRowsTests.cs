@@ -376,7 +376,7 @@ public class MissionRowsTests
     [Fact]
     public void A_row_of_a_scanned_contract_carries_its_scan_number()
     {
-        // D102: no ContractTracker id; the scan number sorts and names the row as an id did.
+        // D102: no capture id; the scan number sorts and names the row as an id did.
         Mission scanned = new(1, [Stop("Shubin", "Stims")], ContractSource.Scanned(new ScanIdentity(3, "EVERUSHARBOR | SHUBIN:STIMS | 4 | ?", false)));
 
         var row = MissionRows.FromMissions([scanned], ["Shubin"]).Single();
