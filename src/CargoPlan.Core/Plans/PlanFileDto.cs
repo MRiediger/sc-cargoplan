@@ -26,12 +26,14 @@ internal sealed record PlanFileDto(
     [property: JsonPropertyOrder(1)] IReadOnlyList<PlanWarningDto> Warnings,
     string? FillRows = null,
     string? Grouping = null,
-    int? SectionGap = null)
+    int? SectionGap = null,
+    int? LastScanNo = null)
 {
     /// <exception cref="ArgumentException">A value violates the domain rules, or the plan doesn't fit the ship or its missions.</exception>
     public SavedPlan ToSavedPlan(Ship ship)
     {
         CheckFillRows(FillRows, Grouping, SectionGap, SchemaVersion);
+        CheckScans(Missions, LastScanNo, SchemaVersion);
         CheckGone(Missions);
         Mission[] missions = [.. Missions.Select(m => m.ToMission())];
         CheckItems(Crates, SchemaVersion);
@@ -80,7 +82,8 @@ internal sealed record PlanFileDto(
         return refused ?? throw first!;
     }
 
-    public static PlanFileDto FromSavedPlan(SavedPlan saved) => new(
+    /// <param name="lastScanNo">The last scan number given (D102); written as at least the plan's highest, and only above 0.</param>
+    public static PlanFileDto FromSavedPlan(SavedPlan saved, int lastScanNo = 0) => new(
         PlanFile.SupportedSchemaVersion,
         saved.Plan.ShipId,
         FillOrderJson.Text(saved.Plan.FillOrder),
@@ -90,7 +93,8 @@ internal sealed record PlanFileDto(
         [.. saved.Plan.Warnings.Select(PlanWarningDto.FromPlanWarning)],
         FillRowsJson.Text(saved.Plan.FillRows),
         GroupingJson.Text(saved.Plan.Grouping),
-        saved.Plan.SectionGap);
+        saved.Plan.SectionGap,
+        Math.Max(lastScanNo, saved.HighestScanNo) is > 0 and var last ? last : null);
 
     /// <summary>
     /// The checks every schema version shares: racks (D24). Overlap and crates without support load;
@@ -159,6 +163,30 @@ internal sealed record PlanFileDto(
         if (schemaVersion >= withFillRows && fillRows is null)
         {
             throw new ArgumentException(Invariant($"The file has no fillRows, which schema {schemaVersion} requires."), nameof(FillRows));
+        }
+    }
+
+    /// <summary>
+    /// From schema 10 on a contract may be a scan and the file names the last scan number (D102); before it neither is
+    /// there. The number is never below 0.
+    /// </summary>
+    /// <exception cref="ArgumentException">The file breaks that.</exception>
+    internal static void CheckScans(IReadOnlyList<MissionDto> missions, int? lastScanNo, int schemaVersion)
+    {
+        const int withScans = PlanFile.NoScanSchemaVersion + 1;
+        if (schemaVersion < withScans && missions.FirstOrDefault(m => m.Contract?.Scan is not null) is { } scanned)
+        {
+            throw new ArgumentException(Invariant($"Mission {scanned.Id} has a scan, which is new in schema {withScans} (the file says {schemaVersion})."), nameof(Missions));
+        }
+
+        if (schemaVersion < withScans && lastScanNo is not null)
+        {
+            throw new ArgumentException(Invariant($"lastScanNo is new in schema {withScans} (the file says {schemaVersion})."), nameof(LastScanNo));
+        }
+
+        if (lastScanNo < 0)
+        {
+            throw new ArgumentException(Invariant($"lastScanNo is {lastScanNo}; it is 0 or more."), nameof(LastScanNo));
         }
     }
 

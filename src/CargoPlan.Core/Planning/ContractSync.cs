@@ -48,7 +48,8 @@ public static class ContractSync
         {
             back = [.. saved.Missions.Where(m => m.Contract is { Gone: true, Detached: false } contract && contract.ContractIds.Any(present.Contains))];
             Mission[] goneBefore = [.. saved.Missions.Where(m => m.Contract is { Gone: true } && !back.Contains(m))];
-            Mission[] listed = [.. saved.Missions.Where(m => m.Contract is { Gone: false })];
+            // A scan has no id ContractTracker could list (D102): only captures can be listed or go.
+            Mission[] listed = [.. saved.Missions.Where(m => m.Contract is { Scan: null, Gone: false })];
             Mission[] going = [.. listed.Where(m => !m.Contract!.ContractIds.Any(present.Contains))];
             allAtOnce = databaseIsNew || (going.Length >= 2 && going.Length == listed.Length + back.Length);
             var removing = onGone == ContractGonePolicy.Remove && !allAtOnce;
@@ -93,7 +94,7 @@ public static class ContractSync
     /// <see cref="Apply"/>; with <paramref name="present"/> missions gone from ContractTracker are marked or leave as in a
     /// sync (D81). The database isn't read: what the plan knows is enough, and an undo never takes in a contract the player
     /// hasn't synced yet. A capture the step itself removed or added is known to one of the two and stays as the snapshot
-    /// has it. A detached capture never came in by a sync.
+    /// has it. A detached capture never came in by a sync, nor did a scan (D102): a scan is an undo step of its own.
     /// </summary>
     /// <param name="present">The capture ids ContractTracker had at the last read; null if it wasn't read.</param>
     public static SavedPlan Resync(
@@ -104,7 +105,7 @@ public static class ContractSync
         ContractCapture[] since =
         [
             .. current.Missions
-                .Where(m => m.Contract is { Detached: false } contract && !contract.ContractIds.Any(known.Contains))
+                .Where(m => m.Contract is { Scan: null, Detached: false } contract && !contract.ContractIds.Any(known.Contains))
                 .Select(m => new ContractCapture(m.Stops, m.Contract!)),
         ];
         return Apply(target, ship, since, present, onGone: onGone);
@@ -112,10 +113,11 @@ public static class ContractSync
 
     /// <summary>
     /// A read without new captures that is no news (D38, D43): every capture still listed is in <paramref name="present"/>,
-    /// and no gone one is back (D81). Such a read changes nothing, so a waiting mission waits for the button.
+    /// and no gone one is back (D81). Such a read changes nothing, so a waiting mission waits for the button. A scan is no
+    /// capture (D102).
     /// </summary>
     public static bool Quiet(SavedPlan saved, IReadOnlySet<long> present) =>
-        saved.Missions.All(m => m.Contract is not { Detached: false } contract || contract.Gone != contract.ContractIds.Any(present.Contains));
+        saved.Missions.All(m => m.Contract is not { Scan: null, Detached: false } contract || contract.Gone != contract.ContractIds.Any(present.Contains));
 
     /// <summary>
     /// The missions that may be a second capture of another one (D39 addendum): of two missions without any ticked crate,

@@ -402,7 +402,7 @@ public class PlanFileTests
     [InlineData("crate_of_unknown_mission", "*mission 9*")]
     [InlineData("crate_without_mission", "*mission 0*")]
     [InlineData("missing_crate", "*Riker, Titanium: 3 of 4 crates of 4 SCU placed*")]
-    [InlineData("contract_without_ids", "*at least one ContractTracker id*")]
+    [InlineData("contract_without_ids", "*ContractTracker ids or a scan, exactly one*")]
     [InlineData("unknown_rack", "*rack-9*")]
     [InlineData("missing_delivered", "*delivered*")]
     [InlineData("unknown_warning_rack", "*rack-9*")]

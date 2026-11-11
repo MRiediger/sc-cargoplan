@@ -21,6 +21,13 @@ public class MissionTextTests
     }
 
     [Fact]
+    public void Source_of_a_scanned_contract_is_its_scan_number()
+    {
+        // D102: "#3" is CargoPlan's own count, as "Scanned #3" will say (T10.3).
+        MissionText.Source(ContractSource.Scanned(new ScanIdentity(3, "EVERUSHARBOR | RIKER:STIMS | 4 | 50250", false))).Should().Be("#3");
+    }
+
+    [Fact]
     public void Source_of_a_typed_mission_is_empty()
     {
         MissionText.Source(null).Should().BeEmpty();

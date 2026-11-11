@@ -178,7 +178,8 @@ public static class MissionRows
         Pickup = Pickups.Text(item.Pickup),
         MissionId = mission?.Id,
         Source = MissionText.Source(mission?.Contract),
-        ContractId = mission?.Contract?.ContractIds.Min(),
+        // A scan's number stands where a capture's first id does (D102): it sorts and names the row.
+        ContractId = mission?.Contract is { } contract ? contract.Scan?.No ?? contract.ContractIds.Min() : null,
         Manual = item.Manual,
         Gone = mission?.Contract?.Gone == true,
 

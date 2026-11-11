@@ -203,10 +203,11 @@ public partial class App : Application
     {
         var viewModel = parts.ViewModel;
         _planSaver = new PlanSaver(parts.Overlay, viewModel, PlanStore.DefaultPath);
-        var (plan, planProblem) = LoadStartPlan(options, parts.Ship);
+        var (plan, planProblem, lastScanNo) = LoadStartPlan(options, parts.Ship);
         viewModel.SetNotice(NoticeSource.Plan, options.Problem ?? planProblem);
         if (plan is not null)
         {
+            viewModel.LastScanNo = lastScanNo;
             viewModel.ShowPlan(plan);
         }
         else if (planProblem is not null)
@@ -373,7 +374,7 @@ public partial class App : Application
         });
 
     /// <summary>--plan wins over plan.json; a missing --plan file is a problem, a missing plan.json is the empty start.</summary>
-    private static (SavedPlan? Plan, string? Problem) LoadStartPlan(StartOptions options, Ship ship)
+    private static (SavedPlan? Plan, string? Problem, int LastScanNo) LoadStartPlan(StartOptions options, Ship ship)
     {
         if (options.PlanPath is not { } path)
         {
@@ -381,7 +382,7 @@ public partial class App : Application
         }
 
         var loaded = PlanStore.Load(path, ship);
-        return loaded is (null, null) ? (null, $"Plan file {path} not found.") : loaded;
+        return loaded is (null, null, _) ? (null, $"Plan file {path} not found.", 0) : loaded;
     }
 
     /// <summary>Saved bounds may lie on an unplugged monitor: clamped into today's virtual desktop.</summary>

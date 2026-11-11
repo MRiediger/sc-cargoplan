@@ -40,7 +40,15 @@ public static class PlanFile
     /// <exception cref="PlanFormatException">
     /// The content is broken, of another schema version, uses racks the ship doesn't have, or doesn't match its missions.
     /// </exception>
-    public static SavedPlan Read(Stream stream, string sourceName, Ship ship)
+    public static SavedPlan Read(Stream stream, string sourceName, Ship ship) => ReadContent(stream, sourceName, ship).Plan;
+
+    /// <summary>
+    /// <see cref="Read"/>, and the last scan number given in the plan (D102): the file's, at least the highest scan in the
+    /// plan, 0 without either. The overlay keeps it beside the plan, outside its undo steps.
+    /// </summary>
+    /// <param name="sourceName">Shown in error messages, e.g. the file path.</param>
+    /// <exception cref="PlanFormatException">See <see cref="Read"/>.</exception>
+    public static (SavedPlan Plan, int LastScanNo) ReadContent(Stream stream, string sourceName, Ship ship)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceName);
@@ -51,7 +59,9 @@ public static class PlanFile
             var root = document.RootElement;
 
             SchemaVersion.Check(root, ReadableSchemaVersions);
-            return (root.Deserialize(PlanJsonContext.Default.PlanFileDto) ?? throw Null()).ToSavedPlan(ship);
+            var file = root.Deserialize(PlanJsonContext.Default.PlanFileDto) ?? throw Null();
+            var saved = file.ToSavedPlan(ship);
+            return (saved, Math.Max(file.LastScanNo ?? 0, saved.HighestScanNo));
         }
         catch (Exception ex) when (ex is JsonException or ArgumentException or PlanException)
         {
@@ -86,10 +96,11 @@ public static class PlanFile
     private static JsonException Null() => new("The file contains null.");
 
     /// <summary>Writes the plan as indented JSON. The stream is left open.</summary>
-    public static void Write(Stream stream, SavedPlan saved)
+    /// <param name="lastScanNo">The last scan number given (D102), kept beside the plan; written as at least the plan's highest.</param>
+    public static void Write(Stream stream, SavedPlan saved, int lastScanNo = 0)
     {
         ArgumentNullException.ThrowIfNull(stream);
 
-        JsonSerializer.Serialize(stream, PlanFileDto.FromSavedPlan(saved), PlanJsonContext.Default.PlanFileDto);
+        JsonSerializer.Serialize(stream, PlanFileDto.FromSavedPlan(saved, lastScanNo), PlanJsonContext.Default.PlanFileDto);
     }
 }

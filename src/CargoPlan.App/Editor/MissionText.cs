@@ -18,13 +18,19 @@ public static class MissionText
 
     /// <summary>
     /// "#36", "#37–38" for consecutive ids, "#36–37, 40" otherwise: ContractTracker's <c>Contracts.Id</c>, as its window
-    /// shows the capture. The one spelling for editor, legend header and notices (K6.1, K6.3). Empty for a typed mission.
+    /// shows the capture. A scanned contract's number, "#3" (D102). The one spelling for editor, legend header and notices
+    /// (K6.1, K6.3). Empty for a typed mission.
     /// </summary>
     public static string Source(ContractSource? source)
     {
         if (source is null)
         {
             return "";
+        }
+
+        if (source.Scan is { } scan)
+        {
+            return Invariant($"#{scan.No}");
         }
 
         long[] ids = [.. source.ContractIds.Distinct().Order()];
