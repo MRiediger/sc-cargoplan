@@ -5283,6 +5283,23 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   - **Gate:** p95 Taste → Rohtext ≤ 1 500 ms über dem Spiel, n ≥ 20 je Ansicht (OFFERS, ACCEPTED). Vergleich T10.1b: 1 304 / 1 391 ms bei n = 10.
   - **Speicher-Vergleichszahl:** T10.1b +0,03 MB pro Scan über Scan 71–210 (≈ 3 MB je 100 Scans), Band 773–892 MB.
   - Mit T10.5 entscheiden, ob „Scan aus“ auch das Warmup spart: die Engine kostet ≈ 400 MB Working Set (≈ 824 statt ≈ 400 MB vor OCR).
+- **Präzisierung in der Planphase, ratifiziert durch Freigabe** (Branch `feat/t10-3-scan-hotkey`, D104):
+  1. F-Tasten ohne Modifier: **F1–F11 und F13–F24** (eine Regel), alle Aktionen; F12 und Space bleiben gesperrt.
+  2. Default **F3** über den Parameter-Default von `HotkeySettings.ScanContracts`; fehlt = F3, `null` = aus.
+     **B1 (Bedingung der Freigabe):** `null` landet auf der Platte (kein Ignore im `SettingsJsonContext`); Test „löschen →
+     speichern → laden → aus“, Mutation `WhenWritingNull` macht ihn rot.
+  3. CT-Hinweis über den Prozessnamen **`SC Contract Tracker`** (Exe von CT 2.2, nicht `ContractTracker*`), in der
+     Hotkeys-Zeile, einmal je Lauf, nur wenn die Scan-Taste F3 ist.
+  4. Zweiter Druck: Notice „Scan running“, kein Puffer.
+  5. Editor: „Scan“ **kommt dazu**, „Sync from ContractTracker“ bleibt bis T10.4a.
+  6. Scan-Ergebnisse in der **Move-Zeile** (Martin), die Scan-Zeile bleibt dem Scanner-Zustand.
+  7. Added-Notice: mehrere Ziele als Summe (Martin).
+  8. `ScanIntake` misst Taste → Rohtext und Taste → Notice selbst, Zeilen in `scans.log` und `cargoplan.log`.
+  9. `ScanReport.Refusal` → `Reason` (auch der Win32-Fehler einer Aufnahme); `PlanKeeping` nennt den Auslöser.
+  10. Gate 4: `--scan-load` öffnet das Messfenster links neben dem ROI.
+  11. Commit-Reihenfolge: Core und Runner vor dem Hotkey (der Hotkey braucht den Runner).
+  - **Release-Notes v0.4.0 vormerken:** „F3 scans the open contract; change or clear it in Settings if F3 is bound in Star
+    Citizen.“ Und die Frame-Zeit unter Scan-Last aus Gate 4.
 
 
 ### [ ] T10.4a ContractTracker entfernen – Import, App, Doku
