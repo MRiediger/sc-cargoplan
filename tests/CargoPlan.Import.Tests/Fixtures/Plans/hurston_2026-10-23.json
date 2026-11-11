@@ -1,7 +1,10 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 9,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
+  "fillRows": "lengthwise",
+  "grouping": "none",
+  "sectionGap": 0,
   "contractTrackerWatermark": 18,
   "missions": [
     {
@@ -132,7 +135,8 @@
         0
       ],
       "delivered": true,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     },
     {
       "destination": "Melodic Fieids",
@@ -145,7 +149,8 @@
         0
       ],
       "delivered": true,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     },
     {
       "destination": "Faithful Dream Station",
@@ -158,7 +163,8 @@
         0
       ],
       "delivered": true,
-      "mission": 1
+      "mission": 1,
+      "item": 1
     },
     {
       "destination": "Faithful Dream Station",
@@ -171,7 +177,8 @@
         0
       ],
       "delivered": true,
-      "mission": 1
+      "mission": 1,
+      "item": 1
     },
     {
       "destination": "Faithful Dream Station",
@@ -184,7 +191,8 @@
         1
       ],
       "delivered": true,
-      "mission": 1
+      "mission": 1,
+      "item": 1
     },
     {
       "destination": "Thundering Express",
@@ -197,7 +205,8 @@
         0
       ],
       "delivered": true,
-      "mission": 1
+      "mission": 1,
+      "item": 2
     },
     {
       "destination": "Thundering Express",
@@ -210,7 +219,8 @@
         0
       ],
       "delivered": true,
-      "mission": 1
+      "mission": 1,
+      "item": 2
     },
     {
       "destination": "Melodic Fields Station",
@@ -223,7 +233,8 @@
         0
       ],
       "delivered": true,
-      "mission": 1
+      "mission": 1,
+      "item": 3
     },
     {
       "destination": "Melodic Fields Station",
@@ -236,7 +247,8 @@
         0
       ],
       "delivered": true,
-      "mission": 1
+      "mission": 1,
+      "item": 3
     },
     {
       "destination": "Melodic Fields Station",
@@ -249,7 +261,8 @@
         0
       ],
       "delivered": true,
-      "mission": 1
+      "mission": 1,
+      "item": 3
     },
     {
       "destination": "Everus Harbor",
@@ -262,7 +275,8 @@
         0
       ],
       "delivered": true,
-      "mission": 2
+      "mission": 2,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -275,7 +289,8 @@
         0
       ],
       "delivered": true,
-      "mission": 2
+      "mission": 2,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -288,7 +303,8 @@
         1
       ],
       "delivered": true,
-      "mission": 2
+      "mission": 2,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -301,7 +317,8 @@
         1
       ],
       "delivered": true,
-      "mission": 2
+      "mission": 2,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -314,7 +331,8 @@
         0
       ],
       "delivered": true,
-      "mission": 3
+      "mission": 3,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -327,7 +345,8 @@
         0
       ],
       "delivered": true,
-      "mission": 3
+      "mission": 3,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -340,7 +359,8 @@
         1
       ],
       "delivered": true,
-      "mission": 3
+      "mission": 3,
+      "item": 0
     }
   ],
   "warnings": []

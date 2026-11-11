@@ -1,7 +1,10 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 9,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
+  "fillRows": "lengthwise",
+  "grouping": "none",
+  "sectionGap": 0,
   "contractTrackerWatermark": 0,
   "missions": [
     {
@@ -150,7 +153,8 @@
         0
       ],
       "delivered": false,
-      "mission": 1
+      "mission": 1,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -163,7 +167,8 @@
         0
       ],
       "delivered": false,
-      "mission": 2
+      "mission": 2,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -176,7 +181,8 @@
         0
       ],
       "delivered": false,
-      "mission": 2
+      "mission": 2,
+      "item": 0
     },
     {
       "destination": "Riker",
@@ -189,7 +195,8 @@
         1
       ],
       "delivered": false,
-      "mission": 2
+      "mission": 2,
+      "item": 0
     },
     {
       "destination": "Shubin",
@@ -202,7 +209,8 @@
         0
       ],
       "delivered": false,
-      "mission": 3
+      "mission": 3,
+      "item": 0
     },
     {
       "destination": "Shubin",
@@ -215,7 +223,8 @@
         0
       ],
       "delivered": false,
-      "mission": 3
+      "mission": 3,
+      "item": 0
     },
     {
       "destination": "Shubin",
@@ -228,7 +237,8 @@
         1
       ],
       "delivered": false,
-      "mission": 3
+      "mission": 3,
+      "item": 0
     },
     {
       "destination": "Orison",
@@ -241,7 +251,8 @@
         0
       ],
       "delivered": false,
-      "mission": 4
+      "mission": 4,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -254,7 +265,8 @@
         1
       ],
       "delivered": false,
-      "mission": 5
+      "mission": 5,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -267,7 +279,8 @@
         1
       ],
       "delivered": false,
-      "mission": 5
+      "mission": 5,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -280,7 +293,8 @@
         1
       ],
       "delivered": false,
-      "mission": 5
+      "mission": 5,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -293,7 +307,8 @@
         1
       ],
       "delivered": false,
-      "mission": 5
+      "mission": 5,
+      "item": 0
     },
     {
       "destination": "Everus Harbor",
@@ -306,7 +321,8 @@
         1
       ],
       "delivered": false,
-      "mission": 5
+      "mission": 5,
+      "item": 0
     },
     {
       "destination": "Area18",
@@ -319,7 +335,8 @@
         0
       ],
       "delivered": false,
-      "mission": 6
+      "mission": 6,
+      "item": 0
     },
     {
       "destination": "Area18",
@@ -332,7 +349,8 @@
         1
       ],
       "delivered": false,
-      "mission": 6
+      "mission": 6,
+      "item": 1
     },
     {
       "destination": "Area18",
@@ -345,7 +363,8 @@
         1
       ],
       "delivered": false,
-      "mission": 6
+      "mission": 6,
+      "item": 1
     },
     {
       "destination": "Port Tressler",
@@ -358,7 +377,8 @@
         0
       ],
       "delivered": false,
-      "mission": 7
+      "mission": 7,
+      "item": 0
     },
     {
       "destination": "Port Tressler",
@@ -371,7 +391,8 @@
         1
       ],
       "delivered": false,
-      "mission": 7
+      "mission": 7,
+      "item": 0
     },
     {
       "destination": "Seraphim",
@@ -384,25 +405,34 @@
         0
       ],
       "delivered": false,
-      "mission": 8
+      "mission": 8,
+      "item": 0
     }
   ],
   "warnings": [
     {
       "rackId": "rack-2",
-      "message": "Rack 3 shared by Shubin, Orison – identify crates by count"
+      "message": "Rack 3 shared by Shubin, Orison \u2013 identify crates by count"
     },
     {
       "rackId": "rack-3",
-      "message": "Rack 4 shared by Everus Harbor, Area18, Port Tressler, Seraphim – identify crates by count"
+      "message": "Rack 4 shared by Everus Harbor, Area18, Port Tressler, Seraphim \u2013 identify crates by count"
     },
     {
       "rackId": "rack-3",
-      "message": "Racks not in route order – crates placed where they fit"
+      "message": "Rack 4: crate for Everus Harbor sits on cargo for Area18"
     },
     {
       "rackId": "rack-3",
-      "message": "Rack 4: too many crates to rearrange – red crates lie on cargo that unloads earlier. Check the unload order by hand."
+      "message": "Rack 4: crate for Everus Harbor sits on cargo for Port Tressler"
+    },
+    {
+      "rackId": "rack-3",
+      "message": "Rack 4: crate for Area18 sits on cargo for Seraphim"
+    },
+    {
+      "rackId": "rack-3",
+      "message": "Rack 4: crate for Port Tressler sits on cargo for Seraphim"
     }
   ]
 }
