@@ -1,6 +1,5 @@
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
-using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Tests;
 
@@ -130,7 +129,7 @@ public sealed class SettingsStoreTests : IDisposable
         SettingsStore.Save(SettingsPath, AppSettings.Default with { Overlay = new WindowBounds(1, 2, 300, 400) });
 
         var json = File.ReadAllText(SettingsPath);
-        json.Should().Contain("\"schemaVersion\": 2").And.Contain("\"overlay\"").And.Contain("\"left\": 1");
+        json.Should().Contain("\"schemaVersion\": 3").And.Contain("\"overlay\"").And.Contain("\"left\": 1");
     }
 
     [Fact]
@@ -237,110 +236,19 @@ public sealed class SettingsStoreTests : IDisposable
         File.ReadAllText(SettingsPath).Should().Be(content);
     }
 
-    // ContractTracker (T5.5, D44)
+    // Hotkeys of the plan (B4, K2.3)
 
     [Fact]
-    public void Save_then_Load_keeps_the_ContractTracker_settings_and_hotkey()
+    public void Save_then_Load_keeps_the_replan_and_discard_hotkeys()
     {
-        var settings = AppSettings.Default with
-        {
-            ContractTracker = new ContractTrackerSettings(@"D:\Games\CT\contracts.db", AutoSync: false),
-            Hotkeys = new HotkeySettings(SyncContractTracker: "Ctrl+Alt+S", Replan: "Ctrl+Alt+R", DiscardPlan: "Ctrl+Alt+D"),
-        };
+        var settings = AppSettings.Default with { Hotkeys = new HotkeySettings(Replan: "Ctrl+Alt+R", DiscardPlan: "Ctrl+Alt+D") };
 
         SettingsStore.Save(SettingsPath, settings);
         var (loaded, problem) = SettingsStore.Load(SettingsPath);
 
         loaded.Should().Be(settings);
         problem.Should().BeNull();
-        File.ReadAllText(SettingsPath).Should().Contain("\"contractTracker\"").And.Contain("\"autoSync\": false")
-            .And.Contain("\"syncContractTracker\": \"Ctrl+Alt+S\"").And.Contain("\"replan\": \"Ctrl+Alt+R\"")
-            .And.Contain("\"discardPlan\": \"Ctrl+Alt+D\"");
-    }
-
-    [Theory]
-    [InlineData("""{ "schemaVersion": 2 }""")]
-    [InlineData("""{ "schemaVersion": 2, "contractTracker": null }""")]
-    [InlineData("""{ "schemaVersion": 2, "contractTracker": { } }""")]
-    public void File_without_ContractTracker_settings_detects_it_and_syncs(string content)
-    {
-        // Optional, no schemaVersion bump (D31, D44): what T5.4 did without a setting.
-        WriteFile(content);
-
-        var (loaded, problem) = SettingsStore.Load(SettingsPath);
-
-        problem.Should().BeNull();
-        loaded.ContractTracker.Should().Be(new ContractTrackerSettings(null, AutoSync: true));
-        loaded.ContractTracker.DatabasePath.Should().Be(ContractTrackerReader.DefaultPath);
-    }
-
-    [Theory]
-    [InlineData("contracts.db")]
-    [InlineData("")]
-    [InlineData(" ")]
-    public void ContractTracker_path_that_is_not_a_full_path_detects_it_with_a_problem_and_the_rest_applies(string path)
-    {
-        var content = $$"""
-            { "schemaVersion": 2, "contractTracker": { "path": "{{path}}", "autoSync": false } }
-            """;
-        WriteFile(content);
-
-        var (loaded, problem) = SettingsStore.Load(SettingsPath);
-
-        loaded.ContractTracker.Should().Be(new ContractTrackerSettings(null, AutoSync: false));
-        problem.Should().Be($"settings.json: contractTracker.path \"{path}\" is not a full path, detecting ContractTracker instead.");
-        File.ReadAllText(SettingsPath).Should().Be(content);
-    }
-
-    [Fact]
-    public void Save_then_Load_keeps_what_happens_to_a_gone_contract()
-    {
-        var settings = AppSettings.Default with { ContractTracker = new ContractTrackerSettings(OnContractGone: "remove") };
-
-        SettingsStore.Save(SettingsPath, settings);
-        var (loaded, problem) = SettingsStore.Load(SettingsPath);
-
-        loaded.Should().Be(settings);
-        loaded.ContractTracker.GonePolicy.Should().Be(CargoPlan.Core.Planning.ContractGonePolicy.Remove);
-        problem.Should().BeNull();
-        File.ReadAllText(SettingsPath).Should().Contain("\"onContractGone\": \"remove\"");
-    }
-
-    [Fact]
-    public void A_file_without_onContractGone_keeps_gone_contracts()
-    {
-        // A new key in the section, no schema bump (D31, D81).
-        WriteFile("""{ "schemaVersion": 2, "contractTracker": { "autoSync": false } }""");
-
-        var (loaded, problem) = SettingsStore.Load(SettingsPath);
-
-        problem.Should().BeNull();
-        loaded.ContractTracker.Should().Be(new ContractTrackerSettings(null, AutoSync: false, OnContractGone: "keep"));
-        loaded.ContractTracker.GonePolicy.Should().Be(CargoPlan.Core.Planning.ContractGonePolicy.Keep);
-    }
-
-    [Fact]
-    public void An_unknown_onContractGone_keeps_with_a_problem_and_the_rest_applies()
-    {
-        var content = """{ "schemaVersion": 2, "contractTracker": { "autoSync": false, "onContractGone": "delete" } }""";
-        WriteFile(content);
-
-        var (loaded, problem) = SettingsStore.Load(SettingsPath);
-
-        loaded.ContractTracker.Should().Be(new ContractTrackerSettings(null, AutoSync: false, OnContractGone: "keep"));
-        problem.Should().Be("settings.json: contractTracker.onContractGone \"delete\" is not valid (keep or remove), using keep.");
-        File.ReadAllText(SettingsPath).Should().Be(content);
-    }
-
-    [Fact]
-    public void Unknown_key_in_the_ContractTracker_settings_makes_the_file_invalid()
-    {
-        WriteFile("""{ "schemaVersion": 2, "contractTracker": { "autosync": false } }""");
-
-        var (loaded, problem) = SettingsStore.Load(SettingsPath);
-
-        loaded.Should().Be(AppSettings.Default);
-        problem.Should().StartWith("Settings not loaded");
+        File.ReadAllText(SettingsPath).Should().Contain("\"replan\": \"Ctrl+Alt+R\"").And.Contain("\"discardPlan\": \"Ctrl+Alt+D\"");
     }
 
     // Ship (T7.2, D59)
@@ -789,7 +697,7 @@ public sealed class SettingsStoreTests : IDisposable
         var (loaded, problem) = SettingsStore.Load(SettingsPath);
 
         problem.Should().BeNull();
-        loaded.SchemaVersion.Should().Be(2);
+        loaded.SchemaVersion.Should().Be(3);
         loaded.Overlay.Should().Be(new WindowBounds(1, 2, 300, 400));
         loaded.Hotkeys.Should().Be(new HotkeySettings(ToggleLock: "Ctrl+Alt+L"));
         loaded.Appearance.Should().Be(AppearanceSettings.Default);
@@ -797,14 +705,14 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
-    public void Schema_1_file_is_saved_as_schema_2()
+    public void Schema_1_file_is_saved_as_schema_3()
     {
         WriteFile("""{ "schemaVersion": 1, "hotkeys": { "toggleLock": "Ctrl+Alt+L" } }""");
 
         var (loaded, _) = SettingsStore.Load(SettingsPath);
         SettingsStore.Save(SettingsPath, loaded);
 
-        File.ReadAllText(SettingsPath).Should().Contain("\"schemaVersion\": 2").And.Contain("\"appearance\"").And.Contain("\"toggleLock\": \"Ctrl+Alt+L\"");
+        File.ReadAllText(SettingsPath).Should().Contain("\"schemaVersion\": 3").And.Contain("\"appearance\"").And.Contain("\"toggleLock\": \"Ctrl+Alt+L\"");
     }
 
     [Fact]
@@ -878,7 +786,7 @@ public sealed class SettingsStoreTests : IDisposable
     [InlineData("this is not json")]
     [InlineData("null")]
     [InlineData("""{ "overlay": null }""")]                                     // no schemaVersion
-    [InlineData("""{ "schemaVersion": 3, "overlay": null }""")]                 // newer app wrote it
+    [InlineData("""{ "schemaVersion": 4, "overlay": null }""")]                 // newer app wrote it
     [InlineData("""{ "schemaVersion": 1, "overlay": null, "opacity": 0.5 }""")] // unknown property
     [InlineData("""{ "schemaVersion": 1, "overlay": { "left": 1, "top": 2 } }""")] // missing width/height
     [InlineData("""{ "schemaVersion": 1, "hotkeys": { "toggleLok": "Ctrl+Alt+L" } }""")] // typo in a hotkey name
@@ -929,8 +837,9 @@ public sealed class SettingsStoreTests : IDisposable
 
         var (_, problem) = SettingsStore.Load(SettingsPath);
 
-        // The path holds this test's own folder, so parallel tests writing the same log don't matter (K10, F9).
-        TestLog.Text().Should().Contain($" Settings: {problem} [JsonException]");
+        // The path holds this test's own folder, so parallel tests writing the same log don't matter (K10, F9). Since the
+        // migration (T10.4a) the reader of the tree finds broken JSON: its JsonException subtype is logged by name.
+        TestLog.Text().Should().Contain($" Settings: {problem} [JsonReaderException]");
     }
 
     // Backup (T6.1)

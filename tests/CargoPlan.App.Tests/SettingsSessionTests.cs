@@ -101,13 +101,12 @@ public sealed class SettingsSessionTests : IDisposable
     [Fact]
     public void An_imported_look_changes_the_look_and_nothing_else()
     {
-        // K4.3 gate: hotkeys, ContractTracker, bounds, cameras, ship and the download switch stay; the window is wired to
+        // K4.3 gate: hotkeys, bounds, cameras, ship and the download switch stay; the window is wired to
         // the session as the overlay wires it.
         var before = AppSettings.Default with
         {
             Overlay = Bounds,
             Hotkeys = new HotkeySettings(ToggleLock: "Ctrl+Alt+L", Undo: "Ctrl+Alt+Z"),
-            ContractTracker = new ContractTrackerSettings(@"C:\Data\contracts.db", AutoSync: false),
             Ship = "c2_hercules",
             RecentShips = ["c2_hercules", "hull_a"],
             DownloadShipHolograms = false,
@@ -238,6 +237,25 @@ public sealed class SettingsSessionTests : IDisposable
     // Backup (T6.1)
 
     private string BackupPath => SettingsStore.BackupPath(SettingsPath);
+
+    [Fact]
+    public void WriteBack_writes_a_migrated_file_once_and_keeps_the_old_one_as_the_backup()
+    {
+        // T10.4a: a removed sync hotkey is said once; the file is schema 3 from then on, the backup schema 2 (downgrade).
+        const string old = """{ "schemaVersion": 2, "hotkeys": { "toggleLock": "Ctrl+Alt+L", "syncContractTracker": "Ctrl+Alt+S" } }""";
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(SettingsPath, old);
+        var loaded = SettingsStore.Load(SettingsPath);
+
+        Create(loaded.Settings).WriteBack(loaded.Removed!);
+
+        _viewModel.Notices.Should().Equal(SettingsStore.SyncHotkeyRemovedText("Ctrl+Alt+S"));
+
+        File.ReadAllText(BackupPath).Should().Be(old);
+        File.ReadAllText(SettingsPath).Should().Contain("\"schemaVersion\": 3").And.NotContain("syncContractTracker");
+        SettingsStore.Load(SettingsPath).Removed.Should().BeNull("the next start says nothing again");
+        Saved().Hotkeys.Should().Be(new HotkeySettings(ToggleLock: "Ctrl+Alt+L"));
+    }
 
     [Fact]
     public void The_first_save_backs_up_the_file_as_it_was_and_later_saves_leave_the_backup()
@@ -384,7 +402,7 @@ public sealed class SettingsSessionTests : IDisposable
         session.Flush();
 
         File.ReadAllText(SettingsPath).Should().Contain("\"toggleLock\": null").And.Contain("\"toggleOverlay\": null")
-            .And.Contain("\"syncContractTracker\": null").And.Contain("\"replan\": null").And.Contain("\"discardPlan\": null")
+            .And.Contain("\"replan\": null").And.Contain("\"discardPlan\": null")
             .And.Contain("\"undo\": null").And.Contain("\"redo\": null").And.Contain("\"resetView\": null")
             .And.Contain("\"scanContracts\": \"F3\"");
     }
@@ -432,23 +450,23 @@ public sealed class SettingsSessionTests : IDisposable
     [Fact]
     public void ChangeHotkey_for_the_replan_keeps_the_other_actions()
     {
-        var session = Create(AppSettings.Default with { Hotkeys = new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", "Ctrl+Alt+S") });
+        var session = Create(AppSettings.Default with { Hotkeys = new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H") });
 
         session.ChangeHotkey(HotkeyAction.Replan, Key("Ctrl+Alt+R"));
         session.Flush();
 
-        Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", "Ctrl+Alt+S", "Ctrl+Alt+R"));
+        Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", Replan: "Ctrl+Alt+R"));
     }
 
     [Fact]
     public void ChangeHotkey_for_the_discard_keeps_the_other_actions()
     {
-        var session = Create(AppSettings.Default with { Hotkeys = new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", "Ctrl+Alt+S", "Ctrl+Alt+R") });
+        var session = Create(AppSettings.Default with { Hotkeys = new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", Replan: "Ctrl+Alt+R") });
 
         session.ChangeHotkey(HotkeyAction.DiscardPlan, Key("Ctrl+Alt+D"));
         session.Flush();
 
-        Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", "Ctrl+Alt+S", "Ctrl+Alt+R", "Ctrl+Alt+D"));
+        Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", "Ctrl+Alt+H", Replan: "Ctrl+Alt+R", DiscardPlan: "Ctrl+Alt+D"));
     }
 
     [Fact]
@@ -463,7 +481,7 @@ public sealed class SettingsSessionTests : IDisposable
         Saved().Hotkeys.Should().Be(new HotkeySettings("Ctrl+Alt+L", Undo: "Ctrl+Alt+Z", Redo: "Ctrl+Alt+Y"));
     }
 
-    // ContractTracker (T5.5, D44)
+    // Ship (T7.2)
 
     [Fact]
     public void ChangeShip_writes_on_flush_and_keeps_the_rest()
@@ -492,18 +510,6 @@ public sealed class SettingsSessionTests : IDisposable
         session.Flush();
 
         File.Exists(SettingsPath).Should().BeFalse();
-    }
-
-    [Fact]
-    public void ChangeLook_keeps_the_ContractTracker_settings()
-    {
-        var changed = new ContractTrackerSettings(null, AutoSync: false);
-        var session = Create(AppSettings.Default with { ContractTracker = changed });
-
-        session.ChangeLook(Thick, LegendSettings.Default);
-        session.Flush();
-
-        Saved().ContractTracker.Should().Be(changed);
     }
 
     // Tool window theme (T4.7b)

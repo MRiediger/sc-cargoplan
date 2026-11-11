@@ -231,6 +231,19 @@ public sealed class SettingsSession
         Save();
     }
 
+    /// <summary>
+    /// Writes the settings now, backing up the file first (D47): at the start, when the migration to schema 3 took a hotkey
+    /// the player had set (T10.4a), so <paramref name="notice"/> comes once and the old file stays as settings.json.bak.
+    /// The notice shows only once the file is written; a failed write says so instead, and the next start tries again.
+    /// </summary>
+    public void WriteBack(string notice)
+    {
+        if (Save())
+        {
+            _viewModel.SetNotice(NoticeSource.Settings, notice);
+        }
+    }
+
     /// <summary>Writes only what is still pending: closing without a change leaves the file alone.</summary>
     public void Flush()
     {
@@ -252,7 +265,8 @@ public sealed class SettingsSession
 
     private void OnTick(object? sender, EventArgs e) => Save();
 
-    private void Save()
+    /// <returns>false if the file couldn't be written; the notice line says so.</returns>
+    private bool Save()
     {
         _timer.Stop();
         try
@@ -267,6 +281,7 @@ public sealed class SettingsSession
 
             // A load or save problem is solved once the file is written; a correction of the last change is not.
             _viewModel.SetNotice(NoticeSource.Settings, _corrections);
+            return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -274,6 +289,7 @@ public sealed class SettingsSession
             var problem = $"Settings not saved ({ex.Message}).";
             AppLog.Write("Settings", $"{problem} [{ex.GetType().Name}]");
             _viewModel.SetNotice(NoticeSource.Settings, problem);
+            return false;
         }
     }
 }

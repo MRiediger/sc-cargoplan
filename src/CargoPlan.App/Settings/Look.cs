@@ -3,8 +3,8 @@ namespace CargoPlan.App.Settings;
 /// <summary>
 /// What makes the overlay look as it does, the part of settings.json a look file carries and a preset sets (K4.3, D77):
 /// the appearance, the legend's layout, the tool windows' theme, the ship view's backdrop and max zoom. Not in it: hotkeys,
-/// ContractTracker, window bounds, cameras, the ship and the hologram download switch, which belong to the machine, the
-/// run or the network (D63).
+/// window bounds, cameras, the ship and the hologram download switch, which belong to the machine, the run or the
+/// network (D63).
 /// </summary>
 /// <remarks>
 /// Only scalars and records, never a collection: the compiler's value equality then compares everything, which is how

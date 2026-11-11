@@ -89,8 +89,9 @@ public partial class App : Application
             return;
         }
 
-        var (settings, settingsProblem) = SettingsStore.Load(SettingsStore.DefaultPath);
-        var parts = ComposeOverlay(ships, outlines, options, settings, settingsProblem);
+        var loaded = SettingsStore.Load(SettingsStore.DefaultPath);
+        var settings = loaded.Settings;
+        var parts = ComposeOverlay(ships, outlines, options, loaded);
         ComposeHotkeys(parts, settings);
         ComposeStartPlan(parts, options);
         ComposeSettingsFollowers(parts);
@@ -173,8 +174,9 @@ public partial class App : Application
     /// warm-up, which waits for the first frame.
     /// </summary>
     private OverlayParts ComposeOverlay(
-        ShipCatalog ships, ShipOutlineCatalog outlines, StartOptions options, AppSettings settings, string? settingsProblem)
+        ShipCatalog ships, ShipOutlineCatalog outlines, StartOptions options, SettingsLoad loaded)
     {
+        var settings = loaded.Settings;
         // The settings' ship, else the start plan's, else the Hull A; one that doesn't load never stops the start (T7.2).
         var (ship, shipNotice) = ShipChoices.Resolve(ships, settings.Ship, PlanStore.PeekShipId(options.PlanPath ?? PlanStore.DefaultPath));
         var viewModel = new OverlayViewModel(ship, ships)
@@ -184,13 +186,20 @@ public partial class App : Application
             Cameras = settings.ShipView.Cameras ?? new Dictionary<string, ShipCamera>(),
             Outlines = outlines,
         };
-        viewModel.SetNotice(NoticeSource.Settings, settingsProblem);
+        viewModel.SetNotice(NoticeSource.Settings, loaded.Problem);
         viewModel.SetNotice(NoticeSource.Outlines, OverlayViewModel.OutlinesNoticeText(outlines.Problems));
         viewModel.SetNotice(NoticeSource.Ship, shipNotice);
 
         // Before any window: their DynamicResources find the theme from the first layout on. The settings window
         // changes the look through the same session (D34).
         var session = new SettingsSession(Resources, viewModel, SettingsStore.DefaultPath, settings);
+
+        // A hotkey the migration to schema 3 took is said once (T10.4a): the file is written now, the old one stays as the
+        // backup. Every other load writes nothing until a change (D31).
+        if (loaded.Removed is { } removed)
+        {
+            session.WriteBack(loaded.Problem is { } problem ? problem + Environment.NewLine + removed : removed);
+        }
 
         // Bounds before Show(), so the window appears in place instead of jumping there. The hotkeys' view model is made
         // when the settings window opens; by then _hotkeys exists (it needs the overlay, so it comes after it).

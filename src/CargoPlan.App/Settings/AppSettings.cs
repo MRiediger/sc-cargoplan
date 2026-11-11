@@ -1,11 +1,9 @@
 using System.Text.Json.Serialization;
-using CargoPlan.Core.Planning;
-using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.App.Settings;
 
 /// <summary>
-/// Content of settings.json (schema version 2). UI state only, so it lives in the app, not in Core.
+/// Content of settings.json (schema version 3, T10.4a). UI state only, so it lives in the app, not in Core.
 /// New settings get a default value, so files written by an older version stay readable.
 /// </summary>
 /// <param name="Overlay">null = never saved: the window keeps its XAML size and Windows picks the position.</param>
@@ -16,7 +14,6 @@ namespace CargoPlan.App.Settings;
 /// Missing (before T4.7b) or null = "system". Top level, not in <c>appearance</c>: "Reset to defaults" resets the overlay's
 /// look per section and must not switch the tool windows (D36). One of <see cref="ToolWindowThemes.Names"/>.
 /// </param>
-/// <param name="ContractTracker">Missing (before T5.5) or null = detect ContractTracker and sync by itself (D44).</param>
 /// <param name="Ship">
 /// The ship's catalog id (D59), written only by a choice in the overlay header (T7.2b). Missing (before T7.2) or null = the ship of
 /// plan.json, else the Hull A. A ship that doesn't load is kept here; the start falls back and says so (T7.2).
@@ -32,8 +29,8 @@ namespace CargoPlan.App.Settings;
 /// </param>
 /// <param name="DownloadShipHolograms">
 /// Missing (before T7.4c-2) = true: a hologram look downloads the ship's file from the release (D63). false = no network
-/// access at all, holograms already downloaded still show. A default like <c>ContractTrackerSettings.AutoSync</c>, optional,
-/// no schema bump (D31).
+/// access at all, holograms already downloaded still show. A default like <c>LegendSettings.Visible</c>, optional, no
+/// schema bump (D31).
 /// </param>
 /// <param name="HoloOpacity">
 /// The hologram backdrop's opacity, <see cref="AppearanceRules.MinHoloOpacity"/> to 1 (D63); missing (before T7.4c-2) =
@@ -56,7 +53,6 @@ public sealed record AppSettings(
     AppearanceSettings? Appearance = null,
     LegendSettings? Legend = null,
     string? ToolWindowTheme = null,
-    ContractTrackerSettings? ContractTracker = null,
     string? Ship = null,
     IReadOnlyList<string>? RecentShips = null,
     string? ShipOutline = null,
@@ -89,8 +85,6 @@ public sealed record AppSettings(
 
     public string HoloEdgeColor { get; init; } = HoloEdgeColor ?? AppearanceRules.DefaultHoloEdgeColor;
 
-    public ContractTrackerSettings ContractTracker { get; init; } = ContractTracker ?? ContractTrackerSettings.Default;
-
     public ShipViewSettings ShipView { get; init; } = ShipView ?? ShipViewSettings.Default;
 }
 
@@ -112,9 +106,9 @@ public sealed record ShipViewSettings(double MaxZoomPxPerCell = AppearanceRules.
     // Edited by hand, an entry without a camera or an id names nothing: dropped at the file boundary (A6), like a gap in
     // recentShips. RespectNullableAnnotations doesn't reach dictionary values ("Limitations").
     // Source: https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/nullable-annotations
-    // A framing from before the perspective view (D83) means nothing there: that ship starts at its default camera.
+    // A framing from before the perspective view (D83) went with the migration to schema 3 (SettingsStore.Migrate).
     public IReadOnlyDictionary<string, ShipCamera>? Cameras { get; init; } =
-        Cameras?.Where(c => !string.IsNullOrWhiteSpace(c.Key) && c.Value is { PxPerCell: null, PanX: null, PanY: null }).ToDictionary();
+        Cameras?.Where(c => !string.IsNullOrWhiteSpace(c.Key) && c.Value is not null).ToDictionary();
 }
 
 /// <summary>
@@ -124,19 +118,11 @@ public sealed record ShipViewSettings(double MaxZoomPxPerCell = AppearanceRules.
 /// </summary>
 /// <param name="Yaw">Degrees, like <c>CameraOrientation.Yaw</c>.</param>
 /// <param name="Pitch">Degrees, like <c>CameraOrientation.Pitch</c>.</param>
-/// <param name="PxPerCell">
-/// The orthographic view's framing before D83, with <paramref name="PanX"/> and <paramref name="PanY"/>: read only, so a
-/// file from before Phase 8 still loads (the strict options refuse unknown keys); an entry with any of the three is dropped
-/// (<see cref="ShipViewSettings.Cameras"/>). Goes with the next schema bump of settings.json (backlog).
-/// </param>
 /// <param name="Distance">Cells from the camera to <paramref name="Target"/>; with it the placement, both or none (none = fit).</param>
 /// <param name="Target">The point the camera looks at, in ship coordinates (cells): fixed to the ship, so cargo doesn't move it.</param>
 public sealed record ShipCamera(
     double Yaw,
     double Pitch,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? PxPerCell = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? PanX = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? PanY = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? Distance = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] CameraTarget? Target = null);
 
@@ -166,9 +152,8 @@ public sealed record LegendSettings(bool Visible = true, string Position = "bott
 /// </summary>
 /// <param name="ToggleLock">Switches the manual lock, like the padlock.</param>
 /// <param name="ToggleOverlay">Hides the overlay and shows it again.</param>
-/// <param name="SyncContractTracker">Takes new ContractTracker captures into the plan (D44).</param>
 /// <param name="Replan">Lays out the cargo on board anew (D66).</param>
-/// <param name="DiscardPlan">Empties the plan, so the next sync starts over (K2.3).</param>
+/// <param name="DiscardPlan">Empties the plan, so the next scan starts a new one (K2.3).</param>
 /// <param name="Undo">Goes back one step (K2.4).</param>
 /// <param name="Redo">Goes forward one undone step (K2.4).</param>
 /// <param name="ResetView">Fits the ship view from the ship's default camera (K1.3).</param>
@@ -178,34 +163,12 @@ public sealed record LegendSettings(bool Visible = true, string Position = "bott
 /// The last parameter, so positional calls keep their meaning.
 /// </param>
 public sealed record HotkeySettings(
-    string? ToggleLock = null, string? ToggleOverlay = null, string? SyncContractTracker = null, string? Replan = null, string? DiscardPlan = null,
+    string? ToggleLock = null, string? ToggleOverlay = null, string? Replan = null, string? DiscardPlan = null,
     string? Undo = null, string? Redo = null, string? ResetView = null, string? ScanContracts = HotkeySettings.DefaultScanKey)
 {
-    /// <summary>F3: next to the game's own panel keys (F1 mobiGlas, F2 starmap), and ContractTracker's (S10.0).</summary>
+    /// <summary>F3: next to the game's own panel keys (F1 mobiGlas, F2 starmap) (S10.0).</summary>
     public const string DefaultScanKey = "F3";
 
     /// <summary>No hotkey but the scan's.</summary>
     public static HotkeySettings Default { get; } = new();
-}
-
-/// <summary>
-/// Where ContractTracker's database is and whether captures come into the plan by themselves (D44). Optional, no schema
-/// bump (D31); without it the overlay does what T5.4 did.
-/// </summary>
-/// <param name="Path">null = detect it at ContractTracker's one place (D38); otherwise a full path, checked by
-/// <see cref="AppearanceRules.NormalizeContractTracker"/>.</param>
-/// <param name="AutoSync">false = a capture only gives the notice "N new contracts"; the editor's button or the hotkey takes them in.</param>
-/// <param name="OnContractGone">What a sync does with a contract ContractTracker no longer lists (D81): "keep" or "remove",
-/// checked by <see cref="AppearanceRules.NormalizeContractTracker"/>; a new key without a schema bump.</param>
-public sealed record ContractTrackerSettings(string? Path = null, bool AutoSync = true, string OnContractGone = ContractGonePolicies.DefaultName)
-{
-    public static ContractTrackerSettings Default { get; } = new();
-
-    /// <summary>The file the sync reads: <see cref="Path"/>, or ContractTracker's own place.</summary>
-    public string DatabasePath => Path ?? ContractTrackerReader.DefaultPath;
-
-    /// <summary><see cref="OnContractGone"/> parsed; not a key of its own in the file.</summary>
-    /// <exception cref="FormatException">Not normalized: a bug.</exception>
-    [JsonIgnore]
-    public ContractGonePolicy GonePolicy => ContractGonePolicies.Parse(OnContractGone);
 }

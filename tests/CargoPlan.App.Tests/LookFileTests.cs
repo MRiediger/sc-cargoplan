@@ -35,7 +35,7 @@ public class LookFileTests
     [Fact]
     public void A_look_is_the_settings_that_make_the_overlay_look_so()
     {
-        // K4.3, P9: no hotkeys, ContractTracker, bounds, cameras, ship or downloads; those belong to the machine or the run.
+        // K4.3, P9: no hotkeys, bounds, cameras, ship or downloads; those belong to the machine or the run.
         var settings = AppSettings.Default with
         {
             Appearance = Custom.Appearance,
@@ -93,7 +93,6 @@ public class LookFileTests
     [Theory]
     [InlineData("""{ "schemaVersion": 1, "shipView": { "maxZoomPxPerCell": 100, "cameras": {} } }""")]   // state, not look
     [InlineData("""{ "schemaVersion": 1, "hotkeys": { "toggleLock": "Ctrl+Alt+L" } }""")]
-    [InlineData("""{ "schemaVersion": 1, "contractTracker": { "autoSync": false } }""")]
     [InlineData("""{ "schemaVersion": 1, "downloadShipHolograms": false }""")]
     [InlineData("""{ "schemaVersion": 1, "appearance": { "legend": { "fontsize": 14 } } }""")]           // typo
     [InlineData("""{ "schemaVersion": 1, "legend": { "visible": "no" } }""")]                            // wrong type

@@ -3,8 +3,8 @@ using System.Globalization;
 namespace CargoPlan.App.Settings;
 
 /// <summary>
-/// Checks the values of <see cref="AppearanceSettings"/>, <see cref="LegendSettings"/>, the tool windows' mode and ContractTracker's path after
-/// loading (D31, D33, D36, D44). A number outside its range is clamped (closer
+/// Checks the values of <see cref="AppearanceSettings"/>, <see cref="LegendSettings"/>, the tool windows' mode and the ship
+/// view after loading (D31, D33, D36). A number outside its range is clamped (closer
 /// to what the player meant than the default), an invalid colour takes its default; either way with a problem line for
 /// the overlay, and the rest of the file applies. Structural errors (unknown key, wrong JSON type) never get here:
 /// they make the whole file invalid in <see cref="SettingsStore"/>. No WPF: the load tests run without a window.
@@ -244,34 +244,6 @@ public static class AppearanceRules
 
         var opaque = (argb with { A = byte.MaxValue }).ToString();
         return (opaque, [$"{key} alpha {argb.A} is not used, holograms are opaque, using {opaque}."]);
-    }
-
-    /// <summary>
-    /// Checks ContractTracker's path (D44): one that isn't a full path (relative, empty) detects ContractTracker instead,
-    /// like a colour that isn't one. Whether the file exists is not checked: ContractTracker may be installed later.
-    /// </summary>
-    /// <returns>The checked settings and one line if the path was corrected, empty otherwise.</returns>
-    public static (ContractTrackerSettings ContractTracker, IReadOnlyList<string> Problems) NormalizeContractTracker(
-        ContractTrackerSettings contractTracker)
-    {
-        List<string> problems = [];
-
-        // Source: https://learn.microsoft.com/dotnet/api/system.io.path.ispathfullyqualified
-        if (contractTracker.Path is { } path && !System.IO.Path.IsPathFullyQualified(path))
-        {
-            contractTracker = contractTracker with { Path = null };
-            problems.Add($"contractTracker.path \"{path}\" is not a full path, detecting ContractTracker instead.");
-        }
-
-        // D81: an unknown name keeps, the safe way, like an unknown backdrop draws the outline.
-        if (!ContractGonePolicies.TryParse(contractTracker.OnContractGone, out _))
-        {
-            var names = ContractGonePolicies.Names;
-            problems.Add($"contractTracker.onContractGone \"{contractTracker.OnContractGone}\" is not valid ({string.Join(", ", names.Take(names.Count - 1))} or {names[^1]}), using {ContractGonePolicies.DefaultName}.");
-            contractTracker = contractTracker with { OnContractGone = ContractGonePolicies.DefaultName };
-        }
-
-        return (contractTracker, problems);
     }
 
     /// <summary>Collects the problem lines while one appearance is checked.</summary>
