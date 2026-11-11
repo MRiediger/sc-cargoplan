@@ -5167,7 +5167,7 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     - **ZIP** (`publish.ps1`): 86 426 701 Byte (T10.1a 86 399 140, +27,6 KB), 386 Einträge, Ordner 178 MB.
     - **Gate 4:** Build 0 Warnungen; Tests Core 1 817 · Import 164 · App 1 731 · Ocr 34 grün; `dotnet format --verify-no-changes` 0; CI `main` 8eb2141 grün (Branch noch nicht gepusht).
 
-### [ ] T10.2 Parser-Anbindung, Identität, plan.json 10
+### [x] T10.2 Parser-Anbindung, Identität, plan.json 10
 
 - Rohtext durch den bestehenden Parser (B1, B9, D96). **Neu: Abholort-Parsing** („Collect … from <Ort>“, bisher CT-Spalte).
 - **Inhaltsschlüssel ohne SCU, mit Reward** (S10.0 G5; das Spiel würfelt beim Annehmen neu, 6 von 10 Paaren).
@@ -5239,17 +5239,38 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
       und in zwei weiteren Läufen grün.
     - Den `--plan`-Befehl habe ich nicht selbst gestartet: die App schreibt beim Speichern in Martins echte plan.json
       (Lehre T10.1b); der neue Wächtertest prüft die Datei.
-- [ ] **T10.2b2** Scan → Plan: Abgleich per Schlüssel (`Added`/`Updated`/`AlreadyInPlan`), ein Undo-Schritt,
-  Re-roll-Markierung, Vollständigkeit mit zweiter Lesung nur bei Verdacht, `ScanIntake`, `scans.log` – eigener Plan
-  - Vorgemerkt (Martin): Test „neue Menge kleiner als bereits geladen“ durch `PlanKeeping`; die zweite Lesung hält den
-    Ein-Scan-Riegel des `ContractScanner` nicht über die Wartezeit (zwei getrennte `ScanAsync`), sonst blockiert sie den
-    Hotkey in T10.3 für ≈ 2,6 s.
-  - Die nächste Nummer ist `max(LastScanNo, SavedPlan.HighestScanNo) + 1`.
+- [x] **T10.2b2** Scan → Plan: Abgleich per Schlüssel, ein Undo-Schritt, Re-roll-Markierung, zweite Lesung nur bei
+  Verdacht, `ScanIntake`, `scans.log`, D103
+  - **Präzisierung in der Planphase, ratifiziert durch Freigabe:** Abgleich in Core (`ScanSync`); Verdacht in zwei Stufen
+    (hart: Objectives ohne Lieferung, Objective-Zeile ohne Inhalt → nach zweiter Lesung `Incomplete`; weich: Reward fehlt,
+    Ware ohne Collect-Zeile, **weniger Ziele als die Liste (E1, Martin)** → übernommen); `Refused`, wenn `PlanKeeping`
+    keinen Platz findet; Hand-Items bleiben beim Update; `ScanIntake` mit Delegates statt Interface. Ersetzt die
+    Task-Zeile „zwei Lesungen im Abstand von 300 ms“ (Gate 1).
+  - **Befund (12.11.2026, Branch `feat/t10-2b2-scan-into-plan`):**
+    - `ScanSync`: neu → `Added #n`; Offer nach Accepted → nichts; gleiche Mengen → Markierung weg oder nichts; andere
+      Mengen → nur die Mission neu (`ReplaceMission`, gleiche Id und Stelle) oder mit geladenen/abgehakten Kisten
+      `PlanKeeping`. Martins Test „neue Menge kleiner als bereits geladen“: Lieferung neu geplant und in `Cleared`
+      genannt. Mutation „immer nur die Mission neu“ macht die drei Fälle mit geladenen Kisten rot.
+    - `ApplyScan`: ein Undo-Schritt, auch der erste Scan in einen leeren Plan; Nummer nach Undo nicht wiederverwendet,
+      nach einem rückgängig gemachten Verwerfen über den Scans des Plans. E1: „⚠ 1 of 2 destinations“, nach Hinzufügen
+      des Stopps im Editor weg. Die App-Tests liefen erst nach dem Code; rot nachgeholt per Mutation (2 Stellen, 3 Tests rot).
+    - `ScanIntake`: zwei getrennte Scanner-Aufrufe, der Riegel ist während der Wartezeit frei (Test mit Fake-Scanner,
+      der bei laufender Lesung `Busy` meldet). `ScanLog`: letzte 50, atomar, wirft nie.
+    - **Hand-Tests:** S10.0 harter Verdacht nur bei c06, sonst keiner (39/40); `scan-probe.log` 227 Scans ohne jeden
+      Verdacht: über dem Spiel keine zweite Lesung.
+    - **Gate:** Build 0 Warnungen; Tests Core 1 828 · Import 321 · App 1 762 · Ocr 34 grün; `dotnet format` 0.
+      `CrateLayoutTests.Place_proves_stacking_in_under_100_ms` fiel im Gesamtlauf erneut (142 ms), allein grün – siehe
+      Backlog.
   - Gefunden: `PickupNames.Clean` (`PickupNames.cs:44`) baut ein Item ohne `Manual` neu; ein Handeintrag einer
     CT-Mission verliert beim Bereinigen seine Markierung. `Clean` geht mit F23 in T10.4a.
 
 ### [ ] T10.3 Hotkey, Editor, Notices
 
+- **Aus T10.2b2 (D103):** `ScanIntake` an Hotkey und Editor-Button hängen, `ApplyScan` per Dispatcher auf den UI-Thread;
+  eine Notice je `ScanReport` (`Added`, `Updated` mit „quantities changed“, `AlreadyInPlan`, `Refused` mit Grund,
+  `Incomplete` = „Contract text still loading – scan again“, `NoContract` und die Scanner-Ergebnisse). Die `Cleared`-Texte
+  aus `PlanKeeping` sagen „changed in the editor“ – für einen Scan umformulieren. Erst ab hier schreibt `scans.log` ins
+  echte Profil.
 - Hotkey `scanContracts`, Default **F3** (Ausnahme zu D35), gepollt nach B10/D97, aktiv nur bei SC- oder CargoPlan-Vordergrund.
 - Editor-Button „Scan“ ersetzt „Sync from ContractTracker“.
 - Notices unten links: `Scanned #3 · From … · n SCU to …`, `Updated #3 · quantities changed`, `Already in plan (#2)`, `No contract in frame`, `Star Citizen window not found`.
@@ -5330,6 +5351,11 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- `CrateLayoutTests.Place_proves_stacking_in_under_100_ms` fiel in T10.2b1 und T10.2b2 je einmal im Lauf aller vier
+  Testprojekte (142 ms), allein immer grün (65 ms). Lehre T7.1d (1-s-Assert auf CI-Runnern): Zeit-Asserts im
+  Standardlauf unter Parallel-Last. Auslöser: der erste rote CI-Lauf damit oder ein drittes lokales Auftreten → in
+  `Category=Timing` verschieben oder die Schwelle mit Messung begründen.
 
 - Eigener Datenordner für Diagnose-Schalter (`--data-dir` oder Env, z. B. für `--scan-probe`, `--measure-frames`):
   Probeläufe in T10.1b schrieben ins echte Profil: `plan.json` (der CT-Sync markierte Verträge als `gone`) und
