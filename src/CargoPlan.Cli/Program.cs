@@ -8,6 +8,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Rendering;
 using CargoPlan.Core.Ships;
+using CargoPlan.Import.Contracts;
 using CargoPlan.Import.ContractTracker;
 using CargoPlan.Ocr;
 using Microsoft.Data.Sqlite;
@@ -114,7 +115,8 @@ int Contracts(ContractsCommand contracts)
 }
 
 // The offline path of the scan (T10.1a): a screenshot of the game window's client area instead of the screen, the same
-// region and OCR as in the overlay. The raw text goes to stdout for tests and bug reports, the stage times to stderr.
+// region and OCR as in the overlay. The raw text goes to stdout for tests and bug reports, then the contract the parser
+// read from it with its content key (T10.2a); the stage times go to stderr.
 int Scan(ScanCommand scan)
 {
     if (!File.Exists(scan.PicturePath))
@@ -143,6 +145,8 @@ int Scan(ScanCommand scan)
     }
 
     Console.WriteLine(result.RawText);
+    Console.WriteLine("--- parsed ---");
+    Console.Write(ScannedContractTextRenderer.Render(ScannedContract.Read(result.RawText)));
     return ExitSuccess;
 }
 
