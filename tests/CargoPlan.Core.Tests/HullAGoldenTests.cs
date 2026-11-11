@@ -14,6 +14,8 @@ namespace CargoPlan.Core.Tests;
 /// order) regenerated crate_mix and hull_a_eight_stops and left the other three byte-identical. D68 (plan schema 4)
 /// regenerated all ten for the format alone: apart from <c>schemaVersion</c> and each crate's <c>item</c> they are the
 /// files before, racks and positions unchanged. D88 (plan schema 9) too: <c>schemaVersion</c> and a <c>fillRows</c> line.
+/// D102 (plan schema 10, T10.2b1) too: the <c>schemaVersion</c> line alone; a plan without scanned contracts writes nothing
+/// new.
 /// </summary>
 public class HullAGoldenTests
 {

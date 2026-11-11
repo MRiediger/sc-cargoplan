@@ -242,7 +242,7 @@ public class PlanFileTests
         var act = () => Read(node.ToJsonString(), "old.json");
 
         act.Should().Throw<PlanFormatException>()
-            .WithMessage($"*old.json*schemaVersion {schemaVersion} is not supported (expected 8 or 9)*");
+            .WithMessage($"*old.json*schemaVersion {schemaVersion} is not supported (expected 8 or 9 or 10)*");
     }
 
     // --- Red, not refused (D24) ---
@@ -353,7 +353,7 @@ public class PlanFileTests
     {
         { "not json", "*plan.json*" },
         { "null", "*schemaVersion*" },
-        { """{ "schemaVersion": 10 }""", "*schemaVersion 10*expected 8 or 9*" },
+        { """{ "schemaVersion": 11 }""", "*schemaVersion 11*expected 8 or 9 or 10*" },
         { """{ "shipId": "hull_a" }""", "*schemaVersion*" },
     };
 

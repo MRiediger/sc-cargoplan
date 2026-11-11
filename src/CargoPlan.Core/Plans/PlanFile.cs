@@ -14,10 +14,14 @@ public static class PlanFile
     /// <summary>
     /// The version the writer writes: missions with ids, crates with missions (D42), items (D68), turned or not (D71),
     /// off the ship or not (K2.2) and loaded or not (K6.4), items added by hand to a ContractTracker mission (K6.5),
-    /// captures gone from ContractTracker or detached (D81), the row axis (D88), the grouping and section gap (D89), the watermark. An app from before D88
-    /// refuses it, so it never lays a crosswise plan out lengthwise.
+    /// captures gone from ContractTracker or detached (D81), the row axis (D88), the grouping and section gap (D89), the watermark,
+    /// contracts read by CargoPlan's own scan (D102). Open until v0.4.0: T10.4 changes it without a new number, no release
+    /// wrote it before (D102).
     /// </summary>
-    public const int SupportedSchemaVersion = 9;
+    public const int SupportedSchemaVersion = 10;
+
+    /// <summary>The row axis, grouping and section gap, no scanned contract (D88, D89; v0.2.0 to v0.3.1); still read, never written.</summary>
+    public const int NoScanSchemaVersion = 9;
 
     /// <summary>
     /// Captures gone or not, no row axis: every plan lengthwise (D81); still read so, never written. The oldest version
@@ -25,10 +29,10 @@ public static class PlanFile
     /// </summary>
     public const int NoFillRowsSchemaVersion = 8;
 
-    private static readonly int[] ReadableSchemaVersions = [NoFillRowsSchemaVersion, SupportedSchemaVersion];
+    private static readonly int[] ReadableSchemaVersions = [NoFillRowsSchemaVersion, NoScanSchemaVersion, SupportedSchemaVersion];
 
     /// <summary>
-    /// Reads a plan file for <paramref name="ship"/>, schema 8 or 9. The stream is left open. A plan for another ship
+    /// Reads a plan file for <paramref name="ship"/>, schema 8 to 10. The stream is left open. A plan for another ship
     /// loads with its own ship id and without the grid checks; the caller plans it anew (D59). So does one with a crate
     /// outside today's rack, read under <see cref="CapReason.RacksChanged"/> (K3.2).
     /// </summary>
