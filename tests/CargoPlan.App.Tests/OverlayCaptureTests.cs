@@ -21,10 +21,11 @@ namespace CargoPlan.App.Tests;
 /// the middle of the region; each variant runs 20 times on a worker thread, our window is hidden and shown through its
 /// dispatcher (H2, so the dispatcher's latency counts as flicker). Nothing is asserted; the table and one picture per
 /// variant are the result. CARGOPLAN_SC_CAPTURE = an output folder outside the repo (the pictures are CIG material);
-/// CARGOPLAN_SC_CAPTURE_PROCESS = another process name for a dry run without the game.
+/// CARGOPLAN_SC_CAPTURE_PROCESS = another process name for a dry run without the game. The cloak measurement (B12) is in
+/// OverlayCaptureTests.Cloak.cs.
 /// </summary>
 [Trait("Category", "Slow")]
-public sealed class OverlayCaptureTests(ITestOutputHelper output)
+public sealed partial class OverlayCaptureTests(ITestOutputHelper output)
 {
     private const int Trials = 20;
     private const double MarkerWidth = 400;
@@ -36,16 +37,7 @@ public sealed class OverlayCaptureTests(ITestOutputHelper output)
     [Fact]
     public void Our_window_over_the_scan_region_per_capture_variant()
     {
-        var folder = Environment.GetEnvironmentVariable("CARGOPLAN_SC_CAPTURE") is { Length: > 0 } value ? value
-            : throw new InvalidOperationException("CARGOPLAN_SC_CAPTURE is not set; this test runs by hand, see CLAUDE.md, Befehle.");
-        Directory.CreateDirectory(folder);
-        // Another process's window for a dry run of the harness without the game (e.g. "Code").
-        var process = Environment.GetEnvironmentVariable("CARGOPLAN_SC_CAPTURE_PROCESS") is { Length: > 0 } other ? other : AutoLockRule.GameProcessName;
-        var game = GameWindow.Find(process) ?? throw new InvalidOperationException($"No window of {process} found: start the game, open a contract in the mobiGlas.");
-        var region = game.ScanRegionOnScreen;
-
-        var report = new StringBuilder();
-        report.AppendLine(Inv($"{DateTime.Now:yyyy-MM-dd HH:mm:ss}, client {game.Client}, frame bounds {NativeMethods.GetFrameBounds(game.Handle)}, region {region}, trials {Trials}"));
+        var (folder, game, region, report) = Setup();
 
         Sta.Run(() =>
         {
@@ -63,6 +55,22 @@ public sealed class OverlayCaptureTests(ITestOutputHelper output)
 
         output.WriteLine(report.ToString());
         File.WriteAllText(Path.Combine(folder, "overlay-capture.txt"), report.ToString());
+    }
+
+    // The output folder, the game's window (or another process's for a dry run) and the report's first line.
+    private static (string Folder, GameWindow Game, PixelRect Region, StringBuilder Report) Setup()
+    {
+        var folder = Environment.GetEnvironmentVariable("CARGOPLAN_SC_CAPTURE") is { Length: > 0 } value ? value
+            : throw new InvalidOperationException("CARGOPLAN_SC_CAPTURE is not set; this test runs by hand, see CLAUDE.md, Befehle.");
+        Directory.CreateDirectory(folder);
+        // Another process's window for a dry run of the harness without the game (e.g. "Code").
+        var process = Environment.GetEnvironmentVariable("CARGOPLAN_SC_CAPTURE_PROCESS") is { Length: > 0 } other ? other : AutoLockRule.GameProcessName;
+        var game = GameWindow.Find(process) ?? throw new InvalidOperationException($"No window of {process} found: start the game, open a contract in the mobiGlas.");
+        var region = game.ScanRegionOnScreen;
+
+        var report = new StringBuilder();
+        report.AppendLine(Inv($"{DateTime.Now:yyyy-MM-dd HH:mm:ss}, client {game.Client}, frame bounds {NativeMethods.GetFrameBounds(game.Handle)}, region {region}, trials {Trials}"));
+        return (folder, game, region, report);
     }
 
     private static void MeasureAll(Window marker, GameWindow game, PixelRect region, string folder, StringBuilder report)
