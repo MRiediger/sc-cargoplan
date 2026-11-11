@@ -578,12 +578,30 @@ public static class LoadPlanner
     /// </summary>
     /// <param name="stops">The mission's stops in contract order.</param>
     /// <exception cref="ArgumentException">The plan belongs to another ship, or the stops make no valid mission.</exception>
-    public static SavedPlan PlaceInto(SavedPlan saved, Ship ship, IReadOnlyList<MissionStop> stops, ContractSource? contract = null)
+    public static SavedPlan PlaceInto(SavedPlan saved, Ship ship, IReadOnlyList<MissionStop> stops, ContractSource? contract = null) =>
+        PlaceAs(saved, ship, saved.NextMissionId, stops, contract);
+
+    /// <summary>
+    /// The mission <paramref name="missionId"/> with these stops instead (T10.2b2: a scan with other amounts): its crates out,
+    /// as <see cref="RemoveMission"/> takes them, the new ones in by the rule of <see cref="PlaceInto"/>; the id and its place in
+    /// the list stay, the other missions' crates lie as they did.
+    /// </summary>
+    /// <exception cref="ArgumentException">The plan has no such mission, belongs to another ship, or the stops make no valid mission.</exception>
+    public static SavedPlan ReplaceMission(SavedPlan saved, Ship ship, int missionId, IReadOnlyList<MissionStop> stops, ContractSource? contract)
+    {
+        var index = saved.Missions.ToList().IndexOf(saved.MissionOf(missionId));
+        var placed = PlaceAs(RemoveMission(saved, ship, missionId), ship, missionId, stops, contract);
+        List<Mission> missions = [.. placed.Missions.Where(m => m.Id != missionId)];
+        missions.Insert(index, placed.MissionOf(missionId));
+        return new SavedPlan(missions, placed.Plan, placed.CrateCap, placed.Watermark);
+    }
+
+    private static SavedPlan PlaceAs(SavedPlan saved, Ship ship, int missionId, IReadOnlyList<MissionStop> stops, ContractSource? contract)
     {
         saved.Plan.EnsureBelongsTo(ship);
         var spelling = saved.Missions.SelectMany(m => m.Stops).Select(s => s.Destination).Distinct()
             .ToDictionary(d => d, d => d, StringComparer.OrdinalIgnoreCase);
-        Mission mission = new(saved.NextMissionId, [.. stops.Select(s => s with { Destination = spelling.GetValueOrDefault(s.Destination, s.Destination) })], contract);
+        Mission mission = new(missionId, [.. stops.Select(s => s with { Destination = spelling.GetValueOrDefault(s.Destination, s.Destination) })], contract);
 
         return TryPlace(saved.Plan, ship, mission, saved.CrateCap) is ({ } crates, _, var stackingUnchecked, var notes)
             ? new SavedPlan([.. saved.Missions, mission], WithHints(saved.Plan with { Crates = crates }, ship, [.. StackingUncheckedNotes(stackingUnchecked), .. notes]), saved.CrateCap, saved.Watermark)
