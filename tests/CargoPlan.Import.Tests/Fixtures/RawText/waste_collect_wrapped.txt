@@ -1,0 +1,22 @@
+Junior Rank - Small Cargo Haul
+DETAILS
+Need the trash collected from a few Hurston locations and then
+taken to a freight elevator at Everus Harbor above Hurston. Don't
+worry, none of the containers are bigger than 4 SCU.
+PICK UP LOCATIONS (ANY ORDER)
+- Freight elevator at Green Glade Station at Hurston's L1
+Lagrange point
+- Freight elevator at Thundering Express Station at Hurston's L3
+Lagrange point
+Reward 72,500
+Contract Availability 2h 10m
+Contracted By Covalex Independent Contractors
+PRIMARY OBJECTIVES
+Deliver O/10 SCU of Waste to Everus Harbor above
+Hurston.
+Collect Waste from HUR-L1 Green Glade Station.
+Collect Waste from HUR-L4 Melodic Fields Station.
+Collect Waste from HUR-L3 Thundering Express
+Station.
+Collect Waste from HUR-L2 Faithful Dream Station.
+ACCEPT OFFER

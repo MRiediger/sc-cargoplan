@@ -14,9 +14,14 @@ internal static partial class ContractTextParser
 {
     // Headings as the game prints them, compared in their anchor form (see ContractText.AnchorForm).
     private const string StartHeading = "DETAILS";
-    private const string EndHeading = "ACCEPT OFFER";
     private const string DropOffHeading = "DROP OFF LOCATIONS";
     private const string PickUpHeading = "PICK UP LOCATIONS";
+
+    /// <summary>
+    /// The last line of a contract: the offers view's button, or the accepted view's "SHARE TRACK" / "SHARE UNTRACK"
+    /// (T10.2a, read by CargoPlan's own OCR; ContractTracker's text has "TRACK" alone, which ends nothing).
+    /// </summary>
+    private static readonly string[] EndHeadings = ["ACCEPT OFFER", "SHARE TRACK", "SHARE UNTRACK"];
 
     public static ParsedContract Parse(string rawText)
     {
@@ -26,14 +31,15 @@ internal static partial class ContractTextParser
     }
 
     /// <summary>
-    /// The lines between "DETAILS" and "ACCEPT OFFER": list fragments of the contract list stand before, digit noise after
-    /// (D38 addendum). Either heading may be misread or missing (a capture from the Accepted tab has no "ACCEPT OFFER",
-    /// D40): then the block runs from the start or to the end, and the delivery pattern keeps out what doesn't belong.
+    /// The lines between "DETAILS" and the last line (<see cref="EndHeadings"/>): list fragments of the contract list stand
+    /// before, digit noise after (D38 addendum). Either heading may be misread or missing (ContractTracker's captures from
+    /// the Accepted tab end in neither, D40): then the block runs from the start or to the end, and the delivery pattern
+    /// keeps out what doesn't belong.
     /// </summary>
     private static string[] Block(string[] lines)
     {
         var start = Array.FindIndex(lines, l => IsHeading(l, StartHeading)) + 1;
-        var end = Array.FindIndex(lines, start, l => IsHeading(l, EndHeading));
+        var end = Array.FindIndex(lines, start, l => EndHeadings.Any(heading => IsHeading(l, heading)));
         return lines[start..(end < 0 ? lines.Length : end)];
     }
 
@@ -105,9 +111,12 @@ internal static partial class ContractTextParser
             _ => c,
         }));
 
-    /// <summary>The amount after "Reward" at the start of the text, separators dropped ("50,250"); null if unreadable.</summary>
+    /// <summary>
+    /// The amount after "Reward", separators dropped ("50,250", "50.250"): at the start of the text in ContractTracker's
+    /// form, else on a line of its own anywhere (CargoPlan's reading order puts it after the prose, D99). Null if unreadable.
+    /// </summary>
     private static long? Reward(string text) =>
-        RewardLine.Match(text) is { Success: true } match
+        (RewardAtStart.Match(text) is { Success: true } atStart ? atStart : RewardLine.Match(text)) is { Success: true } match
         && long.TryParse(match.Groups["reward"].Value.Replace(",", "").Replace(".", ""), NumberStyles.None,
             CultureInfo.InvariantCulture, out var reward)
             ? reward
@@ -166,14 +175,28 @@ internal static partial class ContractTextParser
     /// Third wording (B9, issue #22): "8 SCU or smaller", the number first; not after a digit or "/" on its line, so a
     /// delivery's "0/8" or "0/124" never counts. In brackets "(8 SCU or" is enough: OCR lost "smaller)" on the next line
     /// in two of three captures; "or more", "or larger", "or bigger" are no max.
+    /// Fourth and fifth (S10.0 "+max2", T10.2a): "At most the containers will be 8 SCU in size." with up to two words of any
+    /// spelling before the size ("willbe"), and "their ship couldn't handle 8 SCU containers" (the apostrophe as read).
     /// </summary>
     [GeneratedRegex(@"(?:max\s*size\s+(?:\S{1,8}\s+){0,2}|bigger\s*than\s*)(?<size>[\dOIL|]{1,3})\s*SCU"
         + @"|(?<![\d/][ \t]*)(?<size>[\dOIL|]{1,3})\s*SCU\s*or\s*smaller"
-        + @"|\(\s*(?<size>[\dOIL|]{1,3})\s*SCU\s*or\b(?!\s*(?:more|larger|bigger))",
+        + @"|\(\s*(?<size>[\dOIL|]{1,3})\s*SCU\s*or\b(?!\s*(?:more|larger|bigger))"
+        + @"|at\s*most\s+the\s+containers\s+(?:\S{1,8}\s+){0,2}(?<size>[\dOIL|]{1,3})\s*SCU"
+        + @"|couldn\S?t\s+handle\s+(?<size>[\dOIL|]{1,3})\s*SCU",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SizePhrase { get; }
 
-    /// <summary>"Reward" and the amount on its own line at the very start of the text ("Reward\n 50,250").</summary>
-    [GeneratedRegex(@"\A\s*Reward\s*(?<reward>[\d,.]+)[ \t]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
+    /// <summary>
+    /// A reward's amount: digits in groups of three with "," or "." between ("81,250"), or digits alone. Anything else
+    /// ("8l,250", "81,25") is unreadable rather than a wrong number.
+    /// </summary>
+    private const string Amount = @"(?<reward>\d{1,3}(?:[,.]\d{3})+|\d+)";
+
+    /// <summary>ContractTracker's form: "Reward" and the amount on its own line at the very start of the text ("Reward\n 50,250").</summary>
+    [GeneratedRegex(@"\A\s*Reward\s*" + Amount + @"[ \t]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
+    private static partial Regex RewardAtStart { get; }
+
+    /// <summary>CargoPlan's form: "Reward 81,250" as one whole line anywhere in the text; the label never joins another line.</summary>
+    [GeneratedRegex(@"^[ \t]*Reward[ \t]+" + Amount + @"[ \t]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
     private static partial Regex RewardLine { get; }
 }

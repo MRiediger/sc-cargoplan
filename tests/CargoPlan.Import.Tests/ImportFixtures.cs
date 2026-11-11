@@ -75,6 +75,34 @@ internal static class ImportFixtures
     /// <summary>Issue #22, contract 4: Carbon 200 to Ruin Station, "(8 SCU or" as in contract 3, "smaller)" lost.</summary>
     public const string CarbonOrCut = "carbon_or_cut";
 
+    // CargoPlan's own OCR (T10.2a): excerpts of scan-probe.log (11 Nov 2026, 3440×1440 over the game), shortened by hand:
+    // the prose keeps only the sentence a test needs. Reading order in columns (D99): the reward line after the prose.
+
+    /// <summary>
+    /// Offers view, reward 191,500: Hydrogen Fuel 70/62, Quantum Fuel 81, Ship Ammunition 133 to Green Glade and Faithful
+    /// Dream (two lines break before "Station"), "16 SCU or smaller", a Collect line from Everus Harbor after each delivery,
+    /// "O/" and "0/" mixed.
+    /// </summary>
+    public const string FuelOffer = "fuel_offer";
+
+    /// <summary>
+    /// The same contract after accepting: other SCU (55/136/115/64), ABANDON first, "Contract Deadline", the objective
+    /// marker "L" on its own line, ends in SHARE UNTRACK. Same content key as <see cref="FuelOffer"/>.
+    /// </summary>
+    public const string FuelAccepted = "fuel_accepted";
+
+    /// <summary>Accepted view: Silicon 92 to Everus Harbor, "At most the\ncontainers will be 8 SCU in size.", SHARE TRACK.</summary>
+    public const string SiliconAtMost = "silicon_at_most";
+
+    /// <summary>Offers view: Iron (Ore) 98 to Faithful Dream Station, "couldn't handle 8\nSCU containers".</summary>
+    public const string IronCouldntHandle = "iron_couldnt_handle";
+
+    /// <summary>
+    /// Offers view: Waste 10 to Everus Harbor, "bigger than 4 SCU", four Collect lines after the one delivery, the third
+    /// broken inside its place ("HUR-L3 Thundering Express" / "Station.").
+    /// </summary>
+    public const string WasteCollectWrapped = "waste_collect_wrapped";
+
     /// <summary>
     /// Martin's plan.json after the route of ids 9–12 (B1), every crate ticked: stops "Melodic Fieids", "Faithful Dream
     /// Station", "Thundering Express", "Melodic Fields Station" (mission 1) and Everus Harbor (17, 18); watermark 18.

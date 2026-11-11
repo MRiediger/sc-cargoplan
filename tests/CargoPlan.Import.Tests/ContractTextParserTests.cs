@@ -363,6 +363,101 @@ public class ContractTextParserTests
     public void Unreadable_or_misplaced_reward_is_unknown(string text) =>
         ContractTextParser.Parse(text).Reward.Should().BeNull();
 
+    [Theory]
+    [InlineData(ImportFixtures.FuelOffer, 191_500L)]
+    [InlineData(ImportFixtures.FuelAccepted, 191_500L)]
+    [InlineData(ImportFixtures.SiliconAtMost, 50_500L)]
+    [InlineData(ImportFixtures.WasteCollectWrapped, 72_500L)]
+    public void Reward_is_read_from_its_line_after_the_prose(string fixture, long expected) =>
+        ContractTextParser.Parse(ImportFixtures.RawText(fixture)).Reward.Should().Be(expected);
+
+    [Theory]
+    [InlineData("Reward 81,250", 81_250L)]
+    [InlineData("Reward 81.250", 81_250L)]
+    [InlineData("  Reward   81,250  ", 81_250L)]
+    [InlineData("Reward 1,081,250", 1_081_250L)]
+    [InlineData("Reward 750", 750L)]
+    public void Reward_line_anywhere_in_the_text_is_read(string line, long expected) =>
+        ContractTextParser.Parse(InColumns(line)).Reward.Should().Be(expected);
+
+    [Theory]
+    [InlineData("Reward 8l,250")]
+    [InlineData("Reward 81,25")]
+    [InlineData("Reward")]
+    [InlineData("The Reward 81,250")]
+    [InlineData("Reward 81,250 aUEC")]
+    public void Unreadable_reward_line_is_unknown(string line) =>
+        ContractTextParser.Parse(InColumns(line)).Reward.Should().BeNull();
+
+    [Theory]
+    [InlineData(ImportFixtures.SiliconAtMost, CrateSize.Eight)]
+    [InlineData(ImportFixtures.IronCouldntHandle, CrateSize.Eight)]
+    [InlineData(ImportFixtures.FuelOffer, CrateSize.Sixteen)]
+    [InlineData(ImportFixtures.FuelAccepted, CrateSize.Sixteen)]
+    [InlineData(ImportFixtures.WasteCollectWrapped, CrateSize.Four)]
+    public void Max_size_of_a_scan_is_read(string fixture, CrateSize expected) =>
+        ContractTextParser.Parse(ImportFixtures.RawText(fixture)).MaxCrateSize.Should().Be(expected);
+
+    [Theory]
+    [InlineData("At most the containers will be 8 SCU in size.", CrateSize.Eight)]
+    [InlineData("above Hurston. At most the\ncontainers will be 8 SCU in size.", CrateSize.Eight)]
+    [InlineData("Lagrange point. At most the containers willbe 1 SCU in size.", CrateSize.One)]
+    [InlineData("At most the containers will be\n16 SCU in size.", CrateSize.Sixteen)]
+    [InlineData("At most the containers will be O8 SCU in size.", CrateSize.Eight)]
+    [InlineData("Atmost the containers will be 4 SCU in size.", CrateSize.Four)]
+    [InlineData("their ship couldn't handle 8\nSCU containers, so", CrateSize.Eight)]
+    [InlineData("their ship couldn’t handle 16 SCU containers", CrateSize.Sixteen)]
+    [InlineData("their ship couldnt handle 4 SCU containers", CrateSize.Four)]
+    public void At_most_and_couldnt_handle_phrases_are_read(string phrase, CrateSize expected)
+    {
+        // S10.0 "+max2": the two wordings of the size the parser didn't know yet, line breaks allowed.
+        var parsed = ContractTextParser.Parse($"DETAILS\n{phrase}\nPRIMARY OBJECTIVES\nDeliver 0/9 SCU of Waste to Everus Harbor above\nACCEPT OFFER");
+
+        parsed.MaxCrateSize.Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("At most 3 days for the run.")]
+    [InlineData("At most the containers will be 3 SCU in size.")]
+    [InlineData("their ship couldn't handle the load")]
+    public void At_most_or_couldnt_handle_without_a_crate_size_counts_as_missing(string phrase)
+    {
+        var parsed = ContractTextParser.Parse($"DETAILS\n{phrase}\nPRIMARY OBJECTIVES\nDeliver 0/9 SCU of Waste to Everus Harbor above\nACCEPT OFFER");
+
+        parsed.MaxCrateSize.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("SHARE TRACK")]
+    [InlineData("SHARE UNTRACK")]
+    [InlineData("SHARE  UNTRACK ")]
+    [InlineData("SHAREUNTRACK")]
+    public void Share_line_of_the_accepted_view_ends_the_block(string end)
+    {
+        // The accepted view has no ACCEPT OFFER; its last line is "SHARE TRACK" or, once tracked, "SHARE UNTRACK".
+        var parsed = ContractTextParser.Parse($"DETAILS\nDeliver 0/9 SCU of Waste to Everus Harbor above\n{end}\nDeliver 0/1 SCU of Noise to Nowhere at");
+
+        parsed.Deliveries.Should().Equal(new ParsedDelivery("Everus Harbor", "Waste", 9));
+    }
+
+    [Fact]
+    public void Delivered_count_read_as_the_letter_O_keeps_every_delivery()
+    {
+        // Guard (T10.2a): T10.1b counted "O/" in 254 of 877 delivery lines over the game; the pattern reads them already.
+        var parsed = ContractTextParser.Parse(ImportFixtures.RawText(ImportFixtures.FuelAccepted));
+
+        parsed.Deliveries.Should().Equal(
+            new ParsedDelivery("Green Glade Station", "Hydrogen Fuel", 55),
+            new ParsedDelivery("Faithful Dream Station", "Quantum Fuel", 136),
+            new ParsedDelivery("Green Glade Station", "Ship Ammunition", 115),
+            new ParsedDelivery("Faithful Dream Station", "Hydrogen Fuel", 64));
+        parsed.ListedDestinationCount.Should().Be(2);
+    }
+
+    /// <summary>A contract in the reading order of CargoPlan's own OCR (D99): the reward line between prose and objectives.</summary>
+    private static string InColumns(string rewardLine) =>
+        $"DETAILS\nSome prose.\n{rewardLine}\nContract Availability 2h 1m\nPRIMARY OBJECTIVES\nDeliver 0/9 SCU of Waste to Everus Harbor above\nACCEPT OFFER";
+
     [Fact]
     public void Pick_up_list_is_not_counted_as_destinations()
     {
