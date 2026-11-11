@@ -127,6 +127,107 @@ public sealed class PlanStoreTests : IDisposable
         File.ReadAllText(PlanPath).Should().Be(content);
     }
 
+    // --- An unreadable plan.json is kept aside, never overwritten (B13, D106) ---
+
+    private static readonly DateTime Now = new(2026, 11, 11, 14, 23, 1);
+
+    private string KeptPath(string name) => Path.Combine(_folder, name);
+
+    [Fact]
+    public void Broken_file_is_unreadable()
+    {
+        WriteFile("{ \"schemaVersion\": 10, \"shipId\": \"hu");
+
+        PlanStore.Load(PlanPath, HullA).Unreadable.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Missing_file_good_file_and_another_ships_plan_are_not_unreadable()
+    {
+        PlanStore.Load(PlanPath, HullA).Unreadable.Should().BeFalse("no file is nothing to keep");
+
+        PlanStore.Save(PlanPath, TestPlans.SplitAndShared());
+        PlanStore.Load(PlanPath, HullA).Unreadable.Should().BeFalse();
+
+        // D59: planned anew for this ship, never a problem.
+        File.WriteAllText(PlanPath, File.ReadAllText(PlanPath).Replace("\"shipId\": \"hull_a\"", "\"shipId\": \"cutlass_black\""));
+        PlanStore.Load(PlanPath, HullA).Unreadable.Should().BeFalse();
+    }
+
+    [Fact]
+    public void KeepUnreadable_moves_the_file_aside_byte_for_byte()
+    {
+        WriteFile("{ \"schemaVersion\": 10, \"shipId\": \"hu");
+        var bytes = File.ReadAllBytes(PlanPath);
+
+        var keptAs = PlanStore.KeepUnreadable(PlanPath, Now);
+
+        keptAs.Should().Be("plan.json.unreadable-20261111-142301");
+        File.Exists(PlanPath).Should().BeFalse();
+        File.ReadAllBytes(KeptPath(keptAs!)).Should().Equal(bytes);
+    }
+
+    [Fact]
+    public void KeepUnreadable_twice_in_the_same_second_keeps_both()
+    {
+        WriteFile("first");
+        PlanStore.KeepUnreadable(PlanPath, Now);
+        WriteFile("second");
+
+        var second = PlanStore.KeepUnreadable(PlanPath, Now);
+
+        second.Should().Be("plan.json.unreadable-20261111-142301-2");
+        File.ReadAllText(KeptPath("plan.json.unreadable-20261111-142301")).Should().Be("first");
+        File.ReadAllText(KeptPath(second!)).Should().Be("second");
+    }
+
+    [Fact]
+    public void KeepUnreadable_without_a_file_keeps_nothing()
+    {
+        PlanStore.KeepUnreadable(PlanPath, Now).Should().BeNull();
+    }
+
+    // --- The start plan: --plan wins, plan.json's state is reported either way (B13) ---
+
+    [Fact]
+    public void LoadStart_with_a_plan_file_reads_it_and_reports_an_unreadable_plan_json()
+    {
+        WriteFile("{ \"schemaVersion\": 10, \"shipId\": \"hu");
+        var other = Path.Combine(_folder, "start.json");
+        PlanStore.Save(other, TestPlans.SplitAndShared(), lastScanNo: 3);
+
+        var loaded = PlanStore.LoadStart(PlanPath, other, HullA);
+
+        loaded.Plan.Should().NotBeNull();
+        loaded.Problem.Should().BeNull();
+        loaded.LastScanNo.Should().Be(3);
+        loaded.Unreadable.Should().BeTrue("the plan file becomes plan.json at the first save");
+    }
+
+    [Fact]
+    public void LoadStart_with_a_missing_plan_file_names_it()
+    {
+        var missing = Path.Combine(_folder, "missing.json");
+
+        var loaded = PlanStore.LoadStart(PlanPath, missing, HullA);
+
+        loaded.Plan.Should().BeNull();
+        loaded.Problem.Should().Be($"Plan file {missing} not found.");
+        loaded.Unreadable.Should().BeFalse();
+    }
+
+    [Fact]
+    public void LoadStart_without_a_plan_file_loads_plan_json()
+    {
+        WriteFile("{ \"schemaVersion\": 10, \"shipId\": \"hu");
+
+        var loaded = PlanStore.LoadStart(PlanPath, null, HullA);
+
+        loaded.Plan.Should().BeNull();
+        loaded.Problem.Should().StartWith("Plan not loaded");
+        loaded.Unreadable.Should().BeTrue();
+    }
+
     [Fact]
     public void PeekShipId_reads_the_plans_ship_and_null_without_a_file()
     {

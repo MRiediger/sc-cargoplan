@@ -15,7 +15,7 @@ public class ApplyScanTests
     private static readonly Ship HullA = FrozenShips.Load("hull_a");
 
     /// <summary>A contract in the reading order of CargoPlan's own OCR (D99), offers or accepted view.</summary>
-    private static ScannedContract Scanned(bool accepted, string reward = "50,250", params string[] objectives) => ScannedContract.Read(
+    internal static ScannedContract Scanned(bool accepted, string reward = "50,250", params string[] objectives) => ScannedContract.Read(
         $"{(accepted ? "ABANDON\n" : "")}DETAILS\nThey will be packaged up in containers 4 SCU or smaller.\nReward {reward}\n"
         + $"{(accepted ? "Contract Deadline N/A" : "Contract Availability 2h 1m")}\nPRIMARY OBJECTIVES\n"
         + string.Join('\n', objectives.Length == 0 ? Riker(8) : objectives)

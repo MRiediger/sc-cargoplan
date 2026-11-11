@@ -241,14 +241,15 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// The plan saver before the start plan: a --plan file becomes plan.json this way, without a rule of its own.
-    /// A plan from plan.json is written back once, unchanged.
+    /// The plan saver before the start plan is shown: a --plan file becomes plan.json this way, without a rule of its own.
+    /// A plan from plan.json is written back once, unchanged. The saver learns from the load whether plan.json couldn't be
+    /// read, and keeps it aside before its first write (B13, D106).
     /// </summary>
     private void ComposeStartPlan(OverlayParts parts, StartOptions options)
     {
         var viewModel = parts.ViewModel;
-        _planSaver = new PlanSaver(parts.Overlay, viewModel, PlanStore.DefaultPath);
-        var (plan, planProblem, lastScanNo) = LoadStartPlan(options, parts.Ship);
+        var (plan, planProblem, lastScanNo, unreadable) = PlanStore.LoadStart(PlanStore.DefaultPath, options.PlanPath, parts.Ship);
+        _planSaver = new PlanSaver(parts.Overlay, viewModel, PlanStore.DefaultPath, unreadable);
         viewModel.SetNotice(NoticeSource.Plan, options.Problem ?? planProblem);
         if (plan is not null)
         {
@@ -401,18 +402,6 @@ public partial class App : Application
             },
             hotkeys.Suspend,
             hotkeys.Resume);
-    }
-
-    /// <summary>--plan wins over plan.json; a missing --plan file is a problem, a missing plan.json is the empty start.</summary>
-    private static (SavedPlan? Plan, string? Problem, int LastScanNo) LoadStartPlan(StartOptions options, Ship ship)
-    {
-        if (options.PlanPath is not { } path)
-        {
-            return PlanStore.Load(PlanStore.DefaultPath, ship);
-        }
-
-        var loaded = PlanStore.Load(path, ship);
-        return loaded is (null, null, _) ? (null, $"Plan file {path} not found.", 0) : loaded;
     }
 
     /// <summary>Saved bounds may lie on an unplugged monitor: clamped into today's virtual desktop.</summary>
