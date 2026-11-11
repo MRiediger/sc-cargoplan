@@ -170,8 +170,8 @@ internal sealed class FrameMeasureWindow : Window
     /// <summary>
     /// Scan in a loop during the run (<c>--scan-load</c>, K3): the frame time under scans, reported apart. The window then
     /// opens at the left edge of the primary screen's work area, beside the scan region (x from 43/128 of the width,
-    /// <c>ScanRegion</c>): centred it lay over the region, and D100 took it to Opacity 0 for every capture, which made extra
-    /// frames (T10.1b, T10.3 Gate 4).
+    /// <c>ScanRegion</c>): centred it lay over the region, and D100 took it out of the picture for every capture (Opacity 0
+    /// then, a cloak since B12), which made extra frames (T10.1b, T10.3 Gate 4).
     /// </summary>
     internal bool ScanLoad
     {
