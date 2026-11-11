@@ -5183,9 +5183,35 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   - **Max-Größe:** Die zweite Formulierung („At most the containers will be 8 SCU in size.“, `+max2`) fehlt noch.
   - Lieferzeilen brechen wie im CT-Rohtext um („… to High Course Station“ / „at Hurston's L5 Lagrange point.“); das liest der Parser heute schon.
 - **Rohtext aus T10.1b** (`scan-probe.log` vom 11.11., 227 Scans über dem Spiel, liegt in Martins `%LocalAppData%\SC-CargoPlan`, CIG-Material, nicht ins Repo):
-  - **„O/“ statt „0/“:** In 235 von 877 Lieferzeilen liest die OCR den Zähler als Buchstaben („Deliver O/115 SCU of …“), vor allem in ACCEPTED. Der Parser muss `[0O]/` akzeptieren.
-  - **ACCEPTED** beginnt mit einer Zeile „ABANDON“, endet mit „SHARE TRACK“ und hat „Contract Deadline N/A“ statt „Contract Availability 2h 1m“; **OFFERS** endet mit „ACCEPT OFFER“. Die Titelzeile („Member Rank - Small Cargo Haul“) steht vor „DETAILS“.
-  - Die Zielsymbol-Zeilen „0“ (45×) und „L“ (80×) kommen auch über dem Spiel.
+  - **„O/“ statt „0/“:** In 254 von 877 Lieferzeilen liest die OCR den Zähler als Buchstaben („Deliver O/115 SCU of …“), vor allem in ACCEPTED. ~~Der Parser muss `[0O]/` akzeptieren.~~ Korrektur T10.2a: Das Muster `\S*/` liest sie schon, 877 von 877 Lieferzeilen; kein Verlust, nur ein Wächtertest.
+  - **ACCEPTED** beginnt mit einer Zeile „ABANDON“, endet mit „SHARE TRACK“ (9×) oder „SHARE UNTRACK“ (201×) und hat „Contract Deadline N/A“ statt „Contract Availability 2h 1m“; **OFFERS** endet mit „ACCEPT OFFER“. Die Titelzeile („Member Rank - Small Cargo Haul“) steht vor „DETAILS“.
+  - Die Zielsymbol-Zeilen „0“ (45×) und „L“ (80×) kommen auch über dem Spiel, immer vor einer „Deliver“-Zeile.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. **Teilung:** T10.2a (`feat/t10-2a-parser`: Import, Cli, Tests, offline prüfbar) und T10.2b (`feat/t10-2b-identity`: Core + App – plan.json 10 mit F4/F24, Scan-Identität, „Scan in den Plan“ als Undo-Schritt, Re-roll, Vollständigkeit, `AppFolders`/F14, `scans.log`). b bekommt nach a einen eigenen Plan.
+2. Ocr bleibt Bild → Text; geparst wird in Import, zusammengesetzt in App und Cli.
+3. **F7:** Parser, `ContractText`, `ParsedContract`, `ParsedDelivery` nach `Import/Contracts` (`CargoPlan.Import.Contracts`); `Stops()`/`Item()` aus dem Reader als `ContractStops.Of`. Fixtures bleiben in `Fixtures/RawText`.
+4. Neuer öffentlicher Typ `ScannedContract` neben `ContractTrackerCandidate` (unberührt bis T10.4a); der Parser bleibt `internal`.
+5. „O/“: kein Code, Wächtertest. Blockende auch „SHARE UNTRACK“.
+6. Pickup **je Ware** aus den Collect-Zeilen (wie D68); eine Collect-Zeile ohne Punkt nimmt aus der nächsten Zeile höchstens drei Wörter aus Buchstaben mit Punkt („Station.“). Kein eigenes Symbol-Prädikat: eine Symbolzeile hat keinen Punkt.
+7. Schlüssel aus **Paaren Ziel:Ware** statt getrennter Listen (H1); unlesbarer Reward oder Max = „?“, kein Joker (D101).
+8. Hand-Tests: `OcrSampleTests` bewertet alle Felder und den Schlüssel je Paar; neu `ScanProbeLogTests` mit strukturellen Asserts, Zahlen nur im Bericht (H3); Pickup-Wächter über alle Fixtures (H2).
+
+- [x] **T10.2a** Parser: Pickup, Reward-Zeile, `+max2`, Ansicht, Blockende, `ScannedContract` mit Inhaltsschlüssel (D101), Cli `scan` mit geparstem Vertrag, Hand-Tests
+  - **Befund (11.11.2026, Branch `feat/t10-2a-parser`):**
+    - **Hand-Test `OcrSampleTests`** (Release, S10.0-Aufnahmen):
+
+      | Satz | Lieferfelder | Pickup | Max | Reward | Ansicht | Schlüssel | p95 |
+      |---|---|---|---|---|---|---|---|
+      | 3440×1440 | 138/138 | 20/20 | 20/20 | 20/20 | 20/20 | 10 Paare = 10 Schlüssel, keine Kollision | 1 291 ms |
+      | 1080p | 135/138 (c06) | 19/20 (c06) | 20/20 | 20/20 | 20/20 | 10 Schlüssel (c06 ausgenommen), keine Kollision | 1 268 ms |
+
+    - **`ScanProbeLogTests`** gegen `scan-probe.log` vom 11.11.: 227 Scans (OFFERS 17, ACCEPTED 210), jede Lieferzeile, jeder Reward, jede Ansicht gelesen; 20 Routen = 20 Schlüssel; der Fuel-Vertrag (191,500) mit 1 OFFERS- und 201 ACCEPTED-Scans unter einem Schlüssel.
+    - **Fund im Hand-Test:** Bei 1080p liest die OCR das aUEC-Zeichen vor dem Betrag als „±“ („Reward ± 51,000“, c17). Ein Zeichen, das kein Buchstabe und keine Ziffer ist, darf zwischen Label und Betrag stehen.
+    - **Pickup-Wächter (H2):** Zwei OCR-Fragmente im CT-Rohtext („Thundg“, „Green Gle“) stehen als bekannte Fragmente im Test. Mit einer Fortsetzungsregel, die jede Zeile nimmt, wird er auf 3 Fixtures rot.
+    - **Offen für T10.3:** Würfelt das Spiel beim Annehmen auch die Ziele neu? Im Probe-Log ist nur ein Paar sicher (191,500). OFFERS und ACCEPTED mit gleichem Reward (100,500; 72,500; 60,750; 50,500; 50,250) haben andere Ziele, vermutlich andere Verträge. Gate-Lauf T10.3 mit echten Paaren: Vertrag ansehen, annehmen, beide scannen.
+    - **Gate:** Build 0 Warnungen; Tests Core 1 817 · Import 287 (vorher 164) · App 1 731 · Ocr 34 grün (Hand-Tests gefiltert); `dotnet format --verify-no-changes` 0.
+- [ ] **T10.2b** plan.json 10 (F4, F24), Scan-Identität in `ContractSource`, „Scan in den Plan“ als ein Undo-Schritt, Re-roll-Markierung, Vollständigkeit, `AppFolders`/F14, `scans.log` – eigener Plan
 
 ### [ ] T10.3 Hotkey, Editor, Notices
 

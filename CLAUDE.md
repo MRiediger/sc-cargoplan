@@ -77,7 +77,7 @@ sc-cargoplan/
 ├── tools/ShipJson.ps1             # Schiffsdatei-Format für import-motherlode.ps1 (dot-sourced); Fleetyards-Import stillgelegt, in der Git-Historie (D94)
 ├── src/
 │   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader (liest ships/ und outlines/ neben der Exe), Holo-Leser SCH2 (D63)
-│   ├── CargoPlan.Import/          # net10.0 – ContractTracker SQLite-Reader
+│   ├── CargoPlan.Import/          # net10.0 – Contracts/: Vertragstext → `ScannedContract` mit Inhaltsschlüssel (D101); ContractTracker/: SQLite-Reader (bis T10.4a)
 │   ├── CargoPlan.Ocr/             # net10.0 – Vertrag aus einem Bild lesen: ROI, up2-gray, RapidOcrNet, Lesereihenfolge (D99); keine Windows-API; NOTICE.md → models/NOTICE.md
 │   ├── CargoPlan.Cli/             # net10.0 – Plan im Terminal ausgeben (Debugging ohne UI), `scan <png>`
 │   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Win32-Interop (inkl. Fenstersuche und Bildschirmaufnahme), Scan (`Scanning/`, D100), Holo-Download und -Cache (einziger Netzzugriff, D63)
@@ -111,8 +111,9 @@ dotnet run --project src/CargoPlan.App         # Overlay starten
 dotnet run --project src/CargoPlan.App -- --plan tests/CargoPlan.Core.Tests/Fixtures/Plans/split_and_shared.json
 dotnet run --project src/CargoPlan.Cli -- plan tests/CargoPlan.Core.Tests/Fixtures/example_missions.json
 dotnet run --project src/CargoPlan.Cli -- contracts <copy-of-contracts.db> [--since <id>] [--raw]   # nur gegen eine Kopie (D38)
-dotnet run --project src/CargoPlan.Cli -- scan <screenshot.png>   # Vertrag aus einem Fenster-Screenshot lesen, Rohtext nach stdout, Stufenzeiten nach stderr (D99)
-dotnet test tests/CargoPlan.Import.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OcrSampleTests   # echte Aufnahmen aus S10.0 durch OCR und Parser gegen truth.json (~1 min), nur von Hand; Env: CARGOPLAN_OCR_SAMPLES (sc-ocr-samples, CIG-Material, nie ins Repo), CARGOPLAN_OCR_OUT
+dotnet run --project src/CargoPlan.Cli -- scan <screenshot.png>   # Vertrag aus einem Fenster-Screenshot lesen: Rohtext, dann geparster Vertrag mit Inhaltsschlüssel nach stdout, Stufenzeiten nach stderr (D99, D101)
+dotnet test tests/CargoPlan.Import.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OcrSampleTests   # echte Aufnahmen aus S10.0 durch OCR und Parser gegen truth.json: Lieferungen, Pickup, Max, Reward, Ansicht, Schlüssel je Paar (~1 min), nur von Hand; Env: CARGOPLAN_OCR_SAMPLES (sc-ocr-samples, CIG-Material, nie ins Repo), CARGOPLAN_OCR_OUT
+dotnet test tests/CargoPlan.Import.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~ScanProbeLogTests --logger "console;verbosity=detailed"   # jeden Rohtext eines scan-probe.log durch den Parser, strukturelle Asserts, Zahlen je Schlüssel im Output (T10.2a), nur von Hand; Env: CARGOPLAN_SCAN_PROBE_LOG (CIG-Material, nie ins Repo)
 dotnet test tests/CargoPlan.Ocr.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OcrMemoryTests --logger "console;verbosity=detailed"   # Speicher über 100 Lesevorgänge, nur von Hand; Env: CARGOPLAN_OCR_SAMPLES
 dotnet run --project src/CargoPlan.App -c Release -- --scan-probe [N] [--scan-probe-images]   # Overlay + Scan-Probe: F8 = 1 Scan, F9 = N Scans (Default 100); scan-probe.log + scan-probe\*.png neben cargoplan.log (CIG-Material, nie ins Repo); Env optional CARGOPLAN_SC_CAPTURE_PROCESS = anderes Fenster für einen Probelauf ohne SC
 dotnet run --project src/CargoPlan.App -c Release -- --measure-frames <ziel> --over-game [--scan-load]   # Frame-Zeit über dem Spiel (D83) mit vorgewärmter Engine; --scan-load scannt während der 30 s in Schleife; measure-frames.log neben der Exe
