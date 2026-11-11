@@ -94,8 +94,10 @@ public sealed partial class OverlayCaptureTests
             Hide(ui, layered);
 
             report.AppendLine(FocusRow(ui, region, folder, reader, Track));
-            report.AppendLine(OwnerRow(ui, region, folder, Track, ownedOverRegion: false));
-            report.AppendLine(OwnerRow(ui, region, folder, Track, ownedOverRegion: true));
+            report.AppendLine(OwnerRow(ui, region, folder, Track, OwnerCase.Beside));
+            report.AppendLine(OwnerRow(ui, region, folder, Track, OwnerCase.OwnerFirst));
+            report.AppendLine(OwnerRow(ui, region, folder, Track, OwnerCase.OwnedFirst));
+            report.AppendLine(OwnerRow(ui, region, folder, Track, OwnerCase.OwnerOnly));
         }
         finally
         {
@@ -178,12 +180,18 @@ public sealed partial class OverlayCaptureTests
     }
 
     // R5: only the layered owner over the region is cloaked; does its owned chrome window beside the region go too?
-    // R5b: owner and owned both over the region, both cloaked by us; does uncloaking the owner take the owned one's along?
-    private string OwnerRow(Dispatcher ui, PixelRect region, string folder, Func<Window, Window> track, bool ownedOverRegion)
+    // R5b, R5c: owner and owned both over the region, both cloaked by us, then uncloaked owner first (R5b) or owned first
+    // while the owner is still cloaked (R5c, RegionClearance's order). After the settle both must be back on screen.
+    private string OwnerRow(Dispatcher ui, PixelRect region, string folder, Func<Window, Window> track, OwnerCase mode)
     {
-        var name = ownedOverRegion
-            ? "R5b layered owner + owned chrome both over the region, both cloaked, 1x DwmFlush, owner uncloaked first"
-            : "R5 layered owner over the region, owned chrome beside it, owner cloaked, 1x DwmFlush";
+        var name = mode switch
+        {
+            OwnerCase.Beside => "R5 layered owner over the region, owned chrome beside it, owner cloaked, 1x DwmFlush",
+            OwnerCase.OwnerFirst => "R5b layered owner + owned chrome both over the region, both cloaked, 1x DwmFlush, owner uncloaked first",
+            OwnerCase.OwnedFirst => "R5c layered owner + owned chrome both over the region, both cloaked, 1x DwmFlush, owned uncloaked first",
+            _ => "R5d layered owner + owned chrome both over the region, only the owner cloaked, 1x DwmFlush",
+        };
+        var both = mode != OwnerCase.Beside;
         var owner = ui.Invoke(() => track(Marker()));
         Show(ui, owner, w => Place(w, region));
         var owned = ui.Invoke(() =>
@@ -195,7 +203,7 @@ public sealed partial class OverlayCaptureTests
         Show(ui, owned, w =>
         {
             Place(w, region);
-            if (ownedOverRegion)
+            if (both)
             {
                 w.Top += OwnedOffset;
             }
@@ -206,11 +214,12 @@ public sealed partial class OverlayCaptureTests
         });
 
         var ownedBounds = BoundsOf(ui, owned);
-        if (!ownedOverRegion && Overlaps(region, ownedBounds))
+        if (!both && Overlaps(region, ownedBounds))
         {
             throw new InvalidOperationException(Inv($"The owned marker {ownedBounds} cuts the region {region}; R5 needs it beside."));
         }
 
+        var ownedRect = new PixelRect(ownedBounds.X, ownedBounds.Y, ownedBounds.Width, ownedBounds.Height);
         var (ownerHandle, ownedHandle) = (Handle(ui, owner), Handle(ui, owned));
         List<CloakTrial> trials = [];
         for (var i = 0; i < Trials; i++)
@@ -220,7 +229,7 @@ public sealed partial class OverlayCaptureTests
             ui.Invoke(() =>
             {
                 Cloak(ownerHandle, true);
-                if (ownedOverRegion)
+                if (mode is OwnerCase.OwnerFirst or OwnerCase.OwnedFirst)
                 {
                     Cloak(ownedHandle, true);
                 }
@@ -230,34 +239,72 @@ public sealed partial class OverlayCaptureTests
             var picture = BitBltRegion(region, NativeMethods.SRCCOPY);
 
             // Beside the region the owned window is checked in its own rectangle: does it really leave the screen?
-            bool? ownedSeen = null;
-            if (!ownedOverRegion)
-            {
-                using var ownedPicture = BitBltRegion(new PixelRect(ownedBounds.X, ownedBounds.Y, ownedBounds.Width, ownedBounds.Height), NativeMethods.SRCCOPY);
-                ownedSeen = ownedPicture is null ? null : Inspect(ownedPicture, 0, 0).Magenta > 0;
-            }
+            bool? ownedSeen = both ? null : OnScreen(ownedRect);
 
-            ui.Invoke(() => Cloak(ownerHandle, false));
-            var afterOwner = NativeMethods.Cloaked(ownedHandle);
-            if (ownedOverRegion)
+            uint? between;
+            var ownedResult = 0;
+            if (mode == OwnerCase.OwnedFirst)
             {
-                ui.Invoke(() => Cloak(ownedHandle, false));
+                // Measured over the game: E_INVALIDARG while the owner is cloaked. Kept as a number, not thrown.
+                ui.Invoke(() => ownedResult = NativeMethods.SetCloak(ownedHandle, false));
+                between = NativeMethods.Cloaked(ownedHandle);
+                ui.Invoke(() => Cloak(ownerHandle, false));
+            }
+            else
+            {
+                ui.Invoke(() => Cloak(ownerHandle, false));
+                between = NativeMethods.Cloaked(ownedHandle);
+                if (mode == OwnerCase.OwnerFirst)
+                {
+                    ui.Invoke(() => Cloak(ownedHandle, false));
+                }
             }
 
             var ms = clock.Elapsed.TotalMilliseconds;
-            var afterAll = NativeMethods.Cloaked(ownedHandle);
+            var afterAll = (Owner: NativeMethods.Cloaked(ownerHandle), Owned: NativeMethods.Cloaked(ownedHandle));
             Thread.Sleep(Settle);
-            var settled = NativeMethods.Cloaked(ownedHandle);
+            var settled = (Owner: NativeMethods.Cloaked(ownerHandle), Owned: NativeMethods.Cloaked(ownedHandle));
+
+            // Back on screen: the owner's magenta in the region, the owned one's in its own rectangle.
+            var back = (Owner: OnScreen(region), Owned: OnScreen(ownedRect));
 
             var (trial, _) = Measured(picture, ms, i, folder, name, null);
-            var state = ownedOverRegion
-                ? Inv($"owned cloaked: during {during}, owner uncloaked {afterOwner}, owned uncloaked {afterAll}, settled {settled}")
-                : Inv($"owned cloaked: during {during}, owner uncloaked {afterAll}, settled {settled}; owned on screen while the owner is cloaked: {ownedSeen}");
+            var state = mode switch
+            {
+                OwnerCase.Beside => Inv($"owned cloaked: during {during}, owner uncloaked {between}, settled {settled.Owned}; owned on screen while the owner is cloaked: {ownedSeen}"),
+                OwnerCase.OwnerFirst => Inv($"owned cloaked: during {during}, owner uncloaked {between}, owned uncloaked {afterAll.Owned}"),
+                OwnerCase.OwnedFirst => Inv($"owned cloaked: during {during}, owned uncloak HRESULT 0x{ownedResult:X8} then {between}, owner uncloaked {afterAll.Owned}"),
+                _ => Inv($"owned cloaked (inherited only): during {during}, owner uncloaked {afterAll.Owned}"),
+            };
+            state += Inv($"; settled owner {settled.Owner} owned {settled.Owned}; back on screen owner {back.Owner} owned {back.Owned}");
             trials.Add(new CloakTrial(trial, null, Volatile.Read(ref _events) - events, null, null, state));
         }
 
-        Hide(ui, owner); // hides the owned one with it
+        // Whatever a row left behind, the next row starts uncloaked.
+        ui.Invoke(() =>
+        {
+            NativeMethods.SetCloak(ownedHandle, false);
+            NativeMethods.SetCloak(ownerHandle, false);
+        });
+        // Both: hiding the owner leaves an owned window on screen (only minimising takes it along), measured as a stray
+        // window in the next row's picture.
+        Hide(ui, owned);
+        Hide(ui, owner);
         return Inv($"{Summary(name, trials)}; owned {ownedBounds}");
+    }
+
+    private static bool? OnScreen(PixelRect rect)
+    {
+        using var picture = BitBltRegion(rect, NativeMethods.SRCCOPY);
+        return picture is null ? null : Inspect(picture, 0, 0).Magenta > 0;
+    }
+
+    private enum OwnerCase
+    {
+        Beside,
+        OwnerFirst,
+        OwnedFirst,
+        OwnerOnly,
     }
 
     private static (Trial Trial, bool? Title) Measured(SKBitmap? picture, double ms, int index, string folder, string name, OcrEngine? reader)
