@@ -167,8 +167,28 @@ internal sealed class FrameMeasureWindow : Window
     /// </summary>
     internal ContractScanner? Scanner { get; set; }
 
-    /// <summary>Scan in a loop during the run (<c>--scan-load</c>, K3): the frame time under scans, reported apart.</summary>
-    internal bool ScanLoad { get; set; }
+    /// <summary>
+    /// Scan in a loop during the run (<c>--scan-load</c>, K3): the frame time under scans, reported apart. The window then
+    /// opens at the left edge of the primary screen's work area, beside the scan region (x from 43/128 of the width,
+    /// <c>ScanRegion</c>): centred it lay over the region, and D100 took it to Opacity 0 for every capture, which made extra
+    /// frames (T10.1b, T10.3 Gate 4).
+    /// </summary>
+    internal bool ScanLoad
+    {
+        get;
+        init
+        {
+            field = value;
+            if (value)
+            {
+                // Source: https://learn.microsoft.com/dotnet/api/system.windows.systemparameters.workarea (DIPs, primary screen)
+                var area = SystemParameters.WorkArea;
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Left = area.Left;
+                Top = area.Top + Math.Max(0, (area.Height - WindowHeight) / 2);
+            }
+        }
+    }
 
     private async void OnContentRendered(object? sender, EventArgs e)
     {
