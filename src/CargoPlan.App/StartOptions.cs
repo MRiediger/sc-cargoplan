@@ -13,7 +13,25 @@ namespace CargoPlan.App;
 /// The measuring window lies over the game like the overlay: topmost, never the foreground window, the run starting
 /// after a lead time (T8.7, M5). Only with <paramref name="MeasureFrames"/>.
 /// </param>
-public sealed record StartOptions(bool Locked, string? PlanPath, string? Problem, bool ThemeSample = false, string? MeasureFrames = null, bool OverGame = false)
+/// <param name="ScanProbe">
+/// The scan probe (T10.1b), a developer's tool next to the overlay: F8 scans once, F9 scans this many times in a row; null =
+/// off. Every scan goes to scan-probe.log with its stage times, memory and raw text.
+/// </param>
+/// <param name="ScanProbeImages">Save every scanned region as a PNG, not only the first. Only with <paramref name="ScanProbe"/>.</param>
+/// <param name="ScanLoad">
+/// Scan the game in a loop while the frames are measured (T10.1b, K3): the frame time under scans, for T10.3. Only with
+/// <paramref name="MeasureFrames"/>; without it the measurement runs with the engine warm and idle.
+/// </param>
+public sealed record StartOptions(
+    bool Locked,
+    string? PlanPath,
+    string? Problem,
+    bool ThemeSample = false,
+    string? MeasureFrames = null,
+    bool OverGame = false,
+    int? ScanProbe = null,
+    bool ScanProbeImages = false,
+    bool ScanLoad = false)
 {
     public const string LockedSwitch = "--locked";
 
@@ -25,13 +43,25 @@ public sealed record StartOptions(bool Locked, string? PlanPath, string? Problem
 
     public const string OverGameSwitch = "--over-game";
 
+    public const string ScanProbeSwitch = "--scan-probe";
+
+    public const string ScanProbeImagesSwitch = "--scan-probe-images";
+
+    public const string ScanLoadSwitch = "--scan-load";
+
+    /// <summary>F9's series without a number: Gate 2's 100 scans.</summary>
+    public const int ScanProbeSeries = 100;
+
     public static StartOptions Parse(IReadOnlyList<string> args)
     {
         var locked = false;
         var themeSample = false;
         var overGame = false;
+        var scanProbeImages = false;
+        var scanLoad = false;
         string? planPath = null;
         string? measureFrames = null;
+        int? scanProbe = null;
         string? problem = null;
 
         for (var i = 0; i < args.Count; i++)
@@ -71,6 +101,31 @@ public sealed record StartOptions(bool Locked, string? PlanPath, string? Problem
                     problem = $"{MeasureFramesSwitch} needs a ship id or \"empty\".";
                 }
             }
+            else if (Is(args[i], ScanProbeImagesSwitch))
+            {
+                scanProbeImages = true;
+            }
+            else if (Is(args[i], ScanLoadSwitch))
+            {
+                scanLoad = true;
+            }
+            else if (Is(args[i], ScanProbeSwitch))
+            {
+                scanProbe = ScanProbeSeries;
+
+                // The series' length is optional; the next switch is no number.
+                if (i + 1 < args.Count && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                {
+                    if (int.TryParse(args[++i], System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var series) && series > 0)
+                    {
+                        scanProbe = series;
+                    }
+                    else
+                    {
+                        problem = $"{ScanProbeSwitch} takes a positive number of scans for F9; {ScanProbeSeries} it is.";
+                    }
+                }
+            }
         }
 
         if (overGame && measureFrames is null)
@@ -78,7 +133,17 @@ public sealed record StartOptions(bool Locked, string? PlanPath, string? Problem
             (overGame, problem) = (false, problem ?? $"{OverGameSwitch} only goes with {MeasureFramesSwitch}.");
         }
 
-        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame);
+        if (scanProbeImages && scanProbe is null)
+        {
+            (scanProbeImages, problem) = (false, problem ?? $"{ScanProbeImagesSwitch} only goes with {ScanProbeSwitch}.");
+        }
+
+        if (scanLoad && measureFrames is null)
+        {
+            (scanLoad, problem) = (false, problem ?? $"{ScanLoadSwitch} only goes with {MeasureFramesSwitch}.");
+        }
+
+        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad);
     }
 
     private static bool Is(string arg, string name) => arg.Equals(name, StringComparison.OrdinalIgnoreCase);

@@ -3,6 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="..\CargoPlan.Core\CargoPlan.Core.csproj" />
     <ProjectReference Include="..\CargoPlan.Import\CargoPlan.Import.csproj" />
+    <!-- Reads contracts from the game window (T10.1b, D99): brings ONNX Runtime, SkiaSharp and models/v5 into the output. -->
+    <ProjectReference Include="..\CargoPlan.Ocr\CargoPlan.Ocr.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -24,9 +24,19 @@ public sealed class ScanContractSource(OcrEngine engine)
         }
 
         var regionTime = clock.Elapsed;
+        var result = ReadRegion(cropped);
+        return result with { Timings = result.Timings with { Region = regionTime } };
+    }
 
-        clock.Restart();
-        using var gray = Preprocessing.Up2Gray(cropped);
+    /// <summary>
+    /// Reads <paramref name="region"/>, the scan region alone, as the App captures it (T10.1b): any colour type
+    /// <see cref="Preprocessing"/> takes, e.g. a Bgra8888 bitmap over a GDI DIB section. Nothing is cut, so the region's
+    /// time is zero.
+    /// </summary>
+    public ScanResult ReadRegion(SKBitmap region)
+    {
+        var clock = Stopwatch.StartNew();
+        using var gray = Preprocessing.Up2Gray(region);
         var preprocessTime = clock.Elapsed;
 
         clock.Restart();
@@ -35,7 +45,7 @@ public sealed class ScanContractSource(OcrEngine engine)
 
         clock.Restart();
         var lines = ReadingOrder.Lines(blocks);
-        var timings = new ScanTimings(regionTime, preprocessTime, ocrTime, clock.Elapsed);
+        var timings = new ScanTimings(TimeSpan.Zero, preprocessTime, ocrTime, clock.Elapsed);
 
         return lines.Length == 0
             ? new ScanResult(ScanOutcome.NoContractInFrame, "", timings)

@@ -5144,7 +5144,28 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     - **Ziel-Symbol** (Fund im Hand-Test): Mit K2 hing „0“/„L“ vor „Deliver“, und der Parser verlor in 4 von 20 Verträgen je Satz eine Lieferung. Entscheidung Martin: Ein erster Block mit höchstens 2 Zeichen in einer etwa quadratischen Box (≤ 1,3 × Höhe; gemessen 1,02–1,20) bleibt eine eigene Zeile. Die Zwei-Boxen-Lieferung, die K2 vorbeugen soll, wurde in den 40 Aufnahmen **nicht beobachtet**; K2 bleibt vorsorglich.
     - Das Gray8-Bild liest RapidOcrNet direkt (`OcrUtils.SubtractMeanNormalize`).
     - Eine Lesung hat Grundkosten fast unabhängig von der Bildgröße (fast leerer Rahmen ≈ 0,9 s). Die Scan-Tests nutzen deshalb 960×540 und bleiben unter der Regel von 1,3 s.
-- [ ] **T10.1b** F22, `ScreenCapture`, Fenstersuche, Engine-Vorwärmen beim Start, `--scan-probe` – Gates 1–3
+- [x] **T10.1b** F22, `ScreenCapture`, Fenstersuche, Engine-Vorwärmen beim Start, `--scan-probe` – Gates 1–3
+  - **Abnahme (Martin, 11.11.2026):** Gate-1-Schwelle **1 500 ms p95** bleibt und gilt verbindlich für T10.3, gleiche Methode (Taste → Rohtext, SC läuft, je Ansicht), dort **n ≥ 20 je Ansicht** (bei n = 10 ist p95 praktisch das Maximum). Reserve unangetastet: ORT-Threads, Priorität. Bestätigt vor dem Merge: B1 Test für den Fund f7adca0 (`A_scan_before_the_warm_up_started_waits_for_it`, im Fix-Commit, vorher rot); B2 ROI-PNG des 125-%-Laufs gesehen und richtig. D100-Blinken live mit dem echten Overlay beurteilt (Gate-1-Lauf).
+  - **Präzisierung in der Planphase, ratifiziert durch Freigabe:** `--scan-probe [N]` = F8 ein Scan, F9 N Scans (Default 100) in einer Instanz; Testmatrix drei Fenstermodi plus 125 %; `HotkeyPoller<TAction>` statt eigener Flanke in der Probe; Client-Rechteck per `GetClientRect` + `ClientToScreen`, DWM-Bounds nur als Logspalte; K1 `Load(folder)` ohne geteilten Zustand, K2 Warten auf das Warmup höchstens 15 s, K3 eigener Schalter `--scan-load`.
+  - **Befund (10./11.11.2026, Branch `feat/t10-1b-capture`, Release, SC 3440×1440 borderless, Monitor 110 %):**
+    - **Gate 1** (Taste → Rohtext, `scan-probe.log`), alle Scans gelesen:
+
+      | Lauf | n | Capture inkl. D100 | Preprocessing | OCR | Taste → Rohtext Median / p95 |
+      |---|---|---|---|---|---|
+      | OFFERS, F8 | 10 | 21,9 / 52,8 ms (1. Scan) | 40,3 / 43,2 ms | 1 185 / 1 242 ms | **1 255 / 1 304 ms** |
+      | ACCEPTED, F8 | 10 | 23,6 / 33,0 ms | 43,9 / 53,2 ms | 1 218 / 1 320 ms | **1 296 / 1 391 ms** |
+      | F9-Serie 1 (Dauerlast) | 100 | 23,1 / 27,0 ms | 48,3 / 53,6 ms | 1 329 / 1 428 ms | 1 407 / 1 511 ms |
+      | F9-Serie 2 (Dauerlast) | 100 | – | – | 1 322 / 1 395 ms | 1 398 / 1 472 ms |
+
+      Die 3,2 s aus T10.1a waren eine Einzelmessung; einzelne Auslösungen liegen unter dem Zielwert 1 500 ms, kein Tuning nötig (ORT-Threads, Priorität unangetastet). Schwelle legt Martin fest.
+    - **Gate 2** (210 Scans in einem Prozess): Working Set 274 MB nach dem Warmup, ≈ 700 MB nach 10 Scans, ab etwa 70 ein Band von 773–892 MB (Mittel 824), Steigung über Scan 71–210 **0,03 MB/Scan**; Private Bytes 881–1 003 MB, −0,02 MB/Scan. Erste Serie allein zeigte +1 MB/Scan über 71–110 (Pendeln, die zweite Serie entschied). **GDI-Objekte konstant 35.** Offline (T10.1a, ohne WPF) 650–669 MB.
+    - **Gate 3** (`sc-gate3.ps1`, `--measure-frames <Ziel> --over-game`, je 3 Läufe, Median, Anteil später Frames): `hull_c` main 8eb2141 **7,1 %** → Branch mit warmer Engine **5,5 %** (−1,6 pp); `reclaimer` **10,7 %** → **10,9 %** (+0,2 pp). Gate ≤ +2 pp erfüllt. Mit `--scan-load` (20–22 Scans je 30 s, nicht Teil des Gates): `hull_c` 28,1 % bei 93 fps, `reclaimer` 5,9 % bei 57,5 fps – **verfälscht**: das mittige Messfenster liegt über dem ROI, D100 schaltet es je Scan auf Opacity 0 und zurück, das erzwingt zusätzliche Renderdurchläufe (Median 8,33 statt 16,67 ms).
+    - **Warmup** (Logzeile `OCR ready`, ab dem ersten Frame): 1 177 ms (Laden 692, Dummy-Lesevorgang 485) beim ersten Start mit SC, danach 677 und 1 054 ms; Start 1,2–2,4 s nach dem Prozess. Working Set 157 → 270 MB.
+    - **Overlay über dem ROI → D100:** Messung über SC (20 Versuche je Variante) und Martins Entscheidung **Opacity 0 mit einem `DwmFlush`**, nur für Fenster, die das ROI schneiden, Rückstellung auch bei Ausnahme. Im Gate-1-Lauf lag das Overlay bei allen 10 OFFERS-Scans über dem ROI, auf keinem Bild zu sehen. Martin: das kurze Blinken ist eine gute Rückmeldung, dass gescannt wird.
+    - **Fenstermodi** (je 1–2 Scans, ROI-PNG geprüft): Vollbild und Borderless identisch; **Fenster**: Client (8, 33), DWM-Bounds (7, 0) – über die DWM-Bounds läge das ROI 33 px zu hoch, über den Client sitzt es; SC blieb im Fenstermodus bei 3440×1440. **125 %** laut Martin (nicht abgemeldet): ROI identisch; das Log belegt die Skalierung nicht, weil SC `GetDpiForWindow` 106 meldet (Systemwert aus der Anmeldung).
+    - **DPI gemessen:** der UI-Thread läuft `system`-aware (WPF ohne Manifest), der Capture-Thread `per-monitor`; bei 110 % saß das ROI pixelgenau.
+    - **ZIP** (`publish.ps1`): 86 426 701 Byte (T10.1a 86 399 140, +27,6 KB), 386 Einträge, Ordner 178 MB.
+    - **Gate 4:** Build 0 Warnungen; Tests Core 1 817 · Import 164 · App 1 731 · Ocr 34 grün; `dotnet format --verify-no-changes` 0; CI `main` 8eb2141 grün (Branch noch nicht gepusht).
 
 ### [ ] T10.2 Parser-Anbindung, Identität, plan.json 10
 
@@ -5161,6 +5182,10 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   - **Reward:** In Spaltenreihenfolge steht „Reward 81,250“ in einer Zeile in der DETAILS-Spalte nach der Prosa. Der Parser sucht ihn nur am Textanfang (CT-Form) und las ihn in 0 von 40 Aufnahmen.
   - **Max-Größe:** Die zweite Formulierung („At most the containers will be 8 SCU in size.“, `+max2`) fehlt noch.
   - Lieferzeilen brechen wie im CT-Rohtext um („… to High Course Station“ / „at Hurston's L5 Lagrange point.“); das liest der Parser heute schon.
+- **Rohtext aus T10.1b** (`scan-probe.log` vom 11.11., 227 Scans über dem Spiel, liegt in Martins `%LocalAppData%\SC-CargoPlan`, CIG-Material, nicht ins Repo):
+  - **„O/“ statt „0/“:** In 235 von 877 Lieferzeilen liest die OCR den Zähler als Buchstaben („Deliver O/115 SCU of …“), vor allem in ACCEPTED. Der Parser muss `[0O]/` akzeptieren.
+  - **ACCEPTED** beginnt mit einer Zeile „ABANDON“, endet mit „SHARE TRACK“ und hat „Contract Deadline N/A“ statt „Contract Availability 2h 1m“; **OFFERS** endet mit „ACCEPT OFFER“. Die Titelzeile („Member Rank - Small Cargo Haul“) steht vor „DETAILS“.
+  - Die Zielsymbol-Zeilen „0“ (45×) und „L“ (80×) kommen auch über dem Spiel.
 
 ### [ ] T10.3 Hotkey, Editor, Notices
 
@@ -5169,6 +5194,14 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
 - Notices unten links: `Scanned #3 · From … · n SCU to …`, `Updated #3 · quantities changed`, `Already in plan (#2)`, `No contract in frame`, `Star Citizen window not found`.
 - Ein Vorschau-Scan vor der Annahme ist eine normale Mission, Notice „Rescan after accepting“; nicht genommen → Undo.
 - Handling gegen `main`.
+- **Aus T10.1b:**
+  - Der Scan läuft über `ContractScanner.ScanAsync` (ein Scan gleichzeitig, Warten aufs Warmup höchstens 15 s). Ein zweiter Druck während eines Scans (1,3 s) wird verworfen: In der Probe drückte Martin im Abstand von 0,5–0,8 s, 5 von 12 Drücken fielen weg. Entscheiden, ob das so bleibt oder eine Notice bekommt.
+  - Das Blinken eigener Fenster über dem Vertrag (D100) ist die Scan-Rückmeldung; keine eigene Anzeige nötig.
+  - Frame-Zeit unter Scans neu messen, mit dem Messfenster **neben** dem ROI (`--scan-load`): die T10.1b-Zahl ist durch das D100-Blinken des Messfensters verfälscht.
+  - **Gate:** p95 Taste → Rohtext ≤ 1 500 ms über dem Spiel, n ≥ 20 je Ansicht (OFFERS, ACCEPTED). Vergleich T10.1b: 1 304 / 1 391 ms bei n = 10.
+  - **Speicher-Vergleichszahl:** T10.1b +0,03 MB pro Scan über Scan 71–210 (≈ 3 MB je 100 Scans), Band 773–892 MB.
+  - Mit T10.5 entscheiden, ob „Scan aus“ auch das Warmup spart: die Engine kostet ≈ 400 MB Working Set (≈ 824 statt ≈ 400 MB vor OCR).
+
 
 ### [ ] T10.4a ContractTracker entfernen – Import, App, Doku
 
@@ -5203,6 +5236,7 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
 - Release-Notes, Freigabe durch Claude.ai:
   - „ContractTracker is no longer needed – press F3 on an open contract“
   - Migrationshinweis settings 3 / plan 10, kein Downgrade
+  - Speicher: mit OCR ≈ 824 MB Working Set statt ≈ 400 MB (T10.1b, Gate 2), ZIP ≈ 86 statt 62 MB (D99)
 - Hero-GIF neu (Scan am Terminal; der D85-Auslöser ist erfüllt).
 - Tag mit Nachmessung des ZIPs, Wiki, Nexus, Ankündigungen.
 
@@ -5231,6 +5265,11 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- Eigener Datenordner für Diagnose-Schalter (`--data-dir` oder Env, z. B. für `--scan-probe`, `--measure-frames`):
+  Probeläufe in T10.1b schrieben ins echte Profil: `plan.json` (der CT-Sync markierte Verträge als `gone`) und
+  `cargoplan.log` mussten aus Sicherungen zurück, `settings.json` blieb laut Hash unverändert. Auslöser: der nächste Diagnose-Lauf, der eine Spieler-Datei
+  verändert, oder ein neuer Diagnose-Schalter.
 
 - Rechteck-Picker für das Scan-ROI (der Nutzer zieht den Vertragsbereich einmal auf), für Seitenverhältnisse, bei denen
   das relative 16:9-Center-ROI nicht trifft (32:9, 16:10, geänderte HUD-Skalierung; S10.0 nur 21:9 und 16:9 geprüft).

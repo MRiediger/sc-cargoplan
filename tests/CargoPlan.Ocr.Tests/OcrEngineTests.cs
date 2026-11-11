@@ -19,6 +19,26 @@ public sealed class EngineCollection : ICollectionFixture<EngineFixture>
     public const string Name = "OCR engine";
 }
 
+/// <summary>
+/// Loading from a folder without models (T10.1b, K1): outside the engine collection on purpose, it touches no shared
+/// state, so it may run in parallel with the classes that read.
+/// </summary>
+public sealed class OcrEngineLoadTests : IDisposable
+{
+    private readonly string _folder = Directory.CreateTempSubdirectory("cargoplan-ocr-").FullName;
+
+    [Fact]
+    public void A_folder_without_models_names_the_first_missing_file()
+    {
+        var load = () => OcrEngine.Load(_folder);
+
+        load.Should().Throw<FileNotFoundException>()
+            .Which.FileName.Should().Be(Path.Combine(_folder, "ch_PP-OCRv5_mobile_det.onnx"));
+    }
+
+    public void Dispose() => Directory.Delete(_folder, recursive: true);
+}
+
 // The text is drawn with SkiaSharp's default typeface, so the asserts look for key words, case-insensitive, not for the
 // exact sentence (K4). If this turns flaky, it becomes Slow; the assert isn't loosened.
 [Collection(EngineCollection.Name)]

@@ -24,7 +24,7 @@ public class HotkeyPollTimingTests(ITestOutputHelper output)
     [Fact]
     public void Poll_time()
     {
-        var poller = new HotkeyPoller(NativeMethods.IsKeyDown);
+        var poller = new HotkeyPoller<HotkeyAction>(NativeMethods.IsKeyDown);
         foreach (var (text, action) in EightHotkeys.Zip(Enum.GetValues<HotkeyAction>()))
         {
             HotkeyParser.TryParse(text, out var hotkey, out _).Should().BeTrue();

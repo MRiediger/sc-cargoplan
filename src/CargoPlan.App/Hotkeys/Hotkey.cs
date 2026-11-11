@@ -47,7 +47,7 @@ public enum HotkeyAction
     ResetView,
 }
 
-/// <summary>A key combination: modifiers plus one key. Built by <see cref="HotkeyParser"/>, polled by <see cref="HotkeyPoller"/>.</summary>
+/// <summary>A key combination: modifiers plus one key. Built by <see cref="HotkeyParser"/>, polled by <see cref="HotkeyPoller{TAction}"/>.</summary>
 /// <param name="VirtualKey">Win32 virtual-key code.</param>
 public sealed record Hotkey(HotkeyModifiers Modifiers, uint VirtualKey)
 {

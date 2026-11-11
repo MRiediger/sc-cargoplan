@@ -15,9 +15,9 @@ public class HotkeyPollerTests
     private const uint VK_RWIN = 0x5C;
 
     private readonly HashSet<uint> _down = [];
-    private readonly HotkeyPoller _poller;
+    private readonly HotkeyPoller<HotkeyAction> _poller;
 
-    public HotkeyPollerTests() => _poller = new HotkeyPoller(_down.Contains);
+    public HotkeyPollerTests() => _poller = new HotkeyPoller<HotkeyAction>(_down.Contains);
 
     private static Hotkey Parse(string text)
     {

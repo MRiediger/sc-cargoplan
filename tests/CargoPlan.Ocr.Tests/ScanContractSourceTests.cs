@@ -1,3 +1,5 @@
+using SkiaSharp;
+
 namespace CargoPlan.Ocr.Tests;
 
 // A 960×540 window, region [322, 78, 585, 375]: a quarter of 1080p's pixels keeps a read under the default run's ≈ 1.3 s
@@ -41,6 +43,27 @@ public sealed class ScanContractSourceTests(EngineFixture fixture)
         result.RawText.Should().BeEmpty();
         result.Timings.Ocr.Should().BePositive();
         result.Timings.Total.Should().Be(result.Timings.Region + result.Timings.Preprocess + result.Timings.Ocr + result.Timings.Lines);
+    }
+
+    // The App captures only the region (T10.1b): its own bitmap, not a subset of a frame, read without a second cut.
+    [Fact]
+    public void A_region_captured_on_its_own_reads_like_the_frame_it_was_cut_from()
+    {
+        using var frame = TextImages.Draw(Width, Height, TextSize,
+            ("PRIMARY OBJECTIVES", 625, 100),
+            ("DETAILS", 340, 100),
+            ("Deliver 0/8 SCU to Riker", 625, 130));
+        var region = ScanRegion.Of(Width, Height);
+        using var captured = new SKBitmap(new SKImageInfo(region.Width, region.Height, SKColorType.Bgra8888, SKAlphaType.Opaque));
+        frame.ExtractSubset(captured, SKRectI.Create(region.X, region.Y, region.Width, region.Height)).Should().BeTrue();
+        using var own = captured.Copy();
+        var source = new ScanContractSource(fixture.Engine);
+
+        var fromRegion = source.ReadRegion(own);
+
+        fromRegion.Outcome.Should().Be(ScanOutcome.Read);
+        fromRegion.RawText.Should().Be(source.Read(frame).RawText);
+        fromRegion.Timings.Region.Should().Be(TimeSpan.Zero, "nothing was cut");
     }
 
     private static int IndexOf(string[] lines, string word) =>

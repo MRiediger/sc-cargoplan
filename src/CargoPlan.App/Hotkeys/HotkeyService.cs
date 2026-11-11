@@ -24,7 +24,7 @@ public sealed class HotkeyService
     private readonly Window _window;
     private readonly OverlayViewModel _viewModel;
     private readonly Dictionary<HotkeyAction, ICommand> _commands;
-    private readonly HotkeyPoller _poller = new(NativeMethods.IsKeyDown);
+    private readonly HotkeyPoller<HotkeyAction> _poller = new(NativeMethods.IsKeyDown);
     private readonly DispatcherTimer _timer = new() { Interval = PollInterval };
 
     // The hotkeys set, for the log line, and the settings.json entries that were invalid, for the notice line.

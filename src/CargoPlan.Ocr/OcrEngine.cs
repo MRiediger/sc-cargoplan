@@ -37,18 +37,24 @@ public sealed class OcrEngine : IDisposable
     }
 
     /// <summary>Loads the models from <see cref="ModelFolder"/>; a missing file is named (a broken install).</summary>
-    public static OcrEngine Load()
+    public static OcrEngine Load() => Load(ModelFolder);
+
+    /// <summary>
+    /// Loads the models from <paramref name="folder"/>. Every file is checked before anything loads, and a new engine comes
+    /// back: no shared state, so a failed load leaves other engines in the process as they were (T10.1b, K1).
+    /// </summary>
+    public static OcrEngine Load(string folder)
     {
         foreach (var file in (string[])[DetectorFile, ClassifierFile, RecognizerFile, KeysFile])
         {
-            var path = Path.Combine(ModelFolder, file);
+            var path = Path.Combine(folder, file);
             if (!File.Exists(path))
             {
                 throw new FileNotFoundException($"The OCR model {file} is missing next to the exe (models/v5).", path);
             }
         }
 
-        return new OcrEngine(ModelFolder);
+        return new OcrEngine(folder);
     }
 
     /// <summary>Reads a small drawn line once, so the first real read doesn't pay for the runtime's first run.</summary>

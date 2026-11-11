@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using CargoPlan.App.Holo;
+using CargoPlan.App.Scanning;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.App.Theme;
@@ -160,6 +161,15 @@ internal sealed class FrameMeasureWindow : Window
         }
     }
 
+    /// <summary>
+    /// The contract scanner, warming from the first frame like the overlay's (T10.1b, Gate 3): the measurement runs with
+    /// the engine in memory, as the player's overlay will. null = no OCR (main before T10.1b).
+    /// </summary>
+    internal ContractScanner? Scanner { get; set; }
+
+    /// <summary>Scan in a loop during the run (<c>--scan-load</c>, K3): the frame time under scans, reported apart.</summary>
+    internal bool ScanLoad { get; set; }
+
     private async void OnContentRendered(object? sender, EventArgs e)
     {
         var known = _target == Empty || _ship is not null;
@@ -168,7 +178,12 @@ internal sealed class FrameMeasureWindow : Window
             await Task.Delay(Lead);
         }
 
+        using var stopScans = new CancellationTokenSource();
+        var scans = ScanLoad && Scanner is { } scanner ? ScanLoopAsync(scanner, stopScans.Token) : Task.FromResult("");
         var intervals = known ? await MeasureFramesAsync() : [];
+        await stopScans.CancelAsync();
+        var scanLoad = await scans;
+        var ocr = Scanner is null ? "" : $", ocr {(Scanner.IsReady ? "warm" : "NOT READY")}{scanLoad}";
         // "held" says the drag still runs after the frames: a lost capture would end it, and the sweep would time tool tips.
         var drags = _drag ? Inv($" | drag held {(_view.IsDragging ? "yes" : "NO")}, path keys {_pathKeys}, ") + DragSweep() : "";
         var hits = _ship is not null ? HitSweep() : null;
@@ -176,11 +191,29 @@ internal sealed class FrameMeasureWindow : Window
 
         var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
         var subject = (_ship is null ? _target : Inv($"{_target} {_crates} crates, holo {(_holo is null ? "no" : "yes")}, marker {_view.Scene?.Marker.GetType().Name}"))
-            + (_overGame ? " over game" : "");
+            + (_overGame ? " over game" : "") + ocr;
         var frames = known ? FrameStatistics.Summary(intervals, Duration) : "unknown target (empty, " + string.Join(", ", Targets.Keys) + ")";
         File.AppendAllText(_logPath, Inv($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {version} {subject}: frames {frames}{drags}{(hits is null ? "" : " | hits " + hits)}") + Environment.NewLine);
 
         Application.Current.Shutdown(valid ? 0 : 1);
+    }
+
+    // Scans one after the other until the run ends. Stops early when there is nothing to read (no game, no OCR, no
+    // desktop): those come back at once and would only spin. Returns the log's part: how many, of what.
+    private static async Task<string> ScanLoopAsync(ContractScanner scanner, CancellationToken stop)
+    {
+        Dictionary<ScanAttemptOutcome, int> outcomes = [];
+        while (!stop.IsCancellationRequested)
+        {
+            var attempt = await scanner.ScanAsync();
+            outcomes[attempt.Outcome] = outcomes.GetValueOrDefault(attempt.Outcome) + 1;
+            if (attempt.Outcome is ScanAttemptOutcome.GameNotFound or ScanAttemptOutcome.Unavailable or ScanAttemptOutcome.CaptureFailed)
+            {
+                break;
+            }
+        }
+
+        return ", scan load " + string.Join(", ", outcomes.Select(o => Inv($"{o.Value} {o.Key}")));
     }
 
     // One sample per frame: Rendering can come more than once per frame, the frames differ in RenderingTime.

@@ -111,4 +111,80 @@ public class StartOptionsTests
     {
         StartOptions.Parse(["--measure-frames", "hull_c"]).OverGame.Should().BeFalse();
     }
+
+    // T10.1b: F8 = one scan, F9 = a series; the number is the series' length.
+    [Theory]
+    [InlineData(100, "--scan-probe")]
+    [InlineData(100, "--Scan-Probe", "--locked")]
+    [InlineData(20, "--scan-probe", "20")]
+    public void Scan_probe_arms_the_probe_keys_with_the_series_length(int series, params string[] args)
+    {
+        var options = StartOptions.Parse(args);
+
+        options.ScanProbe.Should().Be(series);
+        options.Problem.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("--scan-probe", "0")]
+    [InlineData("--scan-probe", "-5")]
+    [InlineData("--scan-probe", "many")]
+    public void Scan_probe_with_a_series_that_is_no_positive_number_is_a_problem_and_keeps_the_default(params string[] args)
+    {
+        var options = StartOptions.Parse(args);
+
+        options.ScanProbe.Should().Be(StartOptions.ScanProbeSeries);
+        options.Problem.Should().Contain("--scan-probe");
+    }
+
+    [Fact]
+    public void Scan_probe_is_off_by_default()
+    {
+        var options = StartOptions.Parse(["--locked"]);
+
+        options.ScanProbe.Should().BeNull();
+        options.ScanProbeImages.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Scan_probe_images_keep_every_region_as_a_picture()
+    {
+        StartOptions.Parse(["--scan-probe", "--scan-probe-images"]).ScanProbeImages.Should().BeTrue();
+    }
+
+    // K3: the frame measurement under scans has its own switch; --scan-probe always means the probe keys.
+    [Theory]
+    [InlineData("--measure-frames", "hull_c", "--over-game", "--scan-load")]
+    [InlineData("--Scan-Load", "--measure-frames", "hull_c", "--over-game")]
+    public void Scan_load_scans_during_a_frame_measurement(params string[] args)
+    {
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null, MeasureFrames: "hull_c", OverGame: true, ScanLoad: true));
+    }
+
+    [Fact]
+    public void Scan_load_without_a_measurement_is_a_problem()
+    {
+        var options = StartOptions.Parse(["--scan-load"]);
+
+        options.ScanLoad.Should().BeFalse();
+        options.Problem.Should().Contain("--scan-load");
+    }
+
+    [Fact]
+    public void Scan_probe_next_to_a_measurement_does_not_load_it()
+    {
+        var options = StartOptions.Parse(["--measure-frames", "hull_c", "--scan-probe"]);
+
+        options.ScanLoad.Should().BeFalse();
+        options.ScanProbe.Should().Be(StartOptions.ScanProbeSeries);
+    }
+
+    [Fact]
+    public void Scan_probe_images_without_the_probe_are_a_problem()
+    {
+        var options = StartOptions.Parse(["--scan-probe-images"]);
+
+        options.ScanProbeImages.Should().BeFalse();
+        options.Problem.Should().Contain("--scan-probe-images");
+    }
 }
