@@ -5264,7 +5264,7 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   - Gefunden: `PickupNames.Clean` (`PickupNames.cs:44`) baut ein Item ohne `Manual` neu; ein Handeintrag einer
     CT-Mission verliert beim Bereinigen seine Markierung. `Clean` geht mit F23 in T10.4a.
 
-### [ ] T10.3 Hotkey, Editor, Notices
+### [x] T10.3 Hotkey, Editor, Notices
 
 - **Aus T10.2b2 (D103):** `ScanIntake` an Hotkey und Editor-Button hängen, `ApplyScan` per Dispatcher auf den UI-Thread;
   eine Notice je `ScanReport` (`Added`, `Updated` mit „quantities changed“, `AlreadyInPlan`, `Refused` mit Grund,
@@ -5299,7 +5299,45 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   10. Gate 4: `--scan-load` öffnet das Messfenster links neben dem ROI.
   11. Commit-Reihenfolge: Core und Runner vor dem Hotkey (der Hotkey braucht den Runner).
   - **Release-Notes v0.4.0 vormerken:** „F3 scans the open contract; change or clear it in Settings if F3 is bound in Star
-    Citizen.“ Und die Frame-Zeit unter Scan-Last aus Gate 4.
+    Citizen.“ Und die Frame-Zeit unter Scan-Last aus Gate 4. README und Wiki bekommen „Open the contract and press F3“
+    **zum Release** (Martin): das Wiki steht auf „Applies to v0.3.1“ und ist live.
+  - **Befund (11.11.2026, Branch `feat/t10-3-scan-hotkey`, Release, SC 3440×1440, Martin bedient):**
+    - **Gate 1** (Taste → Rohtext und Taste → Notice aus `scans.log` des echten Hotkey-Pfads, gelesene Scans):
+
+      | Ansicht | n | Taste → Rohtext Median / p95 | Taste → Notice Median / p95 / max |
+      |---|---|---|---|
+      | OFFERS | 24 | 1 302 / **1 383 ms** | 1 308 / 1 389 / 1 571 ms |
+      | ACCEPTED | 22 | 1 339 / **1 423 ms** | 1 345 / 1 423 / 1 694 ms |
+
+      Gate ≤ 1 500 ms erfüllt (T10.1b bei n = 10: 1 304 / 1 391 ms). 20 Drücke fielen in einen laufenden Scan (Abstand
+      ≈ 1,1 s, Scan ≈ 1,3 s) → `Scan running`; deshalb n aus den Gate-1- und Gate-2-Kopien zusammen. Die 1 694 ms sind der
+      erste Scan nach dem Start (Rohtext → Notice 244 ms), danach 0–20 ms.
+    - **Gate 2 – echte Paare** (OFFERS scannen, annehmen, ACCEPTED scannen), alle `Added #n` → `Updated #n · quantities changed`:
+
+      | # | Ware(n) | SCU OFFERS → ACCEPTED | Ziele gleich | Reward gleich |
+      |---|---|---|---|---|
+      | 1 | Waste | 11 → 10 | ja | ja (72 500) |
+      | 2 | Pressurized Ice + Processed Food, 4 Ziele | 7/4/3/7 → 6/4/6/7 | ja | ja (100 500) |
+      | 3 | Stims, 4 Ziele | 3/3/2/2 → 2/3/2/3 | ja | ja (72 500) |
+      | 4 | Waste | 6 → 9 | ja | ja (50 250) |
+      | 5 | Carbon | 8 → 9 | ja | ja (45 000) |
+      | 6 | Pressurized Ice + Processed Food, 4 Ziele | 6/5/4/4 → 4/5/3/6 | ja | ja (81 250) |
+
+      **Antwort auf die Frage aus T10.2a:** Das Spiel würfelt beim Annehmen **nur die Mengen** neu (6 von 6), nie Ziele,
+      Pickups oder Reward. Ein Rescan von #1 danach: `Already in plan (#1)`. Kein Paar als zweite Mission.
+    - **Gate 3** (Martin: alle Fälle durchgespielt, Logzeilen wo vorhanden): Doppeldruck (20× „another scan is running“ →
+      `Scan running`), ohne mobiGlas (2× `No contract in frame`), ohne SC, Editor-Button mit Editor vorn, Undo nach Scan,
+      Scan in leeren Plan + Undo, `Updated` mit geladenen Kisten, **CT-Hinweis kam** (Prozessname bestätigt). Ein
+      Nicht-Hauling-Vertrag (Salvage, Bounty) ergibt `NoContract` → `No contract in frame`. Keine zweite Lesung: das Spiel
+      wurde nie beim Eintippen erwischt (keine „doubt“-Zeile).
+    - **Gate 4** (`hull_c`, `--scan-load`, Messfenster links neben dem ROI, Vertrag offen, 3 Läufe): 26,2 / 38,0 / 29,2 %
+      späte Frames, **Median 29,2 %**, Frame-Median 8,33 ms, 86–95 fps; T10.1b mit mittigem Fenster 25,9–30,0 %. Martin:
+      flüssig. **Befund:** Das 8,33-ms-Muster bleibt auch neben dem ROI; die T10.1b-Erklärung (D100 blinkt das Messfenster)
+      trägt nicht, die Ursache ist offen (mehr Renderdurchläufe unter Last, kein Ruckeln). `reclaimer` 1 Lauf: 6,2 %.
+    - **Speicher:** Overlay nach 40 Scans **770 MB** Working Set, 770 MB Private Bytes (T10.1b-Band 773–892 MB nach > 70 Scans).
+    - **Gate 5:** Build 0 Warnungen; Tests Core 1 828 (sauber 1 827, lokale Scratch-Datei) · Import 321 · App 1 826
+      (vorher 1 762) · Ocr 34 grün; `dotnet format --verify-no-changes` 0. CI nach Martins Push.
+    - Martin: „funktioniert einwandfrei, schneller als CT, erkennt zuverlässig ob Vertrag, Offer, Accepted, korrigiert“.
 
 
 ### [ ] T10.4a ContractTracker entfernen – Import, App, Doku
