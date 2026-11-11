@@ -1,5 +1,6 @@
 using CargoPlan.App.Editor;
 using CargoPlan.App.Holo;
+using CargoPlan.App.Scanning;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Missions;
@@ -8,6 +9,7 @@ using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
 using CargoPlan.Import;
+using CargoPlan.Import.Contracts;
 using CargoPlan.Import.ContractTracker;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -618,6 +620,49 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// starts one. A new database (D44) always changes the plan: its watermark goes back, also when the file is still
     /// empty, and the undo history goes, since its snapshots hold the old ids undetached.
     /// </summary>
+    /// <summary>
+    /// A scanned contract into the plan (T10.2b2, D103): one undo step, also the first into no plan; nothing for a text still
+    /// typing in or without a delivery. One name per place first (B1), as for a capture; Core matches the key
+    /// (<see cref="ScanSync"/>). The next number goes above every number given and every scan in the plan (D102). The
+    /// notices for the player come with T10.3.
+    /// </summary>
+    public ScanReport ApplyScan(ScannedContract scanned)
+    {
+        if (scanned.InHardDoubt)
+        {
+            return new(ScanReportKind.Incomplete);
+        }
+
+        if (scanned.Stops.Count == 0)
+        {
+            return new(ScanReportKind.NoContract);
+        }
+
+        var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []), CrateCap.Of(Ship));
+        var nextNo = Math.Max(LastScanNo, current.HighestScanNo) + 1;
+        var unified = DestinationNames.Unify(current, Ship, [scanned.ToCapture(nextNo)]);
+        var merge = ScanSync.Apply(unified.Saved, Ship, unified.Captures[0], nextNo);
+        if (!ReferenceEquals(merge.Saved, current))
+        {
+            SetNotice(NoticeSource.Stops, StopsMergedText(unified.Merged));
+            Step(merge.Saved, from: current);
+        }
+
+        if (merge.Change == ScanChange.Added)
+        {
+            LastScanNo = merge.ScanNo;
+        }
+
+        var kind = merge.Change switch
+        {
+            ScanChange.Added => ScanReportKind.Added,
+            ScanChange.Updated => ScanReportKind.Updated,
+            ScanChange.AlreadyInPlan => ScanReportKind.AlreadyInPlan,
+            _ => ScanReportKind.Refused,
+        };
+        return new(kind, merge.ScanNo, merge.QuantitiesChanged, merge.Cleared, merge.Refusal);
+    }
+
     public void ApplyContractTracker(ContractTrackerReadResult result, bool manual = false)
     {
         if (_contractTrackerPaused)
@@ -918,9 +963,13 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// recorded so it can be undone; a new step drops what was undone. Syncs set <see cref="Saved"/> directly: they are no
     /// steps and carry over instead.
     /// </summary>
-    private void Step(SavedPlan next)
+    private void Step(SavedPlan next) => Step(next, from: Saved);
+
+    /// <param name="from">The plan the step leaves: <see cref="Saved"/>, or the empty plan a first scan starts from, so it
+    /// can be undone too (T10.2b2).</param>
+    private void Step(SavedPlan next, SavedPlan? from)
     {
-        var before = Saved;
+        var before = from;
         Saved = next;
         if (before is not null && !ReferenceEquals(before, Saved))
         {
