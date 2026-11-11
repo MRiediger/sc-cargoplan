@@ -21,18 +21,21 @@ public partial class OverlayWindow : Window
     private readonly Func<HotkeysViewModel> _createHotkeys;
     private readonly Func<ContractTrackerSectionViewModel> _createContractTracker;
     private readonly Func<Task> _syncFromContractTracker;
+    private readonly Action _scanContract;
     private MissionEditorWindow? _editor;
     private SettingsWindow? _settingsWindow;
 
     /// <param name="createHotkeys">Made per settings window, from the hotkeys as they are then.</param>
     /// <param name="createContractTracker">Made per settings window, from the ContractTracker settings as they are then (D44).</param>
     /// <param name="syncFromContractTracker">The editor's "Sync from ContractTracker" (T5.4).</param>
+    /// <param name="scanContract">The editor's "Scan", the scan hotkey's runner (T10.3).</param>
     public OverlayWindow(
         OverlayViewModel viewModel,
         SettingsSession settings,
         Func<HotkeysViewModel> createHotkeys,
         Func<ContractTrackerSectionViewModel> createContractTracker,
-        Func<Task> syncFromContractTracker)
+        Func<Task> syncFromContractTracker,
+        Action scanContract)
     {
         InitializeComponent();
         _viewModel = viewModel;
@@ -40,6 +43,7 @@ public partial class OverlayWindow : Window
         _createHotkeys = createHotkeys;
         _createContractTracker = createContractTracker;
         _syncFromContractTracker = syncFromContractTracker;
+        _scanContract = scanContract;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
@@ -296,7 +300,7 @@ public partial class OverlayWindow : Window
     {
         if (_editor is null)
         {
-            _editor = new MissionEditorWindow(new MissionEditorViewModel(_viewModel, _syncFromContractTracker), _viewModel, _settings.ToolWindowTheme, this);
+            _editor = new MissionEditorWindow(new MissionEditorViewModel(_viewModel, _syncFromContractTracker, _scanContract), _viewModel, _settings.ToolWindowTheme, this);
             _editor.Closed += (_, _) => _editor = null;
             _editor.Show();
         }

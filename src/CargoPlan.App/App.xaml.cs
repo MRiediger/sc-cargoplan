@@ -179,7 +179,8 @@ public partial class App : Application
             session,
             () => CreateHotkeysViewModel(session),
             () => CreateContractTrackerSection(session, contractTracker, viewModel),
-            () => contractTracker.RunSyncGuardedAsync(manual: true));
+            () => contractTracker.RunSyncGuardedAsync(manual: true),
+            scan.Start);
         if (settings.Overlay is { } saved)
         {
             RestoreBounds(overlay, saved);

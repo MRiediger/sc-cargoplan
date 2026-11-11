@@ -1306,6 +1306,57 @@ public sealed class MissionEditorViewModelTests : IDisposable
     }
 
     [Fact]
+    public void Scan_runs_the_overlays_scan()
+    {
+        var scanned = 0;
+        var editor = new MissionEditorViewModel(EmptyOverlay(), scanContract: () => scanned++);
+
+        editor.ScanCommand.Execute(null);
+
+        scanned.Should().Be(1);
+    }
+
+    [Fact]
+    public void Scan_is_off_without_a_scanner()
+    {
+        new MissionEditorViewModel(EmptyOverlay()).ScanCommand.CanExecute(null).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Scan_is_off_while_a_scan_runs_and_on_again_after()
+    {
+        // The button sees the state, so it needs no "Scan running" (T10.3); the hotkey does.
+        var overlay = EmptyOverlay();
+        var editor = new MissionEditorViewModel(overlay, scanContract: () => { });
+        var changed = 0;
+        editor.ScanCommand.CanExecuteChanged += (_, _) => changed++;
+
+        overlay.IsScanning = true;
+        editor.ScanCommand.CanExecute(null).Should().BeFalse();
+        overlay.IsScanning = false;
+
+        editor.ScanCommand.CanExecute(null).Should().BeTrue();
+        changed.Should().Be(2);
+    }
+
+    [Fact]
+    public void A_scan_while_the_draft_is_changed_keeps_the_edits_adds_its_rows_and_says_so()
+    {
+        var overlay = OverlayWithCaptures();
+        var editor = new MissionEditorViewModel(overlay);
+        editor.Rows[0].Scu = "12";
+
+        overlay.ApplyScan(Import.Contracts.ScannedContract.Read(
+            "ABANDON\nDETAILS\nReward 50,250\nContract Deadline N/A\nPRIMARY OBJECTIVES\n"
+            + "Deliver 0/8 SCU of Stims to Lorville.\nCollect Stims from Everus Harbor.\nSHARE UNTRACK"));
+
+        editor.Rows.Select(r => r.Destination).Should().Contain("Lorville");
+        editor.IsDirty.Should().BeTrue();
+        editor.Status.Should().Be(MissionEditorViewModel.ChangedOutsideText);
+        MissionEditorViewModel.ChangedOutsideText.Should().Contain("a scan");
+    }
+
+    [Fact]
     public void A_capture_while_the_editor_is_open_shows_up_in_a_clean_draft()
     {
         var overlay = OverlayWithCaptures();

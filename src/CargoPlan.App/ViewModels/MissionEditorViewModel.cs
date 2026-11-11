@@ -25,7 +25,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     public const string PlanText = "Plan the rows and show them in the overlay";
     public const string MissionDeletedText = "Mission deleted – plan updated, no need to press Plan.";
     public const string ChangedOutsideText =
-        "The plan changed outside the editor (ContractTracker or the legend): new missions were added below. Plan replaces the plan with these rows.";
+        "The plan changed outside the editor (a scan, ContractTracker or the legend): new missions were added below. Plan replaces the plan with these rows.";
 
     private readonly OverlayViewModel _overlay;
 
@@ -46,6 +46,9 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     // "Sync from ContractTracker": the overlay's sync, the same read the watcher runs (T5.4); null without one.
     private readonly Func<Task>? _syncFromContractTracker;
 
+    // "Scan": the overlay's scan runner, the same path as the hotkey (T10.3); null without one.
+    private readonly Action? _scanContract;
+
     // The overlay's missions the rows were made from: a tick keeps the list, a sync or a deletion makes a new one.
     private IReadOnlyList<Mission> _missions;
 
@@ -57,10 +60,12 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
     /// <summary>Starts with the missions of the overlay's plan, or one blank row without a plan.</summary>
     /// <param name="syncFromContractTracker">Runs a ContractTracker sync; the Sync button is off without it.</param>
-    public MissionEditorViewModel(OverlayViewModel overlay, Func<Task>? syncFromContractTracker = null)
+    /// <param name="scanContract">Starts a scan and returns at once; the Scan button is off without it and while one runs.</param>
+    public MissionEditorViewModel(OverlayViewModel overlay, Func<Task>? syncFromContractTracker = null, Action? scanContract = null)
     {
         _overlay = overlay;
         _syncFromContractTracker = syncFromContractTracker;
+        _scanContract = scanContract;
         _fillOrder = overlay.Plan?.FillOrder ?? FillOrder.BowFirst;
         _fillRows = overlay.Plan?.FillRows ?? FillRows.Lengthwise;
         _grouping = overlay.Plan?.Grouping ?? PlanGrouping.None;
@@ -445,6 +450,15 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     private bool CanSync() => _syncFromContractTracker is not null;
 
     /// <summary>
+    /// Reads the contract open in Star Citizen into the plan, like the scan hotkey (T10.3, D104). The scanner finds the game
+    /// by its process, not by the window in front, so it works with the editor in front. The result comes as a notice.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanScan))]
+    private void Scan() => _scanContract?.Invoke();
+
+    private bool CanScan() => _scanContract is not null && !_overlay.IsScanning;
+
+    /// <summary>
     /// The overlay's Re-plan (D66): lays out the cargo on board anew, not the rows. Its own change, so no "changed
     /// outside"; a draft stays a draft, clean rows show a mission it placed.
     /// </summary>
@@ -553,6 +567,12 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
             // The crates column shows derived mixes split up to the ship's cap (D70).
             Evaluate();
+            return;
+        }
+
+        if (e.PropertyName == nameof(OverlayViewModel.IsScanning))
+        {
+            ScanCommand.NotifyCanExecuteChanged();
             return;
         }
 
