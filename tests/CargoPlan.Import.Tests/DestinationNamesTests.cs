@@ -6,7 +6,6 @@ using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
 using CargoPlan.Core.Tests;
 using CargoPlan.Import.Contracts;
-using CargoPlan.Import.ContractTracker;
 
 namespace CargoPlan.Import.Tests;
 
@@ -137,16 +136,14 @@ public class DestinationNamesTests
         return PlanFile.Read(stream, ImportFixtures.HurstonPlan, HullA);
     }
 
-    /// <summary>Capture 9–12 read from a database as ContractTracker wrote it.</summary>
+    /// <summary>
+    /// Capture 9–12 as the database reader gave it (D39 addendum): the stops of its text, its ids and the legend's hints;
+    /// no pickup, the rows had none. Built from the text since the reader went (T10.4a).
+    /// </summary>
     private static IReadOnlyList<ContractCapture> CapturesOf(params long[] ids)
     {
-        using var database = new TempContractDatabase();
-        var raw = ImportFixtures.RawText(ImportFixtures.HurstonAnyOrder);
-        foreach (var id in ids)
-        {
-            database.AddContract(id, "Pressurized Ice", raw, (3, "Thundering Express"));
-        }
-
-        return [.. ContractTrackerReader.ReadSince(database.Path, 0).Candidates.Select(c => c.ToCapture())];
+        var parsed = ContractTextParser.Parse(ImportFixtures.RawText(ImportFixtures.HurstonAnyOrder));
+        var stops = ContractStops.Of(parsed.Deliveries, parsed.MaxCrateSize, new Dictionary<string, IReadOnlyList<string>?>());
+        return [new ContractCapture(stops, new ContractSource(ids, parsed.MaxCrateSize is null, parsed.ListedDestinationCount, parsed.Reward))];
     }
 }

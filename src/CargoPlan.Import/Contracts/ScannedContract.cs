@@ -6,8 +6,7 @@ namespace CargoPlan.Import.Contracts;
 /// <summary>
 /// One contract as CargoPlan's own OCR read it (T10.2a, D99): stops and items as entered (D23), names normalised
 /// (<see cref="ContractText"/>), what the legend marks as uncertain, and the content key that tells two scans of one
-/// contract from two contracts (D101). Built next to <see cref="ContractTracker.ContractTrackerCandidate"/>, which goes in
-/// T10.4a.
+/// contract from two contracts (D101).
 /// </summary>
 /// <param name="View">Offers (amounts are an estimate) or accepted; unknown if the text shows neither or both.</param>
 /// <param name="Stops">One per place in the order of the text; each item with the pickups of its commodity's Collect lines.

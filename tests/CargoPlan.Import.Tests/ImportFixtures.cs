@@ -3,8 +3,8 @@ using System.Reflection;
 namespace CargoPlan.Import.Tests;
 
 /// <summary>
-/// Raw OCR texts of real ContractTracker captures (Fixtures/RawText, D38 addendum) and the fingerprint schema,
-/// embedded in this test assembly. Contract ids in the comments are the ones in Martin's database.
+/// Raw OCR texts of real ContractTracker captures (Fixtures/RawText, D38 addendum) and two of Martin's plans, embedded
+/// in this test assembly. Contract ids in the comments are the ones in Martin's database.
 /// </summary>
 internal static class ImportFixtures
 {
@@ -125,8 +125,6 @@ internal static class ImportFixtures
     public static string RawText(string name) => ReadResource($"rawtext/{name}.txt");
 
     public static string Plan(string name) => ReadResource($"plans/{name}.json");
-
-    public static string Schema => ReadResource("ct_schema.sql");
 
     private static string ReadResource(string resourceName)
     {
