@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using CargoPlan.Core.Models;
 
-namespace CargoPlan.Import.ContractTracker;
+namespace CargoPlan.Import.Contracts;
 
 /// <summary>
 /// Reads a contract from ContractTracker's raw OCR text (D39): commodities, destinations with SCU, the max crate size
@@ -14,26 +14,93 @@ internal static partial class ContractTextParser
 {
     // Headings as the game prints them, compared in their anchor form (see ContractText.AnchorForm).
     private const string StartHeading = "DETAILS";
-    private const string EndHeading = "ACCEPT OFFER";
     private const string DropOffHeading = "DROP OFF LOCATIONS";
     private const string PickUpHeading = "PICK UP LOCATIONS";
+    private const string CollectVerb = "Collect";
+
+    // The buttons of the two views (T10.2a). ContractTracker's text has "TRACK" / "UNTRACK" alone, without "SHARE".
+    private const string AcceptOffer = "ACCEPT OFFER";
+    private const string ShareTrack = "SHARE TRACK";
+    private const string ShareUntrack = "SHARE UNTRACK";
+
+    /// <summary>The last line of a contract: the offers view's button or the accepted view's share line (T10.2a).</summary>
+    private static readonly string[] EndHeadings = [AcceptOffer, ShareTrack, ShareUntrack];
+
+    /// <summary>Whole lines and line starts that only the offers view shows.</summary>
+    private static readonly (string[] Lines, string[] Starts) OfferSignals = ([AcceptOffer], ["Contract Availability"]);
+
+    /// <summary>Whole lines and line starts that only the accepted view shows.</summary>
+    private static readonly (string[] Lines, string[] Starts) AcceptedSignals =
+        (["ABANDON", ShareTrack, ShareUntrack, "TRACK", "UNTRACK"], ["Contract Deadline"]);
 
     public static ParsedContract Parse(string rawText)
     {
         var text = rawText.ReplaceLineEndings("\n");
-        var lines = Block(text.Split('\n'));
-        return new(Deliveries(lines), MaxCrateSize(string.Join('\n', lines)), ListedDestinationCount(lines), Reward(text));
+        var all = text.Split('\n');
+        var lines = Block(all);
+        return new(Deliveries(lines), MaxCrateSize(string.Join('\n', lines)), ListedDestinationCount(lines), Reward(text), Pickups(lines),
+            View(all));
     }
 
     /// <summary>
-    /// The lines between "DETAILS" and "ACCEPT OFFER": list fragments of the contract list stand before, digit noise after
-    /// (D38 addendum). Either heading may be misread or missing (a capture from the Accepted tab has no "ACCEPT OFFER",
-    /// D40): then the block runs from the start or to the end, and the delivery pattern keeps out what doesn't belong.
+    /// The view from the whole text, buttons and title stand outside the block: one side's signals only, else unknown. In
+    /// the anchor form, so "ACCEPT 0FFER" and "Contract DeadIine" count.
+    /// </summary>
+    private static ContractView View(string[] lines) =>
+        (lines.Any(l => Shows(l, OfferSignals)), lines.Any(l => Shows(l, AcceptedSignals))) switch
+        {
+            (true, false) => ContractView.Offer,
+            (false, true) => ContractView.Accepted,
+            _ => ContractView.Unknown,
+        };
+
+    private static bool Shows(string line, (string[] Lines, string[] Starts) signals) =>
+        signals.Lines.Any(heading => IsHeading(line, heading))
+        || signals.Starts.Any(start => ContractText.AnchorForm(line).StartsWith(ContractText.AnchorForm(start), StringComparison.Ordinal));
+
+    /// <summary>
+    /// "Collect Stims from Everus Harbor." (T10.2a): one line per pickup, its verb as OCR may read it ("CoIlect"). A place
+    /// without a sentence end may go on in the next line, but only by a few words ending one (<see cref="PlaceEnding"/>,
+    /// "Station."): ContractTracker's text puts prose, a list or a heading there, our OCR the next delivery or its marker.
+    /// </summary>
+    private static IReadOnlyList<ParsedPickup> Pickups(string[] lines)
+    {
+        List<ParsedPickup> pickups = [];
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (CollectLine.Match(lines[i].Trim()) is not { Success: true } match
+                || ContractText.AnchorForm(match.Groups["verb"].Value) != ContractText.AnchorForm(CollectVerb))
+            {
+                continue;
+            }
+
+            var place = match.Groups["place"].Value.Trim();
+            if (!place.EndsWith('.') && i + 1 < lines.Length && PlaceEnding.Match(lines[i + 1].Trim()) is { Success: true } ending)
+            {
+                place = $"{place} {ending.Value}";
+            }
+
+            var commodity = ContractText.NormalizeCommodity(match.Groups["commodity"].Value);
+            var name = ContractText.NormalizePickup(place);
+            if (commodity.Length > 0 && name.Length > 0)
+            {
+                pickups.Add(new(commodity, name));
+            }
+        }
+
+        return pickups;
+    }
+
+    /// <summary>
+    /// The lines between "DETAILS" and the last line (<see cref="EndHeadings"/>): list fragments of the contract list stand
+    /// before, digit noise after (D38 addendum). Either heading may be misread or missing (ContractTracker's captures from
+    /// the Accepted tab end in neither, D40): then the block runs from the start or to the end, and the delivery pattern
+    /// keeps out what doesn't belong.
     /// </summary>
     private static string[] Block(string[] lines)
     {
         var start = Array.FindIndex(lines, l => IsHeading(l, StartHeading)) + 1;
-        var end = Array.FindIndex(lines, start, l => IsHeading(l, EndHeading));
+        var end = Array.FindIndex(lines, start, l => EndHeadings.Any(heading => IsHeading(l, heading)));
         return lines[start..(end < 0 ? lines.Length : end)];
     }
 
@@ -105,9 +172,12 @@ internal static partial class ContractTextParser
             _ => c,
         }));
 
-    /// <summary>The amount after "Reward" at the start of the text, separators dropped ("50,250"); null if unreadable.</summary>
+    /// <summary>
+    /// The amount after "Reward", separators dropped ("50,250", "50.250"): at the start of the text in ContractTracker's
+    /// form, else on a line of its own anywhere (CargoPlan's reading order puts it after the prose, D99). Null if unreadable.
+    /// </summary>
     private static long? Reward(string text) =>
-        RewardLine.Match(text) is { Success: true } match
+        (RewardAtStart.Match(text) is { Success: true } atStart ? atStart : RewardLine.Match(text)) is { Success: true } match
         && long.TryParse(match.Groups["reward"].Value.Replace(",", "").Replace(".", ""), NumberStyles.None,
             CultureInfo.InvariantCulture, out var reward)
             ? reward
@@ -138,6 +208,17 @@ internal static partial class ContractTextParser
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex DeliveryLine { get; }
 
+    /// <summary>"Collect Waste from HUR-L1 Green Glade Station.": the verb is checked in its anchor form by the caller.</summary>
+    [GeneratedRegex(@"^(?<verb>\S+)\s+(?<commodity>.+?)\s+from\s+(?<place>.+)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex CollectLine { get; }
+
+    /// <summary>
+    /// The rest of a place broken across lines: one to three words of letters and a full stop at the start of the line
+    /// ("Station.", "Express Station."). Not a list number ("1. Pick up"), no prose sentence, no marker ("L"), no heading.
+    /// </summary>
+    [GeneratedRegex(@"^\p{L}[\p{L}'’&-]*(?:\s+\p{L}[\p{L}'’&-]*){0,2}\.", RegexOptions.CultureInvariant)]
+    private static partial Regex PlaceEnding { get; }
+
     /// <summary>
     /// "freight elevator at Faithful Dream Station at Hurston's L2": a full name, in lists and prose. The first letter of
     /// "elevator" may be misread or lost ("Freight alevator at", B1), here and in the two patterns below.
@@ -166,14 +247,32 @@ internal static partial class ContractTextParser
     /// Third wording (B9, issue #22): "8 SCU or smaller", the number first; not after a digit or "/" on its line, so a
     /// delivery's "0/8" or "0/124" never counts. In brackets "(8 SCU or" is enough: OCR lost "smaller)" on the next line
     /// in two of three captures; "or more", "or larger", "or bigger" are no max.
+    /// Fourth and fifth (S10.0 "+max2", T10.2a): "At most the containers will be 8 SCU in size." with up to two words of any
+    /// spelling before the size ("willbe"), and "their ship couldn't handle 8 SCU containers" (the apostrophe as read).
     /// </summary>
     [GeneratedRegex(@"(?:max\s*size\s+(?:\S{1,8}\s+){0,2}|bigger\s*than\s*)(?<size>[\dOIL|]{1,3})\s*SCU"
         + @"|(?<![\d/][ \t]*)(?<size>[\dOIL|]{1,3})\s*SCU\s*or\s*smaller"
-        + @"|\(\s*(?<size>[\dOIL|]{1,3})\s*SCU\s*or\b(?!\s*(?:more|larger|bigger))",
+        + @"|\(\s*(?<size>[\dOIL|]{1,3})\s*SCU\s*or\b(?!\s*(?:more|larger|bigger))"
+        + @"|at\s*most\s+the\s+containers\s+(?:\S{1,8}\s+){0,2}(?<size>[\dOIL|]{1,3})\s*SCU"
+        + @"|couldn\S?t\s+handle\s+(?<size>[\dOIL|]{1,3})\s*SCU",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex SizePhrase { get; }
 
-    /// <summary>"Reward" and the amount on its own line at the very start of the text ("Reward\n 50,250").</summary>
-    [GeneratedRegex(@"\A\s*Reward\s*(?<reward>[\d,.]+)[ \t]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
+    /// <summary>
+    /// A reward's amount: digits in groups of three with "," or "." between ("81,250"), or digits alone. Anything else
+    /// ("8l,250", "81,25") is unreadable rather than a wrong number.
+    /// </summary>
+    private const string Amount = @"(?<reward>\d{1,3}(?:[,.]\d{3})+|\d+)";
+
+    /// <summary>ContractTracker's form: "Reward" and the amount on its own line at the very start of the text ("Reward\n 50,250").</summary>
+    [GeneratedRegex(@"\A\s*Reward\s*" + Amount + @"[ \t]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
+    private static partial Regex RewardAtStart { get; }
+
+    /// <summary>
+    /// CargoPlan's form: "Reward 81,250" as one whole line anywhere in the text; the label never joins another line. One
+    /// sign may stand before the amount: the aUEC sign, read as "±" at 1080p (S10.0 set-1080s c17). Not a letter or a
+    /// digit, which would be part of a wrong amount.
+    /// </summary>
+    [GeneratedRegex(@"^[ \t]*Reward[ \t]+(?:[^\w\s][ \t]*)?" + Amount + @"[ \t]*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Multiline)]
     private static partial Regex RewardLine { get; }
 }

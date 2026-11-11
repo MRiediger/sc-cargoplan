@@ -24,24 +24,8 @@ internal static class CandidateTextRenderer
 
         text.AppendLine();
 
-        // "?" after an assumed size, as the legend will show it (T5.4).
-        var assumed = candidate.CrateSizeAssumed ? "?" : "";
-        foreach (var stop in candidate.Stops)
-        {
-            var items = stop.Items.Select(i => string.Create(CultureInfo.InvariantCulture,
-                $"{i.Commodity} {i.Scu} SCU (max {(int)i.MaxCrateSize} SCU{assumed})"));
-            text.AppendLine(CultureInfo.InvariantCulture, $"  {stop.Order}. {stop.Destination}: {string.Join(", ", items)}");
-        }
-
-        if (candidate.Stops.Count == 0)
-        {
-            text.AppendLine("  ⚠ no destination read");
-        }
-
-        if (candidate.DestinationsIncomplete)
-        {
-            text.AppendLine(CultureInfo.InvariantCulture, $"  ⚠ {candidate.Stops.Count} of {candidate.ListedDestinationCount} destinations");
-        }
+        // The lines as before T10.2a: without pickups.
+        ScannedContractTextRenderer.AppendStops(text, candidate.Stops, candidate.CrateSizeAssumed, candidate.ListedDestinationCount, withPickups: false);
 
         if (candidate.UsedFallbackRows)
         {

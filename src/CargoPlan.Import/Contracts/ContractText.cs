@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace CargoPlan.Import.ContractTracker;
+namespace CargoPlan.Import.Contracts;
 
 /// <summary>
 /// The one place where OCR text becomes a name (D40). The parser and the child-row fallback both call it, so a

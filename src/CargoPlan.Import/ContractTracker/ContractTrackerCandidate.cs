@@ -1,4 +1,5 @@
 using CargoPlan.Core.Missions;
+using CargoPlan.Import.Contracts;
 
 namespace CargoPlan.Import.ContractTracker;
 
