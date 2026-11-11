@@ -2,7 +2,7 @@ using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
-using CargoPlan.Import.ContractTracker;
+using CargoPlan.Import.Contracts;
 
 namespace CargoPlan.Import;
 

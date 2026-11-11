@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
-using CargoPlan.Import.ContractTracker;
+using CargoPlan.Import.Contracts;
 using CargoPlan.Ocr;
 using SkiaSharp;
 

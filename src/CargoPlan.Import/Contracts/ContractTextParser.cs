@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using CargoPlan.Core.Models;
 
-namespace CargoPlan.Import.ContractTracker;
+namespace CargoPlan.Import.Contracts;
 
 /// <summary>
 /// Reads a contract from ContractTracker's raw OCR text (D39): commodities, destinations with SCU, the max crate size

@@ -1,6 +1,6 @@
 using CargoPlan.Core.Models;
 
-namespace CargoPlan.Import.ContractTracker;
+namespace CargoPlan.Import.Contracts;
 
 /// <summary>What <see cref="ContractTextParser"/> found in one capture's raw OCR text.</summary>
 /// <param name="Deliveries">In the order of the text; empty if no delivery line was readable.</param>

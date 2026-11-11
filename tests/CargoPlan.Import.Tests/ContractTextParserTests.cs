@@ -1,5 +1,5 @@
 using CargoPlan.Core.Models;
-using CargoPlan.Import.ContractTracker;
+using CargoPlan.Import.Contracts;
 
 namespace CargoPlan.Import.Tests;
 

@@ -1,6 +1,7 @@
 using System.Globalization;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
+using CargoPlan.Import.Contracts;
 using Microsoft.Data.Sqlite;
 
 namespace CargoPlan.Import.ContractTracker;
@@ -253,7 +254,7 @@ public static class ContractTrackerReader
         return new(
             [.. capture.Select(c => c.Id)],
             CapturedAt(first.CapturedAt),
-            Stops(usedFallback ? FallbackDeliveries(capture) : fromText, max, PickupsByCommodity(capture)),
+            ContractStops.Of(usedFallback ? FallbackDeliveries(capture) : fromText, max, PickupsByCommodity(capture)),
             CrateSizeAssumed: max is null,
             UsedFallbackRows: usedFallback,
             parsed?.ListedDestinationCount,
@@ -271,25 +272,6 @@ public static class ContractTrackerReader
            where destination.Length > 0 && commodity.Length > 0
            select new ParsedDelivery(destination, commodity, objective.Amount),
     ];
-
-    /// <summary>
-    /// One stop per place (<see cref="DestinationNames"/>) under its preferred name, one item per commodity, in the order
-    /// of the text; each item with the pickup of its commodity's rows.
-    /// </summary>
-    private static IReadOnlyList<MissionStop> Stops(
-        IReadOnlyList<ParsedDelivery> deliveries, CrateSize? max, IReadOnlyDictionary<string, IReadOnlyList<string>?> pickups) =>
-    [
-        .. deliveries.GroupBy(d => d.Destination, DestinationNames.Comparer)
-            .Select((stop, index) => new MissionStop(stop.Select(d => d.Destination).Aggregate(DestinationNames.Preferred), index + 1,
-            [
-                .. stop.GroupBy(d => d.Commodity, StringComparer.OrdinalIgnoreCase)
-                    .Select(item => Item(item.First().Commodity, item.Sum(d => d.Scu), max, pickups.GetValueOrDefault(item.Key))),
-            ])),
-    ];
-
-    /// <summary>Without a size in the text: the largest crate that fits the SCU (T5.3), marked as assumed.</summary>
-    private static MissionItem Item(string commodity, int scu, CrateSize? max, IReadOnlyList<string>? pickup) =>
-        new(commodity, scu, max ?? CrateMix.Sizes.First(size => (int)size <= scu), Pickup: pickup);
 
     /// <summary>
     /// The pickup per commodity (D68): a contract row is one commodity (D38), its pickup text split at "/" and each place
