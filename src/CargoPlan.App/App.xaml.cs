@@ -312,7 +312,7 @@ public partial class App : Application
     {
         // Our windows over the contract leave the picture for the capture (D100). The window list is read at each capture,
         // so windows made after the scanner count too.
-        var clearance = new RegionClearance(Dispatcher, () => Windows.Cast<Window>());
+        var clearance = new RegionClearance(Dispatcher, () => Windows.Cast<Window>(), (_, _) => { });
         return _scanner = new ContractScanner(OcrEngine.Load, notice, find, clear: clearance.Clear);
     }
 

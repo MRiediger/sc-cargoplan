@@ -15,8 +15,10 @@ namespace CargoPlan.App.Scanning;
 /// </summary>
 /// <param name="dispatcher">The UI thread's: windows are changed there, the caller is a pool thread.</param>
 /// <param name="windows">Our windows; <c>Application.Current.Windows</c> in the app.</param>
-internal sealed class RegionClearance(Dispatcher dispatcher, Func<IEnumerable<Window>> windows)
+internal sealed class RegionClearance(Dispatcher dispatcher, Func<IEnumerable<Window>> windows, Action<nint, bool> cloak)
 {
+    private readonly Action<nint, bool> _stub = cloak;
+
     /// <summary>
     /// Makes the windows over <paramref name="region"/> (physical screen pixels) invisible until the result is disposed;
     /// null when none lies over it, the normal case, which then costs no flush.
