@@ -15,15 +15,11 @@ public class HotkeyParserTests
     {
         var hotkey = Parse("Ctrl+Alt+L");
 
-        hotkey.Modifiers.Should().Be(HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.NoRepeat);
+        hotkey.Modifiers.Should().Be(HotkeyModifiers.Control | HotkeyModifiers.Alt);
         hotkey.VirtualKey.Should().Be(0x4Cu);
     }
 
-    [Fact]
-    public void Always_sets_NoRepeat_so_holding_the_keys_toggles_once()
-    {
-        Parse("Alt+H").Modifiers.Should().HaveFlag(HotkeyModifiers.NoRepeat);
-    }
+    // NoRepeat is gone (F15): "holding the keys toggles once" is the poller's, HotkeyPollerTests.Holding_the_keys_fires_no_second_time.
 
     [Theory]
     [InlineData("ctrl+alt+l")]
@@ -41,7 +37,7 @@ public class HotkeyParserTests
     [InlineData("ctrl+insert", "Ctrl+Insert")]
     [InlineData("alt+scrolllock", "Alt+ScrollLock")]
     [InlineData("Ctrl+Alt+Shift+Win+7", "Ctrl+Alt+Shift+Win+7")]
-    public void ToString_is_canonical_without_NoRepeat(string text, string expected)
+    public void ToString_is_canonical(string text, string expected)
     {
         Parse(text).ToString().Should().Be(expected);
     }
@@ -86,6 +82,10 @@ public class HotkeyParserTests
     [InlineData("Ctrl+Alt", "no key")]
     [InlineData("L", "Ctrl, Alt or Win")]
     [InlineData("Shift+L", "Ctrl, Alt or Win")]
+    [InlineData("7", "Ctrl, Alt or Win")]
+    [InlineData("Delete", "Ctrl, Alt or Win")]
+    [InlineData("F12", "reserved")]
+    [InlineData("Shift+F12", "reserved")]
     [InlineData("Ctrl+Ä", "unknown key")]
     [InlineData("Ctrl+F25", "unknown key")]
     [InlineData("Hyper+L", "unknown modifier")]
@@ -106,14 +106,15 @@ public class HotkeyParserTests
     // Recorded keys (T4.4): the same rules as typed text.
 
     private const uint VK_L = 0x4C;
-    private const uint VK_F5 = 0x74;
+    private const uint VK_F3 = 0x72;
     private const uint VK_F12 = 0x7B;
+    private const uint VK_F13 = 0x7C;
     private const uint VK_SPACE = 0x20;
     private const uint VK_OEM_COMMA = 0xBC;
     private const uint VK_CONTROL = 0x11;
 
     [Fact]
-    public void Creates_a_recorded_hotkey_with_NoRepeat()
+    public void Creates_a_recorded_hotkey_equal_to_the_typed_one()
     {
         HotkeyParser.TryCreate(HotkeyModifiers.Control | HotkeyModifiers.Alt, VK_L, out var hotkey, out var error).Should().BeTrue(error);
 
@@ -123,8 +124,9 @@ public class HotkeyParserTests
 
     [Theory]
     [InlineData(HotkeyModifiers.Shift, VK_L, "needs Ctrl, Alt or Win")]
-    [InlineData(HotkeyModifiers.None, VK_F5, "needs Ctrl, Alt or Win")]
+    [InlineData(HotkeyModifiers.None, VK_L, "needs Ctrl, Alt or Win")]
     [InlineData(HotkeyModifiers.Control, VK_F12, "reserved")]
+    [InlineData(HotkeyModifiers.None, VK_F12, "reserved")]
     [InlineData(HotkeyModifiers.Control, VK_SPACE, "reserved")]
     [InlineData(HotkeyModifiers.Control, VK_OEM_COMMA, "unknown key")]
     [InlineData(HotkeyModifiers.Control, VK_CONTROL, "unknown key")]
@@ -163,11 +165,41 @@ public class HotkeyParserTests
         recorded.Should().Be(typed);
     }
 
-    [Fact]
-    public void NoRepeat_in_the_recorded_modifiers_changes_nothing()
+    // D104: F keys stand alone; they never type into Star Citizen's chat. F12 stays reserved.
+    [Theory]
+    [InlineData("F1", 0x70u, HotkeyModifiers.None)]
+    [InlineData("F3", 0x72u, HotkeyModifiers.None)]
+    [InlineData("f11", 0x7Au, HotkeyModifiers.None)]
+    [InlineData("F13", 0x7Cu, HotkeyModifiers.None)]
+    [InlineData("F24", 0x87u, HotkeyModifiers.None)]
+    [InlineData("Shift+F3", 0x72u, HotkeyModifiers.Shift)]
+    public void An_F_key_needs_no_modifier(string text, uint virtualKey, HotkeyModifiers modifiers)
     {
-        HotkeyParser.TryCreate(HotkeyModifiers.Alt | HotkeyModifiers.NoRepeat, VK_L, out var hotkey, out _).Should().BeTrue();
+        Parse(text).Should().Be(new Hotkey(modifiers, virtualKey));
+    }
 
-        hotkey.Should().Be(Parse("Alt+L"));
+    [Theory]
+    [InlineData(HotkeyModifiers.None, VK_F3)]
+    [InlineData(HotkeyModifiers.Shift, VK_F3)]
+    [InlineData(HotkeyModifiers.None, VK_F13)]
+    public void A_recorded_F_key_needs_no_modifier(HotkeyModifiers modifiers, uint virtualKey)
+    {
+        HotkeyParser.TryCreate(modifiers, virtualKey, out var hotkey, out var error).Should().BeTrue(error);
+
+        hotkey.Should().Be(new Hotkey(modifiers, virtualKey));
+    }
+
+    [Fact]
+    public void A_bare_F_key_reads_back_as_its_name()
+    {
+        Parse("f3").ToString().Should().Be("F3");
+    }
+
+    [Fact]
+    public void The_reason_for_a_bare_letter_names_the_F_keys()
+    {
+        HotkeyParser.TryParse("L", out _, out var error);
+
+        error.Should().Contain("unless it is an F key");
     }
 }

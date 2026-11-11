@@ -9,7 +9,7 @@ namespace CargoPlan.App.ViewModels;
 /// </summary>
 public sealed class HotkeysViewModel
 {
-    public const string Hint = "Ctrl, Alt or Win required. Hotkeys work while Star Citizen or CargoPlan is in front. The keys reach the game and Windows too, so pick ones neither uses.";
+    public const string Hint = "Ctrl, Alt or Win required, except for F keys. Hotkeys work while Star Citizen or CargoPlan is in front. The keys reach the game and Windows too, so pick ones neither uses.";
 
     private readonly Func<HotkeyAction, Hotkey?, string?> _set;
 

@@ -87,7 +87,7 @@ public sealed class HotkeyPoller<TAction>(Func<uint, bool> isKeyDown)
             }
 
             // Exactly the saved modifiers, as RegisterHotKey did: Ctrl+Alt+Shift+L is not Ctrl+Alt+L.
-            if (armed && pressed && modifiers == (hotkey.Modifiers & ~HotkeyModifiers.NoRepeat))
+            if (armed && pressed && modifiers == hotkey.Modifiers)
             {
                 fired.Add(action);
             }

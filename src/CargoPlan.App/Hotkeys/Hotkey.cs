@@ -13,7 +13,6 @@ public enum HotkeyModifiers : uint
     Control = 0x0002,  // MOD_CONTROL
     Shift = 0x0004,    // MOD_SHIFT
     Win = 0x0008,      // MOD_WIN
-    NoRepeat = 0x4000, // MOD_NOREPEAT; no effect since D97, the poller fires on the press only. Kept so parsed hotkeys stay equal.
 }
 
 /// <summary>
@@ -51,7 +50,7 @@ public enum HotkeyAction
 /// <param name="VirtualKey">Win32 virtual-key code.</param>
 public sealed record Hotkey(HotkeyModifiers Modifiers, uint VirtualKey)
 {
-    /// <summary>Canonical text, e.g. "Ctrl+Alt+L": modifiers in a fixed order, NoRepeat left out. Parses back.</summary>
+    /// <summary>Canonical text, e.g. "Ctrl+Alt+L" or "F3": modifiers in a fixed order. Parses back.</summary>
     public override string ToString() => string.Join('+', [
         .. HotkeyParser.ModifierNames.Where(m => Modifiers.HasFlag(m.Flag)).Select(m => m.Name),
         HotkeyParser.KeyName(VirtualKey),

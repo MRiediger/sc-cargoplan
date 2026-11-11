@@ -20,7 +20,8 @@ public static class HotkeyParser
     ];
 
     // Ctrl, Alt or Win must be part of it: a polled key reaches the game too (D97), so a bare key or Shift+key (a capital
-    // letter) would fire while typing in Star Citizen's chat.
+    // letter) would fire while typing in Star Citizen's chat. F keys are the exception (D104): they type nothing, and the
+    // game opens its own panels with them (F1 mobiGlas, F2 starmap).
     private const HotkeyModifiers RequiredModifiers = HotkeyModifiers.Control | HotkeyModifiers.Alt | HotkeyModifiers.Win;
 
     // Source: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
@@ -40,8 +41,8 @@ public static class HotkeyParser
     private const int FunctionKeyCount = 24;
 
     /// <summary>
-    /// Keys refused with a reason of their own, typed or pressed. F12: "The F12 key is reserved for use by the debugger at
-    /// all times" (source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey, Remarks).
+    /// Keys refused with a reason of their own, typed or pressed. F12: by convention the debugger's key; RegisterHotKey's
+    /// rule (Remarks of nf-winuser-registerhotkey) no longer binds a polled hotkey (D97), the convention stays (F15).
     /// Space (D35 addendum, D97): a core Star Citizen key the polled hotkey can't take from the game, and Alt+Space opens
     /// the window menu. Esc needs no entry: it cancels the recording and isn't in the key table.
     /// </summary>
@@ -57,7 +58,7 @@ public static class HotkeyParser
     private static readonly Dictionary<uint, string> KeyNames = Keys.ToDictionary(k => k.Value, k => k.Key);
 
     /// <summary>
-    /// "Ctrl+Alt+L" → modifiers plus key, always with NoRepeat. Case and spaces around '+' don't matter.
+    /// "Ctrl+Alt+L" or "F3" → modifiers plus key. Case and spaces around '+' don't matter.
     /// Invalid → false and a reason for the notice line.
     /// </summary>
     public static bool TryParse(string text, [NotNullWhen(true)] out Hotkey? hotkey, [NotNullWhen(false)] out string? error)
@@ -77,12 +78,11 @@ public static class HotkeyParser
     /// Keys pressed in the settings window (T4.4): the same checks as <see cref="TryParse"/>, in the same order, with the
     /// same reasons, so Shift+L, F12 and Space are refused alike whether typed or pressed.
     /// </summary>
-    /// <param name="modifiers">NoRepeat is ignored; every hotkey gets it.</param>
     public static bool TryCreate(HotkeyModifiers modifiers, uint virtualKey, [NotNullWhen(true)] out Hotkey? hotkey, [NotNullWhen(false)] out string? error)
     {
         var (reason, created) = ReservedKeys.TryGetValue(virtualKey, out var reserved) ? (reserved.Reason, null)
             : !KeyNames.ContainsKey(virtualKey) ? (UnknownKeyReason(null), null)
-            : Check(modifiers & ~HotkeyModifiers.NoRepeat, virtualKey);
+            : Check(modifiers, virtualKey);
         if (created is not null)
         {
             (hotkey, error) = (created, null);
@@ -150,11 +150,13 @@ public static class HotkeyParser
     private static string UnknownKeyReason(string? key) =>
         $"unknown key{(key is null ? "" : $" \"{key}\"")} (use A-Z, 0-9, F1-F11, F13-F24, Pause, ScrollLock, Insert, Delete, Home, End, PageUp, PageDown)";
 
-    /// <summary>The rule both ways share once the key is known: Ctrl, Alt or Win must be part of it.</summary>
+    /// <summary>The rule both ways share once the key is known: Ctrl, Alt or Win must be part of it, unless it is an F key (D104).</summary>
     private static (string? Error, Hotkey? Hotkey) Check(HotkeyModifiers modifiers, uint virtualKey) =>
-        (modifiers & RequiredModifiers) == HotkeyModifiers.None
-            ? ("it needs Ctrl, Alt or Win, since the key reaches the game too", null)
-            : (null, new Hotkey(modifiers | HotkeyModifiers.NoRepeat, virtualKey));
+        (modifiers & RequiredModifiers) == HotkeyModifiers.None && !IsFunctionKey(virtualKey)
+            ? ("it needs Ctrl, Alt or Win unless it is an F key, since the key reaches the game too", null)
+            : (null, new Hotkey(modifiers, virtualKey));
+
+    private static bool IsFunctionKey(uint virtualKey) => virtualKey is >= VK_F1 and < VK_F1 + FunctionKeyCount;
 
     private static HotkeyModifiers? FindModifier(string name)
     {
