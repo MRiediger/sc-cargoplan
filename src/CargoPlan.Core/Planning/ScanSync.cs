@@ -59,7 +59,7 @@ public static class ScanSync
         try
         {
             var (planned, cleared) = LoadPlanner.PlanKeeping(
-                saved, ship, missions, order, saved.Plan.FillOrder, saved.Watermark, saved.Plan.FillRows, saved.Plan.Grouping, saved.Plan.SectionGap, ChangedByScan);
+                saved, ship, missions, order, saved.Plan.FillOrder, saved.Plan.FillRows, saved.Plan.Grouping, saved.Plan.SectionGap, ChangedByScan);
             return new(planned, ScanChange.Updated, mine.No, QuantitiesChanged: true, cleared);
         }
         catch (PlanException ex)
@@ -95,7 +95,7 @@ public static class ScanSync
     }
 
     private static SavedPlan WithContract(SavedPlan saved, int missionId, ContractSource contract) => new(
-        [.. saved.Missions.Select(m => m.Id == missionId ? m with { Contract = contract } : m)], saved.Plan, saved.CrateCap, saved.Watermark);
+        [.. saved.Missions.Select(m => m.Id == missionId ? m with { Contract = contract } : m)], saved.Plan, saved.CrateCap);
 }
 
 /// <summary>What a scan did to the plan (D103).</summary>

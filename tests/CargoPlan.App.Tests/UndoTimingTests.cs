@@ -32,7 +32,7 @@ public class UndoTimingTests(ITestOutputHelper output)
             var target = ship.Racks[^1];
             var move = new Gesture.MoveCrates(crate, [crate], target.Id, new GridPosition(0, 0, 0));
             var added = Retained(() => CrateDrop.Outcome(saved.Plan, ship, move).Plan is { } moved
-                ? new SavedPlan(saved.Missions, moved, saved.CrateCap, saved.Watermark)
+                ? new SavedPlan(saved.Missions, moved, saved.CrateCap)
                 : saved);
             var show = Median(() => ShipViewBuilder.Build(saved, ship, LoadPlanner.Validate(saved.Plan, ship)));
             output.WriteLine(string.Create(CultureInfo.InvariantCulture,

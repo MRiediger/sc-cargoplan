@@ -42,7 +42,7 @@ public class ShipChangeTests
     {
         var viewModel = Overlay(HullA);
         var onC2 = OnC2();
-        SavedPlan unknown = new(onC2.Missions, onC2.Plan with { ShipId = "spike_gone" }, onC2.CrateCap, onC2.Watermark);
+        SavedPlan unknown = new(onC2.Missions, onC2.Plan with { ShipId = "spike_gone" }, onC2.CrateCap);
 
         viewModel.ShowPlan(unknown);
 
@@ -55,7 +55,7 @@ public class ShipChangeTests
     {
         var viewModel = Overlay(HullA);
         var onC2 = OnC2();
-        SavedPlan ticked = new(onC2.Missions, LoadPlanner.SetDelivered(onC2.Plan, C2, "Riker", true), onC2.CrateCap, onC2.Watermark);
+        SavedPlan ticked = new(onC2.Missions, LoadPlanner.SetDelivered(onC2.Plan, C2, "Riker", true), onC2.CrateCap);
 
         viewModel.ShowPlan(ticked);
 
@@ -140,7 +140,7 @@ public class ShipChangeTests
     }
 
     [Fact]
-    public void ChangeShip_with_a_plan_replans_it_and_keeps_missions_and_watermark()
+    public void ChangeShip_with_a_plan_replans_it_and_keeps_its_missions()
     {
         var viewModel = Overlay(HullA);
         viewModel.ShowPlan(TestPlans.SplitAndShared());
@@ -150,7 +150,6 @@ public class ShipChangeTests
 
         viewModel.Plan!.ShipId.Should().Be("c2_hercules");
         viewModel.Missions.Should().BeEquivalentTo(before.Missions, o => o.WithStrictOrdering());
-        viewModel.Saved!.Watermark.Should().Be(before.Watermark);
         viewModel.Scene.Ship.Should().BeSameAs(C2);
     }
 

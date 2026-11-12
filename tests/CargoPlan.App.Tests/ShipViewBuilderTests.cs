@@ -474,7 +474,7 @@ public class ShipViewBuilderTests
         ShipViewBuilder.Build(saved, Sample.Ship, LoadPlanner.Validate(saved.Plan, Sample.Ship));
 
     private static SavedPlan Delivered(SavedPlan saved, string destination) =>
-        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, Sample.Ship, destination, true), saved.CrateCap, saved.Watermark);
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, Sample.Ship, destination, true), saved.CrateCap);
 
     [Fact]
     public void Two_markings_of_one_stop_stand_in_its_line_size_first()

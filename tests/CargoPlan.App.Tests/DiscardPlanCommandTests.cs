@@ -20,7 +20,7 @@ public sealed class DiscardPlanCommandTests
     {
         var saved = TestPlans.SplitAndShared();
         var overlay = new OverlayViewModel(HullA);
-        overlay.ShowPlan(new SavedPlan(saved.Missions, saved.Plan with { FillOrder = FillOrder.SternFirst }, saved.CrateCap, saved.Watermark));
+        overlay.ShowPlan(new SavedPlan(saved.Missions, saved.Plan with { FillOrder = FillOrder.SternFirst }, saved.CrateCap));
         overlay.ToggleDeliveredCommand.Execute("Riker");
         return overlay;
     }

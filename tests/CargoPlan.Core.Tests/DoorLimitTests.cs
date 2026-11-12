@@ -116,7 +116,7 @@ public class DoorLimitTests
         var renamed = LoadPlanner.RenameStop(saved, Clipper, "Riker", "Riker City");
         var removed = LoadPlanner.RemoveMission(renamed, Clipper, 2);
         var replanned = LoadPlanner.Replan(removed, Clipper);
-        var ticked = new SavedPlan(replanned.Missions, LoadPlanner.SetDelivered(replanned.Plan, Clipper, "Riker City", true), replanned.CrateCap, replanned.Watermark);
+        var ticked = new SavedPlan(replanned.Missions, LoadPlanner.SetDelivered(replanned.Plan, Clipper, "Riker City", true), replanned.CrateCap);
         var retried = LoadPlanner.RetryUnplaced(ticked, Clipper);
         var synced = LoadPlanner.PlaceInto(LoadPlanner.RemoveMission(retried, Clipper, 1), Clipper, [Riker()], new ContractSource([7]));
 

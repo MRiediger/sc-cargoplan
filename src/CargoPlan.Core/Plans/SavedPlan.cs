@@ -11,14 +11,11 @@ namespace CargoPlan.Core.Plans;
 /// </summary>
 /// <param name="CrateCap">The cap the derived mixes on board were split under: the ship's (<see cref="CrateCap.Of(Ship)"/>,
 /// D70). Not stored in the file; the reader takes it from the ship. No default, so no way into a plan forgets it.</param>
-/// <param name="Watermark">The highest ContractTracker id taken into the plan (D39 addendum); 0 = none yet.</param>
-public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, CrateCap CrateCap, long Watermark = 0)
+public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, CrateCap CrateCap)
 {
     // Get-only (no init): a `with` expression skips the constructor and must not bypass validation.
     public IReadOnlyList<Mission> Missions { get; } = ValidatedMissions(Missions);
     public LoadPlan Plan { get; } = Validated(Missions, Plan, CrateCap);
-    public long Watermark { get; } =
-        Watermark >= 0 ? Watermark : throw new ArgumentOutOfRangeException(nameof(Watermark), Watermark, "The watermark is 0 or more.");
 
     /// <summary>
     /// One stop per destination with the items of every mission, as planner, editor and mission file see them: in
@@ -56,12 +53,12 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, C
     /// (<see cref="WithItems"/>): the missions of a plan made from a route alone.
     /// </summary>
     /// <exception cref="ArgumentException">The plan doesn't fit the stops (see the constructor).</exception>
-    public static SavedPlan FromStops(IReadOnlyList<MissionStop> stops, LoadPlan plan, CrateCap cap, long watermark = 0)
+    public static SavedPlan FromStops(IReadOnlyList<MissionStop> stops, LoadPlan plan, CrateCap cap)
     {
         Mission[] missions = [.. stops.OrderBy(s => s.Order).Select((s, index) => new Mission(index + 1, [s with { Order = 1 }]))];
         var idOf = missions.ToDictionary(m => m.Stops[0].Destination, m => m.Id);
         Crate[] owned = [.. plan.Crates.Select(c => c with { Mission = idOf.GetValueOrDefault(c.Destination) })];
-        return new SavedPlan(missions, plan with { Crates = WithItems(missions, owned, _ => false, cap) }, cap, watermark);
+        return new SavedPlan(missions, plan with { Crates = WithItems(missions, owned, _ => false, cap) }, cap);
     }
 
     /// <summary>

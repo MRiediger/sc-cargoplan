@@ -29,7 +29,7 @@ public class LoadedStateTests
         missions.Aggregate(new SavedPlan([], new LoadPlan(ship.Id, [], []), CrateCap.Of(ship)),
             (saved, stops) => LoadPlanner.PlaceInto(saved, ship, [.. stops.Select((s, i) => s with { Order = i + 1 })]));
 
-    private static SavedPlan With(SavedPlan saved, LoadPlan plan) => new(saved.Missions, plan, saved.CrateCap, saved.Watermark);
+    private static SavedPlan With(SavedPlan saved, LoadPlan plan) => new(saved.Missions, plan, saved.CrateCap);
 
     private static SavedPlan Loaded(SavedPlan saved, Ship ship, string destination, int mission) =>
         With(saved, LoadPlanner.SetLoaded(saved.Plan, ship, destination, mission, true));
@@ -193,7 +193,7 @@ public class LoadedStateTests
         Mission[] missions = [.. current.Missions, new Mission(3, [Stop("Orison", "Quartz", 8, CrateSize.Eight)])];
         string[] route = ["Riker", "Shubin", "Orison"];
 
-        var (plan, cleared) = LoadPlanner.PlanKeeping(current, HullA, missions, route, FillOrder.BowFirst, 0);
+        var (plan, cleared) = LoadPlanner.PlanKeeping(current, HullA, missions, route, FillOrder.BowFirst);
 
         cleared.Should().BeEmpty();
         Lying(Of(plan, 1, "Riker")).Should().Equal(Lying(Of(current, 1, "Riker")));
@@ -368,7 +368,7 @@ public class LoadedStateTests
         var current = Placed(HullA, [Stop("Riker", "Titanium", 16, CrateSize.Sixteen)], [Stop("Shubin", "Gold", 8, CrateSize.Four)]);
         string[] route = ["Riker", "Shubin"];
 
-        var (kept, cleared) = LoadPlanner.PlanKeeping(current, HullA, current.Missions, route, FillOrder.BowFirst, 0);
+        var (kept, cleared) = LoadPlanner.PlanKeeping(current, HullA, current.Missions, route, FillOrder.BowFirst);
 
         cleared.Should().BeEmpty();
         kept.Plan.Crates.Should().Equal(LoadPlanner.Plan(HullA, current.Missions, route).Plan.Crates);
@@ -380,7 +380,7 @@ public class LoadedStateTests
         var current = Placed(HullA, [Stop("Riker", "Titanium", 16, CrateSize.Sixteen)], [Stop("Shubin", "Gold", 8, CrateSize.Four)]);
         var ticked = With(current, LoadPlanner.SetDelivered(current.Plan, HullA, "Riker", 1, true));
 
-        var (kept, _) = LoadPlanner.PlanKeeping(ticked, HullA, ticked.Missions, ["Riker", "Shubin"], FillOrder.BowFirst, 0);
+        var (kept, _) = LoadPlanner.PlanKeeping(ticked, HullA, ticked.Missions, ["Riker", "Shubin"], FillOrder.BowFirst);
 
         Of(kept, 1, "Riker").Should().NotBeEmpty().And.OnlyContain(c => c.Delivered);
         Of(kept, 2, "Shubin").Should().OnlyContain(c => !c.Delivered);
@@ -393,7 +393,7 @@ public class LoadedStateTests
         var current = RikerLoadedInRack4();
         Mission[] renumbered = [.. current.Missions.Select(m => new Mission(m.Id + 10, m.Stops))];
 
-        var (kept, _) = LoadPlanner.PlanKeeping(current, HullA, renumbered, ["Riker", "Shubin"], FillOrder.BowFirst, 0);
+        var (kept, _) = LoadPlanner.PlanKeeping(current, HullA, renumbered, ["Riker", "Shubin"], FillOrder.BowFirst);
 
         Lying(Of(kept, 11, "Riker")).Should().Equal(Lying(Of(current, 1, "Riker")));
     }
@@ -404,7 +404,7 @@ public class LoadedStateTests
         var current = RikerLoadedInRack4();
         Mission[] changed = [new Mission(1, [Stop("Riker", "Titanium", 8, CrateSize.Eight)]), current.Missions[1]];
 
-        var (kept, cleared) = LoadPlanner.PlanKeeping(current, HullA, changed, ["Riker", "Shubin"], FillOrder.BowFirst, 0);
+        var (kept, cleared) = LoadPlanner.PlanKeeping(current, HullA, changed, ["Riker", "Shubin"], FillOrder.BowFirst);
 
         cleared.Should().Equal("Riker: changed in the editor – no longer loaded");
         kept.Plan.Crates.Should().OnlyContain(c => !c.Loaded);
@@ -417,7 +417,7 @@ public class LoadedStateTests
         var loaded = RikerInTheMiddle(rikerLoaded: true);
         var split = LoadPlanner.SplitCrate(loaded, HullA, Of(loaded, 1, "Riker").Single(), [CrateSize.Two, CrateSize.Two]);
 
-        var (kept, cleared) = LoadPlanner.PlanKeeping(split, HullA, split.Missions, ["Riker", "Shubin"], FillOrder.BowFirst, 0);
+        var (kept, cleared) = LoadPlanner.PlanKeeping(split, HullA, split.Missions, ["Riker", "Shubin"], FillOrder.BowFirst);
 
         cleared.Should().BeEmpty();
         Lying(Of(kept, 1, "Riker")).Should().Equal(Lying(Of(split, 1, "Riker")));
@@ -443,7 +443,7 @@ public class LoadedStateTests
         var current = PartlyLoaded();
         Mission[] grown = [new Mission(1, [current.Missions[0].Stops[0], Stop("Shubin", "Gold", 24, CrateSize.Eight) with { Order = 2 }]), .. current.Missions.Skip(1)];
 
-        var act = () => LoadPlanner.PlanKeeping(current, HullA, grown, ["Riker", "Shubin", "Orison", "Lorville"], FillOrder.BowFirst, 0);
+        var act = () => LoadPlanner.PlanKeeping(current, HullA, grown, ["Riker", "Shubin", "Orison", "Lorville"], FillOrder.BowFirst);
 
         act.Should().Throw<PlanException>().WithMessage("*Shubin*24 SCU*loaded*");
     }
@@ -455,7 +455,7 @@ public class LoadedStateTests
         var current = PartlyLoaded();
         Mission[] missions = [.. current.Missions, new Mission(4, [Stop("Area18", "Stims", 16, CrateSize.Sixteen)])];
 
-        var (kept, _) = LoadPlanner.PlanKeeping(current, HullA, missions, ["Riker", "Shubin", "Orison", "Lorville", "Area18"], FillOrder.BowFirst, 0);
+        var (kept, _) = LoadPlanner.PlanKeeping(current, HullA, missions, ["Riker", "Shubin", "Orison", "Lorville", "Area18"], FillOrder.BowFirst);
 
         kept.Plan.Crates.Should().Contain(c => c.Destination == "Shubin");
         kept.Missions.Single(m => m.Id == 4).Unplaced.Should().BeTrue();
@@ -492,7 +492,7 @@ public class LoadedStateTests
     {
         // E2: the grown layout holds everything; laid anew, Shubin would wait.
         var current = GrownLayout();
-        var (anew, _) = LoadPlanner.PlanKeeping(current, HullA, current.Missions, [.. current.Stops.Select(s => s.Destination)], FillOrder.BowFirst, 0);
+        var (anew, _) = LoadPlanner.PlanKeeping(current, HullA, current.Missions, [.. current.Stops.Select(s => s.Destination)], FillOrder.BowFirst);
         anew.Missions.Should().Contain(m => m.Unplaced);
 
         LoadPlanner.Replan(current, HullA).Should().BeSameAs(current);
@@ -529,7 +529,7 @@ public class LoadedStateTests
         var current = PartlyLoadedAndFull();
         LoadPlanner.Validate(current.Plan, HullA).Should().BeEmpty();
 
-        var keeping = () => LoadPlanner.PlanKeeping(current, HullA, current.Missions, [.. current.Stops.Select(s => s.Destination)], FillOrder.BowFirst, 0);
+        var keeping = () => LoadPlanner.PlanKeeping(current, HullA, current.Missions, [.. current.Stops.Select(s => s.Destination)], FillOrder.BowFirst);
         keeping.Should().NotThrow();
 
         var replanned = LoadPlanner.Replan(current, HullA);

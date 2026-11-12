@@ -30,7 +30,7 @@ public class SectionGapTests
     private static SavedPlan Planned(FillRows rows, int gap)
     {
         var saved = Fixture();
-        return LoadPlanner.Plan(Raft, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], FillOrder.BowFirst, 0, rows, PlanGrouping.ByDestination, gap);
+        return LoadPlanner.Plan(Raft, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], FillOrder.BowFirst, rows, PlanGrouping.ByDestination, gap);
     }
 
     private static Ship OneRack(int length, int width, int stack = 1)
@@ -92,7 +92,7 @@ public class SectionGapTests
         string[] three = [Green, High, Thunder];
         Mission[] missions = [.. saved.Stops.Where(s => three.Contains(s.Destination)).Select((s, i) => new Mission(i + 1, [s with { Order = 1 }]))];
 
-        var plan = LoadPlanner.Plan(Raft, missions, three, FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination, 2).Plan;
+        var plan = LoadPlanner.Plan(Raft, missions, three, FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination, 2).Plan;
 
         Lengths(plan, Green).Should().Equal(11, 10);
         Lengths(plan, High).Should().Equal(7, 6);
@@ -217,8 +217,8 @@ public class SectionGapTests
 
         foreach (var rows in Enum.GetValues<FillRows>())
         {
-            var plain = LoadPlanner.Plan(ship, missions, route, FillOrder.BowFirst, 0, rows);
-            var withGap = LoadPlanner.Plan(ship, missions, route, FillOrder.BowFirst, 0, rows, PlanGrouping.ByDestination, gap);
+            var plain = LoadPlanner.Plan(ship, missions, route, FillOrder.BowFirst, rows);
+            var withGap = LoadPlanner.Plan(ship, missions, route, FillOrder.BowFirst, rows, PlanGrouping.ByDestination, gap);
 
             Racks(withGap.Plan).Should().Equal(Racks(plain.Plan));
             withGap.Missions.Select(m => m.Unplaced).Should().Equal(plain.Missions.Select(m => m.Unplaced));
@@ -238,7 +238,7 @@ public class SectionGapTests
             new(2, [new MissionStop("B", 1, [new MissionItem("Food", 4, CrateSize.Two)])]),
             new(3, [new MissionStop("C", 1, [new MissionItem("Gold", 1, CrateSize.One)])]),
         ];
-        var plain = LoadPlanner.Plan(ship, missions, ["A", "B", "C"], FillOrder.BowFirst, 0, FillRows.Crosswise);
+        var plain = LoadPlanner.Plan(ship, missions, ["A", "B", "C"], FillOrder.BowFirst, FillRows.Crosswise);
         var loaded = new SavedPlan(plain.Missions, plain.Plan with
         {
             Grouping = PlanGrouping.ByDestination,
@@ -293,7 +293,7 @@ public class SectionGapTests
     public void The_gap_survives_a_plan_without_grouping()
     {
         var saved = Fixture();
-        var plain = LoadPlanner.Plan(Raft, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.None, 1);
+        var plain = LoadPlanner.Plan(Raft, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.None, 1);
 
         plain.Plan.SectionGap.Should().Be(1);
         LoadPlanner.Replan(plain, Raft).Plan.SectionGap.Should().Be(1);

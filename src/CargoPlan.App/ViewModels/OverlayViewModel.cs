@@ -948,8 +948,8 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// </summary>
     public ShipScene Scene { get; private set; } = EmptyScene(ship);
 
-    /// <summary>The plan with new crates (a tick, a move); missions and the watermark of an older plan stay (T10.4b).</summary>
-    private SavedPlan WithCrates(LoadPlan plan) => new(Missions, plan, Saved?.CrateCap ?? CrateCap.Of(Ship), Saved?.Watermark ?? 0);
+    /// <summary>The plan with new crates (a tick, a move); the missions stay.</summary>
+    private SavedPlan WithCrates(LoadPlan plan) => new(Missions, plan, Saved?.CrateCap ?? CrateCap.Of(Ship));
 
     private static ShipScene EmptyScene(Ship ship) => ShipViewBuilder.Build(new LoadPlan(ship.Id, [], []), ship, []);
 

@@ -24,7 +24,7 @@ public class PlaceIntoTests
         saved.Plan.Crates.Where(c => c.Destination == destination).Select(c => c.RackId).Distinct();
 
     private static SavedPlan Delivered(SavedPlan saved, string destination) =>
-        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, destination, true), saved.CrateCap, saved.Watermark);
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, destination, true), saved.CrateCap);
 
     /// <summary>Four 8 SCU crates, one per rack, each leaving a 2×2×2 half of its rack free.</summary>
     private static SavedPlan HalfFull() => Placed(
@@ -150,14 +150,6 @@ public class PlaceIntoTests
         var saved = Placed(Stop("Riker", "Gold", 4, CrateSize.Four));
 
         LoadPlanner.PlaceProblem(saved, HullA, 1).Should().BeNull();
-    }
-
-    [Fact]
-    public void PlaceInto_keeps_the_watermark()
-    {
-        SavedPlan saved = new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA), 41);
-
-        LoadPlanner.PlaceInto(saved, HullA, [Stop("Riker", "Gold", 4, CrateSize.Four)]).Watermark.Should().Be(41);
     }
 
     // --- Shape-aware fallback (D54) ---
@@ -292,10 +284,9 @@ public class PlaceIntoTests
             new(2, [Stop("Riker", "Titanium", 4, CrateSize.Four), Stop("Shubin", "Quartz", 4, CrateSize.Two) with { Order = 2 }], Unplaced: true),
         ];
 
-        var saved = LoadPlanner.Plan(HullA, missions, ["Riker", "Shubin"], FillOrder.BowFirst, 7);
+        var saved = LoadPlanner.Plan(HullA, missions, ["Riker", "Shubin"], FillOrder.BowFirst);
 
         saved.Missions.Should().OnlyContain(m => !m.Unplaced);
-        saved.Watermark.Should().Be(7);
         saved.Plan.Crates.Count(c => c.Mission == 1).Should().Be(2);
         saved.Plan.Crates.Count(c => c.Mission == 2).Should().Be(3);
         saved.Plan.Route.Should().Equal("Riker", "Shubin");

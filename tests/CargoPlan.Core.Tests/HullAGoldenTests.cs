@@ -41,7 +41,7 @@ public class HullAGoldenTests
     {
         var written = Written(fixture, fillOrder);
 
-        // Mission ids and the watermark come from the route, nothing from time or chance: two runs, one file.
+        // Mission ids come from the route, nothing from time or chance: two runs, one file.
         written.Should().Be(Written(fixture, fillOrder));
         written.Should().Be(Golden(fixture, fillOrder));
     }

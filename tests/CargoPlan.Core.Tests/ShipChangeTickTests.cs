@@ -35,10 +35,10 @@ public class ShipChangeTickTests
     }
 
     private static SavedPlan Ticked(SavedPlan saved, Ship ship, string destination) =>
-        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, ship, destination, true), saved.CrateCap, saved.Watermark);
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, ship, destination, true), saved.CrateCap);
 
     private static SavedPlan TickedLine(SavedPlan saved, Ship ship, string destination, int mission) =>
-        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, ship, destination, mission, true), saved.CrateCap, saved.Watermark);
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, ship, destination, mission, true), saved.CrateCap);
 
     private static IEnumerable<Crate> Of(SavedPlan saved, int mission, string destination) =>
         saved.Plan.Crates.Where(c => c.Mission == mission && c.Destination == destination);
@@ -145,7 +145,7 @@ public class ShipChangeTickTests
     public void Racks_that_changed_keep_a_ticked_legend_line()
     {
         var saved = TickedLine(Placed(Freelancer, Stop("Riker", "Titanium", 8, CrateSize.Four), Stop("Riker", "Gold", 4, CrateSize.Four)), Freelancer, "Riker", 1);
-        var changed = new SavedPlan(saved.Missions, saved.Plan, saved.CrateCap.Because(CapReason.RacksChanged), saved.Watermark);
+        var changed = new SavedPlan(saved.Missions, saved.Plan, saved.CrateCap.Because(CapReason.RacksChanged));
 
         var replanned = LoadPlanner.Replan(changed, Freelancer);
 
@@ -181,7 +181,7 @@ public class ShipChangeTickTests
         Lying(back.Crates.Where(c => c.Destination != first)).Should().Equal(Lying(there.Plan.Crates.Where(c => c.Destination != first)));
         back.Route.Should().Equal(there.Plan.Route, "the legend and its colours keep their order");
         LoadPlanner.Validate(back, C2).Should().BeEmpty();
-        new SavedPlan(there.Missions, back, there.CrateCap, there.Watermark).Plan.Should().BeSameAs(back);
+        new SavedPlan(there.Missions, back, there.CrateCap).Plan.Should().BeSameAs(back);
     }
 
     [Fact]

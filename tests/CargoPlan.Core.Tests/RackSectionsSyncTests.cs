@@ -23,7 +23,7 @@ public class RackSectionsSyncTests
 
     /// <summary>A plan with sections crosswise from the bow, one mission per stop, the stops in this order.</summary>
     private static SavedPlan Sectioned(Ship ship, params MissionStop[] stops) =>
-        LoadPlanner.Plan(ship, [.. stops.Select((s, i) => new Mission(i + 1, [s]))], [.. stops.Select(s => s.Destination)], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination);
+        LoadPlanner.Plan(ship, [.. stops.Select((s, i) => new Mission(i + 1, [s]))], [.. stops.Select(s => s.Destination)], FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination);
 
     private static int[] Lengths(SavedPlan saved, string destination) =>
         [.. saved.Plan.Crates.Where(c => c.Destination == destination).SelectMany(c => c.Cells).Select(c => c.Length).Distinct().OrderDescending()];
@@ -155,7 +155,7 @@ public class RackSectionsSyncTests
     // --- With gaps (K9.2b): gap rows are free rows, the last to be taken ---
 
     private static SavedPlan WithGap(Ship ship, int gap, params MissionStop[] stops) =>
-        LoadPlanner.Plan(ship, [.. stops.Select((s, i) => new Mission(i + 1, [s]))], [.. stops.Select(s => s.Destination)], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination, gap);
+        LoadPlanner.Plan(ship, [.. stops.Select((s, i) => new Mission(i + 1, [s]))], [.. stops.Select(s => s.Destination)], FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination, gap);
 
     [Fact]
     public void A_new_destination_keeps_the_gap_in_the_free_rest()

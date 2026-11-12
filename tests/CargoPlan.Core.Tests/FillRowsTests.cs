@@ -361,7 +361,7 @@ public class FillRowsTests
     public void Replan_with_loaded_cargo_stays_crosswise()
     {
         var saved = Crosswise();
-        var loaded = new SavedPlan(saved.Missions, LoadPlanner.SetLoaded(saved.Plan, Raft, "Green", 1, true), saved.CrateCap, saved.Watermark);
+        var loaded = new SavedPlan(saved.Missions, LoadPlanner.SetLoaded(saved.Plan, Raft, "Green", 1, true), saved.CrateCap);
 
         var replanned = LoadPlanner.Replan(loaded, Raft);
 

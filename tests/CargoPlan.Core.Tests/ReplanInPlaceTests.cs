@@ -22,12 +22,12 @@ public class ReplanInPlaceTests
         stops.Aggregate(new SavedPlan([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA)), (saved, stop) => LoadPlanner.PlaceInto(saved, HullA, [stop]));
 
     private static SavedPlan Ticked(SavedPlan saved, string destination) =>
-        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, destination, true), saved.CrateCap, saved.Watermark);
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, destination, true), saved.CrateCap);
 
     private static string[] Route(SavedPlan saved) => [.. saved.Stops.Select(s => s.Destination)];
 
     private static SavedPlan Fresh(SavedPlan saved) =>
-        LoadPlanner.Plan(HullA, saved.Missions, Route(saved), saved.Plan.FillOrder, saved.Watermark);
+        LoadPlanner.Plan(HullA, saved.Missions, Route(saved), saved.Plan.FillOrder);
 
     /// <summary>A fresh plan of the missions of <paramref name="saved"/> that <paramref name="keep"/> picks, in its route.</summary>
     private static SavedPlan Fresh(SavedPlan saved, Func<Mission, bool> keep)
@@ -57,19 +57,17 @@ public class ReplanInPlaceTests
         var fresh = Fresh(grown);
         after.Plan.Crates.Should().Equal(fresh.Plan.Crates);
         after.Plan.Warnings.Should().Equal(fresh.Plan.Warnings);
-        after.Watermark.Should().Be(grown.Watermark);
     }
 
     [Fact]
-    public void Replan_keeps_fill_order_and_watermark()
+    public void Replan_keeps_the_fill_order()
     {
         var grown = Grown(Stop("Riker", "Titanium", 12, CrateSize.Four), Stop("Shubin", "Quartz", 8, CrateSize.Four));
-        SavedPlan stern = new(grown.Missions, grown.Plan with { FillOrder = FillOrder.SternFirst }, grown.CrateCap, 41);
+        SavedPlan stern = new(grown.Missions, grown.Plan with { FillOrder = FillOrder.SternFirst }, grown.CrateCap);
 
         var after = LoadPlanner.Replan(stern, HullA);
 
         after.Plan.FillOrder.Should().Be(FillOrder.SternFirst);
-        after.Watermark.Should().Be(41);
         after.Plan.Crates.Should().Equal(Fresh(stern).Plan.Crates);
     }
 

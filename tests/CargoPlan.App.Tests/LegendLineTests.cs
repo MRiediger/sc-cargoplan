@@ -87,7 +87,7 @@ public class LegendLineTests
     public void A_ticked_line_keeps_its_mix()
     {
         var saved = Planned(One("Riker", Item("Stims", 5, CrateSize.Four)));
-        var ticked = new SavedPlan(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, "Riker", true), saved.CrateCap, saved.Watermark);
+        var ticked = new SavedPlan(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, "Riker", true), saved.CrateCap);
 
         Legend(ticked).Single().Label.Should().Be("To Riker · 5 SCU (4+1) · Stims");
     }
