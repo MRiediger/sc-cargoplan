@@ -217,4 +217,23 @@ public class StartOptionsTests
     {
         StartOptions.Parse(["--locked"]).DataDirRefused.Should().BeFalse();
     }
+
+    // T10.5: every scan's picture for a bug report; off by default, the pictures are CIG material and stay with the player.
+    [Theory]
+    [InlineData("--keep-scans")]
+    [InlineData("--Keep-Scans")]
+    public void Keep_scans_keeps_the_scan_pictures(string arg)
+    {
+        StartOptions.Parse([arg]).Should().Be(new StartOptions(false, null, null, KeepScans: true));
+    }
+
+    // D108: who never scans pays nothing; the probe measures with a warm engine whatever the key.
+    [Theory]
+    [InlineData(true, new string[0], true)]
+    [InlineData(false, new string[0], false)]
+    [InlineData(false, new[] { "--scan-probe" }, true)]
+    public void The_ocr_warms_at_start_only_with_a_scan_key_or_the_probe(bool scanKeySet, string[] args, bool warms)
+    {
+        StartOptions.Parse(args).WarmsOcrAtStart(scanKeySet).Should().Be(warms);
+    }
 }

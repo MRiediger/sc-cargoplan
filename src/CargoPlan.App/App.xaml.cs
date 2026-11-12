@@ -97,7 +97,17 @@ public partial class App : Application
         ComposeStartPlan(parts, options);
         ComposeSettingsFollowers(parts);
         ComposeHolograms(parts);
-        WarmAfterFirstFrame(parts.Overlay, parts.Scanner);
+
+        // Without a scan key the OCR loads only when a key is set or the editor's Scan button is pressed (D108).
+        if (options.WarmsOcrAtStart(_hotkeys?.HasScanKey == true))
+        {
+            WarmAfterFirstFrame(parts.Overlay, parts.Scanner);
+        }
+        else
+        {
+            AppLog.Write("OCR", "not loaded at start: no scan key");
+        }
+
         if (options.ScanProbe is { } series)
         {
             // Next to the overlay, not instead of it: Gate 1 measures the scan as the player will have it (T10.1b).
@@ -172,7 +182,7 @@ public partial class App : Application
     /// <summary>
     /// The view model, the settings session, the scanner with its runner and the overlay window, placed but not shown. The
     /// scanner comes before the window: the editor's Scan button needs it (T10.3); it has no side effect before the
-    /// warm-up, which waits for the first frame.
+    /// warm-up, which waits for the first frame, a scan key being set or the first scan (D108).
     /// </summary>
     private OverlayParts ComposeOverlay(
         ShipCatalog ships, ShipOutlineCatalog outlines, StartOptions options, SettingsLoad loaded)
@@ -209,8 +219,17 @@ public partial class App : Application
         // thread. Source: https://learn.microsoft.com/dotnet/api/system.windows.threading.dispatcheroperation.task
         var scanner = CreateScanner(
             text => Dispatcher.InvokeAsync(() => viewModel.SetNotice(NoticeSource.Scan, text)),
-            options.ScanProbe is null ? null : ProbeTarget());
-        var scan = new ScanRunner(() => scanner.ScanAsync(), viewModel, new ScanLog(ScanLog.DefaultPath), action => Dispatcher.InvokeAsync(action).Task);
+            options.ScanProbe is null ? null : ProbeTarget(),
+            options.KeepScans);
+        ScanPictures? pictures = null;
+        if (options.KeepScans)
+        {
+            pictures = new ScanPictures(ScanPictures.DefaultFolder);
+            AppLog.Write("Scan", $"keeping the last {ScanPictures.MaxPictures} scan pictures in {ScanPictures.DefaultFolder} ({StartOptions.KeepScansSwitch})");
+        }
+
+        var scan = new ScanRunner(
+            () => scanner.ScanAsync(), viewModel, new ScanLog(ScanLog.DefaultPath), action => Dispatcher.InvokeAsync(action).Task, pictures: pictures);
         var overlay = new OverlayWindow(
             viewModel,
             session,
@@ -310,7 +329,8 @@ public partial class App : Application
     /// </summary>
     /// <param name="notice">The scan's notice line; called from pool threads.</param>
     /// <param name="find">Another window than the game's, for a probe's dry run; null = Star Citizen.</param>
-    private ContractScanner CreateScanner(Action<string?> notice, Func<GameWindow?>? find = null)
+    /// <param name="keepPictures"><c>--keep-scans</c>: each attempt carries its picture (T10.5).</param>
+    private ContractScanner CreateScanner(Action<string?> notice, Func<GameWindow?>? find = null, bool keepPictures = false)
     {
         // Our windows over the contract leave the picture for the capture (D100, B12). The window list is read at each
         // capture, so windows made after the scanner count too. A failed cloak isn't thrown: the window would only be in
@@ -322,7 +342,7 @@ public partial class App : Application
                 AppLog.Write("Scan", string.Create(CultureInfo.InvariantCulture, $"DWMWA_CLOAK {cloak} failed: 0x{result:X8}"));
             }
         });
-        return _scanner = new ContractScanner(OcrEngine.Load, notice, find, clear: clearance.Clear);
+        return _scanner = new ContractScanner(OcrEngine.Load, notice, find, clear: clearance.Clear, keepPictures: keepPictures);
     }
 
     /// <summary>
@@ -396,7 +416,8 @@ public partial class App : Application
 
     /// <summary>
     /// The settings window's hotkeys (D35): set and saved at once. Polled hotkeys can't be taken by another program (D97),
-    /// so only the rules and the other action's combination refuse one, both in the view model.
+    /// so only the rules and the other action's combination refuse one, both in the view model. A scan key set warms the
+    /// OCR now, not on its first press (D108); clearing it leaves a loaded engine until the next start.
     /// </summary>
     private HotkeysViewModel CreateHotkeysViewModel(SettingsSession session)
     {
@@ -407,6 +428,11 @@ public partial class App : Application
             {
                 hotkeys.Set(action, hotkey);
                 session.ChangeHotkey(action, hotkey);
+                if (action == HotkeyAction.ScanContracts && hotkey is not null)
+                {
+                    _scanner?.StartWarmup();
+                }
+
                 return null;
             },
             hotkeys.Suspend,

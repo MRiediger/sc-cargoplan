@@ -33,6 +33,10 @@ namespace CargoPlan.App;
 /// <c>--data-dir</c> without a usable folder: the app ends instead of falling back to the profile, which the switch is
 /// there to keep out of the run.
 /// </param>
+/// <param name="KeepScans">
+/// Keep the region of each scan as a PNG in scans\ next to plan.json, the last 20 (T10.5, D108): for a bug report from a
+/// screen size nobody checked. Off by default; the pictures are CIG material.
+/// </param>
 public sealed record StartOptions(
     bool Locked,
     string? PlanPath,
@@ -44,7 +48,8 @@ public sealed record StartOptions(
     bool ScanProbeImages = false,
     bool ScanLoad = false,
     string? DataDir = null,
-    bool DataDirRefused = false)
+    bool DataDirRefused = false,
+    bool KeepScans = false)
 {
     public const string LockedSwitch = "--locked";
 
@@ -64,6 +69,8 @@ public sealed record StartOptions(
 
     public const string DataDirSwitch = "--data-dir";
 
+    public const string KeepScansSwitch = "--keep-scans";
+
     /// <summary>F9's series without a number: Gate 2's 100 scans.</summary>
     public const int ScanProbeSeries = 100;
 
@@ -74,6 +81,7 @@ public sealed record StartOptions(
         var overGame = false;
         var scanProbeImages = false;
         var scanLoad = false;
+        var keepScans = false;
         string? planPath = null;
         string? measureFrames = null;
         int? scanProbe = null;
@@ -139,6 +147,10 @@ public sealed record StartOptions(
             {
                 scanLoad = true;
             }
+            else if (Is(args[i], KeepScansSwitch))
+            {
+                keepScans = true;
+            }
             else if (Is(args[i], ScanProbeSwitch))
             {
                 scanProbe = ScanProbeSeries;
@@ -173,8 +185,14 @@ public sealed record StartOptions(
             (scanLoad, problem) = (false, problem ?? $"{ScanLoadSwitch} only goes with {MeasureFramesSwitch}.");
         }
 
-        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused);
+        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans);
     }
+
+    /// <summary>
+    /// Whether the OCR loads after the first frame (D108): with a valid scan key, or for the probe, which measures a warm
+    /// engine. Without either nothing loads until a key is set or the editor's Scan button is pressed.
+    /// </summary>
+    public bool WarmsOcrAtStart(bool scanKeySet) => scanKeySet || ScanProbe is not null;
 
     private static bool Is(string arg, string name) => arg.Equals(name, StringComparison.OrdinalIgnoreCase);
 }

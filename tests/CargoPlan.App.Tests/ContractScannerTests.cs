@@ -1,6 +1,7 @@
 using CargoPlan.App.Scanning;
 using CargoPlan.App.Win32;
 using CargoPlan.Ocr;
+using SkiaSharp;
 
 namespace CargoPlan.App.Tests;
 
@@ -45,20 +46,64 @@ public class ContractScannerTests
         LastNotice().Should().Contain("test-wait models gone", "it ended with the warm-up, not with the limit");
     }
 
-    // A scan can come before the first frame (the frame measurement's loop, a hotkey in T10.3): it waits as for a warm-up.
+    // Successor of A_scan_before_the_warm_up_started_waits_for_it (D108): without a scan key nothing warms at the start, so
+    // the editor's button (or a key before the first frame) starts the warm-up itself and waits for it.
     [Fact]
-    public async Task A_scan_before_the_warm_up_started_waits_for_it()
+    public async Task A_scan_without_a_warm_up_starts_it_and_waits_for_it()
     {
-        var scanner = Scanner(() => throw new FileNotFoundException("test-early models gone"));
+        using var release = new ManualResetEventSlim();
+        var loads = 0;
+        var scanner = Scanner(() =>
+        {
+            Interlocked.Increment(ref loads);
+            release.Wait();
+            throw new FileNotFoundException("test-lazy models gone");
+        }, limit: TimeSpan.FromSeconds(5));
 
         var scan = scanner.ScanAsync();
-        await Task.Delay(50);
-        scan.IsCompleted.Should().BeFalse();
-        scanner.StartWarmup();
+        await Task.Delay(100);
+        scan.IsCompleted.Should().BeFalse("the scan waits for the warm-up it started");
+        _notices.Should().Contain(ContractScanner.WarmingNotice);
+
+        release.Set();
         var attempt = await scan;
 
         attempt.Outcome.Should().Be(ScanAttemptOutcome.Unavailable);
-        LastNotice().Should().Contain("test-early models gone");
+        LastNotice().Should().Contain("test-lazy models gone", "it ended with the warm-up, not with the limit");
+        loads.Should().Be(1);
+    }
+
+    // At the start, on setting the scan key and from a scan: whoever comes first loads, the others find it started (D108).
+    [Fact]
+    public async Task Starting_the_warm_up_twice_loads_once()
+    {
+        var loads = 0;
+        var scanner = Scanner(() =>
+        {
+            Interlocked.Increment(ref loads);
+            throw new FileNotFoundException("test-twice models gone");
+        });
+
+        scanner.StartWarmup();
+        scanner.StartWarmup();
+        await scanner.ScanAsync();
+
+        loads.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Without_a_warm_up_or_a_scan_nothing_loads()
+    {
+        var loads = 0;
+        _ = Scanner(() =>
+        {
+            Interlocked.Increment(ref loads);
+            throw new FileNotFoundException("test-idle models gone");
+        });
+
+        await Task.Delay(100);
+
+        loads.Should().Be(0);
     }
 
     [Fact]
@@ -132,6 +177,38 @@ public class ContractScannerTests
 
         await scan.Should().ThrowAsync<InvalidOperationException>().WithMessage("test-capture-throws");
         restored.Should().BeTrue();
+    }
+
+    // --keep-scans (T10.5): the picture comes before and apart from the OCR, so a fake read checks it in milliseconds.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_scanner_that_keeps_pictures_returns_the_region_as_png(bool keepPictures)
+    {
+        var scanner = new ContractScanner(
+            () => throw new InvalidOperationException("a fake read loads nothing"),
+            _ => { },
+            find: () => new GameWindow(0, new PixelRect(0, 0, 1920, 1080)),
+            capture: (PixelRect _, out int error) =>
+            {
+                error = 0;
+                return new CapturedRegion(new SKBitmap(40, 30), 0);
+            },
+            keepPictures: keepPictures,
+            read: _ => new ScanResult(ScanOutcome.NoContractInFrame, "", new ScanTimings(TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero)));
+
+        var attempt = await scanner.ScanAsync();
+
+        attempt.Outcome.Should().Be(ScanAttemptOutcome.NoContractInFrame);
+        if (keepPictures)
+        {
+            using var picture = SKBitmap.Decode(attempt.Picture);
+            (picture.Width, picture.Height).Should().Be((40, 30));
+        }
+        else
+        {
+            attempt.Picture.Should().BeNull();
+        }
     }
 
     private sealed class Restore(Action restore) : IDisposable

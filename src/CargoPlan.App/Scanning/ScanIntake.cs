@@ -15,8 +15,14 @@ namespace CargoPlan.App.Scanning;
 /// <param name="show">The result's notice, marshalled like <paramref name="apply"/>; called once per run, failures included.</param>
 /// <param name="delay">The wait before the second read, <see cref="SecondReadDelay"/> in the app (S10.0: the game types
 /// a contract in within a fraction of a second).</param>
+/// <param name="pictures">With <c>--keep-scans</c>: keeps each run's picture (T10.5); null = none.</param>
 internal sealed class ScanIntake(
-    Func<Task<ScanAttempt>> scan, Func<ScannedContract, Task<ScanReport>> apply, Func<ScanReport, Task> show, ScanLog log, Func<TimeSpan, Task> delay)
+    Func<Task<ScanAttempt>> scan,
+    Func<ScannedContract, Task<ScanReport>> apply,
+    Func<ScanReport, Task> show,
+    ScanLog log,
+    Func<TimeSpan, Task> delay,
+    ScanPictures? pictures = null)
 {
     public static readonly TimeSpan SecondReadDelay = TimeSpan.FromMilliseconds(300);
 
@@ -30,7 +36,7 @@ internal sealed class ScanIntake(
             var failed = new ScanReport(Kind(first.Outcome), Reason: first.Outcome == ScanAttemptOutcome.CaptureFailed ? Inv($"Win32 error {first.CaptureError}") : null);
             var noText = clock.Elapsed;
             await show(failed).ConfigureAwait(false);
-            Finish(first.RawText, failed, first, noText, clock.Elapsed);
+            Finish(first.RawText, failed, first, null, noText, clock.Elapsed);
             return failed;
         }
 
@@ -53,14 +59,18 @@ internal sealed class ScanIntake(
 
         var report = await apply(read).ConfigureAwait(false);
         await show(report).ConfigureAwait(false);
-        Finish(raw, report, attempt, toText, clock.Elapsed);
+        Finish(raw, report, attempt, read.View, toText, clock.Elapsed);
         return report;
     }
 
-    /// <summary>The read and its result into scans.log, the result and the times into cargoplan.log too: scans.log keeps 50.</summary>
-    private void Finish(string raw, ScanReport report, ScanAttempt attempt, TimeSpan toText, TimeSpan toNotice)
+    /// <summary>
+    /// The read and its result into scans.log, the result and the times into cargoplan.log too: scans.log keeps 50. With
+    /// --keep-scans the picture of the attempt the result rests on, its name on the result line (T10.5).
+    /// </summary>
+    private void Finish(string raw, ScanReport report, ScanAttempt attempt, ContractView? view, TimeSpan toText, TimeSpan toNotice)
     {
-        var result = $"{Describe(report)} | {Times(attempt, toText, toNotice)}";
+        var picture = pictures?.Save(attempt.Picture, view, report);
+        var result = $"{Describe(report)} | {Times(attempt, toText, toNotice)}{(picture is null ? "" : $" | picture={picture}")}";
         log.Write(raw, result);
         AppLog.Write("Scan", result);
     }

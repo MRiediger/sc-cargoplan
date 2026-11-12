@@ -63,7 +63,8 @@ public sealed class ScanIntakeTests : IDisposable
     // What the intake handed to the notice line, in order (T10.3).
     private readonly List<ScanReport> _shown = [];
 
-    private ScanIntake Intake(Func<Task<ScanAttempt>> scan, OverlayViewModel overlay, Func<TimeSpan, Task>? delay = null) => new(
+    private ScanIntake Intake(
+        Func<Task<ScanAttempt>> scan, OverlayViewModel overlay, Func<TimeSpan, Task>? delay = null, ScanPictures? pictures = null) => new(
         scan,
         contract => Task.FromResult(overlay.ApplyScan(contract)),
         report =>
@@ -72,7 +73,64 @@ public sealed class ScanIntakeTests : IDisposable
             return Task.CompletedTask;
         },
         new ScanLog(LogPath),
-        delay ?? (_ => Task.CompletedTask));
+        delay ?? (_ => Task.CompletedTask),
+        pictures);
+
+    private string PictureFolder => Path.Combine(_folder, "scans");
+
+    private ScanPictures Pictures() => new(PictureFolder, () => new DateTime(2026, 11, 12, 15, 50, 12));
+
+    private static ScanAttempt Pictured(ScanAttemptOutcome outcome, string raw, params byte[] picture) =>
+        Attempt(outcome, raw) with { Picture = picture };
+
+    // --keep-scans (T10.5, D108): the picture the result rests on, named by it, and its name in scans.log.
+    [Fact]
+    public async Task With_keep_scans_the_picture_is_saved_with_the_result()
+    {
+        var read = Pictured(ScanAttemptOutcome.Read, Complete, 1, 2, 3);
+
+        await Intake(() => Task.FromResult(read), new OverlayViewModel(HullA), pictures: Pictures()).RunAsync();
+
+        var name = "20261112-155012-accepted-added-1.png";
+        File.ReadAllBytes(Path.Combine(PictureFolder, name)).Should().Equal(1, 2, 3);
+        File.ReadAllText(LogPath).Split('\n')[0].Should().EndWith($"picture={name}");
+    }
+
+    [Fact]
+    public async Task On_a_second_read_the_picture_of_the_read_taken_is_saved()
+    {
+        var calls = 0;
+        Task<ScanAttempt> Scan() => Task.FromResult(++calls == 1
+            ? Pictured(ScanAttemptOutcome.Read, TypingIn, 1)
+            : Pictured(ScanAttemptOutcome.Read, Complete, 2));
+
+        await Intake(Scan, new OverlayViewModel(HullA), pictures: Pictures()).RunAsync();
+
+        Directory.GetFiles(PictureFolder).Should().ContainSingle()
+            .Which.Should().Match(path => File.ReadAllBytes(path).SequenceEqual(new byte[] { 2 }));
+    }
+
+    [Fact]
+    public async Task A_frame_without_a_contract_keeps_its_picture()
+    {
+        // The case of an unchecked screen size (Known issue 1): the region missed the contract.
+        var missed = Pictured(ScanAttemptOutcome.NoContractInFrame, "", 7);
+
+        await Intake(() => Task.FromResult(missed), new OverlayViewModel(HullA), pictures: Pictures()).RunAsync();
+
+        File.Exists(Path.Combine(PictureFolder, "20261112-155012-nocontractinframe.png")).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Without_keep_scans_no_picture_is_written()
+    {
+        var read = Pictured(ScanAttemptOutcome.Read, Complete, 1, 2, 3);
+
+        await Intake(() => Task.FromResult(read), new OverlayViewModel(HullA)).RunAsync();
+
+        Directory.Exists(PictureFolder).Should().BeFalse();
+        File.ReadAllText(LogPath).Should().NotContain("picture=");
+    }
 
     [Fact]
     public async Task A_text_all_there_is_read_once()

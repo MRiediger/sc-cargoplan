@@ -5524,7 +5524,7 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     (prozessweite GDI-Zahl neben parallelen WPF-Tests), allein und im nächsten Lauf grün → Backlog. Mit `--no-build`
     gegen eine veraltete App-Test-DLL (Build gescheitert) hing der App-Lauf; Tests nur nach grünem Build.
 
-### [ ] T10.5 Settings „Scan“ und CLI-Abschluss
+### [x] T10.5 Settings „Scan“ und CLI-Abschluss
 
 - Settings-Abschnitt „Scan“: Hotkey, `notifyOnScan`, Hinweis „Open the contract and press F3“, Reset wie D30.
 - `--keep-scans`: PNG nach `scans\`, höchstens 20.
@@ -5532,6 +5532,64 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   - ROI bei 32:9 und 16:10 ungeprüft, 4K ungeprüft
   - Verträge über eine Bildschirmseite
   - F3 von laufendem CT belegt (Notice mit Verweis auf die Settings)
+- **Präzisierung in der Planphase, ratifiziert durch Freigabe** (Branch `feat/t10-5-scan-settings`, D108):
+  1. **Kein `notifyOnScan`** (A4): Fehler-Notices und Blinken bleiben, ein Schalter nur für Added/Updated/AlreadyInPlan hat
+     keinen Anlass; nach D31 jederzeit nachrüstbar.
+  2. **„Scan aus“ = Taste gelöscht, dann kein Warmup beim Start.** `ComposeOcr` gibt es nicht: `WarmAfterFirstFrame` läuft nur
+     mit gültiger Taste oder `--scan-probe`; Taste setzen wärmt sofort; ein Scan ohne Warmup startet es selbst
+     (`StartWarmup` einmalig) – das K2-Warten allein endete am 15-s-Limit.
+  3. **Kein Abschnitt „Scan“** (Martin): Hinweis unter der Scan-Zeile im Hotkeys-Abschnitt, „the key“ statt „F3“, **ohne
+     MB-Zahl** (Hinweis aus der Freigabe: die Zahl altert mit Modell/ORT; sie steht in D108 und Wiki).
+  4. `--keep-scans`: das Bild liegt im `ContractScanner`, nicht in `ScanIntake` → reist als `ScanAttempt.Picture` (PNG vor
+     der Lesung); Name mit Sekunden; gespeichert wird der Versuch, auf dem das Ergebnis beruht, auch `NoContractInFrame`;
+     Bildtest mit Fake-Lesedelegat statt echter Engine (Hinweis aus der Freigabe).
+  5. CLI ohne Code (Usage nennt `scan <screenshot.png>` schon); `scan` gibt Rohtext und geparsten Vertrag aus, nicht das ROI.
+  6. README: Known issues des Scans kurz + Link aufs Wiki (Martin); Wiki-Branch `v0.4.0` pusht Martin.
+- **Befund (12.11.2026):**
+  - Commits: Warmup nur mit Taste (`354459e`), `--keep-scans` (`e930174`), Settings-Hinweis (`71a0c32`, von Martin im
+    Fenster abgenommen), D108/Doku.
+  - **Gate 1 – Speicher** (Release, ohne SC, `--data-dir` im Scratchpad, Hologramme aus, 30 s nach Start, 3 Läufe, Median):
+
+    | | Working Set | Private Bytes | Log |
+    |---|---:|---:|---|
+    | mit F3 | **217 MB** (216–233) | 181 MB | „OCR ready“ 3/3 |
+    | ohne Taste | **128 MB** (3× 128) | 83 MB | „not loaded at start“ 3/3 |
+
+    Erwartung aus dem Startprompt (≈ 270 / ≈ 160) lag höher, der Abstand stimmt (≈ 90 MB vor dem ersten Scan). Die ≈ 400 MB
+    aus T10.1b kommen erst mit Scans (T10.3: 770 MB nach 40 Scans) und werden ohne Taste nie erreicht.
+  - **Tests** (sauberer Worktree): main Core 1 770 · Import 280 · App 1 793 · Ocr 34 → Core 1 770 · Import 280 · App
+    **1 817** · Ocr 34 grün. Nachfolger: `A_scan_before_the_warm_up_started_waits_for_it` →
+    `A_scan_without_a_warm_up_starts_it_and_waits_for_it`. C1: 3 neue Verhaltenstests vorher rot gegen Stub. C2 (Stubs
+    scheitern an ungelesenen Parametern unter `TreatWarningsAsErrors`): 4 Mutationen, je rot – keine Kodierung (2), kein
+    Rollieren (2), Bild des ersten Versuchs bei Zweitlesung (1), Schalter nicht geparst (2). Build 0 Warnungen,
+    `dotnet format` Exit 0.
+  - **Known issues** (Liste für README und Wiki, Beleg je Zeile):
+    1. Scan-Bereich nur bei 3440×1440 und 1920×1080 geprüft; 32:9, 16:10, 4K ungeprüft → `--keep-scans` (PNG + `scans.log`)
+       oder `CargoPlan.Cli scan <Fenster-Screenshot>` (D99 Gegenargument, S10.0, T10.1a).
+    2. Ziele über eine mobiGlas-Seite hinaus: nur die sichtbaren werden gelesen; die Legende zeigt „⚠ n of m destinations“,
+       sobald die Liste es verrät (`ShipViewBuilder`, D101).
+    3. F3 bei laufendem ContractTracker belegt → Notice, Taste ändern oder CT schließen (D104, T10.3 Gate 3).
+    4. Zwei inhaltsgleiche Verträge (Route und Reward) haben einen Schlüssel: der zweite Scan aktualisiert den ersten → im
+       Editor anlegen (D101 Gegenargument).
+    5. Eigene Fenster über dem Vertrag blinken beim Scan kurz (D100, B12).
+    6. Speicher: 770–890 MB Working Set nach vielen Scans (T10.1b, T10.3); ohne Scan-Taste lädt die OCR nicht
+       (128 statt 217 MB nach dem Start, D108).
+  - **Doku-Branches:** README „Known issues“ (Scan kurz + Link) auf `docs/v0.4.0-user-docs` (`a32feb3`); Wiki `v0.4.0`
+    (`a17098e`): „Scanning contracts“ (Taste löschen = aus, `--keep-scans`, `Cli scan`), „Troubleshooting“ (Known issues);
+    Wiki-Repo wieder auf `master`, den Branch pusht Martin. **Gate 3:** Probe-Merge des Doku-Branches gegen Feature-Branch
+    und `main` im Scratch, je 0 Konflikte, verworfen.
+  - **Gate 2 über dem Spiel** (Martin, 12.11., Release, 3440×1440, `--data-dir` je Lauf):
+
+    | Lauf | Start | Scan | Ergebnis |
+    |---|---|---|---|
+    | F3 (Default) | „OCR ready“ 1,2 s nach dem Prozess, 218 MB | F3 → Text 1 467 ms | `Added #1` |
+    | `scanContracts: null` | „not loaded at start“ | Editor-Button: „warming up“, Laden 589 ms (`waitMs=613`), → Text 2 198 ms | `Added #1` |
+    | `--keep-scans` | „OCR ready“ | F3 → Text 1 475 ms | `Added #1`, `picture=20261112-101440-offer-added-1.png` |
+
+    Das PNG zeigt das ROI (OFFERS, ohne fremde Fenster), Name = lokale Zeit, Ansicht, Ergebnis; **2,6 MB** je Bild
+    (≈ 50 MB für 20). Kodierzeit nicht messbar (1 475 vs. 1 467 ms, je n = 1). `NoContractInFrame` mit Bild nur per Test.
+    Erster Start von Lauf 3 ohne Tastendruck im Log (kein Scan versucht), zweiter Start gleich konfiguriert ok.
+  - Abgenommen (Martin, 12.11.2026). CI nach dem Push von `main`.
 
 ### [ ] T10.6 Release v0.4.0
 
@@ -5550,6 +5608,11 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   – copy it first.“ Der Schutz vor dem Überschreiben gilt erst ab v0.4.0 (D106, Downgrade).
 - **Aus T10.4b (D107):** Release-Notes: „Contracts from ContractTracker in your plan become scan missions #1, #2 … when
   v0.4.0 loads it; their crates and ticks stay.“
+- **Aus T10.5 (D108):** Release-Notes: „Clear the scan key in the settings to turn scanning off; the OCR then doesn't load
+  at start (about 90 MB less right after the start, and none of the growth that comes with scans).“ Zahlen: 217 vs 128 MB
+  Working Set 30 s nach dem Start (Gate 1). `--keep-scans` für Bug-Reports (die letzten 20 Aufnahmen in `scans\`,
+  ≈ 2,6 MB je Bild bei 3440×1440, ≈ 50 MB zusammen).
+  README und Wiki: Known issues des Scans (Liste in T10.5) mit den Doku-Branches mergen.
 
 ## Phase 11 – nach dem Launch
 

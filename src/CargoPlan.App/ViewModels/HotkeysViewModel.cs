@@ -12,6 +12,12 @@ public sealed class HotkeysViewModel
 {
     public const string Hint = "Ctrl, Alt or Win required, except for F keys. Hotkeys work while Star Citizen or CargoPlan is in front. The keys reach the game and Windows too, so pick ones neither uses.";
 
+    /// <summary>
+    /// Under the scan's row (D108): clearing the key is how scanning is turned off, and the OCR then stays unloaded. No
+    /// number of megabytes: it would age with every model or runtime version; D108 and the wiki hold it.
+    /// </summary>
+    public const string ScanHint = "Open a contract in the mobiGlas and press the key. Clear it to turn scanning off: the OCR then doesn't load at start; the editor's Scan button still works.";
+
     private readonly Func<HotkeyAction, Hotkey?, string?> _set;
 
     /// <param name="settings">As the session holds them; null = <see cref="HotkeySettings.Default"/>.</param>
