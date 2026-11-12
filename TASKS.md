@@ -5672,6 +5672,19 @@ ContractTracker als Halbsatz beim Wegfall.
 
 - `docs/release-notes/v0.4.0.md`: Lead, Download-Absatz, Highlights, Changes, Before you update (settings, plan, kein
   Downgrade, Mission-Dateien, ContractTracker auf F3), Known issues (6 + Link), MIT-Schluss mit `models/NOTICE.md`
+
+**Befund:**
+- Vollständigkeit `git log v0.3.1..main --no-merges`: T10.1a–T10.5, B11–B13, K10 kommen vor, soweit sie das ZIP für
+  Nutzer ändern. Nicht in den Notes: `--data-dir`, `--scan-probe`, `--measure-frames` (Gate-Werkzeuge), Plan-Schema 1–7
+  abgelehnt (kein Release schrieb sie, v0.1.0 schrieb 8), Testumbau (B11, Timing-Kategorie), K10-Hygiene.
+- Datenordner seit v0.3.1 gleich (`%LocalAppData%\SC-CargoPlan`, `git grep v0.3.1`), also kein Migrationssatz dazu.
+- Zahlen: ZIP lokal 85.214.274 Byte (`publish.ps1 -Version 0.4.0` auf `0f8cd3f`) + 2,1 MB CI-Kompression ≈ 87 MB,
+  v0.3.1 veröffentlicht 64.201.711 Byte; Speicher „about 90 MB less“ = D108 Gate 1 (217 vs 128 MB Working Set), „up to
+  about 900 MB“ = D108 (773–892 MB nach 70 Scans), README wortgleich; `--keep-scans` 20 Bilder ≈ 2,6 MB = ≈ 50 MB (T10.5).
+- Wiki-Lücke: „Coming from v0.3.x“ nannte weder `#1…#n` für CT-Verträge noch die Downgrade-Falle (D106); ergänzt,
+  damit Notes und Wiki dasselbe sagen.
+- Link-Check der Notes: 0 kaputt, 4 externe URLs 200.
+
 - [ ] Notes-Entwurf von Claude.ai freigegeben (Martin)
 
 ### [ ] R3 Medien (Martin nimmt auf, CC schneidet und prüft)
