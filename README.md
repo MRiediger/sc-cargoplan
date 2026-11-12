@@ -33,6 +33,23 @@ Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the 
 
 - Windows 10/11 x64 (tested on Windows 11). Nothing else to install: .NET comes with it.
 
+## Known issues
+
+Reading contracts is new in v0.4.0:
+
+- Checked at 3440×1440 and 1920×1080 only. If a scan finds no contract on 32:9, 16:10 or 4K, start
+  `CargoPlan.App.exe --keep-scans`, scan again and attach the picture from `%LocalAppData%\SC-CargoPlan\scans` to a
+  [bug report](https://github.com/MRiediger/sc-cargoplan/issues/new?template=bug.yml).
+- A contract whose destinations run past one mobiGlas page is read as far as it shows; the legend says
+  `⚠ 1 of 3 destinations` when the contract tells.
+- ContractTracker also reacts to F3: while it runs, CargoPlan says so. Pick another key or close ContractTracker.
+- Two contracts with the same route and reward count as one: add the second in the editor.
+- CargoPlan's windows over the contract blink briefly during a scan.
+- After many scans CargoPlan uses up to about 900 MB of memory. Clear the scan key in the settings and the reader
+  doesn't load at all.
+
+All known issues: [Troubleshooting](https://github.com/MRiediger/sc-cargoplan/wiki/Troubleshooting#known-issues).
+
 ## Documentation
 
 - [Wiki](https://github.com/MRiediger/sc-cargoplan/wiki) ·
