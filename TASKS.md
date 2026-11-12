@@ -5524,7 +5524,7 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     (prozessweite GDI-Zahl neben parallelen WPF-Tests), allein und im nächsten Lauf grün → Backlog. Mit `--no-build`
     gegen eine veraltete App-Test-DLL (Build gescheitert) hing der App-Lauf; Tests nur nach grünem Build.
 
-### [ ] T10.5 Settings „Scan“ und CLI-Abschluss
+### [x] T10.5 Settings „Scan“ und CLI-Abschluss
 
 - Settings-Abschnitt „Scan“: Hotkey, `notifyOnScan`, Hinweis „Open the contract and press F3“, Reset wie D30.
 - `--keep-scans`: PNG nach `scans\`, höchstens 20.
@@ -5589,7 +5589,7 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     Das PNG zeigt das ROI (OFFERS, ohne fremde Fenster), Name = lokale Zeit, Ansicht, Ergebnis; **2,6 MB** je Bild
     (≈ 50 MB für 20). Kodierzeit nicht messbar (1 475 vs. 1 467 ms, je n = 1). `NoContractInFrame` mit Bild nur per Test.
     Erster Start von Lauf 3 ohne Tastendruck im Log (kein Scan versucht), zweiter Start gleich konfiguriert ok.
-  - **Offen:** CI nach Martins Push.
+  - Abgenommen (Martin, 12.11.2026). CI nach dem Push von `main`.
 
 ### [ ] T10.6 Release v0.4.0
 
