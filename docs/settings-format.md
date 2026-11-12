@@ -71,7 +71,9 @@ editor's Re-plan, `discardPlan` empties the plan like the editor's Discard plan,
 ↶ and ↷, `resetView` fits the ship view like the header's reset next to the gear, `scanContracts` reads the contract
 open in the mobiGlas into the plan like the editor's Scan button. In `hotkeys`, `null` and a missing entry both mean
 "no hotkey"; the settings window writes `null` when you clear one, so you see the entry exists. The one exception is
-`scanContracts`: missing means **F3**, `null` means off (D104). A hotkey needs Ctrl, Alt or Win unless it is an F key
+`scanContracts`: missing means **F3**, `null` means off (D104). With `null` (or a key that isn't valid) the OCR doesn't
+load at start; the editor's Scan button still works and loads it on its first press, setting a key in the settings
+window loads it at once (D108). A hotkey needs Ctrl, Alt or Win unless it is an F key
 (F1–F11, F13–F24); F12 and Space are reserved. Hotkeys work while Star Citizen or CargoPlan is in front, and the keys
 reach the game too, so pick a combination Star Citizen doesn't use (D97). Every section and every value
 in `appearance` is optional: what you leave out keeps its default. `{ "schemaVersion": 3, "appearance":

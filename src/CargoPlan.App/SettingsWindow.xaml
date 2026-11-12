@@ -444,6 +444,8 @@
                         <ContentControl Content="{Binding Lock, Mode=OneTime}" />
                         <ContentControl Content="{Binding Overlay, Mode=OneTime}" />
                         <ContentControl Content="{Binding Scan, Mode=OneTime}" />
+                        <!-- No section of its own (T10.5): its one setting is this key; clearing it turns scanning off (D108). -->
+                        <TextBlock Text="{x:Static vm:HotkeysViewModel.ScanHint}" TextWrapping="Wrap" Margin="0,0,0,4" />
                         <ContentControl Content="{Binding Replan, Mode=OneTime}" />
                         <ContentControl Content="{Binding Discard, Mode=OneTime}" />
                         <ContentControl Content="{Binding Undo, Mode=OneTime}" />
