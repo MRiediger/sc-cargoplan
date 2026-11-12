@@ -10,7 +10,7 @@ Three ships still use hull data from fleetyards.net: their entries without `floo
 Hornet Mk II) were traced from top-view renders published there (API `api.fleetyards.net/v1/models`), with their
 dimensions from the same API.
 
-Thanks to both. Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG.
+Thanks to both. Not affiliated with Motherlode, Fleetyards or CIG.
 
 Star Citizen ships are the intellectual property of Cloud Imperium Rights LLC / Cloud Imperium Rights Ltd. These
 silhouette data are **not** covered by the MIT license of SC-CargoPlan.
