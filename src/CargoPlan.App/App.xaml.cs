@@ -219,8 +219,17 @@ public partial class App : Application
         // thread. Source: https://learn.microsoft.com/dotnet/api/system.windows.threading.dispatcheroperation.task
         var scanner = CreateScanner(
             text => Dispatcher.InvokeAsync(() => viewModel.SetNotice(NoticeSource.Scan, text)),
-            options.ScanProbe is null ? null : ProbeTarget());
-        var scan = new ScanRunner(() => scanner.ScanAsync(), viewModel, new ScanLog(ScanLog.DefaultPath), action => Dispatcher.InvokeAsync(action).Task);
+            options.ScanProbe is null ? null : ProbeTarget(),
+            options.KeepScans);
+        ScanPictures? pictures = null;
+        if (options.KeepScans)
+        {
+            pictures = new ScanPictures(ScanPictures.DefaultFolder);
+            AppLog.Write("Scan", $"keeping the last {ScanPictures.MaxPictures} scan pictures in {ScanPictures.DefaultFolder} ({StartOptions.KeepScansSwitch})");
+        }
+
+        var scan = new ScanRunner(
+            () => scanner.ScanAsync(), viewModel, new ScanLog(ScanLog.DefaultPath), action => Dispatcher.InvokeAsync(action).Task, pictures: pictures);
         var overlay = new OverlayWindow(
             viewModel,
             session,
@@ -320,7 +329,8 @@ public partial class App : Application
     /// </summary>
     /// <param name="notice">The scan's notice line; called from pool threads.</param>
     /// <param name="find">Another window than the game's, for a probe's dry run; null = Star Citizen.</param>
-    private ContractScanner CreateScanner(Action<string?> notice, Func<GameWindow?>? find = null)
+    /// <param name="keepPictures"><c>--keep-scans</c>: each attempt carries its picture (T10.5).</param>
+    private ContractScanner CreateScanner(Action<string?> notice, Func<GameWindow?>? find = null, bool keepPictures = false)
     {
         // Our windows over the contract leave the picture for the capture (D100, B12). The window list is read at each
         // capture, so windows made after the scanner count too. A failed cloak isn't thrown: the window would only be in
@@ -332,7 +342,7 @@ public partial class App : Application
                 AppLog.Write("Scan", string.Create(CultureInfo.InvariantCulture, $"DWMWA_CLOAK {cloak} failed: 0x{result:X8}"));
             }
         });
-        return _scanner = new ContractScanner(OcrEngine.Load, notice, find, clear: clearance.Clear);
+        return _scanner = new ContractScanner(OcrEngine.Load, notice, find, clear: clearance.Clear, keepPictures: keepPictures);
     }
 
     /// <summary>

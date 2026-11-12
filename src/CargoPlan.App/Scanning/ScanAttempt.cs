@@ -31,7 +31,8 @@ internal delegate CapturedRegion? CaptureRegion(PixelRect screen, out int error)
 /// <summary>
 /// One scan from the trigger to the raw text, with the time of each stage (Gate 1): waiting for the warm-up, finding the
 /// window and capturing the region, then the OCR's own stages. <paramref name="Game"/> is the window that was read, for the
-/// probe's log; null when none was found.
+/// probe's log; null when none was found. <paramref name="Picture"/> is the captured region as a PNG with
+/// <c>--keep-scans</c> (T10.5), else null.
 /// </summary>
 internal sealed record ScanAttempt(
     ScanAttemptOutcome Outcome,
@@ -41,4 +42,5 @@ internal sealed record ScanAttempt(
     ScanTimings? Read,
     TimeSpan Total,
     GameWindow? Game = null,
-    int CaptureError = 0);
+    int CaptureError = 0,
+    byte[]? Picture = null);

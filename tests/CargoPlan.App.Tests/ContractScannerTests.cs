@@ -1,6 +1,7 @@
 using CargoPlan.App.Scanning;
 using CargoPlan.App.Win32;
 using CargoPlan.Ocr;
+using SkiaSharp;
 
 namespace CargoPlan.App.Tests;
 
@@ -176,6 +177,38 @@ public class ContractScannerTests
 
         await scan.Should().ThrowAsync<InvalidOperationException>().WithMessage("test-capture-throws");
         restored.Should().BeTrue();
+    }
+
+    // --keep-scans (T10.5): the picture comes before and apart from the OCR, so a fake read checks it in milliseconds.
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_scanner_that_keeps_pictures_returns_the_region_as_png(bool keepPictures)
+    {
+        var scanner = new ContractScanner(
+            () => throw new InvalidOperationException("a fake read loads nothing"),
+            _ => { },
+            find: () => new GameWindow(0, new PixelRect(0, 0, 1920, 1080)),
+            capture: (PixelRect _, out int error) =>
+            {
+                error = 0;
+                return new CapturedRegion(new SKBitmap(40, 30), 0);
+            },
+            keepPictures: keepPictures,
+            read: _ => new ScanResult(ScanOutcome.NoContractInFrame, "", new ScanTimings(TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero, TimeSpan.Zero)));
+
+        var attempt = await scanner.ScanAsync();
+
+        attempt.Outcome.Should().Be(ScanAttemptOutcome.NoContractInFrame);
+        if (keepPictures)
+        {
+            using var picture = SKBitmap.Decode(attempt.Picture);
+            (picture.Width, picture.Height).Should().Be((40, 30));
+        }
+        else
+        {
+            attempt.Picture.Should().BeNull();
+        }
     }
 
     private sealed class Restore(Action restore) : IDisposable

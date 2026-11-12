@@ -20,13 +20,17 @@ namespace CargoPlan.App.Scanning;
 /// <param name="warmupLimit">How long a scan waits for the warm-up; <see cref="WarmupLimit"/> in the app.</param>
 /// <param name="clear">Takes our windows off the region for the capture (D100); disposed even when the capture throws.</param>
 /// <param name="capture">Copies the region; <see cref="ScreenCapture.Region"/> in the app.</param>
+/// <param name="keepPictures"><c>--keep-scans</c> (T10.5): each attempt carries the region as a PNG.</param>
+/// <param name="read">Reads a region instead of the engine; for tests, which then load nothing.</param>
 internal sealed class ContractScanner(
     Func<OcrEngine> load,
     Action<string?> notice,
     Func<GameWindow?>? find = null,
     TimeSpan? warmupLimit = null,
     Func<PixelRect, IDisposable?>? clear = null,
-    CaptureRegion? capture = null)
+    CaptureRegion? capture = null,
+    bool keepPictures = false,
+    Func<SKBitmap, ScanResult>? read = null)
 {
     /// <summary>Ten times the expected 1–2 s (K2): a warm-up that takes longer hangs, a scan mustn't wait for ever.</summary>
     public static readonly TimeSpan WarmupLimit = TimeSpan.FromSeconds(15);
@@ -42,7 +46,7 @@ internal sealed class ContractScanner(
     // Completed by the warm-up, which never throws: a scan starts the warm-up if nothing did and waits on it like one during
     // the warm-up. Continuations off the completing thread, so a waiting scan never runs on the warm-up's.
     // Source: https://learn.microsoft.com/dotnet/api/system.threading.tasks.taskcreationoptions#fields (RunContinuationsAsynchronously)
-    private readonly TaskCompletionSource<ScanContractSource?> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource<Func<SKBitmap, ScanResult>?> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private string? _unavailable;
     private int _started;
     private int _busy;
@@ -110,7 +114,7 @@ internal sealed class ContractScanner(
         }
     }
 
-    private ScanAttempt ScanNow(ScanContractSource source, Action<SKBitmap>? inspect, Stopwatch clock, TimeSpan wait)
+    private ScanAttempt ScanNow(Func<SKBitmap, ScanResult> readRegion, Action<SKBitmap>? inspect, Stopwatch clock, TimeSpan wait)
     {
         var captureClock = Stopwatch.StartNew();
         if (_find() is not { } game)
@@ -136,15 +140,29 @@ internal sealed class ContractScanner(
         }
 
         inspect?.Invoke(captured.Bitmap);
-        var result = source.ReadRegion(captured.Bitmap);
+        var picture = keepPictures ? Png(captured.Bitmap) : null;
+        var result = readRegion(captured.Bitmap);
         var outcome = result.Outcome == ScanOutcome.Read ? ScanAttemptOutcome.Read : ScanAttemptOutcome.NoContractInFrame;
-        return new ScanAttempt(outcome, result.RawText, wait, capture, result.Timings, clock.Elapsed, game);
+        return new ScanAttempt(outcome, result.RawText, wait, capture, result.Timings, clock.Elapsed, game, Picture: picture);
+    }
+
+    // Before the read, from the bitmap that is disposed with the capture. Null when Skia can't encode it; then no picture.
+    // Source: https://learn.microsoft.com/dotnet/api/skiasharp.skbitmap.encode#skiasharp-skbitmap-encode(skiasharp-skencodedimageformat-system-int32)
+    private static byte[]? Png(SKBitmap region)
+    {
+        using var data = region.Encode(SKEncodedImageFormat.Png, 100);
+        return data?.ToArray();
     }
 
     // Any failure, not only missing files: the native runtime loads here, and a failure in an unobserved task would vanish.
     // It is logged in full, the scan says so and stays off; the overlay runs on (plan decision 3, D82).
-    private ScanContractSource? Warm()
+    private Func<SKBitmap, ScanResult>? Warm()
     {
+        if (read is not null)
+        {
+            return read;
+        }
+
         using var process = Process.GetCurrentProcess();
         var sinceStart = DateTime.Now - process.StartTime;
         var (workingBefore, privateBefore) = (process.WorkingSet64, process.PrivateMemorySize64);
@@ -160,7 +178,7 @@ internal sealed class ContractScanner(
                 $"started {sinceStart.TotalMilliseconds:0} ms after the process, load {loaded.TotalMilliseconds:0} ms, warm-up read {(total - loaded).TotalMilliseconds:0} ms, total {total.TotalMilliseconds:0} ms; ")
                 + Inv($"working set {workingBefore / Megabyte} → {process.WorkingSet64 / Megabyte} MB, private bytes {privateBefore / Megabyte} → {process.PrivateMemorySize64 / Megabyte} MB"));
             Notice(null);
-            return new ScanContractSource(engine);
+            return new ScanContractSource(engine).ReadRegion;
         }
         catch (Exception ex)
         {
