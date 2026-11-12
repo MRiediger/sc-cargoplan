@@ -50,7 +50,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 | Schiffsansicht | **Ein `Viewport3D`**, `PerspectiveCamera` (FOV 40°), Text (Rack-Nummern, Tooltips) in einer 2D-Overlay-Ebene, `CameraMath` als einzige Projektion für Bild, Overlay und Hit-Test (D83, Phase 8) | Ortho pumpt beim Drehen (S8.0); eine Szene und eine Kamera statt zwei Zeichnern im Abgleich. |
 | MVVM | **CommunityToolkit.Mvvm** | Source-Generatoren sparen Boilerplate (`[ObservableProperty]`, `[RelayCommand]`). Einziges UI-Paket. |
 | JSON | `System.Text.Json` | Stdlib, kein Newtonsoft. |
-| OCR | **RapidOcrNet** (PP-OCRv5 latin) auf ONNX Runtime 1.31.1 (explizit), SkiaSharp transitiv 3.x, in `CargoPlan.Ocr` (`net10.0`, ohne Windows-API); Modelle aus dem Paket als `None`-Items nach `models/v5/` neben der Exe, Lizenzen in `models/NOTICE.md` (D99) | Eigenes Lesen statt ContractTracker (A11-Exit, S10.0): 100 % der Lieferfelder bei 21:9, offline ≈ 1,2 s je Vertrag. Kein Download, kein Netz. Aufnahme: GDI `BitBlt` nur aufs ROI unter Per-Monitor-DPI im Capture-Thread, eigene Fenster über dem ROI für die Aufnahme per DWM-Cloak verborgen, je Owner-Kette nur der oberste (D100, B12); Engine wärmt nach dem ersten Frame vor (`ContractScanner`). |
+| OCR | **RapidOcrNet** (PP-OCRv5 latin) auf ONNX Runtime 1.31.1 (explizit), SkiaSharp transitiv 3.x, in `CargoPlan.Ocr` (`net10.0`, ohne Windows-API); Modelle aus dem Paket als `None`-Items nach `models/v5/` neben der Exe, Lizenzen in `models/NOTICE.md` (D99) | Eigenes Lesen statt ContractTracker (A11-Exit, S10.0): 100 % der Lieferfelder bei 21:9, offline ≈ 1,2 s je Vertrag. Kein Download, kein Netz. Aufnahme: GDI `BitBlt` nur aufs ROI unter Per-Monitor-DPI im Capture-Thread, eigene Fenster über dem ROI für die Aufnahme per DWM-Cloak verborgen, je Owner-Kette nur der oberste (D100, B12); Engine wärmt nach dem ersten Frame vor, nur mit Scan-Taste, sonst beim ersten Scan (`ContractScanner`, D108). |
 | Tests | **xUnit** + `AwesomeAssertions` | Standard im .NET-Ökosystem. AwesomeAssertions ist der Apache-2.0-Fork von FluentAssertions (ab v8 kommerziell lizenziert). |
 | Click-through | Win32 `SetWindowLongPtrW` schaltet `WS_EX_TRANSPARENT` via `[LibraryImport]`, HWND aus `WindowInteropHelper`; `WS_EX_LAYERED` setzt WPF selbst (D11) | Keine Lib nötig. |
 | Hotkeys | **Gepollt:** `GetAsyncKeyState` auf einem `DispatcherTimer` (33 ms), Flanke + exakte Modifier (`HotkeyPoller`), scharf nur mit SC oder CargoPlan vorne (D97); Ctrl/Alt/Win Pflicht außer bei F-Tasten, einziger Default Scan = F3 (D104) | `RegisterHotKey` kommt mit SC vorne nie an; kein Hook (EAC), keine Lib. Die Taste erreicht auch das Spiel. |
@@ -79,7 +79,7 @@ sc-cargoplan/
 │   ├── CargoPlan.Import/          # net10.0 – Contracts/: Vertragstext → `ScannedContract` mit Inhaltsschlüssel (D101); `DestinationNames` (B1)
 │   ├── CargoPlan.Ocr/             # net10.0 – Vertrag aus einem Bild lesen: ROI, up2-gray, RapidOcrNet, Lesereihenfolge (D99); keine Windows-API; NOTICE.md → models/NOTICE.md
 │   ├── CargoPlan.Cli/             # net10.0 – Plan im Terminal ausgeben (Debugging ohne UI), `scan <png>`
-│   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Settings (Schema 3, Migration D105), Win32-Interop (inkl. Fenstersuche und Bildschirmaufnahme), Scan (`Scanning/`: Aufnahme D100, `ScanIntake` mit zweiter Lesung bei Verdacht und `scans.log` D103, `ScanRunner` für Hotkey und Editor-Button mit Notice je Ergebnis D104), Holo-Download und -Cache (einziger Netzzugriff, D63)
+│   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Settings (Schema 3, Migration D105), Win32-Interop (inkl. Fenstersuche und Bildschirmaufnahme), Scan (`Scanning/`: Aufnahme D100, `ScanIntake` mit zweiter Lesung bei Verdacht und `scans.log` D103, `ScanRunner` für Hotkey und Editor-Button mit Notice je Ergebnis D104, `ScanPictures` für `--keep-scans` D108), Holo-Download und -Cache (einziger Netzzugriff, D63)
 ├── tests/
 │   ├── CargoPlan.Core.Tests/      # Fixtures/, FrozenShips/ (A10)
 │   ├── CargoPlan.Import.Tests/    # Fixtures/RawText: echte Vertragstexte (CIG-Material nur als Text)
@@ -122,6 +122,7 @@ dotnet test tests/CargoPlan.Import.Tests -c Release -p:RunSettingsFilePath= --fi
 dotnet test tests/CargoPlan.Import.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~ScanProbeLogTests --logger "console;verbosity=detailed"   # jeden Rohtext eines scan-probe.log durch den Parser, strukturelle Asserts, Zahlen je Schlüssel im Output (T10.2a), nur von Hand; Env: CARGOPLAN_SCAN_PROBE_LOG (CIG-Material, nie ins Repo)
 dotnet test tests/CargoPlan.Ocr.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OcrMemoryTests --logger "console;verbosity=detailed"   # Speicher über 100 Lesevorgänge, nur von Hand; Env: CARGOPLAN_OCR_SAMPLES
 dotnet run --project src/CargoPlan.App -c Release -- --scan-probe [N] [--scan-probe-images]   # Overlay + Scan-Probe: F8 = 1 Scan, F9 = N Scans (Default 100); scan-probe.log + scan-probe\*.png neben cargoplan.log (CIG-Material, nie ins Repo); Env optional CARGOPLAN_SC_CAPTURE_PROCESS = anderes Fenster für einen Probelauf ohne SC
+dotnet run --project src/CargoPlan.App -c Release -- --keep-scans   # Overlay wie immer, jede Aufnahme von F3/Scan-Button als PNG nach scans\ neben plan.json (die letzten 20, Name Zeit-Ansicht-Ergebnis, auch bei „No contract in frame“), Name am Ende der Ergebniszeile in scans.log; für Bug-Reports anderer Auflösungen (D108, CIG-Material, nie ins Repo)
 dotnet run --project src/CargoPlan.App -c Release -- --measure-frames <ziel> --over-game [--scan-load]   # Frame-Zeit über dem Spiel (D83) mit vorgewärmter Engine; --scan-load scannt während der 30 s in Schleife; measure-frames.log neben der Exe
 dotnet test tests/CargoPlan.App.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OverlayCaptureTests   # eigenes Fenster über dem ROI je Capture-Variante (D100), SC muss laufen, nur von Hand; Env: CARGOPLAN_SC_CAPTURE (Ausgabeordner außerhalb des Repos), optional CARGOPLAN_SC_CAPTURE_PROCESS
 ./tools/import-motherlode.ps1 -Catalog <catalog-<datum>.json> [-Previous <älterer Katalog>] [-Create]   # Racks aus den Spieldateien, Exit 1 = ansehen (Handprüfung, Reihenfolge, neues Schiff) (D92)
@@ -156,6 +157,7 @@ dotnet run --project src/CargoPlan.Cli -- --version
 - Hardcoded Pfade, Hotkeys, Farben – gehört in `settings.json` oder eine zentrale Konstanten-Datei
 - `TODO` ohne Issue-Nummer
 - Planungslogik in Views oder ViewModels
+- Einen Parameter streichen, ohne jede Aufrufstelle anzusehen: ein übrig gebliebenes int-Literal `0` wandelt sich still in jedes Enum (T10.4b: 33 Watermark-Aufrufe wären in `FillRows` gerutscht)
 
 ## IMMER
 
