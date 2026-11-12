@@ -5574,8 +5574,12 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     5. Eigene Fenster über dem Vertrag blinken beim Scan kurz (D100, B12).
     6. Speicher: 770–890 MB Working Set nach vielen Scans (T10.1b, T10.3); ohne Scan-Taste lädt die OCR nicht
        (128 statt 217 MB nach dem Start, D108).
+  - **Doku-Branches:** README „Known issues“ (Scan kurz + Link) auf `docs/v0.4.0-user-docs` (`a32feb3`); Wiki `v0.4.0`
+    (`a17098e`): „Scanning contracts“ (Taste löschen = aus, `--keep-scans`, `Cli scan`), „Troubleshooting“ (Known issues);
+    Wiki-Repo wieder auf `master`, den Branch pusht Martin. **Gate 3:** Probe-Merge des Doku-Branches gegen Feature-Branch
+    und `main` im Scratch, je 0 Konflikte, verworfen.
   - **Offen:** Gate 2 über dem Spiel (Martin: F3 → `Added`; Taste löschen, Neustart, Editor-Button → „warming up“ →
-    `Added`; `--keep-scans` → PNG, Name, ROI, `keyToTextMs` mit/ohne Schalter), Doku-Branches (C5), Gate 3 Probe-Merge.
+    `Added`; `--keep-scans` → PNG, Name, ROI, `keyToTextMs` mit/ohne Schalter); CI nach Martins Push.
 
 ### [ ] T10.6 Release v0.4.0
 
