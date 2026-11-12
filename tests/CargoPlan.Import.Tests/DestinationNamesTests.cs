@@ -82,7 +82,7 @@ public class DestinationNamesTests
         unified.Merged.Should().BeEquivalentTo([("Melodic Fieids", "Melodic Fields Station"), (Short, Full)]);
         applied.Plan.Crates.Select(c => c.Destination).Distinct().Should().BeEquivalentTo(
             "Melodic Fields Station", "Faithful Dream Station", Full, "Everus Harbor");
-        ContractSync.Duplicates(applied).Should().BeEmpty();
+        PossibleDuplicates.Of(applied).Should().BeEmpty();
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class DestinationNamesTests
         ContractCapture[] captures = [new([Stop(Full, "Stims", 8)], new ContractSource([60]))];
 
         var unified = DestinationNames.Unify(plan, HullA, captures);
-        var applied = ContractSync.Apply(unified.Saved, HullA, unified.Captures, null);
+        var applied = LoadPlanner.PlaceInto(unified.Saved, HullA, unified.Captures[0].Stops, unified.Captures[0].Source);
 
         unified.Merged.Should().Equal((Short, Full));
         applied.Stops.Should().ContainSingle().Which.Destination.Should().Be(Full);

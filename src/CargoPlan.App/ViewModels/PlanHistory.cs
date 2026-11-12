@@ -5,9 +5,9 @@ namespace CargoPlan.App.ViewModels;
 /// <summary>
 /// The overlay's undo and redo (K2.4): snapshots of the whole plan, not diffs, and not saved, so a restart starts without.
 /// An entry is the plan to go back to (<see cref="Entry.Target"/>) and the plan that came right after it
-/// (<see cref="Entry.Reference"/>): what changed between that and the current plan without being a step (ticks, syncs)
-/// carries over to the target (Core's <c>CarryTicks</c> and <c>Resync</c>). The plans are immutable records, so a snapshot
-/// shares every crate it didn't change.
+/// (<see cref="Entry.Reference"/>). Since the ContractTracker sync went (D107) every change is a step, and nothing
+/// carries over: the reference has no reader left (backlog). The plans are immutable records, so a snapshot shares every
+/// crate it didn't change.
 /// </summary>
 public sealed class PlanHistory
 {

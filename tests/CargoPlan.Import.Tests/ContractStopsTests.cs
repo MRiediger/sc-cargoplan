@@ -140,7 +140,7 @@ public class ContractStopsTests
             }),
         ];
         var saved = LoadPlanner.Plan(ship, missions, [.. missions.SelectMany(m => m.Stops).Select(s => s.Destination).Distinct()]);
-        return new HashSet<int>(ContractSync.Duplicates(saved).Select(id => (int)saved.Missions.Single(m => m.Id == id).Contract!.ContractIds.Single()));
+        return new HashSet<int>(PossibleDuplicates.Of(saved).Select(id => (int)saved.Missions.Single(m => m.Id == id).Contract!.ContractIds.Single()));
     }
 
     [Fact]

@@ -194,24 +194,4 @@ public class ReplanInPlaceTests
         LoadPlanner.MovedCrates(saved.Plan, ticked.Plan).Should().Be(0);
         LoadPlanner.MovedCrates(ticked.Plan, added.Plan).Should().Be(0);
     }
-
-    [Fact]
-    public void A_sync_after_a_replan_finds_the_same_missions()
-    {
-        // B1/K2: the content key and the contract ids don't change with the layout.
-        ContractCapture[] captures =
-        [
-            new([Stop("X", "Titanium", 24, CrateSize.Eight)], new ContractSource([36])),
-            new([Stop("Y", "Quartz", 24, CrateSize.Eight)], new ContractSource([37])),
-            new([Stop("Z", "Gold", 16, CrateSize.Sixteen)], new ContractSource([38])),
-        ];
-        var synced = ContractSync.Apply(new SavedPlan([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA)), HullA, captures, null);
-
-        var replanned = LoadPlanner.Replan(synced, HullA);
-        var again = ContractSync.Apply(replanned, HullA, captures, new HashSet<long>([36, 37, 38]));
-
-        again.Missions.Select(m => (m.Id, m.Contract)).Should().Equal(replanned.Missions.Select(m => (m.Id, m.Contract)));
-        again.Plan.Crates.Should().Equal(replanned.Plan.Crates);
-        again.Missions.Should().OnlyContain(m => !m.Contract!.Gone);
-    }
 }

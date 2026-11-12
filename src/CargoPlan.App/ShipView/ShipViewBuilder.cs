@@ -51,8 +51,8 @@ public static class ShipViewBuilder
         SceneRack[] racks = [.. ship.Racks.Select(r => BuildRack(r, plan, palette, violated.Contains(r.Id)))];
 
         // The order of the crate list, as the player entered the stops: display only, no route (D64); the palette's too.
-        var duplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(saved);
-        var reserveDuplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(OnBoard(saved));
+        var duplicates = saved is null ? new HashSet<int>() : PossibleDuplicates.Of(saved);
+        var reserveDuplicates = saved is null ? new HashSet<int>() : PossibleDuplicates.Of(OnBoard(saved));
         Mission[] unplaced = saved is null ? [] : [.. saved.Missions.Where(m => m.Unplaced)];
         LegendEntry[] legend = [.. LegendLines(plan, saved).Select(line => new LegendEntry(
             palette[line.Destination],

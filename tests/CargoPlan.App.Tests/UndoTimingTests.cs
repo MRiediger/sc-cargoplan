@@ -41,9 +41,8 @@ public class UndoTimingTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// Undo and redo with everything they do (K2.4): after a move a sync brought a contract and a stop was ticked, so every
-    /// undo first takes the tick back (a step since K6.4), and an undo after a sync places the contract again (Resync) and
-    /// sets the plan (validation, scene).
+    /// Undo and redo with everything they do (K2.4): after a move a stop was ticked, so every undo first takes the tick back
+    /// (a step since K6.4), places waiting missions that fit (RetryUnplaced, D107) and sets the plan (validation, scene).
     /// Martin's bound: under 16 ms, else a sync clears the history.
     /// </summary>
     [Fact]
@@ -52,7 +51,7 @@ public class UndoTimingTests(ITestOutputHelper output)
         output.WriteLine("| Case | undo ms (median) | redo ms (median) |");
         foreach (var (name, ship, saved) in Cases())
         {
-            // Built anew every round: only the first undo after the sync places the contract again.
+            // Built anew every round, so each undo starts from the same state.
             List<double> undo = [], redo = [];
             for (var i = 0; i < 6; i++)
             {

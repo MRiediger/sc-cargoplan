@@ -217,12 +217,12 @@ public class LoadedStateTests
     }
 
     [Fact]
-    public void A_sync_places_new_missions_around_loaded_crates()
+    public void A_new_mission_is_placed_around_loaded_crates()
     {
         var current = RikerLoadedInRack4();
         ContractCapture capture = new([Stop("Orison", "Quartz", 16, CrateSize.Sixteen)], new ContractSource([47]));
 
-        var synced = ContractSync.Apply(current, HullA, [capture], present: null);
+        var synced = LoadPlanner.PlaceInto(current, HullA, capture.Stops, capture.Source);
 
         Lying(Of(synced, 1, "Riker")).Should().Equal(Lying(Of(current, 1, "Riker")));
         synced.Plan.Crates.Should().Contain(c => c.Destination == "Orison");
@@ -321,35 +321,6 @@ public class LoadedStateTests
         (StackOf(delivered, "B"), StackOf(delivered, "C")).Should().Be((0, 1));
         delivered.Plan.Crates.Where(c => c.Destination != "A").Should().OnlyContain(c => c.Loaded);
         LoadPlanner.Validate(delivered.Plan, ship).Should().BeEmpty();
-    }
-
-    [Theory]
-    [InlineData(ContractGonePolicy.Keep)]
-    [InlineData(ContractGonePolicy.Remove)]
-    public void A_gone_mission_whose_crates_are_loaded_stays(ContractGonePolicy onGone)
-    {
-        // Loaded cargo is in the hold: no sync takes it out of the plan (D81).
-        var column = Column(bLoaded: true, cLoaded: true);
-        var ship = OneRack(1, 1, 3);
-
-        var synced = ContractSync.Apply(column, ship, [], new HashSet<long> { 2, 3 }, onGone: onGone);
-
-        synced.Missions.Select(m => (m.Id, m.Contract!.Gone)).Should().Equal((1, true), (2, false), (3, false));
-        synced.Plan.Should().BeSameAs(column.Plan);
-    }
-
-    [Fact]
-    public void A_gone_mission_with_planned_crates_leaves_with_remove_and_the_crates_above_settle()
-    {
-        var ship = OneRack(1, 1, 3);
-        var column = Column(bLoaded: true, cLoaded: true);
-        var planned = new SavedPlan(column.Missions, column.Plan with { Crates = [.. column.Plan.Crates.Select(c => c.Destination == "A" ? c with { Loaded = false } : c)] }, column.CrateCap);
-
-        var synced = ContractSync.Apply(planned, ship, [], new HashSet<long> { 2, 3 }, onGone: ContractGonePolicy.Remove);
-
-        synced.Missions.Select(m => m.Id).Should().Equal(2, 3);
-        (StackOf(synced, "B"), StackOf(synced, "C")).Should().Be((0, 1));
-        synced.Plan.Crates.Should().OnlyContain(c => c.Loaded);
     }
 
     [Fact]

@@ -186,6 +186,25 @@ public sealed class UndoRedoTests
     }
 
     [Fact]
+    public void Undo_of_a_mission_added_by_the_editors_Plan_takes_nothing_from_the_plan_it_leaves()
+    {
+        // The restore is the snapshot with its waiting missions placed (K2.4); nothing of the plan being left comes in,
+        // since no change happens without a step any more (D107; successor of Core's UndoRestoreTests).
+        var overlay = Showing(TestPlans.SplitAndShared());
+        var before = overlay.Saved!;
+        var editor = new MissionEditorViewModel(overlay);
+        editor.AddRowCommand.Execute(null);
+        var row = editor.Rows[^1];
+        (row.Destination, row.Commodity, row.Scu, row.MaxCrateSize) = ("Orison", "Gold", "4", 4);
+
+        editor.PlanCommand.Execute(null);
+        overlay.Missions.Should().Contain(m => m.Stops.Any(s => s.Destination == "Orison"));
+        overlay.UndoCommand.Execute(null);
+
+        overlay.Saved.Should().BeSameAs(before);
+    }
+
+    [Fact]
     public void Deleting_a_mission_is_a_step()
     {
         var overlay = Showing(TestPlans.SplitAndShared());

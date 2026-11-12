@@ -178,33 +178,6 @@ public class ScanIdentityTests
     // --- ContractTracker's rules leave a scan alone ---
 
     [Fact]
-    public void A_sync_never_marks_a_scanned_contract_gone()
-    {
-        // ContractTracker lists its capture #1; a scan has no id it could list, so "no id present" must not count.
-        var result = ContractSync.Sync(CaptureAndScan(), HullA, [], new HashSet<long> { 1 });
-
-        result.Gone.Should().BeEmpty();
-        result.Saved.Missions.Should().OnlyContain(m => !m.Contract!.Gone);
-    }
-
-    [Fact]
-    public void A_read_with_the_capture_still_listed_is_quiet_beside_a_scan()
-    {
-        ContractSync.Quiet(CaptureAndScan(), new HashSet<long> { 1 }).Should().BeTrue();
-    }
-
-    [Fact]
-    public void The_sync_after_an_undo_never_brings_back_a_scanned_contract()
-    {
-        // Resync places the captures that came in by a sync since; a scan is an undo step of its own (K2.4), never one.
-        var target = LoadPlanner.PlaceInto(Empty, HullA, [Stop("Orison")], new ContractSource([1]));
-
-        var resynced = ContractSync.Resync(target, target, CaptureAndScan(), HullA, new HashSet<long> { 1 });
-
-        resynced.Missions.Should().ContainSingle().Which.Contract!.ContractIds.Should().Equal(1);
-    }
-
-    [Fact]
     public void A_ticked_delivery_of_ContractTracker_capture_3_is_no_delivery_of_scan_3()
     {
         // The editor's Plan keeps a delivery by its contract (D41 keeping): capture #3 and scan #3 are two contracts.

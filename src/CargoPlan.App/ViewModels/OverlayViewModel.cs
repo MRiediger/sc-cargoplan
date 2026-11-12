@@ -831,14 +831,14 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public bool CanRedo => _history.CanRedo;
 
     /// <summary>
-    /// Goes back one step (K2.4): the header's ↶ and the undo hotkey. The plan before the step comes back, with what
-    /// happened since that is no step (<see cref="Restored"/>).
+    /// Goes back one step (K2.4): the header's ↶ and the undo hotkey. The plan before the step comes back, its waiting
+    /// missions placed where they fit now (<see cref="Restored"/>).
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanUndo))]
     private void Undo()
     {
         var current = Saved ?? throw new InvalidOperationException(NoPlanText);
-        var restored = Restored(_history.PopUndo(), current);
+        var restored = Restored(_history.PopUndo());
         _history.PushRedo(current, restored);
         Saved = restored;
         HistoryChanged();
@@ -849,23 +849,22 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     private void Redo()
     {
         var current = Saved ?? throw new InvalidOperationException(NoPlanText);
-        var restored = Restored(_history.PopRedo(), current);
+        var restored = Restored(_history.PopRedo());
         _history.PushUndo(current, restored);
         Saved = restored;
         HistoryChanged();
     }
 
     /// <summary>
-    /// The entry's plan with what happened since its reference that is no step (Martin: restore, then sync incrementally):
-    /// Core's <c>Resync</c> places waiting missions that fit now. No capture is read since T10.4a, so it gets no
-    /// ids: null is "not read", never "lists nothing" (B2); Core keeps the parameter until T10.4b. The state of every
-    /// delivery is the snapshot's (K6.4, D74 addendum): a change of state is a step of its own.
+    /// The entry's plan with its waiting missions placed where they fit now (K2.4, D41). Nothing comes in from the plan
+    /// being left: since the ContractTracker sync went (D107) every change is a step of its own, and a scan too (D103).
+    /// The state of every delivery is the snapshot's (K6.4, D74 addendum).
     /// </summary>
-    private SavedPlan Restored(PlanHistory.Entry entry, SavedPlan current)
+    private SavedPlan Restored(PlanHistory.Entry entry)
     {
         SetNotice(NoticeSource.Replan, null);
         SetNotice(NoticeSource.Move, null);
-        return ContractSync.Resync(entry.Target, entry.Reference, current, Ship, present: null);
+        return LoadPlanner.RetryUnplaced(entry.Target, Ship);
     }
 
     /// <summary>Empties both stacks (K2.4); false if there was nothing to empty.</summary>
