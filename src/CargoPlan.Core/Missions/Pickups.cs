@@ -2,12 +2,12 @@ namespace CargoPlan.Core.Missions;
 
 /// <summary>
 /// Where an item's crates are collected (D68): a list of places without amounts, as contracts name them ("Collect Stims
-/// from A, B and C"). One rule for every way in – the editor's text, the mission file, ContractTracker's pickup text –
+/// from A, B and C"). One rule for every way in – the editor's text, the mission file, the scan's pickup text –
 /// so the same places always give the same list.
 /// </summary>
 public static class Pickups
 {
-    /// <summary>Between the places in text: typed in the editor, shown in the info line, used by ContractTracker.</summary>
+    /// <summary>Between the places in text: typed in the editor and shown in the info line.</summary>
     public const string Separator = " / ";
 
     /// <summary>"A / B / a" → [A, B]; null if the text names no place (<see cref="Normalized"/>).</summary>

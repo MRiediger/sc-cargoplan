@@ -14,36 +14,8 @@ public static class MissionText
     }
 
     /// <summary>
-    /// A scanned contract's number, "#3" (D102). A capture imported before v0.4.0 (D39): "#36", "#37–38" for consecutive
-    /// ids, "#36–37, 40" otherwise, its ids as the plan keeps them until T10.4b. The one spelling for editor, legend header and notices
-    /// (K6.1, K6.3). Empty for a typed mission.
+    /// A scanned contract's number, "#3" (D102), also for an older file's ContractTracker capture, which became a scan on
+    /// reading (D107). The one spelling for editor, legend header and notices (K6.1, K6.3). Empty for a typed mission.
     /// </summary>
-    public static string Source(ContractSource? source)
-    {
-        if (source is null)
-        {
-            return "";
-        }
-
-        if (source.Scan is { } scan)
-        {
-            return Invariant($"#{scan.No}");
-        }
-
-        long[] ids = [.. source.ContractIds.Distinct().Order()];
-        List<string> runs = [];
-        for (var start = 0; start < ids.Length;)
-        {
-            var end = start;
-            while (end + 1 < ids.Length && ids[end + 1] == ids[end] + 1)
-            {
-                end++;
-            }
-
-            runs.Add(end == start ? Invariant($"{ids[start]}") : Invariant($"{ids[start]}–{ids[end]}"));
-            start = end + 1;
-        }
-
-        return "#" + string.Join(", ", runs);
-    }
+    public static string Source(ContractSource? source) => source is null ? "" : Invariant($"#{source.Scan.No}");
 }

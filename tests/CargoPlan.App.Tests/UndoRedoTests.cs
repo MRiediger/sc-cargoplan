@@ -50,8 +50,8 @@ public sealed class UndoRedoTests
     private static SavedPlan TwoCaptures() => LoadPlanner.Plan(
         HullA,
         [
-            new Mission(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 2, CrateSize.Two)])], new ContractSource([36])),
-            new Mission(2, [new MissionStop("Shubin", 1, [new MissionItem("Stims", 2, CrateSize.Two)])], new ContractSource([37])),
+            new Mission(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 2, CrateSize.Two)])], new ContractSource(new ScanIdentity(36, "KEY 36", false))),
+            new Mission(2, [new MissionStop("Shubin", 1, [new MissionItem("Stims", 2, CrateSize.Two)])], new ContractSource(new ScanIdentity(37, "KEY 37", false))),
         ],
         ["Riker", "Shubin"]);
 
@@ -144,12 +144,12 @@ public sealed class UndoRedoTests
     }
 
     [Fact]
-    public void Undo_and_redo_keep_captures_never_gone_and_place_a_waiting_mission_that_fits()
+    public void Undo_and_redo_keep_the_scans_and_place_a_waiting_mission_that_fits()
     {
         Mission[] captured =
         [
-            new(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 16, CrateSize.Sixteen)])], new ContractSource([36])),
-            new(2, [new MissionStop("Shubin", 1, [new MissionItem("Stims", 16, CrateSize.Sixteen)])], new ContractSource([37, 38])),
+            new(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 16, CrateSize.Sixteen)])], new ContractSource(new ScanIdentity(36, "KEY 36", false))),
+            new(2, [new MissionStop("Shubin", 1, [new MissionItem("Stims", 16, CrateSize.Sixteen)])], new ContractSource(new ScanIdentity(37, "KEY 37", false))),
         ];
         var planned = LoadPlanner.Plan(HullA, captured, ["Riker", "Shubin"]);
         var waiting = new Mission(3, [new MissionStop("Orison", 1, [new MissionItem("Waste", 8, CrateSize.Eight)])], Unplaced: true);
@@ -162,8 +162,7 @@ public sealed class UndoRedoTests
 
         foreach (var missions in new[] { afterUndo, overlay.Missions })
         {
-            missions.Where(m => m.Contract is not null).Select(m => (m.Contract!.ContractIds, m.Contract.Gone, m.Contract.Detached))
-                .Should().BeEquivalentTo([((IReadOnlyList<long>)[36L], false, false), ([37L, 38L], false, false)]);
+            missions.Where(m => m.Contract is not null).Select(m => m.Contract!.Scan.No).Should().Equal(36, 37);
             missions.Single(m => m.Id == 3).Unplaced.Should().BeFalse();
         }
     }

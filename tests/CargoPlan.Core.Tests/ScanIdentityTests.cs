@@ -24,13 +24,13 @@ public class ScanIdentityTests
         new(destination, 1, [new MissionItem(commodity, scu, CrateSize.Four)]);
 
     private static ContractSource Scanned(int no, string key = Key, bool estimated = false) =>
-        ContractSource.Scanned(new ScanIdentity(no, key, estimated), reward: 50_250);
+        new ContractSource(new ScanIdentity(no, key, estimated), Reward: 50_250);
 
-    /// <summary>A ContractTracker capture #1 to Orison and a scanned contract #1 to Riker.</summary>
-    private static SavedPlan CaptureAndScan()
+    /// <summary>A typed mission to Orison and a scanned contract #1 to Riker.</summary>
+    private static SavedPlan TypedAndScan()
     {
-        var captured = LoadPlanner.PlaceInto(Empty, HullA, [Stop("Orison")], new ContractSource([1]));
-        return LoadPlanner.PlaceInto(captured, HullA, [Stop("Riker")], Scanned(1));
+        var typed = LoadPlanner.PlaceInto(Empty, HullA, [Stop("Orison")]);
+        return LoadPlanner.PlaceInto(typed, HullA, [Stop("Riker")], Scanned(1));
     }
 
     private static string Written(SavedPlan saved, int lastScanNo = 0)
@@ -50,32 +50,12 @@ public class ScanIdentityTests
     // --- The identity ---
 
     [Fact]
-    public void A_scanned_contract_has_no_ContractTracker_id()
+    public void A_scanned_contract_has_its_scan_and_reward()
     {
         var source = Scanned(3, estimated: true);
 
-        source.ContractIds.Should().BeEmpty();
         source.Scan.Should().Be(new ScanIdentity(3, Key, true));
         source.Reward.Should().Be(50_250);
-    }
-
-    [Fact]
-    public void A_contract_has_ContractTracker_ids_or_a_scan_never_both_or_neither()
-    {
-        var both = () => new ContractSource([36], Scan: new ScanIdentity(1, Key, false));
-        var neither = () => new ContractSource([]);
-
-        both.Should().Throw<ArgumentException>().WithMessage("*exactly one*");
-        neither.Should().Throw<ArgumentException>().WithMessage("*exactly one*");
-    }
-
-    [Fact]
-    public void A_scanned_contract_is_never_gone()
-    {
-        // Gone and detached are ContractTracker's (D81): a scan has no list it could leave.
-        var act = () => new ContractSource([], Gone: true, Scan: new ScanIdentity(1, Key, false));
-
-        act.Should().Throw<ArgumentException>().WithMessage("*scan*gone*");
     }
 
     [Theory]
@@ -115,13 +95,12 @@ public class ScanIdentityTests
     [Fact]
     public void A_scanned_contract_is_written_with_its_scan_and_without_ContractTracker_ids()
     {
-        var node = JsonNode.Parse(Written(CaptureAndScan(), lastScanNo: 4))!;
+        var node = JsonNode.Parse(Written(TypedAndScan(), lastScanNo: 4))!;
 
         var contract = node["missions"]![1]!["contract"]!.AsObject();
         contract.ContainsKey("contractIds").Should().BeFalse();
         contract["scan"]!.ToJsonString().Should().Be($$"""{"no":1,"key":"{{Key}}","estimated":false}""");
         node["lastScanNo"]!.GetValue<int>().Should().Be(4);
-        node["missions"]![0]!["contract"]!["contractIds"]!.AsArray().Select(id => id!.GetValue<long>()).Should().Equal(1);
     }
 
     [Fact]
@@ -147,7 +126,7 @@ public class ScanIdentityTests
     [InlineData("lastScanNo")]
     public void A_scan_in_a_schema_9_file_is_an_error(string field)
     {
-        var node = JsonNode.Parse(Written(CaptureAndScan(), lastScanNo: 4))!;
+        var node = JsonNode.Parse(Written(TypedAndScan(), lastScanNo: 4))!;
         node["schemaVersion"] = 9;
         if (field == "lastScanNo")
         {
@@ -167,7 +146,7 @@ public class ScanIdentityTests
     [Fact]
     public void A_contract_with_ids_and_a_scan_in_the_file_is_an_error()
     {
-        var node = JsonNode.Parse(Written(CaptureAndScan()))!;
+        var node = JsonNode.Parse(Written(TypedAndScan()))!;
         node["missions"]![1]!["contract"]!["contractIds"] = new JsonArray(5);
 
         var act = () => Read(node.ToJsonString());
@@ -175,14 +154,14 @@ public class ScanIdentityTests
         act.Should().Throw<PlanFormatException>().WithMessage("*scanned contract has no ContractTracker ids*");
     }
 
-    // --- ContractTracker's rules leave a scan alone ---
+    // --- The editor's Plan keeps a delivery by its scan number ---
 
     [Fact]
-    public void A_ticked_delivery_of_ContractTracker_capture_3_is_no_delivery_of_scan_3()
+    public void A_ticked_typed_delivery_is_no_delivery_of_scan_3()
     {
-        // The editor's Plan keeps a delivery by its contract (D41 keeping): capture #3 and scan #3 are two contracts.
-        var captured = LoadPlanner.PlaceInto(Empty, HullA, [Stop("Riker")], new ContractSource([3]));
-        SavedPlan ticked = new(captured.Missions, LoadPlanner.SetDelivered(captured.Plan, HullA, "Riker", true), captured.CrateCap);
+        // The editor's Plan keeps a delivery by its contract (D41 keeping): a typed mission has none, scan #3 is another.
+        var typed = LoadPlanner.PlaceInto(Empty, HullA, [Stop("Riker")]);
+        SavedPlan ticked = new(typed.Missions, LoadPlanner.SetDelivered(typed.Plan, HullA, "Riker", true), typed.CrateCap);
         Mission[] scanned = [new Mission(1, [Stop("Riker")], Scanned(3))];
 
         var (plan, _) = LoadPlanner.PlanKeeping(ticked, HullA, scanned, ["Riker"]);

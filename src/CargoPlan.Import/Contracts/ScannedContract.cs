@@ -36,7 +36,7 @@ public sealed record ScannedContract(
     /// </summary>
     public ContractCapture ToCapture(int scanNo) => new(
         Stops,
-        ContractSource.Scanned(new ScanIdentity(scanNo, Key, View != ContractView.Accepted), CrateSizeAssumed, ListedDestinationCount, Reward));
+        new ContractSource(new ScanIdentity(scanNo, Key, View != ContractView.Accepted), CrateSizeAssumed, ListedDestinationCount, Reward));
 
     /// <summary>A max size or reward that wasn't readable, in the key: equal only to itself, never to a number (D101).</summary>
     internal const string Unreadable = "?";

@@ -22,7 +22,7 @@ public class DiscardTests
         SavedPlan saved = new([], new LoadPlan(HullA.Id, [], [], FillOrder.SternFirst), CrateCap.Of(HullA));
         foreach (var (destination, no) in new[] { ("Riker", 1), ("Shubin", 2), ("Orison", 3) })
         {
-            saved = LoadPlanner.PlaceInto(saved, HullA, [Stop(destination)], ContractSource.Scanned(new ScanIdentity(no, $"KEY {no}", false)));
+            saved = LoadPlanner.PlaceInto(saved, HullA, [Stop(destination)], new ContractSource(new ScanIdentity(no, $"KEY {no}", false)));
         }
 
         return new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, "Riker", true), saved.CrateCap);

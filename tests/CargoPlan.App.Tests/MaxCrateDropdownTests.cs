@@ -44,7 +44,7 @@ public class MaxCrateDropdownTests
             var overlay = new OverlayViewModel(FrozenShips.Load("hull_a"));
             // Too big for the Hull A: it waits, as the capture did.
             Mission endgame = new(1, [new MissionStop("Endgame", 1, [new MissionItem("Waste", 124, CrateSize.ThirtyTwo)])],
-                new ContractSource([1], CrateSizeAssumed: true), Unplaced: true);
+                new ContractSource(new ScanIdentity(1, "KEY 1", false), CrateSizeAssumed: true), Unplaced: true);
             overlay.ShowPlan(new SavedPlan([endgame], new LoadPlan(overlay.Ship.Id, [], []), CrateCap.Of(overlay.Ship)));
             var editor = new MissionEditorViewModel(overlay);
             var view = new EditorGrid(editor);

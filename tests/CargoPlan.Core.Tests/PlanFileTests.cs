@@ -36,10 +36,10 @@ public class PlanFileTests
         var typed = LoadPlanner.PlaceInto(empty, HullA, [Stop("Riker", "Titanium", 12, CrateSize.Four)]);
         var scanned = LoadPlanner.PlaceInto(typed, HullA, [Stop("Shubin", "Quartz", 8, CrateSize.Four)], ShubinScan);
         // More than the Hull A holds, so it waits (a 32 SCU crate would be capped to 16s and fit, D70).
-        return LoadPlanner.PlaceInto(scanned, HullA, [Stop("Orison", "Gold", 72, CrateSize.Eight)], ContractSource.Scanned(new ScanIdentity(2, "? | ORISON:GOLD | 8 | ?", true)));
+        return LoadPlanner.PlaceInto(scanned, HullA, [Stop("Orison", "Gold", 72, CrateSize.Eight)], new ContractSource(new ScanIdentity(2, "? | ORISON:GOLD | 8 | ?", true)));
     }
 
-    private static ContractSource ShubinScan => ContractSource.Scanned(new ScanIdentity(1, "LORVILLE | SHUBIN:QUARTZ | ? | 50250", false), true, 3, 50_250);
+    private static ContractSource ShubinScan => new ContractSource(new ScanIdentity(1, "LORVILLE | SHUBIN:QUARTZ | ? | 50250", false), true, 3, 50_250);
 
     private static string Written(SavedPlan saved)
     {

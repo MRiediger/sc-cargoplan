@@ -23,7 +23,7 @@ public class ManualRowsTests
     {
         var overlay = new OverlayViewModel(HullA, Catalog);
         overlay.ShowPlan(LoadPlanner.Plan(
-            HullA, [new Mission(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 2, CrateSize.Two)])], new ContractSource([37]))], ["Riker"]));
+            HullA, [new Mission(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 2, CrateSize.Two)])], new ContractSource(new ScanIdentity(37, "KEY 37", false)))], ["Riker"]));
         var editor = new MissionEditorViewModel(overlay);
         editor.AddRowCommand.Execute(null);
         (editor.Rows[^1].Destination, editor.Rows[^1].Commodity, editor.Rows[^1].Scu) = ("Shubin", "Gold", "4");
@@ -124,7 +124,7 @@ public class ManualRowsTests
             "ABANDON\nDETAILS\nReward 50,250\nContract Deadline N/A\nPRIMARY OBJECTIVES\n"
             + "Deliver 0/2 SCU of Stims to Melodic Fields Station.\nCollect Stims from Everus Harbor.\nSHARE UNTRACK"));
 
-        var mission = overlay.Missions.Single(m => m.Contract?.ContractIds.Contains(37) == true);
+        var mission = overlay.Missions.Single(m => m.Contract?.Scan.No == 37);
         mission.Stops.Select(s => s.Destination).Should().Equal("Riker", "Melodic Fields Station");
         mission.Items[1].Item.Manual.Should().BeTrue();
     }

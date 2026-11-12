@@ -411,10 +411,10 @@ public static class LoadPlanner
     /// The editor's Plan with what is on board and what is delivered kept (K6.4, D19 addendum): a delivery (mission ×
     /// destination) of <paramref name="current"/> that is loaded or delivered keeps its crates as they are, where the
     /// edited <paramref name="missions"/> still hold it with the same crates (commodity and size; a split or merge is in
-    /// the mission, D27). It is known by its contract's first id and destination, a typed one by its destination alone
+    /// the mission, D27). It is known by its contract's scan number and destination, a typed one by its destination alone
     /// (typed rows of one destination are one mission, D42, and the editor numbers them anew). Changed, it is planned
     /// again, and <c>Cleared</c> says so ("Riker: changed in the editor – no longer loaded", or by whatever <c>change</c> says). Without anything kept, the
-    /// plan from scratch (<see cref="Plan(Ship, IReadOnlyList{Mission}, IReadOnlyList{string}, FillOrder, long, FillRows, PlanGrouping, int)"/>);
+    /// plan from scratch (<see cref="Plan(Ship, IReadOnlyList{Mission}, IReadOnlyList{string}, FillOrder, FillRows, PlanGrouping, int)"/>);
     /// with only delivered cargo kept, the rest planned like that and joined (as Re-plan does, D66); with loaded cargo,
     /// the rest laid in around it by the rule of <see cref="PlaceInto"/> (D41): first the rest of missions loaded in part,
     /// then missions by SCU (largest first), first destination and id, so the order of entry doesn't matter. A mission
@@ -525,10 +525,10 @@ public static class LoadPlanner
     /// The deliveries of <paramref name="saved"/> that are loaded or delivered as a whole, by <see cref="DeliveryKey"/>,
     /// with their crates; of two with one key the first.
     /// </summary>
-    private static Dictionary<(ContractKind Kind, long Contract, string Destination), Crate[]> KeptDeliveries(SavedPlan saved)
+    private static Dictionary<(int ScanNo, string Destination), Crate[]> KeptDeliveries(SavedPlan saved)
     {
         var contracts = saved.Missions.ToDictionary(m => m.Id, m => m.Contract);
-        Dictionary<(ContractKind, long, string), Crate[]> kept = [];
+        Dictionary<(int, string), Crate[]> kept = [];
         foreach (var delivery in saved.Plan.Crates.GroupBy(c => (c.Mission, c.Destination)))
         {
             if (delivery.All(c => c.Loaded) || delivery.All(c => c.Delivered))
@@ -541,24 +541,11 @@ public static class LoadPlanner
     }
 
     /// <summary>
-    /// A delivery across plans: what kind of contract, its capture's first ContractTracker id or its scan number (0 for a
-    /// typed mission), and the destination. The kind keeps capture #3 and scan #3 apart (D102). The id of a detached
-    /// capture is negated, so a new database's contract with that id is another delivery (D81).
+    /// A delivery across plans: its contract's scan number (0 for a typed mission, scan numbers start at 1) and the
+    /// destination (D102, D107).
     /// </summary>
-    private static (ContractKind Kind, long Contract, string Destination) DeliveryKey(ContractSource? contract, string destination) => contract switch
-    {
-        null => (ContractKind.Typed, 0, destination),
-        { Scan: { } scan } => (ContractKind.Scan, scan.No, destination),
-        { Detached: true } => (ContractKind.Capture, -contract.ContractIds.Min(), destination),
-        _ => (ContractKind.Capture, contract.ContractIds.Min(), destination),
-    };
-
-    private enum ContractKind
-    {
-        Typed,
-        Capture,
-        Scan,
-    }
+    private static (int ScanNo, string Destination) DeliveryKey(ContractSource? contract, string destination) =>
+        (contract?.Scan.No ?? 0, destination);
 
     /// <summary><paramref name="mission"/> without the stops in <paramref name="kept"/>; null if none is left.</summary>
     private static Mission? Without(Mission mission, IReadOnlySet<(int Mission, string Destination)> kept)
@@ -649,8 +636,7 @@ public static class LoadPlanner
     {
         saved.Plan.EnsureBelongsTo(ship);
         var current = saved;
-        // A contract gone from ContractTracker gets no room of its own (D81): it waits until it is back or deleted.
-        foreach (var waiting in saved.Missions.Where(m => m.Unplaced && m.Contract is not { Gone: true }))
+        foreach (var waiting in saved.Missions.Where(m => m.Unplaced))
         {
             if (TryPlace(current.Plan, ship, waiting, current.CrateCap) is ({ } crates, _, var stackingUnchecked, var notes))
             {
@@ -719,7 +705,7 @@ public static class LoadPlanner
         (crate.Destination, crate.Commodity, crate.CrateSize, crate.RackId, crate.Position, crate.Rotated);
 
     /// <summary>
-    /// The player's Re-plan (D66): the cargo on board laid out as a fresh <see cref="Plan(Ship, IReadOnlyList{Mission}, IReadOnlyList{string}, FillOrder, long, FillRows, PlanGrouping, int)"/>
+    /// The player's Re-plan (D66): the cargo on board laid out as a fresh <see cref="Plan(Ship, IReadOnlyList{Mission}, IReadOnlyList{string}, FillOrder, FillRows, PlanGrouping, int)"/>
     /// of the same missions would lay it, waiting missions included, so the result doesn't depend on the order things came
     /// in (D64). Ticked crates are off the ship: they stay where they lay, ticked, and take no room (D24), also when only
     /// part of a stop is ticked (D41). Never loses cargo: if the waiting missions don't fit, the cargo on board is laid

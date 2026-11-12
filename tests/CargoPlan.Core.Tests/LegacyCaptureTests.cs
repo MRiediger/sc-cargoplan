@@ -152,7 +152,7 @@ public class LegacyCaptureTests
         // A real content key (D101) never equals a legacy key: the player sees two missions and deletes one.
         var (saved, lastScanNo, _) = Read(FixtureText(Raft), RaftShip);
         var first = saved.MissionOf(1);
-        ContractCapture scan = new(first.Stops, ContractSource.Scanned(new ScanIdentity(1, "PORTOLISAR | GREENGLADE:WASTE | 4 | 50250", true)));
+        ContractCapture scan = new(first.Stops, new ContractSource(new ScanIdentity(1, "PORTOLISAR | GREENGLADE:WASTE | 4 | 50250", true)));
 
         var merge = ScanSync.Apply(saved, RaftShip, scan, lastScanNo + 1);
 

@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json.Serialization;
 using CargoPlan.Core.Missions;
 
 namespace CargoPlan.Core.Plans;
@@ -10,11 +9,9 @@ namespace CargoPlan.Core.Plans;
 /// ContractTracker capture (D39) has <c>contractIds</c> instead, and maybe <see cref="Gone"/> and <see cref="Detached"/>
 /// (schema 8, D81): read as a scan with a legacy key (D107), never written.
 /// </summary>
-/// <remarks><c>contractIds</c> is optional since schema 10, so it can't stand first in the constructor; the order attribute
-/// keeps it first in the file.</remarks>
 internal sealed record ContractSourceDto(
     bool CrateSizeAssumed,
-    [property: JsonPropertyOrder(-1)] IReadOnlyList<long>? ContractIds = null,
+    IReadOnlyList<long>? ContractIds = null,
     int? ListedDestinations = null,
     long? Reward = null,
     bool? Gone = null,
@@ -39,24 +36,18 @@ internal sealed record ContractSourceDto(
         if (Scan is { } scan)
         {
             return ContractIds is null && Gone is null && Detached is null
-                ? ContractSource.Scanned(scan.ToScanIdentity(), CrateSizeAssumed, ListedDestinations, Reward)
+                ? new ContractSource(scan.ToScanIdentity(), CrateSizeAssumed, ListedDestinations, Reward)
                 : throw new ArgumentException("A scanned contract has no ContractTracker ids and is never gone or detached.", nameof(Scan));
         }
 
         // The ids become the key; gone and detached go, and the amounts are the ones the player works with, no estimate.
         return ContractIds is [_, ..] ids
-            ? ContractSource.Scanned(new ScanIdentity(legacyNo, LegacyKey(ids), false), CrateSizeAssumed, ListedDestinations, Reward)
+            ? new ContractSource(new ScanIdentity(legacyNo, LegacyKey(ids), false), CrateSizeAssumed, ListedDestinations, Reward)
             : throw new ArgumentException("A contract without a scan names its ContractTracker ids (a file before v0.4.0).", nameof(ContractIds));
     }
 
-    public static ContractSourceDto FromContractSource(ContractSource source) => new(
-        source.CrateSizeAssumed,
-        source.Scan is null ? source.ContractIds : null,
-        source.ListedDestinations,
-        source.Reward,
-        source.Gone ? true : null,
-        source.Detached ? true : null,
-        source.Scan is { } scan ? ScanDto.FromScanIdentity(scan) : null);
+    public static ContractSourceDto FromContractSource(ContractSource source) =>
+        new(source.CrateSizeAssumed, ListedDestinations: source.ListedDestinations, Reward: source.Reward, Scan: ScanDto.FromScanIdentity(source.Scan));
 
     /// <summary>"legacy:" and the ids in ascending order, each once, joined by "-".</summary>
     private static string LegacyKey(IEnumerable<long> ids) =>

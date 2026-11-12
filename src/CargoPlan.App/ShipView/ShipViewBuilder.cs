@@ -67,7 +67,7 @@ public static class ShipViewBuilder
             line.MissionCrates,
             line.Grouped,
             LegendText.Goods(line.Crates),
-            line.ContractIds,
+            line.ScanNo,
             line.Crates.All(c => c.Loaded)))];
 
         return new ShipScene(
@@ -88,7 +88,7 @@ public static class ShipViewBuilder
     /// from every item's pickup, or "From ?"), its contract's number ("#47") and the mission's crates on board for the
     /// header's check box; without any, no line has a header.
     /// </summary>
-    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped, string? ContractIds)> LegendLines(
+    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped, string? ScanNo)> LegendLines(
         LoadPlan plan, SavedPlan? saved)
     {
         var pickups = saved?.Missions.ToDictionary(m => m.Id, m => Pickups.Normalized(m.Items.SelectMany(i => i.Item.Pickup ?? []))) ?? [];

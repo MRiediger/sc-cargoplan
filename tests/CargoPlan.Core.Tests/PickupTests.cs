@@ -96,7 +96,7 @@ public class PickupTests
         [
             new("Riker", 1, [new MissionItem("Titanium", 4, CrateSize.Four)]),
             new("Shubin", 2, [new MissionItem("Gold", 8, CrateSize.Eight)]),
-        ], new ContractSource([7]));
+        ], new ContractSource(new ScanIdentity(7, "KEY 7", false)));
 
         var changed = mission.WithItem(1, new MissionItem("Gold", 8, CrateSize.Eight, Pickup: ["Lorville"]));
 

@@ -16,17 +16,17 @@ public static class ScanSync
 
     /// <param name="capture">The scan as the import hands it over; its number is ignored for a contract already in the plan.</param>
     /// <param name="nextNo">The number a new mission gets (the caller counts above every number given, D102).</param>
-    /// <exception cref="ArgumentException">The capture is no scan, or the plan belongs to another ship.</exception>
+    /// <exception cref="ArgumentException">The plan belongs to another ship.</exception>
     public static ScanMerge Apply(SavedPlan saved, Ship ship, ContractCapture capture, int nextNo)
     {
-        var scan = capture.Source.Scan ?? throw new ArgumentException("The capture is no scan.", nameof(capture));
-        if (saved.Missions.FirstOrDefault(m => m.Contract?.Scan?.Key == scan.Key) is not { } known)
+        var scan = capture.Source.Scan;
+        if (saved.Missions.FirstOrDefault(m => m.Contract?.Scan.Key == scan.Key) is not { } known)
         {
             var added = capture.Source with { Scan = new ScanIdentity(nextNo, scan.Key, scan.QuantitiesEstimated) };
             return new(LoadPlanner.PlaceInto(saved, ship, capture.Stops, added), ScanChange.Added, nextNo);
         }
 
-        var mine = known.Contract!.Scan!;
+        var mine = known.Contract!.Scan;
         if (scan.QuantitiesEstimated && !mine.QuantitiesEstimated)
         {
             // An offer after the accepted contract: the accepted amounts stand.

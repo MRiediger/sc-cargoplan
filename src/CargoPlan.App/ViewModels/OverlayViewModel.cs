@@ -584,7 +584,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// </summary>
     public void ShowScanReport(ScanReport report)
     {
-        var mission = report.ScanNo is { } no ? Missions.FirstOrDefault(m => m.Contract?.Scan?.No == no) : null;
+        var mission = report.ScanNo is { } no ? Missions.FirstOrDefault(m => m.Contract?.Scan.No == no) : null;
         if (ScanNotices.Text(report, mission) is { } text)
         {
             SetNotice(NoticeSource.Move, text);

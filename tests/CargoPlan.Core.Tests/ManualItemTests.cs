@@ -24,7 +24,7 @@ public class ManualItemTests
         [
             new MissionStop("Riker", 1, [new MissionItem("Stims", 4, CrateSize.Four)]),
             new MissionStop("Melodic Fields", 2, [new MissionItem("Stims", 2, CrateSize.Two, Manual: true)]),
-        ], new ContractSource([37]));
+        ], new ContractSource(new ScanIdentity(37, "KEY 37", false)));
         return LoadPlanner.Plan(HullA, [mission], ["Riker", "Melodic Fields"]);
     }
 
@@ -80,7 +80,7 @@ public class ManualItemTests
     public void Manual_changes_nothing_the_planner_sees()
     {
         var saved = WithManualStop();
-        Mission plain = new(1, [.. saved.Missions.Single().Stops.Select(s => s with { Items = [.. s.Items.Select(i => i with { Manual = false })] })], new ContractSource([37]));
+        Mission plain = new(1, [.. saved.Missions.Single().Stops.Select(s => s with { Items = [.. s.Items.Select(i => i with { Manual = false })] })], new ContractSource(new ScanIdentity(37, "KEY 37", false)));
 
         saved.Plan.Crates.Should().Equal(LoadPlanner.Plan(HullA, [plain], ["Riker", "Melodic Fields"]).Plan.Crates);
     }

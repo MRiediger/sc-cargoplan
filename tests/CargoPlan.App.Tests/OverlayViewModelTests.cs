@@ -781,8 +781,8 @@ public class OverlayViewModelTests
     public void DropMissionCommand_takes_the_mission_out()
     {
         var viewModel = Empty();
-        Mission riker = new(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 4, CrateSize.Four)])], new ContractSource([36]));
-        Mission shubin = new(2, [new MissionStop("Shubin", 1, [new MissionItem("Stims", 72, CrateSize.Eight)])], new ContractSource([37]), Unplaced: true);
+        Mission riker = new(1, [new MissionStop("Riker", 1, [new MissionItem("Stims", 4, CrateSize.Four)])], new ContractSource(new ScanIdentity(36, "KEY 36", false)));
+        Mission shubin = new(2, [new MissionStop("Shubin", 1, [new MissionItem("Stims", 72, CrateSize.Eight)])], new ContractSource(new ScanIdentity(37, "KEY 37", false)), Unplaced: true);
         var planned = LoadPlanner.Plan(viewModel.Ship, [riker], ["Riker"]);
         viewModel.ShowPlan(new SavedPlan([.. planned.Missions, shubin], planned.Plan, planned.CrateCap));
         var crates = viewModel.Plan!.Crates;

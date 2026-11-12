@@ -40,7 +40,7 @@ public class ReplanTests
         var before = Placed(
             HullA,
             (Stop("Riker", "Titanium", 12, CrateSize.Four), null),
-            (Stop("Shubin", "Quartz", 8, CrateSize.Four), new ContractSource([36, 37], true, 3, 50_250)));
+            (Stop("Shubin", "Quartz", 8, CrateSize.Four), new ContractSource(new ScanIdentity(36, "KEY 36", false), true, 3, 50_250)));
         before = new SavedPlan(before.Missions, before.Plan with { FillOrder = FillOrder.SternFirst }, before.CrateCap);
 
         var after = LoadPlanner.Replan(before, C2);

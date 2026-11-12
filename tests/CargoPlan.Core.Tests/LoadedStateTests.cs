@@ -61,7 +61,7 @@ public class LoadedStateTests
 
     /// <summary>A mission of one 1 SCU crate of Stims, from ContractTracker capture <paramref name="id"/>.</summary>
     private static Mission One(int id, string destination, CrateSize size = CrateSize.One) =>
-        new(id, [new MissionStop(destination, 1, [new MissionItem("Stims", (int)size, size)])], new ContractSource([id]));
+        new(id, [new MissionStop(destination, 1, [new MissionItem("Stims", (int)size, size)])], new ContractSource(new ScanIdentity(id, $"KEY {id}", false)));
 
     private static Crate CrateOf(int mission, string destination, int length, int width, int stack, CrateSize size = CrateSize.One, bool loaded = false) =>
         new(destination, "Stims", size, "rack-0", new GridPosition(length, width, stack), Mission: mission, Loaded: loaded);
@@ -220,7 +220,7 @@ public class LoadedStateTests
     public void A_new_mission_is_placed_around_loaded_crates()
     {
         var current = RikerLoadedInRack4();
-        ContractCapture capture = new([Stop("Orison", "Quartz", 16, CrateSize.Sixteen)], new ContractSource([47]));
+        ContractCapture capture = new([Stop("Orison", "Quartz", 16, CrateSize.Sixteen)], new ContractSource(new ScanIdentity(47, "KEY 47", false)));
 
         var synced = LoadPlanner.PlaceInto(current, HullA, capture.Stops, capture.Source);
 

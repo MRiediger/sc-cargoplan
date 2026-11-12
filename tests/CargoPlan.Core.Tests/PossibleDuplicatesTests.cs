@@ -18,7 +18,7 @@ public class PossibleDuplicatesTests
 
     /// <summary>A scan with its own key; the rule compares deliveries and rewards, never keys.</summary>
     private static ContractSource Scanned(int no, long? reward = null) =>
-        ContractSource.Scanned(new ScanIdentity(no, $"KEY {no}", false), reward: reward);
+        new ContractSource(new ScanIdentity(no, $"KEY {no}", false), Reward: reward);
 
     /// <summary>Scan <paramref name="no"/> going to these stops, in contract order.</summary>
     private static ContractCapture Scan(int no, params MissionStop[] stops) =>

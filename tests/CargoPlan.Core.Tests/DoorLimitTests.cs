@@ -118,7 +118,7 @@ public class DoorLimitTests
         var replanned = LoadPlanner.Replan(removed, Clipper);
         var ticked = new SavedPlan(replanned.Missions, LoadPlanner.SetDelivered(replanned.Plan, Clipper, "Riker City", true), replanned.CrateCap);
         var retried = LoadPlanner.RetryUnplaced(ticked, Clipper);
-        var synced = LoadPlanner.PlaceInto(LoadPlanner.RemoveMission(retried, Clipper, 1), Clipper, [Riker()], new ContractSource([7]));
+        var synced = LoadPlanner.PlaceInto(LoadPlanner.RemoveMission(retried, Clipper, 1), Clipper, [Riker()], new ContractSource(new ScanIdentity(7, "KEY 7", false)));
 
         using var stream = new MemoryStream();
         PlanFile.Write(stream, synced);

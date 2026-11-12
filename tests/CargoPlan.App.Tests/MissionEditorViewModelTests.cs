@@ -1042,8 +1042,8 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
     // --- Missions and captures (T5.4; a plan from before T10.4a) ---
 
-    private static Mission Capture(int id, long contractId, string destination, bool sizeAssumed = false) =>
-        new(id, [new MissionStop(destination, 1, [new MissionItem("Stims", 4, CrateSize.Four)])], new ContractSource([contractId], sizeAssumed));
+    private static Mission Capture(int id, int contractId, string destination, bool sizeAssumed = false) =>
+        new(id, [new MissionStop(destination, 1, [new MissionItem("Stims", 4, CrateSize.Four)])], new ContractSource(new ScanIdentity(contractId, $"KEY {contractId}", false), sizeAssumed));
 
     /// <summary>Riker typed, then captures 36 (Shubin) and 37 (Orison, crate size assumed).</summary>
     private static OverlayViewModel OverlayWithCaptures()
@@ -1219,7 +1219,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
         editor.Rows.Single(r => r.Destination == "Orison").MaxCrateSize = 2;
         editor.PlanCommand.Execute(null);
 
-        overlay.Missions.Single(m => m.Contract?.ContractIds[0] == 37).Contract!.CrateSizeAssumed.Should().BeFalse();
+        overlay.Missions.Single(m => m.Contract?.Scan.No == 37).Contract!.CrateSizeAssumed.Should().BeFalse();
     }
 
     [Fact]
@@ -1245,7 +1245,7 @@ public sealed class MissionEditorViewModelTests : IDisposable
 
         new MissionEditorViewModel(overlay).PlanCommand.Execute(null);
 
-        overlay.Missions.Single(m => m.Contract?.ContractIds[0] == 37).Contract!.CrateSizeAssumed.Should().BeTrue();
+        overlay.Missions.Single(m => m.Contract?.Scan.No == 37).Contract!.CrateSizeAssumed.Should().BeTrue();
     }
 
     [Fact]
