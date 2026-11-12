@@ -65,35 +65,34 @@ public class DestinationNamesTests
     }
 
     [Fact]
-    public void Sync_of_the_same_capture_after_unify_adds_and_removes_no_mission()
+    public void Unify_with_the_same_contract_spelt_in_full_moves_no_crate_and_marks_no_duplicate()
     {
-        // K2: the plan of 23 October and capture 9–12 as the reader gives it now ("Melodic Fields Station"). The capture is
-        // below the watermark, so it never comes in again, and the duplicate key sees one name for the place.
+        // K2: the plan of 23 October and capture 9–12 as the reader gave it later ("Melodic Fields Station"). The sync that
+        // took it in again is gone (D107); the duplicate key still sees one name for the place.
         var saved = HurstonPlan();
-        var captures = CapturesOf(9, 10, 11, 12);
+        var captures = ScanOf(9);
 
         var unified = DestinationNames.Unify(saved, HullA, captures);
-        var applied = ContractSync.Apply(unified.Saved, HullA, unified.Captures, new HashSet<long>([9, 10, 11, 12, 17, 18]));
+        var applied = unified.Saved;
 
-        applied.Missions.Select(m => (m.Id, m.Contract!.ContractIds.Count)).Should().Equal(saved.Missions.Select(m => (m.Id, m.Contract!.ContractIds.Count)));
-        applied.Watermark.Should().Be(saved.Watermark);
+        applied.Missions.Select(m => m.Id).Should().Equal(saved.Missions.Select(m => m.Id));
         applied.Plan.Crates.Select(c => (c.RackId, c.Position, c.Delivered, c.Mission, c.Commodity, c.CrateSize))
             .Should().Equal(saved.Plan.Crates.Select(c => (c.RackId, c.Position, c.Delivered, c.Mission, c.Commodity, c.CrateSize)));
         // The capture spells both places in full now, so both of the plan's short names go.
         unified.Merged.Should().BeEquivalentTo([("Melodic Fieids", "Melodic Fields Station"), (Short, Full)]);
         applied.Plan.Crates.Select(c => c.Destination).Distinct().Should().BeEquivalentTo(
             "Melodic Fields Station", "Faithful Dream Station", Full, "Everus Harbor");
-        ContractSync.Duplicates(applied).Should().BeEmpty();
+        PossibleDuplicates.Of(applied).Should().BeEmpty();
     }
 
     [Fact]
     public void A_capture_with_the_longer_name_renames_the_stop_and_joins_its_rack()
     {
         var plan = LoadPlanner.PlaceInto(new SavedPlan([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA)), HullA, [Stop(Short, "Pressurized Ice", 4)]);
-        ContractCapture[] captures = [new([Stop(Full, "Stims", 8)], new ContractSource([60]))];
+        ContractCapture[] captures = [new([Stop(Full, "Stims", 8)], new ContractSource(new ScanIdentity(60, "KEY 60", false)))];
 
         var unified = DestinationNames.Unify(plan, HullA, captures);
-        var applied = ContractSync.Apply(unified.Saved, HullA, unified.Captures, null);
+        var applied = LoadPlanner.PlaceInto(unified.Saved, HullA, unified.Captures[0].Stops, unified.Captures[0].Source);
 
         unified.Merged.Should().Equal((Short, Full));
         applied.Stops.Should().ContainSingle().Which.Destination.Should().Be(Full);
@@ -104,7 +103,7 @@ public class DestinationNamesTests
     public void A_capture_with_the_shorter_name_takes_the_plan_spelling()
     {
         var plan = LoadPlanner.PlaceInto(new SavedPlan([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA)), HullA, [Stop(Full, "Stims", 4)]);
-        ContractCapture[] captures = [new([Stop(Short, "Pressurized Ice", 4)], new ContractSource([60]))];
+        ContractCapture[] captures = [new([Stop(Short, "Pressurized Ice", 4)], new ContractSource(new ScanIdentity(60, "KEY 60", false)))];
 
         var unified = DestinationNames.Unify(plan, HullA, captures);
 
@@ -118,7 +117,7 @@ public class DestinationNamesTests
     {
         // D38: diff, don't react – the sync compares by reference.
         var plan = LoadPlanner.PlaceInto(new SavedPlan([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA)), HullA, [Stop("Riker", "Gold", 4)]);
-        ContractCapture[] captures = [new([Stop("Shubin", "Gold", 4)], new ContractSource([60]))];
+        ContractCapture[] captures = [new([Stop("Shubin", "Gold", 4)], new ContractSource(new ScanIdentity(60, "KEY 60", false)))];
 
         var unified = DestinationNames.Unify(plan, HullA, captures);
 
@@ -137,13 +136,13 @@ public class DestinationNamesTests
     }
 
     /// <summary>
-    /// Capture 9–12 as the database reader gave it (D39 addendum): the stops of its text, its ids and the legend's hints;
-    /// no pickup, the rows had none. Built from the text since the reader went (T10.4a).
+    /// Contract 9–12 of the plan of 23 October as scan <paramref name="no"/>: the stops of its text and the legend's hints;
+    /// no pickup, the rows had none. Built from the text since the ContractTracker reader went (T10.4a, D107).
     /// </summary>
-    private static IReadOnlyList<ContractCapture> CapturesOf(params long[] ids)
+    private static IReadOnlyList<ContractCapture> ScanOf(int no)
     {
         var parsed = ContractTextParser.Parse(ImportFixtures.RawText(ImportFixtures.HurstonAnyOrder));
         var stops = ContractStops.Of(parsed.Deliveries, parsed.MaxCrateSize, new Dictionary<string, IReadOnlyList<string>?>());
-        return [new ContractCapture(stops, new ContractSource(ids, parsed.MaxCrateSize is null, parsed.ListedDestinationCount, parsed.Reward))];
+        return [new ContractCapture(stops, new ContractSource(new ScanIdentity(no, $"KEY {no}", false), parsed.MaxCrateSize is null, parsed.ListedDestinationCount, parsed.Reward))];
     }
 }

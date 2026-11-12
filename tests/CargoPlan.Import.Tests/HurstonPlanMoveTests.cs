@@ -27,6 +27,21 @@ public class HurstonPlanMoveTests
         LoadPlanner.Validate(moved, HullA).Should().BeEmpty();
     }
 
+    [Fact]
+    public void Its_ContractTracker_captures_read_as_scans_1_to_3()
+    {
+        // Schema 9, watermark 18 (D107): the ids become the key, the number follows the file's order.
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(ImportFixtures.Plan(ImportFixtures.HurstonPlan)));
+
+        var (saved, lastScanNo, fromContractTracker) = PlanFile.ReadContent(stream, ImportFixtures.HurstonPlan, HullA);
+
+        saved.Missions.Select(m => (m.Id, m.Contract!.Scan!.No, m.Contract.Scan.Key, m.Contract.Reward)).Should().Equal(
+            (1, 1, "legacy:9-10-11-12", null),
+            (2, 2, "legacy:17", null),
+            (3, 3, "legacy:18", (long?)80_750));
+        (lastScanNo, fromContractTracker.Count).Should().Be((3, 3));
+    }
+
     private static SavedPlan HurstonPlan()
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(ImportFixtures.Plan(ImportFixtures.HurstonPlan)));

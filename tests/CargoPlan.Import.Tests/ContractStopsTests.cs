@@ -136,11 +136,11 @@ public class ContractStopsTests
                 var pickups = c.Pickup is null
                     ? NoPickups
                     : parsed.Deliveries.ToDictionary(d => d.Commodity, d => (IReadOnlyList<string>?)[c.Pickup], StringComparer.OrdinalIgnoreCase);
-                return new Mission(i + 1, ContractStops.Of(parsed.Deliveries, parsed.MaxCrateSize, pickups), new ContractSource([c.Id], Reward: parsed.Reward));
+                return new Mission(i + 1, ContractStops.Of(parsed.Deliveries, parsed.MaxCrateSize, pickups), new ContractSource(new ScanIdentity((int)c.Id, $"KEY {c.Id}", false), Reward: parsed.Reward));
             }),
         ];
         var saved = LoadPlanner.Plan(ship, missions, [.. missions.SelectMany(m => m.Stops).Select(s => s.Destination).Distinct()]);
-        return new HashSet<int>(ContractSync.Duplicates(saved).Select(id => (int)saved.Missions.Single(m => m.Id == id).Contract!.ContractIds.Single()));
+        return new HashSet<int>(PossibleDuplicates.Of(saved).Select(id => (int)saved.Missions.Single(m => m.Id == id).Contract!.Scan.No));
     }
 
     [Fact]

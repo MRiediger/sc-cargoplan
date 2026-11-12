@@ -31,6 +31,15 @@ public sealed class PlanStoreTests : IDisposable
         File.WriteAllText(PlanPath, content);
     }
 
+    private void WriteResource(string resourceName)
+    {
+        Directory.CreateDirectory(_folder);
+        using var resource = typeof(PlanStoreTests).Assembly.GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException($"Test resource '{resourceName}' not found.");
+        using var file = File.Create(PlanPath);
+        resource.CopyTo(file);
+    }
+
     private static SavedPlan RikerDelivered()
     {
         var planned = TestPlans.SplitAndShared();
@@ -226,6 +235,55 @@ public sealed class PlanStoreTests : IDisposable
         loaded.Plan.Should().BeNull();
         loaded.Problem.Should().StartWith("Plan not loaded");
         loaded.Unreadable.Should().BeTrue();
+    }
+
+    // --- ContractTracker captures of an older file (D107) ---
+
+    [Fact]
+    public void A_file_with_ContractTracker_captures_loads_them_as_scans_with_a_notice_and_a_log_line()
+    {
+        WriteResource("plans/hurston_2026-10-25.json");
+
+        var loaded = PlanStore.Load(PlanPath, HullA);
+
+        loaded.Problem.Should().BeNull();
+        loaded.Unreadable.Should().BeFalse();
+        loaded.LastScanNo.Should().Be(4);
+        loaded.Notice.Should().Be("4 contracts from ContractTracker are scan missions #1–#4 now.");
+        TestLog.Text().Should().Contain($" Plan: {PlanPath}: {loaded.Notice}");
+    }
+
+    [Fact]
+    public void A_converted_plan_saved_once_loads_without_a_notice()
+    {
+        WriteResource("plans/hurston_2026-10-25.json");
+        var first = PlanStore.Load(PlanPath, HullA);
+
+        PlanStore.Save(PlanPath, first.Plan!, first.LastScanNo);
+        var again = PlanStore.Load(PlanPath, HullA);
+
+        again.Notice.Should().BeNull();
+        again.LastScanNo.Should().Be(4);
+        again.Plan!.Missions.Select(m => m.Contract).Should().BeEquivalentTo(first.Plan!.Missions.Select(m => m.Contract), o => o.WithStrictOrdering());
+    }
+
+    [Fact]
+    public void LoadStart_with_a_plan_file_of_captures_carries_the_notice()
+    {
+        var other = Path.Combine(_folder, "old.json");
+        WriteResource("plans/hurston_2026-10-25.json");
+        File.Move(PlanPath, other);
+
+        PlanStore.LoadStart(PlanPath, other, HullA).Notice.Should().StartWith("4 contracts from ContractTracker");
+    }
+
+    [Theory]
+    [InlineData(new int[0], null)]
+    [InlineData(new[] { 5 }, "1 contract from ContractTracker is scan mission #5 now.")]
+    [InlineData(new[] { 1, 2, 3 }, "3 contracts from ContractTracker are scan missions #1–#3 now.")]
+    public void The_notice_names_the_numbers_the_captures_got(int[] numbers, string? notice)
+    {
+        PlanStore.FromContractTrackerText(numbers).Should().Be(notice);
     }
 
     [Fact]

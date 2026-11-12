@@ -26,18 +26,20 @@ public class PlanFileTests
     private static string V4Text() => Written(Planned(MissionFixtures.SplitAndSharedMissions));
 
     /// <summary>
-    /// Riker 12 Titanium typed, a capture of Shubin 8 Quartz with an assumed crate size, one of three listed
-    /// destinations and a reward of 50,250, a capture that didn't fit, watermark 41.
+    /// Riker 12 Titanium typed, scan #1 of Shubin 8 Quartz with an assumed crate size, one of three listed destinations
+    /// and a reward of 50,250, scan #2 (an offer) that didn't fit.
     /// </summary>
-    private static SavedPlan WithCaptures()
+    private static SavedPlan WithScans()
     {
         static MissionStop Stop(string destination, string commodity, int scu, CrateSize max) => new(destination, 1, [new MissionItem(commodity, scu, max)]);
-        SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA), 41);
+        SavedPlan empty = new([], new LoadPlan(HullA.Id, [], []), CrateCap.Of(HullA));
         var typed = LoadPlanner.PlaceInto(empty, HullA, [Stop("Riker", "Titanium", 12, CrateSize.Four)]);
-        var captured = LoadPlanner.PlaceInto(typed, HullA, [Stop("Shubin", "Quartz", 8, CrateSize.Four)], new ContractSource([36, 37], true, 3, 50_250));
+        var scanned = LoadPlanner.PlaceInto(typed, HullA, [Stop("Shubin", "Quartz", 8, CrateSize.Four)], ShubinScan);
         // More than the Hull A holds, so it waits (a 32 SCU crate would be capped to 16s and fit, D70).
-        return LoadPlanner.PlaceInto(captured, HullA, [Stop("Orison", "Gold", 72, CrateSize.Eight)], new ContractSource([40]));
+        return LoadPlanner.PlaceInto(scanned, HullA, [Stop("Orison", "Gold", 72, CrateSize.Eight)], new ContractSource(new ScanIdentity(2, "? | ORISON:GOLD | 8 | ?", true)));
     }
+
+    private static ContractSource ShubinScan => new ContractSource(new ScanIdentity(1, "LORVILLE | SHUBIN:QUARTZ | ? | 50250", false), true, 3, 50_250);
 
     private static string Written(SavedPlan saved)
     {
@@ -57,7 +59,6 @@ public class PlanFileTests
     private static void ShouldMatch(SavedPlan actual, SavedPlan expected)
     {
         actual.Missions.Should().BeEquivalentTo(expected.Missions, o => o.WithStrictOrdering());
-        actual.Watermark.Should().Be(expected.Watermark);
         actual.Plan.ShipId.Should().Be(expected.Plan.ShipId);
         actual.Plan.FillOrder.Should().Be(expected.Plan.FillOrder);
         actual.Plan.Crates.Should().Equal(expected.Plan.Crates);
@@ -117,28 +118,27 @@ public class PlanFileTests
     }
 
     [Fact]
-    public void Write_then_Read_keeps_captures_unplaced_missions_and_the_watermark()
+    public void Write_then_Read_keeps_scanned_contracts_and_unplaced_missions()
     {
-        var saved = WithCaptures();
+        var saved = WithScans();
 
         var loaded = RoundTrip(saved);
 
         ShouldMatch(loaded, saved);
-        loaded.Missions[1].Contract.Should().BeEquivalentTo(new ContractSource([36, 37], true, 3, 50_250));
+        loaded.Missions[1].Contract.Should().BeEquivalentTo(ShubinScan);
         loaded.Missions[2].Contract!.Reward.Should().BeNull();
         loaded.Missions[2].Unplaced.Should().BeTrue();
-        loaded.Watermark.Should().Be(41);
     }
 
     [Fact]
-    public void Write_produces_camel_case_schema_6_with_missions_watermark_and_crate_positions()
+    public void Write_produces_camel_case_schema_6_with_missions_and_crate_positions_without_a_watermark()
     {
         var node = JsonNode.Parse(Written(Planned(MissionFixtures.LoadMissions("example_missions"))))!;
 
         node["schemaVersion"]!.GetValue<int>().Should().Be(PlanFile.SupportedSchemaVersion);
         node["shipId"]!.GetValue<string>().Should().Be("hull_a");
         node["fillOrder"]!.GetValue<string>().Should().Be("bowFirst");
-        node["contractTrackerWatermark"]!.GetValue<long>().Should().Be(0);
+        node.AsObject().Should().NotContainKey("contractTrackerWatermark", "the writer no longer writes it (D107)");
         var mission = node["missions"]![0]!;
         mission["id"]!.GetValue<int>().Should().Be(1);
         mission["unplaced"]!.GetValue<bool>().Should().BeFalse();
@@ -159,20 +159,22 @@ public class PlanFileTests
     }
 
     [Fact]
-    public void Write_writes_a_capture_with_its_ids()
+    public void Write_writes_a_scanned_contract_with_what_the_legend_marks()
     {
-        var contract = JsonNode.Parse(Written(WithCaptures()))!["missions"]![1]!["contract"]!;
+        var contract = JsonNode.Parse(Written(WithScans()))!["missions"]![1]!["contract"]!;
 
-        contract["contractIds"]!.AsArray().Select(v => v!.GetValue<long>()).Should().Equal(36, 37);
+        contract["scan"]!["no"]!.GetValue<int>().Should().Be(1);
         contract["crateSizeAssumed"]!.GetValue<bool>().Should().BeTrue();
         contract["listedDestinations"]!.GetValue<int>().Should().Be(3);
         contract["reward"]!.GetValue<long>().Should().Be(50_250);
+        contract.AsObject().Select(p => p.Key).Should().BeEquivalentTo(["crateSizeAssumed", "listedDestinations", "reward", "scan"],
+            "the file has these and no other (T10.4b Gate 1: a computed property was written)");
     }
 
     [Fact]
     public void Write_leaves_out_what_a_mission_doesnt_have()
     {
-        var missions = JsonNode.Parse(Written(WithCaptures()))!["missions"]!;
+        var missions = JsonNode.Parse(Written(WithScans()))!["missions"]!;
 
         missions[0]!.AsObject().Should().NotContainKey("contract");
         missions[0]!["stops"]![0]!["items"]![0]!.AsObject().Should().NotContainKey("crates");
@@ -350,7 +352,7 @@ public class PlanFileTests
     [Fact]
     public void SavedPlan_stops_merge_missions_per_destination_in_unload_order_then_unplaced()
     {
-        var saved = WithCaptures();
+        var saved = WithScans();
 
         saved.Stops.Select(s => (s.Destination, s.Order)).Should().Equal(("Riker", 1), ("Shubin", 2), ("Orison", 3));
     }
@@ -379,8 +381,6 @@ public class PlanFileTests
     private static readonly Dictionary<string, Action<JsonNode>> V3Changes = new()
     {
         ["unknown_property"] = n => n["opacity"] = 0.5,
-        ["missing_watermark"] = n => n.AsObject().Remove("contractTrackerWatermark"),
-        ["negative_watermark"] = n => n["contractTrackerWatermark"] = -1,
         ["missing_unplaced"] = n => n["missions"]![0]!.AsObject().Remove("unplaced"),
         ["mission_id_0"] = n => n["missions"]![0]!["id"] = 0,
         ["mission_without_stops"] = n => n["missions"]![0]!["stops"] = new JsonArray(),
@@ -402,15 +402,13 @@ public class PlanFileTests
 
     [Theory]
     [InlineData("unknown_property", "*opacity*")]
-    [InlineData("missing_watermark", "*contractTrackerWatermark*")]
-    [InlineData("negative_watermark", "*watermark*")]
     [InlineData("missing_unplaced", "*unplaced*")]
     [InlineData("mission_id_0", "*mission id*")]
     [InlineData("mission_without_stops", "*Mission 1*no stop*")]
     [InlineData("crate_of_unknown_mission", "*mission 9*")]
     [InlineData("crate_without_mission", "*mission 0*")]
     [InlineData("missing_crate", "*Riker, Titanium: 3 of 4 crates of 4 SCU placed*")]
-    [InlineData("contract_without_ids", "*ContractTracker ids or a scan, exactly one*")]
+    [InlineData("contract_without_ids", "*without a scan names its ContractTracker ids*")]
     [InlineData("unknown_rack", "*rack-9*")]
     [InlineData("missing_delivered", "*delivered*")]
     [InlineData("unknown_warning_rack", "*rack-9*")]

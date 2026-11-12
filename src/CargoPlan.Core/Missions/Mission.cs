@@ -10,7 +10,7 @@ namespace CargoPlan.Core.Missions;
 /// </summary>
 /// <param name="Id">Unique within the plan, from 1; every crate names its mission by it.</param>
 /// <param name="Stops">Order = order in the contract; one stop per destination.</param>
-/// <param name="Contract">ContractTracker's capture this came from; null if typed or from a file.</param>
+/// <param name="Contract">The scan this came from (D102, D107); null if typed or from a mission file.</param>
 /// <param name="Unplaced">It didn't fit when it came (D41): in the plan without crates until it fits or is dropped.</param>
 public sealed record Mission(int Id, IReadOnlyList<MissionStop> Stops, ContractSource? Contract = null, bool Unplaced = false)
 {

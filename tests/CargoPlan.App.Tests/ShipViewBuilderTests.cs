@@ -474,12 +474,12 @@ public class ShipViewBuilderTests
         ShipViewBuilder.Build(saved, Sample.Ship, LoadPlanner.Validate(saved.Plan, Sample.Ship));
 
     private static SavedPlan Delivered(SavedPlan saved, string destination) =>
-        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, Sample.Ship, destination, true), saved.CrateCap, saved.Watermark);
+        new(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, Sample.Ship, destination, true), saved.CrateCap);
 
     [Fact]
     public void Two_markings_of_one_stop_stand_in_its_line_size_first()
     {
-        var saved = Captured(EmptySaved, new ContractSource([36], CrateSizeAssumed: true, ListedDestinations: 3), Stop("Riker"));
+        var saved = Captured(EmptySaved, new ContractSource(new ScanIdentity(36, "KEY 36", false), CrateSizeAssumed: true, ListedDestinations: 3), Stop("Riker"));
 
         BuildSaved(saved).Legend.Single().Label.Should().Be("To Riker · 4 SCU · Stims · 4 SCU? · ⚠ 1 of 3 destinations");
     }
@@ -488,8 +488,8 @@ public class ShipViewBuilderTests
     public void Two_missions_at_one_stop_have_a_line_each_with_their_own_assumed_size()
     {
         // B6 (D69): a line is mission + destination.
-        var first = Captured(EmptySaved, new ContractSource([1], CrateSizeAssumed: true), Stop("Riker", "Stims", 4, CrateSize.Four));
-        var saved = Captured(first, new ContractSource([2], CrateSizeAssumed: true), Stop("Riker", "Gold", 2, CrateSize.Two));
+        var first = Captured(EmptySaved, new ContractSource(new ScanIdentity(1, "KEY 1", false), CrateSizeAssumed: true), Stop("Riker", "Stims", 4, CrateSize.Four));
+        var saved = Captured(first, new ContractSource(new ScanIdentity(2, "KEY 2", false), CrateSizeAssumed: true), Stop("Riker", "Gold", 2, CrateSize.Two));
 
         BuildSaved(saved).Legend.Select(e => e.Label).Should().Equal("To Riker · 4 SCU · Stims · 4 SCU?", "To Riker · 2 SCU · Gold · 2 SCU?");
     }
@@ -497,7 +497,7 @@ public class ShipViewBuilderTests
     [Fact]
     public void Items_of_one_mission_with_two_max_sizes_are_named_together()
     {
-        var saved = Captured(EmptySaved, new ContractSource([1], CrateSizeAssumed: true),
+        var saved = Captured(EmptySaved, new ContractSource(new ScanIdentity(1, "KEY 1", false), CrateSizeAssumed: true),
             new MissionStop("Riker", 1, [new MissionItem("Stims", 4, CrateSize.Four), new MissionItem("Gold", 2, CrateSize.Two)]));
 
         BuildSaved(saved).Legend.Single().Label.Should().Be("To Riker · 6 SCU (4) Stims, (2) Gold · 4/2 SCU?");
@@ -506,7 +506,7 @@ public class ShipViewBuilderTests
     [Fact]
     public void A_stop_without_doubt_has_no_marking()
     {
-        var saved = Captured(EmptySaved, new ContractSource([36], ListedDestinations: 1), Stop("Riker"));
+        var saved = Captured(EmptySaved, new ContractSource(new ScanIdentity(36, "KEY 36", false), ListedDestinations: 1), Stop("Riker"));
 
         BuildSaved(saved).Legend.Single().Label.Should().Be("To Riker · 4 SCU · Stims");
     }
@@ -514,7 +514,7 @@ public class ShipViewBuilderTests
     [Fact]
     public void A_duplicate_is_marked_and_its_reserve_keeps_the_marking_after_a_tick()
     {
-        var saved = Captured(Captured(EmptySaved, new ContractSource([1]), Stop("Riker"), Stop("Shubin")), new ContractSource([2]), Stop("Shubin"));
+        var saved = Captured(Captured(EmptySaved, new ContractSource(new ScanIdentity(1, "KEY 1", false)), Stop("Riker"), Stop("Shubin")), new ContractSource(new ScanIdentity(2, "KEY 2", false)), Stop("Shubin"));
 
         // The marking stands on the line of the mission it concerns (D68), the later capture.
         var shubin = BuildSaved(saved).Legend.Single(e => e is { Destination: "Shubin", Mission: 2 });
@@ -530,8 +530,8 @@ public class ShipViewBuilderTests
     public void A_mission_that_doesnt_fit_has_its_own_line_with_the_reason()
     {
         var full = Enumerable.Range(1, 4).Aggregate(EmptySaved, (saved, i) =>
-            Captured(saved, new ContractSource([i]), Stop($"Stop {i}", "Gold", i == 4 ? 8 : 16, i == 4 ? CrateSize.Eight : CrateSize.Sixteen)));
-        var saved = Captured(full, new ContractSource([5]), Stop("Hurston", "Gold", 8, CrateSize.Eight), Stop("Area18", "Gold", 8, CrateSize.Eight));
+            Captured(saved, new ContractSource(new ScanIdentity(i, $"KEY {i}", false)), Stop($"Stop {i}", "Gold", i == 4 ? 8 : 16, i == 4 ? CrateSize.Eight : CrateSize.Sixteen)));
+        var saved = Captured(full, new ContractSource(new ScanIdentity(5, "KEY 5", false)), Stop("Hurston", "Gold", 8, CrateSize.Eight), Stop("Area18", "Gold", 8, CrateSize.Eight));
 
         var unplaced = BuildSaved(saved).Unplaced.Should().ContainSingle().Which;
 
@@ -545,8 +545,8 @@ public class ShipViewBuilderTests
     {
         // The case in which the player reaches for re-plan (D66, D67): 56 SCU on board, a 16 SCU mission waits.
         var full = Enumerable.Range(1, 4).Aggregate(EmptySaved, (saved, i) =>
-            Captured(saved, new ContractSource([i]), Stop($"Stop {i}", "Gold", i == 4 ? 8 : 16, i == 4 ? CrateSize.Eight : CrateSize.Sixteen)));
-        var saved = Captured(full, new ContractSource([5]), Stop("Hurston", "Gold", 8, CrateSize.Eight), Stop("Area18", "Gold", 8, CrateSize.Eight));
+            Captured(saved, new ContractSource(new ScanIdentity(i, $"KEY {i}", false)), Stop($"Stop {i}", "Gold", i == 4 ? 8 : 16, i == 4 ? CrateSize.Eight : CrateSize.Sixteen)));
+        var saved = Captured(full, new ContractSource(new ScanIdentity(5, "KEY 5", false)), Stop("Hurston", "Gold", 8, CrateSize.Eight), Stop("Area18", "Gold", 8, CrateSize.Eight));
 
         BuildSaved(full).CapacityText.Should().Be("56/64 · 8 free");
         BuildSaved(saved).CapacityText.Should().Be("56/64 · 8 free · 16 waiting");
@@ -557,10 +557,10 @@ public class ShipViewBuilderTests
     {
         // Riker delivered, a new Riker contract after Shubin: no route (D64), so Riker stays where it was; the new mission's
         // line stands next to the delivered one, where Riker first appears (B6).
-        var saved = Captured(Captured(EmptySaved, new ContractSource([1]), Stop("Riker")), new ContractSource([2]), Stop("Shubin"));
+        var saved = Captured(Captured(EmptySaved, new ContractSource(new ScanIdentity(1, "KEY 1", false)), Stop("Riker")), new ContractSource(new ScanIdentity(2, "KEY 2", false)), Stop("Shubin"));
         var colour = BuildSaved(saved).Legend.Single(e => e.Destination == "Riker").PaletteIndex;
 
-        var again = Captured(Delivered(saved, "Riker"), new ContractSource([3]), Stop("Riker", "Gold"));
+        var again = Captured(Delivered(saved, "Riker"), new ContractSource(new ScanIdentity(3, "KEY 3", false)), Stop("Riker", "Gold"));
 
         var legend = BuildSaved(again).Legend;
         legend.Select(e => (e.Destination, e.Mission, e.Delivered)).Should().Equal(("Riker", 1, true), ("Riker", 3, false), ("Shubin", 2, false));
@@ -578,5 +578,12 @@ public class ShipViewBuilderTests
 
         rack1.Boxes.Where(b => b.Crate is not null).Select(b => b.Crate).Should().BeEquivalentTo([onTop, elsewhere]);
         rack1.Boxes.Sum(b => Volume(b.Bounds)).Should().Be(16, "every cell is drawn once: crates on board, grey ones still lying there, free cells");
+    }
+
+    [Fact]
+    public void A_waiting_mission_that_fits_now_says_Replan_places_it()
+    {
+        // The header's or the editor's Re-plan, the editor's Plan and an undo place it (moved here from GoneOverlayTests, D107).
+        ShipViewBuilder.FitsNowText.Should().Be("fits now – Re-plan places it");
     }
 }

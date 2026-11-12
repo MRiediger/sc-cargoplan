@@ -15,7 +15,7 @@ namespace CargoPlan.Core.Tests;
 /// regenerated all ten for the format alone: apart from <c>schemaVersion</c> and each crate's <c>item</c> they are the
 /// files before, racks and positions unchanged. D88 (plan schema 9) too: <c>schemaVersion</c> and a <c>fillRows</c> line.
 /// D102 (plan schema 10, T10.2b1) too: the <c>schemaVersion</c> line alone; a plan without scanned contracts writes nothing
-/// new.
+/// new. D107 (T10.4b) too: the <c>contractTrackerWatermark</c> line alone, which the writer no longer writes.
 /// </summary>
 public class HullAGoldenTests
 {
@@ -41,7 +41,7 @@ public class HullAGoldenTests
     {
         var written = Written(fixture, fillOrder);
 
-        // Mission ids and the watermark come from the route, nothing from time or chance: two runs, one file.
+        // Mission ids come from the route, nothing from time or chance: two runs, one file.
         written.Should().Be(Written(fixture, fillOrder));
         written.Should().Be(Golden(fixture, fillOrder));
     }

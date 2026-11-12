@@ -8,9 +8,10 @@ namespace CargoPlan.Core.Plans;
 /// </summary>
 internal sealed record MissionDto(int Id, bool Unplaced, IReadOnlyList<MissionStopDto> Stops, ContractSourceDto? Contract = null)
 {
+    /// <param name="legacyNo">The scan number its contract gets if it is an older file's ContractTracker capture (D107).</param>
     /// <exception cref="ArgumentException">A value violates the domain rules.</exception>
-    public Mission ToMission() =>
-        new(Id, [.. Stops.Select((s, index) => s.ToMissionStop(index + 1))], Contract?.ToContractSource(), Unplaced);
+    public Mission ToMission(int legacyNo) =>
+        new(Id, [.. Stops.Select((s, index) => s.ToMissionStop(index + 1))], Contract?.ToContractSource(legacyNo), Unplaced);
 
     public static MissionDto FromMission(Mission mission) => new(
         mission.Id,

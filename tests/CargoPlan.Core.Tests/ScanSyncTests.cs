@@ -23,7 +23,7 @@ public class ScanSyncTests
 
     /// <summary>A scan as the import hands it over (ScannedContract.ToCapture): the number is the one a new mission would get.</summary>
     private static ContractCapture Scan(bool estimated, int no = 9, string key = Key, params MissionStop[] stops) =>
-        new(stops.Length == 0 ? [Stop("Riker", 8)] : stops, ContractSource.Scanned(new ScanIdentity(no, key, estimated), reward: 50_250));
+        new(stops.Length == 0 ? [Stop("Riker", 8)] : stops, new ContractSource(new ScanIdentity(no, key, estimated), Reward: 50_250));
 
     /// <summary>Orison typed, then the Riker contract as scan #2.</summary>
     private static SavedPlan WithScan(bool estimated, params MissionStop[] stops)

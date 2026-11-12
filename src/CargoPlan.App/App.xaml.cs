@@ -244,17 +244,18 @@ public partial class App : Application
     /// <summary>
     /// The plan saver before the start plan is shown: a --plan file becomes plan.json this way, without a rule of its own.
     /// A plan from plan.json is written back once, unchanged. The saver learns from the load whether plan.json couldn't be
-    /// read, and keeps it aside before its first write (B13, D106).
+    /// read, and keeps it aside before its first write (B13, D106). An older file's ContractTracker captures come in as scans,
+    /// and the Plan notice says so (D107).
     /// </summary>
     private void ComposeStartPlan(OverlayParts parts, StartOptions options)
     {
         var viewModel = parts.ViewModel;
-        var (plan, planProblem, lastScanNo, unreadable) = PlanStore.LoadStart(PlanStore.DefaultPath, options.PlanPath, parts.Ship);
-        _planSaver = new PlanSaver(parts.Overlay, viewModel, PlanStore.DefaultPath, unreadable);
-        viewModel.SetNotice(NoticeSource.Plan, options.Problem ?? planProblem);
-        if (plan is not null)
+        var loaded = PlanStore.LoadStart(PlanStore.DefaultPath, options.PlanPath, parts.Ship);
+        _planSaver = new PlanSaver(parts.Overlay, viewModel, PlanStore.DefaultPath, loaded.Unreadable);
+        viewModel.SetNotice(NoticeSource.Plan, options.Problem ?? loaded.Problem ?? loaded.Notice);
+        if (loaded.Plan is { } plan)
         {
-            viewModel.LastScanNo = lastScanNo;
+            viewModel.LastScanNo = loaded.LastScanNo;
             viewModel.ShowPlan(plan);
         }
     }

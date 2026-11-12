@@ -51,8 +51,8 @@ public static class ShipViewBuilder
         SceneRack[] racks = [.. ship.Racks.Select(r => BuildRack(r, plan, palette, violated.Contains(r.Id)))];
 
         // The order of the crate list, as the player entered the stops: display only, no route (D64); the palette's too.
-        var duplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(saved);
-        var reserveDuplicates = saved is null ? new HashSet<int>() : ContractSync.Duplicates(OnBoard(saved));
+        var duplicates = saved is null ? new HashSet<int>() : PossibleDuplicates.Of(saved);
+        var reserveDuplicates = saved is null ? new HashSet<int>() : PossibleDuplicates.Of(OnBoard(saved));
         Mission[] unplaced = saved is null ? [] : [.. saved.Missions.Where(m => m.Unplaced)];
         LegendEntry[] legend = [.. LegendLines(plan, saved).Select(line => new LegendEntry(
             palette[line.Destination],
@@ -67,7 +67,7 @@ public static class ShipViewBuilder
             line.MissionCrates,
             line.Grouped,
             LegendText.Goods(line.Crates),
-            line.ContractIds,
+            line.ScanNo,
             line.Crates.All(c => c.Loaded)))];
 
         return new ShipScene(
@@ -88,7 +88,7 @@ public static class ShipViewBuilder
     /// from every item's pickup, or "From ?"), its contract's number ("#47") and the mission's crates on board for the
     /// header's check box; without any, no line has a header.
     /// </summary>
-    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped, string? ContractIds)> LegendLines(
+    private static IEnumerable<(string? Header, int Mission, string Destination, IReadOnlyList<Crate> Crates, IReadOnlyList<Crate>? MissionCrates, bool Grouped, string? ScanNo)> LegendLines(
         LoadPlan plan, SavedPlan? saved)
     {
         var pickups = saved?.Missions.ToDictionary(m => m.Id, m => Pickups.Normalized(m.Items.SelectMany(i => i.Item.Pickup ?? []))) ?? [];
@@ -166,7 +166,7 @@ public static class ShipViewBuilder
 
     /// <summary>The plan with every crate on board: the legend's reserve keeps the markings a tick takes away (D16).</summary>
     private static SavedPlan OnBoard(SavedPlan saved) =>
-        new(saved.Missions, saved.Plan with { Crates = [.. saved.Plan.Crates.Select(c => c with { Delivered = false })] }, saved.CrateCap, saved.Watermark);
+        new(saved.Missions, saved.Plan with { Crates = [.. saved.Plan.Crates.Select(c => c with { Delivered = false })] }, saved.CrateCap);
 
     /// <summary>
     /// The rack's crates where the plan stores them (D24), then the cells no crate takes. No layout here: the only one is

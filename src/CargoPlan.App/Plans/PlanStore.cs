@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Plans;
+using static System.FormattableString;
 
 namespace CargoPlan.App.Plans;
 
@@ -17,11 +18,12 @@ public static class PlanStore
 
     /// <summary>
     /// Missing file = no plan, no problem. Broken file, another ship or a plan that doesn't fit its missions = no plan
-    /// plus a problem text for the overlay; the file is left as it is until the next save keeps it aside (B13, D106).
+    /// plus a problem text for the overlay; the file is left as it is until the next save keeps it aside (B13, D106). An
+    /// older file's ContractTracker captures load as scans with a notice, written to the log too (D107).
     /// </summary>
     /// <returns>
-    /// The plan or a problem, the last scan number given (D102, 0 without a plan), and whether a file is there that couldn't
-    /// be read: the saver keeps that one aside (B13, D106).
+    /// The plan or a problem, the last scan number given (D102, 0 without a plan), whether a file is there that couldn't
+    /// be read: the saver keeps that one aside (B13, D106), and the notice about converted captures.
     /// </returns>
     public static PlanLoad Load(string path, Ship ship)
     {
@@ -33,8 +35,14 @@ public static class PlanStore
         try
         {
             using var stream = File.OpenRead(path);
-            var (plan, lastScanNo) = PlanFile.ReadContent(stream, path, ship);
-            return new(plan, null, lastScanNo, Unreadable: false);
+            var (plan, lastScanNo, fromContractTracker) = PlanFile.ReadContent(stream, path, ship);
+            var notice = FromContractTrackerText(fromContractTracker);
+            if (notice is not null)
+            {
+                AppLog.Write("Plan", $"{path}: {notice}");
+            }
+
+            return new(plan, null, lastScanNo, Unreadable: false, notice);
         }
         catch (Exception ex) when (ex is PlanFormatException or IOException or UnauthorizedAccessException)
         {
@@ -64,6 +72,17 @@ public static class PlanStore
 
         return loaded with { Unreadable = Load(defaultPath, ship).Unreadable };
     }
+
+    /// <summary>
+    /// "3 contracts from ContractTracker are scan missions #1–#3 now." for the numbers an older file's captures got
+    /// (D107, consecutive); null for none.
+    /// </summary>
+    public static string? FromContractTrackerText(IReadOnlyList<int> numbers) => numbers switch
+    {
+        [] => null,
+        [var one] => Invariant($"1 contract from ContractTracker is scan mission #{one} now."),
+        _ => Invariant($"{numbers.Count} contracts from ContractTracker are scan missions #{numbers[0]}–#{numbers[^1]} now."),
+    };
 
     /// <summary>
     /// Moves the file aside as "plan.json.unreadable-yyyyMMdd-HHmmss" in its folder, never over another: a second one in
@@ -127,7 +146,8 @@ public static class PlanStore
 /// <param name="Problem">Why there is no plan, for the overlay's notice; null if none.</param>
 /// <param name="LastScanNo">The last scan number given (D102), 0 without a plan.</param>
 /// <param name="Unreadable">A file is there that couldn't be read: the first save keeps it aside (B13, D106).</param>
-public sealed record PlanLoad(SavedPlan? Plan, string? Problem, int LastScanNo, bool Unreadable)
+/// <param name="Notice">The plan's ContractTracker captures became scans (D107), for the overlay's Plan notice; null if none.</param>
+public sealed record PlanLoad(SavedPlan? Plan, string? Problem, int LastScanNo, bool Unreadable, string? Notice = null)
 {
     /// <summary>Plan, problem and scan number alone, as every caller before B13 read them.</summary>
     public void Deconstruct(out SavedPlan? plan, out string? problem, out int lastScanNo) =>

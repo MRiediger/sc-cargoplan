@@ -75,7 +75,7 @@ public class ReplanTimingTests(ITestOutputHelper output)
 
             var first = plain.Plan.Route[0];
             var mission = plain.Plan.Crates.First(c => c.Destination == first).Mission;
-            var saved = new SavedPlan(plain.Missions, LoadPlanner.SetLoaded(plain.Plan, ship, first, mission, true), plain.CrateCap, plain.Watermark);
+            var saved = new SavedPlan(plain.Missions, LoadPlanner.SetLoaded(plain.Plan, ship, first, mission, true), plain.CrateCap);
 
             var watch = Stopwatch.StartNew();
             var replanned = LoadPlanner.Replan(saved, ship);
@@ -130,7 +130,7 @@ public class ReplanTimingTests(ITestOutputHelper output)
         var stops = MissionFixtures.LoadMissions("hull_a_eight_stops");
         var plain = SavedPlan.FromStops(stops, LoadPlanner.Plan(hullA, stops.ToStops()), CrateCap.Of(hullA));
         var ticked = plain.Plan.Route.Take(2).Aggregate(plain, (saved, destination) =>
-            new SavedPlan(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, hullA, destination, true), saved.CrateCap, saved.Watermark));
+            new SavedPlan(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, hullA, destination, true), saved.CrateCap));
 
         output.WriteLine("| Case | first ms | median ms |");
         foreach (var (name, saved) in new[] { ("no ticks", plain), ("two stops ticked", ticked) })

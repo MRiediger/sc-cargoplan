@@ -382,7 +382,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     /// <summary>
     /// A new route is a new plan: moves of the old one are gone (D19), but what is loaded stays where it lies and what is
     /// delivered stays delivered (K6.4, Core's <c>PlanKeeping</c>); a delivery changed here is planned again, and the
-    /// overlay's notice line names it. Captures keep their ids, the watermark stays (T5.4). A problem keeps the editor open.
+    /// overlay's notice line names it. Scans keep their numbers and keys (D102). A problem keeps the editor open.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanExport))]
     private void Plan()
@@ -391,7 +391,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         try
         {
             var current = _overlay.Saved ?? new SavedPlan([], new LoadPlan(_overlay.Ship.Id, [], []), CrateCap.Of(_overlay.Ship));
-            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, current.Watermark, FillRows, Grouping, SectionGap);
+            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, FillRows, Grouping, SectionGap);
             ChangeOverlay(() => _overlay.ShowPlan(saved));
             _overlay.SetNotice(NoticeSource.Move, cleared.Count == 0 ? null : string.Join(" · ", cleared));
             IsDirty = false;

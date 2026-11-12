@@ -30,9 +30,9 @@ public class FillOrderTimingTests(ITestOutputHelper output)
                     foreach (var order in Enum.GetValues<FillOrder>())
                     {
                         var watch = Stopwatch.StartNew();
-                        var plan = LoadPlanner.Plan(ship, missions, route, order, 0, rows, grouping, gap).Plan;
+                        var plan = LoadPlanner.Plan(ship, missions, route, order, rows, grouping, gap).Plan;
                         var first = watch.Elapsed.TotalMilliseconds;
-                        var median = Median(() => LoadPlanner.Plan(ship, missions, route, order, 0, rows, grouping, gap));
+                        var median = Median(() => LoadPlanner.Plan(ship, missions, route, order, rows, grouping, gap));
 
                         var (nodes, steps, gaveUp) = Counts(ship, missions, route, order, rows);
                         var unchecked_ = plan.Warnings.Count(w => w.Message.Contains("too many crates to rearrange", StringComparison.Ordinal));
@@ -59,7 +59,7 @@ public class FillOrderTimingTests(ITestOutputHelper output)
             {
                 foreach (var order in Enum.GetValues<FillOrder>())
                 {
-                    var plan = LoadPlanner.Plan(ship, missions, route, order, 0, rows, grouping, gap).Plan;
+                    var plan = LoadPlanner.Plan(ship, missions, route, order, rows, grouping, gap).Plan;
                     output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{order}, {rows}, {grouping}, gap {gap}"));
                     for (var stack = 0; stack < rack.Grid.Stack; stack++)
                     {

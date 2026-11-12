@@ -76,7 +76,7 @@ public class FillRowsFormatTests
     {
         var json = Written(Planned(FillRows.Crosswise)).ReplaceLineEndings("\n");
 
-        json.Should().Contain("\"fillOrder\": \"sternFirst\",\n  \"fillRows\": \"crosswise\",\n  \"grouping\": \"none\",\n  \"sectionGap\": 0,\n  \"contractTrackerWatermark\"");
+        json.Should().Contain("\"fillOrder\": \"sternFirst\",\n  \"fillRows\": \"crosswise\",\n  \"grouping\": \"none\",\n  \"sectionGap\": 0,\n  \"missions\"");
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class FillRowsFormatTests
     public void A_plan_file_always_writes_the_grouping_and_reads_it_back(PlanGrouping grouping, string word)
     {
         Mission[] missions = [new(1, [new MissionStop("Riker", 1, [new MissionItem("Titanium", 8, CrateSize.Four)])])];
-        var json = Written(LoadPlanner.Plan(Raft, missions, ["Riker"], FillOrder.BowFirst, 0, FillRows.Crosswise, grouping));
+        var json = Written(LoadPlanner.Plan(Raft, missions, ["Riker"], FillOrder.BowFirst, FillRows.Crosswise, grouping));
 
         json.Should().Contain($"\"grouping\": \"{word}\"");
         Read(json, Raft).Plan.Grouping.Should().Be(grouping);
@@ -201,7 +201,7 @@ public class FillRowsFormatTests
             new(2, [new MissionStop("B", 1, [new MissionItem("Food", 1, CrateSize.One)])]),
             new(3, [new MissionStop("C", 1, [new MissionItem("Gold", 1, CrateSize.One)])]),
         ];
-        var saved = LoadPlanner.Plan(ship, missions, ["A", "B", "C"], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination);
+        var saved = LoadPlanner.Plan(ship, missions, ["A", "B", "C"], FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination);
 
         var read = Read(Written(saved), ship);
 
@@ -218,7 +218,7 @@ public class FillRowsFormatTests
             new(1, [new MissionStop("A", 1, [new MissionItem("Ice", 4, CrateSize.Four)])]),
             new(2, [new MissionStop("B", 1, [new MissionItem("Food", 4, CrateSize.Four)])]),
         ];
-        var saved = LoadPlanner.Plan(ship, missions, ["A", "B"], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination);
+        var saved = LoadPlanner.Plan(ship, missions, ["A", "B"], FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination);
 
         Read(Written(saved), ship).Plan.Warnings.Where(SectionNotes.IsNote).Select(w => w.Message).Should().Equal("Rack 1: sections don't fit – laid as with None");
     }
@@ -267,7 +267,7 @@ public class FillRowsFormatTests
     public void A_plan_file_always_writes_the_gap_and_reads_it_back(int gap)
     {
         Mission[] missions = [new(1, [new MissionStop("Riker", 1, [new MissionItem("Titanium", 8, CrateSize.Four)])])];
-        var json = Written(LoadPlanner.Plan(Raft, missions, ["Riker"], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination, gap));
+        var json = Written(LoadPlanner.Plan(Raft, missions, ["Riker"], FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination, gap));
 
         json.Should().Contain($"\"sectionGap\": {gap}");
         Read(json, Raft).Plan.SectionGap.Should().Be(gap);

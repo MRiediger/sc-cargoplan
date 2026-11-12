@@ -5404,6 +5404,7 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     PlanFile, ScanIdentity, UndoRestore; 14 Plan-Fixtures (Goldens, `before_b2_eight_stops`, `raft_hand`, `split_and_shared`).
     Tot nach a, für b: `ContractSync.Apply/Sync/Quiet`, `SyncResult`, `ContractGonePolicy`; der Gone-Filter in
     `LoadPlanner.RetryUnplaced` lässt eine wartende Mission mit Gone-Markierung nie platzieren.
+    **→ 0 nach T10.4b (D107).**
 
 ### [x] B13 Eine nicht lesbare plan.json überschreibt der erste Scan
 
@@ -5462,11 +5463,66 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   - Unterwegs: Die Mengen ändern sich zwischen OFFERS und ACCEPTED **immer** (Spielbug, Martin) – `Updated … quantities
     changed` nach dem Annehmen ist erwartet, kein OCR-Fehler.
 
-### [ ] T10.4b ContractTracker entfernen – Core, Planer
+### [x] T10.4b ContractTracker entfernen – Core, Planer
 
 - `LoadPlanner` (35× Watermark), Identität D39/D42/D44 auf den Inhaltsschlüssel umstellen, Folgen fürs Plan-Schema.
 - Eigener Plan **mit Zahlen** (Golden-Files, Planer-Laufzeit).
 - Addenda: D37–D44 (superseded), D38/D42 (identity = content key), D81 (removed), K6.1 (`#scanNo`).
+- **Erledigt (D107), Branch `feat/t10-4b-core-identity`** (`d73d5a5`…, 7 Commits): Der Planer kennt Scan oder Hand.
+  `ContractSource(Scan, CrateSizeAssumed, ListedDestinations, Reward)`; `SavedPlan` ohne Watermark; `ContractSync`,
+  `SyncResult`, `ContractGonePolicy`, `RemoveDeliveries` weg, die Duplikat-Regel heißt `PossibleDuplicates.Of`, Undo/Redo
+  stellt per `RetryUnplaced` wieder her; Liefer-Schlüssel (Scan-Nummer, Ziel); Gone-Filter weg (Befund a1 erledigt).
+  Plan-Schema 10 endgültig: Schreiber ohne CT-Felder, Leser nimmt `contractIds/gone/detached/contractTrackerWatermark`.
+  - **Präzisierungen in der Planphase, ratifiziert durch Freigabe:** (1) Eine CT-Capture älterer Dateien wird beim Lesen
+    eine **Scan-Mission mit Ersatzschlüssel** `legacy:<ids>` (Martins Antwort auf die Rückfrage zu Vorgabe 1), Nummern
+    über `lastScanNo` und dem höchsten Scan in Dateireihenfolge, nicht geschätzt, Legendenfelder bleiben; Notice
+    „n contracts from ContractTracker are scan missions #a–#b now.“, Einzahl eigene Form. (2) Fixtures: Vorgabe 9 nannte
+    `split_and_shared`/`before_b2_eight_stops`, beide ohne CT-Mission; die Tests tragen die echten CT-Fixtures
+    (`raft_hand_2026-11-05` Schema 8 mit `gone`, `hurston_2026-10-25` und `-23` Schema 9), keine Fixture umgeschrieben
+    (Martin), neu nur `ct_and_scan_schema10.json` (von Hand). (3) Reihenfolge: Goldens zuerst (der Test bricht, sobald
+    der Schreiber das Feld weglässt), `ContractSync` vor dem Watermark (sonst kein mechanischer Commit). (4) `Duplicates`
+    in eigene Klasse; `DeliveryKey` ohne Art-Enum; `Scanned()` weg, der Name `ContractSource` bleibt.
+  - **Gefunden an Gate 1:** Jeder Vertrag wurde mit `"isCapture": false` geschrieben (berechnete Property im DTO, wie
+    `contractTracker.databasePath` in T10.4a); behoben vor dem Merge, ein Test prüft die Schlüssel eines Vertrags exakt.
+  - **Gefunden beim Streichen:** 33 Aufrufe übergaben den Watermark als Literal `0`, das ohne Parameter still in
+    `FillRows` gerutscht wäre (int-Literal 0 → Enum); vorher entfernt, Restprüfung aller Aufrufe. Zwei `cref` auf die
+    alte `Plan`-Signatur (kein XML-Doku-Build fängt sie).
+  - **Gate 1:** 5 Dateien mit `main` und Branch gelesen und geschrieben: Kisten, Stops, Missions-Ids, `unplaced` gleich;
+    Unterschiede nur `contract` (Ids → `legacy:`-Scan, `gone` weg), Watermark, `lastScanNo`. RAFT 28 Kisten #1–#4,
+    Hurston 25.10. 23 Kisten #1–#4 (Mission 4 steht vor 3 in der Datei: die alte #37–38 ist #3), Hurston 23.10.
+    17 Kisten #1–#3, Mischdatei #6/#7 neben Scan #2 (`lastScanNo` 5), Martins `plan.json` (seit 11.11. nur Scans #1/#2)
+    9 110 → 9 076 B, nur die Watermark-Zeile. Eine echte Datei mit CT **und** Scan gibt es nicht mehr (`plan.orig.json`
+    ist Schema 4). Goldens: je eine Zeile weniger.
+  - **Gate 2 – Ausnahmeliste** (`git grep -iE 'contracttracker|watermark|\bgone\b|detached|contractids' -- src`,
+    101 Zeilen): (a) ScanKeyCheck 18 (`ScanKeyCheck` 13, `HotkeyService` 4, `App.xaml.cs` 1); (b) Parser-/OCR-Herkunft
+    10; (e) Settings-Migration 6; **(f) neu: Lesepfad ältere Dateien und Ausbau-Vermerk 39** (`ContractSourceDto` 10,
+    `PlanFileDto` 8, `PlanStore` 8, `PlanFile` 7, je 1 `App.xaml.cs`, `MissionDto`, `ContractSource`, `MissionText`,
+    `OverlayViewModel`, `PlanHistory`; dazu der String `legacy:`); **(g) neu: „gone/detached“ im Wortsinn 28** (z. B.
+    `LoadPlanner` 7 für gelieferte Kisten, `MissionEditorViewModel` 4, `NativeMethods.Capture` 3, `PlanHistory` 3).
+  - **Gate 3 – Zahlen** (sauberer Worktree, Release, je 3 Läufe, Median; vorher `7e7d45f`, nachher `3d1bddd`):
+
+    | Messung | vorher | nachher |
+    |---|---:|---:|
+    | `Place_proves_stacking_in_under_100_ms` | 63 ms | 62 ms |
+    | `Place_lays_out_16_crates…_in_under_100_ms` | 4 ms | 4 ms |
+    | `MoveResolutionTimingTests` Freelancer / Hurston | 321 / 41 ms | 312 / 42 ms |
+    | `FillOrderTimingTests` RAFT-Layout | 641 ms | 617 ms |
+    | `ReplanTimingTests` erster Stopp geladen / Schiffswechsel | 451 / 42 ms | 428 / 42 ms |
+    | `UndoTimingTests` Undo / Redo Hurston (Tabelle) | 0,42 / 0,35 ms | 0,40 / 0,35 ms |
+    | `UndoTimingTests` Speicher Hurston allein / Move (Test allein, 7 Läufe) | 10,2 / 1,8 KB | 10,2 / 1,8 KB |
+    | `HullAGoldenTests` (Lauf) | 698 ms | 681 ms |
+    | Default-Run Wand Core / Import / App / Ocr | 25,2 / 1,1 / 6,5 / 5,8 s | 25,2 / 1,1 / 6,8 / 5,3 s |
+
+    Über 10 % nur Werte, die in ganzen Sekunden gemeldet werden (`Plan_of_each_case` 8 → 7 s) oder streuen (Ocr-Wand
+    5,2–5,8 s). **Befund Messmethode:** Der Speicher je Schnappschuss streut im gemeinsamen Timing-Lauf stark (Hurston
+    vorher 4,2–19,9 KB, nachher 3,2–13,6 KB), allein ist er deterministisch und gleich.
+  - **Tests** (sauberer Worktree): Core 1 818 → 1 770 (−48), Import 279 → 280, App 1 797 → 1 793 (−4), Ocr 34. Je Commit
+    gestrichen/neu mit Nachfolger im Commit-Body; neue Tests vorher rot, Nachfolger per Mutation rot gesehen.
+  - **Gate 4 (über dem Spiel, Martin, 12.11.):** OFFERS- und ACCEPTED-Scan (`Added`/`Updated`), einmal Undo – „funktioniert
+    alles“. Abgenommen (Martin).
+  - Unterwegs: `ScreenCaptureTests.A_hundred_captures_leave_the_gdi_object_count_as_it_was` einmal rot im Gesamtlauf
+    (prozessweite GDI-Zahl neben parallelen WPF-Tests), allein und im nächsten Lauf grün → Backlog. Mit `--no-build`
+    gegen eine veraltete App-Test-DLL (Build gescheitert) hing der App-Lauf; Tests nur nach grünem Build.
 
 ### [ ] T10.5 Settings „Scan“ und CLI-Abschluss
 
@@ -5492,6 +5548,8 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   (SQLite weg), Mission-Dateien Schema 1/2 werden abgelehnt.
 - **Aus B13 (D106):** Release-Notes: „Going back to v0.3.x: v0.3.x overwrites a schema-10 `plan.json` on the first change
   – copy it first.“ Der Schutz vor dem Überschreiben gilt erst ab v0.4.0 (D106, Downgrade).
+- **Aus T10.4b (D107):** Release-Notes: „Contracts from ContractTracker in your plan become scan missions #1, #2 … when
+  v0.4.0 loads it; their crates and ticks stay.“
 
 ## Phase 11 – nach dem Launch
 
@@ -5532,6 +5590,11 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Rechteck-Picker für das Scan-ROI (der Nutzer zieht den Vertragsbereich einmal auf), für Seitenverhältnisse, bei denen
   das relative 16:9-Center-ROI nicht trifft (32:9, 16:10, geänderte HUD-Skalierung; S10.0 nur 21:9 und 16:9 geprüft).
   Auslöser: Nutzer-Report „ROI trifft nicht“.
+- `PlanHistory.Entry.Reference` hat seit T10.4b (D107) keinen Leser mehr: `Record`/`PushUndo`/`PushRedo` reichen den Plan
+  nach dem Schritt nur noch durch. Auslöser: der nächste Umbau der Undo-Historie (Messung `UndoTimingTests`, Test allein).
+- `ScreenCaptureTests.A_hundred_captures_leave_the_gdi_object_count_as_it_was` zählt GDI-Objekte des ganzen Testprozesses,
+  während WPF-Tests parallel rendern; einmal rot in T10.4b. Auslöser: zweites Auftreten → eigene Collection ohne
+  Parallelität oder Toleranz mit Messung begründen (Lehre T7.1d).
 - Vertragsliste in einem Scan statt eines Scans pro Vertrag (S10.0: ein Scan = ein Vertrag). Auslöser: Nutzer-Report.
 - Mehrseitige Verträge (Text länger als eine Bildschirmseite, scrollen und zusammensetzen). Auslöser: Nutzer-Report
   oder ein Vertrag, dessen Lieferungen im Scan fehlen.

@@ -332,8 +332,8 @@ public class MissionRowsTests
 
     // --- Missions (T5.4) ---
 
-    private static Mission Captured(int id, long contractId, params MissionStop[] stops) =>
-        new(id, [.. stops.Select((s, i) => s with { Order = i + 1 })], new ContractSource([contractId], CrateSizeAssumed: true));
+    private static Mission Captured(int id, int contractId, params MissionStop[] stops) =>
+        new(id, [.. stops.Select((s, i) => s with { Order = i + 1 })], new ContractSource(new ScanIdentity(contractId, $"KEY {contractId}", false), CrateSizeAssumed: true));
 
     private static MissionStop Stop(string destination, string commodity, int scu = 4) => new(destination, 1, [new MissionItem(commodity, scu, CrateSize.Four)]);
 
@@ -377,7 +377,7 @@ public class MissionRowsTests
     public void A_row_of_a_scanned_contract_carries_its_scan_number()
     {
         // D102: no capture id; the scan number sorts and names the row as an id did.
-        Mission scanned = new(1, [Stop("Shubin", "Stims")], ContractSource.Scanned(new ScanIdentity(3, "EVERUSHARBOR | SHUBIN:STIMS | 4 | ?", false)));
+        Mission scanned = new(1, [Stop("Shubin", "Stims")], new ContractSource(new ScanIdentity(3, "EVERUSHARBOR | SHUBIN:STIMS | 4 | ?", false)));
 
         var row = MissionRows.FromMissions([scanned], ["Shubin"]).Single();
 

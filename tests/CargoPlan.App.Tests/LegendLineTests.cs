@@ -78,7 +78,7 @@ public class LegendLineTests
     [Fact]
     public void Markings_stay_at_the_end()
     {
-        var saved = Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight), new ContractSource([1], CrateSizeAssumed: true)));
+        var saved = Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight), new ContractSource(new ScanIdentity(1, "KEY 1", false), CrateSizeAssumed: true)));
 
         Legend(saved).Single().Label.Should().Be("To Riker · 8 SCU · Titanium · 8 SCU?");
     }
@@ -87,7 +87,7 @@ public class LegendLineTests
     public void A_ticked_line_keeps_its_mix()
     {
         var saved = Planned(One("Riker", Item("Stims", 5, CrateSize.Four)));
-        var ticked = new SavedPlan(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, "Riker", true), saved.CrateCap, saved.Watermark);
+        var ticked = new SavedPlan(saved.Missions, LoadPlanner.SetDelivered(saved.Plan, HullA, "Riker", true), saved.CrateCap);
 
         Legend(ticked).Single().Label.Should().Be("To Riker · 5 SCU (4+1) · Stims");
     }
@@ -115,7 +115,7 @@ public class LegendLineTests
     public void The_markings_segment_keeps_the_reserve()
     {
         // D16: a tick that takes a marking away keeps the line's width; the reserve now sits on the markings alone.
-        var line = Legend(Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight), new ContractSource([1], CrateSizeAssumed: true)))).Single();
+        var line = Legend(Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight), new ContractSource(new ScanIdentity(1, "KEY 1", false), CrateSizeAssumed: true)))).Single();
 
         line.Segments[^1].Should().Be(new LegendSegment(" · 8 SCU?", LegendSegment.Fixed, " · 8 SCU?"));
     }
@@ -125,7 +125,7 @@ public class LegendLineTests
     [Fact]
     public void A_contract_header_names_its_number()
     {
-        var saved = Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight, "Lorville"), new ContractSource([47])));
+        var saved = Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight, "Lorville"), new ContractSource(new ScanIdentity(47, "KEY 47", false))));
 
         var line = Legend(saved).Single();
 
@@ -144,19 +144,20 @@ public class LegendLineTests
     [Fact]
     public void A_contract_without_pickup_still_gets_a_header()
     {
-        var saved = Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight), new ContractSource([47])));
+        var saved = Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight), new ContractSource(new ScanIdentity(47, "KEY 47", false))));
 
         Legend(saved).Single().HeaderLabel.Should().Be("From ? · #47");
     }
 
     [Fact]
-    public void Martins_plan_names_the_ids_of_its_contracts()
+    public void Martins_plan_names_its_contracts_by_the_scan_numbers_they_got_on_reading()
     {
+        // ContractTracker's #1, #2–3, #37–38 and #4 (D107): numbered in file order, where mission 4 stands before mission 3.
         var viewModel = new ViewModels.OverlayViewModel(HullA, Catalog);
         viewModel.ShowPlan(TestPlans.HurstonPickups());
 
         viewModel.Scene.Legend.Where(e => e.Header is not null).Select(e => (e.Mission, e.HeaderLabel)).Should().Equal(
-            (1, "From ? · #1"), (2, "From ? · #2–3"), (4, "From Everus Harbor · #37–38"), (3, "From ? · #4"));
+            (1, "From ? · #1"), (2, "From ? · #2"), (4, "From Everus Harbor · #3"), (3, "From ? · #4"));
         viewModel.Scene.Legend.Single(e => e.Mission == 3).Label.Should().Be("To Everus Harbor · 8 SCU (8×1) · Waste");
     }
 
@@ -166,7 +167,7 @@ public class LegendLineTests
     public void A_waiting_line_shows_its_mix_from_the_mission()
     {
         var full = Planned(new Mission(1, [.. Enumerable.Range(1, 4).Select(i => new MissionStop($"Stop {i}", i, [Item("Gold", 16, CrateSize.Sixteen)]))]));
-        var saved = LoadPlanner.PlaceInto(full, HullA, [new("Hurston", 1, [Item("Gold", 9, CrateSize.Four)])], new ContractSource([5]));
+        var saved = LoadPlanner.PlaceInto(full, HullA, [new("Hurston", 1, [Item("Gold", 9, CrateSize.Four)])], new ContractSource(new ScanIdentity(5, "KEY 5", false)));
 
         Scene(saved).Unplaced.Should().ContainSingle().Which.Label.Should().StartWith("Hurston · 9 SCU (2×4+1) · Gold · ⚠ ");
     }

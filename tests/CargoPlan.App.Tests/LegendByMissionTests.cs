@@ -144,7 +144,7 @@ public class LegendByMissionTests
     public void Markings_belong_to_the_mission_of_their_line()
     {
         var saved = Planned(
-            new Mission(1, [new("Riker", 1, [Item("Titanium", 8, CrateSize.Eight, "Lorville")])], new ContractSource([1], CrateSizeAssumed: true)),
+            new Mission(1, [new("Riker", 1, [Item("Titanium", 8, CrateSize.Eight, "Lorville")])], new ContractSource(new ScanIdentity(1, "KEY 1", false), CrateSizeAssumed: true)),
             new Mission(2, [new("Riker", 1, [Item("Quartz", 4, CrateSize.Four, "Lorville")])]));
 
         Legend(saved).Select(e => e.Label).Should().Equal("To Riker · 8 SCU · Titanium · 8 SCU?", "To Riker · 4 SCU · Quartz");

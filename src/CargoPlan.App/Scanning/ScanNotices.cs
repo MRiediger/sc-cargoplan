@@ -62,7 +62,7 @@ internal static class ScanNotices
             head,
             .. pickups.Count > 0 ? [$"From {string.Join(" / ", pickups)}"] : Array.Empty<string>(),
             $"{amount} to {to}",
-            .. mission.Contract?.Scan?.QuantitiesEstimated == true ? ["rescan after accepting"] : Array.Empty<string>(),
+            .. mission.Contract?.Scan.QuantitiesEstimated == true ? ["rescan after accepting"] : Array.Empty<string>(),
         ]);
     }
 

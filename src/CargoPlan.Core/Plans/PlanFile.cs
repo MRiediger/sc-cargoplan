@@ -13,18 +13,17 @@ public static class PlanFile
 {
     /// <summary>
     /// The version the writer writes: missions with ids, crates with missions (D42), items (D68), turned or not (D71),
-    /// off the ship or not (K2.2) and loaded or not (K6.4), items added by hand to a ContractTracker mission (K6.5),
-    /// captures gone from ContractTracker or detached (D81), the row axis (D88), the grouping and section gap (D89), the watermark,
-    /// contracts read by CargoPlan's own scan (D102). Open until v0.4.0: T10.4 changes it without a new number, no release
-    /// wrote it before (D102).
+    /// off the ship or not (K2.2) and loaded or not (K6.4), items added by hand to a scanned mission (K6.5), the row axis
+    /// (D88), the grouping and section gap (D89), contracts read by CargoPlan's own scan (D102). Final since T10.4b (D107):
+    /// ContractTracker's ids, gone, detached and watermark are only read, an older file's captures become scans.
     /// </summary>
     public const int SupportedSchemaVersion = 10;
 
-    /// <summary>The row axis, grouping and section gap, no scanned contract (D88, D89; v0.2.0 to v0.3.1); still read, never written.</summary>
+    /// <summary>The row axis, grouping and section gap, ContractTracker captures and no scan (D88, D89; v0.2.0 to v0.3.1); still read, never written.</summary>
     public const int NoScanSchemaVersion = 9;
 
     /// <summary>
-    /// Captures gone or not, no row axis: every plan lengthwise (D81); still read so, never written. The oldest version
+    /// ContractTracker captures, no row axis: every plan lengthwise; still read so, never written. The oldest version
     /// read: v0.1.0 wrote it, the versions before were this project's own history, never a player's (F4, T10.2b1).
     /// </summary>
     public const int NoFillRowsSchemaVersion = 8;
@@ -43,12 +42,13 @@ public static class PlanFile
     public static SavedPlan Read(Stream stream, string sourceName, Ship ship) => ReadContent(stream, sourceName, ship).Plan;
 
     /// <summary>
-    /// <see cref="Read"/>, and the last scan number given in the plan (D102): the file's, at least the highest scan in the
-    /// plan, 0 without either. The overlay keeps it beside the plan, outside its undo steps.
+    /// <see cref="Read"/>, the last scan number given in the plan (D102): the file's, at least the highest scan in the
+    /// plan, 0 without either; the overlay keeps it beside the plan, outside its undo steps. And the numbers an older file's
+    /// ContractTracker captures got as scans (D107), for the notice; empty without captures.
     /// </summary>
     /// <param name="sourceName">Shown in error messages, e.g. the file path.</param>
     /// <exception cref="PlanFormatException">See <see cref="Read"/>.</exception>
-    public static (SavedPlan Plan, int LastScanNo) ReadContent(Stream stream, string sourceName, Ship ship)
+    public static (SavedPlan Plan, int LastScanNo, IReadOnlyList<int> FromContractTracker) ReadContent(Stream stream, string sourceName, Ship ship)
     {
         ArgumentNullException.ThrowIfNull(stream);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceName);
@@ -60,8 +60,8 @@ public static class PlanFile
 
             SchemaVersion.Check(root, ReadableSchemaVersions);
             var file = root.Deserialize(PlanJsonContext.Default.PlanFileDto) ?? throw Null();
-            var saved = file.ToSavedPlan(ship);
-            return (saved, Math.Max(file.LastScanNo ?? 0, saved.HighestScanNo));
+            var (saved, fromContractTracker) = file.ToSavedPlan(ship);
+            return (saved, Math.Max(file.LastScanNo ?? 0, saved.HighestScanNo), fromContractTracker);
         }
         catch (Exception ex) when (ex is JsonException or ArgumentException or PlanException)
         {

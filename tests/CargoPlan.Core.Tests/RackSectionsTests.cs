@@ -27,7 +27,7 @@ public class RackSectionsTests
     private static SavedPlan Planned(FillRows rows, FillOrder order = FillOrder.BowFirst, PlanGrouping grouping = PlanGrouping.ByDestination)
     {
         var saved = Fixture();
-        return LoadPlanner.Plan(Raft, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], order, 0, rows, grouping);
+        return LoadPlanner.Plan(Raft, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], order, rows, grouping);
     }
 
     /// <summary>Rows along the length of a destination's crates.</summary>
@@ -138,8 +138,8 @@ public class RackSectionsTests
 
         foreach (var rows in Enum.GetValues<FillRows>())
         {
-            var plain = LoadPlanner.Plan(ship, missions, route, FillOrder.BowFirst, 0, rows);
-            var sectioned = LoadPlanner.Plan(ship, missions, route, FillOrder.BowFirst, 0, rows, PlanGrouping.ByDestination);
+            var plain = LoadPlanner.Plan(ship, missions, route, FillOrder.BowFirst, rows);
+            var sectioned = LoadPlanner.Plan(ship, missions, route, FillOrder.BowFirst, rows, PlanGrouping.ByDestination);
 
             Racks(sectioned.Plan).Should().Equal(Racks(plain.Plan));
             sectioned.Missions.Select(m => m.Unplaced).Should().Equal(plain.Missions.Select(m => m.Unplaced));
@@ -261,7 +261,7 @@ public class RackSectionsTests
             new(1, [new MissionStop("A", 1, [new MissionItem("Ice", 2, CrateSize.Two)])]),
             new(2, [new MissionStop("B", 1, [new MissionItem("Food", 2, CrateSize.Two)])]),
         ];
-        var plain = LoadPlanner.Plan(ship, missions, ["A", "B"], FillOrder.BowFirst, 0, FillRows.Crosswise);
+        var plain = LoadPlanner.Plan(ship, missions, ["A", "B"], FillOrder.BowFirst, FillRows.Crosswise);
         var mission = plain.Plan.Crates.First(c => c.Destination == "A").Mission;
         SavedPlan loaded = new(plain.Missions, LoadPlanner.SetLoaded(plain.Plan, ship, "A", mission, true) with { Grouping = PlanGrouping.ByDestination }, plain.CrateCap);
 
@@ -281,10 +281,10 @@ public class RackSectionsTests
             new(1, [new MissionStop("A", 1, [new MissionItem("Ice", 4, CrateSize.Four)])]),
             new(2, [new MissionStop("B", 1, [new MissionItem("Food", 4, CrateSize.Four)])]),
         ];
-        var saved = LoadPlanner.Plan(ship, missions, ["A", "B"], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination);
+        var saved = LoadPlanner.Plan(ship, missions, ["A", "B"], FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination);
         Notes(saved.Plan).Should().ContainSingle();
 
-        var planned = LoadPlanner.Plan(ship, [missions[0]], ["A"], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination);
+        var planned = LoadPlanner.Plan(ship, [missions[0]], ["A"], FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination);
 
         Notes(planned.Plan).Should().BeEmpty();
     }
@@ -314,7 +314,7 @@ public class RackSectionsTests
     // --- Crates on board and off it ---
 
     private static SavedPlan WithLine(SavedPlan saved, Func<LoadPlan, LoadPlan> change) =>
-        new(saved.Missions, change(saved.Plan), saved.CrateCap, saved.Watermark);
+        new(saved.Missions, change(saved.Plan), saved.CrateCap);
 
     [Fact]
     public void Loaded_crates_stay_and_the_rest_lies_around_them()
@@ -340,7 +340,7 @@ public class RackSectionsTests
             new(1, [new MissionStop("A", 1, [new MissionItem("Ice", 4, CrateSize.Four)])]),
             new(2, [new MissionStop("B", 1, [new MissionItem("Food", 4, CrateSize.Four)])]),
         ];
-        var saved = LoadPlanner.Plan(ship, missions, ["A", "B"], FillOrder.BowFirst, 0, FillRows.Crosswise, PlanGrouping.ByDestination);
+        var saved = LoadPlanner.Plan(ship, missions, ["A", "B"], FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination);
         var loaded = WithLine(saved, p => LoadPlanner.SetLoaded(p, ship, "A", 1, true));
 
         var replanned = LoadPlanner.Replan(loaded, ship);
@@ -404,7 +404,7 @@ public class RackSectionsTests
         var plain = Planned(FillRows.Crosswise, grouping: PlanGrouping.None).Plan;
         var saved = Fixture();
 
-        plain.Crates.Should().Equal(LoadPlanner.Plan(Raft, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], FillOrder.BowFirst, 0, FillRows.Crosswise).Plan.Crates);
+        plain.Crates.Should().Equal(LoadPlanner.Plan(Raft, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], FillOrder.BowFirst, FillRows.Crosswise).Plan.Crates);
         plain.Grouping.Should().Be(PlanGrouping.None);
     }
 

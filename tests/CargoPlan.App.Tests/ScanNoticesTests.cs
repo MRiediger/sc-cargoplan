@@ -11,7 +11,7 @@ public sealed class ScanNoticesTests
         new(commodity, scu, CrateSize.Four, Pickup: pickup.Length == 0 ? null : pickup);
 
     private static Mission Scanned(int no, bool estimated, params MissionStop[] stops) =>
-        new(1, stops, ContractSource.Scanned(new ScanIdentity(no, "key", estimated)));
+        new(1, stops, new ContractSource(new ScanIdentity(no, "key", estimated)));
 
     [Fact]
     public void A_new_contract_with_one_destination_names_pickup_amount_commodity_and_destination()
