@@ -5518,7 +5518,8 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     vorher 4,2–19,9 KB, nachher 3,2–13,6 KB), allein ist er deterministisch und gleich.
   - **Tests** (sauberer Worktree): Core 1 818 → 1 770 (−48), Import 279 → 280, App 1 797 → 1 793 (−4), Ocr 34. Je Commit
     gestrichen/neu mit Nachfolger im Commit-Body; neue Tests vorher rot, Nachfolger per Mutation rot gesehen.
-  - **Gate 4 (über dem Spiel):** offen – Martin: OFFERS- und ACCEPTED-Scan (`Added`/`Updated`), einmal Undo.
+  - **Gate 4 (über dem Spiel, Martin, 12.11.):** OFFERS- und ACCEPTED-Scan (`Added`/`Updated`), einmal Undo – „funktioniert
+    alles“. Abgenommen (Martin).
   - Unterwegs: `ScreenCaptureTests.A_hundred_captures_leave_the_gdi_object_count_as_it_was` einmal rot im Gesamtlauf
     (prozessweite GDI-Zahl neben parallelen WPF-Tests), allein und im nächsten Lauf grün → Backlog. Mit `--no-build`
     gegen eine veraltete App-Test-DLL (Build gescheitert) hing der App-Lauf; Tests nur nach grünem Build.
