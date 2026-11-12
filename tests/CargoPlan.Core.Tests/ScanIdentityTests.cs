@@ -43,7 +43,8 @@ public class ScanIdentityTests
     private static (SavedPlan Plan, int LastScanNo) Read(string json)
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json));
-        return PlanFile.ReadContent(stream, "plan.json", HullA);
+        var (plan, lastScanNo, _) = PlanFile.ReadContent(stream, "plan.json", HullA);
+        return (plan, lastScanNo);
     }
 
     // --- The identity ---
@@ -102,7 +103,8 @@ public class ScanIdentityTests
     [Fact]
     public void Write_then_Read_keeps_a_scanned_contract_and_the_last_scan_number()
     {
-        var saved = CaptureAndScan();
+        // A capture beside it would come back as a scan of its own (D107, LegacyCaptureTests).
+        var saved = LoadPlanner.PlaceInto(Empty, HullA, [Stop("Riker")], Scanned(1));
 
         var (read, lastScanNo) = Read(Written(saved, lastScanNo: 4));
 
@@ -170,7 +172,7 @@ public class ScanIdentityTests
 
         var act = () => Read(node.ToJsonString());
 
-        act.Should().Throw<PlanFormatException>().WithMessage("*exactly one*");
+        act.Should().Throw<PlanFormatException>().WithMessage("*scanned contract has no ContractTracker ids*");
     }
 
     // --- ContractTracker's rules leave a scan alone ---

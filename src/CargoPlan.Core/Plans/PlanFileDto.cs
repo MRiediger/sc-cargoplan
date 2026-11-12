@@ -10,13 +10,13 @@ namespace CargoPlan.Core.Plans;
 
 /// <summary>
 /// File format of a plan file (schema version 9, docs/plan-format.md): the fill order and row axis (D88), the grouping and section gap (D89), the missions with
-/// their stops and where they came from (D42), whether that capture is gone from ContractTracker (D81), every crate with its
+/// their stops and where they came from (D42), every crate with its
 /// mission and item (D68), rack, position (D24), whether it is turned (D71), whether it is off the ship (K2.2) and whether it
 /// is loaded (K6.4). Schema 8 is the same without a row axis, every plan
 /// lengthwise; older schemas are refused (F4, T10.2b1).
 /// </summary>
 /// <remarks><see cref="FillRows"/>, <see cref="Grouping"/> and <see cref="SectionGap"/> are optional for older files, so they stand last; the order attributes write them behind the fill order, as <see cref="Missions.MissionFileDto"/> does.
-/// <see cref="ContractTrackerWatermark"/> is read from older files and never written (T10.4b, D107).</remarks>
+/// <see cref="ContractTrackerWatermark"/> is read from older files and dropped, never written (D107).</remarks>
 internal sealed record PlanFileDto(
     int SchemaVersion,
     string ShipId,
@@ -30,18 +30,34 @@ internal sealed record PlanFileDto(
     int? LastScanNo = null,
     long? ContractTrackerWatermark = null)
 {
+    /// <summary>
+    /// The plan, and the scan numbers an older file's ContractTracker captures got (D107): the next ones above the file's
+    /// last number and its highest scan, in file order; empty for a file without captures.
+    /// </summary>
     /// <exception cref="ArgumentException">A value violates the domain rules, or the plan doesn't fit the ship or its missions.</exception>
-    public SavedPlan ToSavedPlan(Ship ship)
+    public (SavedPlan Plan, IReadOnlyList<int> FromContractTracker) ToSavedPlan(Ship ship)
     {
         CheckFillRows(FillRows, Grouping, SectionGap, SchemaVersion);
         CheckScans(Missions, LastScanNo, SchemaVersion);
-        CheckGone(Missions);
-        Mission[] missions = [.. Missions.Select(m => m.ToMission())];
+        var next = Math.Max(LastScanNo ?? 0, Missions.Select(m => m.Contract?.Scan?.No ?? 0).DefaultIfEmpty().Max()) + 1;
+        List<int> fromContractTracker = [];
+        List<Mission> missions = [];
+        foreach (var mission in Missions)
+        {
+            var legacyNo = mission.Contract is { IsCapture: true } ? next++ : 0;
+            if (legacyNo > 0)
+            {
+                fromContractTracker.Add(legacyNo);
+            }
+
+            missions.Add(mission.ToMission(legacyNo));
+        }
+
         CheckItems(Crates, SchemaVersion);
         Crate[] crates = [.. Crates.Select(c => c.ToCrate())];
         var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder), FillRows is null ? Models.FillRows.Lengthwise : FillRowsJson.Parse(FillRows), Grouping is null ? PlanGrouping.None : GroupingJson.Parse(Grouping), SectionGap ?? 0), ship);
 
-        return UnderCap(ship, cap => new SavedPlan(missions, plan, cap, ContractTrackerWatermark ?? 0), racksChanged);
+        return (UnderCap(ship, cap => new SavedPlan(missions, plan, cap), racksChanged), fromContractTracker);
     }
 
     /// <summary>
@@ -197,16 +213,6 @@ internal sealed record PlanFileDto(
         if (crates.FirstOrDefault(c => c.Item is null) is { } without)
         {
             throw new ArgumentException(Invariant($"A crate for '{without.Destination}' has no item, which schema {schemaVersion} requires."), nameof(Crates));
-        }
-    }
-
-    /// <summary>Detached without gone is no state of the plan (D81).</summary>
-    /// <exception cref="ArgumentException">A mission breaks that.</exception>
-    internal static void CheckGone(IReadOnlyList<MissionDto> missions)
-    {
-        if (missions.FirstOrDefault(m => m.Contract is { Detached: not null, Gone: null }) is { } detached)
-        {
-            throw new ArgumentException(Invariant($"Mission {detached.Id} says detached without gone."), nameof(Missions));
         }
     }
 }

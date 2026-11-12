@@ -162,7 +162,6 @@ public class ContractGoneTests
         mission.Stops.Select(s => s.Destination).Should().Equal("Shubin", "Orison");
         result.Saved.Plan.Crates.Where(c => c.Mission == mission.Id).Select(c => (c.Destination, c.Item)).Distinct()
             .Should().BeEquivalentTo([("Shubin", 0), ("Orison", 1)]);
-        Written(Read(Written(result.Saved))).Should().Be(Written(result.Saved));
     }
 
     [Fact]
@@ -319,25 +318,5 @@ public class ContractGoneTests
         contracts.Select(c => c.ContainsKey("gone")).Should().Equal(true, true, true, false);
         contracts.Where(c => c.ContainsKey("gone")).Should().OnlyContain(c => c["gone"]!.GetValue<bool>());
         contracts.Should().NotContain(c => c.ContainsKey("detached"));
-    }
-
-    [Fact]
-    public void Write_then_Read_keeps_gone_and_detached()
-    {
-        var saved = ContractSync.Apply(Synced(Capture([1], Stop("Riker")), Capture([2], Stop("Shubin"))), HullA, [Capture([1], Stop("Orison"))], Ids(), databaseIsNew: true);
-
-        Written(Read(Written(saved))).Should().Be(Written(saved));
-        Read(Written(saved)).Missions.Select(m => (m.Contract!.Gone, m.Contract.Detached)).Should().Equal((true, true), (true, true), (false, false));
-    }
-
-    [Fact]
-    public void Detached_without_gone_in_the_file_is_broken()
-    {
-        var node = JsonNode.Parse(Written(FourStates()))!;
-        node["missions"]![0]!["contract"]!["detached"] = true;
-
-        var act = () => Read(node.ToJsonString());
-
-        act.Should().Throw<PlanFormatException>().WithMessage("*detached*gone*");
     }
 }

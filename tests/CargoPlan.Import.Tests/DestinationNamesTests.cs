@@ -65,18 +65,17 @@ public class DestinationNamesTests
     }
 
     [Fact]
-    public void Sync_of_the_same_capture_after_unify_adds_and_removes_no_mission()
+    public void Unify_with_the_same_contract_spelt_in_full_moves_no_crate_and_marks_no_duplicate()
     {
-        // K2: the plan of 23 October and capture 9–12 as the reader gives it now ("Melodic Fields Station"). The capture is
-        // below the watermark, so it never comes in again, and the duplicate key sees one name for the place.
+        // K2: the plan of 23 October and capture 9–12 as the reader gave it later ("Melodic Fields Station"). The sync that
+        // took it in again is gone (D107); the duplicate key still sees one name for the place.
         var saved = HurstonPlan();
         var captures = CapturesOf(9, 10, 11, 12);
 
         var unified = DestinationNames.Unify(saved, HullA, captures);
-        var applied = ContractSync.Apply(unified.Saved, HullA, unified.Captures, new HashSet<long>([9, 10, 11, 12, 17, 18]));
+        var applied = unified.Saved;
 
-        applied.Missions.Select(m => (m.Id, m.Contract!.ContractIds.Count)).Should().Equal(saved.Missions.Select(m => (m.Id, m.Contract!.ContractIds.Count)));
-        applied.Watermark.Should().Be(saved.Watermark);
+        applied.Missions.Select(m => m.Id).Should().Equal(saved.Missions.Select(m => m.Id));
         applied.Plan.Crates.Select(c => (c.RackId, c.Position, c.Delivered, c.Mission, c.Commodity, c.CrateSize))
             .Should().Equal(saved.Plan.Crates.Select(c => (c.RackId, c.Position, c.Delivered, c.Mission, c.Commodity, c.CrateSize)));
         // The capture spells both places in full now, so both of the plan's short names go.

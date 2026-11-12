@@ -150,13 +150,14 @@ public class LegendLineTests
     }
 
     [Fact]
-    public void Martins_plan_names_the_ids_of_its_contracts()
+    public void Martins_plan_names_its_contracts_by_the_scan_numbers_they_got_on_reading()
     {
+        // ContractTracker's #1, #2–3, #37–38 and #4 (D107): numbered in file order, where mission 4 stands before mission 3.
         var viewModel = new ViewModels.OverlayViewModel(HullA, Catalog);
         viewModel.ShowPlan(TestPlans.HurstonPickups());
 
         viewModel.Scene.Legend.Where(e => e.Header is not null).Select(e => (e.Mission, e.HeaderLabel)).Should().Equal(
-            (1, "From ? · #1"), (2, "From ? · #2–3"), (4, "From Everus Harbor · #37–38"), (3, "From ? · #4"));
+            (1, "From ? · #1"), (2, "From ? · #2"), (4, "From Everus Harbor · #3"), (3, "From ? · #4"));
         viewModel.Scene.Legend.Single(e => e.Mission == 3).Label.Should().Be("To Everus Harbor · 8 SCU (8×1) · Waste");
     }
 
