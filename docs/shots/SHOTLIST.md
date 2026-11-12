@@ -87,7 +87,7 @@ Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays 
 | H12 | nice | `shipview-hologram.gif` | GIF | Ship-view | Hull A with **Hologram – shaded** | 10 s | Test plan, Backdrop Hologram – shaded; set Outline back |
 | H13 | nice | `legend-overview.png` | PNG | Legend-and-delivery-states | Legend with "From Lorville" headers, check boxes, the Everus Harbor line with two commodities | – | Test plan |
 | H14 | nice | `legend-checkboxes.gif` | GIF | Legend-and-delivery-states | Tick the box of the HDMS-Edmond line → its crates selected → tick the header's box → whole mission | 8 s | Test plan |
-| H15 | must | `docs/images/ships-hull-b.png` (main repo; the wiki shows it by its raw URL) | PNG | README, Ships-and-cargo-grids | MISC Hull B with **Hologram – shaded**, turned so the tilted racks on both sides of the spindle show, crates in them | – | MISC Hull B with any plan (v0.3.0: *CT live*); set Outline back |
+| H15 | must | `docs/images/ships-hull-b.png` (main repo; the wiki shows it by its raw URL) | PNG | README, Ships-and-cargo-grids | MISC Hull B with **Hologram – shaded**, turned so the tilted racks on both sides of the spindle show, crates in them | – | MISC Hull B with any plan; set Outline back |
 
 ## Cargo elevator (in the game, at the freight elevator)
 

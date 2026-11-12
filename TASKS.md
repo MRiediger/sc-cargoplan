@@ -4780,7 +4780,8 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 
 - [x] Wiki-Push nach dem Release (Martin, 08.11.), Anker-Check gegen das Live-Wiki (R4-Befund)
 - [ ] Martin: Settings-Fußzeile 0.3.0, Release-Seite im Browser (Notes, Assets, Nexus-Link)
-- Nexus-Upload am 16.11. mit ~~0.3.0~~ **0.3.1** (Release v0.3.1) nach `docs/nexus/checklist.md` (T9.3)
+- Nexus-Upload am 16.11. mit ~~0.3.0~~ ~~0.3.1~~ (Release v0.3.1) nach `docs/nexus/checklist.md` (T9.3) – **überholt
+  (12.11.): Nexus startet mit 0.4.0**, siehe „Release v0.4.0“ R5
 - Ankündigungen (Entwürfe Claude.ai, Martin verschickt): Ryekal (Reddit), Sciirof, Torlek, Spectrum-Post
 - Backlog-Zeilen „holo-v1-Release entfernen“ (Auslöser: v0.3.0 vier Wochen stabil) und „Modelle bei Sciirof anfragen“ mit Datum; nächster Chat „Feedback II“
 
@@ -5613,6 +5614,80 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   Working Set 30 s nach dem Start (Gate 1). `--keep-scans` für Bug-Reports (die letzten 20 Aufnahmen in `scans\`,
   ≈ 2,6 MB je Bild bei 3440×1440, ≈ 50 MB zusammen).
   README und Wiki: Known issues des Scans (Liste in T10.5) mit den Doku-Branches mergen.
+
+## Release v0.4.0 – Branch `release/v0.4.0`
+
+**Warum:** Phase 10 (T10.1–T10.5, B11–B13) ersetzt ContractTracker durch den eigenen Scan. Ablauf wie v0.3.0: R0 Abend
+→ R1 Texte → R2 Notes (Freigabe Claude.ai) → R3 Medien (Martin) → R4 Tag → R5 Nachlauf. Kein Produktcode im Branch; ein
+Verhaltensfund wird ein eigener Fix-Task vor R4.
+
+**Entscheidungen Martin (12.11.):** R0 erledigt, kein RC · Nexus startet mit **0.4.0**, kein Upload am 16.11. mit 0.3.1 ·
+Hero-GIF neu (Martin nimmt auf, alle Scan-Shots auf der Hull A), CC liefert vorher die Shot-Liste · kein Credits-Abschnitt
+in den Notes; die Lese-Engine (RapidOcrNet, PP-OCRv5, Apache-2.0) als Nebensatz im Scan-Highlight, der Dank an
+ContractTracker als Halbsatz beim Wegfall.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. Nach einem neuen Scan heißt die Notice `Scanned #1 · From … · …` (`ScanNotices`); `Added #1` steht nur in `scans.log`.
+2. Upgrade-Probe b aus Test-Fixtures (`Fixtures/Settings/v0.3.1_full.json`, `Fixtures/Plans/hurston_2026-10-25.json`, in
+   der Scratch-Kopie eine Lieferung `loaded`, eine `delivered`): Martins Profil ist schon Schema 3/10.
+3. ZIP-Größe in den Notes = veröffentlichtes ZIP (lokal + ≈ 2,1 MB CI-Kompression, wie v0.3.0/v0.3.1), Vergleich 64 MB.
+4. Nach dem Tag ein `REL:`-Commit direkt auf `main` (CLAUDE.md ZIP-Zahl, Befund), Präzedenz `7010eff`, `1d3daa3`.
+5. Wiki-Korrekturen auf dem Wiki-Branch `v0.4.0`, Merge nach `master` am Tag des Tags.
+6. Known issues der Notes: die 6 Scan-Zeilen der README + Link auf die Wiki-Liste; die v0.3.x-Zeilen gelten weiter
+   („blocks and gaps“ gilt für Scans genauso) und stehen im Wiki.
+7. „Thanks for carrying the first **four** releases“ statt „three“: ContractTracker trug v0.1.0, v0.2.0, v0.3.0, v0.3.1.
+
+### [x] R0 Hauling-Abend (12.11.2026)
+
+**Befund (Martin):** 1,5 h auf `main` ohne ContractTracker, kein Fund, kein RC.
+
+### [x] R1 Textabgleich (12.11.2026)
+
+- `docs/v0.4.0-user-docs` gemergt (`--no-ff`, README, `outlines/NOTICE.md`, Nexus-Beschreibung und -Checkliste, `bug.yml`)
+- Grep über README, `docs/` (ohne decisions, review, Release-Notes, `staff-request.md`), CONTRIBUTING, SECURITY,
+  Templates, SHOTLIST, Nexus und Wiki-Branch `v0.4.0`; Stichproben gegen den Code; Link-Check
+
+**Befund:**
+- Korrigiert: Nexus `checklist.md` und `description.bbcode` 0.3.1 → 0.4.0; SHOTLIST H15 ohne „v0.3.0: *CT live*“; Wiki
+  `Home` „Applies to v0.3.0“ (auf `master` nie auf 0.3.1 gezogen) → v0.4.0; Wiki `Plan-and-editor` „older files (schema
+  1 to 3) still import“ war seit F5 falsch → „Schema 3 files still import; schema 1 and 2 are refused“; Versionsbeispiele
+  in Wiki `Troubleshooting` und `Preferences` 0.1.0 → 0.4.0.
+- Offen bis R3: SHOTLIST Zustandsabsatz und Hero-Maße (Z. 8, 28), D5-Zeile, Nexus-Checkliste Z. 49.
+- Historie, bleibt: `ContractTracker` in Known issues (F3), Migrationssätzen (Wiki FAQ, Installation), Plan- und
+  Settings-Format (Schema 2/9, CT-Felder); `holo-v1` in `holo-format.md`, `ship-format.md`, `settings-format.md` (die drei
+  Fleetyards-Schiffe, Aufräumen alter Caches); Wiki „Coming from v0.1 or v0.2“, „`…+Space` … after v0.3.1“.
+- 0 Treffer: `62 MB`, `onContractGone`, `contracts --raw`, `syncContractTracker`/„Sync from ContractTracker“ außerhalb
+  der Migration; „Ctrl, Alt or Win“ nur mit „unless it is an F key“.
+- Code-Stichproben stimmen: `HotkeyParser` (Ctrl/Alt/Win außer F-Tasten, F12 und Space reserviert) = Wiki
+  `Overlay-basics` („F1–F11 and F13–F24“) = Hinweis `HotkeysViewModel.Hint`; Default `AppSettings.DefaultScanKey` F3;
+  `ScanNotices` (`Scanned #n`, `Updated #n · quantities changed`, `Already in plan (#n)`, `Scan #n not applied: …`, `No
+  contract in frame`) und `⚠ n of m destinations` (`ShipViewBuilder`) wortgleich in Wiki und README; `--keep-scans`-Ordner
+  `%LocalAppData%\SC-CargoPlan\scans` (`ScanPictures`, `AppFolders`) wie README und `bug.yml`.
+- Link-Check (`linkcheck.py` aus v0.3.0): 25 Dateien, intern 0 kaputt (einziger Treffer der Platzhalter `media/<file>` im
+  SHOTLIST-Konventionstext); Negativtest (falscher Anker, fehlende Datei) meldet 2; extern 20 URLs, alle 200.
+- `git diff main -- src tests ships outlines build`: nur `outlines/NOTICE.md` (Textzeile „Not affiliated with …“ ohne
+  ContractTracker, aus dem Doku-Branch).
+
+### [ ] R2 Release-Notes
+
+- `docs/release-notes/v0.4.0.md`: Lead, Download-Absatz, Highlights, Changes, Before you update (settings, plan, kein
+  Downgrade, Mission-Dateien, ContractTracker auf F3), Known issues (6 + Link), MIT-Schluss mit `models/NOTICE.md`
+- [ ] Notes-Entwurf von Claude.ai freigegeben (Martin)
+
+### [ ] R3 Medien (Martin nimmt auf, CC schneidet und prüft)
+
+- E1 Hero, E2 `quickstart-capture-sync.gif`, D10 `prefs-hotkeys.png` (Scan-Zeile), D5 `editor-rows.png` (Scan-Button),
+  E6 `legend-markings.png` (`#n`); Bildvergleich `ShipPictureTests` gegen `main`
+
+### [ ] R4 Vor dem Tag, Merge, Tag, Nachmessung
+
+- `publish.ps1 -Version 0.4.0` (ZIP ≈ 85 MB lokal, `models/v5/` 4 Dateien, `models/NOTICE.md`, keine SQLite-DLLs), Probe a
+  (leeres Profil) und b (v0.3.1-Profil), `dotnet test` im sauberen Worktree, `gh run list -L 3`
+- Martin: Abnahme → `--no-ff` nach `main`, Tag `v0.4.0`; veröffentlichtes ZIP nachmessen
+
+### [ ] R5 Nachlauf
+
+- Wiki `v0.4.0` → `master`, Nexus mit 0.4.0 (frühestens 16.11.), Ankündigungen, Branches löschen, `REL:`-Commit
 
 ## Phase 11 – nach dem Launch
 
