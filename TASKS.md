@@ -5578,8 +5578,18 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     (`a17098e`): „Scanning contracts“ (Taste löschen = aus, `--keep-scans`, `Cli scan`), „Troubleshooting“ (Known issues);
     Wiki-Repo wieder auf `master`, den Branch pusht Martin. **Gate 3:** Probe-Merge des Doku-Branches gegen Feature-Branch
     und `main` im Scratch, je 0 Konflikte, verworfen.
-  - **Offen:** Gate 2 über dem Spiel (Martin: F3 → `Added`; Taste löschen, Neustart, Editor-Button → „warming up“ →
-    `Added`; `--keep-scans` → PNG, Name, ROI, `keyToTextMs` mit/ohne Schalter); CI nach Martins Push.
+  - **Gate 2 über dem Spiel** (Martin, 12.11., Release, 3440×1440, `--data-dir` je Lauf):
+
+    | Lauf | Start | Scan | Ergebnis |
+    |---|---|---|---|
+    | F3 (Default) | „OCR ready“ 1,2 s nach dem Prozess, 218 MB | F3 → Text 1 467 ms | `Added #1` |
+    | `scanContracts: null` | „not loaded at start“ | Editor-Button: „warming up“, Laden 589 ms (`waitMs=613`), → Text 2 198 ms | `Added #1` |
+    | `--keep-scans` | „OCR ready“ | F3 → Text 1 475 ms | `Added #1`, `picture=20261112-101440-offer-added-1.png` |
+
+    Das PNG zeigt das ROI (OFFERS, ohne fremde Fenster), Name = lokale Zeit, Ansicht, Ergebnis; **2,6 MB** je Bild
+    (≈ 50 MB für 20). Kodierzeit nicht messbar (1 475 vs. 1 467 ms, je n = 1). `NoContractInFrame` mit Bild nur per Test.
+    Erster Start von Lauf 3 ohne Tastendruck im Log (kein Scan versucht), zweiter Start gleich konfiguriert ok.
+  - **Offen:** CI nach Martins Push.
 
 ### [ ] T10.6 Release v0.4.0
 
@@ -5600,7 +5610,8 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   v0.4.0 loads it; their crates and ticks stay.“
 - **Aus T10.5 (D108):** Release-Notes: „Clear the scan key in the settings to turn scanning off; the OCR then doesn't load
   at start (about 90 MB less right after the start, and none of the growth that comes with scans).“ Zahlen: 217 vs 128 MB
-  Working Set 30 s nach dem Start (Gate 1). `--keep-scans` für Bug-Reports (die letzten 20 Aufnahmen in `scans\`).
+  Working Set 30 s nach dem Start (Gate 1). `--keep-scans` für Bug-Reports (die letzten 20 Aufnahmen in `scans\`,
+  ≈ 2,6 MB je Bild bei 3440×1440, ≈ 50 MB zusammen).
   README und Wiki: Known issues des Scans (Liste in T10.5) mit den Doku-Branches mergen.
 
 ## Phase 11 – nach dem Launch
