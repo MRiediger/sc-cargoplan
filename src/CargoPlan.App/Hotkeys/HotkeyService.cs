@@ -99,6 +99,9 @@ public sealed class HotkeyService
         window.Closed += OnClosed;
     }
 
+    /// <summary>Whether the scan has a valid key now; an invalid one in settings.json counts as none (D108).</summary>
+    public bool HasScanKey => _hotkeys.ContainsKey(HotkeyAction.ScanContracts);
+
     /// <summary>From the settings window: <paramref name="action"/> gets <paramref name="hotkey"/>; null clears.</summary>
     public void Set(HotkeyAction action, Hotkey? hotkey)
     {

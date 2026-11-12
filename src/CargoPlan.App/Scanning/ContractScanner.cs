@@ -10,7 +10,8 @@ namespace CargoPlan.App.Scanning;
 /// Reads the contract on the screen (T10.1b): the one path for the probe now and the scan hotkey in T10.3. Holds the
 /// process's one OCR engine, loaded and warmed on a background thread from <see cref="StartWarmup"/>. A scan finds the game
 /// window, captures the scan region and reads it on a pool thread; one scan at a time, a second is ignored.
-/// A scan before the warm-up ends waits for it, at most <see cref="WarmupLimit"/> (plan decisions 1, K2).
+/// A scan before the warm-up ends waits for it, at most <see cref="WarmupLimit"/> (plan decisions 1, K2); a scan before
+/// any warm-up starts it (D108: without a scan key nothing warms at the start).
 /// No interface: one implementation; the delegates are there for the tests (A4).
 /// </summary>
 /// <param name="load">Loads the engine; <see cref="OcrEngine.Load()"/> in the app.</param>
@@ -38,8 +39,8 @@ internal sealed class ContractScanner(
     private readonly TimeSpan _limit = warmupLimit ?? WarmupLimit;
     private readonly CaptureRegion _capture = capture ?? ((PixelRect region, out int error) => ScreenCapture.Region(region, out error));
 
-    // Completed by the warm-up, which never throws: a scan before StartWarmup (a key before the first frame) waits on it
-    // like one during the warm-up. Continuations off the completing thread, so a waiting scan never runs on the warm-up's.
+    // Completed by the warm-up, which never throws: a scan starts the warm-up if nothing did and waits on it like one during
+    // the warm-up. Continuations off the completing thread, so a waiting scan never runs on the warm-up's.
     // Source: https://learn.microsoft.com/dotnet/api/system.threading.tasks.taskcreationoptions#fields (RunContinuationsAsynchronously)
     private readonly TaskCompletionSource<ScanContractSource?> _ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private string? _unavailable;
@@ -49,12 +50,15 @@ internal sealed class ContractScanner(
     /// <summary>Whether the engine is loaded and warm; false while warming and after a failed load.</summary>
     public bool IsReady => _ready.Task is { IsCompletedSuccessfully: true, Result: not null };
 
-    /// <summary>Loads and warms the engine on a pool thread; call once, after the overlay's first frame (plan decision 2).</summary>
+    /// <summary>
+    /// Loads and warms the engine on a pool thread, once: after the overlay's first frame when a scan key is set (plan
+    /// decision 2), when one is set later, or from the first scan (D108). Every later call does nothing.
+    /// </summary>
     public void StartWarmup()
     {
         if (Interlocked.Exchange(ref _started, 1) == 1)
         {
-            throw new InvalidOperationException("The OCR warm-up has already started.");
+            return;
         }
 
         _ = Task.Run(() => _ready.SetResult(Warm()));
@@ -76,6 +80,7 @@ internal sealed class ContractScanner(
         try
         {
             var clock = Stopwatch.StartNew();
+            StartWarmup();
             if (!warmup.IsCompleted)
             {
                 Notice(WarmingNotice);

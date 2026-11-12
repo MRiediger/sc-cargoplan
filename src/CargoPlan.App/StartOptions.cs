@@ -176,5 +176,11 @@ public sealed record StartOptions(
         return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused);
     }
 
+    /// <summary>
+    /// Whether the OCR loads after the first frame (D108): with a valid scan key, or for the probe, which measures a warm
+    /// engine. Without either nothing loads until a key is set or the editor's Scan button is pressed.
+    /// </summary>
+    public bool WarmsOcrAtStart(bool scanKeySet) => scanKeySet || ScanProbe is not null;
+
     private static bool Is(string arg, string name) => arg.Equals(name, StringComparison.OrdinalIgnoreCase);
 }

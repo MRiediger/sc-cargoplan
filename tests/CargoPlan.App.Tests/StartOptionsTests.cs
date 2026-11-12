@@ -217,4 +217,14 @@ public class StartOptionsTests
     {
         StartOptions.Parse(["--locked"]).DataDirRefused.Should().BeFalse();
     }
+
+    // D108: who never scans pays nothing; the probe measures with a warm engine whatever the key.
+    [Theory]
+    [InlineData(true, new string[0], true)]
+    [InlineData(false, new string[0], false)]
+    [InlineData(false, new[] { "--scan-probe" }, true)]
+    public void The_ocr_warms_at_start_only_with_a_scan_key_or_the_probe(bool scanKeySet, string[] args, bool warms)
+    {
+        StartOptions.Parse(args).WarmsOcrAtStart(scanKeySet).Should().Be(warms);
+    }
 }

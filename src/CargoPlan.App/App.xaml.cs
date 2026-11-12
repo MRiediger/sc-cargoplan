@@ -97,7 +97,17 @@ public partial class App : Application
         ComposeStartPlan(parts, options);
         ComposeSettingsFollowers(parts);
         ComposeHolograms(parts);
-        WarmAfterFirstFrame(parts.Overlay, parts.Scanner);
+
+        // Without a scan key the OCR loads only when a key is set or the editor's Scan button is pressed (D108).
+        if (options.WarmsOcrAtStart(_hotkeys?.HasScanKey == true))
+        {
+            WarmAfterFirstFrame(parts.Overlay, parts.Scanner);
+        }
+        else
+        {
+            AppLog.Write("OCR", "not loaded at start: no scan key");
+        }
+
         if (options.ScanProbe is { } series)
         {
             // Next to the overlay, not instead of it: Gate 1 measures the scan as the player will have it (T10.1b).
@@ -172,7 +182,7 @@ public partial class App : Application
     /// <summary>
     /// The view model, the settings session, the scanner with its runner and the overlay window, placed but not shown. The
     /// scanner comes before the window: the editor's Scan button needs it (T10.3); it has no side effect before the
-    /// warm-up, which waits for the first frame.
+    /// warm-up, which waits for the first frame, a scan key being set or the first scan (D108).
     /// </summary>
     private OverlayParts ComposeOverlay(
         ShipCatalog ships, ShipOutlineCatalog outlines, StartOptions options, SettingsLoad loaded)
@@ -396,7 +406,8 @@ public partial class App : Application
 
     /// <summary>
     /// The settings window's hotkeys (D35): set and saved at once. Polled hotkeys can't be taken by another program (D97),
-    /// so only the rules and the other action's combination refuse one, both in the view model.
+    /// so only the rules and the other action's combination refuse one, both in the view model. A scan key set warms the
+    /// OCR now, not on its first press (D108); clearing it leaves a loaded engine until the next start.
     /// </summary>
     private HotkeysViewModel CreateHotkeysViewModel(SettingsSession session)
     {
@@ -407,6 +418,11 @@ public partial class App : Application
             {
                 hotkeys.Set(action, hotkey);
                 session.ChangeHotkey(action, hotkey);
+                if (action == HotkeyAction.ScanContracts && hotkey is not null)
+                {
+                    _scanner?.StartWarmup();
+                }
+
                 return null;
             },
             hotkeys.Suspend,
