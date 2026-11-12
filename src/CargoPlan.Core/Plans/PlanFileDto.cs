@@ -12,22 +12,23 @@ namespace CargoPlan.Core.Plans;
 /// File format of a plan file (schema version 9, docs/plan-format.md): the fill order and row axis (D88), the grouping and section gap (D89), the missions with
 /// their stops and where they came from (D42), whether that capture is gone from ContractTracker (D81), every crate with its
 /// mission and item (D68), rack, position (D24), whether it is turned (D71), whether it is off the ship (K2.2) and whether it
-/// is loaded (K6.4), and the ContractTracker watermark (D39 addendum). Schema 8 is the same without a row axis, every plan
+/// is loaded (K6.4). Schema 8 is the same without a row axis, every plan
 /// lengthwise; older schemas are refused (F4, T10.2b1).
 /// </summary>
-/// <remarks><see cref="FillRows"/>, <see cref="Grouping"/> and <see cref="SectionGap"/> are optional for older files, so they stand last; the order attributes write them behind the fill order, as <see cref="Missions.MissionFileDto"/> does.</remarks>
+/// <remarks><see cref="FillRows"/>, <see cref="Grouping"/> and <see cref="SectionGap"/> are optional for older files, so they stand last; the order attributes write them behind the fill order, as <see cref="Missions.MissionFileDto"/> does.
+/// <see cref="ContractTrackerWatermark"/> is read from older files and never written (T10.4b, D107).</remarks>
 internal sealed record PlanFileDto(
     int SchemaVersion,
     string ShipId,
     string FillOrder,
-    [property: JsonPropertyOrder(1)] long ContractTrackerWatermark,
     [property: JsonPropertyOrder(1)] IReadOnlyList<MissionDto> Missions,
     [property: JsonPropertyOrder(1)] IReadOnlyList<CrateDto> Crates,
     [property: JsonPropertyOrder(1)] IReadOnlyList<PlanWarningDto> Warnings,
     string? FillRows = null,
     string? Grouping = null,
     int? SectionGap = null,
-    int? LastScanNo = null)
+    int? LastScanNo = null,
+    long? ContractTrackerWatermark = null)
 {
     /// <exception cref="ArgumentException">A value violates the domain rules, or the plan doesn't fit the ship or its missions.</exception>
     public SavedPlan ToSavedPlan(Ship ship)
@@ -40,7 +41,7 @@ internal sealed record PlanFileDto(
         Crate[] crates = [.. Crates.Select(c => c.ToCrate())];
         var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder), FillRows is null ? Models.FillRows.Lengthwise : FillRowsJson.Parse(FillRows), Grouping is null ? PlanGrouping.None : GroupingJson.Parse(Grouping), SectionGap ?? 0), ship);
 
-        return UnderCap(ship, cap => new SavedPlan(missions, plan, cap, ContractTrackerWatermark), racksChanged);
+        return UnderCap(ship, cap => new SavedPlan(missions, plan, cap, ContractTrackerWatermark ?? 0), racksChanged);
     }
 
     /// <summary>
@@ -87,7 +88,6 @@ internal sealed record PlanFileDto(
         PlanFile.SupportedSchemaVersion,
         saved.Plan.ShipId,
         FillOrderJson.Text(saved.Plan.FillOrder),
-        saved.Watermark,
         [.. saved.Missions.Select(MissionDto.FromMission)],
         [.. saved.Plan.Crates.Select(CrateDto.FromCrate)],
         [.. saved.Plan.Warnings.Select(PlanWarningDto.FromPlanWarning)],

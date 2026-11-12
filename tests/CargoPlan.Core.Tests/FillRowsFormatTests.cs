@@ -76,7 +76,7 @@ public class FillRowsFormatTests
     {
         var json = Written(Planned(FillRows.Crosswise)).ReplaceLineEndings("\n");
 
-        json.Should().Contain("\"fillOrder\": \"sternFirst\",\n  \"fillRows\": \"crosswise\",\n  \"grouping\": \"none\",\n  \"sectionGap\": 0,\n  \"contractTrackerWatermark\"");
+        json.Should().Contain("\"fillOrder\": \"sternFirst\",\n  \"fillRows\": \"crosswise\",\n  \"grouping\": \"none\",\n  \"sectionGap\": 0,\n  \"missions\"");
     }
 
     [Fact]

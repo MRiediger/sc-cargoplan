@@ -57,7 +57,6 @@ public class PlanFileTests
     private static void ShouldMatch(SavedPlan actual, SavedPlan expected)
     {
         actual.Missions.Should().BeEquivalentTo(expected.Missions, o => o.WithStrictOrdering());
-        actual.Watermark.Should().Be(expected.Watermark);
         actual.Plan.ShipId.Should().Be(expected.Plan.ShipId);
         actual.Plan.FillOrder.Should().Be(expected.Plan.FillOrder);
         actual.Plan.Crates.Should().Equal(expected.Plan.Crates);
@@ -117,7 +116,7 @@ public class PlanFileTests
     }
 
     [Fact]
-    public void Write_then_Read_keeps_captures_unplaced_missions_and_the_watermark()
+    public void Write_then_Read_keeps_captures_and_unplaced_missions()
     {
         var saved = WithCaptures();
 
@@ -127,18 +126,17 @@ public class PlanFileTests
         loaded.Missions[1].Contract.Should().BeEquivalentTo(new ContractSource([36, 37], true, 3, 50_250));
         loaded.Missions[2].Contract!.Reward.Should().BeNull();
         loaded.Missions[2].Unplaced.Should().BeTrue();
-        loaded.Watermark.Should().Be(41);
     }
 
     [Fact]
-    public void Write_produces_camel_case_schema_6_with_missions_watermark_and_crate_positions()
+    public void Write_produces_camel_case_schema_6_with_missions_and_crate_positions_without_a_watermark()
     {
         var node = JsonNode.Parse(Written(Planned(MissionFixtures.LoadMissions("example_missions"))))!;
 
         node["schemaVersion"]!.GetValue<int>().Should().Be(PlanFile.SupportedSchemaVersion);
         node["shipId"]!.GetValue<string>().Should().Be("hull_a");
         node["fillOrder"]!.GetValue<string>().Should().Be("bowFirst");
-        node["contractTrackerWatermark"]!.GetValue<long>().Should().Be(0);
+        node.AsObject().Should().NotContainKey("contractTrackerWatermark", "the writer no longer writes it (D107)");
         var mission = node["missions"]![0]!;
         mission["id"]!.GetValue<int>().Should().Be(1);
         mission["unplaced"]!.GetValue<bool>().Should().BeFalse();
@@ -379,7 +377,6 @@ public class PlanFileTests
     private static readonly Dictionary<string, Action<JsonNode>> V3Changes = new()
     {
         ["unknown_property"] = n => n["opacity"] = 0.5,
-        ["missing_watermark"] = n => n.AsObject().Remove("contractTrackerWatermark"),
         ["negative_watermark"] = n => n["contractTrackerWatermark"] = -1,
         ["missing_unplaced"] = n => n["missions"]![0]!.AsObject().Remove("unplaced"),
         ["mission_id_0"] = n => n["missions"]![0]!["id"] = 0,
@@ -402,7 +399,6 @@ public class PlanFileTests
 
     [Theory]
     [InlineData("unknown_property", "*opacity*")]
-    [InlineData("missing_watermark", "*contractTrackerWatermark*")]
     [InlineData("negative_watermark", "*watermark*")]
     [InlineData("missing_unplaced", "*unplaced*")]
     [InlineData("mission_id_0", "*mission id*")]
