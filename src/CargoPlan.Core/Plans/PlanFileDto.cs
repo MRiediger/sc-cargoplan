@@ -9,11 +9,11 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Plans;
 
 /// <summary>
-/// File format of a plan file (schema version 9, docs/plan-format.md): the fill order and row axis (D88), the grouping and section gap (D89), the missions with
-/// their stops and where they came from (D42), every crate with its
-/// mission and item (D68), rack, position (D24), whether it is turned (D71), whether it is off the ship (K2.2) and whether it
-/// is loaded (K6.4). Schema 8 is the same without a row axis, every plan
-/// lengthwise; older schemas are refused (F4, T10.2b1).
+/// File format of a plan file (schema version 10, docs/plan-format.md): the fill order and row axis (D88), the grouping and
+/// section gap (D89), the last scan number (D102), the missions with their stops and the scan they came from (D42, D102),
+/// every crate with its mission and item (D68), rack, position (D24), whether it is turned (D71), whether it is off the
+/// ship (K2.2) and whether it is loaded (K6.4). Schema 9 has no scans, schema 8 no row axis either, every plan lengthwise;
+/// their ContractTracker captures are read as scans (D107). Older schemas are refused (F4, T10.2b1).
 /// </summary>
 /// <remarks><see cref="FillRows"/>, <see cref="Grouping"/> and <see cref="SectionGap"/> are optional for older files, so they stand last; the order attributes write them behind the fill order, as <see cref="Missions.MissionFileDto"/> does.
 /// <see cref="ContractTrackerWatermark"/> is read from older files and dropped, never written (D107).</remarks>
