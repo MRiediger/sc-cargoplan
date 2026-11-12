@@ -25,6 +25,16 @@ internal static partial class NativeMethods
     // enum starts at 1)
     private const uint DWMWA_EXTENDED_FRAME_BOUNDS = 9;
 
+    // Same page: the 13th and 14th entries. DWMWA_CLOAK is set only (a BOOL), DWMWA_CLOAKED read only (why it is cloaked).
+    private const uint DWMWA_CLOAK = 13;
+    private const uint DWMWA_CLOAKED = 14;
+
+    /// <summary>DWMWA_CLOAKED: cloaked by its own application (same page).</summary>
+    public const uint DWM_CLOAKED_APP = 0x1;
+
+    /// <summary>DWMWA_CLOAKED: "The cloak value was inherited from its owner window." (same page)</summary>
+    public const uint DWM_CLOAKED_INHERITED = 0x4;
+
     // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getguiresources
     private const uint GR_GDIOBJECTS = 0;
 
@@ -94,6 +104,31 @@ internal static partial class NativeMethods
         return (bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
     }
 
+    /// <summary>
+    /// Takes our window out of the screen's composition, frame and title bar included, or puts it back (B12): no
+    /// WM_SHOWWINDOW, so WPF's IsVisible stays as it is. The HRESULT comes back, 0 = done.
+    /// </summary>
+    // BOOL is 4 bytes; the docs' own call passes &fCloak with sizeof(fCloak).
+    // Source: https://learn.microsoft.com/en-us/windows/win32/directcomp/how-to--animate-the-bitmap-of-a-layered-child-window (Step 8)
+    public static int SetCloak(nint hwnd, bool cloak)
+    {
+        var value = cloak ? 1 : 0;
+        unsafe
+        {
+            return DwmSetWindowAttribute(hwnd, DWMWA_CLOAK, &value, sizeof(int));
+        }
+    }
+
+    /// <summary>Why the window is cloaked (DWM_CLOAKED_* bits), 0 if it isn't; null if DWM doesn't answer.</summary>
+    public static uint? Cloaked(nint hwnd)
+    {
+        uint value;
+        unsafe
+        {
+            return DwmGetWindowAttribute(hwnd, DWMWA_CLOAKED, &value, sizeof(uint)) == 0 ? value : null;
+        }
+    }
+
     /// <summary>The window's rectangle in screen pixels (our own windows, for the overlap check); null if it is gone.</summary>
     public static (int X, int Y, int Width, int Height)? GetWindowBounds(nint hwnd) =>
         GetWindowRect(hwnd, out var r) ? (r.left, r.top, r.right - r.left, r.bottom - r.top) : null;
@@ -158,6 +193,10 @@ internal static partial class NativeMethods
     // Source: https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/nf-dwmapi-dwmgetwindowattribute
     [LibraryImport("dwmapi.dll")]
     private static unsafe partial int DwmGetWindowAttribute(nint hwnd, uint dwAttribute, void* pvAttribute, uint cbAttribute);
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/dwmapi/nf-dwmapi-dwmsetwindowattribute
+    [LibraryImport("dwmapi.dll")]
+    private static unsafe partial int DwmSetWindowAttribute(nint hwnd, uint dwAttribute, void* pvAttribute, uint cbAttribute);
 
     // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getguiresources
     [LibraryImport("user32.dll")]

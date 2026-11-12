@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
@@ -310,9 +311,16 @@ public partial class App : Application
     /// <param name="find">Another window than the game's, for a probe's dry run; null = Star Citizen.</param>
     private ContractScanner CreateScanner(Action<string?> notice, Func<GameWindow?>? find = null)
     {
-        // Our windows over the contract leave the picture for the capture (D100). The window list is read at each capture,
-        // so windows made after the scanner count too.
-        var clearance = new RegionClearance(Dispatcher, () => Windows.Cast<Window>());
+        // Our windows over the contract leave the picture for the capture (D100, B12). The window list is read at each
+        // capture, so windows made after the scanner count too. A failed cloak isn't thrown: the window would only be in
+        // the picture, the scan still runs; it is logged.
+        var clearance = new RegionClearance(Dispatcher, () => Windows.Cast<Window>(), (handle, cloak) =>
+        {
+            if (NativeMethods.SetCloak(handle, cloak) is var result and not 0)
+            {
+                AppLog.Write("Scan", string.Create(CultureInfo.InvariantCulture, $"DWMWA_CLOAK {cloak} failed: 0x{result:X8}"));
+            }
+        });
         return _scanner = new ContractScanner(OcrEngine.Load, notice, find, clear: clearance.Clear);
     }
 
