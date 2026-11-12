@@ -44,7 +44,8 @@ internal sealed record PlanFileDto(
         List<Mission> missions = [];
         foreach (var mission in Missions)
         {
-            var legacyNo = mission.Contract is { IsCapture: true } ? next++ : 0;
+            // An older file's ContractTracker capture has no scan of its own (D107).
+            var legacyNo = mission.Contract is { Scan: null } ? next++ : 0;
             if (legacyNo > 0)
             {
                 fromContractTracker.Add(legacyNo);

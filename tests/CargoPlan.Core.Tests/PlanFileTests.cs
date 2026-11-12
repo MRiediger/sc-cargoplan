@@ -167,6 +167,8 @@ public class PlanFileTests
         contract["crateSizeAssumed"]!.GetValue<bool>().Should().BeTrue();
         contract["listedDestinations"]!.GetValue<int>().Should().Be(3);
         contract["reward"]!.GetValue<long>().Should().Be(50_250);
+        contract.AsObject().Select(p => p.Key).Should().BeEquivalentTo(["crateSizeAssumed", "listedDestinations", "reward", "scan"],
+            "the file has these and no other (T10.4b Gate 1: a computed property was written)");
     }
 
     [Fact]

@@ -24,9 +24,6 @@ internal sealed record ContractSourceDto(
     /// </summary>
     public const string LegacyKeyPrefix = "legacy:";
 
-    /// <summary>An older file's ContractTracker capture (D107): no scan of its own, the reader gives it a number.</summary>
-    public bool IsCapture => Scan is null;
-
     /// <param name="legacyNo">The scan number a capture gets (D107); not used for a scan.</param>
     /// <exception cref="ArgumentException">
     /// A scan beside ContractTracker's ids, gone or detached; a capture without ids; a scan number below 1 or an empty key.
