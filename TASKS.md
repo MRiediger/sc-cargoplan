@@ -5429,13 +5429,38 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     couldn't be moved aside (The process cannot access the file …)“, Datei nach Programmende byte-gleich. „Sperre lösen,
     Plan ändern“ nur per Test (`A_locked_file_is_not_overwritten_and_kept_aside_once_it_is_free`).
 
-### [ ] B12 Fenster mit Titelleiste bleiben bei der Aufnahme im Bild (D100)
+### [x] B12 Fenster mit Titelleiste bleiben bei der Aufnahme im Bild (D100)
 
 - Gate 3 von T10.4a: Scan per Editor-Button mit dem Editor über dem Vertrag → OCR liest den Fenstertitel „Missions“ in die
   Zielzeile („… to Melodic Fields Missions“) → anderer Schlüssel → `Added #2` statt `Updated #1` (`scans.log` 11.11.,
   15:50:01/:08/:24). `Opacity = 0` wirkt nur bei Fenstern mit `AllowsTransparency` (Overlay, Lock).
 - Entscheidung (Martin): **DWM-Cloak** (`DWMWA_CLOAK`) für alle unsere Fenster statt Opacity, vorher über dem Spiel messen
   wie D100 (`OverlayCaptureTests` um ein Fenster mit Titelleiste erweitern); Addendum D100.
+- **Erledigt (D100-Addendum B12), Branch `fix/b12-clearance-cloak`:** Cloak für alle unsere Fenster, **je Owner-Kette nur
+  der oberste** (ein besessenes Fenster verschwindet per DWM-Vererbung mit), ein `DwmFlush`; Opacity-Code raus.
+  - **Präzisierungen in der Planphase, ratifiziert durch Freigabe:** Chrome-Marker mit Fluent-Theme wie der Editor;
+    Zeilen R5 (Vererbung) und R5b (nimmt der Uncloak des Owners unser Cloak mit?, aus der Freigabe); Ereigniszähler je
+    Versuch; eigener `[Fact]`, D100-Tabelle bleibt reproduzierbar; Cloak-Fehler geloggt; P/Invoke bleibt als Messwerkzeug;
+    T10.6-Satz wörtlich mit D106-Verweis (aus der Freigabe). Nach der Messung (Auswahlfragen): Cloak für alle; Bedingung
+    „besessenes Fenster zuerst zurück“ → R5c gemessen: `E_INVALIDARG` → Regel „nur der oberste Owner“ (R5d); Tests für
+    die drei Owner-Fälle im Default-Run; Gate 1 ausdrücklich mit Overlay **und** Editor über dem Vertrag.
+  - **Messung über dem Spiel** (`OverlayCaptureTests.Cloak`, 3440×1440, je 20 Versuche, Median/p95): Kontrollen Ref
+    Titel 0/20, C0/C1 20/20 erkannt. Chrome Opacity 0 (alt): **Titel 20/20**, 27,3/32,6 ms. Chrome Cloak + 1 Flush 0/20,
+    30,1/52,9 ms (ein Ausreißer; R4 gleicher Weg 27,7/32,1 ms); layered Opacity 0 (R1) 0/20 27,9/34,4 ms, layered Cloak +
+    1 Flush 0/20 31,6/35,0 ms; Fokus 20/20 gehalten, keine Fenster-Ereignisse. Owner-Zeilen (über dem Desktop): R5
+    besessenes Fenster mit weg 20/20; R5c besessenes zuerst zurück → `0x80070057` 20/20; R5d nur Owner → sauber; alle
+    Varianten am Ende sichtbar 20/20.
+  - **Gefunden im Harness:** `ReadingOrder` liefert ohne Vertragsüberschrift keine Zeilen → Titel in den OCR-Blöcken
+    gesucht; Chrome-Fenster bei Opacity 0 hat schwarzen Client (Magenta allein übersieht es); `Hide` am Owner lässt das
+    besessene Fenster stehen (nur Minimieren nimmt es mit).
+  - **Tests:** `RegionClearanceTests` 10 (3 D100-Nachfolger + 7 neu), vorher 8 rot gegen Stub; sauberer Worktree Core
+    1 818 · Import 279 · App 1 798 (+7) · Ocr 34 grün; Build 0 Warnungen; `dotnet format` Exit 0.
+  - **Gates** (Release, `--data-dir` im Scratchpad, 12.11.): (1a) Overlay + Editor über dem Vertrag, Button: `Added #1` →
+    ACCEPTED `Updated #1`; (1b) Settings + F3, (2) nur Overlay + F3: `AlreadyInPlan #1`; Rohtexte aller 5 Scans ohne
+    „Missions“ und ohne unsere Fenstertitel; capture 23–37 ms, Taste→Text 1 189–1 401 ms; (3) Fokus im Feld gehalten;
+    alle Fenster blinken (Vererbung, gewollt). Martin: „es hat alles gepasst“.
+  - Unterwegs: Die Mengen ändern sich zwischen OFFERS und ACCEPTED **immer** (Spielbug, Martin) – `Updated … quantities
+    changed` nach dem Annehmen ist erwartet, kein OCR-Fehler.
 
 ### [ ] T10.4b ContractTracker entfernen – Core, Planer
 
@@ -5465,6 +5490,8 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   den Wiki-Branch `v0.4.0` (Seite „Scanning contracts“ statt „ContractTracker integration“) mergen; Release-Notes:
   „settings.json 3: hotkey for ContractTracker sync removed; going back to v0.3.x needs `settings.json.bak`“, ZIP −1,2 MB
   (SQLite weg), Mission-Dateien Schema 1/2 werden abgelehnt.
+- **Aus B13 (D106):** Release-Notes: „Going back to v0.3.x: v0.3.x overwrites a schema-10 `plan.json` on the first change
+  – copy it first.“ Der Schutz vor dem Überschreiben gilt erst ab v0.4.0 (D106, Downgrade).
 
 ## Phase 11 – nach dem Launch
 
