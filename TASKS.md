@@ -6002,8 +6002,85 @@ halten, und der Start wird nur um 12–17 ms (Klick: 37–42 ms) langsamer. Setu
 kann, ist 8 MB größer, berührt mit Install/Uninstall `%LocalAppData%\{packId}` und hängt in 1.2.161 bei App-Argumenten. Ein Rückfall auf „Notice mit Download-Link“
 ist nicht nötig, bleibt aber der Weg für Wurzeln ohne Schreibrecht.
 
-### [ ] T11.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
-### [ ] T11.2 winget-Manifest – `winget install SC-CargoPlan`
+### [ ] T11.0 Doku – D109, Phase 11 neu, CLAUDE.md A14
+
+Branch `feat/p11-auto-update`, erster Commit. **D109** „CargoPlan updates itself via Velopack (portable)“ mit Martins
+Entscheidungen E1–E10 aus dem Prompt (Velopack 1.2.161 gepinnt, Portable-ZIP ohne Setup.exe, `packId = CargoPlan`,
+`GithubSource` ohne Pre-Releases, ein Check pro Start nach dem ersten Frame mit 10 s, kein Check für Dev-Builds und bei
+`checkOnStartup = false`, Skip = diese Version, stiller Fehlschlag, Download erst auf Klick, `--updates-source`).
+Addenda an D63 (zweiter Netzzugriff) und D105 (`updates` ohne Schema-Schritt). CLAUDE.md: A14 „Velopack zuerst“, Zeile
+„Netz“ nennt zwei Zugriffe.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. Kein Schema-Bump: `updates` ist ein optionaler Abschnitt nach D31 (Martins Antwort auf die Rückfrage), D105-Addendum
+   statt Migration.
+2. PDBs gehen ins Velopack-Paket (Martins Antwort), Umsetzung T11.3.
+3. Das 10-Releases-Fenster von `GithubSource` ist aus dem Quelltext 1.2.161 belegt (D109): Pre-Releases und Releases
+   ohne `releases.win.json` zählen **vor** dem Filter mit. Regel in T11.3.
+4. CLAUDE.md-Zeile „Netz“ nennt jetzt zwei Zugriffe (der Prompt nannte nur A14).
+
+### [ ] T11.1 Integration – eigenes `Main`, `UpdateGate`, `UpdateService`, `updates` in settings.json, Notice als Text
+
+Alles in `CargoPlan.App`, Core unverändert. Check nach dem ersten Frame, Ergebnis nur als Text `Update available: v…`
+(`NoticeSource.AppUpdate`), kein Download.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. Kein Schema-Bump (T11.0 Punkt 1). Gate 5 dazu angepasst.
+2. `NuGet.Versioning` kommt nicht mit Velopack (1.2.161 hat für `net10.0` keine Abhängigkeiten und bringt einen eigenen
+   `Velopack.SemanticVersion`). `UpdateGate` parst selbst: `System.Version` für `x.y.z`, `-…` = Pre-Release, `+…` fällt
+   weg, bei gleicher Zahl stable > Pre-Release. Urteilt Velopack anders, gilt Velopack (D109).
+3. `UpdateGate` hat zwei reine Funktionen: `ShouldCheck` vor dem Netz, `Offer` danach. Mit `checkOnStartup = false`
+   entsteht kein `UpdateManager`: kein Netz, kein Velopack-Log, keine Logzeile.
+4. Die Quelle heißt `NoticeSource.AppUpdate` (es gibt schon `HoloUpdate`) und steht nach `HoloUpdate`. Die endgültige
+   Lage entscheidet T11.2.
+5. Dauerhafte Logzeile mit der Zeit vom Prozessstart bis zum ersten Frame, für das Startzeit-Gate. Die Basislinie `main`
+   misst ein Wegwerf-Worktree mit nur dieser Zeile.
+6. Gate-Laufordner neu (`..\sc-cargoplan-p11-run`), der aus S11.0 ist gelöscht.
+7. `SetAutoApplyOnStartup(false)`: Ein liegengebliebenes Paket heißt, dass etwas schiefging (UAC abgelehnt, Wurzel nicht
+   schreibbar, App beim Download beendet). Ein stiller Tausch mit Neustart oder eine UAC-Abfrage bei jedem Start wäre
+   schlimmer als ein erneutes Angebot.
+8. (Freigabe E1) `UpdateManager` entsteht auf dem Pool. Ein `CancellationTokenSource` cancelt bei `Closed`/`Exit`,
+   `SetNotice` nur ohne `Dispatcher.HasShutdownStarted`. Cancel = eine Logzeile „cancelled“, keine Notice.
+
+### [ ] T11.2 Notice mit Update und Skip, Abschnitt „Updates“ im Settings-Fenster, Download + Apply
+
+- Notice `Update available: v… · [Update] [Skip]` (Optik = Martin). Skip schreibt `updates.skippedVersion`.
+  Settings-Abschnitt „Updates“: `checkOnStartup`, übersprungene Version zurücksetzen.
+- Apply über `WaitExitThenApplyUpdates` + `Shutdown()` statt `ApplyUpdatesAndRestart` (endet per `Environment.Exit`
+  ohne `Closed`), damit `Closed` Settings und Plan flusht. Velopacks Wartegrenze (60 s) im Plan nennen, ebenso das
+  Risiko Force-stop (S11.0). `restartArgs` = eigene Startargumente (`--data-dir`, `--locked`, `--updates-source`).
+- Notice-Fälle: Wurzel nicht schreibbar → UAC-Abfrage beim Tausch, bei Ablehnung Fehlertext; schon Admin und nicht
+  schreibbar → „folder not writable, download the ZIP“.
+- Prüfen: Verwendet `DownloadUpdatesAsync` ein Paket aus `packages\` wieder (T11.1, `SetAutoApplyOnStartup(false)`)?
+  Kann das Velopack-Log per `VelopackApp.SetLogger` in `cargoplan.log`?
+- **Gate-Zeile UAC (Freigabe E3):** Auf Martins Rechner gibt es keine UAC-Abfrage (`ConsentPromptBehaviorAdmin = 0`),
+  G5 hat den Hauler-Fall nicht abgedeckt. Testkonto `cargotest` **als Standardnutzer neu anlegen, nicht als Admin**
+  (das alte ist gelöscht). Dort das Portable-Update einmal unter `C:\Program Files\…` (nicht schreibbar, UAC-Abfrage
+  erwartet) und einmal unter `%UserProfile%\…` (schreibbar, keine Abfrage) durchspielen.
+
+### [ ] T11.3 `release.yml` mit Velopack
+
+- `vpk download github` (letztes stabiles Release, Basis für das Delta) → `publish.ps1 -Version` → `vpk pack -u CargoPlan
+  -v <dieselbe Version>` (Prüfschritt: `sq.version` = Assembly-Version ohne `+sha`) → Upload von `releases.win.json`,
+  Full- und Delta-nupkg, Portable-ZIP, SHA256. `vpk` 1.2.161 gepinnt, Dependabot-Gruppe Velopack + `vpk`.
+- PDBs ins Paket (T11.0 Punkt 2): `--exclude` so setzen, dass `*.pdb` bleiben; Syntax gegen die `vpk`-Doku prüfen.
+- Die ZIP-Prüfung von `publish.ps1` (ships, outlines, models) prüft im Portable-ZIP unter `current\`.
+- **Release-Hygiene (D109, Fenster aus dem Quelltext):** `GithubSource` liest nur die erste API-Seite mit 10 Releases,
+  Pre-Releases und Releases ohne `releases.win.json` (Holo) zählen vor dem Filter mit. Regel: Unter den 10 neuesten
+  GitHub-Releases steht immer das letzte stabile App-Release. Darum rc-Pre-Releases nach dem stable Tag löschen,
+  höchstens 2 Holo-Releases gleichzeitig, nie mehr als 9 Pre- oder Nicht-App-Releases nach dem letzten stable Release.
+- CLAUDE.md: Zeile „Distribution“ (Portable-Layout, Stub `SC-CargoPlan.exe`, `current\`, ZIP-Größe).
+
+### [ ] T11.4 Migration und Texte
+
+Release-Notes v0.5.0: v0.5.0 einmal von Hand laden, danach aktualisiert es sich selbst; neues Layout (Stub + `current\`);
+Settings-Downgrade auf v0.4.0 (D105-Addendum); Taskleisten-Gruppierung; Velopack-Log im Profil. README, Wiki
+(Installation, Update, „where data lives“), Nexus-Offenlegung des zweiten Netzzugriffs.
+
+### [ ] T11.5 Release v0.5.0
+
+Tag, CI-Release, ZIP gemessen, Start aus dem heruntergeladenen ZIP (SmartScreen für Stub und `Update.exe`). Der erste
+echte Selbsttausch ist v0.5.0 → v0.5.1.
 
 ---
 
@@ -6036,6 +6113,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   `Category=Timing` verschieben oder die Schwelle mit Messung begründen.
 
 - ~~Eigener Datenordner für Diagnose-Schalter~~ – erledigt in T10.4a (`--data-dir`, 552c052).
+
+- winget-Manifest (`winget install SC-CargoPlan`), früher T11.2. Auslöser: Ein Nutzer fragt danach (D109).
 
 - Rechteck-Picker für das Scan-ROI (der Nutzer zieht den Vertragsbereich einmal auf), für Seitenverhältnisse, bei denen
   das relative 16:9-Center-ROI nicht trifft (32:9, 16:10, geänderte HUD-Skalierung; S10.0 nur 21:9 und 16:9 geprüft).
