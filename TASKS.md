@@ -5687,10 +5687,43 @@ ContractTracker als Halbsatz beim Wegfall.
 
 - [ ] Notes-Entwurf von Claude.ai freigegeben (Martin)
 
-### [ ] R3 Medien (Martin nimmt auf, CC schneidet und prüft)
+### [x] R3 Medien (Martin nimmt auf, CC schneidet und prüft) (13.11.2026)
 
 - E1 Hero, E2 `quickstart-capture-sync.gif`, D10 `prefs-hotkeys.png` (Scan-Zeile), D5 `editor-rows.png` (Scan-Button),
-  E6 `legend-markings.png` (`#n`); Bildvergleich `ShipPictureTests` gegen `main`
+  E6 `legend-markings.png` (`#n`); Bildvergleich `ShipPictureTests` gegen `main` (→ R4, mit den Tests)
+
+**Befund:**
+- Vorab-Durchsicht der alten Shots: `prefs-window.png` (D7) zeigte den CT-Abschnitt mit Datenbankpfad und die
+  Sync-Zeile → must, neu; `editor-import-plan.gif` (D6) und `delete-mission.gif` (D12) zeigen den Knopf „Sync from
+  ContractTracker“, D12 CT-Nummern `#91–96` → bleiben (nice, Martin).
+- Aufnahmen Martin (13.11.), alle auf der Hull A: Rohexporte `hero_full.gif` (18,0 s) und
+  `quickstart-capture-sync-full.gif` (16,5 s, direkte Fortsetzung mit Vertrag #2), je 1367 × 796 px, 14 fps,
+  185/168 MB; liegen in `Documents\Coding\Dotnet\sc-cargoplan-raw\v0.4.0`, nie im Repo.
+- Erster Versuch (verworfen, vor dem Push mit dem Ergebnis zu einem Commit zusammengefasst): beide hintereinander mit `mpdecimate` + gifsicle 1.97 `--lossy=100`, 5,98 MB, 34,5 s.
+  Martin: „sieht Mist aus“ (Schlieren im Hintergrund und im Overlay) → Fables Rezept (Session 08.11.): zwei Durchgänge
+  `fps=8,scale=720:-1,hqdn3d=3:2:9:6`, 96 Farben `stats_mode=diff`, `dither=none`, Ziel < 5 MB. Beide hintereinander
+  ergeben 8,6 MB (720) bzw. 6,9 MB (640), also **Hero = Vertrag #1** (Angebot → `Scanned #1` → annehmen →
+  `Updated #1 · quantities changed`), **E2 = Fortsetzung mit #2**, gleiches Rezept: Hero **4.368.497 Byte**, 720 × 419,
+  144 Frames, 18,0 s; E2 **3.928.600 Byte**, 132 Frames, 16,5 s. gifsicle wird nicht gebraucht.
+- Farbe: hellblaue Kisten werden gräulich (gemessen 78,142,178 → 127,136,148). Ursache: die eine Palette des GIFs hat
+  neben dem grauen Hintergrund keinen Platz für die kleinen Kistenflächen; 128/160 Farben, `stats_mode=full`, Palette je
+  Frame, `format=yuv444p` und ein gewichteter Kistenausschnitt in der Palettenberechnung ändern es nicht genug. Martin:
+  „mit leichtem Farbverlust kann ich leben“. Orange, Amber und Text bleiben.
+- Sichtprüfung: Standbilder Anfang / Notice / Ende beider GIFs, Legende lesbar, keine Namen/Chat.
+- D5 aus `Pictures\Screenshots\Screenshot 2026-11-13 075129.png` übernommen (Scan-Button, kein Sync-Knopf); D7, D10 von
+  Martin (D7-Fußzeile `0.0.0-dev+400a3e7…`, wie das alte Bild aus einem Dev-Build).
+- `legend-markings.png` steht im Wiki zweimal (E5 Zustände, E6 Markierungen); Martins neues Bild zeigte die
+  Testplan-Legende ohne beides → altes Bild zurück (Martin), neu **E7** `legend-scan-headers.png` aus dem letzten
+  E2-Frame (Köpfe `#1`/`#2`, `Updated #2`) unter „Mission headers“.
+- Doku-Fehler: Wiki `Legend-and-delivery-states` und `Plan-and-editor` sagten, Pläne von vor v0.4.0 zeigten ihre
+  CT-Ids (`#47–48`, `#37–38`); seit D107 werden sie `#1…#n` → korrigiert.
+- Hero-Bildunterschrift in README, Wiki-Home und Nexus-Liste: „F3 on a contract in the mobiGlas: its crates appear in
+  the racks of the MISC Hull A“ (statt „next to the cargo elevator“); Nexus-Rückfall `hero.png` bei 7,5 s per `select`
+  (ein Sprung mit `-ss` in ein GIF mit `diff_mode=rectangle` kann Teilbilder liefern).
+- SHOTLIST: Zustand, Rezept (Fable, mit Preis Farbe), D5/D7/D10/E1/E2 neu beschrieben, E7; 31 Shots, 15 must.
+- Link-Check: README, Nexus-Checkliste, Wiki intern 0 kaputt; SHOTLIST online: 2 externe URLs 200 (neu der
+  gifsicle-Link), einziger Treffer wieder der Platzhalter `media/<file>`; jedes referenzierte Wiki-Bild vorhanden,
+  keins unbenutzt.
 
 ### [ ] R4 Vor dem Tag, Merge, Tag, Nachmessung
 

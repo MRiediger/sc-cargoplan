@@ -5,7 +5,7 @@
 A load-plan overlay for Star Citizen haulers: it decides which destination goes into which rack before you load, and
 shows it in a translucent window next to the game.
 
-![SC-CargoPlan next to the cargo elevator](docs/images/hero.gif)
+![F3 on a contract in the mobiGlas: its crates appear in the racks of the MISC Hull A](docs/images/hero.gif)
 <!-- SHOT: E1 -->
 
 ## Features
