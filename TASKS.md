@@ -5778,7 +5778,7 @@ ContractTracker als Halbsatz beim Wegfall.
   gifsicle-Link), einziger Treffer wieder der Platzhalter `media/<file>`; jedes referenzierte Wiki-Bild vorhanden,
   keins unbenutzt.
 
-### [ ] R4 Vor dem Tag, Merge, Tag, Nachmessung
+### [x] R4 Vor dem Tag, Merge, Tag, Nachmessung (13.11.2026)
 
 - `publish.ps1 -Version 0.4.0` (ZIP ≈ 85 MB lokal, `models/v5/` 4 Dateien, `models/NOTICE.md`, keine SQLite-DLLs), Probe a
   (leeres Profil) und b (v0.3.1-Profil), `dotnet test` im sauberen Worktree, `gh run list -L 3`
@@ -5808,9 +5808,35 @@ Racks (`probe-b2-src`: v0.3.1-Settings + Plan mit 3 Kisten `loaded`, 6 `delivere
 | `ShipPictureTests` gegen `main` (`6426211`, eigener Worktree, 98 Hologramme aus `sc-ship-outlines/holo/holo-v2`) | 0 verschieden | **1388 identisch, 0 verschieden, 0 fehlend**, Placement-Zahlen auf 0 von 106 verschieden; `git diff main -- src tests ships build` leer, `outlines/` nur die NOTICE-Textzeile | ✓ |
 | Probe a über dem Spiel (Martin, 13.11.) | Hotkeys-Zeile F3 + Hinweis, Scan → `Scanned #1`, `scans.log` mit `Added #1`, Fußzeile 0.4.0 | „funktioniert“; `cargoplan.log` des Laufs nur „OCR ready … 129 → 216 MB“ (die Scans stehen in `scans.log`) | ✓ |
 
+**Befund (nach dem Push):**
+- Merge `--no-ff` `140be1f` (CC, nach Martins Abnahme), Inhalt gleich `release/v0.4.0`. Martin: `main` gepusht, CI grün
+  (2 min 32 s), Tag `v0.4.0` annotiert auf `140be1f`, Release-Workflow grün; Wiki `v0.4.0` → `master` gepusht
+  (`19732be`).
+- Release `v0.4.0`: kein Pre-release, kein Draft, `releases/latest` → `v0.4.0`, veröffentlicht 13.11.2026 11:38 UTC.
+  Notes-Text gleich `docs/release-notes/v0.4.0.md` (nur eine Leerzeile am Ende mehr).
+
+| Prüfung | Soll | Veröffentlichtes ZIP | |
+|---|---|---|---|
+| SHA256 gegen `.sha256` | gleich | `064EDEEE…08823B87`, gleich | ✓ |
+| Größe | ≈ 87 MB (lokal + ≈ 2,1 MB CI-Kompression), Notes „about 87 MB“ | 87.633.602 Byte (lokal 85.214.432, +2,4 MB) | ✓ |
+| Einträge | wie lokal | 381, Eintragsliste gleich dem lokalen `publish.ps1 -Version 0.4.0` | ✓ |
+| Inhalt | 106 Schiffs-JSON, `models/v5/` 4, keine SQLite | genau so | ✓ |
+| `CargoPlan.Cli --version` | `0.4.0+140be1f…` | `0.4.0+140be1ffa5f9e3ed5dfa5bcd8d39f0ae3ceb55b7` | ✓ |
+| Runtime | 10.0.14 | `Microsoft.NETCore.App` und `WindowsDesktop.App` 10.0.14 | ✓ |
+| Start aus dem heruntergeladenen ZIP (SmartScreen-Weg) | Martin | – | offen |
+
 ### [ ] R5 Nachlauf
 
-- Wiki `v0.4.0` → `master`, Nexus mit 0.4.0 (frühestens 16.11.), Ankündigungen, Branches löschen, `REL:`-Commit
+- [x] Wiki `v0.4.0` → `master` (Martin, 13.11., `19732be`)
+- [x] `REL:`-Commit: CLAUDE.md ZIP-Größe, R4-Befund nach dem Push
+- [ ] Martin: Start aus dem heruntergeladenen ZIP (SmartScreen „More info → Run anyway“), Release-Seite im Browser
+- [x] Branches lokal gelöscht (CC, `git branch -d`): `release/v0.4.0`, `docs/v0.4.0-user-docs`, `fix/b14-plan-notice`,
+  Wiki `v0.4.0`
+- [ ] Remote löschen (Martin, Push): `docs/v0.4.0-user-docs`, `feat/t10-5-scan-settings`, Wiki `v0.4.0`
+- [ ] Nexus mit 0.4.0 nach `docs/nexus/checklist.md`, frühestens 16.11. (Staff-Frist, T9.3)
+- [ ] Ankündigungen (Entwürfe Claude.ai, Martin verschickt)
+- [ ] Rohaufnahmen `Documents\Coding\Dotnet\sc-cargoplan-raw\v0.4.0` (354 MB): Martin entscheidet über Löschen
+- Übergabe an K11 (TASKS.md-Archivierung)
 
 ## Phase 11 – nach dem Launch
 
