@@ -6117,6 +6117,115 @@ $exe = "$PWD\portable-0.9.0\SC-CargoPlan.exe"
   (das alte ist gelöscht). Dort das Portable-Update einmal unter `C:\Program Files\…` (nicht schreibbar, UAC-Abfrage
   erwartet) und einmal unter `%UserProfile%\…` (schreibbar, keine Abfrage) durchspielen.
 
+**Umsetzung (13.11.2026)**, alles in `CargoPlan.App`, Core unverändert, D109-Addendum „T11.2“. Martins Entscheidungen
+U1–U12 aus dem Prompt.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. Die Update-Zeile ist ein **eigenes Element** unter den Notices (`OverlayViewModel.Update`, `UpdateViewModel`), kein
+   Listeneintrag; `NoticeSource.AppUpdate` entfällt. Die Notices bleiben Text, ihre acht Testdateien unberührt; ein
+   XAML-Test hält ihr Template fest.
+2. **UAC wird zugelassen** (Martins Antwort): Nicht schreibbar und nicht erhöht → App schließt, `Update.exe` fragt.
+   `folder not writable` nur, wenn die App schon erhöht läuft und trotzdem nicht schreiben kann (Prüfung vor dem
+   Download, App läuft weiter). Gate 5b entsprechend.
+3. „cancelled“ zeigt die **neu gestartete alte App**: `Update.exe` startet sie nach einem gescheiterten Tausch mit
+   denselben Argumenten (`apply.rs` 57–61); erkannt an `OnRestarted` + liegendem neuerem Paket.
+4. `restartArgs` **ohne `--plan <pfad>`** (Martins Antwort).
+5. `no network` auch für einen fehlenden lokalen Feed (Gate 6); HTTP-Antworten (403, 404) → `see cargoplan.log`.
+6. Check now zeigt eine Statuszeile im Abschnitt; ein Fund setzt zusätzlich die Overlay-Zeile.
+7. `silent: false`: Velopacks Fortschrittsfenster beim Tausch.
+8. `SetLogger` schreibt Velopacks Zeilen ab Information als `Velopack:` nach `cargoplan.log`, ab dem Setzen des
+   Datenordners; Velopacks eigene Datei bleibt.
+9. (Freigabe E1) Nach einem UAC-Tausch startet der **nicht erhöhte** Eltern-`Update.exe` die App: Sie läuft nicht
+   erhöht. Die Startzeile endet dauerhaft mit `, elevated: yes|no`.
+10. (Freigabe E2) Vor `Shutdown()` wartet das Apply auf das Ende eines modalen Dialogs (`ComponentDispatcher.IsThreadModal`),
+    dann schließen Editor und Settings mit ihrem eigenen `Close`. Kein Fenster behandelt `Closing`. Der Editor-Entwurf
+    geht wie beim Exit (D19).
+11. (Freigabe E3) Ein neueres Angebot ersetzt `Failed`, `Downloading`/`Applying` bleiben unberührt.
+
+**Befunde in der Umsetzung:**
+- `AsyncRelayCommand` überwacht seine Aufgabe in einem `async void` (`MonitorTask`); xUnit wartet auf jedes `async void`
+  eines Tests. Ein Test, der einen Download offen lässt, hält den ganzen Lauf an (erst als „Testhost abgestürzt“
+  gemeldet, Exitcode 143 = mein `timeout`). Die Tests schließen ihn darum ab (`Finish`).
+- `SimpleFileSource` kopiert ohne Blick auf den Token: Ein Download bei schon schließender App kam als „fertig“ zurück.
+  `UpdateService` prüft den Token jetzt vor und nach dem Download selbst.
+- `AcquireLockFailedException` hat in 1.2.161 nur `internal`-Konstruktoren; der Test baut sie per Reflection wie
+  Velopack selbst.
+- UIA: Das Lock-Fenster hängt als Kind unter dem Overlay (owned window). Toggle einer Checkbox per UIA löst ihren
+  Command nicht aus (`OnToggle`, nicht `OnClick`): Skip geht per Maus und Tastatur nicht, per Screenreader-Toggle nicht.
+  Im Settings-Fenster heißen die Hotkey-Buttons und der Updates-Button beide „Clear“.
+- Paket-Wiederverwendung belegt: Retry nach gescheitertem Tausch schreibt `0.9.1 is downloaded already`, kein Download.
+
+**Gate-Anleitung (Martin)** – Laufordner `..\sc-cargoplan-p11-run`, neu gebaut aus dem T11.2-Stand mit
+`.\build-gate.ps1` (0.9.0 und 0.9.1 publish + `vpk pack`, Full 89,5 MB, Delta 121 KB, `portable-0.9.0\` entpackt).
+Helfer: `click-update.ps1 -Show` zeigt die Update-Zeile per UIA. CC hat jeden Schritt ohne SC laufen lassen (Klicks per
+UIA bzw. eine Maus-Klick-Simulation), Ergebnis kursiv dahinter.
+
+```powershell
+cd ..\sc-cargoplan-p11-run
+$gate = "$env:UserProfile\CargoPlan-gate"
+```
+
+1. **Voller Durchlauf, SC im Vordergrund.** `Copy-Item -Recurse .\portable-0.9.0 $gate`, dann
+   `Start-Process "$gate\SC-CargoPlan.exe" -ArgumentList '--locked', '--data-dir', "$PWD\data-m1", '--updates-source', "$PWD\releases"`.
+   Overlay erscheint gesperrt mit amber `Update available · v0.9.1`, **ohne** Button und Checkbox. Entsperren (Schloss),
+   im Editor einen Plan anlegen, einen Stopp abhaken, die Ansicht drehen, das Overlay verschieben, dann **Update** →
+   `Downloading update · … %` (lokal kurz) → `Installing update · restarting` → Overlay weg, Velopack-Fenster → 0.9.1
+   startet **gesperrt**, Plan, Haken, Kamera und Position wie vor dem Klick. `Get-Content .\data-m1\cargoplan.log`:
+   `Update: applying 0.9.1 … restarting with [--locked --data-dir … --updates-source …]`, zweite Zeile
+   `Start: … elevated: no`, `Update: restarted by Update.exe as 0.9.1`, `Velopack:`-Zeilen dazwischen.
+   *CC (ohne SC, Lock per UIA gelöst, verschoben per `SetWindowPos` auf 321,123 px): so; neue PID mit genau diesen
+   Argumenten aus `current\CargoPlan.App.exe`, Version `0.9.1+…`, `settings.json` `left 290,7 / top 111,4` (= 321,123 px
+   bei 106 % DPI). `%LocalAppData%\CargoPlan` entsteht nicht.*
+2. **Lock.** In 1 enthalten (gesperrt nur Text, entsperrt Controls). Zusätzlich: SC hat die Maus (Auto-Lock) → Controls
+   weg, Text bleibt; Maus frei → Controls zurück. *CC: gesperrt fehlen Button und Checkbox im UIA-Baum, entsperrt da;
+   Auto-Lock ohne SC nicht prüfbar.*
+3. **Skip.** `$gate` löschen, neu kopieren (es ist jetzt 0.9.1), Start ohne `--locked` mit `data-m3`. **Skip this
+   version** anhaken → Zeile weg, `.\data-m3\settings.json` hat `"skippedVersion": "0.9.1"` (nach ½ s). Overlay schließen,
+   neu starten → keine Zeile, Log `0.9.1 skipped`. Zahnrad → **Updates**: `Skipped version: v0.9.1 [Clear]` → **Clear**
+   (Zeile verschwindet) → **Check now** → Status `Update available: v0.9.1`, Overlay-Zeile wieder da; `settings.json`
+   `"skippedVersion": null`. *CC: so (Skip per Mausklick-Simulation, Clear/Check now per UIA).*
+4. **Dev-Build.** `dotnet run --project src/CargoPlan.App -- --data-dir <voller Pfad> --updates-source <Laufordner>\releases`
+   → Zahnrad → Updates → **Check now** → `Dev build – updates disabled`, keine Overlay-Zeile. *CC (`bin\Debug`): so.*
+5. **Standardnutzer `cargotest`** (neu, kein Admin, UAC an). Vorher als Martin: `New-Item -ItemType Directory C:\Users\Public\p11`,
+   `Copy-Item -Recurse .\portable-0.9.0, .\releases C:\Users\Public\p11\` (das Profil `MartinRiediger` kann `cargotest`
+   nicht lesen).
+   - a. Als `cargotest`: `Copy-Item -Recurse C:\Users\Public\p11\portable-0.9.0 $env:UserProfile\CargoPlan`, Start mit
+     `--data-dir $env:UserProfile\cg-a --updates-source C:\Users\Public\p11\releases` → **Update** → keine UAC-Abfrage,
+     0.9.1 startet.
+   - b. Als Martin (Admin): `Copy-Item -Recurse C:\Users\Public\p11\portable-0.9.0 'C:\Program Files\CargoPlan-gate'`. Als
+     `cargotest`: `'C:\Program Files\CargoPlan-gate\SC-CargoPlan.exe'` mit `--data-dir $env:UserProfile\cg-b
+     --updates-source C:\Users\Public\p11\releases` → **Update** → Download (nach `%LocalAppData%\CargoPlan\packages`
+     von `cargotest`) → App schließt → UAC fragt nach Admin-Anmeldedaten → **Nein** → die alte App kommt mit denselben
+     Argumenten zurück: `Update failed · cancelled` + **Retry**. **Retry** → wieder UAC (Log `0.9.1 is downloaded already`,
+     kein Download) → diesmal **Martins Anmeldedaten** → 0.9.1 startet; Startzeile `elevated: no` (E1),
+     `%LocalAppData%\velopack\velopack_CargoPlan.log` von `cargotest`: `Elevated process has run successfully.`
+     *CC: nicht ausführbar (anderes Konto, UAC). Nachgestellt ohne UAC: neueres Paket in `packages\` +
+     `VELOPACK_RESTART=true` → `Update failed · see cargoplan.log` (Wurzel schreibbar) + Retry → `0.9.1 is downloaded
+     already` → Tausch → 0.9.1; der Startcheck überschrieb den Fehler nicht.*
+   - c. Optional, als Martin: `icacls $gate /deny '*S-1-5-32-544:(OI)(CI)(W)'` auf eine frische Kopie, Stub per
+     „Als Administrator ausführen“ → **Update** → sofort `Update failed · folder not writable`, App läuft weiter, kein
+     Download. Danach `icacls $gate /remove:d '*S-1-5-32-544'`. *CC: nicht ausführbar (Erhöhung); Unit-Test deckt es.*
+6. **Netz weg.** `Copy-Item -Recurse .\releases .\releases-m6`, Start mit `--data-dir "$PWD\data-m6" --updates-source
+   "$PWD\releases-m6"`, nach der Zeile `Rename-Item .\releases-m6 releases-m6-gone` → **Update** → `Update failed · no
+   network`, **Retry** → dasselbe. Mit GitHub-Quelle erst ab v0.5.0 möglich (heute hat kein Release einen Feed).
+   *CC: so, je eine Logzeile `download failed (no network): Exception: The file … does not exist.`*
+7. **Startzeit.** `.\measure-start.ps1`, SC im Vordergrund, ≈ 2 min Finger weg. B (Portable mit T11.2) gegen das T11.1-Gate
+   vergleichen. *CC ohne SC: B Klick → Frame 669 / 670 ms (T11.1: 662 / 669), Prozessstart → Frame 640 / 642 ms;
+   A `main` 617 / 616 ms (T11.1: 629 / 621), daher Δ Klick +52 / +54 ms statt +33 / +48.*
+
+**Offen fürs Gate (Optik = Martin):** Umbruch bei schmalem Overlay (Vorschlag: Controls in eine zweite Zeile),
+`Hidden` vs. `Collapsed` im Lock, Lage des Abschnitts „Updates“ (jetzt der letzte), Texte von Check now.
+
+**Abnahme (Martin):**
+- [ ] Gate 1 voller Durchlauf, Neustart mit gleichen Argumenten, letzter Stand in settings.json/plan.json
+- [ ] Gate 2 Lock und Auto-Lock
+- [ ] Gate 3 Skip, Neustart, Clear, Check now
+- [ ] Gate 4 Dev-Build
+- [ ] Gate 5a/5b `cargotest` (Ablehnen → cancelled, Annahme → `elevated: no`), 5c optional
+- [ ] Gate 6 Netz weg
+- [ ] Gate 7 Startzeit
+- [ ] Build ohne Warnungen, alle Tests grün, `dotnet format` sauber
+
 ### [ ] T11.3 `release.yml` mit Velopack
 
 - `vpk download github` (letztes stabiles Release, Basis für das Delta) → `publish.ps1 -Version` → `vpk pack -u CargoPlan
@@ -6135,6 +6244,14 @@ $exe = "$PWD\portable-0.9.0\SC-CargoPlan.exe"
 Release-Notes v0.5.0: v0.5.0 einmal von Hand laden, danach aktualisiert es sich selbst; neues Layout (Stub + `current\`);
 Settings-Downgrade auf v0.4.0 (D105-Addendum); Taskleisten-Gruppierung; Velopack-Log im Profil. README, Wiki
 (Installation, Update, „where data lives“), Nexus-Offenlegung des zweiten Netzzugriffs.
+
+Notizen aus T11.2 für die Texte:
+- **„Im Auto-Lock musst du zum Klicken entsperren“**: Die Update-Zeile zeigt im Lock nur den Text; Update, Retry und
+  Skip erscheinen erst entsperrt (U2). Solange SC die Maus hat, ist das Overlay auto-gesperrt.
+- Ein offener Entwurf im Editor (Zeilen ohne Plan) geht beim Update verloren wie beim Exit (D19).
+- Unter `Program Files` fragt das Update per UAC; nach dem Tausch läuft die App wieder normal, nicht als Admin.
+  Abgelehnt: Die alte Version startet neu mit `Update failed · cancelled` und Retry.
+- Velopack zeigt beim Tausch ein eigenes Fortschrittsfenster (`silent: false`).
 
 ### [ ] T11.5 Release v0.5.0
 
