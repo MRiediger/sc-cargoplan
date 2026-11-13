@@ -5,14 +5,14 @@
 A load-plan overlay for Star Citizen haulers: it decides which destination goes into which rack before you load, and
 shows it in a translucent window next to the game.
 
-![SC-CargoPlan next to the cargo elevator](docs/images/hero.gif)
+![F3 on a contract in the mobiGlas: its crates appear in the racks of the MISC Hull A](docs/images/hero.gif)
 <!-- SHOT: E1 -->
 
 ## Features
 
 - One color per destination, one rack per destination where the ship allows it, every crate named in the legend.
 - Optionally a block per destination in a shared rack, with a gap to get at the crates.
-- Contracts captured with ContractTracker come in by themselves; or type them in the editor.
+- Press F3 on an open contract: CargoPlan reads it itself and adds it to the plan; or type it in the editor.
 - Drag, turn, split and merge crates to match what the cargo elevator really did.
 - Mark each delivery loaded, then delivered at its stop; undo any step.
 - Click-through while the game has the mouse. A separate window: nothing is injected into the game.
@@ -32,7 +32,23 @@ Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the 
 ## Requirements
 
 - Windows 10/11 x64 (tested on Windows 11). Nothing else to install: .NET comes with it.
-- Optional: [ContractTracker](https://www.nexusmods.com/starcitizen/mods/34) V2 to capture contracts.
+
+## Known issues
+
+Reading contracts is new in v0.4.0:
+
+- Checked at 3440×1440 and 1920×1080 only. If a scan finds no contract on 32:9, 16:10 or 4K, start
+  `CargoPlan.App.exe --keep-scans`, scan again and attach the picture from `%LocalAppData%\SC-CargoPlan\scans` to a
+  [bug report](https://github.com/MRiediger/sc-cargoplan/issues/new?template=bug.yml).
+- A contract whose destinations run past one mobiGlas page is read as far as it shows; the legend says
+  `⚠ 1 of 3 destinations` when the contract tells.
+- ContractTracker also reacts to F3: while it runs, CargoPlan says so. Pick another key or close ContractTracker.
+- Two contracts with the same route and reward count as one: add the second in the editor.
+- CargoPlan's windows over the contract blink briefly during a scan.
+- After many scans CargoPlan uses up to about 900 MB of memory. Clear the scan key in the settings and the reader
+  doesn't load at start.
+
+All known issues: [Troubleshooting](https://github.com/MRiediger/sc-cargoplan/wiki/Troubleshooting#known-issues).
 
 ## Documentation
 
@@ -52,10 +68,8 @@ Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the 
   [fleetyards.net](https://fleetyards.net): their grids, hologram and outline. Fleetyards' data made the first ship list
   possible.
 - Thanks to both for letting this project use their data.
-- [ContractTracker](https://www.nexusmods.com/starcitizen/mods/34) by Yuiki captures the contracts; SC-CargoPlan only
-  reads its database.
 - Stop colors: the [Okabe-Ito palette](https://jfly.uni-koeln.de/color/) and [Paul Tol's](https://sronpersonalpages.nl/~pault/) schemes.
-- Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
+- Not affiliated with Motherlode, Fleetyards or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
 
 [MIT](LICENSE). Not under MIT: the ship silhouettes ([`outlines/NOTICE.md`](outlines/NOTICE.md)) and the ship
 holograms (`NOTICE.md` of the [`holo-v2` release](https://github.com/MRiediger/sc-cargoplan/releases/tag/holo-v2)).

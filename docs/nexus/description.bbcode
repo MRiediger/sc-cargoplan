@@ -6,7 +6,7 @@ How it works: the [url=https://github.com/MRiediger/sc-cargoplan/wiki]wiki[/url]
 
 [b]What it reads and downloads[/b]
 [list]
-[*]The only other program data it reads is ContractTracker's database, read-only.
+[*]When you press the scan key (F3, or the editor's Scan button), it copies the contract area of the Star Citizen window and reads it with its own OCR on your PC. Nothing is sent anywhere, and it reads no other program's data.
 [*]Its only network access is the optional download of ship holograms from github.com, which you can turn off.
 [*]Ship holograms are made from CIG's ship models and are not under MIT. They live in a release of their own, holo-v2, with its own NOTICE, not in this ZIP. The app downloads them only from there, one file per ship when you pick a hologram look, and never fetches anything from Fleetyards; [b]Download ship holograms[/b] in the settings switches it off.
 [*]Ship holograms are an optional download; they derive from game models and may be withdrawn on request.
@@ -26,7 +26,7 @@ More, with workarounds: [url=https://github.com/MRiediger/sc-cargoplan/wiki/Trou
 Please report bugs on GitHub, not in the Nexus comments, so they can be tracked.
 [list]
 [*]Bugs, wrong cargo grids, ideas: [url=https://github.com/MRiediger/sc-cargoplan/issues/new/choose]Issues[/url] · questions: [url=https://github.com/MRiediger/sc-cargoplan/discussions]Discussions[/url]
-[*]Copy the version from the footer of the settings window (e.g. [b]SC-CargoPlan 0.3.1+…[/b]).
+[*]Copy the version from the footer of the settings window (e.g. [b]SC-CargoPlan 0.4.0+…[/b]).
 [*]Open a [url=https://github.com/MRiediger/sc-cargoplan/issues/new?template=bug.yml]bug report[/url] (needs a GitHub account) and fill in the form.
 [/list]
 
@@ -46,7 +46,7 @@ Run Star Citizen in [b]Borderless[/b] window mode; exclusive fullscreen covers t
 [list]
 [*]One color per destination, one rack per destination where the ship allows it, every crate named in the legend.
 [*]Optionally a block per destination in a shared rack, with a gap to get at the crates.
-[*]Contracts captured with ContractTracker come in by themselves; or type them in the editor.
+[*]Press F3 on an open contract: CargoPlan reads it itself and adds it to the plan; or type it in the editor.
 [*]Drag, turn, split and merge crates to match what the cargo elevator really did.
 [*]Mark each delivery loaded, then delivered at its stop; undo any step.
 [*]Click-through while the game has the mouse. A separate window: nothing is injected into the game.
@@ -57,7 +57,6 @@ Run Star Citizen in [b]Borderless[/b] window mode; exclusive fullscreen covers t
 
 [list]
 [*]Windows 10/11 x64 (tested on Windows 11). Nothing else to install: .NET comes with it.
-[*]Optional: [url=https://www.nexusmods.com/starcitizen/mods/34]ContractTracker[/url] V2 to capture contracts.
 [/list]
 
 [size=5]Shout outs[/size]
@@ -66,9 +65,8 @@ Run Star Citizen in [b]Borderless[/b] window mode; exclusive fullscreen covers t
 [*]Cargo grid data and ship models from [url=https://cryon.rocks/ops/cargo]cryon.rocks (Motherlode)[/url], extracted from the Star Citizen game files and used with its operators' permission: the racks, the hull holograms and the outlines come from the same game data.
 [*]Three ships (135c, 600i Executive Edition, F7C Hornet Mk II) still use hull data from [url=https://fleetyards.net]fleetyards.net[/url]: their grids, hologram and outline. Fleetyards' data made the first ship list possible.
 [*]Thanks to both for letting this project use their data.
-[*][url=https://www.nexusmods.com/starcitizen/mods/34]ContractTracker[/url] by Yuiki captures the contracts; SC-CargoPlan only reads its database.
 [*]Stop colors: the [url=https://jfly.uni-koeln.de/color/]Okabe-Ito palette[/url] and [url=https://sronpersonalpages.nl/~pault/]Paul Tol's[/url] schemes.
-[*]Not affiliated with Motherlode, Fleetyards, ContractTracker or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
+[*]Not affiliated with Motherlode, Fleetyards or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
 [/list]
 Designed and tested in the game by the author; code and texts written with an AI coding assistant.
 

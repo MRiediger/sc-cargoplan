@@ -19,7 +19,7 @@ Texts: [`summary.txt`](summary.txt), [`description.bbcode`](description.bbcode).
 In PowerShell, into an empty folder:
 
 ```powershell
-$version = '0.3.1'
+$version = '0.4.0'
 $dir = New-Item -ItemType Directory "$env:TEMP\nexus-$version"
 & "C:\Program Files\GitHub CLI\gh.exe" release download "v$version" -R MRiediger/sc-cargoplan -p "SC-CargoPlan-v$version-win-x64.zip*" -D $dir
 $zip = Get-Item "$dir\SC-CargoPlan-v$version-win-x64.zip"; (Get-FileHash $zip).Hash -eq (Get-Content "$zip.sha256").Split(' ')[0]
@@ -37,7 +37,7 @@ $zip = Get-Item "$dir\SC-CargoPlan-v$version-win-x64.zip"; (Get-FileHash $zip).H
 | Summary (350 characters) | [`summary.txt`](summary.txt) |
 | Full description | [`description.bbcode`](description.bbcode): open the BBCode source with the **[ ]** button, replace the template's text with the file's, switch back and check the five blocks (Description, Installation instructions, Main features, Requirements, Shout outs), the links and the lists |
 | Category | Miscellaneous (the only one for Star Citizen) |
-| Mod version | `$version` (e.g. `0.3.1`), without "v" |
+| Mod version | `$version` (e.g. `0.4.0`), without "v" |
 | Author | Martin Riediger |
 | Language | English |
 | Tags (where the editor offers them) | Utilities for Players, Quality of Life, User Interface |
@@ -46,7 +46,7 @@ $zip = Get-Item "$dir\SC-CargoPlan-v$version-win-x64.zip"; (Get-FileHash $zip).H
 
 ## 3. Media
 
-The hero GIF, the Hull B picture and the editor are from v0.3.0; the other pictures show the app before the perspective view (D85)
+The hero GIF, the scan and the editor are from v0.4.0, the Hull B picture from v0.3.0; the other pictures show the app before the perspective view (D85)
 and with the old hull. That trade-off is accepted until the backlog line "Screenshots/GIFs auf Perspektive nachdrehen"
 fires.
 
@@ -54,7 +54,7 @@ Files from this repository (`docs/images/`) and the wiki repository (`media/`), 
 
 | # | File | Caption |
 |---|---|---|
-| 1 | `docs/images/hero.gif` | SC-CargoPlan next to the cargo elevator |
+| 1 | `docs/images/hero.gif` | F3 on a contract in the mobiGlas: its crates appear in the racks of the MISC Hull A |
 | 2 | `docs/images/ships-hull-b.png` | The MISC Hull B with its tilted racks, as in the game files |
 | 3 | wiki `media/editor-rows.png` | The mission editor with the test plan |
 | 4 | wiki `media/legend-overview.png` | The legend with mission headers and lines |
@@ -62,14 +62,15 @@ Files from this repository (`docs/images/`) and the wiki repository (`media/`), 
 | 6 | wiki `media/quickstart-mark-loaded.gif` | Clicking a legend line marks it loaded |
 | 7 | wiki `media/quickstart-deliver.gif` | Clicking a crate delivers the whole stop |
 | 8 | wiki `media/ships-select.gif` | Picking a ship by typing into the ship list |
-| 9 | wiki `media/ct-settings-found.png` | The ContractTracker section with the database found |
+| 9 | wiki `media/quickstart-capture-sync.gif` | F3 on an open contract, the mission appears in the legend |
 | 10 | wiki `media/prefs-presets.gif` | Switching between the three presets |
 | 11 | wiki `media/shipview-hologram.gif` | The ship view with the shaded hologram, an optional download |
 
-If Nexus refuses `hero.gif` (4.8 MB) or shows it without motion, take one frame from it instead of recording anew:
+If Nexus refuses `hero.gif` (4.4 MB) or shows it without motion, take one frame from it instead of recording anew (at
+7.5 s the crates and the notice `Scanned #1 · …` show):
 
 ```powershell
-ffmpeg -ss 4 -i docs/images/hero.gif -frames:v 1 docs/nexus/hero.png
+ffmpeg -i docs/images/hero.gif -vf "select=gte(t\,7.5)" -frames:v 1 docs/nexus/hero.png
 ```
 
 Commit `docs/nexus/hero.png` and use it as picture 1.
@@ -87,8 +88,7 @@ Commit `docs/nexus/hero.png` and use it as picture 1.
 
 ## 5. Requirements
 
-None. ContractTracker is optional (the editor works without it) and Nexus has no "optional" mark, so it stays in the
-description's Requirements block only. .NET comes with the ZIP.
+None. .NET and the OCR models come with the ZIP.
 
 ## 6. Permissions
 
