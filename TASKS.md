@@ -5603,7 +5603,9 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   wieder in der Zeile: Fehler weg, Hinweise bleiben. `KeepUnreadable` verbindet statt zu verdrängen:
   `kept as … · n contracts …` (`--plan` mit CT-Datei über unlesbarer plan.json).
 - **Präzisierung in der Planphase, ratifiziert durch Freigabe:** beide Hinweise mit ` · ` in einer Zeile statt „kept as
-  gewinnt“ (Claude.ai); Lehre als CLAUDE.md A13 und Zeile unter „Lehren“ (Martin).
+  gewinnt“ (Claude.ai); Lehre als CLAUDE.md A13 und Zeile unter „Lehren“ (Martin); Settings-Zeile (Fund des Rück-Sweeps)
+  im selben Branch vor dem Merge (Martin), gleiches Muster: `SettingsSession` hält den Migrationshinweis (`_hint`,
+  `WriteBack(hint, problem)`), jedes erfolgreiche Speichern zeigt Korrekturen (D34) und Hinweis (D105-Addendum).
 
 **Befund:**
 - Tests vorab, rot an der Assertion: `A_plan_from_before_v0_4_0_keeps_its_notice_after_the_first_save` (Notices leer),
@@ -5617,10 +5619,19 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   gewollt; **Settings** (Start, `SettingsSession`) – **derselbe Fehlertyp**: nach jedem Settings-Speichern setzt
   `SettingsSession.Save` die Zeile auf `_corrections`, und Speichern löst schon ein Drehen oder Zoomen der Ansicht aus
   (`ChangeCameras`); der Migrationshinweis „hotkey … for the ContractTracker sync was removed“ verschwindet also mit der
-  ersten Kameraänderung (bis dahin sichtbar, Probe b2 nach 10 s). Eigener Task, nicht in B14 (Martin entscheidet).
+  ersten Kameraänderung (bis dahin sichtbar, Probe b2 nach 10 s), ebenso mit dem ersten Verschieben des Overlays
+  (`ChangeBounds` speichert sofort). Martin: vor dem Merge beheben (zweiter Commit).
+- Settings-Teil, Tests vorab rot an der Assertion: `The_migration_hint_stays_after_a_camera_change_is_saved` (leer),
+  `A_failed_save_shows_its_problem_and_the_next_save_brings_the_migration_hint_back` (zweiter Teil leer),
+  `A_look_correction_and_the_migration_hint_stand_together` (nur die Korrektur). Nach dem Fix `SettingsSessionTests` +
+  `PlanSaverTests` 58/58; `dotnet build` 0 Warnungen, `dotnet test` Core 1770, App 1823 (+6 mit dem Plan-Teil), Import
+  280, Ocr 34 (ohne die drei ignorierten Scratch-Dateien).
 - [x] Upgrade-Probe b2 am Release-Build (`--data-dir`, v0.3.1-Settings + Schema-9-Plan auf den heutigen Racks, Screenshot
   nach 10 s): Amber-Zeile „settings.json: hotkey Ctrl+Alt+O … removed …“ und „4 contracts from ContractTracker are scan
   missions #1–#4 now.“; zweiter Start ohne beide, Log mit der Konvertierungszeile einmal
+- [x] Probe Settings-Teil am Release-Build (13.11., Martin nicht im Spiel): Overlay nach 8 s per `SetWindowPos`
+  verschoben, `settings.json` mit den neuen Bounds gespeichert; danach beide Hinweise weiter in der Amber-Zeile, zweiter
+  Start an der neuen Stelle ohne Hinweise
 - [ ] Abnahme Martin, `--no-ff` nach `main`, dann `main` → `release/v0.4.0`
 
 ### [ ] T10.6 Release v0.4.0

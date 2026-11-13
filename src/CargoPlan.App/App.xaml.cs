@@ -206,10 +206,10 @@ public partial class App : Application
         var session = new SettingsSession(Resources, viewModel, SettingsStore.DefaultPath, settings);
 
         // A hotkey the migration to schema 3 took is said once (T10.4a): the file is written now, the old one stays as the
-        // backup. Every other load writes nothing until a change (D31).
+        // backup, and the hint stays for the run (B14). Every other load writes nothing until a change (D31).
         if (loaded.Removed is { } removed)
         {
-            session.WriteBack(loaded.Problem is { } problem ? problem + Environment.NewLine + removed : removed);
+            session.WriteBack(removed, loaded.Problem);
         }
 
         // Bounds before Show(), so the window appears in place instead of jumping there. The hotkeys' view model is made

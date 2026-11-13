@@ -26,6 +26,9 @@ public sealed class SettingsSession
     // What the last look change had corrected: the notice stays after saving, so a wrong slider limit can't hide (D34).
     private string? _corrections;
 
+    // The migration's hint, a hotkey it took (T10.4a): stays for the run, every successful save shows it again (B14).
+    private string? _hint;
+
     // Set after the first backup succeeded, not before: a failed copy writes nothing and the next save tries again (D47).
     private bool _backedUp;
 
@@ -233,16 +236,22 @@ public sealed class SettingsSession
 
     /// <summary>
     /// Writes the settings now, backing up the file first (D47): at the start, when the migration to schema 3 took a hotkey
-    /// the player had set (T10.4a), so <paramref name="notice"/> comes once and the old file stays as settings.json.bak.
-    /// The notice shows only once the file is written; a failed write says so instead, and the next start tries again.
+    /// the player had set (T10.4a), so <paramref name="hint"/> comes once and the old file stays as settings.json.bak.
+    /// The hint shows once the file is written and stays for the run (B14); a failed write says so instead, the next
+    /// successful save shows the hint, and if none comes the next start tries again.
     /// </summary>
-    public void WriteBack(string notice)
+    /// <param name="problem">The load's problem, shown with the hint until the next save.</param>
+    public void WriteBack(string hint, string? problem = null)
     {
+        _hint = hint;
         if (Save())
         {
-            _viewModel.SetNotice(NoticeSource.Settings, notice);
+            _viewModel.SetNotice(NoticeSource.Settings, Lines(problem, _hint));
         }
     }
+
+    private static string? Lines(params string?[] lines) =>
+        lines.Where(line => line is not null).ToArray() is { Length: > 0 } some ? string.Join(Environment.NewLine, some) : null;
 
     /// <summary>Writes only what is still pending: closing without a change leaves the file alone.</summary>
     public void Flush()
@@ -279,8 +288,9 @@ public sealed class SettingsSession
 
             SettingsStore.Save(_path, Current);
 
-            // A load or save problem is solved once the file is written; a correction of the last change is not.
-            _viewModel.SetNotice(NoticeSource.Settings, _corrections);
+            // A load or save problem is solved once the file is written; a correction of the last change and the
+            // migration's hint are not (D34, B14).
+            _viewModel.SetNotice(NoticeSource.Settings, Lines(_corrections, _hint));
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
