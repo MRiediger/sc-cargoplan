@@ -270,7 +270,7 @@ public partial class App : Application
     {
         var viewModel = parts.ViewModel;
         var loaded = PlanStore.LoadStart(PlanStore.DefaultPath, options.PlanPath, parts.Ship);
-        _planSaver = new PlanSaver(parts.Overlay, viewModel, PlanStore.DefaultPath, loaded.Unreadable);
+        _planSaver = new PlanSaver(parts.Overlay, viewModel, PlanStore.DefaultPath, loaded.Unreadable, loaded.Notice);
         viewModel.SetNotice(NoticeSource.Plan, options.Problem ?? loaded.Problem ?? loaded.Notice);
         if (loaded.Plan is { } plan)
         {
