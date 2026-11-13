@@ -40,6 +40,19 @@ public sealed class PlanSaverTests : IDisposable
 
     private string[] Kept() => Directory.Exists(_folder) ? Directory.GetFiles(_folder, "plan.json.unreadable-*") : [];
 
+    /// <summary>The notice of a schema 9 file with four ContractTracker captures (D107).</summary>
+    private const string FromContractTracker = "4 contracts from ContractTracker are scan missions #1–#4 now.";
+
+    /// <summary>Martin's plan of 25 Oct 2026, schema 9, four captures (the fixture of PlanStoreTests).</summary>
+    private void WriteCaptures(string path)
+    {
+        Directory.CreateDirectory(_folder);
+        using var resource = typeof(PlanSaverTests).Assembly.GetManifestResourceStream("plans/hurston_2026-10-25.json")
+            ?? throw new InvalidOperationException("Test resource 'plans/hurston_2026-10-25.json' not found.");
+        using var file = File.Create(path);
+        resource.CopyTo(file);
+    }
+
     private static SavedPlan RikerDelivered()
     {
         var planned = TestPlans.SplitAndShared();
@@ -51,8 +64,8 @@ public sealed class PlanSaverTests : IDisposable
     {
         var loaded = PlanStore.LoadStart(PlanPath, planFile, HullA);
         var overlay = new OverlayViewModel(HullA);
-        var saver = new PlanSaver(new Window(), overlay, PlanPath, loaded.Unreadable);
-        overlay.SetNotice(NoticeSource.Plan, loaded.Problem);
+        var saver = new PlanSaver(new Window(), overlay, PlanPath, loaded.Unreadable, loaded.Notice);
+        overlay.SetNotice(NoticeSource.Plan, loaded.Problem ?? loaded.Notice);
         if (loaded.Plan is { } plan)
         {
             overlay.ShowPlan(plan);
@@ -204,6 +217,66 @@ public sealed class PlanSaverTests : IDisposable
 
             File.ReadAllText(Kept().Should().ContainSingle().Subject).Should().Be(Broken);
             PlanStore.Load(PlanPath, HullA).Plan!.Missions.Should().ContainSingle();
+        });
+    }
+
+    // --- The Plan line after a save: problems go, hints stay (B14) ---
+
+    /// <summary>The find of T10.6: the write-back of a converted file cleared the D107 notice 500 ms after the start.</summary>
+    [Fact]
+    public void A_plan_from_before_v0_4_0_keeps_its_notice_after_the_first_save()
+    {
+        WriteCaptures(PlanPath);
+
+        Sta.Run(() =>
+        {
+            var (overlay, saver) = Start();
+            saver.Flush();
+
+            File.ReadAllText(PlanPath).Should().Contain("\"schemaVersion\": 10");
+            overlay.Notices.Should().Contain(FromContractTracker);
+        });
+    }
+
+    [Fact]
+    public void A_failed_save_shows_its_problem_and_the_next_save_brings_the_notice_back()
+    {
+        WriteCaptures(PlanPath);
+
+        Sta.Run(() =>
+        {
+            var (overlay, saver) = Start();
+            using (new FileStream(PlanPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+            {
+                saver.Flush();
+
+                overlay.Notices.Should().Contain(n => n.StartsWith("Plan not saved (", StringComparison.Ordinal))
+                    .And.NotContain(FromContractTracker);
+            }
+
+            overlay.ShowPlan(RikerDelivered());
+            saver.Flush();
+
+            overlay.Notices.Should().Contain(FromContractTracker)
+                .And.NotContain(n => n.StartsWith("Plan not saved", StringComparison.Ordinal));
+        });
+    }
+
+    /// <summary>--plan with captures over an unreadable plan.json: both hints, neither pushes the other out.</summary>
+    [Fact]
+    public void A_plan_file_with_captures_over_an_unreadable_plan_json_keeps_both_notices()
+    {
+        WriteBroken();
+        var start = Path.Combine(_folder, "start.json");
+        WriteCaptures(start);
+
+        Sta.Run(() =>
+        {
+            var (overlay, saver) = Start(start);
+            saver.Flush();
+
+            var kept = Path.GetFileName(Kept().Should().ContainSingle().Subject);
+            overlay.Notices.Should().Contain($"Previous plan.json couldn't be read; kept as {kept}. · {FromContractTracker}");
         });
     }
 }

@@ -257,6 +257,62 @@ public sealed class SettingsSessionTests : IDisposable
         Saved().Hotkeys.Should().Be(new HotkeySettings(ToggleLock: "Ctrl+Alt+L"));
     }
 
+    // --- The Settings line after a save: problems go, the migration's hint stays for the run (B14) ---
+
+    private static readonly string Removed = SettingsStore.SyncHotkeyRemovedText("Ctrl+Alt+S");
+
+    /// <summary>A schema 2 file with a sync hotkey, migrated and written back as App.ComposeOverlay does.</summary>
+    private SettingsSession Migrated()
+    {
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(SettingsPath, """{ "schemaVersion": 2, "hotkeys": { "syncContractTracker": "Ctrl+Alt+S" } }""");
+        var loaded = SettingsStore.Load(SettingsPath);
+        var session = Create(loaded.Settings);
+        session.WriteBack(loaded.Removed!);
+        return session;
+    }
+
+    /// <summary>The find of B14: turning the view saves the cameras, and that save cleared the hint.</summary>
+    [Fact]
+    public void The_migration_hint_stays_after_a_camera_change_is_saved()
+    {
+        var session = Migrated();
+
+        session.ChangeCameras(new Dictionary<string, ShipCamera> { ["hull_a"] = new ShipCamera(120, 20) });
+        session.Flush();
+
+        Saved().ShipView.Cameras.Should().ContainKey("hull_a");
+        _viewModel.Notices.Should().Equal(Removed);
+    }
+
+    [Fact]
+    public void A_failed_save_shows_its_problem_and_the_next_save_brings_the_migration_hint_back()
+    {
+        var session = Migrated();
+        File.Delete(SettingsPath);
+        Directory.CreateDirectory(SettingsPath); // A folder where the file should be: the move fails.
+
+        session.ChangeBounds(Bounds);
+
+        _viewModel.Notices.Should().ContainSingle().Which.Should().StartWith("Settings not saved");
+
+        Directory.Delete(SettingsPath);
+        session.ChangeBounds(Bounds with { Left = 11 });
+
+        _viewModel.Notices.Should().Equal(Removed);
+    }
+
+    [Fact]
+    public void A_look_correction_and_the_migration_hint_stand_together()
+    {
+        var session = Migrated();
+
+        session.ChangeLook(AppearanceSettings.Default with { Window = WindowAppearance.Default with { BorderThickness = 99 } }, LegendSettings.Default);
+        session.Flush();
+
+        _viewModel.Notices.Should().ContainSingle().Which.Should().Contain("window.borderThickness 99").And.EndWith(Removed);
+    }
+
     [Fact]
     public void The_first_save_backs_up_the_file_as_it_was_and_later_saves_leave_the_backup()
     {
