@@ -6042,6 +6042,55 @@ Alles in `CargoPlan.App`, Core unverändert. Check nach dem ersten Frame, Ergebn
 8. (Freigabe E1) `UpdateManager` entsteht auf dem Pool. Ein `CancellationTokenSource` cancelt bei `Closed`/`Exit`,
    `SetNotice` nur ohne `Dispatcher.HasShutdownStarted`. Cancel = eine Logzeile „cancelled“, keine Notice.
 
+**Befunde in der Umsetzung:**
+- Ein leerer Feed-Ordner wirft in Velopack nicht, `CheckForUpdatesAsync` liefert null: Logzeile „nothing newer than
+  0.9.0“ statt „check failed“. Ebenso GitHub heute, weil noch kein Release `releases.win.json` hat.
+- Start aus einem Ordner ohne Velopack-Paket (Publish-Ordner, heutiges ZIP): eine Zeile „no check: not a Velopack
+  package“, kein Check. Dev-Build: `VelopackApp.Run()` läuft ohne Paket durch, keine Update-Zeile.
+- Punkt 6 belegt: `current\sq.version` sagt `0.9.0`, `CargoPlan.App.dll` und `CargoPlan.Cli --version` sagen
+  `0.9.0+2db4063…`. Ohne `+sha` gleich; weicht es ab, schreibt `UpdateService` eine eigene Zeile (T11.3 prüft es).
+- `vpk pack` lässt die PDBs weg (0 in `current\`): die T11.3-Notiz gilt.
+- `HoloRelease.UserAgentVersion` liest jetzt `AppVersion.Current` (eine Stelle statt zwei, A1).
+
+**Gate-Anleitung (Martin)** – alles im Laufordner `..\sc-cargoplan-p11-run` (CC hat jeden Schritt einmal ohne SC laufen
+lassen, Ergebnis jeweils dahinter). Inhalt: `portable-0.9.0\` (entpacktes Velopack-Portable, Stub `SC-CargoPlan.exe`),
+`releases\` (Feed mit 0.9.0, 0.9.1 voll und Delta), `empty-feed\`, `pub-main\` (`main` + nur die Startzeile, Basislinie),
+`gate-run.ps1` (startet, wartet 8 s, nimmt das Overlay als PNG auf, schließt, zeigt das Log), `measure-start.ps1`.
+Jeder Lauf hat einen eigenen `--data-dir` im Laufordner; das Profil bleibt unberührt. Velopack schreibt trotzdem
+`%LocalAppData%\velopack\velopack_CargoPlan.log` (D109).
+
+```powershell
+cd ..\sc-cargoplan-p11-run
+$exe = "$PWD\portable-0.9.0\SC-CargoPlan.exe"
+```
+
+1. **Notice mit SC im Vordergrund.** SC starten, in den Vordergrund, dann aus einer zweiten Konsole:
+   `.\gate-run.ps1 -Exe $exe -DataDir "$PWD\data-g1" -Arguments @('--updates-source', "$PWD\releases") -Name g1`.
+   Erwartet: Overlay erscheint, danach unten links amber `Update available: v0.9.1`; Log `Update: 0.9.1 available
+   (installed 0.9.0)` nach `Start: overlay first frame …`. *CC: Zeile 19–92 ms nach dem Frame, Notice im Bild (`g1.png`).*
+   **Startzeit:** `.\measure-start.ps1` (SC im Vordergrund lassen, ≈ 2 min, Finger weg von Maus und Tastatur). Erwartet:
+   Δ B − A ≤ 50 ms im Median. *CC ohne SC: Prozessstart → Frame +9 / +21 ms, Klick → Frame +33 / +48 ms (A 629 / 621,
+   B 662 / 669 ms). Klick liegt knapp an der Grenze.*
+2. **Skip und Aus.**
+   `.\gate-run.ps1 -Exe $exe -DataDir "$PWD\data-g2a" -Arguments @('--updates-source', "$PWD\releases") -Settings '{ "schemaVersion": 3, "updates": { "checkOnStartup": true, "skippedVersion": "0.9.1" } }' -Name g2a`
+   → keine Notice, Log `Update: 0.9.1 skipped (updates.skippedVersion)`.
+   `.\gate-run.ps1 -Exe $exe -DataDir "$PWD\data-g2b" -Arguments @('--updates-source', "$PWD\releases") -Settings '{ "schemaVersion": 3, "updates": { "checkOnStartup": false } }' -Name g2b`
+   → keine Notice, **keine** Zeile `Update:`. *CC: beides so, `g2a.png` ohne Notice.*
+3. **Dev-Build** aus Visual Studio (F5, Debug) oder `dotnet run --project src/CargoPlan.App -- --data-dir <Ordner>
+   --updates-source <…\releases>` → keine Notice, keine Zeile `Update:`. *CC (`bin\Debug`): so.*
+4. **Quelle nicht erreichbar.**
+   `.\gate-run.ps1 -Exe $exe -DataDir "$PWD\data-g4" -Arguments @('--updates-source', "$PWD\empty-feed") -Name g4`
+   → keine Notice, eine Zeile (`Update: nothing newer than 0.9.0`, s. Befund). Dann **ohne Netz** (WLAN aus oder
+   Kabel ab) ohne Schalter: `.\gate-run.ps1 -Exe $exe -DataDir "$PWD\data-g4b" -Name g4b` → keine Notice, eine Zeile
+   `Update: check failed: HttpRequestException: …`. *CC: leerer Ordner so; offline nicht geprüft (kein Netz-Aus ohne
+   Admin), mit Netz ohne Schalter `Update: nothing newer than 0.9.0` (echte GitHub-Anfrage, 0,6 s).*
+5. **settings.json von `main`.** Eine echte v0.4.0-Datei (z. B. Kopie der eigenen aus dem Profil) nach
+   `data-g5\settings.json`, dann `Start-Process $exe -ArgumentList '--data-dir', "$PWD\data-g5"`. Erwartet: keine
+   Settings-Notice, Datei nach dem Start unverändert, kein `.bak`. Overlay verschieben → `settings.json` enthält
+   `"updates": { "checkOnStartup": true, "skippedVersion": null }`, `settings.json.bak` = die alte Datei; noch einmal
+   verschieben → `.bak` bleibt gleich. *CC (mit der Datei aus `main`s Fixture `t10.3_scan`, Verschieben per
+   `SetWindowPos`): so.*
+
 ### [ ] T11.2 Notice mit Update und Skip, Abschnitt „Updates“ im Settings-Fenster, Download + Apply
 
 - Notice `Update available: v… · [Update] [Skip]` (Optik = Martin). Skip schreibt `updates.skippedVersion`.

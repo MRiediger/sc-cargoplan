@@ -83,5 +83,9 @@
   "shipView": {
     "maxZoomPxPerCell": 160,
     "cameras": null
+  },
+  "updates": {
+    "checkOnStartup": true,
+    "skippedVersion": null
   }
 }

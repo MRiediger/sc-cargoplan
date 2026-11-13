@@ -37,6 +37,10 @@ namespace CargoPlan.App;
 /// Keep the region of each scan as a PNG in scans\ next to plan.json, the last 20 (T10.5, D108): for a bug report from a
 /// screen size nobody checked. Off by default; the pictures are CIG material.
 /// </param>
+/// <param name="UpdatesSource">
+/// The update check reads this local feed folder (what <c>vpk pack</c> wrote) instead of GitHub (T11.1, D109, E10): for
+/// gates without a real release. null = GitHub. A path that isn't full is a problem, not a stop: it protects no file.
+/// </param>
 public sealed record StartOptions(
     bool Locked,
     string? PlanPath,
@@ -49,7 +53,8 @@ public sealed record StartOptions(
     bool ScanLoad = false,
     string? DataDir = null,
     bool DataDirRefused = false,
-    bool KeepScans = false)
+    bool KeepScans = false,
+    string? UpdatesSource = null)
 {
     public const string LockedSwitch = "--locked";
 
@@ -71,6 +76,8 @@ public sealed record StartOptions(
 
     public const string KeepScansSwitch = "--keep-scans";
 
+    public const string UpdatesSourceSwitch = "--updates-source";
+
     /// <summary>F9's series without a number: Gate 2's 100 scans.</summary>
     public const int ScanProbeSeries = 100;
 
@@ -87,6 +94,7 @@ public sealed record StartOptions(
         int? scanProbe = null;
         string? dataDir = null;
         var dataDirRefused = false;
+        string? updatesSource = null;
         string? problem = null;
 
         for (var i = 0; i < args.Count; i++)
@@ -139,6 +147,18 @@ public sealed record StartOptions(
                     (dataDirRefused, problem) = (true, $"{DataDirSwitch} needs the full path of a folder.");
                 }
             }
+            else if (Is(args[i], UpdatesSourceSwitch))
+            {
+                // Full like --data-dir, for the same reason; the update check then asks GitHub as without the switch.
+                if (i + 1 < args.Count && !args[i + 1].StartsWith("--", StringComparison.Ordinal) && Path.IsPathFullyQualified(args[i + 1]))
+                {
+                    updatesSource = args[++i];
+                }
+                else
+                {
+                    problem = $"{UpdatesSourceSwitch} needs the full path of a folder.";
+                }
+            }
             else if (Is(args[i], ScanProbeImagesSwitch))
             {
                 scanProbeImages = true;
@@ -185,7 +205,7 @@ public sealed record StartOptions(
             (scanLoad, problem) = (false, problem ?? $"{ScanLoadSwitch} only goes with {MeasureFramesSwitch}.");
         }
 
-        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans);
+        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans, updatesSource);
     }
 
     /// <summary>

@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
 
@@ -798,6 +799,8 @@ public sealed class SettingsStoreTests : IDisposable
     [InlineData("""{ "schemaVersion": 2, "legend": { "visible": "no" } }""")]                       // wrong JSON type
     [InlineData("""{ "schemaVersion": 2, "legend": { "position": 3 } }""")]                         // a number, not a name
     [InlineData("""{ "schemaVersion": 2, "appearance": { "legend": { "position": "top-left" } } }""")] // look, not layout: wrong level
+    [InlineData("""{ "schemaVersion": 3, "updates": { "checkOnStartup": true, "channel": "beta" } }""")] // unknown key in updates (T11.1)
+    [InlineData("""{ "schemaVersion": 3, "updates": { "checkOnStartup": "yes" } }""")]                  // wrong JSON type
     public void Broken_file_gives_defaults_with_a_problem_and_stays_untouched(string content)
     {
         WriteFile(content);
@@ -889,5 +892,68 @@ public sealed class SettingsStoreTests : IDisposable
         var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
 
         SettingsStore.DefaultPath.Should().Be(Path.Combine(localAppData, "SC-CargoPlan", "settings.json"));
+    }
+
+    // T11.1 (D109, D105 addendum): optional, no schemaVersion bump (D31).
+    [Theory]
+    [InlineData("""{ "schemaVersion": 3 }""")]
+    [InlineData("""{ "schemaVersion": 3, "updates": null }""")]
+    [InlineData("""{ "schemaVersion": 3, "updates": {} }""")]
+    [InlineData("""{ "schemaVersion": 2 }""")]
+    public void File_without_updates_checks_at_start_and_skips_nothing(string content)
+    {
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Updates.Should().Be(new UpdateSettings(CheckOnStartup: true, SkippedVersion: null));
+    }
+
+    [Fact]
+    public void Updates_keep_what_the_file_says()
+    {
+        WriteFile("""{ "schemaVersion": 3, "updates": { "checkOnStartup": false, "skippedVersion": "0.9.1" } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Updates.Should().Be(new UpdateSettings(false, "0.9.1"));
+    }
+
+    [Fact]
+    public void A_skipped_version_that_is_no_version_is_dropped_with_a_line()
+    {
+        // At the file boundary (A6): the rest of the file applies.
+        WriteFile("""{ "schemaVersion": 3, "updates": { "checkOnStartup": false, "skippedVersion": "later" } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Updates.Should().Be(new UpdateSettings(false, null));
+        problem.Should().Be("settings.json: updates.skippedVersion \"later\" is not a version (like 0.5.0), skipping none.");
+    }
+
+    [Fact]
+    public void Save_writes_the_updates_with_a_null_skipped_version()
+    {
+        // Every key in the file, so a player editing it by hand sees what there is (D31).
+        SettingsStore.Save(SettingsPath, AppSettings.Default);
+
+        var updates = JsonNode.Parse(File.ReadAllText(SettingsPath))!["updates"]!.AsObject();
+        updates.Select(p => p.Key).Should().Equal("checkOnStartup", "skippedVersion");
+        updates["checkOnStartup"]!.GetValue<bool>().Should().BeTrue();
+        updates["skippedVersion"].Should().BeNull();
+    }
+
+    [Fact]
+    public void Save_then_Load_keeps_the_updates()
+    {
+        var settings = AppSettings.Default with { Updates = new UpdateSettings(false, "0.9.1") };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
     }
 }

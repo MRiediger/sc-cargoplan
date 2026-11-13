@@ -1,6 +1,5 @@
 // WPF projects leave System.IO out of the implicit usings (Path clashes with System.Windows.Shapes.Path).
 using System.IO;
-using System.Reflection;
 
 namespace CargoPlan.App.Holo;
 
@@ -37,6 +36,5 @@ public static class HoloRelease
     /// The version for the User-Agent, without the commit hash the SDK appends after "+": the request names the app and
     /// its version, nothing else.
     /// </summary>
-    public static string UserAgentVersion { get; } =
-        (Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0").Split('+')[0];
+    public static string UserAgentVersion => AppVersion.Current;
 }

@@ -4,6 +4,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
+using CargoPlan.App.Updates;
 
 namespace CargoPlan.App.Settings;
 
@@ -71,6 +72,7 @@ public static class SettingsStore
             var (holoHull, holoHullProblems) = AppearanceRules.NormalizeHoloColor("holoHullColor", settings.HoloHullColor, AppearanceRules.DefaultHoloHullColor);
             var (holoEdge, holoEdgeProblems) = AppearanceRules.NormalizeHoloColor("holoEdgeColor", settings.HoloEdgeColor, AppearanceRules.DefaultHoloEdgeColor);
             var (shipView, shipViewProblems) = AppearanceRules.Normalize(settings.ShipView);
+            var (updates, updatesProblems) = Normalize(settings.Updates);
             return new(
                 settings with
                 {
@@ -83,10 +85,11 @@ public static class SettingsStore
                     HoloHullColor = holoHull,
                     HoloEdgeColor = holoEdge,
                     ShipView = shipView,
+                    Updates = updates,
                 },
                 Corrections([
                     .. legendProblems, .. appearanceProblems, .. themeProblems, .. shipOutlineProblems, .. holoOpacityProblems,
-                    .. holoHullProblems, .. holoEdgeProblems, .. shipViewProblems]),
+                    .. holoHullProblems, .. holoEdgeProblems, .. shipViewProblems, .. updatesProblems]),
                 removed);
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
@@ -168,6 +171,14 @@ public static class SettingsStore
         file["schemaVersion"] = SupportedSchemaVersion;
         return removed;
     }
+
+    /// <summary>
+    /// Checks the update section (D109): a skipped version that is no version skips nothing, with a line; the rest applies.
+    /// </summary>
+    private static (UpdateSettings Updates, IReadOnlyList<string> Problems) Normalize(UpdateSettings updates) =>
+        updates.SkippedVersion is { } skipped && !ReleaseVersion.TryParse(skipped, out _)
+            ? (updates with { SkippedVersion = null }, [$"updates.skippedVersion \"{skipped}\" is not a version (like 0.5.0), skipping none."])
+            : (updates, []);
 
     /// <summary>The notice for a sync hotkey the migration took (T10.4a): which key is free again, and how contracts come in now.</summary>
     public static string SyncHotkeyRemovedText(string hotkey) =>

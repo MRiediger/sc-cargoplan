@@ -79,7 +79,7 @@ sc-cargoplan/
 │   ├── CargoPlan.Import/          # net10.0 – Contracts/: Vertragstext → `ScannedContract` mit Inhaltsschlüssel (D101); `DestinationNames` (B1)
 │   ├── CargoPlan.Ocr/             # net10.0 – Vertrag aus einem Bild lesen: ROI, up2-gray, RapidOcrNet, Lesereihenfolge (D99); keine Windows-API; NOTICE.md → models/NOTICE.md
 │   ├── CargoPlan.Cli/             # net10.0 – Plan im Terminal ausgeben (Debugging ohne UI), `scan <png>`
-│   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Settings (Schema 3, Migration D105), Win32-Interop (inkl. Fenstersuche und Bildschirmaufnahme), Scan (`Scanning/`: Aufnahme D100, `ScanIntake` mit zweiter Lesung bei Verdacht und `scans.log` D103, `ScanRunner` für Hotkey und Editor-Button mit Notice je Ergebnis D104, `ScanPictures` für `--keep-scans` D108), Holo-Download und -Cache (einziger Netzzugriff, D63)
+│   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Settings (Schema 3, Migration D105), Win32-Interop (inkl. Fenstersuche und Bildschirmaufnahme), Scan (`Scanning/`: Aufnahme D100, `ScanIntake` mit zweiter Lesung bei Verdacht und `scans.log` D103, `ScanRunner` für Hotkey und Editor-Button mit Notice je Ergebnis D104, `ScanPictures` für `--keep-scans` D108), Holo-Download und -Cache (Netzzugriff 1, D63), `Program.Main` mit `VelopackApp.Run()` zuerst und `Updates/` (Check nach dem ersten Frame, `UpdateGate` ohne Velopack, Netzzugriff 2, D109)
 ├── tests/
 │   ├── CargoPlan.Core.Tests/      # Fixtures/, FrozenShips/ (A10)
 │   ├── CargoPlan.Import.Tests/    # Fixtures/RawText: echte Vertragstexte (CIG-Material nur als Text)

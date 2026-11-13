@@ -236,4 +236,38 @@ public class StartOptionsTests
     {
         StartOptions.Parse(args).WarmsOcrAtStart(scanKeySet).Should().Be(warms);
     }
+
+    // T11.1 (D109, E10): a local feed instead of GitHub, for gates without a real release.
+    [Theory]
+    [InlineData("--updates-source", @"D:\p11-run\feed")]
+    [InlineData("--Updates-Source", @"D:\p11-run\feed")]
+    public void Updates_source_takes_the_next_argument_as_feed_folder(params string[] args)
+    {
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null, UpdatesSource: @"D:\p11-run\feed"));
+    }
+
+    [Theory]
+    [InlineData("--updates-source")]
+    [InlineData("--updates-source", "--locked")]
+    [InlineData("--updates-source", "feed")]
+    public void Updates_source_without_a_full_path_is_a_problem_not_a_stop(params string[] args)
+    {
+        // Unlike --data-dir it protects no file: the overlay starts and checks GitHub as without the switch.
+        var options = StartOptions.Parse(args);
+
+        options.UpdatesSource.Should().BeNull();
+        options.DataDirRefused.Should().BeFalse();
+        options.Problem.Should().Be("--updates-source needs the full path of a folder.");
+        options.Locked.Should().Be(args.Contains("--locked"));
+    }
+
+    [Theory]
+    [InlineData("--veloapp-updated", "0.9.1")]
+    [InlineData("--veloapp-obsolete", "0.9.0")]
+    [InlineData("--veloapp-firstrun")]
+    public void Velopack_hook_arguments_are_ignored(params string[] args)
+    {
+        // Velopack ends a hook run inside Run() (S11.0 G4); should one get through, it must not change the start.
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null));
+    }
 }

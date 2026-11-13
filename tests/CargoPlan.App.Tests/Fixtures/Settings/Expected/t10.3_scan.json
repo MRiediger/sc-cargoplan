@@ -101,5 +101,9 @@
         }
       }
     }
+  },
+  "updates": {
+    "checkOnStartup": true,
+    "skippedVersion": null
   }
 }

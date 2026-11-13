@@ -23,6 +23,12 @@ public enum NoticeSource
     /// </summary>
     HoloUpdate,
 
+    /// <summary>
+    /// A newer release of the app is out (T11.1, D109); set once per run by the update check after the first frame, its
+    /// only writer. Plain text until T11.2 adds Update and Skip; its place in this order is T11.2's to settle.
+    /// </summary>
+    AppUpdate,
+
     Hotkeys,
     Plan,
 

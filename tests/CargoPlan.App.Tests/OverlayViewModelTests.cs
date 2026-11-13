@@ -212,6 +212,20 @@ public class OverlayViewModelTests
     }
 
     [Fact]
+    public void The_update_line_follows_the_hologram_lines_and_leaves_the_hints_standing()
+    {
+        // T11.1 (A13): one writer, App's check after the first frame; the Plan and Settings hints of the start stay.
+        var viewModel = WithPlan();
+        viewModel.SetNotice(NoticeSource.Plan, "plan hint");
+        viewModel.SetNotice(NoticeSource.Settings, "settings hint");
+        viewModel.SetNotice(NoticeSource.HoloUpdate, "holo");
+
+        viewModel.SetNotice(NoticeSource.AppUpdate, "Update available: v0.9.1");
+
+        viewModel.Notices.Should().Equal("settings hint", "holo", "Update available: v0.9.1", "plan hint");
+    }
+
+    [Fact]
     public void SetNotice_replaces_the_line_of_its_source()
     {
         var viewModel = WithPlan();

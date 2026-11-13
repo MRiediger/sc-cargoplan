@@ -8,6 +8,7 @@ using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Plans;
 using CargoPlan.App.Scanning;
 using CargoPlan.App.Settings;
+using CargoPlan.App.Updates;
 using CargoPlan.App.ViewModels;
 using CargoPlan.App.Win32;
 using CargoPlan.Core.Models;
@@ -49,6 +50,13 @@ public partial class App : Application
 
     // Only with --scan-probe; its timer keeps it alive, the field shows who owns it.
     private Diagnostics.ScanProbe? _scanProbe;
+
+    // The update check (D109): one per run, after the first frame. Cancelled when the overlay closes or the app exits, so its
+    // result never reaches a window that is gone (Freigabe E1). Not disposed: a check still running holds its token, and the
+    // process ends right after.
+    private UpdateService? _updates;
+
+    private readonly CancellationTokenSource _closing = new();
 
     // What the dispatcher handler logged last: left unhandled, it reaches AppDomain.UnhandledException too, logged once.
     private Exception? _crashLogged;
@@ -97,6 +105,7 @@ public partial class App : Application
         ComposeStartPlan(parts, options);
         ComposeSettingsFollowers(parts);
         ComposeHolograms(parts);
+        ComposeUpdateCheck(parts, options);
 
         // Without a scan key the OCR loads only when a key is set or the editor's Scan button is pressed (D108).
         if (options.WarmsOcrAtStart(_hotkeys?.HasScanKey == true))
@@ -324,6 +333,46 @@ public partial class App : Application
     }
 
     /// <summary>
+    /// After the overlay's first frame (E5): the start time goes to the log, then the update check runs on the pool and its
+    /// offer becomes the AppUpdate line, plain text until T11.2 (D109). Settings are read on the UI thread at that moment.
+    /// </summary>
+    private void ComposeUpdateCheck(OverlayParts parts, StartOptions options)
+    {
+        var (viewModel, session, overlay) = (parts.ViewModel, parts.Session, parts.Overlay);
+        var updates = _updates = new UpdateService(options.UpdatesSource);
+        overlay.Closed += (_, _) => _closing.Cancel();
+
+        // Once: ContentRendered follows the first frame. An event handler, so async void is allowed (CLAUDE.md); the check
+        // ends every failure in a log line, anything else is a bug and surfaces.
+        // Source: https://learn.microsoft.com/dotnet/api/system.windows.window.contentrendered
+        async void Check(object? sender, EventArgs e)
+        {
+            overlay.ContentRendered -= Check;
+            LogStartTime();
+            var offer = await updates.CheckAsync(session.Current.Updates, AppVersion.Current, AppVersion.IsDevBuild, _closing.Token);
+
+            // Back on the UI thread: await resumes in the dispatcher's context.
+            if (offer is not null && !Dispatcher.HasShutdownStarted && !_closing.IsCancellationRequested)
+            {
+                viewModel.SetNotice(NoticeSource.AppUpdate, $"Update available: v{offer.Version}");
+            }
+        }
+
+        overlay.ContentRendered += Check;
+    }
+
+    /// <summary>
+    /// Process start to the overlay's first frame, one line per start: the measure of the start-time gates from T11.1 on
+    /// (S11.0 G8 measured it with throwaway code). Through Velopack's stub the stub's own start comes before it (≈ 25 ms).
+    /// </summary>
+    private static void LogStartTime()
+    {
+        using var process = System.Diagnostics.Process.GetCurrentProcess();
+        var elapsed = DateTime.Now - process.StartTime;
+        AppLog.Write("Start", string.Create(CultureInfo.InvariantCulture, $"overlay first frame {elapsed.TotalMilliseconds:F0} ms after the process start"));
+    }
+
+    /// <summary>
     /// The contract scanner (T10.1b, D99), not yet warm: <see cref="WarmAfterFirstFrame"/> starts that. Missing models end in
     /// a notice, never in a failed start (plan decision 3).
     /// </summary>
@@ -390,6 +439,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _closing.Cancel();
         _cursorMonitor?.Stop();
         base.OnExit(e);
     }
