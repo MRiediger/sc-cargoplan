@@ -5843,7 +5843,7 @@ Racks (`probe-b2-src`: v0.3.1-Settings + Plan mit 3 Kisten `loaded`, 6 `delivere
 
 ## Phase 11 – nach dem Launch
 
-### [ ] S11.0 Velopack-Spike (13.11.2026, kein Prod-Code)
+### [x] S11.0 Velopack-Spike (13.11.2026, kein Prod-Code, abgenommen 13.11.)
 
 **Branches:** Spike-Code auf `spike/s11-velopack` (Worktree `..\sc-cargoplan-s11`, zwei Commits: A = eigenes `Main` + Spike-Log,
 B = Velopack; wird nach der Abnahme gelöscht), dieser Befund auf `spike/s11-velopack-finding`. Laufordner
