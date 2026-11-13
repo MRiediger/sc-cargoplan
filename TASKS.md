@@ -5668,7 +5668,7 @@ ContractTracker als Halbsatz beim Wegfall.
 - `git diff main -- src tests ships outlines build`: nur `outlines/NOTICE.md` (Textzeile „Not affiliated with …“ ohne
   ContractTracker, aus dem Doku-Branch).
 
-### [ ] R2 Release-Notes
+### [x] R2 Release-Notes (13.11.2026)
 
 - `docs/release-notes/v0.4.0.md`: Lead, Download-Absatz, Highlights, Changes, Before you update (settings, plan, kein
   Downgrade, Mission-Dateien, ContractTracker auf F3), Known issues (6 + Link), MIT-Schluss mit `models/NOTICE.md`
@@ -5685,7 +5685,15 @@ ContractTracker als Halbsatz beim Wegfall.
   damit Notes und Wiki dasselbe sagen.
 - Link-Check der Notes: 0 kaputt, 4 externe URLs 200.
 
-- [ ] Notes-Entwurf von Claude.ai freigegeben (Martin)
+- [x] Notes-Entwurf von Claude.ai freigegeben (Martin, 13.11.) mit K1: „Turn scanning off“ und „the reader doesn't load
+  at all“ versprachen zu viel, der Editor-Button lädt den Reader nach (D108) → „Clear the scan key … doesn't load its
+  contract reader at start … The editor's Scan button still works and loads the reader when you click it.“ und
+  Known issue „… doesn't load at start.“; dieselbe Behauptung auch in README (Known issue, wortgleich) und Wiki
+  (`Troubleshooting` Memory-Zeile, `Scanning-contracts` „Turn scanning off“) korrigiert. Kleinigkeit übernommen:
+  `plan.json.unreadable-<date-time>` (D106: Datum und Uhrzeit). Nicht übernommen: „Nothing that is already on board
+  moves“ → „Crates already loaded stay where they are“; im Highlight zum neuen Vertrag richtig und wortgleich mit dem
+  Wiki „Scanning contracts“. Offen im Produkt: der Hinweis im Settings-Fenster sagt weiter „Clear it to turn scanning
+  off: …; the editor's Scan button still works.“ – in sich stimmig, kein Fix im Release-Branch.
 
 ### [x] R3 Medien (Martin nimmt auf, CC schneidet und prüft) (13.11.2026)
 

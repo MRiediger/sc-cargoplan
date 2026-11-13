@@ -46,7 +46,7 @@ Reading contracts is new in v0.4.0:
 - Two contracts with the same route and reward count as one: add the second in the editor.
 - CargoPlan's windows over the contract blink briefly during a scan.
 - After many scans CargoPlan uses up to about 900 MB of memory. Clear the scan key in the settings and the reader
-  doesn't load at all.
+  doesn't load at start.
 
 All known issues: [Troubleshooting](https://github.com/MRiediger/sc-cargoplan/wiki/Troubleshooting#known-issues).
 
