@@ -282,8 +282,11 @@ without the current ship, in the group "Recent" on top.
 
 | Key | What | Default |
 |---|---|---|
-| `updates.checkOnStartup` | Once per start, after the overlay is up, ask GitHub whether a newer release of SC-CargoPlan is out (one request to the release list of this repository, pre-releases left out). A newer one shows as an amber line. `false` means no request at all. Nothing is downloaded without your click. | `true` |
+| `updates.checkOnStartup` | Once per start, after the overlay is up, ask GitHub whether a newer release of SC-CargoPlan is out (one request to the release list of this repository, pre-releases left out). A newer one shows as the overlay's bottom line with *Update* and *Skip this version*. `false` means no request at all. Nothing is downloaded without your click. | `true` |
 | `updates.skippedVersion` | A release you chose to skip, like `"0.5.1"`: it isn't offered again, a newer one is. Not a version means none, with a notice. | `null` |
+
+Both keys are set in the settings window's **Updates** section too: *Check for updates on startup*, the skipped version
+with *Clear*, and *Check now*. The overlay's *Skip this version* writes `skippedVersion`.
 
 A check that fails (offline, GitHub's limit, no answer within 10 seconds) shows nothing; `cargoplan.log` has one line
 about it. A build without a release version (`0.0.0-dev`) and a copy not started from the release ZIP's package never

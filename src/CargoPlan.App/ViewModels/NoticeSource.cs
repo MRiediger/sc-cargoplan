@@ -1,6 +1,9 @@
 namespace CargoPlan.App.ViewModels;
 
-/// <summary>Who reported a notice line. Each source sets and clears only its own line; lines show in this order (D18).</summary>
+/// <summary>
+/// Who reported a notice line. Each source sets and clears only its own line; lines show in this order (D18). The update
+/// line is no source: it has controls and lies below all of these as an element of its own (T11.2, <see cref="OverlayViewModel.Update"/>).
+/// </summary>
 public enum NoticeSource
 {
     Settings,
@@ -22,12 +25,6 @@ public enum NoticeSource
     /// for the run when it names an old cache that couldn't be deleted.
     /// </summary>
     HoloUpdate,
-
-    /// <summary>
-    /// A newer release of the app is out (T11.1, D109); set once per run by the update check after the first frame, its
-    /// only writer. Plain text until T11.2 adds Update and Skip; its place in this order is T11.2's to settle.
-    /// </summary>
-    AppUpdate,
 
     Hotkeys,
     Plan,

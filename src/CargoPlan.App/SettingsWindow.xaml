@@ -453,6 +453,26 @@
                         <ContentControl Content="{Binding ResetView, Mode=OneTime}" />
                     </StackPanel>
                 </GroupBox>
+
+                <!-- The update check (T11.2, D109, U8, U9): no part of the look, so no "Reset to defaults". The switch is the
+                     second network access's off (Nexus); Clear undoes a Skip; Check now asks whatever the switch says. -->
+                <GroupBox x:Name="UpdatesSection" Header="Updates" Style="{StaticResource SectionStyle}"
+                          d:DataContext="{d:DesignInstance vm:UpdateSettingsViewModel}">
+                    <StackPanel>
+                        <CheckBox Content="Check for updates on startup" IsChecked="{Binding CheckOnStartup}" />
+                        <DockPanel Style="{StaticResource RowStyle}"
+                                   Visibility="{Binding HasSkippedVersion, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <Button DockPanel.Dock="Right" Content="Clear" Command="{Binding ClearSkippedCommand, Mode=OneTime}"
+                                    ToolTip="Offer this version again" />
+                            <TextBlock Text="{Binding SkippedText, Mode=OneWay}" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}">
+                            <Button DockPanel.Dock="Left" Content="Check now" Command="{Binding CheckNowCommand, Mode=OneTime}"
+                                    ToolTip="Ask for a newer release now; one found shows at the bottom of the overlay" />
+                            <TextBlock Text="{Binding Status, Mode=OneWay}" VerticalAlignment="Center" Margin="10,0,0,0" TextWrapping="Wrap" />
+                        </DockPanel>
+                    </StackPanel>
+                </GroupBox>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

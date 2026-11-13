@@ -40,7 +40,7 @@ public class UpdateGateTests
     [Fact]
     public void A_skipped_version_is_not_offered()
     {
-        UpdateGate.Offer("0.9.0", "0.9.1", null, skipped: "0.9.1").Should().Be(new NoUpdate("0.9.1 skipped (updates.skippedVersion)"));
+        UpdateGate.Offer("0.9.0", "0.9.1", null, skipped: "0.9.1").Should().Be(new NoUpdate("0.9.1 skipped (updates.skippedVersion)", Skipped: "0.9.1"));
     }
 
     [Fact]

@@ -19,22 +19,26 @@ public partial class OverlayWindow : Window
     private readonly OverlayViewModel _viewModel;
     private readonly SettingsSession _settings;
     private readonly Func<HotkeysViewModel> _createHotkeys;
+    private readonly Func<UpdateSettingsViewModel> _createUpdates;
     private readonly Action _scanContract;
     private MissionEditorWindow? _editor;
     private SettingsWindow? _settingsWindow;
 
     /// <param name="createHotkeys">Made per settings window, from the hotkeys as they are then.</param>
+    /// <param name="createUpdates">Made per settings window, like the hotkeys (T11.2).</param>
     /// <param name="scanContract">The editor's "Scan", the scan hotkey's runner (T10.3).</param>
     public OverlayWindow(
         OverlayViewModel viewModel,
         SettingsSession settings,
         Func<HotkeysViewModel> createHotkeys,
+        Func<UpdateSettingsViewModel> createUpdates,
         Action scanContract)
     {
         InitializeComponent();
         _viewModel = viewModel;
         _settings = settings;
         _createHotkeys = createHotkeys;
+        _createUpdates = createUpdates;
         _scanContract = scanContract;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -321,6 +325,7 @@ public partial class OverlayWindow : Window
                     _settings.MaxZoom, _settings.ChangeMaxZoom,
                     notice => _viewModel.SetNotice(NoticeSource.Look, notice)),
                 _createHotkeys(),
+                _createUpdates(),
                 _viewModel,
                 _settings.ToolWindowTheme,
                 this);

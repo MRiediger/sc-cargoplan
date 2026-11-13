@@ -22,13 +22,16 @@ public partial class SettingsWindow : Window
 
     private readonly SettingsViewModel _viewModel;
     private readonly HotkeysViewModel _hotkeys;
+    private readonly UpdateSettingsViewModel _updates;
 
     /// <param name="hotkeys">The Hotkeys section's own data context: hotkeys are no part of the look (D35).</param>
+    /// <param name="updates">The Updates section's own data context (T11.2): no part of the look either.</param>
     /// <param name="theme">The tool windows' mode (D36); the overlay switches it later through <see cref="ToolWindowThemer"/>.</param>
     /// <param name="owner">Must already be shown: Owner rejects a window that was never shown.</param>
     public SettingsWindow(
         SettingsViewModel viewModel,
         HotkeysViewModel hotkeys,
+        UpdateSettingsViewModel updates,
         OverlayViewModel overlay,
         ToolWindowTheme theme,
         Window owner)
@@ -39,7 +42,9 @@ public partial class SettingsWindow : Window
         DataContext = viewModel;
         _viewModel = viewModel;
         _hotkeys = hotkeys;
+        _updates = updates;
         HotkeysSection.DataContext = hotkeys;
+        UpdatesSection.DataContext = updates;
         Owner = owner;
         OverlayWindow.HideWithOverlay(this, overlay);
 
@@ -56,6 +61,7 @@ public partial class SettingsWindow : Window
     protected override void OnClosed(EventArgs e)
     {
         CancelRecording();
+        _updates.Detach();
         base.OnClosed(e);
     }
 

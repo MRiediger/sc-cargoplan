@@ -394,6 +394,28 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// </summary>
     public bool IsLocked => IsManuallyLocked || IsAutoLocked;
 
+    /// <summary>
+    /// The update line below the notices (T11.2, D109): set once at the start; its state says whether it shows. An element
+    /// of its own, not a notice: it has controls and a state machine, and the notices stay plain text.
+    /// </summary>
+    [ObservableProperty]
+    public partial UpdateViewModel? Update { get; set; }
+
+    partial void OnUpdateChanged(UpdateViewModel? value) => FollowLock();
+
+    partial void OnIsManuallyLockedChanged(bool value) => FollowLock();
+
+    partial void OnIsAutoLockedChanged(bool value) => FollowLock();
+
+    /// <summary>U2: locked, the update line keeps its text and hides its controls, like the header's buttons.</summary>
+    private void FollowLock()
+    {
+        if (Update is { } update)
+        {
+            update.IsLocked = IsLocked;
+        }
+    }
+
     private readonly Dictionary<NoticeSource, string> _notices = [];
 
     /// <summary>Problems the player should know about, one line per source in <see cref="NoticeSource"/> order; empty hides them.</summary>

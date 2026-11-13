@@ -56,7 +56,19 @@ public partial class App : Application
     // process ends right after.
     private UpdateService? _updates;
 
+    // The update line (T11.2): made with the service, the settings window's Check now offers into it.
+    private UpdateViewModel? _updateLine;
+
+    // This start's arguments: the restart after an update gets them again, without --plan (U5).
+    private IReadOnlyList<string> _startArgs = [];
+
     private readonly CancellationTokenSource _closing = new();
+
+    /// <summary>Update.exe started this process, after a swap or after a failed one (Program, VelopackApp.OnRestarted).</summary>
+    internal bool RestartedByUpdate { get; init; }
+
+    /// <summary>Velopack's lines into cargoplan.log, from the moment the data folder is known (D109).</summary>
+    internal VelopackLogBridge? VelopackLog { get; init; }
 
     // What the dispatcher handler logged last: left unhandled, it reaches AppDomain.UnhandledException too, logged once.
     private Exception? _crashLogged;
@@ -72,12 +84,14 @@ public partial class App : Application
 
         // Before anything reads a path, the crash log included: --data-dir moves every file of the run (T10.4a, B1).
         var options = StartOptions.Parse(e.Args);
+        _startArgs = e.Args;
         if (!UseDataFolderOrExit(options))
         {
             return;
         }
 
         ComposeCrashLogging();
+        VelopackLog?.Attach();
 
         if (LoadShipsOrExit() is not { } ships)
         {
@@ -105,7 +119,7 @@ public partial class App : Application
         ComposeStartPlan(parts, options);
         ComposeSettingsFollowers(parts);
         ComposeHolograms(parts);
-        ComposeUpdateCheck(parts, options);
+        ComposeUpdates(parts, options);
 
         // Without a scan key the OCR loads only when a key is set or the editor's Scan button is pressed (D108).
         if (options.WarmsOcrAtStart(_hotkeys?.HasScanKey == true))
@@ -243,6 +257,7 @@ public partial class App : Application
             viewModel,
             session,
             () => CreateHotkeysViewModel(session),
+            () => CreateUpdateSettingsViewModel(session),
             scan.Start);
         if (settings.Overlay is { } saved)
         {
@@ -333,13 +348,22 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// After the overlay's first frame (E5): the start time goes to the log, then the update check runs on the pool and its
-    /// offer becomes the AppUpdate line, plain text until T11.2 (D109). Settings are read on the UI thread at that moment.
+    /// The update line (T11.1, T11.2, D109). After the overlay's first frame (E5): the start time goes to the log; a swap
+    /// that failed before this restart shows as such; then the start's check runs on the pool and its offer becomes the
+    /// line. Settings are read on the UI thread at that moment. The overlay closing cancels a check or download still
+    /// running (Freigabe E1), after the bounds, settings and plan have flushed (their Closed handlers come first).
     /// </summary>
-    private void ComposeUpdateCheck(OverlayParts parts, StartOptions options)
+    private void ComposeUpdates(OverlayParts parts, StartOptions options)
     {
         var (viewModel, session, overlay) = (parts.ViewModel, parts.Session, parts.Overlay);
         var updates = _updates = new UpdateService(options.UpdatesSource);
+        var line = _updateLine = new UpdateViewModel(
+            new UpdateActions(
+                (version, progress) => updates.DownloadAsync(version, progress, _closing.Token),
+                version => ApplyAndShutDownAsync(updates, version, overlay),
+                session.ChangeSkippedVersion),
+            action => Dispatcher.InvokeAsync(action));
+        viewModel.Update = line;
         overlay.Closed += (_, _) => _closing.Cancel();
 
         // Once: ContentRendered follows the first frame. An event handler, so async void is allowed (CLAUDE.md); the check
@@ -349,27 +373,93 @@ public partial class App : Application
         {
             overlay.ContentRendered -= Check;
             LogStartTime();
-            var offer = await updates.CheckAsync(session.Current.Updates, AppVersion.Current, AppVersion.IsDevBuild, _closing.Token);
 
-            // Back on the UI thread: await resumes in the dispatcher's context.
-            if (offer is not null && !Dispatcher.HasShutdownStarted && !_closing.IsCancellationRequested)
+            // Back on the UI thread after each await: it resumes in the dispatcher's context.
+            if (await updates.FailedApplyAsync(RestartedByUpdate, AppVersion.Current) is { } failed && IsRunning())
             {
-                viewModel.SetNotice(NoticeSource.AppUpdate, $"Update available: v{offer.Version}");
+                line.ShowFailedApply(failed.Version, failed.Reason);
+            }
+
+            var offer = await updates.CheckAsync(session.Current.Updates, AppVersion.Current, AppVersion.IsDevBuild, _closing.Token);
+            if (offer is not null && IsRunning())
+            {
+                line.Offer(offer.Version);
             }
         }
 
         overlay.ContentRendered += Check;
     }
 
+    private bool IsRunning() => !Dispatcher.HasShutdownStarted && !_closing.IsCancellationRequested;
+
+    /// <summary>
+    /// The download is there (U4): Update.exe starts and waits for this process, then the app shuts down so every Closed
+    /// handler flushes (bounds, settings, plan) before Update.exe's 60 s run out (Freigabe E2). null = shutting down, else
+    /// why not; the app then runs on.
+    /// </summary>
+    private async Task<string?> ApplyAndShutDownAsync(UpdateService updates, string version, Window overlay)
+    {
+        // A dialog opened during the download first: Shutdown inside its loop would close the windows under it.
+        await UpdateShutdown.WhenNotModalAsync();
+        if (!IsRunning())
+        {
+            return UpdateFailure.Cancelled;
+        }
+
+        if (updates.Apply(version, StartOptions.RestartArguments(_startArgs)) is { } reason)
+        {
+            return reason;
+        }
+
+        // Editor and settings first, each by its own Close; then Shutdown closes the overlay, whose Closed handlers flush.
+        // Shutdown closes every window with InternalClose(shutdown: true, ignoreCancel: true), Closed included; no window
+        // here handles Closing anyway.
+        // Source: https://github.com/dotnet/wpf/blob/main/src/Microsoft.DotNet.Wpf/src/PresentationFramework/System/Windows/Application.cs (DoShutdown)
+        UpdateShutdown.CloseAllBut(Windows.Cast<Window>(), overlay);
+        Shutdown();
+        return null;
+    }
+
+    /// <summary>
+    /// The settings window's Updates section (U8, U9), made per window like the hotkeys'. Check now offers into the overlay's
+    /// line; its own status says what came out.
+    /// </summary>
+    private UpdateSettingsViewModel CreateUpdateSettingsViewModel(SettingsSession session)
+    {
+        var updates = _updates ?? throw new InvalidOperationException("The settings window opened before the update service existed.");
+        var line = _updateLine ?? throw new InvalidOperationException("The settings window opened before the update line existed.");
+        return new UpdateSettingsViewModel(
+            session.Current.Updates,
+            session.ChangeCheckOnStartup,
+            session.ChangeSkippedVersion,
+            CheckNowAsync,
+            handler => session.UpdatesChanged += handler,
+            handler => session.UpdatesChanged -= handler);
+
+        async Task<string> CheckNowAsync()
+        {
+            var result = await updates.CheckNowAsync(session.Current.Updates.SkippedVersion, AppVersion.Current, AppVersion.IsDevBuild, _closing.Token);
+            if (result.Offer is { } offer && IsRunning())
+            {
+                line.Offer(offer.Version);
+            }
+
+            return result.Status;
+        }
+    }
+
     /// <summary>
     /// Process start to the overlay's first frame, one line per start: the measure of the start-time gates from T11.1 on
     /// (S11.0 G8 measured it with throwaway code). Through Velopack's stub the stub's own start comes before it (≈ 25 ms).
+    /// Whether the app runs elevated comes last (E1): after a swap with UAC it should run as before; measure-start.ps1 reads
+    /// only the milliseconds.
     /// </summary>
     private static void LogStartTime()
     {
         using var process = System.Diagnostics.Process.GetCurrentProcess();
         var elapsed = DateTime.Now - process.StartTime;
-        AppLog.Write("Start", string.Create(CultureInfo.InvariantCulture, $"overlay first frame {elapsed.TotalMilliseconds:F0} ms after the process start"));
+        var elevated = UpdateEnvironment.IsAdministrator() ? "yes" : "no";
+        AppLog.Write("Start", string.Create(CultureInfo.InvariantCulture, $"overlay first frame {elapsed.TotalMilliseconds:F0} ms after the process start, elevated: {elevated}"));
     }
 
     /// <summary>

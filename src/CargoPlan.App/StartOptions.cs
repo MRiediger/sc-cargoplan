@@ -209,6 +209,33 @@ public sealed record StartOptions(
     }
 
     /// <summary>
+    /// The arguments the app restarts with after an update (T11.2, U5): the same as this start (lock, data folder, feed,
+    /// scans), without <c>--plan</c> and its path. That file became plan.json at the first save; loaded again it would
+    /// replace the run's ticks and moves (Freigabe). Update.exe passes them after <c>--</c> (UpdateExe.cs 63–93).
+    /// </summary>
+    public static IReadOnlyList<string> RestartArguments(IReadOnlyList<string> args)
+    {
+        List<string> kept = [];
+        for (var i = 0; i < args.Count; i++)
+        {
+            if (Is(args[i], PlanSwitch))
+            {
+                // Its path only if one follows, as Parse reads it.
+                if (i + 1 < args.Count && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                {
+                    i++;
+                }
+
+                continue;
+            }
+
+            kept.Add(args[i]);
+        }
+
+        return kept;
+    }
+
+    /// <summary>
     /// Whether the OCR loads after the first frame (D108): with a valid scan key, or for the probe, which measures a warm
     /// engine. Without either nothing loads until a key is set or the editor's Scan button is pressed.
     /// </summary>

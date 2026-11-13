@@ -5,11 +5,12 @@ public abstract record UpdateVerdict;
 
 /// <summary>A newer release the player hasn't skipped.</summary>
 /// <param name="Version">Normalized, without build metadata: "0.9.1".</param>
-/// <param name="Notes">The release notes in Markdown as packed (<c>vpk pack --releaseNotes</c>); null if none (T11.2 shows them).</param>
+/// <param name="Notes">The release notes in Markdown as packed (<c>vpk pack --releaseNotes</c>); null if none. Not shown in the overlay (U11).</param>
 public sealed record UpdateAvailable(string Version, string? Notes) : UpdateVerdict;
 
 /// <summary>Nothing to offer; <paramref name="Reason"/> is the check's one log line.</summary>
-public sealed record NoUpdate(string Reason) : UpdateVerdict;
+/// <param name="Skipped">The newer release the player skipped, for Check now's status (T11.2); null for every other reason.</param>
+public sealed record NoUpdate(string Reason, string? Skipped = null) : UpdateVerdict;
 
 /// <summary>
 /// The update check's decisions without Velopack (T11.1, D109), so they are testable alone: whether to ask at all, before
@@ -56,7 +57,7 @@ public static class UpdateGate
 
         if (ReleaseVersion.TryParse(skipped, out var skip) && skip == offered)
         {
-            return new NoUpdate($"{offered} skipped (updates.skippedVersion)");
+            return new NoUpdate($"{offered} skipped (updates.skippedVersion)", offered.ToString());
         }
 
         return new UpdateAvailable(offered.ToString(), string.IsNullOrWhiteSpace(notes) ? null : notes);

@@ -212,18 +212,47 @@ public class OverlayViewModelTests
     }
 
     [Fact]
-    public void The_update_line_follows_the_hologram_lines_and_leaves_the_hints_standing()
+    public void The_update_line_leaves_the_notice_lines_as_they_are()
     {
-        // T11.1 (A13): one writer, App's check after the first frame; the Plan and Settings hints of the start stay.
+        // Successor of the T11.1 test (A13): the update line is its own element below the notices since T11.2, so an offer,
+        // a download or a skip never touches them; the Plan and Settings hints of the start stay.
         var viewModel = WithPlan();
         viewModel.SetNotice(NoticeSource.Plan, "plan hint");
         viewModel.SetNotice(NoticeSource.Settings, "settings hint");
         viewModel.SetNotice(NoticeSource.HoloUpdate, "holo");
+        var update = Updates();
+        viewModel.Update = update;
 
-        viewModel.SetNotice(NoticeSource.AppUpdate, "Update available: v0.9.1");
+        var changes = Changes(viewModel, () =>
+        {
+            update.Offer("0.9.1");
+            update.SkipCommand.Execute(null);
+        });
 
-        viewModel.Notices.Should().Equal("settings hint", "holo", "Update available: v0.9.1", "plan hint");
+        changes.Should().NotContain(nameof(OverlayViewModel.Notices));
+        viewModel.Notices.Should().Equal("settings hint", "holo", "plan hint");
     }
+
+    [Fact]
+    public void The_update_line_follows_the_lock()
+    {
+        // U2: manual lock and auto-lock both hide its controls.
+        var viewModel = WithPlan();
+        viewModel.IsManuallyLocked = true;
+        var update = Updates();
+
+        viewModel.Update = update;
+        update.IsLocked.Should().BeTrue();
+
+        viewModel.IsManuallyLocked = false;
+        update.IsLocked.Should().BeFalse();
+
+        viewModel.IsAutoLocked = true;
+        update.IsLocked.Should().BeTrue();
+    }
+
+    private static UpdateViewModel Updates() =>
+        new(new UpdateActions((_, _) => Task.FromResult<string?>(null), _ => Task.FromResult<string?>(null), _ => { }), action => action());
 
     [Fact]
     public void SetNotice_replaces_the_line_of_its_source()

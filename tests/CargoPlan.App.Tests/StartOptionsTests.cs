@@ -270,4 +270,30 @@ public class StartOptionsTests
         // Velopack ends a hook run inside Run() (S11.0 G4); should one get through, it must not change the start.
         StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null));
     }
+
+    [Fact]
+    public void The_restart_after_an_update_gets_the_same_arguments()
+    {
+        // U5: the restarted overlay starts as this one did (lock, data folder, feed, scans).
+        string[] args = ["--locked", "--data-dir", @"D:\run\data", "--updates-source", @"D:\run\releases", "--keep-scans"];
+
+        StartOptions.RestartArguments(args).Should().Equal(args);
+    }
+
+    [Theory]
+    [InlineData("--plan", @"D:\plans\route.json")]
+    [InlineData("--Plan", @"D:\plans\route.json")]
+    public void The_restart_leaves_out_the_start_plan(params string[] plan)
+    {
+        // Freigabe: the file would replace plan.json, and with it every tick of the run.
+        string[] args = ["--locked", .. plan, "--data-dir", @"D:\run\data"];
+
+        StartOptions.RestartArguments(args).Should().Equal("--locked", "--data-dir", @"D:\run\data");
+    }
+
+    [Fact]
+    public void A_plan_switch_without_a_path_takes_nothing_else_with_it()
+    {
+        StartOptions.RestartArguments(["--plan", "--locked"]).Should().Equal("--locked");
+    }
 }
