@@ -5828,14 +5828,17 @@ Racks (`probe-b2-src`: v0.3.1-Settings + Plan mit 3 Kisten `loaded`, 6 `delivere
 ### [ ] R5 Nachlauf
 
 - [x] Wiki `v0.4.0` → `master` (Martin, 13.11., `19732be`)
-- [x] `REL:`-Commit: CLAUDE.md ZIP-Größe, R4-Befund nach dem Push
-- [ ] Martin: Start aus dem heruntergeladenen ZIP (SmartScreen „More info → Run anyway“), Release-Seite im Browser
+- [x] `REL:`-Commit: CLAUDE.md ZIP-Größe, R4-Befund nach dem Push (`0642b98`, Martin gepusht)
+- [x] Martin (13.11.): Start aus dem heruntergeladenen ZIP (SmartScreen „More info → Run anyway“), Release-Seite im
+  Browser
 - [x] Branches lokal gelöscht (CC, `git branch -d`): `release/v0.4.0`, `docs/v0.4.0-user-docs`, `fix/b14-plan-notice`,
   Wiki `v0.4.0`
-- [ ] Remote löschen (Martin, Push): `docs/v0.4.0-user-docs`, `feat/t10-5-scan-settings`, Wiki `v0.4.0`
+- [x] Remote gelöscht (Martin, 13.11.): `docs/v0.4.0-user-docs`, `feat/t10-5-scan-settings`, Wiki `v0.4.0`; remote
+  bleiben `main` und der alte `release/v0.3.0`
 - [ ] Nexus mit 0.4.0 nach `docs/nexus/checklist.md`, frühestens 16.11. (Staff-Frist, T9.3)
 - [ ] Ankündigungen (Entwürfe Claude.ai, Martin verschickt)
-- [ ] Rohaufnahmen `Documents\Coding\Dotnet\sc-cargoplan-raw\v0.4.0` (354 MB): Martin entscheidet über Löschen
+- [x] Rohaufnahmen `Documents\Coding\Dotnet\sc-cargoplan-raw\v0.4.0` (354 MB, `hero_full.gif`,
+  `quickstart-capture-sync-full.gif`): bleiben (Martin), außerhalb des Repos
 - Übergabe an K11 (TASKS.md-Archivierung)
 
 ## Phase 11 – nach dem Launch
