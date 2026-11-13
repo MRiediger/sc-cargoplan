@@ -5843,6 +5843,165 @@ Racks (`probe-b2-src`: v0.3.1-Settings + Plan mit 3 Kisten `loaded`, 6 `delivere
 
 ## Phase 11 – nach dem Launch
 
+### [x] S11.0 Velopack-Spike (13.11.2026, kein Prod-Code, abgenommen 13.11.)
+
+**Branches:** Spike-Code auf `spike/s11-velopack` (Worktree `..\sc-cargoplan-s11`, zwei Commits: A = eigenes `Main` + Spike-Log,
+B = Velopack; wird nach der Abnahme gelöscht), dieser Befund auf `spike/s11-velopack-finding`. Laufordner
+`..\sc-cargoplan-s11-run` (Pakete, Feed, Logs, Belege in `evidence\`), außerhalb des Repos.
+**Frage:** Kann sich das Portable-ZIP mit **Velopack** selbst aktualisieren, ohne Nutzerdaten, `ships\`, Cli, Startschalter,
+Admin-Lauf und Startzeit zu gefährden? **Versionen:** NuGet `Velopack` **1.2.161** (eigenes `net10.0`-Target), `vpk`
+**1.2.161** (`dotnet tool install -g vpk --version 1.2.161`); 1.3.x gibt es nur als Pre-Release.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. G2 im **zweiten Windows-Konto** (Windows Sandbox ist nicht installiert), Ergebnis über `C:\Users\Public\s11\`.
+2. „Klick“ = automatischer Apply direkt nach dem Check (`CARGOPLAN_SPIKE_APPLY=1`), kein UI. Feed per
+   `CARGOPLAN_SPIKE_UPDATES`, Notice über die Zeile `Outlines` (Wegwerf).
+3. Spike-Log `spike-s11.log` in der Portable-Wurzel statt `AppLog`, das vor `--data-dir` aufs Profil zeigt. Jeder Lauf mit
+   `--data-dir`, Profil-Hashes (`settings.json`, `.bak`, `plan.json`) nach jedem Gate verglichen.
+4. K1: `%LocalAppData%\CargoPlan\` und `%Temp%` vor dem ersten Start und nach dem Apply belegt (G1, G5).
+5. K2: G2 mit gültigen Dummy-Kopien aus `data\`, App-Start im Testkonto mit `--data-dir`, Existenz des Nachbarordners nach
+   dem Uninstall.
+6. E1/E2: Schreibrecht der Portable-Wurzel und Feed/Upload aus Doku und Quelltext 1.2.161.
+7. G8 zusätzlich „Klick auf die Exe → erster Frame“, weil Velopack vor `Main` eine Stub-Kette schaltet.
+
+**Befunde in der Durchführung:**
+- Velopacks WPF-Sample (`Main(string[])` in `App`, `<StartupObject>…App</StartupObject>`) baut bei uns **nicht**: **CS0017**,
+  weil WPF `Main()` in dieselbe Klasse generiert und `StartupObject` nur eine Klasse wählt. Lösung: eigene Klasse
+  `Program` mit `[STAThread] Main`, `<StartupObject>CargoPlan.App.Program</StartupObject>`.
+- `vpk pack` **überschreibt** im Ausgabeordner `CargoPlan-win-Portable.zip` und `-Setup.exe` mit der jüngsten Version.
+  Der Feed wurde neu gebaut, Portable/Setup jeder Version sofort weggesichert.
+- Zwei Builds desselben Codes ergeben **verschiedene nupkg** (Hash ungleich). Ein Delta muss gegen das **veröffentlichte**
+  Full-nupkg der Vorversion gebaut werden.
+- **G2 brauchte vier Läufe.** Lauf 1 wurde durch frühes Abmelden abgebrochen. Die Läufe 2 und 3 hingen, weil **Setup.exe
+  1.2.161 abstürzt, sobald nach `--` App-Argumente folgen** (`--data-dir`): Rust-Panic in clap („Mismatch between definition
+  and access of `EXE_ARGS`“, Setup-Log `--verbose`), danach läuft Setup ohne Fenster endlos und installiert nichts. Upstream
+  [velopack#1039](https://github.com/velopack/velopack/issues/1039), geschlossen am 10.10.2026, in 1.2.161 noch vorhanden.
+  Lauf 4 ohne App-Argumente bestand. Reste eines früheren Installs mit App-Start ohne `--data-dir` (`cargoplan.log`, Holo-Cache
+  im Dummy-Ordner) hat Lauf 2 per Uninstall und Neuanlage entfernt; dieser Uninstall nannte im Velopack-Log ebenfalls nur
+  `CargoPlan\` und den Temp-Ordner. Belege: `C:\Users\Public\s11\g2-result-145748.txt`, `g2-setup-*.log`,
+  `g2-velopack_CargoPlan-*.log`.
+
+**Gates:**
+
+| Gate | Ergebnis | Beobachtung |
+|---|---|---|
+| G1 Portable aktualisiert sich selbst | **bestanden** | 0.9.0 → 0.9.1 im selben Ordner, ohne Setup, ohne Admin; `ApplyUpdatesAndRestart` startet die App neu (`build B`, `--data-dir` über `restartArgs`); Klick → neues `Main` 2,0 s, → erster Frame 2,8 s (Feed lokal) |
+| G1/G5 Portable schreibt ins Profil (K1) | **ja, nur Log** | `%LocalAppData%\CargoPlan\` entsteht nicht; Velopack schreibt `%LocalAppData%\velopack\velopack_CargoPlan.log` (gemeinsamer Ordner aller Velopack-Apps), `%Temp%` nichts (`Temp\velopack` stammt von `vpk pack`) |
+| G2 packId ≠ Datenordner | **bestanden** | Testkonto `cargotest`, `packId = CargoPlan`: `Setup.exe --silent` (1 s) und `Update.exe --uninstall --silent` lassen `%LocalAppData%\SC-CargoPlan\` stehen, `settings.json`/`plan.json` in allen Stufen byteidentisch; Uninstall entfernt nur `CargoPlan\`, `Temp\velopack_CargoPlan`, Verknüpfungen (Desktop, Startmenü) und den Uninstall-Eintrag; Setup im Silent-Modus startet die App nicht, nur den Install-Hook |
+| G3 Daten, `ships\`, Cli | **bestanden** | `settings.json`/`plan.json` in `data\` byteidentisch; `current\ships\` 106 = Publish-Ordner; `current\CargoPlan.Cli.exe --version` = `0.9.1+e3db8dc`; Profil unverändert |
+| G4 Hook-Reihenfolge | **bestanden** | `--veloapp-updated 0.9.1`: 113 ms, Exit 0, nur die Hook-Zeile, kein `after Run`, Profil unverändert (Start ohne `--data-dir`); Update.exe ruft vor dem Tausch die alte Exe mit `--veloapp-obsolete`, danach die neue mit `--veloapp-updated`, beide enden in `Run()`; über den Stub kommen `--locked` (`WS_EX_TRANSPARENT` gesetzt), `--plan` (plan.json übernommen), `--data-dir`, `--measure-frames empty --over-game` an, je ein `after Run`; kein `settings.json.bak` |
+| G5 Admin-Lauf | **bestanden, UAC-Abfrage nicht beobachtbar** | alter und neuer Prozess `elevated=True`, Tausch ok; `ConsentPromptBehaviorAdmin = 0` auf diesem Rechner (Erhöhung ohne Abfrage), ob eine zweite Abfrage käme, ist nicht beobachtet; Update.exe und Neustart erben das Token |
+| G6 Größen | gemessen | Tabelle unten; Portable +4,1 MB gegenüber dem heutigen ZIP, Delta 165 KB |
+| G7 GitHub-Quelle | recherchiert | Stichpunkte unten |
+| G8 Startzeit | **bestanden** | Main → erster Frame +12 / +17 ms (Median, zwei Reihen à 3); Klick → erster Frame +37 / +42 ms; Check-Ergebnis 14–16 ms **nach** dem ersten Frame, nie blockierend |
+
+**G6 Größen** (Bytes aus `..\sc-cargoplan-s11-run`, MB dezimal wie in CLAUDE.md):
+
+| Artefakt | Bytes | MB |
+|---|---|---|
+| Release-ZIP v0.4.0 (Referenz, lokal) | – | 85,2 |
+| `publish.ps1`-ZIP 0.9.0 mit `Velopack.dll` | 85.329.674 | 85,3 |
+| **Velopack Portable-ZIP** 0.9.0 | 89.473.215 | **89,5** |
+| **Full-nupkg** 0.9.1 | 89.517.239 | **89,5** |
+| **Delta-nupkg** 0.9.0 → 0.9.1 (Textmarker + Version; 11 von 379 Dateien gepatcht) | 164.606 | **0,16** |
+| Setup.exe 0.9.0 (nur G2) | 97.075.367 | 97,1 |
+
+- Velopack bringt unter .NET 10 nur `Velopack.dll` (279 KB) mit. Portable = App + `Update.exe` (4,0 MB) + Stub (0,45 MB),
+  ohne `*.pdb` und `createdump.exe` (Default-`--exclude` von `vpk`).
+- Pack-Zeit je Version 5–7 s.
+
+**G8 Startzeit** (Release, warm, gleicher Datenordner; A = eigenes `Main` ohne Velopack, B = 0.9.0-Portable mit `Run()` und
+Check gegen den lokalen Feed, der 0.9.1 findet):
+
+| Messung | A heute | B Velopack | Δ |
+|---|---|---|---|
+| Main → erster Frame, Reihe 1 (Median aus 3) | 785 ms | 802 ms | +17 ms |
+| Main → erster Frame, Reihe 2 (Median aus 3) | 778 ms | 790 ms | +12 ms |
+| Klick → erster Frame, Reihe 1 (B über den Stub) | 821 ms | 863 ms | +42 ms |
+| Klick → erster Frame, Reihe 2 | 815 ms | 852 ms | +37 ms |
+| Check fertig nach dem ersten Frame | – | 14–16 ms | – |
+
+- `Run()` selbst kostet 30–50 ms (`Run took …`), überlappt aber mit dem WPF-Start. Netto bleiben +12 bis +17 ms.
+- Die Stub-Kette (`SC-CargoPlan.exe` → `Update.exe start` → `current\CargoPlan.App.exe`) kostet weitere ≈ 25 ms vor `Main`.
+- Kaltstart (erster Lauf nach dem Build): A 1371 ms, B 1333 ms Klick → Frame, im Rauschen.
+
+**G7/E2 GitHub-Quelle** (Quelltext `src/lib-csharp/Sources/GithubSource.cs`, `GitBase.cs`, `HttpClientFileDownloader.cs`, Tag
+1.2.161; `vpk … --help`):
+- `new GithubSource(repoUrl, accessToken: null, prerelease: false)`: `prerelease: false` filtert nach GitHubs
+  **Release-Flag** `prerelease`, nicht nach dem Tag-Namen. RCs müssen als Pre-Release veröffentlicht werden.
+- **Ein API-Aufruf je Check:** `GET /repos/{owner}/{repo}/releases?per_page=10&page=1`, sortiert nach `published_at`. Es zählen
+  nur die **10 zuletzt veröffentlichten Releases**, Holo- und Pre-Releases eingeschlossen. Kommen mehr als 10 Nicht-App-Releases
+  nach dem letzten App-Release, findet der Check nichts.
+- Je Release wird das Asset `releases.{channel}.json` gesucht, Channel unter Windows per Default `win` →
+  **`releases.win.json`**. Fehlt es (`holo-v1`, `holo-v2`, v0.1.0–v0.4.0), wirft `GetAssetUrlFromName`, `GitBase` fängt und
+  **überspringt das Release**.
+- Die Version kommt aus `releases.win.json` (`vpk pack -v`), **nicht aus dem Tag**. Tag `v0.5.0` mit `-v 0.5.0` passt.
+- Unauthentifiziert: 60 Anfragen/h je IP, ein Check = 1 API-Anfrage. JSON und Pakete laden über `browser_download_url` und
+  zählen nicht. User-Agent `Velopack/1.2.161`, keine Nutzerdaten. Die `.betaId` (Staging-GUID in `packages\`) nutzt `GitBase` nicht.
+- **403/Rate-Limit/offline:** `EnsureSuccessStatusCode` → `HttpRequestException` aus `CheckForUpdatesAsync()`. Die Methode
+  hat **keinen CancellationToken**, der Download-Timeout steht per Default auf 30 min.
+- Ein vollständiger Feed je GitHub-Release: **`releases.win.json` + Full-nupkg** (Pflicht), Delta-nupkg (optional),
+  `CargoPlan-win-Portable.zip` (für Menschen), `Setup.exe`, `RELEASES` (Squirrel-Altformat), `assets.win.json` (Liste für
+  `vpk upload`).
+- `vpk upload github --repoUrl --token --tag --releaseName --pre --merge --publish` lädt `assets.win.json` hoch;
+  `vpk download github --repoUrl [--pre]` holt das letzte Release in den Ausgabeordner (Basis für das Delta).
+
+**E1 Schreibrecht der Portable-Wurzel** (`WindowsVelopackLocator.cs`, `apply_windows_impl.rs`):
+- Schreibbar: `packages\` neben `current\` (beobachtet: `packages\CargoPlan-0.9.1-full.nupkg`, `.betaId`, `.velopack_lock`,
+  `VelopackTemp\`).
+- **Nicht schreibbar** (`C:\Program Files\…`, Share): Rückfall auf **`%LocalAppData%\{packId}\packages`** plus Kopie von
+  `Update.exe` dort, **auch bei Portable**. Den Tausch startet Update.exe dann **selbst erhöht (UAC)** und wartet bis zu 10 min.
+  Läuft der Prozess schon als Admin und die Wurzel ist trotzdem nicht schreibbar: Abbruch „The update cannot continue.“
+
+**Designfolgen für T11.1–T11.3:**
+- **`packId = CargoPlan`**, nie `SC-CargoPlan` und später nie mehr ändern (neue packId = neue App, alte Installationen finden
+  kein Update). Begründung aus dem Quelltext:
+  - Setup löscht beim Install eine nicht leere `%LocalAppData%\{packId}` (Rückfrage, mit `--silent` automatisch Ja),
+    Uninstall leert sie (`remove_dir_contents`).
+  - Portable legt bei nicht schreibbarer Wurzel `packages\` dorthin.
+  - Das gilt **für jedes Paket**, nicht nur für Setup.exe.
+- **Ort von `Run()`:** eigene Klasse `Program` mit `[STAThread] Main`, `<StartupObject>CargoPlan.App.Program</StartupObject>`.
+  `VelopackApp.Build().Run()` als erste Zeile, dann `new App()`, `InitializeComponent()`, `Run()`. `StartOptions` ignoriert
+  `--veloapp-*` schon heute. Fast-Callbacks haben 15 s (Update) bzw. 30 s (Install/Uninstall), wir brauchen keinen.
+- **Portable statt Setup:**
+  - Layout neu: Wurzel mit `SC-CargoPlan.exe` (Stub, Name aus `--packTitle`), `Update.exe`, `.portable`, `current\`, nach dem
+    ersten Update `packages\`. Der Hauler startet den Stub.
+  - Das Release-ZIP wird das Velopack-Portable-ZIP (+4,1 MB). `publish.ps1` bleibt der Publish-Schritt, seine ZIP-Prüfung
+    (ships, outlines, models) muss dann `current\…` im Portable prüfen.
+  - Ohne `.pdb` haben Crash-Stacks im `cargoplan.log` keine Zeilennummern mehr. Ob per `--exclude` mitliefern, entscheidet T11.1.
+- **Erstes Update ist immer voll** (89,5 MB): Das Portable-ZIP hat kein Basis-nupkg („no local/base package … delta updates will
+  be disabled“). Danach liegt das Full-nupkg in `packages\`, und Deltas greifen (165 KB im Spike).
+- **Release-Workflow (T11.3):** `vpk download github` (letztes stabiles Release) → `vpk pack` → `vpk upload github --tag v… --merge`
+  oder unser Asset-Upload mit derselben Dateiliste. Ohne den Download-Schritt gibt es kein Delta, ein neu gebautes nupkg passt
+  nicht byteweise. Holo-Releases zählen zu den 10 abgefragten.
+- **Pre-Releases:** `prerelease: false`, RC-Tags als GitHub-Pre-Release veröffentlichen. Alte Releases ≤ v0.4.0 haben keinen
+  Feed: **v0.5.0 holt jeder Hauler einmal von Hand**, erst ab dann aktualisiert es sich selbst.
+- **Check (T11.2):** nach dem ersten Frame auf dem Pool-Thread mit eigenem Timeout (z. B. `Task.WaitAsync`). Fehler und 403
+  nur ins Log, Notice nur bei „Update da“. Das ist der **zweite Netzzugriff** neben `HoloSource` und braucht laut CLAUDE.md einen
+  eigenen D-Eintrag und einen Schalter in settings.json (Schema-Bump mit Migration).
+- **Apply (T11.2):** `ApplyUpdatesAndRestart` endet sofort per `Environment.Exit`, ohne `Closed`-Handler. Vorher Settings- und
+  Plan-Flush, oder `WaitExitThenApplyUpdates` + `Shutdown()`. `restartArgs` = eigene Startargumente (`--data-dir`, `--locked`).
+  Update.exe beendet vor dem Tausch **jeden Prozess aus dem Ordner** (auch eine laufende `CargoPlan.Cli.exe`).
+- **Notice-Fälle (T11.2):** Wurzel nicht schreibbar → UAC-Abfrage beim Tausch, bei Ablehnung Fehler; schon Admin + nicht
+  schreibbar → Tausch unmöglich, Text „folder not writable, download the ZIP“.
+
+- **Setup.exe nicht mit App-Argumenten aufrufen** (velopack#1039 in 1.2.161). Falls Setup je angeboten wird: ohne `--`,
+  oder erst mit einer Velopack-Version, in der der Fix nachweislich steckt.
+
+**Offene Risiken:**
+- Update.exe meldete beide Male „Failed to wait for process … Zugriff verweigert … Continuing“ und tauschte trotzdem sauber,
+  weil `ApplyUpdatesAndRestart` schon beendet hatte. Bei einer langsam beendenden App (Flush vor dem Exit) würde Force-stop
+  sie töten. In T11.2 mit `WaitExitThenApplyUpdates` prüfen.
+- UAC mit Abfrage (G5) und SmartScreen für Stub und `Update.exe` aus einem heruntergeladenen ZIP sind nicht geprüft.
+- Velopack setzt die AppUserModelID `velopack.CargoPlan`: Die Taskleisten-Gruppierung ändert sich gegenüber v0.4.0.
+- Alles neben der Exe geht beim Tausch verloren (`measure-frames.log`, lokal geänderte `ships\`-Dateien). Ships kommen laut
+  `docs/ship-format.md` nur über das Repo, Risiko klein und heute beim neuen ZIP gleich.
+
+**Empfehlung:** Weiter mit **Velopack-Portable**: Der Selbsttausch, die Daten, `ships\`, Cli, Startschalter und Admin-Lauf
+halten, und der Start wird nur um 12–17 ms (Klick: 37–42 ms) langsamer. Setup.exe bringt Hauler nichts, was Portable nicht
+kann, ist 8 MB größer, berührt mit Install/Uninstall `%LocalAppData%\{packId}` und hängt in 1.2.161 bei App-Argumenten. Ein Rückfall auf „Notice mit Download-Link“
+ist nicht nötig, bleibt aber der Weg für Wurzeln ohne Schreibrecht.
+
 ### [ ] T11.1 Auto-Update – **Velopack** evaluieren (ersetzt T6.2-Publish durch Installer mit Delta-Updates)
 ### [ ] T11.2 winget-Manifest – `winget install SC-CargoPlan`
 
