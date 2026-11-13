@@ -5591,7 +5591,7 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     Erster Start von Lauf 3 ohne Tastendruck im Log (kein Scan versucht), zweiter Start gleich konfiguriert ok.
   - Abgenommen (Martin, 12.11.2026). CI nach dem Push von `main`.
 
-### [ ] B14 Plan-Notice überlebt das Speichern (Branch `fix/b14-plan-notice`, D106-Addendum)
+### [x] B14 Plan- und Settings-Notice überleben das Speichern (Branch `fix/b14-plan-notice`, Addenda D105, D106)
 
 - **Anlass (T10.6, R4-Upgrade-Probe am ZIP, 13.11.):** Ein v0.3.1-Plan mit CT-Verträgen lädt richtig (`#1–#4`, Kisten
   und Haken bleiben), aber „4 contracts from ContractTracker are scan missions #1–#4 now.“ steht nur im Log: 500 ms nach
@@ -5632,7 +5632,7 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
 - [x] Probe Settings-Teil am Release-Build (13.11., Martin nicht im Spiel): Overlay nach 8 s per `SetWindowPos`
   verschoben, `settings.json` mit den neuen Bounds gespeichert; danach beide Hinweise weiter in der Amber-Zeile, zweiter
   Start an der neuen Stelle ohne Hinweise
-- [ ] Abnahme Martin, `--no-ff` nach `main`, dann `main` → `release/v0.4.0`
+- [x] Abnahme Martin (13.11.2026), `--no-ff` nach `main`, dann `main` → `release/v0.4.0`
 
 ### [ ] T10.6 Release v0.4.0
 
