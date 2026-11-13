@@ -5784,6 +5784,30 @@ ContractTracker als Halbsatz beim Wegfall.
   (leeres Profil) und b (v0.3.1-Profil), `dotnet test` im sauberen Worktree, `gh run list -L 3`
 - Martin: Abnahme → `--no-ff` nach `main`, Tag `v0.4.0`; veröffentlichtes ZIP nachmessen
 
+**Befund, erster Lauf (13.11., Stand `4652ae3`):** ZIP 85.214.246 Byte, Tests grün; die Upgrade-Probe b fand die
+verschwundene Plan-Notice → Stopp, **B14** vor dem Tag (Regel des Tasks: kein Produktcode im Release-Branch). Der erste
+Probe-b-Lauf verlor „loaded“: die Settings-Fixture nennt die Hull B, der Plan war für die Hull A, also neu geplant
+(gewollt, `plan-format.md` „Planned anew … no longer loaded“); Probe b danach aus einem Schema-9-Plan auf den heutigen
+Racks (`probe-b2-src`: v0.3.1-Settings + Plan mit 3 Kisten `loaded`, 6 `delivered`).
+
+**Befund, zweiter Lauf (13.11., Stand `d39dffe`, mit B14 aus `main` `6426211`):**
+
+| Prüfung | Soll | Ist | |
+|---|---|---|---|
+| `publish.ps1 -Version 0.4.0` | ≈ 85 MB, 0 Warnungen | 85.214.432 Byte, 0 Warnungen | ✓ |
+| SHA256 | gleich `.sha256` | `167ABA8F…9F7FB0D4`, gleich | ✓ |
+| Einträge | wie v0.4.0-Entwurf | 381 (v0.3.1: 368, + OCR, − SQLite) | ✓ |
+| `models/` | `v5/` 4 Dateien, NOTICE | 4 + `NOTICE.md` + `onnxruntime-ThirdPartyNotices.txt` | ✓ |
+| `ships/`, `outlines/` | 105 + 1 Modul, 2 Dateien | 106 JSON; `ship-outlines.json`, `NOTICE.md` | ✓ |
+| SQLite | keine | keine `*sqlite*` | ✓ |
+| Runtime, Version | 10.0.14, `0.4.0+…` | 10.0.14 beide; `0.4.0+d39dffe…` | ✓ |
+| `dotnet test`, sauberer Worktree | grün | Core 1770, App 1823, Import 280, Ocr 34 | ✓ |
+| Probe a, leeres Profil (ZIP-Exe) | F3 ab Werk, kein Schreiben | Reader wärmt beim Start (nur mit Scan-Taste), nur `cargoplan.log`; Hull A leer, „No plan …“ | ✓ |
+| Probe b, v0.3.1-Profil, Start + Verschieben | beide Hinweise bleiben, Marken bleiben | Amber-Zeile „hotkey Ctrl+Alt+O … removed …“ und „4 contracts … #1–#4 now.“ nach dem Verschieben; 3 `loaded`, 6 `delivered`, Schema 10; `.bak` = Schema 2 mit `Ctrl+Alt+O` | ✓ |
+| Probe b, zweiter Start | keine Hinweise | keine Amber-Zeile, Log-Zeile der Konvertierung einmal | ✓ |
+| `ShipPictureTests` gegen `main` (`6426211`, eigener Worktree, 98 Hologramme aus `sc-ship-outlines/holo/holo-v2`) | 0 verschieden | **1388 identisch, 0 verschieden, 0 fehlend**, Placement-Zahlen auf 0 von 106 verschieden; `git diff main -- src tests ships build` leer, `outlines/` nur die NOTICE-Textzeile | ✓ |
+| Probe a über dem Spiel (Martin, 13.11.) | Hotkeys-Zeile F3 + Hinweis, Scan → `Scanned #1`, `scans.log` mit `Added #1`, Fußzeile 0.4.0 | „funktioniert“; `cargoplan.log` des Laufs nur „OCR ready … 129 → 216 MB“ (die Scans stehen in `scans.log`) | ✓ |
+
 ### [ ] R5 Nachlauf
 
 - Wiki `v0.4.0` → `master`, Nexus mit 0.4.0 (frühestens 16.11.), Ankündigungen, Branches löschen, `REL:`-Commit
