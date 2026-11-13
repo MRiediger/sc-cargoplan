@@ -6002,7 +6002,7 @@ halten, und der Start wird nur um 12–17 ms (Klick: 37–42 ms) langsamer. Setu
 kann, ist 8 MB größer, berührt mit Install/Uninstall `%LocalAppData%\{packId}` und hängt in 1.2.161 bei App-Argumenten. Ein Rückfall auf „Notice mit Download-Link“
 ist nicht nötig, bleibt aber der Weg für Wurzeln ohne Schreibrecht.
 
-### [ ] T11.0 Doku – D109, Phase 11 neu, CLAUDE.md A14
+### [x] T11.0 Doku – D109, Phase 11 neu, CLAUDE.md A14 (13.11.2026, `2db4063`, abgenommen mit T11.1)
 
 Branch `feat/p11-auto-update`, erster Commit. **D109** „CargoPlan updates itself via Velopack (portable)“ mit Martins
 Entscheidungen E1–E10 aus dem Prompt (Velopack 1.2.161 gepinnt, Portable-ZIP ohne Setup.exe, `packId = CargoPlan`,
@@ -6019,7 +6019,7 @@ Addenda an D63 (zweiter Netzzugriff) und D105 (`updates` ohne Schema-Schritt). C
    ohne `releases.win.json` zählen **vor** dem Filter mit. Regel in T11.3.
 4. CLAUDE.md-Zeile „Netz“ nennt jetzt zwei Zugriffe (der Prompt nannte nur A14).
 
-### [ ] T11.1 Integration – eigenes `Main`, `UpdateGate`, `UpdateService`, `updates` in settings.json, Notice als Text
+### [x] T11.1 Integration – eigenes `Main`, `UpdateGate`, `UpdateService`, `updates` in settings.json, Notice als Text (13.11.2026, `cff9c7b`, abgenommen 13.11.)
 
 Alles in `CargoPlan.App`, Core unverändert. Check nach dem ersten Frame, Ergebnis nur als Text `Update available: v…`
 (`NoticeSource.AppUpdate`), kein Download.
@@ -6090,6 +6090,16 @@ $exe = "$PWD\portable-0.9.0\SC-CargoPlan.exe"
    `"updates": { "checkOnStartup": true, "skippedVersion": null }`, `settings.json.bak` = die alte Datei; noch einmal
    verschieben → `.bak` bleibt gleich. *CC (mit der Datei aus `main`s Fixture `t10.3_scan`, Verschieben per
    `SetWindowPos`): so.*
+
+**Abnahme (Martin, 13.11.2026): alle Gates bestanden.**
+- [x] Gate 1 Notice nach dem Overlay, SC im Vordergrund; Startzeit Δ ≤ 50 ms (Martins Zahlen nicht notiert; CC ohne SC
+  s. oben)
+- [x] Gate 2 `skippedVersion` → keine Notice, Zeile „skipped“; `checkOnStartup: false` → keine Notice, keine Zeile
+- [x] Gate 3 Dev-Build → keine Notice
+- [x] Gate 4 leerer Feed und ohne Netz → keine Notice, eine Zeile
+- [x] Gate 5 settings.json von `main` lädt, `updates` und `.bak` beim ersten Speichern
+- [x] Build ohne Warnungen, alle Tests grün (Core 1772, Import 280, Ocr 34, App 1888), `dotnet format` sauber
+- Nächster Schritt: T11.2 mit eigenem Prompt. Merge `--no-ff` erst am Ende der Phase.
 
 ### [ ] T11.2 Notice mit Update und Skip, Abschnitt „Updates“ im Settings-Fenster, Download + Apply
 
