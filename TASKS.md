@@ -5737,6 +5737,8 @@ ContractTracker als Halbsatz beim Wegfall.
   moves“ → „Crates already loaded stay where they are“; im Highlight zum neuen Vertrag richtig und wortgleich mit dem
   Wiki „Scanning contracts“. Offen im Produkt: der Hinweis im Settings-Fenster sagt weiter „Clear it to turn scanning
   off: …; the editor's Scan button still works.“ – in sich stimmig, kein Fix im Release-Branch.
+- Nach B14 (Claude.ai): `plan.json`-Zeile „… when v0.4.0 loads it, and an amber line says so once; …“; Notes, Wiki
+  (`Installation-and-first-start`) und Produkt sagen jetzt dasselbe.
 
 ### [x] R3 Medien (Martin nimmt auf, CC schneidet und prüft) (13.11.2026)
 
