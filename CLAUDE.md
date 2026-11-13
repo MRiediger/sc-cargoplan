@@ -177,6 +177,10 @@ dotnet run --project src/CargoPlan.Cli -- --version
 ## Definition of Done (jeder Task)
 
 1. Akzeptanzkriterien aus `TASKS.md` erfüllt und einzeln vorgeführt.
-2. `dotnet build` ohne Warnungen (`TreatWarningsAsErrors`), `dotnet test` grün.
-3. Martin hat jede neue Datei einmal erklärt bekommen (Zweck, Kernidee, nicht Zeile für Zeile).
-4. Task in `TASKS.md` auf `[x]`, Commit mit Task-Prefix (`T2.1: ...`), englische Message.
+2. Unmittelbar vor der Fertig-Meldung `dotnet build` und `dotnet test`
+   komplett ausführen und die Zusammenfassung der Ausgabe wörtlich zitieren
+   (Warnungen: 0, Tests: bestanden/gesamt). Keine Fertig-Meldung ohne
+   diesen Nachweis aus demselben Durchlauf.
+3. `dotnet build` ohne Warnungen (`TreatWarningsAsErrors`), `dotnet test` grün.
+4. Martin hat jede neue Datei einmal erklärt bekommen (Zweck, Kernidee, nicht Zeile für Zeile).
+5. Task in `TASKS.md` auf `[x]`, Commit mit Task-Prefix (`T2.1: ...`), englische Message.
