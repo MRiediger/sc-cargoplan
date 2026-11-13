@@ -5592,6 +5592,49 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
     Erster Start von Lauf 3 ohne Tastendruck im Log (kein Scan versucht), zweiter Start gleich konfiguriert ok.
   - Abgenommen (Martin, 12.11.2026). CI nach dem Push von `main`.
 
+### [x] B14 Plan- und Settings-Notice überleben das Speichern (Branch `fix/b14-plan-notice`, Addenda D105, D106)
+
+- **Anlass (T10.6, R4-Upgrade-Probe am ZIP, 13.11.):** Ein v0.3.1-Plan mit CT-Verträgen lädt richtig (`#1–#4`, Kisten
+  und Haken bleiben), aber „4 contracts from ContractTracker are scan missions #1–#4 now.“ steht nur im Log: 500 ms nach
+  dem Start schreibt `PlanSaver` den konvertierten Plan zurück und setzt die Plan-Zeile auf `_keptNotice` (ohne
+  beiseitegelegte Datei `null`). B13 baute das Löschen, T10.4b das Setzen, kein gemeinsamer Test; der Test-Helfer
+  `PlanSaverTests.Start()` setzte nur `Problem`, nicht `Notice`.
+- **Fix (Martins Muster aus B13):** eine haftende Plan-Notice im Saver. `_keptNotice` → `_notice`, neuer Parameter
+  `notice` (`PlanLoad.Notice` des Starts, `App.ComposeStartPlan`); nach jedem erfolgreichen Speichern steht `_notice`
+  wieder in der Zeile: Fehler weg, Hinweise bleiben. `KeepUnreadable` verbindet statt zu verdrängen:
+  `kept as … · n contracts …` (`--plan` mit CT-Datei über unlesbarer plan.json).
+- **Präzisierung in der Planphase, ratifiziert durch Freigabe:** beide Hinweise mit ` · ` in einer Zeile statt „kept as
+  gewinnt“ (Claude.ai); Lehre als CLAUDE.md A13 und Zeile unter „Lehren“ (Martin); Settings-Zeile (Fund des Rück-Sweeps)
+  im selben Branch vor dem Merge (Martin), gleiches Muster: `SettingsSession` hält den Migrationshinweis (`_hint`,
+  `WriteBack(hint, problem)`), jedes erfolgreiche Speichern zeigt Korrekturen (D34) und Hinweis (D105-Addendum).
+
+**Befund:**
+- Tests vorab, rot an der Assertion: `A_plan_from_before_v0_4_0_keeps_its_notice_after_the_first_save` (Notices leer),
+  `A_failed_save_shows_its_problem_and_the_next_save_brings_the_notice_back` (zweiter Teil: leer statt Hinweis),
+  `A_plan_file_with_captures_over_an_unreadable_plan_json_keeps_both_notices` (nur „kept as …“). Nach dem Fix
+  `PlanSaverTests` + `PlanStoreTests` 36/36.
+- `dotnet build` 0 Warnungen; `dotnet test` Core 1770, App 1820 (+3), Import 280, Ocr 34 (lokal Core +2 und App +1 durch
+  drei ignorierte Scratch-Dateien).
+- Rück-Sweep (A2), Schreiber je `NoticeSource` in mehreren Dateien: **Move** (ScanRunner, Editor, OverlayViewModel) –
+  „letzte Aktion gewinnt“, gewollt; **Ship** (Start, Schiffswechsel) – der Wechsel macht den Start-Hinweis hinfällig,
+  gewollt; **Settings** (Start, `SettingsSession`) – **derselbe Fehlertyp**: nach jedem Settings-Speichern setzt
+  `SettingsSession.Save` die Zeile auf `_corrections`, und Speichern löst schon ein Drehen oder Zoomen der Ansicht aus
+  (`ChangeCameras`); der Migrationshinweis „hotkey … for the ContractTracker sync was removed“ verschwindet also mit der
+  ersten Kameraänderung (bis dahin sichtbar, Probe b2 nach 10 s), ebenso mit dem ersten Verschieben des Overlays
+  (`ChangeBounds` speichert sofort). Martin: vor dem Merge beheben (zweiter Commit).
+- Settings-Teil, Tests vorab rot an der Assertion: `The_migration_hint_stays_after_a_camera_change_is_saved` (leer),
+  `A_failed_save_shows_its_problem_and_the_next_save_brings_the_migration_hint_back` (zweiter Teil leer),
+  `A_look_correction_and_the_migration_hint_stand_together` (nur die Korrektur). Nach dem Fix `SettingsSessionTests` +
+  `PlanSaverTests` 58/58; `dotnet build` 0 Warnungen, `dotnet test` Core 1770, App 1823 (+6 mit dem Plan-Teil), Import
+  280, Ocr 34 (ohne die drei ignorierten Scratch-Dateien).
+- [x] Upgrade-Probe b2 am Release-Build (`--data-dir`, v0.3.1-Settings + Schema-9-Plan auf den heutigen Racks, Screenshot
+  nach 10 s): Amber-Zeile „settings.json: hotkey Ctrl+Alt+O … removed …“ und „4 contracts from ContractTracker are scan
+  missions #1–#4 now.“; zweiter Start ohne beide, Log mit der Konvertierungszeile einmal
+- [x] Probe Settings-Teil am Release-Build (13.11., Martin nicht im Spiel): Overlay nach 8 s per `SetWindowPos`
+  verschoben, `settings.json` mit den neuen Bounds gespeichert; danach beide Hinweise weiter in der Amber-Zeile, zweiter
+  Start an der neuen Stelle ohne Hinweise
+- [x] Abnahme Martin (13.11.2026), `--no-ff` nach `main`, dann `main` → `release/v0.4.0`
+
 ### [ ] T10.6 Release v0.4.0
 
 - Branch `release/v0.4.0`, Textabgleich.
@@ -5762,6 +5805,7 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 - **Darstellung am gerenderten Bild prüfen, nicht an der Geometrie.** Anlass T8.2–T8.5: alle Kantenstreifen der Szene waren falsch gewickelt und unsichtbar; drei Tasks lang grün, weil die Tests nur Positionen prüften. Gefunden erst mit `RenderTargetBitmap` (`ViewPictures`); in T8.6 bewies ein Byte-Vergleich der Bilder vorher/nachher, dass der Rückbau nichts änderte.
 - **Mechanik-Tests laden Fixtures aus dem Test-Ordner, nie aus `ships/`** (CLAUDE.md A10). Datentests prüfen `ships/` selbst. Anlass Session 4a (D92): Die Racks aus den Spieldateien brachen 70 Tests (Treffertest, Drag, Szene, Kamera, Rack-Geometrie), ohne dass die App einen Fehler hatte, weil sie feste Zellen und Pixel der ausgelieferten Hull A, Freelancer und Caterpillar prüften. Seitdem: `tests/CargoPlan.Core.Tests/FrozenShips`, `TestPlans.HullA()`, `FrozenShips.Load`.
 - **Mess- und Gate-Befehle selbst einmal laufen lassen, bevor Martin sie bekommt.** Anlass T8.5 (Messbefehl) und T8.7 (`--over-game`): erst der eigene Lauf zeigt, ob das Log das Richtige zählt; die 343 Vorschau-Wechsel des Sweeps hätten einen von SC gefangenen Cursor nicht verraten, daher „path keys“.
+- **Eine Notice-Zeile, mehrere Schreiber: alle greppen, Zusammenspiel testen** (CLAUDE.md A13). Anlass B14: B13 baute „nach dem Speichern ist ein Ladeproblem gelöst, Zeile leeren“, T10.4b setzte in dieselbe Zeile den Konvertierungshinweis; jeder Task war für sich getestet, der Hinweis stand im fertigen ZIP 500 ms. Gefunden erst von der Upgrade-Probe in T10.6; ein Grep nach `SetNotice(NoticeSource.Plan` hätte beide Schreiber gezeigt.
 
 ---
 

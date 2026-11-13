@@ -11,7 +11,8 @@ namespace CargoPlan.App.Plans;
 /// Saves the plan whenever it changes, debounced: a Star Citizen crash between two stops must not lose the ticks (D18).
 /// Listens to <see cref="OverlayViewModel.Saved"/> itself, so every way of changing the plan saves it: tick, editor,
 /// drag and drop, and a scan, also when it only adds a mission that didn't fit (T5.4). The one writer of plan.json, so it
-/// is also the one place that keeps an unreadable file aside before overwriting it (B13, D106).
+/// is also the one place that keeps an unreadable file aside before overwriting it (B13, D106), and the one that decides
+/// what the Plan notice line shows after a save: a load or save problem goes, a hint stays for the run (B14).
 /// </summary>
 public sealed class PlanSaver
 {
@@ -26,14 +27,17 @@ public sealed class PlanSaver
     // The file at _path couldn't be read at the start: the first save moves it aside before writing, once (B13, D106).
     private bool _keepUnreadable;
 
-    // Names the kept file for the rest of the run, like an old hologram cache that stays (NoticeSource.HoloUpdate).
-    private string? _keptNotice;
+    // The hint of the Plan line for the rest of the run, like an old hologram cache that stays (NoticeSource.HoloUpdate):
+    // the start's converted captures (D107), the kept file (D106), or both. Every successful save shows it again.
+    private string? _notice;
 
     /// <param name="window">Its Closed event writes what is still pending.</param>
     /// <param name="keepUnreadable"><see cref="PlanLoad.Unreadable"/> of the start's load of <paramref name="path"/>.</param>
-    public PlanSaver(Window window, OverlayViewModel viewModel, string path, bool keepUnreadable = false)
+    /// <param name="notice"><see cref="PlanLoad.Notice"/> of the start's load: a hint, no problem, so a save keeps it.</param>
+    public PlanSaver(Window window, OverlayViewModel viewModel, string path, bool keepUnreadable = false, string? notice = null)
     {
         _keepUnreadable = keepUnreadable;
+        _notice = notice;
         _window = window;
         _viewModel = viewModel;
         _path = path;
@@ -91,8 +95,8 @@ public sealed class PlanSaver
         try
         {
             PlanStore.Save(_path, saved, _viewModel.LastScanNo);
-            // A load or save problem is solved once the file is written; a kept file stays named.
-            _viewModel.SetNotice(NoticeSource.Plan, _keptNotice);
+            // A load or save problem is solved once the file is written; a hint stays (B14).
+            _viewModel.SetNotice(NoticeSource.Plan, _notice);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -114,7 +118,9 @@ public sealed class PlanSaver
         {
             if (PlanStore.KeepUnreadable(_path, DateTime.Now) is { } keptAs)
             {
-                _keptNotice = $"Previous {name} couldn't be read; kept as {keptAs}.";
+                // With --plan the start file's captures can come over an unreadable plan.json: both hints, one line.
+                var kept = $"Previous {name} couldn't be read; kept as {keptAs}.";
+                _notice = _notice is null ? kept : $"{kept} · {_notice}";
                 AppLog.Write("Plan", $"{_path} couldn't be read; kept as {keptAs}.");
             }
 
