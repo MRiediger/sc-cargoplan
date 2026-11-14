@@ -261,6 +261,26 @@ public class StartOptionsTests
         options.Locked.Should().Be(args.Contains("--locked"));
     }
 
+    // T11.3 (R9): a developer's switch, so the gate can update rc.1 → rc.2 over GitHub.
+    [Theory]
+    [InlineData("--updates-prerelease")]
+    [InlineData("--Updates-Prerelease")]
+    public void Updates_prerelease_lets_the_check_see_pre_releases(params string[] args)
+    {
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null, UpdatesPrerelease: true));
+    }
+
+    [Fact]
+    public void Updates_prerelease_with_a_local_feed_is_a_problem()
+    {
+        // A local feed has no pre-release flag to filter by; the feed is used as it is, the switch is dropped.
+        var options = StartOptions.Parse(["--updates-source", @"D:\run\releases", "--updates-prerelease"]);
+
+        options.UpdatesSource.Should().Be(@"D:\run\releases");
+        options.UpdatesPrerelease.Should().BeFalse();
+        options.Problem.Should().Be("--updates-prerelease only goes with GitHub, not with --updates-source.");
+    }
+
     [Theory]
     [InlineData("--veloapp-updated", "0.9.1")]
     [InlineData("--veloapp-obsolete", "0.9.0")]
@@ -276,6 +296,15 @@ public class StartOptionsTests
     {
         // U5: the restarted overlay starts as this one did (lock, data folder, feed, scans).
         string[] args = ["--locked", "--data-dir", @"D:\run\data", "--updates-source", @"D:\run\releases", "--keep-scans"];
+
+        StartOptions.RestartArguments(args).Should().Equal(args);
+    }
+
+    [Fact]
+    public void The_restart_after_an_update_keeps_seeing_pre_releases()
+    {
+        // Gate 2 (T11.3): rc.2, started by Update.exe, must check as rc.1 did.
+        string[] args = ["--updates-prerelease", "--data-dir", @"D:\run\data"];
 
         StartOptions.RestartArguments(args).Should().Equal(args);
     }

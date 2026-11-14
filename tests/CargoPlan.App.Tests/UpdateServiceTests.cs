@@ -87,6 +87,25 @@ public sealed class UpdateServiceTests : IDisposable
 
     private static readonly UpdateSettings On = UpdateSettings.Default;
 
+    // T11.3 (R8, R9): stable installs never see an rc; --updates-prerelease does, for the gate over GitHub.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GitHub_is_the_source_with_or_without_pre_releases(bool prerelease)
+    {
+        var source = UpdateService.CreateSource(null, prerelease);
+
+        var github = source.Should().BeOfType<GithubSource>().Which;
+        github.Prerelease.Should().Be(prerelease);
+        github.RepoUri.Should().Be(new Uri(UpdateService.RepositoryUrl));
+    }
+
+    [Fact]
+    public void A_local_feed_is_the_source_when_given()
+    {
+        UpdateService.CreateSource(Feed, prerelease: false).Should().BeOfType<SimpleFileSource>();
+    }
+
     [Fact]
     public async Task A_newer_release_in_the_feed_is_offered()
     {

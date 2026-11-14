@@ -356,7 +356,7 @@ public partial class App : Application
     private void ComposeUpdates(OverlayParts parts, StartOptions options)
     {
         var (viewModel, session, overlay) = (parts.ViewModel, parts.Session, parts.Overlay);
-        var updates = _updates = new UpdateService(options.UpdatesSource);
+        var updates = _updates = new UpdateService(options.UpdatesSource, options.UpdatesPrerelease);
         var line = _updateLine = new UpdateViewModel(
             new UpdateActions(
                 (version, progress) => updates.DownloadAsync(version, progress, _closing.Token),

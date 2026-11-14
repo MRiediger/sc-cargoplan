@@ -112,8 +112,9 @@ public sealed class UpdateService
     private (UpdateManager Manager, VelopackAsset Asset)? _ready;
 
     /// <param name="localSource"><c>--updates-source</c>: a feed folder <c>vpk pack</c> wrote, instead of GitHub (E10).</param>
-    public UpdateService(string? localSource)
-        : this(() => CreateManager(localSource), Timeout, line => AppLog.Write(LogContext, line), UpdateEnvironment.Default(localSource))
+    /// <param name="prerelease"><c>--updates-prerelease</c>: GitHub's pre-releases count too (T11.3, R9).</param>
+    public UpdateService(string? localSource, bool prerelease = false)
+        : this(() => CreateManager(localSource, prerelease), Timeout, line => AppLog.Write(LogContext, line), UpdateEnvironment.Default(localSource))
     {
     }
 
@@ -392,12 +393,26 @@ public sealed class UpdateService
         ReleaseVersion.TryParse(packaged.ToString(), out var a) && ReleaseVersion.TryParse(version, out var b) && a == b;
 
     /// <summary>
-    /// GitHub without a token (60 API requests an hour per IP, one per check) and without pre-releases, or a local folder.
-    /// Without a locator Velopack takes the one <c>VelopackApp.Run()</c> set in <c>Program.Main</c>.
+    /// Without a locator Velopack takes the one <c>VelopackApp.Run()</c> set in <c>Program.Main</c>. The pre-release line
+    /// comes with each check, so the gate's log shows which releases were asked for.
+    /// </summary>
+    private static UpdateManager CreateManager(string? localSource, bool prerelease)
+    {
+        if (prerelease)
+        {
+            AppLog.Write(LogContext, $"checking GitHub with pre-releases ({StartOptions.UpdatesPrereleaseSwitch})");
+        }
+
+        return new UpdateManager(CreateSource(localSource, prerelease));
+    }
+
+    /// <summary>
+    /// GitHub without a token (60 API requests an hour per IP, one per check), pre-releases only with
+    /// <paramref name="prerelease"/> (GitHub's release flag, not the tag's name; D109), or a local folder.
     /// Source: Velopack.xml 1.2.161, GithubSource(repoUrl, accessToken, prerelease, downloader), SimpleFileSource(DirectoryInfo).
     /// </summary>
-    private static UpdateManager CreateManager(string? localSource) =>
+    internal static IUpdateSource CreateSource(string? localSource, bool prerelease) =>
         localSource is null
-            ? new UpdateManager(new GithubSource(RepositoryUrl, accessToken: null, prerelease: false))
-            : new UpdateManager(new SimpleFileSource(new DirectoryInfo(localSource)));
+            ? new GithubSource(RepositoryUrl, accessToken: null, prerelease)
+            : new SimpleFileSource(new DirectoryInfo(localSource));
 }

@@ -41,6 +41,10 @@ namespace CargoPlan.App;
 /// The update check reads this local feed folder (what <c>vpk pack</c> wrote) instead of GitHub (T11.1, D109, E10): for
 /// gates without a real release. null = GitHub. A path that isn't full is a problem, not a stop: it protects no file.
 /// </param>
+/// <param name="UpdatesPrerelease">
+/// The GitHub check sees pre-releases too (T11.3, R9): a developer's switch, so a gate can update rc.1 → rc.2 over the
+/// network. Not in settings.json; with <paramref name="UpdatesSource"/> it is a problem and dropped.
+/// </param>
 public sealed record StartOptions(
     bool Locked,
     string? PlanPath,
@@ -54,7 +58,8 @@ public sealed record StartOptions(
     string? DataDir = null,
     bool DataDirRefused = false,
     bool KeepScans = false,
-    string? UpdatesSource = null)
+    string? UpdatesSource = null,
+    bool UpdatesPrerelease = false)
 {
     public const string LockedSwitch = "--locked";
 
@@ -78,6 +83,8 @@ public sealed record StartOptions(
 
     public const string UpdatesSourceSwitch = "--updates-source";
 
+    public const string UpdatesPrereleaseSwitch = "--updates-prerelease";
+
     /// <summary>F9's series without a number: Gate 2's 100 scans.</summary>
     public const int ScanProbeSeries = 100;
 
@@ -89,6 +96,7 @@ public sealed record StartOptions(
         var scanProbeImages = false;
         var scanLoad = false;
         var keepScans = false;
+        var updatesPrerelease = false;
         string? planPath = null;
         string? measureFrames = null;
         int? scanProbe = null;
@@ -171,6 +179,10 @@ public sealed record StartOptions(
             {
                 keepScans = true;
             }
+            else if (Is(args[i], UpdatesPrereleaseSwitch))
+            {
+                updatesPrerelease = true;
+            }
             else if (Is(args[i], ScanProbeSwitch))
             {
                 scanProbe = ScanProbeSeries;
@@ -205,7 +217,13 @@ public sealed record StartOptions(
             (scanLoad, problem) = (false, problem ?? $"{ScanLoadSwitch} only goes with {MeasureFramesSwitch}.");
         }
 
-        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans, updatesSource);
+        // A local feed has no pre-release flag to filter by (SimpleFileSource): the feed counts, the switch goes.
+        if (updatesPrerelease && updatesSource is not null)
+        {
+            (updatesPrerelease, problem) = (false, problem ?? $"{UpdatesPrereleaseSwitch} only goes with GitHub, not with {UpdatesSourceSwitch}.");
+        }
+
+        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans, updatesSource, updatesPrerelease);
     }
 
     /// <summary>
