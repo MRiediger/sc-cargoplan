@@ -6101,7 +6101,7 @@ $exe = "$PWD\portable-0.9.0\SC-CargoPlan.exe"
 - [x] Build ohne Warnungen, alle Tests grün (Core 1772, Import 280, Ocr 34, App 1888), `dotnet format` sauber
 - Nächster Schritt: T11.2 mit eigenem Prompt. Merge `--no-ff` erst am Ende der Phase.
 
-### [ ] T11.2 Notice mit Update und Skip, Abschnitt „Updates“ im Settings-Fenster, Download + Apply
+### [x] T11.2 Notice mit Update und Skip, Abschnitt „Updates“ im Settings-Fenster, Download + Apply (13.11.2026, `370306b`, `295a7a8`, abgenommen 14.11.)
 
 - Notice `Update available: v… · [Update] [Skip]` (Optik = Martin). Skip schreibt `updates.skippedVersion`.
   Settings-Abschnitt „Updates“: `checkOnStartup`, übersprungene Version zurücksetzen.
@@ -6232,9 +6232,12 @@ $gate = "$env:UserProfile\CargoPlan-gate"
   Klick); Retry → `0.9.1 is downloaded already`, UAC angenommen → `Elevated process has run successfully.`, 0.9.1 mit
   `elevated: no`. 5c nicht gelaufen (optional, Unit-Test).
 - [x] Gate 6 Netz weg
-- [ ] Gate 7 Startzeit (mit SC): Prozessstart → Frame A 660 / 657, B 666 / 684 ms (Δ +6 / +27); Klick → Frame A 664 / 661,
+- [x] Gate 7 Startzeit (mit SC): Prozessstart → Frame A 660 / 657, B 666 / 684 ms (Δ +6 / +27); Klick → Frame A 664 / 661,
   B 730 / 747 ms (Δ +66 / +86). Der Klick-Anteil über 50 ms ist der Velopack-Stub (B Klick − Prozess ≈ 63 ms mit SC,
-  29 ms ohne), seit T11.1 unverändert; T11.1-Zahlen mit SC nicht notiert. **Entscheidung Martin offen.**
+  29 ms ohne), seit T11.1 unverändert; T11.1-Zahlen mit SC nicht notiert. **Akzeptiert (Martin, 14.11.):** bekannte
+  Kosten von Velopack-Portable, kein eigener Punkt.
+- Gate-Ordner aufgeräumt (`Program Files\CargoPlan-gate`, `Public\p11`, `CargoPlan-gate`); `cargotest` bleibt.
+- Nächster Schritt: T11.3 mit eigenem Prompt. Merge `--no-ff` erst am Ende der Phase.
 - [x] Build ohne Warnungen, alle Tests grün (Core 1772, Import 280, Ocr 34, App 1958), `dotnet format` sauber
 
 ### [ ] T11.3 `release.yml` mit Velopack
