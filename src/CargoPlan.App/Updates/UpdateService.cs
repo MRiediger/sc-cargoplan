@@ -101,6 +101,8 @@ public sealed class UpdateService
 
     private readonly UpdateEnvironment _environment;
 
+    private readonly bool _prerelease;
+
     private readonly Lock _gate = new();
 
     private int _started;
@@ -114,13 +116,14 @@ public sealed class UpdateService
     /// <param name="localSource"><c>--updates-source</c>: a feed folder <c>vpk pack</c> wrote, instead of GitHub (E10).</param>
     /// <param name="prerelease"><c>--updates-prerelease</c>: GitHub's pre-releases count too (T11.3, R9).</param>
     public UpdateService(string? localSource, bool prerelease = false)
-        : this(() => CreateManager(localSource, prerelease), Timeout, line => AppLog.Write(LogContext, line), UpdateEnvironment.Default(localSource))
+        : this(() => CreateManager(localSource, prerelease), Timeout, line => AppLog.Write(LogContext, line), UpdateEnvironment.Default(localSource), prerelease)
     {
     }
 
     /// <summary>For tests: Velopack's <c>TestVelopackLocator</c> instead of an installed app, a short timeout, the lines collected.</summary>
-    internal UpdateService(Func<UpdateManager> createManager, TimeSpan timeout, Action<string> log, UpdateEnvironment? environment = null) =>
-        (_createManager, _timeout, _log, _environment) = (createManager, timeout, log, environment ?? UpdateEnvironment.Default(null));
+    /// <param name="prerelease">Pre-releases may be offered (<see cref="UpdateGate.Offer"/>); the source is the caller's.</param>
+    internal UpdateService(Func<UpdateManager> createManager, TimeSpan timeout, Action<string> log, UpdateEnvironment? environment = null, bool prerelease = false) =>
+        (_createManager, _timeout, _log, _environment, _prerelease) = (createManager, timeout, log, environment ?? UpdateEnvironment.Default(null), prerelease);
 
     /// <summary>
     /// The start's check: the newer release to offer, or null for every other outcome, each logged once. A second call in
@@ -198,7 +201,7 @@ public sealed class UpdateService
 
             var info = await check.WaitAsync(_timeout, closing).ConfigureAwait(false);
             var target = info?.TargetFullRelease;
-            switch (UpdateGate.Offer(currentVersion, target?.Version.ToString(), target?.NotesMarkdown, skippedVersion))
+            switch (UpdateGate.Offer(currentVersion, target?.Version.ToString(), target?.NotesMarkdown, skippedVersion, _prerelease))
             {
                 case UpdateAvailable offer:
                     _log(prefix + $"{offer.Version} available (installed {currentVersion})");

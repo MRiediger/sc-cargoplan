@@ -27,7 +27,11 @@ public static class UpdateGate
     /// <param name="found">The newest release the feed has; null = none newer than the installed one.</param>
     /// <param name="notes">Its notes; blank counts as none.</param>
     /// <param name="skipped"><c>updates.skippedVersion</c>: exactly this version is not offered, a newer one is (E7).</param>
-    public static UpdateVerdict Offer(string current, string? found, string? notes, string? skipped)
+    /// <param name="allowPreRelease">
+    /// <c>--updates-prerelease</c> (T11.3, R9): a pre-release may be offered. It lifts this filter together with
+    /// GithubSource's; lifting only that one left rc.1 unable to take rc.2 (gate 2).
+    /// </param>
+    public static UpdateVerdict Offer(string current, string? found, string? notes, string? skipped, bool allowPreRelease = false)
     {
         if (!ReleaseVersion.TryParse(current, out var installed))
         {
@@ -45,7 +49,7 @@ public static class UpdateGate
         }
 
         // GithubSource filters by GitHub's pre-release flag, not by the version (S11.0 G7): an rc published without it.
-        if (offered.IsPreRelease)
+        if (offered.IsPreRelease && !allowPreRelease)
         {
             return new NoUpdate($"{offered} is a pre-release");
         }

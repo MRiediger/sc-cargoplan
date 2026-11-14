@@ -58,6 +58,19 @@ public class UpdateGateTests
     }
 
     [Fact]
+    public void With_updates_prerelease_the_next_release_candidate_is_offered()
+    {
+        // T11.3 gate: --updates-prerelease lifts this filter as well as GithubSource's, or rc.1 never takes rc.2.
+        UpdateGate.Offer("0.5.0-rc.1", "0.5.0-rc.2", null, null, allowPreRelease: true).Should().Be(new UpdateAvailable("0.5.0-rc.2", null));
+    }
+
+    [Fact]
+    public void With_updates_prerelease_an_older_release_candidate_is_still_nothing_newer()
+    {
+        UpdateGate.Offer("0.5.0-rc.2", "0.5.0-rc.1", null, null, allowPreRelease: true).Should().Be(new NoUpdate("nothing newer than 0.5.0-rc.2"));
+    }
+
+    [Fact]
     public void A_release_candidate_is_offered_its_stable_release()
     {
         // At the same number the stable release is the newer (SemVer 2.0.0, rule 11).

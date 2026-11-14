@@ -59,7 +59,7 @@ public sealed class UpdateServiceTests : IDisposable
 
     /// <summary>The app around the service: elevated or not, its root writable or not, a package already in packages\.</summary>
     private sealed record Setup(
-        IUpdateSource? Source = null, TimeSpan? Timeout = null, VelopackAsset? LocalPackage = null, bool Elevated = false, bool RootWritable = true);
+        IUpdateSource? Source = null, TimeSpan? Timeout = null, VelopackAsset? LocalPackage = null, bool Elevated = false, bool RootWritable = true, bool Prerelease = false);
 
     private string Root => Path.Combine(_folder, "root");
 
@@ -83,7 +83,8 @@ public sealed class UpdateServiceTests : IDisposable
                 FeedMissing: () => !Directory.Exists(Feed),
                 IsElevated: () => setup.Elevated,
                 RootFolder: () => Root,
-                IsWritable: _ => setup.RootWritable));
+                IsWritable: _ => setup.RootWritable),
+            setup.Prerelease);
 
     private static readonly UpdateSettings On = UpdateSettings.Default;
 
@@ -104,6 +105,29 @@ public sealed class UpdateServiceTests : IDisposable
     public void A_local_feed_is_the_source_when_given()
     {
         UpdateService.CreateSource(Feed, prerelease: false).Should().BeOfType<SimpleFileSource>();
+    }
+
+    // T11.3 gate: Velopack found rc.2, the service dropped it as a pre-release. The switch must reach the offer too.
+    [Fact]
+    public async Task With_updates_prerelease_a_release_candidate_in_the_feed_is_offered()
+    {
+        PublishToFeed("0.9.1-rc.1");
+
+        var offer = await Service(new Setup(Prerelease: true)).CheckAsync(On, "0.9.0", isDevBuild: false, CancellationToken.None);
+
+        offer.Should().Be(new UpdateAvailable("0.9.1-rc.1", null));
+        _lines.Should().ContainSingle().Which.Should().Be("0.9.1-rc.1 available (installed 0.9.0)");
+    }
+
+    [Fact]
+    public async Task Without_updates_prerelease_a_release_candidate_in_the_feed_is_not_offered()
+    {
+        PublishToFeed("0.9.1-rc.1");
+
+        var offer = await Service().CheckAsync(On, "0.9.0", isDevBuild: false, CancellationToken.None);
+
+        offer.Should().BeNull();
+        _lines.Should().ContainSingle().Which.Should().Be("0.9.1-rc.1 is a pre-release");
     }
 
     [Fact]
