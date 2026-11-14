@@ -6240,7 +6240,7 @@ $gate = "$env:UserProfile\CargoPlan-gate"
 - Nächster Schritt: T11.3 mit eigenem Prompt. Merge `--no-ff` erst am Ende der Phase.
 - [x] Build ohne Warnungen, alle Tests grün (Core 1772, Import 280, Ocr 34, App 1958), `dotnet format` sauber
 
-### [ ] T11.3 `release.yml` mit Velopack
+### [ ] T11.3 `release.yml` mit Velopack (14.11.2026, `51b5ed4`, `a079af1`, Doku-Commit, wartet auf Gate)
 
 - `vpk download github` (letztes stabiles Release, Basis für das Delta) → `publish.ps1 -Version` → `vpk pack -u CargoPlan
   -v <dieselbe Version>` (Prüfschritt: `sq.version` = Assembly-Version ohne `+sha`) → Upload von `releases.win.json`,
@@ -6251,7 +6251,117 @@ $gate = "$env:UserProfile\CargoPlan-gate"
   Pre-Releases und Releases ohne `releases.win.json` (Holo) zählen vor dem Filter mit. Regel: Unter den 10 neuesten
   GitHub-Releases steht immer das letzte stabile App-Release. Darum rc-Pre-Releases nach dem stable Tag löschen,
   höchstens 2 Holo-Releases gleichzeitig, nie mehr als 9 Pre- oder Nicht-App-Releases nach dem letzten stable Release.
+  Steht auch in `CONTRIBUTING.md` („Release“). Heute 7 Releases (v0.1.0–v0.4.0, holo-v1, holo-v2), mit rc.1 + rc.2 sind
+  es 9.
 - CLAUDE.md: Zeile „Distribution“ (Portable-Layout, Stub `SC-CargoPlan.exe`, `current\`, ZIP-Größe).
+
+**Umsetzung (14.11.2026):** Martins Entscheidungen R1–R12 aus dem Prompt, D109-Addendum „T11.3“, D49-Addendum. Belegt
+aus `vpk … -H` 1.2.161 und dem Quelltext am Tag 1.2.161 (`GitBase.cs`, `UpdateManager.cs`, `PackageBuilder.cs`,
+`_GitRelease.cs`, `_DownloadCommandRunner.cs`).
+- `build/publish.ps1 -Version <v> [-DeltaBase github|<full.nupkg>]`: Publish wie bisher, `vpk` in der Version der
+  `Velopack`-PackageReference nach `out\tools\vpk-<v>\`, Delta-Basis, `vpk pack`, Release-Dateien nach `out\release\`,
+  dann `build/check-portable.ps1`, SHA256.
+- `release.yml`: `publish.ps1 -Version $env:VERSION -DeltaBase github` mit `VPK_TOKEN` nur in diesem Schritt, softprops
+  lädt `out/release/*`. `ci.yml`: unter Windows `publish.ps1 -Version 0.0.1-ci` ohne Basis und ohne Upload.
+  `dependabot.yml`: nur ein Kommentar (Velopack ist schon in der Gruppe `nuget`).
+- App: `--updates-prerelease` (`StartOptions`, `UpdateService.CreateSource`), Logzeile je Check.
+- Doku: `docs/update-testing.md` (neu, Entwickler), `CONTRIBUTING.md` (Publish, Release mit Hygiene), CLAUDE.md
+  (Distribution, Netz, Struktur, Befehle), `docs/release-notes/v0.5.0-rc.1.md` und `-rc.2.md`.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. Delta-Basis: stable-Tag → neuestes **stable** Release (R7), rc-Tag → neuestes Release **inkl. Pre-Releases** (`--pre`),
+   sonst bekäme ein rc nie ein Delta. Gate 2 prüft „Delta erzeugt“ im rc.2-Log, der Download ist **voll** (frisch
+   entpacktes Portable hat keine Basis in `packages\`). Den Delta-Download übers Netz prüft T11.5.
+2. Gate 4 über einen **Draft-PR** `feat/p11-auto-update → main`: `ci.yml` läuft nur auf `main` und PRs, und
+   `workflow_dispatch` löst GitHub nur aus dem Default-Branch aus.
+3. actionlint einmal als offizielles Binary im Scratchpad (nicht im Repo, nicht in der CI).
+4. Upload über die bestehende softprops-Action statt `vpk upload github` (Namen aus `assets.win.json`, kein `.sha256`,
+   Draft, Body aus dem Paket). Der Basis-Eintrag im hochgeladenen Feed ist harmlos: Ziel ist das höchste Full.
+5. `vpk` per `--tool-path`, weder global noch als Manifest; die Version liest das Skript per `-getItem:PackageReference`.
+6. `dependabot.yml` funktional unverändert, nur ein Kommentar.
+7. Layout-Prüfung als eigenes Skript `build/check-portable.ps1`, damit sie sich an einem manipulierten ZIP provozieren lässt.
+8. Release-Dateien in `out\release\`. Delta-Basis, `RELEASES` und `assets.win.json` kommen nicht ins Release.
+9. Der Wurzelordner `SC-CargoPlan/` entfällt (D49-Addendum): Velopacks ZIP hat 4 Einträge, es wird nicht neu gezippt.
+10. rc-Release-Notes vorab committet (Muster v0.1.0-rc.N). rc.1 und rc.2 auf **denselben Commit**: Die Version
+    unterscheidet sich, also ist das Delta nicht leer.
+11. `--updates-prerelease` mit `--updates-source` ist ein Problem, der Schalter fällt weg.
+12. Die Layout-Prüfung vergleicht die ganze Dateimenge `current\` mit dem Publish-Ordner (bekannt: `createdump.exe` fehlt,
+    `sq.version` kommt hinzu, bestätigt im ersten Lauf).
+13. (Freigabe E1) In D109 und `docs/update-testing.md`: „Deltas helfen nur, wer genau eine Version zurückliegt; alle
+    anderen laden voll.“ Delta-Ketten werden nicht gebaut.
+14. (Freigabe E2) Kommentar über `--exclude "(?!)"` in `publish.ps1`: Default `.*\.pdb`, ein nicht leerer Wert ersetzt
+    ihn, leer zählt als nicht gesetzt. Die PDB-Zählung in `check-portable.ps1` ist der Wächter.
+
+**Befunde in der Umsetzung:**
+- **`--runtime win-x64`** (nicht im Plan): Ohne den Schalter warnt `vpk` „No architecture specified with --runtime,
+  defaulting to x86“ und baut **Stub und `Update.exe` als x86** (PE-Machine `014C`, auch schon in S11.0 und T11.2, wo es
+  lief). Mit `win-x64` sind beide x64 (`8664`), `sq.version` sagt `<rid>win-x64</rid>`, ZIP +0,35 MB. Gate 2 ist der
+  erste Lauf mit x64-Binaries. **Zur Abnahme:** zurück auf x86 ist eine Zeile.
+- **`-Version` ist Pflicht** (nicht im Plan): `vpk` lehnt `0.0.0-dev` ab („Invalid package version '0.0.0-dev', it
+  must be >= 0.0.1“), gefunden im lokalen Nachlauf des CI-Wegs. Eine zweite Paketversion neben der Build-Version hätte zwei
+  Versionen für ein ZIP bedeutet. CI packt `0.0.1-ci`. Der MSBuild-Rückfall auf die Version ist aus `publish.ps1` raus.
+- `vpk download github` ohne Treffer: „Found 0 release(s) in remote file“, „No full / applicable release was found to
+  download. Aborting.“, Exit 0; das Skript warnt „No delta base found“ und packt ohne Delta (geprüft mit `-Version
+  0.9.2-rc.1 -DeltaBase github`, also auch über den `--pre`-Pfad).
+- `sq.version` ist ein Nuspec-XML (`id`, `version`, `mainExe`, `rid`). Die Layout-Prüfung liest packId, Version und
+  Main-Exe daraus (R3 als Wächter).
+- `pwsh` 7 ist lokal nicht installiert; alle lokalen Läufe unter Windows PowerShell 5.1. Den `pwsh`-Lauf belegen Gate 1
+  und Gate 4.
+- `--updates-prerelease` im echten Paket (`0.0.1-ci`-Portable, `--data-dir` im Scratchpad):
+  `Update: checking GitHub with pre-releases (--updates-prerelease)` → `Velopack: … No remote full releases found.` →
+  `Update: nothing newer than 0.0.1-ci`.
+- actionlint 1.7.12 (Checksumme geprüft) über `ci.yml` und `release.yml`: keine Meldung, Exit 0.
+- Build ohne Warnungen, alle Tests grün (Core 1772, Import 280, Ocr 34, App 1965 = +7 für `--updates-prerelease`),
+  `dotnet format` sauber.
+
+**Paketgrößen** (lokal, Bytes / MB dezimal):
+
+| Artefakt | Bytes | MB |
+|---|---|---|
+| Portable-ZIP 0.9.0 (x86-Stub, erster Lauf) | 89.898.845 | 89,9 |
+| **Portable-ZIP 0.9.0** (x64) | 90.251.603 | **90,3** |
+| **Full-nupkg 0.9.1** | 90.295.611 | **90,3** |
+| **Delta-nupkg 0.9.0 → 0.9.1** (16 von 384 Dateien gepatcht) | 168.785 | **0,17** |
+| Publish-Ordner (382 Dateien) | – | 185,0 |
+| Release-ZIP v0.4.0 (Referenz) | – | 85,2 |
+
+**Provozierte Fehler** (`check-portable.ps1` auf ZIP-Kopien von `0.9.2-rc.1`):
+- Ohne `current/ships/100i.json`: `current\ships has 105 files, the publish folder 106` und `not in current\:
+  ships\100i.json`.
+- Ohne alle 5 PDBs: `not in current\: CargoPlan.App.pdb, CargoPlan.Cli.pdb, CargoPlan.Core.pdb, CargoPlan.Import.pdb,
+  CargoPlan.Ocr.pdb` und `current\ has 0 .pdb files, the publish folder 5`.
+
+**Gate-Anleitung (Martin).** Voraussetzung: T11.3 gepusht. Tag auf den letzten T11.3-Commit (der die rc-Notes enthält).
+CC hat Gate 1, 2 und 4 nicht ausführen können (Tags und PR sind Martins); lokal liefen die Schritte dahinter jeweils einmal
+(oben). Laufordner z. B. `..\sc-cargoplan-p11-run\t113\`, jeder Start mit eigenem `--data-dir`.
+
+```powershell
+$gh = "$env:ProgramFiles\GitHub CLI\gh.exe"
+```
+
+1. **Pre-Release-Probe.** `git tag v0.5.0-rc.1; git push origin v0.5.0-rc.1` → Workflow „Release“ grün
+   (`& $gh run list -L 3`). Im Log von „Publish and pack“: `No full / applicable release was found` + Warnung
+   `No delta base found`, `Layout check: SC-CargoPlan-v0.5.0-rc.1-win-x64.zip passed (…)`. Release ist **Pre-release** mit
+   genau `SC-CargoPlan-v0.5.0-rc.1-win-x64.zip`, `.zip.sha256`, `CargoPlan-0.5.0-rc.1-full.nupkg`, `releases.win.json`
+   (`& $gh release view v0.5.0-rc.1`).
+2. **Update übers Netz, SC im Vordergrund.** ZIP herunterladen, in einen leeren Ordner entpacken (z. B.
+   `$env:UserProfile\CargoPlan-rc`), `SC-CargoPlan.exe --updates-prerelease --data-dir <voller Pfad>\data-g2` → keine
+   Update-Zeile, Log `checking GitHub with pre-releases`, `nothing newer than 0.5.0-rc.1`. Overlay schließen.
+   `git tag v0.5.0-rc.2` **auf denselben Commit**, pushen → Workflow grün, im Log `Delta base:
+   CargoPlan-0.5.0-rc.1-full.nupkg` und `Delta: CargoPlan-0.5.0-rc.2-delta.nupkg, <Bytes>`; das Release hat zusätzlich
+   das Delta, sein `releases.win.json` nennt auch rc.1. App neu starten (gleiche Argumente) → `Update available ·
+   v0.5.0-rc.2` → **Update** → Download **voll** (≈ 90 MB; Größe aus `%LocalAppData%\velopack\velopack_CargoPlan.log`
+   bzw. den `Velopack:`-Zeilen notieren, dort auch „no local/base package … delta updates will be disabled“) → Neustart
+   als rc.2 (`current\CargoPlan.Cli.exe --version` = `0.5.0-rc.2+…`), Log `restarted by Update.exe as 0.5.0-rc.2`.
+3. **Stable sieht kein rc.** Die rc.1-ZIP noch einmal frisch entpacken, **ohne** `--updates-prerelease` starten (eigener
+   `--data-dir`) → keine Update-Zeile, Log `nothing newer than 0.5.0-rc.1`.
+4. **CI mit Pack-Schritt.** Draft-PR `feat/p11-auto-update → main` öffnen
+   (`& $gh pr create --draft --base main --head feat/p11-auto-update --title "Phase 11: auto-update" --body "Draft for CI (T11.3 gate 4); merged --no-ff at the end of the phase."`)
+   → „Build & test (windows-latest)“ grün inkl. „Publish and pack“ (`Layout check: SC-CargoPlan-v0.0.1-ci-win-x64.zip
+   passed`), Ubuntu grün.
+5. **Hygiene einmal durchexerzieren (R10).** `& $gh release delete v0.5.0-rc.2 --cleanup-tag -y`,
+   `& $gh release delete v0.5.0-rc.1 --cleanup-tag -y`, `git tag -d v0.5.0-rc.1 v0.5.0-rc.2`, `git fetch --prune --prune-tags`;
+   `& $gh release list` zeigt wieder 7. Die Notes-Dateien bleiben (D49-Addendum T9.2).
 
 ### [ ] T11.4 Migration und Texte
 
@@ -6266,6 +6376,23 @@ Notizen aus T11.2 für die Texte:
 - Unter `Program Files` fragt das Update per UAC; nach dem Tausch läuft die App wieder normal, nicht als Admin.
   Abgelehnt: Die alte Version startet neu mit `Update failed · cancelled` und Retry.
 - Velopack zeigt beim Tausch ein eigenes Fortschrittsfenster (`silent: false`).
+
+Notizen aus T11.3 – Ablauf für heutige v0.4.0-Nutzer (Vorlage, von Martin bestätigt):
+1. v0.5.0 einmal von Hand laden: ≤ v0.4.0 hat keinen Feed.
+2. Entpacken: **kein Wurzelordner mehr**, 4 Einträge (`SC-CargoPlan.exe`, `Update.exe`, `.portable`, `current\`). In einen
+   **neuen** Ordner entpacken, nicht über v0.4.0, sonst bleiben alte Dateien in der Wurzel liegen. „Alle extrahieren“
+   schlägt einen Ordner mit dem ZIP-Namen vor.
+3. **`SC-CargoPlan.exe`** starten (Stub), nicht `current\CargoPlan.App.exe`. Startschalter gehen durch den Stub
+   (`SC-CargoPlan.exe --keep-scans`). Die Cli liegt jetzt unter `current\CargoPlan.Cli.exe`. Angeheftete Verknüpfungen
+   zeigen noch auf den alten Ordner, und die Taskleiste gruppiert neu (AUMID `velopack.CargoPlan`). SmartScreen beim
+   Stub prüft T11.5.
+4. Die Daten bleiben in `%LocalAppData%\SC-CargoPlan\`. `settings.json` bekommt beim ersten Speichern `updates`, die alte
+   Datei landet als `.bak` (T11.1 Gate 5). Zurück auf v0.4.0 geht laut D105-Addendum.
+5. Der erste Check nach dem ersten Frame findet v0.5.0 = sich selbst und schreibt „nothing newer“. Velopack legt sein Log
+   in `%LocalAppData%\velopack\` an.
+6. Bei v0.5.1 erscheint die Zeile. Update lädt **voll** (≈ 90 MB, keine Basis), tauscht und startet neu. Ab dann liegt
+   das Full in `packages\`, und ab v0.5.2 gibt es Deltas, aber nur für alle, die genau eine Version zurückliegen (D109).
+7. Den alten v0.4.0-Ordner löscht der Hauler von Hand.
 
 ### [ ] T11.5 Release v0.5.0
 

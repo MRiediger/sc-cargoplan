@@ -54,8 +54,8 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 | Tests | **xUnit** + `AwesomeAssertions` | Standard im .NET-Ökosystem. AwesomeAssertions ist der Apache-2.0-Fork von FluentAssertions (ab v8 kommerziell lizenziert). |
 | Click-through | Win32 `SetWindowLongPtrW` schaltet `WS_EX_TRANSPARENT` via `[LibraryImport]`, HWND aus `WindowInteropHelper`; `WS_EX_LAYERED` setzt WPF selbst (D11) | Keine Lib nötig. |
 | Hotkeys | **Gepollt:** `GetAsyncKeyState` auf einem `DispatcherTimer` (33 ms), Flanke + exakte Modifier (`HotkeyPoller`), scharf nur mit SC oder CargoPlan vorne (D97); Ctrl/Alt/Win Pflicht außer bei F-Tasten, einziger Default Scan = F3 (D104) | `RegisterHotKey` kommt mit SC vorne nie an; kein Hook (EAC), keine Lib. Die Taste erreicht auch das Spiel. |
-| Netz | **Zwei Netzzugriffe, nur GET:** (1) `HoloSource` (App) lädt Schiffs-Hologramme per BCL-`HttpClient` von den Release-Assets `releases/download/holo-v2/` (Meshes aus den Motherlode-Modellen, D93), Manifest höchstens einmal am Tag, Schalter `downloadShipHolograms` (D63); der Cache `holo\` behält nur den aktuellen Tag (D95). (2) `UpdateService` (App) fragt einmal pro Start über Velopacks `GithubSource` die Release-Liste ab, ohne Pre-Releases, Schalter `updates.checkOnStartup`; geladen wird erst auf Klick (D109) | Hologramme stammen aus CIG-Modellen und müssen zurückziehbar sein: eigenes Daten-Release statt ZIP oder Repo. Jeder weitere Netzzugriff braucht einen eigenen D-Eintrag. |
-| Distribution | `build/publish.ps1` → App + Cli self-contained `win-x64` in **einem Ordner** (`out/publish/SC-CargoPlan`, 176 MB, 381 Dateien inkl. `ships/`, `outlines/` und `models/`), **ein ZIP (v0.4.0: 85,2 MB lokal, 87,6 MB aus der CI; v0.3.1: 62,1 / 64,2 MB)** mit SHA256; kein Single-File, kein pubxml, Satellites nur `en` (D46, D48, D49, D50, D99) | Nutzer sollen nichts installieren müssen; Hauler haben .NET 8, nicht 10. WPF kann nicht getrimmt werden. |
+| Netz | **Zwei Netzzugriffe, nur GET:** (1) `HoloSource` (App) lädt Schiffs-Hologramme per BCL-`HttpClient` von den Release-Assets `releases/download/holo-v2/` (Meshes aus den Motherlode-Modellen, D93), Manifest höchstens einmal am Tag, Schalter `downloadShipHolograms` (D63); der Cache `holo\` behält nur den aktuellen Tag (D95). (2) `UpdateService` (App) fragt einmal pro Start über Velopacks `GithubSource` die Release-Liste ab, ohne Pre-Releases (außer mit Dev-Schalter `--updates-prerelease`), Schalter `updates.checkOnStartup`; geladen wird erst auf Klick (D109) | Hologramme stammen aus CIG-Modellen und müssen zurückziehbar sein: eigenes Daten-Release statt ZIP oder Repo. Jeder weitere Netzzugriff braucht einen eigenen D-Eintrag. |
+| Distribution | `build/publish.ps1 -Version` → App + Cli self-contained `win-x64` in **einem Ordner** (`out/publish/SC-CargoPlan`, 185 MB, 382 Dateien inkl. `ships/`, `outlines/` und `models/`), dann `vpk pack` (Version aus der `Velopack`-PackageReference, `out/tools/`) → **Velopack-Portable-ZIP** `SC-CargoPlan-v<v>-win-x64.zip` mit SHA256 (Stub `SC-CargoPlan.exe`, `Update.exe`, App in `current\`, kein Wurzelordner; 0.9.x lokal 90,3 MB, v0.4.0 85,2 MB) + Feed (`releases.win.json`, Full-, Delta-nupkg) in `out/release/`, Layout-Prüfung `check-portable.ps1`; kein Single-File, kein pubxml, keine Setup.exe, Satellites nur `en` (D46, D48, D49, D50, D99, D109) | Nutzer sollen nichts installieren müssen; Hauler haben .NET 8, nicht 10. WPF kann nicht getrimmt werden. |
 | CI/CD | GitHub Actions, Matrix `ubuntu-latest` + `windows-latest` (App-Tests und `dotnet format` nur unter Windows, D12), Release bei Git-Tag | Niemand baut von Hand; Ubuntu deckt Pfadtrenner und Kultur für Core, Import, Cli ab. |
 | Lizenz | **MIT** | Maximale Verbreitung. |
 
@@ -69,7 +69,8 @@ sc-cargoplan/
 ├── SC-CargoPlan.sln
 ├── Directory.Build.props          # gemeinsame Settings: LangVersion, Nullable, TreatWarningsAsErrors, Version, Metadaten
 ├── build/
-│   └── publish.ps1                # Release-Ordner + ZIP nach out/publish (D48, D49), prüft ships/ und outlines/ im ZIP (D56, D55)
+│   ├── publish.ps1                # Publish nach out/publish, vpk pack, Release-Dateien nach out/release (D48, D49, D109)
+│   └── check-portable.ps1         # Layout-Prüfung des Portable-ZIPs: current\ = Publish-Ordner, ships, PDBs, Version (D109)
 ├── ships/                         # Schiffsdateien <id>.json, neben die Exe kopiert (D56); hull_a ist Pflicht
 ├── outlines/                      # ship-outlines.json + NOTICE.md (nicht MIT), neben die Exe kopiert, Zuordnung per modelKey (D55, D62, D94)
 ├── tools/import-motherlode.ps1    # Grid-Katalog der Spieldateien (Motherlode) → Racks in ships/, Katalog bleibt außerhalb (D92)
@@ -88,6 +89,7 @@ sc-cargoplan/
 ├── docs/
 │   ├── decisions.md               # D1…, nummeriert, mit Addenda
 │   ├── mission-format.md · plan-format.md · settings-format.md · ship-format.md · holo-format.md
+│   ├── update-testing.md          # Entwickler: lokaler Feed, --updates-prerelease, Release-Dateien, 10er-Fenster (D109)
 │   ├── release-notes/             # je Release, Geschichte: nie nachträglich ändern
 │   ├── review/                    # Repo-Durchsichten (2026-11-pre-p10)
 │   ├── nexus/                     # Nexus-Seite, Checkliste, Staff-Anfrage
@@ -126,7 +128,8 @@ dotnet run --project src/CargoPlan.App -c Release -- --keep-scans   # Overlay wi
 dotnet run --project src/CargoPlan.App -c Release -- --measure-frames <ziel> --over-game [--scan-load]   # Frame-Zeit über dem Spiel (D83) mit vorgewärmter Engine; --scan-load scannt während der 30 s in Schleife; measure-frames.log neben der Exe
 dotnet test tests/CargoPlan.App.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OverlayCaptureTests   # eigenes Fenster über dem ROI je Capture-Variante (D100), SC muss laufen, nur von Hand; Env: CARGOPLAN_SC_CAPTURE (Ausgabeordner außerhalb des Repos), optional CARGOPLAN_SC_CAPTURE_PROCESS
 ./tools/import-motherlode.ps1 -Catalog <catalog-<datum>.json> [-Previous <älterer Katalog>] [-Create]   # Racks aus den Spieldateien, Exit 1 = ansehen (Handprüfung, Reihenfolge, neues Schiff) (D92)
-./build/publish.ps1 [-Version 0.1.0]           # App + Cli nach out/publish/SC-CargoPlan + ZIP + SHA256 (D48, D49), Reihenfolge im Skript nicht ändern
+./build/publish.ps1 -Version 0.1.0 [-DeltaBase github|<full.nupkg>]   # App + Cli nach out/publish/SC-CargoPlan, vpk pack, Portable-ZIP + SHA256 + Feed nach out/release, Layout-Prüfung (D48, D49, D109), Reihenfolge im Skript nicht ändern
+dotnet run --project src/CargoPlan.App -- --updates-source <voller Pfad> | --updates-prerelease   # Update-Check gegen einen lokalen Feed bzw. mit GitHub-Pre-Releases (D109), nur für Gates; docs/update-testing.md
 dotnet run --project src/CargoPlan.Cli -- --version
 ```
 
