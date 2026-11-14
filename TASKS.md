@@ -6216,15 +6216,26 @@ $gate = "$env:UserProfile\CargoPlan-gate"
 **Offen fürs Gate (Optik = Martin):** Umbruch bei schmalem Overlay (Vorschlag: Controls in eine zweite Zeile),
 `Hidden` vs. `Collapsed` im Lock, Lage des Abschnitts „Updates“ (jetzt der letzte), Texte von Check now.
 
-**Abnahme (Martin):**
-- [ ] Gate 1 voller Durchlauf, Neustart mit gleichen Argumenten, letzter Stand in settings.json/plan.json
-- [ ] Gate 2 Lock und Auto-Lock
-- [ ] Gate 3 Skip, Neustart, Clear, Check now
-- [ ] Gate 4 Dev-Build
-- [ ] Gate 5a/5b `cargotest` (Ablehnen → cancelled, Annahme → `elevated: no`), 5c optional
-- [ ] Gate 6 Netz weg
-- [ ] Gate 7 Startzeit
-- [ ] Build ohne Warnungen, alle Tests grün, `dotnet format` sauber
+**Abnahme (Martin, 13./14.11.2026):**
+- [x] Optik am echten Element: „passt wunderbar“. Umbruch, `Hidden`, Lage des Abschnitts und Texte bleiben wie gebaut.
+- [x] Gate 1 voller Durchlauf, Neustart mit gleichen Argumenten, Plan, Haken, Kamera und Position nach dem Neustart
+  (zweiter Lauf; `plan.json` und `settings.json` lagen vor dem Klick da).
+  **Offener Befund, erster Lauf (13.11., 18:17–18:18):** Die Instanz speicherte nichts, weder Plan noch Position;
+  `data-m1` enthielt danach nur `cargoplan.log` (Ordner beim Start angelegt, nicht nachträglich geleert), kein
+  `holo\`. Nicht das Update (gespeichert wird 0,5 s nach jeder Änderung), im zweiten Lauf und in CCs Nachbau (gesperrt,
+  `--plan`, verschoben) nicht wiederholbar. Tritt es wieder auf: vor dem Update-Klick `Get-ChildItem` des Datenordners.
+- [x] Gate 2 Lock und Auto-Lock
+- [x] Gate 3 Skip, Neustart, Clear, Check now
+- [x] Gate 4 Dev-Build
+- [x] Gate 5a `cargotest` im eigenen Profil: keine UAC, 0.9.1.
+- [x] Gate 5b `cargotest` unter `Program Files`: UAC abgelehnt → alte App mit `Update failed · cancelled` (13 s nach dem
+  Klick); Retry → `0.9.1 is downloaded already`, UAC angenommen → `Elevated process has run successfully.`, 0.9.1 mit
+  `elevated: no`. 5c nicht gelaufen (optional, Unit-Test).
+- [x] Gate 6 Netz weg
+- [ ] Gate 7 Startzeit (mit SC): Prozessstart → Frame A 660 / 657, B 666 / 684 ms (Δ +6 / +27); Klick → Frame A 664 / 661,
+  B 730 / 747 ms (Δ +66 / +86). Der Klick-Anteil über 50 ms ist der Velopack-Stub (B Klick − Prozess ≈ 63 ms mit SC,
+  29 ms ohne), seit T11.1 unverändert; T11.1-Zahlen mit SC nicht notiert. **Entscheidung Martin offen.**
+- [x] Build ohne Warnungen, alle Tests grün (Core 1772, Import 280, Ocr 34, App 1958), `dotnet format` sauber
 
 ### [ ] T11.3 `release.yml` mit Velopack
 
