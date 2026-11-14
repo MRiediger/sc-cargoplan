@@ -39,6 +39,7 @@ jobs:
               exit 1
           }
           "VERSION=$version" >> $env:GITHUB_ENV
+          # A pre-release flag keeps an rc away from stable installs: GithubSource(prerelease: false) filters by it (D109).
           "PRERELEASE=$($version.Contains('-').ToString().ToLowerInvariant())" >> $env:GITHUB_ENV
 
       # The SDK pinned in global.json (D86): its runtime is the one the self-contained ZIP ships, as in a local publish.
@@ -56,15 +57,20 @@ jobs:
       - name: Test
         run: dotnet test -c Release --no-build
 
-      - name: Publish
-        run: ./build/publish.ps1 -Version $env:VERSION
+      # The same script as a local build (R1): publish, delta base from the last release, vpk pack, layout check (D109,
+      # T11.3). The token only lifts the API limit of the shared runner IP for vpk download; it reads VPK_TOKEN itself.
+      - name: Publish and pack
+        env:
+          VPK_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./build/publish.ps1 -Version $env:VERSION -DeltaBase github
 
-      # Pinned to a commit: a third-party action with write access to the repository (D49).
+      # Pinned to a commit: a third-party action with write access to the repository (D49). Not vpk upload github: it
+      # takes Velopack's names from assets.win.json (the ZIP would be CargoPlan-win-Portable.zip, R5), has no .sha256 and
+      # makes a draft first. out/release holds the portable ZIP with its hash and the app's feed: releases.win.json and
+      # the packages it names (D109 addendum T11.3).
       - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
-          files: |
-            out/publish/SC-CargoPlan-v${{ env.VERSION }}-win-x64.zip
-            out/publish/SC-CargoPlan-v${{ env.VERSION }}-win-x64.zip.sha256
+          files: out/release/*
           body_path: docs/release-notes/v${{ env.VERSION }}.md
           prerelease: ${{ env.PRERELEASE }}
           fail_on_unmatched_files: true
