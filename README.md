@@ -24,10 +24,19 @@ shows it in a translucent window next to the game.
 ## Install
 
 1. Download `SC-CargoPlan-v<version>-win-x64.zip` from the [latest release](https://github.com/MRiediger/sc-cargoplan/releases/latest).
-2. Right-click it → **Extract All**.
-3. Start `SC-CargoPlan\CargoPlan.App.exe`. Windows warns that the app is unsigned: **More info → Run anyway**.
+2. Right-click it → **Extract All** into a new folder you can write to (not `Program Files`).
+3. Start `SC-CargoPlan.exe` in that folder. Windows warns that the app is unsigned: **More info → Run anyway**.
 
 Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the overlay.
+
+Coming from v0.4.0 or older: extract v0.5.0 into a new folder, not over the old one; your settings and plan stay. Steps:
+[release notes of v0.5.0](https://github.com/MRiediger/sc-cargoplan/releases/tag/v0.5.0).
+
+## Updates
+
+From v0.5.0 on, CargoPlan checks GitHub for a new version once per start and offers it at the bottom of the overlay;
+it downloads only when you click **Update**. Switch it off in the settings, section **Updates**. More:
+[Updates](https://github.com/MRiediger/sc-cargoplan/wiki/Updates).
 
 ## Requirements
 
@@ -38,7 +47,7 @@ Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the 
 Reading contracts is new in v0.4.0:
 
 - Checked at 3440×1440 and 1920×1080 only. If a scan finds no contract on 32:9, 16:10 or 4K, start
-  `CargoPlan.App.exe --keep-scans`, scan again and attach the picture from `%LocalAppData%\SC-CargoPlan\scans` to a
+  `SC-CargoPlan.exe --keep-scans`, scan again and attach the picture from `%LocalAppData%\SC-CargoPlan\scans` to a
   [bug report](https://github.com/MRiediger/sc-cargoplan/issues/new?template=bug.yml).
 - A contract whose destinations run past one mobiGlas page is read as far as it shows; the legend says
   `⚠ 1 of 3 destinations` when the contract tells.
