@@ -6395,7 +6395,7 @@ $gh = "$env:ProgramFiles\GitHub CLI\gh.exe"
 - [x] Build ohne Warnungen, alle Tests grün (Core 1772, Import 280, Ocr 34, App 1969), `dotnet format` sauber.
 - Nächster Schritt: T11.4 mit eigenem Prompt. Merge `--no-ff` erst am Ende der Phase; der Draft-PR #24 schließt sich dabei.
 
-### [ ] T11.4 Migration und Texte
+### [x] T11.4 Migration und Texte (15.11.2026, `2e1bc2b`, `7ee7e6a`, `2f387f9`, Wiki `6ea3281` auf `v0.5.0`, abgenommen 15.11.)
 
 Release-Notes v0.5.0: v0.5.0 einmal von Hand laden, danach aktualisiert es sich selbst; neues Layout (Stub + `current\`);
 Settings-Downgrade auf v0.4.0 (D105-Addendum); Taskleisten-Gruppierung; Velopack-Log im Profil. README, Wiki
@@ -6537,6 +6537,19 @@ T11.3), dem D105-Addendum T11.0, den Gate-Protokollen S11.0–T11.3 und den UI-T
 - **A1-Grep nach dem Zweck, nicht nach dem Schalter** (E3). `e7d06bb`: `--updates-prerelease` hob nur einen von zwei
   Pre-Release-Filtern auf (`GithubSource`, nicht `UpdateGate.Offer`); der Grep nach dem Schalternamen fand den zweiten
   nicht, einer nach „pre-release“ hätte ihn gefunden.
+
+**Abnahme (Martin, 15.11.2026):**
+- [x] Gate 1 Texte freigegeben. Korrektur aus dem Gate: Downgrade-Satz „and the comma at the end of the line before it“
+  (Release-Notes, Wiki Troubleshooting und Installation), weil `updates` der letzte Key ist.
+- [x] Gate 2 Umstieg nach der Anleitung (lokales `0.5.0-gate.1`-ZIP): neuer Ordner, `SC-CargoPlan.exe`, Settings und Plan
+  da, alter Ordner gelöscht.
+- [x] Gate 2b (E2) v0.4.0 mit der v0.5.0-`settings.json`: mit `updates` amber Notice und Defaults; Block samt Komma
+  gelöscht → keine Notice, Einstellungen geladen. Known issue 1 belegt.
+- [x] Gate 3 U1 `updates-line.png` und U2 `updates-settings.png` im Wiki-`media\`. Martins Entscheidung zum Bild: U1 ohne
+  Plan, U2 ohne Check-now-Status; `docs/shots/t114-updates.md` beschreibt die Bilder so.
+- [x] Gate 4 Stichprobe `git log v0.4.0..HEAD --oneline` gegen die Notes passt.
+- [x] Build ohne Warnungen, alle Tests grün (Core 1772, Import 280, Ocr 34, App 1969).
+- Nächster Schritt: T11.5 mit eigenem Prompt (Merge, Tag, Wiki-Push, offene Punkte unten).
 
 ### [ ] T11.5 Release v0.5.0
 
