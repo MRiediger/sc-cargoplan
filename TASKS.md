@@ -6240,7 +6240,7 @@ $gate = "$env:UserProfile\CargoPlan-gate"
 - Nächster Schritt: T11.3 mit eigenem Prompt. Merge `--no-ff` erst am Ende der Phase.
 - [x] Build ohne Warnungen, alle Tests grün (Core 1772, Import 280, Ocr 34, App 1958), `dotnet format` sauber
 
-### [ ] T11.3 `release.yml` mit Velopack (14.11.2026, `51b5ed4`, `a079af1`, Doku-Commit, wartet auf Gate)
+### [x] T11.3 `release.yml` mit Velopack (14.11.2026, `51b5ed4`, `a079af1`, `2c79dab`, Gate-Fixes `6c9e667`, `e7d06bb`, abgenommen 15.11.)
 
 - `vpk download github` (letztes stabiles Release, Basis für das Delta) → `publish.ps1 -Version` → `vpk pack -u CargoPlan
   -v <dieselbe Version>` (Prüfschritt: `sq.version` = Assembly-Version ohne `+sha`) → Upload von `releases.win.json`,
@@ -6362,6 +6362,38 @@ $gh = "$env:ProgramFiles\GitHub CLI\gh.exe"
 5. **Hygiene einmal durchexerzieren (R10).** `& $gh release delete v0.5.0-rc.2 --cleanup-tag -y`,
    `& $gh release delete v0.5.0-rc.1 --cleanup-tag -y`, `git tag -d v0.5.0-rc.1 v0.5.0-rc.2`, `git fetch --prune --prune-tags`;
    `& $gh release list` zeigt wieder 7. Die Notes-Dateien bleiben (D49-Addendum T9.2).
+
+**Befunde im Gate (zwei Fixes, je ein eigener Commit):**
+- **`6c9e667` – Versionstest scheiterte am ersten Tag nach T11.1.** `AppVersionTests.A_build_without_a_tag_is_a_dev_build`
+  (T11.1) erwartete fest `0.0.0-dev`; `release.yml` testet aber den Build mit `-p:Version=<tag>`. Erster rc.1-Lauf rot im
+  Schritt „Test“, kein Release, Tag neu gesetzt. Der Test nimmt jetzt die Version seines eigenen Builds (`-p:Version` gilt für
+  alle Projekte). Lokal mit der Testfolge von `release.yml` belegt (Release-Build mit `-p:Version=0.5.0-rc.1`, `dotnet test
+  --no-build`).
+- **`e7d06bb` – `--updates-prerelease` erreichte das Angebot nicht.** Velopack fand rc.2 („Found newer remote release
+  available (0.5.0-rc.1 -> 0.5.0-rc.2)“), danach verwarf `UpdateGate.Offer` es als `0.5.0-rc.2 is a pre-release` (eigenes Netz
+  aus T11.1 für ein rc ohne GitHub-Flag). Der Schalter hob nur den Filter von `GithubSource` auf; der Grep in T11.3 suchte den
+  Schalter, nicht den Zweck „pre-release“ (A1). `Offer(…, allowPreRelease)`, `UpdateService` reicht den Schalter durch, +4 Tests
+  (allein und über einen lokalen Feed mit Velopacks `UpdateManager`). Fix nach Martins Freigabe; die installierte rc.1 hatte
+  den Fehler, darum rc.1 und rc.2 gelöscht und beide auf `e7d06bb` neu getaggt.
+- Nach dem Neustart steht `checking GitHub with pre-releases` zweimal: Die Zeile kommt je erzeugtem `UpdateManager`, und die
+  Prüfung auf einen gescheiterten Tausch erzeugt auch einen. Kosmetisch, bleibt (Abnahme).
+
+**Abnahme (Martin, 15.11.2026):**
+- [x] Gate 1 rc.1 (`e7d06bb`): Workflow grün unter `pwsh` 7, Tests grün, „No delta base found“ als Warnung, Layout-Prüfung
+  grün (382 Dateien in `current\`, 106 Schiffsdateien, 5 PDBs), Pre-release mit 4 Dateien, ZIP 90.251.162 Byte.
+- [x] Gate 2 rc.1 → rc.2 über GitHub, SC im Vordergrund: rc.1 allein `nothing newer`; rc.2 mit `Delta base:
+  CargoPlan-0.5.0-rc.1-full.nupkg`, Delta **169.079 Byte** (16 von 384 Dateien), Feed nennt rc.2 Full, rc.2 Delta und rc.1
+  (harmlos, belegt). In der App `0.5.0-rc.2 available` → Download **voll** („no local/base package … delta updates will be
+  disabled“, `CargoPlan-0.5.0-rc.2-full.nupkg` 90.295.173 Byte in 4,2 s) → Neustart mit `--updates-prerelease --data-dir …`
+  als `0.5.0-rc.2+e7d06bb…`, danach liegt das rc.2-Full in `packages\` (Delta-Basis für T11.5).
+- [x] Gate 3 frische rc.1 ohne Schalter: keine Zeile, nur `nothing newer than 0.5.0-rc.1`, keine Pre-Release-Zeile (R8).
+- [x] Gate 4 Draft-PR #24: CI grün, Windows inkl. „Publish and pack“ (`Layout check: SC-CargoPlan-v0.0.1-ci-win-x64.zip
+  passed`), Ubuntu grün.
+- [x] Gate 5 rc.1/rc.2 samt Tags gelöscht (remote und lokal), Test-Installationen entfernt, wieder 7 Releases.
+- [x] Offene Punkte wie gebaut abgenommen: `--runtime win-x64` (Stub und `Update.exe` x64), `-Version` Pflicht,
+  `--updates-prerelease` mit `--updates-source` bleibt ein Problem (Präzisierung 11), doppelte Logzeile bleibt.
+- [x] Build ohne Warnungen, alle Tests grün (Core 1772, Import 280, Ocr 34, App 1969), `dotnet format` sauber.
+- Nächster Schritt: T11.4 mit eigenem Prompt. Merge `--no-ff` erst am Ende der Phase; der Draft-PR #24 schließt sich dabei.
 
 ### [ ] T11.4 Migration und Texte
 
