@@ -11,7 +11,7 @@
        3.x, a direct reference would let Dependabot move it to 4.x underneath. -->
   <ItemGroup>
     <PackageReference Include="RapidOcrNet" Version="4.2.0" GeneratePathProperty="true" ExcludeAssets="build" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.31.1" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.32.0" GeneratePathProperty="true" />
   </ItemGroup>
 
   <!-- The models ship inside the RapidOcrNet package. Its own copy target (build/RapidOcrNet.targets) is not
