@@ -46,6 +46,10 @@ namespace CargoPlan.App.Settings;
 /// Missing (before K1) or null = the defaults (D76). An object of its own, not flat like <paramref name="ShipOutline"/>:
 /// zoom and the cameras per ship (K1.2) belong together; the Ship view section resets the zoom only.
 /// </param>
+/// <param name="Updates">
+/// Missing (before v0.5.0) or null = <see cref="UpdateSettings.Default"/>: check at start, skip nothing (D109). Optional, no
+/// schema bump (D31, D105 addendum).
+/// </param>
 public sealed record AppSettings(
     int SchemaVersion,
     WindowBounds? Overlay = null,
@@ -60,7 +64,8 @@ public sealed record AppSettings(
     double HoloOpacity = AppearanceRules.DefaultHoloOpacity,
     string? HoloHullColor = null,
     string? HoloEdgeColor = null,
-    ShipViewSettings? ShipView = null)
+    ShipViewSettings? ShipView = null,
+    UpdateSettings? Updates = null)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
 
@@ -86,6 +91,22 @@ public sealed record AppSettings(
     public string HoloEdgeColor { get; init; } = HoloEdgeColor ?? AppearanceRules.DefaultHoloEdgeColor;
 
     public ShipViewSettings ShipView { get; init; } = ShipView ?? ShipViewSettings.Default;
+
+    public UpdateSettings Updates { get; init; } = Updates ?? UpdateSettings.Default;
+}
+
+/// <summary>The update check (D109). Optional, no schema bump (D31); the settings window's section comes with T11.2.</summary>
+/// <param name="CheckOnStartup">
+/// Ask GitHub once per start, after the overlay's first frame, whether a newer release is out. false = no request at all
+/// (the update check's switch, like <c>downloadShipHolograms</c> for the holograms, D63).
+/// </param>
+/// <param name="SkippedVersion">
+/// The release the player chose to skip ("0.9.1"): not offered again, a newer one is (E7). null = none. Not a version =
+/// null with a line (<see cref="SettingsStore.Load"/>). Written as null, so a player editing the file sees the key.
+/// </param>
+public sealed record UpdateSettings(bool CheckOnStartup = true, string? SkippedVersion = null)
+{
+    public static UpdateSettings Default { get; } = new();
 }
 
 /// <summary>The ship view's zoom and the player's camera per ship (D76). Optional, no schema bump (D31).</summary>

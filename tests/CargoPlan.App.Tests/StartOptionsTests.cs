@@ -236,4 +236,93 @@ public class StartOptionsTests
     {
         StartOptions.Parse(args).WarmsOcrAtStart(scanKeySet).Should().Be(warms);
     }
+
+    // T11.1 (D109, E10): a local feed instead of GitHub, for gates without a real release.
+    [Theory]
+    [InlineData("--updates-source", @"D:\p11-run\feed")]
+    [InlineData("--Updates-Source", @"D:\p11-run\feed")]
+    public void Updates_source_takes_the_next_argument_as_feed_folder(params string[] args)
+    {
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null, UpdatesSource: @"D:\p11-run\feed"));
+    }
+
+    [Theory]
+    [InlineData("--updates-source")]
+    [InlineData("--updates-source", "--locked")]
+    [InlineData("--updates-source", "feed")]
+    public void Updates_source_without_a_full_path_is_a_problem_not_a_stop(params string[] args)
+    {
+        // Unlike --data-dir it protects no file: the overlay starts and checks GitHub as without the switch.
+        var options = StartOptions.Parse(args);
+
+        options.UpdatesSource.Should().BeNull();
+        options.DataDirRefused.Should().BeFalse();
+        options.Problem.Should().Be("--updates-source needs the full path of a folder.");
+        options.Locked.Should().Be(args.Contains("--locked"));
+    }
+
+    // T11.3 (R9): a developer's switch, so the gate can update rc.1 → rc.2 over GitHub.
+    [Theory]
+    [InlineData("--updates-prerelease")]
+    [InlineData("--Updates-Prerelease")]
+    public void Updates_prerelease_lets_the_check_see_pre_releases(params string[] args)
+    {
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null, UpdatesPrerelease: true));
+    }
+
+    [Fact]
+    public void Updates_prerelease_with_a_local_feed_is_a_problem()
+    {
+        // A local feed has no pre-release flag to filter by; the feed is used as it is, the switch is dropped.
+        var options = StartOptions.Parse(["--updates-source", @"D:\run\releases", "--updates-prerelease"]);
+
+        options.UpdatesSource.Should().Be(@"D:\run\releases");
+        options.UpdatesPrerelease.Should().BeFalse();
+        options.Problem.Should().Be("--updates-prerelease only goes with GitHub, not with --updates-source.");
+    }
+
+    [Theory]
+    [InlineData("--veloapp-updated", "0.9.1")]
+    [InlineData("--veloapp-obsolete", "0.9.0")]
+    [InlineData("--veloapp-firstrun")]
+    public void Velopack_hook_arguments_are_ignored(params string[] args)
+    {
+        // Velopack ends a hook run inside Run() (S11.0 G4); should one get through, it must not change the start.
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null));
+    }
+
+    [Fact]
+    public void The_restart_after_an_update_gets_the_same_arguments()
+    {
+        // U5: the restarted overlay starts as this one did (lock, data folder, feed, scans).
+        string[] args = ["--locked", "--data-dir", @"D:\run\data", "--updates-source", @"D:\run\releases", "--keep-scans"];
+
+        StartOptions.RestartArguments(args).Should().Equal(args);
+    }
+
+    [Fact]
+    public void The_restart_after_an_update_keeps_seeing_pre_releases()
+    {
+        // Gate 2 (T11.3): rc.2, started by Update.exe, must check as rc.1 did.
+        string[] args = ["--updates-prerelease", "--data-dir", @"D:\run\data"];
+
+        StartOptions.RestartArguments(args).Should().Equal(args);
+    }
+
+    [Theory]
+    [InlineData("--plan", @"D:\plans\route.json")]
+    [InlineData("--Plan", @"D:\plans\route.json")]
+    public void The_restart_leaves_out_the_start_plan(params string[] plan)
+    {
+        // Freigabe: the file would replace plan.json, and with it every tick of the run.
+        string[] args = ["--locked", .. plan, "--data-dir", @"D:\run\data"];
+
+        StartOptions.RestartArguments(args).Should().Equal("--locked", "--data-dir", @"D:\run\data");
+    }
+
+    [Fact]
+    public void A_plan_switch_without_a_path_takes_nothing_else_with_it()
+    {
+        StartOptions.RestartArguments(["--plan", "--locked"]).Should().Equal("--locked");
+    }
 }

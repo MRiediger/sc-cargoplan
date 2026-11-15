@@ -37,6 +37,14 @@ namespace CargoPlan.App;
 /// Keep the region of each scan as a PNG in scans\ next to plan.json, the last 20 (T10.5, D108): for a bug report from a
 /// screen size nobody checked. Off by default; the pictures are CIG material.
 /// </param>
+/// <param name="UpdatesSource">
+/// The update check reads this local feed folder (what <c>vpk pack</c> wrote) instead of GitHub (T11.1, D109, E10): for
+/// gates without a real release. null = GitHub. A path that isn't full is a problem, not a stop: it protects no file.
+/// </param>
+/// <param name="UpdatesPrerelease">
+/// The GitHub check sees pre-releases too (T11.3, R9): a developer's switch, so a gate can update rc.1 → rc.2 over the
+/// network. Not in settings.json; with <paramref name="UpdatesSource"/> it is a problem and dropped.
+/// </param>
 public sealed record StartOptions(
     bool Locked,
     string? PlanPath,
@@ -49,7 +57,9 @@ public sealed record StartOptions(
     bool ScanLoad = false,
     string? DataDir = null,
     bool DataDirRefused = false,
-    bool KeepScans = false)
+    bool KeepScans = false,
+    string? UpdatesSource = null,
+    bool UpdatesPrerelease = false)
 {
     public const string LockedSwitch = "--locked";
 
@@ -71,6 +81,10 @@ public sealed record StartOptions(
 
     public const string KeepScansSwitch = "--keep-scans";
 
+    public const string UpdatesSourceSwitch = "--updates-source";
+
+    public const string UpdatesPrereleaseSwitch = "--updates-prerelease";
+
     /// <summary>F9's series without a number: Gate 2's 100 scans.</summary>
     public const int ScanProbeSeries = 100;
 
@@ -82,11 +96,13 @@ public sealed record StartOptions(
         var scanProbeImages = false;
         var scanLoad = false;
         var keepScans = false;
+        var updatesPrerelease = false;
         string? planPath = null;
         string? measureFrames = null;
         int? scanProbe = null;
         string? dataDir = null;
         var dataDirRefused = false;
+        string? updatesSource = null;
         string? problem = null;
 
         for (var i = 0; i < args.Count; i++)
@@ -139,6 +155,18 @@ public sealed record StartOptions(
                     (dataDirRefused, problem) = (true, $"{DataDirSwitch} needs the full path of a folder.");
                 }
             }
+            else if (Is(args[i], UpdatesSourceSwitch))
+            {
+                // Full like --data-dir, for the same reason; the update check then asks GitHub as without the switch.
+                if (i + 1 < args.Count && !args[i + 1].StartsWith("--", StringComparison.Ordinal) && Path.IsPathFullyQualified(args[i + 1]))
+                {
+                    updatesSource = args[++i];
+                }
+                else
+                {
+                    problem = $"{UpdatesSourceSwitch} needs the full path of a folder.";
+                }
+            }
             else if (Is(args[i], ScanProbeImagesSwitch))
             {
                 scanProbeImages = true;
@@ -150,6 +178,10 @@ public sealed record StartOptions(
             else if (Is(args[i], KeepScansSwitch))
             {
                 keepScans = true;
+            }
+            else if (Is(args[i], UpdatesPrereleaseSwitch))
+            {
+                updatesPrerelease = true;
             }
             else if (Is(args[i], ScanProbeSwitch))
             {
@@ -185,7 +217,40 @@ public sealed record StartOptions(
             (scanLoad, problem) = (false, problem ?? $"{ScanLoadSwitch} only goes with {MeasureFramesSwitch}.");
         }
 
-        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans);
+        // A local feed has no pre-release flag to filter by (SimpleFileSource): the feed counts, the switch goes.
+        if (updatesPrerelease && updatesSource is not null)
+        {
+            (updatesPrerelease, problem) = (false, problem ?? $"{UpdatesPrereleaseSwitch} only goes with GitHub, not with {UpdatesSourceSwitch}.");
+        }
+
+        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans, updatesSource, updatesPrerelease);
+    }
+
+    /// <summary>
+    /// The arguments the app restarts with after an update (T11.2, U5): the same as this start (lock, data folder, feed,
+    /// scans), without <c>--plan</c> and its path. That file became plan.json at the first save; loaded again it would
+    /// replace the run's ticks and moves (Freigabe). Update.exe passes them after <c>--</c> (UpdateExe.cs 63–93).
+    /// </summary>
+    public static IReadOnlyList<string> RestartArguments(IReadOnlyList<string> args)
+    {
+        List<string> kept = [];
+        for (var i = 0; i < args.Count; i++)
+        {
+            if (Is(args[i], PlanSwitch))
+            {
+                // Its path only if one follows, as Parse reads it.
+                if (i + 1 < args.Count && !args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                {
+                    i++;
+                }
+
+                continue;
+            }
+
+            kept.Add(args[i]);
+        }
+
+        return kept;
     }
 
     /// <summary>

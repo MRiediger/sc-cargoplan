@@ -54,8 +54,8 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 | Tests | **xUnit** + `AwesomeAssertions` | Standard im .NET-Ökosystem. AwesomeAssertions ist der Apache-2.0-Fork von FluentAssertions (ab v8 kommerziell lizenziert). |
 | Click-through | Win32 `SetWindowLongPtrW` schaltet `WS_EX_TRANSPARENT` via `[LibraryImport]`, HWND aus `WindowInteropHelper`; `WS_EX_LAYERED` setzt WPF selbst (D11) | Keine Lib nötig. |
 | Hotkeys | **Gepollt:** `GetAsyncKeyState` auf einem `DispatcherTimer` (33 ms), Flanke + exakte Modifier (`HotkeyPoller`), scharf nur mit SC oder CargoPlan vorne (D97); Ctrl/Alt/Win Pflicht außer bei F-Tasten, einziger Default Scan = F3 (D104) | `RegisterHotKey` kommt mit SC vorne nie an; kein Hook (EAC), keine Lib. Die Taste erreicht auch das Spiel. |
-| Netz | **Einziger Netzzugriff:** `HoloSource` (App) lädt Schiffs-Hologramme per BCL-`HttpClient`, nur GET auf die Release-Assets `releases/download/holo-v2/` (Meshes aus den Motherlode-Modellen, D93), Manifest höchstens einmal am Tag, Schalter `downloadShipHolograms` (D63); der Cache `holo\` behält nur den aktuellen Tag (D95) | Hologramme stammen aus CIG-Modellen und müssen zurückziehbar sein: eigenes Daten-Release statt ZIP oder Repo. Jeder weitere Netzzugriff braucht einen eigenen D-Eintrag. |
-| Distribution | `build/publish.ps1` → App + Cli self-contained `win-x64` in **einem Ordner** (`out/publish/SC-CargoPlan`, 176 MB, 381 Dateien inkl. `ships/`, `outlines/` und `models/`), **ein ZIP (v0.4.0: 85,2 MB lokal, 87,6 MB aus der CI; v0.3.1: 62,1 / 64,2 MB)** mit SHA256; kein Single-File, kein pubxml, Satellites nur `en` (D46, D48, D49, D50, D99) | Nutzer sollen nichts installieren müssen; Hauler haben .NET 8, nicht 10. WPF kann nicht getrimmt werden. |
+| Netz | **Zwei Netzzugriffe, nur GET:** (1) `HoloSource` (App) lädt Schiffs-Hologramme per BCL-`HttpClient` von den Release-Assets `releases/download/holo-v2/` (Meshes aus den Motherlode-Modellen, D93), Manifest höchstens einmal am Tag, Schalter `downloadShipHolograms` (D63); der Cache `holo\` behält nur den aktuellen Tag (D95). (2) `UpdateService` (App) fragt einmal pro Start über Velopacks `GithubSource` die Release-Liste ab, ohne Pre-Releases (außer mit Dev-Schalter `--updates-prerelease`), Schalter `updates.checkOnStartup`; geladen wird erst auf Klick (D109) | Hologramme stammen aus CIG-Modellen und müssen zurückziehbar sein: eigenes Daten-Release statt ZIP oder Repo. Jeder weitere Netzzugriff braucht einen eigenen D-Eintrag. |
+| Distribution | `build/publish.ps1 -Version` → App + Cli self-contained `win-x64` in **einem Ordner** (`out/publish/SC-CargoPlan`, 185 MB, 382 Dateien inkl. `ships/`, `outlines/` und `models/`), dann `vpk pack` (Version aus der `Velopack`-PackageReference, `out/tools/`) → **Velopack-Portable-ZIP** `SC-CargoPlan-v<v>-win-x64.zip` mit SHA256 (Stub `SC-CargoPlan.exe`, `Update.exe`, App in `current\`, kein Wurzelordner; 0.9.x lokal 90,3 MB, v0.4.0 85,2 MB) + Feed (`releases.win.json`, Full-, Delta-nupkg) in `out/release/`, Layout-Prüfung `check-portable.ps1`; kein Single-File, kein pubxml, keine Setup.exe, Satellites nur `en` (D46, D48, D49, D50, D99, D109) | Nutzer sollen nichts installieren müssen; Hauler haben .NET 8, nicht 10. WPF kann nicht getrimmt werden. |
 | CI/CD | GitHub Actions, Matrix `ubuntu-latest` + `windows-latest` (App-Tests und `dotnet format` nur unter Windows, D12), Release bei Git-Tag | Niemand baut von Hand; Ubuntu deckt Pfadtrenner und Kultur für Core, Import, Cli ab. |
 | Lizenz | **MIT** | Maximale Verbreitung. |
 
@@ -69,7 +69,8 @@ sc-cargoplan/
 ├── SC-CargoPlan.sln
 ├── Directory.Build.props          # gemeinsame Settings: LangVersion, Nullable, TreatWarningsAsErrors, Version, Metadaten
 ├── build/
-│   └── publish.ps1                # Release-Ordner + ZIP nach out/publish (D48, D49), prüft ships/ und outlines/ im ZIP (D56, D55)
+│   ├── publish.ps1                # Publish nach out/publish, vpk pack, Release-Dateien nach out/release (D48, D49, D109)
+│   └── check-portable.ps1         # Layout-Prüfung des Portable-ZIPs: current\ = Publish-Ordner, ships, PDBs, Version (D109)
 ├── ships/                         # Schiffsdateien <id>.json, neben die Exe kopiert (D56); hull_a ist Pflicht
 ├── outlines/                      # ship-outlines.json + NOTICE.md (nicht MIT), neben die Exe kopiert, Zuordnung per modelKey (D55, D62, D94)
 ├── tools/import-motherlode.ps1    # Grid-Katalog der Spieldateien (Motherlode) → Racks in ships/, Katalog bleibt außerhalb (D92)
@@ -79,7 +80,7 @@ sc-cargoplan/
 │   ├── CargoPlan.Import/          # net10.0 – Contracts/: Vertragstext → `ScannedContract` mit Inhaltsschlüssel (D101); `DestinationNames` (B1)
 │   ├── CargoPlan.Ocr/             # net10.0 – Vertrag aus einem Bild lesen: ROI, up2-gray, RapidOcrNet, Lesereihenfolge (D99); keine Windows-API; NOTICE.md → models/NOTICE.md
 │   ├── CargoPlan.Cli/             # net10.0 – Plan im Terminal ausgeben (Debugging ohne UI), `scan <png>`
-│   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Settings (Schema 3, Migration D105), Win32-Interop (inkl. Fenstersuche und Bildschirmaufnahme), Scan (`Scanning/`: Aufnahme D100, `ScanIntake` mit zweiter Lesung bei Verdacht und `scans.log` D103, `ScanRunner` für Hotkey und Editor-Button mit Notice je Ergebnis D104, `ScanPictures` für `--keep-scans` D108), Holo-Download und -Cache (einziger Netzzugriff, D63)
+│   └── CargoPlan.App/             # net10.0-windows, WPF – Overlay, ViewModels, Settings (Schema 3, Migration D105), Win32-Interop (inkl. Fenstersuche und Bildschirmaufnahme), Scan (`Scanning/`: Aufnahme D100, `ScanIntake` mit zweiter Lesung bei Verdacht und `scans.log` D103, `ScanRunner` für Hotkey und Editor-Button mit Notice je Ergebnis D104, `ScanPictures` für `--keep-scans` D108), Holo-Download und -Cache (Netzzugriff 1, D63), `Program.Main` mit `VelopackApp.Run()` zuerst und `Updates/` (Check nach dem ersten Frame, `UpdateGate` ohne Velopack, Netzzugriff 2, D109)
 ├── tests/
 │   ├── CargoPlan.Core.Tests/      # Fixtures/, FrozenShips/ (A10)
 │   ├── CargoPlan.Import.Tests/    # Fixtures/RawText: echte Vertragstexte (CIG-Material nur als Text)
@@ -88,6 +89,7 @@ sc-cargoplan/
 ├── docs/
 │   ├── decisions.md               # D1…, nummeriert, mit Addenda
 │   ├── mission-format.md · plan-format.md · settings-format.md · ship-format.md · holo-format.md
+│   ├── update-testing.md          # Entwickler: lokaler Feed, --updates-prerelease, Release-Dateien, 10er-Fenster (D109)
 │   ├── release-notes/             # je Release, Geschichte: nie nachträglich ändern
 │   ├── review/                    # Repo-Durchsichten (2026-11-pre-p10)
 │   ├── nexus/                     # Nexus-Seite, Checkliste, Staff-Anfrage
@@ -126,7 +128,8 @@ dotnet run --project src/CargoPlan.App -c Release -- --keep-scans   # Overlay wi
 dotnet run --project src/CargoPlan.App -c Release -- --measure-frames <ziel> --over-game [--scan-load]   # Frame-Zeit über dem Spiel (D83) mit vorgewärmter Engine; --scan-load scannt während der 30 s in Schleife; measure-frames.log neben der Exe
 dotnet test tests/CargoPlan.App.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OverlayCaptureTests   # eigenes Fenster über dem ROI je Capture-Variante (D100), SC muss laufen, nur von Hand; Env: CARGOPLAN_SC_CAPTURE (Ausgabeordner außerhalb des Repos), optional CARGOPLAN_SC_CAPTURE_PROCESS
 ./tools/import-motherlode.ps1 -Catalog <catalog-<datum>.json> [-Previous <älterer Katalog>] [-Create]   # Racks aus den Spieldateien, Exit 1 = ansehen (Handprüfung, Reihenfolge, neues Schiff) (D92)
-./build/publish.ps1 [-Version 0.1.0]           # App + Cli nach out/publish/SC-CargoPlan + ZIP + SHA256 (D48, D49), Reihenfolge im Skript nicht ändern
+./build/publish.ps1 -Version 0.1.0 [-DeltaBase github|<full.nupkg>]   # App + Cli nach out/publish/SC-CargoPlan, vpk pack, Portable-ZIP + SHA256 + Feed nach out/release, Layout-Prüfung (D48, D49, D109), Reihenfolge im Skript nicht ändern
+dotnet run --project src/CargoPlan.App -- --updates-source <voller Pfad> | --updates-prerelease   # Update-Check gegen einen lokalen Feed bzw. mit GitHub-Pre-Releases (D109), nur für Gates; docs/update-testing.md
 dotnet run --project src/CargoPlan.Cli -- --version
 ```
 
@@ -147,6 +150,7 @@ dotnet run --project src/CargoPlan.Cli -- --version
 | A11 | **Fremdquelle mit Exit-Plan** | Eine fremde Datenquelle ohne Lizenz und ohne Ansprechpartner kommt nur mit Exit-Plan ins Projekt (Anlass: ContractTracker, closed source, Autor nicht erreichbar; Ausbau quer durch Planer und Plan-Schema, S10.0). |
 | A12 | **WPF in Tests** | WPF-Elemente in Tests nur über `Sta.Run`. Der Testprozess rendert nur in Software (`Sta.RenderInSoftware`, D98), kein Test schaltet das zurück oder setzt `RenderMode` pro Fenster. Eine GPU macht lokal sonst andere Tests als CI (Anlass: B11, Deadlock in `d3d9` in 5 von 10 Läufen). |
 | A13 | **Notice-Zeile mit mehreren Schreibern** | Wer eine Notice-Quelle setzt oder löscht, grept alle Schreiber dieser Quelle (`SetNotice(NoticeSource.X`) und testet ihr Zusammenspiel: Fehler dürfen verschwinden, Hinweise müssen stehen bleiben. Billiger als jede Upgrade-Probe (Anlass: B14, B13 baute das Löschen nach dem Speichern, T10.4b das Setzen des Konvertierungshinweises, ohne gemeinsamen Test; die Notice stand 500 ms). |
+| A14 | **Velopack zuerst** | `VelopackApp.Build().Run()` ist die erste Zeile in `Program.Main`. Code davor läuft bei jedem Install- und Update-Hook (`--veloapp-*`) erneut, und Velopack beendet den Prozess in diesen Fällen innerhalb von `Run()` (D109, S11.0 G4). |
 
 ## NIEMALS
 
@@ -176,6 +180,10 @@ dotnet run --project src/CargoPlan.Cli -- --version
 ## Definition of Done (jeder Task)
 
 1. Akzeptanzkriterien aus `TASKS.md` erfüllt und einzeln vorgeführt.
-2. `dotnet build` ohne Warnungen (`TreatWarningsAsErrors`), `dotnet test` grün.
-3. Martin hat jede neue Datei einmal erklärt bekommen (Zweck, Kernidee, nicht Zeile für Zeile).
-4. Task in `TASKS.md` auf `[x]`, Commit mit Task-Prefix (`T2.1: ...`), englische Message.
+2. Unmittelbar vor der Fertig-Meldung `dotnet build` und `dotnet test`
+   komplett ausführen und die Zusammenfassung der Ausgabe wörtlich zitieren
+   (Warnungen: 0, Tests: bestanden/gesamt). Keine Fertig-Meldung ohne
+   diesen Nachweis aus demselben Durchlauf.
+3. `dotnet build` ohne Warnungen (`TreatWarningsAsErrors`), `dotnet test` grün.
+4. Martin hat jede neue Datei einmal erklärt bekommen (Zweck, Kernidee, nicht Zeile für Zeile).
+5. Task in `TASKS.md` auf `[x]`, Commit mit Task-Prefix (`T2.1: ...`), englische Message.

@@ -101,6 +101,23 @@ public partial class SettingsWindowXamlTests
         slider.Attribute("TickFrequency")!.Value.Should().Be("1");
     }
 
+    [Fact]
+    public void The_updates_section_binds_its_view_model()
+    {
+        // U8: the switch, the skipped version with Clear (only when set), Check now with its status (T11.2).
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var section = Root().Descendants().Single(e => (string?)e.Attribute(x + "Name") == "UpdatesSection");
+        var bindings = section.Descendants().SelectMany(e => e.Attributes()).Select(a => $"{a.Parent!.Name.LocalName}.{a.Name.LocalName}={a.Value}").ToList();
+
+        section.Attribute("Header")!.Value.Should().Be("Updates");
+        bindings.Should().Contain("CheckBox.IsChecked={Binding CheckOnStartup}");
+        bindings.Should().Contain("DockPanel.Visibility={Binding HasSkippedVersion, Converter={StaticResource BooleanToVisibilityConverter}}");
+        bindings.Should().Contain("TextBlock.Text={Binding SkippedText, Mode=OneWay}");
+        bindings.Should().Contain("Button.Command={Binding ClearSkippedCommand, Mode=OneTime}");
+        bindings.Should().Contain("Button.Command={Binding CheckNowCommand, Mode=OneTime}");
+        bindings.Should().Contain("TextBlock.Text={Binding Status, Mode=OneWay}");
+    }
+
     [GeneratedRegex(@"\{x:Static (?<prefix>\w+):(?<type>\w+)\.(?<member>\w+)\}")]
     private static partial Regex StaticReference();
 }

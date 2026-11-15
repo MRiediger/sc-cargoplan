@@ -221,5 +221,5 @@ moved aside (…)". The next change tries again.
 
 ## Loading a plan file at start
 
-`CargoPlan.App.exe --plan <file>` shows that plan file instead of the saved one. It becomes the saved
+`SC-CargoPlan.exe --plan <file>` (in a development build `CargoPlan.App.exe --plan <file>`) shows that plan file instead of the saved one. It becomes the saved
 plan on the next save. Meant for development and for trying out the overlay without the editor.

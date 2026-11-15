@@ -116,6 +116,34 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <!-- "Skip this version" on the update line (T11.2, U3): the legend's box as a two-state check box with its label in
+             the notice's amber, size and halo. Checking it removes the line, so it never shows ticked for long. -->
+        <Style x:Key="NoticeCheckBoxStyle" TargetType="CheckBox">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{StaticResource NoticeForegroundBrush}" />
+            <Setter Property="FontSize" Value="{DynamicResource LegendFontSize}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <StackPanel Orientation="Horizontal" Background="{StaticResource HitTestBackgroundBrush}">
+                            <Border Width="12" Height="12" VerticalAlignment="Center" BorderThickness="1.5"
+                                    BorderBrush="{DynamicResource LegendCheckBoxBrush}">
+                                <Path x:Name="Mark" Data="M 1.5,4.5 L 3.8,7 L 7.5,1.5" Stroke="{DynamicResource LegendCheckMarkBrush}"
+                                      StrokeThickness="1.5" Visibility="Hidden" />
+                            </Border>
+                            <ContentPresenter Margin="5,0,0,0" VerticalAlignment="Center" Effect="{DynamicResource LegendHaloEffect}" />
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
         <!-- Glyph buttons in the header (pencil, gear, split, merge, exit): hidden while locked, but keeping their space. -->
         <Style x:Key="HeaderButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
             <Setter Property="Width" Value="30" />
@@ -484,10 +512,40 @@
                 </DockPanel>
             </DockPanel>
 
-            <!-- Problems with settings (D13), hotkeys (D17) and the plan file, one line per source (D18). Always the bottom
-                 line, full width and left-aligned, wherever the legend stands (D33, addendum T5.1): docked before the legend
-                 area, so a bottom legend stands above it, and a notice coming and going never moves a top legend or the
-                 ship view's top edge. Inside the aligned block a long notice would widen it and move the stop lines. -->
+            <!-- The update line (T11.2, D109, U1): the bottom line, below the notices (the earlier of two bottom children lies
+                 lower). Text left in the notices' style, controls right; locked, the controls hide and keep their space (U2).
+                 No line without an update: Update is null outside the overlay's start, IsVisible false without an offer. -->
+            <ContentControl x:Name="UpdateLine" DockPanel.Dock="Bottom" Focusable="False" Content="{Binding Update, Mode=OneWay}">
+                <ContentControl.ContentTemplate>
+                    <DataTemplate DataType="{x:Type vm:UpdateViewModel}">
+                        <DockPanel Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <StackPanel x:Name="UpdateControls" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding AreControlsShown}" Value="False">
+                                                <Setter Property="Visibility" Value="Hidden" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <Button Content="Update" Command="{Binding UpdateCommand}" Style="{StaticResource TextButtonStyle}" Margin="8,0,0,0"
+                                        Visibility="{Binding ShowsUpdate, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                <Button Content="Retry" Command="{Binding RetryCommand}" Style="{StaticResource TextButtonStyle}" Margin="8,0,0,0"
+                                        Visibility="{Binding ShowsRetry, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                <CheckBox Content="Skip this version" Command="{Binding SkipCommand}" Style="{StaticResource NoticeCheckBoxStyle}" Margin="10,0,0,0"
+                                          Visibility="{Binding ShowsSkip, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            </StackPanel>
+                            <TextBlock x:Name="UpdateText" Text="{Binding Text, Mode=OneWay}" Style="{StaticResource NoticeTextStyle}" VerticalAlignment="Center" />
+                        </DockPanel>
+                    </DataTemplate>
+                </ContentControl.ContentTemplate>
+            </ContentControl>
+            <!-- Problems with settings (D13), hotkeys (D17) and the plan file, one line per source (D18). The bottom lines,
+                 only the update line below them; full width and left-aligned, wherever the legend stands (D33, addendum
+                 T5.1): docked before the legend area, so a bottom legend stands above it, and a notice coming and going never
+                 moves a top legend or the ship view's top edge. Inside the aligned block a long notice would widen it and
+                 move the stop lines. -->
             <ItemsControl DockPanel.Dock="Bottom" ItemsSource="{Binding Notices, Mode=OneWay}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>

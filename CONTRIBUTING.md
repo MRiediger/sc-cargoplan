@@ -38,14 +38,23 @@ run's settings, plan and logs in that folder instead of your profile.
 ## Publish
 
 ```powershell
-./build/publish.ps1 [-Version 0.1.0]
+./build/publish.ps1 -Version 0.1.0 [-DeltaBase github|<path of a full nupkg>]
 ```
 
-It publishes the CLI and then the overlay into `out/publish/SC-CargoPlan/` and zips it, the same way the release workflow does. Don't publish by hand into that folder: both projects write `WindowsBase.dll`, and if the CLI's goes in last, the overlay doesn't start ([D48](docs/decisions.md)).
+It publishes the CLI and then the overlay into `out/publish/SC-CargoPlan/` and packs that folder with Velopack's `vpk`, the same way the release workflow does ([D109](docs/decisions.md)). `vpk` is installed into `out/tools/` in the version of the app's `Velopack` package. The release files land in `out/release/`: the portable ZIP `SC-CargoPlan-v<version>-win-x64.zip` with its `.sha256`, and the update feed (`releases.win.json`, the full and, with `-DeltaBase`, the delta package). The ZIP holds the launcher `SC-CargoPlan.exe`, `Update.exe` and the app in `current/`. `build/check-portable.ps1` then checks that layout. Don't publish by hand into the publish folder: both projects write `WindowsBase.dll`, and if the CLI's goes in last, the overlay doesn't start ([D48](docs/decisions.md)). Trying an update without a release: [docs/update-testing.md](docs/update-testing.md).
 
 ## Release
 
-For the maintainer: commit `docs/release-notes/v<version>.md`, then push the tag `v<version>`; the release workflow builds, tests and publishes the ZIP with its `.sha256` ([D49](docs/decisions.md)). After that, the same ZIP goes on Nexus Mods by [docs/nexus/checklist.md](docs/nexus/checklist.md) ([D87](docs/decisions.md)).
+For the maintainer:
+
+1. Commit `docs/release-notes/v<version>.md`, then push the tag `v<version>`. A tag with a hyphen (`v0.5.0-rc.1`) becomes a GitHub pre-release, which stable installs never see.
+2. The release workflow builds, tests, takes the last release's full package as the delta base, packs, checks the ZIP's layout and uploads `out/release/` ([D49](docs/decisions.md), [D109](docs/decisions.md)).
+3. Check the release: the ZIP and its `.sha256`, `releases.win.json`, the full package and, after the first Velopack release, the delta. The log of the step "Publish and pack" shows `Delta: …` and `Layout check: … passed`. A missing delta is a warning, not a failure.
+4. After the stable release, delete its rc releases and tags (`gh release delete v<version>-rc.N --cleanup-tag`, plus `git tag -d` locally).
+
+**Release hygiene:** the app reads only the 10 newest GitHub releases, pre-releases and hologram releases included. Among them must always be the last stable app release, or nobody gets an update. So keep at most two hologram releases, and never more than nine pre-releases or other releases after the last stable one.
+
+After that, the same ZIP goes on Nexus Mods by [docs/nexus/checklist.md](docs/nexus/checklist.md) ([D87](docs/decisions.md)).
 
 ## Correct ship data
 

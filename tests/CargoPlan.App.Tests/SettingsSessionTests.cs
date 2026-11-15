@@ -627,6 +627,53 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void ChangeSkippedVersion_writes_on_flush_and_tells_the_settings_window()
+    {
+        // U3: the overlay's Skip; U8: Clear in the settings window, through the same session (D30).
+        var session = Create();
+        var told = 0;
+        session.UpdatesChanged += (_, _) => told++;
+
+        session.ChangeSkippedVersion("0.9.1");
+        session.ChangeSkippedVersion("0.9.1");
+
+        told.Should().Be(1);
+        session.Flush();
+        Saved().Updates.Should().Be(new UpdateSettings(CheckOnStartup: true, SkippedVersion: "0.9.1"));
+
+        session.ChangeSkippedVersion(null);
+        session.Flush();
+        Saved().Updates.Should().Be(UpdateSettings.Default);
+        told.Should().Be(2);
+    }
+
+    [Fact]
+    public void Clear_writes_null_into_the_file()
+    {
+        var session = Create(AppSettings.Default with { Updates = new UpdateSettings(SkippedVersion: "0.9.1") });
+
+        session.ChangeSkippedVersion(null);
+        session.Flush();
+
+        File.ReadAllText(SettingsPath).Should().Contain("\"skippedVersion\": null");
+    }
+
+    [Fact]
+    public void ChangeCheckOnStartup_writes_on_flush()
+    {
+        var session = Create();
+        var told = 0;
+        session.UpdatesChanged += (_, _) => told++;
+
+        session.ChangeCheckOnStartup(false);
+
+        told.Should().Be(1);
+        session.Current.Updates.CheckOnStartup.Should().BeFalse();
+        session.Flush();
+        Saved().Updates.Should().Be(new UpdateSettings(CheckOnStartup: false));
+    }
+
+    [Fact]
     public void The_start_and_ChangeHoloColors_apply_the_hologram_colours_and_save_on_flush()
     {
         var session = Create(AppSettings.Default with { HoloEdgeColor = "#FFFFCC00" });

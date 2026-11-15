@@ -1,6 +1,9 @@
 namespace CargoPlan.App.ViewModels;
 
-/// <summary>Who reported a notice line. Each source sets and clears only its own line; lines show in this order (D18).</summary>
+/// <summary>
+/// Who reported a notice line. Each source sets and clears only its own line; lines show in this order (D18). The update
+/// line is no source: it has controls and lies below all of these as an element of its own (T11.2, <see cref="OverlayViewModel.Update"/>).
+/// </summary>
 public enum NoticeSource
 {
     Settings,

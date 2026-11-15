@@ -12,6 +12,8 @@ Texts: [`summary.txt`](summary.txt), [`description.bbcode`](description.bbcode).
 - **First upload only:** Nexus staff have answered [`staff-request.md`](staff-request.md) and agreed, **or**
   November 16, 2026, the date the request names, has passed without an answer. Date and wording (or "no answer") go
   into TASKS.md. If they refuse, stop: no upload.
+- The request named only the hologram download. The update check (from v0.5.0, D109) is the second network access; the
+  description discloses it in **Network access**, with its switch.
 - The GitHub release of the version is out and marked Latest.
 
 ## 1. The ZIP, checked against the release
@@ -19,7 +21,7 @@ Texts: [`summary.txt`](summary.txt), [`description.bbcode`](description.bbcode).
 In PowerShell, into an empty folder:
 
 ```powershell
-$version = '0.4.0'
+$version = '0.5.0'
 $dir = New-Item -ItemType Directory "$env:TEMP\nexus-$version"
 & "C:\Program Files\GitHub CLI\gh.exe" release download "v$version" -R MRiediger/sc-cargoplan -p "SC-CargoPlan-v$version-win-x64.zip*" -D $dir
 $zip = Get-Item "$dir\SC-CargoPlan-v$version-win-x64.zip"; (Get-FileHash $zip).Hash -eq (Get-Content "$zip.sha256").Split(' ')[0]
@@ -37,7 +39,7 @@ $zip = Get-Item "$dir\SC-CargoPlan-v$version-win-x64.zip"; (Get-FileHash $zip).H
 | Summary (350 characters) | [`summary.txt`](summary.txt) |
 | Full description | [`description.bbcode`](description.bbcode): open the BBCode source with the **[ ]** button, replace the template's text with the file's, switch back and check the five blocks (Description, Installation instructions, Main features, Requirements, Shout outs), the links and the lists |
 | Category | Miscellaneous (the only one for Star Citizen) |
-| Mod version | `$version` (e.g. `0.4.0`), without "v" |
+| Mod version | `$version` (e.g. `0.5.0`), without "v" |
 | Author | Martin Riediger |
 | Language | English |
 | Tags (where the editor offers them) | Utilities for Players, Quality of Life, User Interface |

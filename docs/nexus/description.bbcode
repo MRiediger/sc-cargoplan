@@ -4,17 +4,23 @@ A load-plan overlay for Star Citizen haulers: it decides which destination goes 
 
 How it works: the [url=https://github.com/MRiediger/sc-cargoplan/wiki]wiki[/url]. Source code: [url=https://github.com/MRiediger/sc-cargoplan]GitHub[/url].
 
-[b]What it reads and downloads[/b]
+[b]What it reads[/b]
 [list]
 [*]When you press the scan key (F3, or the editor's Scan button), it copies the contract area of the Star Citizen window and reads it with its own OCR on your PC. Nothing is sent anywhere, and it reads no other program's data.
-[*]Its only network access is the optional download of ship holograms from github.com, which you can turn off.
-[*]Ship holograms are made from CIG's ship models and are not under MIT. They live in a release of their own, holo-v2, with its own NOTICE, not in this ZIP. The app downloads them only from there, one file per ship when you pick a hologram look, and never fetches anything from Fleetyards; [b]Download ship holograms[/b] in the settings switches it off.
-[*]Ship holograms are an optional download; they derive from game models and may be withdrawn on request.
+[/list]
+
+[b]Network access[/b]
+The app goes online for two things only, both to github.com, both plain downloads; nothing about you or your PC is sent.
+[list]
+[*][b]Ship holograms (off until you pick one):[/b] ship holograms are made from CIG's ship models and are not under MIT. They live in a release of their own, holo-v2, with its own NOTICE, not in this ZIP. The app downloads them only from there, one file per ship when you pick a hologram look, and never fetches anything from Fleetyards; [b]Download ship holograms[/b] in the settings switches it off. They derive from game models and may be withdrawn on request.
+[*][b]Update check (on until you turn it off):[/b] once per start, after the overlay is up, the app asks GitHub's release list of this project whether a newer version is out, and offers it at the bottom of the overlay. It downloads only when you click [b]Update[/b]. Turn off [b]Check for updates on startup[/b] in the settings, section [b]Updates[/b], and it makes no request at all.
+[*][b]Updates come from GitHub, not from Nexus.[/b] The file here is the same ZIP as the GitHub release; once it runs, the app updates itself from the GitHub releases.
 [/list]
 
 [b]Known issues[/b]
 [list]
-[*][b]Unsigned, no auto-update:[/b] Windows warns at the first start of every version; check the releases for new ones.
+[*][b]Unsigned:[/b] Windows warns the first time you start a downloaded ZIP.
+[*][b]A folder below Program Files:[/b] an update asks Windows for administrator rights; say No and the old version comes back with [b]Update failed · cancelled[/b]. Extract the ZIP to a folder you can write to.
 [*][b]Ship data:[/b] the racks of 102 ships come from the game files, each placed to the nearest whole cell; the 135c, 600i Executive Edition and F7C Hornet Mk II are still drafts from Fleetyards. The game files describe no doors, so some racks may have a door limit the app doesn't know.
 [*][b]The Retaliator is not included.[/b]
 [*][b]A crate under an empty rack[/b] in front of it can't be clicked in the ship view. Turn the view, or use its line in the legend.
@@ -26,7 +32,7 @@ More, with workarounds: [url=https://github.com/MRiediger/sc-cargoplan/wiki/Trou
 Please report bugs on GitHub, not in the Nexus comments, so they can be tracked.
 [list]
 [*]Bugs, wrong cargo grids, ideas: [url=https://github.com/MRiediger/sc-cargoplan/issues/new/choose]Issues[/url] · questions: [url=https://github.com/MRiediger/sc-cargoplan/discussions]Discussions[/url]
-[*]Copy the version from the footer of the settings window (e.g. [b]SC-CargoPlan 0.4.0+…[/b]).
+[*]Copy the version from the footer of the settings window (e.g. [b]SC-CargoPlan 0.5.0+…[/b]).
 [*]Open a [url=https://github.com/MRiediger/sc-cargoplan/issues/new?template=bug.yml]bug report[/url] (needs a GitHub account) and fill in the form.
 [/list]
 
@@ -34,9 +40,11 @@ Please report bugs on GitHub, not in the Nexus comments, so they can be tracked.
 
 [list=1]
 [*]Download [b]SC-CargoPlan-v<version>-win-x64.zip[/b] from the Files tab, or from the [url=https://github.com/MRiediger/sc-cargoplan/releases/latest]latest release[/url] on GitHub.
-[*]Right-click it → [b]Extract All[/b].
-[*]Start [b]SC-CargoPlan\CargoPlan.App.exe[/b]. Windows warns that the app is unsigned: [b]More info → Run anyway[/b].
+[*]Right-click it → [b]Extract All[/b] into a [b]new[/b] folder you can write to (not Program Files). Don't extract it over an older version: the ZIP has no folder of its own any more.
+[*]Start [b]SC-CargoPlan.exe[/b] in that folder. Windows warns that the app is unsigned: [b]More info → Run anyway[/b].
+[*]Coming from v0.4.0 or older: your settings and plan stay (they live in [b]%LocalAppData%\SC-CargoPlan[/b]); delete the old folder afterwards.
 [/list]
+From then on the app updates itself from GitHub (see Network access).
 Check the download against the [b].sha256[/b] file of the GitHub release ([url=https://github.com/MRiediger/sc-cargoplan/wiki/Installation-and-first-start#check-the-download-optional]how[/url]).
 
 Run Star Citizen in [b]Borderless[/b] window mode; exclusive fullscreen covers the overlay.

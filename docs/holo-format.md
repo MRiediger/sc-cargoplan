@@ -106,7 +106,7 @@ nothing: the app keeps its cache.
 
 ## Reading side (SC-CargoPlan)
 
-How the overlay gets and uses the files (D63). The overlay's only network access.
+How the overlay gets and uses the files (D63). The overlay's first network access; the second is the update check (D109).
 
 - **Requests:** plain HTTPS GETs of `https://github.com/MRiediger/sc-cargoplan/releases/download/holo-v2/<file>`
   (GitHub redirects to its asset host), User-Agent `SC-CargoPlan/<version>`, 5 s per request. Any 2xx answer is

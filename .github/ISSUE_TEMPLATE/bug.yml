@@ -12,6 +12,15 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: install
+    attributes:
+      label: How did you install this version?
+      description: A freshly extracted ZIP, or CargoPlan's own update (then from which version)?
+      placeholder: Fresh ZIP / self-update from 0.5.0
+    validations:
+      required: true
+
   - type: textarea
     id: steps
     attributes:
@@ -37,7 +46,8 @@ body:
       label: Observed
       description: |
         What happened instead? Copy any amber line from the overlay word for word.
-        If the overlay closed with an error or says "sync failed", attach `%LocalAppData%\SC-CargoPlan\cargoplan.log`.
+        If the overlay closed with an error or says "Update failed", attach `%LocalAppData%\SC-CargoPlan\cargoplan.log`.
+        If an update went wrong, attach `%LocalAppData%\velopack\velopack_CargoPlan.log` too: it holds the swap itself.
     validations:
       required: true
 

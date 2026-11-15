@@ -107,5 +107,9 @@
         "pitch": 62.5
       }
     }
+  },
+  "updates": {
+    "checkOnStartup": true,
+    "skippedVersion": null
   }
 }

@@ -221,6 +221,33 @@ public sealed class SettingsSession
     }
 
     /// <summary>
+    /// The update settings changed (T11.2): an open settings window shows a Skip from the overlay. Carries the new ones.
+    /// </summary>
+    public event EventHandler<UpdateSettings>? UpdatesChanged;
+
+    /// <summary>The settings window's switch (U8, D109): saved after <see cref="Debounce"/>, read by the next start.</summary>
+    public void ChangeCheckOnStartup(bool check) => ChangeUpdates(Current.Updates with { CheckOnStartup = check });
+
+    /// <summary>
+    /// The overlay's Skip (U3) or the settings window's Clear (null, U8): saved after <see cref="Debounce"/> like every
+    /// change (D30), so the next start's check reads it.
+    /// </summary>
+    public void ChangeSkippedVersion(string? version) => ChangeUpdates(Current.Updates with { SkippedVersion = version });
+
+    private void ChangeUpdates(UpdateSettings updates)
+    {
+        if (updates == Current.Updates)
+        {
+            return;
+        }
+
+        Current = Current with { Updates = updates };
+        _timer.Stop();
+        _timer.Start();
+        UpdatesChanged?.Invoke(this, updates);
+    }
+
+    /// <summary>
     /// From <see cref="OverlayBoundsSaver"/>, which has debounced already: saved at once, a pending look change with it.
     /// </summary>
     public void ChangeBounds(WindowBounds bounds)
