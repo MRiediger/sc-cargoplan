@@ -215,7 +215,7 @@ default, with a notice for one that isn't a colour.
 
 `downloadShipHolograms`: `true` (the default) lets a hologram look download the ship's file from this repository's
 release `holo-v2` on GitHub when you pick a ship, one file per ship, and the list of files at most once a day. Nothing
-else is sent. `false` means no network access at all; holograms already downloaded still show. They are kept in
+else is sent. `false` means no hologram downloads at all (the update check has its own switch, `updates.checkOnStartup`); holograms already downloaded still show. They are kept in
 `%LocalAppData%\SC-CargoPlan\holo\holo-v2\` ([format](holo-format.md)). Only the current release's folder stays (D95):
 another `holo-v<n>` folder, such as `holo-v1` of v0.1 and v0.2, goes once the current list of files is checked, and the
 overlay says once that the holograms download again; with downloads off or a look without hologram it goes at once and
@@ -283,10 +283,11 @@ without the current ship, in the group "Recent" on top.
 | Key | What | Default |
 |---|---|---|
 | `updates.checkOnStartup` | Once per start, after the overlay is up, ask GitHub whether a newer release of SC-CargoPlan is out (one request to the release list of this repository, pre-releases left out). A newer one shows as the overlay's bottom line with *Update* and *Skip this version*. `false` means no request at all. Nothing is downloaded without your click. | `true` |
-| `updates.skippedVersion` | A release you chose to skip, like `"0.5.1"`: it isn't offered again, a newer one is. Not a version means none, with a notice. | `null` |
+| `updates.skippedVersion` | A release you chose to skip, like `"0.5.1"`. **This version only:** it isn't offered again, a newer one is. The value stays until you skip another version or clear it. Not a version means none, with a notice. | `null` |
 
 Both keys are set in the settings window's **Updates** section too: *Check for updates on startup*, the skipped version
-with *Clear*, and *Check now*. The overlay's *Skip this version* writes `skippedVersion`.
+with *Clear*, and *Check now*. The overlay's *Skip this version* writes `skippedVersion`, *Clear* sets it back to `null`.
+*Check now* asks even with `checkOnStartup` off and keeps a skipped version skipped (status `v0.5.1 is skipped`).
 
 A check that fails (offline, GitHub's limit, no answer within 10 seconds) shows nothing; `cargoplan.log` has one line
 about it. A build without a release version (`0.0.0-dev`) and a copy not started from the release ZIP's package never

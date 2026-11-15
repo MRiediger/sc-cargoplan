@@ -6,7 +6,8 @@ changes, re-record the shots of the pages it touches.
 **State of the shots:** most were recorded on 28 Oct 2026, before the perspective ship view (D83) and before hull and
 racks came from the game files (D93): their ship view shows the old hull, with the Hull A's racks beside it. They show
 the same behavior and stay (D85). For v0.3.0 H15 (Hull B) was recorded anew; for v0.4.0 E1 (hero), E2 (scan), D5
-(editor), D7 and D10 (settings), and E7 was cut from the E2 recording. When to
+(editor), D7 and D10 (settings), and E7 was cut from the E2 recording; v0.5.0 adds U1 and U2 for the page Updates,
+listed with their setup in [`t114-updates.md`](t114-updates.md). When to
 re-record the rest is the backlog line "Screenshots/GIFs auf Perspektive nachdrehen" in [`TASKS.md`](../../TASKS.md).
 
 Each place in the wiki that shows a shot carries `![…](media/<file>)` and, below it, `<!-- SHOT: <id> -->`. The hero GIF
@@ -51,7 +52,7 @@ goes into the wiki repo's `media/` folder.
 
 Page prefixes: `install` Installation-and-first-start · `quickstart` Quick-start-at-the-cargo-elevator · `overlay`
 Overlay-basics · `editor` Plan-and-editor · `shipview` Ship-view · `legend` Legend-and-delivery-states · `prefs`
-Preferences · `ships` Ships-and-cargo-grids · `scan` Scanning-contracts (from v0.4.0).
+Preferences · `ships` Ships-and-cargo-grids · `scan` Scanning-contracts (from v0.4.0) · `updates` Updates (from v0.5.0).
 
 ## The test plan
 
