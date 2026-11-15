@@ -50,6 +50,7 @@ For the maintainer:
 1. Commit `docs/release-notes/v<version>.md`, then push the tag `v<version>`. A tag with a hyphen (`v0.5.0-rc.1`) becomes a GitHub pre-release, which stable installs never see.
 2. The release workflow builds, tests, takes the last release's full package as the delta base, packs, checks the ZIP's layout and uploads `out/release/` ([D49](docs/decisions.md), [D109](docs/decisions.md)).
 3. Check the release: the ZIP and its `.sha256`, `releases.win.json`, the full package and, after the first Velopack release, the delta. The log of the step "Publish and pack" shows `Delta: …` and `Layout check: … passed`. A missing delta is a warning, not a failure.
+   If the workflow fails before any asset was public, delete the release and the tag (`gh release delete v<version> --yes`, `git push --delete origin v<version>`, `git tag -d v<version>`), fix the cause on `main` and push the same tag again; once the release was visible and someone may have downloaded it, a fix is a new version.
 4. After the stable release, delete its rc releases and tags (`gh release delete v<version>-rc.N --cleanup-tag`, plus `git tag -d` locally).
 
 **Release hygiene:** the app reads only the 10 newest GitHub releases, pre-releases and hologram releases included. Among them must always be the last stable app release, or nobody gets an update. So keep at most two hologram releases, and never more than nine pre-releases or other releases after the last stable one.

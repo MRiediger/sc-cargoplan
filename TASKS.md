@@ -5841,7 +5841,7 @@ Racks (`probe-b2-src`: v0.3.1-Settings + Plan mit 3 Kisten `loaded`, 6 `delivere
   `quickstart-capture-sync-full.gif`): bleiben (Martin), außerhalb des Repos
 - Übergabe an K11 (TASKS.md-Archivierung)
 
-## Phase 11 – nach dem Launch
+## Phase 11 – nach dem Launch (abgeschlossen 15.11.2026 mit v0.5.0)
 
 ### [x] S11.0 Velopack-Spike (13.11.2026, kein Prod-Code, abgenommen 13.11.)
 
@@ -6551,7 +6551,7 @@ T11.3), dem D105-Addendum T11.0, den Gate-Protokollen S11.0–T11.3 und den UI-T
 - [x] Build ohne Warnungen, alle Tests grün (Core 1772, Import 280, Ocr 34, App 1969).
 - Nächster Schritt: T11.5 mit eigenem Prompt (Merge, Tag, Wiki-Push, offene Punkte unten).
 
-### [ ] T11.5 Release v0.5.0
+### [x] T11.5 Release v0.5.0 (15.11.2026, Merge `00bba94`, Tag `v0.5.0`, Wiki `7debb75`)
 
 Tag, CI-Release, ZIP gemessen, Start aus dem heruntergeladenen ZIP (SmartScreen für Stub und `Update.exe`). Der erste
 echte Selbsttausch ist v0.5.0 → v0.5.1.
@@ -6572,6 +6572,108 @@ Offene Punkte aus T11.4:
 - rc-Hygiene erledigt (T11.3 Gate 5: rc.1/rc.2 samt Tags gelöscht, 7 Releases).
 - Phase-11-Lehren aus T11.4 nach „Lehren“ übernehmen.
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. build/test/format und der Pack-Lauf laufen auf dem **lokalen Merge-Commit** (SDK 10.0.404), nicht auf dem Branch
+   (10.0.403): nur so sind sie die Probe dessen, was Tag und Runner bauen, und die Basis für den Runtime-Vergleich (B7).
+   Die Dokuprüfung bleibt vor dem Merge auf dem Branch.
+2. CC merged den Wiki-Branch `v0.5.0` → `master` lokal mit `--no-ff` (Muster v0.4.0), erst nach der Erstnutzer-Probe,
+   Martin pusht.
+3. D109 bekommt ein Addendum „Status (T11.5)“ statt eines neuen Status-Felds.
+4. SmartScreen für `Update.exe` und den ersten Start nach einem Selbsttausch lässt sich erst mit v0.5.1 prüfen → Backlog.
+5. (Freigabe E1) Fehlerpfad, falls `release.yml` am Tag scheitert: unten in der Anleitung und als Satz in
+   `CONTRIBUTING.md` („Release“).
+
+**Vorprüfung (15.11.2026, Branch `3e96df1`):**
+- `git log v0.4.0..HEAD`: 23 Commits; die 19 der T11.4-Tabelle plus die 4 T11.4-Commits (reine Doku). Unter `src/` seit
+  v0.4.0 nur Phase-11-Code; `HoloRelease.cs` ist ein Refactor (User-Agent-Version aus `AppVersion`), nicht sichtbar.
+- `release.yml` verlangt `docs/release-notes/v0.5.0.md` (Zeile 36, 74): vorhanden; Tag ohne `-` → kein Pre-Release.
+- T11.0–T11.4 `[x]` mit Abnahme, D109 mit Addenda T11.2 und T11.3. „about 90 MB“ einheitlich in Notes und Wiki
+  (README nennt keine Größe).
+
+**Merge und Probe (CC, lokal, `00bba94`, nicht gepusht):** `dotnet --version` = 10.0.404.
+- Build: `0 Warnung(en)`, `0 Fehler`. `dotnet format --verify-no-changes`: Exit 0.
+- Test (sauberer Worktree von `00bba94`):
+  `Bestanden! : Fehler: 0, erfolgreich: 280, … gesamt: 280 - CargoPlan.Import.Tests.dll`,
+  `… erfolgreich: 34, … gesamt: 34 - CargoPlan.Ocr.Tests.dll`,
+  `… erfolgreich: 1968, … gesamt: 1968 - CargoPlan.App.Tests.dll`,
+  `… erfolgreich: 1770, … gesamt: 1770 - CargoPlan.Core.Tests.dll`.
+  Die Zahlen aus T11.3/T11.4 (Core 1772, App 1969) enthielten drei gitignorte lokale Scratch-Tests (2 Core, 1 App);
+  `main` bringt keine Teständerung mit.
+- `./build/publish.ps1 -Version 0.5.0 -DeltaBase github`: `WARNUNG: No delta base found; packing without a delta.`,
+  `Layout check: SC-CargoPlan-v0.5.0-win-x64.zip passed (382 files in current\, 106 ship files, 5 PDBs, version 0.5.0).`
+  Release-Dateien: ZIP 90.261.861, Full-nupkg 90.305.872, `releases.win.json` 252, `.sha256` 98 Byte.
+- Lokale B7-Referenz: Runtime `Microsoft.NETCore.App` und `Microsoft.WindowsDesktop.App` **10.0.15**
+  (`CargoPlan.App.runtimeconfig.json`), `coreclr.dll` 10.0.1526.53008, Cli `0.5.0+00bba94…`.
+
+**Release geprüft (CC, 15.11.2026, nach Martins Push von `main` und Tag `v0.5.0`):**
+
+| Prüfung | Soll | Ist |
+|---|---|---|
+| CI auf `main` (Merge-Push) | grün | Run 43741126840 success |
+| Workflow „Release“ | grün | Run 43741150620 success, 2 min 41 s |
+| Tag | annotiert, auf dem Merge | `tag`, `00bba94` |
+| Release | kein Pre-Release, kein Draft, „Latest“ | `isPrerelease false`, `isDraft false`, Latest, 17:29:28 UTC |
+| Body | = `docs/release-notes/v0.5.0.md` | identisch (4.493 Zeichen, Vergleich über die API) |
+| Assets | ZIP, `.zip.sha256`, Full-nupkg, `releases.win.json`; kein Delta, keine Setup.exe, kein `RELEASES`, kein `assets.win.json` | genau diese 4: ZIP 90.261.314, nupkg 90.305.325, Feed 252, `.sha256` 98 Byte |
+| SDK im Runner | 10.0.404 | `dotnet-install: Installed version is 10.0.404` |
+| Delta | Warnung, kein Fehler | `No full / applicable release was found`, `##[warning]No delta base found; packing without a delta.` |
+| Layout-Prüfung | grün | `passed (382 files in current\, 106 ship files, 5 PDBs, version 0.5.0)` |
+| SHA256 ZIP | = `.sha256` | `820eb82d…ad187`, gleich |
+| `releases.win.json` | genau ein Full `0.5.0`, `FileName` = Asset | ein Eintrag `Full` `0.5.0` `CargoPlan-0.5.0-full.nupkg`, Size und SHA256 = Asset |
+| ZIP-Wurzel | `SC-CargoPlan.exe`, `Update.exe`, `.portable`, `current\` | genau diese, 382 Dateien in `current\` |
+| Runtime (B7) | = lokales Pack mit 10.0.404 | beide `Microsoft.NETCore.App` / `WindowsDesktop.App` **10.0.15**, `coreclr.dll` und `PresentationFramework.dll` 10.0.1526.53008 |
+| Cli-Version | `0.5.0+00bba94…` | `0.5.0+00bba9416301217703ab4dafc06f5a5447898288`, lokal gleich |
+| Größe | „about 90 MB“ | 90,3 MB (ZIP lokal 547 Byte größer: Zeitstempel im Archiv) |
+| Hygiene | letztes stable unter den 10 neuesten | 8 Releases, v0.5.0 an der Spitze |
+
+**B7-Lücke geschlossen:** Die Runtime im CI-ZIP ist dieselbe wie im lokalen Pack mit demselben SDK.
+
+**Anleitung (Martin).**
+
+1. `git push` auf `main` → PR #24 schließt sich, `ci.yml` läuft auf `main` (Windows inkl. „Publish and pack“, Ubuntu).
+   Erst bei grün weiter (`& "$env:ProgramFiles\GitHub CLI\gh.exe" run list -L 3`).
+2. Tag: `git tag -a v0.5.0 -m "v0.5.0"; git push origin v0.5.0`. Danach Workflow „Release“ abwarten, „Workflow durch“ an CC.
+   **Scheitert `release.yml`** (Pack, Layout-Prüfung, Upload): Release-Entwurf und Tag löschen
+   (`gh release delete v0.5.0 --yes`, `git push --delete origin v0.5.0`, `git tag -d v0.5.0`), Ursache auf `main` beheben,
+   **denselben Tag** neu setzen, solange kein Asset öffentlich war. War das Release sichtbar und könnte jemand geladen
+   haben, ist ein Fix eine neue Version (v0.5.1).
+3. **Erstnutzer-Probe** (nach CCs Release-Prüfung), genau wie ein v0.4.0-Nutzer:
+   1. ZIP **im Browser** von der Release-Seite laden (nicht per `gh`/`curl`, sonst fehlt das Mark-of-the-Web).
+   2. Explorer → Rechtsklick → „Alle extrahieren“ in einen neuen Ordner unter `%UserProfile%`.
+   3. `SC-CargoPlan.exe` starten. **SmartScreen beobachten:** erscheint „Der Computer wurde durch Windows geschützt“,
+      Wortlaut und Weg („Weitere Informationen → Trotzdem ausführen“) notieren. Overlay schließen, zweiter Start: kommt
+      die Meldung wieder?
+   4. Settings und Plan aus `%LocalAppData%\SC-CargoPlan` sind da; `cargoplan.log` zeigt `Update: nothing newer than
+      0.5.0`; Settings → Updates → **Check now** → `Up to date`.
+   5. Schalter *Check for updates on startup* aus → Overlay schließen, neu starten → keine `Update:`-Check-Zeile im Log.
+      Schalter wieder an.
+   6. Ergebnis an CC: SmartScreen ja/nein, Wortlaut, zweiter Start.
+4. Danach merged CC den Wiki-Branch lokal; du pushst das Wiki (`git push` in `..\sc-cargoplan.wiki`), rufst die Seite
+   „Updates“ im Browser auf (Bilder?) und lädst nach `docs/nexus/checklist.md` zu Nexus hoch (*Network access* in der
+   Beschreibung, bevor die Datei live geht). Veröffentlichen nach Stand der Staff-Anfrage; T11.5 wartet nicht darauf.
+
+**Erstnutzer-Probe (Martin, 15.11.2026):** bestanden. ZIP im Browser geladen, „Alle extrahieren“, `SC-CargoPlan.exe`:
+**SmartScreen beim ersten Start ja, beim zweiten nicht mehr.** Das deckt sich mit den Texten zum Tag (Release-Notes
+Schritt 3, README, Nexus „More info → Run anyway“, Wiki „Windows asks once per download“ mit Bild, Known issue
+„Unsigned“): keine Korrektur, kein `gh release edit`. Settings und Plan da, Startcheck `nothing newer`, Check now
+`Up to date`, Schalter aus → keine Check-Zeile, wieder an.
+
+**Wiki:** CC hat `v0.5.0` lokal mit `--no-ff` nach `master` gemergt (`7debb75`), nach der Probe; Martin pusht.
+
+**Phasenabschluss (CC):** Lehren und Backlog unten, `CONTRIBUTING.md` „Release“ um den Fehlerpfad (E1), D109-Addendum
+„Status (T11.5)“.
+
+**Aufräumen (nur gemeldet, nichts gelöscht):** `..\sc-cargoplan-p11-run`, `%UserProfile%\CargoPlan-gate`, der
+Probe-Ordner aus der Erstnutzer-Probe, `out\tools\vpk-*` (bleibt, wird wiederverwendet), Testkonto `cargotest` (Martin
+entfernt es), Branch `feat/p11-auto-update` lokal und remote (gemergt in `00bba94`).
+
+**Abnahme (Martin, 15.11.2026):**
+- [x] `main` gepusht, CI grün (Run 43741126840), PR #24 geschlossen.
+- [x] Tag `v0.5.0` gepusht, Workflow „Release“ grün; Release-Prüfung oben ohne Befund, B7-Lücke geschlossen.
+- [x] Erstnutzer-Probe bestanden, SmartScreen wie dokumentiert.
+- [x] Build ohne Warnungen, alle Tests grün (Core 1770, Import 280, Ocr 34, App 1968; sauberer Worktree), `dotnet format`
+  sauber.
+
 ---
 
 ## Lehren
@@ -6587,6 +6689,12 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 - **Mechanik-Tests laden Fixtures aus dem Test-Ordner, nie aus `ships/`** (CLAUDE.md A10). Datentests prüfen `ships/` selbst. Anlass Session 4a (D92): Die Racks aus den Spieldateien brachen 70 Tests (Treffertest, Drag, Szene, Kamera, Rack-Geometrie), ohne dass die App einen Fehler hatte, weil sie feste Zellen und Pixel der ausgelieferten Hull A, Freelancer und Caterpillar prüften. Seitdem: `tests/CargoPlan.Core.Tests/FrozenShips`, `TestPlans.HullA()`, `FrozenShips.Load`.
 - **Mess- und Gate-Befehle selbst einmal laufen lassen, bevor Martin sie bekommt.** Anlass T8.5 (Messbefehl) und T8.7 (`--over-game`): erst der eigene Lauf zeigt, ob das Log das Richtige zählt; die 343 Vorschau-Wechsel des Sweeps hätten einen von SC gefangenen Cursor nicht verraten, daher „path keys“.
 - **Eine Notice-Zeile, mehrere Schreiber: alle greppen, Zusammenspiel testen** (CLAUDE.md A13). Anlass B14: B13 baute „nach dem Speichern ist ein Ladeproblem gelöst, Zeile leeren“, T10.4b setzte in dieselbe Zeile den Konvertierungshinweis; jeder Task war für sich getestet, der Hinweis stand im fertigen ZIP 500 ms. Gefunden erst von der Upgrade-Probe in T10.6; ein Grep nach `SetNotice(NoticeSource.Plan` hätte beide Schreiber gezeigt.
+- **Fremd-Framework zuerst als Spike mit Gates am echten Layout.** Anlass Phase 11: S11.0 fand vor dem ersten Prod-Commit CS0017 (zwei `Main`), den Setup-Hang mit App-Argumenten (velopack#1039), das Löschverhalten je packId und das 10er-Fenster von `GithubSource`; jedes davon hätte sonst ein Release getroffen.
+- **Bei fremden CLIs heißt „leer“ oft „nicht gesetzt“.** Anlass T11.3: `vpk --exclude ""` ließ die PDBs trotzdem weg (Default `.*\.pdb`). Der Wert, der nie matcht, ist `(?!)`, und der Wächter ist ein Test, der einmal provoziert rot war (PDB-Zählung in `check-portable.ps1`).
+- **UAC nur im Standardkonto prüfen.** Anlass S11.0 G5: im Admin-Konto mit `ConsentPromptBehaviorAdmin = 0` kam keine Abfrage; erst `cargotest` als Standardnutzer zeigte Abfrage, Ablehnung und `cancelled` (T11.2 Gate 5b).
+- **A1-Grep nach dem Zweck, nicht nach dem Schalter.** Anlass `e7d06bb`: `--updates-prerelease` hob nur einen von zwei Pre-Release-Filtern auf (`GithubSource`, nicht `UpdateGate.Offer`); der Grep nach dem Schalternamen fand den zweiten nicht, einer nach „pre-release“ hätte ihn gefunden.
+- **Ein Pack-Skript für lokal und CI, und das CI-Artefakt gegen das lokale vergleichen.** Anlass B7 (Runtime des Release-ZIPs nie geprüft) und T11.3: `build/publish.ps1` ist der einzige Ort für Publish und Pack, `ci.yml` und `release.yml` rufen es auf; der lokale Lauf auf dem Merge-Commit ist die Probe für den Tag. T11.5 hat die Lücke geschlossen: Runtime und Cli-Version des CI-ZIPs = lokales Pack mit demselben SDK. Jedes Release so prüfen.
+- **Testzahlen aus einem sauberen Worktree.** Anlass T11.3/T11.4: drei gitignorte Scratch-Tests (2 Core, 1 App) zählten mit, gemeldet waren 1772/1969 statt 1770/1968. Zählen mit `git worktree add --detach <scratch> <commit>`, `dotnet test`, dann `git worktree remove`.
 
 ---
 
@@ -6605,6 +6713,17 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~Eigener Datenordner für Diagnose-Schalter~~ – erledigt in T10.4a (`--data-dir`, 552c052).
 
 - winget-Manifest (`winget install SC-CargoPlan`), früher T11.2. Auslöser: Ein Nutzer fragt danach (D109).
+- Erster Selbsttausch übers Netz v0.5.0 → v0.5.1: Download voll (≈ 90 MB, keine Basis in `packages\`), Größe aus den
+  `Velopack:`-Zeilen ins Release-Protokoll; dabei SmartScreen für `Update.exe` und den ersten Start nach dem Tausch prüfen
+  (T11.5 Präzisierung 4). Das erste Delta übers Netz kommt mit v0.5.2 für alle auf v0.5.1. Auslöser: Release v0.5.1.
+- Setup.exe und/oder Code-Signing (D109: heute nur Portable, unsigniert). Auslöser: Nutzer-Reports, dass SmartScreen
+  sie abhält (T11.5: Warnung einmal je Download, „More info → Run anyway“).
+- Screenreader-Zugang zur Skip-Checkbox der Update-Zeile: Toggle per UIA löst den Command nicht aus (`OnToggle` statt
+  `OnClick`, T11.2); dazu die beiden „Clear“-Buttons im Settings-Fenster unterscheidbar benennen. Auslöser: Report eines
+  Screenreader-Nutzers.
+- Velopack-Log vollständig umleiten: `SetLogger` schreibt heute ab Information und erst ab gesetztem Datenordner nach
+  `cargoplan.log`, Velopacks eigene Datei unter `%LocalAppData%\velopack\` bleibt (T11.2, Known issue 6). Auslöser: ein
+  Bug-Report, der ohne diese Datei nicht zu klären ist.
 
 - Rechteck-Picker für das Scan-ROI (der Nutzer zieht den Vertragsbereich einmal auf), für Seitenverhältnisse, bei denen
   das relative 16:9-Center-ROI nicht trifft (32:9, 16:10, geänderte HUD-Skalierung; S10.0 nur 21:9 und 16:9 geprüft).
