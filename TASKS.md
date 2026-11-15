@@ -6426,10 +6426,138 @@ Notizen aus T11.3 – Ablauf für heutige v0.4.0-Nutzer (Vorlage, von Martin bes
    das Full in `packages\`, und ab v0.5.2 gibt es Deltas, aber nur für alle, die genau eine Version zurückliegen (D109).
 7. Den alten v0.4.0-Ordner löscht der Hauler von Hand.
 
+**Umsetzung (15.11.2026):** reine Text- und Doku-Session, kein App-Code, keine Workflow-Änderung. Martins Entscheidungen
+M1–M10 aus dem Prompt; Plan freigegeben mit den Ergänzungen E1–E3. Jede Verhaltensaussage aus D109 (+ Addenda T11.2,
+T11.3), dem D105-Addendum T11.0, den Gate-Protokollen S11.0–T11.3 und den UI-Texten im Code (`UpdateViewModel.cs`,
+`UpdateFailure.cs`, `UpdateService.cs`, `SettingsWindow.xaml`, `OverlayWindow.xaml`).
+- Repo: `docs/release-notes/v0.5.0.md` (neu, Entwurf), `README.md` (Install, neu *Updates*, `--keep-scans` am Stub),
+  `docs/nexus/description.bbcode` (*Network access* mit beiden Zugriffen, Known issues, Installation, Version),
+  `docs/nexus/checklist.md` (0.5.0, Satz zur Staff-Anfrage), `docs/settings-format.md` (Skip „this version only“, Clear,
+  Check now; Holo-Schalter ≠ „kein Netz“), `.github/ISSUE_TEMPLATE/bug.yml` (Pflichtfeld Install-Weg, Velopack-Log),
+  `docs/holo-format.md`, `docs/plan-format.md` (je ein Satz), `docs/shots/t114-updates.md` (neu, U1/U2),
+  `docs/shots/SHOTLIST.md` (Verweis, Präfix `updates`).
+- Wiki-Klon, Branch `v0.5.0` (nicht gepusht): `Updates.md` (neu), `Installation-and-first-start.md` (Install, Ordnerinhalt,
+  Update, *Coming from v0.4.0 or older*, Uninstall, Daten-Tabelle), `Troubleshooting.md` (Known issues, Report a bug),
+  `Preferences.md` (*Updates*), `Overlay-basics.md`, `Scanning-contracts.md`, `FAQ.md`, `Ships-and-cargo-grids.md`,
+  `Home.md`, `_Sidebar.md`, `_Footer.md` („Applies to v0.5.0“).
+- D109 ohne Addendum: keine Lücke. Die 89,5 MB im Gegenargument sind der S11.0-Stand, das T11.3-Addendum nennt 90,3 MB.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. Wiki-Seitennamen aus dem Klon: Settings = `Preferences`, Known issues = `Troubleshooting#known-issues`, Installation =
+   `Installation-and-first-start`; neue Seite `Updates`.
+2. Größe **„about 90 MB“** statt „≈ 89 MB“: Full rc.2 90.295.173 Byte, ZIP rc.1 90.251.162 Byte (T11.3 Gate 1/2).
+3. Downgrade: `.bak` hält die v0.4.0-Datei nur nach dem **ersten** v0.5.0-Lauf (`.bak` = Stand vor der ersten Änderung
+   des Laufs). Text: vor dem Zurückgehen den `"updates": { … }`-Block am Ende von `settings.json` samt dem Komma am
+   Ende der Zeile davor löschen (`updates` ist der letzte Key, ohne das Komma wäre die Datei kein JSON mehr).
+   Abgeleitet aus dem D105-Addendum, belegt erst durch Gate 2b (E2).
+4. `docs/settings-format.md` hatte den Abschnitt `updates` schon; nur Ergänzungen (Skip „this version only“, Clear,
+   Check now behält die übersprungene Version).
+5. Weitere veraltete Stellen mitgezogen: README Known issues (`SC-CargoPlan.exe --keep-scans`), Wiki `Overlay-basics`
+   (Startschalter am Stub), `Scanning-contracts` (Stub, `current\CargoPlan.Cli.exe`), `FAQ` (zwei Netzzugriffe),
+   `Troubleshooting` („No auto-update“ raus), `Preferences` (*Updates*), `docs/holo-format.md` („only network access“),
+   `docs/plan-format.md` (`--plan` am Stub), Bug-Template („sync failed“ → „Update failed“). In der Umsetzung zusätzlich
+   gefunden: Wiki `Ships-and-cargo-grids` und `docs/settings-format.md` sagten „Download ship holograms off = no network
+   access at all“, jetzt „no hologram downloads“ mit Verweis auf den Update-Schalter.
+6. Wiki auf Branch `v0.5.0` im Klon (Muster v0.4.0), Merge + Push in T11.5; Home und Footer schon auf v0.5.0.
+7. Shotlist `docs/shots/t114-updates.md` plus Verweiszeile in `SHOTLIST.md`, Präfix `updates`, IDs U1/U2.
+8. `docs/nexus/staff-request.md` bleibt (abgeschickt, Geschichte); die Checkliste sagt, dass die Anfrage nur den
+   Holo-Download nannte und die Beschreibung den Update-Check offenlegt.
+9. SmartScreen-Satz am Stub unbelegt übernommen; Reihenfolge in T11.5 (E1).
+10. v0.3.x-Nutzer: ein Satz verweist zusätzlich auf „Before you update“ von v0.4.0.
+11. README-Zeile „Not affiliated with Motherlode, Fleetyards or CIG“ bleibt wörtlich (M5 zitierte sie anders).
+12. Vollständigkeit per `git log v0.4.0..HEAD` (Tabelle unten). Der Dependabot-Bump SDK 10.0.404 (`ed2b9f6`) liegt nur
+    auf `main` und kommt mit dem Merge; nicht in den Notes (Runtime-Patch, frühere Notes nennen ihn nie).
+
+**Known issues v0.5.0** (RN = Release-Notes, Wiki = `Troubleshooting#known-issues`):
+
+| # | Kern | Wo | Quelle |
+|---|---|---|---|
+| 1 | Zurück auf v0.4.0 nach dem ersten Speichern → Defaults + Notice; vorher `updates`-Block löschen | RN, Wiki, Installation | D105-Addendum T11.0, T11.1 Gate 5, Gate 2b (E2) |
+| 2 | Ordner unter `Program Files` → UAC; danach normal, nicht als Admin; abgelehnt → alte Version mit `Update failed · cancelled` + Retry ohne neuen Download | RN, Wiki, Nexus | D109-Addendum T11.2 „UAC“, T11.2 Gate 5b |
+| 3 | Erstes Update nach dem Umstieg voll (about 90 MB), Deltas danach und nur eine Version zurück | RN, Wiki | D109-Addendum T11.3 „Delta base“, T11.3 Gate 2 |
+| 4 | Angeheftete Verknüpfungen zeigen auf den alten Ordner | RN, Wiki, Installation | T11.4-Notiz aus T11.3, Punkt 3 |
+| 5 | Taskleiste gruppiert neu | RN, Wiki, Installation | D109 Gegenargument (AUMID `velopack.CargoPlan`), S11.0 Risiken |
+| 6 | Velopack-Log `%LocalAppData%\velopack\velopack_CargoPlan.log`, auch mit `--data-dir` | RN, Wiki | D109 Gegenargument, S11.0 G1/G5 |
+| 7 | SC als Admin → CargoPlan als Admin (bleibt); Update startet wie gestartet, nach UAC-Tausch nicht erhöht | RN, Wiki | Wiki (bestand), S11.0 G5, D109-Addendum T11.2 „UAC“ |
+| 8 | Im Lock (auch Auto-Lock) nur Text; zum Klicken entsperren | RN (What's new), Wiki | D109-Addendum T11.2 „Line“ (U2), T11.4-Notiz aus T11.2 |
+| 9 | Ungeplante Editor-Zeilen gehen beim Update verloren wie beim Exit | RN, Wiki | D109-Addendum T11.2 „Apply“ (D19) |
+| 10 | Unsigned: Windows warnt beim ersten Start eines heruntergeladenen ZIPs | Wiki, Nexus | v0.4.0-Text, E1 |
+| 11 | Eigene Änderungen im Programmordner (z. B. `current\ships`) ersetzt ein Update | Wiki | D109 Gegenargument („Everything else in `current\` is lost“) |
+
+**Vollständigkeit** (`git log v0.4.0..HEAD --oneline`, 19 Commits):
+
+| Commits | Inhalt | In den Notes |
+|---|---|---|
+| `0642b98`, `864c6d1` | REL v0.4.0 nachgemessen, R5 | – (Doku) |
+| `5a65d44`, `063ffc5`, `ab412fa` | S11.0 Spike-Befund | – (kein Prod-Code) |
+| `2db4063` | T11.0 D109, Tasks, A14 | – (Doku) |
+| `cff9c7b`, `ec8542d` | T11.1 Check nach dem ersten Frame | What's new (Check, Netz, Schalter) |
+| `370306b`, `295a7a8`, `6166f36`, `db245b4` | T11.2 Update-Zeile, Skip, Retry, Download + Apply, Settings *Updates* | What's new, Known issues 2, 8, 9 |
+| `2a9bb10` | CLAUDE.md DoD | – (Repo-Regel) |
+| `51b5ed4`, `a079af1`, `2c79dab`, `6c9e667`, `e7d06bb`, `293ec04` | T11.3 Pack, Release, `--updates-prerelease`, Versionstest | Changes (Layout, Cli, Größe), Known issue 3; `--updates-prerelease` nur Entwickler (`docs/update-testing.md`) |
+
+**Gate-Anleitung (Martin).**
+
+1. **Texte lesen:** `docs/release-notes/v0.5.0.md`, `README.md`, Wiki `Updates.md` und `Installation-and-first-start.md`
+   (im Klon, Branch `v0.5.0`), `docs/nexus/description.bbcode`. Freigabe oder Korrekturen.
+2. **Anleitung wörtlich befolgen** (SC muss nicht laufen). Vorher Profil und alten Ordner sichern:
+   ```powershell
+   $bk = "$env:UserProfile\cargoplan-t114-backup"
+   Copy-Item -Recurse "$env:LocalAppData\SC-CargoPlan" "$bk\profile"
+   Copy-Item -Recurse <dein v0.4.0-Ordner> "$bk\v0.4.0"
+   ./build/publish.ps1 -Version 0.5.0-gate.1
+   Copy-Item out\release\SC-CargoPlan-v0.5.0-gate.1-win-x64.zip "$env:UserProfile\Downloads\"
+   ```
+   Dann nur noch nach dem Block „Upgrading from v0.4.0 or older“ der Release-Notes (bzw. README *Install*): Extract All
+   in einen neuen Ordner, `SC-CargoPlan.exe`, Settings und Plan da, das Overlay einmal verschieben (damit `updates`
+   geschrieben wird), schließen, den alten Ordner löschen. Jede Stelle, an der du nachdenken musst, ist ein Textfehler.
+   Ein lokal gebautes ZIP trägt keine Download-Markierung, SmartScreen zeigt sich hier also nicht (prüft T11.5, E1).
+3. **Gate 2b (Pflicht, E2):** belegt Known issue 1, ohne das Profil anzufassen.
+   ```powershell
+   $d = "$env:UserProfile\cargoplan-t114-2b"; New-Item -ItemType Directory $d | Out-Null
+   Copy-Item "$env:LocalAppData\SC-CargoPlan\settings.json" $d     # v0.5.0-Datei mit "updates"
+   Start-Process "$bk\v0.4.0\CargoPlan.App.exe" -ArgumentList '--data-dir', $d
+   ```
+   a. Erwartet: amber `Settings not loaded, using defaults (…)`. **Nichts ändern**, Overlay schließen.
+   b. In `$d\settings.json` den Block `"updates": { … }` am Dateiende (vier Zeilen) **samt dem Komma am Ende der Zeile
+   davor** löschen (Text der Known issue wörtlich befolgen), gleicher Start → **keine** Notice, Overlay an der
+   verschobenen Stelle, dein Schiff. Schließen. Scheitert b, wird Known issue 1 umgeschrieben.
+4. **Screenshots** nach `docs/shots/t114-updates.md` (U1, U2) in `..\sc-cargoplan.wiki\media\`.
+5. **Stichprobe** `git log v0.4.0..HEAD --oneline` gegen die Notes (Tabelle oben).
+6. Danach `$bk`, `$d` und den Gate-Ordner aufräumen; das Profil bleibt, wie Schritt 2 es hinterlässt (v0.5.0-Format,
+   `.bak` = deine v0.4.0-Datei).
+
+**Entwurf Phase-11-Lehren** (Übernahme in „Lehren“ mit T11.5):
+- **Fremd-Framework zuerst als Spike mit Gates am echten Layout.** S11.0 fand vor dem ersten Prod-Commit CS0017, den
+  Setup-Hang (velopack#1039), das Löschverhalten je packId und das 10er-Fenster von `GithubSource`.
+- **Defaults fremder CLIs: „leer“ kann „nicht gesetzt“ heißen.** `vpk --exclude ""` ließ die PDBs weg (Default
+  `.*\.pdb`); `(?!)` matcht nie, und die PDB-Zählung in `check-portable.ps1` ist der Wächter, einmal provoziert.
+- **UAC nur im Standardkonto prüfen.** Im Admin-Konto mit `ConsentPromptBehaviorAdmin = 0` kam keine Abfrage (S11.0 G5);
+  erst `cargotest` als Standardnutzer zeigte Abfrage, Ablehnung und `cancelled` (T11.2 Gate 5b).
+- **A1-Grep nach dem Zweck, nicht nach dem Schalter** (E3). `e7d06bb`: `--updates-prerelease` hob nur einen von zwei
+  Pre-Release-Filtern auf (`GithubSource`, nicht `UpdateGate.Offer`); der Grep nach dem Schalternamen fand den zweiten
+  nicht, einer nach „pre-release“ hätte ihn gefunden.
+
 ### [ ] T11.5 Release v0.5.0
 
 Tag, CI-Release, ZIP gemessen, Start aus dem heruntergeladenen ZIP (SmartScreen für Stub und `Update.exe`). Der erste
 echte Selbsttausch ist v0.5.0 → v0.5.1.
+
+Offene Punkte aus T11.4:
+- Merge `--no-ff` `feat/p11-auto-update` → `main` (schließt Draft-PR #24). Bringt den SDK-Bump 10.0.404 von `main`
+  (`ed2b9f6`): SDK vorher installieren (B7).
+- Tag `v0.5.0` auf den Merge, `docs/release-notes/v0.5.0.md` ist die Beschreibung.
+- **SmartScreen (E1):** Stub und `Update.exe` aus dem Browser-Download prüfen, dazu der erste Start nach einem
+  Selbsttausch. Der Satz „More info → Run anyway“ bleibt als sicherer Default zum Tag. Zeigt die Probe keine Warnung:
+  `gh release edit v0.5.0 --notes-file docs/release-notes/v0.5.0.md` nach der Korrektur, die Datei mit einem Folge-Commit
+  nachziehen (README, Wiki, Nexus ebenso). **Kein zweiter Tag.**
+- ZIP messen; „about 90 MB“ in Notes, Wiki und README prüfen.
+- Wiki-Branch `v0.5.0` nach `master` mergen und pushen, mit dem Tag.
+- Nexus-Upload 0.5.0 nach `docs/nexus/checklist.md` (Staff-Frist 16.11.2026).
+- Martin entscheidet: Nexus-Staff nachträglich über den Update-Check informieren ja/nein (P8).
+- Erster echter Selbsttausch v0.5.0 → v0.5.1, dabei der Delta-Download übers Netz (T11.3 Präzisierung 1).
+- rc-Hygiene erledigt (T11.3 Gate 5: rc.1/rc.2 samt Tags gelöscht, 7 Releases).
+- Phase-11-Lehren aus T11.4 nach „Lehren“ übernehmen.
 
 ---
 
