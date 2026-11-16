@@ -239,7 +239,7 @@ Three things lie in ship coordinates, each on its own (D90):
 | What | Field | Its origin, the point the field places |
 |---|---|---|
 | A rack | `origin` | the rack's minimum corner |
-| The hologram | `holoOrigin` | the mesh's origin: the game model's origin (holo-v2, see [holo-format.md](holo-format.md)) |
+| The hologram | `holoOrigin` | the mesh's origin: the game model's origin (since holo-v2, see [holo-format.md](holo-format.md)) |
 | The outline | `outlineOrigin`, `outlineScale` | the game model's origin too; it lies flat at z |
 
 **Ships with a game model (D93):** racks, hologram and outline come from the same Motherlode model, and the file's zero
@@ -260,7 +260,7 @@ test `ShipAnchorValueTests` (see `CLAUDE.md`): x and y the racks' common box mid
 hull's height in cells, for both fields. A file without the fields still works: hologram and outline hang on the racks'
 middle as they used to, so one corrected rack moves them too. A test holds every shipped ship to having them.
 
-**`holoOrigin` belongs to a hologram release**, today `holo-v2`. A release that kept the game model's origin needs
+**`holoOrigin` belongs to a hologram release**, today `holo-v3`. A release that kept the game model's origin needs
 nothing; one that moved it would need its own rule in the import.
 
 ### Correcting a rack
@@ -300,7 +300,7 @@ The racks of almost every ship come from the game files (D92): cargo grid data a
 [cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo), extracted from the Star Citizen game files and used with its
 operators' permission. `source` names the catalog's game build and date, e.g.
 `"cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07"`. Hologram and outline come from the same models (D93):
-the hologram release `holo-v2` and `outlines/ship-outlines.json`. Three ships still use hull data from
+the hologram release `holo-v3` and `outlines/ship-outlines.json`. Three ships still use hull data from
 [fleetyards.net](https://fleetyards.net), see [The three Fleetyards ships](#the-three-fleetyards-ships). Only values
 derived from the catalog and the models go into the repo, never the catalog or a model itself (D56).
 
@@ -317,7 +317,7 @@ After a patch, or when Motherlode publishes a new catalog:
    (without `-Create`), `kept` (a grid without place), `handcheck` or `order`, then per rack its rounding, stack axis,
    grid, crate limits and rotation. Exit code 0 means done, 1 something to look at, 2 an error (then nothing is written).
 3. **Holograms and outlines** (only when the models changed): the pipeline builds them per model from the map
-   ([holo-format.md](holo-format.md#pipeline-holo-v2)) and writes `outlines/ship-outlines.json`; run the import once
+   ([holo-format.md](holo-format.md#pipeline)) and writes `outlines/ship-outlines.json`; run the import once
    more, and it writes the anchors from the new outlines' `floorM`. A new hologram release needs a new tag and the app
    constant `HoloRelease.Tag`.
 4. **Look at what it didn't write:** `handcheck` means overlapping grids, a rack set or position that doesn't match the
@@ -344,9 +344,9 @@ transform, reportedMaxSize? } ], modelUrl? } ] }`. A grid with `transform: null`
 
 ## The three Fleetyards ships
 
-The 135c (its grids have no place in the catalog), the 600i Executive Edition and the F7C Hornet Mk II (not in the
-catalog) still use hull data from [fleetyards.net](https://fleetyards.net): grids, hologram (their holo-v1 file, carried
-into holo-v2) and outline (a trace without `floorM`). Their files stay as the Fleetyards import last wrote them. The
+The 135c (its grids have no place in the catalog; its model is there since 4.10.3), the 600i Executive Edition and the
+F7C Hornet Mk II (not in the catalog) still use hull data from [fleetyards.net](https://fleetyards.net): grids, hologram
+(their holo-v1 file, carried into holo-v2 and holo-v3) and outline (a trace without `floorM`). Their files stay as the Fleetyards import last wrote them. The
 import is retired since v0.3.0 (D94) and lives on in the Git history (`git show a3430b9^:tools/import-fleetyards.ps1`);
 its fetch script and Fleetyards' raw export are archived in the pipeline's `legacy/`. A change to one of the three is
 hand work, checked in game. Once Motherlode has their models, they move to the game files like every other ship.

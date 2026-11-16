@@ -6747,7 +6747,24 @@ die 135c bleibt holo-v1 (Grid ohne Transform, Import `kept`); Liberator `passed:
 - **`fit`** (`holo\ml\fit-v3.csv`): alle Rack-Ecken im Modell, größtes Eindringen Retaliator rack-0 0,054, Umriss-IoU
   ≥ 0,956 (Tyilui). **Kontaktabzug** `sc-ship-outlines\holo\ml\sheet-v3\PP-*.png` (18 Modelle inkl. 135c zur Info):
   Draufsicht deckt sich überall mit dem roten Umriss.
-- Offen: Sichtprüfung Martin, `gh release create holo-v3`, `HoloRelease.Tag`, Bildvergleich gegen holo-v2, Doku.
+- **Release `holo-v3`** (Martin, 16.11.): Pre-release „Ship holograms v3“ in **diesem** Repo (die App liest nur hier,
+  `sc-ship-outlines` ist privat), Ziel `main`, 103 Assets. Nachgeladen und verglichen: byteidentisch mit dem Ordner,
+  `verify` ohne Probleme, Manifest anonym 200.
+- **App:** `HoloRelease.Tag` = `holo-v3`. Vorab rot: 5 Holo-Tests, weil `FakeHttp` holo-v2-Manifeste baute (der Reader
+  lehnt einen fremden `dataVersion` ab) → `FakeHttp` nimmt jetzt `HoloRelease.Tag`; die URL in
+  `HoloSourceTests.Fetches_manifest_and_file_from_the_release_and_caches_both` bleibt Literal (fängt einen Tippfehler).
+  Cache-Wechsel ohne Code: D95 löscht jeden anderen `holo-v<n>`-Ordner, einmal die Notice.
+- **Bildvergleich** `ShipPictureTests` (P1: nur das `ShipViewControl`, keine Kopfzeile, B15 zählt nicht): Baseline
+  `3d98aad` (Branch vor V2) mit holo-v2 gegen den Branch mit holo-v3, 1399 Bilder, **bestanden**: 1284 identisch, 143
+  verschieden, 4 fehlend, keine unerwartete Abweichung. Verschieden: 350r, Galaxy, Liberator, Retaliator, Prowler Utility
+  (je 11, Umriss und Holo), Paladin, Cutter ×3, Railen, Tyilui, Starlancer Max/TAC, Constellation Phoenix/Taurus, Perseus
+  (je 8, nur Holo). Fehlend: `outline;above` der vier Schiffe, die jetzt ein Holo haben (die Draufsicht zeigt es).
+  **Carrack** gleich trotz neuer Datei: dieselben Dreiecke, 244 in anderer Reihenfolge. Kontaktabzug
+  `sc-ship-outlines\preview\holo-v3\sheet\_sheet1.png` … `_sheet10.png` (alle 109 Schiffe, schräg und von oben).
+- **Doku:** D93-Addendum „holo-v3“, `holo-format.md` (Tag, Quelle, Cache, `model`, Abschnitt „Pipeline“ ohne Tag),
+  `ship-format.md`, `settings-format.md`, README, CLAUDE.md; Wiki (Branch `v0.5.1`): Ships and cargo grids, Installation.
+  Nicht geändert: alte Release-Notes; Nexus-Texte (`holo-v2` in `docs/nexus/description.bbcode`, `checklist.md`) → V5.
+- Offen: Sichtprüfung Martin (Kontaktabzug), Abnahme.
 
 ### [x] B15 Kopfzeile – Schiffsname bleibt sichtbar (D110, revidiert D67; `7463bc5`, `0119040`, `89d5a71`, abgenommen 16.11.)
 
@@ -6806,7 +6823,8 @@ die 135c bleibt holo-v1 (Grid ohne Transform, Import `kept`); Liberator `passed:
 - Netz-Gate (Martin, Backlog „Erster Selbsttausch übers Netz“): v0.5.0-Portable aus Browser-Download → Notice
   `Update available · v0.5.1` → Update; Größe aus den `Velopack:`-Zeilen (≈ 90 MB voll); SmartScreen für `Update.exe` und
   den ersten Start; 0.5.1 läuft, Galaxy in der Auswahl, Holo-Cache-Notice einmal, Holo für Galaxy und Hull A.
-- Danach: Wiki-Push, `holo-v1` löschen, Nexus-Datei. Rückweg bei Fehlschlag: v0.5.1 auf Pre-Release, Befund sichern,
+- Danach: Wiki-Push, `holo-v1` löschen, Nexus-Datei (Texte `holo-v2` → `holo-v3`: `docs/nexus/description.bbcode`
+  Z. 15 und 81, `checklist.md` Z. 104). Rückweg bei Fehlschlag: v0.5.1 auf Pre-Release, Befund sichern,
   Hotfix 0.5.2.
 
 ---

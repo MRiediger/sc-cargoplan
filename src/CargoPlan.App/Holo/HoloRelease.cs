@@ -11,9 +11,10 @@ public static class HoloRelease
 {
     /// <summary>
     /// The data release this app reads; a new format or a new pipeline run gets a new tag and a new app. holo-v2 (D93):
-    /// meshes from the game models, at their origin; holo-v1 stays for v0.1 and v0.2.
+    /// meshes from the game models, at their origin; holo-v3 (v0.5.1): the models of game build 4.10.3, Galaxy,
+    /// Liberator, Retaliator new. holo-v1 stays for v0.1 and v0.2, holo-v2 for v0.3 to v0.5.0.
     /// </summary>
-    public const string Tag = "holo-v2";
+    public const string Tag = "holo-v3";
 
     public const string ManifestFile = "manifest.json";
 
