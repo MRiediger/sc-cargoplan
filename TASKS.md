@@ -6683,6 +6683,9 @@ entfernt es), Branch `feat/p11-auto-update` lokal und remote (gemergt in `00bba9
 Vorbedingung #26: beim Abzweig noch nicht auf `main`; der Branch wird lokal auf `main` rebased, sobald Martin #26 gemerged
 hat (berührt B15 nicht).
 
+**Reihenfolge (Martin, 16.11.):** B15 → #26 mergen (Martin) → Rebase (CC) → Push (Martin) → V1 → **K11** (eigene Session,
+eigener Prompt, kommt zusätzlich in v0.5.1) → V2 → V4 → V5.
+
 ### [ ] V1 Alte 350r-Pläne laden
 
 - Eingefrorene `plan.json` aus 0.5.0 mit 350r (alte Gitterpositionen) lädt ohne Absturz; Verhalten bei Positionen
