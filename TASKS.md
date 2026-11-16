@@ -6836,6 +6836,11 @@ Satz aus dem Task, die übrigen Update-KIs aus v0.5.0, neu `holo-v1`, die drei F
 ### [ ] V5 Merge, Tag, Netz-Gate, Nachlauf
 
 - Merge `--no-ff` nach Abnahme, Martin pusht und taggt.
+- [x] Merge `f4c8789` (Wiki `8916f01`, Pipeline `25b4031`, lokal). **CI auf `main` rot** (Run 43887955591, windows-latest):
+  `HeaderPanelTests.At_the_minimum_width_…` brauchte 397,6 px, `MinWidth` 380. Ursache: B15 maß mit der Meldungsschrift
+  des Testrechners, Segoe UI **11 px** (Martins Anzeige 110 %, LogPixels 106); Windows-Standard und Runner haben 12 px.
+  Fix: Test misst fest mit Segoe UI 12 px, **`MinWidth` 400** (D110-Addendum). B15 lief vor dem Merge nie durch CI
+  (CI nur auf `main` und PRs).
 - **Wiki-Push unmittelbar nach dem Tag** (Martin, 16.11.): CC merged den Wiki-Branch `v0.5.1` lokal nach `master`,
   Martin pusht; die Release-Notes verlinken `Overlay-basics#on-a-narrow-overlay`, und das Wiki nennt dann holo-v3.
 - Netz-Gate (Martin, Backlog „Erster Selbsttausch übers Netz“): v0.5.0-Portable aus Browser-Download → Notice

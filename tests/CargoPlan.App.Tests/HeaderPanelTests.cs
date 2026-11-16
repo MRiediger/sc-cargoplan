@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
+using System.Windows.Media;
 using System.Xml.Linq;
 using CargoPlan.App.ShipView;
 using CargoPlan.Core.Ships;
@@ -23,6 +25,15 @@ public class HeaderPanelTests(ITestOutputHelper output)
 
     /// <summary>The header buttons' width (HeaderButtonStyle).</summary>
     private const double HeaderButtonWidth = 30;
+
+    /// <summary>
+    /// The header sets no font, so it takes the Windows message font; MinWidth (D110) is reckoned for its default, Segoe UI
+    /// 9 pt = 12 px. The test measures with that, not with the machine's: CI's windows-2025 runner reports 13 px, and every
+    /// width came out 13/12 as wide (v0.5.1, first CI run of B15). A larger Windows text size may trim a name (D110).
+    /// </summary>
+    private const double WindowsDefaultFontSize = 12;
+
+    private static readonly FontFamily WindowsDefaultFontFamily = new("Segoe UI");
 
     private static Border Child(double width, HeaderPart part, double height = 10)
     {
@@ -277,7 +288,7 @@ public class HeaderPanelTests(ITestOutputHelper output)
         Inv($"{totalScu:N0}/{totalScu:N0}") + (waiting > 0 ? Inv($" +{waiting:N0}") : "");
 
     /// <summary>
-    /// The window's default font (the header sets none), the name bold with the selection's chevron (10 px glyph, 6 px
+    /// The Windows default message font (the header sets none; see <see cref="WindowsDefaultFontSize"/>), the name bold with the selection's chevron (10 px glyph, 6 px
     /// margin), the capacities 8 px and the status 6 px from what stands left of them, five tools (no undo, redo) and gear
     /// and exit, as in the unlocked overlay.
     /// </summary>
@@ -301,6 +312,9 @@ public class HeaderPanelTests(ITestOutputHelper output)
                 Child(2 * HeaderButtonWidth, HeaderPart.Chrome, ButtonHeight),
             },
         };
+        // Inherited by every text part; the chevron keeps its own family and size.
+        TextElement.SetFontFamily(panel, WindowsDefaultFontFamily);
+        TextElement.SetFontSize(panel, WindowsDefaultFontSize);
         return new(panel, nameElement);
     }
 

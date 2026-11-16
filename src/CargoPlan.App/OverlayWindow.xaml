@@ -10,7 +10,7 @@
         d:DataContext="{d:DesignInstance vm:OverlayViewModel}"
         Title="SC-CargoPlan"
         Width="420" Height="460"
-        MinWidth="380" MinHeight="260"
+        MinWidth="400" MinHeight="260"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -21,8 +21,9 @@
         MouseLeftButtonDown="OnMouseLeftButtonDown">
     <!-- Click-through is not set here: it is a mode (IsLocked), switched in code-behind, see D11. -->
     <!-- MinWidth/MinHeight: header, a small ship view and the legend stay visible; restoring saved bounds uses them too.
-         MinWidth 380 (D110): per ship its name with the selection's chevron, its own short capacity "N/N +N", gear and exit
-         fit the header's first line, the maximum over all ships; HeaderPanelTests measures it from ships/. -->
+         MinWidth 400 (D110): per ship its name with the selection's chevron, its own short capacity "N/N +N", gear and exit
+         fit the header's first line, the maximum over all ships, in the Windows default message font (Segoe UI 12 px);
+         HeaderPanelTests measures it from ships/. -->
     <Window.Resources>
         <sv:PaletteBrushConverter x:Key="PaletteBrushConverter" />
         <sv:PaletteNoticeConverter x:Key="PaletteNoticeConverter" />
