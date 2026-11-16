@@ -6686,7 +6686,7 @@ hat (berührt B15 nicht).
 **Reihenfolge (Martin, 16.11.):** B15 → #26 mergen (Martin) → Rebase (CC) → Push (Martin) → V1 → **K11** (eigene Session,
 eigener Prompt, kommt zusätzlich in v0.5.1) → V2 → V4 → V5.
 
-### [ ] V1 Alte 350r-Pläne laden
+### [x] V1 Alte 350r-Pläne laden (`aeea958`, abgenommen 16.11.)
 
 - Eingefrorene `plan.json` aus 0.5.0 mit 350r (alte Gitterpositionen) lädt ohne Absturz; Verhalten bei Positionen
   außerhalb des neuen Gitters im Befund; Notes-Zeile „saved plans load, re-plan recommended“ (wie 4a-E2).
@@ -6714,7 +6714,7 @@ eigener Prompt, kommt zusätzlich in v0.5.1) → V2 → V4 → V5.
 - **Nebenfund für V2:** `92d9d99` hat der 350r das `modelKey` (`orig-350r`) genommen; `outlines/ship-outlines.json` kennt
   den Slug weiter. Bis V2 zeigt die 350r nur den Bug-Keil, kein Hologramm, keinen Umriss (gesehen im Overlay). Nur die
   350r ist betroffen; Galaxy, Liberator, Retaliator haben noch keinen `modelKey` (kommt mit V2).
-- [ ] Abnahme Martin
+- [x] Abnahme Martin (16.11.2026)
 
 ### [ ] V2 Holo-v3 (Martin baut, CC verdrahtet)
 
