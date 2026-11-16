@@ -10,14 +10,20 @@ public enum HeaderPart
     Capacity,
     CompactCapacity,
     Status,
-    Buttons,
+
+    /// <summary>The tool buttons (split … reset view): the block that goes to a second line.</summary>
+    Tools,
+
+    /// <summary>Gear and exit: always at the right end of the first line, next to the padlock.</summary>
+    Chrome,
 }
 
 /// <summary>
-/// The overlay's header (B15, D110): ship name at the left, the capacity long or short right of it, "All stops
-/// delivered." and the button block at the right end. Short of room the status goes first, then the capacity's long form,
-/// then the buttons move to a second line at the same x (<see cref="HeaderLayout"/>); the name trims only when it and the
-/// short capacity alone are wider than the row. Locked, the button block is collapsed, measures 0 and takes no line.
+/// The overlay's header (B15, D110): ship name at the left, the capacity long or short right of it, then "All stops
+/// delivered.", the tools and gear and exit at the right end. Short of room the status goes first, then the capacity's
+/// long form, then the tools move to a second line, left-aligned with the right free to move the window
+/// (<see cref="HeaderLayout"/>); gear and exit stay. The name trims only when it, the short capacity and the chrome are
+/// wider than the row. Locked, tools and chrome are collapsed, measure 0 and take no line.
 /// Every child is measured at its own width; a part that gave way is arranged into an empty rectangle, which clips it, so
 /// it is neither drawn nor hit. The panel never touches a child's visibility, so what it measures is always the child's
 /// own width and no measure undoes the one before (no layout cycle).
@@ -39,7 +45,7 @@ public sealed class HeaderPanel : Panel
     /// <summary>The first line's height from the last measure.</summary>
     private double _lineHeight;
 
-    /// <summary>The buttons stand on a second line: <see cref="HeaderStage.ButtonsWrapped"/> with buttons to show.</summary>
+    /// <summary>The tools stand on a second line: <see cref="HeaderStage.ToolsWrapped"/> with tools to show.</summary>
     private bool _wrapped;
 
     /// <summary>The stage of the last measure.</summary>
@@ -63,41 +69,36 @@ public sealed class HeaderPanel : Panel
             child.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
         }
 
-        UIElement[] Of(HeaderPart part) => [.. children.Where(c => GetPart(c) == part)];
-        double Width(HeaderPart part) => Of(part).Select(c => c.DesiredSize.Width).DefaultIfEmpty(0).Max();
-        double Height(HeaderPart part) => Of(part).Select(c => c.DesiredSize.Height).DefaultIfEmpty(0).Max();
-
-        HeaderWidths widths = new(Width(HeaderPart.Name), Width(HeaderPart.Status), Width(HeaderPart.Capacity), Width(HeaderPart.CompactCapacity), Width(HeaderPart.Buttons));
-        Stage = HeaderLayout.Stage(widths, availableSize.Width);
-        _wrapped = Stage == HeaderStage.ButtonsWrapped && widths.Buttons > 0;
-        _nameWidth = HeaderLayout.NameWidth(widths, availableSize.Width);
-        if (_nameWidth < widths.Name)
+        HeaderWidths w = new(WidthOf(children, HeaderPart.Name), WidthOf(children, HeaderPart.Status), WidthOf(children, HeaderPart.Capacity),
+            WidthOf(children, HeaderPart.CompactCapacity), WidthOf(children, HeaderPart.Tools), WidthOf(children, HeaderPart.Chrome));
+        Stage = HeaderLayout.Stage(w, availableSize.Width);
+        _wrapped = Stage == HeaderStage.ToolsWrapped && w.Tools > 0;
+        _nameWidth = HeaderLayout.NameWidth(w, availableSize.Width);
+        if (_nameWidth < w.Name)
         {
-            foreach (var name in Of(HeaderPart.Name))
+            foreach (var name in children.Where(c => GetPart(c) == HeaderPart.Name))
             {
                 name.Measure(new Size(_nameWidth, double.PositiveInfinity));
             }
         }
 
-        HeaderPart[] firstLine = _wrapped
-            ? [HeaderPart.Name, HeaderPart.Capacity, HeaderPart.CompactCapacity, HeaderPart.Status]
-            : [HeaderPart.Name, HeaderPart.Capacity, HeaderPart.CompactCapacity, HeaderPart.Status, HeaderPart.Buttons];
-        _lineHeight = Math.Max(LineHeight, firstLine.Max(Height));
+        var firstLine = children.Where(c => !(_wrapped && GetPart(c) == HeaderPart.Tools));
+        _lineHeight = Math.Max(LineHeight, firstLine.Select(c => c.DesiredSize.Height).DefaultIfEmpty(0).Max());
 
-        var capacity = Stage < HeaderStage.CompactCapacity ? widths.Capacity : widths.CompactCapacity;
-        var status = Stage == HeaderStage.Full ? widths.Status : 0;
-        var first = _nameWidth + capacity + status + (_wrapped ? 0 : widths.Buttons);
+        var capacity = Stage < HeaderStage.CompactCapacity ? w.Capacity : w.CompactCapacity;
+        var status = Stage == HeaderStage.Full ? w.Status : 0;
+        var first = _nameWidth + capacity + status + w.Chrome + (_wrapped ? 0 : w.Tools);
         return _wrapped
-            ? new Size(Math.Max(first, widths.Buttons), _lineHeight + Height(HeaderPart.Buttons))
+            ? new Size(Math.Max(first, w.Tools), _lineHeight + HeightOf(children, HeaderPart.Tools))
             : new Size(first, _lineHeight);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        var buttons = InternalChildren.Cast<UIElement>().Where(c => GetPart(c) == HeaderPart.Buttons).Select(c => c.DesiredSize.Width).DefaultIfEmpty(0).Max();
-        var buttonsX = Math.Max(0, finalSize.Width - buttons);
-        var statusRight = _wrapped ? finalSize.Width : buttonsX;
-        foreach (UIElement child in InternalChildren)
+        UIElement[] children = [.. InternalChildren.Cast<UIElement>()];
+        var chromeX = Math.Max(0, finalSize.Width - WidthOf(children, HeaderPart.Chrome));
+        var toolsX = _wrapped ? 0 : Math.Max(0, chromeX - WidthOf(children, HeaderPart.Tools));
+        foreach (var child in children)
         {
             var size = child.DesiredSize;
             child.Arrange(GetPart(child) switch
@@ -105,13 +106,20 @@ public sealed class HeaderPanel : Panel
                 HeaderPart.Name => new Rect(0, 0, _nameWidth, _lineHeight),
                 HeaderPart.Capacity when Stage < HeaderStage.CompactCapacity => new Rect(_nameWidth, 0, size.Width, _lineHeight),
                 HeaderPart.CompactCapacity when Stage >= HeaderStage.CompactCapacity => new Rect(_nameWidth, 0, size.Width, _lineHeight),
-                HeaderPart.Status when Stage == HeaderStage.Full => new Rect(Math.Max(0, statusRight - size.Width), 0, size.Width, _lineHeight),
-                HeaderPart.Buttons when _wrapped => new Rect(buttonsX, _lineHeight, size.Width, size.Height),
-                HeaderPart.Buttons => new Rect(buttonsX, 0, size.Width, _lineHeight),
+                HeaderPart.Status when Stage == HeaderStage.Full => new Rect(Math.Max(0, toolsX - size.Width), 0, size.Width, _lineHeight),
+                HeaderPart.Tools when _wrapped => new Rect(0, _lineHeight, size.Width, size.Height),
+                HeaderPart.Tools => new Rect(toolsX, 0, size.Width, _lineHeight),
+                HeaderPart.Chrome => new Rect(chromeX, 0, size.Width, _lineHeight),
                 _ => new Rect(0, 0, 0, 0),
             });
         }
 
         return finalSize;
     }
+
+    private static double WidthOf(UIElement[] children, HeaderPart part) =>
+        children.Where(c => GetPart(c) == part).Select(c => c.DesiredSize.Width).DefaultIfEmpty(0).Max();
+
+    private static double HeightOf(UIElement[] children, HeaderPart part) =>
+        children.Where(c => GetPart(c) == part).Select(c => c.DesiredSize.Height).DefaultIfEmpty(0).Max();
 }

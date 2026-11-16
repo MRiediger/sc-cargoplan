@@ -76,10 +76,10 @@ public class OverlayHeaderXamlTests
     }
 
     [Fact]
-    public void The_header_is_one_panel_with_name_capacities_status_and_the_button_block()
+    public void The_header_is_one_panel_with_name_capacities_status_tools_and_chrome()
     {
-        // B15 (D110, revises D67): the panel decides what gives way: status, long capacity, then the buttons to a second
-        // line; the name last. It is the header itself, docked on top with the lock window's margin on both lines (R3).
+        // B15 (D110, revises D67): the panel decides what gives way: status, long capacity, then the tools to a second
+        // line while gear and exit stay; the name last. It is the header itself, docked on top with the lock window's margin.
         var root = Root();
         var capacity = Capacity();
         var panel = capacity.Parent!;
@@ -90,16 +90,25 @@ public class OverlayHeaderXamlTests
         panel.Attribute("LineHeight")!.Value.Should().Be("30", "the first line as high as the header was (D16)");
         panel.Attribute("Height").Should().BeNull("a second line makes it taller");
         panel.Attribute("HorizontalAlignment").Should().BeNull("it stretches");
-        panel.Elements().Select(PartOf).Should().Equal("Name", "Capacity", "CompactCapacity", "Status", "Buttons");
+        panel.Elements().Select(PartOf).Should().Equal("Name", "Capacity", "CompactCapacity", "Status", "Tools", "Chrome");
         panel.Elements().First().Descendants().Should().Contain(e => (string?)e.Attribute(X + "Name") == "ShipBox");
         capacity.Attribute("TextWrapping")!.Value.Should().Be("NoWrap");
         capacity.Attribute("DockPanel.Dock").Should().BeNull();
 
-        var block = panel.Elements().Last();
-        block.Name.LocalName.Should().Be("StackPanel");
-        block.Attribute("Orientation")!.Value.Should().Be("Horizontal");
-        block.Descendants().Where(e => e.Name.LocalName == "Button").Should().HaveCount(9).And
-            .OnlyContain(b => (string?)b.Attribute("Style") == "{StaticResource HeaderButtonStyle}" && b.Attribute("DockPanel.Dock") == null);
+        string ButtonName(XElement b) => (string?)b.Attribute("ToolTip") ?? (string)b.Attribute("Command")!;
+        XElement[] Buttons(string part)
+        {
+            var block = panel.Elements().Single(e => PartOf(e) == part);
+            block.Name.LocalName.Should().Be("StackPanel");
+            block.Attribute("Orientation")!.Value.Should().Be("Horizontal");
+            XElement[] buttons = [.. block.Descendants().Where(e => e.Name.LocalName == "Button")];
+            buttons.Should().OnlyContain(b => (string?)b.Attribute("Style") == "{StaticResource HeaderButtonStyle}" && b.Attribute("DockPanel.Dock") == null);
+            return buttons;
+        }
+
+        Buttons("Tools").Select(ButtonName).Should().Equal(
+            "{Binding SplitToolTip}", "{Binding MergeToolTip}", "{Binding ReplanToolTip}", "Enter missions", "Undo", "Redo", "Reset view");
+        Buttons("Chrome").Select(ButtonName).Should().Equal("Settings", "Exit");
 
         var status = panel.Elements().Single(e => PartOf(e) == "Status");
         status.Attribute("Text")!.Value.Should().Be("{x:Static sv:ShipScene.AllDeliveredText}");

@@ -10,13 +10,20 @@ using Xunit.Abstractions;
 namespace CargoPlan.App.Tests;
 
 /// <summary>
-/// The header (B15, D110): ship name, capacity long or compact, the status and the buttons at the right end. Short of room
-/// the status goes first, then the capacity's long form, then the buttons move to a second line; the name trims only when
-/// it and the short capacity are wider than the row. Fixed-width borders keep the slots independent of a font; the
-/// TextBlock tests and the ship data test measure real text.
+/// The header (B15, D110): ship name, capacity long or compact, the status, the tool buttons and gear and exit (chrome) at
+/// the right end. Short of room the status goes first, then the capacity's long form, then the tools move to a second line,
+/// left-aligned, while the chrome stays; the name trims only when it, the short capacity and the chrome are wider than the
+/// row. Fixed-width borders keep the slots independent of a font; the TextBlock tests and the ship data test measure text.
 /// </summary>
 public class HeaderPanelTests(ITestOutputHelper output)
 {
+    private const double LineHeight = 30;
+
+    private const double ButtonHeight = 26;
+
+    /// <summary>The header buttons' width (HeaderButtonStyle).</summary>
+    private const double HeaderButtonWidth = 30;
+
     private static Border Child(double width, HeaderPart part, double height = 10)
     {
         var child = new Border { Width = width, Height = height };
@@ -24,18 +31,24 @@ public class HeaderPanelTests(ITestOutputHelper output)
         return child;
     }
 
-    /// <summary>Name 80, capacity 140, compact 40, status 100, buttons 200 × 26: 520 for all of it, as in <see cref="HeaderLayoutTests"/>.</summary>
-    private static (HeaderPanel Panel, Border Name, Border Capacity, Border Compact, Border Status, Border Buttons) Header()
+    private sealed record Parts(HeaderPanel Panel, Border Name, Border Capacity, Border Compact, Border Status, Border Tools, Border Chrome);
+
+    /// <summary>
+    /// Name 80, capacity 140, compact 40, status 100, tools 140 × 26, chrome 60 × 26: 520 for all of it, as in
+    /// <see cref="HeaderLayoutTests"/>.
+    /// </summary>
+    private static Parts Header()
     {
-        var (name, capacity, compact, status, buttons) = (Child(80, HeaderPart.Name), Child(140, HeaderPart.Capacity),
-            Child(40, HeaderPart.CompactCapacity), Child(100, HeaderPart.Status), Child(200, HeaderPart.Buttons, ButtonHeight));
-        var panel = new HeaderPanel { LineHeight = LineHeight, Children = { name, capacity, compact, status, buttons } };
-        return (panel, name, capacity, compact, status, buttons);
+        Parts parts = new(new HeaderPanel { LineHeight = LineHeight }, Child(80, HeaderPart.Name), Child(140, HeaderPart.Capacity),
+            Child(40, HeaderPart.CompactCapacity), Child(100, HeaderPart.Status), Child(140, HeaderPart.Tools, ButtonHeight),
+            Child(60, HeaderPart.Chrome, ButtonHeight));
+        foreach (var child in new[] { parts.Name, parts.Capacity, parts.Compact, parts.Status, parts.Tools, parts.Chrome })
+        {
+            parts.Panel.Children.Add(child);
+        }
+
+        return parts;
     }
-
-    private const double LineHeight = 30;
-
-    private const double ButtonHeight = 26;
 
     /// <summary>Measured and arranged at <paramref name="width"/> and the height it asks for, as the overlay's DockPanel does.</summary>
     private static void Layout(HeaderPanel panel, double width)
@@ -47,21 +60,22 @@ public class HeaderPanelTests(ITestOutputHelper output)
     private static Rect Slot(UIElement child) => LayoutInformation.GetLayoutSlot((FrameworkElement)child);
 
     [Fact]
-    public void With_room_everything_stands_on_one_line_status_and_buttons_at_the_right_end()
+    public void With_room_everything_stands_on_one_line_status_tools_and_chrome_at_the_right_end()
     {
         Sta.Run(() =>
         {
-            var (panel, name, capacity, compact, status, buttons) = Header();
+            var h = Header();
 
-            Layout(panel, 600);
+            Layout(h.Panel, 600);
 
-            panel.Stage.Should().Be(HeaderStage.Full);
-            panel.DesiredSize.Height.Should().Be(LineHeight);
-            (Slot(name).X, Slot(name).Width).Should().Be((0, 80));
-            (Slot(capacity).X, Slot(capacity).Width).Should().Be((80, 140));
-            Slot(compact).Width.Should().Be(0);
-            (Slot(status).X, Slot(status).Width).Should().Be((300, 100));
-            (Slot(buttons).X, Slot(buttons).Y, Slot(buttons).Width).Should().Be((400, 0, 200));
+            h.Panel.Stage.Should().Be(HeaderStage.Full);
+            h.Panel.DesiredSize.Height.Should().Be(LineHeight);
+            (Slot(h.Name).X, Slot(h.Name).Width).Should().Be((0, 80));
+            (Slot(h.Capacity).X, Slot(h.Capacity).Width).Should().Be((80, 140));
+            Slot(h.Compact).Width.Should().Be(0);
+            (Slot(h.Status).X, Slot(h.Status).Width).Should().Be((300, 100));
+            (Slot(h.Tools).X, Slot(h.Tools).Y).Should().Be((400, 0));
+            (Slot(h.Chrome).X, Slot(h.Chrome).Y).Should().Be((540, 0));
         });
     }
 
@@ -70,13 +84,13 @@ public class HeaderPanelTests(ITestOutputHelper output)
     {
         Sta.Run(() =>
         {
-            var (panel, name, capacity, _, status, buttons) = Header();
+            var h = Header();
 
-            Layout(panel, 519);
+            Layout(h.Panel, 519);
 
-            panel.Stage.Should().Be(HeaderStage.NoStatus);
-            (Slot(name).Width, Slot(capacity).Width, Slot(status).Width).Should().Be((80, 140, 0));
-            (Slot(buttons).X, Slot(buttons).Y).Should().Be((319, 0));
+            h.Panel.Stage.Should().Be(HeaderStage.NoStatus);
+            (Slot(h.Name).Width, Slot(h.Capacity).Width, Slot(h.Status).Width).Should().Be((80, 140, 0));
+            (Slot(h.Tools).X, Slot(h.Chrome).X).Should().Be((319, 459));
         });
     }
 
@@ -85,62 +99,64 @@ public class HeaderPanelTests(ITestOutputHelper output)
     {
         Sta.Run(() =>
         {
-            var (panel, name, capacity, compact, status, buttons) = Header();
+            var h = Header();
 
-            Layout(panel, 419);
+            Layout(h.Panel, 419);
 
-            panel.Stage.Should().Be(HeaderStage.CompactCapacity);
-            panel.DesiredSize.Height.Should().Be(LineHeight);
-            (Slot(name).Width, Slot(capacity).Width, Slot(status).Width).Should().Be((80, 0, 0));
-            (Slot(compact).X, Slot(compact).Width).Should().Be((80, 40));
-            (Slot(buttons).X, Slot(buttons).Y).Should().Be((219, 0));
+            h.Panel.Stage.Should().Be(HeaderStage.CompactCapacity);
+            h.Panel.DesiredSize.Height.Should().Be(LineHeight);
+            (Slot(h.Name).Width, Slot(h.Capacity).Width, Slot(h.Status).Width).Should().Be((80, 0, 0));
+            (Slot(h.Compact).X, Slot(h.Compact).Width).Should().Be((80, 40));
+            (Slot(h.Tools).X, Slot(h.Tools).Y, Slot(h.Chrome).X).Should().Be((219, 0, 359));
         });
     }
 
     [Fact]
-    public void Then_the_buttons_go_to_a_second_line_at_the_same_right_end()
+    public void Then_the_tools_go_left_aligned_to_a_second_line_and_gear_and_exit_stay_at_the_right_end()
     {
-        // R3: same x as on the first line, so the padlock's neighbours never jump sideways.
+        // Martin's stage 3: the right of the second line stays free, so it still moves the window.
         Sta.Run(() =>
         {
-            var (panel, name, _, compact, _, buttons) = Header();
+            var h = Header();
 
-            Layout(panel, 319);
+            Layout(h.Panel, 319);
 
-            panel.Stage.Should().Be(HeaderStage.ButtonsWrapped);
-            panel.DesiredSize.Height.Should().Be(LineHeight + ButtonHeight);
-            (Slot(name).Width, Slot(compact).X, Slot(compact).Width).Should().Be((80, 80, 40));
-            Slot(buttons).Should().Be(new Rect(119, LineHeight, 200, ButtonHeight));
+            h.Panel.Stage.Should().Be(HeaderStage.ToolsWrapped);
+            h.Panel.DesiredSize.Height.Should().Be(LineHeight + ButtonHeight);
+            (Slot(h.Name).Width, Slot(h.Compact).X, Slot(h.Compact).Width).Should().Be((80, 80, 40));
+            Slot(h.Chrome).Should().Be(new Rect(259, 0, 60, LineHeight));
+            Slot(h.Tools).Should().Be(new Rect(0, LineHeight, 140, ButtonHeight));
         });
     }
 
     [Fact]
-    public void Only_when_name_and_compact_capacity_are_wider_than_the_row_the_name_trims()
+    public void Only_when_name_compact_capacity_and_chrome_are_wider_than_the_row_the_name_trims()
     {
         Sta.Run(() =>
         {
-            var (panel, name, _, compact, _, _) = Header();
+            var h = Header();
 
-            Layout(panel, 100);
+            Layout(h.Panel, 150);
 
-            panel.Stage.Should().Be(HeaderStage.ButtonsWrapped);
-            (Slot(name).Width, Slot(compact).X, Slot(compact).Width).Should().Be((60, 60, 40));
+            h.Panel.Stage.Should().Be(HeaderStage.ToolsWrapped);
+            (Slot(h.Name).Width, Slot(h.Compact).X, Slot(h.Chrome).X).Should().Be((50, 50, 90));
         });
     }
 
     [Fact]
     public void Locked_the_collapsed_buttons_take_no_line()
     {
-        // Locked, the button block measures 0 (D110): the second line goes by itself.
+        // Locked, tools and chrome measure 0 (D110): the second line goes by itself, the first is name, capacity, padlock.
         Sta.Run(() =>
         {
-            var (panel, name, _, _, _, buttons) = Header();
-            buttons.Visibility = Visibility.Collapsed;
+            var h = Header();
+            h.Tools.Visibility = Visibility.Collapsed;
+            h.Chrome.Visibility = Visibility.Collapsed;
 
-            Layout(panel, 150);
+            Layout(h.Panel, 150);
 
-            panel.DesiredSize.Height.Should().Be(LineHeight);
-            Slot(name).Width.Should().Be(80);
+            h.Panel.DesiredSize.Height.Should().Be(LineHeight);
+            Slot(h.Name).Width.Should().Be(80);
         });
     }
 
@@ -150,11 +166,11 @@ public class HeaderPanelTests(ITestOutputHelper output)
         // Neither drawn nor hit: its tool tip can't come up over the name.
         Sta.Run(() =>
         {
-            var (panel, _, capacity, _, status, _) = Header();
+            var h = Header();
 
-            Layout(panel, 419);
+            Layout(h.Panel, 419);
 
-            foreach (var gone in new[] { capacity, status })
+            foreach (var gone in new[] { h.Capacity, h.Status })
             {
                 var clip = LayoutInformation.GetLayoutClip(gone);
                 clip.Should().NotBeNull();
@@ -169,15 +185,15 @@ public class HeaderPanelTests(ITestOutputHelper output)
         // "All stops delivered." comes and goes by its own binding; the panel never changes a child's visibility.
         Sta.Run(() =>
         {
-            var (panel, _, _, _, status, _) = Header();
-            status.Visibility = Visibility.Collapsed;
-            Layout(panel, 500);
-            panel.Stage.Should().Be(HeaderStage.Full);
+            var h = Header();
+            h.Status.Visibility = Visibility.Collapsed;
+            Layout(h.Panel, 500);
+            h.Panel.Stage.Should().Be(HeaderStage.Full);
 
-            status.Visibility = Visibility.Visible;
-            Layout(panel, 500);
+            h.Status.Visibility = Visibility.Visible;
+            Layout(h.Panel, 500);
 
-            panel.Stage.Should().Be(HeaderStage.NoStatus);
+            h.Panel.Stage.Should().Be(HeaderStage.NoStatus);
         });
     }
 
@@ -189,68 +205,70 @@ public class HeaderPanelTests(ITestOutputHelper output)
         Sta.Run(() =>
         {
             var texts = Texts(shipName, Capacity(totalScu, waiting: 16), Compact(totalScu, totalScu), "All stops delivered.");
-            var widths = Widths(texts);
+            var w = Widths(texts);
             double[] limits =
             [
-                widths.Name + widths.Capacity + widths.Status + widths.Buttons,
-                widths.Name + widths.Capacity + widths.Buttons,
-                widths.Name + widths.CompactCapacity + widths.Buttons,
-                widths.Name + widths.CompactCapacity,
+                w.Name + w.Capacity + w.Status + w.Tools + w.Chrome,
+                w.Name + w.Capacity + w.Tools + w.Chrome,
+                w.Name + w.CompactCapacity + w.Tools + w.Chrome,
+                w.Name + w.CompactCapacity + w.Chrome,
             ];
-            HeaderStage[] stages = [HeaderStage.Full, HeaderStage.NoStatus, HeaderStage.CompactCapacity, HeaderStage.ButtonsWrapped];
+            HeaderStage[] stages = [HeaderStage.Full, HeaderStage.NoStatus, HeaderStage.CompactCapacity, HeaderStage.ToolsWrapped];
 
             foreach (var (available, stage) in limits.Zip(stages))
             {
                 Layout(texts.Panel, Math.Ceiling(available));
 
                 texts.Panel.Stage.Should().Be(stage);
-                Slot(texts.Name).Width.Should().BeGreaterThanOrEqualTo(widths.Name, $"{shipName} untrimmed at {stage}");
+                Slot(texts.Name).Width.Should().BeGreaterThanOrEqualTo(w.Name, $"{shipName} untrimmed at {stage}");
             }
         });
     }
 
     [Fact]
-    public void At_the_minimum_width_every_ship_name_stands_in_full_and_the_buttons_fit_their_line()
+    public void At_the_minimum_width_every_ship_name_stands_in_full_with_its_own_short_capacity()
     {
-        // Data test over ships/ (A10), R2 of the approval: the longest name and the widest short capacity "N/N +N" (N the
-        // ship's own capacity, same digits and comma), maximised over all ships even when they aren't the same ship. More
-        // waiting cargo than capacity may cost a digit (D110). The second line holds every button, undo and redo included.
+        // Data test over ships/ (A10), Martin's rule: per ship its name with the selection's chevron, its own short capacity
+        // "N/N +N" (N its capacity, same digits and comma) and gear and exit on the first line; the maximum over all ships,
+        // plus padding and the lock window's margin, rounded up to 10 px. More waiting cargo than capacity with a digit
+        // more may still trim a name (D110). The second line holds every tool, undo and redo included.
         var overlay = OverlayXaml();
         var minWidth = Number(overlay.Attribute("MinWidth"));
         var frame = overlay.Elements().Single(e => e.Name.LocalName == "Border");
         var padding = 2 * Number(frame.Attribute("Padding"));
         var header = frame.Descendants().Single(e => e.Name.LocalName == "HeaderPanel");
         var lockMargin = Number(header.Attribute("Margin"), part: 2);
-        var buttons = header.Descendants().Count(e => e.Name.LocalName == "Button") * HeaderButtonWidth;
+        double Buttons(string part) => header.Elements().Single(e => PartOf(e) == part).Descendants().Count(e => e.Name.LocalName == "Button") * HeaderButtonWidth;
+        var (tools, chrome) = (Buttons("Tools"), Buttons("Chrome"));
 
         var ships = ShipLoader.LoadAll(Path.Combine(AppContext.BaseDirectory, "ships")).Ships;
-        // Unlocked the name carries the selection's chevron: the wider of the two, so the rule holds locked and unlocked.
-        List<(string Ship, double Name, double Compact, double CompactWithoutWaiting)> measured = [];
+        List<(string Ship, double Name, double Compact)> measured = [];
         Sta.Run(() => measured = [.. ships.Select(ship =>
         {
             var widths = Widths(Texts(ship.Name, "", Compact(ship.TotalScu, ship.TotalScu), ""));
-            var withoutWaiting = Widths(Texts(ship.Name, "", Compact(ship.TotalScu, 0), "")).CompactCapacity;
-            return (ship.Name, widths.Name, widths.CompactCapacity, withoutWaiting);
+            return (ship.Name, widths.Name, widths.CompactCapacity);
         })]);
-        var longest = measured.MaxBy(m => m.Name);
-        var widest = measured.MaxBy(m => m.Compact);
-        var text = longest.Name + widest.Compact;
-        var need = Math.Max(text, buttons) + padding + lockMargin;
-        var needWithoutWaiting = Math.Max(longest.Name + measured.Max(m => m.CompactWithoutWaiting), buttons) + padding + lockMargin;
+        var widest = measured.MaxBy(m => m.Name + m.Compact);
+        var line1 = widest.Name + widest.Compact + chrome;
+        var need = Math.Max(line1, tools) + padding + lockMargin;
 
-        output.WriteLine(Inv($"Longest name with chevron: {longest.Ship}, {longest.Name:F1} px; widest short capacity: {widest.Ship}, {widest.Compact:F1} px."));
-        output.WriteLine(Inv($"Line 1 needs {text:F1} px, line 2 {buttons} px; with padding {padding} and lock margin {lockMargin}: window {need:F1} px."));
-        output.WriteLine(Inv($"For comparison, without \"+N\": window {needWithoutWaiting:F1} px."));
+        output.WriteLine(Inv($"Widest first line: {widest.Ship}, name {widest.Name:F1} + short capacity {widest.Compact:F1} + chrome {chrome} = {line1:F1} px."));
+        output.WriteLine(Inv($"Second line {tools} px; with padding {padding} and lock margin {lockMargin}: window {need:F1} px."));
+        foreach (var next in measured.OrderByDescending(m => m.Name + m.Compact).Take(5))
+        {
+            output.WriteLine(Inv($"  {next.Ship}: {next.Name + next.Compact:F1} px"));
+        }
+
         minWidth.Should().BeGreaterThanOrEqualTo(need, "no ship name trims at the minimum width");
         minWidth.Should().BeLessThan(need + 10, "MinWidth is the need rounded up to the next 10 px");
     }
 
     // --- Real text, built like the header in OverlayWindow.xaml ---
 
-    /// <summary>The header buttons' width (HeaderButtonStyle) and the unlocked block of seven without undo and redo.</summary>
-    private const double HeaderButtonWidth = 30;
-
     private sealed record HeaderTexts(HeaderPanel Panel, FrameworkElement Name);
+
+    private static string? PartOf(XElement element) =>
+        (string?)element.Attributes().SingleOrDefault(a => a.Name.LocalName == "HeaderPanel.Part");
 
     private static string Capacity(int totalScu, int waiting) =>
         Inv($"0/{totalScu:N0} · {totalScu:N0} free") + (waiting > 0 ? Inv($" · {waiting:N0} waiting") : "");
@@ -259,16 +277,16 @@ public class HeaderPanelTests(ITestOutputHelper output)
         Inv($"{totalScu:N0}/{totalScu:N0}") + (waiting > 0 ? Inv($" +{waiting:N0}") : "");
 
     /// <summary>
-    /// The window's default font (the header sets none), the name bold, the capacities 8 px and the status 6 px from what
-    /// stands left of them, as in the overlay. Unlocked the name carries the selection's chevron, 10 px glyph with 6 px
-    /// margin, and seven buttons follow.
+    /// The window's default font (the header sets none), the name bold with the selection's chevron (10 px glyph, 6 px
+    /// margin), the capacities 8 px and the status 6 px from what stands left of them, five tools (no undo, redo) and gear
+    /// and exit, as in the unlocked overlay.
     /// </summary>
-    private static HeaderTexts Texts(string name, string capacity, string compact, string status, bool locked = false)
+    private static HeaderTexts Texts(string name, string capacity, string compact, string status)
     {
         var nameText = new TextBlock { Text = name, FontWeight = FontWeights.Bold, TextTrimming = TextTrimming.CharacterEllipsis, TextWrapping = TextWrapping.NoWrap };
-        FrameworkElement nameElement = locked
-            ? nameText
-            : new DockPanel { Children = { Docked(new TextBlock { Text = "", FontFamily = new("Segoe MDL2 Assets"), FontSize = 10, Margin = new(6, 4, 0, 0) }), nameText } };
+        var chevron = new TextBlock { Text = "", FontFamily = new("Segoe MDL2 Assets"), FontSize = 10, Margin = new(6, 4, 0, 0) };
+        DockPanel.SetDock(chevron, Dock.Right);
+        var nameElement = new DockPanel { Children = { chevron, nameText } };
         HeaderPanel.SetPart(nameElement, HeaderPart.Name);
         var panel = new HeaderPanel
         {
@@ -279,16 +297,11 @@ public class HeaderPanelTests(ITestOutputHelper output)
                 Part(new TextBlock { Text = capacity, Margin = new(8, 0, 0, 0), TextWrapping = TextWrapping.NoWrap }, HeaderPart.Capacity),
                 Part(new TextBlock { Text = compact, Margin = new(8, 0, 0, 0), TextWrapping = TextWrapping.NoWrap }, HeaderPart.CompactCapacity),
                 Part(new TextBlock { Text = status, Margin = new(6, 0, 0, 0), TextWrapping = TextWrapping.NoWrap }, HeaderPart.Status),
-                Child(locked ? 0 : 7 * HeaderButtonWidth, HeaderPart.Buttons, ButtonHeight),
+                Child(5 * HeaderButtonWidth, HeaderPart.Tools, ButtonHeight),
+                Child(2 * HeaderButtonWidth, HeaderPart.Chrome, ButtonHeight),
             },
         };
         return new(panel, nameElement);
-    }
-
-    private static TextBlock Docked(TextBlock text)
-    {
-        DockPanel.SetDock(text, Dock.Right);
-        return text;
     }
 
     private static TextBlock Part(TextBlock text, HeaderPart part)
@@ -305,7 +318,8 @@ public class HeaderPanelTests(ITestOutputHelper output)
             c.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
             return c.DesiredSize.Width;
         });
-        return new(parts[HeaderPart.Name], parts[HeaderPart.Status], parts[HeaderPart.Capacity], parts[HeaderPart.CompactCapacity], parts[HeaderPart.Buttons]);
+        return new(parts[HeaderPart.Name], parts[HeaderPart.Status], parts[HeaderPart.Capacity], parts[HeaderPart.CompactCapacity],
+            parts[HeaderPart.Tools], parts[HeaderPart.Chrome]);
     }
 
     private static XElement OverlayXaml()

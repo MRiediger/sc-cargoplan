@@ -6701,37 +6701,45 @@ hat (berührt B15 nicht).
 - **Ursache:** nicht `TextTrimming`, sondern das `DockPanel` der Kopfzeile, das Platz in Markup-Reihenfolge vergibt:
   Buttons (210 px, mit ↶ ↷ 270 px, **auch gesperrt**, nur `Hidden`), dann der Status, dann innen die Kapazität, der Name
   zuletzt.
-- **Fix:** `HeaderLayout.Stage` (reine Funktion, ein Durchgang) und `HeaderPanel` (die ganze Kopfzeile inkl.
-  Button-Block; misst die Kinder ohne Grenze, ordnet weggefallene Teile in ein leeres Rechteck, ändert nie eine
-  Visibility). Stufen: Status weg → Kapazität kurz (`54/64 +16`) → Buttons in die zweite Zeile, rechtsbündig an derselben
-  x-Position; der Name kürzt nur, wenn er mit kurzer Kapazität breiter ist als die Zeile. Erste Zeile 30 px
-  (`LineHeight`), Rand 30 px fürs Lock-Fenster in beiden Zeilen. Tooltip an beiden Kapazitäten mit `All stops
-  delivered.` als zweiter Zeile. `HeaderButtonStyle` gesperrt `Collapsed` (Zeile 2 entfällt von selbst).
-  `AllDeliveredText` von `OverlayViewModel` nach `ShipScene`. **`MinWidth` 240 → 360** aus den Daten.
+- **Fix:** `HeaderLayout.Stage` (reine Funktion, ein Durchgang) und `HeaderPanel` (die ganze Kopfzeile: Name,
+  Kapazität lang/kurz, Status, **Tools** = Split, Merge, Re-plan, Editor, ↶, ↷, Reset; **Chrome** = Zahnrad, X; misst die
+  Kinder ohne Grenze, ordnet weggefallene Teile in ein leeres Rechteck, ändert nie eine Visibility). Stufen: Status weg →
+  Kapazität kurz (`54/64 +16`) → Tools in die zweite Zeile, linksbündig ab x = 0, gleiche Reihenfolge, rechts frei
+  (DragMove); Zahnrad und X bleiben rechts in Zeile 1 neben dem Schloss. Der Name kürzt nur, wenn er mit kurzer Kapazität
+  und Chrome breiter ist als die Zeile. Erste Zeile 30 px (`LineHeight`), Rand 30 px fürs Lock-Fenster. Tooltip an
+  beiden Kapazitäten mit `All stops delivered.` als zweiter Zeile. `HeaderButtonStyle` gesperrt `Collapsed` (Zeile 2
+  entfällt von selbst). `AllDeliveredText` von `OverlayViewModel` nach `ShipScene`. **`MinWidth` 240 → 380** aus den
+  Daten.
 - **Präzisierung in der Planphase, ratifiziert durch Freigabe:** Nummer B15 statt B11 (vergeben, D98), D110; Breiten per
   `Measure(∞)` statt `FormattedText`; gesperrt `Collapsed` statt `Hidden`; `waiting` kurz als `+16` (Variante B); `▣`
   fällt in der kurzen Form weg; Tooltip stufenunabhängig; `available = +∞` → `Full` per Fixture (E1). Zweite Freigabe
-  (K1 neu, ersetzt „Stufe 3 = Ellipse“ und „`MinWidth` bleibt 240“): Stufe 3 = Buttons in Zeile 2, Name nie; R1 Zeile 1
-  bleibt kompakt (Monotonie beim Ziehen); R2 `MinWidth` aus längstem Namen + breitester Kurzform `N/N +N` über alle
-  Schiffe, mehr Wartendes als Kapazität darf eine Ziffer kosten; R3 30-px-Rand in beiden Zeilen. Im Bau dazu: die
-  Fixture misst den Namen **entsperrt** (mit Chevron, +16 px), und `MinWidth` deckt auch Zeile 2 (9 Buttons, 270 px).
+  (K1 neu, ersetzt „Stufe 3 = Ellipse“ und „`MinWidth` bleibt 240“): Stufe 3 = Umbruch, Name nie; R1 Zeile 1 bleibt
+  kompakt (Monotonie beim Ziehen); R3 30-px-Rand fürs Lock-Fenster. Dritte Freigabe: nur die Tools brechen um, linksbündig;
+  Zahnrad und X bleiben in Zeile 1; R4 kein Scan-Button in der Kopfzeile (es gibt keinen, „Auswahl“ = Split); R5 Reset
+  view gehört zu den Tools; `MinWidth` pro Schiff (Name mit Chevron + eigene Kurzform `N/N +N` + Chrome 60 px, Maximum
+  über alle Schiffe, + Rand, auf 10 aufgerundet) als Konstante, nicht dynamisch; Doku nur im Wiki (`docs/user-guide.md`
+  gibt es seit T7.5c nicht mehr); Gate-Zeile Lock in Stufe 3.
 
 **Befund:**
-- Tests vorab: `HeaderLayoutTests` (jede Grenze ±1 inkl. Stufe 3 und Notfall-Ellipse, ∞, gesperrt ohne Buttons),
-  `HeaderPanelTests` (Slots je Stufe, zwei Zeilen mit Buttons-Slot in Zeile 2, gesperrt eine Zeile, Clip, echte
-  `TextBlock`s für RAFT und Hull C, Daten-Fixture über `ships/`), `ShipViewBuilderTests` (+3), `OverlayHeaderXamlTests`
-  (`HeaderPanel` mit Button-Block ersetzt die D67-Regel, Reihenfolge links → rechts, `Collapsed`, kurze Kapazität ohne
-  `IsLocked`).
-- **Daten-Fixture** (Meldungsschrift 12 px): längster Name mit Chevron **RSI Constellation Mk IV Andromeda** 201,7 px,
-  breiteste Kurzform **MISC Hull C** `4,608/4,608 +4,608` 101,1 px → Zeile 1 302,8 px, Zeile 2 270 px, Fenster
-  **352,8 px → `MinWidth` 360** (ohne `+N` wären es 320; über Martins Schätzung 300–320). Der Test schlägt fehl, sobald
-  ein neues Schiff mehr braucht.
-- Erster Entwurf (Stufe 3 = Ellipse, `MinWidth` 240) gemessen: bei 240 px entsperrt −20 px für Name und Kapazität.
-- Echtes Overlay (`--data-dir` im Scratchpad, 125 %): Hull A 600 px `54/64 · 10 free`, 450 px (= 360 DIP) `54/64` in
-  einer Zeile; Constellation Andromeda bei 360 DIP: voller Name und `0/96` in Zeile 1, Buttons in Zeile 2 unter ihrer
-  Stelle, Schloss bleibt.
+- Tests vorab: `HeaderLayoutTests` (jede Grenze ±1 inkl. Stufe 3 und Notfall-Ellipse mit Chrome, ∞, gesperrt ohne
+  Buttons), `HeaderPanelTests` (Slots je Stufe, Tools in Zeile 2 bei `(0, 30)`, Chrome rechts in Zeile 1, Höhe 30 + 26,
+  gesperrt eine Zeile, Clip, echte `TextBlock`s für RAFT und Hull C, Daten-Fixture über `ships/`),
+  `ShipViewBuilderTests` (+3), `OverlayHeaderXamlTests` (`HeaderPanel` mit Tools- und Chrome-Block ersetzt die D67-Regel,
+  Inhalt und Reihenfolge links → rechts, `Collapsed`, kurze Kapazität ohne `IsLocked`).
+- **Daten-Fixture** (Meldungsschrift 12 px), pro Schiff: breiteste erste Zeile **RSI Constellation Mk V Centaurus**,
+  Name 189,4 + `240/240 +240` 76,2 + Chrome 60 = 325,6 px, Fenster **375,6 px → `MinWidth` 380**; danach Constellation
+  Mk IV Andromeda (260,1 + 60), Carrack Expedition w/C8X (259,0 + 60). Zeile 2: 7 Tools = 210 px. Der Test schlägt fehl,
+  sobald ein neues Schiff mehr braucht.
+- Verworfene Zwischenstände: Stufe 3 = Ellipse bei `MinWidth` 240 (entsperrt −20 px für Name und Kapazität); alle Buttons
+  in Zeile 2 mit Regel „längster Name × breiteste Kurzform verschiedener Schiffe“ (360, mit Chrome wären es 420 gewesen).
+- Echtes Overlay (`--data-dir` im Scratchpad, 125 %): Hull A 600 px `54/64 · 10 free` in einer Zeile; Constellation Mk V
+  Centaurus 760 px alles in einer Zeile, bei 475 px (= 380 DIP) Zeile 1 `RSI Constellation Mk V Centaurus ˅ 0/240` mit
+  Zahnrad, X und Schloss rechts, Zeile 2 die Tools linksbündig.
 - [ ] Gate Martin: RAFT und Hull C, breit → schmal, SC vorne, entsperrt **und** gesperrt; Hull C entsperrt bei `MinWidth`
-- [ ] Wiki (Branch `v0.5.1` im Wiki-Klon): Overlay basics (Kopfzeile, schmales Overlay, gesperrt), Quick start (Status)
+- [ ] Gate Martin: bei schmalem Fenster (Stufe 3) das Schloss klicken und wieder entsperren – Zeile 2 verschwindet und
+  kommt zurück, das Lock-Fenster bleibt an Ort und Stelle, die Legende rutscht ohne Sprung
+- [ ] Wiki (Branch `v0.5.1` im Wiki-Klon): Overlay basics (Kopfzeile, schmales Overlay, `+16`, gesperrt), Quick start
+  (Status)
 
 ### [ ] V4 Release-Notes `v0.5.1.md`
 

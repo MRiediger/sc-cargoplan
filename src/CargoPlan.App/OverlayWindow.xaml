@@ -10,7 +10,7 @@
         d:DataContext="{d:DesignInstance vm:OverlayViewModel}"
         Title="SC-CargoPlan"
         Width="420" Height="460"
-        MinWidth="360" MinHeight="260"
+        MinWidth="380" MinHeight="260"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -21,8 +21,8 @@
         MouseLeftButtonDown="OnMouseLeftButtonDown">
     <!-- Click-through is not set here: it is a mode (IsLocked), switched in code-behind, see D11. -->
     <!-- MinWidth/MinHeight: header, a small ship view and the legend stay visible; restoring saved bounds uses them too.
-         MinWidth 360 (D110): the longest ship name with the selection's chevron and the widest short capacity "N/N +N" fit
-         the header's first line, every button its second; HeaderPanelTests measures it from ships/. -->
+         MinWidth 380 (D110): per ship its name with the selection's chevron, its own short capacity "N/N +N", gear and exit
+         fit the header's first line, the maximum over all ships; HeaderPanelTests measures it from ships/. -->
     <Window.Resources>
         <sv:PaletteBrushConverter x:Key="PaletteBrushConverter" />
         <sv:PaletteNoticeConverter x:Key="PaletteNoticeConverter" />
@@ -376,13 +376,13 @@
         <!-- Named for the stop lines' highest height (K7): a share of this height, which follows the window, not the legend. -->
         <DockPanel x:Name="OverlayContent">
             <!-- Header (B15, D110, revises D67): grip for moving the window (DragMove), later the tab bar (T3.7 notes). The right
-                 margin keeps clear of the lock window (36 px at 4 px inset, LockWindowPlacement) on both lines, so the buttons
-                 stand at the same x on the first line, on the second and next to the padlock. The first line is 30 px high as
-                 before; "All stops delivered." sits here, not in the legend (D16). Short of room the status goes first, then the
-                 capacity turns short ("0/192 +16"), then the buttons move to a second line; the name trims only when it and the
-                 short capacity are wider than the window, which MinWidth keeps from happening. Locked, the buttons collapse and
-                 the second line goes. No background, so free room still moves the window. No IsLocked trigger on the
-                 capacities: information, not a control, they stay while locked. -->
+                 margin keeps clear of the lock window (36 px at 4 px inset, LockWindowPlacement), so gear and exit always stand
+                 next to the padlock. The first line is 30 px high as before; "All stops delivered." sits here, not in the
+                 legend (D16). Short of room the status goes first, then the capacity turns short ("0/192 +16"), then the tools
+                 move to a second line, left-aligned; the name trims only when it, the short capacity, gear and exit are wider
+                 than the window, which MinWidth keeps from happening. Locked, the buttons collapse and the second line goes.
+                 No background, so free room still moves the window. No IsLocked trigger on the capacities: information, not a
+                 control, they stay while locked. -->
             <sv:HeaderPanel DockPanel.Dock="Top" LineHeight="30" Margin="0,0,30,0">
                 <!-- The ship selection sits on the ship name, where haulers look for it (T7.2b, D59). Locked: the name as
                      text, like the hidden buttons. -->
@@ -449,8 +449,9 @@
                            Foreground="{StaticResource DeliveredForegroundBrush}"
                            Effect="{DynamicResource HeaderHaloEffect}"
                            Visibility="{Binding Scene.AllDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <!-- The header buttons, left to right as they stand: plan controls left, window controls right (D34). -->
-                <StackPanel sv:HeaderPanel.Part="Buttons" Orientation="Horizontal" VerticalAlignment="Top">
+                <!-- The tool buttons, left to right as they stand (D34: plan controls left of the window controls). Short of
+                     room they move to a second line, left-aligned, in the same order (D110). -->
+                <StackPanel sv:HeaderPanel.Part="Tools" Orientation="Horizontal" VerticalAlignment="Top">
                     <!-- Merge and split the selected crates when the kiosk delivered others than planned (D27); left of the re-plan button,
                          hidden while locked like it. Disabled, the tool tip says why (ShowOnDisabled).
                          Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.tooltipservice.showondisabled -->
@@ -499,14 +500,18 @@
                                        Foreground="{DynamicResource HeaderForegroundBrush}" />
                         </Button>
                     </Border>
-                    <!-- Reset view (K1.3) right next to the gear, like a double-click next to the cargo: a view control, so right of
-                         the plan's undo and redo (D34); they come and go further left, so it never jumps. Always there, hidden
-                         while locked like every header button. -->
+                    <!-- Reset view (K1.3) at the tools' right end, next to the gear on one line, like a double-click next to the
+                         cargo: a view control, so right of the plan's undo and redo (D34); they come and go further left, so it
+                         never jumps sideways. On a second line it goes along with the tools (D110). Always there, gone while
+                         locked like every header button. -->
                     <Button Command="{Binding ResetViewCommand, Mode=OneTime}" ToolTip="Reset view" Style="{StaticResource HeaderButtonStyle}">
                         <!-- E9A6 FitPage. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
                         <TextBlock Text="&#xE9A6;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
                                    Foreground="{DynamicResource HeaderForegroundBrush}" />
                     </Button>
+                </StackPanel>
+                <!-- Gear and exit: the window controls stay at the right end of the first line, next to the padlock (D110). -->
+                <StackPanel sv:HeaderPanel.Part="Chrome" Orientation="Horizontal" VerticalAlignment="Top">
                     <!-- Opens the settings window, left of the exit button: window controls right, plan controls left of them (D34).
                          Hidden while locked like every header button. Over an invisible theme the system tool tip still finds
                          it: the button background keeps alpha 1, so it takes the hover (user guide, "Overlay unreadable?"). -->
