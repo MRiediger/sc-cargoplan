@@ -6715,7 +6715,7 @@ hat (berührt B15 nicht).
   350r ist betroffen; Galaxy, Liberator, Retaliator haben noch keinen `modelKey` (kommt mit V2).
 - [x] Abnahme Martin (16.11.2026)
 
-### [ ] V2 Holo-v3 (Martin baut, CC verdrahtet)
+### [x] V2 Holo-v3 (Martin baut, CC verdrahtet; `e21f52a`, `65e5b88`, abgenommen 16.11.)
 
 - Pipeline (`model-map.csv`) → Umrisse der drei neuen Schiffe, `import-motherlode.ps1` (Anker), Bildvergleich gegen
   `holo-v2` (nur Galaxy, Liberator, Retaliator, 350r dürfen abweichen), Release `holo-v3` **vor** dem Tag,
@@ -6764,7 +6764,7 @@ die 135c bleibt holo-v1 (Grid ohne Transform, Import `kept`); Liberator `passed:
 - **Doku:** D93-Addendum „holo-v3“, `holo-format.md` (Tag, Quelle, Cache, `model`, Abschnitt „Pipeline“ ohne Tag),
   `ship-format.md`, `settings-format.md`, README, CLAUDE.md; Wiki (Branch `v0.5.1`): Ships and cargo grids, Installation.
   Nicht geändert: alte Release-Notes; Nexus-Texte (`holo-v2` in `docs/nexus/description.bbcode`, `checklist.md`) → V5.
-- Offen: Sichtprüfung Martin (Kontaktabzug), Abnahme.
+- [x] Sichtprüfung und Abnahme Martin (16.11.2026)
 
 ### [x] B15 Kopfzeile – Schiffsname bleibt sichtbar (D110, revidiert D67; `7463bc5`, `0119040`, `89d5a71`, abgenommen 16.11.)
 
@@ -6816,6 +6816,17 @@ die 135c bleibt holo-v1 (Grid ohne Transform, Import `kept`); Liberator `passed:
 
 - Ships (vier Zeilen inkl. 350r), Holo-v3 (einmaliges Neuladen), Kopfzeile, Abhängigkeiten; Known issues: `holo-v1`-Zeile
   neu, KI 3 mit „this is the first self-update – it downloads the full package“.
+
+**Stand (16.11.):** `docs/release-notes/v0.5.1.md` (der Release-Workflow verlangt die Datei vor dem Tag und nimmt sie als
+Release-Text). Abschnitte wie v0.5.0: Updating (v0.5.0 → Update-Zeile; v0.4.0 und älter → Link auf die Handanleitung
+von v0.5.0), Ship data (Quelle 4.10.3, drei neue mit SCU, 350r 8 + 4, neue Holos, Cyclone), Changes (Kopfzeile nach
+Wiki-Wortlaut, ONNX Runtime 1.32.0), Before you update (Holos einmal neu, 350r-Satz aus V1), Known issues (KI 3 mit dem
+Satz aus dem Task, die übrigen Update-KIs aus v0.5.0, neu `holo-v1`, die drei Fleetyards-Schiffe), Fußzeile `holo-v3`.
+- **Präzisierung beim Schreiben:** „New holograms for **12** ships“, nicht 13: Die Carrack hat eine neue Datei, aber
+  dieselben Dreiecke in anderer Reihenfolge, ihr Bild ist gleich (V2-Bildvergleich). Test.Sdk 18.12.0 aus #26 fehlt
+  bewusst (nur Tests, nicht im ZIP).
+- Wiki-Anker `Overlay-basics#on-a-narrow-overlay` geht erst mit dem Wiki-Push in V5 live.
+- [ ] Abnahme Martin
 
 ### [ ] V5 Merge, Tag, Netz-Gate, Nachlauf
 
