@@ -6843,6 +6843,13 @@ Satz aus dem Task, die übrigen Update-KIs aus v0.5.0, neu `holo-v1`, die drei F
   (CI nur auf `main` und PRs).
 - **Wiki-Push unmittelbar nach dem Tag** (Martin, 16.11.): CC merged den Wiki-Branch `v0.5.1` lokal nach `master`,
   Martin pusht; die Release-Notes verlinken `Overlay-basics#on-a-narrow-overlay`, und das Wiki nennt dann holo-v3.
+- [x] Martin (16.11.): `main` gepusht, CI grün (Run 43889583398, `da48270`), Tag `v0.5.1` auf `da48270`, Wiki gepusht.
+- [x] **Release-Prüfung (CC):** Workflow „Release“ grün (Run 43890674127); v0.5.1 „Latest“, nicht Pre-release, Text =
+  Release-Notes; holo-v3 bleibt Pre-release. Assets: ZIP **96.676.143 B (92,2 MiB)**, `.sha256` passt zum geladenen
+  ZIP, `CargoPlan-0.5.1-full.nupkg` 96,7 MB, `-delta.nupkg` 10,7 MB, `releases.win.json` mit 0.5.1 voll und Delta und
+  0.5.0 voll. Stichprobe im ZIP: `.portable`, `SC-CargoPlan.exe`, `Update.exe`, `current\` mit 108 Schiffen,
+  `galaxy.json` mit `rsi-galaxy`, Umrisse `holo-v3`, `sq.version` 0.5.1, die App-DLL nennt `holo-v3` (UTF-16), nicht
+  `holo-v2`. „about 90 MB“ in den Notes: 92,2 MiB, der Explorer zeigt ≈ 94.400 KB.
 - Netz-Gate (Martin, Backlog „Erster Selbsttausch übers Netz“): v0.5.0-Portable aus Browser-Download → Notice
   `Update available · v0.5.1` → Update; Größe aus den `Velopack:`-Zeilen (≈ 90 MB voll); SmartScreen für `Update.exe` und
   den ersten Start; 0.5.1 läuft, Galaxy in der Auswahl, Holo-Cache-Notice einmal, Holo für Galaxy und Hull A.
