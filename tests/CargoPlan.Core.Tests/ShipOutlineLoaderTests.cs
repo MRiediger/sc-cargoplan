@@ -40,6 +40,18 @@ public class ShipOutlineLoaderTests
         }
     }
 
+    // The other way round (V2): an outline nobody names is a ship that lost its model key, and with it its hologram, since
+    // the release only holds slugs the outlines hold (verify in sc-ship-outlines). Anlass: the 350r, re-created with
+    // -Create in 92d9d99 without its key.
+    [Fact]
+    public void Every_outline_belongs_to_a_shipped_ship()
+    {
+        var keys = ShipLoader.LoadAll().Ships.Select(s => s.ModelKey).ToHashSet();
+
+        ShipOutlineLoader.Load().Outlines.Keys.Should().AllSatisfy(slug =>
+            keys.Should().Contain(slug, because: $"outline {slug} needs a ship with that modelKey, else its hologram is never shown"));
+    }
+
     // An entry here must still be missing: once traced, it goes from the list.
     [Fact]
     public void A_ship_not_traced_yet_has_no_outline()

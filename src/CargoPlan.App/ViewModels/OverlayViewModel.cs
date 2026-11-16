@@ -21,8 +21,6 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 {
     public const string NoPlanText = "No plan. Open the editor to enter missions.";
 
-    public const string AllDeliveredText = "All stops delivered.";
-
     public const string MoveRefusedPrefix = "Move refused: ";
 
     public const string TickRefusedPrefix = "Tick refused: ";

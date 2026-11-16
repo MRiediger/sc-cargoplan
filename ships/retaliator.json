@@ -3,10 +3,11 @@
   "id": "retaliator",
   "name": "AEGS Retaliator",
   "manufacturer": "AEGS",
+  "modelKey": "aegs-retaliator",
   "source": "cryon.rocks (Motherlode) 4.10.3-LIVE.13165946, 2026-11-12T20:50:33.036Z",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [1.5, 0.5, 0],
-  "outlineOrigin": [1.5, 0.5, 0],
+  "holoOrigin": [0.5552, 0.7488, 0.0255],
+  "outlineOrigin": [0.5552, 0.7488, -4.2153],
   "totalScu": 74,
   "racks": [
     {

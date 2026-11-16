@@ -2,14 +2,15 @@
 
 Ship holograms are an optional download for the ship view (see [D63](decisions.md)). They are not part of the
 repository or the app ZIP: each ship is one file `<modelKey>.holo` in a GitHub release of its own (tag
-`holo-v2` since v0.3.0; `holo-v1` stays for v0.1 and v0.2), next to a `manifest.json`. The files derive from game
-models (CIG) and are not under the repository's MIT licence; the release's `NOTICE.md` says so. A pipeline outside
-this repository writes them ([Pipeline](#pipeline-holo-v2)).
+`holo-v3` since v0.5.1; `holo-v2` stays for v0.3.0 to v0.5.0, `holo-v1` for v0.1 and v0.2), next to a
+`manifest.json`. The files derive from game models (CIG) and are not under the repository's MIT licence; the release's
+`NOTICE.md` says so. A pipeline outside this repository writes them ([Pipeline](#pipeline)).
 
-**Source (D93):** holo-v2 takes every ship's model from cryon.rocks (Motherlode): cargo grid data and ship models
-extracted from the Star Citizen game files, the same models the racks come from (D92). The three ships without a model
-there (135c, 600i Executive Edition, F7C Hornet Mk II) still use hull data from fleetyards.net: their holo-v1 file,
-derived from Fleetyards' hologram models, byte for byte (D94).
+**Source (D93):** since holo-v2 every ship's model comes from cryon.rocks (Motherlode): cargo grid data and ship models
+extracted from the Star Citizen game files, the same models the racks come from (D92). holo-v3 takes the catalog of
+game build 4.10.3 (new: Galaxy, Liberator, Retaliator; 13 models changed). Three ships still use hull data from
+fleetyards.net, their holo-v1 file byte for byte (D94): the 600i Executive Edition and F7C Hornet Mk II have no model
+there, the 135c's cargo grid has no placement. The Cyclone, gone from the 4.10.3 catalog, keeps its holo-v2 file.
 
 ## File
 
@@ -38,12 +39,12 @@ Little endian, no compression, no padding. Offsets follow from the header.
   not `level1Count ≤ level2Count ≤ edgeCount`.
 - **Axes:** the ship's, as in [ship-format.md](ship-format.md): x towards the bow, y towards port, z up, right-handed.
   Units are metres, not cells (1 cell = 1.25 m).
-- **Origin, holo-v2 (D93):** the game model's own origin. **No centring, no scaling, no mirroring:** the model is only
+- **Origin, holo-v2 and later (D93):** the game model's own origin. **No centring, no scaling, no mirroring:** the model is only
   turned into ship axes. Motherlode's `.glb` lie in three.js space, glTF = (game x, game z, −game y) with game x
   starboard, y bow, z up, so ship = (−glTF z, −glTF x, glTF y), a rotation (determinant +1) and the same mapping
   `tools/import-motherlode.ps1` applies to the cargo grids. The ship file puts this origin at `holoOrigin` = the ship's
   fraction s (D92). The Hull A, B and C models carry the spindle in its cargo pose, as at the elevator.
-- **Origin, holo-v1** (and the three Fleetyards files in holo-v2): the middle of the vertices' x/y box, z = 0 at the
+- **Origin, holo-v1** (and the three Fleetyards files in holo-v2 and holo-v3): the middle of the vertices' x/y box, z = 0 at the
   lowest vertex (keel), set before faces hidden from outside are dropped, so the shipped box can lie a little off it
   (up to 0.75 m in x, 0.57 m in z). It is not the origin of the source model (D90).
 - **Triangles** are wound counter-clockwise seen from outside. The mesh is welded (vertices shared between
@@ -72,9 +73,9 @@ outline (D62).
 
 ```json
 {
-  "dataVersion": "holo-v2",
+  "dataVersion": "holo-v3",
   "formatVersion": 2,
-  "generatedAt": "2026-11-07",
+  "generatedAt": "2026-11-16T13:50:20Z",
   "pipelineCommit": "…",
   "tools": { "meshoptimizer": "1.3.0", "node": "24.16.0", "python": "3.14.5", "numpy": "2.5.3" },
   "ships": [
@@ -91,7 +92,7 @@ outline (D62).
 | `formatVersion` | the files' `formatVersion`; an app that doesn't know it uses none of them |
 | `pipelineCommit` | the pipeline's commit the files came from |
 | `ships[].sha256` | hash of the file; a cached file with another hash is stale |
-| `ships[].model` | holo-v2: the Motherlode model (`className`) the file comes from, or `fleetyards (holo-v1)` |
+| `ships[].model` | since holo-v2: the Motherlode model (`className`) the file comes from, or `fleetyards (holo-v1)`; a file kept from the previous release keeps its entry and label (holo-v3: the Cyclone's `TMBL_Cyclone`) |
 | `ships[].rawSha256` | hash of the source model, for the pipeline |
 | `ships[].budget`, `triangles`, `edges` | the budget step the ship came out at (20 k / 30 k / 40 k), its triangles, its edge counts per level |
 | `ships[].passed`, `metrics` | whether the ship met every criterion of the pipeline, and the measurements; published either way once approved (D63) |
@@ -108,10 +109,10 @@ nothing: the app keeps its cache.
 
 How the overlay gets and uses the files (D63). The overlay's first network access; the second is the update check (D109).
 
-- **Requests:** plain HTTPS GETs of `https://github.com/MRiediger/sc-cargoplan/releases/download/holo-v2/<file>`
+- **Requests:** plain HTTPS GETs of `https://github.com/MRiediger/sc-cargoplan/releases/download/holo-v3/<file>`
   (GitHub redirects to its asset host), User-Agent `SC-CargoPlan/<version>`, 5 s per request. Any 2xx answer is
   taken; a file is kept only if its length and SHA256 match the manifest. Nothing else is sent, no API, no token.
-- **Cache:** `%LocalAppData%\SC-CargoPlan\holo\holo-v2\`, one `<slug>.holo` per ship and the last `manifest.json`.
+- **Cache:** `%LocalAppData%\SC-CargoPlan\holo\holo-v3\`, one `<slug>.holo` per ship and the last `manifest.json`.
   The tag names the folder, so a new release starts an empty one. Only the current tag's folder stays (D95): another
   `holo-v<n>` folder found at the start goes once the current manifest is checked (fetched, or cached and younger than
   24 hours), before the first file downloads, and the overlay says once that the holograms download again; at once
@@ -131,17 +132,23 @@ How the overlay gets and uses the files (D63). The overlay's first network acces
   [ship-format.md](ship-format.md#hologram-and-outline). The looks and the hidden-line levels by zoom (level 1 below
   1.5×, 2 below 3×, 3 from 3×) are described in D63.
 
-## Pipeline (holo-v2)
+## Pipeline
 
-In the private repository `sc-ship-outlines` (versions in its `TOOLS.md`). Per model, files in `holo-work-ml/<className>/`:
+holo-v2 and holo-v3, in the private repository `sc-ship-outlines` (versions and every call with its arguments in its
+`TOOLS.md`). Per model, files in `holo-work-ml/<className>/`:
 
 1. `fetch-motherlode.ps1`: the dated catalog and the models with their SHA-256 list (`motherlode/`).
 2. `tools/import-motherlode.ps1 -Catalog <catalog> -ModelMap <model-map.csv>` (this repository): racks, and the map
-   id → className, slug, s.
+   id → className, slug, s. **The slug is the ship file's `modelKey`:** a ship without one is left out of every step
+   below (holo-v3: Galaxy, Liberator, Retaliator and the 350r got theirs by hand first). The test
+   `Every_outline_belongs_to_a_shipped_ship` catches a ship that loses its key.
 3. `run-all.ps1 -Source Motherlode`: per model `holo_mesh.py flatten-model` (turned into ship axes, stray specks out,
    welded; origin and size kept), `cull`, meshoptimizer on the ladder 20 k / 30 k / 40 k, `export` with `judge`, as for
-   holo-v1.
+   holo-v1. A changed model needs `-Redo flatten`: existing steps are reused.
 4. `holo_mesh.py outline <className>` per model: the outline (see [ship-format.md](ship-format.md#hologram-and-outline)).
-5. `holo_mesh.py outlines-v2` → `outlines/ship-outlines.json` here; `release-v2` → the release folder; `verify`.
+5. `holo_mesh.py outlines-v2 … holo-v<n> <kept slugs>` → `outlines/ship-outlines.json` here; `release-v2 … holo-v<n>
+   <previous release> <kept slugs>` → the release folder with its manifest; `verify`.
 6. `tools/import-motherlode.ps1` again: with the new outlines' `floorM` it writes the anchors.
-7. `holo_mesh.py fit` (racks in the hull, outline on the hull) and the contact sheet before the upload.
+7. `holo_mesh.py fit` (racks in the hull, outline on the hull), the contact sheet and `ShipPictureTests` against the
+   previous release before the upload; the release goes to **this** repository as a pre-release (the app reads only
+   from here; `sc-ship-outlines` is private).

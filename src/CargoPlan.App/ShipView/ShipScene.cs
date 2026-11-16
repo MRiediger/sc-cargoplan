@@ -29,6 +29,9 @@ public sealed record ShipScene(
     IReadOnlyList<UnplacedEntry> Unplaced,
     int WaitingScu)
 {
+    /// <summary>The header's status once every stop is delivered; the first thing to give way (B15, D110).</summary>
+    public const string AllDeliveredText = "All stops delivered.";
+
     /// <summary>Every stop is delivered; false without stops.</summary>
     public bool AllDelivered => Legend.Count > 0 && Legend.All(e => e.Delivered);
 
@@ -40,8 +43,20 @@ public sealed record ShipScene(
     /// </summary>
     public string CapacityText => Capacity(Invariant($"{Plan.ScuOnBoard():N0}/{Ship.TotalScu:N0}"), LegendEntry.LoadedMark.Trim());
 
-    /// <summary>The capacity spelt out for its tool tip: "56 of 64 SCU on board · 8 free · 40 loaded · 16 waiting" (K6.4).</summary>
-    public string CapacityToolTip => Capacity(Invariant($"{Plan.ScuOnBoard():N0} of {Ship.TotalScu:N0} SCU on board"), "loaded");
+    /// <summary>
+    /// The header's capacity when room runs short (B15, D110): "56/64", "56/64 +16" while missions wait for room (Martin's
+    /// variant B: a locked overlay has no tool tip). Free and loaded go; every loaded legend line carries its own mark.
+    /// </summary>
+    public string CompactCapacityText =>
+        Invariant($"{Plan.ScuOnBoard():N0}/{Ship.TotalScu:N0}") + (WaitingScu > 0 ? Invariant($" +{WaitingScu:N0}") : "");
+
+    /// <summary>
+    /// The capacity spelt out for its tool tip: "56 of 64 SCU on board · 8 free · 40 loaded · 16 waiting" (K6.4), over the
+    /// long and the short form; once every stop is delivered with "All stops delivered." on a second line, since the status
+    /// is the first to give way (B15).
+    /// </summary>
+    public string CapacityToolTip =>
+        Capacity(Invariant($"{Plan.ScuOnBoard():N0} of {Ship.TotalScu:N0} SCU on board"), "loaded") + (AllDelivered ? "\n" + AllDeliveredText : "");
 
     // N0: "4,608", the format of the ship selection (D67 addendum, F1).
     private string Capacity(string onBoardText, string loadedWord)
