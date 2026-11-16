@@ -10,7 +10,7 @@
         d:DataContext="{d:DesignInstance vm:OverlayViewModel}"
         Title="SC-CargoPlan"
         Width="420" Height="460"
-        MinWidth="240" MinHeight="260"
+        MinWidth="360" MinHeight="260"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
@@ -20,7 +20,9 @@
         ResizeMode="CanResizeWithGrip"
         MouseLeftButtonDown="OnMouseLeftButtonDown">
     <!-- Click-through is not set here: it is a mode (IsLocked), switched in code-behind, see D11. -->
-    <!-- MinWidth/MinHeight: header, a small ship view and the legend stay visible; restoring saved bounds uses them too. -->
+    <!-- MinWidth/MinHeight: header, a small ship view and the legend stay visible; restoring saved bounds uses them too.
+         MinWidth 360 (D110): the longest ship name with the selection's chevron and the widest short capacity "N/N +N" fit
+         the header's first line, every button its second; HeaderPanelTests measures it from ships/. -->
     <Window.Resources>
         <sv:PaletteBrushConverter x:Key="PaletteBrushConverter" />
         <sv:PaletteNoticeConverter x:Key="PaletteNoticeConverter" />
@@ -373,154 +375,156 @@
             CornerRadius="4" Padding="10">
         <!-- Named for the stop lines' highest height (K7): a share of this height, which follows the window, not the legend. -->
         <DockPanel x:Name="OverlayContent">
-            <!-- Header: grip for moving the window (DragMove), later the tab bar (T3.7 notes).
-                 Height and right margin keep clear of the lock window (36 px at 4 px inset, LockWindowPlacement). -->
-            <!-- "All stops delivered." sits here, not in the legend: the header's fixed height keeps the ship view still (D16). -->
-            <DockPanel DockPanel.Dock="Top" Height="30" Margin="0,0,30,0">
-                <!-- Exits the app, next to the padlock, without a dialog: closes the overlay like the taskbar does, so its
-                     Closed handlers write what is pending (bounds, settings, plan). Hidden while locked like every header
-                     button (D34, addendum T5.1). -->
-                <Button DockPanel.Dock="Right" ToolTip="Exit" Click="OnExit" Style="{StaticResource HeaderButtonStyle}">
-                    <!-- E8BB ChromeClose. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
-                    <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
-                               Foreground="{DynamicResource HeaderForegroundBrush}" />
-                </Button>
-                <!-- Opens the settings window, left of the exit button: window controls right, plan controls left of them (D34).
-                     Hidden while locked like every header button. Over an invisible theme the system tool tip still finds
-                     it: the button background keeps alpha 1, so it takes the hover (user guide, "Overlay unreadable?"). -->
-                <Button DockPanel.Dock="Right" ToolTip="Settings" Click="OnOpenSettings" Style="{StaticResource HeaderButtonStyle}">
-                    <!-- E713 Setting. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
-                    <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
-                               Foreground="{DynamicResource HeaderForegroundBrush}" />
-                </Button>
-                <!-- Reset view (K1.3) right next to the gear, like a double-click next to the cargo: a view control, so right of
-                     the plan's undo and redo (D34); they come and go further left, so it never jumps. Always there, hidden
-                     while locked like every header button. -->
-                <Button DockPanel.Dock="Right" Command="{Binding ResetViewCommand, Mode=OneTime}" ToolTip="Reset view" Style="{StaticResource HeaderButtonStyle}">
-                    <!-- E9A6 FitPage. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
-                    <TextBlock Text="&#xE9A6;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
-                               Foreground="{DynamicResource HeaderForegroundBrush}" />
-                </Button>
-                <!-- Undo and redo (K2.4) left of the reset, ↶ ↷: each only while there is a step for it (the border collapses),
-                     hidden while locked like every header button (the button's style keeps that, a local Visibility on the
-                     button would override its trigger). -->
-                <Border DockPanel.Dock="Right" Visibility="{Binding CanRedo, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Button Command="{Binding RedoCommand, Mode=OneTime}" ToolTip="Redo" Style="{StaticResource HeaderButtonStyle}">
-                        <!-- E7A6 Redo. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
-                        <TextBlock Text="&#xE7A6;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+            <!-- Header (B15, D110, revises D67): grip for moving the window (DragMove), later the tab bar (T3.7 notes). The right
+                 margin keeps clear of the lock window (36 px at 4 px inset, LockWindowPlacement) on both lines, so the buttons
+                 stand at the same x on the first line, on the second and next to the padlock. The first line is 30 px high as
+                 before; "All stops delivered." sits here, not in the legend (D16). Short of room the status goes first, then the
+                 capacity turns short ("0/192 +16"), then the buttons move to a second line; the name trims only when it and the
+                 short capacity are wider than the window, which MinWidth keeps from happening. Locked, the buttons collapse and
+                 the second line goes. No background, so free room still moves the window. No IsLocked trigger on the
+                 capacities: information, not a control, they stay while locked. -->
+            <sv:HeaderPanel DockPanel.Dock="Top" LineHeight="30" Margin="0,0,30,0">
+                <!-- The ship selection sits on the ship name, where haulers look for it (T7.2b, D59). Locked: the name as
+                     text, like the hidden buttons. -->
+                <Grid sv:HeaderPanel.Part="Name" VerticalAlignment="Top">
+                    <Grid.Resources>
+                        <!-- Grouped in the order of first appearance; ShipChoices.Of sorts. OneWay: Recent changes with the ship (T7.2c). -->
+                        <CollectionViewSource x:Key="ShipsView" Source="{Binding ShipSelection, Mode=OneWay}">
+                            <CollectionViewSource.GroupDescriptions>
+                                <PropertyGroupDescription PropertyName="Group" />
+                            </CollectionViewSource.GroupDescriptions>
+                        </CollectionViewSource>
+                    </Grid.Resources>
+                    <ComboBox x:Name="ShipBox" Style="{StaticResource ShipBoxStyle}"
+                              ItemsSource="{Binding Source={StaticResource ShipsView}}"
+                              ToolTip="Your ship. Click to change it; a plan is planned anew for the new ship."
+                              IsSynchronizedWithCurrentItem="False"
+                              DropDownOpened="OnShipListOpened" DropDownClosed="OnShipListClosed"
+                              SelectionChanged="OnShipSelectionChanged">
+                        <ComboBox.GroupStyle>
+                            <GroupStyle>
+                                <GroupStyle.HeaderTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="8,6,8,2"
+                                                   Foreground="{DynamicResource HeaderForegroundBrush}" />
+                                    </DataTemplate>
+                                </GroupStyle.HeaderTemplate>
+                            </GroupStyle>
+                        </ComboBox.GroupStyle>
+                    </ComboBox>
+                    <TextBlock Text="{Binding Ship.Name, Mode=OneWay}"
+                               FontWeight="Bold"
+                               TextTrimming="CharacterEllipsis"
+                               TextWrapping="NoWrap">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource HeaderTextStyle}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsLocked}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+                <TextBlock x:Name="CapacityText" sv:HeaderPanel.Part="Capacity"
+                           Text="{Binding Scene.CapacityText, Mode=OneWay}"
+                           ToolTip="{Binding Scene.CapacityToolTip, Mode=OneWay}"
+                           TextWrapping="NoWrap"
+                           Margin="8,0,0,0"
+                           Style="{StaticResource HeaderTextStyle}" />
+                <TextBlock x:Name="CompactCapacityText" sv:HeaderPanel.Part="CompactCapacity"
+                           Text="{Binding Scene.CompactCapacityText, Mode=OneWay}"
+                           ToolTip="{Binding Scene.CapacityToolTip, Mode=OneWay}"
+                           TextWrapping="NoWrap"
+                           Margin="8,0,0,0"
+                           Style="{StaticResource HeaderTextStyle}" />
+                <!-- At the right end, next to the buttons, where it stood before; its words stay in the capacity's tool tip. -->
+                <TextBlock sv:HeaderPanel.Part="Status"
+                           Text="{x:Static sv:ShipScene.AllDeliveredText}"
+                           VerticalAlignment="Top"
+                           TextWrapping="NoWrap"
+                           Margin="6,0,0,0"
+                           Foreground="{StaticResource DeliveredForegroundBrush}"
+                           Effect="{DynamicResource HeaderHaloEffect}"
+                           Visibility="{Binding Scene.AllDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <!-- The header buttons, left to right as they stand: plan controls left, window controls right (D34). -->
+                <StackPanel sv:HeaderPanel.Part="Buttons" Orientation="Horizontal" VerticalAlignment="Top">
+                    <!-- Merge and split the selected crates when the kiosk delivered others than planned (D27); left of the re-plan button,
+                         hidden while locked like it. Disabled, the tool tip says why (ShowOnDisabled).
+                         Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.tooltipservice.showondisabled -->
+                    <Button Command="{Binding SplitCommand, Mode=OneTime}" ToolTip="{Binding SplitToolTip}"
+                            ToolTipService.ShowOnDisabled="True" Style="{StaticResource HeaderButtonStyle}">
+                        <!-- E8C6 Cut. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                        <TextBlock Text="&#xE8C6;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
                                    Foreground="{DynamicResource HeaderForegroundBrush}" />
                     </Button>
-                </Border>
-                <Border DockPanel.Dock="Right" Visibility="{Binding CanUndo, Converter={StaticResource BooleanToVisibilityConverter}}">
-                    <Button Command="{Binding UndoCommand, Mode=OneTime}" ToolTip="Undo" Style="{StaticResource HeaderButtonStyle}">
-                        <!-- E7A7 Undo. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
-                        <TextBlock Text="&#xE7A7;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                    <Button Command="{Binding MergeCommand, Mode=OneTime}" ToolTip="{Binding MergeToolTip}"
+                            ToolTipService.ShowOnDisabled="True" Style="{StaticResource HeaderButtonStyle}">
+                        <!-- E71B Link. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                        <TextBlock Text="&#xE71B;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
                                    Foreground="{DynamicResource HeaderForegroundBrush}" />
                     </Button>
-                </Border>
-                <!-- Opens the mission editor, left of the gear. Locked it is gone like every header button (T3.7 notes, D110):
-                     planning is a step with a free cursor, and a locked overlay is click-through anyway. -->
-                <Button DockPanel.Dock="Right" ToolTip="Enter missions" Click="OnOpenEditor" Style="{StaticResource HeaderButtonStyle}">
-                    <!-- E70F Edit. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
-                    <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
-                               Foreground="{DynamicResource HeaderForegroundBrush}" />
-                </Button>
-                <!-- Re-plan (D66) between the pencil and merge, Martin's choice after B4: also here, not only in the editor.
-                     It asks first (ConfirmDialog), then the notice line says what happened; disabled, the tool tip says why,
-                     like split and merge. -->
-                <Button DockPanel.Dock="Right" Command="{Binding ReplanCommand, Mode=OneTime}" ToolTip="{Binding ReplanToolTip}"
-                        ToolTipService.ShowOnDisabled="True" Style="{StaticResource HeaderButtonStyle}">
-                    <!-- E72C Refresh. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
-                    <TextBlock Text="&#xE72C;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
-                               Foreground="{DynamicResource HeaderForegroundBrush}" />
-                </Button>
-                <!-- Merge and split the selected crates when the kiosk delivered others than planned (D27); left of the re-plan button,
-                     hidden while locked like it. Disabled, the tool tip says why (ShowOnDisabled).
-                     Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.tooltipservice.showondisabled -->
-                <Button DockPanel.Dock="Right" Command="{Binding MergeCommand, Mode=OneTime}" ToolTip="{Binding MergeToolTip}"
-                        ToolTipService.ShowOnDisabled="True" Style="{StaticResource HeaderButtonStyle}">
-                    <!-- E71B Link. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
-                    <TextBlock Text="&#xE71B;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
-                               Foreground="{DynamicResource HeaderForegroundBrush}" />
-                </Button>
-                <Button DockPanel.Dock="Right" Command="{Binding SplitCommand, Mode=OneTime}" ToolTip="{Binding SplitToolTip}"
-                        ToolTipService.ShowOnDisabled="True" Style="{StaticResource HeaderButtonStyle}">
-                    <!-- E8C6 Cut. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
-                    <TextBlock Text="&#xE8C6;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
-                               Foreground="{DynamicResource HeaderForegroundBrush}" />
-                </Button>
-                <!-- Ship name, capacity and status in what the buttons leave (B15, D110, revises D67): short of room the status
-                     goes first, then the capacity turns short ("0/192 +16"), the name trims last; the short capacity stays.
-                     The panel has no background, so its free room still moves the window. No IsLocked trigger on the
-                     capacities: information, not a control, they stay while locked. -->
-                <sv:HeaderPanel VerticalAlignment="Top">
-                    <!-- The ship selection sits on the ship name, where haulers look for it (T7.2b, D59). Locked: the name as
-                         text, like the hidden buttons. -->
-                    <Grid sv:HeaderPanel.Part="Name" VerticalAlignment="Top">
-                        <Grid.Resources>
-                            <!-- Grouped in the order of first appearance; ShipChoices.Of sorts. OneWay: Recent changes with the ship (T7.2c). -->
-                            <CollectionViewSource x:Key="ShipsView" Source="{Binding ShipSelection, Mode=OneWay}">
-                                <CollectionViewSource.GroupDescriptions>
-                                    <PropertyGroupDescription PropertyName="Group" />
-                                </CollectionViewSource.GroupDescriptions>
-                            </CollectionViewSource>
-                        </Grid.Resources>
-                        <ComboBox x:Name="ShipBox" Style="{StaticResource ShipBoxStyle}"
-                                  ItemsSource="{Binding Source={StaticResource ShipsView}}"
-                                  ToolTip="Your ship. Click to change it; a plan is planned anew for the new ship."
-                                  IsSynchronizedWithCurrentItem="False"
-                                  DropDownOpened="OnShipListOpened" DropDownClosed="OnShipListClosed"
-                                  SelectionChanged="OnShipSelectionChanged">
-                            <ComboBox.GroupStyle>
-                                <GroupStyle>
-                                    <GroupStyle.HeaderTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="8,6,8,2"
-                                                       Foreground="{DynamicResource HeaderForegroundBrush}" />
-                                        </DataTemplate>
-                                    </GroupStyle.HeaderTemplate>
-                                </GroupStyle>
-                            </ComboBox.GroupStyle>
-                        </ComboBox>
-                        <TextBlock Text="{Binding Ship.Name, Mode=OneWay}"
-                                   FontWeight="Bold"
-                                   TextTrimming="CharacterEllipsis"
-                                   TextWrapping="NoWrap">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock" BasedOn="{StaticResource HeaderTextStyle}">
-                                    <Setter Property="Visibility" Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsLocked}" Value="True">
-                                            <Setter Property="Visibility" Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                    </Grid>
-                    <TextBlock x:Name="CapacityText" sv:HeaderPanel.Part="Capacity"
-                               Text="{Binding Scene.CapacityText, Mode=OneWay}"
-                               ToolTip="{Binding Scene.CapacityToolTip, Mode=OneWay}"
-                               TextWrapping="NoWrap"
-                               Margin="8,0,0,0"
-                               Style="{StaticResource HeaderTextStyle}" />
-                    <TextBlock x:Name="CompactCapacityText" sv:HeaderPanel.Part="CompactCapacity"
-                               Text="{Binding Scene.CompactCapacityText, Mode=OneWay}"
-                               ToolTip="{Binding Scene.CapacityToolTip, Mode=OneWay}"
-                               TextWrapping="NoWrap"
-                               Margin="8,0,0,0"
-                               Style="{StaticResource HeaderTextStyle}" />
-                    <!-- At the right end, next to the buttons, where it stood before; its words stay in the capacity's tool tip. -->
-                    <TextBlock sv:HeaderPanel.Part="Status"
-                               Text="{x:Static sv:ShipScene.AllDeliveredText}"
-                               VerticalAlignment="Top"
-                               TextWrapping="NoWrap"
-                               Margin="6,0,0,0"
-                               Foreground="{StaticResource DeliveredForegroundBrush}"
-                               Effect="{DynamicResource HeaderHaloEffect}"
-                               Visibility="{Binding Scene.AllDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                </sv:HeaderPanel>
-            </DockPanel>
+                    <!-- Re-plan (D66) between the pencil and merge, Martin's choice after B4: also here, not only in the editor.
+                         It asks first (ConfirmDialog), then the notice line says what happened; disabled, the tool tip says why,
+                         like split and merge. -->
+                    <Button Command="{Binding ReplanCommand, Mode=OneTime}" ToolTip="{Binding ReplanToolTip}"
+                            ToolTipService.ShowOnDisabled="True" Style="{StaticResource HeaderButtonStyle}">
+                        <!-- E72C Refresh. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                        <TextBlock Text="&#xE72C;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                                   Foreground="{DynamicResource HeaderForegroundBrush}" />
+                    </Button>
+                    <!-- Opens the mission editor, left of the gear. Locked it is gone like every header button (T3.7 notes, D110):
+                         planning is a step with a free cursor, and a locked overlay is click-through anyway. -->
+                    <Button ToolTip="Enter missions" Click="OnOpenEditor" Style="{StaticResource HeaderButtonStyle}">
+                        <!-- E70F Edit. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                        <TextBlock Text="&#xE70F;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                                   Foreground="{DynamicResource HeaderForegroundBrush}" />
+                    </Button>
+                    <!-- Undo and redo (K2.4) left of the reset, ↶ ↷: each only while there is a step for it (the border collapses),
+                         hidden while locked like every header button (the button's style keeps that, a local Visibility on the
+                         button would override its trigger). -->
+                    <Border Visibility="{Binding CanUndo, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Button Command="{Binding UndoCommand, Mode=OneTime}" ToolTip="Undo" Style="{StaticResource HeaderButtonStyle}">
+                            <!-- E7A7 Undo. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                            <TextBlock Text="&#xE7A7;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                                       Foreground="{DynamicResource HeaderForegroundBrush}" />
+                        </Button>
+                    </Border>
+                    <Border Visibility="{Binding CanRedo, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Button Command="{Binding RedoCommand, Mode=OneTime}" ToolTip="Redo" Style="{StaticResource HeaderButtonStyle}">
+                            <!-- E7A6 Redo. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                            <TextBlock Text="&#xE7A6;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                                       Foreground="{DynamicResource HeaderForegroundBrush}" />
+                        </Button>
+                    </Border>
+                    <!-- Reset view (K1.3) right next to the gear, like a double-click next to the cargo: a view control, so right of
+                         the plan's undo and redo (D34); they come and go further left, so it never jumps. Always there, hidden
+                         while locked like every header button. -->
+                    <Button Command="{Binding ResetViewCommand, Mode=OneTime}" ToolTip="Reset view" Style="{StaticResource HeaderButtonStyle}">
+                        <!-- E9A6 FitPage. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                        <TextBlock Text="&#xE9A6;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                                   Foreground="{DynamicResource HeaderForegroundBrush}" />
+                    </Button>
+                    <!-- Opens the settings window, left of the exit button: window controls right, plan controls left of them (D34).
+                         Hidden while locked like every header button. Over an invisible theme the system tool tip still finds
+                         it: the button background keeps alpha 1, so it takes the hover (user guide, "Overlay unreadable?"). -->
+                    <Button ToolTip="Settings" Click="OnOpenSettings" Style="{StaticResource HeaderButtonStyle}">
+                        <!-- E713 Setting. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                        <TextBlock Text="&#xE713;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                                   Foreground="{DynamicResource HeaderForegroundBrush}" />
+                    </Button>
+                    <!-- Exits the app, next to the padlock, without a dialog: closes the overlay like the taskbar does, so its
+                         Closed handlers write what is pending (bounds, settings, plan). Hidden while locked like every header
+                         button (D34, addendum T5.1). -->
+                    <Button ToolTip="Exit" Click="OnExit" Style="{StaticResource HeaderButtonStyle}">
+                        <!-- E8BB ChromeClose. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
+                        <TextBlock Text="&#xE8BB;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
+                                   Foreground="{DynamicResource HeaderForegroundBrush}" />
+                    </Button>
+                </StackPanel>
+            </sv:HeaderPanel>
 
             <!-- The update line (T11.2, D109, U1): the bottom line, below the notices (the earlier of two bottom children lies
                  lower). Text left in the notices' style, controls right; locked, the controls hide and keep their space (U2).

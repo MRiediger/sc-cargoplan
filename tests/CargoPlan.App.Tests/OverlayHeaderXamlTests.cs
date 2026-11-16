@@ -76,23 +76,32 @@ public class OverlayHeaderXamlTests
     }
 
     [Fact]
-    public void Name_capacities_and_status_share_one_header_panel_that_fills_the_room_left_of_the_buttons()
+    public void The_header_is_one_panel_with_name_capacities_status_and_the_button_block()
     {
-        // B15 (D110, revises D67): the panel decides what gives way, status first, the name last. As the header DockPanel's
-        // last child it takes the room the buttons leave, so the status stands at its right end, next to them.
+        // B15 (D110, revises D67): the panel decides what gives way: status, long capacity, then the buttons to a second
+        // line; the name last. It is the header itself, docked on top with the lock window's margin on both lines (R3).
         var root = Root();
         var capacity = Capacity();
         var panel = capacity.Parent!;
 
         panel.Name.LocalName.Should().Be("HeaderPanel");
+        panel.Attribute("DockPanel.Dock")!.Value.Should().Be("Top");
+        panel.Attribute("Margin")!.Value.Should().Be("0,0,30,0");
+        panel.Attribute("LineHeight")!.Value.Should().Be("30", "the first line as high as the header was (D16)");
+        panel.Attribute("Height").Should().BeNull("a second line makes it taller");
         panel.Attribute("HorizontalAlignment").Should().BeNull("it stretches");
-        panel.Parent!.Elements().Last().Should().BeSameAs(panel);
-        panel.Elements().Select(PartOf).Should().Equal("Name", "Capacity", "CompactCapacity", "Status");
+        panel.Elements().Select(PartOf).Should().Equal("Name", "Capacity", "CompactCapacity", "Status", "Buttons");
         panel.Elements().First().Descendants().Should().Contain(e => (string?)e.Attribute(X + "Name") == "ShipBox");
         capacity.Attribute("TextWrapping")!.Value.Should().Be("NoWrap");
         capacity.Attribute("DockPanel.Dock").Should().BeNull();
 
-        var status = panel.Elements().Last();
+        var block = panel.Elements().Last();
+        block.Name.LocalName.Should().Be("StackPanel");
+        block.Attribute("Orientation")!.Value.Should().Be("Horizontal");
+        block.Descendants().Where(e => e.Name.LocalName == "Button").Should().HaveCount(9).And
+            .OnlyContain(b => (string?)b.Attribute("Style") == "{StaticResource HeaderButtonStyle}" && b.Attribute("DockPanel.Dock") == null);
+
+        var status = panel.Elements().Single(e => PartOf(e) == "Status");
         status.Attribute("Text")!.Value.Should().Be("{x:Static sv:ShipScene.AllDeliveredText}");
         status.Attribute("TextWrapping")!.Value.Should().Be("NoWrap");
         status.Attribute("Visibility")!.Value.Should().Be("{Binding Scene.AllDelivered, Converter={StaticResource BooleanToVisibilityConverter}}");
@@ -113,13 +122,13 @@ public class OverlayHeaderXamlTests
     [Fact]
     public void Undo_and_redo_stand_left_of_the_reset_show_only_with_a_step_and_hide_while_locked()
     {
-        // K2.4: in a DockPanel docked right, later in the markup is further left: gear, reset, redo, undo reads ↶ ↷ ⤢ ⚙.
+        // K2.4: the button block reads left to right (B15): undo, redo, reset, gear reads ↶ ↷ ⤢ ⚙.
         var buttons = Root().Descendants().Where(e => e.Name.LocalName == "Button").ToList();
         var gear = buttons.FindIndex(b => (string?)b.Attribute("ToolTip") == "Settings");
         var redo = buttons.FindIndex(b => (string?)b.Attribute("Command") == "{Binding RedoCommand, Mode=OneTime}");
         var undo = buttons.FindIndex(b => (string?)b.Attribute("Command") == "{Binding UndoCommand, Mode=OneTime}");
 
-        (gear, redo, undo).Should().Be((gear, gear + 2, gear + 3));
+        (gear, redo, undo).Should().Be((gear, gear - 2, gear - 3));
         foreach (var (index, flag) in new[] { (redo, "CanRedo"), (undo, "CanUndo") })
         {
             var button = buttons[index];
@@ -137,12 +146,12 @@ public class OverlayHeaderXamlTests
         var gear = buttons.FindIndex(b => (string?)b.Attribute("ToolTip") == "Settings");
         var reset = buttons.FindIndex(b => (string?)b.Attribute("Command") == "{Binding ResetViewCommand, Mode=OneTime}");
 
-        reset.Should().Be(gear + 1);
+        reset.Should().Be(gear - 1, "the block reads left to right (B15)");
         var button = buttons[reset];
         button.Attribute("ToolTip")!.Value.Should().Be("Reset view");
         button.Attribute("Style")!.Value.Should().Be("{StaticResource HeaderButtonStyle}", "gone while locked like the gear");
         button.Attribute("Visibility").Should().BeNull();
-        button.Parent!.Name.LocalName.Should().Be("DockPanel", "no border that collapses: it is always there");
+        button.Parent!.Name.LocalName.Should().Be("StackPanel", "no border that collapses: it is always there");
         button.Descendants().Single(e => e.Name.LocalName == "TextBlock").Attribute("Text")!.Value.Should().Be("");
     }
 

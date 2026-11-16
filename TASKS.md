@@ -6701,26 +6701,36 @@ hat (berührt B15 nicht).
 - **Ursache:** nicht `TextTrimming`, sondern das `DockPanel` der Kopfzeile, das Platz in Markup-Reihenfolge vergibt:
   Buttons (210 px, mit ↶ ↷ 270 px, **auch gesperrt**, nur `Hidden`), dann der Status, dann innen die Kapazität, der Name
   zuletzt.
-- **Fix:** `HeaderLayout.Stage` (reine Funktion) und `HeaderPanel` (misst die Kinder ohne Grenze, ordnet weggefallene
-  Teile in ein leeres Rechteck, ändert nie eine Visibility). Stufen: Status weg → Kapazität kurz (`54/64 +16`) → Name mit
-  Ellipse, kurze Kapazität bleibt. Tooltip an beiden Kapazitäten mit `All stops delivered.` als zweiter Zeile.
-  `HeaderButtonStyle` gesperrt `Collapsed`. `AllDeliveredText` von `OverlayViewModel` nach `ShipScene`.
+- **Fix:** `HeaderLayout.Stage` (reine Funktion, ein Durchgang) und `HeaderPanel` (die ganze Kopfzeile inkl.
+  Button-Block; misst die Kinder ohne Grenze, ordnet weggefallene Teile in ein leeres Rechteck, ändert nie eine
+  Visibility). Stufen: Status weg → Kapazität kurz (`54/64 +16`) → Buttons in die zweite Zeile, rechtsbündig an derselben
+  x-Position; der Name kürzt nur, wenn er mit kurzer Kapazität breiter ist als die Zeile. Erste Zeile 30 px
+  (`LineHeight`), Rand 30 px fürs Lock-Fenster in beiden Zeilen. Tooltip an beiden Kapazitäten mit `All stops
+  delivered.` als zweiter Zeile. `HeaderButtonStyle` gesperrt `Collapsed` (Zeile 2 entfällt von selbst).
+  `AllDeliveredText` von `OverlayViewModel` nach `ShipScene`. **`MinWidth` 240 → 360** aus den Daten.
 - **Präzisierung in der Planphase, ratifiziert durch Freigabe:** Nummer B15 statt B11 (vergeben, D98), D110; Breiten per
-  `Measure(∞)` statt `FormattedText`; gesperrt `Collapsed` statt `Hidden`; `waiting` kurz als `+16` (Variante B); Stufe 3
-  mit kurzer Kapazität, keine vierte Stufe; `▣` fällt in der kurzen Form weg; Tooltip stufenunabhängig; `MinWidth`
-  bleibt 240 (K1 = A); `available = +∞` → `Full` per Fixture (E1).
+  `Measure(∞)` statt `FormattedText`; gesperrt `Collapsed` statt `Hidden`; `waiting` kurz als `+16` (Variante B); `▣`
+  fällt in der kurzen Form weg; Tooltip stufenunabhängig; `available = +∞` → `Full` per Fixture (E1). Zweite Freigabe
+  (K1 neu, ersetzt „Stufe 3 = Ellipse“ und „`MinWidth` bleibt 240“): Stufe 3 = Buttons in Zeile 2, Name nie; R1 Zeile 1
+  bleibt kompakt (Monotonie beim Ziehen); R2 `MinWidth` aus längstem Namen + breitester Kurzform `N/N +N` über alle
+  Schiffe, mehr Wartendes als Kapazität darf eine Ziffer kosten; R3 30-px-Rand in beiden Zeilen. Im Bau dazu: die
+  Fixture misst den Namen **entsperrt** (mit Chevron, +16 px), und `MinWidth` deckt auch Zeile 2 (9 Buttons, 270 px).
 
 **Befund:**
-- Tests vorab: `HeaderLayoutTests` (15, jede Grenze ±1, ∞), `HeaderPanelTests` (9, Slots je Stufe, Clip, echte
+- Tests vorab: `HeaderLayoutTests` (jede Grenze ±1 inkl. Stufe 3 und Notfall-Ellipse, ∞, gesperrt ohne Buttons),
+  `HeaderPanelTests` (Slots je Stufe, zwei Zeilen mit Buttons-Slot in Zeile 2, gesperrt eine Zeile, Clip, echte
   `TextBlock`s für RAFT und Hull C, Daten-Fixture über `ships/`), `ShipViewBuilderTests` (+3), `OverlayHeaderXamlTests`
-  (`HeaderPanel`-Struktur ersetzt die D67-Regel, `Collapsed`, kurze Kapazität ohne `IsLocked`).
-- **Daten-Fixture** (Meldungsschrift 12 px): Zeile = Fensterbreite − 50 px; bei 240 px gesperrt 190 px, entsperrt
-  −20 px → entsperrt kürzt bei der Mindestbreite jeder Name (by construction). Gesperrt braucht die **RSI Constellation Mk
-  IV Andromeda** 221,7 px (Name + kurze Kapazität) → ungekürzt ab **272 px**; bei 240 px kürzen 8 von 109 Namen; bei
-  420 px steht jeder Name voll (Test hält das fest).
-- Echtes Overlay (`--data-dir` im Scratchpad, Hull A, 125 %): 700/470 px `MISC Hull A ˅ 54/64 · 10 free`, 420 px
-  `MISC Hull A ˅ 54/64` (vorher `MISC…` mit voller Kapazität); ab 300 px liegt alles hinter den Buttons.
-- [ ] Gate Martin: RAFT und Hull C, breit → schmal, SC vorne, entsperrt **und** gesperrt
+  (`HeaderPanel` mit Button-Block ersetzt die D67-Regel, Reihenfolge links → rechts, `Collapsed`, kurze Kapazität ohne
+  `IsLocked`).
+- **Daten-Fixture** (Meldungsschrift 12 px): längster Name mit Chevron **RSI Constellation Mk IV Andromeda** 201,7 px,
+  breiteste Kurzform **MISC Hull C** `4,608/4,608 +4,608` 101,1 px → Zeile 1 302,8 px, Zeile 2 270 px, Fenster
+  **352,8 px → `MinWidth` 360** (ohne `+N` wären es 320; über Martins Schätzung 300–320). Der Test schlägt fehl, sobald
+  ein neues Schiff mehr braucht.
+- Erster Entwurf (Stufe 3 = Ellipse, `MinWidth` 240) gemessen: bei 240 px entsperrt −20 px für Name und Kapazität.
+- Echtes Overlay (`--data-dir` im Scratchpad, 125 %): Hull A 600 px `54/64 · 10 free`, 450 px (= 360 DIP) `54/64` in
+  einer Zeile; Constellation Andromeda bei 360 DIP: voller Name und `0/96` in Zeile 1, Buttons in Zeile 2 unter ihrer
+  Stelle, Schloss bleibt.
+- [ ] Gate Martin: RAFT und Hull C, breit → schmal, SC vorne, entsperrt **und** gesperrt; Hull C entsperrt bei `MinWidth`
 - [ ] Wiki (Branch `v0.5.1` im Wiki-Klon): Overlay basics (Kopfzeile, schmales Overlay, gesperrt), Quick start (Status)
 
 ### [ ] V4 Release-Notes `v0.5.1.md`
