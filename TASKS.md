@@ -6698,7 +6698,7 @@ eigener Prompt, kommt zusätzlich in v0.5.1) → V2 → V4 → V5.
   `HoloRelease.Tag` → `holo-v3`, `docs/holo-format.md`, Cache-Wechsel nach D95 in die Notes.
 - `holo-v1` wird erst **nach** dem Netz-Gate gelöscht (kurzzeitig v1 + v2 + v3, gewollt; E2 der Freigabe).
 
-### [x] B15 Kopfzeile – Schiffsname bleibt sichtbar (D110, revidiert D67; `73f1c39`, `0ce6fd6`, `0291410`, abgenommen 16.11.)
+### [x] B15 Kopfzeile – Schiffsname bleibt sichtbar (D110, revidiert D67; `7463bc5`, `0119040`, `89d5a71`, abgenommen 16.11.)
 
 - **Anlass:** Screenshot RAFT, schmal: Name `AR…`, rechts `All stops delivered.` voll.
 - **Ursache:** nicht `TextTrimming`, sondern das `DockPanel` der Kopfzeile, das Platz in Markup-Reihenfolge vergibt:
