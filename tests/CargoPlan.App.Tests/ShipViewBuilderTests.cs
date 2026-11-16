@@ -432,6 +432,38 @@ public class ShipViewBuilderTests
 
         scene.CapacityText.Should().Be("0/4,608 · 4,608 free · 1,200 waiting");
         scene.CapacityToolTip.Should().Be("0 of 4,608 SCU on board · 4,608 free · 1,200 waiting");
+        scene.CompactCapacityText.Should().Be("0/4,608 +1,200");
+    }
+
+    [Fact]
+    public void The_compact_capacity_is_on_board_of_max_without_free_and_loaded()
+    {
+        // B15 (D110): the header's second stage; the legend's lines carry the loaded mark themselves.
+        var plan = Sample.Plan with { Crates = [.. Sample.Plan.Crates.Select((c, i) => i == 0 ? c with { Loaded = true } : c)] };
+
+        Build(plan).CapacityText.Should().EndWith("▣");
+        Build(plan).CompactCapacityText.Should().Be("54/64");
+    }
+
+    [Fact]
+    public void The_compact_capacity_keeps_the_waiting_cargo_as_a_mark()
+    {
+        // Martin's variant B: a locked overlay has no tool tip, so the crates without room stay readable.
+        (Build(Sample.Plan) with { WaitingScu = 16 }).CompactCapacityText.Should().Be("54/64 +16");
+    }
+
+    [Fact]
+    public void The_capacity_tool_tip_says_all_stops_delivered_on_a_second_line()
+    {
+        // The status text is the first to give way in the header (B15); its words stay over the capacity.
+        var plan = Sample.Plan;
+        foreach (var destination in new[] { "Riker", "Shubin", "Orison", "Lorville" })
+        {
+            plan = LoadPlanner.SetDelivered(plan, Sample.Ship, destination, true);
+        }
+
+        Build(plan).CapacityToolTip.Should().Be("0 of 64 SCU on board · 64 free\nAll stops delivered.");
+        Build(Sample.Plan).CapacityToolTip.Should().Be("54 of 64 SCU on board · 10 free");
     }
 
     [Fact]

@@ -144,14 +144,15 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- Glyph buttons in the header (pencil, gear, split, merge, exit): hidden while locked, but keeping their space. -->
+        <!-- Glyph buttons in the header (pencil, gear, split, merge, exit): gone while locked, and their room goes to ship name,
+             capacity and status (B15, D110): hidden, they kept 210 px, 270 with undo and redo, in the game. -->
         <Style x:Key="HeaderButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
             <Setter Property="Width" Value="30" />
             <Setter Property="Height" Value="26" />
             <Setter Property="VerticalAlignment" Value="Top" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsLocked}" Value="True">
-                    <Setter Property="Visibility" Value="Hidden" />
+                    <Setter Property="Visibility" Value="Collapsed" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -417,7 +418,7 @@
                                    Foreground="{DynamicResource HeaderForegroundBrush}" />
                     </Button>
                 </Border>
-                <!-- Opens the mission editor, left of the gear. Locked it is hidden but keeps its space (T3.7 notes):
+                <!-- Opens the mission editor, left of the gear. Locked it is gone like every header button (T3.7 notes, D110):
                      planning is a step with a free cursor, and a locked overlay is click-through anyway. -->
                 <Button DockPanel.Dock="Right" ToolTip="Enter missions" Click="OnOpenEditor" Style="{StaticResource HeaderButtonStyle}">
                     <!-- E70F Edit. Source: https://learn.microsoft.com/windows/apps/design/style/segoe-ui-symbol-font -->
@@ -448,26 +449,14 @@
                     <TextBlock Text="&#xE8C6;" FontFamily="{StaticResource IconFontFamily}" FontSize="16"
                                Foreground="{DynamicResource HeaderForegroundBrush}" />
                 </Button>
-                <TextBlock DockPanel.Dock="Right"
-                           Text="{x:Static vm:OverlayViewModel.AllDeliveredText}"
-                           VerticalAlignment="Top"
-                           Margin="6,0,0,0"
-                           Foreground="{StaticResource DeliveredForegroundBrush}"
-                           Effect="{DynamicResource HeaderHaloEffect}"
-                           Visibility="{Binding Scene.AllDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <!-- Ship name and capacity, left-aligned, so the header right of them still moves the window. The capacity
-                     (D67) is docked right of the name, which as the last child takes what is left and trims: the name gives
-                     way, the capacity never. No IsLocked trigger: it is information, not a control, and stays while locked. -->
-                <DockPanel HorizontalAlignment="Left" VerticalAlignment="Top">
-                    <TextBlock x:Name="CapacityText" DockPanel.Dock="Right"
-                               Text="{Binding Scene.CapacityText, Mode=OneWay}"
-                               ToolTip="{Binding Scene.CapacityToolTip, Mode=OneWay}"
-                               TextWrapping="NoWrap"
-                               Margin="8,0,0,0"
-                               Style="{StaticResource HeaderTextStyle}" />
+                <!-- Ship name, capacity and status in what the buttons leave (B15, D110, revises D67): short of room the status
+                     goes first, then the capacity turns short ("0/192 +16"), the name trims last; the short capacity stays.
+                     The panel has no background, so its free room still moves the window. No IsLocked trigger on the
+                     capacities: information, not a control, they stay while locked. -->
+                <sv:HeaderPanel VerticalAlignment="Top">
                     <!-- The ship selection sits on the ship name, where haulers look for it (T7.2b, D59). Locked: the name as
                          text, like the hidden buttons. -->
-                    <Grid VerticalAlignment="Top">
+                    <Grid sv:HeaderPanel.Part="Name" VerticalAlignment="Top">
                         <Grid.Resources>
                             <!-- Grouped in the order of first appearance; ShipChoices.Of sorts. OneWay: Recent changes with the ship (T7.2c). -->
                             <CollectionViewSource x:Key="ShipsView" Source="{Binding ShipSelection, Mode=OneWay}">
@@ -509,7 +498,28 @@
                             </TextBlock.Style>
                         </TextBlock>
                     </Grid>
-                </DockPanel>
+                    <TextBlock x:Name="CapacityText" sv:HeaderPanel.Part="Capacity"
+                               Text="{Binding Scene.CapacityText, Mode=OneWay}"
+                               ToolTip="{Binding Scene.CapacityToolTip, Mode=OneWay}"
+                               TextWrapping="NoWrap"
+                               Margin="8,0,0,0"
+                               Style="{StaticResource HeaderTextStyle}" />
+                    <TextBlock x:Name="CompactCapacityText" sv:HeaderPanel.Part="CompactCapacity"
+                               Text="{Binding Scene.CompactCapacityText, Mode=OneWay}"
+                               ToolTip="{Binding Scene.CapacityToolTip, Mode=OneWay}"
+                               TextWrapping="NoWrap"
+                               Margin="8,0,0,0"
+                               Style="{StaticResource HeaderTextStyle}" />
+                    <!-- At the right end, next to the buttons, where it stood before; its words stay in the capacity's tool tip. -->
+                    <TextBlock sv:HeaderPanel.Part="Status"
+                               Text="{x:Static sv:ShipScene.AllDeliveredText}"
+                               VerticalAlignment="Top"
+                               TextWrapping="NoWrap"
+                               Margin="6,0,0,0"
+                               Foreground="{StaticResource DeliveredForegroundBrush}"
+                               Effect="{DynamicResource HeaderHaloEffect}"
+                               Visibility="{Binding Scene.AllDelivered, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                </sv:HeaderPanel>
             </DockPanel>
 
             <!-- The update line (T11.2, D109, U1): the bottom line, below the notices (the earlier of two bottom children lies

@@ -6676,6 +6676,69 @@ entfernt es), Branch `feat/p11-auto-update` lokal und remote (gemergt in `00bba9
 
 ---
 
+## Release v0.5.1 – Branch `fix/v0.5.1` (16.11.2026)
+
+**Warum:** Kleines Release vor Phase 12: Schiffsdaten Motherlode 4.10.3 (schon auf `main`, `92d9d99`), Holo-v3, Kopfzeile
+(B15), Abhängigkeiten (Dependabot #26), erster Selbsttausch übers Netz. Plan zur Freigabe nur für B15, der Rest ist Ablauf.
+Vorbedingung #26: beim Abzweig noch nicht auf `main`; der Branch wird lokal auf `main` rebased, sobald Martin #26 gemerged
+hat (berührt B15 nicht).
+
+### [ ] V1 Alte 350r-Pläne laden
+
+- Eingefrorene `plan.json` aus 0.5.0 mit 350r (alte Gitterpositionen) lädt ohne Absturz; Verhalten bei Positionen
+  außerhalb des neuen Gitters im Befund; Notes-Zeile „saved plans load, re-plan recommended“ (wie 4a-E2).
+
+### [ ] V2 Holo-v3 (Martin baut, CC verdrahtet)
+
+- Pipeline (`model-map.csv`) → Umrisse der drei neuen Schiffe, `import-motherlode.ps1` (Anker), Bildvergleich gegen
+  `holo-v2` (nur Galaxy, Liberator, Retaliator, 350r dürfen abweichen), Release `holo-v3` **vor** dem Tag,
+  `HoloRelease.Tag` → `holo-v3`, `docs/holo-format.md`, Cache-Wechsel nach D95 in die Notes.
+- `holo-v1` wird erst **nach** dem Netz-Gate gelöscht (kurzzeitig v1 + v2 + v3, gewollt; E2 der Freigabe).
+
+### [ ] B15 Kopfzeile – Schiffsname bleibt sichtbar (D110, revidiert D67)
+
+- **Anlass:** Screenshot RAFT, schmal: Name `AR…`, rechts `All stops delivered.` voll.
+- **Ursache:** nicht `TextTrimming`, sondern das `DockPanel` der Kopfzeile, das Platz in Markup-Reihenfolge vergibt:
+  Buttons (210 px, mit ↶ ↷ 270 px, **auch gesperrt**, nur `Hidden`), dann der Status, dann innen die Kapazität, der Name
+  zuletzt.
+- **Fix:** `HeaderLayout.Stage` (reine Funktion) und `HeaderPanel` (misst die Kinder ohne Grenze, ordnet weggefallene
+  Teile in ein leeres Rechteck, ändert nie eine Visibility). Stufen: Status weg → Kapazität kurz (`54/64 +16`) → Name mit
+  Ellipse, kurze Kapazität bleibt. Tooltip an beiden Kapazitäten mit `All stops delivered.` als zweiter Zeile.
+  `HeaderButtonStyle` gesperrt `Collapsed`. `AllDeliveredText` von `OverlayViewModel` nach `ShipScene`.
+- **Präzisierung in der Planphase, ratifiziert durch Freigabe:** Nummer B15 statt B11 (vergeben, D98), D110; Breiten per
+  `Measure(∞)` statt `FormattedText`; gesperrt `Collapsed` statt `Hidden`; `waiting` kurz als `+16` (Variante B); Stufe 3
+  mit kurzer Kapazität, keine vierte Stufe; `▣` fällt in der kurzen Form weg; Tooltip stufenunabhängig; `MinWidth`
+  bleibt 240 (K1 = A); `available = +∞` → `Full` per Fixture (E1).
+
+**Befund:**
+- Tests vorab: `HeaderLayoutTests` (15, jede Grenze ±1, ∞), `HeaderPanelTests` (9, Slots je Stufe, Clip, echte
+  `TextBlock`s für RAFT und Hull C, Daten-Fixture über `ships/`), `ShipViewBuilderTests` (+3), `OverlayHeaderXamlTests`
+  (`HeaderPanel`-Struktur ersetzt die D67-Regel, `Collapsed`, kurze Kapazität ohne `IsLocked`).
+- **Daten-Fixture** (Meldungsschrift 12 px): Zeile = Fensterbreite − 50 px; bei 240 px gesperrt 190 px, entsperrt
+  −20 px → entsperrt kürzt bei der Mindestbreite jeder Name (by construction). Gesperrt braucht die **RSI Constellation Mk
+  IV Andromeda** 221,7 px (Name + kurze Kapazität) → ungekürzt ab **272 px**; bei 240 px kürzen 8 von 109 Namen; bei
+  420 px steht jeder Name voll (Test hält das fest).
+- Echtes Overlay (`--data-dir` im Scratchpad, Hull A, 125 %): 700/470 px `MISC Hull A ˅ 54/64 · 10 free`, 420 px
+  `MISC Hull A ˅ 54/64` (vorher `MISC…` mit voller Kapazität); ab 300 px liegt alles hinter den Buttons.
+- [ ] Gate Martin: RAFT und Hull C, breit → schmal, SC vorne, entsperrt **und** gesperrt
+- [ ] Wiki (Branch `v0.5.1` im Wiki-Klon): Overlay basics (Kopfzeile, schmales Overlay, gesperrt), Quick start (Status)
+
+### [ ] V4 Release-Notes `v0.5.1.md`
+
+- Ships (vier Zeilen inkl. 350r), Holo-v3 (einmaliges Neuladen), Kopfzeile, Abhängigkeiten; Known issues: `holo-v1`-Zeile
+  neu, KI 3 mit „this is the first self-update – it downloads the full package“.
+
+### [ ] V5 Merge, Tag, Netz-Gate, Nachlauf
+
+- Merge `--no-ff` nach Abnahme, Martin pusht und taggt.
+- Netz-Gate (Martin, Backlog „Erster Selbsttausch übers Netz“): v0.5.0-Portable aus Browser-Download → Notice
+  `Update available · v0.5.1` → Update; Größe aus den `Velopack:`-Zeilen (≈ 90 MB voll); SmartScreen für `Update.exe` und
+  den ersten Start; 0.5.1 läuft, Galaxy in der Auswahl, Holo-Cache-Notice einmal, Holo für Galaxy und Hull A.
+- Danach: Wiki-Push, `holo-v1` löschen, Nexus-Datei. Rückweg bei Fehlschlag: v0.5.1 auf Pre-Release, Befund sichern,
+  Hotfix 0.5.2.
+
+---
+
 ## Lehren
 
 Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.

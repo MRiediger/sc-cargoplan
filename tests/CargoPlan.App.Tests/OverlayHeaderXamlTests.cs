@@ -22,6 +22,13 @@ public class OverlayHeaderXamlTests
     private static XElement Capacity() =>
         Root().Descendants().Single(e => (string?)e.Attribute(X + "Name") == "CapacityText");
 
+    private static XElement Named(XElement root, string name) =>
+        root.Descendants().Single(e => (string?)e.Attribute(X + "Name") == name);
+
+    /// <summary>The header part an element plays in the <c>HeaderPanel</c> (B15), null if none.</summary>
+    private static string? PartOf(XElement element) =>
+        (string?)element.Attributes().SingleOrDefault(a => a.Name.LocalName == "HeaderPanel.Part");
+
     [Fact]
     public void The_capacity_shows_the_scenes_text()
     {
@@ -30,12 +37,25 @@ public class OverlayHeaderXamlTests
     }
 
     [Fact]
-    public void Nothing_hides_the_capacity_while_locked()
+    public void The_compact_capacity_shows_the_scenes_compact_text_with_the_same_tool_tip()
+    {
+        // B15: the tool tip spells out what the compact form leaves out, "All stops delivered." included (D110).
+        var compact = Named(Root(), "CompactCapacityText");
+
+        compact.Attribute("Text")!.Value.Should().Be("{Binding Scene.CompactCapacityText, Mode=OneWay}");
+        compact.Attribute("ToolTip")!.Value.Should().Be("{Binding Scene.CapacityToolTip, Mode=OneWay}");
+        compact.Attribute("TextWrapping")!.Value.Should().Be("NoWrap");
+    }
+
+    [Theory]
+    [InlineData("CapacityText")]
+    [InlineData("CompactCapacityText")]
+    public void Nothing_hides_the_capacity_while_locked(string name)
     {
         // Information, not a control (D67): no IsLocked trigger or binding on the text or on anything that holds it, unlike
         // the header buttons and the ship selection.
         var root = Root();
-        var capacity = root.Descendants().Single(e => (string?)e.Attribute(X + "Name") == "CapacityText");
+        var capacity = Named(root, name);
         XElement[] chain = [capacity, .. capacity.Ancestors()];
 
         chain.Should().NotContain(e => e.Attributes().Any(a => a.Value.Contains("IsLocked"))
@@ -56,16 +76,38 @@ public class OverlayHeaderXamlTests
     }
 
     [Fact]
-    public void The_ship_name_gives_way_and_the_capacity_never_wraps()
+    public void Name_capacities_and_status_share_one_header_panel_that_fills_the_room_left_of_the_buttons()
     {
-        // Docked right inside a left-aligned panel whose last child is the ship name: the name takes what is left and trims.
+        // B15 (D110, revises D67): the panel decides what gives way, status first, the name last. As the header DockPanel's
+        // last child it takes the room the buttons leave, so the status stands at its right end, next to them.
+        var root = Root();
         var capacity = Capacity();
+        var panel = capacity.Parent!;
 
-        capacity.Attribute("DockPanel.Dock")!.Value.Should().Be("Right");
+        panel.Name.LocalName.Should().Be("HeaderPanel");
+        panel.Attribute("HorizontalAlignment").Should().BeNull("it stretches");
+        panel.Parent!.Elements().Last().Should().BeSameAs(panel);
+        panel.Elements().Select(PartOf).Should().Equal("Name", "Capacity", "CompactCapacity", "Status");
+        panel.Elements().First().Descendants().Should().Contain(e => (string?)e.Attribute(X + "Name") == "ShipBox");
         capacity.Attribute("TextWrapping")!.Value.Should().Be("NoWrap");
-        capacity.Parent!.Name.LocalName.Should().Be("DockPanel");
-        capacity.Parent.Attribute("HorizontalAlignment")!.Value.Should().Be("Left");
-        capacity.Parent.Elements().Last().Descendants().Should().Contain(e => (string?)e.Attribute(X + "Name") == "ShipBox");
+        capacity.Attribute("DockPanel.Dock").Should().BeNull();
+
+        var status = panel.Elements().Last();
+        status.Attribute("Text")!.Value.Should().Be("{x:Static sv:ShipScene.AllDeliveredText}");
+        status.Attribute("TextWrapping")!.Value.Should().Be("NoWrap");
+        status.Attribute("Visibility")!.Value.Should().Be("{Binding Scene.AllDelivered, Converter={StaticResource BooleanToVisibilityConverter}}");
+        root.Descendants().Should().NotContain(e => (string?)e.Attribute("Text") == "{x:Static vm:OverlayViewModel.AllDeliveredText}");
+    }
+
+    [Fact]
+    public void Locked_the_header_buttons_give_their_room_to_the_ship_name()
+    {
+        // B15 (D110): Collapsed, not Hidden; hidden buttons kept 210 px (270 with undo and redo) in the game.
+        var style = Root().Descendants().Single(e => (string?)e.Attribute(X + "Key") == "HeaderButtonStyle");
+        var trigger = style.Descendants().Single(e => e.Name.LocalName == "DataTrigger");
+
+        trigger.Attribute("Binding")!.Value.Should().Be("{Binding IsLocked}");
+        trigger.Elements().Single().Attribute("Value")!.Value.Should().Be("Collapsed");
     }
 
     [Fact]
@@ -81,7 +123,7 @@ public class OverlayHeaderXamlTests
         foreach (var (index, flag) in new[] { (redo, "CanRedo"), (undo, "CanUndo") })
         {
             var button = buttons[index];
-            button.Attribute("Style")!.Value.Should().Be("{StaticResource HeaderButtonStyle}", "hidden while locked like every header button");
+            button.Attribute("Style")!.Value.Should().Be("{StaticResource HeaderButtonStyle}", "gone while locked like every header button");
             button.Parent!.Attribute("Visibility")!.Value.Should().Be($"{{Binding {flag}, Converter={{StaticResource BooleanToVisibilityConverter}}}}");
         }
     }
@@ -98,7 +140,7 @@ public class OverlayHeaderXamlTests
         reset.Should().Be(gear + 1);
         var button = buttons[reset];
         button.Attribute("ToolTip")!.Value.Should().Be("Reset view");
-        button.Attribute("Style")!.Value.Should().Be("{StaticResource HeaderButtonStyle}", "hidden while locked like the gear");
+        button.Attribute("Style")!.Value.Should().Be("{StaticResource HeaderButtonStyle}", "gone while locked like the gear");
         button.Attribute("Visibility").Should().BeNull();
         button.Parent!.Name.LocalName.Should().Be("DockPanel", "no border that collapses: it is always there");
         button.Descendants().Single(e => e.Name.LocalName == "TextBlock").Attribute("Text")!.Value.Should().Be("");
