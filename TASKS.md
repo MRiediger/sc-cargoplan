@@ -6853,8 +6853,17 @@ Satz aus dem Task, die übrigen Update-KIs aus v0.5.0, neu `holo-v1`, die drei F
 - Netz-Gate (Martin, Backlog „Erster Selbsttausch übers Netz“): v0.5.0-Portable aus Browser-Download → Notice
   `Update available · v0.5.1` → Update; Größe aus den `Velopack:`-Zeilen (≈ 90 MB voll); SmartScreen für `Update.exe` und
   den ersten Start; 0.5.1 läuft, Galaxy in der Auswahl, Holo-Cache-Notice einmal, Holo für Galaxy und Hull A.
-- Danach: `holo-v1` löschen, Nexus-Datei (Texte `holo-v2` → `holo-v3`: `docs/nexus/description.bbcode`
-  Z. 15 und 81, `checklist.md` Z. 104). Rückweg bei Fehlschlag: v0.5.1 auf Pre-Release, Befund sichern,
+- [x] **Netz-Gate bestanden** (Martin, 16.11., eigene Portable in `C:\Tools\SC-CargoPlan`, „funktioniert!“; Belege aus
+  `cargoplan.log` und dem Profil): 14:59:08 `Update: 0.5.1 available`, Velopack „no local/base package … delta updates
+  will be disabled“ → `CargoPlan-0.5.1-full.nupkg` (96,7 MB) in 4,2 s, Checksumme geprüft, neues `Update.exe`; 14:59:22
+  `restarted by Update.exe as 0.5.1`, erster Frame 874 ms, `current\sq.version` 0.5.1. Holo-Cache: nur `holo\holo-v3`
+  (`holo-v2` gelöscht, D95), neu geladen Manifest, C2 Hercules, Galaxy; Galaxy-Holo im Bild (Screenshot Settings,
+  Download an). Nicht aus dem Log belegbar: SmartScreen (die Portable war kein frischer Browser-Download) und die
+  einmalige Holo-Notice (Notices stehen nicht im Log) – Martin meldete nichts Auffälliges.
+- [x] Nexus-Texte `holo-v2` → `holo-v3` (`docs/nexus/description.bbcode` Z. 15 und 81, `checklist.md` Z. 104).
+- [ ] `holo-v1` löschen: **Widerspruch** zur Backlog-Zeile „frühestens 06.12.2026, v0.3.0 vier Wochen stabil“
+  (Session 4c). Martin entscheidet.
+- [ ] Nexus-Datei 0.5.1 hochladen (Martin, `docs/nexus/checklist.md`). Rückweg bei Fehlschlag: v0.5.1 auf Pre-Release, Befund sichern,
   Hotfix 0.5.2.
 
 ---

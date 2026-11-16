@@ -101,7 +101,7 @@ The app is MIT, but the switches apply to the whole file, and `outlines/` in the
 | Upload, modification, conversion | allowed, with credit and the MIT license notice kept |
 | Asset use | ask the author / credit the author (the ship silhouettes aren't MIT) |
 | Donation Points | never opt in; the description says nothing about donations |
-| Permission notes | `The app is under the MIT license (LICENSE in the ZIP). Not under MIT: the ship silhouettes (outlines/NOTICE.md, in this ZIP) and the ship holograms (not in this ZIP; their own NOTICE in the holo-v2 release on GitHub).` |
+| Permission notes | `The app is under the MIT license (LICENSE in the ZIP). Not under MIT: the ship silhouettes (outlines/NOTICE.md, in this ZIP) and the ship holograms (not in this ZIP; their own NOTICE in the holo-v3 release on GitHub).` |
 | Credits | the Shout outs block of [`description.bbcode`](description.bbcode), without the license line |
 
 ## 7. Publish and check
