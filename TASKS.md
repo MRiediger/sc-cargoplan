@@ -6861,8 +6861,8 @@ Satz aus dem Task, die übrigen Update-KIs aus v0.5.0, neu `holo-v1`, die drei F
   Download an). Nicht aus dem Log belegbar: SmartScreen (die Portable war kein frischer Browser-Download) und die
   einmalige Holo-Notice (Notices stehen nicht im Log) – Martin meldete nichts Auffälliges.
 - [x] Nexus-Texte `holo-v2` → `holo-v3` (`docs/nexus/description.bbcode` Z. 15 und 81, `checklist.md` Z. 104).
-- [ ] `holo-v1` löschen: **Widerspruch** zur Backlog-Zeile „frühestens 06.12.2026, v0.3.0 vier Wochen stabil“
-  (Session 4c). Martin entscheidet.
+- [x] `holo-v1` gelöscht (Martin, 16.11., nach dem Netz-Gate; entschieden gegen die Backlog-Frist 06.12.): Release
+  und Tag weg, Manifest-URL 404; `holo-v2` (v0.3.0–v0.5.0) und `holo-v3` (v0.5.1) stehen, holo-v3-Manifest 200.
 - [ ] Nexus-Datei 0.5.1 hochladen (Martin, `docs/nexus/checklist.md`). Rückweg bei Fehlschlag: v0.5.1 auf Pre-Release, Befund sichern,
   Hotfix 0.5.2.
 
@@ -6941,8 +6941,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - **Kiosk-Manifest als autoritative Quelle** für die Mengen. Auslöser: Der Aufzug liefert eine andere SCU-Summe als der
   ACCEPTED-Text. Martins Antwort steht aus; IC STARC-175359/223408 deuten darauf hin.
 
-- `holo-v1`-Release auf GitHub entfernen (v0.1/v0.2 laden ihre Hologramme dann nicht mehr). Auslöser: v0.3.0 vier Wochen
-  stabil, frühestens 06.12.2026 (Release 08.11.2026), ohne Meldung, die einen Rückweg auf 0.2.0 braucht (Session 4c).
+- ~~`holo-v1`-Release auf GitHub entfernen~~ – erledigt am 16.11.2026 mit v0.5.1 (V5, Martin), vor dem hier genannten
+  06.12.: Release und Tag weg, `releases/download/holo-v1/manifest.json` 404; v0.1/v0.2 zeigen den Umriss.
 - Modelle für 135c, 600i Executive Edition und F7C Hornet Mk II bei Sciirof (Motherlode) anfragen, mit Rückmeldung zur
   Handprüfung als Gegenleistung (Session 4a/4c). Auslöser: nach dem Launch, mit der Nachricht zu v0.3.0 (R5).
 - Sciirof fragen, warum die **Cyclone** im Katalog 2026-11-16 (4.10.3-LIVE.13165946) fehlt; bis dahin behält sie ihre
