@@ -4,7 +4,7 @@
   "name": "ARGO MOTH",
   "manufacturer": "ARGO",
   "modelKey": "argo-moth",
-  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "source": "cryon.rocks (Motherlode) 4.10.3-LIVE.13165946, 2026-11-12T20:50:33.036Z",
   "notes": "rack positions from game files (Motherlode); racks rack-1, rack-2 added (Fleetyards export 2026-10-26); door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [0.9467, 0.7132, 0.4583],
   "outlineOrigin": [0.9467, 0.7132, -5.5769],

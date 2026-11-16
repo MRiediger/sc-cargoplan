@@ -4,7 +4,7 @@
   "name": "RSI Constellation Mk V Centaurus",
   "manufacturer": "RSI",
   "modelKey": "rsi-constellation-mk-v-centaurus",
-  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "source": "cryon.rocks (Motherlode) 4.10.3-LIVE.13165946, 2026-11-12T20:50:33.036Z",
   "notes": "rack positions from game files (Motherlode)",
   "holoOrigin": [0.79, 0.9947, 0.7587],
   "outlineOrigin": [0.79, 0.9947, -7.8453],

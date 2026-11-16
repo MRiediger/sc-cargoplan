@@ -4,7 +4,7 @@
   "name": "MISC Hull A",
   "manufacturer": "MISC",
   "modelKey": "misc-hull-a",
-  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "source": "cryon.rocks (Motherlode) 4.10.3-LIVE.13165946, 2026-11-12T20:50:33.036Z",
   "notes": "grids, rack order and stacking checked in game; rack positions from game files (Motherlode, D92): 5 cells between the plates (spindle in cargo pose)",
   "holoOrigin": [0.1877, 0.505, 0.1355],
   "outlineOrigin": [0.1877, 0.505, -2.1253],

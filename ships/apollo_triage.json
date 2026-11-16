@@ -4,7 +4,7 @@
   "name": "RSI Apollo Triage",
   "manufacturer": "RSI",
   "modelKey": "rsi-apollo-triage",
-  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "source": "cryon.rocks (Motherlode) 4.10.3-LIVE.13165946, 2026-11-12T20:50:33.036Z",
   "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [0.412, 0.4944, 0.08],
   "outlineOrigin": [0.412, 0.4944, -5.9656],

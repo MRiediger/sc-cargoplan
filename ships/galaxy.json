@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 6,
+  "id": "galaxy",
+  "name": "RSI Galaxy",
+  "manufacturer": "RSI",
+  "source": "cryon.rocks (Motherlode) 4.10.3-LIVE.13165946, 2026-11-12T20:50:33.036Z",
+  "notes": "rack positions from game files (Motherlode)",
+  "holoOrigin": [-11, 0, 0],
+  "outlineOrigin": [-11, 0, 0],
+  "totalScu": 720,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 256,
+      "grid": { "length": 16, "width": 4, "stack": 4 },
+      "origin": [-11, 6, -2],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 144,
+      "grid": { "length": 12, "width": 6, "stack": 2 },
+      "origin": [-9, -3, -2],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-2",
+      "capacityScu": 256,
+      "grid": { "length": 16, "width": 4, "stack": 4 },
+      "origin": [-11, -10, -2],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-3",
+      "capacityScu": 32,
+      "grid": { "length": 4, "width": 2, "stack": 4 },
+      "origin": [-27, 5, -2],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-4",
+      "capacityScu": 32,
+      "grid": { "length": 4, "width": 2, "stack": 4 },
+      "origin": [-27, -6, -2],
+      "stackAxis": "+z"
+    }
+  ]
+}

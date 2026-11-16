@@ -4,7 +4,7 @@
   "name": "GREY Shiv",
   "manufacturer": "GREY",
   "modelKey": "grey-shiv",
-  "source": "cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07",
+  "source": "cryon.rocks (Motherlode) 4.10.3-LIVE.13165946, 2026-11-12T20:50:33.036Z",
   "notes": "rack positions from game files (Motherlode); door limits from Fleetyards limits.max.capacity",
   "holoOrigin": [0.969, 0.5418, 0.6294],
   "outlineOrigin": [0.969, 0.5418, -3.1434],

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 6,
+  "id": "retaliator",
+  "name": "AEGS Retaliator",
+  "manufacturer": "AEGS",
+  "source": "cryon.rocks (Motherlode) 4.10.3-LIVE.13165946, 2026-11-12T20:50:33.036Z",
+  "notes": "rack positions from game files (Motherlode)",
+  "holoOrigin": [1.5, 0.5, 0],
+  "outlineOrigin": [1.5, 0.5, 0],
+  "totalScu": 74,
+  "racks": [
+    {
+      "id": "rack-0",
+      "capacityScu": 30,
+      "grid": { "length": 5, "width": 3, "stack": 2 },
+      "origin": [8, -1, -1],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-1",
+      "capacityScu": 36,
+      "grid": { "length": 6, "width": 3, "stack": 2 },
+      "origin": [-11, -1, -1],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-2",
+      "capacityScu": 4,
+      "grid": { "length": 1, "width": 2, "stack": 2 },
+      "origin": [13, 0, -1],
+      "stackAxis": "+z"
+    },
+    {
+      "id": "rack-3",
+      "capacityScu": 4,
+      "grid": { "length": 1, "width": 2, "stack": 2 },
+      "origin": [7, 0, -1],
+      "stackAxis": "+z"
+    }
+  ]
+}
