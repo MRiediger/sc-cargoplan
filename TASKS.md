@@ -6722,6 +6722,33 @@ hat (berührt B15 nicht).
   `HoloRelease.Tag` → `holo-v3`, `docs/holo-format.md`, Cache-Wechsel nach D95 in die Notes.
 - `holo-v1` wird erst **nach** dem Netz-Gate gelöscht (kurzzeitig v1 + v2 + v3, gewollt; E2 der Freigabe).
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (16.11.):** Slugs `rsi-galaxy`, `anvl-liberator`,
+`aegs-retaliator`, 350r zurück auf `orig-350r`; die Cyclone (nicht mehr im Katalog) behält Datei und Umriss aus holo-v2;
+die 135c bleibt holo-v1 (Grid ohne Transform, Import `kept`); Liberator `passed: false` (hausdorff) bleibt drin (D63);
+101 Schiffe statt der geschätzten 118; `outlines-v2`/`release-v2` nehmen den Tag als Argument (Pipeline-Branch
+`holo-v3`); K1-Test; E1 nach Phase 12.
+
+**Befund (16.11.):**
+- **Ohne `modelKey` kein Holo:** Map, Umrisse und Release bauen nur Slugs, die der Import aus den Schiffsdateien liest.
+  Galaxy, Liberator, Retaliator kamen in `92d9d99` ohne Key, die 350r verlor ihren dort. **Ursache (K1):** neue Rack-Zahl
+  → `handcheck` „rack set differs“ → Datei neu mit `-Create`; dieser Zweig (keine Datei, keine Variante) setzt keinen
+  Slug und die Anker auf die Rack-Mitte. Test `ShipOutlineLoaderTests.Every_outline_belongs_to_a_shipped_ship` (rot mit
+  `orig-350r`, dann grün); Abhilfe im Import: Phase 12 (E1).
+- **`run-all` hatte 18 Modelle gerechnet, die 14 geänderten aber aus dem alten `flat.npz`** (`decimate.ps1` nutzt
+  vorhandene Schritte; `PP.holo` byteidentisch zu holo-v2). Neu mit `run-all.ps1 -Source Motherlode -Redo flatten
+  -Slugs @(…)` (10,9 min, keine Fehlschläge) und `holo_mesh.py outline` je Modell. In `TOOLS.md` (Pipeline) festgehalten.
+- **Umrisse** (`outlines/ship-outlines.json`, dataVersion `holo-v3`): 101 Einträge, neu Galaxy, Liberator, Retaliator;
+  geändert nur der Prowler Utility (174 → 144 Punkte, Maße und Boden gleich); 97 byteidentisch.
+- **Release-Ordner** `sc-ship-outlines\holo\ml\release-v3` (Pipeline `2ea2a2c`, Manifest `pipelineCommit` `e6943af`):
+  101 `.holo`, 32,9 MB, `verify` ohne Probleme, 22 `passed: false` (holo-v2: 21; neu der Liberator). Gegen holo-v2: 85
+  byteidentisch (darunter 350r und die vier behaltenen), 3 neu, 13 geändert = die neuen Modelle (Carrack, Paladin,
+  Cutter ×3, Prowler Utility, Railen, Tyilui, Starlancer Max/TAC, Constellation Phoenix/Taurus, Perseus).
+- **Anker** (Import 2, Exit 0): 350r, Galaxy, Liberator, Retaliator; die 14 bleiben `same` (Boden unverändert).
+- **`fit`** (`holo\ml\fit-v3.csv`): alle Rack-Ecken im Modell, größtes Eindringen Retaliator rack-0 0,054, Umriss-IoU
+  ≥ 0,956 (Tyilui). **Kontaktabzug** `sc-ship-outlines\holo\ml\sheet-v3\PP-*.png` (18 Modelle inkl. 135c zur Info):
+  Draufsicht deckt sich überall mit dem roten Umriss.
+- Offen: Sichtprüfung Martin, `gh release create holo-v3`, `HoloRelease.Tag`, Bildvergleich gegen holo-v2, Doku.
+
 ### [x] B15 Kopfzeile – Schiffsname bleibt sichtbar (D110, revidiert D67; `7463bc5`, `0119040`, `89d5a71`, abgenommen 16.11.)
 
 - **Anlass:** Screenshot RAFT, schmal: Name `AR…`, rechts `All stops delivered.` voll.
@@ -6781,6 +6808,16 @@ hat (berührt B15 nicht).
   den ersten Start; 0.5.1 läuft, Galaxy in der Auswahl, Holo-Cache-Notice einmal, Holo für Galaxy und Hull A.
 - Danach: Wiki-Push, `holo-v1` löschen, Nexus-Datei. Rückweg bei Fehlschlag: v0.5.1 auf Pre-Release, Befund sichern,
   Hotfix 0.5.2.
+
+---
+
+## Phase 12 – vorgemerkt
+
+- **`-Create` setzt den `modelKey` selbst** (E1 aus V2, Martin 16.11.): `import-motherlode.ps1` leitet ihn für ein Schiff
+  mit Modell aus der Map ab (className → Slug), statt ihn leer zu lassen und die Anker auf die Rack-Mitte zu setzen.
+  Anlass: die 350r verlor in `92d9d99` ihren Key (neue Rack-Zahl → `handcheck` → Datei neu mit `-Create`), Galaxy,
+  Liberator, Retaliator kamen ohne Key; ohne Key fehlt ein Schiff in Map, Umrissen und Release. Seit V2 fängt
+  `ShipOutlineLoaderTests.Every_outline_belongs_to_a_shipped_ship` den Verlust bei bestehenden Umrissen.
 
 ---
 
@@ -6851,6 +6888,11 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   stabil, frühestens 06.12.2026 (Release 08.11.2026), ohne Meldung, die einen Rückweg auf 0.2.0 braucht (Session 4c).
 - Modelle für 135c, 600i Executive Edition und F7C Hornet Mk II bei Sciirof (Motherlode) anfragen, mit Rückmeldung zur
   Handprüfung als Gegenleistung (Session 4a/4c). Auslöser: nach dem Launch, mit der Nachricht zu v0.3.0 (R5).
+- Sciirof fragen, warum die **Cyclone** im Katalog 2026-11-16 (4.10.3-LIVE.13165946) fehlt; bis dahin behält sie ihre
+  holo-v2-Datei und ihren Umriss, `ships/cyclone.json` bleibt `absent` (V2). Auslöser: nächste Nachricht an Sciirof.
+- Sciirof fragen nach einer Platzierung (Transform) für das Grid der **135c**: Modell `ORIG_135c` ist seit 2026-11-16 im
+  Katalog, aber ohne Transform bleibt sie `kept` (Fleetyards-Racks, holo-v1). Mit Transform: Racks und Anker aus dem
+  Modell. Auslöser: nächste Nachricht an Sciirof.
 
 - Sektionsreihenfolge per Legenden-Drag (Spielerreihenfolge). Auslöser: Hauler-Report, dass die Legendenreihenfolge nicht reicht.
 - `defaultFillOrder`, `fillRows`/`grouping`-Default pro Schiff in der Schiffs-JSON. Auslöser: zweites Schiff braucht einen anderen Default.

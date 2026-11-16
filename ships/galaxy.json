@@ -3,10 +3,11 @@
   "id": "galaxy",
   "name": "RSI Galaxy",
   "manufacturer": "RSI",
+  "modelKey": "rsi-galaxy",
   "source": "cryon.rocks (Motherlode) 4.10.3-LIVE.13165946, 2026-11-12T20:50:33.036Z",
   "notes": "rack positions from game files (Motherlode)",
-  "holoOrigin": [-11, 0, 0],
-  "outlineOrigin": [-11, 0, 0],
+  "holoOrigin": [0.6947, 0.268, 0.3531],
+  "outlineOrigin": [0.6947, 0.268, -7.0005],
   "totalScu": 720,
   "racks": [
     {
