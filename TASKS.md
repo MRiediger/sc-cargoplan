@@ -6764,6 +6764,9 @@ die 135c bleibt holo-v1 (Grid ohne Transform, Import `kept`); Liberator `passed:
 - **Doku:** D93-Addendum „holo-v3“, `holo-format.md` (Tag, Quelle, Cache, `model`, Abschnitt „Pipeline“ ohne Tag),
   `ship-format.md`, `settings-format.md`, README, CLAUDE.md; Wiki (Branch `v0.5.1`): Ships and cargo grids, Installation.
   Nicht geändert: alte Release-Notes; Nexus-Texte (`holo-v2` in `docs/nexus/description.bbcode`, `checklist.md`) → V5.
+- [x] Bildvergleich `ShipPictureTests` (Baseline `3d98aad` + holo-v2, Branch + holo-v3): **bestanden**, 1399 Bilder,
+  1284 identisch, 143 verschieden (nur innerhalb der 20 erwarteten IDs), 4 fehlend (`outline;above` der vier Schiffe mit
+  neuem Holo), 0 unerwartet.
 - [x] Sichtprüfung und Abnahme Martin (16.11.2026)
 
 ### [x] B15 Kopfzeile – Schiffsname bleibt sichtbar (D110, revidiert D67; `7463bc5`, `0119040`, `89d5a71`, abgenommen 16.11.)
@@ -6812,7 +6815,7 @@ die 135c bleibt holo-v1 (Grid ohne Transform, Import `kept`); Liberator `passed:
 - [x] Wiki lokal committet (`2e610dc`, `3b30ae2`, `345e0ef` auf Wiki-Branch `v0.5.1`, Push mit dem Release, V5): Overlay basics (Kopfzeile, schmales Overlay, `+16`, gesperrt), Quick start
   (Status)
 
-### [ ] V4 Release-Notes `v0.5.1.md`
+### [x] V4 Release-Notes `v0.5.1.md` (`25b7632`, abgenommen 16.11.)
 
 - Ships (vier Zeilen inkl. 350r), Holo-v3 (einmaliges Neuladen), Kopfzeile, Abhängigkeiten; Known issues: `holo-v1`-Zeile
   neu, KI 3 mit „this is the first self-update – it downloads the full package“.
@@ -6826,15 +6829,19 @@ Satz aus dem Task, die übrigen Update-KIs aus v0.5.0, neu `holo-v1`, die drei F
   dieselben Dreiecke in anderer Reihenfolge, ihr Bild ist gleich (V2-Bildvergleich). Test.Sdk 18.12.0 aus #26 fehlt
   bewusst (nur Tests, nicht im ZIP).
 - Wiki-Anker `Overlay-basics#on-a-narrow-overlay` geht erst mit dem Wiki-Push in V5 live.
-- [ ] Abnahme Martin
+- **Präzisierung bei der Abnahme (K1):** Cyclone-Satz „missing from the grid catalog this release was built from“ statt
+  „no longer in the game data we use“ (der Katalog fehlt sie, über das Spiel sagt das nichts).
+- [x] Abnahme Martin (16.11.2026)
 
 ### [ ] V5 Merge, Tag, Netz-Gate, Nachlauf
 
 - Merge `--no-ff` nach Abnahme, Martin pusht und taggt.
+- **Wiki-Push unmittelbar nach dem Tag** (Martin, 16.11.): CC merged den Wiki-Branch `v0.5.1` lokal nach `master`,
+  Martin pusht; die Release-Notes verlinken `Overlay-basics#on-a-narrow-overlay`, und das Wiki nennt dann holo-v3.
 - Netz-Gate (Martin, Backlog „Erster Selbsttausch übers Netz“): v0.5.0-Portable aus Browser-Download → Notice
   `Update available · v0.5.1` → Update; Größe aus den `Velopack:`-Zeilen (≈ 90 MB voll); SmartScreen für `Update.exe` und
   den ersten Start; 0.5.1 läuft, Galaxy in der Auswahl, Holo-Cache-Notice einmal, Holo für Galaxy und Hull A.
-- Danach: Wiki-Push, `holo-v1` löschen, Nexus-Datei (Texte `holo-v2` → `holo-v3`: `docs/nexus/description.bbcode`
+- Danach: `holo-v1` löschen, Nexus-Datei (Texte `holo-v2` → `holo-v3`: `docs/nexus/description.bbcode`
   Z. 15 und 81, `checklist.md` Z. 104). Rückweg bei Fehlschlag: v0.5.1 auf Pre-Release, Befund sichern,
   Hotfix 0.5.2.
 
