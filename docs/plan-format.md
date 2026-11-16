@@ -189,6 +189,12 @@ Such a file loads like a plan for another ship: its missions are planned anew, t
 and moves don't, and the amber line says "Plan was made for other racks, re-planned for MISC Freelancer.". This holds
 for every schema version.
 
+A rack that moved or grew while every crate still fits its grid can't be told from the file: the plan loads as written,
+without a notice, and its crates show where the rack lies today. Example (v0.5.1, game data 4.10.3): the ORIG 350r had
+one 2 × 2 rack, `rack-0`; now `rack-0` is a new 4 × 2 rack in front and the old one is `rack-1`, so a 350r plan from
+v0.5.0 shows its crates on the front rack. Re-plan once after such a data update. A rack id the ship no longer has is an
+error (see below).
+
 ## Errors
 
 The overlay never overwrites a plan file it can't read. It starts with the empty ship and shows why in

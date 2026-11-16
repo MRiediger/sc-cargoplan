@@ -6691,6 +6691,31 @@ eigener Prompt, kommt zusätzlich in v0.5.1) → V2 → V4 → V5.
 - Eingefrorene `plan.json` aus 0.5.0 mit 350r (alte Gitterpositionen) lädt ohne Absturz; Verhalten bei Positionen
   außerhalb des neuen Gitters im Befund; Notes-Zeile „saved plans load, re-plan recommended“ (wie 4a-E2).
 
+**Befund (16.11.):**
+- **Was sich änderte** (`92d9d99`): 0.5.0 hatte eine Platte `rack-0` 2×2×1 bei `[-4,-1,0]` (4 SCU). Heute ist `rack-0` eine
+  neue 4×2×1 bei `[-2,-1,0]` (8 SCU) und die alte Platte heißt `rack-1` (12 SCU gesamt).
+- **Fixture echt aus 0.5.0:** Worktree auf Tag `v0.5.0` im Scratchpad, Wegwerf-Test plant mit dem alten Code auf der alten
+  350r und schreibt per `PlanFile.Write` (Schema 10): Shubin 2 Quartz (Kiste 2, abgehakt), Riker 2 Titanium (2 × 1), alle
+  in `rack-0` → `tests/CargoPlan.Core.Tests/Fixtures/Plans/350r_v0.5.0.json`.
+- **Verhalten:** Keine alte Position liegt außerhalb des neuen Gitters (das 2×2 passt ins 4×2). Die Datei lädt **wie
+  gespeichert**, ohne Re-plan und ohne Notice; Haken bleibt. Die Kisten stehen aber auf der **vorderen** Platte, also
+  nicht dort, wo der Spieler geladen hat; nichts weist darauf hin. Re-plan legt alles fehlerfrei auf die heutigen Racks,
+  Haken bleibt. Im echten Overlay (`--plan`, `--data-dir` im Scratchpad): `ORIG 350r 2/12 · 10 free`, Kisten auf Rack 1,
+  keine Re-plan-Meldung.
+- **Positionen außerhalb des neuen Gitters** (allgemein, nicht bei der 350r): Die Datei liest als „racks changed“, wird
+  beim Laden neu geplant, Haken bleiben (`offShip`), Amber-Zeile „Plan was made for other racks, re-planned for …“
+  (`PlanFileDto.Checked`, Tests in `CrateRotationTests`). Eine Rack-ID, die das Schiff nicht mehr hat, ist ein Fehler:
+  kein Plan, Notice, die Datei wird beim ersten Speichern beiseitegelegt (D106).
+- Tests: `OldPlan350rTests` (4, Datentest über `ships/`, A10): Prämisse der Racks, lädt wie gespeichert ohne Re-plan,
+  Kisten auf der vorderen Platte, Re-plan ohne Wartende mit Haken. `docs/plan-format.md` „Racks that changed“: Absatz für
+  den Fall „Rack verschoben oder gewachsen, Kisten passen noch“.
+- **Notes-Zeile (Vorschlag für V4):** „Saved plans load as they were. ORIG 350r: the game added a second cargo grid in
+  front; a 350r plan saved before shows its crates there. Re-plan once.“
+- **Nebenfund für V2:** `92d9d99` hat der 350r das `modelKey` (`orig-350r`) genommen; `outlines/ship-outlines.json` kennt
+  den Slug weiter. Bis V2 zeigt die 350r nur den Bug-Keil, kein Hologramm, keinen Umriss (gesehen im Overlay). Nur die
+  350r ist betroffen; Galaxy, Liberator, Retaliator haben noch keinen `modelKey` (kommt mit V2).
+- [ ] Abnahme Martin
+
 ### [ ] V2 Holo-v3 (Martin baut, CC verdrahtet)
 
 - Pipeline (`model-map.csv`) → Umrisse der drei neuen Schiffe, `import-motherlode.ps1` (Anker), Bildvergleich gegen
