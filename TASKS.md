@@ -6695,7 +6695,7 @@ hat (berührt B15 nicht).
   `HoloRelease.Tag` → `holo-v3`, `docs/holo-format.md`, Cache-Wechsel nach D95 in die Notes.
 - `holo-v1` wird erst **nach** dem Netz-Gate gelöscht (kurzzeitig v1 + v2 + v3, gewollt; E2 der Freigabe).
 
-### [ ] B15 Kopfzeile – Schiffsname bleibt sichtbar (D110, revidiert D67)
+### [x] B15 Kopfzeile – Schiffsname bleibt sichtbar (D110, revidiert D67; `73f1c39`, `0ce6fd6`, `0291410`, abgenommen 16.11.)
 
 - **Anlass:** Screenshot RAFT, schmal: Name `AR…`, rechts `All stops delivered.` voll.
 - **Ursache:** nicht `TextTrimming`, sondern das `DockPanel` der Kopfzeile, das Platz in Markup-Reihenfolge vergibt:
@@ -6735,10 +6735,10 @@ hat (berührt B15 nicht).
 - Echtes Overlay (`--data-dir` im Scratchpad, 125 %): Hull A 600 px `54/64 · 10 free` in einer Zeile; Constellation Mk V
   Centaurus 760 px alles in einer Zeile, bei 475 px (= 380 DIP) Zeile 1 `RSI Constellation Mk V Centaurus ˅ 0/240` mit
   Zahnrad, X und Schloss rechts, Zeile 2 die Tools linksbündig.
-- [ ] Gate Martin: RAFT und Hull C, breit → schmal, SC vorne, entsperrt **und** gesperrt; Hull C entsperrt bei `MinWidth`
-- [ ] Gate Martin: bei schmalem Fenster (Stufe 3) das Schloss klicken und wieder entsperren – Zeile 2 verschwindet und
+- [x] Gate Martin (16.11., bestanden): RAFT und Hull C, breit → schmal, SC vorne, entsperrt **und** gesperrt; Hull C entsperrt bei `MinWidth`
+- [x] Gate Martin (16.11., bestanden): bei schmalem Fenster (Stufe 3) das Schloss klicken und wieder entsperren – Zeile 2 verschwindet und
   kommt zurück, das Lock-Fenster bleibt an Ort und Stelle, die Legende rutscht ohne Sprung
-- [ ] Wiki (Branch `v0.5.1` im Wiki-Klon): Overlay basics (Kopfzeile, schmales Overlay, `+16`, gesperrt), Quick start
+- [x] Wiki lokal committet (`2e610dc`, `3b30ae2`, `345e0ef` auf Wiki-Branch `v0.5.1`, Push mit dem Release, V5): Overlay basics (Kopfzeile, schmales Overlay, `+16`, gesperrt), Quick start
   (Status)
 
 ### [ ] V4 Release-Notes `v0.5.1.md`
