@@ -38,6 +38,9 @@ From v0.5.0 on, CargoPlan checks GitHub for a new version once per start and off
 it downloads only when you click **Update**. Switch it off in the settings, section **Updates**. More:
 [Updates](https://github.com/MRiediger/sc-cargoplan/wiki/Updates).
 
+The ship data ship with the app, and from v0.6.0 on they update themselves: a new monthly data release is offered the
+same way, section **Ship data** in the settings.
+
 ## Requirements
 
 - Windows 10/11 x64 (tested on Windows 11). Nothing else to install: .NET comes with it.
@@ -80,5 +83,6 @@ All known issues: [Troubleshooting](https://github.com/MRiediger/sc-cargoplan/wi
 - Stop colors: the [Okabe-Ito palette](https://jfly.uni-koeln.de/color/) and [Paul Tol's](https://sronpersonalpages.nl/~pault/) schemes.
 - Not affiliated with Motherlode, Fleetyards or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
 
-[MIT](LICENSE). Not under MIT: the ship silhouettes ([`outlines/NOTICE.md`](outlines/NOTICE.md)) and the ship
-holograms (`NOTICE.md` of the [`holo-v3` release](https://github.com/MRiediger/sc-cargoplan/releases/tag/holo-v3)).
+[MIT](LICENSE). Not under MIT: the ship data and silhouettes (`ship-data\NOTICE.md` next to the app, from the
+[ship data releases](https://github.com/MRiediger/sc-cargoplan-shipdata/releases)) and the ship holograms (`NOTICE.md`
+of the [`holo-v3` release](https://github.com/MRiediger/sc-cargoplan/releases/tag/holo-v3)).

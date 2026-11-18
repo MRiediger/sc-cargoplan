@@ -197,7 +197,7 @@ scroll out of sight. While the overlay is locked it takes no mouse, so unlock it
 
 | `shipOutline` | What |
 |---|---|
-| `"outline"` | The ship's outline seen from above, under the racks: bow, sides and shape. A ship without an outline in `outlines/ship-outlines.json` shows the bow wedge with "Bow" on its floor. The default. |
+| `"outline"` | The ship's outline seen from above, under the racks: bow, sides and shape. A ship without an outline in the ship data's `outlines.json` shows the bow wedge with "Bow" on its floor. The default. |
 | `"holo-shaded"` | The ship's 3D hologram around the racks, true to scale, softly lit from the camera. Until it is there, and for a ship without one, the outline. |
 | `"holo-flat"` | The same, every face in one shade. |
 | `"holo-hiddenline"` | The same as a dark hull with its visible edges as lines; zooming in shows more edges (from 1.5× and 3×). |
@@ -259,7 +259,7 @@ Lower case only. Missing or `null` means `"system"`. File dialogs and message bo
 
 ## Ship
 
-`ship` is the id of the ship you haul with, the name of its file in `ships/` without `.json` (`"c2_hercules"`).
+`ship` is the id of the ship you haul with, the name of its file in the ship data's `ships\` without `.json` (`"c2_hercules"`).
 The ship selection on the ship name in the overlay header writes it; changing it there plans the current plan anew for
 the new ship.
 

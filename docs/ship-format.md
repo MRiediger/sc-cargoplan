@@ -1,19 +1,24 @@
 # Ship file format
 
-Ships are data, not code. Each ship is one JSON file in [`ships/`](../ships/) in the repository root. The build
-copies the folder next to the exe, and the release ZIP carries it as `SC-CargoPlan/ships/` (see [D56](decisions.md)),
-so adding a ship means adding one file. No C# and no `.csproj` change needed.
+Ships are data, not code. Each ship is one JSON file in a data release of
+[sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata) (D111): its pipeline builds the files from
+the game files, checks them and publishes `ships-YYYY.MM[.N]` with `manifest.json`, `NOTICE.md` and `ships.zip`
+(`ships/` with the ship and module files, `outlines.json`). This repository holds none of them (D113): the build fetches
+the release that `build/ship-data.json` pins (`tools/fetch-ship-data.ps1`, every file checked against the manifest) and
+lays it next to the exe as `ship-data\` (`ships\`, `outlines.json`, `NOTICE.md`, `manifest.json`); the release ZIP
+carries it as `current\ship-data\`. A ship correction or a new ship goes to the pipeline's repository; this page
+describes the format the app reads.
 
-From v0.6.0 the ship data also come as data releases of
-[sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata) (D111, D112): the overlay offers a newer one,
-installs it into `%LocalAppData%\SC-CargoPlan\ships\<release>\` (`ships\` with the ship and module files, `outlines.json`,
-`manifest.json`) and uses the newest one it can read instead of the folder next to the exe. `CargoPlan.Cli ships --version`
-names the data in use. Everything below holds for both folders, with one difference: a downloaded folder that won't load
-(no valid `hull_a.json`) costs no start, the overlay says so and uses the folder next to the exe.
+From v0.6.0 the overlay also offers newer data releases (D112): it installs one into
+`%LocalAppData%\SC-CargoPlan\ships\<release>\` in the same layout and uses the newest one it can read, if it is newer
+than the one next to the exe. `CargoPlan.Cli ships --version` names the data in use. Everything below holds for both
+folders, with one difference: a downloaded folder that won't load (no valid `hull_a.json`) costs no start, the overlay
+says so and uses the folder next to the exe.
 
-The app reads every `*.json` in that folder at start. A file that is broken costs only its own ship; the reason is
-reported (the CLI prints it, the app lists the ship under **Not loaded** in the ship list, the reason as its tool tip). Without the folder, or without a valid
-`hull_a.json`, the app doesn't start and asks to unzip the release again: the Hull A is the fallback ship.
+The app reads every `*.json` in the ships folder at start. A file that is broken costs only its own ship; the reason is
+reported (the CLI prints it, the app lists the ship under **Not loaded** in the ship list, the reason as its tool tip).
+Without `ship-data\manifest.json`, or without a valid `hull_a.json`, the app doesn't start and asks to download the
+release again: the Hull A is the fallback ship.
 
 ## Example
 
@@ -66,7 +71,7 @@ being ignored silently.
 | `id` | string | Must equal the file name without `.json` (`hull_a.json` → `"hull_a"`). Use lowercase `snake_case`: Linux file systems are case-sensitive. |
 | `name` | string | Display name, e.g. `"MISC Hull A"`. |
 | `manufacturer` | string | *Optional.* Manufacturer code, e.g. `"MISC"`, `"RSI"`; ships are grouped by it. Not empty if present. |
-| `modelKey` | string | *Optional.* Names the ship's hologram (`<modelKey>.holo` in the release) and its outline in `outlines/ship-outlines.json` (not under the MIT licence, see `outlines/NOTICE.md`), e.g. `"misc-hull-a"`; variants share their base ship's. Without a match the ship view shows the bow wedge. Not empty if present. The values are the slugs Fleetyards gave the ships, kept so no hologram or outline file had to be renamed (D94). **`fleetyardsSlug`**, the field's name before v0.3.0, is still read in its place for files written by hand; a file with both is an error. |
+| `modelKey` | string | *Optional.* Names the ship's hologram (`<modelKey>.holo` in the release) and its outline in `outlines.json` (not under the MIT licence, see the release's `NOTICE.md`), e.g. `"misc-hull-a"`; variants share their base ship's. Without a match the ship view shows the bow wedge. Not empty if present. The values are the slugs Fleetyards gave the ships, kept so no hologram or outline file had to be renamed (D94). **`fleetyardsSlug`**, the field's name before v0.3.0, is still read in its place for files written by hand; a file with both is an error. |
 | `source` | string | *Optional.* Where the values come from, e.g. `"in game"` (measured in the hangar) or `"cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07"` (written by the import; the three Fleetyards ships keep `"Fleetyards API (CIG ship matrix), export 2026-10-22"`). Not empty if present. |
 | `notes` | string | *Optional.* Anything a reviewer should know, e.g. what was checked and what wasn't. Not empty if present. |
 | `holoOrigin` | array of 3 numbers | *Optional, every shipped ship has it.* `[x, y, z]` in cells, fractions allowed: where the hologram's origin lies in ship coordinates, see [Hologram and outline](#hologram-and-outline). A [cargo module](#cargo-modules) passes it on unless it says its own. For a ship with a game model the import writes it (the ship's fraction s, see [Hologram and outline](#hologram-and-outline), D93); otherwise it keeps it to the digit. |
@@ -254,7 +259,7 @@ point is that model's origin plus the ship's fraction s (D92). So the anchors fo
 
 - `holoOrigin` = s, 4 decimals;
 - `outlineOrigin` = s with z moved to the model's floor: s.z + `floorM` ÷ 1.25, `floorM` from
-  `outlines/ship-outlines.json` (the model's lowest point below its origin, metres), so no rack reaches through it;
+  `outlines.json` (the model's lowest point below its origin, metres), so no rack reaches through it;
 - no `outlineScale`: the outline is the model's top view at true size.
 
 An outline without `floorM` (a Fleetyards trace) leaves the anchors as they are and the import lists the ship. Don't
@@ -263,7 +268,7 @@ correct these values by hand; correct a rack instead (below), and the next impor
 **Ships without a game model** (135c, 600i Executive Edition, F7C Hornet Mk II) keep the values D90 froze from the
 older rule; they look long because they keep the place the ship had to the pixel, so `-9.491073608398438` is no
 measurement. Their hologram is holo-v1's file, so nothing moves. A new ship of that kind gets them by hand or from the
-test `ShipAnchorValueTests` (see `CLAUDE.md`): x and y the racks' common box middle, z the box's middle minus half the
+pipeline (sc-cargoplan-shipdata, D113): x and y the racks' common box middle, z the box's middle minus half the
 hull's height in cells, for both fields. A file without the fields still works: hologram and outline hang on the racks'
 middle as they used to, so one corrected rack moves them too. A test holds every shipped ship to having them.
 
@@ -307,13 +312,17 @@ The racks of almost every ship come from the game files (D92): cargo grid data a
 [cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo), extracted from the Star Citizen game files and used with its
 operators' permission. `source` names the catalog's game build and date, e.g.
 `"cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07"`. Hologram and outline come from the same models (D93):
-the hologram release `holo-v3` and `outlines/ship-outlines.json`. Three ships still use hull data from
-[fleetyards.net](https://fleetyards.net), see [The three Fleetyards ships](#the-three-fleetyards-ships). Only values
-derived from the catalog and the models go into the repo, never the catalog or a model itself (D56).
+the hologram release `holo-v3` and the release's `outlines.json`. Two ships still use hull data from
+[fleetyards.net](https://fleetyards.net) since `ships-2026.11.1` (the F7C Hornet Mk II's racks come from the game files
+there), see [The three Fleetyards ships](#the-three-fleetyards-ships). Only values derived from the catalog and the
+models go into a release, never the catalog or a model itself (D56).
 
 ### Importing from the game files
 
-After a patch, or when Motherlode publishes a new catalog:
+Since T12.5 (D113) the import runs in the pipeline of
+[sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata), with its own tests; the steps below are
+how it worked here until v0.5.x and what the pipeline's `import-motherlode.ps1` still does. After a patch, or when
+Motherlode publishes a new catalog:
 
 1. **Fetch:** run `fetch-motherlode.ps1` of the `sc-ship-outlines` pipeline. It takes the grids and the game build from
    Motherlode's API (one request per run, a key from `MOTHERLODE_API_KEY` or `motherlode/api-key.txt`, never committed)
@@ -324,7 +333,7 @@ After a patch, or when Motherlode publishes a new catalog:
    (without `-Create`), `kept` (a grid without place), `handcheck` or `order`, then per rack its rounding, stack axis,
    grid, crate limits and rotation. Exit code 0 means done, 1 something to look at, 2 an error (then nothing is written).
 3. **Holograms and outlines** (only when the models changed): the pipeline builds them per model from the map
-   ([holo-format.md](holo-format.md#pipeline)) and writes `outlines/ship-outlines.json`; run the import once
+   ([holo-format.md](holo-format.md#pipeline)) and writes `outlines.json`; run the import once
    more, and it writes the anchors from the new outlines' `floorM`. A new hologram release needs a new tag and the app
    constant `HoloRelease.Tag`.
 4. **Look at what it didn't write:** `handcheck` means overlapping grids, a rack set or position that doesn't match the
@@ -392,7 +401,7 @@ one more entry in the ship list, its own racks first, the module's after them.
 The entry's `totalScu` is the ship's plus the module's racks, its manufacturer and model key are the ship's, so it
 shows the ship's outline and hologram. It is checked like a ship file; a broken module, a ship it names that doesn't
 load, or a rack that doesn't fit is one line in the ship list's problems and costs only those entries. The import
-(`tools/import-motherlode.ps1`) only moves a module by what its ship's Rack 1 moved: the catalog has no module data, so a module is counted in game.
+(the pipeline's `import-motherlode.ps1`) only moves a module by what its ship's Rack 1 moved: the catalog has no module data, so a module is counted in game.
 
 ## Crate sizes
 
@@ -429,6 +438,8 @@ use it automatically.
 
 ## Checklist for a new ship PR
 
+A ship pull request goes to [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata) (D113).
+
 - [ ] File is `ships/<id>.json`, lowercase `snake_case`, and `id` inside matches.
 - [ ] `schemaVersion` is `6`.
 - [ ] Rack capacities add up to `totalScu`, and each rack's `length × width × stack` equals its `capacityScu`.
@@ -439,6 +450,6 @@ use it automatically.
 - [ ] A `rotation` only for a real angle, checked in the picture from two sides, with its source named.
 - [ ] Values measured in game (current patch named in the PR description), or their source named in `source`.
 - [ ] `maxCrateSize` only where the door takes less than the grid, `minCrateSize` only above 1, both with their source.
-- [ ] `dotnet test` passes. The test `Every_shipped_ship_loads` loads every ship file and reports the
-      exact problem (file name, field, value) if something is wrong; `LoadAll_loads_every_shipped_file_without_problems`
-      fails if any file in `ships/` would be skipped.
+- [ ] The pipeline's checks pass. Here, after a pin bump, `Every_shipped_ship_loads` loads every ship file of the
+      baseline and reports the exact problem (file name, field, value); `LoadAll_loads_every_shipped_file_without_problems`
+      fails if any file would be skipped.
