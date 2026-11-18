@@ -42,7 +42,7 @@ Little endian, no compression, no padding. Offsets follow from the header.
 - **Origin, holo-v2 and later (D93):** the game model's own origin. **No centring, no scaling, no mirroring:** the model is only
   turned into ship axes. Motherlode's `.glb` lie in three.js space, glTF = (game x, game z, −game y) with game x
   starboard, y bow, z up, so ship = (−glTF z, −glTF x, glTF y), a rotation (determinant +1) and the same mapping
-  `tools/import-motherlode.ps1` applies to the cargo grids. The ship file puts this origin at `holoOrigin` = the ship's
+  the import (`import-motherlode.ps1`, in sc-cargoplan-shipdata since D113) applies to the cargo grids. The ship file puts this origin at `holoOrigin` = the ship's
   fraction s (D92). The Hull A, B and C models carry the spindle in its cargo pose, as at the elevator.
 - **Origin, holo-v1** (and the three Fleetyards files in holo-v2 and holo-v3): the middle of the vertices' x/y box, z = 0 at the
   lowest vertex (keel), set before faces hidden from outside are dropped, so the shipped box can lie a little off it
@@ -138,7 +138,7 @@ holo-v2 and holo-v3, in the private repository `sc-ship-outlines` (versions and 
 `TOOLS.md`). Per model, files in `holo-work-ml/<className>/`:
 
 1. `fetch-motherlode.ps1`: the dated catalog and the models with their SHA-256 list (`motherlode/`).
-2. `tools/import-motherlode.ps1 -Catalog <catalog> -ModelMap <model-map.csv>` (this repository): racks, and the map
+2. `import-motherlode.ps1 -Catalog <catalog> -ModelMap <model-map.csv>` (in sc-cargoplan-shipdata since T12.5, D113; this repository until v0.5.x): racks, and the map
    id → className, slug, s. **The slug is the ship file's `modelKey`:** a ship without one is left out of every step
    below (holo-v3: Galaxy, Liberator, Retaliator and the 350r got theirs by hand first). The test
    `Every_outline_belongs_to_a_shipped_ship` catches a ship that loses its key.
@@ -146,9 +146,9 @@ holo-v2 and holo-v3, in the private repository `sc-ship-outlines` (versions and 
    welded; origin and size kept), `cull`, meshoptimizer on the ladder 20 k / 30 k / 40 k, `export` with `judge`, as for
    holo-v1. A changed model needs `-Redo flatten`: existing steps are reused.
 4. `holo_mesh.py outline <className>` per model: the outline (see [ship-format.md](ship-format.md#hologram-and-outline)).
-5. `holo_mesh.py outlines-v2 … holo-v<n> <kept slugs>` → `outlines/ship-outlines.json` here; `release-v2 … holo-v<n>
+5. `holo_mesh.py outlines-v2 … holo-v<n> <kept slugs>` → `outlines.json` of the data release (until v0.5.x `outlines/ship-outlines.json` here); `release-v2 … holo-v<n>
    <previous release> <kept slugs>` → the release folder with its manifest; `verify`.
-6. `tools/import-motherlode.ps1` again: with the new outlines' `floorM` it writes the anchors.
+6. `import-motherlode.ps1` again: with the new outlines' `floorM` it writes the anchors.
 7. `holo_mesh.py fit` (racks in the hull, outline on the hull), the contact sheet and `ShipPictureTests` against the
    previous release before the upload; the release goes to **this** repository as a pre-release (the app reads only
    from here; `sc-ship-outlines` is private).

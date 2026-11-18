@@ -6,7 +6,7 @@ namespace CargoPlan.Core.Tests;
 /// <summary>
 /// Shipped ships frozen as test fixtures (FrozenShips/*.json, D92): mechanics tests run on fixed cells, which a data
 /// import must not move. Most are as they were before the game-file racks; clipper, perseus and apollo_medivac were
-/// frozen in session 4b. The data tests check ships/ itself. The App and Import tests link this file and the folder.
+/// frozen in session 4b. The data tests check the baseline (ship-data/, D113) itself. The App and Import tests link this file and the folder.
 /// </summary>
 internal static class FrozenShips
 {
@@ -21,11 +21,11 @@ internal static class FrozenShips
 
 /// <summary>
 /// The outlines of the frozen ships (FrozenOutlines/ship-outlines.json): pixel and placement tests keep their hull when
-/// outlines/ is rebuilt (session 4b). Tests of the shipped outlines read outlines/ itself.
+/// outlines/ is rebuilt (session 4b). Tests of the shipped outlines read the baseline's outlines.json.
 /// </summary>
 internal static class FrozenOutlines
 {
-    public static string PathOfFile => Path.Combine(AppContext.BaseDirectory, "FrozenOutlines", ShipOutlineLoader.FileName);
+    public static string PathOfFile => Path.Combine(AppContext.BaseDirectory, "FrozenOutlines", "ship-outlines.json");
 
     public static ShipOutlineCatalog Load() => ShipOutlineLoader.Load(PathOfFile);
 }

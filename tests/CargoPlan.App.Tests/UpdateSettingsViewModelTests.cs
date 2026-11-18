@@ -100,7 +100,7 @@ public class UpdateSettingsViewModelTests
     public void The_ship_data_section_shows_the_skipped_tag_and_the_data_in_use()
     {
         var active = new Core.ShipData.ActiveShipData(
-            Core.ShipData.ShipDataVersion.Baseline, Core.ShipData.ShipDataOrigin.Baseline, @"C:\app", @"C:\app\ships", @"C:\app\outlines\ship-outlines.json");
+            new Core.ShipData.ShipDataVersion(2026, 11, 0), Core.ShipData.ShipDataOrigin.Baseline, @"C:\app", @"C:\app\ships", @"C:\app\outlines\ship-outlines.json");
         var shipData = new UpdateSettingsViewModel(
             new UpdateSettings(SkippedVersion: "ships-2026.11.1"),
             _checkOnStartup.Add,

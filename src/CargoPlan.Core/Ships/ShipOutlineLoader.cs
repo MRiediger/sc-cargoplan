@@ -4,17 +4,13 @@ using static System.FormattableString;
 
 namespace CargoPlan.Core.Ships;
 
-/// <summary>Loads ship-outlines.json from the outlines folder next to the exe (D55), once at the start.</summary>
+/// <summary>Loads the outlines (D55) of the active ship data, once at the start: outlines.json of a data release.</summary>
 public static class ShipOutlineLoader
 {
     public const int SupportedSchemaVersion = 1;
 
-    /// <summary>The folder's name next to the exe, and in the repo root; it holds the file and its licence note.</summary>
-    public const string FolderName = "outlines";
-
-    public const string FileName = "ship-outlines.json";
-
-    public static string DefaultPath => Path.Combine(AppContext.BaseDirectory, FolderName, FileName);
+    /// <summary>The baseline's outlines next to the running exe, <c>ship-data\outlines.json</c> (D113).</summary>
+    public static string DefaultPath => Path.Combine(ShipData.ActiveShipData.BaselineFolder, ShipData.ShipDataManifestReader.OutlinesPath);
 
     /// <summary>
     /// Every valid entry of <paramref name="path"/> (default <see cref="DefaultPath"/>). Never throws for the file's

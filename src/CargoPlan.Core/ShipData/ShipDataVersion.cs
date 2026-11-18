@@ -11,12 +11,6 @@ public readonly partial record struct ShipDataVersion(int Year, int Month, int P
 {
     public const string Prefix = "ships-";
 
-    /// <summary>
-    /// The data next to the exe: the seed release, byte for byte the repo's ships/ (T12.0). A constant until T12.5 puts
-    /// the release's manifest into the ZIP. A download older than this is never active.
-    /// </summary>
-    public static ShipDataVersion Baseline { get; } = new(2026, 11, 0);
-
     /// <summary>The tag without <see cref="Prefix"/>, as the overlay shows it: <c>2026.11.1</c>.</summary>
     public string Display => ToString()[Prefix.Length..];
 

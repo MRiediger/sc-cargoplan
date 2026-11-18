@@ -5,7 +5,7 @@ namespace CargoPlan.Core.Tests;
 
 public class ShipLoaderTests
 {
-    // --- Shipped ships (ships/ next to the test assembly) ---
+    // --- Shipped ships (the baseline, ship-data/ships/ next to the test assembly, D113) ---
 
     [Fact]
     public void Load_hull_a_returns_four_racks_of_16_scu()
@@ -98,7 +98,7 @@ public class ShipLoaderTests
         ShipLoader.LoadAll().Ships.Select(s => s.Id).Should().Contain(ShipLoader.FallbackShipId);
     }
 
-    // Gate for the ship files (T7.1b converts ~96): every file in ships/ loads, none is skipped.
+    // Gate for the ship files (T7.1b converts ~96): every file of the baseline loads, none is skipped.
     [Fact]
     public void LoadAll_loads_every_shipped_file_without_problems()
     {
@@ -111,21 +111,22 @@ public class ShipLoaderTests
         catalog.Ships.Select(s => s.Id).Except(files).Should().Equal("aurora_mk_ii_ts_module");
     }
 
-    // D92: every ship's racks come from the game files, except the three the catalog can't place (135c: grids without
-    // transform; 600i Executive Edition, F7C Hornet Mk II: not in the catalog). A ship falling back shows up here.
-    // That totalScu matches the catalog is checked by tools/import-motherlode.ps1, which holds the catalog (D56).
+    // D92: every ship's racks come from the game files, except the two the catalog can't place (135c: grids without
+    // transform; 600i Executive Edition: not in the catalog). ships-2026.11.1 brought the F7C Hornet Mk II's (T12.5).
+    // A ship falling back shows up here. That totalScu matches the catalog is checked by the pipeline, which holds the
+    // catalog (sc-cargoplan-shipdata, D111).
     [Fact]
-    public void Every_ship_but_three_has_its_racks_from_the_game_files()
+    public void Every_ship_but_two_has_its_racks_from_the_game_files()
     {
         var ships = ShipLoader.ListShips(ShipLoader.DefaultFolder).Select(id => ShipLoader.Load(id)).ToList();
 
         ships.Where(s => s.Source?.StartsWith("cryon.rocks (Motherlode) ", StringComparison.Ordinal) != true).Select(s => s.Id)
-            .Should().BeEquivalentTo("135c", "600i_executive_edition", "f7c_hornet_mk_ii");
+            .Should().BeEquivalentTo("135c", "600i_executive_edition");
     }
 
     public static TheoryData<string> ShippedShipIds => [.. ShipLoader.ListShips(ShipLoader.DefaultFolder)];
 
-    // Gate for community PRs: every ship file in ships/ must load; one case per file names the broken one.
+    // Gate for community PRs: every ship file of the baseline must load; one case per file names the broken one.
     [Theory]
     [MemberData(nameof(ShippedShipIds))]
     public void Every_shipped_ship_loads(string shipId)
@@ -648,7 +649,7 @@ public class ShipLoaderTests
         string[] missing = [.. catalog.Ships.Where(s => s.HoloOrigin is null || s.OutlineOrigin is null).Select(s => s.Id)];
 
         missing.Should().BeEmpty(
-            "a shipped ship holds still when a rack is corrected (D90). For a new ship write them with ShipAnchorValueTests, " +
+            "a shipped ship holds still when a rack is corrected (D90). For a new ship the pipeline writes them (sc-cargoplan-shipdata, D113), " +
             "or by hand as docs/ship-format.md says: x, y = the racks' middle, z = the racks' middle minus half the hull's height");
         catalog.Ships.Should().OnlyContain(s => s.HoloOffset == null);
     }

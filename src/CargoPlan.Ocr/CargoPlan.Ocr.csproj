@@ -17,7 +17,7 @@
   <!-- The models ship inside the RapidOcrNet package. Its own copy target (build/RapidOcrNet.targets) is not
        buildTransitive and reaches only this project's output, so it is excluded above and the models are copied as None
        items instead: these flow to every exe and test that references this project and into the publish folder, like
-       ships/ (D56). The licence note goes next to them (not MIT, like outlines/NOTICE.md).
+       the ship data (D56, D113). The licence note goes next to them (not MIT, like ship-data/NOTICE.md).
        GeneratePathProperty: https://learn.microsoft.com/nuget/consume-packages/package-references-in-project-files#generatepathproperty -->
   <ItemGroup>
     <None Include="$(PkgRapidOcrNet)\models\v5\*" Link="models\v5\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />

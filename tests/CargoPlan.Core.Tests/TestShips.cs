@@ -4,7 +4,7 @@ using CargoPlan.Core.Ships;
 namespace CargoPlan.Core.Tests;
 
 /// <summary>
-/// Ship files of this test project (TestShips/*.json), copied next to the test assembly like ships/ next to the exe
+/// Ship files of this test project (TestShips/*.json), copied next to the test assembly like the baseline's ships next to the exe
 /// (D56): broken files for the loader tests and synthetic ships such as spike_uneven.
 /// </summary>
 internal static class TestShips

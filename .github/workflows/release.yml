@@ -51,6 +51,7 @@ jobs:
       - name: Restore
         run: dotnet restore
 
+      # Fetches the pinned ship data release as the ZIP's baseline (build/ship-data.json, D113), as a local build does.
       - name: Build
         run: dotnet build -c Release --no-restore -p:Version=$env:VERSION
 

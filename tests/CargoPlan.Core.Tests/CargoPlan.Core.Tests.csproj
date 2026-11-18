@@ -25,13 +25,13 @@
     <ProjectReference Include="..\..\src\CargoPlan.Core\CargoPlan.Core.csproj" />
   </ItemGroup>
 
-  <!-- Broken and synthetic ship files, read from TestShips/ next to the test assembly like ships/ next to the exe (D56). -->
+  <!-- Broken and synthetic ship files, read from TestShips/ next to the test assembly like the baseline's ships next to the exe (D56, D113). -->
   <ItemGroup>
     <None Update="TestShips/*.json" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
-  <!-- Shipped ships frozen before the game-file racks (D92): mechanics tests load these, never ships/, so a data import
-       moves no test. Data tests check ships/ itself. -->
+  <!-- Shipped ships frozen before the game-file racks (D92): mechanics tests load these, never the shipped data, so a
+       data release moves no test. Data tests check the baseline in ship-data/ itself (D113). -->
   <ItemGroup>
     <None Update="FrozenShips/**/*.json" CopyToOutputDirectory="IfDifferent" />
     <None Update="FrozenOutlines/ship-outlines.json" CopyToOutputDirectory="IfDifferent" />
@@ -42,13 +42,9 @@
     <None Update="TestOutlines/*.json" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
-  <!-- Motherlode import (session 4a, D92): the script and the file format it dot-sources, linked from tools/ so the test
-       needn't search the repo root, and a synthetic grid catalog in the field names of Motherlode's API, made-up numbers;
-       nothing from the real catalog enters the repo. -->
+  <!-- The ship data fetch (T12.5, D113), linked from tools/ so the test runs the script the build runs. -->
   <ItemGroup>
-    <None Include="..\..\tools\import-motherlode.ps1" Link="tools\import-motherlode.ps1" CopyToOutputDirectory="IfDifferent" />
-    <None Include="..\..\tools\ShipJson.ps1" Link="tools\ShipJson.ps1" CopyToOutputDirectory="IfDifferent" />
-    <None Update="TestMotherlode/**/*.json" CopyToOutputDirectory="IfDifferent" />
+    <None Include="..\..\tools\fetch-ship-data.ps1" Link="tools\fetch-ship-data.ps1" CopyToOutputDirectory="IfDifferent" />
   </ItemGroup>
 
   <!-- Mission files for tests, read via MissionFixtures. The files stay on disk as well,

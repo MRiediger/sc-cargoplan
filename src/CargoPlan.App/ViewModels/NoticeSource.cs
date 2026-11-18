@@ -14,7 +14,7 @@ public enum NoticeSource
     /// </summary>
     Look,
 
-    /// <summary>ship-outlines.json or some of its entries didn't load (D62); set once at the start.</summary>
+    /// <summary>The outlines of the ship data in use or some of their entries didn't load (D62); set once at the start.</summary>
     Outlines,
 
     /// <summary>The first hologram that couldn't be shown in this run, and why (D63); cleared when one shows or the look is no hologram.</summary>

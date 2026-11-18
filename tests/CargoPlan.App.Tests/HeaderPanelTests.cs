@@ -239,7 +239,7 @@ public class HeaderPanelTests(ITestOutputHelper output)
     [Fact]
     public void At_the_minimum_width_every_ship_name_stands_in_full_with_its_own_short_capacity()
     {
-        // Data test over ships/ (A10), Martin's rule: per ship its name with the selection's chevron, its own short capacity
+        // Data test over the shipped baseline (A10, D113), Martin's rule: per ship its name with the selection's chevron, its own short capacity
         // "N/N +N" (N its capacity, same digits and comma) and gear and exit on the first line; the maximum over all ships,
         // plus padding and the lock window's margin, rounded up to 10 px. More waiting cargo than capacity with a digit
         // more may still trim a name (D110). The second line holds every tool, undo and redo included.
@@ -252,7 +252,7 @@ public class HeaderPanelTests(ITestOutputHelper output)
         double Buttons(string part) => header.Elements().Single(e => PartOf(e) == part).Descendants().Count(e => e.Name.LocalName == "Button") * HeaderButtonWidth;
         var (tools, chrome) = (Buttons("Tools"), Buttons("Chrome"));
 
-        var ships = ShipLoader.LoadAll(Path.Combine(AppContext.BaseDirectory, "ships")).Ships;
+        var ships = ShipLoader.LoadAll(ShipLoader.DefaultFolder).Ships;
         List<(string Ship, double Name, double Compact)> measured = [];
         Sta.Run(() => measured = [.. ships.Select(ship =>
         {

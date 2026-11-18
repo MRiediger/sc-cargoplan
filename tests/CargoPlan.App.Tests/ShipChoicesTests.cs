@@ -98,7 +98,7 @@ public class ShipChoicesTests
     [Fact]
     public void Of_sorts_within_a_group_by_shown_name()
     {
-        // Built from the frozen C2, not from ships/: the next import may add a CRUS ship (A10).
+        // Built from the frozen C2, not from the shipped data: the next release may add a CRUS ship (A10).
         var catalog = new ShipCatalog(
         [
             C2 with { Id = "msr", Name = "CRUS Mercury Star Runner" },

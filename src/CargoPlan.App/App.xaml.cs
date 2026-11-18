@@ -202,12 +202,26 @@ public partial class App : Application
     /// <summary>
     /// The ship data in use (T12.3): the newest downloaded release this app reads, else the ones next to the exe; older
     /// downloads and unfinished ones go first (P7). A download that won't load falls back to the built-in data with a notice
-    /// (P10). Without the built-in ships folder there is nothing to draw: one message, then the end, no crash dialog (D56);
-    /// null then. The catalog's problems (skipped ship files) are shown in the header's ship selection (T7.2b).
+    /// (P10). Without the built-in data (ship-data\ next to the exe with its manifest, D113) there is nothing to draw: one
+    /// message, then the end, no crash dialog (D56); null then. The catalog's problems (skipped ship files) are shown in
+    /// the header's ship selection (T7.2b).
     /// </summary>
     private (ShipCatalog Ships, ActiveShipData Data)? LoadShipsOrExit()
     {
-        var store = _shipDataStore = new ShipDataStore(ShipDataStore.RootIn(AppFolders.LocalRoot), ActiveShipData.NextToExe);
+        ActiveShipData baseline;
+        try
+        {
+            baseline = ActiveShipData.ReadBaseline(ActiveShipData.BaselineFolder);
+        }
+        catch (ShipDataFormatException ex)
+        {
+            AppLog.Write(ShipDataLog, $"no built-in ship data: {ex.Message}");
+            MessageBox.Show(BaselineMissingText(ex), "SC-CargoPlan", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(ExitShipsFolderBroken);
+            return null;
+        }
+
+        var store = _shipDataStore = new ShipDataStore(ShipDataStore.RootIn(AppFolders.LocalRoot), baseline);
         var data = store.Active();
         foreach (var line in store.CleanUp(data))
         {
@@ -223,8 +237,8 @@ public partial class App : Application
             catch (ShipFolderException ex)
             {
                 AppLog.Write(ShipDataLog, $"{data} not loaded: {ex.Message}");
-                _shipDataNotice = $"Downloaded ship data {data.Version.Display} not loaded – using the built-in {ActiveShipData.NextToExe.Version.Display}.";
-                data = ActiveShipData.NextToExe;
+                _shipDataNotice = $"Downloaded ship data {data.Version.Display} not loaded – using the built-in {baseline.Version.Display}.";
+                data = baseline;
             }
         }
 
@@ -248,6 +262,10 @@ public partial class App : Application
     }
 
     private const string ShipDataLog = "Ship data";
+
+    /// <summary>The start's message without the built-in ship data (T12.5, R5): the ZIP is incomplete, so a new one helps.</summary>
+    internal static string BaselineMissingText(ShipDataFormatException ex) =>
+        $"The ship data next to SC-CargoPlan are missing or damaged ({ex.Message}). Download SC-CargoPlan again.";
 
     /// <summary>What the later steps of the start wire together.</summary>
     private sealed record OverlayParts(

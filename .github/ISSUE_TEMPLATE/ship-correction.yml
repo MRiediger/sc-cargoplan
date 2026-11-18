@@ -12,7 +12,7 @@ body:
     id: ship
     attributes:
       label: Ship
-      description: As the ship list in the overlay names it. If you looked into the ship file, its name in `ships/` or its `modelKey` helps too.
+      description: As the ship list in the overlay names it. If you looked into the ship file, its file name in the ship data (`ship-data\ships\` next to the app) or its `modelKey` helps too.
       placeholder: DRAK Cutlass Black
     validations:
       required: true

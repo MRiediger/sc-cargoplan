@@ -15,12 +15,16 @@ public static class ShipLoader
 
     private const int NoDoorLimitSchemaVersion = 4;
 
-    private static readonly int[] ReadableSchemaVersions = [NoDoorLimitSchemaVersion, NoRotationSchemaVersion, SupportedSchemaVersion];
+    /// <summary>
+    /// The schemas this app reads, oldest first. The build's fetch checks the pinned release against the same list
+    /// (<c>ShipDataReadableSchemas</c> in CargoPlan.Core.csproj, T12.5); a test keeps the two equal.
+    /// </summary>
+    internal static readonly int[] ReadableSchemaVersions = [NoDoorLimitSchemaVersion, NoRotationSchemaVersion, SupportedSchemaVersion];
 
     /// <summary>Whether ship files of <paramref name="schemaVersion"/> load: a data release of another one waits for an app update (T12.3).</summary>
     public static bool IsReadable(int schemaVersion) => ReadableSchemaVersions.Contains(schemaVersion);
 
-    /// <summary>The folder's name next to the exe, and in the repo root.</summary>
+    /// <summary>The folder's name in a data release, next to its outlines.json.</summary>
     public const string FolderName = "ships";
 
     /// <summary>The ship the app falls back to; without it the ships folder counts as broken.</summary>
@@ -33,8 +37,8 @@ public static class ShipLoader
 
     private const string FileSuffix = ".json";
 
-    /// <summary>The ships folder next to the running exe (or test assembly); no single-file publish, so that is its folder (D46).</summary>
-    public static string DefaultFolder => Path.Combine(AppContext.BaseDirectory, FolderName);
+    /// <summary>The baseline's ships folder next to the running exe (or test assembly), <c>ship-data\ships</c> (D113).</summary>
+    public static string DefaultFolder => Path.Combine(ShipData.ActiveShipData.BaselineFolder, FolderName);
 
     /// <summary>
     /// Every ship in <paramref name="folder"/> (default <see cref="DefaultFolder"/>), and every ship with a cargo module

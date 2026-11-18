@@ -114,7 +114,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public static string TicksStayText(int deliveries) =>
         $"{deliveries} {(deliveries == 1 ? "delivery" : "deliveries")} already ticked – ticks stay.";
 
-    /// <summary>One line for what went wrong with ship-outlines.json (D62): the first problem and how many more; null if none.</summary>
+    /// <summary>One line for what went wrong with the outlines (D62): the first problem and how many more; null if none.</summary>
     public static string? OutlinesNoticeText(IReadOnlyList<string> problems) => problems.Count switch
     {
         0 => null,

@@ -51,10 +51,6 @@ public class ShipDataVersionTests
     [InlineData("ships-2026.11.1", "2026.11.1")]
     public void Display_drops_the_prefix(string text, string display) => Parse(text).Display.Should().Be(display);
 
-    [Fact]
-    public void The_baseline_is_the_seed_release_that_equals_ships_in_the_repo() =>
-        ShipDataVersion.Baseline.ToString().Should().Be("ships-2026.11");
-
     private static ShipDataVersion Parse(string text) =>
         ShipDataVersion.TryParse(text, out var version) ? version : throw new ArgumentException(text);
 }

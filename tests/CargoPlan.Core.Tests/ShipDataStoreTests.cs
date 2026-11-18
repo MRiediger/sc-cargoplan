@@ -11,8 +11,9 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public sealed class ShipDataStoreTests : IDisposable
 {
+    // ships-2026.11: the seed release, older than the downloads below.
     private static readonly ActiveShipData Baseline = new(
-        ShipDataVersion.Baseline, ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile);
+        new ShipDataVersion(2026, 11, 0), ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile);
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"), "ships");
 
@@ -93,11 +94,23 @@ public sealed class ShipDataStoreTests : IDisposable
     }
 
     [Fact]
-    public void A_release_equal_to_the_baseline_counts_as_downloaded()
+    public void A_release_equal_to_the_baseline_loses_to_it()
     {
         Plant("ships-2026.11", "ships-2026.11");
 
-        Store().Active().Origin.Should().Be(ShipDataOrigin.Downloaded);
+        Store().Active().Should().Be(Baseline);
+    }
+
+    // R2 of the T12.5 approval: a download equal to the baseline is worth nothing and goes.
+    [Fact]
+    public void Clean_up_with_the_baseline_active_removes_a_release_equal_to_it()
+    {
+        Plant("ships-2026.11", "ships-2026.11");
+        var store = Store();
+
+        store.CleanUp(store.Active()).Should().Equal("removed ships-2026.11");
+
+        Folders().Should().BeEmpty();
     }
 
     [Theory]

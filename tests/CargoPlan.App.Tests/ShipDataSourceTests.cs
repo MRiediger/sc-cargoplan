@@ -19,7 +19,7 @@ public sealed class ShipDataSourceTests : IDisposable
     private const string ShipsZip = "https://github.com/MRiediger/sc-cargoplan-shipdata/releases/download/ships-2026.11.1/ships.zip";
 
     private static readonly ActiveShipData Baseline = new(
-        ShipDataVersion.Baseline, ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile);
+        new ShipDataVersion(2026, 11, 0), ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile);
 
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"));
 

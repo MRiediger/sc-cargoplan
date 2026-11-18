@@ -14,6 +14,11 @@ dotnet format SC-CargoPlan.sln --verify-no-changes --no-restore
 dotnet test -c Release --no-build
 ```
 
+The first build downloads the ship data (about 230 KB) once: the data release that `build/ship-data.json` pins, from
+[sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata), checked file by file and kept in
+`.ship-data/` ([D113](docs/decisions.md)). It runs `tools/fetch-ship-data.ps1` with Windows PowerShell on Windows (nothing
+to install) and `pwsh` elsewhere; later builds need no network.
+
 CI runs them on Windows and Ubuntu; the format check runs on Windows only and fails if `dotnet format` would change a file (`.editorconfig` has the rules). Ubuntu compiles the WPF projects (with `EnableWindowsTargeting=true`) but can't run them, so `CargoPlan.App.Tests` only runs on Windows. Warnings are errors.
 
 A slow test over every crate layout is left out of the normal run (about a minute):
@@ -61,11 +66,11 @@ After that, the same ZIP goes on Nexus Mods by [docs/nexus/checklist.md](docs/ne
 
 The racks of 102 ships come from the game files, by way of [cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo); three ships still use Fleetyards data ([docs/ship-format.md](docs/ship-format.md#where-the-data-comes-from)). If a rack in the overlay doesn't match the game, open a [ship correction](https://github.com/MRiediger/sc-cargoplan/issues/new?template=ship-correction.yml): the ship as the list names it, the rack number, what is wrong, a screenshot from the game and one of the overlay.
 
-A rack in the wrong place or with the wrong size is usually in the game data itself. It is then fixed upstream: we pass it on to Motherlode, and the next import brings the fix to every ship. A door limit is ours to fix, since the game files don't describe doors. A hand fix in a ship file is for what the import can't know; [Correcting a rack](docs/ship-format.md#correcting-a-rack) shows how.
+A rack in the wrong place or with the wrong size is usually in the game data itself. It is then fixed upstream: we pass it on to Motherlode, and the next data release brings the fix to every ship. A door limit is ours to fix, since the game files don't describe doors. The ship files live in [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata), not here ([D113](docs/decisions.md)); a hand fix goes there, and [Correcting a rack](docs/ship-format.md#correcting-a-rack) shows how. The overlay picks up a new data release by itself.
 
 ## Contribute a ship
 
-A ship is one JSON file, no C#. Ships the game files have come from the import ([docs/ship-format.md](docs/ship-format.md#importing-from-the-game-files)); a ship the import doesn't have yet can be measured by hand. [docs/ship-format.md](docs/ship-format.md) has the format, how to measure a ship in the hangar and a checklist for the pull request. In short:
+A ship is one JSON file, no C#, in [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata). Ships the game files have come from its import; a ship the import doesn't have yet can be measured by hand. [docs/ship-format.md](docs/ship-format.md) has the format, how to measure a ship in the hangar and a checklist for the pull request. In short:
 
 - Measure in the game and name the patch.
 - Give every rack its `stackAxis`: the direction a second layer of crates goes.
