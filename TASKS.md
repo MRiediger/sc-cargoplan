@@ -2386,7 +2386,7 @@ Schwebende an Bord gerade, **geladen und geplant** (Martin), halb aufliegend ble
 geplant, an alter Stelle oder neu eingelegt; P8 Sync entfernt eine verschwundene Mission, wenn nichts von ihr geplant an
 Bord ist; P9 Schiffswechsel/`RacksChanged` löscht geladen mit Notice; P10 Zustandswechsel sind Undo-Schritte, Restore aus
 dem Snapshot, `CarryTicks` entfällt; P11 Legendenzyklus geplant → geladen → abgeliefert → geplant, Kistenklick bleibt B6;
-P12 Look: heller Rahmen, ` ▣` als festes Segment, Kopfzeile `· 40 loaded`. Ergänzungen bei der Freigabe: **E1** teilweise
+K6.4-P12 Look: heller Rahmen, ` ▣` als festes Segment, Kopfzeile `· 40 loaded`. Ergänzungen bei der Freigabe: **E1** teilweise
 geladene Mission ohne Platz → Ablehnung als Fallback (Aufwand „Warteeinheit Lieferung“ ≈ 20 Stellen + Formatfeld, Backlog),
 ihr Rest zuerst gelegt; **E2** Re-plan mit Geladenem behält das Layout, wenn mehr warten würde („Re-plan found no better
 layout“), Backlog `RackAssignment` mit Hindernissen; **E3** Lieferung ohne Kisten an Bord ist nicht ladbar („not placed
@@ -6868,13 +6868,56 @@ Satz aus dem Task, die übrigen Update-KIs aus v0.5.0, neu `holo-v1`, die drei F
 
 ---
 
-## Phase 12 – vorgemerkt
+## Phase 12 – Ship data channel (gestartet 16.11.2026, D111)
 
-- **`-Create` setzt den `modelKey` selbst** (E1 aus V2, Martin 16.11.): `import-motherlode.ps1` leitet ihn für ein Schiff
-  mit Modell aus der Map ab (className → Slug), statt ihn leer zu lassen und die Anker auf die Rack-Mitte zu setzen.
-  Anlass: die 350r verlor in `92d9d99` ihren Key (neue Rack-Zahl → `handcheck` → Datei neu mit `-Create`), Galaxy,
-  Liberator, Retaliator kamen ohne Key; ohne Key fehlt ein Schiff in Map, Umrissen und Release. Seit V2 fängt
-  `ShipOutlineLoaderTests.Every_outline_belongs_to_a_shipped_ship` den Verlust bei bestehenden Umrissen.
+**Zielbild:** D111. **Zwei Repos:** [`sc-cargoplan-shipdata`](https://github.com/MRiediger/sc-cargoplan-shipdata) baut, prüft und
+veröffentlicht die Schiffsdaten als Release `ships-YYYY.MM[.N]`; dieses Repo liest sie (App) und zieht beim Build die Baseline.
+Entscheidungen der Pipeline: **SD1–SD9** dort in `docs/decisions.md`, Manifest-Vertrag dort in `docs/manifest-format.md`.
+
+**Im Shipdata-Repo** (Plan, Befunde und Abnahme in dessen `TASKS.md`): S12.0 Spike, T12.0 Doku (diese Phase hier, D111),
+T12.1 Pipeline `run.py`, T12.1b Nachträge, T12.2 Workflow `ship-data.yml`. **Hier:** die Tasks mit Präfix **App:**.
+
+- [x] **`-Create` setzt den `modelKey` selbst** (E1 aus V2, Martin 16.11.) – erledigt im Shipdata-Repo mit T12.1 (P6:
+  `-KeyMap`, `modelKey` aus dem letzten Release, kein Anker in der Rack-Mitte). Anlass war die 350r, die in `92d9d99`
+  ihren Key verlor; `ShipOutlineLoaderTests.Every_outline_belongs_to_a_shipped_ship` bleibt als Netz.
+
+### [ ] T12.3 App: Datenkanal
+
+**Warum:** Ohne Leser ist das Release wertlos.
+- Manifest-Check nach dem Velopack-Check (eine URL `…/releases/latest/download/manifest.json`), `schemaVersion`-Prüfung (unbekannt → „Ship data needs app update“)
+- Notice-Zeile mit Update/Skip, Download nur `manifest.json` + `ships.zip` (`assets.ships`, SD4), Prüfung gegen `files`, atomarer Tausch unter `%LocalAppData%\SC-CargoPlan\ships\<version>\`, Reload ohne Neustart
+- Plan-Verträglichkeit: geänderter Rack-Satz → „re-plan recommended“
+- Settings „Ship data“ (`shipData.checkOnStartup`, `skippedVersion`), CLI `ships --version`
+- Netzzugriff 3 → eigener D-Eintrag (CLAUDE.md, Zeile „Netz“)
+
+**Akzeptanz:** Gate am Aufzug, SC im Vordergrund: Update einspielen, Galaxy erscheint, Holo lädt, Plan bleibt.
+
+### [ ] T12.4 App: Holo aus dem Manifest
+
+**Warum:** `HoloRelease.Tag` ist die letzte Konstante, die ein App-Release pro Datenänderung erzwingt.
+- Hashes aus dem Manifest, URL `…/releases/download/<dataVersion>/<file>` (kein `baseUrl`, SD2), `holo: null` → Umriss-Fallback, gelöschtes Release → Baseline-Holo
+- Cache-Wechsel nach D95-Muster, Migration für v0.5.x-Caches
+
+**Akzeptanz:** Holo-Dateien aus `ships-*` byte-gleich zu holo-v3 (S12.0: Schwelle 0); Holo-Download aus `ships-*` statt `holo-v3`.
+
+### [ ] T12.5 App: Baseline aus dem Release
+
+**Warum:** Eine Quelle für Schiffsdaten; `ships/` als Quelltext im App-Repo ist der zweite Pfad, der v0.5.1 teuer machte.
+- `release.yml` lädt das aktuelle `ships-*`-Release ins ZIP, Tag im Manifest; `ci.yml` gegen eine feste Baseline
+- `ships/`, `outlines/`, `tools/import-motherlode.ps1`, `ShipJson.ps1` raus; `ShipPictureTests` liest Daten per Env-Override (S12.0 E3)
+- NOTICE und README anpassen
+
+**Akzeptanz:** Publish-Build lokal startet offline mit der Baseline; `git ls-files ships/` ist leer.
+
+### [ ] T12.6 Release (beide Repos; Teile mit **App:** hier)
+
+**Warum:** Erst ein echtes Data-Release, dann die App, die es liest, dann der erste Monatslauf.
+- Erstes Data-Release `ships-2026.11` per Knopf (= Stand 4.10.3 / holo-v3)
+- **App:** v0.6.0 mit dieser Baseline, Wiki (Installation, Ships), README beider Repos, Notes
+- `sc-ship-outlines` archivieren; `holo-v3` im App-Repo bleibt bis v0.5.x ausgelaufen ist
+- Danach: erster echter Monatslauf per Knopf
+
+**Akzeptanz:** Netz-Gate, SC im Vordergrund: v0.5.1 → v0.6.0 per Velopack, dann Data-Update im Overlay. Ab hier Branch + `--no-ff` für jede Änderung an diesem Repo.
 
 ---
 
