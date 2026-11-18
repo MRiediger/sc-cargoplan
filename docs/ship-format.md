@@ -4,6 +4,13 @@ Ships are data, not code. Each ship is one JSON file in [`ships/`](../ships/) in
 copies the folder next to the exe, and the release ZIP carries it as `SC-CargoPlan/ships/` (see [D56](decisions.md)),
 so adding a ship means adding one file. No C# and no `.csproj` change needed.
 
+From v0.6.0 the ship data also come as data releases of
+[sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata) (D111, D112): the overlay offers a newer one,
+installs it into `%LocalAppData%\SC-CargoPlan\ships\<release>\` (`ships\` with the ship and module files, `outlines.json`,
+`manifest.json`) and uses the newest one it can read instead of the folder next to the exe. `CargoPlan.Cli ships --version`
+names the data in use. Everything below holds for both folders, with one difference: a downloaded folder that won't load
+(no valid `hull_a.json`) costs no start, the overlay says so and uses the folder next to the exe.
+
 The app reads every `*.json` in that folder at start. A file that is broken costs only its own ship; the reason is
 reported (the CLI prints it, the app lists the ship under **Not loaded** in the ship list, the reason as its tool tip). Without the folder, or without a valid
 `hull_a.json`, the app doesn't start and asks to unzip the release again: the Hull A is the fallback ship.

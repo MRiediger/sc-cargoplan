@@ -9,7 +9,7 @@ the overlay again.
 ## Example with every default
 
 Without a file, or without `ship`, `recentShips`, `legend`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`,
-`holoHullColor`, `holoEdgeColor`, `shipView`, `updates`, `toolWindowTheme` and `appearance`, the overlay uses exactly
+`holoHullColor`, `holoEdgeColor`, `shipView`, `updates`, `shipData`, `toolWindowTheme` and `appearance`, the overlay uses exactly
 these values.
 
 ```json
@@ -27,6 +27,7 @@ these values.
   "holoEdgeColor": "#FFE6E6E6",
   "shipView": { "maxZoomPxPerCell": 160 },
   "updates": { "checkOnStartup": true, "skippedVersion": null },
+  "shipData": { "checkOnStartup": true, "skippedVersion": null },
   "toolWindowTheme": "system",
   "appearance": {
     "window": {
@@ -294,6 +295,26 @@ about it. A build without a release version (`0.0.0-dev`) and a copy not started
 check. Older versions of the overlay don't know `updates`: they start with the default settings and say so, and
 `settings.json.bak` keeps the file as it was.
 
+## Ship data
+
+`shipData` holds the ship data check (D112): the cargo grids and outlines come as data releases of
+[sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata), named `ships-YYYY.MM[.N]`. Missing or `null`
+means the defaults, a missing key inside it its default.
+
+| Key | What | Default |
+|---|---|---|
+| `shipData.checkOnStartup` | Once per start, after the update check, ask GitHub for the latest data release's `manifest.json` (one request). A newer one shows as the overlay's bottom line, below the update line, with *Update* and *Skip this version*; *Update* downloads its `ships.zip` (about 100 KB), checks every file and restarts the overlay with the new data. `false` means no request at all. | `true` |
+| `shipData.skippedVersion` | A data release you chose to skip, like `"ships-2026.11.1"`. **This release only:** a newer one is offered. Not a data release tag means none, with a notice. | `null` |
+
+Both keys are set in the settings window's **Ship data** section too, with *Check now* and the data the overlay runs on
+(`In use: 2026.11.1 (downloaded)`, or `(built in)` for the data in the release ZIP).
+
+Downloaded releases lie in `%LocalAppData%\SC-CargoPlan\ships\<release>\`. The overlay uses the newest one it can read,
+never one older than the data in its ZIP; at the start it removes older ones, so one stays. A release made for a newer
+overlay says "Ship data … needs an app update" instead of offering a download. A check that fails shows nothing;
+`cargoplan.log` has one line about it. Older versions of the overlay don't know `shipData`: they start with the default
+settings and say so, and `settings.json.bak` keeps the file as it was.
+
 ## Look files
 
 A look file (`*.cargoplan-look.json`) carries a look from one overlay to another: **Export…** in the settings window
@@ -355,7 +376,7 @@ away if you want to keep it longer.
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
 | 2 | v0.1.0 to v0.3.1 | plus `appearance`, `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView` and the newer `appearance` values, each optional within version 2 |
-| 3 | v0.4.0 and later | without `contractTracker`, `hotkeys.syncContractTracker` and a camera's `pxPerCell`, `panX`, `panY`; plus `hotkeys.scanContracts` (optional); from v0.5.0 plus `updates` (optional, no new version, D105 addendum) |
+| 3 | v0.4.0 and later | without `contractTracker`, `hotkeys.syncContractTracker` and a camera's `pxPerCell`, `panX`, `panY`; plus `hotkeys.scanContracts` (optional); from v0.5.0 plus `updates`, from v0.6.0 plus `shipData` (both optional, no new version, D105 addenda) |
 
 ### Older files
 

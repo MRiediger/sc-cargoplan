@@ -6972,6 +6972,79 @@ Session für `shipData`, `StartOptionsTests`, XAML-Tests, A13-Test für `NoticeS
 bei gleichem Rack-Satz (Pipeline-`diff` über `orderKeys`), `HeaderPanel`-`MinWidth` für neue lange Namen,
 `FrameMeasureWindow` lädt weiter Baseline-Umrisse.
 
+**Umsetzung (18.11.2026):** Core `9e3c620`, App `ab06ae8`, CLI `2f41d0a`, Doku (D112, Addenda D59/D105/D111, CLAUDE.md,
+`settings-format.md`, `ship-format.md`, `update-testing.md`) im Commit danach. Tests jeweils erst rot gesehen: Core 20
+Compile-Fehler (CS0234/CS0246), dann 2 Assert-Fehler im R3-Nachfolger; App CS0234/CS0246. Texte (Taste-Gate Martin):
+Zeile `Ship data update available · 2026.11.1`, `Downloading ship data`, `Ship data updated · restarting`,
+`Ship data update failed · <Grund>` (Gründe `no network`, `download damaged`, `folder not writable`, `see cargoplan.log`);
+Notice `Ship data 2026.12 needs an app update` (statt „Ship data needs app update“ aus dem Prompt: nennt den Stand) und
+`Downloaded ship data 2026.11.1 not loaded – using the built-in 2026.11.`; Settings-Abschnitt „Ship data“ mit
+`In use: 2026.11.1 (downloaded)` bzw. `(built in)`, `Skipped: 2026.11.1`, Check now.
+
+**Befunde in der Umsetzung:**
+- `ShipDataStore.Install` kann einen liegengebliebenen `.tmp`-Ordner nicht immer löschen (Virenscanner, Sperre); dann nennt
+  eine `IOException` ihn mit der ersten Ursache als innerer Ausnahme, und `CleanUp` beim nächsten Start nimmt ihn. Kein
+  stilles `catch` (NIEMALS-Liste).
+- Das Template der Update-Zeile ist jetzt eine Ressource (`UpdateLineTemplate`), beide Zeilen nutzen es; die bestehenden
+  XAML-Tests fanden die benannten Elemente weiter.
+- Die drei erwarteten Migrations-Fixtures (`Fixtures/Settings/Expected`) tragen `shipData`: ein Speichern schreibt jeden
+  Schlüssel (D31).
+- Gate-Helfer: `Process.MainWindowHandle` zeigte einmal auf das Lock-Fenster (Titel leer); das Overlay wird per UIA nach
+  Prozess und Titel `SC-CargoPlan` gesucht.
+
+**CC-Vorlauf ohne SC (18.11., Debug-Build, `--data-dir` im Scratchpad):**
+1. Feed-Ordner mit `manifest.json` + `ships.zip` von `ships-2026.11.1`, Start mit `--plan split_and_shared.json`: Zeile
+   `Ship data update available · 2026.11.1` nach dem ersten Frame (Log: 87 ms nach dem Frame). **Update** → Log
+   `installed ships-2026.11.1 (downloaded) …`, `restarting with [--data-dir … --ship-data-source …]` (ohne `--plan`),
+   neue PID mit genau diesen Argumenten, `in use: ships-2026.11.1 (downloaded) …, 110 ships` (vorher 109: `hyun`),
+   `nothing newer than ships-2026.11.1`, keine Zeile. `plan.json` vor und nach dem Neustart byte-gleich (SHA-256).
+   `ships --version --data-dir …` → `ships-2026.11.1 (downloaded) …\ships\ships-2026.11.1`.
+2. Skip: Zeile weg, `settings.json` `shipData.skippedVersion = "ships-2026.11.1"`; zweiter Start: keine Zeile, Log `skipped`.
+3. Offline (Quellordner fehlt): keine Zeile, keine Notice, eine Logzeile `check failed: …`.
+4. Echtes GitHub (`--ship-data-source https://github.com/MRiediger/sc-cargoplan-shipdata`): Angebot 0,6 s nach dem Frame,
+   Update → Neustart → `nothing newer`.
+5. P10: `hull_a.json` im installierten Stand gelöscht → Notice `Downloaded ship data 2026.11.1 not loaded – using the
+   built-in 2026.11.`, Baseline läuft.
+6. Publish-Build `0.5.99` (Layout-Prüfung bestanden, ZIP 96 730 370 B) aus `out\publish`, ohne Schalter: Log
+   `Update: no check: not a Velopack package`, dann `Ship data: ships-2026.11.1 available`, Zeile da.
+
+**Gate-Anleitung (Martin, SC im Vordergrund, am Aufzug).** Publish-Build ohne Velopack-Installation (startet aus
+`out\publish`, prüft also kein App-Update, nur Schiffsdaten gegen das echte GitHub):
+
+```powershell
+./build/publish.ps1 -Version 0.5.99
+$exe  = "$PWD\out\publish\SC-CargoPlan\CargoPlan.App.exe"
+$data = "$env:UserProfile\CargoPlan-t123"     # eigener Datenordner, dein Profil bleibt unberührt
+New-Item -ItemType Directory -Force $data | Out-Null
+Copy-Item "$env:LocalAppData\SC-CargoPlan\plan.json" $data   # optional: dein Hull-A-Plan
+& $exe --data-dir $data
+```
+
+1. Overlay zeigt unten `Ship data update available · 2026.11.1` mit **Update** und **Skip this version** (gesperrt: nur
+   Text). Einen Hull-A-Plan anlegen oder den kopierten nehmen, einen Stopp abhaken.
+2. **Update** → `Ship data updated · restarting` → Overlay schließt und kommt mit denselben Einstellungen zurück. In der
+   Schiffsauswahl steht **Hyun**; **F7C Hornet Mk II** lädt (Holo aus holo-v3 oder Umriss – T12.4, kein Fehler). Der
+   Hull-A-Plan ist unverändert, der Haken auch.
+3. `& "$PWD\out\publish\SC-CargoPlan\CargoPlan.Cli.exe" ships --version --data-dir $data` →
+   `ships-2026.11.1 (downloaded) …`. Zahnrad → **Ship data**: `In use: 2026.11.1 (downloaded)`.
+4. Overlay schließen, neu starten → keine Zeile.
+5. Skip: `Remove-Item -Recurse $data\ships`, Start → Zeile → **Skip this version** → Zeile weg; Neustart → keine Zeile;
+   Zahnrad → Ship data: `Skipped: 2026.11.1 [Clear]`.
+6. Offline (WLAN/Netz aus) → Start: keine Zeile, keine Notice, kein Fehler, das Overlay läuft.
+
+**Offen fürs Gate (Optik = Martin):** die Texte oben, Lage des Abschnitts „Ship data“ (unter „Updates“), zwei Zeilen
+übereinander, wenn App- und Datenupdate zugleich kommen.
+
+**Abnahme (Martin):**
+- [ ] Gate 1–2: Angebot, Update, Neustart, Hyun, F7C, Plan bleibt
+- [ ] Gate 3: `ships --version`, Abschnitt „In use“
+- [ ] Gate 4: zweiter Start ohne Zeile
+- [ ] Gate 5: Skip, Neustart, Settings zeigen den Stand
+- [ ] Gate 6: offline
+- [ ] Optik und Texte
+- [x] Build ohne Warnungen, alle Tests grün (Core 1880, Import 280, Ocr 34, App 2075; ohne die drei lokalen Scratch-Tests
+  Core 1878, App 2074), `dotnet format` sauber
+
 ### [ ] T12.4 App: Holo aus dem Manifest
 
 **Warum:** `HoloRelease.Tag` ist die letzte Konstante, die ein App-Release pro Datenänderung erzwingt.
