@@ -7053,7 +7053,7 @@ Copy-Item "$env:LocalAppData\SC-CargoPlan\plan.json" $data   # optional: dein Hu
 
 **Akzeptanz:** Holo-Dateien aus `ships-*` byte-gleich zu holo-v3 (S12.0: Schwelle 0); Holo-Download aus `ships-*` statt `holo-v3`.
 
-### [ ] T12.5 App: Baseline aus dem Release
+### [x] T12.5 App: Baseline aus dem Release (18.11.2026, `46fd06d`, `39c3a50`, abgenommen 18.11.)
 
 **Warum:** Eine Quelle für Schiffsdaten; `ships/` als Quelltext im App-Repo ist der zweite Pfad, der v0.5.1 teuer machte.
 - `release.yml` lädt das aktuelle `ships-*`-Release ins ZIP, Tag im Manifest; `ci.yml` gegen eine feste Baseline
@@ -7183,9 +7183,10 @@ Copy-Item "$env:LocalAppData\SC-CargoPlan\plan.json" $data   # dein Hull-A-Plan
 3. Optional: `& "$PWD\out\publish\SC-CargoPlan\CargoPlan.Cli.exe" ships --version --data-dir $data` →
    `ships-2026.11.1 (baseline) …`.
 
-**Abnahme (Martin):**
-- [ ] Gate: Publish-Build, Hull-A-Plan, Schiffswechsel – unverändert
-- [ ] Build ohne Warnungen, alle Tests grün, `dotnet format` sauber, CI grün auf beiden Runnern
+**Abnahme (Martin, 18.11.2026, SC im Vordergrund):**
+- [x] Gate: Publish-Build, Hull-A-Plan, Schiffswechsel – unverändert
+- [x] Build ohne Warnungen, alle Tests grün (Core 1889, Import 280, Ocr 34, App 2069 im sauberen Klon), `dotnet format`
+  sauber, CI grün auf beiden Runnern
 
 ### [ ] T12.6 Release (beide Repos; Teile mit **App:** hier)
 
