@@ -7062,6 +7062,75 @@ Copy-Item "$env:LocalAppData\SC-CargoPlan\plan.json" $data   # optional: dein Hu
 
 **Akzeptanz:** Publish-Build lokal startet offline mit der Baseline; `git ls-files ships/` ist leer.
 
+**Plan (18.11.2026, Branch `feat/p12-baseline` ab `8e3b9ec`, Freigabe Martin 18.11. mit Antworten R1–R5 und E1)**
+
+T12.5 vor T12.4 (Martin 18.11.): erst hat jeder Stand ein Manifest, dann liest das Holo daraus. Festlegungen aus dem
+Startprompt: Pin in `build/ship-data.json`; Baseline neben der Exe im Download-Layout `ship-data\` (`manifest.json`,
+`ships\**`, `outlines.json`, `NOTICE.md`); `tools/fetch-ship-data.ps1` holt einmal, geprüft, nach `.ship-data/<tag>/`
+(gitignored), schreibt `.ship-data/current`; der Build ruft es; `ships/`, `outlines/`, `tools/import-motherlode.ps1`,
+`ShipJson.ps1`, `ImportMotherlodeScriptTests`, `ShipAnchorValueTests` raus; `ShipPictureTests` mit `CARGOPLAN_SHIP_DATA`.
+Die Akzeptanz oben ist präzisiert: frischer Klon baut mit einem `dotnet build` (einmal Netz), CI grün auf beiden
+Runnern, Publish-Build `0.5.99` offline mit 110 Schiffen inkl. `hyun`, `ships --version` → `ships-2026.11.1 (baseline)`,
+keine Update-Zeile, älterer Download wird aufgeräumt; Gate Martin: nichts sieht anders aus.
+
+**Grep-first (A1):** `ActiveShipData.NextToExe` (Konstante + `ShipLoader.DefaultFolder` + `ShipOutlineLoader.DefaultPath`)
+nutzen App (`LoadShipsOrExit`) und CLI (`LoadShips`); `ShipDataVersion.Baseline` nur noch Tests. Wiederverwendet:
+`ShipDataManifestReader.Read`, `ShipLoader.IsReadable`, `ShipDataRelease` (T12.3-Fixtures), Prozessstart und
+Shell-Auswahl aus `ImportMotherlodeScriptTests`. Live-Manifest `ships-2026.11.1`: `files` = `outlines.json` +
+`ships/**` (111), **`NOTICE.md` ohne Hash**. `publish.ps1` kopiert keine Schiffe selbst (kommen über Core-Items).
+`ShipAnchorTests` ist Mechanik (FrozenShips), kein Datentest. Lokal kein `pwsh`, nur PowerShell 5.1.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. **Beide Dialekte** (R1): das Skript läuft unter PowerShell 5.1 und 7; MSBuild ruft unter Windows `powershell.exe`,
+   sonst `pwsh`. Ein frisches Windows braucht keine Installation. Nur die drei bekannten 5.1-Fallen (TLS 1.2,
+   `ZipFile` statt `Expand-Archive`, UTF-8 ohne BOM). CI deckt 5.1 (Windows) und 7 (Ubuntu), der Skript-Test läuft
+   lokal unter 5.1. Gegenargument: zwei Dialekte im Kopf.
+2. **Baseline gewinnt bei Gleichstand** (R2): `Active` nimmt nur Downloads **neuer** als die Baseline, `CleanUp` räumt
+   Downloads `≤ Baseline`. Ein Download gleich der Baseline hat keinen Wert, und `ships --version` nennt die wahre
+   Quelle. Gegenargument: Regeländerung im eben abgenommenen T12.3-Code (eigener Test).
+3. **`ShipAnchorValues` + 5 Tests raus** (R3): die Rechenregel lebt mit Tests in der Pipeline (T12.1); D113 sagt wo.
+   Die 5 F7-Mechanik-Tests in `ShipAnchorTests` bleiben.
+4. **`NOTICE.md`** (R4): ohne Hash im Manifest → „vorhanden, nicht leer, < 64 KiB“. `NOTICE.md` in `files` ist
+   Shipdata-Backlog (T12.6-Liste).
+5. **Startfehler ohne Baseline** (R5): `The ship data next to SC-CargoPlan are missing or damaged (ship-data\manifest.json:
+   <reason>). Download SC-CargoPlan again.` → `ExitShipsFolderBroken` (D56). CLI: stderr + Exit-Code.
+6. **Download sichtbar im Build-Log** (E1): `<Message Importance="high">` „Fetching ship data ships-2026.11.1 (once,
+   ≈150 KB)“ vor dem Exec, Exec-Ausgabe mit `StandardOutputImportance="high"`.
+7. **Pin in MSBuild per Property-Funktion** (`File.ReadAllText` + `Regex.Match` mit Lookbehind); kein Treffer → `<Error>`.
+8. **Items im Target, nicht statisch:** ein `None Include` mit Wildcard wird beim Evaluieren aufgelöst, also vor dem
+   Fetch; ein frischer Klon bekäme im ersten Build nichts. Target `FetchShipData` (vor `BeforeBuild`, nur wenn
+   `<tag>\manifest.json` fehlt, nicht im Design-Time-Build), Target `IncludeShipData` (vor `AssignTargetPaths`) legt die
+   `None`-Items mit `Link="ship-data\…"` an. Gegenargument MSBuild-only: `DownloadFile`/`Unzip`/`VerifyFileHash` gibt
+   es, aber keinen JSON-Leser → keine Prüfung gegen `files`, kein Filter gegen Zip-Slip.
+9. **Lesbare Schemata** als MSBuild-Property → `-ReadableSchemaVersions`; ein Core-Test vergleicht sie mit `ShipLoader`.
+10. **Core:** `ActiveShipData.NextToExe` → `ActiveShipData.BaselineFolder` + `ReadBaseline(folder)` (Manifest per
+    `ShipDataManifestReader`, Schema per `IsReadable`, wirft `ShipDataFormatException` mit Dateiname);
+    `ShipDataVersion.Baseline` entfällt; `ShipLoader.DefaultFolder` → `ship-data\ships`, `ShipOutlineLoader.DefaultPath`
+    → `ship-data\outlines.json`.
+11. **Skript:** Pin lesen → fertiger Ordner da: offline neu hashen, passt → `current`, Ende („already there“), sonst neu
+    holen; holen in `<tag>.tmp-<zufall>\` (`-Source` = URL-Basis oder lokaler Ordner für den Test), Manifest
+    (`dataVersion` = Pin, Schema lesbar, Pfade wie `ShipDataManifestReader`), nur gelistete Einträge entpacken, Menge und
+    Hash gleich, dann `Move`; Log nennt Pin, Bytes, geprüfte Dateien; Fehler: eine Zeile, Exit 1, nichts Halbes.
+12. **`ShipPictureTests`:** `CARGOPLAN_SHIP_DATA` per `Path.Combine`, ohne `ReadBaseline`, damit die Datei in Worktrees
+    älterer Commits läuft.
+13. Alte `bin\…\ships\` und `bin\…\outlines\` bleiben lokal bis `dotnet clean`; niemand liest sie mehr.
+
+**Tests zuerst:** Core `FetchShipDataScriptTests` (guter Lauf, zweiter Lauf ohne Quelle, verfälschte/zusätzliche/
+fehlende/`../`-Einträge, `dataVersion ≠ Pin`, Schema unlesbar, kaputter Pin, verdorbener fertiger Ordner); `ReadBaseline`
+(Version, Pfade, fehlendes Manifest, Schema, Tag); Store mit Manifest-Baseline (älterer Download ignoriert und geräumt,
+Gleichstand → Baseline); Pin-Test (Pin = Manifest neben der Assembly, Schemata = `ShipLoader`). Umgestellt:
+`ShipDataStoreTests`, `ShipDataSourceTests`, `UpdateSettingsViewModelTests` (explizite Version), `OldPlan350rTests`,
+`HeaderPanelTests` (`ShipLoader.DefaultFolder`). Datentests laufen gegen `ships-2026.11.1`; kippt einer, ist das ein
+Befund zur Rückfrage.
+
+**Build, Publish, CI, Doku:** `check-portable.ps1` verlangt `ship-data\manifest.json`, `ship-data\ships\hull_a.json`,
+`ship-data\ships\modules\ts_module.json`, `ship-data\outlines.json`, `ship-data\NOTICE.md`; `ci.yml`/`release.yml` ohne
+eigenen Schritt, solange der frische Klon es beweist. D113 „Baseline comes from the data release“, Addenda D56, D111;
+CLAUDE.md (Struktur, Befehle, Distribution), CONTRIBUTING, README, `ship-format.md`, `update-testing.md`,
+Issue-Vorlage `ship-correction.yml`, Kommentar in `CargoPlan.Ocr.csproj`.
+
+**Nicht in T12.5:** Holo aus dem Manifest (T12.4), Live-Reload, Pin-Bump per PR aus der Pipeline (Backlog).
+
 ### [ ] T12.6 Release (beide Repos; Teile mit **App:** hier)
 
 **Warum:** Erst ein echtes Data-Release, dann die App, die es liest, dann der erste Monatslauf.
