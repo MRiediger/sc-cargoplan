@@ -41,7 +41,8 @@ public sealed class SettingsViewModelTests : IDisposable
         double holoOpacity = 0.4,
         string holoHullColor = "#FF9CB0C0",
         string holoEdgeColor = "#FFE6E6E6",
-        double maxZoom = 160) =>
+        double maxZoom = 160,
+        string? hologramsUnavailable = null) =>
         new(
             appearance ?? AppearanceSettings.Default,
             legend ?? LegendSettings.Default,
@@ -60,7 +61,10 @@ public sealed class SettingsViewModelTests : IDisposable
             (hull, edge) => _colours.Add((hull, edge)),
             maxZoom,
             _maxZooms.Add,
-            _lookNotices.Add);
+            _lookNotices.Add)
+        {
+            HologramsUnavailable = hologramsUnavailable,
+        };
 
     private (AppearanceSettings Appearance, LegendSettings Legend) Last => _applied[^1];
 
@@ -838,6 +842,19 @@ public sealed class SettingsViewModelTests : IDisposable
     {
         SettingsViewModel.DownloadShipHologramsHint.Should().Be(
             "Downloads one file per ship from github.com when you pick a ship. Nothing else is sent. Already downloaded holograms stay.");
+    }
+
+    // T12.4, R3: under the switch, which stays usable, the line says why no hologram comes; with holograms on offer it isn't there.
+    [Fact]
+    public void Without_holograms_on_offer_the_switch_says_why()
+    {
+        Create().HasHologramsUnavailable.Should().BeFalse();
+
+        var notOffered = Create(hologramsUnavailable: "Holograms: not offered by ship data 2026.11.2");
+
+        notOffered.HasHologramsUnavailable.Should().BeTrue();
+        notOffered.HologramsUnavailable.Should().Be("Holograms: not offered by ship data 2026.11.2");
+        notOffered.DownloadShipHolograms.Should().BeTrue();
     }
 
     [Fact]

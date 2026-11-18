@@ -401,6 +401,14 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial bool DownloadShipHolograms { get; set; }
 
+    /// <summary>
+    /// Why no hologram comes, under the switch (T12.4, R3): the ship data in use offer none, or none this app reads. Set
+    /// once when the window opens; the data change only with a restart. The switch stays usable.
+    /// </summary>
+    public string? HologramsUnavailable { get; init; }
+
+    public bool HasHologramsUnavailable => HologramsUnavailable is not null;
+
     /// <summary>The slider's bounds, the file's range; double for x:Static like the opacity's.</summary>
     public static double MinMaxZoom => AppearanceRules.MinMaxZoom;
 

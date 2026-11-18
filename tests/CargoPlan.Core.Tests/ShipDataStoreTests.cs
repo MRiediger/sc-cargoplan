@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Nodes;
+using CargoPlan.Core.Holo;
 using CargoPlan.Core.ShipData;
 using CargoPlan.Core.Ships;
 
@@ -13,7 +14,7 @@ public sealed class ShipDataStoreTests : IDisposable
 {
     // ships-2026.11: the seed release, older than the downloads below.
     private static readonly ActiveShipData Baseline = new(
-        new ShipDataVersion(2026, 11, 0), ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile);
+        new ShipDataVersion(2026, 11, 0), ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile, new HoloOffer.NotOffered());
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"), "ships");
 
@@ -28,9 +29,9 @@ public sealed class ShipDataStoreTests : IDisposable
 
     private ShipDataStore Store(long maxUnpackedBytes = ShipDataStore.MaxUnpackedBytes) => new(_root, Baseline, maxUnpackedBytes);
 
-    private ActiveShipData Install(ShipDataRelease release, byte[]? zip = null, ShipDataStore? store = null)
+    private ActiveShipData Install(ShipDataRelease release, byte[]? zip = null, ShipDataStore? store = null, Action<JsonObject>? change = null)
     {
-        var manifest = release.Manifest();
+        var manifest = release.Manifest(change: change);
         using var stream = new MemoryStream(zip ?? release.Zip());
         return (store ?? Store()).Install(ShipDataManifestReader.Read(manifest), manifest, stream);
     }
@@ -73,6 +74,33 @@ public sealed class ShipDataStoreTests : IDisposable
         ShipOutlineLoader.Load(active.OutlinesPath).Problems.Should().BeEmpty();
         File.Exists(Path.Combine(active.Folder, ShipDataStore.ManifestFileName)).Should().BeTrue();
         Folders().Should().Equal("ships-2026.11.1");
+    }
+
+    // T12.4: the holograms come with the data in use, read once with its manifest.
+    [Fact]
+    public void The_install_and_the_next_start_carry_the_holograms_of_the_manifest()
+    {
+        var hash = new string('c', 64);
+        var installed = Install(ShipDataRelease.Frozen(), change: m => m["holo"] = new JsonObject
+        {
+            ["formatVersion"] = 2,
+            ["ships"] = new JsonObject { ["misc-hull-a"] = new JsonObject { ["file"] = "misc-hull-a.holo", ["bytes"] = 3, ["sha256"] = hash } },
+        });
+
+        var holo = installed.Holo.Should().BeOfType<HoloOffer.Offered>().Which.Manifest;
+        holo.DataVersion.Should().Be("ships-2026.11.1");
+        holo.Ships.Should().Equal(new HoloManifestEntry("misc-hull-a", "misc-hull-a.holo", 3, hash));
+        Store().Active().Holo.Should().Be(installed.Holo);
+    }
+
+    [Fact]
+    public void A_release_with_the_kill_switch_is_active_without_holograms()
+    {
+        Install(ShipDataRelease.Frozen(), change: m => m["holo"] = null);
+
+        var active = Store().Active();
+        active.Origin.Should().Be(ShipDataOrigin.Downloaded);
+        active.Holo.Should().Be(new HoloOffer.NotOffered());
     }
 
     [Fact]

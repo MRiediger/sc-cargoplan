@@ -89,8 +89,9 @@ internal sealed class FrameMeasureWindow : Window
     // Star Citizen held the cursor, even with the drag still held.
     private int _pathKeys;
 
+    /// <param name="holoFolder">The hologram cache of the ship data in use (<see cref="HoloSource.CacheFolder"/>); nothing is downloaded here.</param>
     /// <param name="overGame">Lie over the game like the overlay: topmost, never the foreground window, after <see cref="Lead"/>.</param>
-    public FrameMeasureWindow(ShipCatalog catalog, string target, bool overGame = false)
+    public FrameMeasureWindow(ShipCatalog catalog, string holoFolder, string target, bool overGame = false)
     {
         _target = target;
         _overGame = overGame;
@@ -132,7 +133,7 @@ internal sealed class FrameMeasureWindow : Window
             }
 
             _crates = plan.Crates.Count;
-            var path = ship.ModelKey is { } slug && !spec.Outline ? Path.Combine(HoloRelease.DefaultCacheFolder, slug + ".holo") : null;
+            var path = ship.ModelKey is { } slug && !spec.Outline ? Path.Combine(holoFolder, slug + ".holo") : null;
             _holo = path is not null && File.Exists(path) ? PreparedHolo.Prepare(ship, HoloReader.Read(File.ReadAllBytes(path)), Look) : null;
             var outline = spec.Outline ? ShipOutlineLoader.Load().For(ship) : null;
             var scene = ShipViewBuilder.Build(plan, ship, spec.States ? LoadPlanner.Validate(plan, ship) : []) with

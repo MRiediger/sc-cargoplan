@@ -22,6 +22,7 @@ public partial class OverlayWindow : Window
     private readonly Func<UpdateSettingsViewModel> _createUpdates;
     private readonly Func<UpdateSettingsViewModel> _createShipData;
     private readonly Action _scanContract;
+    private readonly string? _hologramsUnavailable;
     private MissionEditorWindow? _editor;
     private SettingsWindow? _settingsWindow;
 
@@ -29,13 +30,15 @@ public partial class OverlayWindow : Window
     /// <param name="createUpdates">Made per settings window, like the hotkeys (T11.2).</param>
     /// <param name="createShipData">The Ship data section's, made the same way (T12.3).</param>
     /// <param name="scanContract">The editor's "Scan", the scan hotkey's runner (T10.3).</param>
+    /// <param name="hologramsUnavailable">The line under "Download ship holograms" when the data in use offer none this app reads (T12.4); null otherwise.</param>
     public OverlayWindow(
         OverlayViewModel viewModel,
         SettingsSession settings,
         Func<HotkeysViewModel> createHotkeys,
         Func<UpdateSettingsViewModel> createUpdates,
         Func<UpdateSettingsViewModel> createShipData,
-        Action scanContract)
+        Action scanContract,
+        string? hologramsUnavailable)
     {
         InitializeComponent();
         _viewModel = viewModel;
@@ -44,6 +47,7 @@ public partial class OverlayWindow : Window
         _createUpdates = createUpdates;
         _createShipData = createShipData;
         _scanContract = scanContract;
+        _hologramsUnavailable = hologramsUnavailable;
         DataContext = viewModel;
         viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
@@ -327,7 +331,10 @@ public partial class OverlayWindow : Window
                     _settings.HoloOpacity, _settings.ChangeHoloOpacity,
                     current.HoloHullColor, current.HoloEdgeColor, _settings.ChangeHoloColors,
                     _settings.MaxZoom, _settings.ChangeMaxZoom,
-                    notice => _viewModel.SetNotice(NoticeSource.Look, notice)),
+                    notice => _viewModel.SetNotice(NoticeSource.Look, notice))
+                {
+                    HologramsUnavailable = _hologramsUnavailable,
+                },
                 _createHotkeys(),
                 _createUpdates(),
                 _createShipData(),

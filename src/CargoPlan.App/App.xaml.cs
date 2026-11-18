@@ -123,7 +123,8 @@ public partial class App : Application
         if (options.MeasureFrames is { } measured)
         {
             // With the engine warming from the first frame like the overlay's (Gate 3); its notices go to the log only.
-            var measuring = new Diagnostics.FrameMeasureWindow(ships, measured, options.OverGame) { ScanLoad = options.ScanLoad };
+            var holoFolder = HoloSource.CacheFolder(HoloSource.DefaultCacheRoot, data.Version);
+            var measuring = new Diagnostics.FrameMeasureWindow(ships, holoFolder, measured, options.OverGame) { ScanLoad = options.ScanLoad };
             var scanner = measuring.Scanner = CreateScanner(notice: _ => { }, options.ScanLoad ? ProbeTarget() : null);
             WarmAfterFirstFrame(measuring, scanner);
             measuring.Show();
@@ -136,7 +137,7 @@ public partial class App : Application
         ComposeHotkeys(parts, settings);
         ComposeStartPlan(parts, options);
         ComposeSettingsFollowers(parts);
-        ComposeHolograms(parts);
+        ComposeHolograms(parts, data, options);
         ComposeUpdates(parts, options);
         ComposeShipData(parts, options);
 
@@ -328,7 +329,8 @@ public partial class App : Application
             () => CreateHotkeysViewModel(session),
             () => CreateUpdateSettingsViewModel(session),
             () => CreateShipDataSettingsViewModel(session),
-            scan.Start);
+            scan.Start,
+            _activeShipData is { } active ? HoloSource.UnavailableText(active) : null);
         if (settings.Overlay is { } saved)
         {
             RestoreBounds(overlay, saved);
@@ -392,15 +394,22 @@ public partial class App : Application
 
     /// <summary>
     /// The hologram of the ship and look (D63): once the overlay is up, on a ship change, on a new look or switch.
-    /// Every request cancels the one before; the outline shows until the hologram is there.
+    /// Every request cancels the one before; the outline shows until the hologram is there. The holograms are those of
+    /// the ship data in use (D114), from the release of <c>--ship-data-source</c>'s repository if it names one (R2).
     /// </summary>
-    private void ComposeHolograms(OverlayParts parts)
+    private void ComposeHolograms(OverlayParts parts, ActiveShipData data, StartOptions options)
     {
         var (viewModel, session, overlay) = (parts.ViewModel, parts.Session, parts.Overlay);
-        var holoLoader = _holoLoader = new HoloLoader(viewModel, HoloSource.CreateDefault());
+        var holoLoader = _holoLoader = new HoloLoader(viewModel, HoloSource.CreateDefault(data, options.ShipDataSource));
 
-        // Another tag's cache (holo-v1 of v0.2.0) goes at once when holograms aren't wanted now; else after the current
-        // tag's manifest is checked (D95).
+        // Once per start, not per ship change: the data in use offer no holograms this app reads (D63 kill switch, R1).
+        if (HoloSource.UnavailableLog(data) is { } unavailable)
+        {
+            AppLog.Write("Holo", unavailable);
+        }
+
+        // Another cache (the hologram release of v0.5.x, an older data version) goes at once when no hologram comes now;
+        // else at the first request (D95).
         holoLoader.RetireUnneeded(session.ShipOutline, session.DownloadShipHolograms);
         overlay.Loaded += async (_, _) => await RequestHologram();
         session.ShipViewChanged += async (_, _) => await RequestHologram();

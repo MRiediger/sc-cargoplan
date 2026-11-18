@@ -69,7 +69,7 @@ public sealed class ShipDataSource : IDisposable
         _client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SC-CargoPlan", version));
         _store = store;
         HasSource = source is not null;
-        _repository = source is null ? Repository : RepositoryUri(source) ?? Repository;
+        _repository = RepositoryFor(source);
         _folder = source is not null && RepositoryUri(source) is null ? source : null;
         _manifestTimeout = manifestTimeout;
         _downloadTimeout = downloadTimeout;
@@ -102,6 +102,15 @@ public sealed class ShipDataSource : IDisposable
 
     /// <summary><c>--ship-data-source</c>: a full folder path, or <c>https://github.com/&lt;owner&gt;/&lt;repo&gt;</c>.</summary>
     public static bool IsValidSource(string source) => RepositoryUri(source) is not null || (Path.IsPathFullyQualified(source) && !source.Contains("://", StringComparison.Ordinal));
+
+    /// <summary>
+    /// The repository of <c>--ship-data-source</c> when it names one, else <see cref="Repository"/>. The holograms come from
+    /// here too (T12.4, R2): a folder source gives the data channel's, holograms are never read from a folder.
+    /// </summary>
+    public static Uri RepositoryFor(string? source) => source is not null && RepositoryUri(source) is { } other ? other : Repository;
+
+    /// <summary>A release's assets, flat: <c>…/releases/download/&lt;tag&gt;/</c>, with a trailing slash so file names append (SD2, SD4).</summary>
+    public static Uri ReleaseFolder(Uri repository, ShipDataVersion version) => new(repository, $"releases/download/{version}/");
 
     /// <summary>
     /// The start's check: once per run, on the pool, with the switch and the dev build rule (P4). null = nothing to show:
@@ -154,7 +163,7 @@ public sealed class ShipDataSource : IDisposable
 
         progress(0);
         var asset = release.Manifest.ShipsAsset;
-        var zip = await ReadAsync(asset, new Uri(_repository, $"releases/download/{version}/{asset}"), _downloadTimeout, closing);
+        var zip = await ReadAsync(asset, new Uri(ReleaseFolder(_repository, release.Manifest.DataVersion), asset), _downloadTimeout, closing);
         if (zip.Data is null)
         {
             AppLog.Write(LogContext, $"download of {version} failed: {zip.Problem}");
