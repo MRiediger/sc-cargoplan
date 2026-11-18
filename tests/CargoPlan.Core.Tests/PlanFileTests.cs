@@ -409,9 +409,7 @@ public class PlanFileTests
     [InlineData("crate_without_mission", "*mission 0*")]
     [InlineData("missing_crate", "*Riker, Titanium: 3 of 4 crates of 4 SCU placed*")]
     [InlineData("contract_without_ids", "*without a scan names its ContractTracker ids*")]
-    [InlineData("unknown_rack", "*rack-9*")]
     [InlineData("missing_delivered", "*delivered*")]
-    [InlineData("unknown_warning_rack", "*rack-9*")]
     [InlineData("foreign_destination", "*Area18*")]
     [InlineData("invalid_crate_size", "*3 SCU is not a crate size*")]
     [InlineData("short_position", "*position needs 3 values*")]
@@ -425,6 +423,31 @@ public class PlanFileTests
         var act = () => Read(node.ToJsonString(), "broken.json");
 
         act.Should().Throw<PlanFormatException>().WithMessage(expectedMessage).Which.SourceName.Should().Be("broken.json");
+    }
+
+    /// <summary>
+    /// Successor of the rows "unknown_rack" and "unknown_warning_rack" above (T12.3, R3 of the approval): a ship data
+    /// update can drop a grid, so a crate or warning in a rack the ship no longer has means its racks changed, like a crate
+    /// outside today's rack (K3.2), and the overlay plans the missions anew (D59). Before, plan.json was kept aside (D106)
+    /// and the plan was gone.
+    /// </summary>
+    [Theory]
+    [InlineData("unknown_rack")]
+    [InlineData("unknown_warning_rack")]
+    public void A_rack_the_ship_no_longer_has_reads_as_racks_changed_and_is_planned_anew(string change)
+    {
+        var node = JsonNode.Parse(V4Text())!;
+        V3Changes[change](node);
+
+        var saved = Read(node.ToJsonString());
+
+        saved.CrateCap.Reason.Should().Be(CapReason.RacksChanged);
+        saved.CrateCap.Should().NotBe(CrateCap.Of(HullA));
+        var replanned = LoadPlanner.Replan(saved, HullA);
+        replanned.CrateCap.Should().Be(CrateCap.Of(HullA));
+        replanned.Missions.Should().OnlyContain(m => !m.Unplaced);
+        replanned.Plan.Crates.Should().OnlyContain(c => c.OffShip || HullA.Racks.Any(r => r.Id == c.RackId));
+        LoadPlanner.Validate(replanned.Plan, HullA).Should().BeEmpty();
     }
 
     // --- A plan for another ship (D59): read without its grid, the overlay plans it anew ---

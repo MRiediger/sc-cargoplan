@@ -17,6 +17,9 @@ public static class ShipLoader
 
     private static readonly int[] ReadableSchemaVersions = [NoDoorLimitSchemaVersion, NoRotationSchemaVersion, SupportedSchemaVersion];
 
+    /// <summary>Whether ship files of <paramref name="schemaVersion"/> load: a data release of another one waits for an app update (T12.3).</summary>
+    public static bool IsReadable(int schemaVersion) => ReadableSchemaVersions.Contains(schemaVersion);
+
     /// <summary>The folder's name next to the exe, and in the repo root.</summary>
     public const string FolderName = "ships";
 

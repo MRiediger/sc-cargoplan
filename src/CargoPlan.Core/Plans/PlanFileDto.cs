@@ -120,9 +120,10 @@ internal sealed record PlanFileDto(
     /// A plan for another ship skips the grid: its racks are another ship's, and the overlay plans it anew from its
     /// missions (<c>LoadPlanner.Replan</c>, D59). A crate outside its rack means the racks changed since the file was
     /// written (K3.2: the turned racks went back to Fleetyards' orientation; any ship data update can do it), whatever the
-    /// schema: <paramref name="plan"/> as it is with <c>RacksChanged</c>, planned anew like another ship's.
+    /// schema: <paramref name="plan"/> as it is with <c>RacksChanged</c>, planned anew like another ship's. So does a crate
+    /// or warning in a rack the ship no longer has (T12.3): a data update can drop a grid, and the plan would be lost
+    /// (kept aside, D106) for a change that isn't the player's.
     /// </summary>
-    /// <exception cref="ArgumentException">The plan names a rack the ship doesn't have.</exception>
     internal static (LoadPlan Plan, bool RacksChanged) Checked(LoadPlan plan, Ship ship)
     {
         if (plan.ShipId != ship.Id)
@@ -132,16 +133,9 @@ internal sealed record PlanFileDto(
 
         // An off-ship crate (K2.2) was never on this ship: no rack to name, no grid to fit.
         var racks = ship.Racks.ToDictionary(r => r.Id);
-        if (plan.Crates.FirstOrDefault(c => !c.OffShip && !racks.ContainsKey(c.RackId)) is { } stray)
+        if (plan.Crates.Any(c => !c.OffShip && !racks.ContainsKey(c.RackId)) || plan.Warnings.Any(w => !racks.ContainsKey(w.RackId)))
         {
-            throw new ArgumentException(
-                $"Crate for {stray.Destination} is in rack '{stray.RackId}', which ship '{ship.Id}' doesn't have.", nameof(Crates));
-        }
-
-        if (plan.Warnings.FirstOrDefault(w => !racks.ContainsKey(w.RackId)) is { } warning)
-        {
-            throw new ArgumentException(
-                $"Warning \"{warning.Message}\" is for rack '{warning.RackId}', which ship '{ship.Id}' doesn't have.", nameof(Warnings));
+            return (plan, true);
         }
 
         // A crate outside its rack can't be drawn or moved; its racks changed, so the overlay plans the missions anew.
