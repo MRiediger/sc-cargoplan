@@ -7053,6 +7053,96 @@ Copy-Item "$env:LocalAppData\SC-CargoPlan\plan.json" $data   # optional: dein Hu
 
 **Akzeptanz:** Holo-Dateien aus `ships-*` byte-gleich zu holo-v3 (S12.0: Schwelle 0); Holo-Download aus `ships-*` statt `holo-v3`.
 
+**Plan (18.11.2026, Branch `feat/p12-holo-manifest` ab `b02b90d`, Freigabe Martin 18.11. mit R1 Alternative, R2, R3)**
+
+Festlegungen 1–7 aus dem Startprompt (Martin, 18.11.) gelten, Festlegung 1 mit R1 geändert. Die Akzeptanz oben ist
+präzisiert: statt „Holo-Dateien aus `ships-*` byte-gleich zu holo-v3“ (stimmt nur für 11 von 101, s. Befunde) gilt die
+Akzeptanz des Startprompts (Hyun mit Holo, F7C mit Motherlode-Holo, Hull A wie immer, Cache unter
+`holo\ships-2026.11.1\` mit SHA = Manifest, `holo-v3`-Ordner einmal weg, Kill-Switch, 404). „Gelöschtes Release →
+Baseline-Holo“ aus dem Task-Text wird nach Festlegung 5 „Umriss für dieses Schiff, gecachte Datei bleibt“.
+
+**Befunde vorab (gemessen 18.11.):**
+- `ships-2026.11.1` vs. holo-v3: **11 Slugs byte-gleich** (u. a. `misc-hull-a`), **90 anders**, 1 neu (`gama-hyun`,
+  268 668 B), keiner weg. Die Übernahme aus `holo-v3` (Festlegung 3: nicht) spart also höchstens 11 Downloads.
+- F7C: holo-v3 403 390 B (Fleetyards) → `ships-2026.11.1` **88 046 B** (`ANVL_Hornet_F7C_Mk2`). Größte Datei 661 206 B
+  (`orig-135c`) < `MaxResponseBytes` 4 MiB; alle `file` = `<slug>.holo`.
+- **Zeit vorher/nachher** (curl, 3 Läufe, erster kalt): vorher = Manifest holo-v3 (0,54 / 0,14 / 0,15 s) + F7C-Datei
+  (0,49 / 0,22 / 0,25 s) = **1,03 / 0,36 / 0,40 s** für das erste Schiff eines Laufs; nachher nur die Datei
+  **0,44 / 0,13 / 0,15 s** (F7C, kleinere Datei), Hyun 0,45 / 0,18 / 0,19 s. Gewinn: ein Round-Trip (0,14–0,54 s) beim
+  ersten Schiff des Laufs.
+
+**Grep-first (A1):**
+
+| Treffer | Ist | T12.4 |
+|---|---|---|
+| `HoloRelease` (App) | `Tag`, `ManifestFile`, `BaseUri`, `Timeout`, `ManifestMaxAge`, `DefaultCacheRoot`, `DefaultCacheFolder`, `UserAgentVersion`; Nutzer `HoloSource`, `FrameMeasureWindow`, Tests `AppFoldersTests`, `FakeHttp`, `HoloLoaderTests`, `HoloSourceTests` | **Datei entfällt.** `Timeout`, `DefaultCacheRoot`, `CacheFolder(root, version)` nach `HoloSource`; `UserAgentVersion` → `AppVersion.Current` wie `ShipDataSource` |
+| `HoloManifestReader` + `HoloJsonContext` (Core) | liest das holo-v3-Manifest (Liste `ships[]` mit `slug`); einziger Nutzer `HoloSource` | **entfällt**; den `holo`-Abschnitt (Map `slug → {file, bytes, sha256}`) liest `ShipDataManifestReader` und bildet ihn auf die **bestehenden Records** `HoloManifest`/`HoloManifestEntry` ab: ein Parser, eine Prüfung |
+| `HoloSource` | Manifest-GET, 24-h-Alter, Rückzug löscht gecachte Datei, `TagChanged`/`RetireOtherTags` (`holo-v<n>`), eigener `HttpClient` mit `BaseAddress` | Manifest aus `ActiveShipData`, kein Manifest-GET, kein `TimeProvider`; `TagChanged`/D95 bleiben, Ordnererkennung erweitert; eigener Client bleibt |
+| `HoloLoader` | einziger Schreiber von `NoticeSource.Holo` und `HoloUpdate` (A13; sonst nur ein `PlanSaver`-Kommentar und `OverlayViewModelTests`) | nur `RetireUnneeded` erweitert (kein Holo im Stand); Notice-Logik unverändert |
+| `ShipDataSource` | eigener `HttpClient` (16 MiB, 10/30 s), `Repository`, privat `RepositoryUri(source)`, URL `releases/download/{v}/{asset}` inline | neu `RepositoryFor(string? source)` und `ReleaseFolder(repository, version)`; `DownloadAsync` und `HoloSource` nutzen sie |
+| `ActiveShipData` (Core) | gebaut in `ReadBaseline`, `ShipDataStore.Downloaded`, fünf Testkonstruktionen | + `Holo` |
+| `ShipPictureTests` | Holos aus `CARGOPLAN_HOLO_FOLDER`, kein `HoloRelease` | unverändert |
+
+**Ein `HttpClient` oder zwei:** `HoloSource` behält den eigenen (A4). Teilen hieße: `HoloSource` nimmt einen fremden
+Client statt eines Handlers (alle `FakeHandler`-Tests umbauen), und `MaxResponseContentBufferSize` (4 vs. 16 MiB) gilt
+pro Client. Gegenargument: zwei Verbindungspools zu github.com – bei einer Handvoll Requests pro Lauf ohne messbare
+Kosten. Geteilt wird nur die **URL-Basis**.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. **`ActiveShipData` trägt das Holo-Angebot** (statt dass `HoloSource` `<Folder>\manifest.json` ein zweites Mal liest):
+   `ReadBaseline`, `Active` und `Install` haben das geprüfte Manifest in der Hand. Gegenargument: der Record wächst.
+2. **`holo` ist Pflichtfeld**, `null` erlaubt: fehlt der Schlüssel → `ShipDataFormatException` (die Pipeline schreibt ihn
+   immer). Prüfung je Eintrag (A6): Slug und `file` flach (`AssetName`), `bytes > 0`, `sha256` 64 Hex.
+   `HoloManifest.DataVersion` = `dataVersion` des Manifests, `Ships` nach Slug sortiert.
+3. **R1 (Alternative statt Festlegung 1):** `holo.formatVersion ≠ 2` macht das Manifest **nicht** ungültig, sondern heißt
+   „kein Holo für diese App“ mit eigener Ursache: `HoloOffer` = `Offered(HoloManifest)` | `NotOffered` (`holo: null`,
+   Kill-Switch) | `UnknownFormat(n)`; die Einträge eines unbekannten Formats werden nicht gelesen. Schiffe kommen, Umriss,
+   eine Logzeile, Settings-Text. Gegenargument: eine ältere App holt einen Stand, dessen Holos sie nie zeigt.
+4. **`GetAsync`-Ablauf:** kein Angebot → `Missing` (kein Request, kein Cache-Lesen) · Slug fehlt → `Missing` · gecachte
+   Datei mit Länge+SHA des Manifests → `Found`, **auch bei Download aus** · Download aus → `Missing` · beim ersten Aufruf
+   mit Download an: D95-Rückzug + `TagChanged` · Slug schon 404 in diesem Lauf → `Missing` ohne Request · **404** →
+   `Missing`, Slug gemerkt, **eine** Logzeile je Lauf, gecachte Datei bleibt · andere Status, Timeout, kein Netz →
+   `Failed` wie heute (eine Notice je Lauf) · falscher Hash → `Failed`, Datei weg.
+5. **Rückzug innerhalb eines Stands entfällt:** Manifest pro Lauf konstant, Ordner pro Stand neu; eine gecachte Datei ohne
+   Manifest-Eintrag gibt es nicht mehr.
+6. **Ordner „eines anderen Stands“ (D95):** direkt unter `holo\`, Name `holo-v<Ziffern>` **oder** ein `ShipDataVersion`
+   ≠ aktiver Stand; sonst nichts (`notes\`, `ships-x\` bleiben). Ein Downgrade auf v0.5.x lädt neu (wie bei D95 heute).
+7. **Kein Angebot (Kill-Switch, unbekanntes Format):** `HoloLoader.RetireUnneeded` räumt sofort und still (Notice nur,
+   wenn das Löschen scheitert); `App` schreibt **eine** Logzeile beim Start; kein `TagChanged`, keine Notice.
+8. **R3: Settings-Text unter dem Schalter** „Download ship holograms“: `Holograms: not offered by ship data 2026.11.2`
+   bzw. `Holograms: ship data 2026.12 needs a newer app (hologram format 3)`, sonst unsichtbar.
+9. **R2 `--ship-data-source`:** Repo-URL → Holos aus diesem Repo; Ordner → Holos aus dem Standard-Repo, kein
+   Datei-Lesen in `HoloSource` (A4). Ein Fixture-Stand mit erfundenem Tag bekommt 404 → Umriss.
+10. **`FrameMeasureWindow`** liest aus `holo\<Baseline-Tag>\` (es lädt die Baseline-Schiffe).
+11. **Nutzer-Doku mit holo-v3** (README, `settings-format.md`, `ship-format.md`) zieht T12.4 nach; Nexus-Texte und Wiki
+    beschreiben das veröffentlichte v0.5.1 und folgen mit dem Release (T12.6).
+
+**Aufbau:** Core `HoloOffer` (Holo/), `ShipDataManifest.Holo`, `ShipDataManifestReader` (`holo` als `JsonElement`, Format
+zuerst), `ActiveShipData.Holo`; App `HoloSource(handler, cacheRoot, repository, data, timeout, version)`,
+`ShipDataSource.RepositoryFor`/`ReleaseFolder`, `HoloLoader.RetireUnneeded`, `App.ComposeHolograms` (Logzeile),
+`SettingsViewModel.HologramsUnavailable` + TextBlock, `FrameMeasureWindow`; `HoloRelease.cs` und `HoloManifestReader` weg.
+**Doku:** D114 „Holograms follow the ship data manifest“, Addenda D63, D95, D112; CLAUDE.md (Netz, Struktur);
+`holo-format.md`, `settings-format.md`, `ship-format.md`, README.
+
+**Tests zuerst:** Core `ShipDataManifestReaderTests` (Nachfolger von `HoloManifestReaderTests`: `holo` gelesen, `null`,
+fehlt, Format 3 = `UnknownFormat` ohne Eintragsprüfung, `file` mit `/`/`..`, Hash, `bytes 0`, leere Map),
+`ShipDataStoreTests`/`BaselineShipDataTests` (`Holo` in `ReadBaseline`, `Active`, `Install`); App `HoloSourceTests` neu
+gefasst (Stand-URL, nur `.holo`-Requests, Hash, Kill-Switch, unbekanntes Format, 404 einmal und ein anderes Schiff lädt,
+503, Download aus mit geprüftem Cache, D95 mit `holo-v3\` und `ships-2026.11\`), `HoloLoaderTests` (kein Angebot: drei
+Schiffswechsel ohne Request und Notice; 404 ohne Notice; A13: Tag-Wechsel-Notice + 404; offline nach Tag-Wechsel),
+`AppFoldersTests`, `ShipDataSourceTests`, Settings-Text. Entfallen: alle Tests zu Manifest-GET und 24 h; Nachfolger in
+der Umsetzung benannt. `ShipPictureTests` unverändert.
+
+**CC-Vorlauf ohne SC (Publish `0.5.99`, `--data-dir` im Scratchpad):** leerer Datenordner, drei Starts (Hyun, F7C,
+Hull A): kein Manifest-GET, Dateien unter `holo\ships-2026.11.1\`, SHA = Manifest; kopierter `holo\holo-v3\` → weg, eine
+Notice, zweiter Start ruhig; Fixture-Feed `ships-2026.11.2` mit `holo: null` → eine Logzeile, kein Request,
+Settings-Text; `grep -rE "holo-v3|HoloRelease" src` leer.
+
+**Gate Martin (SC vorn):** Hyun → Holo; F7C → Holo (schlanker); Hull A → Plan und Holo wie vorher.
+
+**Nicht in T12.4:** Übernahme byte-gleicher Holos aus `holo-v3`; Löschen des `holo-v3`-Release (T12.6); Nexus- und
+Wiki-Texte (T12.6); Live-Reload.
+
 ### [x] T12.5 App: Baseline aus dem Release (18.11.2026, `46fd06d`, `39c3a50`, abgenommen 18.11.)
 
 **Warum:** Eine Quelle für Schiffsdaten; `ships/` als Quelltext im App-Repo ist der zweite Pfad, der v0.5.1 teuer machte.
