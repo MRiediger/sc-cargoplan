@@ -6881,7 +6881,7 @@ T12.1 Pipeline `run.py`, T12.1b Nachträge, T12.2 Workflow `ship-data.yml`. **Hi
   `-KeyMap`, `modelKey` aus dem letzten Release, kein Anker in der Rack-Mitte). Anlass war die 350r, die in `92d9d99`
   ihren Key verlor; `ShipOutlineLoaderTests.Every_outline_belongs_to_a_shipped_ship` bleibt als Netz.
 
-### [ ] T12.3 App: Datenkanal
+### [x] T12.3 App: Datenkanal (18.11.2026, `9e3c620`, `ab06ae8`, `2f41d0a`, `12a16d2`, abgenommen 18.11.)
 
 **Warum:** Ohne Leser ist das Release wertlos.
 - Manifest-Check nach dem Velopack-Check (eine URL `…/releases/latest/download/manifest.json`), `schemaVersion`-Prüfung (unbekannt → „Ship data needs app update“)
@@ -7035,13 +7035,13 @@ Copy-Item "$env:LocalAppData\SC-CargoPlan\plan.json" $data   # optional: dein Hu
 **Offen fürs Gate (Optik = Martin):** die Texte oben, Lage des Abschnitts „Ship data“ (unter „Updates“), zwei Zeilen
 übereinander, wenn App- und Datenupdate zugleich kommen.
 
-**Abnahme (Martin):**
-- [ ] Gate 1–2: Angebot, Update, Neustart, Hyun, F7C, Plan bleibt
-- [ ] Gate 3: `ships --version`, Abschnitt „In use“
-- [ ] Gate 4: zweiter Start ohne Zeile
-- [ ] Gate 5: Skip, Neustart, Settings zeigen den Stand
-- [ ] Gate 6: offline
-- [ ] Optik und Texte
+**Abnahme (Martin, 18.11.2026, SC im Vordergrund):**
+- [x] Gate 1–2: Angebot, Update, Neustart, Hyun, F7C, Plan bleibt
+- [x] Gate 3: `ships --version`, Abschnitt „In use“
+- [x] Gate 4: zweiter Start ohne Zeile
+- [x] Gate 5: Skip, Neustart, Settings zeigen den Stand
+- [x] Gate 6: offline
+- [x] Optik und Texte: passen; Texte, Lage des Abschnitts und zwei Zeilen übereinander bleiben wie gebaut
 - [x] Build ohne Warnungen, alle Tests grün (Core 1880, Import 280, Ocr 34, App 2075; ohne die drei lokalen Scratch-Tests
   Core 1878, App 2074), `dotnet format` sauber
 
