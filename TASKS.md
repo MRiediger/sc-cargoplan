@@ -7131,6 +7131,62 @@ Issue-Vorlage `ship-correction.yml`, Kommentar in `CargoPlan.Ocr.csproj`.
 
 **Nicht in T12.5:** Holo aus dem Manifest (T12.4), Live-Reload, Pin-Bump per PR aus der Pipeline (Backlog).
 
+**Umsetzung (18.11.2026):** Code `46fd06d`, Doku `39c3a50` (D113, Addenda D56/D111, CLAUDE.md, CONTRIBUTING, README,
+`ship-format.md`, `holo-format.md`, `settings-format.md`, Nexus-Checkliste, Issue-Vorlage). Tests erst rot gesehen:
+Core 4× CS0117 (`BaselineFolder`, `BaselineFolderName`, `ReadBaseline`, `ReadableSchemaVersions`). Draft-PR #28 nur für
+CI: [Lauf 44364056343](https://github.com/MRiediger/sc-cargoplan/actions/runs/44364056343) grün auf `windows-latest`
+und `ubuntu-latest`, Fetch auf beiden (231 552 B, 111 Dateien geprüft), Testzahlen wie lokal.
+
+**Befunde in der Umsetzung:**
+- **Größe:** der einmalige Download ist **≈ 230 KB**, nicht ≈ 150 KB (Manifest 127 KB + `ships.zip` 102 KB + Notice);
+  Build-Log und CONTRIBUTING nennen 230.
+- **Datentest kippte erwartungsgemäß:** `ships-2026.11.1` hat die Racks der **F7C Hornet Mk II** aus den Spieldateien
+  (die F7C-Änderung aus T12.3). `Every_ship_but_three_…` → `Every_ship_but_two_…` (135c, 600i EE). Sonst keiner:
+  `HeaderPanelTests` (D110, längster Name), `ShipOutlineLoaderTests`, `ReplanTests`, `OldPlan350rTests` grün mit 110 Schiffen.
+- `check-portable.ps1` prüft zusätzlich `ships --version --data-dir <leer>` = `<Pin> (baseline)`: das ZIP trägt
+  nachweislich den gepinnten Stand, unabhängig vom Profil.
+- PS-5.1-Falle beim Doku-Helfer (Skript ohne BOM → „–“ kaputt, Abbruch vor dem Schreiben); `fetch-ship-data.ps1` ist
+  reines ASCII, die csproj ohne BOM.
+- **Für T12.6 (README beider Repos):** README und Issue-Vorlage `ship-correction.yml` nennen noch „105 ships, 102 from
+  the game files, three Fleetyards (… F7C …)“; mit der Baseline `ships-2026.11.1` sind es 110 und zwei.
+- `ShipAnchorTests` war schon Mechanik (FrozenShips); nur die Wertetests gingen (R3), die 5 F7-Tests bleiben.
+
+**CC-Vorlauf ohne SC (18.11.):**
+1. `git ls-files ships outlines tools/import-motherlode.ps1 tools/ShipJson.ps1` → leer.
+2. Frischer Klon (Scratchpad) → `dotnet build`: `Fetching ship data ships-2026.11.1 (once, ≈230 KB)`, `Ship data
+   ships-2026.11.1 fetched: 231552 bytes, 111 files checked against manifest.json, in …\.ship-data\ships-2026.11.1`;
+   zweiter `dotnet build` ohne Fetch-Zeile; `dotnet test` grün (Core 1889, Import 280, Ocr 34, App 2069),
+   `dotnet format --verify-no-changes` sauber. `ship-data\` (113 Dateien) neben App, Cli, Core-, App- und Import-Tests.
+3. `./build/publish.ps1 -Version 0.5.99` → `Layout check: SC-CargoPlan-v0.5.99-win-x64.zip passed (388 files in current\,
+   110 ship files of ships-2026.11.1, 5 PDBs, version 0.5.99).`
+4. Start aus `out\publish` mit `--data-dir` (darin `ships\ships-2026.11\`, mit dem Skript geholt): Log `removed
+   ships-2026.11`, `in use: ships-2026.11.1 (baseline) …\ship-data, 110 ships`, gegen das echte GitHub `nothing newer
+   than ships-2026.11.1` → keine Zeile. CLI `ships --version --data-dir …` → `ships-2026.11.1 (baseline) …`.
+   `ship-data\ships\hyun.json` = „GAMA Hyun“.
+5. Unerreichbare Quelle (`--ship-data-source <fehlt>`): 110 Schiffe aus der Baseline, eine Logzeile `check failed`.
+6. Manifest beiseite → CLI `ship-data\manifest.json: missing`, Exit 1; die App zeigt `The ship data next to SC-CargoPlan
+   are missing or damaged (ship-data\manifest.json: missing). Download SC-CargoPlan again.` (Test `BaselineMissingTextTests`).
+
+**Gate-Anleitung (Martin, SC im Vordergrund):**
+
+```powershell
+./build/publish.ps1 -Version 0.5.99
+$exe  = "$PWD\out\publish\SC-CargoPlan\CargoPlan.App.exe"
+$data = "$env:UserProfile\CargoPlan-t125"     # eigener Datenordner, dein Profil bleibt unberührt
+New-Item -ItemType Directory -Force $data | Out-Null
+Copy-Item "$env:LocalAppData\SC-CargoPlan\plan.json" $data   # dein Hull-A-Plan
+& $exe --data-dir $data
+```
+
+1. Overlay startet ohne Ship-data-Zeile, Hull-A-Plan wie vorher.
+2. Ein Schiff wechseln (z. B. **Hyun**, dann zurück zur Hull A): nichts sieht anders aus als in v0.5.1 / T12.3.
+3. Optional: `& "$PWD\out\publish\SC-CargoPlan\CargoPlan.Cli.exe" ships --version --data-dir $data` →
+   `ships-2026.11.1 (baseline) …`.
+
+**Abnahme (Martin):**
+- [ ] Gate: Publish-Build, Hull-A-Plan, Schiffswechsel – unverändert
+- [ ] Build ohne Warnungen, alle Tests grün, `dotnet format` sauber, CI grün auf beiden Runnern
+
 ### [ ] T12.6 Release (beide Repos; Teile mit **App:** hier)
 
 **Warum:** Erst ein echtes Data-Release, dann die App, die es liest, dann der erste Monatslauf.
