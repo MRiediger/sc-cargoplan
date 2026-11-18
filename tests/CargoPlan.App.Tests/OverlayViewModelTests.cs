@@ -251,6 +251,41 @@ public class OverlayViewModelTests
         update.IsLocked.Should().BeTrue();
     }
 
+    [Fact]
+    public void The_ship_data_line_follows_the_lock_like_the_update_line()
+    {
+        // T12.3: a line of its own below the update line, the same controls, the same lock.
+        var viewModel = WithPlan();
+        viewModel.IsManuallyLocked = true;
+        var (update, shipData) = (Updates(), Updates());
+
+        viewModel.Update = update;
+        viewModel.ShipData = shipData;
+        shipData.IsLocked.Should().BeTrue();
+
+        viewModel.IsManuallyLocked = false;
+        (update.IsLocked, shipData.IsLocked).Should().Be((false, false));
+
+        viewModel.IsAutoLocked = true;
+        (update.IsLocked, shipData.IsLocked).Should().Be((true, true));
+    }
+
+    [Fact]
+    public void The_ship_data_notice_has_a_line_of_its_own()
+    {
+        // A13: NoticeSource.ShipData has the app's start as its one writer (a download that won't load, or a release that
+        // needs an app update); it stands with the other hints and goes alone.
+        var viewModel = WithPlan();
+        viewModel.SetNotice(NoticeSource.Plan, "plan hint");
+        viewModel.SetNotice(NoticeSource.ShipData, "Ship data 2026.12 needs an app update");
+        viewModel.SetNotice(NoticeSource.Settings, "settings hint");
+
+        viewModel.Notices.Should().Equal("settings hint", "Ship data 2026.12 needs an app update", "plan hint");
+
+        viewModel.SetNotice(NoticeSource.ShipData, null);
+        viewModel.Notices.Should().Equal("settings hint", "plan hint");
+    }
+
     private static UpdateViewModel Updates() =>
         new(new UpdateActions((_, _) => Task.FromResult<string?>(null), _ => Task.FromResult<string?>(null), _ => { }), action => action());
 

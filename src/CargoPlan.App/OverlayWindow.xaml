@@ -369,6 +369,31 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- An update line (T11.2, D109, U1; T12.3 for the ship data): text left in the notices' style, controls right;
+             locked, the controls hide and keep their space (U2). One template for the app's line and the ship data's. -->
+        <DataTemplate x:Key="UpdateLineTemplate" DataType="{x:Type vm:UpdateViewModel}">
+            <DockPanel Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel x:Name="UpdateControls" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding AreControlsShown}" Value="False">
+                                    <Setter Property="Visibility" Value="Hidden" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <Button Content="Update" Command="{Binding UpdateCommand}" Style="{StaticResource TextButtonStyle}" Margin="8,0,0,0"
+                            Visibility="{Binding ShowsUpdate, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <Button Content="Retry" Command="{Binding RetryCommand}" Style="{StaticResource TextButtonStyle}" Margin="8,0,0,0"
+                            Visibility="{Binding ShowsRetry, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <CheckBox Content="Skip this version" Command="{Binding SkipCommand}" Style="{StaticResource NoticeCheckBoxStyle}" Margin="10,0,0,0"
+                              Visibility="{Binding ShowsSkip, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                </StackPanel>
+                <TextBlock x:Name="UpdateText" Text="{Binding Text, Mode=OneWay}" Style="{StaticResource NoticeTextStyle}" VerticalAlignment="Center" />
+            </DockPanel>
+        </DataTemplate>
     </Window.Resources>
     <Border Background="{DynamicResource WindowBackgroundBrush}"
             BorderBrush="{DynamicResource WindowBorderBrush}"
@@ -532,35 +557,14 @@
                 </StackPanel>
             </sv:HeaderPanel>
 
-            <!-- The update line (T11.2, D109, U1): the bottom line, below the notices (the earlier of two bottom children lies
-                 lower). Text left in the notices' style, controls right; locked, the controls hide and keep their space (U2).
-                 No line without an update: Update is null outside the overlay's start, IsVisible false without an offer. -->
-            <ContentControl x:Name="UpdateLine" DockPanel.Dock="Bottom" Focusable="False" Content="{Binding Update, Mode=OneWay}">
-                <ContentControl.ContentTemplate>
-                    <DataTemplate DataType="{x:Type vm:UpdateViewModel}">
-                        <DockPanel Visibility="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <StackPanel x:Name="UpdateControls" DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                <StackPanel.Style>
-                                    <Style TargetType="StackPanel">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding AreControlsShown}" Value="False">
-                                                <Setter Property="Visibility" Value="Hidden" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </StackPanel.Style>
-                                <Button Content="Update" Command="{Binding UpdateCommand}" Style="{StaticResource TextButtonStyle}" Margin="8,0,0,0"
-                                        Visibility="{Binding ShowsUpdate, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                <Button Content="Retry" Command="{Binding RetryCommand}" Style="{StaticResource TextButtonStyle}" Margin="8,0,0,0"
-                                        Visibility="{Binding ShowsRetry, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                                <CheckBox Content="Skip this version" Command="{Binding SkipCommand}" Style="{StaticResource NoticeCheckBoxStyle}" Margin="10,0,0,0"
-                                          Visibility="{Binding ShowsSkip, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                            </StackPanel>
-                            <TextBlock x:Name="UpdateText" Text="{Binding Text, Mode=OneWay}" Style="{StaticResource NoticeTextStyle}" VerticalAlignment="Center" />
-                        </DockPanel>
-                    </DataTemplate>
-                </ContentControl.ContentTemplate>
-            </ContentControl>
+            <!-- The ship data line (T12.3, D112): the bottom line, below the update line, the same template. -->
+            <ContentControl x:Name="ShipDataLine" DockPanel.Dock="Bottom" Focusable="False" Content="{Binding ShipData, Mode=OneWay}"
+                            ContentTemplate="{StaticResource UpdateLineTemplate}" />
+            <!-- The update line (T11.2, D109, U1): below the notices (the earlier of two bottom children lies lower), above
+                 the ship data line. No line without an update: Update is null outside the overlay's start, IsVisible false
+                 without an offer. -->
+            <ContentControl x:Name="UpdateLine" DockPanel.Dock="Bottom" Focusable="False" Content="{Binding Update, Mode=OneWay}"
+                            ContentTemplate="{StaticResource UpdateLineTemplate}" />
             <!-- Problems with settings (D13), hotkeys (D17) and the plan file, one line per source (D18). The bottom lines,
                  only the update line below them; full width and left-aligned, wherever the legend stands (D33, addendum
                  T5.1): docked before the legend area, so a bottom legend stands above it, and a notice coming and going never

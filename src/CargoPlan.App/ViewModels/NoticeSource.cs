@@ -26,6 +26,13 @@ public enum NoticeSource
     /// </summary>
     HoloUpdate,
 
+    /// <summary>
+    /// The ship data (T12.3, D112): the downloaded release in use didn't load and the built-in one runs, or the latest
+    /// release needs an app update (P6). Set by the start alone, for the run; the ship data line with Update and Skip is no
+    /// source but an element like the update line.
+    /// </summary>
+    ShipData,
+
     Hotkeys,
     Plan,
 

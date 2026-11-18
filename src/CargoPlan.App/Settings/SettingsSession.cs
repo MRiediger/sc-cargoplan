@@ -234,6 +234,28 @@ public sealed class SettingsSession
     /// </summary>
     public void ChangeSkippedVersion(string? version) => ChangeUpdates(Current.Updates with { SkippedVersion = version });
 
+    /// <summary>The ship data settings changed (T12.3): an open settings window shows a Skip from the ship data line.</summary>
+    public event EventHandler<UpdateSettings>? ShipDataChanged;
+
+    /// <summary>The Ship data section's switch: saved after <see cref="Debounce"/>, read by the next start.</summary>
+    public void ChangeShipDataCheckOnStartup(bool check) => ChangeShipData(Current.ShipData with { CheckOnStartup = check });
+
+    /// <summary>The ship data line's Skip (a release tag) or the Ship data section's Clear (null).</summary>
+    public void ChangeShipDataSkippedVersion(string? version) => ChangeShipData(Current.ShipData with { SkippedVersion = version });
+
+    private void ChangeShipData(UpdateSettings shipData)
+    {
+        if (shipData == Current.ShipData)
+        {
+            return;
+        }
+
+        Current = Current with { ShipData = shipData };
+        _timer.Stop();
+        _timer.Start();
+        ShipDataChanged?.Invoke(this, shipData);
+    }
+
     private void ChangeUpdates(UpdateSettings updates)
     {
         if (updates == Current.Updates)

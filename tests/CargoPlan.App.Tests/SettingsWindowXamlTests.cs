@@ -118,6 +118,24 @@ public partial class SettingsWindowXamlTests
         bindings.Should().Contain("TextBlock.Text={Binding Status, Mode=OneWay}");
     }
 
+    [Fact]
+    public void The_ship_data_section_binds_the_same_view_model_and_shows_the_data_in_use()
+    {
+        // T12.3: the switch, the skipped release with Clear, Check now, and which data the overlay runs on.
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var section = Root().Descendants().Single(e => (string?)e.Attribute(x + "Name") == "ShipDataSection");
+        var bindings = section.Descendants().SelectMany(e => e.Attributes()).Select(a => $"{a.Parent!.Name.LocalName}.{a.Name.LocalName}={a.Value}").ToList();
+
+        section.Attribute("Header")!.Value.Should().Be("Ship data");
+        bindings.Should().Contain("CheckBox.IsChecked={Binding CheckOnStartup}");
+        bindings.Should().Contain("TextBlock.Text={Binding SkippedText, Mode=OneWay}");
+        bindings.Should().Contain("Button.Command={Binding ClearSkippedCommand, Mode=OneTime}");
+        bindings.Should().Contain("Button.Command={Binding CheckNowCommand, Mode=OneTime}");
+        bindings.Should().Contain("TextBlock.Text={Binding Status, Mode=OneWay}");
+        bindings.Should().Contain("TextBlock.Text={Binding ActiveText, Mode=OneWay}");
+        bindings.Should().Contain("TextBlock.Visibility={Binding HasActiveText, Converter={StaticResource BooleanToVisibilityConverter}}");
+    }
+
     [GeneratedRegex(@"\{x:Static (?<prefix>\w+):(?<type>\w+)\.(?<member>\w+)\}")]
     private static partial Regex StaticReference();
 }

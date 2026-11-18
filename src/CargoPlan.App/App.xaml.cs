@@ -8,11 +8,13 @@ using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Plans;
 using CargoPlan.App.Scanning;
 using CargoPlan.App.Settings;
+using CargoPlan.App.ShipData;
 using CargoPlan.App.Updates;
 using CargoPlan.App.ViewModels;
 using CargoPlan.App.Win32;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Plans;
+using CargoPlan.Core.ShipData;
 using CargoPlan.Core.Ships;
 using CargoPlan.Ocr;
 using CommunityToolkit.Mvvm.Input;
@@ -62,6 +64,19 @@ public partial class App : Application
     // This start's arguments: the restart after an update gets them again, without --plan (U5).
     private IReadOnlyList<string> _startArgs = [];
 
+    // The ship data (T12.3, D112): the store of downloaded releases, the data in use at this start, and why a download
+    // didn't load (P10), for the notice once the overlay exists.
+    private ShipDataStore? _shipDataStore;
+    private ActiveShipData? _activeShipData;
+    private string? _shipDataNotice;
+
+    // Network access 3 and its line, like _updates and _updateLine; not disposed, for the same reason.
+    private ShipDataSource? _shipDataSource;
+    private UpdateViewModel? _shipDataLine;
+
+    // Set when a ship data release is installed: OnExit starts the app again with these, after every Closed handler (R2).
+    private IReadOnlyList<string>? _restartArgs;
+
     private readonly CancellationTokenSource _closing = new();
 
     /// <summary>Update.exe started this process, after a swap or after a failed one (Program, VelopackApp.OnRestarted).</summary>
@@ -93,13 +108,16 @@ public partial class App : Application
         ComposeCrashLogging();
         VelopackLog?.Attach();
 
-        if (LoadShipsOrExit() is not { } ships)
+        if (LoadShipsOrExit() is not { } shipData)
         {
             return;
         }
 
-        // Once per start, not per ship change (200 KB). A broken file costs the outlines, never the start (D62).
-        var outlines = ShipOutlineLoader.Load();
+        var (ships, data) = shipData;
+
+        // Once per start, not per ship change (200 KB). A broken file costs the outlines, never the start (D62). The data
+        // in use bring their own (T12.3).
+        var outlines = ShipOutlineLoader.Load(data.OutlinesPath);
 
         // The measuring tool instead of the overlay (Phase 8): before settings and plan, so it touches neither.
         if (options.MeasureFrames is { } measured)
@@ -120,6 +138,7 @@ public partial class App : Application
         ComposeSettingsFollowers(parts);
         ComposeHolograms(parts);
         ComposeUpdates(parts, options);
+        ComposeShipData(parts, options);
 
         // Without a scan key the OCR loads only when a key is set or the editor's Scan button is pressed (D108).
         if (options.WarmsOcrAtStart(_hotkeys?.HasScanKey == true))
@@ -181,14 +200,37 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Without the ships folder there is nothing to draw: one message, then the end, no crash dialog (D56); null then.
-    /// The catalog's problems (skipped ship files) are shown in the header's ship selection (T7.2b).
+    /// The ship data in use (T12.3): the newest downloaded release this app reads, else the ones next to the exe; older
+    /// downloads and unfinished ones go first (P7). A download that won't load falls back to the built-in data with a notice
+    /// (P10). Without the built-in ships folder there is nothing to draw: one message, then the end, no crash dialog (D56);
+    /// null then. The catalog's problems (skipped ship files) are shown in the header's ship selection (T7.2b).
     /// </summary>
-    private ShipCatalog? LoadShipsOrExit()
+    private (ShipCatalog Ships, ActiveShipData Data)? LoadShipsOrExit()
     {
+        var store = _shipDataStore = new ShipDataStore(ShipDataStore.RootIn(AppFolders.LocalRoot), ActiveShipData.NextToExe);
+        var data = store.Active();
+        foreach (var line in store.CleanUp(data))
+        {
+            AppLog.Write(ShipDataLog, line);
+        }
+
+        if (data.Origin == ShipDataOrigin.Downloaded)
+        {
+            try
+            {
+                return Loaded(ShipLoader.LoadAll(data.ShipsFolder), data);
+            }
+            catch (ShipFolderException ex)
+            {
+                AppLog.Write(ShipDataLog, $"{data} not loaded: {ex.Message}");
+                _shipDataNotice = $"Downloaded ship data {data.Version.Display} not loaded – using the built-in {ActiveShipData.NextToExe.Version.Display}.";
+                data = ActiveShipData.NextToExe;
+            }
+        }
+
         try
         {
-            return ShipLoader.LoadAll();
+            return Loaded(ShipLoader.LoadAll(data.ShipsFolder), data);
         }
         catch (ShipFolderException ex)
         {
@@ -196,7 +238,16 @@ public partial class App : Application
             Shutdown(ExitShipsFolderBroken);
             return null;
         }
+
+        (ShipCatalog, ActiveShipData) Loaded(ShipCatalog ships, ActiveShipData active)
+        {
+            _activeShipData = active;
+            AppLog.Write(ShipDataLog, $"in use: {active}, {ships.Ships.Count} ships");
+            return (ships, active);
+        }
     }
+
+    private const string ShipDataLog = "Ship data";
 
     /// <summary>What the later steps of the start wire together.</summary>
     private sealed record OverlayParts(
@@ -258,6 +309,7 @@ public partial class App : Application
             session,
             () => CreateHotkeysViewModel(session),
             () => CreateUpdateSettingsViewModel(session),
+            () => CreateShipDataSettingsViewModel(session),
             scan.Start);
         if (settings.Overlay is { } saved)
         {
@@ -385,9 +437,107 @@ public partial class App : Application
             {
                 line.Offer(offer.Version);
             }
+
+            // Network access 3 after access 2, one request at a time (T12.3).
+            await CheckShipDataAsync(viewModel, session);
         }
 
         overlay.ContentRendered += Check;
+    }
+
+    /// <summary>
+    /// The ship data line (T12.3, D112) below the update line: the same element, its own source, words and settings. Its
+    /// check runs in the update check's handler, after it. Update downloads and installs, then the app restarts (R2).
+    /// </summary>
+    private void ComposeShipData(OverlayParts parts, StartOptions options)
+    {
+        var (viewModel, session, overlay) = (parts.ViewModel, parts.Session, parts.Overlay);
+        var store = _shipDataStore ?? throw new InvalidOperationException("The ship data store is made when the ships load.");
+        var source = _shipDataSource = ShipDataSource.CreateDefault(store, options.ShipDataSource);
+        if (options.ShipDataSource is { } other)
+        {
+            AppLog.Write(ShipDataLog, $"source: {other} ({StartOptions.ShipDataSourceSwitch})");
+        }
+
+        _shipDataLine = new UpdateViewModel(
+            new UpdateActions(
+                (version, progress) => source.DownloadAsync(version, progress, _closing.Token),
+                version => RestartForShipDataAsync(version, overlay),
+                session.ChangeShipDataSkippedVersion),
+            action => Dispatcher.InvokeAsync(action),
+            texts: ShipDataSource.LineTexts);
+        viewModel.ShipData = _shipDataLine;
+        viewModel.SetNotice(NoticeSource.ShipData, _shipDataNotice);
+    }
+
+    /// <summary>The start's ship data check: an offer goes to its line, a release this app can't read to the notice (P6).</summary>
+    private async Task CheckShipDataAsync(OverlayViewModel viewModel, SettingsSession session)
+    {
+        if (_shipDataSource is not { } source || _shipDataLine is not { } line || _activeShipData is not { } active)
+        {
+            return;
+        }
+
+        var verdict = await source.CheckAsync(session.Current.ShipData, active.Version, AppVersion.IsDevBuild, _closing.Token);
+        if (!IsRunning())
+        {
+            return;
+        }
+
+        if (verdict is ShipDataOffer offer)
+        {
+            line.Offer(offer.Version.ToString());
+        }
+        else if (verdict is ShipDataNeedsApp needs)
+        {
+            var text = ShipDataGate.NeedsAppText(needs.Version);
+            viewModel.SetNotice(NoticeSource.ShipData, _shipDataNotice is null ? text : $"{_shipDataNotice} · {text}");
+        }
+    }
+
+    /// <summary>
+    /// The release is installed (R2): the app closes as for an app update, every Closed handler flushing bounds, settings and
+    /// plan, and <see cref="OnExit"/> starts it again with this start's arguments, without --plan (U5). null = closing.
+    /// </summary>
+    private async Task<string?> RestartForShipDataAsync(string version, Window overlay)
+    {
+        await UpdateShutdown.WhenNotModalAsync();
+        if (!IsRunning())
+        {
+            return UpdateFailure.Cancelled;
+        }
+
+        _restartArgs = StartOptions.RestartArguments(_startArgs);
+        AppLog.Write(ShipDataLog, $"{version} installed, restarting with [{string.Join(' ', _restartArgs)}]");
+        UpdateShutdown.CloseAllBut(Windows.Cast<Window>(), overlay);
+        Shutdown();
+        return null;
+    }
+
+    /// <summary>
+    /// After a ship data install: this exe again, as a new process. From OnExit, so the files are flushed before it reads
+    /// them; there is no single-instance lock to wait for. A failure costs the restart only: the next start loads the data.
+    /// Source: https://learn.microsoft.com/dotnet/api/system.diagnostics.processstartinfo.argumentlist
+    /// </summary>
+    private static void Restart(IReadOnlyList<string> args)
+    {
+        try
+        {
+            var start = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath ?? throw new InvalidOperationException("No process path."))
+            {
+                UseShellExecute = false,
+            };
+            foreach (var arg in args)
+            {
+                start.ArgumentList.Add(arg);
+            }
+
+            using var _ = System.Diagnostics.Process.Start(start);
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or IOException)
+        {
+            AppLog.Write(ShipDataLog, $"restart failed, start the app again: {ex.Message} [{ex.GetType().Name}]");
+        }
     }
 
     private bool IsRunning() => !Dispatcher.HasShutdownStarted && !_closing.IsCancellationRequested;
@@ -442,6 +592,37 @@ public partial class App : Application
             if (result.Offer is { } offer && IsRunning())
             {
                 line.Offer(offer.Version);
+            }
+
+            return result.Status;
+        }
+    }
+
+    /// <summary>
+    /// The settings window's Ship data section (T12.3), the Updates section's view model with the data in use; Check now
+    /// offers into the ship data line.
+    /// </summary>
+    private UpdateSettingsViewModel CreateShipDataSettingsViewModel(SettingsSession session)
+    {
+        var source = _shipDataSource ?? throw new InvalidOperationException("The settings window opened before the ship data source existed.");
+        var line = _shipDataLine ?? throw new InvalidOperationException("The settings window opened before the ship data line existed.");
+        var active = _activeShipData ?? throw new InvalidOperationException("The settings window opened before the ship data loaded.");
+        return new UpdateSettingsViewModel(
+            session.Current.ShipData,
+            session.ChangeShipDataCheckOnStartup,
+            session.ChangeShipDataSkippedVersion,
+            CheckNowAsync,
+            handler => session.ShipDataChanged += handler,
+            handler => session.ShipDataChanged -= handler,
+            ShipDataSource.SkippedText,
+            ShipDataSource.ActiveText(active));
+
+        async Task<string> CheckNowAsync()
+        {
+            var result = await source.CheckNowAsync(session.Current.ShipData.SkippedVersion, active.Version, AppVersion.IsDevBuild, _closing.Token);
+            if (result.Verdict is ShipDataOffer offer && IsRunning())
+            {
+                line.Offer(offer.Version.ToString());
             }
 
             return result.Status;
@@ -532,6 +713,12 @@ public partial class App : Application
         _closing.Cancel();
         _cursorMonitor?.Stop();
         base.OnExit(e);
+
+        // After base: every window has closed and flushed by now (R2).
+        if (_restartArgs is { } args)
+        {
+            Restart(args);
+        }
     }
 
     /// <summary>The crash dialog's text: what went wrong and where the details are (D82).</summary>

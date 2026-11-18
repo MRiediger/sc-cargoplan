@@ -87,5 +87,9 @@
   "updates": {
     "checkOnStartup": true,
     "skippedVersion": null
+  },
+  "shipData": {
+    "checkOnStartup": true,
+    "skippedVersion": null
   }
 }

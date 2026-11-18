@@ -21,24 +21,37 @@ public sealed partial class UpdateSettingsViewModel : ObservableObject
 
     private readonly Action<EventHandler<UpdateSettings>> _unfollow;
 
+    private readonly Func<string, string> _skippedText;
+
     // True while values come from the session: they are what it holds already, nothing to write back.
     private bool _following;
 
     /// <param name="checkNow">Runs Check now and returns its status line; an offer goes to the overlay's update line.</param>
     /// <param name="follow">Subscribes to the session's <see cref="SettingsSession.UpdatesChanged"/>.</param>
     /// <param name="unfollow">Unsubscribes, from <see cref="Detach"/> when the window closes.</param>
+    /// <param name="skippedText">The skipped line's words; "Skipped version: v0.9.1" when null. The Ship data section (T12.3) names a release tag.</param>
+    /// <param name="activeText">A line for what is in use (the Ship data section); null = none.</param>
     public UpdateSettingsViewModel(
         UpdateSettings current,
         Action<bool> changeCheckOnStartup,
         Action<string?> changeSkippedVersion,
         Func<Task<string>> checkNow,
         Action<EventHandler<UpdateSettings>> follow,
-        Action<EventHandler<UpdateSettings>> unfollow)
+        Action<EventHandler<UpdateSettings>> unfollow,
+        Func<string, string>? skippedText = null,
+        string? activeText = null)
     {
         (_changeCheckOnStartup, _changeSkippedVersion, _checkNow, _unfollow) = (changeCheckOnStartup, changeSkippedVersion, checkNow, unfollow);
+        _skippedText = skippedText ?? (version => $"Skipped version: v{version}");
+        ActiveText = activeText;
         Show(current);
         follow(OnSessionChanged);
     }
+
+    /// <summary>What the overlay runs on (the Ship data section: "In use: 2026.11.1 (downloaded)"); null hides the line.</summary>
+    public string? ActiveText { get; }
+
+    public bool HasActiveText => ActiveText is not null;
 
     /// <summary>Off = no request at the start (D109); Check now still works.</summary>
     [ObservableProperty]
@@ -51,7 +64,7 @@ public sealed partial class UpdateSettingsViewModel : ObservableObject
 
     public bool HasSkippedVersion => SkippedVersion is not null;
 
-    public string SkippedText => $"Skipped version: v{SkippedVersion}";
+    public string SkippedText => SkippedVersion is { } skipped ? _skippedText(skipped) : "";
 
     /// <summary>Check now's last result; empty until it runs.</summary>
     [ObservableProperty]

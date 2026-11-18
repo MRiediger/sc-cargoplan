@@ -399,18 +399,27 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     [ObservableProperty]
     public partial UpdateViewModel? Update { get; set; }
 
+    /// <summary>The ship data line (T12.3, D112) below the update line: the same element with its own words and versions.</summary>
+    [ObservableProperty]
+    public partial UpdateViewModel? ShipData { get; set; }
+
     partial void OnUpdateChanged(UpdateViewModel? value) => FollowLock();
+
+    partial void OnShipDataChanged(UpdateViewModel? value) => FollowLock();
 
     partial void OnIsManuallyLockedChanged(bool value) => FollowLock();
 
     partial void OnIsAutoLockedChanged(bool value) => FollowLock();
 
-    /// <summary>U2: locked, the update line keeps its text and hides its controls, like the header's buttons.</summary>
+    /// <summary>U2: locked, the update lines keep their text and hide their controls, like the header's buttons.</summary>
     private void FollowLock()
     {
-        if (Update is { } update)
+        foreach (var line in (UpdateViewModel?[])[Update, ShipData])
         {
-            update.IsLocked = IsLocked;
+            if (line is not null)
+            {
+                line.IsLocked = IsLocked;
+            }
         }
     }
 

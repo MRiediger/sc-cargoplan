@@ -37,18 +37,43 @@ public sealed record UpdateActions(
     Action<string> Skip);
 
 /// <summary>
+/// What a line says in each state, and how it tells a newer version: the app's releases (T11.2) or the ship data's
+/// (T12.3). The states and controls are the same for both.
+/// </summary>
+/// <param name="IsNewer">(version, than): whether <c>version</c> is newer; an offer replaces a failure only then (E3).</param>
+public sealed record UpdateLineTexts(
+    Func<string, string> Offered,
+    Func<string, int, string> Downloading,
+    Func<string, string> Applying,
+    Func<string, string, string> Failed,
+    Func<string, string, bool> IsNewer)
+{
+    /// <summary>The app's own update (T11.2, D109).</summary>
+    public static UpdateLineTexts App { get; } = new(
+        version => $"Update available · v{version}",
+        (_, percent) => $"Downloading update · {percent} %",
+        _ => "Installing update · restarting",
+        (_, reason) => $"Update failed · {reason}",
+        (version, than) => ReleaseVersion.TryParse(version, out var a) && ReleaseVersion.TryParse(than, out var b) && a.CompareTo(b) > 0);
+}
+
+/// <summary>
 /// The update line at the bottom of the overlay (T11.2, U1–U6, U10): <c>Update available · v0.9.1 [Update] ☐ Skip this
 /// version</c>, then the download in percent, then the restart, or why it failed with Retry. Its own class, not part of the
-/// overlay's view model: a state machine with its own dependencies; the overlay hands in the lock.
+/// overlay's view model: a state machine with its own dependencies; the overlay hands in the lock. The ship data line
+/// (T12.3) is a second one with its own <see cref="UpdateLineTexts"/>.
 /// </summary>
 /// <param name="ui">Runs an action on the UI thread: the download's progress comes from the pool.</param>
 /// <param name="time">The throttle's clock; <see cref="TimeProvider.System"/> outside tests.</param>
-public sealed partial class UpdateViewModel(UpdateActions actions, Action<Action> ui, TimeProvider? time = null) : ObservableObject
+/// <param name="texts">The words and the version order; <see cref="UpdateLineTexts.App"/> when null.</param>
+public sealed partial class UpdateViewModel(UpdateActions actions, Action<Action> ui, TimeProvider? time = null, UpdateLineTexts? texts = null) : ObservableObject
 {
     /// <summary>U10: ten updates a second at most; Velopack reports up to 50 even percents.</summary>
     public static readonly TimeSpan ProgressInterval = TimeSpan.FromMilliseconds(100);
 
     private readonly TimeProvider _time = time ?? TimeProvider.System;
+
+    private readonly UpdateLineTexts _texts = texts ?? UpdateLineTexts.App;
 
     private readonly Lock _progressGate = new();
 
@@ -76,10 +101,10 @@ public sealed partial class UpdateViewModel(UpdateActions actions, Action<Action
 
     public string Text => State switch
     {
-        UpdateOffered offered => $"Update available · v{offered.Version}",
-        UpdateDownloading downloading => $"Downloading update · {downloading.Percent} %",
-        UpdateApplying => "Installing update · restarting",
-        UpdateFailed failed => $"Update failed · {failed.Reason}",
+        UpdateOffered offered => _texts.Offered(offered.Version),
+        UpdateDownloading downloading => _texts.Downloading(downloading.Version, downloading.Percent),
+        UpdateApplying applying => _texts.Applying(applying.Version),
+        UpdateFailed failed => _texts.Failed(failed.Version, failed.Reason),
         _ => "",
     };
 
@@ -92,7 +117,7 @@ public sealed partial class UpdateViewModel(UpdateActions actions, Action<Action
         var replaces = State switch
         {
             UpdateNone or UpdateOffered => true,
-            UpdateFailed failed => IsNewer(version, failed.Version),
+            UpdateFailed failed => _texts.IsNewer(version, failed.Version),
             _ => false,
         };
         if (replaces)
@@ -165,7 +190,4 @@ public sealed partial class UpdateViewModel(UpdateActions actions, Action<Action
             }
         });
     }
-
-    private static bool IsNewer(string version, string than) =>
-        ReleaseVersion.TryParse(version, out var a) && ReleaseVersion.TryParse(than, out var b) && a.CompareTo(b) > 0;
 }

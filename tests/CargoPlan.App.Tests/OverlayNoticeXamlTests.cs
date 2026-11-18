@@ -54,6 +54,22 @@ public class OverlayNoticeXamlTests
     }
 
     [Fact]
+    public void The_ship_data_line_lies_below_the_update_line_with_the_same_template()
+    {
+        // T12.3: "unter der App-Update-Zeile"; one template for both, so the two lines can't drift apart.
+        var root = Root();
+        var update = Named(root, "UpdateLine");
+        var shipData = Named(root, "ShipDataLine");
+
+        shipData.Parent.Should().BeSameAs(update.Parent);
+        shipData.Attribute("DockPanel.Dock")!.Value.Should().Be("Bottom");
+        shipData.ElementsAfterSelf().Should().Contain(update);
+        shipData.Attribute("Content")!.Value.Should().Be("{Binding ShipData, Mode=OneWay}");
+        shipData.Attribute("ContentTemplate")!.Value.Should().Be("{StaticResource UpdateLineTemplate}");
+        update.Attribute("ContentTemplate")!.Value.Should().Be("{StaticResource UpdateLineTemplate}");
+    }
+
+    [Fact]
     public void The_update_text_looks_like_a_notice()
     {
         var text = Named(Root(), "UpdateText");

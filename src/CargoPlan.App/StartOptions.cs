@@ -45,6 +45,11 @@ namespace CargoPlan.App;
 /// The GitHub check sees pre-releases too (T11.3, R9): a developer's switch, so a gate can update rc.1 → rc.2 over the
 /// network. Not in settings.json; with <paramref name="UpdatesSource"/> it is a problem and dropped.
 /// </param>
+/// <param name="ShipDataSource">
+/// The ship data check reads this local folder (a release's manifest.json and ships.zip side by side) or another GitHub
+/// repository of the same layout instead of sc-cargoplan-shipdata (T12.3, P5): for gates and tests. A developer's build
+/// checks ship data only with it (P4). null = sc-cargoplan-shipdata; anything else is a problem, not a stop.
+/// </param>
 public sealed record StartOptions(
     bool Locked,
     string? PlanPath,
@@ -59,7 +64,8 @@ public sealed record StartOptions(
     bool DataDirRefused = false,
     bool KeepScans = false,
     string? UpdatesSource = null,
-    bool UpdatesPrerelease = false)
+    bool UpdatesPrerelease = false,
+    string? ShipDataSource = null)
 {
     public const string LockedSwitch = "--locked";
 
@@ -85,6 +91,8 @@ public sealed record StartOptions(
 
     public const string UpdatesPrereleaseSwitch = "--updates-prerelease";
 
+    public const string ShipDataSourceSwitch = "--ship-data-source";
+
     /// <summary>F9's series without a number: Gate 2's 100 scans.</summary>
     public const int ScanProbeSeries = 100;
 
@@ -103,6 +111,7 @@ public sealed record StartOptions(
         string? dataDir = null;
         var dataDirRefused = false;
         string? updatesSource = null;
+        string? shipDataSource = null;
         string? problem = null;
 
         for (var i = 0; i < args.Count; i++)
@@ -167,6 +176,18 @@ public sealed record StartOptions(
                     problem = $"{UpdatesSourceSwitch} needs the full path of a folder.";
                 }
             }
+            else if (Is(args[i], ShipDataSourceSwitch))
+            {
+                // Full like --updates-source; a URL must name a repository on github.com, the only host the check talks to.
+                if (i + 1 < args.Count && !args[i + 1].StartsWith("--", StringComparison.Ordinal) && ShipData.ShipDataSource.IsValidSource(args[i + 1]))
+                {
+                    shipDataSource = args[++i];
+                }
+                else
+                {
+                    problem = $"{ShipDataSourceSwitch} needs the full path of a folder or a GitHub repository URL.";
+                }
+            }
             else if (Is(args[i], ScanProbeImagesSwitch))
             {
                 scanProbeImages = true;
@@ -223,7 +244,7 @@ public sealed record StartOptions(
             (updatesPrerelease, problem) = (false, problem ?? $"{UpdatesPrereleaseSwitch} only goes with GitHub, not with {UpdatesSourceSwitch}.");
         }
 
-        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans, updatesSource, updatesPrerelease);
+        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans, updatesSource, updatesPrerelease, shipDataSource);
     }
 
     /// <summary>
