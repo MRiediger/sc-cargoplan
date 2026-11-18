@@ -7143,6 +7143,63 @@ Settings-Text; `grep -rE "holo-v3|HoloRelease" src` leer.
 **Nicht in T12.4:** Übernahme byte-gleicher Holos aus `holo-v3`; Löschen des `holo-v3`-Release (T12.6); Nexus- und
 Wiki-Texte (T12.6); Live-Reload.
 
+**Umsetzung (18.11.2026):** Plan `68bec39`, Code `06170bc` (Core und App in einem Commit: die App baut ohne den neuen
+Leser nicht), Doku im Commit danach (D114, Addenda D63/D95/D112, CLAUDE.md, `holo-format.md`, `settings-format.md`,
+`ship-format.md`, README). Tests erst rot gesehen: Core CS0246 (`HoloOffer`), App CS0103 (`HoloManifestReader`).
+Nachfolger: `HoloManifestReaderTests` → Abschnitt „Holograms“ in `ShipDataManifestReaderTests`; in `HoloSourceTests`
+benennt jeder umgebaute Test seinen Vorgänger im Kommentar (`Was …`); entfallen ersatzlos die zwölf Tests zu
+Manifest-GET, 24 h und Rückzug aus dem Netz-Manifest.
+
+**Befunde in der Umsetzung:**
+- `HoloManifest` vergleicht nach Inhalt (eigenes `Equals`): `ActiveShipData` ist ein Record, und `Install` und `Active`
+  lesen dasselbe Manifest zweimal – mit Listen-Referenzgleichheit wäre `active.Should().Be(installed)` gekippt.
+- `holo` wird als `JsonElement?` gelesen und das Format zuerst geprüft: so bindet ein künftiges Format mit anderer
+  Eintragsform nie an die DTOs (R1).
+- `FrameMeasureWindow` misst den **aktiven** Katalog (App reicht `ships` durch), also liest es jetzt auch den Cache des
+  aktiven Stands, nicht der Baseline (Präzisierung 10 war ungenau).
+- Die Notice nach dem Cache-Wechsel steht nur, solange das erste Holo lädt (K1) – bei schnellem Netz unter einer
+  Sekunde; im Vorlauf per UIA-Abfrage alle 100 ms gefunden.
+- `sed -i` in Git Bash macht aus CRLF-Dateien LF (K1-Falle, nochmals): eine Testdatei zurück auf CRLF normalisiert.
+
+**CC-Vorlauf ohne SC (18.11., Publish `0.5.99`, Layout-Prüfung bestanden, ZIP 96 761 281 B, `--data-dir` im Scratchpad):**
+1. Leerer Datenordner, drei Starts (`settings.json`: Schiff + `holo-hiddenline`): `gama-hyun.holo` 268 668 B nach
+   2,6 s, `anvl-f7c-hornet-mk-ii.holo` **88 046 B** nach 1,9 s, `misc-hull-a.holo` 185 882 B nach 4,2 s (ab Prozessstart),
+   **SHA und Länge = Manifest** bei allen dreien; einziger Cache-Ordner `holo\ships-2026.11.1\`, keine `manifest.json`
+   darin.
+2. Kopie von `holo\holo-v3\` (6 Dateien, aus dem Profil nur gelesen), Hull A nicht gecacht → Notice `Ship holograms
+   updated to match the new rack data – each ship re-downloads when first shown` 0,7 s nach dem Start, danach nur
+   `holo\ships-2026.11.1\`; zweiter Start: keine Holo-Notice.
+3. Fixture-Feed `ships-2026.11.2` (Baseline-Manifest mit `holo: null`, `ships.zip` neu gepackt) per
+   `--ship-data-source`: `Ship data update available · 2026.11.2` → Update → Neustart → Log `Holo: ship data 2026.11.2
+   offers no holograms (holo: null) – outlines only` (eine Zeile), 8 s ohne Holo-Notice, `holo\` leer (der Ordner des
+   alten Stands still geräumt), Settings unter dem Schalter `Holograms: not offered by ship data 2026.11.2`, Ship data
+   `In use: 2026.11.2 (downloaded)`. Drei Schiffswechsel ohne Request und Notice deckt der Test
+   `Without_holograms_on_offer_ship_changes_…` ab, nicht der Vorlauf.
+4. 404 nur als `FakeHandler`-Test (`A_404_…`, `After_a_cache_change_a_404_…`): das echte Release ist vollständig.
+5. `grep -rE "holo-v3|HoloRelease" src` → leer. Zeit in der App: kein Vergleich gegen `main` gemessen (die Zeiten oben
+   enthalten den Start); der Gewinn ist der weggefallene Manifest-GET aus den curl-Zahlen.
+
+**Gate-Anleitung (Martin, SC im Vordergrund).** Publish-Build aus `out\publish` (kein Velopack-Check), eigener Datenordner:
+
+```powershell
+./build/publish.ps1 -Version 0.5.99
+$exe  = "$PWD\out\publish\SC-CargoPlan\CargoPlan.App.exe"
+$data = "$env:UserProfile\CargoPlan-t124"     # eigener Datenordner, dein Profil bleibt unberührt
+New-Item -ItemType Directory -Force "$data\holo" | Out-Null
+Copy-Item "$env:LocalAppData\SC-CargoPlan\plan.json", "$env:LocalAppData\SC-CargoPlan\settings.json" $data
+Copy-Item -Recurse "$env:LocalAppData\SC-CargoPlan\holo\holo-v3" "$data\holo\holo-v3"   # optional: der alte Cache
+& $exe --data-dir $data
+```
+
+1. Look **Hologram** (Zahnrad → Ship view). Mit dem kopierten Cache: einmal `Ship holograms updated …`, danach ist
+   `$data\holo\` nur noch `ships-2026.11.1`.
+2. **GAMA Hyun** wählen → Holo erscheint (gab es in holo-v3 nicht).
+3. **F7C Hornet Mk II** → Holo erscheint, schlanker als bisher (Motherlode statt Fleetyards).
+4. **Hull A** → Plan und Holo wie vorher.
+
+**Offen fürs Gate (Optik = Martin):** der Settings-Text `Holograms: not offered by ship data …` (Wortlaut, Lage unter
+dem Hinweis); das Aussehen der 90 geänderten Holos – nur Hyun, F7C und Hull A sind im Gate.
+
 ### [x] T12.5 App: Baseline aus dem Release (18.11.2026, `46fd06d`, `39c3a50`, abgenommen 18.11.)
 
 **Warum:** Eine Quelle für Schiffsdaten; `ships/` als Quelltext im App-Repo ist der zweite Pfad, der v0.5.1 teuer machte.
