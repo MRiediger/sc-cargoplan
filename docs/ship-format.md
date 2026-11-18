@@ -272,8 +272,9 @@ pipeline (sc-cargoplan-shipdata, D113): x and y the racks' common box middle, z 
 hull's height in cells, for both fields. A file without the fields still works: hologram and outline hang on the racks'
 middle as they used to, so one corrected rack moves them too. A test holds every shipped ship to having them.
 
-**`holoOrigin` belongs to a hologram release**, today `holo-v3`. A release that kept the game model's origin needs
-nothing; one that moved it would need its own rule in the import.
+**`holoOrigin` belongs to the holograms of its data release** (since D114 the holograms are assets of the same
+release, until v0.5.x of the hologram release `holo-v3`). A release that kept the game model's origin needs nothing; one
+that moved it would need its own rule in the import.
 
 ### Correcting a rack
 
@@ -312,7 +313,7 @@ The racks of almost every ship come from the game files (D92): cargo grid data a
 [cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo), extracted from the Star Citizen game files and used with its
 operators' permission. `source` names the catalog's game build and date, e.g.
 `"cryon.rocks (Motherlode) 4.10.2-LIVE.12913470, 2026-11-07"`. Hologram and outline come from the same models (D93):
-the hologram release `holo-v3` and the release's `outlines.json`. Two ships still use hull data from
+the release's holograms (its `holo` section, D114) and its `outlines.json`. Two ships still use hull data from
 [fleetyards.net](https://fleetyards.net) since `ships-2026.11.1` (the F7C Hornet Mk II's racks come from the game files
 there), see [The three Fleetyards ships](#the-three-fleetyards-ships). Only values derived from the catalog and the
 models go into a release, never the catalog or a model itself (D56).
@@ -334,8 +335,8 @@ Motherlode publishes a new catalog:
    grid, crate limits and rotation. Exit code 0 means done, 1 something to look at, 2 an error (then nothing is written).
 3. **Holograms and outlines** (only when the models changed): the pipeline builds them per model from the map
    ([holo-format.md](holo-format.md#pipeline)) and writes `outlines.json`; run the import once
-   more, and it writes the anchors from the new outlines' `floorM`. A new hologram release needs a new tag and the app
-   constant `HoloRelease.Tag`.
+   more, and it writes the anchors from the new outlines' `floorM`. The holograms go into the same data release, no app
+   release (D114; until v0.5.x a new hologram release needed a new tag and an app constant).
 4. **Look at what it didn't write:** `handcheck` means overlapping grids, a rack set or position that doesn't match the
    file, or a total that differs from the catalog's; `order` means the catalog lists the same grids in another order
    than the previous one, so the script can't tell which rack is which; `anchors ... kept` means the ship's outline has
@@ -362,7 +363,8 @@ transform, reportedMaxSize? } ], modelUrl? } ] }`. A grid with `transform: null`
 
 The 135c (its grids have no place in the catalog; its model is there since 4.10.3), the 600i Executive Edition and the
 F7C Hornet Mk II (not in the catalog) still use hull data from [fleetyards.net](https://fleetyards.net): grids, hologram
-(their holo-v1 file, carried into holo-v2 and holo-v3) and outline (a trace without `floorM`). Their files stay as the Fleetyards import last wrote them. The
+(their holo-v1 file, carried into holo-v2 and holo-v3; the F7C's hologram is the game model `ANVL_Hornet_F7C_Mk2` since
+`ships-2026.11.1`) and outline (a trace without `floorM`). Their files stay as the Fleetyards import last wrote them. The
 import is retired since v0.3.0 (D94) and lives on in the Git history (`git show a3430b9^:tools/import-fleetyards.ps1`);
 its fetch script and Fleetyards' raw export are archived in the pipeline's `legacy/`. A change to one of the three is
 hand work, checked in game. Once Motherlode has their models, they move to the game files like every other ship.

@@ -100,7 +100,8 @@ public class UpdateSettingsViewModelTests
     public void The_ship_data_section_shows_the_skipped_tag_and_the_data_in_use()
     {
         var active = new Core.ShipData.ActiveShipData(
-            new Core.ShipData.ShipDataVersion(2026, 11, 0), Core.ShipData.ShipDataOrigin.Baseline, @"C:\app", @"C:\app\ships", @"C:\app\outlines\ship-outlines.json");
+            new Core.ShipData.ShipDataVersion(2026, 11, 0), Core.ShipData.ShipDataOrigin.Baseline, @"C:\app", @"C:\app\ships", @"C:\app\outlines\ship-outlines.json",
+            new Core.Holo.HoloOffer.NotOffered());
         var shipData = new UpdateSettingsViewModel(
             new UpdateSettings(SkippedVersion: "ships-2026.11.1"),
             _checkOnStartup.Add,
@@ -120,7 +121,8 @@ public class UpdateSettingsViewModelTests
     public void A_downloaded_release_in_use_says_so()
     {
         var active = new Core.ShipData.ActiveShipData(
-            new Core.ShipData.ShipDataVersion(2026, 11, 1), Core.ShipData.ShipDataOrigin.Downloaded, @"C:\data\ships\ships-2026.11.1", @"C:\data\ships\ships-2026.11.1\ships", @"C:\data\ships\ships-2026.11.1\outlines.json");
+            new Core.ShipData.ShipDataVersion(2026, 11, 1), Core.ShipData.ShipDataOrigin.Downloaded, @"C:\data\ships\ships-2026.11.1", @"C:\data\ships\ships-2026.11.1\ships", @"C:\data\ships\ships-2026.11.1\outlines.json",
+            new Core.Holo.HoloOffer.NotOffered());
 
         ShipData.ShipDataSource.ActiveText(active).Should().Be("In use: 2026.11.1 (downloaded)");
     }

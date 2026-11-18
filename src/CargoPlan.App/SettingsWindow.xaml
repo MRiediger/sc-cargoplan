@@ -421,6 +421,8 @@
                         </DockPanel>
                         <CheckBox Content="Download ship holograms" IsChecked="{Binding DownloadShipHolograms}" Margin="0,8,0,0" />
                         <TextBlock Text="{x:Static vm:SettingsViewModel.DownloadShipHologramsHint}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                        <TextBlock x:Name="HologramsUnavailableText" Text="{Binding HologramsUnavailable, Mode=OneTime}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                   Visibility="{Binding HasHologramsUnavailable, Mode=OneTime, Converter={StaticResource BooleanToVisibilityConverter}}" />
                         <Button Command="{Binding ResetShipViewCommand, Mode=OneTime}" Style="{StaticResource ResetButtonStyle}"
                                 ToolTip="Reset the view settings to defaults. Download ship holograms stays as it is." />
                     </StackPanel>

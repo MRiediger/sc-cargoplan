@@ -23,7 +23,7 @@ public class AppFoldersTests
         Path.GetDirectoryName(PlanStore.DefaultPath).Should().Be(AppFolders.LocalRoot);
         Path.GetDirectoryName(SettingsStore.DefaultPath).Should().Be(AppFolders.LocalRoot);
         Path.GetDirectoryName(ScanLog.DefaultPath).Should().Be(AppFolders.LocalRoot);
-        Path.GetDirectoryName(HoloRelease.DefaultCacheRoot).Should().Be(AppFolders.LocalRoot);
+        Path.GetDirectoryName(HoloSource.DefaultCacheRoot).Should().Be(AppFolders.LocalRoot);
     }
 }
 
@@ -54,8 +54,8 @@ public sealed class DataDirTests
             SettingsStore.DefaultPath.Should().Be(Path.Combine(folder, "settings.json"));
             PlanStore.DefaultPath.Should().Be(Path.Combine(folder, "plan.json"));
             ScanLog.DefaultPath.Should().Be(Path.Combine(folder, "scans.log"));
-            HoloRelease.DefaultCacheRoot.Should().Be(Path.Combine(folder, "holo"));
-            HoloRelease.DefaultCacheFolder.Should().Be(Path.Combine(folder, "holo", HoloRelease.Tag));
+            HoloSource.DefaultCacheRoot.Should().Be(Path.Combine(folder, "holo"));
+            HoloSource.CacheFolder(HoloSource.DefaultCacheRoot, FakeHttp.DataVersion).Should().Be(Path.Combine(folder, "holo", "ships-2026.11.1"));
             AppLog.Path.Should().Be(Path.Combine(folder, "cargoplan.log"));
         }
         finally

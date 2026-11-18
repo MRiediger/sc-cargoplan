@@ -19,7 +19,8 @@ public sealed class ShipDataSourceTests : IDisposable
     private const string ShipsZip = "https://github.com/MRiediger/sc-cargoplan-shipdata/releases/download/ships-2026.11.1/ships.zip";
 
     private static readonly ActiveShipData Baseline = new(
-        new ShipDataVersion(2026, 11, 0), ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile);
+        new ShipDataVersion(2026, 11, 0), ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile,
+        new Core.Holo.HoloOffer.NotOffered());
 
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"));
 
@@ -264,6 +265,19 @@ public sealed class ShipDataSourceTests : IDisposable
     [InlineData("ship-data", false)]
     public void A_source_is_a_full_folder_or_a_github_repository(string source, bool valid) =>
         ShipDataSource.IsValidSource(source).Should().Be(valid);
+
+    // T12.4, R2: the holograms come from the source's repository; a folder (or none) gives the data channel's.
+    [Theory]
+    [InlineData(null, "https://github.com/MRiediger/sc-cargoplan-shipdata/")]
+    [InlineData(@"D:\run\ship-data", "https://github.com/MRiediger/sc-cargoplan-shipdata/")]
+    [InlineData("https://github.com/someone/test-ship-data", "https://github.com/someone/test-ship-data/")]
+    public void The_repository_of_a_source_is_its_own_or_the_data_channels(string? source, string repository) =>
+        ShipDataSource.RepositoryFor(source).ToString().Should().Be(repository);
+
+    [Fact]
+    public void A_release_folder_holds_the_assets_of_its_tag() =>
+        new Uri(ShipDataSource.ReleaseFolder(ShipDataSource.Repository, V("ships-2026.11.1")), "gama-hyun.holo").ToString()
+            .Should().Be("https://github.com/MRiediger/sc-cargoplan-shipdata/releases/download/ships-2026.11.1/gama-hyun.holo");
 
     // --- Check now (P8) ---
 

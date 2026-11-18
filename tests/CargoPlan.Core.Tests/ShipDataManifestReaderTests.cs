@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json.Nodes;
+using CargoPlan.Core.Holo;
 using CargoPlan.Core.ShipData;
 
 namespace CargoPlan.Core.Tests;
@@ -107,4 +108,118 @@ public class ShipDataManifestReaderTests
     [InlineData("outlines.json")]
     public void Rejects_a_release_without_the_fallback_ship_or_the_outlines(string path) =>
         Reading(m => m["files"]!.AsObject().Remove(path)).Should().Throw<ShipDataFormatException>().WithMessage($"*{path}*");
+
+    // --- Holograms (T12.4, D114): the holo section, read where the rest of the manifest is (was HoloManifestReaderTests) ---
+
+    private const string HoloHash = "7304a2e0ab28d0570bd130985ab38e701637f1b1d15d97500d094971fb084345";
+
+    // Shaped like the published section, with the judge's fields the app doesn't read.
+    private static JsonObject HoloSection(JsonObject? ships = null) => new()
+    {
+        ["formatVersion"] = 2,
+        ["ships"] = ships ?? new JsonObject { ["misc-hull-a"] = HoloEntry() },
+    };
+
+    private static JsonObject HoloEntry(string file = "misc-hull-a.holo", long bytes = 185882, string sha256 = HoloHash) => new()
+    {
+        ["file"] = file,
+        ["bytes"] = bytes,
+        ["sha256"] = sha256,
+        ["model"] = "MISC_Hull_A",
+        ["rawSha256"] = "da8168ea3720",
+        ["budget"] = 20000,
+        ["triangles"] = 13085,
+        ["edges"] = new JsonArray(1445, 3411, 9620),
+        ["passed"] = true,
+        ["fails"] = new JsonArray(),
+        ["metrics"] = new JsonObject { ["errorM"] = 0.0, ["topIou"] = 1.0 },
+    };
+
+    private static HoloOffer ReadHolo(JsonNode? holo) => Read(Release.Manifest(change: m => m["holo"] = holo)).Holo;
+
+    private static Action ReadingHolo(JsonNode? holo) => Reading(m => m["holo"] = holo);
+
+    [Fact]
+    public void Reads_the_holograms_under_the_release_tag_sorted_by_slug_and_skips_the_judges_fields()
+    {
+        var offer = ReadHolo(HoloSection(new JsonObject
+        {
+            ["misc-hull-a"] = HoloEntry(),
+            ["drak-cutlass-black"] = HoloEntry("drak-cutlass-black.holo", 1, new string('0', 64)),
+        }));
+
+        var manifest = offer.Should().BeOfType<HoloOffer.Offered>().Which.Manifest;
+        manifest.DataVersion.Should().Be("ships-2026.11.1");
+        manifest.Ships.Select(s => s.Slug).Should().Equal("drak-cutlass-black", "misc-hull-a");
+        manifest.Find("misc-hull-a").Should().Be(new HoloManifestEntry("misc-hull-a", "misc-hull-a.holo", 185882, HoloHash));
+        manifest.Find("gama-hyun").Should().BeNull();
+    }
+
+    [Fact]
+    public void Two_readings_of_the_same_section_are_equal() =>
+        ReadHolo(HoloSection()).Should().Be(ReadHolo(HoloSection()));
+
+    [Fact]
+    public void An_empty_map_is_valid_and_offers_no_hologram() =>
+        ReadHolo(HoloSection(new JsonObject())).Should().BeOfType<HoloOffer.Offered>().Which.Manifest.Ships.Should().BeEmpty();
+
+    [Fact]
+    public void Holo_null_is_the_kill_switch() => ReadHolo(null).Should().Be(new HoloOffer.NotOffered());
+
+    [Fact]
+    public void Rejects_a_manifest_without_the_holo_field() =>
+        Reading(m => m.Remove("holo")).Should().Throw<ShipDataFormatException>().WithMessage("*holo*");
+
+    // R1 of the T12.4 approval: another format means no holograms for this app, not a broken release; the ships still
+    // load, and the entries of a format this app doesn't know aren't read at all.
+    [Theory]
+    [InlineData(3)]
+    [InlineData(1)]
+    public void Another_format_version_offers_this_app_no_holograms_and_its_entries_are_not_read(int formatVersion) =>
+        ReadHolo(new JsonObject { ["formatVersion"] = formatVersion, ["ships"] = new JsonArray("not", "read") })
+            .Should().Be(new HoloOffer.UnknownFormat(formatVersion));
+
+    [Theory]
+    [InlineData("""{ "ships": {} }""")]
+    [InlineData("""{ "formatVersion": "2", "ships": {} }""")]
+    [InlineData("""{ "formatVersion": 2 }""")]
+    [InlineData("""{ "formatVersion": 2, "ships": [] }""")]
+    [InlineData("""{ "formatVersion": 2, "ships": { "misc-hull-a": { "file": "misc-hull-a.holo", "bytes": 1 } } }""")]
+    [InlineData("""[]""")]
+    [InlineData("\"holo-v3\"")]
+    public void Rejects_a_holo_section_out_of_form(string holo) =>
+        ReadingHolo(JsonNode.Parse(holo)).Should().Throw<ShipDataFormatException>().WithMessage("manifest.json*holo*");
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("holo/misc-hull-a.holo")]
+    [InlineData("..\\misc-hull-a.holo")]
+    [InlineData("..")]
+    [InlineData(".holo")]
+    [InlineData("C:misc-hull-a.holo")]
+    public void Rejects_a_hologram_file_that_is_not_a_flat_asset_name(string file) =>
+        ReadingHolo(HoloSection(new JsonObject { ["misc-hull-a"] = HoloEntry(file: file) }))
+            .Should().Throw<ShipDataFormatException>().WithMessage("*holo*misc-hull-a*");
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("../misc-hull-a")]
+    [InlineData("misc/hull-a")]
+    public void Rejects_a_slug_that_is_not_a_flat_name(string slug) =>
+        ReadingHolo(HoloSection(new JsonObject { [slug] = HoloEntry() })).Should().Throw<ShipDataFormatException>().WithMessage("*holo*");
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Rejects_a_hologram_without_bytes(long bytes) =>
+        ReadingHolo(HoloSection(new JsonObject { ["misc-hull-a"] = HoloEntry(bytes: bytes) }))
+            .Should().Throw<ShipDataFormatException>().WithMessage("*holo*misc-hull-a*bytes*");
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("7304a2e0ab28d0570bd130985ab38e701637f1b1d15d97500d094971fb08434")]
+    [InlineData("7304a2e0ab28d0570bd130985ab38e701637f1b1d15d97500d094971fb08434g")]
+    public void Rejects_a_hologram_hash_that_is_not_sha256_hex(string hash) =>
+        ReadingHolo(HoloSection(new JsonObject { ["misc-hull-a"] = HoloEntry(sha256: hash) }))
+            .Should().Throw<ShipDataFormatException>().WithMessage("*holo*misc-hull-a*SHA-256*");
 }

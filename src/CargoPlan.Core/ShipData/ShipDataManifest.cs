@@ -1,16 +1,18 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using CargoPlan.Core.Holo;
 
 namespace CargoPlan.Core.ShipData;
 
 /// <summary>
 /// What the app reads of a data release's manifest.json (sc-cargoplan-shipdata, docs/manifest-format.md, SD2): the tag,
-/// the ship JSON schema, the archive to download and the hash of every file in it. Holograms are T12.4's.
+/// the ship JSON schema, the archive to download, the hash of every file in it, and the holograms (T12.4, D114).
 /// </summary>
 /// <param name="ShipsAsset">The asset name of <c>ships.zip</c>, flat: its URL is <c>…/releases/download/&lt;tag&gt;/&lt;asset&gt;</c>.</param>
 /// <param name="Files">Path inside the zip → SHA-256 (hex): exactly the files the app unpacks.</param>
-public sealed record ShipDataManifest(ShipDataVersion DataVersion, int SchemaVersion, string ShipsAsset, IReadOnlyDictionary<string, string> Files);
+/// <param name="Holo">The holograms: assets of this release, <c>…/releases/download/&lt;tag&gt;/&lt;file&gt;</c>.</param>
+public sealed record ShipDataManifest(ShipDataVersion DataVersion, int SchemaVersion, string ShipsAsset, IReadOnlyDictionary<string, string> Files, HoloOffer Holo);
 
 /// <summary>A manifest or a download that doesn't hold to the contract: nothing of it is used.</summary>
 public sealed class ShipDataFormatException(string message, Exception? innerException = null) : Exception(message, innerException);
@@ -26,7 +28,7 @@ public static partial class ShipDataManifestReader
     /// <summary>Without the fallback ship the folder can't start the app (<see cref="Ships.ShipLoader.FallbackShipId"/>).</summary>
     public const string FallbackShipPath = "ships/" + Ships.ShipLoader.FallbackShipId + ".json";
 
-    /// <exception cref="ShipDataFormatException">Not JSON, a field missing, a tag, asset, path or hash out of form, the fallback ship or the outlines not listed.</exception>
+    /// <exception cref="ShipDataFormatException">Not JSON, a field missing, a tag, asset, path or hash out of form, the fallback ship or the outlines not listed, a hologram entry out of form.</exception>
     public static ShipDataManifest Read(ReadOnlySpan<byte> json)
     {
         ManifestDto dto;
@@ -70,7 +72,72 @@ public static partial class ShipDataManifestReader
             }
         }
 
-        return new ShipDataManifest(version, dto.SchemaVersion, dto.Assets.Ships, dto.Files);
+        return new ShipDataManifest(version, dto.SchemaVersion, dto.Assets.Ships, dto.Files, ReadHolo(dto.Holo, version));
+    }
+
+    /// <summary>
+    /// The holo section (T12.4, D114): null is the kill switch (D63); a format this app doesn't read means no holograms for
+    /// it, and its entries aren't read (R1); otherwise every entry is checked like a file of ships.zip (A6).
+    /// </summary>
+    private static HoloOffer ReadHolo(JsonElement? section, ShipDataVersion version)
+    {
+        if (section is not { } holo || holo.ValueKind == JsonValueKind.Null)
+        {
+            return new HoloOffer.NotOffered();
+        }
+
+        if (holo.ValueKind != JsonValueKind.Object)
+        {
+            throw new ShipDataFormatException($"{FileName}: holo is neither null nor an object.");
+        }
+
+        if (!holo.TryGetProperty("formatVersion", out var format) || format.ValueKind != JsonValueKind.Number || !format.TryGetInt32(out var formatVersion))
+        {
+            throw new ShipDataFormatException($"{FileName}: holo.formatVersion is missing or not a whole number.");
+        }
+
+        if (formatVersion != HoloReader.FormatVersion)
+        {
+            return new HoloOffer.UnknownFormat(formatVersion);
+        }
+
+        HoloDto dto;
+        try
+        {
+            dto = holo.Deserialize(ShipDataJsonContext.Default.HoloDto) ?? throw new JsonException("The section contains null.");
+        }
+        catch (JsonException ex)
+        {
+            throw new ShipDataFormatException($"{FileName}: holo: {ex.Message}", ex);
+        }
+
+        List<HoloManifestEntry> ships = [];
+        foreach (var (slug, ship) in dto.Ships.OrderBy(s => s.Key, StringComparer.Ordinal))
+        {
+            if (!AssetName().IsMatch(slug))
+            {
+                throw new ShipDataFormatException($"{FileName}: holo.ships has '{slug}', which is not a flat name.");
+            }
+
+            if (!AssetName().IsMatch(ship.File))
+            {
+                throw new ShipDataFormatException($"{FileName}: holo.ships.{slug}.file '{ship.File}' is not a file name of the release.");
+            }
+
+            if (ship.Bytes <= 0)
+            {
+                throw new ShipDataFormatException($"{FileName}: holo.ships.{slug}.bytes is {ship.Bytes}; a hologram has bytes.");
+            }
+
+            if (!Sha256().IsMatch(ship.Sha256))
+            {
+                throw new ShipDataFormatException($"{FileName}: holo.ships.{slug}.sha256 is not a SHA-256.");
+            }
+
+            ships.Add(new HoloManifestEntry(slug, ship.File, ship.Bytes, ship.Sha256));
+        }
+
+        return new HoloOffer.Offered(new HoloManifest(version.ToString(), ships));
     }
 
     // A release asset: no folder, no drive, nothing that starts with a dot.
@@ -84,13 +151,18 @@ public static partial class ShipDataManifestReader
     [GeneratedRegex(@"^[0-9a-fA-F]{64}\z", RegexOptions.CultureInvariant)]
     private static partial Regex Sha256();
 
-    internal sealed record ManifestDto(string DataVersion, int SchemaVersion, AssetsDto Assets, Dictionary<string, string> Files);
+    // holo is required, null allowed (the kill switch); a JsonElement, so a format this app doesn't know is never bound.
+    internal sealed record ManifestDto(string DataVersion, int SchemaVersion, AssetsDto Assets, Dictionary<string, string> Files, JsonElement? Holo);
 
     internal sealed record AssetsDto(string Ships);
+
+    internal sealed record HoloDto(Dictionary<string, HoloShipDto> Ships);
+
+    internal sealed record HoloShipDto(string File, long Bytes, string Sha256);
 }
 
-// Lenient about unknown fields like HoloJsonContext: the pipeline writes builtFrom, holo, ships and more, and may add
-// fields without an app release; strict about the ones the app reads.
+// Lenient about unknown fields: the pipeline writes builtFrom, ships, the judge's numbers per hologram and more, and may
+// add fields without an app release; strict about the ones the app reads.
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     PropertyNameCaseInsensitive = false,
@@ -98,4 +170,5 @@ public static partial class ShipDataManifestReader
     RespectNullableAnnotations = true,
     RespectRequiredConstructorParameters = true)]
 [JsonSerializable(typeof(ShipDataManifestReader.ManifestDto))]
+[JsonSerializable(typeof(ShipDataManifestReader.HoloDto))]
 internal sealed partial class ShipDataJsonContext : JsonSerializerContext;

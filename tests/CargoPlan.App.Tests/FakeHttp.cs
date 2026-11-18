@@ -1,23 +1,25 @@
 using System.Net;
 using System.Security.Cryptography;
-using System.Text;
-using CargoPlan.App.Holo;
+using CargoPlan.Core.Holo;
+using CargoPlan.Core.ShipData;
 
 namespace CargoPlan.App.Tests;
 
-/// <summary>The network and the clock of the hologram tests (D63): nothing leaves the machine.</summary>
+/// <summary>The network and the ship data of the hologram tests (D63, D114): nothing leaves the machine.</summary>
 internal static class FakeHttp
 {
-    /// <summary>A manifest.json of the app's release tag listing these files, with their real length and hash.</summary>
-    public static byte[] Manifest(params (string Slug, byte[] Data)[] ships) => Encoding.UTF8.GetBytes($$"""
-        { "dataVersion": "{{HoloRelease.Tag}}", "formatVersion": 2, "ships": [ {{string.Join(", ", ships.Select(s =>
-            $$"""{ "slug": "{{s.Slug}}", "file": "{{s.Slug}}.holo", "bytes": {{s.Data.Length}}, "sha256": "{{Convert.ToHexStringLower(SHA256.HashData(s.Data))}}", "budget": 20000 }"""))}} ] }
-        """);
+    /// <summary>The ship data in use in the hologram tests; its release holds the holograms.</summary>
+    public static readonly ShipDataVersion DataVersion = new(2026, 11, 1);
 
-    public sealed class FixedClock(DateTimeOffset now) : TimeProvider
-    {
-        public override DateTimeOffset GetUtcNow() => now;
-    }
+    /// <summary>The holo section of <see cref="DataVersion"/>'s manifest listing these files, with their real length and hash.</summary>
+    public static HoloOffer Holo(params (string Slug, byte[] Data)[] ships) => new HoloOffer.Offered(new HoloManifest(
+        DataVersion.ToString(),
+        [.. ships.OrderBy(s => s.Slug, StringComparer.Ordinal)
+            .Select(s => new HoloManifestEntry(s.Slug, s.Slug + ".holo", s.Data.Length, Convert.ToHexStringLower(SHA256.HashData(s.Data))))]));
+
+    /// <summary>The data in use with <paramref name="holo"/>; the folders are never read by the hologram code.</summary>
+    public static ActiveShipData Data(HoloOffer holo) => new(
+        DataVersion, ShipDataOrigin.Baseline, @"C:\app\ship-data", @"C:\app\ship-data\ships", @"C:\app\ship-data\outlines.json", holo);
 
     /// <summary>Answers per file name; logs every request. Unknown files get a 404.</summary>
     public sealed class FakeHandler : HttpMessageHandler

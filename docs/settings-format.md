@@ -214,13 +214,17 @@ what lies behind it. `"#RRGGBB"` or `"#AARRGGBB"`, written back as `"#FFRRGGBB"`
 opacity is `holoOpacity`, so an alpha below `FF` is set to `FF` with a notice. Not a colour, missing or `null` means the
 default, with a notice for one that isn't a colour.
 
-`downloadShipHolograms`: `true` (the default) lets a hologram look download the ship's file from this repository's
-release `holo-v3` on GitHub when you pick a ship, one file per ship, and the list of files at most once a day. Nothing
-else is sent. `false` means no hologram downloads at all (the update check has its own switch, `updates.checkOnStartup`); holograms already downloaded still show. They are kept in
-`%LocalAppData%\SC-CargoPlan\holo\holo-v3\` ([format](holo-format.md)). Only the current release's folder stays (D95):
-another `holo-v<n>` folder, such as `holo-v2` of v0.3.0 to v0.5.0, goes once the current list of files is checked, and the
-overlay says once that the holograms download again; with downloads off or a look without hologram it goes at once and
-nothing is said. If the list can't be had, the old folder stays.
+`downloadShipHolograms`: `true` (the default) lets a hologram look download the ship's file from the release of the ship
+data in use on GitHub (`sc-cargoplan-shipdata`, e.g. `ships-2026.11.1`) when you pick a ship, one file per ship; the list
+of files comes with the ship data, so nothing else is asked for (D114). Nothing else is sent. `false` means no hologram
+downloads at all (the update check and the ship data check have their own switches, `updates.checkOnStartup` and
+`shipData.checkOnStartup`); holograms already downloaded still show. They are kept in
+`%LocalAppData%\SC-CargoPlan\holo\<ship data version>\`, e.g. `holo\ships-2026.11.1\` ([format](holo-format.md)). Only
+the folder of the ship data in use stays (D95): another one, such as `holo-v3` of v0.5.1 or an older ship data version,
+goes at the first hologram request, and the overlay says once that the holograms download again; with downloads off, a
+look without hologram or no holograms on offer it goes at once and nothing is said. When the ship data offer no
+holograms (or none in a format this version reads), every ship shows its outline and the settings window says so under
+the switch, e.g. `Holograms: not offered by ship data 2026.11.2`.
 
 `shipView` holds the zoom and the view per ship. Missing or `null` means the defaults.
 

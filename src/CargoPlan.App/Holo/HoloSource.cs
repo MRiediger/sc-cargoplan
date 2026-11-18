@@ -1,9 +1,13 @@
 // WPF projects leave System.IO out of the implicit usings (Path clashes with System.Windows.Shapes.Path).
 using System.IO;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using CargoPlan.App.ShipData;
 using CargoPlan.Core.Holo;
+using CargoPlan.Core.ShipData;
+using static System.FormattableString;
 
 namespace CargoPlan.App.Holo;
 
@@ -14,93 +18,122 @@ public abstract record HoloFetch
     {
     }
 
-    /// <summary>The file, checked against the manifest when one was there.</summary>
+    /// <summary>The file, checked against the manifest.</summary>
     /// <param name="Problem">The cache couldn't be written: the hologram shows, the notice says why it will be downloaded again.</param>
     public sealed record Found(byte[] Data, string? Problem = null) : HoloFetch;
 
-    /// <summary>No hologram, and nothing went wrong: not offered, withdrawn, or downloads off without a cached file.</summary>
+    /// <summary>No hologram, and nothing the player must hear about: none offered, a release that is gone, or downloads off.</summary>
     public sealed record Missing : HoloFetch;
 
     /// <summary>Something went wrong; the reason goes into the one notice of the run.</summary>
     public sealed record Failed(string Reason) : HoloFetch;
 }
 
-/// <summary>The cache held another tag at the start and the current tag's manifest is checked (D95).</summary>
-/// <param name="Problem">Why the other tag's folder couldn't be deleted; null when it is gone.</param>
+/// <summary>The cache held another tag or data version at the start and the first request with downloads on came (D95).</summary>
+/// <param name="Problem">Why the other folder couldn't be deleted; null when it is gone.</param>
 public sealed record HoloTagChange(string? Problem);
 
 /// <summary>
-/// Gets a ship's hologram from the cache or the release (D63, docs/holo-format.md). The manifest is asked for at most
-/// once per run, and not at all while the cached one is younger than <see cref="HoloRelease.ManifestMaxAge"/>; a
-/// manifest fetched now, or within that age, withdraws a ship it doesn't list (the cached file is deleted), an older one
-/// only stands in while the release can't be reached. A file is downloaded when the cache lacks it or its hash differs,
-/// and kept only if length and SHA256 match. The network and file boundary: HTTP and IO errors end here, as a reason.
-/// One request at a time; a cancelled call throws <see cref="OperationCanceledException"/>. Only this tag's cache stays
-/// (D95): another tag's folder found at the start goes once the current manifest is checked, before the first download,
-/// and <see cref="TagChanged"/> tells it; a manifest that can't be had leaves it, so the older app still finds it.
+/// Network access 1 (D63, D114): a ship's hologram from the cache or from the release of the ship data in use,
+/// <c>…/releases/download/&lt;dataVersion&gt;/&lt;file&gt;</c>. The list, lengths and hashes come from that data's manifest,
+/// read with it at the start; nothing else is asked for. A file is downloaded when the cache lacks it or its hash differs,
+/// and kept only if length and SHA256 match. A 404 is a release that is gone (only the last two stay): the outline, one
+/// log line per run, the ship isn't asked for again in the run. The network and file boundary: HTTP and IO errors end here,
+/// as a reason. One request at a time; a cancelled call throws <see cref="OperationCanceledException"/>. Only this data
+/// version's cache stays (D95): the folder of another tag or data version found at the start goes at the first request with
+/// downloads on, before any download, and <see cref="TagChanged"/> tells it.
 /// </summary>
 public sealed class HoloSource : IDisposable
 {
-    // The largest file of holo-v1 is 799 KB (holo-v2 is smaller), the manifest about 60 KB: more is not a hologram.
+    /// <summary>Per request; a hanging connection must not keep the outline from the player for long.</summary>
+    public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(5);
+
+    // The largest file of ships-2026.11.1 is 661 KB: more is not a hologram.
     private const long MaxResponseBytes = 4 * 1024 * 1024;
 
-    // The cache folders of the release tags are named "holo-v<n>" (D63); only those are another tag's (D95).
+    // The cache folders of the hologram releases up to v0.5.x were named "holo-v<n>" (D63); they are all another tag's now.
     private const string TagPrefix = "holo-v";
+
+    private const string LogContext = "Holo";
 
     private readonly HttpClient _client;
     private readonly string _root;
     private readonly string _folder;
-    private readonly TimeProvider _clock;
+    private readonly string _dataVersion;
+    private readonly HoloManifest? _manifest;
     private readonly TimeSpan _timeout;
     private readonly SemaphoreSlim _oneAtATime = new(1, 1);
 
-    private HoloManifest? _manifest;
+    // Slugs whose file the release answered 404 for in this run: not asked for again (Festlegung 5 of T12.4).
+    private readonly HashSet<string> _gone = new(StringComparer.Ordinal);
 
-    // Fetched in this run or younger than the maximum age: it may withdraw a ship.
-    private bool _manifestIsCurrent;
+    // The first 404 of the run is logged, the rest isn't.
+    private bool _goneLogged;
 
-    // The one fetch of the run has been tried (a cancelled one doesn't count).
-    private bool _manifestTried;
-
-    // The reason the fetch failed, for a ship that has no cached file either.
-    private string? _manifestProblem;
-
-    // The manifest couldn't be cached; handed on with the next hologram found.
-    private string? _writeProblem;
-
-    // Another tag's folder lay in the root at the start; the first checked manifest retires it and tells so (D95).
+    // Another folder lay in the root at the start; the first request with downloads on retires it and tells so (D95).
     private bool _tagChangePending;
 
     /// <param name="handler">Sends the requests; a fake in the tests. Disposed with this source.</param>
-    /// <param name="cacheRoot">Holds a folder per tag; this tag's holds manifest.json and the &lt;slug&gt;.holo files.</param>
+    /// <param name="cacheRoot">Holds a folder per data version, each with the &lt;slug&gt;.holo files.</param>
+    /// <param name="repository">The data release's repository (<see cref="ShipDataSource.RepositoryFor"/>).</param>
+    /// <param name="data">The ship data in use: its tag names the release and the cache folder, its manifest the files.</param>
     /// <param name="version">For the User-Agent, "SC-CargoPlan/&lt;version&gt;".</param>
-    public HoloSource(HttpMessageHandler handler, string cacheRoot, TimeProvider clock, TimeSpan timeout, string version)
+    public HoloSource(HttpMessageHandler handler, string cacheRoot, Uri repository, ActiveShipData data, TimeSpan timeout, string version)
     {
         // Source: https://learn.microsoft.com/dotnet/api/system.net.http.httpclient.maxresponsecontentbuffersize
         _client = new HttpClient(handler, disposeHandler: true)
         {
-            BaseAddress = HoloRelease.BaseUri,
+            BaseAddress = ShipDataSource.ReleaseFolder(repository, data.Version),
             MaxResponseContentBufferSize = MaxResponseBytes,
             Timeout = System.Threading.Timeout.InfiniteTimeSpan,
         };
         _client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("SC-CargoPlan", version));
         _root = cacheRoot;
-        _folder = Path.Combine(cacheRoot, HoloRelease.Tag);
-        _clock = clock;
+        _dataVersion = data.Version.ToString();
+        _folder = CacheFolder(cacheRoot, data.Version);
+        _manifest = data.Holo is HoloOffer.Offered offered ? offered.Manifest : null;
         _timeout = timeout;
         _tagChangePending = HasOtherTags();
     }
 
-    /// <summary>Raised once per run, on the caller's thread, when the current tag's manifest is checked (D95).</summary>
+    /// <summary>Raised once per run, on the caller's thread, at the first request with downloads on (D95).</summary>
     public event Action<HoloTagChange>? TagChanged;
 
+    /// <summary>%LocalAppData%\SC-CargoPlan\holo, next to settings.json: one folder per data version, only the one in use stays (D95).</summary>
+    public static string DefaultCacheRoot => Path.Combine(AppFolders.LocalRoot, "holo");
+
+    /// <summary>Whether the ship data in use offer holograms in a format this app reads.</summary>
+    public bool OffersHolograms => _manifest is not null;
+
+    /// <summary>The cache of a data version: <c>holo\ships-2026.11.1\</c>.</summary>
+    public static string CacheFolder(string cacheRoot, ShipDataVersion version) => Path.Combine(cacheRoot, version.ToString());
+
     /// <summary>The app's source: the system's proxy settings, redirects followed (github.com sends the asset host).</summary>
-    public static HoloSource CreateDefault() =>
-        new(new SocketsHttpHandler(), HoloRelease.DefaultCacheRoot, TimeProvider.System, HoloRelease.Timeout, HoloRelease.UserAgentVersion);
+    /// <param name="shipDataSource"><c>--ship-data-source</c>: its repository's holograms (R2 of T12.4); a folder or none gives the data channel's.</param>
+    public static HoloSource CreateDefault(ActiveShipData data, string? shipDataSource) =>
+        new(new SocketsHttpHandler(), DefaultCacheRoot, ShipDataSource.RepositoryFor(shipDataSource), data, Timeout, AppVersion.Current);
+
+    /// <summary>The start's log line when the data in use offer no holograms this app reads; null when they do.</summary>
+    public static string? UnavailableLog(ActiveShipData data) => data.Holo switch
+    {
+        HoloOffer.NotOffered => $"ship data {data.Version.Display} offers no holograms (holo: null) – outlines only",
+        HoloOffer.UnknownFormat unknown => Invariant(
+            $"ship data {data.Version.Display} has holograms in format {unknown.FormatVersion}, this app reads {HoloReader.FormatVersion} – outlines only"),
+        _ => null,
+    };
+
+    /// <summary>The line under the switch "Download ship holograms" when no holograms come (R3 of T12.4); null when they do.</summary>
+    public static string? UnavailableText(ActiveShipData data) => data.Holo switch
+    {
+        HoloOffer.NotOffered => $"Holograms: not offered by ship data {data.Version.Display}",
+        HoloOffer.UnknownFormat unknown => Invariant($"Holograms: ship data {data.Version.Display} needs a newer app (hologram format {unknown.FormatVersion})"),
+        _ => null,
+    };
 
     /// <summary>
-    /// Deletes the cache folders of other tags (D95): only folders directly in the root named like a tag
-    /// ("holo-v" and digits), never this tag's. The reason if one can't be deleted, null otherwise.
+    /// Deletes the cache folders of other tags and data versions (D95): only folders directly in the root named like a
+    /// hologram tag ("holo-v" and digits) or a data version, never the one in use. The reason if one can't be deleted,
+    /// null otherwise.
     /// </summary>
     public string? RetireOtherTags()
     {
@@ -116,43 +149,8 @@ public sealed class HoloSource : IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             var problem = $"the old cache can't be removed ({ex.Message})";
-            AppLog.Write("Holo", $"{problem} [{ex.GetType().Name}]");
+            AppLog.Write(LogContext, $"{problem} [{ex.GetType().Name}]");
             return problem;
-        }
-    }
-
-    /// <summary>"holo-v" and digits, not <see cref="HoloRelease.Tag"/>; Windows names ignore case.</summary>
-    private static bool IsOtherTag(string name) =>
-        name.Length > TagPrefix.Length && name.StartsWith(TagPrefix, StringComparison.OrdinalIgnoreCase)
-        && name[TagPrefix.Length..].All(char.IsAsciiDigit) && !string.Equals(name, HoloRelease.Tag, StringComparison.OrdinalIgnoreCase);
-
-    private IReadOnlyList<string> OtherTags() =>
-        Directory.Exists(_root) ? [.. Directory.EnumerateDirectories(_root).Where(d => IsOtherTag(Path.GetFileName(d)))] : [];
-
-    /// <summary>Whether another tag's folder lies in the root at the start.</summary>
-    private bool HasOtherTags()
-    {
-        try
-        {
-            return OtherTags().Count > 0;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            // An unreadable root holds nothing to retire after the manifest; RetireOtherTags at the start names it.
-            return false;
-        }
-    }
-
-    /// <summary>The current tag's manifest is checked: another tag found at the start goes now, and the loader is told once.</summary>
-    private void RetireAfterCheck()
-    {
-        if (_tagChangePending)
-        {
-            _tagChangePending = false;
-
-            // First, not inside ?.Invoke(...): without a subscriber that would skip its argument, and the folder would stay.
-            var problem = RetireOtherTags();
-            TagChanged?.Invoke(new HoloTagChange(problem));
         }
     }
 
@@ -164,29 +162,27 @@ public sealed class HoloSource : IDisposable
         await _oneAtATime.WaitAsync(cancel);
         try
         {
-            if (!download)
+            if (_manifest is not { } manifest)
             {
-                return ReadCached(slug) is { } offline ? new HoloFetch.Found(offline) : new HoloFetch.Missing();
+                return new HoloFetch.Missing();
             }
 
-            if (await ManifestAsync(cancel) is not { } manifest)
+            if (download)
             {
-                return ReadCached(slug) is { } cached ? new HoloFetch.Found(cached) : new HoloFetch.Failed(_manifestProblem ?? "no manifest");
+                RetireAfterCheck();
             }
 
             if (manifest.Find(slug) is not { } entry)
             {
-                return _manifestIsCurrent && Delete(slug) is { } problem ? new HoloFetch.Failed(problem) : new HoloFetch.Missing();
+                return new HoloFetch.Missing();
             }
 
-            var found = ReadCached(slug) is { } current && Matches(current, entry) ? new HoloFetch.Found(current) : await DownloadAsync(slug, entry, cancel);
-            if (found is HoloFetch.Found { Problem: null } shown && _writeProblem is { } writeProblem)
+            if (ReadCached(slug) is { } cached && Matches(cached, entry))
             {
-                _writeProblem = null;
-                return shown with { Problem = writeProblem };
+                return new HoloFetch.Found(cached);
             }
 
-            return found;
+            return !download || _gone.Contains(slug) ? new HoloFetch.Missing() : await DownloadAsync(slug, entry, cancel);
         }
         finally
         {
@@ -200,9 +196,56 @@ public sealed class HoloSource : IDisposable
         _oneAtATime.Dispose();
     }
 
+    /// <summary>"holo-v" and digits, or a data version other than the one in use; Windows names ignore case.</summary>
+    private bool IsOtherTag(string name) =>
+        (name.Length > TagPrefix.Length && name.StartsWith(TagPrefix, StringComparison.OrdinalIgnoreCase) && name[TagPrefix.Length..].All(char.IsAsciiDigit))
+        || (ShipDataVersion.TryParse(name, out _) && !string.Equals(name, _dataVersion, StringComparison.OrdinalIgnoreCase));
+
+    private IReadOnlyList<string> OtherTags() =>
+        Directory.Exists(_root) ? [.. Directory.EnumerateDirectories(_root).Where(d => IsOtherTag(Path.GetFileName(d)))] : [];
+
+    /// <summary>Whether another folder lies in the root at the start.</summary>
+    private bool HasOtherTags()
+    {
+        try
+        {
+            return OtherTags().Count > 0;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // An unreadable root holds nothing to retire later; RetireOtherTags at the start names it.
+            return false;
+        }
+    }
+
+    /// <summary>The first request with downloads on: another folder found at the start goes now, and the loader is told once.</summary>
+    private void RetireAfterCheck()
+    {
+        if (_tagChangePending)
+        {
+            _tagChangePending = false;
+
+            // First, not inside ?.Invoke(...): without a subscriber that would skip its argument, and the folder would stay.
+            var problem = RetireOtherTags();
+            TagChanged?.Invoke(new HoloTagChange(problem));
+        }
+    }
+
     private async Task<HoloFetch> DownloadAsync(string slug, HoloManifestEntry entry, CancellationToken cancel)
     {
-        var (data, problem) = await FetchAsync(entry.File, cancel);
+        var (data, problem, gone) = await FetchAsync(entry.File, cancel);
+        if (gone)
+        {
+            _gone.Add(slug);
+            if (!_goneLogged)
+            {
+                _goneLogged = true;
+                AppLog.Write(LogContext, $"{entry.File} is not in release {_dataVersion} (404): the outline; later 404s of this run aren't logged");
+            }
+
+            return new HoloFetch.Missing();
+        }
+
         if (data is null)
         {
             return new HoloFetch.Failed(problem!);
@@ -218,88 +261,37 @@ public sealed class HoloSource : IDisposable
         return new HoloFetch.Found(data, Write(slug + ".holo", data));
     }
 
-    private async Task<HoloManifest?> ManifestAsync(CancellationToken cancel)
-    {
-        if (_manifest is not null && (_manifestIsCurrent || _manifestTried))
-        {
-            return _manifest;
-        }
-
-        var path = CachePath(HoloRelease.ManifestFile);
-        if (!_manifestTried)
-        {
-            if (File.Exists(path) && _clock.GetUtcNow() - File.GetLastWriteTimeUtc(path) < HoloRelease.ManifestMaxAge && ParseCached(path) is { } young)
-            {
-                (_manifest, _manifestIsCurrent) = (young, true);
-                RetireAfterCheck();
-                return young;
-            }
-
-            var (data, problem) = await FetchAsync(HoloRelease.ManifestFile, cancel);
-            _manifestTried = true;
-            if (data is not null)
-            {
-                try
-                {
-                    (_manifest, _manifestIsCurrent) = (HoloManifestReader.Read(data, HoloRelease.Tag), true);
-                    _writeProblem = Write(HoloRelease.ManifestFile, data);
-                    RetireAfterCheck();
-                    return _manifest;
-                }
-                catch (HoloFormatException ex)
-                {
-                    problem = $"the manifest is invalid ({ex.Message})";
-                    AppLog.Write("Holo", $"{problem} [{ex.GetType().Name}]");
-                }
-            }
-
-            _manifestProblem = problem;
-        }
-
-        // The release can't be reached or answered nonsense: an older manifest stands in, withdrawing nothing.
-        (_manifest, _manifestIsCurrent) = (File.Exists(path) ? ParseCached(path) : null, false);
-        return _manifest;
-    }
-
-    /// <summary>One GET with the timeout; the bytes, or null and the reason. Only a cancel by the caller throws.</summary>
-    private async Task<(byte[]? Data, string? Problem)> FetchAsync(string file, CancellationToken cancel)
+    /// <summary>One GET with the timeout; the bytes, or null and the reason, or that the release has no such file. Only a cancel by the caller throws.</summary>
+    private async Task<(byte[]? Data, string? Problem, bool Gone)> FetchAsync(string file, CancellationToken cancel)
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancel);
         timeout.CancelAfter(_timeout);
         try
         {
             using var response = await _client.GetAsync(file, timeout.Token);
-            if (!response.IsSuccessStatusCode)
+            if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return (null, $"github.com answered {(int)response.StatusCode} for {file}");
+                return (null, null, true);
             }
 
-            return (await response.Content.ReadAsByteArrayAsync(timeout.Token), null);
+            if (!response.IsSuccessStatusCode)
+            {
+                return (null, $"github.com answered {(int)response.StatusCode} for {file}", false);
+            }
+
+            return (await response.Content.ReadAsByteArrayAsync(timeout.Token), null, false);
         }
         catch (OperationCanceledException ex) when (!cancel.IsCancellationRequested)
         {
             var problem = $"no answer from github.com within {_timeout.TotalSeconds:0.#} s";
-            AppLog.Write("Holo", $"{problem} [{ex.GetType().Name}]");
-            return (null, problem);
+            AppLog.Write(LogContext, $"{problem} [{ex.GetType().Name}]");
+            return (null, problem, false);
         }
         catch (HttpRequestException ex)
         {
             var problem = $"no connection to github.com ({ex.Message})";
-            AppLog.Write("Holo", $"{problem} [{ex.GetType().Name}]");
-            return (null, problem);
-        }
-    }
-
-    private HoloManifest? ParseCached(string path)
-    {
-        try
-        {
-            return HoloManifestReader.Read(File.ReadAllBytes(path), HoloRelease.Tag);
-        }
-        catch (Exception ex) when (ex is HoloFormatException or IOException or UnauthorizedAccessException)
-        {
-            // A broken cached manifest is as good as none: the fetch replaces it.
-            return null;
+            AppLog.Write(LogContext, $"{problem} [{ex.GetType().Name}]");
+            return (null, problem, false);
         }
     }
 
@@ -312,7 +304,7 @@ public sealed class HoloSource : IDisposable
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            // Locked or unreadable: treated as not cached, so a download replaces it, or the reason shows with downloads off.
+            // Locked or unreadable: treated as not cached, so a download replaces it, or the outline shows with downloads off.
             return null;
         }
     }
@@ -328,7 +320,7 @@ public sealed class HoloSource : IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             var problem = $"the cached file can't be deleted ({ex.Message})";
-            AppLog.Write("Holo", $"{problem} [{ex.GetType().Name}]");
+            AppLog.Write(LogContext, $"{problem} [{ex.GetType().Name}]");
             return problem;
         }
     }
@@ -344,7 +336,7 @@ public sealed class HoloSource : IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             var problem = $"the cache can't be written ({ex.Message})";
-            AppLog.Write("Holo", $"{problem} [{ex.GetType().Name}]");
+            AppLog.Write(LogContext, $"{problem} [{ex.GetType().Name}]");
             return problem;
         }
     }

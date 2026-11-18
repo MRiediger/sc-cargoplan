@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using CargoPlan.Core.Holo;
 using CargoPlan.Core.Ships;
 
 namespace CargoPlan.Core.ShipData;
@@ -13,7 +14,8 @@ public enum ShipDataOrigin
 
 /// <summary>The ship data the app loads at this start (T12.3): one folder of ship files and one outline file.</summary>
 /// <param name="Folder">The data's own folder: <c>ship-data\</c> next to the exe, or <c>ships\&lt;tag&gt;\</c> in the data folder.</param>
-public sealed record ActiveShipData(ShipDataVersion Version, ShipDataOrigin Origin, string Folder, string ShipsFolder, string OutlinesPath)
+/// <param name="Holo">The holograms its manifest offers (T12.4, D114): read with it, the same for the whole run.</param>
+public sealed record ActiveShipData(ShipDataVersion Version, ShipDataOrigin Origin, string Folder, string ShipsFolder, string OutlinesPath, HoloOffer Holo)
 {
     /// <summary>The baseline's folder next to the exe (D113): a data release in the download layout.</summary>
     public const string BaselineFolderName = "ship-data";
@@ -54,7 +56,7 @@ public sealed record ActiveShipData(ShipDataVersion Version, ShipDataOrigin Orig
         }
 
         return new(manifest.DataVersion, ShipDataOrigin.Baseline, folder,
-            Path.Combine(folder, ShipLoader.FolderName), Path.Combine(folder, ShipDataManifestReader.OutlinesPath));
+            Path.Combine(folder, ShipLoader.FolderName), Path.Combine(folder, ShipDataManifestReader.OutlinesPath), manifest.Holo);
     }
 
     /// <summary>One line for the log and the CLI: <c>ships-2026.11.1 (downloaded) C:\…\ships\ships-2026.11.1</c>.</summary>
@@ -101,7 +103,7 @@ public sealed class ShipDataStore(string root, ActiveShipData baseline, long max
 
             if (ReadInstalled(folder) is { } manifest && manifest.DataVersion == version && ShipLoader.IsReadable(manifest.SchemaVersion))
             {
-                best = Downloaded(folder, version);
+                best = Downloaded(folder, manifest);
             }
         }
 
@@ -152,7 +154,7 @@ public sealed class ShipDataStore(string root, ActiveShipData baseline, long max
             throw;
         }
 
-        return Downloaded(target, manifest.DataVersion);
+        return Downloaded(target, manifest);
     }
 
     /// <summary>
@@ -259,8 +261,9 @@ public sealed class ShipDataStore(string root, ActiveShipData baseline, long max
         return buffer.ToArray();
     }
 
-    private ActiveShipData Downloaded(string folder, ShipDataVersion version) => new(
-        version, ShipDataOrigin.Downloaded, folder, Path.Combine(folder, ShipLoader.FolderName), Path.Combine(folder, ShipDataManifestReader.OutlinesPath));
+    private static ActiveShipData Downloaded(string folder, ShipDataManifest manifest) => new(
+        manifest.DataVersion, ShipDataOrigin.Downloaded, folder, Path.Combine(folder, ShipLoader.FolderName),
+        Path.Combine(folder, ShipDataManifestReader.OutlinesPath), manifest.Holo);
 
     private IEnumerable<(string Folder, ShipDataVersion Version)> Releases()
     {

@@ -10,8 +10,9 @@ namespace CargoPlan.App.Holo;
 /// called on the UI thread, fetch, reading and preparing run off it, the result comes back here (await resumes
 /// in WPF's synchronization context) and goes to <see cref="OverlayViewModel.ShowHolo"/>. A new request cancels the one
 /// running, so a quick ship change never shows the ship before. The mesh read last is kept: another look of the same
-/// ship needs neither network nor disk. Every failure ends in the outline; the first of a run gives one notice. After a
-/// tag change (D95) one more notice stands while the first hologram loads, or for the run if the old cache stays.
+/// ship needs neither network nor disk. Every failure ends in the outline; the first of a run gives one notice. No
+/// hologram on offer and a release that is gone (404) give none (T12.4). After a cache change (D95) one more notice stands
+/// while the first hologram loads, or for the run if the old cache stays.
 /// </summary>
 public sealed class HoloLoader
 {
@@ -29,17 +30,18 @@ public sealed class HoloLoader
         _viewModel = viewModel;
         _source = source;
 
-        // Raised inside GetAsync on this (the UI) thread, after the manifest and before the first file downloads.
+        // Raised inside GetAsync on this (the UI) thread, at the first request with downloads on, before any file downloads.
         source.TagChanged += change => ShowUpdate(change.Problem);
     }
 
     /// <summary>
-    /// At the start: another tag's cache goes at once when holograms aren't wanted now, the switch off or no hologram
-    /// look (D95); no access. Otherwise the current tag's manifest decides, at the first request.
+    /// At the start: another tag's or data version's cache goes at once when no hologram comes now, the switch off, no
+    /// hologram look, or none on offer (D95, T12.4); no access, a notice only if it can't be deleted. Otherwise it goes at
+    /// the first request.
     /// </summary>
     public void RetireUnneeded(ShipOutlineMode look, bool download)
     {
-        if ((!download || !look.IsHologram()) && _source.RetireOtherTags() is { } problem)
+        if ((!download || !look.IsHologram() || !_source.OffersHolograms) && _source.RetireOtherTags() is { } problem)
         {
             ShowUpdate(problem);
         }

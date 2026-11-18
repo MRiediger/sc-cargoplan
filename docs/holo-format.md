@@ -1,16 +1,21 @@
 # Ship hologram format (SCH2)
 
 Ship holograms are an optional download for the ship view (see [D63](decisions.md)). They are not part of the
-repository or the app ZIP: each ship is one file `<modelKey>.holo` in a GitHub release of its own (tag
-`holo-v3` since v0.5.1; `holo-v2` stays for v0.3.0 to v0.5.0, `holo-v1` for v0.1 and v0.2), next to a
-`manifest.json`. The files derive from game models (CIG) and are not under the repository's MIT licence; the release's
-`NOTICE.md` says so. A pipeline outside this repository writes them ([Pipeline](#pipeline)).
+repository or the app ZIP: each ship is one file `<modelKey>.holo`, an asset of the ship data release
+(`sc-cargoplan-shipdata`, tag `ships-YYYY.MM[.N]`) next to its `ships.zip`, listed in the `holo` section of its
+`manifest.json` (D114, [Manifest](#manifest)). The files derive from game models (CIG) and are not under the
+repository's MIT licence; the release's `NOTICE.md` says so. The data pipeline in `sc-cargoplan-shipdata` writes them.
+
+**History:** until v0.5.x the holograms were a release of their own in this repository, `holo-v1` (v0.1, v0.2),
+`holo-v2` (v0.3.0 to v0.5.0) and `holo-v3` (v0.5.1), each with a manifest of its own; `holo-v3` stays published until
+v0.5.x has run out (T12.6). v0.6.0 reads only the data releases.
 
 **Source (D93):** since holo-v2 every ship's model comes from cryon.rocks (Motherlode): cargo grid data and ship models
-extracted from the Star Citizen game files, the same models the racks come from (D92). holo-v3 takes the catalog of
-game build 4.10.3 (new: Galaxy, Liberator, Retaliator; 13 models changed). Three ships still use hull data from
-fleetyards.net, their holo-v1 file byte for byte (D94): the 600i Executive Edition and F7C Hornet Mk II have no model
-there, the 135c's cargo grid has no placement. The Cyclone, gone from the 4.10.3 catalog, keeps its holo-v2 file.
+extracted from the Star Citizen game files, the same models the racks come from (D92). holo-v3 took the catalog of
+game build 4.10.3 (new: Galaxy, Liberator, Retaliator; 13 models changed). Two ships still use hull data from
+fleetyards.net, their holo-v1 file byte for byte (D94): the 600i Executive Edition has no model there, the 135c's cargo
+grid has no placement; the F7C Hornet Mk II has the game model since `ships-2026.11.1`. The Cyclone, gone from the 4.10.3
+catalog, keeps its holo-v2 file.
 
 ## File
 
@@ -68,73 +73,83 @@ The 30° is part of format version 2; the pipeline and the app use the same valu
 
 ## Manifest
 
-`manifest.json` lists every hologram of the release. A ship that isn't listed has no hologram; the app shows the
+The `holo` section of the data release's `manifest.json` lists every hologram of the release (the whole manifest:
+`sc-cargoplan-shipdata`, `docs/manifest-format.md`). A ship that isn't listed has no hologram; the app shows the
 outline (D62).
 
 ```json
 {
-  "dataVersion": "holo-v3",
-  "formatVersion": 2,
-  "generatedAt": "2026-11-16T13:50:20Z",
-  "pipelineCommit": "…",
-  "tools": { "meshoptimizer": "1.3.0", "node": "24.16.0", "python": "3.14.5", "numpy": "2.5.3" },
-  "ships": [
-    { "slug": "misc-hull-a", "file": "misc-hull-a.holo", "bytes": 185882, "sha256": "…", "model": "MISC_Hull_A",
-      "rawSha256": "…", "budget": 20000, "triangles": 13085, "edges": [1445, 3411, 9620], "passed": true,
-      "metrics": { "errorM": 0.0, "topIou": 1.0, "…": "…" } }
-  ]
+  "dataVersion": "ships-2026.11.1",
+  "…": "…",
+  "holo": {
+    "formatVersion": 2,
+    "ships": {
+      "misc-hull-a": { "file": "misc-hull-a.holo", "bytes": 185882, "sha256": "…", "model": "MISC_Hull_A",
+                       "rawSha256": "…", "budget": 20000, "triangles": 13085, "edges": [1445, 3411, 9620],
+                       "passed": true, "fails": [], "metrics": { "errorM": 0.0, "topIou": 1.0, "…": "…" } }
+    }
+  }
 }
 ```
 
 | Field | Meaning |
 |---|---|
-| `dataVersion` | the release tag |
-| `formatVersion` | the files' `formatVersion`; an app that doesn't know it uses none of them |
-| `pipelineCommit` | the pipeline's commit the files came from |
-| `ships[].sha256` | hash of the file; a cached file with another hash is stale |
-| `ships[].model` | since holo-v2: the Motherlode model (`className`) the file comes from, or `fleetyards (holo-v1)`; a file kept from the previous release keeps its entry and label (holo-v3: the Cyclone's `TMBL_Cyclone`) |
-| `ships[].rawSha256` | hash of the source model, for the pipeline |
-| `ships[].budget`, `triangles`, `edges` | the budget step the ship came out at (20 k / 30 k / 40 k), its triangles, its edge counts per level |
-| `ships[].passed`, `metrics` | whether the ship met every criterion of the pipeline, and the measurements; published either way once approved (D63) |
+| `holo` | required; `null` is the kill switch: the release offers no hologram, every ship shows its outline |
+| `holo.formatVersion` | the files' `formatVersion`; an app that doesn't know it uses none of them, the ships still load (R1 of T12.4) |
+| `holo.ships.<slug>` | the slug is the ship file's `modelKey` |
+| `….file` | the asset's name, flat (`<slug>.holo`); its URL is `…/releases/download/<dataVersion>/<file>` (no `baseUrl`, SD2) |
+| `….bytes`, `….sha256` | length and hash of the file; a download of another length or hash is broken, a cached file with another hash is stale |
+| `….model` | the Motherlode model (`className`) the file comes from, or `fleetyards (holo-v1)` |
+| `….rawSha256`, `budget`, `triangles`, `edges`, `passed`, `fails`, `metrics` | the pipeline's and judge's numbers; the app doesn't read them |
 | further fields | a reader ignores fields it doesn't know |
 
-**Withdrawal:** a ship removed from the manifest is withdrawn; an app deletes its cached file and shows the outline.
-A manifest that can't be fetched (offline, timeout, a moment without the file while it is replaced) withdraws
-nothing: the app keeps its cache.
+**Withdrawal:** a new data release without the ship in `holo.ships`, or with `holo: null` for all of them. A player on
+the older release keeps its holograms until the update; deleting a hologram asset gives that player the outline for
+every ship not yet cached (a 404, see below).
 
-**Withdrawing everything:** publish a manifest with an empty `ships` list. Don't delete the manifest: a 404 reads as
-"can't be fetched" and keeps every cache.
+**History:** the hologram releases `holo-v1` to `holo-v3` had a `manifest.json` of their own (`dataVersion` = the
+holo tag, `ships` as a list with `slug`); v0.5.x fetched it at most once a day and read a ship missing from it as
+withdrawn.
 
 ## Reading side (SC-CargoPlan)
 
-How the overlay gets and uses the files (D63). The overlay's first network access; the second is the update check (D109).
+How the overlay gets and uses the files (D63, D114). The overlay's first network access; the second is the update
+check (D109), the third the ship data check (D112).
 
-- **Requests:** plain HTTPS GETs of `https://github.com/MRiediger/sc-cargoplan/releases/download/holo-v3/<file>`
-  (GitHub redirects to its asset host), User-Agent `SC-CargoPlan/<version>`, 5 s per request. Any 2xx answer is
-  taken; a file is kept only if its length and SHA256 match the manifest. Nothing else is sent, no API, no token.
-- **Cache:** `%LocalAppData%\SC-CargoPlan\holo\holo-v3\`, one `<slug>.holo` per ship and the last `manifest.json`.
-  The tag names the folder, so a new release starts an empty one. Only the current tag's folder stays (D95): another
-  `holo-v<n>` folder found at the start goes once the current manifest is checked (fetched, or cached and younger than
-  24 hours), before the first file downloads, and the overlay says once that the holograms download again; at once
-  when downloads are off or the look is no hologram. A manifest that can't be had leaves it, so the older app still
-  finds its cache. A folder that can't be deleted is named in the notice and tried again on the next start.
-- **Manifest:** a cached copy younger than 24 hours is used without a request; otherwise the app asks once per run,
-  when it first needs a hologram. A manifest fetched now or within those 24 hours withdraws ships it doesn't list; an
-  older one only stands in while the release can't be reached.
-- **A ship's file:** taken from the cache when its hash matches the manifest, else downloaded. Without any manifest
-  (offline on the first run) a cached file is shown, it was checked when it was written.
+- **The list:** the `holo` section of the ship data in use, read with its manifest at the start (`ActiveShipData`); it
+  changes only with a restart. No request for it.
+- **Requests:** plain HTTPS GETs of
+  `https://github.com/MRiediger/sc-cargoplan-shipdata/releases/download/<dataVersion>/<file>` (GitHub redirects to its
+  asset host; `--ship-data-source` with a repository takes that one), User-Agent `SC-CargoPlan/<version>`, 5 s per
+  request. Any 2xx answer is taken; a file is kept only if its length and SHA256 match the manifest. Nothing else is
+  sent, no API, no token.
+- **Cache:** `%LocalAppData%\SC-CargoPlan\holo\<dataVersion>\`, one `<slug>.holo` per ship. The data version names the
+  folder, so new ship data start an empty one. Only that folder stays (D95): another one found at the start, a
+  `holo-v<n>` of v0.5.x or another data version, goes at the first request with downloads on, before any download,
+  and the overlay says once that the holograms download again; at once and silently when downloads are off, the look
+  is no hologram or the data offer none. A folder that can't be deleted is named in the notice and tried again on the
+  next start; folders of any other name stay.
+- **A ship's file:** taken from the cache when length and hash match the manifest, also with downloads off; else
+  downloaded.
+- **No holograms on offer** (`holo: null`, or a `formatVersion` this app doesn't read): no request, every ship shows its
+  outline, one log line at the start, the settings window says so under the switch; no notice.
+- **A 404** (the release or the asset is gone; only the last two data releases stay): the outline for that ship, a
+  cached file stays, one log line per run, no notice, the ship isn't asked for again in the run. The ship data update
+  line is the way back.
 - **Downloads off** (`downloadShipHolograms: false`): no request at all; cached files still show.
 - **Reading:** every rule of [File](#file) is checked (`HoloReader`); a file that breaks one shows the outline.
-- **Failures** end in the outline; the first of a run names its reason in the overlay's notice line.
+- **Failures** (no connection, timeout, another status, a damaged file) end in the outline; the first of a run names
+  its reason in the overlay's notice line.
 - **Drawing:** metres ÷ 1.25 = cells, the mesh's origin at the ship file's `holoOrigin`, whatever its racks do (D90; a
   file without it: the middle of the bounds on the middle of the racks in x, y and z). For a ship with a Motherlode
   model `holoOrigin` is its fraction s, written by the import (D93); see
   [ship-format.md](ship-format.md#hologram-and-outline). The looks and the hidden-line levels by zoom (level 1 below
   1.5×, 2 below 3×, 3 from 3×) are described in D63.
 
-## Pipeline
+## Pipeline (history: holo-v2 and holo-v3)
 
-holo-v2 and holo-v3, in the private repository `sc-ship-outlines` (versions and every call with its arguments in its
+Since D111 the data pipeline in `sc-cargoplan-shipdata` builds the holograms with every data release (its `TASKS.md`
+and `docs/`). holo-v2 and holo-v3 were built in the private repository `sc-ship-outlines` (versions and every call with its arguments in its
 `TOOLS.md`). Per model, files in `holo-work-ml/<className>/`:
 
 1. `fetch-motherlode.ps1`: the dated catalog and the models with their SHA-256 list (`motherlode/`).

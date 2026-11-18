@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using System.Xml.Linq;
+using CargoPlan.Core.Holo;
 using CargoPlan.Core.ShipData;
 using CargoPlan.Core.Ships;
 
@@ -46,6 +47,16 @@ public sealed class BaselineShipDataTests : IDisposable
         baseline.OutlinesPath.Should().Be(Path.Combine(folder, "outlines.json"));
         baseline.ToString().Should().StartWith("ships-2026.11.1 (baseline) ");
         ShipLoader.LoadAll(baseline.ShipsFolder).Get("aurora_mk_ii_ts_module").Should().NotBeNull();
+        baseline.Holo.Should().BeOfType<HoloOffer.Offered>().Which.Manifest.DataVersion.Should().Be("ships-2026.11.1");
+    }
+
+    [Fact]
+    public void A_baseline_with_the_kill_switch_reads_without_holograms()
+    {
+        var release = ShipDataRelease.Frozen();
+        var folder = Unpacked(release, release.Manifest(change: m => m["holo"] = null));
+
+        ActiveShipData.ReadBaseline(folder).Holo.Should().Be(new HoloOffer.NotOffered());
     }
 
     [Fact]
@@ -134,6 +145,12 @@ public sealed class BaselineShipDataTests : IDisposable
         ShipDataVersion.TryParse(pin, out var pinned).Should().BeTrue(pin);
         ActiveShipData.ReadBaseline(ActiveShipData.BaselineFolder).Version.Should().Be(pinned, "the build copies the pinned release; a stale ship-data folder fails here");
     }
+
+    // T12.4: a pin without holograms this app reads would ship a release that shows outlines only.
+    [Fact]
+    public void The_pinned_baseline_offers_holograms_this_app_reads() =>
+        ActiveShipData.ReadBaseline(ActiveShipData.BaselineFolder).Holo.Should().BeOfType<HoloOffer.Offered>()
+            .Which.Manifest.Find("misc-hull-a").Should().NotBeNull();
 
     [Fact]
     public void The_build_checks_the_schemas_this_app_reads()

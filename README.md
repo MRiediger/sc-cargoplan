@@ -84,5 +84,5 @@ All known issues: [Troubleshooting](https://github.com/MRiediger/sc-cargoplan/wi
 - Not affiliated with Motherlode, Fleetyards or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
 
 [MIT](LICENSE). Not under MIT: the ship data and silhouettes (`ship-data\NOTICE.md` next to the app, from the
-[ship data releases](https://github.com/MRiediger/sc-cargoplan-shipdata/releases)) and the ship holograms (`NOTICE.md`
-of the [`holo-v3` release](https://github.com/MRiediger/sc-cargoplan/releases/tag/holo-v3)).
+[ship data releases](https://github.com/MRiediger/sc-cargoplan-shipdata/releases)) and the ship holograms (assets of
+the same releases, under the same `NOTICE.md`).
