@@ -7045,7 +7045,7 @@ Copy-Item "$env:LocalAppData\SC-CargoPlan\plan.json" $data   # optional: dein Hu
 - [x] Build ohne Warnungen, alle Tests grün (Core 1880, Import 280, Ocr 34, App 2075; ohne die drei lokalen Scratch-Tests
   Core 1878, App 2074), `dotnet format` sauber
 
-### [ ] T12.4 App: Holo aus dem Manifest
+### [x] T12.4 App: Holo aus dem Manifest (18.11.2026, `06170bc`, `a8c4900`, abgenommen 18.11.)
 
 **Warum:** `HoloRelease.Tag` ist die letzte Konstante, die ein App-Release pro Datenänderung erzwingt.
 - Hashes aus dem Manifest, URL `…/releases/download/<dataVersion>/<file>` (kein `baseUrl`, SD2), `holo: null` → Umriss-Fallback, gelöschtes Release → Baseline-Holo
@@ -7199,6 +7199,16 @@ Copy-Item -Recurse "$env:LocalAppData\SC-CargoPlan\holo\holo-v3" "$data\holo\hol
 
 **Offen fürs Gate (Optik = Martin):** der Settings-Text `Holograms: not offered by ship data …` (Wortlaut, Lage unter
 dem Hinweis); das Aussehen der 90 geänderten Holos – nur Hyun, F7C und Hull A sind im Gate.
+
+**Abnahme (Martin, 18.11.2026, SC im Vordergrund):**
+- [x] Grep `holo-v3|HoloRelease` über `src` leer
+- [x] Publish-Build, leerer Datenordner: Hyun, F7C, Hull A mit Holo, Cache `holo\ships-2026.11.1\`, SHA = Manifest (CC-Vorlauf 1)
+- [x] Alter Cache `holo\holo-v3\`: einmal gelöscht, eine Notice, danach Ruhe (CC-Vorlauf 2)
+- [x] Kill-Switch per `--ship-data-source`: Umriss, eine Logzeile, Settings-Text, keine Notice (CC-Vorlauf 3, Test)
+- [x] 404 per `FakeHandler`: Umriss nur für dieses Schiff, andere laden (Test)
+- [x] Gate: Hyun → Holo, F7C → Holo, Hull A → Plan und Holo wie vorher
+- [x] Build ohne Warnungen, alle Tests grün (Core 1915, Import 280, Ocr 34, App 2080; inkl. der drei lokalen
+  Scratch-Tests), `dotnet format` sauber
 
 ### [x] T12.5 App: Baseline aus dem Release (18.11.2026, `46fd06d`, `39c3a50`, abgenommen 18.11.)
 
