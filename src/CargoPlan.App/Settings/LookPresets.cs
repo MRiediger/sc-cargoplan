@@ -9,7 +9,7 @@ public sealed record LookPreset(string Name, string FileName, Look Look);
 
 /// <summary>
 /// The presets, embedded look files in the same form a player exports, so a preset is made by exporting it. Not next to
-/// the exe like <c>ships/</c>: they are the app's, not the community's, and a player shares a look by Import instead.
+/// the exe like the built-in ship data: they are the app's, not the community's, and a player shares a look by Import instead.
 /// </summary>
 public static class LookPresets
 {

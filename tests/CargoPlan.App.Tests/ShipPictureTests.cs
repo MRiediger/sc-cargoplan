@@ -21,7 +21,8 @@ namespace CargoPlan.App.Tests;
 /// what <c>main</c> has, so the file can be copied into a worktree of an older commit for the baseline.
 /// Set <c>CARGOPLAN_PICTURES_OUT</c> (a new folder outside the repo) and <c>CARGOPLAN_HOLO_FOLDER</c> (the
 /// <c>&lt;slug&gt;.holo</c> files); <c>CARGOPLAN_PICTURES_BASELINE</c> (an earlier run's folder) compares;
-/// <c>CARGOPLAN_PICTURES_EXPECTED</c> (ids, comma-separated) names the ships allowed to differ.
+/// <c>CARGOPLAN_PICTURES_EXPECTED</c> (ids, comma-separated) names the ships allowed to differ; <c>CARGOPLAN_SHIP_DATA</c>
+/// (a data release unpacked as a download: ships/, outlines.json) draws those ships instead of the baseline.
 /// </summary>
 [Trait("Category", "Slow")]
 public sealed class ShipPictureTests(ITestOutputHelper output)
@@ -65,8 +66,12 @@ public sealed class ShipPictureTests(ITestOutputHelper output)
     private static void Render(string folder, string holograms, bool keepEveryPng, string? baseline, List<string> pictures, List<string> values)
     {
         var known = baseline is null ? null : Read(Path.Combine(baseline, PicturesFile));
-        var outlines = ShipOutlineLoader.Load();
-        foreach (var ship in ShipLoader.LoadAll().Ships.OrderBy(s => s.Id, StringComparer.Ordinal))
+        // CARGOPLAN_SHIP_DATA: a data release in the download layout (T12.5), else the baseline next to the assembly. Plain
+        // paths, no ActiveShipData: older commits don't have it.
+        var data = Environment.GetEnvironmentVariable("CARGOPLAN_SHIP_DATA") is { Length: > 0 } release ? release : null;
+        var outlines = data is null ? ShipOutlineLoader.Load() : ShipOutlineLoader.Load(Path.Combine(data, "outlines.json"));
+        var ships = data is null ? ShipLoader.LoadAll() : ShipLoader.LoadAll(Path.Combine(data, "ships"));
+        foreach (var ship in ships.Ships.OrderBy(s => s.Id, StringComparer.Ordinal))
         {
             // A ship without a hologram (no model key, the Cyclone, D92) has the looks without one.
             var holoFile = Path.Combine(holograms, $"{ship.ModelKey}.holo");

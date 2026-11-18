@@ -135,7 +135,7 @@ public class ReplanTests
 
     public static TheoryData<string> ShippedShipIds => [.. ShipLoader.ListShips(ShipLoader.DefaultFolder)];
 
-    // The overlay's switch has no catch: every ship in ships/ must take a plan, placed or waiting. The 3-stop example,
+    // The overlay's switch has no catch: every ship of the baseline must take a plan, placed or waiting. The 3-stop example,
     // not the 8-stop load case: that one reaches the search limit on the Freelancer (~8 s Debug, see the Slow test).
     [Theory]
     [MemberData(nameof(ShippedShipIds))]

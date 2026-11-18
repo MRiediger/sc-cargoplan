@@ -484,3 +484,6 @@ $RECYCLE.BIN/
 *.swp
 
 out/
+
+# The pinned ship data release, fetched by the build (T12.5, D113)
+.ship-data/

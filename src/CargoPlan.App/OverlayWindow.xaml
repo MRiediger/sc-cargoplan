@@ -23,7 +23,7 @@
     <!-- MinWidth/MinHeight: header, a small ship view and the legend stay visible; restoring saved bounds uses them too.
          MinWidth 400 (D110): per ship its name with the selection's chevron, its own short capacity "N/N +N", gear and exit
          fit the header's first line, the maximum over all ships, in the Windows default message font (Segoe UI 12 px);
-         HeaderPanelTests measures it from ships/. -->
+         HeaderPanelTests measures it from the shipped baseline. -->
     <Window.Resources>
         <sv:PaletteBrushConverter x:Key="PaletteBrushConverter" />
         <sv:PaletteNoticeConverter x:Key="PaletteNoticeConverter" />

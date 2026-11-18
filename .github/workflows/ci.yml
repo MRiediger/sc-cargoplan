@@ -43,6 +43,8 @@ jobs:
       - name: Restore
         run: dotnet restore
 
+      # Core's build fetches the ship data release that build/ship-data.json pins, once and checked (D113): Windows
+      # PowerShell on Windows, pwsh on Ubuntu, both on the runners.
       - name: Build
         run: dotnet build -c Release --no-restore
 

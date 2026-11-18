@@ -5,7 +5,7 @@ namespace CargoPlan.Core.Tests;
 
 public class ShipOutlineLoaderTests
 {
-    // Slugs struck from outlines/ship-outlines.json because their trace was wrong (D55); those ships show the bow wedge.
+    // Slugs struck from the outlines because their trace was wrong (D55); those ships show the bow wedge.
     private static readonly string[] StruckSlugs = [];
 
     // Ships newer than the outlines: they show the bow wedge (D62) until the pipeline traces them. Empty since K5.2b
@@ -17,7 +17,7 @@ public class ShipOutlineLoaderTests
     private static Ship WithSlug(string? slug) =>
         new("test", "Test", 16, [new Rack("rack-0", 0, 16, new Dimensions(4, 2, 2), null, new ShipPoint(0, 0, 0))], ModelKey: slug);
 
-    // --- The shipped file (outlines/ next to the test assembly) ---
+    // --- The shipped file (the baseline, ship-data/outlines.json next to the test assembly, D113) ---
 
     [Fact]
     public void The_shipped_file_loads_without_problems()

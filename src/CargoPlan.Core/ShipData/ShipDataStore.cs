@@ -12,12 +12,50 @@ public enum ShipDataOrigin
 }
 
 /// <summary>The ship data the app loads at this start (T12.3): one folder of ship files and one outline file.</summary>
-/// <param name="Folder">The data's own folder: next to the exe, or <c>ships\&lt;tag&gt;\</c> in the data folder.</param>
+/// <param name="Folder">The data's own folder: <c>ship-data\</c> next to the exe, or <c>ships\&lt;tag&gt;\</c> in the data folder.</param>
 public sealed record ActiveShipData(ShipDataVersion Version, ShipDataOrigin Origin, string Folder, string ShipsFolder, string OutlinesPath)
 {
-    /// <summary>The ships and outlines next to the running exe (D56, D62): the release's baseline.</summary>
-    public static ActiveShipData NextToExe { get; } = new(
-        ShipDataVersion.Baseline, ShipDataOrigin.Baseline, AppContext.BaseDirectory, ShipLoader.DefaultFolder, ShipOutlineLoader.DefaultPath);
+    /// <summary>The baseline's folder next to the exe (D113): a data release in the download layout.</summary>
+    public const string BaselineFolderName = "ship-data";
+
+    /// <summary>The baseline next to the running exe (or test assembly); no single-file publish, so that is its folder (D46).</summary>
+    public static string BaselineFolder => Path.Combine(AppContext.BaseDirectory, BaselineFolderName);
+
+    /// <summary>
+    /// The data release the build laid into <paramref name="folder"/> (T12.5, D113): its version from its manifest.json,
+    /// which the build checked file by file. Without a manifest that reads there is no baseline, and the app can't start.
+    /// </summary>
+    /// <exception cref="ShipDataFormatException">The manifest is missing, can't be read, breaks the contract, or names a schema this app can't read.</exception>
+    public static ActiveShipData ReadBaseline(string folder)
+    {
+        var name = Path.Combine(Path.GetFileName(Path.TrimEndingDirectorySeparator(folder)), ShipDataManifestReader.FileName);
+        ShipDataManifest manifest;
+        try
+        {
+            manifest = ShipDataManifestReader.Read(File.ReadAllBytes(Path.Combine(folder, ShipDataManifestReader.FileName)));
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            throw new ShipDataFormatException($"{name}: missing", ex);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            throw new ShipDataFormatException($"{name}: {ex.Message}", ex);
+        }
+        catch (ShipDataFormatException ex)
+        {
+            // The reader's messages start with the file's name; this one says where it lies.
+            throw new ShipDataFormatException($"{Path.GetDirectoryName(name)}{Path.DirectorySeparatorChar}{ex.Message}", ex);
+        }
+
+        if (!ShipLoader.IsReadable(manifest.SchemaVersion))
+        {
+            throw new ShipDataFormatException($"{name}: schemaVersion {manifest.SchemaVersion} needs a newer app.");
+        }
+
+        return new(manifest.DataVersion, ShipDataOrigin.Baseline, folder,
+            Path.Combine(folder, ShipLoader.FolderName), Path.Combine(folder, ShipDataManifestReader.OutlinesPath));
+    }
 
     /// <summary>One line for the log and the CLI: <c>ships-2026.11.1 (downloaded) C:\…\ships\ships-2026.11.1</c>.</summary>
     public override string ToString() => $"{Version} ({(Origin == ShipDataOrigin.Baseline ? "baseline" : "downloaded")}) {Folder}";
@@ -29,7 +67,7 @@ public sealed record ActiveShipData(ShipDataVersion Version, ShipDataOrigin Orig
 /// manifest.json is in it, and the manifest is the last file of an install, written before the folder gets its name.
 /// </summary>
 /// <param name="root">The folder of the releases, <see cref="RootIn"/> of the data folder.</param>
-/// <param name="baseline">The data next to the exe; active when no download is readable and at least as new.</param>
+/// <param name="baseline">The data next to the exe; active when no readable download is newer (D113: it wins a tie).</param>
 /// <param name="maxUnpackedBytes">A release that unpacks to more is refused (a zip bomb, or not our release).</param>
 public sealed class ShipDataStore(string root, ActiveShipData baseline, long maxUnpackedBytes = ShipDataStore.MaxUnpackedBytes)
 {
@@ -47,15 +85,16 @@ public sealed class ShipDataStore(string root, ActiveShipData baseline, long max
 
     /// <summary>
     /// The highest folder <c>ships-…</c> whose manifest.json reads, names that folder's tag and a schema
-    /// <see cref="ShipLoader"/> reads, and that is no older than the baseline; else the baseline. Never throws: a folder
-    /// it can't read doesn't count.
+    /// <see cref="ShipLoader"/> reads, and that is newer than the baseline; else the baseline. A download equal to the
+    /// baseline loses: the same data, and the version line names the source that needs no data folder (T12.5). Never
+    /// throws: a folder it can't read doesn't count.
     /// </summary>
     public ActiveShipData Active()
     {
         ActiveShipData? best = null;
         foreach (var (folder, version) in Releases())
         {
-            if (version < baseline.Version || (best is not null && version <= best.Version))
+            if (version <= baseline.Version || (best is not null && version <= best.Version))
             {
                 continue;
             }
@@ -117,9 +156,9 @@ public sealed class ShipDataStore(string root, ActiveShipData baseline, long max
     }
 
     /// <summary>
-    /// At the start: unfinished installs (<c>*.tmp</c>) and releases older than <paramref name="active"/> go, so one
-    /// release stays; newer ones stay too, even of a schema this app can't read (after a downgrade the upgrade needs no
-    /// download). Never throws.
+    /// At the start: unfinished installs (<c>*.tmp</c>), releases older than <paramref name="active"/> and releases not
+    /// newer than the baseline go, so at most one release stays; newer ones stay too, even of a schema this app can't
+    /// read (after a downgrade the upgrade needs no download). Never throws.
     /// </summary>
     /// <returns>One line per folder removed or not removed, for the log.</returns>
     public IReadOnlyList<string> CleanUp(ActiveShipData active)
@@ -129,7 +168,7 @@ public sealed class ShipDataStore(string root, ActiveShipData baseline, long max
         {
             var name = Path.GetFileName(folder);
             var stale = name.EndsWith(TempSuffix, StringComparison.Ordinal)
-                || (ShipDataVersion.TryParse(name, out var version) && version < active.Version);
+                || (ShipDataVersion.TryParse(name, out var version) && (version < active.Version || version <= baseline.Version));
             if (!stale)
             {
                 continue;

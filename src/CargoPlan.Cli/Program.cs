@@ -40,7 +40,7 @@ try
 }
 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException
                                or MissionFormatException or ShipFolderException or ShipNotFoundException or ShipFormatException
-                               or PlanException)
+                               or PlanException or ShipDataFormatException)
 {
     Console.Error.WriteLine(ex.Message);
     return ExitFailed;
@@ -72,11 +72,13 @@ int Plan(PlanCommand plan)
 }
 
 // The ship data the overlay uses (T12.3, P9): the newest readable download in the profile (or in --data-dir), else the ones
-// next to the exe; a download that won't load falls back like the overlay's (P10). A broken ship file costs only its
-// ship; the reason goes to stderr, so a skipped --ship is explained (D56).
+// next to the exe (ship-data\, D113; without its manifest the run ends with the reason, like a missing ships folder);
+// a download that won't load falls back like the overlay's (P10). A broken ship file costs only its ship; the reason goes
+// to stderr, so a skipped --ship is explained (D56).
 (ShipCatalog Ships, ActiveShipData Data) LoadShips(string? dataDir = null)
 {
-    var data = new ShipDataStore(ShipDataStore.RootIn(dataDir ?? AppProfile.Folder), ActiveShipData.NextToExe).Active();
+    var baseline = ActiveShipData.ReadBaseline(ActiveShipData.BaselineFolder);
+    var data = new ShipDataStore(ShipDataStore.RootIn(dataDir ?? AppProfile.Folder), baseline).Active();
     ShipCatalog catalog;
     try
     {
@@ -85,7 +87,7 @@ int Plan(PlanCommand plan)
     catch (ShipFolderException ex) when (data.Origin == ShipDataOrigin.Downloaded)
     {
         Console.Error.WriteLine($"Downloaded ship data {data.Version} not loaded, using the built-in: {ex.Message}");
-        data = ActiveShipData.NextToExe;
+        data = baseline;
         catalog = ShipLoader.LoadAll(data.ShipsFolder);
     }
 

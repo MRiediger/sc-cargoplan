@@ -14,7 +14,7 @@ internal static class TestPlans
 {
     private const string ResourceName = "missions/split_and_shared.json";
 
-    /// <summary>FrozenShips/ next to the test assembly (linked from the Core tests): ships that stay put when ships/ changes (D92).</summary>
+    /// <summary>FrozenShips/ next to the test assembly (linked from the Core tests): ships that stay put when the shipped data change (D92).</summary>
     public static string TestShipsFolder { get; } = Path.Combine(AppContext.BaseDirectory, "FrozenShips");
 
     /// <summary>

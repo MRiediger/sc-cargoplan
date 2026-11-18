@@ -30,10 +30,12 @@ foreach ($file in 'SC-CargoPlan.exe', 'Update.exe', 'current\CargoPlan.App.exe',
     }
 }
 
-# Without ships/ the overlay doesn't start (D56); without outlines/ it shows the bow wedge, and the outlines must not ship
-# without their licence note (D55). Without ships/modules/ a module's ship is missing from the list (K5.3). The contract OCR
-# (D99) needs its four model files, the two native libraries and its licence note. MIT asks for the licence with every copy.
-$required = 'ships\hull_a.json', 'ships\modules\ts_module.json', 'outlines\ship-outlines.json', 'outlines\NOTICE.md',
+# Without ship-data\ and its manifest the overlay doesn't start (D56, D113); without the outlines it shows the bow wedge,
+# and they must not ship without their licence note (D55). Without ships\modules\ a module's ship is missing from the list
+# (K5.3). The contract OCR (D99) needs its four model files, the two native libraries and its licence note. MIT asks for
+# the licence with every copy.
+$required = 'ship-data\manifest.json', 'ship-data\ships\hull_a.json', 'ship-data\ships\modules\ts_module.json',
+    'ship-data\outlines.json', 'ship-data\NOTICE.md',
     'models\v5\ch_PP-OCRv5_mobile_det.onnx', 'models\v5\ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx',
     'models\v5\latin_PP-OCRv5_rec_mobile_infer.onnx', 'models\v5\ppocrv5_latin_dict.txt', 'models\NOTICE.md',
     'onnxruntime.dll', 'libSkiaSharp.dll', 'LICENSE'
@@ -56,10 +58,10 @@ $published = Get-RelativeFiles $PublishDir
 $packed = Get-RelativeFiles $current
 
 # Every ship file of the publish folder, counted on its own because a missing ship is the costliest loss (R12).
-$shipsPublished = @($published | Where-Object { $_.StartsWith('ships\') }).Count
-$shipsPacked = @($packed | Where-Object { $_.StartsWith('ships\') }).Count
+$shipsPublished = @($published | Where-Object { $_.StartsWith('ship-data\ships\') }).Count
+$shipsPacked = @($packed | Where-Object { $_.StartsWith('ship-data\ships\') }).Count
 if ($shipsPacked -ne $shipsPublished) {
-    $problems.Add("current\ships has $shipsPacked files, the publish folder $shipsPublished")
+    $problems.Add("current\ship-data\ships has $shipsPacked files, the publish folder $shipsPublished")
 }
 
 # The whole file set: vpk leaves out createdump.exe (a built-in exclude, kept on purpose) and adds sq.version, its manifest.
@@ -107,10 +109,19 @@ if (Test-Path $cli) {
     elseif (($reported -split '\+')[0] -cne $Version) {
         $problems.Add("CargoPlan.Cli.exe --version says '$reported', not $Version")
     }
+
+    # The ship data the ZIP carries are the pinned release (T12.5, D113), read as the app reads them; an empty data folder,
+    # so no download in the profile wins.
+    $pin = (Get-Content (Join-Path $root 'build\ship-data.json') -Raw -Encoding UTF8 | ConvertFrom-Json).dataVersion
+    $empty = New-Item -ItemType Directory -Force (Join-Path $check 'no-data')
+    $shipData = (& $cli ships --version --data-dir $empty.FullName | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0 -or -not $shipData.StartsWith("$pin (baseline) ", [StringComparison]::Ordinal)) {
+        $problems.Add("CargoPlan.Cli.exe ships --version says '$shipData' (exit code $LASTEXITCODE), not $pin (baseline)")
+    }
 }
 
 if ($problems.Count -gt 0) {
     throw "$(Split-Path $Zip -Leaf) failed the layout check:`n- $($problems -join "`n- ")"
 }
 
-Write-Output "Layout check: $(Split-Path $Zip -Leaf) passed ($($packed.Count) files in current\, $shipsPacked ship files, $pdbPacked PDBs, version $Version)."
+Write-Output "Layout check: $(Split-Path $Zip -Leaf) passed ($($packed.Count) files in current\, $shipsPacked ship files of $pin, $pdbPacked PDBs, version $Version)."

@@ -8,19 +8,42 @@
     <InternalsVisibleTo Include="CargoPlan.Core.Tests" />
   </ItemGroup>
 
-  <!-- Ship layouts live in the repo's ships/ folder and are copied to ships/ next to every exe and test assembly that
-       references Core, and into the publish folder (D56). Adding a ship = adding a file. IfDifferent, not PreserveNewest:
-       a file restored by git keeps an older timestamp and would not be copied.
-       Source: https://learn.microsoft.com/visualstudio/msbuild/common-msbuild-project-items -->
-  <ItemGroup>
-    <None Include="..\..\ships\*.json" Link="ships\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
-    <!-- Cargo modules (K5.3, D59): a subfolder, which the pattern above doesn't reach. -->
-    <None Include="..\..\ships\modules\*.json" Link="ships\modules\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
-  </ItemGroup>
+  <!-- Ship data (T12.5, D113): the data release that build/ship-data.json pins, fetched once by tools/fetch-ship-data.ps1
+       into .ship-data/<tag>/ (checked against its manifest), then copied as ship-data\ next to every exe and test assembly
+       that references Core, and into the publish folder, in the layout of a download. The repo holds no ship data.
+       Windows PowerShell 5.1 on Windows, so a fresh clone needs no install; pwsh elsewhere (R1).
+       The pin by a property function, MSBuild has no JSON reader:
+       Source: https://learn.microsoft.com/visualstudio/msbuild/property-functions (System.IO.File, System.Text.RegularExpressions.Regex) -->
+  <PropertyGroup>
+    <ShipDataPinFile>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)..\..\build\ship-data.json'))</ShipDataPinFile>
+    <ShipDataVersion>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(ShipDataPinFile)')), '(?&lt;="dataVersion"\s*:\s*")[^"]+').Value)</ShipDataVersion>
+    <ShipDataFolder>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)..\..\.ship-data', '$(ShipDataVersion)'))</ShipDataFolder>
+    <ShipDataScript>$([MSBuild]::NormalizePath('$(MSBuildThisFileDirectory)..\..\tools\fetch-ship-data.ps1'))</ShipDataScript>
+    <!-- The ship schemas this app reads, as ShipLoader.ReadableSchemaVersions; BaselineShipDataTests keeps them equal. -->
+    <ShipDataReadableSchemas>4,5,6</ShipDataReadableSchemas>
+    <ShipDataShell Condition="$([MSBuild]::IsOSPlatform('Windows'))">powershell.exe</ShipDataShell>
+    <ShipDataShell Condition="'$(ShipDataShell)' == ''">pwsh</ShipDataShell>
+  </PropertyGroup>
 
-  <!-- Ship outlines (D55) the same way, with their licence note: not under the repo's MIT licence, so a folder of their own. -->
-  <ItemGroup>
-    <None Include="..\..\outlines\*" Link="outlines\%(Filename)%(Extension)" CopyToOutputDirectory="IfDifferent" />
-  </ItemGroup>
+  <!-- Only when the pinned release is missing, never in a design-time build (the IDE would hit the network on load).
+       Source: https://learn.microsoft.com/visualstudio/msbuild/exec-task (StandardOutputImportance, StandardErrorImportance) -->
+  <Target Name="FetchShipData" Condition="'$(DesignTimeBuild)' != 'true' And !Exists('$(ShipDataFolder)manifest.json')">
+    <Error Condition="'$(ShipDataVersion)' == ''" Text="$(ShipDataPinFile) names no dataVersion like ships-2026.11.1." />
+    <!-- E1: a first build that waits on the network says why. -->
+    <Message Importance="high" Text="Fetching ship data $(ShipDataVersion) (once, ≈230 KB)" />
+    <Exec Command="&quot;$(ShipDataShell)&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(ShipDataScript)&quot; -ReadableSchemaVersions $(ShipDataReadableSchemas)"
+          StandardOutputImportance="high" StandardErrorImportance="high" />
+  </Target>
+
+  <!-- In a target, not as static items: wildcards in a static item resolve when the project is read, before the fetch,
+       so a fresh clone's first build would copy nothing. Before AssignTargetPaths, which both this build's copy and a
+       referencing project's GetCopyToOutputDirectoryItems / publish depend on.
+       Source: https://learn.microsoft.com/visualstudio/msbuild/how-to-extend-the-visual-studio-build-process -->
+  <Target Name="IncludeShipData" DependsOnTargets="FetchShipData" BeforeTargets="AssignTargetPaths">
+    <ItemGroup>
+      <_ShipDataFile Include="$(ShipDataFolder)**\*" />
+      <None Include="@(_ShipDataFile)" Link="ship-data\%(_ShipDataFile.RecursiveDir)%(_ShipDataFile.Filename)%(_ShipDataFile.Extension)" CopyToOutputDirectory="IfDifferent" />
+    </ItemGroup>
+  </Target>
 
 </Project>

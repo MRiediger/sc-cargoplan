@@ -7,13 +7,13 @@ namespace CargoPlan.Core.Tests;
 
 /// <summary>
 /// V1 (v0.5.1): a 350r plan saved by v0.5.0, when the ship had one 2 × 2 rack, read against today's 350r (Motherlode
-/// 4.10.3: rack-0 is a new 4 × 2 rack in front, the old 2 × 2 is rack-1). A data test over ships/ (A10): it reads what the
+/// 4.10.3: rack-0 is a new 4 × 2 rack in front, the old 2 × 2 is rack-1). A data test over the baseline (A10, D113): it reads what the
 /// app ships. The frozen file was written by v0.5.0's own code (worktree on tag v0.5.0, 16 Nov 2026): Shubin 2 Quartz in
 /// one crate of 2, delivered; Riker 2 Titanium in two crates of 1.
 /// </summary>
 public class OldPlan350rTests
 {
-    private static readonly Ship Today = ShipLoader.Load(Path.Combine(AppContext.BaseDirectory, "ships"), "350r");
+    private static readonly Ship Today = ShipLoader.Load(ShipLoader.DefaultFolder, "350r");
 
     private static SavedPlan Read()
     {

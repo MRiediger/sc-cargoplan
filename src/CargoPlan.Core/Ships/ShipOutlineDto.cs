@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 namespace CargoPlan.Core.Ships;
 
 /// <summary>
-/// One entry of ship-outlines.json (schema 1). Only the fields the app reads; the rest (name, length, beam, cargo) is
+/// One entry of a data release's outlines.json (schema 1). Only the fields the app reads; the rest (name, length, beam, cargo) is
 /// skipped, see <see cref="ShipOutlineJsonContext"/>.
 /// </summary>
 /// <param name="Outline">Points as [x, y] in metres.</param>
