@@ -281,6 +281,38 @@ public class StartOptionsTests
         options.Problem.Should().Be("--updates-prerelease only goes with GitHub, not with --updates-source.");
     }
 
+    // T12.3 (P5): a local folder or another GitHub repository instead of sc-cargoplan-shipdata, for gates and tests.
+    [Theory]
+    [InlineData("--ship-data-source", @"D:\run\ship-data")]
+    [InlineData("--Ship-Data-Source", @"D:\run\ship-data")]
+    [InlineData("--ship-data-source", "https://github.com/someone/test-ship-data")]
+    public void Ship_data_source_takes_a_full_folder_or_a_repository(params string[] args)
+    {
+        StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null, ShipDataSource: args[1]));
+    }
+
+    [Theory]
+    [InlineData("--ship-data-source")]
+    [InlineData("--ship-data-source", "--locked")]
+    [InlineData("--ship-data-source", "ship-data")]
+    [InlineData("--ship-data-source", "https://example.com/data")]
+    public void Ship_data_source_without_a_folder_or_repository_is_a_problem_not_a_stop(params string[] args)
+    {
+        var options = StartOptions.Parse(args);
+
+        options.ShipDataSource.Should().BeNull();
+        options.Problem.Should().Be("--ship-data-source needs the full path of a folder or a GitHub repository URL.");
+        options.Locked.Should().Be(args.Contains("--locked"));
+    }
+
+    [Fact]
+    public void The_restart_after_a_ship_data_update_keeps_its_source()
+    {
+        string[] args = ["--data-dir", @"D:\run\data", "--ship-data-source", @"D:\run\ship-data", "--plan", @"D:\plan.json"];
+
+        StartOptions.RestartArguments(args).Should().Equal("--data-dir", @"D:\run\data", "--ship-data-source", @"D:\run\ship-data");
+    }
+
     [Theory]
     [InlineData("--veloapp-updated", "0.9.1")]
     [InlineData("--veloapp-obsolete", "0.9.0")]

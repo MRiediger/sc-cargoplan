@@ -801,6 +801,8 @@ public sealed class SettingsStoreTests : IDisposable
     [InlineData("""{ "schemaVersion": 2, "appearance": { "legend": { "position": "top-left" } } }""")] // look, not layout: wrong level
     [InlineData("""{ "schemaVersion": 3, "updates": { "checkOnStartup": true, "channel": "beta" } }""")] // unknown key in updates (T11.1)
     [InlineData("""{ "schemaVersion": 3, "updates": { "checkOnStartup": "yes" } }""")]                  // wrong JSON type
+    [InlineData("""{ "schemaVersion": 3, "shipData": { "checkOnStartup": true, "source": "x" } }""")]  // unknown key in shipData (T12.3)
+    [InlineData("""{ "schemaVersion": 3, "shipData": { "skippedVersion": 3 } }""")]                    // wrong JSON type
     public void Broken_file_gives_defaults_with_a_problem_and_stays_untouched(string content)
     {
         WriteFile(content);
@@ -949,6 +951,73 @@ public sealed class SettingsStoreTests : IDisposable
     public void Save_then_Load_keeps_the_updates()
     {
         var settings = AppSettings.Default with { Updates = new UpdateSettings(false, "0.9.1") };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+    }
+
+    // T12.3 (R1 of the approval): optional like updates, settings.json stays schema 3.
+    [Theory]
+    [InlineData("""{ "schemaVersion": 3 }""")]
+    [InlineData("""{ "schemaVersion": 3, "shipData": null }""")]
+    [InlineData("""{ "schemaVersion": 3, "shipData": {} }""")]
+    [InlineData("""{ "schemaVersion": 2 }""")]
+    public void File_without_ship_data_checks_at_start_and_skips_nothing(string content)
+    {
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.ShipData.Should().Be(new UpdateSettings(CheckOnStartup: true, SkippedVersion: null));
+        loaded.SchemaVersion.Should().Be(3);
+    }
+
+    [Fact]
+    public void Ship_data_keep_what_the_file_says()
+    {
+        WriteFile("""{ "schemaVersion": 3, "shipData": { "checkOnStartup": false, "skippedVersion": "ships-2026.11.1" } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.ShipData.Should().Be(new UpdateSettings(false, "ships-2026.11.1"));
+        loaded.Updates.Should().Be(UpdateSettings.Default);
+    }
+
+    [Theory]
+    [InlineData("2026.11.1")]
+    [InlineData("0.9.1")]
+    [InlineData("later")]
+    public void A_skipped_ship_data_release_that_is_no_tag_is_dropped_with_a_line(string skipped)
+    {
+        WriteFile($$"""{ "schemaVersion": 3, "shipData": { "checkOnStartup": false, "skippedVersion": "{{skipped}}" } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.ShipData.Should().Be(new UpdateSettings(false, null));
+        problem.Should().Be($"settings.json: shipData.skippedVersion \"{skipped}\" is not a data release (like ships-2026.11.1), skipping none.");
+    }
+
+    [Fact]
+    public void Save_writes_the_ship_data_after_the_updates()
+    {
+        SettingsStore.Save(SettingsPath, AppSettings.Default);
+
+        var file = JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
+        var keys = file.Select(p => p.Key).ToList();
+        keys.IndexOf("shipData").Should().Be(keys.IndexOf("updates") + 1);
+        file["shipData"]!.AsObject().Select(p => p.Key).Should().Equal("checkOnStartup", "skippedVersion");
+        file["schemaVersion"]!.GetValue<int>().Should().Be(3);
+    }
+
+    [Fact]
+    public void Save_then_Load_keeps_the_ship_data()
+    {
+        var settings = AppSettings.Default with { ShipData = new UpdateSettings(false, "ships-2026.11.1") };
 
         SettingsStore.Save(SettingsPath, settings);
         var (loaded, problem) = SettingsStore.Load(SettingsPath);

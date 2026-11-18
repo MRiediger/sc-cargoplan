@@ -3,10 +3,12 @@ using System.Globalization;
 using System.Reflection;
 using System.Text;
 using CargoPlan.Cli;
+using CargoPlan.Core;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Rendering;
+using CargoPlan.Core.ShipData;
 using CargoPlan.Core.Ships;
 using CargoPlan.Import.Contracts;
 using CargoPlan.Ocr;
@@ -32,6 +34,7 @@ try
         PlanCommand plan => Plan(plan),
         ScanCommand scan => Scan(scan),
         VersionCommand => Version(),
+        ShipsVersionCommand ships => ShipsVersion(ships),
         _ => throw new UnreachableException($"Unknown command {command}."),
     };
 }
@@ -52,14 +55,15 @@ int Usage()
 {
     Console.Error.WriteLine("Usage: CargoPlan.Cli plan <missions.json> [--ship <id>]");
     Console.Error.WriteLine("       CargoPlan.Cli scan <screenshot.png>");
+    Console.Error.WriteLine("       CargoPlan.Cli ships --version [--data-dir <folder>]");
     Console.Error.WriteLine("       CargoPlan.Cli --version");
-    Console.Error.WriteLine($"Ships: {string.Join(", ", LoadShips().Ships.Select(s => s.Id))} (default: {Command.DefaultShipId})");
+    Console.Error.WriteLine($"Ships: {string.Join(", ", LoadShips().Ships.Ships.Select(s => s.Id))} (default: {Command.DefaultShipId})");
     return ExitUsage;
 }
 
 int Plan(PlanCommand plan)
 {
-    var ship = LoadShips().Get(plan.ShipId);
+    var ship = LoadShips().Ships.Get(plan.ShipId);
     // The file's fill order, so a shared route shows here as in the overlay (D72); without one bow first, as before.
     var file = MissionFileReader.Read(plan.MissionsPath);
     var stops = file.Stops.ToStops(CrateCap.Of(ship));
@@ -67,16 +71,37 @@ int Plan(PlanCommand plan)
     return ExitSuccess;
 }
 
-// A broken ship file costs only its ship; the reason goes to stderr, so a skipped --ship is explained (D56).
-ShipCatalog LoadShips()
+// The ship data the overlay uses (T12.3, P9): the newest readable download in the profile (or in --data-dir), else the ones
+// next to the exe; a download that won't load falls back like the overlay's (P10). A broken ship file costs only its
+// ship; the reason goes to stderr, so a skipped --ship is explained (D56).
+(ShipCatalog Ships, ActiveShipData Data) LoadShips(string? dataDir = null)
 {
-    var catalog = ShipLoader.LoadAll();
+    var data = new ShipDataStore(ShipDataStore.RootIn(dataDir ?? AppProfile.Folder), ActiveShipData.NextToExe).Active();
+    ShipCatalog catalog;
+    try
+    {
+        catalog = ShipLoader.LoadAll(data.ShipsFolder);
+    }
+    catch (ShipFolderException ex) when (data.Origin == ShipDataOrigin.Downloaded)
+    {
+        Console.Error.WriteLine($"Downloaded ship data {data.Version} not loaded, using the built-in: {ex.Message}");
+        data = ActiveShipData.NextToExe;
+        catalog = ShipLoader.LoadAll(data.ShipsFolder);
+    }
+
     foreach (var problem in catalog.Problems)
     {
         Console.Error.WriteLine($"Skipped: {problem.Message}");
     }
 
-    return catalog;
+    return (catalog, data);
+}
+
+// The ship data in use and where they lie, for bug reports and the T12.3 gate: "ships-2026.11.1 (downloaded) C:\…".
+int ShipsVersion(ShipsVersionCommand ships)
+{
+    Console.WriteLine(LoadShips(ships.DataDir).Data);
+    return ExitSuccess;
 }
 
 // The offline path of the scan (T10.1a): a screenshot of the game window's client area instead of the screen, the same
@@ -137,6 +162,8 @@ internal abstract record Command
         ["plan", var path, "--ship", var shipId] when !IsOption(path) && !IsOption(shipId) => new PlanCommand(path, shipId),
         ["scan", var path] when !IsOption(path) => new ScanCommand(path),
         ["--version"] => new VersionCommand(),
+        ["ships", "--version"] => new ShipsVersionCommand(null),
+        ["ships", "--version", "--data-dir", var folder] when Path.IsPathFullyQualified(folder) => new ShipsVersionCommand(folder),
         _ => null,
     };
 
@@ -151,3 +178,6 @@ internal sealed record ScanCommand(string PicturePath) : Command;
 
 /// <summary>--version</summary>
 internal sealed record VersionCommand : Command;
+
+/// <summary>ships --version [--data-dir &lt;folder&gt;]: the overlay's <c>--data-dir</c>, full like there.</summary>
+internal sealed record ShipsVersionCommand(string? DataDir) : Command;

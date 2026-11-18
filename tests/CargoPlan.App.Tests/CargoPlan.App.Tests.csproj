@@ -90,6 +90,8 @@
     <None Include="..\CargoPlan.Core.Tests\FrozenOutlines\ship-outlines.json" Link="FrozenOutlines\ship-outlines.json" CopyToOutputDirectory="IfDifferent" />
     <Compile Include="..\CargoPlan.Core.Tests\FrozenShips.cs" Link="FrozenShips.cs" />
     <Compile Include="..\CargoPlan.Core.Tests\PlannerMoves.cs" Link="PlannerMoves.cs" />
+    <!-- A data release built from the frozen ships (T12.3): the ship data source installs it like a download. -->
+    <Compile Include="..\CargoPlan.Core.Tests\ShipDataFixtures.cs" Link="ShipDataFixtures.cs" />
   </ItemGroup>
 
 </Project>

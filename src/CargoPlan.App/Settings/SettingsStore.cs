@@ -73,6 +73,7 @@ public static class SettingsStore
             var (holoEdge, holoEdgeProblems) = AppearanceRules.NormalizeHoloColor("holoEdgeColor", settings.HoloEdgeColor, AppearanceRules.DefaultHoloEdgeColor);
             var (shipView, shipViewProblems) = AppearanceRules.Normalize(settings.ShipView);
             var (updates, updatesProblems) = Normalize(settings.Updates);
+            var (shipData, shipDataProblems) = NormalizeShipData(settings.ShipData);
             return new(
                 settings with
                 {
@@ -86,10 +87,11 @@ public static class SettingsStore
                     HoloEdgeColor = holoEdge,
                     ShipView = shipView,
                     Updates = updates,
+                    ShipData = shipData,
                 },
                 Corrections([
                     .. legendProblems, .. appearanceProblems, .. themeProblems, .. shipOutlineProblems, .. holoOpacityProblems,
-                    .. holoHullProblems, .. holoEdgeProblems, .. shipViewProblems, .. updatesProblems]),
+                    .. holoHullProblems, .. holoEdgeProblems, .. shipViewProblems, .. updatesProblems, .. shipDataProblems]),
                 removed);
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
@@ -179,6 +181,12 @@ public static class SettingsStore
         updates.SkippedVersion is { } skipped && !ReleaseVersion.TryParse(skipped, out _)
             ? (updates with { SkippedVersion = null }, [$"updates.skippedVersion \"{skipped}\" is not a version (like 0.5.0), skipping none."])
             : (updates, []);
+
+    /// <summary>The ship data section (T12.3) the same way: a skipped release that is no data release tag skips none.</summary>
+    private static (UpdateSettings ShipData, IReadOnlyList<string> Problems) NormalizeShipData(UpdateSettings shipData) =>
+        shipData.SkippedVersion is { } skipped && !Core.ShipData.ShipDataVersion.TryParse(skipped, out _)
+            ? (shipData with { SkippedVersion = null }, [$"shipData.skippedVersion \"{skipped}\" is not a data release (like ships-2026.11.1), skipping none."])
+            : (shipData, []);
 
     /// <summary>The notice for a sync hotkey the migration took (T10.4a): which key is free again, and how contracts come in now.</summary>
     public static string SyncHotkeyRemovedText(string hotkey) =>

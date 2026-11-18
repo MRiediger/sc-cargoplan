@@ -66,3 +66,28 @@ The app reads only GitHub's first page of 10 releases, pre-releases and hologram
 anything ([D109](decisions.md)). If ten newer releases hide the last stable one, nobody gets an update. Hence the
 release hygiene in [CONTRIBUTING.md](../CONTRIBUTING.md#release): rc releases go after the stable tag, at most two
 hologram releases at a time.
+
+## Ship data updates: `--ship-data-source`
+
+The ship data come as data releases of
+[sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata) ([D112](decisions.md)), not through
+Velopack. A developer's build (`0.0.0-dev`) checks them only with `--ship-data-source`, which takes a folder or a
+repository:
+
+```powershell
+# A folder: a data release's manifest.json and ships.zip side by side
+$feed = '<full path of a new empty folder>'
+$base = 'https://github.com/MRiediger/sc-cargoplan-shipdata/releases/download/ships-2026.11.1'
+Invoke-WebRequest "$base/manifest.json" -OutFile "$feed\manifest.json"
+Invoke-WebRequest "$base/ships.zip" -OutFile "$feed\ships.zip"
+dotnet run --project src/CargoPlan.App -- --data-dir <full path> --ship-data-source $feed
+
+# The real repository (or a fork of the same layout), as a release build asks it
+dotnet run --project src/CargoPlan.App -- --data-dir <full path> --ship-data-source https://github.com/MRiediger/sc-cargoplan-shipdata
+```
+
+The overlay offers `Ship data update available · 2026.11.1` below the update line. **Update** installs the release into
+`<data folder>\ships\ships-2026.11.1\` and restarts with the same arguments (without `--plan`). `cargoplan.log` has the
+lines `Ship data: in use: …`, `… available`, `installed …`, `… restarting with […]`, and after the restart
+`nothing newer than …`. `CargoPlan.Cli ships --version --data-dir <full path>` names the data in use. A release
+build checks `sc-cargoplan-shipdata` without the switch, unless `shipData.checkOnStartup` is off.

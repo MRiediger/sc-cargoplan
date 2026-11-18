@@ -659,6 +659,31 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void Ship_data_changes_write_on_flush_and_tell_the_settings_window()
+    {
+        // T12.3: the ship data line's Skip and the Ship data section, apart from the app's updates.
+        var session = Create();
+        var told = 0;
+        var updatesTold = 0;
+        session.ShipDataChanged += (_, _) => told++;
+        session.UpdatesChanged += (_, _) => updatesTold++;
+
+        session.ChangeShipDataSkippedVersion("ships-2026.11.1");
+        session.ChangeShipDataSkippedVersion("ships-2026.11.1");
+        session.ChangeShipDataCheckOnStartup(false);
+
+        told.Should().Be(2);
+        updatesTold.Should().Be(0);
+        session.Flush();
+        Saved().ShipData.Should().Be(new UpdateSettings(CheckOnStartup: false, SkippedVersion: "ships-2026.11.1"));
+        Saved().Updates.Should().Be(UpdateSettings.Default);
+
+        session.ChangeShipDataSkippedVersion(null);
+        session.Flush();
+        Saved().ShipData.Should().Be(new UpdateSettings(CheckOnStartup: false));
+    }
+
+    [Fact]
     public void ChangeCheckOnStartup_writes_on_flush()
     {
         var session = Create();

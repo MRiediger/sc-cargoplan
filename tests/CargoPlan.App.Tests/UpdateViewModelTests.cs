@@ -20,7 +20,7 @@ public class UpdateViewModelTests
 
     private string? _applyResult;
 
-    private UpdateViewModel Create() =>
+    private UpdateViewModel Create(UpdateLineTexts? texts = null) =>
         new(
             new UpdateActions(
                 (version, progress) =>
@@ -35,7 +35,8 @@ public class UpdateViewModelTests
                 },
                 _skipped.Add),
             action => action(),
-            _time);
+            _time,
+            texts);
 
     [Fact]
     public void Without_an_offer_there_is_no_line()
@@ -231,6 +232,68 @@ public class UpdateViewModelTests
         _progress(100);
         update.State.Should().Be(new UpdateDownloading("0.9.1", 100));
         await Finish(running);
+    }
+
+    // --- The ship data line (T12.3): the same states with its own words and its own versions ---
+
+    [Fact]
+    public async Task The_ship_data_line_speaks_of_ship_data()
+    {
+        var line = Create(ShipData.ShipDataSource.LineTexts);
+
+        line.Offer("ships-2026.11.1");
+        line.Text.Should().Be("Ship data update available · 2026.11.1");
+        line.ShowsUpdate.Should().BeTrue();
+        line.ShowsSkip.Should().BeTrue();
+
+        var running = line.UpdateCommand.ExecuteAsync(null);
+        _progress!(100);
+        line.Text.Should().Be("Downloading ship data");
+
+        _download.SetResult(null);
+        await running;
+        line.Text.Should().Be("Ship data updated · restarting");
+        _applied.Should().Equal("ships-2026.11.1");
+    }
+
+    [Fact]
+    public async Task A_failed_ship_data_update_says_why_and_offers_Retry()
+    {
+        var line = Create(ShipData.ShipDataSource.LineTexts);
+        line.Offer("ships-2026.11.1");
+        var running = line.UpdateCommand.ExecuteAsync(null);
+
+        _download.SetResult("download damaged");
+        await running;
+
+        line.Text.Should().Be("Ship data update failed · download damaged");
+        line.ShowsRetry.Should().BeTrue();
+    }
+
+    [Fact]
+    public void The_ship_data_line_compares_release_tags()
+    {
+        // E3 with tags: a newer release replaces a failure, the same one doesn't.
+        var line = Create(ShipData.ShipDataSource.LineTexts);
+        line.ShowFailedApply("ships-2026.11.1", "no network");
+
+        line.Offer("ships-2026.11.1");
+        line.State.Should().Be(new UpdateFailed("ships-2026.11.1", "no network"));
+
+        line.Offer("ships-2026.12");
+        line.State.Should().Be(new UpdateOffered("ships-2026.12"));
+    }
+
+    [Fact]
+    public void Skipping_ship_data_writes_the_tag()
+    {
+        var line = Create(ShipData.ShipDataSource.LineTexts);
+        line.Offer("ships-2026.11.1");
+
+        line.SkipCommand.Execute(null);
+
+        _skipped.Should().Equal("ships-2026.11.1");
+        line.IsVisible.Should().BeFalse();
     }
 
     /// <summary>

@@ -86,6 +86,46 @@ public class UpdateSettingsViewModelTests
     }
 
     [Fact]
+    public void The_updates_section_names_no_data_in_use()
+    {
+        var updates = Create(UpdateSettings.Default);
+
+        updates.HasActiveText.Should().BeFalse();
+        updates.ActiveText.Should().BeNull();
+    }
+
+    // --- The Ship data section (T12.3): the same view model with its own words and the data in use ---
+
+    [Fact]
+    public void The_ship_data_section_shows_the_skipped_tag_and_the_data_in_use()
+    {
+        var active = new Core.ShipData.ActiveShipData(
+            Core.ShipData.ShipDataVersion.Baseline, Core.ShipData.ShipDataOrigin.Baseline, @"C:\app", @"C:\app\ships", @"C:\app\outlines\ship-outlines.json");
+        var shipData = new UpdateSettingsViewModel(
+            new UpdateSettings(SkippedVersion: "ships-2026.11.1"),
+            _checkOnStartup.Add,
+            _skipped.Add,
+            () => Task.FromResult(_checkResult),
+            handler => _follow += handler,
+            handler => _follow -= handler,
+            ShipData.ShipDataSource.SkippedText,
+            ShipData.ShipDataSource.ActiveText(active));
+
+        shipData.SkippedText.Should().Be("Skipped: 2026.11.1");
+        shipData.HasActiveText.Should().BeTrue();
+        shipData.ActiveText.Should().Be("In use: 2026.11 (built in)");
+    }
+
+    [Fact]
+    public void A_downloaded_release_in_use_says_so()
+    {
+        var active = new Core.ShipData.ActiveShipData(
+            new Core.ShipData.ShipDataVersion(2026, 11, 1), Core.ShipData.ShipDataOrigin.Downloaded, @"C:\data\ships\ships-2026.11.1", @"C:\data\ships\ships-2026.11.1\ships", @"C:\data\ships\ships-2026.11.1\outlines.json");
+
+        ShipData.ShipDataSource.ActiveText(active).Should().Be("In use: 2026.11.1 (downloaded)");
+    }
+
+    [Fact]
     public void Detach_stops_following_the_session()
     {
         var updates = Create(UpdateSettings.Default);

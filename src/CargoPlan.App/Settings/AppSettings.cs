@@ -50,6 +50,11 @@ namespace CargoPlan.App.Settings;
 /// Missing (before v0.5.0) or null = <see cref="UpdateSettings.Default"/>: check at start, skip nothing (D109). Optional, no
 /// schema bump (D31, D105 addendum).
 /// </param>
+/// <param name="ShipData">
+/// The ship data check (T12.3, D112), the same two keys as <paramref name="Updates"/>; the skipped version is a data
+/// release's tag ("ships-2026.11.1"). Missing (before v0.6.0) or null = check at start, skip nothing. Optional, no schema
+/// bump (R1 of the approval, as for <paramref name="Updates"/>).
+/// </param>
 public sealed record AppSettings(
     int SchemaVersion,
     WindowBounds? Overlay = null,
@@ -65,7 +70,8 @@ public sealed record AppSettings(
     string? HoloHullColor = null,
     string? HoloEdgeColor = null,
     ShipViewSettings? ShipView = null,
-    UpdateSettings? Updates = null)
+    UpdateSettings? Updates = null,
+    UpdateSettings? ShipData = null)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
 
@@ -93,6 +99,8 @@ public sealed record AppSettings(
     public ShipViewSettings ShipView { get; init; } = ShipView ?? ShipViewSettings.Default;
 
     public UpdateSettings Updates { get; init; } = Updates ?? UpdateSettings.Default;
+
+    public UpdateSettings ShipData { get; init; } = ShipData ?? UpdateSettings.Default;
 }
 
 /// <summary>The update check (D109). Optional, no schema bump (D31); the settings window's section comes with T11.2.</summary>

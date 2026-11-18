@@ -9,9 +9,8 @@ namespace CargoPlan.App;
 /// </summary>
 public static class AppFolders
 {
-    /// <summary>%LocalAppData%\SC-CargoPlan, not the roaming %AppData%: window bounds belong to this machine (D13).</summary>
-    public static string Profile { get; } = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SC-CargoPlan");
+    /// <summary>%LocalAppData%\SC-CargoPlan, not the roaming %AppData%: window bounds belong to this machine (D13). Core's, so the CLI shares it (T12.3).</summary>
+    public static string Profile => Core.AppProfile.Folder;
 
     /// <summary>The folder of this run: <see cref="Profile"/>, or the one <see cref="Use"/> named.</summary>
     public static string LocalRoot { get; private set; } = Profile;
