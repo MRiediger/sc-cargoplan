@@ -7540,8 +7540,9 @@ lokal gelöscht, Prüfordner im Scratchpad weg. CI auf `main` für `1ce6871` gr�
 - [x] **Netz-Gate (Martin, SC vorn, 19.11.):** v0.5.1-Portable in eigenem Ordner → Start → Velopack bietet 0.6.0 → Update →
   Neustart → 110 Schiffe, Hyun mit Holo, `holo-v3`-Notice einmal, Hull-A-Plan da, **keine** Ship-data-Zeile, Settings
   `In use: 2026.11.1 (built in)` – bestanden, Delta übers Netz (Belege oben)
-- [x] Nexus-Seite auf 0.6.0 (Martin, 19.11.2026, nach `docs/nexus/checklist.md`, dasselbe ZIP). Seiten-URL und die
-  beiden Prüfungen aus Schritt 7 (SHA des Nexus-Downloads, Größe) nicht ins Protokoll gemeldet.
+- [x] Nexus-Seite auf 0.6.0 (Martin, 19.11.2026, nach `docs/nexus/checklist.md`, dasselbe ZIP):
+  <https://www.nexusmods.com/starcitizen/mods/52>. Die beiden Prüfungen aus Schritt 7 (SHA des Nexus-Downloads, Größe)
+  nicht ins Protokoll gemeldet.
 - [x] Commits `T12.6a: …`, kein `Co-Authored-By`
 
 #### [ ] T12.6b Shipdata-Abschluss (Shipdata-Repo, Plan und Abnahme in dessen `TASKS.md`)
