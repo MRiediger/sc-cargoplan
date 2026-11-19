@@ -7457,6 +7457,33 @@ Vollständigkeit `git log --no-merges v0.5.1..main` (21 Commits):
 5. Delta-Satz: nur wer v0.5.1 über die Update-Zeile bekam, hat die Basis in `packages\` (T11.3: ein entpacktes Portable
    hat keine) → „only the changes“, sonst voll.
 
+**Notes freigegeben (Master-Chat, 19.11.)** mit zwei Wortlaut-Korrekturen: Schiffszahl in Notes, README, Wiki und Nexus
+einheitlich „109 ships and one cargo module configuration“; Netz-Satz präzisiert: GitHub sieht IP-Adresse und
+User-Agent – `SC-CargoPlan/<version>` (Ship data, Holos; `ShipDataSource`, `HoloSource`) bzw. `Velopack/<version>`
+(Update-Check; `HttpClientFileDownloader.UserAgent` in velopack/velopack, Release-Liste über die GitHub-API, daher
+„GitHub“ statt „github.com“).
+
+**Schritt 2 – übrige Texte (19.11.2026):** README (Schiffszeile, Abschnitte *Ship data* mit Meldeweg R1 und *Network
+access*, Fleetyards-Credit zwei Schiffe), CONTRIBUTING, `ship-correction.yml`, Nexus `description.bbcode` und
+`checklist.md` (`summary.txt` ohne Zahl und Netz, unverändert), D63-Addendum + Backlog-Zeile `holo-v3` (31.01.2027).
+Wiki Branch `v0.6.0`: Ships and cargo grids (neuer Abschnitt *Ship data updates*, Holos aus dem Data-Release,
+Meldeweg), Updates (Tabelle *What it sends*, neuer Abschnitt *Ship data* mit Meldungen und Fehlergründen), Preferences
+(Holo-Schalter mit Kill-Switch-Text, Abschnitt *Ship data*), Overlay basics (neuer Abschnitt *Update lines at the
+bottom*), Installation (keine Netzpflicht, `ship-data\`, Downgrade v0.5.x, Dateitabelle), FAQ, Troubleshooting,
+`_Footer` v0.6.0. Wortlaute (Status, Notices, Fehlergründe, Settings) per Grep aus `src/`.
+
+**Nebenfunde in Schritt 2 (gleich korrigiert, Präzisierung beim Schreiben):**
+- „The Retaliator is not included.“ stand noch in Nexus-Beschreibung und Wiki-Troubleshooting; sie ist seit v0.5.1
+  drin (V2) → Zeile gestrichen.
+- Wiki Preferences: „Hologram opacity (10–100 %)“ → **1–100 %** (`AppearanceRules.MinHoloOpacity = 0.01`, D63-Addendum
+  T8.5).
+- Wiki Troubleshooting: `current\ships` → `current\ship-data` (D113).
+- Nexus und Notes nennen im Lizenzsatz jetzt auch `models\NOTICE.md` (stand im v0.5.1-Text, fehlte bei Nexus).
+
+**Nicht geändert, nur gemeldet:** `docs/ship-format.md` Überschrift „The three Fleetyards ships“ (Text nennt die F7C
+schon als Spieldatei) – Entwickler-Doku, gehört in die nächste Doku-Runde oder T12.6b; `decisions.md`-Stellen mit „102“
+/ „three ships“ sind Geschichte.
+
 **Akzeptanz:**
 - [ ] Notes vom Master-Chat freigegeben; `git log v0.5.1..main` ohne unerwähnten Nutzer-sichtbaren Commit
 - [ ] **Netz-Gate (Martin, SC vorn):** v0.5.1-Portable in eigenem Ordner → Start → Velopack bietet 0.6.0 → Update →
@@ -7542,6 +7569,10 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
 - ~~`holo-v1`-Release auf GitHub entfernen~~ – erledigt am 16.11.2026 mit v0.5.1 (V5, Martin), vor dem hier genannten
   06.12.: Release und Tag weg, `releases/download/holo-v1/manifest.json` 404; v0.1/v0.2 zeigen den Umriss.
+- `holo-v3`-Release (Pre-Release im App-Repo) samt Tag löschen. Anlass: D114 – seit v0.6.0 kommen die Holos aus dem
+  Data-Release, nur v0.5.1 fragt noch `holo-v3` (D63-Addendum T12.6a). **Auslöser: 31.01.2027** (zwei Monate nach
+  v0.6.0). Danach: Manifest-URL 404 prüfen, v0.5.1 zeigt den Umriss; CONTRIBUTING „Release hygiene“ (Holo-Releases im
+  10er-Fenster) mitziehen.
 - Modelle für 135c, 600i Executive Edition und F7C Hornet Mk II bei Sciirof (Motherlode) anfragen, mit Rückmeldung zur
   Handprüfung als Gegenleistung (Session 4a/4c). Auslöser: nach dem Launch, mit der Nachricht zu v0.3.0 (R5).
   **Stand 19.11.:** F7C erledigt (Spieldateien seit `ships-2026.11.1`, T12.2), 135c siehe unten; offen nur die 600i EE.
