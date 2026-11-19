@@ -55,7 +55,7 @@ Aus der Backlog-Session II (Feedback-Chats nach v0.6.0). Reihenfolge (Martin): *
 K12. **F8** bleibt zurückgestellt (Zeile in „v0.3.0 – Feedback-Release“ unverändert). Ein Task pro Session, je mit Plan
 und Freigabe.
 
-### [ ] K11 TASKS.md-Archivierung
+### [x] K11 TASKS.md-Archivierung (19.11.2026)
 
 **Warum:** TASKS.md hat 832 KB / 7 756 Zeilen (19.11.); jede CC-Session liest sie, der Kontext ist der Preis.
 - Abgeschlossene Phasen und Sessions nach `docs/tasks-archive/`, eine Datei pro Phase oder Release.
@@ -112,6 +112,32 @@ tote Verweise; Größe vorher/nachher; `dotnet build`; `git status` sauber, kein
 
 **Freigabe 19.11.2026** mit K1 und E1; P1–P7 ratifiziert. Die historischen `- [ ]` 4686 und 4790 werden wortgleich
 archiviert, Martins Antwort folgt.
+
+**Befund (19.11.2026):**
+- **Größe TASKS.md:** vorher 859 128 B / 8 063 Zeilen (Blob 851 065 B), nachher 36 235 B / 333 Zeilen (Blob
+  35 902 B). Archiv: 31 Dateien (30 Abschnitte + `backlog-done.md`), 831 887 B Blob.
+- **Block-Gleichheit:** 30 Archivdateien = 7 806 alte Zeilen, Byte für Byte (einzige Ausnahme Zeile 3874, P2).
+- **Vereinigung:** 8 061 von 8 063 alten Zeilen verglichen (erlaubt fehlen 6 und 3874), **fehlend 0**; neue Zeilen nur
+  Kopf, Index, Plan, Befund, Archivköpfe, Lehre, Umzugsüberschrift.
+- **Zähler:** `### [x]` 181 → 181, `### [ ]` 4 → 4 nach dem Verschieben; mit diesem Haken 182 / 3.
+- **Backlog:** 34 erledigte Punkte (48 Zeilen) → `backlog-done.md`, 59 offene bleiben. Darunter der Punkt „Erster
+  Selbsttausch übers Netz“ mit dem Satz „SmartScreen für `Update.exe` ist weiter unbelegt“ – passt zum offenen Punkt
+  Setup.exe/Code-Signing, steht jetzt nur im Archiv.
+- **Verweise:** 25 umgehängt – `docs/decisions.md` 21 (Plan: ≈ 22), `docs/ship-format.md` 1, `docs/nexus/staff-request.md`
+  1, Kommentare in `LoadPlannerTests.cs` (jetzt „Cases from T2.1 …“) und `ScanRegionTests.cs`. **Abweichung vom Plan:**
+  `staff-request.md:12` stand im Plan unter „Prozess, unverändert“, zeigt aber auf T9.3 (archiviert) → umgehängt.
+  Grep danach: 22 `TASKS`-Treffer außerhalb TASKS.md und Archiv, alle zugeordnet – Prozess 9 (CLAUDE.md 18, 68, 179, 184,
+  191; decisions 1353; holo-format 151 = Shipdata-TASKS; nexus/checklist 14, 115), neue Archivzeile CLAUDE.md 1,
+  Backlog 5 (decisions 115, 1072, 1164; SHOTLIST 11; review 267), Lehren 1 (decisions 1015), frühere Bearbeitung 2
+  (decisions 178, 385), Review-Schnappschuss 4 (P3). Wiki: 0. Alle 31 genannten Archivpfade existieren.
+- **Stichprobe D-Verweise (12):** decisions 221 → T3.12, 629 und 670 → T7.1c, 863 → „32 Racks in 16 Schiffen“, 864 →
+  K3.1, 1009 → S8.0, 1122 → „Erste Datenkorrektur“, 1134 → „Erlaubnis Motherlode“, 1142 → „Rundungsprotokoll“, 1198 → B11,
+  1202 → S10.0, 1303 → S11.0: jedes Ziel genau in der genannten Archivdatei gefunden.
+- **Build (P5):** `dotnet build` – 0 Warnung(en), 0 Fehler (8,52 s). Kein `dotnet test` (Docs und zwei Kommentare).
+- **A17:** `git diff --numstat a735ba6` ohne Binärdatei; `git status` sauber.
+- Index-Zeitraum: Überschriften plus Commits der eindeutigen Task-IDs, alle 30 Zeilen gegengelesen.
+- Am Rande: `gh` fehlt im PATH dieser Maschine (Eintrag `C:\Program Files\GitHub CLI"` mit verirrtem Anführungszeichen);
+  aufgerufen über den vollen Pfad.
 
 ### [ ] B16 Legende: Missionsreihenfolge
 
