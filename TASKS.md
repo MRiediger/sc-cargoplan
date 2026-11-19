@@ -3550,7 +3550,11 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
   `feat/k2-plan-editor`, `feat/k3-planner-rules`, `feat/k5-data`, `feat/k6-elevator-flow`, `spike/s8-3d-finding`
   (Martin, 02.11.2026); remote bleiben die Releases `v0.1.0` (Latest) und `holo-v1`
 
-### [ ] T9.3 Nexus-Mods-Seite (= T6.6) – Branch `docs/nexus`
+### [x] T9.3 Nexus-Mods-Seite (= T6.6) – Branch `docs/nexus`
+
+**Abgehakt in K12 (19.11.2026, R1):** Nexus-Seite seit 16.11.2026 online mit v0.5.0,
+<https://www.nexusmods.com/starcitizen/mods/52>; v0.6.0 per T12.6a, README nennt Nexus unter Install. Die offenen Punkte
+unten sind damit erledigt oder gegenstandslos.
 - Texte und Checkliste versioniert in `docs/nexus/`: `summary.txt`, `description.bbcode`, `checklist.md`,
   `staff-request.md`; die Beschreibung aus README, `docs/release-notes/v0.1.0.md` und Wiki abgeleitet
 - Upload = exakt das GitHub-Asset `SC-CargoPlan-v0.1.0-win-x64.zip` (gleicher SHA256), Version `0.1.0`
@@ -3613,12 +3617,13 @@ Release-Teil von T7.5 (T7.5d) zieht hierher. T7.5a–c bleiben unter ihrer Numme
 
 **Akzeptanz:**
 - [x] `docs/nexus/*`, D87, CONTRIBUTING, TASKS; Link-Check 0 kaputt, Negativtest schlägt an
-- [ ] Anfrage an den Nexus-Support gesendet und beantwortet (Datum, Wortlaut) oder Frist 16.11.2026 ohne Antwort
-  abgelaufen
-- [ ] Nexus-Seite online mit dem ZIP des GitHub-Releases (gleicher SHA256 und gleiche Größe des Nexus-Downloads),
-  Permissions passend zu MIT, CT-Credit sichtbar; URL und Datum
-- [ ] README: Nexus als zweite Quelle
-- [ ] `git merge --no-ff` nach `main`
+- [x] Anfrage an den Nexus-Support gesendet und beantwortet (Datum, Wortlaut) oder Frist 16.11.2026 ohne Antwort
+  abgelaufen – Frist 16.11. erreicht, Seite an dem Tag veröffentlicht (K12)
+- [x] Nexus-Seite online mit dem ZIP des GitHub-Releases (gleicher SHA256 und gleiche Größe des Nexus-Downloads),
+  Permissions passend zu MIT, CT-Credit sichtbar; URL und Datum – `mods/52`, 16.11.2026 (v0.5.0); CT-Credit
+  gegenstandslos, ContractTracker ist seit v0.4.0 raus (`description.bbcode` ohne Treffer)
+- [x] README: Nexus als zweite Quelle – Install, Schritt 1 (Merge `6899470`)
+- [x] `git merge --no-ff` nach `main` – `5c7f7cb` „Merge docs/nexus“
 
 ### ~~[ ] T9.4 Fleetyards-Verlinkung~~ gegenstandslos seit D94 (gestrichen in K10)
 
@@ -4776,7 +4781,10 @@ Zum Lesen: Eine Wand quer durch die Mitte eines Racks ergibt (b) ≈ 0,17. Bei (
 - Lokales ZIP vor den Branch-Commits: 62.121.133 Byte; das CI-ZIP ist 2,1 MB größer mit gleicher Eintragsliste (Kompression; v0.2.0: lokal 62,1, CI 64,2 MB, ebenso).
 - `release/v0.3.0` lokal gelöscht (nie gepusht).
 
-### [ ] R5 Nachlauf
+### [x] R5 Nachlauf
+
+**Abgehakt in K12 (19.11.2026, R1):** überholt – Nexus und Ankündigungen liefen mit „Release v0.4.0“ R5 und später
+(Nexus-Seite 16.11. mit v0.5.0), die Backlog-Zeilen stehen im Backlog.
 
 - [x] Wiki-Push nach dem Release (Martin, 08.11.), Anker-Check gegen das Live-Wiki (R4-Befund)
 - [ ] Martin: Settings-Fußzeile 0.3.0, Release-Seite im Browser (Notes, Assets, Nexus-Link)
@@ -5113,7 +5121,9 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
 - **Abdeckung:** nur Hurston, nur Covalex, zwei Waste-Verträge, keine Pyro-/Red-Wind-Formulierungen im Satz. Weitere Formulierungen kommen wie bei B9 über Meldungen.
 - Ein FPS-Overlay schreibt Text oben rechts; mit ROI irrelevant.
 
-### [ ] T10.1 Capture + OCR (`CargoPlan.Ocr`)
+### [x] T10.1 Capture + OCR (`CargoPlan.Ocr`)
+
+**Abgehakt in K12 (19.11.2026, R1):** aufgeteilt in T10.1a und T10.1b, beide `[x]` (unten); ausgeliefert mit v0.4.0.
 
 - Neues Projekt neben `CargoPlan.Import`.
 - `ScreenCapture` per GDI `BitBlt` (S10.0 G1).
@@ -5635,7 +5645,10 @@ Gleich blieben Titel, Auftraggeber, Reward, Abholort, Ziele, Waren und Max-Grö�
   Start an der neuen Stelle ohne Hinweise
 - [x] Abnahme Martin (13.11.2026), `--no-ff` nach `main`, dann `main` → `release/v0.4.0`
 
-### [ ] T10.6 Release v0.4.0
+### [x] T10.6 Release v0.4.0
+
+**Abgehakt in K12 (19.11.2026, R1):** umgesetzt als Abschnitt „Release v0.4.0“ (R0–R5), Tag `v0.4.0` veröffentlicht
+13.11.2026.
 
 - Branch `release/v0.4.0`, Textabgleich.
 - Release-Notes, Freigabe durch Claude.ai:
@@ -5825,7 +5838,7 @@ Racks (`probe-b2-src`: v0.3.1-Settings + Plan mit 3 Kisten `loaded`, 6 `delivere
 | Runtime | 10.0.14 | `Microsoft.NETCore.App` und `WindowsDesktop.App` 10.0.14 | ✓ |
 | Start aus dem heruntergeladenen ZIP (SmartScreen-Weg) | Martin | – | offen |
 
-### [ ] R5 Nachlauf
+### [x] R5 Nachlauf (geschlossen in K12, 19.11.2026)
 
 - [x] Wiki `v0.4.0` → `master` (Martin, 13.11., `19732be`)
 - [x] `REL:`-Commit: CLAUDE.md ZIP-Größe, R4-Befund nach dem Push (`0642b98`, Martin gepusht)
@@ -5835,11 +5848,14 @@ Racks (`probe-b2-src`: v0.3.1-Settings + Plan mit 3 Kisten `loaded`, 6 `delivere
   Wiki `v0.4.0`
 - [x] Remote gelöscht (Martin, 13.11.): `docs/v0.4.0-user-docs`, `feat/t10-5-scan-settings`, Wiki `v0.4.0`; remote
   bleiben `main` und der alte `release/v0.3.0`
-- [ ] Nexus mit 0.4.0 nach `docs/nexus/checklist.md`, frühestens 16.11. (Staff-Frist, T9.3)
-- [ ] Ankündigungen (Entwürfe Claude.ai, Martin verschickt)
+- [x] Nexus mit 0.4.0 nach `docs/nexus/checklist.md`, frühestens 16.11. (Staff-Frist, T9.3) – Nexus-Seite am 16.11. mit
+  v0.5.0 veröffentlicht; der v0.6.0-Upload liegt in der Nexus-Quarantäne, Martin lässt ihn liegen: Nexus ist nur
+  Schaufenster, Updates laufen über GitHub/Velopack (K12)
+- [x] Ankündigungen (Entwürfe Claude.ai, Martin verschickt) – v0.4.0-Ankündigung entfallen, v0.5.0/v0.6.0 folgten;
+  Ankündigungen laufen außerhalb von TASKS.md (K12)
 - [x] Rohaufnahmen `Documents\Coding\Dotnet\sc-cargoplan-raw\v0.4.0` (354 MB, `hero_full.gif`,
   `quickstart-capture-sync-full.gif`): bleiben (Martin), außerhalb des Repos
-- Übergabe an K11 (TASKS.md-Archivierung)
+- Übergabe an K11 (TASKS.md-Archivierung) → Task K11 in „Backlog II (19.11.2026)“
 
 ## Phase 11 – nach dem Launch (abgeschlossen 15.11.2026 mit v0.5.0)
 
@@ -6868,7 +6884,7 @@ Satz aus dem Task, die übrigen Update-KIs aus v0.5.0, neu `holo-v1`, die drei F
 
 ---
 
-## Phase 12 – Ship data channel (gestartet 16.11.2026, D111)
+## Phase 12 – Ship data channel (gestartet 16.11.2026, abgeschlossen 19.11.2026, D111)
 
 **Zielbild:** D111. **Zwei Repos:** [`sc-cargoplan-shipdata`](https://github.com/MRiediger/sc-cargoplan-shipdata) baut, prüft und
 veröffentlicht die Schiffsdaten als Release `ships-YYYY.MM[.N]`; dieses Repo liest sie (App) und zieht beim Build die Baseline.
@@ -7345,7 +7361,7 @@ Copy-Item "$env:LocalAppData\SC-CargoPlan\plan.json" $data   # dein Hull-A-Plan
 - [x] Build ohne Warnungen, alle Tests grün (Core 1889, Import 280, Ocr 34, App 2069 im sauberen Klon), `dotnet format`
   sauber, CI grün auf beiden Runnern
 
-### [ ] T12.6 Release (beide Repos; Teile mit **App:** hier)
+### [x] T12.6 Release (beide Repos; Teile mit **App:** hier) – T12.6a und T12.6b erledigt 19.11.2026
 
 **Warum:** Erst ein echtes Data-Release, dann die App, die es liest, dann der erste Monatslauf.
 - [x] Erstes Data-Release `ships-2026.11` per Knopf (= Stand 4.10.3 / holo-v3) – erledigt mit T12.2 im Shipdata-Repo
@@ -7545,7 +7561,10 @@ lokal gelöscht, Prüfordner im Scratchpad weg. CI auf `main` für `1ce6871` gr�
   nicht ins Protokoll gemeldet.
 - [x] Commits `T12.6a: …`, kein `Co-Authored-By`
 
-#### [ ] T12.6b Shipdata-Abschluss (Shipdata-Repo, Plan und Abnahme in dessen `TASKS.md`)
+#### [x] T12.6b Shipdata-Abschluss (Shipdata-Repo, Plan und Abnahme in dessen `TASKS.md`)
+
+**Erledigt (abgehakt in K12):** Shipdata-Branch `docs/p12-close`, Commits `8bb42d5`/`b1e4d29`/`f4467d1`/`20fe78d`,
+Merge `49c0250` 19.11.2026; SD13 und SD3-Addendum dort. Befund 4 (Schiffsdatei-PRs in der App-Doku) erledigt K12 hier.
 
 README des Shipdata-Repos, Phase 12 dort schließen (Lehren), Backlog konsolidieren, SD13, `cache/`-Hygiene,
 Martin-Klicks (`sc-ship-outlines` archivieren, „Automatically delete head branches“, Sciirof-Mail). **Backlog-Nachtrag
@@ -7724,6 +7743,23 @@ mehr (`maxCrateSize` aus dem letzten Release, kein Override-Feld). Anlass: erste
 6. `release.yml` bleibt unverändert bis auf einen Kommentar (`out/release/*` nimmt den Tarball mit).
 7. F11 steht in „Backlog II“ als `[x]` mit Verweis auf K12, damit alle vier Feedback-Punkte an einem Ort stehen.
 
+**Freigabe (Backlog-Chat, 19.11.2026):** R1 ja, alle vier mit Vermerk auf `[x]`. R2 **(a)**. Dazu:
+- **E1** NOTICE wie im Windows-ZIP neben `LICENSE` in den Tarball, Listing-Prüfung erweitern.
+- **E2** D115 und README-Zeile: die Linux-CLI hat kein App- und kein Daten-Update, `ships --version` nennt die Baseline
+  des Release.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (aus E1/E2):**
+8. **E1:** Der Windows-ZIP hat keine NOTICE in der Wurzel; `check-portable.ps1` verlangt `ship-data\NOTICE.md` und
+   `models\NOTICE.md` neben `LICENSE`. Beide liegen im Linux-Publish schon (Spike). Die Listing-Prüfung des Tarballs
+   verlangt deshalb dieselbe Liste wie `check-portable.ps1` (`LICENSE`, beide NOTICE, Manifest, `hull_a.json`,
+   `ts_module.json`, `outlines.json`, vier Modelldateien), die nativen Bibliotheken unter Linux-Namen
+   (`libonnxruntime.so`, `libSkiaSharp.so`) und `CargoPlan.Cli` mit `rwxr-xr-x`.
+9. **E2:** Ein Datenupdate lädt nur das Overlay herunter; die Linux-CLI liest einen geladenen Stand nur, wenn er im
+   Profil liegt (`~/.local/share/SC-CargoPlan/ships`), und den schreibt unter Linux nichts. Neuere Schiffsdaten heißt
+   also: das nächste Tarball laden.
+
+**Wiki (19.11.):** Martin hat `master` gepusht (`5a1ab1d`); `k12-ship-reports` setzt darauf auf.
+
 ---
 
 ## Lehren
@@ -7803,16 +7839,17 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   10er-Fenster) mitziehen.
 - Modelle für 135c, 600i Executive Edition und F7C Hornet Mk II bei Sciirof (Motherlode) anfragen, mit Rückmeldung zur
   Handprüfung als Gegenleistung (Session 4a/4c). Auslöser: nach dem Launch, mit der Nachricht zu v0.3.0 (R5).
-  **Stand 19.11.:** F7C erledigt (Spieldateien seit `ships-2026.11.1`, T12.2), 135c siehe unten; offen nur die 600i EE.
+  **Stand 19.11.:** F7C erledigt (Spieldateien seit `ships-2026.11.1`, T12.2), 135c-Transform angekündigt
+  (Shipdata-Backlog), **600i EE angefragt** (Discord 19.11.). **Auslöser: Sciirofs Antwort.**
 - Sciirof fragen, warum die **Cyclone** im Katalog 2026-11-16 (4.10.3-LIVE.13165946) fehlt; bis dahin behält sie ihre
   holo-v2-Datei und ihren Umriss, `ships/cyclone.json` bleibt `absent` (V2). Auslöser: nächste Nachricht an Sciirof.
   **Antwort Sciirof (18.11.):** kommt ggf. zurück; die Pipeline deckt das mit SD6 „wieder da“ ab → Shipdata-Backlog
-  (T12.6b), hier nichts zu tun.
+  (T12.6b), hier nichts zu tun. **→ Shipdata-Backlog.**
 - Sciirof fragen nach einer Platzierung (Transform) für das Grid der **135c**: Modell `ORIG_135c` ist seit 2026-11-16 im
   Katalog, aber ohne Transform bleibt sie `kept` (Fleetyards-Racks, holo-v1). Mit Transform: Racks und Anker aus dem
   Modell. Auslöser: nächste Nachricht an Sciirof.
   **Antwort Sciirof (18.11.):** Transform kommt voraussichtlich; die Pipeline stoppt dann mit PR „override obsolete“
-  (Regel in T12.6b) → Shipdata-Backlog, hier nichts zu tun.
+  (Regel in T12.6b), hier nichts zu tun. **→ Shipdata-Backlog.**
 
 - Sektionsreihenfolge per Legenden-Drag (Spielerreihenfolge). Auslöser: Hauler-Report, dass die Legendenreihenfolge nicht reicht.
 - `defaultFillOrder`, `fillRows`/`grouping`-Default pro Schiff in der Schiffs-JSON. Auslöser: zweites Schiff braucht einen anderen Default.
