@@ -147,6 +147,61 @@ Hauler die zuletzt gescannte Mission unten.
 
 **Akzeptanz:** Test mit drei Scans nacheinander, Legende zeigt #1, #2, #3; ein Re-plan ändert die Reihenfolge nicht.
 
+**Befund vor dem Plan (19.11.2026, Branch `fix/b16-legend-order` ab `7b6d90a`):**
+- **Fehlerstelle:** `src/CargoPlan.Core/Models/LoadPlan.cs:54` – `LegendMissions` sortiert nach dem frühesten Ziel in
+  `Route` (`.OrderBy(m => m.Min(c => rank[c.Destination]))`), die Missionsliste nur als Tie-Break (`:55`). Das ist die
+  D69-Regel wörtlich, K9.2 zog sie unverändert nach Core. Keine SCU/Name-Sortierung im Legendenpfad (die B2-Tie-Breaks
+  gelten nur für Planer-Suche und Fallback, `LoadPlanner.cs:47`). **Warum #3 vor #2:** `Route` = Ziele nach erstem
+  Crate, `PlaceInto` legt neue Kisten direkt hinter die ihres Ziels (D64-Addendum). Scan #1 → A, #2 → B, #3 → A: Rang
+  0 / 1 / 0, Tie #1/#3 per Liste → #1, #3, #2.
+- **Leser der Legendenfolge** (nur über `LegendMissions`/`LegendDestinations`): `ShipViewBuilder.LegendLines`
+  (`ShipViewBuilder.cs:96`; Zeilen, Kopf „From …“, `#`, Kopf-Checkbox `MissionCrates` hängen daran) und
+  `LoadPlanner.Sectioned` (`LoadPlanner.cs:97` → `RackSections.Lay`, Sektionsfolge D89 bei Editor-Plan, `PlanKeeping`,
+  Re-plan). Wartende Missionen (`ShipViewBuilder.cs:56`) in Listenfolge. **Nicht betroffen:** `MissionPalette.Assign`
+  (`Placements` = `Route`, Farben bleiben), `LoadPlanner.Plan(ship, stops)` (`:29`, CLI, `Route`), Editor K6.3 (nur
+  Ansicht, Plan liest `Rows`), `PlanTextRenderer`, Missions-Export.
+- **Persistenz:** `missions[]` wird in Listenfolge geschrieben und gelesen (`PlanFileDto.cs:108`, `:44–55`);
+  `PlaceInto` hängt an, Re-Scan (`ReplaceMission`) behält den Platz, `Replan`, `RemoveMission`, `RenameStop`,
+  Split/Merge, Undo (`PlanHistory` hält ganze `SavedPlan`) behalten die Folge. **Aber** der Editor-Plan baut die Liste
+  neu: `MissionRows.FromMissions` gruppiert nach Ziel in `Route`-Folge (`MissionRows.cs:111–116`), `ToMissions` gibt
+  Missionen in Folge der ersten Zeile je Gruppe zurück und nummeriert getippte neu (`:138–167`). `missions[]` allein
+  kann die Quelle also nicht sein. Stabil ist `ContractSource.Scan.No`: nicht nullable, je Plan eindeutig
+  (`SavedPlan`-Konstruktor), nie wiederverwendet (`LastScanNo` außerhalb der Undo-Historie, `OverlayViewModel.cs:582`),
+  steht schon in plan.json (Schema 10) → **kein Schema-Bump, kein neues Feld.**
+- **Goldens:** `LegendOrderTests` (4) bleiben unter der neuen Regel grün (nachgerechnet). RAFT-Fixture: 4 getippte
+  Missionen, Legende heute #1, #2, #4, #3, neu #1, #2, #3, #4; `LegendDestinations` bleibt Green, High, Thunder,
+  Faithful, Melodic → K9-Goldens voraussichtlich 0 kippen (Zählung im Rot-Lauf).
+
+**Plan (19.11.2026):**
+
+Regel: zuerst Missionen mit Vertrag nach `Scan.No` aufsteigend, dahinter Missionen ohne Vertrag in Listenfolge;
+Missionen, die die Liste nicht kennt (Plan ohne Missionen), danach wie heute nach Route-Rang. Zeilen innerhalb einer
+Mission bleiben in Route-Folge.
+
+1. `SavedPlan.LegendOrder` (Ids, abgeleitet bei jedem Lesen wie `Stops`): eine Stelle für die Regel.
+2. `LoadPlan.LegendMissions(missionOrder)`: primär Position in `missionOrder`, nicht gelistete dahinter nach Route-Rang.
+3. `LoadPlanner.Sectioned` und `ShipViewBuilder` (Legende und wartende Missionen) übergeben `saved.LegendOrder`.
+4. Docs: D69-Addendum (B16) mit Gegenargument, Verweis in D89; Wiki-Satz `Legend-and-delivery-states.md:36`.
+
+Gegenargument: Listen- und Legendenfolge laufen nach einem Editor-Plan auseinander; Editor-Hoch/Runter (K6.3) verschiebt
+gescannte Missionen in der Legende nicht mehr. Die Alternative („`ToMissions` behält die bekannte Folge“) griffe in
+Editor, D42-Neunummerierung und K6.3 ein – verworfen. Spielerreihenfolge bleibt Backlog (Legenden-Drag).
+
+Tests (erst rot): R1 Repro (Scans #1 → A, #2 → B, #3 → A → #1, #2, #3; heute #1, #3, #2); stabil nach Re-plan,
+Abhaken #2, Plan-Datei schreiben/lesen, Editor-artigem Plan; #2 löschen → #1, #3, neuer Scan → #1, #3, #4; getippte
+Mission zwischen zwei Scans steht dahinter; Sektionsfolge = Legendenfolge bei Scan-Folge ≠ Route, RAFT-Goldens benannt;
+App: drei `ApplyScan` → Legende #1, #2, #3, unverändert nach Re-plan, Abhaken, Undo, Redo, Editor-Plan.
+
+**Präzisierungen in der Planphase, ratifiziert durch Freigabe:**
+- P1 Quelle = `Scan.No`, nicht die Array-Folge von `missions[]` (der Editor-Plan baut die Liste um).
+- P2 Wartende Missionen in der Legende folgen derselben Ordnung.
+- P3 Wiki-Satz wird mitgezogen.
+- P4 Zeilen innerhalb einer Mission bleiben in Route-Folge.
+- K1 Wiki-Satz auf lokalem Branch `b16-legend-order` im Wiki-Repo, Push erst mit dem nächsten Tag; Backlog-Zeile wie K12.
+
+**Freigabe 19.11.2026:** P1–P4 ratifiziert, F1 bestätigt (Sektionen folgen der Legende), K1. Rot-Lauf zuerst, R1 muss
+rot sein.
+
 ### [ ] B17 Sektionen: Lücke bei Rest-Einzelkiste
 
 **Warum:** ARGO RAFT, `grouping: byDestination`, Kistenmix 2+1 (auch 4+1): der Planer legt die 1-SCU-Kiste neben die
