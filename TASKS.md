@@ -177,20 +177,7 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
-- ~~Zeit-Asserts im Standardlauf~~ – erledigt in B13 (erster Commit): beide Tests in `Category=Timing`.
-  **Auslöser erreicht (T10.4a, 11.11.: drittes lokales Auftreten, 172 ms auf main; im a2-Gesamtlauf fiel auch
-  `Place_lays_out_16_crates_of_three_destinations_apart_in_under_100_ms`, Core allein 2× grün).**
-  `CrateLayoutTests.Place_proves_stacking_in_under_100_ms` fiel in T10.2b1 und T10.2b2 je einmal im Lauf aller vier
-  Testprojekte (142 ms), allein immer grün (65 ms). Lehre T7.1d (1-s-Assert auf CI-Runnern): Zeit-Asserts im
-  Standardlauf unter Parallel-Last. Auslöser: der erste rote CI-Lauf damit oder ein drittes lokales Auftreten → in
-  `Category=Timing` verschieben oder die Schwelle mit Messung begründen.
-
-- ~~Eigener Datenordner für Diagnose-Schalter~~ – erledigt in T10.4a (`--data-dir`, 552c052).
-
 - winget-Manifest (`winget install SC-CargoPlan`), früher T11.2. Auslöser: Ein Nutzer fragt danach (D109).
-- ~~Erster Selbsttausch übers Netz v0.5.0 → v0.5.1~~ – erledigt in V5 (16.11., voll); das **erste Delta übers Netz**
-  kam mit v0.6.0 (T12.6a Netz-Gate, 19.11.: 850 683 B auf `CargoPlan-0.5.1-full.nupkg`). SmartScreen für `Update.exe`
-  ist weiter unbelegt (beide Proben waren keine frischen Browser-Downloads).
 - Setup.exe und/oder Code-Signing (D109: heute nur Portable, unsigniert). Auslöser: Nutzer-Reports, dass SmartScreen
   sie abhält (T11.5: Warnung einmal je Download, „More info → Run anyway“).
   **Stand 19.11.2026:** kostenlose Signatur bei der SignPath Foundation beantragt (README-Absatz `7901350`) und am
@@ -222,8 +209,6 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - **Kiosk-Manifest als autoritative Quelle** für die Mengen. Auslöser: Der Aufzug liefert eine andere SCU-Summe als der
   ACCEPTED-Text. Martins Antwort steht aus; IC STARC-175359/223408 deuten darauf hin.
 
-- ~~`holo-v1`-Release auf GitHub entfernen~~ – erledigt am 16.11.2026 mit v0.5.1 (V5, Martin), vor dem hier genannten
-  06.12.: Release und Tag weg, `releases/download/holo-v1/manifest.json` 404; v0.1/v0.2 zeigen den Umriss.
 - `holo-v2`- und `holo-v3`-Release (Pre-Releases im App-Repo) samt Tags löschen. Anlass: D114 – seit v0.6.0 kommen die
   Holos aus dem Data-Release, nur v0.3.0–v0.5.0 fragen noch `holo-v2` und v0.5.1 `holo-v3` (D63-Addendum T12.6a,
   Martin 19.11.: gleiches Datum für beide). **Auslöser: 31.01.2027** (zwei Monate nach v0.6.0). Danach: beide
@@ -246,8 +231,6 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Sektionsreihenfolge per Legenden-Drag (Spielerreihenfolge). Auslöser: Hauler-Report, dass die Legendenreihenfolge nicht reicht.
 - `defaultFillOrder`, `fillRows`/`grouping`-Default pro Schiff in der Schiffs-JSON. Auslöser: zweites Schiff braucht einen anderen Default.
 - Neubewertung „Sync-Mission wartet trotz freier Zellen“ (D89, Entscheidung 2). Auslöser: Live-Test, in dem eine Sync-Mission wartet, die mit `none` Platz hätte.
-- ~~Zweiseitige Sektionen (Backbord-/Steuerbord-Hälfte). Auslöser: ein Schiff braucht es.~~ → F10 (Backlog II,
-  Seitenweise Planung, Hull B).
 - Sektionsgrenzen in der Schiffsansicht zeichnen. Auslöser: Hauler-Report, die Farben zeigen es heute.
 - Legend limit covers stop rows only; warnings stack below unbounded – revisit if a user reports it (K7/D80;
   16.11.: RAFT und Hull A mit 16 Missionen bei 30 % ok). Auslöser: Nutzer-Report.
@@ -258,16 +241,10 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - `RackAssignment` mit Hindernissen (K6.4, E2): mit geladenen Kisten legt der Planer nach der D41-Regel statt exakt (D64).
   Auslöser: Hauler-Report „Fragmentierung bei geladenen Kisten“ bzw. „Re-plan found no better layout“ ohne erkennbaren Grund.
 - `CODE_OF_CONDUCT.md`, sobald es Contributors gibt; Community Standards mahnt es an, ein Solo-Repo braucht es vor dem ersten Hauler nicht (T6.4).
-- ~~App-Icon (`.ico` mit 16/32/48/256 px, `<ApplicationIcon>` im App-csproj), sobald ein Icon vorliegt; aus T6.2 (D48).~~ → K5
 - Topmost-Fallback (`SetWindowPos(HWND_TOPMOST)` per Timer) nur bei Issue-Report mit Repro. Im T3.1-Test blieb das Overlay über Borderless-SC (D13).
-- ~~Rack `orientation` (physische Stapelrichtung, Rotation pro Rack), sobald ein Schiff es braucht (D14).~~ Stapelrichtung erledigt in T3.13c (`stackAxis`, D26), freie Rotation pro Rack in F3 (D91).
-- ~~Viewport3D-Renderer auf denselben Geometriedaten, falls 2.5D nicht reicht (D14).~~ → Phase 8 (D83)
 - Vorschau-Maximum mit SC: einzelne Schlüsselwechsel kosten 20–25 ms (T8.7, M5; p95 5,2 ms, ohne SC max 12 ms); die
   16-ms-Regel (D65) fängt sie ab. Erst klären, ob CPU-Konkurrenz mit dem Spiel oder eine GC die Spitzen macht, dann ggf.
   der Recorder im echten Overlay (T8.7 R1). Auslöser: spürbares Nachziehen der Vorschau am Aufzug.
-- ~~`WindowBounds.FromRect` (T3.4) und `LegendEntry.ReserveLabel` haben nur Testaufrufer (Scan in T8.6): löschen samt
-  Tests oder wieder nutzen. Auslöser: Repo-Hygiene vor v0.1.0.~~ Erledigt in K10 (F13): beide gelöscht, dazu
-  `LoadPlanner.MoveCrate` (nur Tests) → Test-Helfer `PlannerMoves`.
 - `ShipCamera.PxPerCell`/`PanX`/`PanY` (Lesefelder für Kameras von vor D83, T8.1) entfernen. Auslöser: der nächste
   Schema-Bump von settings.json; nach v0.1.0 schreibt kein Build sie mehr.
 - Hysterese für Rack-Nummern: Fläche wechseln oder ausblenden erst nach einem Mindestabstand, damit eine Nummer beim Drehen
@@ -275,44 +252,18 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Kiste unter einem leeren vorderen Rack ist in der Ansicht nicht anklickbar (Regel D21 „erstes Rack entscheidet“);
   Alternative (b) nächste Kiste über alle Racks, Ablage behält „erstes Rack“. Auslöser: Hauler-Report oder Martin am Aufzug
   (Hull A von oben, Rack 1 leer). Wächter: `SceneHitTestTests.An_empty_rack_in_front_covers_the_cargo_behind_it` (T8.3, E1).
-- ~~Ship mesh outline (Schiffsumriss): erst nach Klärung von Asset-Pipeline, Rechtslage bei Spieldaten und Render-Kosten im Layered Window (D14).~~ Übernommen als T7.4 (D55).
-- ~~Umriss in 3D wie im Maintenance Panel (Prisma aus Draufsicht + Höhe, grober Rumpf aus Drauf- und Seitenansicht, oder Holo-Modelle), falls der flache Umriss im Spiel nicht reicht (D62).~~ Holo-Modelle übernommen als T7.4b (Spike) und T7.4c.
-- ~~Kamera, Zoom und Pan der Schiffsansicht in `settings.json`, falls das Zurücksetzen beim Neustart nervt (D15).~~ → K1
 - Orbit-Snap auf feste Winkel (z. B. 45°-Raster per Taste), falls freies Drehen schwer wiederholbar ist (D15).
-- ~~Plan verwerfen ohne neuen Plan („Discard plan“), falls ein leeres Overlay nach der Route gewünscht wird; heute ersetzt nur „Plan“ den alten Plan (D19).~~ → K2
 - Editor-Position in `settings.json`, Entwurfs-Autosave, Undo im Editor, falls der Zwei-Minuten-Durchlauf daran scheitert (D19). Undo-Teil → K2.
-- ~~Rückfall auf Segmente ab einer Zellenzahl, sobald ein großes Schiff (Hull C, ~4.600 Zellen) beim Orbit ruckelt (D21).~~ Gestrichen: erledigt mit T7.3.
-- ~~Spindelmuster für Hull B/C wie bei Hull A statt der generierten Reihe (Daten, T7.1b-Nachtrag), sobald die echte Anordnung
-  bekannt ist (D61).~~ → K5
-- ~~Nasenlänge des Bug-Keils auf die Schiffsbreite deckeln (Hull C 14 → 6 Zellen, ~10 % mehr Maßstab), falls lange Schiffe
-  im Spiel zu klein wirken (D61).~~ Gestrichen: der Keil ist seit T7.4 nur noch Fallback ohne Umriss.
-- ~~Rastergrenze über 12 px (z. B. 20), falls das volle Raster der C2 (18 px pro Zelle) im Spiel stört (D61).~~ → K1
-- ~~Kistengrößen als Blöcke und Zellbeschriftung in der Schiffsansicht (D21).~~ Gestrichen: erledigt durch T3.11b.
 - Backdrop-Blur hinter dem Fenster (Spike: DWM vs. AllowsTransparency) (D28). Auslöser: Hauler-Report „Legende trotz Halo unlesbar“.
-- ~~Alternative Stop-Paletten, nur geprüft farbfehlsicht-tauglich (D29).~~ → K4
 - IBM-Palette (`648FFF 785EF0 DC267F FE6100 FFB000`) als vierte Stop-Palette, sobald eine IBM-eigene Quelle die Hex-Werte nennt; Orange liegt ΔE76 26 am Problemrot (unter der Schwelle 33,6), müsste also ohne Orange kommen (K4.2). Auslöser: Hauler fragt danach.
 - `appearance.crates.customStopColors` (Hex-Liste, aktiv bei `stopPalette = custom`), falls ein Hauler mit seltener Farbfehlsicht keine der drei Paletten lesen kann. Gegen: ungeprüfte Farben (D29), und eine Liste im Look-Record bricht die Gleichheit, an der K4.3 „Custom“ erkennt (K4.2).
 - Startordner der Look-Dialoge (Export/Import, K4.3): ohne `InitialDirectory` nimmt Windows den zuletzt benutzten Ordner der App, bei Martin `AppData\Roaming\VoiceAccess\UserPhrases\de-DE`. „Dokumente“ als Start beim ersten Export, falls Hauler ihre Datei nicht wiederfinden. Auslöser: Meldung.
 - `MissionFrame` (weiß, D68) ist dieselbe Farbe wie Okabe-Weiß (ΔE 0), obwohl der Kommentar „white is in no stop colour“ sagt: ein ausgewählter Missionsrahmen um eine weiße Kiste trägt nichts. Befund aus K4.2, kein Task; Auslöser: Look-Gate oder Hauler-Meldung.
-- ~~Legenden-Checkboxen: Farbe und Deckkraft in den Preferences wählbar (Abschnitt Legend; heute fest grau `#B0B0B0`, `MissionPalette.CheckBoxBrush`, D69). Auslöser: Taste-Gate B6.~~ → K4
-- ~~Theme-Presets/Export (A4).~~ → K4
-- ~~Füllrichtung in Mission-Dateien (Export/Import), falls Koordinatoren sie mit der Route teilen wollen; heute nur über plan.json (Core-Formatwechsel, D24-Addendum).~~ → K2
-- ~~Formbewusste `Partition` (Racks nach legbarer Anordnung in Routenreihenfolge, nicht nur nach SCU), falls Stapel-Befunde in echten Plänen häufig sind. Beleg aus dem Spike T5.4 (Brute-Force, abgebrochen): 3 Stops in einem Rack → 207 Aufteilungen ohne Anordnung bis Mischung 146/186; 4 Stops → 397 bis Mischung 65/170 (D24-Addendum, T5.4a).~~ → T7.0
-- ~~Geometrie bei Schiffen, deren Grid kein Vielfaches der Kistenmaße ist (D9 gilt nur für Hull A), sobald T7.1 ein solches Schiff bringt: `Plan` verteilt nach SCU und scheitert erst beim Legen, die Meldung („64/75 SCU“) klingt nach Platz und nennt nur Rack 1. `PlaceProblem` sagt es schon besser („no room for 8 SCU crates“). Beleg: S7.0, Lauf 3.~~ → T7.0
-- ~~Stapelbewusste Partition: Racks so verteilen, dass keine Stapel-Befunde entstehen (Rest der übernommenen T7.0-Zeile), falls Stapel-Befunde in echten Plänen häufig sind (D54). Beleg T7.2: echte CT-Captures (High Course Station, 11 SCU) per `PlaceInto` in den Hull-A-Plan split_and_shared → 3 rote Kisten auf Riker/Orison/Lorville.~~ Erledigt in B2 (D64): Prio 3 wählt auch zwischen Zuordnungen, `PlaceInto` nimmt das Rack ohne Fremdauflage.
-- ~~Ein Ziel pro Rack auf Mehrrack-Schiffen, wenn die Last es zulässt (Partition nach SCU füllt heute Rack 1 mit allen Zielen, C2: sechs Ziele in Rack 1). Auslöser: Hauler eines Mehrrack-Schiffs meldet, dass er ein Ziel pro Rack will. Planer-Änderung, D6-Addendum. Beleg T7.2: Legende „Rack 1 shared by Riker, Shubin, High Course Station, Melodic Fields Station, Faithful Dream Station, Everus Harbor – identify crates by count“; auf einem 480-Zellen-Rack hilft „by count“ nicht mehr.~~ Erledigt in B2 (D64): Prio 2 „wenigste Ziele im vollsten Rack, dann wenigste geteilte Racks“.
-- ~~Frachtmodule (Aurora-Heckmodul, Retaliator, Caterpillar `module_01–04`) als zusätzliche Katalogeinträge aus einer Datei, ohne Änderung an Plan-Schema oder Auswahl (D59). Auslöser: erstes Schiff in `ships/` mit im Spiel wechselbarem Frachtmodul.~~ → K5
 - Starbreaker (Fleetyards-Extractor, Rust) als Quelle für die Gitter von Frachtmodulen. Auslöser: zweites Schiff mit Frachtmodul.
-- ~~Haken eines Altbesuchs beim Schiffswechsel erhalten: ein abgehakter Stopp, der danach neue Fracht bekam (D41), kommt nach `Replan` auf einem anderen Schiff unabgehakt zurück und belegt Platz (D59); auf dem eigenen Schiff erledigt in B4 (D66). Auslöser: Meldung eines Haulers.~~ → K2
 - Sync Ships in der App (Fleetyards-API), falls sich Frachtgitter häufiger ändern als Releases erscheinen oder Hauler zwischen Releases fehlende Schiffe melden. Voraussetzungen: D-Eintrag Netzwerkzugriff des Overlays, Lizenzfrage für Laufzeitabrufe, Merge-Logik aus import-fleetyards.ps1 nach C# (T7.1b; das Skript liegt seit 4c nur noch in der Git-Historie, `a3430b9^`, D94). Seit D92/D94 wäre die Quelle Motherlode, nicht Fleetyards.
-- ~~Abholorte von Waste-Verträgen aus den Zeilen „Collect Waste from …“ des Rohtexts lesen (die Stationen), statt nur aus ContractTrackers `PickupLocation`, das einen davon zerrissen nennt (B6, D69). Auslöser: Hauler will Waste-Missionen nach Abholort unterscheiden.~~ → T10.2 (Abholort-Parsing)
-- ~~Kisten horizontal drehbar (Gier 90°) im Planer, statt Racks beim Import zu drehen (T7.1b: `length` = längere Seite, Rack in `notes` genannt). Auslöser: ein Schiff, dessen Rack nur mit gedrehten Kisten so voll wird wie im Spiel, oder ein Hauler-Report über abgelehnte Kisten, die im Spiel passen.~~ → K3.2
 - `CrateLayout.InOrder` beschleunigen (`StartingAt` ohne LINQ, Pruning), Auslöser: ein echter Plan mit der Notiz „too many crates to rearrange“ (D54). Erwartet bei Racks ab ~80 Zellen mit vielen 1-SCU-Kisten (T7.1c: 9×3×3, 32 + 40 × 1).
-- ~~Planen in `Task.Run` statt im UI-Thread (`MissionEditorViewModel.Plan`, CT-Sync, Schiffswechsel), Auslöser: ein gemeldetes Einfrieren (D54) oder der erste Hauler-Report zur Planungsdauer. Messwert T7.2: 8-Stopp-Lastfall auf der Freelancer ~4 s Release (Suchlimit, D58), beim Editor-Plan wie beim Wechsel (`ReplanTests`, `Slow`). Ein UI-Task (Knopf gesperrt, „Planning…“), kein Planer-Task; kann als erster nach dem Launch kommen. Bis dahin Known issue (T7.5).~~ Geschlossen in B4 (D66): seit B2 plant jedes Fixture im Prozess in höchstens 3,2 ms (Median, erster Lauf 7 ms, Freelancer-Lastfall 2,3 ms, `ReplanTimingTests`); nur die Stresslast (kein Schiff) braucht 80 ms. Wiederöffnen bei einem gemeldeten Einfrieren.
 - Optionale Spieler-Reihenfolge (Legende per Drag sortieren) → Stapelhinweise relativ zur Spieler-Reihenfolge („Shubin liegt auf Riker, Riker kommt zuerst“). Auslöser: Hauler wollen wieder wissen, welche Kiste zuerst runter muss (D64).
 - B1-Restfall: abgeschnittenes Fragment ohne Ergänzung. Capture 21–25 (24.10.): „to Thur“ bricht um, OCR liest „Thundering“ als „Thur…“, „Melg“ entsprechend; die Ergänzung aus der Drop-off-Liste greift nicht, weil das Fragment kein Präfix ist. Auslöser: weitere Fälle in echten Captures.
-- ~~Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).~~ → K1
-- ~~Undo für Drags und Re-plan: ab Stufe 3 (D65) ist Zurückziehen kein Undo mehr, ein Re-plan (B4) verwirft Moves. Auslöser: ein Hauler verliert eine Lage durch einen Drop.~~ → K2
 - Mengen pro Abholort („collect 3 from A, 2 from B“) statt einer Ortsliste ohne Mengen (D68). Auslöser: CT oder das Spiel
   nennen die Teilmengen.
 - Kisten anderer Missionen ausblenden statt dimmen (D68). Auslöser: Martin oder ein Hauler will es nach dem Spieltest.
@@ -322,7 +273,6 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Fleetyards-Lage für Modul-Laderäume (Carrack, Caterpillar-Module und -Nase): heute modul-lokale Offsets, die überlappen, also generierte Reihe (D78). Auslöser: Fleetyards liefert schiffsweite Offsets für Module.
 - Hull C: Stapelrichtung je Arm. Heute quer zum Arm, damit die Gitter 8×8×6/8×4×6 bleiben (D78); radial nach außen wie bei der Hull A hieße 8×6×8/8×6×4 mit Achse vom Kreuz weg. Auslöser: Beobachtung im Spiel oder in einem Beladungsvideo.
 - Hull C: innerer und äußerer Block eines Arms ein Gitter oder zwei. Heute zwei Racks wie bei Fleetyards, beide einzeln voll packbar (K3.2). Auslöser: ein Hauler meldet, dass ein 32er über die Blockgrenze liegt.
-- ~~Umrisse und Holos neu erzeugen (Pipeline `sc-ship-outlines`): die Salvation hat keinen (neu seit 25.10., zeigt den Bug-Keil, `NotTracedYet`), 18 Schiffe haben im Index vom 26.10. neue Rumpfmaße (K5.1). Auslöser: ein Hauler meldet die Salvation oder Racks liegen sichtbar außerhalb des Rumpfs.~~ → K5.2b
 - Kisten großer Schiffe im Default-Overlay klein: C2 13,2 px, Hull C 5,1 px pro Kistenkante (400 × 302, nach K5.2c), unter dem Hull-A-Wert 27,2 (Befund K5.2c, D62-Addendum). Auslöser: ein Hauler meldet zu kleine Kisten auf einem großen Schiff.
 - Railen: die generierte Reihe (53 Zellen) ist länger als der Rumpf (40 Zellen), ragt aus dem maßstabsgetreuen Umriss (K5.2c). Auslöser: Fleetyards-Offsets für die Railen oder eine Meldung aus dem Spiel.
 - Doku aus `docs/wiki/` im Hauptrepo per Action ins Wiki spiegeln – Auslöser: erster externer Doku-Beitrag.
