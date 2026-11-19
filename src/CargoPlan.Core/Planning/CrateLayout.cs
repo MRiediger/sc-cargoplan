@@ -57,13 +57,16 @@ public static class CrateLayout
     /// sits on another destination's cargo, whether the search for such a layout gave up at
     /// <paramref name="maxStackingSearchSteps"/> (default: <see cref="MaxStackingSearchSteps"/> of the rack), and the steps
     /// it took. Null if a crate doesn't fit. Without <paramref name="turn"/> no crate turns (D71 measured by the sections, D89).
+    /// With <paramref name="snug"/> (sections, B17) a single crate takes the cell of its layer with the most neighbours of
+    /// the destinations laid (<see cref="RackSpace.Add"/>).
     /// </summary>
     internal static Laying? Lay(
         Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, FillOrder order, FillRows rows,
-        int? maxStackingSearchSteps = null, bool turn = true)
+        int? maxStackingSearchSteps = null, bool turn = true, bool snug = false)
     {
         occupied = [.. occupied.Where(c => !c.Delivered)];
-        if (Place(RackSpace.Around(rack, occupied, order, rows), [.. crates.Select(c => c.Size)], turn) is not { } poses)
+        var own = snug ? crates.Select(c => c.Destination).ToHashSet() : null;
+        if (Place(RackSpace.Around(rack, occupied, order, rows, own), [.. crates.Select(c => c.Size)], turn) is not { } poses)
         {
             return null;
         }
@@ -223,24 +226,41 @@ public static class CrateLayout
         private readonly bool[,,] _taken;
         private readonly int[,,] _rank;
 
-        internal RackSpace(Rack rack, bool[,,] taken, FillOrder order, FillRows rows) => (_rack, _taken, _rank) = (rack, taken, Ranks(rack, order, rows));
+        // The cells of the section being laid (B17): its cargo on board and what this space laid; null without snug singles.
+        private readonly bool[,,]? _own;
 
-        /// <summary>The free cells of <paramref name="rack"/> around the cargo on board of <paramref name="occupied"/>.</summary>
-        public static RackSpace Around(Rack rack, IEnumerable<Crate> occupied, FillOrder order, FillRows rows)
+        internal RackSpace(Rack rack, bool[,,] taken, FillOrder order, FillRows rows, bool[,,]? own = null) =>
+            (_rack, _taken, _rank, _own) = (rack, taken, Ranks(rack, order, rows), own);
+
+        /// <summary>
+        /// The free cells of <paramref name="rack"/> around the cargo on board of <paramref name="occupied"/>; with
+        /// <paramref name="own"/>, the destinations whose cells a single crate seeks (<see cref="Add"/>).
+        /// </summary>
+        public static RackSpace Around(Rack rack, IEnumerable<Crate> occupied, FillOrder order, FillRows rows, IReadOnlySet<string>? own = null)
         {
             var grid = rack.Grid;
             var taken = new bool[grid.Length, grid.Width, grid.Stack];
-            foreach (var cell in occupied.Where(c => !c.Delivered).SelectMany(c => c.Cells).Where(c => Inside(grid, c)))
+            var mine = own is null ? null : new bool[grid.Length, grid.Width, grid.Stack];
+            foreach (var crate in occupied.Where(c => !c.Delivered))
             {
-                taken[cell.Length, cell.Width, cell.Stack] = true;
+                foreach (var cell in crate.Cells.Where(c => Inside(grid, c)))
+                {
+                    taken[cell.Length, cell.Width, cell.Stack] = true;
+                    if (mine is not null && own!.Contains(crate.Destination))
+                    {
+                        mine[cell.Length, cell.Width, cell.Stack] = true;
+                    }
+                }
             }
 
-            return new RackSpace(rack, taken, order, rows);
+            return new RackSpace(rack, taken, order, rows, mine);
         }
 
         /// <summary>
         /// Takes the first fit for a crate of <paramref name="size"/> and returns it; null, and nothing taken, if there is
-        /// none. Unturned if it fits so anywhere, else turned (D71), if <paramref name="turn"/> allows it.
+        /// none. Unturned if it fits so anywhere, else turned (D71), if <paramref name="turn"/> allows it. A single crate of
+        /// a section (B17) stays in the layer of its first fit (D24: layer by layer) but takes the free cell there with the
+        /// most neighbours of its section, so it closes the block; on a tie the first in fill order, as without.
         /// </summary>
         public Pose? Add(CrateSize size, bool turn = true)
         {
@@ -257,12 +277,48 @@ public static class CrateLayout
                 return null;
             }
 
+            if (_own is not null && size == CrateSize.One)
+            {
+                taken = new Pose(Snug(taken.Position), false);
+            }
+
             foreach (var cell in Cells(taken.Position, size.Shape(taken.Rotated)))
             {
                 _taken[cell.Length, cell.Width, cell.Stack] = true;
+                if (_own is not null)
+                {
+                    _own[cell.Length, cell.Width, cell.Stack] = true;
+                }
             }
 
             return taken;
+        }
+
+        /// <summary>The free cell in the layer of <paramref name="first"/> (the first fit) that rests and has the most face neighbours of the section there; on a tie the lowest rank.</summary>
+        private GridPosition Snug(GridPosition first)
+        {
+            var stack = first.Stack;
+            var (best, bestNeighbours, bestRank) = (first, -1, int.MaxValue);
+            for (var l = 0; l < _taken.GetLength(0); l++)
+            {
+                for (var w = 0; w < _taken.GetLength(1); w++)
+                {
+                    if (_taken[l, w, stack] || (stack > 0 && !_taken[l, w, stack - 1]))
+                    {
+                        continue;
+                    }
+
+                    var neighbours = Own(l - 1, w) + Own(l + 1, w) + Own(l, w - 1) + Own(l, w + 1);
+                    if (neighbours > bestNeighbours || (neighbours == bestNeighbours && _rank[l, w, stack] < bestRank))
+                    {
+                        (best, bestNeighbours, bestRank) = (new GridPosition(l, w, stack), neighbours, _rank[l, w, stack]);
+                    }
+                }
+            }
+
+            return best;
+
+            int Own(int l, int w) => l >= 0 && w >= 0 && l < _own!.GetLength(0) && w < _own.GetLength(1) && _own[l, w, stack] ? 1 : 0;
         }
     }
 

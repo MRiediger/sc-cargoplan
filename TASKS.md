@@ -350,6 +350,12 @@ zweiten mit 2+1 zu einem Ziel, das schon im Rack liegt → die Farbe bleibt ein 
 liegen nebeneinander. Den Gap zwischen den Blöcken siehst du weiter. Danach eine Lieferung als geladen abhaken und
 erneut scannen → die geladenen Kisten bleiben liegen.
 
+**Freigabe 19.11.2026:** P1–P7 ratifiziert. **E1:** Bei Gleichstand der meisten Nachbarn nimmt die Einzelkiste die in
+der Füllreihenfolge erste Zelle, festgenagelt per Test. **K9:** Bleiben die Goldens grün, gut; ändert sich ein
+Zellbild, kommt die Begründung in den Befund (Reihen-Asserts allein belegen nichts). Vergleich auf Zellebene: Schnappschuss
+aller K9-Fixture-Pläne mit Sektionen (RAFT-Plan + neun Paare aus `RackSectionsTests.Fixtures`, je Reihen, Richtung,
+Gap 0–2, Plan und Re-plan; 3768 Kistenzeilen) vor und nach der Änderung. Tests rot zuerst, dann bauen.
+
 ### [ ] F10 Seitenweise Planung
 
 **Warum:** Auf Schiffen mit Racks nebeneinander (Hull B: Spindel links/rechts) wollen Hauler erst eine Seite auffüllen,
@@ -395,6 +401,12 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- Kapazitäts-Ausweichweg erst nach den anderen Zielen eines Scans legen (B17, Lauf 135: B 9×1 drängt Cs 4er aus dem
+  Block). Heute legt `StopByStop` die Ziele eines Scans größte zuerst; ein Ziel „placed outside sections (capacity)“
+  belegt dabei Zellen in fremden Reihen, die für die späteren Ziele feste Hindernisse sind. B17 nimmt solche Racks von
+  der Blockregel aus, `SectionBlockTests.A_destination_outside_sections_can_leave_a_gap_in_another_section` hält den
+  Fall fest. Auslöser: Hauler-Report über ein Loch in einem Rack mit Kapazitätshinweis.
 
 - winget-Manifest (`winget install SC-CargoPlan`), früher T11.2. Auslöser: Ein Nutzer fragt danach (D109).
 - Setup.exe und/oder Code-Signing (D109: heute nur Portable, unsigniert). Auslöser: Nutzer-Reports, dass SmartScreen
@@ -498,6 +510,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Wiki-Branch `k12-ship-reports` (lokal, `06b4004`: „Ships and cargo grids“ ohne Schiffsdatei-PR, K12) nach `master`
   mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
 - Wiki-Branch `b16-legend-order` (lokal, `0386c22`: „Legend and delivery states“, Missionen in Scan-Reihenfolge, B16)
+  nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
+- Wiki-Branch `b17-section-block` (lokal, `1009927`: „Plan and editor“, ein Scan schließt den Block seines Ziels, B17)
   nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
 - Screenshots/GIFs auf Perspektive nachdrehen (alle Shots von `docs/shots/SHOTLIST.md`, Hero-GIF eingeschlossen; D85) –
   Auslöser: nächstes Release mit sichtbarer Änderung der Ansicht oder erster Nutzer-Report „sieht bei mir anders aus“.
