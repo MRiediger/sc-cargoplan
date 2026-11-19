@@ -7762,6 +7762,59 @@ mehr (`maxCrateSize` aus dem letzten Release, kein Override-Feld). Anlass: erste
 
 ---
 
+## Backlog II (19.11.2026)
+
+Aus der Backlog-Session II (Feedback-Chats nach v0.6.0). Reihenfolge (Martin): **K11 → B16 → B17 → F10**; F11 lief mit
+K12. **F8** bleibt zurückgestellt (Zeile in „v0.3.0 – Feedback-Release“ unverändert). Ein Task pro Session, je mit Plan
+und Freigabe.
+
+### [ ] K11 TASKS.md-Archivierung
+
+**Warum:** TASKS.md hat 832 KB / 7 756 Zeilen (19.11.); jede CC-Session liest sie, der Kontext ist der Preis.
+- Abgeschlossene Phasen und Sessions nach `docs/tasks-archive/`, eine Datei pro Phase oder Release.
+- TASKS.md behält Regeln, offene Tasks, Lehren, Backlog und je Phase eine Zeile mit Verweis aufs Archiv. Die Lehren
+  bleiben vollständig in TASKS.md.
+
+**Akzeptanz:** TASKS.md < 100 KB; kein Inhalt verloren (`git diff --stat` plus Stichprobe D-Verweise); die Verweise von
+CLAUDE.md auf TASKS-Abschnitte stimmen noch.
+
+### [ ] B16 Legende: Missionsreihenfolge
+
+**Warum:** Die Missionen (`#`) erscheinen in der Legende nicht chronologisch (z. B. #1, #3, #2); am Aufzug sucht der
+Hauler die zuletzt gescannte Mission unten.
+- Soll: neue Missionen werden unten angehängt (Append), die bestehende Reihenfolge bleibt bei Scan und Plan stabil.
+
+**Akzeptanz:** Test mit drei Scans nacheinander, Legende zeigt #1, #2, #3; ein Re-plan ändert die Reihenfolge nicht.
+
+### [ ] B17 Sektionen: Lücke bei Rest-Einzelkiste
+
+**Warum:** ARGO RAFT, `grouping: byDestination`, Kistenmix 2+1 (auch 4+1): der Planer legt die 1-SCU-Kiste neben die
+Sektion mit einer leeren Zelle dazwischen oder in eine eigene Reihe – die Sektion ist kein Block mehr.
+- Soll: die Einzelkiste rückt in die Lücke neben die 2er-Kiste, jede Sektion ist ein geschlossener Block ohne leere
+  Zelle. Nur Core (`RackSections`, D89-Addendum).
+
+**Akzeptanz:** Golden mit Martins RAFT-Plan (Scan #4 Everus Harbor, 10 SCU an 4 Ziele) ohne Loch; die bestehenden
+K9-Goldens unverändert oder begründet.
+
+### [ ] F10 Seitenweise Planung
+
+**Warum:** Auf Schiffen mit Racks nebeneinander (Hull B: Spindel links/rechts) wollen Hauler erst eine Seite auffüllen,
+dann die andere, statt Missionen nach Ziel und Kapazität über beide Seiten zu verteilen.
+- Neue Layout-Option neben `fillOrder`/`fillRows`/`grouping` im Editor-Abschnitt „Layout“; neues Plan-Feld,
+  plan.json-Schema-Bump (heute 10), Missions-JSON (heute 4) mitziehen.
+- A1: Vorläufer ist die Backlog-Zeile „Zweiseitige Sektionen“ (→ F10).
+
+**Akzeptanz:** Hull-B-Fixture (`FrozenShips`, A10); das Default-Verhalten ist byteidentisch zu heute.
+
+### [ ] F11 Linux: CLI statt Overlay
+
+**Warum:** Anfrage nach Linux. Ein Overlay-Port wäre ein zweites Projekt (WPF + Win32); die CLI läuft ohne Windows.
+Umgesetzt in **K12** (D115, `linux-x64`-Tarball, README-Zeile), Plan und Befunde dort.
+
+**Akzeptanz:** siehe K12 (Tarball lokal, `--version` unter WSL, `ci.yml` grün).
+
+---
+
 ## Lehren
 
 Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
@@ -7857,7 +7910,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Sektionsreihenfolge per Legenden-Drag (Spielerreihenfolge). Auslöser: Hauler-Report, dass die Legendenreihenfolge nicht reicht.
 - `defaultFillOrder`, `fillRows`/`grouping`-Default pro Schiff in der Schiffs-JSON. Auslöser: zweites Schiff braucht einen anderen Default.
 - Neubewertung „Sync-Mission wartet trotz freier Zellen“ (D89, Entscheidung 2). Auslöser: Live-Test, in dem eine Sync-Mission wartet, die mit `none` Platz hätte.
-- Zweiseitige Sektionen (Backbord-/Steuerbord-Hälfte). Auslöser: ein Schiff braucht es.
+- ~~Zweiseitige Sektionen (Backbord-/Steuerbord-Hälfte). Auslöser: ein Schiff braucht es.~~ → F10 (Backlog II,
+  Seitenweise Planung, Hull B).
 - Sektionsgrenzen in der Schiffsansicht zeichnen. Auslöser: Hauler-Report, die Farben zeigen es heute.
 - Legend limit covers stop rows only; warnings stack below unbounded – revisit if a user reports it (K7/D80;
   16.11.: RAFT und Hull A mit 16 Missionen bei 30 % ok). Auslöser: Nutzer-Report.
@@ -7936,6 +7990,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Kisten großer Schiffe im Default-Overlay klein: C2 13,2 px, Hull C 5,1 px pro Kistenkante (400 × 302, nach K5.2c), unter dem Hull-A-Wert 27,2 (Befund K5.2c, D62-Addendum). Auslöser: ein Hauler meldet zu kleine Kisten auf einem großen Schiff.
 - Railen: die generierte Reihe (53 Zellen) ist länger als der Rumpf (40 Zellen), ragt aus dem maßstabsgetreuen Umriss (K5.2c). Auslöser: Fleetyards-Offsets für die Railen oder eine Meldung aus dem Spiel.
 - Doku aus `docs/wiki/` im Hauptrepo per Action ins Wiki spiegeln – Auslöser: erster externer Doku-Beitrag.
+- Wiki-Branch `k12-ship-reports` (lokal, `06b4004`: „Ships and cargo grids“ ohne Schiffsdatei-PR, K12) nach `master`
+  mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
 - Screenshots/GIFs auf Perspektive nachdrehen (alle Shots von `docs/shots/SHOTLIST.md`, Hero-GIF eingeschlossen; D85) –
   Auslöser: nächstes Release mit sichtbarer Änderung der Ansicht oder erster Nutzer-Report „sieht bei mir anders aus“.
 - UI-Text-Konsistenz (Befund T7.5a): Schiffswechsel-Dialog mit Yes als Default, Re-plan mit No; Export… und Remove ohne
