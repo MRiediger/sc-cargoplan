@@ -46,7 +46,7 @@ run's settings, plan and logs in that folder instead of your profile.
 ./build/publish.ps1 -Version 0.1.0 [-DeltaBase github|<path of a full nupkg>]
 ```
 
-It publishes the CLI and then the overlay into `out/publish/SC-CargoPlan/` and packs that folder with Velopack's `vpk`, the same way the release workflow does ([D109](docs/decisions.md)). `vpk` is installed into `out/tools/` in the version of the app's `Velopack` package. The release files land in `out/release/`: the portable ZIP `SC-CargoPlan-v<version>-win-x64.zip` with its `.sha256`, and the update feed (`releases.win.json`, the full and, with `-DeltaBase`, the delta package). The ZIP holds the launcher `SC-CargoPlan.exe`, `Update.exe` and the app in `current/`. `build/check-portable.ps1` then checks that layout. Don't publish by hand into the publish folder: both projects write `WindowsBase.dll`, and if the CLI's goes in last, the overlay doesn't start ([D48](docs/decisions.md)). Trying an update without a release: [docs/update-testing.md](docs/update-testing.md).
+It publishes the CLI and then the overlay into `out/publish/SC-CargoPlan/` and packs that folder with Velopack's `vpk`, the same way the release workflow does ([D109](docs/decisions.md)). `vpk` is installed into `out/tools/` in the version of the app's `Velopack` package. The release files land in `out/release/`: the portable ZIP `SC-CargoPlan-v<version>-win-x64.zip` with its `.sha256`, and the update feed (`releases.win.json`, the full and, with `-DeltaBase`, the delta package). The ZIP holds the launcher `SC-CargoPlan.exe`, `Update.exe` and the app in `current/`. `build/check-portable.ps1` then checks that layout. Then the CLI once more for Linux into `out/publish/linux/SC-CargoPlan-Cli/`, packed as `SC-CargoPlan-Cli-v<version>-linux-x64.tar.gz` with its `.sha256` (no overlay, no updates, [D115](docs/decisions.md)); `build/check-cli-tarball.ps1` checks its files and modes. Don't publish by hand into the publish folder: both projects write `WindowsBase.dll`, and if the CLI's goes in last, the overlay doesn't start ([D48](docs/decisions.md)). Trying an update without a release: [docs/update-testing.md](docs/update-testing.md).
 
 ## Release
 
@@ -54,7 +54,7 @@ For the maintainer:
 
 1. Commit `docs/release-notes/v<version>.md`, then push the tag `v<version>`. A tag with a hyphen (`v0.5.0-rc.1`) becomes a GitHub pre-release, which stable installs never see.
 2. The release workflow builds, tests, takes the last release's full package as the delta base, packs, checks the ZIP's layout and uploads `out/release/` ([D49](docs/decisions.md), [D109](docs/decisions.md)).
-3. Check the release: the ZIP and its `.sha256`, `releases.win.json`, the full package and, after the first Velopack release, the delta. The log of the step "Publish and pack" shows `Delta: …` and `Layout check: … passed`. A missing delta is a warning, not a failure.
+3. Check the release: the ZIP and its `.sha256`, `releases.win.json`, the full package and, after the first Velopack release, the delta; the Linux CLI tarball and its `.sha256`. The log of the step "Publish and pack" shows `Delta: …`, `Layout check: … passed` and `Tarball check: … passed`. A missing delta is a warning, not a failure.
    If the workflow fails before any asset was public, delete the release and the tag (`gh release delete v<version> --yes`, `git push --delete origin v<version>`, `git tag -d v<version>`), fix the cause on `main` and push the same tag again; once the release was visible and someone may have downloaded it, a fix is a new version.
 4. After the stable release, delete its rc releases and tags (`gh release delete v<version>-rc.N --cleanup-tag`, plus `git tag -d` locally).
 
@@ -66,17 +66,11 @@ After that, the same ZIP goes on Nexus Mods by [docs/nexus/checklist.md](docs/ne
 
 CargoPlan knows 109 ships and one cargo module configuration. The racks of all but two come from the game files, by way of [cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo); the 135c and the 600i Executive Edition still use Fleetyards data ([docs/ship-format.md](docs/ship-format.md#where-the-data-comes-from)). If a rack in the overlay doesn't match the game, open a [ship correction](https://github.com/MRiediger/sc-cargoplan/issues/new?template=ship-correction.yml) here or an issue in [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata/issues): the ship as the list names it, the rack number, what is wrong, a screenshot from the game and one of the overlay.
 
-A rack in the wrong place or with the wrong size is usually in the game data itself. It is then fixed upstream: we pass it on to Motherlode, and the next data release brings the fix to every ship. A door limit is ours to fix, since the game files don't describe doors. The ship files live in [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata), not here ([D113](docs/decisions.md)); a hand fix goes there, and [Correcting a rack](docs/ship-format.md#correcting-a-rack) shows how. The overlay picks up a new data release by itself.
+The ship files are rebuilt each month from the game files, by way of Motherlode, in [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata) ([D113](docs/decisions.md)). A hand-edited file would be overwritten by the next run, so ship files take no pull requests, here or there: an issue is the way. A rack in the wrong place or with the wrong size is usually in the game data itself; we report it to Motherlode ([cryon.rocks](https://cryon.rocks)), and the next data release brings the fix to everyone. Report a door limit the same way. The overlay picks up a new data release by itself.
 
-## Contribute a ship
+## Missing a ship?
 
-A ship is one JSON file, no C#, in [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata). Ships the game files have come from its import; a ship the import doesn't have yet can be measured by hand. [docs/ship-format.md](docs/ship-format.md) has the format, how to measure a ship in the hangar and a checklist for the pull request. In short:
-
-- Measure in the game and name the patch.
-- Give every rack its `stackAxis`: the direction a second layer of crates goes.
-- Name your source in the pull request (your own measurement, or a guide such as Erec's – check its license first).
-
-Not into JSON? Open a [ship request](https://github.com/MRiediger/sc-cargoplan/issues/new?template=ship.yml) with the measurements, and someone turns it into a file.
+Every ship comes from Motherlode's catalog of the game files. A ship that isn't in the list yet can't be added as a file; open a [ship request](https://github.com/MRiediger/sc-cargoplan/issues/new?template=ship.yml) instead, ideally with the measurements ([docs/ship-format.md](docs/ship-format.md#measuring-a-ship) shows how to measure a ship in the hangar), and we pass it on to Motherlode.
 
 ## Pull requests
 

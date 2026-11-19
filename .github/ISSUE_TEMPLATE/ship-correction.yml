@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        The ship data live in their own repository, [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata), and come to the overlay as a monthly data release. The racks of all but two ships come from the game files, by way of cryon.rocks (Motherlode); the 135c and the 600i Executive Edition still use Fleetyards data. A rack in the wrong place or with the wrong size is usually in the game data itself: we pass it on to Motherlode, and the next data release fixes it for everyone. Door limits are ours, since the game files don't describe doors. Can write JSON? A pull request with the corrected file in `ships/` of [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata) is even better ([ship-format.md](https://github.com/MRiediger/sc-cargoplan/blob/main/docs/ship-format.md#correcting-a-rack)).
+        The ship data live in their own repository, [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata), and come to the overlay as a monthly data release. The racks of all but two ships come from the game files, by way of cryon.rocks (Motherlode); the 135c and the 600i Executive Edition still use Fleetyards data. A rack in the wrong place or with the wrong size is usually in the game data itself: we report it to Motherlode (cryon.rocks), and the next data release fixes it for everyone. Report a door limit here too. The ship files are rebuilt each month from the game files, so a hand-edited file would be overwritten: this form is the way, not a pull request.
 
   - type: input
     id: ship

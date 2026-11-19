@@ -8,7 +8,7 @@ body:
       value: |
         For a ship the overlay doesn't list yet. A ship it lists, but with racks that don't match the game? Use **Ship correction** instead.
 
-        A ship is one JSON file; [ship-format.md](https://github.com/MRiediger/sc-cargoplan/blob/main/docs/ship-format.md#measuring-a-ship) explains how to measure it in the hangar. Can write JSON? A pull request with the file is even better.
+        Every ship comes from Motherlode's catalog of the game files (cryon.rocks), rebuilt each month, so a ship can't be added as a file or a pull request. We pass your request on to Motherlode; measurements help, and [ship-format.md](https://github.com/MRiediger/sc-cargoplan/blob/main/docs/ship-format.md#measuring-a-ship) explains how to take them in the hangar.
 
   - type: input
     id: ship

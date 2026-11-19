@@ -4,7 +4,7 @@
 # Usage: ./build/publish.ps1 -Version 0.1.0 [-DeltaBase github|<path of a full nupkg>]
 #   → out/publish/SC-CargoPlan/ (the publish folder), out/releases/ (everything vpk wrote) and out/release/ (what the
 #     GitHub release carries: SC-CargoPlan-v<version>-win-x64.zip with its .sha256, the full and delta nupkg,
-#     releases.win.json)
+#     releases.win.json, and the Linux CLI SC-CargoPlan-Cli-v<version>-linux-x64.tar.gz with its .sha256, D115)
 # -Version is required: vpk refuses the 0.0.0-dev of Directory.Build.props ("must be >= 0.0.1"), and a package version
 # other than the build's would make two versions for one ZIP. Without -DeltaBase there is no delta.
 param(
@@ -153,5 +153,65 @@ if (Test-Path $delta) {
 # sha256sum format ("<hash>  <name>"), so `sha256sum -c` checks it; Get-FileHash compares case-insensitively.
 $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
 [System.IO.File]::WriteAllText("$zip.sha256", "$hash  $zipName`n")
+
+# The command-line planner for Linux (D115): self-contained linux-x64 like the ZIP, without Velopack, as a tarball next to
+# it. A folder of its own: the overlay's publish folder stays win-x64 (check-portable.ps1 compares it file by file).
+$cliTop = 'SC-CargoPlan-Cli'
+$linuxRoot = Join-Path $publish 'linux'
+$linux = Join-Path $linuxRoot $cliTop
+dotnet publish (Join-Path $root 'src\CargoPlan.Cli') -c Release -r linux-x64 --self-contained true -o $linux "-p:Version=$Version"
+if ($LASTEXITCODE -ne 0) {
+    throw "dotnet publish CargoPlan.Cli for linux-x64 failed with exit code $LASTEXITCODE."
+}
+Copy-Item (Join-Path $root 'LICENSE') $linux
+
+# Windows has no execute bit, and bsdtar packing a folder here writes every file as rw-rw-rw-: Linux then refuses to start
+# CargoPlan.Cli (K12 spike). An mtree list names each entry's mode; bsdtar takes it as its input and reads each file from
+# the path the list names, relative to the current folder. Directories get a time, files keep theirs.
+# Source: https://man.freebsd.org/cgi/man.cgi?query=mtree&sektion=5 (type, mode, uid, gid, time)
+# Source: https://man.freebsd.org/cgi/man.cgi?query=bsdtar&sektion=1 (@archive: the entries of another archive, mtree too)
+# The long path: a Substring against an 8.3 name (C:\Users\MARTIN~1\…) cuts the wrong characters (K12 spike).
+$linuxFull = (Get-Item $linux).FullName
+$executables = 'CargoPlan.Cli', 'createdump'
+$now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+$mtree = [System.Collections.Generic.List[string]]::new()
+$mtree.Add('#mtree')
+$mtree.Add("./$cliTop type=dir mode=0755 uid=0 gid=0 time=$now.0")
+foreach ($item in Get-ChildItem $linuxFull -Recurse -Force | Sort-Object FullName) {
+    $relative = $item.FullName.Substring($linuxFull.Length + 1).Replace('\', '/')
+    # mtree escapes other characters (spaces, #, …) as octal; no published file has one, so refuse instead of escaping.
+    if ($relative -cnotmatch '^[A-Za-z0-9._/+-]+$') {
+        throw "The linux-x64 publish has a file name the mtree list doesn't escape: $relative"
+    }
+    if ($item.PSIsContainer) {
+        $mtree.Add("./$cliTop/$relative type=dir mode=0755 uid=0 gid=0 time=$now.0")
+    }
+    else {
+        $mode = if ($relative -in $executables) { '0755' } else { '0644' }
+        $mtree.Add("./$cliTop/$relative type=file mode=$mode uid=0 gid=0")
+    }
+}
+$mtreeFile = Join-Path $linuxRoot 'cli.mtree'
+[System.IO.File]::WriteAllLines($mtreeFile, $mtree)
+
+# Windows' own bsdtar: Git's GNU tar may come first on the PATH of a runner, and it reads no mtree.
+$tar = Join-Path $env:SystemRoot 'System32\tar.exe'
+$tarName = "SC-CargoPlan-Cli-v$Version-linux-x64.tar.gz"
+$tarball = Join-Path $release $tarName
+Push-Location $linuxRoot
+try {
+    & $tar -czf $tarball "@$mtreeFile"
+    if ($LASTEXITCODE -ne 0) {
+        throw "tar failed with exit code $LASTEXITCODE."
+    }
+}
+finally {
+    Pop-Location
+}
+
+& (Join-Path $PSScriptRoot 'check-cli-tarball.ps1') -Tarball $tarball -PublishDir $linux -Version $Version
+
+$tarHash = (Get-FileHash $tarball -Algorithm SHA256).Hash.ToLowerInvariant()
+[System.IO.File]::WriteAllText("$tarball.sha256", "$tarHash  $tarName`n")
 
 Get-ChildItem $release | ForEach-Object { Write-Output "Release file: $($_.Name), $($_.Length) bytes" }

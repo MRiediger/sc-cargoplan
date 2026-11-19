@@ -29,10 +29,11 @@ shows it in a translucent window next to the game.
 2. Right-click it → **Extract All** into a new folder you can write to (not `Program Files`).
 3. Start `SC-CargoPlan.exe` in that folder. Windows warns that the app is unsigned: **More info → Run anyway**.
 
-Code signing: this project has applied for free code signing by the SignPath Foundation; once granted, releases will
-carry a signature issued to SignPath Foundation.
-
 Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the overlay.
+
+**Linux:** no overlay ([D115](docs/decisions.md)). Releases after v0.6.0 carry the command-line planner,
+`SC-CargoPlan-Cli-v<version>-linux-x64.tar.gz` (`plan`, `scan <screenshot>`; x64 with glibc and libicu). It has no app or
+ship data updates: it plans with the ship data of its release, and newer data come with the next tarball.
 
 Coming from v0.4.0 or older: extract v0.5.0 into a new folder, not over the old one; your settings and plan stay. Steps:
 [release notes of v0.5.0](https://github.com/MRiediger/sc-cargoplan/releases/tag/v0.5.0).
@@ -55,8 +56,8 @@ this version**, section **Ship data** in the settings. More:
 A rack that doesn't match the game: open a
 [ship correction](https://github.com/MRiediger/sc-cargoplan/issues/new?template=ship-correction.yml) here or an issue in
 [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata/issues). We check it and pass it on to
-Motherlode, so the next data release fixes it for everyone. A pull request with a corrected ship file goes to
-sc-cargoplan-shipdata.
+Motherlode, so the next data release fixes it for everyone. The ship files are rebuilt each month, so they take no pull
+requests: an issue is the way.
 
 ## Network access
 
