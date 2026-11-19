@@ -31,6 +31,10 @@ shows it in a translucent window next to the game.
 
 Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the overlay.
 
+**Linux:** no overlay ([D115](docs/decisions.md)). Releases after v0.6.0 carry the command-line planner,
+`SC-CargoPlan-Cli-v<version>-linux-x64.tar.gz` (`plan`, `scan <screenshot>`; x64 with glibc and libicu). It has no app or
+ship data updates: it plans with the ship data of its release, and newer data come with the next tarball.
+
 Coming from v0.4.0 or older: extract v0.5.0 into a new folder, not over the old one; your settings and plan stay. Steps:
 [release notes of v0.5.0](https://github.com/MRiediger/sc-cargoplan/releases/tag/v0.5.0).
 
