@@ -6833,7 +6833,7 @@ Satz aus dem Task, die übrigen Update-KIs aus v0.5.0, neu `holo-v1`, die drei F
   „no longer in the game data we use“ (der Katalog fehlt sie, über das Spiel sagt das nichts).
 - [x] Abnahme Martin (16.11.2026)
 
-### [ ] V5 Merge, Tag, Netz-Gate, Nachlauf
+### [x] V5 Merge, Tag, Netz-Gate, Nachlauf
 
 - Merge `--no-ff` nach Abnahme, Martin pusht und taggt.
 - [x] Merge `f4c8789` (Wiki `8916f01`, Pipeline `25b4031`, lokal). **CI auf `main` rot** (Run 43887955591, windows-latest):
@@ -6863,8 +6863,8 @@ Satz aus dem Task, die übrigen Update-KIs aus v0.5.0, neu `holo-v1`, die drei F
 - [x] Nexus-Texte `holo-v2` → `holo-v3` (`docs/nexus/description.bbcode` Z. 15 und 81, `checklist.md` Z. 104).
 - [x] `holo-v1` gelöscht (Martin, 16.11., nach dem Netz-Gate; entschieden gegen die Backlog-Frist 06.12.): Release
   und Tag weg, Manifest-URL 404; `holo-v2` (v0.3.0–v0.5.0) und `holo-v3` (v0.5.1) stehen, holo-v3-Manifest 200.
-- [ ] Nexus-Datei 0.5.1 hochladen (Martin, `docs/nexus/checklist.md`). Rückweg bei Fehlschlag: v0.5.1 auf Pre-Release, Befund sichern,
-  Hotfix 0.5.2.
+- [x] Nexus-Datei 0.5.1 hochladen (Martin, `docs/nexus/checklist.md`) – erledigt laut T12.6-Startprompt („Veröffentlicht
+  ist v0.5.1 (Nexus und GitHub)“); seit 19.11. ersetzt durch 0.6.0 (T12.6a).
 
 ---
 
@@ -7362,7 +7362,7 @@ Copy-Item "$env:LocalAppData\SC-CargoPlan\plan.json" $data   # dein Hull-A-Plan
 oder parallel). Das Data-Update im Overlay aus der Akzeptanz oben entfällt für v0.6.0: Latest = Baseline, also **keine**
 Ship-data-Zeile (geprüft im Netz-Gate); den Kanal hat das T12.3-Gate gegen das echte GitHub schon belegt.
 
-#### [ ] T12.6a App: Release v0.6.0 (Branch `release/v0.6.0` ab `9d10033`)
+#### [x] T12.6a App: Release v0.6.0 (19.11.2026, Merge `b2dc6d6`, Tag `v0.6.0`, Wiki `4f42138`)
 
 **Lage:** `main` trägt T12.3–T12.5 (D112–D114). Pin `build/ship-data.json` = `ships-2026.11.1` = Latest → v0.6.0
 startet mit 110 Schiffen inkl. GAMA Hyun, ohne Ship-data-Zeile. Veröffentlicht ist v0.5.1 (GitHub, Nexus-Upload offen
@@ -7540,7 +7540,8 @@ lokal gelöscht, Prüfordner im Scratchpad weg. CI auf `main` für `1ce6871` gr�
 - [x] **Netz-Gate (Martin, SC vorn, 19.11.):** v0.5.1-Portable in eigenem Ordner → Start → Velopack bietet 0.6.0 → Update →
   Neustart → 110 Schiffe, Hyun mit Holo, `holo-v3`-Notice einmal, Hull-A-Plan da, **keine** Ship-data-Zeile, Settings
   `In use: 2026.11.1 (built in)` – bestanden, Delta übers Netz (Belege oben)
-- [ ] Nexus-Seite auf 0.6.0 (Martin)
+- [x] Nexus-Seite auf 0.6.0 (Martin, 19.11.2026, nach `docs/nexus/checklist.md`, dasselbe ZIP). Seiten-URL und die
+  beiden Prüfungen aus Schritt 7 (SHA des Nexus-Downloads, Größe) nicht ins Protokoll gemeldet.
 - [x] Commits `T12.6a: …`, kein `Co-Authored-By`
 
 #### [ ] T12.6b Shipdata-Abschluss (Shipdata-Repo, Plan und Abnahme in dessen `TASKS.md`)
