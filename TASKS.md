@@ -7522,13 +7522,25 @@ schon als Spieldatei) – Entwickler-Doku, gehört in die nächste Doku-Runde od
 
 **Wiki:** CC hat `v0.6.0` lokal mit `--no-ff` nach `master` gemergt (`4f42138`); Martin pusht.
 
+**Netz-Gate (Martin, 19.11., `C:\Tools\SC-CargoPlan`, „passt alles“; Belege aus `cargoplan.log` und dem Profil):**
+07:06:35 `Update: 0.6.0 available (installed 0.5.1)` → 07:06:56 `Velopack: Downloading delta 0.6.0`, `All delta packages
+downloaded and verified`, `Applying 1 patches to CargoPlan-0.5.1-full.nupkg` (**erstes Delta übers Netz**, 850 683 B)
+→ 07:07:05 `restarted by Update.exe as 0.6.0`, `current\sq.version` 0.6.0. `Ship data: in use: ships-2026.11.1
+(baseline) …, 110 ships`, 07:07:07 `Ship data: nothing newer than ships-2026.11.1` → keine Ship-data-Zeile. Holo-Cache:
+nur `holo\ships-2026.11.1\` (`holo-v3` weg, D95), darin `misc-hull-a.holo` und `misc-hull-b.holo`. **Nicht belegt:**
+Hyun mit Holo (keine `gama-hyun.holo` im Cache) und die einmalige Holo-Notice (Notices stehen nicht im Log).
+
+**Aufräumen (CC, 19.11.):** Branch `release/v0.6.0` lokal und remote gelöscht (PR #29 merged), Wiki-Branch `v0.6.0`
+lokal gelöscht, Prüfordner im Scratchpad weg. CI auf `main` für `1ce6871` grün (Run 44477012407).
+
 **Akzeptanz:**
-- [ ] Notes vom Master-Chat freigegeben; `git log v0.5.1..main` ohne unerwähnten Nutzer-sichtbaren Commit
+- [x] Notes vom Master-Chat freigegeben (19.11.); `git log v0.5.1..main` ohne unerwähnten Nutzer-sichtbaren Commit
+  (Tabelle oben)
 - [ ] **Netz-Gate (Martin, SC vorn):** v0.5.1-Portable in eigenem Ordner → Start → Velopack bietet 0.6.0 → Update →
   Neustart → 110 Schiffe, Hyun mit Holo, `holo-v3`-Notice einmal, Hull-A-Plan da, **keine** Ship-data-Zeile, Settings
   `In use: 2026.11.1 (built in)`
 - [ ] Nexus-Seite auf 0.6.0 (Martin)
-- [ ] Commits `T12.6a: …`, kein `Co-Authored-By`
+- [x] Commits `T12.6a: …`, kein `Co-Authored-By`
 
 #### [ ] T12.6b Shipdata-Abschluss (Shipdata-Repo, Plan und Abnahme in dessen `TASKS.md`)
 
