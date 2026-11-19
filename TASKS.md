@@ -7527,8 +7527,9 @@ schon als Spieldatei) – Entwickler-Doku, gehört in die nächste Doku-Runde od
 downloaded and verified`, `Applying 1 patches to CargoPlan-0.5.1-full.nupkg` (**erstes Delta übers Netz**, 850 683 B)
 → 07:07:05 `restarted by Update.exe as 0.6.0`, `current\sq.version` 0.6.0. `Ship data: in use: ships-2026.11.1
 (baseline) …, 110 ships`, 07:07:07 `Ship data: nothing newer than ships-2026.11.1` → keine Ship-data-Zeile. Holo-Cache:
-nur `holo\ships-2026.11.1\` (`holo-v3` weg, D95), darin `misc-hull-a.holo` und `misc-hull-b.holo`. **Nicht belegt:**
-Hyun mit Holo (keine `gama-hyun.holo` im Cache) und die einmalige Holo-Notice (Notices stehen nicht im Log).
+nur `holo\ships-2026.11.1\` (`holo-v3` weg, D95), darin `misc-hull-a.holo` und `misc-hull-b.holo`. Nachgeholt
+(Martin, 08:12): Hyun ausgewählt, Holo „klappt“; `gama-hyun.holo` 268 668 B, SHA = Manifest. Die einmalige Holo-Notice
+ist nicht aus dem Log belegbar (Notices stehen nicht darin); Martin meldete nichts Auffälliges.
 
 **Aufräumen (CC, 19.11.):** Branch `release/v0.6.0` lokal und remote gelöscht (PR #29 merged), Wiki-Branch `v0.6.0`
 lokal gelöscht, Prüfordner im Scratchpad weg. CI auf `main` für `1ce6871` grün (Run 44477012407).
@@ -7536,9 +7537,9 @@ lokal gelöscht, Prüfordner im Scratchpad weg. CI auf `main` für `1ce6871` gr�
 **Akzeptanz:**
 - [x] Notes vom Master-Chat freigegeben (19.11.); `git log v0.5.1..main` ohne unerwähnten Nutzer-sichtbaren Commit
   (Tabelle oben)
-- [ ] **Netz-Gate (Martin, SC vorn):** v0.5.1-Portable in eigenem Ordner → Start → Velopack bietet 0.6.0 → Update →
+- [x] **Netz-Gate (Martin, SC vorn, 19.11.):** v0.5.1-Portable in eigenem Ordner → Start → Velopack bietet 0.6.0 → Update →
   Neustart → 110 Schiffe, Hyun mit Holo, `holo-v3`-Notice einmal, Hull-A-Plan da, **keine** Ship-data-Zeile, Settings
-  `In use: 2026.11.1 (built in)`
+  `In use: 2026.11.1 (built in)` – bestanden, Delta übers Netz (Belege oben)
 - [ ] Nexus-Seite auf 0.6.0 (Martin)
 - [x] Commits `T12.6a: …`, kein `Co-Authored-By`
 
@@ -7591,9 +7592,9 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - ~~Eigener Datenordner für Diagnose-Schalter~~ – erledigt in T10.4a (`--data-dir`, 552c052).
 
 - winget-Manifest (`winget install SC-CargoPlan`), früher T11.2. Auslöser: Ein Nutzer fragt danach (D109).
-- Erster Selbsttausch übers Netz v0.5.0 → v0.5.1: Download voll (≈ 90 MB, keine Basis in `packages\`), Größe aus den
-  `Velopack:`-Zeilen ins Release-Protokoll; dabei SmartScreen für `Update.exe` und den ersten Start nach dem Tausch prüfen
-  (T11.5 Präzisierung 4). Das erste Delta übers Netz kommt mit v0.5.2 für alle auf v0.5.1. Auslöser: Release v0.5.1.
+- ~~Erster Selbsttausch übers Netz v0.5.0 → v0.5.1~~ – erledigt in V5 (16.11., voll); das **erste Delta übers Netz**
+  kam mit v0.6.0 (T12.6a Netz-Gate, 19.11.: 850 683 B auf `CargoPlan-0.5.1-full.nupkg`). SmartScreen für `Update.exe`
+  ist weiter unbelegt (beide Proben waren keine frischen Browser-Downloads).
 - Setup.exe und/oder Code-Signing (D109: heute nur Portable, unsigniert). Auslöser: Nutzer-Reports, dass SmartScreen
   sie abhält (T11.5: Warnung einmal je Download, „More info → Run anyway“).
 - Screenreader-Zugang zur Skip-Checkbox der Update-Zeile: Toggle per UIA löst den Command nicht aus (`OnToggle` statt
