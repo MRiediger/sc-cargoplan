@@ -235,6 +235,121 @@ Sektion mit einer leeren Zelle dazwischen oder in eine eigene Reihe – die Sekt
 **Akzeptanz:** Golden mit Martins RAFT-Plan (Scan #4 Everus Harbor, 10 SCU an 4 Ziele) ohne Loch; die bestehenden
 K9-Goldens unverändert oder begründet.
 
+**Befund vor dem Plan (19.11.2026, Branch `fix/b17-section-hole` ab `e5400be`):**
+- **Szene synthetisch** (Martins `plan.json` mit dem Stims-Scan gibt es nicht mehr): RAFT aus `FrozenShips`, ein
+  Vertrag „Stims“ ab Everus Harbor, Green Glade 3 (max 2 → 2+1), High Course 3 (2+1), Thundering Express 2, Melodic
+  Fields 2 = 10 SCU, vier Ziele. Harness lokal (`ScratchSectionHoleProbe.cs`, `.git/info/exclude`, Lehre T11.3):
+  504 Fälle = Schiff (RAFT, Perseus, Hull A) × Mix (2+1, 4+1, 4+2+1) × Weg × `fillRows` × `sectionGap` 0/1/2 ×
+  `fillOrder`. Wege: frischer Plan, Scan in leeren Plan erfasst (`PlaceInto`), derselbe Scan zweimal erfasst, Green
+  geladen + Re-plan (D41), auf der RAFT zusätzlich der Scan als 4. Vertrag in Martins Fixture
+  (`Fixtures/Plans/raft_hand_2026-11-05.json` ohne Mission 3) – erfasst und frisch geplant. Detektor: leere Zelle einer
+  Ebene, deren nächste belegte Zelle entlang der Reihe auf beiden Seiten demselben Ziel gehört.
+- **Martins Bild ist das Loch beim Erfassen** (Bild B, von Martin per ASCII bestätigt): Scan in den Fixture-Plan,
+  crosswise, Bug zuerst, Gap 1, High Course (Fixture 4+2+1, Scan 2+1), L7/L8:
+  ```
+          L7 L8                       Soll (Martin)
+    w5     .  H1   <- Scan                 .  .
+    w4    H2  H2   <- Scan                H1 H1
+    w3     .  H1   <- L7/w3 leer          H2 H2
+    w2    H2  H2                          H2 H2
+    w1    H4  H4                          H4 H4
+    w0    H4  H4                          H4 H4
+  ```
+  Das **L im frischen Plan** (2+1 crosswise: 2er längs über zwei Reihen, 1er daneben, eine Zelle frei) ist **kein
+  Fehler** (Martin); Drehen bleibt D71 (nur wenn ungedreht scheitert). Kandidat (a) aus dem Review ist damit verworfen.
+- **Ursache:** Ein Scan zu einem Ziel, das im geteilten Rack schon liegt, geht `ScanSync.Apply`
+  (`ScanSync.cs:26`) → `LoadPlanner.PlaceInto` → `LayStop.InSection` (`LoadPlanner.cs:1107-1138`): `RowsFor` gibt die
+  eigenen Reihen (`RackSections.OwnRows`, `RackSections.cs:96-99`, `:128-150`), und `Laid` (`LoadPlanner.cs:1143`)
+  nimmt **alle** Kisten im Rack als Hindernis, auch die noch nicht geladenen desselben Ziels (D41: „a capture moves
+  nothing“, K9.2-Addendum `docs/decisions.md:492`). Die neuen Kisten werden also ans alte L angehängt:
+  `CrateLayout.FirstFit` (`CrateLayout.cs:746`) findet für die 2er auf w3 keinen Platz (L8/w3 hat die alte 1er), legt
+  sie auf w4; die 1er geht nach Füllrang auf L8/w5 (crosswise läuft der Rang quer über die Breite einer Längsreihe,
+  `CrateLayout.cs:714-722`) statt auf L7/w3 – die Zelle ist eingeschlossen. `RackSections.Lay` selbst (frischer Plan,
+  Re-plan) erzeugt kein Loch; eine 1er-Lieferung desselben Ziels ist auch keine eigene Sektion (`GroupBy` nach
+  `Destination`, `RackSections.cs:58`).
+- **Reichweite** (Fälle mit Loch / Fälle je 3 Gaps × 2 Füllrichtungen):
+
+  | Schiff | Weg | 2+1 cross | 2+1 längs | 4+1 cross | 4+1 längs | 4+2+1 cross | 4+2+1 längs |
+  |---|---|---|---|---|---|---|---|
+  | RAFT (−z) | Scan in Fixture-Plan | 6/6 | 0/6 | 6/6 | 6/6 | 6/6 | 6/6 |
+  | RAFT | Scan zweimal | 6/6 | 0/6 | 6/6 | 6/6 | 6/6 | 6/6 |
+  | Perseus (+z) | Scan zweimal | 2/6 | 0/6 | 6/6 | 6/6 | 6/6 | 0/6 |
+  | Hull A (±y) | Scan zweimal | 0/6 | 0/6 | 0/6 | 0/6 | 0/6 | 0/6 |
+  | alle | frischer Plan, Scan in leeren Plan, Geladen + Re-plan, Fixture frisch geplant | 0 | 0 | 0 | 0 | 0 | 0 |
+
+  Gap 0 ist so betroffen wie 1 und 2. Hull A: ein Ziel je Rack, keine geteilten Racks, also keine Sektionen.
+
+**Plan (19.11.2026):**
+
+Regel (Martin): **Eine Sektion hat keine leere Zelle zwischen Kisten derselben Sektion, weder entlang der Reihe noch
+quer dazu.** Beim Erfassen wird die Sektion neu gelegt, aber nur mit den Kisten, die weder geladen noch abgeliefert
+sind; diese bleiben exakt liegen (D41/D79, einziges Bewegen an Geladenem bleibt das Absinken aus K6.4). Lässt sich die
+Sektion um feste Kisten nicht lückenlos schließen, bleibt die Lücke und bekommt einen Hinweis; es wird nichts
+verschoben. In den neu gelegten Kisten: größte zuerst, Einzelkisten füllen freie Zellen der Sektion, bevor eine neue
+Reihe beginnt.
+
+1. **Erfassen legt die Sektion neu** (`LoadPlanner.LayStop.InSection`): Liegt das Ziel schon im geteilten Rack, legt der
+   Planer die geplanten Kisten dieses Ziels in diesem Rack zusammen mit den neuen in dessen Reihen (`RowsFor`-Stufen
+   unverändert). Hindernis sind nur fremde Kisten und die geladenen des Ziels. Die alten Kisten bekommen neue
+   Positionen in der Kistenliste, die neuen gehen wie heute hinter die ihres Ziels (`Insert`). Findet die Neulage keinen
+   Platz, gilt der heutige Weg (anhängen) unverändert. Andere Ziele, andere Racks, wer wartet: unverändert (F5).
+2. **Einzelkisten kompakt** (`CrateLayout.RackSpace.Add`, nur auf Wunsch der Sektionen, also `RackSections.Laid` und
+   `LayStop.InSection`): Eine 1er nimmt in der untersten Ebene mit freiem, getragenem Platz (Schicht für Schicht wie
+   D24) die Zelle mit den meisten Flächennachbarn derselben Sektion; Gleichstand nach heutigem Füllrang. Das ergibt
+   Martins Soll (zweite 1er auf L7/w4: zwei Nachbarn gegen einen auf L8/w5) und lässt das L des frischen Plans stehen
+   (1er auf L11/w1, Gleichstand, Füllrang wie heute). Pläne ohne Sektionen bleiben byte-gleich.
+3. **Hinweis bei Restlücke:** neuer Satz in `SectionNotes` („Rack N: X has a gap – loaded crates“), gesetzt, wenn nach
+   der Neulage eine eingeschlossene Zelle bleibt und das Ziel geladene Kisten im Rack hat. Die App zeigt ihn über die
+   vorhandene `NoticeSource.Sections` (`OverlayViewModel.cs:320`); `Names`/`IsNote` lesen ihn, Lebensdauer wie die
+   anderen Sektionshinweise. Keine UI-Änderung.
+4. **Docs:** D41-Addendum (B17: In einem Plan mit Sektionen legt ein Scan die geplanten Kisten seines Ziels im Rack neu;
+   Geladenes und Abgeliefertes bleibt), D89-Addendum (Blockregel, Einzelkisten kompakt, Hinweis), D71 ausdrücklich
+   unverändert. Kein Schema-Bump, kein Format.
+
+**Gegenargument (A5):** D41 versprach, dass ein Scan keine Kiste bewegt. Hat der Hauler Kisten schon ins Schiff gestellt,
+aber nicht als geladen abgehakt, stimmt das Overlay nach dem Scan nicht mehr mit dem Laderaum überein. Martins Regel
+nimmt das in Kauf: Geplant heißt „noch nicht im Schiff“, und der Haken „geladen“ ist der Schutz. Die Alternative
+(anhängen, dann nur die neuen Kisten in die Lücken der alten schieben) schließt Bild B nicht, weil die alte 1er auf
+L8/w3 liegen bleibt und die 2er dort keinen Platz hat.
+
+**Tests (erst rot):**
+- **R1 Bild B:** Fixture ohne Mission 3, crosswise, Bug zuerst, Gap 1, Scan erfasst. Vorher: Assert auf die leere
+  L7/w3 zwischen H2 und H2 (rot); nachher High Course genau wie Martins Soll (H4 w0–1, H2 w2, H2 w3, H1 L8/w4,
+  H1 L7/w4), keine eingeschlossene Zelle in keiner Sektion, fremde Kisten auf denselben Zellen wie vor dem Scan.
+- **R2 Geladen:** wie R1, aber Mission 1 (High Course 4+2+1) als geladen markiert: deren Kisten liegen exakt wie vorher,
+  die neuen um sie herum; bleibt eine Lücke, steht der Hinweis da, sonst nicht.
+- **R3 Matrix:** 2+1, 4+1, 4+2+1 × crosswise/lengthwise × Gap 0/1/2 × Bug/Heck auf RAFT und Perseus, Wege frischer
+  Plan, Scan in leeren Plan, Scan zweimal, Scan in Fixture: keine eingeschlossene Zelle; frischer Plan der Szene auf
+  der RAFT: Abstand zwischen den Sektionen genau `sectionGap`.
+- **R4 Eigenschaftstest:** zufällige Mixe (Seed fest, 200 Fälle, 1–6 Ziele, 1–12 SCU, max 1/2/4) auf der RAFT, frisch
+  geplant und zweimal erfasst: keine eingeschlossene Zelle in einer Sektion ohne geladene Kisten. Findet er Löcher, die
+  nicht von Einzelkisten kommen (etwa nur 2er), stoppe ich und melde das, bevor die Regel breiter wird.
+- **R5 F5:** Rack-Zuordnung und wartende Missionen nach einem Scan wie ohne Neulage (`RackSectionsSyncTests` bleiben
+  grün); keine geladene oder abgelieferte Kiste bewegt sich.
+- **Bestand:** `RackSectionsTests`, `SectionGapTests`, `RackSectionsSyncTests`, `HullAGoldenTests`, Plan-Goldens unter
+  `Fixtures/Plans/golden_*`: unverändert grün. Im Rot-Lauf zähle ich, welche Zellen von Einzelkisten sich in den
+  RAFT-Fixture-Plänen verschieben (die Goldens prüfen Reihen, nicht Zellen); kippt ein Assert, ist das ein Befund und
+  kein Grund zum Neuziehen (F4).
+
+**Präzisierungen in der Planphase, ratifiziert durch Freigabe:**
+- P1 Szene synthetisch im Test gebaut (kein `plan.json` mehr); Fixture-Ordner ist `Fixtures/Plans/` (Startprompt:
+  `plans/`), dort liegt Martins RAFT-Plan schon.
+- P2 Hull A stapelt ±y, nicht +z (Startprompt); +z-Gegenprobe ist die Perseus (ein Rack, 6 × 8 × 2).
+- P3 Das L im frischen Plan bleibt (Martin); D71 unverändert, Kandidat (a) verworfen.
+- P4 Fehlerort ist der Erfassungsweg, nicht `RackSections.Lay`; F1 hält trotzdem (nur Core), die Neulage sitzt in
+  `LoadPlanner.LayStop`, die Kompaktregel in `CrateLayout`. Dazu ein D41-Addendum (Martins Soll).
+- P5 F3: Die Neulage ist der erste Versuch in `InSection` vor den unveränderten Stufen; schlägt sie fehl, läuft alles
+  wie heute.
+- P6 Hinweis über `SectionNotes` und die vorhandene `NoticeSource.Sections`, kein neuer Schalter, keine UI.
+- P7 F4: Die Prämisse „K9-Goldens haben keine Rest-Einzelkiste“ stimmt nicht (RAFT-Fixture: Green/High/Thundering
+  7 SCU max 4 = 4+2+1). Ihre Asserts prüfen Reihen und bleiben voraussichtlich grün, Zellen von Einzelkisten dürfen
+  sich innerhalb der Reihen verschieben; gezählt im Rot-Lauf.
+
+**Gate Martin am Aufzug (SC vorn, RAFT):** Plan mit Sektionen, crosswise, Gap 1; einen Vertrag scannen, dann einen
+zweiten mit 2+1 zu einem Ziel, das schon im Rack liegt → die Farbe bleibt ein geschlossener Block, die Einzelkisten
+liegen nebeneinander. Den Gap zwischen den Blöcken siehst du weiter. Danach eine Lieferung als geladen abhaken und
+erneut scannen → die geladenen Kisten bleiben liegen.
+
 ### [ ] F10 Seitenweise Planung
 
 **Warum:** Auf Schiffen mit Racks nebeneinander (Hull B: Spindel links/rechts) wollen Hauler erst eine Seite auffüllen,
