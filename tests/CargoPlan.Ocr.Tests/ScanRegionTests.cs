@@ -2,7 +2,7 @@ namespace CargoPlan.Ocr.Tests;
 
 public sealed class ScanRegionTests
 {
-    // The two regions measured in S10.0 (TASKS.md, finding): the mobiGlas panel sits at the same place relative to the
+    // The two regions measured in S10.0 (docs/tasks-archive/phase-10-ocr.md, finding): the mobiGlas panel sits at the same place relative to the
     // centred 16:9 area at 21:9 and 16:9, in both views.
     [Fact]
     public void The_ultrawide_region_is_the_one_measured_in_the_spike() =>

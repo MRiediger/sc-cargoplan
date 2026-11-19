@@ -112,7 +112,7 @@ The values came from Fleetyards' `cargoHolds[].limits.max.capacity` (index of 25
 grid, not the door, so the import from them can tighten a value, never loosen one (Corsair 32 → 24, D70). It is written only where the
 door takes less than the grid; a test checks that every shipped value limits something, and a value the grid enforces
 anyway is left out (`hull_a.json` has none). Values above 32, the largest crate the app knows, count as 32. A 1 on a grid
-that takes more is not written: it is the one value that can also be a default, so it stays unverified (list in TASKS.md,
+that takes more is not written: it is the one value that can also be a default, so it stays unverified (list in `docs/tasks-archive/backlog-session-k1-k7.md`,
 K3.1). By hand, set it only from a source and name it in `notes`.
 
 Schema 4 called the same field "the game's limit on top of the grid" and read it the same way, so a schema 4 file loads
