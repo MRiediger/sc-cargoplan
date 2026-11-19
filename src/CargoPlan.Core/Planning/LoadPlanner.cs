@@ -94,7 +94,7 @@ public static class LoadPlanner
         var plan = saved.Plan with { Grouping = grouping, SectionGap = sectionGap };
         return new SavedPlan(
             saved.Missions,
-            grouping == PlanGrouping.None ? plan : RackSections.Lay(plan, ship, plan.LegendDestinations([.. saved.Missions.Select(m => m.Id)])),
+            grouping == PlanGrouping.None ? plan : RackSections.Lay(plan, ship, plan.LegendDestinations(saved.LegendOrder)),
             saved.CrateCap);
     }
 

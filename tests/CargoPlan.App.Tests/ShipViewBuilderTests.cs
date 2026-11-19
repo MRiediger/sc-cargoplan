@@ -587,15 +587,15 @@ public class ShipViewBuilderTests
     [Fact]
     public void The_legend_keeps_the_order_of_entry_and_a_stop_keeps_its_colour()
     {
-        // Riker delivered, a new Riker contract after Shubin: no route (D64), so Riker stays where it was; the new mission's
-        // line stands next to the delivered one, where Riker first appears (B6).
+        // Riker delivered, a new Riker contract after Shubin: no route (D64), so Riker keeps its colour; the new mission's
+        // line stands at the bottom, in scan order (B16; before, next to the delivered one where Riker first appears, B6).
         var saved = Captured(Captured(EmptySaved, new ContractSource(new ScanIdentity(1, "KEY 1", false)), Stop("Riker")), new ContractSource(new ScanIdentity(2, "KEY 2", false)), Stop("Shubin"));
         var colour = BuildSaved(saved).Legend.Single(e => e.Destination == "Riker").PaletteIndex;
 
         var again = Captured(Delivered(saved, "Riker"), new ContractSource(new ScanIdentity(3, "KEY 3", false)), Stop("Riker", "Gold"));
 
         var legend = BuildSaved(again).Legend;
-        legend.Select(e => (e.Destination, e.Mission, e.Delivered)).Should().Equal(("Riker", 1, true), ("Riker", 3, false), ("Shubin", 2, false));
+        legend.Select(e => (e.Destination, e.Mission, e.Delivered)).Should().Equal(("Riker", 1, true), ("Shubin", 2, false), ("Riker", 3, false));
         legend.Where(e => e.Destination == "Riker").Should().OnlyContain(e => e.PaletteIndex == colour);
     }
 
