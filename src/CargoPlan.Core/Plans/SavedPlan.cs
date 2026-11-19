@@ -19,7 +19,7 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, C
 
     /// <summary>
     /// One stop per destination with the items of every mission, as planner, editor and mission file see them: in
-    /// <see cref="LoadPlan.Route"/> (the order of the legend, D64), then destinations only unplaced missions go to, in
+    /// <see cref="LoadPlan.Route"/> (the order of the colours, D64), then destinations only unplaced missions go to, in
     /// mission order. Within a stop, items in mission order. Derived on every read.
     /// </summary>
     public IReadOnlyList<MissionStop> Stops
@@ -34,6 +34,14 @@ public sealed record SavedPlan(IReadOnlyList<Mission> Missions, LoadPlan Plan, C
             return [.. order.Select((destination, index) => new MissionStop(destination, index + 1, items[destination]))];
         }
     }
+
+    /// <summary>
+    /// The legend's order of missions (B16, D69 addendum): scanned contracts by scan number, so a new one goes to the
+    /// bottom, then typed missions in list order. Not the list alone: the editor's Plan hands the missions over in route
+    /// order (<c>MissionRows.ToMissions</c>). Scan numbers are unique in a plan and never reused (D102). Derived on every read.
+    /// </summary>
+    public IReadOnlyList<int> LegendOrder =>
+        [.. Missions.OrderBy(m => m.Contract is null).ThenBy(m => m.Contract?.Scan.No ?? 0).Select(m => m.Id)];
 
     /// <summary>True if a derived mix is split into smaller crates than its contract allows, for the overlay's notice (D70).</summary>
     public bool CratesCapped => Missions.SelectMany(m => m.Items).Any(at => at.Item.CappedBy(CrateCap));

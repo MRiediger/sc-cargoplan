@@ -139,13 +139,91 @@ archiviert, Martins Antwort folgt.
 - Am Rande: `gh` fehlt im PATH dieser Maschine (Eintrag `C:\Program Files\GitHub CLI"` mit verirrtem Anführungszeichen);
   aufgerufen über den vollen Pfad.
 
-### [ ] B16 Legende: Missionsreihenfolge
+### [x] B16 Legende: Missionsreihenfolge (19.11.2026)
 
 **Warum:** Die Missionen (`#`) erscheinen in der Legende nicht chronologisch (z. B. #1, #3, #2); am Aufzug sucht der
 Hauler die zuletzt gescannte Mission unten.
 - Soll: neue Missionen werden unten angehängt (Append), die bestehende Reihenfolge bleibt bei Scan und Plan stabil.
 
 **Akzeptanz:** Test mit drei Scans nacheinander, Legende zeigt #1, #2, #3; ein Re-plan ändert die Reihenfolge nicht.
+
+**Befund vor dem Plan (19.11.2026, Branch `fix/b16-legend-order` ab `7b6d90a`):**
+- **Fehlerstelle:** `src/CargoPlan.Core/Models/LoadPlan.cs:54` – `LegendMissions` sortiert nach dem frühesten Ziel in
+  `Route` (`.OrderBy(m => m.Min(c => rank[c.Destination]))`), die Missionsliste nur als Tie-Break (`:55`). Das ist die
+  D69-Regel wörtlich, K9.2 zog sie unverändert nach Core. Keine SCU/Name-Sortierung im Legendenpfad (die B2-Tie-Breaks
+  gelten nur für Planer-Suche und Fallback, `LoadPlanner.cs:47`). **Warum #3 vor #2:** `Route` = Ziele nach erstem
+  Crate, `PlaceInto` legt neue Kisten direkt hinter die ihres Ziels (D64-Addendum). Scan #1 → A, #2 → B, #3 → A: Rang
+  0 / 1 / 0, Tie #1/#3 per Liste → #1, #3, #2.
+- **Leser der Legendenfolge** (nur über `LegendMissions`/`LegendDestinations`): `ShipViewBuilder.LegendLines`
+  (`ShipViewBuilder.cs:96`; Zeilen, Kopf „From …“, `#`, Kopf-Checkbox `MissionCrates` hängen daran) und
+  `LoadPlanner.Sectioned` (`LoadPlanner.cs:97` → `RackSections.Lay`, Sektionsfolge D89 bei Editor-Plan, `PlanKeeping`,
+  Re-plan). Wartende Missionen (`ShipViewBuilder.cs:56`) in Listenfolge. **Nicht betroffen:** `MissionPalette.Assign`
+  (`Placements` = `Route`, Farben bleiben), `LoadPlanner.Plan(ship, stops)` (`:29`, CLI, `Route`), Editor K6.3 (nur
+  Ansicht, Plan liest `Rows`), `PlanTextRenderer`, Missions-Export.
+- **Persistenz:** `missions[]` wird in Listenfolge geschrieben und gelesen (`PlanFileDto.cs:108`, `:44–55`);
+  `PlaceInto` hängt an, Re-Scan (`ReplaceMission`) behält den Platz, `Replan`, `RemoveMission`, `RenameStop`,
+  Split/Merge, Undo (`PlanHistory` hält ganze `SavedPlan`) behalten die Folge. **Aber** der Editor-Plan baut die Liste
+  neu: `MissionRows.FromMissions` gruppiert nach Ziel in `Route`-Folge (`MissionRows.cs:111–116`), `ToMissions` gibt
+  Missionen in Folge der ersten Zeile je Gruppe zurück und nummeriert getippte neu (`:138–167`). `missions[]` allein
+  kann die Quelle also nicht sein. Stabil ist `ContractSource.Scan.No`: nicht nullable, je Plan eindeutig
+  (`SavedPlan`-Konstruktor), nie wiederverwendet (`LastScanNo` außerhalb der Undo-Historie, `OverlayViewModel.cs:582`),
+  steht schon in plan.json (Schema 10) → **kein Schema-Bump, kein neues Feld.**
+- **Goldens:** `LegendOrderTests` (4) bleiben unter der neuen Regel grün (nachgerechnet). RAFT-Fixture: 4 getippte
+  Missionen, Legende heute #1, #2, #4, #3, neu #1, #2, #3, #4; `LegendDestinations` bleibt Green, High, Thunder,
+  Faithful, Melodic → K9-Goldens voraussichtlich 0 kippen (Zählung im Rot-Lauf).
+
+**Plan (19.11.2026):**
+
+Regel: zuerst Missionen mit Vertrag nach `Scan.No` aufsteigend, dahinter Missionen ohne Vertrag in Listenfolge;
+Missionen, die die Liste nicht kennt (Plan ohne Missionen), danach wie heute nach Route-Rang. Zeilen innerhalb einer
+Mission bleiben in Route-Folge.
+
+1. `SavedPlan.LegendOrder` (Ids, abgeleitet bei jedem Lesen wie `Stops`): eine Stelle für die Regel.
+2. `LoadPlan.LegendMissions(missionOrder)`: primär Position in `missionOrder`, nicht gelistete dahinter nach Route-Rang.
+3. `LoadPlanner.Sectioned` und `ShipViewBuilder` (Legende und wartende Missionen) übergeben `saved.LegendOrder`.
+4. Docs: D69-Addendum (B16) mit Gegenargument, Verweis in D89; Wiki-Satz `Legend-and-delivery-states.md:36`.
+
+Gegenargument: Listen- und Legendenfolge laufen nach einem Editor-Plan auseinander; Editor-Hoch/Runter (K6.3) verschiebt
+gescannte Missionen in der Legende nicht mehr. Die Alternative („`ToMissions` behält die bekannte Folge“) griffe in
+Editor, D42-Neunummerierung und K6.3 ein – verworfen. Spielerreihenfolge bleibt Backlog (Legenden-Drag).
+
+Tests (erst rot): R1 Repro (Scans #1 → A, #2 → B, #3 → A → #1, #2, #3; heute #1, #3, #2); stabil nach Re-plan,
+Abhaken #2, Plan-Datei schreiben/lesen, Editor-artigem Plan; #2 löschen → #1, #3, neuer Scan → #1, #3, #4; getippte
+Mission zwischen zwei Scans steht dahinter; Sektionsfolge = Legendenfolge bei Scan-Folge ≠ Route, RAFT-Goldens benannt;
+App: drei `ApplyScan` → Legende #1, #2, #3, unverändert nach Re-plan, Abhaken, Undo, Redo, Editor-Plan.
+
+**Präzisierungen in der Planphase, ratifiziert durch Freigabe:**
+- P1 Quelle = `Scan.No`, nicht die Array-Folge von `missions[]` (der Editor-Plan baut die Liste um).
+- P2 Wartende Missionen in der Legende folgen derselben Ordnung.
+- P3 Wiki-Satz wird mitgezogen.
+- P4 Zeilen innerhalb einer Mission bleiben in Route-Folge.
+- K1 Wiki-Satz auf lokalem Branch `b16-legend-order` im Wiki-Repo, Push erst mit dem nächsten Tag; Backlog-Zeile wie K12.
+
+**Freigabe 19.11.2026:** P1–P4 ratifiziert, F1 bestätigt (Sektionen folgen der Legende), K1. Rot-Lauf zuerst, R1 muss
+rot sein.
+
+**Befund (19.11.2026, `9f396a3`):**
+- **Rot-Lauf, Stufe 1 (App, alter Code, Core-Testdatei geparkt):** `LegendScanOrderTests` 2 von 2 rot per Assert,
+  R1 „Expected … {1, 2, 3}, but {1, 3, 2} differs at index 1“ – der gemeldete Fall.
+- **Rot-Lauf, Stufe 2 (Core, `LegendOrder` als Stub = heutige Listenfolge):** 5 von 45 rot per Assert (R1 `{1, 3, 2}`,
+  getippte Mission `{1, 0, 2}`, Sektionen `{A, C, B}`, Re-plan `{1, 3, 2}`, Rang-Fallback `{3, 1, 2}`); der Lösch-Test
+  war schon vorher grün (wie geplant). **Bestehende Tests, die kippten: Core 0** (alle K9-Goldens in `RackSectionsTests`
+  unverändert grün), **App 1:** `ShipViewBuilderTests.The_legend_keeps_the_order_of_entry_and_a_stop_keeps_its_colour`
+  hielt die B6-Folge #1, #3, #2 als Soll („the new mission's line stands next to the delivered one“) – Erwartung auf
+  #1, #2, #3 umgestellt, der Farbteil (Riker behält seine Farbe) unverändert.
+- **P2-Test** (wartende Missionen, Liste ≠ Scan-Folge) rot gegen den alten `ShipViewBuilder` (`{1, 2}` statt `{2, 1}`).
+  Im selben Lauf: mit alter Übergabe der Listenfolge kippte die Legende erst **nach dem Editor-Plan** auf {1, 3, 2} –
+  P1 am echten Ablauf belegt.
+- **Änderung:** `SavedPlan.LegendOrder` (neu, eine Stelle für die Regel), `LoadPlan.LegendMissions` (Ordnung des
+  Aufrufers zuerst, Rang-Fallback dahinter), `LoadPlanner.Sectioned` und `ShipViewBuilder` (Legende, wartende) lesen
+  `LegendOrder`. Diff: 4 Quelldateien, +23/−13; Tests 2 Dateien geändert, 1 neu (+171/−3). Kein Schema-Bump (Plan-Schema 10).
+- **Docs:** D69-Addendum (B16, mit Gegenargument), D89-Addendum. Wiki: Satz in „Legend and delivery states“ auf lokalem
+  Wiki-Branch `b16-legend-order` (`0386c22`, ab `master`), Backlog-Zeile für den Push mit dem nächsten Tag (K1).
+- **Testzahlen aus sauberen Worktrees:** vorher (`7b6d90a`) Core 1913, App 2079, Import 280, Ocr 34; nachher
+  (`9f396a3`) Core **1919** (+6), App **2082** (+3), Import 280, Ocr 34, alle grün; `dotnet build` 0 Warnungen,
+  `dotnet format --verify-no-changes` sauber. Die Arbeitskopie zählt 3 mehr (gitignorte `Scratch*`-Tests, Lehre T11.3).
+- **Gate Martin am Aufzug (SC vorn):** drei Verträge scannen → #1, #2, #3 von oben; Re-plan → unverändert;
+  App-Neustart → unverändert. **Abgenommen 19.11.2026** („abgenommen, passt“). Merge `--no-ff`, Martin pusht.
 
 ### [ ] B17 Sektionen: Lücke bei Rest-Einzelkiste
 
@@ -304,6 +382,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Doku aus `docs/wiki/` im Hauptrepo per Action ins Wiki spiegeln – Auslöser: erster externer Doku-Beitrag.
 - Wiki-Branch `k12-ship-reports` (lokal, `06b4004`: „Ships and cargo grids“ ohne Schiffsdatei-PR, K12) nach `master`
   mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
+- Wiki-Branch `b16-legend-order` (lokal, `0386c22`: „Legend and delivery states“, Missionen in Scan-Reihenfolge, B16)
+  nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
 - Screenshots/GIFs auf Perspektive nachdrehen (alle Shots von `docs/shots/SHOTLIST.md`, Hero-GIF eingeschlossen; D85) –
   Auslöser: nächstes Release mit sichtbarer Änderung der Ansicht oder erster Nutzer-Report „sieht bei mir anders aus“.
 - UI-Text-Konsistenz (Befund T7.5a): Schiffswechsel-Dialog mit Yes als Default, Re-plan mit No; Export… und Remove ohne

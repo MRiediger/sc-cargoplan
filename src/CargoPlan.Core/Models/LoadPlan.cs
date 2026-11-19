@@ -33,17 +33,19 @@ public sealed record LoadPlan(
     ];
 
     /// <summary>
-    /// The destinations in order of their first crate: the order the player entered them, which legend and palette show
-    /// (D64). Display only: the planner assumes no route. Derived like <see cref="Placements"/>; GroupBy keeps the order of
-    /// first appearance.
+    /// The destinations in order of their first crate: the order the player entered them, which the palette shows and a
+    /// mission's legend lines follow (D64). Display only: the planner assumes no route. Derived like
+    /// <see cref="Placements"/>; GroupBy keeps the order of first appearance.
     /// </summary>
     public IReadOnlyList<string> Route => [.. Crates.GroupBy(c => c.Destination).Select(g => g.Key)];
 
     /// <summary>
-    /// The legend's order (B6, D69): missions in the order they first appear along <see cref="Route"/>, on a tie in
-    /// <paramref name="missionOrder"/>, a mission's destinations in route order.
+    /// The legend's order (B6, D69, B16): missions in <paramref name="missionOrder"/>, those it doesn't name behind them in
+    /// the order they first appear along <see cref="Route"/>; a mission's destinations in route order.
     /// </summary>
-    /// <param name="missionOrder">The ids of the plan's missions as listed; empty for a plan without missions.</param>
+    /// <param name="missionOrder">
+    /// The ids of the plan's missions in legend order (<c>SavedPlan.LegendOrder</c>); empty for a plan without missions.
+    /// </param>
     public IReadOnlyList<LegendMission> LegendMissions(IReadOnlyList<int> missionOrder)
     {
         var rank = Route.Select((destination, index) => (destination, index)).ToDictionary(r => r.destination, r => r.index);
@@ -51,8 +53,8 @@ public sealed record LoadPlan(
         return
         [
             .. Crates.GroupBy(c => c.Mission)
-                .OrderBy(m => m.Min(c => rank[c.Destination]))
-                .ThenBy(m => listed.GetValueOrDefault(m.Key))
+                .OrderBy(m => listed.GetValueOrDefault(m.Key, int.MaxValue))
+                .ThenBy(m => m.Min(c => rank[c.Destination]))
                 .Select(m => new LegendMission(m.Key, [.. m], [.. m.GroupBy(c => c.Destination).OrderBy(d => rank[d.Key]).Select(d => new LegendLine(d.Key, [.. d]))])),
         ];
     }

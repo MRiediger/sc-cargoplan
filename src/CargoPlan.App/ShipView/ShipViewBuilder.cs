@@ -50,10 +50,10 @@ public static class ShipViewBuilder
 
         SceneRack[] racks = [.. ship.Racks.Select(r => BuildRack(r, plan, palette, violated.Contains(r.Id)))];
 
-        // The order of the crate list, as the player entered the stops: display only, no route (D64); the palette's too.
+        // Missions in the legend's order (scan order, B16), waiting ones too; the palette in the order of the crate list (D64).
         var duplicates = saved is null ? new HashSet<int>() : PossibleDuplicates.Of(saved);
         var reserveDuplicates = saved is null ? new HashSet<int>() : PossibleDuplicates.Of(OnBoard(saved));
-        Mission[] unplaced = saved is null ? [] : [.. saved.Missions.Where(m => m.Unplaced)];
+        Mission[] unplaced = saved is null ? [] : [.. saved.LegendOrder.Select(saved.MissionOf).Where(m => m.Unplaced)];
         LegendEntry[] legend = [.. LegendLines(plan, saved).Select(line => new LegendEntry(
             palette[line.Destination],
             line.Destination,
@@ -93,7 +93,7 @@ public static class ShipViewBuilder
     {
         var pickups = saved?.Missions.ToDictionary(m => m.Id, m => Pickups.Normalized(m.Items.SelectMany(i => i.Item.Pickup ?? []))) ?? [];
         var contracts = saved?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Id, m => MissionText.Source(m.Contract)) ?? [];
-        var missions = plan.LegendMissions([.. saved?.Missions.Select(m => m.Id) ?? []]);
+        var missions = plan.LegendMissions(saved?.LegendOrder ?? []);
         var headed = missions.Any(m => pickups.GetValueOrDefault(m.Mission) is not null || contracts.ContainsKey(m.Mission));
 
         return missions.SelectMany(mission =>
