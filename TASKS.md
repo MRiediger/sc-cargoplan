@@ -7426,6 +7426,37 @@ aus V5); Velopack v0.5.1 → v0.6.0 ist der Netz-Gate. `holo-v3` (Pre-Release) b
 7. **R2:** keine Notes-Zeile für `9832bea` (Dependabot, nur CI, nicht im ZIP; wie Test.Sdk in V4).
 8. Sciirof-Antwort (18.11., Master-Chat) im Backlog unten nachgetragen; die drei Pipeline-Punkte gehen an T12.6b.
 
+**Schritt 1 – Notes (19.11.2026):** `docs/release-notes/v0.6.0.md`, zur Freigabe im Master-Chat.
+
+Vollständigkeit `git log --no-merges v0.5.1..main` (21 Commits):
+
+| Commit | Inhalt | In den Notes |
+|---|---|---|
+| `9832bea` | Dependabot `softprops/action-gh-release` | nein (R2: nur CI, nicht im ZIP) |
+| `3d15333`, `3cb3d4d`, `0a7d284` | REL/V5: Release-Prüfung v0.5.1, Netz-Gate, Nexus-Texte, holo-v1 gelöscht | nein (Doku, betrifft v0.5.1) |
+| `a5a00c5` | T12.0: D111, Phase-12-Tasks | Ship data (Kanal), Network access |
+| `845785b`, `802ef6d`, `2d017ec`, `8880770`, `68bec39`, `61d6d35` | Pläne, Abnahmen | nein (nur TASKS.md) |
+| `9e3c620` | Core: Datenstand lesen, installieren, wählen; R3 unbekanntes Rack | Ship data (Update), Changes (Plan mit unbekanntem Rack) |
+| `ab06ae8` | App: Check, Download, Neustart; Settings „Ship data“ | Ship data, Changes (Settings), Network access 2, KI (Editor-Zeilen, `Program Files`, Downgrade `shipData`) |
+| `2f41d0a` | CLI `ships --version` | Changes (Command line) |
+| `12a16d2`, `39c3a50`, `a8c4900` | Doku D112–D114 | indirekt (Quelle der Texte) |
+| `6371e49`, `f2fcae2` | Umsetzungsnotizen, Gate-Anleitungen | nein |
+| `46fd06d` | Build holt die Baseline `ships-2026.11.1` | Ship data (In this ZIP, Hyun, F7C, 109 + Modul) |
+| `06170bc` | Holos aus dem Manifest, D95-Cache-Wechsel, Kill-Switch-Text | Changes (Holograms), Network access 3, Before you update, KI (alte Datenstände, Downgrade lädt neu) |
+
+**Präzisierungen beim Schreiben:**
+1. **109 Schiffe und eine Modulkonfiguration**, nicht „110 Schiffe“: die Baseline hat 110 Dateien unter `ships\`, eine
+   davon ist `modules/ts_module.json`; v0.5.1 nannte „108 ships“ ebenso ohne Modul. „110“ im Log zählt die Modul-Datei
+   mit. README, Wiki und Nexus folgen derselben Zählung (Gegenargument: der Prompt und der T12.5-Log sagen 110).
+2. **F7C: kein „re-plan“-Satz.** Rack-ID und Gitter bleiben (1×2×1, 2 SCU), nur `origin` wandert → der Plan lädt wie
+   gespeichert, ohne Notice (wie die 350r in V1); bei einem Rack liegen die Kisten trotzdem richtig.
+3. **Neues Known issue „Going back to v0.5.x“:** v0.5.x kennt `shipData` nicht und startet nach einem Speichern in
+   v0.6.0 mit Default-Settings (`settings-format.md`, D105-Addendum) – gleiche Abhilfe wie v0.4.0/`updates`.
+4. **Ship-data-Update braucht nie Adminrechte** (Ziel `%LocalAppData%\SC-CargoPlan\ships`), als Satz am KI
+   `Program Files`.
+5. Delta-Satz: nur wer v0.5.1 über die Update-Zeile bekam, hat die Basis in `packages\` (T11.3: ein entpacktes Portable
+   hat keine) → „only the changes“, sonst voll.
+
 **Akzeptanz:**
 - [ ] Notes vom Master-Chat freigegeben; `git log v0.5.1..main` ohne unerwähnten Nutzer-sichtbaren Commit
 - [ ] **Netz-Gate (Martin, SC vorn):** v0.5.1-Portable in eigenem Ordner → Start → Velopack bietet 0.6.0 → Update →
