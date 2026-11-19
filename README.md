@@ -118,3 +118,6 @@ All known issues: [Troubleshooting](https://github.com/MRiediger/sc-cargoplan/wi
 [MIT](LICENSE). Not under MIT: the ship data and silhouettes (`ship-data\NOTICE.md` next to the app, from the
 [ship data releases](https://github.com/MRiediger/sc-cargoplan-shipdata/releases)) and the ship holograms (assets of
 the same releases, under the same `NOTICE.md`).
+
+If it helps you:
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/plintonium)
