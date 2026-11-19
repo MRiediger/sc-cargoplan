@@ -66,17 +66,11 @@ After that, the same ZIP goes on Nexus Mods by [docs/nexus/checklist.md](docs/ne
 
 CargoPlan knows 109 ships and one cargo module configuration. The racks of all but two come from the game files, by way of [cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo); the 135c and the 600i Executive Edition still use Fleetyards data ([docs/ship-format.md](docs/ship-format.md#where-the-data-comes-from)). If a rack in the overlay doesn't match the game, open a [ship correction](https://github.com/MRiediger/sc-cargoplan/issues/new?template=ship-correction.yml) here or an issue in [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata/issues): the ship as the list names it, the rack number, what is wrong, a screenshot from the game and one of the overlay.
 
-A rack in the wrong place or with the wrong size is usually in the game data itself. It is then fixed upstream: we pass it on to Motherlode, and the next data release brings the fix to every ship. A door limit is ours to fix, since the game files don't describe doors. The ship files live in [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata), not here ([D113](docs/decisions.md)); a hand fix goes there, and [Correcting a rack](docs/ship-format.md#correcting-a-rack) shows how. The overlay picks up a new data release by itself.
+The ship files are rebuilt each month from the game files, by way of Motherlode, in [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata) ([D113](docs/decisions.md)). A hand-edited file would be overwritten by the next run, so ship files take no pull requests, here or there: an issue is the way. A rack in the wrong place or with the wrong size is usually in the game data itself; we report it to Motherlode ([cryon.rocks](https://cryon.rocks)), and the next data release brings the fix to everyone. Report a door limit the same way. The overlay picks up a new data release by itself.
 
-## Contribute a ship
+## Missing a ship?
 
-A ship is one JSON file, no C#, in [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata). Ships the game files have come from its import; a ship the import doesn't have yet can be measured by hand. [docs/ship-format.md](docs/ship-format.md) has the format, how to measure a ship in the hangar and a checklist for the pull request. In short:
-
-- Measure in the game and name the patch.
-- Give every rack its `stackAxis`: the direction a second layer of crates goes.
-- Name your source in the pull request (your own measurement, or a guide such as Erec's – check its license first).
-
-Not into JSON? Open a [ship request](https://github.com/MRiediger/sc-cargoplan/issues/new?template=ship.yml) with the measurements, and someone turns it into a file.
+Every ship comes from Motherlode's catalog of the game files. A ship that isn't in the list yet can't be added as a file; open a [ship request](https://github.com/MRiediger/sc-cargoplan/issues/new?template=ship.yml) instead, ideally with the measurements ([docs/ship-format.md](docs/ship-format.md#measuring-a-ship) shows how to measure a ship in the hangar), and we pass it on to Motherlode.
 
 ## Pull requests
 

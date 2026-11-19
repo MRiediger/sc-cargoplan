@@ -55,8 +55,8 @@ this version**, section **Ship data** in the settings. More:
 A rack that doesn't match the game: open a
 [ship correction](https://github.com/MRiediger/sc-cargoplan/issues/new?template=ship-correction.yml) here or an issue in
 [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata/issues). We check it and pass it on to
-Motherlode, so the next data release fixes it for everyone. A pull request with a corrected ship file goes to
-sc-cargoplan-shipdata.
+Motherlode, so the next data release fixes it for everyone. The ship files are rebuilt each month, so they take no pull
+requests: an issue is the way.
 
 ## Network access
 
