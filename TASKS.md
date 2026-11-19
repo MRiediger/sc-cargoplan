@@ -139,7 +139,7 @@ archiviert, Martins Antwort folgt.
 - Am Rande: `gh` fehlt im PATH dieser Maschine (Eintrag `C:\Program Files\GitHub CLI"` mit verirrtem Anführungszeichen);
   aufgerufen über den vollen Pfad.
 
-### [ ] B16 Legende: Missionsreihenfolge
+### [x] B16 Legende: Missionsreihenfolge (19.11.2026)
 
 **Warum:** Die Missionen (`#`) erscheinen in der Legende nicht chronologisch (z. B. #1, #3, #2); am Aufzug sucht der
 Hauler die zuletzt gescannte Mission unten.
@@ -222,8 +222,8 @@ rot sein.
 - **Testzahlen aus sauberen Worktrees:** vorher (`7b6d90a`) Core 1913, App 2079, Import 280, Ocr 34; nachher
   (`9f396a3`) Core **1919** (+6), App **2082** (+3), Import 280, Ocr 34, alle grün; `dotnet build` 0 Warnungen,
   `dotnet format --verify-no-changes` sauber. Die Arbeitskopie zählt 3 mehr (gitignorte `Scratch*`-Tests, Lehre T11.3).
-- **Offen:** Gate Martin am Aufzug (SC vorn): drei Verträge scannen → #1, #2, #3 von oben; Re-plan → unverändert;
-  App-Neustart → unverändert. Danach `[x]`, Merge `--no-ff`, Martin pusht.
+- **Gate Martin am Aufzug (SC vorn):** drei Verträge scannen → #1, #2, #3 von oben; Re-plan → unverändert;
+  App-Neustart → unverändert. **Abgenommen 19.11.2026** („abgenommen, passt“). Merge `--no-ff`, Martin pusht.
 
 ### [ ] B17 Sektionen: Lücke bei Rest-Einzelkiste
 
