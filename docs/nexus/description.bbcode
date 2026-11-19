@@ -10,19 +10,20 @@ How it works: the [url=https://github.com/MRiediger/sc-cargoplan/wiki]wiki[/url]
 [/list]
 
 [b]Network access[/b]
-The app goes online for two things only, both to github.com, both plain downloads; nothing about you or your PC is sent.
+The app goes online for three things only, all to GitHub, all plain downloads (GET), without an account or a token. As with any download, GitHub sees your IP address and the User-Agent ([b]SC-CargoPlan/<version>[/b], for the update check [b]Velopack/<version>[/b]); nothing else is sent. Each has its own switch in the settings, and without a network the app works as before.
 [list]
-[*][b]Ship holograms (off until you pick one):[/b] ship holograms are made from CIG's ship models and are not under MIT. They live in a release of their own, holo-v3, with its own NOTICE, not in this ZIP. The app downloads them only from there, one file per ship when you pick a hologram look, and never fetches anything from Fleetyards; [b]Download ship holograms[/b] in the settings switches it off. They derive from game models and may be withdrawn on request.
 [*][b]Update check (on until you turn it off):[/b] once per start, after the overlay is up, the app asks GitHub's release list of this project whether a newer version is out, and offers it at the bottom of the overlay. It downloads only when you click [b]Update[/b]. Turn off [b]Check for updates on startup[/b] in the settings, section [b]Updates[/b], and it makes no request at all.
-[*][b]Updates come from GitHub, not from Nexus.[/b] The file here is the same ZIP as the GitHub release; once it runs, the app updates itself from the GitHub releases.
+[*][b]Ship data check (on until you turn it off):[/b] the ship data are in this ZIP. They are rebuilt once a month in their own repository, [url=https://github.com/MRiediger/sc-cargoplan-shipdata]sc-cargoplan-shipdata[/url]. Once per start the app downloads the manifest of its latest data release (about 130 KB) and offers newer ship data at the bottom of the overlay; it downloads them (about 100 KB) only when you click [b]Update[/b]. Turn off [b]Check for ship data updates on startup[/b] in the settings, section [b]Ship data[/b], and it makes no request at all.
+[*][b]Ship holograms (off until you pick one):[/b] ship holograms are made from CIG's ship models and are not under MIT. They are not in this ZIP but in the data releases of sc-cargoplan-shipdata, under their NOTICE. The app downloads them only from the data release in use, one file per ship (about 0.3 MB) when you pick a ship while a hologram look is on, and never fetches anything from Fleetyards; [b]Download ship holograms[/b] in the settings switches it off. They derive from game models and may be withdrawn on request.
+[*][b]Updates come from GitHub, not from Nexus.[/b] The file here is the same ZIP as the GitHub release; once it runs, the app updates itself and its ship data from GitHub.
 [/list]
 
 [b]Known issues[/b]
 [list]
 [*][b]Unsigned:[/b] Windows warns the first time you start a downloaded ZIP.
 [*][b]A folder below Program Files:[/b] an update asks Windows for administrator rights; say No and the old version comes back with [b]Update failed · cancelled[/b]. Extract the ZIP to a folder you can write to.
-[*][b]Ship data:[/b] the racks of 102 ships come from the game files, each placed to the nearest whole cell; the 135c, 600i Executive Edition and F7C Hornet Mk II are still drafts from Fleetyards. The game files describe no doors, so some racks may have a door limit the app doesn't know.
-[*][b]The Retaliator is not included.[/b]
+[*][b]Ship data:[/b] the racks of all but two ships come from the game files, each placed to the nearest whole cell; the 135c and the 600i Executive Edition are still drafts from Fleetyards. The game files describe no doors, so some racks may have a door limit the app doesn't know.
+[*][b]Old ship data lose their holograms:[/b] only the last two data releases keep their holograms. If you skip ship data updates for months, ships whose hologram you haven't downloaded yet show their outline; update the ship data to get them back.
 [*][b]A crate under an empty rack[/b] in front of it can't be clicked in the ship view. Turn the view, or use its line in the legend.
 [*][b]Very large ships zoomed in all the way[/b] (such as the Hull C): the camera can stand among the racks, and parts close to it are cut off. Zoom out a little.
 [/list]
@@ -32,7 +33,7 @@ More, with workarounds: [url=https://github.com/MRiediger/sc-cargoplan/wiki/Trou
 Please report bugs on GitHub, not in the Nexus comments, so they can be tracked.
 [list]
 [*]Bugs, wrong cargo grids, ideas: [url=https://github.com/MRiediger/sc-cargoplan/issues/new/choose]Issues[/url] · questions: [url=https://github.com/MRiediger/sc-cargoplan/discussions]Discussions[/url]
-[*]Copy the version from the footer of the settings window (e.g. [b]SC-CargoPlan 0.5.0+…[/b]).
+[*]Copy the version from the footer of the settings window (e.g. [b]SC-CargoPlan 0.6.0+…[/b]).
 [*]Open a [url=https://github.com/MRiediger/sc-cargoplan/issues/new?template=bug.yml]bug report[/url] (needs a GitHub account) and fill in the form.
 [/list]
 
@@ -58,7 +59,7 @@ Run Star Citizen in [b]Borderless[/b] window mode; exclusive fullscreen covers t
 [*]Drag, turn, split and merge crates to match what the cargo elevator really did.
 [*]Mark each delivery loaded, then delivered at its stop; undo any step.
 [*]Click-through while the game has the mouse. A separate window: nothing is injected into the game.
-[*]105 ships. Racks, hull and outline of 102 of them come from the game files; three still use Fleetyards data.
+[*]109 ships and one cargo module configuration. Racks, hull and outline of all but two come from the game files; the 135c and the 600i Executive Edition still use Fleetyards data. New ship data come once a month, without a new app version.
 [/list]
 
 [size=5]Requirements[/size]
@@ -71,11 +72,11 @@ Run Star Citizen in [b]Borderless[/b] window mode; exclusive fullscreen covers t
 
 [list]
 [*]Cargo grid data and ship models from [url=https://cryon.rocks/ops/cargo]cryon.rocks (Motherlode)[/url], extracted from the Star Citizen game files and used with its operators' permission: the racks, the hull holograms and the outlines come from the same game data.
-[*]Three ships (135c, 600i Executive Edition, F7C Hornet Mk II) still use hull data from [url=https://fleetyards.net]fleetyards.net[/url]: their grids, hologram and outline. Fleetyards' data made the first ship list possible.
+[*]Two ships (135c, 600i Executive Edition) still use hull data from [url=https://fleetyards.net]fleetyards.net[/url]: their grids, hologram and outline. Fleetyards' data made the first ship list possible.
 [*]Thanks to both for letting this project use their data.
 [*]Stop colors: the [url=https://jfly.uni-koeln.de/color/]Okabe-Ito palette[/url] and [url=https://sronpersonalpages.nl/~pault/]Paul Tol's[/url] schemes.
 [*]Not affiliated with Motherlode, Fleetyards or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
 [/list]
 Designed and tested in the game by the author; code and texts written with an AI coding assistant.
 
-MIT licensed. Not under MIT: the ship silhouettes ([b]outlines/NOTICE.md[/b]) and the ship holograms (NOTICE of the holo-v3 release).
+MIT licensed. Not under MIT: the ship data, silhouettes and holograms ([b]current\ship-data\NOTICE.md[/b] in this ZIP, and the same NOTICE in each data release of sc-cargoplan-shipdata) and the contract reader's components and models ([b]current\models\NOTICE.md[/b]).
