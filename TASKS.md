@@ -7820,6 +7820,54 @@ und Freigabe.
 **Akzeptanz:** TASKS.md < 100 KB; kein Inhalt verloren (`git diff --stat` plus Stichprobe D-Verweise); die Verweise von
 CLAUDE.md auf TASKS-Abschnitte stimmen noch.
 
+**Plan (19.11.2026, Branch `chore/k11-tasks-archive` ab `a735ba6`):**
+
+Messung (nur gemessen, nicht gelesen): 859 128 B in der Arbeitskopie (CRLF), 8 063 Zeilen, Blob 851 065 B; 33
+`##`-Abschnitte, davon 30 abgeschlossen (≈ 826 KB, 180 `### [x]`); bleiben: Backlog II (2,9 KB, darin F11 `[x]`),
+Lehren (5,8 KB), Backlog (24,1 KB). `### [x]` = 181, `### [ ]` = 4; acht historische `- [ ]`-Zeilen in abgeschlossenen
+Tasks (1593, 1623, 2950, 3153, 4686, 4790, 5002, 5004).
+
+1. **Verschieben** per Skript im Scratchpad (`git show a735ba6:TASKS.md`, Schnitt an den `## `-Zeilen, nichts von Hand):
+   eine Datei je abgeschlossenem `##`-Abschnitt (30) unter `docs/tasks-archive/`, Kopf `# Archiv: <Überschrift>` plus
+   Herkunftszeile, dann der Abschnitt Byte für Byte. TASKS.md behält Kopf, Index `## Geschichte (Archiv)` (je Abschnitt
+   eine Tabellenzeile: Abschnitt, Zeitraum, D-Nummern, Link), Backlog II, Lehren, Backlog. Zeitraum aus den Datumsangaben
+   der Überschriften (sonst `git log` der Task-Präfixe), D = im Abschnitt zuerst erwähnte D-Nummern; jede Zeile
+   gegengelesen.
+   - **K1:** im Session-Start-Prompt ändert sich nur der Lese-Satz („Lies CLAUDE.md und TASKS.md; die Archivdatei einer
+     Phase nur, wenn der Task darauf verweist.“), der Rest bleibt wortgleich. Zeile 6 enthält heute keine Folge
+     Plan → Commit → Push → Stopp → Freigabe; K11 fügt keine hinzu.
+   - **E1:** neue Kopfzeile „Ein Abschnitt wandert mit dem Schließen ins Archiv und bekommt eine Index-Zeile; das ist
+     Teil der Abschluss-Session“, dieselbe Regel als neue Lehre (Anlass K11).
+   - Kopfnotiz Shipdata (neu): Pipeline in `sc-cargoplan-shipdata` (D111), deren `TASKS.md` ist der Einstieg, App-Seite
+     Phase 12 → Archivdatei.
+2. **Backlog:** Punkte, die mit `- ~~` beginnen, samt eingerückten Folgezeilen → `docs/tasks-archive/backlog-done.md`
+   (`## Umzug am 19.11.2026 (K11)`); teilweise erledigte Zeilen ohne führendes `~~` bleiben.
+3. **Verweise:** Grep `TASKS` in CLAUDE.md, `docs/`, `.github/`, `src/`, `tests/`, Wiki (heute 43 Treffer in 10
+   Dateien, Wiki 0). Ort-Verweise auf Verschobenes → Archivpfad (`docs/decisions.md` ≈ 22, `docs/ship-format.md:115`,
+   Kommentare in `LoadPlannerTests.cs:25`, `ScanRegionTests.cs:5`); Ziele im Backlog und Prozess-Verweise bleiben.
+   CLAUDE.md: eine Zeile `tasks-archive/` im Strukturbaum.
+4. Befund, `[x]`, Merge `--no-ff` nach Abnahme, Martin pusht.
+
+**Präzisierungen in der Planphase, ratifiziert durch Freigabe:**
+- P1 eine Datei je `##`-Abschnitt (30), auch Bugfix- und K-Sessions.
+- P2 Zeile 3874: zwei relative Links nach `src/…` bekommen `../../` vor das Ziel, Linktext gleich – einzige Änderung im
+  verschobenen Text; 7709 (zitierter README-Vorschlag) und 1246–1251 (Wiki-Syntaxbeispiele) bleiben.
+- P3 `docs/review/2026-11-pre-p10.md` bleibt unverändert (Schnappschuss mit alten Zeilennummern).
+- P4 Einstieg Shipdata als neue Kopfnotiz; das Shipdata-Repo bleibt unberührt, sein Verweis „Abschnitt Phase 12“ trifft
+  die Index-Zeile.
+- P5 zwei `.cs`-Kommentare → einmal `dotnet build`, kein `dotnet test`.
+- P6 zusätzlich Block-Gleichheit je Archivdatei gegen den alten Text.
+- P7 `### [ ]` = 4 nach dem Verschieben, 3 nach K11 `[x]`; `### [x]` 181 bzw. 182.
+- K1, E1 (Freigabe): siehe oben.
+
+**Verifikation:** Block-Gleichheit je Archivdatei; Vereinigung als Multimenge (jede alte Zeile mindestens so oft wie
+vorher, erlaubt fehlen nur alte Zeile 6 und 3874), Zahl der verglichenen Zeilen und Liste aller neuen Zeilen; Zähler
+`### [x]`/`### [ ]`; Stichprobe 10 D-Verweise (221, 629, 670, 863, 864, 1009, 1015, 1134, 1142, 1202/1303); Grep auf
+tote Verweise; Größe vorher/nachher; `dotnet build`; `git status` sauber, keine Binärdatei (A17).
+
+**Freigabe 19.11.2026** mit K1 und E1; P1–P7 ratifiziert. Die historischen `- [ ]` 4686 und 4790 werden wortgleich
+archiviert, Martins Antwort folgt.
+
 ### [ ] B16 Legende: Missionsreihenfolge
 
 **Warum:** Die Missionen (`#`) erscheinen in der Legende nicht chronologisch (z. B. #1, #3, #2); am Aufzug sucht der
