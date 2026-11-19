@@ -7485,6 +7485,43 @@ bottom*), Installation (keine Netzpflicht, `ship-data\`, Downgrade v0.5.x, Datei
 schon als Spieldatei) – Entwickler-Doku, gehört in die nächste Doku-Runde oder T12.6b; `decisions.md`-Stellen mit „102“
 / „three ships“ sind Geschichte.
 
+**Schritt 3 – Draft-PR, Merge, Probe (CC, 19.11.2026):**
+- Draft-PR [#29](https://github.com/MRiediger/sc-cargoplan/pull/29) nur für CI: Run 44473277459 grün auf `ubuntu-latest`
+  und `windows-latest`.
+- Merge `--no-ff` lokal → **`b2dc6d6`**. Darauf, SDK 10.0.404: Build `0 Warnung(en)`, `0 Fehler`;
+  `dotnet format --verify-no-changes` Exit 0. Test im sauberen Worktree:
+  `Bestanden! … erfolgreich: 1913, … gesamt: 1913 - CargoPlan.Core.Tests.dll`, `… 280 … Import`, `… 34 … Ocr`,
+  `… 2079 … CargoPlan.App.Tests.dll`.
+- `./build/publish.ps1 -Version 0.6.0 -DeltaBase github`: `Delta base: CargoPlan-0.5.1-full.nupkg`, Delta 860 241 B;
+  `Layout check: … passed (388 files in current\, 110 ship files of ships-2026.11.1, 5 PDBs, version 0.6.0)`. ZIP
+  96 761 203 B. B7-Referenz: Runtime 10.0.15 (beide), `coreclr.dll` 10.0.1526.53008, Cli `0.6.0+b2dc6d6…`.
+- Martin (19.11.): `main` gepusht, CI grün (Run 44474726157), Tag `v0.6.0` auf `b2dc6d6`. Dieses Protokoll kommt als
+  Folge-Commit nach dem Tag, damit der Tag auf dem geprüften Commit steht.
+
+**Release-Prüfung (CC, 19.11.2026):**
+
+| Prüfung | Soll | Ist |
+|---|---|---|
+| CI auf `main` (Merge-Push) | grün | Run 44474726157 success |
+| Workflow „Release“ | grün | Run 44475183595 success, 2 min 52 s |
+| Tag | auf dem Merge | `b2dc6d6`; **leichtgewichtig**, nicht annotiert (wie schon `v0.5.1`; `v0.5.0` war annotiert) – kein Einfluss aufs Release |
+| Release | Latest, kein Pre-Release, kein Draft | `isPrerelease false`, `isDraft false`, Latest, 06:53:50 UTC |
+| Body | = `docs/release-notes/v0.6.0.md` | identisch (ohne CRLF verglichen) |
+| Assets | ZIP, `.sha256`, Full-, Delta-nupkg, `releases.win.json` | genau diese 5: ZIP 96 760 709, Full 96 804 720, Delta 850 683, Feed 732, `.sha256` 98 B |
+| SDK im Runner | 10.0.404 | `dotnet-install: Installed version is 10.0.404` |
+| Delta | 0.5.1 → 0.6.0 | `Delta base: CargoPlan-0.5.1-full.nupkg`, 850 683 B |
+| Layout-Prüfung | grün | `passed (388 files in current\, 110 ship files of ships-2026.11.1, 5 PDBs, version 0.6.0)` |
+| SHA256 ZIP | = `.sha256` | `108145AC…7891E8`, gleich |
+| `releases.win.json` | 0.6.0 voll + Delta, Size/SHA = Asset | beide gleich; dazu `Full 0.5.1` (Asset von v0.5.1, wie bei v0.5.1 der 0.5.0-Eintrag) |
+| ZIP-Wurzel | `SC-CargoPlan.exe`, `Update.exe`, `.portable`, `current\` | genau diese, 388 Dateien in `current\` |
+| `ship-data\` im ZIP | Pin `ships-2026.11.1` | Manifest `ships-2026.11.1`, 110 Schiffsdateien, `NOTICE.md`, `hyun.json`; CLI `ships --version` mit leerem Datenordner → `ships-2026.11.1 (baseline)` |
+| Runtime (B7) | = lokales Pack | beide 10.0.15, `coreclr.dll` 10.0.1526.53008 |
+| Cli-Version | `0.6.0+b2dc6d6…` | `0.6.0+b2dc6d61544153ef0383b85efa58f636cbf04923`, lokal gleich |
+| Größe | „about 90 MB“ | 92,3 MiB; Delta von v0.5.1 0,85 MB |
+| Hygiene | letztes stable unter den 10 neuesten | 10 Releases sichtbar, v0.6.0 an der Spitze (davon 2 Holo-Pre-Releases) |
+
+**Wiki:** CC hat `v0.6.0` lokal mit `--no-ff` nach `master` gemergt (`4f42138`); Martin pusht.
+
 **Akzeptanz:**
 - [ ] Notes vom Master-Chat freigegeben; `git log v0.5.1..main` ohne unerwähnten Nutzer-sichtbaren Commit
 - [ ] **Netz-Gate (Martin, SC vorn):** v0.5.1-Portable in eigenem Ordner → Start → Velopack bietet 0.6.0 → Update →
