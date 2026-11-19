@@ -225,7 +225,7 @@ rot sein.
 - **Gate Martin am Aufzug (SC vorn):** drei Verträge scannen → #1, #2, #3 von oben; Re-plan → unverändert;
   App-Neustart → unverändert. **Abgenommen 19.11.2026** („abgenommen, passt“). Merge `--no-ff`, Martin pusht.
 
-### [ ] B17 Sektionen: Lücke bei Rest-Einzelkiste
+### [x] B17 Sektionen: Lücke bei Rest-Einzelkiste (19.11.2026)
 
 **Warum:** ARGO RAFT, `grouping: byDestination`, Kistenmix 2+1 (auch 4+1): der Planer legt die 1-SCU-Kiste neben die
 Sektion mit einer leeren Zelle dazwischen oder in eine eigene Reihe – die Sektion ist kein Block mehr.
@@ -391,7 +391,9 @@ Gap 0–2, Plan und Re-plan; 3768 Kistenzeilen) vor und nach der Änderung. Test
 - **Testzahlen aus sauberen Worktrees:** vorher (`e5400be`) Core 1919, App 2082, Import 280, Ocr 34; nachher (`df46792`)
   Core **2009** (+90), App 2082, Import 280, Ocr 34, alle grün; `dotnet build` 0 Warnungen, `dotnet format
   --verify-no-changes` sauber. Die Arbeitskopie zählt Core +6, App +1 (gitignorte `Scratch*`-Tests, Lehre T11.3).
-- **Gate Martin am Aufzug:** offen.
+- **Gate Martin am Aufzug (SC vorn, RAFT):** zweiter Scan mit 2+1 zu einem Ziel im Rack → Block geschlossen, Einzelkisten
+  nebeneinander, Gap zwischen den Blöcken sichtbar; geladen abgehakt und erneut gescannt → Geladenes bleibt liegen.
+  **Abgenommen 19.11.2026** („ist abgenommen, funktioniert wie erwartet“). Merge `--no-ff`, Martin pusht.
 
 ### [ ] F10 Seitenweise Planung
 
