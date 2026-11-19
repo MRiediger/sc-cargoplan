@@ -7348,12 +7348,101 @@ Copy-Item "$env:LocalAppData\SC-CargoPlan\plan.json" $data   # dein Hull-A-Plan
 ### [ ] T12.6 Release (beide Repos; Teile mit **App:** hier)
 
 **Warum:** Erst ein echtes Data-Release, dann die App, die es liest, dann der erste Monatslauf.
-- Erstes Data-Release `ships-2026.11` per Knopf (= Stand 4.10.3 / holo-v3)
-- **App:** v0.6.0 mit dieser Baseline, Wiki (Installation, Ships), README beider Repos, Notes
-- `sc-ship-outlines` archivieren; `holo-v3` im App-Repo bleibt bis v0.5.x ausgelaufen ist
-- Danach: erster echter Monatslauf per Knopf
+- [x] Erstes Data-Release `ships-2026.11` per Knopf (= Stand 4.10.3 / holo-v3) – erledigt mit T12.2 im Shipdata-Repo
+  (`ships-2026.11` Seed, `ships-2026.11.1` Latest, Dispatch 1/2)
+- **App:** v0.6.0 mit dieser Baseline, Wiki (Installation, Ships), README beider Repos, Notes → **T12.6a** (unten)
+- `sc-ship-outlines` archivieren → **T12.6b** (Martin-Klick); `holo-v3` im App-Repo bleibt bis v0.5.x ausgelaufen ist
+  → T12.6a Punkt 6
+- [x] Danach: erster echter Monatslauf per Knopf – erledigt mit T12.2 (Dispatch 1/2 → `ships-2026.11.1`)
 
 **Akzeptanz:** Netz-Gate, SC im Vordergrund: v0.5.1 → v0.6.0 per Velopack, dann Data-Update im Overlay. Ab hier Branch + `--no-ff` für jede Änderung an diesem Repo.
+
+**Aufteilung (Startprompt Master-Chat, 19.11.2026):** **T12.6a App-Release v0.6.0** (dieses Repo, zuerst) und
+**T12.6b Shipdata-Abschluss** (Shipdata-Repo, Branch `docs/p12-close`, Plan `docs/plans/T12.6b-abschluss.md`, danach
+oder parallel). Das Data-Update im Overlay aus der Akzeptanz oben entfällt für v0.6.0: Latest = Baseline, also **keine**
+Ship-data-Zeile (geprüft im Netz-Gate); den Kanal hat das T12.3-Gate gegen das echte GitHub schon belegt.
+
+#### [ ] T12.6a App: Release v0.6.0 (Branch `release/v0.6.0` ab `9d10033`)
+
+**Lage:** `main` trägt T12.3–T12.5 (D112–D114). Pin `build/ship-data.json` = `ships-2026.11.1` = Latest → v0.6.0
+startet mit 110 Schiffen inkl. GAMA Hyun, ohne Ship-data-Zeile. Veröffentlicht ist v0.5.1 (GitHub, Nexus-Upload offen
+aus V5); Velopack v0.5.1 → v0.6.0 ist der Netz-Gate. `holo-v3` (Pre-Release) bleibt für v0.5.x. CI auf `main` grün
+(Run 44372291418).
+
+**Plan (19.11.2026, Freigabe Master-Chat 19.11. mit R1 Vorschlag, R2 keine Zeile)**
+
+1. **Release-Notes `docs/release-notes/v0.6.0.md`** (eigener Commit, **einzeln zur Freigabe vor dem Tag**), Aufbau wie
+   `v0.5.1.md`:
+   - *Updating:* v0.5.1 → Update-Zeile (Delta, wenn genau eine Version zurück); v0.5.0 → Update-Zeile, voll; v0.4.0
+     und älter → Handanleitung von v0.5.0. SHA, Borderless.
+   - *Ship data:* eigener Kanal `sc-cargoplan-shipdata`, monatliches Data-Release, Zeile `Ship data update available ·
+     <v>` mit Update / Skip this version, Übernahme per Neustart, Plan bleibt; 110 Schiffe, neu GAMA Hyun, F7C Hornet
+     Mk II jetzt aus den Spieldateien; Quelle Motherlode (cryon.rocks).
+   - *Changes:* Hologramme folgen dem Datenstand; Settings-Abschnitt „Ship data“; Holo-Schalter mit Text, wenn der
+     Stand keine Holos anbietet; CLI `ships --version`; gespeicherter Plan mit unbekanntem Rack wird neu geplant statt
+     beiseitegelegt (R3/D59-Addendum).
+   - *Network access:* drei, alle GET, nur github.com, je Schalter: App-Update-Check, Ship-data-Check (+ Download auf
+     Klick), Holo-Dateien.
+   - *Before you update:* alter Cache `holo\holo-v3` wird einmal gelöscht (eine Notice), Holos kommen einmal neu.
+   - *Known issues:* Datenstand älter als zwei Releases → fehlende Hologramme als Umriss, die Update-Zeile ist der Weg
+     zurück; Downgrade auf v0.5.x lädt den Holo-Cache neu; 135c und 600i EE weiter Fleetyards; die übrigen Update-KIs
+     aus v0.5.1, soweit gültig. Notice- und Settings-Wortlaut per Grep aus `src/`, nicht aus dem Gedächtnis.
+   - *Vollständigkeit (Lehre T9.2):* jeder der 21 Nicht-Merge-Commits aus `git log v0.5.1..main` in einer Tabelle hier
+     zugeordnet; `9832bea` (Dependabot `action-gh-release`, nur CI) ohne Zeile (R2).
+   - Credits/Fuß: Motherlode als Quelle der Schiffsdaten; Not-under-MIT-Satz wie README (NOTICE des Data-Release).
+2. **README:** Z. 19 → 110 Schiffe, zwei mit Fleetyards-Daten (135c, 600i EE); Abschnitt **Ship data** (woher, wie oft,
+   Meldeweg nach R1); Liste **Network access** (drei GET, Schalter); Fleetyards-Credit auf zwei Schiffe, bleibt als
+   Geschichte; „Not affiliated“ bleibt.
+3. **Wiki** (`..\sc-cargoplan.wiki`, Branch `v0.6.0` ab `master` `8916f01`): Installation and first start (erster Start
+   ohne Netzpflicht, zwei Update-Zeilen, Dateitabelle `holo\<data version>\` und `ships\<tag>\`), Ships and cargo grids
+   (110, Hyun, Quelle, monatlich, Meldeweg, Holos aus dem Data-Release), Preferences (Abschnitt Ship data, Holo-Schalter
+   mit Kill-Switch-Text), Overlay basics (zwei Update-Zeilen). **Push erst nach dem Tag.**
+4. **Nexus-Texte** `docs/nexus/description.bbcode`, `checklist.md`, `summary.txt`: 110 Schiffe, Datenkanal, drei
+   Netzzugriffe (Nexus-Regel: offenlegen), holo-v3 → Data-Release. Upload macht Martin mit demselben ZIP.
+5. **`ship-correction.yml`** und **CONTRIBUTING** „Correct ship data“: Daten liegen in `sc-cargoplan-shipdata`, ein PR
+   geht dorthin; Zahlen auf heute.
+6. **`holo-v3`-Auslauf:** D63-Addendum (19.11.2026): Release bleibt bis **31.01.2027** (zwei Monate nach v0.6.0);
+   Backlog-Zeile „`holo-v3` löschen“ mit Auslöser 31.01.2027 und Anlass D114. Kein Löschen in T12.6.
+7. **Stopp:** Notes zur Freigabe (Master-Chat), Rest als Diff zur Durchsicht.
+8. **Release nach Notes-Freigabe:** Draft-PR `release/v0.6.0` → `main` nur für CI, grün abwarten → Merge `--no-ff` lokal
+   → auf dem Merge-Commit `dotnet build`, `dotnet format --verify-no-changes`, `dotnet test` im sauberen Worktree,
+   `./build/publish.ps1 -Version 0.6.0 -DeltaBase github` (Layout-Prüfung inkl. `ship-data\` = `ships-2026.11.1
+   (baseline)`), B7-Referenz → Martin pusht `main` → CI grün → Tag `v0.6.0` (Martin) → `release.yml` →
+   **Release-Prüfung (CC)** als Tabelle wie T11.5 (Latest, Body = Notes, Assets inkl. Delta und Feed, SHA, ZIP-Wurzel,
+   `ship-data\`, Runtime = lokal, Größe) → ZIP-Größe in CLAUDE.md → CC merged Wiki `v0.6.0` lokal `--no-ff`, Martin
+   pusht → **Netz-Gate** (Martin) → Nexus (Martin).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. Wiki zusätzlich: Updates (dritter Netzzugriff), FAQ („two things“, „three from Fleetyards“), Troubleshooting (zwei
+   Entwürfe statt drei), `_Footer` → v0.6.0 – sonst widersprechen sie den vier genannten Seiten.
+2. „Settings“ im Wiki = Seite `Preferences` (eine Seite „Settings“ gibt es nicht).
+3. Draft-PR nur für CI vor dem Merge (Lehre V5: `MinWidth` war erst auf `main` rot, der Branch lief nie durch CI).
+4. Backup von `%LocalAppData%\SC-CargoPlan` (settings, plan, `.bak`) vor dem Netz-Gate in der Anleitung: das
+   Velopack-Update läuft ohne `--data-dir` im echten Profil.
+5. ZIP-Größe v0.6.0 in CLAUDE.md nach der Release-Prüfung (Muster `3d15333`).
+6. **R1 Meldeweg falscher Grids** (Sciirofs Wunsch steht aus): `ship-correction.yml` bleibt im App-Repo als Einstieg
+   (Hauler kommen hier an), nennt `sc-cargoplan-shipdata` als Ort der Daten und Ziel eines PR, „wir geben es an
+   Motherlode weiter“; README/Wiki: Issue hier oder im Shipdata-Repo. Direkt bei Motherlode erst, wenn Sciirof es so will.
+7. **R2:** keine Notes-Zeile für `9832bea` (Dependabot, nur CI, nicht im ZIP; wie Test.Sdk in V4).
+8. Sciirof-Antwort (18.11., Master-Chat) im Backlog unten nachgetragen; die drei Pipeline-Punkte gehen an T12.6b.
+
+**Akzeptanz:**
+- [ ] Notes vom Master-Chat freigegeben; `git log v0.5.1..main` ohne unerwähnten Nutzer-sichtbaren Commit
+- [ ] **Netz-Gate (Martin, SC vorn):** v0.5.1-Portable in eigenem Ordner → Start → Velopack bietet 0.6.0 → Update →
+  Neustart → 110 Schiffe, Hyun mit Holo, `holo-v3`-Notice einmal, Hull-A-Plan da, **keine** Ship-data-Zeile, Settings
+  `In use: 2026.11.1 (built in)`
+- [ ] Nexus-Seite auf 0.6.0 (Martin)
+- [ ] Commits `T12.6a: …`, kein `Co-Authored-By`
+
+#### [ ] T12.6b Shipdata-Abschluss (Shipdata-Repo, Plan und Abnahme in dessen `TASKS.md`)
+
+README des Shipdata-Repos, Phase 12 dort schließen (Lehren), Backlog konsolidieren, SD13, `cache/`-Hygiene,
+Martin-Klicks (`sc-ship-outlines` archivieren, „Automatically delete head branches“, Sciirof-Mail). **Backlog-Nachtrag
+Sciirof (18.11., Master-Chat) für dort:** (1) Motherlode liefert die Modell-URL in der `/cargo-grids`-Antwort: `fetch`
+liest sie, wenn das Feld da ist, sonst die Seite, Summary zählt „from API / from page“, einen Monat beides, dann
+Scraper raus (SD-Eintrag); Feldname unbekannt, Task erst, wenn das Feld erscheint. (2) 135c bekommt voraussichtlich
+eine Transform: liefert der Katalog eine Transform für ein Schiff in `overrides.json`, endet der Lauf mit Stopp → PR
+„override obsolete“, nie still (Regel prüfen/ergänzen). (3) Cyclone ggf. zurück: SD6 „wieder da“ deckt es ab, nur Zeile.
 
 ---
 
@@ -7424,11 +7513,16 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   06.12.: Release und Tag weg, `releases/download/holo-v1/manifest.json` 404; v0.1/v0.2 zeigen den Umriss.
 - Modelle für 135c, 600i Executive Edition und F7C Hornet Mk II bei Sciirof (Motherlode) anfragen, mit Rückmeldung zur
   Handprüfung als Gegenleistung (Session 4a/4c). Auslöser: nach dem Launch, mit der Nachricht zu v0.3.0 (R5).
+  **Stand 19.11.:** F7C erledigt (Spieldateien seit `ships-2026.11.1`, T12.2), 135c siehe unten; offen nur die 600i EE.
 - Sciirof fragen, warum die **Cyclone** im Katalog 2026-11-16 (4.10.3-LIVE.13165946) fehlt; bis dahin behält sie ihre
   holo-v2-Datei und ihren Umriss, `ships/cyclone.json` bleibt `absent` (V2). Auslöser: nächste Nachricht an Sciirof.
+  **Antwort Sciirof (18.11.):** kommt ggf. zurück; die Pipeline deckt das mit SD6 „wieder da“ ab → Shipdata-Backlog
+  (T12.6b), hier nichts zu tun.
 - Sciirof fragen nach einer Platzierung (Transform) für das Grid der **135c**: Modell `ORIG_135c` ist seit 2026-11-16 im
   Katalog, aber ohne Transform bleibt sie `kept` (Fleetyards-Racks, holo-v1). Mit Transform: Racks und Anker aus dem
   Modell. Auslöser: nächste Nachricht an Sciirof.
+  **Antwort Sciirof (18.11.):** Transform kommt voraussichtlich; die Pipeline stoppt dann mit PR „override obsolete“
+  (Regel in T12.6b) → Shipdata-Backlog, hier nichts zu tun.
 
 - Sektionsreihenfolge per Legenden-Drag (Spielerreihenfolge). Auslöser: Hauler-Report, dass die Legendenreihenfolge nicht reicht.
 - `defaultFillOrder`, `fillRows`/`grouping`-Default pro Schiff in der Schiffs-JSON. Auslöser: zweites Schiff braucht einen anderen Default.
