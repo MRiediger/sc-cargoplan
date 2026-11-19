@@ -67,3 +67,49 @@ jobs:
       - name: Publish and pack
         if: runner.os == 'Windows'
         run: ./build/publish.ps1 -Version 0.0.1-ci
+
+      # The Linux CLI tarball exactly as the release carries it (D115), for the job below to start on Linux. The tarball
+      # keeps its modes; the zip the action wraps around it doesn't matter. One day is enough: only this run reads it.
+      # Source: https://github.com/actions/upload-artifact/blob/v7/action.yml (name, path, if-no-files-found, retention-days)
+      - name: Keep the Linux CLI
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v7
+        with:
+          name: cli-linux-x64
+          path: out/release/SC-CargoPlan-Cli-v0.0.1-ci-linux-x64.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
+  # The tarball packed on Windows must start on Linux without chmod (K12: a plain tar lost the execute bit). Not scan:
+  # its test pictures are CIG material and stay out of the repository; K12 compared 42 captures by hand, byte for byte.
+  cli-linux:
+    name: Linux CLI from the release tarball
+    needs: build-test
+    runs-on: ubuntu-latest
+
+    steps:
+      # For the mission fixture and the pin of the ship data.
+      - uses: actions/checkout@v7
+
+      # Source: https://github.com/actions/download-artifact/blob/v8/action.yml (name, path)
+      - uses: actions/download-artifact@v8
+        with:
+          name: cli-linux-x64
+          path: artifact
+
+      # jq is on the runner image. Source: https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
+      - name: Unpack and start
+        run: |
+          set -euo pipefail
+          mkdir cli
+          tar -xzf artifact/SC-CargoPlan-Cli-v0.0.1-ci-linux-x64.tar.gz -C cli
+          cd cli/SC-CargoPlan-Cli
+          ls -l CargoPlan.Cli
+          version=$(./CargoPlan.Cli --version)
+          echo "version: $version"
+          [[ "$version" == 0.0.1-ci+* ]] || { echo "::error::CargoPlan.Cli --version says '$version', not 0.0.1-ci"; exit 1; }
+          pin=$(jq -r .dataVersion "$GITHUB_WORKSPACE/build/ship-data.json")
+          ships=$(./CargoPlan.Cli ships --version)
+          echo "ships: $ships"
+          [[ "$ships" == "$pin (baseline) "* ]] || { echo "::error::ships --version says '$ships', not $pin (baseline)"; exit 1; }
+          ./CargoPlan.Cli plan "$GITHUB_WORKSPACE/tests/CargoPlan.Core.Tests/Fixtures/example_missions.json"
