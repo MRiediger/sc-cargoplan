@@ -25,6 +25,7 @@ shows it in a translucent window next to the game.
 ## Install
 
 1. Download `SC-CargoPlan-v<version>-win-x64.zip` from the [latest release](https://github.com/MRiediger/sc-cargoplan/releases/latest).
+   Also on [Nexus Mods](https://www.nexusmods.com/starcitizen/mods/52) – the same ZIP; updates still come from GitHub.
 2. Right-click it → **Extract All** into a new folder you can write to (not `Program Files`).
 3. Start `SC-CargoPlan.exe` in that folder. Windows warns that the app is unsigned: **More info → Run anyway**.
 
