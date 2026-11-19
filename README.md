@@ -120,4 +120,5 @@ All known issues: [Troubleshooting](https://github.com/MRiediger/sc-cargoplan/wi
 the same releases, under the same `NOTICE.md`).
 
 If it helps you:
+
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Buy%20me%20a%20coffee-FF5E5B?logo=kofi&logoColor=white)](https://ko-fi.com/plintonium)
