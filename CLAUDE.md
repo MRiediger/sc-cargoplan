@@ -88,6 +88,7 @@ sc-cargoplan/
 │   └── CargoPlan.Ocr.Tests/       # läuft nur unter Windows (D12-Muster, Schrift der Testbilder)
 ├── docs/
 │   ├── decisions.md               # D1…, nummeriert, mit Addenda
+│   ├── tasks-archive/             # Geschichte: abgeschlossene Phasen, Releases, Sessions aus TASKS.md, wortgleich (K11); Index und Lehren in TASKS.md
 │   ├── mission-format.md · plan-format.md · settings-format.md · ship-format.md · holo-format.md
 │   ├── update-testing.md          # Entwickler: lokaler Feed, --updates-prerelease, Release-Dateien, 10er-Fenster (D109)
 │   ├── release-notes/             # je Release, Geschichte: nie nachträglich ändern

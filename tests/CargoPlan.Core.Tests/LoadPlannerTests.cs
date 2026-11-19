@@ -22,7 +22,7 @@ public class LoadPlannerTests
     private static string[][] StopsPerRack(LoadPlan plan) =>
         [.. HullA.Racks.Select(r => plan.PlacementsForRack(r.Id).Select(p => p.Destination).Distinct().ToArray())];
 
-    // --- Cases from TASKS.md ---
+    // --- Cases from T2.1 (docs/tasks-archive/phase-02-verteilalgorithmus.md) ---
 
     [Fact]
     public void Plan_example_missions_puts_each_stop_in_its_own_rack_from_rack_1()

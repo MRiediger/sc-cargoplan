@@ -9,7 +9,7 @@ mod/utility" and ask authors of such tools to contact staff with their reasoning
 The request names November 16, 2026 as the publishing date: 14 days, not an open wait (D87). Without an answer by
 then, the page goes up with the disclosure of this request; a refusal stops T9.3.
 
-Record the date sent, the date and wording of the answer (or "no answer by November 16") in TASKS.md (T9.3).
+Record the date sent, the date and wording of the answer (or "no answer by November 16") in T9.3 (`docs/tasks-archive/phase-09-release.md`).
 
 ---
 
