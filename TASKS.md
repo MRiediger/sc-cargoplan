@@ -356,6 +356,43 @@ Zellbild, kommt die Begründung in den Befund (Reihen-Asserts allein belegen nic
 aller K9-Fixture-Pläne mit Sektionen (RAFT-Plan + neun Paare aus `RackSectionsTests.Fixtures`, je Reihen, Richtung,
 Gap 0–2, Plan und Re-plan; 3768 Kistenzeilen) vor und nach der Änderung. Tests rot zuerst, dann bauen.
 
+**Befund (19.11.2026, `df46792`):**
+- **Rot-Lauf** (`SectionBlockTests` gegen den alten Code): 56 von 88 rot per Assert. R1 High Course in falschen
+  Zellen (L7/w3 leer); R2 Loch `Thundering Express @ 4.1.1`; Lückenhinweis fehlt; zweite 1er nicht auf L7/w4; dieselbe
+  Lücke ohne Geladenes bleibt (`High Course @ 7.3.0`); Matrix 50 von 72, alle erst beim **zweiten Erfassen** (frischer
+  Plan und Scan in leeren Plan waren auch mit Querprüfung lochfrei, der Detektor schlägt nicht falsch an); R4 Lauf 0.
+  Grün schon vorher, als Wächter: E1-Gleichstand (2), Abstände genau `sectionGap` (7), R5 (1), Matrix 22.
+- **E1 provoziert rot:** Gleichstand testweise auf „letzte Zelle in Füllreihenfolge“ gedreht → 4 rot (beide E1-Fälle,
+  Lückenhinweis, Lauf-135-Test), zurückgesetzt.
+- **Eigenschaftstest** (200 Mixe × Plan/zweimal erfasst = 400 Prüfungen) nach dem Umbau: 5 Löcher, alle nach dem
+  zweiten Erfassen. **4** (Läufe 19, 135, 148, 163) in Racks mit „placed outside sections (capacity)“: Ein Ziel ohne
+  eigene Reihen belegt Zellen in fremden Reihen, die dann feste Hindernisse sind (Lauf 135: B 9×1 in Cs Reihe L9, Cs
+  zweite 4er passt nicht, L8/w3–w4 leer). **Martin: Backlog-Zeile** (siehe Backlog), Test
+  `A_destination_outside_sections_can_leave_a_gap_in_another_section` hält den Fall fest, der Eigenschaftstest nimmt
+  solche Racks aus. **1** (Lauf 103) in einer geteilten Sektion (F mit B): Bs 2er lagen fest in Fs Reihen, Fs Lücke war
+  rechnerisch unvermeidbar. **Martin: die ganze geteilte Sektion neu** → umgesetzt (`SectionNotes.Sharing` liest die
+  Partner transitiv aus den „shares a section“-Hinweisen); Test `A_capture_lays_a_shared_section_anew_whole` war rot
+  (`F @ 2.3.0`), ist grün. Danach 4 von 400, nur die Kapazitätsfälle.
+- **K9 auf Zellebene:** 48 von 240 Fällen ändern Zellen, **160 Kisten, alle 1 SCU, keine größere**; RAFT-Fixture 52,
+  `hull_a_eight_stops`@RAFT 108; Hull A, Freelancer, `crate_mix`: byte-gleich. **Begründung:** Eine 1er nimmt jetzt die
+  Zelle mit den meisten Nachbarn ihrer Sektion in derselben Schicht und Reihe; meist Ebene 1, etwa RAFT-Fixture
+  crosswise Gap 1: Green PI 1 von L11/w5 nach L10/w4 (neben die eigene Kiste statt in eine neue Breite), Thundering PI 1
+  von L5/w3 nach L4/w2. Reihen unverändert, daher bleiben die Reihen-Goldens grün. Der Schritt „geteilte Sektion“ ändert
+  den Schnappschuss nicht (Erfassen, kein frischer Plan).
+- **Bestehende Tests, die kippten: Core 0, App 0**, darunter alle `RackSectionsSyncTests` mit `NothingMoved`: Die
+  Neulage legt die alten Kisten dort auf dieselben Zellen, und `MovedCrates` zählt gleiche Kisten nicht.
+- **Änderung:** `CrateLayout` (`snug`: `RackSpace` merkt sich die Zellen der Sektion, 1er nach Nachbarn, Gleichstand nach
+  Füllrang), `RackSections` (`Laid` mit `snug`, `Encloses`, `SectionNotes.Gap` und `Sharing`), `LoadPlanner`
+  (`StopByStop` übernimmt neu gelegte Kisten, `LayStop.InSection` legt zuerst die Sektion neu, dann die alten Stufen mit
+  `snug`; Hinweis bei Restlücke). `BackOnBoard` (K2.2) unverändert. Diff: 3 Quelldateien +212/−15, Tests 1 neu (+355),
+  `docs/decisions.md` +2. Kein Schema-Bump (Plan-Schema 10).
+- **Docs:** D41-Addendum (B17), D89-Addendum (B17) mit Gegenargumenten. Wiki: Absatz in „Plan and editor“ auf lokalem
+  Wiki-Branch `b17-section-block` (`1009927`, ab `master`), Backlog-Zeile für den Push mit dem nächsten Tag.
+- **Testzahlen aus sauberen Worktrees:** vorher (`e5400be`) Core 1919, App 2082, Import 280, Ocr 34; nachher (`df46792`)
+  Core **2009** (+90), App 2082, Import 280, Ocr 34, alle grün; `dotnet build` 0 Warnungen, `dotnet format
+  --verify-no-changes` sauber. Die Arbeitskopie zählt Core +6, App +1 (gitignorte `Scratch*`-Tests, Lehre T11.3).
+- **Gate Martin am Aufzug:** offen.
+
 ### [ ] F10 Seitenweise Planung
 
 **Warum:** Auf Schiffen mit Racks nebeneinander (Hull B: Spindel links/rechts) wollen Hauler erst eine Seite auffüllen,
