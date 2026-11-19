@@ -7578,7 +7578,7 @@ eine Transform: liefert der Katalog eine Transform für ein Schiff in `overrides
 
 ## K12 Doku-Abschluss, Backlog II, F11 (19.11.2026) – Branch `docs/backlog-ii`
 
-### [ ] K12 Doku-Abschluss, Backlog II, F11
+### [x] K12 Doku-Abschluss, Backlog II, F11 (19.11.2026, Freigabe Backlog-Chat 19.11.)
 
 **Warum:** v0.6.0 ist draußen (19.11.), Phase 12 im Shipdata-Repo mit T12.6b geschlossen. Hier stehen noch überholte
 Haken (R5 Nachlauf v0.4.0), der Phase-12-Abschluss und Doku, die Schiffsdatei-PRs in ein `ships/` des Shipdata-Repos
@@ -7760,6 +7760,48 @@ mehr (`maxCrateSize` aus dem letzten Release, kein Override-Feld). Anlass: erste
 
 **Wiki (19.11.):** Martin hat `master` gepusht (`5a1ab1d`); `k12-ship-reports` setzt darauf auf.
 
+**Umsetzung (CC, 19.11.2026):** Commits `bcd674c` (R5, Phase 12, R1), `f2f1669` (Schiffsdatei-PRs), `7e58081`
+(Code-Signing), `b80966d` (Backlog II), `b157566` (D115), `750b44e` (Tarball), `9de2e2e` (CI), `91fdf2e` (README); Wiki
+lokal `k12-ship-reports` `06b4004` (nicht gemergt, Backlog-Zeile „nächster Tag“).
+
+**Messwerte:**
+- `./build/publish.ps1 -Version 0.6.1-k12` lokal (PS 5.1): 24 s gesamt; `Layout check: … passed (388 files in current\,
+  110 ship files of ships-2026.11.1, 5 PDBs, version 0.6.1-k12)`; `Tarball check: SC-CargoPlan-Cli-v0.6.1-k12-linux-x64.tar.gz
+  passed (326 files in SC-CargoPlan-Cli/, 110 ship files of ships-2026.11.1, CargoPlan.Cli executable, version
+  0.6.1-k12)`. Tarball **66 360 872 B**, `.sha256` 111 B; Windows-ZIP unverändert 96 761 307 B.
+- Tarball-Prüfung **dreimal provoziert rot:** (1) Ordner per bsdtar ohne mtree gepackt → jede Datei `-rw-rw-rw-`,
+  `CargoPlan.Cli` nicht ausführbar; (2) mtree ohne `models/NOTICE.md` → „missing“ und „not in the tarball“; (3) `-Version
+  0.6.2` → „CargoPlan.Cli.dll has the version '0.6.1-k12+…', not 0.6.2“.
+- **WSL Ubuntu 24.04.2, Tarball aus `out/release`:** ein Wurzelordner `SC-CargoPlan-Cli/`, `CargoPlan.Cli` `-rwxr-xr-x`
+  ohne `chmod`; `--version` → `0.6.1-k12+b157566…`; `ships --version` → `ships-2026.11.1 (baseline) …`; `plan
+  example_missions.json` = Windows (166 B); **`scan` über alle 42 Aufnahmen aus `sc-ocr-samples/set`: 42/42 Exit 0, 42/42
+  byte-gleich zu `CargoPlan.Cli.exe` desselben Builds** (65 259 B nach CRLF → LF; Linux 64 s, Windows 87 s).
+- Sauberer Worktree auf `91fdf2e`, SDK 10.0.404: Build `0 Warnung(en)`, `0 Fehler`; `dotnet format --verify-no-changes`
+  Exit 0; Tests `Bestanden! … erfolgreich: 1913, … gesamt: 1913 - CargoPlan.Core.Tests.dll`, `… 280 … Import`, `… 34 …
+  Ocr`, `… 2079 … CargoPlan.App.Tests.dll` – dieselben Zahlen wie beim v0.6.0-Merge, App-Tests unverändert.
+- Draft-PR [#30](https://github.com/MRiediger/sc-cargoplan/pull/30) nur für CI, Run 44519400677: `Build & test
+  (ubuntu-latest)` 1 min 54 s, `Build & test (windows-latest)` 3 min 17 s (darin `Tarball check: … passed (326 files …,
+  version 0.0.1-ci)`, Artefakt `cli-linux-x64`), **`Linux CLI from the release tarball` 12 s**: `-rwxr-xr-x … CargoPlan.Cli`,
+  `version: 0.0.1-ci+7f4f0c5…`, `ships: ships-2026.11.1 (baseline) …`, Plan Rack 1–4.
+
+**Präzisierungen beim Umsetzen:**
+- Eigenes Skript `build/check-cli-tarball.ps1` statt einer Prüfung in `publish.ps1`: wie `check-portable.ps1` einzeln
+  gegen einen von Hand gepackten Tarball aufrufbar (so wurde es rot provoziert). Die Version liest es aus der
+  `ProductVersion` von `CargoPlan.Cli.dll`, weil Linux-Code unter Windows nicht startet.
+- `ship-format.md`: „Correcting a rack“ heißt jetzt „Moving a rack“ (Formatbeispiel für Testdateien und
+  `--ship-data-source`), CONTRIBUTING „Contribute a ship“ → „Missing a ship?“; kein Link zeigte auf die alten Anker (Grep).
+- `upload-artifact@v7` packt per Default in ein ZIP (`archive: true`), `download-artifact@v8` entpackt es; die Modi trägt
+  der Tarball. `jq` ist im Runner-Image (`Ubuntu2404-Readme.md`: jq 1.7), als Quelle im YAML.
+
+**Akzeptanz:**
+- [x] `grep -n '^### \[ \]' TASKS.md` zeigt nur K11, B16, B17, F10 (F11 ohne Rest: `scan` läuft unter Linux)
+- [x] README ohne SignPath-Absatz; README, CONTRIBUTING, `ship-format.md`, `ship-correction.yml` und `ship.yml`
+  versprechen keinen Schiffsdatei-PR mehr (Grep `pull request` nur noch mit „no pull requests“)
+- [x] `build/publish.ps1` lokal: Tarball entsteht, `./CargoPlan.Cli --version` unter WSL liefert die Version; `ci.yml`
+  grün inkl. Start unter Ubuntu (Run 44519400677)
+- [x] Alle Tests grün, App-Tests unverändert (2079)
+- [x] Commits `K12: …` bzw. `F11: …`, kein `Co-Authored-By`; Merge `--no-ff` (CC), Martin pusht
+
 ---
 
 ## Backlog II (19.11.2026)
@@ -7806,7 +7848,7 @@ dann die andere, statt Missionen nach Ziel und Kapazität über beide Seiten zu 
 
 **Akzeptanz:** Hull-B-Fixture (`FrozenShips`, A10); das Default-Verhalten ist byteidentisch zu heute.
 
-### [ ] F11 Linux: CLI statt Overlay
+### [x] F11 Linux: CLI statt Overlay (19.11.2026, in K12)
 
 **Warum:** Anfrage nach Linux. Ein Overlay-Port wäre ein zweites Projekt (WPF + Win32); die CLI läuft ohne Windows.
 Umgesetzt in **K12** (D115, `linux-x64`-Tarball, README-Zeile), Plan und Befunde dort.
