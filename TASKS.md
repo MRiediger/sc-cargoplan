@@ -202,6 +202,29 @@ App: drei `ApplyScan` → Legende #1, #2, #3, unverändert nach Re-plan, Abhaken
 **Freigabe 19.11.2026:** P1–P4 ratifiziert, F1 bestätigt (Sektionen folgen der Legende), K1. Rot-Lauf zuerst, R1 muss
 rot sein.
 
+**Befund (19.11.2026, `9f396a3`):**
+- **Rot-Lauf, Stufe 1 (App, alter Code, Core-Testdatei geparkt):** `LegendScanOrderTests` 2 von 2 rot per Assert,
+  R1 „Expected … {1, 2, 3}, but {1, 3, 2} differs at index 1“ – der gemeldete Fall.
+- **Rot-Lauf, Stufe 2 (Core, `LegendOrder` als Stub = heutige Listenfolge):** 5 von 45 rot per Assert (R1 `{1, 3, 2}`,
+  getippte Mission `{1, 0, 2}`, Sektionen `{A, C, B}`, Re-plan `{1, 3, 2}`, Rang-Fallback `{3, 1, 2}`); der Lösch-Test
+  war schon vorher grün (wie geplant). **Bestehende Tests, die kippten: Core 0** (alle K9-Goldens in `RackSectionsTests`
+  unverändert grün), **App 1:** `ShipViewBuilderTests.The_legend_keeps_the_order_of_entry_and_a_stop_keeps_its_colour`
+  hielt die B6-Folge #1, #3, #2 als Soll („the new mission's line stands next to the delivered one“) – Erwartung auf
+  #1, #2, #3 umgestellt, der Farbteil (Riker behält seine Farbe) unverändert.
+- **P2-Test** (wartende Missionen, Liste ≠ Scan-Folge) rot gegen den alten `ShipViewBuilder` (`{1, 2}` statt `{2, 1}`).
+  Im selben Lauf: mit alter Übergabe der Listenfolge kippte die Legende erst **nach dem Editor-Plan** auf {1, 3, 2} –
+  P1 am echten Ablauf belegt.
+- **Änderung:** `SavedPlan.LegendOrder` (neu, eine Stelle für die Regel), `LoadPlan.LegendMissions` (Ordnung des
+  Aufrufers zuerst, Rang-Fallback dahinter), `LoadPlanner.Sectioned` und `ShipViewBuilder` (Legende, wartende) lesen
+  `LegendOrder`. Diff: 4 Quelldateien, +23/−13; Tests 2 Dateien geändert, 1 neu (+171/−3). Kein Schema-Bump (Plan-Schema 10).
+- **Docs:** D69-Addendum (B16, mit Gegenargument), D89-Addendum. Wiki: Satz in „Legend and delivery states“ auf lokalem
+  Wiki-Branch `b16-legend-order` (`0386c22`, ab `master`), Backlog-Zeile für den Push mit dem nächsten Tag (K1).
+- **Testzahlen aus sauberen Worktrees:** vorher (`7b6d90a`) Core 1913, App 2079, Import 280, Ocr 34; nachher
+  (`9f396a3`) Core **1919** (+6), App **2082** (+3), Import 280, Ocr 34, alle grün; `dotnet build` 0 Warnungen,
+  `dotnet format --verify-no-changes` sauber. Die Arbeitskopie zählt 3 mehr (gitignorte `Scratch*`-Tests, Lehre T11.3).
+- **Offen:** Gate Martin am Aufzug (SC vorn): drei Verträge scannen → #1, #2, #3 von oben; Re-plan → unverändert;
+  App-Neustart → unverändert. Danach `[x]`, Merge `--no-ff`, Martin pusht.
+
 ### [ ] B17 Sektionen: Lücke bei Rest-Einzelkiste
 
 **Warum:** ARGO RAFT, `grouping: byDestination`, Kistenmix 2+1 (auch 4+1): der Planer legt die 1-SCU-Kiste neben die
