@@ -7403,6 +7403,7 @@ aus V5); Velopack v0.5.1 → v0.6.0 ist der Netz-Gate. `holo-v3` (Pre-Release) b
    geht dorthin; Zahlen auf heute.
 6. **`holo-v3`-Auslauf:** D63-Addendum (19.11.2026): Release bleibt bis **31.01.2027** (zwei Monate nach v0.6.0);
    Backlog-Zeile „`holo-v3` löschen“ mit Auslöser 31.01.2027 und Anlass D114. Kein Löschen in T12.6.
+   **Durchsicht (Martin, 19.11.):** `holo-v2` bekommt dasselbe Datum; Addendum und Backlog-Zeile nennen beide.
 7. **Stopp:** Notes zur Freigabe (Master-Chat), Rest als Diff zur Durchsicht.
 8. **Release nach Notes-Freigabe:** Draft-PR `release/v0.6.0` → `main` nur für CI, grün abwarten → Merge `--no-ff` lokal
    → auf dem Merge-Commit `dotnet build`, `dotnet format --verify-no-changes`, `dotnet test` im sauberen Worktree,
@@ -7569,9 +7570,10 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
 - ~~`holo-v1`-Release auf GitHub entfernen~~ – erledigt am 16.11.2026 mit v0.5.1 (V5, Martin), vor dem hier genannten
   06.12.: Release und Tag weg, `releases/download/holo-v1/manifest.json` 404; v0.1/v0.2 zeigen den Umriss.
-- `holo-v3`-Release (Pre-Release im App-Repo) samt Tag löschen. Anlass: D114 – seit v0.6.0 kommen die Holos aus dem
-  Data-Release, nur v0.5.1 fragt noch `holo-v3` (D63-Addendum T12.6a). **Auslöser: 31.01.2027** (zwei Monate nach
-  v0.6.0). Danach: Manifest-URL 404 prüfen, v0.5.1 zeigt den Umriss; CONTRIBUTING „Release hygiene“ (Holo-Releases im
+- `holo-v2`- und `holo-v3`-Release (Pre-Releases im App-Repo) samt Tags löschen. Anlass: D114 – seit v0.6.0 kommen die
+  Holos aus dem Data-Release, nur v0.3.0–v0.5.0 fragen noch `holo-v2` und v0.5.1 `holo-v3` (D63-Addendum T12.6a,
+  Martin 19.11.: gleiches Datum für beide). **Auslöser: 31.01.2027** (zwei Monate nach v0.6.0). Danach: beide
+  Manifest-URLs 404 prüfen, die alten Versionen zeigen den Umriss; CONTRIBUTING „Release hygiene“ (Holo-Releases im
   10er-Fenster) mitziehen.
 - Modelle für 135c, 600i Executive Edition und F7C Hornet Mk II bei Sciirof (Motherlode) anfragen, mit Rückmeldung zur
   Handprüfung als Gegenleistung (Session 4a/4c). Auslöser: nach dem Launch, mit der Nachricht zu v0.3.0 (R5).
