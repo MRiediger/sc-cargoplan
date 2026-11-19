@@ -16,7 +16,8 @@ shows it in a translucent window next to the game.
 - Drag, turn, split and merge crates to match what the cargo elevator really did.
 - Mark each delivery loaded, then delivered at its stop; undo any step.
 - Click-through while the game has the mouse. A separate window: nothing is injected into the game.
-- 105 ships. Racks, hull and outline of 102 of them come from the game files; three still use Fleetyards data.
+- 109 ships and one cargo module configuration. Racks, hull and outline of all but two come from the game files; the
+  135c and the 600i Executive Edition still use Fleetyards data.
 
 ![The MISC Hull B with its tilted racks in the ship's hologram](docs/images/ships-hull-b.png)
 <!-- SHOT: H15 -->
@@ -38,8 +39,35 @@ From v0.5.0 on, CargoPlan checks GitHub for a new version once per start and off
 it downloads only when you click **Update**. Switch it off in the settings, section **Updates**. More:
 [Updates](https://github.com/MRiediger/sc-cargoplan/wiki/Updates).
 
-The ship data ship with the app, and from v0.6.0 on they update themselves: a new monthly data release is offered the
-same way, section **Ship data** in the settings.
+## Ship data
+
+The ships come with the app: cargo grids and ship models from the game files, by way of
+[cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo). They are built once a month in a repository of their own,
+[sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata). If anything changed, there is a new data
+release, and from v0.6.0 on CargoPlan offers it at the bottom of the overlay like a new version: **Update** or **Skip
+this version**, section **Ship data** in the settings. More:
+[Ships and cargo grids](https://github.com/MRiediger/sc-cargoplan/wiki/Ships-and-cargo-grids).
+
+A rack that doesn't match the game: open a
+[ship correction](https://github.com/MRiediger/sc-cargoplan/issues/new?template=ship-correction.yml) here or an issue in
+[sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata/issues). We check it and pass it on to
+Motherlode, so the next data release fixes it for everyone. A pull request with a corrected ship file goes to
+sc-cargoplan-shipdata.
+
+## Network access
+
+CargoPlan downloads (GET) from GitHub, three kinds, each with its own switch in the settings; no account, no token.
+GitHub sees your IP address and the User-Agent (`SC-CargoPlan/<version>`, for the update check `Velopack/<version>`);
+nothing else is sent.
+
+- **App update check:** once per start, the release list of this project (*Updates*, **Check for updates on startup**).
+- **Ship data check:** once per start, the `manifest.json` of the latest data release, about 130 KB (*Ship data*,
+  **Check for ship data updates on startup**).
+- **Ship holograms:** one file per ship, about 0.3 MB, when you pick a ship while a hologram look is on (*Ship view*,
+  **Download ship holograms**).
+
+A new version or new ship data are downloaded only when you click **Update**. Without a network CargoPlan works as
+before: the ship data are in the ZIP.
 
 ## Requirements
 
@@ -76,7 +104,7 @@ All known issues: [Troubleshooting](https://github.com/MRiediger/sc-cargoplan/wi
 - Cargo grid data and ship models from [cryon.rocks (Motherlode)](https://cryon.rocks/ops/cargo), extracted from the
   Star Citizen game files and used with its operators' permission: the racks, the hull holograms and the outlines come
   from the same game data.
-- Three ships (135c, 600i Executive Edition, F7C Hornet Mk II) still use hull data from
+- Two ships (135c, 600i Executive Edition) still use hull data from
   [fleetyards.net](https://fleetyards.net): their grids, hologram and outline. Fleetyards' data made the first ship list
   possible.
 - Thanks to both for letting this project use their data.
