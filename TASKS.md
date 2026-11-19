@@ -7804,11 +7804,14 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   ist weiter unbelegt (beide Proben waren keine frischen Browser-Downloads).
 - Setup.exe und/oder Code-Signing (D109: heute nur Portable, unsigniert). Auslöser: Nutzer-Reports, dass SmartScreen
   sie abhält (T11.5: Warnung einmal je Download, „More info → Run anyway“).
-  **Stand 19.11.2026:** kostenlose Signatur bei der SignPath Foundation beantragt; README nennt das unter Install
-  (`7901350`). **Auslöser: SignPath sagt zu.** Dann: D-Eintrag (Signatur im Release-Workflow, Gegenargument),
-  „unsigned“-Texte nachziehen – Nexus `description.bbcode` (Known issues „Unsigned“, Installationsschritt 3), Wiki
-  Installation (Schritt 4, SmartScreen-Bild) und Troubleshooting („Unsigned“), README Schritt 3 und die SignPath-Zeile;
-  Nexus- und SignPath-Bedingungen für Herkunftsangaben prüfen (A3).
+  **Stand 19.11.2026:** kostenlose Signatur bei der SignPath Foundation beantragt (README-Absatz `7901350`) und am
+  19.11.2026 **abgelehnt** (Kriterien: Stars/Forks/Contributors, externe Artikel, Reddit/YouTube-Referenzen). Martins
+  Entscheidung: unsigniert bleiben, keine bezahlte Signatur; der README-Absatz ist raus (K12), D109 gilt unverändert.
+  **Auslöser neu:** (a) erster Nutzer-Report, dass SmartScreen ihn abhält, oder (b) genug Sichtbarkeit für einen
+  SignPath-Reapply. Dann: D-Eintrag (Signatur im Release-Workflow, Gegenargument), „unsigned“-Texte nachziehen – Nexus
+  `description.bbcode` (Known issues „Unsigned“, Installationsschritt 3), Wiki Installation (Schritt 4,
+  SmartScreen-Bild) und Troubleshooting („Unsigned“), README Schritt 3; Nexus- und SignPath-Bedingungen für
+  Herkunftsangaben prüfen (A3).
 - Screenreader-Zugang zur Skip-Checkbox der Update-Zeile: Toggle per UIA löst den Command nicht aus (`OnToggle` statt
   `OnClick`, T11.2); dazu die beiden „Clear“-Buttons im Settings-Fenster unterscheidbar benennen. Auslöser: Report eines
   Screenreader-Nutzers.

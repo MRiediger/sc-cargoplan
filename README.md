@@ -29,9 +29,6 @@ shows it in a translucent window next to the game.
 2. Right-click it → **Extract All** into a new folder you can write to (not `Program Files`).
 3. Start `SC-CargoPlan.exe` in that folder. Windows warns that the app is unsigned: **More info → Run anyway**.
 
-Code signing: this project has applied for free code signing by the SignPath Foundation; once granted, releases will
-carry a signature issued to SignPath Foundation.
-
 Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the overlay.
 
 Coming from v0.4.0 or older: extract v0.5.0 into a new folder, not over the old one; your settings and plan stay. Steps:
