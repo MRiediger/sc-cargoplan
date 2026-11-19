@@ -168,6 +168,55 @@ internal static class RackSections
         }
     }
 
+    /// <summary>
+    /// True if an empty cell of <paramref name="rack"/> lies between crates of <paramref name="destination"/> (B17): in its
+    /// layer, the nearest crate on both sides along the length, or along the width, is that destination's. A section is a
+    /// block without one; only cargo that may not move leaves one (<see cref="SectionNotes.Gap"/>).
+    /// </summary>
+    internal static bool Encloses(Rack rack, IEnumerable<Crate> onBoard, string destination)
+    {
+        var grid = rack.Grid;
+        var owner = new string?[grid.Length, grid.Width, grid.Stack];
+        foreach (var crate in onBoard.Where(c => c.RackId == rack.Id && !c.Delivered))
+        {
+            foreach (var cell in crate.Cells.Where(c => c.Length < grid.Length && c.Width < grid.Width && c.Stack < grid.Stack))
+            {
+                owner[cell.Length, cell.Width, cell.Stack] = crate.Destination;
+            }
+        }
+
+        for (var l = 0; l < grid.Length; l++)
+        {
+            for (var w = 0; w < grid.Width; w++)
+            {
+                for (var s = 0; s < grid.Stack; s++)
+                {
+                    if (owner[l, w, s] is null
+                        && ((Nearest(l, w, s, -1, 0) == destination && Nearest(l, w, s, 1, 0) == destination)
+                            || (Nearest(l, w, s, 0, -1) == destination && Nearest(l, w, s, 0, 1) == destination)))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+
+        string? Nearest(int l, int w, int s, int dl, int dw)
+        {
+            for (var (x, y) = (l + dl, w + dw); x >= 0 && y >= 0 && x < grid.Length && y < grid.Width; (x, y) = (x + dl, y + dw))
+            {
+                if (owner[x, y, s] is { } found)
+                {
+                    return found;
+                }
+            }
+
+            return null;
+        }
+    }
+
     /// <summary>One rack's search for sections: every step of the rules in D89, each try from the rack's first row.</summary>
     private sealed class Arrangement(Rack rack, LoadPlan plan, Crate[] crates, IReadOnlyList<Crate> loaded, CrateLayout.StackingBudget budget)
     {
@@ -266,7 +315,7 @@ internal static class RackSections
         {
             var laying = CrateLayout.Lay(
                 rack, [.. occupied, .. Outside(rack, _axis, rows.ToHashSet())],
-                [.. section.Crates.Select(i => (crates[i].CrateSize, crates[i].Destination))], plan.FillOrder, plan.FillRows, budget.For(rack), turn);
+                [.. section.Crates.Select(i => (crates[i].CrateSize, crates[i].Destination))], plan.FillOrder, plan.FillRows, budget.For(rack), turn, snug: true);
             if (laying is not null)
             {
                 budget.Spend(rack, laying);
@@ -337,12 +386,34 @@ public static class SectionNotes
     private const string OutsideText = " placed outside sections (capacity)";
     private const string NoFreeText = ": no free section – Re-plan";
     private const string NoSectionsText = "sections don't fit – laid as with None";
+    private const string GapText = " has a gap – loaded crates";
 
     internal static PlanWarning Shares(Rack rack, string destination, string other) => new(rack.Id, Prefix(rack) + destination + SharesText + other);
 
     internal static PlanWarning Outside(Rack rack, string destination) => new(rack.Id, Prefix(rack) + destination + OutsideText);
 
     internal static PlanWarning NoFreeSection(Rack rack, string destination) => new(rack.Id, Prefix(rack) + destination + NoFreeText);
+
+    /// <summary>A section a capture couldn't close around crates that may not move (B17): the gap stays, nothing loaded moves.</summary>
+    internal static PlanWarning Gap(Rack rack, string destination) => new(rack.Id, Prefix(rack) + destination + GapText);
+
+    /// <summary>
+    /// <paramref name="destination"/> and every destination that shares its section in <paramref name="rack"/>, as the
+    /// notes of rule 3 say (B17): pairs of the first destinations of the two sections merged, so the whole chain counts.
+    /// </summary>
+    internal static IReadOnlySet<string> Sharing(IEnumerable<PlanWarning> warnings, Rack rack, string destination)
+    {
+        (string, string)[] pairs = [.. warnings.Where(w => w.RackId == rack.Id && w.Message.Contains(SharesText, StringComparison.Ordinal))
+            .Select(Names).OfType<IReadOnlyList<string>>().Where(n => n.Count == 2).Select(n => (n[0], n[1]))];
+        HashSet<string> section = [destination];
+        while (pairs.FirstOrDefault(p => section.Contains(p.Item1) != section.Contains(p.Item2)) is ({ } a, { } b))
+        {
+            section.Add(a);
+            section.Add(b);
+        }
+
+        return section;
+    }
 
     /// <summary>A rack that got no sections (D89, Martin: whoever turned them on should read why they aren't there).</summary>
     internal static PlanWarning NoSections(Rack rack) => new(rack.Id, Prefix(rack) + NoSectionsText);
@@ -373,6 +444,11 @@ public static class SectionNotes
         if (text.EndsWith(NoFreeText, StringComparison.Ordinal))
         {
             return [text[..^NoFreeText.Length]];
+        }
+
+        if (text.EndsWith(GapText, StringComparison.Ordinal))
+        {
+            return [text[..^GapText.Length]];
         }
 
         return text.Split(SharesText) is [var destination, var other] ? [destination, other] : null;

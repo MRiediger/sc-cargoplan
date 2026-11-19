@@ -1026,10 +1026,16 @@ public static class LoadPlanner
                 .. stop.Items.SelectMany(i => i.CrateListUnder(cap).Select(size => (size, i.Commodity)))
                     .OrderByDescending(k => k.size).ThenBy(k => k.Commodity, StringComparer.Ordinal),
             ];
-            var (fresh, failed) = LayStop(crates, racks, stop.Destination, kinds, mission.Id, plan.FillOrder, plan.FillRows, plan.Grouping, plan.SectionGap, budget, stackingUnchecked, notes);
+            List<(Crate Old, Crate New)> relaid = [];
+            var (fresh, failed) = LayStop(crates, racks, stop.Destination, kinds, mission.Id, plan.FillOrder, plan.FillRows, plan.Grouping, plan.SectionGap, budget, stackingUnchecked, notes, relaid, plan.Warnings);
             if (fresh is null)
             {
                 return (null, failed, [], []);
+            }
+
+            foreach (var (old, laid) in relaid)
+            {
+                crates[crates.FindIndex(c => ReferenceEquals(c, old))] = laid;
             }
 
             Insert(crates, stop.Destination, fresh);
@@ -1044,10 +1050,15 @@ public static class LoadPlanner
     /// that hasn't. Racks whose stacking search gave up are added to <paramref name="stackingUnchecked"/>. With grouping, a
     /// rack shared with other destinations takes the stop in its rows (<see cref="RackSections.RowsFor"/>, stage by stage,
     /// unturned if it can, D71); if none does, the stop goes in as without grouping and <paramref name="notes"/> say so (D89).
+    /// With <paramref name="relaid"/> (a capture, B17) a destination already planned in a shared rack is laid there anew
+    /// first, its planned crates with the new ones, so its section stays a block; a section it shares (rule 3, as
+    /// <paramref name="carried"/> notes say) is laid anew whole (Martin). Loaded and delivered crates stay where they lie,
+    /// and a gap they leave gets a note. The planned crates it moved go into <paramref name="relaid"/>, old and new.
     /// </summary>
     private static (List<Crate>? Fresh, CrateSize? Failed) LayStop(
         IReadOnlyList<Crate> crates, Rack[] racks, string destination, (CrateSize Size, string Commodity)[] kinds, int missionId, FillOrder fillOrder, FillRows fillRows,
-        PlanGrouping grouping, int sectionGap, CrateLayout.StackingBudget budget, List<Rack> stackingUnchecked, List<PlanWarning> notes)
+        PlanGrouping grouping, int sectionGap, CrateLayout.StackingBudget budget, List<Rack> stackingUnchecked, List<PlanWarning> notes,
+        List<(Crate Old, Crate New)>? relaid = null, IReadOnlyList<PlanWarning>? carried = null)
     {
         Rack[] candidates =
         [
@@ -1062,6 +1073,15 @@ public static class LoadPlanner
         if (grouping == PlanGrouping.ByDestination && InSection() is { } section)
         {
             Take(section);
+            if (relaid is not null && Shared(section.Rack))
+            {
+                var sharing = SectionNotes.Sharing(carried ?? [], section.Rack, destination);
+                Crate[] after = [.. OnBoardIn(section.Rack).Select(c => relaid.FirstOrDefault(r => ReferenceEquals(r.Old, c)).New ?? c), .. section.Crates];
+                if (after.Any(c => sharing.Contains(c.Destination) && c.Loaded) && RackSections.Encloses(section.Rack, after, destination))
+                {
+                    notes.Add(SectionNotes.Gap(section.Rack, destination));
+                }
+            }
         }
         else if (Best(candidates.Select(r => Laid(r, kinds, []))) is { } whole)
         {
@@ -1119,13 +1139,34 @@ public static class LoadPlanner
                 }
 
                 var axis = RackSections.RowAxis.Of(rack, fillOrder, fillRows);
+                // The section's rows are those of every destination in it: the others count as this one for RowsFor.
+                var sharing = SectionNotes.Sharing(carried ?? [], rack, destination);
+                Crate[] planned = [.. OnBoardIn(rack).Where(c => sharing.Contains(c.Destination) && !c.Loaded)];
+                if (relaid is not null && planned.Any(c => c.Destination == destination))
+                {
+                    Crate[] asOne = [.. OnBoardIn(rack).Select(c => sharing.Contains(c.Destination) ? c with { Destination = destination } : c)];
+                    foreach (var stage in RackSections.RowsFor(rack, asOne, destination, fillOrder, fillRows, sectionGap))
+                    {
+                        foreach (var turn in kinds.Any(k => k.Size.Turns) || planned.Any(c => c.CrateSize.Turns) ? (bool[])[false, true] : [false])
+                        {
+                            foreach (var rows in stage)
+                            {
+                                if (Relaid(rack, planned, [.. RackSections.Outside(rack, axis, rows.ToHashSet())], turn) is { } anew)
+                                {
+                                    return anew;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 foreach (var stage in RackSections.RowsFor(rack, OnBoardIn(rack), destination, fillOrder, fillRows, sectionGap))
                 {
                     foreach (var turn in kinds.Any(k => k.Size.Turns) ? (bool[])[false, true] : [false])
                     {
                         foreach (var rows in stage)
                         {
-                            if (Laid(rack, kinds, [.. RackSections.Outside(rack, axis, rows.ToHashSet())], turn) is { Laying.StackingFree: true } inRows)
+                            if (Laid(rack, kinds, [.. RackSections.Outside(rack, axis, rows.ToHashSet())], turn, snug: true) is { Laying.StackingFree: true } inRows)
                             {
                                 return inRows;
                             }
@@ -1138,16 +1179,40 @@ public static class LoadPlanner
         }
 
         // The kinds laid out in one rack around what lies there and the crates placed for this stop so far; null if they don't fit.
-        (Crate[] Crates, Rack Rack, CrateLayout.Laying Laying)? Laid(Rack rack, (CrateSize Size, string Commodity)[] laying, IReadOnlyList<Crate> placedForStop, bool turn = true)
+        (Crate[] Crates, Rack Rack, CrateLayout.Laying Laying)? Laid(Rack rack, (CrateSize Size, string Commodity)[] laying, IReadOnlyList<Crate> placedForStop, bool turn = true, bool snug = false)
         {
             Crate[] occupied = [.. crates.Concat(placedForStop).Where(c => c.RackId == rack.Id)];
-            if (CrateLayout.Lay(rack, occupied, [.. laying.Select(k => (k.Size, destination))], fillOrder, fillRows, budget.For(rack), turn) is not { } laid)
+            if (CrateLayout.Lay(rack, occupied, [.. laying.Select(k => (k.Size, destination))], fillOrder, fillRows, budget.For(rack), turn, snug) is not { } laid)
             {
                 return null;
             }
 
             budget.Spend(rack, laid);
             return ([.. laying.Zip(laid.Poses).Select(p => new Crate(destination, p.First.Commodity, p.First.Size, rack.Id, p.Second.Position, Mission: missionId, Rotated: p.Second.Rotated))],
+                rack, laid);
+        }
+
+        // The planned crates of the destination in this rack laid anew with the kinds, around everything else on board and
+        // the cells outside the rows (B17); planned first, so of equal crates they keep the front. Null unless it fits
+        // without a crate on other cargo; then the moved ones go into relaid.
+        (Crate[] Crates, Rack Rack, CrateLayout.Laying Laying)? Relaid(Rack rack, Crate[] planned, IReadOnlyList<Crate> outside, bool turn)
+        {
+            HashSet<Crate> moving = new(planned, ReferenceEqualityComparer.Instance);
+            Crate[] occupied = [.. OnBoardIn(rack).Where(c => !moving.Contains(c)), .. outside];
+            (CrateSize, string)[] laying = [.. planned.Select(c => (c.CrateSize, c.Destination)), .. kinds.Select(k => (k.Size, destination))];
+            if (CrateLayout.Lay(rack, occupied, laying, fillOrder, fillRows, budget.For(rack), turn, snug: true) is not { } laid)
+            {
+                return null;
+            }
+
+            budget.Spend(rack, laid);
+            if (!laid.StackingFree)
+            {
+                return null;
+            }
+
+            relaid!.AddRange(planned.Zip(laid.Poses).Select(p => (p.First, p.First with { Position = p.Second.Position, Rotated = p.Second.Rotated })));
+            return ([.. kinds.Zip(laid.Poses.Skip(planned.Length)).Select(p => new Crate(destination, p.First.Commodity, p.First.Size, rack.Id, p.Second.Position, Mission: missionId, Rotated: p.Second.Rotated))],
                 rack, laid);
         }
     }

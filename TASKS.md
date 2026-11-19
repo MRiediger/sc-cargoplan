@@ -225,7 +225,7 @@ rot sein.
 - **Gate Martin am Aufzug (SC vorn):** drei Verträge scannen → #1, #2, #3 von oben; Re-plan → unverändert;
   App-Neustart → unverändert. **Abgenommen 19.11.2026** („abgenommen, passt“). Merge `--no-ff`, Martin pusht.
 
-### [ ] B17 Sektionen: Lücke bei Rest-Einzelkiste
+### [x] B17 Sektionen: Lücke bei Rest-Einzelkiste (19.11.2026)
 
 **Warum:** ARGO RAFT, `grouping: byDestination`, Kistenmix 2+1 (auch 4+1): der Planer legt die 1-SCU-Kiste neben die
 Sektion mit einer leeren Zelle dazwischen oder in eine eigene Reihe – die Sektion ist kein Block mehr.
@@ -234,6 +234,166 @@ Sektion mit einer leeren Zelle dazwischen oder in eine eigene Reihe – die Sekt
 
 **Akzeptanz:** Golden mit Martins RAFT-Plan (Scan #4 Everus Harbor, 10 SCU an 4 Ziele) ohne Loch; die bestehenden
 K9-Goldens unverändert oder begründet.
+
+**Befund vor dem Plan (19.11.2026, Branch `fix/b17-section-hole` ab `e5400be`):**
+- **Szene synthetisch** (Martins `plan.json` mit dem Stims-Scan gibt es nicht mehr): RAFT aus `FrozenShips`, ein
+  Vertrag „Stims“ ab Everus Harbor, Green Glade 3 (max 2 → 2+1), High Course 3 (2+1), Thundering Express 2, Melodic
+  Fields 2 = 10 SCU, vier Ziele. Harness lokal (`ScratchSectionHoleProbe.cs`, `.git/info/exclude`, Lehre T11.3):
+  504 Fälle = Schiff (RAFT, Perseus, Hull A) × Mix (2+1, 4+1, 4+2+1) × Weg × `fillRows` × `sectionGap` 0/1/2 ×
+  `fillOrder`. Wege: frischer Plan, Scan in leeren Plan erfasst (`PlaceInto`), derselbe Scan zweimal erfasst, Green
+  geladen + Re-plan (D41), auf der RAFT zusätzlich der Scan als 4. Vertrag in Martins Fixture
+  (`Fixtures/Plans/raft_hand_2026-11-05.json` ohne Mission 3) – erfasst und frisch geplant. Detektor: leere Zelle einer
+  Ebene, deren nächste belegte Zelle entlang der Reihe auf beiden Seiten demselben Ziel gehört.
+- **Martins Bild ist das Loch beim Erfassen** (Bild B, von Martin per ASCII bestätigt): Scan in den Fixture-Plan,
+  crosswise, Bug zuerst, Gap 1, High Course (Fixture 4+2+1, Scan 2+1), L7/L8:
+  ```
+          L7 L8                       Soll (Martin)
+    w5     .  H1   <- Scan                 .  .
+    w4    H2  H2   <- Scan                H1 H1
+    w3     .  H1   <- L7/w3 leer          H2 H2
+    w2    H2  H2                          H2 H2
+    w1    H4  H4                          H4 H4
+    w0    H4  H4                          H4 H4
+  ```
+  Das **L im frischen Plan** (2+1 crosswise: 2er längs über zwei Reihen, 1er daneben, eine Zelle frei) ist **kein
+  Fehler** (Martin); Drehen bleibt D71 (nur wenn ungedreht scheitert). Kandidat (a) aus dem Review ist damit verworfen.
+- **Ursache:** Ein Scan zu einem Ziel, das im geteilten Rack schon liegt, geht `ScanSync.Apply`
+  (`ScanSync.cs:26`) → `LoadPlanner.PlaceInto` → `LayStop.InSection` (`LoadPlanner.cs:1107-1138`): `RowsFor` gibt die
+  eigenen Reihen (`RackSections.OwnRows`, `RackSections.cs:96-99`, `:128-150`), und `Laid` (`LoadPlanner.cs:1143`)
+  nimmt **alle** Kisten im Rack als Hindernis, auch die noch nicht geladenen desselben Ziels (D41: „a capture moves
+  nothing“, K9.2-Addendum `docs/decisions.md:492`). Die neuen Kisten werden also ans alte L angehängt:
+  `CrateLayout.FirstFit` (`CrateLayout.cs:746`) findet für die 2er auf w3 keinen Platz (L8/w3 hat die alte 1er), legt
+  sie auf w4; die 1er geht nach Füllrang auf L8/w5 (crosswise läuft der Rang quer über die Breite einer Längsreihe,
+  `CrateLayout.cs:714-722`) statt auf L7/w3 – die Zelle ist eingeschlossen. `RackSections.Lay` selbst (frischer Plan,
+  Re-plan) erzeugt kein Loch; eine 1er-Lieferung desselben Ziels ist auch keine eigene Sektion (`GroupBy` nach
+  `Destination`, `RackSections.cs:58`).
+- **Reichweite** (Fälle mit Loch / Fälle je 3 Gaps × 2 Füllrichtungen):
+
+  | Schiff | Weg | 2+1 cross | 2+1 längs | 4+1 cross | 4+1 längs | 4+2+1 cross | 4+2+1 längs |
+  |---|---|---|---|---|---|---|---|
+  | RAFT (−z) | Scan in Fixture-Plan | 6/6 | 0/6 | 6/6 | 6/6 | 6/6 | 6/6 |
+  | RAFT | Scan zweimal | 6/6 | 0/6 | 6/6 | 6/6 | 6/6 | 6/6 |
+  | Perseus (+z) | Scan zweimal | 2/6 | 0/6 | 6/6 | 6/6 | 6/6 | 0/6 |
+  | Hull A (±y) | Scan zweimal | 0/6 | 0/6 | 0/6 | 0/6 | 0/6 | 0/6 |
+  | alle | frischer Plan, Scan in leeren Plan, Geladen + Re-plan, Fixture frisch geplant | 0 | 0 | 0 | 0 | 0 | 0 |
+
+  Gap 0 ist so betroffen wie 1 und 2. Hull A: ein Ziel je Rack, keine geteilten Racks, also keine Sektionen.
+
+**Plan (19.11.2026):**
+
+Regel (Martin): **Eine Sektion hat keine leere Zelle zwischen Kisten derselben Sektion, weder entlang der Reihe noch
+quer dazu.** Beim Erfassen wird die Sektion neu gelegt, aber nur mit den Kisten, die weder geladen noch abgeliefert
+sind; diese bleiben exakt liegen (D41/D79, einziges Bewegen an Geladenem bleibt das Absinken aus K6.4). Lässt sich die
+Sektion um feste Kisten nicht lückenlos schließen, bleibt die Lücke und bekommt einen Hinweis; es wird nichts
+verschoben. In den neu gelegten Kisten: größte zuerst, Einzelkisten füllen freie Zellen der Sektion, bevor eine neue
+Reihe beginnt.
+
+1. **Erfassen legt die Sektion neu** (`LoadPlanner.LayStop.InSection`): Liegt das Ziel schon im geteilten Rack, legt der
+   Planer die geplanten Kisten dieses Ziels in diesem Rack zusammen mit den neuen in dessen Reihen (`RowsFor`-Stufen
+   unverändert). Hindernis sind nur fremde Kisten und die geladenen des Ziels. Die alten Kisten bekommen neue
+   Positionen in der Kistenliste, die neuen gehen wie heute hinter die ihres Ziels (`Insert`). Findet die Neulage keinen
+   Platz, gilt der heutige Weg (anhängen) unverändert. Andere Ziele, andere Racks, wer wartet: unverändert (F5).
+2. **Einzelkisten kompakt** (`CrateLayout.RackSpace.Add`, nur auf Wunsch der Sektionen, also `RackSections.Laid` und
+   `LayStop.InSection`): Eine 1er nimmt in der untersten Ebene mit freiem, getragenem Platz (Schicht für Schicht wie
+   D24) die Zelle mit den meisten Flächennachbarn derselben Sektion; Gleichstand nach heutigem Füllrang. Das ergibt
+   Martins Soll (zweite 1er auf L7/w4: zwei Nachbarn gegen einen auf L8/w5) und lässt das L des frischen Plans stehen
+   (1er auf L11/w1, Gleichstand, Füllrang wie heute). Pläne ohne Sektionen bleiben byte-gleich.
+3. **Hinweis bei Restlücke:** neuer Satz in `SectionNotes` („Rack N: X has a gap – loaded crates“), gesetzt, wenn nach
+   der Neulage eine eingeschlossene Zelle bleibt und das Ziel geladene Kisten im Rack hat. Die App zeigt ihn über die
+   vorhandene `NoticeSource.Sections` (`OverlayViewModel.cs:320`); `Names`/`IsNote` lesen ihn, Lebensdauer wie die
+   anderen Sektionshinweise. Keine UI-Änderung.
+4. **Docs:** D41-Addendum (B17: In einem Plan mit Sektionen legt ein Scan die geplanten Kisten seines Ziels im Rack neu;
+   Geladenes und Abgeliefertes bleibt), D89-Addendum (Blockregel, Einzelkisten kompakt, Hinweis), D71 ausdrücklich
+   unverändert. Kein Schema-Bump, kein Format.
+
+**Gegenargument (A5):** D41 versprach, dass ein Scan keine Kiste bewegt. Hat der Hauler Kisten schon ins Schiff gestellt,
+aber nicht als geladen abgehakt, stimmt das Overlay nach dem Scan nicht mehr mit dem Laderaum überein. Martins Regel
+nimmt das in Kauf: Geplant heißt „noch nicht im Schiff“, und der Haken „geladen“ ist der Schutz. Die Alternative
+(anhängen, dann nur die neuen Kisten in die Lücken der alten schieben) schließt Bild B nicht, weil die alte 1er auf
+L8/w3 liegen bleibt und die 2er dort keinen Platz hat.
+
+**Tests (erst rot):**
+- **R1 Bild B:** Fixture ohne Mission 3, crosswise, Bug zuerst, Gap 1, Scan erfasst. Vorher: Assert auf die leere
+  L7/w3 zwischen H2 und H2 (rot); nachher High Course genau wie Martins Soll (H4 w0–1, H2 w2, H2 w3, H1 L8/w4,
+  H1 L7/w4), keine eingeschlossene Zelle in keiner Sektion, fremde Kisten auf denselben Zellen wie vor dem Scan.
+- **R2 Geladen:** wie R1, aber Mission 1 (High Course 4+2+1) als geladen markiert: deren Kisten liegen exakt wie vorher,
+  die neuen um sie herum; bleibt eine Lücke, steht der Hinweis da, sonst nicht.
+- **R3 Matrix:** 2+1, 4+1, 4+2+1 × crosswise/lengthwise × Gap 0/1/2 × Bug/Heck auf RAFT und Perseus, Wege frischer
+  Plan, Scan in leeren Plan, Scan zweimal, Scan in Fixture: keine eingeschlossene Zelle; frischer Plan der Szene auf
+  der RAFT: Abstand zwischen den Sektionen genau `sectionGap`.
+- **R4 Eigenschaftstest:** zufällige Mixe (Seed fest, 200 Fälle, 1–6 Ziele, 1–12 SCU, max 1/2/4) auf der RAFT, frisch
+  geplant und zweimal erfasst: keine eingeschlossene Zelle in einer Sektion ohne geladene Kisten. Findet er Löcher, die
+  nicht von Einzelkisten kommen (etwa nur 2er), stoppe ich und melde das, bevor die Regel breiter wird.
+- **R5 F5:** Rack-Zuordnung und wartende Missionen nach einem Scan wie ohne Neulage (`RackSectionsSyncTests` bleiben
+  grün); keine geladene oder abgelieferte Kiste bewegt sich.
+- **Bestand:** `RackSectionsTests`, `SectionGapTests`, `RackSectionsSyncTests`, `HullAGoldenTests`, Plan-Goldens unter
+  `Fixtures/Plans/golden_*`: unverändert grün. Im Rot-Lauf zähle ich, welche Zellen von Einzelkisten sich in den
+  RAFT-Fixture-Plänen verschieben (die Goldens prüfen Reihen, nicht Zellen); kippt ein Assert, ist das ein Befund und
+  kein Grund zum Neuziehen (F4).
+
+**Präzisierungen in der Planphase, ratifiziert durch Freigabe:**
+- P1 Szene synthetisch im Test gebaut (kein `plan.json` mehr); Fixture-Ordner ist `Fixtures/Plans/` (Startprompt:
+  `plans/`), dort liegt Martins RAFT-Plan schon.
+- P2 Hull A stapelt ±y, nicht +z (Startprompt); +z-Gegenprobe ist die Perseus (ein Rack, 6 × 8 × 2).
+- P3 Das L im frischen Plan bleibt (Martin); D71 unverändert, Kandidat (a) verworfen.
+- P4 Fehlerort ist der Erfassungsweg, nicht `RackSections.Lay`; F1 hält trotzdem (nur Core), die Neulage sitzt in
+  `LoadPlanner.LayStop`, die Kompaktregel in `CrateLayout`. Dazu ein D41-Addendum (Martins Soll).
+- P5 F3: Die Neulage ist der erste Versuch in `InSection` vor den unveränderten Stufen; schlägt sie fehl, läuft alles
+  wie heute.
+- P6 Hinweis über `SectionNotes` und die vorhandene `NoticeSource.Sections`, kein neuer Schalter, keine UI.
+- P7 F4: Die Prämisse „K9-Goldens haben keine Rest-Einzelkiste“ stimmt nicht (RAFT-Fixture: Green/High/Thundering
+  7 SCU max 4 = 4+2+1). Ihre Asserts prüfen Reihen und bleiben voraussichtlich grün, Zellen von Einzelkisten dürfen
+  sich innerhalb der Reihen verschieben; gezählt im Rot-Lauf.
+
+**Gate Martin am Aufzug (SC vorn, RAFT):** Plan mit Sektionen, crosswise, Gap 1; einen Vertrag scannen, dann einen
+zweiten mit 2+1 zu einem Ziel, das schon im Rack liegt → die Farbe bleibt ein geschlossener Block, die Einzelkisten
+liegen nebeneinander. Den Gap zwischen den Blöcken siehst du weiter. Danach eine Lieferung als geladen abhaken und
+erneut scannen → die geladenen Kisten bleiben liegen.
+
+**Freigabe 19.11.2026:** P1–P7 ratifiziert. **E1:** Bei Gleichstand der meisten Nachbarn nimmt die Einzelkiste die in
+der Füllreihenfolge erste Zelle, festgenagelt per Test. **K9:** Bleiben die Goldens grün, gut; ändert sich ein
+Zellbild, kommt die Begründung in den Befund (Reihen-Asserts allein belegen nichts). Vergleich auf Zellebene: Schnappschuss
+aller K9-Fixture-Pläne mit Sektionen (RAFT-Plan + neun Paare aus `RackSectionsTests.Fixtures`, je Reihen, Richtung,
+Gap 0–2, Plan und Re-plan; 3768 Kistenzeilen) vor und nach der Änderung. Tests rot zuerst, dann bauen.
+
+**Befund (19.11.2026, `df46792`):**
+- **Rot-Lauf** (`SectionBlockTests` gegen den alten Code): 56 von 88 rot per Assert. R1 High Course in falschen
+  Zellen (L7/w3 leer); R2 Loch `Thundering Express @ 4.1.1`; Lückenhinweis fehlt; zweite 1er nicht auf L7/w4; dieselbe
+  Lücke ohne Geladenes bleibt (`High Course @ 7.3.0`); Matrix 50 von 72, alle erst beim **zweiten Erfassen** (frischer
+  Plan und Scan in leeren Plan waren auch mit Querprüfung lochfrei, der Detektor schlägt nicht falsch an); R4 Lauf 0.
+  Grün schon vorher, als Wächter: E1-Gleichstand (2), Abstände genau `sectionGap` (7), R5 (1), Matrix 22.
+- **E1 provoziert rot:** Gleichstand testweise auf „letzte Zelle in Füllreihenfolge“ gedreht → 4 rot (beide E1-Fälle,
+  Lückenhinweis, Lauf-135-Test), zurückgesetzt.
+- **Eigenschaftstest** (200 Mixe × Plan/zweimal erfasst = 400 Prüfungen) nach dem Umbau: 5 Löcher, alle nach dem
+  zweiten Erfassen. **4** (Läufe 19, 135, 148, 163) in Racks mit „placed outside sections (capacity)“: Ein Ziel ohne
+  eigene Reihen belegt Zellen in fremden Reihen, die dann feste Hindernisse sind (Lauf 135: B 9×1 in Cs Reihe L9, Cs
+  zweite 4er passt nicht, L8/w3–w4 leer). **Martin: Backlog-Zeile** (siehe Backlog), Test
+  `A_destination_outside_sections_can_leave_a_gap_in_another_section` hält den Fall fest, der Eigenschaftstest nimmt
+  solche Racks aus. **1** (Lauf 103) in einer geteilten Sektion (F mit B): Bs 2er lagen fest in Fs Reihen, Fs Lücke war
+  rechnerisch unvermeidbar. **Martin: die ganze geteilte Sektion neu** → umgesetzt (`SectionNotes.Sharing` liest die
+  Partner transitiv aus den „shares a section“-Hinweisen); Test `A_capture_lays_a_shared_section_anew_whole` war rot
+  (`F @ 2.3.0`), ist grün. Danach 4 von 400, nur die Kapazitätsfälle.
+- **K9 auf Zellebene:** 48 von 240 Fällen ändern Zellen, **160 Kisten, alle 1 SCU, keine größere**; RAFT-Fixture 52,
+  `hull_a_eight_stops`@RAFT 108; Hull A, Freelancer, `crate_mix`: byte-gleich. **Begründung:** Eine 1er nimmt jetzt die
+  Zelle mit den meisten Nachbarn ihrer Sektion in derselben Schicht und Reihe; meist Ebene 1, etwa RAFT-Fixture
+  crosswise Gap 1: Green PI 1 von L11/w5 nach L10/w4 (neben die eigene Kiste statt in eine neue Breite), Thundering PI 1
+  von L5/w3 nach L4/w2. Reihen unverändert, daher bleiben die Reihen-Goldens grün. Der Schritt „geteilte Sektion“ ändert
+  den Schnappschuss nicht (Erfassen, kein frischer Plan).
+- **Bestehende Tests, die kippten: Core 0, App 0**, darunter alle `RackSectionsSyncTests` mit `NothingMoved`: Die
+  Neulage legt die alten Kisten dort auf dieselben Zellen, und `MovedCrates` zählt gleiche Kisten nicht.
+- **Änderung:** `CrateLayout` (`snug`: `RackSpace` merkt sich die Zellen der Sektion, 1er nach Nachbarn, Gleichstand nach
+  Füllrang), `RackSections` (`Laid` mit `snug`, `Encloses`, `SectionNotes.Gap` und `Sharing`), `LoadPlanner`
+  (`StopByStop` übernimmt neu gelegte Kisten, `LayStop.InSection` legt zuerst die Sektion neu, dann die alten Stufen mit
+  `snug`; Hinweis bei Restlücke). `BackOnBoard` (K2.2) unverändert. Diff: 3 Quelldateien +212/−15, Tests 1 neu (+355),
+  `docs/decisions.md` +2. Kein Schema-Bump (Plan-Schema 10).
+- **Docs:** D41-Addendum (B17), D89-Addendum (B17) mit Gegenargumenten. Wiki: Absatz in „Plan and editor“ auf lokalem
+  Wiki-Branch `b17-section-block` (`1009927`, ab `master`), Backlog-Zeile für den Push mit dem nächsten Tag.
+- **Testzahlen aus sauberen Worktrees:** vorher (`e5400be`) Core 1919, App 2082, Import 280, Ocr 34; nachher (`df46792`)
+  Core **2009** (+90), App 2082, Import 280, Ocr 34, alle grün; `dotnet build` 0 Warnungen, `dotnet format
+  --verify-no-changes` sauber. Die Arbeitskopie zählt Core +6, App +1 (gitignorte `Scratch*`-Tests, Lehre T11.3).
+- **Gate Martin am Aufzug (SC vorn, RAFT):** zweiter Scan mit 2+1 zu einem Ziel im Rack → Block geschlossen, Einzelkisten
+  nebeneinander, Gap zwischen den Blöcken sichtbar; geladen abgehakt und erneut gescannt → Geladenes bleibt liegen.
+  **Abgenommen 19.11.2026** („ist abgenommen, funktioniert wie erwartet“). Merge `--no-ff`, Martin pusht.
 
 ### [ ] F10 Seitenweise Planung
 
@@ -280,6 +440,12 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- Kapazitäts-Ausweichweg erst nach den anderen Zielen eines Scans legen (B17, Lauf 135: B 9×1 drängt Cs 4er aus dem
+  Block). Heute legt `StopByStop` die Ziele eines Scans größte zuerst; ein Ziel „placed outside sections (capacity)“
+  belegt dabei Zellen in fremden Reihen, die für die späteren Ziele feste Hindernisse sind. B17 nimmt solche Racks von
+  der Blockregel aus, `SectionBlockTests.A_destination_outside_sections_can_leave_a_gap_in_another_section` hält den
+  Fall fest. Auslöser: Hauler-Report über ein Loch in einem Rack mit Kapazitätshinweis.
 
 - winget-Manifest (`winget install SC-CargoPlan`), früher T11.2. Auslöser: Ein Nutzer fragt danach (D109).
 - Setup.exe und/oder Code-Signing (D109: heute nur Portable, unsigniert). Auslöser: Nutzer-Reports, dass SmartScreen
@@ -383,6 +549,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Wiki-Branch `k12-ship-reports` (lokal, `06b4004`: „Ships and cargo grids“ ohne Schiffsdatei-PR, K12) nach `master`
   mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
 - Wiki-Branch `b16-legend-order` (lokal, `0386c22`: „Legend and delivery states“, Missionen in Scan-Reihenfolge, B16)
+  nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
+- Wiki-Branch `b17-section-block` (lokal, `1009927`: „Plan and editor“, ein Scan schließt den Block seines Ziels, B17)
   nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
 - Screenshots/GIFs auf Perspektive nachdrehen (alle Shots von `docs/shots/SHOTLIST.md`, Hero-GIF eingeschlossen; D85) –
   Auslöser: nächstes Release mit sichtbarer Änderung der Ansicht oder erster Nutzer-Report „sieht bei mir anders aus“.
