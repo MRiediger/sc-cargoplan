@@ -12,6 +12,7 @@ shows it in a translucent window next to the game.
 
 - One color per destination, one rack per destination where the ship allows it, every crate named in the legend.
 - Optionally a block per destination in a shared rack, with a gap to get at the crates.
+- Optionally one side first: the racks of one side before the other, and in a wide rack its port or starboard half.
 - Press F3 on an open contract: CargoPlan reads it itself and adds it to the plan; or type it in the editor.
 - Drag, turn, split and merge crates to match what the cargo elevator really did.
 - Mark each delivery loaded, then delivered at its stop; undo any step.
@@ -31,8 +32,9 @@ shows it in a translucent window next to the game.
 
 Run Star Citizen in **Borderless** window mode; exclusive fullscreen covers the overlay.
 
-**Linux:** no overlay ([D115](docs/decisions.md)). Releases after v0.6.0 carry the command-line planner,
-`SC-CargoPlan-Cli-v<version>-linux-x64.tar.gz` (`plan`, `scan <screenshot>`; x64 with glibc and libicu). It has no app or
+**Linux:** no overlay ([D115](docs/decisions.md)). From v0.7.0, each release carries the command-line planner,
+`SC-CargoPlan-Cli-v<version>-linux-x64.tar.gz` (`plan`, `scan <screenshot>`, `ships --version`; x64 with glibc and
+libicu). It has no app or
 ship data updates: it plans with the ship data of its release, and newer data come with the next tarball.
 
 Coming from v0.4.0 or older: extract v0.5.0 into a new folder, not over the old one; your settings and plan stay. Steps:
