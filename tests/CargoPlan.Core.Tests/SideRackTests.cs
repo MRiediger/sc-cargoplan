@@ -417,6 +417,18 @@ public class SideRackTests
         SectionNotes.IsNote(new PlanWarning("rack-0", "lanes apply per rack – side-first rack order is not available yet")).Should().BeFalse();
     }
 
+    [Theory]
+    [InlineData("hull_a")]
+    [InlineData("hull_b")]
+    public void On_a_ship_with_racks_on_both_sides_no_note_says_a_rack_gets_no_lanes(string shipId)
+    {
+        // Sides order the racks there (D117); the F10a notes about racks without lanes would fill the line for nothing.
+        var ship = FrozenShips.Load(shipId);
+        var plan = Planned(ship, Missions(CrateSize.Eight, 8, 8, 8), Sides.PortFirst).Plan;
+
+        Notes(plan).Should().NotContain(n => n.EndsWith("stacks sideways", StringComparison.Ordinal) || n.EndsWith("at least 4 wide", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void The_sides_full_note_goes_to_the_sections_line() =>
         SectionNotes.IsNote(new PlanWarning("rack-2", "Rack 3: sides full – a mission waits (side overflow off)")).Should().BeTrue();

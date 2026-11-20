@@ -1920,12 +1920,12 @@ public static class LoadPlanner
 
     /// <summary>
     /// What a plan with sides says about racks that get no lanes (D116), derived like the hints, never carried: every rack
-    /// with cargo on board that stacks sideways or is under four cells wide. Where the ship has racks on both sides, sides
-    /// order the racks as well (D117).
+    /// with cargo on board that stacks sideways or is under four cells wide. None where the ship has racks on both sides:
+    /// there sides order the racks (D117), and a note per rack would fill the line for nothing (Martin).
     /// </summary>
     private static IEnumerable<PlanWarning> LaneNotes(Rack[] racks, LoadPlan plan)
     {
-        if (plan.Sides == Sides.None)
+        if (plan.Sides == Sides.None || SideGroups.Of(racks, plan.Sides) is not null)
         {
             yield break;
         }

@@ -1035,8 +1035,13 @@ public sealed class MissionEditorViewModelTests : IDisposable
     [Fact]
     public void Lane_notes_share_the_sections_line_with_the_section_notes()
     {
-        // Hull A: racks stacking sideways get no lanes, and 17 one-SCU stops share sections (A13: one writer, one line).
-        var overlay = EmptyOverlay();
+        // Two Hull A plates on one side: racks stacking sideways get no lanes and, without racks on both sides, say so (D117);
+        // 17 one-SCU stops share sections (A13: one writer, one line).
+        var overlay = new OverlayViewModel(new Ship("plates", "Plates", 32,
+        [
+            new Rack("rack-0", 0, 16, new Dimensions(4, 2, 2), null, new ShipPoint(0, 1, 3), StackAxis.PlusY),
+            new Rack("rack-1", 1, 16, new Dimensions(4, 2, 2), null, new ShipPoint(0, 1, 0), StackAxis.PlusY),
+        ]));
         overlay.ShowPlan(Sharing(overlay));
         overlay.Notices.Should().NotContain(n => n.Contains("stacks sideways", StringComparison.Ordinal), "without sides nothing about lanes");
 

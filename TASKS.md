@@ -606,7 +606,7 @@ Bild. Optional: **Side overflow: Wait** und Plan → die dritte liegt ganz Steue
 **Abgenommen 20.11.2026** (Martin), P12–P16 ratifiziert. **Auflage:** P12 und P16 je ein Satz im Wiki „Layout“
 (Branch `f10a-lanes`, `ea9252a`) und in D116 – erledigt. Merge `--no-ff` nach `main`, Martin pusht.
 
-### [ ] F10b Seitenweise Planung – Rack-Gruppen nach Seite
+### [x] F10b Seitenweise Planung – Rack-Gruppen nach Seite (20.11.2026)
 
 **Warum:** Auf Schiffen mit getrennten Racks links und rechts (Hull B, Railen, Hull A, Carrack, Hermes, Polaris) heißt
 „erst eine Seite“ nicht Bahnen im Rack, sondern erst die Racks der einen Seite, dann die der anderen. Das greift in die
@@ -800,9 +800,7 @@ Commit 1 (`hull_b` einfrieren + rote Tests) zuerst.
 - **Testzahlen aus sauberem Worktree** (`92a41f8`): vorher (`1426252`) Core 2088, App 2090, Import 280, Ocr 34;
   nachher Core **2120** (+34 neu, −2 ersetzt), App 2090, Import 280, Ocr 34, alle grün; `dotnet build` 0 Warnungen,
   `dotnet format --verify-no-changes` sauber; `Category=Slow` 4/4; `Category=Exhaustive` 2/2 (6 min 30 s, Release).
-- **Offen für Martin:** Auf der Hull B bekommt jedes Rack mit Fracht `Rack N: no lanes on a rack that stacks sideways`
-  (F10a-Hinweis); mit Seitengruppen wirkt `sides` dort über die Racks, der Hinweis füllt die Hinweiszeile. Vorschlag:
-  auf Schiffen mit Seitengruppen die Hinweise „keine Bahnen“ weglassen (kleine Änderung in `LaneNotes`). Nicht gebaut.
+keine„keine Bahnen“ weglassen (kleine Änderung in `LaneNotes`). Nicht gebaut.
 
 **Gate Martin am Aufzug (SC vorn, Hull B):** Editor → Layout: **Grouping** By destination, **Sides** Port first,
 **Side overflow** Cross over. Zwei Missionen scannen, zusammen ≤ 256 SCU und je > 32 SCU (etwa 96 + 96) → beide auf
