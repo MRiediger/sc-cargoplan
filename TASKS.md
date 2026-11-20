@@ -190,6 +190,19 @@ Vollständigkeit `git log --no-merges v0.6.0..main` (52 Commits):
    (Link „More, with workarounds“).
 4. Linux-Größe „about 66 MB“ aus K12 (66,4 MB); Nachmessung in R3.
 
+**Notes freigegeben (Backlog-Chat, 20.11.2026)** mit K1–K4:
+- **K1** Reihen-Beispiel generisch: „once the first side has no free row left, the next contract goes to the other side,
+  although single cells on the first may still be free“ (das RAFT-Beispiel 40 + 40 hing am Kistenmix).
+- **K2** D115-Anker geprüft: GitHubs gerendertes `decisions.md` (`gh api … contents … application/vnd.github.html`)
+  hat `id="user-content-d115--no-linux-overlay-port-the-cli-ships-for-linux-x64-f11-k12"` = Link. Unverändert.
+- **K3** „saves the file as schema 11 right after loading“ stimmt, unverändert: `App.ComposeStartPlan` → `ShowPlan` →
+  `Step` setzt `Saved`, `PlanSaver` schreibt nach 500 ms Debounce ohne Änderung des Spielers; belegt von
+  `PlanSaverTests.A_plan_from_before_v0_4_0_keeps_its_notice_after_the_first_save` (Start, `Flush`, Datei enthält
+  `"schemaVersion": 11`). Der v0.6.0-Satz „the first change keeps the file …“ bleibt ebenfalls: ohne lesbaren Plan
+  ruft v0.6.0 kein `ShowPlan`, erst eine Änderung speichert.
+- **K4** Schiffszahl in den Notes „110 ships (one of them a cargo module configuration)“. README, Nexus und Wiki sagen
+  weiter „109 ships and one cargo module configuration“ (Einheitlichkeit aus T12.6a), nicht angefasst.
+
 **Akzeptanz:**
 - [ ] Notes vom Backlog-Chat freigegeben; `git log v0.6.0..main` ohne unerwähnten nutzer-sichtbaren Commit
 - [ ] **Netz-Gate (Martin, SC vorn):** v0.6.0-Portable in eigenem Ordner oder mit `--data-dir` (Backup von
