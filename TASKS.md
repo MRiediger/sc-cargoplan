@@ -616,6 +616,130 @@ side-first rack order is not available yet“ (42 Schiffe mit Racks bei `origin.
 **Akzeptanz:** Hull-B-Fixture (`FrozenShips`, A10), `sides` ordnet Racks nach Seite; das Default-Verhalten ist
 byteidentisch zu heute; Zusammenspiel mit den Bahnen aus F10a festgelegt.
 
+**Befund vor dem Plan (20.11.2026, Branch `feat/f10b-side-racks` ab `1426252`):**
+
+1. **Seitengruppen aus den Daten** (Baseline `ships-2026.11.1`, 110 Schiffe). Seite aus der y-Ausdehnung des Racks
+   (`Rack.Bounds`: Breite bei ±z/±x, Stapel bei ±y): Backbord = `min.y ≥ 0`, Steuerbord = `max.y ≤ 0`, Mitte =
+   `min.y < 0 < max.y`. **42 Schiffe** mit Racks auf beiden Seiten (dieselben 42 wie F10a mit `origin.y`). Wo die Daten
+   `position.side` nennen (30 Racks, u. a. Hull A, Hull B), stimmt die Seite überall.
+
+   | Schiff | Backbord (SCU) | Steuerbord (SCU) | Mitte (SCU) |
+   |---|---|---|---|
+   | Hull B | 1, 2, 5, 6, 9, 10, 13, 14 (256) | 3, 4, 7, 8, 11, 12, 15, 16 (256) | – |
+   | Hull A | 1, 2 (32) | 3, 4 (32) | – |
+   | Railen | 1, 2, 4 (320) | 3, 5, 6 (320) | – |
+   | Hermes | 1 (144, 18×4) | 2 (144, 18×4) | – |
+   | Polaris | 1 (288, 12×6) | 2 (288, 12×6) | – |
+   | Carrack | 1, 4, 7 (192) | 3, 6, 9 (192) | 2, 5, 8 (72, 3×4 auf der Mittellinie) |
+   | Caterpillar | 8 (8) | – | 1–7, 9–14 (568) → **keine Seiten, F3** |
+
+   Weitere mit Mitte: Hull C (4 + 4 + 8 Spindel-Racks), Idris M/P, 890 Jump, Galaxy, Starfarer, Moth, 600i Explorer,
+   Freelancer MAX, Zeus CL, Ironclad. Ungleiche Seiten: Freelancer 60/6, Fortune 10/6, Syulen 4/2.
+   - **„y = 0“ im Startprompt:** 36 Racks beginnen bei `origin.y = 0` (Richtung +y), 22 enden bei 0 (von −y), u. a.
+     Hull B 3/7/11/15 (y −2..0, laut Daten `starboard`) und Railen 4/6 (0..4 / −4..0). Wörtlich gelesen wären sie Mitte
+     → P1.
+   - **Hull-B-Spindel:** zwei Blöcke entlang x (Bug x −11..−3, Heck x −20..−12), je 8 Platten um die Spindel (±42°
+     gedreht, Stapel ±y). Je Block und Seite: unten außen + unten innen, oben außen + oben innen. Folge innerhalb
+     Backbord = Racknummer: **1, 2 (Bug unten) → 5, 6 (Heck unten) → 9, 10 (Bug oben) → 13, 14 (Heck oben)**; Steuerbord
+     3, 4 → 7, 8 → 11, 12 → 15, 16. Alle 16 Racks 8×2×2, Stapel ±y → nie Bahnen; D64 behandelt sie als gleichartig, die
+     Folge innerhalb einer Seite bleibt die Racknummer (Tie-Break D64).
+2. **Rack-Zuordnung heute:**
+
+   | Stelle | Ist | Einschränkbar? |
+   |---|---|---|
+   | `RackAssignment.Assign` (`RackAssignment.cs:41`) | Ganze Zuordnung auf einmal über ein `Rack[]`, Prio 1–3 lexikografisch, Suchfolge Ziel nach SCU/Name, `MaxSearchNodes` 1 Mio. (D64), Layout-Schritte `StackingBudget` (D58), beide je Aufruf | **Ja:** das `racks`-Array ist die Kandidatenmenge; ein Aufruf je Gruppe lässt die Prioritäten innerhalb der Gruppe unberührt |
+   | `PlanStops` (`LoadPlanner.cs:38`) | `Assign` über alle, sonst `FirstFitDecreasing` | gruppenweise statt `Assign` über alle |
+   | `FirstFitDecreasing` (`:1435`) | Kandidaten: Racks mit dem Ziel, erstes leeres, dann Racknummer | Folge je Gruppe |
+   | `Keeping` → `TryPlace` → `StopByStop`/`LayStop`, `LargestFirst` | Mission für Mission (D41) | über die Kandidatenfolge von `LayStop`/FFD |
+   | `Replan` → `ReplanInPlace`/`ReplanForShip`/`PlanOrPlace` | alle über `PlanMissions` → `PlanStops`, Rückfall `RetryUnplaced` → `TryPlace` | erben `PlanStops` und `LayStop` |
+   | `Sectioned` (`:162`) | einziger Durchgang nach allen Plan-Wegen mit Missionen; F10a lässt dort Missionen warten | Ort für das Warten ohne Überlauf |
+
+   „Schrittbudget D58“ im Startprompt: in `Assign` sind es zwei, D64 (Knoten) und D58 (Layout-Schritte).
+3. **Erfassen** (`LayStop`, `:1166`): Kandidaten = Racks mit dem Ziel an Bord → **erstes leeres Rack (Racknummer)** →
+   alle in Racknummer; ganz in ein Rack (`Best`), sonst Kiste für Kiste über **alle Racks in Racknummer**. Auf der Hull B
+   landet heute das dritte Ziel in Rack 3 (Steuerbord), ein 48-SCU-Ziel nach 1 + 2 das nächste auf 2 + 3. Hier muss die
+   Seitenfolge greifen; ein Scan wartet weiter nur ohne Platz (P12).
+4. **Zusammenspiel mit F10a:** Bahnen sind Layout im Rack (`Lanes.Of`, `CrateLayout`), Gruppen sind Zuordnung. `Assign`
+   wählt ohne Bahnen (F5), `Built` legt Bahnen; das bleibt je Gruppe so. Folge **Seite → Rack → Bahn**; Hermes mit
+   `portFirst`: Rack 1 Backbordbahn, Rack 1 Steuerbordbahn, Rack 2 Backbordbahn (innen), Rack 2 Steuerbordbahn, Bahnen
+   wie F10a unverändert. Berührung nur beim Warten: F10a (`LanesFull`) und F10b (Seite) in derselben Schleife von
+   `Sectioned`, wartende Missionen vereinigt.
+
+**Plan (20.11.2026):**
+
+1. **`SideGroups`** (Core/Planning, neu; A1: kein Treffer für Seitengruppen, `RackSide`/`RackPosition` nutzt der Planer
+   nicht): `Of(racks, sides)` → Gruppen in Füllfolge `[erste Seite, zweite Seite, Mitte]`, je in Racknummer, Mitte nur
+   wenn vorhanden; **null** bei `None` oder ohne Racks auf beiden Seiten (F3). Seite aus `Rack.Bounds` (P1). Dazu die
+   Kandidatenfolge: Racks mit dem Ziel (in Gruppenfolge), dann je Gruppe ihr erstes leeres Rack und ihre übrigen. Mit
+   einer Gruppe = heutige Folge (byteidentisch per Konstruktion).
+2. **Zuordnung gruppenweise** (`RackAssignment`, `Assign` je Gruppe):
+   - Ziele in **Legendenfolge** (P2). Probe = Machbarkeitsprüfung (Modus `Feasible`, Kappen offen) nach SCU- und
+     `CanHold`-Vorfilter, danach ein `Assign` je Gruppe mit ihren Zielen.
+   - `sideOverflow = true`: Ziele nehmen die erste Seite, solange sie passen; das erste, das nicht ganz passt, wird
+     geteilt (so viele Kisten wie die Seite nimmt, Linien wie D64 Prio 1b, größte zuerst; scheitert die Probe, die letzte
+     Kiste raus), Rest und alle späteren auf die nächste Seite, zuletzt Mitte.
+   - `false`: jedes Ziel ganz in die erste Gruppe, die es nimmt (First Fit; ein späteres kleines geht zurück auf Seite 1,
+     wie F10a). Passt es in keine, wird es danach wie mit `true` gelegt und als kreuzend gemeldet.
+   - Rückfall wie heute: liefert eine Gruppe kein `Assign`, `FirstFitDecreasing` in Seitenfolge über alle.
+3. **`PlanStops`**: mit Gruppen die gruppenweise Zuordnung, sonst unverändert. Ohne Missionen (`Plan(Ship, stops)`,
+   CLI) bekommen kreuzende Ziele den vorhandenen Hinweis `Rack N: X crosses sides – side overflow off`.
+4. **Warten ohne Überlauf** in `Sectioned` (nach Plan, PlanKeeping, Re-plan): mit `byDestination`, `sideOverflow =
+   false` und Gruppen ist auch jedes Ziel kreuzend, dessen geplante Kisten in Racks zweier Gruppen liegen. Seine
+   Missionen warten (außer mit Geladenem/Geliefertem, K6.4, wie F10a), die verlassenen Racks werden ohne sie neu gelegt
+   (Geladenes als Hindernis, Bahnen wo vorhanden), Hinweis neu `Rack N: sides full – a mission waits (side overflow
+   off)`. Kapazitätszeile unverändert, Wartezeile wie F10a-P2 (F7).
+5. **Erfassen und Missionsweise** (`LayStop`, `FirstFitDecreasing`, damit `TryPlace`, `Keeping`, `RetryUnplaced`,
+   `BackOnBoard`): Kandidaten in Seitenfolge, Kiste für Kiste über die Racks in Seitenfolge. Mit `sideOverflow = false`
+   und `byDestination` zuerst Kiste für Kiste innerhalb je einer Seite, dann über alle (P6). Verschieben bleibt ohne
+   Seiten (F5).
+6. **Hinweise:** `PerRackText`, `SectionNotes.PerRack` und der Block in `LaneNotes` entfallen (A13: Schreiber von
+   `NoticeSource.Sections` gegrept, Zusammenspiel mit `LanesFull`/`Crosses` getestet). F10a war nie released, keine
+   Nutzerdatei trägt den Text; ein gespeicherter fällt in `Notes` weg (unbekannter Wortlaut).
+7. **App:** nur der Tooltip von „Sides“ (`MissionEditorWindow.xaml:152`) nennt beide Bedeutungen.
+8. **Docs:** D117 (Optionen: Seite als Tie-Break in D64, Seite als Prio 0, gruppenweise; Gegenargumente aus F4, dazu
+   Legendenfolge zwischen den Gruppen, Hull A mit kleinen Zielen, Probenkosten; Messwerte), Addenda D41, D64, D89, D116;
+   `plan-format.md`, `mission-format.md`, CLAUDE.md; Wiki „Layout“ ein Satz auf lokalem Branch `f10a-lanes`.
+9. **Commits:** 1 = `hull_b` einfrieren + rote Tests; 2 = `SideGroups` + Zuordnung + `PlanStops`; 3 = Erfassen; 4 =
+   Warten + Hinweise; 5 = Tooltip; 6 = Docs + Messung.
+
+**Präzisierungen in der Planphase, ratifiziert durch Freigabe:**
+- P1 **Seite** aus `Rack.Bounds`: wer die Mittellinie nur berührt, gehört zu seiner Seite; Mitte nur bei
+  `min.y < 0 < max.y`. Gegenargument: der Nullpunkt ist der der Datei (D90), nicht zwingend die Schiffsmitte (Hull B:
+  y ≈ 0,5); die Seiten stimmen trotzdem mit `position.side`.
+- P2 **Ziele in Legendenfolge** auf die Seiten (wie F10a-P2 und wie der Scan sie bringt: Scan und späterer Plan geben
+  dieselbe Seite). Gegenargument: D64 ist eingabe-unabhängig; mit Seiten bestimmt die Legendenfolge, welches Ziel
+  Backbord liegt (innerhalb einer Gruppe bleibt D64 unabhängig).
+- P3 **`sideOverflow` wirkt nur mit `byDestination`** (wie F10a-P3 und wie der Editor die ComboBox aktiviert); die
+  Seitenfolge der Racks wirkt auch ohne Grouping.
+- P4 **Seite voll heißt Kapazität:** mit `true` teilt ein Ziel lieber ein Backbord-Rack, als ein leeres Steuerbord-Rack
+  zu nehmen (F1; D64 Prio 2 nur innerhalb der Gruppe). R3 nutzt Ziele à 16 SCU, ein Fall 3 × 8 SCU zeigt das Teilen.
+- P5 **Warten im Durchgang `Sectioned`**, nicht in `PlanMissions`: ein Ort für alle Plan-Wege; verlassene Racks werden
+  neu gelegt, nicht neu zugeordnet. Gegenargument: die übrigen Ziele der Gruppe liegen, wie D64 sie mit dem kreuzenden
+  Teil fand.
+- P6 **Erfassen ohne Überlauf** bevorzugt eine Seite, wartet nie bei Platz (P12 sinngemäß); `RetryUnplaced` (Undo/Redo)
+  kann eine wartende Mission seitenübergreifend legen, bekannt aus D116, der nächste Plan legt nach der Regel.
+
+**Tests (erst rot):** `SideRackTests` + `FrozenShips/hull_b.json` (Kopie der Baseline, A10). R1 Hull B `portFirst`,
+byDestination, 2 × 96 SCU → nur Backbord; `starboardFirst` gespiegelt. R2 dritte 96 SCU: `true` 64 Backbord + 32 auf
+Rack 3, je Block; `false` ganz Steuerbord; `false` über beide Seiten → Mission wartet, Hinweis, Kapazität gleich. R3
+Hull A 2 × 16 → Racks 1, 2, drittes → Rack 3; 3 × 8 → alle Backbord (P4); `none` Goldens byteidentisch. R4 Hermes-artig
+synthetisch: Seite → Rack → Bahn. R5 Mitte synthetisch: zuletzt, mit `false` ganze Ziele. R6 Scan Hull B: neues Ziel
+Backbord solange Platz (48 + 48 → Rack 5 statt 3), Nachschub dort, sonst P12; `false` innerhalb einer Seite zuerst. R7
+Default: alle Goldens und B17-Schnappschuss mit `none` byteidentisch; `sides ≠ none` ohne Seiten (RAFT, C2,
+Caterpillar) wie F10a. R8 Eigenschaftstest (Seed fest, Hull B, 1–8 Ziele). R9 Hinweise (A13). Messung: Knoten und
+Laufzeit je Gruppe, Hull B/Hull C `none` gegen `portFirst`.
+
+**Gate Martin am Aufzug (SC vorn, Hull B):** Editor → Layout: **Grouping** By destination, **Sides** Port first,
+**Side overflow** Cross over. Zwei Missionen scannen, zusammen ≤ 256 SCU und je > 32 SCU (etwa 96 + 96) → beide auf den
+Backbord-Racks (1, 2, 5, 6 …), Steuerbord leer. Dritte Mission über die 256 SCU (etwa 96) → ihr Rest liegt Steuerbord
+(64 + 32). **Sides: None** + **Plan** → das heutige Bild. Optional **Side overflow: Wait** + Plan → die dritte ganz
+Steuerbord.
+
+**Freigabe 20.11.2026:** P1–P6 ratifiziert, D117. **E1:** Knotenbudget plan-weit wie heute (1 Mio. D64-Knoten für alle
+Gruppen und Proben zusammen, nicht je Gruppe multipliziert); Probe mit eigenem kleinem Deckel nach dem Vorfilter.
+Abbruch, wenn `portFirst` auf Hull B oder Hull C mehr als 2× die Laufzeit von `none` braucht – dann Zahlen hierher.
+Commit 1 (`hull_b` einfrieren + rote Tests) zuerst.
+
 ### [x] F11 Linux: CLI statt Overlay (19.11.2026, in K12)
 
 **Warum:** Anfrage nach Linux. Ein Overlay-Port wäre ein zweites Projekt (WPF + Win32); die CLI läuft ohne Windows.
