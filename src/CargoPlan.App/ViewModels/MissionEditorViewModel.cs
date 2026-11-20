@@ -42,6 +42,8 @@ public sealed partial class MissionEditorViewModel : ObservableObject
     private FillRows _fillRows;
     private PlanGrouping _grouping;
     private int _sectionGap;
+    private Sides _sides;
+    private bool _sideOverflow;
 
     // "Scan": the overlay's scan runner, the same path as the hotkey (T10.3); null without one.
     private readonly Action? _scanContract;
@@ -65,6 +67,8 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         _fillRows = overlay.Plan?.FillRows ?? FillRows.Lengthwise;
         _grouping = overlay.Plan?.Grouping ?? PlanGrouping.None;
         _sectionGap = overlay.Plan?.SectionGap ?? 0;
+        _sides = overlay.Plan?.Sides ?? Sides.None;
+        _sideOverflow = overlay.Plan?.SideOverflow ?? true;
         _missions = overlay.Missions;
         _shipId = overlay.Ship.Id;
         Rows = [.. RowsOf(overlay)];
@@ -167,6 +171,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
             if (SetProperty(ref _grouping, value))
             {
                 OnPropertyChanged(nameof(IsSectionGapEnabled));
+                OnPropertyChanged(nameof(IsSideOverflowEnabled));
                 Edited();
             }
         }
@@ -194,6 +199,52 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
     /// <summary>A gap is one between sections: without them it stays as chosen and does nothing, so the box rests.</summary>
     public bool IsSectionGapEnabled => Grouping == PlanGrouping.ByDestination;
+
+    public static IReadOnlyList<SidesChoice> SidesChoices { get; } =
+    [
+        new(Sides.None, "None"),
+        new(Sides.PortFirst, "Port first"),
+        new(Sides.StarboardFirst, "Starboard first"),
+    ];
+
+    /// <summary>Whether racks fill one side at a time (D116), for the next <see cref="PlanCommand"/>; a draft by the rules of <see cref="FillOrder"/>.</summary>
+    public Sides Sides
+    {
+        get => _sides;
+        set
+        {
+            if (SetProperty(ref _sides, value))
+            {
+                OnPropertyChanged(nameof(IsSideOverflowEnabled));
+                Edited();
+            }
+        }
+    }
+
+    public static IReadOnlyList<SideOverflowChoice> SideOverflowChoices { get; } =
+    [
+        new(true, "Cross over"),
+        new(false, "Wait"),
+    ];
+
+    /// <summary>
+    /// Whether a destination that doesn't fit the rest of the first side crosses to the second, or lies whole on one side and
+    /// else waits (D116), for the next <see cref="PlanCommand"/>; a draft by the rules of <see cref="FillOrder"/>.
+    /// </summary>
+    public bool SideOverflow
+    {
+        get => _sideOverflow;
+        set
+        {
+            if (SetProperty(ref _sideOverflow, value))
+            {
+                Edited();
+            }
+        }
+    }
+
+    /// <summary>Overflow decides between sections of the two sides: without sides or grouping it stays as chosen, so the box rests.</summary>
+    public bool IsSideOverflowEnabled => Sides != Sides.None && Grouping == PlanGrouping.ByDestination;
 
     /// <summary>The ship the rows are planned for; changed in the overlay header, not here (T7.2b).</summary>
     public string ShipName => _overlay.Ship.Name;
@@ -293,6 +344,16 @@ public sealed partial class MissionEditorViewModel : ObservableObject
             {
                 SectionGap = sectionGap;
             }
+
+            if (file.Sides is { } sides)
+            {
+                Sides = sides;
+            }
+
+            if (file.SideOverflow is { } sideOverflow)
+            {
+                SideOverflow = sideOverflow;
+            }
         }
         catch (MissionFormatException ex)
         {
@@ -317,7 +378,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
 
         try
         {
-            AtomicFile.Write(path, stream => MissionFileWriter.Write(stream, _result.Stops, FillOrder, FillRows, Grouping, SectionGap));
+            AtomicFile.Write(path, stream => MissionFileWriter.Write(stream, _result.Stops, FillOrder, FillRows, Grouping, SectionGap, Sides, SideOverflow));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -391,7 +452,7 @@ public sealed partial class MissionEditorViewModel : ObservableObject
         try
         {
             var current = _overlay.Saved ?? new SavedPlan([], new LoadPlan(_overlay.Ship.Id, [], []), CrateCap.Of(_overlay.Ship));
-            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, FillRows, Grouping, SectionGap);
+            var (saved, cleared) = LoadPlanner.PlanKeeping(current, _overlay.Ship, missions, route, FillOrder, FillRows, Grouping, SectionGap, Sides, SideOverflow);
             ChangeOverlay(() => _overlay.ShowPlan(saved));
             _overlay.SetNotice(NoticeSource.Move, cleared.Count == 0 ? null : string.Join(" · ", cleared));
             IsDirty = false;

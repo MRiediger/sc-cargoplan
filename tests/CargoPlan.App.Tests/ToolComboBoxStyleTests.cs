@@ -75,7 +75,7 @@ public sealed class ToolComboBoxStyleTests
                 var layout = LogicalDescendants(editor).OfType<ComboBox>().ToList();
                 var maxSize = ((DataGrid)editor.FindName("Grid")).Columns.OfType<DataGridComboBoxColumn>().Single();
 
-                layout.Should().HaveCount(4);
+                layout.Should().HaveCount(6);
                 layout.Should().OnlyContain(c => c.Style == shared);
                 layout.Should().OnlyContain(c => c.ItemContainerStyle.BasedOn == sharedItem);
                 maxSize.EditingElementStyle.BasedOn.Should().BeSameAs(shared);
