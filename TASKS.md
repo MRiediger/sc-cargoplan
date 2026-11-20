@@ -395,15 +395,226 @@ Gap 0–2, Plan und Re-plan; 3768 Kistenzeilen) vor und nach der Änderung. Test
   nebeneinander, Gap zwischen den Blöcken sichtbar; geladen abgehakt und erneut gescannt → Geladenes bleibt liegen.
   **Abgenommen 19.11.2026** („ist abgenommen, funktioniert wie erwartet“). Merge `--no-ff`, Martin pusht.
 
-### [ ] F10 Seitenweise Planung
+### [x] F10a Seitenweise Planung – Bahnen im Rack (20.11.2026)
 
-**Warum:** Auf Schiffen mit Racks nebeneinander (Hull B: Spindel links/rechts) wollen Hauler erst eine Seite auffüllen,
-dann die andere, statt Missionen nach Ziel und Kapazität über beide Seiten zu verteilen.
-- Neue Layout-Option neben `fillOrder`/`fillRows`/`grouping` im Editor-Abschnitt „Layout“; neues Plan-Feld,
-  plan.json-Schema-Bump (heute 10), Missions-JSON (heute 4) mitziehen.
-- A1: Vorläufer ist die Backlog-Zeile „Zweiseitige Sektionen“ (→ F10).
+**Warum:** Auf flachen Platten (RAFT, Perseus, C2, Taurus-Klasse) will der Hauler erst **eine Seite** voll laden, dann
+die andere. Die Breite eines Racks wird in zwei Bahnen geteilt (Backbord/Steuerbord), jede Bahn läuft wie heute das
+ganze Rack. F10 ist geteilt (Martin, 19.11.): **F10a** = Bahnen innerhalb eines Racks (reines Layout in Core),
+**F10b** = Rack-Gruppen nach Seite (eigener Task, unten).
+- Plan-Felder `sides: none | portFirst | starboardFirst` (Default `none`) und `sideOverflow: true | false` (Default
+  `true`), im Editor-Abschnitt „Layout“; plan.json 10 → 11, Missions-JSON 4 → 5.
+- A1: Vorläufer sind die Backlog-Zeile „Zweiseitige Sektionen“ und D88 (dort `portFirst`/`starboardFirst` als Werte von
+  `fillOrder` verworfen).
 
-**Akzeptanz:** Hull-B-Fixture (`FrozenShips`, A10); das Default-Verhalten ist byteidentisch zu heute.
+**Akzeptanz:** Topologie-Tabelle, Berührte-Stellen-Tabelle, D116; alle Tests grün, Repro-Golden RAFT; Default
+byteidentisch; `dotnet test` komplett. Gate am Aufzug (unten).
+
+**Befund vor dem Plan (19.11.2026, Branch `feat/f10a-lanes` ab `495a7aa`):**
+
+1. **Topologie** aus den Daten (Baseline `.ship-data/ships-2026.11.1`, 110 Schiffe, 340 Racks). A = ein Rack, Stapel
+   ±z; B = Racks nebeneinander (ein Paar in y getrennt, in x überlappend); C = Racks hintereinander (in x getrennt, in y
+   überlappend); D = Rest. y-Ausdehnung nach `stackAxis` (`ship-format.md:174`).
+
+   | Typ | Schiffe | Beispiele | mit Bahnen (Rack ≥ 4 breit, Breite entlang y) |
+   |---|---|---|---|
+   | A | **54** | RAFT 12×8 −z, Perseus 6×8, A2 18×6, Centaurus 10×6 | **20** |
+   | B | 22 | Hermes 2×4, Polaris 2×6, Hull A (±y), Apollo, Cutlass Red/Blue | 6 |
+   | C | 10 | **C2/M2** (8 + 6), **Taurus** (4 + 2), Liberator, Cutlass Black, 600i Exec | 6 |
+   | D | 24 | Carrack, Caterpillar, Idris, Hull B/C, Railen, Freelancer | 18 |
+
+   - Typ A nach Breite: W1 20, **W2 12, W3 2 (fallen nach F3 durch: 14)**, W4 12, W5 4, W6 2, W8 2 → 20 mit Bahnen, jede
+     Bahn ≥ 2. Ungerade Breite ≥ 4: Asgard, Phoenix, Valkyrie ×2 (W5 → 2 + 2 + Mitte).
+   - Racks nach Achse: +z 277, −z 16, ±y 30, ±x 17. z-Racks nach Breite: 1: 70, 2: 58, 3: 18, 4: 99, 5: 19, 6: 19, 8: 6,
+     14: 2, 18: 2.
+   - **C2 und Taurus sind Typ C** (zwei Racks hintereinander), nicht Typ A wie im Startprompt.
+   - **Seite:** Bei ±z und ±x läuft die Breite entlang Schiffs-y aufwärts, **w = 0 ist Steuerbord** (`Rack.cs:97-129`,
+     `FillRows.cs`), unabhängig vom Vorzeichen; die Drehung (D91) ist nur Ansicht. Bei ±y (`StacksSideways`) steht die
+     Breite senkrecht: nie Bahnen.
+   - **Seiten-Notice** (Racks mit `origin.y > 0` und `< 0`): 42 Schiffe, davon 22 mit bahnfähigen Racks (Carrack,
+     Hermes, Polaris, Idris …); C2, Taurus, Liberator, RAFT nicht.
+   - FrozenShips (A10): `raft`, `perseus`, `c2_hercules`, `hull_a`, `starfarer`/`caterpillar` (W5); kein W3, kein W7 →
+     synthetisch im Test.
+2. **Berührte Stellen:**
+
+   | Stelle | Ist | F10a |
+   |---|---|---|
+   | Zellreihenfolge | `CrateLayout.Ranks` (`CrateLayout.cs:760`), einzige Stelle mit Achsen; Stapel > Fortschritt > Reihe | Bahn außen: Bahn > Stapel > Reihen auf der Bahnbreite; ohne Bahnen der heutige Pfad |
+   | Kistenplatz | `FirstFit` (`:802`), `Apart.StartingAt` (`:641`): nur Grid-Grenzen | keine Kiste über eine Bahngrenze (3.) |
+   | Rack-Zuordnung | `RackAssignment` (`Fits` `:504`, Wahl über `LayingOf` `:533`), `FirstFitDecreasing` | unverändert ohne Bahnen (F5) |
+   | Sektionen | `RackSections` (D89, B17): `RowAxis` `:20`, `Arrangement` `:221`, `Outside` `:153`, `Encloses` `:176`, `RowsFor` `:91` | Reihen = Bahn 1, dann Bahn 2, dann Mitte; Lücke nicht über die Grenze; `Encloses` je Bahn |
+   | Erfassen | `LoadPlanner.LayStop` (`:1058`), `InSection` (`:1127`), `LargestFirst` (`:1245`) | Bahnen direkt; `sideOverflow=false`: Stufen in einer Bahn |
+   | Plan/Re-plan | `Plan` (`:25`, `:388`), `Sectioned` (`:87`), `PlanKeeping`/`Keeping` (`:429`), `Replan` (`:660`), `ScanSync.cs:62` | Felder durchreichen (4.) |
+   | Verschieben, Teilen | `MoveResolution` (`:537`), `PlaceWithin` (`:134`) | unverändert ohne Bahnen |
+   | Hinweise | `SectionNotes` (`RackSections.cs:383`), `Names` liest per Wortlaut; einziger Schreiber `NoticeSource.Sections`: `OverlayViewModel.cs:320` | neue Texte + Parser |
+   | plan.json | Schema 10 (`PlanFile.cs:20`; „final since T10.4b“ = Ende Phase 10, kein Bump-Verbot), `PlanFileDto.cs:20-31, :59, :104-114, :156` | 11 |
+   | Missions-JSON | Schema 4 (`MissionFileReader.cs:15`, `MissionFileDto.cs:18-76`, `MissionFileWriter.cs:16`) | 5 |
+   | Editor | `MissionEditorWindow.xaml:99-149` (`WrapPanel`, 660 × 420), `MissionEditorViewModel.cs:41-196, :277-320, :394`; **„880 px“ gibt es nicht** (K9.2: 760, K9.2b zurück auf 660 mit Umbruch) | 2 ComboBoxen |
+   | CLI `plan` | Optionen aus der Missionsdatei (`Program.cs:68-70`), `PlanTextRenderer` druckt Warnungen als `!` | 2 Defaults |
+   | Look/Export, Settings | Layout ist Plan (D77, `LookFile.cs:86-95`), keine Layout-Defaults (Schema 3) | keine Änderung |
+3. **Großkisten:** Heute prüfen nur die Grid-Grenzen (`FirstFit` `w+size.W<=W`, `StartingAt`; `Rack.CanHold` das ganze
+   Grid). Eine Rangfolge allein reicht nicht: `FirstFit` vergleicht Ränge, eine 2-breite Kiste läge auf w = h−1..h.
+   **Maske im Rack:** `Lanes` (Bahn-ID je Breitenindex, zusammenhängend) prüft mit `lane[w] == lane[w+W−1]` an genau
+   zwei Stellen (`FirstFit`, `StartingAt`). Gedrehte 2er nie in der Mitte, 4er/8er/16er nie über die Grenze: F2 ohne
+   eigene Regel. Gegenargument: Eine Bahn als eigener `RackSpace` wäre isolierter, aber Kapazität, Türlimit, Racknummer,
+   Stützprüfung und Geladenes hängen am echten Rack (die verworfene Alternative „Rack virtuell teilen“ aus F7). Ab Breite
+   4 passt jede Kistengröße ungedreht in eine Bahn (D57).
+
+**Plan (19.11.2026):**
+
+1. **Modell:** `Sides { None, PortFirst, StarboardFirst }` (`Models/`), `Json/SidesJson.cs` nach `FillRowsJson`;
+   `LoadPlan.Sides` (Default `None`), `LoadPlan.SideOverflow` (Default `true`). `RackSide` (Rack-Position) bleibt.
+2. **`Lanes`** (Core/Planning): `Of(rack, sides)` = null bei `None`, ±y oder Breite < 4; sonst Bahn 1 = Backbordhälfte
+   (hohe w) bei `portFirst`, Steuerbordhälfte bei `starboardFirst`, Bahn 2 die andere, Bahn 3 die Mitte bei ungerader
+   Breite; Breitenfolge je Bahn von außen zur Mitte.
+3. **`CrateLayout`:** `Ranks(…, lanes)` mit Bahn außen; `FirstFit`/`StartingAt` verwerfen Kisten über einer Grenze;
+   `RackSpace`, `Lay` reichen `lanes` durch (optional, Default null, jede Aufrufstelle angesehen).
+4. **Wer legt mit Bahnen (E1, ein Mechanismus: `CrateLayout.Lay` mit `lanes`):**
+
+   | Aufrufer | Bahnen | Warum |
+   |---|---|---|
+   | `RackAssignment.Fits`, `LayingOf` (Wahl), `FirstFitDecreasing` | nein | Sie wählen Racks und Wartende; mit Bahnen könnte die Wahl kippen (F5) |
+   | `RackAssignment.Built` (Lage der gewählten Zuordnung), `PlanStops`-Rückfallschleife (`:73`) | **direkt** | Die Wahl ist getroffen; nur die Lage folgt |
+   | `RackSections.Arrangement` (byDestination) | **direkt** | Sektionen sind schon der Durchgang nach dem Planer (D89) |
+   | `LayStop`, `LargestFirst` bei Erfassen (`PlaceInto`, `PlaceAs`, `RetryUnplaced`) | **direkt** | Kein Durchgang danach; Sync-Abweichung wie D89 akzeptiert |
+   | `Keeping` (Plan/Re-plan mit Geladenem) | **Nachdurchgang** | Mission für Mission: legte jede mit Bahnen, hinge die nächste davon ab, Wartende wären nicht mehr wie `none`. Erst ohne Bahnen platzieren, dann je Rack die geplanten Kisten mit `Lay(lanes)` neu, Geladenes als Hindernis |
+   | `MoveResolution`, `PlaceWithin`, `LayOutShip` | nein | Ein Zug ist kein Schloss (D89); Teilen bleibt in der Kiste; Migration alter Pläne |
+
+   Nachdurchgang sonst nur für, was `Lay` nicht trägt: Hinweise (F3, Seiten) und `sideOverflow=false` (Mission wartet).
+   Scheitert `Lay(lanes)` in einem Rack, gilt `Lay` ohne Bahnen mit Hinweis `Rack N: lanes don't fit – laid as without
+   lanes`.
+5. **Sektionen:** `RowAxis` mit Bahnen (Reihen-IDs je Bahn, Folge Bahn 1, 2, Mitte). `sideOverflow=true`: ein Cursor über
+   alle Reihen, ein Ziel darf an der Grenze geteilt werden, Lücke nur innerhalb der Bahn. `false`: Cursor je Bahn, jedes
+   Ziel ganz in die erste Bahn, die es nimmt (Legendenfolge); passt es in keine, **wartet seine Mission** (Hinweis
+   `Rack N: X waits – lanes full (side overflow off)`), das Rack wird neu gelegt. Ohne Missionen (`Plan` mit Stopps, CLI)
+   wartet nichts: das Ziel liegt wie mit `true` und bekommt `Rack N: X crosses sides – side overflow off`.
+6. **Hinweise** (`SectionNotes`, `Names`/`IsNote`), nur bei `sides ≠ none`, nur Racks mit geplanter Fracht, Lebensdauer
+   wie K9.3: `Rack N: lanes need a rack at least 4 wide`, `Rack N: no lanes on a rack that stacks sideways`,
+   `Rack N: lanes don't fit – laid as without lanes`, die zwei aus 5., schiffsweit `lanes apply per rack – side-first rack
+   order is not available yet` (K1; Verweis auf F10b nur im Kommentar und in D116). A13: alle Schreiber von
+   `NoticeSource.Sections` gegrept, Zusammenspiel mit K9/B17 getestet.
+7. **Formate:** plan.json 11 (`sides`, `sideOverflow` ab 11 Pflicht, darunter Fehler; 8–10 lesen als `none`/`true`),
+   Missions-JSON 5 (optional, immer geschrieben, in ≤ 4 Fehler). `FillRowsFormatTests.OlderGolden` nachziehen.
+8. **Editor:** `SidesChoice`, `SideOverflowChoice`; „Sides“ und „Side overflow“ in der `WrapPanel`-Zeile; „Side overflow“
+   aktiv nur mit `sides ≠ none` und `byDestination`. **CLI:** Defaults `none`/`true`.
+9. **Docs:** D116 (Kontext, Optionen: `fillOrder`-Werte nach D88, Rack virtuell teilen, Bahn als `RackSpace`, Maske;
+   Gegenargumente: Packdichte am Bahnende, Warten trotz freier Zellen, Mitte nur 1er/2er, Züge ignorieren Bahnen;
+   Messwerte), Addenda D88, D89; `plan-format.md`, `mission-format.md`, `CLAUDE.md`; Wiki „Layout“ auf lokalem Branch
+   `f10a-lanes`.
+10. **Commits (E2):** 1 = Modell + `Lanes` + `CrateLayout` mit R11 grün; dann Planer/Sektionen, Formate, Editor, Docs.
+
+**Präzisierungen in der Planphase, ratifiziert durch Freigabe:**
+- P1 Bahnen pro Rack auf allen Schiffstypen (Stapel ±z/±x, Breite ≥ 4), nie auf ±y; Seiten-Notice per Vorzeichen von
+  `origin.y`, keine Topologie-Klasse in Core. Ersetzt F8 „Typ C/D wirkt nicht“.
+- P2 Modell „Seite voll zuerst“: Bahn 1 nimmt Ziele in Legendenfolge bis zum Rand, dann Bahn 2, dann Mitte. `true`: ein
+  Ziel darf an der Grenze geteilt werden, jeder Teil ein Block (B17). `false`: jedes Ziel ganz in einer Bahn, First Fit
+  nach Bahn; passt keins, wartet die Mission (F5-Ausnahme, gewollt). „Kapazitätszeile unverändert“ = Schiffskapazität.
+- P3 Ohne Sektionen ist `sides` reine Zellreihenfolge (Ziele gemischt wie heute); `sideOverflow` wirkt nur mit
+  `byDestination`.
+- P4 Tests korrigiert (Martin): „2 × 24 portFirst“ → beide Backbord, Steuerbord leer; „8 Ziele“ nur als Golden, wenn
+  vier Ziele eine Bahn füllen.
+- P5 Gate korrigiert: Mission 1 und 2 auf Backbord, die dritte läuft über und landet Steuerbord.
+- P6 Jede Bahn von ihrer Außenkante zur Mitte; Mitte zuletzt; `starboardFirst` = Spiegelbild von `portFirst`.
+- P7 Goldens: Mit Schema 11 ändert sich der Kopf der 12 Schema-10-Goldens (`schemaVersion` + zwei Zeilen); der Test
+  beweist, dass genau diese 3 Zeilen abweichen; dazu B17-Zell-Schnappschuss (240 Fälle) unverändert.
+- P8 Editor-Import ohne die Felder behält den Editorwert (D88-Muster); Reader und CLI setzen `none`/`true`.
+- P9 Züge legen ohne Bahnen; Geladenes über einer Grenze bleibt liegen; Eigenschaftstest prüft nur Geplantes.
+- P10 Eigener Text für ±y-Racks („at least 4 wide“ wäre bei den 4 breiten Railen-Seiten falsch).
+- P11 (E1) Zuordnung der Aufrufer wie in Plan 4; Stopps-Weg ohne Missionen mit Hinweis statt Warten (Plan 5).
+
+**Tests (erst rot):** R1 RAFT `portFirst` crosswise 2 × 24 → beide in w4–7, w0–3 leer; `starboardFirst` gespiegelt.
+R2 Überlauf A = 80, B = 24: `true` B 16 + 8 geteilt, je Block; `false` B ganz Steuerbord; `false` A = 90, B = 100 → B
+wartet, Hinweis. R3 Breite 7: 3 + 3 + Mitte, keine 4er in der Mitte, nichts über einer Grenze. R4 Breite 3 und Hull A:
+ohne Wirkung, Hinweis, Bild = `none`. R5 Golden 8 × 24 Gap 0 (A–D Bahn 1, E–H Bahn 2); 8 × 16 Gap 1 (Lücken nur in
+der Bahn, E ohne Lücke am Anfang von Bahn 2), B17 hält. R6 Goldens `lengthwise` und `sternFirst` mit Bahnen. R7 C2:
+Bahnen in beiden Racks, kein Seiten-Hinweis; Racks y > 0 und < 0: Hinweis. R8 Geladen + Umschalten. R9 Formate.
+R10 Eigenschaftstest (Seed fest, 200 Fälle): nichts über einer Grenze; `false`: kein Ziel geteilt, keins in Bahn 2, das
+zu seiner Zeit in Bahn 1 gepasst hätte; `true`: Bahn 2 erst belegt, wenn Bahn 1 keine Reihe mehr frei hat.
+R11 Default: 12 Goldens nur 3 Kopfzeilen anders, B17-Schnappschuss gleich, alle Tests grün. R12 Hinweise (A13).
+R13 Editor-VM.
+
+**Gate Martin am Aufzug (SC vorn, RAFT):** zwei Missionen scannen, `portFirst`, `byDestination` → beide auf der
+Backbordhälfte; dritte Mission mit Überlauf → der Rest landet Steuerbord; Umschalten auf `none` → heutiges Bild.
+
+**Freigabe 20.11.2026:** P1–P10 ratifiziert, D116. **K1:** Seiten-Notice ohne „F10b“ („side-first rack order is not
+available yet“), Verweis nur in Kommentar und D116. **E1:** bei `grouping: none` ein Mechanismus – `Lay` mit `lanes`
+legt direkt, Nachdurchgang nur für Fälle, die `Lay` nicht trägt; im Plan zugeordnet (Plan 4, P11). **E2:** Commit 1 =
+Modell + `Lanes` + `CrateLayout` mit R11 grün, dann der Rest. Rot-Lauf mit Zahlen zuerst.
+
+**Befund (20.11.2026, `309ccd8` … `1d98ba5`):**
+- **Commits:** `309ccd8` Modell + `Lanes` + `CrateLayout` (E2: R11 grün, Core 2045 / App 2083 inkl. Scratch);
+  `9ec973f` Planer, Sektionen, Erfassen; `9abcf8d` plan.json 11, Missions-JSON 5, CLI; `97d2cd8` Editor; `1d98ba5`
+  D116, Addenda D41/D88/D89, Formatdoku, Timing-Spalte. Diff gegen `495a7aa`: Core 7 Quelldateien + 2 neu (`Lanes`,
+  `SidesJson`, `Sides`), App 1 + 2 neu, Tests 3 neu (`LanesTests` 30, `LanePlanTests` 33, `SidesFormatTests` 16).
+- **Rot-Läufe:** `LanesTests` 23 von 30 rot gegen die bloße Oberfläche, 16 von 30 mit nur `Lanes.Of` (alle
+  Layout-Asserts); `LanePlanTests` 30 von 31; `SidesFormatTests` 15 von 16; Editor 11 Compile-Fehler. Grün schon vorher,
+  als Wächter: Breite 1–3, ±y, `none`, Ranks ohne Bahnen, „Racks und Wartende wie ohne Bahnen“, Schema 4 ohne Seiten.
+- **Mutationen:** `StartingAt` ohne Grenzprüfung → 1 rot (Eigenschaftstest über die exakte Suche), `FirstFit` → 3;
+  Planer M1–M8 (Lücke am Bahnanfang, eine Seite ohne Überlauf, Warten, `InLanes` nach `Keeping`, abgeleitete Hinweise
+  ×2, Bahnen in `Built`, Bahnen beim Erfassen, `Encloses` je Bahn) je ≥ 1 rot. **M1 und M8 überlebten zuerst:** dafür
+  kamen „Sektion endet am Bahnende, Bahn 2 ohne Lücke“ (32 + Gap + 56 SCU) und „Block endet an seiner Bahn“ dazu.
+- **F8 Default byteidentisch, zweifach:** die zehn Hull-A-Goldens per Skript um genau 3 Zeilen geändert
+  (`schemaVersion` 10 → 11, `sides`, `sideOverflow`; je +3/−1), `HullAGoldenTests` byte-gleich dagegen; der
+  B17-Zell-Schnappschuss (3768 Kistenzeilen, K9-Fixtures × Reihen × Richtung × Gap 0–2, Plan und Re-plan) auf `495a7aa`
+  und `HEAD` identisch.
+- **Bestehende Tests, die kippten:** 21 an Schemanummer oder Feldfolge (Core 20, App 1: Ablehnungstext „8 or 9 or 10
+  or 11“, Schema 11/12 statt 10/11, Missions-Writer 5 statt 4, Feldfolge mit `sides`), 2 an der Zahl der
+  Layout-ComboBoxen (4 → 6); **keiner an Verhalten.** Der Byte-Test des Missions-Writers liest eine neue Schema-5-Fixture
+  (`sides_port_first.json`), die Schema-4-Fixture bleibt Lesefixture.
+- **Messung** (Release, ohne Tiered JIT, Median aus 3, Bug zuerst, `FillOrderTimingTests` mit neuer Spalte `sides`):
+
+  | Fall | ohne Bahnen | `portFirst` |
+  |---|---|---|
+  | RAFT-Fixture (66 SCU, 5 Ziele) | 3,1–18,2 ms | 5,3–18,7 ms |
+  | RAFT acht Ziele | 2,0–33,1 ms | 2,9–33,2 ms |
+  | Hull C acht Ziele | 45–82 ms | 48–112 ms (crosswise Gap 2) |
+
+  Knoten der Rack-Suche in allen 48 Paaren identisch (RAFT 30/45, Hull C am Limit), keine Suche gab auf: die Wahl
+  sieht keine Bahnen (F5). 200 gemischte Pläne auf der RAFT: 65 s mit Bahnen, 108 s ohne.
+- **App selbst gestartet** (`--data-dir`, `--plan` RAFT 40 + 24 + 32 SCU, `portFirst`, `byDestination`): läuft,
+  speichert Schema 11; Everus Harbor 40 und Riker 24 Backbord, Green Glade 16 Backbord + 16 Steuerbord. CLI `plan`
+  mit Schema-5-Datei (`sideOverflow: false`, 88 + 100 SCU): „Rack 1: Shubin crosses sides – side overflow off“.
+- **Testzahlen aus sauberem Worktree:** vorher (`495a7aa`, B17) Core 2009, App 2082, Import 280, Ocr 34; nachher
+  (`1d98ba5`) Core **2088** (+79), App **2090** (+8), Import 280, Ocr 34, alle grün; `dotnet build` 0 Warnungen,
+  `dotnet format --verify-no-changes` sauber; `Category=Slow` 4/4; `Category=Exhaustive` 2/2 (6 min 19 s, Release).
+- **Wiki:** Abschnitt „Layout“ (sechs Optionen, Unterabschnitt „Sides“, Missions-JSON Schema 5) auf lokalem
+  Wiki-Branch `f10a-lanes` (`4954528`, auf `b17-section-block`), Push mit dem nächsten Tag (Backlog-Zeile).
+
+**Präzisierungen nach der Freigabe (zur Ratifizierung):**
+- P12 **Erfassen ohne Überlauf:** Die Sektionsstufen nehmen nur Reihen einer Bahn (ein neues Ziel darf auch am Anfang
+  einer späteren Bahn beginnen). Findet keine Stufe Platz, liegt das Ziel wie bisher außerhalb der Sektionen
+  („placed outside sections (capacity)“) statt zu warten (Plan 5 sagte „wartet“). Grund: D41/D89 – ein Scan lässt nur
+  warten, wenn kein Platz ist; der nächste Plan oder Re-plan legt nach der Regel ohne Überlauf (eine Seite oder warten).
+- P13 **Ein Ziel allein im Rack** hat keine Sektion (D89) und läuft wie mit Überlauf in Zellreihenfolge über beide
+  Seiten; `sideOverflow` wirkt nur in geteilten Racks (Folge von P3).
+- P14 **Passt ein Ziel ohne Überlauf in keine Bahn und auch nicht quer über die freien Reihen**, bleibt das Rack wie der
+  Planer es legte, und das Ziel wird gemeldet: mit Missionen wartet es (danach wird das Rack ohne es neu in Bahnen
+  gelegt, `InLanes`), ohne Missionen (CLI) mit „crosses sides“.
+- P15 **Eigenschaftstest (R10)** geschärft: Mit Überlauf hat Bahn 1 keine **zwei benachbarten** leeren Reihen, wenn
+  Bahn 2 belegt ist (eine einzelne leere Reihe am Bahnende ist Geometrie: Kisten über 1 SCU sind 2 lang und drehen nur,
+  wo sie müssen, D71; gefunden in Lauf 24). Mixe bis 6 Ziele / 120 SCU statt 8 / 160: die dichten Mixe kosteten auch
+  ohne Bahnen Sekunden je Plan (Suche D64), Testdauer 2:46 min → 5 s; Bahn 2 wird in > 10 Läufen erreicht.
+- P16 **Sektionen sind ganze Reihen:** 2 lange Kisten belegen Reihen paarweise. RAFT 40 + 40 SCU füllt alle 12 Reihen
+  der ersten Seite, eine dritte Mission liegt dann ganz auf der zweiten, obwohl einzelne Zellen frei sind. Für das Gate
+  wichtig (unten).
+
+**Gate Martin am Aufzug (SC vorn, RAFT):** Editor → Layout: **Rows** Crosswise, **Grouping** By destination,
+**Sides** Port first, **Side overflow** Cross over. Zwei Missionen scannen, die zusammen deutlich unter 96 SCU liegen
+(etwa 40 + 24) → beide liegen auf der Backbordhälfte, Steuerbord leer. Dritte Mission, die die 96 SCU überschreitet →
+ihr Rest landet Steuerbord (bei 40 + 24 + 32: 16 + 16). Umschalten auf **Sides: None** und **Plan** → das heutige
+Bild. Optional: **Side overflow: Wait** und Plan → die dritte liegt ganz Steuerbord.
+
+**Abgenommen 20.11.2026** (Martin), P12–P16 ratifiziert. **Auflage:** P12 und P16 je ein Satz im Wiki „Layout“
+(Branch `f10a-lanes`, `ea9252a`) und in D116 – erledigt. Merge `--no-ff` nach `main`, Martin pusht.
+
+### [ ] F10b Seitenweise Planung – Rack-Gruppen nach Seite
+
+**Warum:** Auf Schiffen mit getrennten Racks links und rechts (Hull B, Railen, Hull A, Carrack, Hermes, Polaris) heißt
+„erst eine Seite“ nicht Bahnen im Rack, sondern erst die Racks der einen Seite, dann die der anderen. Das greift in die
+Rack-Zuordnung (B2/D64) ein, die F10a bewusst nicht anfasst. F10a sagt auf diesen Schiffen „lanes apply per rack –
+side-first rack order is not available yet“ (42 Schiffe mit Racks bei `origin.y > 0` und `< 0`).
+
+**Akzeptanz:** Hull-B-Fixture (`FrozenShips`, A10), `sides` ordnet Racks nach Seite; das Default-Verhalten ist
+byteidentisch zu heute; Zusammenspiel mit den Bahnen aus F10a festgelegt.
 
 ### [x] F11 Linux: CLI statt Overlay (19.11.2026, in K12)
 
@@ -552,6 +763,9 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
 - Wiki-Branch `b17-section-block` (lokal, `1009927`: „Plan and editor“, ein Scan schließt den Block seines Ziels, B17)
   nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
+- Wiki-Branch `f10a-lanes` (lokal, `ea9252a` auf `b17-section-block`: „Plan and editor“, Layout mit Sides und Side
+  overflow, Missions-JSON Schema 5, F10a) statt `b17-section-block` nach `master` mergen (`--no-ff`, CC; enthält B17),
+  Martin pusht. **Auslöser: der nächste Tag** (plan.json 11 und Missions-JSON 5 kommen erst mit dem Release).
 - Screenshots/GIFs auf Perspektive nachdrehen (alle Shots von `docs/shots/SHOTLIST.md`, Hero-GIF eingeschlossen; D85) –
   Auslöser: nächstes Release mit sichtbarer Änderung der Ansicht oder erster Nutzer-Report „sieht bei mir anders aus“.
 - UI-Text-Konsistenz (Befund T7.5a): Schiffswechsel-Dialog mit Yes als Default, Re-plan mit No; Export… und Remove ohne

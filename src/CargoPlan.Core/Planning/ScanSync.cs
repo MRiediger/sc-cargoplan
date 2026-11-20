@@ -59,7 +59,7 @@ public static class ScanSync
         try
         {
             var (planned, cleared) = LoadPlanner.PlanKeeping(
-                saved, ship, missions, order, saved.Plan.FillOrder, saved.Plan.FillRows, saved.Plan.Grouping, saved.Plan.SectionGap, ChangedByScan);
+                saved, ship, missions, order, saved.Plan.FillOrder, saved.Plan.FillRows, saved.Plan.Grouping, saved.Plan.SectionGap, saved.Plan.Sides, saved.Plan.SideOverflow, ChangedByScan);
             return new(planned, ScanChange.Updated, mine.No, QuantitiesChanged: true, cleared);
         }
         catch (PlanException ex)

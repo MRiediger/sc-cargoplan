@@ -7,17 +7,19 @@ namespace CargoPlan.Core.Missions;
 public static class MissionFileWriter
 {
     /// <summary>
-    /// Writes the stops in route order, the fill order, the row axis, the grouping and the section gap as indented JSON, always in the
-    /// current schema version (D72, D88, D89). The stream is left open.
+    /// Writes the stops in route order, the fill order, the row axis, the grouping, the section gap and the sides as indented
+    /// JSON, always in the current schema version (D72, D88, D89, D116). The stream is left open.
     /// </summary>
     /// <exception cref="ArgumentException">
     /// The file couldn't be read back (no stops, a stop without items, a destination twice); nothing is written then.
     /// </exception>
-    public static void Write(Stream stream, IReadOnlyList<MissionStop> stops, FillOrder fillOrder, FillRows fillRows = FillRows.Lengthwise, PlanGrouping grouping = PlanGrouping.None, int sectionGap = 0)
+    public static void Write(
+        Stream stream, IReadOnlyList<MissionStop> stops, FillOrder fillOrder, FillRows fillRows = FillRows.Lengthwise, PlanGrouping grouping = PlanGrouping.None, int sectionGap = 0,
+        Sides sides = Sides.None, bool sideOverflow = true)
     {
         ArgumentNullException.ThrowIfNull(stream);
 
-        var dto = MissionFileDto.FromMissionStops(stops, fillOrder, fillRows, grouping, sectionGap);
+        var dto = MissionFileDto.FromMissionStops(stops, fillOrder, fillRows, grouping, sectionGap, sides, sideOverflow);
 
         // The reader's rules decide what may be written: a file this app can't import again is no export.
         dto.ToMissionFile();

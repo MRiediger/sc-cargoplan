@@ -5,13 +5,14 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Missions;
 
 /// <summary>
-/// File format of a mission JSON (schema version 4, D88, D89: schema 3 with an optional row axis, grouping and section gap). Read via
-/// <see cref="ToMissionFile"/>, written via <see cref="FromMissionStops"/>, so import and export share one format.
-/// Version 3 is the same without <see cref="FillRows"/>, <see cref="Grouping"/> and <see cref="SectionGap"/> (D72), still read, never
-/// written; versions 1 and 2 are refused since T10.4a (review F5).
+/// File format of a mission JSON (schema version 5, D116: schema 4 with optional sides and side overflow; schema 4, D88, D89:
+/// schema 3 with an optional row axis, grouping and section gap). Read via <see cref="ToMissionFile"/>, written via
+/// <see cref="FromMissionStops"/>, so import and export share one format. Version 4 is the same without <see cref="Sides"/>
+/// and <see cref="SideOverflow"/>, version 3 also without <see cref="FillRows"/>, <see cref="Grouping"/> and
+/// <see cref="SectionGap"/> (D72), both still read, never written; versions 1 and 2 are refused since T10.4a (review F5).
 /// </summary>
 /// <remarks>
-/// <see cref="FillOrder"/>, <see cref="FillRows"/>, <see cref="Grouping"/> and <see cref="SectionGap"/> are optional, so they have a default and stand last; <c>JsonPropertyOrder</c> on
+/// <see cref="FillOrder"/>, <see cref="FillRows"/>, <see cref="Grouping"/>, <see cref="SectionGap"/>, <see cref="Sides"/> and <see cref="SideOverflow"/> are optional, so they have a default and stand last; <c>JsonPropertyOrder</c> on
 /// <see cref="Stops"/> writes them before the stops, where they are read at a glance. Source:
 /// https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/customize-properties#configure-the-order-of-serialized-properties
 /// </remarks>
@@ -21,7 +22,9 @@ internal sealed record MissionFileDto(
     string? FillOrder = null,
     string? FillRows = null,
     string? Grouping = null,
-    int? SectionGap = null)
+    int? SectionGap = null,
+    string? Sides = null,
+    bool? SideOverflow = null)
 {
     /// <exception cref="ArgumentException">A value violates the domain rules, or a file names a row axis older than its schema.</exception>
     public MissionFile ToMissionFile()
@@ -45,12 +48,25 @@ internal sealed record MissionFileDto(
                 Invariant($"sectionGap is new in schema {withFillRows} (the file says {SchemaVersion})."), nameof(SectionGap));
         }
 
+        const int withSides = MissionFileReader.NoSidesSchemaVersion + 1;
+        if (Sides is not null && SchemaVersion < withSides)
+        {
+            throw new ArgumentException(Invariant($"sides is new in schema {withSides} (the file says {SchemaVersion})."), nameof(Sides));
+        }
+
+        if (SideOverflow is not null && SchemaVersion < withSides)
+        {
+            throw new ArgumentException(Invariant($"sideOverflow is new in schema {withSides} (the file says {SchemaVersion})."), nameof(SideOverflow));
+        }
+
         return new(
             ToMissionStops(),
             FillOrder is null ? null : FillOrderJson.Parse(FillOrder),
             FillRows is null ? null : FillRowsJson.Parse(FillRows),
             Grouping is null ? null : GroupingJson.Parse(Grouping),
-            SectionGap is { } gap ? Models.LoadPlan.CheckedGap(gap) : null);
+            SectionGap is { } gap ? Models.LoadPlan.CheckedGap(gap) : null,
+            Sides is null ? null : SidesJson.Parse(Sides),
+            SideOverflow);
     }
 
     /// <exception cref="ArgumentException">A value violates the domain rules.</exception>
@@ -65,15 +81,18 @@ internal sealed record MissionFileDto(
         return CheckedRoute([.. Stops.Select((s, index) => s.ToMissionStop(index + 1))]);
     }
 
-    /// <summary>Always with the fill order, row axis, grouping and section gap: an export says how its rows were meant to be loaded (D72, D88, D89).</summary>
-    public static MissionFileDto FromMissionStops(IEnumerable<MissionStop> stops, Models.FillOrder fillOrder, Models.FillRows fillRows, Models.PlanGrouping grouping, int sectionGap) =>
+    /// <summary>Always with the fill order, row axis, grouping, section gap and sides: an export says how its rows were meant to be loaded (D72, D88, D89, D116).</summary>
+    public static MissionFileDto FromMissionStops(
+        IEnumerable<MissionStop> stops, Models.FillOrder fillOrder, Models.FillRows fillRows, Models.PlanGrouping grouping, int sectionGap, Models.Sides sides, bool sideOverflow) =>
         new(
             MissionFileReader.CurrentSchemaVersion,
             [.. stops.OrderBy(s => s.Order).Select(s => MissionStopDto.FromMissionStop(s, withManual: false))],
             FillOrderJson.Text(fillOrder),
             FillRowsJson.Text(fillRows),
             GroupingJson.Text(grouping),
-            sectionGap);
+            sectionGap,
+            SidesJson.Text(sides),
+            sideOverflow);
 
     /// <summary>The route rules of both schema versions. Array order is the route: first stop = Order 1.</summary>
     /// <exception cref="ArgumentException">No stop, or a destination twice.</exception>

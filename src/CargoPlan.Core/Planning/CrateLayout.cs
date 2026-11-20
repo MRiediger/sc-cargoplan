@@ -62,11 +62,11 @@ public static class CrateLayout
     /// </summary>
     internal static Laying? Lay(
         Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, FillOrder order, FillRows rows,
-        int? maxStackingSearchSteps = null, bool turn = true, bool snug = false)
+        int? maxStackingSearchSteps = null, bool turn = true, bool snug = false, Lanes? lanes = null)
     {
         occupied = [.. occupied.Where(c => !c.Delivered)];
         var own = snug ? crates.Select(c => c.Destination).ToHashSet() : null;
-        if (Place(RackSpace.Around(rack, occupied, order, rows, own), [.. crates.Select(c => c.Size)], turn) is not { } poses)
+        if (Place(RackSpace.Around(rack, occupied, order, rows, own, lanes), [.. crates.Select(c => c.Size)], turn) is not { } poses)
         {
             return null;
         }
@@ -87,10 +87,10 @@ public static class CrateLayout
         // Unturned first, as before D71: a layout found so stays as it was. Turned only if that search ran out of layouts,
         // not of steps, with the steps it left.
         var maxSteps = maxStackingSearchSteps ?? MaxStackingSearchSteps(rack.Grid.Volume);
-        var (apart, gaveUp, steps) = Apart(rack, occupied, crates, order, rows, maxSteps, turn: false);
+        var (apart, gaveUp, steps) = Apart(rack, occupied, crates, order, rows, maxSteps, turn: false, lanes);
         if (apart is null && !gaveUp && turn && crates.Any(c => c.Size.Turns))
         {
-            var (turned, turnedGaveUp, turnedSteps) = Apart(rack, occupied, crates, order, rows, (int)(maxSteps - steps), turn: true);
+            var (turned, turnedGaveUp, turnedSteps) = Apart(rack, occupied, crates, order, rows, (int)(maxSteps - steps), turn: true, lanes);
             (apart, gaveUp, steps) = (turned, turnedGaveUp, steps + turnedSteps);
         }
 
@@ -229,14 +229,18 @@ public static class CrateLayout
         // The cells of the section being laid (B17): its cargo on board and what this space laid; null without snug singles.
         private readonly bool[,,]? _own;
 
-        internal RackSpace(Rack rack, bool[,,] taken, FillOrder order, FillRows rows, bool[,,]? own = null) =>
-            (_rack, _taken, _rank, _own) = (rack, taken, Ranks(rack, order, rows), own);
+        // The rack's lanes (D116): no crate across two; null without.
+        private readonly Lanes? _lanes;
+
+        internal RackSpace(Rack rack, bool[,,] taken, FillOrder order, FillRows rows, bool[,,]? own = null, Lanes? lanes = null) =>
+            (_rack, _taken, _rank, _own, _lanes) = (rack, taken, Ranks(rack, order, rows, lanes), own, lanes);
 
         /// <summary>
         /// The free cells of <paramref name="rack"/> around the cargo on board of <paramref name="occupied"/>; with
-        /// <paramref name="own"/>, the destinations whose cells a single crate seeks (<see cref="Add"/>).
+        /// <paramref name="own"/>, the destinations whose cells a single crate seeks (<see cref="Add"/>); with
+        /// <paramref name="lanes"/>, lane by lane (D116).
         /// </summary>
-        public static RackSpace Around(Rack rack, IEnumerable<Crate> occupied, FillOrder order, FillRows rows, IReadOnlySet<string>? own = null)
+        public static RackSpace Around(Rack rack, IEnumerable<Crate> occupied, FillOrder order, FillRows rows, IReadOnlySet<string>? own = null, Lanes? lanes = null)
         {
             var grid = rack.Grid;
             var taken = new bool[grid.Length, grid.Width, grid.Stack];
@@ -253,7 +257,7 @@ public static class CrateLayout
                 }
             }
 
-            return new RackSpace(rack, taken, order, rows, mine);
+            return new RackSpace(rack, taken, order, rows, mine, lanes);
         }
 
         /// <summary>
@@ -269,8 +273,8 @@ public static class CrateLayout
                 return null;
             }
 
-            Pose? pose = FirstFit(size.Shape(false), _rank, _taken) is { } flat ? new Pose(flat, false)
-                : turn && size.Turns && FirstFit(size.Shape(true), _rank, _taken) is { } turned ? new Pose(turned, true)
+            Pose? pose = FirstFit(size.Shape(false), _rank, _taken, _lanes) is { } flat ? new Pose(flat, false)
+                : turn && size.Turns && FirstFit(size.Shape(true), _rank, _taken, _lanes) is { } turned ? new Pose(turned, true)
                 : null;
             if (pose is not { } taken)
             {
@@ -294,7 +298,7 @@ public static class CrateLayout
             return taken;
         }
 
-        /// <summary>The free cell in the layer of <paramref name="first"/> (the first fit) that rests and has the most face neighbours of the section there; on a tie the lowest rank.</summary>
+        /// <summary>The free cell in the layer and lane of <paramref name="first"/> (the first fit) that rests and has the most face neighbours of the section there; on a tie the lowest rank.</summary>
         private GridPosition Snug(GridPosition first)
         {
             var stack = first.Stack;
@@ -303,7 +307,7 @@ public static class CrateLayout
             {
                 for (var w = 0; w < _taken.GetLength(1); w++)
                 {
-                    if (_taken[l, w, stack] || (stack > 0 && !_taken[l, w, stack - 1]))
+                    if (_taken[l, w, stack] || (stack > 0 && !_taken[l, w, stack - 1]) || (_lanes is not null && _lanes.LaneOf(w) != _lanes.LaneOf(first.Width)))
                     {
                         continue;
                     }
@@ -481,13 +485,14 @@ public static class CrateLayout
     /// (D71); without, as before D71.
     /// </summary>
     private static (Pose[]? Poses, bool GaveUp, long Steps) Apart(
-        Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, FillOrder order, FillRows rows, int maxSteps, bool turn)
+        Rack rack, IReadOnlyList<Crate> occupied, IReadOnlyList<(CrateSize Size, string Destination)> crates, FillOrder order, FillRows rows, int maxSteps, bool turn,
+        Lanes? lanes)
     {
         const int free = -1;
         const int empty = -2;
         const int mixed = -3;
         var grid = rack.Grid;
-        var rank = Ranks(rack, order, rows);
+        var rank = Ranks(rack, order, rows, lanes);
         GridPosition[] cells = [.. Cells(new GridPosition(0, 0, 0), grid).OrderBy(c => rank[c.Length, c.Width, c.Stack])];
         List<string> destinations = [.. crates.Select(c => c.Destination).Distinct()];
 
@@ -637,7 +642,7 @@ public static class CrateLayout
             return columns > open;
         }
 
-        // The place of a crate whose first cell in fill order is this one; null if it would stick out.
+        // The place of a crate whose first cell in fill order is this one; null if it would stick out or lie across two lanes (D116).
         GridPosition? StartingAt(GridPosition cell, Dimensions size)
         {
             foreach (var corner in Cells(new GridPosition(0, 0, 0), size))
@@ -649,6 +654,7 @@ public static class CrateLayout
 
                 GridPosition position = new(cell.Length - corner.Length, cell.Width - corner.Width, cell.Stack - corner.Stack);
                 if (Inside(grid, new GridPosition(position.Length + size.Length - 1, position.Width + size.Width - 1, position.Stack + size.Stack - 1))
+                    && lanes?.Splits(position.Width, size.Width) != true
                     && Cells(position, size).Min(c => rank[c.Length, c.Width, c.Stack]) == rank[cell.Length, cell.Width, cell.Stack])
                 {
                     return position;
@@ -756,34 +762,45 @@ public static class CrateLayout
         return crate.Bottom.All(c => below.Contains(new GridPosition(c.Length, c.Width, c.Stack - 1)));
     }
 
-    /// <summary>Rank of every cell in fill order. Only this knows the axes; the rest works on ranks.</summary>
-    internal static int[,,] Ranks(Rack rack, FillOrder order, FillRows rows)
+    /// <summary>
+    /// Rank of every cell in fill order. Only this knows the axes; the rest works on ranks. With <paramref name="lanes"/>
+    /// (D116) lane by lane, each as a rack of the lane's width from its outer edge.
+    /// </summary>
+    internal static int[,,] Ranks(Rack rack, FillOrder order, FillRows rows, Lanes? lanes = null)
     {
         var grid = rack.Grid;
         var rank = new int[grid.Length, grid.Width, grid.Stack];
 
-        // Grid order only (D26): the stack axis puts the grid into the ship, so port and starboard mirror without help here.
+        // Lane > stack > progress axis > row axis (D116): a lane fills like a rack of its width; without lanes the whole
+        // width, starboard first. Grid order only (D26): the stack axis puts the grid into the ship, so port and starboard
+        // mirror without help here.
+        IReadOnlyList<int>[] breadths = lanes is null
+            ? [[.. Enumerable.Range(0, grid.Width)]]
+            : [.. Enumerable.Range(0, lanes.Count).Select(lanes.Breadth)];
         var next = 0;
-        for (var stack = 0; stack < grid.Stack; stack++)
+        foreach (var breadth in breadths)
         {
-            // Stack > progress axis > row axis (D88). Across the ship is no row on a rack stacking along y: width stands upright.
-            if (rows == FillRows.Crosswise && !rack.StacksSideways)
+            for (var stack = 0; stack < grid.Stack; stack++)
             {
-                for (var step = 0; step < grid.Length; step++)
-                {
-                    for (var width = 0; width < grid.Width; width++)
-                    {
-                        rank[Along(step), width, stack] = next++;
-                    }
-                }
-            }
-            else
-            {
-                for (var width = 0; width < grid.Width; width++)
+                // Stack > progress axis > row axis (D88). Across the ship is no row on a rack stacking along y: width stands upright.
+                if (rows == FillRows.Crosswise && !rack.StacksSideways)
                 {
                     for (var step = 0; step < grid.Length; step++)
                     {
-                        rank[Along(step), width, stack] = next++;
+                        foreach (var width in breadth)
+                        {
+                            rank[Along(step), width, stack] = next++;
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var width in breadth)
+                    {
+                        for (var step = 0; step < grid.Length; step++)
+                        {
+                            rank[Along(step), width, stack] = next++;
+                        }
                     }
                 }
             }
@@ -797,9 +814,9 @@ public static class CrateLayout
 
     /// <summary>
     /// Of all free, supported places for a crate of <paramref name="size"/>, the one whose first cell comes first in fill
-    /// order, on a tie the one whose last cell does; null if there is none.
+    /// order, on a tie the one whose last cell does; null if there is none. None across two <paramref name="lanes"/> (D116).
     /// </summary>
-    private static GridPosition? FirstFit(Dimensions size, int[,,] rank, bool[,,] taken)
+    private static GridPosition? FirstFit(Dimensions size, int[,,] rank, bool[,,] taken, Lanes? lanes)
     {
         GridPosition? best = null;
         (int First, int Last) bestRanks = (int.MaxValue, int.MaxValue);
@@ -807,6 +824,11 @@ public static class CrateLayout
         {
             for (var w = 0; w + size.Width <= rank.GetLength(1); w++)
             {
+                if (lanes?.Splits(w, size.Width) == true)
+                {
+                    continue;
+                }
+
                 for (var s = 0; s + size.Stack <= rank.GetLength(2); s++)
                 {
                     GridPosition position = new(l, w, s);

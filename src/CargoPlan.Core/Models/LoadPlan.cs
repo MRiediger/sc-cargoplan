@@ -2,11 +2,13 @@ namespace CargoPlan.Core.Models;
 
 /// <summary>
 /// The result of planning: every crate with its rack and position (D24), the planner's hints, the fill order and row axis
-/// (D88) that lay out crates moved later, and whether Plan and Re-plan keep destinations in sections, with how many empty
-/// rows between them (D89).
+/// (D88) that lay out crates moved later, whether Plan and Re-plan keep destinations in sections, with how many empty
+/// rows between them (D89), and whether racks fill one side at a time, a destination crossing to the other side where
+/// its own is full (D116).
 /// </summary>
 public sealed record LoadPlan(
-    string ShipId, IReadOnlyList<Crate> Crates, IReadOnlyList<PlanWarning> Warnings, FillOrder FillOrder = FillOrder.BowFirst, FillRows FillRows = FillRows.Lengthwise, PlanGrouping Grouping = PlanGrouping.None, int SectionGap = 0)
+    string ShipId, IReadOnlyList<Crate> Crates, IReadOnlyList<PlanWarning> Warnings, FillOrder FillOrder = FillOrder.BowFirst, FillRows FillRows = FillRows.Lengthwise, PlanGrouping Grouping = PlanGrouping.None, int SectionGap = 0,
+    Sides Sides = Sides.None, bool SideOverflow = true)
 {
     /// <summary>The most empty rows a plan asks for between sections (D89).</summary>
     public const int MaxSectionGap = 2;

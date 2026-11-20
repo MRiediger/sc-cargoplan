@@ -12,7 +12,10 @@ namespace CargoPlan.Core.Missions;
 public static class MissionFileReader
 {
     /// <summary>The version the writer writes.</summary>
-    public const int CurrentSchemaVersion = 4;
+    public const int CurrentSchemaVersion = 5;
+
+    /// <summary>A row axis, grouping and section gap, but no sides (D88, D89); still read, never written.</summary>
+    public const int NoSidesSchemaVersion = 4;
 
     /// <summary>
     /// A fill order, but no row axis (D72); still read, never written. The oldest readable: v0.1.0 wrote it, schema 1 and 2
@@ -20,7 +23,7 @@ public static class MissionFileReader
     /// </summary>
     public const int NoFillRowsSchemaVersion = 3;
 
-    private static readonly int[] SupportedSchemaVersions = [NoFillRowsSchemaVersion, CurrentSchemaVersion];
+    private static readonly int[] SupportedSchemaVersions = [NoFillRowsSchemaVersion, NoSidesSchemaVersion, CurrentSchemaVersion];
 
     /// <summary>Reads a mission file from disk.</summary>
     /// <exception cref="FileNotFoundException">The file does not exist.</exception>

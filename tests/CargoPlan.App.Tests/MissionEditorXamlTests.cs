@@ -94,7 +94,7 @@ public class MissionEditorXamlTests
         var root = Grid().Ancestors().Last();
         var itemStyles = root.Descendants().Where(e => e.Name.LocalName == "ComboBox.ItemContainerStyle").Select(e => e.Elements().Single()).ToList();
 
-        itemStyles.Should().HaveCount(4);
+        itemStyles.Should().HaveCount(6, "fill order, rows, grouping, section gap, sides, side overflow");
         itemStyles.Should().OnlyContain(s => (string?)s.Attribute("BasedOn") == "{StaticResource ToolComboBoxItemStyle}");
         root.Descendants().Where(e => e.Name.LocalName == "ComboBox").Should().OnlyContain(c => c.Attribute("Style") == null, "the style is the window's implicit one");
     }

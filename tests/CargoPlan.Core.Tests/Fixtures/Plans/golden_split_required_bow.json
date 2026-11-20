@@ -1,10 +1,12 @@
 {
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
   "fillRows": "lengthwise",
   "grouping": "none",
   "sectionGap": 0,
+  "sides": "none",
+  "sideOverflow": true,
   "missions": [
     {
       "id": 1,

@@ -954,6 +954,120 @@ public sealed class MissionEditorViewModelTests : IDisposable
         MissionEditorViewModel.SectionGapChoices.Should().Equal(new SectionGapChoice(0, "None"), new SectionGapChoice(1, "1 row"), new SectionGapChoice(2, "2 rows"));
     }
 
+    // --- Sides (F10a, D116): the fill order's rules ---
+
+    [Fact]
+    public void Without_a_plan_there_are_no_sides_and_overflow_is_on()
+    {
+        var editor = new MissionEditorViewModel(EmptyOverlay());
+
+        (editor.Sides, editor.SideOverflow).Should().Be((Sides.None, true));
+    }
+
+    [Fact]
+    public void Plan_uses_the_chosen_sides_and_the_next_editor_starts_with_them()
+    {
+        var overlay = EmptyOverlay();
+        var editor = FourRows(overlay);
+
+        editor.Sides = Sides.PortFirst;
+        editor.SideOverflow = false;
+        editor.PlanCommand.Execute(null);
+
+        (overlay.Plan!.Sides, overlay.Plan.SideOverflow).Should().Be((Sides.PortFirst, false));
+        var next = new MissionEditorViewModel(overlay);
+        (next.Sides, next.SideOverflow).Should().Be((Sides.PortFirst, false));
+    }
+
+    [Fact]
+    public void The_overflow_box_works_only_with_sides_and_grouping()
+    {
+        var editor = FourRows(EmptyOverlay());
+        List<string?> changed = [];
+        editor.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+        editor.IsSideOverflowEnabled.Should().BeFalse();
+
+        editor.Sides = Sides.StarboardFirst;
+        editor.IsSideOverflowEnabled.Should().BeFalse("overflow decides between sections only");
+        changed.Should().Contain(nameof(MissionEditorViewModel.IsSideOverflowEnabled));
+
+        changed.Clear();
+        editor.Grouping = PlanGrouping.ByDestination;
+        editor.IsSideOverflowEnabled.Should().BeTrue();
+        changed.Should().Contain(nameof(MissionEditorViewModel.IsSideOverflowEnabled));
+
+        editor.Sides = Sides.None;
+        editor.IsSideOverflowEnabled.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Changing_the_sides_marks_unplanned_changes_and_Clear_rows_keeps_them()
+    {
+        var overlay = OverlayWithPlan();
+        var plan = overlay.Plan;
+        var editor = new MissionEditorViewModel(overlay);
+
+        editor.Sides = Sides.PortFirst;
+        editor.IsDirty.Should().BeTrue();
+        overlay.Plan.Should().BeSameAs(plan);
+
+        editor.SideOverflow = false;
+        editor.ClearRowsCommand.Execute(null);
+        (editor.Sides, editor.SideOverflow).Should().Be((Sides.PortFirst, false));
+    }
+
+    [Fact]
+    public void Export_and_Import_carry_the_sides()
+    {
+        var path = Path.Combine(_folder, "missions.json");
+        var editor = FourRows(OverlayWithPlan());
+        editor.Sides = Sides.StarboardFirst;
+        editor.SideOverflow = false;
+
+        editor.Export(path);
+        File.ReadAllText(path).Should().Contain("\"sides\": \"starboardFirst\"").And.Contain("\"sideOverflow\": false");
+
+        var other = new MissionEditorViewModel(EmptyOverlay());
+        other.Import(path);
+        (other.Sides, other.SideOverflow).Should().Be((Sides.StarboardFirst, false));
+    }
+
+    [Fact]
+    public void Lane_notes_share_the_sections_line_with_the_section_notes()
+    {
+        // Hull A: racks stacking sideways get no lanes, and 17 one-SCU stops share sections (A13: one writer, one line).
+        var overlay = EmptyOverlay();
+        overlay.ShowPlan(Sharing(overlay));
+        overlay.Notices.Should().NotContain(n => n.Contains("stacks sideways", StringComparison.Ordinal), "without sides nothing about lanes");
+
+        var editor = new MissionEditorViewModel(overlay) { Sides = Sides.PortFirst, Grouping = PlanGrouping.ByDestination };
+        editor.PlanCommand.Execute(null);
+
+        overlay.Notices.Should().ContainSingle(n => n.Contains("stacks sideways", StringComparison.Ordinal) && n.Contains(" shares a section with ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Import_of_a_file_without_sides_keeps_the_editors()
+    {
+        var path = Path.Combine(_folder, "missions.json");
+        Directory.CreateDirectory(_folder);
+        File.WriteAllText(path, """{ "schemaVersion": 4, "fillRows": "crosswise", "stops": [ { "destination": "Riker", "items": [ { "commodity": "Titanium", "scu": 8, "maxCrateSize": 4 } ] } ] }""");
+        var editor = new MissionEditorViewModel(EmptyOverlay()) { Sides = Sides.PortFirst, SideOverflow = false };
+
+        editor.Import(path);
+
+        (editor.Sides, editor.SideOverflow).Should().Be((Sides.PortFirst, false));
+        editor.FillRows.Should().Be(FillRows.Crosswise);
+    }
+
+    [Fact]
+    public void The_side_choices_name_the_first_side_and_what_overflow_does()
+    {
+        MissionEditorViewModel.SidesChoices.Should().Equal(
+            new SidesChoice(Sides.None, "None"), new SidesChoice(Sides.PortFirst, "Port first"), new SidesChoice(Sides.StarboardFirst, "Starboard first"));
+        MissionEditorViewModel.SideOverflowChoices.Should().Equal(new SideOverflowChoice(true, "Cross over"), new SideOverflowChoice(false, "Wait"));
+    }
+
     // --- Import, export, text ---
 
     [Fact]

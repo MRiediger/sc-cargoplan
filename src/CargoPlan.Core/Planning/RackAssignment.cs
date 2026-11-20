@@ -27,14 +27,19 @@ internal static class RackAssignment
     internal readonly record struct Piece(int Stop, int Item, CrateSize Size);
 
     /// <summary>The crates of one rack with their poses; <paramref name="StackingUnchecked"/> if the search for a layout without foreign stacking gave up.</summary>
-    internal sealed record RackLoad(Rack Rack, IReadOnlyList<(Piece Piece, Pose Pose)> Crates, bool StackingUnchecked);
+    /// <param name="LanesRefused">The rack has lanes (D116), but its crates don't lie in them: laid as without, with a note.</param>
+    internal sealed record RackLoad(Rack Rack, IReadOnlyList<(Piece Piece, Pose Pose)> Crates, bool StackingUnchecked, bool LanesRefused = false);
 
     /// <summary>The racks with cargo, in rack order, and the nodes the search took.</summary>
     internal sealed record Result(IReadOnlyList<RackLoad> Racks, long Nodes);
 
     /// <summary>The assignment, or null if no assignment lays out (or none was found within <see cref="MaxSearchNodes"/>).</summary>
     /// <param name="racks">In rack order.</param>
-    internal static Result? Assign(Rack[] racks, IReadOnlyList<Stop> stops, FillOrder order, FillRows rows) => new Search(racks, stops, order, rows).Run();
+    /// <param name="sides">
+    /// Lanes (D116) for the layout of the assignment found, not for the search: racks and who waits are as without (F5).
+    /// </param>
+    internal static Result? Assign(Rack[] racks, IReadOnlyList<Stop> stops, FillOrder order, FillRows rows, Sides sides = Sides.None) =>
+        new Search(racks, stops, order, rows, sides).Run();
 
     private sealed record Group(CrateSize Size, int Count, (int Item, int Count)[] Items);
 
@@ -96,9 +101,11 @@ internal static class RackAssignment
         private readonly Dictionary<string, bool> _fits = [];
         private readonly Dictionary<string, CrateLayout.Laying> _layings = [];
 
-        public Search(Rack[] racks, IReadOnlyList<Stop> stops, FillOrder order, FillRows rows)
+        private readonly Sides _sides;
+
+        public Search(Rack[] racks, IReadOnlyList<Stop> stops, FillOrder order, FillRows rows, Sides sides)
         {
-            (_racks, _stops, _order, _rows) = (racks, stops, order, rows);
+            (_racks, _stops, _order, _rows, _sides) = (racks, stops, order, rows, sides);
             var global = 0;
             _dests =
             [
@@ -558,6 +565,22 @@ internal static class RackAssignment
                 }
 
                 var laying = LayingOf(r, leaf[r]);
+
+                // The search chose without lanes (F5); the chosen racks' crates lie in them (D116), or as chosen with a note.
+                var refused = false;
+                if (Lanes.Of(_racks[r], _sides) is { } lanes)
+                {
+                    if (CrateLayout.Lay(_racks[r], [], [.. Ordered(leaf[r]).Select(p => (p.Size, _dests[p.Entry.Dest].Name))], _order, _rows, _budget.For(_racks[r]), lanes: lanes) is { } laned)
+                    {
+                        _budget.Spend(_racks[r], laned);
+                        laying = laned;
+                    }
+                    else
+                    {
+                        refused = true;
+                    }
+                }
+
                 var pieces = Ordered(leaf[r]).Select(p =>
                 {
                     var (dest, line, group) = (p.Entry.Dest, p.Entry.Line, p.Entry.Group);
@@ -566,7 +589,7 @@ internal static class RackAssignment
                     cursor[(dest, line, group)] = used + 1 == items[item].Count ? (item + 1, 0) : (item, used + 1);
                     return new Piece(_dests[dest].Stop, items[item].Item, p.Size);
                 });
-                loads.Add(new RackLoad(_racks[r], [.. pieces.Zip(laying.Poses)], laying.GaveUp));
+                loads.Add(new RackLoad(_racks[r], [.. pieces.Zip(laying.Poses)], laying.GaveUp, refused));
             }
 
             return new Result(loads, _nodes);
