@@ -740,6 +740,37 @@ Gruppen und Proben zusammen, nicht je Gruppe multipliziert); Probe mit eigenem k
 Abbruch, wenn `portFirst` auf Hull B oder Hull C mehr als 2× die Laufzeit von `none` braucht – dann Zahlen hierher.
 Commit 1 (`hull_b` einfrieren + rote Tests) zuerst.
 
+**Zwischenstand 20.11.2026 – E1-Abbruch nach Commit 2:**
+- **Commits:** `49ac5d1` `hull_b` eingefroren + `SideRackTests` (24 von 32 rot gegen die bloße Oberfläche); Commit 2
+  `SideGroups`, `RackAssignment.AssignBySide` (gemeinsames Knotenkonto 1 Mio., Probe `MaxProbeNodes` = 20 000 nach
+  SCU-/`CanHold`-Vorfilter, ein `StackingBudget` für alle Gruppen), `PlanStops`/`PlanMissions` mit Legendenfolge (P2),
+  `sideOverflow` durchgereicht (P3), FFD in Seitenfolge. 22 von 32 grün; rot nur Erfassen (Commit 3) sowie Warten und
+  Hinweise (Commit 4). Bestehende Tests: alle grün (Core 2118 von 2128, die 10 roten sind die genannten; App 2091,
+  Import 280, Ocr 34; `dotnet build` 0 Warnungen).
+- **Messung, Methode D116** (`FillOrderTimingTests`, Release, ohne Tiered JIT, Median aus 3, 32 Einstellungen je Fall;
+  Hull B und Hull C aus der Baseline, nur gemessen; Hull B 8 Ziele 96 + 64 + 48 + 48 + 32 + 32 + 16 + 16 SCU, Hull C
+  8 × 448 SCU):
+
+  | Fall | `none` | `portFirst` | Faktor | Knoten `none` | Knoten `portFirst` (Gruppen / Proben) |
+  |---|---|---|---|---|---|
+  | Hull B | 0,2–0,3 ms | 0,4–0,9 ms | **bis 4×** | 249 | 353 (257 + 25 / 71 in 8 Proben) |
+  | Hull C | 34,6–56,4 ms | 41,6–105,5 ms | 1,2–**1,96×** (crosswise Gap 2) | 1 000 001 (am Limit) | 594 611 (152 531 + 49 646 + 392 352 / 82 in 10) |
+
+  → **Hull B reißt das Kriterium** (relativ; absolut + 0,1 bis + 0,6 ms). Hull C bleibt darunter und braucht weniger
+  Knoten als `none` (das plan-weite Budget wird nicht mehr ausgeschöpft).
+- **Nachmessung** (gleicher Build, temporärer Scratch-Test, 300 Läufe Hull B / 15 Läufe Hull C nach 5 zum Aufwärmen,
+  Median, drei Durchgänge): ganzer Plan Hull B `none` 0,50–1,23 ms, `portFirst` 0,95–1,89 ms (**1,30–1,88×**); die
+  Suche allein `Assign` 0,120 ms gegen `AssignBySide` 0,26 ms (**2,1–2,2×**); Hull C ganzer Plan 1,09–1,20×, Suche
+  1,15×. Derselbe Plan mit `portFirst` auf einer Hull B ohne Seitengruppen (Racks nach Backbord verschoben, also nur
+  F10a) ist schneller als `none` (0,48–0,86×): der Mehraufwand ist F10b, nicht F10a.
+- **Woher:** auf der Hull B kostet nicht die Suche (Knoten fast gleich), sondern der Aufbau – 8 Proben und 2 Suchen
+  statt einer, je mit eigener `Search`-Einrichtung, dazu die Legendenfolge (`LegendStops`).
+- **Möglicher Ausweg (nicht gebaut):** Probe überspringen, wenn ein leeres Rack der Gruppe das Ziel allein nimmt
+  (dann gibt es sicher eine Zuordnung); auf der Hull B entfielen damit fast alle 8 Proben. Oder das Kriterium für
+  Fälle unter 1 ms absolut fassen.
+- **Stopp – Rückfrage an Martin:** weiterbauen (Commits 3–6) wie gehabt, erst den Ausweg bauen und neu messen, oder
+  anders?
+
 ### [x] F11 Linux: CLI statt Overlay (19.11.2026, in K12)
 
 **Warum:** Anfrage nach Linux. Ein Overlay-Port wäre ein zweites Projekt (WPF + Win32); die CLI läuft ohne Windows.

@@ -27,15 +27,19 @@ public static class LoadPlanner
         Sides sides = Sides.None, bool sideOverflow = true)
     {
         // Without missions nothing can wait: a destination that fits no side whole crosses with a note (D116).
-        var plan = PlanStops(ship, stops, fillOrder, fillRows, sides) with { SectionGap = sectionGap, SideOverflow = sideOverflow };
+        var plan = PlanStops(ship, stops, fillOrder, fillRows, sides, Overflows(grouping, sideOverflow)) with { SectionGap = sectionGap, SideOverflow = sideOverflow };
         return grouping == PlanGrouping.None ? plan : RackSections.Lay(plan with { Grouping = grouping }, ship, plan.Route);
     }
 
     /// <summary>
     /// The planner's plan of <paramref name="stops"/>: racks and who doesn't fit from <see cref="RackAssignment"/> without
-    /// lanes (F5), the chosen racks' crates laid in the lanes of <paramref name="sides"/> where they fit (D116).
+    /// lanes (F5), the chosen racks' crates laid in the lanes of <paramref name="sides"/> where they fit (D116). On a ship
+    /// with racks on both sides, side by side (<see cref="RackAssignment.AssignBySide"/>, D117): the destinations in the
+    /// order of <paramref name="legend"/> (P2; without it, the stops' order), whole on one side unless
+    /// <paramref name="sideOverflow"/>.
     /// </summary>
-    private static LoadPlan PlanStops(Ship ship, IReadOnlyList<Stop> stops, FillOrder fillOrder, FillRows fillRows, Sides sides = Sides.None)
+    private static LoadPlan PlanStops(
+        Ship ship, IReadOnlyList<Stop> stops, FillOrder fillOrder, FillRows fillRows, Sides sides = Sides.None, bool sideOverflow = true, IReadOnlyList<string>? legend = null)
     {
         EnsureUnique(stops);
 
@@ -44,7 +48,11 @@ public static class LoadPlanner
         EnsureCratesFitShip(ship, input);
         EnsureFitsShip(ship, input);
 
-        if (RackAssignment.Assign(racks, input, fillOrder, fillRows, sides) is { } assignment)
+        var groups = SideGroups.Of(racks, sides);
+        var found = groups is null
+            ? RackAssignment.Assign(racks, input, fillOrder, fillRows, sides)
+            : RackAssignment.AssignBySide(groups, input, InLegendOrder(input, legend), fillOrder, fillRows, sides, sideOverflow).Assignment;
+        if (found is { } assignment)
         {
             return WithHints(new LoadPlan(ship.Id, Crates(input, assignment.Racks), [], fillOrder, fillRows, Sides: sides), ship,
                 [.. StackingUncheckedNotes(assignment.Racks.Where(l => l.StackingUnchecked).Select(l => l.Rack)),
@@ -60,7 +68,7 @@ public static class LoadPlanner
                 .ThenBy(c => input[c.s].Destination, StringComparer.Ordinal)
                 .ThenBy(c => input[c.s].Items[c.i].Commodity, StringComparer.Ordinal),
         ];
-        var (rackOf, failed) = FirstFitDecreasing(racks, [], [.. all.Select(c => (c.Size, input[c.Stop].Destination))], fillOrder, fillRows);
+        var (rackOf, failed) = FirstFitDecreasing(racks, [], [.. all.Select(c => (c.Size, input[c.Stop].Destination))], fillOrder, fillRows, groups);
         if (failed is { } crate)
         {
             throw NoGap(ship, input, all, rackOf, crate);
@@ -84,6 +92,28 @@ public static class LoadPlanner
 
         return WithHints(new LoadPlan(ship.Id, Crates(input, loads), [], fillOrder, fillRows, Sides: sides), ship,
             [.. StackingUncheckedNotes(loads.Where(l => l.StackingUnchecked).Select(l => l.Rack)), .. loads.Where(l => l.LanesRefused).Select(l => SectionNotes.LanesRefused(l.Rack))]);
+    }
+
+    /// <summary>The indices of <paramref name="input"/> in the order of <paramref name="legend"/> (P2), stops it doesn't name after them in their order.</summary>
+    private static int[] InLegendOrder(Stop[] input, IReadOnlyList<string>? legend)
+    {
+        var rank = (legend ?? []).Select((destination, index) => (destination, index)).ToDictionary(p => p.destination, p => p.index, StringComparer.Ordinal);
+        return [.. Enumerable.Range(0, input.Length).OrderBy(i => rank.GetValueOrDefault(input[i].Destination, int.MaxValue))];
+    }
+
+    /// <summary>
+    /// The destinations as the legend will list them (P2, <see cref="SavedPlan.LegendOrder"/>): the missions in the
+    /// legend's order, each one's stops in <paramref name="stopOrder"/>.
+    /// </summary>
+    private static string[] LegendStops(Ship ship, Mission[] missions, IReadOnlyList<string> stopOrder, CrateCap cap)
+    {
+        var rank = stopOrder.Select((destination, index) => (destination, index)).ToDictionary(p => p.destination, p => p.index, StringComparer.Ordinal);
+        var byId = missions.ToDictionary(m => m.Id);
+
+        // Waiting, so the plan holds no crates yet; the legend's order doesn't look at that.
+        return [.. new SavedPlan([.. missions.Select(m => m with { Unplaced = true })], new LoadPlan(ship.Id, [], []), cap).LegendOrder
+            .SelectMany(id => byId[id].Stops.Select(s => s.Destination).OrderBy(d => rank.GetValueOrDefault(d, int.MaxValue)))
+            .Distinct()];
     }
 
     /// <summary>
@@ -491,10 +521,17 @@ public static class LoadPlanner
     public static SavedPlan Plan(
         Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder = FillOrder.BowFirst,
         FillRows fillRows = FillRows.Lengthwise, PlanGrouping grouping = PlanGrouping.None, int sectionGap = 0, Sides sides = Sides.None, bool sideOverflow = true) =>
-        Sectioned(PlanMissions(ship, missions, stopOrder, fillOrder, fillRows, sides), ship, grouping, sectionGap, sides, sideOverflow);
+        Sectioned(PlanMissions(ship, missions, stopOrder, fillOrder, fillRows, sides, Overflows(grouping, sideOverflow)), ship, grouping, sectionGap, sides, sideOverflow);
 
+    /// <summary>
+    /// The overflow the planner works with: off only with sections (P3, as the editor offers it); without them a
+    /// destination crosses where the first side is full.
+    /// </summary>
+    private static bool Overflows(PlanGrouping grouping, bool sideOverflow) => sideOverflow || grouping != PlanGrouping.ByDestination;
+
+    /// <param name="sideOverflow">As <see cref="Overflows"/> gives it.</param>
     private static SavedPlan PlanMissions(
-        Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder, FillRows fillRows, Sides sides = Sides.None)
+        Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder, FillRows fillRows, Sides sides = Sides.None, bool sideOverflow = true)
     {
         Mission[] placed = [.. missions.Select(m => m with { Unplaced = false })];
         var items = placed.SelectMany(m => m.Stops)
@@ -506,7 +543,8 @@ public static class LoadPlanner
         }
 
         var cap = CrateCap.Of(ship);
-        var plan = PlanStops(ship, [.. stopOrder.Select((destination, index) => new MissionStop(destination, index + 1, items[destination]).ToStop(cap))], fillOrder, fillRows, sides);
+        var legend = sides == Sides.None ? null : LegendStops(ship, placed, stopOrder, cap);
+        var plan = PlanStops(ship, [.. stopOrder.Select((destination, index) => new MissionStop(destination, index + 1, items[destination]).ToStop(cap))], fillOrder, fillRows, sides, sideOverflow, legend);
         return new SavedPlan(placed, plan with { Crates = Assigned(plan.Crates, placed, cap) }, cap);
     }
 
@@ -534,16 +572,17 @@ public static class LoadPlanner
         FillRows fillRows = FillRows.Lengthwise, PlanGrouping grouping = PlanGrouping.None, int sectionGap = 0, Sides sides = Sides.None, bool sideOverflow = true,
         string change = ChangedInEditor)
     {
-        var (plan, cleared) = Keeping(current, ship, missions, stopOrder, fillOrder, fillRows, sides, change);
+        var (plan, cleared) = Keeping(current, ship, missions, stopOrder, fillOrder, fillRows, sides, Overflows(grouping, sideOverflow), change);
         return (Sectioned(plan, ship, grouping, sectionGap, sides, sideOverflow), cleared);
     }
 
     /// <summary>The editor's words for a delivery its Plan changed (K6.4).</summary>
     public const string ChangedInEditor = "changed in the editor";
 
+    /// <param name="sideOverflow">As <see cref="Overflows"/> gives it.</param>
     private static (SavedPlan Plan, IReadOnlyList<string> Cleared) Keeping(
         SavedPlan current, Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> stopOrder, FillOrder fillOrder, FillRows fillRows,
-        Sides sides, string change = ChangedInEditor)
+        Sides sides, bool sideOverflow, string change = ChangedInEditor)
     {
         var cap = CrateCap.Of(ship);
         var states = current.Plan.ShipId == ship.Id ? KeptDeliveries(current) : [];
@@ -574,7 +613,7 @@ public static class LoadPlanner
 
         if (kept.Count == 0)
         {
-            return (PlanMissions(ship, missions, stopOrder, fillOrder, fillRows, sides), cleared);
+            return (PlanMissions(ship, missions, stopOrder, fillOrder, fillRows, sides, sideOverflow), cleared);
         }
 
         Mission[] placed = [.. missions.Select(m => m with { Unplaced = false })];
@@ -582,7 +621,7 @@ public static class LoadPlanner
         if (!kept.Any(c => c.Loaded))
         {
             // Only delivered cargo kept: it takes no room, the rest is planned from scratch around nothing (D66).
-            var planned = PlanMissions(ship, rest, [.. stopOrder.Where(d => rest.Any(m => m.Stops.Any(s => s.Destination == d)))], fillOrder, fillRows, sides).Plan;
+            var planned = PlanMissions(ship, rest, [.. stopOrder.Where(d => rest.Any(m => m.Stops.Any(s => s.Destination == d)))], fillOrder, fillRows, sides, sideOverflow).Plan;
             return (new SavedPlan(placed, ItemsOf(placed, Joined(planned, [.. kept], [.. stopOrder], ship), cap), cap), cleared);
         }
 
@@ -772,8 +811,12 @@ public static class LoadPlanner
         }
 
         // Capacity first (D89): laid out and tried as without sections, so the same missions wait; the lanes come with the
-        // layout, not the choice (D116). The same plan back says nothing changed (E2), and stays as it is.
-        SavedPlan plain = new(saved.Missions, saved.Plan with { Grouping = PlanGrouping.None, SectionGap = 0 }, saved.CrateCap);
+        // layout, not the choice (D116). The sides keep the overflow the sections give them (D117, P3). The same plan back
+        // says nothing changed (E2), and stays as it is.
+        SavedPlan plain = new(
+            saved.Missions,
+            saved.Plan with { Grouping = PlanGrouping.None, SectionGap = 0, SideOverflow = Overflows(saved.Plan.Grouping, saved.Plan.SideOverflow) },
+            saved.CrateCap);
         var replanned = ReplanPlain(plain, ship);
         return ReferenceEquals(replanned, plain) ? saved : Sectioned(replanned, ship, saved.Plan.Grouping, saved.Plan.SectionGap, saved.Plan.Sides, saved.Plan.SideOverflow);
     }
@@ -827,7 +870,7 @@ public static class LoadPlanner
         {
             try
             {
-                var (around, _) = Keeping(saved, ship, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], saved.Plan.FillOrder, saved.Plan.FillRows, saved.Plan.Sides);
+                var (around, _) = Keeping(saved, ship, saved.Missions, [.. saved.Stops.Select(s => s.Destination)], saved.Plan.FillOrder, saved.Plan.FillRows, saved.Plan.Sides, saved.Plan.SideOverflow);
                 return Waiting(around) > Waiting(saved) ? saved : around;
             }
             catch (PlanException)
@@ -847,13 +890,13 @@ public static class LoadPlanner
         }
 
         string[] route = [.. saved.Stops.Select(s => s.Destination)];
-        if (PlannedOrNull(ship, onBoard, route, saved.Plan.FillOrder, saved.Plan.FillRows, saved.Plan.Sides) is { } all)
+        if (PlannedOrNull(ship, onBoard, route, saved.Plan.FillOrder, saved.Plan.FillRows, saved.Plan.Sides, saved.Plan.SideOverflow) is { } all)
         {
             IReadOnlyList<Mission> missions = saved.Missions.Any(m => m.Unplaced) ? [.. saved.Missions.Select(m => m with { Unplaced = false })] : saved.Missions;
             return new SavedPlan(missions, ItemsOf(saved.Missions, Joined(all, delivered, route, ship), cap), cap);
         }
 
-        if (PlannedOrNull(ship, [.. onBoard.Where(m => !m.Unplaced)], route, saved.Plan.FillOrder, saved.Plan.FillRows, saved.Plan.Sides) is { } placed)
+        if (PlannedOrNull(ship, [.. onBoard.Where(m => !m.Unplaced)], route, saved.Plan.FillOrder, saved.Plan.FillRows, saved.Plan.Sides, saved.Plan.SideOverflow) is { } placed)
         {
             return RetryUnplaced(new SavedPlan(saved.Missions, ItemsOf(saved.Missions, Joined(placed, delivered, route, ship), cap), cap), ship);
         }
@@ -913,12 +956,12 @@ public static class LoadPlanner
         plan with { Crates = SavedPlan.WithItems(missions, plan.Crates, c => c.Delivered, cap) };
 
     /// <summary>The editor's Plan of <paramref name="missions"/> in <paramref name="route"/>; null if they have no layout.</summary>
-    private static LoadPlan? PlannedOrNull(Ship ship, IReadOnlyList<Mission> missions, string[] route, FillOrder fillOrder, FillRows fillRows, Sides sides)
+    private static LoadPlan? PlannedOrNull(Ship ship, IReadOnlyList<Mission> missions, string[] route, FillOrder fillOrder, FillRows fillRows, Sides sides, bool sideOverflow)
     {
         HashSet<string> destinations = [.. missions.SelectMany(m => m.Stops).Select(s => s.Destination)];
         try
         {
-            return PlanMissions(ship, missions, [.. route.Where(destinations.Contains)], fillOrder, fillRows, sides).Plan;
+            return PlanMissions(ship, missions, [.. route.Where(destinations.Contains)], fillOrder, fillRows, sides, sideOverflow).Plan;
         }
         catch (PlanException)
         {
@@ -946,7 +989,7 @@ public static class LoadPlanner
     /// </summary>
     private static SavedPlan ReplanForShip(SavedPlan saved, Ship ship)
     {
-        var (fillOrder, fillRows, sides) = (saved.Plan.FillOrder, saved.Plan.FillRows, saved.Plan.Sides);
+        var (fillOrder, fillRows, sides, sideOverflow) = (saved.Plan.FillOrder, saved.Plan.FillRows, saved.Plan.Sides, saved.Plan.SideOverflow);
         var cap = CrateCap.Of(ship);
         if (saved.Missions.Count == 0)
         {
@@ -957,7 +1000,7 @@ public static class LoadPlanner
             [.. saved.Plan.Crates.GroupBy(c => (c.Mission, c.Destination)).Where(g => g.All(c => c.Delivered)).Select(g => g.Key)];
         Mission[] onBoard = [.. saved.Missions.Select(m => Undelivered(m, delivered)).OfType<Mission>()];
         string[] route = [.. saved.Stops.Select(s => s.Destination)];
-        var replanned = PlanOrPlace(ship, onBoard, route, fillOrder, fillRows, sides);
+        var replanned = PlanOrPlace(ship, onBoard, route, fillOrder, fillRows, sides, sideOverflow);
         if (delivered.Count == 0)
         {
             return replanned;
@@ -977,7 +1020,7 @@ public static class LoadPlanner
     }
 
     /// <summary>The editor's Plan of <paramref name="missions"/> on <paramref name="ship"/>, else mission by mission (D41).</summary>
-    private static SavedPlan PlanOrPlace(Ship ship, IReadOnlyList<Mission> missions, string[] route, FillOrder fillOrder, FillRows fillRows, Sides sides)
+    private static SavedPlan PlanOrPlace(Ship ship, IReadOnlyList<Mission> missions, string[] route, FillOrder fillOrder, FillRows fillRows, Sides sides, bool sideOverflow)
     {
         var cap = CrateCap.Of(ship);
         if (missions.Count == 0)
@@ -988,7 +1031,7 @@ public static class LoadPlanner
         HashSet<string> destinations = [.. missions.SelectMany(m => m.Stops).Select(s => s.Destination)];
         try
         {
-            return PlanMissions(ship, missions, [.. route.Where(destinations.Contains)], fillOrder, fillRows, sides);
+            return PlanMissions(ship, missions, [.. route.Where(destinations.Contains)], fillOrder, fillRows, sides, sideOverflow);
         }
         catch (PlanException)
         {
@@ -1428,28 +1471,25 @@ public static class LoadPlanner
     /// The shape-aware split over the racks (D54): each crate, largest first (ties in input order, which the planner makes
     /// its own order, D64), into the first rack whose free cells still take it by the layout rule
     /// (<see cref="CrateLayout.RackSpace"/>), racks tried as <see cref="PlaceInto"/> tries them (D41): those holding cargo
-    /// for its destination, the first with nothing on board, then all in rack order. <paramref name="onBoard"/> keep their
+    /// for its destination, the first with nothing on board, then all in rack order; with <paramref name="groups"/> that
+    /// order side by side (<see cref="SideGroups.Candidates"/>, D117). <paramref name="onBoard"/> keep their
     /// cells. Every crate probes every rack at most once, so there is nothing to search. The rack index per crate; if a
     /// crate finds none, its index as <c>Failed</c>, and it and the crates not yet tried stay at -1.
     /// </summary>
     private static (int[] RackOf, int? Failed) FirstFitDecreasing(
-        Rack[] racks, IReadOnlyList<Crate> onBoard, IReadOnlyList<(CrateSize Size, string Destination)> crates, FillOrder order, FillRows rows)
+        Rack[] racks, IReadOnlyList<Crate> onBoard, IReadOnlyList<(CrateSize Size, string Destination)> crates, FillOrder order, FillRows rows,
+        IReadOnlyList<Rack[]>? groups = null)
     {
         var spaces = racks.Select(r => CrateLayout.RackSpace.Around(r, onBoard.Where(c => c.RackId == r.Id), order, rows)).ToArray();
         var holding = racks.Select(r => onBoard.Where(c => c.RackId == r.Id && !c.Delivered).Select(c => c.Destination).ToHashSet()).ToArray();
         var rackOf = Enumerable.Repeat(-1, crates.Count).ToArray();
+        int[][] indexGroups = groups is null ? [[.. Enumerable.Range(0, racks.Length)]] : [.. groups.Select(g => g.Select(rack => Array.IndexOf(racks, rack)).ToArray())];
 
         // OrderByDescending is stable: crates of one size keep input order.
         foreach (var i in Enumerable.Range(0, crates.Count).OrderByDescending(i => crates[i].Size))
         {
             var (size, destination) = crates[i];
-            int[] candidates =
-            [
-                .. Enumerable.Range(0, racks.Length).Where(r => holding[r].Contains(destination))
-                    .Concat(Enumerable.Range(0, racks.Length).Where(r => holding[r].Count == 0).Take(1))
-                    .Concat(Enumerable.Range(0, racks.Length))
-                    .Distinct(),
-            ];
+            int[] candidates = [.. SideGroups.Candidates(indexGroups, r => holding[r].Contains(destination), r => holding[r].Count == 0)];
             foreach (var r in candidates)
             {
                 if (spaces[r].Add(size) is not null)
