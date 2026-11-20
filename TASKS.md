@@ -777,6 +777,39 @@ Commit 1 (`hull_b` einfrieren + rote Tests) zuerst.
   (Aufwärmen), in derselben Nachmessung kostet `none` mit Sektionen nur 0,50–0,54 ms. Der Ausweg „Probe sparen“ steht
   im Backlog.
 
+**Befund (20.11.2026, `3d66ebb` … `92a41f8`):**
+- **Commits:** `cfd6157` Erfassen und Missionsweise in Seitenfolge (`LayStop`, `TryPlace`, FFD, `Keeping`; P6 eine
+  Seite zuerst); `825b83c` Warten ohne Überlauf in `Sectioned`, Hinweise `sides full` und `crosses sides`, PerRack-Hinweis
+  raus (zwei `LanePlanTests` durch Nachfolger in `SideRackTests` ersetzt); `794b430` Tooltip „Sides“; `92a41f8` D117,
+  Addenda D41/D64/D89/D116, `plan-format.md`, `mission-format.md`, CLAUDE.md. Wiki „Layout“ (Unterabschnitt „Sides“) auf
+  lokalem Branch `f10a-lanes` (`2f77209`), Push mit dem Tag.
+- **Rot-Läufe:** `SideRackTests` 24 von 32 rot gegen die bloße Oberfläche, nach Commit 2 noch 10, nach Commit 3 noch 5,
+  nach Commit 4 alle grün; dazu zwei neue Tests (Geladenes + Rest nach Seite; Geladenes kann nicht warten → kreuzt).
+- **Mutationen**, je ≥ 1 rot: keine Seitengruppen beim Erfassen (10), keine Eine-Seite-Stufe (6 inkl. der fünf offenen),
+  `Keeping` ohne Seiten (1), kein Warten für Seiten (2), kein `crosses`-Hinweis im Stopps-Plan (1), kein `sides full`
+  (1), Geladenes darf warten (1).
+- **R7 Default byteidentisch:** Goldens unverändert; dazu ein temporärer Schnappschuss (nicht im Repo) über die
+  eingefrorenen Schiffe – mit `none` alle, mit `portFirst`/`starboardFirst` und beiden Überläufen die ohne Seitengruppen;
+  Plan und Scans, Grouping, Reihen, Gap 0–1: **9 072 Fälle, 51 783 Kistenzeilen, 90 Ablehnungen, 221 mit wartenden
+  Missionen, auf `1426252` und `HEAD` identisch.**
+- **Messung final** (Methode D116, Kriterium korrigiert): Hull B `none` 0,17–0,34 ms, `portFirst` **0,37–0,99 ms**
+  (drei Läufe, auf 0,001 ms gelesen, keine Zeile über 1 ms – knapp); Hull C (Baseline) 35,0–55,4 ms gegen 41,7–102,0 ms,
+  **1,12–1,89×** je Einstellung; eingefrorene Hull C und RAFT ohne Seitengruppen wie F10a (Knoten gleich).
+- **CLI** `plan` mit Hull-B-Datei (Baseline, 3 × 96 SCU, byDestination): mit Überlauf Riker 1/2/5, Shubin 6/9/10,
+  Everus Harbor 13/14 + Rack 3 (64 + 32); ohne Überlauf Everus Harbor ganz Steuerbord (3/4/7).
+- **Testzahlen aus sauberem Worktree** (`92a41f8`): vorher (`1426252`) Core 2088, App 2090, Import 280, Ocr 34;
+  nachher Core **2120** (+34 neu, −2 ersetzt), App 2090, Import 280, Ocr 34, alle grün; `dotnet build` 0 Warnungen,
+  `dotnet format --verify-no-changes` sauber; `Category=Slow` 4/4; `Category=Exhaustive` 2/2 (6 min 30 s, Release).
+- **Offen für Martin:** Auf der Hull B bekommt jedes Rack mit Fracht `Rack N: no lanes on a rack that stacks sideways`
+  (F10a-Hinweis); mit Seitengruppen wirkt `sides` dort über die Racks, der Hinweis füllt die Hinweiszeile. Vorschlag:
+  auf Schiffen mit Seitengruppen die Hinweise „keine Bahnen“ weglassen (kleine Änderung in `LaneNotes`). Nicht gebaut.
+
+**Gate Martin am Aufzug (SC vorn, Hull B):** Editor → Layout: **Grouping** By destination, **Sides** Port first,
+**Side overflow** Cross over. Zwei Missionen scannen, zusammen ≤ 256 SCU und je > 32 SCU (etwa 96 + 96) → beide auf
+den Backbord-Racks (1, 2, 5, 6 …), Steuerbord leer. Dritte Mission über die 256 SCU (etwa 96) → ihr Rest liegt
+Steuerbord (64 Backbord + 32 auf Rack 3). **Sides: None** + **Plan** → das heutige Bild. Optional **Side overflow:
+Wait** + Plan → die dritte ganz Steuerbord.
+
 ### [x] F11 Linux: CLI statt Overlay (19.11.2026, in K12)
 
 **Warum:** Anfrage nach Linux. Ein Overlay-Port wäre ein zweites Projekt (WPF + Win32); die CLI läuft ohne Windows.
