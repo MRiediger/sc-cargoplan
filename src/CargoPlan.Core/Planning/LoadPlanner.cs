@@ -26,8 +26,14 @@ public static class LoadPlanner
         Ship ship, IReadOnlyList<Stop> stops, FillOrder fillOrder = FillOrder.BowFirst, FillRows fillRows = FillRows.Lengthwise, PlanGrouping grouping = PlanGrouping.None, int sectionGap = 0,
         Sides sides = Sides.None, bool sideOverflow = true)
     {
-        // Without missions nothing can wait: a destination that fits no side whole crosses with a note (D116).
-        var plan = PlanStops(ship, stops, fillOrder, fillRows, sides, Overflows(grouping, sideOverflow)) with { SectionGap = sectionGap, SideOverflow = sideOverflow };
+        // Without missions nothing can wait: a destination that fits no side whole crosses with a note (D116, D117).
+        var overflows = Overflows(grouping, sideOverflow);
+        var plan = PlanStops(ship, stops, fillOrder, fillRows, sides, overflows) with { SectionGap = sectionGap, SideOverflow = sideOverflow };
+        if (!overflows && AcrossSides(plan, ship) is { Count: > 0 } across)
+        {
+            plan = WithHints(plan, ship, across.Select(a => SectionNotes.Crosses(a.Rack, a.Destination)));
+        }
+
         return grouping == PlanGrouping.None ? plan : RackSections.Lay(plan with { Grouping = grouping }, ship, plan.Route);
     }
 
@@ -147,7 +153,11 @@ public static class LoadPlanner
     /// same missions wait as without (F5); and after <see cref="Sectioned"/> let missions wait, only in
     /// <paramref name="racks"/>. A rack whose crates don't lie in its lanes stays as it is, with a note.
     /// </summary>
-    private static (LoadPlan Plan, IReadOnlyList<PlanWarning> Notes) InLanes(LoadPlan plan, Ship ship, IReadOnlySet<string>? racks = null)
+    /// <param name="withoutLanes">
+    /// Racks a mission left because its destination lies on two sides (D117): laid anew without lanes where they have none,
+    /// so nothing rests on the crates gone; where that fails they stay as they are.
+    /// </param>
+    private static (LoadPlan Plan, IReadOnlyList<PlanWarning> Notes) InLanes(LoadPlan plan, Ship ship, IReadOnlySet<string>? racks = null, IReadOnlySet<string>? withoutLanes = null)
     {
         if (plan.Sides == Sides.None)
         {
@@ -160,7 +170,8 @@ public static class LoadPlanner
         foreach (var rack in ship.Racks.OrderBy(r => r.Index).Where(r => racks?.Contains(r.Id) != false))
         {
             int[] planned = [.. Enumerable.Range(0, crates.Length).Where(i => crates[i].RackId == rack.Id && !crates[i].Delivered && !crates[i].Loaded)];
-            if (planned.Length == 0 || Lanes.Of(rack, plan.Sides) is not { } lanes)
+            var lanes = Lanes.Of(rack, plan.Sides);
+            if (planned.Length == 0 || (lanes is null && withoutLanes?.Contains(rack.Id) != true))
             {
                 continue;
             }
@@ -168,7 +179,11 @@ public static class LoadPlanner
             Crate[] loaded = [.. crates.Where(c => c.RackId == rack.Id && !c.Delivered && c.Loaded)];
             if (CrateLayout.Lay(rack, loaded, [.. planned.Select(i => (crates[i].CrateSize, crates[i].Destination))], plan.FillOrder, plan.FillRows, budget.For(rack), lanes: lanes) is not { } laid)
             {
-                notes.Add(SectionNotes.LanesRefused(rack));
+                if (lanes is not null)
+                {
+                    notes.Add(SectionNotes.LanesRefused(rack));
+                }
+
                 continue;
             }
 
@@ -208,26 +223,61 @@ public static class LoadPlanner
         {
             var legend = new SavedPlan(missions, plan, saved.CrateCap).LegendOrder;
             var (laid, crossing) = RackSections.LaidOut(plan, ship, plan.LegendDestinations(legend));
-            HashSet<int> waiting =
-            [
-                .. missions.Where(m => !m.Unplaced
-                    && plan.Crates.Any(c => c.Mission == m.Id && crossing.Contains(c.Destination))
-                    && !plan.Crates.Any(c => c.Mission == m.Id && (c.Loaded || c.Delivered)))
-                    .Select(m => m.Id),
-            ];
+
+            // Without overflow a destination on two sides of the ship waits too (D117), or crosses with a note where it can't.
+            var acrossSides = sideOverflow ? [] : AcrossSides(plan, ship);
+            full.AddRange(acrossSides.Select(a => SectionNotes.Crosses(a.Rack, a.Destination)).Where(n => !full.Contains(n)));
+            HashSet<int> waitingInLanes = [.. Waiting(crossing)];
+            HashSet<int> waitingForSides = [.. Waiting([.. acrossSides.Select(a => a.Destination)])];
+            HashSet<int> waiting = [.. waitingInLanes, .. waitingForSides];
             if (waiting.Count == 0)
             {
                 return new SavedPlan(missions, full.Count == 0 ? laid : WithHints(laid, ship, full), saved.CrateCap);
             }
 
-            // The racks they leave are laid in the lanes anew without them, then in sections again (D116).
+            // The racks they leave are laid in the lanes anew without them, then in sections again (D116); racks a
+            // destination on two sides leaves also where they have no lanes (D117).
             HashSet<string> left = [.. plan.Crates.Where(c => waiting.Contains(c.Mission)).Select(c => c.RackId)];
-            full.AddRange(ship.Racks.Where(r => left.Contains(r.Id)).Select(SectionNotes.LanesFull).Where(n => !full.Contains(n)));
+            HashSet<string> leftForSides = [.. plan.Crates.Where(c => waitingForSides.Contains(c.Mission)).Select(c => c.RackId)];
+            full.AddRange(ship.Racks.Where(r => plan.Crates.Any(c => c.RackId == r.Id && waitingInLanes.Contains(c.Mission))).Select(SectionNotes.LanesFull).Where(n => !full.Contains(n)));
+            full.AddRange(ship.Racks.Where(r => leftForSides.Contains(r.Id)).Select(SectionNotes.SidesFull).Where(n => !full.Contains(n)));
             missions = [.. missions.Select(m => waiting.Contains(m.Id) ? m with { Unplaced = true } : m)];
-            var (relaid, refused) = InLanes(plan with { Crates = [.. plan.Crates.Where(c => !waiting.Contains(c.Mission))] }, ship, left);
+            var (relaid, refused) = InLanes(plan with { Crates = [.. plan.Crates.Where(c => !waiting.Contains(c.Mission))] }, ship, left, leftForSides);
             plan = relaid;
             full.AddRange(refused.Where(n => !full.Contains(n)));
         }
+
+        // Missions with crates for these destinations that can wait: nothing of them loaded or delivered (K6.4).
+        IEnumerable<int> Waiting(IReadOnlyCollection<string> destinations) =>
+            missions.Where(m => !m.Unplaced
+                && plan.Crates.Any(c => c.Mission == m.Id && destinations.Contains(c.Destination))
+                && !plan.Crates.Any(c => c.Mission == m.Id && (c.Loaded || c.Delivered)))
+                .Select(m => m.Id);
+    }
+
+    /// <summary>
+    /// The destinations whose crates on board lie on two sides of the ship (D117), each with the first rack it reaches on
+    /// a later side, in the order of the plan's crates; none on a ship without side groups.
+    /// </summary>
+    private static IReadOnlyList<(string Destination, Rack Rack)> AcrossSides(LoadPlan plan, Ship ship)
+    {
+        if (SideGroups.Of(ship.Racks, plan.Sides) is not { } groups)
+        {
+            return [];
+        }
+
+        var sideOf = groups.SelectMany((group, side) => group.Select(rack => (Rack: rack, Side: side))).ToDictionary(p => p.Rack.Id);
+        List<(string, Rack)> across = [];
+        foreach (var destination in plan.Crates.Where(c => !c.Delivered && !c.OffShip).GroupBy(c => c.Destination))
+        {
+            var racks = destination.Select(c => sideOf[c.RackId]).Distinct().OrderBy(s => s.Side).ThenBy(s => s.Rack.Index).ToArray();
+            if (racks[^1].Side > racks[0].Side)
+            {
+                across.Add((destination.Key, racks.First(s => s.Side > racks[0].Side).Rack));
+            }
+        }
+
+        return across;
     }
 
     /// <summary>
@@ -1870,8 +1920,8 @@ public static class LoadPlanner
 
     /// <summary>
     /// What a plan with sides says about racks that get no lanes (D116), derived like the hints, never carried: every rack
-    /// with cargo on board that stacks sideways or is under four cells wide, and once, at the first rack, that lanes split
-    /// each rack where the ship has racks on both sides (<c>origin.y</c> above and below 0): sides of racks are F10b's.
+    /// with cargo on board that stacks sideways or is under four cells wide. Where the ship has racks on both sides, sides
+    /// order the racks as well (D117).
     /// </summary>
     private static IEnumerable<PlanWarning> LaneNotes(Rack[] racks, LoadPlan plan)
     {
@@ -1890,11 +1940,6 @@ public static class LoadPlanner
             {
                 yield return SectionNotes.Narrow(rack);
             }
-        }
-
-        if (racks.Any(r => r.Origin.Y > 0) && racks.Any(r => r.Origin.Y < 0))
-        {
-            yield return SectionNotes.PerRack(racks[0]);
         }
     }
 

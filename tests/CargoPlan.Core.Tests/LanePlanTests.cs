@@ -22,14 +22,6 @@ public class LanePlanTests
     private static Ship Flat(int length, int width, int stack) =>
         new("flat", "Flat", length * width * stack, [new Rack("rack-0", 0, length * width * stack, new Dimensions(length, width, stack), null, new ShipPoint(0, 0, 0))]);
 
-    /// <summary>A ship with a rack on each side, as a Hermes: the port one at y = +1, the starboard one at y = −5.</summary>
-    private static Ship TwoSides() =>
-        new("two", "Two", 64,
-        [
-            new Rack("port", 0, 32, new Dimensions(4, 4, 2), null, new ShipPoint(0, 1, 0)),
-            new Rack("starboard", 1, 32, new Dimensions(4, 4, 2), null, new ShipPoint(0, -5, 0)),
-        ]);
-
     /// <summary>One mission per destination, in this order: A, B, … each with one commodity in crates up to <paramref name="max"/>.</summary>
     private static Mission[] Missions(CrateSize max, params int[] scu) =>
         [.. scu.Select((amount, i) => new Mission(i + 1, [new MissionStop(Letters[i], 1, [new MissionItem("Gold", amount, max)])]))];
@@ -165,14 +157,6 @@ public class LanePlanTests
 
         Lying(with.Plan).Should().Equal(Lying(without.Plan));
         Notes(with.Plan).Should().Contain(n => n.EndsWith(": no lanes on a rack that stacks sideways", StringComparison.Ordinal));
-    }
-
-    [Fact]
-    public void A_ship_with_racks_on_both_sides_says_lanes_apply_per_rack()
-    {
-        var plan = Planned(TwoSides(), Missions(CrateSize.Four, 16, 16), Sides.PortFirst).Plan;
-
-        Notes(plan).Should().Contain("lanes apply per rack – side-first rack order is not available yet");
     }
 
     [Fact]
@@ -322,7 +306,6 @@ public class LanePlanTests
     [InlineData("Rack 1: lanes don't fit – laid as without lanes")]
     [InlineData("Rack 1: lanes full – a mission waits (side overflow off)")]
     [InlineData("Rack 1: B crosses sides – side overflow off")]
-    [InlineData("lanes apply per rack – side-first rack order is not available yet")]
     public void Lane_notes_go_to_the_sections_line(string message) =>
         SectionNotes.IsNote(new PlanWarning("rack-0", message)).Should().BeTrue();
 

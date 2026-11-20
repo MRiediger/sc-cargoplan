@@ -184,6 +184,24 @@ public class SideRackTests
         RacksOf(HullB, saved.Plan, "A").Should().OnlyContain(n => HullBPort.Contains(n));
         RacksOf(HullB, saved.Plan, "B").Should().OnlyContain(n => HullBStarboard.Contains(n));
         Notes(saved.Plan).Should().Contain(n => n.EndsWith(": sides full – a mission waits (side overflow off)", StringComparison.Ordinal));
+        Notes(saved.Plan).Should().OnlyHaveUniqueItems();
+        LoadPlanner.Validate(saved.Plan, HullB).Should().BeEmpty("the racks it left are laid anew");
+    }
+
+    [Fact]
+    public void Without_overflow_a_destination_with_loaded_cargo_on_two_sides_cant_wait_and_crosses_with_a_note()
+    {
+        // With overflow B crosses (96 port + 64 starboard) and is loaded so; the plan without overflow can't let it wait (K6.4).
+        var missions = Missions(CrateSize.ThirtyTwo, 160, 160, 160);
+        var crossing = Planned(HullB, missions, Sides.PortFirst);
+        var loaded = new SavedPlan(crossing.Missions, LoadPlanner.SetLoaded(crossing.Plan, HullB, "B", 2, loaded: true), crossing.CrateCap);
+
+        var (plan, _) = LoadPlanner.PlanKeeping(loaded, HullB, missions, ["A", "B", "C"], FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination, 0, Sides.PortFirst, sideOverflow: false);
+
+        plan.Missions.Should().OnlyContain(m => !m.Unplaced);
+        RacksOf(HullB, plan.Plan, "A").Should().OnlyContain(n => HullBPort.Contains(n));
+        RacksOf(HullB, plan.Plan, "C").Should().OnlyContain(n => HullBStarboard.Contains(n));
+        Notes(plan.Plan).Should().Contain(n => n.EndsWith(": B crosses sides – side overflow off", StringComparison.Ordinal));
     }
 
     [Fact]
