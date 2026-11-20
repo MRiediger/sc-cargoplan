@@ -14,10 +14,14 @@ public static class PlanFile
     /// <summary>
     /// The version the writer writes: missions with ids, crates with missions (D42), items (D68), turned or not (D71),
     /// off the ship or not (K2.2) and loaded or not (K6.4), items added by hand to a scanned mission (K6.5), the row axis
-    /// (D88), the grouping and section gap (D89), contracts read by CargoPlan's own scan (D102). Final since T10.4b (D107):
-    /// ContractTracker's ids, gone, detached and watermark are only read, an older file's captures become scans.
+    /// (D88), the grouping and section gap (D89), contracts read by CargoPlan's own scan (D102), the sides and side overflow
+    /// (D116). ContractTracker's ids, gone, detached and watermark are only read since T10.4b (D107), an older file's
+    /// captures become scans.
     /// </summary>
-    public const int SupportedSchemaVersion = 10;
+    public const int SupportedSchemaVersion = 11;
+
+    /// <summary>Scans, no sides (D102 to D115; v0.4.0 to v0.6.x); still read so, never written: every plan without lanes.</summary>
+    public const int NoSidesSchemaVersion = 10;
 
     /// <summary>The row axis, grouping and section gap, ContractTracker captures and no scan (D88, D89; v0.2.0 to v0.3.1); still read, never written.</summary>
     public const int NoScanSchemaVersion = 9;
@@ -28,10 +32,10 @@ public static class PlanFile
     /// </summary>
     public const int NoFillRowsSchemaVersion = 8;
 
-    private static readonly int[] ReadableSchemaVersions = [NoFillRowsSchemaVersion, NoScanSchemaVersion, SupportedSchemaVersion];
+    private static readonly int[] ReadableSchemaVersions = [NoFillRowsSchemaVersion, NoScanSchemaVersion, NoSidesSchemaVersion, SupportedSchemaVersion];
 
     /// <summary>
-    /// Reads a plan file for <paramref name="ship"/>, schema 8 to 10. The stream is left open. A plan for another ship
+    /// Reads a plan file for <paramref name="ship"/>, schema 8 to 11. The stream is left open. A plan for another ship
     /// loads with its own ship id and without the grid checks; the caller plans it anew (D59). So does one with a crate
     /// outside today's rack, read under <see cref="CapReason.RacksChanged"/> (K3.2).
     /// </summary>

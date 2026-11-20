@@ -134,7 +134,7 @@ public class MissionFileReaderTests
     [InlineData("blank_commodity")]             // "commodity": ""
     [InlineData("missing_property")]            // no "maxCrateSize"
     [InlineData("missing_schema")]              // no "schemaVersion"
-    [InlineData("unsupported_schema")]          // "schemaVersion": 5
+    [InlineData("unsupported_schema")]          // "schemaVersion": 6
     [InlineData("malformed")]                   // not valid JSON
     [InlineData("crates_sum_mismatch")]         // 6 SCU as 2+2
     [InlineData("crate_above_max")]             // an 8 SCU crate at max 4
@@ -156,7 +156,7 @@ public class MissionFileReaderTests
     [InlineData("stop_without_items", "*Riker*no items*")]
     [InlineData("unknown_property", "*SCU*")]
     [InlineData("duplicate_destination", "*riker*more than once*")]
-    [InlineData("unsupported_schema", "*schemaVersion 5*expected 3 or 4*")]
+    [InlineData("unsupported_schema", "*schemaVersion 6*expected 3 or 4 or 5*")]
     [InlineData("crates_sum_mismatch", "*Riker*Titanium*add up to 4 SCU, not 6*")]
     [InlineData("crate_above_max", "*Riker*Titanium*8 SCU crates are larger than the max crate size of 4 SCU*")]
     [InlineData("crate_unknown_size", "*Riker*Titanium*3 SCU is not a crate size*")]
@@ -243,7 +243,7 @@ public class MissionFileReaderTests
         var original = MissionFixtures.LoadMissions(fixture);
 
         var json = JsonSerializer.SerializeToUtf8Bytes(
-            MissionFileDto.FromMissionStops(original, FillOrder.BowFirst, FillRows.Lengthwise, PlanGrouping.None, 0), MissionJsonContext.Default.MissionFileDto);
+            MissionFileDto.FromMissionStops(original, FillOrder.BowFirst, FillRows.Lengthwise, PlanGrouping.None, 0, Sides.None, true), MissionJsonContext.Default.MissionFileDto);
         using var stream = new MemoryStream(json);
         var roundTripped = MissionFileReader.Read(stream, "roundtrip.json").Stops;
 
@@ -259,7 +259,7 @@ public class MissionFileReaderTests
             new("Riker", 1, [new MissionItem("Titanium", 12, CrateSize.Four)]),
         ];
 
-        var dto = MissionFileDto.FromMissionStops(stops, FillOrder.SternFirst, FillRows.Lengthwise, PlanGrouping.None, 0);
+        var dto = MissionFileDto.FromMissionStops(stops, FillOrder.SternFirst, FillRows.Lengthwise, PlanGrouping.None, 0, Sides.None, true);
 
         dto.SchemaVersion.Should().Be(MissionFileReader.CurrentSchemaVersion);
         dto.FillOrder.Should().Be("sternFirst");

@@ -9,13 +9,14 @@ using static System.FormattableString;
 namespace CargoPlan.Core.Plans;
 
 /// <summary>
-/// File format of a plan file (schema version 10, docs/plan-format.md): the fill order and row axis (D88), the grouping and
-/// section gap (D89), the last scan number (D102), the missions with their stops and the scan they came from (D42, D102),
-/// every crate with its mission and item (D68), rack, position (D24), whether it is turned (D71), whether it is off the
-/// ship (K2.2) and whether it is loaded (K6.4). Schema 9 has no scans, schema 8 no row axis either, every plan lengthwise;
-/// their ContractTracker captures are read as scans (D107). Older schemas are refused (F4, T10.2b1).
+/// File format of a plan file (schema version 11, docs/plan-format.md): the fill order and row axis (D88), the grouping and
+/// section gap (D89), the sides and side overflow (D116), the last scan number (D102), the missions with their stops and the
+/// scan they came from (D42, D102), every crate with its mission and item (D68), rack, position (D24), whether it is turned
+/// (D71), whether it is off the ship (K2.2) and whether it is loaded (K6.4). Schema 10 has no sides, every plan without
+/// lanes; schema 9 no scans either, schema 8 no row axis either, every plan lengthwise; their ContractTracker captures are
+/// read as scans (D107). Older schemas are refused (F4, T10.2b1).
 /// </summary>
-/// <remarks><see cref="FillRows"/>, <see cref="Grouping"/> and <see cref="SectionGap"/> are optional for older files, so they stand last; the order attributes write them behind the fill order, as <see cref="Missions.MissionFileDto"/> does.
+/// <remarks><see cref="FillRows"/>, <see cref="Grouping"/>, <see cref="SectionGap"/>, <see cref="Sides"/> and <see cref="SideOverflow"/> are optional for older files, so they stand last; the order attributes write them behind the fill order, as <see cref="Missions.MissionFileDto"/> does.
 /// <see cref="ContractTrackerWatermark"/> is read from older files and dropped, never written (D107).</remarks>
 internal sealed record PlanFileDto(
     int SchemaVersion,
@@ -27,6 +28,8 @@ internal sealed record PlanFileDto(
     string? FillRows = null,
     string? Grouping = null,
     int? SectionGap = null,
+    string? Sides = null,
+    bool? SideOverflow = null,
     int? LastScanNo = null,
     long? ContractTrackerWatermark = null)
 {
@@ -38,6 +41,7 @@ internal sealed record PlanFileDto(
     public (SavedPlan Plan, IReadOnlyList<int> FromContractTracker) ToSavedPlan(Ship ship)
     {
         CheckFillRows(FillRows, Grouping, SectionGap, SchemaVersion);
+        CheckSides(Sides, SideOverflow, SchemaVersion);
         CheckScans(Missions, LastScanNo, SchemaVersion);
         var next = Math.Max(LastScanNo ?? 0, Missions.Select(m => m.Contract?.Scan?.No ?? 0).DefaultIfEmpty().Max()) + 1;
         List<int> fromContractTracker = [];
@@ -56,7 +60,8 @@ internal sealed record PlanFileDto(
 
         CheckItems(Crates, SchemaVersion);
         Crate[] crates = [.. Crates.Select(c => c.ToCrate())];
-        var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder), FillRows is null ? Models.FillRows.Lengthwise : FillRowsJson.Parse(FillRows), Grouping is null ? PlanGrouping.None : GroupingJson.Parse(Grouping), SectionGap ?? 0), ship);
+        var (plan, racksChanged) = Checked(new LoadPlan(ShipId, crates, [.. Warnings.Select(w => w.ToPlanWarning())], FillOrderJson.Parse(FillOrder), FillRows is null ? Models.FillRows.Lengthwise : FillRowsJson.Parse(FillRows), Grouping is null ? PlanGrouping.None : GroupingJson.Parse(Grouping), SectionGap ?? 0,
+            Sides is null ? Models.Sides.None : SidesJson.Parse(Sides), SideOverflow ?? true), ship);
 
         return (UnderCap(ship, cap => new SavedPlan(missions, plan, cap), racksChanged), fromContractTracker);
     }
@@ -111,6 +116,8 @@ internal sealed record PlanFileDto(
         FillRowsJson.Text(saved.Plan.FillRows),
         GroupingJson.Text(saved.Plan.Grouping),
         saved.Plan.SectionGap,
+        SidesJson.Text(saved.Plan.Sides),
+        saved.Plan.SideOverflow,
         Math.Max(lastScanNo, saved.HighestScanNo) is > 0 and var last ? last : null);
 
     /// <summary>
@@ -146,6 +153,34 @@ internal sealed record PlanFileDto(
 
         // Hints are derived anew: a plan from before D64 loses its route notes and shows what sits on what.
         return (LoadPlanner.WithHints(plan, ship), false);
+    }
+
+    /// <summary>
+    /// From schema 11 on the file names its sides and side overflow; before it no plan has lanes and none does (D116).
+    /// </summary>
+    /// <exception cref="ArgumentException">The file breaks that.</exception>
+    internal static void CheckSides(string? sides, bool? sideOverflow, int schemaVersion)
+    {
+        const int withSides = PlanFile.NoSidesSchemaVersion + 1;
+        if (schemaVersion < withSides && sides is not null)
+        {
+            throw new ArgumentException(Invariant($"sides is new in schema {withSides} (the file says {schemaVersion})."), nameof(Sides));
+        }
+
+        if (schemaVersion < withSides && sideOverflow is not null)
+        {
+            throw new ArgumentException(Invariant($"sideOverflow is new in schema {withSides} (the file says {schemaVersion})."), nameof(SideOverflow));
+        }
+
+        if (schemaVersion >= withSides && sides is null)
+        {
+            throw new ArgumentException(Invariant($"The file has no sides, which schema {schemaVersion} requires."), nameof(Sides));
+        }
+
+        if (schemaVersion >= withSides && sideOverflow is null)
+        {
+            throw new ArgumentException(Invariant($"The file has no sideOverflow, which schema {schemaVersion} requires."), nameof(SideOverflow));
+        }
     }
 
     /// <summary>

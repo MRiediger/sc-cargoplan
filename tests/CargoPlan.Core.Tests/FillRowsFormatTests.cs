@@ -47,7 +47,9 @@ public class FillRowsFormatTests
     {
         var golden = GoldenBow().Replace($"\"schemaVersion\": {PlanFile.SupportedSchemaVersion}", $"\"schemaVersion\": {schema}", StringComparison.Ordinal);
         golden.Should().Contain($"\"schemaVersion\": {schema},", "the golden is written in the current schema");
-        return golden;
+
+        // Sides came with schema 11 (D116): an older file has none.
+        return schema <= PlanFile.NoSidesSchemaVersion ? golden.Replace("  \"sides\": \"none\",\n  \"sideOverflow\": true,\n", "", StringComparison.Ordinal) : golden;
     }
 
     /// <summary>The golden as it would have been before schema 9: no fillRows, the older number.</summary>
@@ -76,7 +78,7 @@ public class FillRowsFormatTests
     {
         var json = Written(Planned(FillRows.Crosswise)).ReplaceLineEndings("\n");
 
-        json.Should().Contain("\"fillOrder\": \"sternFirst\",\n  \"fillRows\": \"crosswise\",\n  \"grouping\": \"none\",\n  \"sectionGap\": 0,\n  \"missions\"");
+        json.Should().Contain("\"fillOrder\": \"sternFirst\",\n  \"fillRows\": \"crosswise\",\n  \"grouping\": \"none\",\n  \"sectionGap\": 0,\n  \"sides\": \"none\",\n  \"sideOverflow\": true,\n  \"missions\"");
     }
 
     [Fact]
@@ -365,7 +367,7 @@ public class FillRowsFormatTests
     {
         var json = WrittenMissions(rows);
 
-        json.Should().Contain("\"schemaVersion\": 4").And.Contain($"\"fillRows\": \"{word}\"");
+        json.Should().Contain("\"schemaVersion\": 5").And.Contain($"\"fillRows\": \"{word}\"");
         var file = ReadMissions(json);
         file.FillRows.Should().Be(rows);
         file.FillOrder.Should().Be(FillOrder.SternFirst);

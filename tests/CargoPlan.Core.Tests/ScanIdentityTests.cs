@@ -128,6 +128,8 @@ public class ScanIdentityTests
     {
         var node = JsonNode.Parse(Written(TypedAndScan(), lastScanNo: 4))!;
         node["schemaVersion"] = 9;
+        node.AsObject().Remove("sides");
+        node.AsObject().Remove("sideOverflow");
         if (field == "lastScanNo")
         {
             node["missions"]!.AsArray().RemoveAt(1);

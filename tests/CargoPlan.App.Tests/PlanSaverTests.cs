@@ -233,7 +233,7 @@ public sealed class PlanSaverTests : IDisposable
             var (overlay, saver) = Start();
             saver.Flush();
 
-            File.ReadAllText(PlanPath).Should().Contain("\"schemaVersion\": 10");
+            File.ReadAllText(PlanPath).Should().Contain("\"schemaVersion\": 11");
             overlay.Notices.Should().Contain(FromContractTracker);
         });
     }
