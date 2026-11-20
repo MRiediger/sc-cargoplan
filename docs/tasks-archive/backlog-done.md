@@ -52,3 +52,21 @@ Durchgestrichene Zeilen aus „Backlog (nur bei Bedarf)“ in [`TASKS.md`](../..
 - ~~Hit-Test der Schiffsansicht auf ihre Fläche begrenzen: gezeichnet wird mit `ClipToBounds`, getroffen nicht, also kann ein Drop über der Legende ein beim Hineinzoomen abgeschnittenes, unsichtbares Rack treffen (D33).~~ → K1
 - ~~Undo für Drags und Re-plan: ab Stufe 3 (D65) ist Zurückziehen kein Undo mehr, ein Re-plan (B4) verwirft Moves. Auslöser: ein Hauler verliert eine Lage durch einen Drop.~~ → K2
 - ~~Umrisse und Holos neu erzeugen (Pipeline `sc-ship-outlines`): die Salvation hat keinen (neu seit 25.10., zeigt den Bug-Keil, `NotTracedYet`), 18 Schiffe haben im Index vom 26.10. neue Rumpfmaße (K5.1). Auslöser: ein Hauler meldet die Salvation oder Racks liegen sichtbar außerhalb des Rumpfs.~~ → K5.2b
+
+## Umzug am 20.11.2026 (Release v0.7.0)
+
+- Wiki-Branch `k12-ship-reports` (lokal, `06b4004`: „Ships and cargo grids“ ohne Schiffsdatei-PR, K12) nach `master`
+  mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
+  **Erledigt 20.11.2026** (Release v0.7.0): nach `master` gemergt (`0d31aec`), mit dem Wiki gepusht, Branch gelöscht.
+- Wiki-Branch `b16-legend-order` (lokal, `0386c22`: „Legend and delivery states“, Missionen in Scan-Reihenfolge, B16)
+  nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
+  **Erledigt 20.11.2026** (Release v0.7.0): nach `master` gemergt (`200fa61`), mit dem Wiki gepusht, Branch gelöscht.
+- Wiki-Branch `b17-section-block` (lokal, `1009927`: „Plan and editor“, ein Scan schließt den Block seines Ziels, B17)
+  nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
+  **Erledigt 20.11.2026** (Release v0.7.0): schon mit `f10a-lanes` in `master` (`2b32efd`, 20.11. vor dem Tag
+  gepusht), Branch gelöscht.
+- Wiki-Branch `f10a-lanes` (lokal, `ea9252a` auf `b17-section-block`: „Plan and editor“, Layout mit Sides und Side
+  overflow, Missions-JSON Schema 5, F10a) statt `b17-section-block` nach `master` mergen (`--no-ff`, CC; enthält B17),
+  Martin pusht. **Auslöser: der nächste Tag** (plan.json 11 und Missions-JSON 5 kommen erst mit dem Release).
+  **Erledigt 20.11.2026** (Release v0.7.0): schon in `master` (`2b32efd`, 20.11. vor dem Tag gepusht, P1), Branch
+  lokal und remote gelöscht.
