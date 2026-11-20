@@ -128,6 +128,68 @@ Erstes Release mit dem Linux-Asset (`release.yml` lädt `out/release/*`, seit K1
 reicht). **K2:** F10b-Zeile wie vorgeschlagen ersetzen, Abnahme 20.11.2026, dann Backlog II archivieren. R1 los; die
 Notes kommen als eigener Commit einzeln zur Freigabe.
 
+**Befund R1 Textabgleich (20.11.2026):**
+- **TASKS:** F10b-Zeile ersetzt (K2); Backlog II → `docs/tasks-archive/backlog-ii.md` (`dfbef05`), Block gegen den
+  committeten Text per `diff`: 768 Zeilen gleich, einzige Abweichung die K2-Zeile (1 → 2 Zeilen); 6 × `### [x]`;
+  Index-Zeile „Backlog II (K11, B16, B17, F10a, F10b)“. Kein Verweis auf „Backlog II“ außerhalb von TASKS.md und Archiv.
+- **README / Nexus** (`45eca1c`): Linux-Zeile „From v0.7.0, each release carries …“ mit `ships --version` (D115; im
+  `cli-linux`-Job von `ci.yml` geprüft, `scan` in K12 per Hand byte-gleich); **Präzisierung beim Schreiben:** eine
+  Feature-Zeile „Optionally one side first …“ in README **und** Nexus-Beschreibung (die Nexus-Liste spiegelt die README
+  wortgleich, `checklist.md`); Nexus: Linux-Hinweis unter Requirements, Beispiel 0.7.0; `checklist.md` `$version` und
+  Beispiel `:43` auf 0.7.0; `summary.txt` unverändert (P6).
+- **Wiki** (lokal, nichts gepusht): `master` + `k12-ship-reports` (`0d31aec`) + `b16-legend-order` (`200fa61`), je
+  `--no-ff`, ohne Konflikt; `master` jetzt 4 vor `origin/master`. Branch `v0.7.0` (`eec87c4`): Installation „Coming from
+  v0.6.0“ (Schema 11 nach dem Laden, None/Cross over für alte Pläne, Missions-JSON 5, Legende, Rückweg nach D106 mit
+  dem v0.6.0-Wortlaut aus dem Tag, `--data-dir` über die Stub-Exe wie `update-testing.md:41`), Verweis im Abschnitt
+  Update; Troubleshooting Known issues „Going back to v0.6.0“ (**Präzisierung beim Schreiben:** dieselbe Falle steht dort
+  wie die von v0.5.x); Home „Applies to v0.7.0“ (stand auf v0.5.0), `_Footer` v0.7.0, Overlay-basics `v0.7.1`.
+- **Grep** `0.6.x`, `v0.6`, Schema 10/4 über README, CONTRIBUTING, SECURITY, `.github`, `docs/` (ohne decisions, review,
+  release-notes, tasks-archive), Nexus, Wiki: übrig nur Geschichte („from v0.6.0 on“ in README, `ship-format.md`,
+  `holo-format.md`, `checklist.md:16/98`, Wiki Updates/Troubleshooting) und richtige Spannen (`plan-format.md`
+  „v0.6.x and older refuses a schema 11 file“, „Schema 10 (v0.4.0 to v0.6.x)“).
+- **Wortlaute aus `src/`:** `Sides` None/Port first/Starboard first, `Side overflow` Cross over/Wait
+  (`MissionEditorViewModel.cs:206-227`), Notices `RackSections.cs:532-538` (`has a gap – loaded crates`, `lanes full –
+  a mission waits (side overflow off)`, `crosses sides – side overflow off`, `sides full – a mission waits (side
+  overflow off)`, Bahn-Hinweise) = Wiki „Plan and editor“; v0.6.0-Meldung `Plan not loaded (…). The next save keeps the
+  file aside, it is never overwritten.` (`git grep v0.6.0`, `PlanStore.cs:49`); Settings seit v0.6.0 unverändert
+  (`git diff v0.6.0..main` über beide Settings-Ordner leer).
+- **Link-Check:** Wiki 125 interne Links, 0 kaputt (Gegenprobe mit zwei eingebauten Fehlern: 4 gemeldet); Notes 11
+  externe URLs, alle 200, inkl. D115-Anker.
+
+**Befund R2 Notes (20.11.2026):** `docs/release-notes/v0.7.0.md`, eigener Commit, zur Freigabe im Backlog-Chat.
+Vollständigkeit `git log --no-merges v0.6.0..main` (52 Commits):
+
+| Commit | Inhalt | In den Notes |
+|---|---|---|
+| `1ce6871`, `ef2d896`, `340f600`, `ad5deab`, `8c7771e`, `9d5cb8d` | T12.6a: Release-Prüfung, Netz-Gate, Nexus-Link in README | nein (betrifft v0.6.0) |
+| `7901350`, `3c80298` | README-Absatz SignPath, Backlog | nein (von `7e58081` zurückgenommen); Known issue „Unsigned“ |
+| `e789000`, `c3e1aa5`, `17e6bee`, `3f418d0` | Ko-fi in README und `FUNDING.yml` | nein (K1: nicht im ZIP, README reicht) |
+| `167d590`, `bcd674c`, `b80966d`, `8df22a2` | K12: Plan, R5/Phase 12 zu, Backlog II, Protokoll | nein (TASKS.md) |
+| `f2f1669` | Schiffsdaten-Fehler als Issue, keine Schiffsdatei-PRs | Ship data |
+| `7e58081` | Code-Signing bleibt aus | Known issue „Unsigned“ |
+| `b157566`, `750b44e`, `9de2e2e`, `91fdf2e` | F11: D115, Tarball, CI-Start, README | Linux |
+| `2e99d50`, `da2c6d6`, `3d9bbec`, `8d62b37`, `d649a0c` | K11 Archiv | nein (TASKS.md, Verweise) |
+| `0821dad`, `9f396a3`, `93b9bb5`, `c12ff0b` | B16 Legende in Scan-Reihenfolge | Legend |
+| `a0f7073`, `df46792`, `1e3c749`, `0d41c4a` | B17 ein Scan schließt den Block | Blocks per destination, Known issue „A scan can move planned crates“ |
+| `c930d9a`, `e426c98`, `c5e3117` | F10a Plan, Befund, Abnahme | nein (TASKS.md) |
+| `309ccd8`, `9ec973f` | F10a Bahnen in Zellreihenfolge, Plänen, Sektionen, Scans | Layout (Halves of a rack, Wait, ganze Reihen) |
+| `9abcf8d` | plan.json 11, Missions-JSON 5 | Files, Known issue „Going back to v0.6.0“ |
+| `97d2cd8` | Editor: Sides, Side overflow | Layout |
+| `1d98ba5`, `92a41f8` | D116/D117, Addenda, Formatdoku | indirekt (Quelle der Texte) |
+| `16a3257`, `249a184` | F10b Plan, Befund | nein (TASKS.md) |
+| `49ac5d1` | `hull_b` eingefroren, rote Tests | nein (Tests) |
+| `3d66ebb`, `cfd6157`, `825b83c` | F10b Seitengruppen, Erfassen, Warten | Layout (Racks by side, Wait) |
+| `794b430` | Tooltip „Sides“ | indirekt (Layout) |
+| `698a87e` | keine Bahn-Hinweise auf Schiffen mit Seiten | nein (Hinweise, die nie released waren) |
+
+**Präzisierungen beim Schreiben:**
+1. Abschnitt „Ship data“ mit „unverändert `2026.11.1`“ (Pin = Latest, P4) und dem Meldeweg aus K12 statt eigenem
+   Doku-Abschnitt.
+2. Known issue „A scan can move planned crates“ (B17-Gegenargument zu D41): „loaded“ abhaken schützt.
+3. Known issues aus v0.6.0 gekürzt auf die weiter gültigen; die Downgrade-Sätze für v0.5.x/v0.4.0 stehen im Wiki
+   (Link „More, with workarounds“).
+4. Linux-Größe „about 66 MB“ aus K12 (66,4 MB); Nachmessung in R3.
+
 **Akzeptanz:**
 - [ ] Notes vom Backlog-Chat freigegeben; `git log v0.6.0..main` ohne unerwähnten nutzer-sichtbaren Commit
 - [ ] **Netz-Gate (Martin, SC vorn):** v0.6.0-Portable in eigenem Ordner oder mit `--data-dir` (Backup von
