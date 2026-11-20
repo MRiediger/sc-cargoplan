@@ -149,7 +149,7 @@
             <!-- Sides (D116): one half of a rack's width full first, then the other; racks under four cells wide and racks
                  stacking sideways have no sides, the notice line says so. -->
             <StackPanel Orientation="Horizontal" Margin="0,0,12,4"
-                        ToolTip="Fill one side of each rack first, then the other: its width splits into a port and a starboard half, each filled like a rack. Racks under four cells wide, and racks stacking sideways like the Hull A's plates, keep their whole width. Takes effect when you press Plan.">
+                        ToolTip="Fill one side first, then the other. On ships with racks on both sides, every rack on the first side is filled before a rack on the other; racks across the middle come last. Within a rack, its width splits into a port and a starboard half, each filled like a rack; racks under four cells wide, and racks stacking sideways like the Hull A's plates, keep their whole width. Takes effect when you press Plan.">
                 <TextBlock Text="Sides:" VerticalAlignment="Center" Margin="0,0,4,0" />
                 <ComboBox ItemsSource="{x:Static vm:MissionEditorViewModel.SidesChoices}" DisplayMemberPath="Text"
                           SelectedValuePath="Value" SelectedValue="{Binding Sides}" MinWidth="110">

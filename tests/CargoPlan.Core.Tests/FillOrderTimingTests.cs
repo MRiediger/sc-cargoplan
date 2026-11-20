@@ -4,6 +4,7 @@ using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
+using CargoPlan.Core.ShipData;
 using CargoPlan.Core.Ships;
 using Xunit.Abstractions;
 
@@ -20,7 +21,7 @@ public class FillOrderTimingTests(ITestOutputHelper output)
     [Fact]
     public void Plan_of_each_case_in_each_order()
     {
-        output.WriteLine("| Case | order | rows | grouping | gap | sides | first ms | median ms | nodes | layout steps | gave up |");
+        output.WriteLine("| Case | order | rows | grouping | gap | sides | first ms | median ms | nodes | nodes per side / probes | layout steps | gave up |");
         foreach (var (name, ship, missions, route) in Cases())
         {
             foreach (var (grouping, gap) in Settings)
@@ -36,10 +37,10 @@ public class FillOrderTimingTests(ITestOutputHelper output)
                             var first = watch.Elapsed.TotalMilliseconds;
                             var median = Median(() => LoadPlanner.Plan(ship, missions, route, order, rows, grouping, gap, sides));
 
-                            var (nodes, steps, gaveUp) = Counts(ship, missions, route, order, rows);
+                            var (nodes, bySide, steps, gaveUp) = Counts(ship, missions, route, order, rows, sides);
                             var unchecked_ = plan.Warnings.Count(w => w.Message.Contains("too many crates to rearrange", StringComparison.Ordinal));
                             output.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                                $"| {name} | {order} | {rows} | {grouping} | {gap} | {sides} | {first:F1} | {median:F1} | {nodes} | {steps} | {gaveUp + unchecked_} |"));
+                                $"| {name} | {order} | {rows} | {grouping} | {gap} | {sides} | {first:F1} | {median:F1} | {nodes} | {bySide} | {steps} | {gaveUp + unchecked_} |"));
                         }
                     }
                 }
@@ -79,12 +80,27 @@ public class FillOrderTimingTests(ITestOutputHelper output)
         }
     }
 
-    private static (long Nodes, long Steps, int GaveUp) Counts(Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> route, FillOrder order, FillRows rows)
+    /// <summary>The rack search's nodes; side by side (D117) also per group and the probes' nodes and count.</summary>
+    private static (long Nodes, string BySide, long Steps, int GaveUp) Counts(
+        Ship ship, IReadOnlyList<Mission> missions, IReadOnlyList<string> route, FillOrder order, FillRows rows, Sides sides)
     {
         var cap = CrateCap.Of(ship);
         var items = missions.SelectMany(m => m.Stops).GroupBy(s => s.Destination).ToDictionary(g => g.Key, g => g.SelectMany(s => s.Items).ToArray());
         Stop[] stops = [.. route.Select((destination, index) => new MissionStop(destination, index + 1, items[destination]).ToStop(cap))];
-        var result = RackAssignment.Assign([.. ship.Racks.OrderBy(r => r.Index)], stops, order, rows);
+        Rack[] racks = [.. ship.Racks.OrderBy(r => r.Index)];
+        var bySide = "–";
+        RackAssignment.Result? result;
+        if (SideGroups.Of(racks, sides) is { } groups)
+        {
+            var side = RackAssignment.AssignBySide(groups, stops, [.. Enumerable.Range(0, stops.Length)], order, rows, sides, overflow: true);
+            result = side.Assignment;
+            bySide = string.Create(CultureInfo.InvariantCulture, $"{string.Join(" + ", side.GroupNodes)} / {side.ProbeNodes} in {side.Probes}");
+        }
+        else
+        {
+            result = RackAssignment.Assign(racks, stops, order, rows);
+        }
+
         long steps = 0;
         var gaveUp = 0;
         foreach (var load in result?.Racks ?? [])
@@ -94,7 +110,7 @@ public class FillOrderTimingTests(ITestOutputHelper output)
             gaveUp += laying.GaveUp ? 1 : 0;
         }
 
-        return (result?.Nodes ?? -1, steps, gaveUp);
+        return (result?.Nodes ?? -1, bySide, steps, gaveUp);
     }
 
     /// <summary>
@@ -114,11 +130,19 @@ public class FillOrderTimingTests(ITestOutputHelper output)
         var eight = MissionFixtures.LoadMissions("hull_a_eight_stops");
         Mission[] raftEight = [.. eight.Select((s, index) => new Mission(index + 1, [s with { Order = 1 }]))];
 
+        // Measured only, nothing asserted: the shipped Hull C has racks by side (4 + 4 + 8 across the middle), the frozen one not (D117).
+        var baseline = ShipLoader.LoadAll(ActiveShipData.ReadBaseline(ActiveShipData.BaselineFolder).ShipsFolder);
+        int[] hullBScu = [96, 64, 48, 48, 32, 32, 16, 16];
+        Mission[] hullB = [.. destinations.Select((destination, index) =>
+            new Mission(index + 1, [new MissionStop(destination, 1, [new MissionItem("Titanium", hullBScu[index], CrateSize.ThirtyTwo)])]))];
+
         return
         [
             ("RAFT fixture", raft, saved.Missions, [.. saved.Stops.Select(s => s.Destination)]),
             ("Hull C eight stops", FrozenShips.Load("hull_c"), hullC, destinations),
             ("RAFT eight stops", raft, raftEight, [.. eight.Select(s => s.Destination)]),
+            ("Hull B eight stops (baseline)", baseline.Get("hull_b"), hullB, destinations),
+            ("Hull C eight stops (baseline)", baseline.Get("hull_c"), hullC, destinations),
         ];
     }
 

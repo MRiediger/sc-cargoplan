@@ -535,9 +535,7 @@ public static class SectionNotes
     private const string LanesRefusedText = "lanes don't fit – laid as without lanes";
     private const string LanesFullText = "lanes full – a mission waits (side overflow off)";
     private const string CrossesText = " crosses sides – side overflow off";
-
-    // Racks on both sides of the ship: lanes split each rack, not port racks from starboard ones (F10b, D116).
-    private const string PerRackText = "lanes apply per rack – side-first rack order is not available yet";
+    private const string SidesFullText = "sides full – a mission waits (side overflow off)";
 
     internal static PlanWarning Shares(Rack rack, string destination, string other) => new(rack.Id, Prefix(rack) + destination + SharesText + other);
 
@@ -572,21 +570,21 @@ public static class SectionNotes
     /// <summary>A rack stacking along ±y (D116): its width stands upright, no side to it. Derived, not carried.</summary>
     internal static PlanWarning Sideways(Rack rack) => new(rack.Id, Prefix(rack) + SidewaysText);
 
-    /// <summary>A ship with racks on both sides (D116): lanes split each rack; derived, at the first rack.</summary>
-    internal static PlanWarning PerRack(Rack first) => new(first.Id, PerRackText);
-
     /// <summary>A rack whose cargo doesn't lie in lanes, laid as without them (D116).</summary>
     internal static PlanWarning LanesRefused(Rack rack) => new(rack.Id, Prefix(rack) + LanesRefusedText);
 
     /// <summary>A rack where a mission waits because its destination fits neither side whole (D116, no overflow).</summary>
     internal static PlanWarning LanesFull(Rack rack) => new(rack.Id, Prefix(rack) + LanesFullText);
 
+    /// <summary>A rack a mission left because its destination fits neither side of the ship whole (D117, no overflow).</summary>
+    internal static PlanWarning SidesFull(Rack rack) => new(rack.Id, Prefix(rack) + SidesFullText);
+
     /// <summary>A destination across both sides though the plan has no overflow, where it can't wait (D116).</summary>
     internal static PlanWarning Crosses(Rack rack, string destination) => new(rack.Id, Prefix(rack) + destination + CrossesText);
 
     /// <summary>True for the notes derived from the plan's sides each time (<see cref="LoadPlanner.WithHints"/>), never carried.</summary>
     internal static bool IsDerived(PlanWarning warning) =>
-        warning.Message == PerRackText || warning.Message.EndsWith(": " + NarrowText, StringComparison.Ordinal) || warning.Message.EndsWith(": " + SidewaysText, StringComparison.Ordinal);
+        warning.Message.EndsWith(": " + NarrowText, StringComparison.Ordinal) || warning.Message.EndsWith(": " + SidewaysText, StringComparison.Ordinal);
 
     /// <summary>A rack that got no sections (D89, Martin: whoever turned them on should read why they aren't there).</summary>
     internal static PlanWarning NoSections(Rack rack) => new(rack.Id, Prefix(rack) + NoSectionsText);
@@ -597,11 +595,6 @@ public static class SectionNotes
     /// <summary>The destinations a note names, none for a rack's own; null if it is none of these notes.</summary>
     internal static IReadOnlyList<string>? Names(PlanWarning warning)
     {
-        if (warning.Message == PerRackText)
-        {
-            return [];
-        }
-
         var start = warning.Message.IndexOf(": ", StringComparison.Ordinal);
         if (start < 0 || !warning.Message.StartsWith("Rack ", StringComparison.Ordinal))
         {
@@ -609,7 +602,7 @@ public static class SectionNotes
         }
 
         var text = warning.Message[(start + 2)..];
-        if (text is NoSectionsText or NarrowText or SidewaysText or LanesRefusedText or LanesFullText)
+        if (text is NoSectionsText or NarrowText or SidewaysText or LanesRefusedText or LanesFullText or SidesFullText)
         {
             return [];
         }

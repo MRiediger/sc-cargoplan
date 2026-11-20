@@ -39,7 +39,30 @@ internal static class RackAssignment
     /// Lanes (D116) for the layout of the assignment found, not for the search: racks and who waits are as without (F5).
     /// </param>
     internal static Result? Assign(Rack[] racks, IReadOnlyList<Stop> stops, FillOrder order, FillRows rows, Sides sides = Sides.None) =>
-        new Search(racks, stops, order, rows, sides).Run();
+        new Search(racks, stops, order, rows, sides, MaxSearchNodes, new CrateLayout.StackingBudget()).Run();
+
+    /// <summary>
+    /// Nodes one probe of <see cref="AssignBySide"/> may take: whether a side still takes a destination (E1). Out of nodes
+    /// counts as "doesn't take it", so the destination goes on to the next side.
+    /// </summary>
+    internal const int MaxProbeNodes = 20_000;
+
+    /// <summary>The assignment by side, or null to fall back; the nodes of each group's search and of the probes, for the measurements.</summary>
+    internal sealed record SideResult(Result? Assignment, IReadOnlyList<long> GroupNodes, long ProbeNodes, int Probes);
+
+    /// <summary>
+    /// The assignment side by side (D117): the destinations, in the order of <paramref name="legend"/> (indices into
+    /// <paramref name="stops"/>, P2), go to the groups of <see cref="SideGroups.Of"/>, then each group is assigned as
+    /// <see cref="Assign"/> does on its racks alone, so the priorities hold within a side. With
+    /// <paramref name="overflow"/> a destination fills what the first group still takes and goes on with the rest; without,
+    /// it goes whole into the first group that takes it, and one that fits none comes last, as with overflow. Whether a
+    /// group takes crates is a search for any assignment (<see cref="MaxProbeNodes"/> each). All searches share
+    /// <see cref="MaxSearchNodes"/> and one layout budget, as one <see cref="Assign"/> does (E1). Null if crates find no
+    /// group or a group no assignment.
+    /// </summary>
+    internal static SideResult AssignBySide(
+        IReadOnlyList<Rack[]> groups, IReadOnlyList<Stop> stops, IReadOnlyList<int> legend, FillOrder order, FillRows rows, Sides sides, bool overflow) =>
+        new BySide(groups, stops, order, rows, sides).Run(legend, overflow);
 
     private sealed record Group(CrateSize Size, int Count, (int Item, int Count)[] Items);
 
@@ -97,15 +120,16 @@ internal static class RackAssignment
         private long _nodes;
         private bool _exhausted;
 
-        private readonly CrateLayout.StackingBudget _budget = new();
+        private readonly CrateLayout.StackingBudget _budget;
         private readonly Dictionary<string, bool> _fits = [];
         private readonly Dictionary<string, CrateLayout.Laying> _layings = [];
 
         private readonly Sides _sides;
+        private readonly long _maxNodes;
 
-        public Search(Rack[] racks, IReadOnlyList<Stop> stops, FillOrder order, FillRows rows, Sides sides)
+        public Search(Rack[] racks, IReadOnlyList<Stop> stops, FillOrder order, FillRows rows, Sides sides, long maxNodes, CrateLayout.StackingBudget budget)
         {
-            (_racks, _stops, _order, _rows, _sides) = (racks, stops, order, rows, sides);
+            (_racks, _stops, _order, _rows, _sides, _maxNodes, _budget) = (racks, stops, order, rows, sides, maxNodes, budget);
             var global = 0;
             _dests =
             [
@@ -195,6 +219,21 @@ internal static class RackAssignment
             // Out of nodes: the best found so far.
             var chosen = _chosen ?? _bestLeaf;
             return chosen is null ? null : Built(chosen);
+        }
+
+        /// <summary>The nodes taken so far.</summary>
+        public long Nodes => _nodes;
+
+        /// <summary>True if any assignment lays out, every cap open (a probe of <see cref="AssignBySide"/>); false if none does or the nodes run out first.</summary>
+        public bool Feasible()
+        {
+            if (_dests.Length == 0)
+            {
+                return true;
+            }
+
+            (_splitCap, _cutCap, _maxCap, _mode) = (_dests.Length, int.MaxValue, _dests.Length, Mode.Feasible);
+            return Next(0) && !_exhausted;
         }
 
         /// <summary>Raises <paramref name="cap"/> from <paramref name="from"/> until an assignment within the caps exists; false if none does up to <paramref name="to"/>.</summary>
@@ -382,7 +421,7 @@ internal static class RackAssignment
 
         private bool Tick()
         {
-            if (++_nodes > MaxSearchNodes)
+            if (++_nodes > _maxNodes)
             {
                 _exhausted = true;
             }
@@ -678,6 +717,189 @@ internal static class RackAssignment
             }
 
             _residual[r] += scu;
+        }
+    }
+
+    /// <summary>The destinations shared out to the side groups, then each group assigned on its own (<see cref="AssignBySide"/>).</summary>
+    private sealed class BySide(IReadOnlyList<Rack[]> groups, IReadOnlyList<Stop> stops, FillOrder order, FillRows rows, Sides sides)
+    {
+        /// <summary>Crates per item of a stop still to go.</summary>
+        private readonly int[][] _left = [.. stops.Select(s => s.Items.Select(i => i.Scu / (int)i.CrateSize).ToArray())];
+
+        /// <summary>Per group the parts of stops in it: the stop and its crates per item.</summary>
+        private readonly List<(int Stop, int[] Counts)>[] _parts = [.. groups.Select(_ => new List<(int, int[])>())];
+
+        private readonly int[] _used = new int[groups.Count];
+        private long _nodes = MaxSearchNodes;
+        private long _probeNodes;
+        private int _probes;
+
+        public SideResult Run(IReadOnlyList<int> legend, bool overflow)
+        {
+            List<int> crossing = [];
+            foreach (var s in legend)
+            {
+                if (overflow && !Spread(s))
+                {
+                    return Failed([]);
+                }
+
+                if (!overflow && !Whole(s))
+                {
+                    crossing.Add(s);
+                }
+            }
+
+            if (crossing.Any(s => !Spread(s)))
+            {
+                return Failed([]);
+            }
+
+            var budget = new CrateLayout.StackingBudget();
+            List<RackLoad> loads = [];
+            List<long> groupNodes = [];
+            for (var g = 0; g < groups.Count; g++)
+            {
+                if (_parts[g].Count == 0)
+                {
+                    groupNodes.Add(0);
+                    continue;
+                }
+
+                // The nodes left, shared among the groups still to search; what one leaves goes on to the next (E1).
+                var share = _nodes / Enumerable.Range(g, groups.Count - g).Count(h => _parts[h].Count > 0);
+                var (local, map) = Local(_parts[g]);
+                var search = new Search(groups[g], local, order, rows, sides, share, budget);
+                var result = search.Run();
+                _nodes -= search.Nodes;
+                groupNodes.Add(search.Nodes);
+                if (result is null)
+                {
+                    return Failed(groupNodes);
+                }
+
+                loads.AddRange(result.Racks.Select(load => load with
+                {
+                    Crates = [.. load.Crates.Select(c => (new Piece(map[c.Piece.Stop].Stop, map[c.Piece.Stop].Items[c.Piece.Item], c.Piece.Size), c.Pose))],
+                }));
+            }
+
+            return new SideResult(new Result([.. loads.OrderBy(l => l.Rack.Index)], MaxSearchNodes - _nodes), groupNodes, _probeNodes, _probes);
+        }
+
+        private SideResult Failed(IReadOnlyList<long> groupNodes) => new(null, groupNodes, _probeNodes, _probes);
+
+        /// <summary>Stop <paramref name="s"/> whole into the first group that takes it; false if none does.</summary>
+        private bool Whole(int s)
+        {
+            for (var g = 0; g < groups.Count; g++)
+            {
+                if (Room(g) >= stops[s].TotalScu && Crates(s).All(c => groups[g].Any(r => r.CanHold(c.Size))) && Lays(g, s, _left[s]))
+                {
+                    Add(g, s, _left[s]);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Stop <paramref name="s"/> over the groups in order, each taking as many of its crates as it can: lines as the
+        /// planner ranks them, largest crates first, while the SCU fit; then the last ones out until the group lays out.
+        /// False if crates are left.
+        /// </summary>
+        private bool Spread(int s)
+        {
+            for (var g = 0; g < groups.Count && _left[s].Any(n => n > 0); g++)
+            {
+                var free = Room(g);
+                List<(int Item, CrateSize Size)> chosen = [];
+                foreach (var crate in Crates(s))
+                {
+                    if ((int)crate.Size <= free && groups[g].Any(r => r.CanHold(crate.Size)))
+                    {
+                        chosen.Add(crate);
+                        free -= (int)crate.Size;
+                    }
+                }
+
+                while (chosen.Count > 0 && !Lays(g, s, CountsOf(s, chosen)))
+                {
+                    chosen.RemoveAt(chosen.Count - 1);
+                }
+
+                if (chosen.Count > 0)
+                {
+                    Add(g, s, CountsOf(s, chosen));
+                }
+            }
+
+            return _left[s].All(n => n == 0);
+        }
+
+        private int Room(int g) => groups[g].Sum(r => r.CapacityScu) - _used[g];
+
+        /// <summary>The crates of stop <paramref name="s"/> still to go, as the planner ranks them: lines by SCU, then commodity; largest first.</summary>
+        private IEnumerable<(int Item, CrateSize Size)> Crates(int s) =>
+            stops[s].Items.Select((item, i) => (item, i))
+                .GroupBy(p => p.item.Commodity, StringComparer.Ordinal)
+                .OrderByDescending(l => l.Sum(p => _left[s][p.i] * (int)p.item.CrateSize)).ThenBy(l => l.Key, StringComparer.Ordinal)
+                .SelectMany(l => l.OrderByDescending(p => p.item.CrateSize).ThenBy(p => p.i).SelectMany(p => Enumerable.Repeat((p.i, p.item.CrateSize), _left[s][p.i])));
+
+        private int[] CountsOf(int s, List<(int Item, CrateSize Size)> crates)
+        {
+            var counts = new int[stops[s].Items.Count];
+            foreach (var (item, _) in crates)
+            {
+                counts[item]++;
+            }
+
+            return counts;
+        }
+
+        private void Add(int g, int s, int[] counts)
+        {
+            _parts[g].Add((s, [.. counts]));
+            for (var i = 0; i < counts.Length; i++)
+            {
+                _used[g] += counts[i] * (int)stops[s].Items[i].CrateSize;
+                _left[s][i] -= counts[i];
+            }
+        }
+
+        /// <summary>True if group <paramref name="g"/> lays out with its parts and these crates of stop <paramref name="s"/>.</summary>
+        private bool Lays(int g, int s, int[] counts)
+        {
+            if (_nodes <= 0)
+            {
+                return false;
+            }
+
+            var (local, _) = Local([.. _parts[g], (s, counts)]);
+            var search = new Search(groups[g], local, order, rows, Sides.None, Math.Min(MaxProbeNodes, _nodes), new CrateLayout.StackingBudget());
+            var lays = search.Feasible();
+            _nodes -= search.Nodes;
+            _probeNodes += search.Nodes;
+            _probes++;
+            return lays;
+        }
+
+        /// <summary>The parts as stops of their own, and per stop which stop and items of the plan it holds.</summary>
+        private (Stop[] Stops, (int Stop, int[] Items)[] Map) Local(IReadOnlyList<(int Stop, int[] Counts)> parts)
+        {
+            var local = new Stop[parts.Count];
+            var map = new (int, int[])[parts.Count];
+            for (var p = 0; p < parts.Count; p++)
+            {
+                var (s, counts) = parts[p];
+                int[] items = [.. Enumerable.Range(0, counts.Length).Where(i => counts[i] > 0)];
+                var stop = stops[s];
+                local[p] = new Stop(stop.Destination, stop.Order, [.. items.Select(i => new CargoItem(stop.Items[i].Commodity, counts[i] * (int)stop.Items[i].CrateSize, stop.Items[i].CrateSize))]);
+                map[p] = (s, items);
+            }
+
+            return (local, map);
         }
     }
 }

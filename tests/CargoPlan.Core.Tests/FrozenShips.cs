@@ -6,7 +6,7 @@ namespace CargoPlan.Core.Tests;
 /// <summary>
 /// Shipped ships frozen as test fixtures (FrozenShips/*.json, D92): mechanics tests run on fixed cells, which a data
 /// import must not move. Most are as they were before the game-file racks; clipper, perseus and apollo_medivac were
-/// frozen in session 4b. The data tests check the baseline (ship-data/, D113) itself. The App and Import tests link this file and the folder.
+/// frozen in session 4b, hull_b in F10b. The data tests check the baseline (ship-data/, D113) itself. The App and Import tests link this file and the folder.
 /// </summary>
 internal static class FrozenShips
 {
