@@ -16,12 +16,14 @@ over several lines; the reader doesn't mind.
 
 ```json
 {
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "shipId": "hull_a",
   "fillOrder": "bowFirst",
   "fillRows": "lengthwise",
   "grouping": "none",
   "sectionGap": 0,
+  "sides": "none",
+  "sideOverflow": true,
   "lastScanNo": 3,
   "missions": [
     {
@@ -76,12 +78,14 @@ fields are an error, except the ContractTracker fields of [older plan files](#ol
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `10`. Files with `8` and `9` are still read, see [Older plan files](#older-plan-files). |
+| `schemaVersion` | number | `11`. Files with `8`, `9` and `10` are still read, see [Older plan files](#older-plan-files). |
 | `shipId` | string | The ship the plan is for, e.g. `"hull_a"` ([ship files](ship-format.md)). |
 | `fillOrder` | string | `"bowFirst"` or `"sternFirst"`: which end of a rack's length crates fill from, when planned and when laid out again, e.g. after a move. Chosen as **Fill order** in the editor. Part of the plan, so everyone loading it sees the same layout. |
 | `fillRows` | string | `"lengthwise"` or `"crosswise"`: which way the rows of a layout run. Lengthwise rows run along the rack's length and step across its width; crosswise rows run across the width and step along the length, from the end `fillOrder` names. Width counts from starboard to port either way. Chosen as **Rows** in the editor. A rack that stacks along `+y` or `-y`, like the Hull A's plates, ignores it. |
 | `grouping` | string | `"none"` or `"byDestination"`: whether Plan and Re-plan keep each destination as a block of its own in a rack it shares. Blocks run across the width with `crosswise` and along the length with `lengthwise`; a rack that stacks along `+y` or `-y` runs them along its length either way. Chosen as **Grouping** in the editor. Optional; without it, `"none"`. |
 | `sectionGap` | number | `0`, `1` or `2`: empty rows between neighbouring blocks with `"byDestination"`, to grip the crates. If they don't fit, crates turn where that saves rows, then the gaps shrink; the overlay doesn't mention it. Chosen as **Section gap** in the editor. Optional; without it, `0`. |
+| `sides` | string | `"none"`, `"portFirst"` or `"starboardFirst"` (schema 11, D116): whether a rack fills one side at a time. Its width splits into two lanes, port and starboard, each filled like a rack by `fillOrder` and `fillRows` from its outer edge, layer by layer, before the other; an odd width's middle column comes last and takes only 1s and 2s lying lengthwise. No crate lies across two lanes. Only racks whose width lies across the ship (stacking along `±z` or `±x`) and is at least 4 cells get lanes, each rack on its own; the overlay names the others. Racks and who waits are the same as with `"none"`. Chosen as **Sides** in the editor. |
+| `sideOverflow` | boolean | Schema 11, D116, with `sides` and `"byDestination"`: `true`, a destination that doesn't fit the rest of the first side crosses to the second; `false`, each destination lies whole on one side, in the first that takes it, and one that fits neither makes its missions wait, even with cells free. Chosen as **Side overflow** in the editor. |
 | `lastScanNo` | number | Optional (schema 10): the last scan number given, at least the highest `scan.no` in the file; left out while no contract was scanned. A number is given once in a session, also after an undo; **Discard plan** starts the count again. |
 | `missions` | array | Every mission: what you typed or scanned, one contract each. May be empty. |
 | `crates` | array | Every crate: what, for whom, for which mission, which rack, which cell. Their order is the route: a stop is unloaded in the order of its first crate still on board. |
@@ -142,13 +146,13 @@ red; the planner and the overlay's moves never make them.
 
 ## Older plan files
 
-Schema 8 and 9 are read and saved as schema 10 right after loading; moves and ticks stay. An app from before schema 10
-(v0.3.1 and older) refuses a schema 10 file. A schema 10 file written before v0.4.0 is read the same way.
+Schema 8, 9 and 10 are read and saved as schema 11 right after loading; moves and ticks stay. An app from before schema 11
+(v0.6.x and older) refuses a schema 11 file. A schema 10 file written before v0.4.0 is read the same way.
 
 **ContractTracker captures** (v0.1.0 to v0.3.1, and schema 10 files of the development builds before v0.4.0): a `contract`
 without `scan` but with `contractIds` (the capture's ids, at least one) becomes a scan when the file is read (D107).
 The legend and the editor show the new number; a notice says once, e.g. "3 contracts from ContractTracker are scan missions
-#1–#3 now.", and the file is saved as schema 10 right away.
+#1–#3 now.", and the file is saved in the current schema right away.
 
 | Field of the old file | Becomes |
 |---|---|
@@ -160,13 +164,15 @@ The legend and the editor show the new number; a notice says once, e.g. "3 contr
 
 A `contract` without `scan` and without `contractIds`, or `scan` beside `contractIds`, `gone` or `detached`, is an error.
 
+- **Schema 10** (v0.4.0 to v0.6.x, before sides) has no `sides` and no `sideOverflow`: every plan without lanes, with
+  overflow. Either in a schema 10 file is an error, and a schema 11 file without either is one too.
 - **Schema 9** (v0.2.0 to v0.3.1, before scans) has no `scan` and no `lastScanNo`: every contract is a
   ContractTracker capture. Either in a schema 9 file is an error.
 - **Schema 8** (v0.1.0, before the row axis) has no `fillRows`, `grouping` or `sectionGap` either: every plan is
-  lengthwise and ungrouped. Any of them in a schema 8 file is an error, and a schema 9 or 10 file without `fillRows` is
-  one too.
+  lengthwise and ungrouped. Any of them in a schema 8 file is an error, and a schema 9, 10 or 11 file without `fillRows`
+  is one too.
 
-Schema 1 to 7 are refused with the error below ("schemaVersion 7 is not supported (expected 8 or 9 or 10)"): no released
+Schema 1 to 7 are refused with the error below ("schemaVersion 7 is not supported (expected 8 or 9 or 10 or 11)"): no released
 version wrote them, v0.1.0 already wrote schema 8.
 
 ## A plan for another ship

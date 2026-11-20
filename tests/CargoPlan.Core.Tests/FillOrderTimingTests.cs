@@ -10,8 +10,8 @@ using Xunit.Abstractions;
 namespace CargoPlan.Core.Tests;
 
 /// <summary>
-/// What a plan costs per cell order (K9.1, D88): the first run, the median of three after it, and what the searches count,
-/// which is the same on every machine. No time is asserted (T7.1d); the table goes to the test output:
+/// What a plan costs per cell order (K9.1, D88), with sections (D89) and lanes (D116): the first run, the median of three
+/// after it, and what the searches count, which is the same on every machine. No time is asserted (T7.1d); the table goes to the test output:
 /// <c>dotnet test tests/CargoPlan.Core.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~FillOrderTimingTests --logger "console;verbosity=detailed"</c>.
 /// </summary>
 [Trait("Category", "Timing")]
@@ -20,24 +20,27 @@ public class FillOrderTimingTests(ITestOutputHelper output)
     [Fact]
     public void Plan_of_each_case_in_each_order()
     {
-        output.WriteLine("| Case | order | rows | grouping | gap | first ms | median ms | nodes | layout steps | gave up |");
+        output.WriteLine("| Case | order | rows | grouping | gap | sides | first ms | median ms | nodes | layout steps | gave up |");
         foreach (var (name, ship, missions, route) in Cases())
         {
             foreach (var (grouping, gap) in Settings)
             {
-                foreach (var rows in Enum.GetValues<FillRows>())
+                foreach (var sides in (Sides[])[Sides.None, Sides.PortFirst])
                 {
-                    foreach (var order in Enum.GetValues<FillOrder>())
+                    foreach (var rows in Enum.GetValues<FillRows>())
                     {
-                        var watch = Stopwatch.StartNew();
-                        var plan = LoadPlanner.Plan(ship, missions, route, order, rows, grouping, gap).Plan;
-                        var first = watch.Elapsed.TotalMilliseconds;
-                        var median = Median(() => LoadPlanner.Plan(ship, missions, route, order, rows, grouping, gap));
+                        foreach (var order in Enum.GetValues<FillOrder>())
+                        {
+                            var watch = Stopwatch.StartNew();
+                            var plan = LoadPlanner.Plan(ship, missions, route, order, rows, grouping, gap, sides).Plan;
+                            var first = watch.Elapsed.TotalMilliseconds;
+                            var median = Median(() => LoadPlanner.Plan(ship, missions, route, order, rows, grouping, gap, sides));
 
-                        var (nodes, steps, gaveUp) = Counts(ship, missions, route, order, rows);
-                        var unchecked_ = plan.Warnings.Count(w => w.Message.Contains("too many crates to rearrange", StringComparison.Ordinal));
-                        output.WriteLine(string.Create(CultureInfo.InvariantCulture,
-                            $"| {name} | {order} | {rows} | {grouping} | {gap} | {first:F1} | {median:F1} | {nodes} | {steps} | {gaveUp + unchecked_} |"));
+                            var (nodes, steps, gaveUp) = Counts(ship, missions, route, order, rows);
+                            var unchecked_ = plan.Warnings.Count(w => w.Message.Contains("too many crates to rearrange", StringComparison.Ordinal));
+                            output.WriteLine(string.Create(CultureInfo.InvariantCulture,
+                                $"| {name} | {order} | {rows} | {grouping} | {gap} | {sides} | {first:F1} | {median:F1} | {nodes} | {steps} | {gaveUp + unchecked_} |"));
+                        }
                     }
                 }
             }
