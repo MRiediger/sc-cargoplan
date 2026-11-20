@@ -203,12 +203,51 @@ Vollständigkeit `git log --no-merges v0.6.0..main` (52 Commits):
 - **K4** Schiffszahl in den Notes „110 ships (one of them a cargo module configuration)“. README, Nexus und Wiki sagen
   weiter „109 ships and one cargo module configuration“ (Einheitlichkeit aus T12.6a), nicht angefasst.
 
+**R3 Draft-PR, Merge, Probe (CC, 20.11.2026):**
+- Draft-PR [#31](https://github.com/MRiediger/sc-cargoplan/pull/31) nur für CI: Run 44747078793 grün auf
+  `ubuntu-latest`, `windows-latest` und „Linux CLI from the release tarball“.
+- Merge `--no-ff` lokal → **`9df5faa`**, Inhalt gleich `release/v0.7.0`. Darauf im sauberen Worktree, SDK 10.0.404:
+  Build `0 Warnung(en)`, `0 Fehler`; `dotnet format --verify-no-changes` Exit 0;
+  `Bestanden! … erfolgreich: 2122, … gesamt: 2122 - CargoPlan.Core.Tests.dll`, `… 2090 … CargoPlan.App.Tests.dll`,
+  `… 280 … Import`, `… 34 … Ocr`.
+- `./build/publish.ps1 -Version 0.7.0 -DeltaBase github`: `Delta base: CargoPlan-0.6.0-full.nupkg`, 16 Dateien
+  gepatcht, 374 gleich, Delta 658 055 B; `Layout check: … passed (388 files in current\, 110 ship files of
+  ships-2026.11.1, 5 PDBs, version 0.7.0)`; `Tarball check: … passed (326 files in SC-CargoPlan-Cli/, 110 ship files
+  of ships-2026.11.1, CargoPlan.Cli executable, version 0.7.0)`. ZIP 96 791 812 B, Tarball 66 381 648 B. B7-Referenz:
+  Runtime 10.0.15 (beide), `coreclr.dll` 10.0.1526.53008, Cli `0.7.0+9df5faa…`.
+- Martin (20.11.): `main` gepusht, CI grün (Run 44748145744), Tag `v0.7.0` auf `9df5faa`. Dieses Protokoll kommt als
+  Folge-Commit nach dem Tag.
+
+**Release-Prüfung (CC, 20.11.2026)**, alle Assets frisch in einen leeren Ordner geladen:
+
+| Prüfung | Soll | Ist |
+|---|---|---|
+| CI auf `main` (Merge-Push) | grün | Run 44748145744 success |
+| Workflow „Release“ | grün | Run 44749731575 success, 2 min 55 s |
+| Tag | auf dem Merge | `9df5faa`, leichtgewichtig (wie `v0.5.1`, `v0.6.0`) |
+| Release | Latest, kein Pre-Release, kein Draft | `isPrerelease false`, `isDraft false`, `releases/latest` = `v0.7.0`, 14:05:46 UTC |
+| Body | = `docs/release-notes/v0.7.0.md` | identisch ohne CRLF, eine Leerzeile mehr am Ende (wie v0.4.0) |
+| Assets | 7 (P8) | ZIP 96 791 336, `.sha256` 98, Full 96 835 347, Delta 648 426, Feed 732, Tarball 66 381 450, `.sha256` 107 |
+| SDK im Runner | 10.0.404 | `.NET Core SDK with version '10.0.404' is already installed` |
+| Delta | 0.6.0 → 0.7.0 | `Delta base: CargoPlan-0.6.0-full.nupkg`, 648 426 B |
+| SHA256 ZIP / Tarball | = `.sha256` | `e497b2f0…` gleich, `06fe22b6…` gleich |
+| `releases.win.json` | 0.7.0 voll + Delta, Size/SHA1 = Asset | beide gleich; dazu `Full 0.6.0` 96 804 720 = Asset von v0.6.0 (T12.6a) |
+| `check-portable.ps1` gegen den Download | passed | `passed (388 files in current\, 110 ship files of ships-2026.11.1, 5 PDBs, version 0.7.0)` |
+| `check-cli-tarball.ps1` gegen den Download | passed | `passed (326 files in SC-CargoPlan-Cli/, 110 ship files of ships-2026.11.1, CargoPlan.Cli executable, version 0.7.0)` |
+| ZIP-Wurzel | `SC-CargoPlan.exe`, `Update.exe`, `.portable`, `current\` | genau diese |
+| Runtime (B7) | = lokales Pack | 10.0.15 beide, `coreclr.dll` 10.0.1526.53008 |
+| Cli-Version | `0.7.0+9df5faa…` | `0.7.0+9df5faa9d6f91ecc1cfe49d0e8ecb7cdbee650b7`, lokal gleich; `ships --version` mit leerem Datenordner `ships-2026.11.1 (baseline)` |
+| Linux unter WSL (Ubuntu 24.04) | entpackt, startet ohne `chmod` | `CargoPlan.Cli` `-rwxr-xr-x`, `--version` `0.7.0+9df5faa…`, `ships --version` `ships-2026.11.1 (baseline)` |
+| Größe | Notes „about 90 MB“, Linux „about 66 MB“ | ZIP 92,3 MiB, Tarball 66,4 MB; Delta von v0.6.0 0,65 MB → CLAUDE.md |
+
 **Akzeptanz:**
-- [ ] Notes vom Backlog-Chat freigegeben; `git log v0.6.0..main` ohne unerwähnten nutzer-sichtbaren Commit
+- [x] Notes vom Backlog-Chat freigegeben (20.11., K1–K4); `git log v0.6.0..main` ohne unerwähnten nutzer-sichtbaren
+  Commit (Tabelle R2)
 - [ ] **Netz-Gate (Martin, SC vorn):** v0.6.0-Portable in eigenem Ordner oder mit `--data-dir` (Backup von
   `%LocalAppData%\SC-CargoPlan` vorher) → Start → Velopack bietet 0.7.0 → Update → Neustart → Plan geladen, plan.json
   Schema 11, Editor zeigt Sides und Side overflow, Legende chronologisch, Settings 0.7.0, keine Ship-data-Zeile
-- [ ] Linux-Asset auf der Release-Seite; unter WSL entpackt `./CargoPlan.Cli --version` = `0.7.0+…`
+- [x] Linux-Asset auf der Release-Seite; unter WSL entpackt `./CargoPlan.Cli --version` = `0.7.0+…` (CC, 20.11.,
+  Tabelle oben)
 - [ ] Wiki `master` nach dem Tag gepusht, Branches weg
 - [ ] Commits `R0.7:` bzw. `REL:`, kein `Co-Authored-By`; Merge `--no-ff`, Martin pusht und taggt
 
