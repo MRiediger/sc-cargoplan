@@ -817,6 +817,95 @@ Umgesetzt in **K12** (D115, `linux-x64`-Tarball, README-Zeile), Plan und Befunde
 
 ---
 
+## Release v0.7.0 – Branch `release/v0.7.0`
+
+**Warum:** Seit v0.6.0 (Tag auf `b2dc6d6`) liegen auf `main` (`f40109d`, CI grün, Run 44743066381) F11/K12 (Linux-CLI,
+D115), K11, B16, B17, F10a (D116) und F10b (D117). plan.json 11 und Missions-JSON 5 plus neue Funktionen → **v0.7.0**,
+nicht 0.6.1. Ablauf: R1 Textabgleich → R2 Notes (Freigabe Backlog-Chat, einzeln vor dem Tag) → R3 Merge, Tag (Martin),
+Nachmessung → R4 Nachlauf. Kein Produktcode im Branch; ein Fund wird Fix-Branch ab `main` und verschiebt den Tag.
+Erstes Release mit dem Linux-Asset (`release.yml` lädt `out/release/*`, seit K12 mit Tarball und `.sha256`).
+
+**Befund vor dem Plan (20.11.2026):**
+- `git log v0.6.0..main`: 61 Commits, davon 9 Merges. Code-Diff nur Core-Planer und -Formate, App-Editor (zwei
+  Choices, Tooltip), Cli `Program.cs`, `publish.ps1`, `check-cli-tarball.ps1`, `ci.yml`, `release.yml`.
+- Ship-data-Pin `ships-2026.11.1` = Latest im Shipdata-Repo → kein Pin-Bump, im Netz-Gate **keine** Ship-data-Zeile.
+- Downgrade: v0.6.0 liest plan.json ≤ 10 und Missions-JSON ≤ 4; mit D106 legt v0.6.0 eine plan.json 11 beim ersten
+  Speichern als `plan.json.unreadable-<date-time>` beiseite und startet leer. settings.json bleibt Schema 3 (F10a/F10b
+  ändern die Settings nicht) → kein Settings-Satz.
+- Wiki: `f10a-lanes` (mit B17 und F10b) ist schon in `master` und gepusht (`2b32efd`, 20.11., Martins Wunsch),
+  `b17-section-block` damit auch. Offen nur `k12-ship-reports` (`06b4004`) und `b16-legend-order` (`0386c22`), beide per
+  `git merge-tree` konfliktfrei. Remote steht noch `origin/f10a-lanes`. Veraltet: `Home.md:5` „Applies to v0.5.0“,
+  `_Footer.md` v0.6.0, `Overlay-basics.md:63` Beispiel `v0.6.1`.
+- Backlog: vier Wiki-Branch-Zeilen (k12, b16, b17, f10a), nicht drei.
+- TASKS.md, F10b: eine kaputte Zeile `keine„keine Bahnen“ weglassen …` (Rest des in `698a87e` ersetzten Punkts „Offen
+  für Martin“), keine Abnahme-Zeile (nur die Commit-Message).
+- README `:34` „Releases after v0.6.0 carry …“; Nexus `checklist.md:25` `$version = '0.6.0'`, `description.bbcode:36`
+  Beispiel 0.6.0; `summary.txt` ohne Version und Funktionen.
+- Prüfskripte: `check-portable.ps1 -Zip -PublishDir -Version`, `check-cli-tarball.ps1 -Tarball -PublishDir -Version`;
+  gegen die heruntergeladenen Dateien mit dem `PublishDir` des lokalen Packs auf dem Merge-Commit.
+
+**Plan (20.11.2026):**
+
+1. **R1 Textabgleich**
+   - TASKS: F10b-Zeile ersetzen (K2); Backlog II wortgleich nach `docs/tasks-archive/backlog-ii.md` (Kopf wie K11),
+     Index-Zeile.
+   - README `:34` → ab v0.7.0, `ships --version` in die Klammer.
+   - Nexus: `checklist.md` `$version = '0.7.0'`; `description.bbcode` Beispiel 0.7.0, eine Main-features-Zeile zum
+     Layout (eine Seite zuerst), Linux-Hinweis (Kommandozeile ohne Overlay, separater Download auf GitHub).
+   - Wiki: `k12-ship-reports` → `master`, dann `b16-legend-order` → `master` (je `--no-ff`, lokal); Branch `v0.7.0` ab
+     `master`: Installation „Coming from v0.6.0“ (Formate, Downgrade-Falle D106, plan.json kopieren oder `--data-dir`),
+     Home „Applies to v0.7.0“, `_Footer` v0.7.0, Overlay-basics-Beispiel `v0.7.1`. Konflikte zeigen, nicht lösen.
+   - Grep über README, CONTRIBUTING, `docs/` (ohne decisions, review, release-notes, tasks-archive), Templates, Nexus,
+     Wiki nach `0.6.0`, `v0.6`, Schema-Nummern; UI-Wortlaute (Sides, Side overflow, ihre Werte, die neuen Notices) per
+     Grep aus `src/`; Link-Check.
+2. **R2 Release-Notes** `docs/release-notes/v0.7.0.md` (Aufbau wie v0.6.0, eigener Commit, einzeln zur Freigabe):
+   Updating · Layout: one side first (Sides, Side overflow; Bahnen auf flachen Racks ab 4 breit; Racks nach Seite auf
+   Schiffen mit Racks links und rechts; Wait bei Plan/Re-plan, ein Scan legt, wenn Platz ist – F10a-P12; Sektionen
+   belegen ganze Reihen – P16) · Legend (B16; Editor ↑/↓ verschiebt gescannte Missionen nicht mehr) · Sections (B17) ·
+   Linux (CLI-Tarball, `plan`, `scan <png>`, `ships --version`; kein Overlay, kein Update-Kanal, Schiffsdaten des
+   Release) · Files (plan.json 11, Missions-JSON 5, alte laden mit Defaults) · Known issues (Downgrade auf v0.6.0 nach
+   D106, unsigniert, gültige v0.6.0-KIs) · Schiffsdaten-Fehler als Issue · Fuß wie v0.6.0. Keine Namen von
+   Linux-Nutzern. Vollständigkeitstabelle `git log v0.6.0..main` hier im Befund.
+3. **R3 Merge, Tag, Nachmessung** (nach Notes-Freigabe): Draft-PR nur für CI → grün → Merge `--no-ff` lokal → auf dem
+   Merge-Commit `dotnet build`, `dotnet format --verify-no-changes`, `dotnet test` im sauberen Worktree,
+   `./build/publish.ps1 -Version 0.7.0 -DeltaBase github` (Portable + Linux-Tarball, beide Prüfungen) → Martin pusht
+   `main` → CI grün → **Martin taggt `v0.7.0`** → `release.yml` → Release-Prüfung (CC) als Tabelle: Latest, Body =
+   Notes, 7 Assets (ZIP, `.sha256`, Full-, Delta-nupkg, `releases.win.json`, Linux-Tarball, `.sha256`), SHA beider,
+   Feed 0.7.0 voll + Delta, `check-portable.ps1` und `check-cli-tarball.ps1` gegen die heruntergeladenen Dateien,
+   Runtime und Cli-Version = lokales Pack (B7), Größen → CLAUDE.md als `REL:`-Commit nach dem Tag. Dann merged CC Wiki
+   `v0.7.0` → `master` (`--no-ff`), Martin pusht.
+4. **R4 Nachlauf:** Netz-Gate (Martin); WSL-Probe des Tarballs; `release/v0.7.0` lokal und remote löschen;
+   Wiki-Branches `k12-ship-reports`, `b16-legend-order`, `b17-section-block`, `f10a-lanes` (+ `origin/f10a-lanes`),
+   `v0.7.0` löschen; die vier Backlog-Zeilen „Wiki-Branch …“ streichen; Nexus-Upload (Martin, optional); Nachricht an
+   den Linux-Nutzer (Martin); dieser Abschnitt ins Archiv (`release-v0.7.0.md`, Index-Zeile).
+
+**Präzisierungen in der Planphase, ratifiziert durch Freigabe:**
+- P1 Wiki: `f10a-lanes` und `b17-section-block` sind schon in `master` (gepusht 20.11.); gemergt werden nur
+  `k12-ship-reports` → `b16-legend-order`. Das Wiki beschreibt Sides seit 20.11. vor dem Release – nicht rückholbar.
+- P2 „Coming from v0.6.0“, Home, Footer und Overlay-basics-Beispiel auf eigenem Wiki-Branch `v0.7.0`, Merge am Tag
+  (Muster T12.6a).
+- P3 Vier Backlog-Zeilen statt drei (b17 dazu); Löschen inkl. `origin/f10a-lanes`.
+- P4 Kein Pin-Bump (Pin = Latest), Netz-Gate ohne Ship-data-Zeile.
+- P5 Downgrade-Satz nach D106 (beiseitegelegt statt überschrieben), kein Settings-Satz (Schema 3 unverändert).
+- P6 `summary.txt` bleibt unverändert.
+- P7 Draft-PR nur für CI vor dem Merge (Lehre V5/T12.6a).
+- P8 Sieben Release-Assets statt fünf; beide Prüfskripte gegen die Downloads.
+
+**Freigabe 20.11.2026 (Backlog-Chat):** P1–P8 ratifiziert. **K1:** keine Ko-fi-Zeile in den Notes (nicht im ZIP, README
+reicht). **K2:** F10b-Zeile wie vorgeschlagen ersetzen, Abnahme 20.11.2026, dann Backlog II archivieren. R1 los; die
+Notes kommen als eigener Commit einzeln zur Freigabe.
+
+**Akzeptanz:**
+- [ ] Notes vom Backlog-Chat freigegeben; `git log v0.6.0..main` ohne unerwähnten nutzer-sichtbaren Commit
+- [ ] **Netz-Gate (Martin, SC vorn):** v0.6.0-Portable in eigenem Ordner oder mit `--data-dir` (Backup von
+  `%LocalAppData%\SC-CargoPlan` vorher) → Start → Velopack bietet 0.7.0 → Update → Neustart → Plan geladen, plan.json
+  Schema 11, Editor zeigt Sides und Side overflow, Legende chronologisch, Settings 0.7.0, keine Ship-data-Zeile
+- [ ] Linux-Asset auf der Release-Seite; unter WSL entpackt `./CargoPlan.Cli --version` = `0.7.0+…`
+- [ ] Wiki `master` nach dem Tag gepusht, Branches weg
+- [ ] Commits `R0.7:` bzw. `REL:`, kein `Co-Authored-By`; Merge `--no-ff`, Martin pusht und taggt
+
+---
+
 ## Lehren
 
 Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
