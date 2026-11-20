@@ -395,7 +395,7 @@ Gap 0–2, Plan und Re-plan; 3768 Kistenzeilen) vor und nach der Änderung. Test
   nebeneinander, Gap zwischen den Blöcken sichtbar; geladen abgehakt und erneut gescannt → Geladenes bleibt liegen.
   **Abgenommen 19.11.2026** („ist abgenommen, funktioniert wie erwartet“). Merge `--no-ff`, Martin pusht.
 
-### [ ] F10a Seitenweise Planung – Bahnen im Rack
+### [x] F10a Seitenweise Planung – Bahnen im Rack (20.11.2026)
 
 **Warum:** Auf flachen Platten (RAFT, Perseus, C2, Taurus-Klasse) will der Hauler erst **eine Seite** voll laden, dann
 die andere. Die Breite eines Racks wird in zwei Bahnen geteilt (Backbord/Steuerbord), jede Bahn läuft wie heute das
@@ -603,6 +603,9 @@ Modell + `Lanes` + `CrateLayout` mit R11 grün, dann der Rest. Rot-Lauf mit Zahl
 ihr Rest landet Steuerbord (bei 40 + 24 + 32: 16 + 16). Umschalten auf **Sides: None** und **Plan** → das heutige
 Bild. Optional: **Side overflow: Wait** und Plan → die dritte liegt ganz Steuerbord.
 
+**Abgenommen 20.11.2026** (Martin), P12–P16 ratifiziert. **Auflage:** P12 und P16 je ein Satz im Wiki „Layout“
+(Branch `f10a-lanes`, `ea9252a`) und in D116 – erledigt. Merge `--no-ff` nach `main`, Martin pusht.
+
 ### [ ] F10b Seitenweise Planung – Rack-Gruppen nach Seite
 
 **Warum:** Auf Schiffen mit getrennten Racks links und rechts (Hull B, Railen, Hull A, Carrack, Hermes, Polaris) heißt
@@ -760,7 +763,7 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
 - Wiki-Branch `b17-section-block` (lokal, `1009927`: „Plan and editor“, ein Scan schließt den Block seines Ziels, B17)
   nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
-- Wiki-Branch `f10a-lanes` (lokal, `4954528` auf `b17-section-block`: „Plan and editor“, Layout mit Sides und Side
+- Wiki-Branch `f10a-lanes` (lokal, `ea9252a` auf `b17-section-block`: „Plan and editor“, Layout mit Sides und Side
   overflow, Missions-JSON Schema 5, F10a) statt `b17-section-block` nach `master` mergen (`--no-ff`, CC; enthält B17),
   Martin pusht. **Auslöser: der nächste Tag** (plan.json 11 und Missions-JSON 5 kommen erst mit dem Release).
 - Screenshots/GIFs auf Perspektive nachdrehen (alle Shots von `docs/shots/SHOTLIST.md`, Hero-GIF eingeschlossen; D85) –
