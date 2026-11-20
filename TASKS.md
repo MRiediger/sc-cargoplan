@@ -540,6 +540,69 @@ available yet“), Verweis nur in Kommentar und D116. **E1:** bei `grouping: non
 legt direkt, Nachdurchgang nur für Fälle, die `Lay` nicht trägt; im Plan zugeordnet (Plan 4, P11). **E2:** Commit 1 =
 Modell + `Lanes` + `CrateLayout` mit R11 grün, dann der Rest. Rot-Lauf mit Zahlen zuerst.
 
+**Befund (20.11.2026, `309ccd8` … `1d98ba5`):**
+- **Commits:** `309ccd8` Modell + `Lanes` + `CrateLayout` (E2: R11 grün, Core 2045 / App 2083 inkl. Scratch);
+  `9ec973f` Planer, Sektionen, Erfassen; `9abcf8d` plan.json 11, Missions-JSON 5, CLI; `97d2cd8` Editor; `1d98ba5`
+  D116, Addenda D41/D88/D89, Formatdoku, Timing-Spalte. Diff gegen `495a7aa`: Core 7 Quelldateien + 2 neu (`Lanes`,
+  `SidesJson`, `Sides`), App 1 + 2 neu, Tests 3 neu (`LanesTests` 30, `LanePlanTests` 33, `SidesFormatTests` 16).
+- **Rot-Läufe:** `LanesTests` 23 von 30 rot gegen die bloße Oberfläche, 16 von 30 mit nur `Lanes.Of` (alle
+  Layout-Asserts); `LanePlanTests` 30 von 31; `SidesFormatTests` 15 von 16; Editor 11 Compile-Fehler. Grün schon vorher,
+  als Wächter: Breite 1–3, ±y, `none`, Ranks ohne Bahnen, „Racks und Wartende wie ohne Bahnen“, Schema 4 ohne Seiten.
+- **Mutationen:** `StartingAt` ohne Grenzprüfung → 1 rot (Eigenschaftstest über die exakte Suche), `FirstFit` → 3;
+  Planer M1–M8 (Lücke am Bahnanfang, eine Seite ohne Überlauf, Warten, `InLanes` nach `Keeping`, abgeleitete Hinweise
+  ×2, Bahnen in `Built`, Bahnen beim Erfassen, `Encloses` je Bahn) je ≥ 1 rot. **M1 und M8 überlebten zuerst:** dafür
+  kamen „Sektion endet am Bahnende, Bahn 2 ohne Lücke“ (32 + Gap + 56 SCU) und „Block endet an seiner Bahn“ dazu.
+- **F8 Default byteidentisch, zweifach:** die zehn Hull-A-Goldens per Skript um genau 3 Zeilen geändert
+  (`schemaVersion` 10 → 11, `sides`, `sideOverflow`; je +3/−1), `HullAGoldenTests` byte-gleich dagegen; der
+  B17-Zell-Schnappschuss (3768 Kistenzeilen, K9-Fixtures × Reihen × Richtung × Gap 0–2, Plan und Re-plan) auf `495a7aa`
+  und `HEAD` identisch.
+- **Bestehende Tests, die kippten:** 21 an Schemanummer oder Feldfolge (Core 20, App 1: Ablehnungstext „8 or 9 or 10
+  or 11“, Schema 11/12 statt 10/11, Missions-Writer 5 statt 4, Feldfolge mit `sides`), 2 an der Zahl der
+  Layout-ComboBoxen (4 → 6); **keiner an Verhalten.** Der Byte-Test des Missions-Writers liest eine neue Schema-5-Fixture
+  (`sides_port_first.json`), die Schema-4-Fixture bleibt Lesefixture.
+- **Messung** (Release, ohne Tiered JIT, Median aus 3, Bug zuerst, `FillOrderTimingTests` mit neuer Spalte `sides`):
+
+  | Fall | ohne Bahnen | `portFirst` |
+  |---|---|---|
+  | RAFT-Fixture (66 SCU, 5 Ziele) | 3,1–18,2 ms | 5,3–18,7 ms |
+  | RAFT acht Ziele | 2,0–33,1 ms | 2,9–33,2 ms |
+  | Hull C acht Ziele | 45–82 ms | 48–112 ms (crosswise Gap 2) |
+
+  Knoten der Rack-Suche in allen 48 Paaren identisch (RAFT 30/45, Hull C am Limit), keine Suche gab auf: die Wahl
+  sieht keine Bahnen (F5). 200 gemischte Pläne auf der RAFT: 65 s mit Bahnen, 108 s ohne.
+- **App selbst gestartet** (`--data-dir`, `--plan` RAFT 40 + 24 + 32 SCU, `portFirst`, `byDestination`): läuft,
+  speichert Schema 11; Everus Harbor 40 und Riker 24 Backbord, Green Glade 16 Backbord + 16 Steuerbord. CLI `plan`
+  mit Schema-5-Datei (`sideOverflow: false`, 88 + 100 SCU): „Rack 1: Shubin crosses sides – side overflow off“.
+- **Testzahlen aus sauberem Worktree:** vorher (`495a7aa`, B17) Core 2009, App 2082, Import 280, Ocr 34; nachher
+  (`1d98ba5`) Core **2088** (+79), App **2090** (+8), Import 280, Ocr 34, alle grün; `dotnet build` 0 Warnungen,
+  `dotnet format --verify-no-changes` sauber; `Category=Slow` 4/4; `Category=Exhaustive` 2/2 (6 min 19 s, Release).
+- **Wiki:** Abschnitt „Layout“ (sechs Optionen, Unterabschnitt „Sides“, Missions-JSON Schema 5) auf lokalem
+  Wiki-Branch `f10a-lanes` (`4954528`, auf `b17-section-block`), Push mit dem nächsten Tag (Backlog-Zeile).
+
+**Präzisierungen nach der Freigabe (zur Ratifizierung):**
+- P12 **Erfassen ohne Überlauf:** Die Sektionsstufen nehmen nur Reihen einer Bahn (ein neues Ziel darf auch am Anfang
+  einer späteren Bahn beginnen). Findet keine Stufe Platz, liegt das Ziel wie bisher außerhalb der Sektionen
+  („placed outside sections (capacity)“) statt zu warten (Plan 5 sagte „wartet“). Grund: D41/D89 – ein Scan lässt nur
+  warten, wenn kein Platz ist; der nächste Plan oder Re-plan legt nach der Regel ohne Überlauf (eine Seite oder warten).
+- P13 **Ein Ziel allein im Rack** hat keine Sektion (D89) und läuft wie mit Überlauf in Zellreihenfolge über beide
+  Seiten; `sideOverflow` wirkt nur in geteilten Racks (Folge von P3).
+- P14 **Passt ein Ziel ohne Überlauf in keine Bahn und auch nicht quer über die freien Reihen**, bleibt das Rack wie der
+  Planer es legte, und das Ziel wird gemeldet: mit Missionen wartet es (danach wird das Rack ohne es neu in Bahnen
+  gelegt, `InLanes`), ohne Missionen (CLI) mit „crosses sides“.
+- P15 **Eigenschaftstest (R10)** geschärft: Mit Überlauf hat Bahn 1 keine **zwei benachbarten** leeren Reihen, wenn
+  Bahn 2 belegt ist (eine einzelne leere Reihe am Bahnende ist Geometrie: Kisten über 1 SCU sind 2 lang und drehen nur,
+  wo sie müssen, D71; gefunden in Lauf 24). Mixe bis 6 Ziele / 120 SCU statt 8 / 160: die dichten Mixe kosteten auch
+  ohne Bahnen Sekunden je Plan (Suche D64), Testdauer 2:46 min → 5 s; Bahn 2 wird in > 10 Läufen erreicht.
+- P16 **Sektionen sind ganze Reihen:** 2 lange Kisten belegen Reihen paarweise. RAFT 40 + 40 SCU füllt alle 12 Reihen
+  der ersten Seite, eine dritte Mission liegt dann ganz auf der zweiten, obwohl einzelne Zellen frei sind. Für das Gate
+  wichtig (unten).
+
+**Gate Martin am Aufzug (SC vorn, RAFT):** Editor → Layout: **Rows** Crosswise, **Grouping** By destination,
+**Sides** Port first, **Side overflow** Cross over. Zwei Missionen scannen, die zusammen deutlich unter 96 SCU liegen
+(etwa 40 + 24) → beide liegen auf der Backbordhälfte, Steuerbord leer. Dritte Mission, die die 96 SCU überschreitet →
+ihr Rest landet Steuerbord (bei 40 + 24 + 32: 16 + 16). Umschalten auf **Sides: None** und **Plan** → das heutige
+Bild. Optional: **Side overflow: Wait** und Plan → die dritte liegt ganz Steuerbord.
+
 ### [ ] F10b Seitenweise Planung – Rack-Gruppen nach Seite
 
 **Warum:** Auf Schiffen mit getrennten Racks links und rechts (Hull B, Railen, Hull A, Carrack, Hermes, Polaris) heißt
@@ -697,6 +760,9 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
 - Wiki-Branch `b17-section-block` (lokal, `1009927`: „Plan and editor“, ein Scan schließt den Block seines Ziels, B17)
   nach `master` mergen (`--no-ff`, CC), Martin pusht. **Auslöser: der nächste Tag.**
+- Wiki-Branch `f10a-lanes` (lokal, `4954528` auf `b17-section-block`: „Plan and editor“, Layout mit Sides und Side
+  overflow, Missions-JSON Schema 5, F10a) statt `b17-section-block` nach `master` mergen (`--no-ff`, CC; enthält B17),
+  Martin pusht. **Auslöser: der nächste Tag** (plan.json 11 und Missions-JSON 5 kommen erst mit dem Release).
 - Screenshots/GIFs auf Perspektive nachdrehen (alle Shots von `docs/shots/SHOTLIST.md`, Hero-GIF eingeschlossen; D85) –
   Auslöser: nächstes Release mit sichtbarer Änderung der Ansicht oder erster Nutzer-Report „sieht bei mir anders aus“.
 - UI-Text-Konsistenz (Befund T7.5a): Schiffswechsel-Dialog mit Yes als Default, Re-plan mit No; Export… und Remove ohne
