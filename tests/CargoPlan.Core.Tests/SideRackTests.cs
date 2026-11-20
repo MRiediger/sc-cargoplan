@@ -324,6 +324,22 @@ public class SideRackTests
         }
     }
 
+    // --- F5: loaded cargo stays, the rest goes by side ---
+
+    [Fact]
+    public void With_loaded_cargo_the_editors_plan_lays_the_rest_by_side_around_it()
+    {
+        var missions = Missions(CrateSize.ThirtyTwo, 32, 32);
+        var saved = Planned(HullB, missions, Sides.PortFirst);
+        var loaded = new SavedPlan(saved.Missions, LoadPlanner.SetLoaded(saved.Plan, HullB, "A", 1, loaded: true), saved.CrateCap);
+        Mission[] more = [.. missions, new Mission(3, [new MissionStop("C", 1, [new MissionItem("Gold", 32, CrateSize.ThirtyTwo)])])];
+
+        var (plan, _) = LoadPlanner.PlanKeeping(loaded, HullB, more, ["A", "B", "C"], FillOrder.BowFirst, FillRows.Crosswise, PlanGrouping.ByDestination, 0, Sides.PortFirst);
+
+        plan.Plan.Crates.Where(c => c.Destination == "A").Should().Equal(loaded.Plan.Crates.Where(c => c.Destination == "A"), "loaded cargo stays");
+        plan.Plan.Crates.Select(c => NumberOf(HullB, c)).Should().OnlyContain(n => HullBPort.Contains(n));
+    }
+
     // --- R8: property ---
 
     /// <summary>

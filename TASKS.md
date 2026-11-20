@@ -770,6 +770,12 @@ Commit 1 (`hull_b` einfrieren + rote Tests) zuerst.
   Fälle unter 1 ms absolut fassen.
 - **Stopp – Rückfrage an Martin:** weiterbauen (Commits 3–6) wie gehabt, erst den Ausweg bauen und neu messen, oder
   anders?
+- **Antwort Martin (20.11.2026): weiterbauen.** **Kriterium korrigiert:** `portFirst` ≤ 1 ms absolut, oder ≤ 2× bei
+  einer Basis (`none`) über 10 ms; so auch in D117. Die Messwerte oben bleiben. Gegen das neue Kriterium, Methode D116:
+  Hull B 0,4–0,9 ms (≤ 1 ms erfüllt), Hull C bis 1,96× bei Basis 34,6–56,4 ms (erfüllt). In der Nachmessung liegt
+  Hull B ohne Grouping bei 1,59–1,89 ms gegen eine Basis von 1,21–1,23 ms; diese Zeile wurde als erste gemessen
+  (Aufwärmen), in derselben Nachmessung kostet `none` mit Sektionen nur 0,50–0,54 ms. Der Ausweg „Probe sparen“ steht
+  im Backlog.
 
 ### [x] F11 Linux: CLI statt Overlay (19.11.2026, in K12)
 
@@ -806,6 +812,10 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- Proben der Zuordnung nach Seite sparen (F10b, D117): `RackAssignment.AssignBySide` prüft jedes Ziel je Seite mit
+  einer Machbarkeitssuche; nimmt ein leeres Rack der Seite das Ziel allein, gibt es sicher eine Zuordnung und die Probe
+  kann entfallen (Hull B: fast alle 8 Proben). Auslöser: spürbare Planzeit mit Seiten auf einem Schiff mit vielen Racks.
 
 - Kapazitäts-Ausweichweg erst nach den anderen Zielen eines Scans legen (B17, Lauf 135: B 9×1 drängt Cs 4er aus dem
   Block). Heute legt `StopByStop` die Ziele eines Scans größte zuerst; ein Ziel „placed outside sections (capacity)“
