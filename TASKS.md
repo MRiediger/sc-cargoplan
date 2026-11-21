@@ -74,6 +74,183 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 
 ---
 
+## Phase 13 – Cargo-Routen (gestartet 21.11.2026, D118–D119)
+
+**Zielbild:** CargoPlan bekommt einen Routenplaner als Schicht über den F3-Scans: ein Pool gescannter Angebote,
+Loop-Ranking, Hafen-Matrix und Streckenkarte. Gespeist aus den festen Hauling-Templates des Spiels und den
+Stationspositionen, beides aus dem Data-Release von `sc-cargoplan-shipdata`, kein Netzzugriff zur Laufzeit (D118, D119).
+Design: [`docs/design/cargo-routes.md`](docs/design/cargo-routes.md) (Stand 20./21.11.; wo es abweicht – OCR-Engine
+§4.5, `hub-profiles.json` §4.4/§7.5, `distances.json` als Gm-Matrix §9.3 –, gelten D118, D119 und
+[`docs/hauling-data-format.md`](docs/hauling-data-format.md)). Zahlen und Tabellen stehen im Design, nicht hier.
+
+**Invarianten (gelten für jeden Task der Phase):**
+1. Der heutige Ablauf bleibt: F3 im Offers-Tab, F3 im Accepted-Tab, Ladeplan. Kein neuer Pflichtschritt.
+2. Der Planer ist additiv. Ohne Templates, ohne Pool, ohne Routen-Reiter funktioniert alles wie heute.
+3. Game.log-Lesen ist keine Voraussetzung (Backlog mit Auslöser).
+4. **Der Planer kennt keine Verfügbarkeit.** Er rechnet immer mit allen Templates des Boards (Rang/System/Area); was am
+   Terminal steht, sieht der Spieler. Keine „vergeben“-Zustände, keine Alternativ-Logik (Design §8.3).
+
+Dazu aus D118: plan.json bleibt in der ganzen Phase auf Schema 11; Pool, Routen und Platzhalter liegen in `routes.json`.
+Ein Task, der plan.json doch braucht, bekommt einen eigenen D-Eintrag.
+
+**Zwei Repos:** Templates und Positionen schreibt der Monatslauf in `sc-cargoplan-shipdata` (**SD14**, Entscheidung und
+Job dort, eigener Prompt), Vertrag ist [`docs/hauling-data-format.md`](docs/hauling-data-format.md). **Baurhythmus:**
+T13.1–T13.2 laufen parallel zu SD14; T13.3 wartet auf ein Data-Release mit Abschnitt `hauling`. Jeder Task auf eigenem
+Branch `feat/p13-<kurz>`, Merge `--no-ff` nach Martins Abnahme; Gates mit „funktioniert“ brauchen SC im Vordergrund
+(Lehre B10).
+
+**Befund T13.0:** Die Kopfzeile des Overlays hat heute keine Reiter; T13.2 führt die Reiterleiste „Cargo | Routes“ ein
+(„Cargo“ = heutige Ansicht, „Routes“ = Pool, Ranking, Matrix, Karte; ein Reiter, kein Werkzeugfenster, D118). Bis dahin ist „Reiter offen“
+(U1) ein Zustand im ViewModel, den nur Tests setzen.
+
+### [x] T13.0 Doku: Phase 13 anlegen (21.11.2026, abgenommen 21.11. mit K3)
+
+**Warum:** Ohne Vertrag zwischen Pipeline und App kann SD14 nicht bauen, und ohne Task-Schnitt fehlt jedem Folgetask die
+Grenze.
+- Design unter `docs/design/cargo-routes.md`, inhaltlich unverändert
+- `docs/hauling-data-format.md`: `hauling-templates.json` und `positions.json` (Schema 1), Manifest-Abschnitt `hauling`
+- D118, D119; dieser Abschnitt; CLAUDE.md (Ansatz, Struktur)
+
+**Akzeptanz:** alle fünf Punkte im Repo; D118/D119 im Hausformat mit Gegenargument; Format-Dokument mit vollständigem
+Beispiel und Schema-Tabelle je Datei; `dotnet build` und `dotnet test` unverändert grün.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (21.11.2026, mit K1, K2, E1, E2):**
+1. `hub-profiles.json` entfällt; `Board.For(system, areaKey, rank, faction)` als Pure Function in Core (T13.3).
+2. Zwei Dateien `hauling-templates.json` und `positions.json` (K1: nur Positionen, die App rechnet die Distanz), flache
+   Assets, beschrieben im Manifest-Abschnitt `hauling` (wie `holo`) – nicht in `ships.zip`, `files` oder `assets`: der
+   Manifest-Reader von v0.6.0/v0.7.0 lässt in `files` nur `outlines.json` und `ships/**` zu und lehnte das Release sonst
+   ab; `assets` hat keinen SHA.
+3. Ortsnamen: Template ↔ Position per exaktem Namen (Pipeline sorgt dafür), Scan ↔ Position per B1-Schlüssel nur in C#
+   (`DestinationNames.Key` zieht in T13.3 nach Core); kein Schlüssel in den Daten.
+4. Leere Ortspools bleiben leer; die Pipeline füllt nichts auf.
+5. Route und Platzhalter in `routes.json`, nie in plan.json.
+6. Vier Invarianten: Design §0 plus §8.3.
+7. K2: `hauling` fehlt oder `null` ist nie ein Fehler; ein gescheiterter Hauling-Job blockiert nie das
+   Schiffsdaten-Release (Vorgabe für SD14 im Format-Dokument).
+8. E2: „Reiter geöffnet“ = der Routen-Reiter ist der ausgewählte Reiter der Kopfzeile, auch im Lock-Modus (D118).
+9. K3 (Abnahme): der Planer ist ein Reiter, kein Werkzeugfenster; Reiterleiste „Cargo | Routes“, Platz in oder unter
+   der Kopfzeile entscheidet T13.2 (D118).
+
+### [ ] T13.1 Core/Import: Titel, Pool, Pool-Scan
+
+**Warum:** Template-Matching und Rang-Filter brauchen Rang, Größe und Direct aus dem Titel, und 20 gescannte Angebote
+dürfen nicht 20 Missionen im Ladeplan werden (U1, D118).
+- **Vorprüfung ROI:** steht der Titel im heutigen ROI/Rohtext (`scans.log`, OCR-Samples aus S10.0)? Falls nicht,
+  ROI-Erweiterung mit Gate wie S10.0 (1080p und 21:9)
+- Titel-Parsing in `ContractTextParser`/`ScannedContract`: `<Rang> Rank - [Direct] <Größe> Cargo Haul` (Covalex) und
+  `<Rang> Hauler Needed for [Direct] <Größe> Shipment` (Red Wind)
+- `OfferPool` in Core (`CargoPlan.Core/Routing/`), Status `Scanned | Accepted | Done`, Persistenz `routes.json` Schema 1
+  neben plan.json, `docs/routes-format.md`
+- U1-Weiche in `OverlayViewModel.ApplyScan`/`ScanRunner`; für den Klassik-Nutzer unsichtbar
+
+**Akzeptanz:**
+- ROI-Vorprüfung mit Zahlen festgehalten (Titel gelesen n/m je Auflösung); bei ROI-Erweiterung bleiben die Lieferfelder
+  in `OcrSampleTests` bei 100 %
+- Parser liefert Rang, Größe, Direct und Auftraggeber für beide Titelformen aus RawText-Fixtures; ein unlesbarer Titel
+  ergibt `null`, kein Fehler; der Inhaltsschlüssel (D101) ändert sich für keine bestehende Fixture
+- Pool: Dedupe per Inhaltsschlüssel, Accepted-Scan hebt den Status des passenden Eintrags; `routes.json` atomar
+  geschrieben, eine unlesbare Datei wird beiseitegelegt, nie überschrieben (D106-Muster)
+- Weiche: Reiter offen + Offer → nur Pool, plan.json byte-gleich; Reiter zu → alle bestehenden Scan-Tests unverändert
+  grün; Accepted → Plan + Pool in beiden Fällen; Notice nennt „to pool“
+- plan.json bleibt Schema 11; A13: alle Schreiber der Scan-Notice gegrept, Zusammenspiel getestet
+
+### [ ] T13.2 App: Reiter „Routes“
+
+**Warum:** Der Pool braucht eine Sicht, und die U1-Weiche braucht einen Reiter, den der Spieler sieht.
+- Reiterleiste „Cargo | Routes“ (Befund T13.0: heute keine Reiter); Platz in oder unter der Kopfzeile, Verhalten im
+  Lock-Modus und Breite im Plan entscheiden (A9, ggf. D-Eintrag)
+- Pool-Liste: Titel, Reward, SCU, Kisten, Stopps, Reward/Kiste, passt ins Schiff (via `LoadPlanner`),
+  lokal/systemweit, Status; Entfernen, Sortieren
+
+**Akzeptanz:**
+- Liste übersteht einen Neustart (`routes.json`); Sortierung je Spalte; Entfernen nimmt nur den Eintrag
+- „Passt ins Schiff“ stimmt für das gewählte Schiff mit einem Plan aus `LoadPlanner` überein (Tests mit FrozenShips, A10)
+- Gate am Terminal, SC vorne: 20 Offers bei offenem Reiter scannen → 20 Pool-Einträge, plan.json-Hash unverändert;
+  Reiter zu → F3 wie heute; Accepted-Scan → Status *Accepted*
+- Handling-Liste gegen main (Soll/Ist je berührter Geste)
+
+### [ ] T13.3 Core: Templates, Board, Matching, Rezept
+
+**Warum:** Erst mit den Templates kennt der Planer jedes Board ohne Anflug und kann einen Scan einem Template zuordnen.
+- Loader für `hauling-templates.json` und `positions.json` aus dem aktiven Datenstand (`ActiveShipData`, D113-Muster)
+- `Board.For(system, areaKey, rank, faction)`; Matching Scan → Template (Titel + Reward; Fallback Shape + Ware +
+  SCU-Band); Rezept-Generator als Pure Function (Kapazität und Racks des gewählten Schiffs, Prüfung per `LoadPlanner`)
+- Settings „Routes“: Rang, Fraktion; Hinweis im Reiter („fits“ / „too big – take the other one“)
+
+**Akzeptanz:**
+- Fälle aus dem Format-Dokument je mit Test: `hauling` fehlt/`null` → Reiter ohne Templates, keine Notice;
+  unbekanntes Schema oder Prüfung gescheitert → UnknownFormat-Muster; Schiffe laden in jedem Fall
+- Install des Downloads holt die zwei Assets mit Länge und SHA; ein gescheitertes Hauling-Asset kostet die Schiffsdaten
+  nicht; D112-Addendum, Netz-Zeile in CLAUDE.md im selben Task
+- **E1:** Whitelist in `tools/fetch-ship-data.ps1`, Layout in `build/publish.ps1` und `build/check-portable.ps1`
+  nehmen die zwei Hauling-Dateien in die Baseline auf; ZIP-Größe vorher/nachher gemessen
+- `DestinationNames.Key` (mit `ContractText.AnchorForm`) nach Core verschoben, nicht nachgebaut (A1)
+- Mechanik-Tests mit Test-Fixtures (A10); Datentests gegen den Pin: Everus/Senior 18–21 lokale Stellar-Varianten
+  (Design §7.3), keine zwei Positionen eines Systems mit gleichem B1-Schlüssel, jeder Pool-Name hat eine Position
+- Matching: jede Covalex-Offer-Fixture eindeutig zugeordnet oder mit Grund nicht; lokal gegen die Everus-Serie
+  mindestens 78/84 (Design §7.3)
+- settings.json bleibt Schema 3 (optionaler Abschnitt wie `shipData`)
+- Beispiele in `docs/hauling-data-format.md` durch echte Einträge aus dem ersten Data-Release mit `hauling` ersetzt
+  (Nit der T13.0-Abnahme; Design §9.3 nennt nur Distanzen, keine Koordinaten)
+
+### [ ] T13.4 Core/App: Loop-Ranking
+
+**Warum:** Die Kernfrage der Phase: welche Loop ist für mein Schiff die effektivste, auch an einem anderen Hub (Design §4.7).
+- Kandidaten: lokaler Ring je Hub, Direct-Einzellauf, systemweite Loops
+- Kennzahlen: aUEC/Umlauf, Landungen, Kisten, Sprünge > 10 Gm, aUEC/Landung, aUEC/h mit Zeitparametern (Settings,
+  Defaults 10 min / 20 s / 4 min); Ringreihenfolge per Permutation ≤ 5 Stationen aus `positions.json`; Anreise-Abzug bei
+  Hub ≠ Standort
+
+**Akzeptanz:**
+- Ringreihenfolge = kürzeste Distanzsumme, Gleichstand → Station mit Ein-Ziel-Vertrag zuerst (Test)
+- Datentest gegen den Pin: Everus Harbor → Baijini 22,9 Gm, → HUR-L1 1,3 Gm (±0,1, Design §9.3)
+- Ohne Reward (Red Wind ungescannt) zeigt der Kandidat Struktur, nie aUEC
+- Ranking kippt mit den Zeitparametern (Test mit zwei Parametersätzen)
+
+### [ ] T13.5 App: Hafen-Matrix
+
+**Warum:** „Gibt es etwas von A nach B?“ beantwortet eine Matrix schneller als die Karte (Design §8.5).
+- DataGrid Pickup × Dropoff aus Templates plus beobachtete Kanten aus dem Pool; Zelle = Anzahl / Σ aUEC / max SCU
+- Filter Rang, Größe, Direct, Auftraggeber, System als gemeinsames Filtermodell (T13.7 nutzt es)
+
+**Akzeptanz:**
+- Beobachtete Kanten sind von Template-Kanten unterscheidbar; leere Ortspools erscheinen nur über den Pool
+- Jede Filterkombination gegen eine Fixture getestet; Zelle ohne Reward zeigt keine aUEC-Summe
+
+### [ ] T13.6 Route starten
+
+**Warum:** Aus dem Entschluss wird ein Ablauf: Stationsfolge, freie Slots, Rückfracht (Design §4.3 Schritt 5–7).
+- Stationsfolge aus *Accepted*-Einträgen, Slot-Simulation je Station mit `LoadPlanner`, Stations-Checkliste (abladen,
+  frei, Rückfracht-Platzhalter), Platzhalterkarten
+- Accepted-Scan aktualisiert die Route; Abschluss am Hub schreibt Messwerte in die Zeitparameter
+
+**Akzeptanz:**
+- Route und Platzhalter liegen in `routes.json`, plan.json unberührt (D118)
+- Fehlt ein Accepted-Scan, fehlt der Vertrag in der Route mit Hinweis, kein Fehler
+- Gate am Terminal, SC vorne: ein Ring mit Rückfracht von Start bis Abschluss
+
+### [ ] T13.7 Streckenkarte
+
+**Warum:** Die Route vor dem Annehmen planen, wenn man von der Routine abweicht (Design §8).
+- Gerichteter Graph, Layout schematisch (Planet = Hub + L-Ring), Option geografisch aus `positions.json`; Kante =
+  Template (Fächer/Trichter, gestrichelt = Pool); Filter aus T13.5; Klick → Route, „An Cargo-Tab übergeben“
+
+**Akzeptanz:**
+- Renderentscheidung als D-Eintrag im Plan (A9), nicht in eine bestehende Ansicht eingepasst
+- Klick und Übergabe schreiben in `routes.json`, nie in plan.json (D118)
+- Darstellung am gerenderten Bild geprüft (Lehre T8.2–T8.5)
+
+### [ ] T13.8 Release v0.8.0
+
+**Warum:** Ohne Release erreicht die Phase keinen Hauler.
+- Pin auf ein Data-Release mit Abschnitt `hauling`; Wiki-Seite „Routes“, README-Absatz, Release-Notes, Known issues
+- Credits api.star-citizen.wiki, StarCitizenWiki/scunpacked-data, octfx/ScDataDumper (D119)
+
+**Akzeptanz:** Release-Checkliste wie v0.7.0 (ZIP gemessen, CI-Artefakt = lokales Pack, Netz-Gate); Abschnitt nach
+`docs/tasks-archive/` verschoben (K11).
+
+---
+
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
@@ -214,3 +391,13 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - `ImportMotherlodeScriptTests` aufteilen (K10, F26): 13,4 s in einer Klasse, jeder Test startet PowerShell; xUnit führt
   eine Klasse nacheinander aus, sie bestimmt die Core-Wandzeit (15,0 s). Zwei bis drei Klassen laufen parallel. Auslöser:
   der Core-Testlauf stört.
+
+- Game.log-Reader (Phase 13, Design §1.6, §4.1): angenommene Verträge, missionId und Abschluss aus dem Log statt aus dem
+  Accepted-Scan. Auslöser: Nutzer wollen den Accepted-Scan sparen.
+- Zähler-Überwachung „HAULING – STELLAR n“ (Phase 13, Design §1.4, §4.3 Schritt 8): ändert sich n, Hinweis zum
+  Nachscannen, Einträge grau statt gelöscht; nur Pool-Komfort, keine Planer-Logik (Invariante 4). Auslöser:
+  Nutzer-Report „Pool veraltet“.
+- Planetary- und CrossStanton-Verträge im Planer (Phase 13 plant nur Stellar; Design §5: Sichtbarkeitsregel offen,
+  vermutlich Nähe zum Pickup). Auslöser: Sichtbarkeitsregel geklärt oder Nutzer-Report.
+- Pyro-Fraktionsgate HH/CFP (Design §7.6): sieht ein Spieler nur eine Seite? Bis dahin Fraktion als Filter in den
+  Settings (T13.3). Auslöser: empirischer Befund im Spiel.

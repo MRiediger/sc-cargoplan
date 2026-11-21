@@ -32,6 +32,10 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 - **Verarbeitung:** Bin-Packing ohne Reihenfolge (D64): Ziel zusammenhalten, ein Ziel pro Rack, keine Kiste auf fremder Fracht, wenn vermeidbar. Die Route entscheidet der Spieler am Terminal; die App sagt nur, was auf wem liegt. Zellreihenfolge wählbar (`fillRows`, D88); optional Sektionen pro Ziel mit Lücken als Durchgang nach dem Planer (`grouping`, `sectionGap`, D89); optional seitenweise: Rackbreite in zwei Bahnen, erst eine Seite voll (`sides`, `sideOverflow`, D116); auf Schiffen mit Racks links und rechts erst alle Racks einer Seite, Mitte zuletzt (Seitengruppen vor D64, D117).
 - **Output:** halbtransparentes Always-on-top-Overlay mit **Click-through als Modus** (Lock, D11), Schiff schematisch, farbige Blöcke pro Ziel mit Label („Riker · 12 SCU Titanium“), abhakbar.
 
+**Routenplaner (Phase 13, D118, D119):** eine Schicht über den F3-Scans, der Klassik-Ablauf bleibt. Bei offenem Reiter „Routes“ legt F3 ein Angebot nur in den Pool (`routes.json` neben plan.json, plan.json bleibt Schema 11), sonst wie heute.
+Hauling-Templates und Stationspositionen kommen aus dem Data-Release von `sc-cargoplan-shipdata` (Abschnitt `hauling` im Manifest, `docs/hauling-data-format.md`); fehlen sie, gibt es den Reiter ohne Templates.
+Kein Netzzugriff zur Laufzeit dafür, keine API-Calls; der Planer kennt keine Verfügbarkeit, Rewards nur aus Scan oder Template. Design: `docs/design/cargo-routes.md`.
+
 ## Domänenfakten
 
 - **MISC Hull A:** 64 SCU, Spindel mit **4 Platten à 16 SCU**, getrennt beladbar (bestätigt). Rack = Ziel ist umsetzbar.
@@ -76,7 +80,7 @@ sc-cargoplan/
 ├── .ship-data/                    # gitignored: der gepinnte Release, vom Build geholt und geprüft; `current` nennt den Ordner (D113)
 ├── tools/fetch-ship-data.ps1      # holt den Pin aus sc-cargoplan-shipdata, prüft jede Datei gegen das Manifest (PS 5.1 + 7); der Build ruft es einmal (D113)
 ├── src/
-│   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader (liest ships/ und outlines.json des aktiven Datenstands; Baseline = `ship-data\` neben der Exe mit Manifest, `ActiveShipData.ReadBaseline`, D113); csproj-Target holt die Baseline beim Build, Holo-Leser SCH2 (D63), `ShipData/`: Tag, Manifest-Leser (inkl. `holo`-Abschnitt → `HoloOffer`, D114), `ShipDataStore` (aktiver Stand, Install, Aufräumen; kein Netz, D112)
+│   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader (liest ships/ und outlines.json des aktiven Datenstands; Baseline = `ship-data\` neben der Exe mit Manifest, `ActiveShipData.ReadBaseline`, D113); csproj-Target holt die Baseline beim Build, Holo-Leser SCH2 (D63), `ShipData/`: Tag, Manifest-Leser (inkl. `holo`-Abschnitt → `HoloOffer`, D114), `ShipDataStore` (aktiver Stand, Install, Aufräumen; kein Netz, D112); `Routing/` (**Soll, entsteht ab T13.1**): Pool, Templates, Board, Ranking (D118, D119)
 │   ├── CargoPlan.Import/          # net10.0 – Contracts/: Vertragstext → `ScannedContract` mit Inhaltsschlüssel (D101); `DestinationNames` (B1)
 │   ├── CargoPlan.Ocr/             # net10.0 – Vertrag aus einem Bild lesen: ROI, up2-gray, RapidOcrNet, Lesereihenfolge (D99); keine Windows-API; NOTICE.md → models/NOTICE.md
 │   ├── CargoPlan.Cli/             # net10.0 – Plan im Terminal ausgeben (Debugging ohne UI), `scan <png>`, `ships --version`
@@ -89,7 +93,8 @@ sc-cargoplan/
 ├── docs/
 │   ├── decisions.md               # D1…, nummeriert, mit Addenda
 │   ├── tasks-archive/             # Geschichte: abgeschlossene Phasen, Releases, Sessions aus TASKS.md, wortgleich (K11); Index und Lehren in TASKS.md
-│   ├── mission-format.md · plan-format.md · settings-format.md · ship-format.md · holo-format.md
+│   ├── design/                    # Entwürfe vor einer Phase, Stand ihres Datums (cargo-routes.md: Phase 13); D-Einträge gehen vor
+│   ├── mission-format.md · plan-format.md · settings-format.md · ship-format.md · holo-format.md · hauling-data-format.md
 │   ├── update-testing.md          # Entwickler: lokaler Feed, --updates-prerelease, Release-Dateien, 10er-Fenster (D109)
 │   ├── release-notes/             # je Release, Geschichte: nie nachträglich ändern
 │   ├── review/                    # Repo-Durchsichten (2026-11-pre-p10)
