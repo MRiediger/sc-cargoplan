@@ -190,6 +190,17 @@ Ladeplan (U1, U3, D118).
 10. Beobachtung nach der Notice (Latenz Taste → Notice unverändert); scans.log bekommt `observeMs=`.
 11. **E2:** jeder lesbare Scan schreibt `routes.json`, auch ohne Routes-Reiter (D118-Addendum).
 
+**Stand 23.11. (Branch `feat/p13-observations`, wartet auf Gate und Abnahme):**
+- Titel mit dem neuen Parser: S10.0 `set` (3440×1440) 20/20, `set-1080s` 20/20; `scans.log` (19.–20.11.) 46/46
+  (43 Offer, 3 Accepted), alle 46 wären Beobachtungen; RawText-Fixtures 20/21 (ohne Titel nur `ice_and_food`).
+- `OcrSampleTests` von Hand: Lieferfelder 138/138 (21:9) und 135/138 (1080p, nur c06 Textanimation) – wie T10.1a.
+- D101-Schlüssel aller 21 Fixtures golden gepinnt (vor dem Parser aufgenommen), unverändert.
+- Mutation ohne Weiche: 8 von 16 `RoutesSwitchTests` rot.
+- Start mit `--routes-open` (Release, `--data-dir`): Log-Zeile „Routes counts as the selected tab“, kein `routes.json`
+  ohne Scan.
+- Offen: Gate am Terminal (SC vorne) und Latenz p95 Taste → Notice gegen T10.3 (OFFERS 1 389 / ACCEPTED 1 423 ms),
+  dazu `observeMs` aus scans.log.
+
 ### [ ] T13.2 App: Reiter „Routes“, Loader, Hafen-Matrix
 
 **Warum:** Die U1-Weiche braucht einen Reiter, den der Spieler sieht, und der erste sichtbare Inhalt des Reiters ist die

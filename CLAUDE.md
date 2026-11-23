@@ -94,7 +94,7 @@ sc-cargoplan/
 │   ├── decisions.md               # D1…, nummeriert, mit Addenda
 │   ├── tasks-archive/             # Geschichte: abgeschlossene Phasen, Releases, Sessions aus TASKS.md, wortgleich (K11); Index und Lehren in TASKS.md
 │   ├── design/                    # Entwürfe vor einer Phase, Stand ihres Datums (cargo-routes.md: Phase 13); D-Einträge gehen vor
-│   ├── mission-format.md · plan-format.md · settings-format.md · ship-format.md · holo-format.md · hauling-data-format.md
+│   ├── mission-format.md · plan-format.md · settings-format.md · ship-format.md · holo-format.md · hauling-data-format.md · routes-format.md
 │   ├── update-testing.md          # Entwickler: lokaler Feed, --updates-prerelease, Release-Dateien, 10er-Fenster (D109)
 │   ├── release-notes/             # je Release, Geschichte: nie nachträglich ändern
 │   ├── review/                    # Repo-Durchsichten (2026-11-pre-p10)
@@ -130,6 +130,7 @@ dotnet test tests/CargoPlan.Import.Tests -c Release -p:RunSettingsFilePath= --fi
 dotnet test tests/CargoPlan.Ocr.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OcrMemoryTests --logger "console;verbosity=detailed"   # Speicher über 100 Lesevorgänge, nur von Hand; Env: CARGOPLAN_OCR_SAMPLES
 dotnet run --project src/CargoPlan.App -c Release -- --scan-probe [N] [--scan-probe-images]   # Overlay + Scan-Probe: F8 = 1 Scan, F9 = N Scans (Default 100); scan-probe.log + scan-probe\*.png neben cargoplan.log (CIG-Material, nie ins Repo); Env optional CARGOPLAN_SC_CAPTURE_PROCESS = anderes Fenster für einen Probelauf ohne SC
 dotnet run --project src/CargoPlan.App -c Release -- --keep-scans   # Overlay wie immer, jede Aufnahme von F3/Scan-Button als PNG nach scans\ neben plan.json (die letzten 20, Name Zeit-Ansicht-Ergebnis, auch bei „No contract in frame“), Name am Ende der Ergebniszeile in scans.log; für Bug-Reports anderer Auflösungen (D108, CIG-Material, nie ins Repo)
+dotnet run --project src/CargoPlan.App -c Release -- --data-dir <voller Pfad> --routes-open   # „Routes“ gilt als ausgewählter Reiter: F3 auf ein Angebot geht nicht in den Plan, nur als Beobachtung nach routes.json (T13.1, U3); Wegwerf-Schalter, fällt mit der Reiterleiste in T13.2
 dotnet run --project src/CargoPlan.App -c Release -- --measure-frames <ziel> --over-game [--scan-load]   # Frame-Zeit über dem Spiel (D83) mit vorgewärmter Engine; --scan-load scannt während der 30 s in Schleife; measure-frames.log neben der Exe
 dotnet test tests/CargoPlan.App.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OverlayCaptureTests   # eigenes Fenster über dem ROI je Capture-Variante (D100), SC muss laufen, nur von Hand; Env: CARGOPLAN_SC_CAPTURE (Ausgabeordner außerhalb des Repos), optional CARGOPLAN_SC_CAPTURE_PROCESS
 ./tools/fetch-ship-data.ps1 -ReadableSchemaVersions 4,5,6   # gepinnten Data-Release nach .ship-data/<tag>/ holen und prüfen; macht der Build selbst, wenn er fehlt (D113); Racks, Umrisse, Anker baut die Pipeline (sc-cargoplan-shipdata)
