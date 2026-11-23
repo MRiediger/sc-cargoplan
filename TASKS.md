@@ -130,6 +130,10 @@ Beispiel und Schema-Tabelle je Datei; `dotnet build` und `dotnet test` unveränd
 8. E2: „Reiter geöffnet“ = der Routen-Reiter ist der ausgewählte Reiter der Kopfzeile, auch im Lock-Modus (D118).
 9. K3 (Abnahme): der Planer ist ein Reiter, kein Werkzeugfenster; Reiterleiste „Cargo | Routes“, Platz in oder unter
    der Kopfzeile entscheidet T13.2 (D118).
+10. **T13.0a (22.11.2026, Befunde aus H1 im Shipdata-Repo, Freigabe 21.11., abgenommen 22.11.):** Addendum zu `docs/hauling-data-format.md`
+    mit V1–V8 und K1–K3 (Quelle Rohrepo, `trainee`, `xs`/`bulk`, Auftraggeber aus `MissionGiver`, `drop`, nichts
+    geschätzt, Starmap-Name + `contractNames[]`, `legs ≥ 1`, Name eindeutig je System, `Star`), weiter Schema 1;
+    Zeile in D119; Zahlen in T13.3.
 
 ### [ ] T13.1 Core/Import: Titel, Pool, Pool-Scan
 
@@ -139,6 +143,7 @@ dürfen nicht 20 Missionen im Ladeplan werden (U1, D118).
   ROI-Erweiterung mit Gate wie S10.0 (1080p und 21:9)
 - Titel-Parsing in `ContractTextParser`/`ScannedContract`: `<Rang> Rank - [Direct] <Größe> Cargo Haul` (Covalex) und
   `<Rang> Hauler Needed for [Direct] <Größe> Shipment` (Red Wind)
+- Der Titel-Parser kennt Trainee, Extra Small und Bulk (T13.0a, V2/V3)
 - `OfferPool` in Core (`CargoPlan.Core/Routing/`), Status `Scanned | Accepted | Done`, Persistenz `routes.json` Schema 1
   neben plan.json, `docs/routes-format.md`
 - U1-Weiche in `OverlayViewModel.ApplyScan`/`ScanRunner`; für den Klassik-Nutzer unsichtbar
@@ -176,6 +181,8 @@ dürfen nicht 20 Missionen im Ladeplan werden (U1, D118).
 - `Board.For(system, areaKey, rank, faction)`; Matching Scan → Template (Titel + Reward; Fallback Shape + Ware +
   SCU-Band); Rezept-Generator als Pure Function (Kapazität und Racks des gewählten Schiffs, Prüfung per `LoadPlanner`)
 - Settings „Routes“: Rang, Fraktion; Hinweis im Reiter („fits“ / „too big – take the other one“)
+- Alle 75 systemweiten Covalex-Stellar-Templates haben leere Drop-off-Pools, kein Stellar-Template nennt einen Hub:
+  systemweite Kanten entstehen nur aus Scans (Design §8.3; T13.0a, H1-Befund 9)
 
 **Akzeptanz:**
 - Fälle aus dem Format-Dokument je mit Test: `hauling` fehlt/`null` → Reiter ohne Templates, keine Notice;
@@ -185,8 +192,9 @@ dürfen nicht 20 Missionen im Ladeplan werden (U1, D118).
 - **E1:** Whitelist in `tools/fetch-ship-data.ps1`, Layout in `build/publish.ps1` und `build/check-portable.ps1`
   nehmen die zwei Hauling-Dateien in die Baseline auf; ZIP-Größe vorher/nachher gemessen
 - `DestinationNames.Key` (mit `ContractText.AnchorForm`) nach Core verschoben, nicht nachgebaut (A1)
-- Mechanik-Tests mit Test-Fixtures (A10); Datentests gegen den Pin: Everus/Senior 18–21 lokale Stellar-Varianten
-  (Design §7.3), keine zwei Positionen eines Systems mit gleichem B1-Schlüssel, jeder Pool-Name hat eine Position
+- Mechanik-Tests mit Test-Fixtures (A10); Datentests gegen den Pin: Everus/Senior-Board 92 (Stanton + Stanton1),
+  Crusader 19, ArcCorp 22 (T13.0a, statt 18–21 aus Design §7.3), kein B1-Schlüssel doppelt je System über `name` und
+  `contractNames`, jeder Pool-Name hat eine Position
 - Matching: jede Covalex-Offer-Fixture eindeutig zugeordnet oder mit Grund nicht; lokal gegen die Everus-Serie
   mindestens 78/84 (Design §7.3)
 - settings.json bleibt Schema 3 (optionaler Abschnitt wie `shipData`)
