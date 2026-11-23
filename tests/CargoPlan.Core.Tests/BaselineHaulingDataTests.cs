@@ -67,14 +67,29 @@ public sealed class BaselineHaulingDataTests
     public void A_delivery_line_names_an_L_station_without_its_code(string scanned, string position) =>
         Data.Positions.Resolve(StarSystem.Stanton, scanned)!.Name.Should().Be(position);
 
-    // Design §7.3 (T13.0a): the boards as the terminal shows them to a Senior, Covalex stellar.
+    // Design §7.3 (T13.0a), T13.3 through Board.For: the boards as the terminal shows them to a Senior. Everus has 23
+    // local templates, not the 22 of the T13.3 start prompt (Rookie 11, Junior 5, Member 2, Experienced 3, Senior 2);
+    // Port Tressler was never scanned.
     [Theory]
-    [InlineData(new[] { "Stanton", "Stanton1" }, 92)]
-    [InlineData(new[] { "Stanton2" }, 19)]
-    [InlineData(new[] { "Stanton3" }, 22)]
-    public void The_boards_count_their_templates(string[] areaKeys, int count) =>
-        Data.Templates.Count(t => t.Contractor == HaulContractor.Covalex && t.MissionType == HaulMissionType.Stellar
-            && areaKeys.Contains(t.AreaKey) && t.Rank <= HaulRank.Senior).Should().Be(count);
+    [InlineData("Stanton1", 92, 23)]
+    [InlineData("Stanton2", 88, 19)]
+    [InlineData("Stanton3", 91, 22)]
+    [InlineData("Stanton4", 89, 20)]
+    public void The_boards_count_their_templates(string areaKey, int count, int local)
+    {
+        var board = Board.For(Data.Templates, StarSystem.Stanton, areaKey, HaulRank.Senior, faction: null);
+
+        board.Templates.Should().HaveCount(count);
+        board.Local.Should().HaveCount(local);
+        board.Hub.Should().Be(BoardHubs.ByArea[areaKey]);
+    }
+
+    [Theory]
+    [InlineData(HaulFaction.Hh, 31)]
+    [InlineData(HaulFaction.Cfp, 31)]
+    [InlineData(null, 62)]
+    public void The_Pyro_board_counts_Solar_of_the_faction(HaulFaction? faction, int count) =>
+        Board.For(Data.Templates, StarSystem.Pyro, Board.PyroSolar, HaulRank.Senior, faction).Templates.Should().HaveCount(count);
 
     // Design §9.3: the distances the design measured from starmap_positions.json.
     [Theory]
