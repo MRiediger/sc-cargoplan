@@ -76,8 +76,8 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 
 ## Phase 13 – Cargo-Routen (gestartet 21.11.2026, D118–D119)
 
-**Zielbild:** CargoPlan bekommt einen Routenplaner als Schicht über den F3-Scans: ein Pool gescannter Angebote,
-Loop-Ranking, Hafen-Matrix und Streckenkarte. Gespeist aus den festen Hauling-Templates des Spiels und den
+**Zielbild:** CargoPlan bekommt einen Routenplaner als Schicht über den F3-Scans: Beobachtungen je Template aus den
+Scans (U3), Hafen-Matrix, Loop-Ranking, Streckenkarte und eine Route mit Platzhaltern. Gespeist aus den festen Hauling-Templates des Spiels und den
 Stationspositionen, beides aus dem Data-Release von `sc-cargoplan-shipdata`, kein Netzzugriff zur Laufzeit (D118, D119).
 Design: [`docs/design/cargo-routes.md`](docs/design/cargo-routes.md) (Stand 20./21.11.; wo es abweicht – OCR-Engine
 §4.5, `hub-profiles.json` §4.4/§7.5, `distances.json` als Gm-Matrix §9.3 –, gelten D118, D119 und
@@ -85,23 +85,30 @@ Design: [`docs/design/cargo-routes.md`](docs/design/cargo-routes.md) (Stand 20./
 
 **Invarianten (gelten für jeden Task der Phase):**
 1. Der heutige Ablauf bleibt: F3 im Offers-Tab, F3 im Accepted-Tab, Ladeplan. Kein neuer Pflichtschritt.
-2. Der Planer ist additiv. Ohne Templates, ohne Pool, ohne Routen-Reiter funktioniert alles wie heute.
+2. Der Planer ist additiv. Ohne Templates, ohne Beobachtungen, ohne Routen-Reiter funktioniert alles wie heute.
 3. Game.log-Lesen ist keine Voraussetzung (Backlog mit Auslöser).
 4. **Der Planer kennt keine Verfügbarkeit.** Er rechnet immer mit allen Templates des Boards (Rang/System/Area); was am
    Terminal steht, sieht der Spieler. Keine „vergeben“-Zustände, keine Alternativ-Logik (Design §8.3).
 
-Dazu aus D118: plan.json bleibt in der ganzen Phase auf Schema 11; Pool, Routen und Platzhalter liegen in `routes.json`.
-Ein Task, der plan.json doch braucht, bekommt einen eigenen D-Eintrag.
+Dazu aus D118: plan.json bleibt in der ganzen Phase auf Schema 11; Beobachtungen, Route und Platzhalter liegen in
+`routes.json`. Ein Task, der plan.json doch braucht, bekommt einen eigenen D-Eintrag.
+
+**U3 (Martin, 23.11., D118-Addendum):** Spieler-Ablauf = Reiter „Routes“ → Route aus Matrix/Karte (Templates) →
+Platzhalter je Template, erkannt an Titel + Reward → Reiter „Cargo“ → Vertrag am Terminal suchen, annehmen, F3 im
+Accepted-Tab füllt den Platzhalter → Wizard über die Stationen. **Kein Pool gescannter Angebote, kein Status
+`Scanned | Accepted | Done`.** Ein Scan liefert über die Templates hinaus nur **Beobachtungen** (reale Endpunkte der
+systemweiten Templates mit leeren Pools, Red-Wind-Rewards); jeder lesbare Scan schreibt sie, unabhängig vom Reiter.
 
 **Zwei Repos:** Templates und Positionen schreibt der Monatslauf in `sc-cargoplan-shipdata` (**SD14**, Entscheidung und
 Job dort, eigener Prompt), Vertrag ist [`docs/hauling-data-format.md`](docs/hauling-data-format.md). **Baurhythmus:**
-T13.1–T13.2 laufen parallel zu SD14; T13.3 wartet auf ein Data-Release mit Abschnitt `hauling`. Jeder Task auf eigenem
+SD14 ist durch: `ships-2026.11.2` trägt `hauling` (veröffentlicht 23.11., Manifest `ba1606df68d4`); T13.2 (Loader)
+pinnt es. Jeder Task auf eigenem
 Branch `feat/p13-<kurz>`, Merge `--no-ff` nach Martins Abnahme; Gates mit „funktioniert“ brauchen SC im Vordergrund
 (Lehre B10).
 
 **Befund T13.0:** Die Kopfzeile des Overlays hat heute keine Reiter; T13.2 führt die Reiterleiste „Cargo | Routes“ ein
-(„Cargo“ = heutige Ansicht, „Routes“ = Pool, Ranking, Matrix, Karte; ein Reiter, kein Werkzeugfenster, D118). Bis dahin ist „Reiter offen“
-(U1) ein Zustand im ViewModel, den nur Tests setzen.
+(„Cargo“ = heutige Ansicht, „Routes“ = Matrix, Ranking, Karte, Route; ein Reiter, kein Werkzeugfenster, D118). Bis dahin ist „Reiter offen“
+(U1) ein Zustand im ViewModel, den Tests und der Entwickler-Schalter `--routes-open` (T13.1, fällt mit T13.2) setzen.
 
 ### [x] T13.0 Doku: Phase 13 anlegen (21.11.2026, abgenommen 21.11. mit K3)
 
@@ -135,71 +142,129 @@ Beispiel und Schema-Tabelle je Datei; `dotnet build` und `dotnet test` unveränd
     geschätzt, Starmap-Name + `contractNames[]`, `legs ≥ 1`, Name eindeutig je System, `Star`), weiter Schema 1;
     Zeile in D119; Zahlen in T13.3.
 
-### [ ] T13.1 Core/Import: Titel, Pool, Pool-Scan
+### [x] T13.1 Core/Import: Titel, Beobachtungen, Routes-Weiche (Umschnitt U3, 23.11.; abgenommen 23.11.)
 
-**Warum:** Template-Matching und Rang-Filter brauchen Rang, Größe und Direct aus dem Titel, und 20 gescannte Angebote
-dürfen nicht 20 Missionen im Ladeplan werden (U1, D118).
+**Warum:** Die Identität eines Templates im Scan ist Titel + Reward, und was ein Scan über die Templates hinaus weiß
+(reale Endpunkte, Red-Wind-Rewards), muss irgendwo landen. Ein Offer-Scan bei offenem Routes-Reiter darf nicht in den
+Ladeplan (U1, U3, D118).
 - **Vorprüfung ROI:** steht der Titel im heutigen ROI/Rohtext (`scans.log`, OCR-Samples aus S10.0)? Falls nicht,
-  ROI-Erweiterung mit Gate wie S10.0 (1080p und 21:9)
-- Titel-Parsing in `ContractTextParser`/`ScannedContract`: `<Rang> Rank - [Direct] <Größe> Cargo Haul` (Covalex) und
-  `<Rang> Hauler Needed for [Direct] <Größe> Shipment` (Red Wind)
-- Der Titel-Parser kennt Trainee, Extra Small und Bulk (T13.0a, V2/V3)
-- `OfferPool` in Core (`CargoPlan.Core/Routing/`), Status `Scanned | Accepted | Done`, Persistenz `routes.json` Schema 1
-  neben plan.json, `docs/routes-format.md`
-- U1-Weiche in `OverlayViewModel.ApplyScan`/`ScanRunner`; für den Klassik-Nutzer unsichtbar
+  ROI-Erweiterung als T13.1a mit Gate wie S10.0 (1080p und 21:9)
+- Titel-Parsing in `ContractTextParser`/`ScannedContract`: Rang, Größe, Direct, Auftraggeber (`<Rang> Rank - [Direct]
+  <Größe> Cargo Haul` Covalex; Red Wind siehe Präzisierung); kennt Trainee, Extra Small und Bulk (T13.0a, V2/V3)
+- `Observations` in Core (`CargoPlan.Core/Routing/`): Upsert je `ObservationKey(Contractor, Rank, Size, Direct, Reward)`,
+  Mengen Pickups/Ziele, SCU-Band je Ware, Count, erste/letzte Zeit; Persistenz `routes.json` Schema 1 neben plan.json,
+  `docs/routes-format.md`
+- Weiche in `OverlayViewModel.ApplyScan`/`ScanRunner`: Routes ausgewählt + Offer → nichts in den Plan; Entwickler-Schalter
+  `--routes-open` bis T13.2
 
 **Akzeptanz:**
 - ROI-Vorprüfung mit Zahlen festgehalten (Titel gelesen n/m je Auflösung); bei ROI-Erweiterung bleiben die Lieferfelder
   in `OcrSampleTests` bei 100 %
-- Parser liefert Rang, Größe, Direct und Auftraggeber für beide Titelformen aus RawText-Fixtures; ein unlesbarer Titel
-  ergibt `null`, kein Fehler; der Inhaltsschlüssel (D101) ändert sich für keine bestehende Fixture
-- Pool: Dedupe per Inhaltsschlüssel, Accepted-Scan hebt den Status des passenden Eintrags; `routes.json` atomar
-  geschrieben, eine unlesbare Datei wird beiseitegelegt, nie überschrieben (D106-Muster)
-- Weiche: Reiter offen + Offer → nur Pool, plan.json byte-gleich; Reiter zu → alle bestehenden Scan-Tests unverändert
-  grün; Accepted → Plan + Pool in beiden Fällen; Notice nennt „to pool“
+- Parser liefert Rang, Größe, Direct und Auftraggeber für die Titelformen aus RawText-Fixtures; ein unlesbarer Titel
+  ergibt `null`, kein Fehler; der Inhaltsschlüssel (D101) ändert sich für keine bestehende Fixture (Golden über alle)
+- Observations: zweiter Scan derselben Variante → ein Eintrag, Count 2, Bänder geweitet; Round-Trip `routes.json`;
+  atomar geschrieben, eine unlesbare Datei wird beiseitegelegt, nie überschrieben (D106-Muster); Schema-Doku
+- Weiche, sechs Zellen getestet: Offer/Accepted/Unknown × Reiter ja/nein; Reiter nicht ausgewählt → alle bestehenden
+  Scan-Tests unverändert grün; ausgewählt + Offer → plan.json byte-gleich, Notice „Observed (Routes)“
 - plan.json bleibt Schema 11; A13: alle Schreiber der Scan-Notice gegrept, Zusammenspiel getestet
+- Gate am Terminal, SC vorne: mit `--routes-open` 10 Offers → 0 neue Missionen, plan.json-Hash unverändert, Beobachtungen
+  mit Count-Summe 10; ohne Schalter F3 wie heute; Accepted → Plan wie heute + Beobachtung; Latenz p95 Taste → Notice
+  gegen T10.3
 
-### [ ] T13.2 App: Reiter „Routes“
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (23.11.2026, mit E1, E2):**
+1. ROI-Vorprüfung: Titel steht im Rohtext, **kein T13.1a**. 3440×1440 20/20 (`set`, ROI + up2-gray) und 22/22 (c21–c42,
+   Vollbild, Titel in der ROI-Box), 1920×1080 20/20 (`set-1080s`), `scan-probe.log` 227/227, `scans.log` 46/46.
+2. **Red Wind, Befund Issue #22** (Fixtures `carbon_or_cut`, `potassium_or_cut`, `waste_or_smaller`): die Karte zeigt
+   `<Rang> | Stellar [Direct] <Größe> Haul | to/from <Ort>`, der API-`DisplayTitle` lautet `<Rang> Hauler Needed for
+   [Direct] <Größe> Shipment`; keine Aufnahme enthält die API-Form. Der Parser liest beide; in der |-Form ist Direct
+   `null` (nicht geraten), `ObservationKey.Direct` ist `bool?`. `AreaLevel` (`Stellar | Planetary`) aus dem Titel als
+   optionales Feld, nicht im Schlüssel.
+3. Titel ganz oder gar nicht: fehlt Auftraggeber, Rang oder Größe, ist der Titel `null`; mehrere Titelzeilen → die erste.
+4. `ScuSeen` = Band je Ware über die einzelnen Lieferzeilen (eine Zeile = ein Leg, wie `legs[].minScu/maxScu`).
+5. Beobachtet wird nur View `Offer`/`Accepted`, nicht in harter Ungewissheit, mit Stopps, mit lesbarem Titel **und**
+   Reward; sonst nur eine Log-Zeile.
+6. Die Weiche greift nur bei View `Offer`; `Unknown` bleibt geschätzt im Plan (D102).
+7. Ortsnamen wie vom Parser normalisiert, ordinal vereinigt; B1-Faltung erst in T13.3 (E1 dort).
+8. `routes.json` unlesbar → beim ersten Speichern beiseitegelegt (`PlanStore.KeepUnreadable`), Log statt Notice.
+9. `--routes-open` bleibt beim Neustart nach Update erhalten; fällt mit T13.2.
+10. Beobachtung nach der Notice (Latenz Taste → Notice unverändert); scans.log bekommt `observeMs=`.
+11. **E2:** jeder lesbare Scan schreibt `routes.json`, auch ohne Routes-Reiter (D118-Addendum).
 
-**Warum:** Der Pool braucht eine Sicht, und die U1-Weiche braucht einen Reiter, den der Spieler sieht.
+**Stand 23.11. (Branch `feat/p13-observations`, abgenommen 23.11.):**
+- Titel mit dem neuen Parser: S10.0 `set` (3440×1440) 20/20, `set-1080s` 20/20; `scans.log` (19.–20.11.) 46/46
+  (43 Offer, 3 Accepted), alle 46 wären Beobachtungen; RawText-Fixtures 20/21 (ohne Titel nur `ice_and_food`).
+- `OcrSampleTests` von Hand: Lieferfelder 138/138 (21:9) und 135/138 (1080p, nur c06 Textanimation) – wie T10.1a.
+- D101-Schlüssel aller 21 Fixtures golden gepinnt (vor dem Parser aufgenommen), unverändert.
+- Mutation ohne Weiche: 8 von 16 `RoutesSwitchTests` rot.
+- Start mit `--routes-open` (Release, `--data-dir`): Log-Zeile „Routes counts as the selected tab“, kein `routes.json`
+  ohne Scan.
+- **Gate am Terminal (Martin, 23.11., SC vorne, Profilordner):** Weiche hält, plan.json unverändert; `routes.json` mit
+  einem Eintrag Senior Medium 325 250, Count 3, Bänder geweitet, `direct: false`.
+- **Latenz aus scans.log (n = 3, kein p95 möglich):**
+
+  | Scan | Ergebnis | Taste → Rohtext | Taste → Notice | `ocrMs` | `observeMs` |
+  |---|---|---|---|---|---|
+  | 1, erster nach Start, ohne Schalter | Added #1 | 1 665 | 1 807 | 1 490 | 28 |
+  | 2, erster nach Start, `--routes-open` | Observed | 1 663 | 1 672 | 1 500 | 14 |
+  | 3, zweiter im selben Lauf | Added #1 (Accepted) | 1 538 | 1 789 | 1 464 | 3 |
+
+  `observeMs` Median 14, max 28 ms, nach der Notice, also nicht in Taste → Notice. Gegen T10.3 (p95 1 389 / 1 423 ms,
+  n = 24/22) nicht vergleichbar: zwei der drei sind erste Scans nach dem Start (T10.3: 1 694 ms), und die Mehrzeit
+  steckt schon vor dem Rohtext (`ocrMs` ≈ 1,5 s), bevor T13.1-Code läuft; Rohtext → Notice 9 ms (Observed) bzw.
+  142/251 ms (erster Plan-Schritt im Prozess). Eine Messung mit n ≥ 20 steht aus, falls die OCR-Zeit auffällt.
+- Red-Wind-Kartenform bleibt: „Direct“ da → `true`, sonst `null` (Abnahme). T13.6-Text bleibt bis zur T13.6-Planung.
+
+### [ ] T13.2 App: Reiter „Routes“, Loader, Hafen-Matrix
+
+**Warum:** Die U1-Weiche braucht einen Reiter, den der Spieler sieht, und der erste sichtbare Inhalt des Reiters ist die
+Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
 - Reiterleiste „Cargo | Routes“ (Befund T13.0: heute keine Reiter); Platz in oder unter der Kopfzeile, Verhalten im
-  Lock-Modus und Breite im Plan entscheiden (A9, ggf. D-Eintrag)
-- Pool-Liste: Titel, Reward, SCU, Kisten, Stopps, Reward/Kiste, passt ins Schiff (via `LoadPlanner`),
-  lokal/systemweit, Status; Entfernen, Sortieren
-
-**Akzeptanz:**
-- Liste übersteht einen Neustart (`routes.json`); Sortierung je Spalte; Entfernen nimmt nur den Eintrag
-- „Passt ins Schiff“ stimmt für das gewählte Schiff mit einem Plan aus `LoadPlanner` überein (Tests mit FrozenShips, A10)
-- Gate am Terminal, SC vorne: 20 Offers bei offenem Reiter scannen → 20 Pool-Einträge, plan.json-Hash unverändert;
-  Reiter zu → F3 wie heute; Accepted-Scan → Status *Accepted*
-- Handling-Liste gegen main (Soll/Ist je berührter Geste)
-
-### [ ] T13.3 Core: Templates, Board, Matching, Rezept
-
-**Warum:** Erst mit den Templates kennt der Planer jedes Board ohne Anflug und kann einen Scan einem Template zuordnen.
-- Loader für `hauling-templates.json` und `positions.json` aus dem aktiven Datenstand (`ActiveShipData`, D113-Muster)
-- `Board.For(system, areaKey, rank, faction)`; Matching Scan → Template (Titel + Reward; Fallback Shape + Ware +
-  SCU-Band); Rezept-Generator als Pure Function (Kapazität und Racks des gewählten Schiffs, Prüfung per `LoadPlanner`)
-- Settings „Routes“: Rang, Fraktion; Hinweis im Reiter („fits“ / „too big – take the other one“)
-- Alle 75 systemweiten Covalex-Stellar-Templates haben leere Drop-off-Pools, kein Stellar-Template nennt einen Hub:
-  systemweite Kanten entstehen nur aus Scans (Design §8.3; T13.0a, H1-Befund 9)
+  Lock-Modus und Breite im Plan entscheiden (A9, ggf. D-Eintrag); ersetzt `--routes-open`
+- Loader für `hauling-templates.json` und `positions.json` aus dem aktiven Datenstand (`ActiveShipData`, D113-Muster);
+  Pin `ships-2026.11.2` (erstes Release mit `hauling`)
+- Hafen-Matrix (Design §8.5): DataGrid Pickup × Dropoff aus Templates plus beobachtete Kanten aus den Beobachtungen
+  (T13.1); Zelle = Anzahl / Σ aUEC / max SCU; Filter Rang, Größe, Direct, Auftraggeber, System als gemeinsames
+  Filtermodell (T13.7 nutzt es)
 
 **Akzeptanz:**
 - Fälle aus dem Format-Dokument je mit Test: `hauling` fehlt/`null` → Reiter ohne Templates, keine Notice;
   unbekanntes Schema oder Prüfung gescheitert → UnknownFormat-Muster; Schiffe laden in jedem Fall
 - Install des Downloads holt die zwei Assets mit Länge und SHA; ein gescheitertes Hauling-Asset kostet die Schiffsdaten
   nicht; D112-Addendum, Netz-Zeile in CLAUDE.md im selben Task
-- **E1:** Whitelist in `tools/fetch-ship-data.ps1`, Layout in `build/publish.ps1` und `build/check-portable.ps1`
+- **E1 (T13.0):** Whitelist in `tools/fetch-ship-data.ps1`, Layout in `build/publish.ps1` und `build/check-portable.ps1`
   nehmen die zwei Hauling-Dateien in die Baseline auf; ZIP-Größe vorher/nachher gemessen
+- Datentest gegen den Pin: jeder Pool-Name hat eine Position
+- Matrix: beobachtete Kanten sind von Template-Kanten unterscheidbar; leere Ortspools erscheinen nur über Beobachtungen;
+  jede Filterkombination gegen eine Fixture getestet; Zelle ohne Reward zeigt keine aUEC-Summe
+- Gate am Terminal, SC vorne: Reiter „Routes“ ausgewählt + Offer → plan.json-Hash unverändert; Reiter „Cargo“ → F3 wie
+  heute
+- Handling-Liste gegen main (Soll/Ist je berührter Geste)
+
+### [ ] T13.3 Core: Board, Matching, Rezept
+
+**Warum:** Erst mit den Templates kennt der Planer jedes Board ohne Anflug und kann einen Scan einem Template zuordnen.
+- `Board.For(system, areaKey, rank, faction)`; Matching Scan → Template (Titel + Reward; Fallback Shape + Ware +
+  SCU-Band); Rezept-Generator als Pure Function (Kapazität und Racks des gewählten Schiffs, Prüfung per `LoadPlanner`)
+- **Red Wind nie über den Titel matchen; Rang + Größe + Stopps + Ware + SCU-Band** (Befund T13.1: API-`DisplayTitle` ≠
+  Kartentitel, Issue #22)
+- Settings „Routes“: Rang, Fraktion; Hinweis im Reiter („fits“ / „too big – take the other one“)
+- Alle 75 systemweiten Covalex-Stellar-Templates haben leere Drop-off-Pools, kein Stellar-Template nennt einen Hub:
+  systemweite Kanten entstehen nur aus Scans (Design §8.3; T13.0a, H1-Befund 9)
+- Observations beim Laden über `DestinationNames.Key` falten (Mengen vereinigen), idempotent, kein Schema-Bump
+  (E1 der T13.1-Freigabe, Folge von Präzisierung 7)
+
+**Akzeptanz:**
 - `DestinationNames.Key` (mit `ContractText.AnchorForm`) nach Core verschoben, nicht nachgebaut (A1)
 - Mechanik-Tests mit Test-Fixtures (A10); Datentests gegen den Pin: Everus/Senior-Board 92 (Stanton + Stanton1),
   Crusader 19, ArcCorp 22 (T13.0a, statt 18–21 aus Design §7.3), kein B1-Schlüssel doppelt je System über `name` und
-  `contractNames`, jeder Pool-Name hat eine Position
+  `contractNames`
 - Matching: jede Covalex-Offer-Fixture eindeutig zugeordnet oder mit Grund nicht; lokal gegen die Everus-Serie
   mindestens 78/84 (Design §7.3)
 - settings.json bleibt Schema 3 (optionaler Abschnitt wie `shipData`)
 - Beispiele in `docs/hauling-data-format.md` durch echte Einträge aus dem ersten Data-Release mit `hauling` ersetzt
   (Nit der T13.0-Abnahme; Design §9.3 nennt nur Distanzen, keine Koordinaten)
+- Addendum in `docs/hauling-data-format.md`, Feld `title`: „as the API shows it; Covalex equals the card, Red Wind does
+  not“ (Befund T13.1, Issue #22)
 
 ### [ ] T13.4 Core/App: Loop-Ranking
 
@@ -215,15 +280,7 @@ dürfen nicht 20 Missionen im Ladeplan werden (U1, D118).
 - Ohne Reward (Red Wind ungescannt) zeigt der Kandidat Struktur, nie aUEC
 - Ranking kippt mit den Zeitparametern (Test mit zwei Parametersätzen)
 
-### [ ] T13.5 App: Hafen-Matrix
-
-**Warum:** „Gibt es etwas von A nach B?“ beantwortet eine Matrix schneller als die Karte (Design §8.5).
-- DataGrid Pickup × Dropoff aus Templates plus beobachtete Kanten aus dem Pool; Zelle = Anzahl / Σ aUEC / max SCU
-- Filter Rang, Größe, Direct, Auftraggeber, System als gemeinsames Filtermodell (T13.7 nutzt es)
-
-**Akzeptanz:**
-- Beobachtete Kanten sind von Template-Kanten unterscheidbar; leere Ortspools erscheinen nur über den Pool
-- Jede Filterkombination gegen eine Fixture getestet; Zelle ohne Reward zeigt keine aUEC-Summe
+### ~~T13.5 App: Hafen-Matrix~~ – entfällt (in T13.2, U3, 23.11.)
 
 ### [ ] T13.6 Route starten
 
@@ -241,7 +298,7 @@ dürfen nicht 20 Missionen im Ladeplan werden (U1, D118).
 
 **Warum:** Die Route vor dem Annehmen planen, wenn man von der Routine abweicht (Design §8).
 - Gerichteter Graph, Layout schematisch (Planet = Hub + L-Ring), Option geografisch aus `positions.json`; Kante =
-  Template (Fächer/Trichter, gestrichelt = Pool); Filter aus T13.5; Klick → Route, „An Cargo-Tab übergeben“
+  Template (Fächer/Trichter, gestrichelt = Pool); Filter aus T13.2 (vormals T13.5); Klick → Route, „An Cargo-Tab übergeben“
 
 **Akzeptanz:**
 - Renderentscheidung als D-Eintrag im Plan (A9), nicht in eine bestehende Ansicht eingepasst
@@ -403,8 +460,8 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Game.log-Reader (Phase 13, Design §1.6, §4.1): angenommene Verträge, missionId und Abschluss aus dem Log statt aus dem
   Accepted-Scan. Auslöser: Nutzer wollen den Accepted-Scan sparen.
 - Zähler-Überwachung „HAULING – STELLAR n“ (Phase 13, Design §1.4, §4.3 Schritt 8): ändert sich n, Hinweis zum
-  Nachscannen, Einträge grau statt gelöscht; nur Pool-Komfort, keine Planer-Logik (Invariante 4). Auslöser:
-  Nutzer-Report „Pool veraltet“.
+  Nachscannen; nur Komfort, keine Planer-Logik (Invariante 4; den Pool gibt es seit U3 nicht mehr). Auslöser:
+  Nutzer-Report „Angebote veraltet“.
 - Planetary- und CrossStanton-Verträge im Planer (Phase 13 plant nur Stellar; Design §5: Sichtbarkeitsregel offen,
   vermutlich Nähe zum Pickup). Auslöser: Sichtbarkeitsregel geklärt oder Nutzer-Report.
 - Pyro-Fraktionsgate HH/CFP (Design §7.6): sieht ein Spieler nur eine Seite? Bis dahin Fraktion als Filter in den

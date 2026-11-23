@@ -32,7 +32,7 @@ Hauling-Aufträge für Covalex sind oft **1 Abholort → n Ziele**. Jeder Contai
 - **Verarbeitung:** Bin-Packing ohne Reihenfolge (D64): Ziel zusammenhalten, ein Ziel pro Rack, keine Kiste auf fremder Fracht, wenn vermeidbar. Die Route entscheidet der Spieler am Terminal; die App sagt nur, was auf wem liegt. Zellreihenfolge wählbar (`fillRows`, D88); optional Sektionen pro Ziel mit Lücken als Durchgang nach dem Planer (`grouping`, `sectionGap`, D89); optional seitenweise: Rackbreite in zwei Bahnen, erst eine Seite voll (`sides`, `sideOverflow`, D116); auf Schiffen mit Racks links und rechts erst alle Racks einer Seite, Mitte zuletzt (Seitengruppen vor D64, D117).
 - **Output:** halbtransparentes Always-on-top-Overlay mit **Click-through als Modus** (Lock, D11), Schiff schematisch, farbige Blöcke pro Ziel mit Label („Riker · 12 SCU Titanium“), abhakbar.
 
-**Routenplaner (Phase 13, D118, D119):** eine Schicht über den F3-Scans, der Klassik-Ablauf bleibt. Bei offenem Reiter „Routes“ legt F3 ein Angebot nur in den Pool (`routes.json` neben plan.json, plan.json bleibt Schema 11), sonst wie heute.
+**Routenplaner (Phase 13, D118, D119):** eine Schicht über den F3-Scans, der Klassik-Ablauf bleibt. Bei offenem Reiter „Routes“ kommt ein Angebot per F3 nicht in den Plan, sonst wie heute; jeder lesbare Scan schreibt Beobachtungen je Template nach `routes.json` neben plan.json (U3), plan.json bleibt Schema 11.
 Hauling-Templates und Stationspositionen kommen aus dem Data-Release von `sc-cargoplan-shipdata` (Abschnitt `hauling` im Manifest, `docs/hauling-data-format.md`); fehlen sie, gibt es den Reiter ohne Templates.
 Kein Netzzugriff zur Laufzeit dafür, keine API-Calls; der Planer kennt keine Verfügbarkeit, Rewards nur aus Scan oder Template. Design: `docs/design/cargo-routes.md`.
 
@@ -80,7 +80,7 @@ sc-cargoplan/
 ├── .ship-data/                    # gitignored: der gepinnte Release, vom Build geholt und geprüft; `current` nennt den Ordner (D113)
 ├── tools/fetch-ship-data.ps1      # holt den Pin aus sc-cargoplan-shipdata, prüft jede Datei gegen das Manifest (PS 5.1 + 7); der Build ruft es einmal (D113)
 ├── src/
-│   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader (liest ships/ und outlines.json des aktiven Datenstands; Baseline = `ship-data\` neben der Exe mit Manifest, `ActiveShipData.ReadBaseline`, D113); csproj-Target holt die Baseline beim Build, Holo-Leser SCH2 (D63), `ShipData/`: Tag, Manifest-Leser (inkl. `holo`-Abschnitt → `HoloOffer`, D114), `ShipDataStore` (aktiver Stand, Install, Aufräumen; kein Netz, D112); `Routing/` (**Soll, entsteht ab T13.1**): Pool, Templates, Board, Ranking (D118, D119)
+│   ├── CargoPlan.Core/            # net10.0 – Modelle, Planer, Ship-Loader (liest ships/ und outlines.json des aktiven Datenstands; Baseline = `ship-data\` neben der Exe mit Manifest, `ActiveShipData.ReadBaseline`, D113); csproj-Target holt die Baseline beim Build, Holo-Leser SCH2 (D63), `ShipData/`: Tag, Manifest-Leser (inkl. `holo`-Abschnitt → `HoloOffer`, D114), `ShipDataStore` (aktiver Stand, Install, Aufräumen; kein Netz, D112); `Routing/` (**entsteht ab T13.1**): Titel-Enums, Beobachtungen + `routes.json` (T13.1); Soll: Templates, Board, Ranking (D118, D119)
 │   ├── CargoPlan.Import/          # net10.0 – Contracts/: Vertragstext → `ScannedContract` mit Inhaltsschlüssel (D101); `DestinationNames` (B1)
 │   ├── CargoPlan.Ocr/             # net10.0 – Vertrag aus einem Bild lesen: ROI, up2-gray, RapidOcrNet, Lesereihenfolge (D99); keine Windows-API; NOTICE.md → models/NOTICE.md
 │   ├── CargoPlan.Cli/             # net10.0 – Plan im Terminal ausgeben (Debugging ohne UI), `scan <png>`, `ships --version`
@@ -94,7 +94,7 @@ sc-cargoplan/
 │   ├── decisions.md               # D1…, nummeriert, mit Addenda
 │   ├── tasks-archive/             # Geschichte: abgeschlossene Phasen, Releases, Sessions aus TASKS.md, wortgleich (K11); Index und Lehren in TASKS.md
 │   ├── design/                    # Entwürfe vor einer Phase, Stand ihres Datums (cargo-routes.md: Phase 13); D-Einträge gehen vor
-│   ├── mission-format.md · plan-format.md · settings-format.md · ship-format.md · holo-format.md · hauling-data-format.md
+│   ├── mission-format.md · plan-format.md · settings-format.md · ship-format.md · holo-format.md · hauling-data-format.md · routes-format.md
 │   ├── update-testing.md          # Entwickler: lokaler Feed, --updates-prerelease, Release-Dateien, 10er-Fenster (D109)
 │   ├── release-notes/             # je Release, Geschichte: nie nachträglich ändern
 │   ├── review/                    # Repo-Durchsichten (2026-11-pre-p10)
@@ -130,6 +130,7 @@ dotnet test tests/CargoPlan.Import.Tests -c Release -p:RunSettingsFilePath= --fi
 dotnet test tests/CargoPlan.Ocr.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OcrMemoryTests --logger "console;verbosity=detailed"   # Speicher über 100 Lesevorgänge, nur von Hand; Env: CARGOPLAN_OCR_SAMPLES
 dotnet run --project src/CargoPlan.App -c Release -- --scan-probe [N] [--scan-probe-images]   # Overlay + Scan-Probe: F8 = 1 Scan, F9 = N Scans (Default 100); scan-probe.log + scan-probe\*.png neben cargoplan.log (CIG-Material, nie ins Repo); Env optional CARGOPLAN_SC_CAPTURE_PROCESS = anderes Fenster für einen Probelauf ohne SC
 dotnet run --project src/CargoPlan.App -c Release -- --keep-scans   # Overlay wie immer, jede Aufnahme von F3/Scan-Button als PNG nach scans\ neben plan.json (die letzten 20, Name Zeit-Ansicht-Ergebnis, auch bei „No contract in frame“), Name am Ende der Ergebniszeile in scans.log; für Bug-Reports anderer Auflösungen (D108, CIG-Material, nie ins Repo)
+dotnet run --project src/CargoPlan.App -c Release -- --data-dir <voller Pfad> --routes-open   # „Routes“ gilt als ausgewählter Reiter: F3 auf ein Angebot geht nicht in den Plan, nur als Beobachtung nach routes.json (T13.1, U3); Wegwerf-Schalter, fällt mit der Reiterleiste in T13.2
 dotnet run --project src/CargoPlan.App -c Release -- --measure-frames <ziel> --over-game [--scan-load]   # Frame-Zeit über dem Spiel (D83) mit vorgewärmter Engine; --scan-load scannt während der 30 s in Schleife; measure-frames.log neben der Exe
 dotnet test tests/CargoPlan.App.Tests -c Release -p:RunSettingsFilePath= --filter FullyQualifiedName~OverlayCaptureTests   # eigenes Fenster über dem ROI je Capture-Variante (D100), SC muss laufen, nur von Hand; Env: CARGOPLAN_SC_CAPTURE (Ausgabeordner außerhalb des Repos), optional CARGOPLAN_SC_CAPTURE_PROCESS
 ./tools/fetch-ship-data.ps1 -ReadableSchemaVersions 4,5,6   # gepinnten Data-Release nach .ship-data/<tag>/ holen und prüfen; macht der Build selbst, wenn er fehlt (D113); Racks, Umrisse, Anker baut die Pipeline (sc-cargoplan-shipdata)

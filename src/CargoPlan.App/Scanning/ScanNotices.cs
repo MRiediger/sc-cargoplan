@@ -1,5 +1,6 @@
 using System.Globalization;
 using CargoPlan.Core.Missions;
+using CargoPlan.Core.Routing;
 
 namespace CargoPlan.App.Scanning;
 
@@ -35,6 +36,8 @@ internal static class ScanNotices
         ScanReportKind.CaptureFailed => $"Scan failed: screen capture refused ({report.Reason})",
         ScanReportKind.Unavailable => null,
         ScanReportKind.Busy => Running,
+        ScanReportKind.Observed => $"Observed (Routes): {(report.Observed is { } key ? Template(key) : "offer")} – plan unchanged",
+        ScanReportKind.NotObserved => $"Not observed (Routes): {report.Reason} – plan unchanged",
         _ => throw new ArgumentOutOfRangeException(nameof(report), report.Kind, null),
     };
 
@@ -65,6 +68,15 @@ internal static class ScanNotices
             .. mission.Contract?.Scan.QuantitiesEstimated == true ? ["rescan after accepting"] : Array.Empty<string>(),
         ]);
     }
+
+    /// <summary>"Covalex Rookie Direct Extra Small · 41,750 aUEC": the title's words as the game writes them, the reward.</summary>
+    private static string Template(ObservationKey key) => string.Join(' ', [
+        key.Contractor == HaulContractor.RedWind ? "Red Wind" : "Covalex",
+        key.Rank.ToString(),
+        .. key.Direct == true ? ["Direct"] : Array.Empty<string>(),
+        key.Size == HaulSize.Xs ? "Extra Small" : key.Size.ToString(),
+        Inv($"· {key.Reward:N0} aUEC"),
+    ]);
 
     private static string Inv(FormattableString text) => text.ToString(CultureInfo.InvariantCulture);
 }

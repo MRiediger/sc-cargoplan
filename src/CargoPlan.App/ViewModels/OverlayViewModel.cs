@@ -578,6 +578,19 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             return new(ScanReportKind.NoContract);
         }
 
+        // U1, U3 (T13.1, D118): an offer scanned for the Routes tab is an observation only; no step, no number, no save.
+        if (IsRoutesTabSelected && scanned.View == ContractView.Offer)
+        {
+            return scanned.ToObservation(DateTime.UtcNow) is { } observed
+                ? new(ScanReportKind.Observed, Observed: observed.Key)
+                : new(ScanReportKind.NotObserved, Reason: (scanned.Title, scanned.Reward) switch
+                {
+                    (null, null) => "title and reward unreadable",
+                    (null, _) => "title unreadable",
+                    _ => "reward unreadable",
+                });
+        }
+
         var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []), CrateCap.Of(Ship));
         var nextNo = Math.Max(LastScanNo, current.HighestScanNo) + 1;
         var unified = DestinationNames.Unify(current, Ship, [scanned.ToCapture(nextNo)]);
@@ -602,6 +615,13 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         };
         return new(kind, merge.ScanNo, merge.QuantitiesChanged, merge.Cleared, merge.Refusal);
     }
+
+    /// <summary>
+    /// "Routes" is the selected tab (D118, E2: also while locked): an offer's scan stays out of the plan (U1, U3). Until
+    /// T13.2 brings the tab strip, only tests and the developer's switch <c>--routes-open</c> set it (T13.1).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsRoutesTabSelected { get; set; }
 
     /// <summary>A scan runs (T10.3): the editor's Scan button is off meanwhile. Set by the scan runner on the UI thread.</summary>
     [ObservableProperty]

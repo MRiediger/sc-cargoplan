@@ -1,4 +1,5 @@
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Routing;
 
 namespace CargoPlan.Import.Contracts;
 
@@ -13,6 +14,7 @@ namespace CargoPlan.Import.Contracts;
 /// <param name="HasObjectives">The text has the "PRIMARY OBJECTIVES" heading (T10.2b2).</param>
 /// <param name="Unread">Objective lines that read as nothing: a delivery's count without its destination, a Collect line
 /// without its place (T10.2b2); empty for a text all there.</param>
+/// <param name="Title">The contract title (T13.1); null if no line reads whole as one.</param>
 internal sealed record ParsedContract(
     IReadOnlyList<ParsedDelivery> Deliveries,
     CrateSize? MaxCrateSize,
@@ -21,4 +23,5 @@ internal sealed record ParsedContract(
     IReadOnlyList<ParsedPickup> Pickups,
     ContractView View,
     bool HasObjectives = false,
-    IReadOnlyList<string>? Unread = null);
+    IReadOnlyList<string>? Unread = null,
+    ContractTitle? Title = null);

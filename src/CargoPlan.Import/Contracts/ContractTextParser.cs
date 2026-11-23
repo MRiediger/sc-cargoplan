@@ -40,7 +40,7 @@ internal static partial class ContractTextParser
         var all = text.Split('\n');
         var lines = Block(all);
         return new(Deliveries(lines), MaxCrateSize(string.Join('\n', lines)), ListedDestinationCount(lines), Reward(text), Pickups(lines),
-            View(all), all.Any(l => IsHeading(l, ObjectivesHeading)), Unread(lines));
+            View(all), all.Any(l => IsHeading(l, ObjectivesHeading)), Unread(lines), ContractTitles.Read(all));
     }
 
     /// <summary>

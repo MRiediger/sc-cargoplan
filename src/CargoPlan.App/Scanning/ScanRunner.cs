@@ -1,3 +1,4 @@
+using CargoPlan.App.Routing;
 using CargoPlan.App.ViewModels;
 
 namespace CargoPlan.App.Scanning;
@@ -13,13 +14,15 @@ namespace CargoPlan.App.Scanning;
 /// <param name="ui">Runs an action on the UI thread: <c>Dispatcher.InvokeAsync(action).Task</c> in the app.</param>
 /// <param name="delay">The wait before a second read; <see cref="Task.Delay(TimeSpan)"/> in the app.</param>
 /// <param name="pictures">With <c>--keep-scans</c>: keeps each run's picture (T10.5); null = none.</param>
+/// <param name="routes">Takes every scan read as an observation into routes.json (T13.1, U3); null = none.</param>
 internal sealed class ScanRunner(
     Func<Task<ScanAttempt>> scan,
     OverlayViewModel overlay,
     ScanLog log,
     Func<Action, Task> ui,
     Func<TimeSpan, Task>? delay = null,
-    ScanPictures? pictures = null)
+    ScanPictures? pictures = null,
+    RoutesBook? routes = null)
 {
     private readonly ScanIntake _intake = new(
         scan,
@@ -32,7 +35,8 @@ internal sealed class ScanRunner(
         report => ui(() => overlay.ShowScanReport(report)),
         log,
         delay ?? (time => Task.Delay(time)),
-        pictures);
+        pictures,
+        routes is null ? null : routes.Observe);
 
     // Scans started and not yet ended; the editor's button is off while there is one.
     private int _running;

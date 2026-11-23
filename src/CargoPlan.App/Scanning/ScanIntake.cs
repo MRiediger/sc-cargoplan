@@ -16,13 +16,16 @@ namespace CargoPlan.App.Scanning;
 /// <param name="delay">The wait before the second read, <see cref="SecondReadDelay"/> in the app (S10.0: the game types
 /// a contract in within a fraction of a second).</param>
 /// <param name="pictures">With <c>--keep-scans</c>: keeps each run's picture (T10.5); null = none.</param>
+/// <param name="observe">Records the contract read as an observation (T13.1, U3), on the pool after the notice, so the
+/// key-to-notice time stays as it was; whatever view and whatever the plan did. Never throws. null = none.</param>
 internal sealed class ScanIntake(
     Func<Task<ScanAttempt>> scan,
     Func<ScannedContract, Task<ScanReport>> apply,
     Func<ScanReport, Task> show,
     ScanLog log,
     Func<TimeSpan, Task> delay,
-    ScanPictures? pictures = null)
+    ScanPictures? pictures = null,
+    Action<ScannedContract>? observe = null)
 {
     public static readonly TimeSpan SecondReadDelay = TimeSpan.FromMilliseconds(300);
 
@@ -59,7 +62,16 @@ internal sealed class ScanIntake(
 
         var report = await apply(read).ConfigureAwait(false);
         await show(report).ConfigureAwait(false);
-        Finish(raw, report, attempt, read.View, toText, clock.Elapsed);
+        var toNotice = clock.Elapsed;
+        TimeSpan? observing = null;
+        if (observe is not null)
+        {
+            var observeClock = Stopwatch.StartNew();
+            observe(read);
+            observing = observeClock.Elapsed;
+        }
+
+        Finish(raw, report, attempt, read.View, toText, toNotice, observing);
         return report;
     }
 
@@ -67,10 +79,11 @@ internal sealed class ScanIntake(
     /// The read and its result into scans.log, the result and the times into cargoplan.log too: scans.log keeps 50. With
     /// --keep-scans the picture of the attempt the result rests on, its name on the result line (T10.5).
     /// </summary>
-    private void Finish(string raw, ScanReport report, ScanAttempt attempt, ContractView? view, TimeSpan toText, TimeSpan toNotice)
+    private void Finish(string raw, ScanReport report, ScanAttempt attempt, ContractView? view, TimeSpan toText, TimeSpan toNotice, TimeSpan? observing = null)
     {
         var picture = pictures?.Save(attempt.Picture, view, report);
-        var result = $"{Describe(report)} | {Times(attempt, toText, toNotice)}{(picture is null ? "" : $" | picture={picture}")}";
+        var observed = observing is { } time ? Inv($" observeMs={time.TotalMilliseconds:0}") : "";
+        var result = $"{Describe(report)} | {Times(attempt, toText, toNotice)}{observed}{(picture is null ? "" : $" | picture={picture}")}";
         log.Write(raw, result);
         AppLog.Write("Scan", result);
     }
