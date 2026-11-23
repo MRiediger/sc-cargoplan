@@ -109,5 +109,10 @@
   "shipData": {
     "checkOnStartup": true,
     "skippedVersion": null
+  },
+  "routes": {
+    "tab": "cargo",
+    "rank": "master",
+    "faction": null
   }
 }

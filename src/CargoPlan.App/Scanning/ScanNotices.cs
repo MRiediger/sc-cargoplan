@@ -36,8 +36,9 @@ internal static class ScanNotices
         ScanReportKind.CaptureFailed => $"Scan failed: screen capture refused ({report.Reason})",
         ScanReportKind.Unavailable => null,
         ScanReportKind.Busy => Running,
-        ScanReportKind.Observed => $"Observed (Routes): {(report.Observed is { } key ? Template(key) : "offer")} – plan unchanged",
-        ScanReportKind.NotObserved => $"Not observed (Routes): {report.Reason} – plan unchanged",
+        // E1 of the T13.2 approval: the Routes tab is labelled Plan, so these say "cargo" for the loading plan.
+        ScanReportKind.Observed => $"Observed (Plan tab): {(report.Observed is { } key ? Template(key) : "offer")} – cargo unchanged",
+        ScanReportKind.NotObserved => $"Not observed (Plan tab): {report.Reason} – cargo unchanged",
         _ => throw new ArgumentOutOfRangeException(nameof(report), report.Kind, null),
     };
 

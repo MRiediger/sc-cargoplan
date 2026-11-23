@@ -140,9 +140,9 @@ public sealed class ScanNoticesTests
 
     // T13.1: with Routes selected an offer stays out of the plan; the line names the template or why there is none.
     [Theory]
-    [InlineData(HaulContractor.Covalex, HaulRank.Junior, HaulSize.Small, false, 50_250L, "Observed (Routes): Covalex Junior Small · 50,250 aUEC – plan unchanged")]
-    [InlineData(HaulContractor.Covalex, HaulRank.Rookie, HaulSize.Xs, true, 41_750L, "Observed (Routes): Covalex Rookie Direct Extra Small · 41,750 aUEC – plan unchanged")]
-    [InlineData(HaulContractor.RedWind, HaulRank.Member, HaulSize.Medium, null, 532_500L, "Observed (Routes): Red Wind Member Medium · 532,500 aUEC – plan unchanged")]
+    [InlineData(HaulContractor.Covalex, HaulRank.Junior, HaulSize.Small, false, 50_250L, "Observed (Plan tab): Covalex Junior Small · 50,250 aUEC – cargo unchanged")]
+    [InlineData(HaulContractor.Covalex, HaulRank.Rookie, HaulSize.Xs, true, 41_750L, "Observed (Plan tab): Covalex Rookie Direct Extra Small · 41,750 aUEC – cargo unchanged")]
+    [InlineData(HaulContractor.RedWind, HaulRank.Member, HaulSize.Medium, null, 532_500L, "Observed (Plan tab): Red Wind Member Medium · 532,500 aUEC – cargo unchanged")]
     public void An_observed_offer_names_its_template(HaulContractor contractor, HaulRank rank, HaulSize size, bool? direct, long reward, string expected)
     {
         var report = new ScanReport(ScanReportKind.Observed, Observed: new ObservationKey(contractor, rank, size, direct, reward));
@@ -154,6 +154,6 @@ public sealed class ScanNoticesTests
     public void An_offer_not_observed_says_why_and_that_the_plan_stays()
     {
         ScanNotices.Text(new ScanReport(ScanReportKind.NotObserved, Reason: "reward unreadable"), null)
-            .Should().Be("Not observed (Routes): reward unreadable – plan unchanged");
+            .Should().Be("Not observed (Plan tab): reward unreadable – cargo unchanged");
     }
 }

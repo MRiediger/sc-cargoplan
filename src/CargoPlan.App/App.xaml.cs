@@ -287,7 +287,7 @@ public partial class App : Application
         var viewModel = new OverlayViewModel(ship, ships)
         {
             IsManuallyLocked = options.Locked,
-            IsRoutesTabSelected = options.RoutesOpen,
+            IsRoutesTabSelected = settings.Routes.IsPlanTab,
             RecentShips = settings.RecentShips ?? [],
             Cameras = settings.ShipView.Cameras ?? new Dictionary<string, ShipCamera>(),
             Outlines = outlines,
@@ -323,10 +323,23 @@ public partial class App : Application
             AppLog.Write("Scan", $"keeping the last {ScanPictures.MaxPictures} scan pictures in {ScanPictures.DefaultFolder} ({StartOptions.KeepScansSwitch})");
         }
 
-        if (options.RoutesOpen)
+        // The tab strip (T13.2, D120): the selected tab is kept for the next start; with Plan selected, offers stay out of
+        // the cargo (D118), and the log says so once, as the start opens there.
+        if (viewModel.IsRoutesTabSelected)
         {
-            AppLog.Write("Routes", $"Routes counts as the selected tab: offers stay out of the plan ({StartOptions.RoutesOpenSwitch})");
+            AppLog.Write("Routes", "the Plan tab is selected: offers stay out of the cargo");
         }
+
+        viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(OverlayViewModel.IsRoutesTabSelected))
+            {
+                session.ChangeRoutes(session.Current.Routes with
+                {
+                    Tab = viewModel.IsRoutesTabSelected ? RoutesSettings.PlanTab : RoutesSettings.CargoTab,
+                });
+            }
+        };
 
         // Every scan read whole is an observation in routes.json, whatever tab is selected (T13.1, U3).
         var scan = new ScanRunner(

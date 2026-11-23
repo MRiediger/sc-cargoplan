@@ -50,10 +50,6 @@ namespace CargoPlan.App;
 /// repository of the same layout instead of sc-cargoplan-shipdata (T12.3, P5): for gates and tests. A developer's build
 /// checks ship data only with it (P4). null = sc-cargoplan-shipdata; anything else is a problem, not a stop.
 /// </param>
-/// <param name="RoutesOpen">
-/// "Routes" counts as the selected tab (T13.1, U3): an offer's scan stays out of the plan. A developer's switch for the
-/// gate at the terminal until T13.2 brings the tab strip, which replaces it; kept on a restart after an update.
-/// </param>
 public sealed record StartOptions(
     bool Locked,
     string? PlanPath,
@@ -69,8 +65,7 @@ public sealed record StartOptions(
     bool KeepScans = false,
     string? UpdatesSource = null,
     bool UpdatesPrerelease = false,
-    string? ShipDataSource = null,
-    bool RoutesOpen = false)
+    string? ShipDataSource = null)
 {
     public const string LockedSwitch = "--locked";
 
@@ -98,8 +93,6 @@ public sealed record StartOptions(
 
     public const string ShipDataSourceSwitch = "--ship-data-source";
 
-    public const string RoutesOpenSwitch = "--routes-open";
-
     /// <summary>F9's series without a number: Gate 2's 100 scans.</summary>
     public const int ScanProbeSeries = 100;
 
@@ -112,7 +105,6 @@ public sealed record StartOptions(
         var scanLoad = false;
         var keepScans = false;
         var updatesPrerelease = false;
-        var routesOpen = false;
         string? planPath = null;
         string? measureFrames = null;
         int? scanProbe = null;
@@ -208,10 +200,6 @@ public sealed record StartOptions(
             {
                 keepScans = true;
             }
-            else if (Is(args[i], RoutesOpenSwitch))
-            {
-                routesOpen = true;
-            }
             else if (Is(args[i], UpdatesPrereleaseSwitch))
             {
                 updatesPrerelease = true;
@@ -256,7 +244,7 @@ public sealed record StartOptions(
             (updatesPrerelease, problem) = (false, problem ?? $"{UpdatesPrereleaseSwitch} only goes with GitHub, not with {UpdatesSourceSwitch}.");
         }
 
-        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans, updatesSource, updatesPrerelease, shipDataSource, routesOpen);
+        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans, updatesSource, updatesPrerelease, shipDataSource);
     }
 
     /// <summary>

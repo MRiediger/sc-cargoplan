@@ -23,7 +23,7 @@ public sealed class RoutesSwitchTests : IDisposable
 
     private static readonly ObservationKey JuniorSmall = new(HaulContractor.Covalex, HaulRank.Junior, HaulSize.Small, Direct: false, Reward: 50_250);
 
-    private const string Observed = "Observed (Routes): Covalex Junior Small · 50,250 aUEC – plan unchanged";
+    private const string Observed = "Observed (Plan tab): Covalex Junior Small · 50,250 aUEC – cargo unchanged";
 
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"));
 
@@ -123,6 +123,27 @@ public sealed class RoutesSwitchTests : IDisposable
         File.Exists(RoutesPath).Should().BeFalse("nothing observed, nothing written");
     }
 
+    // --- The tab strip (T13.2, D120) drives the same switch ---
+
+    [Fact]
+    public async Task The_Plan_tab_keeps_an_offer_out_and_the_Cargo_tab_lets_the_next_one_in()
+    {
+        var routes = RoutesBook.Load(RoutesPath);
+        var runner = Runner(routes, Raw(View.Offer), Raw(View.Offer, scu: 9));
+
+        _overlay.ShowPlanCommand.Execute(null);
+        await runner.RunAsync();
+        _overlay.IsRoutesTabSelected.Should().BeTrue();
+        _overlay.Missions.Should().BeEmpty();
+        _overlay.Notices.Should().Equal(Observed);
+
+        _overlay.ShowCargoCommand.Execute(null);
+        await runner.RunAsync();
+        _overlay.IsRoutesTabSelected.Should().BeFalse();
+        _overlay.Missions.Should().ContainSingle();
+        routes.Observations.Entries.Should().ContainSingle().Which.Count.Should().Be(2);
+    }
+
     // --- Around the cells ---
 
     [Fact]
@@ -144,7 +165,7 @@ public sealed class RoutesSwitchTests : IDisposable
         var routes = await Scan(routesSelected: true, Raw(View.Offer, title));
 
         _overlay.Saved.Should().BeNull();
-        _overlay.Notices.Should().Equal($"Not observed (Routes): {why} – plan unchanged");
+        _overlay.Notices.Should().Equal($"Not observed (Plan tab): {why} – cargo unchanged");
         routes.Observations.Entries.Should().BeEmpty();
     }
 
