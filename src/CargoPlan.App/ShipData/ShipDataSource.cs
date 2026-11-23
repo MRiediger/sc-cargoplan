@@ -170,9 +170,10 @@ public sealed class ShipDataSource : IDisposable
             return zip.NoNetwork ? UpdateFailure.NoNetwork : UpdateFailure.SeeLog;
         }
 
+        var hauling = await HaulingAssetsAsync(release.Manifest, closing);
         try
         {
-            var installed = await Task.Run(() => _store.Install(release.Manifest, release.Json, new MemoryStream(zip.Data)), CancellationToken.None);
+            var installed = await Task.Run(() => _store.Install(release.Manifest, release.Json, new MemoryStream(zip.Data), hauling), CancellationToken.None);
             Installed = installed.Version;
             AppLog.Write(LogContext, $"installed {installed}");
         }
@@ -197,6 +198,38 @@ public sealed class ShipDataSource : IDisposable
     }
 
     public void Dispose() => _client.Dispose();
+
+    /// <summary>
+    /// The hauling assets the release offers (T13.2, D112 addendum): two more files on the same click, from the same
+    /// release folder. One that fails is left out with a log line; the ship data install all the same (K2).
+    /// </summary>
+    private async Task<IReadOnlyDictionary<string, byte[]>> HaulingAssetsAsync(ShipDataManifest manifest, CancellationToken closing)
+    {
+        Dictionary<string, byte[]> assets = [];
+        if (manifest.Hauling is not HaulingOffer.Offered offered)
+        {
+            return assets;
+        }
+
+        foreach (var asset in (ReleaseAsset[])[offered.Manifest.Templates, offered.Manifest.Positions])
+        {
+            var read = await ReadAsync(asset.File, new Uri(ReleaseFolder(_repository, manifest.DataVersion), asset.File), _downloadTimeout, closing);
+            if (read.Data is null)
+            {
+                AppLog.Write(LogContext, $"{asset.File} of {manifest.DataVersion} left out: {read.Problem}");
+            }
+            else if (!asset.Matches(read.Data))
+            {
+                AppLog.Write(LogContext, $"{asset.File} of {manifest.DataVersion} left out: length or SHA256 differs from manifest.json");
+            }
+            else
+            {
+                assets[asset.File] = read.Data;
+            }
+        }
+
+        return assets;
+    }
 
     private async Task<ShipDataCheckNow> AskAsync(string? skipped, ShipDataVersion active, string prefix, CancellationToken closing)
     {
