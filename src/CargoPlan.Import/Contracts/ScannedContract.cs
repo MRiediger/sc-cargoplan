@@ -41,6 +41,21 @@ public sealed record ScannedContract(
         Stops,
         new ContractSource(new ScanIdentity(scanNo, Key, View != ContractView.Accepted), CrateSizeAssumed, ListedDestinationCount, Reward));
 
+    /// <summary>
+    /// The contract as an observation of its template (T13.1, U3), scanned at <paramref name="utc"/>: from the offers or
+    /// the accepted view, read whole (no hard doubt, a delivery), with its title and reward, which make the key. Null
+    /// otherwise; one line per delivery, places as read.
+    /// </summary>
+    public ObservedScan? ToObservation(DateTime utc) =>
+        View is ContractView.Offer or ContractView.Accepted && !InHardDoubt && Stops.Count > 0 && Title is { } title && Reward is { } reward
+            ? new(
+                new ObservationKey(title.Contractor, title.Rank, title.Size, title.Direct, reward),
+                title.Area,
+                Pickups,
+                [.. Stops.SelectMany(stop => stop.Items.Select(item => new ObservedDelivery(stop.Destination, item.Commodity, item.Scu)))],
+                utc)
+            : null;
+
     /// <summary>A max size or reward that wasn't readable, in the key: equal only to itself, never to a number (D101).</summary>
     internal const string Unreadable = "?";
 
