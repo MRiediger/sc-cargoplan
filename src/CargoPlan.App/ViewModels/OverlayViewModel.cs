@@ -1,5 +1,6 @@
 using CargoPlan.App.Editor;
 using CargoPlan.App.Holo;
+using CargoPlan.App.Routing;
 using CargoPlan.App.Scanning;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
@@ -622,6 +623,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     /// </summary>
     [ObservableProperty]
     public partial bool IsRoutesTabSelected { get; set; }
+
+    /// <summary>The Plan tab's content (T13.2): the port matrix of the hauling data in use; null in tests without it.</summary>
+    public RoutesViewModel? Routes { get; init; }
 
     /// <summary>The tab "Cargo": the loading plan and the ship, as before T13.2.</summary>
     [RelayCommand]

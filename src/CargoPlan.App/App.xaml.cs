@@ -15,6 +15,7 @@ using CargoPlan.App.ViewModels;
 using CargoPlan.App.Win32;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Plans;
+using CargoPlan.Core.Routing;
 using CargoPlan.Core.ShipData;
 using CargoPlan.Core.Ships;
 using CargoPlan.Ocr;
@@ -120,6 +121,9 @@ public partial class App : Application
         // in use bring their own (T12.3).
         var outlines = ShipOutlineLoader.Load(data.OutlinesPath);
 
+        // Templates and positions for the Plan tab (T13.2): once per start, like the ships; never a reason to stop (K2).
+        var hauling = LoadHauling(data);
+
         // The measuring tool instead of the overlay (Phase 8): before settings and plan, so it touches neither.
         if (options.MeasureFrames is { } measured)
         {
@@ -134,7 +138,7 @@ public partial class App : Application
 
         var loaded = SettingsStore.Load(SettingsStore.DefaultPath);
         var settings = loaded.Settings;
-        var parts = ComposeOverlay(ships, outlines, options, loaded);
+        var parts = ComposeOverlay(ships, outlines, options, loaded, hauling, data);
         ComposeHotkeys(parts, settings);
         ComposeStartPlan(parts, options);
         ComposeSettingsFollowers(parts);
@@ -265,6 +269,37 @@ public partial class App : Application
 
     private const string ShipDataLog = "Ship data";
 
+    /// <summary>
+    /// The hauling files of the data in use (T13.2): one log line with the counts and how long it took (TASKS.md asks for
+    /// the start's time), one per entry left out. No notice whatever comes (K2); the Plan tab says it.
+    /// </summary>
+    private static HaulingLoad LoadHauling(ActiveShipData data)
+    {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var load = HaulingFiles.Load(data);
+        var ms = watch.ElapsedMilliseconds;
+        switch (load)
+        {
+            case HaulingLoad.Loaded loaded:
+                AppLog.Write("Hauling", FormattableString.Invariant(
+                    $"{loaded.Data.Templates.Count} templates, {loaded.Data.Positions.All.Count} positions, {loaded.Skipped.Count} left out, {ms} ms ({data.Version})"));
+                foreach (var line in loaded.Skipped)
+                {
+                    AppLog.Write("Hauling", $"left out: {line}");
+                }
+
+                break;
+            case HaulingLoad.UnknownFormat unknown:
+                AppLog.Write("Hauling", $"not used, {unknown.Reason} ({data.Version})");
+                break;
+            case HaulingLoad.None none:
+                AppLog.Write("Hauling", $"none: {none.Reason}");
+                break;
+        }
+
+        return load;
+    }
+
     /// <summary>The start's message without the built-in ship data (T12.5, R5): the ZIP is incomplete, so a new one helps.</summary>
     internal static string BaselineMissingText(ShipDataFormatException ex) =>
         $"The ship data next to SC-CargoPlan are missing or damaged ({ex.Message}). Download SC-CargoPlan again.";
@@ -279,15 +314,22 @@ public partial class App : Application
     /// warm-up, which waits for the first frame, a scan key being set or the first scan (D108).
     /// </summary>
     private OverlayParts ComposeOverlay(
-        ShipCatalog ships, ShipOutlineCatalog outlines, StartOptions options, SettingsLoad loaded)
+        ShipCatalog ships, ShipOutlineCatalog outlines, StartOptions options, SettingsLoad loaded, HaulingLoad hauling, ActiveShipData data)
     {
         var settings = loaded.Settings;
         // The settings' ship, else the start plan's, else the Hull A; one that doesn't load never stops the start (T7.2).
         var (ship, shipNotice) = ShipChoices.Resolve(ships, settings.Ship, PlanStore.PeekShipId(options.PlanPath ?? PlanStore.DefaultPath));
+
+        // The session comes after the view model (it applies the look to it); the Plan tab saves rank and faction through it,
+        // never the tab, which the overlay's own handler below keeps.
+        SettingsSession? sessionForRoutes = null;
+        var routes = new RoutesViewModel(hauling, data.Version, settings.Routes, changed =>
+            sessionForRoutes?.ChangeRoutes(sessionForRoutes.Current.Routes with { Rank = changed.Rank, Faction = changed.Faction }));
         var viewModel = new OverlayViewModel(ship, ships)
         {
             IsManuallyLocked = options.Locked,
             IsRoutesTabSelected = settings.Routes.IsPlanTab,
+            Routes = routes,
             RecentShips = settings.RecentShips ?? [],
             Cameras = settings.ShipView.Cameras ?? new Dictionary<string, ShipCamera>(),
             Outlines = outlines,
@@ -299,6 +341,7 @@ public partial class App : Application
         // Before any window: their DynamicResources find the theme from the first layout on. The settings window
         // changes the look through the same session (D34).
         var session = new SettingsSession(Resources, viewModel, SettingsStore.DefaultPath, settings);
+        sessionForRoutes = session;
 
         // A hotkey the migration to schema 3 took is said once (T10.4a): the file is written now, the old one stays as the
         // backup, and the hint stays for the run (B14). Every other load writes nothing until a change (D31).

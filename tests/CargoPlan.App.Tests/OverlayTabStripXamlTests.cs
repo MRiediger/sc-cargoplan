@@ -80,4 +80,21 @@ public class OverlayTabStripXamlTests
         style.Should().Contain("Value=\"Collapsed\"").And.Contain("{Binding IsRoutesTabSelected}");
         cargo.Descendants().Should().Contain(e => (string?)e.Attribute(X + "Name") == "ShipView");
     }
+
+    [Fact]
+    public void The_plan_view_shows_the_routes_matrix_scrolling_both_ways_in_the_legends_size()
+    {
+        var root = Root();
+        var plan = Named(root, "PlanView");
+        var grid = Named(root, "PortMatrix");
+
+        plan.Attribute("Content")!.Value.Should().Be("{Binding Routes, Mode=OneTime}");
+        grid.Attributes().Single(a => a.Name.LocalName == "PortMatrixGrid.Columns").Value.Should().Be("{Binding Columns}");
+        grid.Attribute("ItemsSource")!.Value.Should().Be("{Binding Rows}");
+        grid.Attribute("FrozenColumnCount")!.Value.Should().Be("1");
+        grid.Attribute("HorizontalScrollBarVisibility")!.Value.Should().Be("Auto");
+        grid.Attribute("VerticalScrollBarVisibility")!.Value.Should().Be("Auto");
+        grid.Attribute("FontSize")!.Value.Should().Be("{DynamicResource LegendFontSize}");
+        grid.Attribute("IsReadOnly")!.Value.Should().Be("True");
+    }
 }
