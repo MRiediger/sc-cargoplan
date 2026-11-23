@@ -264,6 +264,12 @@ Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
     `routes.tab` = `"cargo" | "plan"`.
 13. **E1:** kein UI-Text trägt „plan“ in beiden Bedeutungen: „Observed (Plan tab): … – cargo unchanged“, „Not observed
     (Plan tab): … – cargo unchanged“; Re-plan, Discard plan bleiben (T13.8/Wiki).
+14. **Bild-Gate (Martin, 23.11.), Commit 11:** Matrix zu dicht. (1) Default Area = stellar (`RouteFilter.Default`, der
+    Filter bleibt; ersetzt „Default alle“ aus Punkt 3, Zeile darunter dann 75); (2) L-Stationen mit Kurznamen `XXX-Ln` in
+    Zeilen und Spalten, Hubs voll, voller Name im Tooltip; (3) Reihenfolge Hubs, dann L-Stationen je Planet Hurston,
+    Crusader, ArcCorp, microTech, Rest alphabetisch, als `PlaceNames.Order` in Core (T13.7 nutzt sie); (4) Zelltext
+    „13 · 1.1M“, max SCU in den Tooltip; „Direct: any“, „Any contractor“; Bildlaufleisten im Overlay-Stil (schmale Leiste
+    jetzt auch waagerecht).
 
 **Stand 23.11. (Branch `feat/p13-routes-tab`, 1324cee..):**
 - Loader: Mechanik-Tests mit kleinen Fixtures (A10), mit abgeschalteten Checks 10 von 37 rot; Hash-Prüfung im Install
@@ -283,12 +289,14 @@ Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
 - Sauberer Worktree auf 8529264: `dotnet build` 0 Warnungen, `dotnet test` 4747/4747 (Core 2212, App 2144, Import 357,
   Ocr 34); `dotnet format --verify-no-changes` grün nach dem IDE0062-Commit.
 
-**Offen bis zur Abnahme (Martin):**
-- **Bild-Gate** am Branch-Build: Matrix bei Standardgröße 420 × 460 lesbar, Scrollen, Tooltip (Hover und Klick), Filter;
-  Zelltext „3 · 482k · 144“, Spaltenbreiten, Bildlaufleisten (noch Windows-Standard).
-- **Gate am Terminal, SC vorne:** Reiter wechseln entsperrt; sperren → Reiter bleibt, Click-through; Plan + Offer →
-  „Observed (Plan tab)“, plan.json-Hash gleich; Cargo → F3 wie heute; Neustart mit Plan startet dort.
-- **Frames über dem Spiel:** `--measure-frames routes --over-game` gegen `empty` (Regel ≤ empty + 2 pp).
+**Gates (Martin, 23.11.):**
+- **Gates 1–5 grün:** Reiter wechseln entsperrt; sperren → Reiter bleibt, Click-through; Plan + Offer → „Observed (Plan
+  tab)“, plan.json-Hash gleich; Cargo → F3 wie heute; Neustart mit Plan startet dort; Handling-Liste unten.
+- **Frames über dem Spiel** (Release, 2271864): `routes` 63 × 67 Zellen 1,3 % spät (median 16,67 ms, max 267,5 ms,
+  74,1 fps) gegen `empty` 11,2 % spät (107,9 fps) – Regel ≤ empty + 2 pp erfüllt.
+- **Bild-Gate:** Matrix zu dicht → Präzisierung 14, Commit 11; danach neuer Screenshot bei 420 × 460 (CC, Desktop):
+  Hubs zuerst, `HUR-L1` …, Zellen „6 · 327k“, Filter „Stellar · Direct: any · Any contractor“, schmale Leisten in beide
+  Richtungen, Zeile „75 templates not shown“. Abnahme danach.
 - **Handling-Liste gegen `main`:**
 
   | Geste | Soll (= main) | Ist Branch (erwartet) |

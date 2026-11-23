@@ -47,9 +47,9 @@ public sealed class RoutesViewModelTests
         model.StatusText.Should().BeNull();
         model.Columns.Should().Equal("B", "C");
         model.Rows.Select(r => r.Pickup).Should().Equal("A");
-        Cell(model, "A", "B")!.Text.Should().Be("2 · 350k · 144");
-        Cell(model, "A", "C")!.Text.Should().Be("1 · 100k · 64");
-        model.Legend.Should().Be("Each cell: contracts · aUEC together · most SCU of one");
+        Cell(model, "A", "B")!.Text.Should().Be("2 · 350k");
+        Cell(model, "A", "C")!.Text.Should().Be("1 · 100k");
+        model.Legend.Should().Be("Each cell: contracts · aUEC together");
     }
 
     [Fact]
@@ -61,8 +61,8 @@ public sealed class RoutesViewModelTests
         model.NextCommand.Execute("system");
 
         model.SystemLabel.Should().Be("Pyro");
-        Cell(model, "P", "Q")!.Text.Should().Be("1 · – · 600");
-        RoutesViewModel.CellText(new PortCell([new(T(["A"], ["B"]), false, false), new(redWind, false, false)])).Should().Be("2 · 100k+ · 600");
+        Cell(model, "P", "Q")!.Text.Should().Be("1 · –");
+        RoutesViewModel.CellText(new PortCell([new(T(["A"], ["B"]), false, false), new(redWind, false, false)])).Should().Be("2 · 100k+");
     }
 
     [Theory]
@@ -79,9 +79,20 @@ public sealed class RoutesViewModelTests
 
         var tip = Cell(model, "Everus Harbor", "HUR-L1")!.ToolTip;
 
-        tip.Should().StartWith("Everus Harbor → HUR-L1");
+        tip.Should().StartWith("Everus Harbor → HUR-L1 · most SCU in one contract: 144");
         tip.Should().Contain("Experienced Rank - Direct Medium Cargo Haul · 160,250 aUEC · 90–144 SCU");
         tip.Should().Contain("pickup: hub of the board, not in the game data");
+    }
+
+    // Picture gate: L stations by their code, hubs in full; the full name stays in the row and the cell's tool tip.
+    [Fact]
+    public void L_stations_show_by_their_code_and_keep_their_full_name()
+    {
+        var model = Model([T(["HUR-L1 Green Glade Station"], ["Everus Harbor"]), T([], ["HUR-L3 Thundering Express Station"])]);
+
+        model.Rows.Select(r => (r.Label, r.Pickup)).Should().Equal(("Everus Harbor", "Everus Harbor"), ("HUR-L1", "HUR-L1 Green Glade Station"));
+        model.Columns.Should().Equal("Everus Harbor", "HUR-L3 Thundering Express Station");
+        Cell(model, "Everus Harbor", "HUR-L3 Thundering Express Station")!.ToolTip.Should().StartWith("Everus Harbor → HUR-L3 Thundering Express Station");
     }
 
     [Fact]
@@ -127,17 +138,19 @@ public sealed class RoutesViewModelTests
     {
         var model = Model([T(["A"], ["B"])]);
 
-        model.DirectLabel.Should().Be("Direct and not");
+        model.DirectLabel.Should().Be("Direct: any");
         model.NextCommand.Execute("direct");
         model.DirectLabel.Should().Be("Direct only");
         model.PreviousCommand.Execute("direct");
         model.PreviousCommand.Execute("direct");
         model.DirectLabel.Should().Be("No direct");
 
-        model.ContractorLabel.Should().Be("Covalex and Red Wind");
-        model.AreaLabel.Should().Be("All areas");
+        model.ContractorLabel.Should().Be("Any contractor");
+        model.AreaLabel.Should().Be("Stellar", "the matrix starts with stellar (picture gate)");
         model.NextCommand.Execute("area");
-        model.AreaLabel.Should().Be("Local");
+        model.AreaLabel.Should().Be("Interstellar");
+        model.NextCommand.Execute("area");
+        model.AreaLabel.Should().Be("All areas");
         model.SystemLabel.Should().Be("Stanton");
         model.PreviousCommand.Execute("system");
         model.SystemLabel.Should().Be("Interstellar");

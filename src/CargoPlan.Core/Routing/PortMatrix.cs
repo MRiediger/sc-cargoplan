@@ -22,7 +22,8 @@ public sealed class PortCell(IReadOnlyList<PortCellTemplate> templates)
 
 /// <summary>
 /// Pickup × drop-off over the templates a filter lets through (T13.2, design §8.5): a template with n pickups and m
-/// drop-offs counts once in each of its n × m cells. Rows and columns are the places that have a cell, alphabetical.
+/// drop-offs counts once in each of its n × m cells. Rows and columns are the places that have a cell, in
+/// <see cref="PlaceNames.Order"/>.
 /// A template with a side still empty after <see cref="BoardHubs"/> has no cell and counts in <see cref="WithoutPlace"/>.
 /// </summary>
 public sealed class PortMatrix
@@ -82,10 +83,9 @@ public sealed class PortMatrix
             }
         }
 
-        // Case-insensitive and culture-free, so every machine orders the same; ordinal breaks a tie.
-        var order = StringComparer.OrdinalIgnoreCase;
-        string[] rows = [.. cells.Keys.Select(k => k.Item1).Distinct(StringComparer.Ordinal).Order(order).ThenBy(s => s, StringComparer.Ordinal)];
-        string[] columns = [.. cells.Keys.Select(k => k.Item2).Distinct(StringComparer.Ordinal).Order(order).ThenBy(s => s, StringComparer.Ordinal)];
+        // Hubs, L stations per planet, the rest alphabetical (PlaceNames): culture-free, so every machine orders the same.
+        string[] rows = [.. cells.Keys.Select(k => k.Item1).Distinct(StringComparer.Ordinal).Order(PlaceNames.Order)];
+        string[] columns = [.. cells.Keys.Select(k => k.Item2).Distinct(StringComparer.Ordinal).Order(PlaceNames.Order)];
         return new PortMatrix(rows, columns, cells.ToDictionary(c => c.Key, c => new PortCell(c.Value)), shown, withoutPlace);
     }
 }

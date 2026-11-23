@@ -23,10 +23,13 @@ public class PortMatrixGridTests
     {
         var grid = Grid();
 
-        PortMatrixGrid.SetColumns(grid, ["HUR-L1", "HUR-L2"]);
+        PortMatrixGrid.SetColumns(grid, ["HUR-L1 Green Glade Station", "Everus Harbor"]);
 
-        grid.Columns.Select(c => c.Header).Should().Equal("From \\ To", "HUR-L1", "HUR-L2");
-        grid.Columns.Select(PathOf).Should().Equal("Pickup", "Cells[0].Text", "Cells[1].Text");
+        // Picture gate: an L station's column shows its code, the header's tool tip the full name.
+        grid.Columns.Select(c => c.Header).Should().Equal("From \\ To", "HUR-L1", "Everus Harbor");
+        grid.Columns.Skip(1).Select(c => c.HeaderStyle.Setters.OfType<Setter>().Single(s => s.Property == FrameworkElement.ToolTipProperty).Value)
+            .Should().Equal("HUR-L1 Green Glade Station", "Everus Harbor");
+        grid.Columns.Select(PathOf).Should().Equal("Label", "Cells[0].Text", "Cells[1].Text");
         var tip = ((DataGridTextColumn)grid.Columns[2]).ElementStyle.Setters.OfType<Setter>().Single(s => s.Property == FrameworkElement.ToolTipProperty);
         ((Binding)tip.Value).Path.Path.Should().Be("Cells[1].ToolTip");
 

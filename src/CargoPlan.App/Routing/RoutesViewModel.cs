@@ -10,10 +10,13 @@ using static System.FormattableString;
 
 namespace CargoPlan.App.Routing;
 
-/// <summary>One row of the port matrix: a pickup and one cell per drop-off column, null where nothing goes.</summary>
-public sealed record PortRowView(string Pickup, IReadOnlyList<PortCellView?> Cells);
+/// <summary>
+/// One row of the port matrix: a pickup, as shown (<see cref="PlaceNames.Short"/>: "HUR-L1") and in full, and one cell per
+/// drop-off column, null where nothing goes.
+/// </summary>
+public sealed record PortRowView(string Pickup, string Label, IReadOnlyList<PortCellView?> Cells);
 
-/// <summary>A cell as the grid shows it: "3 · 482k · 144", and the templates in its tool tip.</summary>
+/// <summary>A cell as the grid shows it: "13 · 1.1M", and the most SCU and the templates in its tool tip.</summary>
 public sealed record PortCellView(string Text, string ToolTip);
 
 /// <summary>
@@ -29,10 +32,10 @@ public sealed partial class RoutesViewModel : ObservableObject
         [.. Enum.GetValues<HaulRank>().Select(r => ($"Rank ≤ {r}", r))];
 
     private static readonly (string Label, DirectFilter Value)[] Directs =
-        [("Direct and not", DirectFilter.All), ("Direct only", DirectFilter.Only), ("No direct", DirectFilter.Without)];
+        [("Direct: any", DirectFilter.All), ("Direct only", DirectFilter.Only), ("No direct", DirectFilter.Without)];
 
     private static readonly (string Label, HaulContractor? Value)[] Contractors =
-        [("Covalex and Red Wind", null), ("Covalex", HaulContractor.Covalex), ("Red Wind", HaulContractor.RedWind)];
+        [("Any contractor", null), ("Covalex", HaulContractor.Covalex), ("Red Wind", HaulContractor.RedWind)];
 
     private static readonly (string Label, HaulFaction? Value)[] Factions =
         [("Any faction", null), ("Headhunters", HaulFaction.Hh), ("CFP", HaulFaction.Cfp)];
@@ -66,8 +69,14 @@ public sealed partial class RoutesViewModel : ObservableObject
     {
         _settings = settings;
         _save = save;
+        // Core's default filter (Stanton, stellar, T13.2 picture gate); rank and faction from settings.json.
+        var start = RouteFilter.Default;
         _rank = Array.FindIndex(Ranks, r => r.Value == settings.MaxRank);
         _faction = Array.FindIndex(Factions, f => f.Value == settings.PlayerFaction);
+        _direct = Array.FindIndex(Directs, d => d.Value == start.Direct);
+        _contractor = Array.FindIndex(Contractors, c => c.Value == start.Contractor);
+        _area = Array.FindIndex(Areas, a => a.Value == start.MissionType);
+        _system = Array.FindIndex(Systems, s => s.Value == start.System);
         (_templates, StatusText) = load switch
         {
             HaulingLoad.Loaded loaded => (loaded.Data.Templates, (string?)null),
@@ -82,7 +91,7 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     public bool HasData => StatusText is null;
 
-    public string Legend => "Each cell: contracts · aUEC together · most SCU of one";
+    public string Legend => "Each cell: contracts · aUEC together";
 
     public string RankLabel => Ranks[_rank].Label;
 
@@ -135,11 +144,11 @@ public sealed partial class RoutesViewModel : ObservableObject
         Areas[_area].Value,
         Systems[_system].Value);
 
-    /// <summary>"3 · 482k · 144": templates, the sum of the known rewards ("–" if none, "+" if some are unknown), the most SCU of one.</summary>
+    /// <summary>"13 · 1.1M": templates and the sum of the known rewards ("–" if none, "+" if some are unknown); the most SCU is in the tool tip.</summary>
     public static string CellText(PortCell cell)
     {
         var reward = cell.RewardSum is { } sum ? Short(sum) + (cell.UnknownRewards > 0 ? "+" : "") : "–";
-        return Invariant($"{cell.Count} · {reward} · {cell.MaxScu}");
+        return Invariant($"{cell.Count} · {reward}");
     }
 
     /// <summary>aUEC in short: 950, 57k, 482k, 1.2M.</summary>
@@ -227,7 +236,7 @@ public sealed partial class RoutesViewModel : ObservableObject
 
         var matrix = PortMatrix.Build(_templates, Filter);
         Columns = matrix.Dropoffs;
-        Rows = [.. matrix.Pickups.Select(p => new PortRowView(p, [.. matrix.Dropoffs.Select(d => View(p, d, matrix.Cell(p, d)))]))];
+        Rows = [.. matrix.Pickups.Select(p => new PortRowView(p, PlaceNames.Short(p), [.. matrix.Dropoffs.Select(d => View(p, d, matrix.Cell(p, d)))]))];
         WithoutPlaceText = matrix.WithoutPlace switch
         {
             0 => null,
@@ -244,7 +253,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             return null;
         }
 
-        var tip = new StringBuilder($"{pickup} → {dropoff}");
+        var tip = new StringBuilder(Invariant($"{pickup} → {dropoff} · most SCU in one contract: {cell.MaxScu}"));
         foreach (var entry in cell.Templates.Take(MaxToolTipTemplates))
         {
             var t = entry.Template;

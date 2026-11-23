@@ -47,7 +47,7 @@ public static class PortMatrixGrid
         grid.Columns.Add(new DataGridTextColumn
         {
             Header = "From \\ To",
-            Binding = new Binding(nameof(PortRowView.Pickup)),
+            Binding = new Binding(nameof(PortRowView.Label)),
             ElementStyle = (Style)grid.FindResource(PickupTextStyleKey),
         });
 
@@ -55,9 +55,14 @@ public static class PortMatrixGrid
         var columns = (IReadOnlyList<string>?)e.NewValue ?? [];
         for (var i = 0; i < columns.Count; i++)
         {
+            // An L station by its code ("HUR-L1", picture gate), the full name in the header's tool tip.
             grid.Columns.Add(new DataGridTextColumn
             {
-                Header = columns[i],
+                Header = Core.Routing.PlaceNames.Short(columns[i]),
+                HeaderStyle = new Style(typeof(DataGridColumnHeader), grid.ColumnHeaderStyle)
+                {
+                    Setters = { new Setter(FrameworkElement.ToolTipProperty, columns[i]) },
+                },
                 Binding = new Binding($"{nameof(PortRowView.Cells)}[{i}].{nameof(PortCellView.Text)}"),
                 ElementStyle = new Style(typeof(TextBlock), cellStyle)
                 {

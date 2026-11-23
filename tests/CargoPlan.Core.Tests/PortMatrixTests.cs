@@ -28,7 +28,8 @@ public sealed class PortMatrixTests
         $"t{Interlocked.Increment(ref _uuid)}", "debug", contractor, "title", rank, size, direct, shape, 1, system, areaKey, type, faction,
         reward, [new HaulLeg("Gold", 1, maxScu, CrateSize.Sixteen)], pickups, dropoffs);
 
-    private static readonly RouteFilter All = RouteFilter.Default;
+    // Every area: the default is stellar only (picture gate), these tests mix areas.
+    private static readonly RouteFilter All = RouteFilter.Default with { MissionType = null };
 
     [Fact]
     public void A_template_counts_once_in_every_cell_of_its_pools()
@@ -199,7 +200,7 @@ public sealed class PortMatrixTests
     }
 
     [Fact]
-    public void The_default_filter_is_Stanton_every_rank_size_type_and_contractor()
+    public void The_default_filter_is_Stanton_stellar_every_rank_size_and_contractor()
     {
         RouteFilter.Default.Should().BeEquivalentTo(new
         {
@@ -208,7 +209,7 @@ public sealed class PortMatrixTests
             Direct = DirectFilter.All,
             Contractor = (HaulContractor?)null,
             Faction = (HaulFaction?)null,
-            MissionType = (HaulMissionType?)null,
+            MissionType = (HaulMissionType?)HaulMissionType.Stellar,
             System = (StarSystem?)StarSystem.Stanton,
         });
     }

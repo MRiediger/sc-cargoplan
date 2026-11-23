@@ -73,7 +73,9 @@ public sealed class BaselineHaulingDataTests
         var matrix = PortMatrix.Build(Data.Templates, RouteFilter.Default with { MissionType = HaulMissionType.Stellar });
 
         matrix.WithoutPlace.Should().Be(75);
-        matrix.Pickups.Should().Contain(BoardHubs.ByArea.Values);
+        matrix.Pickups.Take(4).Should().Equal("Everus Harbor", "Seraphim Station", "Baijini Point", "Port Tressler");
+        matrix.Dropoffs.Take(4).Should().Equal("Everus Harbor", "Seraphim Station", "Baijini Point", "Port Tressler");
+        matrix.Dropoffs.Skip(4).First().Should().StartWith("HUR-L1 ", "the L stations follow the hubs, Hurston's first");
     }
 
     [Fact]

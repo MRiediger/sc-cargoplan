@@ -198,9 +198,28 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- A slim bar instead of the system's light grey one, for the ship list and the legend's stop lines (K7): no arrows,
-             an invisible track that pages on click, a thumb in the Foreground that brightens under the mouse. Each user sets
-             Foreground: the header's colour in the list, the legend's in the legend. Vertical only, neither scrolls sideways.
+        <!-- The slim bar's thumb: in the bar's Foreground, brighter under the mouse and while dragged. -->
+        <Style x:Key="SlimScrollThumbStyle" TargetType="Thumb">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="Grip" CornerRadius="2" Opacity="0.35" Background="{TemplateBinding Foreground}" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Grip" Property="Opacity" Value="0.6" />
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="Grip" Property="Opacity" Value="0.6" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <!-- A slim bar instead of the system's light grey one, for the ship list and the legend's stop lines (K7) and the
+             Plan tab's matrix (T13.2): no arrows, an invisible track that pages on click, a thumb in the Foreground that
+             brightens under the mouse. Each user sets Foreground: the header's colour in the list, the legend's in the
+             legend and the matrix. Vertical by default; horizontal for the matrix, which scrolls sideways too.
              Parts: https://learn.microsoft.com/dotnet/desktop/wpf/controls/scrollbar (PART_Track) -->
         <Style x:Key="SlimScrollBarStyle" TargetType="ScrollBar">
             <Setter Property="Width" Value="8" />
@@ -217,26 +236,37 @@
                                 <RepeatButton Command="{x:Static ScrollBar.PageDownCommand}" Style="{StaticResource SlimScrollPageButtonStyle}" />
                             </Track.IncreaseRepeatButton>
                             <Track.Thumb>
-                                <Thumb Foreground="{TemplateBinding Foreground}">
-                                    <Thumb.Template>
-                                        <ControlTemplate TargetType="Thumb">
-                                            <Border x:Name="Grip" CornerRadius="2" Opacity="0.35" Background="{TemplateBinding Foreground}" />
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Grip" Property="Opacity" Value="0.6" />
-                                                </Trigger>
-                                                <Trigger Property="IsDragging" Value="True">
-                                                    <Setter TargetName="Grip" Property="Opacity" Value="0.6" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Thumb.Template>
-                                </Thumb>
+                                <Thumb Foreground="{TemplateBinding Foreground}" Style="{StaticResource SlimScrollThumbStyle}" />
                             </Track.Thumb>
                         </Track>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+            <Style.Triggers>
+                <Trigger Property="Orientation" Value="Horizontal">
+                    <Setter Property="Width" Value="NaN" />
+                    <Setter Property="MinWidth" Value="0" />
+                    <Setter Property="Height" Value="8" />
+                    <Setter Property="MinHeight" Value="8" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ScrollBar">
+                                <Track x:Name="PART_Track" Margin="2,2,2,2">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="{x:Static ScrollBar.PageLeftCommand}" Style="{StaticResource SlimScrollPageButtonStyle}" />
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="{x:Static ScrollBar.PageRightCommand}" Style="{StaticResource SlimScrollPageButtonStyle}" />
+                                    </Track.IncreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb Foreground="{TemplateBinding Foreground}" Style="{StaticResource SlimScrollThumbStyle}" />
+                                    </Track.Thumb>
+                                </Track>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
         </Style>
         <Style x:Key="ShipBoxStyle" TargetType="ComboBox">
             <Setter Property="Focusable" Value="False" />
@@ -953,6 +983,10 @@
                                         <Setter Property="MaxWidth" Value="150" />
                                         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
                                         <Setter Property="ToolTip" Value="{Binding Pickup}" />
+                                    </Style>
+                                    <!-- The matrix's scroll bars in both directions: the overlay's slim bar in the legend's colour. -->
+                                    <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBarStyle}">
+                                        <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
                                     </Style>
                                     <Style x:Key="BlockIfTextStyle" TargetType="TextBlock" BasedOn="{StaticResource LegendTextStyle}">
                                         <Setter Property="Margin" Value="0,0,0,4" />

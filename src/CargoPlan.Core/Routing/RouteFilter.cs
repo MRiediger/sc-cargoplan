@@ -27,9 +27,12 @@ public sealed record RouteFilter(
     HaulMissionType? MissionType,
     StarSystem? System)
 {
-    /// <summary>Stanton, everything in it: the app knows no location yet (T13.2).</summary>
+    /// <summary>
+    /// Stanton, stellar, every rank, size and contractor: the app knows no location yet, and Phase 13 plans with stellar
+    /// (T13.2 picture gate: all areas made the matrix too dense; the area filter stays).
+    /// </summary>
     public static RouteFilter Default { get; } = new(
-        HaulRank.Master, new HashSet<HaulSize>(Enum.GetValues<HaulSize>()), DirectFilter.All, null, null, null, StarSystem.Stanton);
+        HaulRank.Master, new HashSet<HaulSize>(Enum.GetValues<HaulSize>()), DirectFilter.All, null, null, HaulMissionType.Stellar, StarSystem.Stanton);
 
     public bool Matches(HaulTemplate template) =>
         template.Rank <= MaxRank
