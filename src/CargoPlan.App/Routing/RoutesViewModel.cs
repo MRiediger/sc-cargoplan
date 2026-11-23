@@ -21,12 +21,15 @@ public sealed record PortCellView(string Text, string ToolTip);
 
 /// <summary>
 /// The Plan tab (the Routes tab, D120; T13.2): the port matrix of the hauling templates (design §8.5) under a filter whose
-/// parts cycle on a click. The matrix is Core's (<see cref="PortMatrix"/>); this formats it. Rank and faction go to
-/// settings.json (routes.rank, routes.faction), the other filters live for the session.
+/// parts cycle on a click, with what the scans saw (T13.3, <see cref="ObservedEdges"/>, computed by the caller). The matrix
+/// is Core's (<see cref="PortMatrix"/>); this formats it. Rank and faction go to settings.json (routes.rank,
+/// routes.faction), the other filters live for the session.
 /// </summary>
 public sealed partial class RoutesViewModel : ObservableObject
 {
     private const int MaxToolTipTemplates = 15;
+
+    private const string ObservedMark = "● ";
 
     private static readonly (string Label, HaulRank Value)[] Ranks =
         [.. Enum.GetValues<HaulRank>().Select(r => ($"Rank ≤ {r}", r))];
@@ -50,6 +53,8 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     private readonly Action<RoutesSettings>? _save;
 
+    private ObservedEdges _observed;
+
     private RoutesSettings _settings;
 
     private int _rank;
@@ -65,10 +70,12 @@ public sealed partial class RoutesViewModel : ObservableObject
     private int _system;
 
     /// <param name="save">Called with the new section when rank or faction change; null in tests that don't save.</param>
-    public RoutesViewModel(HaulingLoad load, ShipDataVersion version, RoutesSettings settings, Action<RoutesSettings>? save)
+    /// <param name="observed">What the scans in routes.json add (T13.3); none without.</param>
+    public RoutesViewModel(HaulingLoad load, ShipDataVersion version, RoutesSettings settings, Action<RoutesSettings>? save, ObservedEdges? observed = null)
     {
         _settings = settings;
         _save = save;
+        _observed = observed ?? ObservedEdges.Empty;
         // Core's default filter (Stanton, stellar, T13.2 picture gate); rank and faction from settings.json.
         var start = RouteFilter.Default;
         _rank = Array.FindIndex(Ranks, r => r.Value == settings.MaxRank);
@@ -91,7 +98,7 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     public bool HasData => StatusText is null;
 
-    public string Legend => "Each cell: contracts · aUEC together";
+    public string Legend => "Each cell: contracts · aUEC together; ● seen in your scans";
 
     public string RankLabel => Ranks[_rank].Label;
 
@@ -131,6 +138,10 @@ public sealed partial class RoutesViewModel : ObservableObject
     [ObservableProperty]
     public partial string? WithoutPlaceText { get; private set; }
 
+    /// <summary>With Pyro: Red Wind's region blocks are not on a board until a scan shows which station has which (design §5).</summary>
+    [ObservableProperty]
+    public partial string? RegionsText { get; private set; }
+
     /// <summary>"No templates for this filter." when data are there but the filter leaves no cell; else null.</summary>
     [ObservableProperty]
     public partial string? EmptyText { get; private set; }
@@ -144,11 +155,21 @@ public sealed partial class RoutesViewModel : ObservableObject
         Areas[_area].Value,
         Systems[_system].Value);
 
-    /// <summary>"13 · 1.1M": templates and the sum of the known rewards ("–" if none, "+" if some are unknown); the most SCU is in the tool tip.</summary>
+    /// <summary>
+    /// "13 · 1.1M": templates and the sum of the known rewards ("–" if none, "+" if some are unknown), "● " first where a
+    /// scan saw the pair (T13.3); the most SCU is in the tool tip.
+    /// </summary>
     public static string CellText(PortCell cell)
     {
         var reward = cell.RewardSum is { } sum ? Short(sum) + (cell.UnknownRewards > 0 ? "+" : "") : "–";
-        return Invariant($"{cell.Count} · {reward}");
+        return Invariant($"{(cell.Observed ? ObservedMark : "")}{cell.Count} · {reward}");
+    }
+
+    /// <summary>What the scans saw, from routes.json after a scan (T13.3); the matrix follows.</summary>
+    public void ShowObserved(ObservedEdges observed)
+    {
+        _observed = observed;
+        Rebuild();
     }
 
     /// <summary>aUEC in short: 950, 57k, 482k, 1.2M.</summary>
@@ -234,7 +255,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             return;
         }
 
-        var matrix = PortMatrix.Build(_templates, Filter);
+        var matrix = PortMatrix.Build(_templates, Filter, _observed);
         Columns = matrix.Dropoffs;
         Rows = [.. matrix.Pickups.Select(p => new PortRowView(p, PlaceNames.Short(p), [.. matrix.Dropoffs.Select(d => View(p, d, matrix.Cell(p, d)))]))];
         WithoutPlaceText = matrix.WithoutPlace switch
@@ -244,6 +265,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             var n => Invariant($"{n} templates not shown: the game data name no pickup or destination for them."),
         };
         EmptyText = Rows.Count == 0 ? "No templates for this filter." : null;
+        RegionsText = Systems[_system].Value == StarSystem.Pyro ? "Red Wind's regional templates are not shown yet: no scan has placed them." : null;
     }
 
     private static PortCellView? View(string pickup, string dropoff, PortCell? cell)
@@ -257,8 +279,17 @@ public sealed partial class RoutesViewModel : ObservableObject
         foreach (var entry in cell.Templates.Take(MaxToolTipTemplates))
         {
             var t = entry.Template;
-            var reward = t.Reward is { } r ? Invariant($"{r:N0} aUEC") : "no reward in the game data";
+            var reward = (t.Reward, entry.ObservedReward) switch
+            {
+                ({ } data, _) => Invariant($"{data:N0} aUEC"),
+                (null, { } seen) => Invariant($"{seen:N0} aUEC observed"),
+                _ => "no reward in the game data",
+            };
             tip.Append(Invariant($"\n{t.Title} · {reward} · {t.Legs.Sum(l => l.MinScu)}–{t.MaxScu} SCU"));
+            if (entry.Observed is { } seenHere)
+            {
+                tip.Append(Invariant($" · observed {seenHere.Count}× · last {seenHere.LastUtc.ToLocalTime():d MMM}"));
+            }
             if (entry.PickupFromHub)
             {
                 tip.Append(" · pickup: hub of the board, not in the game data");

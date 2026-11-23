@@ -32,8 +32,24 @@ public sealed class RoutesViewModelTests
         "u", "d", contractor, title, rank, HaulSize.Medium, false, HaulShape.AToB, 1, system, areaKey, type, faction, reward,
         [new HaulLeg("Gold", min, max, CrateSize.Sixteen)], pickups, dropoffs);
 
-    private RoutesViewModel Model(IReadOnlyList<HaulTemplate> templates, RoutesSettings? settings = null) =>
-        new(new HaulingLoad.Loaded(new HaulingData(templates, Positions.Empty), []), Version, settings ?? RoutesSettings.Default, _saved.Add);
+    private RoutesViewModel Model(IReadOnlyList<HaulTemplate> templates, RoutesSettings? settings = null, ObservedEdges? observed = null) =>
+        new(new HaulingLoad.Loaded(new HaulingData(templates, Positions.Empty), []), Version, settings ?? RoutesSettings.Default, _saved.Add, observed);
+
+    private static readonly DateTime Monday = new(2026, 11, 23, 12, 0, 0, DateTimeKind.Utc);
+
+    private static readonly Positions Places = new(
+    [
+        .. new[] { "Everus Harbor", "Baijini Point" }.Select(n => new StarPosition(n, n, StarSystem.Stanton, "Manmade", null, 0, 0, 0, [])),
+        .. new[] { "P", "Q" }.Select(n => new StarPosition(n, n, StarSystem.Pyro, "Manmade", null, 0, 0, 0, [])),
+    ]);
+
+    // Seen twice: a Senior Medium for the reward, Gold, from the first place to the second.
+    private static ObservedEdges Seen(HaulTemplate template, HaulContractor contractor, long reward, string from, string to)
+    {
+        var key = new ObservationKey(contractor, HaulRank.Senior, HaulSize.Medium, contractor == HaulContractor.Covalex ? false : null, reward, ["Gold"]);
+        var scan = new ObservedScan(key, null, [from], [new ObservedDelivery(to, "Gold", 30)], Monday);
+        return ObservedEdges.From(new Observations([Observation.Of(scan).With(scan)]), [template], Places);
+    }
 
     private static PortCellView? Cell(RoutesViewModel model, string pickup, string dropoff) =>
         model.Rows.Single(r => r.Pickup == pickup).Cells[model.Columns.ToList().IndexOf(dropoff)];
@@ -49,7 +65,7 @@ public sealed class RoutesViewModelTests
         model.Rows.Select(r => r.Pickup).Should().Equal("A");
         Cell(model, "A", "B")!.Text.Should().Be("2 · 350k");
         Cell(model, "A", "C")!.Text.Should().Be("1 · 100k");
-        model.Legend.Should().Be("Each cell: contracts · aUEC together");
+        model.Legend.Should().Be("Each cell: contracts · aUEC together; ● seen in your scans");
     }
 
     [Fact]
@@ -103,6 +119,47 @@ public sealed class RoutesViewModelTests
         Model([T(["A"], [], areaKey: "Stanton"), T(["A"], [], areaKey: "Stanton")]).WithoutPlaceText
             .Should().Be("2 templates not shown: the game data name no pickup or destination for them.");
         Model([T(["A"], ["B"])]).WithoutPlaceText.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_pair_a_scan_saw_carries_a_mark_and_says_when_in_its_tool_tip()
+    {
+        // T13.3: a system-wide template without a place in the data gets its cell from the scans.
+        var wide = T([], [], areaKey: "Stanton", title: "Senior Rank - Medium Cargo Haul") with { Uuid = "wide" };
+        var model = Model([wide]);
+        model.WithoutPlaceText.Should().NotBeNull();
+
+        model.ShowObserved(Seen(wide, HaulContractor.Covalex, 100_000, "Everus Harbor", "Baijini Point"));
+
+        var cell = Cell(model, "Everus Harbor", "Baijini Point")!;
+        cell.Text.Should().Be("● 1 · 100k");
+        cell.ToolTip.Should().Contain("Senior Rank - Medium Cargo Haul · 100,000 aUEC · 10–64 SCU · observed 2× · last 23 Nov");
+        model.WithoutPlaceText.Should().BeNull("the template has a cell now");
+    }
+
+    [Fact]
+    public void A_Red_Wind_cell_shows_the_reward_a_scan_saw()
+    {
+        var redWind = T(["P"], ["Q"], reward: null, contractor: HaulContractor.RedWind, system: StarSystem.Pyro, areaKey: "Solar", faction: HaulFaction.Hh) with { Uuid = "rw" };
+        var model = Model([redWind], observed: Seen(redWind, HaulContractor.RedWind, 532_500, "P", "Q"));
+
+        model.NextCommand.Execute("system");
+
+        var cell = Cell(model, "P", "Q")!;
+        cell.Text.Should().Be("● 1 · 532k");
+        cell.ToolTip.Should().Contain("532,500 aUEC observed");
+    }
+
+    [Fact]
+    public void Pyro_says_its_regional_templates_are_not_shown_yet()
+    {
+        var model = Model([T(["A"], ["B"])]);
+        model.RegionsText.Should().BeNull();
+
+        model.NextCommand.Execute("system");
+
+        model.SystemLabel.Should().Be("Pyro");
+        model.RegionsText.Should().Be("Red Wind's regional templates are not shown yet: no scan has placed them.");
     }
 
     [Fact]

@@ -22,11 +22,20 @@ internal sealed class RoutesBook
     private Observations _observations;
     private bool _keepUnreadable;
 
-    private RoutesBook(string path, Observations observations, bool keepUnreadable) =>
-        (_path, _observations, _keepUnreadable) = (path, observations, keepUnreadable);
+    private RoutesBook(string path, Observations observations, bool keepUnreadable, long loadMilliseconds = 0) =>
+        (_path, _observations, _keepUnreadable, LoadMilliseconds) = (path, observations, keepUnreadable, loadMilliseconds);
+
+    /// <summary>How long reading and folding the file took at the start (T13.3).</summary>
+    public long LoadMilliseconds { get; }
 
     /// <summary>%LocalAppData%\SC-CargoPlan\routes.json, next to plan.json (D118).</summary>
     public static string DefaultPath => Path.Combine(AppFolders.LocalRoot, "routes.json");
+
+    /// <summary>
+    /// After a scan was recorded, on the scan's thread: all observations and the entry of the scan's variant. Not under the
+    /// lock: a listener may read <see cref="Observations"/>.
+    /// </summary>
+    public event Action<Observations, Observation>? Recorded;
 
     public Observations Observations
     {
@@ -50,6 +59,7 @@ internal sealed class RoutesBook
 
         try
         {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             using var stream = File.OpenRead(path);
             var read = RoutesFile.Read(stream, path);
             foreach (var dropped in read.Dropped)
@@ -57,7 +67,7 @@ internal sealed class RoutesBook
                 AppLog.Write(LogContext, dropped);
             }
 
-            return new(path, read.Observations, keepUnreadable: false);
+            return new(path, read.Observations, keepUnreadable: false, watch.ElapsedMilliseconds);
         }
         catch (Exception ex) when (ex is RoutesFormatException or IOException or UnauthorizedAccessException)
         {
@@ -83,11 +93,14 @@ internal sealed class RoutesBook
             return;
         }
 
+        Observations all;
         lock (_lock)
         {
-            _observations = _observations.Record(observed);
+            _observations = all = _observations.Record(observed);
             Save();
         }
+
+        Recorded?.Invoke(all, all.Entries.Single(e => e.Key == observed.Key));
     }
 
     private void Save()

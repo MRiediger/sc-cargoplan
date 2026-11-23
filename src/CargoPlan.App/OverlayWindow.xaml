@@ -1049,6 +1049,7 @@
                                 </WrapPanel>
 
                                 <TextBlock DockPanel.Dock="Bottom" Text="{Binding WithoutPlaceText}" Style="{StaticResource BlockIfTextStyle}" Margin="0,4,0,0" />
+                                <TextBlock DockPanel.Dock="Bottom" Text="{Binding RegionsText}" Style="{StaticResource BlockIfTextStyle}" Margin="0,2,0,0" />
                                 <TextBlock DockPanel.Dock="Top" Text="{Binding Legend, Mode=OneTime}" Style="{StaticResource BlockIfTextStyle}"
                                            Visibility="{Binding HasData, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneTime}" />
                                 <TextBlock DockPanel.Dock="Top" Text="{Binding EmptyText}" Style="{StaticResource BlockIfTextStyle}" />

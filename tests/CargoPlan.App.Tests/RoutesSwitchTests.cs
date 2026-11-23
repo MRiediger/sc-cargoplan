@@ -75,6 +75,21 @@ public sealed class RoutesSwitchTests : IDisposable
         return routes;
     }
 
+    [Fact]
+    public async Task A_recorded_scan_tells_its_listener_all_observations_and_its_entry()
+    {
+        // T13.3: the Plan tab's matrix follows the scans through this event.
+        var routes = RoutesBook.Load(RoutesPath);
+        List<(Observations All, Observation Entry)> heard = [];
+        routes.Recorded += (all, entry) => heard.Add((all, entry));
+
+        await Runner(routes, Raw(View.Offer)).RunAsync();
+
+        heard.Should().ContainSingle();
+        heard[0].Entry.Key.Should().Be(JuniorSmall);
+        heard[0].All.Entries.Should().ContainSingle();
+    }
+
     // --- The six cells ---
 
     [Fact]
