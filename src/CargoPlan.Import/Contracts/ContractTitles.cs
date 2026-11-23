@@ -1,10 +1,11 @@
 using System.Text.RegularExpressions;
 using CargoPlan.Core.Routing;
+using CargoPlan.Core.Text;
 
 namespace CargoPlan.Import.Contracts;
 
 /// <summary>
-/// The contract title (T13.1) in three forms, each line compared in its anchor form (<see cref="ContractText.AnchorForm"/>:
+/// The contract title (T13.1) in three forms, each line compared in its anchor form (<see cref="OcrText.AnchorForm"/>:
 /// no spaces, capitals, "l", "1" and "|" as "I"), so spacing, the bar and OCR's usual swaps need no case of their own:
 /// <list type="bullet">
 /// <item>Covalex: "Senior Rank - Direct Medium Cargo Haul";</item>
@@ -52,7 +53,7 @@ internal static partial class ContractTitles
 
     /// <summary>The first title in <paramref name="lines"/>; null if no line is one.</summary>
     public static ContractTitle? Read(IEnumerable<string> lines) =>
-        lines.Select(line => Of(ContractText.AnchorForm(line))).FirstOrDefault(title => title is not null);
+        lines.Select(line => Of(OcrText.AnchorForm(line))).FirstOrDefault(title => title is not null);
 
     private static ContractTitle? Of(string anchor)
     {

@@ -1,7 +1,7 @@
 using System.Globalization;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
-using CargoPlan.Import;
+using CargoPlan.Core.Text;
 using static System.FormattableString;
 
 namespace CargoPlan.App.Editor;

@@ -1,6 +1,7 @@
 using System.Globalization;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Routing;
+using CargoPlan.Core.Text;
 
 namespace CargoPlan.Import.Contracts;
 
@@ -135,7 +136,7 @@ public sealed record ScannedContract(
     /// </summary>
     private static string KeyOf(ParsedContract parsed) => string.Join(PartSeparator,
         Sorted(parsed.Pickups.Select(p => DestinationNames.Key(p.Place))),
-        Sorted(parsed.Deliveries.Select(d => $"{DestinationNames.Key(d.Destination)}:{ContractText.AnchorForm(d.Commodity)}")),
+        Sorted(parsed.Deliveries.Select(d => $"{DestinationNames.Key(d.Destination)}:{OcrText.AnchorForm(d.Commodity)}")),
         parsed.MaxCrateSize is { } max ? ((int)max).ToString(CultureInfo.InvariantCulture) : Unreadable,
         parsed.Reward?.ToString(CultureInfo.InvariantCulture) ?? Unreadable);
 

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
+using CargoPlan.Core.Text;
 using CargoPlan.Import.Contracts;
 using Xunit.Abstractions;
 
@@ -93,7 +94,7 @@ public sealed partial class ScanProbeLogTests(ITestOutputHelper output)
     }
 
     private static string Route(ParsedContract parsed) =>
-        string.Join(", ", parsed.Deliveries.Select(d => $"{DestinationNames.Key(d.Destination)}:{ContractText.AnchorForm(d.Commodity)}").Distinct().Order(StringComparer.Ordinal))
+        string.Join(", ", parsed.Deliveries.Select(d => $"{DestinationNames.Key(d.Destination)}:{OcrText.AnchorForm(d.Commodity)}").Distinct().Order(StringComparer.Ordinal))
         + $" | {parsed.Reward}";
 
     private sealed record Scan(int No, string Text, ScannedContract Contract, ParsedContract Parsed);

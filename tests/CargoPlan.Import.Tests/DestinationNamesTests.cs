@@ -5,6 +5,7 @@ using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
 using CargoPlan.Core.Tests;
+using CargoPlan.Core.Text;
 using CargoPlan.Import.Contracts;
 
 namespace CargoPlan.Import.Tests;

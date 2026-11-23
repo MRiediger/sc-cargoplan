@@ -1,5 +1,6 @@
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Text;
 
 namespace CargoPlan.Import.Contracts;
 

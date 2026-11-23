@@ -2,9 +2,8 @@ using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
-using CargoPlan.Import.Contracts;
 
-namespace CargoPlan.Import;
+namespace CargoPlan.Core.Text;
 
 /// <summary>
 /// Which names are one place (B1): "Thundering Express" and "Thundering Express Station", "Melodic Fieids" and "Melodic
@@ -14,17 +13,17 @@ namespace CargoPlan.Import;
 public static class DestinationNames
 {
     /// <summary>Suffixes a name may lose without naming another place. Only "Station" is seen in the game so far.</summary>
-    private static readonly string[] Suffixes = [ContractText.AnchorForm("Station")];
+    private static readonly string[] Suffixes = [OcrText.AnchorForm("Station")];
 
     /// <summary>
-    /// The name as OCR may read it (<see cref="ContractText.AnchorForm"/>, so i/l/1 and o/0 alike), without a last word
+    /// The name as OCR may read it (<see cref="OcrText.AnchorForm"/>, so i/l/1 and o/0 alike), without a last word
     /// that reads as a known suffix. Word by word, so "Everus Harborstation" keeps its "station".
     /// </summary>
     public static string Key(string name)
     {
         var words = name.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        var kept = words is [_, .., var last] && Suffixes.Contains(ContractText.AnchorForm(last)) ? words[..^1] : words;
-        return ContractText.AnchorForm(string.Concat(kept));
+        var kept = words is [_, .., var last] && Suffixes.Contains(OcrText.AnchorForm(last)) ? words[..^1] : words;
+        return OcrText.AnchorForm(string.Concat(kept));
     }
 
     /// <summary>Names of one place are equal (<see cref="Key"/>).</summary>
