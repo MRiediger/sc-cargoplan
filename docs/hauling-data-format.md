@@ -49,7 +49,7 @@ section of their own, which older apps skip as an unknown field.
 
 | Case | App |
 |---|---|
-| `hauling` missing or `null` | Routes tab without templates (pool, matrix and ranking from scans only); ships load; **no notice**. |
+| `hauling` missing or `null` | Routes tab without templates (matrix and ranking from observations only, D118 addendum T13.1); ships load; **no notice**. |
 | `hauling.schemaVersion` unknown, or a file fails its length, hash or a [loader check](#checks-of-the-loader) | Like a hologram format the app doesn't read (`HoloOffer.UnknownFormat`, D114): one log line, a hint in the Routes tab; ships load. |
 | Both files read | Templates and positions for the run; a data change counts from the next start (D111 addendum). |
 
