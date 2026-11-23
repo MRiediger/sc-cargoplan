@@ -214,7 +214,7 @@ Ladeplan (U1, U3, D118).
   142/251 ms (erster Plan-Schritt im Prozess). Eine Messung mit n ≥ 20 steht aus, falls die OCR-Zeit auffällt.
 - Red-Wind-Kartenform bleibt: „Direct“ da → `true`, sonst `null` (Abnahme). T13.6-Text bleibt bis zur T13.6-Planung.
 
-### [ ] T13.2 App: Reiter „Routes“, Loader, Hafen-Matrix
+### [x] T13.2 App: Reiter „Routes“ (UI: „Plan“), Loader, Hafen-Matrix (abgenommen 23.11.)
 
 **Warum:** Die U1-Weiche braucht einen Reiter, den der Spieler sieht, und der erste sichtbare Inhalt des Reiters ist die
 Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
@@ -240,6 +240,78 @@ Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
   heute
 - Handling-Liste gegen main (Soll/Ist je berührter Geste)
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (23.11.2026, mit K1, E1):**
+1. Beobachtete Kanten und „leere Pools nur über Beobachtungen“ gehen nach **T13.3**; die Matrix zeigt nur Templates.
+2. **Befund Pin:** leerer Dropoff-Pool 162, leerer Pickup-Pool 229; in den lokalen Stellar-Blöcken (Stanton1–4) ist die
+   Hub-Seite leer, nur 4 von 160 Covalex-Stellar-Templates haben beide Pools. **D121:** dort steht der Hub des Boards
+   (Everus Harbor, Seraphim Station, Baijini Point, Port Tressler) für die leere Seite, im Tooltip markiert; nur stellar
+   (für planetary/local kein Beleg). Systemweite `Stanton`-Templates (75 stellar) bleiben ohne Ort.
+3. Filter „Area“ (local/planetary/stellar/interstellar), Default alle; System Stanton | Pyro | Interstellar, Default
+   Stanton (Standort kennt die App nicht); Fraktion wirkt nur auf Red Wind.
+4. Zeile unter der Matrix zählt nach Filter: „N templates not shown: the game data name no pickup or destination for
+   them.“ (Default: 268).
+5. Paare Pickup = Dropoff zählen nicht.
+6. Unbekanntes `system`-Wort: Template/Position übersprungen wie die anderen Enum-Felder; ein Template, dessen Pool eine
+   übersprungene Position nennt, mit.
+7. Der Manifest-Leser wirft nie wegen `hauling` (auch nicht im Check auf ein neues Release); fehlen die Dateien nach
+   einem Install → keine Hauling-Daten, keine Notice.
+8. Datentests Boards 92/19/22 (bisher T13.3) und Distanzen 1,3/22,9 Gm (bisher T13.4) ziehen hierher.
+9. Frame-Ziel `routes` für `--measure-frames` (Matrix scrollt statt Kamera).
+10. Ladezeit synchron beim Start gemessen (Grenze 100 ms für einen Hintergrund-Task): 38–47 ms, bleibt synchron.
+11. Filter als Umschalt-Buttons im Overlay-Stil (Klick vor, Rechtsklick zurück) und fünf Größen-Kästchen statt
+    ComboBoxen: keine Popups über dem Spiel.
+12. **K1:** Die Reiter heißen im UI „Cargo | Plan“; Code, Dateien, Settings-Schlüssel und D-Einträge behalten „Routes“,
+    `routes.tab` = `"cargo" | "plan"`.
+13. **E1:** kein UI-Text trägt „plan“ in beiden Bedeutungen: „Observed (Plan tab): … – cargo unchanged“, „Not observed
+    (Plan tab): … – cargo unchanged“; Re-plan, Discard plan bleiben (T13.8/Wiki).
+14. **Bild-Gate (Martin, 23.11.), Commit 11:** Matrix zu dicht. (1) Default Area = stellar (`RouteFilter.Default`, der
+    Filter bleibt; ersetzt „Default alle“ aus Punkt 3, Zeile darunter dann 75); (2) L-Stationen mit Kurznamen `XXX-Ln` in
+    Zeilen und Spalten, Hubs voll, voller Name im Tooltip; (3) Reihenfolge Hubs, dann L-Stationen je Planet Hurston,
+    Crusader, ArcCorp, microTech, Rest alphabetisch, als `PlaceNames.Order` in Core (T13.7 nutzt sie); (4) Zelltext
+    „13 · 1.1M“, max SCU in den Tooltip; „Direct: any“, „Any contractor“; Bildlaufleisten im Overlay-Stil (schmale Leiste
+    jetzt auch waagerecht).
+
+**Stand 23.11. (Branch `feat/p13-routes-tab`, 1324cee..e7488d8, abgenommen 23.11.):**
+- Loader: Mechanik-Tests mit kleinen Fixtures (A10), mit abgeschalteten Checks 10 von 37 rot; Hash-Prüfung im Install
+  mutiert → 1 rot; Hub-Regel, Selbstkante, Rang-Filter mutiert → 8 rot.
+- Datentests gegen `ships-2026.11.2`: 587 Templates, 157 Positionen, 0 übersprungen; Everus 92, Crusader 19, ArcCorp 22;
+  Everus Harbor → HUR-L1 1,29 Gm, → Baijini Point 22,88 Gm; vier Hubs sind Stanton-Stationen; mit Hubs bleiben in Stanton
+  (stellar) genau die 75 systemweiten ohne Ort. Pin-Sprung: 135c jetzt mit Racks aus den Spieldateien
+  (`ShipLoaderTests` nennt nur noch die 600i Executive Edition).
+- Ladezeit beim Start (Debug): 587 Templates, 157 Positionen, 38–47 ms.
+- Pack `publish.ps1 -Version 0.7.99`: `check-portable.ps1` grün (390 Dateien in `current\`), `check-cli-tarball.ps1` grün
+  (328 Dateien); **ZIP 96 975 161 B gegen v0.7.0 96 791 336 B (+183 825 B ≈ +0,18 MB)**, Tarball 66 540 399 gegen
+  66 381 450 B (+158 949 B); die zwei JSON-Dateien (0,61 MB) komprimieren gut. „Vorher“ ist das v0.7.0-Release, nicht
+  `main` (T13.1 dazwischen).
+- Frames auf dem Desktop, nicht über dem Spiel (Release): `empty` 0,9 % spät, `routes` 1,2 % spät (63 × 67 Zellen),
+  ein Frame 254 ms.
+- Bilder (CC, Desktop): Plan-Reiter mit Filterzeile, Matrix und Zeile darunter; Cargo-Reiter mit Schiff wie bisher.
+- Sauberer Worktree auf 8529264: `dotnet build` 0 Warnungen, `dotnet test` 4747/4747 (Core 2212, App 2144, Import 357,
+  Ocr 34); `dotnet format --verify-no-changes` grün nach dem IDE0062-Commit.
+
+**Gates (Martin, 23.11.):**
+- **Gates 1–5 grün:** Reiter wechseln entsperrt; sperren → Reiter bleibt, Click-through; Plan + Offer → „Observed (Plan
+  tab)“, plan.json-Hash gleich; Cargo → F3 wie heute; Neustart mit Plan startet dort; Handling-Liste unten.
+- **Frames über dem Spiel** (Release, 2271864): `routes` 63 × 67 Zellen 1,3 % spät (median 16,67 ms, max 267,5 ms,
+  74,1 fps) gegen `empty` 11,2 % spät (107,9 fps) – Regel ≤ empty + 2 pp erfüllt.
+- **Bild-Gate:** Matrix zu dicht → Präzisierung 14, Commit 11; danach neuer Screenshot bei 420 × 460 (CC, Desktop):
+  Hubs zuerst, `HUR-L1` …, Zellen „6 · 327k“, Filter „Stellar · Direct: any · Any contractor“, schmale Leisten in beide
+  Richtungen, Zeile „75 templates not shown“. Abgenommen 23.11. (Martin).
+- **Handling-Liste gegen `main`:**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | Schiffsauswahl + Suche | Liste, Suche, Enter/Esc | gleich; mit Plan gewählt wechselt das Schiff im Hintergrund |
+  | Split / Merge / Re-plan | wie main | gleich, auch mit Plan gewählt |
+  | Stift (Editor) | öffnet den Editor | gleich |
+  | Undo / Redo (+ Hotkeys) | wie main | gleich |
+  | Reset view (+ Doppelklick) | Kamera zurück | gleich; mit Plan gewählt auf die verborgene Ansicht |
+  | Zahnrad | Settings | gleich |
+  | Schloss / toggleLock | sperrt, Click-through | gleich; Leiste bleibt sichtbar, Auswahl bleibt |
+  | Exit | schließt | gleich |
+  | Fenster ziehen | Kopfzeile, Rand, Notices | dazu freie Fläche der Reiterleiste |
+  | Reiter klicken (neu) | – | entsperrt Wechsel; gesperrt geht der Klick ans Spiel |
+
 ### [ ] T13.3 Core: Board, Matching, Rezept
 
 **Warum:** Erst mit den Templates kennt der Planer jedes Board ohne Anflug und kann einen Scan einem Template zuordnen.
@@ -252,12 +324,14 @@ Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
   systemweite Kanten entstehen nur aus Scans (Design §8.3; T13.0a, H1-Befund 9)
 - Observations beim Laden über `DestinationNames.Key` falten (Mengen vereinigen), idempotent, kein Schema-Bump
   (E1 der T13.1-Freigabe, Folge von Präzisierung 7)
+- **Aus T13.2:** beobachtete Kanten in der Hafen-Matrix, von Template-Kanten unterscheidbar; die systemweiten Templates
+  ohne Ort erscheinen nur über Beobachtungen; die Board-Hubs (D121) gelten auch für Board und Matching
 
 **Akzeptanz:**
 - `DestinationNames.Key` (mit `ContractText.AnchorForm`) nach Core verschoben, nicht nachgebaut (A1)
 - Mechanik-Tests mit Test-Fixtures (A10); Datentests gegen den Pin: Everus/Senior-Board 92 (Stanton + Stanton1),
-  Crusader 19, ArcCorp 22 (T13.0a, statt 18–21 aus Design §7.3), kein B1-Schlüssel doppelt je System über `name` und
-  `contractNames`
+  Crusader 19, ArcCorp 22 (T13.0a, statt 18–21 aus Design §7.3; als Zählung seit T13.2, hier über `Board.For`), kein
+  B1-Schlüssel doppelt je System über `name` und `contractNames`
 - Matching: jede Covalex-Offer-Fixture eindeutig zugeordnet oder mit Grund nicht; lokal gegen die Everus-Serie
   mindestens 78/84 (Design §7.3)
 - settings.json bleibt Schema 3 (optionaler Abschnitt wie `shipData`)
@@ -276,7 +350,8 @@ Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
 
 **Akzeptanz:**
 - Ringreihenfolge = kürzeste Distanzsumme, Gleichstand → Station mit Ein-Ziel-Vertrag zuerst (Test)
-- Datentest gegen den Pin: Everus Harbor → Baijini 22,9 Gm, → HUR-L1 1,3 Gm (±0,1, Design §9.3)
+- Datentest gegen den Pin: Everus Harbor → Baijini 22,9 Gm, → HUR-L1 1,3 Gm (±0,1, Design §9.3) – seit T13.2 erfüllt
+  (`BaselineHaulingDataTests`)
 - Ohne Reward (Red Wind ungescannt) zeigt der Kandidat Struktur, nie aUEC
 - Ranking kippt mit den Zeitparametern (Test mit zwei Parametersätzen)
 
@@ -459,6 +534,12 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
 - Game.log-Reader (Phase 13, Design §1.6, §4.1): angenommene Verträge, missionId und Abschluss aus dem Log statt aus dem
   Accepted-Scan. Auslöser: Nutzer wollen den Accepted-Scan sparen.
+- Hotkey für den Reiterwechsel Cargo | Plan (T13.2, D120): gesperrt lässt sich die Leiste nicht klicken. Auslöser: ein
+  Spieler wechselt im Lock-Modus.
+- Fenstergröße je Reiter (T13.2, D120): die Matrix nutzt die Fläche von Legende und Schiffsansicht. Auslöser: Bild- oder
+  Spieltest zeigt, dass die Standardgröße für die Matrix nicht reicht.
+- Board-Hub für planetary und local (D121): dort bleibt eine leere Pool-Seite leer. Auslöser: ein Scan zeigt, wo ein
+  solches Board steht.
 - Zähler-Überwachung „HAULING – STELLAR n“ (Phase 13, Design §1.4, §4.3 Schritt 8): ändert sich n, Hinweis zum
   Nachscannen; nur Komfort, keine Planer-Logik (Invariante 4; den Pool gibt es seit U3 nicht mehr). Auslöser:
   Nutzer-Report „Angebote veraltet“.

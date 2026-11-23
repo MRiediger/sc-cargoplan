@@ -1,9 +1,10 @@
 # Hauling data format (templates and positions)
 
 **Status: contract of Phase 13, written with T13.0 (21 Nov 2026), amended with T13.0a (22 Nov 2026) from the findings
-of H1 ([Addendum T13.0a](#addendum-t130a)); still schema 1, no release carries it yet.** The data pipeline in
+of H1 ([Addendum T13.0a](#addendum-t130a)); still schema 1. The first release that carries it is `ships-2026.11.2`
+(23 Nov 2026).** The data pipeline in
 [sc-cargoplan-shipdata](https://github.com/MRiediger/sc-cargoplan-shipdata) writes both files with its hauling job
-(H1, SD14 there); the app reads them from T13.3 on. Why the data come this way: [D119](decisions.md); what the route planner
+(H1, SD14 there); the app reads them from T13.2 on ([Addendum T13.2](#addendum-t132)). Why the data come this way: [D119](decisions.md); what the route planner
 does with them: [D118](decisions.md) and the design, [`design/cargo-routes.md`](design/cargo-routes.md) (§7, §9.3).
 Where the design differs from this page (it names `hub-profiles.json` and a `distances.json` matrix), this page holds.
 
@@ -58,7 +59,7 @@ table) writes `hauling: null` or carries the previous release's two files forwar
 data release. "Stop" below means the hauling job stops, not the run.
 
 Where the app keeps them: next to `manifest.json` in the data folder, the baseline's `ship-data\` and a downloaded
-`ships\<tag>\` alike; the download and the baseline fetch come with T13.3.
+`ships\<tag>\` alike; the download and the baseline fetch come with T13.2 (D112, D113 addenda).
 
 ## hauling-templates.json
 
@@ -295,3 +296,18 @@ First run (local, source commit `f182b7f`, 4.10.3-LIVE.13165946): 587 templates 
 of the 208 the design counted), 157 positions, 62 aliases of which 24 `drop`; `hauling-templates.json` 570,973 B and
 `positions.json` 42,563 B, about 0.6 MB together instead of the 1.5 MB estimated. The byte counts in the manifest example
 stay illustrative.
+
+## Addendum T13.2
+
+The app reads both files (23 Nov 2026), from the pin `ships-2026.11.2` on; nothing in the format changed.
+
+| Point | What the app does |
+|---|---|
+| Where | Next to `manifest.json` of the data in use; the install downloads both on the same click as `ships.zip` and checks length and hash, the baseline fetch the same (D112, D113 addenda). An asset that fails stays out; the ships install all the same. |
+| Section out of form | Not only an unknown `schemaVersion`: a section that isn't an object, lacks a field, or names a file that isn't flat is an unknown format too. The manifest reader never fails for `hauling` (K2), also not in the check for a newer release. |
+| Files missing | A manifest that offers `hauling` without the files next to it (a download that failed) is the case "missing": no hauling data, no notice. |
+| Unknown words | `system` counts with the enum fields: a template or position in a system this app doesn't know is skipped and logged; a template whose pool names a skipped position goes with it. |
+| Empty pool sides | The loader leaves them empty. The port matrix lets the board's hub stand in for the empty side of a local stellar Covalex template (D121); that is the app's view, not the data. |
+| Checks also | `stops ≥ 1`. |
+
+Loaded at the start of the app (Debug, 23 Nov): 587 templates, 157 positions, none left out, 38–47 ms.

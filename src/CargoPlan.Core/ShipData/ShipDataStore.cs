@@ -15,7 +15,15 @@ public enum ShipDataOrigin
 /// <summary>The ship data the app loads at this start (T12.3): one folder of ship files and one outline file.</summary>
 /// <param name="Folder">The data's own folder: <c>ship-data\</c> next to the exe, or <c>ships\&lt;tag&gt;\</c> in the data folder.</param>
 /// <param name="Holo">The holograms its manifest offers (T12.4, D114): read with it, the same for the whole run.</param>
-public sealed record ActiveShipData(ShipDataVersion Version, ShipDataOrigin Origin, string Folder, string ShipsFolder, string OutlinesPath, HoloOffer Holo)
+/// <param name="Hauling">The hauling files its manifest offers (T13.2): next to manifest.json in <paramref name="Folder"/>.</param>
+public sealed record ActiveShipData(
+    ShipDataVersion Version,
+    ShipDataOrigin Origin,
+    string Folder,
+    string ShipsFolder,
+    string OutlinesPath,
+    HoloOffer Holo,
+    HaulingOffer Hauling)
 {
     /// <summary>The baseline's folder next to the exe (D113): a data release in the download layout.</summary>
     public const string BaselineFolderName = "ship-data";
@@ -56,7 +64,7 @@ public sealed record ActiveShipData(ShipDataVersion Version, ShipDataOrigin Orig
         }
 
         return new(manifest.DataVersion, ShipDataOrigin.Baseline, folder,
-            Path.Combine(folder, ShipLoader.FolderName), Path.Combine(folder, ShipDataManifestReader.OutlinesPath), manifest.Holo);
+            Path.Combine(folder, ShipLoader.FolderName), Path.Combine(folder, ShipDataManifestReader.OutlinesPath), manifest.Holo, manifest.Hauling);
     }
 
     /// <summary>One line for the log and the CLI: <c>ships-2026.11.1 (downloaded) C:\…\ships\ships-2026.11.1</c>.</summary>
@@ -111,15 +119,19 @@ public sealed class ShipDataStore(string root, ActiveShipData baseline, long max
     }
 
     /// <summary>
-    /// Unpacks <paramref name="zip"/> into <c>&lt;tag&gt;.tmp\</c>, checks every file against the manifest, writes
-    /// <paramref name="manifestJson"/> as it came, and only then renames the folder to <c>&lt;tag&gt;\</c>. Anything wrong
-    /// leaves the data as they were: the unfinished folder goes, or, if it won't, an <see cref="IOException"/> names it
-    /// and the next start's <see cref="CleanUp"/> takes it.
+    /// Unpacks <paramref name="zip"/> into <c>&lt;tag&gt;.tmp\</c>, checks every file against the manifest, lays the
+    /// hauling files beside it, writes <paramref name="manifestJson"/> as it came, and only then renames the folder to
+    /// <c>&lt;tag&gt;\</c>. Anything wrong leaves the data as they were: the unfinished folder goes, or, if it won't, an
+    /// <see cref="IOException"/> names it and the next start's <see cref="CleanUp"/> takes it.
     /// </summary>
+    /// <param name="hauling">
+    /// The hauling assets by file name (T13.2). One that is missing or doesn't match its length and hash stays out, and the
+    /// ships install all the same (K2); the loader then finds no hauling data. The caller logs which.
+    /// </param>
     /// <exception cref="ShipDataFormatException">A schema this app can't read; not a zip; an entry the manifest doesn't list, a listed one missing, a hash that differs; more than the limit unpacked.</exception>
     /// <exception cref="IOException">The download or the disk failed.</exception>
     /// <exception cref="UnauthorizedAccessException">No permission in the data folder.</exception>
-    public ActiveShipData Install(ShipDataManifest manifest, ReadOnlySpan<byte> manifestJson, Stream zip)
+    public ActiveShipData Install(ShipDataManifest manifest, ReadOnlySpan<byte> manifestJson, Stream zip, IReadOnlyDictionary<string, byte[]>? hauling = null)
     {
         if (!ShipLoader.IsReadable(manifest.SchemaVersion))
         {
@@ -133,6 +145,17 @@ public sealed class ShipDataStore(string root, ActiveShipData baseline, long max
         {
             Directory.CreateDirectory(temp);
             Unpack(manifest, zip, temp);
+            if (manifest.Hauling is HaulingOffer.Offered offered)
+            {
+                foreach (var asset in (ReleaseAsset[])[offered.Manifest.Templates, offered.Manifest.Positions])
+                {
+                    if (hauling?.GetValueOrDefault(asset.File) is { } data && asset.Matches(data))
+                    {
+                        File.WriteAllBytes(Path.Combine(temp, asset.File), data);
+                    }
+                }
+            }
+
             File.WriteAllBytes(Path.Combine(temp, ManifestFileName), manifestJson);
 
             // A folder of this tag that Active didn't take (no valid manifest): replaced, never merged.
@@ -263,7 +286,7 @@ public sealed class ShipDataStore(string root, ActiveShipData baseline, long max
 
     private static ActiveShipData Downloaded(string folder, ShipDataManifest manifest) => new(
         manifest.DataVersion, ShipDataOrigin.Downloaded, folder, Path.Combine(folder, ShipLoader.FolderName),
-        Path.Combine(folder, ShipDataManifestReader.OutlinesPath), manifest.Holo);
+        Path.Combine(folder, ShipDataManifestReader.OutlinesPath), manifest.Holo, manifest.Hauling);
 
     private IEnumerable<(string Folder, ShipDataVersion Version)> Releases()
     {

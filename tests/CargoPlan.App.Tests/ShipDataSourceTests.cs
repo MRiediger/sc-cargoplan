@@ -3,6 +3,7 @@ using System.Net;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipData;
 using CargoPlan.App.Updates;
+using CargoPlan.Core.Routing;
 using CargoPlan.Core.ShipData;
 using CargoPlan.Core.Tests;
 
@@ -20,7 +21,7 @@ public sealed class ShipDataSourceTests : IDisposable
 
     private static readonly ActiveShipData Baseline = new(
         new ShipDataVersion(2026, 11, 0), ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile,
-        new Core.Holo.HoloOffer.NotOffered());
+        new Core.Holo.HoloOffer.NotOffered(), new HaulingOffer.None());
 
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"));
 
@@ -162,6 +163,44 @@ public sealed class ShipDataSourceTests : IDisposable
         active.Version.Should().Be(V("ships-2026.11.1"));
         active.Origin.Should().Be(ShipDataOrigin.Downloaded);
         source.Installed.Should().Be(V("ships-2026.11.1"));
+    }
+
+    // T13.2, D112 addendum: two more files on the same click, from the same release folder.
+    [Fact]
+    public async Task Update_downloads_the_hauling_assets_on_the_same_click()
+    {
+        var release = ShipDataRelease.Frozen().WithHauling();
+        Publish(release);
+        foreach (var (file, data) in release.HaulingAssets)
+        {
+            _handler.Serve(file, data);
+        }
+
+        using var source = Source();
+        await source.CheckAsync(On, Baseline.Version, false, CancellationToken.None);
+
+        (await source.DownloadAsync("ships-2026.11.1", _progress.Add, CancellationToken.None)).Should().BeNull();
+
+        const string folder = "https://github.com/MRiediger/sc-cargoplan-shipdata/releases/download/ships-2026.11.1/";
+        _handler.Requests.Select(r => r.Uri).Should().Equal(LatestManifest, ShipsZip, folder + "hauling-templates.json", folder + "positions.json");
+        HaulingFiles.Load(NewStore().Active()).Should().BeOfType<HaulingLoad.Loaded>();
+    }
+
+    [Fact]
+    public async Task A_hauling_asset_that_fails_costs_only_the_hauling_data()
+    {
+        var release = ShipDataRelease.Frozen().WithHauling();
+        Publish(release);
+        _handler.Serve("hauling-templates.json", [.. release.Hauling!.Value.Templates, (byte)' ']);
+        _handler.Answer("positions.json", () => new HttpResponseMessage(HttpStatusCode.NotFound));
+        using var source = Source();
+        await source.CheckAsync(On, Baseline.Version, false, CancellationToken.None);
+
+        (await source.DownloadAsync("ships-2026.11.1", _progress.Add, CancellationToken.None)).Should().BeNull();
+
+        var active = NewStore().Active();
+        active.Version.Should().Be(V("ships-2026.11.1"));
+        HaulingFiles.Load(active).Should().BeOfType<HaulingLoad.None>();
     }
 
     [Fact]

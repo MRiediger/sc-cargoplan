@@ -205,11 +205,17 @@ public class OverlayLegendXamlTests
             .ToArray();
         var slim = root.Descendants().Single(e => (string?)e.Attribute(X + "Key") == "SlimScrollBarStyle");
 
-        bars.Should().HaveCount(2).And.OnlyContain(b => (string?)b.Attribute("BasedOn") == "{StaticResource SlimScrollBarStyle}");
+        // T13.2: the Plan tab's matrix is the third, in both directions (the style's horizontal trigger).
+        bars.Should().HaveCount(3).And.OnlyContain(b => (string?)b.Attribute("BasedOn") == "{StaticResource SlimScrollBarStyle}");
         IsInside(bars.Single(b => IsInside(b, Named(root, "StopLinesScroll"))), Named(root, "StopLinesScroll")).Should().BeTrue();
+        bars.Should().ContainSingle(b => IsInside(b, Named(root, "PlanView")));
         bars.Select(b => b.Elements().Single(s => (string?)s.Attribute("Property") == "Foreground").Attribute("Value")!.Value)
-            .Should().BeEquivalentTo("{DynamicResource HeaderForegroundBrush}", "{DynamicResource LegendForegroundBrush}");
-        Named(slim, "Grip").Attribute("Background")!.Value.Should().Be("{TemplateBinding Foreground}");
+            .Should().BeEquivalentTo("{DynamicResource HeaderForegroundBrush}", "{DynamicResource LegendForegroundBrush}", "{DynamicResource LegendForegroundBrush}");
+        slim.Descendants().Where(e => e.Name.LocalName == "Thumb").Should().HaveCount(2)
+            .And.OnlyContain(t => (string?)t.Attribute("Style") == "{StaticResource SlimScrollThumbStyle}");
+        slim.Descendants().Single(e => e.Name.LocalName == "Trigger").Attribute("Property")!.Value.Should().Be("Orientation");
+        var thumb = root.Descendants().Single(e => (string?)e.Attribute(X + "Key") == "SlimScrollThumbStyle");
+        Named(thumb, "Grip").Attribute("Background")!.Value.Should().Be("{TemplateBinding Foreground}");
     }
 
     [Fact]

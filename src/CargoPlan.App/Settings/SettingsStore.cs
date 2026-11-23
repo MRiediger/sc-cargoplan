@@ -5,6 +5,8 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 using CargoPlan.App.Updates;
+using CargoPlan.Core.Json;
+using CargoPlan.Core.Routing;
 
 namespace CargoPlan.App.Settings;
 
@@ -74,6 +76,7 @@ public static class SettingsStore
             var (shipView, shipViewProblems) = AppearanceRules.Normalize(settings.ShipView);
             var (updates, updatesProblems) = Normalize(settings.Updates);
             var (shipData, shipDataProblems) = NormalizeShipData(settings.ShipData);
+            var (routes, routesProblems) = NormalizeRoutes(settings.Routes);
             return new(
                 settings with
                 {
@@ -88,10 +91,12 @@ public static class SettingsStore
                     ShipView = shipView,
                     Updates = updates,
                     ShipData = shipData,
+                    Routes = routes,
                 },
                 Corrections([
                     .. legendProblems, .. appearanceProblems, .. themeProblems, .. shipOutlineProblems, .. holoOpacityProblems,
-                    .. holoHullProblems, .. holoEdgeProblems, .. shipViewProblems, .. updatesProblems, .. shipDataProblems]),
+                    .. holoHullProblems, .. holoEdgeProblems, .. shipViewProblems, .. updatesProblems, .. shipDataProblems,
+                    .. routesProblems]),
                 removed);
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
@@ -187,6 +192,31 @@ public static class SettingsStore
         shipData.SkippedVersion is { } skipped && !Core.ShipData.ShipDataVersion.TryParse(skipped, out _)
             ? (shipData with { SkippedVersion = null }, [$"shipData.skippedVersion \"{skipped}\" is not a data release (like ships-2026.11.1), skipping none."])
             : (shipData, []);
+
+    /// <summary>The route planner's section (T13.2): a word out of the format falls back to its default, with a line.</summary>
+    private static (RoutesSettings Routes, IReadOnlyList<string> Problems) NormalizeRoutes(RoutesSettings routes)
+    {
+        List<string> problems = [];
+        if (routes.Tab is not (RoutesSettings.CargoTab or RoutesSettings.PlanTab))
+        {
+            problems.Add($"routes.tab \"{routes.Tab}\" is not cargo or plan, using cargo.");
+            routes = routes with { Tab = RoutesSettings.CargoTab };
+        }
+
+        if (!EnumWords.TryParse<HaulRank>(routes.Rank, out _))
+        {
+            problems.Add($"routes.rank \"{routes.Rank}\" is not a rank (trainee … master), using master.");
+            routes = routes with { Rank = RoutesSettings.AnyRank };
+        }
+
+        if (routes.Faction is { } faction && !EnumWords.TryParse<HaulFaction>(faction, out _))
+        {
+            problems.Add($"routes.faction \"{faction}\" is not hh or cfp, using none.");
+            routes = routes with { Faction = null };
+        }
+
+        return (routes, problems);
+    }
 
     /// <summary>The notice for a sync hotkey the migration took (T10.4a): which key is free again, and how contracts come in now.</summary>
     public static string SyncHotkeyRemovedText(string hotkey) =>

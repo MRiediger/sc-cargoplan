@@ -243,6 +243,22 @@ public sealed class SettingsSession
     /// <summary>The ship data line's Skip (a release tag) or the Ship data section's Clear (null).</summary>
     public void ChangeShipDataSkippedVersion(string? version) => ChangeShipData(Current.ShipData with { SkippedVersion = version });
 
+    /// <summary>
+    /// The route planner's tab, rank or faction changed (T13.2): saved after <see cref="Debounce"/> like every change
+    /// (D30), so the next start opens the same tab and the boards (T13.3) read the rank.
+    /// </summary>
+    public void ChangeRoutes(RoutesSettings routes)
+    {
+        if (routes == Current.Routes)
+        {
+            return;
+        }
+
+        Current = Current with { Routes = routes };
+        _timer.Stop();
+        _timer.Start();
+    }
+
     private void ChangeShipData(UpdateSettings shipData)
     {
         if (shipData == Current.ShipData)

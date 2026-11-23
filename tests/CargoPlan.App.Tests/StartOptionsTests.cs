@@ -323,21 +323,13 @@ public class StartOptionsTests
         StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null));
     }
 
-    // T13.1: the developer's switch for the Routes tab until T13.2 brings the tab strip.
-    [Theory]
-    [InlineData("--routes-open")]
-    [InlineData("--Routes-Open")]
-    public void Routes_open_selects_the_routes_tab(string arg)
-    {
-        StartOptions.Parse([arg]).Should().Be(new StartOptions(false, null, null, RoutesOpen: true));
-    }
-
+    // T13.2: the tab strip replaced T13.1's developer switch; settings.json keeps the tab. An old shortcut with the switch
+    // starts as any start does, like every argument the overlay doesn't know.
     [Fact]
-    public void The_restart_after_an_update_keeps_the_routes_tab()
+    public void The_routes_switch_is_gone_and_changes_nothing()
     {
-        string[] args = ["--routes-open", "--data-dir", @"D:\run\data"];
-
-        StartOptions.RestartArguments(args).Should().Equal(args);
+        StartOptions.Parse(["--routes-open"]).Should().Be(new StartOptions(false, null, null));
+        typeof(StartOptions).GetProperty("RoutesOpen").Should().BeNull();
     }
 
     [Fact]

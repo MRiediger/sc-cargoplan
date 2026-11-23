@@ -101,7 +101,7 @@ public class UpdateSettingsViewModelTests
     {
         var active = new Core.ShipData.ActiveShipData(
             new Core.ShipData.ShipDataVersion(2026, 11, 0), Core.ShipData.ShipDataOrigin.Baseline, @"C:\app", @"C:\app\ships", @"C:\app\outlines\ship-outlines.json",
-            new Core.Holo.HoloOffer.NotOffered());
+            new Core.Holo.HoloOffer.NotOffered(), new Core.ShipData.HaulingOffer.None());
         var shipData = new UpdateSettingsViewModel(
             new UpdateSettings(SkippedVersion: "ships-2026.11.1"),
             _checkOnStartup.Add,
@@ -122,7 +122,7 @@ public class UpdateSettingsViewModelTests
     {
         var active = new Core.ShipData.ActiveShipData(
             new Core.ShipData.ShipDataVersion(2026, 11, 1), Core.ShipData.ShipDataOrigin.Downloaded, @"C:\data\ships\ships-2026.11.1", @"C:\data\ships\ships-2026.11.1\ships", @"C:\data\ships\ships-2026.11.1\outlines.json",
-            new Core.Holo.HoloOffer.NotOffered());
+            new Core.Holo.HoloOffer.NotOffered(), new Core.ShipData.HaulingOffer.None());
 
         ShipData.ShipDataSource.ActiveText(active).Should().Be("In use: 2026.11.1 (downloaded)");
     }

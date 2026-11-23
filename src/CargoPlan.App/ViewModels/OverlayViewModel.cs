@@ -1,5 +1,6 @@
 using CargoPlan.App.Editor;
 using CargoPlan.App.Holo;
+using CargoPlan.App.Routing;
 using CargoPlan.App.Scanning;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
@@ -617,11 +618,22 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     }
 
     /// <summary>
-    /// "Routes" is the selected tab (D118, E2: also while locked): an offer's scan stays out of the plan (U1, U3). Until
-    /// T13.2 brings the tab strip, only tests and the developer's switch <c>--routes-open</c> set it (T13.1).
+    /// "Routes" is the selected tab of the tab strip, labelled Plan (D118, D120; K1 of the T13.2 approval), also while
+    /// locked (E2): an offer's scan stays out of the cargo (U1, U3). Starts from settings.json (<c>routes.tab</c>).
     /// </summary>
     [ObservableProperty]
     public partial bool IsRoutesTabSelected { get; set; }
+
+    /// <summary>The Plan tab's content (T13.2): the port matrix of the hauling data in use; null in tests without it.</summary>
+    public RoutesViewModel? Routes { get; init; }
+
+    /// <summary>The tab "Cargo": the loading plan and the ship, as before T13.2.</summary>
+    [RelayCommand]
+    private void ShowCargo() => IsRoutesTabSelected = false;
+
+    /// <summary>The tab "Plan" (the Routes tab, D120): the port matrix; offer scans go to routes.json only.</summary>
+    [RelayCommand]
+    private void ShowPlan() => IsRoutesTabSelected = true;
 
     /// <summary>A scan runs (T10.3): the editor's Scan button is off meanwhile. Set by the scan runner on the UI thread.</summary>
     [ObservableProperty]

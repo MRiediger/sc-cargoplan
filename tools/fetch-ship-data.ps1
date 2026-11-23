@@ -1,6 +1,7 @@
 # Fetches the ship data release that build/ship-data.json pins (T12.5, D113) into .ship-data/<tag>/, in the layout of a
-# download (ShipDataStore): manifest.json, ships/**, outlines.json, NOTICE.md. Every file of ships.zip is checked against
-# the manifest's hash before the folder gets its name; anything wrong leaves no folder and no .ship-data/current.
+# download (ShipDataStore): manifest.json, ships/**, outlines.json, NOTICE.md, and the hauling files where the manifest
+# names them (T13.2). Every file of ships.zip and every hauling file is checked against the manifest's hash before the
+# folder gets its name; anything wrong leaves no folder and no .ship-data/current.
 # A finished folder is checked again offline and needs no network. The build calls this once (CargoPlan.Core.csproj).
 #
 # Usage: fetch-ship-data.ps1 -ReadableSchemaVersions 4,5,6 [-Pin <ship-data.json>] [-Source <url base | folder>] [-Target <folder>]
@@ -77,7 +78,33 @@ function Read-Manifest([byte[]]$Bytes, [string]$Tag, [int[]]$Schemas) {
     foreach ($required in 'ships/hull_a.json', 'outlines.json') {
         if (-not $files.Contains($required)) { throw "manifest.json: files lacks '$required'." }
     }
-    return @{ Asset = $asset; Files = $files }
+    return @{ Asset = $asset; Files = $files; Hauling = @(Read-Hauling $json) }
+}
+
+# T13.2: the optional section hauling, two flat assets with length and hash (docs/hauling-data-format.md). Missing or null:
+# none. The pin is fixed, so a section out of form fails the build; its schema is the app's to judge, not this script's.
+function Read-Hauling($Json) {
+    $section = $Json.PSObject.Properties['hauling']
+    if ($null -eq $section -or $null -eq $section.Value) { return }
+    foreach ($field in 'templates', 'positions') {
+        $entry = Get-Field $section.Value $field 'manifest.json hauling'
+        $file = [string](Get-Field $entry 'file' "manifest.json hauling.$field")
+        $bytes = [long](Get-Field $entry 'bytes' "manifest.json hauling.$field")
+        $hash = [string](Get-Field $entry 'sha256' "manifest.json hauling.$field")
+        if ($file -cnotmatch $assetPattern -or $file -ceq 'manifest.json' -or $file -ceq 'outlines.json' -or $file -ceq 'NOTICE.md') {
+            throw "manifest.json: hauling.$field.file '$file' is not a file name of the release."
+        }
+        if ($bytes -le 0 -or $hash -cnotmatch $hashPattern) { throw "manifest.json: hauling.$field has no length or no SHA-256." }
+        @{ File = $file; Bytes = $bytes; Hash = $hash.ToLowerInvariant() }
+    }
+}
+
+# A hauling file as the manifest describes it: $null, or what is wrong.
+function Test-HaulingFile([string]$Path, $Entry) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return "$($Entry.File) is missing" }
+    $data = [System.IO.File]::ReadAllBytes($Path)
+    if ($data.Length -ne $Entry.Bytes -or (Get-Sha256Hex $data) -ne $Entry.Hash) { return "$($Entry.File) doesn't match its length and hash" }
+    return $null
 }
 
 # R4 of the T12.5 approval: the notice has no hash in the manifest; present, not empty, not bigger than a notice is.
@@ -97,6 +124,10 @@ function Test-Folder([string]$Folder, [string]$Tag, [int[]]$Schemas) {
             $file = Join-Path $Folder $path
             if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { return "$path is missing" }
             if ((Get-Sha256Hex ([System.IO.File]::ReadAllBytes($file))) -ne $manifest.Files[$path]) { return "$path doesn't match its hash" }
+        }
+        foreach ($entry in $manifest.Hauling) {
+            $problem = Test-HaulingFile (Join-Path $Folder $entry.File) $entry
+            if ($problem) { return $problem }
         }
         $notice = Test-Notice (Join-Path $Folder 'NOTICE.md')
         if ($notice) { return $notice }
@@ -199,10 +230,19 @@ try {
         Get-Asset $tag 'NOTICE.md' (Join-Path $download 'NOTICE.md')
         $notice = Test-Notice (Join-Path $download 'NOTICE.md')
         if ($notice) { throw "$notice in $tag." }
+        foreach ($entry in $manifest.Hauling) {
+            Get-Asset $tag $entry.File (Join-Path $download $entry.File)
+            $problem = Test-HaulingFile (Join-Path $download $entry.File) $entry
+            if ($problem) { throw "$problem in manifest.json of $tag." }
+        }
         $bytes = (Get-ChildItem -LiteralPath $download -File | Measure-Object -Property Length -Sum).Sum
 
         $checked = Expand-Release (Join-Path $download $manifest.Asset) $manifest $data
         Copy-Item -LiteralPath (Join-Path $download 'NOTICE.md') -Destination $data
+        foreach ($entry in $manifest.Hauling) {
+            Copy-Item -LiteralPath (Join-Path $download $entry.File) -Destination $data
+            $checked++
+        }
         # The manifest last, as it came: a folder counts once its manifest is in it (ShipDataStore).
         [System.IO.File]::WriteAllBytes((Join-Path $data 'manifest.json'), $manifestBytes)
 

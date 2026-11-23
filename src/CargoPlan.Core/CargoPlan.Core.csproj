@@ -30,7 +30,7 @@
   <Target Name="FetchShipData" Condition="'$(DesignTimeBuild)' != 'true' And !Exists('$(ShipDataFolder)manifest.json')">
     <Error Condition="'$(ShipDataVersion)' == ''" Text="$(ShipDataPinFile) names no dataVersion like ships-2026.11.1." />
     <!-- E1: a first build that waits on the network says why. -->
-    <Message Importance="high" Text="Fetching ship data $(ShipDataVersion) (once, ≈230 KB)" />
+    <Message Importance="high" Text="Fetching ship data $(ShipDataVersion) (once, ≈0.85 MB)" />
     <Exec Command="&quot;$(ShipDataShell)&quot; -NoProfile -NonInteractive -ExecutionPolicy Bypass -File &quot;$(ShipDataScript)&quot; -ReadableSchemaVersions $(ShipDataReadableSchemas)"
           StandardOutputImportance="high" StandardErrorImportance="high" />
   </Target>

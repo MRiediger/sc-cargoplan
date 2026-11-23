@@ -12,7 +12,14 @@ namespace CargoPlan.Core.ShipData;
 /// <param name="ShipsAsset">The asset name of <c>ships.zip</c>, flat: its URL is <c>…/releases/download/&lt;tag&gt;/&lt;asset&gt;</c>.</param>
 /// <param name="Files">Path inside the zip → SHA-256 (hex): exactly the files the app unpacks.</param>
 /// <param name="Holo">The holograms: assets of this release, <c>…/releases/download/&lt;tag&gt;/&lt;file&gt;</c>.</param>
-public sealed record ShipDataManifest(ShipDataVersion DataVersion, int SchemaVersion, string ShipsAsset, IReadOnlyDictionary<string, string> Files, HoloOffer Holo);
+/// <param name="Hauling">Templates and positions (T13.2): assets of this release, like the holograms.</param>
+public sealed record ShipDataManifest(
+    ShipDataVersion DataVersion,
+    int SchemaVersion,
+    string ShipsAsset,
+    IReadOnlyDictionary<string, string> Files,
+    HoloOffer Holo,
+    HaulingOffer Hauling);
 
 /// <summary>A manifest or a download that doesn't hold to the contract: nothing of it is used.</summary>
 public sealed class ShipDataFormatException(string message, Exception? innerException = null) : Exception(message, innerException);
@@ -72,7 +79,65 @@ public static partial class ShipDataManifestReader
             }
         }
 
-        return new ShipDataManifest(version, dto.SchemaVersion, dto.Assets.Ships, dto.Files, ReadHolo(dto.Holo, version));
+        return new ShipDataManifest(version, dto.SchemaVersion, dto.Assets.Ships, dto.Files, ReadHolo(dto.Holo, version), ReadHauling(dto.Hauling));
+    }
+
+    /// <summary>
+    /// The hauling section (T13.2, docs/hauling-data-format.md). Never throws: a section out of form is an unknown format,
+    /// so it costs neither the ship data nor the check for a newer release, which reads the latest manifest (K2).
+    /// </summary>
+    private static HaulingOffer ReadHauling(JsonElement? section)
+    {
+        if (section is not { } hauling || hauling.ValueKind == JsonValueKind.Null)
+        {
+            return new HaulingOffer.None();
+        }
+
+        if (hauling.ValueKind != JsonValueKind.Object)
+        {
+            return new HaulingOffer.UnknownFormat("hauling is neither null nor an object");
+        }
+
+        if (!hauling.TryGetProperty("schemaVersion", out var schema) || schema.ValueKind != JsonValueKind.Number || !schema.TryGetInt32(out var schemaVersion))
+        {
+            return new HaulingOffer.UnknownFormat("hauling.schemaVersion is missing or not a whole number");
+        }
+
+        if (schemaVersion != Routing.HaulingFiles.SupportedSchemaVersion)
+        {
+            return new HaulingOffer.UnknownFormat($"hauling.schemaVersion {schemaVersion} needs a newer app");
+        }
+
+        HaulingDto dto;
+        try
+        {
+            dto = hauling.Deserialize(ShipDataJsonContext.Default.HaulingDto) ?? throw new JsonException("The section contains null.");
+        }
+        catch (JsonException ex)
+        {
+            return new HaulingOffer.UnknownFormat($"hauling: {ex.Message}");
+        }
+
+        List<ReleaseAsset> assets = [];
+        foreach (var (field, asset) in (ReadOnlySpan<(string, HaulingAssetDto)>)[("templates", dto.Templates), ("positions", dto.Positions)])
+        {
+            // A flat asset that can't overwrite a file of the data folder (the manifest, the outlines) when it is installed.
+            if (!AssetName().IsMatch(asset.File) || asset.File is FileName or OutlinesPath)
+            {
+                return new HaulingOffer.UnknownFormat($"hauling.{field}.file '{asset.File}' is not a file name of the release");
+            }
+
+            if (asset.Bytes <= 0 || !Sha256().IsMatch(asset.Sha256))
+            {
+                return new HaulingOffer.UnknownFormat($"hauling.{field} has no length or no SHA-256");
+            }
+
+            assets.Add(new ReleaseAsset(asset.File, asset.Bytes, asset.Sha256));
+        }
+
+        return assets[0].File == assets[1].File
+            ? new HaulingOffer.UnknownFormat($"hauling names '{assets[0].File}' for both files")
+            : new HaulingOffer.Offered(new HaulingManifest(schemaVersion, assets[0], assets[1]));
     }
 
     /// <summary>
@@ -152,13 +217,18 @@ public static partial class ShipDataManifestReader
     private static partial Regex Sha256();
 
     // holo is required, null allowed (the kill switch); a JsonElement, so a format this app doesn't know is never bound.
-    internal sealed record ManifestDto(string DataVersion, int SchemaVersion, AssetsDto Assets, Dictionary<string, string> Files, JsonElement? Holo);
+    // hauling is optional (T13.2): releases before ships-2026.11.2 have none.
+    internal sealed record ManifestDto(string DataVersion, int SchemaVersion, AssetsDto Assets, Dictionary<string, string> Files, JsonElement? Holo, JsonElement? Hauling = null);
 
     internal sealed record AssetsDto(string Ships);
 
     internal sealed record HoloDto(Dictionary<string, HoloShipDto> Ships);
 
     internal sealed record HoloShipDto(string File, long Bytes, string Sha256);
+
+    internal sealed record HaulingDto(int SchemaVersion, HaulingAssetDto Templates, HaulingAssetDto Positions);
+
+    internal sealed record HaulingAssetDto(string File, long Bytes, string Sha256);
 }
 
 // Lenient about unknown fields: the pipeline writes builtFrom, ships, the judge's numbers per hologram and more, and may
@@ -171,4 +241,5 @@ public static partial class ShipDataManifestReader
     RespectRequiredConstructorParameters = true)]
 [JsonSerializable(typeof(ShipDataManifestReader.ManifestDto))]
 [JsonSerializable(typeof(ShipDataManifestReader.HoloDto))]
+[JsonSerializable(typeof(ShipDataManifestReader.HaulingDto))]
 internal sealed partial class ShipDataJsonContext : JsonSerializerContext;

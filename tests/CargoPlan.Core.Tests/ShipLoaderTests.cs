@@ -111,17 +111,17 @@ public class ShipLoaderTests
         catalog.Ships.Select(s => s.Id).Except(files).Should().Equal("aurora_mk_ii_ts_module");
     }
 
-    // D92: every ship's racks come from the game files, except the two the catalog can't place (135c: grids without
-    // transform; 600i Executive Edition: not in the catalog). ships-2026.11.1 brought the F7C Hornet Mk II's (T12.5).
-    // A ship falling back shows up here. That totalScu matches the catalog is checked by the pipeline, which holds the
-    // catalog (sc-cargoplan-shipdata, D111).
+    // D92: every ship's racks come from the game files, except the one the catalog can't place (600i Executive Edition:
+    // not in the catalog). ships-2026.11.1 brought the F7C Hornet Mk II's (T12.5), ships-2026.11.2 the 135c's, whose
+    // grids had no transform before (T13.2). A ship falling back shows up here. That totalScu matches the catalog is
+    // checked by the pipeline, which holds the catalog (sc-cargoplan-shipdata, D111).
     [Fact]
-    public void Every_ship_but_two_has_its_racks_from_the_game_files()
+    public void Every_ship_but_one_has_its_racks_from_the_game_files()
     {
         var ships = ShipLoader.ListShips(ShipLoader.DefaultFolder).Select(id => ShipLoader.Load(id)).ToList();
 
         ships.Where(s => s.Source?.StartsWith("cryon.rocks (Motherlode) ", StringComparison.Ordinal) != true).Select(s => s.Id)
-            .Should().BeEquivalentTo("135c", "600i_executive_edition");
+            .Should().BeEquivalentTo("600i_executive_edition");
     }
 
     public static TheoryData<string> ShippedShipIds => [.. ShipLoader.ListShips(ShipLoader.DefaultFolder)];

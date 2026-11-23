@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Nodes;
 using CargoPlan.Core.Holo;
+using CargoPlan.Core.Routing;
 using CargoPlan.Core.ShipData;
 using CargoPlan.Core.Ships;
 
@@ -14,7 +15,7 @@ public sealed class ShipDataStoreTests : IDisposable
 {
     // ships-2026.11: the seed release, older than the downloads below.
     private static readonly ActiveShipData Baseline = new(
-        new ShipDataVersion(2026, 11, 0), ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile, new HoloOffer.NotOffered());
+        new ShipDataVersion(2026, 11, 0), ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile, new HoloOffer.NotOffered(), new HaulingOffer.None());
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"), "ships");
 
@@ -91,6 +92,47 @@ public sealed class ShipDataStoreTests : IDisposable
         holo.DataVersion.Should().Be("ships-2026.11.1");
         holo.Ships.Should().Equal(new HoloManifestEntry("misc-hull-a", "misc-hull-a.holo", 3, hash));
         Store().Active().Holo.Should().Be(installed.Holo);
+    }
+
+    // T13.2: the two hauling assets come on the same click; they never cost the ship data.
+    [Fact]
+    public void The_install_lays_the_hauling_files_next_to_the_manifest()
+    {
+        var release = ShipDataRelease.Frozen().WithHauling();
+        var manifest = release.Manifest();
+        using var zip = new MemoryStream(release.Zip());
+
+        var installed = Store().Install(ShipDataManifestReader.Read(manifest), manifest, zip, release.HaulingAssets);
+
+        Store().Active().Should().Be(installed);
+        installed.Hauling.Should().BeOfType<HaulingOffer.Offered>();
+        File.ReadAllBytes(Path.Combine(installed.Folder, ShipDataRelease.PositionsAsset)).Should().Equal(release.Hauling!.Value.Positions);
+        HaulingFiles.Load(installed).Should().BeOfType<HaulingLoad.Loaded>().Which.Data.Templates.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void A_hauling_asset_that_fails_its_hash_stays_out_and_the_ships_install()
+    {
+        var release = ShipDataRelease.Frozen().WithHauling();
+        var manifest = release.Manifest();
+        var broken = release.HaulingAssets.ToDictionary(a => a.Key, a => a.Key == ShipDataRelease.TemplatesAsset ? [.. a.Value, (byte)' '] : a.Value);
+        using var zip = new MemoryStream(release.Zip());
+
+        var installed = Store().Install(ShipDataManifestReader.Read(manifest), manifest, zip, broken);
+
+        Store().Active().Should().Be(installed);
+        ShipLoader.LoadAll(installed.ShipsFolder).Problems.Should().BeEmpty();
+        File.Exists(Path.Combine(installed.Folder, ShipDataRelease.TemplatesAsset)).Should().BeFalse();
+        HaulingFiles.Load(installed).Should().BeOfType<HaulingLoad.None>().Which.Reason.Should().Contain("not installed");
+    }
+
+    [Fact]
+    public void An_install_without_the_hauling_assets_has_none_at_the_next_start()
+    {
+        var installed = Install(ShipDataRelease.Frozen().WithHauling());
+
+        installed.Hauling.Should().BeOfType<HaulingOffer.Offered>();
+        HaulingFiles.Load(Store().Active()).Should().BeOfType<HaulingLoad.None>();
     }
 
     [Fact]
