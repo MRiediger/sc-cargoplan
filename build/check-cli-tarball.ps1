@@ -57,7 +57,7 @@ foreach ($name in $modes.Keys) {
 # licence with every copy; the ship data and the OCR models carry their own notes (not MIT).
 $required = 'CargoPlan.Cli', 'CargoPlan.Cli.dll', 'LICENSE',
     'ship-data/manifest.json', 'ship-data/ships/hull_a.json', 'ship-data/ships/modules/ts_module.json',
-    'ship-data/outlines.json', 'ship-data/NOTICE.md',
+    'ship-data/outlines.json', 'ship-data/NOTICE.md', 'ship-data/hauling-templates.json', 'ship-data/positions.json',
     'models/v5/ch_PP-OCRv5_mobile_det.onnx', 'models/v5/ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx',
     'models/v5/latin_PP-OCRv5_rec_mobile_infer.onnx', 'models/v5/ppocrv5_latin_dict.txt', 'models/NOTICE.md',
     'libonnxruntime.so', 'libSkiaSharp.so'

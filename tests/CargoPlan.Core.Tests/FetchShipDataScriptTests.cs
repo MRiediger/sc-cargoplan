@@ -37,6 +37,47 @@ public sealed class FetchShipDataScriptTests
         run.Output.Should().Contain(Tag).And.Contain("bytes").And.Contain($"{release.Entries.Count} files checked");
     }
 
+    // T13.2: the hauling files come with the baseline where the manifest names them; checked offline on the next run.
+    [Fact]
+    public async Task The_hauling_files_land_next_to_the_manifest_and_are_checked_offline()
+    {
+        using var work = new Workspace();
+        var release = ShipDataRelease.Frozen(Tag).WithHauling();
+        work.Publish(release);
+
+        var run = await work.Run();
+
+        run.ExitCode.Should().Be(0, run.Error);
+        var folder = Path.Combine(work.Target, Tag);
+        foreach (var (file, data) in release.HaulingAssets)
+        {
+            File.ReadAllBytes(Path.Combine(folder, file)).Should().Equal(data, file);
+        }
+
+        run.Output.Should().Contain($"{release.Entries.Count + 2} files checked");
+
+        File.AppendAllText(Path.Combine(folder, ShipDataRelease.PositionsAsset), " ");
+        Directory.Delete(work.Source, recursive: true);
+        var again = await work.Run();
+        again.ExitCode.Should().Be(1);
+        again.Output.Should().Contain("positions.json").And.Contain("fetching it again");
+    }
+
+    [Fact]
+    public async Task A_hauling_file_that_fails_its_hash_leaves_nothing()
+    {
+        using var work = new Workspace();
+        var release = ShipDataRelease.Frozen(Tag).WithHauling();
+        work.Publish(release);
+        File.AppendAllText(Path.Combine(work.Source, Tag, ShipDataRelease.TemplatesAsset), " ");
+
+        var run = await work.Run();
+
+        run.ExitCode.Should().Be(1);
+        run.Error.Should().Contain("hauling-templates.json");
+        work.ShouldHoldNothing();
+    }
+
     [Fact]
     public async Task A_second_run_needs_no_source()
     {
@@ -224,6 +265,11 @@ public sealed class FetchShipDataScriptTests
             if (notice is not null)
             {
                 File.WriteAllText(Path.Combine(assets, "NOTICE.md"), notice);
+            }
+
+            foreach (var (file, data) in release.HaulingAssets)
+            {
+                File.WriteAllBytes(Path.Combine(assets, file), data);
             }
         }
 
