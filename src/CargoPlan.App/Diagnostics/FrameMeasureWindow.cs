@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using CargoPlan.App.Holo;
+using CargoPlan.App.Routing;
 using CargoPlan.App.Scanning;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
@@ -29,6 +30,13 @@ namespace CargoPlan.App.Diagnostics;
 internal sealed class FrameMeasureWindow : Window
 {
     public const string Empty = "empty";
+
+    /// <summary>
+    /// The Plan tab's port matrix (T13.2) instead of the ship view: the pinned hauling data, the default filter, scrolled
+    /// both ways along a Lissajous path for the run (no camera). Compared with <see cref="Empty"/> (Phase 8 rule).
+    /// </summary>
+    public const string Routes = "routes";
+
     public const string LogFile = "measure-frames.log";
 
     private const double OrbitDegreesPerSecond = 12;
@@ -84,6 +92,9 @@ internal sealed class FrameMeasureWindow : Window
     private readonly int _crates;
     private readonly bool _drag;
     private readonly bool _overGame;
+    private readonly DataGrid? _matrix;
+    private readonly RoutesViewModel? _routes;
+    private ScrollViewer? _matrixScroll;
 
     // Key changes of the drag's preview while the cursor runs its path (T8.7): far fewer than without the game means
     // Star Citizen held the cursor, even with the drag still held.
@@ -91,7 +102,8 @@ internal sealed class FrameMeasureWindow : Window
 
     /// <param name="holoFolder">The hologram cache of the ship data in use (<see cref="HoloSource.CacheFolder"/>); nothing is downloaded here.</param>
     /// <param name="overGame">Lie over the game like the overlay: topmost, never the foreground window, after <see cref="Lead"/>.</param>
-    public FrameMeasureWindow(ShipCatalog catalog, string holoFolder, string target, bool overGame = false)
+    /// <param name="routes">The Plan tab's view model for <see cref="Routes"/>; null for every other target.</param>
+    public FrameMeasureWindow(ShipCatalog catalog, string holoFolder, string target, bool overGame = false, RoutesViewModel? routes = null)
     {
         _target = target;
         _overGame = overGame;
@@ -120,7 +132,15 @@ internal sealed class FrameMeasureWindow : Window
         cell.Children.Add(_view);
         Content = cell;
 
-        if (target != Empty && Targets.TryGetValue(target, out var spec) && catalog.Find(spec.Ship) is { } ship)
+        if (target == Routes && routes is { HasData: true })
+        {
+            // The overlay's matrix as OverlayWindow.xaml wires it: legend size, colour and halo, the pickup column frozen.
+            _routes = routes;
+            _matrix = MatrixLike(routes);
+            cell.Children.Clear();
+            cell.Children.Add(_matrix);
+        }
+        else if (target != Empty && Targets.TryGetValue(target, out var spec) && catalog.Find(spec.Ship) is { } ship)
         {
             _ship = ship;
             _drag = spec.Drag;
@@ -193,7 +213,7 @@ internal sealed class FrameMeasureWindow : Window
 
     private async void OnContentRendered(object? sender, EventArgs e)
     {
-        var known = _target == Empty || _ship is not null;
+        var known = _target == Empty || _ship is not null || _matrix is not null;
         if (_overGame)
         {
             await Task.Delay(Lead);
@@ -211,9 +231,11 @@ internal sealed class FrameMeasureWindow : Window
         var valid = known && FrameStatistics.IsValid(intervals);
 
         var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
-        var subject = (_ship is null ? _target : Inv($"{_target} {_crates} crates, holo {(_holo is null ? "no" : "yes")}, marker {_view.Scene?.Marker.GetType().Name}"))
+        var subject = (_ship is not null ? Inv($"{_target} {_crates} crates, holo {(_holo is null ? "no" : "yes")}, marker {_view.Scene?.Marker.GetType().Name}")
+                : _routes is not null ? Inv($"{_target} {_routes.Rows.Count} x {_routes.Columns.Count} cells")
+                : _target)
             + (_overGame ? " over game" : "") + ocr;
-        var frames = known ? FrameStatistics.Summary(intervals, Duration) : "unknown target (empty, " + string.Join(", ", Targets.Keys) + ")";
+        var frames = known ? FrameStatistics.Summary(intervals, Duration) : "unknown target (empty, routes, " + string.Join(", ", Targets.Keys) + ")";
         File.AppendAllText(_logPath, Inv($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {version} {subject}: frames {frames}{drags}{(hits is null ? "" : " | hits " + hits)}") + Environment.NewLine);
 
         Application.Current.Shutdown(valid ? 0 : 1);
@@ -280,6 +302,27 @@ internal sealed class FrameMeasureWindow : Window
                     return;
                 }
 
+                // The matrix scrolls along the drag's Lissajous path, both ways, so every frame shows other cells.
+                if (_matrix is not null)
+                {
+                    _matrixScroll ??= Descendant<ScrollViewer>(_matrix);
+                    if (_matrixScroll is { } scroll)
+                    {
+                        var seconds = (args.RenderingTime - start.Value).TotalSeconds;
+                        scroll.ScrollToHorizontalOffset(scroll.ScrollableWidth * (0.5 + 0.5 * Math.Sin(2 * Math.PI * seconds / PathPeriodX)));
+                        scroll.ScrollToVerticalOffset(scroll.ScrollableHeight * (0.5 + 0.5 * Math.Sin(2 * Math.PI * seconds / PathPeriodY)));
+                    }
+
+                    last = args.RenderingTime;
+                    if (args.RenderingTime - start >= Duration)
+                    {
+                        CompositionTarget.Rendering -= OnRendering;
+                        done.SetResult(intervals);
+                    }
+
+                    return;
+                }
+
                 // Yaw and pitch only: the view fits, the same input before and after the 3D view (D83). The empty window
                 // redraws its bare view instead; unchanged it gets about 32 frames a second (M0, T8.1).
                 camera = camera.OrbitBy(OrbitDegreesPerSecond * dt / 1000, 0);
@@ -307,6 +350,54 @@ internal sealed class FrameMeasureWindow : Window
 
         CompositionTarget.Rendering += OnRendering;
         return done.Task;
+    }
+
+    // The Plan tab's grid as OverlayWindow.xaml sets it up, in code: the measurement has no overlay window.
+    private DataGrid MatrixLike(RoutesViewModel routes)
+    {
+        Style Text(Thickness margin)
+        {
+            var style = new Style(typeof(TextBlock));
+            style.Setters.Add(new Setter(TextBlock.ForegroundProperty, new DynamicResourceExtension("LegendForegroundBrush")));
+            style.Setters.Add(new Setter(TextBlock.FontSizeProperty, new DynamicResourceExtension("LegendFontSize")));
+            style.Setters.Add(new Setter(EffectProperty, new DynamicResourceExtension("LegendHaloEffect")));
+            style.Setters.Add(new Setter(TextBlock.MarginProperty, margin));
+            return style;
+        }
+
+        var grid = new DataGrid
+        {
+            AutoGenerateColumns = false,
+            IsReadOnly = true,
+            HeadersVisibility = DataGridHeadersVisibility.Column,
+            FrozenColumnCount = 1,
+            GridLinesVisibility = DataGridGridLinesVisibility.None,
+            Background = Brushes.Transparent,
+            RowBackground = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            DataContext = routes,
+            ItemsSource = routes.Rows,
+        };
+        grid.Resources[PortMatrixGrid.CellTextStyleKey] = Text(new Thickness(6, 2, 6, 2));
+        grid.Resources[PortMatrixGrid.PickupTextStyleKey] = Text(new Thickness(0, 2, 8, 2));
+        PortMatrixGrid.SetColumns(grid, routes.Columns);
+        return grid;
+    }
+
+    private static T? Descendant<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if ((child as T ?? Descendant<T>(child)) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>The cursor's place on the drag path <paramref name="seconds"/> into the run, in the view's DIPs.</summary>
