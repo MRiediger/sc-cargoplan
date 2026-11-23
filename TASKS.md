@@ -340,6 +340,56 @@ Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
 - Addendum in `docs/hauling-data-format.md`, Feld `title`: „as the API shows it; Covalex equals the card, Red Wind does
   not“ (Befund T13.1, Issue #22)
 
+**Schnitt (Startprompt 23.11.):** T13.3a Daten zusammenführen (B1 nach Core, Faltung, Board, Matching, beobachtete
+Kanten, Settings-Abschnitt), Zwischenabnahme; T13.3b Rezept und Prüfung vor Annahme. Ein Branch `feat/p13-board`,
+`--no-ff` nach 3b.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (23.11.2026, „Freigabe T13.3 (a und b) mit K1“):**
+1. **L-Kurzform (Martin):** die Karte schreibt Lieferungen an „Green Glade Station“, positions.json kennt nur „HUR-L1
+   Green Glade Station“ (ohne `contractNames`). `Positions.Resolve` vergleicht den B1-Schlüssel auch mit dem Namen ohne
+   L-Code – ein Fakt der Karte, nicht der Daten, also C# (K1 von T13.0a); `contractNames` bleibt für Token-Formen.
+   Datentest: voll, ohne Code, ohne Code und „Station“, `contractNames` – kein Schlüssel nennt zwei Orte eines Systems.
+2. Matching nimmt eine `Observation` (Scan und gefalteter Eintrag gleich), Kandidaten = alle Stellar-Boards des Systems
+   über alle Ränge (`Board.Matchable`); der Rang kommt aus dem Titel.
+3. Stopps: die Mehrfachseite nennt `min(stops, Pool)` Orte bei einem Scan, mindestens so viele bei mehreren.
+4. Faltung: gleicher B1-Schlüssel → der längere Name (`DestinationNames.Preferred`), Treffer je Name kennt die Datei nicht.
+5. Echte Zwillinge (zwei systemweite Paare, nur die uuid verschieden) → `Ambiguous`, keine Kante.
+6. Rezept-Hub (Martin): Button „Hub“ in der Filterzeile, nur bei Recipe, `routes.hub`, Default Everus Harbor, gilt auch
+   für T13.4/T13.6.
+7. Rezept-Kandidaten: lokale Templates mit Pickup am Hub, systemweite nur mit beobachteter Kante ab dem Hub; Bulk →
+   Direct → Smalls; Rückläufer als Liste, nicht in der Abflug-Prüfung (Slot-Simulation T13.6).
+8. „fits“ = das gescannte Template ersetzt die Rolle seiner Art im Rezept und `LoadPlanner` passt.
+9. **K1 (Freigabe):** `ObservationKey` bekommt die Waren (Menge in `OcrText.AnchorForm`); 27 Schlüssel decken 64
+   Templates, die sich nur in der Ware unterscheiden. `routes.json` Schema 2 ohne neues Feld (die Waren sind die von
+   `scu`), Schema 1 gelesen: Einträge mit einer Ware 1:1, mit mehreren verworfen mit Logzeile. D118-Addendum.
+
+**Befunde Planphase:** Everus lokal = **23** (nicht 22 wie im Startprompt: Rookie 11, Junior 5, Member 2, Experienced 3,
+Senior 2); Port Tressler 89/20; Covalex-Schlüssel ohne Waren nicht eindeutig (s. K1); eine Red-Wind-Lieferzeile trägt
+mehrere Legs (Carbon 200 SCU aus zwei Pickups, Legs je 25–175); keine Red-Wind-Fixture hat einen lesbaren Reward.
+
+**Stand 3a (23.11., Branch `feat/p13-board`, 5e30e98..):**
+- Commits: B1-Umzug ohne Verhaltensänderung (Import 357 Tests unverändert, Golden-Keys grün); K1 + Schema 2 + Faltung
+  (Mutation ohne B1-Gruppierung: 3 rot); `Positions.Resolve` (Mutation ohne L-Code-Form: 18 rot); `Board.For`;
+  `TemplateMatch` (Mutation Schlüssel ohne Waren: Eisen + Quarz → eine Beobachtung, `None`); `ObservedEdges` + Matrix;
+  Settings-Abschnitt „Plan tab“.
+- **Boards gegen den Pin (Senior):** Everus 92 (lokal 23), Seraphim 88 (19), Baijini 91 (22), Port Tressler 89 (20);
+  Pyro `Solar` 31 je Fraktion, 62 beide.
+- **Orte der 21 RawText-Fixtures:** alle aufgelöst (auch „Melodic Fieids“, Pyro-Orte aus Issue #22) außer fünf vom
+  Capture abgerissenen Namen in drei Fixtures („Everus H“, „HUR-L1 Green Gle“, „HUR-L3 Thundg“, …).
+- **Matching-Quote:** Covalex-Fixtures **5/7** eindeutig, 2 mit benanntem Grund (abgerissene Orte); Red-Wind-Fixtures
+  3/3 `Ambiguous` mit je 2 Kandidaten (HH/CFP-Zwillinge); Red Wind mit API-Titel im Scan = gleiche Kandidaten wie mit
+  Kartentitel. **Martins scans.log (19.–20.11., von Hand):** 44/46 Scans eindeutig, 2 `None` (abgerissenes „HUR-“), 0
+  mehrdeutig; nach dem Aufzeichnen 10/11 Einträge – über den 78/84 aus Design §7.3.
+- **Präzisierung zur Zwischenabnahme (CC, bei der Umsetzung):** Faktions-Zwillinge (Templates gleich bis auf die
+  Fraktion) teilen eine mehrdeutige Beobachtung: jeder Red-Wind-Scan ist so ein Paar, sonst erschiene nie ein
+  beobachteter Red-Wind-Reward; der Fraktionsfilter zeigt die eigene Seite (D122).
+- Settings-Abschnitt heißt im UI „Plan tab“ (K1 von T13.2: UI sagt Plan), Zeilen „Your rank“, „Your faction“ („Both
+  sides“); Filter-Button und Fenster zeigen die Änderung des anderen (Test).
+- D122, D121-Addendum, D118-Addendum (K1); `hauling-data-format.md` mit echten Einträgen aus `ships-2026.11.2`,
+  `title`-Hinweis, Addendum T13.3; `routes-format.md` Schema 2; `settings-format.md`.
+- **Hänger:** ein voller `dotnet test`-Lauf blieb einmal im App-Testhost stehen (10 min, CPU konstant); drei folgende Läufe
+  mit `--blame-hang-timeout` grün in 11–17 s, nicht reproduziert. Beobachten.
+
 ### [ ] T13.4 Core/App: Loop-Ranking
 
 **Warum:** Die Kernfrage der Phase: welche Loop ist für mein Schiff die effektivste, auch an einem anderen Hub (Design §4.7).
@@ -547,3 +597,5 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   vermutlich Nähe zum Pickup). Auslöser: Sichtbarkeitsregel geklärt oder Nutzer-Report.
 - Pyro-Fraktionsgate HH/CFP (Design §7.6): sieht ein Spieler nur eine Seite? Bis dahin Fraktion als Filter in den
   Settings (T13.3). Auslöser: empirischer Befund im Spiel.
+- Red-Wind-Regionen (`RegionA`–`RegionD`) auf dem Pyro-Board (T13.3, Design §5, §7.6): heute nur `Solar`, der Reiter sagt
+  es. Auslöser: erster Pyro-Scan einer Region-Variante zeigt, welche Station welche Region hat.

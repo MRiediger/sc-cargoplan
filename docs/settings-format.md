@@ -329,8 +329,8 @@ falls back to the default, with a notice.
 | Key | What | Default |
 |---|---|---|
 | `routes.tab` | `"cargo"` or `"plan"`: the tab under the header the overlay starts in; every switch is saved. With **Plan** selected, F3 on an offer only notes the contract in `routes.json` and leaves the cargo as it is ("Observed (Plan tab): … – cargo unchanged"). | `"cargo"` |
-| `routes.rank` | The highest rank the port matrix shows, `"trainee"`, `"rookie"`, `"junior"`, `"member"`, `"experienced"`, `"senior"` or `"master"`; set with the matrix's rank button. `"master"` shows every template. | `"master"` |
-| `routes.faction` | Your side in Pyro, `"hh"` (Headhunters) or `"cfp"` (Citizens for Prosperity); narrows Red Wind contracts only. `null` shows both. | `null` |
+| `routes.rank` | The highest rank the port matrix shows, `"trainee"`, `"rookie"`, `"junior"`, `"member"`, `"experienced"`, `"senior"` or `"master"`; set with the matrix's rank button or in the settings window's "Plan tab" section (T13.3), which show each other's change. `"master"` shows every template. | `"master"` |
+| `routes.faction` | Your side in Pyro, `"hh"` (Headhunters) or `"cfp"` (Citizens for Prosperity); narrows Red Wind contracts only; set with the matrix's faction button or in the "Plan tab" section ("Both sides"). `null` shows both. | `null` |
 
 The other filters of the matrix (system, area, direct, contractor, sizes) last for the session. Older versions of the
 overlay don't know `routes`: they start with the default settings and say so, as for `shipData`.

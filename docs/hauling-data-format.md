@@ -69,23 +69,24 @@ availability (design §0, invariant 4).
 
 ### Example
 
-Values illustrative: the first entry has the shape of the Experienced Direct Medium seen at Everus on 19 and 21 Nov
-(design §8.3), its pool cut down to the places of the positions example below; the second is a Red Wind template, which
-the game data carry without a reward (design §7.6).
+Two entries of `ships-2026.11.2`, as the file has them (T13.3). The first is one of the four Rookie Direct Medium of the
+Everus board that pay 50,500 (one per ore); its pickup pool is empty, the board's hub stands in (D121). The second is a
+Red Wind template, which the game data carry without a reward (design §7.6); a Carbon scan from Rat's Nest and
+Starlight Service Station to Ruin Station matched it and its HH twin (`carbon_or_cut`).
 
 ```json
 {
  "schemaVersion": 1,
- "dataVersion": "ships-2026.12",
- "source": {"repository": "StarCitizenWiki/scunpacked-data", "commit": "<sha>", "gameBuild": "4.10.3-LIVE.13165946",
-            "fetchedAt": "2026-12-01T04:10:00Z"},
+ "dataVersion": "ships-2026.11.2",
+ "source": {"repository": "StarCitizenWiki/scunpacked-data", "commit": "3cc8072b24df2a2d71eb6207708e2039f909b342",
+            "gameBuild": "4.10.3-LIVE.13165946", "fetchedAt": "2026-11-23T10:09:15Z"},
  "templates": [
   {
-   "uuid": "0b5c1f2e-7d1a-4c55-9a0e-3f0f6c2b8e11",
-   "debugName": "HaulCargo_AToB_Supply_PressurizedIce_Stanton1_SupplyGrade2",
+   "uuid": "5b15b60b-dd61-4115-8787-b88ac3d9f00d",
+   "debugName": "HaulCargo_AToB_RawOre_Iron_Stanton1_SupplyGrade1",
    "contractor": "covalex",
-   "title": "Experienced Rank - Direct Medium Cargo Haul",
-   "rank": "experienced",
+   "title": "Rookie Rank - Direct Medium Cargo Haul",
+   "rank": "rookie",
    "size": "medium",
    "direct": true,
    "shape": "aToB",
@@ -94,28 +95,30 @@ the game data carry without a reward (design §7.6).
    "areaKey": "Stanton1",
    "missionType": "stellar",
    "faction": null,
-   "reward": 160250,
-   "legs": [{"commodity": "Pressurized Ice", "minScu": 90, "maxScu": 144, "containerScu": 16}],
-   "pickupPool": ["Everus Harbor"],
-   "dropoffPool": ["HUR-L1 Green Glade Station", "HUR-L3 Thundering Express Station"]
+   "reward": 50500,
+   "legs": [{"commodity": "Iron (Ore)", "minScu": 80, "maxScu": 112, "containerScu": 8}],
+   "pickupPool": [],
+   "dropoffPool": ["HUR-L1 Green Glade Station", "HUR-L2 Faithful Dream Station"]
   },
   {
-   "uuid": "6e1d0c9a-2b44-4f7e-8d3a-91c2a4f05b7d",
-   "debugName": "RedWind_Pyro_LargeGrade1_Solar_CFP_StationToStation_Carbon_CargoHauling_AToB",
+   "uuid": "fb0bb443-95a7-4425-9cd6-0275c113e8bc",
+   "debugName": "RedWind_Pyro_SupplyGrade_Solar_CFP_StationToRuin_Carbon_CargoHauling_Multi2ToSingle",
    "contractor": "redWind",
-   "title": "Senior Hauler Needed for Large Shipment",
-   "rank": "senior",
-   "size": "large",
+   "title": "Member Hauler Needed for Medium Shipment",
+   "rank": "member",
+   "size": "medium",
    "direct": false,
-   "shape": "aToB",
-   "stops": 1,
+   "shape": "multiToSingle",
+   "stops": 2,
    "system": "pyro",
    "areaKey": "Solar",
    "missionType": "stellar",
    "faction": "cfp",
    "reward": null,
-   "legs": [{"commodity": "Carbon", "minScu": 400, "maxScu": 600, "containerScu": 32}],
-   "pickupPool": ["Checkmate"],
+   "legs": [{"commodity": "Carbon", "minScu": 25, "maxScu": 175, "containerScu": 8},
+            {"commodity": "Carbon", "minScu": 25, "maxScu": 175, "containerScu": 8}],
+   "pickupPool": ["Checkmate", "Dudley & Daughters", "Endgame", "Gaslight", "Megumi Refueling", "Orbituary", "Patch City",
+                  "Rat's Nest", "Rod's Fuel 'N Supplies", "Stanton Gateway", "Starlight Service Station"],
    "dropoffPool": ["Ruin Station"]
   }
  ]
@@ -133,7 +136,7 @@ the game data carry without a reward (design §7.6).
 | `uuid` | string | yes | Identity of the template, stable across runs; the diff compares by it. | `UUID` |
 | `debugName` | string | yes | The game's name, kept for tracing. | `DebugName` |
 | `contractor` | `covalex` \| `redWind` | yes | Who offers it (V4). | `MissionGiver` `Covalex Independent Contractors` \| `Red Wind Linehaul` |
-| `title` | string | yes | The title as the contract shows it; the scan matches on it (T13.3). | `DisplayTitle` (`Title` when empty) |
+| `title` | string | yes | The title as the API shows it: for Covalex the card's, for Red Wind not (the card shows `<Rank> \| Stellar [Direct] <Size> Haul \| to/from <place>`, issue #22). Shown, never matched on (T13.3, D122). | `DisplayTitle` (`Title` when empty) |
 | `rank` | `trainee` \| `rookie` \| `junior` \| `member` \| `experienced` \| `senior` \| `master` | yes | Rank needed; the order is the list's (V2: `trainee` first). A board shows every rank up to the player's (design §1.2). | first word of the title |
 | `size` | `xs` \| `small` \| `medium` \| `large` \| `bulk` | yes | Size class (V3): `Extra Small` → `xs`, `Small`, `Medium`, `Large`, `Bulk` → `bulk`, in this order. An unknown word stops the hauling job. | title |
 | `direct` | bool | yes | `Direct` in the title. | title |
@@ -183,27 +186,33 @@ title forms are the ones `ContractTextParser` learns with T13.1 (rank words incl
 
 ### Example
 
-Coordinates illustrative, chosen so the distances are the ones the design measured from `starmap_positions.json`
-(§9.3): Everus Harbor → HUR-L1 1.3 Gm, → HUR-L3 25.7 Gm. The two Pyro places complete the templates example; their
-`contractNames` are the Pyro long forms of the alias table (K1).
+Places of the templates example, as `ships-2026.11.2` has them (T13.3); Everus Harbor → HUR-L1 is 1.29 Gm. The Pyro
+places' `contractNames` are the long forms of the alias table (K1); the L stations have none: a delivery line names them
+without their code ("Green Glade Station"), which the app knows ([Addendum T13.3](#addendum-t133)).
 
 ```json
 {
  "schemaVersion": 1,
- "dataVersion": "ships-2026.12",
- "source": {"repository": "StarCitizenWiki/scunpacked-data", "file": "starmap_positions.json", "commit": "<sha>",
-            "fetchedAt": "2026-12-01T04:22:00Z"},
+ "dataVersion": "ships-2026.11.2",
+ "source": {"repository": "StarCitizenWiki/scunpacked-data", "file": "starmap_positions.json",
+            "commit": "3cc8072b24df2a2d71eb6207708e2039f909b342", "fetchedAt": "2026-11-23T10:09:15Z"},
  "positions": [
-  {"uuid": "07463f54…", "name": "Checkmate", "system": "pyro", "type": "Manmade", "parent": null,
-   "x": -41255000000, "y": 18730000000, "z": 0, "contractNames": ["Checkmate at the L4 Lagrange of Pyro II"]},
-  {"uuid": "9a41…", "name": "Everus Harbor", "system": "stanton", "type": "Manmade", "parent": null,
-   "x": 12850400000, "y": 0, "z": 0, "contractNames": []},
-  {"uuid": "c3d0…", "name": "HUR-L1 Green Glade Station", "system": "stanton", "type": "Manmade_VisibleOnInteraction",
-   "parent": null, "x": 11550400000, "y": 0, "z": 0, "contractNames": []},
-  {"uuid": "51be…", "name": "HUR-L3 Thundering Express Station", "system": "stanton",
-   "type": "Manmade_VisibleOnInteraction", "parent": null, "x": -12849600000, "y": 0, "z": 0, "contractNames": []},
-  {"uuid": "1c585a2e…", "name": "Ruin Station", "system": "pyro", "type": "Manmade", "parent": null,
-   "x": -27600000000, "y": 9900000000, "z": 0, "contractNames": ["Ruin Station above Pyro VI"]}
+  {"uuid": "07463f54-4ecd-4323-8a28-fb65b8a4ebca", "name": "Checkmate", "system": "pyro", "type": "Manmade_VisibleOnInteraction",
+   "parent": "Pyro", "x": 1833362390.019977, "y": 10434543320.869617, "z": 2570930.841284,
+   "contractNames": ["Checkmate at the L4 Lagrange of Pyro II"]},
+  {"uuid": "5e241629-e58f-4c15-b938-acc2cc287cd4", "name": "Rat's Nest", "system": "pyro", "type": "Manmade_VisibleOnInteraction",
+   "parent": "Pyro", "x": 3732645628.287643, "y": -42766913617.569916, "z": 18513515.236622,
+   "contractNames": ["Rat's Nest at the L5 Lagrange of Pyro V"]},
+  {"uuid": "1c585a2e-73c4-4bc5-8922-e0b434b8c8ea", "name": "Ruin Station", "system": "pyro", "type": "Manmade", "parent": "Terminus",
+   "x": -52336834868.99303, "y": -43917925431.95215, "z": -100477.857041, "contractNames": ["Ruin Station above Pyro VI"]},
+  {"uuid": "ab29f65e-c792-4b1f-b23d-5810cb0ef416", "name": "Everus Harbor", "system": "stanton", "type": "Manmade", "parent": "Hurston",
+   "x": 12849949350.6875, "y": -903464.4375, "z": 496489.0625, "contractNames": []},
+  {"uuid": "689ff011-e2e9-4f6e-b5a3-7cea4bbc86c7", "name": "HUR-L1 Green Glade Station", "system": "stanton",
+   "type": "Manmade_VisibleOnInteraction", "parent": "Stanton", "x": 11561412555.753656, "y": -262923.20307,
+   "z": -484614.27223299997, "contractNames": []},
+  {"uuid": "81e3150a-9c12-4715-85d4-afd6da69b8f0", "name": "HUR-L2 Faithful Dream Station", "system": "stanton",
+   "type": "Manmade_VisibleOnInteraction", "parent": "Stanton", "x": 14139635583.044806, "y": -1967277.639212439,
+   "z": -527794.260616351, "contractNames": []}
  ]
 }
 ```
@@ -242,9 +251,10 @@ positions; the app shows it in Gm (10⁹ m). A matrix in the file would be redun
   caves, wrecks, generic names; no position exists, the name leaves the pool, the changelog counts the drops); else the
   exact starmap name in the template's system. Anything else is a gap and stops the hauling job.
 - **Scan ↔ position: the B1 key, in the app only.** A scanned place is matched by `DestinationNames.Key` (OCR-tolerant,
-  suffix "Station" optional), which moves to Core with T13.3, against `name` **and** every `contractNames` entry of the
-  scan's system (K1). The files carry no key: a second implementation in the pipeline would drift. The app's data test
-  (T13.3) checks that no key occurs twice in one system, across both fields.
+  suffix "Station" optional; in Core since T13.3) against `name`, `name` without an L station's code ("Green Glade
+  Station" for "HUR-L1 Green Glade Station": the form the card's delivery lines use) **and** every `contractNames` entry
+  of the scan's system (K1). The files carry no key: a second implementation in the pipeline would drift. The app's data
+  test (T13.3) checks that no key names two places of one system, across all these forms.
 
 ## Checks of the loader
 
@@ -311,3 +321,16 @@ The app reads both files (23 Nov 2026), from the pin `ships-2026.11.2` on; nothi
 | Checks also | `stops ≥ 1`. |
 
 Loaded at the start of the app (Debug, 23 Nov): 587 templates, 157 positions, none left out, 38–47 ms.
+
+## Addendum T13.3
+
+The app resolves scans against both files and matches them to templates (23 Nov 2026, D122); nothing in the format
+changed.
+
+| Point | What the app does |
+|---|---|
+| `title` | Shown, never matched on: for Covalex it is the card's title, for Red Wind the API's, which no card shows (issue #22). Rank, size and direct come from the parsed title of the scan. |
+| L stations | The card writes deliveries to "Green Glade Station", positions.json names "HUR-L1 Green Glade Station" without a contract name. The short form is a fact of the card, not of the data, so the app compares the name without its code too (K1 of T13.0a; Martin, 23 Nov); `contractNames` stays for forms of the source's tokens, like the Pyro long forms. |
+| Data test | No B1 key names two places of one system over the full name, the name without code, without code and "Station", and `contractNames` (`ships-2026.11.2`: none). Every place of the RawText fixtures resolves, except names the capture tore ("HUR-L1 Green Gle"). |
+| Matching | A scan is the template of its contractor, rank, size and direct (where the card tells it), Covalex also of its reward, then of its commodities, SCU bands, stop count and places; Red Wind never by reward. `ships-2026.11.2`: Covalex fixtures 5 of 7, scans.log of 19–20 Nov 44 of 46 scans (the rest: torn place names); each Red Wind fixture matches the HH and CFP twins. |
+| Boards | `Board.For`: Everus 92 (23 local), Seraphim 88 (19), Baijini 91 (22), Port Tressler 89 (20) for a Senior; Pyro `Solar` 31 per faction. |
