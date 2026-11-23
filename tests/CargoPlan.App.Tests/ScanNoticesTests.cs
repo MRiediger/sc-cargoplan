@@ -145,7 +145,7 @@ public sealed class ScanNoticesTests
     [InlineData(HaulContractor.RedWind, HaulRank.Member, HaulSize.Medium, null, 532_500L, "Observed (Plan tab): Red Wind Member Medium · 532,500 aUEC – cargo unchanged")]
     public void An_observed_offer_names_its_template(HaulContractor contractor, HaulRank rank, HaulSize size, bool? direct, long reward, string expected)
     {
-        var report = new ScanReport(ScanReportKind.Observed, Observed: new ObservationKey(contractor, rank, size, direct, reward));
+        var report = new ScanReport(ScanReportKind.Observed, Observed: new ObservationKey(contractor, rank, size, direct, reward, ["Stims"]));
 
         ScanNotices.Text(report, null).Should().Be(expected);
     }

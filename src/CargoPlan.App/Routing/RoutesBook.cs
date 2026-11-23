@@ -51,7 +51,13 @@ internal sealed class RoutesBook
         try
         {
             using var stream = File.OpenRead(path);
-            return new(path, RoutesFile.Read(stream, path), keepUnreadable: false);
+            var read = RoutesFile.Read(stream, path);
+            foreach (var dropped in read.Dropped)
+            {
+                AppLog.Write(LogContext, dropped);
+            }
+
+            return new(path, read.Observations, keepUnreadable: false);
         }
         catch (Exception ex) when (ex is RoutesFormatException or IOException or UnauthorizedAccessException)
         {

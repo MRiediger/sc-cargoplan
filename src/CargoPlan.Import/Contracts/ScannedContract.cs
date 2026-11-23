@@ -44,13 +44,14 @@ public sealed record ScannedContract(
 
     /// <summary>
     /// The contract as an observation of its template (T13.1, U3), scanned at <paramref name="utc"/>: from the offers or
-    /// the accepted view, read whole (no hard doubt, a delivery), with its title and reward, which make the key. Null
-    /// otherwise; one line per delivery, places as read.
+    /// the accepted view, read whole (no hard doubt, a delivery), with its title and reward, which make the key with the
+    /// commodities (K1 of T13.3). Null otherwise; one line per delivery, places as read.
     /// </summary>
     public ObservedScan? ToObservation(DateTime utc) =>
         View is ContractView.Offer or ContractView.Accepted && !InHardDoubt && Stops.Count > 0 && Title is { } title && Reward is { } reward
             ? new(
-                new ObservationKey(title.Contractor, title.Rank, title.Size, title.Direct, reward),
+                new ObservationKey(
+                    title.Contractor, title.Rank, title.Size, title.Direct, reward, [.. Stops.SelectMany(stop => stop.Items.Select(item => item.Commodity))]),
                 title.Area,
                 Pickups,
                 [.. Stops.SelectMany(stop => stop.Items.Select(item => new ObservedDelivery(stop.Destination, item.Commodity, item.Scu)))],

@@ -9,6 +9,9 @@ public sealed record Observations(IReadOnlyList<Observation> Entries)
 {
     public static Observations Empty { get; } = new([]);
 
+    /// <summary>Every entry with one name per place and one band per commodity (<see cref="Observation.Folded"/>).</summary>
+    public Observations Folded() => new([.. Entries.Select(e => e.Folded())]);
+
     /// <summary>These observations with <paramref name="scan"/>: its key's entry widened, or a new one at the end.</summary>
     public Observations Record(ObservedScan scan)
     {

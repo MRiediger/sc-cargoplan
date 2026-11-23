@@ -21,7 +21,7 @@ public sealed class RoutesSwitchTests : IDisposable
 
     private const string Title = "Junior Rank - Small Cargo Haul";
 
-    private static readonly ObservationKey JuniorSmall = new(HaulContractor.Covalex, HaulRank.Junior, HaulSize.Small, Direct: false, Reward: 50_250);
+    private static readonly ObservationKey JuniorSmall = new(HaulContractor.Covalex, HaulRank.Junior, HaulSize.Small, Direct: false, Reward: 50_250, ["Stims"]);
 
     private const string Observed = "Observed (Plan tab): Covalex Junior Small · 50,250 aUEC – cargo unchanged";
 

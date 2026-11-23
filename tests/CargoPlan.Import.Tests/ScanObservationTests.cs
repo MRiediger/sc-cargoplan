@@ -14,7 +14,7 @@ public class ScanObservationTests
         var observed = ScannedContract.Read(ImportFixtures.RawText(ImportFixtures.FuelOffer)).ToObservation(Monday);
 
         observed.Should().NotBeNull();
-        observed!.Key.Should().Be(new ObservationKey(HaulContractor.Covalex, HaulRank.Experienced, HaulSize.Medium, Direct: false, Reward: 191_500));
+        observed!.Key.Should().Be(new ObservationKey(HaulContractor.Covalex, HaulRank.Experienced, HaulSize.Medium, Direct: false, Reward: 191_500, ["Hydrogen Fuel", "Quantum Fuel", "Ship Ammunition"]));
         observed.Pickups.Should().Equal("Everus Harbor");
         observed.Deliveries.Should().BeEquivalentTo(
         [
