@@ -684,6 +684,20 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void Route_changes_write_on_flush()
+    {
+        // T13.2: the selected tab, the rank and the faction; the next start opens the same tab.
+        var session = Create();
+
+        session.ChangeRoutes(session.Current.Routes with { Tab = RoutesSettings.PlanTab });
+        session.ChangeRoutes(session.Current.Routes with { Rank = "senior", Faction = "hh" });
+        session.Flush();
+
+        Saved().Routes.Should().Be(new RoutesSettings("plan", "senior", "hh"));
+        Saved().ShipData.Should().Be(UpdateSettings.Default);
+    }
+
+    [Fact]
     public void ChangeCheckOnStartup_writes_on_flush()
     {
         var session = Create();

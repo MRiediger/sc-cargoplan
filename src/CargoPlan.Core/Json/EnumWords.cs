@@ -6,7 +6,7 @@ namespace CargoPlan.Core.Json;
 /// An enum value as the files spell it: camelCase as in docs/hauling-data-format.md ("xs", "redWind", "aToB"). One
 /// vocabulary for routes.json and the hauling data (T13.2); <c>RoutesFileTests</c> pins the words, so a renamed member shows.
 /// </summary>
-internal static class EnumWords
+public static class EnumWords
 {
     public static string Word<T>(T value) where T : struct, Enum => JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
 

@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipView;
+using CargoPlan.Core.Routing;
 
 namespace CargoPlan.App.Tests;
 
@@ -1018,6 +1019,75 @@ public sealed class SettingsStoreTests : IDisposable
     public void Save_then_Load_keeps_the_ship_data()
     {
         var settings = AppSettings.Default with { ShipData = new UpdateSettings(false, "ships-2026.11.1") };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+    }
+
+    // T13.2: the tab, the rank and the faction of the route planner; optional like shipData, settings.json stays schema 3.
+    [Theory]
+    [InlineData("""{ "schemaVersion": 3 }""")]
+    [InlineData("""{ "schemaVersion": 3, "routes": null }""")]
+    [InlineData("""{ "schemaVersion": 3, "routes": {} }""")]
+    [InlineData("""{ "schemaVersion": 2 }""")]
+    public void File_without_routes_starts_in_the_cargo_tab_with_every_rank(string content)
+    {
+        WriteFile(content);
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Routes.Should().Be(new RoutesSettings("cargo", "master", null));
+        loaded.Routes.IsPlanTab.Should().BeFalse();
+        loaded.SchemaVersion.Should().Be(3);
+    }
+
+    [Fact]
+    public void Routes_keep_what_the_file_says()
+    {
+        WriteFile("""{ "schemaVersion": 3, "routes": { "tab": "plan", "rank": "senior", "faction": "cfp" } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Routes.Should().Be(new RoutesSettings("plan", "senior", "cfp"));
+        loaded.Routes.IsPlanTab.Should().BeTrue();
+        loaded.Routes.MaxRank.Should().Be(HaulRank.Senior);
+        loaded.Routes.PlayerFaction.Should().Be(HaulFaction.Cfp);
+    }
+
+    [Theory]
+    [InlineData("tab", "routes", "routes.tab \"routes\" is not cargo or plan, using cargo.")]
+    [InlineData("rank", "Senior", "routes.rank \"Senior\" is not a rank (trainee … master), using master.")]
+    [InlineData("faction", "xenothreat", "routes.faction \"xenothreat\" is not hh or cfp, using none.")]
+    public void A_route_word_out_of_the_format_falls_back_with_a_line(string key, string word, string line)
+    {
+        WriteFile($$"""{ "schemaVersion": 3, "routes": { "{{key}}": "{{word}}" } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Routes.Should().Be(RoutesSettings.Default);
+        problem.Should().Be($"settings.json: {line}");
+    }
+
+    [Fact]
+    public void Save_writes_the_routes_after_the_ship_data()
+    {
+        SettingsStore.Save(SettingsPath, AppSettings.Default);
+
+        var file = JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
+        var keys = file.Select(p => p.Key).ToList();
+        keys.IndexOf("routes").Should().Be(keys.IndexOf("shipData") + 1);
+        file["routes"]!.AsObject().Select(p => p.Key).Should().Equal("tab", "rank", "faction");
+    }
+
+    [Fact]
+    public void Save_then_Load_keeps_the_routes()
+    {
+        var settings = AppSettings.Default with { Routes = new RoutesSettings("plan", "junior", "hh") };
 
         SettingsStore.Save(SettingsPath, settings);
         var (loaded, problem) = SettingsStore.Load(SettingsPath);

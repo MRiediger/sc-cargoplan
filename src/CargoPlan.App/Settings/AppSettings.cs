@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using CargoPlan.Core.Json;
+using CargoPlan.Core.Routing;
 
 namespace CargoPlan.App.Settings;
 
@@ -71,7 +73,8 @@ public sealed record AppSettings(
     string? HoloEdgeColor = null,
     ShipViewSettings? ShipView = null,
     UpdateSettings? Updates = null,
-    UpdateSettings? ShipData = null)
+    UpdateSettings? ShipData = null,
+    RoutesSettings? Routes = null)
 {
     public static AppSettings Default { get; } = new(SettingsStore.SupportedSchemaVersion);
 
@@ -101,6 +104,39 @@ public sealed record AppSettings(
     public UpdateSettings Updates { get; init; } = Updates ?? UpdateSettings.Default;
 
     public UpdateSettings ShipData { get; init; } = ShipData ?? UpdateSettings.Default;
+
+    public RoutesSettings Routes { get; init; } = Routes ?? RoutesSettings.Default;
+}
+
+/// <summary>
+/// The route planner (T13.2): the selected tab and the player's rank and faction, which the boards use (T13.3). Optional,
+/// no schema bump (as <c>shipData</c>). Words as in docs/hauling-data-format.md; one out of the format falls back with a
+/// line (<see cref="SettingsStore.Load"/>).
+/// </summary>
+/// <param name="Tab">
+/// "cargo" or "plan": the tab the overlay starts in. "plan" is the Routes tab, labelled Plan (K1 of the T13.2 approval);
+/// while it is selected an offer scan goes into routes.json only, not into the cargo (D118).
+/// </param>
+/// <param name="Rank">The highest rank the matrix shows, "trainee" to "master"; "master" shows every template.</param>
+/// <param name="Faction">The player's side in Pyro, "hh" or "cfp"; null = both.</param>
+public sealed record RoutesSettings(string Tab = RoutesSettings.CargoTab, string Rank = RoutesSettings.AnyRank, string? Faction = null)
+{
+    public const string CargoTab = "cargo";
+
+    public const string PlanTab = "plan";
+
+    public const string AnyRank = "master";
+
+    public static RoutesSettings Default { get; } = new();
+
+    [JsonIgnore]
+    public bool IsPlanTab => Tab == PlanTab;
+
+    [JsonIgnore]
+    public HaulRank MaxRank => EnumWords.TryParse<HaulRank>(Rank, out var rank) ? rank : HaulRank.Master;
+
+    [JsonIgnore]
+    public HaulFaction? PlayerFaction => Faction is not null && EnumWords.TryParse<HaulFaction>(Faction, out var faction) ? faction : null;
 }
 
 /// <summary>The update check (D109). Optional, no schema bump (D31); the settings window's section comes with T11.2.</summary>
