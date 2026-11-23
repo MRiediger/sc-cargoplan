@@ -142,7 +142,7 @@ Beispiel und Schema-Tabelle je Datei; `dotnet build` und `dotnet test` unveränd
     geschätzt, Starmap-Name + `contractNames[]`, `legs ≥ 1`, Name eindeutig je System, `Star`), weiter Schema 1;
     Zeile in D119; Zahlen in T13.3.
 
-### [ ] T13.1 Core/Import: Titel, Beobachtungen, Routes-Weiche (Umschnitt U3, 23.11.)
+### [x] T13.1 Core/Import: Titel, Beobachtungen, Routes-Weiche (Umschnitt U3, 23.11.; abgenommen 23.11.)
 
 **Warum:** Die Identität eines Templates im Scan ist Titel + Reward, und was ein Scan über die Templates hinaus weiß
 (reale Endpunkte, Red-Wind-Rewards), muss irgendwo landen. Ein Offer-Scan bei offenem Routes-Reiter darf nicht in den
@@ -190,7 +190,7 @@ Ladeplan (U1, U3, D118).
 10. Beobachtung nach der Notice (Latenz Taste → Notice unverändert); scans.log bekommt `observeMs=`.
 11. **E2:** jeder lesbare Scan schreibt `routes.json`, auch ohne Routes-Reiter (D118-Addendum).
 
-**Stand 23.11. (Branch `feat/p13-observations`, wartet auf Gate und Abnahme):**
+**Stand 23.11. (Branch `feat/p13-observations`, abgenommen 23.11.):**
 - Titel mit dem neuen Parser: S10.0 `set` (3440×1440) 20/20, `set-1080s` 20/20; `scans.log` (19.–20.11.) 46/46
   (43 Offer, 3 Accepted), alle 46 wären Beobachtungen; RawText-Fixtures 20/21 (ohne Titel nur `ice_and_food`).
 - `OcrSampleTests` von Hand: Lieferfelder 138/138 (21:9) und 135/138 (1080p, nur c06 Textanimation) – wie T10.1a.
@@ -198,8 +198,21 @@ Ladeplan (U1, U3, D118).
 - Mutation ohne Weiche: 8 von 16 `RoutesSwitchTests` rot.
 - Start mit `--routes-open` (Release, `--data-dir`): Log-Zeile „Routes counts as the selected tab“, kein `routes.json`
   ohne Scan.
-- Offen: Gate am Terminal (SC vorne) und Latenz p95 Taste → Notice gegen T10.3 (OFFERS 1 389 / ACCEPTED 1 423 ms),
-  dazu `observeMs` aus scans.log.
+- **Gate am Terminal (Martin, 23.11., SC vorne, Profilordner):** Weiche hält, plan.json unverändert; `routes.json` mit
+  einem Eintrag Senior Medium 325 250, Count 3, Bänder geweitet, `direct: false`.
+- **Latenz aus scans.log (n = 3, kein p95 möglich):**
+
+  | Scan | Ergebnis | Taste → Rohtext | Taste → Notice | `ocrMs` | `observeMs` |
+  |---|---|---|---|---|---|
+  | 1, erster nach Start, ohne Schalter | Added #1 | 1 665 | 1 807 | 1 490 | 28 |
+  | 2, erster nach Start, `--routes-open` | Observed | 1 663 | 1 672 | 1 500 | 14 |
+  | 3, zweiter im selben Lauf | Added #1 (Accepted) | 1 538 | 1 789 | 1 464 | 3 |
+
+  `observeMs` Median 14, max 28 ms, nach der Notice, also nicht in Taste → Notice. Gegen T10.3 (p95 1 389 / 1 423 ms,
+  n = 24/22) nicht vergleichbar: zwei der drei sind erste Scans nach dem Start (T10.3: 1 694 ms), und die Mehrzeit
+  steckt schon vor dem Rohtext (`ocrMs` ≈ 1,5 s), bevor T13.1-Code läuft; Rohtext → Notice 9 ms (Observed) bzw.
+  142/251 ms (erster Plan-Schritt im Prozess). Eine Messung mit n ≥ 20 steht aus, falls die OCR-Zeit auffällt.
+- Red-Wind-Kartenform bleibt: „Direct“ da → `true`, sonst `null` (Abnahme). T13.6-Text bleibt bis zur T13.6-Planung.
 
 ### [ ] T13.2 App: Reiter „Routes“, Loader, Hafen-Matrix
 
