@@ -20,7 +20,7 @@ public sealed class ShipDataSourceTests : IDisposable
 
     private static readonly ActiveShipData Baseline = new(
         new ShipDataVersion(2026, 11, 0), ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile,
-        new Core.Holo.HoloOffer.NotOffered());
+        new Core.Holo.HoloOffer.NotOffered(), new HaulingOffer.None());
 
     private readonly string _folder = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"));
 

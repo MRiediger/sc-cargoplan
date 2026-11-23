@@ -14,7 +14,7 @@ public sealed class ShipDataStoreTests : IDisposable
 {
     // ships-2026.11: the seed release, older than the downloads below.
     private static readonly ActiveShipData Baseline = new(
-        new ShipDataVersion(2026, 11, 0), ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile, new HoloOffer.NotOffered());
+        new ShipDataVersion(2026, 11, 0), ShipDataOrigin.Baseline, AppContext.BaseDirectory, FrozenShips.Folder, FrozenOutlines.PathOfFile, new HoloOffer.NotOffered(), new HaulingOffer.None());
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "CargoPlan.Tests", Guid.NewGuid().ToString("N"), "ships");
 

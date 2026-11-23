@@ -15,7 +15,15 @@ public enum ShipDataOrigin
 /// <summary>The ship data the app loads at this start (T12.3): one folder of ship files and one outline file.</summary>
 /// <param name="Folder">The data's own folder: <c>ship-data\</c> next to the exe, or <c>ships\&lt;tag&gt;\</c> in the data folder.</param>
 /// <param name="Holo">The holograms its manifest offers (T12.4, D114): read with it, the same for the whole run.</param>
-public sealed record ActiveShipData(ShipDataVersion Version, ShipDataOrigin Origin, string Folder, string ShipsFolder, string OutlinesPath, HoloOffer Holo)
+/// <param name="Hauling">The hauling files its manifest offers (T13.2): next to manifest.json in <paramref name="Folder"/>.</param>
+public sealed record ActiveShipData(
+    ShipDataVersion Version,
+    ShipDataOrigin Origin,
+    string Folder,
+    string ShipsFolder,
+    string OutlinesPath,
+    HoloOffer Holo,
+    HaulingOffer Hauling)
 {
     /// <summary>The baseline's folder next to the exe (D113): a data release in the download layout.</summary>
     public const string BaselineFolderName = "ship-data";
@@ -56,7 +64,7 @@ public sealed record ActiveShipData(ShipDataVersion Version, ShipDataOrigin Orig
         }
 
         return new(manifest.DataVersion, ShipDataOrigin.Baseline, folder,
-            Path.Combine(folder, ShipLoader.FolderName), Path.Combine(folder, ShipDataManifestReader.OutlinesPath), manifest.Holo);
+            Path.Combine(folder, ShipLoader.FolderName), Path.Combine(folder, ShipDataManifestReader.OutlinesPath), manifest.Holo, manifest.Hauling);
     }
 
     /// <summary>One line for the log and the CLI: <c>ships-2026.11.1 (downloaded) C:\…\ships\ships-2026.11.1</c>.</summary>
@@ -263,7 +271,7 @@ public sealed class ShipDataStore(string root, ActiveShipData baseline, long max
 
     private static ActiveShipData Downloaded(string folder, ShipDataManifest manifest) => new(
         manifest.DataVersion, ShipDataOrigin.Downloaded, folder, Path.Combine(folder, ShipLoader.FolderName),
-        Path.Combine(folder, ShipDataManifestReader.OutlinesPath), manifest.Holo);
+        Path.Combine(folder, ShipDataManifestReader.OutlinesPath), manifest.Holo, manifest.Hauling);
 
     private IEnumerable<(string Folder, ShipDataVersion Version)> Releases()
     {

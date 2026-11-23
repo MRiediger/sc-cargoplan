@@ -19,6 +19,28 @@ internal sealed class ShipDataRelease
 
     public int SchemaVersion { get; init; } = 6;
 
+    /// <summary>
+    /// The hauling assets (T13.2): null = a release without the section, as before ships-2026.11.2. With them the
+    /// manifest gets <c>hauling</c> with their lengths and hashes, as published.
+    /// </summary>
+    public (byte[] Templates, byte[] Positions)? Hauling { get; set; }
+
+    public const string TemplatesAsset = "hauling-templates.json";
+
+    public const string PositionsAsset = "positions.json";
+
+    /// <summary>The release with the default hauling files of <see cref="HaulingFixtures"/>.</summary>
+    public ShipDataRelease WithHauling((byte[] Templates, byte[] Positions)? files = null)
+    {
+        Hauling = files ?? HaulingFixtures.Files();
+        return this;
+    }
+
+    /// <summary>The hauling assets by their asset names, as the release serves them.</summary>
+    public IReadOnlyDictionary<string, byte[]> HaulingAssets => Hauling is { } h
+        ? new Dictionary<string, byte[]> { [TemplatesAsset] = h.Templates, [PositionsAsset] = h.Positions }
+        : new Dictionary<string, byte[]>();
+
     /// <summary>The frozen ships, their module and the frozen outlines.</summary>
     public static ShipDataRelease Frozen(string dataVersion = "ships-2026.11.1", int schemaVersion = 6)
     {
@@ -59,6 +81,16 @@ internal sealed class ShipDataRelease
                 ["hull_a"] = new JsonObject { ["modelKey"] = "misc-hull-a", ["missingSince"] = null, ["follows"] = null },
             },
         };
+        if (Hauling is { } hauling)
+        {
+            manifest["hauling"] = new JsonObject
+            {
+                ["schemaVersion"] = 1,
+                ["templates"] = Asset(TemplatesAsset, hauling.Templates),
+                ["positions"] = Asset(PositionsAsset, hauling.Positions),
+            };
+        }
+
         change?.Invoke(manifest);
         return Encoding.UTF8.GetBytes(manifest.ToJsonString());
     }
@@ -80,6 +112,9 @@ internal sealed class ShipDataRelease
     }
 
     public static string Sha256(byte[] data) => Convert.ToHexStringLower(SHA256.HashData(data));
+
+    private static JsonObject Asset(string file, byte[] data) =>
+        new() { ["file"] = file, ["bytes"] = data.Length, ["sha256"] = Sha256(data) };
 }
 
 /// <summary>

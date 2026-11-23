@@ -19,7 +19,7 @@ internal static class FakeHttp
 
     /// <summary>The data in use with <paramref name="holo"/>; the folders are never read by the hologram code.</summary>
     public static ActiveShipData Data(HoloOffer holo) => new(
-        DataVersion, ShipDataOrigin.Baseline, @"C:\app\ship-data", @"C:\app\ship-data\ships", @"C:\app\ship-data\outlines.json", holo);
+        DataVersion, ShipDataOrigin.Baseline, @"C:\app\ship-data", @"C:\app\ship-data\ships", @"C:\app\ship-data\outlines.json", holo, new HaulingOffer.None());
 
     /// <summary>Answers per file name; logs every request. Unknown files get a 404.</summary>
     public sealed class FakeHandler : HttpMessageHandler

@@ -3,7 +3,6 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Security.Cryptography;
 using CargoPlan.App.ShipData;
 using CargoPlan.Core.Holo;
 using CargoPlan.Core.ShipData;
@@ -341,8 +340,7 @@ public sealed class HoloSource : IDisposable
         }
     }
 
-    private static bool Matches(byte[] data, HoloManifestEntry entry) =>
-        data.Length == entry.Bytes && string.Equals(Convert.ToHexStringLower(SHA256.HashData(data)), entry.Sha256, StringComparison.OrdinalIgnoreCase);
+    private static bool Matches(byte[] data, HoloManifestEntry entry) => new ReleaseAsset(entry.File, entry.Bytes, entry.Sha256).Matches(data);
 
     private string CachePath(string file) => Path.Combine(_folder, file);
 }

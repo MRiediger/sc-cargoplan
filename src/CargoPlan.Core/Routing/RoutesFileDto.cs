@@ -1,4 +1,4 @@
-using System.Text.Json;
+using static CargoPlan.Core.Json.EnumWords;
 
 namespace CargoPlan.Core.Routing;
 
@@ -61,25 +61,6 @@ internal sealed record ObservationDto(
         var key = new ObservationKey(Parse<HaulContractor>(Contractor), Parse<HaulRank>(Rank), Parse<HaulSize>(Size), Direct, Reward);
         return new(key, Area is null ? null : Parse<AreaLevel>(Area), Pickups, Destinations,
             [.. Scu.Select(b => new ScuBand(b.Commodity, b.Min, b.Max))], Count, FirstUtc, LastUtc);
-    }
-
-    /// <summary>
-    /// An enum value as the files spell it, camelCase as in docs/hauling-data-format.md ("xs", "redWind"); a test pins
-    /// the words, so a renamed member shows.
-    /// </summary>
-    private static string Word<T>(T value) where T : struct, Enum => JsonNamingPolicy.CamelCase.ConvertName(value.ToString());
-
-    private static T Parse<T>(string word) where T : struct, Enum
-    {
-        foreach (var value in Enum.GetValues<T>())
-        {
-            if (Word(value) == word)
-            {
-                return value;
-            }
-        }
-
-        throw new ArgumentException($"{typeof(T).Name} '{word}' is unknown, use {string.Join(", ", Enum.GetValues<T>().Select(v => $"\"{Word(v)}\""))}.");
     }
 }
 

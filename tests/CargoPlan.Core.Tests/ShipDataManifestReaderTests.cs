@@ -156,6 +156,29 @@ public class ShipDataManifestReaderTests
     }
 
     [Fact]
+    public void Reads_the_hauling_section_and_a_release_without_it_offers_none()
+    {
+        var release = ShipDataRelease.Frozen().WithHauling();
+        var (templates, positions) = release.Hauling!.Value;
+
+        Read(release.Manifest()).Hauling.Should().Be(new HaulingOffer.Offered(new HaulingManifest(1,
+            new ReleaseAsset("hauling-templates.json", templates.Length, ShipDataRelease.Sha256(templates)),
+            new ReleaseAsset("positions.json", positions.Length, ShipDataRelease.Sha256(positions)))));
+        Read(Release.Manifest()).Hauling.Should().Be(new HaulingOffer.None());
+    }
+
+    [Fact]
+    public void A_release_asset_matches_by_length_and_hash()
+    {
+        byte[] data = [1, 2, 3];
+        var asset = new ReleaseAsset("x.json", 3, ShipDataRelease.Sha256(data).ToUpperInvariant());
+
+        asset.Matches(data).Should().BeTrue();
+        asset.Matches([1, 2, 4]).Should().BeFalse();
+        (asset with { Bytes = 4 }).Matches(data).Should().BeFalse();
+    }
+
+    [Fact]
     public void Two_readings_of_the_same_section_are_equal() =>
         ReadHolo(HoloSection()).Should().Be(ReadHolo(HoloSection()));
 
