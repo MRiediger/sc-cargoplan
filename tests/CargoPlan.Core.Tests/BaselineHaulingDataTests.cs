@@ -61,6 +61,21 @@ public sealed class BaselineHaulingDataTests
         Positions.DistanceGm(everus, Data.Positions.Find(StarSystem.Stanton, place)!).Should().BeApproximately(gm, 0.1);
     }
 
+    // D121: the hub table is hand-kept; a hub renamed by CIG fails here, not silently in the matrix.
+    [Fact]
+    public void Every_board_hub_is_a_station_of_Stanton() =>
+        BoardHubs.ByArea.Values.Should().OnlyContain(hub => Data.Positions.Find(StarSystem.Stanton, hub) != null);
+
+    // With the hubs, the local stellar blocks have both sides; only the system-wide ones stay without a place (T13.3).
+    [Fact]
+    public void Only_the_system_wide_stellar_templates_stay_without_a_place_in_Stanton()
+    {
+        var matrix = PortMatrix.Build(Data.Templates, RouteFilter.Default with { MissionType = HaulMissionType.Stellar });
+
+        matrix.WithoutPlace.Should().Be(75);
+        matrix.Pickups.Should().Contain(BoardHubs.ByArea.Values);
+    }
+
     [Fact]
     public void Red_Wind_carries_no_reward_and_Covalex_always_one()
     {
