@@ -6,6 +6,7 @@ using CargoPlan.App.Editor;
 using CargoPlan.App.Holo;
 using CargoPlan.App.Hotkeys;
 using CargoPlan.App.Plans;
+using CargoPlan.App.Routing;
 using CargoPlan.App.Scanning;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ShipData;
@@ -286,6 +287,7 @@ public partial class App : Application
         var viewModel = new OverlayViewModel(ship, ships)
         {
             IsManuallyLocked = options.Locked,
+            IsRoutesTabSelected = options.RoutesOpen,
             RecentShips = settings.RecentShips ?? [],
             Cameras = settings.ShipView.Cameras ?? new Dictionary<string, ShipCamera>(),
             Outlines = outlines,
@@ -321,8 +323,15 @@ public partial class App : Application
             AppLog.Write("Scan", $"keeping the last {ScanPictures.MaxPictures} scan pictures in {ScanPictures.DefaultFolder} ({StartOptions.KeepScansSwitch})");
         }
 
+        if (options.RoutesOpen)
+        {
+            AppLog.Write("Routes", $"Routes counts as the selected tab: offers stay out of the plan ({StartOptions.RoutesOpenSwitch})");
+        }
+
+        // Every scan read whole is an observation in routes.json, whatever tab is selected (T13.1, U3).
         var scan = new ScanRunner(
-            () => scanner.ScanAsync(), viewModel, new ScanLog(ScanLog.DefaultPath), action => Dispatcher.InvokeAsync(action).Task, pictures: pictures);
+            () => scanner.ScanAsync(), viewModel, new ScanLog(ScanLog.DefaultPath), action => Dispatcher.InvokeAsync(action).Task,
+            pictures: pictures, routes: RoutesBook.Load(RoutesBook.DefaultPath));
         var overlay = new OverlayWindow(
             viewModel,
             session,

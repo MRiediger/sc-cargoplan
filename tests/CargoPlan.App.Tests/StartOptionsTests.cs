@@ -323,6 +323,23 @@ public class StartOptionsTests
         StartOptions.Parse(args).Should().Be(new StartOptions(false, null, null));
     }
 
+    // T13.1: the developer's switch for the Routes tab until T13.2 brings the tab strip.
+    [Theory]
+    [InlineData("--routes-open")]
+    [InlineData("--Routes-Open")]
+    public void Routes_open_selects_the_routes_tab(string arg)
+    {
+        StartOptions.Parse([arg]).Should().Be(new StartOptions(false, null, null, RoutesOpen: true));
+    }
+
+    [Fact]
+    public void The_restart_after_an_update_keeps_the_routes_tab()
+    {
+        string[] args = ["--routes-open", "--data-dir", @"D:\run\data"];
+
+        StartOptions.RestartArguments(args).Should().Equal(args);
+    }
+
     [Fact]
     public void The_restart_after_an_update_gets_the_same_arguments()
     {

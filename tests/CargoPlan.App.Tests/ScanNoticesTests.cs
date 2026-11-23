@@ -1,6 +1,7 @@
 using CargoPlan.App.Scanning;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Routing;
 
 namespace CargoPlan.App.Tests;
 
@@ -135,5 +136,24 @@ public sealed class ScanNoticesTests
             var act = () => ScanNotices.Text(new ScanReport(kind, 1, Reason: "x"), null);
             act.Should().NotThrow(kind.ToString());
         }
+    }
+
+    // T13.1: with Routes selected an offer stays out of the plan; the line names the template or why there is none.
+    [Theory]
+    [InlineData(HaulContractor.Covalex, HaulRank.Junior, HaulSize.Small, false, 50_250L, "Observed (Routes): Covalex Junior Small · 50,250 aUEC – plan unchanged")]
+    [InlineData(HaulContractor.Covalex, HaulRank.Rookie, HaulSize.Xs, true, 41_750L, "Observed (Routes): Covalex Rookie Direct Extra Small · 41,750 aUEC – plan unchanged")]
+    [InlineData(HaulContractor.RedWind, HaulRank.Member, HaulSize.Medium, null, 532_500L, "Observed (Routes): Red Wind Member Medium · 532,500 aUEC – plan unchanged")]
+    public void An_observed_offer_names_its_template(HaulContractor contractor, HaulRank rank, HaulSize size, bool? direct, long reward, string expected)
+    {
+        var report = new ScanReport(ScanReportKind.Observed, Observed: new ObservationKey(contractor, rank, size, direct, reward));
+
+        ScanNotices.Text(report, null).Should().Be(expected);
+    }
+
+    [Fact]
+    public void An_offer_not_observed_says_why_and_that_the_plan_stays()
+    {
+        ScanNotices.Text(new ScanReport(ScanReportKind.NotObserved, Reason: "reward unreadable"), null)
+            .Should().Be("Not observed (Routes): reward unreadable – plan unchanged");
     }
 }
