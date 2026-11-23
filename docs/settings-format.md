@@ -9,7 +9,7 @@ the overlay again.
 ## Example with every default
 
 Without a file, or without `ship`, `recentShips`, `legend`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`,
-`holoHullColor`, `holoEdgeColor`, `shipView`, `updates`, `shipData`, `toolWindowTheme` and `appearance`, the overlay uses exactly
+`holoHullColor`, `holoEdgeColor`, `shipView`, `updates`, `shipData`, `routes`, `toolWindowTheme` and `appearance`, the overlay uses exactly
 these values.
 
 ```json
@@ -28,6 +28,7 @@ these values.
   "shipView": { "maxZoomPxPerCell": 160 },
   "updates": { "checkOnStartup": true, "skippedVersion": null },
   "shipData": { "checkOnStartup": true, "skippedVersion": null },
+  "routes": { "tab": "cargo", "rank": "master", "faction": null },
   "toolWindowTheme": "system",
   "appearance": {
     "window": {
@@ -307,7 +308,7 @@ means the defaults, a missing key inside it its default.
 
 | Key | What | Default |
 |---|---|---|
-| `shipData.checkOnStartup` | Once per start, after the update check, ask GitHub for the latest data release's `manifest.json` (one request). A newer one shows as the overlay's bottom line, below the update line, with *Update* and *Skip this version*; *Update* downloads its `ships.zip` (about 100 KB), checks every file and restarts the overlay with the new data. `false` means no request at all. | `true` |
+| `shipData.checkOnStartup` | Once per start, after the update check, ask GitHub for the latest data release's `manifest.json` (one request). A newer one shows as the overlay's bottom line, below the update line, with *Update* and *Skip this version*; *Update* downloads its `ships.zip` (about 100 KB) and, from `ships-2026.11.2` on, the two hauling files of the Plan tab (about 0.6 MB), checks every file and restarts the overlay with the new data. `false` means no request at all. | `true` |
 | `shipData.skippedVersion` | A data release you chose to skip, like `"ships-2026.11.1"`. **This release only:** a newer one is offered. Not a data release tag means none, with a notice. | `null` |
 
 Both keys are set in the settings window's **Ship data** section too, with *Check now* and the data the overlay runs on
@@ -318,6 +319,21 @@ never one older than the data in its ZIP; at the start it removes older ones, so
 overlay says "Ship data … needs an app update" instead of offering a download. A check that fails shows nothing;
 `cargoplan.log` has one line about it. Older versions of the overlay don't know `shipData`: they start with the default
 settings and say so, and `settings.json.bak` keeps the file as it was.
+
+## Routes
+
+`routes` holds the route planner's settings (T13.2, D120): the tab the overlay shows and the rank and faction its port
+matrix starts with. Missing or `null` means the defaults, a missing key inside it its default; a word out of the list
+falls back to the default, with a notice.
+
+| Key | What | Default |
+|---|---|---|
+| `routes.tab` | `"cargo"` or `"plan"`: the tab under the header the overlay starts in; every switch is saved. With **Plan** selected, F3 on an offer only notes the contract in `routes.json` and leaves the cargo as it is ("Observed (Plan tab): … – cargo unchanged"). | `"cargo"` |
+| `routes.rank` | The highest rank the port matrix shows, `"trainee"`, `"rookie"`, `"junior"`, `"member"`, `"experienced"`, `"senior"` or `"master"`; set with the matrix's rank button. `"master"` shows every template. | `"master"` |
+| `routes.faction` | Your side in Pyro, `"hh"` (Headhunters) or `"cfp"` (Citizens for Prosperity); narrows Red Wind contracts only. `null` shows both. | `null` |
+
+The other filters of the matrix (system, area, direct, contractor, sizes) last for the session. Older versions of the
+overlay don't know `routes`: they start with the default settings and say so, as for `shipData`.
 
 ## Look files
 
@@ -380,7 +396,7 @@ away if you want to keep it longer.
 |---|---|---|
 | 1 | versions before the look became a setting | `overlay`, `hotkeys` |
 | 2 | v0.1.0 to v0.3.1 | plus `appearance`, `legend`, `toolWindowTheme`, `contractTracker`, `hotkeys.syncContractTracker`, `hotkeys.replan`, `hotkeys.discardPlan`, `hotkeys.undo`, `hotkeys.redo`, `hotkeys.resetView`, `ship`, `recentShips`, `shipOutline`, `downloadShipHolograms`, `holoOpacity`, `holoHullColor`, `holoEdgeColor`, `shipView` and the newer `appearance` values, each optional within version 2 |
-| 3 | v0.4.0 and later | without `contractTracker`, `hotkeys.syncContractTracker` and a camera's `pxPerCell`, `panX`, `panY`; plus `hotkeys.scanContracts` (optional); from v0.5.0 plus `updates`, from v0.6.0 plus `shipData` (both optional, no new version, D105 addenda) |
+| 3 | v0.4.0 and later | without `contractTracker`, `hotkeys.syncContractTracker` and a camera's `pxPerCell`, `panX`, `panY`; plus `hotkeys.scanContracts` (optional); from v0.5.0 plus `updates`, from v0.6.0 plus `shipData`, from v0.8.0 plus `routes` (all optional, no new version, D105 addenda, D120) |
 
 ### Older files
 

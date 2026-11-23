@@ -141,11 +141,11 @@ T13.3 joins them by the name rule of the plan (B1) when it loads the file; that 
 
 ## Offers while Routes is selected
 
-With **Routes** selected, a scan in the offers view doesn't go into the plan: the plan, its undo steps and the scan
-numbers stay as they were, and `plan.json` isn't written. The notice line says "Observed (Routes): Covalex Junior
-Small · 50,250 aUEC – plan unchanged", or "Not observed (Routes): title unreadable – plan unchanged". An accepted
-contract goes into the plan as always. With **Cargo** selected nothing changes. Until the tab strip comes (T13.2), the
-start switch `--routes-open` selects Routes, for testing.
+The Routes tab is labelled **Plan** under the overlay's header (D120, T13.2). With it selected, a scan in the offers
+view doesn't go into the cargo: the loading plan, its undo steps and the scan numbers stay as they were, and
+`plan.json` isn't written. The notice line says "Observed (Plan tab): Covalex Junior Small · 50,250 aUEC – cargo
+unchanged", or "Not observed (Plan tab): title unreadable – cargo unchanged". An accepted contract goes into the cargo
+as always. With **Cargo** selected nothing changes. The selected tab is kept in settings.json (`routes.tab`).
 
 ## Unreadable files
 

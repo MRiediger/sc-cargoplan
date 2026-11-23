@@ -75,11 +75,14 @@ Velopack. A developer's build (`0.0.0-dev`) checks them only with `--ship-data-s
 repository:
 
 ```powershell
-# A folder: a data release's manifest.json and ships.zip side by side
+# A folder: a data release's manifest.json and ships.zip side by side, and its hauling files where the manifest names
+# them (T13.2). Only a release newer than the pin in build/ship-data.json is offered.
 $feed = '<full path of a new empty folder>'
 $base = 'https://github.com/MRiediger/sc-cargoplan-shipdata/releases/download/ships-2026.11.1'
 Invoke-WebRequest "$base/manifest.json" -OutFile "$feed\manifest.json"
 Invoke-WebRequest "$base/ships.zip" -OutFile "$feed\ships.zip"
+Invoke-WebRequest "$base/hauling-templates.json" -OutFile "$feed\hauling-templates.json"   # from ships-2026.11.2 on
+Invoke-WebRequest "$base/positions.json" -OutFile "$feed\positions.json"
 dotnet run --project src/CargoPlan.App -- --data-dir <full path> --ship-data-source $feed
 
 # The real repository (or a fork of the same layout), as a release build asks it

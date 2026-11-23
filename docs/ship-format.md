@@ -5,7 +5,8 @@ Ships are data, not code. Each ship is one JSON file in a data release of
 the game files, checks them and publishes `ships-YYYY.MM[.N]` with `manifest.json`, `NOTICE.md` and `ships.zip`
 (`ships/` with the ship and module files, `outlines.json`). This repository holds none of them (D113): the build fetches
 the release that `build/ship-data.json` pins (`tools/fetch-ship-data.ps1`, every file checked against the manifest) and
-lays it next to the exe as `ship-data\` (`ships\`, `outlines.json`, `NOTICE.md`, `manifest.json`); the release ZIP
+lays it next to the exe as `ship-data\` (`ships\`, `outlines.json`, `NOTICE.md`, `manifest.json`, and from
+`ships-2026.11.2` on the hauling files `hauling-templates.json` and `positions.json`, docs/hauling-data-format.md); the release ZIP
 carries it as `current\ship-data\`. The files are rebuilt each month, so nobody edits them by hand and they take no
 pull requests: a wrong rack or a missing ship is an issue, here or in the pipeline's repository, and grid errors go on to
 Motherlode (CONTRIBUTING, *Correct ship data*). This page describes the format the app reads.
