@@ -1,5 +1,6 @@
 using System.Globalization;
 using CargoPlan.Core.Missions;
+using CargoPlan.Core.Routing;
 
 namespace CargoPlan.Import.Contracts;
 
@@ -17,6 +18,7 @@ namespace CargoPlan.Import.Contracts;
 /// <param name="Reward">The reward in aUEC; null if the text had none or it wasn't readable.</param>
 /// <param name="Key">The content key (D101): pickups, destination–commodity pairs, max size, reward; no SCU.</param>
 /// <param name="Doubts">Why the text may still have been typing in (D103); empty for a text all there.</param>
+/// <param name="Title">Contractor, rank, size and direct from the title (T13.1); null if it wasn't read whole. Not in the key.</param>
 public sealed record ScannedContract(
     ContractView View,
     IReadOnlyList<MissionStop> Stops,
@@ -25,7 +27,8 @@ public sealed record ScannedContract(
     int? ListedDestinationCount,
     long? Reward,
     string Key,
-    IReadOnlyList<ContractDoubt> Doubts)
+    IReadOnlyList<ContractDoubt> Doubts,
+    ContractTitle? Title = null)
 {
     /// <summary>A doubt a second read must clear, or the scan is "still loading" (D103).</summary>
     public bool InHardDoubt => Doubts.Any(d => d is ContractDoubt.NoDeliveryRead or ContractDoubt.ObjectiveLineUnread);
@@ -64,7 +67,8 @@ public sealed record ScannedContract(
             parsed.ListedDestinationCount,
             parsed.Reward,
             KeyOf(parsed),
-            DoubtsOf(parsed, stops.Count));
+            DoubtsOf(parsed, stops.Count),
+            parsed.Title);
     }
 
     /// <summary>
