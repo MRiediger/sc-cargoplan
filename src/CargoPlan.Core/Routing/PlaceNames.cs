@@ -21,6 +21,13 @@ public static partial class PlaceNames
     /// <summary>"HUR-L1 Green Glade Station" → "HUR-L1"; any other name as it is.</summary>
     public static string Short(string name) => LStation().Match(name) is { Success: true } match ? match.Groups["code"].Value : name;
 
+    /// <summary>
+    /// "HUR-L1 Green Glade Station" → "Green Glade Station": the form a contract's delivery lines use (T13.3); any other
+    /// name, and a code without a name after it, as it is.
+    /// </summary>
+    public static string WithoutCode(string name) =>
+        LStation().Match(name) is { Success: true } match && match.Length < name.Length ? name[match.Length..].TrimStart() : name;
+
     private static int Compare(string? a, string? b)
     {
         var (ka, kb) = (Key(a ?? ""), Key(b ?? ""));

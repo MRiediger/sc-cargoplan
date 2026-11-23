@@ -1,5 +1,6 @@
 using CargoPlan.Core.Routing;
 using CargoPlan.Core.ShipData;
+using CargoPlan.Core.Text;
 
 namespace CargoPlan.Core.Tests;
 
@@ -40,6 +41,31 @@ public sealed class BaselineHaulingDataTests
     [Fact]
     public void No_name_is_there_twice_in_one_system() =>
         Data.Positions.All.GroupBy(p => (p.System, p.Name)).Should().OnlyContain(g => g.Count() == 1);
+
+    // T13.3, Martin: the full name, the name without L code, without code and "Station" (the B1 key drops it), and the
+    // contract names – no B1 key names two places of one system, or a scan would resolve to none.
+    [Fact]
+    public void No_B1_key_names_two_places_of_one_system()
+    {
+        var shared = Data.Positions.All
+            .SelectMany(p => new[] { p.Name, PlaceNames.WithoutCode(p.Name), PlaceNames.WithoutCode(p.Name).Replace(" Station", "", StringComparison.Ordinal) }
+                .Concat(p.ContractNames)
+                .Select(name => (p.System, Key: DestinationNames.Key(name), p.Name)))
+            .GroupBy(k => (k.System, k.Key))
+            .Where(g => g.Select(k => k.Name).Distinct().Count() > 1)
+            .Select(g => $"{g.Key}: {string.Join(", ", g.Select(k => k.Name).Distinct())}");
+
+        shared.Should().BeEmpty();
+        Data.Positions.All.Should().OnlyContain(p => Data.Positions.Resolve(p.System, p.Name) == p);
+    }
+
+    [Theory]
+    [InlineData("Green Glade Station", "HUR-L1 Green Glade Station")]
+    [InlineData("Melodic Fieids", "HUR-L4 Melodic Fields Station")]
+    [InlineData("Shallow Fields Station", "CRU-L4 Shallow Fields Station")]
+    [InlineData("Everus Harbor", "Everus Harbor")]
+    public void A_delivery_line_names_an_L_station_without_its_code(string scanned, string position) =>
+        Data.Positions.Resolve(StarSystem.Stanton, scanned)!.Name.Should().Be(position);
 
     // Design §7.3 (T13.0a): the boards as the terminal shows them to a Senior, Covalex stellar.
     [Theory]
