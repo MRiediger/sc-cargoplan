@@ -353,9 +353,9 @@ internal sealed class FrameMeasureWindow : Window
     }
 
     // The Plan tab's grid as OverlayWindow.xaml sets it up, in code: the measurement has no overlay window.
-    private DataGrid MatrixLike(RoutesViewModel routes)
+    private static DataGrid MatrixLike(RoutesViewModel routes)
     {
-        Style Text(Thickness margin)
+        static Style Text(Thickness margin)
         {
             var style = new Style(typeof(TextBlock));
             style.Setters.Add(new Setter(TextBlock.ForegroundProperty, new DynamicResourceExtension("LegendForegroundBrush")));
