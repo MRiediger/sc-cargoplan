@@ -151,6 +151,19 @@ public sealed class RoutesViewModelTests
     }
 
     [Fact]
+    public void Rank_and_faction_set_in_the_settings_window_show_in_the_filter_and_are_not_saved_again()
+    {
+        var model = Model([T(["A"], ["B"], rank: HaulRank.Senior)]);
+
+        model.Follow(RoutesSettings.Default with { Rank = "junior", Faction = "cfp" });
+
+        model.RankLabel.Should().Be("Rank ≤ Junior");
+        model.FactionLabel.Should().Be("CFP");
+        model.Rows.Should().BeEmpty("a Senior template is above the rank");
+        _saved.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Pyro_says_its_regional_templates_are_not_shown_yet()
     {
         var model = Model([T(["A"], ["B"])]);

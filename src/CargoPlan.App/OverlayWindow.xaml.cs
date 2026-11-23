@@ -21,6 +21,7 @@ public partial class OverlayWindow : Window
     private readonly Func<HotkeysViewModel> _createHotkeys;
     private readonly Func<UpdateSettingsViewModel> _createUpdates;
     private readonly Func<UpdateSettingsViewModel> _createShipData;
+    private readonly Func<RoutesSettingsViewModel> _createRoutes;
     private readonly Action _scanContract;
     private readonly string? _hologramsUnavailable;
     private MissionEditorWindow? _editor;
@@ -29,6 +30,7 @@ public partial class OverlayWindow : Window
     /// <param name="createHotkeys">Made per settings window, from the hotkeys as they are then.</param>
     /// <param name="createUpdates">Made per settings window, like the hotkeys (T11.2).</param>
     /// <param name="createShipData">The Ship data section's, made the same way (T12.3).</param>
+    /// <param name="createRoutes">The Plan tab section's, made the same way (T13.3).</param>
     /// <param name="scanContract">The editor's "Scan", the scan hotkey's runner (T10.3).</param>
     /// <param name="hologramsUnavailable">The line under "Download ship holograms" when the data in use offer none this app reads (T12.4); null otherwise.</param>
     public OverlayWindow(
@@ -37,6 +39,7 @@ public partial class OverlayWindow : Window
         Func<HotkeysViewModel> createHotkeys,
         Func<UpdateSettingsViewModel> createUpdates,
         Func<UpdateSettingsViewModel> createShipData,
+        Func<RoutesSettingsViewModel> createRoutes,
         Action scanContract,
         string? hologramsUnavailable)
     {
@@ -46,6 +49,7 @@ public partial class OverlayWindow : Window
         _createHotkeys = createHotkeys;
         _createUpdates = createUpdates;
         _createShipData = createShipData;
+        _createRoutes = createRoutes;
         _scanContract = scanContract;
         _hologramsUnavailable = hologramsUnavailable;
         DataContext = viewModel;
@@ -338,6 +342,7 @@ public partial class OverlayWindow : Window
                 _createHotkeys(),
                 _createUpdates(),
                 _createShipData(),
+                _createRoutes(),
                 _viewModel,
                 _settings.ToolWindowTheme,
                 this);

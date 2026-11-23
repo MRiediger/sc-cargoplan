@@ -165,6 +165,25 @@ public sealed partial class RoutesViewModel : ObservableObject
         return Invariant($"{(cell.Observed ? ObservedMark : "")}{cell.Count} · {reward}");
     }
 
+    /// <summary>
+    /// Rank and faction as the settings window set them (T13.3): the filter shows them, nothing is saved back. The same
+    /// values as now change nothing.
+    /// </summary>
+    public void Follow(RoutesSettings settings)
+    {
+        if (settings.Rank == _settings.Rank && settings.Faction == _settings.Faction)
+        {
+            return;
+        }
+
+        _settings = settings;
+        _rank = Array.FindIndex(Ranks, r => r.Value == settings.MaxRank);
+        _faction = Array.FindIndex(Factions, f => f.Value == settings.PlayerFaction);
+        OnPropertyChanged(nameof(RankLabel));
+        OnPropertyChanged(nameof(FactionLabel));
+        Rebuild();
+    }
+
     /// <summary>What the scans saw, from routes.json after a scan (T13.3); the matrix follows.</summary>
     public void ShowObserved(ObservedEdges observed)
     {

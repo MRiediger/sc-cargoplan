@@ -388,6 +388,9 @@ public partial class App : Application
         var session = new SettingsSession(Resources, viewModel, SettingsStore.DefaultPath, settings);
         sessionForRoutes = session;
 
+        // The settings window's Plan tab section writes rank and faction too (T13.3): the tab's filter follows.
+        session.RoutesChanged += (_, changed) => routes.Follow(changed);
+
         // A hotkey the migration to schema 3 took is said once (T10.4a): the file is written now, the old one stays as the
         // backup, and the hint stays for the run (B14). Every other load writes nothing until a change (D31).
         if (loaded.Removed is { } removed)
@@ -439,6 +442,7 @@ public partial class App : Application
             () => CreateHotkeysViewModel(session),
             () => CreateUpdateSettingsViewModel(session),
             () => CreateShipDataSettingsViewModel(session),
+            () => CreateRoutesSettingsViewModel(session),
             scan.Start,
             _activeShipData is { } active ? HoloSource.UnavailableText(active) : null);
         if (settings.Overlay is { } saved)
@@ -706,6 +710,13 @@ public partial class App : Application
         Shutdown();
         return null;
     }
+
+    /// <summary>The settings window's Plan tab section (T13.3): rank and faction into the session's routes section.</summary>
+    private static RoutesSettingsViewModel CreateRoutesSettingsViewModel(SettingsSession session) => new(
+        session.Current.Routes,
+        (rank, faction) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction }),
+        handler => session.RoutesChanged += handler,
+        handler => session.RoutesChanged -= handler);
 
     /// <summary>
     /// The settings window's Updates section (U8, U9), made per window like the hotkeys'. Check now offers into the overlay's

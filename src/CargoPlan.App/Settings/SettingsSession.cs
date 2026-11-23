@@ -244,6 +244,12 @@ public sealed class SettingsSession
     public void ChangeShipDataSkippedVersion(string? version) => ChangeShipData(Current.ShipData with { SkippedVersion = version });
 
     /// <summary>
+    /// The routes section changed (T13.3): the Plan tab's filter and an open settings window show a change the other made.
+    /// Carries the new section.
+    /// </summary>
+    public event EventHandler<RoutesSettings>? RoutesChanged;
+
+    /// <summary>
     /// The route planner's tab, rank or faction changed (T13.2): saved after <see cref="Debounce"/> like every change
     /// (D30), so the next start opens the same tab and the boards (T13.3) read the rank.
     /// </summary>
@@ -257,6 +263,7 @@ public sealed class SettingsSession
         Current = Current with { Routes = routes };
         _timer.Stop();
         _timer.Start();
+        RoutesChanged?.Invoke(this, routes);
     }
 
     private void ChangeShipData(UpdateSettings shipData)

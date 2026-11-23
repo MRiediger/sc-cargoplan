@@ -497,6 +497,23 @@
                         </DockPanel>
                     </StackPanel>
                 </GroupBox>
+
+                <!-- The Plan tab (T13.3): set once what the boards show; the tab's filter buttons write the same values. -->
+                <GroupBox x:Name="RoutesSection" Header="Plan tab" Style="{StaticResource SectionStyle}"
+                          d:DataContext="{d:DesignInstance vm:RoutesSettingsViewModel}">
+                    <StackPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="The boards show every contract up to your rank">
+                            <TextBlock Text="Your rank" Style="{StaticResource LabelStyle}" />
+                            <ComboBox ItemsSource="{x:Static vm:RoutesSettingsViewModel.RankChoices}" DisplayMemberPath="Text"
+                                      SelectedValuePath="Value" SelectedValue="{Binding Rank}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="Red Wind in Pyro offers each side its own contracts">
+                            <TextBlock Text="Your faction" Style="{StaticResource LabelStyle}" />
+                            <ComboBox ItemsSource="{x:Static vm:RoutesSettingsViewModel.FactionChoices}" DisplayMemberPath="Text"
+                                      SelectedValuePath="Value" SelectedValue="{Binding Faction}" />
+                        </DockPanel>
+                    </StackPanel>
+                </GroupBox>
             </StackPanel>
         </ScrollViewer>
     </DockPanel>

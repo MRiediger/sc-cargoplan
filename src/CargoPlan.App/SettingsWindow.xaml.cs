@@ -24,10 +24,12 @@ public partial class SettingsWindow : Window
     private readonly HotkeysViewModel _hotkeys;
     private readonly UpdateSettingsViewModel _updates;
     private readonly UpdateSettingsViewModel _shipData;
+    private readonly RoutesSettingsViewModel _routes;
 
     /// <param name="hotkeys">The Hotkeys section's own data context: hotkeys are no part of the look (D35).</param>
     /// <param name="updates">The Updates section's own data context (T11.2): no part of the look either.</param>
     /// <param name="shipData">The Ship data section's own data context (T12.3), the same kind as <paramref name="updates"/>.</param>
+    /// <param name="routes">The Plan tab section's own data context (T13.3).</param>
     /// <param name="theme">The tool windows' mode (D36); the overlay switches it later through <see cref="ToolWindowThemer"/>.</param>
     /// <param name="owner">Must already be shown: Owner rejects a window that was never shown.</param>
     public SettingsWindow(
@@ -35,6 +37,7 @@ public partial class SettingsWindow : Window
         HotkeysViewModel hotkeys,
         UpdateSettingsViewModel updates,
         UpdateSettingsViewModel shipData,
+        RoutesSettingsViewModel routes,
         OverlayViewModel overlay,
         ToolWindowTheme theme,
         Window owner)
@@ -47,9 +50,11 @@ public partial class SettingsWindow : Window
         _hotkeys = hotkeys;
         _updates = updates;
         _shipData = shipData;
+        _routes = routes;
         HotkeysSection.DataContext = hotkeys;
         UpdatesSection.DataContext = updates;
         ShipDataSection.DataContext = shipData;
+        RoutesSection.DataContext = routes;
         Owner = owner;
         OverlayWindow.HideWithOverlay(this, overlay);
 
@@ -68,6 +73,7 @@ public partial class SettingsWindow : Window
         CancelRecording();
         _updates.Detach();
         _shipData.Detach();
+        _routes.Detach();
         base.OnClosed(e);
     }
 
