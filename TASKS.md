@@ -214,7 +214,7 @@ Ladeplan (U1, U3, D118).
   142/251 ms (erster Plan-Schritt im Prozess). Eine Messung mit n ≥ 20 steht aus, falls die OCR-Zeit auffällt.
 - Red-Wind-Kartenform bleibt: „Direct“ da → `true`, sonst `null` (Abnahme). T13.6-Text bleibt bis zur T13.6-Planung.
 
-### [ ] T13.2 App: Reiter „Routes“, Loader, Hafen-Matrix
+### [x] T13.2 App: Reiter „Routes“ (UI: „Plan“), Loader, Hafen-Matrix (abgenommen 23.11.)
 
 **Warum:** Die U1-Weiche braucht einen Reiter, den der Spieler sieht, und der erste sichtbare Inhalt des Reiters ist die
 Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
@@ -271,7 +271,7 @@ Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
     „13 · 1.1M“, max SCU in den Tooltip; „Direct: any“, „Any contractor“; Bildlaufleisten im Overlay-Stil (schmale Leiste
     jetzt auch waagerecht).
 
-**Stand 23.11. (Branch `feat/p13-routes-tab`, 1324cee..):**
+**Stand 23.11. (Branch `feat/p13-routes-tab`, 1324cee..e7488d8, abgenommen 23.11.):**
 - Loader: Mechanik-Tests mit kleinen Fixtures (A10), mit abgeschalteten Checks 10 von 37 rot; Hash-Prüfung im Install
   mutiert → 1 rot; Hub-Regel, Selbstkante, Rang-Filter mutiert → 8 rot.
 - Datentests gegen `ships-2026.11.2`: 587 Templates, 157 Positionen, 0 übersprungen; Everus 92, Crusader 19, ArcCorp 22;
@@ -296,7 +296,7 @@ Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
   74,1 fps) gegen `empty` 11,2 % spät (107,9 fps) – Regel ≤ empty + 2 pp erfüllt.
 - **Bild-Gate:** Matrix zu dicht → Präzisierung 14, Commit 11; danach neuer Screenshot bei 420 × 460 (CC, Desktop):
   Hubs zuerst, `HUR-L1` …, Zellen „6 · 327k“, Filter „Stellar · Direct: any · Any contractor“, schmale Leisten in beide
-  Richtungen, Zeile „75 templates not shown“. Abnahme danach.
+  Richtungen, Zeile „75 templates not shown“. Abgenommen 23.11. (Martin).
 - **Handling-Liste gegen `main`:**
 
   | Geste | Soll (= main) | Ist Branch (erwartet) |
