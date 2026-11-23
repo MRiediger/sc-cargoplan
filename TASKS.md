@@ -130,7 +130,7 @@ Beispiel und Schema-Tabelle je Datei; `dotnet build` und `dotnet test` unveränd
 8. E2: „Reiter geöffnet“ = der Routen-Reiter ist der ausgewählte Reiter der Kopfzeile, auch im Lock-Modus (D118).
 9. K3 (Abnahme): der Planer ist ein Reiter, kein Werkzeugfenster; Reiterleiste „Cargo | Routes“, Platz in oder unter
    der Kopfzeile entscheidet T13.2 (D118).
-10. **T13.0a (22.11.2026, Befunde aus H1 im Shipdata-Repo, Freigabe 21.11.):** Addendum zu `docs/hauling-data-format.md`
+10. **T13.0a (22.11.2026, Befunde aus H1 im Shipdata-Repo, Freigabe 21.11., abgenommen 22.11.):** Addendum zu `docs/hauling-data-format.md`
     mit V1–V8 und K1–K3 (Quelle Rohrepo, `trainee`, `xs`/`bulk`, Auftraggeber aus `MissionGiver`, `drop`, nichts
     geschätzt, Starmap-Name + `contractNames[]`, `legs ≥ 1`, Name eindeutig je System, `Star`), weiter Schema 1;
     Zeile in D119; Zahlen in T13.3.
