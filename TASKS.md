@@ -398,7 +398,12 @@ ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
   Hit-Test-Hintergrund über die volle Breite, Grip 2 px innen (gilt auch für Legende und Schiffsliste); Shift+Rad
   seitwärts (`PortMatrixGrid.WheelSideways`), Rad ohne Modifier bleibt vertikal, auch ohne vertikalen Überlauf (Martin);
   Kipprad → Backlog. Nachher: alle 8 Spalten greifen, kein Fenster wandert, Shift+Rad 1,6 % je Raste. Test:
-  `SlimScrollBarTests` (vorher `nothing, nothing, thumb ×4, nothing, nothing`), `PortMatrixGridTests`. D120-, D80-Addendum.
+  `PortMatrixGridTests` (Shift+Rad). D120-, D80-Addendum.
+  **Rückfrage Martin (24.11.): greift die vertikale Leiste (Legende) mit demselben Einzug?** Gemessen mit echter Eingabe,
+  XAML vor Commit 9: nein, auch die Legende griff nur in den Spalten 3–6, Spalten 1, 2, 7, 8 → DragMove (24 px); beide
+  Zweige des Templates sind bis auf die Orientierung gleich, der Einzug ist die Ursache für beide. Nach Commit 9: alle
+  8 Spalten greifen, kein Fenster wandert. Nachweis ist der Gate (Martin), der Pixel-Treffertest `SlimScrollBarTests`
+  ist wieder entfernt (Folge-Commit, Commit 9 liegt unter 10–12).
 - **E1 (Commit 10) – „no hauling template form“ getrennt von „title unreadable“.** Anlass: Ling-Family-Hauling-Angebot
   in Martins scans.log (24.11.), Titel ganz gelesen, Meldung „title unreadable“. `TitleMiss` im Parser: andere Form nur
   bei positivem Zeichen (Auftraggeber gelesen, weder Covalex noch Red Wind, keine titelähnliche Zeile), sonst
