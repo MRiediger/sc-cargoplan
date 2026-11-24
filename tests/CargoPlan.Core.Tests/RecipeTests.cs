@@ -125,6 +125,25 @@ public class RecipeTests
     }
 
     [Fact]
+    public void A_way_back_with_several_pickups_is_one_contract_accepted_at_its_first_and_collecting_at_the_next()
+    {
+        // Gate T13.4: Port Tressler's "Member Small 96,500 accept at MIC-L1…L4" was one multi-to-single template four times.
+        var outbound = Local(HaulSize.Small, 24, 50_000, CrateSize.Four, to: [L1, L2, L3], shape: HaulShape.SingleToMulti, stops: 3, legs: 3);
+        var multi = T([L1, L2, L3], [], 90_000, size: HaulSize.Small, shape: HaulShape.MultiToSingle, stops: 3,
+            legs: [Leg("Gold", 1, 4, CrateSize.Four), Leg("Gold", 1, 4, CrateSize.Four), Leg("Gold", 1, 4, CrateSize.Four)]);
+        var tooMany = T([L1, L2, L3], [], 99_000, size: HaulSize.Small, shape: HaulShape.MultiToSingle, stops: 4,
+            legs: [Leg("Gold", 1, 4, CrateSize.Four), Leg("Gold", 1, 4, CrateSize.Four), Leg("Gold", 1, 4, CrateSize.Four), Leg("Gold", 1, 4, CrateSize.Four)]);
+        var fromL2 = T([L2], [], 50_000, size: HaulSize.Small, legs: [Leg("Gold", 1, 20, CrateSize.Four)]);
+        var fromL3 = T([L3], [], 40_000, size: HaulSize.Small, legs: [Leg("Gold", 1, 20, CrateSize.Four)]);
+
+        var returns = For(Everus1(outbound, multi, tooMany, fromL2, fromL3), HullB).Returns;
+
+        returns.Select(r => (r.Template, r.AcceptAt)).Should().Equal((multi, L1), (fromL2, L2), (fromL3, L3));
+        returns[0].CollectAt.Should().Equal(L2, L3);
+        returns[1].CollectAt.Should().BeEmpty();
+    }
+
+    [Fact]
     public void The_way_back_is_the_best_local_return_per_ring_station_outside_the_check()
     {
         var outbound = Local(HaulSize.Small, 24, 50_000, CrateSize.Four);

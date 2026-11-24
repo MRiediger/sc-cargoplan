@@ -309,6 +309,35 @@ public sealed class RoutesViewModelTests
     }
 
     [Fact]
+    public void A_way_back_with_several_pickups_is_one_line_that_says_where_it_collects()
+    {
+        // Gate T13.4: one multi-to-single template, not one line per pickup station.
+        const string L2 = "HUR-L2 Faithful Dream Station";
+        var bulk = T([], [L1, L2], reward: 325_250, min: 41, max: 432) with
+        {
+            Uuid = "bulk",
+            Shape = HaulShape.SingleToMulti,
+            Stops = 2,
+            Legs = [new HaulLeg("Gold", 41, 216, CrateSize.Sixteen), new HaulLeg("Gold", 41, 216, CrateSize.Sixteen)],
+        };
+        var back = JuniorBack with
+        {
+            Uuid = "back",
+            PickupPool = [L1, L2],
+            Shape = HaulShape.MultiToSingle,
+            Stops = 2,
+            Legs = [new HaulLeg("Gold", 4, 16, CrateSize.Four), new HaulLeg("Gold", 4, 16, CrateSize.Four)],
+        };
+        var model = Model([bulk, back]);
+        model.ShowShip(HullB);
+
+        model.NextCommand.Execute("view");
+
+        model.RecipeLines.Should().ContainSingle(l => l.StartsWith("Back · ", StringComparison.Ordinal))
+            .Which.Should().EndWith("· accept at HUR-L1, collect at HUR-L2");
+    }
+
+    [Fact]
     public void Another_ship_or_rank_makes_the_recipe_anew()
     {
         var model = Model([SeniorBulk, JuniorBack], RoutesSettings.Default with { Hub = "Everus Harbor" });

@@ -514,21 +514,24 @@ Martins Antworten auf vier Rückfragen):**
   `routes.times`/`routes.loopsSort` mit drei Slidern (+ Golden-Dateien der Migration nachgezogen); Plan-Reiter
   Matrix | Recipe | Loops mit Hintergrundlauf; `LoopsTimingTests`; `FitCache`; Doku (D124, D123-Addendum,
   `settings-format.md`, CLAUDE.md).
-- **Golden gegen §3/§4.7 (Pin `ships-2026.11.2`, Hull B, Senior, Default-Zeiten, ohne Scans):** Struktur 4/4 exakt –
-  Everus 6 Landungen / 4 lang, Baijini 6/4, Seraphim 4/3, Direct Exp Direct Medium Everus → HUR-L3 2/2 (2 lang).
-  aUEC/Umlauf: Everus 957 000 (**−5 %** gegen 1,01 M), Baijini 1 109 000 (**+3 %** gegen 1,08 M), Seraphim 733 250
-  (**−16 %** gegen 875 k, außerhalb ±15 %: das Rezept nimmt Senior Medium 296 250, Rookie Direct Small 34 750, drei
-  Smalls und drei Rückläufer à 67 500; §3 nennt Senior 328k, Smalls und ein Rookie Direct Medium aus einem Scan – hier
-  Templates im Worst Case und der Greedy des Rezepts statt der gescannten Auswahl). Port Tressler 1 173 000 (§4.7: ~1,0 M).
+- **Golden gegen §3/§4.7 (Pin `ships-2026.11.2`, Hull B, Senior, Default-Zeiten, ohne Scans), nach dem Rückläufer-Fix
+  unten:** Struktur exakt – Everus 6 Landungen / 4 lang, Baijini 6/4, Seraphim 4/3, Port Tressler 6/4, Direct Exp
+  Direct Medium Everus → HUR-L3 2/2 (2 lang, 211 750 aUEC mit Rückläufer). aUEC/Umlauf: Everus 877 000 (**−13 %** gegen
+  1,01 M), Baijini 959 500 (**−11 %** gegen 1,08 M), Seraphim 675 000 (**−23 %** gegen 875 k, außerhalb ±15 %), Port
+  Tressler 1 028 000 (**+3 %** gegen ~1,0 M aus §4.7). Seraphim: Senior Medium 296 250, Rookie Direct Small 34 750, drei
+  Smalls, Rückläufer 67 500 (Multi3, an CRU-L1, sammelt CRU-L4, CRU-L5), 42 000 (an CRU-L4), 34 750 (an CRU-L5); §3 nennt
+  Senior 328k, Smalls und ein Rookie Direct Medium aus einem Scan und ~240k Rückfracht – hier Templates im Worst Case
+  und der Greedy des Rezepts statt der gescannten Auswahl. Vor dem Fix: Everus 957 000 (−5 %), Baijini 1 109 000
+  (+3 %), Seraphim 733 250 (−16 %), Port Tressler 1 173 000 – geschönt durch ein Template je Station mehrfach.
 - **Folgen gegen §3:** Seraphim **L1 → L4 → L5 wie §3** (72,48 Gm, Gleichstand mit L1 → L5 → L4). Everus berechnet
   **L1 → L4 → L3 → L5 → L2 (72,88 Gm)** statt §3 L1 → L2 → L4 → L3 → L5 (74,76 Gm); Baijini **L1 → L4 → L3 → L5 → L2
   (162,50 Gm)** statt §3 (166,71 Gm). Die §3-Folgen sind Spielerfahrung: die berechneten sind 1,9 bzw. 4,2 Gm kürzer;
   Distanzen in den Testnamen. LEO: Everus → Baijini → Seraphim → Port Tressler (161,07 Gm) statt §8.6s Everus → Baijini
   → Port Tressler → Seraphim (171,74 Gm).
-- **Ranking kippt (Hull B, Senior):** bei 10 min Port Tressler 709k/h, Baijini 670k, Seraphim 605k, Everus 578k; bei
-  5 min 1 015k / 960k / 835k / 828k – Seraphim und Everus rücken auf 0,8 % zusammen, der Direct Port Tressler → S4DC05
-  (0 lange Sprünge) steigt von Platz 10 auf 7; bei 15 min wächst Seraphims Vorsprung (475k gegen 444k). Weniger Zeit je
-  Landung hebt Loops mit vielen Landungen, mehr hebt die kurzen (Seraphim, Directs) – umgekehrt zum Startprompt
+- **Ranking kippt (Hull B, Senior, nach dem Fix):** bei 10 min Port Tressler 586k/h, Baijini 561k, Seraphim 557k,
+  Everus 484k, Directs ab 330k; bei 5 min 819k / 792k / 769k / 669k, der Direct Port Tressler → S4DC05 (0 lange Sprünge)
+  springt vor die Directs mit zwei langen Sprüngen; bei **15 min überholt Seraphim Baijini** (437k gegen 434k). Weniger
+  Zeit je Landung hebt Loops mit vielen Landungen, mehr hebt die kurzen (Seraphim, Directs) – umgekehrt zum Startprompt
   („10 → 5 min hebt Seraphim“). Mechanik-Test mit zwei Parametersätzen (`The_ranking_tips_with_the_time_per_station`).
 - **Mutationsproben:** ohne Permutation (`MaxPermuted = 0`) 6 rot, ohne Rückfracht 2 rot, ohne Zeitparameter (Default
   statt Settings) 1 rot.
@@ -555,6 +558,19 @@ Martins Antworten auf vier Rückfragen):**
   | F3 auf Angebot, Plan-Reiter | „fits as …“ gegen `routes.hub` | gleich (K1), auch nach Zeilenklick |
   | Alles andere | wie main | gleich |
 
+- **Bild-Gate (Martin, 24.11.) – zwei Befunde, Fix:**
+  (1) Recipe Port Tressler „Σ 690 500 + 4 × 96 500 Back“ ≠ Loops „1.2M/loop“: Σ des Rezepts ist nur der Hinweg (D123,
+  `Recipe.RewardSum`); der Loops-Ring zählte die Rückwege dazu, und zwar fünf (er fährt alle fünf MIC-L-Stationen an,
+  das Rezept nur seine vier Ziele): 690 500 + 5 × 96 500 = 1 173 000. (2) Die „Member Small 96 500 accept at
+  MIC-L1…L4“ waren **ein** Template (`9ce4eae8`, Multi → Single, 3 Stopps, Pool alle fünf MIC-L), je Station neu gewählt
+  (Fehler seit T13.3b, `BestReturn` je Station); ebenso Everus (Junior Small 72 500, Multi4), Baijini (Member Small 89 750,
+  Multi4), Seraphim (Junior Small 67 500, Multi3), und der Direct-Lauf nahm einen Multi-Pickup-Rückläufer. **Fix
+  (Präzisierung zur Abnahme):** `Recipe.WaysBack` entlang des Rings, jedes Template höchstens einmal; ein Rückläufer mit
+  mehreren Pickups wird an der ersten Station angenommen und sammelt an den nächsten Ringstationen seines Pools
+  (`RecipeRole.CollectAt`, Zeile „accept at MIC-L1, collect at MIC-L2, MIC-L3“), reichen die folgenden Stationen nicht,
+  gilt er dort nicht; ein Direct-Lauf nimmt nur Rückläufer mit einem Pickup. Gleiche Regel in Recipe und Loops. Σ des
+  Rezepts bleibt der Hinweg. Tests: Recipe (Multi3 einmal, dann die nächsten), Loops (Ring zählt Multi4 einmal, Direct
+  ohne), Recipe-Zeile mit „collect at“.
 - **Gate T13.4 (Martin, SC vorne, Everus gespeichert):** (1) Loops zeigt vier Stanton-Ringe, Direct-Läufe, LEO-Ring mit
   „needs scans“; System → Pyro: Pyro-Ringe ohne aUEC; (2) Everus-Ring aUEC/Umlauf plausibel gegen Σ der Matrix-Zeile
   Everus → HUR-Lx plus Rückläufer (Tooltip der Zeile listet die Verträge); (3) Settings „Per landing“ auf 5 min →

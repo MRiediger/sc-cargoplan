@@ -132,7 +132,7 @@ public static class Loops
         var places = recipe.Outbound.Select(r => (Role: r, Places: Possible(r, start, board.System, context.Positions))).ToArray();
         HashSet<string> oneStop = [.. places.Where(p => p.Role.Template.Shape != HaulShape.SingleToMulti && p.Places.Count == 1).Select(p => p.Places[0])];
         var stations = Order(board.System, start, [.. places.SelectMany(p => p.Places)], context.Positions, oneStop);
-        RecipeRole[] returns = [.. stations.Select(s => Recipe.BestReturn(board, s, start, context.Ship, context.Cap, context.Fits)).OfType<RecipeRole>()];
+        var returns = Recipe.WaysBack(board, stations, start, context.Ship, context.Cap, context.Fits);
         return Candidate(LoopKind.LocalRing, board.System, start, stations, [.. recipe.Outbound, .. returns], context);
     }
 
@@ -161,8 +161,8 @@ public static class Loops
                 continue;
             }
 
-            var back = Recipe.BestReturn(board, to, hub, context.Ship, context.Cap, context.Fits);
-            RecipeRole[] contracts = back is null ? [role] : [role, back];
+            // A run lands only at its place: a way back with one pickup there (a ring of one station takes no other).
+            RecipeRole[] contracts = [role, .. Recipe.WaysBack(board, [to], hub, context.Ship, context.Cap, context.Fits)];
             runs.Add(Candidate(LoopKind.Direct, board.System, hub, [to], contracts, context));
         }
 

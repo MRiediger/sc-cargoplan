@@ -109,6 +109,27 @@ public class LoopsTests
     }
 
     [Fact]
+    public void A_ring_counts_a_way_back_with_several_pickups_once_and_a_direct_run_takes_none()
+    {
+        // Gate T13.4: one multi-to-single template was a way back at every station; it is one contract, paid once,
+        // accepted at its first pickup on the ring and collecting at the next ones.
+        var multi = T([L1, L2, L3, L4, L5], [], 72_500, size: HaulSize.Small, shape: HaulShape.MultiToSingle, stops: 4,
+            legs: [Leg("Waste", 1, 4, CrateSize.Four), Leg("Waste", 1, 4, CrateSize.Four), Leg("Waste", 1, 4, CrateSize.Four), Leg("Waste", 1, 4, CrateSize.Four)]);
+        var bulk = SeniorMedium();
+
+        var loops = For([bulk, Direct([L3]), multi]);
+        var ring = loops.Single(c => c.Kind == LoopKind.LocalRing);
+        var run = loops.Single(c => c.Kind == LoopKind.Direct);
+
+        ring.Stations.Should().Equal(L1, L4, L3, L5, L2);
+        ring.Contracts.Where(c => c.Kind == RecipeKind.Return).Should().ContainSingle()
+            .Which.Should().Match<RecipeRole>(r => r.AcceptAt == L1 && r.CollectAt!.SequenceEqual(new[] { L4, L3, L5 }));
+        ring.Reward.Should().Be(325_250 + 60_000 + 72_500);
+        run.Contracts.Should().ContainSingle("the way back would need three more pickups: a run lands only at its place");
+        run.Landings.Should().Be(2);
+    }
+
+    [Fact]
     public void Directs_that_differ_only_in_their_commodity_are_one_row()
     {
         var runs = For([Direct([L3], commodity: "Iron (Ore)"), Direct([L3], commodity: "Quartz (Raw)"), Direct([L3], reward: 70_000)])

@@ -26,6 +26,7 @@ public class LoopsBaselineTests(ITestOutputHelper output)
     [InlineData(Everus, 6, 4, 1_010_000)]
     [InlineData("Baijini Point", 6, 4, 1_080_000)]
     [InlineData("Seraphim Station", 4, 3, 875_000)]
+    [InlineData("Port Tressler", 6, 4, 1_000_000)]
     public void A_rings_landings_and_long_jumps_are_design_3s(string hub, int landings, int longJumps, long designReward)
     {
         var ring = Ring(hub);

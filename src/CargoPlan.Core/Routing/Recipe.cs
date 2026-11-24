@@ -20,13 +20,16 @@ public enum RecipeKind
 /// saw) in <see cref="PlaceNames.Order"/>; the hub for a way back.</param>
 /// <param name="WorstScu">Every leg at its upper band.</param>
 /// <param name="Crates">The crates of <paramref name="WorstScu"/> as the elevator delivers them to this ship (D70).</param>
-/// <param name="AcceptAt">For a way back: the ring station where it is accepted; null otherwise.</param>
-public sealed record RecipeRole(RecipeKind Kind, HaulTemplate Template, IReadOnlyList<string> Destinations, int WorstScu, int Crates, string? AcceptAt = null);
+/// <param name="AcceptAt">For a way back: the ring station where it is accepted, its first pickup; null otherwise.</param>
+/// <param name="CollectAt">For a way back with several pickups (multi-to-single): the ring stations after
+/// <paramref name="AcceptAt"/> where it collects the rest; empty for one pickup, null for a role that is no way back.</param>
+public sealed record RecipeRole(
+    RecipeKind Kind, HaulTemplate Template, IReadOnlyList<string> Destinations, int WorstScu, int Crates, string? AcceptAt = null, IReadOnlyList<string>? CollectAt = null);
 
 /// <summary>
 /// The recipe of a hub's board for a ship (T13.3b, D123, design §3), a hint, never a choice for the player: what leaves the
-/// hub (<see cref="Outbound"/>, checked together by the load planner) and the best way back per station of the ring
-/// (<see cref="Returns"/>, each alone in the empty ship; slots along the ring are T13.6).
+/// hub (<see cref="Outbound"/>, checked together by the load planner) and the ways back along the ring
+/// (<see cref="Returns"/>, each template once, each alone in the empty ship; slots along the ring are T13.6).
 /// </summary>
 /// <param name="Note">Why there is none or what is missing; null for a recipe.</param>
 public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IReadOnlyList<RecipeRole> Returns, string? Note = null)
@@ -34,7 +37,7 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
     /// <summary>Contracts one player holds at once (design §3, §4.1: "ACCEPTED (n/10)").</summary>
     public const int MaxContracts = 10;
 
-    /// <summary>The known rewards of what leaves the hub.</summary>
+    /// <summary>The known rewards of what leaves the hub; the ways back are not in it.</summary>
     public long RewardSum => Outbound.Sum(r => r.Template.Reward ?? 0);
 
     public int WorstScu => Outbound.Sum(r => r.WorstScu);
@@ -75,25 +78,49 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
 
         var chosen = Pick(candidates, ship, cap, [], allowed, fits);
 
-        // The way back: per ring station the best-paying local template to the hub that fits the empty ship alone.
-        var ring = chosen.SelectMany(r => r.Destinations).Distinct().Order(PlaceNames.Order);
-        RecipeRole[] returns = [.. ring.Select(station => BestReturn(board, station, hub, ship, cap, fits)).OfType<RecipeRole>()];
+        // The ways back along the ring of the departure's places, in place order.
+        string[] ring = [.. chosen.SelectMany(r => r.Destinations).Distinct().Order(PlaceNames.Order)];
+        var returns = WaysBack(board, ring, hub, ship, cap, fits);
 
         return new(hub, chosen, returns, chosen.Count == 0 ? "Recipe: nothing from this hub fits the ship" : null);
     }
 
     /// <summary>
-    /// The way back from <paramref name="station"/>: the best-paying local template of <paramref name="board"/> to
-    /// <paramref name="hub"/> that fits the empty ship alone, never a Large or Bulk size; ties to the uuid. Null if none.
+    /// The ways back to <paramref name="hub"/> along <paramref name="ring"/>, its stations in the order flown: at each
+    /// station the best-paying local template of <paramref name="board"/> that picks up there, not taken at an earlier one,
+    /// and fits the empty ship alone; never a Large or Bulk size; ties to the uuid. A template is one contract (gate
+    /// T13.4: one multi-to-single was a way back at every station): one with several pickups is accepted at its first
+    /// and collects at the next stations of the ring in its pool, as many as it has stops; where too few follow, it is
+    /// not a way back from there. A ring of one station (a direct run's) takes only one-pickup ways back.
     /// </summary>
-    internal static RecipeRole? BestReturn(Board board, string station, string hub, Ship ship, CrateCap cap, FitCache? fits = null) =>
-        board.Local
-            .Where(t => t.Size is not (HaulSize.Large or HaulSize.Bulk)
-                && BoardHubs.Pickups(t).Places.Contains(station) && BoardHubs.Dropoffs(t).Places.Contains(hub))
-            .Select(t => Role(t, [], cap, hub) with { Kind = RecipeKind.Return, Destinations = [hub], AcceptAt = station })
-            .OrderByDescending(r => r.Template.Reward ?? 0)
-            .ThenBy(r => r.Template.Uuid, StringComparer.Ordinal)
-            .FirstOrDefault(r => Fits(ship, cap, [r], fits)); // the first that fits of the best-paying: the same one, fewer first fits
+    internal static IReadOnlyList<RecipeRole> WaysBack(Board board, IReadOnlyList<string> ring, string hub, Ship ship, CrateCap cap, FitCache? fits = null)
+    {
+        HashSet<string> taken = [];
+        List<RecipeRole> back = [];
+        for (var i = 0; i < ring.Count; i++)
+        {
+            var station = ring[i];
+            var way = board.Local
+                .Where(t => !taken.Contains(t.Uuid) && t.Size is not (HaulSize.Large or HaulSize.Bulk)
+                    && BoardHubs.Pickups(t).Places.Contains(station) && BoardHubs.Dropoffs(t).Places.Contains(hub))
+                .OrderByDescending(t => t.Reward ?? 0)
+                .ThenBy(t => t.Uuid, StringComparer.Ordinal)
+                .Select(t => (Template: t, Collect: (IReadOnlyList<string>)[.. ring.Skip(i + 1).Where(BoardHubs.Pickups(t).Places.Contains).Take(Pickups(t) - 1)]))
+                .Where(x => x.Collect.Count == Pickups(x.Template) - 1)
+                .Select(x => Role(x.Template, [], cap, hub) with { Kind = RecipeKind.Return, Destinations = [hub], AcceptAt = station, CollectAt = x.Collect })
+                .FirstOrDefault(r => Fits(ship, cap, [r], fits)); // the first that fits of the best-paying: the same one, fewer first fits
+            if (way is not null)
+            {
+                taken.Add(way.Template.Uuid);
+                back.Add(way);
+            }
+        }
+
+        return back;
+    }
+
+    // The places a template picks up at: its stops for a multi-to-single, else one.
+    private static int Pickups(HaulTemplate template) => template.Shape == HaulShape.MultiToSingle ? template.Stops : 1;
 
     /// <summary>
     /// The greedy of the recipe over <paramref name="candidates"/>, bulk → direct → smalls (the smalls would take the

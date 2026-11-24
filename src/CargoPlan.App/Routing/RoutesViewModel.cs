@@ -577,12 +577,19 @@ public sealed partial class RoutesViewModel : ObservableObject
         foreach (var c in loop.Contracts)
         {
             var reward = c.Template.Reward is { } r ? Invariant($"{r:N0} aUEC") : "–";
-            tip.Append(Invariant($"\n{KindWords[c.Kind]} · {c.Template.Title} · {reward} · {c.WorstScu} SCU{(c.AcceptAt is { } at ? $" · accept at {PlaceNames.Short(at)}" : "")}"));
+            tip.Append(Invariant($"\n{KindWords[c.Kind]} · {c.Template.Title} · {reward} · {c.WorstScu} SCU{(AcceptText(c) is { } accept ? $" · {accept}" : "")}"));
         }
 
         var hub = loop.Kind != LoopKind.SystemWide && loop.System == StarSystem.Stanton ? loop.Start : null;
         return new(loop, title, figures, details, tip.ToString(), !loop.HasNumbers, hub);
     }
+
+    // "accept at MIC-L1, collect at MIC-L2, MIC-L3" for a way back (one contract, gate T13.4); null for any other role.
+    private static string? AcceptText(RecipeRole role) => role.AcceptAt is not { } at
+        ? null
+        : role.CollectAt is { Count: > 0 } collect
+            ? $"accept at {PlaceNames.Short(at)}, collect at {string.Join(", ", collect.Select(PlaceNames.Short))}"
+            : $"accept at {PlaceNames.Short(at)}";
 
     private static string Plus(LoopCandidate loop) => loop.RewardPartial ? "+" : "";
 
@@ -620,7 +627,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             (null, { } seen) => Invariant($"{seen:N0} aUEC observed"),
             _ => "–",
         };
-        var where = role.AcceptAt is { } at ? $"accept at {PlaceNames.Short(at)}" : string.Join(", ", role.Destinations.Select(PlaceNames.Short));
+        var where = AcceptText(role) ?? string.Join(", ", role.Destinations.Select(PlaceNames.Short));
         return Invariant($"{KindWords[role.Kind]} · {t.Title} · {reward} · {t.Legs.Sum(l => l.MinScu)}–{t.MaxScu} SCU in {t.Legs.Max(l => (int)l.Container)}s · {where}");
     }
 
