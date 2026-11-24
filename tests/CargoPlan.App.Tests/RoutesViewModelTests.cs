@@ -367,6 +367,214 @@ public sealed class RoutesViewModelTests
         model.FitOf(scan).Should().Be(new RecipeFit.TooBig(432, CrateSize.Sixteen, HullA.Name));
     }
 
+    // --- Loops (T13.4, D124) ---
+
+    private const string ArcL1 = "ARC-L1 Wide Forest Station";
+
+    // In Gm: Everus ↔ L1 1.3 (short), Everus ↔ Baijini 22.9, Baijini ↔ ARC-L1 3.
+    private static readonly Positions Stanton = new(
+    [
+        At("Everus Harbor", 0), At(L1, 1.3), At("Baijini Point", 22.9), At(ArcL1, 25.9), At("Seraphim Station", -30), At("Port Tressler", 40),
+        new StarPosition("Ruin Station", "Ruin Station", StarSystem.Pyro, "Manmade", null, 0, 0, 0, []),
+        new StarPosition("Checkmate", "Checkmate", StarSystem.Pyro, "Manmade", null, 5e9, 0, 0, []),
+    ]);
+
+    private static readonly HaulTemplate EverusBulk = SeniorBulk with { Uuid = "everus-bulk" };
+
+    private static readonly HaulTemplate BaijiniBulk = T([], [ArcL1], reward: 300_000, min: 41, max: 400, areaKey: "Stanton3") with { Uuid = "baijini-bulk" };
+
+    // A direct of 100 SCU from Everus: with the Everus bulk 532 SCU, with the Baijini one 500.
+    private static readonly HaulTemplate EverusDirect = T([], [L1], reward: 90_000, title: "Senior Rank - Direct Small Cargo Haul") with
+    {
+        Uuid = "everus-direct",
+        Size = HaulSize.Small,
+        Direct = true,
+        Legs = [new HaulLeg("Gold", 1, 100, CrateSize.Four)],
+    };
+
+    private static readonly HaulTemplate PyroSmall = T(["Ruin Station"], ["Checkmate"], reward: null, max: 20, contractor: HaulContractor.RedWind,
+        system: StarSystem.Pyro, areaKey: "Solar", faction: HaulFaction.Hh) with { Uuid = "pyro", Size = HaulSize.Small };
+
+    private static StarPosition At(string name, double gm) => new(name, name, StarSystem.Stanton, "Manmade", null, gm * 1e9, 0, 0, []);
+
+    private RoutesViewModel Loops(RoutesSettings? settings = null, params HaulTemplate[] templates)
+    {
+        var model = Model(templates.Length > 0 ? templates : [EverusBulk, BaijiniBulk, PyroSmall], settings, positions: Stanton);
+        model.NextCommand.Execute("view");
+        model.NextCommand.Execute("view");
+        return model;
+    }
+
+    // What the App does off the UI thread, here at once.
+    private static void Compute(RoutesViewModel model) => model.ShowLoops(model.LoopInputs!, model.LoopInputs!.Run());
+
+    [Fact]
+    public void The_view_cycles_matrix_recipe_loops_and_back()
+    {
+        var model = Model([SeniorBulk]);
+
+        model.NextCommand.Execute("view");
+        model.NextCommand.Execute("view");
+        (model.ViewLabel, model.IsLoops, model.IsRecipe, model.IsMatrix).Should().Be(("Loops", true, false, false));
+        (model.ShowsLoops, model.ShowsRecipe, model.ShowsMatrix).Should().Be((true, false, false));
+
+        model.NextCommand.Execute("view");
+        model.ViewLabel.Should().Be("Matrix");
+        model.PreviousCommand.Execute("view");
+        model.ViewLabel.Should().Be("Loops");
+    }
+
+    [Fact]
+    public void The_loops_are_asked_for_with_a_ship_and_shown_when_they_come()
+    {
+        var model = Loops();
+        List<LoopInputs> asked = [];
+        model.LoopInputsChanged += (_, inputs) => asked.Add(inputs);
+        model.LoopsNote.Should().Be("Loops: no ship");
+
+        model.ShowShip(HullB);
+
+        asked.Should().ContainSingle().Which.Should().BeSameAs(model.LoopInputs);
+        model.LoopInputs!.Hub.Should().Be("Everus Harbor");
+        model.LoopsNote.Should().Be("Loops: working them out …");
+        Compute(model);
+        model.LoopsNote.Should().BeNull();
+        model.LoopRows.Select(r => r.Title).Should().Equal("Everus Harbor ring", "Baijini Point ring", "LEO ring from Everus Harbor");
+    }
+
+    [Fact]
+    public void A_result_for_inputs_that_changed_since_is_dropped()
+    {
+        var model = Loops();
+        model.ShowShip(HullB);
+        var old = model.LoopInputs!;
+        var result = old.Run();
+
+        model.ShowShip(HullA);
+        model.ShowLoops(old, result);
+
+        model.LoopRows.Should().BeEmpty();
+        model.LoopsNote.Should().Be("Loops: working them out …");
+    }
+
+    [Fact]
+    public void A_row_reads_title_figures_and_structure()
+    {
+        var model = Loops();
+        model.ShowShip(HullB);
+        Compute(model);
+
+        var everus = model.LoopRows.Single(r => r.Title == "Everus Harbor ring");
+        everus.Figures.Should().Be("325k/loop · ~672k/h · 162k/landing", "325,250 aUEC in 2 landings × 10 min + 27 crates × 20 s = 29 min");
+        everus.Details.Should().Be("2 landings · 27 crates · 2 jumps (0 long) · travel – · templates");
+        everus.ToolTip.Should().StartWith("Everus Harbor → HUR-L1 → Everus Harbor\nBulk · Senior Rank - Medium Cargo Haul · 325,250 aUEC · 432 SCU");
+        (everus.CanOpen, everus.Grey).Should().Be((true, false));
+        model.LoopRows.Single(r => r.Title == "Baijini Point ring").Details.Should().Contain("travel 22.9 Gm");
+        var leo = model.LoopRows.Single(r => r.Title.StartsWith("LEO", StringComparison.Ordinal));
+        (leo.Figures, leo.Details, leo.Grey, leo.CanOpen).Should().Be(((string?)null, "needs scans at Everus Harbor", true, false));
+    }
+
+    [Fact]
+    public void The_sort_cycles_is_saved_and_the_times_from_the_settings_rank_without_a_new_computation()
+    {
+        var model = Loops();
+        model.ShowShip(HullB);
+        Compute(model);
+        var asked = 0;
+        model.LoopInputsChanged += (_, _) => asked++;
+
+        model.SortLabel.Should().Be("Sort: ~aUEC/h");
+        model.LoopRows.Select(r => r.Title).Take(2).Should().Equal("Everus Harbor ring", "Baijini Point ring");
+        model.NextCommand.Execute("sort");
+        model.SortLabel.Should().Be("Sort: aUEC/loop");
+        model.LoopRows.Select(r => r.Title).Take(2).Should().Equal("Everus Harbor ring", "Baijini Point ring");
+        _saved.Last().LoopsSort.Should().Be("loop");
+
+        // Baijini's two long jumps weigh little when a jump is short, much when it is long.
+        model.TimesText.Should().Be("10 min · 20 s · 4 min");
+        model.PreviousCommand.Execute("sort");
+        model.Follow(RoutesSettings.Default with { Times = new RoutesTimes(10, 20, 1) });
+        model.TimesText.Should().Be("10 min · 20 s · 1 min");
+        model.LoopRows.Select(r => r.Title).Take(2).Should().Equal("Everus Harbor ring", "Baijini Point ring");
+        asked.Should().Be(0, "times and sort only rank");
+    }
+
+    [Fact]
+    public void The_system_filter_shows_its_systems_loops()
+    {
+        var model = Loops();
+        model.ShowShip(HullB);
+        Compute(model);
+
+        model.LoopRows.Should().OnlyContain(r => r.Loop.System == StarSystem.Stanton);
+        model.NextCommand.Execute("system");
+        model.LoopRows.Select(r => (r.Title, r.Figures)).Should().Equal(("Ruin Station ring", "– aUEC: no reward in the game data, a scan shows it"));
+        model.LoopRows.Single().Details.Should().Contain("travel: Pyro").And.Contain("templates");
+        model.NextCommand.Execute("system");
+        model.LoopRows.Should().BeEmpty();
+        model.LoopsNote.Should().Be("No loops for this system.");
+    }
+
+    [Fact]
+    public void A_rows_click_shows_its_hubs_recipe_for_the_session_and_the_offer_check_stays_at_routes_hub()
+    {
+        // K1 of the T13.4 approval: the scan happens at routes.hub, whatever the recipe shows.
+        var model = Loops(null, EverusBulk, EverusDirect, BaijiniBulk);
+        model.ShowShip(HullB);
+        Compute(model);
+        var key = new ObservationKey(HaulContractor.Covalex, HaulRank.Senior, HaulSize.Small, true, 90_000, ["Gold"]);
+        var scan = new ObservedScan(key, null, ["Everus Harbor"], [new ObservedDelivery("Green Glade Station", "Gold", 50)], Monday);
+        var match = TemplateMatch.Find(Observation.Of(scan), [EverusBulk, EverusDirect, BaijiniBulk], Stanton);
+        var atBaijini = RecipeFit.Of(match, Recipe.For(Board.For([EverusBulk, EverusDirect, BaijiniBulk], StarSystem.Stanton, "Stanton3", HaulRank.Master, null), HullB, ObservedEdges.Empty), HullB);
+        atBaijini.Should().Be(new RecipeFit.FitsAs(RecipeKind.Direct), "Baijini's recipe would take it: this test tells the hubs apart");
+
+        model.OpenLoopCommand.Execute(model.LoopRows.Single(r => r.Title == "Baijini Point ring"));
+
+        (model.IsRecipe, model.HubLabel).Should().Be((true, "Hub: Baijini Point (from Loops)"));
+        model.RecipeLines.Should().ContainSingle().Which.Should().Contain("300,000 aUEC");
+        _saved.Should().BeEmpty("routes.hub stays");
+        model.FitOf(scan).Should().Be(new RecipeFit.TooBig(100, CrateSize.Four, HullB.Name), "432 + 100 SCU at Everus");
+
+        model.NextCommand.Execute("hub");
+        model.HubLabel.Should().Be("Hub: Port Tressler", "the hub button goes on from the hub shown and saves");
+        _saved.Select(s => s.Hub).Should().Equal("Port Tressler");
+    }
+
+    [Fact]
+    public void A_row_without_a_recipe_does_nothing_on_a_click()
+    {
+        var model = Loops();
+        model.ShowShip(HullB);
+        Compute(model);
+
+        model.OpenLoopCommand.Execute(model.LoopRows.Single(r => r.Title.StartsWith("LEO", StringComparison.Ordinal)));
+
+        model.IsLoops.Should().BeTrue();
+        model.HubLabel.Should().Be("Hub: Everus Harbor");
+    }
+
+    [Fact]
+    public void Rank_hub_and_new_observations_ask_for_new_loops()
+    {
+        var model = Loops();
+        model.ShowShip(HullB);
+        List<LoopInputs> asked = [];
+        model.LoopInputsChanged += (_, inputs) => asked.Add(inputs);
+
+        model.NextCommand.Execute("rank");
+        model.NextCommand.Execute("faction");
+        model.NextCommand.Execute("hub");
+        model.ShowObserved(ObservedEdges.Empty);
+        model.Follow(model.LoopInputs is { } ? RoutesSettings.Default with { Rank = "junior" } : RoutesSettings.Default);
+
+        asked.Select(a => (a.Rank, a.Faction, a.Hub)).Should().Equal(
+            (HaulRank.Trainee, (HaulFaction?)null, "Everus Harbor"),
+            (HaulRank.Trainee, HaulFaction.Hh, "Everus Harbor"),
+            (HaulRank.Trainee, HaulFaction.Hh, "Seraphim Station"),
+            (HaulRank.Trainee, HaulFaction.Hh, "Seraphim Station"),
+            (HaulRank.Junior, (HaulFaction?)null, "Seraphim Station"));
+    }
+
     [Fact]
     public void Without_hauling_data_the_tab_says_why_and_shows_no_matrix()
     {

@@ -321,6 +321,29 @@ public partial class App : Application
         return edges;
     }
 
+    /// <summary>
+    /// The loop ranking for <paramref name="inputs"/> on the thread pool (T13.4, D124), shown on the UI thread; one log line
+    /// with the count, the observed ones and the time. A failure goes to the log, the tab keeps what it had.
+    /// </summary>
+    private async Task ComputeLoopsAsync(RoutesViewModel routes, LoopInputs inputs)
+    {
+        try
+        {
+            var (loops, ms) = await Task.Run(() =>
+            {
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                return (inputs.Run(), watch.ElapsedMilliseconds);
+            });
+            AppLog.Write("Routes", FormattableString.Invariant(
+                $"loops {loops.Count} candidates, {loops.Count(l => l.Observed > 0)} observed, {ms} ms ({inputs.Ship.Name}, {EnumWords.Word(inputs.Rank)}, {inputs.Hub})"));
+            await Dispatcher.InvokeAsync(() => routes.ShowLoops(inputs, loops));
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("Routes", $"loops failed: {ex}");
+        }
+    }
+
     private static string Describe(ObservationKey key) => FormattableString.Invariant(
         $"{EnumWords.Word(key.Contractor)} {EnumWords.Word(key.Rank)} {EnumWords.Word(key.Size)} {key.Reward}");
 
@@ -361,7 +384,12 @@ public partial class App : Application
         // never the tab, which the overlay's own handler below keeps.
         SettingsSession? sessionForRoutes = null;
         var routes = new RoutesViewModel(hauling, data.Version, settings.Routes, changed =>
-            sessionForRoutes?.ChangeRoutes(sessionForRoutes.Current.Routes with { Rank = changed.Rank, Faction = changed.Faction, Hub = changed.Hub }), observed);
+            sessionForRoutes?.ChangeRoutes(sessionForRoutes.Current.Routes with
+            {
+                Rank = changed.Rank, Faction = changed.Faction, Hub = changed.Hub, LoopsSort = changed.LoopsSort,
+            }), observed);
+        // The loops (T13.4) off the UI thread: the load planner takes a few hundred ms; a result for old inputs is dropped.
+        routes.LoopInputsChanged += (_, inputs) => _ = ComputeLoopsAsync(routes, inputs);
         // After each scan, on its pool thread: match anew there, show on the UI thread.
         routesBook.Recorded += (all, entry) =>
         {

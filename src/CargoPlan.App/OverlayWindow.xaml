@@ -991,6 +991,30 @@
                                     <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBarStyle}">
                                         <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
                                     </Style>
+                                    <!-- A loop's row (T13.4): the whole row a click target without a look of its own; a Stanton hub's row
+                                         shows its recipe (hand cursor), a row that needs scans is faint. -->
+                                    <Style x:Key="LoopRowStyle" TargetType="Button">
+                                        <Setter Property="Focusable" Value="False" />
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                        <Setter Property="Margin" Value="0,0,0,6" />
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="Transparent">
+                                                        <ContentPresenter />
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding CanOpen}" Value="True">
+                                                <Setter Property="Cursor" Value="Hand" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Grey}" Value="True">
+                                                <Setter Property="Opacity" Value="0.55" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
                                     <Style x:Key="BlockIfTextStyle" TargetType="TextBlock" BasedOn="{StaticResource LegendTextStyle}">
                                         <Setter Property="Margin" Value="0,0,0,4" />
                                         <Style.Triggers>
@@ -1007,8 +1031,9 @@
                                 <TextBlock DockPanel.Dock="Top" Text="{Binding StatusText, Mode=OneTime}" Style="{StaticResource BlockIfTextStyle}" />
 
                                 <!-- Filter (one model for matrix and map, T13.7): rank, faction and hub are kept in settings.json. The
-                                     view button switches matrix and recipe (T13.3b); the hub only counts for the recipe, the
-                                     filters from area on only for the matrix, so each shows with its view. -->
+                                     view button switches matrix, recipe (T13.3b) and loops (T13.4); the hub only counts for the
+                                     recipe, the sort and the times for the loops, the filters from area on only for the matrix, so
+                                     each shows with its view. -->
                                 <WrapPanel DockPanel.Dock="Top" Visibility="{Binding HasData, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneTime}">
                                     <Button Command="{Binding NextCommand}" CommandParameter="view" Style="{StaticResource FilterButtonStyle}">
                                         <Button.InputBindings>
@@ -1022,6 +1047,13 @@
                                             <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="hub" />
                                         </Button.InputBindings>
                                         <TextBlock Text="{Binding HubLabel}" Style="{StaticResource FilterLabelStyle}" />
+                                    </Button>
+                                    <Button Command="{Binding NextCommand}" CommandParameter="sort" Style="{StaticResource FilterButtonStyle}"
+                                            Visibility="{Binding IsLoops, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Button.InputBindings>
+                                            <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="sort" />
+                                        </Button.InputBindings>
+                                        <TextBlock Text="{Binding SortLabel}" Style="{StaticResource FilterLabelStyle}" />
                                     </Button>
                                     <Button Command="{Binding NextCommand}" CommandParameter="rank" Style="{StaticResource FilterButtonStyle}">
                                         <Button.InputBindings>
@@ -1064,6 +1096,9 @@
                                     <CheckBox Content="M" IsChecked="{Binding ShowMedium}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Medium" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                     <CheckBox Content="L" IsChecked="{Binding ShowLarge}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Large" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                     <CheckBox Content="B" IsChecked="{Binding ShowBulk}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Bulk" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    <TextBlock Text="{Binding TimesText}" ToolTip="{Binding TimesToolTip, Mode=OneTime}" Style="{StaticResource FilterLabelStyle}"
+                                               VerticalAlignment="Center" Margin="2,0,0,4"
+                                               Visibility="{Binding IsLoops, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                 </WrapPanel>
 
                                 <TextBlock DockPanel.Dock="Bottom" Text="{Binding WithoutPlaceText}" Style="{StaticResource BlockIfTextStyle}" Margin="0,4,0,0" />
@@ -1090,6 +1125,29 @@
                                         </StackPanel>
                                     </ScrollViewer>
     
+                                    <!-- The loops (T13.4, D124): one row per loop in the legend's look, best first by the sort; a click on a
+                                         Stanton hub's row shows its recipe. Scrolls like the recipe. -->
+                                    <ScrollViewer x:Name="LoopsView" Focusable="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                                  Visibility="{Binding ShowsLoops, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding LoopsNote}" Style="{StaticResource BlockIfTextStyle}" />
+                                            <ItemsControl x:Name="LoopRows" ItemsSource="{Binding LoopRows}" Focusable="False">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="{x:Type rt:LoopRowView}">
+                                                        <Button Style="{StaticResource LoopRowStyle}" ToolTip="{Binding ToolTip}" CommandParameter="{Binding}"
+                                                                Command="{Binding DataContext.OpenLoopCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}">
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding Title}" Style="{StaticResource LegendTextStyle}" FontWeight="SemiBold" />
+                                                                <TextBlock Text="{Binding Figures}" Style="{StaticResource BlockIfTextStyle}" Margin="0" />
+                                                                <TextBlock Text="{Binding Details}" Style="{StaticResource LegendTextStyle}" />
+                                                            </StackPanel>
+                                                        </Button>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </ScrollViewer>
+
                                     <!-- The matrix: pickups down, drop-offs across, the pickup column frozen; read only, no selection look. -->
                                     <DataGrid x:Name="PortMatrix" rt:PortMatrixGrid.Columns="{Binding Columns}" ItemsSource="{Binding Rows}"
                                               AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" FrozenColumnCount="1"

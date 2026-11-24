@@ -97,4 +97,25 @@ public class OverlayTabStripXamlTests
         grid.Attribute("FontSize")!.Value.Should().Be("{DynamicResource LegendFontSize}");
         grid.Attribute("IsReadOnly")!.Value.Should().Be("True");
     }
+
+    [Fact]
+    public void The_loops_view_lists_rows_that_open_a_recipe_and_the_sort_and_times_show_with_it()
+    {
+        // T13.4: the loop list in the plan view, a click on a row through OpenLoopCommand; sort button and times only there.
+        var root = Root();
+        var plan = Named(root, "PlanView");
+        var loops = Named(root, "LoopsView");
+        var rows = Named(root, "LoopRows");
+
+        loops.Ancestors().Should().Contain(plan);
+        loops.Attribute("Visibility")!.Value.Should().Contain("{Binding ShowsLoops");
+        rows.Attribute("ItemsSource")!.Value.Should().Be("{Binding LoopRows}");
+        var row = rows.Descendants().Single(e => e.Name.LocalName == "Button");
+        row.Attribute("Command")!.Value.Should().Contain("OpenLoopCommand");
+        row.Attribute("CommandParameter")!.Value.Should().Be("{Binding}");
+
+        var sort = plan.Descendants().Single(e => e.Name.LocalName == "Button" && (string?)e.Attribute("CommandParameter") == "sort");
+        sort.Attribute("Visibility")!.Value.Should().Contain("{Binding IsLoops");
+        plan.Descendants().Single(e => (string?)e.Attribute("Text") == "{Binding TimesText}").Attribute("Visibility")!.Value.Should().Contain("{Binding IsLoops");
+    }
 }

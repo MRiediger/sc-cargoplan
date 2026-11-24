@@ -21,10 +21,22 @@ public sealed record PortRowView(string Pickup, string Label, IReadOnlyList<Port
 public sealed record PortCellView(string Text, string ToolTip);
 
 /// <summary>
+/// One loop as the list shows it (T13.4): a title, the aUEC figures, the structure and status, the stations and
+/// contracts in the tool tip. Grey when it needs scans before it has figures.
+/// </summary>
+/// <param name="Hub">The Stanton hub whose recipe a click shows; null where there is none (system-wide, Pyro).</param>
+/// <param name="Figures">"957k/loop · ~578k/h · 160k/landing"; null without contracts.</param>
+public sealed record LoopRowView(LoopCandidate Loop, string Title, string? Figures, string Details, string ToolTip, bool Grey, string? Hub)
+{
+    public bool CanOpen => Hub is not null;
+}
+
+/// <summary>
 /// The Plan tab (the Routes tab, D120; T13.2): the port matrix of the hauling templates (design §8.5) under a filter whose
 /// parts cycle on a click, with what the scans saw (T13.3, <see cref="ObservedEdges"/>, computed by the caller). The matrix
 /// is Core's (<see cref="PortMatrix"/>); this formats it. Rank and faction go to settings.json (routes.rank,
-/// routes.faction), the other filters live for the session.
+/// routes.faction), the other filters live for the session. The loops (T13.4, D124) are computed off the UI thread by
+/// whoever listens to <see cref="LoopInputsChanged"/> and come back through <see cref="ShowLoops"/>.
 /// </summary>
 public sealed partial class RoutesViewModel : ObservableObject
 {
@@ -53,8 +65,11 @@ public sealed partial class RoutesViewModel : ObservableObject
     private static readonly (string Label, StarSystem? Value)[] Systems =
         [("Stanton", StarSystem.Stanton), ("Pyro", StarSystem.Pyro), ("Interstellar", null)];
 
-    // The view of the Plan tab (T13.3b): the port matrix or the recipe of a hub for the overlay's ship.
-    private static readonly string[] Views = ["Matrix", "Recipe"];
+    // The view of the Plan tab (T13.3b, T13.4): the port matrix, the recipe of a hub for the overlay's ship, the loops.
+    private static readonly string[] Views = ["Matrix", "Recipe", "Loops"];
+
+    private static readonly (string Label, LoopSort Value)[] Sorts =
+        [("Sort: ~aUEC/h", LoopSort.PerHour), ("Sort: aUEC/loop", LoopSort.PerLoop), ("Sort: aUEC/landing", LoopSort.PerLanding)];
 
     // The four Stanton hubs in board order (Stanton1–4): the recipe's start (routes.hub).
     private static readonly (string AreaKey, string Name)[] Hubs = [.. BoardHubs.ByArea.OrderBy(h => h.Key, StringComparer.Ordinal).Select(h => (h.Key, h.Value))];
@@ -91,9 +106,20 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     private int _view;
 
+    // routes.hub: where the player is (the hub button, saved).
     private int _hub;
 
+    // The hub the recipe shows when a loop's row chose it (T13.4, D124): for the session, never saved; null = _hub.
+    private int? _shownHub;
+
+    private int _sort;
+
     private Ship? _ship;
+
+    // The loops of the inputs below, as computed; empty until the first result.
+    private IReadOnlyList<LoopCandidate> _loops = [];
+
+    private bool _loopsComputed;
 
     /// <param name="save">Called with the new section when rank or faction change; null in tests that don't save.</param>
     /// <param name="observed">What the scans in routes.json add (T13.3); none without.</param>
@@ -111,6 +137,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         _area = Array.FindIndex(Areas, a => a.Value == start.MissionType);
         _system = Array.FindIndex(Systems, s => s.Value == start.System);
         _hub = Math.Max(0, Array.FindIndex(Hubs, h => h.Name == settings.Hub));
+        _sort = Math.Max(0, Array.FindIndex(Sorts, s => s.Value == settings.Sort));
         (_templates, _positions, StatusText) = load switch
         {
             HaulingLoad.Loaded loaded => (loaded.Data.Templates, loaded.Data.Positions, (string?)null),
@@ -144,7 +171,10 @@ public sealed partial class RoutesViewModel : ObservableObject
     /// <summary>The recipe instead of the matrix (T13.3b); the matrix's own filters hide.</summary>
     public bool IsRecipe => _view == 1;
 
-    public bool IsMatrix => !IsRecipe;
+    /// <summary>The loops instead of the matrix (T13.4); the matrix's own filters hide, the system filter stays.</summary>
+    public bool IsLoops => _view == 2;
+
+    public bool IsMatrix => _view == 0;
 
     /// <summary>The matrix and its legend: with hauling data, in the matrix view.</summary>
     public bool ShowsMatrix => HasData && IsMatrix;
@@ -152,7 +182,47 @@ public sealed partial class RoutesViewModel : ObservableObject
     /// <summary>The recipe's lines: with hauling data, in the recipe view.</summary>
     public bool ShowsRecipe => HasData && IsRecipe;
 
-    public string HubLabel => $"Hub: {Hubs[_hub].Name}";
+    /// <summary>The loop list: with hauling data, in the loops view.</summary>
+    public bool ShowsLoops => HasData && IsLoops;
+
+    /// <summary>"Hub: Everus Harbor"; "(from Loops)" while a loop's row shows another hub than routes.hub.</summary>
+    public string HubLabel => _shownHub is { } shown && shown != _hub ? $"Hub: {Hubs[shown].Name} (from Loops)" : $"Hub: {Hubs[_hub].Name}";
+
+    public string SortLabel => Sorts[_sort].Label;
+
+    /// <summary>The loops' times as the settings window sets them, shown, not edited here (T13.4).</summary>
+    public string TimesText => Invariant($"{_settings.Times.Station} min · {_settings.Times.Crate} s · {_settings.Times.Jump} min");
+
+    public string TimesToolTip => "Time per landing · per crate · per long jump (over 10 Gm), for ~aUEC/h; set them in Settings → Plan tab";
+
+    /// <summary>The loop list (T13.4): ranked by the sort, the system filter's system only.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<LoopRowView> LoopRows { get; private set; } = [];
+
+    /// <summary>Why there are no loops, or that they are still being worked out; null otherwise.</summary>
+    [ObservableProperty]
+    public partial string? LoopsNote { get; private set; }
+
+    /// <summary>What the loops are computed from now; null without hauling data or a ship.</summary>
+    public LoopInputs? LoopInputs { get; private set; }
+
+    /// <summary>The inputs changed: compute <see cref="LoopInputs.Run"/> off the UI thread, then <see cref="ShowLoops"/>.</summary>
+    public event EventHandler<LoopInputs>? LoopInputsChanged;
+
+    /// <summary>
+    /// The loops computed from <paramref name="inputs"/>; dropped when the tab's inputs have changed since (a later result
+    /// is on its way). Re-sorting needs no new result: the times and the sort only rank.
+    /// </summary>
+    public void ShowLoops(LoopInputs inputs, IReadOnlyList<LoopCandidate> loops)
+    {
+        if (!ReferenceEquals(inputs, LoopInputs))
+        {
+            return;
+        }
+
+        (_loops, _loopsComputed) = (loops, true);
+        BuildLoops();
+    }
 
     /// <summary>One line per role, what leaves the hub first, then the way back ("Back · … · accept at HUR-L1").</summary>
     [ObservableProperty]
@@ -170,6 +240,7 @@ public sealed partial class RoutesViewModel : ObservableObject
     public void ShowShip(Ship ship)
     {
         _ship = ship;
+        AskForLoops();
         Rebuild();
     }
 
@@ -184,13 +255,14 @@ public sealed partial class RoutesViewModel : ObservableObject
             return null;
         }
 
+        // Against routes.hub, where the scan happens (K1 of the T13.4 approval), whichever hub the recipe shows.
         var observation = Observation.Of(scan);
-        return RecipeFit.Of(TemplateMatch.Find(observation, _templates, _positions), RecipeFor(ship), ship, observation.Destinations);
+        return RecipeFit.Of(TemplateMatch.Find(observation, _templates, _positions), RecipeFor(ship, _hub), ship, observation.Destinations);
     }
 
     // The board of the hub's area up to the filter's rank, both factions (Stanton has none), with what the scans saw.
-    private Recipe RecipeFor(Ship ship) =>
-        Recipe.For(Board.For(_templates, StarSystem.Stanton, Hubs[_hub].AreaKey, Ranks[_rank].Value, null), ship, _observed);
+    private Recipe RecipeFor(Ship ship, int hub) =>
+        Recipe.For(Board.For(_templates, StarSystem.Stanton, Hubs[hub].AreaKey, Ranks[_rank].Value, null), ship, _observed);
 
     [ObservableProperty]
     public partial bool ShowXs { get; set; } = true;
@@ -251,23 +323,32 @@ public sealed partial class RoutesViewModel : ObservableObject
     /// </summary>
     public void Follow(RoutesSettings settings)
     {
-        if (settings.Rank == _settings.Rank && settings.Faction == _settings.Faction)
+        if (settings.Rank == _settings.Rank && settings.Faction == _settings.Faction && settings.Times == _settings.Times)
         {
             return;
         }
 
+        // The times only rank the loops (T13.4): no new computation for them.
+        var boards = settings.Rank != _settings.Rank || settings.Faction != _settings.Faction;
         _settings = settings;
         _rank = Array.FindIndex(Ranks, r => r.Value == settings.MaxRank);
         _faction = Array.FindIndex(Factions, f => f.Value == settings.PlayerFaction);
         OnPropertyChanged(nameof(RankLabel));
         OnPropertyChanged(nameof(FactionLabel));
+        OnPropertyChanged(nameof(TimesText));
+        if (boards)
+        {
+            AskForLoops();
+        }
+
         Rebuild();
     }
 
-    /// <summary>What the scans saw, from routes.json after a scan (T13.3); the matrix follows.</summary>
+    /// <summary>What the scans saw, from routes.json after a scan (T13.3); the matrix and the loops follow.</summary>
     public void ShowObserved(ObservedEdges observed)
     {
         _observed = observed;
+        AskForLoops();
         Rebuild();
     }
 
@@ -284,6 +365,24 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     [RelayCommand]
     private void Previous(string filter) => Cycle(filter, -1);
+
+    /// <summary>A loop's row: the recipe of its hub, for the session (T13.4, D124); routes.hub stays. Others do nothing.</summary>
+    [RelayCommand]
+    private void OpenLoop(LoopRowView? row)
+    {
+        if (row?.Hub is not { } hub)
+        {
+            return;
+        }
+
+        _shownHub = Array.FindIndex(Hubs, h => h.Name == hub);
+        _view = 1;
+        _system = Array.FindIndex(Systems, s => s.Value == StarSystem.Stanton);
+        OnPropertyChanged(nameof(HubLabel));
+        OnPropertyChanged(nameof(SystemLabel));
+        ViewChanged();
+        Rebuild();
+    }
 
     partial void OnShowXsChanged(bool value) => Rebuild();
 
@@ -305,6 +404,7 @@ public sealed partial class RoutesViewModel : ObservableObject
                 _rank = Step(_rank, Ranks.Length, step);
                 Save(_settings with { Rank = EnumWords.Word(Ranks[_rank].Value) });
                 OnPropertyChanged(nameof(RankLabel));
+                AskForLoops();
                 break;
             case "direct":
                 _direct = Step(_direct, Directs.Length, step);
@@ -318,6 +418,7 @@ public sealed partial class RoutesViewModel : ObservableObject
                 _faction = Step(_faction, Factions.Length, step);
                 Save(_settings with { Faction = Factions[_faction].Value is { } f ? EnumWords.Word(f) : null });
                 OnPropertyChanged(nameof(FactionLabel));
+                AskForLoops();
                 break;
             case "area":
                 _area = Step(_area, Areas.Length, step);
@@ -329,22 +430,48 @@ public sealed partial class RoutesViewModel : ObservableObject
                 break;
             case "view":
                 _view = Step(_view, Views.Length, step);
-                OnPropertyChanged(nameof(ViewLabel));
-                OnPropertyChanged(nameof(IsRecipe));
-                OnPropertyChanged(nameof(IsMatrix));
-                OnPropertyChanged(nameof(ShowsMatrix));
-                OnPropertyChanged(nameof(ShowsRecipe));
+                ViewChanged();
                 break;
             case "hub":
-                _hub = Step(_hub, Hubs.Length, step);
+                // From the hub shown: after a loop's row, the next hub from there becomes routes.hub.
+                (_hub, _shownHub) = (Step(_shownHub ?? _hub, Hubs.Length, step), null);
                 Save(_settings with { Hub = Hubs[_hub].Name });
                 OnPropertyChanged(nameof(HubLabel));
+                AskForLoops();
+                break;
+            case "sort":
+                _sort = Step(_sort, Sorts.Length, step);
+                Save(_settings with { LoopsSort = RoutesSettings.Word(Sorts[_sort].Value) });
+                OnPropertyChanged(nameof(SortLabel));
                 break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(filter), filter, "Not a filter of the Plan tab.");
         }
 
         Rebuild();
+    }
+
+    private void ViewChanged()
+    {
+        OnPropertyChanged(nameof(ViewLabel));
+        OnPropertyChanged(nameof(IsRecipe));
+        OnPropertyChanged(nameof(IsLoops));
+        OnPropertyChanged(nameof(IsMatrix));
+        OnPropertyChanged(nameof(ShowsMatrix));
+        OnPropertyChanged(nameof(ShowsRecipe));
+        OnPropertyChanged(nameof(ShowsLoops));
+    }
+
+    // New inputs for the loops: the listener computes them off the UI thread. Without data or a ship there are none.
+    private void AskForLoops()
+    {
+        if (!HasData || _ship is not { } ship)
+        {
+            return;
+        }
+
+        LoopInputs = new LoopInputs(_templates, _positions, _observed, ship, Ranks[_rank].Value, _settings.PlayerFaction, Hubs[_hub].Name);
+        LoopInputsChanged?.Invoke(this, LoopInputs);
     }
 
     private void Save(RoutesSettings settings)
@@ -378,14 +505,86 @@ public sealed partial class RoutesViewModel : ObservableObject
         };
         EmptyText = Rows.Count == 0 ? "No templates for this filter." : null;
         RegionsText = Systems[_system].Value == StarSystem.Pyro ? "Red Wind's regional templates are not shown yet: no scan has placed them." : null;
-        if (IsRecipe)
+        if (!IsMatrix)
         {
-            // The matrix's lines say nothing about the recipe.
+            // The matrix's lines say nothing about the recipe or the loops.
             (WithoutPlaceText, EmptyText, RegionsText) = (null, null, null);
         }
 
         BuildRecipe();
+        BuildLoops();
     }
+
+    /// <summary>The loops of the system filter's system, ranked by the sort under the settings' times (cheap: no planner).</summary>
+    private void BuildLoops()
+    {
+        if (!HasData)
+        {
+            return;
+        }
+
+        var system = Systems[_system].Value;
+        LoopsNote = (_ship, _loopsComputed, system) switch
+        {
+            (null, _, _) => "Loops: no ship",
+            (_, false, _) => "Loops: working them out …",
+            (_, _, null) => "No loops for this system.",
+            _ => null,
+        };
+        var times = _settings.Times.Loop;
+        LoopRows = system is null ? [] : [.. Loops.Rank(_loops.Where(l => l.System == system), Sorts[_sort].Value, times).Select(l => Row(l, times))];
+    }
+
+    // "Everus Harbor ring" / "957k/loop · ~578k/h · 160k/landing" / "6 landings · 70 crates · 6 jumps (4 long) · travel – · templates".
+    private static LoopRowView Row(LoopCandidate loop, LoopTimes times)
+    {
+        var title = loop.Kind switch
+        {
+            LoopKind.LocalRing => $"{loop.Start} ring",
+            LoopKind.Direct => Invariant($"{loop.Start} → {PlaceNames.Short(loop.Stations[0])} · {Plain(loop.Contracts[0].Template.Title)}{(loop.Alike > 1 ? $" ×{loop.Alike}" : "")}"),
+            _ => $"LEO ring from {loop.Start}",
+        };
+        var hubs = loop.Kind == LoopKind.SystemWide ? " hubs" : "";
+        var status = (loop.NeedsScansAt, loop.Observed) switch
+        {
+            ({ } at, 0) => $"needs scans at {at}",
+            ({ } at, var seen) => Invariant($"observed {seen}/{loop.Total}{hubs} · needs scans at {at}"),
+            (null, 0) => "templates",
+            (null, var seen) => Invariant($"observed {seen}/{loop.Total}{hubs}"),
+        };
+        var travel = loop.TravelGm switch
+        {
+            null => loop.System == StarSystem.Stanton ? "travel –" : $"travel: {loop.System}",
+            < 0.05 => "travel –",
+            { } gm => Invariant($"travel {gm:0.0} Gm"),
+        };
+
+        string? figures = null;
+        var details = status;
+        if (loop.HasNumbers)
+        {
+            figures = loop.Reward is { } reward
+                ? Invariant($"{Short(reward)}{Plus(loop)}/loop · ~{Short((long)loop.PerHour(times)!.Value)}{Plus(loop)}/h · {Short((long)loop.PerLanding!.Value)}{Plus(loop)}/landing")
+                : "– aUEC: no reward in the game data, a scan shows it";
+            details = Invariant($"{loop.Landings} landings · {loop.Crates} crates · {loop.Legs} jumps ({loop.LongJumps} long) · {travel} · {status}");
+        }
+
+        string[] trip = [loop.Start, .. loop.Stations, loop.Start];
+        var tip = new StringBuilder(string.Join(" → ", trip.Select(PlaceNames.Short)));
+        foreach (var c in loop.Contracts)
+        {
+            var reward = c.Template.Reward is { } r ? Invariant($"{r:N0} aUEC") : "–";
+            tip.Append(Invariant($"\n{KindWords[c.Kind]} · {c.Template.Title} · {reward} · {c.WorstScu} SCU{(c.AcceptAt is { } at ? $" · accept at {PlaceNames.Short(at)}" : "")}"));
+        }
+
+        var hub = loop.Kind != LoopKind.SystemWide && loop.System == StarSystem.Stanton ? loop.Start : null;
+        return new(loop, title, figures, details, tip.ToString(), !loop.HasNumbers, hub);
+    }
+
+    private static string Plus(LoopCandidate loop) => loop.RewardPartial ? "+" : "";
+
+    // "Experienced Rank - Direct Medium Cargo Haul" → "Experienced Direct Medium".
+    private static string Plain(string title) => title.Replace(" Rank - ", " ", StringComparison.Ordinal).Replace(" Cargo Haul", "", StringComparison.Ordinal);
 
     /// <summary>The recipe of the hub's board for the ship (<see cref="Recipe.For"/>, D123), only while it is shown.</summary>
     private void BuildRecipe()
@@ -395,7 +594,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             (false, _, _) => ([], null, null),
             (true, null, _) => ([], null, "Recipe: no ship"),
             (true, _, not StarSystem.Stanton) => ([], null, "Recipe: Stanton hubs only"),
-            (true, { } ship, _) => Shown(RecipeFor(ship), ship),
+            (true, { } ship, _) => Shown(RecipeFor(ship, _shownHub ?? _hub), ship),
         };
         (RecipeLines, RecipeSummary, RecipeNote) = (lines, summary, note);
     }
