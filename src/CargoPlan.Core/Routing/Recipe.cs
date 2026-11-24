@@ -53,13 +53,15 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
     /// "Fits" is the load planner's first fit on the worst case of all roles so far, never a sum: racks lay crates, not SCU. Ties go to
     /// the template's uuid, so a board always gives the same recipe.
     /// </summary>
-    public static Recipe For(Board board, Ship ship, ObservedEdges edges)
-    {
-        if (board.Hub is not { } hub)
-        {
-            return new(null, [], [], "Recipe: Stanton hubs only");
-        }
+    public static Recipe For(Board board, Ship ship, ObservedEdges edges) =>
+        board.Hub is { } hub ? At(board, hub, ship, edges) : new(null, [], [], "Recipe: Stanton hubs only");
 
+    /// <summary>
+    /// The recipe of <paramref name="board"/> from <paramref name="hub"/>, a place of its pools (T13.4): <see cref="For"/>
+    /// with the board's hub, or a Pyro station as the start of a loop, whose board has none.
+    /// </summary>
+    internal static Recipe At(Board board, string hub, Ship ship, ObservedEdges edges)
+    {
         var cap = CrateCap.Of(ship);
         RecipeRole[] candidates =
         [
@@ -69,10 +71,37 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
         ];
         candidates = [.. candidates.Where(r => r.Destinations.Count > 0 && r.Template.Size is not (HaulSize.Large or HaulSize.Bulk))];
 
+        var chosen = Pick(candidates, ship, cap, []);
+
+        // The way back: per ring station the best-paying local template to the hub that fits the empty ship alone.
+        var ring = chosen.SelectMany(r => r.Destinations).Distinct().Order(PlaceNames.Order);
+        RecipeRole[] returns =
+        [
+            .. ring.SelectMany(station => board.Local
+                .Where(t => t.Size is not (HaulSize.Large or HaulSize.Bulk)
+                    && BoardHubs.Pickups(t).Places.Contains(station) && BoardHubs.Dropoffs(t).Places.Contains(hub))
+                .Select(t => Role(t, [], cap, hub) with { Kind = RecipeKind.Return, Destinations = [hub], AcceptAt = station })
+                .Where(r => Fits(ship, cap, [r]))
+                .OrderByDescending(r => r.Template.Reward ?? 0)
+                .ThenBy(r => r.Template.Uuid, StringComparer.Ordinal)
+                .Take(1)),
+        ];
+
+        return new(hub, chosen, returns, chosen.Count == 0 ? "Recipe: nothing from this hub fits the ship" : null);
+    }
+
+    /// <summary>
+    /// The greedy of the recipe over <paramref name="candidates"/>, bulk → direct → smalls (the smalls would take the
+    /// direct's room otherwise, approval of T13.3, precision 8), each checked by the first fit together with
+    /// <paramref name="aboard"/>, what the ship still carries (a loop's later station, T13.4); at most
+    /// <see cref="MaxContracts"/> held at once. Returns the new roles only.
+    /// </summary>
+    internal static IReadOnlyList<RecipeRole> Pick(IReadOnlyList<RecipeRole> candidates, Ship ship, CrateCap cap, IReadOnlyList<RecipeRole> aboard)
+    {
         List<RecipeRole> chosen = [];
         bool TryAdd(RecipeRole role)
         {
-            if (chosen.Count >= MaxContracts || !Fits(ship, cap, [.. chosen, role]))
+            if (aboard.Count + chosen.Count >= MaxContracts || !Fits(ship, cap, [.. aboard, .. chosen, role]))
             {
                 return false;
             }
@@ -81,7 +110,6 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
             return true;
         }
 
-        // Bulk → direct → smalls: the smalls would take the direct's room otherwise (approval of T13.3, precision 8).
         var half = ship.TotalScu / 2;
         foreach (var bulk in Ranked(candidates, RecipeKind.Bulk, r => r.Template.Reward ?? 0))
         {
@@ -109,21 +137,7 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
             TryAdd(small);
         }
 
-        // The way back: per ring station the best-paying local template to the hub that fits the empty ship alone.
-        var ring = chosen.SelectMany(r => r.Destinations).Distinct().Order(PlaceNames.Order);
-        RecipeRole[] returns =
-        [
-            .. ring.SelectMany(station => board.Local
-                .Where(t => t.Size is not (HaulSize.Large or HaulSize.Bulk)
-                    && BoardHubs.Pickups(t).Places.Contains(station) && BoardHubs.Dropoffs(t).Places.Contains(hub))
-                .Select(t => Role(t, [], cap, hub) with { Kind = RecipeKind.Return, Destinations = [hub], AcceptAt = station })
-                .Where(r => Fits(ship, cap, [r]))
-                .OrderByDescending(r => r.Template.Reward ?? 0)
-                .ThenBy(r => r.Template.Uuid, StringComparer.Ordinal)
-                .Take(1)),
-        ];
-
-        return new(hub, chosen, returns, chosen.Count == 0 ? "Recipe: nothing from this hub fits the ship" : null);
+        return chosen;
     }
 
     private static IEnumerable<RecipeRole> Ranked(IEnumerable<RecipeRole> candidates, RecipeKind kind, Func<RecipeRole, double> value) =>
