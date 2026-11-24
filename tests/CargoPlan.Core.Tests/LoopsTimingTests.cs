@@ -38,8 +38,15 @@ public class LoopsTimingTests(ITestOutputHelper output)
             runs.Add(watch.Elapsed.TotalMilliseconds);
         }
 
+        // As in the app: the tab keeps the planner's answers, so the ranking after a scan asks almost nothing new.
+        var fits = new FitCache();
+        Loops.For(data.Templates, data.Positions, ObservedEdges.Empty, ship, rank, null, "Everus Harbor", fits);
+        var cached = Stopwatch.StartNew();
+        Loops.For(data.Templates, data.Positions, ObservedEdges.Empty, ship, rank, null, "Everus Harbor", fits);
+        var cachedMs = cached.Elapsed.TotalMilliseconds;
+
         output.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"{ship.Name}, {rank}: {loops.Count} loops ({loops.Count(l => l.System == StarSystem.Stanton)} Stanton, {loops.Count(l => l.System == StarSystem.Pyro)} Pyro); first {firstMs:F0} ms, median {runs.Order().ElementAt(2):F0} ms, max {runs.Max():F0} ms"));
+            $"{ship.Name}, {rank}: {loops.Count} loops ({loops.Count(l => l.System == StarSystem.Stanton)} Stanton, {loops.Count(l => l.System == StarSystem.Pyro)} Pyro); first {firstMs:F0} ms, median {runs.Order().ElementAt(2):F0} ms, max {runs.Max():F0} ms; again with the cache {cachedMs:F0} ms ({fits.Count} answers)"));
         loops.Should().NotBeEmpty("the LEO ring is always there");
     }
 }

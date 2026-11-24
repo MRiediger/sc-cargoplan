@@ -121,6 +121,9 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     private bool _loopsComputed;
 
+    // The planner's answers for the loops, kept for the tab's life: after a scan nearly every question is an old one.
+    private readonly FitCache _fits = new();
+
     /// <param name="save">Called with the new section when rank or faction change; null in tests that don't save.</param>
     /// <param name="observed">What the scans in routes.json add (T13.3); none without.</param>
     public RoutesViewModel(HaulingLoad load, ShipDataVersion version, RoutesSettings settings, Action<RoutesSettings>? save, ObservedEdges? observed = null)
@@ -470,7 +473,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             return;
         }
 
-        LoopInputs = new LoopInputs(_templates, _positions, _observed, ship, Ranks[_rank].Value, _settings.PlayerFaction, Hubs[_hub].Name);
+        LoopInputs = new LoopInputs(_templates, _positions, _observed, ship, Ranks[_rank].Value, _settings.PlayerFaction, Hubs[_hub].Name, _fits);
         LoopInputsChanged?.Invoke(this, LoopInputs);
     }
 

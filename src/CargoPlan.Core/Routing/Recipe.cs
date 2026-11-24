@@ -59,9 +59,10 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
     /// <summary>
     /// The recipe of <paramref name="board"/> from <paramref name="hub"/>, a place of its pools (T13.4): <see cref="For"/>
     /// with the board's hub, or a Pyro station as the start of a loop, whose board has none. <paramref name="allowed"/>
-    /// narrows the greedy (<see cref="Pick"/>).
+    /// narrows the greedy (<see cref="Pick"/>); <paramref name="fits"/> keeps the first fit's answers across calls.
     /// </summary>
-    internal static Recipe At(Board board, string hub, Ship ship, ObservedEdges edges, Func<IReadOnlyList<RecipeRole>, bool>? allowed = null)
+    internal static Recipe At(
+        Board board, string hub, Ship ship, ObservedEdges edges, Func<IReadOnlyList<RecipeRole>, bool>? allowed = null, FitCache? fits = null)
     {
         var cap = CrateCap.Of(ship);
         RecipeRole[] candidates =
@@ -72,11 +73,11 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
         ];
         candidates = [.. candidates.Where(r => r.Destinations.Count > 0 && r.Template.Size is not (HaulSize.Large or HaulSize.Bulk))];
 
-        var chosen = Pick(candidates, ship, cap, [], allowed);
+        var chosen = Pick(candidates, ship, cap, [], allowed, fits);
 
         // The way back: per ring station the best-paying local template to the hub that fits the empty ship alone.
         var ring = chosen.SelectMany(r => r.Destinations).Distinct().Order(PlaceNames.Order);
-        RecipeRole[] returns = [.. ring.Select(station => BestReturn(board, station, hub, ship, cap)).OfType<RecipeRole>()];
+        RecipeRole[] returns = [.. ring.Select(station => BestReturn(board, station, hub, ship, cap, fits)).OfType<RecipeRole>()];
 
         return new(hub, chosen, returns, chosen.Count == 0 ? "Recipe: nothing from this hub fits the ship" : null);
     }
@@ -85,14 +86,14 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
     /// The way back from <paramref name="station"/>: the best-paying local template of <paramref name="board"/> to
     /// <paramref name="hub"/> that fits the empty ship alone, never a Large or Bulk size; ties to the uuid. Null if none.
     /// </summary>
-    internal static RecipeRole? BestReturn(Board board, string station, string hub, Ship ship, CrateCap cap) =>
+    internal static RecipeRole? BestReturn(Board board, string station, string hub, Ship ship, CrateCap cap, FitCache? fits = null) =>
         board.Local
             .Where(t => t.Size is not (HaulSize.Large or HaulSize.Bulk)
                 && BoardHubs.Pickups(t).Places.Contains(station) && BoardHubs.Dropoffs(t).Places.Contains(hub))
             .Select(t => Role(t, [], cap, hub) with { Kind = RecipeKind.Return, Destinations = [hub], AcceptAt = station })
             .OrderByDescending(r => r.Template.Reward ?? 0)
             .ThenBy(r => r.Template.Uuid, StringComparer.Ordinal)
-            .FirstOrDefault(r => Fits(ship, cap, [r])); // the first that fits of the best-paying: the same one, fewer first fits
+            .FirstOrDefault(r => Fits(ship, cap, [r], fits)); // the first that fits of the best-paying: the same one, fewer first fits
 
     /// <summary>
     /// The greedy of the recipe over <paramref name="candidates"/>, bulk → direct → smalls (the smalls would take the
@@ -102,14 +103,19 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
     /// (a Pyro ring: at most five stations, T13.4). Returns the new roles only.
     /// </summary>
     internal static IReadOnlyList<RecipeRole> Pick(
-        IReadOnlyList<RecipeRole> candidates, Ship ship, CrateCap cap, IReadOnlyList<RecipeRole> aboard, Func<IReadOnlyList<RecipeRole>, bool>? allowed = null)
+        IReadOnlyList<RecipeRole> candidates,
+        Ship ship,
+        CrateCap cap,
+        IReadOnlyList<RecipeRole> aboard,
+        Func<IReadOnlyList<RecipeRole>, bool>? allowed = null,
+        FitCache? fits = null)
     {
         List<RecipeRole> chosen = [];
         bool TryAdd(RecipeRole role)
         {
             if (aboard.Count + chosen.Count >= MaxContracts
                 || (allowed is not null && !allowed([.. chosen, role]))
-                || !Fits(ship, cap, [.. aboard, .. chosen, role]))
+                || !Fits(ship, cap, [.. aboard, .. chosen, role], fits))
             {
                 return false;
             }
@@ -169,20 +175,22 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
     /// <summary>
     /// Whether the worst case of <paramref name="roles"/> lies in the ship: each role's legs in turn to its destinations,
     /// one stop per place for all roles, laid by the planner's first fit (<see cref="LoadPlanner.Lays"/>): where it says
-    /// yes the planner lays it too; its search would take about a second per question.
+    /// yes the planner lays it too; its search would take about a second per question. With <paramref name="fits"/> each
+    /// question is asked once (T13.4).
     /// </summary>
-    internal static bool Fits(Ship ship, CrateCap cap, IReadOnlyList<RecipeRole> roles)
+    internal static bool Fits(Ship ship, CrateCap cap, IReadOnlyList<RecipeRole> roles, FitCache? fits = null)
     {
         var items = roles.SelectMany(r => r.Template.Legs.Select((leg, i) => (
             Destination: r.Destinations[i % r.Destinations.Count],
             Item: new MissionItem(leg.Commodity, leg.MaxScu, leg.Container))));
-        Stop[] stops =
+        MissionStop[] stops =
         [
             .. items.GroupBy(x => x.Destination, StringComparer.Ordinal)
                 .OrderBy(g => g.Key, PlaceNames.Order)
-                .Select((g, order) => new MissionStop(g.Key, order + 1, [.. g.Select(x => x.Item)]).ToStop(cap)),
+                .Select((g, order) => new MissionStop(g.Key, order + 1, [.. g.Select(x => x.Item)])),
         ];
 
-        return LoadPlanner.Lays(ship, stops);
+        bool Lay() => LoadPlanner.Lays(ship, [.. stops.Select(s => s.ToStop(cap))]);
+        return fits is null ? Lay() : fits.Lays(ship, stops, Lay);
     }
 }

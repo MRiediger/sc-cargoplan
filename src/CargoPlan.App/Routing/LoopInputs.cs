@@ -9,9 +9,10 @@ namespace CargoPlan.App.Routing;
 /// inputs are no longer its own (<see cref="RoutesViewModel.ShowLoops"/>).
 /// </summary>
 /// <param name="Hub">routes.hub: where the player is; the travel is measured from it, the system-wide ring starts there.</param>
+/// <param name="Fits">The tab's first-fit answers, kept from one ranking to the next.</param>
 public sealed record LoopInputs(
-    IReadOnlyList<HaulTemplate> Templates, Positions Positions, ObservedEdges Edges, Ship Ship, HaulRank Rank, HaulFaction? Faction, string Hub)
+    IReadOnlyList<HaulTemplate> Templates, Positions Positions, ObservedEdges Edges, Ship Ship, HaulRank Rank, HaulFaction? Faction, string Hub, FitCache Fits)
 {
-    /// <summary>Every loop candidate (<see cref="Loops.For"/>): pure, a few hundred milliseconds of load planner.</summary>
-    public IReadOnlyList<LoopCandidate> Run() => Loops.For(Templates, Positions, Edges, Ship, Rank, Faction, Hub);
+    /// <summary>Every loop candidate (<see cref="Loops.For"/>): pure, a few hundred milliseconds of load planner the first time.</summary>
+    public IReadOnlyList<LoopCandidate> Run() => Loops.For(Templates, Positions, Edges, Ship, Rank, Faction, Hub, Fits);
 }

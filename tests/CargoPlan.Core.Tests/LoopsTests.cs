@@ -206,6 +206,23 @@ public class LoopsTests
     }
 
     [Fact]
+    public void The_fit_cache_changes_nothing_and_a_second_ranking_asks_the_planner_nothing_new()
+    {
+        HaulTemplate[] templates = [SeniorMedium(), Direct([L1, L3]), Back(L3), Back(L5)];
+        var fits = new FitCache();
+
+        var without = Loops.For(templates, Places, ObservedEdges.Empty, HullB, HaulRank.Senior, null, Everus);
+        var first = Loops.For(templates, Places, ObservedEdges.Empty, HullB, HaulRank.Senior, null, Everus, fits);
+        var asked = fits.Count;
+        var second = Loops.For(templates, Places, ObservedEdges.Empty, HullB, HaulRank.Senior, null, Everus, fits);
+
+        first.Should().BeEquivalentTo(without, o => o.WithStrictOrdering());
+        second.Should().BeEquivalentTo(without, o => o.WithStrictOrdering());
+        asked.Should().BePositive();
+        fits.Count.Should().Be(asked);
+    }
+
+    [Fact]
     public void The_ranking_tips_with_the_time_per_station()
     {
         // A ring of six landings and few crates against a direct run of two landings and many: at 10 min per station the

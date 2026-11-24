@@ -33,12 +33,20 @@ public static class Loops
     /// Every loop for <paramref name="ship"/> at <paramref name="rank"/>: per Stanton hub its ring and its direct runs, the
     /// system-wide ring from <paramref name="hub"/>, a ring per Pyro station for <paramref name="faction"/> (null = both
     /// sides, a variant's two sides once). <paramref name="hub"/> is where the player is (routes.hub): the travel to each
-    /// loop's start is measured from it, and the system-wide ring starts there.
+    /// loop's start is measured from it, and the system-wide ring starts there. <paramref name="fits"/> keeps the planner's
+    /// answers for the next ranking (after a scan nearly all are the same); the list is the same with or without it.
     /// </summary>
     public static IReadOnlyList<LoopCandidate> For(
-        IReadOnlyList<HaulTemplate> templates, Positions positions, ObservedEdges edges, Ship ship, HaulRank rank, HaulFaction? faction, string hub)
+        IReadOnlyList<HaulTemplate> templates,
+        Positions positions,
+        ObservedEdges edges,
+        Ship ship,
+        HaulRank rank,
+        HaulFaction? faction,
+        string hub,
+        FitCache? fits = null)
     {
-        var context = new Context(positions, edges, ship, CrateCap.Of(ship), positions.Find(StarSystem.Stanton, hub));
+        var context = new Context(positions, edges, ship, CrateCap.Of(ship), positions.Find(StarSystem.Stanton, hub), fits);
         List<LoopCandidate> loops = [];
         foreach (var (areaKey, start) in BoardHubs.ByArea.OrderBy(h => h.Key, StringComparer.Ordinal))
         {
@@ -114,8 +122,8 @@ public static class Loops
     {
         // In Pyro a ring keeps to as many stations as a Stanton one: a contract that would take it further stays.
         var recipe = board.System == StarSystem.Pyro
-            ? Recipe.At(board, start, context.Ship, context.Edges, roles => roles.SelectMany(r => Possible(r, start, board.System, context.Positions)).Distinct().Count() <= MaxRingStations)
-            : Recipe.At(board, start, context.Ship, context.Edges);
+            ? Recipe.At(board, start, context.Ship, context.Edges, roles => roles.SelectMany(r => Possible(r, start, board.System, context.Positions)).Distinct().Count() <= MaxRingStations, context.Fits)
+            : Recipe.At(board, start, context.Ship, context.Edges, fits: context.Fits);
         if (recipe.Outbound.Count == 0)
         {
             return null;
@@ -124,7 +132,7 @@ public static class Loops
         var places = recipe.Outbound.Select(r => (Role: r, Places: Possible(r, start, board.System, context.Positions))).ToArray();
         HashSet<string> oneStop = [.. places.Where(p => p.Role.Template.Shape != HaulShape.SingleToMulti && p.Places.Count == 1).Select(p => p.Places[0])];
         var stations = Order(board.System, start, [.. places.SelectMany(p => p.Places)], context.Positions, oneStop);
-        RecipeRole[] returns = [.. stations.Select(s => Recipe.BestReturn(board, s, start, context.Ship, context.Cap)).OfType<RecipeRole>()];
+        RecipeRole[] returns = [.. stations.Select(s => Recipe.BestReturn(board, s, start, context.Ship, context.Cap, context.Fits)).OfType<RecipeRole>()];
         return Candidate(LoopKind.LocalRing, board.System, start, stations, [.. recipe.Outbound, .. returns], context);
     }
 
@@ -148,12 +156,12 @@ public static class Loops
             }
 
             var role = Recipe.Role(template, [to], context.Cap, hub);
-            if (!Recipe.Fits(context.Ship, context.Cap, [role]))
+            if (!Recipe.Fits(context.Ship, context.Cap, [role], context.Fits))
             {
                 continue;
             }
 
-            var back = Recipe.BestReturn(board, to, hub, context.Ship, context.Cap);
+            var back = Recipe.BestReturn(board, to, hub, context.Ship, context.Cap, context.Fits);
             RecipeRole[] contracts = back is null ? [role] : [role, back];
             runs.Add(Candidate(LoopKind.Direct, board.System, hub, [to], contracts, context));
         }
@@ -189,7 +197,7 @@ public static class Loops
                 .. wide.Select(t => Recipe.Role(t, [.. edges.Of(t).Where(e => e.From == trip[i] && ahead.Contains(e.To)).Select(e => e.To)], context.Cap, trip[i]))
                     .Where(r => r.Destinations.Count > 0),
             ];
-            var picked = Recipe.Pick(candidates, context.Ship, context.Cap, aboard);
+            var picked = Recipe.Pick(candidates, context.Ship, context.Cap, aboard, fits: context.Fits);
             aboard.AddRange(picked);
             taken.AddRange(picked);
         }
@@ -348,5 +356,5 @@ public static class Loops
         }
     }
 
-    private sealed record Context(Positions Positions, ObservedEdges Edges, Ship Ship, CrateCap Cap, StarPosition? Origin);
+    private sealed record Context(Positions Positions, ObservedEdges Edges, Ship Ship, CrateCap Cap, StarPosition? Origin, FitCache? Fits);
 }
