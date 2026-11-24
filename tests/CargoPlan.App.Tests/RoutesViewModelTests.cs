@@ -393,7 +393,8 @@ public sealed class RoutesViewModelTests
     };
 
     private static readonly HaulTemplate PyroSmall = T(["Ruin Station"], ["Checkmate"], reward: null, max: 20, contractor: HaulContractor.RedWind,
-        system: StarSystem.Pyro, areaKey: "Solar", faction: HaulFaction.Hh) with { Uuid = "pyro", Size = HaulSize.Small };
+        system: StarSystem.Pyro, areaKey: "Solar", faction: HaulFaction.Hh) with
+    { Uuid = "pyro", Size = HaulSize.Small };
 
     private static StarPosition At(string name, double gm) => new(name, name, StarSystem.Stanton, "Manmade", null, gm * 1e9, 0, 0, []);
 

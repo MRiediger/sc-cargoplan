@@ -386,7 +386,10 @@ public partial class App : Application
         var routes = new RoutesViewModel(hauling, data.Version, settings.Routes, changed =>
             sessionForRoutes?.ChangeRoutes(sessionForRoutes.Current.Routes with
             {
-                Rank = changed.Rank, Faction = changed.Faction, Hub = changed.Hub, LoopsSort = changed.LoopsSort,
+                Rank = changed.Rank,
+                Faction = changed.Faction,
+                Hub = changed.Hub,
+                LoopsSort = changed.LoopsSort,
             }), observed);
         // The loops (T13.4) off the UI thread: the load planner takes a few hundred ms; a result for old inputs is dropped.
         routes.LoopInputsChanged += (_, inputs) => _ = ComputeLoopsAsync(routes, inputs);
