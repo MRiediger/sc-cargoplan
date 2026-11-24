@@ -1042,7 +1042,40 @@ public sealed class SettingsStoreTests : IDisposable
         problem.Should().BeNull();
         loaded.Routes.Should().Be(new RoutesSettings("cargo", "master", null, "Everus Harbor"));
         loaded.Routes.IsPlanTab.Should().BeFalse();
+        loaded.Routes.Times.Should().Be(new RoutesTimes(10, 20, 4), "design §4.7's defaults (T13.4)");
+        loaded.Routes.Times.Loop.Should().Be(LoopTimes.Default);
+        (loaded.Routes.LoopsSort, loaded.Routes.Sort).Should().Be(("hour", LoopSort.PerHour));
         loaded.SchemaVersion.Should().Be(3);
+    }
+
+    // T13.4: the loops' times and sort; additive like hub, no schema bump.
+    [Fact]
+    public void Routes_keep_the_loops_times_and_sort()
+    {
+        WriteFile("""{ "schemaVersion": 3, "routes": { "times": { "station": 5, "crate": 30, "jump": 2 }, "loopsSort": "landing" } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        loaded.Routes.Times.Should().Be(new RoutesTimes(5, 30, 2));
+        loaded.Routes.Times.Loop.Should().Be(new LoopTimes(5, 30, 2));
+        loaded.Routes.Sort.Should().Be(LoopSort.PerLanding);
+    }
+
+    [Theory]
+    [InlineData("times", """{ "station": 0 }""", "routes.times.station 0 is not 1–60 minutes, using 10.")]
+    [InlineData("times", """{ "crate": 121 }""", "routes.times.crate 121 is not 5–120 seconds, using 20.")]
+    [InlineData("times", """{ "jump": 31 }""", "routes.times.jump 31 is not 1–30 minutes, using 4.")]
+    [InlineData("times", "null", null)]
+    [InlineData("loopsSort", "\"aUEC\"", "routes.loopsSort \"aUEC\" is not hour, loop or landing, using hour.")]
+    public void A_loop_setting_out_of_range_falls_back_with_a_line(string key, string json, string? line)
+    {
+        WriteFile($$"""{ "schemaVersion": 3, "routes": { "{{key}}": {{json}} } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Routes.Should().Be(RoutesSettings.Default);
+        problem.Should().Be(line is null ? null : $"settings.json: {line}");
     }
 
     [Fact]
@@ -1082,13 +1115,14 @@ public sealed class SettingsStoreTests : IDisposable
         var file = JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
         var keys = file.Select(p => p.Key).ToList();
         keys.IndexOf("routes").Should().Be(keys.IndexOf("shipData") + 1);
-        file["routes"]!.AsObject().Select(p => p.Key).Should().Equal("tab", "rank", "faction", "hub");
+        file["routes"]!.AsObject().Select(p => p.Key).Should().Equal("tab", "rank", "faction", "hub", "loopsSort", "times");
+        file["routes"]!["times"]!.AsObject().Select(p => p.Key).Should().Equal("station", "crate", "jump");
     }
 
     [Fact]
     public void Save_then_Load_keeps_the_routes()
     {
-        var settings = AppSettings.Default with { Routes = new RoutesSettings("plan", "junior", "hh", "Port Tressler") };
+        var settings = AppSettings.Default with { Routes = new RoutesSettings("plan", "junior", "hh", "Port Tressler", new RoutesTimes(7, 15, 3), "loop") };
 
         SettingsStore.Save(SettingsPath, settings);
         var (loaded, problem) = SettingsStore.Load(SettingsPath);

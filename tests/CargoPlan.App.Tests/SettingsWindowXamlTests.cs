@@ -149,6 +149,12 @@ public partial class SettingsWindowXamlTests
         bindings.Should().Contain("ComboBox.SelectedValue={Binding Rank}");
         bindings.Should().Contain("ComboBox.ItemsSource={x:Static vm:RoutesSettingsViewModel.FactionChoices}");
         bindings.Should().Contain("ComboBox.SelectedValue={Binding Faction}");
+
+        // T13.4: the loops' times, limits from the settings' ranges.
+        bindings.Should().Contain("Slider.Value={Binding Station}");
+        bindings.Should().Contain("Slider.Value={Binding Crate}");
+        bindings.Should().Contain("Slider.Value={Binding Jump}");
+        bindings.Should().Contain("Slider.Maximum={x:Static vm:RoutesSettingsViewModel.MaxStation}");
     }
 
     [GeneratedRegex(@"\{x:Static (?<prefix>\w+):(?<type>\w+)\.(?<member>\w+)\}")]

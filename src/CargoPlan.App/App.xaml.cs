@@ -722,7 +722,7 @@ public partial class App : Application
     /// <summary>The settings window's Plan tab section (T13.3): rank and faction into the session's routes section.</summary>
     private static RoutesSettingsViewModel CreateRoutesSettingsViewModel(SettingsSession session) => new(
         session.Current.Routes,
-        (rank, faction) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction }),
+        (rank, faction, times) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times }),
         handler => session.RoutesChanged += handler,
         handler => session.RoutesChanged -= handler);
 

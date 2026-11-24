@@ -512,6 +512,26 @@
                             <ComboBox ItemsSource="{x:Static vm:RoutesSettingsViewModel.FactionChoices}" DisplayMemberPath="Text"
                                       SelectedValuePath="Value" SelectedValue="{Binding Faction}" />
                         </DockPanel>
+                        <!-- The loops' times (T13.4, design §4.7): ~aUEC/h = aUEC per loop ÷ (landings × per landing + crates × per crate
+                             + long jumps × per long jump). The Plan tab shows them in its filter line. -->
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="Loops: docking, the elevator and the short jumps near a station, per landing">
+                            <TextBlock Text="Per landing" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding StationText}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="{x:Static vm:RoutesSettingsViewModel.MinStation}" Maximum="{x:Static vm:RoutesSettingsViewModel.MaxStation}"
+                                    Value="{Binding Station}" Style="{StaticResource ValueSliderStyle}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="Loops: loading and unloading one crate">
+                            <TextBlock Text="Per crate" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding CrateText}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="{x:Static vm:RoutesSettingsViewModel.MinCrate}" Maximum="{x:Static vm:RoutesSettingsViewModel.MaxCrate}"
+                                    Value="{Binding Crate}" Style="{StaticResource ValueSliderStyle}" />
+                        </DockPanel>
+                        <DockPanel Style="{StaticResource RowStyle}" ToolTip="Loops: one quantum jump over 10 Gm">
+                            <TextBlock Text="Per long jump" Style="{StaticResource LabelStyle}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding JumpText}" Style="{StaticResource ValueTextStyle}" />
+                            <Slider Minimum="{x:Static vm:RoutesSettingsViewModel.MinJump}" Maximum="{x:Static vm:RoutesSettingsViewModel.MaxJump}"
+                                    Value="{Binding Jump}" Style="{StaticResource ValueSliderStyle}" />
+                        </DockPanel>
                     </StackPanel>
                 </GroupBox>
             </StackPanel>

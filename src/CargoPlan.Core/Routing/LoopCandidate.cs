@@ -27,7 +27,13 @@ public enum LoopSort
 /// </summary>
 public sealed record LoopTimes(int StationMinutes, int CrateSeconds, int JumpMinutes)
 {
-    public static LoopTimes Default { get; } = new(10, 20, 4);
+    public const int DefaultStationMinutes = 10;
+
+    public const int DefaultCrateSeconds = 20;
+
+    public const int DefaultJumpMinutes = 4;
+
+    public static LoopTimes Default { get; } = new(DefaultStationMinutes, DefaultCrateSeconds, DefaultJumpMinutes);
 }
 
 /// <summary>

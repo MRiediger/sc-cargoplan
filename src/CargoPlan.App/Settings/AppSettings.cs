@@ -121,12 +121,26 @@ public sealed record AppSettings(
 /// <param name="Faction">The player's side in Pyro, "hh" or "cfp"; null = both.</param>
 /// <param name="Hub">
 /// The Stanton hub the recipe starts from (T13.3b): Everus Harbor, Seraphim Station, Baijini Point or Port Tressler, set
-/// with the Plan tab's hub button; T13.4 and T13.6 start there too.
+/// with the Plan tab's hub button; T13.4 and T13.6 start there too. The loops measure the travel from it and start the
+/// system-wide ring there (T13.4); a loop's row shows its own hub's recipe without changing this (D124).
 /// </param>
+/// <param name="Times">The loops' times (T13.4, design §4.7): missing or null = the defaults.</param>
+/// <param name="LoopsSort">What the loop list is sorted by: "hour" (~aUEC/h), "loop" or "landing" (T13.4).</param>
 public sealed record RoutesSettings(
-    string Tab = RoutesSettings.CargoTab, string Rank = RoutesSettings.AnyRank, string? Faction = null, string Hub = RoutesSettings.DefaultHub)
+    string Tab = RoutesSettings.CargoTab,
+    string Rank = RoutesSettings.AnyRank,
+    string? Faction = null,
+    string Hub = RoutesSettings.DefaultHub,
+    RoutesTimes? Times = null,
+    string LoopsSort = RoutesSettings.SortByHour)
 {
     public const string DefaultHub = "Everus Harbor";
+
+    public const string SortByHour = "hour";
+
+    public const string SortByLoop = "loop";
+
+    public const string SortByLanding = "landing";
 
     public const string CargoTab = "cargo";
 
@@ -136,14 +150,62 @@ public sealed record RoutesSettings(
 
     public static RoutesSettings Default { get; } = new();
 
+    public RoutesTimes Times { get; init; } = Times ?? RoutesTimes.Default;
+
     [JsonIgnore]
     public bool IsPlanTab => Tab == PlanTab;
+
+    /// <summary>The sort as Core knows it; a word out of the format is the default (the load corrected it with a line).</summary>
+    [JsonIgnore]
+    public LoopSort Sort => LoopsSort switch
+    {
+        SortByLoop => LoopSort.PerLoop,
+        SortByLanding => LoopSort.PerLanding,
+        _ => LoopSort.PerHour,
+    };
+
+    /// <summary>The settings word of <paramref name="sort"/>.</summary>
+    public static string Word(LoopSort sort) => sort switch
+    {
+        LoopSort.PerLoop => SortByLoop,
+        LoopSort.PerLanding => SortByLanding,
+        _ => SortByHour,
+    };
 
     [JsonIgnore]
     public HaulRank MaxRank => EnumWords.TryParse<HaulRank>(Rank, out var rank) ? rank : HaulRank.Master;
 
     [JsonIgnore]
     public HaulFaction? PlayerFaction => Faction is not null && EnumWords.TryParse<HaulFaction>(Faction, out var faction) ? faction : null;
+}
+
+/// <summary>
+/// The player's times for a loop's ~aUEC/h (T13.4, design §4.7), whole numbers in the units the settings window shows.
+/// Optional; out of range = that time's default with a line (<see cref="SettingsStore.Load"/>).
+/// </summary>
+/// <param name="Station">Minutes per landing: docking, the elevator, the short jumps near it.</param>
+/// <param name="Crate">Seconds per crate, loaded and unloaded.</param>
+/// <param name="Jump">Minutes per long jump (over 10 Gm).</param>
+public sealed record RoutesTimes(
+    int Station = LoopTimes.DefaultStationMinutes, int Crate = LoopTimes.DefaultCrateSeconds, int Jump = LoopTimes.DefaultJumpMinutes)
+{
+    public const int MinStation = 1;
+
+    public const int MaxStation = 60;
+
+    public const int MinCrate = 5;
+
+    public const int MaxCrate = 120;
+
+    public const int MinJump = 1;
+
+    public const int MaxJump = 30;
+
+    public static RoutesTimes Default { get; } = new();
+
+    /// <summary>The times as Core ranks with them.</summary>
+    [JsonIgnore]
+    public LoopTimes Loop => new(Station, Crate, Jump);
 }
 
 /// <summary>The update check (D109). Optional, no schema bump (D31); the settings window's section comes with T11.2.</summary>
