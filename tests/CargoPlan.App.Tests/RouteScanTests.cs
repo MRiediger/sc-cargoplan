@@ -1,4 +1,6 @@
 using System.IO;
+using System.Security.Cryptography;
+using CargoPlan.App.Plans;
 using CargoPlan.App.Routing;
 using CargoPlan.App.Scanning;
 using CargoPlan.App.Settings;
@@ -215,6 +217,31 @@ public sealed class RouteScanTests : IDisposable
         routes.StartPlanCommand.Execute(null);
 
         overlay.ActiveRoute!.Route!.Name.Should().Be(routes.LoopRows.First(r => r.Loop.HasNumbers).Title);
+    }
+
+    [Fact]
+    public void Starting_and_ending_the_route_leave_plan_json_byte_for_byte()
+    {
+        // D118: the route lives in routes.json; plan.json stays schema 11 and isn't even written.
+        var planPath = Path.Combine(_folder, "plan.json");
+        Sta.Run(() =>
+        {
+            var overlay = Overlay(null);
+            var saver = new PlanSaver(new System.Windows.Window(), overlay, planPath, false, null);
+            overlay.ShowPlan(TestPlans.SplitAndShared());
+            saver.Flush();
+            var before = SHA256.HashData(File.ReadAllBytes(planPath));
+            var written = File.GetLastWriteTimeUtc(planPath);
+
+            overlay.ActiveRoute!.Start(Planned).Should().BeTrue();
+            saver.Flush();
+            overlay.ActiveRoute.EndCommand.Execute(null);
+            saver.Flush();
+
+            SHA256.HashData(File.ReadAllBytes(planPath)).Should().Equal(before);
+            File.GetLastWriteTimeUtc(planPath).Should().Be(written, "the saver didn't write at all");
+            _saved.Should().Equal(Planned, null);
+        });
     }
 
     private OverlayViewModel Overlay(Route? route, IReadOnlyList<HaulTemplate>? templates = null)
