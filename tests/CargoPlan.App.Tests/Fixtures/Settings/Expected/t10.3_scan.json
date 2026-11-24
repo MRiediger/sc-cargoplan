@@ -114,6 +114,12 @@
     "tab": "cargo",
     "rank": "master",
     "faction": null,
-    "hub": "Everus Harbor"
+    "hub": "Everus Harbor",
+    "loopsSort": "hour",
+    "times": {
+      "station": 10,
+      "crate": 20,
+      "jump": 4
+    }
   }
 }

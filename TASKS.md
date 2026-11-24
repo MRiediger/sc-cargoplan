@@ -461,7 +461,7 @@ ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
   (`Lays` statt Suche, Hub aus dem Board, 10 Verträge, Matrix-Filter in der Recipe-Ansicht verborgen, gescannte Ziele
   für systemweite Templates). Merge `--no-ff` nach main, Martin pusht.
 
-### [ ] T13.4 Core/App: Loop-Ranking
+### [x] T13.4 Core/App: Loop-Ranking (abgenommen 24.11.)
 
 **Warum:** Die Kernfrage der Phase: welche Loop ist für mein Schiff die effektivste, auch an einem anderen Hub (Design §4.7).
 - Kandidaten: lokaler Ring je Hub, Direct-Einzellauf, systemweite Loops
@@ -475,6 +475,154 @@ ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
   (`BaselineHaulingDataTests`)
 - Ohne Reward (Red Wind ungescannt) zeigt der Kandidat Struktur, nie aUEC
 - Ranking kippt mit den Zeitparametern (Test mit zwei Parametersätzen)
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (24.11.2026, „Freigabe T13.4 mit K1“; Startprompt und
+Martins Antworten auf vier Rückfragen):**
+1. **Sprünge:** Spalte „jumps (long)“ = Legs der Folge, davon lange (> 10 Gm), z. B. „6 (4)“; t_Sprung zählt nur die
+   langen, kurze QT-Legs stecken in t_Station. §4.7 meint mit „Sprünge“ die langen (Everus 4 von 6 Legs).
+2. **Direct-Einzellauf = hin + zurück, immer 2 Landungen / 2 Legs** (die Hub-Landung zählt wie beim Ring; §4.7 war hier
+   inkonsistent), Rückläufer dazu, wenn `LoadPlanner` ihn legt; Ziel = fernster Ort des Pools (Worst Case) bzw. der
+   fernste beobachtete; Commodity-Zwillinge eine Zeile „×n“. Golden-Direct lange Sprünge **2** (Everus ↔ HUR-L3
+   25,69 Gm), nicht 1 – §4.7 zählte nur den Hinweg (bestätigt mit der Freigabe).
+3. **Pyro = Ring je Station** (Red Wind `Solar`), nur Struktur, aUEC nur beobachtet („–“, „+“ für Teilsummen); Fraktion aus
+   Settings, bei „Both sides“ je Faktions-Zwilling einer. **Der System-Filter gilt auch für Loops** (Stanton → keine
+   Pyro-Zeilen, Interstellar → „No loops for this system.“).
+4. **Zeilenklick = nur Ansicht:** Stanton-Zeile (Ring, Direct) → Recipe dieses Hubs für die Sitzung („Hub: Baijini
+   Point (from Loops)“), `routes.hub` nur per Hub-Button. **K1 (Freigabe):** `FitOf` („fits / too big“) rechnet weiter
+   gegen `routes.hub` – der Scan passiert am gespeicherten Hub.
+5. Ringstationen = Vereinigung der Drop-off-Pools der Hinweg-Rollen (Worst Case wie das SCU-Band oben), Pool > 5 → die
+   Orte des Rezepts; die Passprüfung des Rezepts (erste Stopps, D123) bleibt.
+6. `Loops.For` liefert die Struktur, `Loops.Rank` sortiert mit Zeiten und Sortierung ohne neuen `LoadPlanner`-Lauf.
+7. Anreise = Spalte „travel“ (Gm, „–“ am gleichen Hub, „travel: Pyro“), nicht in aUEC/h (D124: Sessionlänge unbekannt).
+8. LEO-Ring ab `routes.hub` über die vier Hubs, systemweite Verträge nur über beobachtete Kanten zu einem Hub voraus,
+   Greedy je Station mit dem, was noch an Bord ist; Status „observed k/4 hubs · needs scans at <Hub>“.
+9. Sortierung als Umschalt-Button „Sort: …“ in der Filterzeile (Bild-Gate entscheidet), `routes.loopsSort`.
+10. Status: „templates“ | „observed n/m“ | „needs scans at …“ (blass, unten); Kisten mit Beobachtung = größter
+    beobachteter Wert je Ware (`ObservedEdges.ScuOf`), Reward Covalex unverändert.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (bei der Umsetzung, zur Abnahme):**
+- **Gleichstand ≤ 0,1 Gm** (Genauigkeit §9.3) statt Rechengenauigkeit: Seraphim L1 → L4 → L5 und L1 → L5 → L4 trennen
+  < 0,01 Gm; mit der Regel ergibt sich §3s Folge. Eine Rundreise ist immer gleich lang wie ihre Umkehrung.
+- **Pyro-Ringe:** je Rolle die nächsten Orte ihres Pools (so viele wie Stopps, bei Multi → Single die weiteren Pickups
+  mit), höchstens 5 Stationen (`Recipe.Pick` mit Prädikat). Anlass: Red Wind `Solar` ist überwiegend Multi → Single mit
+  11 Pickups und je einem anderen festen Ziel; die Vereinigung ergab Ringe mit 12–15 Landungen.
+- **`FitCache`:** Antworten von `LoadPlanner.Lays` je (Schiff, Stopps) über Läufe, weil die App-Messung über 200 ms lag
+  (Startprompt §3: erst cachen).
+
+**Stand 24.11. (Branch `feat/p13-loops`, ff43ee2..):**
+- Commits: `ObservedEdges.ScuOf`; `Recipe.At`/`Pick` ohne Verhaltensänderung; `Loops` + `LoopCandidate`; Settings
+  `routes.times`/`routes.loopsSort` mit drei Slidern (+ Golden-Dateien der Migration nachgezogen); Plan-Reiter
+  Matrix | Recipe | Loops mit Hintergrundlauf; `LoopsTimingTests`; `FitCache`; Doku (D124, D123-Addendum,
+  `settings-format.md`, CLAUDE.md).
+- **Golden gegen §3/§4.7 (Pin `ships-2026.11.2`, Hull B, Senior, Default-Zeiten, ohne Scans), nach dem Rückläufer-Fix
+  unten:** Struktur exakt – Everus 6 Landungen / 4 lang, Baijini 6/4, Seraphim 4/3, Port Tressler 6/4, Direct Exp
+  Direct Medium Everus → HUR-L3 2/2 (2 lang, 211 750 aUEC mit Rückläufer). aUEC/Umlauf: Everus 877 000 (**−13 %** gegen
+  1,01 M), Baijini 959 500 (**−11 %** gegen 1,08 M), Seraphim 675 000 (**−23 %** gegen 875 k, außerhalb ±15 %), Port
+  Tressler 1 028 000 (**+3 %** gegen ~1,0 M aus §4.7). Seraphim: Senior Medium 296 250, Rookie Direct Small 34 750, drei
+  Smalls, Rückläufer 67 500 (Multi3, an CRU-L1, sammelt CRU-L4, CRU-L5), 42 000 (an CRU-L4), 34 750 (an CRU-L5); §3 nennt
+  Senior 328k, Smalls und ein Rookie Direct Medium aus einem Scan und ~240k Rückfracht – hier Templates im Worst Case
+  und der Greedy des Rezepts statt der gescannten Auswahl. Vor dem Fix: Everus 957 000 (−5 %), Baijini 1 109 000
+  (+3 %), Seraphim 733 250 (−16 %), Port Tressler 1 173 000 – geschönt durch ein Template je Station mehrfach.
+- **Folgen gegen §3 (Distanzsummen aus `positions.json` des Pins, Legs in Gm):**
+
+  | Ring | Folge | Summe | Legs | lang |
+  |---|---|---|---|---|
+  | Everus, berechnet | L1 → L4 → L3 → L5 → L2 | **72,8752 Gm** | 1,29 · 12,25 · 22,25 · 22,25 · 13,54 · 1,29 | 4 |
+  | Everus, §3 | L1 → L2 → L4 → L3 → L5 | **74,7592 Gm** | 1,29 · 2,58 · 13,54 · 22,25 · 22,25 · 12,85 | 4 |
+  | Seraphim, berechnet = §3 | L1 → L4 → L5 | **72,4841 Gm** | 1,91 · 18,26 · 33,16 · 19,15 | 3 |
+  | Seraphim, Umkehrung der Mitte | L1 → L5 → L4 | **72,4813 Gm** | 1,91 · 18,27 · 33,16 · 19,14 | 3 |
+
+  Everus: die berechnete Folge ist 1,88 Gm kürzer als §3 (§3 fliegt L1 → L2 zuerst, dann einmal quer über L4). Seraphim:
+  L1 → L5 → L4 ist 0,0028 Gm kürzer, liegt aber im Gleichstand (≤ 0,1 Gm); dort gewinnt die Station mit
+  Ein-Ziel-Vertrag (beide beginnen mit CRU-L1, dem Ziel des Direct), dann die Ortsordnung → §3s Folge. Baijini
+  **L1 → L4 → L3 → L5 → L2 (162,50 Gm)** statt §3 (166,71 Gm). Die §3-Folgen sind Spielerfahrung; Distanzen in den
+  Testnamen (`LoopsBaselineTests`). LEO: Everus → Baijini → Seraphim → Port Tressler (161,07 Gm) statt §8.6s Everus → Baijini
+  → Port Tressler → Seraphim (171,74 Gm).
+- **Ranking kippt (Hull B, Senior, nach dem Fix):** bei 10 min Port Tressler 586k/h, Baijini 561k, Seraphim 557k,
+  Everus 484k, Directs ab 330k; bei 5 min 819k / 792k / 769k / 669k, der Direct Port Tressler → S4DC05 (0 lange Sprünge)
+  springt vor die Directs mit zwei langen Sprüngen; bei **15 min überholt Seraphim Baijini** (437k gegen 434k). Weniger
+  Zeit je Landung hebt Loops mit vielen Landungen, mehr hebt die kurzen (Seraphim, Directs) – umgekehrt zum Startprompt
+  („10 → 5 min hebt Seraphim“). Mechanik-Test mit zwei Parametersätzen (`The_ranking_tips_with_the_time_per_station`).
+- **Mutationsproben:** ohne Permutation (`MaxPermuted = 0`) 6 rot, ohne Rückfracht 2 rot, ohne Zeitparameter (Default
+  statt Settings) 1 rot.
+- **Budget (Release, Martins Rechner, Hull B Senior):** im Testprozess Median 97–108 ms, erster Lauf 101–114 ms (Master
+  302–330 ms mit JIT). **In der App ohne Cache:** Start 434–462 ms, spätere Läufe 190–230 ms – über 200 ms; ein Cache
+  der Rückwege je Aufruf brachte ~10 %, Pyro allein kostete 84 von ~100 ms (warm). **Mit `FitCache`:** Start
+  **253 / 259 / 254 ms** (drei Starts, erster Lauf im Prozess), neue Rangstufe 40–43 ms, Wiederholung 0–11 ms; im
+  Testprozess zweiter Lauf 4–7 ms (~100 verschiedene Fragen je Ranking). **Der Start bleibt ~55 ms über dem Budget**,
+  im Hintergrund, die UI blockiert nie; nach einem Scan wenige ms. Nächster Hebel, falls gewünscht (Rückfrage): Pyro nur
+  rechnen, wenn der System-Filter Pyro zeigt (Pyro ≈ 80 % der warmen Zeit).
+- Logzeile beim Start: `Routes: loops 43 candidates, 0 observed, 254 ms (MISC Hull B, senior, Everus Harbor)`.
+- Bild (CC, Desktop, 470 × 700): Filterzeile „Loops · Sort: ~aUEC/h · Rank ≤ Senior · Stanton · 10 min · 20 s · 4 min“,
+  Port Tressler, Baijini, Seraphim, Everus ring, dann die Directs („Everus Harbor → HUR-L2 · Rookie Direct Medium ×3“).
+- **Handling gegen main:**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | View-Button Plan-Reiter | Matrix ↔ Recipe | Matrix → Recipe → Loops (Rechtsklick zurück) |
+  | System-Button | Matrix-Filter | wirkt auch in Loops (Stanton ohne Pyro-Zeilen) |
+  | Hub-Button (Recipe) | zyklisch, speichert `routes.hub` | gleich; nach Zeilenklick „(from Loops)“, der nächste Klick geht vom gezeigten Hub weiter und speichert |
+  | Sort-Button (neu) | – | nur Loops, zyklisch, speichert `routes.loopsSort` |
+  | Klick auf Loop-Zeile (neu) | – | Stanton-Zeile → Recipe dieses Hubs, nichts gespeichert; LEO/Pyro nichts |
+  | Settings „Plan tab“ | Rang, Fraktion | + drei Zeit-Slider (per landing, per crate, per long jump) |
+  | F3 auf Angebot, Plan-Reiter | „fits as …“ gegen `routes.hub` | gleich (K1), auch nach Zeilenklick |
+  | Alles andere | wie main | gleich |
+
+- **Bild-Gate (Martin, 24.11.) – zwei Befunde, Fix:**
+  (1) Recipe Port Tressler „Σ 690 500 + 4 × 96 500 Back“ ≠ Loops „1.2M/loop“: Σ des Rezepts ist nur der Hinweg (D123,
+  `Recipe.RewardSum`); der Loops-Ring zählte die Rückwege dazu, und zwar fünf (er fährt alle fünf MIC-L-Stationen an,
+  das Rezept nur seine vier Ziele): 690 500 + 5 × 96 500 = 1 173 000. (2) Die „Member Small 96 500 accept at
+  MIC-L1…L4“ waren **ein** Template (`9ce4eae8`, Multi → Single, 3 Stopps, Pool alle fünf MIC-L), je Station neu gewählt
+  (Fehler seit T13.3b, `BestReturn` je Station); ebenso Everus (Junior Small 72 500, Multi4), Baijini (Member Small 89 750,
+  Multi4), Seraphim (Junior Small 67 500, Multi3), und der Direct-Lauf nahm einen Multi-Pickup-Rückläufer. **Fix
+  (Präzisierung zur Abnahme):** `Recipe.WaysBack` entlang des Rings, jedes Template höchstens einmal; ein Rückläufer mit
+  mehreren Pickups wird an der ersten Station angenommen und sammelt an den nächsten Ringstationen seines Pools
+  (`RecipeRole.CollectAt`, Zeile „accept at MIC-L1, collect at MIC-L2, MIC-L3“), reichen die folgenden Stationen nicht,
+  gilt er dort nicht; ein Direct-Lauf nimmt nur Rückläufer mit einem Pickup. Gleiche Regel in Recipe und Loops.
+  **Σ-Zeile (Martin):** „Σ 594,500 out · +232,000 back = 826,500 aUEC · worst case 512/512 SCU in 50 crates · fits MISC
+  Hull B“ (Everus, Hull B, Senior; `Recipe.ReturnSum`); der Worst Case bleibt der des Hinwegs. Tests: Recipe (Multi3 einmal, dann die nächsten), Loops (Ring zählt Multi4 einmal, Direct
+  ohne), Recipe-Zeile mit „collect at“.
+- **Σ-Zeile Recipe gegen Loops (Bild 1):** Recipe Everus „Σ 594,500 out · +232,000 back = 826,500 aUEC“, der
+  Everus-Ring in Loops 877 000. Der Hinweg ist gleich (594 500); die Rückwege nicht: das Rezept geht sie entlang seiner
+  vier Ziele in Ortsordnung (HUR-L1 Junior Small 72 500 sammelt L2–L4, L2 Junior Small 60 750, L3 Rookie XS 50 250, L4
+  Rookie Direct XS 48 500 = 232 000), der Ring entlang aller fünf Stationen in der kürzesten Folge (L1 72 500, L4
+  60 750, L3 50 250, L5 48 500, L2 Rookie Direct Medium 50 500 = 282 500). Gleiche Regel, anderer Ring (D124).
+- **Gate T13.4 (Martin, SC vorne, Everus gespeichert):** (1) Loops zeigt vier Stanton-Ringe, Direct-Läufe, LEO-Ring mit
+  „needs scans“; System → Pyro: Pyro-Ringe ohne aUEC; (2) Everus-Ring aUEC/Umlauf plausibel gegen Σ der Matrix-Zeile
+  Everus → HUR-Lx plus Rückläufer (Tooltip der Zeile listet die Verträge); (3) Settings „Per landing“ auf 5 min →
+  Reihenfolge ändert sich sichtbar, Neustart → bleibt; (4) fünf lokale Offers scannen → Everus-Zeile „observed n/m“,
+  Kisten ändern sich; (5) ein systemweites Offer Everus → Hub scannen → LEO-Zeile bekommt Zahlen oder nennt den nächsten
+  Hub; (6) Hub-Button auf Baijini → Anreise-Spalte wechselt. Zahlen: Logzeile beim Start und nach dem Scan (ms). Offen
+  aus T13.3, falls eine Pyro-Session möglich ist: Red-Wind-Zwillinge (gemeinsame Beobachtung, Fraktionsfilter).
+- **Gate bestanden, Abnahme erteilt (24.11.2026, Martin)**, damit auch die Präzisierungen bei der Umsetzung ratifiziert
+  (Gleichstand 0,1 Gm, Pyro-Ringe, `FitCache`, ein Rückläufer = ein Vertrag, Σ-Zeile out/back). **Budget aus Martins
+  Gate (Release, Profilordner):** erster Lauf nach dem Start 361 ms (ARGO RAFT) bzw. 261 ms (Hull B), der erste Lauf
+  für ein neues Schiff 216 ms, mit Cache 10–43 ms (Hub-Wechsel 10/43/18 ms, Rang 16 ms). Der Startlauf bleibt über
+  200 ms, im Hintergrund.
+- **Drei E der Abnahme:**
+  - **E1 Startlauf nach der Wiederherstellung:** kein Fehler. Rang, Fraktion, Hub, Zeiten und Beobachtungen stehen im
+    `RoutesViewModel` vor dem ersten `ShowShip`; der Start rechnet einmal mit dem gespeicherten Schiff (je Start genau
+    eine Logzeile, jeder Lauf wird geloggt, auch ein verworfener). Die ARGO-RAFT-Läufe im Log (14:17:40, 5 s nach dem
+    Start; 14:27:37 als Startschiff, dann Hull B 14:27:45) kamen aus Schiffswechseln: das Schiff ändert sich nach dem Start
+    nur über `ChangeShip` (Schiffsliste), und settings.json hatte beim zweiten Start RAFT gespeichert.
+  - **E2 Grund der none-Beobachtung:** umgesetzt. `ObservedEdges.Unmatched` (Schlüssel + Grund), die Startzeile nennt
+    ihn: „8 observations: 7 matched, 0 ambiguous, 1 none (covalex experienced medium 163250: places outside the
+    template's pools: Everus Harbor, Teasa Spaceport in Lorville)“ – ein Planetary-Vertrag nach Lorville, kein
+    Stellar-Template. Test: `ObservedEdgesTests.Templates_ambiguous_beyond_the_faction_or_none_add_nothing`.
+  - **E3 Kisten Pyro (100/193 bei Hull B):** kein Fehler. Red Wind liefert höchstens in 8er-Containern (Member/
+    Experienced Medium) bzw. 4ern (Smalls), Covalex in 16ern: Member Medium 2 × 175 SCU = 2 × (21 × 8 + 4 + 2 + 1) =
+    48 Kisten, Experienced Medium 4 × 87 SCU = 4 × 13 = 52; Checkmate & Co. = 48 + 52 = 100, Ruin Station 193.
+- **Bilder zur Abnahme (CC, `--data-dir` mit Kopie von Martins routes.json, Hull B, Senior, Everus):** (1) Recipe Everus
+  mit „Σ 594,500 out · +232,000 back = 826,500 aUEC · worst case 512/512 SCU in 50 crates · fits MISC Hull B“ und
+  „Back · Junior Rank - Small Cargo Haul · 72,500 aUEC · … · accept at HUR-L1, collect at HUR-L2, HUR-L3, HUR-L4“;
+  (2) Loops ans Ende gescrollt: „LEO ring from Everus Harbor / needs scans at Everus Harbor“ blass als letzte Zeile.
+- **Testnamen:** K1 `RoutesViewModelTests.A_rows_click_shows_its_hubs_recipe_for_the_session_and_the_offer_check_stays_at_routes_hub`
+  (Zeilenklick Baijini → Recipe Baijini, `FitOf` weiter Everus); Persistenz `SettingsStoreTests.Routes_keep_the_loops_times_and_sort`,
+  `SettingsStoreTests.Save_then_Load_keeps_the_routes`, `SettingsStoreTests.A_loop_setting_out_of_range_falls_back_with_a_line`,
+  `SettingsSessionTests.The_settings_windows_loop_times_go_into_the_routes_section_and_another_window_follows`,
+  `RoutesViewModelTests.The_sort_cycles_is_saved_and_the_times_from_the_settings_rank_without_a_new_computation`; LEO mit
+  den §8.6-Kanten `LoopsTests.The_LEO_ring_takes_what_scans_saw_between_the_hubs_and_unloads_on_the_way`.
+- **Offen:** Red-Wind-Zwillinge bei der ersten Pyro-Session (aus T13.3).
 
 ### ~~T13.5 App: Hafen-Matrix~~ – entfällt (in T13.2, U3, 23.11.)
 
@@ -518,6 +666,10 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
 - Standorterkennung ersetzt den Hub-Button des Rezepts (T13.3b, D123): der Hub, an dem der Spieler steht, statt
   `routes.hub`. Auslöser: Game.log-Location wird gelesen.
+
+- QT-Zeit aus Distanz und der Quantum-Geschwindigkeit des Schiffs statt einer Zeit je langem Sprung (T13.4, D124:
+  heute `routes.times.jump` je Sprung > 10 Gm). Auslöser: Nutzer-Report, dass das Ranking lange und kurze Sprünge
+  falsch gewichtet, oder Schiffsdaten mit QT-Werten.
 
 - Kipprad (`WM_MOUSEHWHEEL`) scrollt die Hafen-Matrix seitwärts (K der Zwischenabnahme T13.3a: heute nur Shift+Rad).
   WPF hat dafür kein Event, es braucht einen `HwndSource`-Hook. Auslöser: Nutzer-Report mit Kipprad-Maus.

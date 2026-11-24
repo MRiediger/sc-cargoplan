@@ -28,7 +28,7 @@ these values.
   "shipView": { "maxZoomPxPerCell": 160 },
   "updates": { "checkOnStartup": true, "skippedVersion": null },
   "shipData": { "checkOnStartup": true, "skippedVersion": null },
-  "routes": { "tab": "cargo", "rank": "master", "faction": null, "hub": "Everus Harbor" },
+  "routes": { "tab": "cargo", "rank": "master", "faction": null, "hub": "Everus Harbor", "loopsSort": "hour", "times": { "station": 10, "crate": 20, "jump": 4 } },
   "toolWindowTheme": "system",
   "appearance": {
     "window": {
@@ -323,17 +323,19 @@ settings and say so, and `settings.json.bak` keeps the file as it was.
 ## Routes
 
 `routes` holds the route planner's settings (T13.2, D120): the tab the overlay shows and the rank and faction its port
-matrix starts with. Missing or `null` means the defaults, a missing key inside it its default; a word out of the list
-falls back to the default, with a notice.
+matrix starts with; the loops' sort and times (T13.4, D124). Missing or `null` means the defaults, a missing key inside it
+its default; a word out of the list or a time out of its range falls back to the default, with a notice.
 
 | Key | What | Default |
 |---|---|---|
 | `routes.tab` | `"cargo"` or `"plan"`: the tab under the header the overlay starts in; every switch is saved. With **Plan** selected, F3 on an offer only notes the contract in `routes.json` and leaves the cargo as it is ("Observed (Plan tab): … – cargo unchanged"). | `"cargo"` |
 | `routes.rank` | The highest rank the port matrix shows, `"trainee"`, `"rookie"`, `"junior"`, `"member"`, `"experienced"`, `"senior"` or `"master"`; set with the matrix's rank button or in the settings window's "Plan tab" section (T13.3), which show each other's change. `"master"` shows every template. | `"master"` |
 | `routes.faction` | Your side in Pyro, `"hh"` (Headhunters) or `"cfp"` (Citizens for Prosperity); narrows Red Wind contracts only; set with the matrix's faction button or in the "Plan tab" section ("Both sides"). `null` shows both. | `null` |
-| `routes.hub` | The Stanton hub the recipe starts from (T13.3b, D123): `"Everus Harbor"`, `"Seraphim Station"`, `"Baijini Point"` or `"Port Tressler"`; set with the Plan tab's hub button, which shows with the recipe. Loop ranking (T13.4) and the route (T13.6) start there too. Another name falls back to Everus Harbor, with a notice. | `"Everus Harbor"` |
+| `routes.hub` | The Stanton hub you are at (T13.3b, D123): `"Everus Harbor"`, `"Seraphim Station"`, `"Baijini Point"` or `"Port Tressler"`; set with the Plan tab's hub button, which shows with the recipe. The recipe and the check of a scanned offer ("fits as …") use it; the loops (T13.4) measure the travel from it and start the system-wide ring there; the route (T13.6) starts there. A click on a loop's row shows that hub's recipe without changing this. Another name falls back to Everus Harbor, with a notice. | `"Everus Harbor"` |
+| `routes.loopsSort` | What the Plan tab's loop list is sorted by (T13.4): `"hour"` (~aUEC/h), `"loop"` (aUEC per loop) or `"landing"` (aUEC per landing); set with the list's sort button. | `"hour"` |
+| `routes.times` | The loops' times for ~aUEC/h (T13.4, design §4.7): `station` minutes per landing (docking, the elevator, the short jumps near a station; 1–60), `crate` seconds per crate (5–120), `jump` minutes per quantum jump over 10 Gm (1–30); whole numbers, set in the settings window's "Plan tab" section, shown in the list's filter line. Each out of its range falls back alone, with a notice. | `{ "station": 10, "crate": 20, "jump": 4 }` |
 
-The other filters of the matrix (system, area, direct, contractor, sizes) and the view (Matrix or Recipe) last for the session. Older versions of the
+The other filters of the matrix (system, area, direct, contractor, sizes), the view (Matrix, Recipe or Loops) and the hub a loop's row shows last for the session. Older versions of the
 overlay don't know `routes`: they start with the default settings and say so, as for `shipData`.
 
 ## Look files

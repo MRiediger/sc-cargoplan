@@ -113,6 +113,8 @@ public sealed class ObservedEdgesTests
 
         edges.Of(SystemWide).Should().BeEmpty();
         (edges.Matched, edges.Ambiguous, edges.None).Should().Be((0, 1, 1));
+        edges.Unmatched.Should().ContainSingle("the one none, with its reason for the start's log line (T13.4 acceptance)")
+            .Which.Should().Match<(ObservationKey Key, string Reason)>(u => u.Key == unknown && u.Reason.Length > 0);
     }
 
     [Fact]
@@ -121,6 +123,39 @@ public sealed class ObservedEdgesTests
         var edges = ObservedEdges.From(Seen(Scan(Tin, [Everus], (Baijini, "Tin", 113), ("Bajini Pt", "Tin", 129), (Seraphim, "Tin", 91))), [SystemWide], Places);
 
         edges.Of(SystemWide).Select(e => e.To).Should().Equal(Baijini, Seraphim);
+    }
+
+    [Fact]
+    public void A_matched_template_knows_the_bands_its_scans_saw()
+    {
+        var edges = ObservedEdges.From(
+            Seen(Scan(Tin, [Everus], (Baijini, "Tin", 113), (Tressler, "Tin", 129), (Seraphim, "Tin", 91))), [SystemWide], Places);
+
+        edges.ScuOf(SystemWide).Should().Equal(new ScuBand("Tin", 91, 129));
+        ObservedEdges.Empty.ScuOf(SystemWide).Should().BeNull("never observed");
+    }
+
+    [Fact]
+    public void Faction_twins_share_the_bands()
+    {
+        var hh = T(["Checkmate"], ["Ruin Station"], reward: null, contractor: HaulContractor.RedWind, rank: HaulRank.Member, system: StarSystem.Pyro,
+            areaKey: "Solar", faction: HaulFaction.Hh, legs: [Leg("Carbon", 25, 175, CrateSize.Eight)]);
+        var cfp = hh with { Uuid = "cfp", Faction = HaulFaction.Cfp };
+        var key = new ObservationKey(HaulContractor.RedWind, HaulRank.Member, HaulSize.Medium, null, 532_500, ["Carbon"]);
+
+        var edges = ObservedEdges.From(Seen(Scan(key, ["Checkmate"], ("Ruin Station", "Carbon", 80))), [hh, cfp], Places);
+
+        edges.ScuOf(hh).Should().Equal(new ScuBand("Carbon", 80, 80));
+        edges.ScuOf(cfp).Should().Equal(new ScuBand("Carbon", 80, 80));
+    }
+
+    [Fact]
+    public void An_ambiguous_observation_gives_no_bands()
+    {
+        var twin = SystemWide with { Uuid = "twin", Legs = [.. SystemWide.Legs] };
+
+        ObservedEdges.From(Seen(Scan(Tin, [Everus], (Baijini, "Tin", 113))), [SystemWide, twin], Places)
+            .ScuOf(SystemWide).Should().BeNull();
     }
 
     private static Observations Seen(params Observation[] entries) => new(entries);

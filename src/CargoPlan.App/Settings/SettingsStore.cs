@@ -227,6 +227,33 @@ public static class SettingsStore
             routes = routes with { Hub = RoutesSettings.DefaultHub };
         }
 
+        // The loops' times (T13.4): each out of its range falls back alone.
+        var times = routes.Times;
+        if (times.Station is < RoutesTimes.MinStation or > RoutesTimes.MaxStation)
+        {
+            problems.Add($"routes.times.station {times.Station} is not {RoutesTimes.MinStation}–{RoutesTimes.MaxStation} minutes, using {RoutesTimes.Default.Station}.");
+            times = times with { Station = RoutesTimes.Default.Station };
+        }
+
+        if (times.Crate is < RoutesTimes.MinCrate or > RoutesTimes.MaxCrate)
+        {
+            problems.Add($"routes.times.crate {times.Crate} is not {RoutesTimes.MinCrate}–{RoutesTimes.MaxCrate} seconds, using {RoutesTimes.Default.Crate}.");
+            times = times with { Crate = RoutesTimes.Default.Crate };
+        }
+
+        if (times.Jump is < RoutesTimes.MinJump or > RoutesTimes.MaxJump)
+        {
+            problems.Add($"routes.times.jump {times.Jump} is not {RoutesTimes.MinJump}–{RoutesTimes.MaxJump} minutes, using {RoutesTimes.Default.Jump}.");
+            times = times with { Jump = RoutesTimes.Default.Jump };
+        }
+
+        routes = routes with { Times = times };
+        if (routes.LoopsSort is not (RoutesSettings.SortByHour or RoutesSettings.SortByLoop or RoutesSettings.SortByLanding))
+        {
+            problems.Add($"routes.loopsSort \"{routes.LoopsSort}\" is not hour, loop or landing, using hour.");
+            routes = routes with { LoopsSort = RoutesSettings.SortByHour };
+        }
+
         return (routes, problems);
     }
 

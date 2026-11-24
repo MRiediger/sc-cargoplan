@@ -46,7 +46,7 @@ public class RecipeTimingTests(ITestOutputHelper output)
         }
 
         output.WriteLine(string.Create(CultureInfo.InvariantCulture,
-            $"  Σ {recipe.RewardSum:N0} aUEC · {recipe.WorstScu} / {ship.TotalScu} SCU · {recipe.Crates} crates{(recipe.Note is { } note ? " · " + note : "")}"));
+            $"  Σ {recipe.RewardSum:N0} out · +{recipe.ReturnSum:N0} back = {recipe.RewardSum + recipe.ReturnSum:N0} aUEC · {recipe.WorstScu}/{ship.TotalScu} SCU · {recipe.Crates} crates{(recipe.Note is { } note ? " · " + note : "")}"));
         recipe.Outbound.Should().HaveCountLessThanOrEqualTo(Recipe.MaxContracts);
     }
 }

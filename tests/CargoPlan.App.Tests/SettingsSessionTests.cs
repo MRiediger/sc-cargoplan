@@ -722,7 +722,7 @@ public sealed class SettingsSessionTests : IDisposable
             changed => session.ChangeRoutes(session.Current.Routes with { Rank = changed.Rank, Faction = changed.Faction }));
         session.RoutesChanged += (_, changed) => tab.Follow(changed);
         var window = new RoutesSettingsViewModel(session.Current.Routes,
-            (rank, faction) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction }),
+            (rank, faction, times) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times }),
             handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
 
         tab.NextCommand.Execute("faction");
@@ -736,6 +736,23 @@ public sealed class SettingsSessionTests : IDisposable
         tab.NextCommand.Execute("faction");
         window.Faction.Should().Be("hh", "a closed window follows nothing");
         session.Current.Routes.Should().Be(RoutesSettings.Default with { Rank = "junior", Faction = "cfp" });
+    }
+
+    [Fact]
+    public void The_settings_windows_loop_times_go_into_the_routes_section_and_another_window_follows()
+    {
+        // T13.4: the loops' times are set in the window only; rank and faction stay as they were.
+        var session = Create();
+        RoutesSettingsViewModel Window() => new(session.Current.Routes,
+            (rank, faction, times) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times }),
+            handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
+        var (window, other) = (Window(), Window());
+
+        window.Station = 5;
+        window.Crate = 30.4;
+
+        session.Current.Routes.Should().Be(RoutesSettings.Default with { Times = new RoutesTimes(5, 30, 4) });
+        (other.Station, other.StationText, other.CrateText, other.JumpText).Should().Be((5d, "5 min", "30 s", "4 min"));
     }
 
     [Fact]
