@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using CargoPlan.App.Diagnostics;
 using CargoPlan.App.Editor;
 using CargoPlan.App.Holo;
 using CargoPlan.App.Hotkeys;
@@ -449,6 +450,12 @@ public partial class App : Application
         if (settings.Overlay is { } saved)
         {
             RestoreBounds(overlay, saved);
+        }
+
+        if (options.LogInput)
+        {
+            InputLog.Attach(overlay);
+            AppLog.Write("Input", $"logging the overlay's input ({StartOptions.LogInputSwitch})");
         }
 
         // The saver's Closed handler goes first and hands over pending bounds; Flush then writes a pending look change.

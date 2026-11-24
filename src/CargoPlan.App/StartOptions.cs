@@ -50,6 +50,10 @@ namespace CargoPlan.App;
 /// repository of the same layout instead of sc-cargoplan-shipdata (T12.3, P5): for gates and tests. A developer's build
 /// checks ship data only with it (P4). null = sc-cargoplan-shipdata; anything else is a problem, not a stop.
 /// </param>
+/// <param name="LogInput">
+/// The overlay's activation, capture, button and wheel messages and WPF's mouse capture go to cargoplan.log (T13.3a): for
+/// the scroll check over the game, where the game takes the foreground. A developer's switch, off by default.
+/// </param>
 public sealed record StartOptions(
     bool Locked,
     string? PlanPath,
@@ -65,7 +69,8 @@ public sealed record StartOptions(
     bool KeepScans = false,
     string? UpdatesSource = null,
     bool UpdatesPrerelease = false,
-    string? ShipDataSource = null)
+    string? ShipDataSource = null,
+    bool LogInput = false)
 {
     public const string LockedSwitch = "--locked";
 
@@ -93,6 +98,8 @@ public sealed record StartOptions(
 
     public const string ShipDataSourceSwitch = "--ship-data-source";
 
+    public const string LogInputSwitch = "--log-input";
+
     /// <summary>F9's series without a number: Gate 2's 100 scans.</summary>
     public const int ScanProbeSeries = 100;
 
@@ -104,6 +111,7 @@ public sealed record StartOptions(
         var scanProbeImages = false;
         var scanLoad = false;
         var keepScans = false;
+        var logInput = false;
         var updatesPrerelease = false;
         string? planPath = null;
         string? measureFrames = null;
@@ -200,6 +208,10 @@ public sealed record StartOptions(
             {
                 keepScans = true;
             }
+            else if (Is(args[i], LogInputSwitch))
+            {
+                logInput = true;
+            }
             else if (Is(args[i], UpdatesPrereleaseSwitch))
             {
                 updatesPrerelease = true;
@@ -244,7 +256,7 @@ public sealed record StartOptions(
             (updatesPrerelease, problem) = (false, problem ?? $"{UpdatesPrereleaseSwitch} only goes with GitHub, not with {UpdatesSourceSwitch}.");
         }
 
-        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans, updatesSource, updatesPrerelease, shipDataSource);
+        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans, updatesSource, updatesPrerelease, shipDataSource, logInput);
     }
 
     /// <summary>
