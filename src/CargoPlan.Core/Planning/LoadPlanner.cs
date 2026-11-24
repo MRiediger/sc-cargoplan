@@ -38,6 +38,30 @@ public static class LoadPlanner
     }
 
     /// <summary>
+    /// Whether <paramref name="stops"/> lie in the empty <paramref name="ship"/> by the planner's own first fit (D54): every
+    /// crate, largest first, into the first rack whose free cells take its shape. Where it says yes, <see cref="Plan(Ship,
+    /// IReadOnlyList{Stop}, FillOrder, FillRows, PlanGrouping, int, Sides, bool)"/> lays them too, since the planner falls
+    /// back to the same first fit when its search finds no nicer assignment; where it says no, the search may rarely still
+    /// find one, so the answer is on the safe side. No search: each crate probes each rack once, so the recipe (T13.3b)
+    /// can ask it for every role, where the search took about a second per question on a Hull B.
+    /// </summary>
+    public static bool Lays(Ship ship, IReadOnlyList<Stop> stops)
+    {
+        if (stops.Sum(s => s.TotalScu) > ship.TotalScu || stops.Any(s => s.Items.Any(i => !ship.Racks.Any(r => r.CanHold(i.CrateSize)))))
+        {
+            return false;
+        }
+
+        Rack[] racks = [.. ship.Racks.OrderBy(r => r.Index)];
+        (CrateSize Size, string Destination)[] crates =
+        [
+            .. stops.OrderByDescending(s => s.TotalScu).ThenBy(s => s.Destination, StringComparer.Ordinal)
+                .SelectMany(s => s.Items.SelectMany(i => Enumerable.Repeat((i.CrateSize, s.Destination), i.Scu / (int)i.CrateSize))),
+        ];
+        return FirstFitDecreasing(racks, [], crates, FillOrder.BowFirst, FillRows.Lengthwise, SideGroups.Of(racks, Sides.None)).Failed is null;
+    }
+
+    /// <summary>
     /// The planner's plan of <paramref name="stops"/>: racks and who doesn't fit from <see cref="RackAssignment"/> without
     /// lanes (F5), the chosen racks' crates laid in the lanes of <paramref name="sides"/> where they fit (D116). On a ship
     /// with racks on both sides, side by side (<see cref="RackAssignment.AssignBySide"/>, D117): the destinations in the
