@@ -26,10 +26,14 @@ public sealed record PortCellView(string Text, string ToolTip);
 /// </summary>
 /// <param name="Hub">The Stanton hub whose recipe a click shows; null where there is none (system-wide, Pyro).</param>
 /// <param name="Figures">"957k/loop · ~578k/h · 160k/landing"; null without contracts.</param>
-public sealed record LoopRowView(LoopCandidate Loop, string Title, string? Figures, string Details, string ToolTip, bool Grey, string? Hub)
+/// <param name="Chosen">The row clicked last: "Start plan" starts it (K4 of T13.6).</param>
+public sealed record LoopRowView(LoopCandidate Loop, string Title, string? Figures, string Details, string ToolTip, bool Grey, string? Hub, bool Chosen = false)
 {
     public bool CanOpen => Hub is not null;
 }
+
+/// <summary>"Start plan" (T13.6): the loop to make a route of, its row's title as the route's name, what the scans saw.</summary>
+public sealed record PlanStart(LoopCandidate Loop, string Name, ObservedEdges Edges);
 
 /// <summary>
 /// The Plan tab (the Routes tab, D120; T13.2): the port matrix of the hauling templates (design §8.5) under a filter whose
@@ -113,6 +117,12 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     private bool _loopsComputed;
 
+    // The loop row clicked last (K4 of T13.6), for the session: its kind, start and title, since the loops are computed anew.
+    private (LoopKind Kind, string Start, string Title)? _chosen;
+
+    // What "Start plan" starts now, with its row's title; null for nothing.
+    private (LoopCandidate Loop, string Title)? _startTarget;
+
     // The planner's answers for the loops, kept for the tab's life: after a scan nearly every question is an old one.
     private readonly FitCache _fits = new();
 
@@ -170,6 +180,9 @@ public sealed partial class RoutesViewModel : ObservableObject
     public bool IsLoops => _view == 2;
 
     public bool IsMatrix => _view == 0;
+
+    /// <summary>"Start plan" shows with the recipe and the loops (T13.6), not with the matrix.</summary>
+    public bool OffersStart => HasData && !IsMatrix;
 
     /// <summary>The matrix and its legend: with hauling data, in the matrix view.</summary>
     public bool ShowsMatrix => HasData && IsMatrix;
@@ -364,12 +377,44 @@ public sealed partial class RoutesViewModel : ObservableObject
     [RelayCommand]
     private void Previous(string filter) => Cycle(filter, -1);
 
-    /// <summary>A loop's row: the recipe of its hub, for the session (T13.4, D124); routes.hub stays. Others do nothing.</summary>
+    /// <summary>A loop's row was chosen with "Start plan" (T13.6): make the route of it, then show the Cargo tab.</summary>
+    public event EventHandler<PlanStart>? StartRequested;
+
+    /// <summary>"Start plan" has a loop with figures to start (K4 of T13.6).</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(StartPlanCommand))]
+    public partial bool CanStartPlan { get; private set; }
+
+    /// <summary>What "Start plan" starts, or why it can't.</summary>
+    [ObservableProperty]
+    public partial string StartPlanToolTip { get; private set; } = "";
+
+    /// <summary>The route of the loop <see cref="StartPlanToolTip"/> names; the App starts it and shows the Cargo tab.</summary>
+    [RelayCommand(CanExecute = nameof(CanStartPlan))]
+    private void StartPlan()
+    {
+        if (_startTarget is { Loop: var loop, Title: var title })
+        {
+            StartRequested?.Invoke(this, new PlanStart(loop, title, _observed));
+        }
+    }
+
+    /// <summary>
+    /// A loop's row: chosen for "Start plan" (K4 of T13.6); a Stanton hub's row also shows the recipe of its hub, for the
+    /// session (T13.4, D124); routes.hub stays. A row without a recipe (LEO, Pyro) is only marked.
+    /// </summary>
     [RelayCommand]
     private void OpenLoop(LoopRowView? row)
     {
-        if (row?.Hub is not { } hub)
+        if (row is null)
         {
+            return;
+        }
+
+        _chosen = (row.Loop.Kind, row.Loop.Start, row.Title);
+        if (row.Hub is not { } hub)
+        {
+            BuildLoops();
             return;
         }
 
@@ -455,6 +500,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         OnPropertyChanged(nameof(IsRecipe));
         OnPropertyChanged(nameof(IsLoops));
         OnPropertyChanged(nameof(IsMatrix));
+        OnPropertyChanged(nameof(OffersStart));
         OnPropertyChanged(nameof(ShowsMatrix));
         OnPropertyChanged(nameof(ShowsRecipe));
         OnPropertyChanged(nameof(ShowsLoops));
@@ -530,18 +576,52 @@ public sealed partial class RoutesViewModel : ObservableObject
             _ => null,
         };
         var times = _settings.Times.Loop;
-        LoopRows = system is null ? [] : [.. Loops.Rank(_loops.Where(l => l.System == system), Sorts[_sort].Value, times).Select(l => Row(l, times))];
+        LoopRows = system is null
+            ? []
+            : [.. Loops.Rank(_loops.Where(l => l.System == system), Sorts[_sort].Value, times).Select(l => Row(l, times) is var row && IsChosen(row.Loop, row.Title) ? row with { Chosen = true } : row)];
+        BuildStart();
     }
+
+    private bool IsChosen(LoopCandidate loop, string title) => _chosen == (loop.Kind, loop.Start, title);
+
+    // K4 of T13.6: in Loops the row clicked last, else the top row with figures; in the recipe the row clicked last if it
+    // starts at the hub shown (a direct run), else that hub's ring. The matrix starts nothing.
+    private void BuildStart()
+    {
+        var shownHub = Hubs[_shownHub ?? _hub].Name;
+        (LoopCandidate Loop, string Title)? target = (_view, _loopsComputed) switch
+        {
+            (0, _) or (_, false) => null,
+            (2, _) => LoopRows.FirstOrDefault(r => r.Chosen) is { } chosen
+                ? (chosen.Loop, chosen.Title)
+                : LoopRows.FirstOrDefault(r => r.Loop.HasNumbers) is { } top ? (top.Loop, top.Title) : null,
+            _ => (_loops.FirstOrDefault(l => l.Start == shownHub && IsChosen(l, Title(l)))
+                    ?? _loops.FirstOrDefault(l => l.Kind == LoopKind.LocalRing && l.System == StarSystem.Stanton && l.Start == shownHub))
+                is { } loop ? (loop, Title(loop)) : null,
+        };
+        _startTarget = target;
+        CanStartPlan = target is { Loop.HasNumbers: true };
+        StartPlanToolTip = (target, _loopsComputed) switch
+        {
+            (_, false) => "Start plan: the loops are being worked out …",
+            (null, _) => IsRecipe ? $"Start plan: no loop starts at {shownHub}" : "Start plan: no loop with figures",
+            ({ Loop.HasNumbers: false } t, _) => $"Start plan: {t.Title} – needs scans at {t.Loop.NeedsScansAt}",
+            ({ } t, _) => $"Start plan: {t.Title} – its contracts as placeholders in the Cargo tab",
+        };
+    }
+
+    // "Everus Harbor ring", "Everus Harbor → HUR-L1 · Senior Direct Small", "LEO ring from Everus Harbor".
+    private static string Title(LoopCandidate loop) => loop.Kind switch
+    {
+        LoopKind.LocalRing => $"{loop.Start} ring",
+        LoopKind.Direct => Invariant($"{loop.Start} → {PlaceNames.Short(loop.Stations[0])} · {Plain(loop.Contracts[0].Template.Title)}{(loop.Alike > 1 ? $" ×{loop.Alike}" : "")}"),
+        _ => $"LEO ring from {loop.Start}",
+    };
 
     // "Everus Harbor ring" / "957k/loop · ~578k/h · 160k/landing" / "6 landings · 70 crates · 6 jumps (4 long) · travel – · templates".
     private static LoopRowView Row(LoopCandidate loop, LoopTimes times)
     {
-        var title = loop.Kind switch
-        {
-            LoopKind.LocalRing => $"{loop.Start} ring",
-            LoopKind.Direct => Invariant($"{loop.Start} → {PlaceNames.Short(loop.Stations[0])} · {Plain(loop.Contracts[0].Template.Title)}{(loop.Alike > 1 ? $" ×{loop.Alike}" : "")}"),
-            _ => $"LEO ring from {loop.Start}",
-        };
+        var title = Title(loop);
         var hubs = loop.Kind == LoopKind.SystemWide ? " hubs" : "";
         var status = (loop.NeedsScansAt, loop.Observed) switch
         {

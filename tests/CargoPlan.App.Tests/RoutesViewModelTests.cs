@@ -571,8 +571,9 @@ public sealed class RoutesViewModelTests
     }
 
     [Fact]
-    public void A_row_without_a_recipe_does_nothing_on_a_click()
+    public void A_row_without_a_recipe_is_only_marked_on_a_click_and_stays_in_the_loops()
     {
+        // K4 of T13.6: before, such a click did nothing; now it chooses the loop "Start plan" starts.
         var model = Loops();
         model.ShowShip(HullB);
         Compute(model);
@@ -581,6 +582,65 @@ public sealed class RoutesViewModelTests
 
         model.IsLoops.Should().BeTrue();
         model.HubLabel.Should().Be("Hub: Everus Harbor");
+        model.LoopRows.Should().ContainSingle(r => r.Chosen).Which.Title.Should().StartWith("LEO");
+    }
+
+    [Fact]
+    public void Start_plan_in_the_loops_starts_the_clicked_row_else_the_top_row_with_figures()
+    {
+        var model = Loops(null, EverusBulk, EverusDirect, BaijiniBulk);
+        model.ShowShip(HullB);
+        Compute(model);
+        List<PlanStart> started = [];
+        model.StartRequested += (_, start) => started.Add(start);
+        var top = model.LoopRows.First(r => r.Loop.HasNumbers);
+
+        (model.CanStartPlan, model.StartPlanToolTip).Should().Be((true, $"Start plan: {top.Title} – its contracts as placeholders in the Cargo tab"));
+        model.StartPlanCommand.Execute(null);
+
+        model.OpenLoopCommand.Execute(model.LoopRows.Single(r => r.Title.StartsWith("LEO", StringComparison.Ordinal)));
+        (model.CanStartPlan, model.StartPlanToolTip).Should().Be((false, "Start plan: LEO ring from Everus Harbor – needs scans at Everus Harbor"));
+        model.StartPlanCommand.CanExecute(null).Should().BeFalse();
+
+        started.Should().ContainSingle().Which.Should().Be(new PlanStart(top.Loop, top.Title, ObservedEdges.Empty));
+    }
+
+    [Fact]
+    public void Start_plan_in_the_recipe_starts_the_clicked_direct_at_the_hub_shown_else_that_hubs_ring()
+    {
+        var model = Loops(null, EverusBulk, EverusDirect, BaijiniBulk);
+        model.ShowShip(HullB);
+        Compute(model);
+        List<PlanStart> started = [];
+        model.StartRequested += (_, start) => started.Add(start);
+        var direct = model.LoopRows.Single(r => r.Loop.Kind == LoopKind.Direct);
+
+        model.OpenLoopCommand.Execute(direct);
+        model.IsRecipe.Should().BeTrue();
+        model.StartPlanCommand.Execute(null);
+
+        model.NextCommand.Execute("hub");
+        model.NextCommand.Execute("hub");
+        model.HubLabel.Should().Be("Hub: Baijini Point");
+        model.StartPlanCommand.Execute(null);
+
+        started.Select(s => s.Name).Should().Equal(direct.Title, "Baijini Point ring");
+        started[1].Loop.Kind.Should().Be(LoopKind.LocalRing);
+    }
+
+    [Fact]
+    public void Start_plan_waits_for_the_loops_and_says_where_there_is_none()
+    {
+        var model = Model([EverusBulk], positions: Stanton);
+        model.NextCommand.Execute("view");
+        model.ShowShip(HullB);
+
+        (model.CanStartPlan, model.StartPlanToolTip).Should().Be((false, "Start plan: the loops are being worked out …"));
+        Compute(model);
+        model.CanStartPlan.Should().BeTrue();
+
+        model.NextCommand.Execute("hub");
+        (model.CanStartPlan, model.StartPlanToolTip).Should().Be((false, "Start plan: no loop starts at Seraphim Station"));
     }
 
     [Fact]

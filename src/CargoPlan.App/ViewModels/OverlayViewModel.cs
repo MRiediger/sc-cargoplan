@@ -8,6 +8,7 @@ using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
+using CargoPlan.Core.Routing;
 using CargoPlan.Core.Ships;
 using CargoPlan.Core.Text;
 using CargoPlan.Import.Contracts;
@@ -637,6 +638,22 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         {
             field = value;
             value?.ShowShip(Ship);
+            if (value is not null)
+            {
+                value.StartRequested += (_, start) => StartPlan(start);
+            }
+        }
+    }
+
+    /// <summary>
+    /// "Start plan" (T13.6, U9): the route of the chosen loop with a placeholder per role; then the Cargo tab, since the
+    /// player goes to the terminal. A route already started is replaced only when the player says yes; the cargo stays.
+    /// </summary>
+    public void StartPlan(PlanStart start)
+    {
+        if (ActiveRoute?.Start(Route.From(start.Loop, start.Name, start.Edges, DateTime.UtcNow)) == true)
+        {
+            IsRoutesTabSelected = false;
         }
     }
 

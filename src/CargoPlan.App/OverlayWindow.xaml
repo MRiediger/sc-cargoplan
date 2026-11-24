@@ -992,15 +992,20 @@
                                         <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
                                     </Style>
                                     <!-- A loop's row (T13.4): the whole row a click target without a look of its own; a Stanton hub's row
-                                         shows its recipe (hand cursor), a row that needs scans is faint. -->
+                                         shows its recipe (hand cursor), a row that needs scans is faint. The row clicked last carries a
+                                         bar on its left: "Start plan" starts it (T13.6, K4). Hand, bar and faint are the row's only looks. -->
                                     <Style x:Key="LoopRowStyle" TargetType="Button">
                                         <Setter Property="Focusable" Value="False" />
                                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                         <Setter Property="Margin" Value="0,0,0,6" />
+                                        <Setter Property="BorderThickness" Value="0" />
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource LegendForegroundBrush}" />
                                         <Setter Property="Template">
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="Button">
-                                                    <Border Background="Transparent">
+                                                    <Border Background="Transparent" BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
                                                         <ContentPresenter />
                                                     </Border>
                                                 </ControlTemplate>
@@ -1009,6 +1014,10 @@
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding CanOpen}" Value="True">
                                                 <Setter Property="Cursor" Value="Hand" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Chosen}" Value="True">
+                                                <Setter Property="BorderThickness" Value="2,0,0,0" />
+                                                <Setter Property="Padding" Value="4,0,0,0" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Grey}" Value="True">
                                                 <Setter Property="Opacity" Value="0.55" />
@@ -1054,6 +1063,13 @@
                                             <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="sort" />
                                         </Button.InputBindings>
                                         <TextBlock Text="{Binding SortLabel}" Style="{StaticResource FilterLabelStyle}" />
+                                    </Button>
+                                    <!-- T13.6 (K4): the route of the row clicked last, else the top row (loops) or the hub's ring
+                                         (recipe); its tool tip says which, also while it can't start. -->
+                                    <Button x:Name="StartPlanButton" Command="{Binding StartPlanCommand}" Style="{StaticResource FilterButtonStyle}"
+                                            ToolTip="{Binding StartPlanToolTip}" ToolTipService.ShowOnDisabled="True"
+                                            Visibility="{Binding OffersStart, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="Start plan" Style="{StaticResource FilterLabelStyle}" />
                                     </Button>
                                     <Button Command="{Binding NextCommand}" CommandParameter="rank" Style="{StaticResource FilterButtonStyle}">
                                         <Button.InputBindings>

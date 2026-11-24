@@ -183,6 +183,40 @@ public sealed class RouteScanTests : IDisposable
         _saved.Should().Equal([other]);
     }
 
+    [Fact]
+    public void Start_plan_makes_the_route_of_the_loop_and_shows_the_Cargo_tab_unless_the_player_keeps_the_old_one()
+    {
+        var overlay = Overlay(null);
+        overlay.IsRoutesTabSelected = true;
+        var loop = new LoopCandidate(LoopKind.LocalRing, StarSystem.Stanton, "Everus Harbor", ["Riker"],
+            [new RecipeRole(RecipeKind.Small, Junior, ["Riker"], 16, 4)], 50_250, false, 4, 0, 0, 0, 1);
+
+        overlay.StartPlan(new PlanStart(loop, "Everus Harbor ring", ObservedEdges.Empty));
+
+        overlay.IsRoutesTabSelected.Should().BeFalse("the player goes to the terminal");
+        overlay.ActiveRoute!.Header.Should().Be("Plan: Everus Harbor ring · 0/1 filled · Σ 50,250 out · +0 back");
+        _saved.Should().ContainSingle().Which!.Placeholders.Single().TemplateUuid.Should().Be("junior");
+
+        overlay.IsRoutesTabSelected = true;
+        overlay.StartPlan(new PlanStart(loop, "Other ring", ObservedEdges.Empty));
+        (overlay.IsRoutesTabSelected, overlay.ActiveRoute.Header).Should().Be((true, "Plan: Everus Harbor ring · 0/1 filled · Σ 50,250 out · +0 back"),
+            "no was said, the first route stays and so does the tab");
+    }
+
+    [Fact]
+    public void The_Plan_tabs_Start_plan_button_reaches_the_overlay()
+    {
+        var overlay = Overlay(null);
+        var routes = overlay.Routes!;
+        routes.NextCommand.Execute("view");
+        routes.NextCommand.Execute("view");
+        routes.ShowLoops(routes.LoopInputs!, routes.LoopInputs!.Run());
+
+        routes.StartPlanCommand.Execute(null);
+
+        overlay.ActiveRoute!.Route!.Name.Should().Be(routes.LoopRows.First(r => r.Loop.HasNumbers).Title);
+    }
+
     private OverlayViewModel Overlay(Route? route, IReadOnlyList<HaulTemplate>? templates = null)
     {
         var data = new HaulingLoad.Loaded(new HaulingData(templates ?? [Junior], Places), []);

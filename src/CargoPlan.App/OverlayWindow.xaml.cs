@@ -62,6 +62,13 @@ public partial class OverlayWindow : Window
         // back (D59 addendum T7.2b).
         viewModel.ConfirmReplan = question =>
             ConfirmDialog.Ask(CurrentWindow(), "Re-plan", question, yesIsDefault: false, _settings.ToolWindowTheme);
+
+        // A second "Start plan" replaces the route only on yes (T13.6); the cargo stays either way, No is the default.
+        if (viewModel.ActiveRoute is { } route)
+        {
+            route.ConfirmReplace = question =>
+                ConfirmDialog.Ask(CurrentWindow(), "Start plan", question, yesIsDefault: false, _settings.ToolWindowTheme);
+        }
         ShowCurrentShip();
     }
 
