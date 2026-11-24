@@ -44,6 +44,8 @@ public partial class OverlayWindow : Window
         string? hologramsUnavailable)
     {
         InitializeComponent();
+        // Thumb and track buttons let go when the button is up without its message, over the game (T13.3a).
+        ScrollCaptureGuard.Attach(this);
         _viewModel = viewModel;
         _settings = settings;
         _createHotkeys = createHotkeys;

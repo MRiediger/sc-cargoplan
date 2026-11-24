@@ -404,6 +404,14 @@ ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
   Zweige des Templates sind bis auf die Orientierung gleich, der Einzug ist die Ursache für beide. Nach Commit 9: alle
   8 Spalten greifen, kein Fenster wandert. Nachweis ist der Gate (Martin), der Pixel-Treffertest `SlimScrollBarTests`
   ist wieder entfernt (Folge-Commit, Commit 9 liegt unter 10–12).
+  **Befund Martin über SC (24.11.):** ohne Spiel beide Leisten einwandfrei, über SC springt der Track-Klick, Thumb-Drag
+  und Rad gehen nicht → Fokus/Capture, kein Styling. Diagnose aus dem Code: `WS_EX_NOACTIVATE` dauerhaft seit T3.6,
+  Entsperren schaltete nur `WS_EX_TRANSPARENT`. **Präzisierung in der Planphase, ratifiziert durch Freigabe („Freigabe
+  mit Änderung“):** Margin-Fix bleibt; `--log-input` (b0b0816); Ex-Style aus Sperre × Reiter (a52bc32): gesperrt
+  TRANSPARENT + NOACTIVATE, entsperrt Cargo NOACTIVATE wie T3.6, entsperrt Plan keins; nie `SetForegroundWindow`;
+  Test am echten HWND, vier Kombinationen; Thumb/RepeatButton lassen los, wenn die Taste oben ist ohne WM_LBUTTONUP
+  (`ScrollCaptureGuard`, D45-Muster). Desktop: Plan-Reiter entsperrt Ex-Style `0x000C0108`, nach dem Klick Vordergrund =
+  Overlay, Drag auf allen 8 Spalten. D11-Addendum.
 - **E1 (Commit 10) – „no hauling template form“ getrennt von „title unreadable“.** Anlass: Ling-Family-Hauling-Angebot
   in Martins scans.log (24.11.), Titel ganz gelesen, Meldung „title unreadable“. `TitleMiss` im Parser: andere Form nur
   bei positivem Zeichen (Auftraggeber gelesen, weder Covalex noch Red Wind, keine titelähnliche Zeile), sonst
@@ -418,8 +426,9 @@ ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
   Speicher. „Contractor ↔ System“ als eine Tabelle `ContractorSystems` mit Kommentar (vorher doppelt in `TemplateMatch`
   und `ObservedEdges`, Martins Hinweis), Datentest rot bei einem Template mit fremdem System (Mutation Covalex → Pyro:
   rot). D118-Addendum, `routes-format.md`.
-- **Gate 3b:** Punkt 1 = Scroll-Check im Spiel (Thumb, Rad, Shift+Rad, gesperrt click-through), kein eigener Gate;
-  zusätzlich Red-Wind-Zwillinge in Pyro.
+- **Gate 3b:** Punkt 1 = Scroll-Check über SC mit `--log-input` (Plan-Reiter entsperrt: Thumb-Drag, Track-Klick ohne
+  Springen, Rad vertikal, Shift+Rad seitwärts; Cargo-Reiter: Abhaken lässt SC vorne; gesperrt click-through), kein
+  eigener Gate; zusätzlich Red-Wind-Zwillinge in Pyro.
 
 ### [ ] T13.4 Core/App: Loop-Ranking
 
