@@ -476,6 +476,93 @@ ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
 - Ohne Reward (Red Wind ungescannt) zeigt der Kandidat Struktur, nie aUEC
 - Ranking kippt mit den Zeitparametern (Test mit zwei Parametersätzen)
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (24.11.2026, „Freigabe T13.4 mit K1“; Startprompt und
+Martins Antworten auf vier Rückfragen):**
+1. **Sprünge:** Spalte „jumps (long)“ = Legs der Folge, davon lange (> 10 Gm), z. B. „6 (4)“; t_Sprung zählt nur die
+   langen, kurze QT-Legs stecken in t_Station. §4.7 meint mit „Sprünge“ die langen (Everus 4 von 6 Legs).
+2. **Direct-Einzellauf = hin + zurück, immer 2 Landungen / 2 Legs** (die Hub-Landung zählt wie beim Ring; §4.7 war hier
+   inkonsistent), Rückläufer dazu, wenn `LoadPlanner` ihn legt; Ziel = fernster Ort des Pools (Worst Case) bzw. der
+   fernste beobachtete; Commodity-Zwillinge eine Zeile „×n“. Golden-Direct lange Sprünge **2** (Everus ↔ HUR-L3
+   25,69 Gm), nicht 1 – §4.7 zählte nur den Hinweg (bestätigt mit der Freigabe).
+3. **Pyro = Ring je Station** (Red Wind `Solar`), nur Struktur, aUEC nur beobachtet („–“, „+“ für Teilsummen); Fraktion aus
+   Settings, bei „Both sides“ je Faktions-Zwilling einer. **Der System-Filter gilt auch für Loops** (Stanton → keine
+   Pyro-Zeilen, Interstellar → „No loops for this system.“).
+4. **Zeilenklick = nur Ansicht:** Stanton-Zeile (Ring, Direct) → Recipe dieses Hubs für die Sitzung („Hub: Baijini
+   Point (from Loops)“), `routes.hub` nur per Hub-Button. **K1 (Freigabe):** `FitOf` („fits / too big“) rechnet weiter
+   gegen `routes.hub` – der Scan passiert am gespeicherten Hub.
+5. Ringstationen = Vereinigung der Drop-off-Pools der Hinweg-Rollen (Worst Case wie das SCU-Band oben), Pool > 5 → die
+   Orte des Rezepts; die Passprüfung des Rezepts (erste Stopps, D123) bleibt.
+6. `Loops.For` liefert die Struktur, `Loops.Rank` sortiert mit Zeiten und Sortierung ohne neuen `LoadPlanner`-Lauf.
+7. Anreise = Spalte „travel“ (Gm, „–“ am gleichen Hub, „travel: Pyro“), nicht in aUEC/h (D124: Sessionlänge unbekannt).
+8. LEO-Ring ab `routes.hub` über die vier Hubs, systemweite Verträge nur über beobachtete Kanten zu einem Hub voraus,
+   Greedy je Station mit dem, was noch an Bord ist; Status „observed k/4 hubs · needs scans at <Hub>“.
+9. Sortierung als Umschalt-Button „Sort: …“ in der Filterzeile (Bild-Gate entscheidet), `routes.loopsSort`.
+10. Status: „templates“ | „observed n/m“ | „needs scans at …“ (blass, unten); Kisten mit Beobachtung = größter
+    beobachteter Wert je Ware (`ObservedEdges.ScuOf`), Reward Covalex unverändert.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (bei der Umsetzung, zur Abnahme):**
+- **Gleichstand ≤ 0,1 Gm** (Genauigkeit §9.3) statt Rechengenauigkeit: Seraphim L1 → L4 → L5 und L1 → L5 → L4 trennen
+  < 0,01 Gm; mit der Regel ergibt sich §3s Folge. Eine Rundreise ist immer gleich lang wie ihre Umkehrung.
+- **Pyro-Ringe:** je Rolle die nächsten Orte ihres Pools (so viele wie Stopps, bei Multi → Single die weiteren Pickups
+  mit), höchstens 5 Stationen (`Recipe.Pick` mit Prädikat). Anlass: Red Wind `Solar` ist überwiegend Multi → Single mit
+  11 Pickups und je einem anderen festen Ziel; die Vereinigung ergab Ringe mit 12–15 Landungen.
+- **`FitCache`:** Antworten von `LoadPlanner.Lays` je (Schiff, Stopps) über Läufe, weil die App-Messung über 200 ms lag
+  (Startprompt §3: erst cachen).
+
+**Stand 24.11. (Branch `feat/p13-loops`, ff43ee2..):**
+- Commits: `ObservedEdges.ScuOf`; `Recipe.At`/`Pick` ohne Verhaltensänderung; `Loops` + `LoopCandidate`; Settings
+  `routes.times`/`routes.loopsSort` mit drei Slidern (+ Golden-Dateien der Migration nachgezogen); Plan-Reiter
+  Matrix | Recipe | Loops mit Hintergrundlauf; `LoopsTimingTests`; `FitCache`; Doku (D124, D123-Addendum,
+  `settings-format.md`, CLAUDE.md).
+- **Golden gegen §3/§4.7 (Pin `ships-2026.11.2`, Hull B, Senior, Default-Zeiten, ohne Scans):** Struktur 4/4 exakt –
+  Everus 6 Landungen / 4 lang, Baijini 6/4, Seraphim 4/3, Direct Exp Direct Medium Everus → HUR-L3 2/2 (2 lang).
+  aUEC/Umlauf: Everus 957 000 (**−5 %** gegen 1,01 M), Baijini 1 109 000 (**+3 %** gegen 1,08 M), Seraphim 733 250
+  (**−16 %** gegen 875 k, außerhalb ±15 %: das Rezept nimmt Senior Medium 296 250, Rookie Direct Small 34 750, drei
+  Smalls und drei Rückläufer à 67 500; §3 nennt Senior 328k, Smalls und ein Rookie Direct Medium aus einem Scan – hier
+  Templates im Worst Case und der Greedy des Rezepts statt der gescannten Auswahl). Port Tressler 1 173 000 (§4.7: ~1,0 M).
+- **Folgen gegen §3:** Seraphim **L1 → L4 → L5 wie §3** (72,48 Gm, Gleichstand mit L1 → L5 → L4). Everus berechnet
+  **L1 → L4 → L3 → L5 → L2 (72,88 Gm)** statt §3 L1 → L2 → L4 → L3 → L5 (74,76 Gm); Baijini **L1 → L4 → L3 → L5 → L2
+  (162,50 Gm)** statt §3 (166,71 Gm). Die §3-Folgen sind Spielerfahrung: die berechneten sind 1,9 bzw. 4,2 Gm kürzer;
+  Distanzen in den Testnamen. LEO: Everus → Baijini → Seraphim → Port Tressler (161,07 Gm) statt §8.6s Everus → Baijini
+  → Port Tressler → Seraphim (171,74 Gm).
+- **Ranking kippt (Hull B, Senior):** bei 10 min Port Tressler 709k/h, Baijini 670k, Seraphim 605k, Everus 578k; bei
+  5 min 1 015k / 960k / 835k / 828k – Seraphim und Everus rücken auf 0,8 % zusammen, der Direct Port Tressler → S4DC05
+  (0 lange Sprünge) steigt von Platz 10 auf 7; bei 15 min wächst Seraphims Vorsprung (475k gegen 444k). Weniger Zeit je
+  Landung hebt Loops mit vielen Landungen, mehr hebt die kurzen (Seraphim, Directs) – umgekehrt zum Startprompt
+  („10 → 5 min hebt Seraphim“). Mechanik-Test mit zwei Parametersätzen (`The_ranking_tips_with_the_time_per_station`).
+- **Mutationsproben:** ohne Permutation (`MaxPermuted = 0`) 6 rot, ohne Rückfracht 2 rot, ohne Zeitparameter (Default
+  statt Settings) 1 rot.
+- **Budget (Release, Martins Rechner, Hull B Senior):** im Testprozess Median 97–108 ms, erster Lauf 101–114 ms (Master
+  302–330 ms mit JIT). **In der App ohne Cache:** Start 434–462 ms, spätere Läufe 190–230 ms – über 200 ms; ein Cache
+  der Rückwege je Aufruf brachte ~10 %, Pyro allein kostete 84 von ~100 ms (warm). **Mit `FitCache`:** Start
+  **253 / 259 / 254 ms** (drei Starts, erster Lauf im Prozess), neue Rangstufe 40–43 ms, Wiederholung 0–11 ms; im
+  Testprozess zweiter Lauf 4–7 ms (~100 verschiedene Fragen je Ranking). **Der Start bleibt ~55 ms über dem Budget**,
+  im Hintergrund, die UI blockiert nie; nach einem Scan wenige ms. Nächster Hebel, falls gewünscht (Rückfrage): Pyro nur
+  rechnen, wenn der System-Filter Pyro zeigt (Pyro ≈ 80 % der warmen Zeit).
+- Logzeile beim Start: `Routes: loops 43 candidates, 0 observed, 254 ms (MISC Hull B, senior, Everus Harbor)`.
+- Bild (CC, Desktop, 470 × 700): Filterzeile „Loops · Sort: ~aUEC/h · Rank ≤ Senior · Stanton · 10 min · 20 s · 4 min“,
+  Port Tressler, Baijini, Seraphim, Everus ring, dann die Directs („Everus Harbor → HUR-L2 · Rookie Direct Medium ×3“).
+- **Handling gegen main:**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | View-Button Plan-Reiter | Matrix ↔ Recipe | Matrix → Recipe → Loops (Rechtsklick zurück) |
+  | System-Button | Matrix-Filter | wirkt auch in Loops (Stanton ohne Pyro-Zeilen) |
+  | Hub-Button (Recipe) | zyklisch, speichert `routes.hub` | gleich; nach Zeilenklick „(from Loops)“, der nächste Klick geht vom gezeigten Hub weiter und speichert |
+  | Sort-Button (neu) | – | nur Loops, zyklisch, speichert `routes.loopsSort` |
+  | Klick auf Loop-Zeile (neu) | – | Stanton-Zeile → Recipe dieses Hubs, nichts gespeichert; LEO/Pyro nichts |
+  | Settings „Plan tab“ | Rang, Fraktion | + drei Zeit-Slider (per landing, per crate, per long jump) |
+  | F3 auf Angebot, Plan-Reiter | „fits as …“ gegen `routes.hub` | gleich (K1), auch nach Zeilenklick |
+  | Alles andere | wie main | gleich |
+
+- **Gate T13.4 (Martin, SC vorne, Everus gespeichert):** (1) Loops zeigt vier Stanton-Ringe, Direct-Läufe, LEO-Ring mit
+  „needs scans“; System → Pyro: Pyro-Ringe ohne aUEC; (2) Everus-Ring aUEC/Umlauf plausibel gegen Σ der Matrix-Zeile
+  Everus → HUR-Lx plus Rückläufer (Tooltip der Zeile listet die Verträge); (3) Settings „Per landing“ auf 5 min →
+  Reihenfolge ändert sich sichtbar, Neustart → bleibt; (4) fünf lokale Offers scannen → Everus-Zeile „observed n/m“,
+  Kisten ändern sich; (5) ein systemweites Offer Everus → Hub scannen → LEO-Zeile bekommt Zahlen oder nennt den nächsten
+  Hub; (6) Hub-Button auf Baijini → Anreise-Spalte wechselt. Zahlen: Logzeile beim Start und nach dem Scan (ms). Offen
+  aus T13.3, falls eine Pyro-Session möglich ist: Red-Wind-Zwillinge (gemeinsame Beobachtung, Fraktionsfilter).
+
 ### ~~T13.5 App: Hafen-Matrix~~ – entfällt (in T13.2, U3, 23.11.)
 
 ### [ ] T13.6 Route starten
@@ -518,6 +605,10 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
 - Standorterkennung ersetzt den Hub-Button des Rezepts (T13.3b, D123): der Hub, an dem der Spieler steht, statt
   `routes.hub`. Auslöser: Game.log-Location wird gelesen.
+
+- QT-Zeit aus Distanz und der Quantum-Geschwindigkeit des Schiffs statt einer Zeit je langem Sprung (T13.4, D124:
+  heute `routes.times.jump` je Sprung > 10 Gm). Auslöser: Nutzer-Report, dass das Ranking lange und kurze Sprünge
+  falsch gewichtet, oder Schiffsdaten mit QT-Werten.
 
 - Kipprad (`WM_MOUSEHWHEEL`) scrollt die Hafen-Matrix seitwärts (K der Zwischenabnahme T13.3a: heute nur Shift+Rad).
   WPF hat dafür kein Event, es braucht einen `HwndSource`-Hook. Auslöser: Nutzer-Report mit Kipprad-Maus.
