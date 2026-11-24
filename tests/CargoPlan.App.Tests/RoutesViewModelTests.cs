@@ -33,8 +33,8 @@ public sealed class RoutesViewModelTests
         "u", "d", contractor, title, rank, HaulSize.Medium, false, HaulShape.AToB, 1, system, areaKey, type, faction, reward,
         [new HaulLeg("Gold", min, max, CrateSize.Sixteen)], pickups, dropoffs);
 
-    private RoutesViewModel Model(IReadOnlyList<HaulTemplate> templates, RoutesSettings? settings = null, ObservedEdges? observed = null) =>
-        new(new HaulingLoad.Loaded(new HaulingData(templates, Positions.Empty), []), Version, settings ?? RoutesSettings.Default, _saved.Add, observed);
+    private RoutesViewModel Model(IReadOnlyList<HaulTemplate> templates, RoutesSettings? settings = null, ObservedEdges? observed = null, Positions? positions = null) =>
+        new(new HaulingLoad.Loaded(new HaulingData(templates, positions ?? Positions.Empty), []), Version, settings ?? RoutesSettings.Default, _saved.Add, observed);
 
     private static readonly DateTime Monday = new(2026, 11, 23, 12, 0, 0, DateTimeKind.Utc);
 
@@ -349,6 +349,22 @@ public sealed class RoutesViewModelTests
         overlay.ChangeShip(HullB);
 
         model.RecipeLines.Should().ContainSingle().Which.Should().StartWith("Bulk · ");
+    }
+
+    [Fact]
+    public void A_scanned_offer_is_checked_against_the_hubs_recipe_for_the_ship_in_either_view()
+    {
+        Positions places = new([.. new[] { "Everus Harbor", L1 }.Select(n => new StarPosition(n, n, StarSystem.Stanton, "Manmade", null, 0, 0, 0, []))]);
+        var model = Model([SeniorBulk], positions: places);
+        var key = new ObservationKey(HaulContractor.Covalex, HaulRank.Senior, HaulSize.Medium, false, 325_250, ["Gold"]);
+        var scan = new ObservedScan(key, null, ["Everus Harbor"], [new ObservedDelivery("Green Glade Station", "Gold", 300)], Monday);
+
+        model.FitOf(scan).Should().BeNull("no ship yet");
+        model.ShowShip(HullB);
+        model.IsRecipe.Should().BeFalse();
+        model.FitOf(scan).Should().Be(new RecipeFit.FitsAs(RecipeKind.Bulk));
+        model.ShowShip(HullA);
+        model.FitOf(scan).Should().Be(new RecipeFit.TooBig(432, CrateSize.Sixteen, HullA.Name));
     }
 
     [Fact]

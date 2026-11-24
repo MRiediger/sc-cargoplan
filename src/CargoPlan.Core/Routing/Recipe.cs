@@ -135,7 +135,7 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
     /// The role of <paramref name="template"/> to <paramref name="places"/>: the first of them it draws, in place order, the
     /// hub left out; its kind from the title (direct, else Medium = bulk, else small).
     /// </summary>
-    private static RecipeRole Role(HaulTemplate template, IReadOnlyList<string> places, CrateCap cap, string hub)
+    internal static RecipeRole Role(HaulTemplate template, IReadOnlyList<string> places, CrateCap cap, string hub)
     {
         var stops = template.Shape == HaulShape.SingleToMulti ? template.Stops : 1;
         string[] destinations = [.. places.Where(p => p != hub).Distinct().Order(PlaceNames.Order).Take(stops)];

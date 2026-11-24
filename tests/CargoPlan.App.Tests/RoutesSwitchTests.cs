@@ -4,6 +4,7 @@ using System.Windows;
 using CargoPlan.App.Plans;
 using CargoPlan.App.Routing;
 using CargoPlan.App.Scanning;
+using CargoPlan.App.Settings;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Routing;
@@ -55,10 +56,12 @@ public sealed class RoutesSwitchTests : IDisposable
 
     private static ScanAttempt Read(string raw) => new(ScanAttemptOutcome.Read, raw, TimeSpan.Zero, TimeSpan.Zero, null, TimeSpan.Zero);
 
-    private ScanRunner Runner(RoutesBook routes, params string[] raws)
+    private ScanRunner Runner(RoutesBook routes, params string[] raws) => Runner(_overlay, routes, raws);
+
+    private ScanRunner Runner(OverlayViewModel overlay, RoutesBook routes, params string[] raws)
     {
         var queue = new Queue<string>(raws);
-        return new(() => Task.FromResult(Read(queue.Dequeue())), _overlay, new ScanLog(Path.Combine(_folder, "scans.log")),
+        return new(() => Task.FromResult(Read(queue.Dequeue())), overlay, new ScanLog(Path.Combine(_folder, "scans.log")),
             action => { action(); return Task.CompletedTask; }, _ => Task.CompletedTask, routes: routes);
     }
 
@@ -210,6 +213,26 @@ public sealed class RoutesSwitchTests : IDisposable
         _overlay.Saved.Should().BeNull();
         _overlay.Notices.Should().Equal($"Not observed (Plan tab): {why} – cargo unchanged");
         routes.Observations.Entries.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task An_observed_offer_says_whether_it_fits_the_recipe_for_the_ship()
+    {
+        // T13.3b: the Junior Small to Riker is the Hull A's recipe on the Everus board, so the notice says so.
+        var template = new HaulTemplate(
+            "junior", "debug", HaulContractor.Covalex, Title, HaulRank.Junior, HaulSize.Small, false, HaulShape.AToB, 1, StarSystem.Stanton,
+            "Stanton1", HaulMissionType.Stellar, null, 50_250, [new HaulLeg("Stims", 4, 16, CrateSize.Four)], [], ["Riker"]);
+        Positions places = new([.. new[] { "Everus Harbor", "Riker" }.Select(n => new StarPosition(n, n, StarSystem.Stanton, "Manmade", null, 0, 0, 0, []))]);
+        var overlay = new OverlayViewModel(HullA)
+        {
+            Routes = new RoutesViewModel(new HaulingLoad.Loaded(new HaulingData([template], places), []), new Core.ShipData.ShipDataVersion(2026, 11, 2), RoutesSettings.Default, null),
+            IsRoutesTabSelected = true,
+        };
+
+        await Runner(overlay, RoutesBook.Load(RoutesPath, places), Raw(View.Offer)).RunAsync();
+
+        overlay.Notices.Should().Equal("Observed (Plan tab): Covalex Junior Small · 50,250 aUEC · fits as small – cargo unchanged");
+        overlay.Saved.Should().BeNull();
     }
 
     [Fact]

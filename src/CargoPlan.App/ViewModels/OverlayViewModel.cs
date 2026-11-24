@@ -584,7 +584,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         if (IsRoutesTabSelected && scanned.View == ContractView.Offer)
         {
             return scanned.ToObservation(DateTime.UtcNow) is { } observed
-                ? new(ScanReportKind.Observed, Observed: observed.Key)
+                ? new(ScanReportKind.Observed, Observed: observed.Key, Fit: Routes?.FitOf(observed))
                 : new(ScanReportKind.NotObserved, Reason: scanned.NotObservedReason);
         }
 

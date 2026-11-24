@@ -150,6 +150,34 @@ public sealed class ScanNoticesTests
         ScanNotices.Text(report, null).Should().Be(expected);
     }
 
+    // T13.3b: the check before accepting, after the template; "cargo" stays the loading plan's word (E1 of T13.2).
+    [Theory]
+    [InlineData("bulk", "Observed (Plan tab): Covalex Senior Medium · 325,250 aUEC · fits as bulk – cargo unchanged")]
+    [InlineData("too big", "Observed (Plan tab): Covalex Senior Medium · 325,250 aUEC · too big for MISC Hull B (432 SCU in 16s) – cargo unchanged")]
+    [InlineData("none", "Observed (Plan tab): Covalex Senior Medium · 325,250 aUEC – cargo unchanged")]
+    public void An_observed_offer_says_whether_it_fits_the_recipe(string fit, string expected)
+    {
+        RecipeFit? recipeFit = fit switch
+        {
+            "bulk" => new RecipeFit.FitsAs(RecipeKind.Bulk),
+            "too big" => new RecipeFit.TooBig(432, CrateSize.Sixteen, "MISC Hull B"),
+            _ => null,
+        };
+        var key = new ObservationKey(HaulContractor.Covalex, HaulRank.Senior, HaulSize.Medium, false, 325_250, ["Waste"]);
+
+        ScanNotices.Text(new ScanReport(ScanReportKind.Observed, Observed: key, Fit: recipeFit), null).Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData(RecipeKind.Direct, "fits as direct")]
+    [InlineData(RecipeKind.Small, "fits as small")]
+    public void Every_kind_reads_in_the_notice(RecipeKind kind, string part)
+    {
+        var key = new ObservationKey(HaulContractor.Covalex, HaulRank.Junior, HaulSize.Small, false, 50_250, ["Stims"]);
+
+        ScanNotices.Text(new ScanReport(ScanReportKind.Observed, Observed: key, Fit: new RecipeFit.FitsAs(kind)), null).Should().Contain($" · {part} – ");
+    }
+
     [Fact]
     public void An_offer_not_observed_says_why_and_that_the_plan_stays()
     {

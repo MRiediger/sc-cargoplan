@@ -50,21 +50,23 @@ public enum ScanReportKind
 /// <param name="Reason">Why an update was refused, why the capture failed ("Win32 error 5", T10.3), or why an offer
 /// wasn't observed ("title unreadable", T13.1).</param>
 /// <param name="Observed">The template an offer was observed as, for <see cref="ScanReportKind.Observed"/>.</param>
+/// <param name="Fit">Whether that offer fits the Plan tab's recipe (T13.3b, D123); null with nothing to say.</param>
 public sealed record ScanReport(
     ScanReportKind Kind,
     int? ScanNo = null,
     bool QuantitiesChanged = false,
     IReadOnlyList<string>? Cleared = null,
     string? Reason = null,
-    ObservationKey? Observed = null)
+    ObservationKey? Observed = null,
+    RecipeFit? Fit = null)
 {
     public IReadOnlyList<string> Cleared { get; } = Cleared ?? [];
 
     // Records compare lists by reference; a report is equal by its parts.
     public bool Equals(ScanReport? other) =>
         other is not null
-        && (Kind, ScanNo, QuantitiesChanged, Reason, Observed) == (other.Kind, other.ScanNo, other.QuantitiesChanged, other.Reason, other.Observed)
+        && (Kind, ScanNo, QuantitiesChanged, Reason, Observed, Fit) == (other.Kind, other.ScanNo, other.QuantitiesChanged, other.Reason, other.Observed, other.Fit)
         && Cleared.SequenceEqual(other.Cleared);
 
-    public override int GetHashCode() => HashCode.Combine(Kind, ScanNo, QuantitiesChanged, Reason, Cleared.Count, Observed);
+    public override int GetHashCode() => HashCode.Combine(Kind, ScanNo, QuantitiesChanged, Reason, Cleared.Count, Observed, Fit);
 }

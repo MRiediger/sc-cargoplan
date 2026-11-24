@@ -69,6 +69,8 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     private readonly IReadOnlyList<HaulTemplate> _templates;
 
+    private readonly Positions _positions;
+
     private readonly Action<RoutesSettings>? _save;
 
     private ObservedEdges _observed;
@@ -109,11 +111,11 @@ public sealed partial class RoutesViewModel : ObservableObject
         _area = Array.FindIndex(Areas, a => a.Value == start.MissionType);
         _system = Array.FindIndex(Systems, s => s.Value == start.System);
         _hub = Math.Max(0, Array.FindIndex(Hubs, h => h.Name == settings.Hub));
-        (_templates, StatusText) = load switch
+        (_templates, _positions, StatusText) = load switch
         {
-            HaulingLoad.Loaded loaded => (loaded.Data.Templates, (string?)null),
-            HaulingLoad.UnknownFormat => ([], $"The hauling data in ship data {version.Display} can't be used by this app – see cargoplan.log"),
-            _ => ([], $"No hauling data in ship data {version.Display} – update ship data"),
+            HaulingLoad.Loaded loaded => (loaded.Data.Templates, loaded.Data.Positions, (string?)null),
+            HaulingLoad.UnknownFormat => ([], Positions.Empty, $"The hauling data in ship data {version.Display} can't be used by this app – see cargoplan.log"),
+            _ => ([], Positions.Empty, $"No hauling data in ship data {version.Display} – update ship data"),
         };
         Rebuild();
     }
@@ -170,6 +172,25 @@ public sealed partial class RoutesViewModel : ObservableObject
         _ship = ship;
         Rebuild();
     }
+
+    /// <summary>
+    /// The check before accepting (T13.3b, D123): the scanned offer matched to its template, against the recipe of the hub
+    /// for the ship, whichever view is shown. Null without hauling data, a ship or a single template.
+    /// </summary>
+    public RecipeFit? FitOf(ObservedScan scan)
+    {
+        if (!HasData || _ship is not { } ship)
+        {
+            return null;
+        }
+
+        var observation = Observation.Of(scan);
+        return RecipeFit.Of(TemplateMatch.Find(observation, _templates, _positions), RecipeFor(ship), ship, observation.Destinations);
+    }
+
+    // The board of the hub's area up to the filter's rank, both factions (Stanton has none), with what the scans saw.
+    private Recipe RecipeFor(Ship ship) =>
+        Recipe.For(Board.For(_templates, StarSystem.Stanton, Hubs[_hub].AreaKey, Ranks[_rank].Value, null), ship, _observed);
 
     [ObservableProperty]
     public partial bool ShowXs { get; set; } = true;
@@ -366,10 +387,7 @@ public sealed partial class RoutesViewModel : ObservableObject
         BuildRecipe();
     }
 
-    /// <summary>
-    /// The recipe of the hub's board for the ship (<see cref="Recipe.For"/>, D123), only while it is shown: the board of
-    /// the hub's area up to the filter's rank, both factions (Stanton has none), with what the scans saw.
-    /// </summary>
+    /// <summary>The recipe of the hub's board for the ship (<see cref="Recipe.For"/>, D123), only while it is shown.</summary>
     private void BuildRecipe()
     {
         (IReadOnlyList<string> lines, string? summary, string? note) = (IsRecipe, _ship, Systems[_system].Value) switch
@@ -377,7 +395,7 @@ public sealed partial class RoutesViewModel : ObservableObject
             (false, _, _) => ([], null, null),
             (true, null, _) => ([], null, "Recipe: no ship"),
             (true, _, not StarSystem.Stanton) => ([], null, "Recipe: Stanton hubs only"),
-            (true, { } ship, _) => Shown(Recipe.For(Board.For(_templates, StarSystem.Stanton, Hubs[_hub].AreaKey, Ranks[_rank].Value, null), ship, _observed), ship),
+            (true, { } ship, _) => Shown(RecipeFor(ship), ship),
         };
         (RecipeLines, RecipeSummary, RecipeNote) = (lines, summary, note);
     }

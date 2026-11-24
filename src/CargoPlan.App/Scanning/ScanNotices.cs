@@ -37,9 +37,17 @@ internal static class ScanNotices
         ScanReportKind.Unavailable => null,
         ScanReportKind.Busy => Running,
         // E1 of the T13.2 approval: the Routes tab is labelled Plan, so these say "cargo" for the loading plan.
-        ScanReportKind.Observed => $"Observed (Plan tab): {(report.Observed is { } key ? Template(key) : "offer")} – cargo unchanged",
+        ScanReportKind.Observed => $"Observed (Plan tab): {(report.Observed is { } key ? Template(key) : "offer")}{FitText(report.Fit)} – cargo unchanged",
         ScanReportKind.NotObserved => $"Not observed (Plan tab): {report.Reason} – cargo unchanged",
         _ => throw new ArgumentOutOfRangeException(nameof(report), report.Kind, null),
+    };
+
+    /// <summary>" · fits as bulk", " · too big for MISC Hull B (432 SCU in 16s)": the check before accepting (T13.3b, D123).</summary>
+    private static string FitText(RecipeFit? fit) => fit switch
+    {
+        RecipeFit.FitsAs { Kind: var kind } => $" · fits as {kind.ToString().ToLowerInvariant()}",
+        RecipeFit.TooBig { Scu: var scu, Crate: var crate, ShipName: var ship } => Inv($" · too big for {ship} ({scu} SCU in {(int)crate}s)"),
+        _ => "",
     };
 
     /// <summary>A failure the scan didn't expect (D82): the notice; the whole exception goes to cargoplan.log.</summary>
