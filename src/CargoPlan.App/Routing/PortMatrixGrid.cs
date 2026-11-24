@@ -10,7 +10,8 @@ namespace CargoPlan.App.Routing;
 /// <summary>
 /// The port matrix's columns (T13.2): one per drop-off of <see cref="RoutesViewModel.Columns"/>, built when the filter
 /// changes them, after a frozen pickup column. XAML can't bind a DataGrid's columns, so this attached property does.
-/// A click on a cell opens its tool tip, the hover's too: the list of templates (design §8.5).
+/// A click on a cell opens its tool tip, the hover's too: the list of templates (design §8.5). Shift and the wheel
+/// scroll sideways (<see cref="WheelSideways"/>).
 /// Source: https://learn.microsoft.com/dotnet/api/system.windows.controls.datagrid.columns (Columns is read-only, not bindable)
 /// </summary>
 public static class PortMatrixGrid
@@ -41,6 +42,7 @@ public static class PortMatrixGrid
         if (e.OldValue is null)
         {
             grid.PreviewMouseLeftButtonUp += OnCellClicked;
+            grid.PreviewMouseWheel += OnWheel;
         }
 
         grid.Columns.Clear();
@@ -70,6 +72,77 @@ public static class PortMatrixGrid
                 },
             });
         }
+    }
+
+    /// <summary>
+    /// Shift and the wheel scroll sideways (K of T13.3a), down is right, as far per notch as the wheel scrolls down: the
+    /// system's lines per notch (a page where it says so). Any other wheel is the grid's: plain is vertical, also where
+    /// nothing overflows downwards. The tilt wheel is in the backlog (WPF raises no event for it).
+    /// Sources: https://learn.microsoft.com/dotnet/api/system.windows.systemparameters.wheelscrolllines (-1 = a page),
+    /// https://learn.microsoft.com/dotnet/api/system.windows.input.mouse.mousewheeldeltaforoneline
+    /// </summary>
+    /// <returns>Whether the wheel was taken; the caller marks the event handled.</returns>
+    public static bool WheelSideways(ScrollViewer scroller, int delta, ModifierKeys modifiers)
+    {
+        if (modifiers != ModifierKeys.Shift || delta == 0)
+        {
+            return false;
+        }
+
+        var right = delta < 0;
+        var lines = SystemParameters.WheelScrollLines;
+        if (lines < 0)
+        {
+            if (right)
+            {
+                scroller.PageRight();
+            }
+            else
+            {
+                scroller.PageLeft();
+            }
+
+            return true;
+        }
+
+        // A fine wheel sends less than a notch: still at least one line.
+        var steps = Math.Max(1, Math.Abs(delta) * lines / Mouse.MouseWheelDeltaForOneLine);
+        for (var i = 0; i < steps; i++)
+        {
+            if (right)
+            {
+                scroller.LineRight();
+            }
+            else
+            {
+                scroller.LineLeft();
+            }
+        }
+
+        return true;
+    }
+
+    private static void OnWheel(object sender, MouseWheelEventArgs e)
+    {
+        if (!e.Handled && Scroller((DependencyObject)sender) is { } scroller)
+        {
+            e.Handled = WheelSideways(scroller, e.Delta, Keyboard.Modifiers);
+        }
+    }
+
+    // The grid's own ScrollViewer, the first in its template.
+    private static ScrollViewer? Scroller(DependencyObject element)
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(element); i++)
+        {
+            var child = VisualTreeHelper.GetChild(element, i);
+            if ((child as ScrollViewer ?? Scroller(child)) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     // A click shows what a hover shows, for players who click: a tool tip of its own on the cell's text, closed by the next click.

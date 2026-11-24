@@ -198,12 +198,15 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- The slim bar's thumb: in the bar's Foreground, brighter under the mouse and while dragged. -->
+        <!-- The slim bar's thumb: in the bar's Foreground, brighter under the mouse and while dragged. It takes the bar's whole
+             width and draws its grip 2 px inside: a press on the inset took nothing and moved the window (K of T13.3a). -->
         <Style x:Key="SlimScrollThumbStyle" TargetType="Thumb">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <Border x:Name="Grip" CornerRadius="2" Opacity="0.35" Background="{TemplateBinding Foreground}" />
+                        <Border Background="{StaticResource HitTestBackgroundBrush}">
+                            <Border x:Name="Grip" Margin="2" CornerRadius="2" Opacity="0.35" Background="{TemplateBinding Foreground}" />
+                        </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Grip" Property="Opacity" Value="0.6" />
@@ -228,7 +231,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ScrollBar">
                         <!-- Reversed: a vertical track counts upwards, a scroll bar downwards. -->
-                        <Track x:Name="PART_Track" IsDirectionReversed="True" Margin="2,2,2,2">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
                             <Track.DecreaseRepeatButton>
                                 <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Style="{StaticResource SlimScrollPageButtonStyle}" />
                             </Track.DecreaseRepeatButton>
@@ -251,7 +254,7 @@
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ScrollBar">
-                                <Track x:Name="PART_Track" Margin="2,2,2,2">
+                                <Track x:Name="PART_Track">
                                     <Track.DecreaseRepeatButton>
                                         <RepeatButton Command="{x:Static ScrollBar.PageLeftCommand}" Style="{StaticResource SlimScrollPageButtonStyle}" />
                                     </Track.DecreaseRepeatButton>

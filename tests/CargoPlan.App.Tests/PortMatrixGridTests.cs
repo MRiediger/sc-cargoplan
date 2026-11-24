@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Input;
 using CargoPlan.App.Routing;
 
 namespace CargoPlan.App.Tests;
@@ -35,5 +36,63 @@ public class PortMatrixGridTests
 
         PortMatrixGrid.SetColumns(grid, ["Baijini Point"]);
         grid.Columns.Select(c => c.Header).Should().Equal("From \\ To", "Baijini Point");
+    });
+
+    // A view of 100 × 100 px over content of 1000 × 1000 px, pixel scrolling like the matrix's columns.
+    private static ScrollViewer Scroller()
+    {
+        var scroller = new ScrollViewer
+        {
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            Content = new Border { Width = 1000, Height = 1000 },
+        };
+        scroller.Measure(new Size(100, 100));
+        scroller.Arrange(new Rect(0, 0, 100, 100));
+        scroller.UpdateLayout();
+        return scroller;
+    }
+
+    // One notch scrolls as far sideways as down: the system's lines per notch, a line as the ScrollViewer has it.
+    private static double OneNotch()
+    {
+        var reference = Scroller();
+        for (var i = 0; i < SystemParameters.WheelScrollLines; i++)
+        {
+            reference.LineDown();
+        }
+
+        reference.UpdateLayout();
+        return reference.VerticalOffset;
+    }
+
+    [Fact]
+    public void Shift_and_the_wheel_scroll_sideways_down_is_right() => Sta.Run(() =>
+    {
+        var scroller = Scroller();
+        var notch = OneNotch();
+
+        PortMatrixGrid.WheelSideways(scroller, -Mouse.MouseWheelDeltaForOneLine, ModifierKeys.Shift).Should().BeTrue();
+        scroller.UpdateLayout();
+        scroller.HorizontalOffset.Should().Be(notch);
+        scroller.VerticalOffset.Should().Be(0);
+
+        PortMatrixGrid.WheelSideways(scroller, 2 * Mouse.MouseWheelDeltaForOneLine, ModifierKeys.Shift).Should().BeTrue();
+        scroller.UpdateLayout();
+        scroller.HorizontalOffset.Should().Be(0, "two notches up scroll back to the start, no further");
+    });
+
+    [Theory]
+    [InlineData(ModifierKeys.None)]
+    [InlineData(ModifierKeys.Control)]
+    [InlineData(ModifierKeys.Shift | ModifierKeys.Control)]
+    public void Without_Shift_alone_the_wheel_is_left_to_the_grid(ModifierKeys modifiers) => Sta.Run(() =>
+    {
+        // Plain wheel stays vertical, also where nothing overflows downwards (approval of K): never turned sideways.
+        var scroller = Scroller();
+
+        PortMatrixGrid.WheelSideways(scroller, -Mouse.MouseWheelDeltaForOneLine, modifiers).Should().BeFalse();
+        scroller.UpdateLayout();
+        scroller.HorizontalOffset.Should().Be(0);
     });
 }

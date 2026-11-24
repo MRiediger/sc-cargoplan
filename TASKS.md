@@ -390,6 +390,18 @@ mehrere Legs (Carbon 200 SCU aus zwei Pickups, Legs je 25–175); keine Red-Wind
 - **Hänger:** ein voller `dotnet test`-Lauf blieb einmal im App-Testhost stehen (10 min, CPU konstant); drei folgende Läufe
   mit `--blame-hang-timeout` grün in 11–17 s, nicht reproduziert. Beobachten.
 
+**Zwischenabnahme 3a (24.11.2026, erteilt) – K und drei E vor 3b, Commits 9–12. Präzisierung in der Planphase,
+ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
+- **K (Commit 9) – Matrix scrollt per Thumb und Shift+Rad.** Befund mit echter Eingabe (`SendInput`, UIA, ohne Spiel):
+  von 8 px der Slim-Leiste griffen nur die mittleren 4, die 2 px Track-Einzug links/rechts trafen nichts → DragMove
+  (Fenster wanderte); Rad vertikal scrollte überall; Shift+Rad scrollte vertikal. Fix: Track ohne Einzug, Thumb mit
+  Hit-Test-Hintergrund über die volle Breite, Grip 2 px innen (gilt auch für Legende und Schiffsliste); Shift+Rad
+  seitwärts (`PortMatrixGrid.WheelSideways`), Rad ohne Modifier bleibt vertikal, auch ohne vertikalen Überlauf (Martin);
+  Kipprad → Backlog. Nachher: alle 8 Spalten greifen, kein Fenster wandert, Shift+Rad 1,6 % je Raste. Test:
+  `SlimScrollBarTests` (vorher `nothing, nothing, thumb ×4, nothing, nothing`), `PortMatrixGridTests`. D120-, D80-Addendum.
+- **Gate 3b:** Punkt 1 = Scroll-Check im Spiel (Thumb, Rad, Shift+Rad, gesperrt click-through), kein eigener Gate;
+  zusätzlich Red-Wind-Zwillinge in Pyro.
+
 ### [ ] T13.4 Core/App: Loop-Ranking
 
 **Warum:** Die Kernfrage der Phase: welche Loop ist für mein Schiff die effektivste, auch an einem anderen Hub (Design §4.7).
@@ -444,6 +456,9 @@ mehrere Legs (Carbon 200 SCU aus zwei Pickups, Legs je 25–175); keine Red-Wind
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- Kipprad (`WM_MOUSEHWHEEL`) scrollt die Hafen-Matrix seitwärts (K der Zwischenabnahme T13.3a: heute nur Shift+Rad).
+  WPF hat dafür kein Event, es braucht einen `HwndSource`-Hook. Auslöser: Nutzer-Report mit Kipprad-Maus.
 
 - Proben der Zuordnung nach Seite sparen (F10b, D117): `RackAssignment.AssignBySide` prüft jedes Ziel je Seite mit
   einer Machbarkeitssuche; nimmt ein leeres Rack der Seite das Ziel allein, gibt es sicher eine Zuordnung und die Probe
