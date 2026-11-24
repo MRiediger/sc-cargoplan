@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Threading;
+using CargoPlan.App.Diagnostics;
 using CargoPlan.App.Editor;
 using CargoPlan.App.Holo;
 using CargoPlan.App.Hotkeys;
@@ -13,6 +14,7 @@ using CargoPlan.App.ShipData;
 using CargoPlan.App.Updates;
 using CargoPlan.App.ViewModels;
 using CargoPlan.App.Win32;
+using CargoPlan.Core.Json;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Routing;
@@ -301,6 +303,35 @@ public partial class App : Application
         return load;
     }
 
+    /// <summary>
+    /// The observations' edges at the start (T13.3): routes.json read and folded (by <see cref="RoutesBook.Load"/>), then
+    /// matched; one log line with the counts and both times (TASKS.md asks for the start's time).
+    /// </summary>
+    private static ObservedEdges ObserveAtStart(RoutesBook book, HaulingLoad hauling)
+    {
+        if (hauling is not HaulingLoad.Loaded { Data: var data })
+        {
+            return ObservedEdges.Empty;
+        }
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var edges = ObservedEdges.From(book.Observations, data.Templates, data.Positions);
+        AppLog.Write("Routes", FormattableString.Invariant(
+            $"{book.Observations.Entries.Count} observations: {edges.Matched} matched, {edges.Ambiguous} ambiguous, {edges.None} none; read {book.LoadMilliseconds} ms, matched {watch.ElapsedMilliseconds} ms"));
+        return edges;
+    }
+
+    private static string Describe(ObservationKey key) => FormattableString.Invariant(
+        $"{EnumWords.Word(key.Contractor)} {EnumWords.Word(key.Rank)} {EnumWords.Word(key.Size)} {key.Reward}");
+
+    private static string Describe(MatchResult result) => result switch
+    {
+        MatchResult.Matched m => $"matched {m.Template.DebugName}",
+        MatchResult.Ambiguous a => FormattableString.Invariant($"ambiguous ({a.Candidates.Count}): {string.Join(", ", a.Candidates.Select(c => c.DebugName))}"),
+        MatchResult.None n => $"no template: {n.Reason}",
+        _ => throw new ArgumentOutOfRangeException(nameof(result)),
+    };
+
     /// <summary>The start's message without the built-in ship data (T12.5, R5): the ZIP is incomplete, so a new one helps.</summary>
     internal static string BaselineMissingText(ShipDataFormatException ex) =>
         $"The ship data next to SC-CargoPlan are missing or damaged ({ex.Message}). Download SC-CargoPlan again.";
@@ -321,11 +352,26 @@ public partial class App : Application
         // The settings' ship, else the start plan's, else the Hull A; one that doesn't load never stops the start (T7.2).
         var (ship, shipNotice) = ShipChoices.Resolve(ships, settings.Ship, PlanStore.PeekShipId(options.PlanPath ?? PlanStore.DefaultPath));
 
+        // The observations of routes.json, folded and named as the positions name the places (E3 of T13.3a), matched to the
+        // templates (T13.3): the Plan tab shows their edges.
+        var routesBook = RoutesBook.Load(RoutesBook.DefaultPath, hauling is HaulingLoad.Loaded { Data: var haulingAtStart } ? haulingAtStart.Positions : Positions.Empty);
+        var observed = ObserveAtStart(routesBook, hauling);
+
         // The session comes after the view model (it applies the look to it); the Plan tab saves rank and faction through it,
         // never the tab, which the overlay's own handler below keeps.
         SettingsSession? sessionForRoutes = null;
         var routes = new RoutesViewModel(hauling, data.Version, settings.Routes, changed =>
-            sessionForRoutes?.ChangeRoutes(sessionForRoutes.Current.Routes with { Rank = changed.Rank, Faction = changed.Faction }));
+            sessionForRoutes?.ChangeRoutes(sessionForRoutes.Current.Routes with { Rank = changed.Rank, Faction = changed.Faction, Hub = changed.Hub }), observed);
+        // After each scan, on its pool thread: match anew there, show on the UI thread.
+        routesBook.Recorded += (all, entry) =>
+        {
+            if (hauling is HaulingLoad.Loaded { Data: var haulingData })
+            {
+                AppLog.Write("Routes", $"observed {Describe(entry.Key)}: {Describe(TemplateMatch.Find(entry, haulingData.Templates, haulingData.Positions))}");
+                var edges = ObservedEdges.From(all, haulingData.Templates, haulingData.Positions);
+                Dispatcher.InvokeAsync(() => routes.ShowObserved(edges));
+            }
+        };
         var viewModel = new OverlayViewModel(ship, ships)
         {
             IsManuallyLocked = options.Locked,
@@ -343,6 +389,9 @@ public partial class App : Application
         // changes the look through the same session (D34).
         var session = new SettingsSession(Resources, viewModel, SettingsStore.DefaultPath, settings);
         sessionForRoutes = session;
+
+        // The settings window's Plan tab section writes rank and faction too (T13.3): the tab's filter follows.
+        session.RoutesChanged += (_, changed) => routes.Follow(changed);
 
         // A hotkey the migration to schema 3 took is said once (T10.4a): the file is written now, the old one stays as the
         // backup, and the hint stays for the run (B14). Every other load writes nothing until a change (D31).
@@ -388,18 +437,25 @@ public partial class App : Application
         // Every scan read whole is an observation in routes.json, whatever tab is selected (T13.1, U3).
         var scan = new ScanRunner(
             () => scanner.ScanAsync(), viewModel, new ScanLog(ScanLog.DefaultPath), action => Dispatcher.InvokeAsync(action).Task,
-            pictures: pictures, routes: RoutesBook.Load(RoutesBook.DefaultPath));
+            pictures: pictures, routes: routesBook);
         var overlay = new OverlayWindow(
             viewModel,
             session,
             () => CreateHotkeysViewModel(session),
             () => CreateUpdateSettingsViewModel(session),
             () => CreateShipDataSettingsViewModel(session),
+            () => CreateRoutesSettingsViewModel(session),
             scan.Start,
             _activeShipData is { } active ? HoloSource.UnavailableText(active) : null);
         if (settings.Overlay is { } saved)
         {
             RestoreBounds(overlay, saved);
+        }
+
+        if (options.LogInput)
+        {
+            InputLog.Attach(overlay);
+            AppLog.Write("Input", $"logging the overlay's input ({StartOptions.LogInputSwitch})");
         }
 
         // The saver's Closed handler goes first and hands over pending bounds; Flush then writes a pending look change.
@@ -662,6 +718,13 @@ public partial class App : Application
         Shutdown();
         return null;
     }
+
+    /// <summary>The settings window's Plan tab section (T13.3): rank and faction into the session's routes section.</summary>
+    private static RoutesSettingsViewModel CreateRoutesSettingsViewModel(SettingsSession session) => new(
+        session.Current.Routes,
+        (rank, faction) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction }),
+        handler => session.RoutesChanged += handler,
+        handler => session.RoutesChanged -= handler);
 
     /// <summary>
     /// The settings window's Updates section (U8, U9), made per window like the hotkeys'. Check now offers into the overlay's

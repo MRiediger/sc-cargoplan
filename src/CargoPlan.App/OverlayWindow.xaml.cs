@@ -21,6 +21,7 @@ public partial class OverlayWindow : Window
     private readonly Func<HotkeysViewModel> _createHotkeys;
     private readonly Func<UpdateSettingsViewModel> _createUpdates;
     private readonly Func<UpdateSettingsViewModel> _createShipData;
+    private readonly Func<RoutesSettingsViewModel> _createRoutes;
     private readonly Action _scanContract;
     private readonly string? _hologramsUnavailable;
     private MissionEditorWindow? _editor;
@@ -29,6 +30,7 @@ public partial class OverlayWindow : Window
     /// <param name="createHotkeys">Made per settings window, from the hotkeys as they are then.</param>
     /// <param name="createUpdates">Made per settings window, like the hotkeys (T11.2).</param>
     /// <param name="createShipData">The Ship data section's, made the same way (T12.3).</param>
+    /// <param name="createRoutes">The Plan tab section's, made the same way (T13.3).</param>
     /// <param name="scanContract">The editor's "Scan", the scan hotkey's runner (T10.3).</param>
     /// <param name="hologramsUnavailable">The line under "Download ship holograms" when the data in use offer none this app reads (T12.4); null otherwise.</param>
     public OverlayWindow(
@@ -37,15 +39,19 @@ public partial class OverlayWindow : Window
         Func<HotkeysViewModel> createHotkeys,
         Func<UpdateSettingsViewModel> createUpdates,
         Func<UpdateSettingsViewModel> createShipData,
+        Func<RoutesSettingsViewModel> createRoutes,
         Action scanContract,
         string? hologramsUnavailable)
     {
         InitializeComponent();
+        // Thumb and track buttons let go when the button is up without its message, over the game (T13.3a).
+        ScrollCaptureGuard.Attach(this);
         _viewModel = viewModel;
         _settings = settings;
         _createHotkeys = createHotkeys;
         _createUpdates = createUpdates;
         _createShipData = createShipData;
+        _createRoutes = createRoutes;
         _scanContract = scanContract;
         _hologramsUnavailable = hologramsUnavailable;
         DataContext = viewModel;
@@ -63,9 +69,11 @@ public partial class OverlayWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        // Ticking a stop off at the terminal must not take the foreground from Star Citizen (D11, addendum T3.6).
+        // Ticking a stop off at the terminal must not take the foreground from Star Citizen (D11, addendum T3.6); the Plan
+        // tab, unlocked, lifts that so its scroll bars work over the game (addendum T13.3a). Never SetForegroundWindow.
         NativeMethods.PreventActivation(new WindowInteropHelper(this).Handle, ShowInTaskbar);
         ApplyLock(_viewModel.IsLocked);
+        ApplyInputStyles();
     }
 
     protected override void OnClosed(EventArgs e)
@@ -76,6 +84,11 @@ public partial class OverlayWindow : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (AffectsInputStyles(e.PropertyName))
+        {
+            ApplyInputStyles();
+        }
+
         if (e.PropertyName == nameof(OverlayViewModel.IsLocked))
         {
             ApplyLock(_viewModel.IsLocked);
@@ -274,7 +287,22 @@ public partial class OverlayWindow : Window
         toolWindow.Closed += (_, _) => viewModel.PropertyChanged -= onChanged;
     }
 
-    /// <summary>Locked = click-through, see <see cref="NativeMethods.SetClickThrough"/>.</summary>
+    /// <summary>Lock and tab set the ex-styles (D11 addendum T13.3a); other changes leave them.</summary>
+    internal static bool AffectsInputStyles(string? propertyName) =>
+        propertyName is nameof(OverlayViewModel.IsLocked) or nameof(OverlayViewModel.IsRoutesTabSelected);
+
+    /// <summary>Locked = click-through; the tab decides activation while unlocked, see <see cref="NativeMethods.SetOverlayInput"/>.</summary>
+    private void ApplyInputStyles()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == 0)
+        {
+            return; // Not shown yet; OnSourceInitialized applies the current state.
+        }
+
+        NativeMethods.SetOverlayInput(hwnd, _viewModel.IsLocked, _viewModel.IsRoutesTabSelected);
+    }
+
     private void ApplyLock(bool locked)
     {
         // Before the HWND check: the view must ignore wheel and drag even before the window shows.
@@ -286,14 +314,6 @@ public partial class OverlayWindow : Window
         {
             ShipBox.IsDropDownOpen = false;
         }
-
-        var hwnd = new WindowInteropHelper(this).Handle;
-        if (hwnd == 0)
-        {
-            return; // Not shown yet; OnSourceInitialized applies the current state.
-        }
-
-        NativeMethods.SetClickThrough(hwnd, locked);
     }
 
     /// <summary>
@@ -338,6 +358,7 @@ public partial class OverlayWindow : Window
                 _createHotkeys(),
                 _createUpdates(),
                 _createShipData(),
+                _createRoutes(),
                 _viewModel,
                 _settings.ToolWindowTheme,
                 this);

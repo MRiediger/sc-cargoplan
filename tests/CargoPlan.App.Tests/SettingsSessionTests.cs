@@ -1,8 +1,10 @@
 using System.Windows;
 using System.Windows.Media;
 using CargoPlan.App.Hotkeys;
+using CargoPlan.App.Routing;
 using CargoPlan.App.Settings;
 using CargoPlan.App.ViewModels;
+using CargoPlan.Core.Routing;
 using CargoPlan.Core.Ships;
 using CargoPlan.Core.Tests;
 using Keys = CargoPlan.App.Theme.ThemeResources.Keys;
@@ -695,6 +697,45 @@ public sealed class SettingsSessionTests : IDisposable
 
         Saved().Routes.Should().Be(new RoutesSettings("plan", "senior", "hh"));
         Saved().ShipData.Should().Be(UpdateSettings.Default);
+    }
+
+    [Fact]
+    public void A_route_change_is_told_once_and_the_same_section_not_at_all()
+    {
+        // T13.3: the Plan tab's filter and the settings window's section follow each other through this.
+        var session = Create();
+        List<RoutesSettings> told = [];
+        session.RoutesChanged += (_, routes) => told.Add(routes);
+
+        session.ChangeRoutes(session.Current.Routes with { Rank = "senior" });
+        session.ChangeRoutes(session.Current.Routes with { Rank = "senior" });
+
+        told.Should().Equal(RoutesSettings.Default with { Rank = "senior" });
+    }
+
+    [Fact]
+    public void A_filter_button_shows_in_the_settings_window_and_the_window_in_the_filter()
+    {
+        // T13.3: both write routes.rank and routes.faction; each shows what the other set, neither writes it back.
+        var session = Create();
+        var tab = new RoutesViewModel(new HaulingLoad.None("no data in this test"), new(2026, 11, 2), session.Current.Routes,
+            changed => session.ChangeRoutes(session.Current.Routes with { Rank = changed.Rank, Faction = changed.Faction }));
+        session.RoutesChanged += (_, changed) => tab.Follow(changed);
+        var window = new RoutesSettingsViewModel(session.Current.Routes,
+            (rank, faction) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction }),
+            handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
+
+        tab.NextCommand.Execute("faction");
+        window.Faction.Should().Be("hh");
+
+        window.Rank = "junior";
+        tab.RankLabel.Should().Be("Rank ≤ Junior");
+        tab.Filter.MaxRank.Should().Be(HaulRank.Junior);
+
+        window.Detach();
+        tab.NextCommand.Execute("faction");
+        window.Faction.Should().Be("hh", "a closed window follows nothing");
+        session.Current.Routes.Should().Be(RoutesSettings.Default with { Rank = "junior", Faction = "cfp" });
     }
 
     [Fact]

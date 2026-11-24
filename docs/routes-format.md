@@ -18,7 +18,7 @@ Medium contract for 532,500 aUEC, whose card names the level "Stellar" but not w
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "observations": [
     {
       "contractor": "covalex",
@@ -91,13 +91,17 @@ error.
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `1`. |
+| `schemaVersion` | number | `2`; a file of schema `1` (T13.1) is read, [below](#schema-1). |
 | `observations` | array | One entry per variant, in the order first seen. May be empty. No two entries have the same key. |
 
 ### Observation
 
-A variant is its **key**: `contractor`, `rank`, `size`, `direct` and `reward`. Two scans with the same key are the same
-variant, whatever places and amounts each drew; the rest of the entry is what they showed together.
+A variant is its **key**: `contractor`, `rank`, `size`, `direct`, `reward` and the **commodities** of `scu`. Two scans with
+the same key are the same variant, whatever places and amounts each drew; the rest of the entry is what they showed
+together. The commodities are in the key since schema 2 (T13.3): templates that differ only in their commodity share
+rank, size, direct and reward (at Everus four Rookie Direct Medium pay 50,500, one per ore), and a template's commodities
+are fixed. Commodities compare as OCR may read them (upper case, `l`, `1` and `I` alike, `0` and `O` alike); the file
+names each one once.
 
 | Field | Type | Rules |
 |---|---|---|
@@ -107,9 +111,9 @@ variant, whatever places and amounts each drew; the rest of the entry is what th
 | `direct` | boolean | Optional: `true` if the title says "Direct", `false` if its form would say it and doesn't. Left out where the form doesn't tell: the Red Wind card (below). |
 | `reward` | number | The reward in aUEC, at least 1. |
 | `area` | string | Optional: `"stellar"` or `"planetary"`, the level a Red Wind card names; the last one read. Not part of the key. |
-| `pickups` | array of strings | Every place of the Collect lines of all scans, sorted, each once. Names as the scan read them. |
-| `destinations` | array of strings | Every destination of all scans, sorted, each once. |
-| `scu` | array | One band per commodity, sorted by commodity: `commodity` (string), `min` and `max` (numbers, `1 ≤ min ≤ max`), the smallest and largest SCU one delivery line of it asked for. |
+| `pickups` | array of strings | Every place of the Collect lines of all scans, sorted, one name per place (below). |
+| `destinations` | array of strings | Every destination of all scans, sorted, one name per place. |
+| `scu` | array | One band per commodity, sorted by commodity: `commodity` (string, as first read), `min` and `max` (numbers, `1 ≤ min ≤ max`), the smallest and largest SCU one delivery line of it asked for. Part of the key. |
 | `count` | number | Scans recorded, at least 1. Scanning the same contract again counts too. |
 | `firstUtc`, `lastUtc` | string | The first and the last scan, ISO 8601 in UTC (`Z`), first not after last. |
 
@@ -134,10 +138,23 @@ Titles come in three forms (T13.1):
 
 No capture has shown the third form yet; the parser reads it should the game ever print it. A title read in part
 (an unknown rank or size word) is no title, and the scan isn't observed. `cargoplan.log` names why
-("Routes: not observed: title unreadable").
+("Routes: not observed: title unreadable"); a contract of another contractor without a hauling title says "no hauling
+template form" (E1 of T13.3a).
 
-Names are kept as read. Two readings of one place ("Green Glade Station", "Green Glade") can both be there until
-T13.3 joins them by the name rule of the plan (B1) when it loads the file; that needs no new schema.
+**One name per place.** Where the hauling data are there, each place is written as its position names it, in the
+system of the contractor (Covalex: Stanton, Red Wind: Pyro): the card writes a pickup "HUR-L3 Thundering Express
+Station" and a destination "Thundering Express Station", the file holds "HUR-L3 Thundering Express Station" for both
+(E3 of T13.3a; the name rules in `docs/hauling-data-format.md`, Addendum T13.3). A place no position answers to, and
+every place without hauling data, is kept as read, with the name rule of the plan (B1: "Green Glade" and "Green Glade
+Station", "Melodic Fieids" and "Melodic Fields Station" are one, the longer name stays). Reading a file joins and names
+what an older file kept apart (T13.3), in memory; the next save writes it so, never the reading.
+
+### Schema 1
+
+Schema 1 (T13.1) keyed a variant without its commodities, so one entry could hold scans of several templates. Reading
+it takes every entry with one commodity as it is and leaves out every entry with several; `cargoplan.log` names each
+("Routes: schema 1 entry covalex senior medium 325250 left out: 2 commodities may be several templates"). The next
+save writes schema 2. No release wrote schema 1.
 
 ## Offers while Routes is selected
 

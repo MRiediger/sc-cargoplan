@@ -117,4 +117,43 @@ public class LoadPlannerShapeTests
         Scu(plan).Should().Be(58);
         LoadPlanner.Validate(plan, HullA).Should().BeEmpty();
     }
+
+    // --- Lays: the recipe's question "does this lie in the empty ship?" (T13.3b) ---
+
+    public static TheoryData<string, Stop[]> LaysCases() => new()
+    {
+        // By SCU two 32s share a 90 SCU rack, by shape each rack takes one: three don't lie in uneven_long.
+        { "uneven_long", [StopOf("Port Tressler", 1, "Titanium", 96, CrateSize.ThirtyTwo)] },
+        { "uneven_long", [StopOf("Port Tressler", 1, "Titanium", 64, CrateSize.ThirtyTwo)] },
+        { "uneven_long", OnesThen32s },
+        { "hull_a", [StopOf("Riker", 1, "Gold", 64, CrateSize.Sixteen)] },
+        { "hull_a", [StopOf("Riker", 1, "Gold", 48, CrateSize.Sixteen), StopOf("Area18", 2, "Gold", 24, CrateSize.Eight)] },
+    };
+
+    [Theory]
+    [MemberData(nameof(LaysCases))]
+    public void Lays_says_yes_only_where_the_planner_lays_it(string shipId, Stop[] stops)
+    {
+        // The planner's own first fit (D54): never "lies" where Plan refuses; on these cases the two agree.
+        var ship = shipId == "hull_a" ? HullA : Uneven;
+        bool planned;
+        try
+        {
+            LoadPlanner.Plan(ship, stops);
+            planned = true;
+        }
+        catch (PlanException)
+        {
+            planned = false;
+        }
+
+        LoadPlanner.Lays(ship, stops).Should().Be(planned);
+    }
+
+    [Fact]
+    public void Lays_says_no_for_more_than_the_ship_or_a_crate_no_rack_takes()
+    {
+        LoadPlanner.Lays(HullA, [StopOf("Riker", 1, "Gold", 80, CrateSize.Sixteen)]).Should().BeFalse("80 SCU in a 64 SCU ship");
+        LoadPlanner.Lays(HullA, [StopOf("Riker", 1, "Gold", 32, CrateSize.ThirtyTwo)]).Should().BeFalse("no Hull A rack takes a 32");
+    }
 }

@@ -119,6 +119,7 @@
   "routes": {
     "tab": "cargo",
     "rank": "master",
-    "faction": null
+    "faction": null,
+    "hub": "Everus Harbor"
   }
 }

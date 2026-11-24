@@ -1,5 +1,6 @@
 using CargoPlan.Core.Routing;
 using CargoPlan.Core.ShipData;
+using CargoPlan.Core.Text;
 
 namespace CargoPlan.Core.Tests;
 
@@ -37,18 +38,71 @@ public sealed class BaselineHaulingDataTests
         }
     }
 
+    // E3 of T13.3a, Martin: matching, edges and routes.json take a scan's system from its contractor (ContractorSystems).
+    // A template of a contractor in another system makes this fail; the interstellar ones have none (16 Covalex).
+    [Fact]
+    public void Every_template_with_a_system_lies_in_its_contractors()
+    {
+        var foreign = Data.Templates
+            .Where(t => t.System is { } system && system != ContractorSystems.Of(t.Contractor))
+            .Select(t => $"{t.Uuid} {t.Contractor} in {t.System}");
+
+        foreign.Should().BeEmpty();
+        Data.Templates.Where(t => t.System is null).Should().OnlyContain(t => t.MissionType == HaulMissionType.Interstellar);
+    }
+
     [Fact]
     public void No_name_is_there_twice_in_one_system() =>
         Data.Positions.All.GroupBy(p => (p.System, p.Name)).Should().OnlyContain(g => g.Count() == 1);
 
-    // Design §7.3 (T13.0a): the boards as the terminal shows them to a Senior, Covalex stellar.
+    // T13.3, Martin: the full name, the name without L code, without code and "Station" (the B1 key drops it), and the
+    // contract names – no B1 key names two places of one system, or a scan would resolve to none.
+    [Fact]
+    public void No_B1_key_names_two_places_of_one_system()
+    {
+        var shared = Data.Positions.All
+            .SelectMany(p => new[] { p.Name, PlaceNames.WithoutCode(p.Name), PlaceNames.WithoutCode(p.Name).Replace(" Station", "", StringComparison.Ordinal) }
+                .Concat(p.ContractNames)
+                .Select(name => (p.System, Key: DestinationNames.Key(name), p.Name)))
+            .GroupBy(k => (k.System, k.Key))
+            .Where(g => g.Select(k => k.Name).Distinct().Count() > 1)
+            .Select(g => $"{g.Key}: {string.Join(", ", g.Select(k => k.Name).Distinct())}");
+
+        shared.Should().BeEmpty();
+        Data.Positions.All.Should().OnlyContain(p => Data.Positions.Resolve(p.System, p.Name) == p);
+    }
+
     [Theory]
-    [InlineData(new[] { "Stanton", "Stanton1" }, 92)]
-    [InlineData(new[] { "Stanton2" }, 19)]
-    [InlineData(new[] { "Stanton3" }, 22)]
-    public void The_boards_count_their_templates(string[] areaKeys, int count) =>
-        Data.Templates.Count(t => t.Contractor == HaulContractor.Covalex && t.MissionType == HaulMissionType.Stellar
-            && areaKeys.Contains(t.AreaKey) && t.Rank <= HaulRank.Senior).Should().Be(count);
+    [InlineData("Green Glade Station", "HUR-L1 Green Glade Station")]
+    [InlineData("Melodic Fieids", "HUR-L4 Melodic Fields Station")]
+    [InlineData("Shallow Fields Station", "CRU-L4 Shallow Fields Station")]
+    [InlineData("Everus Harbor", "Everus Harbor")]
+    public void A_delivery_line_names_an_L_station_without_its_code(string scanned, string position) =>
+        Data.Positions.Resolve(StarSystem.Stanton, scanned)!.Name.Should().Be(position);
+
+    // Design §7.3 (T13.0a), T13.3 through Board.For: the boards as the terminal shows them to a Senior. Everus has 23
+    // local templates, not the 22 of the T13.3 start prompt (Rookie 11, Junior 5, Member 2, Experienced 3, Senior 2);
+    // Port Tressler was never scanned.
+    [Theory]
+    [InlineData("Stanton1", 92, 23)]
+    [InlineData("Stanton2", 88, 19)]
+    [InlineData("Stanton3", 91, 22)]
+    [InlineData("Stanton4", 89, 20)]
+    public void The_boards_count_their_templates(string areaKey, int count, int local)
+    {
+        var board = Board.For(Data.Templates, StarSystem.Stanton, areaKey, HaulRank.Senior, faction: null);
+
+        board.Templates.Should().HaveCount(count);
+        board.Local.Should().HaveCount(local);
+        board.Hub.Should().Be(BoardHubs.ByArea[areaKey]);
+    }
+
+    [Theory]
+    [InlineData(HaulFaction.Hh, 31)]
+    [InlineData(HaulFaction.Cfp, 31)]
+    [InlineData(null, 62)]
+    public void The_Pyro_board_counts_Solar_of_the_faction(HaulFaction? faction, int count) =>
+        Board.For(Data.Templates, StarSystem.Pyro, Board.PyroSolar, HaulRank.Senior, faction).Templates.Should().HaveCount(count);
 
     // Design §9.3: the distances the design measured from starmap_positions.json.
     [Theory]

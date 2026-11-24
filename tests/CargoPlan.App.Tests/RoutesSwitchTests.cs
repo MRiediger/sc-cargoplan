@@ -4,6 +4,7 @@ using System.Windows;
 using CargoPlan.App.Plans;
 using CargoPlan.App.Routing;
 using CargoPlan.App.Scanning;
+using CargoPlan.App.Settings;
 using CargoPlan.App.ViewModels;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Routing;
@@ -21,7 +22,7 @@ public sealed class RoutesSwitchTests : IDisposable
 
     private const string Title = "Junior Rank - Small Cargo Haul";
 
-    private static readonly ObservationKey JuniorSmall = new(HaulContractor.Covalex, HaulRank.Junior, HaulSize.Small, Direct: false, Reward: 50_250);
+    private static readonly ObservationKey JuniorSmall = new(HaulContractor.Covalex, HaulRank.Junior, HaulSize.Small, Direct: false, Reward: 50_250, ["Stims"]);
 
     private const string Observed = "Observed (Plan tab): Covalex Junior Small · 50,250 aUEC – cargo unchanged";
 
@@ -55,17 +56,19 @@ public sealed class RoutesSwitchTests : IDisposable
 
     private static ScanAttempt Read(string raw) => new(ScanAttemptOutcome.Read, raw, TimeSpan.Zero, TimeSpan.Zero, null, TimeSpan.Zero);
 
-    private ScanRunner Runner(RoutesBook routes, params string[] raws)
+    private ScanRunner Runner(RoutesBook routes, params string[] raws) => Runner(_overlay, routes, raws);
+
+    private ScanRunner Runner(OverlayViewModel overlay, RoutesBook routes, params string[] raws)
     {
         var queue = new Queue<string>(raws);
-        return new(() => Task.FromResult(Read(queue.Dequeue())), _overlay, new ScanLog(Path.Combine(_folder, "scans.log")),
+        return new(() => Task.FromResult(Read(queue.Dequeue())), overlay, new ScanLog(Path.Combine(_folder, "scans.log")),
             action => { action(); return Task.CompletedTask; }, _ => Task.CompletedTask, routes: routes);
     }
 
     private async Task<RoutesBook> Scan(bool routesSelected, params string[] raws)
     {
         _overlay.IsRoutesTabSelected = routesSelected;
-        var routes = RoutesBook.Load(RoutesPath);
+        var routes = RoutesBook.Load(RoutesPath, Positions.Empty);
         var runner = Runner(routes, raws);
         foreach (var _ in raws)
         {
@@ -73,6 +76,47 @@ public sealed class RoutesSwitchTests : IDisposable
         }
 
         return routes;
+    }
+
+    [Fact]
+    public async Task A_recorded_scan_tells_its_listener_all_observations_and_its_entry()
+    {
+        // T13.3: the Plan tab's matrix follows the scans through this event.
+        var routes = RoutesBook.Load(RoutesPath, Positions.Empty);
+        List<(Observations All, Observation Entry)> heard = [];
+        routes.Recorded += (all, entry) => heard.Add((all, entry));
+
+        await Runner(routes, Raw(View.Offer)).RunAsync();
+
+        heard.Should().ContainSingle();
+        heard[0].Entry.Key.Should().Be(JuniorSmall);
+        heard[0].All.Entries.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Routes_json_names_each_place_as_its_position_once_the_data_know_it()
+    {
+        // E3 of T13.3a: the card writes "Riker" where the data say "HUR-L9 Riker Station"; the file holds the data's name.
+        Positions places = new([new StarPosition("HUR-L9 Riker Station", "HUR-L9 Riker Station", StarSystem.Stanton, "Manmade", null, 0, 0, 0, [])]);
+        var routes = RoutesBook.Load(RoutesPath, places);
+
+        await Runner(routes, Raw(View.Offer)).RunAsync();
+
+        routes.Observations.Entries.Single().Destinations.Should().Equal("HUR-L9 Riker Station");
+        RoutesBook.Load(RoutesPath, Positions.Empty).Observations.Entries.Single().Destinations.Should().Equal(["HUR-L9 Riker Station"], "on disk");
+    }
+
+    [Fact]
+    public async Task Loading_with_positions_names_the_places_and_leaves_the_file_until_the_next_save()
+    {
+        await Runner(RoutesBook.Load(RoutesPath, Positions.Empty), Raw(View.Offer)).RunAsync();
+        var before = File.ReadAllBytes(RoutesPath);
+        Positions places = new([new StarPosition("HUR-L9 Riker Station", "HUR-L9 Riker Station", StarSystem.Stanton, "Manmade", null, 0, 0, 0, [])]);
+
+        var routes = RoutesBook.Load(RoutesPath, places);
+
+        routes.Observations.Entries.Single().Destinations.Should().Equal("HUR-L9 Riker Station");
+        File.ReadAllBytes(RoutesPath).Should().Equal(before, "loading never writes (D13)");
     }
 
     // --- The six cells ---
@@ -85,7 +129,7 @@ public sealed class RoutesSwitchTests : IDisposable
         _overlay.Missions.Should().ContainSingle().Which.Contract!.Scan.QuantitiesEstimated.Should().BeTrue();
         _overlay.Notices.Should().Contain(n => n.StartsWith("Scanned #1", StringComparison.Ordinal));
         routes.Observations.Entries.Should().ContainSingle().Which.Key.Should().Be(JuniorSmall);
-        RoutesBook.Load(RoutesPath).Observations.Entries.Should().ContainSingle("the observation is on disk");
+        RoutesBook.Load(RoutesPath, Positions.Empty).Observations.Entries.Should().ContainSingle("the observation is on disk");
     }
 
     [Fact]
@@ -128,7 +172,7 @@ public sealed class RoutesSwitchTests : IDisposable
     [Fact]
     public async Task The_Plan_tab_keeps_an_offer_out_and_the_Cargo_tab_lets_the_next_one_in()
     {
-        var routes = RoutesBook.Load(RoutesPath);
+        var routes = RoutesBook.Load(RoutesPath, Positions.Empty);
         var runner = Runner(routes, Raw(View.Offer), Raw(View.Offer, scu: 9));
 
         _overlay.ShowPlanCommand.Execute(null);
@@ -158,15 +202,37 @@ public sealed class RoutesSwitchTests : IDisposable
     }
 
     [Theory]
-    [InlineData("", "title unreadable")]
-    [InlineData("Junior Rank - Huge Cargo Haul", "title unreadable")]
-    public async Task Offer_with_routes_and_no_title_stays_out_of_the_plan_and_says_why(string title, string why)
+    [InlineData("", "", "title unreadable")]
+    [InlineData("Junior Rank - Huge Cargo Haul", "", "title unreadable")]
+    // E1 of T13.3a: another contractor's contract (Martin's scans.log, 24 Nov) isn't a title OCR broke.
+    [InlineData("Cargo Hauling Opportunity with Ling Hauling", "Contracted By Ling Family Hauling\n", "no hauling template form")]
+    public async Task Offer_with_routes_and_no_title_stays_out_of_the_plan_and_says_why(string title, string contractor, string why)
     {
-        var routes = await Scan(routesSelected: true, Raw(View.Offer, title));
+        var routes = await Scan(routesSelected: true, Raw(View.Offer, title).Replace("PRIMARY OBJECTIVES", contractor + "PRIMARY OBJECTIVES", StringComparison.Ordinal));
 
         _overlay.Saved.Should().BeNull();
         _overlay.Notices.Should().Equal($"Not observed (Plan tab): {why} – cargo unchanged");
         routes.Observations.Entries.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task An_observed_offer_says_whether_it_fits_the_recipe_for_the_ship()
+    {
+        // T13.3b: the Junior Small to Riker is the Hull A's recipe on the Everus board, so the notice says so.
+        var template = new HaulTemplate(
+            "junior", "debug", HaulContractor.Covalex, Title, HaulRank.Junior, HaulSize.Small, false, HaulShape.AToB, 1, StarSystem.Stanton,
+            "Stanton1", HaulMissionType.Stellar, null, 50_250, [new HaulLeg("Stims", 4, 16, CrateSize.Four)], [], ["Riker"]);
+        Positions places = new([.. new[] { "Everus Harbor", "Riker" }.Select(n => new StarPosition(n, n, StarSystem.Stanton, "Manmade", null, 0, 0, 0, []))]);
+        var overlay = new OverlayViewModel(HullA)
+        {
+            Routes = new RoutesViewModel(new HaulingLoad.Loaded(new HaulingData([template], places), []), new Core.ShipData.ShipDataVersion(2026, 11, 2), RoutesSettings.Default, null),
+            IsRoutesTabSelected = true,
+        };
+
+        await Runner(overlay, RoutesBook.Load(RoutesPath, places), Raw(View.Offer)).RunAsync();
+
+        overlay.Notices.Should().Equal("Observed (Plan tab): Covalex Junior Small · 50,250 aUEC · fits as small – cargo unchanged");
+        overlay.Saved.Should().BeNull();
     }
 
     [Fact]
@@ -237,7 +303,7 @@ public sealed class RoutesSwitchTests : IDisposable
         Directory.CreateDirectory(_folder);
         const string Broken = "{ \"schemaVersion\": 1, \"observ";
         File.WriteAllText(RoutesPath, Broken);
-        var routes = RoutesBook.Load(RoutesPath);
+        var routes = RoutesBook.Load(RoutesPath, Positions.Empty);
         routes.Observations.Entries.Should().BeEmpty();
         File.ReadAllText(RoutesPath).Should().Be(Broken, "loading leaves the file as it is");
 
@@ -246,7 +312,7 @@ public sealed class RoutesSwitchTests : IDisposable
 
         var kept = Directory.GetFiles(_folder, "routes.json.unreadable-*").Should().ContainSingle().Subject;
         File.ReadAllText(kept).Should().Be(Broken);
-        RoutesBook.Load(RoutesPath).Observations.Entries.Should().ContainSingle();
+        RoutesBook.Load(RoutesPath, Positions.Empty).Observations.Entries.Should().ContainSingle();
         TestLog.Text().Should().Contain($"Routes: {RoutesPath} couldn't be read; kept as {Path.GetFileName(kept)}.");
     }
 

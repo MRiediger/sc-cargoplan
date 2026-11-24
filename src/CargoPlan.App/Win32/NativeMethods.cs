@@ -59,6 +59,30 @@ internal static partial class NativeMethods
     }
 
     /// <summary>
+    /// The overlay's input from lock and tab (D11 addendum T13.3a). Locked: click-through (WS_EX_TRANSPARENT) and never
+    /// activated (WS_EX_NOACTIVATE). Unlocked: clickable; on the Cargo tab still never activated, so ticking a stop at the
+    /// terminal leaves Star Citizen in front (T3.6); on the Plan tab without WS_EX_NOACTIVATE, so a click activates the
+    /// overlay the way Windows does it and the scroll bars get capture and wheel over the game. Never SetForegroundWindow.
+    /// WS_EX_LAYERED stays (WPF's, D11).
+    /// </summary>
+    /// <exception cref="Win32Exception">The call failed.</exception>
+    public static void SetOverlayInput(nint hwnd, bool locked, bool planTab)
+    {
+        var style = GetExStyle(hwnd);
+        var newStyle = (locked, planTab) switch
+        {
+            (true, _) => style | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_NOACTIVATE,
+            (false, false) => (style & ~WS_EX_TRANSPARENT) | WS_EX_NOACTIVATE,
+            (false, true) => style & ~WS_EX_TRANSPARENT & ~WS_EX_NOACTIVATE,
+        };
+
+        if (newStyle != style)
+        {
+            SetExStyle(hwnd, newStyle);
+        }
+    }
+
+    /// <summary>
     /// WS_EX_NOACTIVATE: a click reaches the window but doesn't make it the foreground window, so Star Citizen keeps
     /// the foreground and the free cursor at the terminal (D11, addenda T3.2 and T3.6). Such a window leaves the
     /// taskbar unless WS_EX_APPWINDOW is set too, hence <paramref name="showInTaskbar"/>.

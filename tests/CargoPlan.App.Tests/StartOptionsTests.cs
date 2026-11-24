@@ -227,6 +227,16 @@ public class StartOptionsTests
         StartOptions.Parse([arg]).Should().Be(new StartOptions(false, null, null, KeepScans: true));
     }
 
+    // T13.3a: activation, capture and button messages of the overlay in cargoplan.log, for the scroll check over the game.
+    [Theory]
+    [InlineData("--log-input")]
+    [InlineData("--Log-Input")]
+    public void Log_input_writes_the_overlays_input_messages(string arg)
+    {
+        StartOptions.Parse([arg]).Should().Be(new StartOptions(false, null, null, LogInput: true));
+        StartOptions.Parse([]).LogInput.Should().BeFalse();
+    }
+
     // D108: who never scans pays nothing; the probe measures with a warm engine whatever the key.
     [Theory]
     [InlineData(true, new string[0], true)]

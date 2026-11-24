@@ -312,7 +312,7 @@ Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
   | Fenster ziehen | Kopfzeile, Rand, Notices | dazu freie Fläche der Reiterleiste |
   | Reiter klicken (neu) | – | entsperrt Wechsel; gesperrt geht der Klick ans Spiel |
 
-### [ ] T13.3 Core: Board, Matching, Rezept
+### [x] T13.3 Core: Board, Matching, Rezept
 
 **Warum:** Erst mit den Templates kennt der Planer jedes Board ohne Anflug und kann einen Scan einem Template zuordnen.
 - `Board.For(system, areaKey, rank, faction)`; Matching Scan → Template (Titel + Reward; Fallback Shape + Ware +
@@ -339,6 +339,127 @@ Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
   (Nit der T13.0-Abnahme; Design §9.3 nennt nur Distanzen, keine Koordinaten)
 - Addendum in `docs/hauling-data-format.md`, Feld `title`: „as the API shows it; Covalex equals the card, Red Wind does
   not“ (Befund T13.1, Issue #22)
+
+**Schnitt (Startprompt 23.11.):** T13.3a Daten zusammenführen (B1 nach Core, Faltung, Board, Matching, beobachtete
+Kanten, Settings-Abschnitt), Zwischenabnahme; T13.3b Rezept und Prüfung vor Annahme. Ein Branch `feat/p13-board`,
+`--no-ff` nach 3b.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (23.11.2026, „Freigabe T13.3 (a und b) mit K1“):**
+1. **L-Kurzform (Martin):** die Karte schreibt Lieferungen an „Green Glade Station“, positions.json kennt nur „HUR-L1
+   Green Glade Station“ (ohne `contractNames`). `Positions.Resolve` vergleicht den B1-Schlüssel auch mit dem Namen ohne
+   L-Code – ein Fakt der Karte, nicht der Daten, also C# (K1 von T13.0a); `contractNames` bleibt für Token-Formen.
+   Datentest: voll, ohne Code, ohne Code und „Station“, `contractNames` – kein Schlüssel nennt zwei Orte eines Systems.
+2. Matching nimmt eine `Observation` (Scan und gefalteter Eintrag gleich), Kandidaten = alle Stellar-Boards des Systems
+   über alle Ränge (`Board.Matchable`); der Rang kommt aus dem Titel.
+3. Stopps: die Mehrfachseite nennt `min(stops, Pool)` Orte bei einem Scan, mindestens so viele bei mehreren.
+4. Faltung: gleicher B1-Schlüssel → der längere Name (`DestinationNames.Preferred`), Treffer je Name kennt die Datei nicht.
+5. Echte Zwillinge (zwei systemweite Paare, nur die uuid verschieden) → `Ambiguous`, keine Kante.
+6. Rezept-Hub (Martin): Button „Hub“ in der Filterzeile, nur bei Recipe, `routes.hub`, Default Everus Harbor, gilt auch
+   für T13.4/T13.6.
+7. Rezept-Kandidaten: lokale Templates mit Pickup am Hub, systemweite nur mit beobachteter Kante ab dem Hub; Bulk →
+   Direct → Smalls; Rückläufer als Liste, nicht in der Abflug-Prüfung (Slot-Simulation T13.6).
+8. „fits“ = das gescannte Template ersetzt die Rolle seiner Art im Rezept und `LoadPlanner` passt.
+9. **K1 (Freigabe):** `ObservationKey` bekommt die Waren (Menge in `OcrText.AnchorForm`); 27 Schlüssel decken 64
+   Templates, die sich nur in der Ware unterscheiden. `routes.json` Schema 2 ohne neues Feld (die Waren sind die von
+   `scu`), Schema 1 gelesen: Einträge mit einer Ware 1:1, mit mehreren verworfen mit Logzeile. D118-Addendum.
+
+**Befunde Planphase:** Everus lokal = **23** (nicht 22 wie im Startprompt: Rookie 11, Junior 5, Member 2, Experienced 3,
+Senior 2); Port Tressler 89/20; Covalex-Schlüssel ohne Waren nicht eindeutig (s. K1); eine Red-Wind-Lieferzeile trägt
+mehrere Legs (Carbon 200 SCU aus zwei Pickups, Legs je 25–175); keine Red-Wind-Fixture hat einen lesbaren Reward.
+
+**Stand 3a (23.11., Branch `feat/p13-board`, 5e30e98..):**
+- Commits: B1-Umzug ohne Verhaltensänderung (Import 357 Tests unverändert, Golden-Keys grün); K1 + Schema 2 + Faltung
+  (Mutation ohne B1-Gruppierung: 3 rot); `Positions.Resolve` (Mutation ohne L-Code-Form: 18 rot); `Board.For`;
+  `TemplateMatch` (Mutation Schlüssel ohne Waren: Eisen + Quarz → eine Beobachtung, `None`); `ObservedEdges` + Matrix;
+  Settings-Abschnitt „Plan tab“.
+- **Boards gegen den Pin (Senior):** Everus 92 (lokal 23), Seraphim 88 (19), Baijini 91 (22), Port Tressler 89 (20);
+  Pyro `Solar` 31 je Fraktion, 62 beide.
+- **Orte der 21 RawText-Fixtures:** alle aufgelöst (auch „Melodic Fieids“, Pyro-Orte aus Issue #22) außer fünf vom
+  Capture abgerissenen Namen in drei Fixtures („Everus H“, „HUR-L1 Green Gle“, „HUR-L3 Thundg“, …).
+- **Matching-Quote:** Covalex-Fixtures **5/7** eindeutig, 2 mit benanntem Grund (abgerissene Orte); Red-Wind-Fixtures
+  3/3 `Ambiguous` mit je 2 Kandidaten (HH/CFP-Zwillinge); Red Wind mit API-Titel im Scan = gleiche Kandidaten wie mit
+  Kartentitel. **Martins scans.log (19.–20.11., von Hand):** 44/46 Scans eindeutig, 2 `None` (abgerissenes „HUR-“), 0
+  mehrdeutig; nach dem Aufzeichnen 10/11 Einträge – über den 78/84 aus Design §7.3.
+- **Präzisierung zur Zwischenabnahme (CC, bei der Umsetzung):** Faktions-Zwillinge (Templates gleich bis auf die
+  Fraktion) teilen eine mehrdeutige Beobachtung: jeder Red-Wind-Scan ist so ein Paar, sonst erschiene nie ein
+  beobachteter Red-Wind-Reward; der Fraktionsfilter zeigt die eigene Seite (D122).
+- Settings-Abschnitt heißt im UI „Plan tab“ (K1 von T13.2: UI sagt Plan), Zeilen „Your rank“, „Your faction“ („Both
+  sides“); Filter-Button und Fenster zeigen die Änderung des anderen (Test).
+- D122, D121-Addendum, D118-Addendum (K1); `hauling-data-format.md` mit echten Einträgen aus `ships-2026.11.2`,
+  `title`-Hinweis, Addendum T13.3; `routes-format.md` Schema 2; `settings-format.md`.
+- **Hänger:** ein voller `dotnet test`-Lauf blieb einmal im App-Testhost stehen (10 min, CPU konstant); drei folgende Läufe
+  mit `--blame-hang-timeout` grün in 11–17 s, nicht reproduziert. Beobachten.
+
+**Zwischenabnahme 3a (24.11.2026, erteilt) – K und drei E vor 3b, Commits 9–12. Präzisierung in der Planphase,
+ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
+- **K (Commit 9) – Matrix scrollt per Thumb und Shift+Rad.** Befund mit echter Eingabe (`SendInput`, UIA, ohne Spiel):
+  von 8 px der Slim-Leiste griffen nur die mittleren 4, die 2 px Track-Einzug links/rechts trafen nichts → DragMove
+  (Fenster wanderte); Rad vertikal scrollte überall; Shift+Rad scrollte vertikal. Fix: Track ohne Einzug, Thumb mit
+  Hit-Test-Hintergrund über die volle Breite, Grip 2 px innen (gilt auch für Legende und Schiffsliste); Shift+Rad
+  seitwärts (`PortMatrixGrid.WheelSideways`), Rad ohne Modifier bleibt vertikal, auch ohne vertikalen Überlauf (Martin);
+  Kipprad → Backlog. Nachher: alle 8 Spalten greifen, kein Fenster wandert, Shift+Rad 1,6 % je Raste. Test:
+  `PortMatrixGridTests` (Shift+Rad). D120-, D80-Addendum.
+  **Rückfrage Martin (24.11.): greift die vertikale Leiste (Legende) mit demselben Einzug?** Gemessen mit echter Eingabe,
+  XAML vor Commit 9: nein, auch die Legende griff nur in den Spalten 3–6, Spalten 1, 2, 7, 8 → DragMove (24 px); beide
+  Zweige des Templates sind bis auf die Orientierung gleich, der Einzug ist die Ursache für beide. Nach Commit 9: alle
+  8 Spalten greifen, kein Fenster wandert. Nachweis ist der Gate (Martin), der Pixel-Treffertest `SlimScrollBarTests`
+  ist wieder entfernt (Folge-Commit, Commit 9 liegt unter 10–12).
+  **Befund Martin über SC (24.11.):** ohne Spiel beide Leisten einwandfrei, über SC springt der Track-Klick, Thumb-Drag
+  und Rad gehen nicht → Fokus/Capture, kein Styling. Diagnose aus dem Code: `WS_EX_NOACTIVATE` dauerhaft seit T3.6,
+  Entsperren schaltete nur `WS_EX_TRANSPARENT`. **Präzisierung in der Planphase, ratifiziert durch Freigabe („Freigabe
+  mit Änderung“):** Margin-Fix bleibt; `--log-input` (b0b0816); Ex-Style aus Sperre × Reiter (a52bc32): gesperrt
+  TRANSPARENT + NOACTIVATE, entsperrt Cargo NOACTIVATE wie T3.6, entsperrt Plan keins; nie `SetForegroundWindow`;
+  Test am echten HWND, vier Kombinationen; Thumb/RepeatButton lassen los, wenn die Taste oben ist ohne WM_LBUTTONUP
+  (`ScrollCaptureGuard`, D45-Muster). Desktop: Plan-Reiter entsperrt Ex-Style `0x000C0108`, nach dem Klick Vordergrund =
+  Overlay, Drag auf allen 8 Spalten. D11-Addendum.
+- **E1 (Commit 10) – „no hauling template form“ getrennt von „title unreadable“.** Anlass: Ling-Family-Hauling-Angebot
+  in Martins scans.log (24.11.), Titel ganz gelesen, Meldung „title unreadable“. `TitleMiss` im Parser: andere Form nur
+  bei positivem Zeichen (Auftraggeber gelesen, weder Covalex noch Red Wind, keine titelähnliche Zeile), sonst
+  unlesbar; ein Text für Notice und Log (`ScannedContract.NotObservedReason`). Alle Fixtures ohne Titel bleiben
+  „unreadable“. D120-Addendum.
+- **E2 (Commit 11) – Hub-Hinweis einmal je Tooltip.** Kopfzeile darunter „⌂ pickup: the board's hub, not in the game
+  data“ (bzw. drop-off), betroffene Template-Zeilen mit „⌂“ (Martins Hinweis: kurzes Zeichen je Zeile, Kopf erklärt
+  einmal). „⌂“ kommt aus der WPF-Ersatzschrift, gerendert geprüft. D121-Addendum.
+- **E3 (Commit 12) – routes.json mit den Namen der Positionen.** Anlass: Martins routes.json, Pickup „HUR-L3 Thundering
+  Express Station“, Ziel „Thundering Express Station“. `Observation.Named(Positions)` im System des Auftraggebers, dann
+  gefaltet; `RoutesBook.Load(path, positions)` (Pflichtparameter), beim Aufzeichnen benannt, beim Laden nur im
+  Speicher. „Contractor ↔ System“ als eine Tabelle `ContractorSystems` mit Kommentar (vorher doppelt in `TemplateMatch`
+  und `ObservedEdges`, Martins Hinweis), Datentest rot bei einem Template mit fremdem System (Mutation Covalex → Pyro:
+  rot). D118-Addendum, `routes-format.md`.
+**Stand 3b (24.11., Branch `feat/p13-board`, d5d2253..):**
+- Commits: `Recipe.For` + `LoadPlanner.Lays` (d5d2253); Plan-Reiter Matrix | Recipe mit Hub-Button, `routes.hub`
+  (90a7fec); fits / too big beim Offer-Scan, `RecipeFit.Of` (2651a38); Doku (D123, `settings-format.md`, CLAUDE.md).
+- **Präzisierung in der Planphase, ratifiziert durch Freigabe** (bei der Umsetzung, zur Abnahme): (1) „passt“ =
+  `LoadPlanner.Lays`, der First Fit des Planers (D54), nicht `Plan` mit Suche: die Suche kostete auf der Hull B rund
+  1 s je Frage (Hull-B-Test 5 s), mit `Lays` Median 44–48 ms für das Everus-Rezept (Release); wo `Lays` ja sagt, legt
+  `Plan` es auch, wo nein, könnte die Suche selten noch eine Lage finden (Test: `Lays` = `Plan` auf fünf Fällen);
+  (2) der Hub kommt aus `Board.Hub`, kein eigener Parameter; (3) höchstens 10 Verträge (`Recipe.MaxContracts`,
+  Design §3/§4.1); (4) in der Recipe-Ansicht verschwinden die reinen Matrix-Filter (Area, Direct, Contractor, Faction,
+  Größen) und die Matrix-Hinweise; (5) `RecipeFit.Of` nimmt die gescannten Ziele, wo die Daten keine nennen
+  (systemweit); (6) die Commit-Nummern 9–12 des Plans waren vergeben, 3b zählt weiter.
+- **Zahlen (Pin `ships-2026.11.2`, Everus, `RecipeTimingTests`):** Hull B Senior/Master: Senior Medium 432 SCU (Bulk),
+  Rookie Direct Small, drei Smalls, 594,500 aUEC, 512/512 SCU, 50 Kisten, vier Rückwege „accept at HUR-L1…L4“; erster
+  Aufruf 142 ms, Median 44–48 ms. Hull A: Direct + zwei Smalls, 64/64. Hull C: leer („nothing from this hub fits the
+  ship“) – ihre Racks nehmen nur 32er (`minCrateSize: 32`), stellare Covalex-Verträge höchstens 16er.
+- Mutation: `Lays` durch Summe ersetzt → Freelancer-Test rot (drei 16er, 48 von 66 SCU, das 9×2×3-Rack legt zwei).
+- **Handling gegen main:**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | Filterzeile Plan-Reiter | Rang, System, Area, Direct, Contractor, Faction, Größen | vorn neu „Matrix/Recipe“; im Recipe „Hub: …“, Rang, System, die übrigen verborgen |
+  | Klick ins Overlay, entsperrt | nie aktivierend (T3.6) | Cargo-Reiter gleich; Plan-Reiter aktiviert (D11-Addendum T13.3a) |
+  | F3 auf Angebot, Plan-Reiter | „Observed (Plan tab): … – cargo unchanged“ | dazu „ · fits as …“ / „ · too big for …“ |
+  | Settings-Fenster „Plan tab“ | Rang, Fraktion | gleich (Hub nur über den Button) |
+  | Alles andere | wie main | gleich |
+
+- **Gate 3b (Martin, über SC):** (1) Scroll: Thumb, Rad, Shift+Rad im Plan-Reiter; Cargo-Reiter am Terminal abhaken →
+  SC behält den Cursor (T3.6); Lock → click-through; `--log-input` für die Zeilen. (2) Red-Wind-Zwillinge in einer
+  Pyro-Session. (3) Recipe-Ansicht für das eigene Schiff an einem Hub (Aussehen, Rollen plausibel, Hub-Button, Rang),
+  F3 auf Angebote → „fits as …“ / „too big for …“ (eines aus dem Rezept, eines zu groß). Zahlen: Rezept-Laufzeit
+  `RecipeTimingTests` (oben). Danach Abnahme → `merge --no-ff` → Martin pusht.
+- **Gate 3b bestanden, Abnahme erteilt (24.11.2026, Martin)**, damit auch die Präzisierungen von 3b ratifiziert
+  (`Lays` statt Suche, Hub aus dem Board, 10 Verträge, Matrix-Filter in der Recipe-Ansicht verborgen, gescannte Ziele
+  für systemweite Templates). Merge `--no-ff` nach main, Martin pusht.
 
 ### [ ] T13.4 Core/App: Loop-Ranking
 
@@ -394,6 +515,12 @@ Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- Standorterkennung ersetzt den Hub-Button des Rezepts (T13.3b, D123): der Hub, an dem der Spieler steht, statt
+  `routes.hub`. Auslöser: Game.log-Location wird gelesen.
+
+- Kipprad (`WM_MOUSEHWHEEL`) scrollt die Hafen-Matrix seitwärts (K der Zwischenabnahme T13.3a: heute nur Shift+Rad).
+  WPF hat dafür kein Event, es braucht einen `HwndSource`-Hook. Auslöser: Nutzer-Report mit Kipprad-Maus.
 
 - Proben der Zuordnung nach Seite sparen (F10b, D117): `RackAssignment.AssignBySide` prüft jedes Ziel je Seite mit
   einer Machbarkeitssuche; nimmt ein leeres Rack der Seite das Ziel allein, gibt es sicher eine Zuordnung und die Probe
@@ -547,3 +674,5 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   vermutlich Nähe zum Pickup). Auslöser: Sichtbarkeitsregel geklärt oder Nutzer-Report.
 - Pyro-Fraktionsgate HH/CFP (Design §7.6): sieht ein Spieler nur eine Seite? Bis dahin Fraktion als Filter in den
   Settings (T13.3). Auslöser: empirischer Befund im Spiel.
+- Red-Wind-Regionen (`RegionA`–`RegionD`) auf dem Pyro-Board (T13.3, Design §5, §7.6): heute nur `Solar`, der Reiter sagt
+  es. Auslöser: erster Pyro-Scan einer Region-Variante zeigt, welche Station welche Region hat.

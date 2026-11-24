@@ -19,14 +19,24 @@ internal sealed class RoutesBook
 
     private readonly Lock _lock = new();
     private readonly string _path;
+    private readonly Positions _positions;
     private Observations _observations;
     private bool _keepUnreadable;
 
-    private RoutesBook(string path, Observations observations, bool keepUnreadable) =>
-        (_path, _observations, _keepUnreadable) = (path, observations, keepUnreadable);
+    private RoutesBook(string path, Positions positions, Observations observations, bool keepUnreadable, long loadMilliseconds = 0) =>
+        (_path, _positions, _observations, _keepUnreadable, LoadMilliseconds) = (path, positions, observations.Named(positions), keepUnreadable, loadMilliseconds);
+
+    /// <summary>How long reading and folding the file took at the start (T13.3).</summary>
+    public long LoadMilliseconds { get; }
 
     /// <summary>%LocalAppData%\SC-CargoPlan\routes.json, next to plan.json (D118).</summary>
     public static string DefaultPath => Path.Combine(AppFolders.LocalRoot, "routes.json");
+
+    /// <summary>
+    /// After a scan was recorded, on the scan's thread: all observations and the entry of the scan's variant. Not under the
+    /// lock: a listener may read <see cref="Observations"/>.
+    /// </summary>
+    public event Action<Observations, Observation>? Recorded;
 
     public Observations Observations
     {
@@ -40,23 +50,32 @@ internal sealed class RoutesBook
     }
 
     /// <summary>The observations in <paramref name="path"/>; none for a missing file, and none for one that can't be read,
-    /// which stays as it is until the first save keeps it aside.</summary>
-    public static RoutesBook Load(string path)
+    /// which stays as it is until the first save keeps it aside. Each place as one of <paramref name="positions"/> names
+    /// it (E3 of T13.3a), in memory: the file gets those names with the next save, never by loading.</summary>
+    /// <param name="positions">The hauling data's positions; <see cref="Positions.Empty"/> without hauling data, then names stay as read.</param>
+    public static RoutesBook Load(string path, Positions positions)
     {
         if (!File.Exists(path))
         {
-            return new(path, Observations.Empty, keepUnreadable: false);
+            return new(path, positions, Observations.Empty, keepUnreadable: false);
         }
 
         try
         {
+            var watch = System.Diagnostics.Stopwatch.StartNew();
             using var stream = File.OpenRead(path);
-            return new(path, RoutesFile.Read(stream, path), keepUnreadable: false);
+            var read = RoutesFile.Read(stream, path);
+            foreach (var dropped in read.Dropped)
+            {
+                AppLog.Write(LogContext, dropped);
+            }
+
+            return new(path, positions, read.Observations, keepUnreadable: false, watch.ElapsedMilliseconds);
         }
         catch (Exception ex) when (ex is RoutesFormatException or IOException or UnauthorizedAccessException)
         {
             AppLog.Write(LogContext, $"Routes not loaded ({ex.Message}). The next save keeps the file aside. [{ex.GetType().Name}]");
-            return new(path, Observations.Empty, keepUnreadable: true);
+            return new(path, positions, Observations.Empty, keepUnreadable: true);
         }
     }
 
@@ -71,17 +90,20 @@ internal sealed class RoutesBook
             // Only a contract that could have been one is worth a line: an offer or accepted contract read whole.
             if (scanned.View != ContractView.Unknown && !scanned.InHardDoubt && scanned.Stops.Count > 0)
             {
-                AppLog.Write(LogContext, $"not observed: {(scanned.Title is null ? "title" : "reward")} unreadable");
+                AppLog.Write(LogContext, $"not observed: {scanned.NotObservedReason}");
             }
 
             return;
         }
 
+        Observations all;
         lock (_lock)
         {
-            _observations = _observations.Record(observed);
+            _observations = all = _observations.Record(observed).Named(_positions);
             Save();
         }
+
+        Recorded?.Invoke(all, all.Entries.Single(e => e.Key == observed.Key));
     }
 
     private void Save()

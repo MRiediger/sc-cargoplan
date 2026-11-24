@@ -1,5 +1,6 @@
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Routing;
+using static CargoPlan.Core.Tests.TemplateFixtures;
 
 namespace CargoPlan.Core.Tests;
 
@@ -9,25 +10,6 @@ namespace CargoPlan.Core.Tests;
 /// </summary>
 public sealed class PortMatrixTests
 {
-    private static int _uuid;
-
-    private static HaulTemplate T(
-        string[] pickups,
-        string[] dropoffs,
-        long? reward = 100_000,
-        int maxScu = 64,
-        HaulContractor contractor = HaulContractor.Covalex,
-        HaulRank rank = HaulRank.Senior,
-        HaulSize size = HaulSize.Medium,
-        bool direct = false,
-        StarSystem? system = StarSystem.Stanton,
-        string areaKey = "Stanton1",
-        HaulMissionType type = HaulMissionType.Stellar,
-        HaulFaction? faction = null,
-        HaulShape shape = HaulShape.AToB) => new(
-        $"t{Interlocked.Increment(ref _uuid)}", "debug", contractor, "title", rank, size, direct, shape, 1, system, areaKey, type, faction,
-        reward, [new HaulLeg("Gold", 1, maxScu, CrateSize.Sixteen)], pickups, dropoffs);
-
     // Every area: the default is stellar only (picture gate), these tests mix areas.
     private static readonly RouteFilter All = RouteFilter.Default with { MissionType = null };
 

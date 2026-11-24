@@ -198,12 +198,15 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <!-- The slim bar's thumb: in the bar's Foreground, brighter under the mouse and while dragged. -->
+        <!-- The slim bar's thumb: in the bar's Foreground, brighter under the mouse and while dragged. It takes the bar's whole
+             width and draws its grip 2 px inside: a press on the inset took nothing and moved the window (K of T13.3a). -->
         <Style x:Key="SlimScrollThumbStyle" TargetType="Thumb">
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
-                        <Border x:Name="Grip" CornerRadius="2" Opacity="0.35" Background="{TemplateBinding Foreground}" />
+                        <Border Background="{StaticResource HitTestBackgroundBrush}">
+                            <Border x:Name="Grip" Margin="2" CornerRadius="2" Opacity="0.35" Background="{TemplateBinding Foreground}" />
+                        </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Grip" Property="Opacity" Value="0.6" />
@@ -228,7 +231,7 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ScrollBar">
                         <!-- Reversed: a vertical track counts upwards, a scroll bar downwards. -->
-                        <Track x:Name="PART_Track" IsDirectionReversed="True" Margin="2,2,2,2">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
                             <Track.DecreaseRepeatButton>
                                 <RepeatButton Command="{x:Static ScrollBar.PageUpCommand}" Style="{StaticResource SlimScrollPageButtonStyle}" />
                             </Track.DecreaseRepeatButton>
@@ -251,7 +254,7 @@
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="ScrollBar">
-                                <Track x:Name="PART_Track" Margin="2,2,2,2">
+                                <Track x:Name="PART_Track">
                                     <Track.DecreaseRepeatButton>
                                         <RepeatButton Command="{x:Static ScrollBar.PageLeftCommand}" Style="{StaticResource SlimScrollPageButtonStyle}" />
                                     </Track.DecreaseRepeatButton>
@@ -1003,8 +1006,23 @@
 
                                 <TextBlock DockPanel.Dock="Top" Text="{Binding StatusText, Mode=OneTime}" Style="{StaticResource BlockIfTextStyle}" />
 
-                                <!-- Filter (one model for matrix and map, T13.7): rank and faction are kept in settings.json. -->
+                                <!-- Filter (one model for matrix and map, T13.7): rank, faction and hub are kept in settings.json. The
+                                     view button switches matrix and recipe (T13.3b); the hub only counts for the recipe, the
+                                     filters from area on only for the matrix, so each shows with its view. -->
                                 <WrapPanel DockPanel.Dock="Top" Visibility="{Binding HasData, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneTime}">
+                                    <Button Command="{Binding NextCommand}" CommandParameter="view" Style="{StaticResource FilterButtonStyle}">
+                                        <Button.InputBindings>
+                                            <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="view" />
+                                        </Button.InputBindings>
+                                        <TextBlock Text="{Binding ViewLabel}" Style="{StaticResource FilterLabelStyle}" />
+                                    </Button>
+                                    <Button Command="{Binding NextCommand}" CommandParameter="hub" Style="{StaticResource FilterButtonStyle}"
+                                            Visibility="{Binding IsRecipe, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <Button.InputBindings>
+                                            <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="hub" />
+                                        </Button.InputBindings>
+                                        <TextBlock Text="{Binding HubLabel}" Style="{StaticResource FilterLabelStyle}" />
+                                    </Button>
                                     <Button Command="{Binding NextCommand}" CommandParameter="rank" Style="{StaticResource FilterButtonStyle}">
                                         <Button.InputBindings>
                                             <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="rank" />
@@ -1017,87 +1035,107 @@
                                         </Button.InputBindings>
                                         <TextBlock Text="{Binding SystemLabel}" Style="{StaticResource FilterLabelStyle}" />
                                     </Button>
-                                    <Button Command="{Binding NextCommand}" CommandParameter="area" Style="{StaticResource FilterButtonStyle}">
+                                    <Button Command="{Binding NextCommand}" CommandParameter="area" Style="{StaticResource FilterButtonStyle}" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Button.InputBindings>
                                             <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="area" />
                                         </Button.InputBindings>
                                         <TextBlock Text="{Binding AreaLabel}" Style="{StaticResource FilterLabelStyle}" />
                                     </Button>
-                                    <Button Command="{Binding NextCommand}" CommandParameter="direct" Style="{StaticResource FilterButtonStyle}">
+                                    <Button Command="{Binding NextCommand}" CommandParameter="direct" Style="{StaticResource FilterButtonStyle}" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Button.InputBindings>
                                             <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="direct" />
                                         </Button.InputBindings>
                                         <TextBlock Text="{Binding DirectLabel}" Style="{StaticResource FilterLabelStyle}" />
                                     </Button>
-                                    <Button Command="{Binding NextCommand}" CommandParameter="contractor" Style="{StaticResource FilterButtonStyle}">
+                                    <Button Command="{Binding NextCommand}" CommandParameter="contractor" Style="{StaticResource FilterButtonStyle}" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Button.InputBindings>
                                             <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="contractor" />
                                         </Button.InputBindings>
                                         <TextBlock Text="{Binding ContractorLabel}" Style="{StaticResource FilterLabelStyle}" />
                                     </Button>
-                                    <Button Command="{Binding NextCommand}" CommandParameter="faction" Style="{StaticResource FilterButtonStyle}">
+                                    <Button Command="{Binding NextCommand}" CommandParameter="faction" Style="{StaticResource FilterButtonStyle}" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Button.InputBindings>
                                             <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="faction" />
                                         </Button.InputBindings>
                                         <TextBlock Text="{Binding FactionLabel}" Style="{StaticResource FilterLabelStyle}" />
                                     </Button>
-                                    <CheckBox Content="XS" IsChecked="{Binding ShowXs}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Extra small" />
-                                    <CheckBox Content="S" IsChecked="{Binding ShowSmall}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Small" />
-                                    <CheckBox Content="M" IsChecked="{Binding ShowMedium}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Medium" />
-                                    <CheckBox Content="L" IsChecked="{Binding ShowLarge}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Large" />
-                                    <CheckBox Content="B" IsChecked="{Binding ShowBulk}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Bulk" />
+                                    <CheckBox Content="XS" IsChecked="{Binding ShowXs}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Extra small" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    <CheckBox Content="S" IsChecked="{Binding ShowSmall}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Small" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    <CheckBox Content="M" IsChecked="{Binding ShowMedium}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Medium" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    <CheckBox Content="L" IsChecked="{Binding ShowLarge}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Large" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    <CheckBox Content="B" IsChecked="{Binding ShowBulk}" Style="{StaticResource SizeCheckBoxStyle}" ToolTip="Bulk" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                 </WrapPanel>
 
                                 <TextBlock DockPanel.Dock="Bottom" Text="{Binding WithoutPlaceText}" Style="{StaticResource BlockIfTextStyle}" Margin="0,4,0,0" />
+                                <TextBlock DockPanel.Dock="Bottom" Text="{Binding RegionsText}" Style="{StaticResource BlockIfTextStyle}" Margin="0,2,0,0" />
                                 <TextBlock DockPanel.Dock="Top" Text="{Binding Legend, Mode=OneTime}" Style="{StaticResource BlockIfTextStyle}"
-                                           Visibility="{Binding HasData, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneTime}" />
+                                           Visibility="{Binding ShowsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                 <TextBlock DockPanel.Dock="Top" Text="{Binding EmptyText}" Style="{StaticResource BlockIfTextStyle}" />
 
-                                <!-- The matrix: pickups down, drop-offs across, the pickup column frozen; read only, no selection look. -->
-                                <DataGrid x:Name="PortMatrix" rt:PortMatrixGrid.Columns="{Binding Columns}" ItemsSource="{Binding Rows}"
-                                          AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" FrozenColumnCount="1"
-                                          CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" CanUserResizeColumns="False"
-                                          CanUserSortColumns="False" CanUserResizeRows="False" SelectionMode="Single" SelectionUnit="Cell"
-                                          GridLinesVisibility="None" Background="Transparent" RowBackground="Transparent" BorderThickness="0"
-                                          Foreground="{DynamicResource LegendForegroundBrush}" FontSize="{DynamicResource LegendFontSize}"
-                                          HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Focusable="False"
-                                          Visibility="{Binding HasData, Converter={StaticResource BooleanToVisibilityConverter}, Mode=OneTime}">
-                                    <DataGrid.ColumnHeaderStyle>
-                                        <Style TargetType="DataGridColumnHeader">
-                                            <Setter Property="Background" Value="Transparent" />
-                                            <Setter Property="Foreground" Value="{DynamicResource HeaderForegroundBrush}" />
-                                            <Setter Property="BorderThickness" Value="0" />
-                                            <Setter Property="Padding" Value="6,0,6,4" />
-                                            <Setter Property="VerticalContentAlignment" Value="Bottom" />
-                                            <Setter Property="ContentTemplate">
-                                                <Setter.Value>
+                                <Grid>
+                                    <!-- The recipe (T13.3b, D123): a list in the legend's look, one line per role, the sum below; a hint,
+                                         nothing to click. Scrolls like the stop lines (no focus, so the left click still moves the window). -->
+                                    <ScrollViewer x:Name="RecipeView" Focusable="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                                  Visibility="{Binding ShowsRecipe, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding RecipeNote}" Style="{StaticResource BlockIfTextStyle}" />
+                                            <ItemsControl ItemsSource="{Binding RecipeLines}" Focusable="False">
+                                                <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
-                                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" MaxWidth="100" Effect="{DynamicResource HeaderHaloEffect}" />
+                                                        <TextBlock Text="{Binding}" Style="{StaticResource LegendTextStyle}" Margin="0,0,0,2" />
                                                     </DataTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Style>
-                                    </DataGrid.ColumnHeaderStyle>
-                                    <DataGrid.RowStyle>
-                                        <Style TargetType="DataGridRow">
-                                            <Setter Property="Background" Value="Transparent" />
-                                        </Style>
-                                    </DataGrid.RowStyle>
-                                    <DataGrid.CellStyle>
-                                        <Style TargetType="DataGridCell">
-                                            <Setter Property="Background" Value="Transparent" />
-                                            <Setter Property="BorderThickness" Value="0" />
-                                            <Setter Property="Focusable" Value="False" />
-                                            <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
-                                            <Style.Triggers>
-                                                <Trigger Property="IsSelected" Value="True">
-                                                    <Setter Property="Background" Value="Transparent" />
-                                                    <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </DataGrid.CellStyle>
-                                </DataGrid>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            <TextBlock Text="{Binding RecipeSummary}" Style="{StaticResource BlockIfTextStyle}" FontWeight="SemiBold" Margin="0,4,0,0" />
+                                        </StackPanel>
+                                    </ScrollViewer>
+    
+                                    <!-- The matrix: pickups down, drop-offs across, the pickup column frozen; read only, no selection look. -->
+                                    <DataGrid x:Name="PortMatrix" rt:PortMatrixGrid.Columns="{Binding Columns}" ItemsSource="{Binding Rows}"
+                                              AutoGenerateColumns="False" IsReadOnly="True" HeadersVisibility="Column" FrozenColumnCount="1"
+                                              CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" CanUserResizeColumns="False"
+                                              CanUserSortColumns="False" CanUserResizeRows="False" SelectionMode="Single" SelectionUnit="Cell"
+                                              GridLinesVisibility="None" Background="Transparent" RowBackground="Transparent" BorderThickness="0"
+                                              Foreground="{DynamicResource LegendForegroundBrush}" FontSize="{DynamicResource LegendFontSize}"
+                                              HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Focusable="False"
+                                              Visibility="{Binding ShowsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <DataGrid.ColumnHeaderStyle>
+                                            <Style TargetType="DataGridColumnHeader">
+                                                <Setter Property="Background" Value="Transparent" />
+                                                <Setter Property="Foreground" Value="{DynamicResource HeaderForegroundBrush}" />
+                                                <Setter Property="BorderThickness" Value="0" />
+                                                <Setter Property="Padding" Value="6,0,6,4" />
+                                                <Setter Property="VerticalContentAlignment" Value="Bottom" />
+                                                <Setter Property="ContentTemplate">
+                                                    <Setter.Value>
+                                                        <DataTemplate>
+                                                            <TextBlock Text="{Binding}" TextWrapping="Wrap" MaxWidth="100" Effect="{DynamicResource HeaderHaloEffect}" />
+                                                        </DataTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </DataGrid.ColumnHeaderStyle>
+                                        <DataGrid.RowStyle>
+                                            <Style TargetType="DataGridRow">
+                                                <Setter Property="Background" Value="Transparent" />
+                                            </Style>
+                                        </DataGrid.RowStyle>
+                                        <DataGrid.CellStyle>
+                                            <Style TargetType="DataGridCell">
+                                                <Setter Property="Background" Value="Transparent" />
+                                                <Setter Property="BorderThickness" Value="0" />
+                                                <Setter Property="Focusable" Value="False" />
+                                                <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter Property="Background" Value="Transparent" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGrid.CellStyle>
+                                    </DataGrid>
+                                </Grid>
                             </DockPanel>
                         </DataTemplate>
                     </ContentControl.ContentTemplate>

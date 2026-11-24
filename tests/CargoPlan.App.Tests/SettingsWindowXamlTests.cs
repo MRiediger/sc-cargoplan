@@ -136,6 +136,21 @@ public partial class SettingsWindowXamlTests
         bindings.Should().Contain("TextBlock.Visibility={Binding HasActiveText, Converter={StaticResource BooleanToVisibilityConverter}}");
     }
 
+    [Fact]
+    public void The_plan_tab_section_binds_rank_and_faction()
+    {
+        // T13.3: set once what the boards show; the tab's filter buttons write the same values.
+        XNamespace x = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var section = Root().Descendants().Single(e => (string?)e.Attribute(x + "Name") == "RoutesSection");
+        var bindings = section.Descendants().SelectMany(e => e.Attributes()).Select(a => $"{a.Parent!.Name.LocalName}.{a.Name.LocalName}={a.Value}").ToList();
+
+        section.Attribute("Header")!.Value.Should().Be("Plan tab");
+        bindings.Should().Contain("ComboBox.ItemsSource={x:Static vm:RoutesSettingsViewModel.RankChoices}");
+        bindings.Should().Contain("ComboBox.SelectedValue={Binding Rank}");
+        bindings.Should().Contain("ComboBox.ItemsSource={x:Static vm:RoutesSettingsViewModel.FactionChoices}");
+        bindings.Should().Contain("ComboBox.SelectedValue={Binding Faction}");
+    }
+
     [GeneratedRegex(@"\{x:Static (?<prefix>\w+):(?<type>\w+)\.(?<member>\w+)\}")]
     private static partial Regex StaticReference();
 }

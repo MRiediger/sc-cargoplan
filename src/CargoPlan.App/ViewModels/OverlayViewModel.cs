@@ -9,7 +9,7 @@ using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
 using CargoPlan.Core.Ships;
-using CargoPlan.Import;
+using CargoPlan.Core.Text;
 using CargoPlan.Import.Contracts;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -533,6 +533,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         _recentShips = ShipChoices.Remember(_recentShips, Ship.Id, ship.Id);
         _shipSelection = null;
         Ship = ship;
+        Routes?.ShowShip(ship);
 
         // Before the scene: the view takes the new ship's camera, or its default camera fitted (D61, K1.2).
         OnPropertyChanged(nameof(Camera));
@@ -583,13 +584,8 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         if (IsRoutesTabSelected && scanned.View == ContractView.Offer)
         {
             return scanned.ToObservation(DateTime.UtcNow) is { } observed
-                ? new(ScanReportKind.Observed, Observed: observed.Key)
-                : new(ScanReportKind.NotObserved, Reason: (scanned.Title, scanned.Reward) switch
-                {
-                    (null, null) => "title and reward unreadable",
-                    (null, _) => "title unreadable",
-                    _ => "reward unreadable",
-                });
+                ? new(ScanReportKind.Observed, Observed: observed.Key, Fit: Routes?.FitOf(observed))
+                : new(ScanReportKind.NotObserved, Reason: scanned.NotObservedReason);
         }
 
         var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []), CrateCap.Of(Ship));
@@ -624,8 +620,19 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     [ObservableProperty]
     public partial bool IsRoutesTabSelected { get; set; }
 
-    /// <summary>The Plan tab's content (T13.2): the port matrix of the hauling data in use; null in tests without it.</summary>
-    public RoutesViewModel? Routes { get; init; }
+    /// <summary>
+    /// The Plan tab's content (T13.2): the port matrix of the hauling data in use; null in tests without it. Its recipe is
+    /// for the overlay's ship, from the start and after every change (T13.3b).
+    /// </summary>
+    public RoutesViewModel? Routes
+    {
+        get;
+        init
+        {
+            field = value;
+            value?.ShowShip(Ship);
+        }
+    }
 
     /// <summary>The tab "Cargo": the loading plan and the ship, as before T13.2.</summary>
     [RelayCommand]

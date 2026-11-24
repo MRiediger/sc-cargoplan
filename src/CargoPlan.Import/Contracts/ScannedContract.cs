@@ -1,6 +1,7 @@
 using System.Globalization;
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Routing;
+using CargoPlan.Core.Text;
 
 namespace CargoPlan.Import.Contracts;
 
@@ -19,6 +20,7 @@ namespace CargoPlan.Import.Contracts;
 /// <param name="Key">The content key (D101): pickups, destination–commodity pairs, max size, reward; no SCU.</param>
 /// <param name="Doubts">Why the text may still have been typing in (D103); empty for a text all there.</param>
 /// <param name="Title">Contractor, rank, size and direct from the title (T13.1); null if it wasn't read whole. Not in the key.</param>
+/// <param name="TitleMiss">Why there is no title (E1 of T13.3a); null with a title.</param>
 public sealed record ScannedContract(
     ContractView View,
     IReadOnlyList<MissionStop> Stops,
@@ -28,8 +30,22 @@ public sealed record ScannedContract(
     long? Reward,
     string Key,
     IReadOnlyList<ContractDoubt> Doubts,
-    ContractTitle? Title = null)
+    ContractTitle? Title = null,
+    TitleMiss? TitleMiss = null)
 {
+    /// <summary>
+    /// What of title and reward kept a contract read whole from being an observation, for the notice and the log (E1 of
+    /// T13.3a): "no hauling template form" for another contractor's contract, whatever it pays; null with both.
+    /// </summary>
+    public string? NotObservedReason => (Title, TitleMiss, Reward) switch
+    {
+        (not null, _, not null) => null,
+        (null, Contracts.TitleMiss.OtherForm, _) => "no hauling template form",
+        (null, _, null) => "title and reward unreadable",
+        (null, _, _) => "title unreadable",
+        _ => "reward unreadable",
+    };
+
     /// <summary>A doubt a second read must clear, or the scan is "still loading" (D103).</summary>
     public bool InHardDoubt => Doubts.Any(d => d is ContractDoubt.NoDeliveryRead or ContractDoubt.ObjectiveLineUnread);
 
@@ -43,13 +59,14 @@ public sealed record ScannedContract(
 
     /// <summary>
     /// The contract as an observation of its template (T13.1, U3), scanned at <paramref name="utc"/>: from the offers or
-    /// the accepted view, read whole (no hard doubt, a delivery), with its title and reward, which make the key. Null
-    /// otherwise; one line per delivery, places as read.
+    /// the accepted view, read whole (no hard doubt, a delivery), with its title and reward, which make the key with the
+    /// commodities (K1 of T13.3). Null otherwise; one line per delivery, places as read.
     /// </summary>
     public ObservedScan? ToObservation(DateTime utc) =>
         View is ContractView.Offer or ContractView.Accepted && !InHardDoubt && Stops.Count > 0 && Title is { } title && Reward is { } reward
             ? new(
-                new ObservationKey(title.Contractor, title.Rank, title.Size, title.Direct, reward),
+                new ObservationKey(
+                    title.Contractor, title.Rank, title.Size, title.Direct, reward, [.. Stops.SelectMany(stop => stop.Items.Select(item => item.Commodity))]),
                 title.Area,
                 Pickups,
                 [.. Stops.SelectMany(stop => stop.Items.Select(item => new ObservedDelivery(stop.Destination, item.Commodity, item.Scu)))],
@@ -83,7 +100,8 @@ public sealed record ScannedContract(
             parsed.Reward,
             KeyOf(parsed),
             DoubtsOf(parsed, stops.Count),
-            parsed.Title);
+            parsed.Title,
+            parsed.TitleMiss);
     }
 
     /// <summary>
@@ -135,7 +153,7 @@ public sealed record ScannedContract(
     /// </summary>
     private static string KeyOf(ParsedContract parsed) => string.Join(PartSeparator,
         Sorted(parsed.Pickups.Select(p => DestinationNames.Key(p.Place))),
-        Sorted(parsed.Deliveries.Select(d => $"{DestinationNames.Key(d.Destination)}:{ContractText.AnchorForm(d.Commodity)}")),
+        Sorted(parsed.Deliveries.Select(d => $"{DestinationNames.Key(d.Destination)}:{OcrText.AnchorForm(d.Commodity)}")),
         parsed.MaxCrateSize is { } max ? ((int)max).ToString(CultureInfo.InvariantCulture) : Unreadable,
         parsed.Reward?.ToString(CultureInfo.InvariantCulture) ?? Unreadable);
 

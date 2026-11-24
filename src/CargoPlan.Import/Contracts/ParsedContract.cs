@@ -15,6 +15,7 @@ namespace CargoPlan.Import.Contracts;
 /// <param name="Unread">Objective lines that read as nothing: a delivery's count without its destination, a Collect line
 /// without its place (T10.2b2); empty for a text all there.</param>
 /// <param name="Title">The contract title (T13.1); null if no line reads whole as one.</param>
+/// <param name="TitleMiss">Why there is no title (E1 of T13.3a); null with a title.</param>
 internal sealed record ParsedContract(
     IReadOnlyList<ParsedDelivery> Deliveries,
     CrateSize? MaxCrateSize,
@@ -24,4 +25,5 @@ internal sealed record ParsedContract(
     ContractView View,
     bool HasObjectives = false,
     IReadOnlyList<string>? Unread = null,
-    ContractTitle? Title = null);
+    ContractTitle? Title = null,
+    TitleMiss? TitleMiss = null);

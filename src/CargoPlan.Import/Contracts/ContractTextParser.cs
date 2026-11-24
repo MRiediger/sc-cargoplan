@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Text;
 
 namespace CargoPlan.Import.Contracts;
 
@@ -12,7 +13,7 @@ namespace CargoPlan.Import.Contracts;
 // https://learn.microsoft.com/dotnet/standard/base-types/regular-expression-source-generators
 internal static partial class ContractTextParser
 {
-    // Headings as the game prints them, compared in their anchor form (see ContractText.AnchorForm).
+    // Headings as the game prints them, compared in their anchor form (see OcrText.AnchorForm).
     private const string StartHeading = "DETAILS";
     private const string DropOffHeading = "DROP OFF LOCATIONS";
     private const string PickUpHeading = "PICK UP LOCATIONS";
@@ -39,8 +40,9 @@ internal static partial class ContractTextParser
         var text = rawText.ReplaceLineEndings("\n");
         var all = text.Split('\n');
         var lines = Block(all);
+        var title = ContractTitles.Read(all);
         return new(Deliveries(lines), MaxCrateSize(string.Join('\n', lines)), ListedDestinationCount(lines), Reward(text), Pickups(lines),
-            View(all), all.Any(l => IsHeading(l, ObjectivesHeading)), Unread(lines), ContractTitles.Read(all));
+            View(all), all.Any(l => IsHeading(l, ObjectivesHeading)), Unread(lines), title, title is null ? ContractTitles.Miss(all) : null);
     }
 
     /// <summary>
@@ -51,7 +53,7 @@ internal static partial class ContractTextParser
     [
         .. lines.Select(l => l.Trim()).Where(l =>
             (DeliveryLike.IsMatch(l) && !DeliveryLine.IsMatch(l))
-            || (CollectStub.Match(l) is { Success: true } stub && ContractText.AnchorForm(stub.Groups["verb"].Value) == ContractText.AnchorForm(CollectVerb))),
+            || (CollectStub.Match(l) is { Success: true } stub && OcrText.AnchorForm(stub.Groups["verb"].Value) == OcrText.AnchorForm(CollectVerb))),
     ];
 
     /// <summary>
@@ -68,7 +70,7 @@ internal static partial class ContractTextParser
 
     private static bool Shows(string line, (string[] Lines, string[] Starts) signals) =>
         signals.Lines.Any(heading => IsHeading(line, heading))
-        || signals.Starts.Any(start => ContractText.AnchorForm(line).StartsWith(ContractText.AnchorForm(start), StringComparison.Ordinal));
+        || signals.Starts.Any(start => OcrText.AnchorForm(line).StartsWith(OcrText.AnchorForm(start), StringComparison.Ordinal));
 
     /// <summary>
     /// "Collect Stims from Everus Harbor." (T10.2a): one line per pickup, its verb as OCR may read it ("CoIlect"). A place
@@ -81,7 +83,7 @@ internal static partial class ContractTextParser
         for (var i = 0; i < lines.Length; i++)
         {
             if (CollectLine.Match(lines[i].Trim()) is not { Success: true } match
-                || ContractText.AnchorForm(match.Groups["verb"].Value) != ContractText.AnchorForm(CollectVerb))
+                || OcrText.AnchorForm(match.Groups["verb"].Value) != OcrText.AnchorForm(CollectVerb))
             {
                 continue;
             }
@@ -154,12 +156,12 @@ internal static partial class ContractTextParser
 
     /// <summary>
     /// The one name that starts with the fragment, character by character ("Thunde" → "Thundering Express Station");
-    /// null if none or several do. Both read as OCR may read them (<see cref="ContractText.AnchorForm"/>), so "Melodic
+    /// null if none or several do. Both read as OCR may read them (<see cref="OcrText.AnchorForm"/>), so "Melodic
     /// Fieids" finds "Melodic Fields Station" and takes its spelling (B1).
     /// </summary>
     private static string? CompletedFrom(string fragment, IEnumerable<string> names) =>
-        names.Where(n => ContractText.AnchorForm(n).StartsWith(ContractText.AnchorForm(fragment), StringComparison.Ordinal))
-            .DistinctBy(ContractText.AnchorForm, StringComparer.Ordinal)
+        names.Where(n => OcrText.AnchorForm(n).StartsWith(OcrText.AnchorForm(fragment), StringComparison.Ordinal))
+            .DistinctBy(OcrText.AnchorForm, StringComparer.Ordinal)
             .ToList() is [var only] ? only : null;
 
     /// <summary>
@@ -203,14 +205,14 @@ internal static partial class ContractTextParser
     /// <summary>"- Freight elevator at …" lines after the drop-off heading, up to the pick-up heading.</summary>
     private static IEnumerable<string> DropOffEntries(string[] lines) =>
         lines.SkipWhile(l => !IsDropOffHeading(l)).Skip(1)
-            .TakeWhile(l => !ContractText.AnchorForm(l).StartsWith(ContractText.AnchorForm(PickUpHeading), StringComparison.Ordinal))
+            .TakeWhile(l => !OcrText.AnchorForm(l).StartsWith(OcrText.AnchorForm(PickUpHeading), StringComparison.Ordinal))
             .Where(l => ListEntry.IsMatch(l));
 
     private static bool IsDropOffHeading(string line) =>
-        ContractText.AnchorForm(line).StartsWith(ContractText.AnchorForm(DropOffHeading), StringComparison.Ordinal);
+        OcrText.AnchorForm(line).StartsWith(OcrText.AnchorForm(DropOffHeading), StringComparison.Ordinal);
 
     private static bool IsHeading(string line, string heading) =>
-        ContractText.AnchorForm(line).Equals(ContractText.AnchorForm(heading), StringComparison.Ordinal);
+        OcrText.AnchorForm(line).Equals(OcrText.AnchorForm(heading), StringComparison.Ordinal);
 
     /// <summary>
     /// "Deliver 0/4 SCU of Stims to Thundering Express Station": anchored on "/N SCU of … to …". The word before and

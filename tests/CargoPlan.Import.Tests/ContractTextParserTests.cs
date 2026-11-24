@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Text;
 using CargoPlan.Import.Contracts;
 
 namespace CargoPlan.Import.Tests;
@@ -630,10 +631,10 @@ public class ContractTextParserTests
     private static bool IsKnownPickup(string place)
     {
         var name = Regex.Replace(place, @"^HUR-L\w\s+", "", RegexOptions.IgnoreCase);
-        var form = ContractText.AnchorForm(name);
+        var form = OcrText.AnchorForm(name);
         return form.Length > 0
-               && (KnownPickups.Any(known => ContractText.AnchorForm(known).StartsWith(form, StringComparison.Ordinal))
-                   || KnownFragments.Any(fragment => ContractText.AnchorForm(fragment) == form));
+               && (KnownPickups.Any(known => OcrText.AnchorForm(known).StartsWith(form, StringComparison.Ordinal))
+                   || KnownFragments.Any(fragment => OcrText.AnchorForm(fragment) == form));
     }
 
     /// <summary>A contract in the reading order of CargoPlan's own OCR (D99): the reward line between prose and objectives.</summary>

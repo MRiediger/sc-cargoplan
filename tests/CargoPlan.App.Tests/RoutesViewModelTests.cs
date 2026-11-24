@@ -3,6 +3,7 @@ using CargoPlan.App.Settings;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Routing;
 using CargoPlan.Core.ShipData;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
@@ -32,8 +33,24 @@ public sealed class RoutesViewModelTests
         "u", "d", contractor, title, rank, HaulSize.Medium, false, HaulShape.AToB, 1, system, areaKey, type, faction, reward,
         [new HaulLeg("Gold", min, max, CrateSize.Sixteen)], pickups, dropoffs);
 
-    private RoutesViewModel Model(IReadOnlyList<HaulTemplate> templates, RoutesSettings? settings = null) =>
-        new(new HaulingLoad.Loaded(new HaulingData(templates, Positions.Empty), []), Version, settings ?? RoutesSettings.Default, _saved.Add);
+    private RoutesViewModel Model(IReadOnlyList<HaulTemplate> templates, RoutesSettings? settings = null, ObservedEdges? observed = null, Positions? positions = null) =>
+        new(new HaulingLoad.Loaded(new HaulingData(templates, positions ?? Positions.Empty), []), Version, settings ?? RoutesSettings.Default, _saved.Add, observed);
+
+    private static readonly DateTime Monday = new(2026, 11, 23, 12, 0, 0, DateTimeKind.Utc);
+
+    private static readonly Positions Places = new(
+    [
+        .. new[] { "Everus Harbor", "Baijini Point" }.Select(n => new StarPosition(n, n, StarSystem.Stanton, "Manmade", null, 0, 0, 0, [])),
+        .. new[] { "P", "Q" }.Select(n => new StarPosition(n, n, StarSystem.Pyro, "Manmade", null, 0, 0, 0, [])),
+    ]);
+
+    // Seen twice: a Senior Medium for the reward, Gold, from the first place to the second.
+    private static ObservedEdges Seen(HaulTemplate template, HaulContractor contractor, long reward, string from, string to)
+    {
+        var key = new ObservationKey(contractor, HaulRank.Senior, HaulSize.Medium, contractor == HaulContractor.Covalex ? false : null, reward, ["Gold"]);
+        var scan = new ObservedScan(key, null, [from], [new ObservedDelivery(to, "Gold", 30)], Monday);
+        return ObservedEdges.From(new Observations([Observation.Of(scan).With(scan)]), [template], Places);
+    }
 
     private static PortCellView? Cell(RoutesViewModel model, string pickup, string dropoff) =>
         model.Rows.Single(r => r.Pickup == pickup).Cells[model.Columns.ToList().IndexOf(dropoff)];
@@ -49,7 +66,7 @@ public sealed class RoutesViewModelTests
         model.Rows.Select(r => r.Pickup).Should().Equal("A");
         Cell(model, "A", "B")!.Text.Should().Be("2 · 350k");
         Cell(model, "A", "C")!.Text.Should().Be("1 · 100k");
-        model.Legend.Should().Be("Each cell: contracts · aUEC together");
+        model.Legend.Should().Be("Each cell: contracts · aUEC together; ● seen in your scans");
     }
 
     [Fact]
@@ -81,7 +98,31 @@ public sealed class RoutesViewModelTests
 
         tip.Should().StartWith("Everus Harbor → HUR-L1 · most SCU in one contract: 144");
         tip.Should().Contain("Experienced Rank - Direct Medium Cargo Haul · 160,250 aUEC · 90–144 SCU");
-        tip.Should().Contain("pickup: hub of the board, not in the game data");
+    }
+
+    [Fact]
+    public void Templates_at_the_boards_hub_carry_a_mark_the_head_explains_once()
+    {
+        // E2 of T13.3a: the hint once at the top, a short mark on each row it concerns, not the hint on every row.
+        var model = Model(
+        [
+            T([], ["HUR-L1"], title: "Rookie Rank - Small Cargo Haul"),
+            T(["Everus Harbor"], ["HUR-L1"], title: "Junior Rank - Small Cargo Haul"),
+            T([], ["HUR-L1"], title: "Member Rank - Small Cargo Haul"),
+            T(["HUR-L1"], [], title: "Senior Rank - Small Cargo Haul"),
+        ]);
+
+        Cell(model, "Everus Harbor", "HUR-L1")!.ToolTip.Split('\n').Should().Equal(
+            "Everus Harbor → HUR-L1 · most SCU in one contract: 64",
+            "⌂ pickup: the board's hub, not in the game data",
+            "⌂ Rookie Rank - Small Cargo Haul · 100,000 aUEC · 10–64 SCU",
+            "Junior Rank - Small Cargo Haul · 100,000 aUEC · 10–64 SCU",
+            "⌂ Member Rank - Small Cargo Haul · 100,000 aUEC · 10–64 SCU");
+        Cell(model, "HUR-L1", "Everus Harbor")!.ToolTip.Split('\n').Should().Equal(
+            "HUR-L1 → Everus Harbor · most SCU in one contract: 64",
+            "⌂ drop-off: the board's hub, not in the game data",
+            "⌂ Senior Rank - Small Cargo Haul · 100,000 aUEC · 10–64 SCU");
+        Model([T(["A"], ["B"])]).Rows.Single().Cells.Single()!.ToolTip.Should().NotContain("⌂", "no hub, no mark and no head line");
     }
 
     // Picture gate: L stations by their code, hubs in full; the full name stays in the row and the cell's tool tip.
@@ -103,6 +144,60 @@ public sealed class RoutesViewModelTests
         Model([T(["A"], [], areaKey: "Stanton"), T(["A"], [], areaKey: "Stanton")]).WithoutPlaceText
             .Should().Be("2 templates not shown: the game data name no pickup or destination for them.");
         Model([T(["A"], ["B"])]).WithoutPlaceText.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_pair_a_scan_saw_carries_a_mark_and_says_when_in_its_tool_tip()
+    {
+        // T13.3: a system-wide template without a place in the data gets its cell from the scans.
+        var wide = T([], [], areaKey: "Stanton", title: "Senior Rank - Medium Cargo Haul") with { Uuid = "wide" };
+        var model = Model([wide]);
+        model.WithoutPlaceText.Should().NotBeNull();
+
+        model.ShowObserved(Seen(wide, HaulContractor.Covalex, 100_000, "Everus Harbor", "Baijini Point"));
+
+        var cell = Cell(model, "Everus Harbor", "Baijini Point")!;
+        cell.Text.Should().Be("● 1 · 100k");
+        cell.ToolTip.Should().Contain("Senior Rank - Medium Cargo Haul · 100,000 aUEC · 10–64 SCU · observed 2× · last 23 Nov");
+        model.WithoutPlaceText.Should().BeNull("the template has a cell now");
+    }
+
+    [Fact]
+    public void A_Red_Wind_cell_shows_the_reward_a_scan_saw()
+    {
+        var redWind = T(["P"], ["Q"], reward: null, contractor: HaulContractor.RedWind, system: StarSystem.Pyro, areaKey: "Solar", faction: HaulFaction.Hh) with { Uuid = "rw" };
+        var model = Model([redWind], observed: Seen(redWind, HaulContractor.RedWind, 532_500, "P", "Q"));
+
+        model.NextCommand.Execute("system");
+
+        var cell = Cell(model, "P", "Q")!;
+        cell.Text.Should().Be("● 1 · 532k");
+        cell.ToolTip.Should().Contain("532,500 aUEC observed");
+    }
+
+    [Fact]
+    public void Rank_and_faction_set_in_the_settings_window_show_in_the_filter_and_are_not_saved_again()
+    {
+        var model = Model([T(["A"], ["B"], rank: HaulRank.Senior)]);
+
+        model.Follow(RoutesSettings.Default with { Rank = "junior", Faction = "cfp" });
+
+        model.RankLabel.Should().Be("Rank ≤ Junior");
+        model.FactionLabel.Should().Be("CFP");
+        model.Rows.Should().BeEmpty("a Senior template is above the rank");
+        _saved.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Pyro_says_its_regional_templates_are_not_shown_yet()
+    {
+        var model = Model([T(["A"], ["B"])]);
+        model.RegionsText.Should().BeNull();
+
+        model.NextCommand.Execute("system");
+
+        model.SystemLabel.Should().Be("Pyro");
+        model.RegionsText.Should().Be("Red Wind's regional templates are not shown yet: no scan has placed them.");
     }
 
     [Fact]
@@ -155,6 +250,121 @@ public sealed class RoutesViewModelTests
         model.PreviousCommand.Execute("system");
         model.SystemLabel.Should().Be("Interstellar");
         _saved.Should().BeEmpty("only rank and faction are kept");
+    }
+
+    // --- Recipe (T13.3b, D123) ---
+
+    private const string L1 = "HUR-L1 Green Glade Station";
+
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
+    private static readonly Ship HullB = FrozenShips.Load("hull_b");
+
+    private static readonly HaulTemplate SeniorBulk = T([], [L1], reward: 325_250, min: 41, max: 432, title: "Senior Rank - Medium Cargo Haul");
+
+    // From L1 back to the board's hub (D121): an empty drop-off pool.
+    private static readonly HaulTemplate JuniorBack = T([L1], [], reward: 72_500, title: "Junior Rank - Small Cargo Haul") with
+    {
+        Size = HaulSize.Small,
+        Legs = [new HaulLeg("Gold", 4, 16, CrateSize.Four)],
+    };
+
+    [Fact]
+    public void The_view_switches_between_matrix_and_recipe_and_the_hub_cycles_and_is_saved()
+    {
+        var model = Model([SeniorBulk]);
+        model.ViewLabel.Should().Be("Matrix");
+        model.IsRecipe.Should().BeFalse();
+
+        model.NextCommand.Execute("view");
+        model.ViewLabel.Should().Be("Recipe");
+        model.IsRecipe.Should().BeTrue();
+        model.HubLabel.Should().Be("Hub: Everus Harbor");
+
+        model.NextCommand.Execute("hub");
+        model.HubLabel.Should().Be("Hub: Seraphim Station");
+        model.PreviousCommand.Execute("hub");
+        model.PreviousCommand.Execute("hub");
+        model.HubLabel.Should().Be("Hub: Port Tressler");
+        _saved.Select(s => s.Hub).Should().Equal("Seraphim Station", "Everus Harbor", "Port Tressler");
+
+        model.PreviousCommand.Execute("view");
+        model.IsRecipe.Should().BeFalse();
+    }
+
+    [Fact]
+    public void The_recipe_lists_its_roles_and_the_way_back_for_the_ship()
+    {
+        var model = Model([SeniorBulk, JuniorBack]);
+        model.ShowShip(HullB);
+
+        model.NextCommand.Execute("view");
+
+        (model.ShowsMatrix, model.ShowsRecipe).Should().Be((false, true));
+        model.WithoutPlaceText.Should().BeNull("the matrix's lines say nothing about the recipe");
+        model.RecipeLines.Should().Equal(
+            "Bulk · Senior Rank - Medium Cargo Haul · 325,250 aUEC · 41–432 SCU in 16s · HUR-L1",
+            "Back · Junior Rank - Small Cargo Haul · 72,500 aUEC · 4–16 SCU in 4s · accept at HUR-L1");
+        model.RecipeSummary.Should().Be("Σ 325,250 aUEC · worst case 432 / 512 SCU in 27 crates · fits MISC Hull B");
+        model.RecipeNote.Should().BeNull();
+    }
+
+    [Fact]
+    public void Another_ship_or_rank_makes_the_recipe_anew()
+    {
+        var model = Model([SeniorBulk, JuniorBack], RoutesSettings.Default with { Hub = "Everus Harbor" });
+        model.ShowShip(HullB);
+        model.NextCommand.Execute("view");
+
+        model.ShowShip(HullA);
+        model.RecipeLines.Should().BeEmpty("432 SCU don't go into 64");
+        model.RecipeNote.Should().Be("Recipe: nothing from this hub fits the ship");
+
+        model.ShowShip(HullB);
+        model.Follow(RoutesSettings.Default with { Rank = "junior" });
+        model.RecipeLines.Should().BeEmpty("the Senior Medium is above the rank, the Junior is a way back only");
+    }
+
+    [Fact]
+    public void Pyro_and_no_ship_have_no_recipe_and_say_why()
+    {
+        var model = Model([SeniorBulk]);
+        model.NextCommand.Execute("view");
+        model.RecipeNote.Should().Be("Recipe: no ship");
+
+        model.ShowShip(HullB);
+        model.NextCommand.Execute("system");
+
+        model.RecipeLines.Should().BeEmpty();
+        model.RecipeNote.Should().Be("Recipe: Stanton hubs only");
+    }
+
+    [Fact]
+    public void The_overlays_ship_is_the_recipes_from_the_start_and_on_every_change()
+    {
+        var model = Model([SeniorBulk]);
+        var overlay = new ViewModels.OverlayViewModel(HullA) { Routes = model };
+        model.NextCommand.Execute("view");
+        model.RecipeLines.Should().BeEmpty("the Hull A holds 64 SCU");
+
+        overlay.ChangeShip(HullB);
+
+        model.RecipeLines.Should().ContainSingle().Which.Should().StartWith("Bulk · ");
+    }
+
+    [Fact]
+    public void A_scanned_offer_is_checked_against_the_hubs_recipe_for_the_ship_in_either_view()
+    {
+        Positions places = new([.. new[] { "Everus Harbor", L1 }.Select(n => new StarPosition(n, n, StarSystem.Stanton, "Manmade", null, 0, 0, 0, []))]);
+        var model = Model([SeniorBulk], positions: places);
+        var key = new ObservationKey(HaulContractor.Covalex, HaulRank.Senior, HaulSize.Medium, false, 325_250, ["Gold"]);
+        var scan = new ObservedScan(key, null, ["Everus Harbor"], [new ObservedDelivery("Green Glade Station", "Gold", 300)], Monday);
+
+        model.FitOf(scan).Should().BeNull("no ship yet");
+        model.ShowShip(HullB);
+        model.IsRecipe.Should().BeFalse();
+        model.FitOf(scan).Should().Be(new RecipeFit.FitsAs(RecipeKind.Bulk));
+        model.ShowShip(HullA);
+        model.FitOf(scan).Should().Be(new RecipeFit.TooBig(432, CrateSize.Sixteen, HullA.Name));
     }
 
     [Fact]

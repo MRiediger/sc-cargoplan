@@ -8,16 +8,23 @@ internal sealed record RoutesFileDto(int SchemaVersion, IReadOnlyList<Observatio
     public static RoutesFileDto From(Observations observations) =>
         new(RoutesFile.SupportedSchemaVersion, [.. observations.Entries.Select(ObservationDto.From)]);
 
+    /// <summary>The observations; of schema 1 only the entries with one commodity (K1 of T13.3), the others named.</summary>
     /// <exception cref="ArgumentException">A word, band, count or time out of the format, or a key twice.</exception>
-    public Observations ToObservations()
+    public (Observations Observations, IReadOnlyList<string> Dropped) ToObservations(int schemaVersion)
     {
-        Observation[] entries = [.. Observations.Select(o => o.ToObservation())];
-        if (entries.GroupBy(e => e.Key).FirstOrDefault(g => g.Count() > 1) is { } twice)
+        Observation[] all = [.. Observations.Select(o => o.ToObservation())];
+        if (all.GroupBy(e => e.Key).FirstOrDefault(g => g.Count() > 1) is { } twice)
         {
             throw new ArgumentException($"the observation {twice.Key} is there twice.");
         }
 
-        return new(entries);
+        var keyedWithoutCommodities = schemaVersion < 2;
+        string[] dropped =
+        [
+            .. all.Where(e => keyedWithoutCommodities && e.Scu.Count > 1)
+                .Select(e => $"schema 1 entry {Word(e.Key.Contractor)} {Word(e.Key.Rank)} {Word(e.Key.Size)} {e.Key.Reward} left out: {e.Scu.Count} commodities may be several templates"),
+        ];
+        return (new([.. all.Where(e => !keyedWithoutCommodities || e.Scu.Count <= 1)]), dropped);
     }
 }
 
@@ -58,7 +65,9 @@ internal sealed record ObservationDto(
             throw new ArgumentException($"the band of {band.Commodity} ({band.Min}–{band.Max} SCU) is no band.");
         }
 
-        var key = new ObservationKey(Parse<HaulContractor>(Contractor), Parse<HaulRank>(Rank), Parse<HaulSize>(Size), Direct, Reward);
+        // The key's commodities are those of the bands (K1 of T13.3): the file names each commodity once.
+        var key = new ObservationKey(
+            Parse<HaulContractor>(Contractor), Parse<HaulRank>(Rank), Parse<HaulSize>(Size), Direct, Reward, [.. Scu.Select(b => b.Commodity)]);
         return new(key, Area is null ? null : Parse<AreaLevel>(Area), Pickups, Destinations,
             [.. Scu.Select(b => new ScuBand(b.Commodity, b.Min, b.Max))], Count, FirstUtc, LastUtc);
     }
