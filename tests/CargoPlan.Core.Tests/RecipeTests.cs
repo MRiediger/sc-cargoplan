@@ -157,6 +157,7 @@ public class RecipeTests
         recipe.Returns.Should().ContainSingle().Which.Should().Match<RecipeRole>(r =>
             r.Kind == RecipeKind.Return && r.Template == betterBack && r.AcceptAt == L1 && r.Destinations.SequenceEqual(new[] { Everus }));
         recipe.WorstScu.Should().Be(24, "the way back is not in the departure's check");
+        (recipe.RewardSum, recipe.ReturnSum).Should().Be((50_000L, 45_000L), "the departure's sum without the way back, and the way back's");
     }
 
     [Fact]

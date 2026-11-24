@@ -568,8 +568,9 @@ Martins Antworten auf vier Rückfragen):**
   (Präzisierung zur Abnahme):** `Recipe.WaysBack` entlang des Rings, jedes Template höchstens einmal; ein Rückläufer mit
   mehreren Pickups wird an der ersten Station angenommen und sammelt an den nächsten Ringstationen seines Pools
   (`RecipeRole.CollectAt`, Zeile „accept at MIC-L1, collect at MIC-L2, MIC-L3“), reichen die folgenden Stationen nicht,
-  gilt er dort nicht; ein Direct-Lauf nimmt nur Rückläufer mit einem Pickup. Gleiche Regel in Recipe und Loops. Σ des
-  Rezepts bleibt der Hinweg. Tests: Recipe (Multi3 einmal, dann die nächsten), Loops (Ring zählt Multi4 einmal, Direct
+  gilt er dort nicht; ein Direct-Lauf nimmt nur Rückläufer mit einem Pickup. Gleiche Regel in Recipe und Loops.
+  **Σ-Zeile (Martin):** „Σ 594,500 out · +232,000 back = 826,500 aUEC · worst case 512/512 SCU in 50 crates · fits MISC
+  Hull B“ (Everus, Hull B, Senior; `Recipe.ReturnSum`); der Worst Case bleibt der des Hinwegs. Tests: Recipe (Multi3 einmal, dann die nächsten), Loops (Ring zählt Multi4 einmal, Direct
   ohne), Recipe-Zeile mit „collect at“.
 - **Gate T13.4 (Martin, SC vorne, Everus gespeichert):** (1) Loops zeigt vier Stanton-Ringe, Direct-Läufe, LEO-Ring mit
   „needs scans“; System → Pyro: Pyro-Ringe ohne aUEC; (2) Everus-Ring aUEC/Umlauf plausibel gegen Σ der Matrix-Zeile

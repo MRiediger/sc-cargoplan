@@ -231,7 +231,10 @@ public sealed partial class RoutesViewModel : ObservableObject
     [ObservableProperty]
     public partial IReadOnlyList<string> RecipeLines { get; private set; } = [];
 
-    /// <summary>"Σ 325,250 aUEC · worst case 432 / 512 SCU in 27 crates · fits MISC Hull B"; null without a recipe.</summary>
+    /// <summary>
+    /// "Σ 460,750 out · +232,000 back = 692,750 aUEC · worst case 512/512 SCU in 50 crates · fits MISC Hull B": the
+    /// departure, the ways back and both, so it compares with a loop's aUEC (gate T13.4); null without a recipe.
+    /// </summary>
     [ObservableProperty]
     public partial string? RecipeSummary { get; private set; }
 
@@ -614,7 +617,8 @@ public sealed partial class RoutesViewModel : ObservableObject
         [.. recipe.Outbound.Concat(recipe.Returns).Select(Line)],
         recipe.Outbound.Count == 0
             ? null
-            : Invariant($"Σ {recipe.RewardSum:N0} aUEC · worst case {recipe.WorstScu} / {ship.TotalScu} SCU in {recipe.Crates} crates · fits {ship.Name}"),
+            : Invariant(
+                $"Σ {recipe.RewardSum:N0} out · +{recipe.ReturnSum:N0} back = {recipe.RewardSum + recipe.ReturnSum:N0} aUEC · worst case {recipe.WorstScu}/{ship.TotalScu} SCU in {recipe.Crates} crates · fits {ship.Name}"),
         recipe.Note);
 
     // "Bulk · Senior Rank - Medium Cargo Haul · 325,250 aUEC · 41–432 SCU in 16s · HUR-L1, HUR-L2"

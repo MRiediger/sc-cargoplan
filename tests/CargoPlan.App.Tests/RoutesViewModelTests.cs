@@ -304,7 +304,7 @@ public sealed class RoutesViewModelTests
         model.RecipeLines.Should().Equal(
             "Bulk · Senior Rank - Medium Cargo Haul · 325,250 aUEC · 41–432 SCU in 16s · HUR-L1",
             "Back · Junior Rank - Small Cargo Haul · 72,500 aUEC · 4–16 SCU in 4s · accept at HUR-L1");
-        model.RecipeSummary.Should().Be("Σ 325,250 aUEC · worst case 432 / 512 SCU in 27 crates · fits MISC Hull B");
+        model.RecipeSummary.Should().Be("Σ 325,250 out · +72,500 back = 397,750 aUEC · worst case 432/512 SCU in 27 crates · fits MISC Hull B");
         model.RecipeNote.Should().BeNull();
     }
 

@@ -40,6 +40,9 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
     /// <summary>The known rewards of what leaves the hub; the ways back are not in it.</summary>
     public long RewardSum => Outbound.Sum(r => r.Template.Reward ?? 0);
 
+    /// <summary>The known rewards of the ways back (each template once), apart from <see cref="RewardSum"/> (gate T13.4).</summary>
+    public long ReturnSum => Returns.Sum(r => r.Template.Reward ?? 0);
+
     public int WorstScu => Outbound.Sum(r => r.WorstScu);
 
     public int Crates => Outbound.Sum(r => r.Crates);
