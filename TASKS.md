@@ -426,9 +426,37 @@ ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
   Speicher. „Contractor ↔ System“ als eine Tabelle `ContractorSystems` mit Kommentar (vorher doppelt in `TemplateMatch`
   und `ObservedEdges`, Martins Hinweis), Datentest rot bei einem Template mit fremdem System (Mutation Covalex → Pyro:
   rot). D118-Addendum, `routes-format.md`.
-- **Gate 3b:** Punkt 1 = Scroll-Check über SC mit `--log-input` (Plan-Reiter entsperrt: Thumb-Drag, Track-Klick ohne
-  Springen, Rad vertikal, Shift+Rad seitwärts; Cargo-Reiter: Abhaken lässt SC vorne; gesperrt click-through), kein
-  eigener Gate; zusätzlich Red-Wind-Zwillinge in Pyro.
+**Stand 3b (24.11., Branch `feat/p13-board`, d5d2253..):**
+- Commits: `Recipe.For` + `LoadPlanner.Lays` (d5d2253); Plan-Reiter Matrix | Recipe mit Hub-Button, `routes.hub`
+  (90a7fec); fits / too big beim Offer-Scan, `RecipeFit.Of` (2651a38); Doku (D123, `settings-format.md`, CLAUDE.md).
+- **Präzisierung in der Planphase, ratifiziert durch Freigabe** (bei der Umsetzung, zur Abnahme): (1) „passt“ =
+  `LoadPlanner.Lays`, der First Fit des Planers (D54), nicht `Plan` mit Suche: die Suche kostete auf der Hull B rund
+  1 s je Frage (Hull-B-Test 5 s), mit `Lays` Median 44–48 ms für das Everus-Rezept (Release); wo `Lays` ja sagt, legt
+  `Plan` es auch, wo nein, könnte die Suche selten noch eine Lage finden (Test: `Lays` = `Plan` auf fünf Fällen);
+  (2) der Hub kommt aus `Board.Hub`, kein eigener Parameter; (3) höchstens 10 Verträge (`Recipe.MaxContracts`,
+  Design §3/§4.1); (4) in der Recipe-Ansicht verschwinden die reinen Matrix-Filter (Area, Direct, Contractor, Faction,
+  Größen) und die Matrix-Hinweise; (5) `RecipeFit.Of` nimmt die gescannten Ziele, wo die Daten keine nennen
+  (systemweit); (6) die Commit-Nummern 9–12 des Plans waren vergeben, 3b zählt weiter.
+- **Zahlen (Pin `ships-2026.11.2`, Everus, `RecipeTimingTests`):** Hull B Senior/Master: Senior Medium 432 SCU (Bulk),
+  Rookie Direct Small, drei Smalls, 594,500 aUEC, 512/512 SCU, 50 Kisten, vier Rückwege „accept at HUR-L1…L4“; erster
+  Aufruf 142 ms, Median 44–48 ms. Hull A: Direct + zwei Smalls, 64/64. Hull C: leer („nothing from this hub fits the
+  ship“) – ihre Racks nehmen nur 32er (`minCrateSize: 32`), stellare Covalex-Verträge höchstens 16er.
+- Mutation: `Lays` durch Summe ersetzt → Freelancer-Test rot (drei 16er, 48 von 66 SCU, das 9×2×3-Rack legt zwei).
+- **Handling gegen main:**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | Filterzeile Plan-Reiter | Rang, System, Area, Direct, Contractor, Faction, Größen | vorn neu „Matrix/Recipe“; im Recipe „Hub: …“, Rang, System, die übrigen verborgen |
+  | Klick ins Overlay, entsperrt | nie aktivierend (T3.6) | Cargo-Reiter gleich; Plan-Reiter aktiviert (D11-Addendum T13.3a) |
+  | F3 auf Angebot, Plan-Reiter | „Observed (Plan tab): … – cargo unchanged“ | dazu „ · fits as …“ / „ · too big for …“ |
+  | Settings-Fenster „Plan tab“ | Rang, Fraktion | gleich (Hub nur über den Button) |
+  | Alles andere | wie main | gleich |
+
+- **Gate 3b (Martin, über SC):** (1) Scroll: Thumb, Rad, Shift+Rad im Plan-Reiter; Cargo-Reiter am Terminal abhaken →
+  SC behält den Cursor (T3.6); Lock → click-through; `--log-input` für die Zeilen. (2) Red-Wind-Zwillinge in einer
+  Pyro-Session. (3) Recipe-Ansicht für das eigene Schiff an einem Hub (Aussehen, Rollen plausibel, Hub-Button, Rang),
+  F3 auf Angebote → „fits as …“ / „too big for …“ (eines aus dem Rezept, eines zu groß). Zahlen: Rezept-Laufzeit
+  `RecipeTimingTests` (oben). Danach Abnahme → `merge --no-ff` → Martin pusht.
 
 ### [ ] T13.4 Core/App: Loop-Ranking
 
@@ -484,6 +512,9 @@ ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- Standorterkennung ersetzt den Hub-Button des Rezepts (T13.3b, D123): der Hub, an dem der Spieler steht, statt
+  `routes.hub`. Auslöser: Game.log-Location wird gelesen.
 
 - Kipprad (`WM_MOUSEHWHEEL`) scrollt die Hafen-Matrix seitwärts (K der Zwischenabnahme T13.3a: heute nur Shift+Rad).
   WPF hat dafür kein Event, es braucht einen `HwndSource`-Hook. Auslöser: Nutzer-Report mit Kipprad-Maus.
