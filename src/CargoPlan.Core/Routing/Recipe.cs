@@ -58,9 +58,10 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
 
     /// <summary>
     /// The recipe of <paramref name="board"/> from <paramref name="hub"/>, a place of its pools (T13.4): <see cref="For"/>
-    /// with the board's hub, or a Pyro station as the start of a loop, whose board has none.
+    /// with the board's hub, or a Pyro station as the start of a loop, whose board has none. <paramref name="allowed"/>
+    /// narrows the greedy (<see cref="Pick"/>).
     /// </summary>
-    internal static Recipe At(Board board, string hub, Ship ship, ObservedEdges edges)
+    internal static Recipe At(Board board, string hub, Ship ship, ObservedEdges edges, Func<IReadOnlyList<RecipeRole>, bool>? allowed = null)
     {
         var cap = CrateCap.Of(ship);
         RecipeRole[] candidates =
@@ -71,37 +72,44 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
         ];
         candidates = [.. candidates.Where(r => r.Destinations.Count > 0 && r.Template.Size is not (HaulSize.Large or HaulSize.Bulk))];
 
-        var chosen = Pick(candidates, ship, cap, []);
+        var chosen = Pick(candidates, ship, cap, [], allowed);
 
         // The way back: per ring station the best-paying local template to the hub that fits the empty ship alone.
         var ring = chosen.SelectMany(r => r.Destinations).Distinct().Order(PlaceNames.Order);
-        RecipeRole[] returns =
-        [
-            .. ring.SelectMany(station => board.Local
-                .Where(t => t.Size is not (HaulSize.Large or HaulSize.Bulk)
-                    && BoardHubs.Pickups(t).Places.Contains(station) && BoardHubs.Dropoffs(t).Places.Contains(hub))
-                .Select(t => Role(t, [], cap, hub) with { Kind = RecipeKind.Return, Destinations = [hub], AcceptAt = station })
-                .Where(r => Fits(ship, cap, [r]))
-                .OrderByDescending(r => r.Template.Reward ?? 0)
-                .ThenBy(r => r.Template.Uuid, StringComparer.Ordinal)
-                .Take(1)),
-        ];
+        RecipeRole[] returns = [.. ring.Select(station => BestReturn(board, station, hub, ship, cap)).OfType<RecipeRole>()];
 
         return new(hub, chosen, returns, chosen.Count == 0 ? "Recipe: nothing from this hub fits the ship" : null);
     }
 
     /// <summary>
+    /// The way back from <paramref name="station"/>: the best-paying local template of <paramref name="board"/> to
+    /// <paramref name="hub"/> that fits the empty ship alone, never a Large or Bulk size; ties to the uuid. Null if none.
+    /// </summary>
+    internal static RecipeRole? BestReturn(Board board, string station, string hub, Ship ship, CrateCap cap) =>
+        board.Local
+            .Where(t => t.Size is not (HaulSize.Large or HaulSize.Bulk)
+                && BoardHubs.Pickups(t).Places.Contains(station) && BoardHubs.Dropoffs(t).Places.Contains(hub))
+            .Select(t => Role(t, [], cap, hub) with { Kind = RecipeKind.Return, Destinations = [hub], AcceptAt = station })
+            .OrderByDescending(r => r.Template.Reward ?? 0)
+            .ThenBy(r => r.Template.Uuid, StringComparer.Ordinal)
+            .FirstOrDefault(r => Fits(ship, cap, [r])); // the first that fits of the best-paying: the same one, fewer first fits
+
+    /// <summary>
     /// The greedy of the recipe over <paramref name="candidates"/>, bulk → direct → smalls (the smalls would take the
     /// direct's room otherwise, approval of T13.3, precision 8), each checked by the first fit together with
     /// <paramref name="aboard"/>, what the ship still carries (a loop's later station, T13.4); at most
-    /// <see cref="MaxContracts"/> held at once. Returns the new roles only.
+    /// <see cref="MaxContracts"/> held at once, and only where <paramref name="allowed"/> says yes to the new roles so far
+    /// (a Pyro ring: at most five stations, T13.4). Returns the new roles only.
     /// </summary>
-    internal static IReadOnlyList<RecipeRole> Pick(IReadOnlyList<RecipeRole> candidates, Ship ship, CrateCap cap, IReadOnlyList<RecipeRole> aboard)
+    internal static IReadOnlyList<RecipeRole> Pick(
+        IReadOnlyList<RecipeRole> candidates, Ship ship, CrateCap cap, IReadOnlyList<RecipeRole> aboard, Func<IReadOnlyList<RecipeRole>, bool>? allowed = null)
     {
         List<RecipeRole> chosen = [];
         bool TryAdd(RecipeRole role)
         {
-            if (aboard.Count + chosen.Count >= MaxContracts || !Fits(ship, cap, [.. aboard, .. chosen, role]))
+            if (aboard.Count + chosen.Count >= MaxContracts
+                || (allowed is not null && !allowed([.. chosen, role]))
+                || !Fits(ship, cap, [.. aboard, .. chosen, role]))
             {
                 return false;
             }
