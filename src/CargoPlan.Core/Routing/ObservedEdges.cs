@@ -1,3 +1,5 @@
+using CargoPlan.Core.Text;
+
 namespace CargoPlan.Core.Routing;
 
 /// <summary>
@@ -19,17 +21,21 @@ public sealed class ObservedEdges
 {
     private readonly Dictionary<string, List<ObservedEdge>> _edges;
     private readonly Dictionary<string, (long Reward, DateTime LastUtc)> _rewards;
+    private readonly Dictionary<string, IReadOnlyList<ScuBand>> _bands;
 
-    private ObservedEdges(Dictionary<string, List<ObservedEdge>> edges, Dictionary<string, (long, DateTime)> rewards, int matched, int ambiguous, int none)
+    private ObservedEdges(
+        Dictionary<string, List<ObservedEdge>> edges, Dictionary<string, (long, DateTime)> rewards, Dictionary<string, IReadOnlyList<ScuBand>> bands,
+        int matched, int ambiguous, int none)
     {
         _edges = edges;
         _rewards = rewards;
+        _bands = bands;
         Matched = matched;
         Ambiguous = ambiguous;
         None = none;
     }
 
-    public static ObservedEdges Empty { get; } = new([], [], 0, 0, 0);
+    public static ObservedEdges Empty { get; } = new([], [], [], 0, 0, 0);
 
     /// <summary>Observations matched to one template, or to faction twins.</summary>
     public int Matched { get; }
@@ -47,10 +53,17 @@ public sealed class ObservedEdges
     public long? RewardOf(HaulTemplate template) =>
         template.Reward is null && _rewards.TryGetValue(template.Uuid, out var seen) ? seen.Reward : null;
 
+    /// <summary>
+    /// The SCU per commodity the scans of <paramref name="template"/> saw, one band per commodity over its delivery lines
+    /// (T13.4: a loop's crates take the largest seen instead of the data's band); null if no scan was matched to it.
+    /// </summary>
+    public IReadOnlyList<ScuBand>? ScuOf(HaulTemplate template) => _bands.GetValueOrDefault(template.Uuid);
+
     public static ObservedEdges From(Observations observations, IReadOnlyList<HaulTemplate> templates, Positions positions)
     {
         Dictionary<string, Dictionary<(string, string), ObservedEdge>> edges = [];
         Dictionary<string, (long, DateTime)> rewards = [];
+        Dictionary<string, IReadOnlyList<ScuBand>> bands = [];
         var (matched, ambiguous, none) = (0, 0, 0);
         foreach (var observation in observations.Entries)
         {
@@ -89,6 +102,7 @@ public sealed class ObservedEdges
                         : new ObservedEdge(pair.f, pair.t, observation.Count, observation.LastUtc);
                 }
 
+                bands[template.Uuid] = Widened(bands.GetValueOrDefault(template.Uuid) ?? [], observation.Scu);
                 if (template.Reward is null && (!rewards.TryGetValue(template.Uuid, out var seen) || observation.LastUtc > seen.Item2))
                 {
                     rewards[template.Uuid] = (observation.Key.Reward, observation.LastUtc);
@@ -96,7 +110,7 @@ public sealed class ObservedEdges
             }
         }
 
-        return new(edges.ToDictionary(e => e.Key, e => e.Value.Values.ToList()), rewards, matched, ambiguous, none);
+        return new(edges.ToDictionary(e => e.Key, e => e.Value.Values.ToList()), rewards, bands, matched, ambiguous, none);
     }
 
     /// <summary>Templates equal but for their faction (and identity): the two sides of one Red Wind variant.</summary>
@@ -111,6 +125,15 @@ public sealed class ObservedEdges
 
     private static IEnumerable<string> Resolved(IEnumerable<string> places, StarSystem system, Positions positions) =>
         places.Select(p => positions.Resolve(system, p)?.Name).OfType<string>().Distinct(StringComparer.Ordinal);
+
+    // One band per commodity as OCR may read it, as Observation keeps them: two observations of one template join.
+    private static ScuBand[] Widened(IEnumerable<ScuBand> known, IEnumerable<ScuBand> seen) =>
+    [
+        .. known.Concat(seen)
+            .GroupBy(b => OcrText.AnchorForm(b.Commodity), StringComparer.Ordinal)
+            .Select(g => new ScuBand(g.First().Commodity, g.Min(b => b.Min), g.Max(b => b.Max)))
+            .OrderBy(b => b.Commodity, StringComparer.Ordinal),
+    ];
 
     private static DateTime Later(DateTime a, DateTime b) => a > b ? a : b;
 }
