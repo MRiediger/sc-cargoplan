@@ -38,6 +38,19 @@ public sealed class BaselineHaulingDataTests
         }
     }
 
+    // E3 of T13.3a, Martin: matching, edges and routes.json take a scan's system from its contractor (ContractorSystems).
+    // A template of a contractor in another system makes this fail; the interstellar ones have none (16 Covalex).
+    [Fact]
+    public void Every_template_with_a_system_lies_in_its_contractors()
+    {
+        var foreign = Data.Templates
+            .Where(t => t.System is { } system && system != ContractorSystems.Of(t.Contractor))
+            .Select(t => $"{t.Uuid} {t.Contractor} in {t.System}");
+
+        foreign.Should().BeEmpty();
+        Data.Templates.Where(t => t.System is null).Should().OnlyContain(t => t.MissionType == HaulMissionType.Interstellar);
+    }
+
     [Fact]
     public void No_name_is_there_twice_in_one_system() =>
         Data.Positions.All.GroupBy(p => (p.System, p.Name)).Should().OnlyContain(g => g.Count() == 1);

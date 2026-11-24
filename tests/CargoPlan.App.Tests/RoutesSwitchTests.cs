@@ -65,7 +65,7 @@ public sealed class RoutesSwitchTests : IDisposable
     private async Task<RoutesBook> Scan(bool routesSelected, params string[] raws)
     {
         _overlay.IsRoutesTabSelected = routesSelected;
-        var routes = RoutesBook.Load(RoutesPath);
+        var routes = RoutesBook.Load(RoutesPath, Positions.Empty);
         var runner = Runner(routes, raws);
         foreach (var _ in raws)
         {
@@ -79,7 +79,7 @@ public sealed class RoutesSwitchTests : IDisposable
     public async Task A_recorded_scan_tells_its_listener_all_observations_and_its_entry()
     {
         // T13.3: the Plan tab's matrix follows the scans through this event.
-        var routes = RoutesBook.Load(RoutesPath);
+        var routes = RoutesBook.Load(RoutesPath, Positions.Empty);
         List<(Observations All, Observation Entry)> heard = [];
         routes.Recorded += (all, entry) => heard.Add((all, entry));
 
@@ -88,6 +88,32 @@ public sealed class RoutesSwitchTests : IDisposable
         heard.Should().ContainSingle();
         heard[0].Entry.Key.Should().Be(JuniorSmall);
         heard[0].All.Entries.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Routes_json_names_each_place_as_its_position_once_the_data_know_it()
+    {
+        // E3 of T13.3a: the card writes "Riker" where the data say "HUR-L9 Riker Station"; the file holds the data's name.
+        Positions places = new([new StarPosition("HUR-L9 Riker Station", "HUR-L9 Riker Station", StarSystem.Stanton, "Manmade", null, 0, 0, 0, [])]);
+        var routes = RoutesBook.Load(RoutesPath, places);
+
+        await Runner(routes, Raw(View.Offer)).RunAsync();
+
+        routes.Observations.Entries.Single().Destinations.Should().Equal("HUR-L9 Riker Station");
+        RoutesBook.Load(RoutesPath, Positions.Empty).Observations.Entries.Single().Destinations.Should().Equal(["HUR-L9 Riker Station"], "on disk");
+    }
+
+    [Fact]
+    public async Task Loading_with_positions_names_the_places_and_leaves_the_file_until_the_next_save()
+    {
+        await Runner(RoutesBook.Load(RoutesPath, Positions.Empty), Raw(View.Offer)).RunAsync();
+        var before = File.ReadAllBytes(RoutesPath);
+        Positions places = new([new StarPosition("HUR-L9 Riker Station", "HUR-L9 Riker Station", StarSystem.Stanton, "Manmade", null, 0, 0, 0, [])]);
+
+        var routes = RoutesBook.Load(RoutesPath, places);
+
+        routes.Observations.Entries.Single().Destinations.Should().Equal("HUR-L9 Riker Station");
+        File.ReadAllBytes(RoutesPath).Should().Equal(before, "loading never writes (D13)");
     }
 
     // --- The six cells ---
@@ -100,7 +126,7 @@ public sealed class RoutesSwitchTests : IDisposable
         _overlay.Missions.Should().ContainSingle().Which.Contract!.Scan.QuantitiesEstimated.Should().BeTrue();
         _overlay.Notices.Should().Contain(n => n.StartsWith("Scanned #1", StringComparison.Ordinal));
         routes.Observations.Entries.Should().ContainSingle().Which.Key.Should().Be(JuniorSmall);
-        RoutesBook.Load(RoutesPath).Observations.Entries.Should().ContainSingle("the observation is on disk");
+        RoutesBook.Load(RoutesPath, Positions.Empty).Observations.Entries.Should().ContainSingle("the observation is on disk");
     }
 
     [Fact]
@@ -143,7 +169,7 @@ public sealed class RoutesSwitchTests : IDisposable
     [Fact]
     public async Task The_Plan_tab_keeps_an_offer_out_and_the_Cargo_tab_lets_the_next_one_in()
     {
-        var routes = RoutesBook.Load(RoutesPath);
+        var routes = RoutesBook.Load(RoutesPath, Positions.Empty);
         var runner = Runner(routes, Raw(View.Offer), Raw(View.Offer, scu: 9));
 
         _overlay.ShowPlanCommand.Execute(null);
@@ -254,7 +280,7 @@ public sealed class RoutesSwitchTests : IDisposable
         Directory.CreateDirectory(_folder);
         const string Broken = "{ \"schemaVersion\": 1, \"observ";
         File.WriteAllText(RoutesPath, Broken);
-        var routes = RoutesBook.Load(RoutesPath);
+        var routes = RoutesBook.Load(RoutesPath, Positions.Empty);
         routes.Observations.Entries.Should().BeEmpty();
         File.ReadAllText(RoutesPath).Should().Be(Broken, "loading leaves the file as it is");
 
@@ -263,7 +289,7 @@ public sealed class RoutesSwitchTests : IDisposable
 
         var kept = Directory.GetFiles(_folder, "routes.json.unreadable-*").Should().ContainSingle().Subject;
         File.ReadAllText(kept).Should().Be(Broken);
-        RoutesBook.Load(RoutesPath).Observations.Entries.Should().ContainSingle();
+        RoutesBook.Load(RoutesPath, Positions.Empty).Observations.Entries.Should().ContainSingle();
         TestLog.Text().Should().Contain($"Routes: {RoutesPath} couldn't be read; kept as {Path.GetFileName(kept)}.");
     }
 

@@ -351,8 +351,9 @@ public partial class App : Application
         // The settings' ship, else the start plan's, else the Hull A; one that doesn't load never stops the start (T7.2).
         var (ship, shipNotice) = ShipChoices.Resolve(ships, settings.Ship, PlanStore.PeekShipId(options.PlanPath ?? PlanStore.DefaultPath));
 
-        // The observations of routes.json, folded, matched to the templates (T13.3): the Plan tab shows their edges.
-        var routesBook = RoutesBook.Load(RoutesBook.DefaultPath);
+        // The observations of routes.json, folded and named as the positions name the places (E3 of T13.3a), matched to the
+        // templates (T13.3): the Plan tab shows their edges.
+        var routesBook = RoutesBook.Load(RoutesBook.DefaultPath, hauling is HaulingLoad.Loaded { Data: var haulingAtStart } ? haulingAtStart.Positions : Positions.Empty);
         var observed = ObserveAtStart(routesBook, hauling);
 
         // The session comes after the view model (it applies the look to it); the Plan tab saves rank and faction through it,

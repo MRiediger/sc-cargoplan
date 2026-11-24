@@ -23,6 +23,9 @@ public sealed record ObservationKey(HaulContractor Contractor, HaulRank Rank, Ha
         init => _commodities = Normalized(value);
     }
 
+    /// <summary>The system the scan's places are in: its contractor's (<see cref="ContractorSystems"/>).</summary>
+    public StarSystem System => ContractorSystems.Of(Contractor);
+
     // A record compares a list by reference; the key compares the commodities by content.
     public bool Equals(ObservationKey? other) =>
         other is not null

@@ -407,6 +407,12 @@ ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
 - **E2 (Commit 11) – Hub-Hinweis einmal je Tooltip.** Kopfzeile darunter „⌂ pickup: the board's hub, not in the game
   data“ (bzw. drop-off), betroffene Template-Zeilen mit „⌂“ (Martins Hinweis: kurzes Zeichen je Zeile, Kopf erklärt
   einmal). „⌂“ kommt aus der WPF-Ersatzschrift, gerendert geprüft. D121-Addendum.
+- **E3 (Commit 12) – routes.json mit den Namen der Positionen.** Anlass: Martins routes.json, Pickup „HUR-L3 Thundering
+  Express Station“, Ziel „Thundering Express Station“. `Observation.Named(Positions)` im System des Auftraggebers, dann
+  gefaltet; `RoutesBook.Load(path, positions)` (Pflichtparameter), beim Aufzeichnen benannt, beim Laden nur im
+  Speicher. „Contractor ↔ System“ als eine Tabelle `ContractorSystems` mit Kommentar (vorher doppelt in `TemplateMatch`
+  und `ObservedEdges`, Martins Hinweis), Datentest rot bei einem Template mit fremdem System (Mutation Covalex → Pyro:
+  rot). D118-Addendum, `routes-format.md`.
 - **Gate 3b:** Punkt 1 = Scroll-Check im Spiel (Thumb, Rad, Shift+Rad, gesperrt click-through), kein eigener Gate;
   zusätzlich Red-Wind-Zwillinge in Pyro.
 

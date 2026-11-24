@@ -42,7 +42,7 @@ public static class TemplateMatch
     public static MatchResult Find(Observation observation, IReadOnlyList<HaulTemplate> templates, Positions positions)
     {
         var key = observation.Key;
-        var system = key.Contractor == HaulContractor.RedWind ? StarSystem.Pyro : StarSystem.Stanton;
+        var system = key.System;
         var once = observation.Count == 1;
         var pickups = Resolved(observation.Pickups, system, positions);
         var destinations = Resolved(observation.Destinations, system, positions);

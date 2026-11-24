@@ -46,6 +46,22 @@ public sealed record Observation(
         Scu = Widened(Scu, []),
     };
 
+    /// <summary>
+    /// This observation with each place as its position names it in the key's system (E3 of T13.3a: the card writes a
+    /// pickup "HUR-L3 Thundering Express Station", a destination "Thundering Express Station"), then folded; a place no
+    /// position answers to keeps its name. Idempotent.
+    /// </summary>
+    public Observation Named(Positions positions)
+    {
+        string Name(string place) => positions.Resolve(Key.System, place)?.Name ?? place;
+        return this with
+        {
+            Pickups = Joined(Pickups.Select(Name), []),
+            Destinations = Joined(Destinations.Select(Name), []),
+            Scu = Widened(Scu, []),
+        };
+    }
+
     private static Observation Empty(ObservationKey key, DateTime utc) => new(key, null, [], [], [], 0, utc, utc);
 
     /// <summary>One name per place (B1, <see cref="DestinationNames.Key"/>): the preferred spelling, sorted.</summary>

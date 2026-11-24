@@ -140,6 +140,49 @@ public class ObservationsTests
         folded.Folded().Entries.Should().BeEquivalentTo(folded.Entries, options => options.WithStrictOrdering());
     }
 
+    // --- One name per place in routes.json (E3 of the T13.3a approval) ---
+
+    private static StarPosition At(string name, StarSystem system) => new(name, name, system, "Manmade", null, 0, 0, 0, []);
+
+    private static readonly Positions Places = new(
+    [
+        At("Everus Harbor", StarSystem.Stanton),
+        At("HUR-L1 Green Glade Station", StarSystem.Stanton),
+        At("HUR-L3 Thundering Express Station", StarSystem.Stanton),
+        At("Ruin Station", StarSystem.Pyro),
+    ]);
+
+    [Fact]
+    public void Named_gives_each_place_its_positions_name_on_both_sides()
+    {
+        // Martin's routes.json (24 Nov): the card writes pickups with the L code, destinations without.
+        var observations = Observations.Empty
+            .Record(Scan(SeniorMedium, Monday, ("Thundering Express Station", "Waste", 40), ("Green Glade", "Waste", 30), ("Nowhere Station", "Waste", 20)))
+            .Record(new ObservedScan(SeniorMedium, null, ["HUR-L3 Thundering Express Station"], [new ObservedDelivery("HUR-L1 Green Glade Station", "Waste", 50)], Monday));
+
+        var entry = observations.Named(Places).Entries.Single();
+
+        entry.Pickups.Should().Equal("Everus Harbor", "HUR-L3 Thundering Express Station");
+        entry.Destinations.Should().Equal(["HUR-L1 Green Glade Station", "HUR-L3 Thundering Express Station", "Nowhere Station"], "a place no position answers to stays as read");
+        entry.Scu.Should().Equal(new ScuBand("Waste", 20, 50));
+        entry.Count.Should().Be(2);
+    }
+
+    [Fact]
+    public void Named_resolves_in_the_contractors_system_and_changes_nothing_the_second_time()
+    {
+        var redWind = new ObservationKey(HaulContractor.RedWind, HaulRank.Member, HaulSize.Medium, null, 532_250, ["Carbon"]);
+        var observations = Observations.Empty.Record(new ObservedScan(
+            redWind, null, ["Ruin"], [new ObservedDelivery("Everus Harbor", "Carbon", 200)], Monday));
+
+        var named = observations.Named(Places);
+
+        named.Entries.Single().Pickups.Should().Equal("Ruin Station");
+        named.Entries.Single().Destinations.Should().Equal(["Everus Harbor"], "a Stanton name in a Pyro contract is none of its places");
+        named.Named(Places).Entries.Should().BeEquivalentTo(named.Entries, options => options.WithStrictOrdering());
+        observations.Named(Positions.Empty).Should().BeEquivalentTo(observations.Folded(), "without positions it only folds");
+    }
+
     internal static ObservedScan Scan(ObservationKey key, DateTime utc, params (string Destination, string Commodity, int Scu)[] deliveries) =>
         new(key, Area: null, ["Everus Harbor"], [.. deliveries.Select(d => new ObservedDelivery(d.Destination, d.Commodity, d.Scu))], utc);
 }

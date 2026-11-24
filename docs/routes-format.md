@@ -138,13 +138,16 @@ Titles come in three forms (T13.1):
 
 No capture has shown the third form yet; the parser reads it should the game ever print it. A title read in part
 (an unknown rank or size word) is no title, and the scan isn't observed. `cargoplan.log` names why
-("Routes: not observed: title unreadable").
+("Routes: not observed: title unreadable"); a contract of another contractor without a hauling title says "no hauling
+template form" (E1 of T13.3a).
 
-Names are kept as read, **one name per place**: two readings of one place by the name rule of the plan (B1:
-"Green Glade" and "Green Glade Station", "Melodic Fieids" and "Melodic Fields Station") are one, the longer name stays.
-Reading a file joins what an older file kept apart (T13.3), and the next save writes it joined. "HUR-L1 Green Glade
-Station" and "Green Glade Station" stay two names here: the route planner resolves both to the same position
-(`docs/hauling-data-format.md`, Addendum T13.3).
+**One name per place.** Where the hauling data are there, each place is written as its position names it, in the
+system of the contractor (Covalex: Stanton, Red Wind: Pyro): the card writes a pickup "HUR-L3 Thundering Express
+Station" and a destination "Thundering Express Station", the file holds "HUR-L3 Thundering Express Station" for both
+(E3 of T13.3a; the name rules in `docs/hauling-data-format.md`, Addendum T13.3). A place no position answers to, and
+every place without hauling data, is kept as read, with the name rule of the plan (B1: "Green Glade" and "Green Glade
+Station", "Melodic Fieids" and "Melodic Fields Station" are one, the longer name stays). Reading a file joins and names
+what an older file kept apart (T13.3), in memory; the next save writes it so, never the reading.
 
 ### Schema 1
 

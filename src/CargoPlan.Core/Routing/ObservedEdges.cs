@@ -72,7 +72,7 @@ public sealed class ObservedEdges
             }
 
             matched++;
-            var system = observation.Key.Contractor == HaulContractor.RedWind ? StarSystem.Pyro : StarSystem.Stanton;
+            var system = observation.Key.System;
             string[] from = [.. Resolved(observation.Pickups, system, positions)];
             string[] to = [.. Resolved(observation.Destinations, system, positions)];
             foreach (var template in those)

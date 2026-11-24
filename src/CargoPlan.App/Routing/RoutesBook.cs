@@ -19,11 +19,12 @@ internal sealed class RoutesBook
 
     private readonly Lock _lock = new();
     private readonly string _path;
+    private readonly Positions _positions;
     private Observations _observations;
     private bool _keepUnreadable;
 
-    private RoutesBook(string path, Observations observations, bool keepUnreadable, long loadMilliseconds = 0) =>
-        (_path, _observations, _keepUnreadable, LoadMilliseconds) = (path, observations, keepUnreadable, loadMilliseconds);
+    private RoutesBook(string path, Positions positions, Observations observations, bool keepUnreadable, long loadMilliseconds = 0) =>
+        (_path, _positions, _observations, _keepUnreadable, LoadMilliseconds) = (path, positions, observations.Named(positions), keepUnreadable, loadMilliseconds);
 
     /// <summary>How long reading and folding the file took at the start (T13.3).</summary>
     public long LoadMilliseconds { get; }
@@ -49,12 +50,14 @@ internal sealed class RoutesBook
     }
 
     /// <summary>The observations in <paramref name="path"/>; none for a missing file, and none for one that can't be read,
-    /// which stays as it is until the first save keeps it aside.</summary>
-    public static RoutesBook Load(string path)
+    /// which stays as it is until the first save keeps it aside. Each place as one of <paramref name="positions"/> names
+    /// it (E3 of T13.3a), in memory: the file gets those names with the next save, never by loading.</summary>
+    /// <param name="positions">The hauling data's positions; <see cref="Positions.Empty"/> without hauling data, then names stay as read.</param>
+    public static RoutesBook Load(string path, Positions positions)
     {
         if (!File.Exists(path))
         {
-            return new(path, Observations.Empty, keepUnreadable: false);
+            return new(path, positions, Observations.Empty, keepUnreadable: false);
         }
 
         try
@@ -67,12 +70,12 @@ internal sealed class RoutesBook
                 AppLog.Write(LogContext, dropped);
             }
 
-            return new(path, read.Observations, keepUnreadable: false, watch.ElapsedMilliseconds);
+            return new(path, positions, read.Observations, keepUnreadable: false, watch.ElapsedMilliseconds);
         }
         catch (Exception ex) when (ex is RoutesFormatException or IOException or UnauthorizedAccessException)
         {
             AppLog.Write(LogContext, $"Routes not loaded ({ex.Message}). The next save keeps the file aside. [{ex.GetType().Name}]");
-            return new(path, Observations.Empty, keepUnreadable: true);
+            return new(path, positions, Observations.Empty, keepUnreadable: true);
         }
     }
 
@@ -96,7 +99,7 @@ internal sealed class RoutesBook
         Observations all;
         lock (_lock)
         {
-            _observations = all = _observations.Record(observed);
+            _observations = all = _observations.Record(observed).Named(_positions);
             Save();
         }
 
