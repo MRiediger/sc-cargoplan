@@ -3,6 +3,7 @@ using CargoPlan.App.Settings;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Routing;
 using CargoPlan.Core.ShipData;
+using CargoPlan.Core.Tests;
 
 namespace CargoPlan.App.Tests;
 
@@ -249,6 +250,105 @@ public sealed class RoutesViewModelTests
         model.PreviousCommand.Execute("system");
         model.SystemLabel.Should().Be("Interstellar");
         _saved.Should().BeEmpty("only rank and faction are kept");
+    }
+
+    // --- Recipe (T13.3b, D123) ---
+
+    private const string L1 = "HUR-L1 Green Glade Station";
+
+    private static readonly Ship HullA = FrozenShips.Load("hull_a");
+    private static readonly Ship HullB = FrozenShips.Load("hull_b");
+
+    private static readonly HaulTemplate SeniorBulk = T([], [L1], reward: 325_250, min: 41, max: 432, title: "Senior Rank - Medium Cargo Haul");
+
+    // From L1 back to the board's hub (D121): an empty drop-off pool.
+    private static readonly HaulTemplate JuniorBack = T([L1], [], reward: 72_500, title: "Junior Rank - Small Cargo Haul") with
+    {
+        Size = HaulSize.Small,
+        Legs = [new HaulLeg("Gold", 4, 16, CrateSize.Four)],
+    };
+
+    [Fact]
+    public void The_view_switches_between_matrix_and_recipe_and_the_hub_cycles_and_is_saved()
+    {
+        var model = Model([SeniorBulk]);
+        model.ViewLabel.Should().Be("Matrix");
+        model.IsRecipe.Should().BeFalse();
+
+        model.NextCommand.Execute("view");
+        model.ViewLabel.Should().Be("Recipe");
+        model.IsRecipe.Should().BeTrue();
+        model.HubLabel.Should().Be("Hub: Everus Harbor");
+
+        model.NextCommand.Execute("hub");
+        model.HubLabel.Should().Be("Hub: Seraphim Station");
+        model.PreviousCommand.Execute("hub");
+        model.PreviousCommand.Execute("hub");
+        model.HubLabel.Should().Be("Hub: Port Tressler");
+        _saved.Select(s => s.Hub).Should().Equal("Seraphim Station", "Everus Harbor", "Port Tressler");
+
+        model.PreviousCommand.Execute("view");
+        model.IsRecipe.Should().BeFalse();
+    }
+
+    [Fact]
+    public void The_recipe_lists_its_roles_and_the_way_back_for_the_ship()
+    {
+        var model = Model([SeniorBulk, JuniorBack]);
+        model.ShowShip(HullB);
+
+        model.NextCommand.Execute("view");
+
+        (model.ShowsMatrix, model.ShowsRecipe).Should().Be((false, true));
+        model.WithoutPlaceText.Should().BeNull("the matrix's lines say nothing about the recipe");
+        model.RecipeLines.Should().Equal(
+            "Bulk · Senior Rank - Medium Cargo Haul · 325,250 aUEC · 41–432 SCU in 16s · HUR-L1",
+            "Back · Junior Rank - Small Cargo Haul · 72,500 aUEC · 4–16 SCU in 4s · accept at HUR-L1");
+        model.RecipeSummary.Should().Be("Σ 325,250 aUEC · worst case 432 / 512 SCU in 27 crates · fits MISC Hull B");
+        model.RecipeNote.Should().BeNull();
+    }
+
+    [Fact]
+    public void Another_ship_or_rank_makes_the_recipe_anew()
+    {
+        var model = Model([SeniorBulk, JuniorBack], RoutesSettings.Default with { Hub = "Everus Harbor" });
+        model.ShowShip(HullB);
+        model.NextCommand.Execute("view");
+
+        model.ShowShip(HullA);
+        model.RecipeLines.Should().BeEmpty("432 SCU don't go into 64");
+        model.RecipeNote.Should().Be("Recipe: nothing from this hub fits the ship");
+
+        model.ShowShip(HullB);
+        model.Follow(RoutesSettings.Default with { Rank = "junior" });
+        model.RecipeLines.Should().BeEmpty("the Senior Medium is above the rank, the Junior is a way back only");
+    }
+
+    [Fact]
+    public void Pyro_and_no_ship_have_no_recipe_and_say_why()
+    {
+        var model = Model([SeniorBulk]);
+        model.NextCommand.Execute("view");
+        model.RecipeNote.Should().Be("Recipe: no ship");
+
+        model.ShowShip(HullB);
+        model.NextCommand.Execute("system");
+
+        model.RecipeLines.Should().BeEmpty();
+        model.RecipeNote.Should().Be("Recipe: Stanton hubs only");
+    }
+
+    [Fact]
+    public void The_overlays_ship_is_the_recipes_from_the_start_and_on_every_change()
+    {
+        var model = Model([SeniorBulk]);
+        var overlay = new ViewModels.OverlayViewModel(HullA) { Routes = model };
+        model.NextCommand.Execute("view");
+        model.RecipeLines.Should().BeEmpty("the Hull A holds 64 SCU");
+
+        overlay.ChangeShip(HullB);
+
+        model.RecipeLines.Should().ContainSingle().Which.Should().StartWith("Bulk · ");
     }
 
     [Fact]

@@ -215,6 +215,18 @@ public static class SettingsStore
             routes = routes with { Faction = null };
         }
 
+        // "hub": null in the file is the default, as a missing key is.
+        var hubs = Core.Routing.BoardHubs.ByArea.OrderBy(h => h.Key, StringComparer.Ordinal).Select(h => h.Value).ToList();
+        if (routes.Hub is null)
+        {
+            routes = routes with { Hub = RoutesSettings.DefaultHub };
+        }
+        else if (!hubs.Contains(routes.Hub, StringComparer.Ordinal))
+        {
+            problems.Add($"routes.hub \"{routes.Hub}\" is not a Stanton hub ({string.Join(", ", hubs)}), using {RoutesSettings.DefaultHub}.");
+            routes = routes with { Hub = RoutesSettings.DefaultHub };
+        }
+
         return (routes, problems);
     }
 

@@ -1040,7 +1040,7 @@ public sealed class SettingsStoreTests : IDisposable
         var (loaded, problem) = SettingsStore.Load(SettingsPath);
 
         problem.Should().BeNull();
-        loaded.Routes.Should().Be(new RoutesSettings("cargo", "master", null));
+        loaded.Routes.Should().Be(new RoutesSettings("cargo", "master", null, "Everus Harbor"));
         loaded.Routes.IsPlanTab.Should().BeFalse();
         loaded.SchemaVersion.Should().Be(3);
     }
@@ -1048,12 +1048,12 @@ public sealed class SettingsStoreTests : IDisposable
     [Fact]
     public void Routes_keep_what_the_file_says()
     {
-        WriteFile("""{ "schemaVersion": 3, "routes": { "tab": "plan", "rank": "senior", "faction": "cfp" } }""");
+        WriteFile("""{ "schemaVersion": 3, "routes": { "tab": "plan", "rank": "senior", "faction": "cfp", "hub": "Baijini Point" } }""");
 
         var (loaded, problem) = SettingsStore.Load(SettingsPath);
 
         problem.Should().BeNull();
-        loaded.Routes.Should().Be(new RoutesSettings("plan", "senior", "cfp"));
+        loaded.Routes.Should().Be(new RoutesSettings("plan", "senior", "cfp", "Baijini Point"));
         loaded.Routes.IsPlanTab.Should().BeTrue();
         loaded.Routes.MaxRank.Should().Be(HaulRank.Senior);
         loaded.Routes.PlayerFaction.Should().Be(HaulFaction.Cfp);
@@ -1063,6 +1063,7 @@ public sealed class SettingsStoreTests : IDisposable
     [InlineData("tab", "routes", "routes.tab \"routes\" is not cargo or plan, using cargo.")]
     [InlineData("rank", "Senior", "routes.rank \"Senior\" is not a rank (trainee … master), using master.")]
     [InlineData("faction", "xenothreat", "routes.faction \"xenothreat\" is not hh or cfp, using none.")]
+    [InlineData("hub", "Area18", "routes.hub \"Area18\" is not a Stanton hub (Everus Harbor, Seraphim Station, Baijini Point, Port Tressler), using Everus Harbor.")]
     public void A_route_word_out_of_the_format_falls_back_with_a_line(string key, string word, string line)
     {
         WriteFile($$"""{ "schemaVersion": 3, "routes": { "{{key}}": "{{word}}" } }""");
@@ -1081,13 +1082,13 @@ public sealed class SettingsStoreTests : IDisposable
         var file = JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
         var keys = file.Select(p => p.Key).ToList();
         keys.IndexOf("routes").Should().Be(keys.IndexOf("shipData") + 1);
-        file["routes"]!.AsObject().Select(p => p.Key).Should().Equal("tab", "rank", "faction");
+        file["routes"]!.AsObject().Select(p => p.Key).Should().Equal("tab", "rank", "faction", "hub");
     }
 
     [Fact]
     public void Save_then_Load_keeps_the_routes()
     {
-        var settings = AppSettings.Default with { Routes = new RoutesSettings("plan", "junior", "hh") };
+        var settings = AppSettings.Default with { Routes = new RoutesSettings("plan", "junior", "hh", "Port Tressler") };
 
         SettingsStore.Save(SettingsPath, settings);
         var (loaded, problem) = SettingsStore.Load(SettingsPath);

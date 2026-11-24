@@ -119,8 +119,15 @@ public sealed record AppSettings(
 /// </param>
 /// <param name="Rank">The highest rank the matrix shows, "trainee" to "master"; "master" shows every template.</param>
 /// <param name="Faction">The player's side in Pyro, "hh" or "cfp"; null = both.</param>
-public sealed record RoutesSettings(string Tab = RoutesSettings.CargoTab, string Rank = RoutesSettings.AnyRank, string? Faction = null)
+/// <param name="Hub">
+/// The Stanton hub the recipe starts from (T13.3b): Everus Harbor, Seraphim Station, Baijini Point or Port Tressler, set
+/// with the Plan tab's hub button; T13.4 and T13.6 start there too.
+/// </param>
+public sealed record RoutesSettings(
+    string Tab = RoutesSettings.CargoTab, string Rank = RoutesSettings.AnyRank, string? Faction = null, string Hub = RoutesSettings.DefaultHub)
 {
+    public const string DefaultHub = "Everus Harbor";
+
     public const string CargoTab = "cargo";
 
     public const string PlanTab = "plan";

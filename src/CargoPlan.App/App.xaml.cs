@@ -361,7 +361,7 @@ public partial class App : Application
         // never the tab, which the overlay's own handler below keeps.
         SettingsSession? sessionForRoutes = null;
         var routes = new RoutesViewModel(hauling, data.Version, settings.Routes, changed =>
-            sessionForRoutes?.ChangeRoutes(sessionForRoutes.Current.Routes with { Rank = changed.Rank, Faction = changed.Faction }), observed);
+            sessionForRoutes?.ChangeRoutes(sessionForRoutes.Current.Routes with { Rank = changed.Rank, Faction = changed.Faction, Hub = changed.Hub }), observed);
         // After each scan, on its pool thread: match anew there, show on the UI thread.
         routesBook.Recorded += (all, entry) =>
         {
