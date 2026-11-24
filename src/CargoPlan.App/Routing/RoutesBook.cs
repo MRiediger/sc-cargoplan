@@ -7,11 +7,12 @@ using CargoPlan.Import.Contracts;
 namespace CargoPlan.App.Routing;
 
 /// <summary>
-/// The observations of the run and routes.json (T13.1, U3, D118 addendum): every scan read whole, with title and reward,
-/// is recorded and written at once, whatever tab is selected. The file boundary for routes.json, as PlanStore is for
-/// plan.json: an unreadable file is kept aside by the first save, never overwritten (D106). The player never sees the
-/// file, so its problems go to cargoplan.log only, never to the notice line. Scans come one at a time; the lock is for
-/// the reader on another thread.
+/// routes.json and what it holds (T13.1, U3, D118 addendum; T13.6, D125): every scan read whole, with title and reward,
+/// is recorded and written at once, whatever tab is selected; the route and the finished runs are written with them.
+/// The one writer of the file, as PlanStore is for plan.json: one lock, the whole file at once, an unreadable file kept
+/// aside by the first save, never overwritten (D106). The player never sees the file, so its problems go to
+/// cargoplan.log only, never to the notice line. Observations come on the scan's thread, the route on the UI thread;
+/// the lock keeps one file.
 /// </summary>
 internal sealed class RoutesBook
 {
@@ -21,10 +22,14 @@ internal sealed class RoutesBook
     private readonly string _path;
     private readonly Positions _positions;
     private Observations _observations;
+    private Route? _route;
+    private IReadOnlyList<RouteRun> _runs;
     private bool _keepUnreadable;
 
-    private RoutesBook(string path, Positions positions, Observations observations, bool keepUnreadable, long loadMilliseconds = 0) =>
-        (_path, _positions, _observations, _keepUnreadable, LoadMilliseconds) = (path, positions, observations.Named(positions), keepUnreadable, loadMilliseconds);
+    private RoutesBook(
+        string path, Positions positions, Observations observations, bool keepUnreadable, long loadMilliseconds = 0, Route? route = null, IReadOnlyList<RouteRun>? runs = null) =>
+        (_path, _positions, _observations, _keepUnreadable, LoadMilliseconds, _route, _runs) =
+        (path, positions, observations.Named(positions), keepUnreadable, loadMilliseconds, route, runs ?? []);
 
     /// <summary>How long reading and folding the file took at the start (T13.3).</summary>
     public long LoadMilliseconds { get; }
@@ -45,6 +50,30 @@ internal sealed class RoutesBook
             lock (_lock)
             {
                 return _observations;
+            }
+        }
+    }
+
+    /// <summary>The route the player flies (T13.6); null while none is started.</summary>
+    public Route? Route
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _route;
+            }
+        }
+    }
+
+    /// <summary>The finished routes, oldest first, at most <see cref="RouteRun.MaxKept"/> (D126).</summary>
+    public IReadOnlyList<RouteRun> Runs
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _runs;
             }
         }
     }
@@ -70,7 +99,7 @@ internal sealed class RoutesBook
                 AppLog.Write(LogContext, dropped);
             }
 
-            return new(path, positions, read.Observations, keepUnreadable: false, watch.ElapsedMilliseconds);
+            return new(path, positions, read.Observations, keepUnreadable: false, watch.ElapsedMilliseconds, read.Route, read.Runs);
         }
         catch (Exception ex) when (ex is RoutesFormatException or IOException or UnauthorizedAccessException)
         {
@@ -106,6 +135,27 @@ internal sealed class RoutesBook
         Recorded?.Invoke(all, all.Entries.Single(e => e.Key == observed.Key));
     }
 
+    /// <summary>Starts, changes or (null) ends the route, saved at once with the observations. Never throws, as <see cref="Observe"/>.</summary>
+    public void SetRoute(Route? route)
+    {
+        lock (_lock)
+        {
+            _route = route;
+            Save();
+        }
+    }
+
+    /// <summary>Keeps a finished route; beyond <see cref="RouteRun.MaxKept"/> the oldest goes. Saved at once.</summary>
+    public void AddRun(RouteRun run)
+    {
+        lock (_lock)
+        {
+            _runs = [.. _runs.Append(run).TakeLast(RouteRun.MaxKept)];
+            Save();
+        }
+    }
+
+    // Under the lock: the whole file, observations, route and runs.
     private void Save()
     {
         try
@@ -120,7 +170,7 @@ internal sealed class RoutesBook
                 _keepUnreadable = false;
             }
 
-            AtomicFile.Write(_path, stream => RoutesFile.Write(stream, _observations));
+            AtomicFile.Write(_path, stream => RoutesFile.Write(stream, _observations, _route, _runs));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

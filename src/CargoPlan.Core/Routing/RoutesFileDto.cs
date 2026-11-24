@@ -2,11 +2,29 @@ using static CargoPlan.Core.Json.EnumWords;
 
 namespace CargoPlan.Core.Routing;
 
-/// <summary>routes.json as written (docs/routes-format.md). The route and its placeholders come later (T13.6).</summary>
-internal sealed record RoutesFileDto(int SchemaVersion, IReadOnlyList<ObservationDto> Observations)
+/// <summary>routes.json as written (docs/routes-format.md): the observations, since schema 3 (T13.6) the route and the runs, each left out while there is none.</summary>
+internal sealed record RoutesFileDto(int SchemaVersion, IReadOnlyList<ObservationDto> Observations, RouteDto? Route = null, IReadOnlyList<RunDto>? Runs = null)
 {
-    public static RoutesFileDto From(Observations observations) =>
-        new(RoutesFile.SupportedSchemaVersion, [.. observations.Entries.Select(ObservationDto.From)]);
+    public static RoutesFileDto From(Observations observations, Route? route, IReadOnlyList<RouteRun> runs) => new(
+        RoutesFile.SupportedSchemaVersion, [.. observations.Entries.Select(ObservationDto.From)],
+        route is null ? null : RouteDto.From(route), runs.Count == 0 ? null : [.. runs.Select(RunDto.From)]);
+
+    /// <summary>The route and the runs; none before schema 3.</summary>
+    /// <exception cref="ArgumentException">A route or run in an older schema, out of the format, or more runs than kept.</exception>
+    public (Route? Route, IReadOnlyList<RouteRun> Runs) ToRoute(int schemaVersion)
+    {
+        if (schemaVersion < 3 && (Route is not null || Runs is not null))
+        {
+            throw new ArgumentException($"a route and runs need schema 3, the file says {schemaVersion}.");
+        }
+
+        if (Runs is { Count: > RouteRun.MaxKept })
+        {
+            throw new ArgumentException($"{Runs.Count} runs, at most {RouteRun.MaxKept} are kept.");
+        }
+
+        return (Route?.ToRoute(), Runs is null ? [] : [.. Runs.Select(r => r.ToRun())]);
+    }
 
     /// <summary>The observations; of schema 1 only the entries with one commodity (K1 of T13.3), the others named.</summary>
     /// <exception cref="ArgumentException">A word, band, count or time out of the format, or a key twice.</exception>
