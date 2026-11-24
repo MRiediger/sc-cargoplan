@@ -173,14 +173,18 @@ public class OverlayLegendXamlTests
     }
 
     [Fact]
-    public void Hiding_the_stop_lines_hides_their_scroll_area()
+    public void Hiding_the_stop_lines_hides_them_and_their_scroll_area_unless_a_route_is_on()
     {
+        // D33; since T13.6 the route's block shares the scroll area and stays with legend.visible = false.
         var scroll = Named(Root(), "StopLinesScroll");
         var style = scroll.Elements().Single(e => e.Name.LocalName == "ScrollViewer.Style");
-        var trigger = style.Descendants().Single(e => e.Name.LocalName == "DataTrigger");
+        var trigger = style.Descendants().Single(e => e.Name.LocalName == "MultiDataTrigger");
+        var lines = scroll.Descendants().Single(e => (string?)e.Attribute("ItemsSource") == "{Binding Scene.Legend, Mode=OneWay}");
 
-        trigger.Attribute("Binding")!.Value.Should().Be("{Binding IsLegendVisible}");
-        trigger.Elements().Single().Attribute("Property")!.Value.Should().Be("Visibility");
+        trigger.Descendants().Where(e => e.Name.LocalName == "Condition").Select(c => (c.Attribute("Binding")!.Value, c.Attribute("Value")!.Value))
+            .Should().Equal(("{Binding IsLegendVisible}", "False"), ("{Binding ActiveRoute.HasRoute, FallbackValue=False}", "False"));
+        trigger.Elements().Single(e => e.Name.LocalName == "Setter").Attribute("Property")!.Value.Should().Be("Visibility");
+        lines.Attribute("Visibility")!.Value.Should().Be("{Binding IsLegendVisible, Converter={StaticResource BooleanToVisibilityConverter}}");
     }
 
     [Fact]

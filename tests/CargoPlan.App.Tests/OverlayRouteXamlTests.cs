@@ -37,6 +37,43 @@ public class OverlayRouteXamlTests
     }
 
     [Fact]
+    public void The_block_Plan_is_the_first_thing_in_the_legends_scroll_so_it_scrolls_with_the_legend()
+    {
+        // U9.1: above the legend, in its look; "scrolls with the legend, not on its own" (startprompt 6a).
+        var root = Root();
+        var scroll = Named(root, "StopLinesScroll");
+        var block = Named(root, "RouteBlock");
+
+        var content = scroll.Elements().Single(e => !e.Name.LocalName.StartsWith("ScrollViewer.", StringComparison.Ordinal));
+        content.Name.LocalName.Should().Be("StackPanel");
+        content.Elements().First(e => !e.Name.LocalName.Contains('.')).Should().BeSameAs(block);
+        content.Elements().Last().Attribute("ItemsSource")!.Value.Should().Contain("Scene.Legend");
+        ((string?)block.Attribute("DataContext")).Should().Be("{Binding ActiveRoute}");
+        block.ToString().Should().Contain("HasRoute");
+    }
+
+    [Fact]
+    public void The_scroll_shows_with_a_route_also_while_the_legend_is_hidden_and_the_empty_state_comes_after_it()
+    {
+        var root = Root();
+        var scroll = Named(root, "StopLinesScroll");
+
+        scroll.ToString().Should().Contain("MultiDataTrigger").And.Contain("ActiveRoute.HasRoute").And.Contain("IsLegendVisible");
+        scroll.ElementsAfterSelf().First().ToString().Should().Contain("NoPlanText", "the block stays above \"No cargo\"");
+    }
+
+    [Fact]
+    public void End_plan_is_a_text_button_in_the_blocks_head_that_takes_no_focus()
+    {
+        var end = Named(Root(), "EndPlanButton");
+
+        ((string?)end.Attribute("Command")).Should().Be("{Binding EndCommand}");
+        ((string?)end.Attribute("Content")).Should().Be("End plan");
+        ((string?)end.Attribute("Focusable")).Should().Be("False", "a focus would activate the overlay over the game (U7)");
+        ((string?)end.Attribute("Style")).Should().Be("{StaticResource TextButtonStyle}");
+    }
+
+    [Fact]
     public void The_chosen_loop_row_has_a_bar_on_its_left()
     {
         var style = Keyed(Root(), "LoopRowStyle").ToString();

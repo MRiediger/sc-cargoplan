@@ -21,7 +21,7 @@ namespace CargoPlan.App.ViewModels;
 /// <param name="ships">The ships there are (D59: a ship is a catalog entry); null = only <paramref name="ship"/>.</param>
 public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = null) : ObservableObject
 {
-    public const string NoPlanText = "No plan. Open the editor to enter missions.";
+    public const string NoPlanText = "No cargo. Open the editor to enter missions.";
 
     public const string MoveRefusedPrefix = "Move refused: ";
 
@@ -75,7 +75,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public const string HistoryClearedByShipChangeText = "Undo history cleared by ship change";
 
     /// <summary>What Discard plan did (K2.3): a notice, no question (D66).</summary>
-    public const string DiscardedText = "Plan discarded – scan your contracts to plan them again.";
+    public const string DiscardedText = "Cargo discarded – scan your contracts to plan them again.";
 
     /// <summary>What the overlay asks before every re-plan (D66): no way past it, button or hotkey.</summary>
     public const string ReplanConfirmText =

@@ -63,7 +63,11 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
 
     /// <summary>The ways back, under "Back".</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasBack))]
     public partial IReadOnlyList<PlaceholderRowView> BackRows { get; private set; } = [];
+
+    /// <summary>The line "Back" shows over the ways back, not without any.</summary>
+    public bool HasBack => BackRows.Count > 0;
 
     /// <summary>"+ #4 extra · 160,250 aUEC": accepted contracts no placeholder took, as the plan holds them.</summary>
     [ObservableProperty]

@@ -70,7 +70,7 @@ these values.
 ```
 
 `overlay` and `hotkeys` are described in the wiki ([Overlay basics](https://github.com/MRiediger/sc-cargoplan/wiki/Overlay-basics#hotkeys)); `replan` lays out the cargo on board anew like the
-editor's Re-plan, `discardPlan` empties the plan like the editor's Discard plan, `undo` and `redo` go back and forward like the header's
+editor's Re-plan, `discardPlan` empties the cargo like the editor's Discard cargo (Discard plan before v0.8.0; the key keeps its name), `undo` and `redo` go back and forward like the header's
 ↶ and ↷, `resetView` fits the ship view like the header's reset next to the gear, `scanContracts` reads the contract
 open in the mobiGlas into the plan like the editor's Scan button. In `hotkeys`, `null` and a missing entry both mean
 "no hotkey"; the settings window writes `null` when you clear one, so you see the entry exists. The one exception is

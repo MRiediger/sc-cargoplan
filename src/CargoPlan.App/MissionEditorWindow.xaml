@@ -71,9 +71,10 @@
             <!-- Lays out the plan, not the rows: a deliberate action next to Import and Scan (D66), with the header button's tool tip (T7.5a2). -->
             <Button Content="Re-plan" Command="{Binding ReplanCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="{x:Static vm:OverlayViewModel.ReplanToolTipText}" />
-            <!-- Empties the plan, not the rows; the next scan starts a new one (K2.3, Martin's variant a). -->
-            <Button Content="Discard plan" Command="{Binding DiscardPlanCommand}" Style="{StaticResource ToolbarButtonStyle}"
-                    ToolTip="Empty the plan and start over; scan your contracts to plan them again. The layout stays." />
+            <!-- Empties the plan, not the rows; the next scan starts a new one (K2.3, Martin's variant a). "Cargo", since the
+                 route of the Plan tab is the plan (U4, K2 of T13.6). -->
+            <Button Content="Discard cargo" Command="{Binding DiscardPlanCommand}" Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTip="Empty the cargo and start over; scan your contracts to plan them again. The layout stays." />
             <!-- The scan hotkey's way with a mouse (T10.3, D104); off while a scan runs. -->
             <Button Content="Scan" Command="{Binding ScanCommand}" Style="{StaticResource ToolbarButtonStyle}"
                     ToolTip="Read the contract open in Star Citizen's mobiGlas into the plan, like the scan hotkey (default F3)" />
