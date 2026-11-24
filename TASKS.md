@@ -626,17 +626,118 @@ Martins Antworten auf vier Rückfragen):**
 
 ### ~~T13.5 App: Hafen-Matrix~~ – entfällt (in T13.2, U3, 23.11.)
 
-### [ ] T13.6 Route starten
+### [ ] T13.6 Route: Platzhalter, Accepted-Scan füllt, Stationsleiste
 
-**Warum:** Aus dem Entschluss wird ein Ablauf: Stationsfolge, freie Slots, Rückfracht (Design §4.3 Schritt 5–7).
-- Stationsfolge aus *Accepted*-Einträgen, Slot-Simulation je Station mit `LoadPlanner`, Stations-Checkliste (abladen,
-  frei, Rückfracht-Platzhalter), Platzhalterkarten
-- Accepted-Scan aktualisiert die Route; Abschluss am Hub schreibt Messwerte in die Zeitparameter
+**Warum:** Aus dem Entschluss wird ein Ablauf: aus einer Loop- oder Recipe-Zeile eine Route mit Platzhaltern im
+Cargo-Reiter, die der Accepted-Scan am Terminal füllt, und eine Stationsleiste führt mit Abladen, freien Slots und
+Rückläufern über den Ring bis zum Abschluss am Hub mit Σ aUEC und Zeit (Design §4.3 Schritt 4–7, §8.4 Punkt 4).
+Zwei Teile mit je eigenem Gate: **6a** Start, Block „Plan“, Accepted-Scan füllt; **6b** Stationsleiste,
+Slot-Simulation, Rückläufer, Abschluss. Branch `feat/p13-route`, Zwischenabnahme nach 6a, Abnahme nach 6b.
 
-**Akzeptanz:**
-- Route und Platzhalter liegen in `routes.json`, plan.json unberührt (D118)
-- Fehlt ein Accepted-Scan, fehlt der Vertrag in der Route mit Hinweis, kein Fehler
-- Gate am Terminal, SC vorne: ein Ring mit Rückfracht von Start bis Abschluss
+**Akzeptanz (Startprompt 24.11., §5):**
+- Route und Platzhalter in `routes.json` Schema 3, `plan.json` Schema 11 und byte-gleich bei Start/End/Finish (D118).
+- Accepted-Scan füllt über `TemplateMatch`, nie über Titeltext; ohne Platzhalter Mission wie heute + Hinweis, Vertrag
+  zählt zur Route (U9.2); fehlt ein Scan, fehlt der Vertrag in der Route – Hinweis, kein Fehler.
+- Erfüllt wird aus dem Plan gelesen; Undo öffnet den Platzhalter.
+- Stationsleiste über der Legende, Cargo-Ansicht darunter unverändert (Handling-Tabelle gegen `main`); Slot-Simulation
+  auf dem echten Plan; Rückläufer-Platzhalter je `AcceptAt`.
+- Abschluss schreibt `runs[]` mit Σ aUEC der gefüllten + Extras und Zeit ab Abflug; kein Nachführen der Zeitparameter
+  (Backlog mit Auslöser).
+- U4 eingehalten: „Start plan“, „End plan“, „Finish plan“, Block „Plan“; „Discard plan“ → „Discard cargo“.
+- D125 und D126 mit Gegenargument; `routes-format.md` Schema 3; CLAUDE.md-Zeilen zu `routes.json`; beide Gates mit
+  Zahlen; DoD (`dotnet build` 0 Warnungen, komplette `dotnet test`-Zusammenfassung wörtlich, `dotnet format
+  --verify-no-changes`); Commits ohne Co-Authored-By.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (24.11.2026, „Freigabe T13.6 mit K1“; U9 aus der
+Vorbesprechung, Befunde 1–8, K1–K6, E(a)–(c), E1, E2):**
+- **U9:** (1) Platzhalter in `routes.json` (Schema 3, `route`), im Cargo-Reiter als grauer Block „Plan“ über der
+  Legende, eine Zeile je Rolle; keine Kisten im Schiff; erfüllt = „✓ #n“, der Platzhalter bleibt. (2) Accepted-Scan ohne
+  passenden Platzhalter: Mission wie heute, „· not in plan (extra)“, zählt zur Route. (3) Stations-Wizard = eine
+  Stationsleiste über der Legende, keine dritte Ansicht. (4) Schnitt 6a / 6b.
+- **K1:** „k/n filled“ zählt alle Platzhalter (Hinweg + Back); Everus = 10.
+- **K2 (U4):** „Discard plan“ → „Discard cargo“ (Editor-Button, Hotkey-Label), Notice „Cargo discarded – …“, Leerzustand
+  „No cargo. Open the editor to enter missions.“; Settings-Schlüssel `discardPlan` und Code-Namen bleiben.
+- **K3:** Ein Accepted-Scan mit `AlreadyInPlan` (Vertrag vor „Start plan“ gescannt) füllt einen offenen Platzhalter:
+  der D101-Schlüssel trägt keinen Titel (Rang/Größe), deshalb kann „Start plan“ vorhandene Missionen nicht selbst
+  zuordnen – nur ein erneuter Accepted-Scan (D125, mit Gegenargument).
+- **K4:** „Start plan“ in Loops = die zuletzt geklickte Zeile, sonst die oberste mit Zahlen; in Recipe = die zuletzt
+  geklickte, wenn ihr Start der gezeigte Hub ist (Direct-Lauf), sonst der Ring des gezeigten Hubs. Ein Klick auf eine
+  LEO-/Pyro-Zeile markiert sie (vorher: nichts). Tooltip nennt das Ziel oder warum nicht.
+- **K5:** Leiste „Start · Hub“, dann „Station 1/n“ … „n/n · Hub · Finish plan“, n = Landungen (6b).
+- **K6:** Extras außerhalb des Rings: vor dem Abflug neu permutiert (`Loops.Order`), danach vor den Hub (6b).
+- **E(a):** Offer-Scan eines offenen Platzhalter-Templates: „ · plan: bulk“ in beiden Reitern. **E(b):** Auto-Weiter-
+  schalten beim Übergang „letzte offene Lieferung der Station abgehakt“ (6b). **E(c):** „accepted at … (planned …)“ (6b).
+- **K1 der Freigabe:** Gate 6a mit K3-Schritt. **E1:** plan.json-Hash auch bei Finish. **E2:** U9 (und U4, U5, U7) in
+  Design §9.2; U6 und U8 stehen nicht im Repo (Master-Chat), daher nicht nachgetragen.
+
+**Befunde Planphase (bestätigt):** (1) Everus-Ring 10 Rollen (5 Hinweg 594 500, 5 Back 282 500), nicht 7. (2) „Discard
+plan“ steht nicht im Overlay, sondern im Editor und als Hotkey-Label; „No plan …“/„Plan discarded …“ aber in der
+Cargo-Ansicht. (3) Scan-Notices laufen über `NoticeSource.Move`, nicht `Scan`. (4) Route nimmt `LoopKind` + `StarSystem`
+(Pyro = `LocalRing` + Pyro), kein neues Enum. (5) `Loops.Order` ist die gesuchte Permutation (internal, aus Core
+nutzbar). (6) Zeilenklick wechselte nach Recipe bzw. tat nichts → K4. (7) Design §9.4 gibt es nicht. (8) Kartennamen
+im Plan vs. Positionsnamen der Route → `Positions.Resolve` (6b).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (bei der Umsetzung 6a, zur Zwischenabnahme):**
+- Core nimmt statt `ContractView` (lebt in `CargoPlan.Import`) die Schätzung der Scan-Identität: geschätzt ⇔ nicht
+  Accepted (D102); `Route.Fill` bekommt die Identität des Scans (der Capture), nicht der Mission.
+- „Already in plan (#3)“ → „Already in cargo (#3)“ (U4: neben „· plan ✓“ stünde „plan“ zweimal).
+- `runs` steht ab 6a im Schema (kein zweiter Bump in 6b).
+- Die Platzhalterzeile zeigt die Orte der Rezeptzeile (wie Recipe) und zusätzlich die Waren; Format `RoleText` für
+  Recipe, Loop-Tooltip und Platzhalter (A1).
+- Der Leerzustand der Legende steht hinter den Stopp-Zeilen (Block darüber; ohne Route keine Änderung); der Scrollbereich
+  bleibt mit Route auch bei `legend.visible = false`, die Stopp-Zeilen folgen der Einstellung.
+- Block-Zeilen einzeilig mit Ellipse wie die Legenden-Zeilen (K6.1), voller Text im Tooltip (Bild-Check CC).
+
+**Stand 6a (24.11., Branch `feat/p13-route`, 5caecc7..c403039):**
+- Commits: `Route`/`Placeholder`/`From` + Golden (5caecc7); `Route.Fill` + Füll-Matrix (b262422); routes.json Schema 3 +
+  `RoutesBook` (0420b39); `ActiveRouteViewModel`, `ApplyScan`, Notices, `RoleText` (3ff6e41); „Start plan“ (d212210);
+  Block + K2 (b3ecacd); Block einzeilig (0a307de); plan.json-Hash bei Start/End (c403039); Doku.
+- **Golden (Pin `ships-2026.11.2`, Hull B, Senior):** Everus-Ring L1 → L4 → L3 → L5 → L2, 10 Platzhalter, Hinweg
+  594 500, Back 282 500 (L1 72 500 „collect at L4, L3, L5“, L4 60 750, L3 50 250, L5 48 500, L2 50 500); Direct
+  Everus → HUR-L3 eine Station, Rückläufer mit einem Pickup, 211 750; Port Tressler 1 028 000 (`RouteBaselineTests`).
+- **Füll-Matrix** 48 Zellen (View × ScanChange × Bulk-Platzhalter), dazu Ambiguous, zwei Platzhalter eines Templates,
+  Undo öffnet, Extra wandert zum offenen Platzhalter (`RouteTests`).
+- **Mutationsproben:** `IsFilled` ohne die Keys des Plans → 2 rot; `at`-Bereichsprüfung aus → 1 rot. Die Format-Tests
+  (Commit 3) liefen nicht vor dem Code (Lehre T7.2 verletzt), dafür die Mutation.
+- Bild (CC, Desktop, `--data-dir` mit Scratch-Datenordner: Everus-Ring des Pins, Bulk gefüllt als #1, ein Extra):
+  „Plan: Everus Harbor ring · 1/10 filled · Σ 594,500 out · +282,500 back“ mit „End plan“, „✓ #1 · Bulk · …“, vier graue
+  Hinweg-Zeilen, „Back“, fünf Rückläufer, „+ #2 extra · 41,750 aUEC“, darunter die Legende.
+- **Handling gegen main:**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | Filterzeile Plan-Reiter | View, Hub (Recipe), Sort (Loops), Rang, System, … | dazu „Start plan“ in Recipe und Loops, Tooltip auch deaktiviert |
+  | Klick auf Loop-Zeile | Stanton → Recipe des Hubs; LEO/Pyro nichts | Stanton gleich, dazu markiert; LEO/Pyro markiert (Balken links), bleibt in Loops |
+  | „Start plan“ (neu) | – | Route in routes.json, Reiter → Cargo; zweite Route nur nach Ja |
+  | Cargo-Reiter mit Route (neu) | – | Block „Plan“ über der Legende, scrollt mit ihr; „End plan“ |
+  | F3 Accepted mit Route | „Scanned #n · …“ | dazu „ · plan: bulk ✓ k/n“ / „ · not in plan (extra)“ / „ · plan ✓“ |
+  | F3 Offer mit Route | wie main | dazu „ · plan: bulk“, wenn ein offener Platzhalter das Template hat |
+  | F3 gleicher Vertrag nochmal | „Already in plan (#n)“ | „Already in cargo (#n)“ (U4) |
+  | Editor „Discard plan“, Hotkey-Label, Leerzustand | „Discard plan“, „No plan. …“ | „Discard cargo“, „No cargo. …“ (K2) |
+  | Alles ohne Route | wie main | gleich |
+
+- **Gate 6a (Martin, SC vorne, Everus, Hull B, Senior, `--data-dir` mit Kopie des Datenordners):**
+
+  | Schritt | Erwartung | Warum |
+  |---|---|---|
+  | 1 Plan → Loops → Everus ring (Klick) → „Start plan“ | Reiter Cargo; „Plan: Everus Harbor ring · 0/10 filled · Σ 594,500 out · +282,500 back“, 5 graue Zeilen, 5 unter „Back“; `routes.json` hat `route`; `plan.json`-Hash gleich | Start schreibt nur die Planer-Datei (D118) |
+  | 2 Bulk am Terminal (Titel + Reward der Zeile), annehmen, Accepted, F3 | Mission wie heute; „✓ #n · Bulk · …“; Notice „Scanned #n · … · plan: bulk ✓ 1/10“ | Kernpfad U3 |
+  | 3 Fremder Vertrag (z. B. Rookie Direct Small eines anderen Templates), F3 | Mission wie heute; „· not in plan (extra)“; „+ #m extra · …“ | U9.2 |
+  | 4 Undo auf 2 | Zeile wieder grau; `routes.json` unverändert | erfüllt kommt aus dem Plan |
+  | 5 Redo, App neu starten | Block wie vorher, ✓ #n bleibt | Persistenz Route + Plan |
+  | 6 **K3:** „End plan“; einen Vertrag annehmen und F3 (Accepted) **ohne** Route; dann „Start plan“; erneut F3 im Accepted-Tab | „Already in cargo (#n) · plan: … ✓ 1/10“, Zeile „✓ #n“ | K1 der Freigabe |
+  | 7 „End plan“ | Block weg, Legende und Schiff unverändert, `routes.json` ohne `route` | Route additiv |
+  | 8 Ohne Route: Offer im Cargo-Reiter, Accepted-Scan | exakt wie main | Invariante 1 |
+
+  Zahlen: `keyToNoticeMs` (scans.log) für 2/3 gegen T13.1 (1 672–1 807 ms), `fillMs=` aus cargoplan.log („Routes: fill
+  #n: … fillMs=“). Fokus: „End plan“ und „Start plan“ mit `--log-input` (Cargo-Reiter aktiviert nicht, U7).
+
+- **Testnamen:** `RouteTests`, `RouteBaselineTests`, `RoutesFileTests.A_route_*`, `RoutesBookTests`, `RouteScanTests`
+  (u. a. `A_contract_scanned_before_the_route_fills_its_placeholder_when_scanned_again` = K3,
+  `Starting_and_ending_the_route_leave_plan_json_byte_for_byte`), `RoutesViewModelTests.Start_plan_*`,
+  `OverlayRouteXamlTests`; Nachfolger: `RoutesViewModelTests.A_row_without_a_recipe_is_only_marked_on_a_click_and_stays_in_the_loops`
+  (vorher `…_does_nothing_on_a_click`), `OverlayLegendXamlTests.Hiding_the_stop_lines_hides_them_and_their_scroll_area_unless_a_route_is_on`
+  (vorher `Hiding_the_stop_lines_hides_their_scroll_area`).
 
 ### [ ] T13.7 Streckenkarte
 
