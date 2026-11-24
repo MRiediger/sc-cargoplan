@@ -407,11 +407,14 @@ public partial class App : Application
                 Dispatcher.InvokeAsync(() => routes.ShowObserved(edges));
             }
         };
+        // The route (T13.6, D125): routes.json's at the start, saved by the book with the observations (one writer).
+        var activeRoute = new ActiveRouteViewModel(routesBook.Route, routesBook.SetRoute, hauling);
         var viewModel = new OverlayViewModel(ship, ships)
         {
             IsManuallyLocked = options.Locked,
             IsRoutesTabSelected = settings.Routes.IsPlanTab,
             Routes = routes,
+            ActiveRoute = activeRoute,
             RecentShips = settings.RecentShips ?? [],
             Cameras = settings.ShipView.Cameras ?? new Dictionary<string, ShipCamera>(),
             Outlines = outlines,

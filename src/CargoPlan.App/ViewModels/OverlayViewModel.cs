@@ -331,6 +331,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             MergeCommand.NotifyCanExecuteChanged();
             ReplanCommand.NotifyCanExecuteChanged();
             DiscardPlanCommand.NotifyCanExecuteChanged();
+
+            // What the route's placeholders show as filled is read from the plan (T13.6, D125).
+            ActiveRoute?.Show(value);
         }
     }
 
@@ -584,7 +587,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         if (IsRoutesTabSelected && scanned.View == ContractView.Offer)
         {
             return scanned.ToObservation(DateTime.UtcNow) is { } observed
-                ? new(ScanReportKind.Observed, Observed: observed.Key, Fit: Routes?.FitOf(observed))
+                ? new(ScanReportKind.Observed, Observed: observed.Key, Fit: Routes?.FitOf(observed), Route: ActiveRoute?.OfferNote(scanned))
                 : new(ScanReportKind.NotObserved, Reason: scanned.NotObservedReason);
         }
 
@@ -610,7 +613,10 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             ScanChange.AlreadyInPlan => ScanReportKind.AlreadyInPlan,
             _ => ScanReportKind.Refused,
         };
-        return new(kind, merge.ScanNo, merge.QuantitiesChanged, merge.Cleared, merge.Refusal);
+
+        // T13.6 (D125): after the plan took it, the scan fills the route's placeholder; the note ends the notice.
+        var route = ActiveRoute?.Fill(scanned, unified.Captures[0].Source.Scan, merge.Change, merge.Saved);
+        return new(kind, merge.ScanNo, merge.QuantitiesChanged, merge.Cleared, merge.Refusal, Route: route);
     }
 
     /// <summary>
@@ -631,6 +637,21 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         {
             field = value;
             value?.ShowShip(Ship);
+        }
+    }
+
+    /// <summary>
+    /// The route in the Cargo tab (T13.6, D125): the block "Plan" above the legend; an accepted scan fills its
+    /// placeholders. Null in tests without it. It reads what is filled from <see cref="Saved"/>, from the start and after
+    /// every change.
+    /// </summary>
+    public ActiveRouteViewModel? ActiveRoute
+    {
+        get;
+        init
+        {
+            field = value;
+            value?.Show(Saved);
         }
     }
 

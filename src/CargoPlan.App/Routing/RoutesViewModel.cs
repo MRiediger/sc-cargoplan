@@ -74,14 +74,6 @@ public sealed partial class RoutesViewModel : ObservableObject
     // The four Stanton hubs in board order (Stanton1–4): the recipe's start (routes.hub).
     private static readonly (string AreaKey, string Name)[] Hubs = [.. BoardHubs.ByArea.OrderBy(h => h.Key, StringComparer.Ordinal).Select(h => (h.Key, h.Value))];
 
-    private static readonly Dictionary<RecipeKind, string> KindWords = new()
-    {
-        [RecipeKind.Bulk] = "Bulk",
-        [RecipeKind.Direct] = "Direct",
-        [RecipeKind.Small] = "Small",
-        [RecipeKind.Return] = "Back",
-    };
-
     private readonly IReadOnlyList<HaulTemplate> _templates;
 
     private readonly Positions _positions;
@@ -580,19 +572,12 @@ public sealed partial class RoutesViewModel : ObservableObject
         foreach (var c in loop.Contracts)
         {
             var reward = c.Template.Reward is { } r ? Invariant($"{r:N0} aUEC") : "–";
-            tip.Append(Invariant($"\n{KindWords[c.Kind]} · {c.Template.Title} · {reward} · {c.WorstScu} SCU{(AcceptText(c) is { } accept ? $" · {accept}" : "")}"));
+            tip.Append(Invariant($"\n{RoleText.KindWords[c.Kind]} · {c.Template.Title} · {reward} · {c.WorstScu} SCU{(RoleText.Accept(c.AcceptAt, c.CollectAt) is { } accept ? $" · {accept}" : "")}"));
         }
 
         var hub = loop.Kind != LoopKind.SystemWide && loop.System == StarSystem.Stanton ? loop.Start : null;
         return new(loop, title, figures, details, tip.ToString(), !loop.HasNumbers, hub);
     }
-
-    // "accept at MIC-L1, collect at MIC-L2, MIC-L3" for a way back (one contract, gate T13.4); null for any other role.
-    private static string? AcceptText(RecipeRole role) => role.AcceptAt is not { } at
-        ? null
-        : role.CollectAt is { Count: > 0 } collect
-            ? $"accept at {PlaceNames.Short(at)}, collect at {string.Join(", ", collect.Select(PlaceNames.Short))}"
-            : $"accept at {PlaceNames.Short(at)}";
 
     private static string Plus(LoopCandidate loop) => loop.RewardPartial ? "+" : "";
 
@@ -625,14 +610,8 @@ public sealed partial class RoutesViewModel : ObservableObject
     private string Line(RecipeRole role)
     {
         var t = role.Template;
-        var reward = (t.Reward, _observed.RewardOf(t)) switch
-        {
-            ({ } data, _) => Invariant($"{data:N0} aUEC"),
-            (null, { } seen) => Invariant($"{seen:N0} aUEC observed"),
-            _ => "–",
-        };
-        var where = AcceptText(role) ?? string.Join(", ", role.Destinations.Select(PlaceNames.Short));
-        return Invariant($"{KindWords[role.Kind]} · {t.Title} · {reward} · {t.Legs.Sum(l => l.MinScu)}–{t.MaxScu} SCU in {t.Legs.Max(l => (int)l.Container)}s · {where}");
+        var where = RoleText.Accept(role.AcceptAt, role.CollectAt) ?? string.Join(", ", role.Destinations.Select(PlaceNames.Short));
+        return RoleText.Line(role.Kind, t.Title, RoleText.Reward(t.Reward, _observed.RewardOf(t)), null, t.Legs.Sum(l => l.MinScu), t.MaxScu, t.Legs.Max(l => l.Container), where);
     }
 
     private static PortCellView? View(string pickup, string dropoff, PortCell? cell)
