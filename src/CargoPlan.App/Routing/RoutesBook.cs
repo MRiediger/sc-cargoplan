@@ -87,7 +87,7 @@ internal sealed class RoutesBook
             // Only a contract that could have been one is worth a line: an offer or accepted contract read whole.
             if (scanned.View != ContractView.Unknown && !scanned.InHardDoubt && scanned.Stops.Count > 0)
             {
-                AppLog.Write(LogContext, $"not observed: {(scanned.Title is null ? "title" : "reward")} unreadable");
+                AppLog.Write(LogContext, $"not observed: {scanned.NotObservedReason}");
             }
 
             return;

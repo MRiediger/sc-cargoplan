@@ -40,8 +40,9 @@ internal static partial class ContractTextParser
         var text = rawText.ReplaceLineEndings("\n");
         var all = text.Split('\n');
         var lines = Block(all);
+        var title = ContractTitles.Read(all);
         return new(Deliveries(lines), MaxCrateSize(string.Join('\n', lines)), ListedDestinationCount(lines), Reward(text), Pickups(lines),
-            View(all), all.Any(l => IsHeading(l, ObjectivesHeading)), Unread(lines), ContractTitles.Read(all));
+            View(all), all.Any(l => IsHeading(l, ObjectivesHeading)), Unread(lines), title, title is null ? ContractTitles.Miss(all) : null);
     }
 
     /// <summary>

@@ -133,8 +133,82 @@ public class ContractTitleTests
         with.Key.Should().Be(without.Key);
     }
 
+    // --- Why no title (E1 of the T13.3a approval) ---
+
+    [Theory]
+    [MemberData(nameof(AllRawTextFixtures))]
+    public void A_fixture_without_a_title_is_a_title_unreadable_never_another_form(string fixture)
+    {
+        // Every fixture is Covalex or Red Wind: where the title is missing, OCR lost it.
+        var scanned = ScannedContract.Read(ImportFixtures.RawText(fixture));
+
+        scanned.TitleMiss.Should().Be(scanned.Title is null ? TitleMiss.Unreadable : null);
+    }
+
+    [Theory]
+    // Martin's scans.log (24 Nov 2026): Ling Family Hauling, title read whole, a contract no hauling template has.
+    [InlineData("Cargo Hauling Opportunity with Ling Hauling", "Contracted By Ling Family Hauling")]
+    // ContractTracker's texts put the contractor on the next line.
+    [InlineData("Cargo Hauling Opportunity with Ling Hauling", "Contracted By\nLing Family Hauling")]
+    [InlineData("", "Contracted By Ling Family Hauling")]
+    public void Another_contractor_without_a_title_is_another_form(string title, string contractor)
+    {
+        var scanned = ScannedContract.Read(Offer(title, contractor));
+
+        scanned.Title.Should().BeNull();
+        scanned.TitleMiss.Should().Be(TitleMiss.OtherForm);
+        scanned.NotObservedReason.Should().Be("no hauling template form");
+    }
+
+    [Theory]
+    // A hauling title OCR broke: a rank before "Rank", "Cargo Haul" at the end, the Red Wind forms; whoever contracted it.
+    [InlineData("Junior Rank - Huge Cargo Haul", "Contracted By Ling Family Hauling")]
+    [InlineData("Junior Rank - Small Cargo Hal", "Contracted By Ling Family Hauling")]
+    [InlineData("Junior Rnk - Small Cargo Haul", "Contracted By Ling Family Hauling")]
+    [InlineData("Captain Hauler Needed for Large Shipment", "Contracted By Ling Family Hauling")]
+    [InlineData("Chief Hauler Needed for Medium Shipment", "Contracted By Ling Family Hauling")]
+    [InlineData("Member | Stellar Massive Haul | to Ruin Station", "Contracted By Ling Family Hauling")]
+    // No title line: Covalex or Red Wind lost it; no contractor read, nothing tells.
+    [InlineData("", "Contracted By Covalex Independent Contractors")]
+    [InlineData("", "Contracted By\nRed Wind Linehaul")]
+    [InlineData("Cargo Hauling Opportunity with Ling Hauling", "")]
+    [InlineData("", "Contracted By")]
+    public void A_broken_title_or_a_hauling_contractor_is_a_title_unreadable(string title, string contractor)
+    {
+        var scanned = ScannedContract.Read(Offer(title, contractor));
+
+        scanned.Title.Should().BeNull();
+        scanned.TitleMiss.Should().Be(TitleMiss.Unreadable);
+        scanned.NotObservedReason.Should().Be("title unreadable");
+    }
+
+    [Theory]
+    [InlineData("Junior Rank - Small Cargo Haul", "Reward 50,250", null)]
+    [InlineData("Junior Rank - Small Cargo Haul", "Reward", "reward unreadable")]
+    [InlineData("", "Reward 50,250", "title unreadable")]
+    [InlineData("", "Reward", "title and reward unreadable")]
+    public void The_reason_names_what_wasnt_read(string title, string reward, string? why)
+    {
+        var text = Offer(title, "Contracted By Covalex Independent Contractors").Replace("Reward 50,250", reward, StringComparison.Ordinal);
+
+        ScannedContract.Read(text).NotObservedReason.Should().Be(why);
+    }
+
+    [Fact]
+    public void Another_form_needs_no_reward()
+    {
+        // Not a template's contract: what it pays doesn't matter.
+        var text = Offer("Cargo Hauling Opportunity with Ling Hauling", "Contracted By Ling Family Hauling").Replace("Reward 50,250", "Reward", StringComparison.Ordinal);
+
+        ScannedContract.Read(text).NotObservedReason.Should().Be("no hauling template form");
+    }
+
     /// <summary>A whole offer as our OCR reads it (title, reward, details, one delivery, button), with <paramref name="title"/> first.</summary>
     private static string Offer(string title) =>
         $"{title}\nReward 50,250\nContract Availability\nDETAILS\nPRIMARY OBJECTIVES\n" +
         "Deliver 0/9 SCU of Stims to Green Glade Station above Hurston.\nCollect Stims from Everus Harbor.\nACCEPT OFFER\n";
+
+    /// <summary>As <see cref="Offer(string)"/>, with the contractor's line (or two) after the availability, as the card has it.</summary>
+    private static string Offer(string title, string contractor) =>
+        Offer(title).Replace("Contract Availability\n", $"Contract Availability\n{(contractor.Length > 0 ? contractor + "\n" : "")}", StringComparison.Ordinal);
 }

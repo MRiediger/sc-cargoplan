@@ -584,12 +584,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         {
             return scanned.ToObservation(DateTime.UtcNow) is { } observed
                 ? new(ScanReportKind.Observed, Observed: observed.Key)
-                : new(ScanReportKind.NotObserved, Reason: (scanned.Title, scanned.Reward) switch
-                {
-                    (null, null) => "title and reward unreadable",
-                    (null, _) => "title unreadable",
-                    _ => "reward unreadable",
-                });
+                : new(ScanReportKind.NotObserved, Reason: scanned.NotObservedReason);
         }
 
         var current = Saved ?? new SavedPlan([], new LoadPlan(Ship.Id, [], []), CrateCap.Of(Ship));

@@ -173,11 +173,13 @@ public sealed class RoutesSwitchTests : IDisposable
     }
 
     [Theory]
-    [InlineData("", "title unreadable")]
-    [InlineData("Junior Rank - Huge Cargo Haul", "title unreadable")]
-    public async Task Offer_with_routes_and_no_title_stays_out_of_the_plan_and_says_why(string title, string why)
+    [InlineData("", "", "title unreadable")]
+    [InlineData("Junior Rank - Huge Cargo Haul", "", "title unreadable")]
+    // E1 of T13.3a: another contractor's contract (Martin's scans.log, 24 Nov) isn't a title OCR broke.
+    [InlineData("Cargo Hauling Opportunity with Ling Hauling", "Contracted By Ling Family Hauling\n", "no hauling template form")]
+    public async Task Offer_with_routes_and_no_title_stays_out_of_the_plan_and_says_why(string title, string contractor, string why)
     {
-        var routes = await Scan(routesSelected: true, Raw(View.Offer, title));
+        var routes = await Scan(routesSelected: true, Raw(View.Offer, title).Replace("PRIMARY OBJECTIVES", contractor + "PRIMARY OBJECTIVES", StringComparison.Ordinal));
 
         _overlay.Saved.Should().BeNull();
         _overlay.Notices.Should().Equal($"Not observed (Plan tab): {why} – cargo unchanged");

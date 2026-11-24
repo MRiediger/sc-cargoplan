@@ -399,6 +399,11 @@ ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
   seitwärts (`PortMatrixGrid.WheelSideways`), Rad ohne Modifier bleibt vertikal, auch ohne vertikalen Überlauf (Martin);
   Kipprad → Backlog. Nachher: alle 8 Spalten greifen, kein Fenster wandert, Shift+Rad 1,6 % je Raste. Test:
   `SlimScrollBarTests` (vorher `nothing, nothing, thumb ×4, nothing, nothing`), `PortMatrixGridTests`. D120-, D80-Addendum.
+- **E1 (Commit 10) – „no hauling template form“ getrennt von „title unreadable“.** Anlass: Ling-Family-Hauling-Angebot
+  in Martins scans.log (24.11.), Titel ganz gelesen, Meldung „title unreadable“. `TitleMiss` im Parser: andere Form nur
+  bei positivem Zeichen (Auftraggeber gelesen, weder Covalex noch Red Wind, keine titelähnliche Zeile), sonst
+  unlesbar; ein Text für Notice und Log (`ScannedContract.NotObservedReason`). Alle Fixtures ohne Titel bleiben
+  „unreadable“. D120-Addendum.
 - **Gate 3b:** Punkt 1 = Scroll-Check im Spiel (Thumb, Rad, Shift+Rad, gesperrt click-through), kein eigener Gate;
   zusätzlich Red-Wind-Zwillinge in Pyro.
 

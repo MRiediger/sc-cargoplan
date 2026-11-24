@@ -20,6 +20,7 @@ namespace CargoPlan.Import.Contracts;
 /// <param name="Key">The content key (D101): pickups, destination–commodity pairs, max size, reward; no SCU.</param>
 /// <param name="Doubts">Why the text may still have been typing in (D103); empty for a text all there.</param>
 /// <param name="Title">Contractor, rank, size and direct from the title (T13.1); null if it wasn't read whole. Not in the key.</param>
+/// <param name="TitleMiss">Why there is no title (E1 of T13.3a); null with a title.</param>
 public sealed record ScannedContract(
     ContractView View,
     IReadOnlyList<MissionStop> Stops,
@@ -29,8 +30,22 @@ public sealed record ScannedContract(
     long? Reward,
     string Key,
     IReadOnlyList<ContractDoubt> Doubts,
-    ContractTitle? Title = null)
+    ContractTitle? Title = null,
+    TitleMiss? TitleMiss = null)
 {
+    /// <summary>
+    /// What of title and reward kept a contract read whole from being an observation, for the notice and the log (E1 of
+    /// T13.3a): "no hauling template form" for another contractor's contract, whatever it pays; null with both.
+    /// </summary>
+    public string? NotObservedReason => (Title, TitleMiss, Reward) switch
+    {
+        (not null, _, not null) => null,
+        (null, Contracts.TitleMiss.OtherForm, _) => "no hauling template form",
+        (null, _, null) => "title and reward unreadable",
+        (null, _, _) => "title unreadable",
+        _ => "reward unreadable",
+    };
+
     /// <summary>A doubt a second read must clear, or the scan is "still loading" (D103).</summary>
     public bool InHardDoubt => Doubts.Any(d => d is ContractDoubt.NoDeliveryRead or ContractDoubt.ObjectiveLineUnread);
 
@@ -85,7 +100,8 @@ public sealed record ScannedContract(
             parsed.Reward,
             KeyOf(parsed),
             DoubtsOf(parsed, stops.Count),
-            parsed.Title);
+            parsed.Title,
+            parsed.TitleMiss);
     }
 
     /// <summary>
