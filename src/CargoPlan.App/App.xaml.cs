@@ -317,7 +317,7 @@ public partial class App : Application
         var watch = System.Diagnostics.Stopwatch.StartNew();
         var edges = ObservedEdges.From(book.Observations, data.Templates, data.Positions);
         AppLog.Write("Routes", FormattableString.Invariant(
-            $"{book.Observations.Entries.Count} observations: {edges.Matched} matched, {edges.Ambiguous} ambiguous, {edges.None} none; read {book.LoadMilliseconds} ms, matched {watch.ElapsedMilliseconds} ms"));
+            $"{book.Observations.Entries.Count} observations: {edges.Matched} matched, {edges.Ambiguous} ambiguous, {edges.None} none{NoneReasons(edges)}; read {book.LoadMilliseconds} ms, matched {watch.ElapsedMilliseconds} ms"));
         return edges;
     }
 
@@ -343,6 +343,10 @@ public partial class App : Application
             AppLog.Write("Routes", $"loops failed: {ex}");
         }
     }
+
+    // " (Covalex senior medium 325250: no place …)" for the start's line (T13.4 acceptance); empty without a none.
+    private static string NoneReasons(ObservedEdges edges) =>
+        edges.Unmatched.Count == 0 ? "" : $" ({string.Join("; ", edges.Unmatched.Select(u => $"{Describe(u.Key)}: {u.Reason}"))})";
 
     private static string Describe(ObservationKey key) => FormattableString.Invariant(
         $"{EnumWords.Word(key.Contractor)} {EnumWords.Word(key.Rank)} {EnumWords.Word(key.Size)} {key.Reward}");

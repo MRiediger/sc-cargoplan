@@ -113,6 +113,8 @@ public sealed class ObservedEdgesTests
 
         edges.Of(SystemWide).Should().BeEmpty();
         (edges.Matched, edges.Ambiguous, edges.None).Should().Be((0, 1, 1));
+        edges.Unmatched.Should().ContainSingle("the one none, with its reason for the start's log line (T13.4 acceptance)")
+            .Which.Should().Match<(ObservationKey Key, string Reason)>(u => u.Key == unknown && u.Reason.Length > 0);
     }
 
     [Fact]

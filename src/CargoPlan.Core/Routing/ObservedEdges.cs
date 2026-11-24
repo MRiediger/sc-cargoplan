@@ -24,18 +24,22 @@ public sealed class ObservedEdges
     private readonly Dictionary<string, IReadOnlyList<ScuBand>> _bands;
 
     private ObservedEdges(
-        Dictionary<string, List<ObservedEdge>> edges, Dictionary<string, (long, DateTime)> rewards, Dictionary<string, IReadOnlyList<ScuBand>> bands,
-        int matched, int ambiguous, int none)
+        Dictionary<string, List<ObservedEdge>> edges,
+        Dictionary<string, (long, DateTime)> rewards,
+        Dictionary<string, IReadOnlyList<ScuBand>> bands,
+        int matched,
+        int ambiguous,
+        IReadOnlyList<(ObservationKey Key, string Reason)> unmatched)
     {
         _edges = edges;
         _rewards = rewards;
         _bands = bands;
+        Unmatched = unmatched;
         Matched = matched;
         Ambiguous = ambiguous;
-        None = none;
     }
 
-    public static ObservedEdges Empty { get; } = new([], [], [], 0, 0, 0);
+    public static ObservedEdges Empty { get; } = new([], [], [], 0, 0, []);
 
     /// <summary>Observations matched to one template, or to faction twins.</summary>
     public int Matched { get; }
@@ -44,7 +48,10 @@ public sealed class ObservedEdges
     public int Ambiguous { get; }
 
     /// <summary>Observations no template answers to (<see cref="MatchResult.None"/>); they add nothing.</summary>
-    public int None { get; }
+    public int None => Unmatched.Count;
+
+    /// <summary>Each observation no template answers to with the reason (the first test that left none), for the log.</summary>
+    public IReadOnlyList<(ObservationKey Key, string Reason)> Unmatched { get; }
 
     /// <summary>The edges seen of <paramref name="template"/>, one per pair; empty if none.</summary>
     public IReadOnlyList<ObservedEdge> Of(HaulTemplate template) => _edges.GetValueOrDefault(template.Uuid) ?? [];
@@ -64,7 +71,8 @@ public sealed class ObservedEdges
         Dictionary<string, Dictionary<(string, string), ObservedEdge>> edges = [];
         Dictionary<string, (long, DateTime)> rewards = [];
         Dictionary<string, IReadOnlyList<ScuBand>> bands = [];
-        var (matched, ambiguous, none) = (0, 0, 0);
+        var (matched, ambiguous) = (0, 0);
+        List<(ObservationKey, string)> unmatched = [];
         foreach (var observation in observations.Entries)
         {
             IReadOnlyList<HaulTemplate> those;
@@ -79,9 +87,11 @@ public sealed class ObservedEdges
                 case MatchResult.Ambiguous:
                     ambiguous++;
                     continue;
-                default:
-                    none++;
+                case MatchResult.None n:
+                    unmatched.Add((observation.Key, n.Reason));
                     continue;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(observations), "Not a match result.");
             }
 
             matched++;
@@ -110,7 +120,7 @@ public sealed class ObservedEdges
             }
         }
 
-        return new(edges.ToDictionary(e => e.Key, e => e.Value.Values.ToList()), rewards, bands, matched, ambiguous, none);
+        return new(edges.ToDictionary(e => e.Key, e => e.Value.Values.ToList()), rewards, bands, matched, ambiguous, unmatched);
     }
 
     /// <summary>Templates equal but for their faction (and identity): the two sides of one Red Wind variant.</summary>
