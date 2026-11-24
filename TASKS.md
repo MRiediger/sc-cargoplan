@@ -312,7 +312,7 @@ Matrix: sie braucht nur Templates (U3; bisher Loader in T13.3, Matrix in T13.5).
   | Fenster ziehen | Kopfzeile, Rand, Notices | dazu freie Fläche der Reiterleiste |
   | Reiter klicken (neu) | – | entsperrt Wechsel; gesperrt geht der Klick ans Spiel |
 
-### [ ] T13.3 Core: Board, Matching, Rezept
+### [x] T13.3 Core: Board, Matching, Rezept
 
 **Warum:** Erst mit den Templates kennt der Planer jedes Board ohne Anflug und kann einen Scan einem Template zuordnen.
 - `Board.For(system, areaKey, rank, faction)`; Matching Scan → Template (Titel + Reward; Fallback Shape + Ware +
@@ -457,6 +457,9 @@ ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
   Pyro-Session. (3) Recipe-Ansicht für das eigene Schiff an einem Hub (Aussehen, Rollen plausibel, Hub-Button, Rang),
   F3 auf Angebote → „fits as …“ / „too big for …“ (eines aus dem Rezept, eines zu groß). Zahlen: Rezept-Laufzeit
   `RecipeTimingTests` (oben). Danach Abnahme → `merge --no-ff` → Martin pusht.
+- **Gate 3b bestanden, Abnahme erteilt (24.11.2026, Martin)**, damit auch die Präzisierungen von 3b ratifiziert
+  (`Lays` statt Suche, Hub aus dem Board, 10 Verträge, Matrix-Filter in der Recipe-Ansicht verborgen, gescannte Ziele
+  für systemweite Templates). Merge `--no-ff` nach main, Martin pusht.
 
 ### [ ] T13.4 Core/App: Loop-Ranking
 
