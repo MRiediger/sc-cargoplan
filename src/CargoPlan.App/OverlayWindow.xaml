@@ -787,13 +787,13 @@
                                         Style="{StaticResource TextButtonStyle}" Margin="8,0,0,0" VerticalAlignment="Center"
                                         ToolTip="End the plan: its placeholders go, the cargo stays." />
                                 <TextBlock Text="{Binding Header}" ToolTip="{Binding Header}" Style="{StaticResource LegendTextStyle}" FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center" />
                             </DockPanel>
                             <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type rt:PlaceholderRowView}">
                                         <TextBlock x:Name="Line" Text="{Binding Text}" ToolTip="{Binding ToolTip}" Style="{StaticResource LegendTextStyle}"
-                                                   TextTrimming="CharacterEllipsis" Opacity="0.6" />
+                                                   TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Opacity="0.6" />
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding Filled}" Value="True">
                                                 <Setter TargetName="Line" Property="Opacity" Value="1" />
@@ -808,7 +808,7 @@
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type rt:PlaceholderRowView}">
                                         <TextBlock x:Name="Line" Text="{Binding Text}" ToolTip="{Binding ToolTip}" Style="{StaticResource LegendTextStyle}"
-                                                   TextTrimming="CharacterEllipsis" Opacity="0.45" />
+                                                   TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Opacity="0.45" />
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding Filled}" Value="True">
                                                 <Setter TargetName="Line" Property="Opacity" Value="1" />
@@ -820,7 +820,7 @@
                             <ItemsControl ItemsSource="{Binding ExtraRows}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding}" Style="{StaticResource LegendTextStyle}" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding}" Style="{StaticResource LegendTextStyle}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
