@@ -404,6 +404,9 @@ ratifiziert durch Freigabe („Freigabe für Commits 9–12 wie geplant“):**
   bei positivem Zeichen (Auftraggeber gelesen, weder Covalex noch Red Wind, keine titelähnliche Zeile), sonst
   unlesbar; ein Text für Notice und Log (`ScannedContract.NotObservedReason`). Alle Fixtures ohne Titel bleiben
   „unreadable“. D120-Addendum.
+- **E2 (Commit 11) – Hub-Hinweis einmal je Tooltip.** Kopfzeile darunter „⌂ pickup: the board's hub, not in the game
+  data“ (bzw. drop-off), betroffene Template-Zeilen mit „⌂“ (Martins Hinweis: kurzes Zeichen je Zeile, Kopf erklärt
+  einmal). „⌂“ kommt aus der WPF-Ersatzschrift, gerendert geprüft. D121-Addendum.
 - **Gate 3b:** Punkt 1 = Scroll-Check im Spiel (Thumb, Rad, Shift+Rad, gesperrt click-through), kein eigener Gate;
   zusätzlich Red-Wind-Zwillinge in Pyro.
 

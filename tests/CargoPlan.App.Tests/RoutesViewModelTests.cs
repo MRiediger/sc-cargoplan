@@ -97,7 +97,31 @@ public sealed class RoutesViewModelTests
 
         tip.Should().StartWith("Everus Harbor → HUR-L1 · most SCU in one contract: 144");
         tip.Should().Contain("Experienced Rank - Direct Medium Cargo Haul · 160,250 aUEC · 90–144 SCU");
-        tip.Should().Contain("pickup: hub of the board, not in the game data");
+    }
+
+    [Fact]
+    public void Templates_at_the_boards_hub_carry_a_mark_the_head_explains_once()
+    {
+        // E2 of T13.3a: the hint once at the top, a short mark on each row it concerns, not the hint on every row.
+        var model = Model(
+        [
+            T([], ["HUR-L1"], title: "Rookie Rank - Small Cargo Haul"),
+            T(["Everus Harbor"], ["HUR-L1"], title: "Junior Rank - Small Cargo Haul"),
+            T([], ["HUR-L1"], title: "Member Rank - Small Cargo Haul"),
+            T(["HUR-L1"], [], title: "Senior Rank - Small Cargo Haul"),
+        ]);
+
+        Cell(model, "Everus Harbor", "HUR-L1")!.ToolTip.Split('\n').Should().Equal(
+            "Everus Harbor → HUR-L1 · most SCU in one contract: 64",
+            "⌂ pickup: the board's hub, not in the game data",
+            "⌂ Rookie Rank - Small Cargo Haul · 100,000 aUEC · 10–64 SCU",
+            "Junior Rank - Small Cargo Haul · 100,000 aUEC · 10–64 SCU",
+            "⌂ Member Rank - Small Cargo Haul · 100,000 aUEC · 10–64 SCU");
+        Cell(model, "HUR-L1", "Everus Harbor")!.ToolTip.Split('\n').Should().Equal(
+            "HUR-L1 → Everus Harbor · most SCU in one contract: 64",
+            "⌂ drop-off: the board's hub, not in the game data",
+            "⌂ Senior Rank - Small Cargo Haul · 100,000 aUEC · 10–64 SCU");
+        Model([T(["A"], ["B"])]).Rows.Single().Cells.Single()!.ToolTip.Should().NotContain("⌂", "no hub, no mark and no head line");
     }
 
     // Picture gate: L stations by their code, hubs in full; the full name stays in the row and the cell's tool tip.

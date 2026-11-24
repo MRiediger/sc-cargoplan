@@ -31,6 +31,9 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     private const string ObservedMark = "● ";
 
+    // A template whose pickup or drop-off is the board's hub (D121), in a cell's tool tip; a house for the hub.
+    private const string HubMark = "⌂ ";
+
     private static readonly (string Label, HaulRank Value)[] Ranks =
         [.. Enum.GetValues<HaulRank>().Select(r => ($"Rank ≤ {r}", r))];
 
@@ -295,7 +298,21 @@ public sealed partial class RoutesViewModel : ObservableObject
         }
 
         var tip = new StringBuilder(Invariant($"{pickup} → {dropoff} · most SCU in one contract: {cell.MaxScu}"));
-        foreach (var entry in cell.Templates.Take(MaxToolTipTemplates))
+
+        // The board's hub (D121) once at the top, a mark on each template it concerns (E2 of T13.3a). A cell's pickup and
+        // drop-off differ, so only one side can be the hub.
+        var shown = cell.Templates.Take(MaxToolTipTemplates).ToList();
+        if (shown.Any(e => e.PickupFromHub))
+        {
+            tip.Append(Invariant($"\n{HubMark}pickup: the board's hub, not in the game data"));
+        }
+
+        if (shown.Any(e => e.DropoffFromHub))
+        {
+            tip.Append(Invariant($"\n{HubMark}drop-off: the board's hub, not in the game data"));
+        }
+
+        foreach (var entry in shown)
         {
             var t = entry.Template;
             var reward = (t.Reward, entry.ObservedReward) switch
@@ -304,19 +321,11 @@ public sealed partial class RoutesViewModel : ObservableObject
                 (null, { } seen) => Invariant($"{seen:N0} aUEC observed"),
                 _ => "no reward in the game data",
             };
-            tip.Append(Invariant($"\n{t.Title} · {reward} · {t.Legs.Sum(l => l.MinScu)}–{t.MaxScu} SCU"));
+            var mark = entry.PickupFromHub || entry.DropoffFromHub ? HubMark : "";
+            tip.Append(Invariant($"\n{mark}{t.Title} · {reward} · {t.Legs.Sum(l => l.MinScu)}–{t.MaxScu} SCU"));
             if (entry.Observed is { } seenHere)
             {
                 tip.Append(Invariant($" · observed {seenHere.Count}× · last {seenHere.LastUtc.ToLocalTime():d MMM}"));
-            }
-            if (entry.PickupFromHub)
-            {
-                tip.Append(" · pickup: hub of the board, not in the game data");
-            }
-
-            if (entry.DropoffFromHub)
-            {
-                tip.Append(" · drop-off: hub of the board, not in the game data");
             }
         }
 
