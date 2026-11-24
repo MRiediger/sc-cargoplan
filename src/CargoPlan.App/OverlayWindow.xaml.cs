@@ -67,9 +67,11 @@ public partial class OverlayWindow : Window
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
-        // Ticking a stop off at the terminal must not take the foreground from Star Citizen (D11, addendum T3.6).
+        // Ticking a stop off at the terminal must not take the foreground from Star Citizen (D11, addendum T3.6); the Plan
+        // tab, unlocked, lifts that so its scroll bars work over the game (addendum T13.3a). Never SetForegroundWindow.
         NativeMethods.PreventActivation(new WindowInteropHelper(this).Handle, ShowInTaskbar);
         ApplyLock(_viewModel.IsLocked);
+        ApplyInputStyles();
     }
 
     protected override void OnClosed(EventArgs e)
@@ -80,6 +82,11 @@ public partial class OverlayWindow : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        if (AffectsInputStyles(e.PropertyName))
+        {
+            ApplyInputStyles();
+        }
+
         if (e.PropertyName == nameof(OverlayViewModel.IsLocked))
         {
             ApplyLock(_viewModel.IsLocked);
@@ -278,7 +285,22 @@ public partial class OverlayWindow : Window
         toolWindow.Closed += (_, _) => viewModel.PropertyChanged -= onChanged;
     }
 
-    /// <summary>Locked = click-through, see <see cref="NativeMethods.SetClickThrough"/>.</summary>
+    /// <summary>Lock and tab set the ex-styles (D11 addendum T13.3a); other changes leave them.</summary>
+    internal static bool AffectsInputStyles(string? propertyName) =>
+        propertyName is nameof(OverlayViewModel.IsLocked) or nameof(OverlayViewModel.IsRoutesTabSelected);
+
+    /// <summary>Locked = click-through; the tab decides activation while unlocked, see <see cref="NativeMethods.SetOverlayInput"/>.</summary>
+    private void ApplyInputStyles()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd == 0)
+        {
+            return; // Not shown yet; OnSourceInitialized applies the current state.
+        }
+
+        NativeMethods.SetOverlayInput(hwnd, _viewModel.IsLocked, _viewModel.IsRoutesTabSelected);
+    }
+
     private void ApplyLock(bool locked)
     {
         // Before the HWND check: the view must ignore wheel and drag even before the window shows.
@@ -290,14 +312,6 @@ public partial class OverlayWindow : Window
         {
             ShipBox.IsDropDownOpen = false;
         }
-
-        var hwnd = new WindowInteropHelper(this).Handle;
-        if (hwnd == 0)
-        {
-            return; // Not shown yet; OnSourceInitialized applies the current state.
-        }
-
-        NativeMethods.SetClickThrough(hwnd, locked);
     }
 
     /// <summary>
