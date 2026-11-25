@@ -33,6 +33,10 @@ internal static class RoleText
         _ => "–",
     };
 
+    /// <summary>"1 h 20 min", "48 min": a round's time in whole minutes, cut, not rounded (Finish plan's notice, the loops' runs).</summary>
+    public static string Duration(TimeSpan time) =>
+        Invariant($"{(time.TotalHours >= 1 ? $"{(int)time.TotalHours} h " : "")}{time.Minutes} min");
+
     /// <param name="commodities">Named where the player looks for the contract at the terminal (the route); null in the recipe.</param>
     /// <param name="where">The places, or where a way back is accepted.</param>
     public static string Line(

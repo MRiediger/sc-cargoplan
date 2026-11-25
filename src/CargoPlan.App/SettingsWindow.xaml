@@ -532,6 +532,9 @@
                             <Slider Minimum="{x:Static vm:RoutesSettingsViewModel.MinJump}" Maximum="{x:Static vm:RoutesSettingsViewModel.MaxJump}"
                                     Value="{Binding Jump}" Style="{StaticResource ValueSliderStyle}" />
                         </DockPanel>
+                        <!-- The player's own loop times (T13.6c, D127): loops finished 3+ times rank by the median instead of the times above. -->
+                        <CheckBox Content="Use my measured loop times (3+ runs)" IsChecked="{Binding UseMeasured}" Margin="0,3"
+                                  ToolTip="Loops you finished 3+ times with this ship use your median time instead of the values above." />
                     </StackPanel>
                 </GroupBox>
             </StackPanel>

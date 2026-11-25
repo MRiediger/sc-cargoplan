@@ -529,6 +529,100 @@ public sealed class RoutesViewModelTests
         asked.Should().Be(0, "times and sort only rank");
     }
 
+    // --- Measured loop times (T13.6c, D127) ---
+
+    // The loops with runs of the Everus ring that took minutes, finished every other day from Monday (23, 25, 27 Nov).
+    private RoutesViewModel MeasuredEverus(RoutesSettings? settings, params double[] minutes)
+    {
+        var model = Loops(settings);
+        model.ShowShip(HullB);
+        Compute(model);
+        model.ShowRuns(EverusRuns(model, minutes));
+        return model;
+    }
+
+    private static RouteRun[] EverusRuns(RoutesViewModel model, params double[] minutes)
+    {
+        var ring = Row(model, "Everus Harbor ring").Loop;
+        return [.. minutes.Select((m, i) => new RouteRun("Everus Harbor ring", Monday.AddDays(2 * i).AddMinutes(-m), null, Monday.AddDays(2 * i),
+            ring.Start, ring.Kind, ring.System, ring.Landings, ring.Crates, ring.LongJumps, 325_250, 1, 1, 0, HullB.Id, ring.Stations))];
+    }
+
+    private static LoopRowView Row(RoutesViewModel model, string title) => model.LoopRows.Single(r => r.Title == title);
+
+    [Fact]
+    public void A_loop_flown_three_times_ranks_by_the_median_of_its_runs_without_a_tilde()
+    {
+        var model = Loops();
+        model.ShowShip(HullB);
+        Compute(model);
+        var asked = 0;
+        model.LoopInputsChanged += (_, _) => asked++;
+
+        model.ShowRuns(EverusRuns(model, 70, 80, 150));
+
+        var everus = Row(model, "Everus Harbor ring");
+        everus.Figures.Should().Be("325k/loop · 243k/h · 162k/landing", "325,250 aUEC in a median 80 min, the slow 150 aside");
+        everus.Details.Should().Be("2 landings · 27 crates · 2 jumps (0 long) · travel – · measured 3× · 1 h 20 min");
+        everus.ToolTip.Should().EndWith("\nmeasured 3×, median 1 h 20 min: 2 h 30 min (27 Nov) · 1 h 20 min (25 Nov) · 1 h 10 min (23 Nov)");
+        Row(model, "Baijini Point ring").Figures.Should().Contain("~", "a loop not flown stays on the model");
+        model.LoopRows.Select(r => r.Title).Take(2).Should().Equal(["Baijini Point ring", "Everus Harbor ring"], "measured and model rows rank together");
+        asked.Should().Be(0, "runs only rank");
+    }
+
+    [Fact]
+    public void Switched_off_every_row_is_the_models_and_the_tool_tip_says_what_is_not_used()
+    {
+        var model = MeasuredEverus(RoutesSettings.Default with { UseMeasured = false }, 70, 80, 150);
+        var asked = 0;
+        model.LoopInputsChanged += (_, _) => asked++;
+
+        var everus = Row(model, "Everus Harbor ring");
+        everus.Figures.Should().Be("325k/loop · ~672k/h · 162k/landing", "T13.4's figures");
+        everus.Details.Should().Be("2 landings · 27 crates · 2 jumps (0 long) · travel – · templates");
+        everus.ToolTip.Should().EndWith("\nmeasured 3× · 1 h 20 min – not used");
+        model.LoopRows.Select(r => r.Title).Take(2).Should().Equal("Everus Harbor ring", "Baijini Point ring");
+
+        model.Follow(RoutesSettings.Default);
+
+        Row(model, "Everus Harbor ring").Figures.Should().Be("325k/loop · 243k/h · 162k/landing", "on again at once");
+        model.LoopRows.Select(r => r.Title).Take(2).Should().Equal("Baijini Point ring", "Everus Harbor ring");
+        asked.Should().Be(0, "the switch only ranks");
+    }
+
+    [Fact]
+    public void Two_runs_leave_the_row_on_the_model_and_say_how_many_are_needed()
+    {
+        var everus = Row(MeasuredEverus(null, 70, 80), "Everus Harbor ring");
+
+        everus.Figures.Should().Be("325k/loop · ~672k/h · 162k/landing");
+        everus.Details.Should().EndWith("· templates");
+        everus.ToolTip.Should().EndWith("\nmeasured 2× – 3 needed");
+    }
+
+    [Fact]
+    public void The_times_from_the_settings_move_the_model_rows_and_leave_a_measured_one()
+    {
+        // U9: the sliders stay the model's; a measured row doesn't follow them.
+        var model = MeasuredEverus(null, 70, 80, 150);
+        var before = model.LoopRows.ToDictionary(r => r.Title, r => r.Figures);
+
+        model.Follow(RoutesSettings.Default with { Times = new RoutesTimes(20, 20, 4) });
+
+        Row(model, "Everus Harbor ring").Figures.Should().Be(before["Everus Harbor ring"]);
+        Row(model, "Baijini Point ring").Figures.Should().NotBe(before["Baijini Point ring"]);
+    }
+
+    [Fact]
+    public void Without_runs_a_row_names_no_measurement()
+    {
+        var model = Loops();
+        model.ShowShip(HullB);
+        Compute(model);
+
+        model.LoopRows.Should().NotContain(r => r.ToolTip.Contains("measured", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void The_system_filter_shows_its_systems_loops()
     {

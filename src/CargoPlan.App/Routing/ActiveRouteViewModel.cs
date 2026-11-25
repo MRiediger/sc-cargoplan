@@ -118,7 +118,7 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
 
     /// <summary>"Plan finished: Everus ring · 877,000 aUEC · 1 h 20 min" (6b).</summary>
     public static string FinishedText(RouteRun run) =>
-        Invariant($"Plan finished: {run.Name} · {run.Reward:N0} aUEC · {(run.Time.TotalHours >= 1 ? $"{(int)run.Time.TotalHours} h " : "")}{run.Time.Minutes} min");
+        Invariant($"Plan finished: {run.Name} · {run.Reward:N0} aUEC · {RoleText.Duration(run.Time)}");
 
     /// <summary>The route the player flies; null while none is started.</summary>
     [ObservableProperty]

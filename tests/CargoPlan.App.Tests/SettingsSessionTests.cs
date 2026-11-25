@@ -722,7 +722,7 @@ public sealed class SettingsSessionTests : IDisposable
             changed => session.ChangeRoutes(session.Current.Routes with { Rank = changed.Rank, Faction = changed.Faction }));
         session.RoutesChanged += (_, changed) => tab.Follow(changed);
         var window = new RoutesSettingsViewModel(session.Current.Routes,
-            (rank, faction, times) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times }),
+            (rank, faction, times, measured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured }),
             handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
 
         tab.NextCommand.Execute("faction");
@@ -744,7 +744,7 @@ public sealed class SettingsSessionTests : IDisposable
         // T13.4: the loops' times are set in the window only; rank and faction stay as they were.
         var session = Create();
         RoutesSettingsViewModel Window() => new(session.Current.Routes,
-            (rank, faction, times) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times }),
+            (rank, faction, times, measured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured }),
             handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
         var (window, other) = (Window(), Window());
 
@@ -753,6 +753,26 @@ public sealed class SettingsSessionTests : IDisposable
 
         session.Current.Routes.Should().Be(RoutesSettings.Default with { Times = new RoutesTimes(5, 30, 4) });
         (other.Station, other.StationText, other.CrateText, other.JumpText).Should().Be((5d, "5 min", "30 s", "4 min"));
+    }
+
+    [Fact]
+    public void The_measured_times_switch_goes_into_the_routes_section_and_another_window_follows()
+    {
+        // T13.6c: set in the window only, as the times; the Plan tab follows through RoutesChanged (RoutesViewModelTests).
+        var session = Create();
+        List<RoutesSettings> told = [];
+        session.RoutesChanged += (_, routes) => told.Add(routes);
+        RoutesSettingsViewModel Window() => new(session.Current.Routes,
+            (rank, faction, times, measured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured }),
+            handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
+        var (window, other) = (Window(), Window());
+        window.UseMeasured.Should().BeTrue();
+
+        window.UseMeasured = false;
+
+        session.Current.Routes.Should().Be(RoutesSettings.Default with { UseMeasured = false });
+        other.UseMeasured.Should().BeFalse();
+        told.Should().Equal(RoutesSettings.Default with { UseMeasured = false });
     }
 
     [Fact]

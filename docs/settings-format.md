@@ -28,7 +28,7 @@ these values.
   "shipView": { "maxZoomPxPerCell": 160 },
   "updates": { "checkOnStartup": true, "skippedVersion": null },
   "shipData": { "checkOnStartup": true, "skippedVersion": null },
-  "routes": { "tab": "cargo", "rank": "master", "faction": null, "hub": "Everus Harbor", "loopsSort": "hour", "planBlock": "open", "times": { "station": 10, "crate": 20, "jump": 4 } },
+  "routes": { "tab": "cargo", "rank": "master", "faction": null, "hub": "Everus Harbor", "loopsSort": "hour", "planBlock": "open", "useMeasured": true, "times": { "station": 10, "crate": 20, "jump": 4 } },
   "toolWindowTheme": "system",
   "appearance": {
     "window": {
@@ -334,6 +334,7 @@ its default; a word out of the list or a time out of its range falls back to the
 | `routes.hub` | The Stanton hub you are at (T13.3b, D123): `"Everus Harbor"`, `"Seraphim Station"`, `"Baijini Point"` or `"Port Tressler"`; set with the Plan tab's hub button, which shows with the recipe. The recipe and the check of a scanned offer ("fits as …") use it; the loops (T13.4) measure the travel from it and start the system-wide ring there; the route (T13.6) starts there. A click on a loop's row shows that hub's recipe without changing this. Another name falls back to Everus Harbor, with a notice. | `"Everus Harbor"` |
 | `routes.loopsSort` | What the Plan tab's loop list is sorted by (T13.4): `"hour"` (~aUEC/h), `"loop"` (aUEC per loop) or `"landing"` (aUEC per landing); set with the list's sort button. | `"hour"` |
 | `routes.planBlock` | The Cargo tab's block "Plan" (T13.6): `"open"` shows a line per placeholder, `"closed"` only its head. Start plan opens it, the first departure from the hub closes it (the station bar lists what to accept at each stop), a click on its head toggles it; another word is `"open"` with a line. | `"open"` |
+| `routes.useMeasured` | Your own loop times (T13.6c): `true` ranks a loop you finished at least three times with the overlay's ship by the median of your last seven times (from `routes.json`, `runs`) instead of `routes.times`; its row shows "measured 3× · 1 h 20 min" and no "~". `false` ranks every loop by `routes.times`, and a row's tool tip still names your runs ("– not used"). Set in the settings window's "Plan tab" section. | `true` |
 | `routes.times` | The loops' times for ~aUEC/h (T13.4, design §4.7): `station` minutes per landing (docking, the elevator, the short jumps near a station; 1–60), `crate` seconds per crate (5–120), `jump` minutes per quantum jump over 10 Gm (1–30); whole numbers, set in the settings window's "Plan tab" section, shown in the list's filter line. Each out of its range falls back alone, with a notice. | `{ "station": 10, "crate": 20, "jump": 4 }` |
 
 The other filters of the matrix (system, area, direct, contractor, sizes), the view (Matrix, Recipe or Loops) and the hub a loop's row shows last for the session. Older versions of the

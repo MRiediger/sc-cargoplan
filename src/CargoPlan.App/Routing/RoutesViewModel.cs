@@ -126,13 +126,21 @@ public sealed partial class RoutesViewModel : ObservableObject
     // The planner's answers for the loops, kept for the tab's life: after a scan nearly every question is an old one.
     private readonly FitCache _fits = new();
 
+    // The finished runs of routes.json (T13.6c) and what they measured with the overlay's ship; none without a ship.
+    private IReadOnlyList<RouteRun> _runs;
+
+    private MeasuredTimes _measured = MeasuredTimes.Empty;
+
     /// <param name="save">Called with the new section when rank or faction change; null in tests that don't save.</param>
     /// <param name="observed">What the scans in routes.json add (T13.3); none without.</param>
-    public RoutesViewModel(HaulingLoad load, ShipDataVersion version, RoutesSettings settings, Action<RoutesSettings>? save, ObservedEdges? observed = null)
+    /// <param name="runs">The finished runs in routes.json (T13.6c): the loops' measured times; none without.</param>
+    public RoutesViewModel(
+        HaulingLoad load, ShipDataVersion version, RoutesSettings settings, Action<RoutesSettings>? save, ObservedEdges? observed = null, IReadOnlyList<RouteRun>? runs = null)
     {
         _settings = settings;
         _save = save;
         _observed = observed ?? ObservedEdges.Empty;
+        _runs = runs ?? [];
         // Core's default filter (Stanton, stellar, T13.2 picture gate); rank and faction from settings.json.
         var start = RouteFilter.Default;
         _rank = Array.FindIndex(Ranks, r => r.Value == settings.MaxRank);
@@ -251,8 +259,27 @@ public sealed partial class RoutesViewModel : ObservableObject
     public void ShowShip(Ship ship)
     {
         _ship = ship;
+        Measure();
         AskForLoops();
         Rebuild();
+    }
+
+    /// <summary>The runs after "Finish plan" kept one more (T13.6c): the loops rank anew, nothing is computed again.</summary>
+    public void ShowRuns(IReadOnlyList<RouteRun> runs)
+    {
+        _runs = runs;
+        Measure();
+        BuildLoops();
+    }
+
+    // The runs of the overlay's ship per loop (D127); a run left out for its time is a line in the log, once per change.
+    private void Measure()
+    {
+        _measured = _ship is { } ship ? MeasuredTimes.For(_runs, ship.Id) : MeasuredTimes.Empty;
+        foreach (var line in _measured.Ignored)
+        {
+            AppLog.Write("Routes", line);
+        }
     }
 
     /// <summary>
@@ -330,16 +357,17 @@ public sealed partial class RoutesViewModel : ObservableObject
 
     /// <summary>
     /// Rank and faction as the settings window set them (T13.3): the filter shows them, nothing is saved back. The same
-    /// values as now change nothing.
+    /// values as now change nothing. The times (T13.4) and the measured times' switch (T13.6c) rank the loops anew.
     /// </summary>
     public void Follow(RoutesSettings settings)
     {
-        if (settings.Rank == _settings.Rank && settings.Faction == _settings.Faction && settings.Times == _settings.Times)
+        if (settings.Rank == _settings.Rank && settings.Faction == _settings.Faction && settings.Times == _settings.Times
+            && settings.UseMeasured == _settings.UseMeasured)
         {
             return;
         }
 
-        // The times only rank the loops (T13.4): no new computation for them.
+        // The times and the switch only rank the loops: no new computation for them.
         var boards = settings.Rank != _settings.Rank || settings.Faction != _settings.Faction;
         _settings = settings;
         _rank = Array.FindIndex(Ranks, r => r.Value == settings.MaxRank);
@@ -575,10 +603,13 @@ public sealed partial class RoutesViewModel : ObservableObject
             (_, _, null) => "No loops for this system.",
             _ => null,
         };
+        // The switch lives here, not in Core: off, Rank gets no measurements and every row is the model's (T13.6c).
         var times = _settings.Times.Loop;
+        var measured = _settings.UseMeasured ? _measured : null;
         LoopRows = system is null
             ? []
-            : [.. Loops.Rank(_loops.Where(l => l.System == system), Sorts[_sort].Value, times).Select(l => Row(l, times) is var row && IsChosen(row.Loop, row.Title) ? row with { Chosen = true } : row)];
+            : [.. Loops.Rank(_loops.Where(l => l.System == system), Sorts[_sort].Value, times, measured)
+                .Select(l => Row(l, times, _measured, _settings.UseMeasured) is var row && IsChosen(row.Loop, row.Title) ? row with { Chosen = true } : row)];
         BuildStart();
     }
 
@@ -619,16 +650,20 @@ public sealed partial class RoutesViewModel : ObservableObject
     };
 
     // "Everus Harbor ring" / "957k/loop · ~578k/h · 160k/landing" / "6 landings · 70 crates · 6 jumps (4 long) · travel – · templates".
-    private static LoopRowView Row(LoopCandidate loop, LoopTimes times)
+    // With 3 runs or more and the switch on (T13.6c): "957k/loop · 718k/h · …" / "… · measured 3× · 1 h 20 min", no "~".
+    private static LoopRowView Row(LoopCandidate loop, LoopTimes times, MeasuredTimes measured, bool useMeasured)
     {
         var title = Title(loop);
         var hubs = loop.Kind == LoopKind.SystemWide ? " hubs" : "";
-        var status = (loop.NeedsScansAt, loop.Observed) switch
+        var runs = measured.Of(loop);
+        var used = useMeasured && loop.HasNumbers && runs is { IsEnough: true } ? runs : null;
+        var status = (used, loop.NeedsScansAt, loop.Observed) switch
         {
-            ({ } at, 0) => $"needs scans at {at}",
-            ({ } at, var seen) => Invariant($"observed {seen}/{loop.Total}{hubs} · needs scans at {at}"),
-            (null, 0) => "templates",
-            (null, var seen) => Invariant($"observed {seen}/{loop.Total}{hubs}"),
+            ({ } m, _, _) => Invariant($"measured {m.Count}× · {Median(m)}"),
+            (_, { } at, 0) => $"needs scans at {at}",
+            (_, { } at, var seen) => Invariant($"observed {seen}/{loop.Total}{hubs} · needs scans at {at}"),
+            (_, null, 0) => "templates",
+            (_, null, var seen) => Invariant($"observed {seen}/{loop.Total}{hubs}"),
         };
         var travel = loop.TravelGm switch
         {
@@ -641,8 +676,10 @@ public sealed partial class RoutesViewModel : ObservableObject
         var details = status;
         if (loop.HasNumbers)
         {
+            // A measured hour is the player's own, no estimate: no "~" (T13.6c).
+            var perHour = Loops.PerHour(loop, times, used is null ? null : measured);
             figures = loop.Reward is { } reward
-                ? Invariant($"{Short(reward)}{Plus(loop)}/loop · ~{Short((long)loop.PerHour(times)!.Value)}{Plus(loop)}/h · {Short((long)loop.PerLanding!.Value)}{Plus(loop)}/landing")
+                ? Invariant($"{Short(reward)}{Plus(loop)}/loop · {(used is null ? "~" : "")}{Short((long)perHour!.Value)}{Plus(loop)}/h · {Short((long)loop.PerLanding!.Value)}{Plus(loop)}/landing")
                 : "– aUEC: no reward in the game data, a scan shows it";
             details = Invariant($"{loop.Landings} landings · {loop.Crates} crates · {loop.Legs} jumps ({loop.LongJumps} long) · {travel} · {status}");
         }
@@ -655,11 +692,22 @@ public sealed partial class RoutesViewModel : ObservableObject
             tip.Append(Invariant($"\n{RoleText.KindWords[c.Kind]} · {c.Template.Title} · {reward} · {c.WorstScu} SCU{(RoleText.Accept(c.AcceptAt, c.CollectAt) is { } accept ? $" · {accept}" : "")}"));
         }
 
+        // The runs, also where they don't count: the player sees what the switch or the threshold leaves out (T13.6c).
+        tip.Append((runs, used) switch
+        {
+            (null, _) => "",
+            (_, { } m) => Invariant($"\nmeasured {m.Count}×, median {Median(m)}: {string.Join(" · ", m.Recent.Select(r => Invariant($"{RoleText.Duration(r.Time)} ({r.FinishedUtc.ToLocalTime():d MMM})")))}"),
+            ({ IsEnough: false } m, _) => Invariant($"\nmeasured {m.Count}× – {MeasuredTimes.MinRuns} needed"),
+            ({ } m, _) => Invariant($"\nmeasured {m.Count}× · {Median(m)} – not used"),
+        });
+
         var hub = loop.Kind != LoopKind.SystemWide && loop.System == StarSystem.Stanton ? loop.Start : null;
         return new(loop, title, figures, details, tip.ToString(), !loop.HasNumbers, hub);
     }
 
     private static string Plus(LoopCandidate loop) => loop.RewardPartial ? "+" : "";
+
+    private static string Median(MeasuredLoop runs) => RoleText.Duration(TimeSpan.FromMinutes(runs.MedianMinutes));
 
     // "Experienced Rank - Direct Medium Cargo Haul" → "Experienced Direct Medium".
     private static string Plain(string title) => title.Replace(" Rank - ", " ", StringComparison.Ordinal).Replace(" Cargo Haul", "", StringComparison.Ordinal);
