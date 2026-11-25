@@ -60,4 +60,10 @@
     <EmbeddedResource Include="Fixtures/Plans/*.json" LogicalName="plans/%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <!-- The T13.6c gate's routes.json (three runs of the pin's Everus ring), checked by MeasuredGateFixtureTests. The
+       folder stays on disk as well: copied, it is the data folder of the gate (with its settings.json, the App's). -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures/Routes/MeasuredEverus/routes.json" LogicalName="routes/measured_everus.json" />
+  </ItemGroup>
+
 </Project>

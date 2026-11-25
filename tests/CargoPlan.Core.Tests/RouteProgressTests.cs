@@ -204,10 +204,14 @@ public class RouteProgressTests
         // not from the placeholder, whose reward may be a scan's.
         var template = TemplateFixtures.T([Everus], [L1], 90_000, rank: HaulRank.Senior, size: HaulSize.Small, direct: true);
         var direct = new Route("Everus Harbor → HUR-L1", Monday, Everus, LoopKind.Direct, StarSystem.Stanton, [L1],
-            [new Placeholder(1, RecipeKind.Direct, template.Uuid, template.Title, 95_000, template.Legs, [L1])], []) with { DepartedUtc = Monday.AddMinutes(5), At = 2 };
+            [new Placeholder(1, RecipeKind.Direct, template.Uuid, template.Title, 95_000, template.Legs, [L1])], [])
+        {
+            DepartedUtc = Monday.AddMinutes(5),
+            At = 2,
+        };
         var ring = Ring(Out(1, L1)) with { At = 4 };
 
-        RouteRun Finish(Route route, IReadOnlyList<HaulTemplate> templates) =>
+        static RouteRun Finish(Route route, IReadOnlyList<HaulTemplate> templates) =>
             Route.Finish(route, Empty(), RouteProgress.Of(route, Empty(), HullB, Places), Places, HullB, templates, Monday.AddMinutes(40));
 
         Finish(direct, [template]).Direct.Should().Be(new DirectContract(HaulRank.Senior, HaulSize.Small, 90_000));
