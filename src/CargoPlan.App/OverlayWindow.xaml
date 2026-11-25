@@ -792,8 +792,9 @@
                             <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type rt:PlaceholderRowView}">
-                                        <TextBlock x:Name="Line" Text="{Binding Text}" ToolTip="{Binding ToolTip}" Style="{StaticResource LegendTextStyle}"
-                                                   TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Opacity="0.6" />
+                                        <!-- Gate 6a: wraps, so places and "collect at" read whole (K1); "accept at" in the
+                                             status line's orange (K3). The runs stand on one line: a break between them would be a space. -->
+                                        <TextBlock x:Name="Line" ToolTip="{Binding ToolTip}" Style="{StaticResource LegendTextStyle}" Opacity="0.6"><Run Text="{Binding Text, Mode=OneWay}" /><Run Text="{Binding Accept, Mode=OneWay}" Foreground="{StaticResource NoticeForegroundBrush}" /><Run Text="{Binding Collect, Mode=OneWay}" /></TextBlock>
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding Filled}" Value="True">
                                                 <Setter TargetName="Line" Property="Opacity" Value="1" />
@@ -807,8 +808,7 @@
                             <ItemsControl ItemsSource="{Binding BackRows}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type rt:PlaceholderRowView}">
-                                        <TextBlock x:Name="Line" Text="{Binding Text}" ToolTip="{Binding ToolTip}" Style="{StaticResource LegendTextStyle}"
-                                                   TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" Opacity="0.45" />
+                                        <TextBlock x:Name="Line" ToolTip="{Binding ToolTip}" Style="{StaticResource LegendTextStyle}" Opacity="0.45"><Run Text="{Binding Text, Mode=OneWay}" /><Run Text="{Binding Accept, Mode=OneWay}" Foreground="{StaticResource NoticeForegroundBrush}" /><Run Text="{Binding Collect, Mode=OneWay}" /></TextBlock>
                                         <DataTemplate.Triggers>
                                             <DataTrigger Binding="{Binding Filled}" Value="True">
                                                 <Setter TargetName="Line" Property="Opacity" Value="1" />
@@ -820,10 +820,12 @@
                             <ItemsControl ItemsSource="{Binding ExtraRows}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <TextBlock Text="{Binding}" Style="{StaticResource LegendTextStyle}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" />
+                                        <TextBlock Text="{Binding}" Style="{StaticResource LegendTextStyle}" />
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
+                            <!-- E1 of gate 6a: a faint line parts the block from the stop lines below. -->
+                            <Border x:Name="RouteSeparator" Height="1" Margin="0,6,0,0" Opacity="0.4" Background="{DynamicResource LegendForegroundBrush}" />
                         </StackPanel>
                         <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}"
                                       Visibility="{Binding IsLegendVisible, Converter={StaticResource BooleanToVisibilityConverter}}">

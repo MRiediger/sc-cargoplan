@@ -70,8 +70,28 @@ public sealed class RouteScanTests : IDisposable
         var route = overlay.ActiveRoute!;
         route.Header.Should().Be("Plan: Everus ring · 1/2 filled · Σ 375,500 out · +0 back");
         route.Rows.Select(r => (r.Text, r.Filled)).Should().Equal(
-            ("Bulk · Senior Rank - Medium Cargo Haul · 325,250 aUEC · Waste · 41–72 SCU in 16s · Riker", false),
-            ("✓ #1 · Small · Junior Rank - Small Cargo Haul · 50,250 aUEC · Stims · 4–16 SCU in 4s · Riker", true));
+            ("Bulk · Senior Rank - Medium Cargo Haul · 325,250 aUEC · Riker", false),
+            ("✓ #1 · Small · Junior Rank - Small Cargo Haul · 50,250 aUEC · Riker", true));
+    }
+
+    [Fact]
+    public void A_way_back_says_where_to_accept_and_collect_apart_and_the_tool_tip_holds_commodities_and_bands()
+    {
+        // Gate 6a (K2, K3): role, title, reward and places in the line; "accept at" a part of its own (orange in the
+        // block), "collect at" after it; commodities and SCU bands only in the tool tip.
+        var back = new Placeholder(3, RecipeKind.Return, "back", Title, 72_500,
+            [new HaulLeg("Waste", 5, 30, CrateSize.Four), new HaulLeg("Waste", 5, 30, CrateSize.Four)], ["Everus Harbor"],
+            "HUR-L1 Green Glade Station", ["HUR-L4 Melodic Fields Station", "HUR-L3 Thundering Express Station"]);
+        var overlay = Overlay(Planned with { Placeholders = [.. Planned.Placeholders, back] });
+
+        var row = overlay.ActiveRoute!.BackRows.Single();
+        var open = overlay.ActiveRoute.Rows[0];
+
+        (row.Text, row.Accept, row.Collect).Should().Be(
+            ("Back · Junior Rank - Small Cargo Haul · 72,500 aUEC", " · accept at HUR-L1", " · collect at HUR-L4, HUR-L3"));
+        row.ToolTip.Should().Contain("Waste 5–30 SCU in 4s").And.Contain("10–60 SCU in 4s");
+        (open.Accept, open.Collect).Should().Be((null, null));
+        open.ToolTip.Should().Contain("Waste 41–72 SCU in 16s").And.Contain("to Riker");
     }
 
     [Fact]

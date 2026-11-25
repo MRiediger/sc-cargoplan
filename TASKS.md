@@ -732,6 +732,16 @@ im Plan vs. Positionsnamen der Route → `Positions.Resolve` (6b).
   Zahlen: `keyToNoticeMs` (scans.log) für 2/3 gegen T13.1 (1 672–1 807 ms), `fillMs=` aus cargoplan.log („Routes: fill
   #n: … fillMs=“). Fokus: „End plan“ und „Start plan“ mit `--log-input` (Cargo-Reiter aktiviert nicht, U7).
 
+- **Gate-Befund 6a (Martin, 25.11.) – Darstellung des Blocks, kein Logikfehler. Präzisierung in der Planphase,
+  ratifiziert durch Freigabe:** (K1) Platzhalterzeilen brechen um statt „…“ – Ziele und „collect at“ ganz lesbar (nimmt
+  die Einzeiligkeit aus 0a307de zurück); (K2) Zeile = Rolle · Titel · Reward · Ziele bzw. Back · Titel · Reward ·
+  accept at X · collect at Y, Z; Waren und SCU-Band (je Leg und gesamt) nur im Tooltip; (K3) „accept at“ im Orange der
+  Statuszeile (`NoticeForegroundBrush`), „collect at“ normal (`PlaceholderRowView.Accept`/`Collect` als eigene Runs);
+  (E1) Trennlinie (1 px, Legendenfarbe, 40 %) zwischen Block und Stopp-Zeilen. Tests:
+  `RouteScanTests.A_way_back_says_where_to_accept_and_collect_apart_and_the_tool_tip_holds_commodities_and_bands`,
+  `OverlayRouteXamlTests.Placeholder_lines_wrap_and_accept_at_takes_the_notice_colour`,
+  `OverlayRouteXamlTests.A_line_parts_the_block_from_the_stop_lines`. Die Kopfzeile bleibt einzeilig (nicht Teil des
+  Befunds). Bild-Gate (Martin) danach.
 - **Testnamen:** `RouteTests`, `RouteBaselineTests`, `RoutesFileTests.A_route_*`, `RoutesBookTests`, `RouteScanTests`
   (u. a. `A_contract_scanned_before_the_route_fills_its_placeholder_when_scanned_again` = K3,
   `Starting_and_ending_the_route_leave_plan_json_byte_for_byte`), `RoutesViewModelTests.Start_plan_*`,

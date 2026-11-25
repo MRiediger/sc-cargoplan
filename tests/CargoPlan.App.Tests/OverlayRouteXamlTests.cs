@@ -74,6 +74,34 @@ public class OverlayRouteXamlTests
     }
 
     [Fact]
+    public void Placeholder_lines_wrap_and_accept_at_takes_the_notice_colour()
+    {
+        // Gate 6a: K1 the places and "collect at" read whole (wrap, no ellipsis), K3 "accept at" in the status line's
+        // orange, "collect at" in the legend's colour.
+        var block = Named(Root(), "RouteBlock");
+        var lines = block.Descendants().Where(e => e.Name.LocalName == "DataTemplate").Select(t => t.Descendants().First(e => e.Name.LocalName == "TextBlock")).ToList();
+        var runs = lines.SelectMany(l => l.Elements().Where(e => e.Name.LocalName == "Run")).ToList();
+
+        lines.Should().HaveCount(3).And.OnlyContain(l => (string?)l.Attribute("TextWrapping") != "NoWrap" && l.Attribute("TextTrimming") == null);
+        runs.Where(r => r.Attribute("Text")!.Value.Contains("Accept")).Should().HaveCount(2)
+            .And.OnlyContain(r => (string?)r.Attribute("Foreground") == "{StaticResource NoticeForegroundBrush}");
+        runs.Where(r => r.Attribute("Text")!.Value.Contains("Collect")).Should().HaveCount(2).And.OnlyContain(r => r.Attribute("Foreground") == null);
+        runs.Should().OnlyContain(r => r.Attribute("Text")!.Value.Contains("Mode=OneWay"), "Run.Text binds two way by default");
+    }
+
+    [Fact]
+    public void A_line_parts_the_block_from_the_stop_lines()
+    {
+        // E1 of gate 6a.
+        var root = Root();
+        var block = Named(root, "RouteBlock");
+        var line = Named(root, "RouteSeparator");
+
+        line.Parent.Should().BeSameAs(block);
+        line.ElementsAfterSelf().Should().BeEmpty("the last thing of the block, right above the stop lines");
+    }
+
+    [Fact]
     public void The_chosen_loop_row_has_a_bar_on_its_left()
     {
         var style = Keyed(Root(), "LoopRowStyle").ToString();

@@ -11,8 +11,14 @@ using static System.FormattableString;
 
 namespace CargoPlan.App.Routing;
 
-/// <summary>One placeholder in the Cargo tab's block "Plan" (T13.6): filled ones in normal type, open ones grey.</summary>
-public sealed record PlaceholderRowView(string Text, bool Filled, string ToolTip);
+/// <summary>
+/// One placeholder in the Cargo tab's block "Plan" (T13.6): filled ones in normal type, open ones grey. Gate 6a: role,
+/// title, reward and places (or the way back's parts) in the line, which wraps; commodities and bands in the tool tip.
+/// </summary>
+/// <param name="Text">"✓ #3 · Bulk · Senior Rank - Medium Cargo Haul · 325,250 aUEC · HUR-L1, HUR-L2"; a way back without places.</param>
+/// <param name="Accept">" · accept at HUR-L1" for a way back, shown in the notice colour; null otherwise.</param>
+/// <param name="Collect">" · collect at HUR-L4, HUR-L3" for a way back with several pickups; null otherwise.</param>
+public sealed record PlaceholderRowView(string Text, string? Accept, string? Collect, bool Filled, string ToolTip);
 
 /// <summary>
 /// The route in the Cargo tab (T13.6, U9, D125): the block "Plan" above the legend, a line per placeholder; an accepted
@@ -183,15 +189,23 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
 
     private static PlaceholderRowView Row(Placeholder p, IReadOnlySet<string> keys, Dictionary<string, Mission> missions)
     {
-        var where = RoleText.Accept(p.AcceptAt, p.CollectAt) ?? string.Join(", ", p.Destinations.Select(PlaceNames.Short));
-        var line = RoleText.Line(p.Kind, p.Title, RoleText.Reward(p.Reward, null), [.. p.Legs.Select(l => l.Commodity).Distinct()], p.MinScu, p.MaxScu, p.Container, where);
+        // Gate 6a (K2): a way back names where to accept and collect instead of its place, the hub.
+        string[] parts =
+        [
+            RoleText.KindWords[p.Kind], p.Title, RoleText.Reward(p.Reward, null),
+            .. p.AcceptAt is null ? [string.Join(", ", p.Destinations.Select(PlaceNames.Short))] : Array.Empty<string>(),
+        ];
+        var line = string.Join(" · ", parts);
+        var accept = p.AcceptAt is { } at ? $" · accept at {PlaceNames.Short(at)}" : null;
+        var collect = p.CollectAt is { Count: > 0 } more ? $" · collect at {string.Join(", ", more.Select(PlaceNames.Short))}" : null;
         var filled = Route.IsFilled(p, keys);
         var tip = string.Join("\n", [
             p.Title,
             .. p.Legs.Select(l => Invariant($"{l.Commodity} {l.MinScu}–{l.MaxScu} SCU in {(int)l.Container}s")),
+            Invariant($"{p.MinScu}–{p.MaxScu} SCU in {(int)p.Container}s in all"),
             $"to {string.Join(", ", p.Destinations)}",
         ]);
-        return new(filled ? Invariant($"✓ #{missions[p.FilledBy!].Contract!.Scan.No} · {line}") : line, filled, tip);
+        return new(filled ? Invariant($"✓ #{missions[p.FilledBy!].Contract!.Scan.No} · {line}") : line, accept, collect, filled, tip);
     }
 
     private static string Describe(FillOutcome outcome) => outcome switch
