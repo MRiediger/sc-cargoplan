@@ -82,7 +82,10 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
     /// <summary>Asks before a second route replaces the first; the window sets the dialog (ConfirmReplan's pattern), tests a stub.</summary>
     public Func<string, bool> ConfirmReplace { get; set; } = _ => false;
 
-    /// <summary>Starts <paramref name="route"/>; one already started is replaced only when the player says yes. The cargo stays.</summary>
+    /// <summary>
+    /// Starts <paramref name="route"/>; one already started is replaced only when the player says yes. The cargo stays,
+    /// and its accepted contracts fill their placeholders or are extras (<see cref="Route.Adopt"/>, gate 6a), one log line each.
+    /// </summary>
     public bool Start(Route route)
     {
         if (Route is not null && !ConfirmReplace(ReplaceQuestion))
@@ -90,8 +93,14 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
             return false;
         }
 
-        SetRoute(route);
+        var (started, adopted) = Route.Adopt(route, _saved, _templates, _positions);
+        SetRoute(started);
         AppLog.Write(LogContext, Invariant($"plan started: {route.Name}, {route.Placeholders.Count} placeholders, {route.Stations.Count} stations"));
+        foreach (var a in adopted)
+        {
+            AppLog.Write(LogContext, a.PlaceholderId is { } id ? Invariant($"start: #{a.ScanNo} → placeholder {id}") : Invariant($"start: #{a.ScanNo} extra"));
+        }
+
         return true;
     }
 

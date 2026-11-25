@@ -118,17 +118,43 @@ public sealed class RouteScanTests : IDisposable
     }
 
     [Fact]
-    public async Task A_contract_scanned_before_the_route_fills_its_placeholder_when_scanned_again()
+    public async Task Start_plan_takes_the_accepted_cargo_into_its_placeholders_and_the_rest_as_extras_without_a_rescan()
     {
-        // K3 of T13.6: the scan key has no title, so starting the route can't place it; scanning it again does.
+        // Gate 6a (Martin, 25 Nov, option 1): accepted first, then Start plan; K3's rescan stays the fallback.
         var overlay = Overlay(null);
         await Scan(overlay, Raw(View.Accepted));
+        overlay.ApplyScan(ApplyScanTests.Scanned(accepted: true, "41,750", "Deliver 0/12 SCU of Stims to Teasa Spaceport.", "Collect Stims from Everus Harbor."));
+
         overlay.ActiveRoute!.Start(Planned).Should().BeTrue();
+
+        overlay.ActiveRoute.Header.Should().StartWith("Plan: Everus ring · 1/2 filled");
+        overlay.ActiveRoute.Rows[1].Text.Should().StartWith("✓ #1 · Small");
+        overlay.ActiveRoute.ExtraRows.Should().Equal("+ #2 extra · 41,750 aUEC");
+        TestLog.Text().Should().Contain("Routes: start: #1 → placeholder 2").And.Contain("Routes: start: #2 extra");
+        _saved.Should().ContainSingle().Which!.Extras.Should().ContainSingle();
+
+        await Scan(overlay, Raw(View.Accepted));
+        overlay.Notices.Should().Equal("Already in cargo (#1) · plan ✓");
+    }
+
+    [Fact]
+    public async Task A_contract_the_start_cannot_tell_apart_is_an_extra_until_its_rescan_names_the_rank()
+    {
+        // K3 stays the fallback: a Member twin of the Junior Small (same reward, legs, places) is a placeholder too, so at
+        // the start the cargo fits both; the accepted scan's title says Junior.
+        var member = Junior with { Uuid = "member", Rank = HaulRank.Member, Title = "Member Rank - Small Cargo Haul" };
+        var route = Planned with { Placeholders = [.. Planned.Placeholders, new Placeholder(3, RecipeKind.Small, "member", member.Title, 50_250, member.Legs, ["Riker"])] };
+        var overlay = Overlay(null, [Junior, member]);
+        await Scan(overlay, Raw(View.Accepted));
+
+        overlay.ActiveRoute!.Start(route).Should().BeTrue();
+        overlay.ActiveRoute.ExtraRows.Should().Equal("+ #1 extra · 50,250 aUEC");
 
         await Scan(overlay, Raw(View.Accepted));
 
-        overlay.Notices.Should().Equal("Already in cargo (#1) · plan: small ✓ 1/2");
+        overlay.Notices.Should().Equal("Already in cargo (#1) · plan: small ✓ 1/3");
         overlay.ActiveRoute.Rows[1].Filled.Should().BeTrue();
+        overlay.ActiveRoute.ExtraRows.Should().BeEmpty();
     }
 
     [Fact]

@@ -274,8 +274,10 @@ What the recipe's line shows, kept with the route, so a later data release chang
 
 **Filled is what the plan says.** A placeholder counts as filled while `plan.json` has a mission with its `filledBy` key.
 An undo or Discard cargo takes the mission out, and the placeholder is open again; the next accepted scan of its
-template fills it anew. Only a scan in the **accepted** view fills, also of a contract the plan held before the route
-started (scan it again); an offer never does. A scan whose template has no open placeholder is an extra.
+template fills it anew. Only a scan in the **accepted** view fills; an offer never does. A scan whose template has no
+open placeholder is an extra. **Start plan takes the cargo:** every accepted Covalex contract already in `plan.json`
+that fits exactly one open placeholder's template fills it, every other accepted contract is an extra (a Red Wind one
+too: its card has no reward to tell it by, so its next accepted scan moves it into its placeholder).
 
 ## Run
 

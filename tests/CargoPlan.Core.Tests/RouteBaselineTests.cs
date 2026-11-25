@@ -1,3 +1,6 @@
+using CargoPlan.Core.Missions;
+using CargoPlan.Core.Models;
+using CargoPlan.Core.Plans;
 using CargoPlan.Core.Routing;
 using CargoPlan.Core.ShipData;
 
@@ -54,6 +57,32 @@ public class RouteBaselineTests
 
         (route.OutboundReward + route.BackReward).Should().Be(1_028_000);
     }
+
+    [Fact]
+    public void Start_plan_at_Everus_takes_the_accepted_bulk_of_the_cargo_one_of_ten_and_the_other_contract_is_an_extra()
+    {
+        // Gate 6a (Martin, 25 Nov): accepted first, then Start plan - filled without a rescan.
+        var route = From(HullB.Value.Single(c => c.Kind == LoopKind.LocalRing && c.Start == Everus));
+        var ship = FrozenShips.Load("hull_b");
+        Mission[] cargo =
+        [
+            Accepted(1, 325_250, ("Green Glade Station", "Hydrogen Fuel", 50), ("Faithful Dream Station", "Quantum Fuel", 100),
+                ("Thundering Express Station", "Ship Ammunition", 100), ("Melodic Fields Station", "Hydrogen Fuel", 45)),
+            Accepted(2, 41_750, ("Teasa Spaceport", "Stims", 12)),
+        ];
+        var plan = new SavedPlan(cargo, new LoadPlan(ship.Id, [], []), CrateCap.Of(ship));
+
+        var (started, adopted) = Route.Adopt(route, plan, Data.Value.Templates, Data.Value.Positions);
+
+        started.FilledCount(new HashSet<string> { "KEY-1", "KEY-2" }).Should().Be(1);
+        started.Placeholders.Single(p => p.FilledBy == "KEY-1").Kind.Should().Be(RecipeKind.Bulk);
+        started.Extras.Should().Equal("KEY-2");
+        adopted.Should().Equal(new Adoption(1, 1), new Adoption(2, null));
+    }
+
+    private static Mission Accepted(int no, long reward, params (string To, string Commodity, int Scu)[] items) => new(
+        no, [.. items.Select((x, i) => new MissionStop(x.To, i + 1, [new MissionItem(x.Commodity, x.Scu, CrateSize.Sixteen, Pickup: [Everus])]))],
+        new ContractSource(new ScanIdentity(no, $"KEY-{no}", false), Reward: reward), Unplaced: true);
 
     private static Route From(LoopCandidate loop) => Route.From(loop, "test", ObservedEdges.Empty, Monday);
 }

@@ -1,6 +1,7 @@
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
+using CargoPlan.Core.Plans;
 
 namespace CargoPlan.Core.Routing;
 
@@ -104,6 +105,72 @@ public sealed record Route(
         [.. loop.Contracts.Select((role, i) => Placeholder.Of(i + 1, role, edges))], []);
 
     /// <summary>
+    /// "Start plan" takes the cargo (gate 6a, Martin 25 Nov, option 1): every accepted contract of <paramref name="plan"/>
+    /// the route doesn't hold yet, in scan order, against the templates of the open placeholders. The scan key (D101) has no
+    /// title, so each template lends its rank and size and <see cref="TemplateMatch"/> checks the rest (reward, commodities,
+    /// bands, stops, places, D122). Only a Covalex contract that fits exactly one of these templates fills its first open
+    /// placeholder; one contract fills at most one. Red Wind has no reward to check, so rank and size would rest on the
+    /// template alone: such a contract, like every other one left, is an extra (U9.2), and its next accepted scan moves it
+    /// into its placeholder (<see cref="Fill"/>, K3 as the fallback). An estimate (an offer) and a typed mission are no
+    /// contract yet and stay out. Nothing new is kept: routes.json holds the keys as after a scan.
+    /// </summary>
+    /// <param name="plan">The overlay's plan; null without one.</param>
+    /// <param name="templates">The hauling data's templates, to look the placeholders' up by uuid.</param>
+    public static (Route Route, IReadOnlyList<Adoption> Adopted) Adopt(
+        Route route, SavedPlan? plan, IReadOnlyList<HaulTemplate> templates, Positions positions)
+    {
+        if (plan is null)
+        {
+            return (route, []);
+        }
+
+        HashSet<string> keys = [.. plan.Missions.Select(m => m.Contract?.Scan.Key).OfType<string>()];
+        HashSet<string> held = [.. route.Placeholders.Where(p => IsFilled(p, keys)).Select(p => p.FilledBy!), .. route.Extras];
+        var byUuid = templates.ToDictionary(t => t.Uuid);
+        HaulTemplate[] open =
+        [
+            .. route.Placeholders.Where(p => !IsFilled(p, keys)).Select(p => byUuid.GetValueOrDefault(p.TemplateUuid))
+                .OfType<HaulTemplate>().Where(t => t.Contractor == HaulContractor.Covalex).DistinctBy(t => t.Uuid),
+        ];
+
+        var placeholders = route.Placeholders.ToList();
+        List<string> extras = [.. route.Extras];
+        List<Adoption> adopted = [];
+        foreach (var mission in plan.Missions.Where(m => m.Contract?.Scan is { QuantitiesEstimated: false } s && !held.Contains(s.Key))
+                     .OrderBy(m => m.Contract!.Scan.No))
+        {
+            var scan = mission.Contract!.Scan;
+            var fits = open.Where(t => Fits(mission, t, positions)).ToList();
+            var index = fits.Count == 1
+                ? placeholders.FindIndex(p => p.TemplateUuid == fits[0].Uuid && !IsFilled(p, keys)) // a filled one holds a key of the plan
+                : -1;
+            if (index >= 0)
+            {
+                placeholders[index] = placeholders[index] with { FilledBy = scan.Key };
+                adopted.Add(new(scan.No, placeholders[index].Id));
+            }
+            else
+            {
+                extras.Add(scan.Key);
+                adopted.Add(new(scan.No, null));
+            }
+        }
+
+        return adopted.Count == 0 ? (route, adopted) : (route with { Placeholders = placeholders, Extras = extras }, adopted);
+    }
+
+    // The mission as a scan of the template's rank and size would have seen it: one look of D122's tests.
+    private static bool Fits(Mission mission, HaulTemplate template, Positions positions)
+    {
+        var items = mission.Stops.SelectMany(s => s.Items.Select(i => (s.Destination, Item: i))).ToList();
+        var key = new ObservationKey(template.Contractor, template.Rank, template.Size, template.Direct, mission.Contract!.Reward ?? 0,
+            [.. items.Select(x => x.Item.Commodity)]);
+        var scan = new ObservedScan(key, null, [.. items.SelectMany(x => x.Item.Pickup ?? []).Distinct()],
+            [.. items.Select(x => new ObservedDelivery(x.Destination, x.Item.Commodity, x.Item.Scu))], DateTime.UnixEpoch);
+        return TemplateMatch.Find(Observation.Of(scan), [template], positions) is MatchResult.Matched;
+    }
+
+    /// <summary>
     /// Whether <paramref name="placeholder"/> is filled: its scan key is a mission's of the plan. The plan is the truth
     /// about the cargo (D125): an undo or a discard opens the placeholder again, routes.json keeps the key.
     /// </summary>
@@ -165,6 +232,11 @@ public sealed record Route(
             : (route with { Extras = [.. route.Extras, scan.Key] }, new FillOutcome.Extra());
     }
 }
+
+/// <summary>What "Start plan" did with one accepted contract of the cargo (<see cref="Route.Adopt"/>).</summary>
+/// <param name="ScanNo">The mission's scan number (#n).</param>
+/// <param name="PlaceholderId">The placeholder it filled; null for an extra.</param>
+public sealed record Adoption(int ScanNo, int? PlaceholderId);
 
 /// <summary>What a scan did to the route (<see cref="Route.Fill"/>).</summary>
 public abstract record FillOutcome

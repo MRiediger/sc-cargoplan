@@ -1,6 +1,7 @@
 using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
+using CargoPlan.Core.Plans;
 using CargoPlan.Core.Routing;
 using static CargoPlan.Core.Tests.TemplateFixtures;
 
@@ -254,6 +255,94 @@ public class RouteTests
         after.Extras.Should().Equal("K");
         route.OpenFor(new MatchResult.Matched(Direct), Keys())!.Kind.Should().Be(RecipeKind.Direct);
         route.OpenFor(new MatchResult.None("no"), Keys()).Should().BeNull();
+    }
+
+    // --- Start plan takes the cargo (gate 6a, Martin 25 Nov: option 1) ---
+
+    private static readonly Positions Hurston = new([.. new[] { Everus, L1, L2, L4 }.Select(n => new StarPosition(n, n, StarSystem.Stanton, "Manmade", null, 0, 0, 0, []))]);
+
+    // An accepted (or offered) contract in the cargo: one item per (destination, commodity, SCU), picked up at Everus.
+    private static Mission Cargo(int no, long? reward, bool estimated = false, params (string To, string Commodity, int Scu)[] items) => new(
+        no, [.. items.GroupBy(i => i.To).Select((g, i) => new MissionStop(g.Key, i + 1,
+            [.. g.Select(x => new MissionItem(x.Commodity, x.Scu, CrateSize.Four, Pickup: [Everus]))]))],
+        new ContractSource(new ScanIdentity(no, $"KEY-{no}", estimated), Reward: reward), Unplaced: true);
+
+    private static SavedPlan PlanOf(params Mission[] missions)
+    {
+        var ship = FrozenShips.Load("hull_b");
+        return new([.. missions], new LoadPlan(ship.Id, [], []), CrateCap.Of(ship));
+    }
+
+    private static readonly Mission BulkCargo = Cargo(1, 325_250, false, (L1, "Hydrogen Fuel", 50), (L2, "Quantum Fuel", 60), (L4, "Ship Ammunition", 40));
+
+    [Fact]
+    public void Start_plan_fills_a_placeholder_with_the_cargo_of_its_template_and_makes_the_other_accepted_contracts_extras()
+    {
+        var route = Route.From(Ring, "Everus ring", ObservedEdges.Empty, Monday);
+        var plan = PlanOf(
+            BulkCargo,
+            Cargo(2, 41_750, false, ("Teasa Spaceport", "Stims", 12)),
+            Cargo(3, 34_750, estimated: true, (L2, "Iron", 20)),
+            new Mission(4, [new MissionStop(L1, 1, [new MissionItem("Gold", 4, CrateSize.Four)])], Unplaced: true));
+
+        var (started, adopted) = Route.Adopt(route, plan, [Bulk, Direct, Back], Hurston);
+
+        started.Placeholders.Select(p => p.FilledBy).Should().Equal("KEY-1", null, null);
+        started.Extras.Should().Equal(["KEY-2"], "accepted, no placeholder's; the offer #3 and the typed #4 are no contracts yet");
+        adopted.Should().Equal(new Adoption(1, 1), new Adoption(2, null));
+        started.FilledCount(new HashSet<string> { "KEY-1", "KEY-2", "KEY-3" }).Should().Be(1);
+    }
+
+    [Fact]
+    public void A_contract_that_fits_two_placeholders_templates_fills_neither_and_is_an_extra_two_of_one_template_fill_in_turn()
+    {
+        var twin = Bulk with { Uuid = "bulk-twin" };
+        var route = Route.From(Ring with { Contracts = [Ring.Contracts[0], Ring.Contracts[0] with { Template = twin }] }, "twins", ObservedEdges.Empty, Monday);
+        var two = Route.From(Ring with { Contracts = [Ring.Contracts[0], Ring.Contracts[0]] }, "two mediums", ObservedEdges.Empty, Monday);
+        var second = Cargo(2, 325_250, false, (L1, "Hydrogen Fuel", 70), (L2, "Quantum Fuel", 30), (L4, "Ship Ammunition", 20));
+
+        var (unsure, _) = Route.Adopt(route, PlanOf(BulkCargo), [Bulk, twin], Hurston);
+        var (both, _) = Route.Adopt(two, PlanOf(BulkCargo, second), [Bulk], Hurston);
+
+        unsure.Placeholders.Should().OnlyContain(p => p.FilledBy == null);
+        unsure.Extras.Should().Equal("KEY-1");
+        both.Placeholders.Select(p => p.FilledBy).Should().Equal("KEY-1", "KEY-2");
+    }
+
+    [Fact]
+    public void A_Covalex_contract_with_another_reward_is_no_placeholders_and_a_Red_Wind_contract_stays_open()
+    {
+        // Red Wind has no reward to check: rank and size come from the template alone, so the start leaves it to F3.
+        var member = T([Ruin], [Checkmate], null, contractor: HaulContractor.RedWind, rank: HaulRank.Member, system: StarSystem.Pyro,
+            areaKey: Board.PyroSolar, faction: HaulFaction.Hh, legs: [Leg("Carbon", 1, 200, CrateSize.Four)]);
+        var pyro = new LoopCandidate(LoopKind.LocalRing, StarSystem.Pyro, Ruin, [Checkmate],
+            [new RecipeRole(RecipeKind.Bulk, member, [Checkmate], 200, 50)], null, false, 50, 0, null, 0, 1);
+        var redWindCargo = new Mission(1, [new MissionStop(Checkmate, 1, [new MissionItem("Carbon", 180, CrateSize.Four, Pickup: [Ruin])])],
+            new ContractSource(new ScanIdentity(1, "RW-KEY", false), Reward: 532_500), Unplaced: true);
+        var places = new Positions([At(Ruin, 0), At(Checkmate, 5)]);
+
+        var (covalex, _) = Route.Adopt(Route.From(Ring, "Everus ring", ObservedEdges.Empty, Monday), PlanOf(BulkCargo with
+        {
+            Contract = BulkCargo.Contract! with { Reward = 300_000 },
+        }), [Bulk, Direct, Back], Hurston);
+        var (redWind, adopted) = Route.Adopt(Route.From(pyro, "Ruin Station ring", ObservedEdges.Empty, Monday), PlanOf(redWindCargo), [member], places);
+
+        covalex.Placeholders[0].FilledBy.Should().BeNull();
+        redWind.Placeholders.Single().FilledBy.Should().BeNull();
+        (redWind.Extras.Single(), adopted.Single()).Should().Be(("RW-KEY", new Adoption(1, null)));
+    }
+
+    [Fact]
+    public void Start_plan_leaves_what_the_route_holds_already_and_without_cargo_nothing()
+    {
+        var route = Route.From(Ring, "Everus ring", ObservedEdges.Empty, Monday);
+        var (once, _) = Route.Adopt(route, PlanOf(BulkCargo, Cargo(2, 41_750, false, ("Teasa Spaceport", "Stims", 12))), [Bulk, Direct, Back], Hurston);
+
+        var (twice, again) = Route.Adopt(once, PlanOf(BulkCargo, Cargo(2, 41_750, false, ("Teasa Spaceport", "Stims", 12))), [Bulk, Direct, Back], Hurston);
+        var (empty, none) = Route.Adopt(route, null, [Bulk, Direct, Back], Hurston);
+
+        (twice, again.Count).Should().Be((once, 0));
+        (empty, none.Count).Should().Be((route, 0));
     }
 
     private static Route WithBulk(Route route, string key) =>

@@ -725,7 +725,7 @@ im Plan vs. Positionsnamen der Route → `Positions.Resolve` (6b).
   | 3 Fremder Vertrag (z. B. Rookie Direct Small eines anderen Templates), F3 | Mission wie heute; „· not in plan (extra)“; „+ #m extra · …“ | U9.2 |
   | 4 Undo auf 2 | Zeile wieder grau; `routes.json` unverändert | erfüllt kommt aus dem Plan |
   | 5 Redo, App neu starten | Block wie vorher, ✓ #n bleibt | Persistenz Route + Plan |
-  | 6 **K3:** „End plan“; einen Vertrag annehmen und F3 (Accepted) **ohne** Route; dann „Start plan“; erneut F3 im Accepted-Tab | „Already in cargo (#n) · plan: … ✓ 1/10“, Zeile „✓ #n“ | K1 der Freigabe |
+  | 6 „End plan“; einen Vertrag des Rezepts annehmen und F3 (Accepted) **ohne** Route, dazu einen fremden; dann „Start plan“ | ohne Rescan „✓ #n“ für den Vertrag des Rezepts, „+ #m extra“ für den fremden; cargoplan.log „Routes: start: #n → placeholder k“ / „#m extra“; erneuter F3 → „Already in cargo (#n) · plan ✓“ | Gate-Befund 25.11. (Option 1), K3 als Fallback |
   | 7 „End plan“ | Block weg, Legende und Schiff unverändert, `routes.json` ohne `route` | Route additiv |
   | 8 Ohne Route: Offer im Cargo-Reiter, Accepted-Scan | exakt wie main | Invariante 1 |
 
@@ -742,6 +742,21 @@ im Plan vs. Positionsnamen der Route → `Positions.Resolve` (6b).
   `OverlayRouteXamlTests.Placeholder_lines_wrap_and_accept_at_takes_the_notice_colour`,
   `OverlayRouteXamlTests.A_line_parts_the_block_from_the_stop_lines`. Die Kopfzeile bleibt einzeilig (nicht Teil des
   Befunds). Bild-Gate (Martin) danach.
+- **Gate-Befund 6a (Martin, 25.11.) – „Start plan“ erkennt angenommene Missionen nicht** (Recipe → Start plan → Senior
+  annehmen + F3 → End plan → Start plan: 0/10). Ursache: K3 wie freigegeben (nur ein Rescan füllte). **Präzisierung in der
+  Planphase, ratifiziert durch Freigabe (Martin, Option 1):** `Route.Adopt` beim Start – jede nicht geschätzte Mission
+  der Ladung, die die Route noch nicht hält, in Scan-Reihenfolge gegen die Templates der offenen Platzhalter
+  (`TemplateMatch`, Rang/Größe/Auftraggeber aus dem Template, Reward, Waren, Bänder, Stopps, Orte aus der Mission); nur
+  ein eindeutiger Treffer füllt, eine Mission höchstens einen Platzhalter; Rest = Extras; **Red Wind nie beim Start**
+  (kein Reward, Rang/Größe nur aus dem Template) → Extra, der nächste Accepted-Scan schiebt es in den Platzhalter; K3
+  bleibt Fallback; kein neuer Zustand in routes.json; Logzeile je Mission „Routes: start: #n → placeholder k“ / „#n
+  extra“. Gate-Schritt 6 neu (oben). Mutationsproben: ohne Eindeutigkeit 1 rot, ohne Covalex-Filter 1 rot. Tests:
+  `RouteTests.Start_plan_*`, `RouteTests.A_contract_that_fits_two_placeholders_templates_*`,
+  `RouteTests.A_Covalex_contract_with_another_reward_is_no_placeholders_and_a_Red_Wind_contract_stays_open`,
+  `RouteBaselineTests.Start_plan_at_Everus_takes_the_accepted_bulk_of_the_cargo_one_of_ten_and_the_other_contract_is_an_extra`
+  (Pin: 1/10, ein Extra), `RouteScanTests.Start_plan_takes_the_accepted_cargo_into_its_placeholders_and_the_rest_as_extras_without_a_rescan`,
+  `RouteScanTests.A_contract_the_start_cannot_tell_apart_is_an_extra_until_its_rescan_names_the_rank` (Nachfolger von
+  `A_contract_scanned_before_the_route_fills_its_placeholder_when_scanned_again`). D125-Addendum.
 - **Testnamen:** `RouteTests`, `RouteBaselineTests`, `RoutesFileTests.A_route_*`, `RoutesBookTests`, `RouteScanTests`
   (u. a. `A_contract_scanned_before_the_route_fills_its_placeholder_when_scanned_again` = K3,
   `Starting_and_ending_the_route_leave_plan_json_byte_for_byte`), `RoutesViewModelTests.Start_plan_*`,
