@@ -42,7 +42,7 @@ public sealed record PlanStart(LoopCandidate Loop, string Name, ObservedEdges Ed
 /// routes.faction), the other filters live for the session. The loops (T13.4, D124) are computed off the UI thread by
 /// whoever listens to <see cref="LoopInputsChanged"/> and come back through <see cref="ShowLoops"/>.
 /// </summary>
-public sealed partial class RoutesViewModel : ObservableObject
+public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
 {
     private const int MaxToolTipTemplates = 15;
 
@@ -130,6 +130,9 @@ public sealed partial class RoutesViewModel : ObservableObject
     private IReadOnlyList<RouteRun> _runs;
 
     private MeasuredTimes _measured = MeasuredTimes.Empty;
+
+    // The settings window's line under the switch (IMeasuredSummary); empty without a ship.
+    private string _measuredSummary = "";
 
     /// <param name="save">Called with the new section when rank or faction change; null in tests that don't save.</param>
     /// <param name="observed">What the scans in routes.json add (T13.3); none without.</param>
@@ -272,6 +275,11 @@ public sealed partial class RoutesViewModel : ObservableObject
         BuildLoops();
     }
 
+    /// <summary>The line under the settings window's switch changed (gate finding T13.6c).</summary>
+    public event EventHandler? Changed;
+
+    string IMeasuredSummary.Text => _measuredSummary;
+
     // The runs of the overlay's ship per loop (D127); a run left out for its time is a line in the log, once per change.
     private void Measure()
     {
@@ -279,6 +287,19 @@ public sealed partial class RoutesViewModel : ObservableObject
         foreach (var line in _measured.Ignored)
         {
             AppLog.Write("Routes", line);
+        }
+
+        var summary = (_ship, _measured.EnoughCount) switch
+        {
+            (null, _) => "",
+            ({ } s, 0) => Invariant($"No loop measured yet with {s.Name} – finish a plan {MeasuredTimes.MinRuns} times."),
+            ({ } s, 1) => $"1 loop measured with {s.Name}",
+            ({ } s, var n) => Invariant($"{n} loops measured with {s.Name}"),
+        };
+        if (summary != _measuredSummary)
+        {
+            _measuredSummary = summary;
+            Changed?.Invoke(this, EventArgs.Empty);
         }
     }
 

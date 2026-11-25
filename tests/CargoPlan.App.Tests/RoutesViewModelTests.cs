@@ -541,11 +541,38 @@ public sealed class RoutesViewModelTests
         return model;
     }
 
-    private static RouteRun[] EverusRuns(RoutesViewModel model, params double[] minutes)
+    private static RouteRun[] EverusRuns(RoutesViewModel model, params double[] minutes) => RunsOf(Row(model, "Everus Harbor ring").Loop, minutes);
+
+    private static RouteRun[] RunsOf(LoopCandidate loop, params double[] minutes) =>
+    [
+        .. minutes.Select((m, i) => new RouteRun("run", Monday.AddDays(2 * i).AddMinutes(-m), null, Monday.AddDays(2 * i),
+            loop.Start, loop.Kind, loop.System, loop.Landings, loop.Crates, loop.LongJumps, 325_250, 1, 1, 0, HullB.Id, loop.Stations)),
+    ];
+
+    [Fact]
+    public void The_summary_counts_the_measured_loops_of_the_ship_and_tells_when_it_changes()
     {
-        var ring = Row(model, "Everus Harbor ring").Loop;
-        return [.. minutes.Select((m, i) => new RouteRun("Everus Harbor ring", Monday.AddDays(2 * i).AddMinutes(-m), null, Monday.AddDays(2 * i),
-            ring.Start, ring.Kind, ring.System, ring.Landings, ring.Crates, ring.LongJumps, 325_250, 1, 1, 0, HullB.Id, ring.Stations))];
+        // Gate finding T13.6c: the settings window says under the switch why it changes nothing yet.
+        var model = Loops();
+        IMeasuredSummary summary = model;
+        var changed = 0;
+        summary.Changed += (_, _) => changed++;
+        summary.Text.Should().BeEmpty("no ship, no line");
+
+        model.ShowShip(HullB);
+        Compute(model);
+        summary.Text.Should().Be("No loop measured yet with MISC Hull B – finish a plan 3 times.");
+
+        var everus = EverusRuns(model, 70, 80, 150);
+        model.ShowRuns([.. everus, .. RunsOf(Row(model, "Baijini Point ring").Loop, 60, 70)]);
+        summary.Text.Should().Be("1 loop measured with MISC Hull B", "two runs of Baijini don't count yet");
+
+        model.ShowRuns([.. everus, .. RunsOf(Row(model, "Baijini Point ring").Loop, 60, 70, 80)]);
+        summary.Text.Should().Be("2 loops measured with MISC Hull B");
+
+        model.ShowShip(FrozenShips.Load("raft"));
+        summary.Text.Should().Be("No loop measured yet with ARGO RAFT – finish a plan 3 times.", "the Hull B's runs measure nothing for the RAFT");
+        changed.Should().Be(4, "once per new text");
     }
 
     private static LoopRowView Row(RoutesViewModel model, string title) => model.LoopRows.Single(r => r.Title == title);

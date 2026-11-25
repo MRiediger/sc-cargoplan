@@ -915,6 +915,20 @@ Direct-Schlüssel und unter der Schwelle, K1, E1, E2):**
   | 3 Checkbox aus | Everus „~484k/h“, Status „templates“, Tooltip „measured 3× · 1 h 20 min – not used“; Sortierung springt | Schalter |
   | 4 Checkbox an | wieder gemessen | Schalter |
   | 5 Neustart | Schalter und Anzeige wie vorher | Persistenz |
+  | 6 Zähler: eigene Daten → Fixture → Schiffswechsel RAFT | eigene Daten: „No loop measured yet with MISC Hull B – finish a plan 3 times.“; Fixture: „1 loop measured with MISC Hull B“; RAFT im Header: „No loop measured yet with ARGO RAFT – finish a plan 3 times.“, Fenster offen lassen, die Zeile folgt | Gate-Befund |
+
+- **Gate-Befund (Martin, 25.11.) – die Checkbox ändert nichts.** Kein Fehler: Martins `routes.json` hatte zwei Läufe aus
+  Gate 6b ohne `ship` (13 s und 33 s), also keine gemessene Loop. **Präzisierung in der Planphase, ratifiziert durch
+  Freigabe (Variante 2 mit E):** Unter der Checkbox steht, wie viele Loops das Schiff des Overlays gemessen hat:
+  „No loop measured yet with MISC Hull B – finish a plan 3 times.“ / „1 loop measured with …“ / „n loops measured with
+  …“ (`MeasuredTimes.EnoughCount`); ohne Schiff keine Zeile. Das Fenster bindet an `IMeasuredSummary` (`Text`,
+  `Changed`), das `RoutesViewModel` implementiert; kein Verweis auf den Reiter, Tests mit Fake. `Changed` nur bei neuem
+  Text (Schiffswechsel, Finish plan). D127-Addendum, `settings-format.md`. Tests:
+  `MeasuredTimesTests.Enough_counts_the_loops_with_three_runs_or_more`,
+  `RoutesViewModelTests.The_summary_counts_the_measured_loops_of_the_ship_and_tells_when_it_changes` (Grenze 1/2,
+  RAFT), `SettingsSessionTests.The_window_shows_the_measured_summary_under_the_switch_and_follows_it_until_it_closes`
+  (Fake, Detach), `SettingsWindowXamlTests.The_plan_tab_section_binds_rank_and_faction` (Zeile). Mutationsproben: ohne
+  Einzahl-Fall → 1 rot; `Detach` ohne Abmelden → 1 rot.
 
 ### [ ] T13.7 Streckenkarte
 

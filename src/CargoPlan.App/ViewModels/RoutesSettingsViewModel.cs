@@ -1,4 +1,5 @@
 using System.Globalization;
+using CargoPlan.App.Routing;
 using CargoPlan.App.Settings;
 using CargoPlan.Core.Json;
 using CargoPlan.Core.Routing;
@@ -25,6 +26,9 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
 
     private readonly Action<EventHandler<RoutesSettings>> _unfollow;
 
+    // The Plan tab's count of measured loops (gate finding T13.6c), followed until the window closes; null without a tab.
+    private readonly IMeasuredSummary? _measured;
+
     // True while values come from the session: they are what it holds already, nothing to write back.
     private bool _following;
 
@@ -32,13 +36,30 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
     /// session's routes section.</param>
     /// <param name="follow">Subscribes to <see cref="SettingsSession.RoutesChanged"/>.</param>
     /// <param name="unfollow">Unsubscribes, from <see cref="Detach"/> when the window closes.</param>
+    /// <param name="measured">How many loops the overlay's ship has measured, for the line under the switch; null hides it.</param>
     public RoutesSettingsViewModel(
-        RoutesSettings current, Action<string, string?, RoutesTimes, bool> change, Action<EventHandler<RoutesSettings>> follow, Action<EventHandler<RoutesSettings>> unfollow)
+        RoutesSettings current,
+        Action<string, string?, RoutesTimes, bool> change,
+        Action<EventHandler<RoutesSettings>> follow,
+        Action<EventHandler<RoutesSettings>> unfollow,
+        IMeasuredSummary? measured = null)
     {
-        (_change, _unfollow) = (change, unfollow);
+        (_change, _unfollow, _measured) = (change, unfollow, measured);
         Show(current);
         follow(OnSessionChanged);
+        if (measured is not null)
+        {
+            measured.Changed += OnMeasuredChanged;
+            MeasuredText = measured.Text;
+        }
     }
+
+    /// <summary>"No loop measured yet with MISC Hull B – finish a plan 3 times.": why the switch changes nothing yet.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasMeasuredText))]
+    public partial string MeasuredText { get; private set; } = "";
+
+    public bool HasMeasuredText => MeasuredText.Length > 0;
 
     public static IReadOnlyList<RoutesChoice> RankChoices { get; } =
         [.. Enum.GetValues<HaulRank>().Select(r => new RoutesChoice(EnumWords.Word(r), r.ToString()))];
@@ -96,7 +117,16 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
     public string JumpText => string.Create(CultureInfo.InvariantCulture, $"{Jump:0} min");
 
     /// <summary>The window closed: no more following the session.</summary>
-    public void Detach() => _unfollow(OnSessionChanged);
+    public void Detach()
+    {
+        _unfollow(OnSessionChanged);
+        if (_measured is not null)
+        {
+            _measured.Changed -= OnMeasuredChanged;
+        }
+    }
+
+    private void OnMeasuredChanged(object? sender, EventArgs e) => MeasuredText = _measured!.Text;
 
     partial void OnRankChanged(string value) => Write();
 

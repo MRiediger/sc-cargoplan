@@ -535,6 +535,9 @@
                         <!-- The player's own loop times (T13.6c, D127): loops finished 3+ times rank by the median instead of the times above. -->
                         <CheckBox Content="Use my measured loop times (3+ runs)" IsChecked="{Binding UseMeasured}" Margin="0,3"
                                   ToolTip="Loops you finished 3+ times with this ship use your median time instead of the values above." />
+                        <!-- Why the switch changes nothing yet (gate finding T13.6c): the overlay's ship's measured loops. -->
+                        <TextBlock Text="{Binding MeasuredText}" TextWrapping="Wrap" Margin="0,2,0,0"
+                                   Visibility="{Binding HasMeasuredText, Converter={StaticResource BooleanToVisibilityConverter}}" />
                     </StackPanel>
                 </GroupBox>
             </StackPanel>

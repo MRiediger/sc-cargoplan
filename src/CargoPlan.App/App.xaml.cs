@@ -494,7 +494,7 @@ public partial class App : Application
             () => CreateHotkeysViewModel(session),
             () => CreateUpdateSettingsViewModel(session),
             () => CreateShipDataSettingsViewModel(session),
-            () => CreateRoutesSettingsViewModel(session),
+            () => CreateRoutesSettingsViewModel(session, routes),
             scan.Start,
             _activeShipData is { } active ? HoloSource.UnavailableText(active) : null);
         if (settings.Overlay is { } saved)
@@ -769,12 +769,16 @@ public partial class App : Application
         return null;
     }
 
-    /// <summary>The settings window's Plan tab section (T13.3): rank, faction, times and the measured times' switch (T13.6c) into the session's routes section.</summary>
-    private static RoutesSettingsViewModel CreateRoutesSettingsViewModel(SettingsSession session) => new(
+    /// <summary>
+    /// The settings window's Plan tab section (T13.3): rank, faction, times and the measured times' switch (T13.6c) into the
+    /// session's routes section; under the switch the Plan tab's count of measured loops, through its interface only.
+    /// </summary>
+    private static RoutesSettingsViewModel CreateRoutesSettingsViewModel(SettingsSession session, IMeasuredSummary measured) => new(
         session.Current.Routes,
-        (rank, faction, times, measured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured }),
+        (rank, faction, times, useMeasured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = useMeasured }),
         handler => session.RoutesChanged += handler,
-        handler => session.RoutesChanged -= handler);
+        handler => session.RoutesChanged -= handler,
+        measured);
 
     /// <summary>
     /// The settings window's Updates section (U8, U9), made per window like the hotkeys'. Check now offers into the overlay's

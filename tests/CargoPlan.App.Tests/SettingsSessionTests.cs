@@ -776,6 +776,43 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void The_window_shows_the_measured_summary_under_the_switch_and_follows_it_until_it_closes()
+    {
+        // Gate finding T13.6c (E): the window knows an IMeasuredSummary, not the Plan tab; here a fake.
+        var session = Create();
+        var summary = new FakeSummary("No loop measured yet with MISC Hull B – finish a plan 3 times.");
+        RoutesSettingsViewModel Window(IMeasuredSummary? measured) => new(session.Current.Routes, (_, _, _, _) => { },
+            handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler, measured);
+        var window = Window(summary);
+        (window.MeasuredText, window.HasMeasuredText).Should().Be((summary.Text, true));
+
+        summary.Change("1 loop measured with MISC Hull B");
+        window.MeasuredText.Should().Be("1 loop measured with MISC Hull B");
+
+        window.Detach();
+        summary.Listeners.Should().Be(0, "a closed window follows nothing");
+        summary.Change("2 loops measured with MISC Hull B");
+        window.MeasuredText.Should().Be("1 loop measured with MISC Hull B");
+
+        (Window(new FakeSummary("")).HasMeasuredText, Window(null).HasMeasuredText).Should().Be((false, false), "no ship, or no tab: no line");
+    }
+
+    private sealed class FakeSummary(string text) : IMeasuredSummary
+    {
+        public event EventHandler? Changed;
+
+        public string Text { get; private set; } = text;
+
+        public int Listeners => Changed?.GetInvocationList().Length ?? 0;
+
+        public void Change(string text)
+        {
+            Text = text;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    [Fact]
     public void ChangeCheckOnStartup_writes_on_flush()
     {
         var session = Create();

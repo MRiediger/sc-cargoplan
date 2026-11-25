@@ -96,6 +96,18 @@ public class MeasuredTimesTests
     }
 
     [Fact]
+    public void Enough_counts_the_loops_with_three_runs_or_more()
+    {
+        // The settings window's line under the switch (gate finding T13.6c): a loop with two runs doesn't count yet.
+        var reversed = Ring with { Stations = [L4, L1] };
+        RouteRun[] runs = [Run(70), Run(80, 1), Run(90, 2), Run(70, loop: reversed), Run(80, 1, loop: reversed)];
+
+        MeasuredTimes.For(runs, "hull_b").EnoughCount.Should().Be(1);
+        MeasuredTimes.For([.. runs, Run(90, 2, loop: reversed)], "hull_b").EnoughCount.Should().Be(2);
+        MeasuredTimes.Empty.EnoughCount.Should().Be(0);
+    }
+
+    [Fact]
     public void Another_loop_is_another_key()
     {
         var reversed = Ring with { Stations = [L4, L1] };

@@ -64,6 +64,9 @@ public sealed class MeasuredTimes
     /// <summary>One line per run of the ship left out for its time, for the log (Core doesn't log).</summary>
     public IReadOnlyList<string> Ignored { get; }
 
+    /// <summary>Loops with enough runs to rank by them: the settings window's line under the switch (gate finding T13.6c).</summary>
+    public int EnoughCount => _loops.Values.Count(l => l.IsEnough);
+
     /// <summary>
     /// The loops <paramref name="runs"/> measured with the ship <paramref name="shipId"/>: a run of another ship measures
     /// nothing for it (a RAFT's round is no Hull B's). A run that names no loop counts silently not; one out of
