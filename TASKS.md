@@ -827,6 +827,12 @@ ratifiziert.
   D69-Addendum. Tests: `PlaceNamesTests.A_place_as_the_card_writes_it_is_its_positions_short_name_else_as_it_is`,
   `LegendLineTests.The_header_names_the_short_form_of_the_destination_of_the_line_under_it`; vier bestehende
   Kopfzeilen-Tests um „· to …“ nachgezogen. Handling gegen main: Legenden-Kopf „From … · #n“ → „From … · to … · #n“.
+- **Nachtrag vor dem Merge (25.11., Martin: „Nachtrag in T13.6“, für T13.6c) – Präzisierung in der Planphase, ratifiziert
+  durch Freigabe:** `runs[]` schreibt `ship` (Schiff des Overlays beim Finish) und `stations` (die Stationen der Route aus
+  der Loop, ohne Extras) – die Loop-Identität für gemessene Zeiten; beim Lesen optional, ein Lauf ohne sie (Gate 6b) misst
+  keine Loop; Schema 3 bleibt (unveröffentlicht). `routes-format.md`, D126-Addendum. Tests:
+  `RoutesFileTests.A_run_names_its_ship_and_stations_and_one_written_without_them_is_still_read`, Finish in
+  `RouteProgressTests` und `RouteBarTests` mit Schiff und Stationen.
 - **Testnamen 6b:** `RouteProgressTests` (Stopps, Entladen, Gehalten/Slots, Simulation fits/too big, ohne Entladen too
   big, gefüllt/collect, Extras K6, Advance, Step/Abflug, Run), `RouteBarTests` (Texte und ‹ ›, Abhaken rückt weiter,
   Rückläufer-Zeilen, Finish mit Run und Notice, Finish nur am Ende), `RouteScanTests.Finishing_the_route_leaves_plan_json_byte_for_byte`

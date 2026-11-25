@@ -266,12 +266,12 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(IsAtEnd))]
     private void FinishPlan()
     {
-        if (Route is not { } route || _progress is not { } progress)
+        if (Route is not { } route || _progress is not { } progress || _ship is not { } ship)
         {
             return;
         }
 
-        var run = Route.Finish(route, _saved, progress, _positions, _clock());
+        var run = Route.Finish(route, _saved, progress, _positions, ship, _clock());
         _finished?.Invoke(run);
         AppLog.Write(LogContext, Invariant($"plan finished: {run.Name}, {run.Reward} aUEC, {run.Time.TotalMinutes:0} min, {run.Filled}/{run.Total} filled, {run.Extras} extras, {run.Landings} landings"));
         SetRoute(null);

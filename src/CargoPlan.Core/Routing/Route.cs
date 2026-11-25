@@ -143,7 +143,8 @@ public sealed record Route(
     /// theirs; landings and long jumps (over <see cref="Loops.LongJumpGm"/>) are the stops'; the time runs from the
     /// departure (<see cref="RouteRun.Time"/>).
     /// </summary>
-    public static RouteRun Finish(Route route, SavedPlan? plan, RouteProgress progress, Positions positions, DateTime now)
+    /// <param name="ship">The overlay's ship: with the route's stations the loop's identity (T13.6c).</param>
+    public static RouteRun Finish(Route route, SavedPlan? plan, RouteProgress progress, Positions positions, Ship ship, DateTime now)
     {
         var missions = plan?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Contract!.Scan.Key) ?? [];
         HashSet<string> keys = [.. missions.Keys];
@@ -158,7 +159,7 @@ public sealed record Route(
             positions.Find(route.System, leg.First) is { } a && positions.Find(route.System, leg.Second) is { } b && Positions.DistanceGm(a, b) > Loops.LongJumpGm);
 
         return new(route.Name, route.StartedUtc, route.DepartedUtc, now, route.Hub, route.Kind, route.System,
-            progress.Landings, crates, longJumps, reward, filled.Count, route.Placeholders.Count, extras.Count);
+            progress.Landings, crates, longJumps, reward, filled.Count, route.Placeholders.Count, extras.Count, ship.Id, route.Stations);
     }
 
     /// <summary>

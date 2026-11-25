@@ -183,6 +183,20 @@ public class RoutesFileTests
     }
 
     [Fact]
+    public void A_run_names_its_ship_and_stations_and_one_written_without_them_is_still_read()
+    {
+        // The loop's identity for measured times (T13.6c): written always; a run of the branch before (gate 6b) has none.
+        var json = Write(Observations.Empty, null, [SomeRun()]);
+        json.Should().Contain("\"ship\": \"hull_b\"").And.Contain("\"stations\": [");
+
+        var older = json.Replace("\"ship\": \"hull_b\",", "", StringComparison.Ordinal);
+        older = older.Remove(older.IndexOf("\"stations\"", StringComparison.Ordinal), older.IndexOf(']', older.IndexOf("\"stations\"", StringComparison.Ordinal)) + 2 - older.IndexOf("\"stations\"", StringComparison.Ordinal));
+
+        var run = Read(older).Runs.Single();
+        (run.ShipId, run.Stations).Should().Be((null, null));
+    }
+
+    [Fact]
     public void A_route_departed_before_it_started_and_more_runs_than_kept_are_refused()
     {
         var early = () => Read(Write(Observations.Empty, SomeRoute() with { DepartedUtc = Monday.AddHours(-1) }, []));
@@ -219,7 +233,8 @@ public class RoutesFileTests
 
     internal static RouteRun SomeRun() => new(
         "Everus ring", Monday, Monday.AddMinutes(10), Monday.AddMinutes(95), "Everus Harbor", LoopKind.LocalRing, StarSystem.Stanton,
-        Landings: 6, Crates: 50, LongJumps: 4, Reward: 877_000, Filled: 9, Total: 10, Extras: 1);
+        Landings: 6, Crates: 50, LongJumps: 4, Reward: 877_000, Filled: 9, Total: 10, Extras: 1,
+        ShipId: "hull_b", Stations: ["HUR-L1 Green Glade Station", "HUR-L4 Melodic Fields Station"]);
 
     private static string ReplaceFirst(string text, string from, string to)
     {

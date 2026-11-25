@@ -8,6 +8,10 @@ namespace CargoPlan.Core.Routing;
 /// <param name="Reward">The rewards of the filled placeholders and the extras, as the plan read them; never an open placeholder's.</param>
 /// <param name="Filled">Placeholders filled at the finish, of <paramref name="Total"/>.</param>
 /// <param name="Extras">Accepted contracts outside the placeholders.</param>
+/// <param name="ShipId">The overlay's ship at the finish: with <paramref name="Stations"/> the loop's identity for measured times
+/// (T13.6c). Written always; null in a run written before (the branch's gate 6b).</param>
+/// <param name="Stations">The route's stations as Start plan made them from the loop (<see cref="Route.Stations"/>), without
+/// the extras' places; null as <paramref name="ShipId"/>.</param>
 public sealed record RouteRun(
     string Name,
     DateTime StartedUtc,
@@ -22,7 +26,9 @@ public sealed record RouteRun(
     long Reward,
     int Filled,
     int Total,
-    int Extras)
+    int Extras,
+    string? ShipId = null,
+    IReadOnlyList<string>? Stations = null)
 {
     /// <summary>Runs routes.json keeps; the oldest goes first.</summary>
     public const int MaxKept = 50;

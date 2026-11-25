@@ -147,7 +147,8 @@ public sealed class RouteBarTests
 
         overlay.ActiveRoute!.FinishPlanCommand.Execute(null);
 
-        _runs.Should().ContainSingle().Which.Should().Match<RouteRun>(r => r.Reward == 50_250 && r.Time == TimeSpan.FromMinutes(80) && r.Landings == 3);
+        _runs.Should().ContainSingle().Which.Should().Match<RouteRun>(r => r.Reward == 50_250 && r.Time == TimeSpan.FromMinutes(80) && r.Landings == 3
+            && r.ShipId == HullA.Id && r.Stations!.SequenceEqual(new[] { Riker, Orison }));
         (overlay.ActiveRoute.HasRoute, _saved.Last()).Should().Be((false, null));
         overlay.Notices.Should().Contain("Plan finished: Everus ring · 50,250 aUEC · 1 h 20 min");
     }

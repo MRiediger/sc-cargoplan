@@ -291,6 +291,8 @@ Written by **Finish plan** at the hub (T13.6, 6b, D126).
 | `landings`, `crates`, `longJumps` | number | Landings at least 1, the others at least 0. |
 | `reward` | number | aUEC of the filled placeholders and the extras as the plan read them; never an open placeholder's. |
 | `filled`, `total`, `extras` | number | Placeholders filled of all, and the extras; `filled ≤ total`. |
+| `ship` | string | Optional when read, always written: the overlay's ship at the finish (its id, `hull_b`). |
+| `stations` | array of strings | Optional when read, always written: the route's stations as Start plan made them from the loop, without the extras' places. With `ship`, `hub`, `kind` and `system` the loop a run measured (T13.6c); a run without them measured none. |
 
 ## Older schemas
 

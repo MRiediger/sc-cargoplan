@@ -187,10 +187,13 @@ public class RouteProgressTests
         };
         var progress = RouteProgress.Of(route, plan, HullB, Places);
 
-        var run = Route.Finish(route, plan, progress, Places, Monday.AddMinutes(95));
+        var run = Route.Finish(route, plan, progress, Places, HullB, Monday.AddMinutes(95));
 
-        run.Should().Be(new RouteRun("Everus ring", Monday, Monday.AddMinutes(15), Monday.AddMinutes(95), Everus, LoopKind.LocalRing, StarSystem.Stanton,
-            Landings: 5, Crates: 8, LongJumps: 4, Reward: 351_750, Filled: 1, Total: 2, Extras: 1));
+        // The loop's identity for measured times (T13.6c): the ship and the stations as Start plan made them, the extra's
+        // Teasa not among them.
+        run.Should().BeEquivalentTo(new RouteRun("Everus ring", Monday, Monday.AddMinutes(15), Monday.AddMinutes(95), Everus, LoopKind.LocalRing, StarSystem.Stanton,
+            Landings: 5, Crates: 8, LongJumps: 4, Reward: 351_750, Filled: 1, Total: 2, Extras: 1, ShipId: HullB.Id, Stations: [L1, L4, L2]),
+            options => options.WithStrictOrdering());
         run.Time.Should().Be(TimeSpan.FromMinutes(80), "from the departure, not the start; #3 is no part of the route");
     }
 

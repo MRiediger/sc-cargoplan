@@ -127,10 +127,14 @@ internal sealed record RunDto(
     int Filled,
     int Total,
     int Extras,
+    string? Ship = null,
+    IReadOnlyList<string>? Stations = null,
     DateTime? DepartedUtc = null)
 {
+    // Ship and stations: the loop's identity for measured times (T13.6c), written always, read where there.
     public static RunDto From(RouteRun r) => new(
-        r.Name, r.StartedUtc, r.FinishedUtc, r.Hub, Word(r.Kind), Word(r.System), r.Landings, r.Crates, r.LongJumps, r.Reward, r.Filled, r.Total, r.Extras, r.DepartedUtc);
+        r.Name, r.StartedUtc, r.FinishedUtc, r.Hub, Word(r.Kind), Word(r.System), r.Landings, r.Crates, r.LongJumps, r.Reward, r.Filled, r.Total, r.Extras,
+        r.ShipId, r.Stations, r.DepartedUtc);
 
     public RouteRun ToRun()
     {
@@ -149,6 +153,6 @@ internal sealed record RunDto(
         }
 
         return new(Name, StartedUtc, DepartedUtc, FinishedUtc, Hub, Parse<LoopKind>(Kind), Parse<StarSystem>(System),
-            Landings, Crates, LongJumps, Reward, Filled, Total, Extras);
+            Landings, Crates, LongJumps, Reward, Filled, Total, Extras, Ship, Stations);
     }
 }
