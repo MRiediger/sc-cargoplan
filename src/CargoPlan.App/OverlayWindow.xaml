@@ -1125,13 +1125,6 @@
                                         </Button.InputBindings>
                                         <TextBlock Text="{Binding SortLabel}" Style="{StaticResource FilterLabelStyle}" />
                                     </Button>
-                                    <!-- T13.6 (K4): the route of the row clicked last, else the top row (loops) or the hub's ring
-                                         (recipe); its tool tip says which, also while it can't start. -->
-                                    <Button x:Name="StartPlanButton" Command="{Binding StartPlanCommand}" Style="{StaticResource FilterButtonStyle}"
-                                            ToolTip="{Binding StartPlanToolTip}" ToolTipService.ShowOnDisabled="True"
-                                            Visibility="{Binding OffersStart, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <TextBlock Text="Start plan" Style="{StaticResource FilterLabelStyle}" />
-                                    </Button>
                                     <Button Command="{Binding NextCommand}" CommandParameter="rank" Style="{StaticResource FilterButtonStyle}">
                                         <Button.InputBindings>
                                             <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="rank" />
@@ -1143,6 +1136,13 @@
                                             <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="system" />
                                         </Button.InputBindings>
                                         <TextBlock Text="{Binding SystemLabel}" Style="{StaticResource FilterLabelStyle}" />
+                                    </Button>
+                                    <!-- T13.6 (K4): the route of the row clicked last, else the top row (loops) or the hub's ring
+                                         (recipe); its tool tip says which, also while it can't start. Right of the system (gate 6a). -->
+                                    <Button x:Name="StartPlanButton" Command="{Binding StartPlanCommand}" Style="{StaticResource FilterButtonStyle}"
+                                            ToolTip="{Binding StartPlanToolTip}" ToolTipService.ShowOnDisabled="True"
+                                            Visibility="{Binding OffersStart, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="Start plan" Style="{StaticResource FilterLabelStyle}" />
                                     </Button>
                                     <Button Command="{Binding NextCommand}" CommandParameter="area" Style="{StaticResource FilterButtonStyle}" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Button.InputBindings>

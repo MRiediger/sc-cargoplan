@@ -706,7 +706,7 @@ im Plan vs. Positionsnamen der Route → `Positions.Resolve` (6b).
 
   | Geste | Soll (= main) | Ist Branch (erwartet) |
   |---|---|---|
-  | Filterzeile Plan-Reiter | View, Hub (Recipe), Sort (Loops), Rang, System, … | dazu „Start plan“ in Recipe und Loops, Tooltip auch deaktiviert |
+  | Filterzeile Plan-Reiter | View, Hub (Recipe), Sort (Loops), Rang, System, … | dazu „Start plan“ in Recipe und Loops rechts neben dem System-Button (Gate-Befund 25.11.), Tooltip auch deaktiviert |
   | Klick auf Loop-Zeile | Stanton → Recipe des Hubs; LEO/Pyro nichts | Stanton gleich, dazu markiert; LEO/Pyro markiert (Balken links), bleibt in Loops |
   | „Start plan“ (neu) | – | Route in routes.json, Reiter → Cargo; zweite Route nur nach Ja |
   | Cargo-Reiter mit Route (neu) | – | Block „Plan“ über der Legende, scrollt mit ihr; „End plan“ |

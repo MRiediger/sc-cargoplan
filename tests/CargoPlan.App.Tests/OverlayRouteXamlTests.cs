@@ -24,12 +24,12 @@ public class OverlayRouteXamlTests
         root.Descendants().Single(e => (string?)e.Attribute(X + "Key") == key);
 
     [Fact]
-    public void Start_plan_is_a_filter_button_after_the_sort_with_the_recipe_and_the_loops_and_says_why_while_off()
+    public void Start_plan_is_a_filter_button_right_of_the_system_with_the_recipe_and_the_loops_and_says_why_while_off()
     {
         var button = Named(Root(), "StartPlanButton");
 
         button.Parent!.Name.LocalName.Should().Be("WrapPanel", "the filter row");
-        button.ElementsBeforeSelf().Last().Attribute("CommandParameter")!.Value.Should().Be("sort");
+        button.ElementsBeforeSelf().Last().Attribute("CommandParameter")!.Value.Should().Be("system", "right of the system button (Martin, gate 6a)");
         ((string?)button.Attribute("Command")).Should().Be("{Binding StartPlanCommand}");
         ((string?)button.Attribute("Style")).Should().Be("{StaticResource FilterButtonStyle}");
         ((string?)button.Attribute("Visibility")).Should().Contain("OffersStart");
