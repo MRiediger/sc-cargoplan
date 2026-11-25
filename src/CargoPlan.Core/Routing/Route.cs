@@ -105,6 +105,63 @@ public sealed record Route(
         [.. loop.Contracts.Select((role, i) => Placeholder.Of(i + 1, role, edges))], []);
 
     /// <summary>
+    /// The bar moved by hand (‹ ›, T13.6 6b): <paramref name="delta"/> stops on, within the <paramref name="stops"/> of the
+    /// route's progress. Leaving the hub at the start sets <see cref="DepartedUtc"/>, once: the time at the terminal to
+    /// accept is no part of the round (D126).
+    /// </summary>
+    public Route Step(int delta, int stops, DateTime now)
+    {
+        var at = Math.Clamp(At + delta, 0, stops - 1);
+        return this with { At = at, DepartedUtc = DepartedUtc ?? (at > 0 ? now : null) };
+    }
+
+    /// <summary>
+    /// The bar follows the ticks (E(b) of T13.6): a line ticked at a later stop moves it there; the last open line of the
+    /// stop it stands at ticked moves it to the next. Ticking back moves nothing; ‹ goes back by hand.
+    /// </summary>
+    public static Route Advance(Route route, RouteProgress before, RouteProgress after, DateTime now)
+    {
+        var stops = after.Stops.Count;
+        if (before.Stops.Count != stops)
+        {
+            return route;
+        }
+
+        var ticked = Enumerable.Range(1, stops - 1).Where(i => after.Stops[i].LinesDone > before.Stops[i].LinesDone).DefaultIfEmpty(0).Max();
+        if (ticked > route.At)
+        {
+            route = route.Step(ticked - route.At, stops, now);
+        }
+
+        var at = route.At;
+        return at >= 1 && at < stops - 1 && before.Stops[at].Open > 0 && after.Stops[at].Open == 0 ? route.Step(+1, stops, now) : route;
+    }
+
+    /// <summary>
+    /// "Finish plan" at the hub (T13.6 6b, D126): the run of the route. The reward is the filled placeholders' and the
+    /// extras' as the plan read them (a placeholder's own where the scan read none), never an open one's; the crates are
+    /// theirs; landings and long jumps (over <see cref="Loops.LongJumpGm"/>) are the stops'; the time runs from the
+    /// departure (<see cref="RouteRun.Time"/>).
+    /// </summary>
+    public static RouteRun Finish(Route route, SavedPlan? plan, RouteProgress progress, Positions positions, DateTime now)
+    {
+        var missions = plan?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Contract!.Scan.Key) ?? [];
+        HashSet<string> keys = [.. missions.Keys];
+        var filled = route.Placeholders.Where(p => IsFilled(p, keys)).ToList();
+        var extras = route.Extras.Where(missions.ContainsKey).ToList();
+        HashSet<int> ids = [.. filled.Select(p => missions[p.FilledBy!].Id), .. extras.Select(k => missions[k].Id)];
+        var reward = filled.Sum(p => missions[p.FilledBy!].Contract!.Reward ?? p.Reward ?? 0) + extras.Sum(k => missions[k].Contract!.Reward ?? 0);
+        var crates = plan?.Plan.Crates.Count(c => ids.Contains(c.Mission)) ?? 0;
+
+        var names = progress.Stops.Select(s => s.Name).ToList();
+        var longJumps = names.Zip(names.Skip(1)).Count(leg =>
+            positions.Find(route.System, leg.First) is { } a && positions.Find(route.System, leg.Second) is { } b && Positions.DistanceGm(a, b) > Loops.LongJumpGm);
+
+        return new(route.Name, route.StartedUtc, route.DepartedUtc, now, route.Hub, route.Kind, route.System,
+            progress.Landings, crates, longJumps, reward, filled.Count, route.Placeholders.Count, extras.Count);
+    }
+
+    /// <summary>
     /// "Start plan" takes the cargo (gate 6a, Martin 25 Nov, option 1): every accepted contract of <paramref name="plan"/>
     /// the route doesn't hold yet, in scan order, against the templates of the open placeholders. The scan key (D101) has no
     /// title, so each template lends its rank and size and <see cref="TemplateMatch"/> checks the rest (reward, commodities,
