@@ -1,4 +1,6 @@
 using CargoPlan.Core.Models;
+using CargoPlan.Core.Planning;
+using CargoPlan.Core.Plans;
 using CargoPlan.Core.Routing;
 using static CargoPlan.Core.Tests.TemplateFixtures;
 
@@ -268,6 +270,42 @@ public class LoopsTests
     }
 
     [Fact]
+    public void A_measured_row_overtakes_a_model_row_by_the_hour_and_leaves_loop_and_landing_alone()
+    {
+        // By the model the direct pays more per hour (375k against 360k, above); the ring flown in a median 50 min pays 456k.
+        var ring = Made(LoopKind.LocalRing, 380_000, stations: 5, crates: 10);
+        var direct = Made(LoopKind.Direct, 250_000, stations: 1, crates: 60);
+        var measured = MeasuredTimes.For([RunOf(ring, 45, 0), RunOf(ring, 50, 1), RunOf(ring, 70, 2)], HullB.Id);
+
+        Loops.Rank([ring, direct], LoopSort.PerHour, LoopTimes.Default, measured).Should().Equal(ring, direct);
+        Loops.Value(ring, LoopSort.PerHour, LoopTimes.Default, measured).Should().BeApproximately(380_000 / 50.0 * 60, 1e-6);
+        Loops.Value(direct, LoopSort.PerHour, LoopTimes.Default, measured).Should().Be(direct.PerHour(LoopTimes.Default), "a row is measured or modelled, never both");
+        Loops.Value(ring, LoopSort.PerLoop, LoopTimes.Default, measured).Should().Be(380_000);
+        Loops.Value(ring, LoopSort.PerLanding, LoopTimes.Default, measured).Should().Be(ring.PerLanding);
+        Loops.Rank([ring, direct], LoopSort.PerHour, LoopTimes.Default, null).Should().Equal(direct, ring);
+        Loops.Rank([ring, direct], LoopSort.PerHour, LoopTimes.Default, MeasuredTimes.Empty).Should().Equal(direct, ring);
+    }
+
+    [Fact]
+    public void A_loop_started_and_finished_is_measured_as_the_same_loop()
+    {
+        // The key both ways (T13.6c): the candidate's, and the run's that Start plan and Finish plan made of it.
+        HaulTemplate[] templates = [SeniorMedium(), Back(L1), Direct([L3]), Direct([L3], commodity: "Iron"), Direct([L5], reward: 90_000)];
+        var loops = For(templates).Where(l => l.HasNumbers && l.System == StarSystem.Stanton).ToList();
+        loops.Select(l => l.Kind).Should().Contain([LoopKind.LocalRing, LoopKind.Direct]);
+        var plan = new SavedPlan([], new LoadPlan(HullB.Id, [], []), CrateCap.Of(HullB));
+
+        foreach (var loop in loops)
+        {
+            var route = Route.From(loop, "name", ObservedEdges.Empty, Monday) with { DepartedUtc = Monday };
+            var run = Route.Finish(route, plan, RouteProgress.Of(route, plan, HullB, Places), Places, HullB, templates, Monday.AddMinutes(60));
+
+            LoopKey.Of(run).Should().Be(LoopKey.Of(loop), $"{loop.Kind} from {loop.Start}");
+            loops.Where(other => other != loop).Should().NotContain(other => LoopKey.Of(other) == LoopKey.Of(run));
+        }
+    }
+
+    [Fact]
     public void Per_hour_uses_landings_crates_and_long_jumps_only()
     {
         var ring = Made(LoopKind.LocalRing, 1_010_000, stations: 5, crates: 75, longJumps: 4);
@@ -292,6 +330,14 @@ public class LoopsTests
     private static LoopCandidate Made(LoopKind kind, long? reward, int stations, int crates, int longJumps = 0) => new(
         kind, StarSystem.Stanton, Everus, [.. Enumerable.Range(0, stations).Select(i => $"S{i}")],
         [new RecipeRole(RecipeKind.Small, Direct([L1]), [L1], 20, crates)], reward, false, crates, longJumps, 0, 0, 1);
+
+    // A run of loop that took minutes, finished day days after Monday.
+    private static RouteRun RunOf(LoopCandidate loop, double minutes, int day)
+    {
+        var finished = Monday.AddDays(day);
+        return new("run", finished.AddMinutes(-minutes), null, finished, loop.Start, loop.Kind, loop.System,
+            loop.Landings, loop.Crates, loop.LongJumps, loop.Reward ?? 0, 1, 1, 0, HullB.Id, loop.Stations);
+    }
 
     private static ObservedEdges Edges(IReadOnlyList<HaulTemplate> templates, params Observation[] seen) =>
         ObservedEdges.From(new Observations(seen), templates, Places);
