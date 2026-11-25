@@ -129,13 +129,16 @@ internal sealed record RunDto(
     int Extras,
     string? Ship = null,
     IReadOnlyList<string>? Stations = null,
-    DateTime? DepartedUtc = null)
+    DateTime? DepartedUtc = null,
+    DirectDto? Direct = null)
 {
-    // Ship and stations: the loop's identity for measured times (T13.6c), written always, read where there.
+    // Ship and stations: the loop's identity for measured times (T13.6c), written always, read where there; a direct
+    // run's contract with them (P1).
     public static RunDto From(RouteRun r) => new(
         r.Name, r.StartedUtc, r.FinishedUtc, r.Hub, Word(r.Kind), Word(r.System), r.Landings, r.Crates, r.LongJumps, r.Reward, r.Filled, r.Total, r.Extras,
-        r.ShipId, r.Stations, r.DepartedUtc);
+        r.ShipId, r.Stations, r.DepartedUtc, r.Direct is { } d ? new DirectDto(Word(d.Rank), Word(d.Size), d.Reward) : null);
 
+    /// <exception cref="ArgumentException">A word, time or count out of the format, or a contract on a run that is no direct one.</exception>
     public RouteRun ToRun()
     {
         RouteDto.Utc(StartedUtc, "startedUtc");
@@ -152,7 +155,22 @@ internal sealed record RunDto(
             throw new ArgumentException($"the run {Name}: landings at least 1, no count below 0, filled at most total.");
         }
 
-        return new(Name, StartedUtc, DepartedUtc, FinishedUtc, Hub, Parse<LoopKind>(Kind), Parse<StarSystem>(System),
-            Landings, Crates, LongJumps, Reward, Filled, Total, Extras, Ship, Stations);
+        var kind = Parse<LoopKind>(Kind);
+        if (Direct is not null && kind != LoopKind.Direct)
+        {
+            throw new ArgumentException($"the run {Name}: only a direct run names its direct contract, this one is {Kind}.");
+        }
+
+        if (Direct?.Reward is < 1)
+        {
+            throw new ArgumentException($"the run {Name}: the direct contract's reward {Direct.Reward} is below 1.");
+        }
+
+        return new(Name, StartedUtc, DepartedUtc, FinishedUtc, Hub, kind, Parse<StarSystem>(System),
+            Landings, Crates, LongJumps, Reward, Filled, Total, Extras, Ship, Stations,
+            Direct is { } d ? new DirectContract(Parse<HaulRank>(d.Rank), Parse<HaulSize>(d.Size), d.Reward) : null);
     }
 }
+
+/// <summary>A direct run's outbound contract (T13.6c): words as in the hauling data, the reward left out where unknown.</summary>
+internal sealed record DirectDto(string Rank, string Size, long? Reward = null);

@@ -271,7 +271,7 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
             return;
         }
 
-        var run = Route.Finish(route, _saved, progress, _positions, ship, _clock());
+        var run = Route.Finish(route, _saved, progress, _positions, ship, _templates, _clock());
         _finished?.Invoke(run);
         AppLog.Write(LogContext, Invariant($"plan finished: {run.Name}, {run.Reward} aUEC, {run.Time.TotalMinutes:0} min, {run.Filled}/{run.Total} filled, {run.Extras} extras, {run.Landings} landings"));
         SetRoute(null);

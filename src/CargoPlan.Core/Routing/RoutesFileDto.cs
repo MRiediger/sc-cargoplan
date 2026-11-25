@@ -1,17 +1,25 @@
+using System.Text.Json;
 using static CargoPlan.Core.Json.EnumWords;
 
 namespace CargoPlan.Core.Routing;
 
-/// <summary>routes.json as written (docs/routes-format.md): the observations, since schema 3 (T13.6) the route and the runs, each left out while there is none.</summary>
-internal sealed record RoutesFileDto(int SchemaVersion, IReadOnlyList<ObservationDto> Observations, RouteDto? Route = null, IReadOnlyList<RunDto>? Runs = null)
+/// <summary>
+/// routes.json as written (docs/routes-format.md): the observations, since schema 3 (T13.6) the route and the runs, each
+/// left out while there is none. The runs stay raw until <see cref="ToRoute"/>: each is read alone (K1 of T13.6c).
+/// </summary>
+internal sealed record RoutesFileDto(int SchemaVersion, IReadOnlyList<ObservationDto> Observations, RouteDto? Route = null, IReadOnlyList<JsonElement>? Runs = null)
 {
     public static RoutesFileDto From(Observations observations, Route? route, IReadOnlyList<RouteRun> runs) => new(
         RoutesFile.SupportedSchemaVersion, [.. observations.Entries.Select(ObservationDto.From)],
-        route is null ? null : RouteDto.From(route), runs.Count == 0 ? null : [.. runs.Select(RunDto.From)]);
+        route is null ? null : RouteDto.From(route),
+        runs.Count == 0 ? null : [.. runs.Select(r => JsonSerializer.SerializeToElement(RunDto.From(r), RoutesJsonContext.Default.RunDto))]);
 
-    /// <summary>The route and the runs; none before schema 3.</summary>
-    /// <exception cref="ArgumentException">A route or run in an older schema, out of the format, or more runs than kept.</exception>
-    public (Route? Route, IReadOnlyList<RouteRun> Runs) ToRoute(int schemaVersion)
+    /// <summary>
+    /// The route and the runs; none before schema 3. A run out of the format is left out with a line (K1 of T13.6c): a
+    /// measurement is worth less than the file, whose observations and route stay.
+    /// </summary>
+    /// <exception cref="ArgumentException">A route or runs in an older schema, a route out of the format, or more runs than kept.</exception>
+    public (Route? Route, IReadOnlyList<RouteRun> Runs, IReadOnlyList<string> Dropped) ToRoute(int schemaVersion)
     {
         if (schemaVersion < 3 && (Route is not null || Runs is not null))
         {
@@ -23,7 +31,22 @@ internal sealed record RoutesFileDto(int SchemaVersion, IReadOnlyList<Observatio
             throw new ArgumentException($"{Runs.Count} runs, at most {RouteRun.MaxKept} are kept.");
         }
 
-        return (Route?.ToRoute(), Runs is null ? [] : [.. Runs.Select(r => r.ToRun())]);
+        List<RouteRun> runs = [];
+        List<string> dropped = [];
+        foreach (var (element, i) in (Runs ?? []).Select((e, i) => (e, i)))
+        {
+            try
+            {
+                var dto = element.Deserialize(RoutesJsonContext.Default.RunDto) ?? throw new JsonException("the run is null.");
+                runs.Add(dto.ToRun());
+            }
+            catch (Exception ex) when (ex is JsonException or ArgumentException)
+            {
+                dropped.Add($"runs[{i}] left out: {ex.Message}");
+            }
+        }
+
+        return (Route?.ToRoute(), runs, dropped);
     }
 
     /// <summary>The observations; of schema 1 only the entries with one commodity (K1 of T13.3), the others named.</summary>

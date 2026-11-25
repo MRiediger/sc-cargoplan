@@ -4,7 +4,7 @@ using CargoPlan.Core.Json;
 namespace CargoPlan.Core.Routing;
 
 /// <summary>What a routes file held: its observations, folded, the schema 1 entries left out (K1 of T13.3), the route and the runs (T13.6).</summary>
-/// <param name="Dropped">One line per entry left out, for the log.</param>
+/// <param name="Dropped">One line per entry or run left out, for the log.</param>
 /// <param name="Route">The route the player flies; null while none is started.</param>
 /// <param name="Runs">The finished routes, oldest first.</param>
 public sealed record RoutesRead(Observations Observations, IReadOnlyList<string> Dropped, Route? Route, IReadOnlyList<RouteRun> Runs);
@@ -39,8 +39,8 @@ public static class RoutesFile
             var file = document.RootElement.Deserialize(RoutesJsonContext.Default.RoutesFileDto)
                        ?? throw new JsonException("The file contains null.");
             var (observations, dropped) = file.ToObservations(version);
-            var (route, runs) = file.ToRoute(version);
-            return new(observations.Folded(), dropped, route, runs);
+            var (route, runs, droppedRuns) = file.ToRoute(version);
+            return new(observations.Folded(), [.. dropped, .. droppedRuns], route, runs);
         }
         catch (Exception ex) when (ex is JsonException or ArgumentException)
         {

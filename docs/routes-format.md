@@ -293,6 +293,15 @@ Written by **Finish plan** at the hub (T13.6, 6b, D126).
 | `filled`, `total`, `extras` | number | Placeholders filled of all, and the extras; `filled ≤ total`. |
 | `ship` | string | Optional when read, always written: the overlay's ship at the finish (its id, `hull_b`). |
 | `stations` | array of strings | Optional when read, always written: the route's stations as Start plan made them from the loop, without the extras' places. With `ship`, `hub`, `kind` and `system` the loop a run measured (T13.6c); a run without them measured none. |
+| `direct` | object | Only for `kind` `"direct"`, optional when read, written where the template is known: the outbound contract's `rank` and `size` (words as in `hauling-templates.json`) and its `reward` (aUEC from the template, left out where the data have none). Two direct runs to the same station are one loop only with the same three (T13.6c); a direct run without it measured none. |
+
+The Plan tab reads the runs for **measured loop times** (T13.6c, D127): a loop the player finished at least three times
+with the overlay's ship ranks by the median of its last seven times instead of `routes.times` (`routes.useMeasured` in
+settings.json switches it off).
+
+**A broken run costs only itself.** Each run is read alone: one out of these rules (a word, a time, a count, a missing
+field, `direct` on a run that is no direct one) is left out, and `cargoplan.log` names it ("Routes: runs[1] left out: …");
+the observations, the route and the other runs are read. The next save writes the file without it.
 
 ## Older schemas
 
@@ -316,7 +325,8 @@ as always. With **Cargo** selected nothing changes. The selected tab is kept in 
 
 ## Unreadable files
 
-A `routes.json` that can't be read (not JSON, another schema, a word or band out of these rules, or locked) is left as
+A `routes.json` that can't be read (not JSON, another schema, a word or band of an observation or the route out of these
+rules, more runs than kept, or locked; a run out of the rules is only left out, above) is left as
 it is; the run starts without observations and without a route, and `cargoplan.log` says why. The first save of the
 run (an observation or a route) moves the old file aside before it writes, as `plan.json` does (D106):
 

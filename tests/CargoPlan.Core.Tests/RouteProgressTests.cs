@@ -187,7 +187,7 @@ public class RouteProgressTests
         };
         var progress = RouteProgress.Of(route, plan, HullB, Places);
 
-        var run = Route.Finish(route, plan, progress, Places, HullB, Monday.AddMinutes(95));
+        var run = Route.Finish(route, plan, progress, Places, HullB, [], Monday.AddMinutes(95));
 
         // The loop's identity for measured times (T13.6c): the ship and the stations as Start plan made them, the extra's
         // Teasa not among them.
@@ -195,6 +195,24 @@ public class RouteProgressTests
             Landings: 5, Crates: 8, LongJumps: 4, Reward: 351_750, Filled: 1, Total: 2, Extras: 1, ShipId: HullB.Id, Stations: [L1, L4, L2]),
             options => options.WithStrictOrdering());
         run.Time.Should().Be(TimeSpan.FromMinutes(80), "from the departure, not the start; #3 is no part of the route");
+    }
+
+    [Fact]
+    public void A_direct_runs_finish_names_rank_size_and_reward_of_its_outbound_template_and_a_rings_none()
+    {
+        // The key of a direct loop (T13.6c, P1): from the template, as the loop's candidate has it (Contracts[0].Template),
+        // not from the placeholder, whose reward may be a scan's.
+        var template = TemplateFixtures.T([Everus], [L1], 90_000, rank: HaulRank.Senior, size: HaulSize.Small, direct: true);
+        var direct = new Route("Everus Harbor → HUR-L1", Monday, Everus, LoopKind.Direct, StarSystem.Stanton, [L1],
+            [new Placeholder(1, RecipeKind.Direct, template.Uuid, template.Title, 95_000, template.Legs, [L1])], []) with { DepartedUtc = Monday.AddMinutes(5), At = 2 };
+        var ring = Ring(Out(1, L1)) with { At = 4 };
+
+        RouteRun Finish(Route route, IReadOnlyList<HaulTemplate> templates) =>
+            Route.Finish(route, Empty(), RouteProgress.Of(route, Empty(), HullB, Places), Places, HullB, templates, Monday.AddMinutes(40));
+
+        Finish(direct, [template]).Direct.Should().Be(new DirectContract(HaulRank.Senior, HaulSize.Small, 90_000));
+        Finish(ring, [template]).Direct.Should().BeNull("a ring's key is its stations");
+        Finish(direct, []).Direct.Should().BeNull("a template a later data release dropped names nothing: the run measures no loop");
     }
 
     private static StarPosition At(string name, double xGm, double yGm) => new(name, name, StarSystem.Stanton, "Manmade", null, xGm * 1e9, yGm * 1e9, 0, []);

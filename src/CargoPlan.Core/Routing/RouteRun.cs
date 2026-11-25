@@ -12,6 +12,8 @@ namespace CargoPlan.Core.Routing;
 /// (T13.6c). Written always; null in a run written before (the branch's gate 6b).</param>
 /// <param name="Stations">The route's stations as Start plan made them from the loop (<see cref="Route.Stations"/>), without
 /// the extras' places; null as <paramref name="ShipId"/>.</param>
+/// <param name="Direct">A direct run's outbound contract (T13.6c, P1): with the loop's identity the key of a direct loop;
+/// null for every other kind, and for a direct run whose template the data no longer have.</param>
 public sealed record RouteRun(
     string Name,
     DateTime StartedUtc,
@@ -28,7 +30,8 @@ public sealed record RouteRun(
     int Total,
     int Extras,
     string? ShipId = null,
-    IReadOnlyList<string>? Stations = null)
+    IReadOnlyList<string>? Stations = null,
+    DirectContract? Direct = null)
 {
     /// <summary>Runs routes.json keeps; the oldest goes first.</summary>
     public const int MaxKept = 50;
@@ -36,3 +39,10 @@ public sealed record RouteRun(
     /// <summary>The round: from leaving the hub, or from the start where the bar never moved, to the finish.</summary>
     public TimeSpan Time => FinishedUtc - (DepartedUtc ?? StartedUtc);
 }
+
+/// <summary>
+/// What tells one direct loop from another to the same station (T13.6c, P1): its outbound template's rank, size and
+/// reward, as <see cref="Loops"/> joins direct rows that differ only in their commodity.
+/// </summary>
+/// <param name="Reward">The template's; null where the data have none (Red Wind).</param>
+public sealed record DirectContract(HaulRank Rank, HaulSize Size, long? Reward);

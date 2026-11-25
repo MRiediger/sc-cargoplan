@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 using CargoPlan.Core.Routing;
 
 namespace CargoPlan.Core.Tests;
@@ -194,6 +195,62 @@ public class RoutesFileTests
 
         var run = Read(older).Runs.Single();
         (run.ShipId, run.Stations).Should().Be((null, null));
+    }
+
+    [Fact]
+    public void A_direct_run_keeps_rank_size_and_reward_of_its_contract_and_a_ring_run_names_none()
+    {
+        // The key of a direct loop (T13.6c, P1): its outbound contract's rank, size and reward; "reward" is the run's sum
+        // already, so they come in an object of their own, and an unknown reward is left out.
+        var direct = SomeRun() with
+        {
+            Name = "Everus Harbor → HUR-L1 · Senior Direct Small",
+            Kind = LoopKind.Direct,
+            Landings = 2,
+            Stations = ["HUR-L1 Green Glade Station"],
+            Direct = new DirectContract(HaulRank.Senior, HaulSize.Small, 90_000),
+        };
+        var unknown = direct with { Direct = new DirectContract(HaulRank.Member, HaulSize.Xs, null) };
+
+        var json = Write(Observations.Empty, null, [SomeRun(), direct, unknown]);
+
+        json.Should().Contain("\"direct\": {").And.Contain("\"rank\": \"senior\"").And.Contain("\"size\": \"small\"").And.Contain("\"reward\": 90000");
+        json.Split("\"direct\": {").Length.Should().Be(3, "the two direct runs only");
+        Read(json).Runs.Should().BeEquivalentTo([SomeRun(), direct, unknown], options => options.WithStrictOrdering());
+    }
+
+    [Theory]
+    [InlineData("direct", "direct")]
+    [InlineData("finishedUtc", "finishedUtc")]
+    [InlineData("kind", "loop")]
+    [InlineData("member", "colour")]
+    public void A_broken_run_is_left_out_with_a_line_and_the_rest_of_the_file_reads(string broken, string reason)
+    {
+        // K1 of the T13.6c approval: each run alone; the observations, the route and the other runs stay.
+        var key = new ObservationKey(HaulContractor.Covalex, HaulRank.Senior, HaulSize.Medium, Direct: false, Reward: 325_250, ["Waste"]);
+        var observations = Observations.Empty.Record(ObservationsTests.Scan(key, Monday, ("HUR-L3", "Waste", 113)));
+        RouteRun[] runs =
+        [
+            SomeRun() with { Name = "Run A" },
+            SomeRun() with { Name = "Run B", Direct = broken == "direct" ? new DirectContract(HaulRank.Senior, HaulSize.Small, 90_000) : null },
+            SomeRun() with { Name = "Run C" },
+        ];
+        var json = Write(observations, SomeRoute(), runs);
+        var at = json.IndexOf("\"name\": \"Run B\"", StringComparison.Ordinal);
+        json = broken switch
+        {
+            "finishedUtc" => new Regex("\"finishedUtc\": \"[^\"]*\",\\s*").Replace(json, "", 1, at),
+            "kind" => new Regex("\"kind\": \"localRing\"").Replace(json, "\"kind\": \"loop\"", 1, at),
+            "member" => new Regex("\"name\": \"Run B\"").Replace(json, "\"name\": \"Run B\", \"colour\": \"red\"", 1, at),
+            _ => json,
+        };
+
+        var read = Read(json);
+
+        read.Runs.Select(r => r.Name).Should().Equal("Run A", "Run C");
+        read.Dropped.Should().ContainSingle().Which.Should().Contain("runs[1]").And.Contain(reason);
+        read.Observations.Entries.Should().BeEquivalentTo(observations.Entries);
+        read.Route.Should().BeEquivalentTo(SomeRoute(), options => options.WithStrictOrdering());
     }
 
     [Fact]
