@@ -764,6 +764,57 @@ im Plan vs. Positionsnamen der Route → `Positions.Resolve` (6b).
   (vorher `…_does_nothing_on_a_click`), `OverlayLegendXamlTests.Hiding_the_stop_lines_hides_them_and_their_scroll_area_unless_a_route_is_on`
   (vorher `Hiding_the_stop_lines_hides_their_scroll_area`).
 
+**Zwischenabnahme 6a (25.11.2026, Martin):** erteilt nach den Gate-Befunden (Block-Darstellung 15261b2, Start plan
+übernimmt die Ladung 80b3be4, „Start plan“ rechts neben dem System-Button 5256cec); damit auch die Präzisierungen von 6a
+ratifiziert.
+
+**Stand 6b (25.11., Branch `feat/p13-route`, 164d768..):**
+- Commits: `RouteProgress`, `Route.Step`/`Advance`/`Finish` (164d768); Stationsleiste, Finish plan, E(c), Timing (cca6f6d);
+  Doku (D126, Backlog, CLAUDE.md, TASKS.md).
+- **Präzisierung in der Planphase, ratifiziert durch Freigabe (bei der Umsetzung 6b, zur Abnahme):** nur der Stopp der
+  Leiste simuliert seine Rückläufer (die anderen „Unchecked“); ein Ort ohne Position kommt immer vor den Hub; „Gehalten“
+  zählt die angenommenen Missionen des Plans (gescannt, nicht geschätzt); E(c) steht in der Notice des Füll-Scans („ ·
+  plan: back ✓ 3/10 (planned at HUR-L1)“), kein Zustand dafür; die Leiste rechnet synchron im UI-Thread (gemessen unter
+  der 30-ms-Schwelle); Notice nach „Finish plan“ in der Zeile des letzten Ergebnisses (`NoticeSource.Move`, wie ein Scan).
+- **Zahlen (Release, `RouteProgressTimingTests`, Hull B, Everus-Ring des Pins im Worst Case, 512/512 SCU, 50 Kisten):**
+  `RouteProgress.Of` je Stopp Median 0,1–4,1 ms, erster Aufruf bis 9,3 ms; Rückläufer an L1 16 SCU fits, L4 16, L3 12,
+  L5 12, L2 112 SCU fits. App (Debug, Scratch-Datenordner): „Routes: station HUR-L1 (1/7) in 7 ms“, erster Aufruf 53 ms.
+- **Mutationsproben:** ohne Permutation bei Extras → 1 rot; Zeit ab Start statt Abflug → 1 rot; Simulation ohne Entladen
+  → 1 rot; ohne „jedes Template einmal“ (`Recipe.WaysBack`) → 3 rot (LoopsTests 1, RouteBaselineTests 2).
+- Bild (CC, Desktop, Scratch-Datenordner, Hull B, Everus-Ring, Bulk gefüllt, Extra nach Teasa, Leiste an L1, abgeflogen):
+  „‹ Station 1/7 · HUR-L1 · unload 1 · free 8 slots ›“ (Teasa als Station vor dem Hub, K6), darunter „accept: Junior Rank
+  - Small Cargo Haul · 72,500 aUEC · fits · collect at HUR-L4, HUR-L3, HUR-L5“, dann der Block.
+- **Handling gegen main (zusätzlich zu 6a):**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | Cargo-Reiter mit Route (neu) | – | Leiste über dem Block, scrollt nicht; ‹ › ohne Fokus; Rückläufer-Zeilen darunter |
+  | Abhaken einer Legenden-Zeile mit Route | wie main | gleich; dazu rückt die Leiste nach (letzte Zeile der Station, oder spätere Station) |
+  | „Finish plan“ (neu, nur am Hub am Ende) | – | Run in routes.json, Route weg, Ladung bleibt, Notice „Plan finished: …“ |
+  | F3 Rückläufer an anderer Station | – | Notice „ · plan: back ✓ k/n (planned at …)“ |
+  | Alles ohne Route | wie main | gleich |
+
+- **Gate 6b (Martin, SC vorne, echter Ring Everus, Hull B, Senior):**
+
+  | Schritt | Erwartung | Warum |
+  |---|---|---|
+  | 1 Route starten, Verträge am Hub annehmen und scannen (Rezept, 5–7) | Block „n/10 filled“, Leiste „Start · Everus Harbor · n contracts · free m slots“; `routes.json` ohne `departedUtc` | Startzustand |
+  | 2 Zur ersten Station fliegen, › drücken (oder dort die erste Zeile abhaken) | „Station 1/6 · HUR-L1 · unload k · free s slots“, darunter „accept: … · fits“; `routes.json` hat `departedUtc` | Messung ab Abflug |
+  | 3 Abladen abhaken, Rückläufer am Terminal annehmen, Accepted-Tab, F3 | Mission mit Stopp Everus; Rückläufer-Zeile „✓ #n · accept: …“; Slots −1; Holo zeigt neue Kisten; nach der letzten Zeile rückt die Leiste weiter | Füllen am Ring, E(b) |
+  | 4 Eine Station mit „too big“ (falls eine kommt) | Zeile nennt Worst-Case-SCU orange; Vertrag trotzdem annehmbar, Scan legt ihn wie heute (ggf. unplaced) | Hinweis, keine Sperre |
+  | 5 Alle Stationen, zurück am Hub, abladen, „Finish plan“ | `runs[0]` mit Σ aUEC = Summe der gefüllten + Extras (gegen die Legende), Zeit plausibel gegen die Uhr, Landungen 6; Route weg, Legende bleibt; `plan.json` unverändert | Abschluss |
+  | 6 Ohne Route: Cargo-Reiter, Legende, Abhaken, Drag, Undo | exakt wie main | Invariante 1 |
+
+  Zahlen: „Routes: station … in x ms“ aus cargoplan.log, `keyToNoticeMs` der Station-Scans (scans.log), Σ aUEC aus
+  `runs[0]` gegen die Summe der Legende. Fokus: ‹ › „Finish plan“ mit `--log-input` (Cargo-Reiter aktiviert nicht, U7).
+- **Testnamen 6b:** `RouteProgressTests` (Stopps, Entladen, Gehalten/Slots, Simulation fits/too big, ohne Entladen too
+  big, gefüllt/collect, Extras K6, Advance, Step/Abflug, Run), `RouteBarTests` (Texte und ‹ ›, Abhaken rückt weiter,
+  Rückläufer-Zeilen, Finish mit Run und Notice, Finish nur am Ende), `RouteScanTests.Finishing_the_route_leaves_plan_json_byte_for_byte`
+  (E1), `RouteScanTests.A_way_back_scanned_where_the_bar_stands_but_planned_elsewhere_says_so` (E(c)),
+  `ScanNoticesTests.A_way_back_accepted_at_another_station_says_where_it_was_planned`,
+  `OverlayRouteXamlTests.The_station_bar_*`, `OverlayRouteXamlTests.The_bars_buttons_take_no_focus`; von Hand
+  `RouteProgressTimingTests` (`Category=Timing`).
+
 ### [ ] T13.7 Streckenkarte
 
 **Warum:** Die Route vor dem Annehmen planen, wenn man von der Routine abweicht (Design §8).
@@ -789,6 +840,8 @@ im Plan vs. Positionsnamen der Route → `Positions.Resolve` (6b).
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- `routes.times` aus den Läufen nachführen (T13.6, D126): `runs[]` in routes.json hält Landungen, Kisten, lange Sprünge und die Zeit ab Abflug je Route; daraus ließen sich Minuten je Landung, Sekunden je Kiste und Minuten je langem Sprung schätzen. **Auslöser: drei Läufe** in Martins routes.json (eine Regression braucht mehr Punkte als Unbekannte).
 
 - Standorterkennung ersetzt den Hub-Button des Rezepts (T13.3b, D123): der Hub, an dem der Spieler steht, statt
   `routes.hub`. Auslöser: Game.log-Location wird gelesen.
