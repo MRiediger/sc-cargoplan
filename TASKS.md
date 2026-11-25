@@ -626,7 +626,7 @@ Martins Antworten auf vier Rückfragen):**
 
 ### ~~T13.5 App: Hafen-Matrix~~ – entfällt (in T13.2, U3, 23.11.)
 
-### [ ] T13.6 Route: Platzhalter, Accepted-Scan füllt, Stationsleiste
+### [x] T13.6 Route: Platzhalter, Accepted-Scan füllt, Stationsleiste (abgenommen 25.11.)
 
 **Warum:** Aus dem Entschluss wird ein Ablauf: aus einer Loop- oder Recipe-Zeile eine Route mit Platzhaltern im
 Cargo-Reiter, die der Accepted-Scan am Terminal füllt, und eine Stationsleiste führt mit Abladen, freien Slots und
@@ -840,6 +840,7 @@ ratifiziert.
   `ScanNoticesTests.A_way_back_accepted_at_another_station_says_where_it_was_planned`,
   `OverlayRouteXamlTests.The_station_bar_*`, `OverlayRouteXamlTests.The_bars_buttons_take_no_focus`; von Hand
   `RouteProgressTimingTests` (`Category=Timing`).
+- **Abnahme erteilt (25.11.2026, Martin)**, damit auch alle Präzisierungen von 6b, die Gate-Befunde (Plan-Block klappt ein, Leiste am Hub, Legenden-Kopf „· to HUR-L5 ·“) und der Nachtrag `ship`/`stations` in `runs[]` ratifiziert. Merge `--no-ff` nach main, Martin pusht. Nächster Task: T13.6c (gemessene Loop-Zeiten, eigener Startprompt).
 
 ### [ ] T13.7 Streckenkarte
 
