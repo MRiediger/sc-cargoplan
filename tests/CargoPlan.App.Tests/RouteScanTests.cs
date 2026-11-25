@@ -68,7 +68,7 @@ public sealed class RouteScanTests : IDisposable
         overlay.Notices.Should().Equal("Scanned #1 · From Everus Harbor · 8 SCU Stims to Riker · plan: small ✓ 1/2");
         _saved.Should().ContainSingle().Which!.Placeholders[1].FilledBy.Should().Be(overlay.Missions.Single().Contract!.Scan.Key);
         var route = overlay.ActiveRoute!;
-        route.Header.Should().Be("Plan: Everus ring · 1/2 filled · Σ 375,500 out · +0 back");
+        route.Header.Should().Be("▾ Plan: Everus ring · 1/2 filled · Σ 375,500 out · +0 back");
         route.Rows.Select(r => (r.Text, r.Filled)).Should().Equal(
             ("Bulk · Senior Rank - Medium Cargo Haul · 325,250 aUEC · Riker", false),
             ("✓ #1 · Small · Junior Rank - Small Cargo Haul · 50,250 aUEC · Riker", true));
@@ -127,7 +127,7 @@ public sealed class RouteScanTests : IDisposable
 
         overlay.ActiveRoute!.Start(Planned).Should().BeTrue();
 
-        overlay.ActiveRoute.Header.Should().StartWith("Plan: Everus ring · 1/2 filled");
+        overlay.ActiveRoute.Header.Should().StartWith("▾ Plan: Everus ring · 1/2 filled");
         overlay.ActiveRoute.Rows[1].Text.Should().StartWith("✓ #1 · Small");
         overlay.ActiveRoute.ExtraRows.Should().Equal("+ #2 extra · 41,750 aUEC");
         TestLog.Text().Should().Contain("Routes: start: #1 → placeholder 2").And.Contain("Routes: start: #2 extra");
@@ -166,7 +166,7 @@ public sealed class RouteScanTests : IDisposable
         overlay.UndoCommand.Execute(null);
 
         overlay.ActiveRoute!.Rows[1].Filled.Should().BeFalse();
-        overlay.ActiveRoute.Header.Should().StartWith("Plan: Everus ring · 0/2 filled");
+        overlay.ActiveRoute.Header.Should().StartWith("▾ Plan: Everus ring · 0/2 filled");
         _saved.Should().ContainSingle("filled is read from the plan, not written back");
 
         overlay.RedoCommand.Execute(null);
@@ -227,7 +227,7 @@ public sealed class RouteScanTests : IDisposable
         route.Start(other).Should().BeTrue();
 
         asked.Should().Equal(ActiveRouteViewModel.ReplaceQuestion);
-        route.Header.Should().StartWith("Plan: Baijini ring");
+        route.Header.Should().StartWith("▾ Plan: Baijini ring");
         _saved.Should().Equal([other]);
     }
 
@@ -242,12 +242,12 @@ public sealed class RouteScanTests : IDisposable
         overlay.StartPlan(new PlanStart(loop, "Everus Harbor ring", ObservedEdges.Empty));
 
         overlay.IsRoutesTabSelected.Should().BeFalse("the player goes to the terminal");
-        overlay.ActiveRoute!.Header.Should().Be("Plan: Everus Harbor ring · 0/1 filled · Σ 50,250 out · +0 back");
+        overlay.ActiveRoute!.Header.Should().Be("▾ Plan: Everus Harbor ring · 0/1 filled · Σ 50,250 out · +0 back");
         _saved.Should().ContainSingle().Which!.Placeholders.Single().TemplateUuid.Should().Be("junior");
 
         overlay.IsRoutesTabSelected = true;
         overlay.StartPlan(new PlanStart(loop, "Other ring", ObservedEdges.Empty));
-        (overlay.IsRoutesTabSelected, overlay.ActiveRoute.Header).Should().Be((true, "Plan: Everus Harbor ring · 0/1 filled · Σ 50,250 out · +0 back"),
+        (overlay.IsRoutesTabSelected, overlay.ActiveRoute.Header).Should().Be((true, "▾ Plan: Everus Harbor ring · 0/1 filled · Σ 50,250 out · +0 back"),
             "no was said, the first route stays and so does the tab");
     }
 

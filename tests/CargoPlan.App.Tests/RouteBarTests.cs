@@ -52,8 +52,46 @@ public sealed class RouteBarTests
             new ContractSource(new ScanIdentity(2, "KEY-2", false), Reward: 40_000));
     }
 
-    private ActiveRouteViewModel Model(Route route) =>
-        new(route, _saved.Add, new HaulingLoad.Loaded(new HaulingData([], Places), []), _runs.Add, () => _now);
+    private readonly List<bool> _block = [];
+
+    private ActiveRouteViewModel Model(Route? route, bool blockOpen = true) =>
+        new(route, _saved.Add, new HaulingLoad.Loaded(new HaulingData([], Places), []), _runs.Add, () => _now, blockOpen, _block.Add);
+
+    [Fact]
+    public void The_block_is_open_from_Start_plan_folds_at_the_first_departure_and_a_click_on_its_head_toggles_it_for_the_next_start()
+    {
+        // Gate 6b (Martin, 25 Nov): Start plan → open; › → closed; click → open; restart → stays.
+        var model = Model(null, blockOpen: false);
+        model.Show(Cargo(), HullA);
+
+        model.Start(Ring(Out(1, Riker, 50_000))).Should().BeTrue();
+        (model.IsBlockOpen, model.Header).Should().Be((true, "▾ Plan: Everus ring · 0/1 filled · Σ 50,000 out · +0 back"));
+
+        model.NextStationCommand.Execute(null);
+        (model.IsBlockOpen, model.Header![0]).Should().Be((false, '▸'));
+        model.NextStationCommand.Execute(null);
+        model.IsBlockOpen.Should().BeFalse("only the first departure folds it");
+
+        model.ToggleBlockCommand.Execute(null);
+        model.IsBlockOpen.Should().BeTrue();
+        _block.Should().Equal(true, false, true);
+
+        Model(_saved.Last(), blockOpen: _block.Last()).IsBlockOpen.Should().BeTrue("a restart keeps it");
+        model.HeaderToolTip.Should().Be(ActiveRouteViewModel.BlockToolTip);
+    }
+
+    [Fact]
+    public void At_the_hub_at_the_start_the_bar_lists_what_to_accept_there_so_the_block_isnt_needed()
+    {
+        // Gate 6b (3): every outbound role as an "accept:" line with its places; filled ones with their scan.
+        var route = Ring(Out(1, Riker, 50_000) with { FilledBy = "KEY-1" }, Out(2, Orison, 40_000), Back(3, Riker, 8, CrateSize.Four));
+        var model = Model(route);
+        model.Show(Cargo(), HullA);
+
+        model.StationRows.Select(r => (r.Text, r.Filled)).Should().Equal(
+            ("✓ #1 · accept: Small · Junior Rank - Small Cargo Haul · 50,000 aUEC · Riker", true),
+            ("accept: Small · Junior Rank - Small Cargo Haul · 40,000 aUEC · Orison", false));
+    }
 
     [Fact]
     public void The_bar_names_the_stop_what_it_unloads_and_the_slots_free_and_steps_by_hand()

@@ -807,6 +807,19 @@ ratifiziert.
 
   Zahlen: „Routes: station … in x ms“ aus cargoplan.log, `keyToNoticeMs` der Station-Scans (scans.log), Σ aUEC aus
   `runs[0]` gegen die Summe der Legende. Fokus: ‹ › „Finish plan“ mit `--log-input` (Cargo-Reiter aktiviert nicht, U7).
+- **Gate-Befund 6b (Martin, 25.11.) – Wizard gut, Plan-Block stört. Präzisierung in der Planphase, ratifiziert durch
+  Freigabe:** (1) die Kopfzeile des Blocks klappt seine Zeilen per Klick ein/aus (▾ offen, ▸ zu; Button im Stil der
+  Legenden-Zeilen, kein neues Element), Zustand `routes.planBlock` in settings.json (`"open"` | `"closed"`, Default
+  open, Schema 3 bleibt, falsches Wort → open mit Zeile); (2) „Start plan“ klappt auf, der **erste Abflug** klappt zu
+  (das erste › oder ein Haken, der die Leiste vom Hub wegschiebt: beides setzt `departedUtc`), ein Klick kippt den
+  Zustand und gilt bis zum nächsten Start bzw. Abflug; Tooltip der Kopfzeile in einem Satz; (3) an der Start-Station
+  listet die Leiste alle Hinweg-Rollen als „accept: Bulk · Titel · Reward · Ziele“ (gefüllt „✓ #n · …“). „End plan“ und
+  die Trennlinie bleiben auch eingeklappt sichtbar. Golden-Dateien der Settings-Migration (3) und die Reihenfolge des
+  `routes`-Abschnitts um `planBlock` nachgezogen. Tests: `RouteBarTests.The_block_is_open_from_Start_plan_folds_at_the_first_departure_and_a_click_on_its_head_toggles_it_for_the_next_start`
+  (Start → auf, › → zu, Klick → auf, Neustart → bleibt), `RouteBarTests.At_the_hub_at_the_start_the_bar_lists_what_to_accept_there_so_the_block_isnt_needed`,
+  `SettingsStoreTests.Routes_keep_the_plan_blocks_state`, `SettingsStoreTests.A_loop_setting_out_of_range_falls_back_with_a_line`
+  (planBlock), `OverlayRouteXamlTests.The_blocks_head_is_a_line_button_that_folds_its_list_and_End_plan_stays`.
+  Bild-Gate (Martin) danach.
 - **Testnamen 6b:** `RouteProgressTests` (Stopps, Entladen, Gehalten/Slots, Simulation fits/too big, ohne Entladen too
   big, gefüllt/collect, Extras K6, Advance, Step/Abflug, Run), `RouteBarTests` (Texte und ‹ ›, Abhaken rückt weiter,
   Rückläufer-Zeilen, Finish mit Run und Notice, Finish nur am Ende), `RouteScanTests.Finishing_the_route_leaves_plan_json_byte_for_byte`

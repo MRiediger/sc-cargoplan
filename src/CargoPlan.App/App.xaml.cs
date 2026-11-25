@@ -408,7 +408,13 @@ public partial class App : Application
             }
         };
         // The route (T13.6, D125): routes.json's at the start, saved by the book with the observations (one writer).
-        var activeRoute = new ActiveRouteViewModel(routesBook.Route, routesBook.SetRoute, hauling, routesBook.AddRun);
+        // The block "Plan" folded or open (gate 6b) is kept in settings.json, through the session like rank and hub.
+        var activeRoute = new ActiveRouteViewModel(routesBook.Route, routesBook.SetRoute, hauling, routesBook.AddRun,
+            blockOpen: settings.Routes.IsBlockOpen,
+            saveBlock: open => sessionForRoutes?.ChangeRoutes(sessionForRoutes.Current.Routes with
+            {
+                PlanBlock = open ? RoutesSettings.BlockOpen : RoutesSettings.BlockClosed,
+            }));
         var viewModel = new OverlayViewModel(ship, ships)
         {
             IsManuallyLocked = options.Locked,

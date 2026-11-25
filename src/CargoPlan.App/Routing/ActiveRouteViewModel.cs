@@ -44,6 +44,8 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
 
     private readonly Func<DateTime> _clock;
 
+    private readonly Action<bool>? _saveBlock;
+
     private SavedPlan? _saved;
 
     private Ship? _ship;
@@ -56,15 +58,34 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
     /// <param name="hauling">Templates and positions to match a scan with; without them every accepted contract is an extra.</param>
     /// <param name="finished">Keeps a finished run (<c>RoutesBook.AddRun</c>, 6b); null in tests that keep none.</param>
     /// <param name="clock">The time in UTC; the system's by default.</param>
-    public ActiveRouteViewModel(Route? route, Action<Route?> save, HaulingLoad hauling, Action<RouteRun>? finished = null, Func<DateTime>? clock = null)
+    /// <param name="blockOpen">Whether the block "Plan" shows its lines (settings.json, <c>routes.planBlock</c>, gate 6b).</param>
+    /// <param name="saveBlock">Keeps that for the next start; null in tests that keep nothing.</param>
+    public ActiveRouteViewModel(
+        Route? route, Action<Route?> save, HaulingLoad hauling, Action<RouteRun>? finished = null, Func<DateTime>? clock = null,
+        bool blockOpen = true, Action<bool>? saveBlock = null)
     {
         _save = save;
         _finished = finished;
         _clock = clock ?? (() => DateTime.UtcNow);
+        _saveBlock = saveBlock;
+        IsBlockOpen = blockOpen;
         (_templates, _positions) = hauling is HaulingLoad.Loaded { Data: var data } ? (data.Templates, data.Positions) : ([], Positions.Empty);
         Route = route;
         Rebuild();
     }
+
+    /// <summary>The head's tool tip (gate 6b): what a click does and why the lines fold on their own.</summary>
+    public const string BlockToolTip =
+        "Click to show or hide the plan's lines; they fold when you leave the hub, since the bar above lists what to accept at each stop.";
+
+    /// <summary>
+    /// The block "Plan" shows its lines (gate 6b): open from Start plan, closed from the first departure, toggled by a
+    /// click on its head; kept in settings.json for the next start.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsBlockOpen { get; private set; }
+
+    public string HeaderToolTip => BlockToolTip;
 
     /// <summary>A route was finished at its hub (6b): the overlay says what the round paid in what time.</summary>
     public event EventHandler<RouteRun>? Finished;
@@ -142,6 +163,7 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
 
         var (started, adopted) = Route.Adopt(route, _saved, _templates, _positions);
         SetRoute(started);
+        SetBlock(true);
         AppLog.Write(LogContext, Invariant($"plan started: {route.Name}, {route.Placeholders.Count} placeholders, {route.Stations.Count} stations"));
         foreach (var a in adopted)
         {
@@ -256,6 +278,20 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
         Finished?.Invoke(this, run);
     }
 
+    /// <summary>A click on the block's head: its lines show or hide (gate 6b).</summary>
+    [RelayCommand]
+    private void ToggleBlock() => SetBlock(!IsBlockOpen);
+
+    private void SetBlock(bool open)
+    {
+        if (open != IsBlockOpen)
+        {
+            IsBlockOpen = open;
+            _saveBlock?.Invoke(open);
+            Rebuild();
+        }
+    }
+
     private void StepBy(int delta)
     {
         if (Route is { } route && _progress is { } progress)
@@ -266,9 +302,15 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
 
     private void SetRoute(Route? route)
     {
+        // The first departure folds the block: from here the bar lists what to accept (gate 6b).
+        var departs = Route is { DepartedUtc: null } && route is { DepartedUtc: not null };
         Route = route;
         _save(route);
         Rebuild();
+        if (departs)
+        {
+            SetBlock(false);
+        }
     }
 
     // The scan's template (D122), as RoutesViewModel.FitOf matches it; null where the scan is no observation.
@@ -290,7 +332,7 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
 
         var keys = Keys(_saved);
         var missions = _saved?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Contract!.Scan.Key) ?? [];
-        Header = Invariant($"Plan: {route.Name} · {route.FilledCount(keys)}/{route.Placeholders.Count} filled · Σ {route.OutboundReward:N0} out · +{route.BackReward:N0} back");
+        Header = Invariant($"{(IsBlockOpen ? "▾" : "▸")} Plan: {route.Name} · {route.FilledCount(keys)}/{route.Placeholders.Count} filled · Σ {route.OutboundReward:N0} out · +{route.BackReward:N0} back");
         Rows = [.. route.Outbound.Select(p => Row(p, keys, missions))];
         BackRows = [.. route.Back.Select(p => Row(p, keys, missions))];
         ExtraRows = [.. route.Extras.Where(missions.ContainsKey).Select(k => missions[k].Contract!).Select(c =>
@@ -326,12 +368,12 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
         };
         StationToolTip = string.Join(Environment.NewLine, progress.Stops.Zip(progress.Stops.Skip(1)).Select(leg => Leg(route.System, leg.First.Name, leg.Second.Name)));
         var keys = Keys(_saved);
-        StationRows =
-        [
-            .. stop.Returns.Select(ReturnRow),
-            .. stop.Collects.Select(p => new PlaceholderRowView(
-                $"collect: {p.Title} (accepted at {PlaceNames.Short(p.AcceptAt!)})", null, null, Route.IsFilled(p, keys), p.Title)),
-        ];
+        var missions = _saved?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Contract!.Scan.Key) ?? [];
+        IEnumerable<PlaceholderRowView> rows = at == 0
+            ? route.Outbound.Select(p => OutboundRow(p, keys, missions))
+            : stop.Returns.Select(ReturnRow).Concat(stop.Collects.Select(p => new PlaceholderRowView(
+                $"collect: {p.Title} (accepted at {PlaceNames.Short(p.AcceptAt!)})", null, null, Route.IsFilled(p, keys), p.Title)));
+        StationRows = [.. rows];
         (IsAtEnd, CanGoBack) = (at == last, at > 0);
         NextStationCommand.NotifyCanExecuteChanged();
     }
@@ -341,6 +383,15 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
         _positions.Find(system, from) is { } a && _positions.Find(system, to) is { } b && Positions.DistanceGm(a, b) is { } gm
             ? Invariant($"{PlaceNames.Short(from)} → {PlaceNames.Short(to)} {gm:0.0} Gm{(gm > Loops.LongJumpGm ? " (long)" : "")}")
             : $"{PlaceNames.Short(from)} → {PlaceNames.Short(to)}";
+
+    // At the hub at the start (gate 6b): "accept: Bulk · Senior Rank - Medium Cargo Haul · 325,250 aUEC · HUR-L1, HUR-L2".
+    private static PlaceholderRowView OutboundRow(Placeholder p, IReadOnlySet<string> keys, Dictionary<string, Mission> missions)
+    {
+        var line = string.Join(" · ", [$"accept: {RoleText.KindWords[p.Kind]}", p.Title, RoleText.Reward(p.Reward, null), string.Join(", ", p.Destinations.Select(PlaceNames.Short))]);
+        return Route.IsFilled(p, keys)
+            ? new(Invariant($"✓ #{missions[p.FilledBy!].Contract!.Scan.No} · {line}"), null, null, true, p.Title)
+            : new(line, null, null, false, p.Title);
+    }
 
     // "accept: Junior Rank - Small Cargo Haul · 60,750 aUEC · fits"; too big in the notice colour; "✓ #7 · accept: …" once filled.
     private static PlaceholderRowView ReturnRow(ReturnAt way)

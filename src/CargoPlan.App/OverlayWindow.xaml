@@ -817,9 +817,15 @@
                                 <Button x:Name="EndPlanButton" DockPanel.Dock="Right" Content="End plan" Command="{Binding EndCommand}" Focusable="False"
                                         Style="{StaticResource TextButtonStyle}" Margin="8,0,0,0" VerticalAlignment="Center"
                                         ToolTip="End the plan: its placeholders go, the cargo stays." />
-                                <TextBlock Text="{Binding Header}" ToolTip="{Binding Header}" Style="{StaticResource LegendTextStyle}" FontWeight="SemiBold"
-                                           TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center" />
+                                <!-- Gate 6b: the head folds the lines below (▾ open, ▸ closed); a legend line's button, no new
+                                     element. Start plan opens them, the first departure closes them, the state is kept (routes.planBlock). -->
+                                <Button x:Name="RouteBlockHead" Command="{Binding ToggleBlockCommand}" ToolTip="{Binding HeaderToolTip}" Focusable="False"
+                                        Style="{StaticResource LegendLineButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                                    <TextBlock Text="{Binding Header}" Style="{StaticResource LegendTextStyle}" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center" />
+                                </Button>
                             </DockPanel>
+                            <StackPanel x:Name="RouteBlockList" Visibility="{Binding IsBlockOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type rt:PlaceholderRowView}">
@@ -856,6 +862,7 @@
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
                             <!-- E1 of gate 6a: a faint line parts the block from the stop lines below. -->
+                            </StackPanel>
                             <Border x:Name="RouteSeparator" Height="1" Margin="0,6,0,0" Opacity="0.4" Background="{DynamicResource LegendForegroundBrush}" />
                         </StackPanel>
                         <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}"

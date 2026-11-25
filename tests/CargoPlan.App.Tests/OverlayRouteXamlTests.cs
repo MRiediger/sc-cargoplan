@@ -128,6 +128,25 @@ public class OverlayRouteXamlTests
     }
 
     [Fact]
+    public void The_blocks_head_is_a_line_button_that_folds_its_list_and_End_plan_stays()
+    {
+        // Gate 6b: no new element - the head in the legend line's button, the lines in a panel that folds.
+        var root = Root();
+        var block = Named(root, "RouteBlock");
+        var head = Named(root, "RouteBlockHead");
+        var list = Named(root, "RouteBlockList");
+
+        ((string?)head.Attribute("Command")).Should().Be("{Binding ToggleBlockCommand}");
+        ((string?)head.Attribute("Style")).Should().Be("{StaticResource LegendLineButtonStyle}");
+        ((string?)head.Attribute("ToolTip")).Should().Be("{Binding HeaderToolTip}");
+        ((string?)list.Attribute("Visibility")).Should().Contain("IsBlockOpen");
+        list.Parent.Should().BeSameAs(block);
+        list.Descendants().Select(e => (string?)e.Attribute("ItemsSource")).Should().Contain(["{Binding Rows}", "{Binding BackRows}", "{Binding ExtraRows}"]);
+        list.ElementsAfterSelf().Single().Attribute(X + "Name")!.Value.Should().Be("RouteSeparator", "the line parts the block from the stop lines also while folded");
+        Named(root, "EndPlanButton").Ancestors().Should().NotContain(list, "End plan stays with the head");
+    }
+
+    [Fact]
     public void The_chosen_loop_row_has_a_bar_on_its_left()
     {
         var style = Keyed(Root(), "LoopRowStyle").ToString();
