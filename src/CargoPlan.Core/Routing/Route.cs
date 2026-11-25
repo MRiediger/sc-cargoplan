@@ -144,7 +144,10 @@ public sealed record Route(
     /// departure (<see cref="RouteRun.Time"/>).
     /// </summary>
     /// <param name="ship">The overlay's ship: with the route's stations the loop's identity (T13.6c).</param>
-    public static RouteRun Finish(Route route, SavedPlan? plan, RouteProgress progress, Positions positions, Ship ship, DateTime now)
+    /// <param name="templates">The hauling data's templates: a direct run names its outbound template's rank, size and
+    /// reward (<see cref="DirectContract"/>, T13.6c), looked up by uuid as <see cref="Adopt"/> does.</param>
+    public static RouteRun Finish(
+        Route route, SavedPlan? plan, RouteProgress progress, Positions positions, Ship ship, IReadOnlyList<HaulTemplate> templates, DateTime now)
     {
         var missions = plan?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Contract!.Scan.Key) ?? [];
         HashSet<string> keys = [.. missions.Keys];
@@ -158,8 +161,14 @@ public sealed record Route(
         var longJumps = names.Zip(names.Skip(1)).Count(leg =>
             positions.Find(route.System, leg.First) is { } a && positions.Find(route.System, leg.Second) is { } b && Positions.DistanceGm(a, b) > Loops.LongJumpGm);
 
+        // A direct loop's first role is its contract (Loops.Directs); the template, not the placeholder, as the candidate has it.
+        var direct = route.Kind == LoopKind.Direct && route.Outbound.FirstOrDefault() is { } outbound
+            && templates.FirstOrDefault(t => t.Uuid == outbound.TemplateUuid) is { } template
+            ? new DirectContract(template.Rank, template.Size, template.Reward)
+            : null;
+
         return new(route.Name, route.StartedUtc, route.DepartedUtc, now, route.Hub, route.Kind, route.System,
-            progress.Landings, crates, longJumps, reward, filled.Count, route.Placeholders.Count, extras.Count, ship.Id, route.Stations);
+            progress.Landings, crates, longJumps, reward, filled.Count, route.Placeholders.Count, extras.Count, ship.Id, route.Stations, direct);
     }
 
     /// <summary>

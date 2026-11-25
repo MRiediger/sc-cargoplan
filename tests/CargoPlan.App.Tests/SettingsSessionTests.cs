@@ -722,7 +722,7 @@ public sealed class SettingsSessionTests : IDisposable
             changed => session.ChangeRoutes(session.Current.Routes with { Rank = changed.Rank, Faction = changed.Faction }));
         session.RoutesChanged += (_, changed) => tab.Follow(changed);
         var window = new RoutesSettingsViewModel(session.Current.Routes,
-            (rank, faction, times) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times }),
+            (rank, faction, times, measured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured }),
             handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
 
         tab.NextCommand.Execute("faction");
@@ -744,7 +744,7 @@ public sealed class SettingsSessionTests : IDisposable
         // T13.4: the loops' times are set in the window only; rank and faction stay as they were.
         var session = Create();
         RoutesSettingsViewModel Window() => new(session.Current.Routes,
-            (rank, faction, times) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times }),
+            (rank, faction, times, measured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured }),
             handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
         var (window, other) = (Window(), Window());
 
@@ -753,6 +753,63 @@ public sealed class SettingsSessionTests : IDisposable
 
         session.Current.Routes.Should().Be(RoutesSettings.Default with { Times = new RoutesTimes(5, 30, 4) });
         (other.Station, other.StationText, other.CrateText, other.JumpText).Should().Be((5d, "5 min", "30 s", "4 min"));
+    }
+
+    [Fact]
+    public void The_measured_times_switch_goes_into_the_routes_section_and_another_window_follows()
+    {
+        // T13.6c: set in the window only, as the times; the Plan tab follows through RoutesChanged (RoutesViewModelTests).
+        var session = Create();
+        List<RoutesSettings> told = [];
+        session.RoutesChanged += (_, routes) => told.Add(routes);
+        RoutesSettingsViewModel Window() => new(session.Current.Routes,
+            (rank, faction, times, measured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured }),
+            handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
+        var (window, other) = (Window(), Window());
+        window.UseMeasured.Should().BeTrue();
+
+        window.UseMeasured = false;
+
+        session.Current.Routes.Should().Be(RoutesSettings.Default with { UseMeasured = false });
+        other.UseMeasured.Should().BeFalse();
+        told.Should().Equal(RoutesSettings.Default with { UseMeasured = false });
+    }
+
+    [Fact]
+    public void The_window_shows_the_measured_summary_under_the_switch_and_follows_it_until_it_closes()
+    {
+        // Gate finding T13.6c (E): the window knows an IMeasuredSummary, not the Plan tab; here a fake.
+        var session = Create();
+        var summary = new FakeSummary("No loop measured yet with MISC Hull B – finish a plan 3 times.");
+        RoutesSettingsViewModel Window(IMeasuredSummary? measured) => new(session.Current.Routes, (_, _, _, _) => { },
+            handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler, measured);
+        var window = Window(summary);
+        (window.MeasuredText, window.HasMeasuredText).Should().Be((summary.Text, true));
+
+        summary.Change("1 loop measured with MISC Hull B");
+        window.MeasuredText.Should().Be("1 loop measured with MISC Hull B");
+
+        window.Detach();
+        summary.Listeners.Should().Be(0, "a closed window follows nothing");
+        summary.Change("2 loops measured with MISC Hull B");
+        window.MeasuredText.Should().Be("1 loop measured with MISC Hull B");
+
+        (Window(new FakeSummary("")).HasMeasuredText, Window(null).HasMeasuredText).Should().Be((false, false), "no ship, or no tab: no line");
+    }
+
+    private sealed class FakeSummary(string text) : IMeasuredSummary
+    {
+        public event EventHandler? Changed;
+
+        public string Text { get; private set; } = text;
+
+        public int Listeners => Changed?.GetInvocationList().Length ?? 0;
+
+        public void Change(string text)
+        {
+            Text = text;
+            Changed?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     [Fact]

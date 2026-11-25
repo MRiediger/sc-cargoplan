@@ -72,24 +72,33 @@ public static class Loops
     /// The loops in the order of <paramref name="sort"/>, best first; those without the figure (no known reward) after
     /// them, those without contracts (a system-wide ring that needs scans) last. Ties by kind, start and stations.
     /// </summary>
-    public static IReadOnlyList<LoopCandidate> Rank(IEnumerable<LoopCandidate> loops, LoopSort sort, LoopTimes times) =>
+    /// <param name="measured">The player's own times (T13.6c, D127): a loop with enough runs ranks per hour by them, the
+    /// others by <paramref name="times"/>; null ranks every loop by the model.</param>
+    public static IReadOnlyList<LoopCandidate> Rank(IEnumerable<LoopCandidate> loops, LoopSort sort, LoopTimes times, MeasuredTimes? measured = null) =>
     [
         .. loops
             .OrderBy(l => !l.HasNumbers)
-            .ThenByDescending(l => Value(l, sort, times) ?? double.NegativeInfinity)
+            .ThenByDescending(l => Value(l, sort, times, measured) ?? double.NegativeInfinity)
             .ThenBy(l => l.Kind)
             .ThenBy(l => l.Start, PlaceNames.Order)
             .ThenBy(l => string.Join("|", l.Stations), StringComparer.Ordinal),
     ];
 
     /// <summary>The figure <paramref name="sort"/> ranks by; null without a reward.</summary>
-    public static double? Value(LoopCandidate loop, LoopSort sort, LoopTimes times) => sort switch
+    public static double? Value(LoopCandidate loop, LoopSort sort, LoopTimes times, MeasuredTimes? measured = null) => sort switch
     {
-        LoopSort.PerHour => loop.PerHour(times),
+        LoopSort.PerHour => PerHour(loop, times, measured),
         LoopSort.PerLoop => loop.Reward,
         LoopSort.PerLanding => loop.PerLanding,
         _ => throw new ArgumentOutOfRangeException(nameof(sort), sort, null),
     };
+
+    /// <summary>
+    /// aUEC per hour: by the median of the player's runs where there are enough (<see cref="MeasuredTimes.Usable"/>), else
+    /// by the model (<see cref="LoopCandidate.PerHour"/>); never a mix. Reward per loop and per landing don't hang on time.
+    /// </summary>
+    public static double? PerHour(LoopCandidate loop, LoopTimes times, MeasuredTimes? measured) =>
+        measured?.Usable(loop) is { } runs ? loop.Reward / runs.MedianMinutes * 60 : loop.PerHour(times);
 
     /// <summary>
     /// The order of <paramref name="stations"/> from <paramref name="start"/> and back with the shortest sum of distances

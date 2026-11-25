@@ -13,4 +13,6 @@ namespace CargoPlan.Core.Routing;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     WriteIndented = true)]
 [JsonSerializable(typeof(RoutesFileDto))]
+// Each run alone (K1 of T13.6c): the file keeps them as JsonElements until they are read.
+[JsonSerializable(typeof(RunDto))]
 internal sealed partial class RoutesJsonContext : JsonSerializerContext;

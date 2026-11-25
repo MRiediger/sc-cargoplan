@@ -842,6 +842,96 @@ ratifiziert.
   `RouteProgressTimingTests` (`Category=Timing`).
 - **Abnahme erteilt (25.11.2026, Martin)**, damit auch alle Präzisierungen von 6b, die Gate-Befunde (Plan-Block klappt ein, Leiste am Hub, Legenden-Kopf „· to HUR-L5 ·“) und der Nachtrag `ship`/`stations` in `runs[]` ratifiziert. Merge `--no-ff` nach main, Martin pusht. Nächster Task: T13.6c (gemessene Loop-Zeiten, eigener Startprompt).
 
+### [x] T13.6c Gemessene Loop-Zeiten (Variante A) (abgenommen 25.11.)
+
+**Warum:** Die ~aUEC/h der Loops rechnen nur mit dem Zeitmodell (`routes.times`, D124). Seit T13.6 hält `runs[]` jede
+geflogene Route mit Zeit ab Abflug, Schiff und Stationen. Hat der Spieler eine Loop mindestens dreimal mit demselben
+Schiff geflogen, rechnet ihre Zeile mit seiner gemessenen Zeit; alles andere bleibt beim Modell, die Slider werden
+nicht nachgeführt (U9). Branch `feat/p13-measured`.
+
+**Akzeptanz (Startprompt 25.11., §6):** Pure Function mit Median und Schwelle 3, Schiff im Schlüssel, Modell/Messung nie
+gemischt; Schalter `routes.useMeasured` (Default an) in Settings „Plan tab“, wirkt sofort, persistiert; Status
+„measured n×“; Golden unverändert; D127; Backlog „routes.times aus runs“ ersetzt durch Variante B; `settings.json`
+additiv.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (25.11.2026, „Freigabe T13.6c mit K1“; Rückfragen
+Direct-Schlüssel und unter der Schwelle, K1, E1, E2):**
+- **P1/P2 Direct-Schlüssel:** `runs[]` trägt für Direct-Läufe `direct: { rank, size, reward }` der Hinweg-Rolle
+  (Template per UUID beim Finish, wie `Route.Adopt`); Schlüssel für Direct = Loop-Schlüssel + diese drei, Zwillinge
+  (nur andere Ware) teilen die Messung; Ringe ohne Zusatz. Eigenes Objekt, weil `reward` am Lauf die Σ ist. Damit
+  schreibt T13.6c in `routes.json` (statt „nur lesen“), additiv, Schema 3 bleibt.
+- **P3:** 1–2 Läufe: Zeile Modell, Tooltip „measured 2× – 3 needed“.
+- **P4:** `MeasuredTimes.For(runs, shipId)` filtert nach Schiff (wirkt als Schiff im Schlüssel).
+- **P5:** Jeder Lauf in `runs[]` ist beendet; Läufe ohne `ship`/`stations` (Gate 6b) zählen still nicht, Logzeile nur
+  für < 1 min und > 6 h.
+- **P6:** Median gerader Anzahl = Mittel der beiden mittleren.
+- **K1:** Läufe in `runs[]` einzeln geprüft: ein ungültiger (`direct` am Ring, fehlendes `finishedUtc`, unbekanntes
+  `kind`, fremdes Feld) wird mit Logzeile „Routes: runs[i] left out: …“ verworfen, Datei bleibt lesbar.
+- **E1:** Median über die letzten 7 Läufe (`MedianWindow`), der Zähler zeigt alle.
+- **E2:** Checkbox-Tooltip „Loops you finished 3+ times with this ship use your median time instead of the values
+  above.“
+
+**Stand (25.11., Branch `feat/p13-measured`):**
+- Commits: `direct` in `runs[]`, Läufe einzeln (6a0be74); `MeasuredTimes`, `Loops.Rank` mit Messungen (ab43cdb); Plan-Reiter,
+  `routes.useMeasured` (29ca7aa); Gate-Fixture, D127, Doku.
+- **Zahlen (Release, `LoopsTimingTests.Ranking_with_measured_times`, Hull B Senior, 43 Loops, 16 gemessen aus 48
+  Läufen):** `Loops.Rank` Median 0,025 ms mit, 0,015 ms ohne Messungen (erster Aufruf 0,15 ms). Gate-Fixture gegen den
+  Pin (`MeasuredGateFixtureTests`): Everus-Ring 877.000 aUEC, Modell 484.233/h, gemessen 657.750/h (Median 80 min).
+- **Mutationsproben:** Mittelwert statt Median → 3 rot; Schwelle 1 → 2 rot; ohne Schiffsfilter → 1 rot; ohne Fenster →
+  1 rot (erst nachdem der Fenster-Test so gebaut war, dass der Median über alle 120 statt 60 ergibt; vorher grün);
+  Schalter ignoriert → 1 rot.
+- **Testnamen:** `MeasuredTimesTests` (Median, Schwelle, Schiff, Ausreißer, ohne Identität, gerade Anzahl, Fenster,
+  andere Loop, Direct), `LoopsTests.A_measured_row_overtakes_a_model_row_by_the_hour_and_leaves_loop_and_landing_alone`,
+  `LoopsTests.A_loop_started_and_finished_is_measured_as_the_same_loop`,
+  `RoutesFileTests.A_direct_run_keeps_rank_size_and_reward_of_its_contract_and_a_ring_run_names_none`,
+  `RoutesFileTests.A_broken_run_is_left_out_with_a_line_and_the_rest_of_the_file_reads` (4 Fälle),
+  `RouteProgressTests.A_direct_runs_finish_names_rank_size_and_reward_of_its_outbound_template_and_a_rings_none`,
+  `RoutesViewModelTests.A_loop_flown_three_times_*`, `…Switched_off_*`, `…Two_runs_*`, `…The_times_from_the_settings_*`,
+  `…Without_runs_*`, `SettingsStoreTests.Routes_keep_the_measured_times_switch_and_it_is_on_without_one`,
+  `SettingsSessionTests.The_measured_times_switch_goes_into_the_routes_section_and_another_window_follows`,
+  `SettingsWindowXamlTests.The_plan_tab_section_binds_rank_and_faction` (Checkbox), `MeasuredGateFixtureTests`; von Hand
+  `LoopsTimingTests.Ranking_with_measured_times`. Golden-Dateien der Settings-Migration (3) um `useMeasured` nachgezogen.
+- **Handling gegen main:**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | Loops-Zeile ohne Läufe | „~…/h“, Status templates/observed | gleich |
+  | Loops-Zeile mit ≥ 3 Läufen (Schiff gleich) | – | „…/h“ ohne ~, „measured 3× · 1 h 20 min“, Tooltip mit drei Zeiten |
+  | Loops-Zeile mit 1–2 Läufen | – | Zeile wie main, Tooltip „measured 2× – 3 needed“ |
+  | Settings → Plan tab | Rang, Fraktion, 3 Slider | dazu Checkbox „Use my measured loop times (3+ runs)“ |
+  | Slider ziehen | alle Zeilen ändern sich | gemessene Zeilen bleiben |
+  | Finish plan (Ring) | Run in routes.json | gleich |
+  | Finish plan (Direct) | Run in routes.json | dazu `direct: {rank, size, reward}` |
+  | Kaputter Lauf in routes.json | Datei unlesbar, beiseitegelegt | nur der Lauf fehlt, Logzeile |
+
+- **Gate (Martin):** Ordner `tests/CargoPlan.Core.Tests/Fixtures/Routes/MeasuredEverus` (routes.json mit drei Läufen
+  70/80/150 min des Everus-Rings, settings.json mit Hull B, Senior, Reiter Plan) in einen Scratch-Ordner kopieren, dann
+  `dotnet run --project src/CargoPlan.App -c Release -- --data-dir <Kopie>` → Plan → Loops:
+
+  | Schritt | Erwartung | Warum |
+  |---|---|---|
+  | 1 Loops öffnen | Everus-Ring „877k/loop · 657k/h · …“ ohne ~, „… · measured 3× · 1 h 20 min“; Tooltip „measured 3×, median 1 h 20 min: 2 h 30 min (24 Nov) · 1 h 20 min (22 Nov) · 1 h 10 min (20 Nov)“ | Kern |
+  | 2 Settings → Plan tab → Slider „Per landing“ ändern | Everus-Zeile bleibt, die anderen ändern sich | U9 |
+  | 3 Checkbox aus | Everus „~484k/h“, Status „templates“, Tooltip „measured 3× · 1 h 20 min – not used“; Sortierung springt | Schalter |
+  | 4 Checkbox an | wieder gemessen | Schalter |
+  | 5 Neustart | Schalter und Anzeige wie vorher | Persistenz |
+  | 6 Zähler: eigene Daten → Fixture → Schiffswechsel RAFT | eigene Daten: „No loop measured yet with MISC Hull B – finish a plan 3 times.“; Fixture: „1 loop measured with MISC Hull B“; RAFT im Header: „No loop measured yet with ARGO RAFT – finish a plan 3 times.“, Fenster offen lassen, die Zeile folgt | Gate-Befund |
+
+- **Gate-Befund (Martin, 25.11.) – die Checkbox ändert nichts.** Kein Fehler: Martins `routes.json` hatte zwei Läufe aus
+  Gate 6b ohne `ship` (13 s und 33 s), also keine gemessene Loop. **Präzisierung in der Planphase, ratifiziert durch
+  Freigabe (Variante 2 mit E):** Unter der Checkbox steht, wie viele Loops das Schiff des Overlays gemessen hat:
+  „No loop measured yet with MISC Hull B – finish a plan 3 times.“ / „1 loop measured with …“ / „n loops measured with
+  …“ (`MeasuredTimes.EnoughCount`); ohne Schiff keine Zeile. Das Fenster bindet an `IMeasuredSummary` (`Text`,
+  `Changed`), das `RoutesViewModel` implementiert; kein Verweis auf den Reiter, Tests mit Fake. `Changed` nur bei neuem
+  Text (Schiffswechsel, Finish plan). D127-Addendum, `settings-format.md`. Tests:
+  `MeasuredTimesTests.Enough_counts_the_loops_with_three_runs_or_more`,
+  `RoutesViewModelTests.The_summary_counts_the_measured_loops_of_the_ship_and_tells_when_it_changes` (Grenze 1/2,
+  RAFT), `SettingsSessionTests.The_window_shows_the_measured_summary_under_the_switch_and_follows_it_until_it_closes`
+  (Fake, Detach), `SettingsWindowXamlTests.The_plan_tab_section_binds_rank_and_faction` (Zeile). Mutationsproben: ohne
+  Einzahl-Fall → 1 rot; `Detach` ohne Abmelden → 1 rot.
+- **Abnahme erteilt (25.11.2026, Martin)**, damit auch alle Präzisierungen (P1–P6, K1, E1, E2) und der Gate-Befund
+  (Zähler unter der Checkbox mit `IMeasuredSummary`) ratifiziert. Merge `--no-ff` nach main, Martin pusht.
+
 ### [ ] T13.7 Streckenkarte
 
 **Warum:** Die Route vor dem Annehmen planen, wenn man von der Routine abweicht (Design §8).
@@ -868,7 +958,9 @@ ratifiziert.
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
-- `routes.times` aus den Läufen nachführen (T13.6, D126): `runs[]` in routes.json hält Landungen, Kisten, lange Sprünge und die Zeit ab Abflug je Route; daraus ließen sich Minuten je Landung, Sekunden je Kiste und Minuten je langem Sprung schätzen. **Auslöser: drei Läufe** in Martins routes.json (eine Regression braucht mehr Punkte als Unbekannte).
+- Variante B der gemessenen Loop-Zeiten (T13.6c, D127): ein Korrekturfaktor (gemessen ÷ Modell) über alle Läufe des
+  Schiffs, angewandt auf jede Loop, auch ungeflogene; heute rechnet nur eine Loop mit ≥ 3 eigenen Läufen mit ihrem
+  Median (Variante A). **Auslöser:** Nutzerwunsch oder ≥ 10 Läufe in einer routes.json.
 
 - Standorterkennung ersetzt den Hub-Button des Rezepts (T13.3b, D123): der Hub, an dem der Spieler steht, statt
   `routes.hub`. Auslöser: Game.log-Location wird gelesen.

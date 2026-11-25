@@ -118,7 +118,7 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
 
     /// <summary>"Plan finished: Everus ring · 877,000 aUEC · 1 h 20 min" (6b).</summary>
     public static string FinishedText(RouteRun run) =>
-        Invariant($"Plan finished: {run.Name} · {run.Reward:N0} aUEC · {(run.Time.TotalHours >= 1 ? $"{(int)run.Time.TotalHours} h " : "")}{run.Time.Minutes} min");
+        Invariant($"Plan finished: {run.Name} · {run.Reward:N0} aUEC · {RoleText.Duration(run.Time)}");
 
     /// <summary>The route the player flies; null while none is started.</summary>
     [ObservableProperty]
@@ -271,7 +271,7 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
             return;
         }
 
-        var run = Route.Finish(route, _saved, progress, _positions, ship, _clock());
+        var run = Route.Finish(route, _saved, progress, _positions, ship, _templates, _clock());
         _finished?.Invoke(run);
         AppLog.Write(LogContext, Invariant($"plan finished: {run.Name}, {run.Reward} aUEC, {run.Time.TotalMinutes:0} min, {run.Filled}/{run.Total} filled, {run.Extras} extras, {run.Landings} landings"));
         SetRoute(null);

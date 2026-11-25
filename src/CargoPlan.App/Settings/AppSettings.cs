@@ -128,6 +128,8 @@ public sealed record AppSettings(
 /// <param name="LoopsSort">What the loop list is sorted by: "hour" (~aUEC/h), "loop" or "landing" (T13.4).</param>
 /// <param name="PlanBlock">The Cargo tab's block "Plan" (T13.6, gate 6b): "open" or "closed"; Start plan opens it, the first
 /// departure closes it, a click on its head toggles it.</param>
+/// <param name="UseMeasured">A loop flown 3 times or more with the ship ranks per hour by the median of the player's runs
+/// instead of <see cref="Times"/> (T13.6c, D127); false ranks every loop by the times. Set in the settings window only.</param>
 public sealed record RoutesSettings(
     string Tab = RoutesSettings.CargoTab,
     string Rank = RoutesSettings.AnyRank,
@@ -135,7 +137,8 @@ public sealed record RoutesSettings(
     string Hub = RoutesSettings.DefaultHub,
     RoutesTimes? Times = null,
     string LoopsSort = RoutesSettings.SortByHour,
-    string PlanBlock = RoutesSettings.BlockOpen)
+    string PlanBlock = RoutesSettings.BlockOpen,
+    bool UseMeasured = true)
 {
     public const string BlockOpen = "open";
 

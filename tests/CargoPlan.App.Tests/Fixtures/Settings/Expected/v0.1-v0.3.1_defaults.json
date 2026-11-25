@@ -99,6 +99,7 @@
     "hub": "Everus Harbor",
     "loopsSort": "hour",
     "planBlock": "open",
+    "useMeasured": true,
     "times": {
       "station": 10,
       "crate": 20,

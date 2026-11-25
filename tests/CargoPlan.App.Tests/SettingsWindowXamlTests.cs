@@ -155,6 +155,13 @@ public partial class SettingsWindowXamlTests
         bindings.Should().Contain("Slider.Value={Binding Crate}");
         bindings.Should().Contain("Slider.Value={Binding Jump}");
         bindings.Should().Contain("Slider.Maximum={x:Static vm:RoutesSettingsViewModel.MaxStation}");
+
+        // T13.6c: the switch for the player's own loop times, under the sliders it overrides.
+        bindings.Should().Contain("CheckBox.IsChecked={Binding UseMeasured}");
+        bindings.Should().Contain("CheckBox.Content=Use my measured loop times (3+ runs)");
+        bindings.Should().Contain("CheckBox.ToolTip=Loops you finished 3+ times with this ship use your median time instead of the values above.");
+        bindings.Should().Contain("TextBlock.Text={Binding MeasuredText}");
+        bindings.Should().Contain("TextBlock.Visibility={Binding HasMeasuredText, Converter={StaticResource BooleanToVisibilityConverter}}");
     }
 
     [GeneratedRegex(@"\{x:Static (?<prefix>\w+):(?<type>\w+)\.(?<member>\w+)\}")]

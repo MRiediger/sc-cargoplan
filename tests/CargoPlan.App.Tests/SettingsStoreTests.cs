@@ -1093,6 +1093,21 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Routes_keep_the_measured_times_switch_and_it_is_on_without_one()
+    {
+        // T13.6c: additive like planBlock, no schema bump; a file without the key ranks by the player's runs.
+        RoutesSettings.Default.UseMeasured.Should().BeTrue();
+        var settings = AppSettings.Default with { Routes = RoutesSettings.Default with { UseMeasured = false } };
+
+        SettingsStore.Save(SettingsPath, settings);
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        File.ReadAllText(SettingsPath).Should().Contain("\"useMeasured\": false");
+        loaded.Should().Be(settings);
+        problem.Should().BeNull();
+    }
+
+    [Fact]
     public void Routes_keep_what_the_file_says()
     {
         WriteFile("""{ "schemaVersion": 3, "routes": { "tab": "plan", "rank": "senior", "faction": "cfp", "hub": "Baijini Point" } }""");
@@ -1129,7 +1144,7 @@ public sealed class SettingsStoreTests : IDisposable
         var file = JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
         var keys = file.Select(p => p.Key).ToList();
         keys.IndexOf("routes").Should().Be(keys.IndexOf("shipData") + 1);
-        file["routes"]!.AsObject().Select(p => p.Key).Should().Equal("tab", "rank", "faction", "hub", "loopsSort", "planBlock", "times");
+        file["routes"]!.AsObject().Select(p => p.Key).Should().Equal("tab", "rank", "faction", "hub", "loopsSort", "planBlock", "useMeasured", "times");
         file["routes"]!["times"]!.AsObject().Select(p => p.Key).Should().Equal("station", "crate", "jump");
     }
 

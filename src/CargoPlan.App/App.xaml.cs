@@ -394,7 +394,7 @@ public partial class App : Application
                 Faction = changed.Faction,
                 Hub = changed.Hub,
                 LoopsSort = changed.LoopsSort,
-            }), observed);
+            }), observed, routesBook.Runs);
         // The loops (T13.4) off the UI thread: the load planner takes a few hundred ms; a result for old inputs is dropped.
         routes.LoopInputsChanged += (_, inputs) => _ = ComputeLoopsAsync(routes, inputs);
         // After each scan, on its pool thread: match anew there, show on the UI thread.
@@ -409,7 +409,12 @@ public partial class App : Application
         };
         // The route (T13.6, D125): routes.json's at the start, saved by the book with the observations (one writer).
         // The block "Plan" folded or open (gate 6b) is kept in settings.json, through the session like rank and hub.
-        var activeRoute = new ActiveRouteViewModel(routesBook.Route, routesBook.SetRoute, hauling, routesBook.AddRun,
+        // A finished run is kept, and the loops rank by it at once (T13.6c): Finish plan runs on the UI thread.
+        var activeRoute = new ActiveRouteViewModel(routesBook.Route, routesBook.SetRoute, hauling, run =>
+            {
+                routesBook.AddRun(run);
+                routes.ShowRuns(routesBook.Runs);
+            },
             blockOpen: settings.Routes.IsBlockOpen,
             saveBlock: open => sessionForRoutes?.ChangeRoutes(sessionForRoutes.Current.Routes with
             {
@@ -489,7 +494,7 @@ public partial class App : Application
             () => CreateHotkeysViewModel(session),
             () => CreateUpdateSettingsViewModel(session),
             () => CreateShipDataSettingsViewModel(session),
-            () => CreateRoutesSettingsViewModel(session),
+            () => CreateRoutesSettingsViewModel(session, routes),
             scan.Start,
             _activeShipData is { } active ? HoloSource.UnavailableText(active) : null);
         if (settings.Overlay is { } saved)
@@ -764,12 +769,16 @@ public partial class App : Application
         return null;
     }
 
-    /// <summary>The settings window's Plan tab section (T13.3): rank and faction into the session's routes section.</summary>
-    private static RoutesSettingsViewModel CreateRoutesSettingsViewModel(SettingsSession session) => new(
+    /// <summary>
+    /// The settings window's Plan tab section (T13.3): rank, faction, times and the measured times' switch (T13.6c) into the
+    /// session's routes section; under the switch the Plan tab's count of measured loops, through its interface only.
+    /// </summary>
+    private static RoutesSettingsViewModel CreateRoutesSettingsViewModel(SettingsSession session, IMeasuredSummary measured) => new(
         session.Current.Routes,
-        (rank, faction, times) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times }),
+        (rank, faction, times, useMeasured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = useMeasured }),
         handler => session.RoutesChanged += handler,
-        handler => session.RoutesChanged -= handler);
+        handler => session.RoutesChanged -= handler,
+        measured);
 
     /// <summary>
     /// The settings window's Updates section (U8, U9), made per window like the hotkeys'. Check now offers into the overlay's

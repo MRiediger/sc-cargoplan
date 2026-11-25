@@ -1,4 +1,5 @@
 using System.Globalization;
+using CargoPlan.App.Routing;
 using CargoPlan.App.Settings;
 using CargoPlan.Core.Json;
 using CargoPlan.Core.Routing;
@@ -12,7 +13,7 @@ public sealed record RoutesChoice(string Value, string Text);
 /// <summary>
 /// The settings window's section of the Plan tab (T13.3): the player's rank and faction, set once instead of through the
 /// tab's filter buttons, which write the same values (routes.rank, routes.faction); the loops' times (T13.4,
-/// routes.times), which the tab only shows. Applied at once through the settings
+/// routes.times), which the tab only shows; whether measured loop times count (T13.6c, routes.useMeasured). Applied at once through the settings
 /// session (D30); its own DataContext like the Ship data section's, and it follows the session while the window is open,
 /// so a filter button's change shows here too.
 /// </summary>
@@ -21,23 +22,44 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
     /// <summary>The faction choice for "both sides"; settings.json writes null for it.</summary>
     public const string AnyFaction = "any";
 
-    private readonly Action<string, string?, RoutesTimes> _change;
+    private readonly Action<string, string?, RoutesTimes, bool> _change;
 
     private readonly Action<EventHandler<RoutesSettings>> _unfollow;
+
+    // The Plan tab's count of measured loops (gate finding T13.6c), followed until the window closes; null without a tab.
+    private readonly IMeasuredSummary? _measured;
 
     // True while values come from the session: they are what it holds already, nothing to write back.
     private bool _following;
 
-    /// <param name="change">Writes rank, faction (null = both) and the loops' times into the session's routes section.</param>
+    /// <param name="change">Writes rank, faction (null = both), the loops' times and the measured times' switch into the
+    /// session's routes section.</param>
     /// <param name="follow">Subscribes to <see cref="SettingsSession.RoutesChanged"/>.</param>
     /// <param name="unfollow">Unsubscribes, from <see cref="Detach"/> when the window closes.</param>
+    /// <param name="measured">How many loops the overlay's ship has measured, for the line under the switch; null hides it.</param>
     public RoutesSettingsViewModel(
-        RoutesSettings current, Action<string, string?, RoutesTimes> change, Action<EventHandler<RoutesSettings>> follow, Action<EventHandler<RoutesSettings>> unfollow)
+        RoutesSettings current,
+        Action<string, string?, RoutesTimes, bool> change,
+        Action<EventHandler<RoutesSettings>> follow,
+        Action<EventHandler<RoutesSettings>> unfollow,
+        IMeasuredSummary? measured = null)
     {
-        (_change, _unfollow) = (change, unfollow);
+        (_change, _unfollow, _measured) = (change, unfollow, measured);
         Show(current);
         follow(OnSessionChanged);
+        if (measured is not null)
+        {
+            measured.Changed += OnMeasuredChanged;
+            MeasuredText = measured.Text;
+        }
     }
+
+    /// <summary>"No loop measured yet with MISC Hull B – finish a plan 3 times.": why the switch changes nothing yet.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasMeasuredText))]
+    public partial string MeasuredText { get; private set; } = "";
+
+    public bool HasMeasuredText => MeasuredText.Length > 0;
 
     public static IReadOnlyList<RoutesChoice> RankChoices { get; } =
         [.. Enum.GetValues<HaulRank>().Select(r => new RoutesChoice(EnumWords.Word(r), r.ToString()))];
@@ -84,6 +106,10 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(JumpText))]
     public partial double Jump { get; set; } = RoutesTimes.Default.Jump;
 
+    /// <summary>Loops flown 3 times or more rank by the player's median time (T13.6c, routes.useMeasured).</summary>
+    [ObservableProperty]
+    public partial bool UseMeasured { get; set; } = true;
+
     public string StationText => string.Create(CultureInfo.InvariantCulture, $"{Station:0} min");
 
     public string CrateText => string.Create(CultureInfo.InvariantCulture, $"{Crate:0} s");
@@ -91,7 +117,16 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
     public string JumpText => string.Create(CultureInfo.InvariantCulture, $"{Jump:0} min");
 
     /// <summary>The window closed: no more following the session.</summary>
-    public void Detach() => _unfollow(OnSessionChanged);
+    public void Detach()
+    {
+        _unfollow(OnSessionChanged);
+        if (_measured is not null)
+        {
+            _measured.Changed -= OnMeasuredChanged;
+        }
+    }
+
+    private void OnMeasuredChanged(object? sender, EventArgs e) => MeasuredText = _measured!.Text;
 
     partial void OnRankChanged(string value) => Write();
 
@@ -103,11 +138,13 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
 
     partial void OnJumpChanged(double value) => Write();
 
+    partial void OnUseMeasuredChanged(bool value) => Write();
+
     private void Write()
     {
         if (!_following)
         {
-            _change(Rank, Faction == AnyFaction ? null : Faction, new RoutesTimes((int)Math.Round(Station), (int)Math.Round(Crate), (int)Math.Round(Jump)));
+            _change(Rank, Faction == AnyFaction ? null : Faction, new RoutesTimes((int)Math.Round(Station), (int)Math.Round(Crate), (int)Math.Round(Jump)), UseMeasured);
         }
     }
 
@@ -119,6 +156,7 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
         Rank = settings.Rank;
         Faction = settings.Faction ?? AnyFaction;
         (Station, Crate, Jump) = (settings.Times.Station, settings.Times.Crate, settings.Times.Jump);
+        UseMeasured = settings.UseMeasured;
         _following = false;
     }
 }

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 3,
+  "observations": [],
+  "runs": [
+    {
+      "name": "Everus Harbor ring",
+      "startedUtc": "2026-11-20T16:40:00Z",
+      "departedUtc": "2026-11-20T16:50:00Z",
+      "finishedUtc": "2026-11-20T18:00:00Z",
+      "hub": "Everus Harbor",
+      "kind": "localRing",
+      "system": "stanton",
+      "landings": 6,
+      "crates": 50,
+      "longJumps": 4,
+      "reward": 877000,
+      "filled": 9,
+      "total": 10,
+      "extras": 0,
+      "ship": "hull_b",
+      "stations": [
+        "HUR-L1 Green Glade Station",
+        "HUR-L4 Melodic Fields Station",
+        "HUR-L3 Thundering Express Station",
+        "HUR-L5 High Course Station",
+        "HUR-L2 Faithful Dream Station"
+      ]
+    },
+    {
+      "name": "Everus Harbor ring",
+      "startedUtc": "2026-11-22T16:30:00Z",
+      "departedUtc": "2026-11-22T16:40:00Z",
+      "finishedUtc": "2026-11-22T18:00:00Z",
+      "hub": "Everus Harbor",
+      "kind": "localRing",
+      "system": "stanton",
+      "landings": 6,
+      "crates": 50,
+      "longJumps": 4,
+      "reward": 877000,
+      "filled": 9,
+      "total": 10,
+      "extras": 0,
+      "ship": "hull_b",
+      "stations": [
+        "HUR-L1 Green Glade Station",
+        "HUR-L4 Melodic Fields Station",
+        "HUR-L3 Thundering Express Station",
+        "HUR-L5 High Course Station",
+        "HUR-L2 Faithful Dream Station"
+      ]
+    },
+    {
+      "name": "Everus Harbor ring",
+      "startedUtc": "2026-11-24T15:20:00Z",
+      "departedUtc": "2026-11-24T15:30:00Z",
+      "finishedUtc": "2026-11-24T18:00:00Z",
+      "hub": "Everus Harbor",
+      "kind": "localRing",
+      "system": "stanton",
+      "landings": 6,
+      "crates": 50,
+      "longJumps": 4,
+      "reward": 877000,
+      "filled": 9,
+      "total": 10,
+      "extras": 0,
+      "ship": "hull_b",
+      "stations": [
+        "HUR-L1 Green Glade Station",
+        "HUR-L4 Melodic Fields Station",
+        "HUR-L3 Thundering Express Station",
+        "HUR-L5 High Course Station",
+        "HUR-L2 Faithful Dream Station"
+      ]
+    }
+  ]
+}
