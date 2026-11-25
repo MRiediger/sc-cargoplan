@@ -1,10 +1,11 @@
 # Routes file format
 
-`routes.json` holds what the route planner learns from your scans (phase 13, D118). Today that is the
-**observations**: for every hauling contract variant you scanned, where it really picked up and delivered, how much it
-asked for, and how often you saw it. The overlay writes it to `%LocalAppData%\SC-CargoPlan\routes.json`, next to
-`plan.json`, after every scan it can read; you don't need to open it. It is a file of its own: `plan.json` stays
-schema 11 and never learns about routes.
+`routes.json` holds what the route planner learns from your scans and the route you fly (phase 13, D118): the
+**observations** (for every hauling contract variant you scanned, where it really picked up and delivered, how much it
+asked for, and how often you saw it), the **route** started with "Start plan" and its placeholders (T13.6, D125), and
+the **runs**, routes finished at their hub (T13.6, D126). The overlay writes it to
+`%LocalAppData%\SC-CargoPlan\routes.json`, next to `plan.json`, after every scan it can read and every change of the
+route; you don't need to open it. It is a file of its own: `plan.json` stays schema 11 and never learns about routes.
 
 Why: the game's hauling boards are fixed templates (design `docs/design/cargo-routes.md`, §7). For the system-wide
 Covalex templates the game data name no destinations, and Red Wind templates name no reward; a scan shows both. The
@@ -18,7 +19,7 @@ Medium contract for 532,500 aUEC, whose card names the level "Stellar" but not w
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "observations": [
     {
       "contractor": "covalex",
@@ -82,6 +83,90 @@ Medium contract for 532,500 aUEC, whose card names the level "Stellar" but not w
 }
 ```
 
+A route: the Everus ring of `ships-2026.11.2` for a MISC Hull B at Senior, started from the Plan tab's loops; the bulk
+was accepted and scanned (its key, as plan.json's `scan.key` holds it, shortened here), the direct and the ways back are
+open. Three of its ten placeholders are shown.
+
+```json
+{
+  "schemaVersion": 3,
+  "observations": [],
+  "route": {
+    "name": "Everus Harbor ring",
+    "startedUtc": "2026-11-24T16:35:52.0833014Z",
+    "hub": "Everus Harbor",
+    "kind": "localRing",
+    "system": "stanton",
+    "stations": [
+      "HUR-L1 Green Glade Station",
+      "HUR-L4 Melodic Fields Station",
+      "HUR-L3 Thundering Express Station",
+      "HUR-L5 High Course Station",
+      "HUR-L2 Faithful Dream Station"
+    ],
+    "placeholders": [
+      {
+        "id": 1,
+        "kind": "bulk",
+        "template": "212df642-26d0-4e99-b8c0-c212ae4cfbd8",
+        "title": "Senior Rank - Medium Cargo Haul",
+        "legs": [
+          { "commodity": "Hydrogen Fuel", "min": 41, "max": 72, "container": 16 },
+          { "commodity": "Quantum Fuel", "min": 81, "max": 144, "container": 16 },
+          { "commodity": "Ship Ammunition", "min": 82, "max": 144, "container": 16 },
+          { "commodity": "Hydrogen Fuel", "min": 40, "max": 72, "container": 16 }
+        ],
+        "destinations": [
+          "HUR-L1 Green Glade Station",
+          "HUR-L2 Faithful Dream Station",
+          "HUR-L3 Thundering Express Station",
+          "HUR-L4 Melodic Fields Station"
+        ],
+        "reward": 325250,
+        "filledBy": "EVERUSHARBOR | GREENGLADE:HYDROGENFUEL … | 16 | 325250"
+      },
+      {
+        "id": 2,
+        "kind": "direct",
+        "template": "f2cd346d-0339-4f42-adb2-407916037c51",
+        "title": "Rookie Rank - Direct Small Cargo Haul",
+        "legs": [
+          { "commodity": "Stims", "min": 8, "max": 16, "container": 4 }
+        ],
+        "destinations": [
+          "HUR-L1 Green Glade Station"
+        ],
+        "reward": 35500
+      },
+      {
+        "id": 6,
+        "kind": "return",
+        "template": "2f054a8b-6bc2-46e6-8b4e-8106670dcba3",
+        "title": "Junior Rank - Small Cargo Haul",
+        "legs": [
+          { "commodity": "Waste", "min": 2, "max": 4, "container": 4 },
+          { "commodity": "Waste", "min": 2, "max": 4, "container": 4 },
+          { "commodity": "Waste", "min": 2, "max": 4, "container": 4 },
+          { "commodity": "Waste", "min": 2, "max": 4, "container": 4 }
+        ],
+        "destinations": [
+          "Everus Harbor"
+        ],
+        "reward": 72500,
+        "acceptAt": "HUR-L1 Green Glade Station",
+        "collectAt": [
+          "HUR-L4 Melodic Fields Station",
+          "HUR-L3 Thundering Express Station",
+          "HUR-L5 High Course Station"
+        ]
+      }
+    ],
+    "extras": [],
+    "at": 0
+  }
+}
+```
+
 ## Fields
 
 All fields are **required** unless marked optional. Names are camelCase and **case-sensitive**. Unknown fields are an
@@ -91,8 +176,10 @@ error.
 
 | Field | Type | Rules |
 |---|---|---|
-| `schemaVersion` | number | `2`; a file of schema `1` (T13.1) is read, [below](#schema-1). |
+| `schemaVersion` | number | `3`; files of schema `2` (T13.3) and `1` (T13.1) are read, [below](#older-schemas). |
 | `observations` | array | One entry per variant, in the order first seen. May be empty. No two entries have the same key. |
+| `route` | object | Optional: the [route](#route) started with "Start plan"; left out while none is. |
+| `runs` | array | Optional: the [runs](#run), routes finished at their hub, oldest first, at most 50; left out while there are none. |
 
 ### Observation
 
@@ -149,12 +236,75 @@ every place without hauling data, is kept as read, with the name rule of the pla
 Station", "Melodic Fieids" and "Melodic Fields Station" are one, the longer name stays). Reading a file joins and names
 what an older file kept apart (T13.3), in memory; the next save writes it so, never the reading.
 
+## Route
+
+Started with **Start plan** in the Plan tab (recipe or loops, T13.6): a loop's stations in the order flown and one
+placeholder per contract of the loop (D125). What is loaded and delivered is the plan's; the route only keeps which scan
+filled which placeholder and the contracts accepted beside it. **End plan** removes it, the cargo stays.
+
+| Field | Type | Rules |
+|---|---|---|
+| `name` | string | The loop's row as the Plan tab showed it ("Everus Harbor ring"). |
+| `startedUtc` | string | When it was started, ISO 8601 in UTC. |
+| `departedUtc` | string | Optional (6b): when the station bar first left the hub; not before `startedUtc`. |
+| `hub` | string | Where it starts and ends. |
+| `kind` | string | `"localRing"` (a hub's ring; a Pyro station's too), `"direct"` (one direct contract there and back) or `"systemWide"` (the LEO ring). |
+| `system` | string | `"stanton"`, `"pyro"` or `"nyx"`. |
+| `stations` | array of strings | At least one: the stations in the order flown, without the hub. |
+| `placeholders` | array | One per contract of the loop: out first, then the ways back. Ids once each. |
+| `extras` | array of strings | Scan keys of accepted contracts no placeholder took ("not in plan (extra)"); they count for the route. May be empty. |
+| `at` | number | Where the station bar stands (6b): `0` the hub at the start, `1` to n the stations, n + 1 the hub at the end. |
+
+### Placeholder
+
+What the recipe's line shows, kept with the route, so a later data release changes no started route.
+
+| Field | Type | Rules |
+|---|---|---|
+| `id` | number | 1 or more, once in the route. |
+| `kind` | string | `"bulk"`, `"direct"`, `"small"` or `"return"` (a way back). |
+| `template` | string | The template's uuid in `hauling-templates.json`; a scan fills a placeholder of its template. |
+| `title` | string | As the card shows it: Covalex as the data, Red Wind in the card's form (`Member \| Stellar Medium Haul`). |
+| `legs` | array | At least one: `commodity`, `min` and `max` (SCU, `1 ≤ min ≤ max`) and `container` (the largest crate in SCU: 1, 2, 4, 8, 16, 24 or 32). |
+| `destinations` | array of strings | The places of the recipe's line; the hub for a way back. |
+| `reward` | number | Optional: aUEC from the template, else the last a scan saw (Red Wind); left out where none is known, never estimated. |
+| `acceptAt` | string | Only for a way back, required there: the station where it is accepted. |
+| `collectAt` | array of strings | Only for a way back, required there: the next stations it collects at (several pickups); empty for one pickup. |
+| `filledBy` | string | Optional: the scan key (`plan.json`, `scan.key`) of the accepted contract that filled it. |
+
+**Filled is what the plan says.** A placeholder counts as filled while `plan.json` has a mission with its `filledBy` key.
+An undo or Discard cargo takes the mission out, and the placeholder is open again; the next accepted scan of its
+template fills it anew. Only a scan in the **accepted** view fills; an offer never does. A scan whose template has no
+open placeholder is an extra. **Start plan takes the cargo:** every accepted Covalex contract already in `plan.json`
+that fits exactly one open placeholder's template fills it, every other accepted contract is an extra (a Red Wind one
+too: its card has no reward to tell it by, so its next accepted scan moves it into its placeholder).
+
+## Run
+
+Written by **Finish plan** at the hub (T13.6, 6b, D126).
+
+| Field | Type | Rules |
+|---|---|---|
+| `name`, `hub`, `kind`, `system` | | As the route's. |
+| `startedUtc`, `finishedUtc` | string | ISO 8601 in UTC, in that order. |
+| `departedUtc` | string | Optional: between them; the round's time runs from here, else from `startedUtc`. |
+| `landings`, `crates`, `longJumps` | number | Landings at least 1, the others at least 0. |
+| `reward` | number | aUEC of the filled placeholders and the extras as the plan read them; never an open placeholder's. |
+| `filled`, `total`, `extras` | number | Placeholders filled of all, and the extras; `filled ≤ total`. |
+| `ship` | string | Optional when read, always written: the overlay's ship at the finish (its id, `hull_b`). |
+| `stations` | array of strings | Optional when read, always written: the route's stations as Start plan made them from the loop, without the extras' places. With `ship`, `hub`, `kind` and `system` the loop a run measured (T13.6c); a run without them measured none. |
+
+## Older schemas
+
+**Schema 2** (T13.3) has only `observations` and is read as it is; the next save writes schema 3. A `route` or `runs`
+in a file of schema 1 or 2 is an error.
+
 ### Schema 1
 
 Schema 1 (T13.1) keyed a variant without its commodities, so one entry could hold scans of several templates. Reading
 it takes every entry with one commodity as it is and leaves out every entry with several; `cargoplan.log` names each
 ("Routes: schema 1 entry covalex senior medium 325250 left out: 2 commodities may be several templates"). The next
-save writes schema 2. No release wrote schema 1.
+save writes schema 3. No release wrote schema 1.
 
 ## Offers while Routes is selected
 
@@ -167,8 +317,8 @@ as always. With **Cargo** selected nothing changes. The selected tab is kept in 
 ## Unreadable files
 
 A `routes.json` that can't be read (not JSON, another schema, a word or band out of these rules, or locked) is left as
-it is; the run starts without observations and `cargoplan.log` says why. The first observation of the run moves the
-old file aside before it writes, as `plan.json` does (D106):
+it is; the run starts without observations and without a route, and `cargoplan.log` says why. The first save of the
+run (an observation or a route) moves the old file aside before it writes, as `plan.json` does (D106):
 
 ```
 routes.json                                  the new observations
@@ -177,8 +327,3 @@ routes.json.unreadable-20261123-181412       the file that couldn't be read, byt
 
 If the file can't be moved or written, the observations stay in memory and the next scan tries again. None of this
 shows in the notice line: the file is the planner's notebook, and a failure there never costs a scan or the plan.
-
-## Later
-
-The route and its placeholders (T13.6) come into this file, not into `plan.json` (D118). Until then a file with any
-other field is refused.

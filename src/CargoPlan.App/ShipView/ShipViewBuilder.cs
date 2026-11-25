@@ -39,9 +39,12 @@ public static class ShipViewBuilder
     /// </summary>
     /// <param name="violations">The result of <c>LoadPlanner.Validate</c> for this plan.</param>
     /// <exception cref="ArgumentException">The plan belongs to another ship.</exception>
-    public static ShipScene Build(SavedPlan saved, Ship ship, IReadOnlyList<PlanWarning> violations) => Build(saved.Plan, saved, ship, violations);
+    /// <param name="shortPlace">The short form of a place for the header's "to HUR-L5" (T13.6): the hauling data's positions;
+    /// null = the place as written.</param>
+    public static ShipScene Build(SavedPlan saved, Ship ship, IReadOnlyList<PlanWarning> violations, Func<string, string>? shortPlace = null) =>
+        Build(saved.Plan, saved, ship, violations, shortPlace);
 
-    private static ShipScene Build(LoadPlan plan, SavedPlan? saved, Ship ship, IReadOnlyList<PlanWarning> violations)
+    private static ShipScene Build(LoadPlan plan, SavedPlan? saved, Ship ship, IReadOnlyList<PlanWarning> violations, Func<string, string>? shortPlace = null)
     {
         plan.EnsureBelongsTo(ship);
 
@@ -68,7 +71,8 @@ public static class ShipViewBuilder
             line.Grouped,
             LegendText.Goods(line.Crates),
             line.ScanNo,
-            line.Crates.All(c => c.Loaded)))];
+            line.Crates.All(c => c.Loaded),
+            line.Header is null ? null : (shortPlace ?? (name => name))(line.Destination)))];
 
         return new ShipScene(
             racks,

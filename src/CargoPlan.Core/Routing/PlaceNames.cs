@@ -22,6 +22,16 @@ public static partial class PlaceNames
     public static string Short(string name) => LStation().Match(name) is { Success: true } match ? match.Groups["code"].Value : name;
 
     /// <summary>
+    /// A place as a contract writes it ("High Course Station") in its short form ("HUR-L5"): the position it resolves to
+    /// in any system (<see cref="Positions.Resolve"/>), shortened; a place no position answers to as it is. For the legend's
+    /// header (T13.6), which has no system of its own.
+    /// </summary>
+    public static string ShortOf(string name, Positions positions) =>
+        Enum.GetValues<StarSystem>().Select(s => positions.Resolve(s, name)).FirstOrDefault(p => p is not null) is { } position
+            ? Short(position.Name)
+            : name;
+
+    /// <summary>
     /// "HUR-L1 Green Glade Station" → "Green Glade Station": the form a contract's delivery lines use (T13.3); any other
     /// name, and a code without a name after it, as it is.
     /// </summary>

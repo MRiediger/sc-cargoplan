@@ -626,17 +626,221 @@ Martins Antworten auf vier Rückfragen):**
 
 ### ~~T13.5 App: Hafen-Matrix~~ – entfällt (in T13.2, U3, 23.11.)
 
-### [ ] T13.6 Route starten
+### [x] T13.6 Route: Platzhalter, Accepted-Scan füllt, Stationsleiste (abgenommen 25.11.)
 
-**Warum:** Aus dem Entschluss wird ein Ablauf: Stationsfolge, freie Slots, Rückfracht (Design §4.3 Schritt 5–7).
-- Stationsfolge aus *Accepted*-Einträgen, Slot-Simulation je Station mit `LoadPlanner`, Stations-Checkliste (abladen,
-  frei, Rückfracht-Platzhalter), Platzhalterkarten
-- Accepted-Scan aktualisiert die Route; Abschluss am Hub schreibt Messwerte in die Zeitparameter
+**Warum:** Aus dem Entschluss wird ein Ablauf: aus einer Loop- oder Recipe-Zeile eine Route mit Platzhaltern im
+Cargo-Reiter, die der Accepted-Scan am Terminal füllt, und eine Stationsleiste führt mit Abladen, freien Slots und
+Rückläufern über den Ring bis zum Abschluss am Hub mit Σ aUEC und Zeit (Design §4.3 Schritt 4–7, §8.4 Punkt 4).
+Zwei Teile mit je eigenem Gate: **6a** Start, Block „Plan“, Accepted-Scan füllt; **6b** Stationsleiste,
+Slot-Simulation, Rückläufer, Abschluss. Branch `feat/p13-route`, Zwischenabnahme nach 6a, Abnahme nach 6b.
 
-**Akzeptanz:**
-- Route und Platzhalter liegen in `routes.json`, plan.json unberührt (D118)
-- Fehlt ein Accepted-Scan, fehlt der Vertrag in der Route mit Hinweis, kein Fehler
-- Gate am Terminal, SC vorne: ein Ring mit Rückfracht von Start bis Abschluss
+**Akzeptanz (Startprompt 24.11., §5):**
+- Route und Platzhalter in `routes.json` Schema 3, `plan.json` Schema 11 und byte-gleich bei Start/End/Finish (D118).
+- Accepted-Scan füllt über `TemplateMatch`, nie über Titeltext; ohne Platzhalter Mission wie heute + Hinweis, Vertrag
+  zählt zur Route (U9.2); fehlt ein Scan, fehlt der Vertrag in der Route – Hinweis, kein Fehler.
+- Erfüllt wird aus dem Plan gelesen; Undo öffnet den Platzhalter.
+- Stationsleiste über der Legende, Cargo-Ansicht darunter unverändert (Handling-Tabelle gegen `main`); Slot-Simulation
+  auf dem echten Plan; Rückläufer-Platzhalter je `AcceptAt`.
+- Abschluss schreibt `runs[]` mit Σ aUEC der gefüllten + Extras und Zeit ab Abflug; kein Nachführen der Zeitparameter
+  (Backlog mit Auslöser).
+- U4 eingehalten: „Start plan“, „End plan“, „Finish plan“, Block „Plan“; „Discard plan“ → „Discard cargo“.
+- D125 und D126 mit Gegenargument; `routes-format.md` Schema 3; CLAUDE.md-Zeilen zu `routes.json`; beide Gates mit
+  Zahlen; DoD (`dotnet build` 0 Warnungen, komplette `dotnet test`-Zusammenfassung wörtlich, `dotnet format
+  --verify-no-changes`); Commits ohne Co-Authored-By.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (24.11.2026, „Freigabe T13.6 mit K1“; U9 aus der
+Vorbesprechung, Befunde 1–8, K1–K6, E(a)–(c), E1, E2):**
+- **U9:** (1) Platzhalter in `routes.json` (Schema 3, `route`), im Cargo-Reiter als grauer Block „Plan“ über der
+  Legende, eine Zeile je Rolle; keine Kisten im Schiff; erfüllt = „✓ #n“, der Platzhalter bleibt. (2) Accepted-Scan ohne
+  passenden Platzhalter: Mission wie heute, „· not in plan (extra)“, zählt zur Route. (3) Stations-Wizard = eine
+  Stationsleiste über der Legende, keine dritte Ansicht. (4) Schnitt 6a / 6b.
+- **K1:** „k/n filled“ zählt alle Platzhalter (Hinweg + Back); Everus = 10.
+- **K2 (U4):** „Discard plan“ → „Discard cargo“ (Editor-Button, Hotkey-Label), Notice „Cargo discarded – …“, Leerzustand
+  „No cargo. Open the editor to enter missions.“; Settings-Schlüssel `discardPlan` und Code-Namen bleiben.
+- **K3:** Ein Accepted-Scan mit `AlreadyInPlan` (Vertrag vor „Start plan“ gescannt) füllt einen offenen Platzhalter:
+  der D101-Schlüssel trägt keinen Titel (Rang/Größe), deshalb kann „Start plan“ vorhandene Missionen nicht selbst
+  zuordnen – nur ein erneuter Accepted-Scan (D125, mit Gegenargument).
+- **K4:** „Start plan“ in Loops = die zuletzt geklickte Zeile, sonst die oberste mit Zahlen; in Recipe = die zuletzt
+  geklickte, wenn ihr Start der gezeigte Hub ist (Direct-Lauf), sonst der Ring des gezeigten Hubs. Ein Klick auf eine
+  LEO-/Pyro-Zeile markiert sie (vorher: nichts). Tooltip nennt das Ziel oder warum nicht.
+- **K5:** Leiste „Start · Hub“, dann „Station 1/n“ … „n/n · Hub · Finish plan“, n = Landungen (6b).
+- **K6:** Extras außerhalb des Rings: vor dem Abflug neu permutiert (`Loops.Order`), danach vor den Hub (6b).
+- **E(a):** Offer-Scan eines offenen Platzhalter-Templates: „ · plan: bulk“ in beiden Reitern. **E(b):** Auto-Weiter-
+  schalten beim Übergang „letzte offene Lieferung der Station abgehakt“ (6b). **E(c):** „accepted at … (planned …)“ (6b).
+- **K1 der Freigabe:** Gate 6a mit K3-Schritt. **E1:** plan.json-Hash auch bei Finish. **E2:** U9 (und U4, U5, U7) in
+  Design §9.2; U6 und U8 stehen nicht im Repo (Master-Chat), daher nicht nachgetragen.
+
+**Befunde Planphase (bestätigt):** (1) Everus-Ring 10 Rollen (5 Hinweg 594 500, 5 Back 282 500), nicht 7. (2) „Discard
+plan“ steht nicht im Overlay, sondern im Editor und als Hotkey-Label; „No plan …“/„Plan discarded …“ aber in der
+Cargo-Ansicht. (3) Scan-Notices laufen über `NoticeSource.Move`, nicht `Scan`. (4) Route nimmt `LoopKind` + `StarSystem`
+(Pyro = `LocalRing` + Pyro), kein neues Enum. (5) `Loops.Order` ist die gesuchte Permutation (internal, aus Core
+nutzbar). (6) Zeilenklick wechselte nach Recipe bzw. tat nichts → K4. (7) Design §9.4 gibt es nicht. (8) Kartennamen
+im Plan vs. Positionsnamen der Route → `Positions.Resolve` (6b).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (bei der Umsetzung 6a, zur Zwischenabnahme):**
+- Core nimmt statt `ContractView` (lebt in `CargoPlan.Import`) die Schätzung der Scan-Identität: geschätzt ⇔ nicht
+  Accepted (D102); `Route.Fill` bekommt die Identität des Scans (der Capture), nicht der Mission.
+- „Already in plan (#3)“ → „Already in cargo (#3)“ (U4: neben „· plan ✓“ stünde „plan“ zweimal).
+- `runs` steht ab 6a im Schema (kein zweiter Bump in 6b).
+- Die Platzhalterzeile zeigt die Orte der Rezeptzeile (wie Recipe) und zusätzlich die Waren; Format `RoleText` für
+  Recipe, Loop-Tooltip und Platzhalter (A1).
+- Der Leerzustand der Legende steht hinter den Stopp-Zeilen (Block darüber; ohne Route keine Änderung); der Scrollbereich
+  bleibt mit Route auch bei `legend.visible = false`, die Stopp-Zeilen folgen der Einstellung.
+- Block-Zeilen einzeilig mit Ellipse wie die Legenden-Zeilen (K6.1), voller Text im Tooltip (Bild-Check CC).
+
+**Stand 6a (24.11., Branch `feat/p13-route`, 5caecc7..c403039):**
+- Commits: `Route`/`Placeholder`/`From` + Golden (5caecc7); `Route.Fill` + Füll-Matrix (b262422); routes.json Schema 3 +
+  `RoutesBook` (0420b39); `ActiveRouteViewModel`, `ApplyScan`, Notices, `RoleText` (3ff6e41); „Start plan“ (d212210);
+  Block + K2 (b3ecacd); Block einzeilig (0a307de); plan.json-Hash bei Start/End (c403039); Doku.
+- **Golden (Pin `ships-2026.11.2`, Hull B, Senior):** Everus-Ring L1 → L4 → L3 → L5 → L2, 10 Platzhalter, Hinweg
+  594 500, Back 282 500 (L1 72 500 „collect at L4, L3, L5“, L4 60 750, L3 50 250, L5 48 500, L2 50 500); Direct
+  Everus → HUR-L3 eine Station, Rückläufer mit einem Pickup, 211 750; Port Tressler 1 028 000 (`RouteBaselineTests`).
+- **Füll-Matrix** 48 Zellen (View × ScanChange × Bulk-Platzhalter), dazu Ambiguous, zwei Platzhalter eines Templates,
+  Undo öffnet, Extra wandert zum offenen Platzhalter (`RouteTests`).
+- **Mutationsproben:** `IsFilled` ohne die Keys des Plans → 2 rot; `at`-Bereichsprüfung aus → 1 rot. Die Format-Tests
+  (Commit 3) liefen nicht vor dem Code (Lehre T7.2 verletzt), dafür die Mutation.
+- Bild (CC, Desktop, `--data-dir` mit Scratch-Datenordner: Everus-Ring des Pins, Bulk gefüllt als #1, ein Extra):
+  „Plan: Everus Harbor ring · 1/10 filled · Σ 594,500 out · +282,500 back“ mit „End plan“, „✓ #1 · Bulk · …“, vier graue
+  Hinweg-Zeilen, „Back“, fünf Rückläufer, „+ #2 extra · 41,750 aUEC“, darunter die Legende.
+- **Handling gegen main:**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | Filterzeile Plan-Reiter | View, Hub (Recipe), Sort (Loops), Rang, System, … | dazu „Start plan“ in Recipe und Loops rechts neben dem System-Button (Gate-Befund 25.11.), Tooltip auch deaktiviert |
+  | Klick auf Loop-Zeile | Stanton → Recipe des Hubs; LEO/Pyro nichts | Stanton gleich, dazu markiert; LEO/Pyro markiert (Balken links), bleibt in Loops |
+  | „Start plan“ (neu) | – | Route in routes.json, Reiter → Cargo; zweite Route nur nach Ja |
+  | Cargo-Reiter mit Route (neu) | – | Block „Plan“ über der Legende, scrollt mit ihr; „End plan“ |
+  | F3 Accepted mit Route | „Scanned #n · …“ | dazu „ · plan: bulk ✓ k/n“ / „ · not in plan (extra)“ / „ · plan ✓“ |
+  | F3 Offer mit Route | wie main | dazu „ · plan: bulk“, wenn ein offener Platzhalter das Template hat |
+  | F3 gleicher Vertrag nochmal | „Already in plan (#n)“ | „Already in cargo (#n)“ (U4) |
+  | Editor „Discard plan“, Hotkey-Label, Leerzustand | „Discard plan“, „No plan. …“ | „Discard cargo“, „No cargo. …“ (K2) |
+  | Alles ohne Route | wie main | gleich |
+
+- **Gate 6a (Martin, SC vorne, Everus, Hull B, Senior, `--data-dir` mit Kopie des Datenordners):**
+
+  | Schritt | Erwartung | Warum |
+  |---|---|---|
+  | 1 Plan → Loops → Everus ring (Klick) → „Start plan“ | Reiter Cargo; „Plan: Everus Harbor ring · 0/10 filled · Σ 594,500 out · +282,500 back“, 5 graue Zeilen, 5 unter „Back“; `routes.json` hat `route`; `plan.json`-Hash gleich | Start schreibt nur die Planer-Datei (D118) |
+  | 2 Bulk am Terminal (Titel + Reward der Zeile), annehmen, Accepted, F3 | Mission wie heute; „✓ #n · Bulk · …“; Notice „Scanned #n · … · plan: bulk ✓ 1/10“ | Kernpfad U3 |
+  | 3 Fremder Vertrag (z. B. Rookie Direct Small eines anderen Templates), F3 | Mission wie heute; „· not in plan (extra)“; „+ #m extra · …“ | U9.2 |
+  | 4 Undo auf 2 | Zeile wieder grau; `routes.json` unverändert | erfüllt kommt aus dem Plan |
+  | 5 Redo, App neu starten | Block wie vorher, ✓ #n bleibt | Persistenz Route + Plan |
+  | 6 „End plan“; einen Vertrag des Rezepts annehmen und F3 (Accepted) **ohne** Route, dazu einen fremden; dann „Start plan“ | ohne Rescan „✓ #n“ für den Vertrag des Rezepts, „+ #m extra“ für den fremden; cargoplan.log „Routes: start: #n → placeholder k“ / „#m extra“; erneuter F3 → „Already in cargo (#n) · plan ✓“ | Gate-Befund 25.11. (Option 1), K3 als Fallback |
+  | 7 „End plan“ | Block weg, Legende und Schiff unverändert, `routes.json` ohne `route` | Route additiv |
+  | 8 Ohne Route: Offer im Cargo-Reiter, Accepted-Scan | exakt wie main | Invariante 1 |
+
+  Zahlen: `keyToNoticeMs` (scans.log) für 2/3 gegen T13.1 (1 672–1 807 ms), `fillMs=` aus cargoplan.log („Routes: fill
+  #n: … fillMs=“). Fokus: „End plan“ und „Start plan“ mit `--log-input` (Cargo-Reiter aktiviert nicht, U7).
+
+- **Gate-Befund 6a (Martin, 25.11.) – Darstellung des Blocks, kein Logikfehler. Präzisierung in der Planphase,
+  ratifiziert durch Freigabe:** (K1) Platzhalterzeilen brechen um statt „…“ – Ziele und „collect at“ ganz lesbar (nimmt
+  die Einzeiligkeit aus 0a307de zurück); (K2) Zeile = Rolle · Titel · Reward · Ziele bzw. Back · Titel · Reward ·
+  accept at X · collect at Y, Z; Waren und SCU-Band (je Leg und gesamt) nur im Tooltip; (K3) „accept at“ im Orange der
+  Statuszeile (`NoticeForegroundBrush`), „collect at“ normal (`PlaceholderRowView.Accept`/`Collect` als eigene Runs);
+  (E1) Trennlinie (1 px, Legendenfarbe, 40 %) zwischen Block und Stopp-Zeilen. Tests:
+  `RouteScanTests.A_way_back_says_where_to_accept_and_collect_apart_and_the_tool_tip_holds_commodities_and_bands`,
+  `OverlayRouteXamlTests.Placeholder_lines_wrap_and_accept_at_takes_the_notice_colour`,
+  `OverlayRouteXamlTests.A_line_parts_the_block_from_the_stop_lines`. Die Kopfzeile bleibt einzeilig (nicht Teil des
+  Befunds). Bild-Gate (Martin) danach.
+- **Gate-Befund 6a (Martin, 25.11.) – „Start plan“ erkennt angenommene Missionen nicht** (Recipe → Start plan → Senior
+  annehmen + F3 → End plan → Start plan: 0/10). Ursache: K3 wie freigegeben (nur ein Rescan füllte). **Präzisierung in der
+  Planphase, ratifiziert durch Freigabe (Martin, Option 1):** `Route.Adopt` beim Start – jede nicht geschätzte Mission
+  der Ladung, die die Route noch nicht hält, in Scan-Reihenfolge gegen die Templates der offenen Platzhalter
+  (`TemplateMatch`, Rang/Größe/Auftraggeber aus dem Template, Reward, Waren, Bänder, Stopps, Orte aus der Mission); nur
+  ein eindeutiger Treffer füllt, eine Mission höchstens einen Platzhalter; Rest = Extras; **Red Wind nie beim Start**
+  (kein Reward, Rang/Größe nur aus dem Template) → Extra, der nächste Accepted-Scan schiebt es in den Platzhalter; K3
+  bleibt Fallback; kein neuer Zustand in routes.json; Logzeile je Mission „Routes: start: #n → placeholder k“ / „#n
+  extra“. Gate-Schritt 6 neu (oben). Mutationsproben: ohne Eindeutigkeit 1 rot, ohne Covalex-Filter 1 rot. Tests:
+  `RouteTests.Start_plan_*`, `RouteTests.A_contract_that_fits_two_placeholders_templates_*`,
+  `RouteTests.A_Covalex_contract_with_another_reward_is_no_placeholders_and_a_Red_Wind_contract_stays_open`,
+  `RouteBaselineTests.Start_plan_at_Everus_takes_the_accepted_bulk_of_the_cargo_one_of_ten_and_the_other_contract_is_an_extra`
+  (Pin: 1/10, ein Extra), `RouteScanTests.Start_plan_takes_the_accepted_cargo_into_its_placeholders_and_the_rest_as_extras_without_a_rescan`,
+  `RouteScanTests.A_contract_the_start_cannot_tell_apart_is_an_extra_until_its_rescan_names_the_rank` (Nachfolger von
+  `A_contract_scanned_before_the_route_fills_its_placeholder_when_scanned_again`). D125-Addendum.
+- **Testnamen:** `RouteTests`, `RouteBaselineTests`, `RoutesFileTests.A_route_*`, `RoutesBookTests`, `RouteScanTests`
+  (u. a. `A_contract_scanned_before_the_route_fills_its_placeholder_when_scanned_again` = K3,
+  `Starting_and_ending_the_route_leave_plan_json_byte_for_byte`), `RoutesViewModelTests.Start_plan_*`,
+  `OverlayRouteXamlTests`; Nachfolger: `RoutesViewModelTests.A_row_without_a_recipe_is_only_marked_on_a_click_and_stays_in_the_loops`
+  (vorher `…_does_nothing_on_a_click`), `OverlayLegendXamlTests.Hiding_the_stop_lines_hides_them_and_their_scroll_area_unless_a_route_is_on`
+  (vorher `Hiding_the_stop_lines_hides_their_scroll_area`).
+
+**Zwischenabnahme 6a (25.11.2026, Martin):** erteilt nach den Gate-Befunden (Block-Darstellung 15261b2, Start plan
+übernimmt die Ladung 80b3be4, „Start plan“ rechts neben dem System-Button 5256cec); damit auch die Präzisierungen von 6a
+ratifiziert.
+
+**Stand 6b (25.11., Branch `feat/p13-route`, 164d768..):**
+- Commits: `RouteProgress`, `Route.Step`/`Advance`/`Finish` (164d768); Stationsleiste, Finish plan, E(c), Timing (cca6f6d);
+  Doku (D126, Backlog, CLAUDE.md, TASKS.md).
+- **Präzisierung in der Planphase, ratifiziert durch Freigabe (bei der Umsetzung 6b, zur Abnahme):** nur der Stopp der
+  Leiste simuliert seine Rückläufer (die anderen „Unchecked“); ein Ort ohne Position kommt immer vor den Hub; „Gehalten“
+  zählt die angenommenen Missionen des Plans (gescannt, nicht geschätzt); E(c) steht in der Notice des Füll-Scans („ ·
+  plan: back ✓ 3/10 (planned at HUR-L1)“), kein Zustand dafür; die Leiste rechnet synchron im UI-Thread (gemessen unter
+  der 30-ms-Schwelle); Notice nach „Finish plan“ in der Zeile des letzten Ergebnisses (`NoticeSource.Move`, wie ein Scan).
+- **Zahlen (Release, `RouteProgressTimingTests`, Hull B, Everus-Ring des Pins im Worst Case, 512/512 SCU, 50 Kisten):**
+  `RouteProgress.Of` je Stopp Median 0,1–4,1 ms, erster Aufruf bis 9,3 ms; Rückläufer an L1 16 SCU fits, L4 16, L3 12,
+  L5 12, L2 112 SCU fits. App (Debug, Scratch-Datenordner): „Routes: station HUR-L1 (1/7) in 7 ms“, erster Aufruf 53 ms.
+- **Mutationsproben:** ohne Permutation bei Extras → 1 rot; Zeit ab Start statt Abflug → 1 rot; Simulation ohne Entladen
+  → 1 rot; ohne „jedes Template einmal“ (`Recipe.WaysBack`) → 3 rot (LoopsTests 1, RouteBaselineTests 2).
+- Bild (CC, Desktop, Scratch-Datenordner, Hull B, Everus-Ring, Bulk gefüllt, Extra nach Teasa, Leiste an L1, abgeflogen):
+  „‹ Station 1/7 · HUR-L1 · unload 1 · free 8 slots ›“ (Teasa als Station vor dem Hub, K6), darunter „accept: Junior Rank
+  - Small Cargo Haul · 72,500 aUEC · fits · collect at HUR-L4, HUR-L3, HUR-L5“, dann der Block.
+- **Handling gegen main (zusätzlich zu 6a):**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | Cargo-Reiter mit Route (neu) | – | Leiste über dem Block, scrollt nicht; ‹ › ohne Fokus; Rückläufer-Zeilen darunter |
+  | Abhaken einer Legenden-Zeile mit Route | wie main | gleich; dazu rückt die Leiste nach (letzte Zeile der Station, oder spätere Station) |
+  | „Finish plan“ (neu, nur am Hub am Ende) | – | Run in routes.json, Route weg, Ladung bleibt, Notice „Plan finished: …“ |
+  | F3 Rückläufer an anderer Station | – | Notice „ · plan: back ✓ k/n (planned at …)“ |
+  | Alles ohne Route | wie main | gleich |
+
+- **Gate 6b (Martin, SC vorne, echter Ring Everus, Hull B, Senior):**
+
+  | Schritt | Erwartung | Warum |
+  |---|---|---|
+  | 1 Route starten, Verträge am Hub annehmen und scannen (Rezept, 5–7) | Block „n/10 filled“, Leiste „Start · Everus Harbor · n contracts · free m slots“; `routes.json` ohne `departedUtc` | Startzustand |
+  | 2 Zur ersten Station fliegen, › drücken (oder dort die erste Zeile abhaken) | „Station 1/6 · HUR-L1 · unload k · free s slots“, darunter „accept: … · fits“; `routes.json` hat `departedUtc` | Messung ab Abflug |
+  | 3 Abladen abhaken, Rückläufer am Terminal annehmen, Accepted-Tab, F3 | Mission mit Stopp Everus; Rückläufer-Zeile „✓ #n · accept: …“; Slots −1; Holo zeigt neue Kisten; nach der letzten Zeile rückt die Leiste weiter | Füllen am Ring, E(b) |
+  | 4 Eine Station mit „too big“ (falls eine kommt) | Zeile nennt Worst-Case-SCU orange; Vertrag trotzdem annehmbar, Scan legt ihn wie heute (ggf. unplaced) | Hinweis, keine Sperre |
+  | 5 Alle Stationen, zurück am Hub, abladen, „Finish plan“ | `runs[0]` mit Σ aUEC = Summe der gefüllten + Extras (gegen die Legende), Zeit plausibel gegen die Uhr, Landungen 6; Route weg, Legende bleibt; `plan.json` unverändert | Abschluss |
+  | 6 Ohne Route: Cargo-Reiter, Legende, Abhaken, Drag, Undo | exakt wie main | Invariante 1 |
+
+  Zahlen: „Routes: station … in x ms“ aus cargoplan.log, `keyToNoticeMs` der Station-Scans (scans.log), Σ aUEC aus
+  `runs[0]` gegen die Summe der Legende. Fokus: ‹ › „Finish plan“ mit `--log-input` (Cargo-Reiter aktiviert nicht, U7).
+- **Gate-Befund 6b (Martin, 25.11.) – Wizard gut, Plan-Block stört. Präzisierung in der Planphase, ratifiziert durch
+  Freigabe:** (1) die Kopfzeile des Blocks klappt seine Zeilen per Klick ein/aus (▾ offen, ▸ zu; Button im Stil der
+  Legenden-Zeilen, kein neues Element), Zustand `routes.planBlock` in settings.json (`"open"` | `"closed"`, Default
+  open, Schema 3 bleibt, falsches Wort → open mit Zeile); (2) „Start plan“ klappt auf, der **erste Abflug** klappt zu
+  (das erste › oder ein Haken, der die Leiste vom Hub wegschiebt: beides setzt `departedUtc`), ein Klick kippt den
+  Zustand und gilt bis zum nächsten Start bzw. Abflug; Tooltip der Kopfzeile in einem Satz; (3) an der Start-Station
+  listet die Leiste alle Hinweg-Rollen als „accept: Bulk · Titel · Reward · Ziele“ (gefüllt „✓ #n · …“). „End plan“ und
+  die Trennlinie bleiben auch eingeklappt sichtbar. Golden-Dateien der Settings-Migration (3) und die Reihenfolge des
+  `routes`-Abschnitts um `planBlock` nachgezogen. Tests: `RouteBarTests.The_block_is_open_from_Start_plan_folds_at_the_first_departure_and_a_click_on_its_head_toggles_it_for_the_next_start`
+  (Start → auf, › → zu, Klick → auf, Neustart → bleibt), `RouteBarTests.At_the_hub_at_the_start_the_bar_lists_what_to_accept_there_so_the_block_isnt_needed`,
+  `SettingsStoreTests.Routes_keep_the_plan_blocks_state`, `SettingsStoreTests.A_loop_setting_out_of_range_falls_back_with_a_line`
+  (planBlock), `OverlayRouteXamlTests.The_blocks_head_is_a_line_button_that_folds_its_list_and_End_plan_stays`.
+  Bild-Gate (Martin) danach.
+- **Legenden-Kopf (Martin, 25.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** „From Everus Harbor ·
+  to HUR-L5 · #1“ – zwischen Pickup und Nummer das Ziel der Zeile darunter (erste Zeile der Mission) in Kurzform über die
+  Positionen der Hauling-Daten (`PlaceNames.ShortOf`, eigenes Segment, kürzt sich nie); ohne Hauling-Daten oder Position
+  der Kartenname. Befund aus den Daten: „Teasa Spaceport“ ist ein `contractName` der Landezone „Lorville“ → „to Lorville“.
+  D69-Addendum. Tests: `PlaceNamesTests.A_place_as_the_card_writes_it_is_its_positions_short_name_else_as_it_is`,
+  `LegendLineTests.The_header_names_the_short_form_of_the_destination_of_the_line_under_it`; vier bestehende
+  Kopfzeilen-Tests um „· to …“ nachgezogen. Handling gegen main: Legenden-Kopf „From … · #n“ → „From … · to … · #n“.
+- **Nachtrag vor dem Merge (25.11., Martin: „Nachtrag in T13.6“, für T13.6c) – Präzisierung in der Planphase, ratifiziert
+  durch Freigabe:** `runs[]` schreibt `ship` (Schiff des Overlays beim Finish) und `stations` (die Stationen der Route aus
+  der Loop, ohne Extras) – die Loop-Identität für gemessene Zeiten; beim Lesen optional, ein Lauf ohne sie (Gate 6b) misst
+  keine Loop; Schema 3 bleibt (unveröffentlicht). `routes-format.md`, D126-Addendum. Tests:
+  `RoutesFileTests.A_run_names_its_ship_and_stations_and_one_written_without_them_is_still_read`, Finish in
+  `RouteProgressTests` und `RouteBarTests` mit Schiff und Stationen.
+- **Testnamen 6b:** `RouteProgressTests` (Stopps, Entladen, Gehalten/Slots, Simulation fits/too big, ohne Entladen too
+  big, gefüllt/collect, Extras K6, Advance, Step/Abflug, Run), `RouteBarTests` (Texte und ‹ ›, Abhaken rückt weiter,
+  Rückläufer-Zeilen, Finish mit Run und Notice, Finish nur am Ende), `RouteScanTests.Finishing_the_route_leaves_plan_json_byte_for_byte`
+  (E1), `RouteScanTests.A_way_back_scanned_where_the_bar_stands_but_planned_elsewhere_says_so` (E(c)),
+  `ScanNoticesTests.A_way_back_accepted_at_another_station_says_where_it_was_planned`,
+  `OverlayRouteXamlTests.The_station_bar_*`, `OverlayRouteXamlTests.The_bars_buttons_take_no_focus`; von Hand
+  `RouteProgressTimingTests` (`Category=Timing`).
+- **Abnahme erteilt (25.11.2026, Martin)**, damit auch alle Präzisierungen von 6b, die Gate-Befunde (Plan-Block klappt ein, Leiste am Hub, Legenden-Kopf „· to HUR-L5 ·“) und der Nachtrag `ship`/`stations` in `runs[]` ratifiziert. Merge `--no-ff` nach main, Martin pusht. Nächster Task: T13.6c (gemessene Loop-Zeiten, eigener Startprompt).
 
 ### [ ] T13.7 Streckenkarte
 
@@ -663,6 +867,8 @@ Martins Antworten auf vier Rückfragen):**
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
+
+- `routes.times` aus den Läufen nachführen (T13.6, D126): `runs[]` in routes.json hält Landungen, Kisten, lange Sprünge und die Zeit ab Abflug je Route; daraus ließen sich Minuten je Landung, Sekunden je Kiste und Minuten je langem Sprung schätzen. **Auslöser: drei Läufe** in Martins routes.json (eine Regression braucht mehr Punkte als Unbekannte).
 
 - Standorterkennung ersetzt den Hub-Button des Rezepts (T13.3b, D123): der Hub, an dem der Spieler steht, statt
   `routes.hub`. Auslöser: Game.log-Location wird gelesen.

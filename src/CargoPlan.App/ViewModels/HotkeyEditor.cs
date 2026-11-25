@@ -18,7 +18,7 @@ public sealed partial class HotkeyEditor : ObservableObject
 
     public const string ReplanLabel = "Re-plan";
 
-    public const string DiscardLabel = "Discard plan";
+    public const string DiscardLabel = "Discard cargo";
 
     public const string UndoLabel = "Undo";
 

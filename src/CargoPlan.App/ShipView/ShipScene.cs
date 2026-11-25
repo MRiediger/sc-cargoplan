@@ -175,7 +175,7 @@ public enum BoxFace
 public sealed record LegendEntry(
     int PaletteIndex, string Destination, int Scu, bool Delivered = false, string Markings = "", string ReserveMarkings = "", string? Header = null,
     int Mission = 0, IReadOnlyList<Crate>? Crates = null, IReadOnlyList<Crate>? MissionCrates = null, bool Grouped = false,
-    IReadOnlyList<LineGoods>? Goods = null, string? ScanNo = null, bool Loaded = false)
+    IReadOnlyList<LineGoods>? Goods = null, string? ScanNo = null, bool Loaded = false, string? HeaderTo = null)
 {
     public const string ToText = "To ";
 
@@ -203,13 +203,17 @@ public sealed record LegendEntry(
     /// <summary>The whole line, as the tool tip shows it.</summary>
     public string Label => string.Concat(Segments.Select(s => s.Text));
 
-    /// <summary>"From Lorville" · " · #47": the pickups shorten, the number never; empty without a header.</summary>
+    /// <summary>
+    /// "From Lorville" · " · to HUR-L5" · " · #47": the pickups shorten, the place of the line under the header (its short
+    /// form, T13.6) and the number never; empty without a header.
+    /// </summary>
     public IReadOnlyList<LegendSegment> HeaderSegments =>
         Header is null
             ? []
             :
             [
                 new(Header, LegendSegment.TrimFirst),
+                .. HeaderTo is null ? [] : (LegendSegment[])[new(LegendText.Appended("to " + HeaderTo))],
                 .. ScanNo is null ? [] : (LegendSegment[])[new(LegendText.Appended(ScanNo))],
             ];
 

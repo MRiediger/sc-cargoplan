@@ -254,6 +254,12 @@ public static class SettingsStore
             routes = routes with { LoopsSort = RoutesSettings.SortByHour };
         }
 
+        if (routes.PlanBlock is not (RoutesSettings.BlockOpen or RoutesSettings.BlockClosed))
+        {
+            problems.Add($"routes.planBlock \"{routes.PlanBlock}\" is not open or closed, using open.");
+            routes = routes with { PlanBlock = RoutesSettings.BlockOpen };
+        }
+
         return (routes, problems);
     }
 

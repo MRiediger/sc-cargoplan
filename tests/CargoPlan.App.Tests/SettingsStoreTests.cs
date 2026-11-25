@@ -1068,6 +1068,7 @@ public sealed class SettingsStoreTests : IDisposable
     [InlineData("times", """{ "jump": 31 }""", "routes.times.jump 31 is not 1–30 minutes, using 4.")]
     [InlineData("times", "null", null)]
     [InlineData("loopsSort", "\"aUEC\"", "routes.loopsSort \"aUEC\" is not hour, loop or landing, using hour.")]
+    [InlineData("planBlock", "\"folded\"", "routes.planBlock \"folded\" is not open or closed, using open.")]
     public void A_loop_setting_out_of_range_falls_back_with_a_line(string key, string json, string? line)
     {
         WriteFile($$"""{ "schemaVersion": 3, "routes": { "{{key}}": {{json}} } }""");
@@ -1076,6 +1077,19 @@ public sealed class SettingsStoreTests : IDisposable
 
         loaded.Routes.Should().Be(RoutesSettings.Default);
         problem.Should().Be(line is null ? null : $"settings.json: {line}");
+    }
+
+    [Fact]
+    public void Routes_keep_the_plan_blocks_state()
+    {
+        // Gate 6b (T13.6): the block "Plan" folded or not, kept for the next start.
+        WriteFile("""{ "schemaVersion": 3, "routes": { "planBlock": "closed" } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        problem.Should().BeNull();
+        (loaded.Routes.PlanBlock, loaded.Routes.IsBlockOpen).Should().Be(("closed", false));
+        RoutesSettings.Default.IsBlockOpen.Should().BeTrue("open while nothing says otherwise");
     }
 
     [Fact]
@@ -1115,7 +1129,7 @@ public sealed class SettingsStoreTests : IDisposable
         var file = JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
         var keys = file.Select(p => p.Key).ToList();
         keys.IndexOf("routes").Should().Be(keys.IndexOf("shipData") + 1);
-        file["routes"]!.AsObject().Select(p => p.Key).Should().Equal("tab", "rank", "faction", "hub", "loopsSort", "times");
+        file["routes"]!.AsObject().Select(p => p.Key).Should().Equal("tab", "rank", "faction", "hub", "loopsSort", "planBlock", "times");
         file["routes"]!["times"]!.AsObject().Select(p => p.Key).Should().Equal("station", "crate", "jump");
     }
 

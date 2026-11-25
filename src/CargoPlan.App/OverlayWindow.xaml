@@ -740,26 +740,44 @@
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
-                    <!-- Empty state: the sentence and a second way into the editor besides the pencil. -->
-                    <StackPanel>
-                        <StackPanel.Style>
-                            <Style TargetType="StackPanel">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding HasPlan}" Value="True">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </StackPanel.Style>
-                        <TextBlock Text="{x:Static vm:OverlayViewModel.NoPlanText}" Style="{StaticResource LegendTextStyle}" />
-                        <Button Content="Open editor" Click="OnOpenEditor" HorizontalAlignment="Left" Margin="0,4,0,0"
-                                Style="{StaticResource TextButtonStyle}" />
+                    <!-- The route's station bar (T13.6 6b, U9.3, D126): one line above the block "Plan", outside the scroll so
+                         it never scrolls away: ‹ and › by hand (the ticks move it too), "Finish plan" at the hub at the end;
+                         under it the ways back of its stop (fits / too big in the notice colour) and the ones collecting there.
+                         Only with a route; the buttons take no focus (U7). -->
+                    <StackPanel x:Name="StationBar" DataContext="{Binding ActiveRoute}" Margin="0,0,0,4"
+                                Visibility="{Binding HasRoute, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                        <DockPanel>
+                            <Button x:Name="PreviousStationButton" DockPanel.Dock="Left" Content="‹" Command="{Binding PreviousStationCommand}" Focusable="False"
+                                    Style="{StaticResource TextButtonStyle}" Margin="0,0,6,0" VerticalAlignment="Center" ToolTip="One stop back" />
+                            <Button x:Name="FinishPlanButton" DockPanel.Dock="Right" Content="Finish plan" Command="{Binding FinishPlanCommand}" Focusable="False"
+                                    Style="{StaticResource TextButtonStyle}" Margin="6,0,0,0" VerticalAlignment="Center"
+                                    Visibility="{Binding IsAtEnd, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    ToolTip="Finish the plan: the round's aUEC and time are kept, the placeholders go, the cargo stays." />
+                            <Button x:Name="NextStationButton" DockPanel.Dock="Right" Content="›" Command="{Binding NextStationCommand}" Focusable="False"
+                                    Style="{StaticResource TextButtonStyle}" Margin="6,0,0,0" VerticalAlignment="Center" ToolTip="One stop on" />
+                            <TextBlock Text="{Binding StationText}" ToolTip="{Binding StationToolTip}" Style="{StaticResource LegendTextStyle}"
+                                       FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding StationRows}" Focusable="False" Margin="0,2,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type rt:PlaceholderRowView}">
+                                    <TextBlock x:Name="Line" ToolTip="{Binding ToolTip}" Style="{StaticResource LegendTextStyle}" Opacity="0.6"><Run Text="{Binding Text, Mode=OneWay}" /><Run Text="{Binding Accept, Mode=OneWay}" Foreground="{StaticResource NoticeForegroundBrush}" /><Run Text="{Binding Collect, Mode=OneWay}" /></TextBlock>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Filled}" Value="True">
+                                            <Setter TargetName="Line" Property="Opacity" Value="1" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
                     </StackPanel>
                     <!-- Hidden by legend.visible = false: only the stop lines go (D33). Warnings and the empty state stay,
                          notices are at the bottom anyway; a stop is then ticked in the ship view and moved through the crate selection.
                          The lines scroll beyond their share of the overlay (K7, D80); what follows them never scrolls. No
                          horizontal range: the lines get the width, so they shorten (K6.1). Not focusable: a focus would
                          activate the overlay, and a ScrollViewer that takes the focus handles the left click DragMove needs.
+                         The route's block "Plan" (T13.6) is the first thing in it, so it scrolls with the lines; it stays
+                         with legend.visible = false, so the scroll does too while a route is on.
                          Source: dotnet/wpf, PresentationFramework/System/Windows/Controls/ScrollViewer.cs (OnMouseLeftButtonDown) -->
                     <ScrollViewer x:Name="StopLinesScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                                   Focusable="False">
@@ -772,9 +790,14 @@
                         <ScrollViewer.Style>
                             <Style TargetType="ScrollViewer">
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsLegendVisible}" Value="False">
+                                    <!-- Without ActiveRoute (tests) the fallback says no route. -->
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding IsLegendVisible}" Value="False" />
+                                            <Condition Binding="{Binding ActiveRoute.HasRoute, FallbackValue=False}" Value="False" />
+                                        </MultiDataTrigger.Conditions>
                                         <Setter Property="Visibility" Value="Collapsed" />
-                                    </DataTrigger>
+                                    </MultiDataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </ScrollViewer.Style>
@@ -784,7 +807,66 @@
                                 <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
                             </Style>
                         </ScrollViewer.Resources>
-                        <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}">
+                        <StackPanel>
+                        <!-- The route's block "Plan" (T13.6, U9.1, D125): a head with "End plan", one line per placeholder in the
+                             legend's look, open ones grey, filled ones "✓ #3 · …" in full; the ways back under "Back", greyer;
+                             the extras last. No crates in the ship for a placeholder. Only with a route. -->
+                        <StackPanel x:Name="RouteBlock" DataContext="{Binding ActiveRoute}" Margin="0,0,0,6"
+                                    Visibility="{Binding HasRoute, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                            <DockPanel>
+                                <Button x:Name="EndPlanButton" DockPanel.Dock="Right" Content="End plan" Command="{Binding EndCommand}" Focusable="False"
+                                        Style="{StaticResource TextButtonStyle}" Margin="8,0,0,0" VerticalAlignment="Center"
+                                        ToolTip="End the plan: its placeholders go, the cargo stays." />
+                                <!-- Gate 6b: the head folds the lines below (▾ open, ▸ closed); a legend line's button, no new
+                                     element. Start plan opens them, the first departure closes them, the state is kept (routes.planBlock). -->
+                                <Button x:Name="RouteBlockHead" Command="{Binding ToggleBlockCommand}" ToolTip="{Binding HeaderToolTip}" Focusable="False"
+                                        Style="{StaticResource LegendLineButtonStyle}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
+                                    <TextBlock Text="{Binding Header}" Style="{StaticResource LegendTextStyle}" FontWeight="SemiBold"
+                                               TextTrimming="CharacterEllipsis" TextWrapping="NoWrap" VerticalAlignment="Center" />
+                                </Button>
+                            </DockPanel>
+                            <StackPanel x:Name="RouteBlockList" Visibility="{Binding IsBlockOpen, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <ItemsControl ItemsSource="{Binding Rows}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type rt:PlaceholderRowView}">
+                                        <!-- Gate 6a: wraps, so places and "collect at" read whole (K1); "accept at" in the
+                                             status line's orange (K3). The runs stand on one line: a break between them would be a space. -->
+                                        <TextBlock x:Name="Line" ToolTip="{Binding ToolTip}" Style="{StaticResource LegendTextStyle}" Opacity="0.6"><Run Text="{Binding Text, Mode=OneWay}" /><Run Text="{Binding Accept, Mode=OneWay}" Foreground="{StaticResource NoticeForegroundBrush}" /><Run Text="{Binding Collect, Mode=OneWay}" /></TextBlock>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding Filled}" Value="True">
+                                                <Setter TargetName="Line" Property="Opacity" Value="1" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="Back" Style="{StaticResource LegendTextStyle}" Opacity="0.45" Margin="0,2,0,0"
+                                       Visibility="{Binding HasBack, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            <ItemsControl ItemsSource="{Binding BackRows}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type rt:PlaceholderRowView}">
+                                        <TextBlock x:Name="Line" ToolTip="{Binding ToolTip}" Style="{StaticResource LegendTextStyle}" Opacity="0.45"><Run Text="{Binding Text, Mode=OneWay}" /><Run Text="{Binding Accept, Mode=OneWay}" Foreground="{StaticResource NoticeForegroundBrush}" /><Run Text="{Binding Collect, Mode=OneWay}" /></TextBlock>
+                                        <DataTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding Filled}" Value="True">
+                                                <Setter TargetName="Line" Property="Opacity" Value="1" />
+                                            </DataTrigger>
+                                        </DataTemplate.Triggers>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ItemsControl ItemsSource="{Binding ExtraRows}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" Style="{StaticResource LegendTextStyle}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <!-- E1 of gate 6a: a faint line parts the block from the stop lines below. -->
+                            </StackPanel>
+                            <Border x:Name="RouteSeparator" Height="1" Margin="0,6,0,0" Opacity="0.4" Background="{DynamicResource LegendForegroundBrush}" />
+                        </StackPanel>
+                        <ItemsControl ItemsSource="{Binding Scene.Legend, Mode=OneWay}"
+                                      Visibility="{Binding IsLegendVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <ItemsControl.ItemTemplate>
                                 <!-- The command replaces the plan, so the legend is rebuilt and the grey comes from the new entry. -->
                                 <DataTemplate DataType="{x:Type sv:LegendEntry}">
@@ -898,7 +980,24 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        </StackPanel>
                     </ScrollViewer>
+                    <!-- Empty state: the sentence and a second way into the editor besides the pencil. After the lines, so the
+                         route's block (T13.6) stands above it; without a route the lines are empty then and nothing moves. -->
+                    <StackPanel>
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasPlan}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Text="{x:Static vm:OverlayViewModel.NoPlanText}" Style="{StaticResource LegendTextStyle}" />
+                        <Button Content="Open editor" Click="OnOpenEditor" HorizontalAlignment="Left" Margin="0,4,0,0"
+                                Style="{StaticResource TextButtonStyle}" />
+                    </StackPanel>
                     <!-- Missions that didn't fit (D41): a hollow swatch, the reason, and a click drops the mission. Shown even
                          with legend.visible = false, like the warnings: they ask for something (T5.4). -->
                     <ItemsControl ItemsSource="{Binding Scene.Unplaced, Mode=OneWay}">
@@ -992,15 +1091,20 @@
                                         <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
                                     </Style>
                                     <!-- A loop's row (T13.4): the whole row a click target without a look of its own; a Stanton hub's row
-                                         shows its recipe (hand cursor), a row that needs scans is faint. -->
+                                         shows its recipe (hand cursor), a row that needs scans is faint. The row clicked last carries a
+                                         bar on its left: "Start plan" starts it (T13.6, K4). Hand, bar and faint are the row's only looks. -->
                                     <Style x:Key="LoopRowStyle" TargetType="Button">
                                         <Setter Property="Focusable" Value="False" />
                                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                         <Setter Property="Margin" Value="0,0,0,6" />
+                                        <Setter Property="BorderThickness" Value="0" />
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="BorderBrush" Value="{DynamicResource LegendForegroundBrush}" />
                                         <Setter Property="Template">
                                             <Setter.Value>
                                                 <ControlTemplate TargetType="Button">
-                                                    <Border Background="Transparent">
+                                                    <Border Background="Transparent" BorderBrush="{TemplateBinding BorderBrush}"
+                                                            BorderThickness="{TemplateBinding BorderThickness}" Padding="{TemplateBinding Padding}">
                                                         <ContentPresenter />
                                                     </Border>
                                                 </ControlTemplate>
@@ -1009,6 +1113,10 @@
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding CanOpen}" Value="True">
                                                 <Setter Property="Cursor" Value="Hand" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Chosen}" Value="True">
+                                                <Setter Property="BorderThickness" Value="2,0,0,0" />
+                                                <Setter Property="Padding" Value="4,0,0,0" />
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Grey}" Value="True">
                                                 <Setter Property="Opacity" Value="0.55" />
@@ -1066,6 +1174,13 @@
                                             <MouseBinding Gesture="RightClick" Command="{Binding PreviousCommand}" CommandParameter="system" />
                                         </Button.InputBindings>
                                         <TextBlock Text="{Binding SystemLabel}" Style="{StaticResource FilterLabelStyle}" />
+                                    </Button>
+                                    <!-- T13.6 (K4): the route of the row clicked last, else the top row (loops) or the hub's ring
+                                         (recipe); its tool tip says which, also while it can't start. Right of the system (gate 6a). -->
+                                    <Button x:Name="StartPlanButton" Command="{Binding StartPlanCommand}" Style="{StaticResource FilterButtonStyle}"
+                                            ToolTip="{Binding StartPlanToolTip}" ToolTipService.ShowOnDisabled="True"
+                                            Visibility="{Binding OffersStart, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <TextBlock Text="Start plan" Style="{StaticResource FilterLabelStyle}" />
                                     </Button>
                                     <Button Command="{Binding NextCommand}" CommandParameter="area" Style="{StaticResource FilterButtonStyle}" Visibility="{Binding IsMatrix, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <Button.InputBindings>

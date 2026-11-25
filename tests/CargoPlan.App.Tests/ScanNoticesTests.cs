@@ -80,7 +80,7 @@ public sealed class ScanNoticesTests
 
     [Theory]
     [InlineData(ScanReportKind.Updated, "Updated #3 · confirmed")]
-    [InlineData(ScanReportKind.AlreadyInPlan, "Already in plan (#3)")]
+    [InlineData(ScanReportKind.AlreadyInPlan, "Already in cargo (#3)")]
     [InlineData(ScanReportKind.Incomplete, "Contract text still loading – scan again")]
     [InlineData(ScanReportKind.NoContract, "No contract in frame")]
     [InlineData(ScanReportKind.NoContractInFrame, "No contract in frame")]
@@ -183,5 +183,43 @@ public sealed class ScanNoticesTests
     {
         ScanNotices.Text(new ScanReport(ScanReportKind.NotObserved, Reason: "reward unreadable"), null)
             .Should().Be("Not observed (Plan tab): reward unreadable – cargo unchanged");
+    }
+
+    [Theory]
+    [InlineData(ScanReportKind.Added, "filled", "Scanned #3 · plan: bulk ✓ 2/10")]
+    [InlineData(ScanReportKind.Updated, "filled", "Updated #3 · confirmed · plan: bulk ✓ 2/10")]
+    [InlineData(ScanReportKind.AlreadyInPlan, "filled", "Already in cargo (#3) · plan: bulk ✓ 2/10")]
+    [InlineData(ScanReportKind.AlreadyInPlan, "already", "Already in cargo (#3) · plan ✓")]
+    [InlineData(ScanReportKind.Added, "extra", "Scanned #3 · not in plan (extra)")]
+    [InlineData(ScanReportKind.Added, "offer", "Scanned #3 · plan: bulk")]
+    public void A_scan_with_a_route_says_what_it_did_to_the_plan_last(ScanReportKind kind, string note, string expected)
+    {
+        // T13.6, U4: the route is "plan", the loading plan "cargo"; the route's part comes last.
+        RouteNote route = note switch
+        {
+            "filled" => new RouteNote.Filled(RecipeKind.Bulk, 2, 10),
+            "already" => new RouteNote.AlreadyFilled(),
+            "extra" => new RouteNote.Extra(),
+            _ => new RouteNote.Open(RecipeKind.Bulk),
+        };
+
+        ScanNotices.Text(new ScanReport(kind, 3, Route: route), null).Should().Be(expected);
+    }
+
+    [Fact]
+    public void A_way_back_accepted_at_another_station_says_where_it_was_planned()
+    {
+        // E(c) of T13.6 (6b).
+        ScanNotices.Text(new ScanReport(ScanReportKind.Added, 3, Route: new RouteNote.Filled(RecipeKind.Return, 2, 10, "HUR-L1")), null)
+            .Should().Be("Scanned #3 · plan: back ✓ 2/10 (planned at HUR-L1)");
+    }
+
+    [Fact]
+    public void An_observed_offer_of_an_open_placeholder_says_so_before_the_cargo_stays()
+    {
+        var key = new ObservationKey(HaulContractor.Covalex, HaulRank.Senior, HaulSize.Medium, false, 325_250, ["Waste"]);
+
+        ScanNotices.Text(new ScanReport(ScanReportKind.Observed, Observed: key, Fit: new RecipeFit.FitsAs(RecipeKind.Bulk), Route: new RouteNote.Open(RecipeKind.Bulk)), null)
+            .Should().Be("Observed (Plan tab): Covalex Senior Medium · 325,250 aUEC · fits as bulk · plan: bulk – cargo unchanged");
     }
 }

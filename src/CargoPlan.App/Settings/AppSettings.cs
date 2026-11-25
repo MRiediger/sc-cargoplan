@@ -126,14 +126,24 @@ public sealed record AppSettings(
 /// </param>
 /// <param name="Times">The loops' times (T13.4, design §4.7): missing or null = the defaults.</param>
 /// <param name="LoopsSort">What the loop list is sorted by: "hour" (~aUEC/h), "loop" or "landing" (T13.4).</param>
+/// <param name="PlanBlock">The Cargo tab's block "Plan" (T13.6, gate 6b): "open" or "closed"; Start plan opens it, the first
+/// departure closes it, a click on its head toggles it.</param>
 public sealed record RoutesSettings(
     string Tab = RoutesSettings.CargoTab,
     string Rank = RoutesSettings.AnyRank,
     string? Faction = null,
     string Hub = RoutesSettings.DefaultHub,
     RoutesTimes? Times = null,
-    string LoopsSort = RoutesSettings.SortByHour)
+    string LoopsSort = RoutesSettings.SortByHour,
+    string PlanBlock = RoutesSettings.BlockOpen)
 {
+    public const string BlockOpen = "open";
+
+    public const string BlockClosed = "closed";
+
+    [JsonIgnore]
+    public bool IsBlockOpen => PlanBlock != BlockClosed;
+
     public const string DefaultHub = "Everus Harbor";
 
     public const string SortByHour = "hour";

@@ -236,7 +236,7 @@ public sealed class HotkeysViewModelTests
         viewModel.Replan.Action.Should().Be(HotkeyAction.Replan);
         viewModel.Replan.Label.Should().Be("Re-plan");
         viewModel.Discard.Action.Should().Be(HotkeyAction.DiscardPlan);
-        viewModel.Discard.Label.Should().Be("Discard plan");
+        viewModel.Discard.Label.Should().Be("Discard cargo");
         viewModel.Undo.Action.Should().Be(HotkeyAction.Undo);
         viewModel.Undo.Label.Should().Be("Undo");
         viewModel.Redo.Action.Should().Be(HotkeyAction.Redo);

@@ -8,6 +8,7 @@ using CargoPlan.Core.Missions;
 using CargoPlan.Core.Models;
 using CargoPlan.Core.Planning;
 using CargoPlan.Core.Plans;
+using CargoPlan.Core.Routing;
 using CargoPlan.Core.Ships;
 using CargoPlan.Core.Text;
 using CargoPlan.Import.Contracts;
@@ -20,7 +21,7 @@ namespace CargoPlan.App.ViewModels;
 /// <param name="ships">The ships there are (D59: a ship is a catalog entry); null = only <paramref name="ship"/>.</param>
 public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = null) : ObservableObject
 {
-    public const string NoPlanText = "No plan. Open the editor to enter missions.";
+    public const string NoPlanText = "No cargo. Open the editor to enter missions.";
 
     public const string MoveRefusedPrefix = "Move refused: ";
 
@@ -74,7 +75,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     public const string HistoryClearedByShipChangeText = "Undo history cleared by ship change";
 
     /// <summary>What Discard plan did (K2.3): a notice, no question (D66).</summary>
-    public const string DiscardedText = "Plan discarded – scan your contracts to plan them again.";
+    public const string DiscardedText = "Cargo discarded – scan your contracts to plan them again.";
 
     /// <summary>What the overlay asks before every re-plan (D66): no way past it, button or hotkey.</summary>
     public const string ReplanConfirmText =
@@ -313,7 +314,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
             // Scene first, then the plan (D82): a scene that fails to build leaves plan and scene as they were, and the
             // plan saver never sees a plan whose scene isn't there.
-            var scene = Marked(value is null ? EmptyScene(Ship) : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value.Plan, Ship)));
+            var scene = Marked(value is null ? EmptyScene(Ship) : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value.Plan, Ship), PlaceShort));
             field = value;
             Scene = scene;
             OnPropertyChanged(nameof(Saved));
@@ -331,6 +332,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             MergeCommand.NotifyCanExecuteChanged();
             ReplanCommand.NotifyCanExecuteChanged();
             DiscardPlanCommand.NotifyCanExecuteChanged();
+
+            // What the route's placeholders show as filled is read from the plan (T13.6, D125).
+            ActiveRoute?.Show(value, Ship);
         }
     }
 
@@ -534,6 +538,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         _shipSelection = null;
         Ship = ship;
         Routes?.ShowShip(ship);
+        ActiveRoute?.Show(Saved, ship);
 
         // Before the scene: the view takes the new ship's camera, or its default camera fitted (D61, K1.2).
         OnPropertyChanged(nameof(Camera));
@@ -584,7 +589,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         if (IsRoutesTabSelected && scanned.View == ContractView.Offer)
         {
             return scanned.ToObservation(DateTime.UtcNow) is { } observed
-                ? new(ScanReportKind.Observed, Observed: observed.Key, Fit: Routes?.FitOf(observed))
+                ? new(ScanReportKind.Observed, Observed: observed.Key, Fit: Routes?.FitOf(observed), Route: ActiveRoute?.OfferNote(scanned))
                 : new(ScanReportKind.NotObserved, Reason: scanned.NotObservedReason);
         }
 
@@ -610,7 +615,10 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             ScanChange.AlreadyInPlan => ScanReportKind.AlreadyInPlan,
             _ => ScanReportKind.Refused,
         };
-        return new(kind, merge.ScanNo, merge.QuantitiesChanged, merge.Cleared, merge.Refusal);
+
+        // T13.6 (D125): after the plan took it, the scan fills the route's placeholder; the note ends the notice.
+        var route = ActiveRoute?.Fill(scanned, unified.Captures[0].Source.Scan, merge.Change, merge.Saved);
+        return new(kind, merge.ScanNo, merge.QuantitiesChanged, merge.Cleared, merge.Refusal, Route: route);
     }
 
     /// <summary>
@@ -631,8 +639,50 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         {
             field = value;
             value?.ShowShip(Ship);
+            if (value is not null)
+            {
+                value.StartRequested += (_, start) => StartPlan(start);
+            }
         }
     }
+
+    /// <summary>
+    /// "Start plan" (T13.6, U9): the route of the chosen loop with a placeholder per role; then the Cargo tab, since the
+    /// player goes to the terminal. A route already started is replaced only when the player says yes; the cargo stays.
+    /// </summary>
+    public void StartPlan(PlanStart start)
+    {
+        if (ActiveRoute?.Start(Route.From(start.Loop, start.Name, start.Edges, DateTime.UtcNow)) == true)
+        {
+            IsRoutesTabSelected = false;
+        }
+    }
+
+    /// <summary>
+    /// The route in the Cargo tab (T13.6, D125): the block "Plan" above the legend; an accepted scan fills its
+    /// placeholders. Null in tests without it. It reads what is filled from <see cref="Saved"/>, from the start and after
+    /// every change.
+    /// </summary>
+    public ActiveRouteViewModel? ActiveRoute
+    {
+        get;
+        init
+        {
+            field = value;
+            value?.Show(Saved, Ship);
+            if (value is not null)
+            {
+                // 6b: what the round paid in what time, in the line of the last action's result (a scan, a move).
+                value.Finished += (_, run) => SetNotice(NoticeSource.Move, ActiveRouteViewModel.FinishedText(run));
+            }
+        }
+    }
+
+    /// <summary>
+    /// The short form of a place for the legend's header, "From Everus Harbor · to HUR-L5 · #1" (T13.6, Martin): the hauling
+    /// data's positions; null in tests without them, then the place as written.
+    /// </summary>
+    public Func<string, string>? PlaceShort { get; init; }
 
     /// <summary>The tab "Cargo": the loading plan and the ship, as before T13.2.</summary>
     [RelayCommand]

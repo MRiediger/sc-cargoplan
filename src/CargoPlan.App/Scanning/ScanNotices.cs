@@ -22,13 +22,14 @@ internal static class ScanNotices
     /// <param name="mission">The scanned mission as the plan holds it now, for <see cref="ScanReportKind.Added"/>; null if it is gone (an undo since).</param>
     public static string? Text(ScanReport report, Mission? mission) => report.Kind switch
     {
-        ScanReportKind.Added => Added(report.ScanNo, mission),
+        ScanReportKind.Added => Added(report.ScanNo, mission) + RouteText(report.Route),
         ScanReportKind.Updated => string.Join(" · ", [
             Inv($"Updated #{report.ScanNo}"),
             report.QuantitiesChanged ? "quantities changed" : "confirmed",
             .. report.Cleared,
-        ]),
-        ScanReportKind.AlreadyInPlan => Inv($"Already in plan (#{report.ScanNo})"),
+        ]) + RouteText(report.Route),
+        // "cargo", not "plan", since the route is the plan (U4, T13.6).
+        ScanReportKind.AlreadyInPlan => Inv($"Already in cargo (#{report.ScanNo})") + RouteText(report.Route),
         ScanReportKind.Refused => Inv($"Scan #{report.ScanNo} not applied: {report.Reason}"),
         ScanReportKind.Incomplete => StillLoading,
         ScanReportKind.NoContract or ScanReportKind.NoContractInFrame => NoContract,
@@ -37,7 +38,7 @@ internal static class ScanNotices
         ScanReportKind.Unavailable => null,
         ScanReportKind.Busy => Running,
         // E1 of the T13.2 approval: the Routes tab is labelled Plan, so these say "cargo" for the loading plan.
-        ScanReportKind.Observed => $"Observed (Plan tab): {(report.Observed is { } key ? Template(key) : "offer")}{FitText(report.Fit)} – cargo unchanged",
+        ScanReportKind.Observed => $"Observed (Plan tab): {(report.Observed is { } key ? Template(key) : "offer")}{FitText(report.Fit)}{RouteText(report.Route)} – cargo unchanged",
         ScanReportKind.NotObserved => $"Not observed (Plan tab): {report.Reason} – cargo unchanged",
         _ => throw new ArgumentOutOfRangeException(nameof(report), report.Kind, null),
     };
@@ -49,6 +50,19 @@ internal static class ScanNotices
         RecipeFit.TooBig { Scu: var scu, Crate: var crate, ShipName: var ship } => Inv($" · too big for {ship} ({scu} SCU in {(int)crate}s)"),
         _ => "",
     };
+
+    /// <summary>" · plan: bulk ✓ 2/10", " · plan ✓", " · not in plan (extra)", " · plan: bulk": the route's part (T13.6, D125).</summary>
+    private static string RouteText(RouteNote? route) => route switch
+    {
+        RouteNote.Filled { Kind: var kind, Count: var count, Total: var total, PlannedAt: var planned } =>
+            Inv($" · plan: {Word(kind)} ✓ {count}/{total}{(planned is null ? "" : $" (planned at {planned})")}"),
+        RouteNote.AlreadyFilled => " · plan ✓",
+        RouteNote.Extra => " · not in plan (extra)",
+        RouteNote.Open { Kind: var kind } => $" · plan: {Word(kind)}",
+        _ => "",
+    };
+
+    private static string Word(RecipeKind kind) => kind == RecipeKind.Return ? "back" : kind.ToString().ToLowerInvariant();
 
     /// <summary>A failure the scan didn't expect (D82): the notice; the whole exception goes to cargoplan.log.</summary>
     public static string Failed(Exception error) => $"Scan failed: {error.Message}";

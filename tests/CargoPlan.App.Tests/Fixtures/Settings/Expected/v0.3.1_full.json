@@ -122,6 +122,7 @@
     "faction": null,
     "hub": "Everus Harbor",
     "loopsSort": "hour",
+    "planBlock": "open",
     "times": {
       "station": 10,
       "crate": 20,
