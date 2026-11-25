@@ -421,6 +421,7 @@ public partial class App : Application
             IsRoutesTabSelected = settings.Routes.IsPlanTab,
             Routes = routes,
             ActiveRoute = activeRoute,
+            PlaceShort = hauling is HaulingLoad.Loaded { Data.Positions: var shortPositions } ? name => PlaceNames.ShortOf(name, shortPositions) : null,
             RecentShips = settings.RecentShips ?? [],
             Cameras = settings.ShipView.Cameras ?? new Dictionary<string, ShipCamera>(),
             Outlines = outlines,

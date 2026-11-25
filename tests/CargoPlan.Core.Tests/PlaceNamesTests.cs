@@ -37,6 +37,24 @@ public class PlaceNamesTests
     }
 
     [Fact]
+    public void A_place_as_the_card_writes_it_is_its_positions_short_name_else_as_it_is()
+    {
+        // The legend's header (Martin, T13.6): "From Everus Harbor · to HUR-L5 · #1"; the card writes "High Course Station".
+        var positions = new Positions(
+        [
+            new StarPosition("1", "HUR-L5 High Course Station", StarSystem.Stanton, "Manmade", null, 0, 0, 0, []),
+            new StarPosition("2", "Everus Harbor", StarSystem.Stanton, "Manmade", null, 0, 0, 0, []),
+            new StarPosition("3", "Ruin Station", StarSystem.Pyro, "Manmade", null, 0, 0, 0, []),
+        ]);
+
+        PlaceNames.ShortOf("High Course Station", positions).Should().Be("HUR-L5");
+        PlaceNames.ShortOf("Everus Harbor", positions).Should().Be("Everus Harbor");
+        PlaceNames.ShortOf("Ruin Station", positions).Should().Be("Ruin Station");
+        PlaceNames.ShortOf("Riker", positions).Should().Be("Riker", "no position answers to it");
+        PlaceNames.ShortOf("High Course Station", Positions.Empty).Should().Be("High Course Station", "without hauling data");
+    }
+
+    [Fact]
     public void The_order_follows_the_board_hubs_table() =>
         BoardHubs.ByArea.OrderBy(h => h.Key, StringComparer.Ordinal).Select(h => h.Value).Order(PlaceNames.Order)
             .Should().Equal(BoardHubs.ByArea.OrderBy(h => h.Key, StringComparer.Ordinal).Select(h => h.Value));

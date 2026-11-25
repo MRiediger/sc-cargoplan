@@ -820,6 +820,13 @@ ratifiziert.
   `SettingsStoreTests.Routes_keep_the_plan_blocks_state`, `SettingsStoreTests.A_loop_setting_out_of_range_falls_back_with_a_line`
   (planBlock), `OverlayRouteXamlTests.The_blocks_head_is_a_line_button_that_folds_its_list_and_End_plan_stays`.
   Bild-Gate (Martin) danach.
+- **Legenden-Kopf (Martin, 25.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** „From Everus Harbor ·
+  to HUR-L5 · #1“ – zwischen Pickup und Nummer das Ziel der Zeile darunter (erste Zeile der Mission) in Kurzform über die
+  Positionen der Hauling-Daten (`PlaceNames.ShortOf`, eigenes Segment, kürzt sich nie); ohne Hauling-Daten oder Position
+  der Kartenname. Befund aus den Daten: „Teasa Spaceport“ ist ein `contractName` der Landezone „Lorville“ → „to Lorville“.
+  D69-Addendum. Tests: `PlaceNamesTests.A_place_as_the_card_writes_it_is_its_positions_short_name_else_as_it_is`,
+  `LegendLineTests.The_header_names_the_short_form_of_the_destination_of_the_line_under_it`; vier bestehende
+  Kopfzeilen-Tests um „· to …“ nachgezogen. Handling gegen main: Legenden-Kopf „From … · #n“ → „From … · to … · #n“.
 - **Testnamen 6b:** `RouteProgressTests` (Stopps, Entladen, Gehalten/Slots, Simulation fits/too big, ohne Entladen too
   big, gefüllt/collect, Extras K6, Advance, Step/Abflug, Run), `RouteBarTests` (Texte und ‹ ›, Abhaken rückt weiter,
   Rückläufer-Zeilen, Finish mit Run und Notice, Finish nur am Ende), `RouteScanTests.Finishing_the_route_leaves_plan_json_byte_for_byte`

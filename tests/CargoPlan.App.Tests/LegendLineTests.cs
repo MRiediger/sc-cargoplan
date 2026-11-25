@@ -129,16 +129,36 @@ public class LegendLineTests
 
         var line = Legend(saved).Single();
 
-        line.HeaderLabel.Should().Be("From Lorville · #47");
-        line.HeaderSegments.Select(s => (s.Text, s.Rank)).Should().Equal(("From Lorville", LegendSegment.TrimFirst), (" · #47", LegendSegment.Fixed));
+        line.HeaderLabel.Should().Be("From Lorville · to Riker · #47");
+        line.HeaderSegments.Select(s => (s.Text, s.Rank)).Should().Equal(("From Lorville", LegendSegment.TrimFirst), (" · to Riker", LegendSegment.Fixed), (" · #47", LegendSegment.Fixed));
     }
+
+    [Fact]
+    public void The_header_names_the_short_form_of_the_destination_of_the_line_under_it()
+    {
+        // Martin (T13.6): "From Everus Harbor · to HUR-L5 · #1"; the place shortens never, the pickups first.
+        Mission mission = new(1, [new MissionStop("High Course Station", 1, [Item("Stims", 4, CrateSize.Four, "Everus Harbor")]),
+            new MissionStop("Riker", 2, [Item("Stims", 4, CrateSize.Four, "Everus Harbor")])],
+            new ContractSource(new ScanIdentity(1, "KEY 1", false)));
+        var saved = Planned(mission);
+
+        var lines = ShipViewBuilder.Build(saved, HullA, [], name => name == "High Course Station" ? "HUR-L5" : name).Legend;
+
+        var first = lines.Single(l => l.Header is not null);
+        first.HeaderLabel.Should().Be($"From Everus Harbor · to {PlaceShortAt(first)} · #1");
+        first.HeaderSegments.Select(s => s.Rank).Should().Equal(LegendSegment.TrimFirst, LegendSegment.Fixed, LegendSegment.Fixed);
+        lines.Where(l => l.Header is null).Should().ContainSingle("the second line has no header");
+    }
+
+    // The header names the line it stands over; which line comes first is the plan's route.
+    private static string PlaceShortAt(LegendEntry line) => line.Destination == "High Course Station" ? "HUR-L5" : line.Destination;
 
     [Fact]
     public void A_typed_mission_has_no_id()
     {
         var saved = Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight, "Lorville")));
 
-        Legend(saved).Single().HeaderLabel.Should().Be("From Lorville");
+        Legend(saved).Single().HeaderLabel.Should().Be("From Lorville · to Riker");
     }
 
     [Fact]
@@ -146,7 +166,7 @@ public class LegendLineTests
     {
         var saved = Planned(One("Riker", Item("Titanium", 8, CrateSize.Eight), new ContractSource(new ScanIdentity(47, "KEY 47", false))));
 
-        Legend(saved).Single().HeaderLabel.Should().Be("From ? · #47");
+        Legend(saved).Single().HeaderLabel.Should().Be("From ? · to Riker · #47");
     }
 
     [Fact]
@@ -157,7 +177,7 @@ public class LegendLineTests
         viewModel.ShowPlan(TestPlans.HurstonPickups());
 
         viewModel.Scene.Legend.Where(e => e.Header is not null).Select(e => (e.Mission, e.HeaderLabel)).Should().Equal(
-            (1, "From ? · #1"), (2, "From ? · #2"), (4, "From Everus Harbor · #3"), (3, "From ? · #4"));
+            (1, "From ? · to High Course Station · #1"), (2, "From ? · to High Course Station · #2"), (4, "From Everus Harbor · to Melodic Fields Station · #3"), (3, "From ? · to Everus Harbor · #4"));
         viewModel.Scene.Legend.Single(e => e.Mission == 3).Label.Should().Be("To Everus Harbor · 8 SCU (8×1) · Waste");
     }
 

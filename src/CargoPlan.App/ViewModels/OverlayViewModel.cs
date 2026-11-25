@@ -314,7 +314,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
 
             // Scene first, then the plan (D82): a scene that fails to build leaves plan and scene as they were, and the
             // plan saver never sees a plan whose scene isn't there.
-            var scene = Marked(value is null ? EmptyScene(Ship) : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value.Plan, Ship)));
+            var scene = Marked(value is null ? EmptyScene(Ship) : ShipViewBuilder.Build(value, Ship, LoadPlanner.Validate(value.Plan, Ship), PlaceShort));
             field = value;
             Scene = scene;
             OnPropertyChanged(nameof(Saved));
@@ -677,6 +677,12 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             }
         }
     }
+
+    /// <summary>
+    /// The short form of a place for the legend's header, "From Everus Harbor · to HUR-L5 · #1" (T13.6, Martin): the hauling
+    /// data's positions; null in tests without them, then the place as written.
+    /// </summary>
+    public Func<string, string>? PlaceShort { get; init; }
 
     /// <summary>The tab "Cargo": the loading plan and the ship, as before T13.2.</summary>
     [RelayCommand]
