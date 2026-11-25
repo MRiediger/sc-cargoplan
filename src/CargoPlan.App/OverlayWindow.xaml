@@ -740,6 +740,37 @@
                             </Style.Triggers>
                         </Style>
                     </StackPanel.Style>
+                    <!-- The route's station bar (T13.6 6b, U9.3, D126): one line above the block "Plan", outside the scroll so
+                         it never scrolls away: ‹ and › by hand (the ticks move it too), "Finish plan" at the hub at the end;
+                         under it the ways back of its stop (fits / too big in the notice colour) and the ones collecting there.
+                         Only with a route; the buttons take no focus (U7). -->
+                    <StackPanel x:Name="StationBar" DataContext="{Binding ActiveRoute}" Margin="0,0,0,4"
+                                Visibility="{Binding HasRoute, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}">
+                        <DockPanel>
+                            <Button x:Name="PreviousStationButton" DockPanel.Dock="Left" Content="‹" Command="{Binding PreviousStationCommand}" Focusable="False"
+                                    Style="{StaticResource TextButtonStyle}" Margin="0,0,6,0" VerticalAlignment="Center" ToolTip="One stop back" />
+                            <Button x:Name="FinishPlanButton" DockPanel.Dock="Right" Content="Finish plan" Command="{Binding FinishPlanCommand}" Focusable="False"
+                                    Style="{StaticResource TextButtonStyle}" Margin="6,0,0,0" VerticalAlignment="Center"
+                                    Visibility="{Binding IsAtEnd, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    ToolTip="Finish the plan: the round's aUEC and time are kept, the placeholders go, the cargo stays." />
+                            <Button x:Name="NextStationButton" DockPanel.Dock="Right" Content="›" Command="{Binding NextStationCommand}" Focusable="False"
+                                    Style="{StaticResource TextButtonStyle}" Margin="6,0,0,0" VerticalAlignment="Center" ToolTip="One stop on" />
+                            <TextBlock Text="{Binding StationText}" ToolTip="{Binding StationToolTip}" Style="{StaticResource LegendTextStyle}"
+                                       FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <ItemsControl ItemsSource="{Binding StationRows}" Focusable="False" Margin="0,2,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type rt:PlaceholderRowView}">
+                                    <TextBlock x:Name="Line" ToolTip="{Binding ToolTip}" Style="{StaticResource LegendTextStyle}" Opacity="0.6"><Run Text="{Binding Text, Mode=OneWay}" /><Run Text="{Binding Accept, Mode=OneWay}" Foreground="{StaticResource NoticeForegroundBrush}" /><Run Text="{Binding Collect, Mode=OneWay}" /></TextBlock>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding Filled}" Value="True">
+                                            <Setter TargetName="Line" Property="Opacity" Value="1" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
                     <!-- Hidden by legend.visible = false: only the stop lines go (D33). Warnings and the empty state stay,
                          notices are at the bottom anyway; a stop is then ticked in the ship view and moved through the crate selection.
                          The lines scroll beyond their share of the overlay (K7, D80); what follows them never scrolls. No

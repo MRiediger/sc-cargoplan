@@ -207,6 +207,14 @@ public sealed class ScanNoticesTests
     }
 
     [Fact]
+    public void A_way_back_accepted_at_another_station_says_where_it_was_planned()
+    {
+        // E(c) of T13.6 (6b).
+        ScanNotices.Text(new ScanReport(ScanReportKind.Added, 3, Route: new RouteNote.Filled(RecipeKind.Return, 2, 10, "HUR-L1")), null)
+            .Should().Be("Scanned #3 · plan: back ✓ 2/10 (planned at HUR-L1)");
+    }
+
+    [Fact]
     public void An_observed_offer_of_an_open_placeholder_says_so_before_the_cargo_stays()
     {
         var key = new ObservationKey(HaulContractor.Covalex, HaulRank.Senior, HaulSize.Medium, false, 325_250, ["Waste"]);

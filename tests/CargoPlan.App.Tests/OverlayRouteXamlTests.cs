@@ -102,6 +102,32 @@ public class OverlayRouteXamlTests
     }
 
     [Fact]
+    public void The_station_bar_stands_right_above_the_legends_scroll_so_it_never_scrolls_away()
+    {
+        // U9.3: one line above the block "Plan", the Cargo view below unchanged; 6b, D126.
+        var root = Root();
+        var bar = Named(root, "StationBar");
+        var scroll = Named(root, "StopLinesScroll");
+
+        bar.ElementsAfterSelf().First().Should().BeSameAs(scroll);
+        ((string?)bar.Attribute("DataContext")).Should().Be("{Binding ActiveRoute}");
+        bar.ToString().Should().Contain("HasRoute").And.Contain("StationText").And.Contain("StationRows");
+    }
+
+    [Theory]
+    [InlineData("PreviousStationButton", "{Binding PreviousStationCommand}", "‹")]
+    [InlineData("NextStationButton", "{Binding NextStationCommand}", "›")]
+    [InlineData("FinishPlanButton", "{Binding FinishPlanCommand}", "Finish plan")]
+    public void The_bars_buttons_take_no_focus(string name, string command, string content)
+    {
+        var button = Named(Root(), name);
+
+        (((string?)button.Attribute("Command")), ((string?)button.Attribute("Content"))).Should().Be((command, content));
+        ((string?)button.Attribute("Focusable")).Should().Be("False", "a focus would activate the overlay over the game (U7)");
+        ((string?)button.Attribute("Style")).Should().Be("{StaticResource TextButtonStyle}");
+    }
+
+    [Fact]
     public void The_chosen_loop_row_has_a_bar_on_its_left()
     {
         var style = Keyed(Root(), "LoopRowStyle").ToString();

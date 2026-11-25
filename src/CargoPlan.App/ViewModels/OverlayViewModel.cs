@@ -334,7 +334,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             DiscardPlanCommand.NotifyCanExecuteChanged();
 
             // What the route's placeholders show as filled is read from the plan (T13.6, D125).
-            ActiveRoute?.Show(value);
+            ActiveRoute?.Show(value, Ship);
         }
     }
 
@@ -538,6 +538,7 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         _shipSelection = null;
         Ship = ship;
         Routes?.ShowShip(ship);
+        ActiveRoute?.Show(Saved, ship);
 
         // Before the scene: the view takes the new ship's camera, or its default camera fitted (D61, K1.2).
         OnPropertyChanged(nameof(Camera));
@@ -668,7 +669,12 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
         init
         {
             field = value;
-            value?.Show(Saved);
+            value?.Show(Saved, Ship);
+            if (value is not null)
+            {
+                // 6b: what the round paid in what time, in the line of the last action's result (a scan, a move).
+                value.Finished += (_, run) => SetNotice(NoticeSource.Move, ActiveRouteViewModel.FinishedText(run));
+            }
         }
     }
 

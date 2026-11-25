@@ -290,6 +290,42 @@ public sealed class RouteScanTests : IDisposable
         });
     }
 
+    [Fact]
+    public async Task A_way_back_scanned_where_the_bar_stands_but_planned_elsewhere_says_so()
+    {
+        // E(c) (6b): the Junior Small to Riker is planned as the way back from Orison; the bar stands at Riker.
+        var back = new Placeholder(3, RecipeKind.Return, "junior", Title, 50_250, Junior.Legs, ["Everus Harbor"], "Orison", []);
+        var overlay = Overlay(Planned with { Stations = ["Riker", "Orison"], Placeholders = [Planned.Placeholders[0], back], At = 1, DepartedUtc = Monday });
+
+        await Scan(overlay, Raw(View.Accepted));
+
+        overlay.Notices.Should().Equal("Scanned #1 · From Everus Harbor · 8 SCU Stims to Riker · plan: back ✓ 1/2 (planned at Orison)");
+    }
+
+    [Fact]
+    public void Finishing_the_route_leaves_plan_json_byte_for_byte()
+    {
+        // E1 of the approval: Finish too; the run goes to routes.json, plan.json isn't written.
+        var planPath = Path.Combine(_folder, "plan.json");
+        Sta.Run(() =>
+        {
+            var overlay = Overlay(Planned with { At = 2, DepartedUtc = Monday });
+            var saver = new PlanSaver(new System.Windows.Window(), overlay, planPath, false, null);
+            overlay.ShowPlan(TestPlans.SplitAndShared());
+            saver.Flush();
+            var before = SHA256.HashData(File.ReadAllBytes(planPath));
+            var written = File.GetLastWriteTimeUtc(planPath);
+
+            overlay.ActiveRoute!.IsAtEnd.Should().BeTrue();
+            overlay.ActiveRoute.FinishPlanCommand.Execute(null);
+            saver.Flush();
+
+            SHA256.HashData(File.ReadAllBytes(planPath)).Should().Equal(before);
+            File.GetLastWriteTimeUtc(planPath).Should().Be(written, "the saver didn't write at all");
+            overlay.ActiveRoute.HasRoute.Should().BeFalse();
+        });
+    }
+
     private OverlayViewModel Overlay(Route? route, IReadOnlyList<HaulTemplate>? templates = null)
     {
         var data = new HaulingLoad.Loaded(new HaulingData(templates ?? [Junior], Places), []);

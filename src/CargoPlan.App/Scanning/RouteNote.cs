@@ -10,7 +10,8 @@ public abstract record RouteNote
     }
 
     /// <summary>" · plan: bulk ✓ 2/10": the scan filled a placeholder of <paramref name="Kind"/>.</summary>
-    public sealed record Filled(RecipeKind Kind, int Count, int Total) : RouteNote;
+    /// <param name="PlannedAt">For a way back accepted at another station than planned: where it was planned (E(c), 6b).</param>
+    public sealed record Filled(RecipeKind Kind, int Count, int Total, string? PlannedAt = null) : RouteNote;
 
     /// <summary>" · plan ✓": the contract is in the route already.</summary>
     public sealed record AlreadyFilled : RouteNote;

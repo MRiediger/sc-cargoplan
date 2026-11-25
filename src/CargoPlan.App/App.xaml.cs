@@ -408,7 +408,7 @@ public partial class App : Application
             }
         };
         // The route (T13.6, D125): routes.json's at the start, saved by the book with the observations (one writer).
-        var activeRoute = new ActiveRouteViewModel(routesBook.Route, routesBook.SetRoute, hauling);
+        var activeRoute = new ActiveRouteViewModel(routesBook.Route, routesBook.SetRoute, hauling, routesBook.AddRun);
         var viewModel = new OverlayViewModel(ship, ships)
         {
             IsManuallyLocked = options.Locked,

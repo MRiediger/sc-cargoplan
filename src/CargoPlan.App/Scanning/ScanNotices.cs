@@ -54,7 +54,8 @@ internal static class ScanNotices
     /// <summary>" · plan: bulk ✓ 2/10", " · plan ✓", " · not in plan (extra)", " · plan: bulk": the route's part (T13.6, D125).</summary>
     private static string RouteText(RouteNote? route) => route switch
     {
-        RouteNote.Filled { Kind: var kind, Count: var count, Total: var total } => Inv($" · plan: {Word(kind)} ✓ {count}/{total}"),
+        RouteNote.Filled { Kind: var kind, Count: var count, Total: var total, PlannedAt: var planned } =>
+            Inv($" · plan: {Word(kind)} ✓ {count}/{total}{(planned is null ? "" : $" (planned at {planned})")}"),
         RouteNote.AlreadyFilled => " · plan ✓",
         RouteNote.Extra => " · not in plan (extra)",
         RouteNote.Open { Kind: var kind } => $" · plan: {Word(kind)}",
