@@ -842,7 +842,7 @@ ratifiziert.
   `RouteProgressTimingTests` (`Category=Timing`).
 - **Abnahme erteilt (25.11.2026, Martin)**, damit auch alle Präzisierungen von 6b, die Gate-Befunde (Plan-Block klappt ein, Leiste am Hub, Legenden-Kopf „· to HUR-L5 ·“) und der Nachtrag `ship`/`stations` in `runs[]` ratifiziert. Merge `--no-ff` nach main, Martin pusht. Nächster Task: T13.6c (gemessene Loop-Zeiten, eigener Startprompt).
 
-### [ ] T13.6c Gemessene Loop-Zeiten (Variante A)
+### [x] T13.6c Gemessene Loop-Zeiten (Variante A) (abgenommen 25.11.)
 
 **Warum:** Die ~aUEC/h der Loops rechnen nur mit dem Zeitmodell (`routes.times`, D124). Seit T13.6 hält `runs[]` jede
 geflogene Route mit Zeit ab Abflug, Schiff und Stationen. Hat der Spieler eine Loop mindestens dreimal mit demselben
@@ -929,6 +929,8 @@ Direct-Schlüssel und unter der Schwelle, K1, E1, E2):**
   RAFT), `SettingsSessionTests.The_window_shows_the_measured_summary_under_the_switch_and_follows_it_until_it_closes`
   (Fake, Detach), `SettingsWindowXamlTests.The_plan_tab_section_binds_rank_and_faction` (Zeile). Mutationsproben: ohne
   Einzahl-Fall → 1 rot; `Detach` ohne Abmelden → 1 rot.
+- **Abnahme erteilt (25.11.2026, Martin)**, damit auch alle Präzisierungen (P1–P6, K1, E1, E2) und der Gate-Befund
+  (Zähler unter der Checkbox mit `IMeasuredSummary`) ratifiziert. Merge `--no-ff` nach main, Martin pusht.
 
 ### [ ] T13.7 Streckenkarte
 
