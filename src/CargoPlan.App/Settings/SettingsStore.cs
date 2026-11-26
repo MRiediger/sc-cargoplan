@@ -1,4 +1,5 @@
 // WPF projects leave System.IO out of the implicit usings (Path clashes with System.Windows.Shapes.Path).
+using System.Globalization;
 using System.IO;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -258,6 +259,14 @@ public static class SettingsStore
         {
             problems.Add($"routes.planBlock \"{routes.PlanBlock}\" is not open or closed, using open.");
             routes = routes with { PlanBlock = RoutesSettings.BlockOpen };
+        }
+
+        // The custom route's bar under the map (gate finding 7b): a share out of its range falls back to the default.
+        if (double.IsNaN(routes.MapLegendHeight) || routes.MapLegendHeight is < RoutesSettings.MinMapLegendHeight or > RoutesSettings.MaxMapLegendHeight)
+        {
+            problems.Add(string.Create(CultureInfo.InvariantCulture,
+                $"routes.mapLegendHeight {routes.MapLegendHeight} is not {RoutesSettings.MinMapLegendHeight}–{RoutesSettings.MaxMapLegendHeight}, using {RoutesSettings.DefaultMapLegendHeight}."));
+            routes = routes with { MapLegendHeight = RoutesSettings.DefaultMapLegendHeight };
         }
 
         return (routes, problems);

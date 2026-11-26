@@ -1156,6 +1156,17 @@ E Timing, Hinweis Radius):**
   fokussierbar). Tests: `OverlayRouteXamlTests.The_map_sits_beside_…` (gleiche Höhenregel wie `StopLinesScroll`, scrollt),
   `CustomBarHeightTests.The_bars_highest_height_is_the_legends_share_of_the_overlay_from_inside_the_plan_tabs_template`
   (die Bindung per ElementName löst aus dem DataTemplate des Plan-Reiters auf, A3).
+- **Gate-Befund 7b (Martin, 26.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** Die Höhe der Leiste
+  stellt ein **eigener Regler „Map legend height“** ein (ersetzt die Kopplung an „Max. height“ der Legende): Abschnitt
+  „Plan tab“ des Einstellungsfensters, `routes.mapLegendHeight` (Anteil) in settings.json, 10–90 % in 5-%-Schritten wie der
+  Legenden-Regler, Standard 50 %; außerhalb des Bereichs beim Laden 50 % mit Logzeile; additiv, Schema 3. Der Plan-Reiter
+  folgt dem Regler ohne Neuberechnung. Golden-Dateien der Settings-Migration (3) um `mapLegendHeight` nachgezogen,
+  `settings-format.md`, D129. Tests: `SettingsStoreTests.Routes_keep_the_map_legend_height_and_one_out_of_its_range_falls_back_with_a_line`,
+  `SettingsStoreTests.Save_writes_the_routes_after_the_ship_data` (Reihenfolge),
+  `SettingsSessionTests.The_map_legend_height_slider_goes_into_the_routes_section_and_the_plan_tab_follows`,
+  `SettingsWindowXamlTests.The_plan_tab_section_binds_rank_and_faction` (Regler), `OverlayRouteXamlTests.The_map_sits_beside_…`
+  (bindet `MapLegendHeight`), `CustomBarHeightTests.The_bars_highest_height_is_its_own_share_of_the_overlay_from_inside_the_plan_tabs_template`
+  (Nachfolger von `…_is_the_legends_share_…`). Gegenproben: ohne Bereichsprüfung → 2 rot; Plan-Reiter folgt nicht → 1 rot.
 
 ### [ ] T13.8 Release v0.8.0
 

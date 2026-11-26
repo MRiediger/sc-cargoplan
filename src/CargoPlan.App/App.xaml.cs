@@ -777,7 +777,8 @@ public partial class App : Application
     /// </summary>
     private static RoutesSettingsViewModel CreateRoutesSettingsViewModel(SettingsSession session, IMeasuredSummary measured) => new(
         session.Current.Routes,
-        (rank, faction, times, useMeasured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = useMeasured }),
+        (rank, faction, times, useMeasured, mapLegendHeight) => session.ChangeRoutes(
+            session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = useMeasured, MapLegendHeight = mapLegendHeight }),
         handler => session.RoutesChanged += handler,
         handler => session.RoutesChanged -= handler,
         measured);

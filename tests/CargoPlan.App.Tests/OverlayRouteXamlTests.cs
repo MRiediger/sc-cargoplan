@@ -62,11 +62,14 @@ public class OverlayRouteXamlTests
         ((string?)scroll.Attribute("Focusable")).Should().Be("False");
         var legendHeight = Named(root, "StopLinesScroll").Elements().Single(e => e.Name.LocalName == "ScrollViewer.MaxHeight").ToString();
         var barHeight = scroll.Elements().Single(e => e.Name.LocalName == "ScrollViewer.MaxHeight").ToString();
-        foreach (var part in new[] { "LegendMaxHeightConverter", "ElementName=\"OverlayContent\"", "LegendMaxHeightShare" })
+        // Gate finding 7b (Martin): the legend's rule on the overlay's height, its own share (routes.mapLegendHeight).
+        foreach (var part in new[] { "LegendMaxHeightConverter", "ElementName=\"OverlayContent\"" })
         {
             legendHeight.Should().Contain(part);
             barHeight.Should().Contain(part, "the same rule as the legend's");
         }
+
+        barHeight.Should().Contain("Path=\"MapLegendHeight\"").And.NotContain("LegendMaxHeightShare");
         ((string?)Named(root, "ClearCustomButton").Attribute("Command")).Should().Be("{Binding ClearCustomCommand}");
 
         var row = Named(root, "StartPlanButton").Parent!;

@@ -7,7 +7,8 @@ namespace CargoPlan.App.Tests;
 
 /// <summary>
 /// The custom route's bar under the map (gate finding 7b): its highest height binds, from inside the Plan tab's data
-/// template, to the window's OverlayContent by ElementName and to the overlay's legend share, as the legend's lines do.
+/// template, to the window's OverlayContent by ElementName, as the legend's lines do, and to the tab's own share
+/// (routes.mapLegendHeight, its slider in the settings window).
 /// Proves that the binding resolves across the template (A3: not from memory); OverlayRouteXamlTests checks the XAML has it.
 /// </summary>
 public sealed class CustomBarHeightTests
@@ -22,7 +23,7 @@ public sealed class CustomBarHeightTests
                   <sv:LegendMaxHeightConverter />
                 </MultiBinding.Converter>
                 <Binding ElementName="OverlayContent" Path="ActualHeight" Mode="OneWay" />
-                <Binding Path="DataContext.LegendMaxHeightShare" RelativeSource="{RelativeSource AncestorType=Window}" Mode="OneWay" />
+                <Binding Path="MapLegendHeight" Mode="OneWay" />
               </MultiBinding>
             </ScrollViewer.MaxHeight>
           </ScrollViewer>
@@ -30,13 +31,13 @@ public sealed class CustomBarHeightTests
         """;
 
     [Fact]
-    public void The_bars_highest_height_is_the_legends_share_of_the_overlay_from_inside_the_plan_tabs_template() => Sta.Run(() =>
+    public void The_bars_highest_height_is_its_own_share_of_the_overlay_from_inside_the_plan_tabs_template() => Sta.Run(() =>
     {
-        var window = new Window { DataContext = new Share(0.4) };
+        var window = new Window();
         NameScope.SetNameScope(window, new NameScope());
         var content = new DockPanel();
         window.RegisterName("OverlayContent", content);
-        var plan = new ContentControl { Content = new object(), ContentTemplate = (DataTemplate)XamlReader.Parse(Template) };
+        var plan = new ContentControl { Content = new Share(0.4), ContentTemplate = (DataTemplate)XamlReader.Parse(Template) };
         content.Children.Add(plan);
         window.Content = content;
 
@@ -47,7 +48,8 @@ public sealed class CustomBarHeightTests
         Descendant<ScrollViewer>(plan)!.MaxHeight.Should().BeApproximately(600 * 0.4, 1e-9);
     });
 
-    private sealed record Share(double LegendMaxHeightShare);
+    // The Plan tab's view model as the template sees it: its own share for the bar (routes.mapLegendHeight).
+    public sealed record Share(double MapLegendHeight);
 
     private static T? Descendant<T>(DependencyObject root)
         where T : DependencyObject

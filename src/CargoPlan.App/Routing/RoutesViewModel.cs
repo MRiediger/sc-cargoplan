@@ -244,6 +244,12 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
     [ObservableProperty]
     public partial string? MapNote { get; private set; }
 
+    /// <summary>
+    /// The share of the overlay's height the custom route's bar under the map takes at most, then it scrolls (gate finding
+    /// 7b, routes.mapLegendHeight, set in the settings window).
+    /// </summary>
+    public double MapLegendHeight => _settings.MapLegendHeight;
+
     /// <summary>The custom route has a contract (T13.7b): its lines and "Start plan" show with the map.</summary>
     public bool HasCustom => _custom is { Picks.Count: > 0 };
 
@@ -433,6 +439,13 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
     /// </summary>
     public void Follow(RoutesSettings settings)
     {
+        // The bar's height only lays out (gate finding 7b): nothing to compute for it.
+        if (settings.MapLegendHeight != _settings.MapLegendHeight)
+        {
+            _settings = _settings with { MapLegendHeight = settings.MapLegendHeight };
+            OnPropertyChanged(nameof(MapLegendHeight));
+        }
+
         if (settings.Rank == _settings.Rank && settings.Faction == _settings.Faction && settings.Times == _settings.Times
             && settings.UseMeasured == _settings.UseMeasured)
         {

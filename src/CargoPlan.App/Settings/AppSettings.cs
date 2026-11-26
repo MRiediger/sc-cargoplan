@@ -130,6 +130,9 @@ public sealed record AppSettings(
 /// departure closes it, a click on its head toggles it.</param>
 /// <param name="UseMeasured">A loop flown 3 times or more with the ship ranks per hour by the median of the player's runs
 /// instead of <see cref="Times"/> (T13.6c, D127); false ranks every loop by the times. Set in the settings window only.</param>
+/// <param name="MapLegendHeight">The share of the overlay's height the custom route's bar under the map takes at most, then
+/// it scrolls (gate finding 7b, D129): <see cref="MinMapLegendHeight"/> to <see cref="MaxMapLegendHeight"/>. Set in the
+/// settings window only.</param>
 public sealed record RoutesSettings(
     string Tab = RoutesSettings.CargoTab,
     string Rank = RoutesSettings.AnyRank,
@@ -138,8 +141,15 @@ public sealed record RoutesSettings(
     RoutesTimes? Times = null,
     string LoopsSort = RoutesSettings.SortByHour,
     string PlanBlock = RoutesSettings.BlockOpen,
-    bool UseMeasured = true)
+    bool UseMeasured = true,
+    double MapLegendHeight = RoutesSettings.DefaultMapLegendHeight)
 {
+    public const double MinMapLegendHeight = 0.1;
+
+    public const double MaxMapLegendHeight = 0.9;
+
+    public const double DefaultMapLegendHeight = 0.5;
+
     public const string BlockOpen = "open";
 
     public const string BlockClosed = "closed";
