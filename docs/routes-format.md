@@ -248,10 +248,10 @@ filled which placeholder and the contracts accepted beside it. **End plan** remo
 | `startedUtc` | string | When it was started, ISO 8601 in UTC. |
 | `departedUtc` | string | Optional (6b): when the station bar first left the hub; not before `startedUtc`. |
 | `hub` | string | Where it starts and ends. |
-| `kind` | string | `"localRing"` (a hub's ring; a Pyro station's too), `"direct"` (one direct contract there and back) or `"systemWide"` (the LEO ring). |
+| `kind` | string | `"localRing"` (a hub's ring; a Pyro station's too), `"direct"` (one direct contract there and back), `"systemWide"` (the LEO ring) or `"custom"` (the player's own, built of missions on the map, T13.7b/c, D129, D130; additive in schema 3; its `hub` is the board's hub). |
 | `system` | string | `"stanton"`, `"pyro"` or `"nyx"`. |
 | `stations` | array of strings | At least one: the stations in the order flown, without the hub. |
-| `placeholders` | array | One per contract of the loop: out first, then the ways back. Ids once each. |
+| `placeholders` | array | One per contract of the loop in the order accepted: what leaves the hub first, then station by station what is accepted there (on the way or a way back). Ids once each. |
 | `extras` | array of strings | Scan keys of accepted contracts no placeholder took ("not in plan (extra)"); they count for the route. May be empty. |
 | `at` | number | Where the station bar stands (6b): `0` the hub at the start, `1` to n the stations, n + 1 the hub at the end. |
 
@@ -268,7 +268,7 @@ What the recipe's line shows, kept with the route, so a later data release chang
 | `legs` | array | At least one: `commodity`, `min` and `max` (SCU, `1 ≤ min ≤ max`) and `container` (the largest crate in SCU: 1, 2, 4, 8, 16, 24 or 32). |
 | `destinations` | array of strings | The places of the recipe's line; the hub for a way back. |
 | `reward` | number | Optional: aUEC from the template, else the last a scan saw (Red Wind); left out where none is known, never estimated. |
-| `acceptAt` | string | Only for a way back, required there: the station where it is accepted. |
+| `acceptAt` | string | Required for a way back, optional for any other role: the station where it is accepted when not at the hub at the start (a contract the LEO ring or a custom route takes on the way, T13.7b, D125 addendum; additive in schema 3). The station bar lists and simulates it there. |
 | `collectAt` | array of strings | Only for a way back, required there: the next stations it collects at (several pickups); empty for one pickup. |
 | `filledBy` | string | Optional: the scan key (`plan.json`, `scan.key`) of the accepted contract that filled it. |
 

@@ -162,6 +162,14 @@ public partial class SettingsWindowXamlTests
         bindings.Should().Contain("CheckBox.ToolTip=Loops you finished 3+ times with this ship use your median time instead of the values above.");
         bindings.Should().Contain("TextBlock.Text={Binding MeasuredText}");
         bindings.Should().Contain("TextBlock.Visibility={Binding HasMeasuredText, Converter={StaticResource BooleanToVisibilityConverter}}");
+
+        // Gate finding 7b (Martin): the height of the plan's bar under the map, 10–90 % in steps of 5 like the legend's.
+        bindings.Should().Contain("TextBlock.Text=Map legend height");
+        bindings.Should().Contain("Slider.Value={Binding MapLegendHeightPercent}");
+        bindings.Should().Contain("Slider.Minimum={x:Static vm:RoutesSettingsViewModel.MinMapLegendHeightPercent}");
+        bindings.Should().Contain("Slider.Maximum={x:Static vm:RoutesSettingsViewModel.MaxMapLegendHeightPercent}");
+        bindings.Should().Contain("Slider.TickFrequency=5");
+        bindings.Should().Contain("TextBlock.Text={Binding MapLegendHeightText}");
     }
 
     [GeneratedRegex(@"\{x:Static (?<prefix>\w+):(?<type>\w+)\.(?<member>\w+)\}")]

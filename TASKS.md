@@ -932,7 +932,7 @@ Direct-Schlüssel und unter der Schwelle, K1, E1, E2):**
 - **Abnahme erteilt (25.11.2026, Martin)**, damit auch alle Präzisierungen (P1–P6, K1, E1, E2) und der Gate-Befund
   (Zähler unter der Checkbox mit `IMeasuredSummary`) ratifiziert. Merge `--no-ff` nach main, Martin pusht.
 
-### [ ] T13.7 Streckenkarte
+### [x] T13.7 Streckenkarte
 
 **Warum:** Die Route vor dem Annehmen planen, wenn man von der Routine abweicht (Design §8).
 - Gerichteter Graph, Layout schematisch (Planet = Hub + L-Ring), Option geografisch aus `positions.json`; Kante =
@@ -942,6 +942,323 @@ Direct-Schlüssel und unter der Schwelle, K1, E1, E2):**
 - Renderentscheidung als D-Eintrag im Plan (A9), nicht in eine bestehende Ansicht eingepasst
 - Klick und Übergabe schreiben in `routes.json`, nie in plan.json (D118)
 - Darstellung am gerenderten Bild geprüft (Lehre T8.2–T8.5)
+
+**Startprompt 26.11.:** Schnitt **7a** Karte lesen (Gate am Bild, Zwischenabnahme) und **7b** eigene Route aus der Karte
+(nur nach Martins Entscheidung nach Gate 7a; gestrichen → Backlog „Nutzer will Loops abseits der Ringe“). Branch
+`feat/p13-map`. Akzeptanz (§5): vierte Ansicht Map mit derselben Filterzeile; Layout pure, echte Winkel, Überlappungstest
+grün; Kanten = Matrixzellen (Konsistenztest); Template- vs. beobachtete Kanten unterscheidbar; Fokus per Knoten
+(Sitzung), aktive Route hervorgehoben; Zoom/Pan mit D-Begründung der Rad-Abweichung; Budget gemessen; D128 (ggf. D129
+für 7b); plan.json 11, routes.json 3, settings additiv.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (26.11.2026, „Freigabe T13.7a wie geplant“; K1–K4, E zu K3,
+E Timing, Hinweis Radius):**
+- **Befunde zum Startprompt:** (1) Die L-Stationen liegen an echten Lagrange-Punkten: nur L1/L2 beim Hub (Everus → HUR-L1
+  1,29 Gm), HUR-L3 jenseits des Sterns (25,7 Gm von Everus), L4/L5 ±60° auf der Planetenbahn; `parent` der L-Stationen
+  ist der Stern. Einen Cluster „Hub + L1–L5“ gibt es nicht. (2) Die Stellar-Boards nennen **Oberflächenorte**
+  (Stanton1 17 um Everus, Stanton3 4, Stanton4 1, Pyro Solar ~13 Outposts) – „keine Kanten im Stellar-Board“ trifft nicht
+  zu. (3) Bei komprimiertem Radius bleibt nur der **Polarwinkel um den Stern** erhalten, nicht die Richtung zwischen zwei
+  Knoten (Everus → Baijini roh −75,5°, mit √r −91,8°): die Winkeltests prüfen den Polarwinkel. (4) **1100 × 700 ist nicht
+  die Startgröße** des Overlays (420 × 460, MinWidth 400; Bilder T13.2/T13.4 bei 470 × 700). (5) „Zoom/Pan nur
+  RenderTransform“ würde Schrift, Linien und Pfeile 0,5–6× mitskalieren. (6) Freie Fläche ruft `DragMove`; die Karte
+  nimmt den linken Klick selbst.
+- **K1 Oberfläche (Martin):** ein Knoten je Planet „Hurston (surface)“: jeder Ort, der keine Station ist (Typ nicht
+  `Manmade*`), geht zum nächsten Planeten (Datentest); Kante = Summe der Zellen ihrer Orte, Tooltip je Ort; Konsistenztest
+  zweistufig (Station = eine Zelle, Oberfläche = Summe); Paare in einem Knoten nicht gezeichnet, in einer Zeile gezählt.
+- **K2 Geometrie (Martin):** geografisch, polar um den Stern, Winkel 1:1; Spreizung nur dort, wo das Layout dicht ist (Hub +
+  L1 + L2 + Oberfläche, die dichten Pyro-Paare); Tests Polarwinkel ± 2°, HUR-L3 = Everus + 180°, HUR-L4/L5 = ± 60°.
+- **K3 Viewport (Martin):** Überlappungstest mit Assert bei 1100 × 700, bei 470 × 700 nur gezählt. **E:** Hubs und
+  Oberflächen immer beschriftet, L-Stationen ab Zoom ≥ 1,5× oder wenn ihr Label kollisionsfrei liegt.
+- **K4 Zoom (Martin):** nur Projektion neu, Schrift und Linien konstant, < 5 ms je Raste; **E der Freigabe:** die Zeit je
+  Raste als `Category=Timing` von Hand, im Render-Test nur „kein Neuaufbau beim Zoom“.
+- Matrix-Filter und die Zeile „N templates not shown …“ auch in Map; Fokus ist ein eigener Sitzungszustand der Karte, der
+  Ring markiert den Hub, den Recipe zeigt; Kanten-Tooltip mit Gm; „Start plan“ nicht in Map (7b entscheidet).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (bei der Umsetzung 7a, Martin 26.11.):**
+- **Radius linear statt Wurzel.** Die geplante Mutationsprobe „Radius linear → Überlappungstest rot“ blieb grün: die
+  Radien um den Stern liegen nur 1:4 (10,6–68 Gm; Stanton 11,6–47,8); die 1:40 des Startprompts waren Knotenabstände (Hub ↔
+  L1), die die Spreizung löst. Gemessen bei 1100 × 700: linear 0 versteckte Labels, Wurzel 1 (HUR-L2 erst ab 1,5×).
+  Martin: linear, Begründung in D128; Mutationsprobe neu **„Spreizung aus → Überlappungstest rot“**; Gm im
+  Kanten-Tooltip bleibt (die Spreizung täuscht Abstände zwischen Knoten). Der Rückfall auf log(1 + r/5 Gm) aus der
+  Freigabe entfällt damit.
+- Stufen der Kantenstärke bei 60 000 und 350 000 aUEC (Terzile der Stanton-Stellar-Kanten des Pins: 63 500 / 344 750).
+- Das Layout-Universum sind alle Orte, die die Templates und Scans des Systems nennen (`RouteFilter.Everything`): ein Filter
+  blendet Knoten aus, verschiebt keinen. Stationen einer Route sind Pool-Orte (die Route kommt aus einer Loop) und damit
+  bekannt; der Start einer Route verschiebt nichts.
+- Labels in zwei Durchgängen: bei 1× die mit Platz, die übrigen ihren Platz bei 1,5× (sonst überlappte HUR-L2 dort).
+
+**Stand 7a (26.11., Branch `feat/p13-map`, 1b4b84c..):**
+- Commits: Knoten + Layout in Core (1b4b84c); Graph aus der Matrix (5d19ffd); ViewModel, Ansicht Map (7787c96);
+  `RouteMapView` (d90d685); XAML, Messziel `map`, Timing (f37885e); Doku (D128, TASKS.md, CLAUDE.md).
+- **Datentests gegen den Pin:** Stanton 25 Knoten, Pyro 18, bei 1100 × 700 kein verstecktes Label, keine Überlappung bei 1×
+  und 1,5×; bei 470 × 700 gezählt: 0 Überlappungen bei 1× und 1,5× (Stanton, Pyro). Stanton stellar Senior 25 Knoten / 73
+  Kanten (2 aus mehreren Zellen), Stanton alle Areas Master 25 / 113, 1 384 Verträge innerhalb eines Planeten; Pyro
+  18 / **281 Kanten** (77 aus mehreren Zellen), 13 innerhalb – Red-Wind-Pools nennen fast das ganze System, ohne Fokus ein
+  dichtes Netz (Befund für Gate 5).
+- **Zahlen (Release, `RouteMapTimingTests`, CC-Rechner):**
+
+  | Karte | erster Aufbau | Aufbau (Median) | Raste (Median) | Raste (max) |
+  |---|---|---|---|---|
+  | Stanton | 208,5 ms (JIT) | 6,1 ms | 1,21 ms | 8,37 ms |
+  | Pyro | 9,6 ms | 9,4 ms | 2,04 ms | 5,83 ms |
+
+  Aufbau = Umschalten auf Map (Matrix → Graph → Szene) plus Layout und Labels der Ansicht, im UI-Thread. Frame-Messung
+  `--measure-frames map` auf dem Desktop (CC): Median 8,33 ms, p95 8,33 ms, max 33,6 ms, 117,7 fps. Über dem Spiel:
+  Martins Gate.
+- **Mutationsproben:** Spreizung aus → 3 rot (Überlappung Stanton, Pyro, Ruin/Terminus); eigene Zählung statt
+  Matrixzellen → 4 rot; Fokus ohne Rückkanten → 1 rot; Radius linear statt Wurzel → 0 rot (Anlass der Präzisierung oben).
+- Bild (CC, Render-Test mit `CARGOPLAN_MAP_PNG`, 1100 × 700, Segoe UI 12 px): Stanton – Everus rechts bei 0°, HUR-L3
+  gegenüber, HUR-L4/L5 oben/unten auf der Bahn, Cluster gespreizt, Everus mit Ring; mit Fokus Everus nur seine Kanten
+  und Rückkanten voll. Pyro ohne Fokus ein Netz, mit Fokus Ruin Station lesbar.
+- **Testnamen:** `MapNodesTests`, `MapLayoutTests`, `MapLayoutBaselineTests`, `RouteMapTests`, `RouteMapBaselineTests`,
+  `RoutesMapViewModelTests`, `RouteMapViewTests` (Render als Control; die Backlog-Zeile aus T13.2, die der Startprompt
+  nennt, steht nicht im Repo – erledigt im Sinn des Startprompts),
+  `RouteScanTests.The_map_follows_the_active_route_from_its_start_to_its_end`,
+  `OverlayRouteXamlTests.The_map_sits_beside_the_matrix_with_scene_focus_and_the_stop_palette_and_the_matrix_filters_show_with_it`;
+  von Hand `RouteMapTimingTests` (`Category=Timing`). Nachfolger:
+  `RoutesViewModelTests.The_view_cycles_matrix_recipe_loops_map_and_back` (vorher `…_matrix_recipe_loops_and_back`).
+- **Handling gegen main:**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | View-Button Plan-Reiter | Matrix → Recipe → Loops | … → Map (Rechtsklick zurück) |
+  | Area, Direct, Auftraggeber, Fraktion, Größen | nur in Matrix | in Matrix und Map |
+  | Linksziehen auf freier Fläche im Plan-Reiter | bewegt das Fenster | in Map: Pan; sonst gleich |
+  | Rad | Matrix/Listen scrollen | in Map: Zoom um den Cursor (0,5×–6×) |
+  | Doppelklick / Klick auf Knoten (neu) | – | Fit / Fokus für die Sitzung, nochmal = auf |
+  | Hover über Kante/Knoten (neu) | – | Tooltip nach der Hover-Zeit des Systems |
+  | Gesperrt | click-through | gleich |
+  | Alles andere | wie main | gleich |
+
+- **Gate 7a (Martin, entsperrt, Plan-Reiter, Overlay auf ~1100 × 700 ziehen):**
+
+  | Schritt | Erwartung | Warum |
+  |---|---|---|
+  | 1 View → Map, Stanton, Senior, Stellar | vier Bahnen um die Mitte; Everus rechts, Cluster Hub + L1 + L2 + „Hurston (surface)“; keine überlappenden Namen; Hubs groß, Everus (routes.hub) mit Ring | K2, K3 |
+  | 2 Hover Everus → HUR-L5 | Tooltip „Everus Harbor → HUR-L5 High Course Station · 12.9 Gm · n contracts · Σ …“; Template-Zeilen gleich der Matrixzelle (View → Matrix, Zelle vergleichen) | Kante = Zelle |
+  | 3 Beobachtete Kanten | durchgezogen mit Punkt in der Mitte, Template-Kanten gestrichelt – Everus-Cluster gegen deine routes.json | §8.3 |
+  | 4 Klick Everus, nochmal | erst nur Kanten ab Everus und ihre Rückkanten voll, Rest blass, zweiter Ring; dann alles voll | Fokus |
+  | 5 System → Pyro | Stationen und Oberflächen, Red-Wind-Kanten dünn, Tooltip „– aUEC: no reward in the game data, a scan shows it“; Klick Ruin Station macht es lesbar | U5, Befund 281 Kanten |
+  | 6 Recipe/Loops → Everus-Ring „Start plan“, zurück in Plan → Map | Route in Orange über allem, Nummern 1–5 an den Stationen | aktive Route |
+  | 7 Rad, Ziehen, Doppelklick; Lock | Zoom um den Cursor, Schrift bleibt gleich groß, Pan, Fit; gesperrt click-through | K4, D11 |
+  | 8 Zahlen | cargoplan.log „Routes: map Stanton: … in x ms“ / Pyro; `--measure-frames map --over-game` | Budget |
+
+- **Gate 7a bestanden (Martin, 26.11.), alle Schritte und Tests.** Zahlen aus Martins Läufen (Release, Profilordner):
+  - cargoplan.log, Stanton (Rank master, Hull B): erster Aufbau je Start 10,8 / 11,1 / 14,0 / 13,4 / 12,3 ms, danach 1,1–3,1 ms
+    (einmal 15,6 ms); 73 bzw. 75 Kanten (75 mit den Beobachtungen aus Martins routes.json). Jeder Fokus-Klick und jeder
+    Filter baut die Karte neu und schreibt eine Logzeile.
+  - Pyro: kein Gate-Lauf (Martin fliegt nicht nach Pyro); Zahl aus `RouteMapTimingTests` (CC): 9,4 ms Median.
+  - measure-frames.log, über dem Spiel: `map 25 nodes, 73 edges over game, ocr warm: frames n 2627, median 8.33 ms, p95
+    16.67 ms, max 25.0 ms, late 37.0 %, fps 87.6`. Zum Vergleich vom 23.11. über dem Spiel: `empty` 107,9 fps, late 11,2 %;
+    `routes` (Matrix) 74,1 fps, median 16,67 ms. Die Karte liegt über der Matrix; die 37 % late sind ein anderer Tag und eine
+    andere Szene, eine `empty`-Messung vom selben Tag fehlt.
+- **Zwischenabnahme 7a (26.11.2026, Martin)**, damit auch die Präzisierungen von 7a ratifiziert (Radius linear, Stufen
+  60 000 / 350 000, Labels in zwei Durchgängen, Layout-Universum). **7b: Martin entscheidet „umsetzen“** – Plan 7b folgt
+  nach A7 mit eigener Freigabe.
+
+**T13.7b – Präzisierung in der Planphase, ratifiziert durch Freigabe (26.11.2026, „Freigabe T13.7b wie geplant“):**
+- **Befunde der Planung:** (1) Der LEO-Ring aus §8.6 braucht drei Verträge auf Everus → Baijini, der Startprompt sah
+  „nochmal klicken entfernt“ vor. (2) Das Format kannte `acceptAt` nur für Rückläufer; der LEO-Ring aus den Loops wählt an
+  Baijini/PT Verträge, die als Platzhalter ohne Station an der Start-Station der Leiste als „accept“ standen (Fehler seit
+  T13.6). (3) Ein Mehrstopp-Vertrag bringt mit einem Klick mehrere Orte.
+- **(1) Klick (Martin):** Linksklick hängt das nächstbeste noch nicht gewählte Template der Kante an, Rechtsklick nimmt das
+  zuletzt angehängte dieser Kante weg (die Geste der Filter-Buttons).
+- **(2) acceptAt für jede Rolle (Martin):** additiv in Schema 3; die Stationsleiste listet und simuliert an der Station,
+  was dort angenommen wird; der LEO-Ring aus Loops bekommt `acceptAt` für seine Verträge unterwegs gleich mit (Befund
+  beheben, nicht Backlog); D125-Addendum.
+- **(3) Stationsfolge (Martin):** Reihenfolge der geklickten Kantenenden; nie geklickte Orte eines Mehrstopp-Vertrags in
+  Ortsordnung vor der Rückkehr zum Hub; Test: Klicks E→B, B→PT, PT→E, Seraphim→E ergeben E → B → PT → Seraphim → E.
+- Rest wie im Plan: Rollen ab Start = Hinweg, nur zum Start = Rückläufer, sonst unterwegs; `LoopKind.Custom`, `runs[]`
+  `kind: custom`, gemessen über den Loop-Schlüssel, nie eine Zeile in Loops; Name „Own plan from <Start>“ (Bild-Gate).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (bei der Umsetzung 7b, zur Abnahme):**
+- Ein Klick wirkt nur auf eine **helle** Kante und nur mit einer Station im Fokus (eine Oberfläche ist kein Start) und
+  einem Schiff; „Clear“ leert den Entwurf und lässt den Fokus, ein anderer Fokus oder ein anderes System beginnen neu;
+  nach „Start plan“ ist der Entwurf weg (die Karte zeigt ihn als aktive Route).
+- Hell sind neben den Kanten ab dem Fokus auch die ab jeder Station des Entwurfs und die Rückkanten zum Fokus von jedem
+  Ort, den sie erreichen (Design §8.4 Punkt 1).
+- Die Platzhalter stehen in der Reihenfolge der Annahme: Hinweg, dann Station für Station (unterwegs und zurück).
+- Kein Größenausschluss wie im Rezept (Large/Bulk): der Spieler wählt die Kante, „fits / too big“ entscheidet.
+
+**Stand 7b (26.11., Branch `feat/p13-map`, 61384f2..):**
+- Commits: `acceptAt` für jede Rolle, LEO-Fix, Leiste (61384f2); `CustomPlan` in Core (f5a5eb9); Karte hell und Entwurf
+  gezeichnet (38c71a8); App: eigener Plan aus der Karte (a6b709d); Doku (D129, D125-Addendum, routes-format.md, TASKS.md,
+  CLAUDE.md).
+- **§8.6 per Klick** (`CustomPlanTests`, Templates mit Bändern auf den SCU von §8.6): sieben Klicks ergeben Everus →
+  Baijini → Port Tressler → Seraphim → Everus, Σ 767 250 aUEC (§8.6 nennt „≈ 820k“; die Summe seiner sieben Rewards ist
+  767 250), 4 Landungen, alle sieben „fits“ für Hull B; Platzhalter mit `acceptAt` Baijini (Stims), PT (Ice, Rückläufer),
+  Seraphim (zwei Rückläufer); drei Läufe messen die Route über ihren Schlüssel.
+- **Mutationsproben:** Passprüfung ohne Ladung an Bord → 1 rot; Stationsfolge per kürzester Permutation → 3 rot;
+  Rückkante ohne `acceptAt` → 2 rot; LEO-Ring ohne `acceptAt` → 1 rot; Leiste nur mit Rückläufern → 1 rot.
+- **Testnamen:** `CustomPlanTests`, `RouteMapTests.A_draft_lights_the_edges_from_its_stations_too_and_draws_its_legs_there_and_back`,
+  `RoutesFileTests.A_contract_accepted_on_the_way_keeps_its_station_and_a_custom_route_its_kind`,
+  `RoutesFileTests.Only_a_way_back_collects`,
+  `RouteProgressTests.A_contract_accepted_on_the_way_is_its_stations_to_accept_and_simulated_to_its_own_place`,
+  `RouteBarTests.A_contract_taken_on_the_way_waits_for_its_station_and_names_its_place_there`,
+  `LoopsTests.The_LEO_ring_takes_what_scans_saw_between_the_hubs_and_unloads_on_the_way` (um `acceptAt` erweitert),
+  `RoutesMapViewModelTests.With_a_station_in_focus_a_click_on_an_edge_builds_an_own_plan_that_Start_plan_starts`,
+  `…A_right_click_takes_the_edges_last_contract_back_Clear_and_another_focus_drop_the_plan`,
+  `…An_edge_the_focus_dims_is_not_picked`, `RouteMapViewTests.An_own_plan_is_drawn_in_the_lines_colour_there_and_back`,
+  `OverlayRouteXamlTests.The_map_sits_beside_…` (Leiste, Clear, Kanten-Befehle).
+- **Handling gegen main (zusätzlich zu 7a):**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | Klick auf helle Kante, Station im Fokus (neu) | – | nächster Vertrag der Kante in den eigenen Plan, Leiste über der Karte |
+  | Rechtsklick auf Kante (neu) | – | letzter Vertrag dieser Kante raus |
+  | „Clear“ über der Karte (neu) | – | Entwurf weg, Fokus bleibt |
+  | „Start plan“ in Map (neu) | – | ab einem Vertrag: Route `custom`, Reiter Cargo |
+  | Stationsleiste an einer Station des LEO-Rings | Verträge unterwegs als „accept“ am Start | dort, wo sie angenommen werden, mit Ziel und fits/too big |
+  | Block „Plan“ | Hinweg-Zeilen mit Zielen | dazu „· accept at Baijini“ bei Verträgen unterwegs |
+  | Alles ohne Entwurf und ohne LEO-Route | wie 7a | gleich |
+
+- **Gate 7b (Martin, entsperrt, Plan → Map, Hull B, Senior; die systemweiten Kanten zwischen den Hubs gibt es nur aus
+  deinen Scans):**
+
+  | Schritt | Erwartung | Warum |
+  |---|---|---|
+  | 1 Klick Everus (Fokus), dann die Kanten des §8.6-Rings in dieser Folge: E→B (so oft wie Verträge), B→PT, PT→E, Seraphim→E | Leiste „Own plan from Everus Harbor: Everus Harbor → Baijini Point → Port Tressler → Seraphim Station → Everus Harbor · … · fits MISC Hull B“; je Vertrag eine Zeile mit fits/too big; Entwurf weiß auf der Karte | Kern 7b |
+  | 2 Rechtsklick auf E→B, dann wieder Klick | letzter Vertrag dieser Kante raus und wieder rein | (1) |
+  | 3 „Start plan“ | Reiter Cargo; Block mit Hinweg-Zeilen, die Baijini→PT-Zeile mit „· accept at Baijini“, Rückläufer „accept at …“; `routes.json` `route.kind` = `custom` | Übergabe |
+  | 4 Leiste: › nach Baijini | dort „accept: … · Port Tressler · fits“ (oder too big) | (2) |
+  | 5 „Finish plan“ am Hub (oder End plan) | `runs[]` mit `kind: custom` | D129 |
+  | 6 Loops → LEO-Ring „Start plan“ | an Baijini/PT stehen dessen Verträge an ihrer Station, nicht mehr am Start | LEO-Fix |
+  | 7 Ohne Entwurf: Map, Matrix, Cargo-Reiter | wie 7a / main | Invariante |
+
+- **Gate 7b angepasst (26.11.):** Martins `routes.json` hat keine Kante zwischen Everus und Baijini (nur Senior 339 500 von
+  ARC-L1 nach Baijini/Everus/PT); der §8.6-Ring und die LEO-Schritte 1–3 und 6 waren damit nicht nachbaubar. Gate auf
+  Martins Kanten: Teil A Everus-Ring per Klick (Klick, Rechtsklick, Rückläufer, Klickfolge, Clear), Teil B Vertrag
+  unterwegs über ARC-L1 (Baijini → ARC-L1 → PT, `acceptAt` ARC-L1, Start, Leiste, Finish mit `custom`), Teil C wie 7a; der
+  LEO-Fix ist durch `LoopsTests` belegt, die §8.6-Summe durch `CustomPlanTests`. Kopie des Datenordners mit `--data-dir`.
+- **Gate-Befund 7b (Martin, 26.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** (1) Fenstergröße
+  ändern und Linksklick auf eine Kante setzten die Karte zurück (wieder reinzoomen nötig); sie muss in der gewählten
+  Zoomstufe bleiben. Ursache: jede neue Größe (auch die, die die Leiste des eigenen Plans der Karte nimmt) baute das
+  Layout neu und setzte Zoom und Pan auf Fit. Fix: bei neuer Größe oder neuen Knoten bleibt der Zoom, der Pan folgt dem
+  neuen Maßstab (`MapLayout.PixelsPerGm`), der Ausschnitt in der Mitte bleibt; Fit nur beim Öffnen der Ansicht und per
+  Doppelklick (D128-Addendum). (2) „Own plan from …“ unter die Karte statt darüber. Tests:
+  `RouteMapViewTests.A_new_size_or_a_new_scene_keeps_the_zoom_and_the_part_of_the_map_in_the_middle` (Gegenprobe mit dem
+  alten Zurücksetzen → rot), `OverlayRouteXamlTests.The_map_sits_beside_…` (Leiste unten).
+- **Gate-Befund 7b (Martin, 26.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** Richtungspfeile an den
+  Linien nur bei Maximalzoom (6×), sonst zu viel. Gilt für alle Pfeile (Kanten, aktive Route, Entwurf); darunter zeigt der
+  Versatz die Gegenrichtung, die Nummern und die Leiste die Folge. D128-Addendum. Test:
+  `RouteMapViewTests.The_arrow_heads_show_only_at_the_most_zoom` (Gegenprobe Pfeile immer → rot).
+- **Gate-Befund 7b (Martin, 26.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** Pfeile etwas größer
+  (Länge 7 → 10 px, halbe Breite 3 → 4,5 px) und in der Mitte der Linie statt an ihrem Ende. Bei 6× liegt der Pfeil über
+  dem Punkt ● einer beobachteten Kante (gleiche Farbe); „beobachtet“ zeigt weiter die durchgezogene Linie. Test:
+  `RouteMapViewTests.An_arrow_head_sits_in_the_middle_of_its_line_and_is_ten_pixels_long` (Gegenprobe Pfeil am Ende → rot).
+- **Gate-Befund 7b (Martin, 26.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** Pfeile ab der Hälfte
+  der Rasten zwischen ganz heraus (0,5×) und ganz hinein (6×), keine Zoomstufen bauen (ersetzt „nur bei 6×“). Das Rad zoomt
+  mit Faktor 1,2, die halbe Rastenzahl ist das geometrische Mittel √(0,5 · 6) ≈ 1,73× (`RouteMapView.ArrowsFromZoom`): von
+  ganz heraus die 7. von rund 14 Rasten, vom Fit die 4. Test: `RouteMapViewTests.The_arrow_heads_show_from_half_the_wheels_notches_on`
+  (Nachfolger von `…The_arrow_heads_show_only_at_the_most_zoom`; Gegenprobe Schwelle 6× → rot).
+- **Gate-Befund 7b (Martin, 26.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** Die Leiste „Own plan“
+  verhält sich wie die Legende im Cargo-Reiter: höchstens ihr Anteil am Overlay (Settings → Legend layout → Max. height,
+  dieselbe Regel `LegendMaxHeightConverter` auf die Höhe von `OverlayContent`), darüber scrollt sie (schmale Leiste, nicht
+  fokussierbar). Tests: `OverlayRouteXamlTests.The_map_sits_beside_…` (gleiche Höhenregel wie `StopLinesScroll`, scrollt),
+  `CustomBarHeightTests.The_bars_highest_height_is_the_legends_share_of_the_overlay_from_inside_the_plan_tabs_template`
+  (die Bindung per ElementName löst aus dem DataTemplate des Plan-Reiters auf, A3).
+- **Gate-Befund 7b (Martin, 26.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** Die Höhe der Leiste
+  stellt ein **eigener Regler „Map legend height“** ein (ersetzt die Kopplung an „Max. height“ der Legende): Abschnitt
+  „Plan tab“ des Einstellungsfensters, `routes.mapLegendHeight` (Anteil) in settings.json, 10–90 % in 5-%-Schritten wie der
+  Legenden-Regler, Standard 50 %; außerhalb des Bereichs beim Laden 50 % mit Logzeile; additiv, Schema 3. Der Plan-Reiter
+  folgt dem Regler ohne Neuberechnung. Golden-Dateien der Settings-Migration (3) um `mapLegendHeight` nachgezogen,
+  `settings-format.md`, D129. Tests: `SettingsStoreTests.Routes_keep_the_map_legend_height_and_one_out_of_its_range_falls_back_with_a_line`,
+  `SettingsStoreTests.Save_writes_the_routes_after_the_ship_data` (Reihenfolge),
+  `SettingsSessionTests.The_map_legend_height_slider_goes_into_the_routes_section_and_the_plan_tab_follows`,
+  `SettingsWindowXamlTests.The_plan_tab_section_binds_rank_and_faction` (Regler), `OverlayRouteXamlTests.The_map_sits_beside_…`
+  (bindet `MapLegendHeight`), `CustomBarHeightTests.The_bars_highest_height_is_its_own_share_of_the_overlay_from_inside_the_plan_tabs_template`
+  (Nachfolger von `…_is_the_legends_share_…`). Gegenproben: ohne Bereichsprüfung → 2 rot; Plan-Reiter folgt nicht → 1 rot.
+- **Gate-Befund 7a/7b (Martin, 26.11.) – Route auf der Karte. Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+  Befund „Orange zeigt die Vertragskanten (Speichen), nicht die Flugfolge“ geprüft: Orange **war** die Flugfolge (`Legs`,
+  3 px); die Speichen waren die Kanten des Filters in Rangfarbe (Okabe-Ito Senior Vermillion, Trainee Orange) und die Legs ab
+  den neben Everus gespreizten L1/L2; die Verträge der Route waren gar nicht markiert. Umgesetzt (Martins Wahl nach der
+  Rückfrage, D128-Addendum): Verträge der Route orange durchgezogen (Platzhalter: acceptAt bzw. Hub und collectAt → Ziele),
+  Flugfolge gepunktet (2 px alle 6 px, 1 px dunkler Halo `MapHaloBrush`, Auflage 1), Stationsnummern als orange Pillen oben
+  links (Hub ohne), Extras orange gestrichelt mit Tooltip „A → B: not in your plan“ + „+ #4 extra · …“ (`MapExtra.Of` aus dem
+  Plan, `ActiveRouteViewModel.ExtraWays`), Rest auf 25 % ohne Fokus (lit = Route ∪ Extras ∪ Entwurf, Auflage 3), Hilfezeile
+  „· orange: your plan“. Entwurf (7b) im selben Schema in Weiß (R1), Pillen oben rechts (Auflage 2). Neu `Core/Routing/MapPlan.cs`
+  (`MapPlan`, `MapContract`, `MapExtra`, `MapPlanLines`, `MapExtraEdge`); `RouteMap.Active`/`Draft`/`Extras`/`Extra()` statt
+  `Legs`/`Numbers`/`DraftLegs`. Tests: `RouteMapBaselineTests.The_Everus_rings_stations_are_numbered_L1_1_L4_2_L3_3_L5_4_L2_5_…`
+  (Pin, Hull B: Pillen L1=1, L4=2, L3=3, L5=4, L2=5, Akzentlinie = Legs, Rest gedimmt), `RouteMapTests` (+4: Entwurfsnummern,
+  lit ohne Fokus, Vertragskanten, Extras), `MapPlanTests` (2), `RouteMapViewTests` (+5: gedimmt mit Route, Halo, Entwurf weiß,
+  zwei Pillen ohne Überlappung, Extra-Tooltip), `RoutesMapViewModelTests` (Hilfezeile, Extras), `RouteScanTests.The_map_draws_an_extra_…`.
+  Gegenproben: Rest nicht gedimmt → 2 rot; Entwurfskanten gedimmt → 1 rot; Nummer am Hub → 3 rot; Vertragskanten = Legs →
+  4 rot; Entwurfspille links → 1 rot. Sichtprüfung am Pin-Bild (Everus-Ring, 6× auf Everus): mit 1,5 px alle 5 px schluckte der
+  Halo den Punkt, daher 2 px alle 6 px; die Abnahme des Aussehens bleibt bei Martin.
+
+**T13.7c – Plan aus einzelnen Missionen (Martin, 26.11., neue Anforderung nach Gate 7b; Branch `feat/p13-map`, D130):**
+Pläne entstehen aus einzelnen Missionen, nicht über Station oder Bündel. Ersetzt den Klick- und Reihenfolgeteil von
+T13.7b (D129); Art `custom`, `acceptAt`, Leiste, Start plan und Messschlüssel bleiben.
+- **Akzeptanz:**
+  - [x] Klick auf eine Kante → angeheftetes Panel mit den Missionen der Kante, je Zeile [+] (und [−], wenn im Plan).
+  - [x] Liste unter der Karte: Plan-Zeilen mit [−], mit Fokus darunter „Missions at <Station>“ je Zeile [+].
+  - [x] Stationsklick ist Filter, kein Pflichtschritt; er behält den Plan.
+  - [x] Start = Hub des Boards; Stopps = Pickups ∪ Ziele; Reihenfolge berechnet (Pickup vor Ziel); Pillen nach ihr.
+  - [x] Mission eines anderen Boards abgelehnt mit „different board“.
+  - [x] Kapazität: Peak entlang der Route (Pickups +, Ziele −) mit First Fit gegen das ganze Schiff; nicht passend →
+    aufgenommen und markiert „likely doesn't fit at …“, nicht gesperrt.
+  - [x] Kanten-Tooltip „k/n in plan“.
+- **Präzisierung in der Planphase, ratifiziert durch Freigabe:** R1 Start = Hub des Boards; ohne gewählte Mission das Board
+  von routes.hub (der Hub, den Recipe zeigt), Pyro `Solar`; Pyro ohne Hub (D121): Pickup der ersten Mission. R2 SCU-Peak +
+  First Fit, frei = ganzes Schiff, „likely doesn't fit“ markiert, nicht gesperrt; Restplatz-Variante ggf. später als Option.
+  R3 Plan + Missionen des Fokus (Fokus-Zeilen ohne fits je Zeile: jede würde die Folge neu rechnen; das Panel zeigt fits).
+  R4 Entwurf ohne Fokus wirkt wie Fokus auf seinen Start (ersetzt Auflage 3 für diesen Fall). Systemweite Stanton-Templates
+  liegen auf jedem Stanton-Board (`Board.On`), §8.6 bleibt klickbar. Zwei Missionen je Richtung zwischen zwei Orten: eine
+  Regel bricht, die Mission „a stop before its pickup“. Über 8 Stopps nächster Nachbar mit Pickup vor Ziel. Panel in der
+  Karte (oben rechts), kein Popup; schließt per ×, freie Fläche, dieselbe Kante. Rechtsklick auf Kante bleibt (letzte
+  Mission der Kante raus).
+- **Befunde der Umsetzung:** (1) Die übrigen Ziele einer Mehrstopp-Mission nach Ortsordnung legten die Legs anders als
+  §8.6 (S vor PT); jetzt nach der berechneten Flugfolge. (2) `Loops.Order` brauchte für 8 Stopps mit 4 Regeln 130 ms (je
+  Permutation neue Arrays, zwei Positionssuchen je Leg); jetzt Distanzmatrix + Heap-Permutationen: **6,3 ms** (Release,
+  `CustomPlanTests.Eight_stops_with_pickups_before_their_stops_are_ordered_in_under_50_ms`, `Category=Timing`). Loops gegen
+  den Pin danach: Hull B Master erster 198 ms, Median 119 ms; Senior 109/99 ms (Budget 200 ms). Alle Loops-Baselines
+  unverändert grün. (3) Ein eigener SCU-Check neben `Recipe.Fits` wäre doppelt: `LoadPlanner.Lays` prüft die SCU zuerst.
+- **Tests:** `CustomPlanTests` (neu geschrieben: §8.6 aus Missionen 767 250 aUEC, Peak 463 an Everus; Start am Hub bei
+  Rückweg zuerst; Folge statt Klickfolge; Pickup vor Ziel; Kreis → „behind“; Board Stanton/systemweit/Pyro; Peak Hull A mit
+  Markierung und Abladen; Missionen und „k/n“; [−]/Rechtsklick; Messschlüssel; > 8 Stopps; leer), `RouteMapTests` (R4,
+  Fokus auf anderer Station hält Entwurfskanten), `RoutesMapViewModelTests` (Panel, [+]/[−], Fokus-Liste, different board,
+  likely doesn't fit, no ship, Panel schließen), `RouteMapViewTests`, `OverlayRouteXamlTests` (Panel, Zeilen-Template),
+  `MissionRowBindingTests` (A3: ElementName aus dem Zeilen-Template in Leiste und Panel).
+- **Gegenproben:** Pickup-vor-Ziel aus → 1 rot; kein Abladen → 2 rot; Board-Prüfung aus → 2 rot; First Fit aus → 1 rot;
+  R4 aus → 1 rot; Entwurfskanten unter Fokus gedimmt → 1 rot; Fokus löscht Entwurf → 1 rot.
+- **Handling gegen den Branch-Stand 7b:**
+
+  | Geste | 7b | 7c |
+  |---|---|---|
+  | Linksklick Kante | nächster Vertrag (nur mit Fokus) | Panel der Kante (immer) |
+  | Rechtsklick Kante | letzter der Kante raus | gleich |
+  | Klick Knoten | Fokus, löscht Entwurf | Fokus als Filter, Plan bleibt |
+  | Klick freie Fläche | – | schließt das Panel |
+  | [+] / [−] | – | Mission an / ab |
+
+- **Gate 7c (Martin, entsperrt, Plan → Map, Hull B, Senior, routes.hub Everus):**
+
+  | Schritt | Erwartung | Warum |
+  |---|---|---|
+  | 1 Ohne Fokus Kante Everus → HUR-L1 klicken | Panel oben rechts „Everus Harbor → HUR-L1 … · 0/n in plan“, Zeilen mit „· fits“ und [+] | Panel |
+  | 2 [+] auf zwei Zeilen | Zeilen „· in plan“ mit [−]; Leiste unter der Karte mit beiden, Summe mit „peak …/… SCU at Everus Harbor“; weiße Pille 1 an L1; Tooltip der Kante „2/n in plan“ | Plan |
+  | 3 HUR-L1 anklicken | Plan bleibt; unter ihm „Missions at HUR-L1“ mit [+] | R3 |
+  | 4 [+] auf einen Rückweg HUR-L1 → Everus | Zeile „Back · … · accept at HUR-L1“; Start bleibt Everus | R1 |
+  | 5 Kante eines anderen lokalen Boards (z. B. ab Baijini) öffnen | Zeilen „· different board“ ohne [+]; systemweite mit [+] | Board |
+  | 6 Missionen nachlegen, bis es nicht passt | Zeile „· likely doesn't fit at …“, trotzdem im Plan, Summe „n likely don't fit …“ | R2 |
+  | 7 [−] in der Leiste, Rechtsklick auf eine Kante | Mission raus, Pillen nummerieren neu | Folge |
+  | 8 ×, freie Fläche, dieselbe Kante | Panel zu | Panel |
+  | 9 Start plan | Reiter Cargo mit Platzhaltern; Route auf der Karte violett (Gate-Befund Routenfarbe) | Übergabe |
+
+- **Gate-Befund (Martin, 26.11.) – Routenfarbe fällt mit einer Rangfarbe zusammen. Präzisierung in der Planphase,
+  ratifiziert durch Freigabe:** Das Routen-Amber #FFB000 (`NoticeForegroundBrush`) liegt ΔE 9,2 vom Okabe-Ito-Orange
+  #E69F00 (Trainee). Bild-Gate mit zwei Varianten (Pin, Everus-Ring, Hull B, Senior, Fit/2×/6×; Wegwerf-Spike, nicht
+  committet): A eigener Ton, B Rangfarbe mit Glow. **Martins Wahl: A**, `MapRouteBrush` **#E040FB** in App.xaml für
+  Verträge, Extras, Punktlinie und Pillen der Route auf der Karte; `NoticeForegroundBrush` bleibt für Hinweise und den
+  Cargo-Block; Hilfezeile „· violet: your plan“. Auswahl aus 15 Kandidaten nach dem kleinsten ΔE*ab zu allen 20
+  Rangfarben der drei Paletten: normal **48,4** (Tol Muted Purple), Deuteranopie **22,0**, Protanopie **45,8** (Okabe-Ito
+  Blau), zu Weiß ≥ 73. Datentest `RouteToneTests` (Farbe aus App.xaml, ΔE ≥ 20 fix für alle drei Sehweisen, Rechnung an
+  Weiß/Schwarz = 100 geprüft); Gegenprobe #FFB000 als Routenfarbe → 3 rot. D128-Addendum.
+
+- **Abnahme erteilt (26.11.2026, Martin: „Volle Abnahme“)** für T13.7 (7a, 7b, 7c), damit auch alle Präzisierungen und
+  Gate-Befunde ratifiziert: Zoom bleibt bei neuer Größe, Leiste unter der Karte mit eigenem Regler „Map legend height“,
+  Pfeile ab der Hälfte der Rasten, Route auf der Karte (Verträge, Flugfolge mit Halo, Pillen, Extras, Rest 25 %),
+  Plan aus einzelnen Missionen (D130), Routenfarbe Violett (#E040FB). Merge `--no-ff` nach main, Martin pusht.
+  Nächster Task: T13.8 (Release v0.8.0).
 
 ### [ ] T13.8 Release v0.8.0
 

@@ -37,7 +37,19 @@ internal sealed class FrameMeasureWindow : Window
     /// </summary>
     public const string Routes = "routes";
 
+    /// <summary>
+    /// The Plan tab's map (T13.7) of the pinned hauling data under the default filter: zoomed between fit and 3.5× and
+    /// panned along the drag's Lissajous path for the run, each frame a projection only (K4). Compared with <see cref="Empty"/>.
+    /// </summary>
+    public const string Map = "map";
+
     public const string LogFile = "measure-frames.log";
+
+    // The map's zoom swings between fit and this along the path.
+    private const double MapZoomSwing = 2.5;
+
+    // The map's pan swings this share of the view along the path.
+    private const double MapPanShare = 0.25;
 
     private const double OrbitDegreesPerSecond = 12;
     private const int HitSamples = 600;
@@ -94,6 +106,7 @@ internal sealed class FrameMeasureWindow : Window
     private readonly bool _overGame;
     private readonly DataGrid? _matrix;
     private readonly RoutesViewModel? _routes;
+    private readonly RouteMapView? _map;
     private ScrollViewer? _matrixScroll;
 
     // Key changes of the drag's preview while the cursor runs its path (T8.7): far fewer than without the game means
@@ -139,6 +152,16 @@ internal sealed class FrameMeasureWindow : Window
             _matrix = MatrixLike(routes);
             cell.Children.Clear();
             cell.Children.Add(_matrix);
+        }
+        else if (target == Map && routes is { HasData: true })
+        {
+            // The map as OverlayWindow.xaml wires it: legend style and colours, the stop palette's default.
+            routes.PreviousCommand.Execute("view");
+            _routes = routes;
+            _map = new RouteMapView { Scene = routes.Map, FocusCommand = routes.FocusCommand };
+            _map.Resources["LegendTextStyle"] = LegendText(new Thickness(0));
+            cell.Children.Clear();
+            cell.Children.Add(_map);
         }
         else if (target != Empty && Targets.TryGetValue(target, out var spec) && catalog.Find(spec.Ship) is { } ship)
         {
@@ -213,7 +236,7 @@ internal sealed class FrameMeasureWindow : Window
 
     private async void OnContentRendered(object? sender, EventArgs e)
     {
-        var known = _target == Empty || _ship is not null || _matrix is not null;
+        var known = _target == Empty || _ship is not null || _matrix is not null || _map is not null;
         if (_overGame)
         {
             await Task.Delay(Lead);
@@ -232,10 +255,11 @@ internal sealed class FrameMeasureWindow : Window
 
         var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
         var subject = (_ship is not null ? Inv($"{_target} {_crates} crates, holo {(_holo is null ? "no" : "yes")}, marker {_view.Scene?.Marker.GetType().Name}")
+                : _map is not null && _routes?.Map is { } map ? Inv($"{_target} {map.Graph.Nodes.Count} nodes, {map.Graph.Edges.Count} edges")
                 : _routes is not null ? Inv($"{_target} {_routes.Rows.Count} x {_routes.Columns.Count} cells")
                 : _target)
             + (_overGame ? " over game" : "") + ocr;
-        var frames = known ? FrameStatistics.Summary(intervals, Duration) : "unknown target (empty, routes, " + string.Join(", ", Targets.Keys) + ")";
+        var frames = known ? FrameStatistics.Summary(intervals, Duration) : "unknown target (empty, routes, map, " + string.Join(", ", Targets.Keys) + ")";
         File.AppendAllText(_logPath, Inv($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {version} {subject}: frames {frames}{drags}{(hits is null ? "" : " | hits " + hits)}") + Environment.NewLine);
 
         Application.Current.Shutdown(valid ? 0 : 1);
@@ -302,6 +326,25 @@ internal sealed class FrameMeasureWindow : Window
                     return;
                 }
 
+                // The map zooms and pans along the path: every frame a new projection, nothing built (K4).
+                if (_map is not null)
+                {
+                    var seconds = (args.RenderingTime - start.Value).TotalSeconds;
+                    var zoom = 1 + (MapZoomSwing * (0.5 + 0.5 * Math.Sin(2 * Math.PI * seconds / PathPeriodX)));
+                    var pan = new Core.Routing.MapPoint(
+                        _map.ActualWidth * MapPanShare * Math.Sin(2 * Math.PI * seconds / PathPeriodY),
+                        _map.ActualHeight * MapPanShare * Math.Cos(2 * Math.PI * seconds / PathPeriodX));
+                    _map.Project(zoom, pan);
+                    last = args.RenderingTime;
+                    if (args.RenderingTime - start >= Duration)
+                    {
+                        CompositionTarget.Rendering -= OnRendering;
+                        done.SetResult(intervals);
+                    }
+
+                    return;
+                }
+
                 // The matrix scrolls along the drag's Lissajous path, both ways, so every frame shows other cells.
                 if (_matrix is not null)
                 {
@@ -355,16 +398,6 @@ internal sealed class FrameMeasureWindow : Window
     // The Plan tab's grid as OverlayWindow.xaml sets it up, in code: the measurement has no overlay window.
     private static DataGrid MatrixLike(RoutesViewModel routes)
     {
-        static Style Text(Thickness margin)
-        {
-            var style = new Style(typeof(TextBlock));
-            style.Setters.Add(new Setter(TextBlock.ForegroundProperty, new DynamicResourceExtension("LegendForegroundBrush")));
-            style.Setters.Add(new Setter(TextBlock.FontSizeProperty, new DynamicResourceExtension("LegendFontSize")));
-            style.Setters.Add(new Setter(EffectProperty, new DynamicResourceExtension("LegendHaloEffect")));
-            style.Setters.Add(new Setter(TextBlock.MarginProperty, margin));
-            return style;
-        }
-
         var grid = new DataGrid
         {
             AutoGenerateColumns = false,
@@ -380,10 +413,21 @@ internal sealed class FrameMeasureWindow : Window
             DataContext = routes,
             ItemsSource = routes.Rows,
         };
-        grid.Resources[PortMatrixGrid.CellTextStyleKey] = Text(new Thickness(6, 2, 6, 2));
-        grid.Resources[PortMatrixGrid.PickupTextStyleKey] = Text(new Thickness(0, 2, 8, 2));
+        grid.Resources[PortMatrixGrid.CellTextStyleKey] = LegendText(new Thickness(6, 2, 6, 2));
+        grid.Resources[PortMatrixGrid.PickupTextStyleKey] = LegendText(new Thickness(0, 2, 8, 2));
         PortMatrixGrid.SetColumns(grid, routes.Columns);
         return grid;
+    }
+
+    // The legend's text as OverlayWindow.xaml's LegendTextStyle has it: colour, size and halo of the theme.
+    private static Style LegendText(Thickness margin)
+    {
+        var style = new Style(typeof(TextBlock));
+        style.Setters.Add(new Setter(TextBlock.ForegroundProperty, new DynamicResourceExtension("LegendForegroundBrush")));
+        style.Setters.Add(new Setter(TextBlock.FontSizeProperty, new DynamicResourceExtension("LegendFontSize")));
+        style.Setters.Add(new Setter(EffectProperty, new DynamicResourceExtension("LegendHaloEffect")));
+        style.Setters.Add(new Setter(TextBlock.MarginProperty, margin));
+        return style;
     }
 
     private static T? Descendant<T>(DependencyObject root) where T : DependencyObject

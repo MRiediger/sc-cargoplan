@@ -105,21 +105,82 @@ public static class Loops
     /// (design §4.7). Every trip ties with its reverse: a tie goes to the trip that reaches a station of
     /// <paramref name="oneStop"/> (a contract with one destination, which opens room for the way back) first, then to the
     /// place order. More than <see cref="MaxPermuted"/> stations keep the place order.
+    /// With <paramref name="before"/> (T13.7c, D130: a mission's pickup before its stops) a trip that breaks fewer of these
+    /// wins first, so only where they can't all hold (two missions each way between two places) one breaks; more than
+    /// <see cref="MaxPermuted"/> stations go to the nearest place whose pickups lie behind, else the nearest.
     /// </summary>
     internal static IReadOnlyList<string> Order(
-        StarSystem system, string start, IReadOnlyList<string> stations, Positions positions, IReadOnlyCollection<string> oneStop)
+        StarSystem system, string start, IReadOnlyList<string> stations, Positions positions, IReadOnlyCollection<string> oneStop,
+        IReadOnlyCollection<(string Before, string After)>? before = null)
     {
         string[] ordered = [.. stations.Distinct(StringComparer.Ordinal).Where(s => s != start).Order(PlaceNames.Order)];
+        (string Before, string After)[] rules = [.. (before ?? []).Where(r => r.Before != r.After && ordered.Contains(r.Before) && ordered.Contains(r.After)).Distinct()];
         if (ordered.Length > MaxPermuted)
+        {
+            return rules.Length == 0 ? ordered : Nearest(system, start, ordered, positions, rules);
+        }
+
+        if (ordered.Length == 0)
         {
             return ordered;
         }
 
-        List<(double Gm, string[] Trip)> trips = [.. Permutations(ordered).Select(p => (Trip([start, .. p, start], system, positions).Sum(), p))];
-        var shortest = trips.Min(t => t.Gm);
-        return trips
-            .Where(t => t.Gm <= shortest + TieGm)
-            .Select(t => t.Trip)
+        // Every order by index over the legs worked out once (T13.7c: a panel row asks this; 8 places took 130 ms with a
+        // new array and two position lookups per leg). A trip sums its legs in the same order as before, so ties stay.
+        string[] places = [start, .. ordered];
+        var gm = new double[places.Length, places.Length];
+        for (var i = 0; i < places.Length; i++)
+        {
+            for (var j = 0; j < places.Length; j++)
+            {
+                gm[i, j] = i == j ? 0 : Trip([places[i], places[j]], system, positions)[0];
+            }
+        }
+
+        (int Before, int After)[] order = [.. rules.Select(r => (Array.IndexOf(ordered, r.Before), Array.IndexOf(ordered, r.After)))];
+        var at = new int[ordered.Length];
+        (int Broken, double Gm) Measure(int[] p)
+        {
+            var sum = gm[0, p[0] + 1];
+            for (var k = 1; k < p.Length; k++)
+            {
+                sum += gm[p[k - 1] + 1, p[k] + 1];
+            }
+
+            for (var k = 0; k < p.Length; k++)
+            {
+                at[p[k]] = k;
+            }
+
+            var broken = 0;
+            foreach (var (b, a) in order)
+            {
+                broken += at[b] > at[a] ? 1 : 0;
+            }
+
+            return (broken, sum + gm[p[^1] + 1, 0]);
+        }
+
+        var (fewest, shortest) = (int.MaxValue, double.MaxValue);
+        foreach (var p in IndexPermutations(ordered.Length))
+        {
+            var (broken, length) = Measure(p);
+            if (broken < fewest || (broken == fewest && length < shortest))
+            {
+                (fewest, shortest) = (broken, length);
+            }
+        }
+
+        List<string[]> ties = [];
+        foreach (var p in IndexPermutations(ordered.Length))
+        {
+            if (Measure(p) is var (broken, length) && broken == fewest && length <= shortest + TieGm)
+            {
+                ties.Add([.. p.Select(i => ordered[i])]);
+            }
+        }
+
+        return ties
             .OrderBy(trip => FirstIndex(trip, oneStop))
             .ThenBy(trip => trip, Comparer<string[]>.Create(InPlaceOrder))
             .First();
@@ -207,13 +268,23 @@ public static class Loops
                     .Where(r => r.Destinations.Count > 0),
             ];
             var picked = Recipe.Pick(candidates, context.Ship, context.Cap, aboard, fits: context.Fits);
-            aboard.AddRange(picked);
-            taken.AddRange(picked);
+
+            // Taken on the way: accepted at this hub, not at the start (T13.7b, D125 addendum: the bar listed them at the start).
+            var here = i == 0 ? picked : [.. picked.Select(r => Recipe.AcceptedAt(r, trip[i], start))];
+            aboard.AddRange(here);
+            taken.AddRange(here);
         }
 
         var loop = Candidate(LoopKind.SystemWide, StarSystem.Stanton, start, stations, taken, context);
         return loop with { Observed = observed.Count, Total = hubs.Length, NeedsScansAt = trip.FirstOrDefault(h => !observed.Contains(h)) };
     }
+
+    /// <summary>
+    /// The player's own route (T13.7b, D129; T13.7c, D130) with the ranking's figures (A1: the same sums, crates and long
+    /// jumps); it is never a row of the ranking. No travel: it starts at its board's hub.
+    /// </summary>
+    internal static LoopCandidate Custom(StarSystem system, string start, IReadOnlyList<string> stations, IReadOnlyList<RecipeRole> roles, CustomContext custom) =>
+        Candidate(LoopKind.Custom, system, start, stations, roles, new Context(custom.Positions, custom.Edges, custom.Ship, CrateCap.Of(custom.Ship), null, custom.Fits));
 
     // The figures of a loop from its contracts: rewards from the data or a scan, crates at the largest seen, long legs.
     private static LoopCandidate Candidate(LoopKind kind, StarSystem system, string start, IReadOnlyList<string> stations, IReadOnlyList<RecipeRole> contracts, Context context)
@@ -293,8 +364,9 @@ public static class Loops
             .ThenBy(p => p, PlaceNames.Order)
             .FirstOrDefault();
 
-    // The role with only its legs still to go to a place of ahead; null when none is left.
-    private static RecipeRole? Ahead(RecipeRole role, IReadOnlySet<string> ahead)
+    // The role with only its legs still to go to a place of ahead; null when none is left. The custom route walks its
+    // stations the same way (CustomPlan).
+    internal static RecipeRole? Ahead(RecipeRole role, IReadOnlySet<string> ahead)
     {
         var left = role.Template.Legs.Select((leg, i) => (Leg: leg, To: role.Destinations[i % role.Destinations.Count])).Where(x => ahead.Contains(x.To)).ToArray();
         return left.Length == 0
@@ -327,6 +399,25 @@ public static class Loops
             positions.Find(system, p.First) is { } a && positions.Find(system, p.Second) is { } b ? Positions.DistanceGm(a, b) ?? 0 : 0),
     ];
 
+    // Too many places to try every order: the nearest place none of whose pickups is still to come, ties to the place
+    // order; when every place waits for another (a cycle), the nearest.
+    private static string[] Nearest(StarSystem system, string start, string[] places, Positions positions, IReadOnlyList<(string Before, string After)> rules)
+    {
+        List<string> left = [.. places];
+        List<string> trip = [];
+        var at = start;
+        while (left.Count > 0)
+        {
+            var free = left.Where(p => !rules.Any(r => r.After == p && left.Contains(r.Before))).ToList();
+            var next = (free.Count > 0 ? free : left).OrderBy(p => Trip([at, p], system, positions)[0]).ThenBy(p => p, PlaceNames.Order).First();
+            trip.Add(next);
+            left.Remove(next);
+            at = next;
+        }
+
+        return [.. trip];
+    }
+
     private static int FirstIndex(string[] trip, IReadOnlyCollection<string> oneStop)
     {
         var index = Array.FindIndex(trip, oneStop.Contains);
@@ -347,20 +438,28 @@ public static class Loops
         return a.Length.CompareTo(b.Length);
     }
 
-    private static IEnumerable<string[]> Permutations(string[] items)
+    // Every order of 0 … n − 1 once (Heap's algorithm), in one array changed in place: copy what is kept.
+    // Source: B. R. Heap, "Permutations by Interchanges", The Computer Journal 6 (3), 1963, doi:10.1093/comjnl/6.3.293
+    private static IEnumerable<int[]> IndexPermutations(int n)
     {
-        if (items.Length <= 1)
+        var a = Enumerable.Range(0, n).ToArray();
+        var c = new int[n];
+        yield return a;
+        var i = 0;
+        while (i < n)
         {
-            yield return items;
-            yield break;
-        }
-
-        for (var i = 0; i < items.Length; i++)
-        {
-            string[] rest = [.. items[..i], .. items[(i + 1)..]];
-            foreach (var tail in Permutations(rest))
+            if (c[i] < i)
             {
-                yield return [items[i], .. tail];
+                var j = i % 2 == 0 ? 0 : c[i];
+                (a[j], a[i]) = (a[i], a[j]);
+                yield return a;
+                c[i]++;
+                i = 0;
+            }
+            else
+            {
+                c[i] = 0;
+                i++;
             }
         }
     }

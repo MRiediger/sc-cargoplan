@@ -722,7 +722,7 @@ public sealed class SettingsSessionTests : IDisposable
             changed => session.ChangeRoutes(session.Current.Routes with { Rank = changed.Rank, Faction = changed.Faction }));
         session.RoutesChanged += (_, changed) => tab.Follow(changed);
         var window = new RoutesSettingsViewModel(session.Current.Routes,
-            (rank, faction, times, measured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured }),
+            (rank, faction, times, measured, height) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured, MapLegendHeight = height }),
             handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
 
         tab.NextCommand.Execute("faction");
@@ -739,12 +739,32 @@ public sealed class SettingsSessionTests : IDisposable
     }
 
     [Fact]
+    public void The_map_legend_height_slider_goes_into_the_routes_section_and_the_plan_tab_follows()
+    {
+        // Gate finding 7b (Martin): its own slider in the Plan tab section, in percent; the file holds the share.
+        var session = Create();
+        var tab = new RoutesViewModel(new HaulingLoad.None("no data in this test"), new(2026, 11, 2), session.Current.Routes, null);
+        session.RoutesChanged += (_, changed) => tab.Follow(changed);
+        var window = new RoutesSettingsViewModel(session.Current.Routes,
+            (rank, faction, times, measured, height) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured, MapLegendHeight = height }),
+            handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
+        (window.MapLegendHeightPercent, window.MapLegendHeightText, tab.MapLegendHeight).Should().Be((50, "50 %", 0.5));
+
+        window.MapLegendHeightPercent = 35;
+
+        session.Current.Routes.MapLegendHeight.Should().Be(0.35);
+        tab.MapLegendHeight.Should().Be(0.35);
+        window.MapLegendHeightText.Should().Be("35 %");
+        window.Detach();
+    }
+
+    [Fact]
     public void The_settings_windows_loop_times_go_into_the_routes_section_and_another_window_follows()
     {
         // T13.4: the loops' times are set in the window only; rank and faction stay as they were.
         var session = Create();
         RoutesSettingsViewModel Window() => new(session.Current.Routes,
-            (rank, faction, times, measured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured }),
+            (rank, faction, times, measured, height) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured, MapLegendHeight = height }),
             handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
         var (window, other) = (Window(), Window());
 
@@ -763,7 +783,7 @@ public sealed class SettingsSessionTests : IDisposable
         List<RoutesSettings> told = [];
         session.RoutesChanged += (_, routes) => told.Add(routes);
         RoutesSettingsViewModel Window() => new(session.Current.Routes,
-            (rank, faction, times, measured) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured }),
+            (rank, faction, times, measured, height) => session.ChangeRoutes(session.Current.Routes with { Rank = rank, Faction = faction, Times = times, UseMeasured = measured, MapLegendHeight = height }),
             handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler);
         var (window, other) = (Window(), Window());
         window.UseMeasured.Should().BeTrue();
@@ -781,7 +801,7 @@ public sealed class SettingsSessionTests : IDisposable
         // Gate finding T13.6c (E): the window knows an IMeasuredSummary, not the Plan tab; here a fake.
         var session = Create();
         var summary = new FakeSummary("No loop measured yet with MISC Hull B – finish a plan 3 times.");
-        RoutesSettingsViewModel Window(IMeasuredSummary? measured) => new(session.Current.Routes, (_, _, _, _) => { },
+        RoutesSettingsViewModel Window(IMeasuredSummary? measured) => new(session.Current.Routes, (_, _, _, _, _) => { },
             handler => session.RoutesChanged += handler, handler => session.RoutesChanged -= handler, measured);
         var window = Window(summary);
         (window.MeasuredText, window.HasMeasuredText).Should().Be((summary.Text, true));

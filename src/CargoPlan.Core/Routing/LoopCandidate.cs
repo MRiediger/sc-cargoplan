@@ -11,6 +11,9 @@ public enum LoopKind
 
     /// <summary>The four Stanton hubs in turn, with the system-wide contracts the scans saw between them (design §8.6).</summary>
     SystemWide,
+
+    /// <summary>The player's own, clicked on the map (T13.7b, D129): never a row of the ranking, measured by its key.</summary>
+    Custom,
 }
 
 /// <summary>What the loop list is sorted by: aUEC per hour, per loop or per landing.</summary>

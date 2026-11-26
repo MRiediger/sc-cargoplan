@@ -13,7 +13,7 @@ public sealed record RoutesChoice(string Value, string Text);
 /// <summary>
 /// The settings window's section of the Plan tab (T13.3): the player's rank and faction, set once instead of through the
 /// tab's filter buttons, which write the same values (routes.rank, routes.faction); the loops' times (T13.4,
-/// routes.times), which the tab only shows; whether measured loop times count (T13.6c, routes.useMeasured). Applied at once through the settings
+/// routes.times), which the tab only shows; whether measured loop times count (T13.6c, routes.useMeasured); the height of the custom route's bar under the map (gate finding 7b, routes.mapLegendHeight). Applied at once through the settings
 /// session (D30); its own DataContext like the Ship data section's, and it follows the session while the window is open,
 /// so a filter button's change shows here too.
 /// </summary>
@@ -22,7 +22,7 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
     /// <summary>The faction choice for "both sides"; settings.json writes null for it.</summary>
     public const string AnyFaction = "any";
 
-    private readonly Action<string, string?, RoutesTimes, bool> _change;
+    private readonly Action<string, string?, RoutesTimes, bool, double> _change;
 
     private readonly Action<EventHandler<RoutesSettings>> _unfollow;
 
@@ -32,14 +32,14 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
     // True while values come from the session: they are what it holds already, nothing to write back.
     private bool _following;
 
-    /// <param name="change">Writes rank, faction (null = both), the loops' times and the measured times' switch into the
-    /// session's routes section.</param>
+    /// <param name="change">Writes rank, faction (null = both), the loops' times, the measured times' switch and the map
+    /// legend's height (a share) into the session's routes section.</param>
     /// <param name="follow">Subscribes to <see cref="SettingsSession.RoutesChanged"/>.</param>
     /// <param name="unfollow">Unsubscribes, from <see cref="Detach"/> when the window closes.</param>
     /// <param name="measured">How many loops the overlay's ship has measured, for the line under the switch; null hides it.</param>
     public RoutesSettingsViewModel(
         RoutesSettings current,
-        Action<string, string?, RoutesTimes, bool> change,
+        Action<string, string?, RoutesTimes, bool, double> change,
         Action<EventHandler<RoutesSettings>> follow,
         Action<EventHandler<RoutesSettings>> unfollow,
         IMeasuredSummary? measured = null)
@@ -110,6 +110,20 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
     [ObservableProperty]
     public partial bool UseMeasured { get; set; } = true;
 
+    public static double MinMapLegendHeightPercent => Math.Round(RoutesSettings.MinMapLegendHeight * 100);
+
+    public static double MaxMapLegendHeightPercent => Math.Round(RoutesSettings.MaxMapLegendHeight * 100);
+
+    /// <summary>
+    /// The height of the custom route's bar under the map, in percent of the overlay (gate finding 7b, routes.mapLegendHeight):
+    /// the file holds the share, the slider percent, like the legend's "Max. height".
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MapLegendHeightText))]
+    public partial int MapLegendHeightPercent { get; set; } = (int)Math.Round(RoutesSettings.DefaultMapLegendHeight * 100);
+
+    public string MapLegendHeightText => string.Create(CultureInfo.InvariantCulture, $"{MapLegendHeightPercent} %");
+
     public string StationText => string.Create(CultureInfo.InvariantCulture, $"{Station:0} min");
 
     public string CrateText => string.Create(CultureInfo.InvariantCulture, $"{Crate:0} s");
@@ -140,11 +154,13 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
 
     partial void OnUseMeasuredChanged(bool value) => Write();
 
+    partial void OnMapLegendHeightPercentChanged(int value) => Write();
+
     private void Write()
     {
         if (!_following)
         {
-            _change(Rank, Faction == AnyFaction ? null : Faction, new RoutesTimes((int)Math.Round(Station), (int)Math.Round(Crate), (int)Math.Round(Jump)), UseMeasured);
+            _change(Rank, Faction == AnyFaction ? null : Faction, new RoutesTimes((int)Math.Round(Station), (int)Math.Round(Crate), (int)Math.Round(Jump)), UseMeasured, MapLegendHeightPercent / 100.0);
         }
     }
 
@@ -157,6 +173,7 @@ public sealed partial class RoutesSettingsViewModel : ObservableObject
         Faction = settings.Faction ?? AnyFaction;
         (Station, Crate, Jump) = (settings.Times.Station, settings.Times.Crate, settings.Times.Jump);
         UseMeasured = settings.UseMeasured;
+        MapLegendHeightPercent = (int)Math.Round(settings.MapLegendHeight * 100);
         _following = false;
     }
 }

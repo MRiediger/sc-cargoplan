@@ -34,6 +34,13 @@ public sealed record RouteFilter(
     public static RouteFilter Default { get; } = new(
         HaulRank.Master, new HashSet<HaulSize>(Enum.GetValues<HaulSize>()), DirectFilter.All, null, null, HaulMissionType.Stellar, StarSystem.Stanton);
 
+    /// <summary>
+    /// Every template of <paramref name="system"/>: every rank, size, area, contractor and side. The map lays out the places
+    /// of this filter (T13.7), so a narrower filter hides nodes but moves none.
+    /// </summary>
+    public static RouteFilter Everything(StarSystem? system) =>
+        new(HaulRank.Master, new HashSet<HaulSize>(Enum.GetValues<HaulSize>()), DirectFilter.All, null, null, null, system);
+
     public bool Matches(HaulTemplate template) =>
         template.Rank <= MaxRank
         && Sizes.Contains(template.Size)

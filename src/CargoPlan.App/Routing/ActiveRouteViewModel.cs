@@ -147,6 +147,14 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
     [ObservableProperty]
     public partial IReadOnlyList<string> ExtraRows { get; private set; } = [];
 
+    /// <summary>The extras' pickups to their stops, for the map (gate finding 7a/7b): drawn dashed in the route's colour.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<MapExtra> ExtraWays { get; private set; } = [];
+
+    /// <summary>"+ #4 extra · 160,250 aUEC": an extra's line in the block and its tool tip on the map.</summary>
+    public static string ExtraText(int scanNo, long? reward) =>
+        reward is { } aUEC ? Invariant($"+ #{scanNo} extra · {aUEC:N0} aUEC") : Invariant($"+ #{scanNo} extra");
+
     /// <summary>Asks before a second route replaces the first; the window sets the dialog (ConfirmReplan's pattern), tests a stub.</summary>
     public Func<string, bool> ConfirmReplace { get; set; } = _ => false;
 
@@ -324,7 +332,7 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
     {
         if (Route is not { } route)
         {
-            (Header, Rows, BackRows, ExtraRows) = (null, [], [], []);
+            (Header, Rows, BackRows, ExtraRows, ExtraWays) = (null, [], [], [], []);
             (StationText, StationToolTip, StationRows, IsAtEnd, CanGoBack, _progress) = (null, null, [], false, false, null);
             NextStationCommand.NotifyCanExecuteChanged();
             return;
@@ -335,8 +343,12 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
         Header = Invariant($"{(IsBlockOpen ? "▾" : "▸")} Plan: {route.Name} · {route.FilledCount(keys)}/{route.Placeholders.Count} filled · Σ {route.OutboundReward:N0} out · +{route.BackReward:N0} back");
         Rows = [.. route.Outbound.Select(p => Row(p, keys, missions))];
         BackRows = [.. route.Back.Select(p => Row(p, keys, missions))];
-        ExtraRows = [.. route.Extras.Where(missions.ContainsKey).Select(k => missions[k].Contract!).Select(c =>
-            c.Reward is { } reward ? Invariant($"+ #{c.Scan.No} extra · {reward:N0} aUEC") : Invariant($"+ #{c.Scan.No} extra"))];
+        ExtraRows = [.. route.Extras.Where(missions.ContainsKey).Select(k => missions[k].Contract!).Select(c => ExtraText(c.Scan.No, c.Reward))];
+        var ways = MapExtra.Of(route, _saved, _positions);
+        if (!ways.SequenceEqual(ExtraWays))
+        {
+            ExtraWays = ways;
+        }
         BuildBar(route);
     }
 
@@ -370,7 +382,8 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
         var keys = Keys(_saved);
         var missions = _saved?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Contract!.Scan.Key) ?? [];
         IEnumerable<PlaceholderRowView> rows = at == 0
-            ? route.Outbound.Select(p => OutboundRow(p, keys, missions))
+            // What leaves the hub; a role taken on the way waits for its station (T13.7b, D125 addendum).
+            ? route.Outbound.Where(p => p.AcceptAt is null).Select(p => OutboundRow(p, keys, missions))
             : stop.Returns.Select(ReturnRow).Concat(stop.Collects.Select(p => new PlaceholderRowView(
                 $"collect: {p.Title} (accepted at {PlaceNames.Short(p.AcceptAt!)})", null, null, Route.IsFilled(p, keys), p.Title)));
         StationRows = [.. rows];
@@ -397,7 +410,9 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
     private static PlaceholderRowView ReturnRow(ReturnAt way)
     {
         var p = way.Placeholder;
-        var line = $"accept: {p.Title} · {RoleText.Reward(p.Reward, null)}";
+        // A role taken on the way names its places; a way back goes to the hub.
+        var to = p.Kind == RecipeKind.Return ? "" : $" · {string.Join(", ", p.Destinations.Select(PlaceNames.Short))}";
+        var line = $"accept: {p.Title} · {RoleText.Reward(p.Reward, null)}{to}";
         var collect = p.CollectAt is { Count: > 0 } more ? $" · collect at {string.Join(", ", more.Select(PlaceNames.Short))}" : null;
         return way.Fit switch
         {
@@ -410,11 +425,12 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
 
     private static PlaceholderRowView Row(Placeholder p, IReadOnlySet<string> keys, Dictionary<string, Mission> missions)
     {
-        // Gate 6a (K2): a way back names where to accept and collect instead of its place, the hub.
+        // Gate 6a (K2): a way back names where to accept and collect instead of its place, the hub; a role taken on the way
+        // names its places and where to accept it (T13.7b).
         string[] parts =
         [
             RoleText.KindWords[p.Kind], p.Title, RoleText.Reward(p.Reward, null),
-            .. p.AcceptAt is null ? [string.Join(", ", p.Destinations.Select(PlaceNames.Short))] : Array.Empty<string>(),
+            .. p.Kind != RecipeKind.Return ? [string.Join(", ", p.Destinations.Select(PlaceNames.Short))] : Array.Empty<string>(),
         ];
         var line = string.Join(" · ", parts);
         var accept = p.AcceptAt is { } at ? $" · accept at {PlaceNames.Short(at)}" : null;

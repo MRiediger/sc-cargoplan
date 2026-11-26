@@ -14,7 +14,8 @@ namespace CargoPlan.Core.Routing;
 /// <param name="Title">As the card shows it: Covalex the template's title, Red Wind the card's form (issue #22).</param>
 /// <param name="Reward">The template's, else the last a scan saw (Red Wind), else unknown; never estimated (D118).</param>
 /// <param name="Destinations">The places of the recipe's line: the first stops of its pool; the hub for a way back.</param>
-/// <param name="AcceptAt">For a way back: the station where it is accepted; null otherwise.</param>
+/// <param name="AcceptAt">Where it is accepted when not at the hub at the start: always for a way back, for any other role
+/// taken on the way (T13.7b, D125 addendum); null for what leaves the hub.</param>
 /// <param name="CollectAt">For a way back with several pickups: where it collects the rest; null for a role that is no way back.</param>
 /// <param name="FilledBy">The scan key (D101) of the contract that filled it. Filled is what the plan says: a key no
 /// mission of the plan has any more (undo, discard) leaves the placeholder open again.</param>

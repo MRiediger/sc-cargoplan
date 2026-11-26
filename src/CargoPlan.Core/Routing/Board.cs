@@ -26,14 +26,19 @@ public sealed record Board(StarSystem System, string AreaKey, string? Hub, IRead
     /// </summary>
     public static Board For(IEnumerable<HaulTemplate> templates, StarSystem system, string areaKey, HaulRank rank, HaulFaction? faction) =>
         new(system, areaKey, system == StarSystem.Stanton ? BoardHubs.ByArea.GetValueOrDefault(areaKey) : null,
-        [
-            .. templates.Where(t => t.Rank <= rank && system switch
-            {
-                StarSystem.Stanton => IsCovalexStellar(t) && (t.AreaKey == areaKey || t.AreaKey == StantonWide),
-                StarSystem.Pyro => areaKey == PyroSolar && IsRedWindSolar(t) && (faction is null || t.Faction == faction),
-                _ => false,
-            }),
-        ]);
+        [.. templates.Where(t => t.Rank <= rank && On(system, areaKey, t) && (system != StarSystem.Pyro || faction is null || t.Faction == faction))]);
+
+    /// <summary>
+    /// Whether <paramref name="template"/> is on the board of <paramref name="areaKey"/> in <paramref name="system"/>, any
+    /// rank and faction: Stanton the area's Covalex stellar and the system-wide ones, Pyro Red Wind <c>Solar</c>. The
+    /// custom route takes only these (T13.7c, D130: "different board").
+    /// </summary>
+    public static bool On(StarSystem system, string areaKey, HaulTemplate template) => system switch
+    {
+        StarSystem.Stanton => IsCovalexStellar(template) && (template.AreaKey == areaKey || template.AreaKey == StantonWide),
+        StarSystem.Pyro => areaKey == PyroSolar && IsRedWindSolar(template),
+        _ => false,
+    };
 
     /// <summary>
     /// Every template a scan of <paramref name="contractor"/> may be (T13.3, D122): all boards of its system at once,

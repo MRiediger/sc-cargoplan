@@ -1079,6 +1079,22 @@ public sealed class SettingsStoreTests : IDisposable
         problem.Should().Be(line is null ? null : $"settings.json: {line}");
     }
 
+    [Theory]
+    [InlineData("0.3", 0.3, null)]
+    [InlineData("0.05", 0.5, "routes.mapLegendHeight 0.05 is not 0.1–0.9, using 0.5.")]
+    [InlineData("0.95", 0.5, "routes.mapLegendHeight 0.95 is not 0.1–0.9, using 0.5.")]
+    public void Routes_keep_the_map_legend_height_and_one_out_of_its_range_falls_back_with_a_line(string json, double kept, string? line)
+    {
+        // Gate finding 7b (Martin): the plan's bar under the map has its own share of the overlay, 10–90 %, default 50 %.
+        WriteFile($$"""{ "schemaVersion": 3, "routes": { "mapLegendHeight": {{json}} } }""");
+
+        var (loaded, problem) = SettingsStore.Load(SettingsPath);
+
+        loaded.Routes.MapLegendHeight.Should().Be(kept);
+        problem.Should().Be(line is null ? null : $"settings.json: {line}");
+        RoutesSettings.Default.MapLegendHeight.Should().Be(0.5);
+    }
+
     [Fact]
     public void Routes_keep_the_plan_blocks_state()
     {
@@ -1144,7 +1160,7 @@ public sealed class SettingsStoreTests : IDisposable
         var file = JsonNode.Parse(File.ReadAllText(SettingsPath))!.AsObject();
         var keys = file.Select(p => p.Key).ToList();
         keys.IndexOf("routes").Should().Be(keys.IndexOf("shipData") + 1);
-        file["routes"]!.AsObject().Select(p => p.Key).Should().Equal("tab", "rank", "faction", "hub", "loopsSort", "planBlock", "useMeasured", "times");
+        file["routes"]!.AsObject().Select(p => p.Key).Should().Equal("tab", "rank", "faction", "hub", "loopsSort", "planBlock", "useMeasured", "mapLegendHeight", "times");
         file["routes"]!["times"]!.AsObject().Select(p => p.Key).Should().Equal("station", "crate", "jump");
     }
 

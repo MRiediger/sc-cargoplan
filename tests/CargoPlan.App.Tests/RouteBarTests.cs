@@ -94,6 +94,22 @@ public sealed class RouteBarTests
     }
 
     [Fact]
+    public void A_contract_taken_on_the_way_waits_for_its_station_and_names_its_place_there()
+    {
+        // T13.7b (D125 addendum): the LEO ring listed Baijini's contracts at the start.
+        var route = Ring(Out(1, Riker, 50_000), Out(2, Orison, 40_000) with { AcceptAt = Riker });
+        var model = Model(route);
+        model.Show(Cargo(), HullA);
+
+        model.StationRows.Select(r => r.Text).Should().Equal("accept: Small · Junior Rank - Small Cargo Haul · 50,000 aUEC · Riker");
+
+        model.NextStationCommand.Execute(null);
+        model.StationRows.Should().ContainSingle().Which.Text.Should().StartWith("accept: Junior Rank - Small Cargo Haul · 40,000 aUEC · Orison");
+        model.Rows.Last().Text.Should().Be("Small · Junior Rank - Small Cargo Haul · 40,000 aUEC · Orison");
+        model.Rows.Last().Accept.Should().Be(" · accept at Riker");
+    }
+
+    [Fact]
     public void The_bar_names_the_stop_what_it_unloads_and_the_slots_free_and_steps_by_hand()
     {
         var model = Model(Ring());

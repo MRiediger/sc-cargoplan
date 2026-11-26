@@ -184,6 +184,36 @@ public class RoutesFileTests
     }
 
     [Fact]
+    public void A_contract_accepted_on_the_way_keeps_its_station_and_a_custom_route_its_kind()
+    {
+        // T13.7b (D125 addendum): acceptAt for any role accepted at a station, collectAt only for a way back; additive in
+        // schema 3.
+        var onTheWay = new Placeholder(3, RecipeKind.Direct, "t-way", "Junior Rank - Direct Medium Cargo Haul", 87_250,
+            [new HaulLeg("Stims", 60, 91, Models.CrateSize.Eight)], ["Port Tressler"], AcceptAt: "Baijini Point");
+        var route = SomeRoute() with { Kind = LoopKind.Custom, Placeholders = [.. SomeRoute().Placeholders, onTheWay] };
+
+        var json = Write(Observations.Empty, route, [SomeRun() with { Kind = LoopKind.Custom }]);
+        var read = Read(json);
+
+        json.Should().Contain("\"kind\": \"custom\"").And.Contain("\"schemaVersion\": 3");
+        read.Route!.Kind.Should().Be(LoopKind.Custom);
+        read.Route.Placeholders[2].Should().BeEquivalentTo(onTheWay);
+        read.Runs.Single().Kind.Should().Be(LoopKind.Custom);
+    }
+
+    [Fact]
+    public void Only_a_way_back_collects()
+    {
+        var json = Write(Observations.Empty, SomeRoute(), []);
+        var bulkWithCollect = ReplaceFirst(json, "\"filledBy\": \"EVERUSHARBOR | HUR-L1:WASTE | 16 | 325250\"",
+            "\"acceptAt\": \"HUR-L4 Melodic Fields Station\", \"collectAt\": [], \"filledBy\": \"EVERUSHARBOR | HUR-L1:WASTE | 16 | 325250\"");
+
+        var read = () => Read(bulkWithCollect);
+
+        read.Should().Throw<RoutesFormatException>().WithMessage("*collect*");
+    }
+
+    [Fact]
     public void A_run_names_its_ship_and_stations_and_one_written_without_them_is_still_read()
     {
         // The loop's identity for measured times (T13.6c): written always; a run of the branch before (gate 6b) has none.

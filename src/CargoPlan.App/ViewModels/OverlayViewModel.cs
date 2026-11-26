@@ -642,6 +642,9 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             if (value is not null)
             {
                 value.StartRequested += (_, start) => StartPlan(start);
+
+                // The map draws the active route (T13.7); whichever of the two is set first.
+                value.ShowRoute(ActiveRoute?.Route, ActiveRoute?.ExtraWays);
             }
         }
     }
@@ -674,6 +677,17 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
             {
                 // 6b: what the round paid in what time, in the line of the last action's result (a scan, a move).
                 value.Finished += (_, run) => SetNotice(NoticeSource.Move, ActiveRouteViewModel.FinishedText(run));
+
+                // The map draws the route (T13.7): from the start and after every change (start, end, a station on), its
+                // extras with every change of the plan (gate finding 7a/7b).
+                Routes?.ShowRoute(value.Route, value.ExtraWays);
+                value.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName is nameof(ActiveRouteViewModel.Route) or nameof(ActiveRouteViewModel.ExtraWays))
+                    {
+                        Routes?.ShowRoute(value.Route, value.ExtraWays);
+                    }
+                };
             }
         }
     }
