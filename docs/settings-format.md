@@ -338,8 +338,12 @@ its default; a word out of the list or a time out of its range falls back to the
 | `routes.mapLegendHeight` | The share of the overlay's height the own plan's bar under the Plan tab's map takes at most, then it scrolls (gate finding T13.7b, D129): `0.1`–`0.9`, the settings window's "Map legend height" in percent, steps of 5. Out of range falls back to `0.5` with a line. | `0.5` |
 | `routes.times` | The loops' times for ~aUEC/h (T13.4, design §4.7): `station` minutes per landing (docking, the elevator, the short jumps near a station; 1–60), `crate` seconds per crate (5–120), `jump` minutes per quantum jump over 10 Gm (1–30); whole numbers, set in the settings window's "Plan tab" section, shown in the list's filter line. Each out of its range falls back alone, with a notice. | `{ "station": 10, "crate": 20, "jump": 4 }` |
 
-The other filters of the matrix (system, area, direct, contractor, sizes), the view (Matrix, Recipe or Loops) and the hub a loop's row shows last for the session. Older versions of the
-overlay don't know `routes`: they start with the default settings and say so, as for `shipData`.
+The other filters of the matrix (system, area, direct, contractor, sizes), the view (Matrix, Recipe, Loops or Map), the
+hub a loop's row shows, the map's focus, zoom and your own plan on it last for the session. Older versions of the overlay
+don't know `routes`: they start with the default settings and say so, as for `shipData` (v0.7.0: "Settings not loaded,
+using defaults (The JSON property 'routes' could not be mapped …)"). Once the older version has saved, its first save
+kept your file as `settings.json.bak`: close the overlay and rename it to `settings.json` before you start v0.8.0 again,
+since each start's first save replaces the backup.
 
 ## Look files
 
