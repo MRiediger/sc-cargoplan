@@ -1150,6 +1150,12 @@ E Timing, Hinweis Radius):**
   mit Faktor 1,2, die halbe Rastenzahl ist das geometrische Mittel √(0,5 · 6) ≈ 1,73× (`RouteMapView.ArrowsFromZoom`): von
   ganz heraus die 7. von rund 14 Rasten, vom Fit die 4. Test: `RouteMapViewTests.The_arrow_heads_show_from_half_the_wheels_notches_on`
   (Nachfolger von `…The_arrow_heads_show_only_at_the_most_zoom`; Gegenprobe Schwelle 6× → rot).
+- **Gate-Befund 7b (Martin, 26.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** Die Leiste „Own plan“
+  verhält sich wie die Legende im Cargo-Reiter: höchstens ihr Anteil am Overlay (Settings → Legend layout → Max. height,
+  dieselbe Regel `LegendMaxHeightConverter` auf die Höhe von `OverlayContent`), darüber scrollt sie (schmale Leiste, nicht
+  fokussierbar). Tests: `OverlayRouteXamlTests.The_map_sits_beside_…` (gleiche Höhenregel wie `StopLinesScroll`, scrollt),
+  `CustomBarHeightTests.The_bars_highest_height_is_the_legends_share_of_the_overlay_from_inside_the_plan_tabs_template`
+  (die Bindung per ElementName löst aus dem DataTemplate des Plan-Reiters auf, A3).
 
 ### [ ] T13.8 Release v0.8.0
 

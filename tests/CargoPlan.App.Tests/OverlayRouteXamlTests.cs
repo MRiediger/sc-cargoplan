@@ -53,8 +53,20 @@ public class OverlayRouteXamlTests
         ((string?)map.Attribute("RemoveEdgeCommand")).Should().Be("{Binding RemoveEdgeCommand}");
         ((string?)map.Attribute("Palette")).Should().Contain("StopPalette");
         ((string?)view.Attribute("Visibility")).Should().Contain("ShowsMap");
-        ((string?)Named(root, "CustomBar").Attribute("Visibility")).Should().Contain("HasCustom");
-        ((string?)Named(root, "CustomBar").Attribute("DockPanel.Dock")).Should().Be("Bottom", "under the map (gate finding 7b, Martin)");
+        // Gate finding 7b (Martin): under the map, and as the legend in the Cargo tab, at most its share, then it scrolls.
+        var scroll = Named(root, "CustomBarScroll");
+        Named(root, "CustomBar").Parent.Should().BeSameAs(scroll);
+        ((string?)scroll.Attribute("Visibility")).Should().Contain("HasCustom");
+        ((string?)scroll.Attribute("DockPanel.Dock")).Should().Be("Bottom", "under the map");
+        ((string?)scroll.Attribute("VerticalScrollBarVisibility")).Should().Be("Auto");
+        ((string?)scroll.Attribute("Focusable")).Should().Be("False");
+        var legendHeight = Named(root, "StopLinesScroll").Elements().Single(e => e.Name.LocalName == "ScrollViewer.MaxHeight").ToString();
+        var barHeight = scroll.Elements().Single(e => e.Name.LocalName == "ScrollViewer.MaxHeight").ToString();
+        foreach (var part in new[] { "LegendMaxHeightConverter", "ElementName=\"OverlayContent\"", "LegendMaxHeightShare" })
+        {
+            legendHeight.Should().Contain(part);
+            barHeight.Should().Contain(part, "the same rule as the legend's");
+        }
         ((string?)Named(root, "ClearCustomButton").Attribute("Command")).Should().Be("{Binding ClearCustomCommand}");
 
         var row = Named(root, "StartPlanButton").Parent!;

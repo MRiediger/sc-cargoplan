@@ -1272,8 +1272,19 @@
                                     <!-- T13.7b (D129): the custom route clicked on the map under it (gate finding 7b, Martin), in the
                                          recipe's look; "Clear" drops it, "Start plan" in the filter row starts it. -->
                                     <DockPanel x:Name="MapView" Visibility="{Binding ShowsMap, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                        <StackPanel x:Name="CustomBar" DockPanel.Dock="Bottom" Margin="0,4,0,0"
-                                                    Visibility="{Binding HasCustom, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <!-- Gate finding 7b (Martin): as the legend in the Cargo tab, at most its share of the overlay
+                                             (Settings → Legend layout → Max. height, LegendMaxHeightConverter), then it scrolls; not
+                                             focusable, so a left click still reaches the window (see StopLinesScroll). -->
+                                        <ScrollViewer x:Name="CustomBarScroll" DockPanel.Dock="Bottom" Margin="0,4,0,0" Focusable="False"
+                                                      VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                                      Visibility="{Binding HasCustom, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <ScrollViewer.MaxHeight>
+                                            <MultiBinding Converter="{StaticResource LegendMaxHeightConverter}" Mode="OneWay">
+                                                <Binding ElementName="OverlayContent" Path="ActualHeight" Mode="OneWay" />
+                                                <Binding Path="DataContext.LegendMaxHeightShare" RelativeSource="{RelativeSource AncestorType=Window}" Mode="OneWay" />
+                                            </MultiBinding>
+                                        </ScrollViewer.MaxHeight>
+                                        <StackPanel x:Name="CustomBar">
                                             <DockPanel>
                                                 <Button x:Name="ClearCustomButton" DockPanel.Dock="Right" Command="{Binding ClearCustomCommand}" Style="{StaticResource FilterButtonStyle}"
                                                         ToolTip="Drop your plan; the station in focus stays" VerticalAlignment="Top">
@@ -1289,6 +1300,7 @@
                                                 </ItemsControl.ItemTemplate>
                                             </ItemsControl>
                                         </StackPanel>
+                                        </ScrollViewer>
                                         <rt:RouteMapView x:Name="RouteMap" Scene="{Binding Map}" FocusCommand="{Binding FocusCommand}"
                                                          AddEdgeCommand="{Binding AddEdgeCommand}" RemoveEdgeCommand="{Binding RemoveEdgeCommand}"
                                                          Palette="{Binding DataContext.StopPalette, RelativeSource={RelativeSource AncestorType=Window}}" />
