@@ -166,6 +166,9 @@ Ship and hauling data · Known issues · Fuß. Jede Zeile hat Commits in der Vol
 Rückweg auf v0.6.0, steht im Wiki). Link-Check: 9 externe URLs 200, 3 Wiki-Ziele gegen den Wiki-Branch `v0.8.0`
 (`Plan-tab` ist erst nach dem Wiki-Push online → Wiki-Push direkt nach dem Tag).
 
+**Notes freigegeben (Halt 2, 26.11.2026):** `a253d3f` von Claude.ai freigegeben, keine Korrektur; Martin hat sie als
+Nutzer gelesen. Stufe 3 wie geplant.
+
 **Nachmessen Stufe 3 (Ergänzung aus B18, Martin):** eigener Plan mit Extras → „›“ ×2 → Neustart → Plan-Reiter
 vollständig, Leiste am selben Stopp – am veröffentlichten ZIP.
 
