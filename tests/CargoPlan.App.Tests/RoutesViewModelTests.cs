@@ -439,19 +439,21 @@ public sealed class RoutesViewModelTests
     private static void Compute(RoutesViewModel model) => model.ShowLoops(model.LoopInputs!, model.LoopInputs!.Run());
 
     [Fact]
-    public void The_view_cycles_matrix_recipe_loops_and_back()
+    public void The_view_cycles_matrix_recipe_loops_map_and_back()
     {
         var model = Model([SeniorBulk]);
 
         model.NextCommand.Execute("view");
         model.NextCommand.Execute("view");
-        (model.ViewLabel, model.IsLoops, model.IsRecipe, model.IsMatrix).Should().Be(("Loops", true, false, false));
-        (model.ShowsLoops, model.ShowsRecipe, model.ShowsMatrix).Should().Be((true, false, false));
+        (model.ViewLabel, model.IsLoops, model.IsRecipe, model.IsMatrix, model.IsMap).Should().Be(("Loops", true, false, false, false));
+        (model.ShowsLoops, model.ShowsRecipe, model.ShowsMatrix, model.ShowsMap).Should().Be((true, false, false, false));
 
+        model.NextCommand.Execute("view");
+        (model.ViewLabel, model.IsMap, model.ShowsMap, model.IsLoops).Should().Be(("Map", true, true, false));
         model.NextCommand.Execute("view");
         model.ViewLabel.Should().Be("Matrix");
         model.PreviousCommand.Execute("view");
-        model.ViewLabel.Should().Be("Loops");
+        model.ViewLabel.Should().Be("Map");
     }
 
     [Fact]

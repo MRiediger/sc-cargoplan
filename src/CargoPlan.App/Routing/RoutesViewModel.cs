@@ -69,8 +69,11 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
     private static readonly (string Label, StarSystem? Value)[] Systems =
         [("Stanton", StarSystem.Stanton), ("Pyro", StarSystem.Pyro), ("Interstellar", null)];
 
-    // The view of the Plan tab (T13.3b, T13.4): the port matrix, the recipe of a hub for the overlay's ship, the loops.
-    private static readonly string[] Views = ["Matrix", "Recipe", "Loops"];
+    // The view of the Plan tab (T13.3b, T13.4, T13.7): the port matrix, the recipe of a hub for the overlay's ship, the
+    // loops, the map of the matrix's cells.
+    private static readonly string[] Views = ["Matrix", "Recipe", "Loops", "Map"];
+
+    private const int MapView = 3;
 
     private static readonly (string Label, LoopSort Value)[] Sorts =
         [("Sort: ~aUEC/h", LoopSort.PerHour), ("Sort: aUEC/loop", LoopSort.PerLoop), ("Sort: aUEC/landing", LoopSort.PerLanding)];
@@ -134,6 +137,18 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
     // The settings window's line under the switch (IMeasuredSummary); empty without a ship.
     private string _measuredSummary = "";
 
+    // The map's start the player clicked (T13.7), for the session; routes.hub stays.
+    private string? _mapFocus;
+
+    // The active route (T13.6), drawn on the map in the status line's colour.
+    private Route? _route;
+
+    // The matrix of the filter, as the matrix view shows it; the map draws this one (A1).
+    private PortMatrix? _matrix;
+
+    // Every node of a system for the map's layout, from everything its templates and the scans name; made anew with them.
+    private (StarSystem System, ObservedEdges Observed, IReadOnlyDictionary<string, MapNode> NodeOf, IReadOnlyList<MapNode> Universe)? _mapNodes;
+
     /// <param name="save">Called with the new section when rank or faction change; null in tests that don't save.</param>
     /// <param name="observed">What the scans in routes.json add (T13.3); none without.</param>
     /// <param name="runs">The finished runs in routes.json (T13.6c): the loops' measured times; none without.</param>
@@ -192,8 +207,14 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
 
     public bool IsMatrix => _view == 0;
 
-    /// <summary>"Start plan" shows with the recipe and the loops (T13.6), not with the matrix.</summary>
-    public bool OffersStart => HasData && !IsMatrix;
+    /// <summary>The map instead of the matrix (T13.7): the matrix's cells as a graph, under the matrix's filters.</summary>
+    public bool IsMap => _view == MapView;
+
+    /// <summary>The filters from area on: the matrix's, which the map shares (T13.7).</summary>
+    public bool ShowsMatrixFilters => IsMatrix || IsMap;
+
+    /// <summary>"Start plan" shows with the recipe and the loops (T13.6), not with the matrix or the map (T13.7b decides).</summary>
+    public bool OffersStart => HasData && !IsMatrix && !IsMap;
 
     /// <summary>The matrix and its legend: with hauling data, in the matrix view.</summary>
     public bool ShowsMatrix => HasData && IsMatrix;
@@ -203,6 +224,19 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
 
     /// <summary>The loop list: with hauling data, in the loops view.</summary>
     public bool ShowsLoops => HasData && IsLoops;
+
+    /// <summary>The map: with hauling data, in the map view.</summary>
+    public bool ShowsMap => HasData && IsMap;
+
+    public string MapLegend => "Line: contracts there · thicker: more aUEC · solid ●: seen in your scans · dashed: game data only · click a station: from there";
+
+    /// <summary>What the map draws; null outside the map view or without a system.</summary>
+    [ObservableProperty]
+    public partial MapScene? Map { get; private set; }
+
+    /// <summary>"No map for this system." or what the map leaves out; null otherwise.</summary>
+    [ObservableProperty]
+    public partial string? MapNote { get; private set; }
 
     /// <summary>"Hub: Everus Harbor"; "(from Loops)" while a loop's row shows another hub than routes.hub.</summary>
     public string HubLabel => _shownHub is { } shown && shown != _hub ? $"Hub: {Hubs[shown].Name} (from Loops)" : $"Hub: {Hubs[_hub].Name}";
@@ -476,6 +510,29 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
         Rebuild();
     }
 
+    /// <summary>
+    /// A node of the map clicked (T13.7): the start for the session, only what leaves it and comes back stays full; the
+    /// same node again shows everything. routes.hub and the recipe's hub stay.
+    /// </summary>
+    [RelayCommand]
+    private void Focus(string? node)
+    {
+        _mapFocus = node is null || node == _mapFocus ? null : node;
+        BuildMap();
+    }
+
+    /// <summary>The active route (T13.6) or none: the map draws its legs and numbers its stations (T13.7).</summary>
+    public void ShowRoute(Route? route)
+    {
+        if (route == _route)
+        {
+            return;
+        }
+
+        _route = route;
+        BuildMap();
+    }
+
     partial void OnShowXsChanged(bool value) => Rebuild();
 
     partial void OnShowSmallChanged(bool value) => Rebuild();
@@ -549,10 +606,13 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
         OnPropertyChanged(nameof(IsRecipe));
         OnPropertyChanged(nameof(IsLoops));
         OnPropertyChanged(nameof(IsMatrix));
+        OnPropertyChanged(nameof(IsMap));
+        OnPropertyChanged(nameof(ShowsMatrixFilters));
         OnPropertyChanged(nameof(OffersStart));
         OnPropertyChanged(nameof(ShowsMatrix));
         OnPropertyChanged(nameof(ShowsRecipe));
         OnPropertyChanged(nameof(ShowsLoops));
+        OnPropertyChanged(nameof(ShowsMap));
     }
 
     // New inputs for the loops: the listener computes them off the UI thread. Without data or a ship there are none.
@@ -587,7 +647,7 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
             return;
         }
 
-        var matrix = PortMatrix.Build(_templates, Filter, _observed);
+        var matrix = _matrix = PortMatrix.Build(_templates, Filter, _observed);
         Columns = matrix.Dropoffs;
         Rows = [.. matrix.Pickups.Select(p => new PortRowView(p, PlaceNames.Short(p), [.. matrix.Dropoffs.Select(d => View(p, d, matrix.Cell(p, d)))]))];
         WithoutPlaceText = matrix.WithoutPlace switch
@@ -598,14 +658,48 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
         };
         EmptyText = Rows.Count == 0 ? "No templates for this filter." : null;
         RegionsText = Systems[_system].Value == StarSystem.Pyro ? "Red Wind's regional templates are not shown yet: no scan has placed them." : null;
-        if (!IsMatrix)
+        if (!IsMatrix && !IsMap)
         {
-            // The matrix's lines say nothing about the recipe or the loops.
+            // The matrix's lines say nothing about the recipe or the loops; the map draws the matrix, they hold for it.
             (WithoutPlaceText, EmptyText, RegionsText) = (null, null, null);
         }
 
         BuildRecipe();
         BuildLoops();
+        BuildMap();
+    }
+
+    /// <summary>
+    /// The map of the matrix just built (T13.7, D128): its cells as edges between the system's nodes, with the focus and
+    /// the route; only while the map is shown. The nodes of the system are made once per system and scans.
+    /// </summary>
+    private void BuildMap()
+    {
+        if (!HasData || !IsMap || _matrix is not { } matrix || Systems[_system].Value is not { } system)
+        {
+            Map = null;
+            MapNote = HasData && IsMap && Systems[_system].Value is null ? "No map for this system." : null;
+            return;
+        }
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        if (_mapNodes is not { } nodes || nodes.System != system || !ReferenceEquals(nodes.Observed, _observed))
+        {
+            var everything = PortMatrix.Build(_templates, RouteFilter.Everything(system), _observed);
+            var nodeOf = MapNodes.For(everything.Pickups.Concat(everything.Dropoffs), _positions, system);
+            _mapNodes = nodes = (system, _observed, nodeOf, [.. nodeOf.Values.Distinct()]);
+        }
+
+        var graph = RouteMap.Build(matrix, nodes.NodeOf, system, _mapFocus, _route);
+        var hub = system == StarSystem.Stanton ? Hubs[_shownHub ?? _hub].Name : null;
+        Map = new MapScene(graph, nodes.Universe, system, hub, EdgeToolTip, n => NodeToolTip(graph, n));
+        MapNote = graph.InsideOneNode switch
+        {
+            0 => null,
+            1 => "1 contract between places of one planet's surface is not drawn.",
+            var n => Invariant($"{n} contracts between places of one planet's surface are not drawn."),
+        };
+        AppLog.Write("Routes", Invariant($"map {system}: {graph.Nodes.Count} nodes, {graph.Edges.Count} edges in {watch.Elapsed.TotalMilliseconds:0.0} ms"));
     }
 
     /// <summary>The loops of the system filter's system, ranked by the sort under the settings' times (cheap: no planner).</summary>
@@ -771,10 +865,16 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
         }
 
         var tip = new StringBuilder(Invariant($"{pickup} → {dropoff} · most SCU in one contract: {cell.MaxScu}"));
+        HubLines(tip, [cell]);
+        TemplateLines(tip, cell);
+        return new PortCellView(CellText(cell), tip.ToString());
+    }
 
-        // The board's hub (D121) once at the top, a mark on each template it concerns (E2 of T13.3a). A cell's pickup and
-        // drop-off differ, so only one side can be the hub.
-        var shown = cell.Templates.Take(MaxToolTipTemplates).ToList();
+    // The board's hub (D121) once at the top, a mark on each template it concerns (E2 of T13.3a). A cell's pickup and
+    // drop-off differ, so only one side can be the hub; a map's edge of several cells says it once for all.
+    private static void HubLines(StringBuilder tip, IEnumerable<PortCell> cells)
+    {
+        PortCellTemplate[] shown = [.. cells.SelectMany(c => c.Templates.Take(MaxToolTipTemplates))];
         if (shown.Any(e => e.PickupFromHub))
         {
             tip.Append(Invariant($"\n{HubMark}pickup: the board's hub, not in the game data"));
@@ -784,8 +884,12 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
         {
             tip.Append(Invariant($"\n{HubMark}drop-off: the board's hub, not in the game data"));
         }
+    }
 
-        foreach (var entry in shown)
+    // One line per template, as the matrix's cell lists them (T13.2, T13.3), for the matrix and the map (T13.7).
+    private static void TemplateLines(StringBuilder tip, PortCell cell)
+    {
+        foreach (var entry in cell.Templates.Take(MaxToolTipTemplates))
         {
             var t = entry.Template;
             var reward = (t.Reward, entry.ObservedReward) switch
@@ -806,7 +910,49 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
         {
             tip.Append(Invariant($"\n… and {cell.Count - MaxToolTipTemplates} more"));
         }
+    }
 
-        return new PortCellView(CellText(cell), tip.ToString());
+    /// <summary>
+    /// An edge's tool tip (T13.7): "Everus Harbor → HUR-L5 High Course Station · 12.9 Gm · 4 contracts · Σ 245,000 aUEC ·
+    /// most SCU in one contract: 432", the board's hub once, then the templates as the matrix's cell lists them, one
+    /// section per place where a surface stands for several (K1).
+    /// </summary>
+    public static string EdgeToolTip(MapEdge edge)
+    {
+        var reward = (edge.RewardSum, edge.UnknownRewards) switch
+        {
+            (null, _) => "– aUEC: no reward in the game data, a scan shows it",
+            ({ } sum, 0) => Invariant($"Σ {sum:N0} aUEC"),
+            ({ } sum, var unknown) => Invariant($"Σ {sum:N0} aUEC + {unknown} without a reward"),
+        };
+        var contracts = edge.Count == 1 ? "1 contract" : Invariant($"{edge.Count} contracts");
+        var tip = new StringBuilder(Invariant($"{edge.From} → {edge.To} · {edge.Gm:0.0} Gm · {contracts} · {reward} · most SCU in one contract: {edge.MaxScu}"));
+        HubLines(tip, edge.Parts.Select(p => p.Cell));
+        foreach (var part in edge.Parts)
+        {
+            if (edge.Parts.Count > 1)
+            {
+                tip.Append(Invariant($"\n{part.Pickup} → {part.Dropoff}:"));
+            }
+
+            TemplateLines(tip, part.Cell);
+        }
+
+        return tip.ToString();
+    }
+
+    // "Everus Harbor · 12 out · 9 in · Σ out 1,234,500 aUEC", the places of a surface, and what a click does.
+    private static string NodeToolTip(RouteMap graph, MapNode node)
+    {
+        var figures = graph.Figures(node.Key);
+        var reward = figures.OutReward is { } sum ? Invariant($" · Σ out {sum:N0} aUEC") : "";
+        var tip = new StringBuilder(Invariant($"{node.Key} · {figures.Out} out · {figures.In} in{reward}"));
+        if (node.Kind == MapNodeKind.Surface)
+        {
+            tip.Append(Invariant($"\nsurface and moons: {string.Join(", ", node.Places)}"));
+        }
+
+        tip.Append(graph.Focus == node.Key ? "\nclick: show every contract again" : "\nclick: only what leaves here and comes back");
+        return tip.ToString();
     }
 }

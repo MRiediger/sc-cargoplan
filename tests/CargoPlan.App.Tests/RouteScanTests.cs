@@ -266,6 +266,21 @@ public sealed class RouteScanTests : IDisposable
     }
 
     [Fact]
+    public void The_map_follows_the_active_route_from_its_start_to_its_end()
+    {
+        var overlay = Overlay(null);
+        var routes = overlay.Routes!;
+        routes.PreviousCommand.Execute("view");
+        routes.IsMap.Should().BeTrue();
+
+        overlay.ActiveRoute!.Start(Planned).Should().BeTrue();
+        routes.Map!.Graph.Legs.Should().NotBeEmpty().And.HaveCount(Planned.Stations.Count + 1, "hub, every station, hub");
+
+        overlay.ActiveRoute.EndCommand.Execute(null);
+        routes.Map!.Graph.Legs.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Starting_and_ending_the_route_leave_plan_json_byte_for_byte()
     {
         // D118: the route lives in routes.json; plan.json stays schema 11 and isn't even written.
