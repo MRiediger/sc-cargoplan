@@ -1055,6 +1055,75 @@ E Timing, Hinweis Radius):**
   60 000 / 350 000, Labels in zwei Durchgängen, Layout-Universum). **7b: Martin entscheidet „umsetzen“** – Plan 7b folgt
   nach A7 mit eigener Freigabe.
 
+**T13.7b – Präzisierung in der Planphase, ratifiziert durch Freigabe (26.11.2026, „Freigabe T13.7b wie geplant“):**
+- **Befunde der Planung:** (1) Der LEO-Ring aus §8.6 braucht drei Verträge auf Everus → Baijini, der Startprompt sah
+  „nochmal klicken entfernt“ vor. (2) Das Format kannte `acceptAt` nur für Rückläufer; der LEO-Ring aus den Loops wählt an
+  Baijini/PT Verträge, die als Platzhalter ohne Station an der Start-Station der Leiste als „accept“ standen (Fehler seit
+  T13.6). (3) Ein Mehrstopp-Vertrag bringt mit einem Klick mehrere Orte.
+- **(1) Klick (Martin):** Linksklick hängt das nächstbeste noch nicht gewählte Template der Kante an, Rechtsklick nimmt das
+  zuletzt angehängte dieser Kante weg (die Geste der Filter-Buttons).
+- **(2) acceptAt für jede Rolle (Martin):** additiv in Schema 3; die Stationsleiste listet und simuliert an der Station,
+  was dort angenommen wird; der LEO-Ring aus Loops bekommt `acceptAt` für seine Verträge unterwegs gleich mit (Befund
+  beheben, nicht Backlog); D125-Addendum.
+- **(3) Stationsfolge (Martin):** Reihenfolge der geklickten Kantenenden; nie geklickte Orte eines Mehrstopp-Vertrags in
+  Ortsordnung vor der Rückkehr zum Hub; Test: Klicks E→B, B→PT, PT→E, Seraphim→E ergeben E → B → PT → Seraphim → E.
+- Rest wie im Plan: Rollen ab Start = Hinweg, nur zum Start = Rückläufer, sonst unterwegs; `LoopKind.Custom`, `runs[]`
+  `kind: custom`, gemessen über den Loop-Schlüssel, nie eine Zeile in Loops; Name „Own plan from <Start>“ (Bild-Gate).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (bei der Umsetzung 7b, zur Abnahme):**
+- Ein Klick wirkt nur auf eine **helle** Kante und nur mit einer Station im Fokus (eine Oberfläche ist kein Start) und
+  einem Schiff; „Clear“ leert den Entwurf und lässt den Fokus, ein anderer Fokus oder ein anderes System beginnen neu;
+  nach „Start plan“ ist der Entwurf weg (die Karte zeigt ihn als aktive Route).
+- Hell sind neben den Kanten ab dem Fokus auch die ab jeder Station des Entwurfs und die Rückkanten zum Fokus von jedem
+  Ort, den sie erreichen (Design §8.4 Punkt 1).
+- Die Platzhalter stehen in der Reihenfolge der Annahme: Hinweg, dann Station für Station (unterwegs und zurück).
+- Kein Größenausschluss wie im Rezept (Large/Bulk): der Spieler wählt die Kante, „fits / too big“ entscheidet.
+
+**Stand 7b (26.11., Branch `feat/p13-map`, 61384f2..):**
+- Commits: `acceptAt` für jede Rolle, LEO-Fix, Leiste (61384f2); `CustomPlan` in Core (f5a5eb9); Karte hell und Entwurf
+  gezeichnet (38c71a8); App: eigener Plan aus der Karte (a6b709d); Doku (D129, D125-Addendum, routes-format.md, TASKS.md,
+  CLAUDE.md).
+- **§8.6 per Klick** (`CustomPlanTests`, Templates mit Bändern auf den SCU von §8.6): sieben Klicks ergeben Everus →
+  Baijini → Port Tressler → Seraphim → Everus, Σ 767 250 aUEC (§8.6 nennt „≈ 820k“; die Summe seiner sieben Rewards ist
+  767 250), 4 Landungen, alle sieben „fits“ für Hull B; Platzhalter mit `acceptAt` Baijini (Stims), PT (Ice, Rückläufer),
+  Seraphim (zwei Rückläufer); drei Läufe messen die Route über ihren Schlüssel.
+- **Mutationsproben:** Passprüfung ohne Ladung an Bord → 1 rot; Stationsfolge per kürzester Permutation → 3 rot;
+  Rückkante ohne `acceptAt` → 2 rot; LEO-Ring ohne `acceptAt` → 1 rot; Leiste nur mit Rückläufern → 1 rot.
+- **Testnamen:** `CustomPlanTests`, `RouteMapTests.A_draft_lights_the_edges_from_its_stations_too_and_draws_its_legs_there_and_back`,
+  `RoutesFileTests.A_contract_accepted_on_the_way_keeps_its_station_and_a_custom_route_its_kind`,
+  `RoutesFileTests.Only_a_way_back_collects`,
+  `RouteProgressTests.A_contract_accepted_on_the_way_is_its_stations_to_accept_and_simulated_to_its_own_place`,
+  `RouteBarTests.A_contract_taken_on_the_way_waits_for_its_station_and_names_its_place_there`,
+  `LoopsTests.The_LEO_ring_takes_what_scans_saw_between_the_hubs_and_unloads_on_the_way` (um `acceptAt` erweitert),
+  `RoutesMapViewModelTests.With_a_station_in_focus_a_click_on_an_edge_builds_an_own_plan_that_Start_plan_starts`,
+  `…A_right_click_takes_the_edges_last_contract_back_Clear_and_another_focus_drop_the_plan`,
+  `…An_edge_the_focus_dims_is_not_picked`, `RouteMapViewTests.An_own_plan_is_drawn_in_the_lines_colour_there_and_back`,
+  `OverlayRouteXamlTests.The_map_sits_beside_…` (Leiste, Clear, Kanten-Befehle).
+- **Handling gegen main (zusätzlich zu 7a):**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | Klick auf helle Kante, Station im Fokus (neu) | – | nächster Vertrag der Kante in den eigenen Plan, Leiste über der Karte |
+  | Rechtsklick auf Kante (neu) | – | letzter Vertrag dieser Kante raus |
+  | „Clear“ über der Karte (neu) | – | Entwurf weg, Fokus bleibt |
+  | „Start plan“ in Map (neu) | – | ab einem Vertrag: Route `custom`, Reiter Cargo |
+  | Stationsleiste an einer Station des LEO-Rings | Verträge unterwegs als „accept“ am Start | dort, wo sie angenommen werden, mit Ziel und fits/too big |
+  | Block „Plan“ | Hinweg-Zeilen mit Zielen | dazu „· accept at Baijini“ bei Verträgen unterwegs |
+  | Alles ohne Entwurf und ohne LEO-Route | wie 7a | gleich |
+
+- **Gate 7b (Martin, entsperrt, Plan → Map, Hull B, Senior; die systemweiten Kanten zwischen den Hubs gibt es nur aus
+  deinen Scans):**
+
+  | Schritt | Erwartung | Warum |
+  |---|---|---|
+  | 1 Klick Everus (Fokus), dann die Kanten des §8.6-Rings in dieser Folge: E→B (so oft wie Verträge), B→PT, PT→E, Seraphim→E | Leiste „Own plan from Everus Harbor: Everus Harbor → Baijini Point → Port Tressler → Seraphim Station → Everus Harbor · … · fits MISC Hull B“; je Vertrag eine Zeile mit fits/too big; Entwurf weiß auf der Karte | Kern 7b |
+  | 2 Rechtsklick auf E→B, dann wieder Klick | letzter Vertrag dieser Kante raus und wieder rein | (1) |
+  | 3 „Start plan“ | Reiter Cargo; Block mit Hinweg-Zeilen, die Baijini→PT-Zeile mit „· accept at Baijini“, Rückläufer „accept at …“; `routes.json` `route.kind` = `custom` | Übergabe |
+  | 4 Leiste: › nach Baijini | dort „accept: … · Port Tressler · fits“ (oder too big) | (2) |
+  | 5 „Finish plan“ am Hub (oder End plan) | `runs[]` mit `kind: custom` | D129 |
+  | 6 Loops → LEO-Ring „Start plan“ | an Baijini/PT stehen dessen Verträge an ihrer Station, nicht mehr am Start | LEO-Fix |
+  | 7 Ohne Entwurf: Map, Matrix, Cargo-Reiter | wie 7a / main | Invariante |
+
 ### [ ] T13.8 Release v0.8.0
 
 **Warum:** Ohne Release erreicht die Phase keinen Hauler.
