@@ -1190,3 +1190,25 @@ T13.7b (D129); Art `custom`, `acceptAt`, Leiste, Start plan und Messschlüssel b
 - **Nachtrag (T13.8, 26.11.2026):** nach der Abnahme `d60bc1e` (Merge `2a12976`, Branch `feat/p13-settings-order`): im
   Einstellungsfenster steht der Abschnitt „Plan tab“ nach „Hotkeys“, vor „Updates“ – der Abschnitt wird beim Spielen
   gestellt, Update- und Schiffsdaten-Check selten. Nur Reihenfolge, keine Bindung, kein Text geändert.
+
+---
+
+## Abschlussvermerk (T13.8, 26.11.2026)
+
+Nach dem Verschieben angehängt, nicht Teil des wortgleichen Blocks.
+
+**Data-Release-Verträglichkeit (T13.8 Stufe 1, P4):**
+- **Nachweis aus H1 (D119, Format-Addendum K2):** der Manifest-Reader von v0.6.0 und v0.7.0 lässt in `files` nur
+  `outlines.json` und `ships/**` zu und überspringt unbekannte Abschnitte; deshalb liegen die Hauling-Dateien im
+  Abschnitt `hauling`, nicht in `ships.zip`, `files` oder `assets`.
+- **Gegenprobe am veröffentlichten v0.7.0-ZIP** (CC startet, Martin klickt): `SC-CargoPlan-v0.7.0-win-x64.zip` frisch
+  von GitHub (96 791 336 B, SHA256 = `.sha256`), entpackt in den Scratchpad, Start mit leerem `--data-dir`. Log:
+  `Ship data: in use: ships-2026.11.1 (baseline) …, 110 ships` → `Update: nothing newer than 0.7.0` →
+  `Ship data: ships-2026.11.2 available (in use: ships-2026.11.1)` → Klick **Update** (14:31:23) →
+  `Ship data: installed ships-2026.11.2 (downloaded) …` → `restarting with [--data-dir …]` →
+  `Ship data: in use: ships-2026.11.2 (downloaded) …, 110 ships` → `Ship data: nothing newer than ships-2026.11.2`.
+  Keine Fehlerzeile. Im installierten Ordner `ships\ships-2026.11.2\`: `ships\` (110 Dateien), `manifest.json`,
+  `outlines.json` – die Hauling-Dateien lädt v0.7.0 nicht, wie vorgesehen.
+
+**Release:** Phase 13 geht mit v0.8.0 raus (T13.8, `docs/tasks-archive/release-v0.8.0.md`); der Blocker B18
+(`routes.json` mit `at` als Index) ist vor dem Release behoben (Merge `95cf421`).

@@ -135,6 +135,25 @@ eigenen Bugfix-Branch ab `main` (Muster 4d); Stufe 1 ist bis dahin halb (Archiv,
 `7c9c311`); keine Notes-Zeile (Schema 3 war unveröffentlicht). Auf `95cf421` im sauberen Worktree: Build `0 Warnung(en)`,
 Core 2543/2543, App 2312/2312, Import 430/430, Ocr 34/34.
 
+**Befund Stufe 1 (CC, 26.11.2026):**
+- Doku gegen Code und Pin: README (Feature, Hauling-Daten, Known issues, Credits, P2), Design §9.2/§9.4, settings-format
+  (Map, Rückweg auf v0.7.0), routes-format (B18), CLAUDE.md, Nexus, Shot-Liste P1–P5; Zahlen per
+  `BaselineHaulingDataTests` 21/21 (587 Templates, 157 Positionen, Boards 92/88/91/89, lokal 23/19/22/20, Pyro je
+  Fraktion 31). Wiki-Branch `v0.8.0` (`b3e7eb6`, lokal): neue Seite `Plan-tab`, 12 Seiten nachgezogen; Link-Check 150
+  interne Links, 0 kaputt (Gegenprobe: 2 von 2 gemeldet).
+- **Downgrade-Hinweis nötig** (Präzisierung zum Startprompt „kein Downgrade-Hinweis nötig“): v0.7.0 liest settings.json
+  strikt (`UnmappedMemberHandling.Disallow`) und startet mit einer Datei mit `routes` mit Defaults; belegt in Martins
+  Log 26.11. 12:12 (`Settings not loaded, using defaults (The JSON property 'routes' could not be mapped …)`). plan.json
+  11 und Missions-JSON 5 lesen beide Versionen, `routes.json` kennt v0.7.0 nicht. → Notes „Files“, Wiki Installation
+  und Troubleshooting.
+- **Changed für Bestandsnutzer** (für die Notes): „Discard plan“ → „Discard cargo“, „No plan. …“ → „No cargo. …“,
+  `Already in plan` → `Already in cargo` (U4, `b3ecacd`); Legendenkopf „· to HUR-L5 ·“ (`b58f6d5`); im Wiki 8 Stellen
+  mit altem Wortlaut nachgezogen. „fits as / too big for“ steht nur in der `Observed`-Notice (Plan-Reiter gewählt).
+- SignPath: kein Treffer mehr (P5). `0.7`-Grep: übrig nur Geschichte und richtige Spannen.
+- **v0.7.0-Gegencheck (P4) bestanden:** Ergebnis im Abschlussvermerk von
+  [`phase-13-cargo-routes.md`](docs/tasks-archive/phase-13-cargo-routes.md).
+- Offen für Halt 1: Screenshots P1, P3, P4, P5 (P2 nice) von Martin.
+
 **Nachmessen Stufe 3 (Ergänzung aus B18, Martin):** eigener Plan mit Extras → „›“ ×2 → Neustart → Plan-Reiter
 vollständig, Leiste am selben Stopp – am veröffentlichten ZIP.
 
