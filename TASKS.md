@@ -1315,9 +1315,16 @@ ratifiziert“, E1, E2):**
   die E2-Zeile.
 - Martin: eigener Plan mit Extras → „›“ ×2 → Neustart → Reiter vollständig, Leiste am selben Stopp.
 
+**Gate CC (26.11.2026, bestanden):** Dev-Build mit `--data-dir` auf einer Kopie von Martins Datei: `Routes: route position
+6 is outside the 4 stations – bar reset to start`, `Routes: 13 observations: 12 matched, 0 ambiguous, 1 none`, `station
+Everus Harbor (0/5)`; kein `Routes not loaded`; `routes.json` unverändert (13 898 B, K4). Nebenbei `Hauling: 587
+templates, 157 positions, 0 left out, 50 ms`.
+
+**Abnahme erteilt (26.11.2026, Martin: „Gate bestanden, B18 abgenommen“).**
+
 **Akzeptanz:**
-- [ ] Gate CC und Gate Martin
-- [ ] Merge `--no-ff` nach `main` nach Martins Abnahme, dann `main` → `release/v0.8.0`; Abschnitt beim Schließen ins
+- [x] Gate CC und Gate Martin
+- [x] Merge `--no-ff` nach `main` nach Martins Abnahme, dann `main` → `release/v0.8.0`; Abschnitt beim Schließen ins
   Archiv (K11)
 
 ---
