@@ -155,6 +155,22 @@ public sealed class RouteMapViewTests
     });
 
     [Fact]
+    public void An_arrow_head_sits_in_the_middle_of_its_line_and_is_ten_pixels_long() => Sta.Run(() =>
+    {
+        // Gate finding 7b (Martin): a little larger, in the middle of the line, not at its end.
+        var view = Shown(Model([T([Everus], [Baijini])]).Map!);
+        view.Project(RouteMapView.MaxZoom, default);
+
+        var line = Lines(view).Single();
+        var head = Geometries(view).OfType<StreamGeometry>().Single().Bounds;
+        var middle = new Point((line.A.X + line.B.X) / 2, (line.A.Y + line.B.Y) / 2);
+
+        (head.X + (head.Width / 2) - middle.X).Should().BeInRange(-3, 3);
+        (head.Y + (head.Height / 2) - middle.Y).Should().BeInRange(-3, 3);
+        Math.Max(head.Width, head.Height).Should().BeGreaterThanOrEqualTo(RouteMapView.ArrowLength - 0.5);
+    });
+
+    [Fact]
     public void The_wheel_zooms_about_the_pointer_and_fit_goes_back() => Sta.Run(() =>
     {
         var view = Shown(Model([T([Everus], [Baijini])]).Map!);
@@ -208,7 +224,30 @@ public sealed class RouteMapViewTests
 
     private static Rect Box(TextBlock block) => new(Canvas.GetLeft(block), Canvas.GetTop(block), block.ActualWidth, block.ActualHeight);
 
-    private sealed record Line(string? From, string? To, bool Dashed, bool Dimmed, bool Route, Brush Brush, double Thickness);
+    private sealed record Line(string? From, string? To, bool Dashed, bool Dimmed, bool Route, Brush Brush, double Thickness, Point A = default, Point B = default);
+
+    // Every geometry the drawing holds.
+    private static List<Geometry> Geometries(RouteMapView view)
+    {
+        List<Geometry> all = [];
+        void Walk(Drawing d)
+        {
+            if (d is DrawingGroup g)
+            {
+                foreach (var child in g.Children)
+                {
+                    Walk(child);
+                }
+            }
+            else if (d is GeometryDrawing { Geometry: { } geometry })
+            {
+                all.Add(geometry);
+            }
+        }
+
+        Walk(VisualTreeHelper.GetDrawing(Host(view)) ?? new DrawingGroup());
+        return all;
+    }
 
     // The drawing's lines, told apart by their pens; each mapped back to its edge or leg by its ends.
     private static List<Line> Lines(RouteMapView view)
@@ -230,7 +269,7 @@ public sealed class RouteMapViewTests
                     break;
                 case GeometryDrawing { Geometry: LineGeometry line, Pen: { } pen }:
                     var route = pen.Brush == view.TryFindResource("NoticeForegroundBrush");
-                    lines.Add(new Line(Near(line.StartPoint), Near(line.EndPoint), pen.DashStyle != DashStyles.Solid, dimmed, route, pen.Brush, pen.Thickness));
+                    lines.Add(new Line(Near(line.StartPoint), Near(line.EndPoint), pen.DashStyle != DashStyles.Solid, dimmed, route, pen.Brush, pen.Thickness, line.StartPoint, line.EndPoint));
                     break;
             }
         }

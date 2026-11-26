@@ -37,9 +37,10 @@ public sealed class RouteMapView : Canvas
 
     private const double DimmedOpacity = 0.25;
 
-    private const double ArrowLength = 7;
+    /// <summary>An arrow head's length along its line (gate finding 7b: a little larger, was 7).</summary>
+    public const double ArrowLength = 10;
 
-    private const double ArrowHalfWidth = 3;
+    private const double ArrowHalfWidth = 4.5;
 
     private const double RouteThickness = 3;
 
@@ -473,8 +474,9 @@ public sealed class RouteMapView : Canvas
         }
     }
 
-    // The arrow's head at b, pointing from a; only at the most zoom (gate finding 7b, Martin: below it, too much). The
-    // way back is the line beside (two-way offset), the route's order its numbers.
+    // The arrow's head in the middle of a → b, pointing to b; only at the most zoom (gate finding 7b, Martin: below it, too
+    // much). The way back is the line beside (two-way offset), the route's order its numbers. It covers an observed
+    // edge's mark at the middle; the solid line still says observed.
     private void Arrow(DrawingContext dc, MapPoint a, MapPoint b, Brush brush)
     {
         var (dx, dy) = (b.X - a.X, b.Y - a.Y);
@@ -484,12 +486,15 @@ public sealed class RouteMapView : Canvas
             return;
         }
 
+        // In the middle of the line (gate finding 7b, Martin): the tip half a head ahead of it, the base half behind.
         var (ux, uy) = (dx / length, dy / length);
-        var (bx, by) = (b.X - (ux * ArrowLength), b.Y - (uy * ArrowLength));
+        var (mx, my) = ((a.X + b.X) / 2, (a.Y + b.Y) / 2);
+        var tip = new Point(mx + (ux * ArrowLength / 2), my + (uy * ArrowLength / 2));
+        var (bx, by) = (mx - (ux * ArrowLength / 2), my - (uy * ArrowLength / 2));
         var head = new StreamGeometry();
         using (var g = head.Open())
         {
-            g.BeginFigure(P(b), true, true);
+            g.BeginFigure(tip, true, true);
             g.LineTo(new Point(bx - (uy * ArrowHalfWidth), by + (ux * ArrowHalfWidth)), false, false);
             g.LineTo(new Point(bx + (uy * ArrowHalfWidth), by - (ux * ArrowHalfWidth)), false, false);
         }
