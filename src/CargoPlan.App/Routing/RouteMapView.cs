@@ -300,7 +300,9 @@ public sealed class RouteMapView : Canvas
 
     private void Rebuild() => Rebuild(new Size(ActualWidth, ActualHeight));
 
-    // A new scene or size: the layout when the nodes or the size are new (then fit), the labels for the graph's nodes.
+    // A new scene or size: the layout when the nodes or the size are new, the labels for the graph's nodes. The zoom stays
+    // and the pan follows the new scale, so the part of the map in the middle stays there (gate finding 7b, Martin: the
+    // window resized, or the custom route's bar taking room, reset the zoom). Fit only on opening and by double click.
     private void Rebuild(Size size)
     {
         CloseTip();
@@ -314,9 +316,11 @@ public sealed class RouteMapView : Canvas
         if (!ReferenceEquals(scene.Universe, _laidOut) || size != _laidOutFor)
         {
             var style = TryFindResource(LabelStyleKey) as Style;
+            var before = _layout;
             _layout = MapLayout.For(scene.Universe, new MapSize(size.Width, size.Height), text => Measure(text, style));
             (_laidOut, _laidOutFor) = (scene.Universe, size);
-            (Zoom, _pan) = (1, default);
+            var ratio = before is { PixelsPerGm: > 0 } old ? _layout.PixelsPerGm / old.PixelsPerGm : 0;
+            _pan = new MapPoint(_pan.X * ratio, _pan.Y * ratio);
         }
 
         ClearLabels();

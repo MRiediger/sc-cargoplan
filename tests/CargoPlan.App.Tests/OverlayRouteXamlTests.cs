@@ -54,6 +54,7 @@ public class OverlayRouteXamlTests
         ((string?)map.Attribute("Palette")).Should().Contain("StopPalette");
         ((string?)view.Attribute("Visibility")).Should().Contain("ShowsMap");
         ((string?)Named(root, "CustomBar").Attribute("Visibility")).Should().Contain("HasCustom");
+        ((string?)Named(root, "CustomBar").Attribute("DockPanel.Dock")).Should().Be("Bottom", "under the map (gate finding 7b, Martin)");
         ((string?)Named(root, "ClearCustomButton").Attribute("Command")).Should().Be("{Binding ClearCustomCommand}");
 
         var row = Named(root, "StartPlanButton").Parent!;

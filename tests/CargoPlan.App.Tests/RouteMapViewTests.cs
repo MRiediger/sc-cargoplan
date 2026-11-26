@@ -117,6 +117,29 @@ public sealed class RouteMapViewTests
     });
 
     [Fact]
+    public void A_new_size_or_a_new_scene_keeps_the_zoom_and_the_part_of_the_map_in_the_middle() => Sta.Run(() =>
+    {
+        // Gate finding 7b (Martin): resizing the window or a click on an edge (its plan's bar takes room) reset the zoom.
+        var model = Model([T([Everus], [L1]), T([Everus], [Baijini])]);
+        var view = Shown(model.Map!);
+        view.ZoomAt(new Point(700, 200), 360);
+        var (zoom, pan, scale) = (view.Zoom, view.Pan, view.Layout!.PixelsPerGm);
+
+        view.Measure(new Size(1100, 560));
+        view.Arrange(new Rect(0, 0, 1100, 560));
+        view.UpdateLayout();
+
+        view.Zoom.Should().Be(zoom);
+        var ratio = view.Layout!.PixelsPerGm / scale;
+        ratio.Should().BeLessThan(1, "a smaller view lays the system out smaller");
+        (view.Pan.X, view.Pan.Y).Should().Be((pan.X * ratio, pan.Y * ratio), "the point in the middle stays in the middle");
+
+        var before = view.Pan;
+        view.Scene = model.Map! with { Hub = null };
+        (view.Zoom, view.Pan).Should().Be((zoom, before), "a new scene over the same nodes is no new layout");
+    });
+
+    [Fact]
     public void The_wheel_zooms_about_the_pointer_and_fit_goes_back() => Sta.Run(() =>
     {
         var view = Shown(Model([T([Everus], [Baijini])]).Map!);

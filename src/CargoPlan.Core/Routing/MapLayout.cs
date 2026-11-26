@@ -58,10 +58,11 @@ public sealed class MapLayout
 
     private const double Octant = Math.PI / 4;
 
-    private MapLayout(MapSize view, MapPoint centre, IReadOnlyDictionary<string, MapPoint> points, IReadOnlyDictionary<string, MapLabel> labels)
+    private MapLayout(MapSize view, MapPoint centre, double pixelsPerGm, IReadOnlyDictionary<string, MapPoint> points, IReadOnlyDictionary<string, MapLabel> labels)
     {
         View = view;
         Centre = centre;
+        PixelsPerGm = pixelsPerGm;
         Points = points;
         Labels = labels;
     }
@@ -70,6 +71,9 @@ public sealed class MapLayout
 
     /// <summary>The star: the view's centre.</summary>
     public MapPoint Centre { get; }
+
+    /// <summary>The scale at zoom 1: pixels per Gm from the star. A new size keeps the zoom and scales the pan by its ratio (gate 7b).</summary>
+    public double PixelsPerGm { get; }
 
     /// <summary>Each node's place at zoom 1, by <see cref="MapNode.Key"/>.</summary>
     public IReadOnlyDictionary<string, MapPoint> Points { get; }
@@ -109,7 +113,7 @@ public sealed class MapLayout
         var polar = ordered.ToDictionary(n => n.Key, n => Polar(n, centre, scale), StringComparer.Ordinal);
         var (points, anchors) = Spread(ordered, polar);
         var labels = Place(ordered, points, anchors, centre, view, labelSize);
-        return new MapLayout(view, centre, points, labels);
+        return new MapLayout(view, centre, scale, points, labels);
     }
 
     // Hubs, surfaces, the rest: the order in which clusters choose their anchor and labels their place.

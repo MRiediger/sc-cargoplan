@@ -1124,6 +1124,20 @@ E Timing, Hinweis Radius):**
   | 6 Loops → LEO-Ring „Start plan“ | an Baijini/PT stehen dessen Verträge an ihrer Station, nicht mehr am Start | LEO-Fix |
   | 7 Ohne Entwurf: Map, Matrix, Cargo-Reiter | wie 7a / main | Invariante |
 
+- **Gate 7b angepasst (26.11.):** Martins `routes.json` hat keine Kante zwischen Everus und Baijini (nur Senior 339 500 von
+  ARC-L1 nach Baijini/Everus/PT); der §8.6-Ring und die LEO-Schritte 1–3 und 6 waren damit nicht nachbaubar. Gate auf
+  Martins Kanten: Teil A Everus-Ring per Klick (Klick, Rechtsklick, Rückläufer, Klickfolge, Clear), Teil B Vertrag
+  unterwegs über ARC-L1 (Baijini → ARC-L1 → PT, `acceptAt` ARC-L1, Start, Leiste, Finish mit `custom`), Teil C wie 7a; der
+  LEO-Fix ist durch `LoopsTests` belegt, die §8.6-Summe durch `CustomPlanTests`. Kopie des Datenordners mit `--data-dir`.
+- **Gate-Befund 7b (Martin, 26.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** (1) Fenstergröße
+  ändern und Linksklick auf eine Kante setzten die Karte zurück (wieder reinzoomen nötig); sie muss in der gewählten
+  Zoomstufe bleiben. Ursache: jede neue Größe (auch die, die die Leiste des eigenen Plans der Karte nimmt) baute das
+  Layout neu und setzte Zoom und Pan auf Fit. Fix: bei neuer Größe oder neuen Knoten bleibt der Zoom, der Pan folgt dem
+  neuen Maßstab (`MapLayout.PixelsPerGm`), der Ausschnitt in der Mitte bleibt; Fit nur beim Öffnen der Ansicht und per
+  Doppelklick (D128-Addendum). (2) „Own plan from …“ unter die Karte statt darüber. Tests:
+  `RouteMapViewTests.A_new_size_or_a_new_scene_keeps_the_zoom_and_the_part_of_the_map_in_the_middle` (Gegenprobe mit dem
+  alten Zurücksetzen → rot), `OverlayRouteXamlTests.The_map_sits_beside_…` (Leiste unten).
+
 ### [ ] T13.8 Release v0.8.0
 
 **Warum:** Ohne Release erreicht die Phase keinen Hauler.
