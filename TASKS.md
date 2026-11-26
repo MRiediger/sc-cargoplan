@@ -1167,6 +1167,23 @@ E Timing, Hinweis Radius):**
   `SettingsWindowXamlTests.The_plan_tab_section_binds_rank_and_faction` (Regler), `OverlayRouteXamlTests.The_map_sits_beside_…`
   (bindet `MapLegendHeight`), `CustomBarHeightTests.The_bars_highest_height_is_its_own_share_of_the_overlay_from_inside_the_plan_tabs_template`
   (Nachfolger von `…_is_the_legends_share_…`). Gegenproben: ohne Bereichsprüfung → 2 rot; Plan-Reiter folgt nicht → 1 rot.
+- **Gate-Befund 7a/7b (Martin, 26.11.) – Route auf der Karte. Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+  Befund „Orange zeigt die Vertragskanten (Speichen), nicht die Flugfolge“ geprüft: Orange **war** die Flugfolge (`Legs`,
+  3 px); die Speichen waren die Kanten des Filters in Rangfarbe (Okabe-Ito Senior Vermillion, Trainee Orange) und die Legs ab
+  den neben Everus gespreizten L1/L2; die Verträge der Route waren gar nicht markiert. Umgesetzt (Martins Wahl nach der
+  Rückfrage, D128-Addendum): Verträge der Route orange durchgezogen (Platzhalter: acceptAt bzw. Hub und collectAt → Ziele),
+  Flugfolge gepunktet (2 px alle 6 px, 1 px dunkler Halo `MapHaloBrush`, Auflage 1), Stationsnummern als orange Pillen oben
+  links (Hub ohne), Extras orange gestrichelt mit Tooltip „A → B: not in your plan“ + „+ #4 extra · …“ (`MapExtra.Of` aus dem
+  Plan, `ActiveRouteViewModel.ExtraWays`), Rest auf 25 % ohne Fokus (lit = Route ∪ Extras ∪ Entwurf, Auflage 3), Hilfezeile
+  „· orange: your plan“. Entwurf (7b) im selben Schema in Weiß (R1), Pillen oben rechts (Auflage 2). Neu `Core/Routing/MapPlan.cs`
+  (`MapPlan`, `MapContract`, `MapExtra`, `MapPlanLines`, `MapExtraEdge`); `RouteMap.Active`/`Draft`/`Extras`/`Extra()` statt
+  `Legs`/`Numbers`/`DraftLegs`. Tests: `RouteMapBaselineTests.The_Everus_rings_stations_are_numbered_L1_1_L4_2_L3_3_L5_4_L2_5_…`
+  (Pin, Hull B: Pillen L1=1, L4=2, L3=3, L5=4, L2=5, Akzentlinie = Legs, Rest gedimmt), `RouteMapTests` (+4: Entwurfsnummern,
+  lit ohne Fokus, Vertragskanten, Extras), `MapPlanTests` (2), `RouteMapViewTests` (+5: gedimmt mit Route, Halo, Entwurf weiß,
+  zwei Pillen ohne Überlappung, Extra-Tooltip), `RoutesMapViewModelTests` (Hilfezeile, Extras), `RouteScanTests.The_map_draws_an_extra_…`.
+  Gegenproben: Rest nicht gedimmt → 2 rot; Entwurfskanten gedimmt → 1 rot; Nummer am Hub → 3 rot; Vertragskanten = Legs →
+  4 rot; Entwurfspille links → 1 rot. Sichtprüfung am Pin-Bild (Everus-Ring, 6× auf Everus): mit 1,5 px alle 5 px schluckte der
+  Halo den Punkt, daher 2 px alle 6 px; die Abnahme des Aussehens bleibt bei Martin.
 
 ### [ ] T13.8 Release v0.8.0
 

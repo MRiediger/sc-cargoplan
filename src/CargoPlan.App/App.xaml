@@ -12,6 +12,8 @@
         <SolidColorBrush x:Key="LockedForegroundBrush" Color="#FFFFB000" />
         <!-- Notice lines (settings, hotkeys, plan file): same amber, they ask for attention the same way. -->
         <SolidColorBrush x:Key="NoticeForegroundBrush" Color="#FFFFB000" />
+        <!-- Map (gate finding 7a/7b): the halo round a plan's dots and the numbers in its pills, the window's dark. -->
+        <SolidColorBrush x:Key="MapHaloBrush" Color="#FF141414" />
         <!-- Legend line of a delivered stop: dimmed, but lighter than the delivered cell grey, which is unreadable as text. -->
         <SolidColorBrush x:Key="DeliveredForegroundBrush" Color="#FF8C8C8C" />
         <!-- Lock window sits on the overlay's background and adds none of its own. Alpha 1, not 0:

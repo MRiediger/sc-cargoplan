@@ -147,6 +147,14 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
     [ObservableProperty]
     public partial IReadOnlyList<string> ExtraRows { get; private set; } = [];
 
+    /// <summary>The extras' pickups to their stops, for the map (gate finding 7a/7b): drawn dashed in the route's colour.</summary>
+    [ObservableProperty]
+    public partial IReadOnlyList<MapExtra> ExtraWays { get; private set; } = [];
+
+    /// <summary>"+ #4 extra · 160,250 aUEC": an extra's line in the block and its tool tip on the map.</summary>
+    public static string ExtraText(int scanNo, long? reward) =>
+        reward is { } aUEC ? Invariant($"+ #{scanNo} extra · {aUEC:N0} aUEC") : Invariant($"+ #{scanNo} extra");
+
     /// <summary>Asks before a second route replaces the first; the window sets the dialog (ConfirmReplan's pattern), tests a stub.</summary>
     public Func<string, bool> ConfirmReplace { get; set; } = _ => false;
 
@@ -324,7 +332,7 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
     {
         if (Route is not { } route)
         {
-            (Header, Rows, BackRows, ExtraRows) = (null, [], [], []);
+            (Header, Rows, BackRows, ExtraRows, ExtraWays) = (null, [], [], [], []);
             (StationText, StationToolTip, StationRows, IsAtEnd, CanGoBack, _progress) = (null, null, [], false, false, null);
             NextStationCommand.NotifyCanExecuteChanged();
             return;
@@ -335,8 +343,12 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
         Header = Invariant($"{(IsBlockOpen ? "▾" : "▸")} Plan: {route.Name} · {route.FilledCount(keys)}/{route.Placeholders.Count} filled · Σ {route.OutboundReward:N0} out · +{route.BackReward:N0} back");
         Rows = [.. route.Outbound.Select(p => Row(p, keys, missions))];
         BackRows = [.. route.Back.Select(p => Row(p, keys, missions))];
-        ExtraRows = [.. route.Extras.Where(missions.ContainsKey).Select(k => missions[k].Contract!).Select(c =>
-            c.Reward is { } reward ? Invariant($"+ #{c.Scan.No} extra · {reward:N0} aUEC") : Invariant($"+ #{c.Scan.No} extra"))];
+        ExtraRows = [.. route.Extras.Where(missions.ContainsKey).Select(k => missions[k].Contract!).Select(c => ExtraText(c.Scan.No, c.Reward))];
+        var ways = MapExtra.Of(route, _saved, _positions);
+        if (!ways.SequenceEqual(ExtraWays))
+        {
+            ExtraWays = ways;
+        }
         BuildBar(route);
     }
 

@@ -85,12 +85,73 @@ public sealed class RouteMapTests
         // T13.7b (design §8.4.1): along the route chosen so far.
         var matrix = PortMatrix.Build([T([Everus], [L1]), T([L1], [L5]), T([L5], [Everus]), T([Baijini], [Everus]), T([L5], [Baijini])], All);
 
-        var map = Map(matrix, focus: Everus, draft: [L1, L5]);
+        var map = Map(matrix, focus: Everus, draft: Draft([L1, L5]));
 
         map.Edges.Where(map.IsLit).Select(e => (e.From, e.To)).Should().BeEquivalentTo(
             [(Everus, L1), (L1, L5), (L5, Everus), (L5, Baijini), (Baijini, Everus)], "Baijini is reached from L5, its way back lights");
-        map.DraftLegs.Should().Equal((Everus, L1), (L1, L5), (L5, Everus));
-        Map(matrix, focus: Everus).DraftLegs.Should().BeEmpty();
+        map.Draft.Legs.Should().Equal((Everus, L1), (L1, L5), (L5, Everus));
+        Map(matrix, focus: Everus).Draft.Legs.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void A_drafts_numbers_grow_with_each_click_and_its_contracts_are_its_edges()
+    {
+        // Gate finding 7a/7b: the custom route in the active route's scheme, its numbers in click order.
+        var matrix = PortMatrix.Build([T([Everus], [L1]), T([L1], [L5]), T([L5], [Everus])], All);
+
+        var one = Map(matrix, focus: Everus, draft: Draft([L1], new MapContract(null, [], [L1])));
+        var two = Map(matrix, focus: Everus, draft: Draft([L1, L5], new MapContract(null, [], [L1]), new MapContract(L1, [], [L5])));
+
+        one.Draft.Numbers.Should().BeEquivalentTo(new Dictionary<string, string> { [L1] = "1" });
+        two.Draft.Numbers.Should().BeEquivalentTo(new Dictionary<string, string> { [L1] = "1", [L5] = "2" });
+        two.Draft.Edges.Should().Equal((Everus, L1), (L1, L5));
+    }
+
+    [Fact]
+    public void Without_a_focus_the_routes_and_the_drafts_contracts_and_the_extras_are_lit_the_rest_dimmed()
+    {
+        // Gate finding 7a/7b (Martin's condition 3): lit = route edges ∪ draft edges ∪ extras; the rest at 25 %.
+        var matrix = PortMatrix.Build([T([Everus], [L1]), T([L1], [Everus]), T([Everus], [L5]), T([L5], [Baijini]), T([Baijini], [Everus])], All);
+        var route = Ring([L1], new Placeholder(1, RecipeKind.Bulk, "a", "To L1", 1, [Leg()], [L1]));
+
+        var routeOnly = Map(matrix, route: route);
+        var withDraft = Map(matrix, route: route, draft: Draft([L5], new MapContract(L5, [], [Baijini])));
+        var withExtra = Map(matrix, route: route, extras: [new MapExtra(Baijini, Everus, 4, 160_250)]);
+
+        Lit(routeOnly).Should().BeEquivalentTo([(Everus, L1)]);
+        Lit(withDraft).Should().BeEquivalentTo([(Everus, L1), (L5, Baijini)], "the draft's contracts are lit too, without a focus");
+        Lit(withExtra).Should().BeEquivalentTo([(Everus, L1), (Baijini, Everus)]);
+        Lit(Map(matrix, focus: Everus, route: route)).Should().BeEquivalentTo([(Everus, L1), (Everus, L5), (L1, Everus)], "a focus keeps its own rule");
+    }
+
+    [Fact]
+    public void A_routes_contract_edges_go_from_where_each_is_accepted_and_collected_to_its_destinations()
+    {
+        var route = Ring(
+            [L1, L5, Baijini],
+            new Placeholder(1, RecipeKind.Bulk, "a", "Out", 1, [Leg()], [L1, "Lorville"]),
+            new Placeholder(2, RecipeKind.Return, "b", "Back", 1, [Leg()], [Everus], AcceptAt: L5, CollectAt: [Baijini]),
+            new Placeholder(3, RecipeKind.Bulk, "c", "On the way", 1, [Leg()], [Baijini], AcceptAt: L1),
+            new Placeholder(4, RecipeKind.Bulk, "d", "Same edge", 1, [Leg()], [L1]));
+
+        var map = Map(PortMatrix.Build([T([Everus], [L1])], All), route: route);
+
+        map.Active.Edges.Should().BeEquivalentTo([(Everus, L1), (Everus, Surface), (L5, Everus), (Baijini, Everus), (L1, Baijini)]);
+        map.Active.Numbers.Should().NotContainKey(Everus, "the hub has no number");
+    }
+
+    [Fact]
+    public void An_extra_draws_between_its_nodes_unless_a_contract_of_the_route_joins_them_or_one_node_holds_both()
+    {
+        var route = Ring([L1], new Placeholder(1, RecipeKind.Bulk, "a", "To L1", 1, [Leg()], [L1]));
+        MapExtra[] extras = [new(Everus, L1, 3, 10), new(Baijini, Everus, 4, 160_250), new(Baijini, Everus, 5, null), new("Lorville", "Ita", 6, 1)];
+
+        var map = Map(PortMatrix.Build([T([Everus], [L1])], All), route: route, extras: extras);
+
+        map.Extras.Should().ContainSingle().Which.Should().BeEquivalentTo(new MapExtraEdge(Baijini, Everus, [extras[1], extras[2]]));
+        map.Extra(Baijini, Everus).Should().NotBeNull();
+        map.Nodes.Select(n => n.Key).Should().Contain(Baijini);
+        Map(PortMatrix.Build([T([Everus], [L1])], All), extras: extras).Extras.Should().BeEmpty("extras belong to a route");
     }
 
     [Fact]
@@ -109,8 +170,8 @@ public sealed class RouteMapTests
 
         var map = Map(PortMatrix.Build([T([Baijini], [Everus])], All), route: route);
 
-        map.Legs.Should().Equal((Everus, L1), (L1, L5), (L5, Surface), (Surface, Everus));
-        map.Numbers.Should().BeEquivalentTo(new Dictionary<string, string> { [L1] = "1", [L5] = "2", [Surface] = "3" });
+        map.Active.Legs.Should().Equal((Everus, L1), (L1, L5), (L5, Surface), (Surface, Everus));
+        map.Active.Numbers.Should().BeEquivalentTo(new Dictionary<string, string> { [L1] = "1", [L5] = "2", [Surface] = "3" });
         map.Nodes.Select(n => n.Key).Should().Contain([Everus, L1, L5, Surface, Baijini]);
     }
 
@@ -121,8 +182,9 @@ public sealed class RouteMapTests
 
         var map = Map(PortMatrix.Build([T([Everus], [L1])], All), route: route);
 
-        map.Legs.Should().BeEmpty();
-        map.Numbers.Should().BeEmpty();
+        map.Active.Legs.Should().BeEmpty();
+        map.Active.Numbers.Should().BeEmpty();
+        map.Active.Edges.Should().BeEmpty();
     }
 
     [Theory]
@@ -173,9 +235,18 @@ public sealed class RouteMapTests
         (c.Y, d.Y).Should().Be((MapGeometry.TwoWayOffsetPx, MapGeometry.TwoWayOffsetPx), "right of the way along +x with y down");
     }
 
-    private static RouteMap Map(PortMatrix matrix, string? focus = null, Route? route = null, IReadOnlyList<string>? draft = null)
+    private static RouteMap Map(PortMatrix matrix, string? focus = null, Route? route = null, MapPlan? draft = null, IReadOnlyList<MapExtra>? extras = null)
     {
         var nodeOf = MapNodes.For(Places.All.Select(p => p.Name), Places, StarSystem.Stanton);
-        return RouteMap.Build(matrix, nodeOf, StarSystem.Stanton, focus, route, draft);
+        return RouteMap.Build(matrix, nodeOf, StarSystem.Stanton, focus, route, draft, extras);
     }
+
+    private static MapPlan Draft(IReadOnlyList<string> stations, params MapContract[] contracts) => new(Everus, stations, contracts);
+
+    private static Route Ring(IReadOnlyList<string> stations, params Placeholder[] placeholders) =>
+        new("Everus Harbor ring", DateTime.UtcNow, Everus, LoopKind.LocalRing, StarSystem.Stanton, stations, placeholders, []);
+
+    private static HaulLeg Leg() => new("Agricium", 10, 20, Models.CrateSize.Four);
+
+    private static IEnumerable<(string From, string To)> Lit(RouteMap map) => map.Edges.Where(map.IsLit).Select(e => (e.From, e.To));
 }

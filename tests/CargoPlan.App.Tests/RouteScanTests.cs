@@ -274,10 +274,24 @@ public sealed class RouteScanTests : IDisposable
         routes.IsMap.Should().BeTrue();
 
         overlay.ActiveRoute!.Start(Planned).Should().BeTrue();
-        routes.Map!.Graph.Legs.Should().NotBeEmpty().And.HaveCount(Planned.Stations.Count + 1, "hub, every station, hub");
+        routes.Map!.Graph.Active.Legs.Should().NotBeEmpty().And.HaveCount(Planned.Stations.Count + 1, "hub, every station, hub");
 
         overlay.ActiveRoute.EndCommand.Execute(null);
-        routes.Map!.Graph.Legs.Should().BeEmpty();
+        routes.Map!.Graph.Active.Legs.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task The_map_draws_an_extra_of_the_route_from_its_pickup_to_its_stop()
+    {
+        // Gate finding 7a/7b: the scan makes an extra (no placeholder), the overlay hands its way to the map.
+        var overlay = Overlay(Planned with { Placeholders = [] });
+        var routes = overlay.Routes!;
+        routes.PreviousCommand.Execute("view");
+
+        await Scan(overlay, Raw(View.Accepted));
+
+        overlay.ActiveRoute!.ExtraWays.Should().Equal(new MapExtra("Everus Harbor", "Riker", 1, 50_250));
+        routes.Map!.Graph.Extras.Should().ContainSingle().Which.Should().BeEquivalentTo(new { From = "Everus Harbor", To = "Riker" });
     }
 
     [Fact]

@@ -10,6 +10,7 @@ namespace CargoPlan.App.Routing;
 /// <param name="Universe">Every node the system's templates can name: the layout is made of these.</param>
 /// <param name="Hub">The recipe's hub (routes.hub or the session's, D123 addendum), ringed; null outside Stanton.</param>
 /// <param name="CanPick">A station is in focus and a ship known: a click on a lit edge adds to the custom route (T13.7b).</param>
+/// <param name="ExtraToolTip">For an extra of the active route where no edge of the filter lies (gate finding 7a/7b); null: none.</param>
 public sealed record MapScene(
     RouteMap Graph,
     IReadOnlyList<MapNode> Universe,
@@ -17,4 +18,5 @@ public sealed record MapScene(
     string? Hub,
     Func<MapEdge, string> EdgeToolTip,
     Func<MapNode, string> NodeToolTip,
-    bool CanPick = false);
+    bool CanPick = false,
+    Func<MapExtraEdge, string>? ExtraToolTip = null);

@@ -61,6 +61,33 @@ public class RouteMapBaselineTests(ITestOutputHelper output)
         Enumerable.Range(1, 3).Should().OnlyContain(s => map.Edges.Count(e => e.Strength == s) >= sums.Length / 6, "each strength draws a fair share");
     }
 
+    [Fact]
+    public void The_Everus_rings_stations_are_numbered_L1_1_L4_2_L3_3_L5_4_L2_5_its_order_the_legs_and_its_contracts_lit()
+    {
+        // Gate finding 7a/7b (Martin): the badges in the order flown, the hub without; the dotted line = the legs.
+        const string everus = "Everus Harbor";
+        var ring = Loops.For(Data.Value.Templates, Data.Value.Positions, ObservedEdges.Empty, FrozenShips.Load("hull_b"), HaulRank.Senior, null, everus)
+            .Single(c => c.Kind == LoopKind.LocalRing && c.Start == everus);
+        var route = Route.From(ring, "Everus Harbor ring", ObservedEdges.Empty, DateTime.UtcNow);
+        var nodeOf = NodeOf(StarSystem.Stanton);
+
+        var map = RouteMap.Build(PortMatrix.Build(Data.Value.Templates, RouteFilter.Default with { MaxRank = HaulRank.Senior }), nodeOf, StarSystem.Stanton, route: route);
+
+        map.Active.Numbers.ToDictionary(n => PlaceNames.Short(n.Key), n => n.Value).Should().BeEquivalentTo(
+            new Dictionary<string, string> { ["HUR-L1"] = "1", ["HUR-L4"] = "2", ["HUR-L3"] = "3", ["HUR-L5"] = "4", ["HUR-L2"] = "5" });
+        string[] trip = [everus, .. ring.Stations, everus];
+        map.Active.Legs.Should().Equal(trip.Zip(trip.Skip(1)).Select(l => (nodeOf[l.First].Key, nodeOf[l.Second].Key)));
+        var placeholderEdges = route.Placeholders
+            .SelectMany(p => new[] { p.AcceptAt ?? everus }.Concat(p.CollectAt ?? []).SelectMany(from => p.Destinations.Select(to => (nodeOf[from].Key, nodeOf[to].Key))))
+            .Where(e => e.Item1 != e.Item2)
+            .ToHashSet();
+        map.Active.Edges.Should().NotBeEmpty();
+        map.Active.Edges.ToHashSet().Should().BeEquivalentTo(placeholderEdges);
+        HashSet<(string, string)> active = [.. map.Active.Edges];
+        map.Edges.Where(e => map.IsLit(e) && !active.Contains((e.From, e.To))).Should().BeEmpty("the rest is dimmed while the route runs");
+        output.WriteLine(string.Join(", ", map.Active.Edges.Select(e => $"{PlaceNames.Short(e.From)} → {PlaceNames.Short(e.To)}")));
+    }
+
     private static IReadOnlyDictionary<string, MapNode> NodeOf(StarSystem system)
     {
         var everything = PortMatrix.Build(Data.Value.Templates, RouteFilter.Everything(system));

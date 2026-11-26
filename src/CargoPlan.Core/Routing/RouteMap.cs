@@ -41,7 +41,7 @@ public sealed record MapEdge(string From, string To, IReadOnlyList<MapEdgePart> 
 
 /// <summary>
 /// The map's graph (T13.7, D128) of one port matrix: its cells as directed edges between the map's nodes
-/// (<see cref="MapNodes"/>), the nodes that have one, the focus and the active route's legs. Pure; the app lays it out
+/// (<see cref="MapNodes"/>), the nodes that have one, the focus, and the lines of the active route and the draft. Pure; the app lays it out
 /// (<see cref="MapLayout"/>) and draws it.
 /// </summary>
 public sealed class RouteMap
@@ -58,19 +58,21 @@ public sealed class RouteMap
     private readonly Dictionary<(string, string), MapEdge> _edges;
     private readonly HashSet<(string, string)>? _lit;
     private readonly Dictionary<string, MapNodeFigures> _figures;
+    private readonly Dictionary<(string, string), MapExtraEdge> _extras;
 
     private RouteMap(
         IReadOnlyList<MapNode> nodes, Dictionary<(string, string), MapEdge> edges, string? focus, HashSet<(string, string)>? lit,
-        IReadOnlyList<(string From, string To)> legs, IReadOnlyDictionary<string, string> numbers, int insideOneNode, IReadOnlyList<(string From, string To)> draftLegs)
+        MapPlanLines active, MapPlanLines draft, Dictionary<(string, string), MapExtraEdge> extras, int insideOneNode)
     {
-        DraftLegs = draftLegs;
         Nodes = nodes;
         _edges = edges;
         Edges = [.. edges.Values];
         Focus = focus;
         _lit = lit;
-        Legs = legs;
-        Numbers = numbers;
+        Active = active;
+        Draft = draft;
+        _extras = extras;
+        Extras = [.. extras.Values];
         InsideOneNode = insideOneNode;
         _figures = nodes.ToDictionary(
             n => n.Key,
@@ -91,35 +93,44 @@ public sealed class RouteMap
     /// <summary>The start the player clicked, for the session; null without one or when the filter hides it.</summary>
     public string? Focus { get; }
 
-    /// <summary>The route's legs, hub → stations → hub, as nodes; empty without a route of this system.</summary>
-    public IReadOnlyList<(string From, string To)> Legs { get; }
+    /// <summary>
+    /// The active route's lines (gate finding 7a/7b): its contracts' edges, drawn in the route's colour, its legs as the
+    /// order flown and its stations' numbers; none without a route of this system.
+    /// </summary>
+    public MapPlanLines Active { get; }
 
-    /// <summary>The route's stations as numbers ("1", "2, 4" where a node is visited twice), by node.</summary>
-    public IReadOnlyDictionary<string, string> Numbers { get; }
+    /// <summary>The custom route being clicked (T13.7b), its lines as <see cref="Active"/>'s; none without one.</summary>
+    public MapPlanLines Draft { get; }
 
-    /// <summary>The custom route being clicked (T13.7b): start → its stations → start, as nodes; empty without one.</summary>
-    public IReadOnlyList<(string From, string To)> DraftLegs { get; }
+    /// <summary>The active route's extras between nodes no contract of the route joins, in place order.</summary>
+    public IReadOnlyList<MapExtraEdge> Extras { get; }
 
     /// <summary>Contracts whose pickup and drop-off fall into one node (one planet's surface): not drawn, counted.</summary>
     public int InsideOneNode { get; }
 
     public MapEdge? Edge(string from, string to) => _edges.GetValueOrDefault((from, to));
 
+    /// <summary>The extras from <paramref name="from"/> to <paramref name="to"/>; null for none.</summary>
+    public MapExtraEdge? Extra(string from, string to) => _extras.GetValueOrDefault((from, to));
+
     public MapNodeFigures Figures(string node) => _figures[node];
 
     /// <summary>
-    /// Full where there is no focus, or the edge leaves the focus or a station of the draft, or leads back to the focus
-    /// from a place they go to.
+    /// With a focus: the edge leaves the focus or a station of the draft, leads back to the focus from a place they go to,
+    /// or is a contract's of the draft. Without one: the edge is a contract's or an extra's of the active route or the
+    /// draft (gate finding 7a/7b: the rest at 25 %), else every edge is full.
     /// </summary>
     public bool IsLit(MapEdge edge) => _lit is null || _lit.Contains((edge.From, edge.To));
 
     /// <param name="nodeOf">Every place of the system to its node (<see cref="MapNodes.For"/>); a place without is left out.</param>
     /// <param name="focus">A node's key; ignored when no edge of the filter touches it.</param>
     /// <param name="route">The active route (T13.6); only one of <paramref name="system"/> is drawn.</param>
-    /// <param name="draft">The stations of the custom route being clicked from <paramref name="focus"/>, in order (T13.7b,
-    /// design §8.4.1: the edges along the route chosen so far light too); none without a focus.</param>
+    /// <param name="draft">The custom route being clicked (T13.7b); with a focus its stations light the edges from them too
+    /// (design §8.4.1).</param>
+    /// <param name="extras">The active route's extras (<see cref="MapExtra.Of"/>); drawn only with the route.</param>
     public static RouteMap Build(
-        PortMatrix matrix, IReadOnlyDictionary<string, MapNode> nodeOf, StarSystem system, string? focus = null, Route? route = null, IReadOnlyList<string>? draft = null)
+        PortMatrix matrix, IReadOnlyDictionary<string, MapNode> nodeOf, StarSystem system, string? focus = null, Route? route = null,
+        MapPlan? draft = null, IReadOnlyList<MapExtra>? extras = null)
     {
         Dictionary<(string, string), List<MapEdgePart>> parts = [];
         var inside = 0;
@@ -154,16 +165,26 @@ public sealed class RouteMap
                 p.Key.Item1, p.Key.Item2, [.. p.Value.OrderBy(x => x.Pickup, PlaceNames.Order).ThenBy(x => x.Dropoff, PlaceNames.Order)],
                 DistanceGm(byKey[p.Key.Item1], byKey[p.Key.Item2]), parts.ContainsKey((p.Key.Item2, p.Key.Item1))));
 
-        var legs = route is { } r && r.System == system ? LegsOf(r, nodeOf) : [];
-        var numbers = route is { } n && n.System == system ? NumbersOf(n, nodeOf) : new Dictionary<string, string>();
-        var shown = edges.Keys.SelectMany(k => new[] { k.Item1, k.Item2 }).Concat(legs.SelectMany(l => new[] { l.From, l.To })).ToHashSet(StringComparer.Ordinal);
+        var drawn = route is { } r && r.System == system ? r : null;
+        var active = drawn is null ? MapPlanLines.None : MapPlanLines.Of(MapPlan.Of(drawn), nodeOf);
+        var drafted = draft is null ? MapPlanLines.None : MapPlanLines.Of(draft, nodeOf);
+        HashSet<(string, string)> planned = [.. active.Edges];
+        var extraEdges = drawn is null ? [] : (extras ?? [])
+            .Select(x => (From: nodeOf.GetValueOrDefault(x.Pickup)?.Key, To: nodeOf.GetValueOrDefault(x.Dropoff)?.Key, Extra: x))
+            .Where(x => x.From is not null && x.To is not null && x.From != x.To && !planned.Contains((x.From, x.To)))
+            .GroupBy(x => (x.From!, x.To!))
+            .OrderBy(g => g.Key.Item1, PlaceNames.Order).ThenBy(g => g.Key.Item2, PlaceNames.Order)
+            .ToDictionary(g => g.Key, g => new MapExtraEdge(g.Key.Item1, g.Key.Item2, [.. g.Select(x => x.Extra).Distinct()]));
+
+        var shown = edges.Keys.Concat(active.Legs).Concat(active.Edges).Concat(drafted.Legs).Concat(drafted.Edges).Concat(extraEdges.Keys)
+            .SelectMany(k => new[] { k.Item1, k.Item2 }).ToHashSet(StringComparer.Ordinal);
         MapNode[] nodes = [.. byKey.Values.Where(v => shown.Contains(v.Key)).OrderBy(v => v.Kind == MapNodeKind.Hub ? 0 : 1).ThenBy(v => v.Key, PlaceNames.Order)];
 
         var start = focus is not null && edges.Keys.Any(k => k.Item1 == focus || k.Item2 == focus) ? focus : null;
-        string[] along = start is null ? [] : [.. (draft ?? []).Select(p => nodeOf.GetValueOrDefault(p)?.Key).OfType<string>().Distinct()];
-        string[] trip = [.. new[] { start }.OfType<string>(), .. along, .. new[] { start }.OfType<string>()];
-        (string, string)[] draftLegs = along.Length == 0 ? [] : [.. trip.Zip(trip.Skip(1)).Where(l => l.First != l.Second)];
-        return new RouteMap(nodes, edges, start, start is null ? null : Lit(edges.Keys, start, along), legs, numbers, inside, draftLegs);
+        HashSet<(string, string)>? lit = start is not null
+            ? [.. Lit(edges.Keys, start, [.. drafted.Numbers.Keys]), .. drafted.Edges]
+            : planned.Count + drafted.Edges.Count + extraEdges.Count > 0 ? [.. planned, .. extraEdges.Keys, .. drafted.Edges] : null;
+        return new RouteMap(nodes, edges, start, lit, active, drafted, extraEdges, inside);
     }
 
     // From the start and the draft's stations, and back to the start from where they go (Martin's "Rückkanten").
@@ -174,18 +195,6 @@ public sealed class RouteMap
         var reached = all.Where(e => from.Contains(e.From)).Select(e => e.To).ToHashSet(StringComparer.Ordinal);
         return [.. all.Where(e => from.Contains(e.From) || (e.To == start && reached.Contains(e.From)))];
     }
-
-    private static (string From, string To)[] LegsOf(Route route, IReadOnlyDictionary<string, MapNode> nodeOf)
-    {
-        string[] stops = [.. new[] { route.Hub }.Concat(route.Stations).Append(route.Hub).Select(p => nodeOf.GetValueOrDefault(p)?.Key).OfType<string>()];
-        return [.. stops.Zip(stops.Skip(1)).Where(l => l.First != l.Second)];
-    }
-
-    private static Dictionary<string, string> NumbersOf(Route route, IReadOnlyDictionary<string, MapNode> nodeOf) =>
-        route.Stations.Select((s, i) => (Node: nodeOf.GetValueOrDefault(s)?.Key, Number: i + 1))
-            .Where(x => x.Node is not null)
-            .GroupBy(x => x.Node!, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => string.Join(", ", g.Select(x => x.Number)), StringComparer.Ordinal);
 
     private static double DistanceGm(MapNode a, MapNode b) =>
         Math.Sqrt(Math.Pow(a.X - b.X, 2) + Math.Pow(a.Y - b.Y, 2) + Math.Pow(a.Z - b.Z, 2)) / 1e9;

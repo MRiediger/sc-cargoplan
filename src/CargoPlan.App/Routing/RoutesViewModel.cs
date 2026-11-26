@@ -143,6 +143,9 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
     // The active route (T13.6), drawn on the map in the status line's colour.
     private Route? _route;
 
+    // Its extras' pickups to their stops (gate finding 7a/7b).
+    private IReadOnlyList<MapExtra> _extras = [];
+
     // The matrix of the filter, as the matrix view shows it; the map draws this one (A1).
     private PortMatrix? _matrix;
 
@@ -234,10 +237,14 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
     /// <summary>The map: with hauling data, in the map view.</summary>
     public bool ShowsMap => HasData && IsMap;
 
-    public string MapLegend => "Line: contracts there · thicker: more aUEC · solid ●: seen in your scans · dashed: game data only · click a station: from there";
+    /// <summary>The map's help line; "orange: your plan" while it draws an active route (gate finding 7a/7b).</summary>
+    public string MapLegend =>
+        "Line: contracts there · thicker: more aUEC · solid ●: seen in your scans · dashed: game data only · click a station: from there"
+        + (Map?.Graph.Active.Legs.Count > 0 ? " · orange: your plan" : "");
 
     /// <summary>What the map draws; null outside the map view or without a system.</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MapLegend))]
     public partial MapScene? Map { get; private set; }
 
     /// <summary>"No map for this system." or what the map leaves out; null otherwise.</summary>
@@ -603,15 +610,19 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
             ? new CustomContext(system, _positions, _observed, ship, _fits)
             : null;
 
-    /// <summary>The active route (T13.6) or none: the map draws its legs and numbers its stations (T13.7).</summary>
-    public void ShowRoute(Route? route)
+    /// <summary>
+    /// The active route (T13.6) or none: the map draws its contracts, its order and numbers its stations (T13.7, gate
+    /// finding 7a/7b), with <paramref name="extras"/> dashed.
+    /// </summary>
+    public void ShowRoute(Route? route, IReadOnlyList<MapExtra>? extras = null)
     {
-        if (route == _route)
+        extras ??= [];
+        if (route == _route && extras.SequenceEqual(_extras))
         {
             return;
         }
 
-        _route = route;
+        (_route, _extras) = (route, extras);
         BuildMap();
     }
 
@@ -776,10 +787,14 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
         // The custom route for the overlay's ship (T13.7b): its stations light the edges from them too.
         var context = CustomContextNow();
         _customResult = _custom is { Picks.Count: > 0 } custom && context is not null ? custom.Evaluate(context) : null;
-        var graph = RouteMap.Build(matrix, nodes.NodeOf, system, _mapFocus, _route, _customResult?.Loop.Stations);
+        var draft = _customResult is { } drafted ? MapPlan.Of(drafted.Loop) : null;
+        var graph = RouteMap.Build(matrix, nodes.NodeOf, system, _mapFocus, _route, draft, _extras);
         var hub = system == StarSystem.Stanton ? Hubs[_shownHub ?? _hub].Name : null;
         var canPick = context is not null && graph.Focus is not null;
-        Map = new MapScene(graph, nodes.Universe, system, hub, e => EdgeToolTip(e) + (canPick && graph.IsLit(e) ? PickHint : ""), n => NodeToolTip(graph, n), canPick);
+        Map = new MapScene(
+            graph, nodes.Universe, system, hub,
+            e => (graph.Extra(e.From, e.To) is { } extra ? ExtraToolTip(extra) + "\n" : "") + EdgeToolTip(e) + (canPick && graph.IsLit(e) ? PickHint : ""),
+            n => NodeToolTip(graph, n), canPick, ExtraToolTip);
         MapNote = graph.InsideOneNode switch
         {
             0 => null,
@@ -794,6 +809,15 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
     }
 
     private const string PickHint = "\nclick: add its next contract to your plan · right click: take its last back";
+
+    /// <summary>
+    /// An extra's line of the active route (gate finding 7a/7b): "Baijini Point → Everus Harbor: not in your plan" and the
+    /// block's line per contract, "+ #4 extra · 160,250 aUEC".
+    /// </summary>
+    public static string ExtraToolTip(MapExtraEdge extra) => string.Join('\n', [
+        $"{extra.From} → {extra.To}: not in your plan",
+        .. extra.Extras.DistinctBy(x => x.ScanNo).Select(x => ActiveRouteViewModel.ExtraText(x.ScanNo, x.Reward)),
+    ]);
 
     // The custom route as the recipe shows a hub's: one line per contract, then the sum (T13.7b).
     private (IReadOnlyList<string> Lines, string? Summary) Custom(CustomResult result, Ship ship)

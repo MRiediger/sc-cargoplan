@@ -109,11 +109,22 @@ public sealed class RoutesMapViewModelTests
         var model = Map([T([Everus], [L1]), T([L5], [Everus])]);
         var route = new Route("Everus Harbor ring", DateTime.UtcNow, Everus, LoopKind.LocalRing, StarSystem.Stanton, [L1, L5], [], []);
 
+        model.MapLegend.Should().NotContain("orange");
         model.ShowRoute(route);
-        model.Map!.Graph.Legs.Should().Equal((Everus, L1), (L1, L5), (L5, Everus));
+        model.Map!.Graph.Active.Legs.Should().Equal((Everus, L1), (L1, L5), (L5, Everus));
+        model.MapLegend.Should().EndWith(" · orange: your plan", "gate finding 7a/7b: the help line names the route's colour while it runs");
+
+        var map = model.Map;
+        model.ShowRoute(route, [new MapExtra(L5, L1, 3, null)]);
+        model.Map.Should().NotBeSameAs(map, "new extras draw anew");
+        model.Map!.Graph.Extras.Should().ContainSingle().Which.Should().BeEquivalentTo(new { From = L5, To = L1 });
+        map = model.Map;
+        model.ShowRoute(route, [new MapExtra(L5, L1, 3, null)]);
+        model.Map.Should().BeSameAs(map, "the same route and extras draw nothing anew");
 
         model.ShowRoute(null);
-        model.Map!.Graph.Legs.Should().BeEmpty();
+        model.Map!.Graph.Active.Legs.Should().BeEmpty();
+        model.MapLegend.Should().NotContain("orange");
     }
 
     [Fact]
@@ -152,7 +163,8 @@ public sealed class RoutesMapViewModelTests
         model.CustomLines.Should().Equal(
             "Bulk · Senior Rank - Medium Cargo Haul · 100,000 aUEC · 10–64 SCU in 16s · HUR-L1 · fits",
             "Back · Junior Rank - Small Cargo Haul · 40,000 aUEC · 10–64 SCU in 16s · accept at HUR-L1 · fits");
-        model.Map!.Graph.DraftLegs.Should().Equal((Everus, L1), (L1, Everus));
+        model.Map!.Graph.Draft.Legs.Should().Equal((Everus, L1), (L1, Everus));
+        model.Map.Graph.Draft.Numbers.Should().BeEquivalentTo(new Dictionary<string, string> { [L1] = "1" });
         model.StartPlanToolTip.Should().Be("Start plan: Own plan from Everus Harbor – its contracts as placeholders in the Cargo tab");
 
         model.StartPlanCommand.Execute(null);

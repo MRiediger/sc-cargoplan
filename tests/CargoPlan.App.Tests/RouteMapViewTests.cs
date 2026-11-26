@@ -53,36 +53,130 @@ public sealed class RouteMapViewTests
         view.Scene = model.Map;
         view.UpdateLayout();
         Picture(view, $"map-{system}-focus.png");
+
+        if (system == StarSystem.Stanton && Environment.GetEnvironmentVariable("CARGOPLAN_MAP_PNG") is { Length: > 0 })
+        {
+            // By hand (gate finding 7a/7b, Martin's condition 1): the pin's Everus ring, its order's dots on Everus → HUR-L1.
+            var data = ((HaulingLoad.Loaded)HaulingFiles.Load(ActiveShipData.ReadBaseline(ActiveShipData.BaselineFolder))).Data;
+            var ring = Loops.For(data.Templates, data.Positions, ObservedEdges.Empty, CargoPlan.Core.Tests.FrozenShips.Load("hull_b"), HaulRank.Senior, null, Everus)
+                .Single(c => c.Kind == LoopKind.LocalRing && c.Start == Everus);
+            model.FocusCommand.Execute(Everus);
+            model.ShowRoute(Route.From(ring, "Everus Harbor ring", ObservedEdges.Empty, Monday));
+            view.Scene = model.Map;
+            view.Fit();
+            view.UpdateLayout();
+            Picture(view, "map-Stanton-everus-ring.png");
+            var at = view.Layout!.Project(view.Layout.Points[Everus], 1, default);
+            view.ZoomAt(new Point(at.X, at.Y), 120 * 13);
+            view.UpdateLayout();
+            Picture(view, "map-Stanton-everus-ring-zoom.png");
+        }
     });
 
     [Fact]
     public void A_template_edge_is_dashed_an_observed_one_solid_the_dimmed_at_a_quarter_and_the_route_in_the_status_colour() => Sta.Run(() =>
     {
+        // Gate finding 7a/7b: the route's contract solid in its colour, its order dotted with a halo, its station in a pill.
         var model = Model([Seen, T([Everus], [L5]), T([Baijini], [L1])], observed: true);
         model.FocusCommand.Execute(Everus);
-        model.ShowRoute(new Route("Everus Harbor ring", Monday, Everus, LoopKind.LocalRing, StarSystem.Stanton, [L5], [], []));
+        model.ShowRoute(Ring([L5], Out(1, L5)));
         var view = Shown(model.Map!);
 
-        var lines = Lines(view);
+        var all = Lines(view);
+        var lines = all.Where(l => !l.Halo).ToList();
         lines.Where(l => !l.Route).Should().HaveCount(3);
+        all.Where(l => l.Halo).Select(l => (l.From, l.To)).Should().Equal([(Everus, L5), (L5, Everus)], "the order's halo");
         lines.Single(l => l.From == Everus && l.To == L1).Should().BeEquivalentTo(new { Dashed = false, Dimmed = false }, "seen in a scan: solid");
         lines.Single(l => l.From == Everus && l.To == L5 && !l.Route).Should().BeEquivalentTo(new { Dashed = true, Dimmed = false }, "the pools only: dashed");
         lines.Single(l => l.From == Baijini).Dimmed.Should().BeTrue("the focus is Everus");
-        lines.Where(l => l.Route).Should().HaveCount(2).And.OnlyContain(l => l.Brush == RouteBrush && l.Thickness == 3);
-        view.Numbers.Should().ContainKey(L5).WhoseValue.Text.Should().Be("1");
+        lines.Where(l => l.Route && !l.Dashed).Select(l => (l.From, l.To, l.Thickness)).Should().Equal([(Everus, L5, 3.0)], "the contract, solid");
+        lines.Where(l => l.Route && l.Dashed).Select(l => (l.From, l.To, l.Thickness)).Should().Equal([(Everus, L5, 2.0), (L5, Everus, 2.0)], "the order, dotted");
+        view.Badges.Should().ContainSingle().Which.Key.Should().Be(L5);
+        Text(view.Badges[L5]).Should().Be("1");
+        view.Badges[L5].Background.Should().Be(RouteBrush);
     });
 
     [Fact]
-    public void An_own_plan_is_drawn_in_the_lines_colour_there_and_back() => Sta.Run(() =>
+    public void While_a_route_runs_without_a_focus_the_edges_off_it_are_dimmed() => Sta.Run(() =>
     {
-        // T13.7b: the draft's legs, thicker than an edge's strongest, under the active route.
+        var model = Model([T([Everus], [L1]), T([Everus], [Baijini]), T([Baijini], [L1])]);
+        model.ShowRoute(Ring([L1], Out(1, L1)));
+        var view = Shown(model.Map!);
+
+        Lines(view).Where(l => !l.Route && !l.Halo).Select(l => (l.From, l.To, l.Dimmed)).Should().BeEquivalentTo(
+            [(Everus, L1, false), (Everus, Baijini, true), (Baijini, L1, true)]);
+        model.MapLegend.Should().EndWith(" · orange: your plan");
+    });
+
+    [Fact]
+    public void The_order_is_dotted_in_a_dark_halo_on_the_same_centres_so_it_shows_on_its_contract() => Sta.Run(() =>
+    {
+        // Martin's condition 1: Everus → HUR-L1 is the contract's line and the order's; the dots must show on it.
+        var model = Model([T([Everus], [L1]), T([L1], [Everus])]);
+        model.ShowRoute(Ring([L1], Out(1, L1)));
+        var view = Shown(model.Map!);
+
+        var lines = Lines(view);
+        var dots = lines.Where(l => l.Route && l.Dashed).ToList();
+        var halos = lines.Where(l => l.Halo).ToList();
+        dots.Should().HaveCount(2);
+        halos.Select(l => (l.A, l.B)).Should().Equal(dots.Select(l => (l.A, l.B)), "a halo under each line of dots");
+        halos.Should().OnlyContain(h => h.Thickness == 2 + 2 && h.Brush == HaloBrush && h.Period == dots[0].Period, "1 px each side, the same dots");
+        dots[0].Period.Should().BeApproximately(6, 1e-9);
+        lines.IndexOf(halos[0]).Should().BeGreaterThan(lines.FindIndex(l => l.Route && !l.Dashed), "over the contract");
+    });
+
+    [Fact]
+    public void An_own_plan_is_drawn_in_the_lines_colour_its_contracts_solid_its_order_dotted_its_numbers_in_white_pills() => Sta.Run(() =>
+    {
+        // T13.7b in the route's scheme (R1 of gate finding 7a/7b: white, so the active route stays apart).
         var model = Model([T([Everus], [L1]), T([L1], [Everus])]);
         model.ShowShip(CargoPlan.Core.Tests.FrozenShips.Load("hull_b"));
         model.FocusCommand.Execute(Everus);
         model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
         var view = Shown(model.Map!);
 
-        Lines(view).Where(l => l.Thickness == 2.5).Select(l => (l.From, l.To, l.Brush)).Should().Equal((Everus, L1, Brushes.White), (L1, Everus, Brushes.White));
+        var white = Lines(view).Where(l => l.Brush == Brushes.White && l.Thickness >= 2).ToList();
+        white.Where(l => !l.Dashed).Select(l => (l.From, l.To, l.Thickness)).Should().Equal([(Everus, L1, 3.0)]);
+        white.Where(l => l.Dashed).Select(l => (l.From, l.To)).Should().Equal((Everus, L1), (L1, Everus));
+        Text(view.DraftBadges[L1]).Should().Be("1");
+        view.DraftBadges[L1].Background.Should().Be(Brushes.White);
+        view.Badges.Should().BeEmpty();
+    });
+
+    [Fact]
+    public void A_node_in_the_route_and_the_draft_has_two_pills_that_dont_overlap() => Sta.Run(() =>
+    {
+        // Martin's condition 2: the route's above left, the draft's above right.
+        var model = Model([T([Everus], [L1]), T([L1], [Everus])]);
+        model.ShowShip(CargoPlan.Core.Tests.FrozenShips.Load("hull_b"));
+        model.ShowRoute(Ring([L1], Out(1, L1)));
+        model.FocusCommand.Execute(Everus);
+        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        var view = Shown(model.Map!);
+
+        var (route, draft) = (Box(view.Badges[L1]), Box(view.DraftBadges[L1]));
+        (route.Width, draft.Width).Should().Match<(double, double)>(w => w.Item1 > 0 && w.Item2 > 0);
+        Rect.Intersect(route, draft).Should().Match<Rect>(r => r.IsEmpty || r.Width <= 0 || r.Height <= 0);
+        route.Right.Should().BeLessThanOrEqualTo(draft.Left);
+        var node = view.Layout!.Project(view.Layout.Points[L1], view.Zoom, view.Pan);
+        (route.Right <= node.X && draft.Left >= node.X).Should().BeTrue("left and right of the node");
+    });
+
+    [Fact]
+    public void An_extra_is_dashed_in_the_routes_colour_and_its_tool_tip_says_extra() => Sta.Run(() =>
+    {
+        var model = Model([T([Everus], [L1]), T([Everus], [Baijini]), T([L1], [L5])]);
+        model.ShowRoute(Ring([L1], Out(1, L1)), [new MapExtra(Baijini, L5, 4, 160_250), new MapExtra(Everus, Baijini, 5, null)]);
+        var map = model.Map!;
+        var view = Shown(map);
+
+        Lines(view).Where(l => l.Route && l.Dashed && l.Thickness == 2.5).Select(l => (l.From, l.To)).Should().BeEquivalentTo([(Baijini, L5), (Everus, Baijini)]);
+        var (b, l5) = (view.Layout!.Points[Baijini], view.Layout.Points[L5]);
+        view.ToolTipAt(new Point((b.X + l5.X) / 2, (b.Y + l5.Y) / 2)).Should().Be("Baijini Point → HUR-L5 High Course Station: not in your plan\n+ #4 extra · 160,250 aUEC");
+        var e = view.Layout.Points[Everus];
+        view.ToolTipAt(new Point((e.X + b.X) / 2, (e.Y + b.Y) / 2)).Should().StartWith("Everus Harbor → Baijini Point: not in your plan\n+ #5 extra\nEverus Harbor → Baijini Point · ",
+            "on an edge of the filter the extra comes first, then the edge");
     });
 
     [Fact]
@@ -145,7 +239,7 @@ public sealed class RouteMapViewTests
         // Gate finding 7b (Martin): at every zoom the heads were too much; from half the notches between all out (0.5x)
         // and all in (6x), no zoom steps: √(0.5 · 6) ≈ 1.73x, the 7th of about 14 notches from all out, the 4th from fit.
         var model = Model([T([Everus], [L1]), T([L1], [Everus]), T([Everus], [Baijini])]);
-        model.ShowRoute(new Route("Everus Harbor ring", Monday, Everus, LoopKind.LocalRing, StarSystem.Stanton, [L1], [], []));
+        model.ShowRoute(Ring([L1], Out(1, L1)));
         var view = Shown(model.Map!);
 
         RouteMapView.ArrowsFromZoom.Should().BeApproximately(Math.Sqrt(3), 1e-9);
@@ -157,7 +251,7 @@ public sealed class RouteMapViewTests
 
         Heads(view).Should().Be(0, "three notches in: 1.73x is just under the half");
         view.ZoomAt(new Point(550, 350), 120);
-        Heads(view).Should().Be(3 + 2, "the 4th notch from fit: three edges and the route's two legs");
+        Heads(view).Should().Be(3 + 1, "the 4th notch from fit: three edges and the route's contract; the order has none, its pills say it");
     });
 
     [Fact]
@@ -206,6 +300,22 @@ public sealed class RouteMapViewTests
 
     private static Brush RouteBrush { get; } = new SolidColorBrush(Color.FromRgb(0xFF, 0xB0, 0x00));
 
+    private static Brush HaloBrush { get; } = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x14));
+
+    private static Route Ring(IReadOnlyList<string> stations, params Placeholder[] placeholders) =>
+        new("Everus Harbor ring", Monday, Everus, LoopKind.LocalRing, StarSystem.Stanton, stations, placeholders, []);
+
+    private static Placeholder Out(int id, string to) =>
+        new(id, RecipeKind.Bulk, $"t-{id}", "Senior Rank - Medium Cargo Haul", 100_000, [new HaulLeg("Gold", 10, 64, CrateSize.Sixteen)], [to]);
+
+    private static string Text(Border badge) => ((TextBlock)badge.Child).Text;
+
+    private static Rect Box(FrameworkElement element)
+    {
+        element.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        return new(Canvas.GetLeft(element), Canvas.GetTop(element), element.DesiredSize.Width, element.DesiredSize.Height);
+    }
+
     // The view at the overlay's size for the map, with the legend's style pinned to Segoe UI 12 px (the font of CI; a
     // machine at 110 % would measure 11 px) and the status line's colour.
     private static RouteMapView Shown(MapScene scene)
@@ -221,6 +331,7 @@ public sealed class RouteMapViewTests
         };
         view.Resources["LegendForegroundBrush"] = Brushes.White;
         view.Resources["NoticeForegroundBrush"] = RouteBrush;
+        view.Resources["MapHaloBrush"] = HaloBrush;
         view.Scene = scene;
         view.Measure(Wide);
         view.Arrange(new Rect(Wide));
@@ -230,7 +341,9 @@ public sealed class RouteMapViewTests
 
     private static Rect Box(TextBlock block) => new(Canvas.GetLeft(block), Canvas.GetTop(block), block.ActualWidth, block.ActualHeight);
 
-    private sealed record Line(string? From, string? To, bool Dashed, bool Dimmed, bool Route, Brush Brush, double Thickness, Point A = default, Point B = default);
+    /// <param name="Period">The pen's dash pattern in pixels (its lengths are in the thickness); 0 for a solid line.</param>
+    private sealed record Line(
+        string? From, string? To, bool Dashed, bool Dimmed, bool Route, Brush Brush, double Thickness, Point A = default, Point B = default, bool Halo = false, double Period = 0);
 
     // Every geometry the drawing holds.
     private static List<Geometry> Geometries(RouteMapView view)
@@ -275,7 +388,10 @@ public sealed class RouteMapViewTests
                     break;
                 case GeometryDrawing { Geometry: LineGeometry line, Pen: { } pen }:
                     var route = pen.Brush == view.TryFindResource("NoticeForegroundBrush");
-                    lines.Add(new Line(Near(line.StartPoint), Near(line.EndPoint), pen.DashStyle != DashStyles.Solid, dimmed, route, pen.Brush, pen.Thickness, line.StartPoint, line.EndPoint));
+                    var halo = pen.Brush == view.TryFindResource("MapHaloBrush");
+                    var dashed = pen.DashStyle is { } style && style != DashStyles.Solid && style.Dashes.Count > 0;
+                    var period = dashed ? pen.DashStyle!.Dashes.Sum() * pen.Thickness : 0;
+                    lines.Add(new Line(Near(line.StartPoint), Near(line.EndPoint), dashed, dimmed, route, pen.Brush, pen.Thickness, line.StartPoint, line.EndPoint, halo, period));
                     break;
             }
         }

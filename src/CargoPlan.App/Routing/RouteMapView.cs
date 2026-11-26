@@ -17,7 +17,8 @@ namespace CargoPlan.App.Routing;
 /// Wheel = zoom about the pointer (0.5× to 6×), drag on free room = pan (it takes the left button, so free room here
 /// doesn't move the window), double click on free room = fit, click on a node = <see cref="FocusCommand"/>; with a
 /// station in focus a click on a lit edge = <see cref="AddEdgeCommand"/>, a right click = <see cref="RemoveEdgeCommand"/>
-/// (T13.7b), the custom route drawn in the line's colour; a tool tip
+/// (T13.7b). A plan (gate finding 7a/7b): its contracts solid, its extras dashed, its order dotted, its stations in
+/// numbered pills; the active route in the status line's colour, the custom route in the line's; a tool tip
 /// for the node or edge under the pointer. Locked, the window is click-through and none of this reaches it (D11).
 /// </summary>
 public sealed class RouteMapView : Canvas
@@ -48,9 +49,21 @@ public sealed class RouteMapView : Canvas
 
     private const double ArrowHalfWidth = 4.5;
 
+    // A plan's contracts (gate finding 7a/7b): solid, the active route's in its colour, the draft's in the line's.
     private const double RouteThickness = 3;
 
-    private const double DraftThickness = 2.5;
+    // The active route's extras: dashed, thinner than its contracts, thicker than its order.
+    private const double ExtraThickness = 2.5;
+
+    // A plan's order: dots this thick, this far apart, each in a dark halo of HaloPx, so they show on the contract
+    // they lie on (Martin's condition 1, e.g. Everus → HUR-L1). At 1.5 px in 5 the halo swallowed the dot (picture at 6×).
+    private const double DotThickness = 2;
+
+    private const double DotPeriodPx = 6;
+
+    private const double HaloPx = 1;
+
+    private const double BadgePaddingPx = 3;
 
     private const double ObservedMarkRadius = 2.5;
 
@@ -61,6 +74,8 @@ public sealed class RouteMapView : Canvas
     private const string LineBrushKey = "LegendForegroundBrush";
 
     private const string RouteBrushKey = "NoticeForegroundBrush";
+
+    private const string HaloBrushKey = "MapHaloBrush";
 
     public static readonly DependencyProperty SceneProperty = DependencyProperty.Register(
         nameof(Scene), typeof(MapScene), typeof(RouteMapView), new PropertyMetadata(null, (d, _) => ((RouteMapView)d).Rebuild()));
@@ -81,14 +96,18 @@ public sealed class RouteMapView : Canvas
 
     private static readonly DashStyle Dashed = Frozen(new DashStyle([4, 3], 0));
 
+    // A dash style's lengths are in the pen's thickness: 2 × 2.5 px dash, 2 × 2.5 px gap.
+    private static readonly DashStyle ExtraDashes = Frozen(new DashStyle([2, 2], 0));
+
     private readonly DrawingHost _drawing = new();
     private readonly Dictionary<string, TextBlock> _labels = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, TextBlock> _numbers = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Border> _badges = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Border> _draftBadges = new(StringComparer.Ordinal);
     private readonly ToolTip _tip = new() { Placement = PlacementMode.Relative, StaysOpen = true };
     private readonly DispatcherTimer _tipDelay;
 
-    // The edges as drawn, for the hit test (MapGeometry.Nearest).
-    private readonly List<(MapEdge Edge, MapPoint A, MapPoint B)> _lines = [];
+    // The edges and the active route's extras as drawn, for the hit test (MapGeometry.Nearest): a MapEdge or a MapExtraEdge.
+    private readonly List<(object Target, MapPoint A, MapPoint B)> _lines = [];
 
     private MapLayout? _layout;
     private IReadOnlyList<MapNode>? _laidOut;
@@ -165,7 +184,11 @@ public sealed class RouteMapView : Canvas
 
     internal IReadOnlyDictionary<string, TextBlock> Labels => _labels;
 
-    internal IReadOnlyDictionary<string, TextBlock> Numbers => _numbers;
+    /// <summary>The active route's numbers by node, orange pills above left of the node (gate finding 7a/7b).</summary>
+    internal IReadOnlyDictionary<string, Border> Badges => _badges;
+
+    /// <summary>The draft's numbers by node, white pills above right, clear of the route's (Martin's condition 2).</summary>
+    internal IReadOnlyDictionary<string, Border> DraftBadges => _draftBadges;
 
     /// <summary>How often the drawing was redrawn: a zoom redraws, it builds nothing.</summary>
     internal int Redraws { get; private set; }
@@ -175,6 +198,7 @@ public sealed class RouteMapView : Canvas
     {
         MapNode node when Scene is { } scene => scene.NodeToolTip(node),
         MapEdge edge when Scene is { } scene => scene.EdgeToolTip(edge),
+        MapExtraEdge extra when Scene is { ExtraToolTip: { } tip } => tip(extra),
         _ => null,
     };
 
@@ -336,15 +360,29 @@ public sealed class RouteMapView : Canvas
             _labels[node.Key] = Label(node.Label, LabelStyleKey);
         }
 
-        foreach (var (key, number) in scene.Graph.Numbers)
+        foreach (var (key, number) in scene.Graph.Active.Numbers)
         {
-            var block = Label(number, LabelStyleKey);
-            block.FontWeight = FontWeights.Bold;
-            block.SetResourceReference(TextBlock.ForegroundProperty, RouteBrushKey);
-            _numbers[key] = block;
+            _badges[key] = Badge(number, RouteBrushKey);
+        }
+
+        foreach (var (key, number) in scene.Graph.Draft.Numbers)
+        {
+            _draftBadges[key] = Badge(number, LineBrushKey);
         }
 
         Redraw();
+    }
+
+    // A station's number in a pill of the plan's colour, the number dark in it (gate finding 7a/7b).
+    private Border Badge(string number, string backgroundKey)
+    {
+        var block = new TextBlock { Text = number, FontWeight = FontWeights.Bold, IsHitTestVisible = false, TextWrapping = TextWrapping.NoWrap };
+        block.SetResourceReference(StyleProperty, LabelStyleKey);
+        block.SetResourceReference(TextBlock.ForegroundProperty, HaloBrushKey);
+        var badge = new Border { Child = block, Padding = new Thickness(BadgePaddingPx, 0, BadgePaddingPx, 0), IsHitTestVisible = false };
+        badge.SetResourceReference(Border.BackgroundProperty, backgroundKey);
+        Children.Add(badge);
+        return badge;
     }
 
     private TextBlock Label(string text, string styleKey)
@@ -357,13 +395,14 @@ public sealed class RouteMapView : Canvas
 
     private void ClearLabels()
     {
-        foreach (var block in _labels.Values.Concat(_numbers.Values))
+        foreach (var element in _labels.Values.Cast<FrameworkElement>().Concat(_badges.Values).Concat(_draftBadges.Values))
         {
-            Children.Remove(block);
+            Children.Remove(element);
         }
 
         _labels.Clear();
-        _numbers.Clear();
+        _badges.Clear();
+        _draftBadges.Clear();
     }
 
     private static MapSize Measure(string text, Style? style)
@@ -389,10 +428,11 @@ public sealed class RouteMapView : Canvas
         var graph = scene.Graph;
         var line = TryFindResource(LineBrushKey) as Brush ?? Brushes.White;
         var route = TryFindResource(RouteBrushKey) as Brush ?? Brushes.Orange;
+        var halo = TryFindResource(HaloBrushKey) as Brush ?? Brushes.Black;
         var kinds = graph.Nodes.ToDictionary(n => n.Key, n => n.Kind, StringComparer.Ordinal);
         using (var dc = _drawing.Visual.RenderOpen())
         {
-            // Dimmed first, then the lit ones over them, then the route over everything.
+            // Dimmed first, then the lit ones over them, then the plans over everything.
             foreach (var edge in graph.Edges.OrderBy(e => graph.IsLit(e)))
             {
                 if (!layout.Points.ContainsKey(edge.From) || !layout.Points.ContainsKey(edge.To))
@@ -423,21 +463,44 @@ public sealed class RouteMapView : Canvas
                 }
             }
 
-            // The custom route being clicked (T13.7b): in the line's colour, under the active route.
-            var draftPen = Frozen(new Pen(line, DraftThickness));
-            foreach (var (from, to) in graph.DraftLegs.Where(l => layout.Points.ContainsKey(l.From) && layout.Points.ContainsKey(l.To)))
+            // The plans (gate finding 7a/7b): the draft (T13.7b) in the line's colour under the active route in its own; the
+            // contracts solid on their edge's line, the extras dashed, then the order dotted over all of them.
+            bool Drawn((string From, string To) l) => layout.Points.ContainsKey(l.From) && layout.Points.ContainsKey(l.To);
+            (MapPoint A, MapPoint B) Segment((string From, string To) l, bool onEdge) =>
+                MapGeometry.Line(At(l.From), At(l.To), MapLayout.Radius(kinds[l.From]), MapLayout.Radius(kinds[l.To]), onEdge && graph.Edge(l.From, l.To) is { TwoWay: true });
+
+            foreach (var (lines, brush) in new[] { (graph.Draft, line), (graph.Active, route) })
             {
-                var (a, b) = MapGeometry.Line(At(from), At(to), MapLayout.Radius(kinds[from]), MapLayout.Radius(kinds[to]), false);
-                dc.DrawLine(draftPen, P(a), P(b));
-                Arrow(dc, a, b, line);
+                var pen = Frozen(new Pen(brush, RouteThickness));
+                foreach (var (a, b) in lines.Edges.Where(Drawn).Select(l => Segment(l, onEdge: true)))
+                {
+                    dc.DrawLine(pen, P(a), P(b));
+                    Arrow(dc, a, b, brush);
+                }
             }
 
-            var routePen = Frozen(new Pen(route, RouteThickness));
-            foreach (var (from, to) in graph.Legs.Where(l => layout.Points.ContainsKey(l.From) && layout.Points.ContainsKey(l.To)))
+            var extraPen = Frozen(new Pen(route, ExtraThickness) { DashStyle = ExtraDashes });
+            foreach (var extra in graph.Extras.Where(x => Drawn((x.From, x.To))))
             {
-                var (a, b) = MapGeometry.Line(At(from), At(to), MapLayout.Radius(kinds[from]), MapLayout.Radius(kinds[to]), false);
-                dc.DrawLine(routePen, P(a), P(b));
+                var (a, b) = Segment((extra.From, extra.To), onEdge: true);
+                if (graph.Edge(extra.From, extra.To) is null)
+                {
+                    // On an edge of the filter its tool tip names the extra; else the extra takes the pointer itself.
+                    _lines.Add((extra, a, b));
+                }
+
+                dc.DrawLine(extraPen, P(a), P(b));
                 Arrow(dc, a, b, route);
+            }
+
+            foreach (var (lines, brush) in new[] { (graph.Draft, line), (graph.Active, route) })
+            {
+                var (haloPen, dotPen) = (Dotted(halo, DotThickness + (2 * HaloPx)), Dotted(brush, DotThickness));
+                foreach (var (a, b) in lines.Legs.Where(Drawn).Select(l => Segment(l, onEdge: false)))
+                {
+                    dc.DrawLine(haloPen, P(a), P(b));
+                    dc.DrawLine(dotPen, P(a), P(b));
+                }
             }
 
             var ringPen = Frozen(new Pen(line, 1.5));
@@ -469,16 +532,31 @@ public sealed class RouteMapView : Canvas
             block.Visibility = shown.Contains(key) ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        foreach (var (key, block) in _numbers.Where(n => layout.Points.ContainsKey(n.Key)))
+        // The route's pills above left of the node, the draft's above right (Martin's condition 2): clear of each other
+        // and of the label's usual place outwards.
+        foreach (var (badges, left) in new[] { (_badges, true), (_draftBadges, false) })
         {
-            // Above left of the node, clear of its label's usual place outwards.
-            var at = At(key);
-            var r = MapLayout.Radius(kinds.GetValueOrDefault(key, MapNodeKind.Station)) + RingGap;
-            block.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            SetLeft(block, at.X - r - block.DesiredSize.Width);
-            SetTop(block, at.Y - r - block.DesiredSize.Height);
+            foreach (var (key, badge) in badges.Where(n => layout.Points.ContainsKey(n.Key)))
+            {
+                var at = At(key);
+                var r = MapLayout.Radius(kinds.GetValueOrDefault(key, MapNodeKind.Station)) + RingGap;
+                badge.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+                badge.CornerRadius = new CornerRadius(badge.DesiredSize.Height / 2);
+                SetLeft(badge, left ? at.X - r - badge.DesiredSize.Width : at.X + r);
+                SetTop(badge, at.Y - r - badge.DesiredSize.Height);
+            }
         }
     }
+
+    // Round dots DotPeriodPx apart whatever the pen's thickness: a dash style's lengths are in the thickness, so the halo's
+    // dots and the line's lie on the same centres. Source: https://learn.microsoft.com/dotnet/api/system.windows.media.dashstyle.dashes
+    private static Pen Dotted(Brush brush, double thickness) => Frozen(new Pen(brush, thickness)
+    {
+        DashStyle = new DashStyle([0, DotPeriodPx / thickness], 0),
+        DashCap = PenLineCap.Round,
+        StartLineCap = PenLineCap.Round,
+        EndLineCap = PenLineCap.Round,
+    });
 
     // The arrow's head in the middle of a → b, pointing to b; from ArrowsFromZoom on (gate finding 7b, Martin: below it,
     // too much). The way back is the line beside (two-way offset), the route's order its numbers. It covers an observed
@@ -531,7 +609,7 @@ public sealed class RouteMapView : Canvas
             }
         }
 
-        return MapGeometry.Nearest(p, [.. _lines.Select(l => (l.A, l.B))], MapGeometry.HitPx) is { } index ? _lines[index].Edge : null;
+        return MapGeometry.Nearest(p, [.. _lines.Select(l => (l.A, l.B))], MapGeometry.HitPx) is { } index ? _lines[index].Target : null;
     }
 
     private void Hover(Point at)

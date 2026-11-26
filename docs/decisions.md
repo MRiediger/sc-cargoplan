@@ -1552,6 +1552,16 @@ Written as a D59 addendum in K2.2 and made an entry of its own at the acceptance
   - **Counter-argument:** below 6× a one-way edge doesn't show its direction on the map; the tool tip does.
   - **And (gate finding 7b, Martin):** a head is 10 px long and 9 px wide (was 7 and 6) and sits in the middle of its line, not at its end; there it covers an observed edge's mark, whose solid line still says observed.
   - **And (gate finding 7b, Martin): from half the notches, not only at 6×.** No zoom steps: the heads show from half the wheel's notches between all out (0.5×) and all in (6×); the wheel zooms by a factor, so that is √(0.5 · 6) ≈ 1.73× (`RouteMapView.ArrowsFromZoom`), the 7th of about 14 notches from all out, the 4th from fit.
+- **Addendum (gate finding 7a/7b, 26 Nov, Martin): a plan on the map is its contracts, its order and numbered pills.** Orange (#FFB000) drew the route's legs, hub → S1 → … → hub, 3 px; what looked like orange spokes from the hub were the filter's edges in the rank colour (Okabe-Ito: Senior vermillion #D55E00, Trainee orange #E69F00) and the legs from HUR-L1/L2, spread beside Everus. The route's contracts were not marked at all. Now (`MapPlan`, `MapPlanLines`, `RouteMap.Active`/`Draft`/`Extras`):
+  - the route's **contracts** solid 3 px in orange, on their edge's line: each placeholder from where it is accepted (else the hub) and where it collects to its destinations;
+  - its **order** a dotted line, 2 px dots every 6 px in a dark 1 px halo (`MapHaloBrush`), so it shows on a contract it lies on (Everus → HUR-L1; Martin's condition 1); no arrow heads, the pills give the order;
+  - its stations' **numbers** 1 … n in orange pills above left of the node, the hub without (Everus ring: L1 1, L4 2, L3 3, L5 4, L2 5);
+  - its **extras** (accepted, no placeholder, U9.2) dashed 2.5 px in orange from each item's pickup to its stop (`MapExtra.Of`, places as `Positions.Resolve`); the tool tip "A → B: not in your plan" and the block's line "+ #4 extra · 160,250 aUEC", on an edge of the filter before the edge's;
+  - **the rest at 25 %** while a route of the system runs and no node is in focus: lit are the route's contracts and extras and the draft's contracts (Martin's condition 3); a focus keeps its rule, the draft's contracts lit too;
+  - the **custom route being clicked** (T13.7b) in the same scheme in the line's colour (white), its numbers growing per click in white pills above right, so a node in both shows two pills apart (R1 and condition 2) and the active route stays visible;
+  - the help line ends "· orange: your plan" while the map draws a route.
+  Precision in the planning phase, ratified by approval.
+  - **Counter-argument:** while a route runs the rest of the matrix shows only at 25 %; a click on a node brings the focus rule back, ending the route all of it. An orange rank colour still looks like the route's at 25 % less.
 
 ## D129 – The custom route: edges clicked on the map, the next best contract per click, the stations as clicked (T13.7b)
 
