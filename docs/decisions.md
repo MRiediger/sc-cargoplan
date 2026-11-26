@@ -1551,6 +1551,7 @@ Written as a D59 addendum in K2.2 and made an entry of its own at the acceptance
 - **Addendum (gate finding 7b, 26 Nov, Martin): arrow heads only at the most zoom.** At every zoom the heads were too much. They show only at 6× (`RouteMapView.MaxZoom`), for edges, the active route and the custom route alike; below it a two-way pair's second line beside the first shows the way back, the route's numbers and the plan's bar its order, the tool tip says "A → B". Precision in the planning phase, ratified by approval.
   - **Counter-argument:** below 6× a one-way edge doesn't show its direction on the map; the tool tip does.
   - **And (gate finding 7b, Martin):** a head is 10 px long and 9 px wide (was 7 and 6) and sits in the middle of its line, not at its end; there it covers an observed edge's mark, whose solid line still says observed.
+  - **And (gate finding 7b, Martin): from half the notches, not only at 6×.** No zoom steps: the heads show from half the wheel's notches between all out (0.5×) and all in (6×); the wheel zooms by a factor, so that is √(0.5 · 6) ≈ 1.73× (`RouteMapView.ArrowsFromZoom`), the 7th of about 14 notches from all out, the 4th from fit.
 
 ## D129 – The custom route: edges clicked on the map, the next best contract per click, the stations as clicked (T13.7b)
 

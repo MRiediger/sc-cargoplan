@@ -140,18 +140,24 @@ public sealed class RouteMapViewTests
     });
 
     [Fact]
-    public void The_arrow_heads_show_only_at_the_most_zoom() => Sta.Run(() =>
+    public void The_arrow_heads_show_from_half_the_wheels_notches_on() => Sta.Run(() =>
     {
-        // Gate finding 7b (Martin): at every zoom the heads were too much; the way back is the line beside.
+        // Gate finding 7b (Martin): at every zoom the heads were too much; from half the notches between all out (0.5x)
+        // and all in (6x), no zoom steps: √(0.5 · 6) ≈ 1.73x, the 7th of about 14 notches from all out, the 4th from fit.
         var model = Model([T([Everus], [L1]), T([L1], [Everus]), T([Everus], [Baijini])]);
         model.ShowRoute(new Route("Everus Harbor ring", Monday, Everus, LoopKind.LocalRing, StarSystem.Stanton, [L1], [], []));
         var view = Shown(model.Map!);
 
-        Heads(view).Should().Be(0, "zoom 1");
-        view.Project(RouteMapView.MaxZoom - 0.5, default);
-        Heads(view).Should().Be(0, "below the most zoom");
-        view.Project(RouteMapView.MaxZoom, default);
-        Heads(view).Should().Be(3 + 2, "three edges and the route's two legs");
+        RouteMapView.ArrowsFromZoom.Should().BeApproximately(Math.Sqrt(3), 1e-9);
+        Heads(view).Should().Be(0, "fit");
+        for (var notch = 1; notch <= 3; notch++)
+        {
+            view.ZoomAt(new Point(550, 350), 120);
+        }
+
+        Heads(view).Should().Be(0, "three notches in: 1.73x is just under the half");
+        view.ZoomAt(new Point(550, 350), 120);
+        Heads(view).Should().Be(3 + 2, "the 4th notch from fit: three edges and the route's two legs");
     });
 
     [Fact]

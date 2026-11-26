@@ -1145,6 +1145,11 @@ E Timing, Hinweis Radius):**
   (Länge 7 → 10 px, halbe Breite 3 → 4,5 px) und in der Mitte der Linie statt an ihrem Ende. Bei 6× liegt der Pfeil über
   dem Punkt ● einer beobachteten Kante (gleiche Farbe); „beobachtet“ zeigt weiter die durchgezogene Linie. Test:
   `RouteMapViewTests.An_arrow_head_sits_in_the_middle_of_its_line_and_is_ten_pixels_long` (Gegenprobe Pfeil am Ende → rot).
+- **Gate-Befund 7b (Martin, 26.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** Pfeile ab der Hälfte
+  der Rasten zwischen ganz heraus (0,5×) und ganz hinein (6×), keine Zoomstufen bauen (ersetzt „nur bei 6×“). Das Rad zoomt
+  mit Faktor 1,2, die halbe Rastenzahl ist das geometrische Mittel √(0,5 · 6) ≈ 1,73× (`RouteMapView.ArrowsFromZoom`): von
+  ganz heraus die 7. von rund 14 Rasten, vom Fit die 4. Test: `RouteMapViewTests.The_arrow_heads_show_from_half_the_wheels_notches_on`
+  (Nachfolger von `…The_arrow_heads_show_only_at_the_most_zoom`; Gegenprobe Schwelle 6× → rot).
 
 ### [ ] T13.8 Release v0.8.0
 

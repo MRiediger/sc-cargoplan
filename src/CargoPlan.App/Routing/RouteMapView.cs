@@ -29,6 +29,12 @@ public sealed class RouteMapView : Canvas
     /// <summary>One notch of the wheel zooms by this factor.</summary>
     public const double ZoomStep = 1.2;
 
+    /// <summary>
+    /// Arrow heads show from here on (gate finding 7b, Martin): half the wheel's notches between all out and all in. The
+    /// wheel zooms by a factor, so half the notches is the geometric mean, √(0.5 · 6) ≈ 1.73×.
+    /// </summary>
+    public static readonly double ArrowsFromZoom = Math.Sqrt(MinZoom * MaxZoom);
+
     /// <summary>A press that moves less than this is a click, more is a pan.</summary>
     private const double DragPx = 4;
 
@@ -474,14 +480,14 @@ public sealed class RouteMapView : Canvas
         }
     }
 
-    // The arrow's head in the middle of a → b, pointing to b; only at the most zoom (gate finding 7b, Martin: below it, too
-    // much). The way back is the line beside (two-way offset), the route's order its numbers. It covers an observed
+    // The arrow's head in the middle of a → b, pointing to b; from ArrowsFromZoom on (gate finding 7b, Martin: below it,
+    // too much). The way back is the line beside (two-way offset), the route's order its numbers. It covers an observed
     // edge's mark at the middle; the solid line still says observed.
     private void Arrow(DrawingContext dc, MapPoint a, MapPoint b, Brush brush)
     {
         var (dx, dy) = (b.X - a.X, b.Y - a.Y);
         var length = Math.Sqrt((dx * dx) + (dy * dy));
-        if (Zoom < MaxZoom || length < ArrowLength)
+        if (Zoom < ArrowsFromZoom || length < ArrowLength)
         {
             return;
         }
