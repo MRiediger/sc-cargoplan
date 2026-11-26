@@ -943,6 +943,105 @@ Direct-Schlüssel und unter der Schwelle, K1, E1, E2):**
 - Klick und Übergabe schreiben in `routes.json`, nie in plan.json (D118)
 - Darstellung am gerenderten Bild geprüft (Lehre T8.2–T8.5)
 
+**Startprompt 26.11.:** Schnitt **7a** Karte lesen (Gate am Bild, Zwischenabnahme) und **7b** eigene Route aus der Karte
+(nur nach Martins Entscheidung nach Gate 7a; gestrichen → Backlog „Nutzer will Loops abseits der Ringe“). Branch
+`feat/p13-map`. Akzeptanz (§5): vierte Ansicht Map mit derselben Filterzeile; Layout pure, echte Winkel, Überlappungstest
+grün; Kanten = Matrixzellen (Konsistenztest); Template- vs. beobachtete Kanten unterscheidbar; Fokus per Knoten
+(Sitzung), aktive Route hervorgehoben; Zoom/Pan mit D-Begründung der Rad-Abweichung; Budget gemessen; D128 (ggf. D129
+für 7b); plan.json 11, routes.json 3, settings additiv.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (26.11.2026, „Freigabe T13.7a wie geplant“; K1–K4, E zu K3,
+E Timing, Hinweis Radius):**
+- **Befunde zum Startprompt:** (1) Die L-Stationen liegen an echten Lagrange-Punkten: nur L1/L2 beim Hub (Everus → HUR-L1
+  1,29 Gm), HUR-L3 jenseits des Sterns (25,7 Gm von Everus), L4/L5 ±60° auf der Planetenbahn; `parent` der L-Stationen
+  ist der Stern. Einen Cluster „Hub + L1–L5“ gibt es nicht. (2) Die Stellar-Boards nennen **Oberflächenorte**
+  (Stanton1 17 um Everus, Stanton3 4, Stanton4 1, Pyro Solar ~13 Outposts) – „keine Kanten im Stellar-Board“ trifft nicht
+  zu. (3) Bei komprimiertem Radius bleibt nur der **Polarwinkel um den Stern** erhalten, nicht die Richtung zwischen zwei
+  Knoten (Everus → Baijini roh −75,5°, mit √r −91,8°): die Winkeltests prüfen den Polarwinkel. (4) **1100 × 700 ist nicht
+  die Startgröße** des Overlays (420 × 460, MinWidth 400; Bilder T13.2/T13.4 bei 470 × 700). (5) „Zoom/Pan nur
+  RenderTransform“ würde Schrift, Linien und Pfeile 0,5–6× mitskalieren. (6) Freie Fläche ruft `DragMove`; die Karte
+  nimmt den linken Klick selbst.
+- **K1 Oberfläche (Martin):** ein Knoten je Planet „Hurston (surface)“: jeder Ort, der keine Station ist (Typ nicht
+  `Manmade*`), geht zum nächsten Planeten (Datentest); Kante = Summe der Zellen ihrer Orte, Tooltip je Ort; Konsistenztest
+  zweistufig (Station = eine Zelle, Oberfläche = Summe); Paare in einem Knoten nicht gezeichnet, in einer Zeile gezählt.
+- **K2 Geometrie (Martin):** geografisch, polar um den Stern, Winkel 1:1; Spreizung nur dort, wo das Layout dicht ist (Hub +
+  L1 + L2 + Oberfläche, die dichten Pyro-Paare); Tests Polarwinkel ± 2°, HUR-L3 = Everus + 180°, HUR-L4/L5 = ± 60°.
+- **K3 Viewport (Martin):** Überlappungstest mit Assert bei 1100 × 700, bei 470 × 700 nur gezählt. **E:** Hubs und
+  Oberflächen immer beschriftet, L-Stationen ab Zoom ≥ 1,5× oder wenn ihr Label kollisionsfrei liegt.
+- **K4 Zoom (Martin):** nur Projektion neu, Schrift und Linien konstant, < 5 ms je Raste; **E der Freigabe:** die Zeit je
+  Raste als `Category=Timing` von Hand, im Render-Test nur „kein Neuaufbau beim Zoom“.
+- Matrix-Filter und die Zeile „N templates not shown …“ auch in Map; Fokus ist ein eigener Sitzungszustand der Karte, der
+  Ring markiert den Hub, den Recipe zeigt; Kanten-Tooltip mit Gm; „Start plan“ nicht in Map (7b entscheidet).
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (bei der Umsetzung 7a, Martin 26.11.):**
+- **Radius linear statt Wurzel.** Die geplante Mutationsprobe „Radius linear → Überlappungstest rot“ blieb grün: die
+  Radien um den Stern liegen nur 1:4 (10,6–68 Gm; Stanton 11,6–47,8); die 1:40 des Startprompts waren Knotenabstände (Hub ↔
+  L1), die die Spreizung löst. Gemessen bei 1100 × 700: linear 0 versteckte Labels, Wurzel 1 (HUR-L2 erst ab 1,5×).
+  Martin: linear, Begründung in D128; Mutationsprobe neu **„Spreizung aus → Überlappungstest rot“**; Gm im
+  Kanten-Tooltip bleibt (die Spreizung täuscht Abstände zwischen Knoten). Der Rückfall auf log(1 + r/5 Gm) aus der
+  Freigabe entfällt damit.
+- Stufen der Kantenstärke bei 60 000 und 350 000 aUEC (Terzile der Stanton-Stellar-Kanten des Pins: 63 500 / 344 750).
+- Das Layout-Universum sind alle Orte, die die Templates und Scans des Systems nennen (`RouteFilter.Everything`): ein Filter
+  blendet Knoten aus, verschiebt keinen. Stationen einer Route sind Pool-Orte (die Route kommt aus einer Loop) und damit
+  bekannt; der Start einer Route verschiebt nichts.
+- Labels in zwei Durchgängen: bei 1× die mit Platz, die übrigen ihren Platz bei 1,5× (sonst überlappte HUR-L2 dort).
+
+**Stand 7a (26.11., Branch `feat/p13-map`, 1b4b84c..):**
+- Commits: Knoten + Layout in Core (1b4b84c); Graph aus der Matrix (5d19ffd); ViewModel, Ansicht Map (7787c96);
+  `RouteMapView` (d90d685); XAML, Messziel `map`, Timing (f37885e); Doku (D128, TASKS.md, CLAUDE.md).
+- **Datentests gegen den Pin:** Stanton 25 Knoten, Pyro 18, bei 1100 × 700 kein verstecktes Label, keine Überlappung bei 1×
+  und 1,5×; bei 470 × 700 gezählt: 0 Überlappungen bei 1× und 1,5× (Stanton, Pyro). Stanton stellar Senior 25 Knoten / 73
+  Kanten (2 aus mehreren Zellen), Stanton alle Areas Master 25 / 113, 1 384 Verträge innerhalb eines Planeten; Pyro
+  18 / **281 Kanten** (77 aus mehreren Zellen), 13 innerhalb – Red-Wind-Pools nennen fast das ganze System, ohne Fokus ein
+  dichtes Netz (Befund für Gate 5).
+- **Zahlen (Release, `RouteMapTimingTests`, CC-Rechner):**
+
+  | Karte | erster Aufbau | Aufbau (Median) | Raste (Median) | Raste (max) |
+  |---|---|---|---|---|
+  | Stanton | 208,5 ms (JIT) | 6,1 ms | 1,21 ms | 8,37 ms |
+  | Pyro | 9,6 ms | 9,4 ms | 2,04 ms | 5,83 ms |
+
+  Aufbau = Umschalten auf Map (Matrix → Graph → Szene) plus Layout und Labels der Ansicht, im UI-Thread. Frame-Messung
+  `--measure-frames map` auf dem Desktop (CC): Median 8,33 ms, p95 8,33 ms, max 33,6 ms, 117,7 fps. Über dem Spiel:
+  Martins Gate.
+- **Mutationsproben:** Spreizung aus → 3 rot (Überlappung Stanton, Pyro, Ruin/Terminus); eigene Zählung statt
+  Matrixzellen → 4 rot; Fokus ohne Rückkanten → 1 rot; Radius linear statt Wurzel → 0 rot (Anlass der Präzisierung oben).
+- Bild (CC, Render-Test mit `CARGOPLAN_MAP_PNG`, 1100 × 700, Segoe UI 12 px): Stanton – Everus rechts bei 0°, HUR-L3
+  gegenüber, HUR-L4/L5 oben/unten auf der Bahn, Cluster gespreizt, Everus mit Ring; mit Fokus Everus nur seine Kanten
+  und Rückkanten voll. Pyro ohne Fokus ein Netz, mit Fokus Ruin Station lesbar.
+- **Testnamen:** `MapNodesTests`, `MapLayoutTests`, `MapLayoutBaselineTests`, `RouteMapTests`, `RouteMapBaselineTests`,
+  `RoutesMapViewModelTests`, `RouteMapViewTests` (Render als Control; die Backlog-Zeile aus T13.2, die der Startprompt
+  nennt, steht nicht im Repo – erledigt im Sinn des Startprompts),
+  `RouteScanTests.The_map_follows_the_active_route_from_its_start_to_its_end`,
+  `OverlayRouteXamlTests.The_map_sits_beside_the_matrix_with_scene_focus_and_the_stop_palette_and_the_matrix_filters_show_with_it`;
+  von Hand `RouteMapTimingTests` (`Category=Timing`). Nachfolger:
+  `RoutesViewModelTests.The_view_cycles_matrix_recipe_loops_map_and_back` (vorher `…_matrix_recipe_loops_and_back`).
+- **Handling gegen main:**
+
+  | Geste | Soll (= main) | Ist Branch (erwartet) |
+  |---|---|---|
+  | View-Button Plan-Reiter | Matrix → Recipe → Loops | … → Map (Rechtsklick zurück) |
+  | Area, Direct, Auftraggeber, Fraktion, Größen | nur in Matrix | in Matrix und Map |
+  | Linksziehen auf freier Fläche im Plan-Reiter | bewegt das Fenster | in Map: Pan; sonst gleich |
+  | Rad | Matrix/Listen scrollen | in Map: Zoom um den Cursor (0,5×–6×) |
+  | Doppelklick / Klick auf Knoten (neu) | – | Fit / Fokus für die Sitzung, nochmal = auf |
+  | Hover über Kante/Knoten (neu) | – | Tooltip nach der Hover-Zeit des Systems |
+  | Gesperrt | click-through | gleich |
+  | Alles andere | wie main | gleich |
+
+- **Gate 7a (Martin, entsperrt, Plan-Reiter, Overlay auf ~1100 × 700 ziehen):**
+
+  | Schritt | Erwartung | Warum |
+  |---|---|---|
+  | 1 View → Map, Stanton, Senior, Stellar | vier Bahnen um die Mitte; Everus rechts, Cluster Hub + L1 + L2 + „Hurston (surface)“; keine überlappenden Namen; Hubs groß, Everus (routes.hub) mit Ring | K2, K3 |
+  | 2 Hover Everus → HUR-L5 | Tooltip „Everus Harbor → HUR-L5 High Course Station · 12.9 Gm · n contracts · Σ …“; Template-Zeilen gleich der Matrixzelle (View → Matrix, Zelle vergleichen) | Kante = Zelle |
+  | 3 Beobachtete Kanten | durchgezogen mit Punkt in der Mitte, Template-Kanten gestrichelt – Everus-Cluster gegen deine routes.json | §8.3 |
+  | 4 Klick Everus, nochmal | erst nur Kanten ab Everus und ihre Rückkanten voll, Rest blass, zweiter Ring; dann alles voll | Fokus |
+  | 5 System → Pyro | Stationen und Oberflächen, Red-Wind-Kanten dünn, Tooltip „– aUEC: no reward in the game data, a scan shows it“; Klick Ruin Station macht es lesbar | U5, Befund 281 Kanten |
+  | 6 Recipe/Loops → Everus-Ring „Start plan“, zurück in Plan → Map | Route in Orange über allem, Nummern 1–5 an den Stationen | aktive Route |
+  | 7 Rad, Ziehen, Doppelklick; Lock | Zoom um den Cursor, Schrift bleibt gleich groß, Pan, Fit; gesperrt click-through | K4, D11 |
+  | 8 Zahlen | cargoplan.log „Routes: map Stanton: … in x ms“ / Pyro; `--measure-frames map --over-game` | Budget |
+
 ### [ ] T13.8 Release v0.8.0
 
 **Warum:** Ohne Release erreicht die Phase keinen Hauler.
