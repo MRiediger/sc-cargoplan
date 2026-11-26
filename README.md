@@ -16,12 +16,19 @@ shows it in a translucent window next to the game.
 - Press F3 on an open contract: CargoPlan reads it itself and adds it to the plan; or type it in the editor.
 - Drag, turn, split and merge crates to match what the cargo elevator really did.
 - Mark each delivery loaded, then delivered at its stop; undo any step.
+- A **Plan** tab for the run before you fly it: the hauling contracts of your hub as a matrix, a recipe for your ship,
+  loops ranked by aUEC per hour, and a map. Start a plan, accept its contracts at the terminal, press F3 on each, and a
+  station bar takes you through the stops.
 - Click-through while the game has the mouse. A separate window: nothing is injected into the game.
 - 109 ships and one cargo module configuration. Racks, hull and outline of all but two come from the game files; the
   135c and the 600i Executive Edition still use Fleetyards data.
 
 ![The MISC Hull B with its tilted racks in the ship's hologram](docs/images/ships-hull-b.png)
 <!-- SHOT: H15 -->
+
+<!-- SHOT: P3 – Plan tab, Map Stanton (Hull B, Everus); image follows with v0.8.0 -->
+
+More: [Plan tab](https://github.com/MRiediger/sc-cargoplan/wiki/Plan-tab).
 
 ## Install
 
@@ -54,6 +61,9 @@ The ships come with the app: cargo grids and ship models from the game files, by
 release, and from v0.6.0 on CargoPlan offers it at the bottom of the overlay like a new version: **Update** or **Skip
 this version**, section **Ship data** in the settings. More:
 [Ships and cargo grids](https://github.com/MRiediger/sc-cargoplan/wiki/Ships-and-cargo-grids).
+
+The same data releases carry the hauling contract templates and the station positions for the **Plan** tab; v0.8.0
+comes with them, and they update with the ship data on the same click.
 
 A rack that doesn't match the game: open a
 [ship correction](https://github.com/MRiediger/sc-cargoplan/issues/new?template=ship-correction.yml) here or an issue in
@@ -95,6 +105,13 @@ Reading contracts is new in v0.4.0:
 - After many scans CargoPlan uses up to about 900 MB of memory. Clear the scan key in the settings and the reader
   doesn't load at start.
 
+The Plan tab is new in v0.8.0:
+
+- Red Wind contracts show no reward until you scan one: the game data have none.
+- Red Wind's regional contracts in Pyro are not shown yet.
+- The planner assumes every contract of your board exists; which ones the terminal offers right now, only the terminal
+  shows.
+
 All known issues: [Troubleshooting](https://github.com/MRiediger/sc-cargoplan/wiki/Troubleshooting#known-issues).
 
 ## Documentation
@@ -115,12 +132,17 @@ All known issues: [Troubleshooting](https://github.com/MRiediger/sc-cargoplan/wi
   [fleetyards.net](https://fleetyards.net): their grids, hologram and outline. Fleetyards' data made the first ship list
   possible.
 - Thanks to both for letting this project use their data.
+- Hauling contract templates and the positions of stations and places from the Star Citizen game files, extracted with
+  [octfx/ScDataDumper](https://github.com/octfx/ScDataDumper) and published by the Star Citizen Wiki as
+  [StarCitizenWiki/scunpacked-data](https://github.com/StarCitizenWiki/scunpacked-data) – the same extraction
+  [api.star-citizen.wiki](https://api.star-citizen.wiki) serves. Thanks to the Star Citizen Wiki and octfx.
 - Stop colors: the [Okabe-Ito palette](https://jfly.uni-koeln.de/color/) and [Paul Tol's](https://sronpersonalpages.nl/~pault/) schemes.
-- Not affiliated with Motherlode, Fleetyards or CIG. Star Citizen is a trademark of Cloud Imperium Rights LLC.
+- Not affiliated with Motherlode, Fleetyards, the Star Citizen Wiki or CIG. Star Citizen is a trademark of Cloud
+  Imperium Rights LLC.
 
-[MIT](LICENSE). Not under MIT: the ship data and silhouettes (`ship-data\NOTICE.md` next to the app, from the
-[ship data releases](https://github.com/MRiediger/sc-cargoplan-shipdata/releases)) and the ship holograms (assets of
-the same releases, under the same `NOTICE.md`).
+[MIT](LICENSE). Not under MIT: the ship data and silhouettes and the hauling data (`ship-data\NOTICE.md` next to the
+app, from the [ship data releases](https://github.com/MRiediger/sc-cargoplan-shipdata/releases)) and the ship holograms
+(assets of the same releases, under the same `NOTICE.md`).
 
 If it helps you:
 
