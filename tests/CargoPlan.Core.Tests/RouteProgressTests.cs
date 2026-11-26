@@ -93,12 +93,12 @@ public class RouteProgressTests
         var plan = With(Empty(), 1, 300_000, false, (L1, "Waste", 100, CrateSize.Sixteen));
         plan = With(plan, 2, 300_000, false, (L2, "Waste", 380, CrateSize.Sixteen));
         plan.Missions.Should().OnlyContain(m => !m.Unplaced, "the test needs 480 SCU aboard");
-        var route = Ring(Out(1, L1), Back(2, L1, 72, CrateSize.Four), Back(3, L1, 190, CrateSize.Sixteen)) with { At = 1 };
+        var route = Ring(Out(1, L1), Back(2, L1, 72, CrateSize.Four), Back(3, L1, 190, CrateSize.Sixteen)) with { At = L1 };
 
         var returns = RouteProgress.Of(route, plan, HullB, Places).Stops[1].Returns;
 
         returns.Select(r => (r.Placeholder.Id, r.Fit)).Should().Equal((2, ReturnFit.Fits), (3, ReturnFit.TooBig));
-        RouteProgress.Of(route with { At = 0 }, plan, HullB, Places).Stops[1].Returns.Should().OnlyContain(r => r.Fit == ReturnFit.Unchecked,
+        RouteProgress.Of(route with { At = null }, plan, HullB, Places).Stops[1].Returns.Should().OnlyContain(r => r.Fit == ReturnFit.Unchecked,
             "only the stop the bar stands at is simulated");
     }
 
@@ -110,7 +110,7 @@ public class RouteProgressTests
         plan = With(plan, 2, 300_000, false, (L2, "Waste", 380, CrateSize.Sixteen));
         var small = Out(4, L2, scu: 72) with { AcceptAt = L1 };
         var big = Out(5, L2, scu: 190) with { AcceptAt = L1 };
-        var route = Ring(Out(1, L1), small, big) with { At = 1 };
+        var route = Ring(Out(1, L1), small, big) with { At = L1 };
 
         var stops = RouteProgress.Of(route, plan, HullB, Places).Stops;
 
@@ -124,7 +124,7 @@ public class RouteProgressTests
     {
         var plan = With(Empty(), 1, 300_000, false, (L4, "Waste", 100, CrateSize.Sixteen));
         plan = With(plan, 2, 300_000, false, (L2, "Waste", 380, CrateSize.Sixteen));
-        var route = Ring(Back(2, L1, 72, CrateSize.Four)) with { At = 1 };
+        var route = Ring(Back(2, L1, 72, CrateSize.Four)) with { At = L1 };
 
         RouteProgress.Of(route, plan, HullB, Places).Stops[1].Returns.Single().Fit.Should().Be(ReturnFit.TooBig, "32 SCU free at L1, nothing unloaded there");
     }
@@ -135,7 +135,7 @@ public class RouteProgressTests
         var back = Back(2, L1, 20, CrateSize.Four, collect: [L4]) with { FilledBy = "KEY-1" };
         var plan = With(Empty(), 1, 60_000, false, (Everus, "Waste", 20, CrateSize.Four));
 
-        var stops = RouteProgress.Of(Ring(Out(1, L2), back) with { At = 1 }, plan, HullB, Places).Stops;
+        var stops = RouteProgress.Of(Ring(Out(1, L2), back) with { At = L1 }, plan, HullB, Places).Stops;
 
         stops[1].Returns.Single().Should().Be(new ReturnAt(back, ReturnFit.Filled, 1));
         stops[2].Collects.Should().Equal(back);
@@ -162,15 +162,15 @@ public class RouteProgressTests
     public void The_bar_steps_on_its_own_when_the_last_line_of_its_station_is_ticked_and_jumps_to_a_later_station_ticked()
     {
         var plan = With(Empty(), 1, 300_000, false, (L1, "Stims", 20, CrateSize.Four), (L4, "Stims", 10, CrateSize.Four), (L2, "Stims", 10, CrateSize.Four));
-        var route = Ring() with { At = 1, DepartedUtc = Monday };
+        var route = Ring() with { At = L1, DepartedUtc = Monday };
         var before = RouteProgress.Of(route, plan, HullB, Places);
 
         var atL1 = Delivered(plan, L1, 1);
         var stepped = Route.Advance(route, before, RouteProgress.Of(route, atL1, HullB, Places), Monday.AddMinutes(5));
         var jumped = Route.Advance(route, before, RouteProgress.Of(route, Delivered(plan, L4, 1), HullB, Places), Monday.AddMinutes(5));
-        var undone = Route.Advance(route with { At = 2 }, RouteProgress.Of(route, atL1, HullB, Places), before, Monday.AddMinutes(6));
+        var undone = Route.Advance(route with { At = L4 }, RouteProgress.Of(route, atL1, HullB, Places), before, Monday.AddMinutes(6));
 
-        (stepped.At, jumped.At, undone.At).Should().Be((2, 3, 2), "L4 done moves on to L2; an undo moves nothing");
+        (stepped.At, jumped.At, undone.At).Should().Be((L4, L2, L4), "L4 done moves on to L2; an undo moves nothing");
     }
 
     [Fact]
@@ -178,16 +178,17 @@ public class RouteProgressTests
     {
         var plan = With(Empty(), 1, 300_000, false, (L1, "Stims", 20, CrateSize.Four));
         var route = Ring();
+        var stops = RouteProgress.Of(route, plan, HullB, Places);
 
-        var left = route.Step(+1, 5, Monday.AddMinutes(10));
-        var back = left.Step(-1, 5, Monday.AddMinutes(11)).Step(+1, 5, Monday.AddMinutes(12));
+        var left = route.Step(+1, stops, Monday.AddMinutes(10));
+        var back = left.Step(-1, stops, Monday.AddMinutes(11)).Step(+1, stops, Monday.AddMinutes(12));
         var ticked = Route.Advance(route, RouteProgress.Of(route, plan, HullB, Places), RouteProgress.Of(route, Delivered(plan, L1, 1), HullB, Places), Monday.AddMinutes(20));
 
-        (left.At, left.DepartedUtc).Should().Be((1, Monday.AddMinutes(10)));
+        (left.At, left.DepartedUtc).Should().Be((L1, Monday.AddMinutes(10)));
         back.DepartedUtc.Should().Be(Monday.AddMinutes(10), "the first departure counts");
-        (ticked.At, ticked.DepartedUtc).Should().Be((2, Monday.AddMinutes(20)), "a tick at L1 leaves the hub, and L1 is done");
-        route.Step(-1, 5, Monday).At.Should().Be(0);
-        (route with { At = 4 }).Step(+1, 5, Monday).At.Should().Be(4);
+        (ticked.At, ticked.DepartedUtc).Should().Be((L4, Monday.AddMinutes(20)), "a tick at L1 leaves the hub, and L1 is done");
+        route.Step(-1, stops, Monday).At.Should().BeNull();
+        (route with { At = Everus }).Step(+1, stops, Monday).At.Should().Be(Everus);
     }
 
     [Fact]
@@ -200,7 +201,7 @@ public class RouteProgressTests
         {
             Extras = ["KEY-2"],
             DepartedUtc = Monday.AddMinutes(15),
-            At = 5,
+            At = Everus,
         };
         var progress = RouteProgress.Of(route, plan, HullB, Places);
 
@@ -224,9 +225,9 @@ public class RouteProgressTests
             [new Placeholder(1, RecipeKind.Direct, template.Uuid, template.Title, 95_000, template.Legs, [L1])], [])
         {
             DepartedUtc = Monday.AddMinutes(5),
-            At = 2,
+            At = Everus,
         };
-        var ring = Ring(Out(1, L1)) with { At = 4 };
+        var ring = Ring(Out(1, L1)) with { At = Everus };
 
         static RouteRun Finish(Route route, IReadOnlyList<HaulTemplate> templates) =>
             Route.Finish(route, Empty(), RouteProgress.Of(route, Empty(), HullB, Places), Places, HullB, templates, Monday.AddMinutes(40));
@@ -235,6 +236,60 @@ public class RouteProgressTests
         Finish(ring, [template]).Direct.Should().BeNull("a ring's key is its stations");
         Finish(direct, []).Direct.Should().BeNull("a template a later data release dropped names nothing: the run measures no loop");
     }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Every_stop_the_bar_reaches_survives_routes_json_as_the_same_stop(bool extras, bool departed)
+    {
+        // B18 (K of the approval): with and without an extra off the ring (Teasa joins the bar, before leaving in the order,
+        // after it before the hub, K6), from the start step by step to the hub at the end; each stop written, read and
+        // written again gives the same bytes and the bar stands at the same stop.
+        var plan = With(Empty(), 1, 40_000, false, (L1, "Iron", 8, CrateSize.Four));
+        plan = With(plan, 2, 41_750, false, (Teasa, "Stims", 12, CrateSize.Four));
+        var route = Ring(Out(1, L1)) with { Extras = extras ? ["KEY-2"] : [], DepartedUtc = departed ? Monday : null };
+        var count = RouteProgress.Of(route, plan, HullB, Places).Stops.Count;
+        count.Should().Be(extras ? 6 : 5, "Teasa is a stop of its own");
+
+        for (var i = 0; i < count; i++)
+        {
+            var progress = RouteProgress.Of(route, plan, HullB, Places);
+            progress.IndexOf(route).Should().Be(i);
+            var json = Write(route);
+
+            var read = Read(json);
+
+            Write(read).Should().Be(json, "stop {0}", i);
+            RouteProgress.Of(read, plan, HullB, Places).IndexOf(read).Should().Be(i, "stop {0} ({1})", i, route.At);
+            route = route.Step(+1, progress, Monday.AddMinutes(i + 1));
+        }
+
+        route.At.Should().Be(Everus, "the bar ends at the hub");
+    }
+
+    [Fact]
+    public void A_name_the_bar_lacks_is_no_stop_and_a_step_goes_on_from_the_start()
+    {
+        // B18 (K4): a place the plan dropped (the extra's Teasa without its mission) or a name a later data release changed.
+        var route = Ring() with { At = Teasa, DepartedUtc = Monday };
+        var progress = RouteProgress.Of(route, Empty(), HullB, Places);
+
+        progress.IndexOf(route).Should().BeNull();
+        route.Step(+1, progress, Monday).At.Should().Be(L1);
+        (progress.NameAt(0), progress.NameAt(2), progress.NameAt(4)).Should().Be((null, L4, Everus));
+    }
+
+    private static string Write(Route route)
+    {
+        using var stream = new MemoryStream();
+        RoutesFile.Write(stream, Observations.Empty, route);
+        return System.Text.Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    private static Route Read(string json) =>
+        RoutesFile.Read(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json)), "routes.json").Route!;
 
     private static StarPosition At(string name, double xGm, double yGm) => new(name, name, StarSystem.Stanton, "Manmade", null, xGm * 1e9, yGm * 1e9, 0, []);
 }

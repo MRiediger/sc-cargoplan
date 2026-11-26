@@ -44,9 +44,10 @@ public class RouteProgressTimingTests(ITestOutputHelper output)
         }
 
         output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"aboard {plan.Plan.ScuOnBoard()} SCU, {plan.Plan.Crates.Count} crates, {plan.Missions.Count(m => m.Unplaced)} unplaced"));
-        for (var at = 0; at <= route.Stations.Count + 1; at++)
+        var bar = RouteProgress.Of(route, plan, ship, data.Positions);
+        for (var at = 0; at < bar.Stops.Count; at++)
         {
-            var here = route with { At = at };
+            var here = route with { At = bar.NameAt(at) };
             var first = Stopwatch.StartNew();
             var progress = RouteProgress.Of(here, plan, ship, data.Positions);
             var firstMs = first.Elapsed.TotalMilliseconds;

@@ -53,6 +53,16 @@ public sealed record RouteProgress(IReadOnlyList<RouteStop> Stops)
     public int Landings => Stops.Count - 1;
 
     /// <summary>
+    /// The stop <paramref name="route"/>'s bar stands at (<see cref="Route.At"/>, B18): 0 without a name, the last for the
+    /// hub's name, else the stop of that name; null where no stop has it (a place the plan dropped, a station a later data
+    /// release renamed), which the bar shows as the start (K4).
+    /// </summary>
+    public int? IndexOf(Route route) => Index(route.At, route.Hub, [.. Stops.Select(s => s.Name)]);
+
+    /// <summary>The name <see cref="Route.At"/> keeps for stop <paramref name="index"/>: none for the start, the hub's at the end.</summary>
+    public string? NameAt(int index) => index == 0 ? null : Stops[index].Name;
+
+    /// <summary>
     /// The stops of <paramref name="route"/> with the plan as it is. The stations are the route's and the places of its
     /// extras off the ring (K6): before leaving, the whole order anew as the loops order it (<see cref="Loops.Order"/>,
     /// the shortest round trip); after leaving, the order flown stays and a new place comes before the hub. A place of
@@ -83,6 +93,7 @@ public sealed record RouteProgress(IReadOnlyList<RouteStop> Stops)
         var scanNo = plan.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Contract!.Scan.Key, m => m.Contract!.Scan.No);
         HashSet<int> accepted = [.. plan.Missions.Where(m => m.Contract?.Scan is { QuantitiesEstimated: false }).Select(m => m.Id)];
 
+        var at = Index(route.At, route.Hub, names) ?? 0;
         var stops = new List<RouteStop>();
         for (var i = 0; i < names.Length; i++)
         {
@@ -94,7 +105,7 @@ public sealed record RouteProgress(IReadOnlyList<RouteStop> Stops)
             [
                 .. route.Placeholders.Where(p => station is not null && p.AcceptAt == station).Select(p => Route.IsFilled(p, keys)
                     ? new ReturnAt(p, ReturnFit.Filled, scanNo[p.FilledBy!])
-                    : new ReturnAt(p, i == route.At ? Simulate(plan, ship, lines.Where(l => l.Stop >= 1 && l.Stop <= i && !l.Done), p) : ReturnFit.Unchecked, null)),
+                    : new ReturnAt(p, i == at ? Simulate(plan, ship, lines.Where(l => l.Stop >= 1 && l.Stop <= i && !l.Done), p) : ReturnFit.Unchecked, null)),
             ];
             Placeholder[] collects = [.. route.Back.Where(p => station is not null && p.CollectAt is { } at && at.Contains(station))];
             stops.Add(new(i, names[i], station is null, here.Count, here.Count(l => l.Done), held, returns, collects));
@@ -131,6 +142,30 @@ public sealed record RouteProgress(IReadOnlyList<RouteStop> Stops)
             var crates = plan.Plan.Crates.Where(c => c.Mission == m.Id && string.Equals(c.Destination, d, StringComparison.OrdinalIgnoreCase)).ToList();
             return (m.Id, crates.FirstOrDefault()?.Destination ?? d, crates.Count > 0 && crates.All(c => c.Delivered));
         }));
+
+    // The hub stands first and last, so its name is the end; a station's name is its stop between them.
+    private static int? Index(string? at, string hub, IReadOnlyList<string> names)
+    {
+        if (at is null)
+        {
+            return 0;
+        }
+
+        if (at == hub)
+        {
+            return names.Count - 1;
+        }
+
+        for (var i = 1; i < names.Count - 1; i++)
+        {
+            if (names[i] == at)
+            {
+                return i;
+            }
+        }
+
+        return null;
+    }
 
     private static string Place(Route route, string destination, Positions positions) =>
         positions.Resolve(route.System, destination)?.Name ?? destination;

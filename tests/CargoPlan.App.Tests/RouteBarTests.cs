@@ -119,7 +119,7 @@ public sealed class RouteBarTests
         _now = Monday.AddMinutes(12);
         model.NextStationCommand.Execute(null);
         model.StationText.Should().Be("Station 1/3 · Riker · unload 1 · free 9 slots");
-        _saved.Last()!.Should().Match<Route>(r => r.At == 1 && r.DepartedUtc == Monday.AddMinutes(12));
+        _saved.Last()!.Should().Match<Route>(r => r.At == Riker && r.DepartedUtc == Monday.AddMinutes(12));
         model.NextStationCommand.Execute(null);
         model.StationText.Should().Be("Station 2/3 · Orison · unload 1 · free 10 slots");
         model.NextStationCommand.Execute(null);
@@ -130,20 +130,20 @@ public sealed class RouteBarTests
     [Fact]
     public void Ticking_the_last_line_of_the_bars_station_moves_it_on()
     {
-        var model = Model(Ring() with { At = 1, DepartedUtc = Monday });
+        var model = Model(Ring() with { At = Riker, DepartedUtc = Monday });
         var plan = Cargo();
         model.Show(plan, HullA);
 
         model.Show(new SavedPlan(plan.Missions, LoadPlanner.SetDelivered(plan.Plan, HullA, Riker, 1, true), plan.CrateCap), HullA);
 
         model.StationText.Should().StartWith("Station 2/3 · Orison");
-        _saved.Last()!.At.Should().Be(2);
+        _saved.Last()!.At.Should().Be(Orison);
     }
 
     [Fact]
     public void The_ways_back_of_the_station_say_fits_or_too_big_and_the_collecting_ones_where_they_were_accepted()
     {
-        var route = Ring(Back(3, Riker, 8, CrateSize.Four, collect: [Orison]), Back(4, Riker, 64, CrateSize.Sixteen)) with { At = 1, DepartedUtc = Monday };
+        var route = Ring(Back(3, Riker, 8, CrateSize.Four, collect: [Orison]), Back(4, Riker, 64, CrateSize.Sixteen)) with { At = Riker, DepartedUtc = Monday };
         var model = Model(route);
         model.Show(Cargo(), HullA);
 
@@ -157,7 +157,7 @@ public sealed class RouteBarTests
     [Fact]
     public void Finish_plan_at_the_hub_keeps_the_run_ends_the_route_and_says_what_the_round_paid_in_what_time()
     {
-        var overlay = new OverlayViewModel(HullA) { ActiveRoute = Model(Ring(Out(1, Riker, 50_000) with { FilledBy = "KEY-1" }) with { At = 3, DepartedUtc = Monday.AddMinutes(10) }) };
+        var overlay = new OverlayViewModel(HullA) { ActiveRoute = Model(Ring(Out(1, Riker, 50_000) with { FilledBy = "KEY-1" }) with { At = Everus, DepartedUtc = Monday.AddMinutes(10) }) };
         overlay.ShowPlan(Cargo());
         _now = Monday.AddMinutes(90);
 
@@ -170,9 +170,25 @@ public sealed class RouteBarTests
     }
 
     [Fact]
+    public void A_stop_the_bar_lacks_shows_the_start_says_so_once_in_the_log_and_waits_for_the_next_move_to_save()
+    {
+        // B18 (K4): a place the plan dropped or a station a later data release renamed; the file isn't rewritten unasked.
+        var model = Model(Ring() with { At = "Lorville B18", DepartedUtc = Monday });
+
+        model.Show(Cargo(), HullA);
+        model.Show(Cargo(), HullA);
+
+        model.StationText.Should().StartWith("Start · Everus Harbor");
+        _saved.Should().BeEmpty();
+        System.Text.RegularExpressions.Regex.Count(TestLog.Text(), "route position Lorville B18 is no stop of the bar – bar shown at the start").Should().Be(1);
+        model.NextStationCommand.Execute(null);
+        _saved.Last()!.At.Should().Be(Riker);
+    }
+
+    [Fact]
     public void Finish_plan_is_only_at_the_hub_at_the_end()
     {
-        var model = Model(Ring() with { At = 2 });
+        var model = Model(Ring() with { At = Orison });
         model.Show(Cargo(), HullA);
 
         model.FinishPlanCommand.CanExecute(null).Should().BeFalse();
