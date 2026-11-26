@@ -13,9 +13,9 @@ matrix and the map (T13.2, T13.7) mark what comes from here as "observed" (desig
 
 ## Example
 
-Two variants. A Covalex Experienced Medium contract for 191,500 aUEC from Everus Harbor, scanned once in the offers view
-and once after accepting; the game rolled the amounts again, so each commodity's band spans both. And a Red Wind Member
-Medium contract for 532,500 aUEC, whose card names the level "Stellar" but not whether it is direct.
+Entries from a real file (Martin's, 26 Nov 2026, `ships-2026.11.2`, MISC Hull B), laid out shorter here. Two variants
+of Everus Harbor: a Covalex Experienced Direct Medium for 160,250 aUEC, scanned twice, and a Member Small for
+100,500 aUEC, scanned three times; the game rolled the amounts each time, so each commodity's band spans the scans.
 
 ```json
 {
@@ -25,83 +25,69 @@ Medium contract for 532,500 aUEC, whose card names the level "Stellar" but not w
       "contractor": "covalex",
       "rank": "experienced",
       "size": "medium",
-      "reward": 191500,
-      "pickups": [
-        "Everus Harbor"
-      ],
-      "destinations": [
-        "Faithful Dream Station",
-        "Green Glade Station"
-      ],
+      "reward": 160250,
+      "pickups": ["Everus Harbor"],
+      "destinations": ["HUR-L3 Thundering Express Station"],
       "scu": [
-        {
-          "commodity": "Hydrogen Fuel",
-          "min": 55,
-          "max": 70
-        },
-        {
-          "commodity": "Quantum Fuel",
-          "min": 81,
-          "max": 136
-        },
-        {
-          "commodity": "Ship Ammunition",
-          "min": 115,
-          "max": 133
-        }
+        { "commodity": "Hydrogen Fuel", "min": 111, "max": 111 },
+        { "commodity": "Quantum Fuel", "min": 113, "max": 113 },
+        { "commodity": "Ship Ammunition", "min": 95, "max": 95 }
       ],
       "count": 2,
-      "firstUtc": "2026-11-23T18:04:12Z",
-      "lastUtc": "2026-11-23T18:07:12Z",
-      "direct": false
+      "firstUtc": "2026-11-24T09:34:55.0271923Z",
+      "lastUtc": "2026-11-24T09:38:56.2964856Z",
+      "direct": true
     },
     {
-      "contractor": "redWind",
+      "contractor": "covalex",
       "rank": "member",
-      "size": "medium",
-      "reward": 532500,
-      "pickups": [
-        "Rat's Nest",
-        "Starlight Service Station"
-      ],
+      "size": "small",
+      "reward": 100500,
+      "pickups": ["Everus Harbor"],
       "destinations": [
-        "Ruin Station"
+        "HUR-L1 Green Glade Station",
+        "HUR-L2 Faithful Dream Station",
+        "HUR-L3 Thundering Express Station",
+        "HUR-L4 Melodic Fields Station",
+        "HUR-L5 High Course Station"
       ],
       "scu": [
-        {
-          "commodity": "Carbon",
-          "min": 200,
-          "max": 200
-        }
+        { "commodity": "Pressurized Ice", "min": 3, "max": 7 },
+        { "commodity": "Processed Food", "min": 5, "max": 7 }
       ],
-      "count": 1,
-      "firstUtc": "2026-11-23T18:13:12Z",
-      "lastUtc": "2026-11-23T18:13:12Z",
-      "area": "stellar"
+      "count": 3,
+      "firstUtc": "2026-11-24T09:35:48.1894142Z",
+      "lastUtc": "2026-11-25T07:13:27.7965597Z",
+      "direct": false
     }
   ]
 }
 ```
 
-A route: the Everus ring of `ships-2026.11.2` for a MISC Hull B at Senior, started from the Plan tab's loops; the bulk
-was accepted and scanned (its key, as plan.json's `scan.key` holds it, shortened here), the direct and the ways back are
-open. Three of its ten placeholders are shown.
+A Red Wind entry has `area` (`"stellar"` or `"planetary"`) and, without "Direct" in its title, no `direct`
+([Observation](#observation)).
+
+A route and a run from the same file. The route is an own plan built on the map (`custom`, T13.7b/c): two bulk
+placeholders, the first filled by an accepted scan (its key as plan.json's `scan.key` holds it), and five contracts
+accepted beside them as extras (two of five shown). The bar has left the hub (`departedUtc`); it stands at the start, so
+there is no `at` (B18: a station there would read `"at": "HUR-L3 Thundering Express Station"`, the hub at the end
+`"at": "Everus Harbor"`). The second placeholder is shortened to its first leg. The run is an own plan from Seraphim
+finished there.
 
 ```json
 {
   "schemaVersion": 3,
   "observations": [],
   "route": {
-    "name": "Everus Harbor ring",
-    "startedUtc": "2026-11-24T16:35:52.0833014Z",
+    "name": "Own plan from Everus Harbor",
+    "startedUtc": "2026-11-26T11:13:20.1163867Z",
     "hub": "Everus Harbor",
-    "kind": "localRing",
+    "kind": "custom",
     "system": "stanton",
     "stations": [
       "HUR-L1 Green Glade Station",
-      "HUR-L4 Melodic Fields Station",
       "HUR-L3 Thundering Express Station",
-      "HUR-L5 High Course Station",
+      "HUR-L4 Melodic Fields Station",
       "HUR-L2 Faithful Dream Station"
     ],
     "placeholders": [
@@ -117,55 +103,64 @@ open. Three of its ten placeholders are shown.
           { "commodity": "Hydrogen Fuel", "min": 40, "max": 72, "container": 16 }
         ],
         "destinations": [
+          "HUR-L4 Melodic Fields Station",
           "HUR-L1 Green Glade Station",
-          "HUR-L2 Faithful Dream Station",
           "HUR-L3 Thundering Express Station",
-          "HUR-L4 Melodic Fields Station"
+          "HUR-L2 Faithful Dream Station"
         ],
         "reward": 325250,
-        "filledBy": "EVERUSHARBOR | GREENGLADE:HYDROGENFUEL … | 16 | 325250"
+        "filledBy": "EVERUSHARBOR | FAITHFUIDREAM:HYDROGENFUEI, HIGHCOURSE:SHIPAMMUNITION, MEIODICFIEIDS:HYDROGENFUEI, THUNDERINGEXPRESS:QUANTUMFUEI | 16 | 325250"
       },
       {
         "id": 2,
-        "kind": "direct",
-        "template": "f2cd346d-0339-4f42-adb2-407916037c51",
-        "title": "Rookie Rank - Direct Small Cargo Haul",
+        "kind": "bulk",
+        "template": "6d480cb9-a179-489d-9f88-5b4e9793a4e7",
+        "title": "Senior Rank - Medium Cargo Haul",
         "legs": [
-          { "commodity": "Stims", "min": 8, "max": 16, "container": 4 }
+          { "commodity": "Quantum Fuel", "min": 41, "max": 72, "container": 16 }
         ],
         "destinations": [
-          "HUR-L1 Green Glade Station"
-        ],
-        "reward": 35500
-      },
-      {
-        "id": 6,
-        "kind": "return",
-        "template": "2f054a8b-6bc2-46e6-8b4e-8106670dcba3",
-        "title": "Junior Rank - Small Cargo Haul",
-        "legs": [
-          { "commodity": "Waste", "min": 2, "max": 4, "container": 4 },
-          { "commodity": "Waste", "min": 2, "max": 4, "container": 4 },
-          { "commodity": "Waste", "min": 2, "max": 4, "container": 4 },
-          { "commodity": "Waste", "min": 2, "max": 4, "container": 4 }
-        ],
-        "destinations": [
-          "Everus Harbor"
-        ],
-        "reward": 72500,
-        "acceptAt": "HUR-L1 Green Glade Station",
-        "collectAt": [
           "HUR-L4 Melodic Fields Station",
-          "HUR-L3 Thundering Express Station",
-          "HUR-L5 High Course Station"
-        ]
+          "HUR-L1 Green Glade Station",
+          "HUR-L2 Faithful Dream Station"
+        ],
+        "reward": 290500
       }
     ],
-    "extras": [],
-    "at": 0
-  }
+    "extras": [
+      "EVERUSHARBOR | HIGHCOURSE:STIMS | 4 | 35500",
+      "EVERUSHARBOR | FAITHFUIDREAM:STIMS, GREENGIADE:STIMS, HIGHCOURSE:STIMS | 4 | 60750"
+    ],
+    "departedUtc": "2026-11-26T11:13:26.4390303Z"
+  },
+  "runs": [
+    {
+      "name": "Own plan from Seraphim Station",
+      "startedUtc": "2026-11-26T07:56:20.5770121Z",
+      "finishedUtc": "2026-11-26T07:57:36.919409Z",
+      "hub": "Seraphim Station",
+      "kind": "custom",
+      "system": "stanton",
+      "landings": 10,
+      "crates": 48,
+      "longJumps": 8,
+      "reward": 667000,
+      "filled": 0,
+      "total": 1,
+      "extras": 6,
+      "ship": "hull_b",
+      "stations": [
+        "CRU-L4 Shallow Fields Station",
+        "CRU-L1 Ambitious Dream Station",
+        "CRU-L5 Beautiful Glen Station"
+      ],
+      "departedUtc": "2026-11-26T07:56:48.417431Z"
+    }
+  ]
 }
 ```
+
+Scan keys are copied as plan.json's `scan.key` holds them (D101), with its folded letters (`FAITHFUIDREAM`).
 
 ## Fields
 
@@ -253,7 +248,22 @@ filled which placeholder and the contracts accepted beside it. **End plan** remo
 | `stations` | array of strings | At least one: the stations in the order flown, without the hub. |
 | `placeholders` | array | One per contract of the loop in the order accepted: what leaves the hub first, then station by station what is accepted there (on the way or a way back). Ids once each. |
 | `extras` | array of strings | Scan keys of accepted contracts no placeholder took ("not in plan (extra)"); they count for the route. May be empty. |
-| `at` | number | Where the station bar stands (6b): `0` the hub at the start, `1` to n the stations, n + 1 the hub at the end. |
+| `at` | string | Optional: where the station bar stands (6b), **by name** (B18): left out at the hub at the start, a stop's name (a station of `stations` or an extra's place, as the bar names it), the hub's name for the hub at the end. [Below](#bar-position). |
+
+### Bar position
+
+The bar's stops are the hub, the route's stations, the places of its extras that lie off them, and the hub again; before
+leaving they are ordered anew as the loops order them, after leaving a new place comes before the hub (T13.6, K6). So an
+index would point at another stop once an extra joins or the plan changes; a name stays with its stop (B18, D126
+addendum). The bar finds the name among its stops when it is built:
+
+- **A name the bar doesn't have** (the plan no longer holds the extra, a later data release renamed the station): the
+  bar shows the start, `cargoplan.log` says "Routes: route position <name> is no stop of the bar – bar shown at the
+  start" once, and the file keeps the name until the bar moves.
+- **A whole number** is what builds before B18 wrote (no release did): `0` the start, `1` to n the station of that place
+  in `stations`, n + 1 the hub; the next save writes the name. The reader knows no extras, so beyond that the bar starts
+  anew and `cargoplan.log` says "Routes: route position 6 is outside the 4 stations – bar reset to start". An empty name,
+  a fraction or another type is an error.
 
 ### Placeholder
 

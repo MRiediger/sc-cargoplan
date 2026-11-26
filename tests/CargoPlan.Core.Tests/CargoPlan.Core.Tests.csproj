@@ -66,4 +66,10 @@
     <EmbeddedResource Include="Fixtures/Routes/MeasuredEverus/routes.json" LogicalName="routes/measured_everus.json" />
   </ItemGroup>
 
+  <!-- B18: Martin's routes.json of 26 Nov 2026 as written, a custom route with five extras whose bar stood at 6 of its 4
+       stations; the reader before B18 refused it. Checked by RoutesFileTests. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Fixtures/Routes/AtIndexCustom/routes.json" LogicalName="routes/at_index_custom.json" />
+  </ItemGroup>
+
 </Project>

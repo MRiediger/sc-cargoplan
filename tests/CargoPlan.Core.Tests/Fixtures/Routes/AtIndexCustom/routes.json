@@ -1,0 +1,546 @@
+{
+  "schemaVersion": 3,
+  "observations": [
+    {
+      "contractor": "covalex",
+      "rank": "experienced",
+      "size": "medium",
+      "reward": 160250,
+      "pickups": [
+        "Everus Harbor"
+      ],
+      "destinations": [
+        "HUR-L3 Thundering Express Station"
+      ],
+      "scu": [
+        {
+          "commodity": "Hydrogen Fuel",
+          "min": 111,
+          "max": 111
+        },
+        {
+          "commodity": "Quantum Fuel",
+          "min": 113,
+          "max": 113
+        },
+        {
+          "commodity": "Ship Ammunition",
+          "min": 95,
+          "max": 95
+        }
+      ],
+      "count": 2,
+      "firstUtc": "2026-11-24T09:34:55.0271923Z",
+      "lastUtc": "2026-11-24T09:38:56.2964856Z",
+      "direct": true
+    },
+    {
+      "contractor": "covalex",
+      "rank": "member",
+      "size": "small",
+      "reward": 100500,
+      "pickups": [
+        "Everus Harbor"
+      ],
+      "destinations": [
+        "HUR-L1 Green Glade Station",
+        "HUR-L2 Faithful Dream Station",
+        "HUR-L3 Thundering Express Station",
+        "HUR-L4 Melodic Fields Station",
+        "HUR-L5 High Course Station"
+      ],
+      "scu": [
+        {
+          "commodity": "Pressurized Ice",
+          "min": 3,
+          "max": 7
+        },
+        {
+          "commodity": "Processed Food",
+          "min": 5,
+          "max": 7
+        }
+      ],
+      "count": 3,
+      "firstUtc": "2026-11-24T09:35:48.1894142Z",
+      "lastUtc": "2026-11-25T07:13:27.7965597Z",
+      "direct": false
+    },
+    {
+      "contractor": "covalex",
+      "rank": "senior",
+      "size": "medium",
+      "reward": 290500,
+      "pickups": [
+        "Everus Harbor"
+      ],
+      "destinations": [
+        "HUR-L2 Faithful Dream Station",
+        "HUR-L3 Thundering Express Station",
+        "HUR-L4 Melodic Fields Station"
+      ],
+      "scu": [
+        {
+          "commodity": "Hydrogen Fuel",
+          "min": 71,
+          "max": 110
+        },
+        {
+          "commodity": "Quantum Fuel",
+          "min": 61,
+          "max": 61
+        },
+        {
+          "commodity": "Ship Ammunition",
+          "min": 139,
+          "max": 139
+        }
+      ],
+      "count": 1,
+      "firstUtc": "2026-11-24T09:35:57.7370682Z",
+      "lastUtc": "2026-11-24T09:35:57.7370682Z",
+      "direct": false
+    },
+    {
+      "contractor": "covalex",
+      "rank": "member",
+      "size": "small",
+      "reward": 81250,
+      "pickups": [
+        "Everus Harbor"
+      ],
+      "destinations": [
+        "HUR-L1 Green Glade Station",
+        "HUR-L4 Melodic Fields Station",
+        "HUR-L5 High Course Station"
+      ],
+      "scu": [
+        {
+          "commodity": "Pressurized Ice",
+          "min": 5,
+          "max": 6
+        },
+        {
+          "commodity": "Processed Food",
+          "min": 4,
+          "max": 7
+        }
+      ],
+      "count": 1,
+      "firstUtc": "2026-11-24T09:36:51.4456167Z",
+      "lastUtc": "2026-11-24T09:36:51.4456167Z",
+      "direct": false
+    },
+    {
+      "contractor": "covalex",
+      "rank": "junior",
+      "size": "small",
+      "reward": 51000,
+      "pickups": [
+        "Everus Harbor"
+      ],
+      "destinations": [
+        "HUR-L2 Faithful Dream Station",
+        "HUR-L4 Melodic Fields Station"
+      ],
+      "scu": [
+        {
+          "commodity": "Pressurized Ice",
+          "min": 3,
+          "max": 4
+        },
+        {
+          "commodity": "Processed Food",
+          "min": 4,
+          "max": 6
+        }
+      ],
+      "count": 1,
+      "firstUtc": "2026-11-24T09:36:57.1039569Z",
+      "lastUtc": "2026-11-24T09:36:57.1039569Z",
+      "direct": false
+    },
+    {
+      "contractor": "covalex",
+      "rank": "rookie",
+      "size": "xs",
+      "reward": 50250,
+      "pickups": [
+        "HUR-L3 Thundering Express Station",
+        "HUR-L5 High Course Station"
+      ],
+      "destinations": [
+        "Everus Harbor"
+      ],
+      "scu": [
+        {
+          "commodity": "Waste",
+          "min": 7,
+          "max": 7
+        }
+      ],
+      "count": 1,
+      "firstUtc": "2026-11-24T09:37:03.0368771Z",
+      "lastUtc": "2026-11-24T09:37:03.0368771Z",
+      "direct": false
+    },
+    {
+      "contractor": "covalex",
+      "rank": "junior",
+      "size": "small",
+      "reward": 72500,
+      "pickups": [
+        "HUR-L1 Green Glade Station",
+        "HUR-L2 Faithful Dream Station",
+        "HUR-L3 Thundering Express Station",
+        "HUR-L4 Melodic Fields Station",
+        "HUR-L5 High Course Station"
+      ],
+      "destinations": [
+        "Everus Harbor"
+      ],
+      "scu": [
+        {
+          "commodity": "Waste",
+          "min": 9,
+          "max": 10
+        }
+      ],
+      "count": 2,
+      "firstUtc": "2026-11-24T09:37:09.899716Z",
+      "lastUtc": "2026-11-25T07:12:21.7292997Z",
+      "direct": false
+    },
+    {
+      "contractor": "covalex",
+      "rank": "experienced",
+      "size": "medium",
+      "reward": 163250,
+      "pickups": [
+        "Everus Harbor"
+      ],
+      "destinations": [
+        "Teasa Spaceport in Lorville"
+      ],
+      "scu": [
+        {
+          "commodity": "Pressurized Ice",
+          "min": 30,
+          "max": 30
+        },
+        {
+          "commodity": "Processed Food",
+          "min": 392,
+          "max": 392
+        }
+      ],
+      "count": 1,
+      "firstUtc": "2026-11-24T10:01:26.0577138Z",
+      "lastUtc": "2026-11-24T10:01:26.0577138Z",
+      "direct": true
+    },
+    {
+      "contractor": "covalex",
+      "rank": "senior",
+      "size": "medium",
+      "reward": 325250,
+      "pickups": [
+        "Everus Harbor"
+      ],
+      "destinations": [
+        "HUR-L2 Faithful Dream Station",
+        "HUR-L3 Thundering Express Station",
+        "HUR-L4 Melodic Fields Station",
+        "HUR-L5 High Course Station"
+      ],
+      "scu": [
+        {
+          "commodity": "Hydrogen Fuel",
+          "min": 46,
+          "max": 66
+        },
+        {
+          "commodity": "Quantum Fuel",
+          "min": 85,
+          "max": 87
+        },
+        {
+          "commodity": "Ship Ammunition",
+          "min": 90,
+          "max": 99
+        }
+      ],
+      "count": 2,
+      "firstUtc": "2026-11-25T07:09:00.0293177Z",
+      "lastUtc": "2026-11-25T07:09:38.3126112Z",
+      "direct": false
+    },
+    {
+      "contractor": "covalex",
+      "rank": "rookie",
+      "size": "small",
+      "reward": 35500,
+      "pickups": [
+        "Everus Harbor"
+      ],
+      "destinations": [
+        "HUR-L5 High Course Station"
+      ],
+      "scu": [
+        {
+          "commodity": "Stims",
+          "min": 8,
+          "max": 10
+        }
+      ],
+      "count": 2,
+      "firstUtc": "2026-11-25T07:11:11.611681Z",
+      "lastUtc": "2026-11-25T07:11:19.4425267Z",
+      "direct": true
+    },
+    {
+      "contractor": "covalex",
+      "rank": "junior",
+      "size": "small",
+      "reward": 72500,
+      "pickups": [
+        "Everus Harbor"
+      ],
+      "destinations": [
+        "HUR-L1 Green Glade Station",
+        "HUR-L3 Thundering Express Station",
+        "HUR-L4 Melodic Fields Station",
+        "HUR-L5 High Course Station"
+      ],
+      "scu": [
+        {
+          "commodity": "Stims",
+          "min": 2,
+          "max": 3
+        }
+      ],
+      "count": 1,
+      "firstUtc": "2026-11-25T07:12:50.5073024Z",
+      "lastUtc": "2026-11-25T07:12:50.5073024Z",
+      "direct": false
+    },
+    {
+      "contractor": "covalex",
+      "rank": "junior",
+      "size": "small",
+      "reward": 60750,
+      "pickups": [
+        "Everus Harbor"
+      ],
+      "destinations": [
+        "HUR-L1 Green Glade Station",
+        "HUR-L2 Faithful Dream Station",
+        "HUR-L5 High Course Station"
+      ],
+      "scu": [
+        {
+          "commodity": "Stims",
+          "min": 2,
+          "max": 5
+        }
+      ],
+      "count": 2,
+      "firstUtc": "2026-11-25T07:14:18.8988473Z",
+      "lastUtc": "2026-11-25T07:17:51.2081259Z",
+      "direct": false
+    },
+    {
+      "contractor": "covalex",
+      "rank": "senior",
+      "size": "medium",
+      "reward": 339500,
+      "pickups": [
+        "ARC-L1 Wide Forest Station"
+      ],
+      "destinations": [
+        "Baijini Point",
+        "Everus Harbor",
+        "Port Tressler"
+      ],
+      "scu": [
+        {
+          "commodity": "Aluminum",
+          "min": 57,
+          "max": 94
+        },
+        {
+          "commodity": "Corundum",
+          "min": 15,
+          "max": 24
+        },
+        {
+          "commodity": "Tungsten",
+          "min": 147,
+          "max": 174
+        }
+      ],
+      "count": 2,
+      "firstUtc": "2026-11-25T07:21:37.9295284Z",
+      "lastUtc": "2026-11-25T07:22:07.0614439Z",
+      "direct": false
+    }
+  ],
+  "route": {
+    "name": "Own plan from Everus Harbor",
+    "startedUtc": "2026-11-26T11:13:20.1163867Z",
+    "hub": "Everus Harbor",
+    "kind": "custom",
+    "system": "stanton",
+    "stations": [
+      "HUR-L1 Green Glade Station",
+      "HUR-L3 Thundering Express Station",
+      "HUR-L4 Melodic Fields Station",
+      "HUR-L2 Faithful Dream Station"
+    ],
+    "placeholders": [
+      {
+        "id": 1,
+        "kind": "bulk",
+        "template": "212df642-26d0-4e99-b8c0-c212ae4cfbd8",
+        "title": "Senior Rank - Medium Cargo Haul",
+        "legs": [
+          {
+            "commodity": "Hydrogen Fuel",
+            "min": 41,
+            "max": 72,
+            "container": 16
+          },
+          {
+            "commodity": "Quantum Fuel",
+            "min": 81,
+            "max": 144,
+            "container": 16
+          },
+          {
+            "commodity": "Ship Ammunition",
+            "min": 82,
+            "max": 144,
+            "container": 16
+          },
+          {
+            "commodity": "Hydrogen Fuel",
+            "min": 40,
+            "max": 72,
+            "container": 16
+          }
+        ],
+        "destinations": [
+          "HUR-L4 Melodic Fields Station",
+          "HUR-L1 Green Glade Station",
+          "HUR-L3 Thundering Express Station",
+          "HUR-L2 Faithful Dream Station"
+        ],
+        "reward": 325250,
+        "filledBy": "EVERUSHARBOR | FAITHFUIDREAM:HYDROGENFUEI, HIGHCOURSE:SHIPAMMUNITION, MEIODICFIEIDS:HYDROGENFUEI, THUNDERINGEXPRESS:QUANTUMFUEI | 16 | 325250"
+      },
+      {
+        "id": 2,
+        "kind": "bulk",
+        "template": "6d480cb9-a179-489d-9f88-5b4e9793a4e7",
+        "title": "Senior Rank - Medium Cargo Haul",
+        "legs": [
+          {
+            "commodity": "Quantum Fuel",
+            "min": 41,
+            "max": 72,
+            "container": 16
+          },
+          {
+            "commodity": "Hydrogen Fuel",
+            "min": 81,
+            "max": 144,
+            "container": 16
+          },
+          {
+            "commodity": "Ship Ammunition",
+            "min": 82,
+            "max": 144,
+            "container": 16
+          },
+          {
+            "commodity": "Hydrogen Fuel",
+            "min": 40,
+            "max": 72,
+            "container": 16
+          }
+        ],
+        "destinations": [
+          "HUR-L4 Melodic Fields Station",
+          "HUR-L1 Green Glade Station",
+          "HUR-L2 Faithful Dream Station"
+        ],
+        "reward": 290500
+      }
+    ],
+    "extras": [
+      "EVERUSHARBOR | HIGHCOURSE:STIMS | 4 | 35500",
+      "HUR-I2FAITHFUIDREAM, HUR-I3THUNDERINGEXPRESS, HUR-I4MEIODICFIEIDS, HUR-I5HIGHCOURSE | EVERUSHARBOR:WASTE | 4 | 72500",
+      "EVERUSHARBOR | GREENGIADE:STIMS, HIGHCOURSE:STIMS, MEIODICFIEIDS:STIMS, THUNDERINGEXPRESS:STIMS | 4 | 72500",
+      "EVERUSHARBOR | GREENGIADE:PRESSURIZEDICE, HIGHCOURSE:PROCESSEDFOOD, MEIODICFIEIDS:PROCESSEDFOOD, THUNDERINGEXPRESS:PRESSURIZEDICE | 4 | 100500",
+      "EVERUSHARBOR | FAITHFUIDREAM:STIMS, GREENGIADE:STIMS, HIGHCOURSE:STIMS | 4 | 60750"
+    ],
+    "at": 6,
+    "departedUtc": "2026-11-26T11:13:26.4390303Z"
+  },
+  "runs": [
+    {
+      "name": "Everus Harbor ring",
+      "startedUtc": "2026-11-25T07:47:56.5833266Z",
+      "finishedUtc": "2026-11-25T08:25:47.6270471Z",
+      "hub": "Everus Harbor",
+      "kind": "localRing",
+      "system": "stanton",
+      "landings": 8,
+      "crates": 48,
+      "longJumps": 7,
+      "reward": 1006500,
+      "filled": 6,
+      "total": 10,
+      "extras": 1,
+      "departedUtc": "2026-11-25T08:25:34.8851303Z"
+    },
+    {
+      "name": "Everus Harbor ring",
+      "startedUtc": "2026-11-25T08:28:00.8426898Z",
+      "finishedUtc": "2026-11-25T08:28:54.3265298Z",
+      "hub": "Everus Harbor",
+      "kind": "localRing",
+      "system": "stanton",
+      "landings": 8,
+      "crates": 48,
+      "longJumps": 7,
+      "reward": 1006500,
+      "filled": 6,
+      "total": 10,
+      "extras": 1,
+      "departedUtc": "2026-11-25T08:28:21.6709851Z"
+    },
+    {
+      "name": "Own plan from Seraphim Station",
+      "startedUtc": "2026-11-26T07:56:20.5770121Z",
+      "finishedUtc": "2026-11-26T07:57:36.919409Z",
+      "hub": "Seraphim Station",
+      "kind": "custom",
+      "system": "stanton",
+      "landings": 10,
+      "crates": 48,
+      "longJumps": 8,
+      "reward": 667000,
+      "filled": 0,
+      "total": 1,
+      "extras": 6,
+      "ship": "hull_b",
+      "stations": [
+        "CRU-L4 Shallow Fields Station",
+        "CRU-L1 Ambitious Dream Station",
+        "CRU-L5 Beautiful Glen Station"
+      ],
+      "departedUtc": "2026-11-26T07:56:48.417431Z"
+    }
+  ]
+}

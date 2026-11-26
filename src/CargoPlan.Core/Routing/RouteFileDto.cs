@@ -1,9 +1,13 @@
+using System.Text.Json;
 using CargoPlan.Core.Models;
 using static CargoPlan.Core.Json.EnumWords;
 
 namespace CargoPlan.Core.Routing;
 
-/// <summary>The route as routes.json writes it (schema 3, T13.6, docs/routes-format.md).</summary>
+/// <summary>
+/// The route as routes.json writes it (schema 3, T13.6, docs/routes-format.md). <c>at</c> is the bar's stop by name, left
+/// out at the start (B18); a whole number is the index the unreleased schema 3 wrote, read once against the stations.
+/// </summary>
 internal sealed record RouteDto(
     string Name,
     DateTime StartedUtc,
@@ -13,14 +17,16 @@ internal sealed record RouteDto(
     IReadOnlyList<string> Stations,
     IReadOnlyList<PlaceholderDto> Placeholders,
     IReadOnlyList<string> Extras,
-    int At,
+    JsonElement? At = null,
     DateTime? DepartedUtc = null)
 {
     public static RouteDto From(Route r) => new(
-        r.Name, r.StartedUtc, r.Hub, Word(r.Kind), Word(r.System), r.Stations, [.. r.Placeholders.Select(PlaceholderDto.From)], r.Extras, r.At, r.DepartedUtc);
+        r.Name, r.StartedUtc, r.Hub, Word(r.Kind), Word(r.System), r.Stations, [.. r.Placeholders.Select(PlaceholderDto.From)], r.Extras,
+        r.At is { } at ? JsonSerializer.SerializeToElement(at, RoutesJsonContext.Default.String) : null, r.DepartedUtc);
 
-    /// <exception cref="ArgumentException">A word, time, index or placeholder out of the format.</exception>
-    public Route ToRoute()
+    /// <summary>The route, and a line for the log where an old index lay outside its stations and the bar starts anew.</summary>
+    /// <exception cref="ArgumentException">A word, time, bar position or placeholder out of the format.</exception>
+    public (Route Route, string? Reset) ToRoute()
     {
         Utc(StartedUtc, "startedUtc");
         if (DepartedUtc is { } departed)
@@ -37,19 +43,39 @@ internal sealed record RouteDto(
             throw new ArgumentException("the route has no stations.");
         }
 
-        // 0 the hub at the start, 1 to n the stations, n + 1 the hub at the end.
-        if (At < 0 || At > Stations.Count + 1)
-        {
-            throw new ArgumentException($"the route's at {At} is no stop of its {Stations.Count} stations and the hub.");
-        }
-
+        var (at, reset) = Position();
         Placeholder[] placeholders = [.. Placeholders.Select(p => p.ToPlaceholder())];
         if (placeholders.GroupBy(p => p.Id).FirstOrDefault(g => g.Count() > 1) is { } twice)
         {
             throw new ArgumentException($"placeholder id {twice.Key} is there twice.");
         }
 
-        return new(Name, StartedUtc, Hub, Parse<LoopKind>(Kind), Parse<StarSystem>(System), Stations, placeholders, Extras, DepartedUtc, At);
+        return (new(Name, StartedUtc, Hub, Parse<LoopKind>(Kind), Parse<StarSystem>(System), Stations, placeholders, Extras, DepartedUtc, at), reset);
+    }
+
+    // A name as written; whether the bar has it, only the bar knows (its stops hold the extras' places, RouteProgress). An
+    // index of the unreleased schema 3 (B18, K3): 0 the start, 1 to n the stations, n + 1 the hub; the reader knows no
+    // extras, so beyond that the bar starts anew, and the log says so (E2 of the approval).
+    private (string? At, string? Reset) Position()
+    {
+        switch (At)
+        {
+            case null or { ValueKind: JsonValueKind.Null }:
+                return (null, null);
+            case { ValueKind: JsonValueKind.String } name:
+                var text = name.GetString();
+                return string.IsNullOrWhiteSpace(text) ? throw new ArgumentException("the route's at is empty: a stop's name or left out.") : (text, null);
+            case { ValueKind: JsonValueKind.Number } number when number.TryGetInt32(out var index):
+                return index switch
+                {
+                    0 => (null, null),
+                    _ when index >= 1 && index <= Stations.Count => (Stations[index - 1], null),
+                    _ when index == Stations.Count + 1 => (Hub, null),
+                    _ => (null, $"route position {index} is outside the {Stations.Count} stations – bar reset to start"),
+                };
+            case { } other:
+                throw new ArgumentException($"the route's at {other} is no stop's name.");
+        }
     }
 
     internal static void Utc(DateTime time, string field)

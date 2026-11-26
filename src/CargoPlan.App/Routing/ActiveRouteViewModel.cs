@@ -53,6 +53,9 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
     // The stops as last worked out: the ticks since move the bar (Route.Advance).
     private RouteProgress? _progress;
 
+    // The bar position the log named as no stop of the bar (B18, K4): once per name, not per rebuild.
+    private string? _lostAt;
+
     /// <param name="route">The route routes.json held at the start; null for none.</param>
     /// <param name="save">Writes the route to routes.json (<c>RoutesBook.SetRoute</c>), null when it ends.</param>
     /// <param name="hauling">Templates and positions to match a scan with; without them every accepted contract is an extra.</param>
@@ -229,7 +232,7 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
         }
 
         // E(c): a way back accepted at another station than planned says where it was planned.
-        var at = _progress is { } progress && route.At > 0 && route.At < progress.Stops.Count - 1 ? progress.Stops[route.At].Name : null;
+        var at = _progress is { } progress && progress.IndexOf(route) is { } stop && stop > 0 && stop < progress.Stops.Count - 1 ? progress.Stops[stop].Name : null;
         RouteNote? note = outcome switch
         {
             FillOutcome.Filled { Placeholder: var p } => new RouteNote.Filled(p.Kind, after.FilledCount(keys), after.Placeholders.Count,
@@ -304,7 +307,7 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
     {
         if (Route is { } route && _progress is { } progress)
         {
-            SetRoute(route.Step(delta, progress.Stops.Count, _clock()));
+            SetRoute(route.Step(delta, progress, _clock()));
         }
     }
 
@@ -363,7 +366,15 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
         var watch = Stopwatch.StartNew();
         var progress = RouteProgress.Of(route, _saved, ship, _positions);
         var last = progress.Stops.Count - 1;
-        var at = Math.Clamp(route.At, 0, last);
+        var index = progress.IndexOf(route);
+        if (index is null && route.At != _lostAt)
+        {
+            // K4: shown at the start; routes.json keeps the name until the bar moves.
+            AppLog.Write(LogContext, $"route position {route.At} is no stop of the bar – bar shown at the start");
+        }
+
+        _lostAt = index is null ? route.At : null;
+        var at = index ?? 0;
         var stop = progress.Stops[at];
         if (_progress is not { } shown || shown.Stops.Count != progress.Stops.Count || shown.Stops[Math.Min(at, shown.Stops.Count - 1)].Name != stop.Name)
         {
