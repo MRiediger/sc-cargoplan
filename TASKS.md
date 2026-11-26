@@ -247,6 +247,13 @@ templates, 157 positions, 0 left out, 50 ms`.
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 
+- Settings-Reader toleriert unbekannte Top-Level-Abschnitte und schreibt sie unverändert zurück (T13.8, Halt 1, E2):
+  heute lehnt jede Version eine settings.json mit einem Abschnitt einer neueren ab (`UnmappedMemberHandling.Disallow`)
+  und startet mit Defaults – v0.4.0 mit `updates`, v0.5.x mit `shipData`, v0.7.0 mit `routes`; ohne Änderung wiederholt
+  sich der Downgrade-Befund bei jeder Version. Gegen: die Strenge fängt Tippfehler (settings-format „A misspelt key
+  makes the whole file unreadable“) – unbekannte Schlüssel *in* bekannten Abschnitten bleiben deshalb ein Fehler, nur
+  ganze unbekannte Abschnitte (Objekte auf oberster Ebene) werden gehalten; und es hilft erst beim Rückweg *auf* eine
+  Version, die es schon kann. D-Eintrag (D105-Addendum). **Auslöser:** der nächste additive Abschnitt in settings.json.
 - **F12 VR-Overlay (Phase 14):** CargoPlan in VR lesbar, kein Plan, kein Entwurf vor dem Start. Auslöser: v0.8.0
   veröffentlicht und Martin startet Phase 14.
 - Red-Wind-Zwillinge live prüfen (T13.3, offen aus T13.4): Faktions-Zwillinge HH/CFP teilen heute eine mehrdeutige
