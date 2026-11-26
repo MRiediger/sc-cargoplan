@@ -111,6 +111,19 @@ Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays 
 | E6 | nice | `legend-markings.png` | PNG | Legend-and-delivery-states | A legend line with a mark such as `4 SCU?` or `⚠ 1 of 3 destinations` | – | *Scan live*, whenever a scan shows one |
 | E7 | nice | `legend-scan-headers.png` | PNG | Legend-and-delivery-states | Two scanned contracts in the legend, headers `From Everus Harbor · #1` and `#2`, amber line `Updated #2 · quantities changed` | – | Cut from the last frame of the E2 export at full size (`crop=360:165:792:366`) |
 
-**Total:** 31 shots, 17 GIF and 14 PNG; 15 must (8 GIF, 7 PNG), 16 nice. `legend-states.png` and
+## Plan tab (v0.8.0, outside the game)
+
+All five: MISC Hull B, hub Everus Harbor, overlay about 1100 × 700, look preset **Default**, no game behind the overlay,
+started with `--data-dir` on a clean folder (Martin, Halt 1 of T13.8); the README shows P4 by its file in the main repo.
+
+| Id | Prio | File | Type | Page | What happens (start → end) | Max. | State |
+|---|---|---|---|---|---|---|---|
+| P1 | must | `plan-matrix.png` | PNG | Plan-tab | Plan tab, view **Matrix**, Stanton, Stellar: cells `n · aUEC`, short L-station names | – | Clean data folder, Rank ≤ Master |
+| P2 | nice | `plan-recipe.png` | PNG | Plan-tab | View **Recipe**, `Hub: Everus Harbor`: the lines, **Back**, the sum line `… fits MISC Hull B` | – | As P1 |
+| P3 | must | `plan-loops.png` | PNG | Plan-tab | View **Loops**, `Sort: ~aUEC/h`: rings, direct runs, the LEO ring with `needs scans at …` | – | As P1 |
+| P4 | must | `docs/images/plan-map.png` (main repo; the wiki shows it by its raw URL) | PNG | README, Plan-tab | View **Map**, Stanton: stations around the star, lines by aUEC, Everus Harbor with its ring | – | As P1 |
+| P5 | must | `plan-cargo-bar.png` | PNG | Plan-tab | Cargo tab after **Start plan** (Everus Harbor ring): the station bar `Start · Everus Harbor · …`, the block `▾ Plan: …` with its lines | – | As P1, then Start plan |
+
+**Total:** 36 shots, 17 GIF and 19 PNG; 19 must (8 GIF, 11 PNG), 17 nice. `legend-states.png` and
 `legend-markings.png` are one picture on purpose: it shows both states and a `?` mark. D3, D4 and D11 showed the
 settings section of the import that went in T10.4a.
