@@ -156,6 +156,16 @@ Core 2543/2543, App 2312/2312, Import 430/430, Ocr 34/34.
   Spielbild, Texte wie im Wiki zitiert). P4 als `docs/images/plan-map.png` im Hauptrepo (README relativ, Wiki per
   Raw-URL, Muster H15; die Wiki-Kopie nach Hash-Vergleich entfernt), P1/P2/P3/P5 in `media/` des Wikis.
 
+**Halt 1 bestanden (Martin, 26.11.2026, „Halt 1 Wiki: bestanden“)** mit E1 (Scanning-contracts: `no hauling template
+form` neben den Lesefehlern, Wiki `0e0146c`) und E2 (Backlog: Settings-Reader hält unbekannte Abschnitte, `63bcb36`).
+
+**Befund Stufe 2 (CC, 26.11.2026):** Entwurf `docs/release-notes/v0.8.0.md`, Aufbau v0.7.0: Headline · Updating ·
+New: the Plan tab · New: a plan with its stops · New: what your scans teach the planner · Settings · Changed · Files ·
+Ship and hauling data · Known issues · Fuß. Jede Zeile hat Commits in der Vollständigkeitstabelle oben (Abschnitt
+„In den Notes“); keine Zeile für B18, `--log-input`, Messziele. Gültige Known issues aus v0.7.0 übernommen (ohne den
+Rückweg auf v0.6.0, steht im Wiki). Link-Check: 9 externe URLs 200, 3 Wiki-Ziele gegen den Wiki-Branch `v0.8.0`
+(`Plan-tab` ist erst nach dem Wiki-Push online → Wiki-Push direkt nach dem Tag).
+
 **Nachmessen Stufe 3 (Ergänzung aus B18, Martin):** eigener Plan mit Extras → „›“ ×2 → Neustart → Plan-Reiter
 vollständig, Leiste am selben Stopp – am veröffentlichten ZIP.
 
