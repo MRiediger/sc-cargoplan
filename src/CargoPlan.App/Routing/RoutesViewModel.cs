@@ -36,6 +36,18 @@ public sealed record LoopRowView(LoopCandidate Loop, string Title, string? Figur
 public sealed record PlanStart(LoopCandidate Loop, string Name, ObservedEdges Edges);
 
 /// <summary>
+/// One mission as a row of the map's edge panel, its plan or its focus list (T13.7c, D130): [+] where it can go into
+/// the plan, [−] where it is in.
+/// </summary>
+/// <param name="Text">"Senior Rank - Medium Cargo Haul · 289,000 aUEC · 123–333 SCU in 16s · Everus Harbor → Baijini Point".</param>
+/// <param name="State">" · fits", " · likely doesn't fit at Everus Harbor", " · different board", " · in plan"; for a plan's row
+/// what it comes to on the route; null where nothing is known (no ship).</param>
+public sealed record MissionRowView(CustomPick Pick, string Text, string? State, bool CanAdd, bool CanRemove, string ToolTip);
+
+/// <summary>The edge panel (T13.7c): "Everus Harbor → Baijini Point · 1/3 in plan" and a row per mission of the edge.</summary>
+public sealed record EdgePanelView(string From, string To, string Header, IReadOnlyList<MissionRowView> Rows);
+
+/// <summary>
 /// The Plan tab (the Routes tab, D120; T13.2): the port matrix of the hauling templates (design §8.5) under a filter whose
 /// parts cycle on a click, with what the scans saw (T13.3, <see cref="ObservedEdges"/>, computed by the caller). The matrix
 /// is Core's (<see cref="PortMatrix"/>); this formats it. Rank and faction go to settings.json (routes.rank,
@@ -149,11 +161,14 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
     // The matrix of the filter, as the matrix view shows it; the map draws this one (A1).
     private PortMatrix? _matrix;
 
-    // The custom route clicked on the map from the focus (T13.7b, D129), for the session, and what it comes to for the
+    // The custom route built of missions on the map (T13.7c, D130), for the session, and what it comes to for the
     // overlay's ship; null without one.
     private CustomPlan? _custom;
 
     private CustomResult? _customResult;
+
+    // The edge whose panel is open (T13.7c); null for none.
+    private (string From, string To)? _panelEdge;
 
     // Every node of a system for the map's layout, from everything its templates and the scans name; made anew with them.
     private (StarSystem System, ObservedEdges Observed, IReadOnlyDictionary<string, MapNode> NodeOf, IReadOnlyList<MapNode> Universe)? _mapNodes;
@@ -257,12 +272,31 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
     /// </summary>
     public double MapLegendHeight => _settings.MapLegendHeight;
 
-    /// <summary>The custom route has a contract (T13.7b): its lines and "Start plan" show with the map.</summary>
+    /// <summary>The custom route has a mission (T13.7b): its lines and "Start plan" show with the map.</summary>
     public bool HasCustom => _custom is { Picks.Count: > 0 };
 
-    /// <summary>One line per contract of the custom route, as the recipe's, with "fits" or "too big" (T13.7b).</summary>
+    /// <summary>The bar under the map shows: a plan or the focus's missions (T13.7c).</summary>
+    public bool ShowsCustomBar => HasCustom || FocusMissions.Count > 0;
+
+    /// <summary>One row per mission of the custom route as flown, as the recipe's line, with [−] (T13.7c, D130).</summary>
     [ObservableProperty]
-    public partial IReadOnlyList<string> CustomLines { get; private set; } = [];
+    public partial IReadOnlyList<MissionRowView> CustomRows { get; private set; } = [];
+
+    /// <summary>"Missions at HUR-L1": the head of the focus's list; null without a focus (T13.7c, Martin's R3).</summary>
+    [ObservableProperty]
+    public partial string? FocusMissionsHeader { get; private set; }
+
+    /// <summary>Every mission from or to the station in focus under the filter, with [+] (T13.7c, Martin's R3).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowsCustomBar))]
+    public partial IReadOnlyList<MissionRowView> FocusMissions { get; private set; } = [];
+
+    /// <summary>The panel of the edge clicked last (T13.7c): its missions with [+]; null while closed.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasEdgePanel))]
+    public partial EdgePanelView? EdgePanel { get; private set; }
+
+    public bool HasEdgePanel => EdgePanel is not null;
 
     /// <summary>"Own plan: Everus Harbor → Baijini Point → … → Everus Harbor · 7 contracts · Σ … aUEC · …"; null without one.</summary>
     [ObservableProperty]
@@ -561,29 +595,60 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
     [RelayCommand]
     private void Focus(string? node)
     {
-        // Another start begins another custom route (T13.7b).
+        // A filter of the map and its list (T13.7c, D130): the custom route stays.
         _mapFocus = node is null || node == _mapFocus ? null : node;
-        _custom = null;
         BuildMap();
     }
 
+    /// <summary>A click on an edge (T13.7c, D130): its panel with its missions; the same edge again closes it.</summary>
+    [RelayCommand]
+    private void OpenEdge(MapEdge? edge)
+    {
+        _panelEdge = edge is null || _panelEdge == (edge.From, edge.To) ? null : (edge.From, edge.To);
+        BuildMap();
+    }
+
+    /// <summary>The panel's ×, or a click on free room of the map.</summary>
+    [RelayCommand]
+    private void ClosePanel()
+    {
+        if (_panelEdge is not null)
+        {
+            _panelEdge = null;
+            BuildMap();
+        }
+    }
+
     /// <summary>
-    /// A click on a lit edge of the map with a station in focus (T13.7b, D129): the edge's next best-paying contract into
-    /// the custom route; nothing without a ship or on an edge the focus dims.
+    /// [+] of a row (T13.7c, D130): the mission into the custom route; one that likely doesn't fit goes in marked (Martin's
+    /// R2), one of another board not ("different board"). The board of a new plan is routes.hub's (Martin, R1).
     /// </summary>
     [RelayCommand]
-    private void AddEdge(MapEdge? edge)
+    private void AddMission(MissionRowView? row)
     {
-        if (edge is null || CustomContextNow() is not { } context || Map?.Graph is not { } graph || !graph.IsLit(edge))
+        if (row is not { CanAdd: true } || Systems[_system].Value is not { } system || BoardOf(system) is not { } board)
         {
             return;
         }
 
-        _custom = (_custom ?? CustomPlan.Empty(_mapFocus!)).Add(edge, context);
+        _custom = (_custom ?? CustomPlan.Empty(system, board)).Add(row.Pick);
         BuildMap();
     }
 
-    /// <summary>A right click on an edge (T13.7b): its last contract out of the custom route.</summary>
+    /// <summary>[−] of a row of the plan (T13.7c): the mission out; the order is worked out again.</summary>
+    [RelayCommand]
+    private void RemoveMission(MissionRowView? row)
+    {
+        if (row is null || _custom is null)
+        {
+            return;
+        }
+
+        _custom = _custom.Remove(row.Pick) is { Picks.Count: > 0 } left ? left : null;
+        BuildMap();
+    }
+
+    /// <summary>A right click on an edge (T13.7b): its last mission out of the custom route.</summary>
     [RelayCommand]
     private void RemoveEdge(MapEdge? edge)
     {
@@ -592,7 +657,7 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
             return;
         }
 
-        _custom = _custom.Remove(edge);
+        _custom = _custom.Remove(edge) is { Picks.Count: > 0 } left ? left : null;
         BuildMap();
     }
 
@@ -604,11 +669,19 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
         BuildMap();
     }
 
-    // What a custom route is worked out with: a station in focus (a surface is no place to start), a ship, a system.
+    // What a custom route is worked out with: a ship and a system (T13.7c: no focus needed).
     private CustomContext? CustomContextNow() =>
-        _mapFocus is { } focus && _ship is { } ship && Systems[_system].Value is { } system && _positions.Find(system, focus) is not null
+        _ship is { } ship && Systems[_system].Value is { } system
             ? new CustomContext(system, _positions, _observed, ship, _fits)
             : null;
+
+    // The board of a new custom route (Martin, T13.7c): routes.hub's, the hub the recipe shows; Pyro's is Red Wind's Solar.
+    private string? BoardOf(StarSystem system) => system switch
+    {
+        StarSystem.Stanton => BoardHubs.ByArea.FirstOrDefault(a => a.Value == Hubs[_shownHub ?? _hub].Name).Key,
+        StarSystem.Pyro => Board.PyroSolar,
+        _ => null,
+    };
 
     /// <summary>
     /// The active route (T13.6) or none: the map draws its contracts, its order and numbers its stations (T13.7, gate
@@ -668,7 +741,7 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
                 break;
             case "system":
                 // A custom route stays in its system (T13.7b).
-                (_system, _custom) = (Step(_system, Systems.Length, step), null);
+                (_system, _custom, _panelEdge) = (Step(_system, Systems.Length, step), null, null);
                 OnPropertyChanged(nameof(SystemLabel));
                 break;
             case "view":
@@ -784,31 +857,71 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
             _mapNodes = nodes = (system, _observed, nodeOf, [.. nodeOf.Values.Distinct()]);
         }
 
-        // The custom route for the overlay's ship (T13.7b): its stations light the edges from them too.
+        // The custom route for the overlay's ship (T13.7b, T13.7c): its stops light the edges from them too.
         var context = CustomContextNow();
         _customResult = _custom is { Picks.Count: > 0 } custom && context is not null ? custom.Evaluate(context) : null;
         var draft = _customResult is { } drafted ? MapPlan.Of(drafted.Loop) : null;
         var graph = RouteMap.Build(matrix, nodes.NodeOf, system, _mapFocus, _route, draft, _extras);
         var hub = system == StarSystem.Stanton ? Hubs[_shownHub ?? _hub].Name : null;
-        var canPick = context is not null && graph.Focus is not null;
+        var canPick = context is not null;
+        var plan = _custom ?? (BoardOf(system) is { } board ? CustomPlan.Empty(system, board) : null);
         Map = new MapScene(
             graph, nodes.Universe, system, hub,
-            e => (graph.Extra(e.From, e.To) is { } extra ? ExtraToolTip(extra) + "\n" : "") + EdgeToolTip(e) + (canPick && graph.IsLit(e) ? PickHint : ""),
+            e => (graph.Extra(e.From, e.To) is { } extra ? ExtraToolTip(extra) + "\n" : "") + EdgeToolTip(e)
+                + Invariant($"\n{plan?.Count(e) ?? 0}/{e.Count} in plan") + (canPick ? PickHint : ""),
             n => NodeToolTip(graph, n), canPick, ExtraToolTip);
+        EdgePanel = _panelEdge is var (from, to) && graph.Edge(from, to) is { } open
+            ? new EdgePanelView(from, to, Invariant($"{open.From} → {open.To} · {plan?.Count(open) ?? 0}/{open.Count} in plan"),
+                [.. CustomPlan.Missions(open).Select(p => MissionRow(p, plan, context))])
+            : null;
+        (FocusMissionsHeader, FocusMissions) = graph.Focus is { } focus
+            ? ($"Missions at {PlaceNames.Short(focus)}", [.. graph.Edges.Where(e => e.From == focus || e.To == focus).SelectMany(CustomPlan.Missions)
+                .DistinctBy(p => (p.Pickup, p.Dropoff, p.Template.Uuid)).Select(p => MissionRow(p, plan, null))])
+            : ((string?)null, (IReadOnlyList<MissionRowView>)[]);
         MapNote = graph.InsideOneNode switch
         {
             0 => null,
             1 => "1 contract between places of one planet's surface is not drawn.",
             var n => Invariant($"{n} contracts between places of one planet's surface are not drawn."),
         };
-        (CustomLines, CustomSummary) = _customResult is { } result && context is not null ? Custom(result, context.Ship) : ([], null);
+        (CustomRows, CustomSummary) = _customResult is { } result && context is not null ? Custom(result, context.Ship) : ([], null);
         OnPropertyChanged(nameof(HasCustom));
+        OnPropertyChanged(nameof(ShowsCustomBar));
         OnPropertyChanged(nameof(OffersStart));
         BuildStart();
         AppLog.Write("Routes", Invariant($"map {system}: {graph.Nodes.Count} nodes, {graph.Edges.Count} edges in {watch.Elapsed.TotalMilliseconds:0.0} ms"));
     }
 
-    private const string PickHint = "\nclick: add its next contract to your plan · right click: take its last back";
+    private const string PickHint = "\nclick: its missions · right click: take its last out of your plan";
+
+    // A mission as a row (T13.7c, D130): with a context (the edge panel) whether the plan still fits with it; without one
+    // (the focus's list: every row would work the order out again) only in plan or another board.
+    private MissionRowView MissionRow(CustomPick pick, CustomPlan? plan, CustomContext? context)
+    {
+        var t = pick.Template;
+        var text = string.Join(" · ", [
+            t.Title, RoleText.Reward(t.Reward, _observed.RewardOf(t)),
+            Invariant($"{t.Legs.Sum(l => l.MinScu)}–{t.MaxScu} SCU in {(int)t.Legs.Max(l => l.Container)}s"),
+            $"{PlaceNames.Short(pick.Pickup)} → {PlaceNames.Short(pick.Dropoff)}",
+        ]);
+        (CustomOffer Offer, string? At)? offer = plan is null ? null
+            : plan.Holds(t) ? (CustomOffer.InPlan, null)
+            : !plan.OnBoard(t) ? (CustomOffer.DifferentBoard, null)
+            : context is not null ? plan.Offer(pick, context)
+            : null;
+        var state = offer switch
+        {
+            (CustomOffer.InPlan, _) => " · in plan",
+            (CustomOffer.DifferentBoard, _) => " · different board",
+            (CustomOffer.Fits, _) => " · fits",
+            (CustomOffer.LikelyNot, var at) => $" · likely doesn't fit at {PlaceNames.Short(at!)}",
+            _ when _ship is null => " · no ship",
+            _ => null,
+        };
+        var canAdd = _ship is not null && offer is null or (CustomOffer.Fits or CustomOffer.LikelyNot, _);
+        var tip = string.Join('\n', t.Legs.Select(l => Invariant($"{l.Commodity} {l.MinScu}–{l.MaxScu} SCU in {(int)l.Container}s")));
+        return new(pick, text, state, canAdd && plan is not null, _custom?.Picks.Contains(pick) == true, tip);
+    }
 
     /// <summary>
     /// An extra's line of the active route (gate finding 7a/7b): "Baijini Point → Everus Harbor: not in your plan" and the
@@ -819,11 +932,11 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
         .. extra.Extras.DistinctBy(x => x.ScanNo).Select(x => ActiveRouteViewModel.ExtraText(x.ScanNo, x.Reward)),
     ]);
 
-    // The custom route as the recipe shows a hub's: one line per contract, then the sum (T13.7b).
-    private (IReadOnlyList<string> Lines, string? Summary) Custom(CustomResult result, Ship ship)
+    // The custom route as the recipe shows a hub's: one row per mission as flown with [−], then the sum (T13.7b, T13.7c).
+    private (IReadOnlyList<MissionRowView> Rows, string? Summary) Custom(CustomResult result, Ship ship)
     {
         var loop = result.Loop;
-        string[] lines =
+        MissionRowView[] rows =
         [
             .. result.Roles.Select(r =>
             {
@@ -837,15 +950,23 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
                     _ => places,
                 };
                 var line = RoleText.Line(role.Kind, t.Title, RoleText.Reward(t.Reward, _observed.RewardOf(t)), null, t.Legs.Sum(l => l.MinScu), t.MaxScu, t.Legs.Max(l => l.Container), where);
-                return $"{line} · {(r.Fits ? "fits" : "too big")}";
+                var state = r switch
+                {
+                    { Behind: true } => " · a stop before its pickup",
+                    { OverAt: { } over } => $" · likely doesn't fit at {PlaceNames.Short(over)}",
+                    _ => " · fits",
+                };
+                var tip = string.Join('\n', t.Legs.Select(l => Invariant($"{l.Commodity} {l.MinScu}–{l.MaxScu} SCU in {(int)l.Container}s")));
+                return new MissionRowView(r.Pick, line, state, false, true, tip);
             }),
         ];
         string[] trip = [loop.Start, .. loop.Stations, loop.Start];
         var reward = loop.Reward is { } sum ? Invariant($"Σ {sum:N0}{(loop.RewardPartial ? "+" : "")} aUEC") : "– aUEC: no reward in the game data, a scan shows it";
-        var tooBig = result.Roles.Count(r => !r.Fits);
-        var fit = tooBig == 0 ? $"fits {ship.Name}" : Invariant($"{tooBig} too big for {ship.Name}");
+        var notFitting = result.Roles.Count(r => !r.Fits);
+        var fit = notFitting == 0 ? $"fits {ship.Name}" : Invariant($"{notFitting} likely don't fit {ship.Name}");
+        var peak = result.PeakAt is { } at ? Invariant($" · peak {result.PeakScu}/{ship.TotalScu} SCU at {PlaceNames.Short(at)}") : "";
         var contracts = result.Roles.Count == 1 ? "1 contract" : Invariant($"{result.Roles.Count} contracts");
-        return (lines, Invariant($"{CustomTitle(loop.Start)}: {string.Join(" → ", trip.Select(PlaceNames.Short))} · {contracts} · {reward} · {loop.Landings} landings · {loop.Crates} crates · {loop.LongJumps} long jumps · {fit}"));
+        return (rows, Invariant($"{CustomTitle(loop.Start)}: {string.Join(" → ", trip.Select(PlaceNames.Short))} · {contracts} · {reward} · {loop.Landings} landings · {loop.Crates} crates · {loop.LongJumps} long jumps{peak} · {fit}"));
     }
 
     // "Own plan from Everus Harbor": the custom route's name (T13.7b; the look is Martin's gate).
@@ -900,7 +1021,7 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
         CanStartPlan = target is { Loop.HasNumbers: true };
         StartPlanToolTip = (target, _loopsComputed) switch
         {
-            (null, _) when IsMap => "Start plan: click a station, then the contracts on its edges",
+            (null, _) when IsMap => "Start plan: click an edge, then + on its missions",
             ({ } t, _) when IsMap => $"Start plan: {t.Title} – its contracts as placeholders in the Cargo tab",
             (_, false) => "Start plan: the loops are being worked out …",
             (null, _) => IsRecipe ? $"Start plan: no loop starts at {shownHub}" : "Start plan: no loop with figures",

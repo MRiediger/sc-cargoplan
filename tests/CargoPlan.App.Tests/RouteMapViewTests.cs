@@ -133,7 +133,8 @@ public sealed class RouteMapViewTests
         var model = Model([T([Everus], [L1]), T([L1], [Everus])]);
         model.ShowShip(CargoPlan.Core.Tests.FrozenShips.Load("hull_b"));
         model.FocusCommand.Execute(Everus);
-        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        model.OpenEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        model.AddMissionCommand.Execute(model.EdgePanel!.Rows[0]);
         var view = Shown(model.Map!);
 
         var white = Lines(view).Where(l => l.Brush == Brushes.White && l.Thickness >= 2).ToList();
@@ -152,7 +153,8 @@ public sealed class RouteMapViewTests
         model.ShowShip(CargoPlan.Core.Tests.FrozenShips.Load("hull_b"));
         model.ShowRoute(Ring([L1], Out(1, L1)));
         model.FocusCommand.Execute(Everus);
-        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        model.OpenEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        model.AddMissionCommand.Execute(model.EdgePanel!.Rows[0]);
         var view = Shown(model.Map!);
 
         var (route, draft) = (Box(view.Badges[L1]), Box(view.DraftBadges[L1]));

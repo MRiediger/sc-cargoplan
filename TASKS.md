@@ -1185,6 +1185,65 @@ E Timing, Hinweis Radius):**
   4 rot; Entwurfspille links → 1 rot. Sichtprüfung am Pin-Bild (Everus-Ring, 6× auf Everus): mit 1,5 px alle 5 px schluckte der
   Halo den Punkt, daher 2 px alle 6 px; die Abnahme des Aussehens bleibt bei Martin.
 
+**T13.7c – Plan aus einzelnen Missionen (Martin, 26.11., neue Anforderung nach Gate 7b; Branch `feat/p13-map`, D130):**
+Pläne entstehen aus einzelnen Missionen, nicht über Station oder Bündel. Ersetzt den Klick- und Reihenfolgeteil von
+T13.7b (D129); Art `custom`, `acceptAt`, Leiste, Start plan und Messschlüssel bleiben.
+- **Akzeptanz:**
+  - [x] Klick auf eine Kante → angeheftetes Panel mit den Missionen der Kante, je Zeile [+] (und [−], wenn im Plan).
+  - [x] Liste unter der Karte: Plan-Zeilen mit [−], mit Fokus darunter „Missions at <Station>“ je Zeile [+].
+  - [x] Stationsklick ist Filter, kein Pflichtschritt; er behält den Plan.
+  - [x] Start = Hub des Boards; Stopps = Pickups ∪ Ziele; Reihenfolge berechnet (Pickup vor Ziel); Pillen nach ihr.
+  - [x] Mission eines anderen Boards abgelehnt mit „different board“.
+  - [x] Kapazität: Peak entlang der Route (Pickups +, Ziele −) mit First Fit gegen das ganze Schiff; nicht passend →
+    aufgenommen und markiert „likely doesn't fit at …“, nicht gesperrt.
+  - [x] Kanten-Tooltip „k/n in plan“.
+- **Präzisierung in der Planphase, ratifiziert durch Freigabe:** R1 Start = Hub des Boards; ohne gewählte Mission das Board
+  von routes.hub (der Hub, den Recipe zeigt), Pyro `Solar`; Pyro ohne Hub (D121): Pickup der ersten Mission. R2 SCU-Peak +
+  First Fit, frei = ganzes Schiff, „likely doesn't fit“ markiert, nicht gesperrt; Restplatz-Variante ggf. später als Option.
+  R3 Plan + Missionen des Fokus (Fokus-Zeilen ohne fits je Zeile: jede würde die Folge neu rechnen; das Panel zeigt fits).
+  R4 Entwurf ohne Fokus wirkt wie Fokus auf seinen Start (ersetzt Auflage 3 für diesen Fall). Systemweite Stanton-Templates
+  liegen auf jedem Stanton-Board (`Board.On`), §8.6 bleibt klickbar. Zwei Missionen je Richtung zwischen zwei Orten: eine
+  Regel bricht, die Mission „a stop before its pickup“. Über 8 Stopps nächster Nachbar mit Pickup vor Ziel. Panel in der
+  Karte (oben rechts), kein Popup; schließt per ×, freie Fläche, dieselbe Kante. Rechtsklick auf Kante bleibt (letzte
+  Mission der Kante raus).
+- **Befunde der Umsetzung:** (1) Die übrigen Ziele einer Mehrstopp-Mission nach Ortsordnung legten die Legs anders als
+  §8.6 (S vor PT); jetzt nach der berechneten Flugfolge. (2) `Loops.Order` brauchte für 8 Stopps mit 4 Regeln 130 ms (je
+  Permutation neue Arrays, zwei Positionssuchen je Leg); jetzt Distanzmatrix + Heap-Permutationen: **6,3 ms** (Release,
+  `CustomPlanTests.Eight_stops_with_pickups_before_their_stops_are_ordered_in_under_50_ms`, `Category=Timing`). Loops gegen
+  den Pin danach: Hull B Master erster 198 ms, Median 119 ms; Senior 109/99 ms (Budget 200 ms). Alle Loops-Baselines
+  unverändert grün. (3) Ein eigener SCU-Check neben `Recipe.Fits` wäre doppelt: `LoadPlanner.Lays` prüft die SCU zuerst.
+- **Tests:** `CustomPlanTests` (neu geschrieben: §8.6 aus Missionen 767 250 aUEC, Peak 463 an Everus; Start am Hub bei
+  Rückweg zuerst; Folge statt Klickfolge; Pickup vor Ziel; Kreis → „behind“; Board Stanton/systemweit/Pyro; Peak Hull A mit
+  Markierung und Abladen; Missionen und „k/n“; [−]/Rechtsklick; Messschlüssel; > 8 Stopps; leer), `RouteMapTests` (R4,
+  Fokus auf anderer Station hält Entwurfskanten), `RoutesMapViewModelTests` (Panel, [+]/[−], Fokus-Liste, different board,
+  likely doesn't fit, no ship, Panel schließen), `RouteMapViewTests`, `OverlayRouteXamlTests` (Panel, Zeilen-Template),
+  `MissionRowBindingTests` (A3: ElementName aus dem Zeilen-Template in Leiste und Panel).
+- **Gegenproben:** Pickup-vor-Ziel aus → 1 rot; kein Abladen → 2 rot; Board-Prüfung aus → 2 rot; First Fit aus → 1 rot;
+  R4 aus → 1 rot; Entwurfskanten unter Fokus gedimmt → 1 rot; Fokus löscht Entwurf → 1 rot.
+- **Handling gegen den Branch-Stand 7b:**
+
+  | Geste | 7b | 7c |
+  |---|---|---|
+  | Linksklick Kante | nächster Vertrag (nur mit Fokus) | Panel der Kante (immer) |
+  | Rechtsklick Kante | letzter der Kante raus | gleich |
+  | Klick Knoten | Fokus, löscht Entwurf | Fokus als Filter, Plan bleibt |
+  | Klick freie Fläche | – | schließt das Panel |
+  | [+] / [−] | – | Mission an / ab |
+
+- **Gate 7c (Martin, entsperrt, Plan → Map, Hull B, Senior, routes.hub Everus):**
+
+  | Schritt | Erwartung | Warum |
+  |---|---|---|
+  | 1 Ohne Fokus Kante Everus → HUR-L1 klicken | Panel oben rechts „Everus Harbor → HUR-L1 … · 0/n in plan“, Zeilen mit „· fits“ und [+] | Panel |
+  | 2 [+] auf zwei Zeilen | Zeilen „· in plan“ mit [−]; Leiste unter der Karte mit beiden, Summe mit „peak …/… SCU at Everus Harbor“; weiße Pille 1 an L1; Tooltip der Kante „2/n in plan“ | Plan |
+  | 3 HUR-L1 anklicken | Plan bleibt; unter ihm „Missions at HUR-L1“ mit [+] | R3 |
+  | 4 [+] auf einen Rückweg HUR-L1 → Everus | Zeile „Back · … · accept at HUR-L1“; Start bleibt Everus | R1 |
+  | 5 Kante eines anderen lokalen Boards (z. B. ab Baijini) öffnen | Zeilen „· different board“ ohne [+]; systemweite mit [+] | Board |
+  | 6 Missionen nachlegen, bis es nicht passt | Zeile „· likely doesn't fit at …“, trotzdem im Plan, Summe „n likely don't fit …“ | R2 |
+  | 7 [−] in der Leiste, Rechtsklick auf eine Kante | Mission raus, Pillen nummerieren neu | Folge |
+  | 8 ×, freie Fläche, dieselbe Kante | Panel zu | Panel |
+  | 9 Start plan | Reiter Cargo mit Platzhaltern; Karte orange (Gate-Befund 7a/7b) | Übergabe |
+
 ### [ ] T13.8 Release v0.8.0
 
 **Warum:** Ohne Release erreicht die Phase keinen Hauler.

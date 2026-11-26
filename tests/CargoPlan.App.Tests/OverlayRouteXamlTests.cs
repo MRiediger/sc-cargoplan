@@ -45,18 +45,19 @@ public class OverlayRouteXamlTests
 
         var view = Named(root, "MapView");
         map.Name.LocalName.Should().Be("RouteMapView");
-        map.Parent.Should().BeSameAs(view, "the map fills the map view under the custom route's bar (T13.7b)");
+        map.Parent!.Parent.Should().BeSameAs(view, "the map fills the map view under the custom route's bar (T13.7b), in a grid with its panel");
         view.ElementsAfterSelf().Select(e => (string?)e.Attribute(X + "Name")).Should().Contain("PortMatrix", "beside the matrix in one grid");
         ((string?)map.Attribute("Scene")).Should().Be("{Binding Map}");
         ((string?)map.Attribute("FocusCommand")).Should().Be("{Binding FocusCommand}");
-        ((string?)map.Attribute("AddEdgeCommand")).Should().Be("{Binding AddEdgeCommand}");
+        ((string?)map.Attribute("EdgeCommand")).Should().Be("{Binding OpenEdgeCommand}");
+        ((string?)map.Attribute("FreeCommand")).Should().Be("{Binding ClosePanelCommand}");
         ((string?)map.Attribute("RemoveEdgeCommand")).Should().Be("{Binding RemoveEdgeCommand}");
         ((string?)map.Attribute("Palette")).Should().Contain("StopPalette");
         ((string?)view.Attribute("Visibility")).Should().Contain("ShowsMap");
         // Gate finding 7b (Martin): under the map, and as the legend in the Cargo tab, at most its share, then it scrolls.
         var scroll = Named(root, "CustomBarScroll");
         Named(root, "CustomBar").Parent.Should().BeSameAs(scroll);
-        ((string?)scroll.Attribute("Visibility")).Should().Contain("HasCustom");
+        ((string?)scroll.Attribute("Visibility")).Should().Contain("ShowsCustomBar", "the plan or the focus's missions (T13.7c)");
         ((string?)scroll.Attribute("DockPanel.Dock")).Should().Be("Bottom", "under the map");
         ((string?)scroll.Attribute("VerticalScrollBarVisibility")).Should().Be("Auto");
         ((string?)scroll.Attribute("Focusable")).Should().Be("False");
@@ -76,6 +77,30 @@ public class OverlayRouteXamlTests
         row.Elements().Where(e => ((string?)e.Attribute("CommandParameter")) is "area" or "direct" or "contractor" or "faction")
             .Concat(row.Elements().Where(e => e.Name.LocalName == "CheckBox"))
             .Should().HaveCount(9).And.OnlyContain(e => ((string)e.Attribute("Visibility")!).Contains("ShowsMatrixFilters"));
+    }
+
+    [Fact]
+    public void The_edge_panel_lies_over_the_map_in_its_grid_and_every_mission_row_takes_one_template_with_plus_and_minus()
+    {
+        // T13.7c (D130): no popup (a window of its own), the panel is the map's; rows in the bar and the panel alike.
+        var root = Root();
+        var panel = Named(root, "EdgePanel");
+
+        panel.Parent.Should().BeSameAs(Named(root, "RouteMap").Parent);
+        panel.ElementsBeforeSelf().Should().Contain(Named(root, "RouteMap"), "over the map");
+        ((string?)panel.Attribute("Visibility")).Should().Contain("HasEdgePanel");
+        ((string?)Named(root, "ClosePanelButton").Attribute("Command")).Should().Contain("ClosePanelCommand");
+        foreach (var rows in new[] { "EdgePanelRows", "CustomRows", "FocusMissions" })
+        {
+            ((string?)Named(root, rows).Attribute("ItemTemplate")).Should().Be("{StaticResource MissionRowTemplate}", rows);
+        }
+
+        var add = Named(root, "AddMission");
+        var remove = Named(root, "RemoveMission");
+        ((string?)add.Attribute("Command")).Should().Be("{Binding DataContext.AddMissionCommand, ElementName=MapView}");
+        ((string?)remove.Attribute("Command")).Should().Be("{Binding DataContext.RemoveMissionCommand, ElementName=MapView}");
+        ((string?)add.Attribute("Visibility")).Should().Contain("CanAdd");
+        ((string?)remove.Attribute("Visibility")).Should().Contain("CanRemove");
     }
 
     [Fact]

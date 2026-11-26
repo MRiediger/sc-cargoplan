@@ -1086,6 +1086,25 @@
                                         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
                                         <Setter Property="ToolTip" Value="{Binding Pickup}" />
                                     </Style>
+                                    <!-- A mission's row (T13.7c, D130): [+] where it can go into the plan, [−] where it is in, the
+                                         line in the legend's look, its state in the notice colour; commodities and bands in the tool tip. -->
+                                    <DataTemplate x:Key="MissionRowTemplate" DataType="{x:Type rt:MissionRowView}">
+                                        <DockPanel Margin="0,0,0,2" ToolTip="{Binding ToolTip}">
+                                            <Button x:Name="AddMission" DockPanel.Dock="Left" Style="{StaticResource FilterButtonStyle}" ToolTip="Add to your plan"
+                                                    Margin="0,0,4,0" VerticalAlignment="Top" CommandParameter="{Binding}"
+                                                    Command="{Binding DataContext.AddMissionCommand, ElementName=MapView}"
+                                                    Visibility="{Binding CanAdd, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <TextBlock Text="+" Style="{StaticResource FilterLabelStyle}" />
+                                            </Button>
+                                            <Button x:Name="RemoveMission" DockPanel.Dock="Left" Style="{StaticResource FilterButtonStyle}" ToolTip="Take out of your plan"
+                                                    Margin="0,0,4,0" VerticalAlignment="Top" CommandParameter="{Binding}"
+                                                    Command="{Binding DataContext.RemoveMissionCommand, ElementName=MapView}"
+                                                    Visibility="{Binding CanRemove, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <TextBlock Text="−" Style="{StaticResource FilterLabelStyle}" />
+                                            </Button>
+                                            <TextBlock Style="{StaticResource LegendTextStyle}" TextWrapping="Wrap"><Run Text="{Binding Text, Mode=OneWay}" /><Run Text="{Binding State, Mode=OneWay}" Foreground="{StaticResource NoticeForegroundBrush}" /></TextBlock>
+                                        </DockPanel>
+                                    </DataTemplate>
                                     <!-- The matrix's scroll bars in both directions: the overlay's slim bar in the legend's colour. -->
                                     <Style TargetType="ScrollBar" BasedOn="{StaticResource SlimScrollBarStyle}">
                                         <Setter Property="Foreground" Value="{DynamicResource LegendForegroundBrush}" />
@@ -1278,33 +1297,52 @@
                                              the window (see StopLinesScroll). -->
                                         <ScrollViewer x:Name="CustomBarScroll" DockPanel.Dock="Bottom" Margin="0,4,0,0" Focusable="False"
                                                       VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                                      Visibility="{Binding HasCustom, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                      Visibility="{Binding ShowsCustomBar, Converter={StaticResource BooleanToVisibilityConverter}}">
                                         <ScrollViewer.MaxHeight>
                                             <MultiBinding Converter="{StaticResource LegendMaxHeightConverter}" Mode="OneWay">
                                                 <Binding ElementName="OverlayContent" Path="ActualHeight" Mode="OneWay" />
                                                 <Binding Path="MapLegendHeight" Mode="OneWay" />
                                             </MultiBinding>
                                         </ScrollViewer.MaxHeight>
+                                        <!-- T13.7c (D130): the plan's missions as flown with [−], then with a station in focus its
+                                             missions with [+] (the focus filters the list, Martin's R3). -->
                                         <StackPanel x:Name="CustomBar">
-                                            <DockPanel>
+                                            <DockPanel Visibility="{Binding HasCustom, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                 <Button x:Name="ClearCustomButton" DockPanel.Dock="Right" Command="{Binding ClearCustomCommand}" Style="{StaticResource FilterButtonStyle}"
                                                         ToolTip="Drop your plan; the station in focus stays" VerticalAlignment="Top">
                                                     <TextBlock Text="Clear" Style="{StaticResource FilterLabelStyle}" />
                                                 </Button>
                                                 <TextBlock Text="{Binding CustomSummary}" Style="{StaticResource BlockIfTextStyle}" FontWeight="SemiBold" TextWrapping="Wrap" />
                                             </DockPanel>
-                                            <ItemsControl ItemsSource="{Binding CustomLines}" Focusable="False" Margin="0,0,0,4">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Text="{Binding}" Style="{StaticResource LegendTextStyle}" Margin="0,0,0,2" />
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
+                                            <ItemsControl x:Name="CustomRows" ItemsSource="{Binding CustomRows}" ItemTemplate="{StaticResource MissionRowTemplate}" Focusable="False" Margin="0,0,0,4" />
+                                            <TextBlock Text="{Binding FocusMissionsHeader}" Style="{StaticResource BlockIfTextStyle}" FontWeight="SemiBold" />
+                                            <ItemsControl x:Name="FocusMissions" ItemsSource="{Binding FocusMissions}" ItemTemplate="{StaticResource MissionRowTemplate}" Focusable="False" />
                                         </StackPanel>
                                         </ScrollViewer>
-                                        <rt:RouteMapView x:Name="RouteMap" Scene="{Binding Map}" FocusCommand="{Binding FocusCommand}"
-                                                         AddEdgeCommand="{Binding AddEdgeCommand}" RemoveEdgeCommand="{Binding RemoveEdgeCommand}"
-                                                         Palette="{Binding DataContext.StopPalette, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                        <Grid>
+                                            <rt:RouteMapView x:Name="RouteMap" Scene="{Binding Map}" FocusCommand="{Binding FocusCommand}"
+                                                             EdgeCommand="{Binding OpenEdgeCommand}" FreeCommand="{Binding ClosePanelCommand}" RemoveEdgeCommand="{Binding RemoveEdgeCommand}"
+                                                             Palette="{Binding DataContext.StopPalette, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                            <!-- T13.7c (D130): the clicked edge's missions, pinned over the map's top right, in the
+                                                 map's own window (no popup: no window of its own to take the focus or the click-through). -->
+                                            <Border x:Name="EdgePanel" HorizontalAlignment="Right" VerticalAlignment="Top" MaxWidth="420" Margin="4" Padding="6,4"
+                                                    Background="{DynamicResource WindowOpaqueBackgroundBrush}" BorderBrush="{DynamicResource LegendForegroundBrush}" BorderThickness="1"
+                                                    MaxHeight="{Binding ActualHeight, ElementName=RouteMap}" DataContext="{Binding EdgePanel}"
+                                                    Visibility="{Binding DataContext.HasEdgePanel, ElementName=MapView, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                <DockPanel>
+                                                    <DockPanel DockPanel.Dock="Top">
+                                                        <Button x:Name="ClosePanelButton" DockPanel.Dock="Right" Style="{StaticResource FilterButtonStyle}" ToolTip="Close" VerticalAlignment="Top"
+                                                                Command="{Binding DataContext.ClosePanelCommand, ElementName=MapView}">
+                                                            <TextBlock Text="×" Style="{StaticResource FilterLabelStyle}" />
+                                                        </Button>
+                                                        <TextBlock Text="{Binding Header}" Style="{StaticResource LegendTextStyle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                    </DockPanel>
+                                                    <ScrollViewer Focusable="False" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                        <ItemsControl x:Name="EdgePanelRows" ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource MissionRowTemplate}" Focusable="False" />
+                                                    </ScrollViewer>
+                                                </DockPanel>
+                                            </Border>
+                                        </Grid>
                                     </DockPanel>
 
                                     <!-- The matrix: pickups down, drop-offs across, the pickup column frozen; read only, no selection look. -->

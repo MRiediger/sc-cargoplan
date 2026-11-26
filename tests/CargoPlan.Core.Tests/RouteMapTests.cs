@@ -94,9 +94,9 @@ public sealed class RouteMapTests
     }
 
     [Fact]
-    public void A_drafts_numbers_grow_with_each_click_and_its_contracts_are_its_edges()
+    public void A_drafts_numbers_follow_its_stations_and_its_contracts_are_its_edges()
     {
-        // Gate finding 7a/7b: the custom route in the active route's scheme, its numbers in click order.
+        // Gate finding 7a/7b: the custom route in the active route's scheme; its stations come worked out (T13.7c, D130).
         var matrix = PortMatrix.Build([T([Everus], [L1]), T([L1], [L5]), T([L5], [Everus])], All);
 
         var one = Map(matrix, focus: Everus, draft: Draft([L1], new MapContract(null, [], [L1])));
@@ -108,20 +108,42 @@ public sealed class RouteMapTests
     }
 
     [Fact]
-    public void Without_a_focus_the_routes_and_the_drafts_contracts_and_the_extras_are_lit_the_rest_dimmed()
+    public void Without_a_focus_the_routes_contracts_and_extras_are_lit_the_rest_dimmed()
     {
-        // Gate finding 7a/7b (Martin's condition 3): lit = route edges ∪ draft edges ∪ extras; the rest at 25 %.
+        // Gate finding 7a/7b (Martin's condition 3): lit = route edges ∪ extras; the rest at 25 %.
         var matrix = PortMatrix.Build([T([Everus], [L1]), T([L1], [Everus]), T([Everus], [L5]), T([L5], [Baijini]), T([Baijini], [Everus])], All);
         var route = Ring([L1], new Placeholder(1, RecipeKind.Bulk, "a", "To L1", 1, [Leg()], [L1]));
 
         var routeOnly = Map(matrix, route: route);
-        var withDraft = Map(matrix, route: route, draft: Draft([L5], new MapContract(L5, [], [Baijini])));
         var withExtra = Map(matrix, route: route, extras: [new MapExtra(Baijini, Everus, 4, 160_250)]);
 
         Lit(routeOnly).Should().BeEquivalentTo([(Everus, L1)]);
-        Lit(withDraft).Should().BeEquivalentTo([(Everus, L1), (L5, Baijini)], "the draft's contracts are lit too, without a focus");
         Lit(withExtra).Should().BeEquivalentTo([(Everus, L1), (Baijini, Everus)]);
         Lit(Map(matrix, focus: Everus, route: route)).Should().BeEquivalentTo([(Everus, L1), (Everus, L5), (L1, Everus)], "a focus keeps its own rule");
+    }
+
+    [Fact]
+    public void A_draft_without_a_focus_acts_as_one_on_its_start_with_the_routes_contracts()
+    {
+        // T13.7c (D130, Martin's R4, replacing condition 3 for this case): from the draft's start and its stops, their
+        // ways back, the draft's and the route's contracts; Baijini → HUR-L1 stays dimmed.
+        var matrix = PortMatrix.Build([T([Everus], [L1]), T([L1], [Everus]), T([Everus], [L5]), T([L5], [Baijini]), T([Baijini], [Everus]), T([Baijini], [L1])], All);
+        var route = Ring([L1], new Placeholder(1, RecipeKind.Bulk, "a", "To L1", 1, [Leg()], [L1]));
+
+        var map = Map(matrix, route: route, draft: Draft([L5], new MapContract(L5, [], [Baijini])));
+
+        Lit(map).Should().BeEquivalentTo([(Everus, L1), (L1, Everus), (Everus, L5), (L5, Baijini), (Baijini, Everus)]);
+    }
+
+    [Fact]
+    public void A_focus_on_another_station_keeps_the_drafts_contracts_lit()
+    {
+        // T13.7c: the focus is a filter now, the draft stays; its contract from the hub is lit though the focus is Baijini.
+        var matrix = PortMatrix.Build([T([Everus], [L5]), T([Baijini], [L1]), T([Everus], [L1])], All);
+
+        var map = Map(matrix, focus: Baijini, draft: Draft([L5], new MapContract(null, [], [L5])));
+
+        Lit(map).Should().BeEquivalentTo([(Everus, L5), (Baijini, L1)]);
     }
 
     [Fact]

@@ -16,8 +16,8 @@ namespace CargoPlan.App.Routing;
 /// redrawn from the cached layout and the labels move, text and lines keep their size.
 /// Wheel = zoom about the pointer (0.5× to 6×), drag on free room = pan (it takes the left button, so free room here
 /// doesn't move the window), double click on free room = fit, click on a node = <see cref="FocusCommand"/>; with a
-/// station in focus a click on a lit edge = <see cref="AddEdgeCommand"/>, a right click = <see cref="RemoveEdgeCommand"/>
-/// (T13.7b). A plan (gate finding 7a/7b): its contracts solid, its extras dashed, its order dotted, its stations in
+/// click on an edge = <see cref="EdgeCommand"/> (its panel of missions, T13.7c), on free room = <see cref="FreeCommand"/>, a
+/// right click on an edge = <see cref="RemoveEdgeCommand"/> (T13.7b). A plan (gate finding 7a/7b): its contracts solid, its extras dashed, its order dotted, its stations in
 /// numbered pills; the active route in the status line's colour, the custom route in the line's; a tool tip
 /// for the node or edge under the pointer. Locked, the window is click-through and none of this reaches it (D11).
 /// </summary>
@@ -83,8 +83,11 @@ public sealed class RouteMapView : Canvas
     public static readonly DependencyProperty FocusCommandProperty = DependencyProperty.Register(
         nameof(FocusCommand), typeof(ICommand), typeof(RouteMapView));
 
-    public static readonly DependencyProperty AddEdgeCommandProperty = DependencyProperty.Register(
-        nameof(AddEdgeCommand), typeof(ICommand), typeof(RouteMapView));
+    public static readonly DependencyProperty EdgeCommandProperty = DependencyProperty.Register(
+        nameof(EdgeCommand), typeof(ICommand), typeof(RouteMapView));
+
+    public static readonly DependencyProperty FreeCommandProperty = DependencyProperty.Register(
+        nameof(FreeCommand), typeof(ICommand), typeof(RouteMapView));
 
     public static readonly DependencyProperty RemoveEdgeCommandProperty = DependencyProperty.Register(
         nameof(RemoveEdgeCommand), typeof(ICommand), typeof(RouteMapView));
@@ -154,11 +157,18 @@ public sealed class RouteMapView : Canvas
         set => SetValue(FocusCommandProperty, value);
     }
 
-    /// <summary>Gets an edge on a click while the scene can pick (T13.7b: RoutesViewModel.AddEdgeCommand).</summary>
-    public ICommand? AddEdgeCommand
+    /// <summary>Gets an edge on a click (T13.7c: RoutesViewModel.OpenEdgeCommand, its panel of missions).</summary>
+    public ICommand? EdgeCommand
     {
-        get => (ICommand?)GetValue(AddEdgeCommandProperty);
-        set => SetValue(AddEdgeCommandProperty, value);
+        get => (ICommand?)GetValue(EdgeCommandProperty);
+        set => SetValue(EdgeCommandProperty, value);
+    }
+
+    /// <summary>A click on free room, no drag (T13.7c: RoutesViewModel.ClosePanelCommand).</summary>
+    public ICommand? FreeCommand
+    {
+        get => (ICommand?)GetValue(FreeCommandProperty);
+        set => SetValue(FreeCommandProperty, value);
     }
 
     /// <summary>Gets an edge on a right click while the scene can pick (T13.7b: RoutesViewModel.RemoveEdgeCommand).</summary>
@@ -295,14 +305,18 @@ public sealed class RouteMapView : Canvas
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonUp(e);
-        switch (_press is not null && !_panning ? Hit(e.GetPosition(this)) : null)
+        var clicked = _press is not null && !_panning;
+        switch (clicked ? Hit(e.GetPosition(this)) : null)
         {
             case MapNode node when FocusCommand is { } focus && focus.CanExecute(node.Key):
                 focus.Execute(node.Key);
                 break;
-            case MapEdge edge when Scene is { CanPick: true } && AddEdgeCommand is { } add && add.CanExecute(edge):
-                // T13.7b: the edge's next contract into the custom route.
-                add.Execute(edge);
+            case MapEdge edge when EdgeCommand is { } open && open.CanExecute(edge):
+                // T13.7c: the edge's panel with its missions, whatever is in focus.
+                open.Execute(edge);
+                break;
+            case null when clicked && FreeCommand is { } free && free.CanExecute(null):
+                free.Execute(null);
                 break;
         }
 

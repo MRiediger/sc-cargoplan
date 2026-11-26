@@ -248,7 +248,7 @@ filled which placeholder and the contracts accepted beside it. **End plan** remo
 | `startedUtc` | string | When it was started, ISO 8601 in UTC. |
 | `departedUtc` | string | Optional (6b): when the station bar first left the hub; not before `startedUtc`. |
 | `hub` | string | Where it starts and ends. |
-| `kind` | string | `"localRing"` (a hub's ring; a Pyro station's too), `"direct"` (one direct contract there and back), `"systemWide"` (the LEO ring) or `"custom"` (the player's own, clicked on the map, T13.7b, D129; additive in schema 3). |
+| `kind` | string | `"localRing"` (a hub's ring; a Pyro station's too), `"direct"` (one direct contract there and back), `"systemWide"` (the LEO ring) or `"custom"` (the player's own, built of missions on the map, T13.7b/c, D129, D130; additive in schema 3; its `hub` is the board's hub). |
 | `system` | string | `"stanton"`, `"pyro"` or `"nyx"`. |
 | `stations` | array of strings | At least one: the stations in the order flown, without the hub. |
 | `placeholders` | array | One per contract of the loop in the order accepted: what leaves the hub first, then station by station what is accepted there (on the way or a way back). Ids once each. |

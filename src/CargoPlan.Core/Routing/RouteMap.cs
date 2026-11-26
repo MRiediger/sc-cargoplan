@@ -117,8 +117,9 @@ public sealed class RouteMap
 
     /// <summary>
     /// With a focus: the edge leaves the focus or a station of the draft, leads back to the focus from a place they go to,
-    /// or is a contract's of the draft. Without one: the edge is a contract's or an extra's of the active route or the
-    /// draft (gate finding 7a/7b: the rest at 25 %), else every edge is full.
+    /// or is a contract's of the draft. Without one, with a draft: the same from the draft's start (T13.7c, D130), and the
+    /// active route's contracts and extras. Without either: the edge is a contract's or an extra's of the active route
+    /// (gate finding 7a/7b: the rest at 25 %), else every edge is full.
     /// </summary>
     public bool IsLit(MapEdge edge) => _lit is null || _lit.Contains((edge.From, edge.To));
 
@@ -181,9 +182,15 @@ public sealed class RouteMap
         MapNode[] nodes = [.. byKey.Values.Where(v => shown.Contains(v.Key)).OrderBy(v => v.Kind == MapNodeKind.Hub ? 0 : 1).ThenBy(v => v.Key, PlaceNames.Order)];
 
         var start = focus is not null && edges.Keys.Any(k => k.Item1 == focus || k.Item2 == focus) ? focus : null;
-        HashSet<(string, string)>? lit = start is not null
-            ? [.. Lit(edges.Keys, start, [.. drafted.Numbers.Keys]), .. drafted.Edges]
-            : planned.Count + drafted.Edges.Count + extraEdges.Count > 0 ? [.. planned, .. extraEdges.Keys, .. drafted.Edges] : null;
+        var draftStart = draft is not null && drafted.Legs.Count > 0 ? nodeOf.GetValueOrDefault(draft.Start)?.Key : null;
+        HashSet<(string, string)>? lit = (start, draftStart) switch
+        {
+            ({ } s, _) => [.. Lit(edges.Keys, s, [.. drafted.Numbers.Keys]), .. drafted.Edges],
+
+            // A draft without a focus acts as one on its start (T13.7c, D130, Martin's R4; replaces condition 3 there).
+            (null, { } d) => [.. Lit(edges.Keys, d, [.. drafted.Numbers.Keys]), .. drafted.Edges, .. planned, .. extraEdges.Keys],
+            _ => planned.Count + extraEdges.Count > 0 ? [.. planned, .. extraEdges.Keys] : null,
+        };
         return new RouteMap(nodes, edges, start, lit, active, drafted, extraEdges, inside);
     }
 

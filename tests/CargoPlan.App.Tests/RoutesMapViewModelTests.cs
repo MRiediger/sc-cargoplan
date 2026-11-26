@@ -60,7 +60,8 @@ public sealed class RoutesMapViewModelTests
 
         tip[0].Should().Be("Everus Harbor → HUR-L1 Green Glade Station · 1.3 Gm · 2 contracts · Σ 150,250 aUEC · most SCU in one contract: 64");
         var cell = MatrixCellToolTip(model, Everus, L1).Split('\n');
-        tip.Skip(1).Should().Equal(cell.Skip(1), "the template lines are the matrix cell's");
+        tip.Skip(1).SkipLast(1).Should().Equal(cell.Skip(1), "the template lines are the matrix cell's");
+        tip[^1].Should().Be("0/2 in plan", "T13.7c: how many of the edge's missions the plan holds");
     }
 
     [Fact]
@@ -141,28 +142,38 @@ public sealed class RoutesMapViewModelTests
     }
 
     [Fact]
-    public void With_a_station_in_focus_a_click_on_an_edge_builds_an_own_plan_that_Start_plan_starts()
+    public void A_click_on_an_edge_opens_its_missions_without_a_focus_and_plus_builds_a_plan_that_Start_plan_starts()
     {
-        // T13.7b (D129): out to L1, back to Everus; the plan starts as a custom route and the draft goes.
+        // T13.7c (D130): missions one by one from the edge's panel; out to L1, back to Everus; the plan starts as a custom route.
         var model = Map([T([Everus], [L1], reward: 100_000), T([L1], [Everus], reward: 40_000, title: "Junior Rank - Small Cargo Haul")]);
         model.ShowShip(HullB);
         PlanStart? started = null;
         model.StartRequested += (_, start) => started = start;
 
-        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
-        model.HasCustom.Should().BeFalse("no station in focus: a click adds nothing");
+        model.OpenEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
 
-        model.FocusCommand.Execute(Everus);
-        model.Map!.CanPick.Should().BeTrue();
-        model.Map.EdgeToolTip(model.Map.Graph.Edge(Everus, L1)!).Should().EndWith("click: add its next contract to your plan · right click: take its last back");
-        model.AddEdgeCommand.Execute(model.Map.Graph.Edge(Everus, L1));
-        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(L1, Everus));
+        model.EdgePanel!.Header.Should().Be("Everus Harbor → HUR-L1 Green Glade Station · 0/1 in plan");
+        model.EdgePanel.Rows.Should().ContainSingle().Which.Should().BeEquivalentTo(new
+        {
+            Text = "Senior Rank - Medium Cargo Haul · 100,000 aUEC · 10–64 SCU in 16s · Everus Harbor → HUR-L1",
+            State = " · fits",
+            CanAdd = true,
+            CanRemove = false,
+        });
+        model.AddMissionCommand.Execute(model.EdgePanel.Rows[0]);
+        model.EdgePanel!.Header.Should().EndWith("1/1 in plan");
+        model.EdgePanel.Rows[0].Should().BeEquivalentTo(new { State = " · in plan", CanAdd = false, CanRemove = true });
+        model.Map!.EdgeToolTip(model.Map.Graph.Edge(Everus, L1)!).Should().EndWith("\n1/1 in plan\nclick: its missions · right click: take its last out of your plan");
+
+        model.OpenEdgeCommand.Execute(model.Map.Graph.Edge(L1, Everus));
+        model.AddMissionCommand.Execute(model.EdgePanel!.Rows[0]);
 
         (model.HasCustom, model.OffersStart, model.CanStartPlan).Should().Be((true, true, true));
-        model.CustomSummary.Should().Be("Own plan from Everus Harbor: Everus Harbor → HUR-L1 → Everus Harbor · 2 contracts · Σ 140,000 aUEC · 2 landings · 8 crates · 0 long jumps · fits MISC Hull B");
-        model.CustomLines.Should().Equal(
-            "Bulk · Senior Rank - Medium Cargo Haul · 100,000 aUEC · 10–64 SCU in 16s · HUR-L1 · fits",
-            "Back · Junior Rank - Small Cargo Haul · 40,000 aUEC · 10–64 SCU in 16s · accept at HUR-L1 · fits");
+        model.CustomSummary.Should().Be(
+            $"Own plan from Everus Harbor: Everus Harbor → HUR-L1 → Everus Harbor · 2 contracts · Σ 140,000 aUEC · 2 landings · 8 crates · 0 long jumps · peak 64/{HullB.TotalScu} SCU at Everus Harbor · fits MISC Hull B");
+        model.CustomRows.Select(r => (r.Text, r.State, r.CanRemove)).Should().Equal(
+            ("Bulk · Senior Rank - Medium Cargo Haul · 100,000 aUEC · 10–64 SCU in 16s · HUR-L1", " · fits", true),
+            ("Back · Junior Rank - Small Cargo Haul · 40,000 aUEC · 10–64 SCU in 16s · accept at HUR-L1", " · fits", true));
         model.Map!.Graph.Draft.Legs.Should().Equal((Everus, L1), (L1, Everus));
         model.Map.Graph.Draft.Numbers.Should().BeEquivalentTo(new Dictionary<string, string> { [L1] = "1" });
         model.StartPlanToolTip.Should().Be("Start plan: Own plan from Everus Harbor – its contracts as placeholders in the Cargo tab");
@@ -175,41 +186,85 @@ public sealed class RoutesMapViewModelTests
     }
 
     [Fact]
-    public void A_right_click_takes_the_edges_last_contract_back_Clear_and_another_focus_drop_the_plan()
+    public void The_same_edge_again_or_the_cross_closes_its_panel()
     {
-        var model = Map([T([Everus], [L1], reward: 100_000), T([Everus], [L1], reward: 50_000), T([L1], [L5])]);
-        model.ShowShip(HullB);
-        model.FocusCommand.Execute(Everus);
-        var edge = model.Map!.Graph.Edge(Everus, L1)!;
+        var model = Map([T([Everus], [L1]), T([L1], [L5])]);
+        var edge = model.Map!.Graph.Edge(Everus, L1);
 
-        model.AddEdgeCommand.Execute(edge);
-        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
-        model.CustomLines.Should().HaveCount(2);
-        model.RemoveEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
-        model.CustomLines.Should().ContainSingle().Which.Should().Contain("100,000 aUEC");
+        model.OpenEdgeCommand.Execute(edge);
+        model.HasEdgePanel.Should().BeTrue();
+        model.OpenEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        model.HasEdgePanel.Should().BeFalse("the same edge again");
 
-        model.ClearCustomCommand.Execute(null);
-        (model.HasCustom, model.Map!.Graph.Focus).Should().Be((false, Everus), "Clear keeps the focus");
-
-        model.AddEdgeCommand.Execute(model.Map.Graph.Edge(Everus, L1));
-        model.FocusCommand.Execute(L1);
-        model.HasCustom.Should().BeFalse("another start, another plan");
+        model.OpenEdgeCommand.Execute(edge);
+        model.OpenEdgeCommand.Execute(model.Map!.Graph.Edge(L1, L5));
+        model.EdgePanel!.From.Should().Be(L1, "another edge, its panel");
+        model.ClosePanelCommand.Execute(null);
+        model.HasEdgePanel.Should().BeFalse();
     }
 
     [Fact]
-    public void An_edge_the_focus_dims_is_not_picked()
+    public void Minus_and_a_right_click_take_missions_out_the_focus_keeps_the_plan_and_Clear_drops_it()
     {
-        var model = Map([T([Everus], [L1]), T([L1], [L5])]);
+        var model = Map([T([Everus], [L1], reward: 100_000), T([Everus], [L1], reward: 50_000), T([L1], [L5])]);
         model.ShowShip(HullB);
-        model.FocusCommand.Execute(Everus);
+        model.OpenEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        model.AddMissionCommand.Execute(model.EdgePanel!.Rows[0]);
+        model.AddMissionCommand.Execute(model.EdgePanel!.Rows[1]);
+        model.CustomRows.Should().HaveCount(2);
 
-        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(L1, L5));
+        model.RemoveEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        model.CustomRows.Should().ContainSingle().Which.Text.Should().Contain("100,000 aUEC");
+        model.AddMissionCommand.Execute(model.EdgePanel!.Rows[1]);
+        model.RemoveMissionCommand.Execute(model.CustomRows[0]);
+        model.CustomRows.Should().ContainSingle().Which.Text.Should().Contain("50,000 aUEC");
 
-        model.HasCustom.Should().BeFalse("L1 → L5 is dimmed until L1 is a station of the plan");
-        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
-        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(L1, L5));
-        model.CustomLines.Should().HaveCount(2, "now along the plan");
+        model.FocusCommand.Execute(L1);
+        model.HasCustom.Should().BeTrue("the focus is a filter now (T13.7c)");
+        model.ClearCustomCommand.Execute(null);
+        (model.HasCustom, model.Map!.Graph.Focus).Should().Be((false, L1), "Clear keeps the focus");
     }
+
+    [Fact]
+    public void The_focus_lists_its_missions_with_plus_and_one_of_another_board_says_so()
+    {
+        // Martin's R3: the station's missions under the plan; the board is routes.hub's (Everus: Stanton1).
+        var model = Map([T([Everus], [L1], reward: 100_000), T([L1], [L5], reward: 90_000), T([Everus], [L1], reward: 80_000, areaKey: "Stanton3"), T([Everus], [L5])]);
+        model.ShowShip(HullB);
+        model.ShowsCustomBar.Should().BeFalse();
+
+        model.FocusCommand.Execute(L1);
+
+        model.FocusMissionsHeader.Should().Be("Missions at HUR-L1");
+        model.FocusMissions.Select(r => (r.Text.Split(" · ")[1], r.State, r.CanAdd)).Should().BeEquivalentTo(
+            [("100,000 aUEC", (string?)null, true), ("80,000 aUEC", " · different board", false), ("90,000 aUEC", (string?)null, true)]);
+        model.ShowsCustomBar.Should().BeTrue();
+        model.AddMissionCommand.Execute(model.FocusMissions.Single(r => r.Text.Contains("90,000")));
+        model.CustomRows.Should().ContainSingle().Which.Text.Should().Contain("accept at HUR-L1", "from L1, not from the hub");
+
+        model.FocusCommand.Execute(L1);
+        model.FocusMissions.Should().BeEmpty();
+        model.FocusMissionsHeader.Should().BeNull();
+    }
+
+    [Fact]
+    public void A_mission_that_likely_doesnt_fit_goes_in_marked_and_without_a_ship_there_is_no_plus()
+    {
+        // Martin's R2: the SCU and the planner's first fit along the order; marked, not refused.
+        var model = Map([T([Everus], [L1], reward: 100_000), T([Everus], [L5], reward: 90_000)]);
+        model.OpenEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        model.EdgePanel!.Rows[0].Should().BeEquivalentTo(new { State = " · no ship", CanAdd = false });
+
+        model.ShowShip(HullA);
+        model.AddMissionCommand.Execute(model.EdgePanel!.Rows[0]);
+        model.OpenEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L5));
+        model.EdgePanel!.Rows[0].Should().BeEquivalentTo(new { State = " · likely doesn't fit at Everus Harbor", CanAdd = true });
+        model.AddMissionCommand.Execute(model.EdgePanel.Rows[0]);
+
+        model.CustomRows.Select(r => r.State).Should().Equal(" · fits", " · likely doesn't fit at Everus Harbor");
+        model.CustomSummary.Should().EndWith($"peak 128/64 SCU at Everus Harbor · 1 likely don't fit {HullA.Name}");
+    }
+    private static readonly Ship HullA = CargoPlan.Core.Tests.FrozenShips.Load("hull_a");
 
     private static readonly Ship HullB = CargoPlan.Core.Tests.FrozenShips.Load("hull_b");
 
