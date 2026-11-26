@@ -932,7 +932,7 @@ Direct-Schlüssel und unter der Schwelle, K1, E1, E2):**
 - **Abnahme erteilt (25.11.2026, Martin)**, damit auch alle Präzisierungen (P1–P6, K1, E1, E2) und der Gate-Befund
   (Zähler unter der Checkbox mit `IMeasuredSummary`) ratifiziert. Merge `--no-ff` nach main, Martin pusht.
 
-### [ ] T13.7 Streckenkarte
+### [x] T13.7 Streckenkarte
 
 **Warum:** Die Route vor dem Annehmen planen, wenn man von der Routine abweicht (Design §8).
 - Gerichteter Graph, Layout schematisch (Planet = Hub + L-Ring), Option geografisch aus `positions.json`; Kante =
@@ -1253,6 +1253,12 @@ T13.7b (D129); Art `custom`, `acceptAt`, Leiste, Start plan und Messschlüssel b
   Rangfarben der drei Paletten: normal **48,4** (Tol Muted Purple), Deuteranopie **22,0**, Protanopie **45,8** (Okabe-Ito
   Blau), zu Weiß ≥ 73. Datentest `RouteToneTests` (Farbe aus App.xaml, ΔE ≥ 20 fix für alle drei Sehweisen, Rechnung an
   Weiß/Schwarz = 100 geprüft); Gegenprobe #FFB000 als Routenfarbe → 3 rot. D128-Addendum.
+
+- **Abnahme erteilt (26.11.2026, Martin: „Volle Abnahme“)** für T13.7 (7a, 7b, 7c), damit auch alle Präzisierungen und
+  Gate-Befunde ratifiziert: Zoom bleibt bei neuer Größe, Leiste unter der Karte mit eigenem Regler „Map legend height“,
+  Pfeile ab der Hälfte der Rasten, Route auf der Karte (Verträge, Flugfolge mit Halo, Pillen, Extras, Rest 25 %),
+  Plan aus einzelnen Missionen (D130), Routenfarbe Violett (#E040FB). Merge `--no-ff` nach main, Martin pusht.
+  Nächster Task: T13.8 (Release v0.8.0).
 
 ### [ ] T13.8 Release v0.8.0
 
