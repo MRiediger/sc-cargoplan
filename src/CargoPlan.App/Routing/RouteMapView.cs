@@ -18,7 +18,7 @@ namespace CargoPlan.App.Routing;
 /// doesn't move the window), double click on free room = fit, click on a node = <see cref="FocusCommand"/>; with a
 /// click on an edge = <see cref="EdgeCommand"/> (its panel of missions, T13.7c), on free room = <see cref="FreeCommand"/>, a
 /// right click on an edge = <see cref="RemoveEdgeCommand"/> (T13.7b). A plan (gate finding 7a/7b): its contracts solid, its extras dashed, its order dotted, its stations in
-/// numbered pills; the active route in the status line's colour, the custom route in the line's; a tool tip
+/// numbered pills; the active route in its violet (MapRouteBrush), the custom route in the line's; a tool tip
 /// for the node or edge under the pointer. Locked, the window is click-through and none of this reaches it (D11).
 /// </summary>
 public sealed class RouteMapView : Canvas
@@ -73,7 +73,8 @@ public sealed class RouteMapView : Canvas
 
     private const string LineBrushKey = "LegendForegroundBrush";
 
-    private const string RouteBrushKey = "NoticeForegroundBrush";
+    // The route's own violet (D128 addendum): no rank colour of any stop palette, unlike the notice amber.
+    private const string RouteBrushKey = "MapRouteBrush";
 
     private const string HaloBrushKey = "MapHaloBrush";
 
@@ -194,7 +195,7 @@ public sealed class RouteMapView : Canvas
 
     internal IReadOnlyDictionary<string, TextBlock> Labels => _labels;
 
-    /// <summary>The active route's numbers by node, orange pills above left of the node (gate finding 7a/7b).</summary>
+    /// <summary>The active route's numbers by node, violet pills above left of the node (gate finding 7a/7b, D128 addendum).</summary>
     internal IReadOnlyDictionary<string, Border> Badges => _badges;
 
     /// <summary>The draft's numbers by node, white pills above right, clear of the route's (Martin's condition 2).</summary>
@@ -441,7 +442,7 @@ public sealed class RouteMapView : Canvas
         Redraws++;
         var graph = scene.Graph;
         var line = TryFindResource(LineBrushKey) as Brush ?? Brushes.White;
-        var route = TryFindResource(RouteBrushKey) as Brush ?? Brushes.Orange;
+        var route = TryFindResource(RouteBrushKey) as Brush ?? Brushes.Magenta;
         var halo = TryFindResource(HaloBrushKey) as Brush ?? Brushes.Black;
         var kinds = graph.Nodes.ToDictionary(n => n.Key, n => n.Kind, StringComparer.Ordinal);
         using (var dc = _drawing.Visual.RenderOpen())

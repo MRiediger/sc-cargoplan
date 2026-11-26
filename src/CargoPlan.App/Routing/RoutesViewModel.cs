@@ -152,7 +152,7 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
     // The map's start the player clicked (T13.7), for the session; routes.hub stays.
     private string? _mapFocus;
 
-    // The active route (T13.6), drawn on the map in the status line's colour.
+    // The active route (T13.6), drawn on the map in its violet (D128 addendum).
     private Route? _route;
 
     // Its extras' pickups to their stops (gate finding 7a/7b).
@@ -252,10 +252,10 @@ public sealed partial class RoutesViewModel : ObservableObject, IMeasuredSummary
     /// <summary>The map: with hauling data, in the map view.</summary>
     public bool ShowsMap => HasData && IsMap;
 
-    /// <summary>The map's help line; "orange: your plan" while it draws an active route (gate finding 7a/7b).</summary>
+    /// <summary>The map's help line; "violet: your plan" while it draws an active route (gate finding 7a/7b, D128 addendum).</summary>
     public string MapLegend =>
         "Line: contracts there · thicker: more aUEC · solid ●: seen in your scans · dashed: game data only · click a station: from there"
-        + (Map?.Graph.Active.Legs.Count > 0 ? " · orange: your plan" : "");
+        + (Map?.Graph.Active.Legs.Count > 0 ? " · violet: your plan" : "");
 
     /// <summary>What the map draws; null outside the map view or without a system.</summary>
     [ObservableProperty]

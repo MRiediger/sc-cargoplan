@@ -1242,7 +1242,17 @@ T13.7b (D129); Art `custom`, `acceptAt`, Leiste, Start plan und Messschlüssel b
   | 6 Missionen nachlegen, bis es nicht passt | Zeile „· likely doesn't fit at …“, trotzdem im Plan, Summe „n likely don't fit …“ | R2 |
   | 7 [−] in der Leiste, Rechtsklick auf eine Kante | Mission raus, Pillen nummerieren neu | Folge |
   | 8 ×, freie Fläche, dieselbe Kante | Panel zu | Panel |
-  | 9 Start plan | Reiter Cargo mit Platzhaltern; Karte orange (Gate-Befund 7a/7b) | Übergabe |
+  | 9 Start plan | Reiter Cargo mit Platzhaltern; Route auf der Karte violett (Gate-Befund Routenfarbe) | Übergabe |
+
+- **Gate-Befund (Martin, 26.11.) – Routenfarbe fällt mit einer Rangfarbe zusammen. Präzisierung in der Planphase,
+  ratifiziert durch Freigabe:** Das Routen-Amber #FFB000 (`NoticeForegroundBrush`) liegt ΔE 9,2 vom Okabe-Ito-Orange
+  #E69F00 (Trainee). Bild-Gate mit zwei Varianten (Pin, Everus-Ring, Hull B, Senior, Fit/2×/6×; Wegwerf-Spike, nicht
+  committet): A eigener Ton, B Rangfarbe mit Glow. **Martins Wahl: A**, `MapRouteBrush` **#E040FB** in App.xaml für
+  Verträge, Extras, Punktlinie und Pillen der Route auf der Karte; `NoticeForegroundBrush` bleibt für Hinweise und den
+  Cargo-Block; Hilfezeile „· violet: your plan“. Auswahl aus 15 Kandidaten nach dem kleinsten ΔE*ab zu allen 20
+  Rangfarben der drei Paletten: normal **48,4** (Tol Muted Purple), Deuteranopie **22,0**, Protanopie **45,8** (Okabe-Ito
+  Blau), zu Weiß ≥ 73. Datentest `RouteToneTests` (Farbe aus App.xaml, ΔE ≥ 20 fix für alle drei Sehweisen, Rechnung an
+  Weiß/Schwarz = 100 geprüft); Gegenprobe #FFB000 als Routenfarbe → 3 rot. D128-Addendum.
 
 ### [ ] T13.8 Release v0.8.0
 

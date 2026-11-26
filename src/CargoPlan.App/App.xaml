@@ -1,4 +1,4 @@
-﻿<Application x:Class="CargoPlan.App.App"
+<Application x:Class="CargoPlan.App.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:app="clr-namespace:CargoPlan.App">
@@ -12,6 +12,10 @@
         <SolidColorBrush x:Key="LockedForegroundBrush" Color="#FFFFB000" />
         <!-- Notice lines (settings, hotkeys, plan file): same amber, they ask for attention the same way. -->
         <SolidColorBrush x:Key="NoticeForegroundBrush" Color="#FFFFB000" />
+        <!-- Map (D128 addendum, Martin's picture gate): the active route's contracts, extras, order and pills. Violet, apart
+             from every rank colour of every stop palette (ΔE ≥ 20, also for deuteranopia and protanopia, RouteToneTests); the
+             notice amber was ΔE 9 from Okabe-Ito's orange. On a violation change this colour, never the threshold. -->
+        <SolidColorBrush x:Key="MapRouteBrush" Color="#FFE040FB" />
         <!-- Map (gate finding 7a/7b): the halo round a plan's dots and the numbers in its pills, the window's dark. -->
         <SolidColorBrush x:Key="MapHaloBrush" Color="#FF141414" />
         <!-- Legend line of a delivered stop: dimmed, but lighter than the delivered cell grey, which is unreadable as text. -->

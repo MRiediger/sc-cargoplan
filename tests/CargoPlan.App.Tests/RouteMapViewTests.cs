@@ -74,7 +74,7 @@ public sealed class RouteMapViewTests
     });
 
     [Fact]
-    public void A_template_edge_is_dashed_an_observed_one_solid_the_dimmed_at_a_quarter_and_the_route_in_the_status_colour() => Sta.Run(() =>
+    public void A_template_edge_is_dashed_an_observed_one_solid_the_dimmed_at_a_quarter_and_the_route_in_its_violet() => Sta.Run(() =>
     {
         // Gate finding 7a/7b: the route's contract solid in its colour, its order dotted with a halo, its station in a pill.
         var model = Model([Seen, T([Everus], [L5]), T([Baijini], [L1])], observed: true);
@@ -105,7 +105,7 @@ public sealed class RouteMapViewTests
 
         Lines(view).Where(l => !l.Route && !l.Halo).Select(l => (l.From, l.To, l.Dimmed)).Should().BeEquivalentTo(
             [(Everus, L1, false), (Everus, Baijini, true), (Baijini, L1, true)]);
-        model.MapLegend.Should().EndWith(" · orange: your plan");
+        model.MapLegend.Should().EndWith(" · violet: your plan");
     });
 
     [Fact]
@@ -300,7 +300,7 @@ public sealed class RouteMapViewTests
         view.ToolTipAt(new Point(5, 5)).Should().BeNull();
     });
 
-    private static Brush RouteBrush { get; } = new SolidColorBrush(Color.FromRgb(0xFF, 0xB0, 0x00));
+    private static Brush RouteBrush { get; } = new SolidColorBrush(Color.FromRgb(0xE0, 0x40, 0xFB));
 
     private static Brush HaloBrush { get; } = new SolidColorBrush(Color.FromRgb(0x14, 0x14, 0x14));
 
@@ -332,7 +332,7 @@ public sealed class RouteMapViewTests
             },
         };
         view.Resources["LegendForegroundBrush"] = Brushes.White;
-        view.Resources["NoticeForegroundBrush"] = RouteBrush;
+        view.Resources["MapRouteBrush"] = RouteBrush;
         view.Resources["MapHaloBrush"] = HaloBrush;
         view.Scene = scene;
         view.Measure(Wide);
@@ -389,7 +389,7 @@ public sealed class RouteMapViewTests
 
                     break;
                 case GeometryDrawing { Geometry: LineGeometry line, Pen: { } pen }:
-                    var route = pen.Brush == view.TryFindResource("NoticeForegroundBrush");
+                    var route = pen.Brush == view.TryFindResource("MapRouteBrush");
                     var halo = pen.Brush == view.TryFindResource("MapHaloBrush");
                     var dashed = pen.DashStyle is { } style && style != DashStyles.Solid && style.Dashes.Count > 0;
                     var period = dashed ? pen.DashStyle!.Dashes.Sum() * pen.Thickness : 0;

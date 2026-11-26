@@ -64,6 +64,12 @@
                       LogicalName="xaml/OverlayWindow.xaml" Link="Xaml\OverlayWindow.xaml" />
   </ItemGroup>
 
+  <!-- The app's fixed brushes, read by RouteToneTests: the map's route colour apart from every rank colour (D128 addendum). -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\src\CargoPlan.App\App.xaml"
+                      LogicalName="xaml/App.xaml" Link="Xaml\App.xaml" />
+  </ItemGroup>
+
   <!-- The settings window's markup, read by SettingsWindowXamlTests: slider bounds must be doubles (T7.4c-2 crash). -->
   <ItemGroup>
     <EmbeddedResource Include="..\..\src\CargoPlan.App\SettingsWindow.xaml"

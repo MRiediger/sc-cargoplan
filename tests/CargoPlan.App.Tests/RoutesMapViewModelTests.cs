@@ -110,10 +110,10 @@ public sealed class RoutesMapViewModelTests
         var model = Map([T([Everus], [L1]), T([L5], [Everus])]);
         var route = new Route("Everus Harbor ring", DateTime.UtcNow, Everus, LoopKind.LocalRing, StarSystem.Stanton, [L1, L5], [], []);
 
-        model.MapLegend.Should().NotContain("orange");
+        model.MapLegend.Should().NotContain("violet");
         model.ShowRoute(route);
         model.Map!.Graph.Active.Legs.Should().Equal((Everus, L1), (L1, L5), (L5, Everus));
-        model.MapLegend.Should().EndWith(" · orange: your plan", "gate finding 7a/7b: the help line names the route's colour while it runs");
+        model.MapLegend.Should().EndWith(" · violet: your plan", "gate finding 7a/7b: the help line names the route's colour while it runs");
 
         var map = model.Map;
         model.ShowRoute(route, [new MapExtra(L5, L1, 3, null)]);
@@ -125,7 +125,7 @@ public sealed class RoutesMapViewModelTests
 
         model.ShowRoute(null);
         model.Map!.Graph.Active.Legs.Should().BeEmpty();
-        model.MapLegend.Should().NotContain("orange");
+        model.MapLegend.Should().NotContain("violet");
     }
 
     [Fact]
