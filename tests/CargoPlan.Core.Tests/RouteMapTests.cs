@@ -80,6 +80,20 @@ public sealed class RouteMapTests
     }
 
     [Fact]
+    public void A_draft_lights_the_edges_from_its_stations_too_and_draws_its_legs_there_and_back()
+    {
+        // T13.7b (design §8.4.1): along the route chosen so far.
+        var matrix = PortMatrix.Build([T([Everus], [L1]), T([L1], [L5]), T([L5], [Everus]), T([Baijini], [Everus]), T([L5], [Baijini])], All);
+
+        var map = Map(matrix, focus: Everus, draft: [L1, L5]);
+
+        map.Edges.Where(map.IsLit).Select(e => (e.From, e.To)).Should().BeEquivalentTo(
+            [(Everus, L1), (L1, L5), (L5, Everus), (L5, Baijini), (Baijini, Everus)], "Baijini is reached from L5, its way back lights");
+        map.DraftLegs.Should().Equal((Everus, L1), (L1, L5), (L5, Everus));
+        Map(matrix, focus: Everus).DraftLegs.Should().BeEmpty();
+    }
+
+    [Fact]
     public void A_focus_on_a_node_the_filter_hides_lights_everything()
     {
         var map = Map(PortMatrix.Build([T([Everus], [L1])], All), focus: Baijini);
@@ -159,9 +173,9 @@ public sealed class RouteMapTests
         (c.Y, d.Y).Should().Be((MapGeometry.TwoWayOffsetPx, MapGeometry.TwoWayOffsetPx), "right of the way along +x with y down");
     }
 
-    private static RouteMap Map(PortMatrix matrix, string? focus = null, Route? route = null)
+    private static RouteMap Map(PortMatrix matrix, string? focus = null, Route? route = null, IReadOnlyList<string>? draft = null)
     {
         var nodeOf = MapNodes.For(Places.All.Select(p => p.Name), Places, StarSystem.Stanton);
-        return RouteMap.Build(matrix, nodeOf, StarSystem.Stanton, focus, route);
+        return RouteMap.Build(matrix, nodeOf, StarSystem.Stanton, focus, route, draft);
     }
 }

@@ -61,8 +61,9 @@ public sealed class RouteMap
 
     private RouteMap(
         IReadOnlyList<MapNode> nodes, Dictionary<(string, string), MapEdge> edges, string? focus, HashSet<(string, string)>? lit,
-        IReadOnlyList<(string From, string To)> legs, IReadOnlyDictionary<string, string> numbers, int insideOneNode)
+        IReadOnlyList<(string From, string To)> legs, IReadOnlyDictionary<string, string> numbers, int insideOneNode, IReadOnlyList<(string From, string To)> draftLegs)
     {
+        DraftLegs = draftLegs;
         Nodes = nodes;
         _edges = edges;
         Edges = [.. edges.Values];
@@ -96,6 +97,9 @@ public sealed class RouteMap
     /// <summary>The route's stations as numbers ("1", "2, 4" where a node is visited twice), by node.</summary>
     public IReadOnlyDictionary<string, string> Numbers { get; }
 
+    /// <summary>The custom route being clicked (T13.7b): start → its stations → start, as nodes; empty without one.</summary>
+    public IReadOnlyList<(string From, string To)> DraftLegs { get; }
+
     /// <summary>Contracts whose pickup and drop-off fall into one node (one planet's surface): not drawn, counted.</summary>
     public int InsideOneNode { get; }
 
@@ -103,13 +107,19 @@ public sealed class RouteMap
 
     public MapNodeFigures Figures(string node) => _figures[node];
 
-    /// <summary>Full where there is no focus, or the edge leaves the focus, or leads back to it from a place it goes to.</summary>
+    /// <summary>
+    /// Full where there is no focus, or the edge leaves the focus or a station of the draft, or leads back to the focus
+    /// from a place they go to.
+    /// </summary>
     public bool IsLit(MapEdge edge) => _lit is null || _lit.Contains((edge.From, edge.To));
 
     /// <param name="nodeOf">Every place of the system to its node (<see cref="MapNodes.For"/>); a place without is left out.</param>
     /// <param name="focus">A node's key; ignored when no edge of the filter touches it.</param>
     /// <param name="route">The active route (T13.6); only one of <paramref name="system"/> is drawn.</param>
-    public static RouteMap Build(PortMatrix matrix, IReadOnlyDictionary<string, MapNode> nodeOf, StarSystem system, string? focus = null, Route? route = null)
+    /// <param name="draft">The stations of the custom route being clicked from <paramref name="focus"/>, in order (T13.7b,
+    /// design §8.4.1: the edges along the route chosen so far light too); none without a focus.</param>
+    public static RouteMap Build(
+        PortMatrix matrix, IReadOnlyDictionary<string, MapNode> nodeOf, StarSystem system, string? focus = null, Route? route = null, IReadOnlyList<string>? draft = null)
     {
         Dictionary<(string, string), List<MapEdgePart>> parts = [];
         var inside = 0;
@@ -150,15 +160,19 @@ public sealed class RouteMap
         MapNode[] nodes = [.. byKey.Values.Where(v => shown.Contains(v.Key)).OrderBy(v => v.Kind == MapNodeKind.Hub ? 0 : 1).ThenBy(v => v.Key, PlaceNames.Order)];
 
         var start = focus is not null && edges.Keys.Any(k => k.Item1 == focus || k.Item2 == focus) ? focus : null;
-        return new RouteMap(nodes, edges, start, start is null ? null : Lit(edges.Keys, start), legs, numbers, inside);
+        string[] along = start is null ? [] : [.. (draft ?? []).Select(p => nodeOf.GetValueOrDefault(p)?.Key).OfType<string>().Distinct()];
+        string[] trip = [.. new[] { start }.OfType<string>(), .. along, .. new[] { start }.OfType<string>()];
+        (string, string)[] draftLegs = along.Length == 0 ? [] : [.. trip.Zip(trip.Skip(1)).Where(l => l.First != l.Second)];
+        return new RouteMap(nodes, edges, start, start is null ? null : Lit(edges.Keys, start, along), legs, numbers, inside, draftLegs);
     }
 
-    // From the start, and back to it from where it goes (Martin's "Rückkanten").
-    private static HashSet<(string, string)> Lit(IEnumerable<(string From, string To)> edges, string start)
+    // From the start and the draft's stations, and back to the start from where they go (Martin's "Rückkanten").
+    private static HashSet<(string, string)> Lit(IEnumerable<(string From, string To)> edges, string start, IReadOnlyCollection<string> along)
     {
         (string From, string To)[] all = [.. edges];
-        var reached = all.Where(e => e.From == start).Select(e => e.To).ToHashSet(StringComparer.Ordinal);
-        return [.. all.Where(e => e.From == start || (e.To == start && reached.Contains(e.From)))];
+        HashSet<string> from = [start, .. along];
+        var reached = all.Where(e => from.Contains(e.From)).Select(e => e.To).ToHashSet(StringComparer.Ordinal);
+        return [.. all.Where(e => from.Contains(e.From) || (e.To == start && reached.Contains(e.From)))];
     }
 
     private static (string From, string To)[] LegsOf(Route route, IReadOnlyDictionary<string, MapNode> nodeOf)
