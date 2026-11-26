@@ -1042,6 +1042,19 @@ E Timing, Hinweis Radius):**
   | 7 Rad, Ziehen, Doppelklick; Lock | Zoom um den Cursor, Schrift bleibt gleich groß, Pan, Fit; gesperrt click-through | K4, D11 |
   | 8 Zahlen | cargoplan.log „Routes: map Stanton: … in x ms“ / Pyro; `--measure-frames map --over-game` | Budget |
 
+- **Gate 7a bestanden (Martin, 26.11.), alle Schritte und Tests.** Zahlen aus Martins Läufen (Release, Profilordner):
+  - cargoplan.log, Stanton (Rank master, Hull B): erster Aufbau je Start 10,8 / 11,1 / 14,0 / 13,4 / 12,3 ms, danach 1,1–3,1 ms
+    (einmal 15,6 ms); 73 bzw. 75 Kanten (75 mit den Beobachtungen aus Martins routes.json). Jeder Fokus-Klick und jeder
+    Filter baut die Karte neu und schreibt eine Logzeile.
+  - Pyro: kein Gate-Lauf (Martin fliegt nicht nach Pyro); Zahl aus `RouteMapTimingTests` (CC): 9,4 ms Median.
+  - measure-frames.log, über dem Spiel: `map 25 nodes, 73 edges over game, ocr warm: frames n 2627, median 8.33 ms, p95
+    16.67 ms, max 25.0 ms, late 37.0 %, fps 87.6`. Zum Vergleich vom 23.11. über dem Spiel: `empty` 107,9 fps, late 11,2 %;
+    `routes` (Matrix) 74,1 fps, median 16,67 ms. Die Karte liegt über der Matrix; die 37 % late sind ein anderer Tag und eine
+    andere Szene, eine `empty`-Messung vom selben Tag fehlt.
+- **Zwischenabnahme 7a (26.11.2026, Martin)**, damit auch die Präzisierungen von 7a ratifiziert (Radius linear, Stufen
+  60 000 / 350 000, Labels in zwei Durchgängen, Layout-Universum). **7b: Martin entscheidet „umsetzen“** – Plan 7b folgt
+  nach A7 mit eigener Freigabe.
+
 ### [ ] T13.8 Release v0.8.0
 
 **Warum:** Ohne Release erreicht die Phase keinen Hauler.
