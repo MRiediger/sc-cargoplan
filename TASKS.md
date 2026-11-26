@@ -169,6 +169,49 @@ Rückweg auf v0.6.0, steht im Wiki). Link-Check: 9 externe URLs 200, 3 Wiki-Ziel
 **Notes freigegeben (Halt 2, 26.11.2026):** `a253d3f` von Claude.ai freigegeben, keine Korrektur; Martin hat sie als
 Nutzer gelesen. Stufe 3 wie geplant.
 
+**Stufe 3 – Draft-PR, Merge, Probe (CC, 26.11.2026):**
+- Draft-PR [#32](https://github.com/MRiediger/sc-cargoplan/pull/32) nur für CI: Run 45843964257 grün auf
+  `ubuntu-latest`, `windows-latest` und „Linux CLI from the release tarball“.
+- `CLAUDE.md` hatte in der Arbeitskopie die zwei B18-Vermerke verloren (nicht committet, vermutlich ein Speichern aus dem
+  Editor); Martin: verwerfen, Vermerk bleibt.
+- Merge `--no-ff` lokal → **`b65bde2`**, Inhalt gleich `release/v0.8.0`. Im sauberen Worktree, SDK 10.0.404: der Build
+  holt die Baseline selbst (`ships-2026.11.2`, 113 Dateien gegen das Manifest), Build `0 Warnung(en)`,
+  `dotnet format --verify-no-changes` Exit 0, Tests Core 2543/2543, App 2312/2312, Import 430/430, Ocr 34/34.
+- `./build/publish.ps1 -Version 0.8.0 -DeltaBase github`: `Delta base: CargoPlan-0.7.0-full.nupkg`, 126 Dateien
+  gepatcht, 264 gleich, 2 neu, Delta 1 300 377 B; `Layout check: … passed (390 files in current\, 110 ship files of
+  ships-2026.11.2, 5 PDBs, version 0.8.0)`; `Tarball check: … passed (328 files in SC-CargoPlan-Cli/, 110 ship files of
+  ships-2026.11.2, CargoPlan.Cli executable, version 0.8.0)`. ZIP 97 222 813 B, Tarball 66 682 586 B. B7-Referenz:
+  Runtime 10.0.15 (beide), `coreclr.dll` 10.0.1526.53008, Cli `0.8.0+b65bde2…`.
+- Wiki `v0.8.0` → `master` lokal `--no-ff` (`cfef4a9`). Martin (26.11.): `main` gepusht, CI grün (Run 45847101733),
+  Tag `v0.8.0` (annotiert) auf `b65bde2`, Wiki gepusht.
+
+**Release-Prüfung (CC, 26.11.2026)**, alle Assets frisch in einen leeren Ordner geladen:
+
+| Prüfung | Soll | Ist |
+|---|---|---|
+| CI auf `main` (Merge-Push) | grün | Run 45847101733 success |
+| Workflow „Release“ | grün | Run 45848124404 success, 3 min 37 s |
+| Tag | auf dem Merge | `b65bde2`; annotiert (v0.7.0 war leichtgewichtig) – ohne Folgen für `release.yml` |
+| Release | Latest, kein Pre-Release, kein Draft | `isPrerelease false`, `isDraft false`, `releases/latest` = `v0.8.0`, 15:24:07 UTC |
+| Body | = `docs/release-notes/v0.8.0.md` | zeichengleich nach CRLF→LF (9 374 Zeichen, UTF-8) |
+| Assets | 7 | ZIP 97 221 218, `.sha256` 98, Full 97 265 229, Delta 1 296 902, Feed 733, Tarball 66 680 561, `.sha256` 107 |
+| SHA256 ZIP / Tarball | = `.sha256` | beide gleich |
+| `releases.win.json` | 0.8.0 voll + Delta, Size/SHA1 = Asset | beide gleich; dazu `Full 0.7.0` 96 835 347 = Asset von v0.7.0 |
+| `check-portable.ps1` gegen den Download | passed | `passed (390 files in current\, 110 ship files of ships-2026.11.2, 5 PDBs, version 0.8.0)` |
+| `check-cli-tarball.ps1` gegen den Download | passed | `passed (328 files in SC-CargoPlan-Cli/, 110 ship files of ships-2026.11.2, CargoPlan.Cli executable, version 0.8.0)` |
+| ZIP-Wurzel | `SC-CargoPlan.exe`, `Update.exe`, `.portable`, `current\` | genau diese |
+| Runtime (B7) | = lokales Pack | 10.0.15 beide, `coreclr.dll` 10.0.1526.53008 |
+| Cli-Version | `0.8.0+b65bde2…` | `0.8.0+b65bde24a53e5b5083e9a264be0f23194ab6d40d`; `ships --version` mit leerem Datenordner `ships-2026.11.2 (baseline)` |
+| `ship-data/` | Hauling-Dateien + Pin | `hauling-templates.json`, `positions.json`, `manifest.json` `ships-2026.11.2`, `hauling` Schema 1 |
+| Linux unter WSL (Ubuntu 24.04.2) | entpackt, startet ohne `chmod` | `CargoPlan.Cli` `-rwxr-xr-x`, `--version` `0.8.0+b65bde2…`, `ships --version` `ships-2026.11.2 (baseline)`, beide Hauling-Dateien |
+| Start ohne `routes.json` | Plan-Reiter leer, kein Fehler | 3 Starts mit leerem `--data-dir`: `Routes: 0 observations: 0 matched …`, keine Fehlerzeile |
+| Hauling beim Start | ≤ 60 ms | `Hauling: 587 templates, 157 positions, 0 left out, 39 ms` (3 × 39 ms) |
+| Erster Frame gegen v0.7.0 | unverändert | **nicht erfüllt:** abwechselnd je 3 Starts aus den veröffentlichten ZIPs, leerer Datenordner: v0.7.0 Median 706 ms (707, 706, 692), v0.8.0 785 ms (804, 781, 785), **+79 ms (+11 %)**; erste Serie gleich (730 / 805) → Entscheidung Martin |
+| Größe | +≈ 0,2 MB gegen v0.7.0 | ZIP 92,7 MiB (97 221 218 B), +429 882 B (+0,43 MB) gegen v0.7.0; Delta von v0.7.0 1,30 MB; Tarball 66,7 MB → CLAUDE.md |
+| Wiki | live | `Plan-tab` 200 mit Footer v0.8.0, `plan-map.png` (Raw-URL `main`) und `media/plan-matrix.png` 200 |
+| Szenario B18 am ZIP | eigener Plan mit Extras → „›“ ×2 → Neustart → Reiter vollständig | **offen (Martin)** |
+| Auto-Update v0.7.0 → v0.8.0 auf `cargotest` | Notice → Download → Neustart → Version 0.8.0 | **offen (Martin)** |
+
 **Nachmessen Stufe 3 (Ergänzung aus B18, Martin):** eigener Plan mit Extras → „›“ ×2 → Neustart → Plan-Reiter
 vollständig, Leiste am selben Stopp – am veröffentlichten ZIP.
 
