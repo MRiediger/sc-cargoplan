@@ -20,7 +20,8 @@ public enum RecipeKind
 /// saw) in <see cref="PlaceNames.Order"/>; the hub for a way back.</param>
 /// <param name="WorstScu">Every leg at its upper band.</param>
 /// <param name="Crates">The crates of <paramref name="WorstScu"/> as the elevator delivers them to this ship (D70).</param>
-/// <param name="AcceptAt">For a way back: the ring station where it is accepted, its first pickup; null otherwise.</param>
+/// <param name="AcceptAt">For a way back: the ring station where it is accepted, its first pickup; for a role a loop takes on
+/// the way (the LEO ring, a custom route): its station (T13.7b, D125 addendum); null for what leaves the start.</param>
 /// <param name="CollectAt">For a way back with several pickups (multi-to-single): the ring stations after
 /// <paramref name="AcceptAt"/> where it collects the rest; empty for one pickup, null for a role that is no way back.</param>
 public sealed record RecipeRole(
@@ -121,6 +122,15 @@ public sealed record Recipe(string? Hub, IReadOnlyList<RecipeRole> Outbound, IRe
 
         return back;
     }
+
+    /// <summary>
+    /// <paramref name="role"/> taken at <paramref name="station"/> on a loop from <paramref name="start"/> (T13.7b, D125
+    /// addendum): accepted there; one that goes only to the start is a way back, collecting nowhere.
+    /// </summary>
+    internal static RecipeRole AcceptedAt(RecipeRole role, string station, string start) =>
+        role.Destinations.All(d => d == start)
+            ? role with { Kind = RecipeKind.Return, AcceptAt = station, CollectAt = [] }
+            : role with { AcceptAt = station };
 
     // The places a template picks up at: its stops for a multi-to-single, else one.
     private static int Pickups(HaulTemplate template) => template.Shape == HaulShape.MultiToSingle ? template.Stops : 1;

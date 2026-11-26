@@ -89,11 +89,12 @@ public sealed record RouteProgress(IReadOnlyList<RouteStop> Stops)
             var here = lines.Where(l => l.Stop == i).ToList();
             var held = lines.Where(l => accepted.Contains(l.Mission) && !l.Done && (l.Stop < 1 || l.Stop > i)).Select(l => l.Mission).Distinct().Count();
             var station = i > 0 && i < names.Length - 1 ? names[i] : null;
+            // Everything accepted here: the ways back and the roles taken on the way (T13.7b, D125 addendum).
             ReturnAt[] returns =
             [
-                .. route.Back.Where(p => station is not null && p.AcceptAt == station).Select(p => Route.IsFilled(p, keys)
+                .. route.Placeholders.Where(p => station is not null && p.AcceptAt == station).Select(p => Route.IsFilled(p, keys)
                     ? new ReturnAt(p, ReturnFit.Filled, scanNo[p.FilledBy!])
-                    : new ReturnAt(p, i == route.At ? Simulate(route, plan, ship, lines.Where(l => l.Stop >= 1 && l.Stop <= i && !l.Done), p) : ReturnFit.Unchecked, null)),
+                    : new ReturnAt(p, i == route.At ? Simulate(plan, ship, lines.Where(l => l.Stop >= 1 && l.Stop <= i && !l.Done), p) : ReturnFit.Unchecked, null)),
             ];
             Placeholder[] collects = [.. route.Back.Where(p => station is not null && p.CollectAt is { } at && at.Contains(station))];
             stops.Add(new(i, names[i], station is null, here.Count, here.Count(l => l.Done), held, returns, collects));
@@ -102,9 +103,9 @@ public sealed record RouteProgress(IReadOnlyList<RouteStop> Stops)
         return new(stops);
     }
 
-    // The way back's worst case (every leg at its upper band, its crates, to the hub) laid into the plan with every line up
-    // to this station unloaded: a hint on the real cargo, not the recipe's empty ship (D126).
-    private static ReturnFit Simulate(Route route, SavedPlan plan, Ship ship, IEnumerable<(int Mission, string Destination, bool Done, int Stop)> unload, Placeholder way)
+    // The contract's worst case (every leg at its upper band, its crates, to its places: the hub for a way back) laid into
+    // the plan with every line up to this station unloaded: a hint on the real cargo, not the recipe's empty ship (D126).
+    private static ReturnFit Simulate(SavedPlan plan, Ship ship, IEnumerable<(int Mission, string Destination, bool Done, int Stop)> unload, Placeholder way)
     {
         var after = plan.Plan;
         foreach (var line in unload.Where(l => plan.Plan.Crates.Any(c => c.Mission == l.Mission && c.Destination == l.Destination)))
@@ -112,7 +113,13 @@ public sealed record RouteProgress(IReadOnlyList<RouteStop> Stops)
             after = LoadPlanner.SetDelivered(after, ship, line.Destination, line.Mission, true);
         }
 
-        MissionStop[] worst = [new(route.Hub, 1, [.. way.Legs.Select(l => new MissionItem(l.Commodity, l.MaxScu, l.Container))])];
+        // Each leg to its place in turn, as the recipe lays a role (Recipe.Fits).
+        MissionStop[] worst =
+        [
+            .. way.Legs.Select((l, i) => (To: way.Destinations[i % way.Destinations.Count], Item: new MissionItem(l.Commodity, l.MaxScu, l.Container)))
+                .GroupBy(x => x.To, StringComparer.Ordinal)
+                .Select((g, order) => new MissionStop(g.Key, order + 1, [.. g.Select(x => x.Item)])),
+        ];
         var laid = LoadPlanner.PlaceInto(new SavedPlan(plan.Missions, after, plan.CrateCap), ship, worst);
         return laid.Missions[^1].Unplaced ? ReturnFit.TooBig : ReturnFit.Fits;
     }

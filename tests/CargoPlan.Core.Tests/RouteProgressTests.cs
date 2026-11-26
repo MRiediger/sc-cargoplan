@@ -103,6 +103,23 @@ public class RouteProgressTests
     }
 
     [Fact]
+    public void A_contract_accepted_on_the_way_is_its_stations_to_accept_and_simulated_to_its_own_place()
+    {
+        // T13.7b (D125 addendum): a role with acceptAt that is no way back (Baijini → Port Tressler in design §8.6).
+        var plan = With(Empty(), 1, 300_000, false, (L1, "Waste", 100, CrateSize.Sixteen));
+        plan = With(plan, 2, 300_000, false, (L2, "Waste", 380, CrateSize.Sixteen));
+        var small = Out(4, L2, scu: 72) with { AcceptAt = L1 };
+        var big = Out(5, L2, scu: 190) with { AcceptAt = L1 };
+        var route = Ring(Out(1, L1), small, big) with { At = 1 };
+
+        var stops = RouteProgress.Of(route, plan, HullB, Places).Stops;
+
+        stops[1].Returns.Select(r => (r.Placeholder.Id, r.Fit)).Should().Equal((4, ReturnFit.Fits), (5, ReturnFit.TooBig));
+        stops[0].Returns.Should().BeEmpty("the start lists what leaves it, not what is accepted on the way");
+        stops.Skip(2).Should().OnlyContain(s => s.Returns.Count == 0);
+    }
+
+    [Fact]
     public void Without_the_stations_unloading_the_72_SCU_would_not_fit_so_the_simulation_unloads_first()
     {
         var plan = With(Empty(), 1, 300_000, false, (L4, "Waste", 100, CrateSize.Sixteen));

@@ -370,7 +370,8 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
         var keys = Keys(_saved);
         var missions = _saved?.Missions.Where(m => m.Contract is not null).ToDictionary(m => m.Contract!.Scan.Key) ?? [];
         IEnumerable<PlaceholderRowView> rows = at == 0
-            ? route.Outbound.Select(p => OutboundRow(p, keys, missions))
+            // What leaves the hub; a role taken on the way waits for its station (T13.7b, D125 addendum).
+            ? route.Outbound.Where(p => p.AcceptAt is null).Select(p => OutboundRow(p, keys, missions))
             : stop.Returns.Select(ReturnRow).Concat(stop.Collects.Select(p => new PlaceholderRowView(
                 $"collect: {p.Title} (accepted at {PlaceNames.Short(p.AcceptAt!)})", null, null, Route.IsFilled(p, keys), p.Title)));
         StationRows = [.. rows];
@@ -397,7 +398,9 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
     private static PlaceholderRowView ReturnRow(ReturnAt way)
     {
         var p = way.Placeholder;
-        var line = $"accept: {p.Title} · {RoleText.Reward(p.Reward, null)}";
+        // A role taken on the way names its places; a way back goes to the hub.
+        var to = p.Kind == RecipeKind.Return ? "" : $" · {string.Join(", ", p.Destinations.Select(PlaceNames.Short))}";
+        var line = $"accept: {p.Title} · {RoleText.Reward(p.Reward, null)}{to}";
         var collect = p.CollectAt is { Count: > 0 } more ? $" · collect at {string.Join(", ", more.Select(PlaceNames.Short))}" : null;
         return way.Fit switch
         {
@@ -410,11 +413,12 @@ public sealed partial class ActiveRouteViewModel : ObservableObject
 
     private static PlaceholderRowView Row(Placeholder p, IReadOnlySet<string> keys, Dictionary<string, Mission> missions)
     {
-        // Gate 6a (K2): a way back names where to accept and collect instead of its place, the hub.
+        // Gate 6a (K2): a way back names where to accept and collect instead of its place, the hub; a role taken on the way
+        // names its places and where to accept it (T13.7b).
         string[] parts =
         [
             RoleText.KindWords[p.Kind], p.Title, RoleText.Reward(p.Reward, null),
-            .. p.AcceptAt is null ? [string.Join(", ", p.Destinations.Select(PlaceNames.Short))] : Array.Empty<string>(),
+            .. p.Kind != RecipeKind.Return ? [string.Join(", ", p.Destinations.Select(PlaceNames.Short))] : Array.Empty<string>(),
         ];
         var line = string.Join(" · ", parts);
         var accept = p.AcceptAt is { } at ? $" · accept at {PlaceNames.Short(at)}" : null;

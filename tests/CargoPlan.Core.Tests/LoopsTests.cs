@@ -201,6 +201,11 @@ public class LoopsTests
 
         leo.Stations.Should().Equal([Baijini, Tressler, Seraphim], "Baijini first: a contract goes there alone");
         leo.Contracts.Select(c => c.Template).Should().Equal(tin, junior, ice);
+
+        // T13.7b (D125 addendum): what the ring takes on the way says where; to the start it is a way back.
+        leo.Contracts.Select(c => (c.Kind, c.AcceptAt)).Should().Equal(
+            (RecipeKind.Bulk, null), (RecipeKind.Direct, null), (RecipeKind.Return, Tressler));
+        leo.Contracts[2].CollectAt.Should().BeEmpty();
         leo.Reward.Should().Be(289_000 + 57_750 + 165_250);
         (leo.Landings, leo.LongJumps).Should().Be((4, 4));
         (leo.Observed, leo.Total, leo.NeedsScansAt).Should().Be((2, 4, Baijini), "no edge seen from Baijini yet");

@@ -207,8 +207,11 @@ public static class Loops
                     .Where(r => r.Destinations.Count > 0),
             ];
             var picked = Recipe.Pick(candidates, context.Ship, context.Cap, aboard, fits: context.Fits);
-            aboard.AddRange(picked);
-            taken.AddRange(picked);
+
+            // Taken on the way: accepted at this hub, not at the start (T13.7b, D125 addendum: the bar listed them at the start).
+            var here = i == 0 ? picked : [.. picked.Select(r => Recipe.AcceptedAt(r, trip[i], start))];
+            aboard.AddRange(here);
+            taken.AddRange(here);
         }
 
         var loop = Candidate(LoopKind.SystemWide, StarSystem.Stanton, start, stations, taken, context);

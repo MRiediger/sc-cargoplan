@@ -86,10 +86,11 @@ internal sealed record PlaceholderDto(
             throw new ArgumentException($"placeholder {Id} needs an id of at least 1, a leg and a reward of at least 1 where there is one.");
         }
 
-        // A way back is accepted at a station and collects where it says (none for one pickup); no other role is.
-        if ((kind == RecipeKind.Return) != (AcceptAt is not null) || (AcceptAt is null) != (CollectAt is null))
+        // A way back is accepted at a station and collects where it says (none for one pickup); another role may be
+        // accepted at a station on the way (T13.7b, D125 addendum), but only a way back collects.
+        if ((kind == RecipeKind.Return && (AcceptAt is null || CollectAt is null)) || (kind != RecipeKind.Return && CollectAt is not null))
         {
-            throw new ArgumentException($"placeholder {Id} ({Kind}): only a way back has acceptAt and collectAt, and it has both.");
+            throw new ArgumentException($"placeholder {Id} ({Kind}): a way back has acceptAt and collectAt; another role may have acceptAt, never collectAt.");
         }
 
         return new(Id, kind, Template, Title, Reward, [.. Legs.Select(l => l.ToLeg(Id))], Destinations, AcceptAt, CollectAt, FilledBy);
