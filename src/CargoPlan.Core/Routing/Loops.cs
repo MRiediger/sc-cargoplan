@@ -218,6 +218,13 @@ public static class Loops
         return loop with { Observed = observed.Count, Total = hubs.Length, NeedsScansAt = trip.FirstOrDefault(h => !observed.Contains(h)) };
     }
 
+    /// <summary>
+    /// The player's own route (T13.7b, D129) with the ranking's figures (A1: the same sums, crates and long jumps); it is
+    /// never a row of the ranking. No travel: it starts where the player clicked.
+    /// </summary>
+    internal static LoopCandidate Custom(StarSystem system, string start, IReadOnlyList<string> stations, IReadOnlyList<RecipeRole> roles, CustomContext custom) =>
+        Candidate(LoopKind.Custom, system, start, stations, roles, new Context(custom.Positions, custom.Edges, custom.Ship, CrateCap.Of(custom.Ship), null, custom.Fits));
+
     // The figures of a loop from its contracts: rewards from the data or a scan, crates at the largest seen, long legs.
     private static LoopCandidate Candidate(LoopKind kind, StarSystem system, string start, IReadOnlyList<string> stations, IReadOnlyList<RecipeRole> contracts, Context context)
     {
@@ -296,8 +303,9 @@ public static class Loops
             .ThenBy(p => p, PlaceNames.Order)
             .FirstOrDefault();
 
-    // The role with only its legs still to go to a place of ahead; null when none is left.
-    private static RecipeRole? Ahead(RecipeRole role, IReadOnlySet<string> ahead)
+    // The role with only its legs still to go to a place of ahead; null when none is left. The custom route walks its
+    // stations the same way (CustomPlan).
+    internal static RecipeRole? Ahead(RecipeRole role, IReadOnlySet<string> ahead)
     {
         var left = role.Template.Legs.Select((leg, i) => (Leg: leg, To: role.Destinations[i % role.Destinations.Count])).Where(x => ahead.Contains(x.To)).ToArray();
         return left.Length == 0
