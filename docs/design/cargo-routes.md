@@ -293,3 +293,5 @@ Umsetzungsthread: „SC-CargoPlan | Cargo-Routen Umsetzung“. App-Repo: Phase 1
 - **Befunde der Umsetzung:** L-Stationen liegen an echten Lagrange-Punkten, ein Cluster „Hub + L1–L5“ existiert nicht (T13.7); Stellar-Boards nennen auch Oberflächenorte (T13.7, Knoten „<Planet> (surface)“); Red-Wind-Faktions-Zwillinge sind `Ambiguous` (U5, D122); die Pyro-Karte ist ohne Fokus ein dichtes Netz (Red-Wind-Pools nennen fast das ganze System).
 - **Nicht gebaut, Backlog mit Auslöser (TASKS.md):** Game.log-Reader, Pyro-Regionen, Planetary/CrossStanton, Red-Wind-Zwillinge live, Korrekturfaktor B, Kipprad, QT-Zeit aus Distanz, Standorterkennung.
 - Zahlen, Gates und Präzisierungen je Task: [`docs/tasks-archive/phase-13-cargo-routes.md`](../tasks-archive/phase-13-cargo-routes.md).
+- **Phase 13 abgeschlossen** mit Release v0.8.0 (26.11.2026, Tag `v0.8.0` auf `b65bde2`; Release-Protokoll
+  [`release-v0.8.0.md`](../tasks-archive/release-v0.8.0.md)). Phase 14 „VR“: nur Backlog-Zeile F12 in `TASKS.md`, kein Plan.
