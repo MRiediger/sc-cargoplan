@@ -172,9 +172,12 @@ public sealed class RouteMapView : Canvas
         Redraw();
     }
 
-    internal void PanBy(Vector by)
+    internal void PanBy(Vector by) => Project(Zoom, new MapPoint(_pan.X + by.X, _pan.Y + by.Y));
+
+    /// <summary>Shows the layout at <paramref name="zoom"/> (clamped) and <paramref name="pan"/>: a projection only (K4; the frame measurement drives it).</summary>
+    internal void Project(double zoom, MapPoint pan)
     {
-        _pan = new MapPoint(_pan.X + by.X, _pan.Y + by.Y);
+        (Zoom, _pan) = (Math.Clamp(zoom, MinZoom, MaxZoom), pan);
         Redraw();
     }
 

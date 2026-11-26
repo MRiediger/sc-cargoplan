@@ -131,7 +131,9 @@ public partial class App : Application
         {
             // With the engine warming from the first frame like the overlay's (Gate 3); its notices go to the log only.
             var holoFolder = HoloSource.CacheFolder(HoloSource.DefaultCacheRoot, data.Version);
-            var routes = measured == Diagnostics.FrameMeasureWindow.Routes ? new RoutesViewModel(hauling, data.Version, RoutesSettings.Default, null) : null;
+            var routes = measured is Diagnostics.FrameMeasureWindow.Routes or Diagnostics.FrameMeasureWindow.Map
+                ? new RoutesViewModel(hauling, data.Version, RoutesSettings.Default, null)
+                : null;
             var measuring = new Diagnostics.FrameMeasureWindow(ships, holoFolder, measured, options.OverGame, routes) { ScanLoad = options.ScanLoad };
             var scanner = measuring.Scanner = CreateScanner(notice: _ => { }, options.ScanLoad ? ProbeTarget() : null);
             WarmAfterFirstFrame(measuring, scanner);

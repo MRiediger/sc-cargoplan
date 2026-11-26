@@ -37,6 +37,26 @@ public class OverlayRouteXamlTests
     }
 
     [Fact]
+    public void The_map_sits_beside_the_matrix_with_scene_focus_and_the_stop_palette_and_the_matrix_filters_show_with_it()
+    {
+        // T13.7: a view of its own in the Plan tab's grid, not fitted into another (A9).
+        var root = Root();
+        var map = Named(root, "RouteMap");
+
+        map.Name.LocalName.Should().Be("RouteMapView");
+        map.ElementsAfterSelf().Select(e => (string?)e.Attribute(X + "Name")).Should().Contain("PortMatrix", "beside the matrix in one grid");
+        ((string?)map.Attribute("Scene")).Should().Be("{Binding Map}");
+        ((string?)map.Attribute("FocusCommand")).Should().Be("{Binding FocusCommand}");
+        ((string?)map.Attribute("Palette")).Should().Contain("StopPalette");
+        ((string?)map.Attribute("Visibility")).Should().Contain("ShowsMap");
+
+        var row = Named(root, "StartPlanButton").Parent!;
+        row.Elements().Where(e => ((string?)e.Attribute("CommandParameter")) is "area" or "direct" or "contractor" or "faction")
+            .Concat(row.Elements().Where(e => e.Name.LocalName == "CheckBox"))
+            .Should().HaveCount(9).And.OnlyContain(e => ((string)e.Attribute("Visibility")!).Contains("ShowsMatrixFilters"));
+    }
+
+    [Fact]
     public void The_block_Plan_is_the_first_thing_in_the_legends_scroll_so_it_scrolls_with_the_legend()
     {
         // U9.1: above the legend, in its look; "scrolls with the legend, not on its own" (startprompt 6a).
