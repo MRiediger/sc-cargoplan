@@ -130,7 +130,7 @@ public class RoutesFileTests
     {
         var key = new ObservationKey(HaulContractor.Covalex, HaulRank.Senior, HaulSize.Medium, Direct: false, Reward: 325_250, ["Waste"]);
         var observations = Observations.Empty.Record(ObservationsTests.Scan(key, Monday, ("HUR-L3", "Waste", 113)));
-        var route = SomeRoute() with { DepartedUtc = Monday.AddMinutes(12), At = 2 };
+        var route = SomeRoute() with { DepartedUtc = Monday.AddMinutes(12), At = "HUR-L4 Melodic Fields Station" };
         RouteRun[] runs = [SomeRun(), SomeRun() with { Name = "Baijini ring", DepartedUtc = null }];
 
         var read = Read(Write(observations, route, runs));
@@ -170,7 +170,6 @@ public class RoutesFileTests
     [InlineData("\"min\": 41", "\"min\": 90", "90")]
     [InlineData("\"container\": 16", "\"container\": 3", "container 3")]
     [InlineData("\"id\": 2", "\"id\": 1", "twice")]
-    [InlineData("\"at\": 0", "\"at\": 9", "at 9")]
     [InlineData("\"name\": \"Everus ring\"", "\"name\": \"Everus ring\", \"colour\": \"red\"", "colour")]
     [InlineData("\"acceptAt\": \"HUR-L1 Green Glade Station\",", "", "accept")]
     public void A_route_not_in_the_format_is_refused_with_its_reason(string from, string to, string reason)
@@ -181,6 +180,78 @@ public class RoutesFileTests
         var read = () => Read(ReplaceFirst(json, from, to));
 
         read.Should().Throw<RoutesFormatException>().WithMessage($"*{reason}*");
+    }
+
+    [Fact]
+    public void The_bar_keeps_its_stop_by_name_the_start_unwritten_and_the_hub_at_the_end_by_its_name()
+    {
+        // B18 (K1, K2): a name, not an index; the start is no name, the end the hub's (the hub stands in the bar twice).
+        var start = Write(Observations.Empty, SomeRoute(), []);
+        var station = Write(Observations.Empty, SomeRoute() with { At = "HUR-L4 Melodic Fields Station", DepartedUtc = Monday }, []);
+        var end = Write(Observations.Empty, SomeRoute() with { At = "Everus Harbor", DepartedUtc = Monday }, []);
+
+        start.Should().NotContain("\"at\"");
+        station.Should().Contain("\"at\": \"HUR-L4 Melodic Fields Station\"");
+        end.Should().Contain("\"at\": \"Everus Harbor\"");
+        (Read(start).Route!.At, Read(station).Route!.At, Read(end).Route!.At).Should().Be((null, "HUR-L4 Melodic Fields Station", "Everus Harbor"));
+        new[] { start, station, end }.Select(Read).Should().OnlyContain(r => r.Dropped.Count == 0);
+    }
+
+    [Theory]
+    [InlineData(0, null)]
+    [InlineData(1, "HUR-L1 Green Glade Station")]
+    [InlineData(2, "HUR-L4 Melodic Fields Station")]
+    [InlineData(3, "Everus Harbor")]
+    public void An_index_of_the_unreleased_schema_3_becomes_the_name_of_its_stop(int index, string? name)
+    {
+        // B18 (K3): the reader knows no extras, so it reads the index against the hub, the stations and the hub.
+        var json = Write(Observations.Empty, SomeRoute(), []).Replace("\"extras\": [", $"\"at\": {index}, \"extras\": [", StringComparison.Ordinal);
+
+        var read = Read(json);
+
+        read.Route!.At.Should().Be(name);
+        read.Dropped.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(-1)]
+    public void An_index_outside_the_stations_sets_the_bar_to_the_start_with_a_line(int index)
+    {
+        // B18 (K3, E2 of the approval): the line names what happened to the bar; the rest of the route reads.
+        var json = Write(Observations.Empty, SomeRoute(), []).Replace("\"extras\": [", $"\"at\": {index}, \"extras\": [", StringComparison.Ordinal);
+
+        var read = Read(json);
+
+        read.Route.Should().BeEquivalentTo(SomeRoute(), options => options.WithStrictOrdering());
+        read.Dropped.Should().Equal($"route position {index} is outside the 2 stations – bar reset to start");
+    }
+
+    [Theory]
+    [InlineData("\"\"", "empty")]
+    [InlineData("true", "True")]
+    [InlineData("1.5", "1.5")]
+    public void A_bar_position_neither_a_name_nor_a_whole_number_is_refused(string value, string reason)
+    {
+        var json = Write(Observations.Empty, SomeRoute(), []).Replace("\"extras\": [", $"\"at\": {value}, \"extras\": [", StringComparison.Ordinal);
+
+        var read = () => Read(json);
+
+        read.Should().Throw<RoutesFormatException>().WithMessage($"*at*{reason}*");
+    }
+
+    [Fact]
+    public void Martins_file_of_26_November_reads_with_its_bar_at_the_start()
+    {
+        // B18: as the dev build wrote it, a custom route whose bar stood at 6 with its five extras' places; refused before.
+        using var stream = MissionFixtures.Open("routes/at_index_custom.json");
+
+        var read = RoutesFile.Read(stream, "at_index_custom.json");
+
+        (read.Observations.Entries.Count, read.Runs.Count).Should().Be((13, 3));
+        read.Route.Should().Match<Route>(r => r.Kind == LoopKind.Custom && r.Stations.Count == 4 && r.Placeholders.Count == 2 && r.Extras.Count == 5
+            && r.At == null && r.DepartedUtc != null);
+        read.Dropped.Should().Equal("route position 6 is outside the 4 stations – bar reset to start");
     }
 
     [Fact]

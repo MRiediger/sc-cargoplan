@@ -46,7 +46,13 @@ internal sealed record RoutesFileDto(int SchemaVersion, IReadOnlyList<Observatio
             }
         }
 
-        return (Route?.ToRoute(), runs, dropped);
+        if (Route is null)
+        {
+            return (null, runs, dropped);
+        }
+
+        var (route, reset) = Route.ToRoute();
+        return (route, runs, reset is null ? dropped : [reset, .. dropped]);
     }
 
     /// <summary>The observations; of schema 1 only the entries with one commodity (K1 of T13.3), the others named.</summary>

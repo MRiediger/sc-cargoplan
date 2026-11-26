@@ -324,7 +324,7 @@ public sealed class RouteScanTests : IDisposable
     {
         // E(c) (6b): the Junior Small to Riker is planned as the way back from Orison; the bar stands at Riker.
         var back = new Placeholder(3, RecipeKind.Return, "junior", Title, 50_250, Junior.Legs, ["Everus Harbor"], "Orison", []);
-        var overlay = Overlay(Planned with { Stations = ["Riker", "Orison"], Placeholders = [Planned.Placeholders[0], back], At = 1, DepartedUtc = Monday });
+        var overlay = Overlay(Planned with { Stations = ["Riker", "Orison"], Placeholders = [Planned.Placeholders[0], back], At = "Riker", DepartedUtc = Monday });
 
         await Scan(overlay, Raw(View.Accepted));
 
@@ -338,7 +338,7 @@ public sealed class RouteScanTests : IDisposable
         var planPath = Path.Combine(_folder, "plan.json");
         Sta.Run(() =>
         {
-            var overlay = Overlay(Planned with { At = 2, DepartedUtc = Monday });
+            var overlay = Overlay(Planned with { At = "Everus Harbor", DepartedUtc = Monday });
             var saver = new PlanSaver(new System.Windows.Window(), overlay, planPath, false, null);
             overlay.ShowPlan(TestPlans.SplitAndShared());
             saver.Flush();

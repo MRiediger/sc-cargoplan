@@ -53,7 +53,7 @@ public class RouteTests
         route.Placeholders.Select(p => (p.Id, p.Kind, p.TemplateUuid)).Should().Equal(
             (1, RecipeKind.Bulk, Bulk.Uuid), (2, RecipeKind.Direct, Direct.Uuid), (3, RecipeKind.Return, Back.Uuid));
         route.Placeholders.Should().OnlyContain(p => p.FilledBy == null);
-        (route.Extras.Count, route.DepartedUtc, route.At).Should().Be((0, null, 0));
+        (route.Extras.Count, route.DepartedUtc, route.At).Should().Be((0, null, (string?)null));
     }
 
     [Fact]

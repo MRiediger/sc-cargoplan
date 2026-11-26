@@ -72,7 +72,9 @@ public sealed record Placeholder(
 /// <param name="Stations">In the order flown, without the hub.</param>
 /// <param name="Extras">Scan keys of accepted contracts no placeholder took (U9.2); they count for the route.</param>
 /// <param name="DepartedUtc">When the player left the hub (T13.6 6b); the round's time runs from here.</param>
-/// <param name="At">Where the station bar stands: 0 the hub at the start, 1 to n the stations, the hub again last (6b).</param>
+/// <param name="At">Where the station bar stands (6b), by name (B18): null the hub at the start, a stop's name that stop, the
+/// hub's name the hub at the end. <see cref="RouteProgress.IndexOf"/> finds it among the bar's stops, which hold the
+/// extras' places too and order anew before leaving: an index would point elsewhere.</param>
 public sealed record Route(
     string Name,
     DateTime StartedUtc,
@@ -83,7 +85,7 @@ public sealed record Route(
     IReadOnlyList<Placeholder> Placeholders,
     IReadOnlyList<string> Extras,
     DateTime? DepartedUtc = null,
-    int At = 0)
+    string? At = null)
 {
     /// <summary>What leaves the hub.</summary>
     public IEnumerable<Placeholder> Outbound => Placeholders.Where(p => p.Kind != RecipeKind.Return);
@@ -106,14 +108,14 @@ public sealed record Route(
         [.. loop.Contracts.Select((role, i) => Placeholder.Of(i + 1, role, edges))], []);
 
     /// <summary>
-    /// The bar moved by hand (‹ ›, T13.6 6b): <paramref name="delta"/> stops on, within the <paramref name="stops"/> of the
-    /// route's progress. Leaving the hub at the start sets <see cref="DepartedUtc"/>, once: the time at the terminal to
-    /// accept is no part of the round (D126).
+    /// The bar moved by hand (‹ ›, T13.6 6b): <paramref name="delta"/> stops on, within the stops of
+    /// <paramref name="progress"/>; from a name the bar lacks it goes on from the start (B18, K4). Leaving the hub at the
+    /// start sets <see cref="DepartedUtc"/>, once: the time at the terminal to accept is no part of the round (D126).
     /// </summary>
-    public Route Step(int delta, int stops, DateTime now)
+    public Route Step(int delta, RouteProgress progress, DateTime now)
     {
-        var at = Math.Clamp(At + delta, 0, stops - 1);
-        return this with { At = at, DepartedUtc = DepartedUtc ?? (at > 0 ? now : null) };
+        var at = Math.Clamp((progress.IndexOf(this) ?? 0) + delta, 0, progress.Stops.Count - 1);
+        return this with { At = progress.NameAt(at), DepartedUtc = DepartedUtc ?? (at > 0 ? now : null) };
     }
 
     /// <summary>
@@ -129,13 +131,14 @@ public sealed record Route(
         }
 
         var ticked = Enumerable.Range(1, stops - 1).Where(i => after.Stops[i].LinesDone > before.Stops[i].LinesDone).DefaultIfEmpty(0).Max();
-        if (ticked > route.At)
+        var at = after.IndexOf(route) ?? 0;
+        if (ticked > at)
         {
-            route = route.Step(ticked - route.At, stops, now);
+            route = route.Step(ticked - at, after, now);
+            at = ticked;
         }
 
-        var at = route.At;
-        return at >= 1 && at < stops - 1 && before.Stops[at].Open > 0 && after.Stops[at].Open == 0 ? route.Step(+1, stops, now) : route;
+        return at >= 1 && at < stops - 1 && before.Stops[at].Open > 0 && after.Stops[at].Open == 0 ? route.Step(+1, after, now) : route;
     }
 
     /// <summary>
