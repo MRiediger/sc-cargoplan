@@ -1269,9 +1269,30 @@
                                     <!-- The map (T13.7, D128): the matrix's cells as a graph over the system, in the legend's colours and
                                          the stop palette; it takes the wheel (zoom) and a left drag on free room (pan), so free room here
                                          doesn't move the window. Locked, the window is click-through (D11). -->
-                                    <rt:RouteMapView x:Name="RouteMap" Scene="{Binding Map}" FocusCommand="{Binding FocusCommand}"
-                                                     Palette="{Binding DataContext.StopPalette, RelativeSource={RelativeSource AncestorType=Window}}"
-                                                     Visibility="{Binding ShowsMap, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    <!-- T13.7b (D129): the custom route clicked on the map above it, in the recipe's look; "Clear" drops
+                                         it, "Start plan" in the filter row starts it. -->
+                                    <DockPanel x:Name="MapView" Visibility="{Binding ShowsMap, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <StackPanel x:Name="CustomBar" DockPanel.Dock="Top"
+                                                    Visibility="{Binding HasCustom, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <DockPanel>
+                                                <Button x:Name="ClearCustomButton" DockPanel.Dock="Right" Command="{Binding ClearCustomCommand}" Style="{StaticResource FilterButtonStyle}"
+                                                        ToolTip="Drop your plan; the station in focus stays" VerticalAlignment="Top">
+                                                    <TextBlock Text="Clear" Style="{StaticResource FilterLabelStyle}" />
+                                                </Button>
+                                                <TextBlock Text="{Binding CustomSummary}" Style="{StaticResource BlockIfTextStyle}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            </DockPanel>
+                                            <ItemsControl ItemsSource="{Binding CustomLines}" Focusable="False" Margin="0,0,0,4">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" Style="{StaticResource LegendTextStyle}" Margin="0,0,0,2" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                        <rt:RouteMapView x:Name="RouteMap" Scene="{Binding Map}" FocusCommand="{Binding FocusCommand}"
+                                                         AddEdgeCommand="{Binding AddEdgeCommand}" RemoveEdgeCommand="{Binding RemoveEdgeCommand}"
+                                                         Palette="{Binding DataContext.StopPalette, RelativeSource={RelativeSource AncestorType=Window}}" />
+                                    </DockPanel>
 
                                     <!-- The matrix: pickups down, drop-offs across, the pickup column frozen; read only, no selection look. -->
                                     <DataGrid x:Name="PortMatrix" rt:PortMatrixGrid.Columns="{Binding Columns}" ItemsSource="{Binding Rows}"

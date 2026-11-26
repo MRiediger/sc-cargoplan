@@ -15,7 +15,9 @@ namespace CargoPlan.App.Routing;
 /// the labels and the route's numbers. A new scene builds the labels anew; zoom and pan only project (K4): the drawing is
 /// redrawn from the cached layout and the labels move, text and lines keep their size.
 /// Wheel = zoom about the pointer (0.5× to 6×), drag on free room = pan (it takes the left button, so free room here
-/// doesn't move the window), double click on free room = fit, click on a node = <see cref="FocusCommand"/>; a tool tip
+/// doesn't move the window), double click on free room = fit, click on a node = <see cref="FocusCommand"/>; with a
+/// station in focus a click on a lit edge = <see cref="AddEdgeCommand"/>, a right click = <see cref="RemoveEdgeCommand"/>
+/// (T13.7b), the custom route drawn in the line's colour; a tool tip
 /// for the node or edge under the pointer. Locked, the window is click-through and none of this reaches it (D11).
 /// </summary>
 public sealed class RouteMapView : Canvas
@@ -41,6 +43,8 @@ public sealed class RouteMapView : Canvas
 
     private const double RouteThickness = 3;
 
+    private const double DraftThickness = 2.5;
+
     private const double ObservedMarkRadius = 2.5;
 
     private const double RingGap = 4;
@@ -56,6 +60,12 @@ public sealed class RouteMapView : Canvas
 
     public static readonly DependencyProperty FocusCommandProperty = DependencyProperty.Register(
         nameof(FocusCommand), typeof(ICommand), typeof(RouteMapView));
+
+    public static readonly DependencyProperty AddEdgeCommandProperty = DependencyProperty.Register(
+        nameof(AddEdgeCommand), typeof(ICommand), typeof(RouteMapView));
+
+    public static readonly DependencyProperty RemoveEdgeCommandProperty = DependencyProperty.Register(
+        nameof(RemoveEdgeCommand), typeof(ICommand), typeof(RouteMapView));
 
     public static readonly DependencyProperty PaletteProperty = DependencyProperty.Register(
         nameof(Palette), typeof(StopPalette), typeof(RouteMapView), new PropertyMetadata(StopPalettes.OkabeIto, (d, _) => ((RouteMapView)d).Redraw()));
@@ -116,6 +126,20 @@ public sealed class RouteMapView : Canvas
     {
         get => (ICommand?)GetValue(FocusCommandProperty);
         set => SetValue(FocusCommandProperty, value);
+    }
+
+    /// <summary>Gets an edge on a click while the scene can pick (T13.7b: RoutesViewModel.AddEdgeCommand).</summary>
+    public ICommand? AddEdgeCommand
+    {
+        get => (ICommand?)GetValue(AddEdgeCommandProperty);
+        set => SetValue(AddEdgeCommandProperty, value);
+    }
+
+    /// <summary>Gets an edge on a right click while the scene can pick (T13.7b: RoutesViewModel.RemoveEdgeCommand).</summary>
+    public ICommand? RemoveEdgeCommand
+    {
+        get => (ICommand?)GetValue(RemoveEdgeCommandProperty);
+        set => SetValue(RemoveEdgeCommandProperty, value);
     }
 
     /// <summary>The legend's stop colours (K4.2): an edge's colour is its highest rank's.</summary>
@@ -240,14 +264,32 @@ public sealed class RouteMapView : Canvas
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonUp(e);
-        if (_press is not null && !_panning && Hit(e.GetPosition(this)) is MapNode node && FocusCommand is { } focus && focus.CanExecute(node.Key))
+        switch (_press is not null && !_panning ? Hit(e.GetPosition(this)) : null)
         {
-            focus.Execute(node.Key);
+            case MapNode node when FocusCommand is { } focus && focus.CanExecute(node.Key):
+                focus.Execute(node.Key);
+                break;
+            case MapEdge edge when Scene is { CanPick: true } && AddEdgeCommand is { } add && add.CanExecute(edge):
+                // T13.7b: the edge's next contract into the custom route.
+                add.Execute(edge);
+                break;
         }
 
         (_press, _panning) = (null, false);
         ReleaseMouseCapture();
         e.Handled = true;
+    }
+
+    protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
+    {
+        base.OnMouseRightButtonUp(e);
+
+        // T13.7b: the edge's last contract out of the custom route.
+        if (Scene is { CanPick: true } && Hit(e.GetPosition(this)) is MapEdge edge && RemoveEdgeCommand is { } remove && remove.CanExecute(edge))
+        {
+            remove.Execute(edge);
+            e.Handled = true;
+        }
     }
 
     protected override void OnMouseLeave(MouseEventArgs e)
@@ -368,6 +410,15 @@ public sealed class RouteMapView : Canvas
                 {
                     dc.Pop();
                 }
+            }
+
+            // The custom route being clicked (T13.7b): in the line's colour, under the active route.
+            var draftPen = Frozen(new Pen(line, DraftThickness));
+            foreach (var (from, to) in graph.DraftLegs.Where(l => layout.Points.ContainsKey(l.From) && layout.Points.ContainsKey(l.To)))
+            {
+                var (a, b) = MapGeometry.Line(At(from), At(to), MapLayout.Radius(kinds[from]), MapLayout.Radius(kinds[to]), false);
+                dc.DrawLine(draftPen, P(a), P(b));
+                Arrow(dc, a, b, line);
             }
 
             var routePen = Frozen(new Pen(route, RouteThickness));

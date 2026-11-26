@@ -73,6 +73,19 @@ public sealed class RouteMapViewTests
     });
 
     [Fact]
+    public void An_own_plan_is_drawn_in_the_lines_colour_there_and_back() => Sta.Run(() =>
+    {
+        // T13.7b: the draft's legs, thicker than an edge's strongest, under the active route.
+        var model = Model([T([Everus], [L1]), T([L1], [Everus])]);
+        model.ShowShip(CargoPlan.Core.Tests.FrozenShips.Load("hull_b"));
+        model.FocusCommand.Execute(Everus);
+        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        var view = Shown(model.Map!);
+
+        Lines(view).Where(l => l.Thickness == 2.5).Select(l => (l.From, l.To, l.Brush)).Should().Equal((Everus, L1, Brushes.White), (L1, Everus, Brushes.White));
+    });
+
+    [Fact]
     public void A_zoom_only_projects_the_same_layout_and_labels_move_keep_their_size_and_stop_at_the_bounds() => Sta.Run(() =>
     {
         var view = Shown(Model([T([Everus], [L1]), T([Everus], [Baijini])]).Map!);

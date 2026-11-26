@@ -43,12 +43,18 @@ public class OverlayRouteXamlTests
         var root = Root();
         var map = Named(root, "RouteMap");
 
+        var view = Named(root, "MapView");
         map.Name.LocalName.Should().Be("RouteMapView");
-        map.ElementsAfterSelf().Select(e => (string?)e.Attribute(X + "Name")).Should().Contain("PortMatrix", "beside the matrix in one grid");
+        map.Parent.Should().BeSameAs(view, "the map fills the map view under the custom route's bar (T13.7b)");
+        view.ElementsAfterSelf().Select(e => (string?)e.Attribute(X + "Name")).Should().Contain("PortMatrix", "beside the matrix in one grid");
         ((string?)map.Attribute("Scene")).Should().Be("{Binding Map}");
         ((string?)map.Attribute("FocusCommand")).Should().Be("{Binding FocusCommand}");
+        ((string?)map.Attribute("AddEdgeCommand")).Should().Be("{Binding AddEdgeCommand}");
+        ((string?)map.Attribute("RemoveEdgeCommand")).Should().Be("{Binding RemoveEdgeCommand}");
         ((string?)map.Attribute("Palette")).Should().Contain("StopPalette");
-        ((string?)map.Attribute("Visibility")).Should().Contain("ShowsMap");
+        ((string?)view.Attribute("Visibility")).Should().Contain("ShowsMap");
+        ((string?)Named(root, "CustomBar").Attribute("Visibility")).Should().Contain("HasCustom");
+        ((string?)Named(root, "ClearCustomButton").Attribute("Command")).Should().Be("{Binding ClearCustomCommand}");
 
         var row = Named(root, "StartPlanButton").Parent!;
         row.Elements().Where(e => ((string?)e.Attribute("CommandParameter")) is "area" or "direct" or "contractor" or "faction")

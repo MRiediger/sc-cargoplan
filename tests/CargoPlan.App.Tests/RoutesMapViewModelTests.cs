@@ -129,6 +129,78 @@ public sealed class RoutesMapViewModelTests
         model.Map.Hub.Should().Be(Everus);
     }
 
+    [Fact]
+    public void With_a_station_in_focus_a_click_on_an_edge_builds_an_own_plan_that_Start_plan_starts()
+    {
+        // T13.7b (D129): out to L1, back to Everus; the plan starts as a custom route and the draft goes.
+        var model = Map([T([Everus], [L1], reward: 100_000), T([L1], [Everus], reward: 40_000, title: "Junior Rank - Small Cargo Haul")]);
+        model.ShowShip(HullB);
+        PlanStart? started = null;
+        model.StartRequested += (_, start) => started = start;
+
+        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        model.HasCustom.Should().BeFalse("no station in focus: a click adds nothing");
+
+        model.FocusCommand.Execute(Everus);
+        model.Map!.CanPick.Should().BeTrue();
+        model.Map.EdgeToolTip(model.Map.Graph.Edge(Everus, L1)!).Should().EndWith("click: add its next contract to your plan · right click: take its last back");
+        model.AddEdgeCommand.Execute(model.Map.Graph.Edge(Everus, L1));
+        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(L1, Everus));
+
+        (model.HasCustom, model.OffersStart, model.CanStartPlan).Should().Be((true, true, true));
+        model.CustomSummary.Should().Be("Own plan from Everus Harbor: Everus Harbor → HUR-L1 → Everus Harbor · 2 contracts · Σ 140,000 aUEC · 2 landings · 8 crates · 0 long jumps · fits MISC Hull B");
+        model.CustomLines.Should().Equal(
+            "Bulk · Senior Rank - Medium Cargo Haul · 100,000 aUEC · 10–64 SCU in 16s · HUR-L1 · fits",
+            "Back · Junior Rank - Small Cargo Haul · 40,000 aUEC · 10–64 SCU in 16s · accept at HUR-L1 · fits");
+        model.Map!.Graph.DraftLegs.Should().Equal((Everus, L1), (L1, Everus));
+        model.StartPlanToolTip.Should().Be("Start plan: Own plan from Everus Harbor – its contracts as placeholders in the Cargo tab");
+
+        model.StartPlanCommand.Execute(null);
+
+        started!.Loop.Kind.Should().Be(LoopKind.Custom);
+        (started.Name, started.Loop.Stations.Single(), started.Loop.Contracts.Count).Should().Be(("Own plan from Everus Harbor", L1, 2));
+        (model.HasCustom, model.OffersStart).Should().Be((false, false), "the plan is the route now");
+    }
+
+    [Fact]
+    public void A_right_click_takes_the_edges_last_contract_back_Clear_and_another_focus_drop_the_plan()
+    {
+        var model = Map([T([Everus], [L1], reward: 100_000), T([Everus], [L1], reward: 50_000), T([L1], [L5])]);
+        model.ShowShip(HullB);
+        model.FocusCommand.Execute(Everus);
+        var edge = model.Map!.Graph.Edge(Everus, L1)!;
+
+        model.AddEdgeCommand.Execute(edge);
+        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        model.CustomLines.Should().HaveCount(2);
+        model.RemoveEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        model.CustomLines.Should().ContainSingle().Which.Should().Contain("100,000 aUEC");
+
+        model.ClearCustomCommand.Execute(null);
+        (model.HasCustom, model.Map!.Graph.Focus).Should().Be((false, Everus), "Clear keeps the focus");
+
+        model.AddEdgeCommand.Execute(model.Map.Graph.Edge(Everus, L1));
+        model.FocusCommand.Execute(L1);
+        model.HasCustom.Should().BeFalse("another start, another plan");
+    }
+
+    [Fact]
+    public void An_edge_the_focus_dims_is_not_picked()
+    {
+        var model = Map([T([Everus], [L1]), T([L1], [L5])]);
+        model.ShowShip(HullB);
+        model.FocusCommand.Execute(Everus);
+
+        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(L1, L5));
+
+        model.HasCustom.Should().BeFalse("L1 → L5 is dimmed until L1 is a station of the plan");
+        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(Everus, L1));
+        model.AddEdgeCommand.Execute(model.Map!.Graph.Edge(L1, L5));
+        model.CustomLines.Should().HaveCount(2, "now along the plan");
+    }
+
+    private static readonly Ship HullB = CargoPlan.Core.Tests.FrozenShips.Load("hull_b");
+
     private static RoutesViewModel Map(IReadOnlyList<HaulTemplate> templates)
     {
         var model = new RoutesViewModel(new HaulingLoad.Loaded(new HaulingData(templates, Places), []), new ShipDataVersion(2026, 11, 2), RoutesSettings.Default, null);
