@@ -140,6 +140,21 @@ public sealed class RouteMapViewTests
     });
 
     [Fact]
+    public void The_arrow_heads_show_only_at_the_most_zoom() => Sta.Run(() =>
+    {
+        // Gate finding 7b (Martin): at every zoom the heads were too much; the way back is the line beside.
+        var model = Model([T([Everus], [L1]), T([L1], [Everus]), T([Everus], [Baijini])]);
+        model.ShowRoute(new Route("Everus Harbor ring", Monday, Everus, LoopKind.LocalRing, StarSystem.Stanton, [L1], [], []));
+        var view = Shown(model.Map!);
+
+        Heads(view).Should().Be(0, "zoom 1");
+        view.Project(RouteMapView.MaxZoom - 0.5, default);
+        Heads(view).Should().Be(0, "below the most zoom");
+        view.Project(RouteMapView.MaxZoom, default);
+        Heads(view).Should().Be(3 + 2, "three edges and the route's two legs");
+    });
+
+    [Fact]
     public void The_wheel_zooms_about_the_pointer_and_fit_goes_back() => Sta.Run(() =>
     {
         var view = Shown(Model([T([Everus], [Baijini])]).Map!);
@@ -222,6 +237,19 @@ public sealed class RouteMapViewTests
 
         Walk(drawing, false);
         return lines;
+    }
+
+    // The arrow heads: filled geometries that are no line and no disc.
+    private static int Heads(RouteMapView view)
+    {
+        static int Count(Drawing d) => d switch
+        {
+            DrawingGroup g => g.Children.Sum(Count),
+            GeometryDrawing { Geometry: StreamGeometry } => 1,
+            _ => 0,
+        };
+
+        return Count(VisualTreeHelper.GetDrawing(Host(view)) ?? new DrawingGroup());
     }
 
     private static Visual Host(RouteMapView view) =>

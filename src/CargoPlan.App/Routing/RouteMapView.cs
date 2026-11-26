@@ -473,12 +473,13 @@ public sealed class RouteMapView : Canvas
         }
     }
 
-    // The arrow's head at b, pointing from a.
-    private static void Arrow(DrawingContext dc, MapPoint a, MapPoint b, Brush brush)
+    // The arrow's head at b, pointing from a; only at the most zoom (gate finding 7b, Martin: below it, too much). The
+    // way back is the line beside (two-way offset), the route's order its numbers.
+    private void Arrow(DrawingContext dc, MapPoint a, MapPoint b, Brush brush)
     {
         var (dx, dy) = (b.X - a.X, b.Y - a.Y);
         var length = Math.Sqrt((dx * dx) + (dy * dy));
-        if (length < ArrowLength)
+        if (Zoom < MaxZoom || length < ArrowLength)
         {
             return;
         }

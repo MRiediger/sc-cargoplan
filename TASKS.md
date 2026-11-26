@@ -1137,6 +1137,10 @@ E Timing, Hinweis Radius):**
   Doppelklick (D128-Addendum). (2) „Own plan from …“ unter die Karte statt darüber. Tests:
   `RouteMapViewTests.A_new_size_or_a_new_scene_keeps_the_zoom_and_the_part_of_the_map_in_the_middle` (Gegenprobe mit dem
   alten Zurücksetzen → rot), `OverlayRouteXamlTests.The_map_sits_beside_…` (Leiste unten).
+- **Gate-Befund 7b (Martin, 26.11.) – Präzisierung in der Planphase, ratifiziert durch Freigabe:** Richtungspfeile an den
+  Linien nur bei Maximalzoom (6×), sonst zu viel. Gilt für alle Pfeile (Kanten, aktive Route, Entwurf); darunter zeigt der
+  Versatz die Gegenrichtung, die Nummern und die Leiste die Folge. D128-Addendum. Test:
+  `RouteMapViewTests.The_arrow_heads_show_only_at_the_most_zoom` (Gegenprobe Pfeile immer → rot).
 
 ### [ ] T13.8 Release v0.8.0
 
