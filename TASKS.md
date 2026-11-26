@@ -131,6 +131,12 @@ hängt die Ziele der Extras (Missionen aus plan.json) als weitere Stopps an; `Ro
 Leiste, `RouteFileDto` (Z. 41) prüft gegen `stations.Count + 1`. Die App schreibt also eine Datei, die sie selbst nicht
 liest. Sicherung von routes.json, plan.json, settings.json im Scratchpad der Session (Hash gleich). Weiter nur über einen
 eigenen Bugfix-Branch ab `main` (Muster 4d); Stufe 1 ist bis dahin halb (Archiv, Backlog, Design §9.2/§9.4, README).
+**Behoben mit B18** (Abschnitt unten, Merge `95cf421` auf `main`, abgenommen 26.11.; `main` → `release/v0.8.0` als
+`7c9c311`); keine Notes-Zeile (Schema 3 war unveröffentlicht). Auf `95cf421` im sauberen Worktree: Build `0 Warnung(en)`,
+Core 2543/2543, App 2312/2312, Import 430/430, Ocr 34/34.
+
+**Nachmessen Stufe 3 (Ergänzung aus B18, Martin):** eigener Plan mit Extras → „›“ ×2 → Neustart → Plan-Reiter
+vollständig, Leiste am selben Stopp – am veröffentlichten ZIP.
 
 **Vollständigkeit `git log --no-merges v0.7.0..main` (107 Commits) → Abschnitt der Notes:**
 
