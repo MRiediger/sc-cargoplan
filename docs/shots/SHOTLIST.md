@@ -114,7 +114,7 @@ Pickup Lorville for every row, fill order Bow first. 29 of 64 SCU; rack 4 stays 
 ## Plan tab (v0.8.0, outside the game)
 
 All five: MISC Hull B, hub Everus Harbor, overlay about 1100 × 700, look preset **Default**, no game behind the overlay,
-started with `--data-dir` on a clean folder (Martin, Halt 1 of T13.8); the README shows P4 by its file in the main repo.
+started with `--data-dir` on a clean folder; the README shows P4 by its file in the main repo. Recorded by Martin on 26 Nov 2026 for v0.8.0 (Halt 1 of T13.8): P1 1163 × 712, P2 761 × 381, P3 561 × 892, P4 1074 × 798, P5 442 × 938 (the Cargo tab, narrow as at the elevator).
 
 | Id | Prio | File | Type | Page | What happens (start → end) | Max. | State |
 |---|---|---|---|---|---|---|---|

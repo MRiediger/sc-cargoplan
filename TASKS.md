@@ -152,7 +152,9 @@ Core 2543/2543, App 2312/2312, Import 430/430, Ocr 34/34.
 - SignPath: kein Treffer mehr (P5). `0.7`-Grep: übrig nur Geschichte und richtige Spannen.
 - **v0.7.0-Gegencheck (P4) bestanden:** Ergebnis im Abschlussvermerk von
   [`phase-13-cargo-routes.md`](docs/tasks-archive/phase-13-cargo-routes.md).
-- Offen für Halt 1: Screenshots P1, P3, P4, P5 (P2 nice) von Martin.
+- Screenshots (Martin, 26.11.): P1–P5 alle geliefert, P2 dazu; geprüft gegen die Shot-Liste (Hull B, Everus, kein
+  Spielbild, Texte wie im Wiki zitiert). P4 als `docs/images/plan-map.png` im Hauptrepo (README relativ, Wiki per
+  Raw-URL, Muster H15; die Wiki-Kopie nach Hash-Vergleich entfernt), P1/P2/P3/P5 in `media/` des Wikis.
 
 **Nachmessen Stufe 3 (Ergänzung aus B18, Martin):** eigener Plan mit Extras → „›“ ×2 → Neustart → Plan-Reiter
 vollständig, Leiste am selben Stopp – am veröffentlichten ZIP.

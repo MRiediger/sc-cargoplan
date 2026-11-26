@@ -26,7 +26,8 @@ shows it in a translucent window next to the game.
 ![The MISC Hull B with its tilted racks in the ship's hologram](docs/images/ships-hull-b.png)
 <!-- SHOT: H15 -->
 
-<!-- SHOT: P4 – Plan tab, Map Stanton (Hull B, Everus); image follows with v0.8.0 -->
+![The Plan tab's map of Stanton: stations around the star, lines by aUEC and rank](docs/images/plan-map.png)
+<!-- SHOT: P4 -->
 
 More: [Plan tab](https://github.com/MRiediger/sc-cargoplan/wiki/Plan-tab).
 
