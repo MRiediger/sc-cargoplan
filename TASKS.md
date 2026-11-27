@@ -362,7 +362,7 @@ grün), `VrOverlayHostTests` (2), dazu `StartOptionsTests` und `OverlayViewModel
   gitignorte Dateien (`Scratch*.cs`, alle vor T14.0) mit 8 Fällen.
 - Beim Verbinden stand der Kopf auf y = 1,60–1,67 m (S14.0 offener Punkt 1); `SeatedZeroPoseReset` behandelt T14.3b.
 
-### [ ] T14.2 Feed: Aufnahme, Double-Buffer, Dirty-Signal
+### [x] T14.2 Feed: Aufnahme, Double-Buffer, Dirty-Signal (27.11.2026, abgenommen 27.11.)
 
 **Warum:** Das Bild muss das Overlay zeigen, ohne das Spiel, den UI-Thread oder den Scan zu stören, und ohne Änderung
 nichts kosten.
@@ -454,14 +454,15 @@ halber Auflösung lesen (ähnlich viele Pixel wie der Ausschnitt am Monitor). N�
 natürlicher Haltung, je F3 (`--keep-scans`) und ein ganzes Fensterbild (Win+Alt+Druck); dann entscheidet Martin zwischen
 Spike vor T14.3 und Known issue für v0.9.0.
 
-**Zweite Serie (27.11.2026, 16:29–16:30, `--keep-scans`):** 9 von 10 `Added` (ein F3 während eines laufenden Scans:
+**Zweite Serie (27.11.2026, 16:29–16:30, `--keep-scans`, natürliche Haltung laut Martin):** 9 von 10 `Added` (ein F3 während eines laufenden Scans:
 `Busy`, zu Recht verworfen), 1 × `NoContractInFrame` (oberste Lieferzeile am oberen Rand abgeschnitten). Der Ausschnitt
 zeigt jeweils die rechte Hälfte des Vertrags: `PRIMARY OBJECTIVES` und alle Lieferzeilen, aber **nie Titel, Reward und
 Ansicht**. Folgen auch bei Erfolg: jeder Scan braucht eine zweite Lesung (`doubt (NoReward)`, Taste → Notice ≈ 4 s statt
 ≈ 2–3 s); `View = Unknown` und kein Reward → keine Beobachtung für den Plan-Reiter (`ToObservation`,
 `RoutesBook`), das Füllen einer Route hängt vermutlich ebenfalls daran (nicht geprüft). Die 6 F3 der ersten Serie waren
 alle (Martin), kein verpasster Hotkey. Ganze Fensterbilder (Win+Shift+S) liegen nicht vor: nicht gespeichert, nur in der
-Zwischenablage.
+Zwischenablage. **Entscheidung offen (Martin):** Known issue für v0.9.0 („F3 in VR: Ladung ja, Plan-Reiter nein“) oder
+Spike „ganzes Mirror-Fenster lesen“ vor T14.3; für den Spike braucht es ganze Mirror-Bilder (Win+Alt+Druck).
 
 ### [ ] T14.3a Settings-Format: `vr`-Abschnitt und Reader-Toleranz
 
