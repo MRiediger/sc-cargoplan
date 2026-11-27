@@ -11,7 +11,9 @@ namespace CargoPlan.App.Diagnostics;
 /// <summary>
 /// The developer's keys of the VR mode (<c>--vr-dev</c>, T14.1) until T14.3b brings the toggleVr hotkey: Ctrl+Alt+V
 /// toggles VR, Ctrl+Alt+B blocks the UI thread for 20 s, so the gate can close SteamVR while the UI hangs and see the quit
-/// acknowledged anyway. Always armed, whatever is in front: a developer's tool started on purpose (like the scan probe).
+/// acknowledged anyway; Ctrl+Alt+F switches the feed's forced mode (T14.2, K7: a picture every tick, for the memory
+/// plateau and the flicker check). Always armed, whatever is in front: a developer's tool started on purpose (like the scan
+/// probe).
 /// </summary>
 internal sealed class VrDevKeys
 {
@@ -20,9 +22,11 @@ internal sealed class VrDevKeys
 
     // Source: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
     private const uint VK_B = 0x42;
+    private const uint VK_F = 0x46;
     private const uint VK_V = 0x56;
 
     private readonly OverlayViewModel _viewModel;
+    private readonly VrMirror _mirror;
     private readonly HotkeyPoller<DevKey> _poller = new(NativeMethods.IsKeyDown);
     private readonly DispatcherTimer _timer = new() { Interval = HotkeyService.PollInterval };
 
@@ -30,14 +34,17 @@ internal sealed class VrDevKeys
     {
         Toggle,
         BlockUi,
+        Force,
     }
 
     /// <param name="window">The overlay: the keys stop polling when it closes.</param>
-    public VrDevKeys(OverlayViewModel viewModel, Window window)
+    public VrDevKeys(OverlayViewModel viewModel, Window window, VrMirror mirror)
     {
         _viewModel = viewModel;
+        _mirror = mirror;
         _poller.Set(DevKey.Toggle, new Hotkey(HotkeyModifiers.Control | HotkeyModifiers.Alt, VK_V));
         _poller.Set(DevKey.BlockUi, new Hotkey(HotkeyModifiers.Control | HotkeyModifiers.Alt, VK_B));
+        _poller.Set(DevKey.Force, new Hotkey(HotkeyModifiers.Control | HotkeyModifiers.Alt, VK_F));
         _timer.Tick += OnTick;
         _timer.Start();
         window.Closed += (_, _) => _timer.Stop();
@@ -50,6 +57,18 @@ internal sealed class VrDevKeys
             if (key is DevKey.Toggle)
             {
                 _viewModel.ToggleVrCommand.Execute(null);
+                continue;
+            }
+
+            if (key is DevKey.Force)
+            {
+                // Before the first VR on there is no feed yet: nothing to force.
+                if (_mirror.Feed is { } feed)
+                {
+                    feed.Forced = !feed.Forced;
+                    AppLog.Write(OpenVrSession.LogContext, $"forced feed {(feed.Forced ? "on" : "off")} (Ctrl+Alt+F)");
+                }
+
                 continue;
             }
 

@@ -43,6 +43,12 @@ internal sealed class FrameMeasureWindow : Window
     /// </summary>
     public const string Map = "map";
 
+    /// <summary>
+    /// The hull_c scene with the VR feed on this window (T14.2, E4): G3 as in S14.0, compared with hull_c over the game.
+    /// App.MirrorMeasuring turns VR on after the first frame; a run that ends without SteamVR connected is invalid (K11).
+    /// </summary>
+    public const string Vr = "vr";
+
     public const string LogFile = "measure-frames.log";
 
     // The map's zoom swings between fit and this along the path.
@@ -81,6 +87,7 @@ internal sealed class FrameMeasureWindow : Window
         ["hull_a"] = ("hull_a", CrateSize.Sixteen, false, false, false),
         ["hull_a_outline"] = ("hull_a", CrateSize.Sixteen, false, false, true),
         ["hull_c"] = ("hull_c", CrateSize.ThirtyTwo, false, false, false),
+        [Vr] = ("hull_c", CrateSize.ThirtyTwo, false, false, false),
         ["hull_c_states"] = ("hull_c", CrateSize.ThirtyTwo, true, false, false),
         ["hull_c_drag"] = ("hull_c", CrateSize.ThirtyTwo, false, true, false),
         ["reclaimer"] = ("reclaimer", CrateSize.One, false, false, false),
@@ -211,6 +218,9 @@ internal sealed class FrameMeasureWindow : Window
     /// </summary>
     internal ContractScanner? Scanner { get; set; }
 
+    /// <summary>For <see cref="Vr"/>: whether the session is connected now, from its reports (UI thread).</summary>
+    internal bool VrConnected { get; set; }
+
     /// <summary>
     /// Scan in a loop during the run (<c>--scan-load</c>, K3): the frame time under scans, reported apart. The window then
     /// opens at the left edge of the primary screen's work area, beside the scan region (x from 43/128 of the width,
@@ -251,14 +261,15 @@ internal sealed class FrameMeasureWindow : Window
         // "held" says the drag still runs after the frames: a lost capture would end it, and the sweep would time tool tips.
         var drags = _drag ? Inv($" | drag held {(_view.IsDragging ? "yes" : "NO")}, path keys {_pathKeys}, ") + DragSweep() : "";
         var hits = _ship is not null ? HitSweep() : null;
-        var valid = known && FrameStatistics.IsValid(intervals);
+        var vr = _target == Vr ? (VrConnected ? ", vr connected" : ", VR NOT CONNECTED") : "";
+        var valid = known && FrameStatistics.IsValid(intervals) && (_target != Vr || VrConnected);
 
         var version = Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
         var subject = (_ship is not null ? Inv($"{_target} {_crates} crates, holo {(_holo is null ? "no" : "yes")}, marker {_view.Scene?.Marker.GetType().Name}")
                 : _map is not null && _routes?.Map is { } map ? Inv($"{_target} {map.Graph.Nodes.Count} nodes, {map.Graph.Edges.Count} edges")
                 : _routes is not null ? Inv($"{_target} {_routes.Rows.Count} x {_routes.Columns.Count} cells")
                 : _target)
-            + (_overGame ? " over game" : "") + ocr;
+            + (_overGame ? " over game" : "") + vr + ocr;
         var frames = known ? FrameStatistics.Summary(intervals, Duration) : "unknown target (empty, routes, map, " + string.Join(", ", Targets.Keys) + ")";
         File.AppendAllText(_logPath, Inv($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} {version} {subject}: frames {frames}{drags}{(hits is null ? "" : " | hits " + hits)}") + Environment.NewLine);
 

@@ -57,10 +57,13 @@ public partial class App : Application
     // Only with --scan-probe; its timer keeps it alive, the field shows who owns it.
     private Diagnostics.ScanProbe? _scanProbe;
 
-    // Only with --vr-dev until T14.3b (D131): the OpenVR session, ended in OnExit, and the developer's keys. Without the
-    // switch neither exists, so openvr_api.dll never loads and no VR thread starts (invariant 3).
-    private Vr.OpenVrSession? _vrSession;
+    // Only with --vr-dev until T14.3b, or with --measure-frames vr (D131): the mirror of a window, ended in OnExit, and the
+    // developer's keys. Without them neither exists, so openvr_api.dll never loads and no VR thread starts (invariant 3).
+    private Vr.VrMirror? _vrMirror;
     private VrDevKeys? _vrDevKeys;
+
+    // The scan's capture pauses the VR feed (D100 addendum T14.0); without a feed nobody reads it.
+    private readonly Vr.VrScanPause _vrScanPause = new();
 
     // The update check (D109): one per run, after the first frame. Cancelled when the overlay closes or the app exits, so its
     // result never reaches a window that is gone (Freigabe E1). Not disposed: a check still running holds its token, and the
@@ -142,6 +145,11 @@ public partial class App : Application
             var measuring = new Diagnostics.FrameMeasureWindow(ships, holoFolder, measured, options.OverGame, routes) { ScanLoad = options.ScanLoad };
             var scanner = measuring.Scanner = CreateScanner(notice: _ => { }, options.ScanLoad ? ProbeTarget() : null);
             WarmAfterFirstFrame(measuring, scanner);
+            if (measured == Diagnostics.FrameMeasureWindow.Vr)
+            {
+                MirrorMeasuring(measuring);
+            }
+
             measuring.Show();
             return;
         }
@@ -885,7 +893,7 @@ public partial class App : Application
                 AppLog.Write("Scan", string.Create(CultureInfo.InvariantCulture, $"DWMWA_CLOAK {cloak} failed: 0x{result:X8}"));
             }
         });
-        return _scanner = new ContractScanner(OcrEngine.Load, notice, find, clear: clearance.Clear, keepPictures: keepPictures);
+        return _scanner = new ContractScanner(OcrEngine.Load, notice, find, clear: _vrScanPause.Bracket(clearance.Clear), keepPictures: keepPictures);
     }
 
     /// <summary>
@@ -893,30 +901,30 @@ public partial class App : Application
     /// is not a frame later than before (T10.1b plan decision 2).
     /// </summary>
     /// <summary>
-    /// The VR mode with <c>--vr-dev</c> (T14.1, D131): the view model's wish turns the session on and off; the session's
-    /// reports come back through InvokeAsync, never Invoke, so a hung UI thread can't hold the VR thread's quit. VR turns
-    /// on after the first frame, as the spike did.
+    /// The VR mode with <c>--vr-dev</c> (T14.1, D131): the view model's wish turns the mirror of the overlay on and off; the
+    /// session's reports come back through InvokeAsync, never Invoke, so a hung UI thread can't hold the VR thread's quit.
+    /// VR turns on after the first frame, as the spike did. Since T14.2 the overlay itself instead of the test picture.
     /// </summary>
     private void ComposeVr(OverlayParts parts)
     {
         var viewModel = parts.ViewModel;
-        var session = _vrSession = new Vr.OpenVrSession(new Vr.OpenVrApi(), report => Dispatcher.InvokeAsync(() => Apply(report)), Vr.VrOffset.Default);
+        var mirror = _vrMirror = new Vr.VrMirror(parts.Overlay, report => Dispatcher.InvokeAsync(() => Apply(report)), _vrScanPause);
         viewModel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(OverlayViewModel.IsVrOn))
             {
                 if (viewModel.IsVrOn)
                 {
-                    session.Start();
+                    mirror.On();
                 }
                 else
                 {
-                    session.Stop();
+                    mirror.Off();
                 }
             }
         };
-        _vrDevKeys = new VrDevKeys(viewModel, parts.Overlay);
-        AppLog.Write(Vr.OpenVrSession.LogContext, $"developer's VR mode ({StartOptions.VrDevSwitch}): Ctrl+Alt+V toggles, Ctrl+Alt+B blocks the UI thread for {VrDevKeys.BlockFor.TotalSeconds:F0} s");
+        _vrDevKeys = new VrDevKeys(viewModel, parts.Overlay, mirror);
+        AppLog.Write(Vr.OpenVrSession.LogContext, $"developer's VR mode ({StartOptions.VrDevSwitch}): Ctrl+Alt+V toggles, Ctrl+Alt+B blocks the UI thread for {VrDevKeys.BlockFor.TotalSeconds:F0} s, Ctrl+Alt+F forces the feed");
 
         // Once: ContentRendered follows the first frame. Source: https://learn.microsoft.com/dotnet/api/system.windows.window.contentrendered
         void TurnOn(object? sender, EventArgs e)
@@ -936,6 +944,32 @@ public partial class App : Application
                 viewModel.IsVrOn = false;
             }
         }
+    }
+
+    /// <summary>
+    /// <c>--measure-frames vr</c> (E4 of the T14.2 approval): the feed on the measuring window with the hull_c scene, exactly
+    /// as in S14.0, so the numbers compare with its G3 (14.2 % / 11.5 %). VR on after the first frame; the reports go to the
+    /// log and to the result line, so a run without SteamVR doesn't pass for a measurement (K11).
+    /// </summary>
+    private void MirrorMeasuring(Diagnostics.FrameMeasureWindow measuring)
+    {
+        var mirror = _vrMirror = new Vr.VrMirror(measuring, report => Dispatcher.InvokeAsync(() =>
+        {
+            measuring.VrConnected = report.Connected;
+            if (report.Notice is { } notice)
+            {
+                AppLog.Write(Vr.OpenVrSession.LogContext, notice);
+            }
+        }), _vrScanPause);
+
+        // Once: ContentRendered follows the first frame. Source: https://learn.microsoft.com/dotnet/api/system.windows.window.contentrendered
+        void TurnOn(object? sender, EventArgs e)
+        {
+            measuring.ContentRendered -= TurnOn;
+            mirror.On();
+        }
+
+        measuring.ContentRendered += TurnOn;
     }
 
     private static void WarmAfterFirstFrame(Window window, ContractScanner scanner)
@@ -983,7 +1017,7 @@ public partial class App : Application
         _cursorMonitor?.Stop();
 
         // Destroys the overlays and shuts OpenVR down on the VR thread, at most 3 s (D131).
-        _vrSession?.Dispose();
+        _vrMirror?.Dispose();
         base.OnExit(e);
 
         // After base: every window has closed and flushed by now (R2).

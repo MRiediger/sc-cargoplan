@@ -136,6 +136,45 @@ internal static partial class NativeMethods
     }
 
     /// <summary>
+    /// The cursor as the system draws it: its shape and where it stands in screen pixels; null when hidden or where the
+    /// input desktop isn't ours (secure desktop). For the VR feed, which draws it into the picture (T14.2, D131).
+    /// </summary>
+    public static (nint Shape, int X, int Y)? GetShownCursor()
+    {
+        CURSORINFO info = new() { cbSize = (uint)Marshal.SizeOf<CURSORINFO>() };
+        return GetCursorInfo(ref info) && (info.flags & CURSOR_SHOWING) != 0 && info.hCursor != 0
+            ? (info.hCursor, info.ptScreenPos.x, info.ptScreenPos.y)
+            : null;
+    }
+
+    /// <summary>
+    /// The cursor's hot spot, the point the shape is drawn around; null if the shape is gone. GetIconInfo makes two
+    /// bitmaps, which are deleted here at once.
+    /// </summary>
+    public static (int X, int Y)? GetCursorHotspot(nint shape)
+    {
+        if (!GetIconInfo(shape, out var icon))
+        {
+            return null;
+        }
+
+        if (icon.hbmMask != 0)
+        {
+            DeleteObject(icon.hbmMask);
+        }
+
+        if (icon.hbmColor != 0)
+        {
+            DeleteObject(icon.hbmColor);
+        }
+
+        return ((int)icon.xHotspot, (int)icon.yHotspot);
+    }
+
+    /// <summary>Draws the cursor shape with its top left at (x, y) of the DC, mask and image as the system does (DI_NORMAL).</summary>
+    public static bool DrawCursor(nint hdc, int x, int y, nint shape) => DrawIconEx(hdc, x, y, shape, 0, 0, 0, 0, DI_NORMAL);
+
+    /// <summary>
     /// The cursor in screen pixels, read now instead of from the last mouse message: with Star Citizen in front our
     /// windows get no WM_MOUSEMOVE while the cursor moves (D45). null where the input desktop isn't ours (secure desktop).
     /// </summary>
@@ -208,6 +247,19 @@ internal static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool GetCursorInfo(ref CURSORINFO pci);
 
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-geticoninfo
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool GetIconInfo(nint hIcon, out ICONINFO piconinfo);
+
+    // DI_NORMAL = DI_IMAGE | DI_MASK. Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-drawiconex
+    private const uint DI_NORMAL = 0x0003;
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-drawiconex
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool DrawIconEx(nint hdc, int xLeft, int yTop, nint hIcon, int cxWidth, int cyWidth, uint istepIfAniCur, nint hbrFlickerFreeDraw, uint diFlags);
+
     // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getcursorpos
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
@@ -243,5 +295,16 @@ internal static partial class NativeMethods
     {
         public int x;
         public int y;
+    }
+
+    // Source: https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-iconinfo (BOOL fIcon, DWORD hot spot)
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ICONINFO
+    {
+        public int fIcon;
+        public uint xHotspot;
+        public uint yHotspot;
+        public nint hbmMask;
+        public nint hbmColor;
     }
 }

@@ -3,8 +3,10 @@ using Valve.VR;
 namespace CargoPlan.App.Vr;
 
 /// <summary>
-/// The two overlays of the double buffer (D131): width, opacity and transform on both, so either can show. T14.1 shows a
-/// test picture in A once it has loaded; B stays hidden until the feed flips between them (T14.2). VR thread only.
+/// The two overlays of the double buffer (D131, T14.2): width, opacity and transform on both, so either can show. A frame
+/// goes into the hidden one; only after its VREvent_ImageLoaded does it show and the other hide, because SetOverlayRaw is
+/// asynchronous and one overlay alone flickers on every texture change (S14.0). While a load is open the host isn't
+/// <see cref="Ready"/>, and the feed's newest frame waits (a newer one replaces it). VR thread only.
 /// </summary>
 internal sealed class VrOverlayHost(IOpenVr vr)
 {
@@ -12,30 +14,29 @@ internal sealed class VrOverlayHost(IOpenVr vr)
     public const string KeyB = "cargoplan.vr.b";
     public const string Name = "SC-CargoPlan";
 
-    private const int TestWidth = 512;
-    private const int TestHeight = 256;
-    private const int TestCorner = 64;
-    private const int TestBand = 64;
-    private const byte HalfAlpha = 0x80;
-
-    private ulong _a;
-    private ulong _b;
+    // The hidden one takes the next frame; A first, so the first frame shows in A.
+    private ulong _back;
+    private ulong _front;
+    private bool _frontShown;
     private bool _loading;
+
+    /// <summary>No load open: the next frame may go up.</summary>
+    public bool Ready => !_loading;
 
     /// <summary>Creates both overlays; on a refusal destroys what it made and returns the refusal (KeyInUse: a second instance).</summary>
     public EVROverlayError Create()
     {
-        var error = vr.CreateOverlay(KeyA, Name, out _a);
+        var error = vr.CreateOverlay(KeyA, Name, out _back);
         if (error != EVROverlayError.None)
         {
-            _a = 0;
+            _back = 0;
             return error;
         }
 
-        error = vr.CreateOverlay(KeyB, Name, out _b);
+        error = vr.CreateOverlay(KeyB, Name, out _front);
         if (error != EVROverlayError.None)
         {
-            _b = 0;
+            _front = 0;
             Destroy();
         }
 
@@ -44,7 +45,7 @@ internal sealed class VrOverlayHost(IOpenVr vr)
 
     public void Apply(VrOffset offset, HmdMatrix34_t transform)
     {
-        foreach (var handle in (ulong[])[_a, _b])
+        foreach (var handle in (ulong[])[_back, _front])
         {
             Check("SetOverlayWidthInMeters", vr.SetWidth(handle, (float)offset.WidthMeters));
             Check("SetOverlayAlpha", vr.SetAlpha(handle, (float)offset.Opacity));
@@ -52,42 +53,48 @@ internal sealed class VrOverlayHost(IOpenVr vr)
         }
     }
 
-    /// <summary>Hands the test picture to A; it shows when SteamVR has loaded it (<see cref="Poll"/>).</summary>
-    public void ShowTestImage()
+    /// <summary>Hands the frame to the hidden overlay; SteamVR copies it within the call, so the caller may reuse it.</summary>
+    public EVROverlayError Upload(VrFrame frame)
     {
-        var (rgba, width, height) = TestImage();
-        var error = vr.SetRaw(_a, rgba, width, height);
+        var error = vr.SetRaw(_back, frame.Rgba, frame.Width, frame.Height);
         Check("SetOverlayRaw", error);
         _loading = error == EVROverlayError.None;
+        return error;
     }
 
-    /// <summary>Drains both overlays' queues: A shows after its ImageLoaded, never before (S14.0: SetOverlayRaw is asynchronous).</summary>
-    public void Poll()
+    /// <summary>Drains both overlays' queues; returns how many flips it made (0 or 1).</summary>
+    public int Poll()
     {
-        while (vr.PollOverlay(_a) is { } type)
+        var flips = 0;
+        while (vr.PollOverlay(_back) is { } type)
         {
             if (type is EVREventType.VREvent_ImageLoaded && _loading)
             {
-                _loading = false;
-                Check("ShowOverlay", vr.Show(_a));
-                AppLog.Write(OpenVrSession.LogContext, "test picture loaded and shown");
+                Flip();
+                flips++;
+
+                // The roles have changed: what is left on this queue belongs to the overlay now in front.
+                break;
             }
-            else if (type is EVREventType.VREvent_ImageFailed)
+
+            if (type is EVREventType.VREvent_ImageFailed && _loading)
             {
                 _loading = false;
-                AppLog.Write(OpenVrSession.LogContext, "SteamVR couldn't load the test picture (ImageFailed)");
+                AppLog.Write(OpenVrSession.LogContext, "SteamVR couldn't load a picture (ImageFailed)");
             }
         }
 
-        // B gets pictures only with the feed (T14.2); its queue is drained so nothing piles up.
-        while (vr.PollOverlay(_b) is not null)
+        // The overlay in front has nothing to wait for; its queue is drained so nothing piles up.
+        while (vr.PollOverlay(_front) is not null)
         {
         }
+
+        return flips;
     }
 
     public void Destroy()
     {
-        foreach (var handle in (ulong[])[_a, _b])
+        foreach (var handle in (ulong[])[_back, _front])
         {
             if (handle != 0)
             {
@@ -95,38 +102,19 @@ internal sealed class VrOverlayHost(IOpenVr vr)
             }
         }
 
-        (_a, _b, _loading) = (0, 0, false);
+        (_back, _front, _frontShown, _loading) = (0, 0, false, false);
     }
 
-    /// <summary>
-    /// 512 × 256 in RGBA: a corner of its own colour each (red top left, green top right, blue bottom left, white bottom
-    /// right), so a mirrored, flipped or channel-swapped picture shows (S14.0 G1); a half-transparent black band across the
-    /// middle; clear elsewhere.
-    /// </summary>
-    internal static (byte[] Rgba, int Width, int Height) TestImage()
+    // The new one first, then the old one away: the headset is never without a picture.
+    private void Flip()
     {
-        var rgba = new byte[TestWidth * TestHeight * 4];
-        for (var y = 0; y < TestHeight; y++)
+        Check("ShowOverlay", vr.Show(_back));
+        if (_frontShown)
         {
-            for (var x = 0; x < TestWidth; x++)
-            {
-                var (left, top) = (x < TestCorner, y < TestCorner);
-                var (right, bottom) = (x >= TestWidth - TestCorner, y >= TestHeight - TestCorner);
-                (byte R, byte G, byte B, byte A) pixel = (left, right, top, bottom) switch
-                {
-                    (true, _, true, _) => (255, 0, 0, 255),
-                    (_, true, true, _) => (0, 255, 0, 255),
-                    (true, _, _, true) => (0, 0, 255, 255),
-                    (_, true, _, true) => (255, 255, 255, 255),
-                    _ when Math.Abs(y - (TestHeight / 2)) < TestBand / 2 => (0, 0, 0, HalfAlpha),
-                    _ => (0, 0, 0, 0),
-                };
-                var i = ((y * TestWidth) + x) * 4;
-                (rgba[i], rgba[i + 1], rgba[i + 2], rgba[i + 3]) = pixel;
-            }
+            Check("HideOverlay", vr.Hide(_front));
         }
 
-        return (rgba, TestWidth, TestHeight);
+        (_back, _front, _frontShown, _loading) = (_front, _back, true, false);
     }
 
     private static void Check(string call, EVROverlayError error)
