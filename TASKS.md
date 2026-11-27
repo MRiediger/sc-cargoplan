@@ -308,6 +308,56 @@ trägt den Feed. Ein Quit, der hinter dem UI-Thread wartet, kostet die ganze App
 - **Gate:** die G6-Tabelle des Spikes erneut grün (alle sechs Fälle), dazu Quit bei blockiertem UI-Thread quittiert in
   < 1 s; Testbild in der Brille in beiden Augen, Farben richtig (Martin)
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (27.11.2026, mit E1–E3):**
+1. Entwickler-Schalter **`--vr-dev`** (Muster `--scan-probe`): VR an nach dem ersten Frame, **Ctrl+Alt+V** =
+   `ToggleVrCommand`, **Ctrl+Alt+B** blockiert den UI-Thread **20 s** (E1: Zeit, SteamVR per Fenster zu schließen);
+   Tasten benannt in `Diagnostics/VrDevKeys.cs`, immer scharf; fällt mit T14.3b.
+2. G6 „alle sechs Fälle“: ein Quit-Pfad im Prod-Code (Ack + Shutdown); „ack“ und „nur Shutdown“ sind eine Zeile,
+   „Quit ignoriert“ ist ersetzt durch „Quit bei blockiertem UI-Thread“; kein Schalter zum Ignorieren.
+3. Test-Naht `IOpenVr` (`OpenVrApi` über Valves Klassen, `FakeOpenVr` in den Tests). Gegenargument A4: die zweite
+   Implementierung lebt nur in den Tests; ohne sie wäre der Quit unter blockiertem UI-Thread nie automatisch getestet.
+4. Quelle der Valve-Dateien ist der Tag v2.15.6, der Spike nur Vergleich (Ergebnis: Blobs identisch).
+5. Lizenz im Publish als `openvr\LICENSE.txt`: `LICENSE` im Wurzelordner ist CargoPlans MIT-Lizenz.
+6. Log in `cargoplan.log` mit Kontext `VR`; ob die Zeiten je Update (E5 S14.0) eine eigene Datei brauchen, entscheidet
+   T14.2.
+7. E2: eigener Fake-Test „Quit, während A auf `ImageLoaded` wartet“ → Ack + Shutdown, kein `Show(A)`.
+8. E3: Zeile „README-Credits nennen OpenVR“ in T14.6.
+
+**Pin geprüft (27.11.2026):** Download vom Tag v2.15.6 (`raw.githubusercontent.com/ValveSoftware/openvr/v2.15.6/…`),
+Git-Blobs identisch mit `spike/s14-vr`; Upstream hat LF, `git ls-files --eol` zeigt alle drei als `attr/-text`.
+
+| Datei | Bytes | SHA256 |
+|---|---|---|
+| `openvr_api.dll` (`bin/win64`) | 837 272 | `bab8ac6ef64e68a9ca53315b0014d131088584b2efdfa6db511d67ec03cfcb4a` |
+| `openvr_api.cs` (`headers`) | 371 580 | `c17e878b7b3b925d1f22ef5382561389c47db8b92019de840705ff5ff28c317a` |
+| `LICENSE` | 1 488 | `f56ff606104d4ef18e617921a75c73ad73b5a1a1d70c69590c29de16919e04ad` |
+
+Authenticode der DLL: `Valid`, `CN=Valve Corp., O=Valve Corp., L=Bellevue, S=Washington, C=US`, Zeitstempel DigiCert.
+
+**Tests (erst rot: CS0234/CS0246, `f94a77d`):** `VrPlacementTests` (9), `OpenVrSessionTests` (17, 15 Wiederholungen
+grün), `VrOverlayHostTests` (2), dazu `StartOptionsTests` und `OverlayViewModelTests` (je +2). `dotnet format` sauber.
+
+**Gate (27.11.2026, Debug-Build, je Lauf eigener `--data-dir`; SteamVR mit Luma über VRto3D):**
+
+| Fall | Ergebnis | Beleg |
+|---|---|---|
+| Invariante 3: ohne `--vr-dev` | **bestanden** | `openvr_api.dll` nicht im Prozess; mit `--vr-dev` geladen |
+| 1 SteamVR aus, Start | **bestanden** | `Init_NoServerForBackgroundApp` in 74,1 ms, Notice, App läuft, Exit 0 |
+| 2 Quit (Ack + Shutdown) | **bestanden** | SteamVR per Fenster geschlossen: quittiert und heruntergefahren in 62,7 ms, App läuft, Notice (Martin); vorher beim SteamVR-Neustart während der Einrichtung 63,2 ms |
+| 3 Quit bei blockiertem UI-Thread | **bestanden** (2. Versuch) | Ctrl+Alt+B 14:24:42,04; vrserver „Sending Quit event“ 14:24:45,356, Pipe zu 45,373, unser Log 45,435 → **79 ms**; UI wieder 14:25:02, Notice „…once SteamVR runs“ (Martin) |
+| 4 Toggle ohne SteamVR / nach Neustart | **bestanden** | NoServer in 61,5 ms; nach SteamVR-Neustart dieselbe Instanz verbunden in 44,3 ms, Testbild wieder da (Martin) |
+| 5 `openvr_api.dll` fehlt | **bestanden** | Kopie des Build-Ordners ohne DLL: „doesn't load“, eigene Notice, App läuft, Exit 0 |
+| 6 zweite Instanz | **bestanden** | `CreateOverlay: KeyInUse`, Shutdown, Notice, Exit 0; Testbild der ersten bleibt (Martin) |
+| Testbild in der Brille | **bestanden** (Martin) | beide Augen, rot oben links, grün oben rechts, blau unten links, weiß unten rechts |
+| Packaging | **bestanden** | `publish.ps1 -Version 0.8.1` lokal: 392 Dateien in `current\` (+ `openvr_api.dll`, `openvr\LICENSE.txt`), ZIP 97 735 143 B; Linux-Tarball 328 Dateien unverändert |
+
+- Init als Background-App mit SteamVR 44,3–57,0 ms, Testbild 27–33 ms danach geladen und gezeigt.
+- **Erster Versuch Fall 3 ungültig:** SteamVR schickte während des Blocks keinen Quit (vrmonitor „quit all“ erst
+  13:50:23, 30 s nach CargoPlans Ende); Windows beendete CargoPlan über den Dialog „reagiert nicht – Programm
+  schließen“ (Ereignis 1002 „Application Hang“, 13:49:53), dazu ein zweites Ctrl+Alt+B nach dem ersten Block. Kein
+  Befund am Quit-Pfad; im Gate CargoPlan während des Blocks nicht anfassen.
+- Beim Verbinden stand der Kopf auf y = 1,60–1,67 m (S14.0 offener Punkt 1); `SeatedZeroPoseReset` behandelt T14.3b.
+
 ### [ ] T14.2 Feed: Aufnahme, Double-Buffer, Dirty-Signal
 
 **Warum:** Das Bild muss das Overlay zeigen, ohne das Spiel, den UI-Thread oder den Scan zu stören, und ohne Änderung
@@ -402,6 +452,8 @@ Abnahme; danach Merge `feat/p14-vr` → `main` per `--no-ff` (Martin pusht).
 - Known issues: „content in the exact background color turns see-through in VR“ (Auflage 2 S14.0), Kante ≤ 4096 px,
   Takt über dem Spiel, Downgrade v0.9.0 → v0.8.0 startet mit Defaults (bis zur Reader-Toleranz)
 - README, Release-Notes, OpenVR-NOTICE
+- README-Credits nennen OpenVR (Valve, BSD-3) neben Fleetyards/Motherlode: `openvr\LICENSE.txt` liegt im ZIP, aber kein
+  Nutzer liest ein ZIP; die Credits sind die sichtbare Stelle (E3 der Freigabe T14.1)
 - Nachmessen (Größen, Delta) inkl. Auto-Update v0.8.0 → v0.9.0 auf `cargotest`
 - Phase 14 samt S14.0 archivieren; Verweise in `docs/design/vr-overlay.md` §2 und D131 aufs Archiv umstellen
 
