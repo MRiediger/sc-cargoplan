@@ -237,6 +237,17 @@ public class StartOptionsTests
         StartOptions.Parse([]).LogInput.Should().BeFalse();
     }
 
+    // T14.1: VR on after the first frame and the developer keys, until T14.3b brings settings and hotkeys.
+    [Theory]
+    [InlineData("--vr-dev")]
+    [InlineData("--VR-Dev")]
+    public void Vr_dev_turns_on_the_developers_vr_mode(string arg)
+    {
+        StartOptions.Parse([arg]).Should().Be(new StartOptions(false, null, null, VrDev: true));
+        StartOptions.Parse([]).VrDev.Should().BeFalse();
+        StartOptions.RestartArguments([arg]).Should().Equal(arg);
+    }
+
     // D108: who never scans pays nothing; the probe measures with a warm engine whatever the key.
     [Theory]
     [InlineData(true, new string[0], true)]

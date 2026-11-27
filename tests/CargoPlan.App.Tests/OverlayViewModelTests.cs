@@ -137,6 +137,35 @@ public class OverlayViewModelTests
     }
 
     [Fact]
+    public void ToggleVrCommand_flips_the_wish_for_vr_and_back()
+    {
+        // T14.1: the view model holds the wish, the session the reality; off by default (invariant 3).
+        var viewModel = WithPlan();
+        viewModel.IsVrOn.Should().BeFalse();
+
+        viewModel.ToggleVrCommand.Execute(null);
+        viewModel.IsVrOn.Should().BeTrue();
+
+        viewModel.ToggleVrCommand.Execute(null);
+        viewModel.IsVrOn.Should().BeFalse();
+    }
+
+    [Fact]
+    public void The_vr_notice_has_a_line_of_its_own_after_the_scanner()
+    {
+        // A13: NoticeSource.Vr has the VR session as its one writer in T14.1; T14.3b greps all writers again.
+        var viewModel = WithPlan();
+        viewModel.SetNotice(NoticeSource.Move, "move");
+        viewModel.SetNotice(NoticeSource.Vr, "VR: SteamVR is not running.");
+        viewModel.SetNotice(NoticeSource.Scan, "scan");
+
+        viewModel.Notices.Should().Equal("scan", "VR: SteamVR is not running.", "move");
+
+        viewModel.SetNotice(NoticeSource.Vr, null);
+        viewModel.Notices.Should().Equal("scan", "move");
+    }
+
+    [Fact]
     public void ToggleLockCommand_while_auto_locked_sets_the_manual_lock_and_stays_locked()
     {
         var viewModel = WithPlan();
