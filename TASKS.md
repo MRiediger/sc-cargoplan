@@ -461,8 +461,11 @@ Ansicht**. Folgen auch bei Erfolg: jeder Scan braucht eine zweite Lesung (`doubt
 ≈ 2–3 s); `View = Unknown` und kein Reward → keine Beobachtung für den Plan-Reiter (`ToObservation`,
 `RoutesBook`), das Füllen einer Route hängt vermutlich ebenfalls daran (nicht geprüft). Die 6 F3 der ersten Serie waren
 alle (Martin), kein verpasster Hotkey. Ganze Fensterbilder (Win+Shift+S) liegen nicht vor: nicht gespeichert, nur in der
-Zwischenablage. **Entscheidung offen (Martin):** Known issue für v0.9.0 („F3 in VR: Ladung ja, Plan-Reiter nein“) oder
-Spike „ganzes Mirror-Fenster lesen“ vor T14.3; für den Spike braucht es ganze Mirror-Bilder (Win+Alt+Druck).
+Zwischenablage.
+
+**Entscheidung (Martin, 27.11.2026): Known issue und Doku, kein Spike.** Befund Martin: mit dem Blick auf Reward und
+Vertragstext beim F3 liegt der Vertrag vollständig im Scanbereich und wird zuverlässig gelesen. Daraus: Wiki-Satz und
+Known issue in T14.6, Gate-Punkt in T14.5, Backlog-Zeile „Vertrag im ganzen Mirror suchen“.
 
 ### [ ] T14.3a Settings-Format: `vr`-Abschnitt und Reader-Toleranz
 
@@ -521,6 +524,8 @@ danach wird gemergt (K1).
 - Hull C im Overlay: Frame-Zeit über dem Spiel mit Feed (`--measure-frames vr`)
 - Breitenreihe in 0,1-m-Schritten an der Luma → Default `widthMeters` korrigieren, falls nötig (Auflage 5 S14.0)
 - Handling gegen `main`: Gesten der Desktop-Bedienung Soll `main` / Ist, unverändert
+- VR-Scan (Befund T14.2): 10 Scans mit Blick auf den Reward, kein `doubt (NoReward)` in `scans.log`, der Plan-Reiter
+  trägt die Beobachtungen; unter 8/10 gilt der Backlog-Auslöser „Vertrag im ganzen Mirror suchen“
 
 **Akzeptanz:** jeder Punkt mit Ergebnis im Task; Abweichungen in der Desktop-Bedienung sind Rückfragen, keine
 Abnahme; danach Merge `feat/p14-vr` → `main` per `--no-ff` (Martin pusht).
@@ -538,6 +543,9 @@ Abnahme; danach Merge `feat/p14-vr` → `main` per `--no-ff` (Martin pusht).
   wird gespiegelt (K8, E2); „Der Cursor ist in VR erst sichtbar, wenn er über dem CargoPlan-Fenster steht; ohne
   See-through: ESC-Menü öffnen, Maus bewegen, bis der Cursor im Overlay erscheint.“ (E3: Luma-Nutzer sehen den Monitor,
   Quest-Nutzer nicht)
+- VR-Scan (Befund T14.2): Known issue „F3 in VR liest nur, was im gezoomten Desktop-Mirror im Scanbereich liegt“ und
+  ein Wiki-Satz (englisch, Text liefert Claude.ai): beim F3 auf Reward und Vertragstext schauen, dann liegt der Vertrag
+  vollständig im Scanbereich
 - README, Release-Notes, OpenVR-NOTICE
 - README-Credits nennen OpenVR (Valve, BSD-3) neben Fleetyards/Motherlode: `openvr\LICENSE.txt` liegt im ZIP, aber kein
   Nutzer liest ein ZIP; die Credits sind die sichtbare Stelle (E3 der Freigabe T14.1)
@@ -567,6 +575,12 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
 - Owned Popups (Tooltip, Schiffsliste, Kontextmenü) per `PrintWindow` je Popup-HWND aufnehmen und an ihrer
   Bildschirmposition einkomponieren (T14.2, E2). Gegen: je Popup eine Aufnahme mehr, Lage und Z-Ordnung selbst
   nachbauen. **Auslöser:** VR-Nutzer vermissen Kisten-Tooltips oder die Schiffswahl am Aufzug.
+- Vertrag im ganzen Mirror suchen (T14.2-Befund): in VR ist der Desktop-Mirror von SC gezoomt (≈ 2×), der feste
+  Scanbereich (D99) hält den Vertrag nur bei Blick auf Reward und Vertragstext; Ansatz: das ganze Mirror-Fenster in
+  halber Auflösung lesen (ähnlich viele Pixel wie der Ausschnitt am Monitor) und den Vertrag darin finden. Gegen: OCR
+  auf dem ganzen Fenster, Zeit gegen die 1500-ms-Grenze (T10.1b), braucht ganze Mirror-Bilder als Testmaterial; ein
+  Scan aus dem Compositor-Bild hilft nicht (Lage hängt ebenso an der Kopfhaltung). **Auslöser:** Scans ohne Reward trotz
+  Blick auf den Vertrag, oder < 8/10 im Gate T14.5.
 - VR-Feed: bei reiner Cursor-Bewegung nur den Cursor auf das letzte Bild neu zeichnen statt `PrintWindow` (T14.2, K3).
   Gegen: zweiter Pfad mit gemerktem Bild ohne Cursor; 15 Hz Aufnahme bei Maus über dem Fenster hat G3 in S14.0 bestanden.
   **Auslöser:** Takt über dem Spiel stört, während die Maus über dem Overlay steht (Gate T14.5 oder Nutzer-Report).
