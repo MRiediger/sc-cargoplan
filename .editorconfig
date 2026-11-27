@@ -388,3 +388,7 @@ dotnet_naming_style.s_camelcase.required_suffix =
 dotnet_naming_style.s_camelcase.word_separator = 
 dotnet_naming_style.s_camelcase.capitalization = camel_case
 
+# Valve's OpenVR binding v2.15.6, kept byte-identical (D131): no nullable context, so its warnings are off here, no NoWarn.
+# Source: https://learn.microsoft.com/dotnet/fundamentals/code-analysis/configuration-options#exclude-generated-code
+[src/CargoPlan.App/Vr/OpenVR/openvr_api.cs]
+generated_code = true

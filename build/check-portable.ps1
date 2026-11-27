@@ -33,12 +33,12 @@ foreach ($file in 'SC-CargoPlan.exe', 'Update.exe', 'current\CargoPlan.App.exe',
 # Without ship-data\ and its manifest the overlay doesn't start (D56, D113); without the outlines it shows the bow wedge,
 # and they must not ship without their licence note (D55). Without ships\modules\ a module's ship is missing from the list
 # (K5.3). The contract OCR (D99) needs its four model files, the two native libraries and its licence note. MIT asks for
-# the licence with every copy.
+# the licence with every copy. The VR mode (D131) needs Valve's native library, and BSD-3 asks for its licence too.
 $required = 'ship-data\manifest.json', 'ship-data\ships\hull_a.json', 'ship-data\ships\modules\ts_module.json',
     'ship-data\outlines.json', 'ship-data\NOTICE.md', 'ship-data\hauling-templates.json', 'ship-data\positions.json',
     'models\v5\ch_PP-OCRv5_mobile_det.onnx', 'models\v5\ch_PP-LCNet_x0_25_textline_ori_cls_mobile.onnx',
     'models\v5\latin_PP-OCRv5_rec_mobile_infer.onnx', 'models\v5\ppocrv5_latin_dict.txt', 'models\NOTICE.md',
-    'onnxruntime.dll', 'libSkiaSharp.dll', 'LICENSE'
+    'onnxruntime.dll', 'libSkiaSharp.dll', 'LICENSE', 'openvr_api.dll', 'openvr\LICENSE.txt'
 foreach ($file in $required) {
     if (-not (Test-Path (Join-Path $current $file) -PathType Leaf)) {
         $problems.Add("current\$file is missing")

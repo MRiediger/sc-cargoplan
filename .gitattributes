@@ -1,1 +1,3 @@
 * text=auto
+# Valve's OpenVR SDK v2.15.6, kept byte-identical (D131)
+src/CargoPlan.App/Vr/OpenVR/* -text

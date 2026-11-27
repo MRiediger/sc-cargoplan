@@ -20,6 +20,14 @@
     <EmbeddedResource Include="Looks\*.cargoplan-look.json" LogicalName="looks/%(Filename)%(Extension)" WithCulture="false" />
   </ItemGroup>
 
+  <!-- The VR mode (D131): Valve's OpenVR SDK v2.15.6 (BSD-3-Clause), byte-identical files from ValveSoftware/openvr.
+       openvr_api.cs compiles through the default glob; the native library goes next to the exe, where the binding's
+       [DllImport("openvr_api")] looks; the licence goes to openvr\ because LICENSE at the root is ours (T14.1). -->
+  <ItemGroup>
+    <None Include="Vr\OpenVR\openvr_api.dll" Link="openvr_api.dll" CopyToOutputDirectory="IfDifferent" />
+    <None Include="Vr\OpenVR\LICENSE" Link="openvr\LICENSE.txt" CopyToOutputDirectory="IfDifferent" />
+  </ItemGroup>
+
   <!-- The view tests click the live control through its internal press and release (T8.3, R4): no public API for tests.
        Source: https://learn.microsoft.com/dotnet/standard/assembly/set-attributes-project-file#set-arbitrary-attributes -->
   <ItemGroup>
