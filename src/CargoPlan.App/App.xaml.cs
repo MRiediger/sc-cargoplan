@@ -958,7 +958,7 @@ public partial class App : Application
             measuring.VrConnected = report.Connected;
             if (report.Notice is { } notice)
             {
-                AppLog.Write(Vr.OpenVrSession.LogContext, notice);
+                AppLog.Write(Vr.OpenVrSession.LogContext, $"notice \"{notice}\"");
             }
         }), _vrScanPause);
 

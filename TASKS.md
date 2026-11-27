@@ -385,6 +385,48 @@ nichts kosten.
 - F3 mit laufendem Feed wie G7: Scans kommen in den Plan, `skip.cloak` im Log
 - In der Brille kein Flackern beim Hovern und Drehen, Farben und Transparenz richtig (Martin)
 
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (27.11.2026, K1–K11 mit E1–E4):**
+1. K1 Dirty-Signal: `Dispatcher.Hooks.OperationCompleted` auf Operationen der Priorität `Render` und `Input` (dort
+   layoutet und rendert WPF; `Input` = hochgestuftes Rendern); die App-Timer laufen auf `Background`. Gegenargument:
+   WPF-Interna, kein Vertrag; Wächter `RenderSignalTests` (Brush-Farbe, Kamera, Animation, Ruhe).
+2. K2 Nachlauf-Aufnahme 100 ms nach dem letzten Signal: WPF zeichnet auf seinem Render-Thread nach der Render-Operation.
+3. K3 Cursor: Poll alle 33 ms auf dem Aufnahme-Thread, Änderung im Fenster oder Verlassen = dirty, volle Aufnahme;
+   Neuzeichnen nur des Cursors → Backlog.
+4. K4 > 4096 px ablehnen statt verkleinern, Notice bis das Fenster wieder passt.
+5. K5 (ersetzt E5 S14.0): je 10 s eine Zeile `feed:` in `cargoplan.log`, solange verbunden (Zahlen, `PrintWindow`
+   Median/p95/max, `prep`, `upload`, Working Set, GDI), dazu eine Zeile je `PrintWindow`-Wartezeit > 100 ms; keine
+   Zeile je Update (bei 15 Hz rotierte das Log nach ≈ 15 min).
+6. K6 Testbild entfällt, Nachfolger: Tausch-Test, Key-Tests ±1/±2, „…first_frame_in_A“, „A_quit_while_A_is_still_loading…“
+   mit Feed-Bild.
+7. K7 Zwangsmodus Ctrl+Alt+F unter `--vr-dev` (fällt mit T14.3b): jeden Takt aufnehmen und hochladen.
+8. K8 nur das Overlay-Fenster wird gespiegelt; Popups (Schiffsliste, Tooltips, Kontextmenüs), Editor und Settings nicht →
+   Known issue T14.6 und Backlog (E2). **E1:** die Ecken (`CornerRadius` 4 des Wurzel-`Border`) werden nach dem Key
+   maskiert (Alpha 0), eine Maske je Fenstergröße, statt Known issue.
+9. K9 Key = `WindowBackgroundBrush` des Fensters, beim Signal auf dem UI-Thread gelesen, vormultipliziert, RGB bleibt
+   vormultipliziert (wie G5).
+10. K10 Scan-Pause `VrScanPause` um die ganze Scan-Aufnahme, dazu `Cloaked(hwnd)` vor jedem `PrintWindow`.
+11. K11/E4 `--measure-frames vr` = Feed auf dem Messfenster mit der `hull_c`-Szene, genau wie S14.0; ohne Verbindung am
+    Ende „VR NOT CONNECTED“ und Exit 1.
+12. E3 Known-issue-Zeile „Cursor erst über dem Fenster sichtbar“ steht in T14.6.
+
+**Tests (erst rot: CS0246, `4c601a7`):** `FramePixelsTests` (10), `VrOverlayHostTests` (7, ersetzt die 2 Testbild-Tests),
+`VrFeedTests` (17), `VrScanPauseTests` (4), `RenderSignalTests` (7), `OpenVrSessionTests` (17 → 24); zehn Läufe in
+Folge grün (Feed, Session, Signal). Mutationen je einmal rot: Tausch aus (`…swaps_red_and_blue`), Filter des Signals aus
+(`At_rest_there_is_no_signal`), Flip ohne offenen Load (`Destroy_forgets_a_load_in_flight`). `dotnet format` sauber.
+
+**Eigene Läufe (27.11.2026, SteamVR ohne Brille, je Lauf eigener `--data-dir`):**
+
+| Lauf | Ergebnis |
+|---|---|
+| `--measure-frames vr` ohne SteamVR | `Init_NoServerForBackgroundApp` in 74,3 ms, Ergebniszeile „VR NOT CONNECTED“, Exit 1 |
+| `--measure-frames vr`, Debug | verbunden in 60,1 ms; je 10 s 149/148 Aufnahmen (14,9 Hz), 147/148 Uploads, 146/149 Flips; `PrintWindow` 9,2/15,8/52,1 und 7,6/11,3/11,9 ms; `prep` 6,8 / 4,9 ms Median; GDI 35 konstant |
+| `--measure-frames vr`, Release | 148/149 Aufnahmen, `prep` 1,0 / 0,9 ms Median (p95 1,8 / 1,2), Upload 0,7 ms; Working Set 289 → 296 MB, GDI 35 |
+| Ruhezustand: Overlay mit `--vr-dev`, Release, 75 s ohne Eingabe | Start 4 Aufnahmen (1 Upload, 3 unverändert), danach **6 × 10 s mit `captures=0`**; Working Set 260–264 MB, GDI 47 konstant |
+| Gate-Skript G3, 1 Runde, `--over-game` ohne SC (Desktop) | `hull_c` 0,3 %, `vr` 6,1 % spät (+5,8 pp; S14.0 am Desktop +6,2 pp bei 15 Hz); „holo no“ bei beiden Zielen (kein Hull-C-Holo im Cache dieses Datenstands), Vergleich gleich |
+
+**Gate (offen, Martin):** G3 über dem Spiel (5 Runden `hull_c`/`vr` abwechselnd, Release), Speicher-Plateau 2 min mit
+Ctrl+Alt+F, F3 mit laufendem Feed (G7), Brille (Flackern beim Hovern und Drehen, Farben, Transparenz, Ecken).
+
 ### [ ] T14.3a Settings-Format: `vr`-Abschnitt und Reader-Toleranz
 
 **Warum:** Platzierung und Schalter brauchen einen Ort in settings.json, und ab jetzt soll ein neuer Abschnitt den
@@ -455,6 +497,10 @@ Abnahme; danach Merge `feat/p14-vr` → `main` per `--no-ff` (Martin pusht).
   anlegen oder den Hinweis in VRto3D abschalten (Auflage 4 S14.0)
 - Known issues: „content in the exact background color turns see-through in VR“ (Auflage 2 S14.0), Kante ≤ 4096 px,
   Takt über dem Spiel, Downgrade v0.9.0 → v0.8.0 startet mit Defaults (bis zur Reader-Toleranz)
+- Known issues aus T14.2: Popups (Tooltips, Schiffsliste, Kontextmenüs) erscheinen in VR nicht, nur das Overlay-Fenster
+  wird gespiegelt (K8, E2); „Der Cursor ist in VR erst sichtbar, wenn er über dem CargoPlan-Fenster steht; ohne
+  See-through: ESC-Menü öffnen, Maus bewegen, bis der Cursor im Overlay erscheint.“ (E3: Luma-Nutzer sehen den Monitor,
+  Quest-Nutzer nicht)
 - README, Release-Notes, OpenVR-NOTICE
 - README-Credits nennen OpenVR (Valve, BSD-3) neben Fleetyards/Motherlode: `openvr\LICENSE.txt` liegt im ZIP, aber kein
   Nutzer liest ein ZIP; die Credits sind die sichtbare Stelle (E3 der Freigabe T14.1)
@@ -481,6 +527,12 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   Overlay, hebt die Grenze von 4096 px. Gegen: ein D3D-Gerät, Interop mit WPF und deutlich mehr Code; bei den Zahlen
   aus S14.0 nicht nötig. **Auslöser:** ein Fenster > 4096 px oder Takt über dem Spiel stört im Gate T14.5 oder per
   Nutzer-Report.
+- Owned Popups (Tooltip, Schiffsliste, Kontextmenü) per `PrintWindow` je Popup-HWND aufnehmen und an ihrer
+  Bildschirmposition einkomponieren (T14.2, E2). Gegen: je Popup eine Aufnahme mehr, Lage und Z-Ordnung selbst
+  nachbauen. **Auslöser:** VR-Nutzer vermissen Kisten-Tooltips oder die Schiffswahl am Aufzug.
+- VR-Feed: bei reiner Cursor-Bewegung nur den Cursor auf das letzte Bild neu zeichnen statt `PrintWindow` (T14.2, K3).
+  Gegen: zweiter Pfad mit gemerktem Bild ohne Cursor; 15 Hz Aufnahme bei Maus über dem Fenster hat G3 in S14.0 bestanden.
+  **Auslöser:** Takt über dem Spiel stört, während die Maus über dem Overlay steht (Gate T14.5 oder Nutzer-Report).
 - Red-Wind-Zwillinge live prüfen (T13.3, offen aus T13.4): Faktions-Zwillinge HH/CFP teilen heute eine mehrdeutige
   Beobachtung, der Fraktionsfilter zeigt die eigene Seite (D122, U5). Auslöser: die erste Pyro-Session mit Scans.
 - Zuordnung per Fraktion, wenn die Rewards der Zwillinge abweichen (D122): ein Scan, dessen Reward nur zu einem Zwilling
