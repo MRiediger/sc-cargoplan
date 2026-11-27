@@ -78,6 +78,167 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 
 ---
 
+## Phase 14 – VR-Modus (ab 27.11.2026, letztes Feature vor v0.9.0)
+
+**Auflagen der Abnahme S14.0 (Martin, 27.11.2026)** – T14.0 verteilt sie als Zeilen auf die Tasks und streicht diesen Block:
+1. T14.3: auf `VREvent_SeatedZeroPoseReset` hören und die Platzierung neu anwenden. Grund: der Reset kommt 13–18 s nach
+   dem Connect von unbekannter Quelle; wir reagieren auf das Event statt auf Timing zu hoffen.
+2. T14.2: Color-Key mit Toleranz ±1 je Kanal prüfen (Kantenglättung); Known issue dokumentieren: „content in the exact
+   background color turns see-through in VR“.
+3. T14.2: G3 erneut mit Kanaltausch, Double-Buffer und Dirty-Signal; zusätzliches Gate: im Ruhezustand ≈ 0 Aufnahmen/s.
+4. T14.6 (Wiki): VRto3D meldet „No profile found for App SC-CargoPlan.exe“ mit Piepton bei jedem Fokuswechsel auf
+   CargoPlan (ESC-Bedienung). Doku: Profil `SC-CargoPlan.exe_config.json` neben dem StarCitizen-Profil anlegen oder den
+   Hinweis in VRto3D abschalten.
+5. Defaults T14.3: die Spike-Werte (Breite 0,5 m, Abstand 1,2 m, Yaw 30° rechts, Pitch 0, Höhe 0). Der Wert aus G5 ist
+   nicht mehr nachvollziehbar; T14.5 misst die Breitenreihe in 0,1-m-Schritten an der Luma und korrigiert den Default,
+   falls nötig.
+
+Worktrees `..\sc-cargoplan-s14`, `..\sc-cargoplan-s14-finding` und Laufordner `..\sc-cargoplan-s14-run` bleiben bis nach
+T14.0 (Referenz für die D131-Zahlen).
+
+### [x] S14.0 VR-Spike (27.11.2026, kein Prod-Code, abgenommen 27.11.)
+
+**Branches:** Spike-Code auf `spike/s14-vr` (Worktree `..\sc-cargoplan-s14`, vier Commits: `b005d24` Spike, `98f4caf`
+Takt/Flags für G3, `e9879f2` Flacker-Schalter, `ebfbda5` Größenreihe; wird nie gemergt), dieser Befund auf
+`spike/s14-vr-finding`. Laufordner `..\sc-cargoplan-s14-run` (ein Datenordner je Lauf, Skripte `vr.ps1`, `g3.ps1`,
+`g6.ps1`, Belege in `evidence\`), außerhalb des Repos. Profil-Hashes vor und nach allen Läufen gleich.
+**Frage:** Lässt sich das Overlay als SteamVR-Overlay in die Brille (Luma über VRto3D) spiegeln, ohne das Spiel, den
+UI-Thread oder den Scan zu stören, und welcher Texturpfad trägt D131? **Pin:** `ValveSoftware/openvr` **v2.15.6**
+(`openvr_api.dll` 837 272 B, Authenticode Valve Corp., `openvr_api.cs` 371 580 B, `LICENSE` BSD-3), SHA256 in
+`evidence\openvr-v2.15.6-sha256.txt`. `openvr_api.cs` bleibt byte-gleich: 226 Nullable-Warnungen (CS86xx) schaltet
+`.editorconfig` mit `generated_code = true` für genau diese Datei ab, kein `NoWarn`.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe:**
+1. K1: Yaw in Nutzersemantik, **positiv = rechts vom Blick** (OpenVR +Yaw = links um +Y); je Recenter roher HMD-Yaw und
+   gesetzter Overlay-Yaw im Log.
+2. K2: Speicher-Plateau als Teil von G3 (Zwangsmodus 66 ms, 2 min, Pfad a und b, Working Set alle 10 s).
+3. K3: `VREvent_Quit` in G6 mit Beleg (`AcknowledgeQuit_Exiting` + `VR_Shutdown` auf dem VR-Thread, Verhalten bei
+   ignoriertem Quit, erneutes `VR_Init` im selben Prozess).
+4. E1: Settings-Reader-Toleranz nicht im Spike: D105-Addendum in T14.0, Umsetzung T14.3.
+5. E2: Numpad ohne Modifier: Addendum D35/D104 im T14.3-Plan; der Spike liefert nur den VK bei NumLock an/aus.
+6. E3: CargoPlan startet SteamVR nie; erst Probe, Overlay nur bei laufendem `vrserver`; Retry-Takt nur bei einer Probe
+   < 1 ms ohne Prozessstart.
+7. E4: eine G1-Probe ohne Brille, die scheitert, ist Umgebung, kein Befund; das Gate bleibt Martins.
+8. E5: je Update die Wartezeit des VR-Threads in `PrintWindow` im Log.
+
+**Befunde in der Durchführung:**
+- `SetOverlayRaw` ist **asynchron**: ein Rücklesen direkt danach gibt `InvalidTexture`; das Bild steht erst nach
+  `VREvent_ImageLoaded`, und das kommt auf der **Overlay-Queue** (`PollNextOverlayEvent`), nicht auf `PollNextEvent`.
+  Rücklesen danach: byte-gleich mit dem Gesendeten.
+- Hull C nimmt nur 32er: die Fixture für G2/G3 ist eine eigene Missionsdatei (8 Stopps × 32er, 2 560 SCU, 80 Kisten),
+  `CARGOPLAN_SPIKE_VR_MISSIONS`.
+- In Martins erstem Durchgang liefen **drei Spike-Instanzen gleichzeitig**; die späteren bekamen `CreateOverlay KeyInUse`
+  und zeigten nichts. `vr.ps1` schließt seitdem eine laufende Spike-Instanz vor dem Start. Für T14.x: ein zweiter
+  Prozess mit VR an muss das melden (Notice), nicht still nichts zeigen.
+- **G1 zeigte Rot und Blau vertauscht**: `SetOverlayRaw` liest RGBA, `PrintWindow` liefert BGRA. Mit Tausch stimmen die
+  Farben in der Brille (Martin, Hologramm und Kisten); `vr.ps1` tauscht seitdem per Default.
+- **Flackern in der Brille**, sobald sich das Bild ändert (Maus über dem Fenster, Holo drehen, Buttons): die Aufnahme ist
+  sauber (Lauf `r08`, Dauerrotation: 0 von 378 Aufnahmen leer, schwarz oder mit Helligkeitssprung), aber dasselbe
+  Testbild 15× pro Sekunde neu hochgeladen flackert (Martin, `-Test -Force`). Ursache ist der Texturtausch von
+  `SetOverlayRaw` selbst. **Abhilfe Double-Buffer:** zwei Overlays, Upload ins verborgene, `ShowOverlay` des neuen und
+  `HideOverlay` des alten erst nach dessen `ImageLoaded` → kein Flackern, Farben stimmen (Martin, `-Key -Double`);
+  376 Flips bei 376 Uploads, ein Update wartete auf das vorige (`skip.pending=1`).
+- Der Hinweis **„No profile found for App SC-CargoPlan.exe“ mit Piepton** in der Brille steht nicht im SteamVR-Log und
+  nennt die installierte App (der Spike heißt `CargoPlan.App.exe`); vermutlich VRto3Ds Profilsuche für die App im
+  Vordergrund, kein EAC-Hinweis. Nicht belegt.
+- Ausreißer von `PrintWindow` (511 ms, 1 555 ms je einmal) fallen auf UI-Latenz-Spitzen (620 ms, 2 372 ms) beim Start:
+  `PrintWindow` wartet auf den UI-Thread (`WM_PRINT` im Zielprozess). Ein hängender UI-Thread hält damit den VR-Thread
+  fest – und SteamVR beendet einen Prozess, der `VREvent_Quit` nicht binnen ≈ 5 s quittiert (G6).
+
+**Gates:**
+
+| Gate | Ergebnis | Beobachtung |
+|---|---|---|
+| G1 sichtbar in der Luma über SC | **bestanden** (Martin) | Testbild in beiden Augen; Ecken vertauscht (Rot ↔ Blau, s. o.), mit Tausch richtig; kein EAC-Hinweis |
+| G2 Texturpfad | **b bestanden, a gerissen** | Tabelle unten; a rendert Viewport3D per `RenderTargetBitmap` in Software auf dem UI-Thread |
+| G3 späte Frames ≤ vorher + 2 pp | **bestanden** über dem Spiel (5 Runden) | Tabellen unten; `vr@15` 11,5 % gegen `hull_c` 14,2 % |
+| G3/K2 Speicher | **bestanden** | b: Working Set 312–338 MB, GDI konstant 43; a: 369–401 MB, GDI 51–53; Plateau < 60 s, kein monotones Wachstum |
+| G4 Recenter Numpad 5 | **bestanden** (Martin) | NumLock an `VK_NUMPAD5` (0x65), aus `VK_CLEAR` (0x0C), beide recentern; Formel unten |
+| G5 Alpha, Lesbarkeit | **bestanden** (Martin) mit Color-Key | Transparenz folgt dem Fensterhintergrund der Preferences (Variante `-Key`); Key stellt Alpha bei 91,9 % der Pixel her, 8,1 % (Kantenglättung) bleiben deckend, 0,8 ms |
+| G6 SteamVR fehlt / endet / DLL fehlt | **bestanden** | Tabelle unten |
+| G7 F3 mit laufendem Feed | **bestanden** (Martin) | zwei Scans `Added` (je zweite Lesung nach `doubt (NoReward)`, D103), Taste → Notice 2 793 / 2 970 ms; ein Feed-Takt während des Cloaks ausgelassen (`skip.cloak=1`), keine Kollision |
+| G8 Packaging, Delta < 2 MB | **bestanden** | `check-portable.ps1` grün, 392 Dateien (390 + `openvr_api.dll`, `openvr\LICENSE.txt`); Delta 0.8.0 → 0.8.1 1 102 908 B (**1,10 MB**); ZIP 97 739 703 B (93,2 MiB, +0,5); Linux-Tarball unverändert 328 Dateien |
+
+**G2** (Hull C, 994 × 773 px bei 110 %, Holo, 80 Kisten, Legende, Notice; je 10-s-Fenster, Median / p95):
+
+| | Pfad a (`RenderTargetBitmap`) | Pfad b (`PrintWindow PW_RENDERFULLCONTENT`) |
+|---|---|---|
+| Aufnahme | 76 / 80 ms **auf dem UI-Thread** | 8,2 / 13 ms auf dem VR-Thread (Martins Läufe über dem Spiel 9,1–12,3 / 15,6–25,2 ms) |
+| UI-Latenz (ohne Feed 0,1–0,2 / 0,4–0,7 ms) | 0,34 / 65–73 ms | 0,33 / 0,9–1,1 ms |
+| erreichter Takt (Ziel 15 Hz) | ≈ 6,5 Hz | 12,8 Hz |
+| Upload `SetOverlayRaw` | 0,9 ms | 0,85 ms |
+
+- `PrintWindow` liefert das geschichtete Fenster **auf Schwarz vormultipliziert mit Alpha 255** (Hintergrund `0D0D0DFF`
+  statt `0D0D0DA0`); ohne `PW_RENDERFULLCONTENT` (`PWFLAGS=0`) ein leeres Bild in 1,9 ms.
+- Der Cursor kommt nicht mit: `GetCursorInfo` + `DrawIconEx` zeichnen ihn ein (median 0,01 ms, mit Bewegung 0,12 ms).
+
+**G3** (`--measure-frames hull_c` gegen `vr` = `hull_c` mit Feed, abwechselnd, Anteil später Frames, Median der Runden):
+
+| Lauf | `hull_c` | `vr@15` | `vr@5` |
+|---|---|---|---|
+| Desktop ohne SC, 3 Runden | 0,9 / 1,0 / 0,7 → **0,9 %** | 7,1 / 6,9 / 7,1 → **7,1 %** (+6,2) | 3,6 / 2,0 / 2,9 → **2,9 %** (+2,0) |
+| über dem Spiel, 3 Runden (11:35) | 36,1 / 10,8 / 3,0 → 10,8 % | 29,7 / 10,3 / 13,0 → 13,0 % | 11,7 / 8,7 / 8,6 → 8,7 % |
+| **über dem Spiel, 5 Runden (12:08, gewertet)** | 13,8 / 19,2 / 13,0 / 14,2 / 14,4 → **14,2 %** | 6,9 / 11,5 / 11,5 / 12,1 / 10,6 → **11,5 %** | 7,8 / 19,0 / 19,1 / 10,6 / 12,1 → **12,1 %** |
+
+- Der erste Lauf über dem Spiel ist nicht verwertbar: die Basis streut 3–36 % (Runde 1 mit 88 fps, danach 60).
+- Über dem Spiel kostet der Feed keinen Anteil später Frames, aber Takt: `vr` 53,5–56,4 fps gegen `hull_c` 57,0–61,4.
+  Am Desktop kostet jede Aufnahme etwa einen halben späten Frame.
+- G3 lief ohne Kanaltausch und ohne Double-Buffer. Der Tausch ist ein Durchgang über ≈ 3 MB auf dem VR-Thread (nicht
+  gemessen), der Double-Buffer nimmt keine Aufnahme dazu.
+
+**G4/K1 Platzierung:** `headYaw = atan2(m2, m10)` (Vorwärtsachse −Z der HMD-Pose in `TrackingUniverseSeated`),
+`overlayYaw = headYaw − userYaw`; Transform `R = Ry(overlayYaw) · Rx(pitch)`, `t = Ry(overlayYaw) · (0, height,
+−distance) + Kopfposition`. Beispiel Log: `headYaw(openvr)=12.7° userYaw=30.0° → overlayYaw(openvr)=-17.3°`,
+Overlay bei (0,371; −0,014; −1,135). Recenter 0,04–0,24 ms.
+
+**G6/K3** (`g6.ps1`, SteamVR ohne Brille):
+
+| Fall | Ergebnis |
+|---|---|
+| SteamVR aus, Start | `Init_NoServerForBackgroundApp` (59–104 ms), Notice, App läuft |
+| `VREvent_Quit` mit `AcknowledgeQuit_Exiting` + `VR_Shutdown` (`ack`) | Quit in 62 ms behandelt, SteamVR nach 2,9 s weg, App läuft |
+| nur `VR_Shutdown` (`shutdown`) | wie `ack` |
+| Quit ignoriert (`ignore`) | **SteamVR beendet CargoPlan nach 5,1 s** (Exit-Code 0, kein Dispose) |
+| Toggle ohne SteamVR / nach SteamVR-Neustart | NoServer-Notice / verbindet im selben Prozess neu (Init 38 ms) |
+| `openvr_api.dll` fehlt | `DllNotFoundException` gefangen, Notice, App läuft; die Meldung ist Windows-lokalisiert → T14.x braucht einen eigenen englischen Text |
+
+**Offene Punkte:**
+1. **Seated unter VRto3D:** vorhanden, aber beim Verbinden steht der Kopf auf y = 1,5 m (Standing y + 2,0, Raw y + 1,0);
+   13–18 s nach jedem Connect kommt ein `SeatedZeroPoseReset` (+ `StandingZeroPoseReset`), danach Kopf (0, 0, 0), Yaw 0.
+   Wer ihn auslöst (Luma-Bridge, Desktop+?), ist offen. Folge: Platzierung **relativ zur Kopfposition**, nicht zum Ursprung.
+2. **Obergrenze `SetOverlayRaw`:** **Kantenlänge ≤ 4096 px**, die Datenmenge zählt nicht (4000 × 4000 = 61 MiB geht,
+   4097 × 100 nicht). Darüber sofort `InvalidParameter` (0,1 ms), kein `ImageFailed`. Kosten des Aufrufs: 2,9 MiB
+   1,3 ms, 7,9 MiB 2,9 ms, 31,6 MiB 11,8 ms, 64 MiB 69 ms; `ImageLoaded` nach 29–144 ms.
+3. **Alpha bei `PrintWindow`:** nein, immer 255 auf Schwarz (G2); Color-Key aus dem Fensterhintergrund stellt es her (G5).
+4. **CargoPlan vor SteamVR:** `VRApplication_Overlay` **startet SteamVR** (vrserver nach 1,1 s, Init 1 545 ms, Desktop+
+   startet mit); `VRApplication_Background` startet nichts (`Init_NoServerForBackgroundApp`) und darf trotzdem Overlays
+   anlegen (Init 38–77 ms). Proben: `IsRuntimeInstalled` 0,3–5,7 ms, `IsHmdPresent` 61–71 ms, `vrserver`-Prozess
+   2,5–3,3 ms – keine unter 1 ms, also **kein Retry-Takt** (E3), nur Toggle.
+
+**Empfehlung für D131: Pfad b mit Double-Buffer.** `PrintWindow PW_RENDERFULLCONTENT` auf einem eigenen VR-Thread,
+Rot/Blau tauschen, Color-Key aus dem Fensterhintergrund der Preferences, Upload per `SetOverlayRaw` abwechselnd in zwei
+Overlays (sichtbar erst nach `ImageLoaded`), Takt ≤ 15 Hz und nur bei Änderung. Pfad a scheidet aus (76 ms UI-Thread),
+Pfad c (WGC bzw. D3D11-Textur per `SetOverlayTexture`) ist nicht nötig. **Gegenargument:** jede Aufnahme kostet am
+Desktop einen halben späten Frame und über dem Spiel ≈ 10 % Takt, und `SetOverlayRaw` kopiert über die CPU (31,6 MiB
+bei 4K: 11,8 ms je Upload, Grenze 4096 px); eine D3D11-Textur spart Tausch, Kopie und den zweiten Overlay, kostet aber
+ein D3D-Gerät, Interop mit WPF und deutlich mehr Code. Kippt, sobald ein Fenster über 4096 px oder der Takt über dem
+Spiel stört.
+
+**Vorgaben für T14.x (aus dem Spike, nicht entschieden):**
+- Nur `VRApplication_Background`; Quit-Handler Pflicht, auf einem Thread, den ein hängender UI-Thread nicht festhält
+  (`PrintWindow` wartet auf ihn).
+- Aufnahme nur bei Änderung: der Spike nimmt 12,8×/s auf und verwirft danach 25–100 % je 10 s als unverändert (Martins Läufe); ein Dirty-Signal
+  (nicht `CompositionTarget.Rendering`, das bei einem Handler jeden Frame feuert) spart die Kosten im Ruhezustand.
+- Fenster über 4096 px verkleinern oder ablehnen, mit Notice.
+- Zweite Instanz mit VR: `KeyInUse` melden.
+- `.gitattributes`: `src/CargoPlan.App/Vr/OpenVR/* -text`, sonst ändert `* text=auto` Valves Zeilenenden.
+- Notice-Texte englisch und eigen (DLL fehlt, SteamVR läuft nicht).
+- Eingabe nur am Desktop-Fenster (ESC-Menü in SC, Maus am gespiegelten Fenster); der Cursor wird ins Bild gezeichnet.
+- Breite, Abstand und Winkel kommen in die Einstellungen; wie, wird im Fable-Chat festgelegt (Martin, 27.11.). Die
+  Spike-Werte: Breite 0,5 m, Abstand 1,2 m, Yaw 30° rechts, Pitch 0, Höhe 0.
+
+---
+
 ## Backlog (nur bei Bedarf)
 
 Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
