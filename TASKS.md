@@ -283,7 +283,7 @@ gestrichen; Backlog ohne F12 und ohne die Zeile zur Reader-Toleranz, mit Pfad c;
 8. `NoticeSource.Vr` entsteht mit den ersten VR-Notices in T14.1; T14.3b prüft nach A13 alle Schreiber, die bis dahin
    dazugekommen sind.
 
-### [ ] T14.1 Verbindung: OpenVR-Sitzung, zwei Overlays, Testbild
+### [x] T14.1 Verbindung: OpenVR-Sitzung, zwei Overlays, Testbild (27.11.2026, abgenommen 27.11.)
 
 **Warum:** Erst eine Sitzung, die SteamVR nie startet, Quit in jedem Zustand quittiert und ohne SteamVR still bleibt,
 trägt den Feed. Ein Quit, der hinter dem UI-Thread wartet, kostet die ganze App (S14.0 G6: SteamVR beendet sie nach 5,1 s).
@@ -354,8 +354,12 @@ grün), `VrOverlayHostTests` (2), dazu `StartOptionsTests` und `OverlayViewModel
 - Init als Background-App mit SteamVR 44,3–57,0 ms, Testbild 27–33 ms danach geladen und gezeigt.
 - **Erster Versuch Fall 3 ungültig:** SteamVR schickte während des Blocks keinen Quit (vrmonitor „quit all“ erst
   13:50:23, 30 s nach CargoPlans Ende); Windows beendete CargoPlan über den Dialog „reagiert nicht – Programm
-  schließen“ (Ereignis 1002 „Application Hang“, 13:49:53), dazu ein zweites Ctrl+Alt+B nach dem ersten Block. Kein
-  Befund am Quit-Pfad; im Gate CargoPlan während des Blocks nicht anfassen.
+  schließen“ (Ereignis 1002 „Application Hang“, 13:49:53; per Dialog geschlossen: ja), dazu ein zweites Ctrl+Alt+B
+  nach dem ersten Block. Kein Befund am Quit-Pfad; im Gate CargoPlan während des Blocks nicht anfassen.
+- **Testzahlen (Vorbehalt der Abnahme):** sauberer Worktree auf `4b5e8e7` Core 2543, App 2344, Import 430, Ocr 34. Core
+  ist seit v0.8.0 unverändert (`git diff v0.8.0..4b5e8e7 --stat -- tests/CargoPlan.Core.Tests src/CargoPlan.Core` leer;
+  v0.8.0 sauber 2543). Die gemeldeten 2549 waren 2551 im Arbeitsordner minus 2 angenommene Scratch-Tests; es sind vier
+  gitignorte Dateien (`Scratch*.cs`, alle vor T14.0) mit 8 Fällen.
 - Beim Verbinden stand der Kopf auf y = 1,60–1,67 m (S14.0 offener Punkt 1); `SeatedZeroPoseReset` behandelt T14.3b.
 
 ### [ ] T14.2 Feed: Aufnahme, Double-Buffer, Dirty-Signal
