@@ -839,6 +839,17 @@ public sealed partial class OverlayViewModel(Ship ship, ShipCatalog? ships = nul
     [RelayCommand]
     private void ToggleLock() => IsManuallyLocked = !IsManuallyLocked;
 
+    /// <summary>
+    /// The wish for the VR mode (T14.1, D131): the app turns the OpenVR session on and off with it, and sets it back when
+    /// the session ends (SteamVR closed or missing). Off by default (invariant 3).
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsVrOn { get; set; }
+
+    /// <summary>Until T14.3b only from the developer's keys (<c>--vr-dev</c>); then from the toggleVr hotkey and the settings.</summary>
+    [RelayCommand]
+    private void ToggleVr() => IsVrOn = !IsVrOn;
+
     /// <summary>Run by the toggleOverlay hotkey: with a hidden cursor nobody can click the overlay away (D17).</summary>
     [RelayCommand]
     private void ToggleOverlay() => IsOverlayHidden = !IsOverlayHidden;

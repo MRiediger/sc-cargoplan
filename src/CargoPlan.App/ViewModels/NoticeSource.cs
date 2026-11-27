@@ -61,6 +61,12 @@ public enum NoticeSource
     Scan,
 
     /// <summary>
+    /// The VR mode's connection (T14.1, D131): SteamVR not running, openvr_api.dll missing, a second instance (KeyInUse),
+    /// SteamVR closed; cleared when VR connects or is turned off.
+    /// </summary>
+    Vr,
+
+    /// <summary>
     /// What the last move, Re-plan or scan did, or why it was refused (D24, D65, D66, D104); cleared by the next move, tick,
     /// plan or undo.
     /// </summary>

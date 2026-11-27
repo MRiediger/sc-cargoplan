@@ -54,6 +54,10 @@ namespace CargoPlan.App;
 /// The overlay's activation, capture, button and wheel messages and WPF's mouse capture go to cargoplan.log (T13.3a): for
 /// the scroll check over the game, where the game takes the foreground. A developer's switch, off by default.
 /// </param>
+/// <param name="VrDev">
+/// The VR mode for developers (T14.1, D131): on after the first frame, Ctrl+Alt+V toggles it, Ctrl+Alt+B blocks the UI
+/// thread for 20 s (the gate's quit with a hung UI). Until T14.3b brings the settings and hotkeys; off by default.
+/// </param>
 public sealed record StartOptions(
     bool Locked,
     string? PlanPath,
@@ -70,7 +74,8 @@ public sealed record StartOptions(
     string? UpdatesSource = null,
     bool UpdatesPrerelease = false,
     string? ShipDataSource = null,
-    bool LogInput = false)
+    bool LogInput = false,
+    bool VrDev = false)
 {
     public const string LockedSwitch = "--locked";
 
@@ -100,6 +105,8 @@ public sealed record StartOptions(
 
     public const string LogInputSwitch = "--log-input";
 
+    public const string VrDevSwitch = "--vr-dev";
+
     /// <summary>F9's series without a number: Gate 2's 100 scans.</summary>
     public const int ScanProbeSeries = 100;
 
@@ -112,6 +119,7 @@ public sealed record StartOptions(
         var scanLoad = false;
         var keepScans = false;
         var logInput = false;
+        var vrDev = false;
         var updatesPrerelease = false;
         string? planPath = null;
         string? measureFrames = null;
@@ -212,6 +220,10 @@ public sealed record StartOptions(
             {
                 logInput = true;
             }
+            else if (Is(args[i], VrDevSwitch))
+            {
+                vrDev = true;
+            }
             else if (Is(args[i], UpdatesPrereleaseSwitch))
             {
                 updatesPrerelease = true;
@@ -256,7 +268,7 @@ public sealed record StartOptions(
             (updatesPrerelease, problem) = (false, problem ?? $"{UpdatesPrereleaseSwitch} only goes with GitHub, not with {UpdatesSourceSwitch}.");
         }
 
-        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans, updatesSource, updatesPrerelease, shipDataSource, logInput);
+        return new StartOptions(locked, planPath, problem, themeSample, measureFrames, overGame, scanProbe, scanProbeImages, scanLoad, dataDir, dataDirRefused, keepScans, updatesSource, updatesPrerelease, shipDataSource, logInput, vrDev);
     }
 
     /// <summary>

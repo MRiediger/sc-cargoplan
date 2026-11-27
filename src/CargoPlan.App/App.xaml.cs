@@ -57,6 +57,11 @@ public partial class App : Application
     // Only with --scan-probe; its timer keeps it alive, the field shows who owns it.
     private Diagnostics.ScanProbe? _scanProbe;
 
+    // Only with --vr-dev until T14.3b (D131): the OpenVR session, ended in OnExit, and the developer's keys. Without the
+    // switch neither exists, so openvr_api.dll never loads and no VR thread starts (invariant 3).
+    private Vr.OpenVrSession? _vrSession;
+    private VrDevKeys? _vrDevKeys;
+
     // The update check (D109): one per run, after the first frame. Cancelled when the overlay closes or the app exits, so its
     // result never reaches a window that is gone (Freigabe E1). Not disposed: a check still running holds its token, and the
     // process ends right after.
@@ -165,6 +170,11 @@ public partial class App : Application
         {
             // Next to the overlay, not instead of it: Gate 1 measures the scan as the player will have it (T10.1b).
             _scanProbe = new Diagnostics.ScanProbe(parts.Scanner, parts.Overlay, series, options.ScanProbeImages);
+        }
+
+        if (options.VrDev)
+        {
+            ComposeVr(parts);
         }
 
         ShowWindows(parts, options);
@@ -882,6 +892,52 @@ public partial class App : Application
     /// The OCR engine loads and warms on a pool thread once <paramref name="window"/> has drawn its first frame, so the start
     /// is not a frame later than before (T10.1b plan decision 2).
     /// </summary>
+    /// <summary>
+    /// The VR mode with <c>--vr-dev</c> (T14.1, D131): the view model's wish turns the session on and off; the session's
+    /// reports come back through InvokeAsync, never Invoke, so a hung UI thread can't hold the VR thread's quit. VR turns
+    /// on after the first frame, as the spike did.
+    /// </summary>
+    private void ComposeVr(OverlayParts parts)
+    {
+        var viewModel = parts.ViewModel;
+        var session = _vrSession = new Vr.OpenVrSession(new Vr.OpenVrApi(), report => Dispatcher.InvokeAsync(() => Apply(report)), Vr.VrOffset.Default);
+        viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(OverlayViewModel.IsVrOn))
+            {
+                if (viewModel.IsVrOn)
+                {
+                    session.Start();
+                }
+                else
+                {
+                    session.Stop();
+                }
+            }
+        };
+        _vrDevKeys = new VrDevKeys(viewModel, parts.Overlay);
+        AppLog.Write(Vr.OpenVrSession.LogContext, $"developer's VR mode ({StartOptions.VrDevSwitch}): Ctrl+Alt+V toggles, Ctrl+Alt+B blocks the UI thread for {VrDevKeys.BlockFor.TotalSeconds:F0} s");
+
+        // Once: ContentRendered follows the first frame. Source: https://learn.microsoft.com/dotnet/api/system.windows.window.contentrendered
+        void TurnOn(object? sender, EventArgs e)
+        {
+            parts.Overlay.ContentRendered -= TurnOn;
+            viewModel.IsVrOn = true;
+        }
+
+        parts.Overlay.ContentRendered += TurnOn;
+
+        // The session ended by itself (SteamVR closed or missing): the wish follows, so the next toggle turns it on again.
+        void Apply(Vr.VrReport report)
+        {
+            viewModel.SetNotice(NoticeSource.Vr, report.Notice);
+            if (!report.Connected)
+            {
+                viewModel.IsVrOn = false;
+            }
+        }
+    }
+
     private static void WarmAfterFirstFrame(Window window, ContractScanner scanner)
     {
         // Once: ContentRendered follows the first frame. Source: https://learn.microsoft.com/dotnet/api/system.windows.window.contentrendered
@@ -925,6 +981,9 @@ public partial class App : Application
     {
         _closing.Cancel();
         _cursorMonitor?.Stop();
+
+        // Destroys the overlays and shuts OpenVR down on the VR thread, at most 3 s (D131).
+        _vrSession?.Dispose();
         base.OnExit(e);
 
         // After base: every window has closed and flushed by now (R2).

@@ -103,9 +103,18 @@ public class VrPlacementTests
         var (s, c) = Math.SinCos(openVrYawDegrees * Math.PI / 180);
         return new HmdMatrix34_t
         {
-            m0 = (float)c, m1 = 0, m2 = (float)s, m3 = at.X,
-            m4 = 0, m5 = 1, m6 = 0, m7 = at.Y,
-            m8 = (float)-s, m9 = 0, m10 = (float)c, m11 = at.Z,
+            m0 = (float)c,
+            m1 = 0,
+            m2 = (float)s,
+            m3 = at.X,
+            m4 = 0,
+            m5 = 1,
+            m6 = 0,
+            m7 = at.Y,
+            m8 = (float)-s,
+            m9 = 0,
+            m10 = (float)c,
+            m11 = at.Z,
         };
     }
 
