@@ -413,6 +413,7 @@ nichts kosten.
 `VrFeedTests` (17), `VrScanPauseTests` (4), `RenderSignalTests` (7), `OpenVrSessionTests` (17 → 24); zehn Läufe in
 Folge grün (Feed, Session, Signal). Mutationen je einmal rot: Tausch aus (`…swaps_red_and_blue`), Filter des Signals aus
 (`At_rest_there_is_no_signal`), Flip ohne offenen Load (`Destroy_forgets_a_load_in_flight`). `dotnet format` sauber.
+Testzahlen im sauberen Worktree auf `2e11115`: Core 2543, App 2394 (+50 zu T14.1), Import 430, Ocr 34.
 
 **Eigene Läufe (27.11.2026, SteamVR ohne Brille, je Lauf eigener `--data-dir`):**
 
