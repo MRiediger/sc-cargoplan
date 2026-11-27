@@ -438,12 +438,21 @@ Testzahlen im sauberen Worktree auf `2e11115`: Core 2543, App 2394 (+50 zu T14.1
 | Speicher-Plateau, Zwangsmodus | **bestanden** | 2 min 39 s Ctrl+Alt+F, 128 Aufnahmen je 10 s, Working Set 286,8–294,8 MB ohne Trend, GDI 47 konstant |
 | F3 mit laufendem Feed (G7) | Scans **bestanden**, Pause nicht belegt | zwei Scans `Added`, Taste → Notice 3 106 / 3 062 ms; `cloak=0`, weil der Feed während beider Scans ruhte (kein Takt zum Auslassen) |
 | Brille | **bestanden** (Martin) | kein Flackern, Farben und Transparenz richtig |
+| G3 über dem Spiel, 5 Runden, 10 Hz | **knapp gerissen, angenommen** (+2,4 pp; Martin: T14.5 prüft im Spiel) | `hull_c` 8,6 / 8,3 / 8,8 / 7,4 / 10,5 → **8,6 %** (59,1–60,0 fps); `vr` 12,2 / 11,0 / 6,8 / 12,2 / 7,5 → **11,0 %** (55,9–57,3 fps); Feed 99 Aufnahmen je 10 s, `PrintWindow` 10–12 ms Median |
+| Scan-Pause, 3 F3 mit Zwangsmodus | **durch Tests belegt**, im Spiel nicht getroffen (Martin) | `cloak=0`: die Pause dauert so lange wie die Aufnahme (`captureMs` 20–31 ms), bei 10 Hz trifft ein Takt sie mit ≈ 25 % je Scan; drei Fehlschläge in Folge ≈ 42 % |
+| VR-Scan, natürliche Haltung (`--keep-scans`) | **0 von 6 übernommen** | 4 × `NoContractInFrame`, 2 × `Incomplete`; die Bilder zeigen scharfen, großen Text, aber nur einen Ausschnitt des Vertrags (Zoom ≈ 2×): einmal alle Lieferzeilen lesbar, aber ohne Titel und Reward; einmal `O/15` statt `0/15` gelesen |
 
 **Befund F3 in VR (Martin):** Der Desktop-Mirror von SC ist gezoomt, damit auch das mobiGlas. Die zwei Scans gelangen nur,
 weil Martin beim F3 in den Mirror geschielt und den Kopf so gehalten hat, dass der Vertrag im Scanbereich lag. Ein
 Spieler, der das nicht tut, hat den Text nicht im festen Ausschnitt (D99) → Scan scheitert. Das betrifft Invariante 2
 („F3 wie heute“), nicht den Feed. Ein Scan aus dem Compositor-Bild (`GetMirrorTextureD3D11`) löst das nicht: die Lage
 des mobiGlas hängt dort ebenso an der Kopfhaltung, dazu Perspektive und ein D3D11-Gerät (Pfad c).
+
+**Offen nach T14.2 (Martin: erst mehr Daten):** Die Bilder zeigen, dass nicht die OCR scheitert, sondern der feste
+Ausschnitt: der Vertrag ist durch den Zoom größer als der Scanbereich. Ansatz für später: das ganze Mirror-Fenster in
+halber Auflösung lesen (ähnlich viele Pixel wie der Ausschnitt am Monitor). Nächster Schritt: ≈ 10 Verträge in
+natürlicher Haltung, je F3 (`--keep-scans`) und ein ganzes Fensterbild (Win+Alt+Druck); dann entscheidet Martin zwischen
+Spike vor T14.3 und Known issue für v0.9.0.
 
 ### [ ] T14.3a Settings-Format: `vr`-Abschnitt und Reader-Toleranz
 
