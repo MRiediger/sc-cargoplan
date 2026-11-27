@@ -30,6 +30,8 @@ internal sealed class FakeOpenVr : IOpenVr
 
     public byte[]? LastRaw { get; private set; }
 
+    public EVROverlayError RawResult { get; set; } = EVROverlayError.None;
+
     public IReadOnlyList<string> Calls => [.. _calls.Select(c => c.Call)];
 
     public IReadOnlyList<int> Threads => [.. _calls.Select(c => c.Thread).Distinct()];
@@ -69,7 +71,8 @@ internal sealed class FakeOpenVr : IOpenVr
     public EVROverlayError SetRaw(ulong handle, byte[] rgba, int width, int height)
     {
         LastRaw = rgba;
-        return Recorded($"Raw {handle} {width}x{height}");
+        Record($"Raw {handle} {width}x{height}");
+        return RawResult;
     }
 
     public EVROverlayError Show(ulong handle) => Recorded($"Show {handle}");
