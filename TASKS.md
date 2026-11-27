@@ -75,26 +75,36 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 - **Testzahlen aus einem sauberen Worktree.** Anlass T11.3/T11.4: drei gitignorte Scratch-Tests (2 Core, 1 App) zählten mit, gemeldet waren 1772/1969 statt 1770/1968. Zählen mit `git worktree add --detach <scratch> <commit>`, `dotnet test`, dann `git worktree remove`.
 - **Abschnitt mit dem Schließen archivieren.** Die Abschluss-Session einer Phase, eines Releases oder einer Session verschiebt ihren Abschnitt wortgleich nach `docs/tasks-archive/` und setzt eine Index-Zeile unter „Geschichte (Archiv)“. Anlass K11: TASKS.md war auf 859 KB / 8 063 Zeilen gewachsen, und jede Session las sie ganz.
 - **Schreiber und Leser einer Datei über jeden Zustand testen, den die Oberfläche erreicht.** Rundweg schreiben → lesen → schreiben für jeden Zustand, den die Bedienung herstellen kann, nicht nur für die gebauten Beispiele. Anlass B18: der Rundweg-Test von `routes.json` lief mit `at` innerhalb der Stationen, die Leiste erreichte mit Extras mehr Stopps; die App schrieb eine Datei, die sie nicht las, und erst der Doku-Abgleich in T13.8 fand es.
+- **Spike-Belege gehören auf den Spike-Branch, nicht in einen Ordner neben dem Repo.** Der Branch wird nie gemergt,
+  kostet `main` nichts und überlebt jeden Shift+Entf. Anlass S14.0: `evidence\` mit Logs und SHA-Datei war nach der
+  Abnahme weg; der Befund trug, aber der Beleg fehlt.
 
 ---
 
-## Phase 14 – VR-Modus (ab 27.11.2026, letztes Feature vor v0.9.0)
+## Phase 14 – VR-Modus (ab 27.11.2026, letztes Feature vor v0.9.0, D131)
 
-**Auflagen der Abnahme S14.0 (Martin, 27.11.2026)** – T14.0 verteilt sie als Zeilen auf die Tasks und streicht diesen Block:
-1. T14.3: auf `VREvent_SeatedZeroPoseReset` hören und die Platzierung neu anwenden. Grund: der Reset kommt 13–18 s nach
-   dem Connect von unbekannter Quelle; wir reagieren auf das Event statt auf Timing zu hoffen.
-2. T14.2: Color-Key mit Toleranz ±1 je Kanal prüfen (Kantenglättung); Known issue dokumentieren: „content in the exact
-   background color turns see-through in VR“.
-3. T14.2: G3 erneut mit Kanaltausch, Double-Buffer und Dirty-Signal; zusätzliches Gate: im Ruhezustand ≈ 0 Aufnahmen/s.
-4. T14.6 (Wiki): VRto3D meldet „No profile found for App SC-CargoPlan.exe“ mit Piepton bei jedem Fokuswechsel auf
-   CargoPlan (ESC-Bedienung). Doku: Profil `SC-CargoPlan.exe_config.json` neben dem StarCitizen-Profil anlegen oder den
-   Hinweis in VRto3D abschalten.
-5. Defaults T14.3: die Spike-Werte (Breite 0,5 m, Abstand 1,2 m, Yaw 30° rechts, Pitch 0, Höhe 0). Der Wert aus G5 ist
-   nicht mehr nachvollziehbar; T14.5 misst die Breitenreihe in 0,1-m-Schritten an der Luma und korrigiert den Default,
-   falls nötig.
+**Zielbild:** CargoPlan spiegelt das Overlay als SteamVR-Overlay in die Brille (Martins Kette Luma Ultra ← VRto3D ←
+SteamVR ← SC/OpenXR), lesbar am Frachtaufzug, platziert relativ zum Kopf, bedient am Desktop-Fenster. Design:
+[`docs/design/vr-overlay.md`](docs/design/vr-overlay.md) (Stand 27.11.; D131 geht vor). Zahlen stehen im S14.0-Befund
+und in D131, nicht in den Tasks.
 
-Worktrees `..\sc-cargoplan-s14`, `..\sc-cargoplan-s14-finding` und Laufordner `..\sc-cargoplan-s14-run` bleiben bis nach
-T14.0 (Referenz für die D131-Zahlen).
+**Umfang:** letztes Feature vor v0.9.0 – **Umfang nicht erweitern**, Wünsche darüber hinaus → Backlog mit Auslöser.
+
+**Invarianten (gelten für jeden Task der Phase, Design §0):**
+1. Das Desktop-Fenster bleibt unverändert; VR ist ein Spiegel.
+2. Kein neuer Pflichtschritt: Laden, Abhaken, F3 wie heute.
+3. VR aus = heutiges Verhalten: `vr` fehlt → aus, keine OpenVR-DLL geladen, kein Thread, kein Overlay.
+4. CargoPlan startet SteamVR nie (`VRApplication_Background`) und macht keinen Netzzugriff.
+5. Nichts im Spielprozess (EAC): eigener Prozess, IPC zu `vrserver`.
+
+**Branch und Merge (K1 der Freigabe T14.0):** alle Tasks auf `feat/p14-vr`, Abnahme je Task wie gehabt; **ein** Merge
+`--no-ff` nach `main` nach dem Gate T14.5 (Muster Phase 8), nicht nach jedem Task. Grund: v0.8.0 ist frisch draußen;
+ein Bugfix v0.8.x muss von `main` möglich sein, ohne einen halben VR-Modus mitzunehmen (T14.1 = Testbild ohne Schalter,
+T14.2 = Feed ohne Settings). Bugfixes während Phase 14 kommen von `main` und werden nach `feat/p14-vr` gemergt. Gates
+mit „funktioniert“ brauchen SC im Vordergrund (Lehre B10), Frame-Zeiten über dem Spiel (Lehre Phase 8).
+
+**Spike-Code:** `spike/s14-vr` (ebfbda5, nie gemergt) mit Valves Dateien byte-gleich; bei Bedarf
+`git worktree add ..\sc-cargoplan-s14 spike/s14-vr`.
 
 ### [x] S14.0 VR-Spike (27.11.2026, kein Prod-Code, abgenommen 27.11.)
 
@@ -237,6 +247,167 @@ Spiel stört.
 - Breite, Abstand und Winkel kommen in die Einstellungen; wie, wird im Fable-Chat festgelegt (Martin, 27.11.). Die
   Spike-Werte: Breite 0,5 m, Abstand 1,2 m, Yaw 30° rechts, Pitch 0, Höhe 0.
 
+### [ ] T14.0 Doku: Phase 14 anlegen (27.11.2026)
+
+**Warum:** Ohne Entscheidung und Task-Schnitt baut jeder Folgetask auf dem Spike-Code statt auf einem Entwurf, und die
+Auflagen der Abnahme S14.0 hätten keinen Ort.
+- D131 und Addenda zu D97, D100, D105 in `docs/decisions.md`
+- `docs/design/vr-overlay.md` (Stand 27.11.2026)
+- CLAUDE.md: Zeile VR, Netz-Zeile, EAC-Satz, Projektstruktur
+- dieser Abschnitt: Kopf, T14.1–T14.6, Auflagen verteilt, Backlog bereinigt, Lehre
+
+**Akzeptanz:** alle vier Punkte im Repo; D131 im Hausformat mit Gegenargument und Zahlen nur aus dem S14.0-Befund (wo er
+keine hat: „nicht gemessen“); jede der fünf Auflagen der Abnahme S14.0 steht als Zeile in ihrem Task, der Block ist
+gestrichen; Backlog ohne F12 und ohne die Zeile zur Reader-Toleranz, mit Pfad c; nur Doku im Diff; `dotnet build` und
+`dotnet test` unverändert grün.
+
+**Präzisierung in der Planphase, ratifiziert durch Freigabe (27.11.2026, mit K1, E1, E2):**
+1. **Quelle:** `..\sc-cargoplan-s14-run\evidence\` (Logs, SHA-Datei) und beide Spike-Worktree-Ordner waren vor T14.0
+   weg; einzige Zahlenquelle ist der S14.0-Befund. `git worktree prune` hat die toten Einträge entfernt, die Zeile
+   „Worktrees bleiben bis nach T14.0“ ist gestrichen, die Branches `spike/s14-vr` und `spike/s14-vr-finding` bleiben.
+   T14.1 rechnet die SHA256 neu. Daraus die Lehre „Spike-Belege gehören auf den Spike-Branch“.
+2. **E2:** Design §2 und D131 verweisen auf den S14.0-Abschnitt per Dateiname + Überschrift („TASKS.md, Abschnitt
+   ‚S14.0 VR-Spike‘“), nicht per GitHub-Anker (Umlaute und Sonderzeichen brechen still). Spikes werden mit ihrer Phase
+   archiviert (wie S10.0, S11.0); T14.6 stellt die Verweise um.
+3. **Belege in D131:** die Desktop+-Befunde als „Phase-Start (Martin, 26.11., Desktop+ 0,5 m, Graphics Capture)“, nicht
+   entscheidungstragend; Drift zwischen Compositor und Spiel „nicht gemessen; in G4 (dreimal Recenter) nicht
+   aufgefallen“; die Aussage zur OpenXR-Overlay-Erweiterung ist gestrichen (ungeprüft, A3; D131 stützt sich nicht darauf).
+4. **K1:** ein Merge nach T14.5 statt je Task (Phasenkopf).
+5. **E1:** T14.3 geteilt in T14.3a Settings-Format (ohne Brille) und T14.3b Platzierung (mit Brille): zwei Gates, zwei
+   Sessions.
+6. **Zwei Threads (T14.0-Befund, zum Gegenlesen):** die Vorgaben „`PrintWindow` auf dem VR-Thread“ und „Quit-Handler auf
+   einem Thread, den ein hängender UI-Thread nicht festhält“ widersprechen sich, weil `PrintWindow` auf den UI-Thread
+   wartet (S14.0). D131 trennt daher einen Aufnahme-Thread (`PrintWindow`, Tausch, Key, Cursor; kein OpenVR-Aufruf) vom
+   VR-Thread (jeder OpenVR-Aufruf: Events, Upload, Flip, Quit).
+7. `vr.enabled` hat den Default aus (Invariante 3); die übrigen Defaults sind die Spike-Werte (Auflage 5 S14.0).
+8. `NoticeSource.Vr` entsteht mit den ersten VR-Notices in T14.1; T14.3b prüft nach A13 alle Schreiber, die bis dahin
+   dazugekommen sind.
+
+### [ ] T14.1 Verbindung: OpenVR-Sitzung, zwei Overlays, Testbild
+
+**Warum:** Erst eine Sitzung, die SteamVR nie startet, Quit in jedem Zustand quittiert und ohne SteamVR still bleibt,
+trägt den Feed. Ein Quit, der hinter dem UI-Thread wartet, kostet die ganze App (S14.0 G6: SteamVR beendet sie nach 5,1 s).
+- Valves `openvr_api.cs`, `openvr_api.dll` und `LICENSE` v2.15.6 aus `spike/s14-vr` nach `src/CargoPlan.App/Vr/OpenVR/`,
+  byte-gleich; `.gitattributes` `src/CargoPlan.App/Vr/OpenVR/* -text`; `.editorconfig` mit `generated_code = true` nur
+  für `openvr_api.cs` (kein `NoWarn`); Lizenz im Publish neben der DLL, `check-portable.ps1` kennt beide Dateien
+- `OpenVrSession`: Init als `VRApplication_Background`, Event-Schleife auf dem VR-Thread (`PollNextEvent` und
+  `PollNextOverlayEvent`), `VREvent_Quit` → `AcknowledgeQuit_Exiting` + `VR_Shutdown`, Reconnect im selben Prozess, nur
+  per Toggle (kein Retry-Takt, E3 S14.0)
+- `VrOverlayHost`: zwei Overlays, Breite, Alpha, Transform; Testbild statt Feed
+- Toggle im ViewModel (bis T14.3b nur über einen Entwickler-Schalter, Name im Plan); `NoticeSource.Vr` mit eigenen
+  englischen Texten für „SteamVR is not running“, „`openvr_api.dll` missing“ und `KeyInUse` (zweite Instanz)
+
+**Akzeptanz:**
+- SHA256 der drei Dateien gegen den Tag v2.15.6 von `ValveSoftware/openvr` geprüft und im Task festgehalten
+  (`openvr_api.dll` 837 272 B, Authenticode Valve Corp.; `openvr_api.cs` 371 580 B); `git ls-files --eol` zeigt sie
+  als `-text`; `dotnet build` 0 Warnungen
+- Tests ohne SteamVR, erst rot gesehen: Transform-Mathematik (Vorzeichen positiv = rechts; `R`/`t` aus D131; das
+  Logbeispiel aus G4: `headYaw` 12,7°, `userYaw` 30° → `overlayYaw` −17,3°) und der Zustandsautomat (aus → verbunden →
+  Quit → aus → Reconnect; NoServer; DLL fehlt; `KeyInUse`)
+- VR aus: keine OpenVR-DLL im Prozess geladen (Invariante 3)
+- **Gate:** die G6-Tabelle des Spikes erneut grün (alle sechs Fälle), dazu Quit bei blockiertem UI-Thread quittiert in
+  < 1 s; Testbild in der Brille in beiden Augen, Farben richtig (Martin)
+
+### [ ] T14.2 Feed: Aufnahme, Double-Buffer, Dirty-Signal
+
+**Warum:** Das Bild muss das Overlay zeigen, ohne das Spiel, den UI-Thread oder den Scan zu stören, und ohne Änderung
+nichts kosten.
+- Aufnahme-Thread: `PrintWindow PW_RENDERFULLCONTENT`, Rot/Blau-Tausch, Color-Key aus dem Fensterhintergrund der
+  Preferences mit **Toleranz ±1 je Kanal** (Kantenglättung, Auflage 2 S14.0), Cursor (`GetCursorInfo` + `DrawIconEx`)
+- Double-Buffer: Upload ins verborgene Overlay, Flip erst nach `VREvent_ImageLoaded`; ein neues Bild ersetzt ein
+  wartendes
+- Dirty-Signal vom UI-Thread statt `CompositionTarget.Rendering`, ≤ 15 Hz
+- Pause während der Scan-Aufnahme (D100-Addendum), je Update die Wartezeit in `PrintWindow` im Log (E5 S14.0)
+- Fenster > 4096 px Kante → Notice (verkleinern oder ablehnen entscheidet der Plan)
+- `--measure-frames vr` mit Zeile unter „Befehle“ in CLAUDE.md
+
+**Akzeptanz:**
+- Tests für Tausch und Key am synthetischen Bild (Hintergrund ±1 je Kanal → transparent, ±2 → deckend) und für die
+  Flip-Folge (kein Flip vor `ImageLoaded`)
+- **Gate G3 über dem Spiel wie S14.0** (5 Runden, Median, `vr` ≤ `hull_c` + 2 pp) **mit** Tausch, Double-Buffer und
+  Dirty-Signal (Auflage 3 S14.0)
+- **Ruhezustand ≈ 0 Aufnahmen/s**: Zahl der Aufnahmen über 60 s ohne Eingabe im Log (Auflage 3 S14.0)
+- Speicher-Plateau wie K2 S14.0 (2 min, Working Set alle 10 s, GDI konstant)
+- F3 mit laufendem Feed wie G7: Scans kommen in den Plan, `skip.cloak` im Log
+- In der Brille kein Flackern beim Hovern und Drehen, Farben und Transparenz richtig (Martin)
+
+### [ ] T14.3a Settings-Format: `vr`-Abschnitt und Reader-Toleranz
+
+**Warum:** Platzierung und Schalter brauchen einen Ort in settings.json, und ab jetzt soll ein neuer Abschnitt den
+Rückweg auf eine Version, die ihn nicht kennt, nicht mehr kosten (D105-Addendum T14.0). Reines Format, ohne Brille.
+- `vr { enabled, yawDegrees, pitchDegrees, distanceMeters, heightMeters, widthMeters, opacity }` optional, Schema 3
+  bleibt; fehlt oder `null` → Defaults aus / 30 / 0 / 1,2 / 0 / 0,5 / 1,0 (Auflage 5 S14.0); ungültige Werte →
+  Korrekturzeile (D34), Bereiche im Plan
+- Reader hält unbekannte **Top-Level-Abschnitte** (Objekte auf oberster Ebene) und schreibt sie unverändert zurück;
+  unbekannte Schlüssel in bekannten Abschnitten bleiben Fehler
+- `docs/settings-format.md`: Abschnitt `vr` und die Toleranz
+
+**Akzeptanz:**
+- Rundweg-Tests, erst rot gesehen, für jeden Zustand (Lehre B18): fremder Abschnitt → laden → speichern → wertgleich
+  zurück; fremder Abschnitt neben `vr`; Tippfehler in einem bekannten Abschnitt → weiter „settings not loaded“; fremder
+  Skalar auf oberster Ebene → Verhalten im Plan festgelegt und getestet
+- `vr` fehlt → kein `vr` geschrieben, bis sich etwas ändert (D31); bestehende Settings-Tests unverändert grün
+
+### [ ] T14.3b Platzierung: Hotkeys, Recenter, Reset
+
+**Warum:** Wo das Overlay hängt, entscheidet der Spieler per Taste, und es muss dort bleiben, auch wenn die Kette den
+Ursprung verschiebt (S14.0 offener Punkt 1).
+- `hotkeys.toggleVr` und `hotkeys.recenterVr`, Default `null`; D35/D104-Addendum: Numpad ohne Modifier,
+  `VK_NUMPAD5` und `VK_CLEAR` = eine Belegung (NumLock an/aus, G4 S14.0)
+- „Place in current view“: Recenter auf die aktuelle Kopf-Pose mit dem Offset aus `vr`
+- `VREvent_SeatedZeroPoseReset` → zuletzt gewählte Platzierung neu anwenden (Auflage 1 S14.0: der Reset kommt 13–18 s
+  nach dem Connect von unbekannter Quelle; wir reagieren auf das Event, statt auf Timing zu hoffen)
+- Toggle aus den Settings (`vr.enabled`) statt Entwickler-Schalter
+
+**Akzeptanz:**
+- Tests: Numpad 5 mit NumLock an und aus löst dieselbe Belegung aus; ein Reset-Event wendet die Platzierung neu an
+  (Zustandsautomat ohne SteamVR); Defaults aus T14.3a greifen
+- A13: alle Schreiber von `NoticeSource.Vr` gegrept, Zusammenspiel getestet (Fehler dürfen verschwinden, Hinweise
+  bleiben stehen)
+- **Gate (Martin, Brille):** dreimal Recenter in verschiedene Blickrichtungen, Overlay jeweils 30° rechts; nach dem
+  Reset 13–18 s nach dem Connect steht es weiter relativ zum Kopf; Yaw im Log
+
+### [ ] T14.4 Settings-Fenster: Abschnitt „VR“
+
+**Warum:** Nichts in settings.json soll von Hand nötig sein (D35); Breite, Abstand und Winkel stellt der Spieler im
+Fenster ein.
+- Abschnitt „VR“: An/Aus, Breite, Abstand, Yaw, Pitch, Höhe, Deckkraft, „Place in current view“; Änderungen wirken
+  sofort
+- Hotkey-Aufnahme für `toggleVr` und `recenterVr` mit der Numpad-Regel aus T14.3b
+- `docs/settings-format.md`: die beiden Hotkeys
+
+**Akzeptanz:** jede Einstellung wirkt ohne Neustart und überlebt einen Neustart; Hotkey-Aufnahme nimmt Numpad 5 ohne
+Modifier und lehnt andere Tasten ohne Modifier ab (außer F-Tasten); VR aus → Abschnitt zeigt keinen Fehler; Look
+gehört Martin (Taste-Gate).
+
+### [ ] T14.5 Gate im Spiel (Martin)
+
+**Warum:** Erst im Spiel zeigt sich, ob der VR-Modus am Aufzug trägt und die Desktop-Bedienung nichts verloren hat; erst
+danach wird gemergt (K1).
+- Hull A am Aufzug: laden, abhaken, F3 – alles mit VR an
+- Hull C im Overlay: Frame-Zeit über dem Spiel mit Feed (`--measure-frames vr`)
+- Breitenreihe in 0,1-m-Schritten an der Luma → Default `widthMeters` korrigieren, falls nötig (Auflage 5 S14.0)
+- Handling gegen `main`: Gesten der Desktop-Bedienung Soll `main` / Ist, unverändert
+
+**Akzeptanz:** jeder Punkt mit Ergebnis im Task; Abweichungen in der Desktop-Bedienung sind Rückfragen, keine
+Abnahme; danach Merge `feat/p14-vr` → `main` per `--no-ff` (Martin pusht).
+
+### [ ] T14.6 Release v0.9.0
+
+**Warum:** Phase 14 geht als v0.9.0 raus; VR braucht eine Voraussetzungskette, die kein Spieler errät.
+- Muster T13.8 (`docs/tasks-archive/release-v0.8.0.md`)
+- Wiki-Seite „VR“: Voraussetzungskette aus Martins Setup, Empfehlung Numpad 5 für Recenter, VRto3D-Hinweis „No profile
+  found for App SC-CargoPlan.exe“ mit Piepton: Profil `SC-CargoPlan.exe_config.json` neben dem StarCitizen-Profil
+  anlegen oder den Hinweis in VRto3D abschalten (Auflage 4 S14.0)
+- Known issues: „content in the exact background color turns see-through in VR“ (Auflage 2 S14.0), Kante ≤ 4096 px,
+  Takt über dem Spiel, Downgrade v0.9.0 → v0.8.0 startet mit Defaults (bis zur Reader-Toleranz)
+- README, Release-Notes, OpenVR-NOTICE
+- Nachmessen (Größen, Delta) inkl. Auto-Update v0.8.0 → v0.9.0 auf `cargotest`
+- Phase 14 samt S14.0 archivieren; Verweise in `docs/design/vr-overlay.md` §2 und D131 aufs Archiv umstellen
+
+**Akzeptanz:** wie T13.8; Wiki-Seite, Known issues und NOTICE im Release; Auto-Update auf `cargotest` von v0.8.0 auf
+v0.9.0 belegt; Phase 14 archiviert mit Index-Zeile.
+
 ---
 
 ## Backlog (nur bei Bedarf)
@@ -248,15 +419,12 @@ Kein Plan, sondern Reaktion: wird erst zum Task, wenn der Anlass eintritt.
   39 ms), von Martin akzeptiert. Gegen: ohne Umbau wird jeder Start mit jeder Schicht ein Stück langsamer; mit Umbau
   muss der Plan-Reiter einen Ladezustand zeigen. **Auslöser:** Nutzer-Report über einen langsamen Start oder ein erster
   Frame über 1 s in einer Release-Prüfung.
-- Settings-Reader toleriert unbekannte Top-Level-Abschnitte und schreibt sie unverändert zurück (T13.8, Halt 1, E2):
-  heute lehnt jede Version eine settings.json mit einem Abschnitt einer neueren ab (`UnmappedMemberHandling.Disallow`)
-  und startet mit Defaults – v0.4.0 mit `updates`, v0.5.x mit `shipData`, v0.7.0 mit `routes`; ohne Änderung wiederholt
-  sich der Downgrade-Befund bei jeder Version. Gegen: die Strenge fängt Tippfehler (settings-format „A misspelt key
-  makes the whole file unreadable“) – unbekannte Schlüssel *in* bekannten Abschnitten bleiben deshalb ein Fehler, nur
-  ganze unbekannte Abschnitte (Objekte auf oberster Ebene) werden gehalten; und es hilft erst beim Rückweg *auf* eine
-  Version, die es schon kann. D-Eintrag (D105-Addendum). **Auslöser:** der nächste additive Abschnitt in settings.json.
-- **F12 VR-Overlay (Phase 14):** CargoPlan in VR lesbar, kein Plan, kein Entwurf vor dem Start. Auslöser: v0.8.0
-  veröffentlicht und Martin startet Phase 14.
+- ~~Settings-Reader toleriert unbekannte Top-Level-Abschnitte~~ → Auslöser eingetreten (`vr`), Umsetzung T14.3a
+  (D105-Addendum T14.0).
+- VR-Textur als D3D11-Textur per `SetOverlayTexture` (Pfad c, D131): spart Rot/Blau-Tausch, CPU-Kopie und den zweiten
+  Overlay, hebt die Grenze von 4096 px. Gegen: ein D3D-Gerät, Interop mit WPF und deutlich mehr Code; bei den Zahlen
+  aus S14.0 nicht nötig. **Auslöser:** ein Fenster > 4096 px oder Takt über dem Spiel stört im Gate T14.5 oder per
+  Nutzer-Report.
 - Red-Wind-Zwillinge live prüfen (T13.3, offen aus T13.4): Faktions-Zwillinge HH/CFP teilen heute eine mehrdeutige
   Beobachtung, der Fraktionsfilter zeigt die eigene Seite (D122, U5). Auslöser: die erste Pyro-Session mit Scans.
 - Zuordnung per Fraktion, wenn die Rewards der Zwillinge abweichen (D122): ein Scan, dessen Reward nur zu einem Zwilling
