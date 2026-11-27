@@ -247,7 +247,7 @@ Spiel stört.
 - Breite, Abstand und Winkel kommen in die Einstellungen; wie, wird im Fable-Chat festgelegt (Martin, 27.11.). Die
   Spike-Werte: Breite 0,5 m, Abstand 1,2 m, Yaw 30° rechts, Pitch 0, Höhe 0.
 
-### [ ] T14.0 Doku: Phase 14 anlegen (27.11.2026)
+### [x] T14.0 Doku: Phase 14 anlegen (27.11.2026, abgenommen 27.11.)
 
 **Warum:** Ohne Entscheidung und Task-Schnitt baut jeder Folgetask auf dem Spike-Code statt auf einem Entwurf, und die
 Auflagen der Abnahme S14.0 hätten keinen Ort.
@@ -275,7 +275,7 @@ gestrichen; Backlog ohne F12 und ohne die Zeile zur Reader-Toleranz, mit Pfad c;
 4. **K1:** ein Merge nach T14.5 statt je Task (Phasenkopf).
 5. **E1:** T14.3 geteilt in T14.3a Settings-Format (ohne Brille) und T14.3b Platzierung (mit Brille): zwei Gates, zwei
    Sessions.
-6. **Zwei Threads (T14.0-Befund, zum Gegenlesen):** die Vorgaben „`PrintWindow` auf dem VR-Thread“ und „Quit-Handler auf
+6. **Zwei Threads (T14.0-Befund, mit der Abnahme bestätigt):** die Vorgaben „`PrintWindow` auf dem VR-Thread“ und „Quit-Handler auf
    einem Thread, den ein hängender UI-Thread nicht festhält“ widersprechen sich, weil `PrintWindow` auf den UI-Thread
    wartet (S14.0). D131 trennt daher einen Aufnahme-Thread (`PrintWindow`, Tausch, Key, Cursor; kein OpenVR-Aufruf) vom
    VR-Thread (jeder OpenVR-Aufruf: Events, Upload, Flip, Quit).
