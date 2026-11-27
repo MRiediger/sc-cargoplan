@@ -454,6 +454,15 @@ halber Auflösung lesen (ähnlich viele Pixel wie der Ausschnitt am Monitor). N�
 natürlicher Haltung, je F3 (`--keep-scans`) und ein ganzes Fensterbild (Win+Alt+Druck); dann entscheidet Martin zwischen
 Spike vor T14.3 und Known issue für v0.9.0.
 
+**Zweite Serie (27.11.2026, 16:29–16:30, `--keep-scans`):** 9 von 10 `Added` (ein F3 während eines laufenden Scans:
+`Busy`, zu Recht verworfen), 1 × `NoContractInFrame` (oberste Lieferzeile am oberen Rand abgeschnitten). Der Ausschnitt
+zeigt jeweils die rechte Hälfte des Vertrags: `PRIMARY OBJECTIVES` und alle Lieferzeilen, aber **nie Titel, Reward und
+Ansicht**. Folgen auch bei Erfolg: jeder Scan braucht eine zweite Lesung (`doubt (NoReward)`, Taste → Notice ≈ 4 s statt
+≈ 2–3 s); `View = Unknown` und kein Reward → keine Beobachtung für den Plan-Reiter (`ToObservation`,
+`RoutesBook`), das Füllen einer Route hängt vermutlich ebenfalls daran (nicht geprüft). Die 6 F3 der ersten Serie waren
+alle (Martin), kein verpasster Hotkey. Ganze Fensterbilder (Win+Shift+S) liegen nicht vor: nicht gespeichert, nur in der
+Zwischenablage.
+
 ### [ ] T14.3a Settings-Format: `vr`-Abschnitt und Reader-Toleranz
 
 **Warum:** Platzierung und Schalter brauchen einen Ort in settings.json, und ab jetzt soll ein neuer Abschnitt den
