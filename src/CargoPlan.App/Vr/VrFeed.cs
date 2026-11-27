@@ -46,8 +46,8 @@ internal sealed record VrShot(VrShotKind Kind, VrFrame? Frame = null, double Pri
 
 /// <summary>
 /// The capture thread of the VR feed (T14.2, D131). It runs while the session is connected, takes a picture only when the
-/// UI thread has signalled a change (<see cref="MarkDirty"/>) or the cursor has moved over the window, at most 15 times a
-/// second, and once more <see cref="TrailingDelay"/> after the last signal, because WPF draws on its render thread after the
+/// UI thread has signalled a change (<see cref="MarkDirty"/>) or the cursor has moved over the window, at most 10 times a
+/// second (G3 of T14.2: 15 Hz cost 3.2 pp late frames over the game), and once more <see cref="TrailingDelay"/> after the last signal, because WPF draws on its render thread after the
 /// UI thread's render work (K2). It never calls OpenVR: the newest picture waits in one slot for the VR thread
 /// (<see cref="Take"/>), and a newer one replaces it. PrintWindow waits for the UI thread (S14.0), so <see cref="Stop"/>
 /// never waits for this thread; there is only ever one, so the capture never runs twice at once.
@@ -66,8 +66,8 @@ internal sealed class VrFeed(
 {
     public const string ThreadName = "CargoPlan VR capture";
 
-    /// <summary>15 Hz (D131).</summary>
-    public static readonly TimeSpan MinInterval = TimeSpan.FromSeconds(1.0 / 15);
+    /// <summary>10 Hz: D131 allows up to 15, G3 of T14.2 over the game didn't (+3.2 pp late frames at 15 Hz).</summary>
+    public static readonly TimeSpan MinInterval = TimeSpan.FromSeconds(1.0 / 10);
 
     public static readonly TimeSpan TrailingDelay = TimeSpan.FromMilliseconds(100);
 

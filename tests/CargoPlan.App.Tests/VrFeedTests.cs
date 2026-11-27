@@ -4,7 +4,7 @@ using CargoPlan.App.Vr;
 
 namespace CargoPlan.App.Tests;
 
-// T14.2, D131: the capture thread's timing without a window: at most 15 Hz, nothing at rest, once more after the render
+// T14.2, D131: the capture thread's timing without a window: at most 10 Hz (after G3), nothing at rest, once more after the render
 // thread (K2), the cursor (K3), the scan (K10), 4096 px (K4), the 10-s line (K5), the forced mode (K7), and a stop that
 // never waits for a hung capture (a hung UI thread holds PrintWindow, S14.0).
 public sealed class VrFeedTests : IDisposable
@@ -63,7 +63,7 @@ public sealed class VrFeedTests : IDisposable
     }
 
     [Fact]
-    public void A_steady_signal_captures_at_most_15_times_a_second()
+    public void A_steady_signal_captures_at_most_10_times_a_second()
     {
         StartAndSettle();
         var before = _capture.Captures.Count;
@@ -76,7 +76,7 @@ public sealed class VrFeedTests : IDisposable
         }
 
         var times = _capture.Times[before..];
-        times.Length.Should().BeInRange(5, 16);
+        times.Length.Should().BeInRange(5, 11);
         times.Zip(times.Skip(1), (a, b) => b - a).Should().OnlyContain(gap => gap > VrFeed.MinInterval.TotalMilliseconds - 2);
     }
 
@@ -122,15 +122,17 @@ public sealed class VrFeedTests : IDisposable
     [Fact]
     public void A_cloaked_window_is_taken_again()
     {
-        _capture.Next.Enqueue(VrShotKind.Cloaked);
+        // At 10 Hz the retry and the trailing capture fall on the same tick; a second cloak leaves only the retry.
         _capture.Otherwise = VrShotKind.Unchanged;
+        StartAndSettle();
+        _capture.Next.Enqueue(VrShotKind.Cloaked);
+        _capture.Next.Enqueue(VrShotKind.Cloaked);
 
-        _feed.Start();
-        WaitFor(() => _capture.Captures.Count >= 2);
+        _feed.MarkDirty(VrFrameStyle.None);
 
-        // The second capture came from the retry, before the trailing delay was due.
+        WaitFor(() => _capture.Captures.Count >= 5);
         var times = _capture.Times;
-        (times[1] - times[0]).Should().BeLessThan(VrFeed.TrailingDelay.TotalMilliseconds);
+        (times[4] - times[2]).Should().BeGreaterThan((2 * VrFeed.MinInterval.TotalMilliseconds) - 5);
     }
 
     [Fact]
@@ -146,7 +148,7 @@ public sealed class VrFeedTests : IDisposable
     [Fact]
     public void A_returned_frame_of_the_same_size_is_used_again()
     {
-        // Three buffers at most, so 15 Hz of ≈ 3 MB doesn't fill the large object heap.
+        // Three buffers at most, so 10 Hz of ≈ 3 MB doesn't fill the large object heap.
         StartAndSettle();
         var taken = _feed.Take()!;
         _feed.Return(taken);
@@ -240,7 +242,7 @@ public sealed class VrFeedTests : IDisposable
         Thread.Sleep(500);
 
         var forced = _capture.Captures.Skip(before).ToList();
-        forced.Count.Should().BeGreaterThanOrEqualTo(4);
+        forced.Count.Should().BeGreaterThanOrEqualTo(3);
         forced.Should().OnlyContain(c => c.Request.Force);
     }
 

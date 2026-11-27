@@ -409,6 +409,11 @@ nichts kosten.
     Ende „VR NOT CONNECTED“ und Exit 1.
 12. E3 Known-issue-Zeile „Cursor erst über dem Fenster sichtbar“ steht in T14.6.
 
+**Nach Gate G3 (27.11.2026), ratifiziert durch Martin:** Höchsttakt 10 Hz statt 15 Hz (`VrFeed.MinInterval` 100 ms),
+G3 neu messen. Test `A_cloaked_window_is_taken_again` mit zwei Cloaks (bei 10 Hz fallen Wiederholung und Nachlauf auf
+denselben Takt), per Mutation rot gesehen. Der Scan in VR wird zuerst gemessen (`--keep-scans`, 10 F3 in natürlicher
+Haltung), dann entschieden; die Scan-Pause wird mit Ctrl+Alt+F belegt.
+
 **Tests (erst rot: CS0246, `4c601a7`):** `FramePixelsTests` (10), `VrOverlayHostTests` (7, ersetzt die 2 Testbild-Tests),
 `VrFeedTests` (17), `VrScanPauseTests` (4), `RenderSignalTests` (7), `OpenVrSessionTests` (17 → 24); zehn Läufe in
 Folge grün (Feed, Session, Signal). Mutationen je einmal rot: Tausch aus (`…swaps_red_and_blue`), Filter des Signals aus
@@ -425,8 +430,20 @@ Testzahlen im sauberen Worktree auf `2e11115`: Core 2543, App 2394 (+50 zu T14.1
 | Ruhezustand: Overlay mit `--vr-dev`, Release, 75 s ohne Eingabe | Start 4 Aufnahmen (1 Upload, 3 unverändert), danach **6 × 10 s mit `captures=0`**; Working Set 260–264 MB, GDI 47 konstant |
 | Gate-Skript G3, 1 Runde, `--over-game` ohne SC (Desktop) | `hull_c` 0,3 %, `vr` 6,1 % spät (+5,8 pp; S14.0 am Desktop +6,2 pp bei 15 Hz); „holo no“ bei beiden Zielen (kein Hull-C-Holo im Cache dieses Datenstands), Vergleich gleich |
 
-**Gate (offen, Martin):** G3 über dem Spiel (5 Runden `hull_c`/`vr` abwechselnd, Release), Speicher-Plateau 2 min mit
-Ctrl+Alt+F, F3 mit laufendem Feed (G7), Brille (Flackern beim Hovern und Drehen, Farben, Transparenz, Ecken).
+**Gate (27.11.2026, Release, SteamVR mit Luma über VRto3D, SC im Vordergrund):**
+
+| Gate | Ergebnis | Beleg |
+|---|---|---|
+| G3 über dem Spiel, 5 Runden, 15 Hz | **gerissen** (+3,2 pp, Regel ≤ 2 pp) → 10 Hz, neu messen | `hull_c` 5,9 / 6,6 / 6,4 / 6,0 / 5,6 → **6,0 %** (55,3–60,5 fps); `vr` 7,9 / 12,0 / 8,8 / 9,2 / 12,4 → **9,2 %** (42,0–56,3 fps); Feed 149 Aufnahmen je 10 s, `PrintWindow` 11–14 ms Median, einmal 135 ms; das Messziel dreht 30 s ohne Pause (Dauer-15 Hz), im Ruhezustand nimmt der Feed nichts auf |
+| Speicher-Plateau, Zwangsmodus | **bestanden** | 2 min 39 s Ctrl+Alt+F, 128 Aufnahmen je 10 s, Working Set 286,8–294,8 MB ohne Trend, GDI 47 konstant |
+| F3 mit laufendem Feed (G7) | Scans **bestanden**, Pause nicht belegt | zwei Scans `Added`, Taste → Notice 3 106 / 3 062 ms; `cloak=0`, weil der Feed während beider Scans ruhte (kein Takt zum Auslassen) |
+| Brille | **bestanden** (Martin) | kein Flackern, Farben und Transparenz richtig |
+
+**Befund F3 in VR (Martin):** Der Desktop-Mirror von SC ist gezoomt, damit auch das mobiGlas. Die zwei Scans gelangen nur,
+weil Martin beim F3 in den Mirror geschielt und den Kopf so gehalten hat, dass der Vertrag im Scanbereich lag. Ein
+Spieler, der das nicht tut, hat den Text nicht im festen Ausschnitt (D99) → Scan scheitert. Das betrifft Invariante 2
+(„F3 wie heute“), nicht den Feed. Ein Scan aus dem Compositor-Bild (`GetMirrorTextureD3D11`) löst das nicht: die Lage
+des mobiGlas hängt dort ebenso an der Kopfhaltung, dazu Perspektive und ein D3D11-Gerät (Pfad c).
 
 ### [ ] T14.3a Settings-Format: `vr`-Abschnitt und Reader-Toleranz
 
