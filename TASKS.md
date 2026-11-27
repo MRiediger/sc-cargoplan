@@ -80,7 +80,23 @@ Regeln aus Fehlern, die durchgerutscht sind. Gelten für jeden Task.
 
 ## Phase 14 – VR-Modus (ab 27.11.2026, letztes Feature vor v0.9.0)
 
-### [ ] S14.0 VR-Spike (27.11.2026, kein Prod-Code, wartet auf Abnahme)
+**Auflagen der Abnahme S14.0 (Martin, 27.11.2026)** – T14.0 verteilt sie als Zeilen auf die Tasks und streicht diesen Block:
+1. T14.3: auf `VREvent_SeatedZeroPoseReset` hören und die Platzierung neu anwenden. Grund: der Reset kommt 13–18 s nach
+   dem Connect von unbekannter Quelle; wir reagieren auf das Event statt auf Timing zu hoffen.
+2. T14.2: Color-Key mit Toleranz ±1 je Kanal prüfen (Kantenglättung); Known issue dokumentieren: „content in the exact
+   background color turns see-through in VR“.
+3. T14.2: G3 erneut mit Kanaltausch, Double-Buffer und Dirty-Signal; zusätzliches Gate: im Ruhezustand ≈ 0 Aufnahmen/s.
+4. T14.6 (Wiki): VRto3D meldet „No profile found for App SC-CargoPlan.exe“ mit Piepton bei jedem Fokuswechsel auf
+   CargoPlan (ESC-Bedienung). Doku: Profil `SC-CargoPlan.exe_config.json` neben dem StarCitizen-Profil anlegen oder den
+   Hinweis in VRto3D abschalten.
+5. Defaults T14.3: die Spike-Werte (Breite 0,5 m, Abstand 1,2 m, Yaw 30° rechts, Pitch 0, Höhe 0). Der Wert aus G5 ist
+   nicht mehr nachvollziehbar; T14.5 misst die Breitenreihe in 0,1-m-Schritten an der Luma und korrigiert den Default,
+   falls nötig.
+
+Worktrees `..\sc-cargoplan-s14`, `..\sc-cargoplan-s14-finding` und Laufordner `..\sc-cargoplan-s14-run` bleiben bis nach
+T14.0 (Referenz für die D131-Zahlen).
+
+### [x] S14.0 VR-Spike (27.11.2026, kein Prod-Code, abgenommen 27.11.)
 
 **Branches:** Spike-Code auf `spike/s14-vr` (Worktree `..\sc-cargoplan-s14`, vier Commits: `b005d24` Spike, `98f4caf`
 Takt/Flags für G3, `e9879f2` Flacker-Schalter, `ebfbda5` Größenreihe; wird nie gemergt), dieser Befund auf
